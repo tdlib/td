@@ -47,6 +47,8 @@ class SqliteKeyValue {
 
   void erase(Slice key);
 
+  void erase_batch(vector<string> keys);
+
   Status begin_read_transaction() TD_WARN_UNUSED_RESULT {
     return db_.begin_read_transaction();
   }

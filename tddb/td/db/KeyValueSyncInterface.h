@@ -40,6 +40,8 @@ class KeyValueSyncInterface {
 
   virtual SeqNo erase(const string &key) = 0;
 
+  virtual SeqNo erase_batch(vector<string> keys) = 0;
+
   virtual void erase_by_prefix(Slice prefix) = 0;
 
   virtual void force_sync(Promise<> &&promise) = 0;

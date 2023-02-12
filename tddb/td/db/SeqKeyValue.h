@@ -43,6 +43,23 @@ class SeqKeyValue {
     return next_seq_no();
   }
 
+  SeqNo erase_batch(vector<string> keys) {
+    size_t count = 0;
+    for (auto &key : keys) {
+      auto it = map_.find(key);
+      if (it != map_.end()) {
+        map_.erase(it);
+        count++;
+      }
+    }
+    if (count == 0) {
+      return 0;
+    }
+    SeqNo result = current_id_ + 1;
+    current_id_ += count;
+    return result;
+  }
+
   SeqNo seq_no() const {
     return current_id_ + 1;
   }

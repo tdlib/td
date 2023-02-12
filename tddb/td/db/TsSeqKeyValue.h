@@ -45,6 +45,11 @@ class TsSeqKeyValue {
     return kv_.erase(key);
   }
 
+  SeqNo erase_batch(vector<string> keys) {
+    auto lock = rw_mutex_.lock_write().move_as_ok();
+    return kv_.erase_batch(std::move(keys));
+  }
+
   std::pair<SeqNo, RwMutex::WriteLock> erase_and_lock(const string &key) {
     auto lock = rw_mutex_.lock_write().move_as_ok();
     return std::make_pair(kv_.erase(key), std::move(lock));

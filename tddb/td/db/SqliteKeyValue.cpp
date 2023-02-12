@@ -88,6 +88,12 @@ void SqliteKeyValue::erase(Slice key) {
   erase_stmt_.reset();
 }
 
+void SqliteKeyValue::erase_batch(vector<string> keys) {
+  for (auto &key : keys) {
+    erase(key);
+  }
+}
+
 void SqliteKeyValue::erase_by_prefix(Slice prefix) {
   auto next = next_prefix(prefix);
   if (next.empty()) {
