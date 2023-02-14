@@ -35,8 +35,8 @@ MessageExtendedMedia::MessageExtendedMedia(
       dimensions_ = get_dimensions(media->w_, media->h_, "MessageExtendedMedia");
       if (media->thumb_ != nullptr) {
         if (media->thumb_->get_id() == telegram_api::photoStrippedSize::ID) {
-          auto thumb = move_tl_object_as<telegram_api::photoStrippedSize>(media->thumb_);
-          minithumbnail_ = thumb->bytes_.as_slice().str();
+          auto thumbnail = move_tl_object_as<telegram_api::photoStrippedSize>(media->thumb_);
+          minithumbnail_ = thumbnail->bytes_.as_slice().str();
         } else {
           LOG(ERROR) << "Receive " << to_string(media->thumb_);
         }

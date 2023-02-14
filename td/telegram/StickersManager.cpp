@@ -2992,10 +2992,10 @@ std::pair<int64, FileId> StickersManager::on_get_sticker_document(tl_object_ptr<
   string minithumbnail;
   auto thumbnail_format = has_webp_thumbnail(document->thumbs_) ? PhotoFormat::Webp : PhotoFormat::Jpeg;
   FileId premium_animation_file_id;
-  for (auto &thumb : document->thumbs_) {
+  for (auto &thumbnail_ptr : document->thumbs_) {
     auto photo_size = get_photo_size(td_->file_manager_.get(), PhotoSizeSource::thumbnail(FileType::Thumbnail, 0),
                                      document_id, document->access_hash_, document->file_reference_.as_slice().str(),
-                                     dc_id, DialogId(), std::move(thumb), thumbnail_format);
+                                     dc_id, DialogId(), std::move(thumbnail_ptr), thumbnail_format);
     if (photo_size.get_offset() == 0) {
       if (!thumbnail.file_id.is_valid()) {
         thumbnail = std::move(photo_size.get<0>());
@@ -3007,17 +3007,17 @@ std::pair<int64, FileId> StickersManager::on_get_sticker_document(tl_object_ptr<
       }
     }
   }
-  for (auto &thumb_ptr : document->video_thumbs_) {
-    if (thumb_ptr->get_id() != telegram_api::videoSize::ID) {
+  for (auto &thumbnail_ptr : document->video_thumbs_) {
+    if (thumbnail_ptr->get_id() != telegram_api::videoSize::ID) {
       continue;
     }
-    auto thumb = move_tl_object_as<telegram_api::videoSize>(thumb_ptr);
-    if (thumb->type_ == "f") {
+    auto video_size = move_tl_object_as<telegram_api::videoSize>(thumbnail_ptr);
+    if (video_size->type_ == "f") {
       if (!premium_animation_file_id.is_valid()) {
         premium_animation_file_id =
             register_photo_size(td_->file_manager_.get(), PhotoSizeSource::thumbnail(FileType::Thumbnail, 'f'),
                                 document_id, document->access_hash_, document->file_reference_.as_slice().str(),
-                                DialogId(), thumb->size_, dc_id, get_sticker_format_photo_format(format));
+                                DialogId(), video_size->size_, dc_id, get_sticker_format_photo_format(format));
       }
     }
   }
@@ -3572,12 +3572,11 @@ StickerSetId StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::sti
 
   PhotoSize thumbnail;
   string minithumbnail;
-  int64 thumbnail_document_id = 0;
-  for (auto &thumb : set->thumbs_) {
+  for (auto &thumbnail_ptr : set->thumbs_) {
     auto photo_size =
         get_photo_size(td_->file_manager_.get(),
                        PhotoSizeSource::sticker_set_thumbnail(set_id.get(), s->access_hash_, set->thumb_version_), 0, 0,
-                       "", DcId::create(set->thumb_dc_id_), DialogId(), std::move(thumb),
+                       "", DcId::create(set->thumb_dc_id_), DialogId(), std::move(thumbnail_ptr),
                        get_sticker_set_thumbnail_format(sticker_format));
     if (photo_size.get_offset() == 0) {
       if (!thumbnail.file_id.is_valid()) {
@@ -3586,9 +3585,6 @@ StickerSetId StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::sti
     } else {
       minithumbnail = std::move(photo_size.get<1>());
     }
-  }
-  if ((set->flags_ & telegram_api::stickerSet::THUMB_DOCUMENT_ID_MASK) != 0) {
-    thumbnail_document_id = set->thumb_document_id_;
   }
   if (!s->is_inited_) {
     LOG(INFO) << "Init " << set_id;
@@ -3599,7 +3595,7 @@ StickerSetId StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::sti
       s->minithumbnail_ = std::move(minithumbnail);
     }
     s->thumbnail_ = std::move(thumbnail);
-    s->thumbnail_document_id_ = thumbnail_document_id;
+    s->thumbnail_document_id_ = set->thumb_document_id_;
     s->is_thumbnail_reloaded_ = true;
     s->are_legacy_sticker_thumbnails_reloaded_ = true;
     s->sticker_count_ = set->count_;
@@ -3646,10 +3642,10 @@ StickerSetId StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::sti
       s->thumbnail_ = std::move(thumbnail);
       s->is_changed_ = true;
     }
-    if (s->thumbnail_document_id_ != thumbnail_document_id) {
+    if (s->thumbnail_document_id_ != set->thumb_document_id_) {
       LOG(INFO) << "Thumbnail of " << set_id << " has changed from " << s->thumbnail_document_id_ << " to "
-                << thumbnail_document_id;
-      s->thumbnail_document_id_ = thumbnail_document_id;
+                << set->thumb_document_id_;
+      s->thumbnail_document_id_ = set->thumb_document_id_;
       s->is_changed_ = true;
     }
     if (!s->is_thumbnail_reloaded_ || !s->are_legacy_sticker_thumbnails_reloaded_) {

@@ -319,10 +319,10 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
     }
 
     if (document_type != Document::Type::VoiceNote) {
-      for (auto &thumb : document->thumbs_) {
+      for (auto &thumbnail_ptr : document->thumbs_) {
         auto photo_size = get_photo_size(td_->file_manager_.get(), PhotoSizeSource::thumbnail(FileType::Thumbnail, 0),
                                          id, access_hash, file_reference, DcId::create(dc_id), owner_dialog_id,
-                                         std::move(thumb), thumbnail_format);
+                                         std::move(thumbnail_ptr), thumbnail_format);
         if (photo_size.get_offset() == 0) {
           if (!thumbnail.file_id.is_valid()) {
             thumbnail = std::move(photo_size.get<0>());
@@ -332,22 +332,22 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
         }
       }
     }
-    for (auto &thumb_ptr : document->video_thumbs_) {
-      if (thumb_ptr->get_id() != telegram_api::videoSize::ID) {
+    for (auto &thumbnail_ptr : document->video_thumbs_) {
+      if (thumbnail_ptr->get_id() != telegram_api::videoSize::ID) {
         continue;
       }
-      auto thumb = move_tl_object_as<telegram_api::videoSize>(thumb_ptr);
-      if (thumb->type_ == "v") {
+      auto video_size = move_tl_object_as<telegram_api::videoSize>(thumbnail_ptr);
+      if (video_size->type_ == "v") {
         if (!animated_thumbnail.file_id.is_valid()) {
           animated_thumbnail =
               get_animation_size(td_, PhotoSizeSource::thumbnail(FileType::Thumbnail, 0), id, access_hash,
-                                 file_reference, DcId::create(dc_id), owner_dialog_id, std::move(thumb));
+                                 file_reference, DcId::create(dc_id), owner_dialog_id, std::move(video_size));
         }
-      } else if (thumb->type_ == "f") {
+      } else if (video_size->type_ == "f") {
         if (!premium_animation_file_id.is_valid()) {
           premium_animation_file_id =
               register_photo_size(td_->file_manager_.get(), PhotoSizeSource::thumbnail(FileType::Thumbnail, 'f'), id,
-                                  access_hash, file_reference, owner_dialog_id, thumb->size_, DcId::create(dc_id),
+                                  access_hash, file_reference, owner_dialog_id, video_size->size_, DcId::create(dc_id),
                                   get_sticker_format_photo_format(sticker_format));
         }
       }
