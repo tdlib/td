@@ -287,8 +287,8 @@ class StickersManager final : public Actor {
 
   void move_sticker_set_to_top_by_custom_emoji_ids(const vector<CustomEmojiId> &custom_emoji_ids);
 
-  FileId upload_sticker_file(UserId user_id, td_api::object_ptr<td_api::StickerFormat> &&sticker_format,
-                             td_api::object_ptr<td_api::InputFile> &&input_file, Promise<Unit> &&promise);
+  FileId upload_sticker_file(UserId user_id, StickerFormat sticker_format,
+                             const td_api::object_ptr<td_api::InputFile> &input_file, Promise<Unit> &&promise);
 
   void get_suggested_sticker_set_name(string title, Promise<string> &&promise);
 
