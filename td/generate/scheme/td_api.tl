@@ -5026,10 +5026,9 @@ proxies proxies:vector<proxy> = Proxies;
 //@sticker File with the sticker; must fit in a 512x512 square. For WEBP stickers the file must be in WEBP or PNG format, which will be converted to WEBP server-side.
 //-See https://core.telegram.org/animated_stickers#technical-requirements for technical requirements
 //@emojis String with 1-20 emoji corresponding to the sticker
-//@format Sticker format
 //@mask_position Position where the mask is placed; pass null if not specified
 //@keywords List of up to 20 keywords with total length up to 64 characters, which can be used to find the sticker
-inputSticker sticker:InputFile emojis:string format:StickerFormat mask_position:maskPosition keywords:vector<string> = InputSticker;
+inputSticker sticker:InputFile emojis:string mask_position:maskPosition keywords:vector<string> = InputSticker;
 
 
 //@description Represents a date range @start_date Point in time (Unix timestamp) at which the date range begins @end_date Point in time (Unix timestamp) at which the date range ends
@@ -7986,11 +7985,13 @@ checkStickerSetName name:string = CheckStickerSetNameResult;
 //@user_id Sticker set owner; ignored for regular users
 //@title Sticker set title; 1-64 characters
 //@name Sticker set name. Can contain only English letters, digits and underscores. Must end with *"_by_<bot username>"* (*<bot_username>* is case insensitive) for bots; 1-64 characters
+//@sticker_format Format of the stickers in the set
 //@sticker_type Type of the stickers in the set
 //@needs_repainting True, if stickers in the sticker set must be repainted; for custom emoji sticker sets only
 //@stickers List of stickers to be added to the set; must be non-empty. All stickers must have the same format. For TGS stickers, uploadStickerFile must be used before the sticker is shown
 //@source Source of the sticker set; may be empty if unknown
-createNewStickerSet user_id:int53 title:string name:string sticker_type:StickerType needs_repainting:Bool stickers:vector<inputSticker> source:string = StickerSet;
+createNewStickerSet user_id:int53 title:string name:string sticker_format:StickerFormat sticker_type:StickerType needs_repainting:Bool stickers:vector<inputSticker> source:string = StickerSet;
+
 
 //@description Adds a new sticker to a set; for bots only. Returns the sticker set
 //@user_id Sticker set owner

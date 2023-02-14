@@ -298,9 +298,10 @@ class StickersManager final : public Actor {
   static td_api::object_ptr<td_api::CheckStickerSetNameResult> get_check_sticker_set_name_result_object(
       CheckStickerSetNameResult result);
 
-  void create_new_sticker_set(UserId user_id, string title, string short_name, StickerType sticker_type,
-                              bool has_text_color, vector<td_api::object_ptr<td_api::inputSticker>> &&stickers,
-                              string software, Promise<td_api::object_ptr<td_api::stickerSet>> &&promise);
+  void create_new_sticker_set(UserId user_id, string title, string short_name, StickerFormat sticker_format,
+                              StickerType sticker_type, bool has_text_color,
+                              vector<td_api::object_ptr<td_api::inputSticker>> &&stickers, string software,
+                              Promise<td_api::object_ptr<td_api::stickerSet>> &&promise);
 
   void add_sticker_to_set(UserId user_id, string short_name, tl_object_ptr<td_api::inputSticker> &&sticker,
                           Promise<td_api::object_ptr<td_api::stickerSet>> &&promise);
@@ -846,11 +847,12 @@ class StickersManager final : public Actor {
 
   std::pair<vector<FileId>, vector<FileId>> split_stickers_by_premium(const StickerSet *sticker_set) const;
 
-  Result<std::tuple<FileId, bool, bool, StickerFormat>> prepare_input_file(
-      const tl_object_ptr<td_api::InputFile> &input_file, StickerFormat format, StickerType type, bool for_thumbnail);
+  Result<std::tuple<FileId, bool, bool>> prepare_input_file(const tl_object_ptr<td_api::InputFile> &input_file,
+                                                            StickerFormat sticker_format, StickerType sticker_type,
+                                                            bool for_thumbnail);
 
-  Result<std::tuple<FileId, bool, bool, StickerFormat>> prepare_input_sticker(td_api::inputSticker *sticker,
-                                                                              StickerType sticker_type);
+  Result<std::tuple<FileId, bool, bool>> prepare_input_sticker(td_api::inputSticker *sticker,
+                                                               StickerFormat sticker_format, StickerType sticker_type);
 
   tl_object_ptr<telegram_api::inputStickerSetItem> get_input_sticker(const td_api::inputSticker *sticker,
                                                                      FileId file_id) const;

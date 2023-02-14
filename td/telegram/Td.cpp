@@ -7288,10 +7288,10 @@ void Td::on_request(uint64 id, td_api::createNewStickerSet &request) {
   CLEAN_INPUT_STRING(request.name_);
   CLEAN_INPUT_STRING(request.source_);
   CREATE_REQUEST_PROMISE();
-  stickers_manager_->create_new_sticker_set(UserId(request.user_id_), std::move(request.title_),
-                                            std::move(request.name_), get_sticker_type(request.sticker_type_),
-                                            request.needs_repainting_, std::move(request.stickers_),
-                                            std::move(request.source_), std::move(promise));
+  stickers_manager_->create_new_sticker_set(
+      UserId(request.user_id_), std::move(request.title_), std::move(request.name_),
+      get_sticker_format(request.sticker_format_), get_sticker_type(request.sticker_type_), request.needs_repainting_,
+      std::move(request.stickers_), std::move(request.source_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::addStickerToSet &request) {

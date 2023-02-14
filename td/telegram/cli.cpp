@@ -2896,11 +2896,11 @@ class CliClient final : public Actor {
       get_args(args, title, name, stickers);
       auto input_stickers =
           transform(autosplit(stickers), [op](Slice sticker) -> td_api::object_ptr<td_api::inputSticker> {
-            return td_api::make_object<td_api::inputSticker>(as_input_file(sticker), "😀", as_sticker_format(op),
-                                                             as_mask_position(op), vector<string>{"keyword"});
+            return td_api::make_object<td_api::inputSticker>(as_input_file(sticker), "😀", as_mask_position(op),
+                                                             vector<string>{"keyword"});
           });
-      send_request(td_api::make_object<td_api::createNewStickerSet>(my_id_, title, name, as_sticker_type(op), false,
-                                                                    std::move(input_stickers), "tg_cli"));
+      send_request(td_api::make_object<td_api::createNewStickerSet>(
+          my_id_, title, name, as_sticker_format(op), as_sticker_type(op), false, std::move(input_stickers), "tg_cli"));
     } else if (op == "sss") {
       send_request(td_api::make_object<td_api::searchStickerSet>(args));
     } else if (op == "siss") {

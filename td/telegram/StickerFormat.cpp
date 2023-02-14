@@ -11,7 +11,9 @@
 namespace td {
 
 StickerFormat get_sticker_format(const td_api::object_ptr<td_api::StickerFormat> &format) {
-  CHECK(format != nullptr);
+  if (format == nullptr) {
+    return StickerFormat::Unknown;
+  }
   switch (format->get_id()) {
     case td_api::stickerFormatWebp::ID:
       return StickerFormat::Webp;

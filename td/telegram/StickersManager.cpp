@@ -7978,8 +7978,9 @@ void StickersManager::move_sticker_set_to_top_by_custom_emoji_ids(const vector<C
   }
 }
 
-Result<std::tuple<FileId, bool, bool, StickerFormat>> StickersManager::prepare_input_sticker(
-    td_api::inputSticker *sticker, StickerType sticker_type) {
+Result<std::tuple<FileId, bool, bool>> StickersManager::prepare_input_sticker(td_api::inputSticker *sticker,
+                                                                              StickerFormat sticker_format,
+                                                                              StickerType sticker_type) {
   if (sticker == nullptr) {
     return Status::Error(400, "Input sticker must be non-empty");
   }
@@ -7999,26 +8000,23 @@ Result<std::tuple<FileId, bool, bool, StickerFormat>> StickersManager::prepare_i
     }
   }
 
-  if (sticker->format_ == nullptr) {
-    return Status::Error(400, "Sticker format must be non-empty");
-  }
-
-  return prepare_input_file(sticker->sticker_, get_sticker_format(sticker->format_), sticker_type, false);
+  return prepare_input_file(sticker->sticker_, sticker_format, sticker_type, false);
 }
 
-Result<std::tuple<FileId, bool, bool, StickerFormat>> StickersManager::prepare_input_file(
-    const tl_object_ptr<td_api::InputFile> &input_file, StickerFormat format, StickerType type, bool for_thumbnail) {
-  auto file_type = format == StickerFormat::Tgs ? FileType::Sticker : FileType::Document;
+Result<std::tuple<FileId, bool, bool>> StickersManager::prepare_input_file(
+    const tl_object_ptr<td_api::InputFile> &input_file, StickerFormat sticker_format, StickerType sticker_type,
+    bool for_thumbnail) {
+  auto file_type = sticker_format == StickerFormat::Tgs ? FileType::Sticker : FileType::Document;
   TRY_RESULT(file_id, td_->file_manager_->get_input_file_id(file_type, input_file, DialogId(), for_thumbnail, false));
   if (file_id.empty()) {
-    return std::make_tuple(FileId(), false, false, StickerFormat::Unknown);
+    return std::make_tuple(FileId(), false, false);
   }
 
-  if (format == StickerFormat::Tgs) {
+  if (sticker_format == StickerFormat::Tgs) {
     int32 width = for_thumbnail ? 100 : 512;
     create_sticker(file_id, FileId(), string(), PhotoSize(), get_dimensions(width, width, "prepare_input_file"),
-                   nullptr, nullptr, format, nullptr);
-  } else if (format == StickerFormat::Webm) {
+                   nullptr, nullptr, sticker_format, nullptr);
+  } else if (sticker_format == StickerFormat::Webm) {
     td_->documents_manager_->create_document(file_id, string(), PhotoSize(), "sticker.webm", "video/webm", false);
   } else {
     td_->documents_manager_->create_document(file_id, string(), PhotoSize(), "sticker.png", "image/png", false);
@@ -8041,13 +8039,13 @@ Result<std::tuple<FileId, bool, bool, StickerFormat>> StickersManager::prepare_i
       is_url = true;
     } else {
       if (file_view.has_local_location() &&
-          file_view.expected_size() > get_max_sticker_file_size(format, type, for_thumbnail)) {
+          file_view.expected_size() > get_max_sticker_file_size(sticker_format, sticker_type, for_thumbnail)) {
         return Status::Error(400, "File is too big");
       }
       is_local = true;
     }
   }
-  return std::make_tuple(file_id, is_url, is_local, format);
+  return std::make_tuple(file_id, is_url, is_local);
 }
 
 FileId StickersManager::upload_sticker_file(UserId user_id, td_api::object_ptr<td_api::StickerFormat> &&sticker_format,
@@ -8160,7 +8158,8 @@ td_api::object_ptr<td_api::CheckStickerSetNameResult> StickersManager::get_check
   }
 }
 
-void StickersManager::create_new_sticker_set(UserId user_id, string title, string short_name, StickerType sticker_type,
+void StickersManager::create_new_sticker_set(UserId user_id, string title, string short_name,
+                                             StickerFormat sticker_format, StickerType sticker_type,
                                              bool has_text_color,
                                              vector<td_api::object_ptr<td_api::inputSticker>> &&stickers,
                                              string software,
@@ -8190,25 +8189,25 @@ void StickersManager::create_new_sticker_set(UserId user_id, string title, strin
     return promise.set_error(Status::Error(400, "Only custom emoji stickers support repainting"));
   }
 
+  if (sticker_format == StickerFormat::Unknown) {
+    return promise.set_error(Status::Error(400, "Sticker format must be non-empty"));
+  }
+
   vector<FileId> file_ids;
   file_ids.reserve(stickers.size());
   vector<FileId> local_file_ids;
   vector<FileId> url_file_ids;
-  FlatHashSet<int32> sticker_formats;
-  StickerFormat sticker_format = StickerFormat::Unknown;
   for (auto &sticker : stickers) {
-    auto r_file_id = prepare_input_sticker(sticker.get(), sticker_type);
+    auto r_file_id = prepare_input_sticker(sticker.get(), sticker_format, sticker_type);
     if (r_file_id.is_error()) {
       return promise.set_error(r_file_id.move_as_error());
     }
     auto file_id = std::get<0>(r_file_id.ok());
     auto is_url = std::get<1>(r_file_id.ok());
     auto is_local = std::get<2>(r_file_id.ok());
-    sticker_format = std::get<3>(r_file_id.ok());
     if (is_sticker_format_animated(sticker_format) && is_url) {
       return promise.set_error(Status::Error(400, "Animated stickers can't be uploaded by URL"));
     }
-    sticker_formats.insert(static_cast<int32>(get_sticker_format(sticker->format_)) + 1);
 
     file_ids.push_back(file_id);
     if (is_url) {
@@ -8216,9 +8215,6 @@ void StickersManager::create_new_sticker_set(UserId user_id, string title, strin
     } else if (is_local) {
       local_file_ids.push_back(file_id);
     }
-  }
-  if (sticker_formats.size() != 1) {
-    return promise.set_error(Status::Error(400, "All stickers must be of the same format"));
   }
 
   auto pending_new_sticker_set = make_unique<PendingNewStickerSet>();
@@ -8456,7 +8452,7 @@ void StickersManager::do_add_sticker_to_set(UserId user_id, string short_name,
     return promise.set_error(Status::Error(400, "Sticker set not found"));
   }
 
-  auto r_file_id = prepare_input_sticker(sticker.get(), sticker_set->sticker_type_);
+  auto r_file_id = prepare_input_sticker(sticker.get(), sticker_set->sticker_format_, sticker_set->sticker_type_);
   if (r_file_id.is_error()) {
     return promise.set_error(r_file_id.move_as_error());
   }
