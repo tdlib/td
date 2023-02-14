@@ -8006,6 +8006,10 @@ Result<std::tuple<FileId, bool, bool>> StickersManager::prepare_input_sticker(td
 Result<std::tuple<FileId, bool, bool>> StickersManager::prepare_input_file(
     const tl_object_ptr<td_api::InputFile> &input_file, StickerFormat sticker_format, StickerType sticker_type,
     bool for_thumbnail) {
+  if (sticker_format == StickerFormat::Unknown) {
+    return Status::Error(400, "Sticker format must be non-empty");
+  }
+
   auto file_type = sticker_format == StickerFormat::Tgs ? FileType::Sticker : FileType::Document;
   TRY_RESULT(file_id, td_->file_manager_->get_input_file_id(file_type, input_file, DialogId(), for_thumbnail, false));
   if (file_id.empty()) {
@@ -8045,6 +8049,14 @@ Result<std::tuple<FileId, bool, bool>> StickersManager::prepare_input_file(
       is_local = true;
     }
   }
+  if (is_url) {
+    if (sticker_format == StickerFormat::Tgs) {
+      return Status::Error(400, "Animated stickers can't be uploaded by URL");
+    }
+    if (sticker_format == StickerFormat::Webm) {
+      return Status::Error(400, "Video stickers can't be uploaded by URL");
+    }
+  }
   return std::make_tuple(file_id, is_url, is_local);
 }
 
@@ -8059,11 +8071,6 @@ FileId StickersManager::upload_sticker_file(UserId user_id, StickerFormat sticke
   auto r_input_user = td_->contacts_manager_->get_input_user(user_id);
   if (r_input_user.is_error()) {
     promise.set_error(r_input_user.move_as_error());
-    return FileId();
-  }
-
-  if (sticker_format == StickerFormat::Unknown) {
-    promise.set_error(Status::Error(400, "Sticker format must be non-empty"));
     return FileId();
   }
 
@@ -8189,10 +8196,6 @@ void StickersManager::create_new_sticker_set(UserId user_id, string title, strin
     return promise.set_error(Status::Error(400, "Only custom emoji stickers support repainting"));
   }
 
-  if (sticker_format == StickerFormat::Unknown) {
-    return promise.set_error(Status::Error(400, "Sticker format must be non-empty"));
-  }
-
   vector<FileId> file_ids;
   file_ids.reserve(stickers.size());
   vector<FileId> local_file_ids;
@@ -8205,9 +8208,6 @@ void StickersManager::create_new_sticker_set(UserId user_id, string title, strin
     auto file_id = std::get<0>(r_file_id.ok());
     auto is_url = std::get<1>(r_file_id.ok());
     auto is_local = std::get<2>(r_file_id.ok());
-    if (is_sticker_format_animated(sticker_format) && is_url) {
-      return promise.set_error(Status::Error(400, "Animated stickers can't be uploaded by URL"));
-    }
 
     file_ids.push_back(file_id);
     if (is_url) {
