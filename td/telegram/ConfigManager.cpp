@@ -904,8 +904,30 @@ class ConfigRecoverer final : public Actor {
   }
 };
 
+template <class StorerT>
+void ConfigManager::AppConfig::store(StorerT &storer) const {
+  td::store(version_, storer);
+  td::store(hash_, storer);
+  config_->store(storer);
+}
+
+template <class ParserT>
+void ConfigManager::AppConfig::parse(ParserT &parser) {
+  td::parse(version_, parser);
+  if (version_ != CURRENT_VERSION) {
+    version_ = 0;
+    return parser.set_error("Invalid config version");
+  }
+  td::parse(hash_, parser);
+  auto buffer = parser.template fetch_string_raw<BufferSlice>(parser.get_left_len());
+  TlBufferParser buffer_parser{&buffer};
+  config_ = telegram_api::JSONValue::fetch(buffer_parser);
+}
+
 ConfigManager::ConfigManager(ActorShared<> parent) : parent_(std::move(parent)) {
   lazy_request_flood_control_.add_limit(20, 1);
+
+  log_event_parse(app_config_, G()->td_db()->get_binlog_pmc()->get("app_config")).ignore();
 }
 
 void ConfigManager::start_up() {
@@ -994,7 +1016,7 @@ void ConfigManager::try_request_app_config() {
     return;
   }
 
-  auto query = G()->net_query_creator().create_unauth(telegram_api::help_getAppConfig(0));
+  auto query = G()->net_query_creator().create_unauth(telegram_api::help_getAppConfig(app_config_.hash_));
   query->total_timeout_limit_ = 60 * 60 * 24;
   G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this, 1));
 }
@@ -1266,15 +1288,23 @@ void ConfigManager::on_result(NetQueryPtr res) {
 
     auto app_config_ptr = result_ptr.move_as_ok();
     if (app_config_ptr->get_id() == telegram_api::help_appConfigNotModified::ID) {
-      fail_promises(promises, Status::Error(500, "Receive unexpected response"));
-      fail_promises(unit_promises, Status::Error(500, "Receive unexpected response"));
-      return;
+      if (app_config_.version_ == 0) {
+        LOG(ERROR) << "Receive appConfigNotModified";
+        fail_promises(promises, Status::Error(500, "Receive unexpected response"));
+        fail_promises(unit_promises, Status::Error(500, "Receive unexpected response"));
+        return;
+      }
+    } else {
+      CHECK(app_config_ptr->get_id() == telegram_api::help_appConfig::ID);
+      auto app_config = telegram_api::move_object_as<telegram_api::help_appConfig>(app_config_ptr);
+      process_app_config(app_config->config_);
+      app_config_.version_ = AppConfig::CURRENT_VERSION;
+      app_config_.hash_ = app_config->hash_;
+      app_config_.config_ = std::move(app_config->config_);
+      G()->td_db()->get_binlog_pmc()->set("app_config", log_event_store(app_config_).as_slice().str());
     }
-    CHECK(app_config_ptr->get_id() == telegram_api::help_appConfig::ID);
-    auto app_config = telegram_api::move_object_as<telegram_api::help_appConfig>(app_config_ptr);
-    process_app_config(app_config->config_);
     for (auto &promise : promises) {
-      promise.set_value(convert_json_value_object(app_config->config_));
+      promise.set_value(convert_json_value_object(app_config_.config_));
     }
     set_promises(unit_promises);
     return;

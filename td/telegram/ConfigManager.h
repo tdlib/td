@@ -105,6 +105,19 @@ class ConfigManager final : public NetQueryCallback {
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
+  struct AppConfig {
+    static constexpr int32 CURRENT_VERSION = 1;
+    int32 version_ = 0;
+    int32 hash_ = 0;
+    telegram_api::object_ptr<telegram_api::JSONValue> config_;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
+  };
+
   ActorShared<> parent_;
   int32 config_sent_cnt_{0};
   bool reopen_sessions_after_get_config_{false};
@@ -129,6 +142,8 @@ class ConfigManager final : public NetQueryCallback {
   bool is_set_archive_and_mute_request_sent_ = false;
   bool last_set_archive_and_mute_ = false;
 
+  AppConfig app_config_;
+
   vector<SuggestedAction> suggested_actions_;
   size_t dismiss_suggested_action_request_count_ = 0;
   std::map<int32, vector<Promise<Unit>>> dismiss_suggested_action_queries_;
@@ -148,7 +163,7 @@ class ConfigManager final : public NetQueryCallback {
 
   void try_request_app_config();
 
-  void process_app_config(tl_object_ptr<telegram_api::JSONValue> &config);
+  void process_app_config(telegram_api::object_ptr<telegram_api::JSONValue> &config);
 
   void do_set_ignore_sensitive_content_restrictions(bool ignore_sensitive_content_restrictions);
 
