@@ -1555,25 +1555,6 @@ class GetChatScheduledMessagesRequest final : public RequestActor<> {
   }
 };
 
-class GetWebPagePreviewRequest final : public RequestOnceActor {
-  td_api::object_ptr<td_api::formattedText> text_;
-
-  int64 request_id_ = 0;
-
-  void do_run(Promise<Unit> &&promise) final {
-    request_id_ = td_->web_pages_manager_->get_web_page_preview(std::move(text_), std::move(promise));
-  }
-
-  void do_send_result() final {
-    send_result(td_->web_pages_manager_->get_web_page_preview_result(request_id_));
-  }
-
- public:
-  GetWebPagePreviewRequest(ActorShared<Td> td, uint64 request_id, td_api::object_ptr<td_api::formattedText> text)
-      : RequestOnceActor(std::move(td), request_id), text_(std::move(text)) {
-  }
-};
-
 class GetWebPageInstantViewRequest final : public RequestActor<WebPageId> {
   string url_;
   bool force_full_;
@@ -5740,7 +5721,8 @@ void Td::on_request(uint64 id, const td_api::resendMessages &request) {
 
 void Td::on_request(uint64 id, td_api::getWebPagePreview &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(GetWebPagePreviewRequest, std::move(request.text_));
+  CREATE_REQUEST_PROMISE();
+  web_pages_manager_->get_web_page_preview(std::move(request.text_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getWebPageInstantView &request) {

@@ -56,17 +56,15 @@
 namespace td {
 
 class GetWebPagePreviewQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
-  int64 request_id_;
+  Promise<td_api::object_ptr<td_api::webPage>> promise_;
   string url_;
 
  public:
-  explicit GetWebPagePreviewQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit GetWebPagePreviewQuery(Promise<td_api::object_ptr<td_api::webPage>> &&promise)
+      : promise_(std::move(promise)) {
   }
 
-  void send(const string &text, vector<tl_object_ptr<telegram_api::MessageEntity>> &&entities, int64 request_id,
-            string url) {
-    request_id_ = request_id;
+  void send(const string &text, vector<tl_object_ptr<telegram_api::MessageEntity>> &&entities, string url) {
     url_ = std::move(url);
 
     int32 flags = 0;
@@ -86,11 +84,11 @@ class GetWebPagePreviewQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetWebPagePreviewQuery: " << to_string(ptr);
-    td_->web_pages_manager_->on_get_web_page_preview_success(request_id_, url_, std::move(ptr), std::move(promise_));
+    td_->web_pages_manager_->on_get_web_page_preview(url_, std::move(ptr), std::move(promise_));
   }
 
   void on_error(Status status) final {
-    td_->web_pages_manager_->on_get_web_page_preview_fail(request_id_, url_, std::move(status), std::move(promise_));
+    promise_.set_error(std::move(status));
   }
 };
 
@@ -417,7 +415,7 @@ void WebPagesManager::tear_down() {
 
 WebPagesManager::~WebPagesManager() {
   Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), web_pages_, web_page_messages_,
-                                              got_web_page_previews_, url_to_web_page_id_, url_to_file_source_id_);
+                                              url_to_web_page_id_, url_to_file_source_id_);
 }
 
 WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> &&web_page_ptr,
@@ -735,21 +733,19 @@ void WebPagesManager::unregister_web_page(WebPageId web_page_id, FullMessageId f
   }
 }
 
-void WebPagesManager::on_get_web_page_preview_success(int64 request_id, const string &url,
-                                                      tl_object_ptr<telegram_api::MessageMedia> &&message_media_ptr,
-                                                      Promise<Unit> &&promise) {
+void WebPagesManager::on_get_web_page_preview(const string &url,
+                                              tl_object_ptr<telegram_api::MessageMedia> &&message_media_ptr,
+                                              Promise<td_api::object_ptr<td_api::webPage>> &&promise) {
   CHECK(message_media_ptr != nullptr);
   int32 constructor_id = message_media_ptr->get_id();
   if (constructor_id != telegram_api::messageMediaWebPage::ID) {
     if (constructor_id == telegram_api::messageMediaEmpty::ID) {
-      on_get_web_page_preview_success(request_id, url, WebPageId(), std::move(promise));
+      on_get_web_page_preview_success(url, WebPageId(), std::move(promise));
       return;
     }
 
     LOG(ERROR) << "Receive " << to_string(message_media_ptr) << " instead of web page";
-    on_get_web_page_preview_fail(request_id, url, Status::Error(500, "Receive not web page in GetWebPagePreview"),
-                                 std::move(promise));
-    return;
+    return promise.set_error(Status::Error(500, "Receive not web page in GetWebPagePreview"));
   }
 
   auto message_media_web_page = move_tl_object_as<telegram_api::messageMediaWebPage>(message_media_ptr);
@@ -757,76 +753,44 @@ void WebPagesManager::on_get_web_page_preview_success(int64 request_id, const st
 
   auto web_page_id = on_get_web_page(std::move(message_media_web_page->webpage_), DialogId());
   if (web_page_id.is_valid() && !have_web_page(web_page_id)) {
-    pending_get_web_pages_[web_page_id].emplace(request_id,
-                                                std::make_pair(url, std::move(promise)));  // TODO MultiPromise ?
+    pending_get_web_pages_[web_page_id].emplace_back(url, std::move(promise));
     return;
   }
 
-  on_get_web_page_preview_success(request_id, url, web_page_id, std::move(promise));
+  on_get_web_page_preview_success(url, web_page_id, std::move(promise));
 }
 
-void WebPagesManager::on_get_web_page_preview_success(int64 request_id, const string &url, WebPageId web_page_id,
-                                                      Promise<Unit> &&promise) {
+void WebPagesManager::on_get_web_page_preview_success(const string &url, WebPageId web_page_id,
+                                                      Promise<td_api::object_ptr<td_api::webPage>> &&promise) {
   CHECK(web_page_id == WebPageId() || have_web_page(web_page_id));
-
-  bool is_inserted = got_web_page_previews_.emplace(request_id, web_page_id).second;
-  CHECK(is_inserted);
 
   if (web_page_id.is_valid() && !url.empty()) {
     on_get_web_page_by_url(url, web_page_id, true);
   }
 
-  promise.set_value(Unit());
+  promise.set_value(get_web_page_object(web_page_id));
 }
 
-void WebPagesManager::on_get_web_page_preview_fail(int64 request_id, const string &url, Status error,
-                                                   Promise<Unit> &&promise) {
-  LOG(INFO) << "Clean up getting of web page preview with URL \"" << url << '"';
-  CHECK(error.is_error());
-  promise.set_error(std::move(error));
-}
-
-int64 WebPagesManager::get_web_page_preview(td_api::object_ptr<td_api::formattedText> &&text, Promise<Unit> &&promise) {
-  auto r_formatted_text = get_formatted_text(td_, DialogId(), std::move(text), false, true, true, true);
-  if (r_formatted_text.is_error()) {
-    promise.set_error(r_formatted_text.move_as_error());
-    return 0;
-  }
-  auto formatted_text = r_formatted_text.move_as_ok();
+void WebPagesManager::get_web_page_preview(td_api::object_ptr<td_api::formattedText> &&text,
+                                           Promise<td_api::object_ptr<td_api::webPage>> &&promise) {
+  TRY_RESULT_PROMISE(promise, formatted_text,
+                     get_formatted_text(td_, DialogId(), std::move(text), false, true, true, true));
 
   auto url = get_first_url(formatted_text);
   if (url.empty()) {
-    promise.set_value(Unit());
-    return 0;
+    return promise.set_value(nullptr);
   }
 
   LOG(INFO) << "Trying to get web page preview for message \"" << formatted_text.text << '"';
-  int64 request_id = get_web_page_preview_request_id_++;
 
   auto web_page_id = get_web_page_by_url(url);
   if (web_page_id.is_valid()) {
-    got_web_page_previews_[request_id] = web_page_id;
-    promise.set_value(Unit());
-  } else {
-    td_->create_handler<GetWebPagePreviewQuery>(std::move(promise))
-        ->send(
-            formatted_text.text,
-            get_input_message_entities(td_->contacts_manager_.get(), formatted_text.entities, "get_web_page_preview"),
-            request_id, std::move(url));
+    return promise.set_value(get_web_page_object(web_page_id));
   }
-  return request_id;
-}
-
-tl_object_ptr<td_api::webPage> WebPagesManager::get_web_page_preview_result(int64 request_id) {
-  if (request_id == 0) {
-    return nullptr;
-  }
-
-  auto it = got_web_page_previews_.find(request_id);
-  CHECK(it != got_web_page_previews_.end());
-  auto web_page_id = it->second;
-  got_web_page_previews_.erase(it);
-  return get_web_page_object(web_page_id);
+  td_->create_handler<GetWebPagePreviewQuery>(std::move(promise))
+      ->send(formatted_text.text,
+             get_input_message_entities(td_->contacts_manager_.get(), formatted_text.entities, "get_web_page_preview"),
+             std::move(url));
 }
 
 void WebPagesManager::get_web_page_instant_view(const string &url, bool force_full, Promise<WebPageId> &&promise) {
@@ -1347,8 +1311,8 @@ void WebPagesManager::on_web_page_changed(WebPageId web_page_id, bool have_web_p
     auto requests = std::move(get_it->second);
     pending_get_web_pages_.erase(get_it);
     for (auto &request : requests) {
-      on_get_web_page_preview_success(request.first, request.second.first, have_web_page ? web_page_id : WebPageId(),
-                                      std::move(request.second.second));
+      on_get_web_page_preview_success(request.first, have_web_page ? web_page_id : WebPageId(),
+                                      std::move(request.second));
     }
   }
   pending_web_pages_timeout_.cancel_timeout(web_page_id.get());
@@ -1401,8 +1365,7 @@ void WebPagesManager::on_pending_web_page_timeout(WebPageId web_page_id) {
     auto requests = std::move(get_it->second);
     pending_get_web_pages_.erase(get_it);
     for (auto &request : requests) {
-      on_get_web_page_preview_fail(request.first, request.second.first, Status::Error(500, "Request timeout exceeded"),
-                                   std::move(request.second.second));
+      request.second.set_error(Status::Error(500, "Request timeout exceeded"));
       count++;
     }
   }

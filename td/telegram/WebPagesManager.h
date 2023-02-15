@@ -62,9 +62,8 @@ class WebPagesManager final : public Actor {
 
   tl_object_ptr<td_api::webPageInstantView> get_web_page_instant_view_object(WebPageId web_page_id) const;
 
-  int64 get_web_page_preview(td_api::object_ptr<td_api::formattedText> &&text, Promise<Unit> &&promise);
-
-  tl_object_ptr<td_api::webPage> get_web_page_preview_result(int64 request_id);
+  void get_web_page_preview(td_api::object_ptr<td_api::formattedText> &&text,
+                            Promise<td_api::object_ptr<td_api::webPage>> &&promise);
 
   void get_web_page_instant_view(const string &url, bool force_full, Promise<WebPageId> &&promise);
 
@@ -74,11 +73,8 @@ class WebPagesManager final : public Actor {
 
   void reload_web_page_by_url(const string &url, Promise<WebPageId> &&promise);
 
-  void on_get_web_page_preview_success(int64 request_id, const string &url,
-                                       tl_object_ptr<telegram_api::MessageMedia> &&message_media_ptr,
-                                       Promise<Unit> &&promise);
-
-  void on_get_web_page_preview_fail(int64 request_id, const string &url, Status error, Promise<Unit> &&promise);
+  void on_get_web_page_preview(const string &url, tl_object_ptr<telegram_api::MessageMedia> &&message_media_ptr,
+                               Promise<td_api::object_ptr<td_api::webPage>> &&promise);
 
   SecretInputMedia get_secret_input_media(WebPageId web_page_id) const;
 
@@ -120,8 +116,8 @@ class WebPagesManager final : public Actor {
 
   void on_pending_web_page_timeout(WebPageId web_page_id);
 
-  void on_get_web_page_preview_success(int64 request_id, const string &url, WebPageId web_page_id,
-                                       Promise<Unit> &&promise);
+  void on_get_web_page_preview_success(const string &url, WebPageId web_page_id,
+                                       Promise<td_api::object_ptr<td_api::webPage>> &&promise);
 
   void on_get_web_page_instant_view(WebPage *web_page, tl_object_ptr<telegram_api::page> &&page, int32 hash,
                                     DialogId owner_dialog_id);
@@ -181,10 +177,8 @@ class WebPagesManager final : public Actor {
 
   FlatHashMap<WebPageId, FlatHashSet<FullMessageId, FullMessageIdHash>, WebPageIdHash> web_page_messages_;
 
-  FlatHashMap<WebPageId, FlatHashMap<int64, std::pair<string, Promise<Unit>>>, WebPageIdHash> pending_get_web_pages_;
-
-  int64 get_web_page_preview_request_id_ = 1;
-  FlatHashMap<int64, WebPageId> got_web_page_previews_;
+  FlatHashMap<WebPageId, vector<std::pair<string, Promise<td_api::object_ptr<td_api::webPage>>>>, WebPageIdHash>
+      pending_get_web_pages_;
 
   FlatHashMap<string, WebPageId> url_to_web_page_id_;
 
