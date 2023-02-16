@@ -244,9 +244,7 @@ void SponsoredMessageManager::get_dialog_sponsored_messages(
 
 void SponsoredMessageManager::on_get_dialog_sponsored_messages(
     DialogId dialog_id, Result<telegram_api::object_ptr<telegram_api::messages_SponsoredMessages>> &&result) {
-  if (result.is_ok() && G()->close_flag()) {
-    result = Global::request_aborted_error();
-  }
+  G()->ignore_result_if_closing(result);
 
   auto &messages = dialog_sponsored_messages_[dialog_id];
   CHECK(messages != nullptr);

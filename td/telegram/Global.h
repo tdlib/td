@@ -433,6 +433,13 @@ class Global final : public ActorContext {
     return Status::Error(500, "Request aborted");
   }
 
+  template <class T>
+  void ignore_result_if_closing(Result<T> &result) const {
+    if (close_flag() && result.is_ok()) {
+      result = request_aborted_error();
+    }
+  }
+
   void set_close_flag() {
     close_flag_ = true;
   }

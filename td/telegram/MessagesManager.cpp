@@ -23970,9 +23970,7 @@ MessagesManager::FoundMessages MessagesManager::offline_search_messages(DialogId
 
 void MessagesManager::on_message_db_fts_result(Result<MessageDbFtsResult> result, string offset, int32 limit,
                                                int64 random_id, Promise<Unit> &&promise) {
-  if (G()->close_flag() && result.is_ok()) {
-    result = Global::request_aborted_error();
-  }
+  G()->ignore_result_if_closing(result);
   if (result.is_error()) {
     found_fts_messages_.erase(random_id);
     return promise.set_error(result.move_as_error());
@@ -24002,9 +24000,7 @@ void MessagesManager::on_message_db_fts_result(Result<MessageDbFtsResult> result
 void MessagesManager::on_message_db_calls_result(Result<MessageDbCallsResult> result, int64 random_id,
                                                  MessageId first_db_message_id, MessageSearchFilter filter,
                                                  Promise<Unit> &&promise) {
-  if (G()->close_flag() && result.is_ok()) {
-    result = Global::request_aborted_error();
-  }
+  G()->ignore_result_if_closing(result);
   if (result.is_error()) {
     found_call_messages_.erase(random_id);
     return promise.set_error(result.move_as_error());
@@ -30191,9 +30187,7 @@ void MessagesManager::upload_imported_message_attachment(DialogId dialog_id, int
 }
 
 void MessagesManager::on_imported_message_attachments_uploaded(int64 random_id, Result<Unit> &&result) {
-  if (G()->close_flag() && result.is_ok()) {
-    result = Global::request_aborted_error();
-  }
+  G()->ignore_result_if_closing(result);
 
   auto it = pending_message_imports_.find(random_id);
   CHECK(it != pending_message_imports_.end());
@@ -30920,9 +30914,7 @@ void MessagesManager::on_get_message_notifications_from_database(DialogId dialog
                                                                  int32 limit,
                                                                  Result<vector<MessageDbDialogMessage>> result,
                                                                  Promise<vector<Notification>> promise) {
-  if (G()->close_flag() && result.is_ok()) {
-    result = Global::request_aborted_error();
-  }
+  G()->ignore_result_if_closing(result);
   if (result.is_error()) {
     return promise.set_error(result.move_as_error());
   }

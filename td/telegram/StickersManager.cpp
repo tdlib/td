@@ -4965,9 +4965,7 @@ void StickersManager::on_find_custom_emojis_success(const string &emoji,
 
 void StickersManager::on_load_custom_emojis(string emoji, int64 hash, vector<CustomEmojiId> custom_emoji_ids,
                                             Result<td_api::object_ptr<td_api::stickers>> &&result) {
-  if (result.is_ok() && G()->close_flag()) {
-    result = Global::request_aborted_error();
-  }
+  G()->ignore_result_if_closing(result);
   if (result.is_error()) {
     return on_find_custom_emojis_fail(emoji, result.move_as_error());
   }
@@ -5672,9 +5670,7 @@ void StickersManager::do_reload_sticker_set(StickerSetId sticker_set_id,
 }
 
 void StickersManager::on_reload_sticker_set(StickerSetId sticker_set_id, Result<Unit> &&result) {
-  if (G()->close_flag() && result.is_ok()) {
-    result = Global::request_aborted_error();
-  }
+  G()->ignore_result_if_closing(result);
   LOG(INFO) << "Reloaded " << sticker_set_id;
   auto it = sticker_set_reload_queries_.find(sticker_set_id);
   CHECK(it != sticker_set_reload_queries_.end());
@@ -6602,9 +6598,8 @@ void StickersManager::reload_default_dialog_photo_custom_emoji_ids(bool for_user
 
 void StickersManager::on_get_default_dialog_photo_custom_emoji_ids(
     bool for_user, Result<telegram_api::object_ptr<telegram_api::EmojiList>> r_emoji_list) {
-  if (G()->close_flag()) {
-    r_emoji_list = Global::request_aborted_error();
-  }
+  G()->ignore_result_if_closing(r_emoji_list);
+
   CHECK(are_default_dialog_photo_custom_emoji_ids_being_loaded_[for_user]);
   are_default_dialog_photo_custom_emoji_ids_being_loaded_[for_user] = false;
 
@@ -8218,9 +8213,7 @@ void StickersManager::on_uploaded_sticker_file(FileId file_id, tl_object_ptr<tel
 }
 
 void StickersManager::on_new_stickers_uploaded(int64 random_id, Result<Unit> result) {
-  if (G()->close_flag() && result.is_ok()) {
-    result = Global::request_aborted_error();
-  }
+  G()->ignore_result_if_closing(result);
 
   auto it = pending_new_sticker_sets_.find(random_id);
   CHECK(it != pending_new_sticker_sets_.end());
@@ -8329,9 +8322,7 @@ void StickersManager::do_add_sticker_to_set(UserId user_id, string short_name,
 }
 
 void StickersManager::on_added_sticker_uploaded(int64 random_id, Result<Unit> result) {
-  if (G()->close_flag() && result.is_ok()) {
-    result = Global::request_aborted_error();
-  }
+  G()->ignore_result_if_closing(result);
 
   auto it = pending_add_sticker_to_sets_.find(random_id);
   CHECK(it != pending_add_sticker_to_sets_.end());
@@ -8430,9 +8421,7 @@ void StickersManager::do_set_sticker_set_thumbnail(UserId user_id, string short_
 }
 
 void StickersManager::on_sticker_set_thumbnail_uploaded(int64 random_id, Result<Unit> result) {
-  if (G()->close_flag() && result.is_ok()) {
-    result = Global::request_aborted_error();
-  }
+  G()->ignore_result_if_closing(result);
 
   auto it = pending_set_sticker_set_thumbnails_.find(random_id);
   CHECK(it != pending_set_sticker_set_thumbnails_.end());
@@ -9747,9 +9736,7 @@ void StickersManager::load_emoji_keywords_difference(const string &language_code
 void StickersManager::on_get_emoji_keywords_difference(
     const string &language_code, int32 from_version,
     Result<telegram_api::object_ptr<telegram_api::emojiKeywordsDifference>> &&result) {
-  if (G()->close_flag() && result.is_ok()) {
-    result = Global::request_aborted_error();
-  }
+  G()->ignore_result_if_closing(result);
   if (result.is_error()) {
     if (!G()->is_expected_error(result.error())) {
       LOG(ERROR) << "Receive " << result.error() << " from GetEmojiKeywordsDifferenceQuery";
@@ -10026,9 +10013,8 @@ void StickersManager::reload_emoji_groups(EmojiGroupType group_type, string used
 void StickersManager::on_get_emoji_groups(
     EmojiGroupType group_type, string used_language_codes,
     Result<telegram_api::object_ptr<telegram_api::messages_EmojiGroups>> r_emoji_groups) {
-  if (G()->close_flag() && r_emoji_groups.is_ok()) {
-    r_emoji_groups = Global::request_aborted_error();
-  }
+  G()->ignore_result_if_closing(r_emoji_groups);
+
   auto type = static_cast<int32>(group_type);
   if (r_emoji_groups.is_error()) {
     if (!G()->is_expected_error(r_emoji_groups.error())) {

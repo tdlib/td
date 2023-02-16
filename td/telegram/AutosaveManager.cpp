@@ -363,9 +363,7 @@ void AutosaveManager::on_get_autosave_settings(
       reload_autosave_settings();
     }
   };
-  if (G()->close_flag() && r_settings.is_ok()) {
-    r_settings = Global::request_aborted_error();
-  }
+  G()->ignore_result_if_closing(r_settings);
   if (r_settings.is_error()) {
     return fail_promises(load_settings_queries_, r_settings.move_as_error());
   }

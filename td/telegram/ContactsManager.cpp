@@ -9177,9 +9177,7 @@ void ContactsManager::reload_created_public_dialogs(PublicDialogType type,
 }
 
 void ContactsManager::finish_get_created_public_dialogs(PublicDialogType type, Result<Unit> &&result) {
-  if (G()->close_flag() && result.is_ok()) {
-    result = Global::request_aborted_error();
-  }
+  G()->ignore_result_if_closing(result);
 
   auto index = static_cast<int32>(type);
   auto promises = std::move(get_created_public_channels_queries_[index]);
