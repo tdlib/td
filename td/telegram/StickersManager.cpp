@@ -1321,6 +1321,38 @@ class SetStickerSetTitleQuery final : public Td::ResultHandler {
   }
 };
 
+class DeleteStickerSetQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  string short_name_;
+
+ public:
+  explicit DeleteStickerSetQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(const string &short_name) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::stickers_deleteStickerSet(make_tl_object<telegram_api::inputStickerSetShortName>(short_name)),
+        {{short_name}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stickers_deleteStickerSet>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    if (!result_ptr.ok()) {
+      return on_error(Status::Error(500, "Failed to delete sticker set"));
+    }
+    td_->stickers_manager_->on_sticker_set_deleted(short_name_);
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class SetStickerPositionQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -4028,6 +4060,11 @@ void StickersManager::on_load_sticker_set_fail(StickerSetId sticker_set_id, cons
   update_load_requests(get_sticker_set(sticker_set_id), true, error);
 }
 
+void StickersManager::on_sticker_set_deleted(const string &short_name) {
+  // clear short_name_to_sticker_set_id_ to allow next searchStickerSet request to succeed
+  short_name_to_sticker_set_id_.erase(clean_username(short_name));
+}
+
 void StickersManager::update_load_requests(StickerSet *sticker_set, bool with_stickers, const Status &status) {
   if (sticker_set == nullptr) {
     return;
@@ -4047,8 +4084,7 @@ void StickersManager::update_load_requests(StickerSet *sticker_set, bool with_st
 
   if (status.message() == "STICKERSET_INVALID") {
     // the sticker set is likely to be deleted
-    // clear short_name_to_sticker_set_id_ to allow next searchStickerSet request to succeed
-    short_name_to_sticker_set_id_.erase(clean_username(sticker_set->short_name_));
+    on_sticker_set_deleted(sticker_set->short_name_);
   }
 }
 
@@ -8664,6 +8700,15 @@ void StickersManager::set_sticker_set_title(string short_name, string title, Pro
   }
 
   td_->create_handler<SetStickerSetTitleQuery>(std::move(promise))->send(short_name, title);
+}
+
+void StickersManager::delete_sticker_set(string short_name, Promise<Unit> &&promise) {
+  short_name = clean_username(strip_empty_characters(short_name, MAX_STICKER_SET_SHORT_NAME_LENGTH));
+  if (short_name.empty()) {
+    return promise.set_error(Status::Error(400, "Sticker set name must be non-empty"));
+  }
+
+  td_->create_handler<DeleteStickerSetQuery>(std::move(promise))->send(short_name);
 }
 
 Result<StickersManager::StickerInputDocument> StickersManager::get_sticker_input_document(

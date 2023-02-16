@@ -258,6 +258,8 @@ class StickersManager final : public Actor {
 
   void on_update_move_sticker_set_to_top(StickerType sticker_type, StickerSetId sticker_set_id);
 
+  void on_sticker_set_deleted(const string &short_name);
+
   std::pair<int32, vector<StickerSetId>> get_archived_sticker_sets(StickerType sticker_type,
                                                                    StickerSetId offset_sticker_set_id, int32 limit,
                                                                    bool force, Promise<Unit> &&promise);
@@ -313,6 +315,8 @@ class StickersManager final : public Actor {
                                               Promise<Unit> &&promise);
 
   void set_sticker_set_title(string short_name, string title, Promise<Unit> &&promise);
+
+  void delete_sticker_set(string short_name, Promise<Unit> &&promise);
 
   void set_sticker_position_in_set(const td_api::object_ptr<td_api::InputFile> &sticker, int32 position,
                                    Promise<Unit> &&promise);

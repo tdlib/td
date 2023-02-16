@@ -8013,6 +8013,9 @@ setCustomEmojiStickerSetThumbnail name:string custom_emoji_id:int64 = Ok;
 //@description Sets a sticker set title; for bots only @name Sticker set name @title New sticker set title
 setStickerSetTitle name:string title:string = Ok;
 
+//@description Deleted a sticker set; for bots only @name Sticker set name
+deleteStickerSet name:string = Ok;
+
 //@description Changes the position of a sticker in the set to which it belongs; for bots only. The sticker set must have been created by the bot
 //@sticker Sticker
 //@position New position of the sticker in the set, 0-based
