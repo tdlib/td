@@ -7303,7 +7303,7 @@ void Td::on_request(uint64 id, td_api::addStickerToSet &request) {
 void Td::on_request(uint64 id, td_api::setStickerSetThumbnail &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.name_);
-  CREATE_REQUEST_PROMISE();
+  CREATE_OK_REQUEST_PROMISE();
   stickers_manager_->set_sticker_set_thumbnail(UserId(request.user_id_), std::move(request.name_),
                                                std::move(request.thumbnail_), std::move(promise));
 }

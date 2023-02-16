@@ -1219,11 +1219,10 @@ class AddStickerToSetQuery final : public Td::ResultHandler {
 };
 
 class SetStickerSetThumbnailQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::stickerSet>> promise_;
+  Promise<Unit> promise_;
 
  public:
-  explicit SetStickerSetThumbnailQuery(Promise<td_api::object_ptr<td_api::stickerSet>> &&promise)
-      : promise_(std::move(promise)) {
+  explicit SetStickerSetThumbnailQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(const string &short_name, tl_object_ptr<telegram_api::InputDocument> &&input_document) {
@@ -1245,7 +1244,7 @@ class SetStickerSetThumbnailQuery final : public Td::ResultHandler {
     if (!sticker_set_id.is_valid()) {
       return on_error(Status::Error(500, "Sticker set not found"));
     }
-    promise_.set_value(td_->stickers_manager_->get_sticker_set_object(sticker_set_id));
+    promise_.set_value(Unit());
   }
 
   void on_error(Status status) final {
@@ -8541,8 +8540,7 @@ void StickersManager::on_added_sticker_uploaded(int64 random_id, Result<Unit> re
 }
 
 void StickersManager::set_sticker_set_thumbnail(UserId user_id, string short_name,
-                                                tl_object_ptr<td_api::InputFile> &&thumbnail,
-                                                Promise<td_api::object_ptr<td_api::stickerSet>> &&promise) {
+                                                tl_object_ptr<td_api::InputFile> &&thumbnail, Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
 
   short_name = clean_username(strip_empty_characters(short_name, MAX_STICKER_SET_SHORT_NAME_LENGTH));
@@ -8571,7 +8569,7 @@ void StickersManager::set_sticker_set_thumbnail(UserId user_id, string short_nam
 
 void StickersManager::do_set_sticker_set_thumbnail(UserId user_id, string short_name,
                                                    tl_object_ptr<td_api::InputFile> &&thumbnail,
-                                                   Promise<td_api::object_ptr<td_api::stickerSet>> &&promise) {
+                                                   Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   const StickerSet *sticker_set = get_sticker_set(short_name_to_sticker_set_id_.get(short_name));

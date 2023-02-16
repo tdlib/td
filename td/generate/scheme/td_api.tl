@@ -7993,17 +7993,17 @@ checkStickerSetName name:string = CheckStickerSetNameResult;
 createNewStickerSet user_id:int53 title:string name:string sticker_format:StickerFormat sticker_type:StickerType needs_repainting:Bool stickers:vector<inputSticker> source:string = StickerSet;
 
 
-//@description Adds a new sticker to a set; for bots only. Returns the sticker set
+//@description Adds a new sticker to a set; for bots only
 //@user_id Sticker set owner
 //@name Sticker set name
 //@sticker Sticker to add to the set
 addStickerToSet user_id:int53 name:string sticker:inputSticker = Ok;
 
-//@description Sets a sticker set thumbnail; for bots only. Returns the sticker set
+//@description Sets a sticker set thumbnail; for bots only
 //@user_id Sticker set owner
 //@name Sticker set name
 //@thumbnail Thumbnail to set in PNG, TGS, or WEBM format; pass null to remove the sticker set thumbnail. Thumbnail format must match the format of stickers in the set
-setStickerSetThumbnail user_id:int53 name:string thumbnail:InputFile = StickerSet;
+setStickerSetThumbnail user_id:int53 name:string thumbnail:InputFile = Ok;
 
 //@description Sets a custom emoji sticker set thumbnail; for bots only
 //@name Sticker set name

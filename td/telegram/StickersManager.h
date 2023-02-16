@@ -309,7 +309,7 @@ class StickersManager final : public Actor {
                           Promise<Unit> &&promise);
 
   void set_sticker_set_thumbnail(UserId user_id, string short_name, tl_object_ptr<td_api::InputFile> &&thumbnail,
-                                 Promise<td_api::object_ptr<td_api::stickerSet>> &&promise);
+                                 Promise<Unit> &&promise);
 
   void set_custom_emoji_sticker_set_thumbnail(string short_name, CustomEmojiId custom_emoji_id,
                                               Promise<Unit> &&promise);
@@ -546,7 +546,7 @@ class StickersManager final : public Actor {
   struct PendingSetStickerSetThumbnail {
     string short_name_;
     FileId file_id_;
-    Promise<td_api::object_ptr<td_api::stickerSet>> promise_;
+    Promise<Unit> promise_;
   };
 
   struct PendingGetAnimatedEmojiClickSticker {
@@ -880,7 +880,7 @@ class StickersManager final : public Actor {
   void on_sticker_set_thumbnail_uploaded(int64 random_id, Result<Unit> result);
 
   void do_set_sticker_set_thumbnail(UserId user_id, string short_name, tl_object_ptr<td_api::InputFile> &&thumbnail,
-                                    Promise<td_api::object_ptr<td_api::stickerSet>> &&promise);
+                                    Promise<Unit> &&promise);
 
   void do_set_custom_emoji_sticker_set_thumbnail(string short_name, CustomEmojiId custom_emoji_id,
                                                  Promise<Unit> &&promise);
