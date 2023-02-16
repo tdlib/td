@@ -7997,7 +7997,7 @@ createNewStickerSet user_id:int53 title:string name:string sticker_format:Sticke
 //@user_id Sticker set owner
 //@name Sticker set name
 //@sticker Sticker to add to the set
-addStickerToSet user_id:int53 name:string sticker:inputSticker = StickerSet;
+addStickerToSet user_id:int53 name:string sticker:inputSticker = Ok;
 
 //@description Sets a sticker set thumbnail; for bots only. Returns the sticker set
 //@user_id Sticker set owner

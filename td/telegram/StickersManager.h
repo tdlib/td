@@ -305,8 +305,8 @@ class StickersManager final : public Actor {
                               vector<td_api::object_ptr<td_api::inputSticker>> &&stickers, string software,
                               Promise<td_api::object_ptr<td_api::stickerSet>> &&promise);
 
-  void add_sticker_to_set(UserId user_id, string short_name, tl_object_ptr<td_api::inputSticker> &&sticker,
-                          Promise<td_api::object_ptr<td_api::stickerSet>> &&promise);
+  void add_sticker_to_set(UserId user_id, string short_name, td_api::object_ptr<td_api::inputSticker> &&sticker,
+                          Promise<Unit> &&promise);
 
   void set_sticker_set_thumbnail(UserId user_id, string short_name, tl_object_ptr<td_api::InputFile> &&thumbnail,
                                  Promise<td_api::object_ptr<td_api::stickerSet>> &&promise);
@@ -540,7 +540,7 @@ class StickersManager final : public Actor {
     string short_name_;
     FileId file_id_;
     tl_object_ptr<td_api::inputSticker> sticker_;
-    Promise<td_api::object_ptr<td_api::stickerSet>> promise_;
+    Promise<Unit> promise_;
   };
 
   struct PendingSetStickerSetThumbnail {
@@ -874,8 +874,8 @@ class StickersManager final : public Actor {
 
   void on_added_sticker_uploaded(int64 random_id, Result<Unit> result);
 
-  void do_add_sticker_to_set(UserId user_id, string short_name, tl_object_ptr<td_api::inputSticker> &&sticker,
-                             Promise<td_api::object_ptr<td_api::stickerSet>> &&promise);
+  void do_add_sticker_to_set(UserId user_id, string short_name, td_api::object_ptr<td_api::inputSticker> &&sticker,
+                             Promise<Unit> &&promise);
 
   void on_sticker_set_thumbnail_uploaded(int64 random_id, Result<Unit> result);
 
