@@ -1000,9 +1000,7 @@ void ConfigManager::get_app_config(Promise<td_api::object_ptr<td_api::JsonValue>
 }
 
 void ConfigManager::reget_app_config(Promise<Unit> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   auto auth_manager = G()->td().get_actor_unsafe()->auth_manager_.get();
   if (auth_manager != nullptr && auth_manager->is_bot()) {
