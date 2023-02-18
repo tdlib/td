@@ -594,7 +594,8 @@ bool operator!=(const Photo &lhs, const Photo &rhs) {
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const Photo &photo) {
-  string_builder << "[ID = " << photo.id.get() << ", photos = " << format::as_array(photo.photos);
+  string_builder << "[ID = " << photo.id.get() << ", date = " << photo.date
+                 << ", photos = " << format::as_array(photo.photos);
   if (!photo.animations.empty()) {
     string_builder << ", animations = " << format::as_array(photo.animations);
   }
