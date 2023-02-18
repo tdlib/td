@@ -453,7 +453,8 @@ bool operator<(const PhotoSize &lhs, const PhotoSize &rhs) {
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const PhotoSize &photo_size) {
-  return string_builder << "{type = " << photo_size.type << ", dimensions = " << photo_size.dimensions
+  char type = 32 <= photo_size.type && photo_size.type <= 127 ? static_cast<char>(photo_size.type) : '?';
+  return string_builder << "{type = " << type << ", dimensions = " << photo_size.dimensions
                         << ", size = " << photo_size.size << ", file_id = " << photo_size.file_id
                         << ", progressive_sizes = " << photo_size.progressive_sizes << "}";
 }
