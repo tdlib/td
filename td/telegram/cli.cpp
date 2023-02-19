@@ -536,10 +536,6 @@ class CliClient final : public Actor {
     }
   }
 
-  static int32 as_button_id(Slice str) {
-    return to_integer<int32>(trim(str));
-  }
-
   static td_api::object_ptr<td_api::StickerFormat> as_sticker_format(string sticker_format) {
     if (!sticker_format.empty() && sticker_format.back() == 'a') {
       return td_api::make_object<td_api::stickerFormatTgs>();
@@ -5196,13 +5192,12 @@ class CliClient final : public Actor {
     } else if (op == "glui" || op == "glu" || op == "glua") {
       ChatId chat_id;
       MessageId message_id;
-      string button_id;
+      int32 button_id;
       get_args(args, chat_id, message_id, button_id);
       if (op == "glui") {
-        send_request(td_api::make_object<td_api::getLoginUrlInfo>(chat_id, message_id, as_button_id(button_id)));
+        send_request(td_api::make_object<td_api::getLoginUrlInfo>(chat_id, message_id, button_id));
       } else {
-        send_request(
-            td_api::make_object<td_api::getLoginUrl>(chat_id, message_id, as_button_id(button_id), op == "glua"));
+        send_request(td_api::make_object<td_api::getLoginUrl>(chat_id, message_id, button_id, op == "glua"));
       }
     } else if (op == "suwb" || op == "suwbc") {
       ChatId chat_id;
