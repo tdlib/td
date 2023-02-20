@@ -371,7 +371,7 @@ void Session::connection_online_update(double now, bool force) {
 void Session::send(NetQueryPtr &&query) {
   last_activity_timestamp_ = Time::now();
 
-  // query->debug("Session: received from SessionProxy");
+  // query->debug(PSTRING() << get_name() << ": received from SessionProxy");
   query->set_session_id(auth_data_.get_session_id());
   VLOG(net_query) << "Got query " << query;
   if (query->update_is_ready()) {
@@ -1083,7 +1083,7 @@ void Session::on_message_info(uint64 message_id, int32 state, uint64 answer_mess
       VLOG_IF(net_query, message_id != 0)
           << "Resend answer " << tag("message_id", message_id) << tag("answer_message_id", answer_message_id)
           << tag("answer_size", answer_size) << it->second.query;
-      it->second.query->debug("Session: resend answer");
+      it->second.query->debug(PSTRING() << get_name() << ": resend answer");
     }
     current_info_->connection_->resend_answer(answer_message_id);
   }
@@ -1109,7 +1109,7 @@ void Session::resend_query(NetQueryPtr query) {
 }
 
 void Session::add_query(NetQueryPtr &&net_query) {
-  net_query->debug("Session: pending");
+  net_query->debug(PSTRING() << get_name() << ": pending");
   LOG_IF(FATAL, UniqueId::extract_type(net_query->id()) == UniqueId::BindKey)
       << "Add BindKey query inpo pending_queries_";
   pending_queries_.push(std::move(net_query));
@@ -1135,7 +1135,7 @@ void Session::connection_send_query(ConnectionInfo *info, NetQueryPtr &&net_quer
   }
   if (!invoke_after.empty()) {
     if (!unknown_queries_.empty()) {
-      net_query->debug("Session: wait unknown query to invoke after it");
+      net_query->debug(PSTRING() << get_name() << ": wait unknown query to invoke after it");
       pending_invoke_after_queries_.push_back(std::move(net_query));
       return;
     }
@@ -1144,7 +1144,7 @@ void Session::connection_send_query(ConnectionInfo *info, NetQueryPtr &&net_quer
   auto now = Time::now();
   bool immediately_fail_query = false;
   if (!immediately_fail_query) {
-    net_query->debug("Session: send to mtproto::connection");
+    net_query->debug(PSTRING() << get_name() << ": send to an MTProto connection");
     auto r_message_id =
         info->connection_->send_query(net_query->query().clone(), net_query->gzip_flag() == NetQuery::GzipFlag::On,
                                       message_id, invoke_after_ids, static_cast<bool>(net_query->quick_ack_promise_));
