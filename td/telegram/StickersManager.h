@@ -419,7 +419,7 @@ class StickersManager final : public Actor {
   template <class ParserT>
   FileId parse_sticker(bool in_sticker_set, ParserT &parser);
 
-  void on_uploaded_sticker_file(FileId file_id, tl_object_ptr<telegram_api::MessageMedia> media,
+  void on_uploaded_sticker_file(FileId file_id, bool is_url, tl_object_ptr<telegram_api::MessageMedia> media,
                                 Promise<Unit> &&promise);
 
   void on_find_stickers_success(const string &emoji, tl_object_ptr<telegram_api::messages_Stickers> &&stickers);

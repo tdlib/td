@@ -1029,17 +1029,19 @@ class ReadFeaturedStickerSetsQuery final : public Td::ResultHandler {
 class UploadStickerFileQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   FileId file_id_;
+  bool is_url_ = false;
   bool was_uploaded_ = false;
 
  public:
   explicit UploadStickerFileQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(tl_object_ptr<telegram_api::InputPeer> &&input_peer, FileId file_id,
+  void send(tl_object_ptr<telegram_api::InputPeer> &&input_peer, FileId file_id, bool is_url,
             tl_object_ptr<telegram_api::InputMedia> &&input_media) {
     CHECK(input_peer != nullptr);
     CHECK(input_media != nullptr);
     file_id_ = file_id;
+    is_url_ = is_url;
     was_uploaded_ = FileManager::extract_was_uploaded(input_media);
     send_query(G()->net_query_creator().create(
         telegram_api::messages_uploadMedia(std::move(input_peer), std::move(input_media))));
@@ -1051,7 +1053,7 @@ class UploadStickerFileQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->stickers_manager_->on_uploaded_sticker_file(file_id_, result_ptr.move_as_ok(), std::move(promise_));
+    td_->stickers_manager_->on_uploaded_sticker_file(file_id_, is_url_, result_ptr.move_as_ok(), std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -8369,10 +8371,11 @@ void StickersManager::do_upload_sticker_file(UserId user_id, FileId file_id,
   }
 
   td_->create_handler<UploadStickerFileQuery>(std::move(promise))
-      ->send(std::move(input_peer), file_id, std::move(input_media));
+      ->send(std::move(input_peer), file_id, !had_input_file, std::move(input_media));
 }
 
-void StickersManager::on_uploaded_sticker_file(FileId file_id, tl_object_ptr<telegram_api::MessageMedia> media,
+void StickersManager::on_uploaded_sticker_file(FileId file_id, bool is_url,
+                                               tl_object_ptr<telegram_api::MessageMedia> media,
                                                Promise<Unit> &&promise) {
   CHECK(media != nullptr);
   LOG(INFO) << "Receive uploaded sticker file " << to_string(media);
@@ -8395,6 +8398,11 @@ void StickersManager::on_uploaded_sticker_file(FileId file_id, tl_object_ptr<tel
   auto parsed_document = td_->documents_manager_->on_get_document(
       move_tl_object_as<telegram_api::document>(document_ptr), DialogId(), nullptr);
   if (parsed_document.type != expected_document_type) {
+    if (is_url && expected_document_type == Document::Type::General &&
+        parsed_document.type == Document::Type::Sticker) {
+      // nothing to do for uploaded by a URL WEBP sticker
+      return promise.set_value(Unit());
+    }
     return promise.set_error(Status::Error(400, "Wrong file type"));
   }
 
