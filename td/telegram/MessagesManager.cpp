@@ -16335,6 +16335,12 @@ bool MessagesManager::can_unload_message(const Dialog *d, const Message *m) cons
   CHECK(d != nullptr);
   CHECK(m != nullptr);
   CHECK(m->message_id.is_valid());
+  FullMessageId full_message_id{d->dialog_id, m->message_id};
+  if (td_->auth_manager_->is_bot() && !G()->parameters().use_file_db) {
+    return !m->message_id.is_yet_unsent() && replied_by_yet_unsent_messages_.count(full_message_id) == 0 &&
+           m->edited_content == nullptr && m->message_id != d->last_pinned_message_id &&
+           m->message_id != d->last_edited_message_id;
+  }
   // don't want to unload messages from opened dialogs
   // don't want to unload messages to which there are replies in yet unsent messages
   // don't want to unload message with active reply markup
@@ -16343,7 +16349,6 @@ bool MessagesManager::can_unload_message(const Dialog *d, const Message *m) cons
   // don't want to unload messages from the last album
   // can't unload from memory last dialog, last database messages, yet unsent messages, being edited media messages and active live locations
   // can't unload messages in dialog with active suffix load query
-  FullMessageId full_message_id{d->dialog_id, m->message_id};
   return !d->is_opened && m->message_id != d->last_message_id && m->message_id != d->last_database_message_id &&
          !m->message_id.is_yet_unsent() && active_live_location_full_message_ids_.count(full_message_id) == 0 &&
          replied_by_yet_unsent_messages_.count(full_message_id) == 0 && m->edited_content == nullptr &&
