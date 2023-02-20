@@ -8400,7 +8400,20 @@ void StickersManager::on_uploaded_sticker_file(FileId file_id, bool is_url,
   if (parsed_document.type != expected_document_type) {
     if (is_url && expected_document_type == Document::Type::General &&
         parsed_document.type == Document::Type::Sticker) {
-      // nothing to do for uploaded by a URL WEBP sticker
+      // uploaded by a URL WEBP sticker
+      // re-register as document
+      FileView sticker_file_view = td_->file_manager_->get_file_view(parsed_document.file_id);
+      CHECK(sticker_file_view.has_remote_location());
+      auto remote_location = sticker_file_view.main_remote_location();
+      CHECK(remote_location.is_common());
+      remote_location.file_type_ = FileType::Document;
+      auto document_file_id =
+          td_->file_manager_->register_remote(std::move(remote_location), FileLocationSource::FromServer, DialogId(),
+                                              sticker_file_view.size(), 0, sticker_file_view.remote_name());
+      CHECK(document_file_id.is_valid());
+      td_->documents_manager_->create_document(document_file_id, string(), PhotoSize(), "sticker.webp", "image/webp",
+                                               false);
+      td_->documents_manager_->merge_documents(document_file_id, file_id);
       return promise.set_value(Unit());
     }
     return promise.set_error(Status::Error(400, "Wrong file type"));
