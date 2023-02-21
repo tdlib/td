@@ -3539,11 +3539,17 @@ inlineQueryResultVideo id:string video:video title:string description:string = I
 inlineQueryResultVoiceNote id:string voice_note:voiceNote title:string = InlineQueryResult;
 
 
+//@class InlineQueryResultsButtonType @description Represents a type of a button in results of inline query
+
 //@description Describes the button that opens a private chat with the bot and sends a start message to the bot with the given parameter @parameter The parameter for the bot start message
-inlineQueryResultsButtonTypeSwitchToPrivateChat parameter:string = InlineQueryResultsButtonTypeSwitchToPrivateChat;
+inlineQueryResultsButtonTypeStartBot parameter:string = InlineQueryResultsButtonType;
+
+//@description Describes the button that opens a Web App by calling getWebAppUrl @url An HTTP URL to pass to getWebAppUrl
+inlineQueryResultsButtonTypeWebApp url:string = InlineQueryResultsButtonType;
+
 
 //@description Represents a button to be shown above inline query results @text The text of the button @type Type of the button
-inlineQueryResultsButton text:string type:inlineQueryResultsButtonTypeSwitchToPrivateChat = InlineQueryResultsButton;
+inlineQueryResultsButton text:string type:InlineQueryResultsButtonType = InlineQueryResultsButton;
 
 
 //@description Represents the results of the inline query. Use sendInlineQueryResultMessage to send the result of the query
@@ -6508,9 +6514,9 @@ getInlineQueryResults bot_user_id:int53 chat_id:int53 user_location:location que
 answerInlineQuery inline_query_id:int64 is_personal:Bool button:inlineQueryResultsButton results:vector<InputInlineQueryResult> cache_time:int32 next_offset:string = Ok;
 
 
-//@description Returns an HTTPS URL of a Web App to open after keyboardButtonTypeWebApp button is pressed
+//@description Returns an HTTPS URL of a Web App to open after keyboardButtonTypeWebApp or inlineQueryResultsButtonTypeWebApp button is pressed
 //@bot_user_id Identifier of the target bot
-//@url The URL from the keyboardButtonTypeWebApp button
+//@url The URL from the keyboardButtonTypeWebApp or inlineQueryResultsButtonTypeWebApp button
 //@theme Preferred Web App theme; pass null to use the default theme
 //@application_name Short name of the application; 0-64 English letters, digits, and underscores
 getWebAppUrl bot_user_id:int53 url:string theme:themeParameters application_name:string = HttpUrl;

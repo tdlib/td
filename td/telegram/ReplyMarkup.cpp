@@ -947,7 +947,7 @@ static tl_object_ptr<td_api::keyboardButton> get_keyboard_button_object(const Ke
       type = make_tl_object<td_api::keyboardButtonTypeRequestPoll>(true, false);
       break;
     case KeyboardButton::Type::WebView:
-      type = make_tl_object<td_api::keyboardButtonTypeWebApp>(keyboard_button.url);
+      type = make_tl_object<td_api::keyboardButtonTypeWebApp>(keyboard_button.url + "#kb");
       break;
     case KeyboardButton::Type::RequestDialog:
       type = keyboard_button.requested_dialog_type->get_keyboard_button_type_object();
