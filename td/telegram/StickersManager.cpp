@@ -32,7 +32,6 @@
 #include "td/telegram/PhotoSizeSource.h"
 #include "td/telegram/secret_api.h"
 #include "td/telegram/SecretChatLayer.h"
-#include "td/telegram/StickerSetId.hpp"
 #include "td/telegram/StickersManager.hpp"
 #include "td/telegram/Td.h"
 #include "td/telegram/td_api.h"

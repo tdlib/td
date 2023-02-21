@@ -456,6 +456,7 @@ set(TDLIB_SOURCE
   td/telegram/StickerFormat.cpp
   td/telegram/StickerMaskPosition.cpp
   td/telegram/StickerPhotoSize.cpp
+  td/telegram/StickerSetId.cpp
   td/telegram/StickersManager.cpp
   td/telegram/StickerType.cpp
   td/telegram/StorageManager.cpp
@@ -804,7 +805,6 @@ set(TDLIB_SOURCE
   td/telegram/SendCodeHelper.hpp
   td/telegram/StickerMaskPosition.hpp
   td/telegram/StickerPhotoSize.hpp
-  td/telegram/StickerSetId.hpp
   td/telegram/StickersManager.hpp
   td/telegram/TranscriptionInfo.hpp
   td/telegram/VideoNotesManager.hpp

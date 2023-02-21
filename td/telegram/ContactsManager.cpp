@@ -44,7 +44,6 @@
 #include "td/telegram/SecretChatLayer.h"
 #include "td/telegram/SecretChatsManager.h"
 #include "td/telegram/ServerMessageId.h"
-#include "td/telegram/StickerSetId.hpp"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"

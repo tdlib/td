@@ -6,6 +6,8 @@
 //
 #pragma once
 
+#include "td/telegram/logevent/LogEvent.h"
+
 #include "td/utils/common.h"
 #include "td/utils/HashTableUtils.h"
 #include "td/utils/StringBuilder.h"
@@ -40,6 +42,12 @@ class StickerSetId {
   bool operator!=(const StickerSetId &other) const {
     return id != other.id;
   }
+
+  void store(LogEventStorerCalcLength &storer) const;
+
+  void store(LogEventStorerUnsafe &storer) const;
+
+  void parse(LogEventParser &parser);
 };
 
 struct StickerSetIdHash {

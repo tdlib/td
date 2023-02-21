@@ -7,7 +7,6 @@
 #pragma once
 
 #include "td/telegram/StickerPhotoSize.h"
-#include "td/telegram/StickerSetId.hpp"
 
 #include "td/utils/tl_helpers.h"
 
