@@ -60,6 +60,7 @@ enum class Version : int32 {
   AddMessageChatSetTtlFlags,
   AddMessageMediaSpoiler,  // 45
   MakeParticipantFlags64Bit,
+  AddDocumentFlags,
   Next
 };
 
