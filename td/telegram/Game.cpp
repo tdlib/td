@@ -26,7 +26,7 @@ Game::Game(Td *td, UserId bot_user_id, tl_object_ptr<telegram_api::game> &&game,
   id_ = game->id_;
   access_hash_ = game->access_hash_;
   bot_user_id_ = bot_user_id.is_valid() ? bot_user_id : UserId();
-  short_name_ = game->short_name_;
+  short_name_ = std::move(game->short_name_);
   text_ = std::move(text);
 }
 

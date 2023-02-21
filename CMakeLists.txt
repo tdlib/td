@@ -476,6 +476,7 @@ set(TDLIB_SOURCE
   td/telegram/VideoNotesManager.cpp
   td/telegram/VideosManager.cpp
   td/telegram/VoiceNotesManager.cpp
+  td/telegram/WebApp.cpp
   td/telegram/WebPageBlock.cpp
   td/telegram/WebPagesManager.cpp
 
@@ -758,6 +759,7 @@ set(TDLIB_SOURCE
   td/telegram/VideoNotesManager.h
   td/telegram/VideosManager.h
   td/telegram/VoiceNotesManager.h
+  td/telegram/WebApp.h
   td/telegram/WebPageBlock.h
   td/telegram/WebPageId.h
   td/telegram/WebPagesManager.h
@@ -810,6 +812,7 @@ set(TDLIB_SOURCE
   td/telegram/VideoNotesManager.hpp
   td/telegram/VideosManager.hpp
   td/telegram/VoiceNotesManager.hpp
+  td/telegram/WebApp.hpp
 
   ${TL_TD_SCHEME_SOURCE}
 

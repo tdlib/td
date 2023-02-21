@@ -472,6 +472,14 @@ venue location:location title:string address:string provider:string id:string ty
 //@animation Game animation; may be null
 game id:int64 short_name:string title:string text:formattedText description:string photo:photo animation:animation = Game;
 
+//@description Describes a web app
+//@short_name Web app short name. To share a web app use the URL https://t.me/{bot_username}/{app_short_name}?startapp={start_parameter}
+//@title Web App title
+//@param_description Web App description
+//@photo Web App photo
+//@animation Web App animation; may be null
+webApp short_name:string title:string description:string photo:photo animation:animation = WebApp;
+
 //@description Describes a poll
 //@id Unique poll identifier
 //@question Poll question; 1-300 characters
