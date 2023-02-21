@@ -1329,6 +1329,7 @@ class DeleteStickerSetQuery final : public Td::ResultHandler {
   }
 
   void send(const string &short_name) {
+    short_name_ = short_name;
     send_query(G()->net_query_creator().create(
         telegram_api::stickers_deleteStickerSet(make_tl_object<telegram_api::inputStickerSetShortName>(short_name)),
         {{short_name}}));
@@ -4061,6 +4062,7 @@ void StickersManager::on_load_sticker_set_fail(StickerSetId sticker_set_id, cons
 
 void StickersManager::on_sticker_set_deleted(const string &short_name) {
   // clear short_name_to_sticker_set_id_ to allow next searchStickerSet request to succeed
+  LOG(INFO) << "Remove information about deleted sticker set " << short_name;
   short_name_to_sticker_set_id_.erase(clean_username(short_name));
 }
 
