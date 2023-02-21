@@ -8320,6 +8320,13 @@ void Td::on_request(uint64 id, const td_api::getApplicationConfig &request) {
   send_closure(G()->config_manager(), &ConfigManager::get_app_config, std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::addApplicationChangelog &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.previous_application_version_);
+  CREATE_OK_REQUEST_PROMISE();
+  add_app_changelog(this, request.previous_application_version_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::saveApplicationLogEvent &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.type_);

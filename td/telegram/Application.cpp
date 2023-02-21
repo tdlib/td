@@ -11,6 +11,7 @@
 #include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
+#include "td/telegram/UpdatesManager.h"
 
 #include "td/db/binlog/BinlogEvent.h"
 #include "td/db/binlog/BinlogHelper.h"
@@ -77,6 +78,31 @@ class SaveAppLogQuery final : public Td::ResultHandler {
   }
 };
 
+class GetAppChangelogQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit GetAppChangelogQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(const string &prev_app_version) {
+    send_query(G()->net_query_creator().create(telegram_api::help_getAppChangelog(prev_app_version)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::help_getAppChangelog>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    td_->updates_manager_->on_get_updates(result_ptr.move_as_ok(), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 void get_invite_text(Td *td, Promise<string> &&promise) {
   td->create_handler<GetInviteTextQuery>(std::move(promise))->send();
 }
@@ -130,6 +156,10 @@ void on_save_app_log_binlog_event(Td *td, BinlogEvent &&event) {
   log_event_parse(log_event, event.get_data()).ensure();
 
   save_app_log_impl(td, std::move(log_event.input_app_event_out_), event.id_, Promise<Unit>());
+}
+
+void add_app_changelog(Td *td, const string &previous_application_version, Promise<Unit> &&promise) {
+  td->create_handler<GetAppChangelogQuery>(std::move(promise))->send(previous_application_version);
 }
 
 }  // namespace td

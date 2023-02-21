@@ -3647,6 +3647,8 @@ class CliClient final : public Actor {
       execute(td_api::make_object<td_api::getThemeParametersJsonString>(as_theme_parameters()));
     } else if (op == "gac") {
       send_request(td_api::make_object<td_api::getApplicationConfig>());
+    } else if (op == "aac") {
+      send_request(td_api::make_object<td_api::addApplicationChangelog>(args));
     } else if (op == "sale") {
       string type;
       ChatId chat_id;

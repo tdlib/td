@@ -25,4 +25,6 @@ void save_app_log(Td *td, const string &type, DialogId dialog_id, tl_object_ptr<
 
 void on_save_app_log_binlog_event(Td *td, BinlogEvent &&event);
 
+void add_app_changelog(Td *td, const string &previous_application_version, Promise<Unit> &&promise);
+
 }  // namespace td

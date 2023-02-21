@@ -8111,8 +8111,6 @@ getPhoneNumberInfo phone_number_prefix:string = PhoneNumberInfo;
 //@phone_number_prefix The phone number prefix
 getPhoneNumberInfoSync language_code:string phone_number_prefix:string = PhoneNumberInfo;
 
-//@description Returns the link for downloading official Telegram application to be used when the current user invites friends to Telegram
-getApplicationDownloadLink = HttpUrl;
 
 //@description Returns information about a tg:// deep link. Use "tg://need_update_for_some_feature" or "tg:some_unsupported_feature" for testing. Returns a 404 error for unknown links. Can be called before authorization @link The link
 getDeepLinkInfo link:string = DeepLinkInfo;
@@ -8121,8 +8119,14 @@ getDeepLinkInfo link:string = DeepLinkInfo;
 //@description Returns application config, provided by the server. Can be called before authorization
 getApplicationConfig = JsonValue;
 
+//@description Adds server-provided application changelog as messages to the chat 777000 (Telegram); for official applications only @previous_application_version The previous application version
+addApplicationChangelog previous_application_version:string = Ok;
+
 //@description Saves application log event on the server. Can be called before authorization @type Event type @chat_id Optional chat identifier, associated with the event @data The log event data
 saveApplicationLogEvent type:string chat_id:int53 data:JsonValue = Ok;
+
+//@description Returns the link for downloading official Telegram application to be used when the current user invites friends to Telegram
+getApplicationDownloadLink = HttpUrl;
 
 
 //@description Adds a proxy server for network requests. Can be called before authorization
