@@ -122,6 +122,10 @@ class SaveAppLogLogEvent {
     auto buffer = parser.template fetch_string_raw<BufferSlice>(parser.get_left_len());
     TlBufferParser buffer_parser{&buffer};
     input_app_event_out_ = telegram_api::inputAppEvent::fetch(buffer_parser);
+    buffer_parser.fetch_end();
+    if (buffer_parser.get_error() != nullptr) {
+      return parser.set_error(buffer_parser.get_error());
+    }
   }
 };
 

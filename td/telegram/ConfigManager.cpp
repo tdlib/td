@@ -915,19 +915,24 @@ template <class ParserT>
 void ConfigManager::AppConfig::parse(ParserT &parser) {
   td::parse(version_, parser);
   if (version_ != CURRENT_VERSION) {
-    version_ = 0;
     return parser.set_error("Invalid config version");
   }
   td::parse(hash_, parser);
   auto buffer = parser.template fetch_string_raw<BufferSlice>(parser.get_left_len());
   TlBufferParser buffer_parser{&buffer};
-  config_ = telegram_api::JSONValue::fetch(buffer_parser);
+  config_ = telegram_api::jsonObject::fetch(buffer_parser);
+  buffer_parser.fetch_end();
+  if (buffer_parser.get_error() != nullptr) {
+    return parser.set_error(buffer_parser.get_error());
+  }
 }
 
 ConfigManager::ConfigManager(ActorShared<> parent) : parent_(std::move(parent)) {
   lazy_request_flood_control_.add_limit(20, 1);
 
-  log_event_parse(app_config_, G()->td_db()->get_binlog_pmc()->get("app_config")).ignore();
+  if (log_event_parse(app_config_, G()->td_db()->get_binlog_pmc()->get("app_config")).is_error()) {
+    app_config_ = AppConfig();
+  }
 }
 
 void ConfigManager::start_up() {
@@ -1294,6 +1299,7 @@ void ConfigManager::on_result(NetQueryPtr res) {
         fail_promises(unit_promises, Status::Error(500, "Receive unexpected response"));
         return;
       }
+      CHECK(app_config_.config_ != nullptr);
     } else {
       CHECK(app_config_ptr->get_id() == telegram_api::help_appConfig::ID);
       auto app_config = telegram_api::move_object_as<telegram_api::help_appConfig>(app_config_ptr);
@@ -1301,6 +1307,7 @@ void ConfigManager::on_result(NetQueryPtr res) {
       app_config_.version_ = AppConfig::CURRENT_VERSION;
       app_config_.hash_ = app_config->hash_;
       app_config_.config_ = std::move(app_config->config_);
+      CHECK(app_config_.config_ != nullptr);
       G()->td_db()->get_binlog_pmc()->set("app_config", log_event_store(app_config_).as_slice().str());
     }
     for (auto &promise : promises) {
