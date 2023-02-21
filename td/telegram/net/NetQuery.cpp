@@ -89,7 +89,7 @@ void NetQuery::set_error(Status status, string source) {
   }
 
   if (begins_with(status.message(), "INPUT_METHOD_INVALID")) {
-    LOG(ERROR) << "Receive INPUT_METHOD_INVALID for query " << format::as_hex_dump<4>(Slice(query_.as_slice()));
+    LOG(ERROR) << "Receive INPUT_METHOD_INVALID for query " << format::as_hex_dump<4>(query_.as_slice());
   }
   if (status.message() == "BOT_METHOD_INVALID") {
     auto id = tl_constructor();
