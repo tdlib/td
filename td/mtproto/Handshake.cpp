@@ -13,7 +13,6 @@
 #include "td/mtproto/utils.h"
 
 #include "td/utils/as.h"
-#include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"
 #include "td/utils/format.h"
@@ -60,7 +59,7 @@ void AuthKeyHandshake::set_timeout_in(double timeout_in) {
 }
 
 void AuthKeyHandshake::clear() {
-  last_query_ = BufferSlice();
+  last_query_ = string();
   state_ = Start;
   start_time_ = Time::now();
   timeout_in_ = 1e9;
@@ -288,11 +287,10 @@ Status AuthKeyHandshake::on_dh_gen_response(Slice message, Callback *connection)
 
 void AuthKeyHandshake::send(Callback *connection, const Storer &storer) {
   auto size = storer.size();
-  auto writer = BufferWriter{size, 0, 0};
-  auto real_size = storer.store(writer.as_mutable_slice().ubegin());
+  last_query_.resize(size);
+  auto real_size = storer.store(MutableSlice(last_query_).ubegin());
   CHECK(real_size == size);
-  last_query_ = writer.as_buffer_slice();
-  return do_send(connection, create_storer(last_query_.as_slice()));
+  return do_send(connection, create_storer(Slice(last_query_)));
 }
 
 void AuthKeyHandshake::do_send(Callback *connection, const Storer &storer) {
@@ -312,7 +310,7 @@ void AuthKeyHandshake::resume(Callback *connection) {
     return clear();
   }
   LOG(INFO) << "Resume handshake";
-  do_send(connection, create_storer(last_query_.as_slice()));
+  do_send(connection, create_storer(Slice(last_query_)));
 }
 
 Status AuthKeyHandshake::on_start(Callback *connection) {
