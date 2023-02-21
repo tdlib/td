@@ -126,8 +126,9 @@ class SetInlineBotResultsQuery final : public Td::ResultHandler {
   }
 
   void send(int64 inline_query_id, bool is_gallery, bool is_personal,
+            telegram_api::object_ptr<telegram_api::inlineBotSwitchPM> switch_pm,
             vector<tl_object_ptr<telegram_api::InputBotInlineResult>> &&results, int32 cache_time,
-            const string &next_offset, const string &switch_pm_text, const string &switch_pm_parameter) {
+            const string &next_offset) {
     int32 flags = 0;
     if (is_gallery) {
       flags |= telegram_api::messages_setInlineBotResults::GALLERY_MASK;
@@ -138,14 +139,12 @@ class SetInlineBotResultsQuery final : public Td::ResultHandler {
     if (!next_offset.empty()) {
       flags |= telegram_api::messages_setInlineBotResults::NEXT_OFFSET_MASK;
     }
-    tl_object_ptr<telegram_api::inlineBotSwitchPM> inline_bot_switch_pm;
-    if (!switch_pm_text.empty()) {
+    if (switch_pm != nullptr) {
       flags |= telegram_api::messages_setInlineBotResults::SWITCH_PM_MASK;
-      inline_bot_switch_pm = make_tl_object<telegram_api::inlineBotSwitchPM>(switch_pm_text, switch_pm_parameter);
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_setInlineBotResults(
         flags, false /*ignored*/, false /*ignored*/, inline_query_id, std::move(results), cache_time, next_offset,
-        std::move(inline_bot_switch_pm), nullptr)));
+        std::move(switch_pm), nullptr)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -466,25 +465,40 @@ UserId InlineQueriesManager::get_inline_bot_user_id(int64 query_id) const {
 }
 
 void InlineQueriesManager::answer_inline_query(
-    int64 inline_query_id, bool is_personal, vector<td_api::object_ptr<td_api::InputInlineQueryResult>> &&input_results,
-    int32 cache_time, const string &next_offset, const string &switch_pm_text, const string &switch_pm_parameter,
-    Promise<Unit> &&promise) const {
+    int64 inline_query_id, bool is_personal, td_api::object_ptr<td_api::inlineQueryResultsButton> &&button,
+    vector<td_api::object_ptr<td_api::InputInlineQueryResult>> &&input_results, int32 cache_time,
+    const string &next_offset, Promise<Unit> &&promise) const {
   CHECK(td_->auth_manager_->is_bot());
 
-  if (!switch_pm_text.empty()) {
-    if (switch_pm_parameter.empty()) {
-      return promise.set_error(Status::Error(400, "Can't use empty switch_pm_parameter"));
+  telegram_api::object_ptr<telegram_api::inlineBotSwitchPM> switch_pm;
+  if (button != nullptr) {
+    if (!clean_input_string(button->text_)) {
+      return promise.set_error(Status::Error(400, "Strings must be encoded in UTF-8"));
     }
-    if (switch_pm_parameter.size() > 64) {
-      return promise.set_error(Status::Error(400, "Too long switch_pm_parameter specified"));
+    if (button->type_ == nullptr) {
+      return promise.set_error(Status::Error(400, "Button type must be non-empty"));
     }
-    if (!is_base64url_characters(switch_pm_parameter)) {
-      return promise.set_error(Status::Error(400, "Unallowed characters in switch_pm_parameter are used"));
+    switch (button->type_->get_id()) {
+      case td_api::inlineQueryResultsButtonTypeSwitchToPrivateChat::ID: {
+        auto type = td_api::move_object_as<td_api::inlineQueryResultsButtonTypeSwitchToPrivateChat>(button->type_);
+        if (type->parameter_.empty()) {
+          return promise.set_error(Status::Error(400, "Can't use empty switch_pm_parameter"));
+        }
+        if (type->parameter_.size() > 64) {
+          return promise.set_error(Status::Error(400, "Too long switch_pm_parameter specified"));
+        }
+        if (!is_base64url_characters(type->parameter_)) {
+          return promise.set_error(Status::Error(400, "Unallowed characters in switch_pm_parameter are used"));
+        }
+        switch_pm = telegram_api::make_object<telegram_api::inlineBotSwitchPM>(button->text_, type->parameter_);
+        break;
+      }
+      default:
+        UNREACHABLE();
     }
   }
 
   vector<tl_object_ptr<telegram_api::InputBotInlineResult>> results;
-
   bool is_gallery = false;
   bool force_vertical = false;
   for (auto &input_result : input_results) {
@@ -494,8 +508,8 @@ void InlineQueriesManager::answer_inline_query(
   }
 
   td_->create_handler<SetInlineBotResultsQuery>(std::move(promise))
-      ->send(inline_query_id, is_gallery && !force_vertical, is_personal, std::move(results), cache_time, next_offset,
-             switch_pm_text, switch_pm_parameter);
+      ->send(inline_query_id, is_gallery && !force_vertical, is_personal, std::move(switch_pm), std::move(results),
+             cache_time, next_offset);
 }
 
 void InlineQueriesManager::get_simple_web_view_url(UserId bot_user_id, string &&url,
@@ -1319,6 +1333,17 @@ tl_object_ptr<td_api::game> copy(const td_api::game &obj) {
 }
 
 template <>
+tl_object_ptr<td_api::inlineQueryResultsButtonTypeSwitchToPrivateChat> copy(
+    const td_api::inlineQueryResultsButtonTypeSwitchToPrivateChat &obj) {
+  return td_api::make_object<td_api::inlineQueryResultsButtonTypeSwitchToPrivateChat>(obj.parameter_);
+}
+
+template <>
+tl_object_ptr<td_api::inlineQueryResultsButton> copy(const td_api::inlineQueryResultsButton &obj) {
+  return td_api::make_object<td_api::inlineQueryResultsButton>(obj.text_, copy(obj.type_));
+}
+
+template <>
 tl_object_ptr<td_api::inlineQueryResultArticle> copy(const td_api::inlineQueryResultArticle &obj) {
   return td_api::make_object<td_api::inlineQueryResultArticle>(obj.id_, obj.url_, obj.hide_url_, obj.title_,
                                                                obj.description_, copy(obj.thumbnail_));
@@ -1389,9 +1414,8 @@ static tl_object_ptr<td_api::InlineQueryResult> copy_result(const tl_object_ptr<
 
 template <>
 tl_object_ptr<td_api::inlineQueryResults> copy(const td_api::inlineQueryResults &obj) {
-  return td_api::make_object<td_api::inlineQueryResults>(obj.inline_query_id_, obj.next_offset_,
-                                                         transform(obj.results_, copy_result), obj.switch_pm_text_,
-                                                         obj.switch_pm_parameter_);
+  return td_api::make_object<td_api::inlineQueryResults>(obj.inline_query_id_, copy(obj.button_),
+                                                         transform(obj.results_, copy_result), obj.next_offset_);
 }
 
 tl_object_ptr<td_api::inlineQueryResults> InlineQueriesManager::decrease_pending_request_count(uint64 query_hash) {
@@ -1916,15 +1940,15 @@ void InlineQueriesManager::on_get_inline_query_results(DialogId dialog_id, UserI
 
   query_id_to_bot_user_id_[results->query_id_] = bot_user_id;
 
-  string switch_pm_text;
-  string switch_pm_parameter;
+  td_api::object_ptr<td_api::inlineQueryResultsButton> button;
   if (results->switch_pm_ != nullptr) {
-    switch_pm_text = std::move(results->switch_pm_->text_);
-    switch_pm_parameter = std::move(results->switch_pm_->start_param_);
+    button = td_api::make_object<td_api::inlineQueryResultsButton>(
+        results->switch_pm_->text_, td_api::make_object<td_api::inlineQueryResultsButtonTypeSwitchToPrivateChat>(
+                                        results->switch_pm_->start_param_));
   }
 
-  it->second.results = make_tl_object<td_api::inlineQueryResults>(
-      results->query_id_, results->next_offset_, std::move(output_results), switch_pm_text, switch_pm_parameter);
+  it->second.results = make_tl_object<td_api::inlineQueryResults>(results->query_id_, std::move(button),
+                                                                  std::move(output_results), results->next_offset_);
   it->second.cache_expire_time = Time::now() + results->cache_time_;
 }
 

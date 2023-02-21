@@ -41,9 +41,9 @@ class InlineQueriesManager final : public Actor {
   void after_get_difference();
 
   void answer_inline_query(int64 inline_query_id, bool is_personal,
+                           td_api::object_ptr<td_api::inlineQueryResultsButton> &&button,
                            vector<td_api::object_ptr<td_api::InputInlineQueryResult>> &&input_results, int32 cache_time,
-                           const string &next_offset, const string &switch_pm_text, const string &switch_pm_parameter,
-                           Promise<Unit> &&promise) const;
+                           const string &next_offset, Promise<Unit> &&promise) const;
 
   void get_simple_web_view_url(UserId bot_user_id, string &&url,
                                const td_api::object_ptr<td_api::themeParameters> &theme, string &&platform,

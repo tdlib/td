@@ -7764,12 +7764,10 @@ void Td::on_request(uint64 id, td_api::getInlineQueryResults &request) {
 void Td::on_request(uint64 id, td_api::answerInlineQuery &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.next_offset_);
-  CLEAN_INPUT_STRING(request.switch_pm_text_);
-  CLEAN_INPUT_STRING(request.switch_pm_parameter_);
   CREATE_OK_REQUEST_PROMISE();
-  inline_queries_manager_->answer_inline_query(
-      request.inline_query_id_, request.is_personal_, std::move(request.results_), request.cache_time_,
-      request.next_offset_, request.switch_pm_text_, request.switch_pm_parameter_, std::move(promise));
+  inline_queries_manager_->answer_inline_query(request.inline_query_id_, request.is_personal_,
+                                               std::move(request.button_), std::move(request.results_),
+                                               request.cache_time_, request.next_offset_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getWebAppUrl &request) {

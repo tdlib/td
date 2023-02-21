@@ -3539,13 +3539,19 @@ inlineQueryResultVideo id:string video:video title:string description:string = I
 inlineQueryResultVoiceNote id:string voice_note:voiceNote title:string = InlineQueryResult;
 
 
+//@description Describes the button that opens a private chat with the bot and sends a start message to the bot with the given parameter @parameter The parameter for the bot start message
+inlineQueryResultsButtonTypeSwitchToPrivateChat parameter:string = InlineQueryResultsButtonTypeSwitchToPrivateChat;
+
+//@description Represents a button to be shown above inline query results @text The text of the button @type Type of the button
+inlineQueryResultsButton text:string type:inlineQueryResultsButtonTypeSwitchToPrivateChat = InlineQueryResultsButton;
+
+
 //@description Represents the results of the inline query. Use sendInlineQueryResultMessage to send the result of the query
 //@inline_query_id Unique identifier of the inline query
-//@next_offset The offset for the next request. If empty, there are no more results
+//@button Button to be shown above inline query results; may be null
 //@results Results of the query
-//@switch_pm_text If non-empty, this text must be shown on the button, which opens a private chat with the bot and sends the bot a start message with the switch_pm_parameter
-//@switch_pm_parameter Parameter for the bot start message
-inlineQueryResults inline_query_id:int64 next_offset:string results:vector<InlineQueryResult> switch_pm_text:string switch_pm_parameter:string = InlineQueryResults;
+//@next_offset The offset for the next request. If empty, there are no more results
+inlineQueryResults inline_query_id:int64 button:inlineQueryResultsButton results:vector<InlineQueryResult> next_offset:string = InlineQueryResults;
 
 
 //@class CallbackQueryPayload @description Represents a payload of a callback query
@@ -6495,12 +6501,11 @@ getInlineQueryResults bot_user_id:int53 chat_id:int53 user_location:location que
 //@description Sets the result of an inline query; for bots only
 //@inline_query_id Identifier of the inline query
 //@is_personal Pass true if results may be cached and returned only for the user that sent the query. By default, results may be returned to any user who sends the same query
+//@button Button to be shown above inline query results; pass null if none
 //@results The results of the query
 //@cache_time Allowed time to cache the results of the query, in seconds
 //@next_offset Offset for the next inline query; pass an empty string if there are no more results
-//@switch_pm_text If non-empty, this text must be shown on the button that opens a private chat with the bot and sends a start message to the bot with the parameter switch_pm_parameter
-//@switch_pm_parameter The parameter for the bot start message
-answerInlineQuery inline_query_id:int64 is_personal:Bool results:vector<InputInlineQueryResult> cache_time:int32 next_offset:string switch_pm_text:string switch_pm_parameter:string = Ok;
+answerInlineQuery inline_query_id:int64 is_personal:Bool button:inlineQueryResultsButton results:vector<InputInlineQueryResult> cache_time:int32 next_offset:string = Ok;
 
 
 //@description Returns an HTTPS URL of a Web App to open after keyboardButtonTypeWebApp button is pressed
