@@ -120,7 +120,8 @@ tl_object_ptr<td_api::AuthorizationState> AuthManager::get_authorization_state_o
                                                                                    base64url_encode(login_token_));
     case State::WaitPassword:
       return make_tl_object<td_api::authorizationStateWaitPassword>(
-          wait_password_state_.hint_, wait_password_state_.has_recovery_, wait_password_state_.email_address_pattern_);
+          wait_password_state_.hint_, wait_password_state_.has_recovery_, wait_password_state_.has_secure_values_,
+          wait_password_state_.email_address_pattern_);
     case State::WaitRegistration:
       return make_tl_object<td_api::authorizationStateWaitRegistration>(
           terms_of_service_.get_terms_of_service_object());
@@ -758,6 +759,7 @@ void AuthManager::on_get_password_result(NetQueryPtr &result) {
         wait_password_state_.srp_id_ = password->srp_id_;
         wait_password_state_.hint_ = std::move(password->hint_);
         wait_password_state_.has_recovery_ = password->has_recovery_;
+        wait_password_state_.has_secure_values_ = password->has_secure_values_;
         break;
       }
       default:

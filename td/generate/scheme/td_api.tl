@@ -135,8 +135,9 @@ authorizationStateWaitRegistration terms_of_service:termsOfService = Authorizati
 //-Call checkAuthenticationPassword to provide the password, or requestAuthenticationPasswordRecovery to recover the password, or deleteAccount to delete the account after a week
 //@password_hint Hint for the password; may be empty
 //@has_recovery_email_address True, if a recovery email address has been set up
+//@has_passport_data True, if some Telegram Passport elements were saved
 //@recovery_email_address_pattern Pattern of the email address to which the recovery email was sent; empty until a recovery email has been sent
-authorizationStateWaitPassword password_hint:string has_recovery_email_address:Bool recovery_email_address_pattern:string = AuthorizationState;
+authorizationStateWaitPassword password_hint:string has_recovery_email_address:Bool has_passport_data:Bool recovery_email_address_pattern:string = AuthorizationState;
 
 //@description The user has been successfully authorized. TDLib is now ready to answer general requests
 authorizationStateReady = AuthorizationState;

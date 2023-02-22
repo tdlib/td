@@ -30,6 +30,7 @@ void AuthManager::WaitPasswordState::store(StorerT &storer) const {
   store(hint_, storer);
   store(has_recovery_, storer);
   store(email_address_pattern_, storer);
+  store(has_secure_values_, storer);
 }
 
 template <class ParserT>
@@ -44,6 +45,7 @@ void AuthManager::WaitPasswordState::parse(ParserT &parser) {
   parse(hint_, parser);
   parse(has_recovery_, parser);
   parse(email_address_pattern_, parser);
+  parse(has_secure_values_, parser);
 }
 
 template <class StorerT>

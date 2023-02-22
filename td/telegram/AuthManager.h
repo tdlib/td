@@ -107,6 +107,7 @@ class AuthManager final : public NetActor {
     int64 srp_id_ = 0;
     string hint_;
     bool has_recovery_ = false;
+    bool has_secure_values_ = false;
     string email_address_pattern_;
 
     template <class StorerT>
