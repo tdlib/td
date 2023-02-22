@@ -28010,6 +28010,7 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
     case MessageContentType::SuggestProfilePhoto:
     case MessageContentType::WriteAccessAllowed:
     case MessageContentType::RequestedDialog:
+    case MessageContentType::WebViewWriteAccessAllowed:
       return false;
     default:
       UNREACHABLE();

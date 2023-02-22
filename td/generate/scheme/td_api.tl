@@ -2564,8 +2564,8 @@ messageChatShared chat_id:int53 button_id:int32 = MessageContent;
 //@description The current user has connected a website by logging in using Telegram Login Widget on it @domain_name Domain name of the connected website
 messageWebsiteConnected domain_name:string = MessageContent;
 
-//@description The user allowed the bot to send messages
-messageBotWriteAccessAllowed = MessageContent;
+//@description The user allowed the bot to send messages @web_app Information about the Web App, which requested the access; may be null if none or the Web App was opened from the attachment menu
+messageBotWriteAccessAllowed web_app:webApp = MessageContent;
 
 //@description Data from a Web App has been sent to a bot @button_text Text of the keyboardButtonTypeWebApp button, which opened the Web App
 messageWebAppDataSent button_text:string = MessageContent;

@@ -408,6 +408,7 @@ bool DialogAction::is_canceled_by_message_of_type(MessageContentType message_con
     case MessageContentType::SuggestProfilePhoto:
     case MessageContentType::WriteAccessAllowed:
     case MessageContentType::RequestedDialog:
+    case MessageContentType::WebViewWriteAccessAllowed:
       return false;
     default:
       UNREACHABLE();
