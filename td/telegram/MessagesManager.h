@@ -1138,6 +1138,7 @@ class MessagesManager final : public Actor {
     int32 date = 0;
     int32 edit_date = 0;
     int32 send_date = 0;
+    int32 sending_id = 0;
 
     int64 random_id = 0;
 
@@ -1759,15 +1760,17 @@ class MessagesManager final : public Actor {
     bool update_stickersets_order = false;
     bool protect_content = false;
     int32 schedule_date = 0;
+    int32 sending_id = 0;
 
     MessageSendOptions() = default;
     MessageSendOptions(bool disable_notification, bool from_background, bool update_stickersets_order,
-                       bool protect_content, int32 schedule_date)
+                       bool protect_content, int32 schedule_date, int32 sending_id)
         : disable_notification(disable_notification)
         , from_background(from_background)
         , update_stickersets_order(update_stickersets_order)
         , protect_content(protect_content)
-        , schedule_date(schedule_date) {
+        , schedule_date(schedule_date)
+        , sending_id(sending_id) {
     }
   };
 
@@ -1925,6 +1928,7 @@ class MessagesManager final : public Actor {
 
   static Status can_use_message_send_options(const MessageSendOptions &options,
                                              const unique_ptr<MessageContent> &content, int32 ttl);
+
   static Status can_use_message_send_options(const MessageSendOptions &options, const InputMessageContent &content);
 
   Status can_use_top_thread_message_id(Dialog *d, MessageId top_thread_message_id, MessageId reply_to_message_id);
@@ -2014,7 +2018,7 @@ class MessagesManager final : public Actor {
 
   Result<td_api::object_ptr<td_api::message>> forward_message(DialogId to_dialog_id, MessageId top_thread_message_id,
                                                               DialogId from_dialog_id, MessageId message_id,
-                                                              tl_object_ptr<td_api::messageSendOptions> &&options,
+                                                              td_api::object_ptr<td_api::messageSendOptions> &&options,
                                                               bool in_game_share,
                                                               MessageCopyOptions &&copy_options) TD_WARN_UNUSED_RESULT;
 
@@ -2054,7 +2058,7 @@ class MessagesManager final : public Actor {
 
   Result<ForwardedMessages> get_forwarded_messages(DialogId to_dialog_id, MessageId top_thread_message_id,
                                                    DialogId from_dialog_id, const vector<MessageId> &message_ids,
-                                                   tl_object_ptr<td_api::messageSendOptions> &&options,
+                                                   td_api::object_ptr<td_api::messageSendOptions> &&options,
                                                    bool in_game_share, vector<MessageCopyOptions> &&copy_options);
 
   void do_send_media(DialogId dialog_id, Message *m, FileId file_id, FileId thumbnail_file_id,

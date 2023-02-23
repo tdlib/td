@@ -25701,7 +25701,7 @@ Result<int32> MessagesManager::get_message_schedule_date(
 tl_object_ptr<td_api::MessageSendingState> MessagesManager::get_message_sending_state_object(const Message *m) const {
   CHECK(m != nullptr);
   if (m->message_id.is_yet_unsent()) {
-    return td_api::make_object<td_api::messageSendingStatePending>();
+    return td_api::make_object<td_api::messageSendingStatePending>(m->sending_id);
   }
   if (m->is_failed_to_send) {
     auto can_retry = can_resend_message(m);
@@ -26032,6 +26032,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
   m->content = std::move(content);
   m->forward_info = std::move(forward_info);
   m->is_copy = is_copy || m->forward_info != nullptr;
+  m->sending_id = options.sending_id;
 
   if (td_->auth_manager_->is_bot() || options.disable_notification ||
       td_->option_manager_->get_option_boolean("ignore_default_disable_notification")) {
@@ -26719,6 +26720,8 @@ Result<MessagesManager::MessageSendOptions> MessagesManager::process_message_sen
   if (result.protect_content && !td_->auth_manager_->is_bot()) {
     result.protect_content = false;
   }
+
+  result.sending_id = options->sending_id_;
 
   return result;
 }
@@ -29895,7 +29898,7 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
         message->send_error_code == 400 && message->send_error_message == CSlice("SEND_AS_PEER_INVALID");
     MessageSendOptions options(message->disable_notification, message->from_background,
                                message->update_stickersets_order, message->noforwards,
-                               get_message_schedule_date(message.get()));
+                               get_message_schedule_date(message.get()), message->sending_id);
     Message *m = get_message_to_send(
         d, message->top_thread_message_id,
         get_reply_to_message_id(d, message->top_thread_message_id, message->reply_to_message_id, false), options,

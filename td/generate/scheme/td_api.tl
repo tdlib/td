@@ -1079,8 +1079,8 @@ unreadReaction type:ReactionType sender_id:MessageSender is_big:Bool = UnreadRea
 
 //@class MessageSendingState @description Contains information about the sending state of the message
 
-//@description The message is being sent now, but has not yet been delivered to the server
-messageSendingStatePending = MessageSendingState;
+//@description The message is being sent now, but has not yet been delivered to the server @sending_id Non-persistent message sending identifier, specified by the application
+messageSendingStatePending sending_id:int32 = MessageSendingState;
 
 //@description The message failed to be sent
 //@error_code An error code; 0 if unknown
@@ -2679,7 +2679,8 @@ messageSchedulingStateSendWhenOnline = MessageSchedulingState;
 //@protect_content Pass true if the content of the message must be protected from forwarding and saving; for bots only
 //@update_order_of_installed_sticker_sets Pass true if the user explicitly chosen a sticker or a custom emoji from an installed sticker set; applicable only to sendMessage and sendMessageAlbum
 //@scheduling_state Message scheduling state; pass null to send message immediately. Messages sent to a secret chat, live location messages and self-destructing messages can't be scheduled
-messageSendOptions disable_notification:Bool from_background:Bool protect_content:Bool update_order_of_installed_sticker_sets:Bool scheduling_state:MessageSchedulingState = MessageSendOptions;
+//@sending_id Non-persistent identifier, which will be returned back in messageSendingStatePending object and can be used to match sent messages and corresponding updateNewMessage updates
+messageSendOptions disable_notification:Bool from_background:Bool protect_content:Bool update_order_of_installed_sticker_sets:Bool scheduling_state:MessageSchedulingState sending_id:int32 = MessageSendOptions;
 
 //@description Options to be used when a message content is copied without reference to the original sender. Service messages and messageInvoice can't be copied
 //@send_copy True, if content of the message needs to be copied without reference to the original sender. Always true if the message is forwarded to a secret chat or is local
