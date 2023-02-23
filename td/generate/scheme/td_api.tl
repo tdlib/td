@@ -4714,6 +4714,13 @@ internalLinkTypeUserToken token:string = InternalLinkType;
 //@is_live_stream True, if the video chat is expected to be a live stream in a channel or a broadcast group
 internalLinkTypeVideoChat chat_username:string invite_hash:string is_live_stream:Bool = InternalLinkType;
 
+//@description The link is a link to a web app. Call searchPublicChat with the given bot username, check that the user is a bot, then call searchWebApp with the received bot and the given web_app_short_name.
+//-Process received webAppInfo by showing a confirmation dialog if needed, calling getWebAppLinkUrl and opening returned URL
+//@bot_username Username of the bot that owns the Web App
+//@web_app_short_name Short name of the Web App
+//@start_parameter Start parameter to be passed to getWebAppLinkUrl
+internalLinkTypeWebApp bot_username:string web_app_short_name:string start_parameter:string = InternalLinkType;
+
 
 //@description Contains an HTTPS link to a message in a supergroup or channel, or a forum topic @link The link @is_public True, if the link will work for non-members of the chat
 messageLink link:string is_public:Bool = MessageLink;

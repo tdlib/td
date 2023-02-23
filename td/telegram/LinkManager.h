@@ -139,6 +139,7 @@ class LinkManager final : public Actor {
   class InternalLinkUserPhoneNumber;
   class InternalLinkUserToken;
   class InternalLinkVoiceChat;
+  class InternalLinkWebApp;
 
   enum class LinkType : int32 { External, TMe, Tg, Telegraph };
 

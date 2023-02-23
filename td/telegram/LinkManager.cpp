@@ -58,6 +58,13 @@ static bool is_valid_phone_number(Slice phone_number) {
   return true;
 }
 
+static bool is_valid_web_app_name(Slice name) {
+  if (name.empty() || !is_alpha(name[0])) {
+    return false;
+  }
+  return true;
+}
+
 static string get_url_query_hash(bool is_tg, const HttpUrlQuery &url_query) {
   const auto &path = url_query.path_;
   if (is_tg) {
@@ -594,6 +601,23 @@ class LinkManager::InternalLinkVoiceChat final : public InternalLink {
   }
 };
 
+class LinkManager::InternalLinkWebApp final : public InternalLink {
+  string bot_username_;
+  string web_app_short_name_;
+  string start_parameter_;
+
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeWebApp>(bot_username_, web_app_short_name_, start_parameter_);
+  }
+
+ public:
+  InternalLinkWebApp(string bot_username, string web_app_short_name, string start_parameter)
+      : bot_username_(std::move(bot_username))
+      , web_app_short_name_(std::move(web_app_short_name))
+      , start_parameter_(std::move(start_parameter)) {
+  }
+};
+
 class GetDeepLinkInfoQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::deepLinkInfo>> promise_;
 
@@ -1086,6 +1110,11 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
           // resolve?domain=<bot_username>&game=<short_name>
           return td::make_unique<InternalLinkGame>(std::move(username), arg.second);
         }
+        if (arg.first == "appname" && is_valid_web_app_name(arg.second)) {
+          // resolve?domain=<bot_username>&appname=<app_name>&startapp=<start_parameter>
+          return td::make_unique<InternalLinkWebApp>(std::move(username), arg.second,
+                                                     url_query.get_arg("startapp").str());
+        }
       }
       if (!url_query.get_arg("attach").empty()) {
         // resolve?domain=<username>&attach=<bot_username>
@@ -1422,6 +1451,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
       return td::make_unique<InternalLinkMessage>(PSTRING() << "tg:resolve?domain=" << url_encode(path[0])
                                                             << "&post=" << post << copy_arg("single") << thread
                                                             << copy_arg("comment") << copy_arg("t"));
+    }
+    if (path.size() == 2 && is_valid_web_app_name(path[1])) {
+      return td::make_unique<InternalLinkWebApp>(path[0], path[1], url_query.get_arg("startapp").str());
     }
     auto username = path[0];
     for (auto &arg : url_query.args_) {
