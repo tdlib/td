@@ -16615,10 +16615,12 @@ void ContactsManager::reload_channel(ChannelId channel_id, Promise<Unit> &&promi
   have_channel_force(channel_id);
   auto input_channel = get_input_channel(channel_id);
   if (input_channel == nullptr) {
-    input_channel = make_tl_object<telegram_api::inputChannel>(channel_id.get(), 0);
+    // requests with 0 access_hash must not be merged
+    td_->create_handler<GetChannelsQuery>(std::move(promise))
+        ->send(telegram_api::make_object<telegram_api::inputChannel>(channel_id.get(), 0));
+    return;
   }
 
-  // requests with 0 access_hash must not be merged
   get_channel_queries_.add_query(channel_id.get(), std::move(promise));
 }
 
