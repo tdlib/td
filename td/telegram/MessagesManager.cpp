@@ -679,11 +679,11 @@ class UnpinAllMessagesQuery final : public Td::ResultHandler {
 };
 
 class GetMessageReadParticipantsQuery final : public Td::ResultHandler {
-  Promise<vector<UserId>> promise_;
+  Promise<MessageViewers> promise_;
   DialogId dialog_id_;
 
  public:
-  explicit GetMessageReadParticipantsQuery(Promise<vector<UserId>> &&promise) : promise_(std::move(promise)) {
+  explicit GetMessageReadParticipantsQuery(Promise<MessageViewers> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(DialogId dialog_id, MessageId message_id) {
@@ -700,11 +700,7 @@ class GetMessageReadParticipantsQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    auto user_ids =
-        transform(result_ptr.ok(), [](const telegram_api::object_ptr<telegram_api::readParticipantDate> &user_date) {
-          return user_date->user_id_;
-        });
-    promise_.set_value(UserId::get_user_ids(user_ids));
+    promise_.set_value(MessageViewers(result_ptr.move_as_ok()));
   }
 
   void on_error(Status status) final {
@@ -19009,11 +19005,11 @@ Status MessagesManager::can_get_message_viewers(DialogId dialog_id, const Messag
 }
 
 void MessagesManager::get_message_viewers(FullMessageId full_message_id,
-                                          Promise<td_api::object_ptr<td_api::users>> &&promise) {
+                                          Promise<td_api::object_ptr<td_api::messageViewers>> &&promise) {
   TRY_STATUS_PROMISE(promise, can_get_message_viewers(full_message_id));
 
   auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id = full_message_id.get_dialog_id(),
-                                               promise = std::move(promise)](Result<vector<UserId>> result) mutable {
+                                               promise = std::move(promise)](Result<MessageViewers> result) mutable {
     if (result.is_error()) {
       return promise.set_error(result.move_as_error());
     }
@@ -19025,11 +19021,12 @@ void MessagesManager::get_message_viewers(FullMessageId full_message_id,
       ->send(full_message_id.get_dialog_id(), full_message_id.get_message_id());
 }
 
-void MessagesManager::on_get_message_viewers(DialogId dialog_id, vector<UserId> user_ids, bool is_recursive,
-                                             Promise<td_api::object_ptr<td_api::users>> &&promise) {
+void MessagesManager::on_get_message_viewers(DialogId dialog_id, MessageViewers message_viewers, bool is_recursive,
+                                             Promise<td_api::object_ptr<td_api::messageViewers>> &&promise) {
   if (!is_recursive) {
     bool need_participant_list = false;
-    for (auto user_id : user_ids) {
+    for (auto message_viewer : message_viewers.message_viewers_) {
+      auto user_id = message_viewer.get_user_id();
       if (!user_id.is_valid()) {
         LOG(ERROR) << "Receive invalid " << user_id << " as viewer of a message in " << dialog_id;
         continue;
@@ -19039,11 +19036,12 @@ void MessagesManager::on_get_message_viewers(DialogId dialog_id, vector<UserId> 
       }
     }
     if (need_participant_list) {
-      auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, user_ids = std::move(user_ids),
-                                                   promise = std::move(promise)](Unit result) mutable {
-        send_closure(actor_id, &MessagesManager::on_get_message_viewers, dialog_id, std::move(user_ids), true,
-                     std::move(promise));
-      });
+      auto query_promise =
+          PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, message_viewers = std::move(message_viewers),
+                                  promise = std::move(promise)](Unit result) mutable {
+            send_closure(actor_id, &MessagesManager::on_get_message_viewers, dialog_id, std::move(message_viewers),
+                         true, std::move(promise));
+          });
 
       switch (dialog_id.get_type()) {
         case DialogType::Chat:
@@ -19060,7 +19058,7 @@ void MessagesManager::on_get_message_viewers(DialogId dialog_id, vector<UserId> 
       }
     }
   }
-  promise.set_value(td_->contacts_manager_->get_users_object(-1, user_ids));
+  promise.set_value(message_viewers.get_message_viewers_object(td_->contacts_manager_.get()));
 }
 
 void MessagesManager::translate_message_text(FullMessageId full_message_id, const string &to_language_code,
@@ -22634,8 +22632,9 @@ tl_object_ptr<td_api::messages> MessagesManager::get_dialog_history(DialogId dia
   }
 
   LOG(INFO) << "Return " << messages.size() << " messages in result to getChatHistory";
-  promise.set_value(Unit());                                   // can return some messages
-  return get_messages_object(-1, std::move(messages), false);  // TODO return real total_count of messages in the dialog
+  promise.set_value(Unit());  // can return some messages
+  return get_messages_object(-1, std::move(messages),
+                             false);  // TODO return real total_count of messages in the dialog
 }
 
 class MessagesManager::ReadHistoryOnServerLogEvent {

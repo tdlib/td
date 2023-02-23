@@ -395,6 +395,7 @@ set(TDLIB_SOURCE
   td/telegram/MessageSource.cpp
   td/telegram/MessageThreadDb.cpp
   td/telegram/MessageTtl.cpp
+  td/telegram/MessageViewer.cpp
   td/telegram/misc.cpp
   td/telegram/net/AuthDataShared.cpp
   td/telegram/net/ConnectionCreator.cpp
@@ -651,6 +652,7 @@ set(TDLIB_SOURCE
   td/telegram/MessageThreadDb.h
   td/telegram/MessageThreadInfo.h
   td/telegram/MessageTtl.h
+  td/telegram/MessageViewer.h
   td/telegram/MinChannel.h
   td/telegram/misc.h
   td/telegram/net/AuthDataShared.h

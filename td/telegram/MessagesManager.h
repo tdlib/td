@@ -41,6 +41,7 @@
 #include "td/telegram/MessageSource.h"
 #include "td/telegram/MessageThreadInfo.h"
 #include "td/telegram/MessageTtl.h"
+#include "td/telegram/MessageViewer.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/Notification.h"
@@ -641,7 +642,8 @@ class MessagesManager final : public Actor {
                                   DialogId dialog_id, MessageId message_id, DialogId expected_dialog_id,
                                   MessageId expected_message_id, Promise<MessageThreadInfo> promise);
 
-  void get_message_viewers(FullMessageId full_message_id, Promise<td_api::object_ptr<td_api::users>> &&promise);
+  void get_message_viewers(FullMessageId full_message_id,
+                           Promise<td_api::object_ptr<td_api::messageViewers>> &&promise);
 
   void translate_message_text(FullMessageId full_message_id, const string &to_language_code,
                               Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
@@ -3062,8 +3064,8 @@ class MessagesManager final : public Actor {
   void on_get_discussion_message(DialogId dialog_id, MessageId message_id, MessageThreadInfo &&message_thread_info,
                                  Promise<MessageThreadInfo> &&promise);
 
-  void on_get_message_viewers(DialogId dialog_id, vector<UserId> user_ids, bool is_recursive,
-                              Promise<td_api::object_ptr<td_api::users>> &&promise);
+  void on_get_message_viewers(DialogId dialog_id, MessageViewers message_viewers, bool is_recursive,
+                              Promise<td_api::object_ptr<td_api::messageViewers>> &&promise);
 
   static MessageId get_first_database_message_id_by_index(const Dialog *d, MessageSearchFilter filter);
 

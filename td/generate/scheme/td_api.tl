@@ -1001,6 +1001,13 @@ chatMessageSender sender:MessageSender needs_premium:Bool = ChatMessageSender;
 chatMessageSenders senders:vector<chatMessageSender> = ChatMessageSenders;
 
 
+//@description Represents a viewer of a message @user_id User identifier of the viewer @view_date Point in time (Unix timestamp) when the message was viewed
+messageViewer user_id:int53 view_date:int32 = MessageViewer;
+
+//@description Represents a list of message viewers @viewers List of message viewers
+messageViewers viewers:vector<messageViewer> = MessageViewers;
+
+
 //@class MessageForwardOrigin @description Contains information about the origin of a forwarded message
 
 //@description The message was originally sent by a known user @sender_user_id Identifier of the user that originally sent the message
@@ -5880,7 +5887,7 @@ getMessageThread chat_id:int53 message_id:int53 = MessageThreadInfo;
 //@description Returns viewers of a recent outgoing message in a basic group or a supergroup chat. For video notes and voice notes only users, opened content of the message, are returned. The method can be called if message.can_get_viewers == true
 //@chat_id Chat identifier
 //@message_id Identifier of the message
-getMessageViewers chat_id:int53 message_id:int53 = Users;
+getMessageViewers chat_id:int53 message_id:int53 = MessageViewers;
 
 //@description Returns information about a file; this is an offline request @file_id Identifier of the file to get
 getFile file_id:int32 = File;
