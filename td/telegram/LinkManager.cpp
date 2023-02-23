@@ -1620,8 +1620,8 @@ void LinkManager::get_external_link_info(string &&link, Promise<td_api::object_p
     return promise.set_value(std::move(default_result));
   }
 
-  bool skip_confirm = td::contains(whitelisted_domains_, url.host_);
-  default_result->skip_confirm_ = skip_confirm;
+  bool skip_confirmation = td::contains(whitelisted_domains_, url.host_);
+  default_result->skip_confirmation_ = skip_confirmation;
 
   if (!td::contains(autologin_domains_, url.host_)) {
     if (td::contains(url_auth_domains_, url.host_)) {
@@ -1667,7 +1667,7 @@ void LinkManager::get_external_link_info(string &&link, Promise<td_api::object_p
 
   url.query_ = PSTRING() << path << parameters << added_parameter << hash;
 
-  promise.set_value(td_api::make_object<td_api::loginUrlInfoOpen>(url.get_url(), skip_confirm));
+  promise.set_value(td_api::make_object<td_api::loginUrlInfoOpen>(url.get_url(), skip_confirmation));
 }
 
 void LinkManager::get_login_url_info(FullMessageId full_message_id, int64 button_id,

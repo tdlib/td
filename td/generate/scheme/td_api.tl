@@ -1546,8 +1546,8 @@ replyMarkupInlineKeyboard rows:vector<vector<inlineKeyboardButton>> = ReplyMarku
 
 //@class LoginUrlInfo @description Contains information about an inline button of type inlineKeyboardButtonTypeLoginUrl
 
-//@description An HTTP URL needs to be open @url The URL to open @skip_confirm True, if there is no need to show an ordinary open URL confirm
-loginUrlInfoOpen url:string skip_confirm:Bool = LoginUrlInfo;
+//@description An HTTP URL needs to be open @url The URL to open @skip_confirmation True, if there is no need to show an ordinary open URL confirmation
+loginUrlInfoOpen url:string skip_confirmation:Bool = LoginUrlInfo;
 
 //@description An authorization confirmation dialog needs to be shown to the user
 //@url An HTTP URL to be opened
