@@ -1193,7 +1193,9 @@ messageSourceOther = MessageSource;
 //@show_chat_photo True, if the sponsor's chat photo must be shown
 //@link An internal link to be opened when the sponsored message is clicked; may be null if the sponsor chat needs to be opened instead
 //@content Content of the message. Currently, can be only of the type messageText
-sponsoredMessage message_id:int53 is_recommended:Bool sponsor_chat_id:int53 sponsor_chat_info:chatInviteLinkInfo show_chat_photo:Bool link:InternalLinkType content:MessageContent = SponsoredMessage;
+//@sponsor_info If non-empty, information about the sponsor to be shown along with the message
+//@additional_info If non-empty, additional information about the sponsored message to be shown along with the message
+sponsoredMessage message_id:int53 is_recommended:Bool sponsor_chat_id:int53 sponsor_chat_info:chatInviteLinkInfo show_chat_photo:Bool link:InternalLinkType content:MessageContent sponsor_info:string additional_info:string = SponsoredMessage;
 
 //@description Contains a list of sponsored messages @messages List of sponsored messages @messages_between The minimum number of messages between shown sponsored messages, or 0 if only one sponsored message must be shown after all ordinary messages
 sponsoredMessages messages:vector<sponsoredMessage> messages_between:int32 = SponsoredMessages;

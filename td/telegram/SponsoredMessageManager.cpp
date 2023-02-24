@@ -97,10 +97,12 @@ struct SponsoredMessageManager::SponsoredMessage {
   string start_param;
   string invite_hash;
   unique_ptr<MessageContent> content;
+  string sponsor_info;
+  string additional_info;
 
   SponsoredMessage(int64 local_id, bool is_recommended, bool show_dialog_photo, DialogId sponsor_dialog_id,
                    ServerMessageId server_message_id, string start_param, string invite_hash,
-                   unique_ptr<MessageContent> content)
+                   unique_ptr<MessageContent> content, string sponsor_info, string additional_info)
       : local_id(local_id)
       , is_recommended(is_recommended)
       , show_dialog_photo(show_dialog_photo)
@@ -108,7 +110,9 @@ struct SponsoredMessageManager::SponsoredMessage {
       , server_message_id(server_message_id)
       , start_param(std::move(start_param))
       , invite_hash(std::move(invite_hash))
-      , content(std::move(content)) {
+      , content(std::move(content))
+      , sponsor_info(std::move(sponsor_info))
+      , additional_info(std::move(additional_info)) {
   }
 };
 
@@ -195,7 +199,8 @@ td_api::object_ptr<td_api::sponsoredMessage> SponsoredMessageManager::get_sponso
   return td_api::make_object<td_api::sponsoredMessage>(
       sponsored_message.local_id, sponsored_message.is_recommended, sponsored_message.sponsor_dialog_id.get(),
       std::move(chat_invite_link_info), sponsored_message.show_dialog_photo, std::move(link),
-      get_message_content_object(sponsored_message.content.get(), td_, dialog_id, 0, false, true, -1));
+      get_message_content_object(sponsored_message.content.get(), td_, dialog_id, 0, false, true, -1),
+      sponsored_message.sponsor_info, sponsored_message.additional_info);
 }
 
 td_api::object_ptr<td_api::sponsoredMessages> SponsoredMessageManager::get_sponsored_messages_object(
@@ -332,7 +337,8 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
         CHECK(is_inserted);
         messages->messages.emplace_back(
             local_id, sponsored_message->recommended_, sponsored_message->show_peer_photo_, sponsor_dialog_id,
-            server_message_id, std::move(sponsored_message->start_param_), std::move(invite_hash), std::move(content));
+            server_message_id, std::move(sponsored_message->start_param_), std::move(invite_hash), std::move(content),
+            std::move(sponsored_message->sponsor_info_), std::move(sponsored_message->additional_info_));
       }
       messages->messages_between = sponsored_messages->posts_between_;
       break;
