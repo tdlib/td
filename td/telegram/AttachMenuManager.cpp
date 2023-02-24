@@ -66,6 +66,55 @@ class GetBotAppQuery final : public Td::ResultHandler {
   }
 };
 
+class RequestAppWebViewQuery final : public Td::ResultHandler {
+  Promise<string> promise_;
+
+ public:
+  explicit RequestAppWebViewQuery(Promise<string> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, telegram_api::object_ptr<telegram_api::InputUser> &&input_user,
+            const string &web_app_short_name, const string &start_parameter,
+            const td_api::object_ptr<td_api::themeParameters> &theme, const string &platform, bool allow_write_access) {
+    telegram_api::object_ptr<telegram_api::dataJSON> theme_parameters;
+    int32 flags = 0;
+    if (theme != nullptr) {
+      flags |= telegram_api::messages_requestAppWebView::THEME_PARAMS_MASK;
+
+      theme_parameters = make_tl_object<telegram_api::dataJSON>(string());
+      theme_parameters->data_ = ThemeManager::get_theme_parameters_json_string(theme, false);
+    }
+    if (allow_write_access) {
+      flags |= telegram_api::messages_requestAppWebView::WRITE_ALLOWED_MASK;
+    }
+    if (!start_parameter.empty()) {
+      flags |= telegram_api::messages_requestAppWebView::START_PARAM_MASK;
+    }
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+    auto input_bot_app =
+        telegram_api::make_object<telegram_api::inputBotAppShortName>(std::move(input_user), web_app_short_name);
+    send_query(G()->net_query_creator().create(telegram_api::messages_requestAppWebView(
+        flags, false /*ignored*/, std::move(input_peer), std::move(input_bot_app), start_parameter,
+        std::move(theme_parameters), platform)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_requestAppWebView>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for RequestAppWebViewQuery: " << to_string(ptr);
+    promise_.set_value(std::move(ptr->url_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class RequestWebViewQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::webAppInfo>> promise_;
   DialogId dialog_id_;
@@ -648,6 +697,7 @@ void AttachMenuManager::schedule_ping_web_view() {
 void AttachMenuManager::get_web_app(UserId bot_user_id, string &&web_app_short_name,
                                     Promise<td_api::object_ptr<td_api::foundWebApp>> &&promise) {
   TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(bot_user_id));
+  TRY_RESULT_PROMISE(promise, bot_data, td_->contacts_manager_->get_bot_data(bot_user_id));
   auto query_promise =
       PromiseCreator::lambda([actor_id = actor_id(this), bot_user_id, web_app_short_name, promise = std::move(promise)](
                                  Result<telegram_api::object_ptr<telegram_api::messages_botApp>> result) mutable {
@@ -676,12 +726,28 @@ void AttachMenuManager::on_get_web_app(UserId bot_user_id, string web_app_short_
                                                              bot_app->request_write_access_, !bot_app->inactive_));
 }
 
+void AttachMenuManager::request_app_web_view(DialogId dialog_id, UserId bot_user_id, string &&web_app_short_name,
+                                             string &&start_parameter,
+                                             const td_api::object_ptr<td_api::themeParameters> &theme,
+                                             string &&platform, bool allow_write_access, Promise<string> &&promise) {
+  if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+    dialog_id = DialogId(bot_user_id);
+  }
+  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(bot_user_id));
+  TRY_RESULT_PROMISE(promise, bot_data, td_->contacts_manager_->get_bot_data(bot_user_id));
+
+  td_->create_handler<RequestAppWebViewQuery>(std::move(promise))
+      ->send(dialog_id, std::move(input_user), web_app_short_name, start_parameter, theme, platform,
+             allow_write_access);
+}
+
 void AttachMenuManager::request_web_view(DialogId dialog_id, UserId bot_user_id, MessageId top_thread_message_id,
                                          MessageId reply_to_message_id, string &&url,
                                          td_api::object_ptr<td_api::themeParameters> &&theme, string &&platform,
                                          Promise<td_api::object_ptr<td_api::webAppInfo>> &&promise) {
   TRY_STATUS_PROMISE(promise, td_->contacts_manager_->get_bot_data(bot_user_id));
   TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(bot_user_id));
+  TRY_RESULT_PROMISE(promise, bot_data, td_->contacts_manager_->get_bot_data(bot_user_id));
 
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "request_web_view")) {
     return promise.set_error(Status::Error(400, "Chat not found"));

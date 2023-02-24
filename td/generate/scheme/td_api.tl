@@ -4721,7 +4721,7 @@ internalLinkTypeUserToken token:string = InternalLinkType;
 internalLinkTypeVideoChat chat_username:string invite_hash:string is_live_stream:Bool = InternalLinkType;
 
 //@description The link is a link to a Web App. Call searchPublicChat with the given bot username, check that the user is a bot, then call searchWebApp with the received bot and the given web_app_short_name.
-//-Process received foundWebApp by showing a confirmation dialog if needed, calling getWebAppLinkUrl and opening returned URL
+//-Process received foundWebApp by showing a confirmation dialog if needed, then calling getWebAppLinkUrl and opening the returned URL
 //@bot_username Username of the bot that owns the Web App
 //@web_app_short_name Short name of the Web App
 //@start_parameter Start parameter to be passed to getWebAppLinkUrl
@@ -6548,6 +6548,16 @@ answerInlineQuery inline_query_id:int64 is_personal:Bool button:inlineQueryResul
 //@bot_user_id Identifier of the target bot
 //@web_app_short_name Short name of the Web App
 searchWebApp bot_user_id:int53 web_app_short_name:string = FoundWebApp;
+
+//@description Returns an HTTPS URL of a Web App to open after a link of the type internalLinkTypeWebApp is clicked
+//@chat_id Identifier of the chat in which the link was clicked; pass 0 if none
+//@bot_user_id Identifier of the target bot
+//@web_app_short_name Short name of the Web App
+//@start_parameter Start parameter from internalLinkTypeWebApp
+//@theme Preferred Web App theme; pass null to use the default theme
+//@application_name Short name of the application; 0-64 English letters, digits, and underscores
+//@allow_write_access Pass true if the current user allowed the bot to send them messages
+getWebAppLinkUrl chat_id:int53 bot_user_id:int53 web_app_short_name:string start_parameter:string theme:themeParameters application_name:string allow_write_access:Bool = HttpUrl;
 
 //@description Returns an HTTPS URL of a Web App to open after keyboardButtonTypeWebApp or inlineQueryResultsButtonTypeWebApp button is pressed
 //@bot_user_id Identifier of the target bot

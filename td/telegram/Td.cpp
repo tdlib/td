@@ -7778,6 +7778,25 @@ void Td::on_request(uint64 id, td_api::searchWebApp &request) {
                                     std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::getWebAppLinkUrl &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.web_app_short_name_);
+  CLEAN_INPUT_STRING(request.start_parameter_);
+  CLEAN_INPUT_STRING(request.application_name_);
+  CREATE_REQUEST_PROMISE();
+  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      promise.set_value(td_api::make_object<td_api::httpUrl>(result.move_as_ok()));
+    }
+  });
+  attach_menu_manager_->request_app_web_view(
+      DialogId(request.chat_id_), UserId(request.bot_user_id_), std::move(request.web_app_short_name_),
+      std::move(request.start_parameter_), std::move(request.theme_), std::move(request.application_name_),
+      request.allow_write_access_, std::move(query_promise));
+}
+
 void Td::on_request(uint64 id, td_api::getWebAppUrl &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.url_);

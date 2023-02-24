@@ -3746,6 +3746,14 @@ class CliClient final : public Actor {
       string short_name;
       get_args(args, bot_user_id, short_name);
       send_request(td_api::make_object<td_api::searchWebApp>(bot_user_id, short_name));
+    } else if (op == "gwalu") {
+      ChatId chat_id;
+      UserId bot_user_id;
+      string short_name;
+      string start_parameter;
+      get_args(args, chat_id, bot_user_id, short_name, start_parameter);
+      send_request(td_api::make_object<td_api::getWebAppLinkUrl>(chat_id, bot_user_id, short_name, start_parameter,
+                                                                 as_theme_parameters(), "android", true));
     } else if (op == "gwau") {
       UserId bot_user_id;
       string url;

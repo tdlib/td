@@ -35,6 +35,10 @@ class AttachMenuManager final : public Actor {
   void get_web_app(UserId bot_user_id, string &&web_app_short_name,
                    Promise<td_api::object_ptr<td_api::foundWebApp>> &&promise);
 
+  void request_app_web_view(DialogId dialog_id, UserId bot_user_id, string &&web_app_short_name,
+                            string &&start_parameter, const td_api::object_ptr<td_api::themeParameters> &theme,
+                            string &&platform, bool allow_write_access, Promise<string> &&promise);
+
   void request_web_view(DialogId dialog_id, UserId bot_user_id, MessageId top_thread_message_id,
                         MessageId reply_to_message_id, string &&url,
                         td_api::object_ptr<td_api::themeParameters> &&theme, string &&platform,
