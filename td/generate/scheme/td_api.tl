@@ -473,8 +473,8 @@ venue location:location title:string address:string provider:string id:string ty
 //@animation Game animation; may be null
 game id:int64 short_name:string title:string text:formattedText description:string photo:photo animation:animation = Game;
 
-//@description Describes a web app
-//@short_name Web app short name. To share a web app use the URL https://t.me/{bot_username}/{app_short_name}?startapp={start_parameter}
+//@description Describes a Web App
+//@short_name Web App short name. To share a Web App use the URL https://t.me/{bot_username}/{app_short_name}?startapp={start_parameter}
 //@title Web App title
 //@param_description Web App description
 //@photo Web App photo
@@ -1553,9 +1553,15 @@ loginUrlInfoOpen url:string skip_confirmation:Bool = LoginUrlInfo;
 //@url An HTTP URL to be opened
 //@domain A domain of the URL
 //@bot_user_id User identifier of a bot linked with the website
-//@request_write_access True, if the user needs to be requested to give the permission to the bot to send them messages
+//@request_write_access True, if the user must be asked for the permission to the bot to send them messages
 loginUrlInfoRequestConfirmation url:string domain:string bot_user_id:int53 request_write_access:Bool = LoginUrlInfo;
 
+
+//@description Contains information about a Web App found by its short name
+//@web_app The Web App
+//@request_write_access True, if the user must be asked for the permission to the bot to send them messages
+//@skip_confirmation True, if there is no need to show an ordinary open URL confirmation before opening the Web App. The field must be ignored and confirmation must be shown anyway if the Web App link was hidden
+foundWebApp web_app:webApp request_write_access:Bool skip_confirmation:Bool = FoundWebApp;
 
 //@description Contains information about a Web App @launch_id Unique identifier for the Web App launch @url A Web App URL to open in a web view
 webAppInfo launch_id:int64 url:string = WebAppInfo;
@@ -3317,7 +3323,7 @@ attachmentMenuBotColor light_color:int32 dark_color:int32 = AttachmentMenuBotCol
 //@supports_group_chats True, if the bot supports opening from attachment menu in basic group and supergroup chats
 //@supports_channel_chats True, if the bot supports opening from attachment menu in channel chats
 //@supports_settings True, if the bot supports "settings_button_pressed" event
-//@request_write_access True, if the user needs to be requested to give the permission to the bot to send them messages
+//@request_write_access True, if the user must be asked for the permission to the bot to send them messages
 //@name Name for the bot in attachment menu
 //@name_color Color to highlight selected name of the bot if appropriate; may be null
 //@default_icon Default attachment menu icon for the bot in SVG format; may be null
@@ -4714,8 +4720,8 @@ internalLinkTypeUserToken token:string = InternalLinkType;
 //@is_live_stream True, if the video chat is expected to be a live stream in a channel or a broadcast group
 internalLinkTypeVideoChat chat_username:string invite_hash:string is_live_stream:Bool = InternalLinkType;
 
-//@description The link is a link to a web app. Call searchPublicChat with the given bot username, check that the user is a bot, then call searchWebApp with the received bot and the given web_app_short_name.
-//-Process received webAppInfo by showing a confirmation dialog if needed, calling getWebAppLinkUrl and opening returned URL
+//@description The link is a link to a Web App. Call searchPublicChat with the given bot username, check that the user is a bot, then call searchWebApp with the received bot and the given web_app_short_name.
+//-Process received foundWebApp by showing a confirmation dialog if needed, calling getWebAppLinkUrl and opening returned URL
 //@bot_username Username of the bot that owns the Web App
 //@web_app_short_name Short name of the Web App
 //@start_parameter Start parameter to be passed to getWebAppLinkUrl
@@ -6537,6 +6543,11 @@ getInlineQueryResults bot_user_id:int53 chat_id:int53 user_location:location que
 //@next_offset Offset for the next inline query; pass an empty string if there are no more results
 answerInlineQuery inline_query_id:int64 is_personal:Bool button:inlineQueryResultsButton results:vector<InputInlineQueryResult> cache_time:int32 next_offset:string = Ok;
 
+
+//@description Returns information about a Web App by its short name. Returns a 404 error if the Web App is not found
+//@bot_user_id Identifier of the target bot
+//@web_app_short_name Short name of the Web App
+searchWebApp bot_user_id:int53 web_app_short_name:string = FoundWebApp;
 
 //@description Returns an HTTPS URL of a Web App to open after keyboardButtonTypeWebApp or inlineQueryResultsButtonTypeWebApp button is pressed
 //@bot_user_id Identifier of the target bot

@@ -23,6 +23,7 @@
 #include "td/telegram/TdDb.h"
 #include "td/telegram/TdParameters.h"
 #include "td/telegram/ThemeManager.h"
+#include "td/telegram/WebApp.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
@@ -34,6 +35,36 @@
 #include "td/utils/tl_helpers.h"
 
 namespace td {
+
+class GetBotAppQuery final : public Td::ResultHandler {
+  Promise<telegram_api::object_ptr<telegram_api::messages_botApp>> promise_;
+
+ public:
+  explicit GetBotAppQuery(Promise<telegram_api::object_ptr<telegram_api::messages_botApp>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(telegram_api::object_ptr<telegram_api::InputUser> &&input_user, const string &short_name) {
+    auto input_bot_app =
+        telegram_api::make_object<telegram_api::inputBotAppShortName>(std::move(input_user), short_name);
+    send_query(G()->net_query_creator().create(telegram_api::messages_getBotApp(std::move(input_bot_app), 0)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getBotApp>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetBotAppQuery: " << to_string(ptr);
+    promise_.set_value(std::move(ptr));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
 
 class RequestWebViewQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::webAppInfo>> promise_;
@@ -213,7 +244,6 @@ class GetAttachMenuBotsQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetAttachMenuBotsQuery: " << to_string(ptr);
-
     promise_.set_value(std::move(ptr));
   }
 
@@ -613,6 +643,37 @@ void AttachMenuManager::schedule_ping_web_view() {
   ping_web_view_timeout_.set_callback(ping_web_view_static);
   ping_web_view_timeout_.set_callback_data(static_cast<void *>(td_));
   ping_web_view_timeout_.set_timeout_in(PING_WEB_VIEW_TIMEOUT);
+}
+
+void AttachMenuManager::get_web_app(UserId bot_user_id, string &&web_app_short_name,
+                                    Promise<td_api::object_ptr<td_api::foundWebApp>> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(bot_user_id));
+  auto query_promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), bot_user_id, web_app_short_name, promise = std::move(promise)](
+                                 Result<telegram_api::object_ptr<telegram_api::messages_botApp>> result) mutable {
+        send_closure(actor_id, &AttachMenuManager::on_get_web_app, bot_user_id, std::move(web_app_short_name),
+                     std::move(result), std::move(promise));
+      });
+  td_->create_handler<GetBotAppQuery>(std::move(query_promise))->send(std::move(input_user), web_app_short_name);
+}
+
+void AttachMenuManager::on_get_web_app(UserId bot_user_id, string web_app_short_name,
+                                       Result<telegram_api::object_ptr<telegram_api::messages_botApp>> result,
+                                       Promise<td_api::object_ptr<td_api::foundWebApp>> promise) {
+  G()->ignore_result_if_closing(result);
+  if (result.is_error() && result.error().message() == "BOT_APP_INVALID") {
+    return promise.set_value(nullptr);
+  }
+  TRY_RESULT_PROMISE(promise, bot_app, std::move(result));
+  if (bot_app->app_->get_id() != telegram_api::botApp::ID) {
+    CHECK(bot_app->app_->get_id() != telegram_api::botAppNotModified::ID);
+    LOG(ERROR) << "Receive " << to_string(bot_app);
+    return promise.set_error(Status::Error(500, "Receive invalid response"));
+  }
+
+  WebApp web_app(td_, telegram_api::move_object_as<telegram_api::botApp>(bot_app->app_), DialogId(bot_user_id));
+  promise.set_value(td_api::make_object<td_api::foundWebApp>(web_app.get_web_app_object(td_),
+                                                             bot_app->request_write_access_, !bot_app->inactive_));
 }
 
 void AttachMenuManager::request_web_view(DialogId dialog_id, UserId bot_user_id, MessageId top_thread_message_id,

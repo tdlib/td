@@ -32,6 +32,9 @@ class AttachMenuManager final : public Actor {
 
   void init();
 
+  void get_web_app(UserId bot_user_id, string &&web_app_short_name,
+                   Promise<td_api::object_ptr<td_api::foundWebApp>> &&promise);
+
   void request_web_view(DialogId dialog_id, UserId bot_user_id, MessageId top_thread_message_id,
                         MessageId reply_to_message_id, string &&url,
                         td_api::object_ptr<td_api::themeParameters> &&theme, string &&platform,
@@ -126,6 +129,10 @@ class AttachMenuManager final : public Actor {
   void ping_web_view();
 
   void schedule_ping_web_view();
+
+  void on_get_web_app(UserId bot_user_id, string web_app_short_name,
+                      Result<telegram_api::object_ptr<telegram_api::messages_botApp>> result,
+                      Promise<td_api::object_ptr<td_api::foundWebApp>> promise);
 
   Result<AttachMenuBot> get_attach_menu_bot(tl_object_ptr<telegram_api::attachMenuBot> &&bot);
 

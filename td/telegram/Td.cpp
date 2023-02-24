@@ -7770,6 +7770,14 @@ void Td::on_request(uint64 id, td_api::answerInlineQuery &request) {
                                                request.cache_time_, request.next_offset_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::searchWebApp &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.web_app_short_name_);
+  CREATE_REQUEST_PROMISE();
+  attach_menu_manager_->get_web_app(UserId(request.bot_user_id_), std::move(request.web_app_short_name_),
+                                    std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::getWebAppUrl &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.url_);

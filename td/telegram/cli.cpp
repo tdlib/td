@@ -3741,17 +3741,22 @@ class CliClient final : public Actor {
       get_args(args, user_id, is_added, allow_write_access);
       send_request(
           td_api::make_object<td_api::toggleBotIsAddedToAttachmentMenu>(user_id, is_added, allow_write_access));
+    } else if (op == "swa") {
+      UserId bot_user_id;
+      string short_name;
+      get_args(args, bot_user_id, short_name);
+      send_request(td_api::make_object<td_api::searchWebApp>(bot_user_id, short_name));
     } else if (op == "gwau") {
-      UserId user_id;
+      UserId bot_user_id;
       string url;
-      get_args(args, user_id, url);
-      send_request(td_api::make_object<td_api::getWebAppUrl>(user_id, url, as_theme_parameters(), "android"));
+      get_args(args, bot_user_id, url);
+      send_request(td_api::make_object<td_api::getWebAppUrl>(bot_user_id, url, as_theme_parameters(), "android"));
     } else if (op == "swad") {
-      UserId user_id;
+      UserId bot_user_id;
       string button_text;
       string data;
-      get_args(args, user_id, button_text, data);
-      send_request(td_api::make_object<td_api::sendWebAppData>(user_id, button_text, data));
+      get_args(args, bot_user_id, button_text, data);
+      send_request(td_api::make_object<td_api::sendWebAppData>(bot_user_id, button_text, data));
     } else if (op == "owa") {
       ChatId chat_id;
       UserId bot_user_id;
