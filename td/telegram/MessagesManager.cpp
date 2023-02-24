@@ -21340,11 +21340,6 @@ DialogId MessagesManager::create_new_group_chat(const vector<UserId> &user_ids, 
     return dialog_id;
   }
 
-  if (user_ids.empty()) {
-    promise.set_error(Status::Error(400, "Too few users to create basic group chat"));
-    return DialogId();
-  }
-
   auto new_title = clean_name(title, MAX_TITLE_LENGTH);
   if (new_title.empty()) {
     promise.set_error(Status::Error(400, "Title must be non-empty"));

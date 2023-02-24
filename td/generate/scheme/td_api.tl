@@ -6623,7 +6623,7 @@ createSupergroupChat supergroup_id:int53 force:Bool = Chat;
 createSecretChat secret_chat_id:int32 = Chat;
 
 //@description Creates a new basic group and sends a corresponding messageBasicGroupChatCreate. Returns the newly created chat
-//@user_ids Identifiers of users to be added to the basic group
+//@user_ids Identifiers of users to be added to the basic group; may be empty to create a basic group without other members
 //@title Title of the new basic group; 1-128 characters
 //@message_auto_delete_time Message auto-delete time value, in seconds; must be from 0 up to 365 * 86400 and be divisible by 86400. If 0, then messages aren't deleted automatically
 createNewBasicGroupChat user_ids:vector<int53> title:string message_auto_delete_time:int32 = Chat;
