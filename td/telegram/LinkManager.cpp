@@ -58,11 +58,12 @@ static bool is_valid_phone_number(Slice phone_number) {
   return true;
 }
 
+static bool is_valid_game_name(Slice name) {
+  return name.size() >= 3 && is_valid_username(name);
+}
+
 static bool is_valid_web_app_name(Slice name) {
-  if (name.empty() || !is_alpha(name[0])) {
-    return false;
-  }
-  return true;
+  return name.size() >= 3 && is_valid_username(name);
 }
 
 static string get_url_query_hash(bool is_tg, const HttpUrlQuery &url_query) {
@@ -1106,7 +1107,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
             return td::make_unique<InternalLinkBotAddToChannel>(std::move(username), std::move(administrator_rights));
           }
         }
-        if (arg.first == "game" && !arg.second.empty()) {
+        if (arg.first == "game" && is_valid_game_name(arg.second)) {
           // resolve?domain=<bot_username>&game=<short_name>
           return td::make_unique<InternalLinkGame>(std::move(username), arg.second);
         }
@@ -1484,7 +1485,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
           return td::make_unique<InternalLinkBotAddToChannel>(std::move(username), std::move(administrator_rights));
         }
       }
-      if (arg.first == "game" && !arg.second.empty()) {
+      if (arg.first == "game" && is_valid_game_name(arg.second)) {
         // /<bot_username>?game=<short_name>
         return td::make_unique<InternalLinkGame>(std::move(username), arg.second);
       }

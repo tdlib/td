@@ -898,7 +898,9 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("tg:http://resolve?domain=username&game=asd", nullptr);
   parse_internal_link("tg:https://resolve?domain=username&game=asd", nullptr);
   parse_internal_link("tg:resolve?domain=&game=asd", unknown_deep_link("tg://resolve?domain=&game=asd"));
-  parse_internal_link("tg:resolve?domain=telegram&&&&&&&game=%30", game("telegram", "0"));
+  parse_internal_link("tg:resolve?domain=telegram&&&&&&&game=%30", public_chat("telegram"));
+  parse_internal_link("tg:resolve?domain=telegram&&&&&&&game=%30ab", public_chat("telegram"));
+  parse_internal_link("tg:resolve?domain=telegram&&&&&&&game=ab%30", game("telegram", "ab0"));
 
   parse_internal_link("t.me/username/0/a//s/as?game=asd", game("username", "asd"));
   parse_internal_link("t.me/username/aasdas/2?test=1&game=asd#12312", game("username", "asd"));
@@ -918,7 +920,9 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("tg:http://resolve?domain=username&appname=asd", nullptr);
   parse_internal_link("tg:https://resolve?domain=username&appname=asd", nullptr);
   parse_internal_link("tg:resolve?domain=&appname=asd", unknown_deep_link("tg://resolve?domain=&appname=asd"));
-  parse_internal_link("tg:resolve?domain=telegram&&&&&&&appname=%41&startapp=", web_app("telegram", "A", ""));
+  parse_internal_link("tg:resolve?domain=telegram&&&&&&&appname=%41&startapp=", public_chat("telegram"));
+  parse_internal_link("tg:resolve?domain=telegram&&&&&&&appname=%41b&startapp=", public_chat("telegram"));
+  parse_internal_link("tg:resolve?domain=telegram&&&&&&&appname=%41bc&startapp=", web_app("telegram", "Abc", ""));
 
   parse_internal_link("t.me/username/0/a//s/as?appname=asd", public_chat("username"));
   parse_internal_link("t.me/username/aasdas/2?test=1&appname=asd#12312", public_chat("username"));
