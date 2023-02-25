@@ -115,11 +115,10 @@ void FileLoader::start_up() {
   // This error is definitely ok, because we are using actual size of the file on disk (mtime is checked by
   // somebody else). And actual size could change arbitrarily.
   //
-  // 2. size is unknown/zero, size is not final, some parts of file are already uploaded
+  // 2. File size is not final, and some parts ending after known file size were uploaded
   // pm.init(0, 100000, false, 10, {0, 1, 2}, false, true).ensure_error();
-  // This case is more complicated
-  // It means that at some point we got inconsistent state. Like deleted local location, but left partial remote
-  // location untouched. This is completely possible at this point, but probably should be fixed.
+  // This can happen only if file state became inconsistent at some point. For example, local location was deleted,
+  // but partial remote location was kept. This is possible, but probably should be fixed.
   auto status =
       parts_manager_.init(size, expected_size, is_size_final, part_size, ready_parts, use_part_count_limit, is_upload);
   LOG(DEBUG) << "Start " << (is_upload ? "up" : "down") << "loading a file of size " << size << " with expected "
