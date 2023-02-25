@@ -3674,13 +3674,13 @@ StickerSetId StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::sti
       s->is_changed_ = true;
     }
     if (s->sticker_format_ != sticker_format) {
-      LOG(ERROR) << "Format of stickers in " << set_id << "/" << s->short_name_ << " has changed from "
+      LOG(ERROR) << "Format of stickers in " << set_id << '/' << s->short_name_ << " has changed from "
                  << s->sticker_format_ << " to " << sticker_format << " from " << source;
       s->sticker_format_ = sticker_format;
       s->is_changed_ = true;
     }
     LOG_IF(ERROR, s->sticker_type_ != sticker_type)
-        << "Type of " << set_id << "/" << s->short_name_ << " has changed from " << s->sticker_type_ << " to "
+        << "Type of " << set_id << '/' << s->short_name_ << " has changed from " << s->sticker_type_ << " to "
         << sticker_type << " from " << source;
   }
   auto cleaned_username = clean_username(s->short_name_);
@@ -3834,9 +3834,12 @@ StickerSetId StickersManager::on_get_messages_sticker_set(StickerSetId sticker_s
       document_id_to_sticker_id.emplace(sticker_id.first, sticker_id.second);
     }
   }
+  auto get_full_source = [&] {
+    return PSTRING() << set_id << '/' << s->short_name_ << " from " << source;
+  };
   if (static_cast<int32>(s->sticker_ids_.size()) != s->sticker_count_) {
     LOG(ERROR) << "Wrong sticker set size " << s->sticker_count_ << " instead of " << s->sticker_ids_.size()
-               << " specified in " << set_id << "/" << s->short_name_ << " from " << source;
+               << " specified in " << get_full_source();
     s->sticker_count_ = static_cast<int32>(s->sticker_ids_.size());
   }
 
@@ -3848,7 +3851,7 @@ StickerSetId StickersManager::on_get_messages_sticker_set(StickerSetId sticker_s
     for (auto &pack : set->packs_) {
       auto cleaned_emoji = remove_emoji_modifiers(pack->emoticon_);
       if (cleaned_emoji.empty()) {
-        LOG(ERROR) << "Receive empty emoji in " << set_id << "/" << s->short_name_ << " from " << source;
+        LOG(ERROR) << "Receive empty emoji in " << get_full_source();
         continue;
       }
 
@@ -3857,8 +3860,7 @@ StickerSetId StickersManager::on_get_messages_sticker_set(StickerSetId sticker_s
       for (int64 document_id : pack->documents_) {
         auto it = document_id_to_sticker_id.find(document_id);
         if (it == document_id_to_sticker_id.end()) {
-          LOG(ERROR) << "Can't find document with ID " << document_id << " in " << set_id << "/" << s->short_name_
-                     << " from " << source;
+          LOG(ERROR) << "Can't find document with ID " << document_id << " in " << get_full_source();
           continue;
         }
 
@@ -3877,15 +3879,13 @@ StickerSetId StickersManager::on_get_messages_sticker_set(StickerSetId sticker_s
       auto document_id = keywords->document_id_;
       auto it = document_id_to_sticker_id.find(document_id);
       if (it == document_id_to_sticker_id.end()) {
-        LOG(ERROR) << "Can't find document with ID " << document_id << " in " << set_id << "/" << s->short_name_
-                   << " from " << source;
+        LOG(ERROR) << "Can't find document with ID " << document_id << " in " << get_full_source();
         continue;
       }
 
       bool is_inserted = s->sticker_keywords_map_.emplace(it->second, std::move(keywords->keyword_)).second;
       if (!is_inserted) {
-        LOG(ERROR) << "Receive twice document with ID " << document_id << " in " << set_id << "/" << s->short_name_
-                   << " from " << source;
+        LOG(ERROR) << "Receive twice document with ID " << document_id << " in " << get_full_source();
       }
     }
   }
