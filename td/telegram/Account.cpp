@@ -628,6 +628,37 @@ class SetBotInfoQuery final : public Td::ResultHandler {
   }
 };
 
+class GetBotInfoQuery final : public Td::ResultHandler {
+  Promise<string> promise_;
+  size_t index_ = 0;
+
+ public:
+  explicit GetBotInfoQuery(Promise<string> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(const string &language_code, size_t index) {
+    index_ = index;
+    send_query(G()->net_query_creator().create(telegram_api::bots_getBotInfo(language_code), {{"me"}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::bots_getBotInfo>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    if (result.size() != 2) {
+      return on_error(Status::Error(500, "Failed to get bot info"));
+    }
+    promise_.set_value(std::move(result[index_]));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class ExportContactTokenQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::userLink>> promise_;
 
@@ -770,6 +801,11 @@ void set_bot_info_description(Td *td, const string &language_code, const string 
   TRY_STATUS_PROMISE(promise, validate_bot_language_code(language_code));
   td->contacts_manager_->invalidate_user_full(td->contacts_manager_->get_my_id());
   td->create_handler<SetBotInfoQuery>(std::move(promise))->send(language_code, false, string(), true, description);
+}
+
+void get_bot_info_description(Td *td, const string &language_code, Promise<string> &&promise) {
+  TRY_STATUS_PROMISE(promise, validate_bot_language_code(language_code));
+  td->create_handler<GetBotInfoQuery>(std::move(promise))->send(language_code, 1);
 }
 
 void export_contact_token(Td *td, Promise<td_api::object_ptr<td_api::userLink>> &&promise) {

@@ -7604,6 +7604,10 @@ setDefaultChannelAdministratorRights default_channel_administrator_rights:chatAd
 //@param_description New bot's description on the specified language
 setBotInfoDescription language_code:string description:string = Ok;
 
+//@description Returns the text shown in the chat with the bot if the chat is empty in the given language; bots only
+//@language_code A two-letter ISO 639-1 language code or an empty string
+getBotInfoDescription language_code:string = Text;
+
 
 //@description Returns all active sessions of the current user
 getActiveSessions = Sessions;
