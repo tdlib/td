@@ -941,7 +941,7 @@ void AuthManager::on_delete_account_result(NetQueryPtr &result) {
 
 void AuthManager::on_get_authorization(tl_object_ptr<telegram_api::auth_Authorization> auth_ptr) {
   if (state_ == State::Ok) {
-    LOG(WARNING) << "Ignore duplicated auth.Authorization";
+    LOG(WARNING) << "Ignore duplicate auth.Authorization";
     if (query_id_ != 0) {
       on_query_ok();
     }

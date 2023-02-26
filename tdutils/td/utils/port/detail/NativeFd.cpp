@@ -36,7 +36,7 @@ class FdSet {
     }
     std::unique_lock<std::mutex> guard(mutex_);
     if (fds_.count(fd) >= 1) {
-      LOG(FATAL) << "Create duplicated fd: " << fd;
+      LOG(FATAL) << "Create duplicate fd: " << fd;
     }
     fds_.insert(fd);
   }

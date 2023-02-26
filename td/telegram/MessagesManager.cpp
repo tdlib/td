@@ -16442,7 +16442,7 @@ void MessagesManager::add_notification_id_to_message_id_correspondence(Dialog *d
                         << d->dialog_id;
     d->notification_id_to_message_id.emplace(notification_id, message_id);
   } else if (it->second != message_id) {
-    LOG(ERROR) << "Have duplicated " << notification_id << " in " << d->dialog_id << " in " << message_id << " and "
+    LOG(ERROR) << "Have the same " << notification_id << " in " << d->dialog_id << " for " << message_id << " and "
                << it->second;
     if (it->second < message_id) {
       it->second = message_id;

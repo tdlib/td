@@ -89,7 +89,7 @@ namespace mtproto {
  *
  * 6. New session creation
  *  A notification about new session.
- *  It is reasonable to store unique_id with current session, in order to process duplicated notifications once.
+ *  It is reasonable to store unique_id with current session in order to process duplicated notifications only once.
  *
  *  Causes all messages older than first_msg_id to be re-sent and notifies about a gap in updates
  *  output:
@@ -849,7 +849,7 @@ void SessionConnection::send_ack(uint64 message_id) {
     send_before(Time::now_cached() + ACK_DELAY);
   }
   auto ack = static_cast<int64>(message_id);
-  // an easiest way to eliminate duplicated acks for gzipped packets
+  // an easiest way to eliminate duplicated acknowledgements for gzipped packets
   if (to_ack_.empty() || to_ack_.back() != ack) {
     to_ack_.push_back(ack);
 

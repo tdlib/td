@@ -1057,7 +1057,7 @@ void NotificationManager::flush_pending_updates(int32 group_id, const char *sour
         if (!removed_notification_ids.insert(notification_id).second) {
           // sometimes there can be deletion of notification without previous addition, because the notification
           // has already been deleted at the time of addition and get_notification_object_type was nullptr
-          VLOG(notifications) << "Remove duplicated deletion of " << notification_id;
+          VLOG(notifications) << "Remove duplicate deletion of " << notification_id;
           notification_id = 0;
         }
       }
