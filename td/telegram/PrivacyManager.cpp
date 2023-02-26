@@ -307,7 +307,7 @@ Result<PrivacyManager::UserPrivacySettingRule> PrivacyManager::UserPrivacySettin
   auto td = G()->td().get_actor_unsafe();
   for (auto user_id : result.user_ids_) {
     if (!td->contacts_manager_->have_user(user_id)) {
-      return Status::Error(500, "Got inaccessible user from the server");
+      return Status::Error(500, "Receive inaccessible user from the server");
     }
   }
   for (auto chat_id_int : result.chat_ids_) {
@@ -317,7 +317,7 @@ Result<PrivacyManager::UserPrivacySettingRule> PrivacyManager::UserPrivacySettin
       ChannelId channel_id(chat_id_int);
       dialog_id = DialogId(channel_id);
       if (!td->contacts_manager_->have_channel(channel_id)) {
-        return Status::Error(500, "Got inaccessible chat from the server");
+        return Status::Error(500, "Receive inaccessible chat from the server");
       }
     }
     td->messages_manager_->force_create_dialog(dialog_id, "UserPrivacySettingRule");

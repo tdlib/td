@@ -222,8 +222,8 @@ class TdExample {
                        if (update_new_message.message_->content_->get_id() == td_api::messageText::ID) {
                          text = static_cast<td_api::messageText &>(*update_new_message.message_->content_).text_->text_;
                        }
-                       std::cout << "Got message: [chat_id:" << chat_id << "] [from:" << sender_name << "] [" << text
-                                 << "]" << std::endl;
+                       std::cout << "Receive message: [chat_id:" << chat_id << "] [from:" << sender_name << "] ["
+                                 << text << "]" << std::endl;
                      },
                      [](auto &update) {}));
   }
@@ -242,7 +242,7 @@ class TdExample {
                           overloaded(
                               [this](td_api::authorizationStateReady &) {
                                 are_authorized_ = true;
-                                std::cout << "Got authorization" << std::endl;
+                                std::cout << "Authorization is completed" << std::endl;
                               },
                               [this](td_api::authorizationStateLoggingOut &) {
                                 are_authorized_ = false;

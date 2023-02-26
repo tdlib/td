@@ -196,7 +196,7 @@ Status FileLoader::do_loop() {
       break;
     }
     if (resource_state_.unused() < narrow_cast<int64>(parts_manager_.get_part_size())) {
-      VLOG(file_loader) << "Got only " << resource_state_.unused() << " resource";
+      VLOG(file_loader) << "Receive only " << resource_state_.unused() << " resource";
       break;
     }
     TRY_RESULT(part, parts_manager_.start_part());
@@ -268,7 +268,7 @@ void FileLoader::on_result(NetQueryPtr query) {
   }
   auto it = part_map_.find(unique_id);
   if (it == part_map_.end()) {
-    LOG(WARNING) << "Got result for unknown part";
+    LOG(WARNING) << "Receive result for unknown part";
     return;
   }
 

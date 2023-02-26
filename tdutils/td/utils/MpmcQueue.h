@@ -316,7 +316,7 @@ class MpmcQueueOld {
     std::atomic<Node *> next_{nullptr};
     char pad[TD_CONCURRENCY_PAD - sizeof(std::atomic<Node *>)];
     MpmcQueueBlock<T> block;
-    //Got pad in MpmcQueueBlock
+    // MpmcQueueBlock is already padded
   };
   std::atomic<Node *> write_pos_{nullptr};
   char pad[TD_CONCURRENCY_PAD - sizeof(std::atomic<Node *>)];
@@ -324,7 +324,7 @@ class MpmcQueueOld {
   char pad2[TD_CONCURRENCY_PAD - sizeof(std::atomic<Node *>)];
   size_t block_size_;
   HazardPointers<Node, 1> hazard_pointers_;
-  //Got pad in HazardPointers
+  // HazardPointers is already padded
 };
 
 template <class T>
@@ -448,14 +448,13 @@ class MpmcQueue {
     Block block;
     std::atomic<Node *> next{nullptr};
     char pad[TD_CONCURRENCY_PAD - sizeof(std::atomic<Node *>)];
-    //Got pad in MpmcQueueBlock
   };
   std::atomic<Node *> write_pos_{nullptr};
   char pad[TD_CONCURRENCY_PAD - sizeof(std::atomic<Node *>)];
   std::atomic<Node *> read_pos_{nullptr};
   char pad2[TD_CONCURRENCY_PAD - sizeof(std::atomic<Node *>)];
   HazardPointers<Node, 1> hazard_pointers_;
-  //Got pad in HazardPointers
+  // HazardPointers is already padded
 };
 
 }  // namespace td

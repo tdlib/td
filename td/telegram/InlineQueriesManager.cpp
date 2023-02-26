@@ -337,7 +337,7 @@ string InlineQueriesManager::get_inline_message_id(
   if (input_bot_inline_message_id == nullptr) {
     return string();
   }
-  LOG(INFO) << "Got inline message identifier: " << to_string(input_bot_inline_message_id);
+  LOG(INFO) << "Receive inline message identifier: " << to_string(input_bot_inline_message_id);
 
   return base64url_encode(serialize(*input_bot_inline_message_id));
 }

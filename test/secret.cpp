@@ -764,11 +764,11 @@ class Master final : public Actor {
     bob_ = create_actor<SecretChatProxy>("SecretChatProxy bob", "bob", actor_shared(this, 2));
     send_closure(alice_.get_actor_unsafe()->actor_, &SecretChatActor::create_chat, UserId(static_cast<int64>(2)), 0,
                  123, PromiseCreator::lambda([actor_id = actor_id(this)](Result<SecretChatId> res) {
-                   send_closure(actor_id, &Master::got_secret_chat_id, std::move(res), false);
+                   send_closure(actor_id, &Master::on_get_secret_chat_id, std::move(res), false);
                  }));
   }
 
-  void got_secret_chat_id(Result<SecretChatId> res, bool dummy) {
+  void on_get_secret_chat_id(Result<SecretChatId> res, bool dummy) {
     CHECK(res.is_ok());
     auto id = res.move_as_ok();
     LOG(INFO) << "SecretChatId = " << id;
@@ -825,7 +825,7 @@ class Master final : public Actor {
   }
   void process_net_query(my_api::messages_getDhConfig &&get_dh_config, NetQueryPtr net_query,
                          ActorShared<NetQueryCallback> callback) {
-    //LOG(INFO) << "Got query " << to_string(get_dh_config);
+    //LOG(INFO) << "Receive query " << to_string(get_dh_config);
     my_api::messages_dhConfig config;
     config.p_ = BufferSlice(base64url_decode(prime_base64).move_as_ok());
     config.g_ = g;
@@ -914,7 +914,7 @@ class Master final : public Actor {
   int32 last_ping_ = std::numeric_limits<int32>::max();
   void on_inbound_message(string message, Promise<> promise) {
     promise.set_value(Unit());
-    LOG(INFO) << "GOT INBOUND MESSAGE: " << message << " " << get_link_token();
+    LOG(INFO) << "Receive inbound message: " << message << " " << get_link_token();
     int32 cnt;
     int x = std::sscanf(message.c_str(), "PING: %d", &cnt);
     if (x != 1) {
@@ -967,7 +967,7 @@ class Master final : public Actor {
   std::map<int64, Message> sent_messages_;
 
   void hangup_shared() final {
-    LOG(INFO) << "GOT HANGUP: " << get_link_token();
+    LOG(INFO) << "Receive hang up: " << get_link_token();
     send_closure(from(), &SecretChatProxy::on_closed);
   }
 };

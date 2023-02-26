@@ -231,7 +231,7 @@ void GetSecureValue::on_result(NetQueryPtr query) {
     return on_error(Status::Error(404, "Not Found"));
   }
   if (result.size() != 1) {
-    return on_error(Status::Error(PSLICE() << "Expected vector of size 1 got " << result.size()));
+    return on_error(Status::Error(PSLICE() << "Expected result of size 1, but receive of size " << result.size()));
   }
   encrypted_secure_value_ =
       get_encrypted_secure_value(G()->td().get_actor_unsafe()->file_manager_.get(), std::move(result[0]));

@@ -183,7 +183,7 @@ Status SqliteStatement::step() {
   auto rc = tdsqlite3_step(stmt_.get());
   VLOG(sqlite) << "Finish step with response " << (rc == SQLITE_ROW ? "ROW" : (rc == SQLITE_DONE ? "DONE" : "ERROR"));
   if (rc == SQLITE_ROW) {
-    state_ = State::GotRow;
+    state_ = State::HaveRow;
     return Status::OK();
   }
 

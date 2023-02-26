@@ -809,11 +809,11 @@ Result<std::tuple<uint64, BufferSlice, int32>> SecretChatActor::decrypt(BufferSl
   TRY_RESULT(read_result, std::move(r_read_result));
   switch (read_result.type()) {
     case mtproto::Transport::ReadResult::Quickack:
-      return Status::Error("Got quickack instead of a message");
+      return Status::Error("Receive quickack instead of a message");
     case mtproto::Transport::ReadResult::Error:
-      return Status::Error(PSLICE() << "Got MTProto error code instead of a message: " << read_result.error());
+      return Status::Error(PSLICE() << "Receive MTProto error code instead of a message: " << read_result.error());
     case mtproto::Transport::ReadResult::Nop:
-      return Status::Error("Got nop instead of a message");
+      return Status::Error("Receive nop instead of a message");
     case mtproto::Transport::ReadResult::Packet:
       data = read_result.packet();
       break;
@@ -1582,7 +1582,7 @@ void SecretChatActor::on_outbound_send_message_result(NetQueryPtr query, Promise
   }
 
   auto result = r_result.move_as_ok();
-  LOG(INFO) << "Got messages_sendEncrypted result: " << tag("message_id", state->message->message_id)
+  LOG(INFO) << "Receive messages_sendEncrypted result: " << tag("message_id", state->message->message_id)
             << tag("random_id", state->message->random_id) << to_string(*result);
 
   auto send_message_finish_promise = PromiseCreator::lambda([actor_id = actor_id(this), state_id](Result<> result) {
@@ -1913,7 +1913,7 @@ void SecretChatActor::get_dh_config() {
 }
 
 Status SecretChatActor::on_dh_config(NetQueryPtr query) {
-  LOG(INFO) << "Got DH config";
+  LOG(INFO) << "Receive DH config";
   TRY_RESULT(config, fetch_result<telegram_api::messages_getDhConfig>(std::move(query)));
   downcast_call(*config, [&](auto &obj) { this->on_dh_config(obj); });
   TRY_STATUS(mtproto::DhHandshake::check_config(auth_state_.dh_config.g, auth_state_.dh_config.prime,
@@ -2104,7 +2104,7 @@ Status SecretChatActor::on_inbound_action(secret_api::decryptedMessageActionRequ
     return Status::Error("Unexpected RequestKey");
   }
   if (!pfs_state_.other_auth_key.empty()) {
-    LOG_CHECK(pfs_state_.can_forget_other_key) << "TODO: got requestKey, before old key is dropped";
+    LOG_CHECK(pfs_state_.can_forget_other_key) << "TODO: receive requestKey, before old key is dropped";
     return Status::Error("Unexpected RequestKey (old key is used)");
   }
   pfs_state_.state = PfsState::SendAccept;

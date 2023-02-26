@@ -14183,8 +14183,8 @@ void MessagesManager::ttl_db_on_result(Result<std::pair<std::vector<MessageDbMes
   ttl_db_expires_from_ = ttl_db_expires_till_;
   ttl_db_expires_till_ = result.second;
 
-  LOG(INFO) << "Receive ttl_db query result " << tag("new expires_till", ttl_db_expires_till_)
-            << tag("got messages", result.first.size());
+  LOG(INFO) << "Receive " << result.first.size()
+            << " expired messages from database with new expires_till = " << ttl_db_expires_till_;
   for (auto &dialog_message : result.first) {
     on_get_message_from_database(dialog_message, false, "ttl_db_on_result");
   }
@@ -35342,7 +35342,7 @@ MessagesManager::Message *MessagesManager::on_get_message_from_database(const Me
   if (d == nullptr) {
     LOG(ERROR) << "Can't find " << dialog_id << ", but have a message from it from " << source;
     if (!dialog_id.is_valid()) {
-      LOG(ERROR) << "Got message in invalid " << dialog_id << " from " << source;
+      LOG(ERROR) << "Receive message in invalid " << dialog_id << " from " << source;
       return nullptr;
     }
 

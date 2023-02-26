@@ -27,7 +27,7 @@ void Iocp::loop() {
     BOOL ok =
         GetQueuedCompletionStatus(iocp_handle_->fd(), &bytes, &key, reinterpret_cast<OVERLAPPED **>(&overlapped), 1000);
     if (bytes || key || overlapped) {
-      // LOG(ERROR) << "Got IOCP " << bytes << " " << key << " " << overlapped;
+      // LOG(ERROR) << "Receive IOCP completion status: " << bytes << ' ' << key << ' ' << overlapped;
     }
     if (ok) {
       auto callback = reinterpret_cast<Iocp::Callback *>(key);

@@ -146,7 +146,7 @@ class TestClient final : public td::Actor {
     td::rmrf(name_).ignore();
     auto old_context = set_context(std::make_shared<td::ActorContext>());
     set_tag(name_);
-    LOG(INFO) << "START UP!";
+    LOG(INFO) << "Start up!";
 
     td_client_ = td::create_actor<td::ClientActor>("Td-proxy", make_td_callback());
   }
@@ -251,7 +251,7 @@ class DoAuthentication final : public TestClinetTask {
     send_query(std::move(function), [](auto res) { LOG_CHECK(res->get_id() == td::td_api::ok::ID) << to_string(res); });
   }
   void on_authorization_ready() {
-    LOG(INFO) << "GOT AUTHORIZED";
+    LOG(INFO) << "Authorization is completed";
     stop();
   }
 
@@ -294,7 +294,7 @@ class SetUsername final : public TestClinetTask {
     self_id_ = user->id_;
     auto current_username = user->usernames_ != nullptr ? user->usernames_->editable_username_ : td::string();
     if (current_username != username_) {
-      LOG(INFO) << "SET USERNAME: " << username_;
+      LOG(INFO) << "Set username: " << username_;
       send_query(td::make_tl_object<td::td_api::setUsername>(username_), [this](auto res) {
         CHECK(res->get_id() == td::td_api::ok::ID);
         this->send_self_message();
@@ -330,7 +330,7 @@ class SetUsername final : public TestClinetTask {
         auto messageText = td::move_tl_object_as<td::td_api::messageText>(message->content_);
         auto text = messageText->text_->text_;
         if (text.substr(0, tag_.size()) == tag_) {
-          LOG(INFO) << "GOT SELF MESSAGE";
+          LOG(INFO) << "Receive self-message";
           return stop();
         }
       }
@@ -360,7 +360,7 @@ class CheckTestA final : public TestClinetTask {
           LOG_CHECK(text > previous_text_) << td::tag("now", text) << td::tag("previous", previous_text_);
           previous_text_ = text;
           cnt_--;
-          LOG(INFO) << "GOT " << td::tag("text", text) << td::tag("left", cnt_);
+          LOG(INFO) << "Receive " << td::tag("text", text) << td::tag("left", cnt_);
           if (cnt_ == 0) {
             return stop();
           }
@@ -427,7 +427,7 @@ class TestSecretChat final : public TestClinetTask {
           update_secret_chat->secret_chat_->state_->get_id() != td::td_api::secretChatStateReady::ID) {
         return;
       }
-      LOG(INFO) << "SEND ENCRYPTED MESSAGES";
+      LOG(INFO) << "Send encrypted messages";
       for (int i = 0; i < 20; i++) {
         send_query(
             td::make_tl_object<td::td_api::sendMessage>(
@@ -482,7 +482,7 @@ class TestFileGenerated final : public TestClinetTask {
   }
 
   void one_file() {
-    LOG(ERROR) << "Start ONE_FILE test";
+    LOG(ERROR) << "Start one_file test";
     auto file_path = PSTRING() << "test_documents" << TD_DIR_SLASH << "a.txt";
     td::mkpath(file_path).ensure();
     auto raw_file =
@@ -554,7 +554,7 @@ class TestFileGenerated final : public TestClinetTask {
         }
       }
       auto ready = std::ftell(to);
-      LOG(ERROR) << "READY: " << ready;
+      LOG(ERROR) << "Ready: " << ready;
       parent_->send_query(td::make_tl_object<td::td_api::setFileGenerationProgress>(
                               id_, 1039823 /*yeah, exact size of this file*/, td::narrow_cast<td::int32>(ready)),
                           [](auto result) { check_td_error(result); });
@@ -631,7 +631,7 @@ class CheckTestC final : public TestClinetTask {
         auto text = messageDocument->caption_->text_;
         if (text.substr(0, tag_.size()) == tag_) {
           file_id_to_check_ = messageDocument->document_->document_->id_;
-          LOG(ERROR) << "GOT FILE " << to_string(messageDocument->document_->document_);
+          LOG(ERROR) << "Receive file " << to_string(messageDocument->document_->document_);
           send_query(td::make_tl_object<td::td_api::downloadFile>(file_id_to_check_, 1, 0, 0, false),
                      [](auto res) { check_td_error(res); });
         }

@@ -241,7 +241,7 @@ class TestPingActor final : public td::Actor {
       return stop();
     }
     if (ping_connection_->was_pong()) {
-      LOG(INFO) << "GOT PONG";
+      LOG(INFO) << "Receive pong";
       return stop();
     }
   }

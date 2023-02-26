@@ -51,7 +51,7 @@ class SqliteStatement {
     return state_ != State::Finish;
   }
   bool has_row() const {
-    return state_ == State::GotRow;
+    return state_ == State::HaveRow;
   }
   bool empty() const {
     return !stmt_;
@@ -76,7 +76,7 @@ class SqliteStatement {
     void operator()(tdsqlite3_stmt *stmt);
   };
 
-  enum class State { Start, GotRow, Finish };
+  enum class State { Start, HaveRow, Finish };
   State state_ = State::Start;
 
   std::unique_ptr<tdsqlite3_stmt, StmtDeleter> stmt_;

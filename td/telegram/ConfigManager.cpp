@@ -674,7 +674,7 @@ class ConfigRecoverer final : public Actor {
             }
           }
         }
-        VLOG(config_recoverer) << "Got SimpleConfig " << simple_config_;
+        VLOG(config_recoverer) << "Receive SimpleConfig " << simple_config_;
       } else {
         VLOG(config_recoverer) << "Config has expired at " << config->expires_;
       }
@@ -927,7 +927,8 @@ ActorShared<> ConfigManager::create_reference() {
 }
 
 void ConfigManager::hangup_shared() {
-  LOG_CHECK(get_link_token() == REFCNT_TOKEN) << "Expected REFCNT_TOKEN, got " << get_link_token();
+  LOG_CHECK(get_link_token() == REFCNT_TOKEN)
+      << "Expected link token " << REFCNT_TOKEN << ", but receive " << get_link_token();
   ref_cnt_--;
   try_stop();
 }

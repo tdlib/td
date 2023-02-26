@@ -13,7 +13,7 @@
 class Worker final : public td::Actor {
  public:
   void ping(int x) {
-    LOG(ERROR) << "Got ping " << x;
+    LOG(ERROR) << "Receive ping " << x;
   }
 };
 

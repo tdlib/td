@@ -373,7 +373,7 @@ void Session::send(NetQueryPtr &&query) {
 
   // query->debug(PSTRING() << get_name() << ": received from SessionProxy");
   query->set_session_id(auth_data_.get_session_id());
-  VLOG(net_query) << "Got query " << query;
+  VLOG(net_query) << "Receive query " << query;
   if (query->update_is_ready()) {
     return_query(std::move(query));
     return;
@@ -417,7 +417,7 @@ void Session::on_bind_result(NetQueryPtr query) {
         } else {
           need_check_main_key_ = true;
           auth_data_.set_use_pfs(false);
-          LOG(WARNING) << "Got ENCRYPTED_MESSAGE_INVALID error, validate main key" << debug;
+          LOG(WARNING) << "Receive ENCRYPTED_MESSAGE_INVALID error, validate main key" << debug;
         }
       }
     }
@@ -1254,7 +1254,7 @@ void Session::connection_open_finish(ConnectionInfo *info,
   auto raw_connection = r_raw_connection.move_as_ok();
   VLOG(dc) << "Receive raw connection " << raw_connection.get();
   if (raw_connection->extra().extra != network_generation_) {
-    LOG(WARNING) << "Got RawConnection with old network_generation";
+    LOG(WARNING) << "Receive RawConnection with old network_generation";
     info->state_ = ConnectionInfo::State::Empty;
     yield();
     return;
@@ -1434,7 +1434,6 @@ void Session::on_handshake_ready(Result<unique_ptr<mtproto::AuthKeyHandshake>> r
       if (auth_data_.update_server_time_difference(handshake->get_server_time_diff())) {
         on_server_time_difference_updated();
       }
-      LOG(INFO) << "Got " << (is_main ? "main" : "tmp") << " auth key";
     }
   }
 

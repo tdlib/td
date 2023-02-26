@@ -65,7 +65,7 @@ async function loadTdlibWasm(onFS, wasmUrl) {
   console.log('loadTdlibWasm');
   const td_module = await import('./prebuilt/release/td_wasm.js');
   const createTdwebModule = td_module.default;
-  log.info('got td_wasm.js', td_module, createTdwebModule);
+  log.info('receive td_wasm.js', td_module, createTdwebModule);
   let td_wasm = td_wasm_release;
   if (wasmUrl) {
     td_wasm = wasmUrl;
@@ -88,7 +88,7 @@ async function loadTdlibWasm(onFS, wasmUrl) {
   });
   log.info('Wait module');
   module = await module;
-  log.info('Got module', module);
+  log.info('Loaded module', module);
   //onFS(module.FS);
   return module;
 }
@@ -97,7 +97,7 @@ async function loadTdlibAsmjs(onFS) {
   console.log('loadTdlibAsmjs');
   const createTdwebModule = (await import('./prebuilt/release/td_asmjs.js'))
     .default;
-  console.log('got td_asm.js', createTdwebModule);
+  console.log('Loaded td_asm.js', createTdwebModule);
   const fromFile = 'td_asmjs.js.mem';
   const toFile = td_asmjs_mem_release;
   let module = createTdwebModule({
@@ -115,7 +115,7 @@ async function loadTdlibAsmjs(onFS) {
   });
   log.info('Wait module');
   module = await module;
-  log.info('Got module', module);
+  log.info('Loaded module', module);
   //onFS(module.FS);
   return module;
 }
@@ -575,7 +575,7 @@ class TdClient {
         await localforage.setItem('hello', 'world');
         console.log('B');
         const x = await localforage.getItem('hello');
-        console.log('got ', x);
+        console.log('receive ', x);
         await localforage.clear();
         console.log('C');
       } catch (error) {
@@ -612,7 +612,7 @@ class TdClient {
 
     log.info('load TdModule');
     this.TdModule = await loadTdlib(mode, this.onFS, options.wasmUrl);
-    log.info('got TdModule');
+    log.info('loaded TdModule');
     this.td_functions = {
       td_create: this.TdModule.cwrap(
         'td_emscripten_create_client_id',

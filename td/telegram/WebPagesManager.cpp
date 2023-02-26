@@ -424,7 +424,7 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
   if (td_->auth_manager_->is_bot()) {
     return WebPageId();
   }
-  LOG(DEBUG) << "Got " << to_string(web_page_ptr);
+  LOG(DEBUG) << "Receive " << to_string(web_page_ptr);
   switch (web_page_ptr->get_id()) {
     case telegram_api::webPageEmpty::ID: {
       auto web_page = move_tl_object_as<telegram_api::webPageEmpty>(web_page_ptr);
@@ -434,7 +434,7 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
         return WebPageId();
       }
 
-      LOG(INFO) << "Got empty " << web_page_id;
+      LOG(INFO) << "Receive empty " << web_page_id;
       const WebPage *web_page_to_delete = get_web_page(web_page_id);
       if (web_page_to_delete != nullptr) {
         if (web_page_to_delete->log_event_id != 0) {
@@ -467,7 +467,7 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
       }
 
       auto web_page_date = web_page->date_;
-      LOG(INFO) << "Got pending " << web_page_id << ", force_get_date = " << web_page_date
+      LOG(INFO) << "Receive pending " << web_page_id << ", force_get_date = " << web_page_date
                 << ", now = " << G()->server_time();
 
       pending_web_pages_timeout_.add_timeout_in(web_page_id.get(), max(web_page_date - G()->server_time(), 1.0));
@@ -481,7 +481,7 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
         return WebPageId();
       }
 
-      LOG(INFO) << "Got " << web_page_id;
+      LOG(INFO) << "Receive " << web_page_id;
       auto page = make_unique<WebPage>();
 
       page->url = std::move(web_page->url_);

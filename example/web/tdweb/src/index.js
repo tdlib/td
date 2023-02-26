@@ -253,7 +253,7 @@ class TdClient {
       log.info('ignore self broadcast message: ', message);
       return;
     }
-    log.info('got broadcast message: ', message);
+    log.info('receive broadcast message: ', message);
     if (message.isBackground && !this.isBackground) {
       // continue
     } else if (
@@ -506,7 +506,7 @@ class FileManager {
       }
 
       if (info.arr) {
-        log.warn('Got file.arr at least twice for the same file');
+        log.warn('Receive file.arr at least twice for the same file');
         this.totalSize -= info.arr.length;
       }
       info.arr = file.arr;
@@ -543,7 +543,7 @@ class FileManager {
         const blob = event.target.result;
         if (blob) {
           if (blob.size === 0) {
-            log.error('Got empty blob from db ', query.key);
+            log.error('Receive empty blob from db ', query.key);
           }
           query.resolve({ data: blob, transaction_id: transaction_id });
         } else {

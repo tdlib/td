@@ -281,16 +281,16 @@ class MpmcSleepyWaiter {
     auto view = StateView(state_.load());
     //LOG(ERROR) << view.parked_count;
     if (view.searching_count > 0 || view.parked_count == 0) {
-      VLOG(waiter) << "Ingore notify: " << view.searching_count << " " << view.parked_count;
+      VLOG(waiter) << "Ingore notify: " << view.searching_count << ' ' << view.parked_count;
       return;
     }
 
-    VLOG(waiter) << "Notify: " << view.searching_count << " " << view.parked_count;
+    VLOG(waiter) << "Notify: " << view.searching_count << ' ' << view.parked_count;
     std::unique_lock<std::mutex> guard(sleepers_mutex_);
 
     view = StateView(state_.load());
     if (view.searching_count > 0) {
-      VLOG(waiter) << "Skip notify: got searching";
+      VLOG(waiter) << "Skip notify: search is active";
       return;
     }
 

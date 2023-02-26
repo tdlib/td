@@ -352,7 +352,7 @@ Status TdDb::init_sqlite(const TdParameters &parameters, const DbKey &key, const
 
   // Get 'PRAGMA user_version'
   TRY_RESULT(user_version, db.user_version());
-  LOG(INFO) << "Got PRAGMA user_version = " << user_version;
+  LOG(INFO) << "Have PRAGMA user_version = " << user_version;
 
   // init DialogDb
   bool dialog_db_was_created = false;

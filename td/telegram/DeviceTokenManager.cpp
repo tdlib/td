@@ -451,7 +451,7 @@ void DeviceTokenManager::on_result(NetQueryPtr net_query) {
       }
       info.promise.set_error(r_flag.move_as_error());
     } else {
-      info.promise.set_error(Status::Error(400, "Got false as result of registerDevice server request"));
+      info.promise.set_error(Status::Error(400, "Receive false as result of registerDevice server request"));
     }
     if (info.state == TokenInfo::State::Reregister) {
       // keep trying to reregister the token
