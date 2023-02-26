@@ -3684,7 +3684,8 @@ tl_object_ptr<telegram_api::InputMedia> StickersManager::get_input_media(
           make_tl_object<telegram_api::documentAttributeImageSize>(s->dimensions_.width, s->dimensions_.height));
     }
     attributes.push_back(make_tl_object<telegram_api::documentAttributeSticker>(
-        0, false /*ignored*/, s->alt_, make_tl_object<telegram_api::inputStickerSetEmpty>(), nullptr));
+        0, false /*ignored*/, emoji.empty() ? s->alt_ : emoji, make_tl_object<telegram_api::inputStickerSetEmpty>(),
+        nullptr));
 
     int32 flags = 0;
     if (input_thumbnail != nullptr) {
