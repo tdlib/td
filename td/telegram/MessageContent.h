@@ -113,7 +113,7 @@ tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *co
                                                         tl_object_ptr<telegram_api::InputFile> input_file,
                                                         tl_object_ptr<telegram_api::InputFile> input_thumbnail,
                                                         FileId file_id, FileId thumbnail_file_id, int32 ttl,
-                                                        bool force);
+                                                        const string &emoji, bool force);
 
 tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *content, Td *td, int32 ttl,
                                                         const string &emoji, bool force);

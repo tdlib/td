@@ -2666,11 +2666,10 @@ tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *co
                                                         tl_object_ptr<telegram_api::InputFile> input_file,
                                                         tl_object_ptr<telegram_api::InputFile> input_thumbnail,
                                                         FileId file_id, FileId thumbnail_file_id, int32 ttl,
-                                                        bool force) {
+                                                        const string &emoji, bool force) {
   bool had_input_file = input_file != nullptr;
   bool had_input_thumbnail = input_thumbnail != nullptr;
-  auto input_media =
-      get_input_media_impl(content, td, std::move(input_file), std::move(input_thumbnail), ttl, string());
+  auto input_media = get_input_media_impl(content, td, std::move(input_file), std::move(input_thumbnail), ttl, emoji);
   auto was_uploaded = FileManager::extract_was_uploaded(input_media);
   if (had_input_file) {
     if (!was_uploaded) {

@@ -9334,7 +9334,7 @@ void MessagesManager::do_send_media(DialogId dialog_id, Message *m, FileId file_
   }
 
   auto input_media = get_input_media(content, td_, std::move(input_file), std::move(input_thumbnail), file_id,
-                                     thumbnail_file_id, m->ttl, true);
+                                     thumbnail_file_id, m->ttl, m->send_emoji, true);
   LOG_CHECK(input_media != nullptr) << to_string(get_message_object(dialog_id, m, "do_send_media")) << ' '
                                     << have_input_file << ' ' << have_input_thumbnail << ' ' << file_id << ' '
                                     << thumbnail_file_id << ' ' << m->ttl;
