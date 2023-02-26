@@ -814,6 +814,11 @@ void set_bot_info_share_text(Td *td, const string &language_code, const string &
   td->create_handler<SetBotInfoQuery>(std::move(promise))->send(language_code, true, share_text, false, string());
 }
 
+void get_bot_info_share_text(Td *td, const string &language_code, Promise<string> &&promise) {
+  TRY_STATUS_PROMISE(promise, validate_bot_language_code(language_code));
+  td->create_handler<GetBotInfoQuery>(std::move(promise))->send(language_code, 0);
+}
+
 void export_contact_token(Td *td, Promise<td_api::object_ptr<td_api::userLink>> &&promise) {
   td->create_handler<ExportContactTokenQuery>(std::move(promise))->send();
 }

@@ -7039,6 +7039,19 @@ void Td::on_request(uint64 id, td_api::setBotInfoShareText &request) {
   set_bot_info_share_text(this, request.language_code_, request.share_text_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getBotInfoShareText &request) {
+  CHECK_IS_BOT();
+  CREATE_REQUEST_PROMISE();
+  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      promise.set_value(td_api::make_object<td_api::text>(result.move_as_ok()));
+    }
+  });
+  get_bot_info_share_text(this, request.language_code_, std::move(query_promise));
+}
+
 void Td::on_request(uint64 id, const td_api::setLocation &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

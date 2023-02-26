@@ -7608,10 +7608,14 @@ setBotInfoDescription language_code:string description:string = Ok;
 //@language_code A two-letter ISO 639-1 language code or an empty string
 getBotInfoDescription language_code:string = Text;
 
-//@description Sets the text shown on the bot's profile page and sent together with the link when users share the bot
+//@description Sets the text shown on the bot's profile page and sent together with the link when users share the bot; bots only
 //@language_code A two-letter ISO 639-1 language code. If empty, the share text will be shown to all users, for which language there are no dedicated description
 //@share_text New bot's share text on the specified language
 setBotInfoShareText language_code:string share_text:string = Ok;
+
+//@description Returns the text shown on the bot's profile page and sent together with the link when users share the bot in the given language; bots only
+//@language_code A two-letter ISO 639-1 language code or an empty string
+getBotInfoShareText language_code:string = Text;
 
 
 //@description Returns all active sessions of the current user

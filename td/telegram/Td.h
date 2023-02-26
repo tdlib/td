@@ -1124,6 +1124,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::setBotInfoShareText &request);
 
+  void on_request(uint64 id, const td_api::getBotInfoShareText &request);
+
   void on_request(uint64 id, const td_api::setLocation &request);
 
   void on_request(uint64 id, td_api::setProfilePhoto &request);
