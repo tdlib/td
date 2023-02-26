@@ -9,6 +9,7 @@
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DeviceTokenManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/misc.h"
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
@@ -589,6 +590,44 @@ class SetBotBroadcastDefaultAdminRightsQuery final : public Td::ResultHandler {
   }
 };
 
+class SetBotInfoQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit SetBotInfoQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(const string &language_code, bool set_about, const string &about, bool set_description,
+            const string &description) {
+    int32 flags = 0;
+    if (set_about) {
+      flags |= telegram_api::bots_setBotInfo::ABOUT_MASK;
+    }
+    if (set_description) {
+      flags |= telegram_api::bots_setBotInfo::DESCRIPTION_MASK;
+    }
+    send_query(G()->net_query_creator().create(telegram_api::bots_setBotInfo(flags, language_code, about, description),
+                                               {{"me"}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::bots_setBotInfo>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    bool result = result_ptr.move_as_ok();
+    LOG_IF(WARNING, !result) << "Failed to set bot info";
+    td_->contacts_manager_->invalidate_user_full(td_->contacts_manager_->get_my_id());
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    td_->contacts_manager_->invalidate_user_full(td_->contacts_manager_->get_my_id());
+    promise_.set_error(std::move(status));
+  }
+};
+
 class ExportContactTokenQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::userLink>> promise_;
 
@@ -725,6 +764,12 @@ void set_default_channel_administrator_rights(Td *td, AdministratorRights admini
                                               Promise<Unit> &&promise) {
   td->contacts_manager_->invalidate_user_full(td->contacts_manager_->get_my_id());
   td->create_handler<SetBotBroadcastDefaultAdminRightsQuery>(std::move(promise))->send(administrator_rights);
+}
+
+void set_bot_info_description(Td *td, const string &language_code, const string &description, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, validate_bot_language_code(language_code));
+  td->contacts_manager_->invalidate_user_full(td->contacts_manager_->get_my_id());
+  td->create_handler<SetBotInfoQuery>(std::move(promise))->send(language_code, false, string(), true, description);
 }
 
 void export_contact_token(Td *td, Promise<td_api::object_ptr<td_api::userLink>> &&promise) {

@@ -7012,6 +7012,13 @@ void Td::on_request(uint64 id, const td_api::setDefaultChannelAdministratorRight
       std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::setBotInfoDescription &request) {
+  CHECK_IS_BOT();
+  CLEAN_INPUT_STRING(request.description_);
+  CREATE_OK_REQUEST_PROMISE();
+  set_bot_info_description(this, request.language_code_, request.description_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::setLocation &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

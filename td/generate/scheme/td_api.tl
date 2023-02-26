@@ -7599,6 +7599,12 @@ setDefaultGroupAdministratorRights default_group_administrator_rights:chatAdmini
 setDefaultChannelAdministratorRights default_channel_administrator_rights:chatAdministratorRights = Ok;
 
 
+//@description Sets the text shown in the chat with the bot if the chat is empty; bots only
+//@language_code A two-letter ISO 639-1 language code. If empty, the description will be shown to all users, for which language there are no dedicated description
+//@param_description New bot's description on the specified language
+setBotInfoDescription language_code:string description:string = Ok;
+
+
 //@description Returns all active sessions of the current user
 getActiveSessions = Sessions;
 

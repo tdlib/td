@@ -50,6 +50,8 @@ void set_default_group_administrator_rights(Td *td, AdministratorRights administ
 void set_default_channel_administrator_rights(Td *td, AdministratorRights administrator_rights,
                                               Promise<Unit> &&promise);
 
+void set_bot_info_description(Td *td, const string &language_code, const string &description, Promise<Unit> &&promise);
+
 void export_contact_token(Td *td, Promise<td_api::object_ptr<td_api::userLink>> &&promise);
 
 void import_contact_token(Td *td, const string &token, Promise<td_api::object_ptr<td_api::user>> &&promise);
