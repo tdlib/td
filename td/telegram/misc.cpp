@@ -340,4 +340,15 @@ bool check_currency_amount(int64 amount) {
   return -MAX_AMOUNT <= amount && amount <= MAX_AMOUNT;
 }
 
+Status validate_bot_language_code(const string &language_code) {
+  if (language_code.empty()) {
+    return Status::OK();
+  }
+  if (language_code.size() == 2 && 'a' <= language_code[0] && language_code[0] <= 'z' && 'a' <= language_code[1] &&
+      language_code[1] <= 'z') {
+    return Status::OK();
+  }
+  return Status::Error(400, "Invalid language code specified");
+}
+
 }  // namespace td

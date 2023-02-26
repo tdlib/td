@@ -141,23 +141,10 @@ bool operator==(const BotCommands &lhs, const BotCommands &rhs) {
   return lhs.bot_user_id_ == rhs.bot_user_id_ && lhs.commands_ == rhs.commands_;
 }
 
-static bool is_valid_language_code(const string &language_code) {
-  if (language_code.empty()) {
-    return true;
-  }
-  if (language_code.size() != 2) {
-    return false;
-  }
-  return 'a' <= language_code[0] && language_code[0] <= 'z' && 'a' <= language_code[1] && language_code[1] <= 'z';
-}
-
 void set_commands(Td *td, td_api::object_ptr<td_api::BotCommandScope> &&scope_ptr, string &&language_code,
                   vector<td_api::object_ptr<td_api::botCommand>> &&commands, Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, scope, BotCommandScope::get_bot_command_scope(td, std::move(scope_ptr)));
-
-  if (!is_valid_language_code(language_code)) {
-    return promise.set_error(Status::Error(400, "Invalid language code specified"));
-  }
+  TRY_STATUS_PROMISE(promise, validate_bot_language_code(language_code));
 
   vector<BotCommand> new_commands;
   for (auto &command : commands) {
@@ -204,10 +191,7 @@ void set_commands(Td *td, td_api::object_ptr<td_api::BotCommandScope> &&scope_pt
 void delete_commands(Td *td, td_api::object_ptr<td_api::BotCommandScope> &&scope_ptr, string &&language_code,
                      Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, scope, BotCommandScope::get_bot_command_scope(td, std::move(scope_ptr)));
-
-  if (!is_valid_language_code(language_code)) {
-    return promise.set_error(Status::Error(400, "Invalid language code specified"));
-  }
+  TRY_STATUS_PROMISE(promise, validate_bot_language_code(language_code));
 
   td->create_handler<ResetBotCommandsQuery>(std::move(promise))->send(scope, language_code);
 }
@@ -215,10 +199,7 @@ void delete_commands(Td *td, td_api::object_ptr<td_api::BotCommandScope> &&scope
 void get_commands(Td *td, td_api::object_ptr<td_api::BotCommandScope> &&scope_ptr, string &&language_code,
                   Promise<td_api::object_ptr<td_api::botCommands>> &&promise) {
   TRY_RESULT_PROMISE(promise, scope, BotCommandScope::get_bot_command_scope(td, std::move(scope_ptr)));
-
-  if (!is_valid_language_code(language_code)) {
-    return promise.set_error(Status::Error(400, "Invalid language code specified"));
-  }
+  TRY_STATUS_PROMISE(promise, validate_bot_language_code(language_code));
 
   td->create_handler<GetBotCommandsQuery>(std::move(promise))->send(scope, language_code);
 }
