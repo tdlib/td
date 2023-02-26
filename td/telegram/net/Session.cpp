@@ -971,7 +971,7 @@ void Session::on_message_result_error(uint64 message_id, int error_code, string 
   }
 
   if (message_id == 0) {
-    LOG(ERROR) << "Received an error update";
+    LOG(ERROR) << "Receive an error without message_id";
     return;
   }
 

@@ -4574,7 +4574,7 @@ unique_ptr<MessageContent> get_secret_message_content(
       break;
   }
   if (file == nullptr && !is_media_empty) {
-    LOG(ERROR) << "Received secret message with media, but without a file";
+    LOG(ERROR) << "Receive secret message with media, but without a file";
     is_media_empty = true;
   }
   if (is_media_empty) {
