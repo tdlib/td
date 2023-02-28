@@ -83,7 +83,7 @@ FileSourceId FileReferenceManager::get_current_file_source_id() const {
 }
 
 template <class T>
-FileSourceId FileReferenceManager::add_file_source_id(T source, Slice source_str) {
+FileSourceId FileReferenceManager::add_file_source_id(T &source, Slice source_str) {
   file_sources_.emplace_back(std::move(source));
   VLOG(file_references) << "Create file source " << file_sources_.size() << " for " << source_str;
   return get_current_file_source_id();
@@ -102,7 +102,7 @@ FileSourceId FileReferenceManager::create_user_photo_file_source(UserId user_id,
 FileSourceId FileReferenceManager::create_web_page_file_source(string url) {
   FileSourceWebPage source{std::move(url)};
   auto source_str = PSTRING() << "web page of " << source.url;
-  return add_file_source_id(std::move(source), source_str);
+  return add_file_source_id(source, source_str);
 }
 
 FileSourceId FileReferenceManager::create_saved_animations_file_source() {

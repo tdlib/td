@@ -186,7 +186,7 @@ class FileReferenceManager final : public Actor {
   Destination on_query_result(Destination dest, FileSourceId file_source_id, Status status, int32 sub = 0);
 
   template <class T>
-  FileSourceId add_file_source_id(T source, Slice source_str);
+  FileSourceId add_file_source_id(T &source, Slice source_str);
 
   FileSourceId get_current_file_source_id() const;
 
