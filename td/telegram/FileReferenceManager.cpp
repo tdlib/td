@@ -61,21 +61,22 @@ size_t FileReferenceManager::get_file_reference_error_pos(const Status &error) {
 
 /*
 fileSourceMessage chat_id:int53 message_id:int53 = FileSource;           // repaired with get_message_from_server
-fileSourceUserProfilePhoto user_id:int32 photo_id:int64 = FileSource;    // repaired with photos.getUserPhotos
-fileSourceBasicGroupPhoto basic_group_id:int32 = FileSource;             // no need to repair
-fileSourceSupergroupPhoto supergroup_id:int32 = FileSource;              // no need to repair
+fileSourceUserProfilePhoto user_id:int53 photo_id:int64 = FileSource;    // repaired with photos.getUserPhotos
+fileSourceBasicGroupPhoto basic_group_id:int53 = FileSource;             // no need to repair
+fileSourceSupergroupPhoto supergroup_id:int53 = FileSource;              // no need to repair
 fileSourceWebPage url:string = FileSource;                               // repaired with messages.getWebPage
 fileSourceWallpapers = FileSource;                                       // can't be repaired
 fileSourceSavedAnimations = FileSource;                                  // repaired with messages.getSavedGifs
 fileSourceRecentStickers is_attached:Bool = FileSource;                  // repaired with messages.getRecentStickers, not reliable
 fileSourceFavoriteStickers = FileSource;                                 // repaired with messages.getFavedStickers, not reliable
 fileSourceBackground background_id:int64 access_hash:int64 = FileSource; // repaired with account.getWallPaper
-fileSourceBasicGroupFull basic_group_id:int32 = FileSource;              // repaired with messages.getFullChat
-fileSourceSupergroupFull supergroup_id:int32 = FileSource;               // repaired with messages.getFullChannel
+fileSourceBasicGroupFull basic_group_id:int53 = FileSource;              // repaired with messages.getFullChat
+fileSourceSupergroupFull supergroup_id:int53 = FileSource;               // repaired with messages.getFullChannel
 fileSourceAppConfig = FileSource;                                        // repaired with help.getAppConfig, not reliable
 fileSourceSavedRingtones = FileSource;                                   // repaired with account.getSavedRingtones
 fileSourceUserFull = FileSource;                                         // repaired with users.getFullUser
-fileSourceAttachmentMenuBot = FileSource;                                // repaired with messages.getAttachMenuBot
+fileSourceAttachmentMenuBot user_id:int53 = FileSource;                  // repaired with messages.getAttachMenuBot
+fileSourceWebApp user_id:int53 short_name:string = FileSource;           // repaired with messages.getAttachMenuBot
 */
 
 FileSourceId FileReferenceManager::get_current_file_source_id() const {
@@ -153,6 +154,11 @@ FileSourceId FileReferenceManager::create_user_full_file_source(UserId user_id) 
 FileSourceId FileReferenceManager::create_attach_menu_bot_file_source(UserId user_id) {
   FileSourceAttachMenuBot source{user_id};
   return add_file_source_id(source, PSLICE() << "attachment menu bot " << user_id);
+}
+
+FileSourceId FileReferenceManager::create_web_app_file_source(UserId user_id, const string &short_name) {
+  FileSourceWebApp source{user_id, short_name};
+  return add_file_source_id(source, PSLICE() << "web app " << user_id << '/' << short_name);
 }
 
 FileReferenceManager::Node &FileReferenceManager::add_node(NodeId node_id) {
@@ -360,6 +366,10 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
       [&](const FileSourceAttachMenuBot &source) {
         send_closure_later(G()->attach_menu_manager(), &AttachMenuManager::reload_attach_menu_bot, source.user_id,
                            std::move(promise));
+      },
+      [&](const FileSourceWebApp &source) {
+        send_closure_later(G()->attach_menu_manager(), &AttachMenuManager::reload_web_app, source.user_id,
+                           source.short_name, std::move(promise));
       }));
 }
 

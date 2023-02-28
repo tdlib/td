@@ -54,7 +54,11 @@ void FileReferenceManager::store_file_source(FileSourceId file_source_id, Storer
                           [&](const FileSourceChannelFull &source) { td::store(source.channel_id, storer); },
                           [&](const FileSourceAppConfig &source) {}, [&](const FileSourceSavedRingtones &source) {},
                           [&](const FileSourceUserFull &source) { td::store(source.user_id, storer); },
-                          [&](const FileSourceAttachMenuBot &source) { td::store(source.user_id, storer); }));
+                          [&](const FileSourceAttachMenuBot &source) { td::store(source.user_id, storer); },
+                          [&](const FileSourceWebApp &source) {
+                            td::store(source.user_id, storer);
+                            td::store(source.short_name, storer);
+                          }));
 }
 
 template <class ParserT>
@@ -129,6 +133,13 @@ FileSourceId FileReferenceManager::parse_file_source(Td *td, ParserT &parser) {
       UserId user_id;
       td::parse(user_id, parser);
       return td->attach_menu_manager_->get_attach_menu_bot_file_source_id(user_id);
+    }
+    case 16: {
+      UserId user_id;
+      string short_name;
+      td::parse(user_id, parser);
+      td::parse(short_name, parser);
+      return td->attach_menu_manager_->get_web_app_file_source_id(user_id, short_name);
     }
     default:
       parser.set_error("Invalid type in FileSource");

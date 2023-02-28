@@ -32,8 +32,10 @@ class AttachMenuManager final : public Actor {
 
   void init();
 
-  void get_web_app(UserId bot_user_id, string &&web_app_short_name,
+  void get_web_app(UserId bot_user_id, const string &web_app_short_name,
                    Promise<td_api::object_ptr<td_api::foundWebApp>> &&promise);
+
+  void reload_web_app(UserId bot_user_id, const string &web_app_short_name, Promise<Unit> &&promise);
 
   void request_app_web_view(DialogId dialog_id, UserId bot_user_id, string &&web_app_short_name,
                             string &&start_parameter, const td_api::object_ptr<td_api::themeParameters> &theme,
@@ -56,6 +58,8 @@ class AttachMenuManager final : public Actor {
   void reload_attach_menu_bot(UserId user_id, Promise<Unit> &&promise);
 
   FileSourceId get_attach_menu_bot_file_source_id(UserId user_id);
+
+  FileSourceId get_web_app_file_source_id(UserId user_id, const string &short_name);
 
   void toggle_bot_is_added_to_attach_menu(UserId user_id, bool is_added, bool allow_write_access,
                                           Promise<Unit> &&promise);
@@ -164,6 +168,8 @@ class AttachMenuManager final : public Actor {
   vector<AttachMenuBot> attach_menu_bots_;
   FlatHashMap<UserId, FileSourceId, UserIdHash> attach_menu_bot_file_source_ids_;
   vector<Promise<Unit>> reload_attach_menu_bots_queries_;
+
+  FlatHashMap<UserId, FlatHashMap<string, FileSourceId>, UserIdHash> web_app_file_source_ids_;
 
   struct OpenedWebView {
     DialogId dialog_id_;
