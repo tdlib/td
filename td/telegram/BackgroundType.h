@@ -107,7 +107,7 @@ class BackgroundType {
 
   void apply_parameters_from_link(Slice name);
 
-  string get_link() const;
+  string get_link(bool is_first = true) const;
 
   bool has_equal_type(const BackgroundType &other) const {
     return type_ == other.type_;
