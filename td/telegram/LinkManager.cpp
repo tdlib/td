@@ -1071,9 +1071,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     if (is_valid_username(get_arg("domain"))) {
       if (has_arg("post")) {
         // resolve?domain=<username>&post=12345&single&thread=<thread_id>&comment=<message_id>&t=<media_timestamp>
-        return td::make_unique<InternalLinkMessage>(PSTRING() << "tg:resolve" << copy_arg("domain") << copy_arg("post")
-                                                              << copy_arg("single") << copy_arg("thread")
-                                                              << copy_arg("comment") << copy_arg("t"));
+        return td::make_unique<InternalLinkMessage>(
+            PSTRING() << "tg://resolve" << copy_arg("domain") << copy_arg("post") << copy_arg("single")
+                      << copy_arg("thread") << copy_arg("comment") << copy_arg("t"));
       }
       auto username = get_arg("domain");
       for (auto &arg : url_query.args_) {
@@ -1256,7 +1256,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     // privatepost?channel=123456789&post=12345&single&thread=<thread_id>&comment=<message_id>&t=<media_timestamp>
     if (has_arg("channel") && has_arg("post")) {
       return td::make_unique<InternalLinkMessage>(
-          PSTRING() << "tg:privatepost" << copy_arg("channel") << copy_arg("post") << copy_arg("single")
+          PSTRING() << "tg://privatepost" << copy_arg("channel") << copy_arg("post") << copy_arg("single")
                     << copy_arg("thread") << copy_arg("comment") << copy_arg("t"));
     }
   } else if (path.size() == 1 && path[0] == "bg") {
@@ -1323,7 +1323,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
         thread = PSTRING() << "&thread=" << post;
         post = to_integer<int64>(path[3]);
       }
-      return td::make_unique<InternalLinkMessage>(PSTRING() << "tg:privatepost?channel=" << to_integer<int64>(path[1])
+      return td::make_unique<InternalLinkMessage>(PSTRING() << "tg://privatepost?channel=" << to_integer<int64>(path[1])
                                                             << "&post=" << post << copy_arg("single") << thread
                                                             << copy_arg("comment") << copy_arg("t"));
     }
@@ -1450,7 +1450,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
         thread = PSTRING() << "&thread=" << post;
         post = to_integer<int64>(path[2]);
       }
-      return td::make_unique<InternalLinkMessage>(PSTRING() << "tg:resolve?domain=" << url_encode(path[0])
+      return td::make_unique<InternalLinkMessage>(PSTRING() << "tg://resolve?domain=" << url_encode(path[0])
                                                             << "&post=" << post << copy_arg("single") << thread
                                                             << copy_arg("comment") << copy_arg("t"));
     }

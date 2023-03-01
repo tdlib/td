@@ -250,21 +250,21 @@ TEST(Link, parse_internal_link) {
                                                                        start_parameter);
   };
 
-  parse_internal_link("t.me/levlam/1", message("tg:resolve?domain=levlam&post=1"));
-  parse_internal_link("telegram.me/levlam/1", message("tg:resolve?domain=levlam&post=1"));
-  parse_internal_link("telegram.dog/levlam/1", message("tg:resolve?domain=levlam&post=1"));
-  parse_internal_link("www.t.me/levlam/1", message("tg:resolve?domain=levlam&post=1"));
-  parse_internal_link("www%2etelegram.me/levlam/1", message("tg:resolve?domain=levlam&post=1"));
-  parse_internal_link("www%2Etelegram.dog/levlam/1", message("tg:resolve?domain=levlam&post=1"));
+  parse_internal_link("t.me/levlam/1", message("tg://resolve?domain=levlam&post=1"));
+  parse_internal_link("telegram.me/levlam/1", message("tg://resolve?domain=levlam&post=1"));
+  parse_internal_link("telegram.dog/levlam/1", message("tg://resolve?domain=levlam&post=1"));
+  parse_internal_link("www.t.me/levlam/1", message("tg://resolve?domain=levlam&post=1"));
+  parse_internal_link("www%2etelegram.me/levlam/1", message("tg://resolve?domain=levlam&post=1"));
+  parse_internal_link("www%2Etelegram.dog/levlam/1", message("tg://resolve?domain=levlam&post=1"));
   parse_internal_link("www%252Etelegram.dog/levlam/1", nullptr);
   parse_internal_link("www.t.me/s/s/s/s/s/joinchat/1", nullptr);
   parse_internal_link("www.t.me/s/s/s/s/s/joinchat/a", chat_invite("a"));
   parse_internal_link("www.t.me/s/%73/%73/s/%73/joinchat/a", chat_invite("a"));
   parse_internal_link("http://t.me/s/s/s/s/s/s/s/s/s/s/s/s/s/s/s/s/s/joinchat/a", chat_invite("a"));
-  parse_internal_link("http://t.me/levlam/1", message("tg:resolve?domain=levlam&post=1"));
-  parse_internal_link("https://t.me/levlam/1", message("tg:resolve?domain=levlam&post=1"));
-  parse_internal_link("hTtp://www.t.me:443/levlam/1", message("tg:resolve?domain=levlam&post=1"));
-  parse_internal_link("httPs://t.me:80/levlam/1", message("tg:resolve?domain=levlam&post=1"));
+  parse_internal_link("http://t.me/levlam/1", message("tg://resolve?domain=levlam&post=1"));
+  parse_internal_link("https://t.me/levlam/1", message("tg://resolve?domain=levlam&post=1"));
+  parse_internal_link("hTtp://www.t.me:443/levlam/1", message("tg://resolve?domain=levlam&post=1"));
+  parse_internal_link("httPs://t.me:80/levlam/1", message("tg://resolve?domain=levlam&post=1"));
   parse_internal_link("https://t.me:200/levlam/1", nullptr);
   parse_internal_link("http:t.me/levlam/1", nullptr);
   parse_internal_link("t.dog/levlam/1", nullptr);
@@ -272,13 +272,13 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("t.men/levlam/1", nullptr);
 
   parse_internal_link("tg:resolve?domain=username&post=12345&single",
-                      message("tg:resolve?domain=username&post=12345&single"));
+                      message("tg://resolve?domain=username&post=12345&single"));
   parse_internal_link("tg:resolve?domain=username&post=12345&single&startattach=1&attach=test",
-                      message("tg:resolve?domain=username&post=12345&single"));
+                      message("tg://resolve?domain=username&post=12345&single"));
   parse_internal_link("tg:resolve?domain=user%31name&post=%312345&single&comment=456&t=789&single&thread=123%20%31",
-                      message("tg:resolve?domain=user1name&post=12345&single&thread=123%201&comment=456&t=789"));
+                      message("tg://resolve?domain=user1name&post=12345&single&thread=123%201&comment=456&t=789"));
   parse_internal_link("TG://resolve?domain=username&post=12345&single&voicechat=aasd",
-                      message("tg:resolve?domain=username&post=12345&single"));
+                      message("tg://resolve?domain=username&post=12345&single"));
   parse_internal_link("TG://test@resolve?domain=username&post=12345&single", nullptr);
   parse_internal_link("tg:resolve:80?domain=username&post=12345&single", nullptr);
   parse_internal_link("tg:http://resolve?domain=username&post=12345&single", nullptr);
@@ -347,19 +347,19 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("tg:contact?token=", unknown_deep_link("tg://contact?token="));
   parse_internal_link("tg:contact?token=+123", user_token(" 123"));
 
-  parse_internal_link("t.me/username/12345?single", message("tg:resolve?domain=username&post=12345&single"));
-  parse_internal_link("t.me/username/12345?asdasd", message("tg:resolve?domain=username&post=12345"));
-  parse_internal_link("t.me/username/12345", message("tg:resolve?domain=username&post=12345"));
-  parse_internal_link("t.me/username/12345/", message("tg:resolve?domain=username&post=12345"));
-  parse_internal_link("t.me/username/12345#asdasd", message("tg:resolve?domain=username&post=12345"));
+  parse_internal_link("t.me/username/12345?single", message("tg://resolve?domain=username&post=12345&single"));
+  parse_internal_link("t.me/username/12345?asdasd", message("tg://resolve?domain=username&post=12345"));
+  parse_internal_link("t.me/username/12345", message("tg://resolve?domain=username&post=12345"));
+  parse_internal_link("t.me/username/12345/", message("tg://resolve?domain=username&post=12345"));
+  parse_internal_link("t.me/username/12345#asdasd", message("tg://resolve?domain=username&post=12345"));
   parse_internal_link("t.me/username/12345//?voicechat=&single",
-                      message("tg:resolve?domain=username&post=12345&single"));
+                      message("tg://resolve?domain=username&post=12345&single"));
   parse_internal_link("t.me/username/12345/asdasd//asd/asd/asd/?single",
-                      message("tg:resolve?domain=username&post=12345&single"));
+                      message("tg://resolve?domain=username&post=12345&single"));
   parse_internal_link("t.me/username/12345/67890/asdasd//asd/asd/asd/?single",
-                      message("tg:resolve?domain=username&post=67890&single&thread=12345"));
+                      message("tg://resolve?domain=username&post=67890&single&thread=12345"));
   parse_internal_link("t.me/username/1asdasdas/asdasd//asd/asd/asd/?single",
-                      message("tg:resolve?domain=username&post=1&single"));
+                      message("tg://resolve?domain=username&post=1&single"));
   parse_internal_link("t.me/username/0", public_chat("username"));
   parse_internal_link("t.me/username/-12345", public_chat("username"));
   parse_internal_link("t.me//12345?single", nullptr);
@@ -392,19 +392,19 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("tg:privatepost?channel=username/12345&single",
                       unknown_deep_link("tg://privatepost?channel=username/12345&single"));
   parse_internal_link("tg:privatepost?channel=username&post=12345",
-                      message("tg:privatepost?channel=username&post=12345"));
+                      message("tg://privatepost?channel=username&post=12345"));
 
   parse_internal_link("t.me/c/12345?single", nullptr);
   parse_internal_link("t.me/c/1/c?single", nullptr);
   parse_internal_link("t.me/c/c/1?single", nullptr);
   parse_internal_link("t.me/c//1?single", nullptr);
-  parse_internal_link("t.me/c/12345/123", message("tg:privatepost?channel=12345&post=123"));
-  parse_internal_link("t.me/c/12345/123?single", message("tg:privatepost?channel=12345&post=123&single"));
-  parse_internal_link("t.me/c/12345/123/asd/asd////?single", message("tg:privatepost?channel=12345&post=123&single"));
+  parse_internal_link("t.me/c/12345/123", message("tg://privatepost?channel=12345&post=123"));
+  parse_internal_link("t.me/c/12345/123?single", message("tg://privatepost?channel=12345&post=123&single"));
+  parse_internal_link("t.me/c/12345/123/asd/asd////?single", message("tg://privatepost?channel=12345&post=123&single"));
   parse_internal_link("t.me/c/12345/123/456/asd/asd////?single",
-                      message("tg:privatepost?channel=12345&post=456&single&thread=123"));
+                      message("tg://privatepost?channel=12345&post=456&single&thread=123"));
   parse_internal_link("t.me/c/%312345/%3123?comment=456&t=789&single&thread=123%20%31",
-                      message("tg:privatepost?channel=12345&post=123&single&thread=123%201&comment=456&t=789"));
+                      message("tg://privatepost?channel=12345&post=123&single&thread=123%201&comment=456&t=789"));
 
   parse_internal_link("tg:bg?color=111111#asdasd", background("111111"));
   parse_internal_link("tg:bg?color=11111%31", background("111111"));
@@ -1023,8 +1023,8 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("username.t.me////0/a//s/as?start=", bot_start("username", ""));
   parse_internal_link("username.t.me?start=as", bot_start("username", "as"));
   parse_internal_link("username.t.me", public_chat("username"));
-  parse_internal_link("aAAb.t.me/12345?single", message("tg:resolve?domain=aaab&post=12345&single"));
-  parse_internal_link("telegram.t.me/195", message("tg:resolve?domain=telegram&post=195"));
+  parse_internal_link("aAAb.t.me/12345?single", message("tg://resolve?domain=aaab&post=12345&single"));
+  parse_internal_link("telegram.t.me/195", message("tg://resolve?domain=telegram&post=195"));
   parse_internal_link("shares.t.me", public_chat("shares"));
 
   parse_internal_link("c.t.me/12345?single", nullptr);
