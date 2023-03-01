@@ -8,6 +8,7 @@
 
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/LinkManager.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/net/MtprotoHeader.h"
@@ -233,7 +234,7 @@ void ConnectionCreator::get_proxy_link(int32 proxy_id, Promise<string> promise) 
   }
 
   auto &proxy = it->second;
-  string url = G()->get_option_string("t_me_url", "https://t.me/");
+  string url = LinkManager::get_t_me_url();
   bool is_socks = false;
   switch (proxy.type()) {
     case Proxy::Type::Socks5:

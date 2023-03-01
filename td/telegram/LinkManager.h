@@ -94,6 +94,8 @@ class LinkManager final : public Actor {
 
   static UserId get_link_user_id(Slice url);
 
+  static string get_t_me_url();
+
   static Result<CustomEmojiId> get_link_custom_emoji_id(Slice url);
 
   static Result<MessageLinkInfo> get_message_link_info(Slice url);

@@ -19451,7 +19451,7 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(FullMessageId 
   }
 
   SliceBuilder sb;
-  sb << td_->option_manager_->get_option_string("t_me_url", "https://t.me/");
+  sb << LinkManager::get_t_me_url();
 
   if (in_message_thread && !is_forum) {
     // try to generate a comment link

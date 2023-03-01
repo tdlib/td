@@ -1694,7 +1694,7 @@ void LinkManager::get_link_login_url(const string &url, bool allow_write_access,
 Result<string> LinkManager::get_background_url(const string &name,
                                                td_api::object_ptr<td_api::BackgroundType> background_type) {
   TRY_RESULT(type, BackgroundType::get_background_type(background_type.get()));
-  auto url = PSTRING() << G()->get_option_string("t_me_url", "https://t.me/") << "bg/";
+  auto url = PSTRING() << get_t_me_url() << "bg/";
   auto link = type.get_link();
   if (type.has_file()) {
     url += name;
@@ -1728,7 +1728,7 @@ string LinkManager::get_dialog_invite_link(Slice hash, bool is_internal) {
   if (is_internal) {
     return PSTRING() << "tg:join?invite=" << hash;
   } else {
-    return PSTRING() << G()->get_option_string("t_me_url", "https://t.me/") << '+' << hash;
+    return PSTRING() << get_t_me_url() << '+' << hash;
   }
 }
 
@@ -1759,12 +1759,11 @@ string LinkManager::get_instant_view_link_rhash(Slice link) {
 }
 
 string LinkManager::get_instant_view_link(Slice url, Slice rhash) {
-  return PSTRING() << G()->get_option_string("t_me_url", "https://t.me/") << "iv?url=" << url_encode(url)
-                   << "&rhash=" << url_encode(rhash);
+  return PSTRING() << get_t_me_url() << "iv?url=" << url_encode(url) << "&rhash=" << url_encode(rhash);
 }
 
 string LinkManager::get_public_chat_link(Slice username) {
-  return PSTRING() << G()->get_option_string("t_me_url", "https://t.me/") << url_encode(username);
+  return PSTRING() << get_t_me_url() << url_encode(username);
 }
 
 UserId LinkManager::get_link_user_id(Slice url) {
@@ -1807,6 +1806,14 @@ UserId LinkManager::get_link_user_id(Slice url) {
     }
   }
   return UserId();
+}
+
+string LinkManager::get_t_me_url() {
+  if (Scheduler::context() != nullptr) {
+    return G()->get_option_string("t_me_url", "https://t.me/");
+  } else {
+    return "https://t.me/";
+  }
 }
 
 Result<CustomEmojiId> LinkManager::get_link_custom_emoji_id(Slice url) {

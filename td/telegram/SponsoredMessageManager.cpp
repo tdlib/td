@@ -177,9 +177,9 @@ td_api::object_ptr<td_api::sponsoredMessage> SponsoredMessageManager::get_sponso
     case DialogType::Channel:
       if (sponsored_message.server_message_id.is_valid()) {
         auto channel_id = sponsored_message.sponsor_dialog_id.get_channel_id();
-        auto t_me = td_->option_manager_->get_option_string("t_me_url", "https://t.me/");
         link = td_api::make_object<td_api::internalLinkTypeMessage>(
-            PSTRING() << t_me << "c/" << channel_id.get() << '/' << sponsored_message.server_message_id.get());
+            PSTRING() << LinkManager::get_t_me_url() << "c/" << channel_id.get() << '/'
+                      << sponsored_message.server_message_id.get());
       }
       break;
     case DialogType::None: {
