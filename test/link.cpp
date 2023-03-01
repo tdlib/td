@@ -257,9 +257,10 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("www%2etelegram.me/levlam/1", message("tg:resolve?domain=levlam&post=1"));
   parse_internal_link("www%2Etelegram.dog/levlam/1", message("tg:resolve?domain=levlam&post=1"));
   parse_internal_link("www%252Etelegram.dog/levlam/1", nullptr);
-  parse_internal_link("www.t.me/s/s/s/s/s/joinchat/1", chat_invite("1"));
-  parse_internal_link("www.t.me/s/%73/%73/s/%73/joinchat/1", chat_invite("1"));
-  parse_internal_link("http://t.me/s/s/s/s/s/s/s/s/s/s/s/s/s/s/s/s/s/joinchat/1", chat_invite("1"));
+  parse_internal_link("www.t.me/s/s/s/s/s/joinchat/1", nullptr);
+  parse_internal_link("www.t.me/s/s/s/s/s/joinchat/a", chat_invite("a"));
+  parse_internal_link("www.t.me/s/%73/%73/s/%73/joinchat/a", chat_invite("a"));
+  parse_internal_link("http://t.me/s/s/s/s/s/s/s/s/s/s/s/s/s/s/s/s/s/joinchat/a", chat_invite("a"));
   parse_internal_link("http://t.me/levlam/1", message("tg:resolve?domain=levlam&post=1"));
   parse_internal_link("https://t.me/levlam/1", message("tg:resolve?domain=levlam&post=1"));
   parse_internal_link("hTtp://www.t.me:443/levlam/1", message("tg:resolve?domain=levlam&post=1"));
@@ -570,9 +571,12 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("t.me/joinchat/aba%20aba", chat_invite("aba%20aba"));
   parse_internal_link("t.me/joinchat/aba%30aba", chat_invite("aba0aba"));
   parse_internal_link("t.me/joinchat/123456a", chat_invite("123456a"));
-  parse_internal_link("t.me/joinchat/12345678901", chat_invite("12345678901"));
-  parse_internal_link("t.me/joinchat/123456", chat_invite("123456"));
-  parse_internal_link("t.me/joinchat/123456/123123/12/31/a/s//21w/?asdas#test", chat_invite("123456"));
+  parse_internal_link("t.me/joinchat/12345678901", nullptr);
+  parse_internal_link("t.me/joinchat/123456", nullptr);
+  parse_internal_link("t.me/joinchat/123456/123123/12/31/a/s//21w/?asdas#test", nullptr);
+  parse_internal_link("t.me/joinchat/12345678901a", chat_invite("12345678901a"));
+  parse_internal_link("t.me/joinchat/123456a", chat_invite("123456a"));
+  parse_internal_link("t.me/joinchat/123456a/123123/12/31/a/s//21w/?asdas#test", chat_invite("123456a"));
 
   parse_internal_link("t.me/+?invite=abcdef", nullptr);
   parse_internal_link("t.me/+a", chat_invite("a"));
