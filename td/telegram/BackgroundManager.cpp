@@ -24,7 +24,6 @@
 #include "td/db/SqliteKeyValueAsync.h"
 
 #include "td/utils/algorithm.h"
-#include "td/utils/base64.h"
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/format.h"
@@ -464,17 +463,13 @@ void BackgroundManager::reload_background(BackgroundId background_id, int64 acce
       telegram_api::make_object<telegram_api::inputWallPaper>(background_id.get(), access_hash), std::move(promise));
 }
 
-static bool is_background_name_local(Slice name) {
-  return name.size() <= 13u || name.find('?') <= 13u || !is_base64url_characters(name.substr(0, name.find('?')));
-}
-
 std::pair<BackgroundId, BackgroundType> BackgroundManager::search_background(const string &name,
                                                                              Promise<Unit> &&promise) {
   auto params_pos = name.find('?');
   string slug = params_pos >= name.size() ? name : name.substr(0, params_pos);
   auto it = name_to_background_id_.find(slug);
   if (it != name_to_background_id_.end()) {
-    CHECK(!is_background_name_local(slug));
+    CHECK(!BackgroundType::is_background_name_local(slug));
 
     const auto *background = get_background(it->second);
     CHECK(background != nullptr);
@@ -489,7 +484,7 @@ std::pair<BackgroundId, BackgroundType> BackgroundManager::search_background(con
     return {};
   }
 
-  if (is_background_name_local(slug)) {
+  if (BackgroundType::is_background_name_local(slug)) {
     auto r_type = BackgroundType::get_local_background_type(name);
     if (r_type.is_error()) {
       promise.set_error(r_type.move_as_error());
@@ -532,7 +527,7 @@ void BackgroundManager::on_load_background_from_database(string name, string val
 
   loaded_from_database_backgrounds_.insert(name);
 
-  CHECK(!is_background_name_local(name));
+  CHECK(!BackgroundType::is_background_name_local(name));
   if (name_to_background_id_.count(name) == 0 && !value.empty()) {
     LOG(INFO) << "Successfully loaded background " << name << " of size " << value.size() << " from database";
     Background background;
@@ -980,7 +975,7 @@ void BackgroundManager::add_background(const Background &background, bool replac
 
     result->name = background.name;
 
-    if (!is_background_name_local(result->name)) {
+    if (!BackgroundType::is_background_name_local(result->name)) {
       name_to_background_id_.emplace(result->name, result->id);
       loaded_from_database_backgrounds_.erase(result->name);  // don't needed anymore
     }
@@ -1081,7 +1076,8 @@ std::pair<BackgroundId, BackgroundType> BackgroundManager::on_get_background(
 
   auto wallpaper = move_tl_object_as<telegram_api::wallPaper>(wallpaper_ptr);
   auto background_id = BackgroundId(wallpaper->id_);
-  if (!background_id.is_valid() || background_id.is_local() || is_background_name_local(wallpaper->slug_)) {
+  if (!background_id.is_valid() || background_id.is_local() ||
+      BackgroundType::is_background_name_local(wallpaper->slug_)) {
     LOG(ERROR) << "Receive " << to_string(wallpaper);
     return {};
   }
@@ -1125,7 +1121,7 @@ std::pair<BackgroundId, BackgroundType> BackgroundManager::on_get_background(
 
   if (G()->parameters().use_file_db) {
     LOG(INFO) << "Save " << background_id << " to database with name " << background.name;
-    CHECK(!is_background_name_local(background.name));
+    CHECK(!BackgroundType::is_background_name_local(background.name));
     G()->td_db()->get_sqlite_pmc()->set(get_background_name_database_key(background.name),
                                         log_event_store(background).as_slice().str(), Auto());
   }

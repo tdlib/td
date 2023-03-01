@@ -93,8 +93,14 @@ class BackgroundType {
 
   static Result<BackgroundType> get_local_background_type(Slice name);
 
+  static bool is_background_name_local(Slice name);
+
   bool has_file() const {
     return type_ == Type::Wallpaper || type_ == Type::Pattern;
+  }
+
+  bool has_gradient_fill() const {
+    return type_ == Type::Fill && fill_.get_type() != BackgroundFill::Type::Solid;
   }
 
   string get_mime_type() const;

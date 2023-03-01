@@ -6,6 +6,7 @@
 //
 #include "td/telegram/BackgroundType.h"
 
+#include "td/utils/base64.h"
 #include "td/utils/HttpUrl.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -367,6 +368,10 @@ Result<BackgroundType> BackgroundType::get_background_type(const td_api::Backgro
 Result<BackgroundType> BackgroundType::get_local_background_type(Slice name) {
   TRY_RESULT(fill, BackgroundFill::get_background_fill(name));
   return BackgroundType(fill);
+}
+
+bool BackgroundType::is_background_name_local(Slice name) {
+  return name.size() <= 13u || name.find('?') <= 13u || !is_base64url_characters(name.substr(0, name.find('?')));
 }
 
 BackgroundType::BackgroundType(bool is_fill, bool is_pattern,
