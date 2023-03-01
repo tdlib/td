@@ -233,39 +233,7 @@ void ConnectionCreator::get_proxy_link(int32 proxy_id, Promise<string> promise) 
     return promise.set_error(Status::Error(400, "Unknown proxy identifier"));
   }
 
-  auto &proxy = it->second;
-  string url = LinkManager::get_t_me_url();
-  bool is_socks = false;
-  switch (proxy.type()) {
-    case Proxy::Type::Socks5:
-      url += "socks";
-      is_socks = true;
-      break;
-    case Proxy::Type::HttpTcp:
-    case Proxy::Type::HttpCaching:
-      return promise.set_error(Status::Error(400, "HTTP proxy can't have public link"));
-    case Proxy::Type::Mtproto:
-      url += "proxy";
-      break;
-    default:
-      UNREACHABLE();
-  }
-  url += "?server=";
-  url += url_encode(proxy.server());
-  url += "&port=";
-  url += to_string(proxy.port());
-  if (is_socks) {
-    if (!proxy.user().empty() || !proxy.password().empty()) {
-      url += "&user=";
-      url += url_encode(proxy.user());
-      url += "&pass=";
-      url += url_encode(proxy.password());
-    }
-  } else {
-    url += "&secret=";
-    url += proxy.secret().get_encoded_secret();
-  }
-  promise.set_value(std::move(url));
+  promise.set_result(LinkManager::get_proxy_link(it->second, false));
 }
 
 ActorId<GetHostByNameActor> ConnectionCreator::get_dns_resolver() {

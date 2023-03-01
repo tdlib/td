@@ -23,6 +23,7 @@
 
 namespace td {
 
+class Proxy;
 class Td;
 
 class LinkManager final : public Actor {
@@ -91,6 +92,8 @@ class LinkManager final : public Actor {
   static string get_instant_view_link(Slice url, Slice rhash);
 
   static string get_public_chat_link(Slice username);
+
+  static Result<string> get_proxy_link(const Proxy &proxy, bool is_internal);
 
   static UserId get_link_user_id(Slice url);
 

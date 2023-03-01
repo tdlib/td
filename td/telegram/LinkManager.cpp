@@ -19,6 +19,7 @@
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
+#include "td/telegram/net/Proxy.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
@@ -1764,6 +1765,41 @@ string LinkManager::get_instant_view_link(Slice url, Slice rhash) {
 
 string LinkManager::get_public_chat_link(Slice username) {
   return PSTRING() << get_t_me_url() << url_encode(username);
+}
+
+Result<string> LinkManager::get_proxy_link(const Proxy &proxy, bool is_internal) {
+  string url = is_internal ? "tg://" : get_t_me_url();
+  bool is_socks = false;
+  switch (proxy.type()) {
+    case Proxy::Type::Socks5:
+      url += "socks";
+      is_socks = true;
+      break;
+    case Proxy::Type::HttpTcp:
+    case Proxy::Type::HttpCaching:
+      return Status::Error(400, "HTTP proxies have no public links");
+    case Proxy::Type::Mtproto:
+      url += "proxy";
+      break;
+    default:
+      UNREACHABLE();
+  }
+  url += "?server=";
+  url += url_encode(proxy.server());
+  url += "&port=";
+  url += to_string(proxy.port());
+  if (is_socks) {
+    if (!proxy.user().empty() || !proxy.password().empty()) {
+      url += "&user=";
+      url += url_encode(proxy.user());
+      url += "&pass=";
+      url += url_encode(proxy.password());
+    }
+  } else {
+    url += "&secret=";
+    url += proxy.secret().get_encoded_secret();
+  }
+  return std::move(url);
 }
 
 UserId LinkManager::get_link_user_id(Slice url) {
