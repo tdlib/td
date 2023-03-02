@@ -443,6 +443,9 @@ static Result<KeyboardButton> get_keyboard_button(tl_object_ptr<td_api::keyboard
   if (!clean_input_string(button->text_)) {
     return Status::Error(400, "Keyboard button text must be encoded in UTF-8");
   }
+  if (button->text_.empty()) {
+    return Status::Error(400, "Keyboard button text must be non-empty");
+  }
 
   KeyboardButton current_button;
   current_button.text = std::move(button->text_);
@@ -527,15 +530,17 @@ static Result<InlineKeyboardButton> get_inline_keyboard_button(tl_object_ptr<td_
                                                                bool switch_inline_buttons_allowed) {
   CHECK(button != nullptr);
   if (!clean_input_string(button->text_)) {
-    return Status::Error(400, "Keyboard button text must be encoded in UTF-8");
+    return Status::Error(400, "Inline keyboard button text must be encoded in UTF-8");
+  }
+  if (button->text_.empty()) {
+    return Status::Error(400, "Inline keyboard button text must be non-empty");
+  }
+  if (button->type_ == nullptr) {
+    return Status::Error(400, "Inline keyboard button type must be non-empty");
   }
 
   InlineKeyboardButton current_button;
   current_button.text = std::move(button->text_);
-
-  if (button->type_ == nullptr) {
-    return Status::Error(400, "Inline keyboard button type must be non-empty");
-  }
 
   int32 button_type_id = button->type_->get_id();
   switch (button_type_id) {
