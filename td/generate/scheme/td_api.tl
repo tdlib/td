@@ -463,9 +463,9 @@ location latitude:double longitude:double horizontal_accuracy:double = Location;
 //@type Type of the venue in the provider database; as defined by the sender
 venue location:location title:string address:string provider:string id:string type:string = Venue;
 
-//@description Describes a game
+//@description Describes a game. Use getInternalLink with internalLinkTypeGame to share the game
 //@id Unique game identifier
-//@short_name Game short name. To share a game use the URL https://t.me/{bot_username}?game={game_short_name}
+//@short_name Game short name
 //@title Game title
 //@text Game text, usually containing scoreboards for a game
 //@param_description Game description
@@ -473,8 +473,8 @@ venue location:location title:string address:string provider:string id:string ty
 //@animation Game animation; may be null
 game id:int64 short_name:string title:string text:formattedText description:string photo:photo animation:animation = Game;
 
-//@description Describes a Web App
-//@short_name Web App short name. To share a Web App use the URL https://t.me/{bot_username}/{app_short_name}?startapp={start_parameter}
+//@description Describes a Web App. Use getInternalLink with internalLinkTypeWebApp to share the Web App
+//@short_name Web App short name
 //@title Web App title
 //@param_description Web App description
 //@photo Web App photo
@@ -2442,13 +2442,13 @@ messageGame game:game = MessageContent;
 //@description A message with a poll @poll The poll description
 messagePoll poll:poll = MessageContent;
 
-//@description A message with an invoice from a bot
+//@description A message with an invoice from a bot. Use getInternalLink with internalLinkTypeBotStart to share the invoice
 //@title Product title
 //@param_description Product description
 //@photo Product photo; may be null
 //@currency Currency for the product price
 //@total_amount Product total price in the smallest units of the currency
-//@start_parameter Unique invoice bot start_parameter. To share an invoice use the URL https://t.me/{bot_username}?start={start_parameter}
+//@start_parameter Unique invoice bot start_parameter to be passed to getInternalLink
 //@is_test True, if the invoice is a test invoice
 //@need_shipping_address True, if the shipping address must be specified
 //@receipt_message_id The identifier of the message with the receipt, after the product has been purchased
@@ -7806,7 +7806,7 @@ getLanguagePackStrings language_pack_id:string keys:vector<string> = LanguagePac
 //@description Fetches the latest versions of all strings from a language pack in the current localization target from the server. This method doesn't need to be called explicitly for the current used/base language packs. Can be called before authorization @language_pack_id Language pack identifier
 synchronizeLanguagePack language_pack_id:string = Ok;
 
-//@description Adds a custom server language pack to the list of installed language packs in current localization target. Can be called before authorization @language_pack_id Identifier of a language pack to be added; may be different from a name that is used in an "https://t.me/setlanguage/" link
+//@description Adds a custom server language pack to the list of installed language packs in current localization target. Can be called before authorization @language_pack_id Identifier of a language pack to be added
 addCustomServerLanguagePack language_pack_id:string = Ok;
 
 //@description Adds or changes a custom local language pack to the current localization target
