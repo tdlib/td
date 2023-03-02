@@ -2824,6 +2824,7 @@ bool Td::is_preinitialization_request(int32 id) {
 
 bool Td::is_preauthentication_request(int32 id) {
   switch (id) {
+    case td_api::getInternalLink::ID:
     case td_api::getInternalLinkType::ID:
     case td_api::getLocalizationTargetInfo::ID:
     case td_api::getLanguagePackInfo::ID:
@@ -5115,6 +5116,15 @@ void Td::on_request(uint64 id, const td_api::clickAnimatedEmojiMessage &request)
   CREATE_REQUEST_PROMISE();
   messages_manager_->click_animated_emoji_message({DialogId(request.chat_id_), MessageId(request.message_id_)},
                                                   std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::getInternalLink &request) {
+  auto r_link = LinkManager::get_internal_link(request.type_, !request.is_http_);
+  if (r_link.is_error()) {
+    send_closure(actor_id(this), &Td::send_error, id, r_link.move_as_error());
+  } else {
+    send_closure(actor_id(this), &Td::send_result, id, td_api::make_object<td_api::httpUrl>(r_link.move_as_ok()));
+  }
 }
 
 void Td::on_request(uint64 id, const td_api::getInternalLinkType &request) {

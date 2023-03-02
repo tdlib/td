@@ -644,6 +644,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::clickAnimatedEmojiMessage &request);
 
+  void on_request(uint64 id, const td_api::getInternalLink &request);
+
   void on_request(uint64 id, const td_api::getInternalLinkType &request);
 
   void on_request(uint64 id, td_api::getExternalLinkInfo &request);

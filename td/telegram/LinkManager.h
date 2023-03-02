@@ -60,6 +60,8 @@ class LinkManager final : public Actor {
   // checks whether the link is a supported tg or t.me link and parses it
   static unique_ptr<InternalLink> parse_internal_link(Slice link, bool is_trusted = false);
 
+  static Result<string> get_internal_link(const td_api::object_ptr<td_api::InternalLinkType> &type, bool is_internal);
+
   void update_autologin_token(string autologin_token);
 
   void update_autologin_domains(vector<string> autologin_domains, vector<string> url_auth_domains,
@@ -91,7 +93,7 @@ class LinkManager final : public Actor {
 
   static string get_instant_view_link(Slice url, Slice rhash);
 
-  static string get_public_chat_link(Slice username);
+  static string get_public_dialog_link(Slice username, bool is_internal);
 
   static Result<string> get_proxy_link(const Proxy &proxy, bool is_internal);
 
@@ -163,6 +165,8 @@ class LinkManager final : public Actor {
                                                              const vector<std::pair<string, string>> &args);
 
   static unique_ptr<InternalLink> get_internal_link_message_draft(Slice url, Slice text);
+
+  static Result<string> get_internal_link_impl(const td_api::InternalLinkType *type_ptr, bool is_internal);
 
   static Result<string> check_link_impl(Slice link, bool http_only, bool https_only);
 

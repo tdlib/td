@@ -22,7 +22,7 @@ class ProxyType;
 
 class Proxy {
  public:
-  static Result<Proxy> create_proxy(string server, int port, td_api::ProxyType *proxy_type);
+  static Result<Proxy> create_proxy(string server, int port, const td_api::ProxyType *proxy_type);
 
   static Proxy socks5(string server, int32 port, string user, string password) {
     Proxy proxy;

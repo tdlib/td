@@ -10,7 +10,7 @@
 
 namespace td {
 
-Result<Proxy> Proxy::create_proxy(string server, int port, td_api::ProxyType *proxy_type) {
+Result<Proxy> Proxy::create_proxy(string server, int port, const td_api::ProxyType *proxy_type) {
   if (proxy_type == nullptr) {
     return Status::Error(400, "Proxy type must be non-empty");
   }
@@ -26,19 +26,19 @@ Result<Proxy> Proxy::create_proxy(string server, int port, td_api::ProxyType *pr
 
   switch (proxy_type->get_id()) {
     case td_api::proxyTypeSocks5::ID: {
-      auto type = static_cast<td_api::proxyTypeSocks5 *>(proxy_type);
-      return Proxy::socks5(std::move(server), port, std::move(type->username_), std::move(type->password_));
+      auto type = static_cast<const td_api::proxyTypeSocks5 *>(proxy_type);
+      return Proxy::socks5(std::move(server), port, type->username_, type->password_);
     }
     case td_api::proxyTypeHttp::ID: {
-      auto type = static_cast<td_api::proxyTypeHttp *>(proxy_type);
+      auto type = static_cast<const td_api::proxyTypeHttp *>(proxy_type);
       if (type->http_only_) {
-        return Proxy::http_caching(std::move(server), port, std::move(type->username_), std::move(type->password_));
+        return Proxy::http_caching(std::move(server), port, type->username_, type->password_);
       } else {
-        return Proxy::http_tcp(std::move(server), port, std::move(type->username_), std::move(type->password_));
+        return Proxy::http_tcp(std::move(server), port, type->username_, type->password_);
       }
     }
     case td_api::proxyTypeMtproto::ID: {
-      auto type = static_cast<td_api::proxyTypeMtproto *>(proxy_type);
+      auto type = static_cast<const td_api::proxyTypeMtproto *>(proxy_type);
       TRY_RESULT(secret, mtproto::ProxySecret::from_link(type->secret_));
       return Proxy::mtproto(std::move(server), port, std::move(secret));
     }

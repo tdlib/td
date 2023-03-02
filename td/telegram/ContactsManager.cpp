@@ -15828,8 +15828,8 @@ void ContactsManager::get_user_link_impl(Promise<td_api::object_ptr<td_api::user
   TRY_STATUS_PROMISE(promise, G()->close_status());
   const auto *u = get_user(get_my_id());
   if (u != nullptr && u->usernames.has_first_username()) {
-    return promise.set_value(
-        td_api::make_object<td_api::userLink>(LinkManager::get_public_chat_link(u->usernames.get_first_username()), 0));
+    return promise.set_value(td_api::make_object<td_api::userLink>(
+        LinkManager::get_public_dialog_link(u->usernames.get_first_username(), true), 0));
   }
   export_contact_token(td_, std::move(promise));
 }

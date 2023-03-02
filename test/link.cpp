@@ -89,6 +89,44 @@ static void parse_internal_link(const td::string &url, td::td_api::object_ptr<td
       static_cast<td::td_api::internalLinkTypeMessageDraft *>(object.get())->text_->entities_.clear();
     }
     ASSERT_STREQ(url + ' ' + to_string(expected), url + ' ' + to_string(object));
+
+    for (auto is_internal : {true, false}) {
+      if (!is_internal && expected->get_id() == td::td_api::internalLinkTypeMessage::ID) {
+        // external message links must be generated with getMessageLink
+        continue;
+      }
+      if (expected->get_id() == td::td_api::internalLinkTypeQrCodeAuthentication::ID) {
+        // QR code authentication links must never be generated manually
+        continue;
+      }
+      auto r_link = td::LinkManager::get_internal_link(expected, is_internal);
+      if (r_link.is_error()) {
+        if (r_link.error().message() == "HTTP link is unavailable for the link type") {
+          // some links are tg-only
+          continue;
+        }
+        if (r_link.error().message() == "Deep link is unavailable for the link type") {
+          // some links are http-only
+          continue;
+        }
+        if (r_link.error().message() == "WALLPAPER_INVALID") {
+          continue;
+        }
+        LOG(ERROR) << url << ' ' << r_link.error() << ' ' << to_string(expected);
+        ASSERT_TRUE(r_link.is_ok());
+      }
+      auto new_result = td::LinkManager::parse_internal_link(r_link.ok());
+      ASSERT_TRUE(new_result != nullptr);
+      auto new_object = new_result->get_internal_link_type_object();
+
+      r_link = td::LinkManager::get_internal_link(new_object, is_internal);
+      ASSERT_TRUE(r_link.is_ok());
+      new_result = td::LinkManager::parse_internal_link(r_link.ok());
+      ASSERT_TRUE(new_result != nullptr);
+
+      // the object must be the same after 2 round of conversion
+      ASSERT_STREQ(to_string(new_object), to_string(new_result->get_internal_link_type_object()));
+    }
   } else {
     LOG_IF(ERROR, expected != nullptr) << url;
     ASSERT_TRUE(expected == nullptr);
@@ -568,7 +606,7 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("t.me/joinchat/?abcdef", nullptr);
   parse_internal_link("t.me/joinchat/#abcdef", nullptr);
   parse_internal_link("t.me/joinchat/abacaba", chat_invite("abacaba"));
-  parse_internal_link("t.me/joinchat/aba%20aba", chat_invite("aba%20aba"));
+  parse_internal_link("t.me/joinchat/aba%20aba", nullptr);
   parse_internal_link("t.me/joinchat/aba%30aba", chat_invite("aba0aba"));
   parse_internal_link("t.me/joinchat/123456a", chat_invite("123456a"));
   parse_internal_link("t.me/joinchat/12345678901", nullptr);
@@ -586,7 +624,7 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("t.me/+?abcdef", nullptr);
   parse_internal_link("t.me/+#abcdef", nullptr);
   parse_internal_link("t.me/ abacaba", chat_invite("abacaba"));
-  parse_internal_link("t.me/+aba%20aba", chat_invite("aba%20aba"));
+  parse_internal_link("t.me/+aba%20aba", nullptr);
   parse_internal_link("t.me/+aba%30aba", chat_invite("aba0aba"));
   parse_internal_link("t.me/+123456a", chat_invite("123456a"));
   parse_internal_link("t.me/%2012345678901", user_phone_number("12345678901"));
@@ -611,7 +649,7 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("t.me/contact/?attach=&startattach", nullptr);
 
   parse_internal_link("tg:join?invite=abcdef", chat_invite("abcdef"));
-  parse_internal_link("tg:join?invite=abc%20def", chat_invite("abc%20def"));
+  parse_internal_link("tg:join?invite=abc%20def", unknown_deep_link("tg://join?invite=abc%20def"));
   parse_internal_link("tg://join?invite=abc%30def", chat_invite("abc0def"));
   parse_internal_link("tg:join?invite=", unknown_deep_link("tg://join?invite="));
 
