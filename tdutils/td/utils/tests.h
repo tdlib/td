@@ -176,23 +176,24 @@ void rand_shuffle(MutableSpan<T> v, R &rnd) {
 }
 
 template <class T1, class T2>
-void assert_eq_impl(const T1 &expected, const T2 &got, const char *file, int line) {
-  LOG_CHECK(expected == got) << tag("expected", expected) << tag("got", got) << " in " << file << " at line " << line;
+void assert_eq_impl(const T1 &expected, const T2 &received, const char *file, int line) {
+  LOG_CHECK(expected == received) << tag("expected", expected) << tag("received", received) << " in " << file
+                                  << " at line " << line;
 }
 
 template <class T>
-void assert_true_impl(const T &got, const char *file, int line) {
-  LOG_CHECK(got) << "Expected true in " << file << " at line " << line;
+void assert_true_impl(const T &received, const char *file, int line) {
+  LOG_CHECK(received) << "Expected true in " << file << " at line " << line;
 }
 
 }  // namespace td
 
-#define ASSERT_EQ(expected, got) ::td::assert_eq_impl((expected), (got), __FILE__, __LINE__)
+#define ASSERT_EQ(expected, received) ::td::assert_eq_impl((expected), (received), __FILE__, __LINE__)
 
-#define ASSERT_TRUE(got) ::td::assert_true_impl((got), __FILE__, __LINE__)
+#define ASSERT_TRUE(received) ::td::assert_true_impl((received), __FILE__, __LINE__)
 
-#define ASSERT_STREQ(expected, got) \
-  ::td::assert_eq_impl(::td::Slice((expected)), ::td::Slice((got)), __FILE__, __LINE__)
+#define ASSERT_STREQ(expected, received) \
+  ::td::assert_eq_impl(::td::Slice((expected)), ::td::Slice((received)), __FILE__, __LINE__)
 
 #define REGRESSION_VERIFY(data) ::td::TestContext::get()->verify(data).ensure()
 

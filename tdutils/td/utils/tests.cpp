@@ -84,7 +84,7 @@ class RegressionTesterImpl final : public RegressionTester {
       auto wa_path = db_cache_dir_ + "WA";
       write_file(wa_path, result).ensure();
       return Status::Error(PSLICE() << "Test " << name << " changed: " << tag("expected", old_test_info.result_hash)
-                                    << tag("got", hash));
+                                    << tag("received", hash));
     }
     auto result_cache_path = db_cache_dir_ + hash;
     if (stat(result_cache_path).is_error()) {
