@@ -1001,7 +1001,7 @@ chatMessageSender sender:MessageSender needs_premium:Bool = ChatMessageSender;
 chatMessageSenders senders:vector<chatMessageSender> = ChatMessageSenders;
 
 
-//@description Represents a viewer of a message @user_id User identifier of the viewer @view_date Point in time (Unix timestamp) when the message was viewed
+//@description Represents a viewer of a message @user_id User identifier of the viewer @view_date Approximate point in time (Unix timestamp) when the message was viewed
 messageViewer user_id:int53 view_date:int32 = MessageViewer;
 
 //@description Represents a list of message viewers @viewers List of message viewers
