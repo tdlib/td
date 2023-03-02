@@ -261,9 +261,14 @@ void StorageManager::send_stats(FileStats &&stats, int32 dialog_limit, std::vect
   auto promise = PromiseCreator::lambda(
       [promises = std::move(promises), stats = std::move(stats)](vector<DialogId> dialog_ids) mutable {
         stats.apply_dialog_ids(dialog_ids);
-        for (auto &promise : promises) {
-          promise.set_value(FileStats(stats));
+        auto size = promises.size();
+        size--;
+        for (size_t i = 0; i < size; i++) {
+          if (promises[i]) {
+            promises[i].set_value(FileStats(stats));
+          }
         }
+        promises[size].set_value(std::move(stats));
       });
 
   send_closure(G()->messages_manager(), &MessagesManager::load_dialogs, std::move(dialog_ids), std::move(promise));
