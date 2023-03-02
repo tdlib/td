@@ -81,13 +81,19 @@ TEST(Link, check_link) {
   check_link("https://.", "");
 }
 
+static td::td_api::object_ptr<td::td_api::InternalLinkType> get_internal_link_type_object(
+    const td::unique_ptr<td::LinkManager::InternalLink> &link) {
+  auto object = link->get_internal_link_type_object();
+  if (object->get_id() == td::td_api::internalLinkTypeMessageDraft::ID) {
+    static_cast<td::td_api::internalLinkTypeMessageDraft *>(object.get())->text_->entities_.clear();
+  }
+  return object;
+}
+
 static void parse_internal_link(const td::string &url, td::td_api::object_ptr<td::td_api::InternalLinkType> expected) {
   auto result = td::LinkManager::parse_internal_link(url);
   if (result != nullptr) {
-    auto object = result->get_internal_link_type_object();
-    if (object->get_id() == td::td_api::internalLinkTypeMessageDraft::ID) {
-      static_cast<td::td_api::internalLinkTypeMessageDraft *>(object.get())->text_->entities_.clear();
-    }
+    auto object = get_internal_link_type_object(result);
     ASSERT_STREQ(url + ' ' + to_string(expected), url + ' ' + to_string(object));
 
     for (auto is_internal : {true, false}) {
@@ -117,7 +123,23 @@ static void parse_internal_link(const td::string &url, td::td_api::object_ptr<td
       }
       auto new_result = td::LinkManager::parse_internal_link(r_link.ok());
       ASSERT_TRUE(new_result != nullptr);
-      auto new_object = new_result->get_internal_link_type_object();
+      auto new_object = get_internal_link_type_object(new_result);
+
+      auto new_object_str = to_string(new_object);
+      auto expected_str = to_string(expected);
+      if (expected->get_id() == td::td_api::internalLinkTypeBackground::ID) {
+        for (auto &c : expected_str) {
+          if (c == '~') {
+            // getInternalLink always use '-'
+            c = '-';
+          }
+        }
+        if (new_object_str != expected_str && td::ends_with(expected_str, "\"\n}\n")) {
+          // getInternalLink always adds rotation parameter, because default value differs between apps
+          expected_str = expected_str.substr(0, expected_str.size() - 4) + "?rotation=0\"\n}\n";
+        }
+      }
+      ASSERT_EQ(new_object_str, expected_str);
 
       r_link = td::LinkManager::get_internal_link(new_object, is_internal);
       ASSERT_TRUE(r_link.is_ok());
@@ -125,7 +147,7 @@ static void parse_internal_link(const td::string &url, td::td_api::object_ptr<td
       ASSERT_TRUE(new_result != nullptr);
 
       // the object must be the same after 2 round of conversion
-      ASSERT_STREQ(to_string(new_object), to_string(new_result->get_internal_link_type_object()));
+      ASSERT_STREQ(to_string(new_object), to_string(get_internal_link_type_object(new_result)));
     }
   } else {
     LOG_IF(ERROR, expected != nullptr) << url;
@@ -452,16 +474,16 @@ TEST(Link, parse_internal_link) {
                       background("111111-222222%20?rotation=180%20"));
   parse_internal_link("tg:bg?gradient=111111~222222", background("111111~222222"));
   parse_internal_link("tg:bg?gradient=abacaba", background("abacaba"));
-  parse_internal_link("tg:bg?slug=111111~222222#asdasd", background("111111~222222"));
-  parse_internal_link("tg:bg?slug=111111~222222&mode=12", background("111111~222222?mode=12"));
-  parse_internal_link("tg:bg?slug=111111~222222&mode=12&text=1", background("111111~222222?mode=12"));
-  parse_internal_link("tg:bg?slug=111111~222222&mode=12&mode=1", background("111111~222222?mode=12"));
-  parse_internal_link("tg:bg?slug=test&mode=12&rotation=4&intensity=2&bg_color=3",
-                      background("test?mode=12&intensity=2&bg_color=3&rotation=4"));
-  parse_internal_link("tg:bg?mode=12&&slug=test&intensity=2&bg_color=3",
-                      background("test?mode=12&intensity=2&bg_color=3"));
-  parse_internal_link("tg:bg?mode=12&intensity=2&bg_color=3",
-                      unknown_deep_link("tg://bg?mode=12&intensity=2&bg_color=3"));
+  parse_internal_link("tg:bg?slug=test#asdasd", background("test"));
+  parse_internal_link("tg:bg?slug=test&mode=blur", background("test?mode=blur"));
+  parse_internal_link("tg:bg?slug=test&mode=blur&text=1", background("test?mode=blur"));
+  parse_internal_link("tg:bg?slug=test&mode=blur&mode=1", background("test?mode=blur"));
+  parse_internal_link("tg:bg?slug=test&mode=blur&rotation=4&intensity=2&bg_color=3",
+                      background("test?mode=blur&intensity=2&bg_color=3&rotation=4"));
+  parse_internal_link("tg:bg?mode=blur&&slug=test&intensity=2&bg_color=3",
+                      background("test?mode=blur&intensity=2&bg_color=3"));
+  parse_internal_link("tg:bg?mode=blur&intensity=2&bg_color=3",
+                      unknown_deep_link("tg://bg?mode=blur&intensity=2&bg_color=3"));
 
   parse_internal_link("tg:bg?color=111111#asdasd", background("111111"));
   parse_internal_link("tg:bg?color=11111%31", background("111111"));
@@ -469,18 +491,18 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("tg:bg?gradient=111111-222222", background("111111-222222"));
   parse_internal_link("tg:bg?rotation=180%20&gradient=111111-222222%20",
                       background("111111-222222%20?rotation=180%20"));
-  parse_internal_link("tg:bg?gradient=111111~222222", background("111111~222222"));
+  parse_internal_link("tg:bg?gradient=111111~222222&mode=blur", background("111111~222222"));
   parse_internal_link("tg:bg?gradient=abacaba", background("abacaba"));
-  parse_internal_link("tg:bg?slug=111111~222222#asdasd", background("111111~222222"));
-  parse_internal_link("tg:bg?slug=111111~222222&mode=12", background("111111~222222?mode=12"));
-  parse_internal_link("tg:bg?slug=111111~222222&mode=12&text=1", background("111111~222222?mode=12"));
-  parse_internal_link("tg:bg?slug=111111~222222&mode=12&mode=1", background("111111~222222?mode=12"));
-  parse_internal_link("tg:bg?slug=test&mode=12&rotation=4&intensity=2&bg_color=3",
-                      background("test?mode=12&intensity=2&bg_color=3&rotation=4"));
-  parse_internal_link("tg:bg?mode=12&&slug=test&intensity=2&bg_color=3",
-                      background("test?mode=12&intensity=2&bg_color=3"));
-  parse_internal_link("tg:bg?mode=12&intensity=2&bg_color=3",
-                      unknown_deep_link("tg://bg?mode=12&intensity=2&bg_color=3"));
+  parse_internal_link("tg:bg?slug=test#asdasd", background("test"));
+  parse_internal_link("tg:bg?slug=test&mode=blur", background("test?mode=blur"));
+  parse_internal_link("tg:bg?slug=test&mode=blur&text=1", background("test?mode=blur"));
+  parse_internal_link("tg:bg?slug=test&mode=blur&mode=1", background("test?mode=blur"));
+  parse_internal_link("tg:bg?slug=test&mode=blur&rotation=4&intensity=2&bg_color=3",
+                      background("test?mode=blur&intensity=2&bg_color=3&rotation=4"));
+  parse_internal_link("tg:bg?mode=blur&&slug=test&intensity=2&bg_color=3",
+                      background("test?mode=blur&intensity=2&bg_color=3"));
+  parse_internal_link("tg:bg?mode=blur&intensity=2&bg_color=3",
+                      unknown_deep_link("tg://bg?mode=blur&intensity=2&bg_color=3"));
 
   parse_internal_link("%54.me/bg/111111#asdasd", background("111111"));
   parse_internal_link("t.me/bg/11111%31", background("111111"));
@@ -491,13 +513,13 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("t.me/bg/abacaba", background("abacaba"));
   parse_internal_link("t.me/Bg/abacaba", web_app("Bg", "abacaba", ""));
   parse_internal_link("t.me/bg/111111~222222#asdasd", background("111111~222222"));
-  parse_internal_link("t.me/bg/111111~222222?mode=12", background("111111~222222?mode=12"));
-  parse_internal_link("t.me/bg/111111~222222?mode=12&text=1", background("111111~222222?mode=12"));
-  parse_internal_link("t.me/bg/111111~222222?mode=12&mode=1", background("111111~222222?mode=12"));
-  parse_internal_link("t.me/bg/test?mode=12&rotation=4&intensity=2&bg_color=3",
-                      background("test?mode=12&intensity=2&bg_color=3&rotation=4"));
-  parse_internal_link("t.me/%62g/test/?mode=12&&&intensity=2&bg_color=3",
-                      background("test?mode=12&intensity=2&bg_color=3"));
+  parse_internal_link("t.me/bg/111111~222222?mode=blur", background("111111~222222"));
+  parse_internal_link("t.me/bg/111111~222222?mode=blur&text=1", background("111111~222222"));
+  parse_internal_link("t.me/bg/111111~222222?mode=blur&mode=1", background("111111~222222"));
+  parse_internal_link("t.me/bg/testteststststststststststststs?mode=blur&rotation=4&intensity=2&bg_color=3&mode=1",
+                      background("testteststststststststststststs?mode=blur&intensity=2&bg_color=3&rotation=4"));
+  parse_internal_link("t.me/%62g/testteststststststststststststs/?mode=blur+motion&&&intensity=2&bg_color=3",
+                      background("testteststststststststststststs?mode=blur%20motion&intensity=2&bg_color=3"));
   parse_internal_link("t.me/bg//", nullptr);
   parse_internal_link("t.me/bg/%20/", background("%20"));
   parse_internal_link("t.me/bg/", nullptr);
@@ -758,9 +780,9 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("tg://addtheme?slug=", unknown_deep_link("tg://addtheme?slug="));
 
   parse_internal_link("t.me/proxy?server=1.2.3.4&port=80&secret=1234567890abcdef1234567890ABCDEF",
-                      proxy_mtproto("1.2.3.4", 80, "1234567890abcdef1234567890ABCDEF"));
+                      proxy_mtproto("1.2.3.4", 80, "1234567890abcdef1234567890abcdef"));
   parse_internal_link("t.me/proxy?server=1.2.3.4&port=80adasdas&secret=1234567890abcdef1234567890ABCDEF",
-                      proxy_mtproto("1.2.3.4", 80, "1234567890abcdef1234567890ABCDEF"));
+                      proxy_mtproto("1.2.3.4", 80, "1234567890abcdef1234567890abcdef"));
   parse_internal_link("t.me/proxy?server=1.2.3.4&port=adasdas&secret=1234567890abcdef1234567890ABCDEF",
                       unsupported_proxy());
   parse_internal_link("t.me/proxy?server=1.2.3.4&port=65536&secret=1234567890abcdef1234567890ABCDEF",
@@ -768,9 +790,9 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("t.me/proxy?server=google.com&port=8%30&secret=", unsupported_proxy());
   parse_internal_link("t.me/proxy?server=google.com&port=8%30&secret=12", unsupported_proxy());
   parse_internal_link("t.me/proxy?server=google.com&port=8%30&secret=1234567890abcdef1234567890ABCDEF",
-                      proxy_mtproto("google.com", 80, "1234567890abcdef1234567890ABCDEF"));
+                      proxy_mtproto("google.com", 80, "1234567890abcdef1234567890abcdef"));
   parse_internal_link("t.me/proxy?server=google.com&port=8%30&secret=dd1234567890abcdef1234567890ABCDEF",
-                      proxy_mtproto("google.com", 80, "dd1234567890abcdef1234567890ABCDEF"));
+                      proxy_mtproto("google.com", 80, "dd1234567890abcdef1234567890abcdef"));
   parse_internal_link("t.me/proxy?server=google.com&port=8%30&secret=de1234567890abcdef1234567890ABCDEF",
                       unsupported_proxy());
   parse_internal_link("t.me/proxy?server=google.com&port=8%30&secret=ee1234567890abcdef1234567890ABCDEF",
@@ -778,25 +800,25 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("t.me/proxy?server=google.com&port=8%30&secret=ee1234567890abcdef1234567890ABCDEF0",
                       unsupported_proxy());
   parse_internal_link("t.me/proxy?server=google.com&port=8%30&secret=ee1234567890abcdef1234567890ABCDEF%30%30",
-                      proxy_mtproto("google.com", 80, "ee1234567890abcdef1234567890ABCDEF00"));
+                      proxy_mtproto("google.com", 80, "7hI0VniQq83vEjRWeJCrze8A"));
   parse_internal_link(
       "t.me/proxy?server=google.com&port=8%30&secret=ee1234567890abcdef1234567890ABCDEF010101010101010101",
-      proxy_mtproto("google.com", 80, "ee1234567890abcdef1234567890ABCDEF010101010101010101"));
+      proxy_mtproto("google.com", 80, "7hI0VniQq83vEjRWeJCrze8BAQEBAQEBAQE"));
   parse_internal_link("t.me/proxy?server=google.com&port=8%30&secret=7tAAAAAAAAAAAAAAAAAAAAAAAAcuZ29vZ2xlLmNvbQ",
                       proxy_mtproto("google.com", 80, "7tAAAAAAAAAAAAAAAAAAAAAAAAcuZ29vZ2xlLmNvbQ"));
 
   parse_internal_link("tg:proxy?server=1.2.3.4&port=80&secret=1234567890abcdef1234567890ABCDEF",
-                      proxy_mtproto("1.2.3.4", 80, "1234567890abcdef1234567890ABCDEF"));
+                      proxy_mtproto("1.2.3.4", 80, "1234567890abcdef1234567890abcdef"));
   parse_internal_link("tg:proxy?server=1.2.3.4&port=80adasdas&secret=1234567890abcdef1234567890ABCDEF",
-                      proxy_mtproto("1.2.3.4", 80, "1234567890abcdef1234567890ABCDEF"));
+                      proxy_mtproto("1.2.3.4", 80, "1234567890abcdef1234567890abcdef"));
   parse_internal_link("tg:proxy?server=1.2.3.4&port=adasdas&secret=1234567890abcdef1234567890ABCDEF",
                       unsupported_proxy());
   parse_internal_link("tg:proxy?server=1.2.3.4&port=65536&secret=1234567890abcdef1234567890ABCDEF",
                       unsupported_proxy());
   parse_internal_link("tg:proxy?server=google.com&port=8%30&secret=1234567890abcdef1234567890ABCDEF",
-                      proxy_mtproto("google.com", 80, "1234567890abcdef1234567890ABCDEF"));
+                      proxy_mtproto("google.com", 80, "1234567890abcdef1234567890abcdef"));
   parse_internal_link("tg:proxy?server=google.com&port=8%30&secret=dd1234567890abcdef1234567890ABCDEF",
-                      proxy_mtproto("google.com", 80, "dd1234567890abcdef1234567890ABCDEF"));
+                      proxy_mtproto("google.com", 80, "dd1234567890abcdef1234567890abcdef"));
   parse_internal_link("tg:proxy?server=google.com&port=8%30&secret=de1234567890abcdef1234567890ABCDEF",
                       unsupported_proxy());
 

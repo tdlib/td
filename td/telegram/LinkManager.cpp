@@ -1174,7 +1174,10 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
       }
       if (username == "telegrampassport") {
         // resolve?domain=telegrampassport&bot_id=...&scope=...&public_key=...&nonce=...&callback_url=...
-        return get_internal_link_passport(query, url_query.args_);
+        auto passport_link = get_internal_link_passport(query, url_query.args_, false);
+        if (passport_link != nullptr) {
+          return std::move(passport_link);
+        }
       }
       // resolve?domain=<username>
       return td::make_unique<InternalLinkPublicDialog>(std::move(username));
@@ -1208,7 +1211,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     return td::make_unique<InternalLinkRestorePurchases>();
   } else if (path.size() == 1 && path[0] == "passport") {
     // passport?bot_id=...&scope=...&public_key=...&nonce=...&callback_url=...
-    return get_internal_link_passport(query, url_query.args_);
+    return get_internal_link_passport(query, url_query.args_, true);
   } else if (path.size() == 1 && path[0] == "premium_offer") {
     // premium_offer?ref=<referrer>
     return td::make_unique<InternalLinkPremiumFeatures>(get_arg("ref"));
@@ -1291,9 +1294,10 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     if (has_arg("server") && has_arg("port")) {
       // proxy?server=<server>&port=<port>&secret=<secret>
       auto port = to_integer<int32>(get_arg("port"));
-      if (0 < port && port < 65536 && mtproto::ProxySecret::from_link(get_arg("secret")).is_ok()) {
-        return td::make_unique<InternalLinkProxy>(get_arg("server"), port,
-                                                  td_api::make_object<td_api::proxyTypeMtproto>(get_arg("secret")));
+      auto r_secret = mtproto::ProxySecret::from_link(get_arg("secret"));
+      if (0 < port && port < 65536 && r_secret.is_ok()) {
+        return td::make_unique<InternalLinkProxy>(
+            get_arg("server"), port, td_api::make_object<td_api::proxyTypeMtproto>(r_secret.ok().get_encoded_secret()));
       } else {
         return td::make_unique<InternalLinkUnsupportedProxy>();
       }
@@ -1445,9 +1449,10 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
     if (has_arg("server") && has_arg("port")) {
       // /proxy?server=<server>&port=<port>&secret=<secret>
       auto port = to_integer<int32>(get_arg("port"));
-      if (0 < port && port < 65536 && mtproto::ProxySecret::from_link(get_arg("secret")).is_ok()) {
-        return td::make_unique<InternalLinkProxy>(get_arg("server"), port,
-                                                  td_api::make_object<td_api::proxyTypeMtproto>(get_arg("secret")));
+      auto r_secret = mtproto::ProxySecret::from_link(get_arg("secret"));
+      if (0 < port && port < 65536 && r_secret.is_ok()) {
+        return td::make_unique<InternalLinkProxy>(
+            get_arg("server"), port, td_api::make_object<td_api::proxyTypeMtproto>(r_secret.ok().get_encoded_secret()));
       } else {
         return td::make_unique<InternalLinkUnsupportedProxy>();
       }
@@ -1459,6 +1464,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
       // /bg/<hex_color>~<hex_color>~<hex_color>~<hex_color>
       // /bg/<background_name>?mode=blur+motion
       // /bg/<pattern_name>?intensity=...&bg_color=...&mode=blur+motion
+      if (BackgroundType::is_background_name_local(path[1])) {
+        return td::make_unique<InternalLinkBackground>(PSTRING() << url_encode(path[1]) << copy_arg("rotation"));
+      }
       return td::make_unique<InternalLinkBackground>(PSTRING()
                                                      << url_encode(path[1]) << copy_arg("mode") << copy_arg("intensity")
                                                      << copy_arg("bg_color") << copy_arg("rotation"));
@@ -1591,7 +1599,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::get_internal_link_message_dra
 }
 
 unique_ptr<LinkManager::InternalLink> LinkManager::get_internal_link_passport(
-    Slice query, const vector<std::pair<string, string>> &args) {
+    Slice query, const vector<std::pair<string, string>> &args, bool allow_unknown) {
   auto get_arg = [&args](Slice key) {
     for (auto &arg : args) {
       if (arg.first == key) {
@@ -1611,6 +1619,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::get_internal_link_passport(
   auto callback_url = get_arg("callback_url");
 
   if (!bot_user_id.is_valid() || scope.empty() || public_key.empty() || nonce.empty()) {
+    if (!allow_unknown) {
+      return nullptr;
+    }
     return td::make_unique<InternalLinkUnknownDeepLink>(PSTRING() << "tg://" << query);
   }
   return td::make_unique<InternalLinkPassportDataRequest>(bot_user_id, scope.str(), public_key.str(), nonce.str(),
@@ -2072,7 +2083,7 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
       }
       auto name = link->is_live_stream_ ? Slice("livestream") : Slice("videochat");
       if (is_internal) {
-        return PSTRING() << "tg://resolve?domain=" << link->chat_username_ << '?' << name << invite_hash;
+        return PSTRING() << "tg://resolve?domain=" << link->chat_username_ << '&' << name << invite_hash;
       } else {
         return PSTRING() << get_t_me_url() << link->chat_username_ << '?' << name << invite_hash;
       }
@@ -2090,7 +2101,7 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
       }
       string start_parameter;
       if (!link->start_parameter_.empty()) {
-        start_parameter = PSTRING() << (is_internal ? '&' : '?') << "startapp=" << url_encode(start_parameter);
+        start_parameter = PSTRING() << (is_internal ? '&' : '?') << "startapp=" << url_encode(link->start_parameter_);
       }
       if (is_internal) {
         return PSTRING() << "tg://resolve?domain=" << link->bot_username_ << "&appname=" << link->web_app_short_name_
