@@ -14,7 +14,7 @@ index 695be54..eda7b0d 100644
  # - BZip2-macOS     - build BZip2 for macOS
  # - BZip2-iOS       - build BZip2 for iOS
  # - BZip2-tvOS      - build BZip2 for tvOS
-@@ -30,37 +33,51 @@ PYTHON_VERSION=2.7.14
+@@ -30,37 +33,52 @@ PYTHON_VERSION=2.7.14
  PYTHON_VER=$(basename $(PYTHON_VERSION))
  
  OPENSSL_VERSION_NUMBER=1.0.2
@@ -63,11 +63,12 @@ index 695be54..eda7b0d 100644
 +
  # watchOS targets
 -TARGETS-watchOS=watchsimulator.i386 watchos.armv7k
-+TARGETS-watchOS=watchos.armv7k watchos.arm64_32
++TARGETS-watchOS=watchos.armv7k watchos.arm64_32 watchos.arm64
  CFLAGS-watchOS=-mwatchos-version-min=4.0
 -CFLAGS-watchos.armv7k=-fembed-bitcode
 +CFLAGS-watchos.armv7k=
 +CFLAGS-watchos.arm64_32=
++CFLAGS-watchos.arm64=
  PYTHON_CONFIGURE-watchOS=ac_cv_func_sigaltstack=no
  
 +# watchOS-simulator targets
@@ -77,7 +78,7 @@ index 695be54..eda7b0d 100644
  # override machine types for arm64
  MACHINE_DETAILED-arm64=aarch64
  MACHINE_SIMPLE-arm64=arm
-@@ -194,9 +211,11 @@ endif
+@@ -194,9 +212,11 @@ endif
  
  	# Configure the build
  ifeq ($2,macOS)

@@ -8,7 +8,7 @@ For example of usage take a look at our [Swift example](https://github.com/tdlib
 
 To compile `TDLib` you will need to:
 * Install the latest Xcode via `xcode-select --install` or downloading it from [Xcode website](https://developer.apple.com/xcode/).
-  It is not enough to install only command line developer tools to build `TDLib` for iOS.
+  It is not enough to install only command line developer tools to build `TDLib` for iOS. Xcode >= 14.0 is required to build TDLib for watchOS.
 * Install other build dependencies using [Homebrew](https://brew.sh):
 ```
 brew install gperf cmake coreutils
