@@ -3,8 +3,9 @@ cd $(dirname $0)
 
 git clone https://github.com/beeware/Python-Apple-support
 cd Python-Apple-support
-git checkout 60b990128d5f1f04c336ff66594574515ab56604
-git apply ../Python-Apple-support.patch
+git checkout 60b990128d5f1f04c336ff66594574515ab56604 || exit 1
+git reset --hard || exit 1
+git apply ../Python-Apple-support.patch || exit 1
 cd ..
 
 #TODO: change openssl version
