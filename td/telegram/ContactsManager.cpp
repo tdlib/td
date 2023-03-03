@@ -1891,7 +1891,7 @@ class AddChatUserQuery final : public Td::ResultHandler {
     if (status.message() == "USER_PRIVACY_RESTRICTED") {
       td_->contacts_manager_->send_update_add_chat_members_privacy_forbidden(DialogId(chat_id_), {user_id_},
                                                                              "AddChatUserQuery");
-      return promise_.set_value(Unit());
+      return promise_.set_error(Status::Error(406, "USER_PRIVACY_RESTRICTED"));
     }
     promise_.set_error(std::move(status));
   }
@@ -1900,13 +1900,16 @@ class AddChatUserQuery final : public Td::ResultHandler {
 class EditChatAdminQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChatId chat_id_;
+  UserId user_id_;
 
  public:
   explicit EditChatAdminQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(ChatId chat_id, tl_object_ptr<telegram_api::InputUser> &&input_user, bool is_administrator) {
+  void send(ChatId chat_id, UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user,
+            bool is_administrator) {
     chat_id_ = chat_id;
+    user_id_ = user_id;
     send_query(G()->net_query_creator().create(
         telegram_api::messages_editChatAdmin(chat_id.get(), std::move(input_user), is_administrator)));
   }
@@ -1928,6 +1931,12 @@ class EditChatAdminQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    if (status.message() == "USER_PRIVACY_RESTRICTED") {
+      // impossible now, because the user must be in the chat already
+      td_->contacts_manager_->send_update_add_chat_members_privacy_forbidden(DialogId(chat_id_), {user_id_},
+                                                                             "EditChatAdminQuery");
+      return promise_.set_error(Status::Error(406, "USER_PRIVACY_RESTRICTED"));
+    }
     promise_.set_error(std::move(status));
   }
 };
@@ -2745,13 +2754,16 @@ class JoinChannelQuery final : public Td::ResultHandler {
 class InviteToChannelQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
+  vector<UserId> user_ids_;
 
  public:
   explicit InviteToChannelQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(ChannelId channel_id, vector<tl_object_ptr<telegram_api::InputUser>> &&input_users) {
+  void send(ChannelId channel_id, vector<UserId> user_ids,
+            vector<tl_object_ptr<telegram_api::InputUser>> &&input_users) {
     channel_id_ = channel_id;
+    user_ids_ = std::move(user_ids);
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
     send_query(G()->net_query_creator().create(
@@ -2772,6 +2784,11 @@ class InviteToChannelQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    if (status.message() == "USER_PRIVACY_RESTRICTED") {
+      td_->contacts_manager_->send_update_add_chat_members_privacy_forbidden(
+          DialogId(channel_id_), std::move(user_ids_), "InviteToChannelQuery");
+      return promise_.set_error(Status::Error(406, "USER_PRIVACY_RESTRICTED"));
+    }
     td_->contacts_manager_->on_get_channel_error(channel_id_, status, "InviteToChannelQuery");
     td_->contacts_manager_->invalidate_channel_full(channel_id_, false, "InviteToChannelQuery");
     promise_.set_error(std::move(status));
@@ -2813,6 +2830,11 @@ class EditChannelAdminQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    if (status.message() == "USER_PRIVACY_RESTRICTED") {
+      td_->contacts_manager_->send_update_add_chat_members_privacy_forbidden(DialogId(channel_id_), {user_id_},
+                                                                             "EditChannelAdminQuery");
+      return promise_.set_error(Status::Error(406, "USER_PRIVACY_RESTRICTED"));
+    }
     td_->contacts_manager_->on_get_channel_error(channel_id_, status, "EditChannelAdminQuery");
     td_->contacts_manager_->invalidate_channel_full(channel_id_, false, "EditChannelAdminQuery");
     promise_.set_error(std::move(status));
@@ -2930,6 +2952,7 @@ class CanEditChannelCreatorQuery final : public Td::ResultHandler {
 class EditChannelCreatorQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
+  UserId user_id_;
 
  public:
   explicit EditChannelCreatorQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
@@ -2938,6 +2961,7 @@ class EditChannelCreatorQuery final : public Td::ResultHandler {
   void send(ChannelId channel_id, UserId user_id,
             tl_object_ptr<telegram_api::InputCheckPasswordSRP> input_check_password) {
     channel_id_ = channel_id;
+    user_id_ = user_id;
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
     if (input_channel == nullptr) {
       return promise_.set_error(Status::Error(400, "Have no access to the chat"));
@@ -2965,6 +2989,11 @@ class EditChannelCreatorQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    if (status.message() == "USER_PRIVACY_RESTRICTED") {
+      td_->contacts_manager_->send_update_add_chat_members_privacy_forbidden(DialogId(channel_id_), {user_id_},
+                                                                             "EditChannelCreatorQuery");
+      return promise_.set_error(Status::Error(406, "USER_PRIVACY_RESTRICTED"));
+    }
     td_->contacts_manager_->on_get_channel_error(channel_id_, status, "EditChannelCreatorQuery");
     promise_.set_error(std::move(status));
     td_->updates_manager_->get_difference("EditChannelCreatorQuery");
@@ -8254,7 +8283,7 @@ void ContactsManager::add_channel_participant(ChannelId channel_id, UserId user_
   speculative_add_channel_user(channel_id, user_id, DialogParticipantStatus::Member(), old_status);
   vector<tl_object_ptr<telegram_api::InputUser>> input_users;
   input_users.push_back(r_input_user.move_as_ok());
-  td_->create_handler<InviteToChannelQuery>(std::move(promise))->send(channel_id, std::move(input_users));
+  td_->create_handler<InviteToChannelQuery>(std::move(promise))->send(channel_id, {user_id}, std::move(input_users));
 }
 
 void ContactsManager::add_channel_participants(ChannelId channel_id, const vector<UserId> &user_ids,
@@ -8293,7 +8322,7 @@ void ContactsManager::add_channel_participants(ChannelId channel_id, const vecto
     return promise.set_value(Unit());
   }
 
-  td_->create_handler<InviteToChannelQuery>(std::move(promise))->send(channel_id, std::move(input_users));
+  td_->create_handler<InviteToChannelQuery>(std::move(promise))->send(channel_id, user_ids, std::move(input_users));
 }
 
 void ContactsManager::set_channel_participant_status(ChannelId channel_id, DialogId participant_dialog_id,
@@ -8525,7 +8554,7 @@ void ContactsManager::send_edit_chat_admin_query(ChatId chat_id, UserId user_id,
   }
 
   td_->create_handler<EditChatAdminQuery>(std::move(promise))
-      ->send(chat_id, r_input_user.move_as_ok(), is_administrator);
+      ->send(chat_id, user_id, r_input_user.move_as_ok(), is_administrator);
 }
 
 void ContactsManager::can_transfer_ownership(Promise<CanTransferOwnershipResult> &&promise) {
