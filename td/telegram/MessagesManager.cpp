@@ -33823,6 +33823,7 @@ void MessagesManager::on_create_new_dialog_success(int64 random_id, tl_object_pt
     return on_create_new_dialog_fail(random_id, Status::Error(500, "Chat was created earlier"), std::move(promise));
   }
 
+  td_->updates_manager_->process_group_invite_privacy_forbidden_updates(dialog_id, updates);
   td_->updates_manager_->on_get_updates(std::move(updates), Promise<Unit>());
 }
 

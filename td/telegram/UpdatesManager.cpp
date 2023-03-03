@@ -1174,6 +1174,34 @@ vector<tl_object_ptr<telegram_api::Update>> *UpdatesManager::get_updates(telegra
       get_updates(static_cast<const telegram_api::Updates *>(updates_ptr)));
 }
 
+void UpdatesManager::process_group_invite_privacy_forbidden_updates(DialogId dialog_id,
+                                                                    tl_object_ptr<telegram_api::Updates> &updates_ptr) {
+  auto updates = get_updates(updates_ptr.get());
+  if (updates == nullptr) {
+    LOG(ERROR) << "Can't find updateGroupInvitePrivacyForbidden updates";
+    return;
+  }
+  vector<UserId> user_ids;
+  for (auto &update_ptr : *updates) {
+    if (update_ptr->get_id() != telegram_api::updateGroupInvitePrivacyForbidden::ID) {
+      continue;
+    }
+    auto update = telegram_api::move_object_as<telegram_api::updateGroupInvitePrivacyForbidden>(update_ptr);
+    UserId user_id(update->user_id_);
+    if (!user_id.is_valid()) {
+      LOG(ERROR) << "Receive " << to_string(update);
+      continue;
+    }
+    user_ids.push_back(user_id);
+  }
+  if (!user_ids.empty()) {
+    send_closure(G()->td(), &Td::send_update,
+                 td_api::make_object<td_api::updateAddChatMembersPrivacyForbidden>(
+                     dialog_id.get(), td_->contacts_manager_->get_user_ids_object(
+                                          user_ids, "process_group_invite_privacy_forbidden_updates")));
+  }
+}
+
 FlatHashSet<int64> UpdatesManager::get_sent_messages_random_ids(const telegram_api::Updates *updates_ptr) {
   FlatHashSet<int64> random_ids;
   auto updates = get_updates(updates_ptr);
@@ -3930,16 +3958,17 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTranscribedAudi
   promise.set_value(Unit());
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateGroupInvitePrivacyForbidden> update,
+                               Promise<Unit> &&promise) {
+  LOG(ERROR) << "Receive " << to_string(update);
+  promise.set_value(Unit());
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateAutoSaveSettings> update, Promise<Unit> &&promise) {
   td_->autosave_manager_->reload_autosave_settings();
   promise.set_value(Unit());
 }
 
 // unsupported updates
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateGroupInvitePrivacyForbidden> update,
-                               Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
 
 }  // namespace td

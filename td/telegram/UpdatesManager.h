@@ -103,6 +103,9 @@ class UpdatesManager final : public Actor {
   void add_pending_pts_update(tl_object_ptr<telegram_api::Update> &&update, int32 new_pts, int32 pts_count,
                               double receive_time, Promise<Unit> &&promise, const char *source);
 
+  void process_group_invite_privacy_forbidden_updates(DialogId dialog_id,
+                                                      tl_object_ptr<telegram_api::Updates> &updates_ptr);
+
   static FlatHashSet<int64> get_sent_messages_random_ids(const telegram_api::Updates *updates_ptr);
 
   static const telegram_api::Message *get_message_by_random_id(const telegram_api::Updates *updates_ptr,
@@ -586,11 +589,11 @@ class UpdatesManager final : public Actor {
 
   void on_update(tl_object_ptr<telegram_api::updateTranscribedAudio> update, Promise<Unit> &&promise);
 
+  void on_update(tl_object_ptr<telegram_api::updateGroupInvitePrivacyForbidden> update, Promise<Unit> &&promise);
+
   void on_update(tl_object_ptr<telegram_api::updateAutoSaveSettings> update, Promise<Unit> &&promise);
 
   // unsupported updates
-
-  void on_update(tl_object_ptr<telegram_api::updateGroupInvitePrivacyForbidden> update, Promise<Unit> &&promise);
 };
 
 }  // namespace td

@@ -5560,6 +5560,9 @@ updateAnimationSearchParameters provider:string emojis:vector<string> = Update;
 //@description The list of suggested to the user actions has changed @added_actions Added suggested actions @removed_actions Removed suggested actions
 updateSuggestedActions added_actions:vector<SuggestedAction> removed_actions:vector<SuggestedAction> = Update;
 
+//@description Adding users to a chat has failed because of their privacy settings. An invite link can be shared with the users if appropriate @chat_id Chat identifier @user_ids Identifiers of users, which weren't added because of their privacy settings
+updateAddChatMembersPrivacyForbidden chat_id:int53 user_ids:vector<int53> = Update;
+
 //@description Autosave settings for some type of chats were updated @scope Type of chats for which autosave settings were updated @settings The new autosave settings; may be null if the settings are reset to default
 updateAutosaveSettings scope:AutosaveSettingsScope settings:scopeAutosaveSettings = Update;
 

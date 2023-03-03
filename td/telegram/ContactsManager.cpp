@@ -2760,6 +2760,7 @@ class InviteToChannelQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for InviteToChannelQuery: " << to_string(ptr);
     td_->contacts_manager_->invalidate_channel_full(channel_id_, false, "InviteToChannelQuery");
+    td_->updates_manager_->process_group_invite_privacy_forbidden_updates(DialogId(channel_id_), ptr);
     td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
