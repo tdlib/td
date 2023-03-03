@@ -1195,10 +1195,8 @@ void UpdatesManager::process_group_invite_privacy_forbidden_updates(DialogId dia
     user_ids.push_back(user_id);
   }
   if (!user_ids.empty()) {
-    send_closure(G()->td(), &Td::send_update,
-                 td_api::make_object<td_api::updateAddChatMembersPrivacyForbidden>(
-                     dialog_id.get(), td_->contacts_manager_->get_user_ids_object(
-                                          user_ids, "process_group_invite_privacy_forbidden_updates")));
+    td_->contacts_manager_->send_update_add_chat_members_privacy_forbidden(
+        dialog_id, user_ids, "process_group_invite_privacy_forbidden_updates");
   }
 }
 

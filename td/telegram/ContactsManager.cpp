@@ -1862,12 +1862,16 @@ class DeleteChannelQuery final : public Td::ResultHandler {
 
 class AddChatUserQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
+  ChatId chat_id_;
+  UserId user_id_;
 
  public:
   explicit AddChatUserQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(ChatId chat_id, tl_object_ptr<telegram_api::InputUser> &&input_user, int32 forward_limit) {
+  void send(ChatId chat_id, UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user, int32 forward_limit) {
+    chat_id_ = chat_id;
+    user_id_ = user_id;
     send_query(G()->net_query_creator().create(
         telegram_api::messages_addChatUser(chat_id.get(), std::move(input_user), forward_limit)));
   }
@@ -1884,8 +1888,12 @@ class AddChatUserQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    if (status.message() == "USER_PRIVACY_RESTRICTED") {
+      td_->contacts_manager_->send_update_add_chat_members_privacy_forbidden(DialogId(chat_id_), {user_id_},
+                                                                             "AddChatUserQuery");
+      return promise_.set_value(Unit());
+    }
     promise_.set_error(std::move(status));
-    td_->updates_manager_->get_difference("AddChatUserQuery");
   }
 };
 
@@ -1921,7 +1929,6 @@ class EditChatAdminQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     promise_.set_error(std::move(status));
-    td_->updates_manager_->get_difference("EditChatAdminQuery");
   }
 };
 
@@ -8174,6 +8181,13 @@ void ContactsManager::delete_dialog(DialogId dialog_id, Promise<Unit> &&promise)
   }
 }
 
+void ContactsManager::send_update_add_chat_members_privacy_forbidden(DialogId dialog_id, vector<UserId> user_ids,
+                                                                     const char *source) {
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateAddChatMembersPrivacyForbidden>(
+                   dialog_id.get(), get_user_ids_object(user_ids, source)));
+}
+
 void ContactsManager::add_chat_participant(ChatId chat_id, UserId user_id, int32 forward_limit,
                                            Promise<Unit> &&promise) {
   const Chat *c = get_chat(chat_id);
@@ -8201,7 +8215,8 @@ void ContactsManager::add_chat_participant(ChatId chat_id, UserId user_id, int32
   }
 
   // TODO invoke after
-  td_->create_handler<AddChatUserQuery>(std::move(promise))->send(chat_id, r_input_user.move_as_ok(), forward_limit);
+  td_->create_handler<AddChatUserQuery>(std::move(promise))
+      ->send(chat_id, user_id, r_input_user.move_as_ok(), forward_limit);
 }
 
 void ContactsManager::add_channel_participant(ChannelId channel_id, UserId user_id,

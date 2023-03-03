@@ -434,6 +434,8 @@ class ContactsManager final : public Actor {
 
   void delete_dialog(DialogId dialog_id, Promise<Unit> &&promise);
 
+  void send_update_add_chat_members_privacy_forbidden(DialogId dialog_id, vector<UserId> user_ids, const char *source);
+
   void get_channel_statistics_dc_id(DialogId dialog_id, bool for_full_statistics, Promise<DcId> &&promise);
 
   void get_channel_statistics(DialogId dialog_id, bool is_dark,
