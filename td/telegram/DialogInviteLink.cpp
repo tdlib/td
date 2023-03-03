@@ -15,7 +15,7 @@
 namespace td {
 
 DialogInviteLink::DialogInviteLink(tl_object_ptr<telegram_api::ExportedChatInvite> exported_invite_ptr,
-                                   const char *source) {
+                                   bool allow_truncated, const char *source) {
   if (exported_invite_ptr == nullptr) {
     return;
   }
@@ -44,7 +44,7 @@ DialogInviteLink::DialogInviteLink(tl_object_ptr<telegram_api::ExportedChatInvit
   is_permanent_ = exported_invite->permanent_;
 
   string full_source = PSTRING() << "invite link " << invite_link_ << " from " << source;
-  LOG_IF(ERROR, !is_valid_invite_link(invite_link_)) << "Unsupported " << full_source;
+  LOG_IF(ERROR, !is_valid_invite_link(invite_link_, allow_truncated)) << "Unsupported " << full_source;
   if (!creator_user_id_.is_valid()) {
     LOG(ERROR) << "Receive invalid " << creator_user_id_ << " as creator of " << full_source;
     creator_user_id_ = UserId();
@@ -90,7 +90,10 @@ DialogInviteLink::DialogInviteLink(tl_object_ptr<telegram_api::ExportedChatInvit
   }
 }
 
-bool DialogInviteLink::is_valid_invite_link(Slice invite_link) {
+bool DialogInviteLink::is_valid_invite_link(Slice invite_link, bool allow_truncated) {
+  if (allow_truncated && ends_with(invite_link, "...")) {
+    invite_link.remove_suffix(3);
+  }
   return !LinkManager::get_dialog_invite_link_hash(invite_link).empty();
 }
 

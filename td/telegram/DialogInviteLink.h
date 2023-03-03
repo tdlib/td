@@ -40,9 +40,10 @@ class DialogInviteLink {
  public:
   DialogInviteLink() = default;
 
-  DialogInviteLink(tl_object_ptr<telegram_api::ExportedChatInvite> exported_invite_ptr, const char *source);
+  DialogInviteLink(tl_object_ptr<telegram_api::ExportedChatInvite> exported_invite_ptr, bool allow_truncated,
+                   const char *source);
 
-  static bool is_valid_invite_link(Slice invite_link);
+  static bool is_valid_invite_link(Slice invite_link, bool allow_truncated = false);
 
   td_api::object_ptr<td_api::chatInviteLink> get_chat_invite_link_object(const ContactsManager *contacts_manager) const;
 

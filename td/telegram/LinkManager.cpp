@@ -1824,7 +1824,7 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
       return "tg://settings/change_number";
     case td_api::internalLinkTypeChatInvite::ID: {
       auto link = static_cast<const td_api::internalLinkTypeChatInvite *>(type_ptr);
-      auto invite_hash = url_encode(get_dialog_invite_link_hash(link->invite_link_));
+      auto invite_hash = get_dialog_invite_link_hash(link->invite_link_);
       if (invite_hash.empty()) {
         return Status::Error(400, "Invalid invite link specified");
       }
