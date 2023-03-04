@@ -211,7 +211,7 @@ RestrictedRights::RestrictedRights(const td_api::object_ptr<td_api::chatPermissi
   }
 
   *this = RestrictedRights(
-      rights->can_send_messages_, rights->can_send_audios_, rights->can_send_documents_, rights->can_send_photos_,
+      rights->can_send_basic_messages_, rights->can_send_audios_, rights->can_send_documents_, rights->can_send_photos_,
       rights->can_send_videos_, rights->can_send_video_notes_, rights->can_send_voice_notes_,
       rights->can_send_other_messages_, rights->can_send_other_messages_, rights->can_send_other_messages_,
       rights->can_send_other_messages_, rights->can_add_web_page_previews_, rights->can_send_polls_,
