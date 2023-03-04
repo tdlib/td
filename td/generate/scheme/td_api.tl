@@ -692,7 +692,7 @@ user id:int53 first_name:string last_name:string usernames:usernames phone_numbe
 
 
 //@description Contains information about a bot
-//@share_text The text that is shown on the bot's profile page and is sent together with the link when users share the bot
+//@short_description The text that is shown on the bot's profile page and is sent together with the link when users share the bot
 //@param_description The text shown in the chat with the bot if the chat is empty
 //@photo Photo shown in the chat with the bot if the chat is empty; may be null
 //@animation Animation shown in the chat with the bot if the chat is empty; may be null
@@ -700,7 +700,7 @@ user id:int53 first_name:string last_name:string usernames:usernames phone_numbe
 //@commands List of the bot commands
 //@default_group_administrator_rights Default administrator rights for adding the bot to basic group and supergroup chats; may be null
 //@default_channel_administrator_rights Default administrator rights for adding the bot to channels; may be null
-botInfo share_text:string description:string photo:photo animation:animation menu_button:botMenuButton commands:vector<botCommand> default_group_administrator_rights:chatAdministratorRights default_channel_administrator_rights:chatAdministratorRights = BotInfo;
+botInfo short_description:string description:string photo:photo animation:animation menu_button:botMenuButton commands:vector<botCommand> default_group_administrator_rights:chatAdministratorRights default_channel_administrator_rights:chatAdministratorRights = BotInfo;
 
 //@description Contains full information about a user
 //@personal_photo User profile photo set by the current user for the contact; may be null. If null and user.profile_photo is null, then the photo is empty; otherwise, it is unknown.
@@ -7615,13 +7615,13 @@ setBotInfoDescription language_code:string description:string = Ok;
 getBotInfoDescription language_code:string = Text;
 
 //@description Sets the text shown on the bot's profile page and sent together with the link when users share the bot; bots only
-//@language_code A two-letter ISO 639-1 language code. If empty, the share text will be shown to all users, for which language there are no dedicated description
-//@share_text New bot's share text on the specified language
-setBotInfoShareText language_code:string share_text:string = Ok;
+//@language_code A two-letter ISO 639-1 language code. If empty, the short description will be shown to all users, for which language there are no dedicated description
+//@short_description New bot's short description on the specified language
+setBotInfoShortDescription language_code:string short_description:string = Ok;
 
 //@description Returns the text shown on the bot's profile page and sent together with the link when users share the bot in the given language; bots only
 //@language_code A two-letter ISO 639-1 language code or an empty string
-getBotInfoShareText language_code:string = Text;
+getBotInfoShortDescription language_code:string = Text;
 
 
 //@description Returns all active sessions of the current user

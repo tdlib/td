@@ -808,13 +808,13 @@ void get_bot_info_description(Td *td, const string &language_code, Promise<strin
   td->create_handler<GetBotInfoQuery>(std::move(promise))->send(language_code, 1);
 }
 
-void set_bot_info_share_text(Td *td, const string &language_code, const string &share_text, Promise<Unit> &&promise) {
+void set_bot_info_about(Td *td, const string &language_code, const string &about, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, validate_bot_language_code(language_code));
   td->contacts_manager_->invalidate_user_full(td->contacts_manager_->get_my_id());
-  td->create_handler<SetBotInfoQuery>(std::move(promise))->send(language_code, true, share_text, false, string());
+  td->create_handler<SetBotInfoQuery>(std::move(promise))->send(language_code, true, about, false, string());
 }
 
-void get_bot_info_share_text(Td *td, const string &language_code, Promise<string> &&promise) {
+void get_bot_info_about(Td *td, const string &language_code, Promise<string> &&promise) {
   TRY_STATUS_PROMISE(promise, validate_bot_language_code(language_code));
   td->create_handler<GetBotInfoQuery>(std::move(promise))->send(language_code, 0);
 }

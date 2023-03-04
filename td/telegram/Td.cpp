@@ -7042,14 +7042,14 @@ void Td::on_request(uint64 id, const td_api::getBotInfoDescription &request) {
   get_bot_info_description(this, request.language_code_, std::move(query_promise));
 }
 
-void Td::on_request(uint64 id, td_api::setBotInfoShareText &request) {
+void Td::on_request(uint64 id, td_api::setBotInfoShortDescription &request) {
   CHECK_IS_BOT();
-  CLEAN_INPUT_STRING(request.share_text_);
+  CLEAN_INPUT_STRING(request.short_description_);
   CREATE_OK_REQUEST_PROMISE();
-  set_bot_info_share_text(this, request.language_code_, request.share_text_, std::move(promise));
+  set_bot_info_about(this, request.language_code_, request.short_description_, std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::getBotInfoShareText &request) {
+void Td::on_request(uint64 id, const td_api::getBotInfoShortDescription &request) {
   CHECK_IS_BOT();
   CREATE_REQUEST_PROMISE();
   auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
@@ -7059,7 +7059,7 @@ void Td::on_request(uint64 id, const td_api::getBotInfoShareText &request) {
       promise.set_value(td_api::make_object<td_api::text>(result.move_as_ok()));
     }
   });
-  get_bot_info_share_text(this, request.language_code_, std::move(query_promise));
+  get_bot_info_about(this, request.language_code_, std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, const td_api::setLocation &request) {
