@@ -1176,7 +1176,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
         // resolve?domain=telegrampassport&bot_id=...&scope=...&public_key=...&nonce=...&callback_url=...
         auto passport_link = get_internal_link_passport(query, url_query.args_, false);
         if (passport_link != nullptr) {
-          return std::move(passport_link);
+          return passport_link;
         }
       }
       // resolve?domain=<username>
