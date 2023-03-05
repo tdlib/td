@@ -21707,7 +21707,10 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
     return Status::OK();
   }
 
-  if (source == MessageSource::MessageThreadHistory && top_thread_message_id.is_valid() && max_message_id.is_valid()) {
+  if (source == MessageSource::MessageThreadHistory) {
+    if (!top_thread_message_id.is_valid() || !max_message_id.is_valid()) {
+      return Status::OK();
+    }
     MessageId prev_last_read_inbox_message_id;
     max_thread_message_id = MessageId();
     Message *top_m = get_message_force(d, top_thread_message_id, "view_messages 9");
@@ -21753,39 +21756,36 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
     return Status::OK();
   }
 
-  if (source == MessageSource::DialogHistory) {
-    if (max_message_id > d->last_read_inbox_message_id) {
-      const MessageId last_read_message_id = max_message_id;
-      const MessageId prev_last_read_inbox_message_id = d->last_read_inbox_message_id;
-      MessageId read_history_on_server_message_id;
-      if (dialog_id.get_type() != DialogType::SecretChat) {
-        if (last_read_message_id.get_prev_server_message_id().get() >
-            prev_last_read_inbox_message_id.get_prev_server_message_id().get()) {
-          read_history_on_server_message_id = last_read_message_id.get_prev_server_message_id();
-        }
-      } else {
-        if (last_read_message_id > prev_last_read_inbox_message_id) {
-          read_history_on_server_message_id = last_read_message_id;
-        }
+  CHECK(source == MessageSource::DialogHistory || force_read);
+  if (max_message_id > d->last_read_inbox_message_id) {
+    const MessageId last_read_message_id = max_message_id;
+    const MessageId prev_last_read_inbox_message_id = d->last_read_inbox_message_id;
+    MessageId read_history_on_server_message_id;
+    if (dialog_id.get_type() != DialogType::SecretChat) {
+      if (last_read_message_id.get_prev_server_message_id().get() >
+          prev_last_read_inbox_message_id.get_prev_server_message_id().get()) {
+        read_history_on_server_message_id = last_read_message_id.get_prev_server_message_id();
       }
+    } else {
+      if (last_read_message_id > prev_last_read_inbox_message_id) {
+        read_history_on_server_message_id = last_read_message_id;
+      }
+    }
 
-      if (read_history_on_server_message_id.is_valid()) {
-        // add dummy timeout to not try to repair unread_count in read_history_inbox before server request succeeds
-        // the timeout will be overwritten in the read_history_on_server call
-        pending_read_history_timeout_.add_timeout_in(dialog_id.get(), 0);
-      }
-      read_history_inbox(d->dialog_id, last_read_message_id, -1, "view_messages 13");
-      if (read_history_on_server_message_id.is_valid()) {
-        // call read_history_on_server after read_history_inbox to not have delay before request if all messages are read
-        read_history_on_server(d, read_history_on_server_message_id);
-      }
+    if (read_history_on_server_message_id.is_valid()) {
+      // add dummy timeout to not try to repair unread_count in read_history_inbox before server request succeeds
+      // the timeout will be overwritten in the read_history_on_server call
+      pending_read_history_timeout_.add_timeout_in(dialog_id.get(), 0);
     }
-    if (d->is_marked_as_unread) {
-      set_dialog_is_marked_as_unread(d, false);
+    read_history_inbox(d->dialog_id, last_read_message_id, -1, "view_messages 13");
+    if (read_history_on_server_message_id.is_valid()) {
+      // call read_history_on_server after read_history_inbox to not have delay before request if all messages are read
+      read_history_on_server(d, read_history_on_server_message_id);
     }
-    return Status::OK();
   }
-
+  if (d->is_marked_as_unread) {
+    set_dialog_is_marked_as_unread(d, false);
+  }
   return Status::OK();
 }
 
