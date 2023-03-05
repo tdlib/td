@@ -1060,8 +1060,8 @@ void Session::on_message_info(uint64 message_id, int32 state, uint64 answer_mess
       case 1:
       case 2:
       case 3:
-        // message not received by server
-        return on_message_failed(message_id, Status::Error("Unknown message identifier"));
+        return on_message_failed(message_id,
+                                 Status::Error("Message wasn't received by the server and must be re-sent"));
       case 0:
         if (answer_message_id == 0) {
           LOG(ERROR) << "Unexpected message_info.state == 0 " << tag("message_id", message_id) << tag("state", state)
