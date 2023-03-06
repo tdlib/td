@@ -1175,13 +1175,14 @@ vector<tl_object_ptr<telegram_api::Update>> *UpdatesManager::get_updates(telegra
       get_updates(static_cast<const telegram_api::Updates *>(updates_ptr)));
 }
 
-void UpdatesManager::process_group_invite_privacy_forbidden_updates(DialogId dialog_id,
-                                                                    tl_object_ptr<telegram_api::Updates> &updates_ptr) {
+vector<UserId> UpdatesManager::extract_group_invite_privacy_forbidden_updates(
+    tl_object_ptr<telegram_api::Updates> &updates_ptr) {
   auto updates = get_updates(updates_ptr.get());
   if (updates == nullptr) {
     LOG(ERROR) << "Can't find updateGroupInvitePrivacyForbidden updates";
-    return;
+    return {};
   }
+  LOG(INFO) << "Extract updateGroupInvitePrivacyForbidden updates from " << updates->size() << " updates";
   vector<UserId> user_ids;
   for (auto &update_ptr : *updates) {
     if (update_ptr->get_id() != telegram_api::updateGroupInvitePrivacyForbidden::ID) {
@@ -1196,9 +1197,9 @@ void UpdatesManager::process_group_invite_privacy_forbidden_updates(DialogId dia
     user_ids.push_back(user_id);
   }
   if (!user_ids.empty()) {
-    td_->contacts_manager_->send_update_add_chat_members_privacy_forbidden(
-        dialog_id, user_ids, "process_group_invite_privacy_forbidden_updates");
+    td::remove_if(*updates, [](auto &update) { return update == nullptr; });
   }
+  return user_ids;
 }
 
 FlatHashSet<int64> UpdatesManager::get_sent_messages_random_ids(const telegram_api::Updates *updates_ptr) {

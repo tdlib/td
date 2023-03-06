@@ -2780,8 +2780,19 @@ class InviteToChannelQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for InviteToChannelQuery: " << to_string(ptr);
     td_->contacts_manager_->invalidate_channel_full(channel_id_, false, "InviteToChannelQuery");
-    td_->updates_manager_->process_group_invite_privacy_forbidden_updates(DialogId(channel_id_), ptr);
-    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+    auto user_ids = td_->updates_manager_->extract_group_invite_privacy_forbidden_updates(ptr);
+    auto promise = PromiseCreator::lambda([dialog_id = DialogId(channel_id_), user_ids = std::move(user_ids),
+                                           promise = std::move(promise_)](Result<Unit> &&result) mutable {
+      if (result.is_error()) {
+        return promise.set_error(result.move_as_error());
+      }
+      promise.set_value(Unit());
+      if (!user_ids.empty()) {
+        send_closure(G()->contacts_manager(), &ContactsManager::send_update_add_chat_members_privacy_forbidden,
+                     dialog_id, std::move(user_ids), "InviteToChannelQuery");
+      }
+    });
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise));
   }
 
   void on_error(Status status) final {
@@ -8213,6 +8224,7 @@ void ContactsManager::delete_dialog(DialogId dialog_id, Promise<Unit> &&promise)
 
 void ContactsManager::send_update_add_chat_members_privacy_forbidden(DialogId dialog_id, vector<UserId> user_ids,
                                                                      const char *source) {
+  td_->messages_manager_->force_create_dialog(dialog_id, "send_update_add_chat_members_privacy_forbidden");
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateAddChatMembersPrivacyForbidden>(
                    dialog_id.get(), get_user_ids_object(user_ids, source)));

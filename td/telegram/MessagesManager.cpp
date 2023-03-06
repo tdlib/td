@@ -33822,13 +33822,24 @@ void MessagesManager::on_create_new_dialog_success(int64 random_id, tl_object_pt
   }
 
   if (pending_created_dialogs_.count(dialog_id) == 0) {
-    pending_created_dialogs_.emplace(dialog_id, std::move(promise));
+    auto user_ids = td_->updates_manager_->extract_group_invite_privacy_forbidden_updates(updates);
+    auto new_promise = PromiseCreator::lambda(
+        [dialog_id, user_ids = std::move(user_ids), promise = std::move(promise)](Result<Unit> &&result) mutable {
+          if (result.is_error()) {
+            return promise.set_error(result.move_as_error());
+          }
+          promise.set_value(Unit());
+          if (!user_ids.empty()) {
+            send_closure(G()->contacts_manager(), &ContactsManager::send_update_add_chat_members_privacy_forbidden,
+                         dialog_id, std::move(user_ids), "on_create_new_dialog_success");
+          }
+        });
+    pending_created_dialogs_.emplace(dialog_id, std::move(new_promise));
   } else {
     LOG(ERROR) << "Receive twice " << dialog_id << " as result of chat creation";
     return on_create_new_dialog_fail(random_id, Status::Error(500, "Chat was created earlier"), std::move(promise));
   }
 
-  td_->updates_manager_->process_group_invite_privacy_forbidden_updates(dialog_id, updates);
   td_->updates_manager_->on_get_updates(std::move(updates), Promise<Unit>());
 }
 
