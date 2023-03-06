@@ -436,7 +436,8 @@ class CliClient final : public Actor {
   static char get_delimiter(Slice str) {
     FlatHashSet<char> chars;
     for (auto c : trim(str)) {
-      if (!is_alnum(c) && c != '-' && c != '@' && c != '.' && c != '/' && c != '\0' && static_cast<uint8>(c) <= 127) {
+      if (!is_alnum(c) && c != '_' && c != '-' && c != '@' && c != '.' && c != '/' && c != '\0' &&
+          static_cast<uint8>(c) <= 127) {
         chars.insert(c);
       }
     }
