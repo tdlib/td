@@ -14,6 +14,7 @@
 #include "td/utils/port/path.h"
 #include "td/utils/port/signals.h"
 #include "td/utils/port/sleep.h"
+#include "td/utils/port/Stat.h"
 #include "td/utils/port/thread.h"
 #include "td/utils/port/thread_local.h"
 #include "td/utils/Random.h"

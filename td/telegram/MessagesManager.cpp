@@ -57,6 +57,7 @@
 #include "td/telegram/ReplyMarkup.hpp"
 #include "td/telegram/SecretChatsManager.h"
 #include "td/telegram/SponsoredMessageManager.h"
+#include "td/telegram/StickerPhotoSize.h"
 #include "td/telegram/StickerType.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"

@@ -7,7 +7,6 @@
 #include "td/telegram/QueryMerger.h"
 
 #include "td/utils/logging.h"
-#include "td/utils/Time.h"
 
 namespace td {
 

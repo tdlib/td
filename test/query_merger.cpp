@@ -12,7 +12,10 @@
 
 #include "td/utils/common.h"
 #include "td/utils/FlatHashSet.h"
+#include "td/utils/logging.h"
+#include "td/utils/Promise.h"
 #include "td/utils/Random.h"
+#include "td/utils/Status.h"
 #include "td/utils/tests.h"
 
 #include <queue>

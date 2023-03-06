@@ -8,6 +8,7 @@
 #include "td/utils/HttpUrl.h"
 #include "td/utils/misc.h"
 #include "td/utils/Slice.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tests.h"
 

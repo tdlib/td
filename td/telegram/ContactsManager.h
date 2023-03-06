@@ -35,7 +35,6 @@
 #include "td/telegram/QueryMerger.h"
 #include "td/telegram/RestrictionReason.h"
 #include "td/telegram/SecretChatId.h"
-#include "td/telegram/StickerPhotoSize.h"
 #include "td/telegram/StickerSetId.h"
 #include "td/telegram/SuggestedAction.h"
 #include "td/telegram/td_api.h"

@@ -9,7 +9,6 @@
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
-#include "td/telegram/misc.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/Td.h"
 

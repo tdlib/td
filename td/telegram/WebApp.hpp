@@ -8,10 +8,10 @@
 
 #include "td/telegram/WebApp.h"
 
+#include "td/telegram/AnimationsManager.h"
 #include "td/telegram/AnimationsManager.hpp"
 #include "td/telegram/Photo.hpp"
 #include "td/telegram/Td.h"
-#include "td/telegram/Version.h"
 
 #include "td/utils/tl_helpers.h"
 

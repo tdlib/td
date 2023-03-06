@@ -24,7 +24,6 @@
 #include "td/utils/misc.h"
 #include "td/utils/Promise.h"
 #include "td/utils/SliceBuilder.h"
-#include "td/utils/StackAllocator.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/unicode.h"
 #include "td/utils/utf8.h"

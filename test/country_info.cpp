@@ -7,6 +7,7 @@
 #include "td/telegram/CountryInfoManager.h"
 
 #include "td/utils/common.h"
+#include "td/utils/logging.h"
 #include "td/utils/tests.h"
 
 static void check_phone_number_info(td::string phone_number_prefix, const td::string &country_code,
@@ -20,8 +21,10 @@ static void check_phone_number_info(td::string phone_number_prefix, const td::st
     CHECK(result->country_->country_code_ == country_code);
   }
   CHECK(result->country_calling_code_ == calling_code);
-  // LOG(ERROR) << phone_number_prefix << ' ' << result->formatted_phone_number_ << ' ' << formatted_phone_number;
-  CHECK(result->formatted_phone_number_ == formatted_phone_number);
+  if (result->formatted_phone_number_ != formatted_phone_number) {
+    LOG(ERROR) << phone_number_prefix << ' ' << result->formatted_phone_number_ << ' ' << formatted_phone_number;
+    CHECK(result->formatted_phone_number_ == formatted_phone_number);
+  }
   CHECK(result->is_anonymous_ == is_anonymous);
 }
 

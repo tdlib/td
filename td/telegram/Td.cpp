@@ -115,6 +115,7 @@
 #include "td/telegram/SentEmailCode.h"
 #include "td/telegram/SponsoredMessageManager.h"
 #include "td/telegram/StateManager.h"
+#include "td/telegram/StickerFormat.h"
 #include "td/telegram/StickerSetId.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/StickerType.h"

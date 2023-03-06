@@ -6,8 +6,6 @@
 //
 #include "td/telegram/StickerMaskPosition.h"
 
-#include "td/utils/logging.h"
-
 namespace td {
 
 static td_api::object_ptr<td_api::MaskPoint> get_mask_point_object(int32 point) {

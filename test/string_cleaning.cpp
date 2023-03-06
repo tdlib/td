@@ -6,6 +6,7 @@
 //
 #include "td/telegram/misc.h"
 
+#include "td/utils/common.h"
 #include "td/utils/Slice.h"
 #include "td/utils/tests.h"
 

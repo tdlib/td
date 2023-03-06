@@ -11,6 +11,7 @@
 #include "td/actor/ConcurrentScheduler.h"
 
 #include "td/utils/buffer.h"
+#include "td/utils/common.h"
 #include "td/utils/logging.h"
 #include "td/utils/port/detail/PollableFd.h"
 #include "td/utils/port/SocketFd.h"

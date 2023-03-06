@@ -15,7 +15,6 @@
 #include "td/utils/format.h"
 #include "td/utils/Gzip.h"
 #include "td/utils/logging.h"
-#include "td/utils/Slice.h"
 #include "td/utils/Storer.h"
 
 namespace td {

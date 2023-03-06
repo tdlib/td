@@ -6,16 +6,25 @@
 //
 #include "td/telegram/AutosaveManager.h"
 
+#include "td/telegram/AccessRights.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
+#include "td/telegram/Global.h"
+#include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/TdDb.h"
+#include "td/telegram/TdParameters.h"
 
 #include "td/db/SqliteKeyValueAsync.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
+#include "td/utils/FlatHashSet.h"
+#include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/ScopeGuard.h"
+#include "td/utils/tl_helpers.h"
 
 namespace td {
 
@@ -287,12 +296,12 @@ void AutosaveManager::load_autosave_settings(Promise<td_api::object_ptr<td_api::
 }
 
 void AutosaveManager::on_load_autosave_settings_from_database(string value) {
+  if (G()->close_flag()) {
+    return fail_promises(load_settings_queries_, Global::request_aborted_error());
+  }
   if (settings_.are_inited_) {
     CHECK(load_settings_queries_.empty());
     return;
-  }
-  if (G()->close_flag()) {
-    return fail_promises(load_settings_queries_, Global::request_aborted_error());
   }
   if (value.empty()) {
     LOG(INFO) << "Autosave settings aren't found in database";
