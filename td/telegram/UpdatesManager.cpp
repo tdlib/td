@@ -1378,8 +1378,13 @@ vector<int32> UpdatesManager::get_update_ids(const telegram_api::Updates *update
     case telegram_api::updateShortChatMessage::ID:
     case telegram_api::updateShortSentMessage::ID:
       return {updates_type};
-    case telegram_api::updateShort::ID:
-      return {static_cast<const telegram_api::updateShort *>(updates_ptr)->update_->get_id()};
+    case telegram_api::updateShort::ID: {
+      const auto *update = static_cast<const telegram_api::updateShort *>(updates_ptr)->update_.get();
+      if (update != nullptr) {
+        return {update->get_id()};
+      }
+      return {updates_type};
+    }
     case telegram_api::updatesCombined::ID:
       updates = &static_cast<const telegram_api::updatesCombined *>(updates_ptr)->updates_;
       break;
@@ -1390,7 +1395,14 @@ vector<int32> UpdatesManager::get_update_ids(const telegram_api::Updates *update
       UNREACHABLE();
   }
 
-  return transform(*updates, [](const tl_object_ptr<telegram_api::Update> &update) { return update->get_id(); });
+  vector<int32> result;
+  result.reserve(updates->size());
+  for (auto &update : *updates) {
+    if (update != nullptr) {
+      result.push_back(update->get_id());
+    }
+  }
+  return result;
 }
 
 vector<DialogId> UpdatesManager::get_chat_dialog_ids(const telegram_api::Updates *updates_ptr) {
