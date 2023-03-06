@@ -21567,14 +21567,18 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
     for (auto message_id : message_ids) {
       auto *m = get_message_force(d, message_id, "view_messages 1");
       if (m != nullptr) {
+        if (!m->top_thread_message_id.is_valid()) {
+          if (m->media_album_id != 0) {
+            // only the first album message has message thread identifier
+            continue;
+          }
+          return Status::Error(400, "Messages must be from a message thread");
+        }
         if (top_thread_message_id.is_valid()) {
           if (m->top_thread_message_id != top_thread_message_id) {
             return Status::Error(400, "All messages must be from the same message thread");
           }
         } else {
-          if (!m->top_thread_message_id.is_valid()) {
-            return Status::Error(400, "Messages must be from a message thread");
-          }
           top_thread_message_id = m->top_thread_message_id;
           const auto *top_m = get_message_force(d, top_thread_message_id, "view_messages 2");
           if (top_m != nullptr && !top_m->reply_info.is_comment_) {
