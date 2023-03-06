@@ -8,14 +8,16 @@
 
 #include "td/utils/port/config.h"
 
+#if TD_PORT_WINDOWS
+#include "td/utils/port/Clocks.h"
+#endif
+
 #if TD_PORT_POSIX
 #if _POSIX_C_SOURCE >= 199309L
 #include <time.h>
 #else
 #include <unistd.h>
 #endif
-#else
-#include "td/utils/port/Clocks.h"
 #endif
 
 namespace td {

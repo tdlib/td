@@ -158,7 +158,7 @@ FileSourceId FileReferenceManager::create_attach_menu_bot_file_source(UserId use
 
 FileSourceId FileReferenceManager::create_web_app_file_source(UserId user_id, const string &short_name) {
   FileSourceWebApp source{user_id, short_name};
-  return add_file_source_id(source, PSLICE() << "web app " << user_id << '/' << short_name);
+  return add_file_source_id(source, PSLICE() << "Web App " << user_id << '/' << short_name);
 }
 
 FileReferenceManager::Node &FileReferenceManager::add_node(NodeId node_id) {

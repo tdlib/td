@@ -1161,7 +1161,7 @@ FileSourceId AttachMenuManager::get_web_app_file_source_id(UserId user_id, const
   if (!source_id.is_valid()) {
     source_id = td_->file_reference_manager_->create_web_app_file_source(user_id, short_name);
   }
-  VLOG(file_references) << "Return " << source_id << " for web app " << user_id << '/' << short_name;
+  VLOG(file_references) << "Return " << source_id << " for Web App " << user_id << '/' << short_name;
   return source_id;
 }
 

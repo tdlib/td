@@ -38,7 +38,7 @@ Status BinlogEvent::validate() const {
     return Status::Error("Too small event");
   }
   TlParser parser(as_slice(raw_event_));
-  uint32 size = static_cast<uint32>(parser.fetch_int());
+  auto size = static_cast<uint32>(parser.fetch_int());
   if (size_ != size || size_ != raw_event_.size()) {
     return Status::Error(PSLICE() << "Size of event changed: " << tag("was", size_) << tag("now", size));
   }

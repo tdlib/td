@@ -112,7 +112,7 @@ static void parse_internal_link(const td::string &url, td::td_api::object_ptr<td
           continue;
         }
         if (r_link.error().message() == "Deep link is unavailable for the link type") {
-          // some links are http-only
+          // some links are HTTP-only
           continue;
         }
         if (r_link.error().message() == "WALLPAPER_INVALID") {

@@ -6792,10 +6792,11 @@ void StickersManager::on_get_default_dialog_photo_custom_emoji_ids(
     if (!are_default_dialog_photo_custom_emoji_ids_loaded_[for_user]) {
       on_get_default_dialog_photo_custom_emoji_ids_success(for_user, {}, 0);
     }
-    for (auto &promise : default_dialog_photo_custom_emoji_ids_load_queries_[for_user]) {
+    auto promises = std::move(default_dialog_photo_custom_emoji_ids_load_queries_[for_user]);
+    reset_to_empty(default_dialog_photo_custom_emoji_ids_load_queries_[for_user]);
+    for (auto &promise : promises) {
       CHECK(!promise);
     }
-    reset_to_empty(default_dialog_photo_custom_emoji_ids_load_queries_[for_user]);
     return;
   }
   CHECK(constructor_id == telegram_api::emojiList::ID);

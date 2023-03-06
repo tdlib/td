@@ -157,7 +157,7 @@ Result<FileFd> FileFd::open(CSlice filepath, int32 flags, int32 mode) {
   }
 #endif
 
-  while (1) {
+  while (true) {
     int native_fd =
         detail::skip_eintr([&] { return ::open(filepath.c_str(), native_flags, static_cast<mode_t>(mode)); });
     if (native_fd < 0) {

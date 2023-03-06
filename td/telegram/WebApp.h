@@ -18,7 +18,6 @@
 
 namespace td {
 
-class ContactsManager;
 class Td;
 
 class WebApp {
