@@ -21559,7 +21559,6 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
 
   // get information about thread of the messages
   MessageId top_thread_message_id;
-  MessageId max_thread_message_id;
   if (source == MessageSource::MessageThreadHistory) {
     if (dialog_id.get_type() != DialogType::Channel || is_broadcast_channel(dialog_id)) {
       return Status::Error(400, "There are no message threads in the chat");
@@ -21581,12 +21580,16 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
           }
         } else {
           top_thread_message_id = m->top_thread_message_id;
-          const auto *top_m = get_message_force(d, top_thread_message_id, "view_messages 2");
-          if (top_m != nullptr && !top_m->reply_info.is_comment_) {
-            max_thread_message_id = top_m->reply_info.max_message_id_;
-          }
         }
       }
+    }
+  }
+
+  MessageId max_thread_message_id;
+  if (top_thread_message_id.is_valid()) {
+    const auto *top_m = get_message_force(d, top_thread_message_id, "view_messages 2");
+    if (top_m != nullptr && !top_m->reply_info.is_comment_) {
+      max_thread_message_id = top_m->reply_info.max_message_id_;
     }
   }
 
