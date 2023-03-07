@@ -21542,6 +21542,11 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
     return Status::OK();
   }
 
+  if (source == MessageSource::DialogEventLog) {
+    // nothing more to do
+    return Status::OK();
+  }
+
   for (auto message_id : message_ids) {
     auto *m = get_message_force(d, message_id, "view_messages 20");
     if (m != nullptr) {
@@ -21552,11 +21557,6 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
     }
   }
 
-  if (source == MessageSource::DialogEventLog) {
-    // nothing more to do
-    return Status::OK();
-  }
-
   // get information about thread of the messages
   MessageId top_thread_message_id;
   if (source == MessageSource::MessageThreadHistory) {
@@ -21564,23 +21564,43 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
       return Status::Error(400, "There are no message threads in the chat");
     }
 
+    std::sort(message_ids.begin(), message_ids.end());
+
+    vector<MessageId> top_thread_message_ids;
+    vector<int64> media_album_ids;
     for (auto message_id : message_ids) {
       auto *m = get_message_force(d, message_id, "view_messages 1");
       if (m != nullptr) {
-        if (!m->top_thread_message_id.is_valid()) {
-          if (m->media_album_id != 0) {
-            // only the first album message has message thread identifier
-            continue;
-          }
-          return Status::Error(400, "Messages must be from a message thread");
+        top_thread_message_ids.push_back(m->top_thread_message_id);
+        media_album_ids.push_back(m->media_album_id);
+      }
+    }
+
+    if (!top_thread_message_ids.empty()) {
+      // first we expect a root album, then messages from the thread
+      // the root album can have all messages from their own threads,
+      // or all messages except the first one without thread for automatic forwards
+      size_t thread_start = 0;
+      if (media_album_ids[0] != 0) {
+        thread_start++;
+        while (thread_start < media_album_ids.size() && media_album_ids[thread_start] == media_album_ids[0]) {
+          thread_start++;
         }
-        if (top_thread_message_id.is_valid()) {
-          if (m->top_thread_message_id != top_thread_message_id) {
+      }
+      if (thread_start < media_album_ids.size()) {
+        top_thread_message_id = top_thread_message_ids[thread_start];
+        for (size_t i = thread_start; i < top_thread_message_ids.size(); i++) {
+          if (!top_thread_message_ids[i].is_valid()) {
+            return Status::Error(400, "Messages must be from a message thread");
+          }
+          if (top_thread_message_ids[i] != top_thread_message_id) {
             return Status::Error(400, "All messages must be from the same message thread");
           }
-        } else {
-          top_thread_message_id = m->top_thread_message_id;
         }
+        // do not check album messages to belong to the thread top_thread_message_id
+      } else {
+        // all messages are from the same album; thread of the first message is always the best guess
+        top_thread_message_id = top_thread_message_ids[0];
       }
     }
   }
