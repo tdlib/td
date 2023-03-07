@@ -12,7 +12,7 @@ This is an example of building TDLib with `C++/CLI` support and an example of TD
 cd <path to vcpkg>
 .\vcpkg.exe install gperf:x64-windows gperf:x86-windows openssl:x64-windows openssl:x86-windows zlib:x64-windows zlib:x86-windows
 ```
-* (Optional. For XML documentation generation.) Download [PHP](https://windows.php.net/download#php-7.2). Add the path to php.exe to the PATH environment variable.
+* (Optional. For XML documentation generation.) Download [PHP](https://windows.php.net/download). Add the path to php.exe to the PATH environment variable.
 * Build `TDLib` with CMake enabling `.NET` support and specifying correct path to `vcpkg` toolchain file:
 ```
 cd <path to TDLib sources>/example/csharp
