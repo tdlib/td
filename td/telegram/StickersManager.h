@@ -757,7 +757,7 @@ class StickersManager final : public Actor {
 
   int64 get_featured_sticker_sets_hash(StickerType sticker_type) const;
 
-  int64 get_recent_stickers_hash(const vector<FileId> &sticker_ids) const;
+  int64 get_recent_stickers_hash(const vector<FileId> &sticker_ids, const char *source) const;
 
   void load_installed_sticker_sets(StickerType sticker_type, Promise<Unit> &&promise);
 

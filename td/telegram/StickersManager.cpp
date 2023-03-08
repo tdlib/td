@@ -2425,7 +2425,7 @@ tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_i
   }
 
   const auto *sticker = get_sticker(file_id);
-  CHECK(sticker != nullptr);
+  LOG_CHECK(sticker != nullptr) << file_id << ' ' << stickers_.calc_size();
   const PhotoSize &thumbnail = sticker->m_thumbnail_.file_id.is_valid() ? sticker->m_thumbnail_ : sticker->s_thumbnail_;
   auto thumbnail_format = PhotoFormat::Webp;
   int64 document_id = 0;
@@ -4938,7 +4938,8 @@ void StickersManager::search_stickers(StickerType sticker_type, string emoji, in
   promises.emplace_back(limit, std::move(promise));
   if (promises.size() == 1u) {
     if (it != found_stickers_[type].end()) {
-      return reload_found_stickers(sticker_type, std::move(emoji), get_recent_stickers_hash(it->second.sticker_ids_));
+      return reload_found_stickers(sticker_type, std::move(emoji),
+                                   get_recent_stickers_hash(it->second.sticker_ids_, "search_stickers"));
     }
 
     if (G()->parameters().use_file_db) {
@@ -6508,7 +6509,7 @@ td_api::object_ptr<td_api::sticker> StickersManager::get_custom_emoji_sticker_ob
     return nullptr;
   }
   auto s = get_sticker(file_id);
-  CHECK(s != nullptr);
+  LOG_CHECK(s != nullptr) << file_id << ' ' << stickers_.calc_size();
   CHECK(s->type_ == StickerType::CustomEmoji);
   if (s->emoji_receive_date_ < G()->unix_time() - 86400 && !s->is_being_reloaded_) {
     s->is_being_reloaded_ = true;
@@ -6533,7 +6534,7 @@ td_api::object_ptr<td_api::stickers> StickersManager::get_custom_emoji_stickers_
     auto file_id = custom_emoji_to_sticker_id_.get(custom_emoji_id);
     if (file_id.is_valid()) {
       auto s = get_sticker(file_id);
-      CHECK(s != nullptr);
+      LOG_CHECK(s != nullptr) << file_id << ' ' << stickers_.calc_size();
       CHECK(s->type_ == StickerType::CustomEmoji);
       if (s->emoji_receive_date_ < update_before_date && !s->is_being_reloaded_) {
         s->is_being_reloaded_ = true;
@@ -9124,16 +9125,17 @@ void StickersManager::on_get_recent_stickers_failed(bool is_repair, bool is_atta
                 std::move(error));
 }
 
-int64 StickersManager::get_recent_stickers_hash(const vector<FileId> &sticker_ids) const {
+int64 StickersManager::get_recent_stickers_hash(const vector<FileId> &sticker_ids, const char *source) const {
   vector<uint64> numbers;
   numbers.reserve(sticker_ids.size());
   for (auto sticker_id : sticker_ids) {
     auto sticker = get_sticker(sticker_id);
-    CHECK(sticker != nullptr);
+    LOG_CHECK(sticker != nullptr) << sticker_id << ' ' << stickers_.calc_size() << ' ' << source;
     auto file_view = td_->file_manager_->get_file_view(sticker_id);
     CHECK(file_view.has_remote_location());
     if (!file_view.remote_location().is_document()) {
-      LOG(ERROR) << "Recent sticker remote location is not document: " << file_view.remote_location();
+      LOG(ERROR) << "Recent sticker remote location is not document: " << file_view.remote_location() << " from "
+                 << source;
       continue;
     }
     numbers.push_back(file_view.remote_location().get_id());
@@ -9320,7 +9322,8 @@ void StickersManager::send_update_recent_stickers(bool is_attached, bool from_da
     recent_sticker_file_ids_[is_attached] = std::move(new_recent_sticker_file_ids);
   }
 
-  recent_stickers_hash_[is_attached] = get_recent_stickers_hash(recent_sticker_ids_[is_attached]);
+  recent_stickers_hash_[is_attached] =
+      get_recent_stickers_hash(recent_sticker_ids_[is_attached], "send_update_recent_stickers");
   send_closure(G()->td(), &Td::send_update, get_update_recent_stickers_object(is_attached));
 
   if (!from_database) {
@@ -9521,7 +9524,7 @@ void StickersManager::on_get_favorite_stickers_failed(bool is_repair, Status err
 }
 
 int64 StickersManager::get_favorite_stickers_hash() const {
-  return get_recent_stickers_hash(favorite_sticker_ids_);
+  return get_recent_stickers_hash(favorite_sticker_ids_, "get_favorite_stickers_hash");
 }
 
 FileSourceId StickersManager::get_app_config_file_source_id() {
