@@ -1573,6 +1573,8 @@ void Session::loop() {
     connection_open(&main_connection_, now, true /*send ask_info*/);
   }
 
+  connection_online_update(now, false);  // has_queries() could have been changed
+
   relax_timeout_at(&wakeup_at, main_connection_.wakeup_at_);
 
   double wakeup_in = 0;
