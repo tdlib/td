@@ -304,7 +304,7 @@ class GetMessageReactionsListQuery final : public Td::ResultHandler {
       auto message_sender = get_min_message_sender_object(td_, dialog_id, "GetMessageReactionsListQuery");
       if (message_sender != nullptr) {
         reactions.push_back(td_api::make_object<td_api::addedReaction>(get_reaction_type_object(reaction_str),
-                                                                       std::move(message_sender)));
+                                                                       std::move(message_sender), reaction->date_));
       }
     }
 

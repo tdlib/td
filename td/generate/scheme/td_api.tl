@@ -3248,8 +3248,8 @@ firebaseAuthenticationSettingsIos device_token:string is_app_sandbox:Bool = Fire
 phoneNumberAuthenticationSettings allow_flash_call:Bool allow_missed_call:Bool is_current_phone_number:Bool allow_sms_retriever_api:Bool firebase_authentication_settings:FirebaseAuthenticationSettings authentication_tokens:vector<string> = PhoneNumberAuthenticationSettings;
 
 
-//@description Represents a reaction applied to a message @type Type of the reaction @sender_id Identifier of the chat member, applied the reaction
-addedReaction type:ReactionType sender_id:MessageSender = AddedReaction;
+//@description Represents a reaction applied to a message @type Type of the reaction @sender_id Identifier of the chat member, applied the reaction @date Point in time (Unix timestamp) when the reaction was added
+addedReaction type:ReactionType sender_id:MessageSender date:int32 = AddedReaction;
 
 //@description Represents a list of reactions added to a message @total_count The total number of found reactions @reactions The list of added reactions @next_offset The offset for the next request. If empty, there are no more results
 addedReactions total_count:int32 reactions:vector<addedReaction> next_offset:string = AddedReactions;
