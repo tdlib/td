@@ -739,6 +739,7 @@ Status SessionConnection::init() {
 }
 
 void SessionConnection::set_online(bool online_flag, bool is_main) {
+  LOG(DEBUG) << "Set online to " << online_flag;
   bool need_ping = online_flag || !online_flag_;
   online_flag_ = online_flag;
   is_main_ = is_main;
@@ -1075,14 +1076,19 @@ double SessionConnection::flush(SessionConnection::Callback *callback) {
   }
 
   // wakeup_at
-  // two independent timeouts
-  // 1. close connection after PING_DISCONNECT_DELAY after last_pong.
-  // 2. the one returned by must_flush_packet
+  // three independent timeouts
+  // 1. close connection after ping_disconnect_delay() after last pong
+  // 2. close connection after read_disconnect_delay() after last read
+  // 3. the one returned by must_flush_packet
   relax_timeout_at(&wakeup_at_, last_pong_at_ + ping_disconnect_delay() + 0.002);
   relax_timeout_at(&wakeup_at_, last_read_at_ + read_disconnect_delay() + 0.002);
-  // CHECK(wakeup_at > Time::now_cached());
-
   relax_timeout_at(&wakeup_at_, flush_packet_at_);
+
+  auto now = Time::now();
+  LOG(DEBUG) << "Last pong was in " << (now - last_pong_at_) << ", last read was in " << (now - last_pong_at_)
+             << ", RTT = " << rtt() << ", ping timeout = " << ping_disconnect_delay()
+             << ", read timeout = " << read_disconnect_delay() << ", flush packet in " << (flush_packet_at_ - now);
+
   return wakeup_at_;
 }
 
