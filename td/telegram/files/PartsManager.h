@@ -33,7 +33,7 @@ class PartsManager {
   Result<Part> start_part() TD_WARN_UNUSED_RESULT;
   Status on_part_ok(int part_id, size_t part_size, size_t actual_size) TD_WARN_UNUSED_RESULT;
   void on_part_failed(int part_id);
-  Status set_known_prefix(size_t size, bool is_ready);
+  Status set_known_prefix(int64 size, bool is_ready);
   void set_need_check();
   void set_checked_prefix_size(int64 size);
   int32 set_streaming_offset(int64 offset, int64 limit);

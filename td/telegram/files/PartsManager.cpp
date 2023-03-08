@@ -310,19 +310,19 @@ Result<Part> PartsManager::start_part() {
   return get_part(part_id);
 }
 
-Status PartsManager::set_known_prefix(size_t size, bool is_ready) {
+Status PartsManager::set_known_prefix(int64 size, bool is_ready) {
   if (!known_prefix_flag_ || size < static_cast<size_t>(known_prefix_size_)) {
     CHECK(is_upload_);
     return Status::Error("FILE_UPLOAD_RESTART");
   }
-  known_prefix_size_ = narrow_cast<int64>(size);
+  known_prefix_size_ = size;
   expected_size_ = max(known_prefix_size_, expected_size_);
 
   CHECK(static_cast<size_t>(part_count_) == part_status_.size());
   if (is_ready) {
     part_count_ = static_cast<int>(calc_part_count(size, part_size_));
 
-    size_ = narrow_cast<int64>(size);
+    size_ = size;
     unknown_size_flag_ = false;
     known_prefix_flag_ = false;
   } else {

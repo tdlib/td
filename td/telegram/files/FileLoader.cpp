@@ -63,7 +63,7 @@ void FileLoader::update_local_file_location(const LocalFileLocation &local) {
     return;
   }
   auto prefix_info = r_prefix_info.move_as_ok();
-  auto status = parts_manager_.set_known_prefix(narrow_cast<size_t>(prefix_info.size), prefix_info.is_ready);
+  auto status = parts_manager_.set_known_prefix(prefix_info.size, prefix_info.is_ready);
   if (status.is_error()) {
     on_error(std::move(status));
     stop_flag_ = true;
