@@ -5280,6 +5280,9 @@ void MessagesManager::Message::parse(ParserT &parser) {
   }
 
   parse(message_id, parser);
+  if (!message_id.is_valid() && !message_id.is_valid_scheduled()) {
+    return parser.set_error("Invalid message identifier");
+  }
   random_y = get_random_y(message_id);
   if (has_sender) {
     parse(sender_user_id, parser);
@@ -5289,8 +5292,9 @@ void MessagesManager::Message::parse(ParserT &parser) {
     parse(edit_date, parser);
   }
   if (has_send_date) {
-    CHECK(message_id.is_valid() || message_id.is_valid_scheduled());
-    CHECK(message_id.is_yet_unsent());
+    if (!message_id.is_yet_unsent()) {
+      return parser.set_error("Unexpected send date");
+    }
     parse(send_date, parser);
   } else if (message_id.is_valid() && message_id.is_yet_unsent()) {
     send_date = date;  // for backward compatibility
