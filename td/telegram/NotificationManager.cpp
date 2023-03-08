@@ -915,7 +915,9 @@ void NotificationManager::add_notification(NotificationGroupId group_id, Notific
 
   if (group.pending_notifications_flush_time == 0 || flush_time < group.pending_notifications_flush_time) {
     group.pending_notifications_flush_time = flush_time;
-    flush_pending_notifications_timeout_.set_timeout_at(group_id.get(), group.pending_notifications_flush_time);
+    if (!G()->close_flag()) {
+      flush_pending_notifications_timeout_.set_timeout_at(group_id.get(), group.pending_notifications_flush_time);
+    }
   }
   if (group.pending_notifications.empty()) {
     on_delayed_notification_update_count_changed(1, group_id.get(), source);
@@ -967,10 +969,12 @@ void NotificationManager::add_update(int32 group_id, td_api::object_ptr<td_api::
     on_delayed_notification_update_count_changed(1, group_id, "add_update");
   }
   updates.push_back(std::move(update));
-  if (!running_get_difference_ && running_get_chat_difference_.count(group_id) == 0) {
-    flush_pending_updates_timeout_.add_timeout_in(group_id, MIN_UPDATE_DELAY_MS * 1e-3);
-  } else {
-    flush_pending_updates_timeout_.set_timeout_in(group_id, MAX_UPDATE_DELAY_MS * 1e-3);
+  if (!G()->close_flag()) {
+    if (!running_get_difference_ && running_get_chat_difference_.count(group_id) == 0) {
+      flush_pending_updates_timeout_.add_timeout_in(group_id, MIN_UPDATE_DELAY_MS * 1e-3);
+    } else {
+      flush_pending_updates_timeout_.set_timeout_in(group_id, MAX_UPDATE_DELAY_MS * 1e-3);
+    }
   }
 }
 
@@ -3996,11 +4000,13 @@ void NotificationManager::after_get_difference() {
   CHECK(running_get_difference_);
   running_get_difference_ = false;
   on_unreceived_notification_update_count_changed(-1, 0, "after_get_difference");
-  flush_pending_notifications_timeout_.set_timeout_in(0, MIN_NOTIFICATION_DELAY_MS * 1e-3);
+  if (!G()->close_flag()) {
+    flush_pending_notifications_timeout_.set_timeout_in(0, MIN_NOTIFICATION_DELAY_MS * 1e-3);
+  }
 }
 
 void NotificationManager::after_get_difference_impl() {
-  if (running_get_difference_) {
+  if (G()->close_flag() || running_get_difference_) {
     return;
   }
 
@@ -4043,13 +4049,15 @@ void NotificationManager::after_get_chat_difference(NotificationGroupId group_id
   CHECK(group_id.is_valid());
   auto erased_count = running_get_chat_difference_.erase(group_id.get());
   if (erased_count == 1) {
-    flush_pending_notifications_timeout_.set_timeout_in(-group_id.get(), MIN_NOTIFICATION_DELAY_MS * 1e-3);
+    if (!G()->close_flag()) {
+      flush_pending_notifications_timeout_.set_timeout_in(-group_id.get(), MIN_NOTIFICATION_DELAY_MS * 1e-3);
+    }
     on_unreceived_notification_update_count_changed(-1, group_id.get(), "after_get_chat_difference");
   }
 }
 
 void NotificationManager::after_get_chat_difference_impl(NotificationGroupId group_id) {
-  if (running_get_chat_difference_.count(group_id.get()) == 1) {
+  if (G()->close_flag() || running_get_chat_difference_.count(group_id.get()) == 1) {
     return;
   }
 
