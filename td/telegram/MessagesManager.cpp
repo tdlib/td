@@ -5890,14 +5890,10 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   if (has_first_database_message_id_by_index) {
     int32 size;
     parse(size, parser);
-    if (size < 0) {
+    if (static_cast<size_t>(size) > first_database_message_id_by_index.size()) {
       // the log event is broken
-      // it should be impossible, but has happenned at least once
-      parser.set_error("Wrong first_database_message_id_by_index table size");
-      return;
+      return parser.set_error("Wrong first_database_message_id_by_index table size");
     }
-    LOG_CHECK(static_cast<size_t>(size) <= first_database_message_id_by_index.size())
-        << size << " " << first_database_message_id_by_index.size();
     for (int32 i = 0; i < size; i++) {
       parse(first_database_message_id_by_index[i], parser);
     }
@@ -5905,14 +5901,10 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   if (has_message_count_by_index) {
     int32 size;
     parse(size, parser);
-    if (size < 0) {
+    if (static_cast<size_t>(size) > message_count_by_index.size()) {
       // the log event is broken
-      // it should be impossible, but has happenned at least once
-      parser.set_error("Wrong message_count_by_index table size");
-      return;
+      return parser.set_error("Wrong message_count_by_index table size");
     }
-    LOG_CHECK(static_cast<size_t>(size) <= message_count_by_index.size())
-        << size << " " << message_count_by_index.size();
     for (int32 i = 0; i < size; i++) {
       parse(message_count_by_index[i], parser);
     }
@@ -6035,13 +6027,16 @@ void MessagesManager::CallsDbState::parse(ParserT &parser) {
   using td::parse;
   int32 size;
   parse(size, parser);
-  LOG_CHECK(static_cast<size_t>(size) <= first_calls_database_message_id_by_index.size())
-      << size << " " << first_calls_database_message_id_by_index.size();
+  if (static_cast<size_t>(size) > first_calls_database_message_id_by_index.size()) {
+    return parser.set_error("Wrong first_calls_database_message_id_by_index table size");
+  }
   for (int32 i = 0; i < size; i++) {
     parse(first_calls_database_message_id_by_index[i], parser);
   }
   parse(size, parser);
-  LOG_CHECK(static_cast<size_t>(size) <= message_count_by_index.size()) << size << " " << message_count_by_index.size();
+  if (static_cast<size_t>(size) > message_count_by_index.size()) {
+    return parser.set_error("Wrong message_count_by_index table size");
+  }
   for (int32 i = 0; i < size; i++) {
     parse(message_count_by_index[i], parser);
   }
