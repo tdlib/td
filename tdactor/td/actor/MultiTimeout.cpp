@@ -23,13 +23,13 @@ void MultiTimeout::set_timeout_at(int64 key, double timeout) {
     bool need_update_timeout = heap_node->is_top();
     timeout_queue_.fix(timeout, heap_node);
     if (need_update_timeout || heap_node->is_top()) {
-      update_timeout();
+      update_timeout("set_timeout");
     }
   } else {
     CHECK(item.second);
     timeout_queue_.insert(timeout, heap_node);
     if (heap_node->is_top()) {
-      update_timeout();
+      update_timeout("set_timeout 2");
     }
   }
 }
@@ -44,7 +44,7 @@ void MultiTimeout::add_timeout_at(int64 key, double timeout) {
     CHECK(item.second);
     timeout_queue_.insert(timeout, heap_node);
     if (heap_node->is_top()) {
-      update_timeout();
+      update_timeout("add_timeout");
     }
   }
 }
@@ -60,16 +60,16 @@ void MultiTimeout::cancel_timeout(int64 key) {
     items_.erase(item);
 
     if (need_update_timeout) {
-      update_timeout();
+      update_timeout("cancel_timeout");
     }
   }
 }
 
-void MultiTimeout::update_timeout() {
+void MultiTimeout::update_timeout(const char *source) {
   if (items_.empty()) {
     LOG(DEBUG) << "Cancel timeout of " << get_name();
-    LOG_CHECK(timeout_queue_.empty()) << get_name();
-    LOG_CHECK(Actor::has_timeout()) << get_name();
+    LOG_CHECK(timeout_queue_.empty()) << get_name() << ' ' << source;
+    LOG_CHECK(Actor::has_timeout()) << get_name() << ' ' << source;
     Actor::cancel_timeout();
   } else {
     LOG(DEBUG) << "Set timeout of " << get_name() << " in " << timeout_queue_.top_key() - Time::now_cached();
@@ -90,7 +90,7 @@ vector<int64> MultiTimeout::get_expired_keys(double now) {
 void MultiTimeout::timeout_expired() {
   vector<int64> expired_keys = get_expired_keys(Time::now_cached());
   if (!items_.empty()) {
-    update_timeout();
+    update_timeout("timeout_expired");
   }
   for (auto key : expired_keys) {
     callback_(data_, key);
@@ -100,7 +100,7 @@ void MultiTimeout::timeout_expired() {
 void MultiTimeout::run_all() {
   vector<int64> expired_keys = get_expired_keys(Time::now_cached() + 1e10);
   if (!expired_keys.empty()) {
-    update_timeout();
+    update_timeout("run_all");
   }
   for (auto key : expired_keys) {
     callback_(data_, key);
