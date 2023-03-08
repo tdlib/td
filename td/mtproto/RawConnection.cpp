@@ -154,13 +154,15 @@ class RawConnectionDefault final : public RawConnection {
       BufferSlice packet;
       uint32 quick_ack = 0;
       TRY_RESULT(wait_size, transport_->read_next(&packet, &quick_ack));
-      if (!is_aligned_pointer<4>(packet.as_slice().ubegin())) {
+      auto old_pointer = packet.as_slice().ubegin();
+      if (!is_aligned_pointer<4>(old_pointer)) {
         BufferSlice new_packet(packet.size());
         new_packet.as_mutable_slice().copy_from(packet.as_slice());
         packet = std::move(new_packet);
       }
       LOG_CHECK(is_aligned_pointer<4>(packet.as_slice().ubegin()))
-          << packet.as_slice().ubegin() << ' ' << packet.size() << ' ' << wait_size;
+          << old_pointer << ' ' << packet.as_slice().ubegin() << ' ' << BufferSlice(0).as_slice().ubegin() << ' '
+          << packet.size() << ' ' << wait_size << ' ' << quick_ack;
       if (wait_size != 0) {
         constexpr size_t MAX_PACKET_SIZE = (1 << 22) + 1024;
         if (wait_size > MAX_PACKET_SIZE) {
