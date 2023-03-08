@@ -170,6 +170,7 @@ void FileLoadManager::cancel(QueryId query_id) {
   }
   on_error_impl(it->second, Status::Error(-1, "Canceled"));
 }
+
 void FileLoadManager::update_local_file_location(QueryId query_id, const LocalFileLocation &local) {
   if (stop_flag_) {
     return;
