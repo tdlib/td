@@ -469,8 +469,9 @@ void FileGenerateManager::external_file_generate_write_part(uint64 query_id, int
   if (it == query_id_to_query_.end()) {
     return promise.set_error(Status::Error(400, "Unknown generation_id"));
   }
+  auto safe_promise = SafePromise<>(std::move(promise), Status::Error(400, "Generation has already been finished"));
   send_closure(it->second.worker_, &FileGenerateActor::file_generate_write_part, offset, std::move(data),
-               std::move(promise));
+               std::move(safe_promise));
 }
 
 void FileGenerateManager::external_file_generate_progress(uint64 query_id, int64 expected_size, int64 local_prefix_size,
@@ -479,8 +480,9 @@ void FileGenerateManager::external_file_generate_progress(uint64 query_id, int64
   if (it == query_id_to_query_.end()) {
     return promise.set_error(Status::Error(400, "Unknown generation_id"));
   }
+  auto safe_promise = SafePromise<>(std::move(promise), Status::Error(400, "Generation has already been finished"));
   send_closure(it->second.worker_, &FileGenerateActor::file_generate_progress, expected_size, local_prefix_size,
-               std::move(promise));
+               std::move(safe_promise));
 }
 
 void FileGenerateManager::external_file_generate_finish(uint64 query_id, Status status, Promise<> promise) {
@@ -488,7 +490,9 @@ void FileGenerateManager::external_file_generate_finish(uint64 query_id, Status 
   if (it == query_id_to_query_.end()) {
     return promise.set_error(Status::Error(400, "Unknown generation_id"));
   }
-  send_closure(it->second.worker_, &FileGenerateActor::file_generate_finish, std::move(status), std::move(promise));
+  auto safe_promise = SafePromise<>(std::move(promise), Status::Error(400, "Generation has already been finished"));
+  send_closure(it->second.worker_, &FileGenerateActor::file_generate_finish, std::move(status),
+               std::move(safe_promise));
 }
 
 void FileGenerateManager::do_cancel(uint64 query_id) {
