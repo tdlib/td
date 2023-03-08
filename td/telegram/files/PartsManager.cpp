@@ -121,7 +121,7 @@ Status PartsManager::init(int64 size, int64 expected_size, bool is_size_final, s
   if (size == 0) {
     return init_no_size(part_size, ready_parts);
   }
-  LOG_CHECK(size > 0) << tag("size", size);
+  LOG_CHECK(size > 0) << tag("size", size) << ' ' << *this;
   unknown_size_flag_ = false;
   size_ = size;
 
@@ -138,10 +138,9 @@ Status PartsManager::init(int64 size, int64 expected_size, bool is_size_final, s
       part_size_ *= 2;
     }
   }
-  LOG_CHECK(1 <= size_) << tag("size_", size_);
+  LOG_CHECK(1 <= size_) << *this;
   LOG_CHECK(!use_part_count_limit || calc_part_count(expected_size_, part_size_) <= MAX_PART_COUNT_PREMIUM)
-      << tag("size_", size_) << tag("expected_size", size_) << tag("is_size_final", is_size_final)
-      << tag("part_size_", part_size_) << tag("ready_parts", ready_parts.size());
+      << tag("is_size_final", is_size_final) << tag("ready_parts", ready_parts.size()) << ' ' << *this;
   part_count_ = static_cast<int>(calc_part_count(size_, part_size_));
 
   return init_common(ready_parts);
@@ -330,8 +329,7 @@ Status PartsManager::set_known_prefix(size_t size, bool is_ready) {
     part_count_ = static_cast<int>(size / part_size_);
   }
 
-  LOG_CHECK(static_cast<size_t>(part_count_) >= part_status_.size())
-      << size << " " << is_ready << " " << part_count_ << " " << part_size_ << " " << part_status_.size();
+  LOG_CHECK(static_cast<size_t>(part_count_) >= part_status_.size()) << size << ' ' << is_ready << ' ' << *this;
   part_status_.resize(part_count_);
   if (use_part_count_limit_ && part_size_ < MAX_PART_SIZE &&
       calc_part_count(expected_size_, part_size_) > MAX_PART_COUNT) {
@@ -370,7 +368,7 @@ Status PartsManager::on_part_ok(int part_id, size_t part_size, size_t actual_siz
     if (min_size_ > max_size_) {
       auto status = Status::Error(PSLICE() << "Failed to transfer file: " << tag("min_size", min_size_)
                                            << tag("max_size", max_size_));
-      LOG(ERROR) << status;
+      LOG(ERROR) << status << ' ' << *this;
       return status;
     } else if (min_size_ == max_size_) {
       unknown_size_flag_ = false;
@@ -380,7 +378,7 @@ Status PartsManager::on_part_ok(int part_id, size_t part_size, size_t actual_siz
     if ((actual_size < part_size && offset < size_) || (offset >= size_ && actual_size > 0)) {
       auto status = Status::Error(PSLICE() << "Failed to transfer file: " << tag("size", size_) << tag("offset", offset)
                                            << tag("transferred size", actual_size) << tag("part size", part_size));
-      LOG(ERROR) << status;
+      LOG(ERROR) << status << ' ' << *this;
       return status;
     }
   }
@@ -492,12 +490,11 @@ Status PartsManager::init_common(const std::vector<int> &ready_parts) {
     if (is_upload_ && i >= part_count_) {
       return Status::Error("FILE_UPLOAD_RESTART");
     }
-    LOG_CHECK(0 <= i && i < part_count_) << tag("i", i) << tag("part_count", part_count_) << tag("size", size_)
-                                         << tag("part_size", part_size_) << tag("known_prefix_flag", known_prefix_flag_)
-                                         << tag("known_prefix_size", known_prefix_size_)
+    LOG_CHECK(0 <= i && i < part_count_) << tag("i", i)
                                          << tag("real part_count",
                                                 std::accumulate(ready_parts.begin(), ready_parts.end(), 0,
-                                                                [](auto a, auto b) { return max(a, b + 1); }));
+                                                                [](auto a, auto b) { return max(a, b + 1); }))
+                                         << ' ' << *this;
     part_status_[i] = PartStatus::Ready;
     bitmask_.set(i);
     auto part = get_part(i);
@@ -557,6 +554,31 @@ void PartsManager::on_part_start(int32 part_id) {
   CHECK(part_status_[part_id] == PartStatus::Empty);
   part_status_[part_id] = PartStatus::Pending;
   pending_count_++;
+}
+
+StringBuilder &operator<<(StringBuilder &string_builder, const PartsManager &parts_manager) {
+  return string_builder << "PartsManager[" << (parts_manager.is_upload_ ? "up" : "down")
+                        << "load, need_check = " << parts_manager.need_check_
+                        << ", checked_prefix_size = " << parts_manager.checked_prefix_size_
+                        << ", known_prefix = " << parts_manager.known_prefix_flag_
+                        << ", known_prefix_size = " << parts_manager.known_prefix_size_
+                        << ", size = " << parts_manager.size_ << ", expected_size = " << parts_manager.expected_size_
+                        << ", min_size = " << parts_manager.min_size_ << ", max_size = " << parts_manager.max_size_
+                        << ", unknown_size = " << parts_manager.unknown_size_flag_
+                        << ", ready_size = " << parts_manager.ready_size_
+                        << ", streaming_ready_size = " << parts_manager.streaming_ready_size_
+                        << ", part_size = " << parts_manager.part_size_
+                        << ", part_count = " << parts_manager.part_count_
+                        << ", pending_count = " << parts_manager.pending_count_
+                        << ", first_empty_part = " << parts_manager.first_empty_part_
+                        << ", first_not_ready_part = " << parts_manager.first_not_ready_part_
+                        << ", streaming_offset = " << parts_manager.streaming_offset_
+                        << ", streaming_limit = " << parts_manager.streaming_limit_
+                        << ", first_streaming_empty_part = " << parts_manager.first_streaming_empty_part_
+                        << ", first_streaming_not_ready_part = " << parts_manager.first_streaming_not_ready_part_
+                        << ", use_part_count_limit = " << parts_manager.use_part_count_limit_
+                        << ", part_status_count = " << parts_manager.part_status_.size() << ": "
+                        << parts_manager.bitmask_ << ']';
 }
 
 }  // namespace td

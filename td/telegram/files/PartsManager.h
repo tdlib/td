@@ -10,6 +10,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/Status.h"
+#include "td/utils/StringBuilder.h"
 
 namespace td {
 
@@ -103,6 +104,10 @@ class PartsManager {
 
   bool is_streaming_limit_reached();
   bool is_part_in_streaming_limit(int part_id) const;
+
+  friend StringBuilder &operator<<(StringBuilder &string_builder, const PartsManager &parts_manager);
 };
+
+StringBuilder &operator<<(StringBuilder &string_builder, const PartsManager &parts_manager);
 
 }  // namespace td
