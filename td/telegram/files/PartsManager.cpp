@@ -340,7 +340,10 @@ Status PartsManager::set_known_prefix(size_t size, bool is_ready) {
 }
 
 Status PartsManager::on_part_ok(int part_id, size_t part_size, size_t actual_size) {
-  CHECK(part_status_[part_id] == PartStatus::Pending);
+  LOG_CHECK(static_cast<size_t>(part_id) < part_status_.size())
+      << part_id << ' ' << part_size << ' ' << actual_size << ' ' << *this;
+  LOG_CHECK(part_status_[part_id] == PartStatus::Pending) << part_id << ' ' << static_cast<int32>(part_status_[part_id])
+                                                          << ' ' << part_size << ' ' << actual_size << ' ' << *this;
   pending_count_--;
 
   part_status_[part_id] = PartStatus::Ready;
