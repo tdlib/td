@@ -6395,8 +6395,12 @@ void ContactsManager::on_load_imported_contacts_from_database(string value) {
   if (value.empty()) {
     CHECK(all_imported_contacts_.empty());
   } else {
-    log_event_parse(all_imported_contacts_, value).ensure();
-    LOG(INFO) << "Successfully loaded " << all_imported_contacts_.size() << " imported contacts from database";
+    if (log_event_parse(all_imported_contacts_, value).is_error()) {
+      LOG(ERROR) << "Failed to load all imported contacts from database";
+      all_imported_contacts_.clear();
+    } else {
+      LOG(INFO) << "Successfully loaded " << all_imported_contacts_.size() << " imported contacts from database";
+    }
   }
 
   load_imported_contact_users_multipromise_.add_promise(
@@ -9655,7 +9659,11 @@ void ContactsManager::on_load_contacts_from_database(string value) {
   }
 
   vector<UserId> user_ids;
-  log_event_parse(user_ids, value).ensure();
+  if (log_event_parse(user_ids, value).is_error()) {
+    LOG(ERROR) << "Failed to load contacts from database";
+    reload_contacts(true);
+    return;
+  }
 
   LOG(INFO) << "Successfully loaded " << user_ids.size() << " contacts from database";
 
@@ -10034,7 +10042,11 @@ void ContactsManager::on_binlog_user_event(BinlogEvent &&event) {
   }
 
   UserLogEvent log_event;
-  log_event_parse(log_event, event.get_data()).ensure();
+  if (log_event_parse(log_event, event.get_data()).is_error()) {
+    LOG(ERROR) << "Failed to load a user from binlog";
+    binlog_erase(G()->td_db()->get_binlog(), event.id_);
+    return;
+  }
 
   auto user_id = log_event.user_id;
   if (have_min_user(user_id) || !user_id.is_valid()) {
@@ -10175,11 +10187,14 @@ void ContactsManager::on_load_user_from_database(UserId user_id, string value, b
     if (!value.empty()) {
       u = add_user(user_id, "on_load_user_from_database");
 
-      log_event_parse(*u, value).ensure();
-
-      u->is_saved = true;
-      u->is_status_saved = true;
-      update_user(u, user_id, true, true);
+      if (log_event_parse(*u, value).is_error()) {
+        LOG(ERROR) << "Failed to load " << user_id << " from database";
+        users_.erase(user_id);
+      } else {
+        u->is_saved = true;
+        u->is_status_saved = true;
+        update_user(u, user_id, true, true);
+      }
     }
   } else {
     CHECK(!u->is_saved);  // user can't be saved before load completes
@@ -10358,7 +10373,11 @@ void ContactsManager::on_binlog_chat_event(BinlogEvent &&event) {
   }
 
   ChatLogEvent log_event;
-  log_event_parse(log_event, event.get_data()).ensure();
+  if (log_event_parse(log_event, event.get_data()).is_error()) {
+    LOG(ERROR) << "Failed to load a basic group from binlog";
+    binlog_erase(G()->td_db()->get_binlog(), event.id_);
+    return;
+  }
 
   auto chat_id = log_event.chat_id;
   if (have_chat(chat_id) || !chat_id.is_valid()) {
@@ -10492,10 +10511,13 @@ void ContactsManager::on_load_chat_from_database(ChatId chat_id, string value, b
     if (!value.empty()) {
       c = add_chat(chat_id);
 
-      log_event_parse(*c, value).ensure();
-
-      c->is_saved = true;
-      update_chat(c, chat_id, true, true);
+      if (log_event_parse(*c, value).is_error()) {
+        LOG(ERROR) << "Failed to load " << chat_id << " from database";
+        chats_.erase(chat_id);
+      } else {
+        c->is_saved = true;
+        update_chat(c, chat_id, true, true);
+      }
     }
   } else {
     CHECK(!c->is_saved);  // chat can't be saved before load completes
@@ -10597,7 +10619,11 @@ void ContactsManager::on_binlog_channel_event(BinlogEvent &&event) {
   }
 
   ChannelLogEvent log_event;
-  log_event_parse(log_event, event.get_data()).ensure();
+  if (log_event_parse(log_event, event.get_data()).is_error()) {
+    LOG(ERROR) << "Failed to load a supergroup from binlog";
+    binlog_erase(G()->td_db()->get_binlog(), event.id_);
+    return;
+  }
 
   auto channel_id = log_event.channel_id;
   if (have_channel(channel_id) || !channel_id.is_valid()) {
@@ -10732,34 +10758,38 @@ void ContactsManager::on_load_channel_from_database(ChannelId channel_id, string
     if (!value.empty()) {
       c = add_channel(channel_id, "on_load_channel_from_database");
 
-      log_event_parse(*c, value).ensure();
-
-      c->is_saved = true;
-      update_channel(c, channel_id, true, true);
+      if (log_event_parse(*c, value).is_error()) {
+        LOG(ERROR) << "Failed to load " << channel_id << " from database";
+        channels_.erase(channel_id);
+      } else {
+        c->is_saved = true;
+        update_channel(c, channel_id, true, true);
+      }
     }
   } else {
     CHECK(!c->is_saved);  // channel can't be saved before load completes
     CHECK(!c->is_being_saved);
     if (!value.empty()) {
       Channel temp_c;
-      log_event_parse(temp_c, value).ensure();
-      if (c->participant_count == 0 && temp_c.participant_count != 0) {
-        c->participant_count = temp_c.participant_count;
-        CHECK(c->is_update_supergroup_sent);
-        send_closure(G()->td(), &Td::send_update,
-                     make_tl_object<td_api::updateSupergroup>(get_supergroup_object(channel_id, c)));
-      }
+      if (log_event_parse(temp_c, value).is_ok()) {
+        if (c->participant_count == 0 && temp_c.participant_count != 0) {
+          c->participant_count = temp_c.participant_count;
+          CHECK(c->is_update_supergroup_sent);
+          send_closure(G()->td(), &Td::send_update,
+                       make_tl_object<td_api::updateSupergroup>(get_supergroup_object(channel_id, c)));
+        }
 
-      c->status.update_restrictions();
-      temp_c.status.update_restrictions();
-      if (temp_c.status != c->status) {
-        on_channel_status_changed(c, channel_id, temp_c.status, c->status);
-        CHECK(!c->is_being_saved);
-      }
+        c->status.update_restrictions();
+        temp_c.status.update_restrictions();
+        if (temp_c.status != c->status) {
+          on_channel_status_changed(c, channel_id, temp_c.status, c->status);
+          CHECK(!c->is_being_saved);
+        }
 
-      if (temp_c.usernames != c->usernames) {
-        on_channel_usernames_changed(c, channel_id, temp_c.usernames, c->usernames);
-        CHECK(!c->is_being_saved);
+        if (temp_c.usernames != c->usernames) {
+          on_channel_usernames_changed(c, channel_id, temp_c.usernames, c->usernames);
+          CHECK(!c->is_being_saved);
+        }
       }
     }
     auto new_value = get_channel_database_value(c);
@@ -10852,7 +10882,11 @@ void ContactsManager::on_binlog_secret_chat_event(BinlogEvent &&event) {
   }
 
   SecretChatLogEvent log_event;
-  log_event_parse(log_event, event.get_data()).ensure();
+  if (log_event_parse(log_event, event.get_data()).is_error()) {
+    LOG(ERROR) << "Failed to load a secret chat from binlog";
+    binlog_erase(G()->td_db()->get_binlog(), event.id_);
+    return;
+  }
 
   auto secret_chat_id = log_event.secret_chat_id;
   if (have_secret_chat(secret_chat_id) || !secret_chat_id.is_valid()) {
@@ -10989,10 +11023,13 @@ void ContactsManager::on_load_secret_chat_from_database(SecretChatId secret_chat
     if (!value.empty()) {
       c = add_secret_chat(secret_chat_id);
 
-      log_event_parse(*c, value).ensure();
-
-      c->is_saved = true;
-      update_secret_chat(c, secret_chat_id, true, true);
+      if (log_event_parse(*c, value).is_error()) {
+        LOG(ERROR) << "Failed to load " << secret_chat_id << " from database";
+        secret_chats_.erase(secret_chat_id);
+      } else {
+        c->is_saved = true;
+        update_secret_chat(c, secret_chat_id, true, true);
+      }
     }
   } else {
     CHECK(!c->is_saved);  // secret chat can't be saved before load completes
@@ -17362,7 +17399,9 @@ void ContactsManager::on_load_dialog_administrators_from_database(
   }
 
   vector<DialogAdministrator> administrators;
-  log_event_parse(administrators, value).ensure();
+  if (log_event_parse(administrators, value).is_error()) {
+    return reload_dialog_administrators(dialog_id, {}, std::move(promise));
+  }
 
   LOG(INFO) << "Successfully loaded " << administrators.size() << " administrators in " << dialog_id
             << " from database";
