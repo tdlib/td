@@ -68,8 +68,8 @@ void MultiTimeout::cancel_timeout(int64 key) {
 void MultiTimeout::update_timeout() {
   if (items_.empty()) {
     LOG(DEBUG) << "Cancel timeout of " << get_name();
-    CHECK(timeout_queue_.empty());
-    CHECK(Actor::has_timeout());
+    LOG_CHECK(timeout_queue_.empty()) << get_name();
+    LOG_CHECK(Actor::has_timeout()) << get_name();
     Actor::cancel_timeout();
   } else {
     LOG(DEBUG) << "Set timeout of " << get_name() << " in " << timeout_queue_.top_key() - Time::now_cached();
