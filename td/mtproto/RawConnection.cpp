@@ -142,13 +142,21 @@ class RawConnectionDefault final : public RawConnection {
 
   ConnectionManager::ConnectionToken connection_token_;
 
+  void on_read(size_t size, Callback &callback) {
+    if (size <= 0) {
+      return;
+    }
+
+    if (stats_callback_) {
+      stats_callback_->on_read(size);
+    }
+    callback.on_read(size);
+  }
+
   Status flush_read(const AuthKey &auth_key, Callback &callback) {
     auto r = socket_fd_.flush_read();
     if (r.is_ok()) {
-      if (stats_callback_) {
-        stats_callback_->on_read(r.ok());
-      }
-      callback.on_read(r.ok());
+      on_read(r.ok(), callback);
     }
     while (transport_->can_read()) {
       BufferSlice packet;
@@ -381,10 +389,7 @@ class RawConnectionHttp final : public RawConnection {
       }
       for (int i = 0; i < packets_n; i++) {
         TRY_RESULT(packet, answers_->reader_get_unsafe());
-        if (stats_callback_) {
-          stats_callback_->on_read(packet.size());
-        }
-        callback.on_read(packet.size());
+        on_read(packet.size(), callback);
         CHECK(mode_ == Receive);
         mode_ = Send;
 
