@@ -1549,6 +1549,8 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   int32 telegram_antispam_group_size_min = 100;
   int32 topics_pinned_limit = -1;
   vector<string> fragment_prefixes;
+  bool premium_gift_attach_menu_icon = false;
+  bool premium_gift_text_field_icon = false;
   if (config->get_id() == telegram_api::jsonObject::ID) {
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
       Slice key = key_value->key_;
@@ -1933,6 +1935,14 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         topics_pinned_limit = get_json_value_int(std::move(key_value->value_), key);
         continue;
       }
+      if (key == "premium_gift_attach_menu_icon") {
+        premium_gift_attach_menu_icon = get_json_value_bool(std::move(key_value->value_), key);
+        continue;
+      }
+      if (key == "premium_gift_text_field_icon") {
+        premium_gift_text_field_icon = get_json_value_bool(std::move(key_value->value_), key);
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
@@ -2075,6 +2085,17 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
     options.set_option_integer("pinned_forum_topic_count_max", topics_pinned_limit);
   } else {
     options.set_option_empty("pinned_forum_topic_count_max");
+  }
+
+  if (premium_gift_attach_menu_icon) {
+    options.set_option_boolean("gift_premium_from_attachment_menu", premium_gift_attach_menu_icon);
+  } else {
+    options.set_option_empty("gift_premium_from_attachment_menu");
+  }
+  if (premium_gift_text_field_icon) {
+    options.set_option_boolean("gift_premium_from_input_field", premium_gift_text_field_icon);
+  } else {
+    options.set_option_empty("gift_premium_from_input_field");
   }
 
   options.set_option_integer("stickers_premium_by_emoji_num", stickers_premium_by_emoji_num);
