@@ -291,7 +291,9 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
   int64 access_hash;
   parse(sticker_set_id, parser);
   parse(access_hash, parser);
-  CHECK(sticker_set->id_.get() == sticker_set_id);
+  if (sticker_set->id_.get() != sticker_set_id) {
+    return parser.set_error("Invalid sticker set data stored in the database");
+  }
   (void)access_hash;  // unused, because only known sticker sets with access hash can be loaded from database
 
   StickerFormat sticker_format = StickerFormat::Unknown;
