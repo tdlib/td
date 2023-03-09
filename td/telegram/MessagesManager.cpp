@@ -1333,7 +1333,6 @@ class EditDialogPhotoQuery final : public Td::ResultHandler {
     } else {
       td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "EditDialogPhotoQuery");
     }
-    td_->updates_manager_->get_difference("EditDialogPhotoQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -1380,8 +1379,6 @@ class EditDialogTitleQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->updates_manager_->get_difference("EditDialogTitleQuery");
-
     if (status.message() == "CHAT_NOT_MODIFIED") {
       if (!td_->auth_manager_->is_bot()) {
         promise_.set_value(Unit());
@@ -33879,9 +33876,6 @@ void MessagesManager::on_create_new_dialog_fail(int64 random_id, Status error, P
 
   CHECK(error.is_error());
   promise.set_error(std::move(error));
-
-  // repairing state by running get difference
-  td_->updates_manager_->get_difference("on_create_new_dialog_fail");
 }
 
 void MessagesManager::on_dialog_bots_updated(DialogId dialog_id, vector<UserId> bot_user_ids, bool from_database) {

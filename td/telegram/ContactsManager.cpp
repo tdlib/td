@@ -134,7 +134,6 @@ class GetContactsQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     td_->contacts_manager_->on_get_contacts_failed(std::move(status));
-    td_->updates_manager_->get_difference("GetContactsQuery");
   }
 };
 
@@ -2714,7 +2713,6 @@ class DeleteChatUserQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     promise_.set_error(std::move(status));
-    td_->updates_manager_->get_difference("DeleteChatUserQuery");
   }
 };
 
@@ -2748,7 +2746,6 @@ class JoinChannelQuery final : public Td::ResultHandler {
   void on_error(Status status) final {
     td_->contacts_manager_->on_get_channel_error(channel_id_, status, "JoinChannelQuery");
     promise_.set_error(std::move(status));
-    td_->updates_manager_->get_difference("JoinChannelQuery");
   }
 };
 
@@ -2926,7 +2923,6 @@ class LeaveChannelQuery final : public Td::ResultHandler {
   void on_error(Status status) final {
     td_->contacts_manager_->on_get_channel_error(channel_id_, status, "LeaveChannelQuery");
     promise_.set_error(std::move(status));
-    td_->updates_manager_->get_difference("LeaveChannelQuery");
   }
 };
 
@@ -3008,7 +3004,6 @@ class EditChannelCreatorQuery final : public Td::ResultHandler {
     }
     td_->contacts_manager_->on_get_channel_error(channel_id_, status, "EditChannelCreatorQuery");
     promise_.set_error(std::move(status));
-    td_->updates_manager_->get_difference("EditChannelCreatorQuery");
   }
 };
 
@@ -3036,7 +3031,6 @@ class MigrateChatQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     promise_.set_error(std::move(status));
-    td_->updates_manager_->get_difference("MigrateChatQuery");
   }
 };
 
