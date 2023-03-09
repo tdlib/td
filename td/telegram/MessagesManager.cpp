@@ -16764,6 +16764,11 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
         d->suffix_load_done_ = false;
       }
     }
+  } else {
+    if (message_id == d->last_message_id) {
+      CHECK(td_->auth_manager_->is_bot() && !G()->parameters().use_file_db);
+      set_dialog_last_message_id(d, MessageId(), "do_delete_message");
+    }
   }
   if (only_from_memory && message_id >= d->suffix_load_first_message_id_) {
     d->suffix_load_first_message_id_ = MessageId();
