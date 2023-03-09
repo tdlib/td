@@ -11401,6 +11401,10 @@ void MessagesManager::on_failed_scheduled_message_deletion(DialogId dialog_id, c
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
     return;
   }
+  if (is_broadcast_channel(dialog_id) &&
+      !td_->contacts_manager_->get_channel_status(dialog_id.get_channel_id()).can_post_messages()) {
+    return;
+  }
   load_dialog_scheduled_messages(dialog_id, false, 0, Promise<Unit>());
 }
 
