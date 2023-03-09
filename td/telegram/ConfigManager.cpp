@@ -2116,4 +2116,6 @@ void ConfigManager::get_current_state(vector<td_api::object_ptr<td_api::Update>>
   }
 }
 
+constexpr uint64 ConfigManager::REFCNT_TOKEN;
+
 }  // namespace td
