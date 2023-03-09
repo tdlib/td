@@ -1888,7 +1888,7 @@ class AddChatUserQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    if (status.message() == "USER_PRIVACY_RESTRICTED") {
+    if (!td_->auth_manager_->is_bot() && status.message() == "USER_PRIVACY_RESTRICTED") {
       td_->contacts_manager_->send_update_add_chat_members_privacy_forbidden(DialogId(chat_id_), {user_id_},
                                                                              "AddChatUserQuery");
       return promise_.set_error(Status::Error(406, "USER_PRIVACY_RESTRICTED"));
@@ -1931,7 +1931,7 @@ class EditChatAdminQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    if (status.message() == "USER_PRIVACY_RESTRICTED") {
+    if (!td_->auth_manager_->is_bot() && status.message() == "USER_PRIVACY_RESTRICTED") {
       // impossible now, because the user must be in the chat already
       td_->contacts_manager_->send_update_add_chat_members_privacy_forbidden(DialogId(chat_id_), {user_id_},
                                                                              "EditChatAdminQuery");
@@ -2793,7 +2793,7 @@ class InviteToChannelQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    if (status.message() == "USER_PRIVACY_RESTRICTED") {
+    if (!td_->auth_manager_->is_bot() && status.message() == "USER_PRIVACY_RESTRICTED") {
       td_->contacts_manager_->send_update_add_chat_members_privacy_forbidden(
           DialogId(channel_id_), std::move(user_ids_), "InviteToChannelQuery");
       return promise_.set_error(Status::Error(406, "USER_PRIVACY_RESTRICTED"));
@@ -2839,7 +2839,7 @@ class EditChannelAdminQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    if (status.message() == "USER_PRIVACY_RESTRICTED") {
+    if (!td_->auth_manager_->is_bot() && status.message() == "USER_PRIVACY_RESTRICTED") {
       td_->contacts_manager_->send_update_add_chat_members_privacy_forbidden(DialogId(channel_id_), {user_id_},
                                                                              "EditChannelAdminQuery");
       return promise_.set_error(Status::Error(406, "USER_PRIVACY_RESTRICTED"));
@@ -3000,7 +3000,7 @@ class EditChannelCreatorQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    if (status.message() == "USER_PRIVACY_RESTRICTED") {
+    if (!td_->auth_manager_->is_bot() && status.message() == "USER_PRIVACY_RESTRICTED") {
       td_->contacts_manager_->send_update_add_chat_members_privacy_forbidden(DialogId(channel_id_), {user_id_},
                                                                              "EditChannelCreatorQuery");
       return promise_.set_error(Status::Error(406, "USER_PRIVACY_RESTRICTED"));
