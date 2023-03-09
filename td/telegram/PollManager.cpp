@@ -50,6 +50,7 @@ class GetPollResultsQuery final : public Td::ResultHandler {
   Promise<tl_object_ptr<telegram_api::Updates>> promise_;
   PollId poll_id_;
   DialogId dialog_id_;
+  MessageId message_id_;
 
  public:
   explicit GetPollResultsQuery(Promise<tl_object_ptr<telegram_api::Updates>> &&promise) : promise_(std::move(promise)) {
@@ -58,13 +59,14 @@ class GetPollResultsQuery final : public Td::ResultHandler {
   void send(PollId poll_id, FullMessageId full_message_id) {
     poll_id_ = poll_id;
     dialog_id_ = full_message_id.get_dialog_id();
+    message_id_ = full_message_id.get_message_id();
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     if (input_peer == nullptr) {
       LOG(INFO) << "Can't reget poll, because have no read access to " << dialog_id_;
       return promise_.set_value(nullptr);
     }
 
-    auto message_id = full_message_id.get_message_id().get_server_message_id().get();
+    auto message_id = message_id_.get_server_message_id().get();
     send_query(
         G()->net_query_creator().create(telegram_api::messages_getPollResults(std::move(input_peer), message_id)));
   }
@@ -79,8 +81,13 @@ class GetPollResultsQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    if (!td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetPollResultsQuery") &&
-        status.message() != "MESSAGE_ID_INVALID") {
+    if (status.message() == "MESSAGE_ID_INVALID") {
+      // likely, the message has already been deleted
+      if (dialog_id_.get_type() == DialogType::Channel) {
+        td_->messages_manager_->get_message_from_server({dialog_id_, message_id_}, Promise<Unit>(),
+                                                        "GetPollResultsQuery");
+      }
+    } else if (!td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetPollResultsQuery")) {
       LOG(ERROR) << "Receive " << status << ", while trying to get results of " << poll_id_;
     }
     promise_.set_error(std::move(status));
