@@ -2921,6 +2921,9 @@ class LeaveChannelQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    if (status.message() == "USER_NOT_PARTICIPANT") {
+      return td_->contacts_manager_->reload_channel(channel_id_, std::move(promise_));
+    }
     td_->contacts_manager_->on_get_channel_error(channel_id_, status, "LeaveChannelQuery");
     promise_.set_error(std::move(status));
   }
