@@ -17321,6 +17321,9 @@ void ContactsManager::get_channel_participants(ChannelId channel_id,
   if (channel_full != nullptr && !channel_full->is_expired() && !channel_full->can_get_participants) {
     return promise.set_error(Status::Error(400, "Member list is inaccessible"));
   }
+  if (is_broadcast_channel(channel_id) && !get_channel_status(channel_id).is_administrator()) {
+    return promise.set_error(Status::Error(400, "Member list is inaccessible"));
+  }
 
   ChannelParticipantFilter participant_filter(filter);
   auto get_channel_participants_promise = PromiseCreator::lambda(
@@ -17513,11 +17516,14 @@ void ContactsManager::reload_dialog_administrators(DialogId dialog_id,
       load_chat_full(dialog_id.get_chat_id(), false, std::move(query_promise), "reload_dialog_administrators");
       break;
     case DialogType::Channel: {
+      auto channel_id = dialog_id.get_channel_id();
+      if (is_broadcast_channel(channel_id) && !get_channel_status(channel_id).is_administrator()) {
+        return promise.set_error(Status::Error(400, "Administrator list is inaccessible"));
+      }
       auto hash = get_vector_hash(transform(dialog_administrators, [](const DialogAdministrator &administrator) {
         return static_cast<uint64>(administrator.get_user_id().get());
       }));
-      td_->create_handler<GetChannelAdministratorsQuery>(std::move(query_promise))
-          ->send(dialog_id.get_channel_id(), hash);
+      td_->create_handler<GetChannelAdministratorsQuery>(std::move(query_promise))->send(channel_id, hash);
       break;
     }
     default:
