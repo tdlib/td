@@ -26730,6 +26730,7 @@ Result<MessagesManager::MessageSendOptions> MessagesManager::process_message_sen
     }
     result.protect_content = options->protect_content_;
     TRY_RESULT_ASSIGN(result.schedule_date, get_message_schedule_date(std::move(options->scheduling_state_)));
+    result.sending_id = options->sending_id_;
   }
 
   auto dialog_type = dialog_id.get_type();
@@ -26753,8 +26754,6 @@ Result<MessagesManager::MessageSendOptions> MessagesManager::process_message_sen
   if (result.protect_content && !td_->auth_manager_->is_bot()) {
     result.protect_content = false;
   }
-
-  result.sending_id = options->sending_id_;
 
   return result;
 }
