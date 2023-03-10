@@ -17515,7 +17515,7 @@ void ContactsManager::reload_dialog_administrators(DialogId dialog_id,
     case DialogType::Channel: {
       auto channel_id = dialog_id.get_channel_id();
       if (is_broadcast_channel(channel_id) && !get_channel_status(channel_id).is_administrator()) {
-        return promise.set_error(Status::Error(400, "Administrator list is inaccessible"));
+        return query_promise.set_error(Status::Error(400, "Administrator list is inaccessible"));
       }
       auto hash = get_vector_hash(transform(dialog_administrators, [](const DialogAdministrator &administrator) {
         return static_cast<uint64>(administrator.get_user_id().get());
