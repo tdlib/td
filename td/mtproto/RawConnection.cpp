@@ -375,6 +375,17 @@ class RawConnectionHttp final : public RawConnection {
   std::shared_ptr<MpscPollableQueue<Result<BufferSlice>>> answers_;
   std::vector<BufferSlice> to_send_;
 
+  void on_read(size_t size, Callback &callback) {
+    if (size <= 0) {
+      return;
+    }
+
+    if (stats_callback_) {
+      stats_callback_->on_read(size);
+    }
+    callback.on_read(size);
+  }
+
   void send_packet(BufferSlice packet) {
     CHECK(mode_ == Send);
     mode_ = Receive;
