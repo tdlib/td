@@ -25952,6 +25952,11 @@ bool MessagesManager::get_dialog_silent_send_message(DialogId dialog_id) const {
   return d->notification_settings.silent_send_message;
 }
 
+bool MessagesManager::get_dialog_has_last_message(DialogId dialog_id) const {
+  const auto *d = get_dialog(dialog_id);
+  return d != nullptr && d->last_message_id.is_valid();
+}
+
 DialogId MessagesManager::get_dialog_default_send_message_as_dialog_id(DialogId dialog_id) const {
   auto *d = get_dialog(dialog_id);
   CHECK(d != nullptr);

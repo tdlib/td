@@ -283,8 +283,17 @@ class LinkManager::InternalLinkBotStart final : public InternalLink {
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     bool autostart = autostart_;
-    if (Scheduler::context() != nullptr && bot_username_ == G()->get_option_string("premium_bot_username")) {
-      autostart = true;
+    if (Scheduler::context() != nullptr && !autostart) {
+      if (bot_username_ == G()->get_option_string("premium_bot_username")) {
+        autostart = true;
+      } else {
+        const Td *td = G()->td().get_actor_unsafe();
+        auto dialog_id = td->messages_manager_->resolve_dialog_username(bot_username_);
+        if (dialog_id.is_valid() && dialog_id.get_type() == DialogType::User &&
+            td->messages_manager_->get_dialog_has_last_message(dialog_id)) {
+          autostart = true;
+        }
+      }
     }
     return td_api::make_object<td_api::internalLinkTypeBotStart>(bot_username_, start_parameter_, autostart);
   }
