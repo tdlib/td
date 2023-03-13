@@ -48,7 +48,7 @@ class SessionMultiProxy final : public Actor {
   bool need_destroy_auth_key_ = false;
   struct SessionInfo {
     ActorOwn<SessionProxy> proxy;
-    int queries_count{0};
+    int query_count{0};
   };
   uint32 sessions_generation_{0};
   std::vector<SessionInfo> sessions_;

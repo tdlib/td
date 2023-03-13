@@ -44,12 +44,12 @@ void SessionMultiProxy::send(NetQueryPtr query) {
       pos = query->session_rand() % sessions_.size();
     } else {
       pos = std::min_element(sessions_.begin(), sessions_.end(),
-                             [](const auto &a, const auto &b) { return a.queries_count < b.queries_count; }) -
+                             [](const auto &a, const auto &b) { return a.query_count < b.query_count; }) -
             sessions_.begin();
     }
   }
   // query->debug(PSTRING() << get_name() << ": send to proxy #" << pos);
-  sessions_[pos].queries_count++;
+  sessions_[pos].query_count++;
   send_closure(sessions_[pos].proxy, &SessionProxy::send, std::move(query));
 }
 
@@ -152,8 +152,10 @@ void SessionMultiProxy::on_query_finished(uint32 generation, int session_id) {
   if (generation != sessions_generation_) {
     return;
   }
-  sessions_.at(session_id).queries_count--;
-  CHECK(sessions_.at(session_id).queries_count >= 0);
+  CHECK(static_cast<size_t>(session_id) < sessions_.size());
+  auto &query_count = sessions_[session_id].query_count;
+  CHECK(query_count > 0);
+  query_count--;
 }
 
 }  // namespace td
