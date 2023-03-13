@@ -8,7 +8,6 @@
 
 #include "td/telegram/Global.h"
 #include "td/telegram/net/DcId.h"
-#include "td/telegram/TdParameters.h"
 
 #include "td/utils/common.h"
 #include "td/utils/filesystem.h"

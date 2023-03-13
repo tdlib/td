@@ -61,7 +61,6 @@
 #include "td/telegram/StickerType.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
-#include "td/telegram/TdParameters.h"
 #include "td/telegram/TopDialogCategory.h"
 #include "td/telegram/TranslationManager.h"
 #include "td/telegram/UpdatesManager.h"

@@ -10,7 +10,6 @@
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
-#include "td/telegram/TdParameters.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/format.h"

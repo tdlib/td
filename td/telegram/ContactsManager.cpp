@@ -48,7 +48,6 @@
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
-#include "td/telegram/TdParameters.h"
 #include "td/telegram/telegram_api.hpp"
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/Version.h"

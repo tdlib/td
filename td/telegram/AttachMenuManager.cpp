@@ -21,7 +21,6 @@
 #include "td/telegram/StateManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
-#include "td/telegram/TdParameters.h"
 #include "td/telegram/ThemeManager.h"
 #include "td/telegram/WebApp.h"
 

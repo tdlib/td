@@ -14,7 +14,6 @@
 #include "td/telegram/MessageDb.h"
 #include "td/telegram/MessageThreadDb.h"
 #include "td/telegram/Td.h"
-#include "td/telegram/TdParameters.h"
 #include "td/telegram/Version.h"
 
 #include "td/db/binlog/Binlog.h"
