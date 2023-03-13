@@ -51,8 +51,7 @@ class TdDb {
   ~TdDb();
 
   struct OpenedDatabase {
-    string database_directory;
-    string files_directory;
+    TdParameters parameters;
 
     unique_ptr<TdDb> database;
 

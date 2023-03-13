@@ -290,8 +290,6 @@ class Td final : public Actor {
 
   MtprotoHeader::Options options_;
 
-  TdParameters parameters_;
-
   ConnectionState connection_state_ = ConnectionState::Empty;
 
   std::unordered_multimap<uint64, int32> request_set_;
@@ -1610,7 +1608,7 @@ class Td final : public Actor {
 
   static Status fix_parameters(TdParameters &parameters) TD_WARN_UNUSED_RESULT;
 
-  Status set_parameters(td_api::object_ptr<td_api::setTdlibParameters> parameters) TD_WARN_UNUSED_RESULT;
+  Result<TdParameters> set_parameters(td_api::object_ptr<td_api::setTdlibParameters> parameters) TD_WARN_UNUSED_RESULT;
 
   static td_api::object_ptr<td_api::error> make_error(int32 code, CSlice error) {
     return td_api::make_object<td_api::error>(code, error.str());

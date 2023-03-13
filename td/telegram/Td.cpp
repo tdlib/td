@@ -2955,9 +2955,9 @@ void Td::run_request(uint64 id, tl_object_ptr<td_api::Function> function) {
         case td_api::setTdlibParameters::ID: {
           auto parameters = move_tl_object_as<td_api::setTdlibParameters>(function);
           auto database_encryption_key = as_db_key(std::move(parameters->database_encryption_key_));
-          auto status = set_parameters(std::move(parameters));
-          if (status.is_error()) {
-            return send_closure(actor_id(this), &Td::send_error, id, std::move(status));
+          auto r_parameters = set_parameters(std::move(parameters));
+          if (r_parameters.is_error()) {
+            return send_closure(actor_id(this), &Td::send_error, id, r_parameters.move_as_error());
           }
 
           VLOG(td_init) << "Begin to open database";
@@ -2967,7 +2967,7 @@ void Td::run_request(uint64 id, tl_object_ptr<td_api::Function> function) {
               PromiseCreator::lambda([actor_id = actor_id(this)](Result<TdDb::OpenedDatabase> r_opened_database) {
                 send_closure(actor_id, &Td::init, std::move(r_opened_database));
               });
-          return TdDb::open(get_database_scheduler_id(), parameters_, std::move(database_encryption_key),
+          return TdDb::open(get_database_scheduler_id(), r_parameters.move_as_ok(), std::move(database_encryption_key),
                             std::move(promise));
         }
         default:
@@ -3549,14 +3549,14 @@ void Td::init(Result<TdDb::OpenedDatabase> r_opened_database) {
   }
   auto events = r_opened_database.move_as_ok();
 
-  parameters_.database_directory = std::move(events.database_directory);
-  parameters_.files_directory = std::move(events.files_directory);
-
-  LOG(INFO) << "Successfully inited database in " << tag("database_directory", parameters_.database_directory)
-            << " and " << tag("files_directory", parameters_.files_directory);
+  LOG(INFO) << "Successfully inited database in " << tag("database_directory", events.parameters.database_directory)
+            << " and " << tag("files_directory", events.parameters.files_directory);
   VLOG(td_init) << "Successfully inited database";
 
-  G()->init(parameters_, actor_id(this), std::move(events.database)).ensure();
+  auto api_id = events.parameters.api_id;
+  auto api_hash = events.parameters.api_hash;
+
+  G()->init(std::move(events.parameters), actor_id(this), std::move(events.database)).ensure();
 
   init_options_and_network();
 
@@ -3600,7 +3600,7 @@ void Td::init(Result<TdDb::OpenedDatabase> r_opened_database) {
   });
 
   VLOG(td_init) << "Create AuthManager";
-  auth_manager_ = td::make_unique<AuthManager>(parameters_.api_id, parameters_.api_hash, create_reference());
+  auth_manager_ = td::make_unique<AuthManager>(api_id, api_hash, create_reference());
   auth_manager_actor_ = register_actor("AuthManager", auth_manager_.get());
   G()->set_auth_manager(auth_manager_actor_.get());
 
@@ -4095,7 +4095,7 @@ Status Td::fix_parameters(TdParameters &parameters) {
   return Status::OK();
 }
 
-Status Td::set_parameters(td_api::object_ptr<td_api::setTdlibParameters> parameters) {
+Result<TdParameters> Td::set_parameters(td_api::object_ptr<td_api::setTdlibParameters> parameters) {
   VLOG(td_init) << "Begin to set TDLib parameters";
   if (!clean_input_string(parameters->api_hash_) || !clean_input_string(parameters->system_language_code_) ||
       !clean_input_string(parameters->device_model_) || !clean_input_string(parameters->system_version_) ||
@@ -4104,19 +4104,20 @@ Status Td::set_parameters(td_api::object_ptr<td_api::setTdlibParameters> paramet
     return Status::Error(400, "Strings must be encoded in UTF-8");
   }
 
-  parameters_.database_directory = parameters->database_directory_;
-  parameters_.files_directory = parameters->files_directory_;
-  parameters_.api_id = parameters->api_id_;
-  parameters_.api_hash = parameters->api_hash_;
-  parameters_.use_test_dc = parameters->use_test_dc_;
-  parameters_.use_file_db = parameters->use_file_database_;
-  parameters_.use_chat_info_db = parameters->use_chat_info_database_;
-  parameters_.use_message_db = parameters->use_message_database_;
-  parameters_.use_secret_chats = parameters->use_secret_chats_;
-  parameters_.enable_storage_optimizer = parameters->enable_storage_optimizer_;
-  parameters_.ignore_file_names = parameters->ignore_file_names_;
+  TdParameters result;
+  result.database_directory = parameters->database_directory_;
+  result.files_directory = parameters->files_directory_;
+  result.api_id = parameters->api_id_;
+  result.api_hash = parameters->api_hash_;
+  result.use_test_dc = parameters->use_test_dc_;
+  result.use_file_db = parameters->use_file_database_;
+  result.use_chat_info_db = parameters->use_chat_info_database_;
+  result.use_message_db = parameters->use_message_database_;
+  result.use_secret_chats = parameters->use_secret_chats_;
+  result.enable_storage_optimizer = parameters->enable_storage_optimizer_;
+  result.ignore_file_names = parameters->ignore_file_names_;
 
-  TRY_STATUS(fix_parameters(parameters_));
+  TRY_STATUS(fix_parameters(result));
 
   VLOG(td_init) << "Create MtprotoHeader::Options";
   options_.api_id = parameters->api_id_;
@@ -4149,7 +4150,7 @@ Status Td::set_parameters(td_api::object_ptr<td_api::setTdlibParameters> paramet
   options_.is_emulator = false;
   options_.proxy = Proxy();
 
-  return Status::OK();
+  return std::move(result);
 }
 
 void Td::on_request(uint64 id, const td_api::setTdlibParameters &request) {

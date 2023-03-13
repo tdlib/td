@@ -444,8 +444,6 @@ void TdDb::open_impl(TdParameters parameters, DbKey key, Promise<OpenedDatabase>
   TRY_STATUS_PROMISE(promise, check_parameters(parameters));
 
   OpenedDatabase result;
-  result.database_directory = parameters.database_directory;
-  result.files_directory = parameters.files_directory;
 
   // Init pmc
   Binlog *binlog_ptr = nullptr;
@@ -538,6 +536,7 @@ void TdDb::open_impl(TdParameters parameters, DbKey key, Promise<OpenedDatabase>
   db->config_pmc_ = std::move(concurrent_config_pmc);
   db->binlog_ = std::move(concurrent_binlog);
 
+  result.parameters = std::move(parameters);
   result.database = std::move(db);
 
   promise.set_value(std::move(result));
