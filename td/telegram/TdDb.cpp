@@ -549,10 +549,6 @@ Status TdDb::check_parameters(TdParameters &parameters) {
     VLOG(td_init) << "Fix database_directory";
     parameters.database_directory = ".";
   }
-  if (parameters.files_directory.empty()) {
-    VLOG(td_init) << "Fix files_directory";
-    parameters.files_directory = parameters.database_directory;
-  }
   if (parameters.use_message_db && !parameters.use_chat_info_db) {
     VLOG(td_init) << "Fix use_chat_info_db";
     parameters.use_chat_info_db = true;
@@ -586,13 +582,17 @@ Status TdDb::check_parameters(TdParameters &parameters) {
   }
   parameters.database_directory = r_database_directory.move_as_ok();
 
-  auto r_files_directory = prepare_dir(parameters.files_directory);
-  if (r_files_directory.is_error()) {
-    VLOG(td_init) << "Invalid files_directory";
-    return Status::Error(400, PSLICE() << "Can't init files directory \"" << parameters.files_directory
-                                       << "\": " << r_files_directory.error());
+  if (parameters.files_directory.empty()) {
+    parameters.files_directory = parameters.database_directory;
+  } else {
+    auto r_files_directory = prepare_dir(parameters.files_directory);
+    if (r_files_directory.is_error()) {
+      VLOG(td_init) << "Invalid files_directory";
+      return Status::Error(400, PSLICE() << "Can't init files directory \"" << parameters.files_directory
+                                         << "\": " << r_files_directory.error());
+    }
+    parameters.files_directory = r_files_directory.move_as_ok();
   }
-  parameters.files_directory = r_files_directory.move_as_ok();
 
   return Status::OK();
 }
