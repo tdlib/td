@@ -226,13 +226,6 @@ DialogDbAsyncInterface *TdDb::get_dialog_db_async() {
   return dialog_db_async_.get();
 }
 
-CSlice TdDb::binlog_path() const {
-  return binlog_->get_path();
-}
-CSlice TdDb::sqlite_path() const {
-  return get_sqlite_path(parameters_);
-}
-
 void TdDb::flush_all() {
   LOG(INFO) << "Flush all databases";
   if (message_db_async_) {
@@ -608,8 +601,8 @@ Status TdDb::destroy(const Parameters &parameters) {
 }
 
 void TdDb::with_db_path(const std::function<void(CSlice)> &callback) {
-  SqliteDb::with_db_path(sqlite_path(), callback);
-  callback(binlog_path());
+  SqliteDb::with_db_path(get_sqlite_path(parameters_), callback);
+  callback(binlog_->get_path());
 }
 
 Result<string> TdDb::get_stats() {

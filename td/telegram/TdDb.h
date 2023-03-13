@@ -118,9 +118,6 @@ class TdDb {
   SqliteKeyValue *get_sqlite_sync_pmc();
   SqliteKeyValueAsyncInterface *get_sqlite_pmc();
 
-  CSlice binlog_path() const;
-  CSlice sqlite_path() const;
-
   void flush_all();
 
   void close_all(Promise<> on_finished);
