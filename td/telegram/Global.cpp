@@ -231,10 +231,6 @@ DcId Global::get_webfile_dc_id() const {
   return DcId::internal(dc_id);
 }
 
-bool Global::ignore_background_updates() const {
-  return !parameters_.use_file_db && !parameters_.use_secret_chats && get_option_boolean("ignore_background_updates");
-}
-
 void Global::set_net_query_stats(std::shared_ptr<NetQueryStats> net_query_stats) {
   net_query_creator_.set_create_func(
       [net_query_stats = std::move(net_query_stats)] { return td::make_unique<NetQueryCreator>(net_query_stats); });

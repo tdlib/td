@@ -110,8 +110,6 @@ class Global final : public ActorContext {
     return parameters_.use_test_dc;
   }
 
-  bool ignore_background_updates() const;
-
   NetQueryCreator &net_query_creator() {
     return *net_query_creator_.get();
   }
@@ -406,10 +404,6 @@ class Global final : public ActorContext {
 
   bool use_message_database() const {
     return parameters_.use_message_db;
-  }
-
-  bool use_secret_chats() const {
-    return parameters_.use_secret_chats;
   }
 
   int32 get_gc_scheduler_id() const {

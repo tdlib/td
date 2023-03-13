@@ -133,6 +133,12 @@ class Td final : public Actor {
 
   void set_is_bot_online(bool is_bot_online);
 
+  bool can_ignore_background_updates() const {
+    return can_ignore_background_updates_;
+  }
+
+  bool ignore_background_updates() const;
+
   unique_ptr<AudiosManager> audios_manager_;
   unique_ptr<CallbackQueriesManager> callback_queries_manager_;
   unique_ptr<DocumentsManager> documents_manager_;
@@ -305,6 +311,8 @@ class Td final : public Actor {
   FlatHashMap<uint64, std::shared_ptr<ResultHandler>> result_handlers_;
   enum : int8 { RequestActorIdType = 1, ActorIdType = 2 };
   Container<ActorOwn<Actor>> request_actors_;
+
+  bool can_ignore_background_updates_ = false;
 
   bool is_online_ = false;
   bool is_bot_online_ = false;

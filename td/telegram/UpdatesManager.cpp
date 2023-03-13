@@ -449,7 +449,7 @@ void UpdatesManager::save_pts(int32 pts) {
     G()->td_db()->get_binlog_pmc()->erase("updates.pts");
     last_pts_save_time_ -= 2 * MAX_PTS_SAVE_DELAY;
     pending_pts_ = 0;
-  } else if (!G()->ignore_background_updates()) {
+  } else if (!td_->ignore_background_updates()) {
     auto now = Time::now();
     auto delay = last_pts_save_time_ + MAX_PTS_SAVE_DELAY - now;
     if (delay <= 0 || !td_->auth_manager_->is_bot()) {
@@ -466,7 +466,7 @@ void UpdatesManager::save_pts(int32 pts) {
 }
 
 void UpdatesManager::save_qts(int32 qts) {
-  if (!G()->ignore_background_updates()) {
+  if (!td_->ignore_background_updates()) {
     auto now = Time::now();
     auto delay = last_qts_save_time_ + MAX_PTS_SAVE_DELAY - now;
     if (delay <= 0 || !td_->auth_manager_->is_bot()) {
@@ -543,7 +543,7 @@ void UpdatesManager::set_date(int32 date, bool from_update, string date_source) 
 
     date_ = date;
     date_source_ = std::move(date_source);
-    if (!G()->ignore_background_updates()) {
+    if (!td_->ignore_background_updates()) {
       G()->td_db()->get_binlog_pmc()->set("updates.date", to_string(date));
     }
   } else if (date < date_) {
@@ -1506,11 +1506,11 @@ void UpdatesManager::init_state() {
     return;
   }
 
-  bool drop_state = !G()->use_file_database() && !G()->use_secret_chats() && td_->auth_manager_->is_bot() &&
+  bool drop_state = td_->can_ignore_background_updates() && td_->auth_manager_->is_bot() &&
                     td_->option_manager_->get_option_integer("since_last_open") >= 2 * 86400;
 
   auto pmc = G()->td_db()->get_binlog_pmc();
-  if (G()->ignore_background_updates() || drop_state) {
+  if (td_->ignore_background_updates() || drop_state) {
     // just in case
     pmc->erase("updates.pts");
     pmc->erase("updates.qts");

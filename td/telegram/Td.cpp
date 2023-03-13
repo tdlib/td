@@ -2743,6 +2743,10 @@ void Td::set_is_bot_online(bool is_bot_online) {
   send_closure(G()->state_manager(), &StateManager::on_online, is_bot_online_);
 }
 
+bool Td::ignore_background_updates() const {
+  return can_ignore_background_updates_ && option_manager_->get_option_boolean("ignore_background_updates");
+}
+
 bool Td::is_authentication_request(int32 id) {
   switch (id) {
     case td_api::setTdlibParameters::ID:
@@ -2962,6 +2966,7 @@ void Td::run_request(uint64 id, tl_object_ptr<td_api::Function> function) {
 
           VLOG(td_init) << "Begin to open database";
           set_parameters_request_id_ = id;
+          can_ignore_background_updates_ = !r_parameters.ok().use_file_db && !r_parameters.ok().use_secret_chats;
 
           auto promise =
               PromiseCreator::lambda([actor_id = actor_id(this)](Result<TdDb::OpenedDatabase> r_opened_database) {
