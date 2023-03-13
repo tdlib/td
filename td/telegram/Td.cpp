@@ -4104,17 +4104,17 @@ Status Td::set_parameters(td_api::object_ptr<td_api::setTdlibParameters> paramet
     return Status::Error(400, "Strings must be encoded in UTF-8");
   }
 
-  parameters_.use_test_dc = parameters->use_test_dc_;
   parameters_.database_directory = parameters->database_directory_;
   parameters_.files_directory = parameters->files_directory_;
   parameters_.api_id = parameters->api_id_;
   parameters_.api_hash = parameters->api_hash_;
+  parameters_.use_test_dc = parameters->use_test_dc_;
   parameters_.use_file_db = parameters->use_file_database_;
-  parameters_.enable_storage_optimizer = parameters->enable_storage_optimizer_;
-  parameters_.ignore_file_names = parameters->ignore_file_names_;
-  parameters_.use_secret_chats = parameters->use_secret_chats_;
   parameters_.use_chat_info_db = parameters->use_chat_info_database_;
   parameters_.use_message_db = parameters->use_message_database_;
+  parameters_.use_secret_chats = parameters->use_secret_chats_;
+  parameters_.enable_storage_optimizer = parameters->enable_storage_optimizer_;
+  parameters_.ignore_file_names = parameters->ignore_file_names_;
 
   TRY_STATUS(fix_parameters(parameters_));
 

@@ -6,23 +6,24 @@
 //
 #pragma once
 
-#include <cstdint>
-#include <string>
+#include "td/utils/common.h"
 
 namespace td {
 
 struct TdParameters {
+  string database_directory;
+  string files_directory;
+  int32 api_id = 0;
+  string api_hash;
   bool use_test_dc = false;
-  std::string database_directory;
-  std::string files_directory;
-  std::int32_t api_id = 0;
-  std::string api_hash;
-  bool use_file_db = true;
-  bool enable_storage_optimizer = false;
-  bool ignore_file_names = false;
-  bool use_secret_chats = false;
+  bool use_file_db = false;
   bool use_chat_info_db = false;
   bool use_message_db = false;
+  bool use_secret_chats = false;
+
+  // TODO move to options
+  bool enable_storage_optimizer = false;
+  bool ignore_file_names = false;
 };
 
 }  // namespace td
