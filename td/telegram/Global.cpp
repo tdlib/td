@@ -149,6 +149,10 @@ bool Global::use_file_database() const {
   return td_db_->use_file_database();
 }
 
+bool Global::use_sqlite_pmc() const {
+  return td_db_->use_sqlite_pmc();
+}
+
 bool Global::use_chat_info_database() const {
   return td_db_->use_chat_info_database();
 }

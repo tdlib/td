@@ -392,6 +392,8 @@ class Global final : public ActorContext {
 
   bool use_file_database() const;
 
+  bool use_sqlite_pmc() const;
+
   bool use_chat_info_database() const;
 
   bool use_message_database() const;

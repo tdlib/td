@@ -3954,7 +3954,7 @@ ContactsManager::ContactsManager(Td *td, ActorShared<> parent) : td_(td), parent
     G()->td_db()->get_binlog_pmc()->erase("next_contacts_sync_date");
     G()->td_db()->get_binlog_pmc()->erase("saved_contact_count");
   }
-  if (G()->use_file_database()) {
+  if (G()->use_sqlite_pmc()) {
     G()->td_db()->get_sqlite_pmc()->erase_by_prefix("us_bot_info", Auto());
   }
 
@@ -12828,7 +12828,7 @@ void ContactsManager::on_update_user_phone_number(User *u, UserId user_id, strin
 
 void ContactsManager::on_update_user_photo(User *u, UserId user_id,
                                            tl_object_ptr<telegram_api::UserProfilePhoto> &&photo, const char *source) {
-  if (td_->auth_manager_->is_bot() && !G()->use_file_database() && !u->is_photo_inited) {
+  if (td_->auth_manager_->is_bot() && !G()->use_chat_info_database() && !u->is_photo_inited) {
     if (photo != nullptr && photo->get_id() == telegram_api::userProfilePhoto::ID) {
       auto *profile_photo = static_cast<telegram_api::userProfilePhoto *>(photo.get());
       if ((profile_photo->flags_ & telegram_api::userProfilePhoto::STRIPPED_THUMB_MASK) != 0) {

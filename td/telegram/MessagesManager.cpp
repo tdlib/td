@@ -16375,7 +16375,7 @@ bool MessagesManager::can_unload_message(const Dialog *d, const Message *m) cons
   CHECK(m != nullptr);
   CHECK(m->message_id.is_valid());
   FullMessageId full_message_id{d->dialog_id, m->message_id};
-  if (td_->auth_manager_->is_bot() && !G()->use_file_database()) {
+  if (td_->auth_manager_->is_bot() && !G()->use_message_database()) {
     return !m->message_id.is_yet_unsent() && replied_by_yet_unsent_messages_.count(full_message_id) == 0 &&
            m->edited_content == nullptr && m->message_id != d->last_pinned_message_id &&
            m->message_id != d->last_edited_message_id;
@@ -16766,7 +16766,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
     }
   } else {
     if (message_id == d->last_message_id) {
-      CHECK(td_->auth_manager_->is_bot() && !G()->use_file_database());
+      CHECK(td_->auth_manager_->is_bot() && !G()->use_message_database());
       set_dialog_last_message_id(d, MessageId(), "do_delete_message");
     }
   }

@@ -95,6 +95,10 @@ class TdDb {
     return parameters_.use_file_database_;
   }
 
+  bool use_sqlite_pmc() const {
+    return parameters_.use_file_database_;
+  }
+
   bool use_chat_info_database() const {
     return parameters_.use_chat_info_database_;
   }
