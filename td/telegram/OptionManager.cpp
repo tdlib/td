@@ -675,6 +675,9 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
       if (set_boolean_option("ignore_default_disable_notification")) {
         return;
       }
+      if (set_boolean_option("ignore_file_names")) {
+        return;
+      }
       if (set_boolean_option("ignore_inline_thumbnails")) {
         return;
       }
