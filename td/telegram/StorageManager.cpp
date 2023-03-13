@@ -321,7 +321,7 @@ void StorageManager::save_last_gc_timestamp() {
 }
 
 void StorageManager::schedule_next_gc() {
-  if (!G()->get_option_boolean("use_storage_optimizer") && !G()->parameters().enable_storage_optimizer) {
+  if (!G()->get_option_boolean("use_storage_optimizer")) {
     next_gc_at_ = 0;
     cancel_timeout();
     LOG(INFO) << "No next file clean up is scheduled";

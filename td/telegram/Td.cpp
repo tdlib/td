@@ -3556,9 +3556,13 @@ void Td::init(Result<TdDb::OpenedDatabase> r_opened_database) {
   auto api_id = events.parameters.api_id;
   auto api_hash = events.parameters.api_hash;
 
+  bool use_storage_optimizer = events.parameters.enable_storage_optimizer;
+
   G()->init(std::move(events.parameters), actor_id(this), std::move(events.database)).ensure();
 
   init_options_and_network();
+
+  option_manager_->set_option_boolean("use_storage_optimizer", use_storage_optimizer);
 
   // we need to process td_api::getOption along with td_api::setOption for consistency
   // we need to process td_api::setOption before managers and MTProto header are created,
