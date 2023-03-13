@@ -4078,34 +4078,6 @@ Promise<Unit> Td::create_ok_request_promise(uint64 id) {
   static_assert(std::is_same<std::decay_t<decltype(request)>::ReturnType, td_api::object_ptr<td_api::ok>>::value, ""); \
   auto promise = create_ok_request_promise(id)
 
-Status Td::fix_parameters(TdParameters &parameters) {
-  if (parameters.database_directory.empty()) {
-    VLOG(td_init) << "Fix database_directory";
-    parameters.database_directory = ".";
-  }
-  if (parameters.files_directory.empty()) {
-    VLOG(td_init) << "Fix files_directory";
-    parameters.files_directory = parameters.database_directory;
-  }
-  if (parameters.use_message_db && !parameters.use_chat_info_db) {
-    VLOG(td_init) << "Fix use_chat_info_db";
-    parameters.use_chat_info_db = true;
-  }
-  if (parameters.use_chat_info_db && !parameters.use_file_db) {
-    VLOG(td_init) << "Fix use_file_db";
-    parameters.use_file_db = true;
-  }
-  if (parameters.api_id <= 0) {
-    VLOG(td_init) << "Invalid api_id";
-    return Status::Error(400, "Valid api_id must be provided. Can be obtained at https://my.telegram.org");
-  }
-  if (parameters.api_hash.empty()) {
-    VLOG(td_init) << "Invalid api_hash";
-    return Status::Error(400, "Valid api_hash must be provided. Can be obtained at https://my.telegram.org");
-  }
-  return Status::OK();
-}
-
 Result<TdParameters> Td::set_parameters(td_api::object_ptr<td_api::setTdlibParameters> parameters) {
   VLOG(td_init) << "Begin to set TDLib parameters";
   if (!clean_input_string(parameters->api_hash_) || !clean_input_string(parameters->system_language_code_) ||
@@ -4115,11 +4087,18 @@ Result<TdParameters> Td::set_parameters(td_api::object_ptr<td_api::setTdlibParam
     return Status::Error(400, "Strings must be encoded in UTF-8");
   }
 
+  if (parameters->api_id_ <= 0) {
+    return Status::Error(400, "Valid api_id must be provided. Can be obtained at https://my.telegram.org");
+  }
+  if (parameters->api_hash_.empty()) {
+    return Status::Error(400, "Valid api_hash must be provided. Can be obtained at https://my.telegram.org");
+  }
+
   TdParameters result;
-  result.database_directory = parameters->database_directory_;
-  result.files_directory = parameters->files_directory_;
+  result.database_directory = std::move(parameters->database_directory_);
+  result.files_directory = std::move(parameters->files_directory_);
   result.api_id = parameters->api_id_;
-  result.api_hash = parameters->api_hash_;
+  result.api_hash = std::move(parameters->api_hash_);
   result.use_test_dc = parameters->use_test_dc_;
   result.use_file_db = parameters->use_file_database_;
   result.use_chat_info_db = parameters->use_chat_info_database_;
@@ -4127,8 +4106,6 @@ Result<TdParameters> Td::set_parameters(td_api::object_ptr<td_api::setTdlibParam
   result.use_secret_chats = parameters->use_secret_chats_;
   result.enable_storage_optimizer = parameters->enable_storage_optimizer_;
   result.ignore_file_names = parameters->ignore_file_names_;
-
-  TRY_STATUS(fix_parameters(result));
 
   VLOG(td_init) << "Create MtprotoHeader::Options";
   options_.api_id = parameters->api_id_;

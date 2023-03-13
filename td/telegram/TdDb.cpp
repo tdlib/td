@@ -545,6 +545,23 @@ TdDb::TdDb() = default;
 TdDb::~TdDb() = default;
 
 Status TdDb::check_parameters(TdParameters &parameters) {
+  if (parameters.database_directory.empty()) {
+    VLOG(td_init) << "Fix database_directory";
+    parameters.database_directory = ".";
+  }
+  if (parameters.files_directory.empty()) {
+    VLOG(td_init) << "Fix files_directory";
+    parameters.files_directory = parameters.database_directory;
+  }
+  if (parameters.use_message_db && !parameters.use_chat_info_db) {
+    VLOG(td_init) << "Fix use_chat_info_db";
+    parameters.use_chat_info_db = true;
+  }
+  if (parameters.use_chat_info_db && !parameters.use_file_db) {
+    VLOG(td_init) << "Fix use_file_db";
+    parameters.use_file_db = true;
+  }
+
   auto prepare_dir = [](string dir) -> Result<string> {
     CHECK(!dir.empty());
     if (dir.back() != TD_DIR_SLASH) {
