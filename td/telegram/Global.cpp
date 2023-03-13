@@ -35,13 +35,11 @@ void Global::log_out(Slice reason) {
 void Global::close_all(Promise<> on_finished) {
   td_db_->close_all(std::move(on_finished));
   state_manager_.clear();
-  parameters_ = TdParameters();
 }
 
 void Global::close_and_destroy_all(Promise<> on_finished) {
   td_db_->close_and_destroy_all(std::move(on_finished));
   state_manager_.clear();
-  parameters_ = TdParameters();
 }
 
 ActorId<ConnectionCreator> Global::connection_creator() const {
