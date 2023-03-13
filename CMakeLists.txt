@@ -748,7 +748,6 @@ set(TDLIB_SOURCE
   td/telegram/Td.h
   td/telegram/TdCallback.h
   td/telegram/TdDb.h
-  td/telegram/TdParameters.h
   td/telegram/TermsOfService.h
   td/telegram/ThemeManager.h
   td/telegram/TopDialogCategory.h

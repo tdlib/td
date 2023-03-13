@@ -45,13 +45,13 @@ namespace td {
 
 namespace {
 
-std::string get_binlog_path(const TdParameters &parameters) {
-  return PSTRING() << parameters.database_directory << "td" << (parameters.use_test_dc ? "_test" : "") << ".binlog";
+std::string get_binlog_path(const TdDb::Parameters &parameters) {
+  return PSTRING() << parameters.database_directory_ << "td" << (parameters.is_test_dc_ ? "_test" : "") << ".binlog";
 }
 
-std::string get_sqlite_path(const TdParameters &parameters) {
-  const string db_name = "db" + (parameters.use_test_dc ? string("_test") : string());
-  return parameters.database_directory + db_name + ".sqlite";
+std::string get_sqlite_path(const TdDb::Parameters &parameters) {
+  const string db_name = "db" + (parameters.is_test_dc_ ? string("_test") : string());
+  return parameters.database_directory_ + db_name + ".sqlite";
 }
 
 Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_pmc, BinlogKeyValue<Binlog> &config_pmc,
@@ -317,18 +317,18 @@ void TdDb::do_close(Promise<> on_finished, bool destroy_flag) {
   lock.set_value(Unit());
 }
 
-Status TdDb::init_sqlite(const TdParameters &parameters, const DbKey &key, const DbKey &old_key,
+Status TdDb::init_sqlite(const Parameters &parameters, const DbKey &key, const DbKey &old_key,
                          BinlogKeyValue<Binlog> &binlog_pmc) {
-  CHECK(!parameters.use_message_db || parameters.use_chat_info_db);
-  CHECK(!parameters.use_chat_info_db || parameters.use_file_db);
+  CHECK(!parameters.use_message_database_ || parameters.use_chat_info_database_);
+  CHECK(!parameters.use_chat_info_database_ || parameters.use_file_database_);
 
   const string sql_database_path = get_sqlite_path(parameters);
 
-  bool use_sqlite = parameters.use_file_db;
-  bool use_file_db = parameters.use_file_db;
-  bool use_dialog_db = parameters.use_message_db;
-  bool use_message_thread_db = parameters.use_message_db && false;
-  bool use_message_db = parameters.use_message_db;
+  bool use_sqlite = parameters.use_file_database_;
+  bool use_file_database_ = parameters.use_file_database_;
+  bool use_dialog_db = parameters.use_message_database_;
+  bool use_message_thread_db = parameters.use_message_database_ && false;
+  bool use_message_database_ = parameters.use_message_database_;
   if (!use_sqlite) {
     SqliteDb::destroy(sql_database_path).ignore();
     return Status::OK();
@@ -369,14 +369,14 @@ Status TdDb::init_sqlite(const TdParameters &parameters, const DbKey &key, const
   }
 
   // init MessageDb
-  if (use_message_db) {
+  if (use_message_database_) {
     TRY_STATUS(init_message_db(db, user_version));
   } else {
     TRY_STATUS(drop_message_db(db, user_version));
   }
 
   // init filesDb
-  if (use_file_db) {
+  if (use_file_database_) {
     TRY_STATUS(init_file_db(db, user_version));
   } else {
     TRY_STATUS(drop_file_db(db, user_version));
@@ -425,7 +425,7 @@ Status TdDb::init_sqlite(const TdParameters &parameters, const DbKey &key, const
     message_thread_db_async_ = create_message_thread_db_async(message_thread_db_sync_safe_);
   }
 
-  if (use_message_db) {
+  if (use_message_database_) {
     message_db_sync_safe_ = create_message_db_sync(sql_connection_);
     message_db_async_ = create_message_db_async(message_db_sync_safe_);
   }
@@ -433,13 +433,14 @@ Status TdDb::init_sqlite(const TdParameters &parameters, const DbKey &key, const
   return Status::OK();
 }
 
-void TdDb::open(int32 scheduler_id, TdParameters parameters, DbKey key, Promise<OpenedDatabase> &&promise) {
+void TdDb::open(int32 scheduler_id, Parameters parameters, Promise<OpenedDatabase> &&promise) {
   Scheduler::instance()->run_on_scheduler(
-      scheduler_id, [parameters = std::move(parameters), key = std::move(key), promise = std::move(promise)](
-                        Unit) mutable { TdDb::open_impl(std::move(parameters), std::move(key), std::move(promise)); });
+      scheduler_id, [parameters = std::move(parameters), promise = std::move(promise)](Unit) mutable {
+        TdDb::open_impl(std::move(parameters), std::move(promise));
+      });
 }
 
-void TdDb::open_impl(TdParameters parameters, DbKey key, Promise<OpenedDatabase> &&promise) {
+void TdDb::open_impl(Parameters parameters, Promise<OpenedDatabase> &&promise) {
   TRY_STATUS_PROMISE(promise, check_parameters(parameters));
 
   OpenedDatabase result;
@@ -453,10 +454,10 @@ void TdDb::open_impl(TdParameters parameters, DbKey key, Promise<OpenedDatabase>
   binlog_pmc->external_init_begin(static_cast<int32>(LogEvent::HandlerType::BinlogPmcMagic));
   config_pmc->external_init_begin(static_cast<int32>(LogEvent::HandlerType::ConfigPmcMagic));
 
-  bool encrypt_binlog = !key.is_empty();
+  bool encrypt_binlog = !parameters.encryption_key_.is_empty();
   VLOG(td_init) << "Start binlog loading";
-  TRY_STATUS_PROMISE(
-      promise, init_binlog(*binlog, get_binlog_path(parameters), *binlog_pmc, *config_pmc, result, std::move(key)));
+  TRY_STATUS_PROMISE(promise, init_binlog(*binlog, get_binlog_path(parameters), *binlog_pmc, *config_pmc, result,
+                                          std::move(parameters.encryption_key_)));
   VLOG(td_init) << "Finish binlog loading";
 
   binlog_pmc->external_init_finish(binlog);
@@ -464,7 +465,7 @@ void TdDb::open_impl(TdParameters parameters, DbKey key, Promise<OpenedDatabase>
   config_pmc->external_init_finish(binlog);
   VLOG(td_init) << "Finish initialization of config PMC";
 
-  if (parameters.use_file_db && binlog_pmc->get("auth").empty()) {
+  if (parameters.use_file_database_ && binlog_pmc->get("auth").empty()) {
     LOG(INFO) << "Destroy SQLite database, because wasn't authorized yet";
     SqliteDb::destroy(get_sqlite_path(parameters)).ignore();
   }
@@ -531,11 +532,14 @@ void TdDb::open_impl(TdParameters parameters, DbKey key, Promise<OpenedDatabase>
   VLOG(td_init) << "Init concurrent_config_pmc";
   concurrent_config_pmc->external_init_finish(concurrent_binlog);
 
+  LOG(INFO) << "Successfully inited database in directory " << parameters.database_directory_ << " and files directory "
+            << parameters.files_directory_;
+
+  db->parameters_ = std::move(parameters);
   db->binlog_pmc_ = std::move(concurrent_binlog_pmc);
   db->config_pmc_ = std::move(concurrent_config_pmc);
   db->binlog_ = std::move(concurrent_binlog);
 
-  result.parameters = std::move(parameters);
   result.database = std::move(db);
 
   promise.set_value(std::move(result));
@@ -544,18 +548,15 @@ void TdDb::open_impl(TdParameters parameters, DbKey key, Promise<OpenedDatabase>
 TdDb::TdDb() = default;
 TdDb::~TdDb() = default;
 
-Status TdDb::check_parameters(TdParameters &parameters) {
-  if (parameters.database_directory.empty()) {
-    VLOG(td_init) << "Fix database_directory";
-    parameters.database_directory = ".";
+Status TdDb::check_parameters(Parameters &parameters) {
+  if (parameters.database_directory_.empty()) {
+    parameters.database_directory_ = ".";
   }
-  if (parameters.use_message_db && !parameters.use_chat_info_db) {
-    VLOG(td_init) << "Fix use_chat_info_db";
-    parameters.use_chat_info_db = true;
+  if (parameters.use_message_database_ && !parameters.use_chat_info_database_) {
+    parameters.use_chat_info_database_ = true;
   }
-  if (parameters.use_chat_info_db && !parameters.use_file_db) {
-    VLOG(td_init) << "Fix use_file_db";
-    parameters.use_file_db = true;
+  if (parameters.use_chat_info_database_ && !parameters.use_file_database_) {
+    parameters.use_file_database_ = true;
   }
 
   auto prepare_dir = [](string dir) -> Result<string> {
@@ -574,24 +575,24 @@ Status TdDb::check_parameters(TdParameters &parameters) {
     return real_dir;
   };
 
-  auto r_database_directory = prepare_dir(parameters.database_directory);
+  auto r_database_directory = prepare_dir(parameters.database_directory_);
   if (r_database_directory.is_error()) {
-    VLOG(td_init) << "Invalid database_directory";
-    return Status::Error(400, PSLICE() << "Can't init database in the directory \"" << parameters.database_directory
+    VLOG(td_init) << "Invalid database directory";
+    return Status::Error(400, PSLICE() << "Can't init database in the directory \"" << parameters.database_directory_
                                        << "\": " << r_database_directory.error());
   }
-  parameters.database_directory = r_database_directory.move_as_ok();
+  parameters.database_directory_ = r_database_directory.move_as_ok();
 
-  if (parameters.files_directory.empty()) {
-    parameters.files_directory = parameters.database_directory;
+  if (parameters.files_directory_.empty()) {
+    parameters.files_directory_ = parameters.database_directory_;
   } else {
-    auto r_files_directory = prepare_dir(parameters.files_directory);
+    auto r_files_directory = prepare_dir(parameters.files_directory_);
     if (r_files_directory.is_error()) {
-      VLOG(td_init) << "Invalid files_directory";
-      return Status::Error(400, PSLICE() << "Can't init files directory \"" << parameters.files_directory
+      VLOG(td_init) << "Invalid files directory";
+      return Status::Error(400, PSLICE() << "Can't init files directory \"" << parameters.files_directory_
                                          << "\": " << r_files_directory.error());
     }
-    parameters.files_directory = r_files_directory.move_as_ok();
+    parameters.files_directory_ = r_files_directory.move_as_ok();
   }
 
   return Status::OK();
@@ -601,7 +602,7 @@ void TdDb::change_key(DbKey key, Promise<> promise) {
   get_binlog()->change_key(std::move(key), std::move(promise));
 }
 
-Status TdDb::destroy(const TdParameters &parameters) {
+Status TdDb::destroy(const Parameters &parameters) {
   SqliteDb::destroy(get_sqlite_path(parameters)).ignore();
   Binlog::destroy(get_binlog_path(parameters)).ignore();
   return Status::OK();

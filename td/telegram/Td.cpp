@@ -2957,23 +2957,23 @@ void Td::run_request(uint64 id, tl_object_ptr<td_api::Function> function) {
     case State::WaitParameters: {
       switch (function_id) {
         case td_api::setTdlibParameters::ID: {
-          auto parameters = move_tl_object_as<td_api::setTdlibParameters>(function);
-          auto database_encryption_key = as_db_key(std::move(parameters->database_encryption_key_));
-          auto r_parameters = set_parameters(std::move(parameters));
+          auto r_parameters = get_parameters(move_tl_object_as<td_api::setTdlibParameters>(function));
           if (r_parameters.is_error()) {
             return send_closure(actor_id(this), &Td::send_error, id, r_parameters.move_as_error());
           }
+          auto parameters = r_parameters.move_as_ok();
 
           VLOG(td_init) << "Begin to open database";
           set_parameters_request_id_ = id;
-          can_ignore_background_updates_ = !r_parameters.ok().use_file_db && !r_parameters.ok().use_secret_chats;
+          can_ignore_background_updates_ =
+              !parameters.second.use_file_database_ && !parameters.second.use_chat_info_database_ &&
+              !parameters.second.use_message_database_ && !parameters.first.use_secret_chats_;
 
-          auto promise =
-              PromiseCreator::lambda([actor_id = actor_id(this)](Result<TdDb::OpenedDatabase> r_opened_database) {
-                send_closure(actor_id, &Td::init, std::move(r_opened_database));
-              });
-          return TdDb::open(get_database_scheduler_id(), r_parameters.move_as_ok(), std::move(database_encryption_key),
-                            std::move(promise));
+          auto promise = PromiseCreator::lambda([actor_id = actor_id(this), parameters = std::move(parameters.first)](
+                                                    Result<TdDb::OpenedDatabase> r_opened_database) mutable {
+            send_closure(actor_id, &Td::init, std::move(parameters), std::move(r_opened_database));
+          });
+          return TdDb::open(get_database_scheduler_id(), std::move(parameters.second), std::move(promise));
         }
         default:
           if (is_preinitialization_request(function_id)) {
@@ -3545,7 +3545,7 @@ void Td::finish_set_parameters() {
   CHECK(pending_set_parameters_requests_.size() < requests.size());
 }
 
-void Td::init(Result<TdDb::OpenedDatabase> r_opened_database) {
+void Td::init(Parameters parameters, Result<TdDb::OpenedDatabase> r_opened_database) {
   CHECK(set_parameters_request_id_ != 0);
   if (r_opened_database.is_error()) {
     LOG(WARNING) << "Failed to open database: " << r_opened_database.error();
@@ -3554,16 +3554,14 @@ void Td::init(Result<TdDb::OpenedDatabase> r_opened_database) {
   }
   auto events = r_opened_database.move_as_ok();
 
-  LOG(INFO) << "Successfully inited database in " << tag("database_directory", events.parameters.database_directory)
-            << " and " << tag("files_directory", events.parameters.files_directory);
   VLOG(td_init) << "Successfully inited database";
 
-  G()->init(events.parameters, actor_id(this), std::move(events.database)).ensure();
+  G()->init(actor_id(this), std::move(events.database)).ensure();
 
   init_options_and_network();
 
-  option_manager_->set_option_boolean("use_storage_optimizer", events.parameters.enable_storage_optimizer);
-  option_manager_->set_option_boolean("ignore_file_names", events.parameters.ignore_file_names);
+  option_manager_->set_option_boolean("use_storage_optimizer", parameters.enable_storage_optimizer_);
+  option_manager_->set_option_boolean("ignore_file_names", parameters.ignore_file_names_);
 
   // we need to process td_api::getOption along with td_api::setOption for consistency
   // we need to process td_api::setOption before managers and MTProto header are created,
@@ -3627,8 +3625,7 @@ void Td::init(Result<TdDb::OpenedDatabase> r_opened_database) {
   });
 
   VLOG(td_init) << "Create AuthManager";
-  auth_manager_ =
-      td::make_unique<AuthManager>(events.parameters.api_id, events.parameters.api_hash, create_reference());
+  auth_manager_ = td::make_unique<AuthManager>(parameters.api_id_, parameters.api_hash_, create_reference());
   auth_manager_actor_ = register_actor("AuthManager", auth_manager_.get());
   G()->set_auth_manager(auth_manager_actor_.get());
 
@@ -3637,7 +3634,7 @@ void Td::init(Result<TdDb::OpenedDatabase> r_opened_database) {
   init_managers();
 
   secret_chats_manager_ =
-      create_actor<SecretChatsManager>("SecretChatsManager", create_reference(), events.parameters.use_secret_chats);
+      create_actor<SecretChatsManager>("SecretChatsManager", create_reference(), parameters.use_secret_chats_);
   G()->set_secret_chats_manager(secret_chats_manager_.get());
 
   storage_manager_ = create_actor<StorageManager>("StorageManager", create_reference(), G()->get_gc_scheduler_id());
@@ -4078,7 +4075,8 @@ Promise<Unit> Td::create_ok_request_promise(uint64 id) {
   static_assert(std::is_same<std::decay_t<decltype(request)>::ReturnType, td_api::object_ptr<td_api::ok>>::value, ""); \
   auto promise = create_ok_request_promise(id)
 
-Result<TdParameters> Td::set_parameters(td_api::object_ptr<td_api::setTdlibParameters> parameters) {
+Result<std::pair<Td::Parameters, TdDb::Parameters>> Td::get_parameters(
+    td_api::object_ptr<td_api::setTdlibParameters> parameters) {
   VLOG(td_init) << "Begin to set TDLib parameters";
   if (!clean_input_string(parameters->api_hash_) || !clean_input_string(parameters->system_language_code_) ||
       !clean_input_string(parameters->device_model_) || !clean_input_string(parameters->system_version_) ||
@@ -4094,18 +4092,20 @@ Result<TdParameters> Td::set_parameters(td_api::object_ptr<td_api::setTdlibParam
     return Status::Error(400, "Valid api_hash must be provided. Can be obtained at https://my.telegram.org");
   }
 
-  TdParameters result;
-  result.database_directory = std::move(parameters->database_directory_);
-  result.files_directory = std::move(parameters->files_directory_);
-  result.api_id = parameters->api_id_;
-  result.api_hash = std::move(parameters->api_hash_);
-  result.use_test_dc = parameters->use_test_dc_;
-  result.use_file_db = parameters->use_file_database_;
-  result.use_chat_info_db = parameters->use_chat_info_database_;
-  result.use_message_db = parameters->use_message_database_;
-  result.use_secret_chats = parameters->use_secret_chats_;
-  result.enable_storage_optimizer = parameters->enable_storage_optimizer_;
-  result.ignore_file_names = parameters->ignore_file_names_;
+  std::pair<Parameters, TdDb::Parameters> result;
+  result.first.api_id_ = parameters->api_id_;
+  result.first.api_hash_ = std::move(parameters->api_hash_);
+  result.first.use_secret_chats_ = parameters->use_secret_chats_;
+  result.first.enable_storage_optimizer_ = parameters->enable_storage_optimizer_;
+  result.first.ignore_file_names_ = parameters->ignore_file_names_;
+
+  result.second.encryption_key_ = as_db_key(std::move(parameters->database_encryption_key_));
+  result.second.database_directory_ = std::move(parameters->database_directory_);
+  result.second.files_directory_ = std::move(parameters->files_directory_);
+  result.second.is_test_dc_ = parameters->use_test_dc_;
+  result.second.use_file_database_ = parameters->use_file_database_;
+  result.second.use_chat_info_database_ = parameters->use_chat_info_database_;
+  result.second.use_message_database_ = parameters->use_message_database_;
 
   VLOG(td_init) << "Create MtprotoHeader::Options";
   options_.api_id = parameters->api_id_;

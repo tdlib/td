@@ -14,7 +14,6 @@
 #include "td/telegram/td_api.h"
 #include "td/telegram/TdCallback.h"
 #include "td/telegram/TdDb.h"
-#include "td/telegram/TdParameters.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/TermsOfService.h"
 
@@ -1598,9 +1597,19 @@ class Td final : public Actor {
 
   static int32 get_database_scheduler_id();
 
+  struct Parameters {
+    int32 api_id_ = 0;
+    string api_hash_;
+    bool use_secret_chats_ = false;
+
+    // TODO move to options and remove
+    bool enable_storage_optimizer_ = false;
+    bool ignore_file_names_ = false;
+  };
+
   void finish_set_parameters();
 
-  void init(Result<TdDb::OpenedDatabase> r_opened_database);
+  void init(Parameters parameters, Result<TdDb::OpenedDatabase> r_opened_database);
 
   void init_options_and_network();
 
@@ -1612,7 +1621,8 @@ class Td final : public Actor {
 
   void close_impl(bool destroy_flag);
 
-  Result<TdParameters> set_parameters(td_api::object_ptr<td_api::setTdlibParameters> parameters) TD_WARN_UNUSED_RESULT;
+  Result<std::pair<Parameters, TdDb::Parameters>> get_parameters(
+      td_api::object_ptr<td_api::setTdlibParameters> parameters) TD_WARN_UNUSED_RESULT;
 
   static td_api::object_ptr<td_api::error> make_error(int32 code, CSlice error) {
     return td_api::make_object<td_api::error>(code, error.str());

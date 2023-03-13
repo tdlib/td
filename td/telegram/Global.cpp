@@ -85,9 +85,7 @@ struct ServerTimeDiff {
   }
 };
 
-Status Global::init(const TdParameters &parameters, ActorId<Td> td, unique_ptr<TdDb> td_db_ptr) {
-  parameters_ = parameters;
-
+Status Global::init(ActorId<Td> td, unique_ptr<TdDb> td_db_ptr) {
   gc_scheduler_id_ = min(Scheduler::instance()->sched_id() + 2, Scheduler::instance()->sched_count() - 1);
   slow_net_scheduler_id_ = min(Scheduler::instance()->sched_id() + 3, Scheduler::instance()->sched_count() - 1);
 
@@ -133,6 +131,30 @@ Status Global::init(const TdParameters &parameters, ActorId<Td> td, unique_ptr<T
   dns_time_difference_was_updated_ = false;
 
   return Status::OK();
+}
+
+Slice Global::get_dir() const {
+  return td_db_->get_database_directory();
+}
+
+Slice Global::get_files_dir() const {
+  return td_db_->get_files_directory();
+}
+
+bool Global::is_test_dc() const {
+  return td_db_->is_test_dc();
+}
+
+bool Global::use_file_database() const {
+  return td_db_->use_file_database();
+}
+
+bool Global::use_chat_info_database() const {
+  return td_db_->use_chat_info_database();
+}
+
+bool Global::use_message_database() const {
+  return td_db_->use_message_database();
 }
 
 int32 Global::get_retry_after(int32 error_code, Slice error_message) {

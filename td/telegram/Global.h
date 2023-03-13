@@ -10,7 +10,6 @@
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/MtprotoHeader.h"
 #include "td/telegram/net/NetQueryCreator.h"
-#include "td/telegram/TdParameters.h"
 
 #include "td/net/NetStats.h"
 
@@ -92,23 +91,20 @@ class Global final : public ActorContext {
   void close_all(Promise<> on_finished);
   void close_and_destroy_all(Promise<> on_finished);
 
-  Status init(const TdParameters &parameters, ActorId<Td> td, unique_ptr<TdDb> td_db_ptr) TD_WARN_UNUSED_RESULT;
+  Status init(ActorId<Td> td, unique_ptr<TdDb> td_db_ptr) TD_WARN_UNUSED_RESULT;
 
-  Slice get_dir() const {
-    return parameters_.database_directory;
-  }
+  Slice get_dir() const;
+
   Slice get_secure_files_dir() const {
     if (store_all_files_in_files_directory_) {
       return get_files_dir();
     }
     return get_dir();
   }
-  Slice get_files_dir() const {
-    return parameters_.files_directory;
-  }
-  bool is_test_dc() const {
-    return parameters_.use_test_dc;
-  }
+
+  Slice get_files_dir() const;
+
+  bool is_test_dc() const;
 
   NetQueryCreator &net_query_creator() {
     return *net_query_creator_.get();
@@ -394,17 +390,11 @@ class Global final : public ActorContext {
     return mtproto_header_ != nullptr;
   }
 
-  bool use_file_database() const {
-    return parameters_.use_file_db;
-  }
+  bool use_file_database() const;
 
-  bool use_chat_info_database() const {
-    return parameters_.use_chat_info_db;
-  }
+  bool use_chat_info_database() const;
 
-  bool use_message_database() const {
-    return parameters_.use_message_db;
-  }
+  bool use_message_database() const;
 
   int32 get_gc_scheduler_id() const {
     return gc_scheduler_id_;
@@ -528,7 +518,6 @@ class Global final : public ActorContext {
 
   OptionManager *option_manager_ = nullptr;
 
-  TdParameters parameters_;
   int32 gc_scheduler_id_ = 0;
   int32 slow_net_scheduler_id_ = 0;
 
