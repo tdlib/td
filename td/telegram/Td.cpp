@@ -2965,9 +2965,9 @@ void Td::run_request(uint64 id, tl_object_ptr<td_api::Function> function) {
 
           VLOG(td_init) << "Begin to open database";
           set_parameters_request_id_ = id;
-          can_ignore_background_updates_ =
-              !parameters.second.use_file_database_ && !parameters.second.use_chat_info_database_ &&
-              !parameters.second.use_message_database_ && !parameters.first.use_secret_chats_;
+          can_ignore_background_updates_ = !parameters.second.use_chat_info_database_ &&
+                                           !parameters.second.use_message_database_ &&
+                                           !parameters.first.use_secret_chats_;
 
           auto promise = PromiseCreator::lambda([actor_id = actor_id(this), parameters = std::move(parameters.first)](
                                                     Result<TdDb::OpenedDatabase> r_opened_database) mutable {
