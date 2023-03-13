@@ -230,7 +230,7 @@ CSlice TdDb::binlog_path() const {
   return binlog_->get_path();
 }
 CSlice TdDb::sqlite_path() const {
-  return sqlite_path_;
+  return get_sqlite_path(parameters_);
 }
 
 void TdDb::flush_all() {
@@ -334,8 +334,7 @@ Status TdDb::init_sqlite(const Parameters &parameters, const DbKey &key, const D
     return Status::OK();
   }
 
-  sqlite_path_ = sql_database_path;
-  TRY_RESULT(db_instance, SqliteDb::change_key(sqlite_path_, true, key, old_key));
+  TRY_RESULT(db_instance, SqliteDb::change_key(sql_database_path, true, key, old_key));
   sql_connection_ = std::make_shared<SqliteConnectionSafe>(sql_database_path, key, db_instance.get_cipher_version());
   sql_connection_->set(std::move(db_instance));
   auto &db = sql_connection_->get();

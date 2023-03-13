@@ -144,7 +144,6 @@ class TdDb {
  private:
   Parameters parameters_;
 
-  string sqlite_path_;
   std::shared_ptr<SqliteConnectionSafe> sql_connection_;
 
   std::shared_ptr<FileDbInterface> file_db_;
