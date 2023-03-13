@@ -653,6 +653,9 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
       if (!is_bot && set_boolean_option("disable_top_chats")) {
         return;
       }
+      if (set_boolean_option("disable_network_statistics")) {
+        return;
+      }
       if (set_boolean_option("disable_persistent_network_statistics")) {
         return;
       }

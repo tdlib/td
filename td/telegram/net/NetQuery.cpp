@@ -62,17 +62,17 @@ NetQuery::NetQuery(State state, uint64 id, BufferSlice &&query, BufferSlice &&an
 }
 
 void NetQuery::on_net_write(size_t size) {
-  if (file_type_ == -1) {
-    return;
+  const auto &callbacks = G()->get_net_stats_file_callbacks();
+  if (static_cast<size_t>(file_type_) < callbacks.size()) {
+    callbacks[file_type_]->on_write(size);
   }
-  G()->get_net_stats_file_callbacks().at(file_type_)->on_write(size);
 }
 
 void NetQuery::on_net_read(size_t size) {
-  if (file_type_ == -1) {
-    return;
+  const auto &callbacks = G()->get_net_stats_file_callbacks();
+  if (static_cast<size_t>(file_type_) < callbacks.size()) {
+    callbacks[file_type_]->on_read(size);
   }
-  G()->get_net_stats_file_callbacks().at(file_type_)->on_read(size);
 }
 
 int32 NetQuery::tl_magic(const BufferSlice &buffer_slice) {

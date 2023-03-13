@@ -1596,8 +1596,6 @@ class Td final : public Actor {
 
   void init_options_and_network();
 
-  void init_connection_creator();
-
   void init_file_manager();
 
   void init_managers();

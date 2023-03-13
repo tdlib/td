@@ -3573,6 +3573,28 @@ void Td::init(Result<TdDb::OpenedDatabase> r_opened_database) {
     }
   });
 
+  if (!option_manager_->get_option_boolean("disable_network_statistics")) {
+    net_stats_manager_ = create_actor<NetStatsManager>("NetStatsManager", create_reference());
+
+    // How else could I let two actor know about each other, without quite complex async logic?
+    auto net_stats_manager_ptr = net_stats_manager_.get_actor_unsafe();
+    net_stats_manager_ptr->init();
+    G()->connection_creator().get_actor_unsafe()->set_net_stats_callback(
+        net_stats_manager_ptr->get_common_stats_callback(), net_stats_manager_ptr->get_media_stats_callback());
+    G()->set_net_stats_file_callbacks(net_stats_manager_ptr->get_file_stats_callbacks());
+  }
+
+  complete_pending_preauthentication_requests([](int32 id) {
+    switch (id) {
+      case td_api::getNetworkStatistics::ID:
+      case td_api::addNetworkStatistics::ID:
+      case td_api::resetNetworkStatistics::ID:
+        return true;
+      default:
+        return false;
+    }
+  });
+
   if (events.since_last_open >= 3600) {
     auto old_since_last_open = option_manager_->get_option_integer("since_last_open");
     if (events.since_last_open > old_since_last_open) {
@@ -3725,38 +3747,12 @@ void Td::init_options_and_network() {
   option_manager_ = make_unique<OptionManager>(this);
   G()->set_option_manager(option_manager_.get());
 
-  init_connection_creator();
-
-  VLOG(td_init) << "Create TempAuthKeyWatchdog";
-  auto temp_auth_key_watchdog = create_actor<TempAuthKeyWatchdog>("TempAuthKeyWatchdog", create_reference());
-  G()->set_temp_auth_key_watchdog(std::move(temp_auth_key_watchdog));
-
-  VLOG(td_init) << "Create ConfigManager";
-  config_manager_ = create_actor<ConfigManager>("ConfigManager", create_reference());
-  G()->set_config_manager(config_manager_.get());
-}
-
-void Td::init_connection_creator() {
   VLOG(td_init) << "Create ConnectionCreator";
-  auto connection_creator = create_actor<ConnectionCreator>("ConnectionCreator", create_reference());
-  auto net_stats_manager = create_actor<NetStatsManager>("NetStatsManager", create_reference());
-
-  // How else could I let two actor know about each other, without quite complex async logic?
-  auto net_stats_manager_ptr = net_stats_manager.get_actor_unsafe();
-  net_stats_manager_ptr->init();
-  connection_creator.get_actor_unsafe()->set_net_stats_callback(net_stats_manager_ptr->get_common_stats_callback(),
-                                                                net_stats_manager_ptr->get_media_stats_callback());
-  G()->set_net_stats_file_callbacks(net_stats_manager_ptr->get_file_stats_callbacks());
-
-  G()->set_connection_creator(std::move(connection_creator));
-  net_stats_manager_ = std::move(net_stats_manager);
+  G()->set_connection_creator(create_actor<ConnectionCreator>("ConnectionCreator", create_reference()));
 
   complete_pending_preauthentication_requests([](int32 id) {
     switch (id) {
       case td_api::setNetworkType::ID:
-      case td_api::getNetworkStatistics::ID:
-      case td_api::addNetworkStatistics::ID:
-      case td_api::resetNetworkStatistics::ID:
       case td_api::addProxy::ID:
       case td_api::editProxy::ID:
       case td_api::enableProxy::ID:
@@ -3769,6 +3765,13 @@ void Td::init_connection_creator() {
         return false;
     }
   });
+
+  VLOG(td_init) << "Create TempAuthKeyWatchdog";
+  G()->set_temp_auth_key_watchdog(create_actor<TempAuthKeyWatchdog>("TempAuthKeyWatchdog", create_reference()));
+
+  VLOG(td_init) << "Create ConfigManager";
+  config_manager_ = create_actor<ConfigManager>("ConfigManager", create_reference());
+  G()->set_config_manager(config_manager_.get());
 }
 
 void Td::init_file_manager() {
@@ -4843,6 +4846,9 @@ void Td::on_request(uint64 id, td_api::optimizeStorage &request) {
 }
 
 void Td::on_request(uint64 id, td_api::getNetworkStatistics &request) {
+  if (net_stats_manager_.empty()) {
+    return send_error_raw(id, 400, "Network statistics is disabled");
+  }
   if (!request.only_current_ && G()->get_option_boolean("disable_persistent_network_statistics")) {
     return send_error_raw(id, 400, "Persistent network statistics is disabled");
   }
@@ -4859,6 +4865,9 @@ void Td::on_request(uint64 id, td_api::getNetworkStatistics &request) {
 }
 
 void Td::on_request(uint64 id, td_api::resetNetworkStatistics &request) {
+  if (net_stats_manager_.empty()) {
+    return send_error_raw(id, 400, "Network statistics is disabled");
+  }
   CREATE_OK_REQUEST_PROMISE();
   send_closure(net_stats_manager_, &NetStatsManager::reset_network_stats);
   promise.set_value(Unit());
@@ -4867,6 +4876,9 @@ void Td::on_request(uint64 id, td_api::resetNetworkStatistics &request) {
 void Td::on_request(uint64 id, td_api::addNetworkStatistics &request) {
   if (request.entry_ == nullptr) {
     return send_error_raw(id, 400, "Network statistics entry must be non-empty");
+  }
+  if (net_stats_manager_.empty()) {
+    return send_error_raw(id, 400, "Network statistics is disabled");
   }
 
   NetworkStatsEntry entry;

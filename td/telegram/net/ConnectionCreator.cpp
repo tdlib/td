@@ -59,10 +59,14 @@ class StatsCallback final : public mtproto::RawConnection::StatsCallback {
   }
 
   void on_read(uint64 bytes) final {
-    net_stats_callback_->on_read(bytes);
+    if (net_stats_callback_ != nullptr) {
+      net_stats_callback_->on_read(bytes);
+    }
   }
   void on_write(uint64 bytes) final {
-    net_stats_callback_->on_write(bytes);
+    if (net_stats_callback_ != nullptr) {
+      net_stats_callback_->on_write(bytes);
+    }
   }
 
   void on_pong() final {
