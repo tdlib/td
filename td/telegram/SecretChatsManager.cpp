@@ -69,12 +69,12 @@ namespace td {
 // TODO
 // Just fail chat.
 
-SecretChatsManager::SecretChatsManager(ActorShared<> parent) : parent_(std::move(parent)) {
+SecretChatsManager::SecretChatsManager(ActorShared<> parent, bool use_secret_chats)
+    : use_secret_chats_(use_secret_chats), parent_(std::move(parent)) {
 }
 
 void SecretChatsManager::start_up() {
-  if (!G()->use_secret_chats()) {
-    dummy_mode_ = true;
+  if (!use_secret_chats_) {
     return;
   }
 
@@ -161,7 +161,7 @@ void SecretChatsManager::send_set_ttl_message(SecretChatId secret_chat_id, int32
 }
 
 void SecretChatsManager::on_update_chat(tl_object_ptr<telegram_api::updateEncryption> update) {
-  if (dummy_mode_ || close_flag_) {
+  if (!use_secret_chats_ || close_flag_) {
     return;
   }
   bool chat_requested = update->chat_->get_id() == telegram_api::encryptedChatRequested::ID;
@@ -180,8 +180,8 @@ void SecretChatsManager::do_update_chat(tl_object_ptr<telegram_api::updateEncryp
 
 void SecretChatsManager::on_new_message(tl_object_ptr<telegram_api::EncryptedMessage> &&message_ptr,
                                         Promise<Unit> &&promise) {
-  if (dummy_mode_ || close_flag_) {
-    return;
+  if (!use_secret_chats_ || close_flag_) {
+    return promise.set_value(Unit());
   }
   CHECK(message_ptr != nullptr);
 
@@ -200,7 +200,7 @@ void SecretChatsManager::on_new_message(tl_object_ptr<telegram_api::EncryptedMes
 }
 
 void SecretChatsManager::replay_binlog_event(BinlogEvent &&binlog_event) {
-  if (dummy_mode_) {
+  if (!use_secret_chats_) {
     binlog_erase(G()->td_db()->get_binlog(), binlog_event.id_);
     return;
   }
@@ -406,9 +406,6 @@ ActorId<SecretChatActor> SecretChatsManager::create_chat_actor_impl(int32 id, bo
 
 void SecretChatsManager::hangup() {
   close_flag_ = true;
-  if (dummy_mode_) {
-    return stop();
-  }
   for (auto &it : id_to_actor_) {
     LOG(INFO) << "Ask to close SecretChatActor " << tag("id", it.first);
     it.second.reset();
@@ -419,7 +416,7 @@ void SecretChatsManager::hangup() {
 }
 
 void SecretChatsManager::hangup_shared() {
-  CHECK(!dummy_mode_);
+  CHECK(use_secret_chats_);
   auto token = get_link_token();
   auto it = id_to_actor_.find(static_cast<int32>(token));
   CHECK(it != id_to_actor_.end());
@@ -436,7 +433,7 @@ void SecretChatsManager::timeout_expired() {
 }
 
 void SecretChatsManager::flush_pending_chat_updates() {
-  if (close_flag_ || dummy_mode_) {
+  if (close_flag_ || !use_secret_chats_) {
     return;
   }
   auto it = pending_chat_updates_.begin();

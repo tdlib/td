@@ -3553,18 +3553,12 @@ void Td::init(Result<TdDb::OpenedDatabase> r_opened_database) {
             << " and " << tag("files_directory", events.parameters.files_directory);
   VLOG(td_init) << "Successfully inited database";
 
-  auto api_id = events.parameters.api_id;
-  auto api_hash = events.parameters.api_hash;
-
-  bool use_storage_optimizer = events.parameters.enable_storage_optimizer;
-  bool ignore_file_names = events.parameters.ignore_file_names;
-
-  G()->init(std::move(events.parameters), actor_id(this), std::move(events.database)).ensure();
+  G()->init(events.parameters, actor_id(this), std::move(events.database)).ensure();
 
   init_options_and_network();
 
-  option_manager_->set_option_boolean("use_storage_optimizer", use_storage_optimizer);
-  option_manager_->set_option_boolean("ignore_file_names", ignore_file_names);
+  option_manager_->set_option_boolean("use_storage_optimizer", events.parameters.enable_storage_optimizer);
+  option_manager_->set_option_boolean("ignore_file_names", events.parameters.ignore_file_names);
 
   // we need to process td_api::getOption along with td_api::setOption for consistency
   // we need to process td_api::setOption before managers and MTProto header are created,
@@ -3628,13 +3622,18 @@ void Td::init(Result<TdDb::OpenedDatabase> r_opened_database) {
   });
 
   VLOG(td_init) << "Create AuthManager";
-  auth_manager_ = td::make_unique<AuthManager>(api_id, api_hash, create_reference());
+  auth_manager_ =
+      td::make_unique<AuthManager>(events.parameters.api_id, events.parameters.api_hash, create_reference());
   auth_manager_actor_ = register_actor("AuthManager", auth_manager_.get());
   G()->set_auth_manager(auth_manager_actor_.get());
 
   init_file_manager();
 
   init_managers();
+
+  secret_chats_manager_ =
+      create_actor<SecretChatsManager>("SecretChatsManager", create_reference(), events.parameters.use_secret_chats);
+  G()->set_secret_chats_manager(secret_chats_manager_.get());
 
   storage_manager_ = create_actor<StorageManager>("StorageManager", create_reference(), G()->get_gc_scheduler_id());
   G()->set_storage_manager(storage_manager_.get());
@@ -3937,8 +3936,6 @@ void Td::init_managers() {
   password_manager_ = create_actor<PasswordManager>("PasswordManager", create_reference());
   G()->set_password_manager(password_manager_.get());
   privacy_manager_ = create_actor<PrivacyManager>("PrivacyManager", create_reference());
-  secret_chats_manager_ = create_actor<SecretChatsManager>("SecretChatsManager", create_reference());
-  G()->set_secret_chats_manager(secret_chats_manager_.get());
   secure_manager_ = create_actor<SecureManager>("SecureManager", create_reference());
   verify_phone_number_manager_ = create_actor<PhoneNumberManager>(
       "VerifyPhoneNumberManager", PhoneNumberManager::Type::VerifyPhone, create_reference());

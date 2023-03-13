@@ -28,7 +28,7 @@ struct BinlogEvent;
 
 class SecretChatsManager final : public Actor {
  public:
-  explicit SecretChatsManager(ActorShared<> parent);
+  SecretChatsManager(ActorShared<> parent, bool use_secret_chats);
 
   // proxy query to corresponding SecretChatActor
   void on_update_chat(tl_object_ptr<telegram_api::updateEncryption> update);
@@ -52,7 +52,7 @@ class SecretChatsManager final : public Actor {
 
  private:
   bool binlog_replay_finish_flag_ = false;
-  bool dummy_mode_ = false;
+  bool use_secret_chats_ = false;
   bool close_flag_ = false;
   ActorShared<> parent_;
   std::map<int32, ActorOwn<SecretChatActor>> id_to_actor_;
