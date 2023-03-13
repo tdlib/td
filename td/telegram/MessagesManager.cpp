@@ -36550,14 +36550,14 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
     update_has_outgoing_messages(dialog_id, m);
   }
 
-  if (m->message_id.is_scheduled_server()) {
-    int32 &date = d->scheduled_message_date[m->message_id.get_scheduled_server_message_id()];
-    CHECK(date == 0);
-    date = m->date;
-  }
-
   if (m->is_topic_message) {
     td_->forum_topic_manager_->on_topic_message_count_changed(dialog_id, m->top_thread_message_id, +1);
+  }
+
+  if (m->message_id.is_scheduled_server()) {
+    auto is_inserted =
+        d->scheduled_message_date.emplace(m->message_id.get_scheduled_server_message_id(), m->date).second;
+    CHECK(is_inserted);
   }
 
   Message *result_message = treap_insert_message(&d->scheduled_messages, std::move(message));
@@ -37033,6 +37033,13 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
       CHECK(old_message->date > 0);
       LOG(DEBUG) << "Message date has changed from " << old_message->date << " to " << new_message->date;
       old_message->date = new_message->date;
+
+      if (is_scheduled && message_id.is_scheduled_server()) {
+        int32 &date = d->scheduled_message_date[message_id.get_scheduled_server_message_id()];
+        CHECK(date != 0);
+        date = new_message->date;
+      }
+
       if (!is_scheduled && d->last_message_id == message_id) {
         *need_update_dialog_pos = true;
       }
