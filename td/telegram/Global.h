@@ -398,6 +398,10 @@ class Global final : public ActorContext {
 
   bool use_message_database() const;
 
+  bool keep_media_order() const {
+    return use_file_database();
+  }
+
   int32 get_gc_scheduler_id() const {
     return gc_scheduler_id_;
   }

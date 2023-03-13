@@ -26332,7 +26332,7 @@ void MessagesManager::cancel_send_message_query(DialogId dialog_id, Message *m) 
                        m->message_id, Status::OK());
   }
 
-  if (!m->message_id.is_scheduled() && G()->use_file_database() && !m->is_copy) {  // ResourceManager::Mode::Baseline
+  if (!m->message_id.is_scheduled() && G()->keep_media_order() && !m->is_copy) {
     auto queue_id = ChainId(dialog_id, m->content->get_type()).get();
     if (queue_id & 1) {
       auto queue_it = yet_unsent_media_queues_.find(queue_id);
@@ -27481,7 +27481,7 @@ void MessagesManager::on_media_message_ready_to_send(DialogId dialog_id, Message
                                                      Promise<Message *> &&promise) {
   LOG(INFO) << "Ready to send " << message_id << " to " << dialog_id;
   CHECK(promise);
-  if (!G()->use_file_database() || message_id.is_scheduled()) {  // ResourceManager::Mode::Greedy
+  if (!G()->keep_media_order() || message_id.is_scheduled()) {
     auto m = get_message({dialog_id, message_id});
     if (m != nullptr) {
       promise.set_value(std::move(m));
@@ -36027,7 +36027,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
   }
 
-  if (G()->use_file_database() && message_id.is_yet_unsent() && !message->via_bot_user_id.is_valid() &&
+  if (G()->keep_media_order() && message_id.is_yet_unsent() && !message->via_bot_user_id.is_valid() &&
       !message->hide_via_bot && !message->is_copy) {
     auto queue_id = ChainId(dialog_id, message_content_type).get();
     if (queue_id & 1) {
