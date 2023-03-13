@@ -1507,8 +1507,7 @@ void UpdatesManager::init_state() {
     return;
   }
 
-  bool drop_state = !G()->parameters().use_file_db && !G()->parameters().use_secret_chats &&
-                    td_->auth_manager_->is_bot() &&
+  bool drop_state = !G()->use_file_database() && !G()->use_secret_chats() && td_->auth_manager_->is_bot() &&
                     td_->option_manager_->get_option_integer("since_last_open") >= 2 * 86400;
 
   auto pmc = G()->td_db()->get_binlog_pmc();

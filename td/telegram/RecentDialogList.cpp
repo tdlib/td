@@ -46,7 +46,7 @@ void RecentDialogList::save_dialogs() const {
   SliceBuilder sb;
   for (auto &dialog_id : dialog_ids_) {
     sb << ',';
-    if (!G()->parameters().use_chat_info_db) {
+    if (!G()->use_chat_info_database()) {
       // if there is no dialog info database, prefer to save dialogs by username
       string username;
       switch (dialog_id.get_type()) {
@@ -107,7 +107,7 @@ void RecentDialogList::load_dialogs(Promise<Unit> &&promise) {
     }
   }
   if (!dialog_ids.empty()) {
-    if (G()->parameters().use_chat_info_db) {
+    if (G()->use_chat_info_database()) {
       td_->messages_manager_->load_dialogs(
           std::move(dialog_ids),
           PromiseCreator::lambda(

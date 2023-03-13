@@ -284,7 +284,7 @@ void AutosaveManager::load_autosave_settings(Promise<td_api::object_ptr<td_api::
     return;
   }
 
-  if (G()->parameters().use_message_db) {
+  if (G()->use_message_database()) {
     G()->td_db()->get_sqlite_pmc()->get(
         get_autosave_settings_database_key(), PromiseCreator::lambda([actor_id = actor_id(this)](string value) mutable {
           send_closure(actor_id, &AutosaveManager::on_load_autosave_settings_from_database, std::move(value));
@@ -436,7 +436,7 @@ void AutosaveManager::on_get_autosave_settings(
 }
 
 void AutosaveManager::save_autosave_settings() {
-  if (G()->parameters().use_message_db) {
+  if (G()->use_message_database()) {
     LOG(INFO) << "Save autosave settings to database";
     G()->td_db()->get_sqlite_pmc()->set(get_autosave_settings_database_key(),
                                         log_event_store(settings_).as_slice().str(), Auto());

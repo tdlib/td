@@ -23,7 +23,7 @@ HashtagHints::HashtagHints(string mode, ActorShared<> parent) : mode_(std::move(
 }
 
 void HashtagHints::start_up() {
-  if (G()->parameters().use_file_db) {  // TODO hashtag hints should not depend on use_file_db
+  if (G()->use_file_database()) {  // TODO hashtag hints should not depend on use_file_db
     G()->td_db()->get_sqlite_pmc()->get(get_key(),
                                         PromiseCreator::lambda([actor_id = actor_id(this)](Result<string> res) {
                                           send_closure(actor_id, &HashtagHints::from_db, std::move(res), false);

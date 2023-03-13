@@ -396,8 +396,20 @@ class Global final : public ActorContext {
     return mtproto_header_ != nullptr;
   }
 
-  const TdParameters &parameters() const {
-    return parameters_;
+  bool use_file_database() const {
+    return parameters_.use_file_db;
+  }
+
+  bool use_chat_info_database() const {
+    return parameters_.use_chat_info_db;
+  }
+
+  bool use_message_database() const {
+    return parameters_.use_message_db;
+  }
+
+  bool use_secret_chats() const {
+    return parameters_.use_secret_chats;
   }
 
   int32 get_gc_scheduler_id() const {

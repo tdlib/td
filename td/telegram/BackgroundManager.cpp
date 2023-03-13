@@ -495,7 +495,7 @@ std::pair<BackgroundId, BackgroundType> BackgroundManager::search_background(con
     return {background_id, r_type.ok()};
   }
 
-  if (G()->parameters().use_file_db && loaded_from_database_backgrounds_.count(slug) == 0) {
+  if (G()->use_file_database() && loaded_from_database_backgrounds_.count(slug) == 0) {
     auto &queries = being_loaded_from_database_backgrounds_[slug];
     queries.push_back(std::move(promise));
     if (queries.size() == 1) {
@@ -1119,7 +1119,7 @@ std::pair<BackgroundId, BackgroundType> BackgroundManager::on_get_background(
     name_to_background_id_.emplace(expected_background_name, background_id);
   }
 
-  if (G()->parameters().use_file_db) {
+  if (G()->use_file_database()) {
     LOG(INFO) << "Save " << background_id << " to database with name " << background.name;
     CHECK(!BackgroundType::is_background_name_local(background.name));
     G()->td_db()->get_sqlite_pmc()->set(get_background_name_database_key(background.name),

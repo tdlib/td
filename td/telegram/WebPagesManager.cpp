@@ -450,7 +450,7 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
       }
 
       on_web_page_changed(web_page_id, false);
-      if (G()->parameters().use_message_db) {
+      if (G()->use_message_database()) {
         LOG(INFO) << "Delete " << web_page_id << " from database";
         G()->td_db()->get_sqlite_pmc()->erase(get_web_page_database_key(web_page_id), Auto());
         G()->td_db()->get_sqlite_pmc()->erase(get_web_page_instant_view_database_key(web_page_id), Auto());
@@ -594,7 +594,7 @@ void WebPagesManager::update_web_page_instant_view(WebPageId web_page_id, WebPag
 
   if (new_instant_view.is_empty && !new_from_database) {
     // new_instant_view is from server and is empty, need to delete the instant view
-    if (G()->parameters().use_message_db && (!old_instant_view.is_empty || !old_from_database)) {
+    if (G()->use_message_database() && (!old_instant_view.is_empty || !old_from_database)) {
       // we have no instant view and probably want it to be deleted from database
       LOG(INFO) << "Erase instant view of " << web_page_id << " from database";
       new_instant_view.was_loaded_from_database = true;
@@ -607,7 +607,7 @@ void WebPagesManager::update_web_page_instant_view(WebPageId web_page_id, WebPag
     new_instant_view = std::move(old_instant_view);
   }
 
-  if (G()->parameters().use_message_db && !new_instant_view.is_empty && new_instant_view.is_loaded) {
+  if (G()->use_message_database() && !new_instant_view.is_empty && new_instant_view.is_loaded) {
     // we have instant view and probably want it to be saved
     if (!new_from_database && !old_from_database) {
       // if it wasn't loaded from the database, load it first
@@ -674,7 +674,7 @@ void WebPagesManager::on_get_web_page_instant_view_view_count(WebPageId web_page
     return;
   }
   instant_view->view_count = view_count;
-  if (G()->parameters().use_message_db) {
+  if (G()->use_message_database()) {
     LOG(INFO) << "Save instant view of " << web_page_id << " to database after updating view count to " << view_count;
     G()->td_db()->get_sqlite_pmc()->set(get_web_page_instant_view_database_key(web_page_id),
                                         log_event_store(*instant_view).as_slice().str(), Auto());
@@ -683,7 +683,7 @@ void WebPagesManager::on_get_web_page_instant_view_view_count(WebPageId web_page
 
 void WebPagesManager::on_get_web_page_by_url(const string &url, WebPageId web_page_id, bool from_database) {
   auto &cached_web_page_id = url_to_web_page_id_[url];
-  if (!from_database && G()->parameters().use_message_db) {
+  if (!from_database && G()->use_message_database()) {
     if (web_page_id.is_valid()) {
       if (cached_web_page_id != web_page_id) {  // not already saved
         G()->td_db()->get_sqlite_pmc()->set(get_web_page_url_database_key(url), to_string(web_page_id.get()), Auto());
@@ -859,7 +859,7 @@ void WebPagesManager::load_web_page_instant_view(WebPageId web_page_id, bool for
     const WebPageInstantView *web_page_instant_view = get_web_page_instant_view(web_page_id);
     CHECK(web_page_instant_view != nullptr);
 
-    if (G()->parameters().use_message_db && !web_page_instant_view->was_loaded_from_database) {
+    if (G()->use_message_database() && !web_page_instant_view->was_loaded_from_database) {
       LOG(INFO) << "Trying to load " << web_page_id << " instant view from database";
       G()->td_db()->get_sqlite_pmc()->get(
           get_web_page_instant_view_database_key(web_page_id),
@@ -894,7 +894,7 @@ void WebPagesManager::on_load_web_page_instant_view_from_database(WebPageId web_
   if (G()->close_flag()) {
     return;
   }
-  CHECK(G()->parameters().use_message_db);
+  CHECK(G()->use_message_database());
   LOG(INFO) << "Successfully loaded " << web_page_id << " instant view of size " << value.size() << " from database";
   //  G()->td_db()->get_sqlite_pmc()->erase(get_web_page_instant_view_database_key(web_page_id), Auto());
   //  value.clear();
@@ -1035,7 +1035,7 @@ void WebPagesManager::load_web_page_by_url(string url, Promise<WebPageId> &&prom
   if (url.empty()) {
     return promise.set_value(WebPageId());
   }
-  if (!G()->parameters().use_message_db) {
+  if (!G()->use_message_database()) {
     return reload_web_page_by_url(url, std::move(promise));
   }
 
@@ -1490,7 +1490,7 @@ class WebPagesManager::WebPageLogEvent {
 };
 
 void WebPagesManager::save_web_page(const WebPage *web_page, WebPageId web_page_id, bool from_binlog) {
-  if (!G()->parameters().use_message_db) {
+  if (!G()->use_message_database()) {
     return;
   }
 
@@ -1518,7 +1518,7 @@ string WebPagesManager::get_web_page_url_database_key(const string &url) {
 }
 
 void WebPagesManager::on_binlog_web_page_event(BinlogEvent &&event) {
-  if (!G()->parameters().use_message_db) {
+  if (!G()->use_message_database()) {
     binlog_erase(G()->td_db()->get_binlog(), event.id_);
     return;
   }
@@ -1568,8 +1568,7 @@ void WebPagesManager::on_save_web_page_to_database(WebPageId web_page_id, bool s
 }
 
 void WebPagesManager::load_web_page_from_database(WebPageId web_page_id, Promise<Unit> promise) {
-  if (!G()->parameters().use_message_db || loaded_from_database_web_pages_.count(web_page_id) ||
-      !web_page_id.is_valid()) {
+  if (!G()->use_message_database() || loaded_from_database_web_pages_.count(web_page_id) || !web_page_id.is_valid()) {
     promise.set_value(Unit());
     return;
   }
@@ -1634,7 +1633,7 @@ const WebPagesManager::WebPage *WebPagesManager::get_web_page_force(WebPageId we
   if (web_page != nullptr) {
     return web_page;
   }
-  if (!G()->parameters().use_message_db) {
+  if (!G()->use_message_database()) {
     return nullptr;
   }
   if (!web_page_id.is_valid() || loaded_from_database_web_pages_.count(web_page_id)) {

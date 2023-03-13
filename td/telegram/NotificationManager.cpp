@@ -549,7 +549,7 @@ MessageId NotificationManager::get_last_message_id_by_notification_id(const Noti
 
 void NotificationManager::load_message_notifications_from_database(const NotificationGroupKey &group_key,
                                                                    NotificationGroup &group, size_t desired_size) {
-  if (!G()->parameters().use_message_db) {
+  if (!G()->use_message_database()) {
     return;
   }
   if (group.is_loaded_from_database || group.is_being_loaded_from_database ||
@@ -3698,7 +3698,7 @@ void NotificationManager::add_message_push_notification(DialogId dialog_id, Mess
     td_->contacts_manager_->on_get_user(std::move(user), "add_message_push_notification");
   }
 
-  if (log_event_id == 0 && G()->parameters().use_message_db) {
+  if (log_event_id == 0 && G()->use_message_database()) {
     AddMessagePushNotificationLogEvent log_event{dialog_id,
                                                  message_id,
                                                  random_id,
@@ -3841,7 +3841,7 @@ void NotificationManager::edit_message_push_notification(DialogId dialog_id, Mes
   CHECK(group_id.is_valid());
   CHECK(notification_id.is_valid());
 
-  if (log_event_id == 0 && G()->parameters().use_message_db) {
+  if (log_event_id == 0 && G()->use_message_database()) {
     EditMessagePushNotificationLogEvent log_event{dialog_id, message_id, edit_date, loc_key, arg, photo, document};
     auto storer = get_log_event_storer(log_event);
     auto &cur_log_event_id = temporary_edit_notification_log_event_ids_[notification_id];
@@ -4185,7 +4185,7 @@ void NotificationManager::on_binlog_events(vector<BinlogEvent> &&events) {
   }
   VLOG(notifications) << "Begin to process " << events.size() << " binlog events";
   for (auto &event : events) {
-    if (!G()->parameters().use_message_db || is_disabled() || max_notification_group_count_ == 0) {
+    if (!G()->use_message_database() || is_disabled() || max_notification_group_count_ == 0) {
       binlog_erase(G()->td_db()->get_binlog(), event.id_);
       break;
     }

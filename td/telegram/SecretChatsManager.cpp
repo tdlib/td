@@ -74,7 +74,7 @@ SecretChatsManager::SecretChatsManager(ActorShared<> parent) : parent_(std::move
 }
 
 void SecretChatsManager::start_up() {
-  if (!G()->parameters().use_secret_chats) {
+  if (!G()->use_secret_chats()) {
     dummy_mode_ = true;
     return;
   }

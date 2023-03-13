@@ -367,7 +367,7 @@ class DownloadManagerImpl final : public DownloadManager {
   }
 
   static bool is_database_enabled() {
-    return G()->parameters().use_message_db;
+    return G()->use_message_database();
   }
 
   static string pmc_key(const FileInfo &file_info) {

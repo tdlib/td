@@ -146,7 +146,7 @@ void scan_fs(CancellationToken &token, CallbackT &&callback) {
 }  // namespace
 
 void FileStatsWorker::get_stats(bool need_all_files, bool split_by_owner_dialog_id, Promise<FileStats> promise) {
-  if (!G()->parameters().use_chat_info_db) {
+  if (!G()->use_chat_info_database()) {
     split_by_owner_dialog_id = false;
   }
   if (!split_by_owner_dialog_id) {

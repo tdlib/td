@@ -2067,7 +2067,7 @@ bool InlineQueriesManager::load_recently_used_bots(Promise<Unit> &promise) {
   if (recently_used_bots_loaded_ == 0) {
     resolve_recent_inline_bots_multipromise_.set_ignore_errors(true);
     auto lock = resolve_recent_inline_bots_multipromise_.get_promise();
-    if (!G()->parameters().use_chat_info_db) {
+    if (!G()->use_chat_info_database()) {
       for (auto &bot_username : bot_usernames) {
         td_->messages_manager_->search_public_dialog(bot_username, false,
                                                      resolve_recent_inline_bots_multipromise_.get_promise());

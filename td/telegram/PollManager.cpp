@@ -357,7 +357,7 @@ void PollManager::save_poll(const Poll *poll, PollId poll_id) {
   CHECK(!is_local_poll_id(poll_id));
   poll->was_saved = true;
 
-  if (!G()->parameters().use_message_db) {
+  if (!G()->use_message_database()) {
     return;
   }
 
@@ -405,7 +405,7 @@ PollManager::Poll *PollManager::get_poll_force(PollId poll_id) {
   if (poll != nullptr) {
     return poll;
   }
-  if (!G()->parameters().use_message_db) {
+  if (!G()->use_message_database()) {
     return nullptr;
   }
   if (!poll_id.is_valid() || loaded_from_database_polls_.count(poll_id)) {
@@ -844,7 +844,7 @@ void PollManager::do_set_poll_answer(PollId poll_id, FullMessageId full_message_
     binlog_erase(G()->td_db()->get_binlog(), log_event_id);
     return;
   }
-  if (log_event_id == 0 && G()->parameters().use_message_db) {
+  if (log_event_id == 0 && G()->use_message_database()) {
     SetPollAnswerLogEvent log_event;
     log_event.poll_id_ = poll_id;
     log_event.full_message_id_ = full_message_id;
@@ -1201,7 +1201,7 @@ void PollManager::do_stop_poll(PollId poll_id, FullMessageId full_message_id, un
   LOG(INFO) << "Stop " << poll_id << " from " << full_message_id;
   CHECK(poll_id.is_valid());
 
-  if (log_event_id == 0 && G()->parameters().use_message_db && reply_markup == nullptr) {
+  if (log_event_id == 0 && G()->use_message_database() && reply_markup == nullptr) {
     StopPollLogEvent log_event{poll_id, full_message_id};
     log_event_id =
         binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::StopPoll, get_log_event_storer(log_event));
@@ -1823,7 +1823,7 @@ void PollManager::on_binlog_events(vector<BinlogEvent> &&events) {
   for (auto &event : events) {
     switch (event.type_) {
       case LogEvent::HandlerType::SetPollAnswer: {
-        if (!G()->parameters().use_message_db) {
+        if (!G()->use_message_database()) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
@@ -1842,7 +1842,7 @@ void PollManager::on_binlog_events(vector<BinlogEvent> &&events) {
         break;
       }
       case LogEvent::HandlerType::StopPoll: {
-        if (!G()->parameters().use_message_db) {
+        if (!G()->use_message_database()) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }

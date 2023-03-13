@@ -38,7 +38,7 @@ void FileGcWorker::run_gc(const FileGcParameters &parameters, std::vector<FullFi
 
   std::array<bool, MAX_FILE_TYPE> immune_types{{false}};
 
-  if (G()->parameters().use_file_db) {
+  if (G()->use_file_database()) {
     // immune by default
     immune_types[narrow_cast<size_t>(FileType::Sticker)] = true;
     immune_types[narrow_cast<size_t>(FileType::ProfilePhoto)] = true;
@@ -61,7 +61,7 @@ void FileGcWorker::run_gc(const FileGcParameters &parameters, std::vector<FullFi
     }
   }
 
-  if (G()->parameters().use_file_db) {
+  if (G()->use_file_database()) {
     immune_types[narrow_cast<size_t>(FileType::EncryptedThumbnail)] = true;
   }
 

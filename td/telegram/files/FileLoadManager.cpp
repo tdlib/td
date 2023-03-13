@@ -25,7 +25,7 @@ FileLoadManager::FileLoadManager(ActorShared<Callback> callback, ActorShared<> p
 void FileLoadManager::start_up() {
   constexpr int64 MAX_UPLOAD_RESOURCE_LIMIT = 4 << 20;
   upload_resource_manager_ = create_actor<ResourceManager>("UploadResourceManager", MAX_UPLOAD_RESOURCE_LIMIT,
-                                                           !G()->parameters().use_file_db /*tdlib_engine*/
+                                                           !G()->use_file_database() /*tdlib_engine*/
                                                                ? ResourceManager::Mode::Greedy
                                                                : ResourceManager::Mode::Baseline);
   if (G()->get_option_boolean("is_premium")) {

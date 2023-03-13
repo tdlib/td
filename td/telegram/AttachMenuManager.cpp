@@ -571,7 +571,7 @@ void AttachMenuManager::init() {
   }
   is_inited_ = true;
 
-  if (!G()->parameters().use_chat_info_db) {
+  if (!G()->use_chat_info_database()) {
     G()->td_db()->get_binlog_pmc()->erase(get_attach_menu_bots_database_key());
   } else {
     auto attach_menu_bots_string = G()->td_db()->get_binlog_pmc()->get(get_attach_menu_bots_database_key());
@@ -1247,7 +1247,7 @@ string AttachMenuManager::get_attach_menu_bots_database_key() {
 }
 
 void AttachMenuManager::save_attach_menu_bots() {
-  if (!G()->parameters().use_chat_info_db) {
+  if (!G()->use_chat_info_database()) {
     return;
   }
 
