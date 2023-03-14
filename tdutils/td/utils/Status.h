@@ -165,7 +165,7 @@ class Status {
     }
     auto info = get_info();
     if (info.static_flag) {
-      return clone_static();
+      return clone_static(-999);
     }
     return Status(false, info.error_type, info.error_code, message());
   }
@@ -201,7 +201,7 @@ class Status {
   template <int Code>
   static Status Error() {
     static Status status(true, ErrorType::General, Code, "");
-    return status.clone_static();
+    return status.clone_static(Code);
   }
 
   StringBuilder &print(StringBuilder &sb) const {
@@ -362,8 +362,8 @@ class Status {
     }
   }
 
-  Status clone_static() const TD_WARN_UNUSED_RESULT {
-    CHECK(ptr_ != nullptr && get_info().static_flag);
+  Status clone_static(int code) const TD_WARN_UNUSED_RESULT {
+    LOG_CHECK(ptr_ != nullptr && get_info().static_flag) << ptr_.get() << ' ' << code;
     Status result;
     result.ptr_ = std::unique_ptr<char[], Deleter>(ptr_.get());
     return result;
