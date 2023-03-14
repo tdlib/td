@@ -126,7 +126,7 @@ FileId register_photo_size(FileManager *file_manager, const PhotoSizeSource &sou
                            PhotoFormat format) {
   LOG(DEBUG) << "Receive " << format << " photo " << id << " of type " << source.get_file_type("register_photo_size")
              << " from " << dc_id;
-  auto suggested_name = PSTRING() << source.get_unique_name(id) << '.' << format;
+  auto suggested_name = PSTRING() << source.get_unique_name(id, "register_photo_size") << '.' << format;
   auto file_location_source = owner_dialog_id.get_type() == DialogType::SecretChat ? FileLocationSource::FromUser
                                                                                    : FileLocationSource::FromServer;
   return file_manager->register_remote(

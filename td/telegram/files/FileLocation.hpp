@@ -105,7 +105,7 @@ void PhotoRemoteFileLocation::parse(ParserT &parser) {
 template <class StorerT>
 void PhotoRemoteFileLocation::AsKey::store(StorerT &storer) const {
   using td::store;
-  auto unique = key.source_.get_unique();
+  auto unique = key.source_.get_unique("PhotoRemoteFileLocation::AsKey::store");
   switch (key.source_.get_type("PhotoRemoteFileLocation::AsKey::store")) {
     case PhotoSizeSource::Type::Legacy:
     case PhotoSizeSource::Type::StickerSetThumbnail:

@@ -242,10 +242,10 @@ struct PhotoSizeSource {
   }
 
   // returns unique representation of the source
-  string get_unique() const;
+  string get_unique(const char *source) const;
 
   // can't be called for Legacy sources
-  string get_unique_name(int64 photo_id) const;
+  string get_unique_name(int64 photo_id, const char *source) const;
 
   template <class StorerT>
   void store(StorerT &storer) const;

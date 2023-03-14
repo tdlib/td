@@ -102,10 +102,12 @@ struct PhotoRemoteFileLocation {
     if (id_ != other.id_) {
       return id_ < other.id_;
     }
-    return source_.get_unique() < other.source_.get_unique();
+    return source_.get_unique("PhotoRemoteFileLocation::operator<") <
+           other.source_.get_unique("PhotoRemoteFileLocation::operator<");
   }
   bool operator==(const PhotoRemoteFileLocation &other) const {
-    return id_ == other.id_ && source_.get_unique() == other.source_.get_unique();
+    return id_ == other.id_ && source_.get_unique("PhotoRemoteFileLocation::operator==") ==
+                                   other.source_.get_unique("PhotoRemoteFileLocation::operator==");
   }
 };
 
