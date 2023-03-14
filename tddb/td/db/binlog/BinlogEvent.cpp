@@ -40,7 +40,8 @@ Status BinlogEvent::validate() const {
   TlParser parser(as_slice(raw_event_));
   auto size = static_cast<uint32>(parser.fetch_int());
   if (size_ != size || size_ != raw_event_.size()) {
-    return Status::Error(PSLICE() << "Size of event changed: " << tag("was", size_) << tag("now", size));
+    return Status::Error(PSLICE() << "Size of event changed: " << tag("was", size_) << tag("now", size)
+                                  << tag("real size", raw_event_.size()));
   }
   parser.fetch_string_raw<Slice>(size_ - TAIL_SIZE - sizeof(int));  // skip
   auto stored_crc32 = static_cast<uint32>(parser.fetch_int());
