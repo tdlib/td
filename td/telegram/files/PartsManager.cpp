@@ -311,7 +311,8 @@ Result<Part> PartsManager::start_part() {
 }
 
 Status PartsManager::set_known_prefix(int64 size, bool is_ready) {
-  if (!known_prefix_flag_ || size < known_prefix_size_ || (size == 0 && !part_status_.empty())) {
+  if (!known_prefix_flag_ || size < known_prefix_size_ ||
+      (!is_ready && size / static_cast<int64>(part_size_) >= part_status_.size())) {
     CHECK(is_upload_);
     return Status::Error("FILE_UPLOAD_RESTART");
   }
@@ -326,7 +327,7 @@ Status PartsManager::set_known_prefix(int64 size, bool is_ready) {
     unknown_size_flag_ = false;
     known_prefix_flag_ = false;
   } else {
-    part_count_ = static_cast<int>(size / part_size_);
+    part_count_ = static_cast<int>(size / static_cast<int64>(part_size_));
   }
 
   LOG_CHECK(static_cast<size_t>(part_count_) >= part_status_.size()) << size << ' ' << is_ready << ' ' << *this;
