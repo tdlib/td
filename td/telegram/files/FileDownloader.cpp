@@ -74,17 +74,18 @@ Result<FileLoader::FileInfo> FileDownloader::init() {
     auto result_fd = FileFd::open(path_, FileFd::Write | FileFd::Read);
     // TODO: check timestamps..
     if (result_fd.is_ok()) {
-      bitmask = Bitmask(Bitmask::Decode{}, partial.ready_bitmask_);
-      if (encryption_key_.is_secret()) {
-        LOG_CHECK(partial.iv_.size() == 32) << partial.iv_.size();
-        encryption_key_.mutable_iv() = as<UInt256>(partial.iv_.data());
-        next_part_ = narrow_cast<int32>(bitmask.get_ready_parts(0));
+      if (partial.iv_.size() == 32 && 0 <= partial.part_size_ && partial.part_size_ <= (1 << 20) &&
+          (partial.part_size_ & (partial.part_size_ - 1)) == 0) {
+        bitmask = Bitmask(Bitmask::Decode{}, partial.ready_bitmask_);
+        if (encryption_key_.is_secret()) {
+          encryption_key_.mutable_iv() = as<UInt256>(partial.iv_.data());
+          next_part_ = narrow_cast<int32>(bitmask.get_ready_parts(0));
+        }
+        fd_ = result_fd.move_as_ok();
+        part_size = static_cast<int32>(partial.part_size_);
+      } else {
+        LOG(ERROR) << "Have invalid " << partial;
       }
-      fd_ = result_fd.move_as_ok();
-      CHECK(partial.part_size_ <= (1 << 20));
-      CHECK(0 <= partial.part_size_);
-      part_size = static_cast<int32>(partial.part_size_);
-      CHECK((part_size & (part_size - 1)) == 0);
     }
   }
   if (need_search_file_ && fd_.empty() && size_ > 0 && encryption_key_.empty() && !remote_.is_web()) {
