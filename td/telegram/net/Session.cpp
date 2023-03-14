@@ -866,12 +866,12 @@ Status Session::on_message_result_ok(uint64 message_id, BufferSlice packet, size
   last_success_timestamp_ = Time::now();
 
   TlParser parser(packet.as_slice());
-  int32 ID = parser.fetch_int();
+  int32 response_id = parser.fetch_int();
 
   auto it = sent_queries_.find(message_id);
   if (it == sent_queries_.end()) {
     LOG(DEBUG) << "Drop result to " << tag("message_id", format::as_hex(message_id))
-               << tag("original_size", original_size) << tag("tl", format::as_hex(ID));
+               << tag("original_size", original_size) << tag("response_id", format::as_hex(response_id));
 
     if (original_size > 16 * 1024) {
       dropped_size_ += original_size;
@@ -892,7 +892,9 @@ Status Session::on_message_result_ok(uint64 message_id, BufferSlice packet, size
   if (!parser.get_error()) {
     // Steal authorization information.
     // It is a dirty hack, yep.
-    if (ID == telegram_api::auth_authorization::ID || ID == telegram_api::auth_loginTokenSuccess::ID) {
+    if (response_id == telegram_api::auth_authorization::ID ||
+        response_id == telegram_api::auth_loginTokenSuccess::ID ||
+        response_id == telegram_api::auth_sentCodeSuccess::ID) {
       if (query_ptr->query->tl_constructor() != telegram_api::auth_importAuthorization::ID) {
         G()->net_query_dispatcher().set_main_dc_id(raw_dc_id_);
       }
