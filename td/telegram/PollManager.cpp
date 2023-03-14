@@ -376,9 +376,8 @@ void PollManager::on_load_poll_from_database(PollId poll_id, string value) {
   CHECK(!have_poll(poll_id));
   if (!value.empty()) {
     auto poll = make_unique<Poll>();
-    auto status = log_event_parse(*poll, value);
-    if (status.is_error()) {
-      LOG(FATAL) << status << ": " << format::as_hex_dump<4>(Slice(value));
+    if (log_event_parse(*poll, value).is_error()) {
+      return;
     }
     for (auto &user_id : poll->recent_voter_user_ids) {
       td_->contacts_manager_->have_user_force(user_id);
