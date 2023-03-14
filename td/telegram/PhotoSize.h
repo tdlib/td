@@ -45,7 +45,7 @@ td_api::object_ptr<td_api::minithumbnail> get_minithumbnail_object(const string 
 
 FileId register_photo_size(FileManager *file_manager, const PhotoSizeSource &source, int64 id, int64 access_hash,
                            string file_reference, DialogId owner_dialog_id, int32 file_size, DcId dc_id,
-                           PhotoFormat format);
+                           PhotoFormat format, const char *call_source);
 
 PhotoSize get_secret_thumbnail_photo_size(FileManager *file_manager, BufferSlice bytes, DialogId owner_dialog_id,
                                           int32 width, int32 height);

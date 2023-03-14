@@ -123,10 +123,10 @@ static StringBuilder &operator<<(StringBuilder &string_builder, PhotoFormat form
 
 FileId register_photo_size(FileManager *file_manager, const PhotoSizeSource &source, int64 id, int64 access_hash,
                            string file_reference, DialogId owner_dialog_id, int32 file_size, DcId dc_id,
-                           PhotoFormat format) {
-  LOG(DEBUG) << "Receive " << format << " photo " << id << " of type " << source.get_file_type("register_photo_size")
-             << " from " << dc_id;
-  auto suggested_name = PSTRING() << source.get_unique_name(id, "register_photo_size") << '.' << format;
+                           PhotoFormat format, const char *call_source) {
+  LOG(DEBUG) << "Receive " << format << " photo " << id << " of type " << source.get_file_type(call_source) << " from "
+             << dc_id << " from " << call_source;
+  auto suggested_name = PSTRING() << source.get_unique_name(id, call_source) << '.' << format;
   auto file_location_source = owner_dialog_id.get_type() == DialogType::SecretChat ? FileLocationSource::FromUser
                                                                                    : FileLocationSource::FromServer;
   return file_manager->register_remote(
@@ -250,7 +250,7 @@ Variant<PhotoSize, string> get_photo_size(FileManager *file_manager, PhotoSizeSo
   }
 
   res.file_id = register_photo_size(file_manager, source, id, access_hash, std::move(file_reference), owner_dialog_id,
-                                    res.size, dc_id, format);
+                                    res.size, dc_id, format, "get_photo_size");
 
   if (!content.empty()) {
     file_manager->set_content(res.file_id, std::move(content));
@@ -287,7 +287,7 @@ AnimationSize get_animation_size(Td *td, PhotoSizeSource source, int64 id, int64
   }
 
   result.file_id = register_photo_size(td->file_manager_.get(), source, id, access_hash, std::move(file_reference),
-                                       owner_dialog_id, result.size, dc_id, PhotoFormat::Mpeg4);
+                                       owner_dialog_id, result.size, dc_id, PhotoFormat::Mpeg4, "get_animation_size");
   return result;
 }
 

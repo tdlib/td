@@ -3162,10 +3162,10 @@ std::pair<int64, FileId> StickersManager::on_get_sticker_document(tl_object_ptr<
     auto video_size = move_tl_object_as<telegram_api::videoSize>(thumbnail_ptr);
     if (video_size->type_ == "f") {
       if (!premium_animation_file_id.is_valid()) {
-        premium_animation_file_id =
-            register_photo_size(td_->file_manager_.get(), PhotoSizeSource::thumbnail(FileType::Thumbnail, 'f'),
-                                document_id, document->access_hash_, document->file_reference_.as_slice().str(),
-                                DialogId(), video_size->size_, dc_id, get_sticker_format_photo_format(format));
+        premium_animation_file_id = register_photo_size(
+            td_->file_manager_.get(), PhotoSizeSource::thumbnail(FileType::Thumbnail, 'f'), document_id,
+            document->access_hash_, document->file_reference_.as_slice().str(), DialogId(), video_size->size_, dc_id,
+            get_sticker_format_photo_format(format), "on_get_sticker_document");
       }
     }
   }

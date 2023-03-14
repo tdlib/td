@@ -348,7 +348,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
           premium_animation_file_id =
               register_photo_size(td_->file_manager_.get(), PhotoSizeSource::thumbnail(FileType::Thumbnail, 'f'), id,
                                   access_hash, file_reference, owner_dialog_id, video_size->size_, DcId::create(dc_id),
-                                  get_sticker_format_photo_format(sticker_format));
+                                  get_sticker_format_photo_format(sticker_format), "on_get_document");
         }
       }
     }
