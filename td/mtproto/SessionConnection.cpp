@@ -1085,7 +1085,7 @@ double SessionConnection::flush(SessionConnection::Callback *callback) {
   relax_timeout_at(&wakeup_at_, flush_packet_at_);
 
   auto now = Time::now();
-  LOG(DEBUG) << "Last pong was in " << (now - last_pong_at_) << ", last read was in " << (now - last_pong_at_)
+  LOG(DEBUG) << "Last pong was in " << (now - last_pong_at_) << ", last read was in " << (now - last_read_at_)
              << ", RTT = " << rtt() << ", ping timeout = " << ping_disconnect_delay()
              << ", read timeout = " << read_disconnect_delay() << ", flush packet in " << (flush_packet_at_ - now);
 
