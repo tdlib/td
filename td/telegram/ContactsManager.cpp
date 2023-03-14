@@ -10106,12 +10106,12 @@ void ContactsManager::on_save_user_to_database(UserId user_id, bool success) {
 
   User *u = get_user(user_id);
   CHECK(u != nullptr);
-  LOG_CHECK(u->is_being_saved) << user_id << " " << u->is_saved << " " << u->is_status_saved << " "
-                               << load_user_from_database_queries_.count(user_id) << " " << u->is_received << " "
-                               << u->is_deleted << " " << u->is_bot << " " << u->need_save_to_database << " "
-                               << u->is_changed << " " << u->is_status_changed << " " << u->is_name_changed << " "
-                               << u->is_username_changed << " " << u->is_photo_changed << " "
-                               << u->is_is_contact_changed << " " << u->is_is_deleted_changed;
+  LOG_CHECK(u->is_being_saved) << success << ' ' << user_id << ' ' << u->is_saved << ' ' << u->is_status_saved << ' '
+                               << load_user_from_database_queries_.count(user_id) << ' ' << u->is_received << ' '
+                               << u->is_deleted << ' ' << u->is_bot << ' ' << u->need_save_to_database << ' '
+                               << u->is_changed << ' ' << u->is_status_changed << ' ' << u->is_name_changed << ' '
+                               << u->is_username_changed << ' ' << u->is_photo_changed << ' '
+                               << u->is_is_contact_changed << ' ' << u->is_is_deleted_changed << ' ' << u->log_event_id;
   CHECK(load_user_from_database_queries_.count(user_id) == 0);
   u->is_being_saved = false;
 
