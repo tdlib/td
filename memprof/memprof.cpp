@@ -143,7 +143,7 @@ struct HashtableNode {
   std::atomic<std::size_t> size;
 };
 
-static constexpr std::size_t HT_MAX_SIZE = 1000000;
+static constexpr std::size_t HT_MAX_SIZE = 10000000;
 static std::atomic<std::size_t> ht_size{0};
 static std::array<HashtableNode, HT_MAX_SIZE> ht;
 
