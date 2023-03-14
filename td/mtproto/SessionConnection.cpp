@@ -404,6 +404,7 @@ Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::gzip
 Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::pong &pong) {
   VLOG(mtproto) << "PONG";
   last_pong_at_ = Time::now_cached();
+  real_last_pong_at_ = last_pong_at_;
   return callback_->on_pong();
 }
 Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::future_salts &salts) {
@@ -531,8 +532,9 @@ Status SessionConnection::parse_packet(TlParser &parser) {
 }
 
 Status SessionConnection::on_main_packet(const PacketInfo &info, Slice packet) {
-  // Update pong here too. Real pong can be delayed by lots of big packets
+  // Update pong here too. Real pong can be delayed by many big packets
   last_pong_at_ = Time::now_cached();
+  real_last_pong_at_ = last_pong_at_;
 
   if (!connected_flag_) {
     connected_flag_ = true;
@@ -712,6 +714,7 @@ Status SessionConnection::on_quick_ack(uint64 quick_ack_token) {
 
 void SessionConnection::on_read(size_t size) {
   last_read_at_ = Time::now_cached();
+  real_last_read_at_ = last_read_at_;
   last_read_size_ += size;
 }
 
@@ -1051,7 +1054,9 @@ Status SessionConnection::do_flush() {
     if (stats_callback != nullptr) {
       stats_callback->on_error();
     }
-    return Status::Error(PSLICE() << "Ping timeout of " << ping_disconnect_delay() << " seconds expired");
+    return Status::Error(PSLICE() << "Ping timeout of " << ping_disconnect_delay()
+                                  << " seconds expired; last pong was received " << (Time::now() - real_last_pong_at_)
+                                  << " seconds ago");
   }
 
   if (last_read_at_ + read_disconnect_delay() < Time::now_cached()) {
@@ -1059,7 +1064,8 @@ Status SessionConnection::do_flush() {
     if (stats_callback != nullptr) {
       stats_callback->on_error();
     }
-    return Status::Error(PSLICE() << "Read timeout of " << read_disconnect_delay() << " seconds expired");
+    return Status::Error(PSLICE() << "Read timeout of " << read_disconnect_delay() << " seconds expired; last read was "
+                                  << (Time::now() - real_last_read_at_) << " seconds ago");
   }
 
   return Status::OK();
@@ -1085,7 +1091,8 @@ double SessionConnection::flush(SessionConnection::Callback *callback) {
   relax_timeout_at(&wakeup_at_, flush_packet_at_);
 
   auto now = Time::now();
-  LOG(DEBUG) << "Last pong was in " << (now - last_pong_at_) << ", last read was in " << (now - last_read_at_)
+  LOG(DEBUG) << "Last pong was in " << (now - last_pong_at_) << '/' << (now - real_last_pong_at_)
+             << ", last read was in " << (now - last_read_at_) << '/' << (now - real_last_read_at_)
              << ", RTT = " << rtt() << ", ping timeout = " << ping_disconnect_delay()
              << ", read timeout = " << read_disconnect_delay() << ", flush packet in " << (flush_packet_at_ - now);
 
