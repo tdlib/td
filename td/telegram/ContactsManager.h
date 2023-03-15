@@ -1083,6 +1083,7 @@ class ContactsManager final : public Actor {
   struct PendingGetPhotoRequest {
     int32 offset = 0;
     int32 limit = 0;
+    int32 retry_count = 0;
     Promise<td_api::object_ptr<td_api::chatPhotos>> promise;
   };
 

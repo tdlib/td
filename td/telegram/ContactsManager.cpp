@@ -16201,7 +16201,7 @@ void ContactsManager::on_get_user_profile_photos(UserId user_id, Result<Unit> &&
       continue;
     }
 
-    if (request_index == 0) {
+    if (request_index == 0 && ++request.retry_count == 3) {
       request.promise.set_error(Status::Error(500, "Failed to get profile photos"));
       continue;
     }
