@@ -10,7 +10,7 @@
 #include <cstddef>
 #include <functional>
 
-constexpr std::size_t BACKTRACE_SHIFT = 2;
+constexpr std::size_t BACKTRACE_SHIFT = 1;
 constexpr std::size_t BACKTRACE_HASHED_LENGTH = 6;
 constexpr std::size_t BACKTRACE_LENGTH = 10;
 
