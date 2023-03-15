@@ -16660,7 +16660,8 @@ void MessagesManager::on_message_deleted(Dialog *d, Message *m, bool is_permanen
   // also called for unloaded messages, but not for scheduled messages
   CHECK(m->message_id.is_valid());
 
-  if (m->message_id.is_yet_unsent() && !m->message_id.is_scheduled() && m->top_thread_message_id.is_valid()) {
+  if (m->message_id.is_yet_unsent() && !m->message_id.is_scheduled() && m->top_thread_message_id.is_valid() &&
+      !td_->auth_manager_->is_bot()) {
     auto it = yet_unsent_thread_message_ids_.find({d->dialog_id, m->top_thread_message_id});
     CHECK(it != yet_unsent_thread_message_ids_.end());
     auto is_deleted = it->second.erase(m->message_id) > 0;
@@ -36112,7 +36113,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
   }
 
-  if (m->message_id.is_yet_unsent() && !m->message_id.is_scheduled() && m->top_thread_message_id.is_valid()) {
+  if (m->message_id.is_yet_unsent() && !m->message_id.is_scheduled() && m->top_thread_message_id.is_valid() &&
+      !td_->auth_manager_->is_bot()) {
     auto is_inserted =
         yet_unsent_thread_message_ids_[FullMessageId{dialog_id, m->top_thread_message_id}].insert(m->message_id).second;
     CHECK(is_inserted);
