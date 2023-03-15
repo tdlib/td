@@ -1398,8 +1398,6 @@ class MessagesManager final : public Actor {
     bool need_repair_unread_mention_count = false;
     bool is_translatable = false;
 
-    bool increment_view_counter = false;
-
     bool is_update_new_chat_sent = false;
     bool is_update_new_chat_being_sent = false;
     bool has_unload_timeout = false;
@@ -1440,7 +1438,6 @@ class MessagesManager final : public Actor {
     std::vector<std::pair<Promise<Unit>, std::function<bool(const Message *)>>> suffix_load_queries_;
 
     FlatHashMap<MessageId, int64, MessageIdHash> pending_viewed_live_locations;  // message_id -> task_id
-    FlatHashSet<MessageId, MessageIdHash> pending_viewed_message_ids;
 
     unique_ptr<Message> messages;
     unique_ptr<Message> scheduled_messages;
@@ -3754,6 +3751,12 @@ class MessagesManager final : public Actor {
   FlatHashMap<FullMessageId, MessageId, FullMessageIdHash> yet_unsent_full_message_id_to_persistent_message_id_;
   FlatHashMap<FullMessageId, std::set<MessageId>, FullMessageIdHash>
       yet_unsent_thread_message_ids_;  // {dialog_id, top_thread_message_id} -> yet unsent message IDs
+
+  struct PendingMessageView {
+    FlatHashSet<MessageId, MessageIdHash> message_ids_;
+    bool increment_view_counter_ = false;
+  };
+  FlatHashMap<DialogId, PendingMessageView, DialogIdHash> pending_message_views_;
 
   struct PendingReaction {
     int32 query_count = 0;

@@ -7041,37 +7041,43 @@ void MessagesManager::on_pending_message_views_timeout(DialogId dialog_id) {
     return;
   }
 
+  auto it = pending_message_views_.find(dialog_id);
+  if (it == pending_message_views_.end()) {
+    return;
+  }
+  auto &pending_viewed_message_ids = it->second.message_ids_;
+  bool increment_view_counter = it->second.increment_view_counter_;
+
   auto d = get_dialog(dialog_id);
   CHECK(d != nullptr);
 
   const size_t MAX_MESSAGE_VIEWS = 100;  // server side limit
   vector<MessageId> message_ids;
-  message_ids.reserve(min(d->pending_viewed_message_ids.size(), MAX_MESSAGE_VIEWS));
-  for (auto message_id : d->pending_viewed_message_ids) {
+  message_ids.reserve(min(pending_viewed_message_ids.size(), MAX_MESSAGE_VIEWS));
+  for (auto message_id : pending_viewed_message_ids) {
     auto *m = get_message(d, message_id);
     if (m == nullptr) {
       continue;
     }
     if (m->has_get_message_views_query) {
-      if (!d->increment_view_counter || m->need_view_counter_increment) {
+      if (!increment_view_counter || m->need_view_counter_increment) {
         continue;
       }
       m->need_view_counter_increment = true;
     } else {
       m->has_get_message_views_query = true;
-      m->need_view_counter_increment = d->increment_view_counter;
+      m->need_view_counter_increment = increment_view_counter;
     }
     message_ids.push_back(message_id);
     if (message_ids.size() >= MAX_MESSAGE_VIEWS) {
-      td_->create_handler<GetMessagesViewsQuery>()->send(dialog_id, std::move(message_ids), d->increment_view_counter);
+      td_->create_handler<GetMessagesViewsQuery>()->send(dialog_id, std::move(message_ids), increment_view_counter);
       message_ids.clear();
     }
   }
   if (!message_ids.empty()) {
-    td_->create_handler<GetMessagesViewsQuery>()->send(dialog_id, std::move(message_ids), d->increment_view_counter);
+    td_->create_handler<GetMessagesViewsQuery>()->send(dialog_id, std::move(message_ids), increment_view_counter);
   }
-  d->pending_viewed_message_ids.clear();
-  d->increment_view_counter = false;
+  pending_message_views_.erase(it);
 }
 
 void MessagesManager::update_message_interaction_info(FullMessageId full_message_id, int32 view_count,
@@ -21432,7 +21438,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
     auto *m = get_message_force(d, message_id, "view_messages 4");
     if (m != nullptr) {
       if (m->message_id.is_server() && m->view_count > 0 && need_update_view_count) {
-        d->pending_viewed_message_ids.insert(m->message_id);
+        pending_message_views_[dialog_id].message_ids_.insert(m->message_id);
       }
 
       if (!m->message_id.is_yet_unsent() && m->message_id > max_message_id) {
@@ -21494,9 +21500,11 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
       }
     }
   }
-  if (!d->pending_viewed_message_ids.empty()) {
+  if (pending_message_views_.count(dialog_id) != 0) {
     pending_message_views_timeout_.add_timeout_in(dialog_id.get(), MAX_MESSAGE_VIEW_DELAY);
-    d->increment_view_counter |= is_dialog_history;
+    if (is_dialog_history) {
+      pending_message_views_[dialog_id].increment_view_counter_ = true;
+    }
   }
   if (!read_content_message_ids.empty()) {
     read_message_contents_on_server(dialog_id, std::move(read_content_message_ids), 0, Auto());
@@ -21900,9 +21908,7 @@ void MessagesManager::close_dialog(Dialog *d) {
     }
   } else {
     pending_message_views_timeout_.cancel_timeout(dialog_id.get());
-    d->pending_viewed_message_ids.clear();
-    d->increment_view_counter = false;
-
+    pending_message_views_.erase(dialog_id);
     pending_read_history_timeout_.cancel_timeout(dialog_id.get());
   }
 
@@ -40179,8 +40185,7 @@ void MessagesManager::update_forward_count(DialogId dialog_id, MessageId message
       send_update_message_interaction_info(dialog_id, m);
       on_message_changed(d, m, true, "update_forward_count");
     }
-
-    if (d->pending_viewed_message_ids.insert(m->message_id).second) {
+    if (pending_message_views_[dialog_id].message_ids_.insert(m->message_id).second) {
       pending_message_views_timeout_.add_timeout_in(dialog_id.get(), 0.0);
     }
   }
