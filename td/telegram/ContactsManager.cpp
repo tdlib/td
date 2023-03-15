@@ -16168,6 +16168,13 @@ void ContactsManager::on_get_user_profile_photos(UserId user_id, Result<Unit> &&
   if (user_photos->count == -1) {
     CHECK(have_user(user_id));
     // received result has just been dropped; resend request
+    if (++pending_requests[0].retry_count >= 3) {
+      pending_requests[0].promise.set_error(Status::Error(500, "Failed to return profile photos"));
+      pending_requests.erase(pending_requests.begin());
+      if (pending_requests.empty()) {
+        return;
+      }
+    }
     user_photos->pending_requests = std::move(pending_requests);
     return send_get_user_photos_query(user_id, user_photos);
   }
@@ -16201,7 +16208,7 @@ void ContactsManager::on_get_user_profile_photos(UserId user_id, Result<Unit> &&
       continue;
     }
 
-    if (request_index == 0 && ++request.retry_count == 3) {
+    if (request_index == 0 && ++request.retry_count >= 3) {
       request.promise.set_error(Status::Error(500, "Failed to get profile photos"));
       continue;
     }
