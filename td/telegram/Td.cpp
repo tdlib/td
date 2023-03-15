@@ -1901,33 +1901,6 @@ class GetRecentInlineBotsRequest final : public RequestActor<> {
   }
 };
 
-class GetUserProfilePhotosRequest final : public RequestActor<> {
-  UserId user_id_;
-  int32 offset_;
-  int32 limit_;
-  std::pair<int32, vector<const Photo *>> photos;
-
-  void do_run(Promise<Unit> &&promise) final {
-    photos = td_->contacts_manager_->get_user_profile_photos(user_id_, offset_, limit_, std::move(promise));
-  }
-
-  void do_send_result() final {
-    // TODO create function get_user_profile_photos_object
-    auto result = transform(photos.second, [file_manager = td_->file_manager_.get()](const Photo *photo) {
-      CHECK(photo != nullptr);
-      CHECK(!photo->is_empty());
-      return get_chat_photo_object(file_manager, *photo);
-    });
-
-    send_result(make_tl_object<td_api::chatPhotos>(photos.first, std::move(result)));
-  }
-
- public:
-  GetUserProfilePhotosRequest(ActorShared<Td> td, uint64 request_id, int64 user_id, int32 offset, int32 limit)
-      : RequestActor(std::move(td), request_id), user_id_(user_id), offset_(offset), limit_(limit) {
-  }
-};
-
 class GetChatNotificationSettingsExceptionsRequest final : public RequestActor<> {
   NotificationSettingsScope scope_;
   bool filter_scope_;
@@ -7080,7 +7053,9 @@ void Td::on_request(uint64 id, const td_api::deleteProfilePhoto &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::getUserProfilePhotos &request) {
-  CREATE_REQUEST(GetUserProfilePhotosRequest, request.user_id_, request.offset_, request.limit_);
+  CREATE_REQUEST_PROMISE();
+  contacts_manager_->get_user_profile_photos(UserId(request.user_id_), request.offset_, request.limit_,
+                                             std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setSupergroupUsername &request) {

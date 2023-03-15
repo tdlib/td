@@ -563,8 +563,8 @@ class ContactsManager final : public Actor {
   FileSourceId get_user_full_file_source_id(UserId user_id);
   void reload_user_full(UserId user_id, Promise<Unit> &&promise);
 
-  std::pair<int32, vector<const Photo *>> get_user_profile_photos(UserId user_id, int32 offset, int32 limit,
-                                                                  Promise<Unit> &&promise);
+  void get_user_profile_photos(UserId user_id, int32 offset, int32 limit,
+                               Promise<td_api::object_ptr<td_api::chatPhotos>> &&promise);
   void reload_user_profile_photo(UserId user_id, int64 photo_id, Promise<Unit> &&promise);
   FileSourceId get_user_profile_photo_file_source_id(UserId user_id, int64 photo_id);
 
@@ -1080,11 +1080,18 @@ class ContactsManager final : public Actor {
     bool is_megagroup = false;
   };
 
+  struct PendingGetPhotoRequest {
+    int32 offset = 0;
+    int32 limit = 0;
+    Promise<td_api::object_ptr<td_api::chatPhotos>> promise;
+  };
+
   struct UserPhotos {
     vector<Photo> photos;
     int32 count = -1;
     int32 offset = -1;
-    bool getting_now = false;
+
+    vector<PendingGetPhotoRequest> pending_requests;
   };
 
   struct DialogNearby {
@@ -1374,6 +1381,8 @@ class ContactsManager final : public Actor {
                                                                bool need_phone_number_privacy_exception) const;
 
   UserPhotos *add_user_photos(UserId user_id);
+  void send_get_user_photos_query(UserId user_id, const UserPhotos *user_photos);
+  void on_get_user_profile_photos(UserId user_id, Result<Unit> &&result);
   int64 get_user_full_profile_photo_id(const UserFull *user_full);
   void add_set_profile_photo_to_cache(UserId user_id, Photo &&photo, bool is_fallback);
   bool delete_my_profile_photo_from_cache(int64 profile_photo_id);

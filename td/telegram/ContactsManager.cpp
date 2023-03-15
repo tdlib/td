@@ -12243,8 +12243,7 @@ void ContactsManager::on_get_user_photos(UserId user_id, int32 offset, int32 lim
             << offset << " and limit " << limit;
   UserPhotos *user_photos = add_user_photos(user_id);
   user_photos->count = total_count;
-  CHECK(user_photos->getting_now);
-  user_photos->getting_now = false;
+  CHECK(!user_photos->pending_requests.empty());
 
   if (user_photos->offset == -1) {
     user_photos->offset = 0;
@@ -16072,46 +16071,36 @@ void ContactsManager::send_get_user_full_query(UserId user_id, tl_object_ptr<tel
   get_user_full_queries_.add_query(user_id.get(), std::move(send_query), std::move(promise));
 }
 
-std::pair<int32, vector<const Photo *>> ContactsManager::get_user_profile_photos(UserId user_id, int32 offset,
-                                                                                 int32 limit, Promise<Unit> &&promise) {
-  std::pair<int32, vector<const Photo *>> result;
-  result.first = -1;
-
+void ContactsManager::get_user_profile_photos(UserId user_id, int32 offset, int32 limit,
+                                              Promise<td_api::object_ptr<td_api::chatPhotos>> &&promise) {
   if (offset < 0) {
-    promise.set_error(Status::Error(400, "Parameter offset must be non-negative"));
-    return result;
+    return promise.set_error(Status::Error(400, "Parameter offset must be non-negative"));
   }
   if (limit <= 0) {
-    promise.set_error(Status::Error(400, "Parameter limit must be positive"));
-    return result;
+    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
   }
   if (limit > MAX_GET_PROFILE_PHOTOS) {
     limit = MAX_GET_PROFILE_PHOTOS;
   }
 
-  auto r_input_user = get_input_user(user_id);
-  if (r_input_user.is_error()) {
-    promise.set_error(r_input_user.move_as_error());
-    return result;
+  TRY_STATUS_PROMISE(promise, get_input_user(user_id));
+
+  auto *u = get_user(user_id);
+  if (u == nullptr) {
+    return promise.set_error(Status::Error(400, "User not found"));
   }
 
-  apply_pending_user_photo(get_user(user_id), user_id);
+  apply_pending_user_photo(u, user_id);
 
   auto user_photos = add_user_photos(user_id);
-  if (user_photos->getting_now) {
-    promise.set_error(Status::Error(400, "Request for new profile photos has already been sent"));
-    return result;
-  }
-
   if (user_photos->count != -1) {  // know photo count
     CHECK(user_photos->offset != -1);
-    LOG(INFO) << "Have " << user_photos->count << " cahed user profile photos at offset " << user_photos->offset;
-    result.first = user_photos->count;
+    LOG(INFO) << "Have " << user_photos->count << " cached user profile photos at offset " << user_photos->offset;
+    vector<td_api::object_ptr<td_api::chatPhoto>> photo_objects;
 
     if (offset >= user_photos->count) {
       // offset if too big
-      promise.set_value(Unit());
-      return result;
+      return promise.set_value(td_api::make_object<td_api::chatPhotos>(user_photos->count, std::move(photo_objects)));
     }
 
     if (limit > user_photos->count - offset) {
@@ -16123,41 +16112,119 @@ std::pair<int32, vector<const Photo *>> ContactsManager::get_user_profile_photos
     if (cache_begin <= offset && offset + limit <= cache_end) {
       // answer query from cache
       for (int i = 0; i < limit; i++) {
-        result.second.push_back(&user_photos->photos[i + offset - cache_begin]);
+        photo_objects.push_back(
+            get_chat_photo_object(td_->file_manager_.get(), user_photos->photos[i + offset - cache_begin]));
       }
-      promise.set_value(Unit());
-      return result;
+      return promise.set_value(td_api::make_object<td_api::chatPhotos>(user_photos->count, std::move(photo_objects)));
     }
+  }
 
-    if (cache_begin <= offset && offset < cache_end) {
+  PendingGetPhotoRequest pending_request;
+  pending_request.offset = offset;
+  pending_request.limit = limit;
+  pending_request.promise = std::move(promise);
+  user_photos->pending_requests.push_back(std::move(pending_request));
+  if (user_photos->pending_requests.size() != 1u) {
+    return;
+  }
+
+  send_get_user_photos_query(user_id, user_photos);
+}
+
+void ContactsManager::send_get_user_photos_query(UserId user_id, const UserPhotos *user_photos) {
+  CHECK(!user_photos->pending_requests.empty());
+  auto offset = user_photos->pending_requests[0].offset;
+  auto limit = user_photos->pending_requests[0].limit;
+
+  if (user_photos->count != -1 && offset >= user_photos->offset) {
+    int32 cache_end = user_photos->offset + narrow_cast<int32>(user_photos->photos.size());
+    if (offset < cache_end) {
       // adjust offset to the end of cache
+      CHECK(offset + limit > cache_end);  // otherwise the request has already been answered
       limit = offset + limit - cache_end;
       offset = cache_end;
     }
   }
 
-  user_photos->getting_now = true;
+  auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), user_id](Result<Unit> &&result) {
+    send_closure(actor_id, &ContactsManager::on_get_user_profile_photos, user_id, std::move(result));
+  });
 
-  if (limit < MAX_GET_PROFILE_PHOTOS / 5) {
-    limit = MAX_GET_PROFILE_PHOTOS / 5;  // make limit reasonable
+  td_->create_handler<GetUserPhotosQuery>(std::move(query_promise))
+      ->send(user_id, get_input_user(user_id).move_as_ok(), offset, max(limit, MAX_GET_PROFILE_PHOTOS / 5), 0);
+}
+
+void ContactsManager::on_get_user_profile_photos(UserId user_id, Result<Unit> &&result) {
+  G()->ignore_result_if_closing(result);
+  auto user_photos = add_user_photos(user_id);
+  auto pending_requests = std::move(user_photos->pending_requests);
+  CHECK(!pending_requests.empty());
+  if (result.is_error()) {
+    for (auto &request : pending_requests) {
+      request.promise.set_error(result.error().clone());
+    }
+    return;
+  }
+  if (user_photos->count == -1) {
+    CHECK(have_user(user_id));
+    // received result has just been dropped; resend request
+    user_photos->pending_requests = std::move(pending_requests);
+    return send_get_user_photos_query(user_id, user_photos);
   }
 
-  td_->create_handler<GetUserPhotosQuery>(std::move(promise))
-      ->send(user_id, r_input_user.move_as_ok(), offset, limit, 0);
-  return result;
+  CHECK(user_photos->offset != -1);
+  LOG(INFO) << "Have " << user_photos->count << " cached user profile photos at offset " << user_photos->offset;
+  vector<PendingGetPhotoRequest> left_requests;
+  for (size_t request_index = 0; request_index < pending_requests.size(); request_index++) {
+    auto &request = pending_requests[request_index];
+    vector<td_api::object_ptr<td_api::chatPhoto>> photo_objects;
+
+    if (request.offset >= user_photos->count) {
+      // offset if too big
+      request.promise.set_value(td_api::make_object<td_api::chatPhotos>(user_photos->count, std::move(photo_objects)));
+      continue;
+    }
+
+    if (request.limit > user_photos->count - request.offset) {
+      request.limit = user_photos->count - request.offset;
+    }
+
+    int32 cache_begin = user_photos->offset;
+    int32 cache_end = cache_begin + narrow_cast<int32>(user_photos->photos.size());
+    if (cache_begin <= request.offset && request.offset + request.limit <= cache_end) {
+      // answer query from cache
+      for (int i = 0; i < request.limit; i++) {
+        photo_objects.push_back(
+            get_chat_photo_object(td_->file_manager_.get(), user_photos->photos[i + request.offset - cache_begin]));
+      }
+      request.promise.set_value(td_api::make_object<td_api::chatPhotos>(user_photos->count, std::move(photo_objects)));
+      continue;
+    }
+
+    if (request_index == 0) {
+      request.promise.set_error(Status::Error(500, "Failed to get profile photos"));
+      continue;
+    }
+
+    left_requests.push_back(std::move(request));
+  }
+
+  if (!left_requests.empty()) {
+    bool need_send = user_photos->pending_requests.empty();
+    append(user_photos->pending_requests, std::move(left_requests));
+    if (need_send) {
+      send_get_user_photos_query(user_id, user_photos);
+    }
+  }
 }
 
 void ContactsManager::reload_user_profile_photo(UserId user_id, int64 photo_id, Promise<Unit> &&promise) {
   get_user_force(user_id);
-  auto r_input_user = get_input_user(user_id);
-  if (r_input_user.is_error()) {
-    return promise.set_error(r_input_user.move_as_error());
-  }
+  TRY_RESULT_PROMISE(promise, input_user, get_input_user(user_id));
 
   // this request will be needed only to download the photo,
   // so there is no reason to combine different requests for a photo into one request
-  td_->create_handler<GetUserPhotosQuery>(std::move(promise))
-      ->send(user_id, r_input_user.move_as_ok(), -1, 1, photo_id);
+  td_->create_handler<GetUserPhotosQuery>(std::move(promise))->send(user_id, std::move(input_user), -1, 1, photo_id);
 }
 
 FileSourceId ContactsManager::get_user_profile_photo_file_source_id(UserId user_id, int64 photo_id) {
