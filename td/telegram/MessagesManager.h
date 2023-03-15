@@ -1419,9 +1419,6 @@ class MessagesManager final : public Actor {
                                          // application start, used to guarantee that all assigned message identifiers
                                          // are different
 
-    FlatHashMap<MessageId, std::set<MessageId>, MessageIdHash>
-        yet_unsent_thread_message_ids;  // top_thread_message_id -> yet unsent message IDs
-
     FlatHashMap<ScheduledServerMessageId, int32, ScheduledServerMessageIdHash> scheduled_message_date;
 
     FlatHashMap<int32, MessageId> last_assigned_scheduled_message_id;  // date -> message_id
@@ -3755,6 +3752,8 @@ class MessagesManager final : public Actor {
   FlatHashMap<DialogId, MessageId, DialogIdHash> previous_repaired_read_inbox_max_message_id_;
 
   FlatHashMap<FullMessageId, MessageId, FullMessageIdHash> yet_unsent_full_message_id_to_persistent_message_id_;
+  FlatHashMap<FullMessageId, std::set<MessageId>, FullMessageIdHash>
+      yet_unsent_thread_message_ids_;  // {dialog_id, top_thread_message_id} -> yet unsent message IDs
 
   struct PendingReaction {
     int32 query_count = 0;

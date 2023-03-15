@@ -16661,12 +16661,12 @@ void MessagesManager::on_message_deleted(Dialog *d, Message *m, bool is_permanen
   CHECK(m->message_id.is_valid());
 
   if (m->message_id.is_yet_unsent() && !m->message_id.is_scheduled() && m->top_thread_message_id.is_valid()) {
-    auto it = d->yet_unsent_thread_message_ids.find(m->top_thread_message_id);
-    CHECK(it != d->yet_unsent_thread_message_ids.end());
+    auto it = yet_unsent_thread_message_ids_.find({d->dialog_id, m->top_thread_message_id});
+    CHECK(it != yet_unsent_thread_message_ids_.end());
     auto is_deleted = it->second.erase(m->message_id) > 0;
     CHECK(is_deleted);
     if (it->second.empty()) {
-      d->yet_unsent_thread_message_ids.erase(it);
+      yet_unsent_thread_message_ids_.erase(it);
     }
   }
   if (d->open_count > 0) {
@@ -22846,8 +22846,8 @@ std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_histo
       return {};
     }
 
-    auto yet_unsent_it = d->yet_unsent_thread_message_ids.find(top_thread_full_message_id.get_message_id());
-    if (yet_unsent_it != d->yet_unsent_thread_message_ids.end()) {
+    auto yet_unsent_it = yet_unsent_thread_message_ids_.find(top_thread_full_message_id);
+    if (yet_unsent_it != yet_unsent_thread_message_ids_.end()) {
       const std::set<MessageId> &message_ids = yet_unsent_it->second;
       auto merge_message_ids = get_message_history_slice(message_ids.begin(), message_ids.lower_bound(from_message_id),
                                                          message_ids.end(), from_message_id, offset, limit);
@@ -36113,7 +36113,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   if (m->message_id.is_yet_unsent() && !m->message_id.is_scheduled() && m->top_thread_message_id.is_valid()) {
-    auto is_inserted = d->yet_unsent_thread_message_ids[m->top_thread_message_id].insert(m->message_id).second;
+    auto is_inserted =
+        yet_unsent_thread_message_ids_[FullMessageId{dialog_id, m->top_thread_message_id}].insert(m->message_id).second;
     CHECK(is_inserted);
   }
 
