@@ -312,7 +312,7 @@ Result<Part> PartsManager::start_part() {
 
 Status PartsManager::set_known_prefix(int64 size, bool is_ready) {
   if (!known_prefix_flag_ || size < known_prefix_size_ ||
-      (!is_ready && size / static_cast<int64>(part_size_) >= static_cast<int64>(part_status_.size()))) {
+      (!is_ready && size / static_cast<int64>(part_size_) < static_cast<int64>(part_status_.size()))) {
     CHECK(is_upload_);
     return Status::Error("FILE_UPLOAD_RESTART");
   }
