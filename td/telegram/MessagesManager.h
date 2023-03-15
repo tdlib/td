@@ -1450,36 +1450,7 @@ class MessagesManager final : public Actor {
     unique_ptr<Message> messages;
     unique_ptr<Message> scheduled_messages;
 
-    struct MessageOp {
-      enum : int8 { Add, SetPts, Delete, DeleteAll } type;
-      bool from_update = false;
-      bool have_previous = false;
-      bool have_next = false;
-      MessageContentType content_type = MessageContentType::None;
-      int32 pts = 0;
-      MessageId message_id;
-      const char *source = nullptr;
-      double date = 0;
-
-      MessageOp(decltype(type) type, MessageId message_id, MessageContentType content_type, bool from_update,
-                bool have_previous, bool have_next, const char *source)
-          : type(type)
-          , from_update(from_update)
-          , have_previous(have_previous)
-          , have_next(have_next)
-          , content_type(content_type)
-          , message_id(message_id)
-          , source(source)
-          , date(G()->server_time()) {
-      }
-
-      MessageOp(decltype(type) type, int32 pts, const char *source)
-          : type(type), pts(pts), source(source), date(G()->server_time()) {
-      }
-    };
-
     const char *debug_set_dialog_last_database_message_id = "Unknown";  // to be removed soon
-    vector<MessageOp> debug_message_op;
 
     // message identifiers loaded from database
     MessageId debug_last_new_message_id;
@@ -3327,13 +3298,7 @@ class MessagesManager final : public Actor {
   void load_calls_db_state();
   void save_calls_db_state();
 
-  static constexpr bool is_debug_message_op_enabled() {
-    return !LOG_IS_STRIPPED(ERROR) && false;
-  }
-
   void add_message_dependencies(Dependencies &dependencies, const Message *m);
-
-  static void dump_debug_message_op(const Dialog *d, int priority = 0);
 
   static void save_send_message_log_event(DialogId dialog_id, const Message *m);
 

@@ -6689,7 +6689,6 @@ void MessagesManager::skip_old_pending_pts_update(tl_object_ptr<telegram_api::Up
       } else {
         LOG(ERROR) << "Receive awaited sent " << full_message_id << " from " << source << " with PTS " << new_pts
                    << " and pts_count " << pts_count << ", but current PTS is " << old_pts;
-        dump_debug_message_op(get_dialog(full_message_id.get_dialog_id()), 3);
       }
     }
   }
@@ -6705,7 +6704,6 @@ void MessagesManager::skip_old_pending_pts_update(tl_object_ptr<telegram_api::Up
       } else if (update_sent_message->random_id_ != 0) {
         LOG(ERROR) << "Receive awaited sent " << update_sent_message->message_id_ << " from " << source << " with PTS "
                    << new_pts << " and pts_count " << pts_count << ", but current PTS is " << old_pts;
-        dump_debug_message_op(get_dialog(being_sent_messages_[update_sent_message->random_id_].get_dialog_id()), 3);
       }
     }
     return;
@@ -9777,9 +9775,6 @@ void MessagesManager::after_get_difference() {
           LOG(ERROR) << "Receive updateMessageId from " << old_message_id << " to " << full_message_id
                      << " but not receive corresponding message, last_new_message_id = " << d->last_new_message_id;
         }
-        if (dialog_id.get_type() != DialogType::Channel && message_id <= d->last_new_message_id) {
-          dump_debug_message_op(get_dialog(dialog_id));
-        }
         if (message_id <= d->last_new_message_id) {
           get_message_from_server(
               full_message_id,
@@ -12084,11 +12079,6 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
   LOG(INFO) << "Delete all messages in " << d->dialog_id
             << " with remove_from_dialog_list = " << remove_from_dialog_list
             << " and is_permanently_deleted = " << is_permanently_deleted;
-  if (is_debug_message_op_enabled()) {
-    d->debug_message_op.emplace_back(Dialog::MessageOp::DeleteAll, MessageId(), MessageContentType::None,
-                                     remove_from_dialog_list, false, false, "");
-  }
-
   if (d->server_unread_count + d->local_unread_count > 0) {
     MessageId max_message_id =
         d->last_database_message_id.is_valid() ? d->last_database_message_id : d->last_new_message_id;
@@ -13969,151 +13959,6 @@ void MessagesManager::init() {
       save_auth_notification_ids();
     }
   }
-
-  /*
-  FI LE *f = std::f open("error.txt", "r");
-  if (f != nullptr) {
-    DialogId dialog_id(ChannelId(123456));
-    force_create_dialog(dialog_id, "test");
-    Dialog *d = get_dialog(dialog_id);
-    CHECK(d != nullptr);
-
-    delete_all_dialog_messages(d, true, false);
-
-    d->last_new_message_id = MessageId();
-    d->last_read_inbox_message_id = MessageId();
-    d->last_read_outbox_message_id = MessageId();
-    d->is_last_read_inbox_message_id_inited = false;
-    d->is_last_read_outbox_message_id_inited = false;
-
-    struct MessageBasicInfo {
-      MessageId message_id;
-      bool have_previous;
-      bool have_next;
-    };
-    vector<MessageBasicInfo> messages_info;
-    std::function<void(Message *m)> get_messages_info = [&](Message *m) {
-      if (m == nullptr) {
-        return;
-      }
-      get_messages_info(m->left.get());
-      messages_info.push_back(MessageBasicInfo{m->message_id, m->have_previous, m->have_next});
-      get_messages_info(m->right.get());
-    };
-
-    char buf[1280];
-    while (std::f gets(buf, sizeof(buf), f) != nullptr) {
-      Slice log_string(buf, std::strlen(buf));
-      Slice op = log_string.substr(0, log_string.find(' '));
-      if (op != "MessageOpAdd" && op != "MessageOpDelete") {
-        LOG(ERROR) << "Unsupported op " << op;
-        continue;
-      }
-      log_string.remove_prefix(log_string.find(' ') + 1);
-
-      if (!begins_with(log_string, "at ")) {
-        LOG(ERROR) << "Date expected, found " << log_string;
-        continue;
-      }
-      log_string.remove_prefix(3);
-      auto date_slice = log_string.substr(0, log_string.find(' '));
-      log_string.remove_prefix(date_slice.size());
-
-      bool is_server = false;
-      if (begins_with(log_string, " server message ")) {
-        log_string.remove_prefix(16);
-        is_server = true;
-      } else if (begins_with(log_string, " yet unsent message ")) {
-        log_string.remove_prefix(20);
-      } else if (begins_with(log_string, " local message ")) {
-        log_string.remove_prefix(15);
-      } else {
-        LOG(ERROR) << "Message identifier expected, found " << log_string;
-        continue;
-      }
-
-      auto server_message_id = to_integer<int32>(log_string);
-      auto add = 0;
-      if (!is_server) {
-        log_string.remove_prefix(log_string.find('.') + 1);
-        add = to_integer<int32>(log_string);
-      }
-      log_string.remove_prefix(log_string.find(' ') + 1);
-
-      auto message_id = MessageId(MessageId(ServerMessageId(server_message_id)).get() + add);
-
-      auto content_type = log_string.substr(0, log_string.find(' '));
-      log_string.remove_prefix(log_string.find(' ') + 1);
-
-      auto read_bool = [](Slice &str) {
-        if (begins_with(str, "true ")) {
-          str.remove_prefix(5);
-          return true;
-        }
-        if (begins_with(str, "false ")) {
-          str.remove_prefix(6);
-          return false;
-        }
-        LOG(ERROR) << "Bool expected, found " << str;
-        return false;
-      };
-
-      bool from_update = read_bool(log_string);
-      bool have_previous = read_bool(log_string);
-      bool have_next = read_bool(log_string);
-
-      if (op == "MessageOpAdd") {
-        auto m = make_unique<Message>();
-        set_message_id(m, message_id);
-        m->date = G()->unix_time();
-        m->content = create_text_message_content("text", {}, {});
-
-        m->have_previous = have_previous;
-        m->have_next = have_next;
-
-        bool need_update = from_update;
-        bool need_update_dialog_pos = false;
-        if (add_message_to_dialog(dialog_id, std::move(m), from_update, &need_update, &need_update_dialog_pos,
-                                  "Unknown source") == nullptr) {
-          LOG(ERROR) << "Can't add message " << message_id;
-        }
-      } else {
-        bool need_update_dialog_pos = false;
-        auto m = delete_message(d, message_id, true, &need_update_dialog_pos, "Unknown source");
-        CHECK(m != nullptr);
-      }
-
-      messages_info.clear();
-      get_messages_info(d->messages.get());
-
-      for (size_t i = 0; i + 1 < messages_info.size(); i++) {
-        if (messages_info[i].have_next != messages_info[i + 1].have_previous) {
-          LOG(ERROR) << messages_info[i].message_id << " has have_next = " << messages_info[i].have_next << ", but "
-                     << messages_info[i + 1].message_id
-                     << " has have_previous = " << messages_info[i + 1].have_previous;
-        }
-      }
-      if (!messages_info.empty()) {
-        if (messages_info.back().have_next != false) {
-          LOG(ERROR) << messages_info.back().message_id << " has have_next = true, but there is no next message";
-        }
-        if (messages_info[0].have_previous != false) {
-          LOG(ERROR) << messages_info[0].message_id << " has have_previous = true, but there is no previous message";
-        }
-      }
-    }
-
-    messages_info.clear();
-    get_messages_info(d->messages.get());
-    for (auto &info : messages_info) {
-      bool need_update_dialog_pos = false;
-      auto m = delete_message(d, info.message_id, true, &need_update_dialog_pos, "Unknown source");
-      CHECK(m != nullptr);
-    }
-
-    std::f close(f);
-  }
-  */
 }
 
 void MessagesManager::on_authorization_success() {
@@ -16325,47 +16170,6 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
   promise.set_value(Unit());
 }
 
-void MessagesManager::dump_debug_message_op(const Dialog *d, int priority) {
-  if (!is_debug_message_op_enabled()) {
-    return;
-  }
-  if (d == nullptr) {
-    LOG(ERROR) << "Chat not found";
-    return;
-  }
-  static int last_dumped_priority = -1;
-  if (priority <= last_dumped_priority) {
-    LOG(ERROR) << "Skip dump " << d->dialog_id;
-    return;
-  }
-  last_dumped_priority = priority;
-
-  for (auto &op : d->debug_message_op) {
-    switch (op.type) {
-      case Dialog::MessageOp::Add: {
-        LOG(ERROR) << "MessageOpAdd at " << op.date << " " << op.message_id << " " << op.content_type << " "
-                   << op.from_update << " " << op.have_previous << " " << op.have_next << " " << op.source;
-        break;
-      }
-      case Dialog::MessageOp::SetPts: {
-        LOG(ERROR) << "MessageOpSetPts at " << op.date << " " << op.pts << " " << op.source;
-        break;
-      }
-      case Dialog::MessageOp::Delete: {
-        LOG(ERROR) << "MessageOpDelete at " << op.date << " " << op.message_id << " " << op.content_type << " "
-                   << op.from_update << " " << op.have_previous << " " << op.have_next << " " << op.source;
-        break;
-      }
-      case Dialog::MessageOp::DeleteAll: {
-        LOG(ERROR) << "MessageOpDeleteAll at " << op.date << " " << op.from_update;
-        break;
-      }
-      default:
-        UNREACHABLE();
-    }
-  }
-}
-
 bool MessagesManager::is_message_unload_enabled() const {
   return G()->use_message_database() || td_->auth_manager_->is_bot();
 }
@@ -16640,7 +16444,6 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
         if (unread_count == 0) {
           LOG(ERROR) << "Unread count became negative in " << d->dialog_id << " after deletion of " << message_id
                      << ". Last read is " << d->last_read_inbox_message_id;
-          dump_debug_message_op(d, 3);
         } else {
           unread_count--;
           set_dialog_last_read_inbox_message_id(d, MessageId::min(), server_unread_count, local_unread_count, false,
@@ -16665,11 +16468,6 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
       << d->being_deleted_message_id << " " << message_id << " " << source;
   d->being_deleted_message_id = message_id;
 
-  if (is_debug_message_op_enabled()) {
-    d->debug_message_op.emplace_back(Dialog::MessageOp::Delete, m->message_id, m->content->get_type(), false,
-                                     m->have_previous, m->have_next, source);
-  }
-
   bool need_get_history = false;
   if (!only_from_memory) {
     LOG(INFO) << "Deleting " << full_message_id << " with have_previous = " << m->have_previous
@@ -16690,7 +16488,6 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
         } else {
           LOG(ERROR) << "Have have_previous is true, but there is no previous for " << full_message_id << " from "
                      << source;
-          dump_debug_message_op(d);
           set_dialog_last_message_id(d, MessageId(), "do_delete_message");
         }
       } else {
@@ -16736,7 +16533,6 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
         }
       } else {
         LOG(ERROR) << "Have have_previous is true, but there is no previous";
-        dump_debug_message_op(d);
       }
     }
     if (d->last_database_message_id.is_valid()) {
@@ -16755,7 +16551,6 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
         } else {
           LOG(ERROR) << "Have have_previous is true, but there is no previous for " << full_message_id << " from "
                      << source;
-          dump_debug_message_op(d);
           d->suffix_load_first_message_id_ = MessageId();
           d->suffix_load_done_ = false;
         }
@@ -16785,7 +16580,6 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
     } else {
       LOG(ERROR) << "Have have_previous is true, but there is no previous for " << full_message_id << " from "
                  << source;
-      dump_debug_message_op(d);
     }
   }
   if ((*v)->have_next && (only_from_memory || !(*v)->have_previous)) {
@@ -16797,7 +16591,6 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
       next_m->have_previous = false;
     } else {
       LOG(ERROR) << "Have have_next is true, but there is no next for " << full_message_id << " from " << source;
-      dump_debug_message_op(d);
     }
   }
 
@@ -16824,7 +16617,6 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
         if (need_unread_counter(d->order)) {
           LOG(ERROR) << "Unread count became negative in " << d->dialog_id << " after deletion of " << message_id
                      << ". Last read is " << d->last_read_inbox_message_id;
-          dump_debug_message_op(d, 3);
         }
       } else {
         unread_count--;
@@ -16994,11 +16786,6 @@ void MessagesManager::do_delete_all_dialog_messages(Dialog *d, unique_ptr<Messag
   }
   const Message *m = message.get();
   MessageId message_id = m->message_id;
-
-  if (is_debug_message_op_enabled()) {
-    d->debug_message_op.emplace_back(Dialog::MessageOp::Delete, m->message_id, m->content->get_type(), false,
-                                     m->have_previous, m->have_next, "delete all messages");
-  }
 
   LOG(INFO) << "Delete " << message_id;
   deleted_message_ids.push_back(message_id.get());
@@ -21453,9 +21240,6 @@ DialogId MessagesManager::migrate_dialog_to_megagroup(DialogId dialog_id, Promis
     d = add_dialog(new_dialog_id, "migrate_dialog_to_megagroup");
     if (d->pts == 0) {
       d->pts = 1;
-      if (is_debug_message_op_enabled()) {
-        d->debug_message_op.emplace_back(Dialog::MessageOp::SetPts, d->pts, "migrate");
-      }
     }
     update_dialog_pos(d, "migrate_dialog_to_megagroup");
   }
@@ -27237,8 +27021,6 @@ void MessagesManager::on_upload_message_media_file_part_missing(DialogId dialog_
   }
 
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
-    // LOG(ERROR) << "Found " << m->message_id << " in inaccessible " << dialog_id;
-    // dump_debug_message_op(get_dialog(dialog_id), 5);
     return;  // the message should be deleted soon
   }
 
@@ -27262,8 +27044,6 @@ void MessagesManager::on_upload_message_media_fail(DialogId dialog_id, MessageId
   }
 
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
-    // LOG(ERROR) << "Found " << m->message_id << " in inaccessible " << dialog_id;
-    // dump_debug_message_op(get_dialog(dialog_id), 5);
     return;  // the message should be deleted soon
   }
 
@@ -32432,11 +32212,6 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
     return {};
   }
 
-  if (!have_input_peer(dialog_id, AccessRights::Read)) {
-    // LOG(ERROR) << "Found " << old_message_id << " in inaccessible " << dialog_id;
-    // dump_debug_message_op(d, 5);
-  }
-
   // imitation of update_message(d, sent_message.get(), std::move(new_message), &need_update_dialog_pos, false);
   if (date <= 0) {
     LOG(ERROR) << "Receive " << new_message_id << " in " << dialog_id << " with wrong date " << date << " from "
@@ -32522,11 +32297,6 @@ void MessagesManager::on_send_message_file_part_missing(int64 random_id, int bad
   }
 
   auto dialog_id = full_message_id.get_dialog_id();
-  if (!have_input_peer(dialog_id, AccessRights::Read)) {
-    // LOG(ERROR) << "Found " << m->message_id << " in inaccessible " << dialog_id;
-    // dump_debug_message_op(get_dialog(dialog_id), 5);
-  }
-
   if (dialog_id.get_type() == DialogType::SecretChat) {
     CHECK(!m->message_id.is_scheduled());
     Dialog *d = get_dialog(dialog_id);
@@ -32572,11 +32342,6 @@ void MessagesManager::on_send_message_file_reference_error(int64 random_id) {
   }
 
   auto dialog_id = full_message_id.get_dialog_id();
-  if (!have_input_peer(dialog_id, AccessRights::Read)) {
-    // LOG(ERROR) << "Found " << m->message_id << " in inaccessible " << dialog_id;
-    // dump_debug_message_op(get_dialog(dialog_id), 5);
-  }
-
   if (dialog_id.get_type() == DialogType::SecretChat) {
     CHECK(!m->message_id.is_scheduled());
     Dialog *d = get_dialog(dialog_id);
@@ -32686,11 +32451,6 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
       << "Receive error " << error << " about sent message with random_id = " << random_id;
 
   auto dialog_id = full_message_id.get_dialog_id();
-  if (!have_input_peer(dialog_id, AccessRights::Read)) {
-    // LOG(ERROR) << "Found " << m->message_id << " in inaccessible " << dialog_id;
-    // dump_debug_message_op(get_dialog(dialog_id), 5);
-  }
-
   int error_code = error.code();
   string error_message = error.message().str();
   switch (error_code) {
@@ -32893,11 +32653,6 @@ void MessagesManager::fail_send_message(FullMessageId full_message_id, int error
     // and there is nothing to be deleted from the server
     being_readded_message_id_ = FullMessageId();
     return;
-  }
-
-  if (!have_input_peer(dialog_id, AccessRights::Read)) {
-    // LOG(ERROR) << "Found " << old_message_id << " in inaccessible " << dialog_id;
-    // dump_debug_message_op(d, 5);
   }
 
   MessageId new_message_id = old_message_id.get_next_message_id(MessageType::Local);  // trying to keep message position
@@ -35690,12 +35445,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     return nullptr;
   }
 
-  auto message_content_type = message->content->get_type();
-  if (is_debug_message_op_enabled()) {
-    d->debug_message_op.emplace_back(Dialog::MessageOp::Add, message_id, message_content_type, from_update,
-                                     message->have_previous, message->have_next, source);
-  }
-
   message->last_access_date = G()->unix_time_cached();
 
   if (from_update) {
@@ -35712,7 +35461,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         if (!has_qts_messages(dialog_id)) {
           LOG(ERROR) << "New " << message_id << " in " << dialog_id << " from " << source
                      << " has identifier less than last_new_message_id = " << d->last_new_message_id;
-          dump_debug_message_op(d);
         }
       }
     }
@@ -35743,7 +35491,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
                      << ", being added message is " << d->being_added_message_id << ", channel difference "
                      << debug_channel_difference_dialog_ << " "
                      << to_string(get_message_object(dialog_id, message.get(), "add_message_to_dialog"));
-          dump_debug_message_op(d, 3);
         }
 
         if (need_channel_difference_to_add_message(dialog_id, nullptr)) {
@@ -35767,6 +35514,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     return nullptr;
   }
 
+  auto message_content_type = message->content->get_type();
   if (message_content_type == MessageContentType::ChatDeleteHistory) {
     {
       auto m = delete_message(d, message_id, true, need_update_dialog_pos, "message chat delete history");
@@ -35837,7 +35585,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
                        << (message->forward_info == nullptr ? " not" : "") << " forwarded " << message_id
                        << " with content of type " << message_content_type << " in " << dialog_id << " from " << source
                        << ", current last new is " << d->last_new_message_id << ", last is " << d->last_message_id;
-            dump_debug_message_op(d, 1);
           }
         }
       }
@@ -36078,12 +35825,10 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
             if (next_message->message_id.is_server() && !has_qts_messages(dialog_id)) {
               LOG(ERROR) << "Attach " << message_id << " from " << source << " before " << next_message->message_id
                          << " and after " << previous_message_id << " in " << dialog_id;
-              dump_debug_message_op(d);
             }
           } else {
             LOG(ERROR) << "Have_next is true, but there is no next message after " << previous_message_id << " from "
                        << source << " in " << dialog_id;
-            dump_debug_message_op(d);
           }
         }
 
@@ -36250,7 +35995,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
           LOG(ERROR) << "Can't attach " << m->message_id << " of type " << m->content->get_type() << " from " << source
                      << " from " << (m->from_database ? "database" : "server") << " before " << next_message->message_id
                      << " and after " << previous_message->message_id << " in " << dialog_id;
-          dump_debug_message_op(d);
         }
 
         next_message->have_previous = false;
@@ -36258,7 +36002,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       } else {
         LOG(ERROR) << "Have_next is true, but there is no next message after " << previous_message->message_id
                    << " from " << source << " in " << dialog_id;
-        dump_debug_message_op(d);
       }
     } else if (m->message_id.is_server() && d->last_message_id.is_valid() && m->message_id > d->last_message_id) {
       LOG(INFO) << "Receive " << m->message_id << ", which is newer than the last " << d->last_message_id
@@ -37816,9 +37559,6 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
       auto pts = load_channel_pts(dialog_id);
       if (pts > 0) {
         d->pts = pts;
-        if (is_debug_message_op_enabled()) {
-          d->debug_message_op.emplace_back(Dialog::MessageOp::SetPts, pts, "add_new_dialog");
-        }
       }
       break;
     }
@@ -39445,10 +39185,6 @@ void MessagesManager::set_channel_pts(Dialog *d, int32 new_pts, const char *sour
       << "Set PTS of " << d->dialog_id << " to " << new_pts << " from " << source
       << " while running getChannelDifference";
 
-  if (is_debug_message_op_enabled()) {
-    d->debug_message_op.emplace_back(Dialog::MessageOp::SetPts, new_pts, source);
-  }
-
   // TODO delete_first_messages support in channels
   if (new_pts == std::numeric_limits<int32>::max()) {
     LOG(ERROR) << "Update " << d->dialog_id << " PTS to -1 from " << source;
@@ -39895,7 +39631,6 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
         CHECK(d->last_message_id == d->last_new_message_id);
       } else {
         LOG(ERROR) << added_full_message_id << " doesn't became last new message, which is " << d->last_new_message_id;
-        dump_debug_message_op(d, 2);
       }
     } else if (last_message_id > d->last_new_message_id) {
       set_dialog_last_new_message_id(d, last_message_id,
