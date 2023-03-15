@@ -1424,8 +1424,6 @@ class MessagesManager final : public Actor {
 
     FlatHashMap<ScheduledServerMessageId, int32, ScheduledServerMessageIdHash> scheduled_message_date;
 
-    FlatHashMap<MessageId, MessageId, MessageIdHash> yet_unsent_message_id_to_persistent_message_id;
-
     FlatHashMap<int32, MessageId> last_assigned_scheduled_message_id;  // date -> message_id
 
     WaitFreeHashSet<MessageId, MessageIdHash> deleted_message_ids;
@@ -1948,7 +1946,7 @@ class MessagesManager final : public Actor {
                                bool was_uploaded, bool was_thumbnail_uploaded, string file_reference,
                                int32 schedule_date, uint64 generation, Result<int32> &&result);
 
-  static MessageId get_persistent_message_id(const Dialog *d, MessageId message_id);
+  MessageId get_persistent_message_id(const Dialog *d, MessageId message_id) const;
 
   static FullMessageId get_replied_message_id(DialogId dialog_id, const Message *m);
 
@@ -2502,7 +2500,7 @@ class MessagesManager final : public Actor {
 
   bool need_skip_bot_commands(DialogId dialog_id, const Message *m) const;
 
-  void send_update_message_send_succeeded(Dialog *d, MessageId old_message_id, const Message *m) const;
+  void send_update_message_send_succeeded(const Dialog *d, MessageId old_message_id, const Message *m);
 
   void send_update_message_content(const Dialog *d, Message *m, bool is_message_in_dialog, const char *source);
 
@@ -3755,6 +3753,8 @@ class MessagesManager final : public Actor {
   FlatHashMap<string, int32> auth_notification_id_date_;
 
   FlatHashMap<DialogId, MessageId, DialogIdHash> previous_repaired_read_inbox_max_message_id_;
+
+  FlatHashMap<FullMessageId, MessageId, FullMessageIdHash> yet_unsent_full_message_id_to_persistent_message_id_;
 
   struct PendingReaction {
     int32 query_count = 0;
