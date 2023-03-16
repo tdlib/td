@@ -16287,39 +16287,36 @@ void MessagesManager::delete_random_id_to_message_id_correspondence(Dialog *d, i
   }
 }
 
-void MessagesManager::add_notification_id_to_message_id_correspondence(Dialog *d, NotificationId notification_id,
+void MessagesManager::add_notification_id_to_message_id_correspondence(NotificationInfo *notification_info,
+                                                                       NotificationId notification_id,
                                                                        MessageId message_id) {
-  CHECK(d != nullptr);
+  CHECK(notification_info != nullptr);
   CHECK(notification_id.is_valid());
   CHECK(message_id.is_valid());
-  auto notification_info = add_dialog_notification_info(d);
   auto it = notification_info->notification_id_to_message_id_.find(notification_id);
   if (it == notification_info->notification_id_to_message_id_.end()) {
-    VLOG(notifications) << "Add correspondence from " << notification_id << " to " << message_id << " in "
-                        << d->dialog_id;
+    VLOG(notifications) << "Add correspondence from " << notification_id << " to " << message_id;
     notification_info->notification_id_to_message_id_.emplace(notification_id, message_id);
   } else if (it->second != message_id) {
-    LOG(ERROR) << "Have the same " << notification_id << " in " << d->dialog_id << " for " << message_id << " and "
-               << it->second;
+    LOG(ERROR) << "Have the same " << notification_id << " for " << message_id << " and " << it->second;
     if (it->second < message_id) {
       it->second = message_id;
     }
   }
 }
 
-void MessagesManager::delete_notification_id_to_message_id_correspondence(Dialog *d, NotificationId notification_id,
+void MessagesManager::delete_notification_id_to_message_id_correspondence(NotificationInfo *notification_info,
+                                                                          NotificationId notification_id,
                                                                           MessageId message_id) {
-  CHECK(d != nullptr);
+  CHECK(notification_info != nullptr);
   CHECK(notification_id.is_valid());
   CHECK(message_id.is_valid());
-  auto notification_info = add_dialog_notification_info(d);
   auto it = notification_info->notification_id_to_message_id_.find(notification_id);
   if (it != notification_info->notification_id_to_message_id_.end() && it->second == message_id) {
-    VLOG(notifications) << "Delete correspondence from " << notification_id << " to " << message_id << " in "
-                        << d->dialog_id;
+    VLOG(notifications) << "Delete correspondence from " << notification_id << " to " << message_id;
     notification_info->notification_id_to_message_id_.erase(it);
   } else {
-    LOG(ERROR) << "Can't find " << notification_id << " in " << d->dialog_id << " with " << message_id;
+    LOG(ERROR) << "Can't find " << notification_id << " from " << message_id;
   }
 }
 
@@ -16344,11 +16341,10 @@ void MessagesManager::remove_message_notification_id(Dialog *d, Message *m, bool
   VLOG(notifications) << "Remove " << notification_id << " from " << m->message_id << " in " << group_info.group_id
                       << '/' << d->dialog_id << " from database, was_active = " << had_active_notification
                       << ", is_permanent = " << is_permanent;
-  delete_notification_id_to_message_id_correspondence(d, notification_id, m->message_id);
+  delete_notification_id_to_message_id_correspondence(d->notification_info.get(), notification_id, m->message_id);
   m->removed_notification_id = m->notification_id;
   m->notification_id = NotificationId();
-  if (d->notification_info != nullptr &&
-      d->notification_info->pinned_message_notification_message_id_ == m->message_id && is_permanent &&
+  if (d->notification_info->pinned_message_notification_message_id_ == m->message_id && is_permanent &&
       !ignore_pinned_message_notification_removal) {
     remove_dialog_pinned_message_notification(
         d, "remove_message_notification_id");  // must be called after notification_id is removed
@@ -16774,7 +16770,7 @@ void MessagesManager::on_message_deleted(Dialog *d, Message *m, bool is_permanen
   unregister_message_content(td_, m->content.get(), {d->dialog_id, m->message_id}, "on_message_deleted");
   unregister_message_reply(d->dialog_id, m);
   if (m->notification_id.is_valid()) {
-    delete_notification_id_to_message_id_correspondence(d, m->notification_id, m->message_id);
+    delete_notification_id_to_message_id_correspondence(d->notification_info.get(), m->notification_id, m->message_id);
   }
   if (m->message_id.is_yet_unsent() || dialog_type == DialogType::SecretChat) {
     delete_random_id_to_message_id_correspondence(d, m->random_id, m->message_id);
@@ -30524,7 +30520,7 @@ NotificationId MessagesManager::get_next_notification_id(Dialog *d, Notification
            notification_id.get() <=
                notification_info->mention_notification_group_.max_removed_notification_id.get());  // just in case
   if (message_id.is_valid()) {
-    add_notification_id_to_message_id_correspondence(d, notification_id, message_id);
+    add_notification_id_to_message_id_correspondence(notification_info, notification_id, message_id);
   }
   return notification_id;
 }
@@ -35455,7 +35451,9 @@ MessagesManager::Message *MessagesManager::on_get_message_from_database(Dialog *
     }
 
     if (old_message->notification_id.is_valid() && !is_scheduled) {
-      add_notification_id_to_message_id_correspondence(d, old_message->notification_id, old_message->message_id);
+      auto notification_info = add_dialog_notification_info(d);
+      add_notification_id_to_message_id_correspondence(notification_info, old_message->notification_id,
+                                                       old_message->message_id);
     }
 
     return old_message;
@@ -36311,7 +36309,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   if (m->notification_id.is_valid()) {
-    add_notification_id_to_message_id_correspondence(d, m->notification_id, m->message_id);
+    auto notification_info = add_dialog_notification_info(d);
+    add_notification_id_to_message_id_correspondence(notification_info, m->notification_id, m->message_id);
   }
   if (m->message_id.is_yet_unsent() || dialog_type == DialogType::SecretChat) {
     add_random_id_to_message_id_correspondence(d, m->random_id, m->message_id);
@@ -37099,7 +37098,8 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
       }
     } else {
       CHECK(new_message->notification_id.is_valid());
-      add_notification_id_to_message_id_correspondence(d, new_message->notification_id, message_id);
+      auto notification_info = add_dialog_notification_info(d);
+      add_notification_id_to_message_id_correspondence(notification_info, new_message->notification_id, message_id);
       old_message->notification_id = new_message->notification_id;
     }
   }

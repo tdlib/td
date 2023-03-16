@@ -2413,11 +2413,11 @@ class MessagesManager final : public Actor {
 
   static void delete_random_id_to_message_id_correspondence(Dialog *d, int64 random_id, MessageId message_id);
 
-  static void add_notification_id_to_message_id_correspondence(Dialog *d, NotificationId notification_id,
-                                                               MessageId message_id);
+  static void add_notification_id_to_message_id_correspondence(NotificationInfo *notification_info,
+                                                               NotificationId notification_id, MessageId message_id);
 
-  static void delete_notification_id_to_message_id_correspondence(Dialog *d, NotificationId notification_id,
-                                                                  MessageId message_id);
+  static void delete_notification_id_to_message_id_correspondence(NotificationInfo *notification_info,
+                                                                  NotificationId notification_id, MessageId message_id);
 
   void remove_message_notification_id(Dialog *d, Message *m, bool is_permanent, bool force_update,
                                       bool ignore_pinned_message_notification_removal = false);
