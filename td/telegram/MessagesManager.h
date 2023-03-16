@@ -1403,9 +1403,6 @@ class MessagesManager final : public Actor {
     bool has_unload_timeout = false;
     bool is_channel_difference_finished = false;
 
-    bool suffix_load_done_ = false;
-    bool suffix_load_has_query_ = false;
-
     int32 pts = 0;                                             // for channels only
     int32 pending_read_channel_inbox_pts = 0;                  // for channels only
     int32 pending_read_channel_inbox_server_unread_count = 0;  // for channels only
@@ -1430,12 +1427,6 @@ class MessagesManager final : public Actor {
     FlatHashMap<NotificationId, MessageId, NotificationIdHash> notification_id_to_message_id;
 
     string client_data;
-
-    // Load from newest to oldest message
-    MessageId suffix_load_first_message_id_;  // identifier of some message such all suffix messages in range
-                                              // [suffix_load_first_message_id_, last_message_id] are loaded
-    MessageId suffix_load_query_message_id_;
-    std::vector<std::pair<Promise<Unit>, std::function<bool(const Message *)>>> suffix_load_queries_;
 
     unique_ptr<Message> messages;
     unique_ptr<Message> scheduled_messages;
@@ -1734,6 +1725,16 @@ class MessagesManager final : public Actor {
         , schedule_date(schedule_date)
         , sending_id(sending_id) {
     }
+  };
+
+  struct SuffixLoadQueries {
+    bool suffix_load_done_ = false;
+    bool suffix_load_has_query_ = false;
+
+    MessageId suffix_load_first_message_id_;  // identifier of some message such all suffix messages in range
+                                              // [suffix_load_first_message_id_, last_message_id] are loaded
+    MessageId suffix_load_query_message_id_;
+    vector<std::pair<Promise<Unit>, std::function<bool(const Message *)>>> suffix_load_queries_;
   };
 
   class BlockMessageSenderFromRepliesOnServerLogEvent;
@@ -3346,8 +3347,8 @@ class MessagesManager final : public Actor {
 
   static uint64 save_unpin_all_dialog_messages_on_server_log_event(DialogId dialog_id);
 
-  void suffix_load_loop(Dialog *d);
-  static void suffix_load_update_first_message_id(Dialog *d);
+  void suffix_load_loop(const Dialog *d, SuffixLoadQueries *queries);
+  void suffix_load_update_first_message_id(const Dialog *d, SuffixLoadQueries *queries);
   void suffix_load_query_ready(DialogId dialog_id);
   void suffix_load_add_query(Dialog *d, std::pair<Promise<Unit>, std::function<bool(const Message *)>> query);
   void suffix_load_till_date(Dialog *d, int32 date, Promise<Unit> promise);
@@ -3751,6 +3752,8 @@ class MessagesManager final : public Actor {
   FlatHashMap<FullMessageId, MessageId, FullMessageIdHash> yet_unsent_full_message_id_to_persistent_message_id_;
   FlatHashMap<FullMessageId, std::set<MessageId>, FullMessageIdHash>
       yet_unsent_thread_message_ids_;  // {dialog_id, top_thread_message_id} -> yet unsent message IDs
+
+  FlatHashMap<DialogId, unique_ptr<SuffixLoadQueries>, DialogIdHash> dialog_suffix_load_queries_;
 
   struct PendingMessageView {
     FlatHashSet<MessageId, MessageIdHash> message_ids_;
