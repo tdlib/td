@@ -74,8 +74,8 @@ Result<FileLoader::FileInfo> FileDownloader::init() {
     auto result_fd = FileFd::open(path_, FileFd::Write | FileFd::Read);
     // TODO: check timestamps..
     if (result_fd.is_ok()) {
-      if (partial.iv_.size() == 32 && 0 <= partial.part_size_ && partial.part_size_ <= (1 << 20) &&
-          (partial.part_size_ & (partial.part_size_ - 1)) == 0) {
+      if ((!encryption_key_.is_secret() || partial.iv_.size() == 32) && 0 <= partial.part_size_ &&
+          partial.part_size_ <= (1 << 20) && (partial.part_size_ & (partial.part_size_ - 1)) == 0) {
         bitmask = Bitmask(Bitmask::Decode{}, partial.ready_bitmask_);
         if (encryption_key_.is_secret()) {
           encryption_key_.mutable_iv() = as<UInt256>(partial.iv_.data());
