@@ -30501,12 +30501,12 @@ Result<MessagesManager::MessagePushNotificationInfo> MessagesManager::get_messag
   return result;
 }
 
-NotificationId MessagesManager::get_next_notification_id(Dialog *d, NotificationGroupId notification_group_id,
+NotificationId MessagesManager::get_next_notification_id(NotificationInfo *notification_info,
+                                                         NotificationGroupId notification_group_id,
                                                          MessageId message_id) {
-  CHECK(d != nullptr);
+  CHECK(notification_info != nullptr);
   CHECK(!message_id.is_scheduled());
   NotificationId notification_id;
-  auto notification_info = add_dialog_notification_info(d);
   do {
     notification_id = td_->notification_manager_->get_next_notification_id();
     if (!notification_id.is_valid()) {
@@ -31503,7 +31503,8 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
     return false;
   }
   // if !force, then add_message_to_dialog will add the correspondence
-  m->notification_id = get_next_notification_id(d, notification_group_id, force ? m->message_id : MessageId());
+  m->notification_id =
+      get_next_notification_id(notification_info, notification_group_id, force ? m->message_id : MessageId());
   if (!m->notification_id.is_valid()) {
     return false;
   }
@@ -37663,7 +37664,7 @@ void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source
                        << d->dialog_id << ", when creating it from " << source;
           } else {
             notification_info->new_secret_chat_notification_id_ =
-                get_next_notification_id(d, notification_group_id, MessageId());
+                get_next_notification_id(notification_info, notification_group_id, MessageId());
             if (notification_info->new_secret_chat_notification_id_.is_valid()) {
               auto date = td_->contacts_manager_->get_secret_chat_date(secret_chat_id);
               bool is_changed = set_dialog_last_notification(dialog_id, notification_info->message_notification_group_,

@@ -2472,7 +2472,8 @@ class MessagesManager final : public Actor {
 
   NotificationGroupId get_dialog_notification_group_id(DialogId dialog_id, NotificationGroupInfo &group_info);
 
-  NotificationId get_next_notification_id(Dialog *d, NotificationGroupId notification_group_id, MessageId message_id);
+  NotificationId get_next_notification_id(NotificationInfo *notification_info,
+                                          NotificationGroupId notification_group_id, MessageId message_id);
 
   void try_add_pinned_message_notification(Dialog *d, vector<Notification> &res, NotificationId max_notification_id,
                                            int32 limit);
