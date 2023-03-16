@@ -1288,6 +1288,7 @@ class MessagesManager final : public Actor {
     NotificationGroupInfo mention_notification_group;
     NotificationId new_secret_chat_notification_id;  // secret chats only
     MessageId pinned_message_notification_message_id;
+    MessageId max_notification_message_id;
 
     vector<std::pair<DialogId, MessageId>> pending_new_message_notifications;
     vector<std::pair<DialogId, MessageId>> pending_new_mention_notifications;
@@ -1359,7 +1360,6 @@ class MessagesManager final : public Actor {
     int32 delete_last_message_date = 0;
     int32 pending_last_message_date = 0;
     MessageId pending_last_message_id;
-    MessageId max_notification_message_id;
     MessageId last_edited_message_id;
     uint32 scheduled_messages_sync_generation = 0;
     uint32 last_repair_scheduled_messages_generation = 0;

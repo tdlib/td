@@ -5474,8 +5474,8 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
       notification_info != nullptr && notification_info->pinned_message_notification_message_id.is_valid();
   bool has_last_pinned_message_id = last_pinned_message_id.is_valid();
   bool has_flags2 = true;
-  bool has_max_notification_message_id =
-      max_notification_message_id.is_valid() && max_notification_message_id > last_new_message_id;
+  bool has_max_notification_message_id = notification_info != nullptr && 
+      notification_info->max_notification_message_id.is_valid() && notification_info->max_notification_message_id > last_new_message_id;
   bool has_folder_id = folder_id != FolderId();
   bool has_pending_read_channel_inbox = pending_read_channel_inbox_pts != 0;
   bool has_last_yet_unsent_message = last_message_id.is_valid() && last_message_id.is_yet_unsent();
@@ -5649,7 +5649,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     store(last_pinned_message_id, storer);
   }
   if (has_max_notification_message_id) {
-    store(max_notification_message_id, storer);
+    store(notification_info->max_notification_message_id, storer);
   }
   if (has_folder_id) {
     store(folder_id, storer);
@@ -5947,7 +5947,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     parse(last_pinned_message_id, parser);
   }
   if (has_max_notification_message_id) {
-    parse(max_notification_message_id, parser);
+    parse(add_dialog_notification_info(this)->max_notification_message_id, parser);
   }
   if (has_folder_id) {
     parse(folder_id, parser);
@@ -12695,9 +12695,11 @@ void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_messa
       unread_count = 0;
     }
 
-    LOG_IF(INFO, d->last_new_message_id.is_valid() && max_message_id > d->last_new_message_id &&
-                     max_message_id > d->max_notification_message_id && max_message_id.is_server() &&
-                     dialog_id.get_type() != DialogType::Channel && !running_get_difference_)
+    LOG_IF(
+        INFO,
+        d->last_new_message_id.is_valid() && max_message_id > d->last_new_message_id &&
+            (d->notification_info != nullptr && max_message_id > d->notification_info->max_notification_message_id) &&
+            max_message_id.is_server() && dialog_id.get_type() != DialogType::Channel && !running_get_difference_)
         << "Receive read inbox update up to unknown " << max_message_id << " in " << dialog_id << " from " << source
         << ". Last new is " << d->last_new_message_id << ", unread_count = " << unread_count
         << ". Possible only for deleted incoming message";
@@ -21564,8 +21566,8 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
         info->recently_viewed_messages[view_id] = message_id;
       }
     } else if (!message_id.is_yet_unsent() && message_id > max_message_id) {
-      if (message_id <= d->max_notification_message_id || message_id <= d->last_new_message_id ||
-          message_id <= max_thread_message_id) {
+      if ((d->notification_info != nullptr && message_id <= d->notification_info->max_notification_message_id) ||
+          message_id <= d->last_new_message_id || message_id <= max_thread_message_id) {
         max_message_id = message_id;
       }
     }
@@ -26082,7 +26084,8 @@ MessageId MessagesManager::get_reply_to_message_id(Dialog *d, MessageId top_thre
   if (m == nullptr || m->message_id.is_yet_unsent() ||
       (m->message_id.is_local() && d->dialog_id.get_type() != DialogType::SecretChat)) {
     if (message_id.is_server() && d->dialog_id.get_type() != DialogType::SecretChat &&
-        message_id > d->last_new_message_id && message_id <= d->max_notification_message_id) {
+        message_id > d->last_new_message_id &&
+        (d->notification_info != nullptr && message_id <= d->notification_info->max_notification_message_id)) {
       // allow to reply yet unreceived server message
       return message_id;
     }
@@ -30404,17 +30407,21 @@ Result<MessagesManager::MessagePushNotificationInfo> MessagesManager::get_messag
     return Status::Error("Ignore notification about sent scheduled message");
   }
 
-  bool is_new_pinned = is_pinned && message_id.is_valid() && message_id > d->max_notification_message_id;
+  bool is_new_pinned =
+      is_pinned && message_id.is_valid() &&
+      (d->notification_info == nullptr || message_id > d->notification_info->max_notification_message_id);
   CHECK(!message_id.is_scheduled());
   if (message_id.is_valid()) {
     if (message_id <= d->last_new_message_id) {
       return Status::Error("Ignore notification about known message");
     }
-    if (!is_from_binlog && message_id == d->max_notification_message_id) {
-      return Status::Error("Ignore previously added message push notification");
-    }
-    if (!is_from_binlog && message_id < d->max_notification_message_id) {
-      return Status::Error("Ignore out of order message push notification");
+    if (!is_from_binlog && d->notification_info != nullptr) {
+      if (message_id == d->notification_info->max_notification_message_id) {
+        return Status::Error("Ignore previously added message push notification");
+      }
+      if (message_id < d->notification_info->max_notification_message_id) {
+        return Status::Error("Ignore out of order message push notification");
+      }
     }
     if (message_id <= d->last_read_inbox_message_id) {
       return Status::Error("Ignore notification about read message");
@@ -30477,13 +30484,16 @@ Result<MessagesManager::MessagePushNotificationInfo> MessagesManager::get_messag
     return Status::Error("Can't assign notification group ID");
   }
 
-  if (message_id.is_valid() && message_id > d->max_notification_message_id) {
-    if (is_new_pinned) {
-      set_dialog_pinned_message_notification(d, contains_mention ? message_id : MessageId(),
-                                             "get_message_push_notification_info");
+  if (message_id.is_valid()) {
+    auto notification_info = add_dialog_notification_info(d);
+    if (message_id > notification_info->max_notification_message_id) {
+      if (is_new_pinned) {
+        set_dialog_pinned_message_notification(d, contains_mention ? message_id : MessageId(),
+                                               "get_message_push_notification_info");
+      }
+      notification_info->max_notification_message_id = message_id;
+      on_dialog_updated(dialog_id, "set_max_notification_message_id");
     }
-    d->max_notification_message_id = message_id;
-    on_dialog_updated(dialog_id, "set_max_notification_message_id");
   }
 
   MessagePushNotificationInfo result;
@@ -31519,7 +31529,7 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
     min_delay_ms = 1000;  // 1 second
   }
   auto ringtone_id = get_dialog_notification_ringtone_id(settings_dialog_id, settings_dialog);
-  bool is_silent = m->disable_notification || m->message_id <= d->max_notification_message_id;
+  bool is_silent = m->disable_notification || m->message_id <= notification_info->max_notification_message_id;
   send_closure_later(G()->notification_manager(), &NotificationManager::add_notification, notification_group_id,
                      from_mentions ? NotificationGroupType::Mentions : NotificationGroupType::Messages, d->dialog_id,
                      m->date, settings_dialog_id, m->disable_notification, is_silent ? 0 : ringtone_id, min_delay_ms,
@@ -31579,8 +31589,9 @@ void MessagesManager::remove_all_dialog_notifications(Dialog *d, bool from_menti
     VLOG(notifications) << "Set max_removed_notification_id in " << group_info.group_id << '/' << d->dialog_id << " to "
                         << group_info.last_notification_id << " from " << source;
     group_info.max_removed_notification_id = group_info.last_notification_id;
-    if (d->max_notification_message_id > group_info.max_removed_message_id) {
-      group_info.max_removed_message_id = d->max_notification_message_id.get_prev_server_message_id();
+    if (d->notification_info->max_notification_message_id > group_info.max_removed_message_id) {
+      group_info.max_removed_message_id =
+          d->notification_info->max_notification_message_id.get_prev_server_message_id();
     }
     if (!d->notification_info->pending_new_message_notifications.empty()) {
       for (auto &it : d->notification_info->pending_new_message_notifications) {
@@ -38218,10 +38229,10 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
                         << d->notification_info->mention_notification_group.max_removed_notification_id << "/"
                         << d->notification_info->mention_notification_group.max_removed_message_id << " and pinned "
                         << d->notification_info->pinned_message_notification_message_id;
+    VLOG(notifications) << "In " << dialog_id << " have last_read_inbox_message_id = " << d->last_read_inbox_message_id
+                        << ", last_new_message_id = " << d->last_new_message_id
+                        << ", max_notification_message_id = " << d->notification_info->max_notification_message_id;
   }
-  VLOG(notifications) << "In " << dialog_id << " have last_read_inbox_message_id = " << d->last_read_inbox_message_id
-                      << ", last_new_message_id = " << d->last_new_message_id
-                      << ", max_notification_message_id = " << d->max_notification_message_id;
 
   if (d->messages != nullptr) {
     if (d->messages->message_id != last_message_id || d->messages->left != nullptr || d->messages->right != nullptr) {
