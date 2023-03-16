@@ -157,159 +157,196 @@ static void parse_internal_link(const td::string &url, td::td_api::object_ptr<td
   check_find_urls(url, result != nullptr);
 }
 
-TEST(Link, parse_internal_link) {
-  auto chat_administrator_rights = [](bool can_manage_chat, bool can_change_info, bool can_post_messages,
+static auto chat_administrator_rights(bool can_manage_chat, bool can_change_info, bool can_post_messages,
                                       bool can_edit_messages, bool can_delete_messages, bool can_invite_users,
                                       bool can_restrict_members, bool can_pin_messages, bool can_manage_topics,
                                       bool can_promote_members, bool can_manage_video_chats, bool is_anonymous) {
-    return td::td_api::make_object<td::td_api::chatAdministratorRights>(
-        can_manage_chat, can_change_info, can_post_messages, can_edit_messages, can_delete_messages, can_invite_users,
-        can_restrict_members, can_pin_messages, can_manage_topics, can_promote_members, can_manage_video_chats,
-        is_anonymous);
-  };
-  auto target_chat_chosen = [](bool allow_users, bool allow_bots, bool allow_groups, bool allow_channels) {
-    return td::td_api::make_object<td::td_api::targetChatChosen>(allow_users, allow_bots, allow_groups, allow_channels);
-  };
+  return td::td_api::make_object<td::td_api::chatAdministratorRights>(
+      can_manage_chat, can_change_info, can_post_messages, can_edit_messages, can_delete_messages, can_invite_users,
+      can_restrict_members, can_pin_messages, can_manage_topics, can_promote_members, can_manage_video_chats,
+      is_anonymous);
+}
 
-  auto active_sessions = [] {
-    return td::td_api::make_object<td::td_api::internalLinkTypeActiveSessions>();
-  };
-  auto attachment_menu_bot = [](td::td_api::object_ptr<td::td_api::targetChatChosen> chat_types,
+static auto target_chat_chosen(bool allow_users, bool allow_bots, bool allow_groups, bool allow_channels) {
+  return td::td_api::make_object<td::td_api::targetChatChosen>(allow_users, allow_bots, allow_groups, allow_channels);
+}
+
+static auto active_sessions() {
+  return td::td_api::make_object<td::td_api::internalLinkTypeActiveSessions>();
+}
+
+static auto attachment_menu_bot(td::td_api::object_ptr<td::td_api::targetChatChosen> chat_types,
                                 td::td_api::object_ptr<td::td_api::InternalLinkType> chat_link,
                                 const td::string &bot_username, const td::string &start_parameter) {
-    td::td_api::object_ptr<td::td_api::TargetChat> target_chat;
-    if (chat_link != nullptr) {
-      target_chat = td::td_api::make_object<td::td_api::targetChatInternalLink>(std::move(chat_link));
-    } else if (chat_types != nullptr) {
-      target_chat = std::move(chat_types);
-    } else {
-      target_chat = td::td_api::make_object<td::td_api::targetChatCurrent>();
-    }
-    return td::td_api::make_object<td::td_api::internalLinkTypeAttachmentMenuBot>(
-        std::move(target_chat), bot_username, start_parameter.empty() ? td::string() : "start://" + start_parameter);
-  };
-  auto authentication_code = [](const td::string &code) {
-    return td::td_api::make_object<td::td_api::internalLinkTypeAuthenticationCode>(code);
-  };
-  auto background = [](const td::string &background_name) {
-    return td::td_api::make_object<td::td_api::internalLinkTypeBackground>(background_name);
-  };
-  auto bot_add_to_channel = [](const td::string &bot_username,
-                               td::td_api::object_ptr<td::td_api::chatAdministratorRights> &&administrator_rights) {
-    return td::td_api::make_object<td::td_api::internalLinkTypeBotAddToChannel>(bot_username,
-                                                                                std::move(administrator_rights));
-  };
-  auto bot_start = [](const td::string &bot_username, const td::string &start_parameter) {
-    return td::td_api::make_object<td::td_api::internalLinkTypeBotStart>(bot_username, start_parameter, false);
-  };
-  auto bot_start_in_group = [](const td::string &bot_username, const td::string &start_parameter,
-                               td::td_api::object_ptr<td::td_api::chatAdministratorRights> &&administrator_rights) {
-    return td::td_api::make_object<td::td_api::internalLinkTypeBotStartInGroup>(bot_username, start_parameter,
-                                                                                std::move(administrator_rights));
-  };
-  auto change_phone_number = [] {
-    return td::td_api::make_object<td::td_api::internalLinkTypeChangePhoneNumber>();
-  };
-  auto chat_invite = [](const td::string &hash) {
-    return td::td_api::make_object<td::td_api::internalLinkTypeChatInvite>("tg:join?invite=" + hash);
-  };
-  auto default_message_auto_delete_timer_settings = [] {
-    return td::td_api::make_object<td::td_api::internalLinkTypeDefaultMessageAutoDeleteTimerSettings>();
-  };
-  auto edit_profile_settings = [] {
-    return td::td_api::make_object<td::td_api::internalLinkTypeEditProfileSettings>();
-  };
-  auto filter_settings = [] {
-    return td::td_api::make_object<td::td_api::internalLinkTypeFilterSettings>();
-  };
-  auto game = [](const td::string &bot_username, const td::string &game_short_name) {
-    return td::td_api::make_object<td::td_api::internalLinkTypeGame>(bot_username, game_short_name);
-  };
-  auto instant_view = [](const td::string &url, const td::string &fallback_url) {
-    return td::td_api::make_object<td::td_api::internalLinkTypeInstantView>(url, fallback_url);
-  };
-  auto invoice = [](const td::string &invoice_name) {
-    return td::td_api::make_object<td::td_api::internalLinkTypeInvoice>(invoice_name);
-  };
-  auto language_pack = [](const td::string &language_pack_name) {
-    return td::td_api::make_object<td::td_api::internalLinkTypeLanguagePack>(language_pack_name);
-  };
-  auto language_settings = [] {
-    return td::td_api::make_object<td::td_api::internalLinkTypeLanguageSettings>();
-  };
-  auto message = [](const td::string &url) {
-    return td::td_api::make_object<td::td_api::internalLinkTypeMessage>(url);
-  };
-  auto message_draft = [](td::string text, bool contains_url) {
-    auto formatted_text = td::td_api::make_object<td::td_api::formattedText>();
-    formatted_text->text_ = std::move(text);
-    return td::td_api::make_object<td::td_api::internalLinkTypeMessageDraft>(std::move(formatted_text), contains_url);
-  };
-  auto passport_data_request = [](td::int32 bot_user_id, const td::string &scope, const td::string &public_key,
-                                  const td::string &nonce, const td::string &callback_url) {
-    return td::td_api::make_object<td::td_api::internalLinkTypePassportDataRequest>(bot_user_id, scope, public_key,
-                                                                                    nonce, callback_url);
-  };
-  auto phone_number_confirmation = [](const td::string &hash, const td::string &phone_number) {
-    return td::td_api::make_object<td::td_api::internalLinkTypePhoneNumberConfirmation>(hash, phone_number);
-  };
-  auto premium_features = [](const td::string &referrer) {
-    return td::td_api::make_object<td::td_api::internalLinkTypePremiumFeatures>(referrer);
-  };
-  auto privacy_and_security_settings = [] {
-    return td::td_api::make_object<td::td_api::internalLinkTypePrivacyAndSecuritySettings>();
-  };
-  auto proxy_mtproto = [](const td::string &server, td::int32 port, const td::string &secret) {
-    return td::td_api::make_object<td::td_api::internalLinkTypeProxy>(
-        server, port, td::td_api::make_object<td::td_api::proxyTypeMtproto>(secret));
-  };
-  auto proxy_socks = [](const td::string &server, td::int32 port, const td::string &username,
-                        const td::string &password) {
-    return td::td_api::make_object<td::td_api::internalLinkTypeProxy>(
-        server, port, td::td_api::make_object<td::td_api::proxyTypeSocks5>(username, password));
-  };
-  auto public_chat = [](const td::string &chat_username) {
-    return td::td_api::make_object<td::td_api::internalLinkTypePublicChat>(chat_username);
-  };
-  auto qr_code_authentication = [] {
-    return td::td_api::make_object<td::td_api::internalLinkTypeQrCodeAuthentication>();
-  };
-  auto restore_purchases = [] {
-    return td::td_api::make_object<td::td_api::internalLinkTypeRestorePurchases>();
-  };
-  auto settings = [] {
-    return td::td_api::make_object<td::td_api::internalLinkTypeSettings>();
-  };
-  auto sticker_set = [](const td::string &sticker_set_name, bool expect_custom_emoji) {
-    return td::td_api::make_object<td::td_api::internalLinkTypeStickerSet>(sticker_set_name, expect_custom_emoji);
-  };
-  auto theme = [](const td::string &theme_name) {
-    return td::td_api::make_object<td::td_api::internalLinkTypeTheme>(theme_name);
-  };
-  auto theme_settings = [] {
-    return td::td_api::make_object<td::td_api::internalLinkTypeThemeSettings>();
-  };
-  auto unknown_deep_link = [](const td::string &link) {
-    return td::td_api::make_object<td::td_api::internalLinkTypeUnknownDeepLink>(link);
-  };
-  auto unsupported_proxy = [] {
-    return td::td_api::make_object<td::td_api::internalLinkTypeUnsupportedProxy>();
-  };
-  auto user_phone_number = [](const td::string &phone_number) {
-    return td::td_api::make_object<td::td_api::internalLinkTypeUserPhoneNumber>(phone_number);
-  };
-  auto user_token = [](const td::string &token) {
-    return td::td_api::make_object<td::td_api::internalLinkTypeUserToken>(token);
-  };
-  auto video_chat = [](const td::string &chat_username, const td::string &invite_hash, bool is_live_stream) {
-    return td::td_api::make_object<td::td_api::internalLinkTypeVideoChat>(chat_username, invite_hash, is_live_stream);
-  };
-  auto web_app = [](const td::string &bot_username, const td::string &web_app_short_name,
-                    const td::string &start_parameter) {
-    return td::td_api::make_object<td::td_api::internalLinkTypeWebApp>(bot_username, web_app_short_name,
-                                                                       start_parameter);
-  };
+  td::td_api::object_ptr<td::td_api::TargetChat> target_chat;
+  if (chat_link != nullptr) {
+    target_chat = td::td_api::make_object<td::td_api::targetChatInternalLink>(std::move(chat_link));
+  } else if (chat_types != nullptr) {
+    target_chat = std::move(chat_types);
+  } else {
+    target_chat = td::td_api::make_object<td::td_api::targetChatCurrent>();
+  }
+  return td::td_api::make_object<td::td_api::internalLinkTypeAttachmentMenuBot>(
+      std::move(target_chat), bot_username, start_parameter.empty() ? td::string() : "start://" + start_parameter);
+}
 
+static auto authentication_code(const td::string &code) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeAuthenticationCode>(code);
+}
+
+static auto background(const td::string &background_name) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeBackground>(background_name);
+}
+
+static auto bot_add_to_channel(const td::string &bot_username,
+                               td::td_api::object_ptr<td::td_api::chatAdministratorRights> &&administrator_rights) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeBotAddToChannel>(bot_username,
+                                                                              std::move(administrator_rights));
+}
+
+static auto bot_start(const td::string &bot_username, const td::string &start_parameter) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeBotStart>(bot_username, start_parameter, false);
+}
+
+static auto bot_start_in_group(const td::string &bot_username, const td::string &start_parameter,
+                               td::td_api::object_ptr<td::td_api::chatAdministratorRights> &&administrator_rights) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeBotStartInGroup>(bot_username, start_parameter,
+                                                                              std::move(administrator_rights));
+}
+
+static auto change_phone_number() {
+  return td::td_api::make_object<td::td_api::internalLinkTypeChangePhoneNumber>();
+}
+
+static auto chat_invite(const td::string &hash) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeChatInvite>("tg:join?invite=" + hash);
+}
+
+static auto default_message_auto_delete_timer_settings() {
+  return td::td_api::make_object<td::td_api::internalLinkTypeDefaultMessageAutoDeleteTimerSettings>();
+}
+
+static auto edit_profile_settings() {
+  return td::td_api::make_object<td::td_api::internalLinkTypeEditProfileSettings>();
+}
+
+static auto filter_settings() {
+  return td::td_api::make_object<td::td_api::internalLinkTypeFilterSettings>();
+}
+
+static auto game(const td::string &bot_username, const td::string &game_short_name) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeGame>(bot_username, game_short_name);
+}
+
+static auto instant_view(const td::string &url, const td::string &fallback_url) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeInstantView>(url, fallback_url);
+}
+
+static auto invoice(const td::string &invoice_name) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeInvoice>(invoice_name);
+}
+
+static auto language_pack(const td::string &language_pack_name) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeLanguagePack>(language_pack_name);
+}
+
+static auto language_settings() {
+  return td::td_api::make_object<td::td_api::internalLinkTypeLanguageSettings>();
+}
+
+static auto message(const td::string &url) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeMessage>(url);
+}
+
+static auto message_draft(td::string text, bool contains_url) {
+  auto formatted_text = td::td_api::make_object<td::td_api::formattedText>();
+  formatted_text->text_ = std::move(text);
+  return td::td_api::make_object<td::td_api::internalLinkTypeMessageDraft>(std::move(formatted_text), contains_url);
+}
+
+static auto passport_data_request(td::int32 bot_user_id, const td::string &scope, const td::string &public_key,
+                                  const td::string &nonce, const td::string &callback_url) {
+  return td::td_api::make_object<td::td_api::internalLinkTypePassportDataRequest>(bot_user_id, scope, public_key, nonce,
+                                                                                  callback_url);
+}
+
+static auto phone_number_confirmation(const td::string &hash, const td::string &phone_number) {
+  return td::td_api::make_object<td::td_api::internalLinkTypePhoneNumberConfirmation>(hash, phone_number);
+}
+
+static auto premium_features(const td::string &referrer) {
+  return td::td_api::make_object<td::td_api::internalLinkTypePremiumFeatures>(referrer);
+}
+
+static auto privacy_and_security_settings() {
+  return td::td_api::make_object<td::td_api::internalLinkTypePrivacyAndSecuritySettings>();
+}
+
+static auto proxy_mtproto(const td::string &server, td::int32 port, const td::string &secret) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeProxy>(
+      server, port, td::td_api::make_object<td::td_api::proxyTypeMtproto>(secret));
+}
+
+static auto proxy_socks(const td::string &server, td::int32 port, const td::string &username,
+                        const td::string &password) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeProxy>(
+      server, port, td::td_api::make_object<td::td_api::proxyTypeSocks5>(username, password));
+}
+
+static auto public_chat(const td::string &chat_username) {
+  return td::td_api::make_object<td::td_api::internalLinkTypePublicChat>(chat_username);
+}
+
+static auto qr_code_authentication() {
+  return td::td_api::make_object<td::td_api::internalLinkTypeQrCodeAuthentication>();
+}
+
+static auto restore_purchases() {
+  return td::td_api::make_object<td::td_api::internalLinkTypeRestorePurchases>();
+}
+
+static auto settings() {
+  return td::td_api::make_object<td::td_api::internalLinkTypeSettings>();
+}
+
+static auto sticker_set(const td::string &sticker_set_name, bool expect_custom_emoji) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeStickerSet>(sticker_set_name, expect_custom_emoji);
+}
+
+static auto theme(const td::string &theme_name) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeTheme>(theme_name);
+}
+
+static auto theme_settings() {
+  return td::td_api::make_object<td::td_api::internalLinkTypeThemeSettings>();
+}
+
+static auto unknown_deep_link(const td::string &link) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeUnknownDeepLink>(link);
+}
+
+static auto unsupported_proxy() {
+  return td::td_api::make_object<td::td_api::internalLinkTypeUnsupportedProxy>();
+}
+
+static auto user_phone_number(const td::string &phone_number) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeUserPhoneNumber>(phone_number);
+}
+
+static auto user_token(const td::string &token) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeUserToken>(token);
+}
+
+static auto video_chat(const td::string &chat_username, const td::string &invite_hash, bool is_live_stream) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeVideoChat>(chat_username, invite_hash, is_live_stream);
+}
+
+static auto web_app(const td::string &bot_username, const td::string &web_app_short_name,
+                    const td::string &start_parameter) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeWebApp>(bot_username, web_app_short_name, start_parameter);
+}
+
+TEST(Link, parse_internal_link_part1) {
   parse_internal_link("t.me/levlam/1", message("tg://resolve?domain=levlam&post=1"));
   parse_internal_link("telegram.me/levlam/1", message("tg://resolve?domain=levlam&post=1"));
   parse_internal_link("telegram.dog/levlam/1", message("tg://resolve?domain=levlam&post=1"));
@@ -523,7 +560,9 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("t.me/bg//", nullptr);
   parse_internal_link("t.me/bg/%20/", background("%20"));
   parse_internal_link("t.me/bg/", nullptr);
+}
 
+TEST(Link, parse_internal_link_part2) {
   parse_internal_link("t.me/invoice?slug=abcdef", nullptr);
   parse_internal_link("t.me/invoice", nullptr);
   parse_internal_link("t.me/invoice/", nullptr);
@@ -710,7 +749,9 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("tg:addemoji?set=abcdef", sticker_set("abcdef", true));
   parse_internal_link("tg:addemoji?set=abc%30ef", sticker_set("abc0ef", true));
   parse_internal_link("tg://addemoji?set=", unknown_deep_link("tg://addemoji?set="));
+}
 
+TEST(Link, parse_internal_link_part3) {
   parse_internal_link("t.me/confirmphone?hash=abc%30ef&phone=", nullptr);
   parse_internal_link("t.me/confirmphone/123456/123123/12/31/a/s//21w/?hash=abc%30ef&phone=123456789",
                       phone_number_confirmation("abc0ef", "123456789"));
@@ -954,7 +995,9 @@ TEST(Link, parse_internal_link) {
       "restrict_members+pin_messages+manage_topics+promote_members+manage_video_chats+anonymous",
       bot_add_to_channel("username", chat_administrator_rights(true, true, true, true, true, true, true, false, false,
                                                                true, true, false)));
+}
 
+TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg:resolve?domain=username&game=aasdasd", game("username", "aasdasd"));
   parse_internal_link("TG://resolve?domain=username&game=", public_chat("username"));
   parse_internal_link("TG://test@resolve?domain=username&game=asd", nullptr);
