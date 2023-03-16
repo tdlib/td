@@ -22560,7 +22560,7 @@ void MessagesManager::read_history_on_server(Dialog *d, MessageId max_message_id
     ReadHistoryInSecretChatLogEvent log_event;
     log_event.dialog_id_ = dialog_id;
     log_event.max_date_ = m->date;
-    add_log_event(d->read_history_log_event_ids[0], get_log_event_storer(log_event),
+    add_log_event(read_history_log_event_ids_[dialog_id][0], get_log_event_storer(log_event),
                   LogEvent::HandlerType::ReadHistoryInSecretChat, "read history");
 
     d->last_read_inbox_message_date = m->date;
@@ -22568,7 +22568,7 @@ void MessagesManager::read_history_on_server(Dialog *d, MessageId max_message_id
     ReadHistoryOnServerLogEvent log_event;
     log_event.dialog_id_ = dialog_id;
     log_event.max_message_id_ = max_message_id;
-    add_log_event(d->read_history_log_event_ids[0], get_log_event_storer(log_event),
+    add_log_event(read_history_log_event_ids_[dialog_id][0], get_log_event_storer(log_event),
                   LogEvent::HandlerType::ReadHistoryOnServer, "read history");
   }
 
@@ -22597,7 +22597,7 @@ void MessagesManager::read_message_thread_history_on_server(Dialog *d, MessageId
     log_event.dialog_id_ = dialog_id;
     log_event.top_thread_message_id_ = top_thread_message_id;
     log_event.max_message_id_ = max_message_id;
-    add_log_event(d->read_history_log_event_ids[top_thread_message_id.get()], get_log_event_storer(log_event),
+    add_log_event(read_history_log_event_ids_[dialog_id][top_thread_message_id.get()], get_log_event_storer(log_event),
                   LogEvent::HandlerType::ReadMessageThreadHistoryOnServer, "read history");
   }
 
@@ -22643,14 +22643,15 @@ void MessagesManager::read_history_on_server_impl(Dialog *d, MessageId max_messa
   }
 
   Promise<Unit> promise;
-  if (d->read_history_log_event_ids[0].log_event_id != 0) {
-    d->read_history_log_event_ids[0].generation++;
-    promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id,
-                                      generation = d->read_history_log_event_ids[0].generation](Result<Unit> result) {
-      if (!G()->close_flag()) {
-        send_closure(actor_id, &MessagesManager::on_read_history_finished, dialog_id, MessageId(), generation);
-      }
-    });
+  auto &log_event_id = read_history_log_event_ids_[dialog_id][0];
+  if (log_event_id.log_event_id != 0) {
+    log_event_id.generation++;
+    promise = PromiseCreator::lambda(
+        [actor_id = actor_id(this), dialog_id, generation = log_event_id.generation](Result<Unit> result) {
+          if (!G()->close_flag()) {
+            send_closure(actor_id, &MessagesManager::on_read_history_finished, dialog_id, MessageId(), generation);
+          }
+        });
   }
   if (d->need_repair_server_unread_count && need_unread_counter(d->order)) {
     repair_server_unread_count(dialog_id, d->server_unread_count, "read_history_on_server_impl");
@@ -22707,16 +22708,16 @@ void MessagesManager::read_message_thread_history_on_server_impl(Dialog *d, Mess
   }
 
   Promise<Unit> promise;
-  if (d->read_history_log_event_ids[top_thread_message_id.get()].log_event_id != 0) {
-    d->read_history_log_event_ids[top_thread_message_id.get()].generation++;
-    promise = PromiseCreator::lambda(
-        [actor_id = actor_id(this), dialog_id, top_thread_message_id,
-         generation = d->read_history_log_event_ids[top_thread_message_id.get()].generation](Result<Unit> result) {
-          if (!G()->close_flag()) {
-            send_closure(actor_id, &MessagesManager::on_read_history_finished, dialog_id, top_thread_message_id,
-                         generation);
-          }
-        });
+  auto &log_event_id = read_history_log_event_ids_[dialog_id][top_thread_message_id.get()];
+  if (log_event_id.log_event_id != 0) {
+    log_event_id.generation++;
+    promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, top_thread_message_id,
+                                      generation = log_event_id.generation](Result<Unit> result) {
+      if (!G()->close_flag()) {
+        send_closure(actor_id, &MessagesManager::on_read_history_finished, dialog_id, top_thread_message_id,
+                     generation);
+      }
+    });
   }
 
   if (!max_message_id.is_valid() || !have_input_peer(dialog_id, AccessRights::Read)) {
@@ -22729,15 +22730,20 @@ void MessagesManager::read_message_thread_history_on_server_impl(Dialog *d, Mess
 }
 
 void MessagesManager::on_read_history_finished(DialogId dialog_id, MessageId top_thread_message_id, uint64 generation) {
-  auto d = get_dialog(dialog_id);
-  CHECK(d != nullptr);
-  auto it = d->read_history_log_event_ids.find(top_thread_message_id.get());
-  if (it == d->read_history_log_event_ids.end()) {
+  auto dialog_it = read_history_log_event_ids_.find(dialog_id);
+  if (dialog_it == read_history_log_event_ids_.end()) {
+    return;
+  }
+  auto it = dialog_it->second.find(top_thread_message_id.get());
+  if (it == dialog_it->second.end()) {
     return;
   }
   delete_log_event(it->second, generation, "read history");
   if (it->second.log_event_id == 0) {
-    d->read_history_log_event_ids.erase(it);
+    dialog_it->second.erase(it);
+    if (dialog_it->second.empty()) {
+      read_history_log_event_ids_.erase(dialog_it);
+    }
   }
 }
 
@@ -40759,11 +40765,12 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
-        if (d->read_history_log_event_ids[0].log_event_id != 0) {
-          // we need only latest read history event
-          binlog_erase(G()->td_db()->get_binlog(), d->read_history_log_event_ids[0].log_event_id);
+        auto &log_event_id = read_history_log_event_ids_[dialog_id][0];
+        if (log_event_id.log_event_id != 0) {
+          // we need only the latest read history event
+          binlog_erase(G()->td_db()->get_binlog(), log_event_id.log_event_id);
         }
-        d->read_history_log_event_ids[0].log_event_id = event.id_;
+        log_event_id.log_event_id = event.id_;
 
         read_history_on_server_impl(d, log_event.max_message_id_);
         break;
@@ -40785,11 +40792,12 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
-        if (d->read_history_log_event_ids[0].log_event_id != 0) {
-          // we need only latest read history event
-          binlog_erase(G()->td_db()->get_binlog(), d->read_history_log_event_ids[0].log_event_id);
+        auto &log_event_id = read_history_log_event_ids_[dialog_id][0];
+        if (log_event_id.log_event_id != 0) {
+          // we need only the latest read history event
+          binlog_erase(G()->td_db()->get_binlog(), log_event_id.log_event_id);
         }
-        d->read_history_log_event_ids[0].log_event_id = event.id_;
+        log_event_id.log_event_id = event.id_;
         d->last_read_inbox_message_date = log_event.max_date_;
 
         read_history_on_server_impl(d, MessageId());
@@ -40811,12 +40819,12 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
           break;
         }
         auto top_thread_message_id = log_event.top_thread_message_id_;
-        if (d->read_history_log_event_ids[top_thread_message_id.get()].log_event_id != 0) {
-          // we need only latest read history event
-          binlog_erase(G()->td_db()->get_binlog(),
-                       d->read_history_log_event_ids[top_thread_message_id.get()].log_event_id);
+        auto &log_event_id = read_history_log_event_ids_[dialog_id][top_thread_message_id.get()];
+        if (log_event_id.log_event_id != 0) {
+          // we need only the latest read history event
+          binlog_erase(G()->td_db()->get_binlog(), log_event_id.log_event_id);
         }
-        d->read_history_log_event_ids[top_thread_message_id.get()].log_event_id = event.id_;
+        log_event_id.log_event_id = event.id_;
 
         read_message_thread_history_on_server_impl(d, top_thread_message_id, log_event.max_message_id_);
         break;

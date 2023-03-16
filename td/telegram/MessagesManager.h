@@ -1306,7 +1306,6 @@ class MessagesManager final : public Actor {
     unique_ptr<DialogActionBar> action_bar;
     LogEventIdWithGeneration save_draft_message_log_event_id;
     LogEventIdWithGeneration save_notification_settings_log_event_id;
-    std::unordered_map<int64, LogEventIdWithGeneration, Hash<int64>> read_history_log_event_ids;
     LogEventIdWithGeneration set_folder_id_log_event_id;
     InputGroupCallId active_group_call_id;
     InputGroupCallId expected_active_group_call_id;
@@ -3759,6 +3758,9 @@ class MessagesManager final : public Actor {
     bool increment_view_counter_ = false;
   };
   FlatHashMap<DialogId, PendingMessageView, DialogIdHash> pending_message_views_;
+
+  FlatHashMap<DialogId, std::unordered_map<int64, LogEventIdWithGeneration, Hash<int64>>, DialogIdHash>
+      read_history_log_event_ids_;
 
   FlatHashMap<DialogId, std::unordered_set<MessageId, MessageIdHash>, DialogIdHash> updated_read_history_message_ids_;
 
