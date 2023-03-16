@@ -790,7 +790,7 @@ void NotificationManager::try_reuse_notification_group_id(NotificationGroupId gr
     CHECK(running_get_chat_difference_.count(group_id.get()) == 0);
 
     if (!G()->close_flag()) {
-      flush_pending_notifications_timeout_.cancel_timeout(group_id.get());
+      flush_pending_notifications_timeout_.cancel_timeout(group_id.get(), "try_reuse_notification_group_id");
       flush_pending_updates_timeout_.cancel_timeout(group_id.get());
     }
     if (pending_updates_.erase(group_id.get()) == 1) {
@@ -1611,7 +1611,7 @@ void NotificationManager::flush_all_pending_notifications() {
   VLOG(notifications) << "Flush pending notifications in " << group_ids.size() << " notification groups";
   for (auto &it : group_ids) {
     if (!G()->close_flag()) {
-      flush_pending_notifications_timeout_.cancel_timeout(it.second.get());
+      flush_pending_notifications_timeout_.cancel_timeout(it.second.get(), "flush_all_pending_notifications");
     }
     flush_pending_notifications(it.second);
   }
@@ -1865,7 +1865,7 @@ void NotificationManager::remove_notification(NotificationGroupId group_id, Noti
       if (group_it->second.pending_notifications.empty()) {
         group_it->second.pending_notifications_flush_time = 0;
         if (!G()->close_flag()) {
-          flush_pending_notifications_timeout_.cancel_timeout(group_id.get());
+          flush_pending_notifications_timeout_.cancel_timeout(group_id.get(), "remove_notification");
         }
         on_delayed_notification_update_count_changed(-1, group_id.get(), "remove_notification");
       }
@@ -2015,7 +2015,7 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
     if (group_it->second.pending_notifications.empty()) {
       group_it->second.pending_notifications_flush_time = 0;
       if (!G()->close_flag()) {
-        flush_pending_notifications_timeout_.cancel_timeout(group_id.get());
+        flush_pending_notifications_timeout_.cancel_timeout(group_id.get(), "remove_notification_group");
       }
       on_delayed_notification_update_count_changed(-1, group_id.get(), "remove_notification_group");
     }
@@ -2123,7 +2123,7 @@ void NotificationManager::remove_temporary_notifications(NotificationGroupId gro
     if (group.pending_notifications.empty()) {
       group.pending_notifications_flush_time = 0;
       if (!G()->close_flag()) {
-        flush_pending_notifications_timeout_.cancel_timeout(group_id.get());
+        flush_pending_notifications_timeout_.cancel_timeout(group_id.get(), "remove_temporary_notifications");
       }
       on_delayed_notification_update_count_changed(-1, group_id.get(), "remove_temporary_notifications");
     }
@@ -2376,7 +2376,7 @@ void NotificationManager::remove_call_notification(DialogId dialog_id, CallId ca
         dialog_id_to_call_notification_group_id_.erase(dialog_id);
 
         if (!G()->close_flag()) {
-          flush_pending_notifications_timeout_.cancel_timeout(group_id.get());
+          flush_pending_notifications_timeout_.cancel_timeout(group_id.get(), "remove_call_notification");
         }
         flush_pending_notifications(group_id);
         force_flush_pending_updates(group_id, "reuse call group_id");

@@ -699,7 +699,7 @@ void PollManager::unregister_poll(PollId poll_id, FullMessageId full_message_id,
   if (message_ids.empty()) {
     server_poll_messages_.erase(poll_id);
     if (!G()->close_flag()) {
-      update_poll_timeout_.cancel_timeout(poll_id.get());
+      update_poll_timeout_.cancel_timeout(poll_id.get(), "unregister_poll");
     }
 
     schedule_poll_unload(poll_id);
@@ -1345,7 +1345,7 @@ void PollManager::on_unload_poll_timeout(PollId poll_id) {
 
   LOG(INFO) << "Unload " << poll_id;
 
-  update_poll_timeout_.cancel_timeout(poll_id.get());
+  update_poll_timeout_.cancel_timeout(poll_id.get(), "on_unload_poll_timeout");
   close_poll_timeout_.cancel_timeout(poll_id.get());
 
   auto is_deleted = polls_.erase(poll_id) > 0;

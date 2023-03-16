@@ -49,7 +49,7 @@ void MultiTimeout::add_timeout_at(int64 key, double timeout) {
   }
 }
 
-void MultiTimeout::cancel_timeout(int64 key) {
+void MultiTimeout::cancel_timeout(int64 key, const char *source) {
   LOG(DEBUG) << "Cancel " << get_name() << " for " << key;
   auto item = items_.find(Item(key));
   if (item != items_.end()) {
@@ -60,7 +60,7 @@ void MultiTimeout::cancel_timeout(int64 key) {
     items_.erase(item);
 
     if (need_update_timeout) {
-      update_timeout("cancel_timeout");
+      update_timeout(source);
     }
   }
 }

@@ -58,7 +58,7 @@ class MultiTimeout final : public Actor {
 
   void add_timeout_at(int64 key, double timeout);  // memcache semantics, doesn't replace old timeout
 
-  void cancel_timeout(int64 key);
+  void cancel_timeout(int64 key, const char *source = "cancel_timeout");
 
   void run_all();
 
