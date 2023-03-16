@@ -1273,6 +1273,16 @@ class MessagesManager final : public Actor {
     void parse(ParserT &parser);
   };
 
+  struct DialogScheduledMessages {
+    FlatHashMap<ScheduledServerMessageId, int32, ScheduledServerMessageIdHash> scheduled_message_date_;
+
+    FlatHashMap<int32, MessageId> last_assigned_scheduled_message_id_;  // date -> message_id
+
+    FlatHashSet<ScheduledServerMessageId, ScheduledServerMessageIdHash> deleted_scheduled_server_message_ids_;
+
+    unique_ptr<Message> scheduled_messages_;
+  };
+
   struct Dialog {
     DialogId dialog_id;
     MessageId last_new_message_id;  // identifier of the last known server message received from update, there should be
@@ -1412,12 +1422,7 @@ class MessagesManager final : public Actor {
                                          // application start, used to guarantee that all assigned message identifiers
                                          // are different
 
-    FlatHashMap<ScheduledServerMessageId, int32, ScheduledServerMessageIdHash> scheduled_message_date;
-
-    FlatHashMap<int32, MessageId> last_assigned_scheduled_message_id;  // date -> message_id
-
     WaitFreeHashSet<MessageId, MessageIdHash> deleted_message_ids;
-    FlatHashSet<ScheduledServerMessageId, ScheduledServerMessageIdHash> deleted_scheduled_server_message_ids;
 
     vector<std::pair<DialogId, MessageId>> pending_new_message_notifications;
     vector<std::pair<DialogId, MessageId>> pending_new_mention_notifications;
@@ -1427,7 +1432,8 @@ class MessagesManager final : public Actor {
     string client_data;
 
     unique_ptr<Message> messages;
-    unique_ptr<Message> scheduled_messages;
+
+    unique_ptr<DialogScheduledMessages> scheduled_messages;
 
     const char *debug_set_dialog_last_database_message_id = "Unknown";  // to be removed soon
 
@@ -1561,6 +1567,7 @@ class MessagesManager final : public Actor {
     }
   };
 
+  template <bool is_scheduled>
   class MessagesIteratorBase {
     vector<const Message *> stack_;
 
@@ -1569,6 +1576,8 @@ class MessagesManager final : public Actor {
 
     // points iterator to message with greatest identifier which is less or equal than message_id
     MessagesIteratorBase(const Message *root, MessageId message_id) {
+      CHECK(message_id.is_scheduled() == is_scheduled);
+
       size_t last_right_pos = 0;
       while (root != nullptr) {
         //        LOG(DEBUG) << "Have root->message_id = " << root->message_id;
@@ -1660,13 +1669,11 @@ class MessagesManager final : public Actor {
     }
   };
 
-  class MessagesIterator final : public MessagesIteratorBase {
+  class MessagesIterator final : public MessagesIteratorBase<false> {
    public:
     MessagesIterator() = default;
 
-    MessagesIterator(Dialog *d, MessageId message_id)
-        : MessagesIteratorBase(message_id.is_scheduled() ? d->scheduled_messages.get() : d->messages.get(),
-                               message_id) {
+    MessagesIterator(Dialog *d, MessageId message_id) : MessagesIteratorBase(d->messages.get(), message_id) {
     }
 
     Message *operator*() const {
@@ -1674,13 +1681,24 @@ class MessagesManager final : public Actor {
     }
   };
 
-  class MessagesConstIterator final : public MessagesIteratorBase {
+  class MessagesConstIterator final : public MessagesIteratorBase<false> {
    public:
     MessagesConstIterator() = default;
 
-    MessagesConstIterator(const Dialog *d, MessageId message_id)
-        : MessagesIteratorBase(message_id.is_scheduled() ? d->scheduled_messages.get() : d->messages.get(),
-                               message_id) {
+    MessagesConstIterator(const Dialog *d, MessageId message_id) : MessagesIteratorBase(d->messages.get(), message_id) {
+    }
+
+    const Message *operator*() const {
+      return MessagesIteratorBase::operator*();
+    }
+  };
+
+  class MessagesConstScheduledIterator final : public MessagesIteratorBase<true> {
+   public:
+    MessagesConstScheduledIterator() = default;
+
+    MessagesConstScheduledIterator(Dialog *d, MessageId message_id)
+        : MessagesIteratorBase(d->scheduled_messages->scheduled_messages_.get(), message_id) {
     }
 
     const Message *operator*() const {
@@ -3089,6 +3107,8 @@ class MessagesManager final : public Actor {
   bool get_dialog_has_protected_content(DialogId dialog_id) const;
 
   bool get_dialog_has_scheduled_messages(const Dialog *d) const;
+
+  static DialogScheduledMessages *add_dialog_scheduled_messages(Dialog *d);
 
   static int64 get_dialog_order(MessageId message_id, int32 message_date);
 

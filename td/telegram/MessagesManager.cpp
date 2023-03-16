@@ -10676,8 +10676,10 @@ void MessagesManager::on_get_scheduled_server_messages(DialogId dialog_id, uint3
   }
 
   vector<MessageId> old_message_ids;
-  find_old_messages(d->scheduled_messages.get(),
-                    MessageId(ScheduledServerMessageId(), std::numeric_limits<int32>::max(), true), old_message_ids);
+  if (d->scheduled_messages != nullptr) {
+    find_old_messages(d->scheduled_messages->scheduled_messages_.get(),
+                      MessageId(ScheduledServerMessageId(), std::numeric_limits<int32>::max(), true), old_message_ids);
+  }
   FlatHashMap<ScheduledServerMessageId, MessageId, ScheduledServerMessageIdHash> old_server_message_ids;
   for (auto &message_id : old_message_ids) {
     if (message_id.is_scheduled_server()) {
@@ -11395,8 +11397,10 @@ void MessagesManager::on_failed_scheduled_message_deletion(DialogId dialog_id, c
   }
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
-  for (auto &message_id : message_ids) {
-    d->deleted_scheduled_server_message_ids.erase(message_id.get_scheduled_server_message_id());
+  if (d->scheduled_messages != nullptr) {
+    for (auto &message_id : message_ids) {
+      d->scheduled_messages->deleted_scheduled_server_message_ids_.erase(message_id.get_scheduled_server_message_id());
+    }
   }
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
     return;
@@ -16741,7 +16745,8 @@ void MessagesManager::on_message_deleted(Dialog *d, Message *m, bool is_permanen
 
 bool MessagesManager::is_deleted_message(const Dialog *d, MessageId message_id) {
   if (message_id.is_scheduled() && message_id.is_valid_scheduled() && message_id.is_scheduled_server()) {
-    return d->deleted_scheduled_server_message_ids.count(message_id.get_scheduled_server_message_id()) > 0;
+    return d->scheduled_messages != nullptr && d->scheduled_messages->deleted_scheduled_server_message_ids_.count(
+                                                   message_id.get_scheduled_server_message_id()) > 0;
   } else {
     return d->deleted_message_ids.count(message_id) > 0;
   }
@@ -16753,7 +16758,17 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_messag
   CHECK(d != nullptr);
   LOG_CHECK(message_id.is_valid_scheduled()) << d->dialog_id << ' ' << message_id << ' ' << source;
 
-  unique_ptr<Message> *v = treap_find_message(&d->scheduled_messages, message_id);
+  if (d->scheduled_messages == nullptr) {
+    auto message = get_message_force(d, message_id, "do_delete_scheduled_message");
+    if (message == nullptr) {
+      // currently there may be a race between add_message_to_database and get_message_force,
+      // so delete a message from database just in case
+      delete_message_from_database(d, message_id, nullptr, is_permanently_deleted);
+      return nullptr;
+    }
+    CHECK(d->scheduled_messages != nullptr);
+  }
+  unique_ptr<Message> *v = treap_find_message(&d->scheduled_messages->scheduled_messages_, message_id);
   if (*v == nullptr) {
     LOG(INFO) << message_id << " is not found in " << d->dialog_id << " to be deleted from " << source;
     auto message = get_message_force(d, message_id, "do_delete_scheduled_message");
@@ -16765,7 +16780,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_messag
     }
 
     message_id = message->message_id;
-    v = treap_find_message(&d->scheduled_messages, message_id);
+    v = treap_find_message(&d->scheduled_messages->scheduled_messages_, message_id);
     CHECK(*v != nullptr);
   }
 
@@ -16782,7 +16797,8 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_messag
   CHECK(m == result.get());
 
   if (message_id.is_scheduled_server()) {
-    size_t erased_count = d->scheduled_message_date.erase(message_id.get_scheduled_server_message_id());
+    size_t erased_count =
+        d->scheduled_messages->scheduled_message_date_.erase(message_id.get_scheduled_server_message_id());
     CHECK(erased_count != 0);
   }
 
@@ -25070,9 +25086,11 @@ vector<MessageId> MessagesManager::get_dialog_scheduled_messages(DialogId dialog
   }
 
   vector<MessageId> message_ids;
-  find_old_messages(d->scheduled_messages.get(),
-                    MessageId(ScheduledServerMessageId(), std::numeric_limits<int32>::max(), true), message_ids);
-  std::reverse(message_ids.begin(), message_ids.end());
+  if (d->scheduled_messages != nullptr) {
+    find_old_messages(d->scheduled_messages->scheduled_messages_.get(),
+                      MessageId(ScheduledServerMessageId(), std::numeric_limits<int32>::max(), true), message_ids);
+    std::reverse(message_ids.begin(), message_ids.end());
+  }
 
   if (G()->use_message_database()) {
     bool has_scheduled_database_messages = false;
@@ -32058,7 +32076,7 @@ void MessagesManager::send_update_chat_has_scheduled_messages(Dialog *d, bool fr
     return;
   }
 
-  if (d->scheduled_messages == nullptr) {
+  if (d->scheduled_messages == nullptr || d->scheduled_messages->scheduled_messages_ == nullptr) {
     if (d->has_scheduled_database_messages) {
       if (d->has_loaded_scheduled_messages_from_database) {
         set_dialog_has_scheduled_database_messages_impl(d, false);
@@ -32078,8 +32096,8 @@ void MessagesManager::send_update_chat_has_scheduled_messages(Dialog *d, bool fr
   }
 
   LOG(INFO) << "In " << d->dialog_id << " have scheduled messages on server = " << d->has_scheduled_server_messages
-            << ", in database = " << d->has_scheduled_database_messages
-            << " and in memory = " << (d->scheduled_messages != nullptr)
+            << ", in database = " << d->has_scheduled_database_messages << " and in memory = "
+            << (d->scheduled_messages != nullptr && d->scheduled_messages->scheduled_messages_ != nullptr)
             << "; was loaded from database = " << d->has_loaded_scheduled_messages_from_database;
   bool has_scheduled_messages = get_dialog_has_scheduled_messages(d);
   if (has_scheduled_messages == d->last_sent_has_scheduled_messages) {
@@ -32658,12 +32676,13 @@ MessageId MessagesManager::get_next_yet_unsent_scheduled_message_id(Dialog *d, i
 
   MessageId message_id(ScheduledServerMessageId(1), date);
 
-  auto it = MessagesConstIterator(d, MessageId(ScheduledServerMessageId(), date + 1, true));
+  auto *scheduled_messages = add_dialog_scheduled_messages(d);
+  auto it = MessagesConstScheduledIterator(d, MessageId(ScheduledServerMessageId(), date + 1, true));
   if (*it != nullptr && (*it)->message_id > message_id) {
     message_id = (*it)->message_id;
   }
 
-  auto &last_assigned_message_id = d->last_assigned_scheduled_message_id[date];
+  auto &last_assigned_message_id = scheduled_messages->last_assigned_scheduled_message_id_[date];
   if (last_assigned_message_id != MessageId() && last_assigned_message_id > message_id) {
     message_id = last_assigned_message_id;
   }
@@ -33299,7 +33318,8 @@ void MessagesManager::on_update_dialog_has_scheduled_server_messages(DialogId di
   if (d->has_scheduled_server_messages != has_scheduled_server_messages) {
     set_dialog_has_scheduled_server_messages(d, has_scheduled_server_messages);
   } else if (has_scheduled_server_messages !=
-             (d->has_scheduled_database_messages || d->scheduled_messages != nullptr)) {
+             (d->has_scheduled_database_messages ||
+              (d->scheduled_messages != nullptr && d->scheduled_messages->scheduled_messages_ != nullptr))) {
     repair_dialog_scheduled_messages(d);
   }
 }
@@ -33331,7 +33351,8 @@ void MessagesManager::set_dialog_has_scheduled_database_messages_impl(Dialog *d,
   }
 
   if (d->has_scheduled_database_messages && d->scheduled_messages != nullptr &&
-      !d->scheduled_messages->message_id.is_yet_unsent()) {
+      d->scheduled_messages->scheduled_messages_ != nullptr &&
+      !d->scheduled_messages->scheduled_messages_->message_id.is_yet_unsent()) {
     // to prevent race between add_message_to_database and check of has_scheduled_database_messages
     return;
   }
@@ -34185,7 +34206,15 @@ bool MessagesManager::get_dialog_has_scheduled_messages(const Dialog *d) const {
   }
   // TODO send updateChatHasScheduledMessage when can_post_messages changes
 
-  return d->has_scheduled_server_messages || d->has_scheduled_database_messages || d->scheduled_messages != nullptr;
+  return d->has_scheduled_server_messages || d->has_scheduled_database_messages ||
+         (d->scheduled_messages != nullptr && d->scheduled_messages->scheduled_messages_ != nullptr);
+}
+
+MessagesManager::DialogScheduledMessages *MessagesManager::add_dialog_scheduled_messages(Dialog *d) {
+  if (d->scheduled_messages == nullptr) {
+    d->scheduled_messages = make_unique<DialogScheduledMessages>();
+  }
+  return d->scheduled_messages.get();
 }
 
 bool MessagesManager::is_dialog_action_unneeded(DialogId dialog_id) const {
@@ -35206,24 +35235,28 @@ MessagesManager::Message *MessagesManager::get_message(Dialog *d, MessageId mess
 }
 
 const MessagesManager::Message *MessagesManager::get_message(const Dialog *d, MessageId message_id) {
-  if (!message_id.is_valid() && !message_id.is_valid_scheduled()) {
-    return nullptr;
-  }
-
   CHECK(d != nullptr);
-  bool is_scheduled = message_id.is_scheduled();
-  if (is_scheduled && message_id.is_scheduled_server()) {
-    auto server_message_id = message_id.get_scheduled_server_message_id();
-    auto it = d->scheduled_message_date.find(server_message_id);
-    if (it != d->scheduled_message_date.end()) {
-      int32 date = it->second;
-      message_id = MessageId(server_message_id, date);
-      CHECK(message_id.is_scheduled_server());
+  const Message *result = nullptr;
+  if (message_id.is_scheduled()) {
+    if (d->scheduled_messages != nullptr && message_id.is_valid_scheduled()) {
+      if (message_id.is_scheduled_server()) {
+        auto server_message_id = message_id.get_scheduled_server_message_id();
+        auto it = d->scheduled_messages->scheduled_message_date_.find(server_message_id);
+        if (it != d->scheduled_messages->scheduled_message_date_.end()) {
+          int32 date = it->second;
+          message_id = MessageId(server_message_id, date);
+          CHECK(message_id.is_scheduled_server());
+        }
+      }
+      result = treap_find_message(&d->scheduled_messages->scheduled_messages_, message_id)->get();
     }
-  }
-  auto result = treap_find_message(is_scheduled ? &d->scheduled_messages : &d->messages, message_id)->get();
-  if (result != nullptr && !is_scheduled) {
-    result->last_access_date = G()->unix_time_cached();
+  } else {
+    if (message_id.is_valid()) {
+      result = treap_find_message(&d->messages, message_id)->get();
+      if (result != nullptr) {
+        result->last_access_date = G()->unix_time_cached();
+      }
+    }
   }
   LOG(INFO) << "Search for " << message_id << " in " << d->dialog_id << " found " << result;
   return result;
@@ -36335,15 +36368,17 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
     td_->forum_topic_manager_->on_topic_message_count_changed(dialog_id, m->top_thread_message_id, +1);
   }
 
+  auto *scheduled_messages = add_dialog_scheduled_messages(d);
   if (m->message_id.is_scheduled_server()) {
     auto is_inserted =
-        d->scheduled_message_date.emplace(m->message_id.get_scheduled_server_message_id(), m->date).second;
+        scheduled_messages->scheduled_message_date_.emplace(m->message_id.get_scheduled_server_message_id(), m->date)
+            .second;
     CHECK(is_inserted);
   }
 
-  Message *result_message = treap_insert_message(&d->scheduled_messages, std::move(message));
+  Message *result_message = treap_insert_message(&scheduled_messages->scheduled_messages_, std::move(message));
   CHECK(result_message != nullptr);
-  CHECK(d->scheduled_messages != nullptr);
+  CHECK(scheduled_messages->scheduled_messages_ != nullptr);
   being_readded_message_id_ = FullMessageId();
   return result_message;
 }
@@ -36633,7 +36668,8 @@ void MessagesManager::delete_message_from_database(Dialog *d, MessageId message_
 
   if (is_permanently_deleted) {
     if (message_id.is_scheduled() && message_id.is_valid_scheduled() && message_id.is_scheduled_server()) {
-      d->deleted_scheduled_server_message_ids.insert(message_id.get_scheduled_server_message_id());
+      add_dialog_scheduled_messages(d)->deleted_scheduled_server_message_ids_.insert(
+          message_id.get_scheduled_server_message_id());
     } else {
       // don't store failed to send message identifiers for bots to reduce memory usage
       if (m == nullptr || !td_->auth_manager_->is_bot() || !m->is_failed_to_send) {
@@ -36816,7 +36852,8 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
       old_message->date = new_message->date;
 
       if (is_scheduled && message_id.is_scheduled_server()) {
-        int32 &date = d->scheduled_message_date[message_id.get_scheduled_server_message_id()];
+        CHECK(d->scheduled_messages != nullptr);
+        int32 &date = d->scheduled_messages->scheduled_message_date_[message_id.get_scheduled_server_message_id()];
         CHECK(date != 0);
         date = new_message->date;
       }
@@ -40592,7 +40629,8 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         if (d != nullptr) {
           auto message_id = log_event.full_message_id_.get_message_id();
           if (message_id.is_valid_scheduled() && message_id.is_scheduled_server()) {
-            d->deleted_scheduled_server_message_ids.insert(message_id.get_scheduled_server_message_id());
+            add_dialog_scheduled_messages(d)->deleted_scheduled_server_message_ids_.insert(
+                message_id.get_scheduled_server_message_id());
           } else if (message_id != MessageId()) {
             d->deleted_message_ids.insert(message_id);
           }
@@ -40643,7 +40681,8 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
         for (auto message_id : log_event.message_ids_) {
           CHECK(message_id.is_scheduled_server());
-          d->deleted_scheduled_server_message_ids.insert(message_id.get_scheduled_server_message_id());
+          add_dialog_scheduled_messages(d)->deleted_scheduled_server_message_ids_.insert(
+              message_id.get_scheduled_server_message_id());
         }
 
         delete_scheduled_messages_on_server(dialog_id, std::move(log_event.message_ids_), event.id_, Auto());
