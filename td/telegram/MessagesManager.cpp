@@ -22572,7 +22572,7 @@ void MessagesManager::read_history_on_server(Dialog *d, MessageId max_message_id
                   LogEvent::HandlerType::ReadHistoryOnServer, "read history");
   }
 
-  d->updated_read_history_message_ids.insert(MessageId());
+  updated_read_history_message_ids_[dialog_id].insert(MessageId());
 
   pending_read_history_timeout_.set_timeout_in(dialog_id.get(), need_delay ? MIN_READ_HISTORY_DELAY : 0);
 }
@@ -22601,7 +22601,7 @@ void MessagesManager::read_message_thread_history_on_server(Dialog *d, MessageId
                   LogEvent::HandlerType::ReadMessageThreadHistoryOnServer, "read history");
   }
 
-  d->updated_read_history_message_ids.insert(top_thread_message_id);
+  updated_read_history_message_ids_[dialog_id].insert(top_thread_message_id);
 
   bool need_delay = d->open_count > 0 && last_message_id.is_valid() && max_message_id < last_message_id;
   pending_read_history_timeout_.set_timeout_in(dialog_id.get(), need_delay ? MIN_READ_HISTORY_DELAY : 0);
@@ -22615,14 +22615,17 @@ void MessagesManager::do_read_history_on_server(DialogId dialog_id) {
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
 
-  for (auto top_thread_message_id : d->updated_read_history_message_ids) {
-    if (!top_thread_message_id.is_valid()) {
-      read_history_on_server_impl(d, MessageId());
-    } else {
-      read_message_thread_history_on_server_impl(d, top_thread_message_id, MessageId());
+  auto it = updated_read_history_message_ids_.find(dialog_id);
+  if (it != updated_read_history_message_ids_.end()) {
+    for (auto top_thread_message_id : it->second) {
+      if (!top_thread_message_id.is_valid()) {
+        read_history_on_server_impl(d, MessageId());
+      } else {
+        read_message_thread_history_on_server_impl(d, top_thread_message_id, MessageId());
+      }
     }
+    updated_read_history_message_ids_.erase(it);
   }
-  reset_to_empty(d->updated_read_history_message_ids);
 }
 
 void MessagesManager::read_history_on_server_impl(Dialog *d, MessageId max_message_id) {
