@@ -21921,12 +21921,15 @@ void MessagesManager::close_dialog(Dialog *d) {
   dialog_viewed_messages_.erase(dialog_id);
   update_viewed_messages_timeout_.cancel_timeout(dialog_id.get());
 
-  for (auto &it : d->pending_viewed_live_locations) {
-    auto live_location_task_id = it.second;
-    auto erased_count = viewed_live_location_tasks_.erase(live_location_task_id);
-    CHECK(erased_count > 0);
+  auto live_locations_it = pending_viewed_live_locations_.find(dialog_id);
+  if (live_locations_it != pending_viewed_live_locations_.end()) {
+    for (auto &it : live_locations_it->second) {
+      auto live_location_task_id = it.second;
+      auto erased_count = viewed_live_location_tasks_.erase(live_location_task_id);
+      CHECK(erased_count > 0);
+    }
+    pending_viewed_live_locations_.erase(live_locations_it);
   }
-  d->pending_viewed_live_locations.clear();
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
@@ -23550,7 +23553,7 @@ void MessagesManager::on_message_live_location_viewed(Dialog *d, const Message *
     return;
   }
 
-  auto &live_location_task_id = d->pending_viewed_live_locations[m->message_id];
+  auto &live_location_task_id = pending_viewed_live_locations_[d->dialog_id][m->message_id];
   if (live_location_task_id != 0) {
     return;
   }
@@ -23577,8 +23580,13 @@ void MessagesManager::view_message_live_location_on_server(int64 task_id) {
   if (m == nullptr || get_message_content_live_location_period(m->content.get()) <= G()->unix_time() - m->date + 1) {
     // the message was deleted or live location is expired
     viewed_live_location_tasks_.erase(it);
-    auto erased_count = d->pending_viewed_live_locations.erase(full_message_id.get_message_id());
+    auto live_locations_it = pending_viewed_live_locations_.find(d->dialog_id);
+    CHECK(live_locations_it != pending_viewed_live_locations_.end());
+    auto erased_count = live_locations_it->second.erase(full_message_id.get_message_id());
     CHECK(erased_count > 0);
+    if (live_locations_it->second.empty()) {
+      pending_viewed_live_locations_.erase(live_locations_it);
+    }
     return;
   }
 

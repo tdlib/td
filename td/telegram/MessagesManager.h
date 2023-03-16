@@ -1437,8 +1437,6 @@ class MessagesManager final : public Actor {
     MessageId suffix_load_query_message_id_;
     std::vector<std::pair<Promise<Unit>, std::function<bool(const Message *)>>> suffix_load_queries_;
 
-    FlatHashMap<MessageId, int64, MessageIdHash> pending_viewed_live_locations;  // message_id -> task_id
-
     unique_ptr<Message> messages;
     unique_ptr<Message> scheduled_messages;
 
@@ -3713,6 +3711,8 @@ class MessagesManager final : public Actor {
 
   int64 viewed_live_location_task_id_ = 0;
   FlatHashMap<int64, FullMessageId> viewed_live_location_tasks_;  // task_id -> task
+  FlatHashMap<DialogId, FlatHashMap<MessageId, int64, MessageIdHash>, DialogIdHash>
+      pending_viewed_live_locations_;  // ... -> task_id
 
   FlatHashMap<uint64, std::map<MessageId, Promise<Message *>>> yet_unsent_media_queues_;
 
