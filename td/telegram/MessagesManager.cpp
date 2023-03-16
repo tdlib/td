@@ -31103,8 +31103,8 @@ void MessagesManager::remove_message_notification(DialogId dialog_id, Notificati
     LOG(ERROR) << "Can't find " << dialog_id;
     return;
   }
-  if (d->notification_info == nullptr || d->notification_info->message_notification_group_.group_id != group_id &&
-                                             d->notification_info->mention_notification_group_.group_id != group_id) {
+  if (d->notification_info == nullptr || (d->notification_info->message_notification_group_.group_id != group_id &&
+                                          d->notification_info->mention_notification_group_.group_id != group_id)) {
     LOG(ERROR) << "There is no " << group_id << " in " << dialog_id;
     return;
   }
