@@ -1283,6 +1283,18 @@ class MessagesManager final : public Actor {
     unique_ptr<Message> scheduled_messages_;
   };
 
+  struct NotificationInfo {
+    NotificationGroupInfo message_notification_group;
+    NotificationGroupInfo mention_notification_group;
+    NotificationId new_secret_chat_notification_id;  // secret chats only
+    MessageId pinned_message_notification_message_id;
+
+    vector<std::pair<DialogId, MessageId>> pending_new_message_notifications;
+    vector<std::pair<DialogId, MessageId>> pending_new_mention_notifications;
+
+    FlatHashMap<NotificationId, MessageId, NotificationIdHash> notification_id_to_message_id;
+  };
+
   struct Dialog {
     DialogId dialog_id;
     MessageId last_new_message_id;  // identifier of the last known server message received from update, there should be
@@ -1330,6 +1342,8 @@ class MessagesManager final : public Actor {
     uint32 history_generation = 0;
     uint32 open_count = 0;
 
+    unique_ptr<NotificationInfo> notification_info;
+
     FolderId folder_id;
     vector<DialogListId> dialog_list_ids;  // TODO replace with mask
 
@@ -1355,11 +1369,6 @@ class MessagesManager final : public Actor {
     MessageId being_updated_last_new_message_id;
     MessageId being_updated_last_database_message_id;
     MessageId being_deleted_message_id;
-
-    NotificationGroupInfo message_notification_group;
-    NotificationGroupInfo mention_notification_group;
-    NotificationId new_secret_chat_notification_id;  // secret chats only
-    MessageId pinned_message_notification_message_id;
 
     bool has_contact_registered_message = false;
 
@@ -1423,11 +1432,6 @@ class MessagesManager final : public Actor {
                                          // are different
 
     WaitFreeHashSet<MessageId, MessageIdHash> deleted_message_ids;
-
-    vector<std::pair<DialogId, MessageId>> pending_new_message_notifications;
-    vector<std::pair<DialogId, MessageId>> pending_new_mention_notifications;
-
-    FlatHashMap<NotificationId, MessageId, NotificationIdHash> notification_id_to_message_id;
 
     string client_data;
 
@@ -3111,6 +3115,8 @@ class MessagesManager final : public Actor {
   bool get_dialog_has_scheduled_messages(const Dialog *d) const;
 
   static DialogScheduledMessages *add_dialog_scheduled_messages(Dialog *d);
+
+  static NotificationInfo *add_dialog_notification_info(Dialog *d);
 
   static int64 get_dialog_order(MessageId message_id, int32 message_date);
 
