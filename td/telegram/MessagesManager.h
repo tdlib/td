@@ -2462,6 +2462,8 @@ class MessagesManager final : public Actor {
 
   static bool is_message_notification_active(const Dialog *d, const Message *m);
 
+  static NotificationGroupInfo &get_notification_group_info(Dialog *d, bool from_mentions);
+
   static NotificationGroupInfo &get_notification_group_info(Dialog *d, const Message *m);
 
   NotificationGroupId get_dialog_notification_group_id(DialogId dialog_id, NotificationGroupInfo &group_info);
