@@ -1284,16 +1284,16 @@ class MessagesManager final : public Actor {
   };
 
   struct NotificationInfo {
-    NotificationGroupInfo message_notification_group;
-    NotificationGroupInfo mention_notification_group;
-    NotificationId new_secret_chat_notification_id;  // secret chats only
-    MessageId pinned_message_notification_message_id;
-    MessageId max_notification_message_id;
+    NotificationGroupInfo message_notification_group_;
+    NotificationGroupInfo mention_notification_group_;
+    NotificationId new_secret_chat_notification_id_;  // secret chats only
+    MessageId pinned_message_notification_message_id_;
+    MessageId max_notification_message_id_;
 
-    vector<std::pair<DialogId, MessageId>> pending_new_message_notifications;
-    vector<std::pair<DialogId, MessageId>> pending_new_mention_notifications;
+    vector<std::pair<DialogId, MessageId>> pending_new_message_notifications_;
+    vector<std::pair<DialogId, MessageId>> pending_new_mention_notifications_;
 
-    FlatHashMap<NotificationId, MessageId, NotificationIdHash> notification_id_to_message_id;
+    FlatHashMap<NotificationId, MessageId, NotificationIdHash> notification_id_to_message_id_;
   };
 
   struct Dialog {

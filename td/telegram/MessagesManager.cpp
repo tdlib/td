@@ -5463,19 +5463,20 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   bool has_last_clear_history_message_id = last_clear_history_message_id.is_valid();
   bool has_last_database_message_id = !has_last_database_message && last_database_message_id.is_valid();
   bool has_message_notification_group = notification_info != nullptr &&
-                                        notification_info->message_notification_group.group_id.is_valid() &&
-                                        !notification_info->message_notification_group.try_reuse;
+                                        notification_info->message_notification_group_.group_id.is_valid() &&
+                                        !notification_info->message_notification_group_.try_reuse;
   bool has_mention_notification_group = notification_info != nullptr &&
-                                        notification_info->mention_notification_group.group_id.is_valid() &&
-                                        !notification_info->mention_notification_group.try_reuse;
+                                        notification_info->mention_notification_group_.group_id.is_valid() &&
+                                        !notification_info->mention_notification_group_.try_reuse;
   bool has_new_secret_chat_notification_id =
-      notification_info != nullptr && notification_info->new_secret_chat_notification_id.is_valid();
+      notification_info != nullptr && notification_info->new_secret_chat_notification_id_.is_valid();
   bool has_pinned_message_notification =
-      notification_info != nullptr && notification_info->pinned_message_notification_message_id.is_valid();
+      notification_info != nullptr && notification_info->pinned_message_notification_message_id_.is_valid();
   bool has_last_pinned_message_id = last_pinned_message_id.is_valid();
   bool has_flags2 = true;
-  bool has_max_notification_message_id = notification_info != nullptr && 
-      notification_info->max_notification_message_id.is_valid() && notification_info->max_notification_message_id > last_new_message_id;
+  bool has_max_notification_message_id = notification_info != nullptr &&
+                                         notification_info->max_notification_message_id_.is_valid() &&
+                                         notification_info->max_notification_message_id_ > last_new_message_id;
   bool has_folder_id = folder_id != FolderId();
   bool has_pending_read_channel_inbox = pending_read_channel_inbox_pts != 0;
   bool has_last_yet_unsent_message = last_message_id.is_valid() && last_message_id.is_yet_unsent();
@@ -5634,22 +5635,22 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     store(last_database_message_id, storer);
   }
   if (has_message_notification_group) {
-    store(notification_info->message_notification_group, storer);
+    store(notification_info->message_notification_group_, storer);
   }
   if (has_mention_notification_group) {
-    store(notification_info->mention_notification_group, storer);
+    store(notification_info->mention_notification_group_, storer);
   }
   if (has_new_secret_chat_notification_id) {
-    store(notification_info->new_secret_chat_notification_id, storer);
+    store(notification_info->new_secret_chat_notification_id_, storer);
   }
   if (has_pinned_message_notification) {
-    store(notification_info->pinned_message_notification_message_id, storer);
+    store(notification_info->pinned_message_notification_message_id_, storer);
   }
   if (has_last_pinned_message_id) {
     store(last_pinned_message_id, storer);
   }
   if (has_max_notification_message_id) {
-    store(notification_info->max_notification_message_id, storer);
+    store(notification_info->max_notification_message_id_, storer);
   }
   if (has_folder_id) {
     store(folder_id, storer);
@@ -5932,22 +5933,22 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     parse(last_database_message_id, parser);
   }
   if (has_message_notification_group) {
-    parse(add_dialog_notification_info(this)->message_notification_group, parser);
+    parse(add_dialog_notification_info(this)->message_notification_group_, parser);
   }
   if (has_mention_notification_group) {
-    parse(add_dialog_notification_info(this)->mention_notification_group, parser);
+    parse(add_dialog_notification_info(this)->mention_notification_group_, parser);
   }
   if (has_new_secret_chat_notification_id) {
-    parse(add_dialog_notification_info(this)->new_secret_chat_notification_id, parser);
+    parse(add_dialog_notification_info(this)->new_secret_chat_notification_id_, parser);
   }
   if (has_pinned_message_notification) {
-    parse(add_dialog_notification_info(this)->pinned_message_notification_message_id, parser);
+    parse(add_dialog_notification_info(this)->pinned_message_notification_message_id_, parser);
   }
   if (has_last_pinned_message_id) {
     parse(last_pinned_message_id, parser);
   }
   if (has_max_notification_message_id) {
-    parse(add_dialog_notification_info(this)->max_notification_message_id, parser);
+    parse(add_dialog_notification_info(this)->max_notification_message_id_, parser);
   }
   if (has_folder_id) {
     parse(folder_id, parser);
@@ -6298,8 +6299,8 @@ void MessagesManager::save_dialog_to_database(DialogId dialog_id) {
         group_info.is_changed = false;
       }
     };
-    add_group_key(d->notification_info->message_notification_group);
-    add_group_key(d->notification_info->mention_notification_group);
+    add_group_key(d->notification_info->message_notification_group_);
+    add_group_key(d->notification_info->mention_notification_group_);
   }
   auto fixed_folder_id = d->folder_id == FolderId::archive() ? FolderId::archive() : FolderId::main();
   G()->td_db()->get_dialog_db_async()->add_dialog(
@@ -6317,8 +6318,8 @@ void MessagesManager::on_save_dialog_to_database(DialogId dialog_id, bool can_re
     auto d = get_dialog(dialog_id);
     CHECK(d != nullptr);
     if (d->notification_info != nullptr) {
-      try_reuse_notification_group(d->notification_info->message_notification_group);
-      try_reuse_notification_group(d->notification_info->mention_notification_group);
+      try_reuse_notification_group(d->notification_info->message_notification_group_);
+      try_reuse_notification_group(d->notification_info->mention_notification_group_);
     }
   }
 
@@ -8293,8 +8294,8 @@ bool MessagesManager::update_dialog_notification_settings(DialogId dialog_id,
       remove_all_dialog_notifications(d, false, "update_dialog_notification_settings 2");
     }
     if (is_dialog_pinned_message_notifications_disabled(d) && d->notification_info != nullptr &&
-        d->notification_info->mention_notification_group.group_id.is_valid() &&
-        d->notification_info->pinned_message_notification_message_id.is_valid()) {
+        d->notification_info->mention_notification_group_.group_id.is_valid() &&
+        d->notification_info->pinned_message_notification_message_id_.is_valid()) {
       remove_dialog_pinned_message_notification(d, "update_dialog_notification_settings 3");
     }
     if (was_dialog_mentions_disabled != is_dialog_mention_notifications_disabled(d)) {
@@ -12153,13 +12154,13 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
                                      "delete_all_dialog_messages 6");
   d->last_read_all_mentions_message_id = MessageId();  // it is not needed anymore
   if (d->notification_info != nullptr) {
-    d->notification_info->message_notification_group.max_removed_notification_id =
-        NotificationId();                                                                   // it is not needed anymore
-    d->notification_info->message_notification_group.max_removed_message_id = MessageId();  // it is not needed anymore
-    d->notification_info->mention_notification_group.max_removed_notification_id =
-        NotificationId();                                                                   // it is not needed anymore
-    d->notification_info->mention_notification_group.max_removed_message_id = MessageId();  // it is not needed anymore
-    d->notification_info->notification_id_to_message_id.clear();
+    d->notification_info->message_notification_group_.max_removed_notification_id =
+        NotificationId();                                                                    // it is not needed anymore
+    d->notification_info->message_notification_group_.max_removed_message_id = MessageId();  // it is not needed anymore
+    d->notification_info->mention_notification_group_.max_removed_notification_id =
+        NotificationId();                                                                    // it is not needed anymore
+    d->notification_info->mention_notification_group_.max_removed_message_id = MessageId();  // it is not needed anymore
+    d->notification_info->notification_id_to_message_id_.clear();
   }
   std::fill(d->message_count_by_index.begin(), d->message_count_by_index.end(), 0);
 
@@ -12698,7 +12699,7 @@ void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_messa
     LOG_IF(
         INFO,
         d->last_new_message_id.is_valid() && max_message_id > d->last_new_message_id &&
-            (d->notification_info != nullptr && max_message_id > d->notification_info->max_notification_message_id) &&
+            (d->notification_info != nullptr && max_message_id > d->notification_info->max_notification_message_id_) &&
             max_message_id.is_server() && dialog_id.get_type() != DialogType::Channel && !running_get_difference_)
         << "Receive read inbox update up to unknown " << max_message_id << " in " << dialog_id << " from " << source
         << ". Last new is " << d->last_new_message_id << ", unread_count = " << unread_count
@@ -13066,37 +13067,37 @@ void MessagesManager::set_dialog_last_read_inbox_message_id(Dialog *d, MessageId
                         << " after updating last read inbox message to " << message_id
                         << " and unread message count to " << server_unread_count << " + " << local_unread_count
                         << " from " << source;
-    if (d->notification_info != nullptr && d->notification_info->message_notification_group.group_id.is_valid()) {
+    if (d->notification_info != nullptr && d->notification_info->message_notification_group_.group_id.is_valid()) {
       auto total_count = get_dialog_pending_notification_count(d, false);
       if (total_count == 0) {
-        set_dialog_last_notification(d->dialog_id, d->notification_info->message_notification_group, 0,
+        set_dialog_last_notification(d->dialog_id, d->notification_info->message_notification_group_, 0,
                                      NotificationId(), source);
       }
-      if (!d->notification_info->pending_new_message_notifications.empty()) {
-        for (auto &it : d->notification_info->pending_new_message_notifications) {
+      if (!d->notification_info->pending_new_message_notifications_.empty()) {
+        for (auto &it : d->notification_info->pending_new_message_notifications_) {
           if (it.second <= message_id) {
             it.first = DialogId();
           }
         }
         flush_pending_new_message_notifications(d->dialog_id, false, DialogId(UserId(static_cast<int64>(1))));
       }
-      total_count -= static_cast<int32>(d->notification_info->pending_new_message_notifications.size());
+      total_count -= static_cast<int32>(d->notification_info->pending_new_message_notifications_.size());
       if (total_count < 0) {
         LOG(ERROR) << "Total message notification count is " << total_count << " in " << d->dialog_id
                    << " with old unread_count = " << old_unread_count << " and "
-                   << d->notification_info->pending_new_message_notifications
+                   << d->notification_info->pending_new_message_notifications_
                    << " pending new message notifications after reading history up to " << message_id;
         total_count = 0;
       }
       send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification_group,
-                         d->notification_info->message_notification_group.group_id, NotificationId(),
+                         d->notification_info->message_notification_group_.group_id, NotificationId(),
                          d->last_read_inbox_message_id, total_count, Slice(source) == Slice("view_messages"),
                          Promise<Unit>());
     }
 
-    if (d->notification_info != nullptr && d->notification_info->mention_notification_group.group_id.is_valid() &&
-        d->notification_info->pinned_message_notification_message_id.is_valid() &&
-        d->notification_info->pinned_message_notification_message_id <= d->last_read_inbox_message_id) {
+    if (d->notification_info != nullptr && d->notification_info->mention_notification_group_.group_id.is_valid() &&
+        d->notification_info->pinned_message_notification_message_id_.is_valid() &&
+        d->notification_info->pinned_message_notification_message_id_ <= d->last_read_inbox_message_id) {
       // remove pinned message notification when it is read
       remove_dialog_pinned_message_notification(d, source);
     }
@@ -14269,18 +14270,18 @@ void MessagesManager::on_update_secret_chat_state(SecretChatId secret_chat_id, S
     DialogId dialog_id(secret_chat_id);
     Dialog *d = get_dialog_force(dialog_id, "on_update_secret_chat_state");
     if (d != nullptr && d->notification_info != nullptr) {
-      if (d->notification_info->new_secret_chat_notification_id.is_valid()) {
+      if (d->notification_info->new_secret_chat_notification_id_.is_valid()) {
         remove_new_secret_chat_notification(d, true);
       }
-      if (d->notification_info->message_notification_group.group_id.is_valid() &&
+      if (d->notification_info->message_notification_group_.group_id.is_valid() &&
           get_dialog_pending_notification_count(d, false) == 0 &&
-          !d->notification_info->message_notification_group.last_notification_id.is_valid()) {
-        CHECK(d->notification_info->message_notification_group.last_notification_date == 0);
-        d->notification_info->message_notification_group.try_reuse = true;
-        d->notification_info->message_notification_group.is_changed = true;
+          !d->notification_info->message_notification_group_.last_notification_id.is_valid()) {
+        CHECK(d->notification_info->message_notification_group_.last_notification_date == 0);
+        d->notification_info->message_notification_group_.try_reuse = true;
+        d->notification_info->message_notification_group_.is_changed = true;
         on_dialog_updated(d->dialog_id, "on_update_secret_chat_state");
       }
-      CHECK(!d->notification_info->mention_notification_group.group_id
+      CHECK(!d->notification_info->mention_notification_group_.group_id
                  .is_valid());  // there can't be unread mentions in secret chats
     }
   }
@@ -15364,7 +15365,7 @@ void MessagesManager::set_dialog_is_empty(Dialog *d, const char *source) {
   }
   std::fill(d->message_count_by_index.begin(), d->message_count_by_index.end(), 0);
   if (d->notification_info != nullptr) {
-    d->notification_info->notification_id_to_message_id.clear();
+    d->notification_info->notification_id_to_message_id_.clear();
   }
 
   if (d->delete_last_message_date != 0) {
@@ -15545,7 +15546,7 @@ void MessagesManager::set_dialog_pinned_message_notification(Dialog *d, MessageI
   }
   CHECK(!td_->auth_manager_->is_bot());
   auto notification_info = add_dialog_notification_info(d);
-  auto old_message_id = notification_info->pinned_message_notification_message_id;
+  auto old_message_id = notification_info->pinned_message_notification_message_id_;
   if (old_message_id == message_id) {
     return;
   }
@@ -15560,10 +15561,10 @@ void MessagesManager::set_dialog_pinned_message_notification(Dialog *d, MessageI
       on_message_changed(d, m, false, source);
     } else {
       send_closure_later(G()->notification_manager(), &NotificationManager::remove_temporary_notification_by_message_id,
-                         notification_info->mention_notification_group.group_id, old_message_id, false, source);
+                         notification_info->mention_notification_group_.group_id, old_message_id, false, source);
     }
   }
-  notification_info->pinned_message_notification_message_id = message_id;
+  notification_info->pinned_message_notification_message_id_ = message_id;
   on_dialog_updated(d->dialog_id, source);
 }
 
@@ -15576,8 +15577,8 @@ void MessagesManager::remove_scope_pinned_message_notifications(NotificationSett
   dialogs_.foreach([&](const DialogId &dialog_id, unique_ptr<Dialog> &dialog) {
     Dialog *d = dialog.get();
     if (d->notification_settings.use_default_disable_pinned_message_notifications && d->notification_info != nullptr &&
-        d->notification_info->mention_notification_group.group_id.is_valid() &&
-        d->notification_info->pinned_message_notification_message_id.is_valid() &&
+        d->notification_info->mention_notification_group_.group_id.is_valid() &&
+        d->notification_info->pinned_message_notification_message_id_.is_valid() &&
         get_dialog_notification_setting_scope(dialog_id) == scope) {
       remove_dialog_pinned_message_notification(d, "remove_scope_pinned_message_notifications");
     }
@@ -15604,7 +15605,7 @@ void MessagesManager::remove_dialog_mention_notifications(Dialog *d) {
   if (d->notification_info == nullptr) {
     return;
   }
-  auto notification_group_id = d->notification_info->mention_notification_group.group_id;
+  auto notification_group_id = d->notification_info->mention_notification_group_.group_id;
   if (!notification_group_id.is_valid()) {
     return;
   }
@@ -15633,7 +15634,7 @@ void MessagesManager::remove_dialog_mention_notifications(Dialog *d) {
   VLOG(notifications) << "Found active mention notifications in " << message_ids;
   for (auto &message_id : message_ids) {
     CHECK(!message_id.is_scheduled());
-    if (message_id != d->notification_info->pinned_message_notification_message_id) {
+    if (message_id != d->notification_info->pinned_message_notification_message_id_) {
       auto m = get_message_force(d, message_id, "remove_dialog_mention_notifications");
       if (m != nullptr && m->notification_id.is_valid() && is_message_notification_active(d, m)) {
         CHECK(is_from_mention_notification_group(m));
@@ -16292,11 +16293,11 @@ void MessagesManager::add_notification_id_to_message_id_correspondence(Dialog *d
   CHECK(notification_id.is_valid());
   CHECK(message_id.is_valid());
   auto notification_info = add_dialog_notification_info(d);
-  auto it = notification_info->notification_id_to_message_id.find(notification_id);
-  if (it == notification_info->notification_id_to_message_id.end()) {
+  auto it = notification_info->notification_id_to_message_id_.find(notification_id);
+  if (it == notification_info->notification_id_to_message_id_.end()) {
     VLOG(notifications) << "Add correspondence from " << notification_id << " to " << message_id << " in "
                         << d->dialog_id;
-    notification_info->notification_id_to_message_id.emplace(notification_id, message_id);
+    notification_info->notification_id_to_message_id_.emplace(notification_id, message_id);
   } else if (it->second != message_id) {
     LOG(ERROR) << "Have the same " << notification_id << " in " << d->dialog_id << " for " << message_id << " and "
                << it->second;
@@ -16312,11 +16313,11 @@ void MessagesManager::delete_notification_id_to_message_id_correspondence(Dialog
   CHECK(notification_id.is_valid());
   CHECK(message_id.is_valid());
   auto notification_info = add_dialog_notification_info(d);
-  auto it = notification_info->notification_id_to_message_id.find(notification_id);
-  if (it != notification_info->notification_id_to_message_id.end() && it->second == message_id) {
+  auto it = notification_info->notification_id_to_message_id_.find(notification_id);
+  if (it != notification_info->notification_id_to_message_id_.end() && it->second == message_id) {
     VLOG(notifications) << "Delete correspondence from " << notification_id << " to " << message_id << " in "
                         << d->dialog_id;
-    notification_info->notification_id_to_message_id.erase(it);
+    notification_info->notification_id_to_message_id_.erase(it);
   } else {
     LOG(ERROR) << "Can't find " << notification_id << " in " << d->dialog_id << " with " << message_id;
   }
@@ -16347,7 +16348,7 @@ void MessagesManager::remove_message_notification_id(Dialog *d, Message *m, bool
   m->removed_notification_id = m->notification_id;
   m->notification_id = NotificationId();
   if (d->notification_info != nullptr &&
-      d->notification_info->pinned_message_notification_message_id == m->message_id && is_permanent &&
+      d->notification_info->pinned_message_notification_message_id_ == m->message_id && is_permanent &&
       !ignore_pinned_message_notification_removal) {
     remove_dialog_pinned_message_notification(
         d, "remove_message_notification_id");  // must be called after notification_id is removed
@@ -16374,18 +16375,18 @@ void MessagesManager::remove_message_notification_id(Dialog *d, Message *m, bool
 void MessagesManager::remove_new_secret_chat_notification(Dialog *d, bool is_permanent) {
   CHECK(d != nullptr);
   CHECK(d->notification_info != nullptr);
-  auto notification_id = d->notification_info->new_secret_chat_notification_id;
+  auto notification_id = d->notification_info->new_secret_chat_notification_id_;
   CHECK(notification_id.is_valid());
   VLOG(notifications) << "Remove " << notification_id << " about new secret " << d->dialog_id << " from "
-                      << d->notification_info->message_notification_group.group_id;
-  d->notification_info->new_secret_chat_notification_id = NotificationId();
-  bool is_fixed = set_dialog_last_notification(d->dialog_id, d->notification_info->message_notification_group, 0,
+                      << d->notification_info->message_notification_group_.group_id;
+  d->notification_info->new_secret_chat_notification_id_ = NotificationId();
+  bool is_fixed = set_dialog_last_notification(d->dialog_id, d->notification_info->message_notification_group_, 0,
                                                NotificationId(), "remove_new_secret_chat_notification");
   CHECK(is_fixed);
   if (is_permanent) {
-    CHECK(d->notification_info->message_notification_group.group_id.is_valid());
+    CHECK(d->notification_info->message_notification_group_.group_id.is_valid());
     send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification,
-                       d->notification_info->message_notification_group.group_id, notification_id, true, true,
+                       d->notification_info->message_notification_group_.group_id, notification_id, true, true,
                        Promise<Unit>(), "remove_new_secret_chat_notification");
   }
 }
@@ -21566,7 +21567,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
         info->recently_viewed_messages[view_id] = message_id;
       }
     } else if (!message_id.is_yet_unsent() && message_id > max_message_id) {
-      if ((d->notification_info != nullptr && message_id <= d->notification_info->max_notification_message_id) ||
+      if ((d->notification_info != nullptr && message_id <= d->notification_info->max_notification_message_id_) ||
           message_id <= d->last_new_message_id || message_id <= max_thread_message_id) {
         max_message_id = message_id;
       }
@@ -21862,7 +21863,7 @@ void MessagesManager::open_dialog(Dialog *d) {
     d->has_unload_timeout = false;
   }
 
-  if (d->notification_info != nullptr && d->notification_info->new_secret_chat_notification_id.is_valid()) {
+  if (d->notification_info != nullptr && d->notification_info->new_secret_chat_notification_id_.is_valid()) {
     remove_new_secret_chat_notification(d, true);
   }
 
@@ -26085,7 +26086,7 @@ MessageId MessagesManager::get_reply_to_message_id(Dialog *d, MessageId top_thre
       (m->message_id.is_local() && d->dialog_id.get_type() != DialogType::SecretChat)) {
     if (message_id.is_server() && d->dialog_id.get_type() != DialogType::SecretChat &&
         message_id > d->last_new_message_id &&
-        (d->notification_info != nullptr && message_id <= d->notification_info->max_notification_message_id)) {
+        (d->notification_info != nullptr && message_id <= d->notification_info->max_notification_message_id_)) {
       // allow to reply yet unreceived server message
       return message_id;
     }
@@ -30341,7 +30342,8 @@ void MessagesManager::send_update_new_message(const Dialog *d, const Message *m)
 MessagesManager::NotificationGroupInfo &MessagesManager::get_notification_group_info(Dialog *d, bool from_mentions) {
   CHECK(d != nullptr);
   auto notification_info = add_dialog_notification_info(d);
-  return from_mentions ? notification_info->mention_notification_group : notification_info->message_notification_group;
+  return from_mentions ? notification_info->mention_notification_group_
+                       : notification_info->message_notification_group_;
 }
 
 MessagesManager::NotificationGroupInfo &MessagesManager::get_notification_group_info(Dialog *d, const Message *m) {
@@ -30409,17 +30411,17 @@ Result<MessagesManager::MessagePushNotificationInfo> MessagesManager::get_messag
 
   bool is_new_pinned =
       is_pinned && message_id.is_valid() &&
-      (d->notification_info == nullptr || message_id > d->notification_info->max_notification_message_id);
+      (d->notification_info == nullptr || message_id > d->notification_info->max_notification_message_id_);
   CHECK(!message_id.is_scheduled());
   if (message_id.is_valid()) {
     if (message_id <= d->last_new_message_id) {
       return Status::Error("Ignore notification about known message");
     }
     if (!is_from_binlog && d->notification_info != nullptr) {
-      if (message_id == d->notification_info->max_notification_message_id) {
+      if (message_id == d->notification_info->max_notification_message_id_) {
         return Status::Error("Ignore previously added message push notification");
       }
-      if (message_id < d->notification_info->max_notification_message_id) {
+      if (message_id < d->notification_info->max_notification_message_id_) {
         return Status::Error("Ignore out of order message push notification");
       }
     }
@@ -30486,12 +30488,12 @@ Result<MessagesManager::MessagePushNotificationInfo> MessagesManager::get_messag
 
   if (message_id.is_valid()) {
     auto notification_info = add_dialog_notification_info(d);
-    if (message_id > notification_info->max_notification_message_id) {
+    if (message_id > notification_info->max_notification_message_id_) {
       if (is_new_pinned) {
         set_dialog_pinned_message_notification(d, contains_mention ? message_id : MessageId(),
                                                "get_message_push_notification_info");
       }
-      notification_info->max_notification_message_id = message_id;
+      notification_info->max_notification_message_id_ = message_id;
       on_dialog_updated(dialog_id, "set_max_notification_message_id");
     }
   }
@@ -30514,13 +30516,13 @@ NotificationId MessagesManager::get_next_notification_id(Dialog *d, Notification
     if (!notification_id.is_valid()) {
       return NotificationId();
     }
-  } while (notification_info->notification_id_to_message_id.count(notification_id) != 0 ||
-           notification_info->new_secret_chat_notification_id == notification_id ||
-           notification_id.get() <= notification_info->message_notification_group.last_notification_id.get() ||
-           notification_id.get() <= notification_info->message_notification_group.max_removed_notification_id.get() ||
-           notification_id.get() <= notification_info->mention_notification_group.last_notification_id.get() ||
+  } while (notification_info->notification_id_to_message_id_.count(notification_id) != 0 ||
+           notification_info->new_secret_chat_notification_id_ == notification_id ||
+           notification_id.get() <= notification_info->message_notification_group_.last_notification_id.get() ||
+           notification_id.get() <= notification_info->message_notification_group_.max_removed_notification_id.get() ||
+           notification_id.get() <= notification_info->mention_notification_group_.last_notification_id.get() ||
            notification_id.get() <=
-               notification_info->mention_notification_group.max_removed_notification_id.get());  // just in case
+               notification_info->mention_notification_group_.max_removed_notification_id.get());  // just in case
   if (message_id.is_valid()) {
     add_notification_id_to_message_id_correspondence(d, notification_id, message_id);
   }
@@ -30553,13 +30555,13 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
   if (d == nullptr || d->notification_info == nullptr) {
     return MessageNotificationGroup();
   }
-  if (d->notification_info->message_notification_group.group_id != group_id &&
-      d->notification_info->mention_notification_group.group_id != group_id) {
+  if (d->notification_info->message_notification_group_.group_id != group_id &&
+      d->notification_info->mention_notification_group_.group_id != group_id) {
     if (d->dialog_id.get_type() == DialogType::SecretChat &&
-        !d->notification_info->message_notification_group.group_id.is_valid() &&
-        !d->notification_info->mention_notification_group.group_id.is_valid()) {
+        !d->notification_info->message_notification_group_.group_id.is_valid() &&
+        !d->notification_info->mention_notification_group_.group_id.is_valid()) {
       // the group was reused, but wasn't deleted from the database, trying to resave it
-      auto &group_info = d->notification_info->message_notification_group;
+      auto &group_info = d->notification_info->message_notification_group_;
       group_info.group_id = group_id;
       group_info.is_changed = true;
       group_info.try_reuse = true;
@@ -30570,33 +30572,33 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
     }
   }
 
-  LOG_CHECK(d->notification_info->message_notification_group.group_id == group_id ||
-            d->notification_info->mention_notification_group.group_id == group_id);
+  LOG_CHECK(d->notification_info->message_notification_group_.group_id == group_id ||
+            d->notification_info->mention_notification_group_.group_id == group_id);
 
-  bool from_mentions = d->notification_info->mention_notification_group.group_id == group_id;
+  bool from_mentions = d->notification_info->mention_notification_group_.group_id == group_id;
   auto &group_info = get_notification_group_info(d, from_mentions);
 
   MessageNotificationGroup result;
   VLOG(notifications) << "Found " << (from_mentions ? "Mentions " : "Messages ") << group_info.group_id << '/'
                       << d->dialog_id << " by " << group_id << " with " << d->unread_mention_count
                       << " unread mentions, " << d->unread_reaction_count << " unread reactions, pinned "
-                      << d->notification_info->pinned_message_notification_message_id << ", new secret chat "
-                      << d->notification_info->new_secret_chat_notification_id << " and "
+                      << d->notification_info->pinned_message_notification_message_id_ << ", new secret chat "
+                      << d->notification_info->new_secret_chat_notification_id_ << " and "
                       << d->server_unread_count + d->local_unread_count << " unread messages";
   result.dialog_id = d->dialog_id;
   result.total_count = get_dialog_pending_notification_count(d, from_mentions);
-  auto pending_notification_count = from_mentions ? d->notification_info->pending_new_mention_notifications.size()
-                                                  : d->notification_info->pending_new_message_notifications.size();
+  auto pending_notification_count = from_mentions ? d->notification_info->pending_new_mention_notifications_.size()
+                                                  : d->notification_info->pending_new_message_notifications_.size();
   result.total_count -= static_cast<int32>(pending_notification_count);
   if (result.total_count < 0) {
     LOG(ERROR) << "Total notification count is " << result.total_count << " in " << d->dialog_id << " with "
                << pending_notification_count << " pending new notifications";
     result.total_count = 0;
   }
-  if (d->notification_info->new_secret_chat_notification_id.is_valid()) {
+  if (d->notification_info->new_secret_chat_notification_id_.is_valid()) {
     CHECK(d->dialog_id.get_type() == DialogType::SecretChat);
     result.type = NotificationGroupType::SecretChat;
-    result.notifications.emplace_back(d->notification_info->new_secret_chat_notification_id,
+    result.notifications.emplace_back(d->notification_info->new_secret_chat_notification_id_,
                                       td_->contacts_manager_->get_secret_chat_date(d->dialog_id.get_secret_chat_id()),
                                       false, create_new_secret_chat_notification());
   } else {
@@ -30672,14 +30674,14 @@ bool MessagesManager::is_message_notification_active(const Dialog *d, const Mess
   }
   if (is_from_mention_notification_group(m)) {
     return m->notification_id.get() >
-               d->notification_info->mention_notification_group.max_removed_notification_id.get() &&
-           m->message_id > d->notification_info->mention_notification_group.max_removed_message_id &&
+               d->notification_info->mention_notification_group_.max_removed_notification_id.get() &&
+           m->message_id > d->notification_info->mention_notification_group_.max_removed_message_id &&
            (m->contains_unread_mention ||
-            m->message_id == d->notification_info->pinned_message_notification_message_id);
+            m->message_id == d->notification_info->pinned_message_notification_message_id_);
   } else {
     return m->notification_id.get() >
-               d->notification_info->message_notification_group.max_removed_notification_id.get() &&
-           m->message_id > d->notification_info->message_notification_group.max_removed_message_id &&
+               d->notification_info->message_notification_group_.max_removed_notification_id.get() &&
+           m->message_id > d->notification_info->message_notification_group_.max_removed_message_id &&
            m->message_id > d->last_read_inbox_message_id;
   }
 }
@@ -30690,7 +30692,7 @@ void MessagesManager::try_add_pinned_message_notification(Dialog *d, vector<Noti
   if (d->notification_info == nullptr) {
     return;
   }
-  auto message_id = d->notification_info->pinned_message_notification_message_id;
+  auto message_id = d->notification_info->pinned_message_notification_message_id_;
   if (!message_id.is_valid() || message_id > d->last_new_message_id) {
     CHECK(!message_id.is_scheduled());
     return;
@@ -30698,8 +30700,8 @@ void MessagesManager::try_add_pinned_message_notification(Dialog *d, vector<Noti
 
   auto m = get_message_force(d, message_id, "try_add_pinned_message_notification");
   if (m != nullptr &&
-      m->notification_id.get() > d->notification_info->mention_notification_group.max_removed_notification_id.get() &&
-      m->message_id > d->notification_info->mention_notification_group.max_removed_message_id &&
+      m->notification_id.get() > d->notification_info->mention_notification_group_.max_removed_notification_id.get() &&
+      m->message_id > d->notification_info->mention_notification_group_.max_removed_message_id &&
       m->message_id > d->last_read_inbox_message_id && !is_dialog_pinned_message_notifications_disabled(d)) {
     if (m->notification_id.get() < max_notification_id.get()) {
       VLOG(notifications) << "Add " << m->notification_id << " about pinned " << message_id << " in " << d->dialog_id;
@@ -30881,8 +30883,8 @@ vector<NotificationGroupKey> MessagesManager::get_message_notification_group_key
     CHECK(group_key.dialog_id.is_valid());
     const Dialog *d = get_dialog_force(group_key.dialog_id, "get_message_notification_group_keys_from_database");
     if (d == nullptr || d->notification_info == nullptr ||
-        (d->notification_info->message_notification_group.group_id != group_key.group_id &&
-         d->notification_info->mention_notification_group.group_id != group_key.group_id)) {
+        (d->notification_info->message_notification_group_.group_id != group_key.group_id &&
+         d->notification_info->mention_notification_group_.group_id != group_key.group_id)) {
       continue;
     }
 
@@ -30914,23 +30916,23 @@ void MessagesManager::get_message_notifications_from_database(DialogId dialog_id
 
   auto d = get_dialog(dialog_id);
   CHECK(d != nullptr);
-  if (d->notification_info == nullptr || (d->notification_info->message_notification_group.group_id != group_id &&
-                                          d->notification_info->mention_notification_group.group_id != group_id)) {
+  if (d->notification_info == nullptr || (d->notification_info->message_notification_group_.group_id != group_id &&
+                                          d->notification_info->mention_notification_group_.group_id != group_id)) {
     return promise.set_value(vector<Notification>());
   }
 
   VLOG(notifications) << "Get " << limit << " message notifications from database in " << group_id << " from "
                       << dialog_id << " from " << from_notification_id << "/" << from_message_id;
-  bool from_mentions = d->notification_info->mention_notification_group.group_id == group_id;
-  if (d->notification_info->new_secret_chat_notification_id.is_valid()) {
+  bool from_mentions = d->notification_info->mention_notification_group_.group_id == group_id;
+  if (d->notification_info->new_secret_chat_notification_id_.is_valid()) {
     CHECK(dialog_id.get_type() == DialogType::SecretChat);
     vector<Notification> notifications;
-    if (!from_mentions && d->notification_info->new_secret_chat_notification_id.get() < from_notification_id.get()) {
+    if (!from_mentions && d->notification_info->new_secret_chat_notification_id_.get() < from_notification_id.get()) {
       auto date = td_->contacts_manager_->get_secret_chat_date(dialog_id.get_secret_chat_id());
       if (date <= 0) {
         remove_new_secret_chat_notification(d, true);
       } else {
-        notifications.emplace_back(d->notification_info->new_secret_chat_notification_id, date, false,
+        notifications.emplace_back(d->notification_info->new_secret_chat_notification_id_, date, false,
                                    create_new_secret_chat_notification());
       }
     }
@@ -31101,8 +31103,8 @@ void MessagesManager::remove_message_notification(DialogId dialog_id, Notificati
     LOG(ERROR) << "Can't find " << dialog_id;
     return;
   }
-  if (d->notification_info == nullptr || d->notification_info->message_notification_group.group_id != group_id &&
-                                             d->notification_info->mention_notification_group.group_id != group_id) {
+  if (d->notification_info == nullptr || d->notification_info->message_notification_group_.group_id != group_id &&
+                                             d->notification_info->mention_notification_group_.group_id != group_id) {
     LOG(ERROR) << "There is no " << group_id << " in " << dialog_id;
     return;
   }
@@ -31110,16 +31112,16 @@ void MessagesManager::remove_message_notification(DialogId dialog_id, Notificati
     return;  // there can be no notification with this ID
   }
 
-  bool from_mentions = d->notification_info->mention_notification_group.group_id == group_id;
-  if (d->notification_info->new_secret_chat_notification_id.is_valid()) {
-    if (!from_mentions && d->notification_info->new_secret_chat_notification_id == notification_id) {
+  bool from_mentions = d->notification_info->mention_notification_group_.group_id == group_id;
+  if (d->notification_info->new_secret_chat_notification_id_.is_valid()) {
+    if (!from_mentions && d->notification_info->new_secret_chat_notification_id_ == notification_id) {
       return remove_new_secret_chat_notification(d, false);
     }
     return;
   }
 
-  auto it = d->notification_info->notification_id_to_message_id.find(notification_id);
-  if (it != d->notification_info->notification_id_to_message_id.end()) {
+  auto it = d->notification_info->notification_id_to_message_id_.find(notification_id);
+  if (it != d->notification_info->notification_id_to_message_id_.end()) {
     auto m = get_message(d, it->second);
     CHECK(m != nullptr);
     CHECK(m->notification_id == notification_id);
@@ -31161,10 +31163,10 @@ void MessagesManager::remove_message_notifications_by_message_ids(DialogId dialo
       LOG(INFO) << "Can't delete " << message_id << " because it is not found";
       // call synchronously to remove them before ProcessPush returns
       td_->notification_manager_->remove_temporary_notification_by_message_id(
-          d->notification_info->message_notification_group.group_id, message_id, true,
+          d->notification_info->message_notification_group_.group_id, message_id, true,
           "remove_message_notifications_by_message_ids");
       td_->notification_manager_->remove_temporary_notification_by_message_id(
-          d->notification_info->mention_notification_group.group_id, message_id, true,
+          d->notification_info->mention_notification_group_.group_id, message_id, true,
           "remove_message_notifications_by_message_ids");
       continue;
     }
@@ -31202,8 +31204,8 @@ void MessagesManager::remove_message_notifications(DialogId dialog_id, Notificat
     LOG(ERROR) << "Can't find " << dialog_id;
     return;
   }
-  if (d->notification_info == nullptr || (d->notification_info->message_notification_group.group_id != group_id &&
-                                          d->notification_info->mention_notification_group.group_id != group_id)) {
+  if (d->notification_info == nullptr || (d->notification_info->message_notification_group_.group_id != group_id &&
+                                          d->notification_info->mention_notification_group_.group_id != group_id)) {
     LOG(ERROR) << "There is no " << group_id << " in " << dialog_id;
     return;
   }
@@ -31212,9 +31214,9 @@ void MessagesManager::remove_message_notifications(DialogId dialog_id, Notificat
   }
   CHECK(!max_message_id.is_scheduled());
 
-  bool from_mentions = d->notification_info->mention_notification_group.group_id == group_id;
-  if (d->notification_info->new_secret_chat_notification_id.is_valid()) {
-    if (!from_mentions && d->notification_info->new_secret_chat_notification_id.get() <= max_notification_id.get()) {
+  bool from_mentions = d->notification_info->mention_notification_group_.group_id == group_id;
+  if (d->notification_info->new_secret_chat_notification_id_.is_valid()) {
+    if (!from_mentions && d->notification_info->new_secret_chat_notification_id_.get() <= max_notification_id.get()) {
       return remove_new_secret_chat_notification(d, false);
     }
     return;
@@ -31248,15 +31250,15 @@ int32 MessagesManager::get_dialog_pending_notification_count(const Dialog *d, bo
   auto notification_info = d->notification_info.get();
   CHECK(notification_info != nullptr);
   if (from_mentions) {
-    bool has_pinned_message = notification_info->pinned_message_notification_message_id.is_valid() &&
-                              notification_info->pinned_message_notification_message_id <= d->last_new_message_id;
+    bool has_pinned_message = notification_info->pinned_message_notification_message_id_.is_valid() &&
+                              notification_info->pinned_message_notification_message_id_ <= d->last_new_message_id;
     return d->unread_mention_count + static_cast<int32>(has_pinned_message);
   } else {
-    if (notification_info->new_secret_chat_notification_id.is_valid()) {
+    if (notification_info->new_secret_chat_notification_id_.is_valid()) {
       return 1;
     }
     if (is_dialog_muted(d)) {
-      return narrow_cast<int32>(notification_info->pending_new_message_notifications.size());  // usually 0
+      return narrow_cast<int32>(notification_info->pending_new_message_notifications_.size());  // usually 0
     }
 
     return d->server_unread_count + d->local_unread_count;
@@ -31266,18 +31268,18 @@ int32 MessagesManager::get_dialog_pending_notification_count(const Dialog *d, bo
 void MessagesManager::update_dialog_mention_notification_count(const Dialog *d) {
   CHECK(d != nullptr);
   if (td_->auth_manager_->is_bot() || d->notification_info == nullptr ||
-      !d->notification_info->mention_notification_group.group_id.is_valid()) {
+      !d->notification_info->mention_notification_group_.group_id.is_valid()) {
     return;
   }
   auto total_count = get_dialog_pending_notification_count(d, true) -
-                     static_cast<int32>(d->notification_info->pending_new_mention_notifications.size());
+                     static_cast<int32>(d->notification_info->pending_new_mention_notifications_.size());
   if (total_count < 0) {
     LOG(ERROR) << "Total mention notification count is " << total_count << " in " << d->dialog_id << " with "
-               << d->notification_info->pending_new_mention_notifications << " pending new mention notifications";
+               << d->notification_info->pending_new_mention_notifications_ << " pending new mention notifications";
     total_count = 0;
   }
   send_closure_later(G()->notification_manager(), &NotificationManager::set_notification_total_count,
-                     d->notification_info->mention_notification_group.group_id, total_count);
+                     d->notification_info->mention_notification_group_.group_id, total_count);
 }
 
 bool MessagesManager::is_message_notification_disabled(const Dialog *d, const Message *m) const {
@@ -31376,13 +31378,13 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   CHECK(m->message_id.is_valid());
 
   if (!force && d->notification_info != nullptr) {
-    if (d->notification_info->message_notification_group.group_id.is_valid()) {
+    if (d->notification_info->message_notification_group_.group_id.is_valid()) {
       send_closure_later(G()->notification_manager(), &NotificationManager::remove_temporary_notifications,
-                         d->notification_info->message_notification_group.group_id, "add_new_message_notification 1");
+                         d->notification_info->message_notification_group_.group_id, "add_new_message_notification 1");
     }
-    if (d->notification_info->mention_notification_group.group_id.is_valid()) {
+    if (d->notification_info->mention_notification_group_.group_id.is_valid()) {
       send_closure_later(G()->notification_manager(), &NotificationManager::remove_temporary_notifications,
-                         d->notification_info->mention_notification_group.group_id, "add_new_message_notification 2");
+                         d->notification_info->mention_notification_group_.group_id, "add_new_message_notification 2");
     }
   }
 
@@ -31446,8 +31448,8 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   }
 
   auto notification_info = add_dialog_notification_info(d);
-  auto &pending_notifications = from_mentions ? notification_info->pending_new_mention_notifications
-                                              : notification_info->pending_new_message_notifications;
+  auto &pending_notifications = from_mentions ? notification_info->pending_new_mention_notifications_
+                                              : notification_info->pending_new_message_notifications_;
   if (!force && (!have_settings || !pending_notifications.empty() || missing_pinned_message_id.is_valid())) {
     VLOG(notifications) << "Delay new message notification for " << m->message_id << " in " << d->dialog_id << " with "
                         << pending_notifications.size() << " already waiting messages";
@@ -31529,7 +31531,7 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
     min_delay_ms = 1000;  // 1 second
   }
   auto ringtone_id = get_dialog_notification_ringtone_id(settings_dialog_id, settings_dialog);
-  bool is_silent = m->disable_notification || m->message_id <= notification_info->max_notification_message_id;
+  bool is_silent = m->disable_notification || m->message_id <= notification_info->max_notification_message_id_;
   send_closure_later(G()->notification_manager(), &NotificationManager::add_notification, notification_group_id,
                      from_mentions ? NotificationGroupType::Mentions : NotificationGroupType::Messages, d->dialog_id,
                      m->date, settings_dialog_id, m->disable_notification, is_silent ? 0 : ringtone_id, min_delay_ms,
@@ -31548,8 +31550,8 @@ void MessagesManager::flush_pending_new_message_notifications(DialogId dialog_id
   if (d->notification_info == nullptr) {
     return;
   }
-  auto &pending_notifications = from_mentions ? d->notification_info->pending_new_mention_notifications
-                                              : d->notification_info->pending_new_message_notifications;
+  auto &pending_notifications = from_mentions ? d->notification_info->pending_new_mention_notifications_
+                                              : d->notification_info->pending_new_message_notifications_;
   if (pending_notifications.empty()) {
     VLOG(notifications) << "Have no pending notifications in " << dialog_id << " to flush";
     return;
@@ -31589,12 +31591,12 @@ void MessagesManager::remove_all_dialog_notifications(Dialog *d, bool from_menti
     VLOG(notifications) << "Set max_removed_notification_id in " << group_info.group_id << '/' << d->dialog_id << " to "
                         << group_info.last_notification_id << " from " << source;
     group_info.max_removed_notification_id = group_info.last_notification_id;
-    if (d->notification_info->max_notification_message_id > group_info.max_removed_message_id) {
+    if (d->notification_info->max_notification_message_id_ > group_info.max_removed_message_id) {
       group_info.max_removed_message_id =
-          d->notification_info->max_notification_message_id.get_prev_server_message_id();
+          d->notification_info->max_notification_message_id_.get_prev_server_message_id();
     }
-    if (!d->notification_info->pending_new_message_notifications.empty()) {
-      for (auto &it : d->notification_info->pending_new_message_notifications) {
+    if (!d->notification_info->pending_new_message_notifications_.empty()) {
+      for (auto &it : d->notification_info->pending_new_message_notifications_) {
         it.first = DialogId();
       }
       flush_pending_new_message_notifications(d->dialog_id, from_mentions, DialogId(UserId(static_cast<int64>(2))));
@@ -31602,8 +31604,8 @@ void MessagesManager::remove_all_dialog_notifications(Dialog *d, bool from_menti
     // remove_message_notifications will be called by NotificationManager
     send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification_group,
                        group_info.group_id, group_info.last_notification_id, MessageId(), 0, true, Promise<Unit>());
-    if (d->notification_info->new_secret_chat_notification_id.is_valid() &&
-        &group_info == &d->notification_info->message_notification_group) {
+    if (d->notification_info->new_secret_chat_notification_id_.is_valid() &&
+        &group_info == &d->notification_info->message_notification_group_) {
       remove_new_secret_chat_notification(d, false);
     } else {
       bool is_changed = set_dialog_last_notification(d->dialog_id, group_info, 0, NotificationId(), source);
@@ -31627,8 +31629,8 @@ void MessagesManager::remove_message_dialog_notifications(Dialog *d, MessageId m
   VLOG(notifications) << "Remove message dialog notifications in " << group_info.group_id << '/' << d->dialog_id
                       << " up to " << max_message_id << " from " << source;
 
-  if (!d->notification_info->pending_new_message_notifications.empty()) {
-    for (auto &it : d->notification_info->pending_new_message_notifications) {
+  if (!d->notification_info->pending_new_message_notifications_.empty()) {
+    for (auto &it : d->notification_info->pending_new_message_notifications_) {
       if (it.second <= max_message_id) {
         it.first = DialogId();
       }
@@ -35821,11 +35823,11 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       LOG(INFO) << "Preloaded pinned " << pinned_message_id << " from database";
     }
 
-    if (d->notification_info != nullptr && d->notification_info->pinned_message_notification_message_id.is_valid() &&
-        d->notification_info->pinned_message_notification_message_id != message_id &&
-        have_message_force(d, d->notification_info->pinned_message_notification_message_id,
+    if (d->notification_info != nullptr && d->notification_info->pinned_message_notification_message_id_.is_valid() &&
+        d->notification_info->pinned_message_notification_message_id_ != message_id &&
+        have_message_force(d, d->notification_info->pinned_message_notification_message_id_,
                            "preload previously pinned message")) {
-      LOG(INFO) << "Preloaded previously pinned " << d->notification_info->pinned_message_notification_message_id
+      LOG(INFO) << "Preloaded previously pinned " << d->notification_info->pinned_message_notification_message_id_
                 << " from database";
     }
   }
@@ -35854,7 +35856,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   d->being_updated_last_new_message_id = d->last_new_message_id;
   d->being_updated_last_database_message_id = d->last_database_message_id;
 
-  if (d->notification_info != nullptr && d->notification_info->new_secret_chat_notification_id.is_valid()) {
+  if (d->notification_info != nullptr && d->notification_info->new_secret_chat_notification_id_.is_valid()) {
     remove_new_secret_chat_notification(d, true);
   }
 
@@ -36051,17 +36053,17 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       if (message->from_database && message->notification_id.is_valid() &&
           is_from_mention_notification_group(message.get()) && is_message_notification_active(d, message.get()) &&
           is_dialog_mention_notifications_disabled(d) && d->notification_info != nullptr &&
-          message_id != d->notification_info->pinned_message_notification_message_id) {
+          message_id != d->notification_info->pinned_message_notification_message_id_) {
         auto notification_id = message->notification_id;
         VLOG(notifications) << "Remove mention " << notification_id << " in " << message_id << " in " << dialog_id;
         message->notification_id = NotificationId();
-        if (d->notification_info->mention_notification_group.last_notification_id == notification_id) {
+        if (d->notification_info->mention_notification_group_.last_notification_id == notification_id) {
           // last notification is deleted, need to find new last notification
           fix_dialog_last_notification_id(d, true, message_id);
         }
 
         send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification,
-                           d->notification_info->mention_notification_group.group_id, notification_id, false, false,
+                           d->notification_info->mention_notification_group_.group_id, notification_id, false, false,
                            Promise<Unit>(), "remove disabled mention notification");
 
         on_message_changed(d, message.get(), false, "remove_mention_notification");
@@ -36537,16 +36539,16 @@ void MessagesManager::on_message_notification_changed(Dialog *d, const Message *
     }
   }
   if (m->is_pinned && d->notification_info != nullptr &&
-      d->notification_info->pinned_message_notification_message_id.is_valid() &&
-      d->notification_info->mention_notification_group.group_id.is_valid()) {
+      d->notification_info->pinned_message_notification_message_id_.is_valid() &&
+      d->notification_info->mention_notification_group_.group_id.is_valid()) {
     auto pinned_message =
-        get_message_force(d, d->notification_info->pinned_message_notification_message_id, "after update_message");
+        get_message_force(d, d->notification_info->pinned_message_notification_message_id_, "after update_message");
     if (pinned_message != nullptr && pinned_message->notification_id.is_valid() &&
         is_message_notification_active(d, pinned_message) &&
         get_message_content_pinned_message_id(pinned_message->content.get()) == m->message_id) {
       send_closure_later(
           G()->notification_manager(), &NotificationManager::edit_notification,
-          d->notification_info->mention_notification_group.group_id, pinned_message->notification_id,
+          d->notification_info->mention_notification_group_.group_id, pinned_message->notification_id,
           create_new_message_notification(pinned_message->message_id, is_message_preview_enabled(d, m, true)));
     }
   }
@@ -36622,11 +36624,11 @@ void MessagesManager::delete_all_dialog_messages_from_database(Dialog *d, Messag
   CHECK(d != nullptr);
   CHECK(max_message_id.is_valid());
   if (d->notification_info != nullptr) {
-    if (d->notification_info->new_secret_chat_notification_id.is_valid()) {
+    if (d->notification_info->new_secret_chat_notification_id_.is_valid()) {
       remove_new_secret_chat_notification(d, true);
     }
-    if (d->notification_info->pinned_message_notification_message_id.is_valid() &&
-        d->notification_info->pinned_message_notification_message_id <= max_message_id) {
+    if (d->notification_info->pinned_message_notification_message_id_.is_valid() &&
+        d->notification_info->pinned_message_notification_message_id_ <= max_message_id) {
       remove_dialog_pinned_message_notification(d, source);
     }
     remove_message_dialog_notifications(d, max_message_id, false, source);
@@ -36815,10 +36817,10 @@ void MessagesManager::delete_message_from_database(Dialog *d, MessageId message_
     }
   } else if (!message_id.is_scheduled() && message_id > d->last_new_message_id && d->notification_info != nullptr) {
     send_closure_later(G()->notification_manager(), &NotificationManager::remove_temporary_notification_by_message_id,
-                       d->notification_info->message_notification_group.group_id, message_id, false,
+                       d->notification_info->message_notification_group_.group_id, message_id, false,
                        "delete_message_from_database");
     send_closure_later(G()->notification_manager(), &NotificationManager::remove_temporary_notification_by_message_id,
-                       d->notification_info->mention_notification_group.group_id, message_id, false,
+                       d->notification_info->mention_notification_group_.group_id, message_id, false,
                        "delete_message_from_database");
   }
 
@@ -37654,26 +37656,26 @@ void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source
           !td_->contacts_manager_->get_secret_chat_is_outbound(secret_chat_id)) {
         auto notification_info = add_dialog_notification_info(d);
         auto notification_group_id =
-            get_dialog_notification_group_id(dialog_id, notification_info->message_notification_group);
+            get_dialog_notification_group_id(dialog_id, notification_info->message_notification_group_);
         if (notification_group_id.is_valid()) {
-          if (notification_info->new_secret_chat_notification_id.is_valid()) {
-            LOG(ERROR) << "Found previously created " << notification_info->new_secret_chat_notification_id << " in "
+          if (notification_info->new_secret_chat_notification_id_.is_valid()) {
+            LOG(ERROR) << "Found previously created " << notification_info->new_secret_chat_notification_id_ << " in "
                        << d->dialog_id << ", when creating it from " << source;
           } else {
-            notification_info->new_secret_chat_notification_id =
+            notification_info->new_secret_chat_notification_id_ =
                 get_next_notification_id(d, notification_group_id, MessageId());
-            if (notification_info->new_secret_chat_notification_id.is_valid()) {
+            if (notification_info->new_secret_chat_notification_id_.is_valid()) {
               auto date = td_->contacts_manager_->get_secret_chat_date(secret_chat_id);
-              bool is_changed = set_dialog_last_notification(dialog_id, notification_info->message_notification_group,
-                                                             date, notification_info->new_secret_chat_notification_id,
+              bool is_changed = set_dialog_last_notification(dialog_id, notification_info->message_notification_group_,
+                                                             date, notification_info->new_secret_chat_notification_id_,
                                                              "add_new_secret_chat");
               CHECK(is_changed);
-              VLOG(notifications) << "Create " << notification_info->new_secret_chat_notification_id << " with "
+              VLOG(notifications) << "Create " << notification_info->new_secret_chat_notification_id_ << " with "
                                   << secret_chat_id;
               auto ringtone_id = get_dialog_notification_ringtone_id(dialog_id, d);
               send_closure_later(G()->notification_manager(), &NotificationManager::add_notification,
                                  notification_group_id, NotificationGroupType::SecretChat, dialog_id, date, dialog_id,
-                                 false, ringtone_id, 0, notification_info->new_secret_chat_notification_id,
+                                 false, ringtone_id, 0, notification_info->new_secret_chat_notification_id_,
                                  create_new_secret_chat_notification(), "add_new_secret_chat_notification");
             }
           }
@@ -37823,11 +37825,13 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
   }
 
   if (d->notification_info != nullptr) {
-    if (d->notification_info->message_notification_group.group_id.is_valid()) {
-      notification_group_id_to_dialog_id_.emplace(d->notification_info->message_notification_group.group_id, dialog_id);
+    if (d->notification_info->message_notification_group_.group_id.is_valid()) {
+      notification_group_id_to_dialog_id_.emplace(d->notification_info->message_notification_group_.group_id,
+                                                  dialog_id);
     }
-    if (d->notification_info->mention_notification_group.group_id.is_valid()) {
-      notification_group_id_to_dialog_id_.emplace(d->notification_info->mention_notification_group.group_id, dialog_id);
+    if (d->notification_info->mention_notification_group_.group_id.is_valid()) {
+      notification_group_id_to_dialog_id_.emplace(d->notification_info->mention_notification_group_.group_id,
+                                                  dialog_id);
     }
   }
   if (pending_dialog_group_call_updates_.count(dialog_id) > 0) {
@@ -37964,32 +37968,32 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   } else {
     schedule_dialog_unmute(dialog_id, false, d->notification_settings.mute_until);
   }
-  if (d->notification_info != nullptr && d->notification_info->pinned_message_notification_message_id.is_valid()) {
-    auto pinned_message_id = d->notification_info->pinned_message_notification_message_id;
-    if (!d->notification_info->mention_notification_group.group_id.is_valid()) {
+  if (d->notification_info != nullptr && d->notification_info->pinned_message_notification_message_id_.is_valid()) {
+    auto pinned_message_id = d->notification_info->pinned_message_notification_message_id_;
+    if (!d->notification_info->mention_notification_group_.group_id.is_valid()) {
       LOG(ERROR) << "Have pinned message notification in " << pinned_message_id << " in " << dialog_id
                  << ", but there is no mention notification group";
-      d->notification_info->pinned_message_notification_message_id = MessageId();
+      d->notification_info->pinned_message_notification_message_id_ = MessageId();
       on_dialog_updated(dialog_id, "fix pinned message notification");
     } else if (is_dialog_pinned_message_notifications_disabled(d) ||
                pinned_message_id <= d->last_read_inbox_message_id ||
-               pinned_message_id <= d->notification_info->mention_notification_group.max_removed_message_id) {
+               pinned_message_id <= d->notification_info->mention_notification_group_.max_removed_message_id) {
       VLOG(notifications) << "Remove disabled pinned message notification in " << pinned_message_id << " in "
                           << dialog_id;
       send_closure_later(G()->notification_manager(), &NotificationManager::remove_temporary_notification_by_message_id,
-                         d->notification_info->mention_notification_group.group_id, pinned_message_id, true,
+                         d->notification_info->mention_notification_group_.group_id, pinned_message_id, true,
                          "fix pinned message notification");
-      d->notification_info->pinned_message_notification_message_id = MessageId();
+      d->notification_info->pinned_message_notification_message_id_ = MessageId();
       on_dialog_updated(dialog_id, "fix pinned message notification 2");
     }
   }
-  if (d->notification_info != nullptr && d->notification_info->new_secret_chat_notification_id.is_valid()) {
-    auto &group_info = d->notification_info->message_notification_group;
-    if (d->notification_info->new_secret_chat_notification_id.get() <= group_info.max_removed_notification_id.get() ||
+  if (d->notification_info != nullptr && d->notification_info->new_secret_chat_notification_id_.is_valid()) {
+    auto &group_info = d->notification_info->message_notification_group_;
+    if (d->notification_info->new_secret_chat_notification_id_.get() <= group_info.max_removed_notification_id.get() ||
         (group_info.last_notification_date == 0 && group_info.max_removed_notification_id.get() == 0)) {
-      VLOG(notifications) << "Fix removing new secret chat " << d->notification_info->new_secret_chat_notification_id
+      VLOG(notifications) << "Fix removing new secret chat " << d->notification_info->new_secret_chat_notification_id_
                           << " in " << dialog_id;
-      d->notification_info->new_secret_chat_notification_id = NotificationId();
+      d->notification_info->new_secret_chat_notification_id_ = NotificationId();
       on_dialog_updated(dialog_id, "fix new secret chat notification identifier");
     }
   }
@@ -38216,22 +38220,22 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
             << d->last_message_id << " with order " << d->order;
   if (d->notification_info != nullptr) {
     VLOG(notifications) << "Have " << dialog_id << " with message "
-                        << d->notification_info->message_notification_group.group_id << " with last "
-                        << d->notification_info->message_notification_group.last_notification_id << " sent at "
-                        << d->notification_info->message_notification_group.last_notification_date << ", max removed "
-                        << d->notification_info->message_notification_group.max_removed_notification_id << "/"
-                        << d->notification_info->message_notification_group.max_removed_message_id
-                        << " and new secret chat " << d->notification_info->new_secret_chat_notification_id;
+                        << d->notification_info->message_notification_group_.group_id << " with last "
+                        << d->notification_info->message_notification_group_.last_notification_id << " sent at "
+                        << d->notification_info->message_notification_group_.last_notification_date << ", max removed "
+                        << d->notification_info->message_notification_group_.max_removed_notification_id << "/"
+                        << d->notification_info->message_notification_group_.max_removed_message_id
+                        << " and new secret chat " << d->notification_info->new_secret_chat_notification_id_;
     VLOG(notifications) << "Have " << dialog_id << " with mention "
-                        << d->notification_info->mention_notification_group.group_id << " with last "
-                        << d->notification_info->mention_notification_group.last_notification_id << " sent at "
-                        << d->notification_info->mention_notification_group.last_notification_date << ", max removed "
-                        << d->notification_info->mention_notification_group.max_removed_notification_id << "/"
-                        << d->notification_info->mention_notification_group.max_removed_message_id << " and pinned "
-                        << d->notification_info->pinned_message_notification_message_id;
+                        << d->notification_info->mention_notification_group_.group_id << " with last "
+                        << d->notification_info->mention_notification_group_.last_notification_id << " sent at "
+                        << d->notification_info->mention_notification_group_.last_notification_date << ", max removed "
+                        << d->notification_info->mention_notification_group_.max_removed_notification_id << "/"
+                        << d->notification_info->mention_notification_group_.max_removed_message_id << " and pinned "
+                        << d->notification_info->pinned_message_notification_message_id_;
     VLOG(notifications) << "In " << dialog_id << " have last_read_inbox_message_id = " << d->last_read_inbox_message_id
                         << ", last_new_message_id = " << d->last_new_message_id
-                        << ", max_notification_message_id = " << d->notification_info->max_notification_message_id;
+                        << ", max_notification_message_id = " << d->notification_info->max_notification_message_id_;
   }
 
   if (d->messages != nullptr) {
@@ -39554,13 +39558,13 @@ void MessagesManager::do_get_channel_difference(DialogId dialog_id, int32 pts, b
   // can be called multiple times before after_get_channel_difference
   const Dialog *d = get_dialog(dialog_id);
   if (d != nullptr && d->notification_info != nullptr) {
-    if (d->notification_info->message_notification_group.group_id.is_valid()) {
+    if (d->notification_info->message_notification_group_.group_id.is_valid()) {
       send_closure_later(G()->notification_manager(), &NotificationManager::before_get_chat_difference,
-                         d->notification_info->message_notification_group.group_id);
+                         d->notification_info->message_notification_group_.group_id);
     }
-    if (d->notification_info->mention_notification_group.group_id.is_valid()) {
+    if (d->notification_info->mention_notification_group_.group_id.is_valid()) {
       send_closure_later(G()->notification_manager(), &NotificationManager::before_get_chat_difference,
-                         d->notification_info->mention_notification_group.group_id);
+                         d->notification_info->mention_notification_group_.group_id);
     }
   }
 
@@ -40165,13 +40169,13 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
     d->is_channel_difference_finished = true;
 
     if (d->notification_info != nullptr) {
-      if (d->notification_info->message_notification_group.group_id.is_valid()) {
+      if (d->notification_info->message_notification_group_.group_id.is_valid()) {
         send_closure_later(G()->notification_manager(), &NotificationManager::after_get_chat_difference,
-                           d->notification_info->message_notification_group.group_id);
+                           d->notification_info->message_notification_group_.group_id);
       }
-      if (d->notification_info->mention_notification_group.group_id.is_valid()) {
+      if (d->notification_info->mention_notification_group_.group_id.is_valid()) {
         send_closure_later(G()->notification_manager(), &NotificationManager::after_get_chat_difference,
-                           d->notification_info->mention_notification_group.group_id);
+                           d->notification_info->mention_notification_group_.group_id);
       }
     }
   } else {
