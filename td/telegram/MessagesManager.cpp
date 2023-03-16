@@ -8373,6 +8373,10 @@ void MessagesManager::update_dialog_unmute_timeout(Dialog *d, bool &old_use_defa
 }
 
 void MessagesManager::on_update_notification_scope_is_muted(NotificationSettingsScope scope, bool is_muted) {
+  if (td_->auth_manager_->is_bot()) {
+    // just in case
+    return;
+  }
   if (G()->use_message_database()) {
     std::unordered_map<DialogListId, int32, DialogListIdHash> delta;
     std::unordered_map<DialogListId, int32, DialogListIdHash> total_count;
@@ -31541,6 +31545,7 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
 void MessagesManager::flush_pending_new_message_notifications(DialogId dialog_id, bool from_mentions,
                                                               DialogId settings_dialog_id) {
   // flush pending notifications even while closing
+  CHECK(!td_->auth_manager_->is_bot());
 
   auto d = get_dialog(dialog_id);
   CHECK(d != nullptr);
@@ -31579,6 +31584,7 @@ void MessagesManager::flush_pending_new_message_notifications(DialogId dialog_id
 
 void MessagesManager::remove_all_dialog_notifications(Dialog *d, bool from_mentions, const char *source) {
   // removes up to group_info.last_notification_id
+  CHECK(!td_->auth_manager_->is_bot());
   if (d->notification_info == nullptr) {
     return;
   }
@@ -31614,6 +31620,7 @@ void MessagesManager::remove_all_dialog_notifications(Dialog *d, bool from_menti
 void MessagesManager::remove_message_dialog_notifications(Dialog *d, MessageId max_message_id, bool from_mentions,
                                                           const char *source) {
   // removes up to max_message_id
+  CHECK(!td_->auth_manager_->is_bot());
   CHECK(!max_message_id.is_scheduled());
   if (d->notification_info == nullptr) {
     return;
