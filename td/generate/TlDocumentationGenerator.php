@@ -6,6 +6,15 @@ abstract class TlDocumentationGenerator
     private $documentation = array();
     private $line_replacement = array();
 
+    private function isBuiltInType($type)
+    {
+        if (in_array($type, array('Bool', 'int32', 'int53', 'int64', 'double', 'string', 'bytes'))) {
+          return true;
+        }
+        return substr($type, 0, 7) === 'vector<' && substr($type, -1, 1) === '>' && $this->isBuiltInType(substr($type, 7, -1));
+    }
+
+
     final protected function printError($error)
     {
         fwrite(STDERR, "$error near line \"".rtrim($this->current_line)."\"\n");
@@ -266,6 +275,9 @@ abstract class TlDocumentationGenerator
                     $may_be_null = stripos($info[$name], 'may be null') !== false;
                     $field_name = $this->getFieldName($name, $class_name);
                     $field_type_name = $this->getTypeName($field_type);
+                    if ($this->isBuiltInType($field_type) && ($may_be_null || stripos($info[$name], '; pass null') !== false)) {
+                        $this->printError("Field `$name` of class `$class_name` can't be marked as nullable");
+                    }
                     $this->addFieldDocumentation($class_name, $field_name, $field_type_name, $info[$name], $may_be_null);
                 }
 
