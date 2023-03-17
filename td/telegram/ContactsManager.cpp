@@ -9474,7 +9474,12 @@ void ContactsManager::register_message_users(FullMessageId full_message_id, vect
     CHECK(user_id.is_valid());
     const User *u = get_user(user_id);
     if (u == nullptr || u->access_hash == -1 || u->is_min_access_hash) {
-      user_messages_[user_id].insert(full_message_id);
+      auto &user_messages = user_messages_[user_id];
+      auto need_update = user_messages.empty();
+      user_messages.insert(full_message_id);
+      if (need_update) {
+        send_closure(G()->td(), &Td::send_update, get_update_user_object(user_id, u));
+      }
     }
   }
 }
@@ -9500,6 +9505,11 @@ void ContactsManager::unregister_message_users(FullMessageId full_message_id, ve
       it->second.erase(full_message_id);
       if (it->second.empty()) {
         user_messages_.erase(it);
+
+        const User *u = get_user(user_id);
+        if (u == nullptr || u->access_hash == -1 || u->is_min_access_hash) {
+          send_closure(G()->td(), &Td::send_update, get_update_user_object(user_id, u));
+        }
       }
     }
   }
@@ -18302,6 +18312,9 @@ td_api::object_ptr<td_api::UserStatus> ContactsManager::get_user_status_object(U
 }
 
 td_api::object_ptr<td_api::updateUser> ContactsManager::get_update_user_object(UserId user_id, const User *u) const {
+  if (u == nullptr) {
+    return get_update_unknown_user_object(user_id);
+  }
   return td_api::make_object<td_api::updateUser>(get_user_object(user_id, u));
 }
 
@@ -18421,6 +18434,9 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
 
 td_api::object_ptr<td_api::updateBasicGroup> ContactsManager::get_update_basic_group_object(ChatId chat_id,
                                                                                             const Chat *c) {
+  if (c == nullptr) {
+    return get_update_unknown_basic_group_object(chat_id);
+  }
   return td_api::make_object<td_api::updateBasicGroup>(get_basic_group_object(chat_id, c));
 }
 
@@ -18480,6 +18496,9 @@ tl_object_ptr<td_api::basicGroupFullInfo> ContactsManager::get_basic_group_full_
 
 td_api::object_ptr<td_api::updateSupergroup> ContactsManager::get_update_supergroup_object(ChannelId channel_id,
                                                                                            const Channel *c) const {
+  if (c == nullptr) {
+    return get_update_unknown_supergroup_object(channel_id);
+  }
   return td_api::make_object<td_api::updateSupergroup>(get_supergroup_object(channel_id, c));
 }
 
@@ -18568,6 +18587,9 @@ tl_object_ptr<td_api::SecretChatState> ContactsManager::get_secret_chat_state_ob
 
 td_api::object_ptr<td_api::updateSecretChat> ContactsManager::get_update_secret_chat_object(
     SecretChatId secret_chat_id, const SecretChat *secret_chat) {
+  if (secret_chat == nullptr) {
+    return get_update_unknown_secret_chat_object(secret_chat_id);
+  }
   return td_api::make_object<td_api::updateSecretChat>(get_secret_chat_object(secret_chat_id, secret_chat));
 }
 
