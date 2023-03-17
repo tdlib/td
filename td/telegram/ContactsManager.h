@@ -265,6 +265,14 @@ class ContactsManager final : public Actor {
 
   void remove_inactive_channel(ChannelId channel_id);
 
+  void register_message_users(FullMessageId full_message_id, vector<UserId> user_ids);
+
+  void register_message_channels(FullMessageId full_message_id, vector<ChannelId> channel_ids);
+
+  void unregister_message_users(FullMessageId full_message_id, vector<UserId> user_ids);
+
+  void unregister_message_channels(FullMessageId full_message_id, vector<ChannelId> channel_ids);
+
   UserId get_my_id() const;
 
   void set_my_online_status(bool is_online, bool send_update, bool is_local);
@@ -1260,11 +1268,13 @@ class ContactsManager final : public Actor {
   static constexpr int32 ACCOUNT_UPDATE_LAST_NAME = 1 << 1;
   static constexpr int32 ACCOUNT_UPDATE_ABOUT = 1 << 2;
 
-  static bool have_input_peer_user(const User *u, AccessRights access_rights);
+  bool have_input_peer_user(const User *u, UserId user_id, AccessRights access_rights) const;
   static bool have_input_peer_chat(const Chat *c, AccessRights access_rights);
   bool have_input_peer_channel(const Channel *c, ChannelId channel_id, AccessRights access_rights,
                                bool from_linked = false) const;
   static bool have_input_encrypted_peer(const SecretChat *secret_chat, AccessRights access_rights);
+
+  tl_object_ptr<telegram_api::InputPeer> get_simple_input_peer(DialogId dialog_id) const;
 
   const User *get_user(UserId user_id) const;
   User *get_user(UserId user_id);
@@ -1674,7 +1684,7 @@ class ContactsManager final : public Actor {
 
   void on_dismiss_suggested_action(SuggestedAction action, Result<Unit> &&result);
 
-  static td_api::object_ptr<td_api::updateUser> get_update_unknown_user_object(UserId user_id);
+  td_api::object_ptr<td_api::updateUser> get_update_unknown_user_object(UserId user_id) const;
 
   td_api::object_ptr<td_api::UserStatus> get_user_status_object(UserId user_id, const User *u) const;
 
@@ -1939,6 +1949,9 @@ class ContactsManager final : public Actor {
   FlatHashMap<ChannelId, vector<DialogParticipant>, ChannelIdHash> cached_channel_participants_;
 
   FlatHashMap<string, UserId> resolved_phone_numbers_;
+
+  FlatHashMap<UserId, FlatHashSet<FullMessageId, FullMessageIdHash>, UserIdHash> user_messages_;
+  FlatHashMap<ChannelId, FlatHashSet<FullMessageId, FullMessageIdHash>, ChannelIdHash> channel_messages_;
 
   // bot-administrators only
   struct ChannelParticipantInfo {

@@ -5313,6 +5313,14 @@ Result<tl_object_ptr<telegram_api::InputUser>> ContactsManager::get_input_user(U
     if (td_->auth_manager_->is_bot() && user_id.is_valid()) {
       return make_tl_object<telegram_api::inputUser>(user_id.get(), 0);
     }
+    auto it = user_messages_.find(user_id);
+    if (it != user_messages_.end()) {
+      CHECK(!it->second.empty());
+      auto full_message_id = *it->second.begin();
+      return make_tl_object<telegram_api::inputUserFromMessage>(
+          get_simple_input_peer(full_message_id.get_dialog_id()),
+          full_message_id.get_message_id().get_server_message_id().get(), user_id.get());
+    }
     if (u == nullptr) {
       return Status::Error(400, "User not found");
     } else {
@@ -5329,6 +5337,14 @@ tl_object_ptr<telegram_api::InputChannel> ContactsManager::get_input_channel(Cha
     if (td_->auth_manager_->is_bot() && channel_id.is_valid()) {
       return make_tl_object<telegram_api::inputChannel>(channel_id.get(), 0);
     }
+    auto it = channel_messages_.find(channel_id);
+    if (it != channel_messages_.end()) {
+      CHECK(!it->second.empty());
+      auto full_message_id = *it->second.begin();
+      return make_tl_object<telegram_api::inputChannelFromMessage>(
+          get_simple_input_peer(full_message_id.get_dialog_id()),
+          full_message_id.get_message_id().get_server_message_id().get(), channel_id.get());
+    }
     return nullptr;
   }
 
@@ -5339,16 +5355,22 @@ bool ContactsManager::have_input_peer_user(UserId user_id, AccessRights access_r
   if (user_id == get_my_id()) {
     return true;
   }
-  return have_input_peer_user(get_user(user_id), access_rights);
+  return have_input_peer_user(get_user(user_id), user_id, access_rights);
 }
 
-bool ContactsManager::have_input_peer_user(const User *u, AccessRights access_rights) {
+bool ContactsManager::have_input_peer_user(const User *u, UserId user_id, AccessRights access_rights) const {
   if (u == nullptr) {
     LOG(DEBUG) << "Have no user";
+    if (user_messages_.count(user_id) != 0) {
+      return true;
+    }
     return false;
   }
   if (u->access_hash == -1 || u->is_min_access_hash) {
     LOG(DEBUG) << "Have user without access hash";
+    if (user_messages_.count(user_id) != 0) {
+      return true;
+    }
     return false;
   }
   if (access_rights == AccessRights::Know) {
@@ -5370,12 +5392,21 @@ tl_object_ptr<telegram_api::InputPeer> ContactsManager::get_input_peer_user(User
     return make_tl_object<telegram_api::inputPeerSelf>();
   }
   const User *u = get_user(user_id);
-  if (!have_input_peer_user(u, access_rights)) {
+  if (!have_input_peer_user(u, user_id, access_rights)) {
     if ((u == nullptr || u->access_hash == -1 || u->is_min_access_hash) && td_->auth_manager_->is_bot() &&
         user_id.is_valid()) {
       return make_tl_object<telegram_api::inputPeerUser>(user_id.get(), 0);
     }
     return nullptr;
+  }
+  if (u == nullptr || u->access_hash == -1 || u->is_min_access_hash) {
+    auto it = user_messages_.find(user_id);
+    CHECK(it != user_messages_.end());
+    CHECK(!it->second.empty());
+    auto full_message_id = *it->second.begin();
+    return make_tl_object<telegram_api::inputPeerUserFromMessage>(
+        get_simple_input_peer(full_message_id.get_dialog_id()),
+        full_message_id.get_message_id().get_server_message_id().get(), user_id.get());
   }
 
   return make_tl_object<telegram_api::inputPeerUser>(user_id.get(), u->access_hash);
@@ -5431,6 +5462,26 @@ tl_object_ptr<telegram_api::InputPeer> ContactsManager::get_input_peer_channel(C
     }
     return nullptr;
   }
+  if (c == nullptr) {
+    auto it = channel_messages_.find(channel_id);
+    CHECK(it != channel_messages_.end());
+    CHECK(!it->second.empty());
+    auto full_message_id = *it->second.begin();
+    return make_tl_object<telegram_api::inputPeerChannelFromMessage>(
+        get_simple_input_peer(full_message_id.get_dialog_id()),
+        full_message_id.get_message_id().get_server_message_id().get(), channel_id.get());
+  }
+
+  return make_tl_object<telegram_api::inputPeerChannel>(channel_id.get(), c->access_hash);
+}
+
+tl_object_ptr<telegram_api::InputPeer> ContactsManager::get_simple_input_peer(DialogId dialog_id) const {
+  CHECK(dialog_id.get_type() == DialogType::Channel);
+  auto channel_id = dialog_id.get_channel_id();
+  const Channel *c = get_channel(channel_id);
+  if (!have_input_peer_channel(c, channel_id, AccessRights::Read)) {
+    return nullptr;
+  }
 
   return make_tl_object<telegram_api::inputPeerChannel>(channel_id.get(), c->access_hash);
 }
@@ -5439,6 +5490,9 @@ bool ContactsManager::have_input_peer_channel(const Channel *c, ChannelId channe
                                               bool from_linked) const {
   if (c == nullptr) {
     LOG(DEBUG) << "Have no " << channel_id;
+    if (channel_messages_.count(channel_id) != 0) {
+      return true;
+    }
     return false;
   }
   if (access_rights == AccessRights::Know) {
@@ -9415,6 +9469,58 @@ void ContactsManager::remove_inactive_channel(ChannelId channel_id) {
   }
 }
 
+void ContactsManager::register_message_users(FullMessageId full_message_id, vector<UserId> user_ids) {
+  for (auto user_id : user_ids) {
+    CHECK(user_id.is_valid());
+    const User *u = get_user(user_id);
+    if (u == nullptr || u->access_hash == -1 || u->is_min_access_hash) {
+      user_messages_[user_id].insert(full_message_id);
+    }
+  }
+}
+
+void ContactsManager::register_message_channels(FullMessageId full_message_id, vector<ChannelId> channel_ids) {
+  for (auto channel_id : channel_ids) {
+    CHECK(channel_id.is_valid());
+    const Channel *c = get_channel(channel_id);
+    if (c == nullptr) {
+      channel_messages_[channel_id].insert(full_message_id);
+    }
+  }
+}
+
+void ContactsManager::unregister_message_users(FullMessageId full_message_id, vector<UserId> user_ids) {
+  if (user_messages_.empty()) {
+    // fast path
+    return;
+  }
+  for (auto user_id : user_ids) {
+    auto it = user_messages_.find(user_id);
+    if (it != user_messages_.end()) {
+      it->second.erase(full_message_id);
+      if (it->second.empty()) {
+        user_messages_.erase(it);
+      }
+    }
+  }
+}
+
+void ContactsManager::unregister_message_channels(FullMessageId full_message_id, vector<ChannelId> channel_ids) {
+  if (channel_messages_.empty()) {
+    // fast path
+    return;
+  }
+  for (auto channel_id : channel_ids) {
+    auto it = channel_messages_.find(channel_id);
+    if (it != channel_messages_.end()) {
+      it->second.erase(full_message_id);
+      if (it->second.empty()) {
+        channel_messages_.erase(it);
+      }
+    }
+  }
+}
+
 void ContactsManager::remove_dialog_suggested_action(SuggestedAction action) {
   auto it = dialog_suggested_actions_.find(action.dialog_id_);
   if (it == dialog_suggested_actions_.end()) {
@@ -11568,8 +11674,8 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
     save_user(u, user_id, from_binlog);
   }
 
-  if (u->cache_version != User::CACHE_VERSION && !u->is_repaired && have_input_peer_user(u, AccessRights::Read) &&
-      !G()->close_flag()) {
+  if (u->cache_version != User::CACHE_VERSION && !u->is_repaired &&
+      have_input_peer_user(u, user_id, AccessRights::Read) && !G()->close_flag()) {
     u->is_repaired = true;
 
     LOG(INFO) << "Repairing cache of " << user_id;
@@ -18202,10 +18308,12 @@ td_api::object_ptr<td_api::UserStatus> ContactsManager::get_user_status_object(U
   }
 }
 
-td_api::object_ptr<td_api::updateUser> ContactsManager::get_update_unknown_user_object(UserId user_id) {
+td_api::object_ptr<td_api::updateUser> ContactsManager::get_update_unknown_user_object(UserId user_id) const {
+  auto have_access = user_id == get_my_id() || user_messages_.count(user_id) != 0;
   return td_api::make_object<td_api::updateUser>(td_api::make_object<td_api::user>(
       user_id.get(), "", "", nullptr, "", td_api::make_object<td_api::userStatusEmpty>(), nullptr, nullptr, false,
-      false, false, false, false, "", false, false, false, td_api::make_object<td_api::userTypeUnknown>(), "", false));
+      false, false, false, false, "", false, false, have_access, td_api::make_object<td_api::userTypeUnknown>(), "",
+      false));
 }
 
 int64 ContactsManager::get_user_id_object(UserId user_id, const char *source) const {
@@ -18237,12 +18345,13 @@ tl_object_ptr<td_api::user> ContactsManager::get_user_object(UserId user_id, con
   }
 
   auto emoji_status = u->last_sent_emoji_status.is_valid() ? u->emoji_status.get_emoji_status_object() : nullptr;
+  auto have_access = user_id == get_my_id() || have_input_peer_user(u, user_id, AccessRights::Know);
   return make_tl_object<td_api::user>(
       user_id.get(), u->first_name, u->last_name, u->usernames.get_usernames_object(), u->phone_number,
       get_user_status_object(user_id, u), get_profile_photo_object(td_->file_manager_.get(), u->photo),
       std::move(emoji_status), u->is_contact, u->is_mutual_contact, u->is_verified, u->is_premium, u->is_support,
-      get_restriction_reason_description(u->restriction_reasons), u->is_scam, u->is_fake, u->is_received,
-      std::move(type), u->language_code, u->attach_menu_enabled);
+      get_restriction_reason_description(u->restriction_reasons), u->is_scam, u->is_fake, have_access, std::move(type),
+      u->language_code, u->attach_menu_enabled);
 }
 
 vector<int64> ContactsManager::get_user_ids_object(const vector<UserId> &user_ids, const char *source) const {

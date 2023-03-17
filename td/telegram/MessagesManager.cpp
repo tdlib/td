@@ -13353,6 +13353,22 @@ int32 MessagesManager::get_message_date(const tl_object_ptr<telegram_api::Messag
   }
 }
 
+vector<UserId> MessagesManager::get_message_user_ids(const Message *m) {
+  vector<UserId> user_ids;
+  if (m->sender_user_id.is_valid()) {
+    user_ids.push_back(m->sender_user_id);
+  }
+  return user_ids;
+}
+
+vector<ChannelId> MessagesManager::get_message_channel_ids(const Message *m) {
+  vector<ChannelId> channel_ids;
+  if (m->sender_dialog_id.is_valid() && m->sender_dialog_id.get_type() == DialogType::Channel) {
+    channel_ids.push_back(m->sender_dialog_id.get_channel_id());
+  }
+  return channel_ids;
+}
+
 void MessagesManager::ttl_read_history(Dialog *d, bool is_outgoing, MessageId from_message_id,
                                        MessageId till_message_id, double view_date) {
   CHECK(!from_message_id.is_scheduled());
@@ -16761,6 +16777,11 @@ void MessagesManager::on_message_deleted(Dialog *d, Message *m, bool is_permanen
       }
       break;
     case DialogType::Channel:
+      if (m->message_id.is_server()) {
+        td_->contacts_manager_->unregister_message_users({d->dialog_id, m->message_id}, get_message_user_ids(m));
+        td_->contacts_manager_->unregister_message_channels({d->dialog_id, m->message_id}, get_message_channel_ids(m));
+      }
+      break;
     case DialogType::SecretChat:
       // nothing to do
       break;
@@ -36307,7 +36328,10 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       }
       break;
     case DialogType::Channel:
-      // nothing to do
+      if (m->message_id.is_server()) {
+        td_->contacts_manager_->register_message_users({dialog_id, m->message_id}, get_message_user_ids(m));
+        td_->contacts_manager_->register_message_channels({dialog_id, m->message_id}, get_message_channel_ids(m));
+      }
       break;
     case DialogType::SecretChat:
       break;
