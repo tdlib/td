@@ -10877,8 +10877,7 @@ void ContactsManager::on_load_channel_from_database(ChannelId channel_id, string
         if (c->participant_count == 0 && temp_c.participant_count != 0) {
           c->participant_count = temp_c.participant_count;
           CHECK(c->is_update_supergroup_sent);
-          send_closure(G()->td(), &Td::send_update,
-                       make_tl_object<td_api::updateSupergroup>(get_supergroup_object(channel_id, c)));
+          send_closure(G()->td(), &Td::send_update, get_update_supergroup_object(channel_id, c));
         }
 
         c->status.update_restrictions();
@@ -11651,7 +11650,7 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
     u->need_save_to_database = false;
   }
   if (u->is_changed) {
-    send_closure(G()->td(), &Td::send_update, make_tl_object<td_api::updateUser>(get_user_object(user_id, u)));
+    send_closure(G()->td(), &Td::send_update, get_update_user_object(user_id, u));
     u->is_changed = false;
     u->is_status_changed = false;
     u->is_update_user_sent = true;
@@ -11741,8 +11740,7 @@ void ContactsManager::update_chat(Chat *c, ChatId chat_id, bool from_binlog, boo
     c->need_save_to_database = false;
   }
   if (c->is_changed) {
-    send_closure(G()->td(), &Td::send_update,
-                 make_tl_object<td_api::updateBasicGroup>(get_basic_group_object(chat_id, c)));
+    send_closure(G()->td(), &Td::send_update, get_update_basic_group_object(chat_id, c));
     c->is_changed = false;
     c->is_update_basic_group_sent = true;
   }
@@ -11870,8 +11868,7 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
     c->need_save_to_database = false;
   }
   if (c->is_changed) {
-    send_closure(G()->td(), &Td::send_update,
-                 make_tl_object<td_api::updateSupergroup>(get_supergroup_object(channel_id, c)));
+    send_closure(G()->td(), &Td::send_update, get_update_supergroup_object(channel_id, c));
     c->is_changed = false;
     c->is_update_supergroup_sent = true;
   }
@@ -11929,8 +11926,7 @@ void ContactsManager::update_secret_chat(SecretChat *c, SecretChatId secret_chat
     }
   }
   if (c->is_changed) {
-    send_closure(G()->td(), &Td::send_update,
-                 make_tl_object<td_api::updateSecretChat>(get_secret_chat_object(secret_chat_id, c)));
+    send_closure(G()->td(), &Td::send_update, get_update_secret_chat_object(secret_chat_id, c));
     c->is_changed = false;
   }
 
@@ -13330,13 +13326,10 @@ void ContactsManager::on_update_user_full_need_phone_number_privacy_exception(
 
 void ContactsManager::on_ignored_restriction_reasons_changed() {
   restricted_user_ids_.foreach([&](const UserId &user_id) {
-    send_closure(G()->td(), &Td::send_update,
-                 td_api::make_object<td_api::updateUser>(get_user_object(user_id, get_user(user_id))));
+    send_closure(G()->td(), &Td::send_update, get_update_user_object(user_id, get_user(user_id)));
   });
   restricted_channel_ids_.foreach([&](const ChannelId &channel_id) {
-    send_closure(
-        G()->td(), &Td::send_update,
-        td_api::make_object<td_api::updateSupergroup>(get_supergroup_object(channel_id, get_channel(channel_id))));
+    send_closure(G()->td(), &Td::send_update, get_update_supergroup_object(channel_id, get_channel(channel_id)));
   });
 }
 
@@ -18308,6 +18301,10 @@ td_api::object_ptr<td_api::UserStatus> ContactsManager::get_user_status_object(U
   }
 }
 
+td_api::object_ptr<td_api::updateUser> ContactsManager::get_update_user_object(UserId user_id, const User *u) const {
+  return td_api::make_object<td_api::updateUser>(get_user_object(user_id, u));
+}
+
 td_api::object_ptr<td_api::updateUser> ContactsManager::get_update_unknown_user_object(UserId user_id) const {
   auto have_access = user_id == get_my_id() || user_messages_.count(user_id) != 0;
   return td_api::make_object<td_api::updateUser>(td_api::make_object<td_api::user>(
@@ -18422,6 +18419,11 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
       std::move(bot_info));
 }
 
+td_api::object_ptr<td_api::updateBasicGroup> ContactsManager::get_update_basic_group_object(ChatId chat_id,
+                                                                                            const Chat *c) {
+  return td_api::make_object<td_api::updateBasicGroup>(get_basic_group_object(chat_id, c));
+}
+
 td_api::object_ptr<td_api::updateBasicGroup> ContactsManager::get_update_unknown_basic_group_object(ChatId chat_id) {
   return td_api::make_object<td_api::updateBasicGroup>(td_api::make_object<td_api::basicGroup>(
       chat_id.get(), 0, DialogParticipantStatus::Banned(0).get_chat_member_status_object(), true, 0));
@@ -18474,6 +18476,11 @@ tl_object_ptr<td_api::basicGroupFullInfo> ContactsManager::get_basic_group_full_
       get_user_id_object(chat_full->creator_user_id, "basicGroupFullInfo"), std::move(members),
       can_hide_chat_participants(chat_id).is_ok(), can_toggle_chat_aggressive_anti_spam(chat_id).is_ok(),
       chat_full->invite_link.get_chat_invite_link_object(this), std::move(bot_commands));
+}
+
+td_api::object_ptr<td_api::updateSupergroup> ContactsManager::get_update_supergroup_object(ChannelId channel_id,
+                                                                                           const Channel *c) const {
+  return td_api::make_object<td_api::updateSupergroup>(get_supergroup_object(channel_id, c));
 }
 
 td_api::object_ptr<td_api::updateSupergroup> ContactsManager::get_update_unknown_supergroup_object(
@@ -18557,6 +18564,11 @@ tl_object_ptr<td_api::SecretChatState> ContactsManager::get_secret_chat_state_ob
       UNREACHABLE();
       return nullptr;
   }
+}
+
+td_api::object_ptr<td_api::updateSecretChat> ContactsManager::get_update_secret_chat_object(
+    SecretChatId secret_chat_id, const SecretChat *secret_chat) {
+  return td_api::make_object<td_api::updateSecretChat>(get_secret_chat_object(secret_chat_id, secret_chat));
 }
 
 td_api::object_ptr<td_api::updateSecretChat> ContactsManager::get_update_unknown_secret_chat_object(
@@ -18746,10 +18758,10 @@ void ContactsManager::get_current_state(vector<td_api::object_ptr<td_api::Update
   }
 
   users_.foreach([&](const UserId &user_id, const unique_ptr<User> &user) {
-    updates.push_back(td_api::make_object<td_api::updateUser>(get_user_object(user_id, user.get())));
+    updates.push_back(get_update_user_object(user_id, user.get()));
   });
   channels_.foreach([&](const ChannelId &channel_id, const unique_ptr<Channel> &channel) {
-    updates.push_back(td_api::make_object<td_api::updateSupergroup>(get_supergroup_object(channel_id, channel.get())));
+    updates.push_back(get_update_supergroup_object(channel_id, channel.get()));
   });
   // chat objects can contain channel_id, so they must be sent after channels
   chats_.foreach([&](const ChatId &chat_id, const unique_ptr<Chat> &chat) {

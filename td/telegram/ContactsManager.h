@@ -1684,6 +1684,8 @@ class ContactsManager final : public Actor {
 
   void on_dismiss_suggested_action(SuggestedAction action, Result<Unit> &&result);
 
+  td_api::object_ptr<td_api::updateUser> get_update_user_object(UserId user_id, const User *u) const;
+
   td_api::object_ptr<td_api::updateUser> get_update_unknown_user_object(UserId user_id) const;
 
   td_api::object_ptr<td_api::UserStatus> get_user_status_object(UserId user_id, const User *u) const;
@@ -1691,6 +1693,8 @@ class ContactsManager final : public Actor {
   tl_object_ptr<td_api::user> get_user_object(UserId user_id, const User *u) const;
 
   tl_object_ptr<td_api::userFullInfo> get_user_full_info_object(UserId user_id, const UserFull *user_full) const;
+
+  td_api::object_ptr<td_api::updateBasicGroup> get_update_basic_group_object(ChatId chat_id, const Chat *c);
 
   static td_api::object_ptr<td_api::updateBasicGroup> get_update_unknown_basic_group_object(ChatId chat_id);
 
@@ -1700,6 +1704,9 @@ class ContactsManager final : public Actor {
 
   tl_object_ptr<td_api::basicGroupFullInfo> get_basic_group_full_info_object(ChatId chat_id,
                                                                              const ChatFull *chat_full) const;
+
+  td_api::object_ptr<td_api::updateSupergroup> get_update_supergroup_object(ChannelId channel_id,
+                                                                            const Channel *c) const;
 
   td_api::object_ptr<td_api::updateSupergroup> get_update_unknown_supergroup_object(ChannelId channel_id) const;
 
@@ -1717,6 +1724,9 @@ class ContactsManager final : public Actor {
                                                                             const ChannelFull *channel_full) const;
 
   static tl_object_ptr<td_api::SecretChatState> get_secret_chat_state_object(SecretChatState state);
+
+  td_api::object_ptr<td_api::updateSecretChat> get_update_secret_chat_object(SecretChatId secret_chat_id,
+                                                                             const SecretChat *secret_chat);
 
   static td_api::object_ptr<td_api::updateSecretChat> get_update_unknown_secret_chat_object(
       SecretChatId secret_chat_id);
