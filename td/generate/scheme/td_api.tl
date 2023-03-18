@@ -56,7 +56,7 @@ authenticationCodeTypeFragment url:string length:int32 = AuthenticationCodeType;
 authenticationCodeTypeFirebaseAndroid nonce:bytes length:int32 = AuthenticationCodeType;
 
 //@description An authentication code is delivered via Firebase Authentication to the official iOS application
-//@receipt Receipt of successful applikation token validation to compare with receipt from push notification
+//@receipt Receipt of successful application token validation to compare with receipt from push notification
 //@push_timeout Time after the next authentication method is supposed to be used if verification push notification isn't received, in seconds
 //@length Length of the code
 authenticationCodeTypeFirebaseIos receipt:string push_timeout:int32 length:int32 = AuthenticationCodeType;
