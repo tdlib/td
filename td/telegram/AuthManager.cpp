@@ -592,7 +592,7 @@ void AuthManager::on_sent_code(telegram_api::object_ptr<telegram_api::auth_SentC
     allow_google_id_ = code_type->google_signin_allowed_;
     email_address_.clear();
     email_code_info_ = SentEmailCode(std::move(code_type->email_pattern_), code_type->length_);
-    next_phone_number_login_date_ = td::max(static_cast<int32>(0), code_type->next_phone_login_date_);
+    next_phone_number_login_date_ = 0;
     if (email_code_info_.is_empty()) {
       email_code_info_ = SentEmailCode("<unknown>", code_type->length_);
       CHECK(!email_code_info_.is_empty());
