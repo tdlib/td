@@ -28,7 +28,7 @@ ok = Ok;
 //@length Length of the code
 authenticationCodeTypeTelegramMessage length:int32 = AuthenticationCodeType;
 
-//@description An authentication code is delivered via an SMS message to the specified phone number
+//@description An authentication code is delivered via an SMS message to the specified phone number; applications may not receive this type of code
 //@length Length of the code
 authenticationCodeTypeSms length:int32 = AuthenticationCodeType;
 
