@@ -58,6 +58,7 @@ void AuthManager::DbState::store(StorerT &storer) const {
   bool is_wait_registration_stores_phone_number = true;
   bool is_wait_qr_code_confirmation_supported = true;
   bool is_time_store_supported = true;
+  bool is_reset_email_address_supported = true;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_terms_of_service);
   STORE_FLAG(is_pbkdf2_supported);
@@ -68,6 +69,7 @@ void AuthManager::DbState::store(StorerT &storer) const {
   STORE_FLAG(allow_apple_id_);
   STORE_FLAG(allow_google_id_);
   STORE_FLAG(is_time_store_supported);
+  STORE_FLAG(is_reset_email_address_supported);
   END_STORE_FLAGS();
   store(state_, storer);
   store(api_id_, storer);
@@ -84,7 +86,8 @@ void AuthManager::DbState::store(StorerT &storer) const {
     store(send_code_helper_, storer);
     store(email_address_, storer);
     store(email_code_info_, storer);
-    store(next_phone_number_login_date_, storer);
+    store(reset_available_period_, storer);
+    store(reset_pending_date_, storer);
   } else if (state_ == State::WaitCode) {
     store(send_code_helper_, storer);
   } else if (state_ == State::WaitQrCodeConfirmation) {
@@ -110,6 +113,7 @@ void AuthManager::DbState::parse(ParserT &parser) {
   bool is_wait_registration_stores_phone_number = false;
   bool is_wait_qr_code_confirmation_supported = false;
   bool is_time_store_supported = false;
+  bool is_reset_email_address_supported = false;
   if (parser.version() >= static_cast<int32>(Version::AddTermsOfService)) {
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_terms_of_service);
@@ -121,16 +125,18 @@ void AuthManager::DbState::parse(ParserT &parser) {
     PARSE_FLAG(allow_apple_id_);
     PARSE_FLAG(allow_google_id_);
     PARSE_FLAG(is_time_store_supported);
+    PARSE_FLAG(is_reset_email_address_supported);
     END_PARSE_FLAGS();
   }
-  if (!is_time_store_supported) {
-    return parser.set_error("Have no time store support");
+  if (!is_reset_email_address_supported) {
+    return parser.set_error("Have no reset email address support");
   }
   CHECK(is_pbkdf2_supported);
   CHECK(is_srp_supported);
   CHECK(is_wait_registration_supported);
   CHECK(is_wait_registration_stores_phone_number);
   CHECK(is_wait_qr_code_confirmation_supported);
+  CHECK(is_time_store_supported);
 
   parse(state_, parser);
   parse(api_id_, parser);
@@ -147,7 +153,8 @@ void AuthManager::DbState::parse(ParserT &parser) {
     parse(send_code_helper_, parser);
     parse(email_address_, parser);
     parse(email_code_info_, parser);
-    parse(next_phone_number_login_date_, parser);
+    parse(reset_available_period_, parser);
+    parse(reset_pending_date_, parser);
   } else if (state_ == State::WaitCode) {
     parse(send_code_helper_, parser);
   } else if (state_ == State::WaitQrCodeConfirmation) {

@@ -119,8 +119,10 @@ authorizationStateWaitEmailAddress allow_apple_id:Bool allow_google_id:Bool = Au
 //@allow_apple_id True, if authorization through Apple ID is allowed
 //@allow_google_id True, if authorization through Google ID is allowed
 //@code_info Information about the sent authentication code
-//@next_phone_number_authorization_date Point in time (Unix timestamp) when the user will be able to authorize with a code sent to the user's phone number; 0 if unknown
-authorizationStateWaitEmailCode allow_apple_id:Bool allow_google_id:Bool code_info:emailAddressAuthenticationCodeInfo next_phone_number_authorization_date:int32 = AuthorizationState;
+//@can_reset_email_address True, if the email address can be reset using resetAuthenticationEmailAddress and the user will be able to authorize with a code sent to the user's phone number
+//@reset_period Time required to wait before the email address can be reset using resetAuthenticationEmailAddress if applicable; 0 if the user is subscribed to Telegram Premium
+//@reset_in Left time before the email address can be reset, in seconds; 0 if email address reset wasn't requested. updateAuthorizationState is not sent when this field changes
+authorizationStateWaitEmailCode allow_apple_id:Bool allow_google_id:Bool code_info:emailAddressAuthenticationCodeInfo can_reset_email_address:Bool reset_period:int32 reset_in:int32 = AuthorizationState;
 
 //@description TDLib needs the user's authentication code to authorize. Call checkAuthenticationCode to check the code @code_info Information about the authorization code that was sent
 authorizationStateWaitCode code_info:authenticationCodeInfo = AuthorizationState;
