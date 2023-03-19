@@ -430,6 +430,17 @@ void Binlog::flush() {
   }
   need_flush_since_ = 0;
   LOG_IF(FATAL, fd_.need_flush_write()) << "Failed to flush binlog";
+
+  if (state_ == State::Run && Time::now() > next_buffer_flush_time_) {
+    LOG(DEBUG) << "Flush write buffer";
+    buffer_writer_ = ChainBufferWriter();
+    buffer_reader_ = buffer_writer_.extract_reader();
+    if (encryption_type_ == EncryptionType::AesCtr) {
+      aes_ctr_state_ = aes_xcode_byte_flow_.move_aes_ctr_state();
+    }
+    update_write_encryption();
+    next_buffer_flush_time_ = Time::now() + 1.0;
+  }
 }
 
 void Binlog::lazy_flush() {
