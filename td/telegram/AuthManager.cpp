@@ -110,12 +110,16 @@ tl_object_ptr<td_api::AuthorizationState> AuthManager::get_authorization_state_o
     case State::WaitEmailAddress:
       return make_tl_object<td_api::authorizationStateWaitEmailAddress>(allow_apple_id_, allow_google_id_);
     case State::WaitEmailCode: {
-      auto can_reset_email_address = reset_available_period_ >= 0;
-      auto expires_in =
-          reset_pending_date_ > 0 ? clamp(reset_pending_date_ - G()->unix_time(), 1, reset_available_period_) : 0;
+      td_api::object_ptr<td_api::EmailAddressResetState> reset_state;
+      if (reset_pending_date_ > 0) {
+        reset_state =
+            td_api::make_object<td_api::emailAddressResetStatePending>(max(reset_pending_date_ - G()->unix_time(), 0));
+      } else if (reset_available_period_ >= 0) {
+        reset_state = td_api::make_object<td_api::emailAddressResetStateAvailable>(reset_available_period_);
+      }
       return make_tl_object<td_api::authorizationStateWaitEmailCode>(
           allow_apple_id_, allow_google_id_, email_code_info_.get_email_address_authentication_code_info_object(),
-          can_reset_email_address, can_reset_email_address ? reset_available_period_ : 0, expires_in);
+          std::move(reset_state));
     }
     case State::WaitCode:
       return send_code_helper_.get_authorization_state_wait_code();
@@ -275,7 +279,7 @@ void AuthManager::set_phone_number(uint64 query_id, string phone_number,
   email_address_ = {};
   email_code_info_ = {};
   reset_available_period_ = -1;
-  reset_pending_date_ = 0;
+  reset_pending_date_ = -1;
   code_ = string();
   email_code_ = {};
 
@@ -597,14 +601,12 @@ void AuthManager::on_sent_code(telegram_api::object_ptr<telegram_api::auth_SentC
     allow_google_id_ = code_type->google_signin_allowed_;
     email_address_.clear();
     email_code_info_ = SentEmailCode(std::move(code_type->email_pattern_), code_type->length_);
-    if ((code_type->flags_ & telegram_api::auth_sentCodeTypeEmailCode::RESET_AVAILABLE_PERIOD_MASK) != 0) {
+    reset_available_period_ = -1;
+    reset_pending_date_ = -1;
+    if (code_type->reset_pending_date_ > 0) {
+      reset_pending_date_ = code_type->reset_pending_date_;
+    } else if ((code_type->flags_ & telegram_api::auth_sentCodeTypeEmailCode::RESET_AVAILABLE_PERIOD_MASK) != 0) {
       reset_available_period_ = max(code_type->reset_available_period_, 0);
-      if (reset_available_period_ > 0) {
-        reset_pending_date_ = code_type->reset_pending_date_;
-      }
-    } else {
-      reset_available_period_ = -1;
-      reset_pending_date_ = 0;
     }
     if (email_code_info_.is_empty()) {
       email_code_info_ = SentEmailCode("<unknown>", code_type->length_);
@@ -659,7 +661,7 @@ void AuthManager::on_verify_email_address_result(NetQueryPtr &result) {
     return on_query_error(Status::Error(500, "Receive invalid response"));
   }
   reset_available_period_ = -1;
-  reset_pending_date_ = 0;
+  reset_pending_date_ = -1;
 
   auto verified_login = telegram_api::move_object_as<telegram_api::account_emailVerifiedLogin>(email_verified);
   on_sent_code(std::move(verified_login->sent_code_));

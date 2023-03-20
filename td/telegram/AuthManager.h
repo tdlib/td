@@ -130,7 +130,7 @@ class AuthManager final : public NetActor {
     string email_address_;
     SentEmailCode email_code_info_;
     int32 reset_available_period_ = -1;
-    int32 reset_pending_date_ = 0;
+    int32 reset_pending_date_ = -1;
 
     // WaitEmailAddress, WaitEmailCode, WaitCode and WaitRegistration
     SendCodeHelper send_code_helper_;
@@ -245,7 +245,7 @@ class AuthManager final : public NetActor {
   string email_address_;
   SentEmailCode email_code_info_;
   int32 reset_available_period_ = -1;
-  int32 reset_pending_date_ = 0;
+  int32 reset_pending_date_ = -1;
   EmailVerification email_code_;
 
   // State::WaitCode
