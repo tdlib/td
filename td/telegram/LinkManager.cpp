@@ -1004,6 +1004,7 @@ LinkManager::LinkInfo LinkManager::get_link_info(Slice link) {
     vector<Slice> t_me_urls{Slice("t.me"), Slice("telegram.me"), Slice("telegram.dog")};
 #if TD_EMSCRIPTEN
     t_me_urls.push_back(Slice("web.t.me"));
+    t_me_urls.push_back(Slice("a.t.me"));
     t_me_urls.push_back(Slice("k.t.me"));
     t_me_urls.push_back(Slice("z.t.me"));
 #endif
