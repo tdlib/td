@@ -2732,6 +2732,7 @@ bool Td::is_authentication_request(int32 id) {
     case td_api::checkAuthenticationCode::ID:
     case td_api::registerUser::ID:
     case td_api::requestQrCodeAuthentication::ID:
+    case td_api::resetAuthenticationEmailAddress::ID:
     case td_api::checkAuthenticationPassword::ID:
     case td_api::requestAuthenticationPasswordRecovery::ID:
     case td_api::checkAuthenticationPasswordRecoveryCode::ID:
@@ -4166,6 +4167,10 @@ void Td::on_request(uint64 id, td_api::registerUser &request) {
 void Td::on_request(uint64 id, td_api::requestQrCodeAuthentication &request) {
   send_closure(auth_manager_actor_, &AuthManager::request_qr_code_authentication, id,
                UserId::get_user_ids(request.other_user_ids_));
+}
+
+void Td::on_request(uint64 id, const td_api::resetAuthenticationEmailAddress &request) {
+  send_closure(auth_manager_actor_, &AuthManager::reset_email_address, id);
 }
 
 void Td::on_request(uint64 id, td_api::checkAuthenticationPassword &request) {

@@ -5754,6 +5754,10 @@ requestQrCodeAuthentication other_user_ids:vector<int53> = Ok;
 //@last_name The last name of the user; 0-64 characters
 registerUser first_name:string last_name:string = Ok;
 
+//@description Resets the login email address. May return an error with a message "TASK_ALREADY_EXISTS" if reset is still pending.
+//-Works only when the current authorization state is authorizationStateWaitEmailCode and authorization_state.can_reset_email_address == true
+resetAuthenticationEmailAddress = Ok;
+
 //@description Checks the 2-step verification password for correctness. Works only when the current authorization state is authorizationStateWaitPassword @password The 2-step verification password to check
 checkAuthenticationPassword password:string = Ok;
 

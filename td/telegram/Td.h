@@ -421,6 +421,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::requestQrCodeAuthentication &request);
 
+  void on_request(uint64 id, const td_api::resetAuthenticationEmailAddress &request);
+
   void on_request(uint64 id, td_api::checkAuthenticationPassword &request);
 
   void on_request(uint64 id, const td_api::requestAuthenticationPasswordRecovery &request);

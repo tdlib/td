@@ -1922,6 +1922,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::confirmQrCodeAuthentication>(args));
     } else if (op == "gcs") {
       send_request(td_api::make_object<td_api::getCurrentState>());
+    } else if (op == "raea") {
+      send_request(td_api::make_object<td_api::resetAuthenticationEmailAddress>());
     } else if (op == "rapr") {
       send_request(td_api::make_object<td_api::requestAuthenticationPasswordRecovery>());
     } else if (op == "caprc") {

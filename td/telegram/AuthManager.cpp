@@ -378,6 +378,17 @@ void AuthManager::check_email_code(uint64 query_id, EmailVerification &&code) {
   }
 }
 
+void AuthManager::reset_email_address(uint64 query_id) {
+  if (state_ != State::WaitEmailCode) {
+    return on_query_error(query_id, Status::Error(400, "Call to resetAuthenticationEmailAddress unexpected"));
+  }
+
+  on_new_query(query_id);
+  start_net_query(NetQueryType::ResetEmailAddress,
+                  G()->net_query_creator().create_unauth(telegram_api::auth_resetLoginEmail(
+                      send_code_helper_.phone_number().str(), send_code_helper_.phone_code_hash().str())));
+}
+
 void AuthManager::check_code(uint64 query_id, string code) {
   if (state_ != State::WaitCode) {
     return on_query_error(query_id, Status::Error(400, "Call to checkAuthenticationCode unexpected"));
@@ -580,6 +591,7 @@ void AuthManager::start_net_query(NetQueryType net_query_type, NetQueryPtr net_q
 }
 
 void AuthManager::on_sent_code(telegram_api::object_ptr<telegram_api::auth_SentCode> &&sent_code_ptr) {
+  LOG(INFO) << "Receive " << to_string(sent_code_ptr);
   auto sent_code_id = sent_code_ptr->get_id();
   if (sent_code_id != telegram_api::auth_sentCode::ID) {
     CHECK(sent_code_id == telegram_api::auth_sentCodeSuccess::ID);
@@ -600,7 +612,9 @@ void AuthManager::on_sent_code(telegram_api::object_ptr<telegram_api::auth_SentC
     allow_apple_id_ = code_type->apple_signin_allowed_;
     allow_google_id_ = code_type->google_signin_allowed_;
     email_address_.clear();
-    email_code_info_ = SentEmailCode(std::move(code_type->email_pattern_), code_type->length_);
+    if (!code_type->email_pattern_.empty() || email_code_info_.is_empty()) {
+      email_code_info_ = SentEmailCode(std::move(code_type->email_pattern_), code_type->length_);
+    }
     reset_available_period_ = -1;
     reset_pending_date_ = -1;
     if (code_type->reset_pending_date_ > 0) {
@@ -625,10 +639,7 @@ void AuthManager::on_send_code_result(NetQueryPtr &result) {
   if (r_sent_code.is_error()) {
     return on_query_error(r_sent_code.move_as_error());
   }
-  auto sent_code = r_sent_code.move_as_ok();
-
-  LOG(INFO) << "Receive " << to_string(sent_code);
-  on_sent_code(std::move(sent_code));
+  on_sent_code(r_sent_code.move_as_ok());
 }
 
 void AuthManager::on_send_email_code_result(NetQueryPtr &result) {
@@ -665,6 +676,20 @@ void AuthManager::on_verify_email_address_result(NetQueryPtr &result) {
 
   auto verified_login = telegram_api::move_object_as<telegram_api::account_emailVerifiedLogin>(email_verified);
   on_sent_code(std::move(verified_login->sent_code_));
+}
+
+void AuthManager::on_reset_email_address_result(NetQueryPtr &result) {
+  auto r_sent_code = fetch_result<telegram_api::auth_resetLoginEmail>(result->ok());
+  if (r_sent_code.is_error()) {
+    if (reset_available_period_ > 0 && reset_pending_date_ == -1 &&
+        r_sent_code.error().message() == "TASK_ALREADY_EXISTS") {
+      reset_pending_date_ = G()->unix_time() + reset_available_period_;
+      reset_available_period_ = -1;
+      update_state(State::WaitEmailCode, true);
+    }
+    return on_query_error(r_sent_code.move_as_error());
+  }
+  on_sent_code(r_sent_code.move_as_ok());
 }
 
 void AuthManager::on_request_qr_code_result(NetQueryPtr &result, bool is_import) {
@@ -1104,6 +1129,9 @@ void AuthManager::on_result(NetQueryPtr result) {
       break;
     case NetQueryType::VerifyEmailAddress:
       on_verify_email_address_result(result);
+      break;
+    case NetQueryType::ResetEmailAddress:
+      on_reset_email_address_result(result);
       break;
     case NetQueryType::RequestQrCode:
       on_request_qr_code_result(result, false);
