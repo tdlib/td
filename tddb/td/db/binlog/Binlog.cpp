@@ -432,7 +432,7 @@ void Binlog::flush() {
   LOG_IF(FATAL, fd_.need_flush_write()) << "Failed to flush binlog";
 
   if (state_ == State::Run && Time::now() > next_buffer_flush_time_) {
-    LOG(DEBUG) << "Flush write buffer";
+    VLOG(binlog) << "Flush write buffer";
     buffer_writer_ = ChainBufferWriter();
     buffer_reader_ = buffer_writer_.extract_reader();
     if (encryption_type_ == EncryptionType::AesCtr) {
