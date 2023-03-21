@@ -256,6 +256,14 @@ td_api::object_ptr<td_api::chatFilterInfo> DialogFilter::get_chat_filter_info_ob
   return td_api::make_object<td_api::chatFilterInfo>(dialog_filter_id.get(), title, get_chosen_or_default_icon_name());
 }
 
+void DialogFilter::for_each_dialog(std::function<void(const InputDialogId &)> callback) const {
+  for (auto input_dialog_ids : {&pinned_dialog_ids, &excluded_dialog_ids, &included_dialog_ids}) {
+    for (const auto &input_dialog_id : *input_dialog_ids) {
+      callback(input_dialog_id);
+    }
+  }
+}
+
 // merges changes from old_server_filter to new_server_filter in old_filter
 unique_ptr<DialogFilter> DialogFilter::merge_dialog_filter_changes(const DialogFilter *old_filter,
                                                                    const DialogFilter *old_server_filter,

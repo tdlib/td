@@ -16,6 +16,8 @@
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 
+#include <functional>
+
 namespace td {
 
 class DialogFilter {
@@ -61,6 +63,8 @@ class DialogFilter {
   telegram_api::object_ptr<telegram_api::DialogFilter> get_input_dialog_filter() const;
 
   td_api::object_ptr<td_api::chatFilterInfo> get_chat_filter_info_object() const;
+
+  void for_each_dialog(std::function<void(const InputDialogId &)> callback) const;
 
   // merges changes from old_server_filter to new_server_filter in old_filter
   static unique_ptr<DialogFilter> merge_dialog_filter_changes(const DialogFilter *old_filter,

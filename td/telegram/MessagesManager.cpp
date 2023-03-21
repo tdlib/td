@@ -17055,14 +17055,11 @@ void MessagesManager::load_dialog_filter(DialogFilterId dialog_filter_id, bool f
 void MessagesManager::load_dialog_filter(const DialogFilter *filter, bool force, Promise<Unit> &&promise) {
   CHECK(!td_->auth_manager_->is_bot());
   vector<InputDialogId> needed_dialog_ids;
-  for (auto input_dialog_ids :
-       {&filter->pinned_dialog_ids, &filter->excluded_dialog_ids, &filter->included_dialog_ids}) {
-    for (const auto &input_dialog_id : *input_dialog_ids) {
-      if (!have_dialog(input_dialog_id.get_dialog_id())) {
-        needed_dialog_ids.push_back(input_dialog_id);
-      }
+  filter->for_each_dialog([&](const InputDialogId &input_dialog_id) {
+    if (!have_dialog(input_dialog_id.get_dialog_id())) {
+      needed_dialog_ids.push_back(input_dialog_id);
     }
-  }
+  });
 
   vector<InputDialogId> input_dialog_ids;
   for (const auto &input_dialog_id : needed_dialog_ids) {
@@ -19673,14 +19670,11 @@ void MessagesManager::sort_dialog_filter_input_dialog_ids(DialogFilter *dialog_f
   sort_input_dialog_ids(dialog_filter->included_dialog_ids);
 
   FlatHashSet<DialogId, DialogIdHash> all_dialog_ids;
-  for (auto input_dialog_ids :
-       {&dialog_filter->pinned_dialog_ids, &dialog_filter->excluded_dialog_ids, &dialog_filter->included_dialog_ids}) {
-    for (const auto &input_dialog_id : *input_dialog_ids) {
-      auto dialog_id = input_dialog_id.get_dialog_id();
-      CHECK(dialog_id.is_valid());
-      LOG_CHECK(all_dialog_ids.insert(dialog_id).second) << source << ' ' << dialog_id << ' ' << dialog_filter;
-    }
-  }
+  dialog_filter->for_each_dialog([&](const InputDialogId &input_dialog_id) {
+    auto dialog_id = input_dialog_id.get_dialog_id();
+    CHECK(dialog_id.is_valid());
+    LOG_CHECK(all_dialog_ids.insert(dialog_id).second) << source << ' ' << dialog_id << ' ' << dialog_filter;
+  });
 }
 
 Result<unique_ptr<DialogFilter>> MessagesManager::create_dialog_filter(DialogFilterId dialog_filter_id,
