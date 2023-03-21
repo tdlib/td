@@ -20032,9 +20032,9 @@ void MessagesManager::edit_dialog_filter(unique_ptr<DialogFilter> new_dialog_fil
 
       disable_get_dialog_filter_ = true;  // to ensure crash if get_dialog_filter is called
 
-      auto folder_ids = get_dialog_filter_folder_ids(old_dialog_filter.get());
+      auto folder_ids = old_dialog_filter->get_folder_ids();
       CHECK(!folder_ids.empty());
-      for (auto folder_id : get_dialog_filter_folder_ids(new_dialog_filter.get())) {
+      for (auto folder_id : new_dialog_filter->get_folder_ids()) {
         if (!td::contains(folder_ids, folder_id)) {
           folder_ids.push_back(folder_id);
         }
@@ -20070,7 +20070,7 @@ void MessagesManager::edit_dialog_filter(unique_ptr<DialogFilter> new_dialog_fil
       new_list.are_pinned_dialogs_inited_ = true;
 
       do_update_list_last_pinned_dialog_date(new_list);
-      do_update_list_last_dialog_date(new_list, get_dialog_filter_folder_ids(new_dialog_filter.get()));
+      do_update_list_last_dialog_date(new_list, new_dialog_filter->get_folder_ids());
 
       new_list.server_dialog_total_count_ = 0;
       new_list.secret_chat_total_count_ = 0;
@@ -39070,14 +39070,6 @@ vector<DialogFilterId> MessagesManager::get_dialog_filter_ids(const vector<uniqu
   return result;
 }
 
-vector<FolderId> MessagesManager::get_dialog_filter_folder_ids(const DialogFilter *filter) {
-  CHECK(filter != nullptr);
-  if (filter->exclude_archived && filter->pinned_dialog_ids.empty() && filter->included_dialog_ids.empty()) {
-    return {FolderId::main()};
-  }
-  return {FolderId::main(), FolderId::archive()};
-}
-
 vector<FolderId> MessagesManager::get_dialog_list_folder_ids(const DialogList &list) const {
   CHECK(!td_->auth_manager_->is_bot());
   if (list.dialog_list_id.is_folder()) {
@@ -39085,7 +39077,7 @@ vector<FolderId> MessagesManager::get_dialog_list_folder_ids(const DialogList &l
   }
   if (list.dialog_list_id.is_filter()) {
     auto dialog_filter_id = list.dialog_list_id.get_filter_id();
-    return get_dialog_filter_folder_ids(get_dialog_filter(dialog_filter_id));
+    return get_dialog_filter(dialog_filter_id)->get_folder_ids();
   }
   UNREACHABLE();
   return {};

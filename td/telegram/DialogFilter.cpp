@@ -490,6 +490,13 @@ void DialogFilter::sort_input_dialog_ids(const Td *td, const char *source) {
   });
 }
 
+vector<FolderId> DialogFilter::get_folder_ids() const {
+  if (exclude_archived && pinned_dialog_ids.empty() && included_dialog_ids.empty()) {
+    return {FolderId::main()};
+  }
+  return {FolderId::main(), FolderId::archive()};
+}
+
 bool DialogFilter::are_similar(const DialogFilter &lhs, const DialogFilter &rhs) {
   if (lhs.title == rhs.title) {
     return true;

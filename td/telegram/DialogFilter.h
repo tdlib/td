@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/DialogFilterId.h"
+#include "td/telegram/FolderId.h"
 #include "td/telegram/InputDialogId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -77,6 +78,8 @@ class DialogFilter {
                                                               const DialogFilter *new_server_filter);
 
   void sort_input_dialog_ids(const Td *td, const char *source);
+
+  vector<FolderId> get_folder_ids() const;
 
   static bool are_similar(const DialogFilter &lhs, const DialogFilter &rhs);
 
