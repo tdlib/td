@@ -541,6 +541,75 @@ vector<FolderId> DialogFilter::get_folder_ids() const {
   return {FolderId::main(), FolderId::archive()};
 }
 
+bool DialogFilter::need_dialog(const Td *td, DialogId dialog_id, bool has_unread_mentions, bool is_muted,
+                               bool has_unread_messages, FolderId folder_id) const {
+  if (InputDialogId::contains(pinned_dialog_ids, dialog_id)) {
+    return true;
+  }
+  if (InputDialogId::contains(included_dialog_ids, dialog_id)) {
+    return true;
+  }
+  if (InputDialogId::contains(excluded_dialog_ids, dialog_id)) {
+    return false;
+  }
+  if (dialog_id.get_type() == DialogType::SecretChat) {
+    auto user_id = td->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
+    if (user_id.is_valid()) {
+      auto user_dialog_id = DialogId(user_id);
+      if (InputDialogId::contains(pinned_dialog_ids, user_dialog_id)) {
+        return true;
+      }
+      if (InputDialogId::contains(included_dialog_ids, user_dialog_id)) {
+        return true;
+      }
+      if (InputDialogId::contains(excluded_dialog_ids, user_dialog_id)) {
+        return false;
+      }
+    }
+  }
+  if (!has_unread_mentions) {
+    if (exclude_muted && is_muted) {
+      return false;
+    }
+    if (exclude_read && !has_unread_messages) {
+      return false;
+    }
+  }
+  if (exclude_archived && folder_id == FolderId::archive()) {
+    return false;
+  }
+  switch (dialog_id.get_type()) {
+    case DialogType::User: {
+      auto user_id = dialog_id.get_user_id();
+      if (td->contacts_manager_->is_user_bot(user_id)) {
+        return include_bots;
+      }
+      if (user_id == td->contacts_manager_->get_my_id() || td->contacts_manager_->is_user_contact(user_id)) {
+        return include_contacts;
+      }
+      return include_non_contacts;
+    }
+    case DialogType::Chat:
+      return include_groups;
+    case DialogType::Channel:
+      return td->contacts_manager_->is_broadcast_channel(dialog_id.get_channel_id()) ? include_channels
+                                                                                     : include_groups;
+    case DialogType::SecretChat: {
+      auto user_id = td->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
+      if (td->contacts_manager_->is_user_bot(user_id)) {
+        return include_bots;
+      }
+      if (td->contacts_manager_->is_user_contact(user_id)) {
+        return include_contacts;
+      }
+      return include_non_contacts;
+    }
+    default:
+      UNREACHABLE();
+      return false;
+  }
+}
+
 vector<DialogFilterId> DialogFilter::get_dialog_filter_ids(const vector<unique_ptr<DialogFilter>> &dialog_filters,
                                                            int32 main_dialog_list_position) {
   auto result = transform(dialog_filters, [](const auto &dialog_filter) { return dialog_filter->dialog_filter_id; });

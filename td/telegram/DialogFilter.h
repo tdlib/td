@@ -93,6 +93,9 @@ class DialogFilter {
 
   vector<FolderId> get_folder_ids() const;
 
+  bool need_dialog(const Td *td, DialogId dialog_id, bool has_unread_mentions, bool is_muted, bool has_unread_messages,
+                   FolderId folder_id) const;
+
   static vector<DialogFilterId> get_dialog_filter_ids(const vector<unique_ptr<DialogFilter>> &dialog_filters,
                                                       int32 main_dialog_list_position);
 

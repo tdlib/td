@@ -39111,70 +39111,9 @@ bool MessagesManager::need_dialog_in_filter(const Dialog *d, const DialogFilter 
   CHECK(filter != nullptr);
   CHECK(d->order != DEFAULT_ORDER);
 
-  if (InputDialogId::contains(filter->pinned_dialog_ids, d->dialog_id)) {
-    return true;
-  }
-  if (InputDialogId::contains(filter->included_dialog_ids, d->dialog_id)) {
-    return true;
-  }
-  if (InputDialogId::contains(filter->excluded_dialog_ids, d->dialog_id)) {
-    return false;
-  }
-  if (d->dialog_id.get_type() == DialogType::SecretChat) {
-    auto user_id = td_->contacts_manager_->get_secret_chat_user_id(d->dialog_id.get_secret_chat_id());
-    if (user_id.is_valid()) {
-      auto dialog_id = DialogId(user_id);
-      if (InputDialogId::contains(filter->pinned_dialog_ids, dialog_id)) {
-        return true;
-      }
-      if (InputDialogId::contains(filter->included_dialog_ids, dialog_id)) {
-        return true;
-      }
-      if (InputDialogId::contains(filter->excluded_dialog_ids, dialog_id)) {
-        return false;
-      }
-    }
-  }
-  if (d->unread_mention_count == 0 || is_dialog_mention_notifications_disabled(d)) {
-    if (filter->exclude_muted && is_dialog_muted(d)) {
-      return false;
-    }
-    if (filter->exclude_read && d->server_unread_count + d->local_unread_count == 0 && !d->is_marked_as_unread) {
-      return false;
-    }
-  }
-  if (filter->exclude_archived && d->folder_id == FolderId::archive()) {
-    return false;
-  }
-  switch (d->dialog_id.get_type()) {
-    case DialogType::User: {
-      auto user_id = d->dialog_id.get_user_id();
-      if (td_->contacts_manager_->is_user_bot(user_id)) {
-        return filter->include_bots;
-      }
-      if (user_id == td_->contacts_manager_->get_my_id() || td_->contacts_manager_->is_user_contact(user_id)) {
-        return filter->include_contacts;
-      }
-      return filter->include_non_contacts;
-    }
-    case DialogType::Chat:
-      return filter->include_groups;
-    case DialogType::Channel:
-      return is_broadcast_channel(d->dialog_id) ? filter->include_channels : filter->include_groups;
-    case DialogType::SecretChat: {
-      auto user_id = td_->contacts_manager_->get_secret_chat_user_id(d->dialog_id.get_secret_chat_id());
-      if (td_->contacts_manager_->is_user_bot(user_id)) {
-        return filter->include_bots;
-      }
-      if (td_->contacts_manager_->is_user_contact(user_id)) {
-        return filter->include_contacts;
-      }
-      return filter->include_non_contacts;
-    }
-    default:
-      UNREACHABLE();
-      return false;
-  }
+  return filter->need_dialog(
+      td_, d->dialog_id, d->unread_mention_count != 0 && !is_dialog_mention_notifications_disabled(d),
+      is_dialog_muted(d), d->server_unread_count + d->local_unread_count != 0 || d->is_marked_as_unread, d->folder_id);
 }
 
 bool MessagesManager::need_dialog_in_list(const Dialog *d, const DialogList &list) const {
