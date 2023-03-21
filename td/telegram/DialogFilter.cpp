@@ -104,6 +104,24 @@ Result<unique_ptr<DialogFilter>> DialogFilter::create_dialog_filter(Td *td, Dial
   return std::move(dialog_filter);
 }
 
+void DialogFilter::set_dialog_is_pinned(InputDialogId input_dialog_id, bool is_pinned) {
+  auto dialog_id = input_dialog_id.get_dialog_id();
+  if (is_pinned) {
+    pinned_dialog_ids.insert(pinned_dialog_ids.begin(), input_dialog_id);
+    InputDialogId::remove(included_dialog_ids, dialog_id);
+    InputDialogId::remove(excluded_dialog_ids, dialog_id);
+  } else {
+    bool is_removed = InputDialogId::remove(pinned_dialog_ids, dialog_id);
+    CHECK(is_removed);
+    included_dialog_ids.push_back(input_dialog_id);
+  }
+}
+
+void DialogFilter::include_dialog(InputDialogId input_dialog_id) {
+  included_dialog_ids.push_back(input_dialog_id);
+  InputDialogId::remove(excluded_dialog_ids, input_dialog_id.get_dialog_id());
+}
+
 void DialogFilter::remove_secret_chat_dialog_ids() {
   auto remove_secret_chats = [](vector<InputDialogId> &input_dialog_ids) {
     td::remove_if(input_dialog_ids, [](InputDialogId input_dialog_id) {

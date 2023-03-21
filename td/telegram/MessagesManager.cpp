@@ -20507,16 +20507,7 @@ Status MessagesManager::toggle_dialog_is_pinned(DialogListId dialog_list_id, Dia
     auto old_dialog_filter = get_dialog_filter(dialog_filter_id);
     CHECK(old_dialog_filter != nullptr);
     auto new_dialog_filter = make_unique<DialogFilter>(*old_dialog_filter);
-    if (is_pinned) {
-      new_dialog_filter->pinned_dialog_ids.insert(new_dialog_filter->pinned_dialog_ids.begin(),
-                                                  get_input_dialog_id(dialog_id));
-      InputDialogId::remove(new_dialog_filter->included_dialog_ids, dialog_id);
-      InputDialogId::remove(new_dialog_filter->excluded_dialog_ids, dialog_id);
-    } else {
-      bool is_removed = InputDialogId::remove(new_dialog_filter->pinned_dialog_ids, dialog_id);
-      CHECK(is_removed);
-      new_dialog_filter->included_dialog_ids.push_back(get_input_dialog_id(dialog_id));
-    }
+    new_dialog_filter->set_dialog_is_pinned(get_input_dialog_id(dialog_id), is_pinned);
 
     TRY_STATUS(new_dialog_filter->check_limits());
     new_dialog_filter->sort_input_dialog_ids(td_, "toggle_dialog_is_pinned");
@@ -34499,9 +34490,7 @@ vector<DialogListId> MessagesManager::get_dialog_lists_to_add_dialog(DialogId di
       }
 
       auto new_dialog_filter = make_unique<DialogFilter>(*dialog_filter);
-      new_dialog_filter->included_dialog_ids.push_back(get_input_dialog_id(dialog_id));
-      InputDialogId::remove(new_dialog_filter->excluded_dialog_ids, dialog_id);
-
+      new_dialog_filter->include_dialog(get_input_dialog_id(dialog_id));
       if (new_dialog_filter->check_limits().is_ok()) {
         result.push_back(DialogListId(dialog_filter_id));
       }
@@ -34541,9 +34530,7 @@ void MessagesManager::add_dialog_to_list(DialogId dialog_id, DialogListId dialog
     }
 
     auto new_dialog_filter = make_unique<DialogFilter>(*old_dialog_filter);
-    new_dialog_filter->included_dialog_ids.push_back(get_input_dialog_id(dialog_id));
-    InputDialogId::remove(new_dialog_filter->excluded_dialog_ids, dialog_id);
-
+    new_dialog_filter->include_dialog(get_input_dialog_id(dialog_id));
     auto status = new_dialog_filter->check_limits();
     if (status.is_error()) {
       return promise.set_error(std::move(status));

@@ -54,6 +54,10 @@ class DialogFilter {
   static Result<unique_ptr<DialogFilter>> create_dialog_filter(Td *td, DialogFilterId dialog_filter_id,
                                                                td_api::object_ptr<td_api::chatFilter> filter);
 
+  void set_dialog_is_pinned(InputDialogId input_dialog_id, bool is_pinned);
+
+  void include_dialog(InputDialogId input_dialog_id);
+
   void remove_secret_chat_dialog_ids();
 
   void remove_dialog_id(DialogId dialog_id);
