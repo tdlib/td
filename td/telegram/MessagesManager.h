@@ -2894,9 +2894,6 @@ class MessagesManager final : public Actor {
 
   int32 get_server_main_dialog_list_position() const;
 
-  static vector<DialogFilterId> get_dialog_filter_ids(const vector<unique_ptr<DialogFilter>> &dialog_filters,
-                                                      int32 main_dialog_list_position);
-
   vector<FolderId> get_dialog_list_folder_ids(const DialogList &list) const;
 
   bool has_dialogs_from_folder(const DialogList &list, const DialogFolder &folder) const;

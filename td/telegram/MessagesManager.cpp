@@ -13785,8 +13785,9 @@ void MessagesManager::init() {
           add_dialog_filter(std::move(dialog_filter), false, "binlog");
         }
         LOG(INFO) << "Loaded server chat filters "
-                  << get_dialog_filter_ids(server_dialog_filters_, server_main_dialog_list_position_)
-                  << " and local chat filters " << get_dialog_filter_ids(dialog_filters_, main_dialog_list_position_);
+                  << DialogFilter::get_dialog_filter_ids(server_dialog_filters_, server_main_dialog_list_position_)
+                  << " and local chat filters "
+                  << DialogFilter::get_dialog_filter_ids(dialog_filters_, main_dialog_list_position_);
       } else {
         LOG(ERROR) << "Failed to parse chat filters from binlog";
       }
@@ -17801,8 +17802,9 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
   dialog_filters_updated_date_ = G()->unix_time();
   if (server_dialog_filters_ != new_server_dialog_filters) {
     LOG(INFO) << "Change server chat filters from "
-              << get_dialog_filter_ids(server_dialog_filters_, server_main_dialog_list_position_) << " to "
-              << get_dialog_filter_ids(new_server_dialog_filters, server_main_dialog_list_position);
+              << DialogFilter::get_dialog_filter_ids(server_dialog_filters_, server_main_dialog_list_position_)
+              << " to "
+              << DialogFilter::get_dialog_filter_ids(new_server_dialog_filters, server_main_dialog_list_position);
     FlatHashMap<DialogFilterId, const DialogFilter *, DialogFilterIdHash> old_server_dialog_filters;
     for (const auto &filter : server_dialog_filters_) {
       old_server_dialog_filters.emplace(filter->dialog_filter_id, filter.get());
@@ -17869,7 +17871,8 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
       }
     }
     bool is_order_changed = [&] {
-      vector<DialogFilterId> new_server_dialog_filter_ids = get_dialog_filter_ids(new_server_dialog_filters, -1);
+      vector<DialogFilterId> new_server_dialog_filter_ids =
+          DialogFilter::get_dialog_filter_ids(new_server_dialog_filters, -1);
       CHECK(new_server_dialog_filter_ids.size() >= left_old_server_dialog_filter_ids.size());
       new_server_dialog_filter_ids.resize(left_old_server_dialog_filter_ids.size());
       return new_server_dialog_filter_ids != left_old_server_dialog_filter_ids;
@@ -17952,7 +17955,7 @@ bool MessagesManager::need_synchronize_dialog_filters() const {
     // need delete dialog filter on server
     return true;
   }
-  if (dialog_filter_ids != get_dialog_filter_ids(server_dialog_filters_, -1)) {
+  if (dialog_filter_ids != DialogFilter::get_dialog_filter_ids(server_dialog_filters_, -1)) {
     // need reorder dialog filters on server
     return true;
   }
@@ -17980,8 +17983,8 @@ void MessagesManager::synchronize_dialog_filters() {
   }
 
   LOG(INFO) << "Synchronize chat filter changes with server having local "
-            << get_dialog_filter_ids(dialog_filters_, main_dialog_list_position_) << " and server "
-            << get_dialog_filter_ids(server_dialog_filters_, server_main_dialog_list_position_);
+            << DialogFilter::get_dialog_filter_ids(dialog_filters_, main_dialog_list_position_) << " and server "
+            << DialogFilter::get_dialog_filter_ids(server_dialog_filters_, server_main_dialog_list_position_);
   for (const auto &server_dialog_filter : server_dialog_filters_) {
     if (get_dialog_filter(server_dialog_filter->dialog_filter_id) == nullptr) {
       return delete_dialog_filter_on_server(server_dialog_filter->dialog_filter_id);
@@ -18002,7 +18005,7 @@ void MessagesManager::synchronize_dialog_filters() {
   }
 
   auto server_main_dialog_list_position = get_server_main_dialog_list_position();
-  if (dialog_filter_ids != get_dialog_filter_ids(server_dialog_filters_, -1) ||
+  if (dialog_filter_ids != DialogFilter::get_dialog_filter_ids(server_dialog_filters_, -1) ||
       server_main_dialog_list_position != server_main_dialog_list_position_) {
     return reorder_dialog_filters_on_server(std::move(dialog_filter_ids), server_main_dialog_list_position);
   }
@@ -19921,7 +19924,7 @@ void MessagesManager::on_reorder_dialog_filters(vector<DialogFilterId> dialog_fi
 
 bool MessagesManager::set_dialog_filters_order(vector<unique_ptr<DialogFilter>> &dialog_filters,
                                                vector<DialogFilterId> dialog_filter_ids) {
-  auto old_dialog_filter_ids = get_dialog_filter_ids(dialog_filters, -1);
+  auto old_dialog_filter_ids = DialogFilter::get_dialog_filter_ids(dialog_filters, -1);
   if (old_dialog_filter_ids == dialog_filter_ids) {
     return false;
   }
@@ -31796,8 +31799,9 @@ void MessagesManager::save_dialog_filters() {
   log_event.dialog_filters_in = &dialog_filters_;
 
   LOG(INFO) << "Save server chat filters "
-            << get_dialog_filter_ids(server_dialog_filters_, server_main_dialog_list_position_)
-            << " and local chat filters " << get_dialog_filter_ids(dialog_filters_, main_dialog_list_position_);
+            << DialogFilter::get_dialog_filter_ids(server_dialog_filters_, server_main_dialog_list_position_)
+            << " and local chat filters "
+            << DialogFilter::get_dialog_filter_ids(dialog_filters_, main_dialog_list_position_);
 
   G()->td_db()->get_binlog_pmc()->set("dialog_filters", log_event_store(log_event).as_slice().str());
 }
@@ -39059,15 +39063,6 @@ int32 MessagesManager::get_server_main_dialog_list_position() const {
   }
   LOG(WARNING) << "Failed to find server position for " << main_dialog_list_position_ << " in chat filters";
   return current_server_position;
-}
-
-vector<DialogFilterId> MessagesManager::get_dialog_filter_ids(const vector<unique_ptr<DialogFilter>> &dialog_filters,
-                                                              int32 main_dialog_list_position) {
-  auto result = transform(dialog_filters, [](const auto &dialog_filter) { return dialog_filter->dialog_filter_id; });
-  if (static_cast<size_t>(main_dialog_list_position) <= result.size()) {
-    result.insert(result.begin() + main_dialog_list_position, DialogFilterId());
-  }
-  return result;
 }
 
 vector<FolderId> MessagesManager::get_dialog_list_folder_ids(const DialogList &list) const {

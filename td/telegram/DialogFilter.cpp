@@ -497,6 +497,15 @@ vector<FolderId> DialogFilter::get_folder_ids() const {
   return {FolderId::main(), FolderId::archive()};
 }
 
+vector<DialogFilterId> DialogFilter::get_dialog_filter_ids(const vector<unique_ptr<DialogFilter>> &dialog_filters,
+                                                           int32 main_dialog_list_position) {
+  auto result = transform(dialog_filters, [](const auto &dialog_filter) { return dialog_filter->dialog_filter_id; });
+  if (static_cast<size_t>(main_dialog_list_position) <= result.size()) {
+    result.insert(result.begin() + main_dialog_list_position, DialogFilterId());
+  }
+  return result;
+}
+
 bool DialogFilter::are_similar(const DialogFilter &lhs, const DialogFilter &rhs) {
   if (lhs.title == rhs.title) {
     return true;

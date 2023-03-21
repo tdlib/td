@@ -81,6 +81,9 @@ class DialogFilter {
 
   vector<FolderId> get_folder_ids() const;
 
+  static vector<DialogFilterId> get_dialog_filter_ids(const vector<unique_ptr<DialogFilter>> &dialog_filters,
+                                                      int32 main_dialog_list_position);
+
   static bool are_similar(const DialogFilter &lhs, const DialogFilter &rhs);
 
   static bool are_equivalent(const DialogFilter &lhs, const DialogFilter &rhs);
