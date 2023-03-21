@@ -2884,9 +2884,6 @@ class MessagesManager final : public Actor {
 
   int32 delete_dialog_filter(DialogFilterId dialog_filter_id, const char *source);
 
-  static bool set_dialog_filters_order(vector<unique_ptr<DialogFilter>> &dialog_filters,
-                                       vector<DialogFilterId> dialog_filter_ids);
-
   const DialogFilter *get_server_dialog_filter(DialogFilterId dialog_filter_id) const;
 
   DialogFilter *get_dialog_filter(DialogFilterId dialog_filter_id);

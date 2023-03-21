@@ -17899,7 +17899,7 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
         }
       }
       is_changed = true;
-      set_dialog_filters_order(dialog_filters_, new_dialog_filter_order);
+      DialogFilter::set_dialog_filters_order(dialog_filters_, new_dialog_filter_order);
     }
 
     server_dialog_filters_ = std::move(new_server_dialog_filters);
@@ -19893,7 +19893,7 @@ void MessagesManager::reorder_dialog_filters(vector<DialogFilterId> dialog_filte
     main_dialog_list_position = 0;
   }
 
-  if (set_dialog_filters_order(dialog_filters_, dialog_filter_ids) ||
+  if (DialogFilter::set_dialog_filters_order(dialog_filters_, dialog_filter_ids) ||
       main_dialog_list_position != main_dialog_list_position_) {
     main_dialog_list_position_ = main_dialog_list_position;
 
@@ -19924,7 +19924,7 @@ void MessagesManager::on_reorder_dialog_filters(vector<DialogFilterId> dialog_fi
   if (result.is_error()) {
     // TODO rollback dialog_filters_ changes if error isn't 429
   } else {
-    if (set_dialog_filters_order(server_dialog_filters_, std::move(dialog_filter_ids)) ||
+    if (DialogFilter::set_dialog_filters_order(server_dialog_filters_, std::move(dialog_filter_ids)) ||
         server_main_dialog_list_position_ != main_dialog_list_position) {
       server_main_dialog_list_position_ = main_dialog_list_position;
       save_dialog_filters();
@@ -19933,41 +19933,6 @@ void MessagesManager::on_reorder_dialog_filters(vector<DialogFilterId> dialog_fi
 
   are_dialog_filters_being_synchronized_ = false;
   synchronize_dialog_filters();
-}
-
-bool MessagesManager::set_dialog_filters_order(vector<unique_ptr<DialogFilter>> &dialog_filters,
-                                               vector<DialogFilterId> dialog_filter_ids) {
-  auto old_dialog_filter_ids = DialogFilter::get_dialog_filter_ids(dialog_filters, -1);
-  if (old_dialog_filter_ids == dialog_filter_ids) {
-    return false;
-  }
-  LOG(INFO) << "Reorder chat filters from " << old_dialog_filter_ids << " to " << dialog_filter_ids;
-
-  if (dialog_filter_ids.size() != old_dialog_filter_ids.size()) {
-    for (auto dialog_filter_id : old_dialog_filter_ids) {
-      if (!td::contains(dialog_filter_ids, dialog_filter_id)) {
-        dialog_filter_ids.push_back(dialog_filter_id);
-      }
-    }
-    CHECK(dialog_filter_ids.size() == old_dialog_filter_ids.size());
-  }
-  if (old_dialog_filter_ids == dialog_filter_ids) {
-    return false;
-  }
-
-  CHECK(dialog_filter_ids.size() == dialog_filters.size());
-  for (size_t i = 0; i < dialog_filters.size(); i++) {
-    for (size_t j = i; j < dialog_filters.size(); j++) {
-      if (dialog_filters[j]->dialog_filter_id == dialog_filter_ids[i]) {
-        if (i != j) {
-          std::swap(dialog_filters[i], dialog_filters[j]);
-        }
-        break;
-      }
-    }
-    CHECK(dialog_filters[i]->dialog_filter_id == dialog_filter_ids[i]);
-  }
-  return true;
 }
 
 void MessagesManager::add_dialog_filter(unique_ptr<DialogFilter> dialog_filter, bool at_beginning, const char *source) {

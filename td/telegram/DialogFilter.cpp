@@ -20,6 +20,8 @@
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 
+#include <utility>
+
 namespace td {
 
 int32 DialogFilter::get_max_filter_dialogs() {
@@ -617,6 +619,41 @@ vector<DialogFilterId> DialogFilter::get_dialog_filter_ids(const vector<unique_p
     result.insert(result.begin() + main_dialog_list_position, DialogFilterId());
   }
   return result;
+}
+
+bool DialogFilter::set_dialog_filters_order(vector<unique_ptr<DialogFilter>> &dialog_filters,
+                                            vector<DialogFilterId> dialog_filter_ids) {
+  auto old_dialog_filter_ids = get_dialog_filter_ids(dialog_filters, -1);
+  if (old_dialog_filter_ids == dialog_filter_ids) {
+    return false;
+  }
+  LOG(INFO) << "Reorder chat filters from " << old_dialog_filter_ids << " to " << dialog_filter_ids;
+
+  if (dialog_filter_ids.size() != old_dialog_filter_ids.size()) {
+    for (auto dialog_filter_id : old_dialog_filter_ids) {
+      if (!td::contains(dialog_filter_ids, dialog_filter_id)) {
+        dialog_filter_ids.push_back(dialog_filter_id);
+      }
+    }
+    CHECK(dialog_filter_ids.size() == old_dialog_filter_ids.size());
+  }
+  if (old_dialog_filter_ids == dialog_filter_ids) {
+    return false;
+  }
+
+  CHECK(dialog_filter_ids.size() == dialog_filters.size());
+  for (size_t i = 0; i < dialog_filters.size(); i++) {
+    for (size_t j = i; j < dialog_filters.size(); j++) {
+      if (dialog_filters[j]->dialog_filter_id == dialog_filter_ids[i]) {
+        if (i != j) {
+          std::swap(dialog_filters[i], dialog_filters[j]);
+        }
+        break;
+      }
+    }
+    CHECK(dialog_filters[i]->dialog_filter_id == dialog_filter_ids[i]);
+  }
+  return true;
 }
 
 bool DialogFilter::are_similar(const DialogFilter &lhs, const DialogFilter &rhs) {

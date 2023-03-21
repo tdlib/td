@@ -99,6 +99,9 @@ class DialogFilter {
   static vector<DialogFilterId> get_dialog_filter_ids(const vector<unique_ptr<DialogFilter>> &dialog_filters,
                                                       int32 main_dialog_list_position);
 
+  static bool set_dialog_filters_order(vector<unique_ptr<DialogFilter>> &dialog_filters,
+                                       vector<DialogFilterId> dialog_filter_ids);
+
   static bool are_similar(const DialogFilter &lhs, const DialogFilter &rhs);
 
   static bool are_equivalent(const DialogFilter &lhs, const DialogFilter &rhs);
