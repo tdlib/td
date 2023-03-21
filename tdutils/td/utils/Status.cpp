@@ -59,6 +59,10 @@ string winerror_to_string(int code) {
 
 Status Status::move_as_error_prefix(Slice prefix) const {
   CHECK(is_error());
+  return move_as_error_prefix_unsafe(prefix);
+}
+
+Status Status::move_as_error_prefix_unsafe(Slice prefix) const {
   Info info = get_info();
   switch (info.error_type) {
     case ErrorType::General:
@@ -73,6 +77,10 @@ Status Status::move_as_error_prefix(Slice prefix) const {
 
 Status Status::move_as_error_suffix(Slice suffix) const {
   CHECK(is_error());
+  return move_as_error_suffix_unsafe(suffix);
+}
+
+Status Status::move_as_error_suffix_unsafe(Slice suffix) const {
   Info info = get_info();
   switch (info.error_type) {
     case ErrorType::General:

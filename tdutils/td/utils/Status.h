@@ -20,38 +20,36 @@
 #include <type_traits>
 #include <utility>
 
-#define TRY_STATUS(status)               \
-  {                                      \
-    auto try_status = (status);          \
-    if (try_status.is_error()) {         \
-      return try_status.move_as_error(); \
-    }                                    \
+#define TRY_STATUS(status)                      \
+  {                                             \
+    auto try_status = (status);                 \
+    if (try_status.is_error()) {                \
+      return try_status.move_as_error_unsafe(); \
+    }                                           \
   }
 
-#define TRY_STATUS_PREFIX(status, prefix)             \
-  {                                                   \
-    auto try_status = (status);                       \
-    if (try_status.is_error()) {                      \
-      return try_status.move_as_error_prefix(prefix); \
-    }                                                 \
+#define TRY_STATUS_PREFIX(status, prefix)                    \
+  {                                                          \
+    auto try_status = (status);                              \
+    if (try_status.is_error()) {                             \
+      return try_status.move_as_error_prefix_unsafe(prefix); \
+    }                                                        \
   }
 
-#define TRY_STATUS_PROMISE(promise_name, status)          \
-  {                                                       \
-    auto try_status = (status);                           \
-    if (try_status.is_error()) {                          \
-      promise_name.set_error(try_status.move_as_error()); \
-      return;                                             \
-    }                                                     \
+#define TRY_STATUS_PROMISE(promise_name, status)                        \
+  {                                                                     \
+    auto try_status = (status);                                         \
+    if (try_status.is_error()) {                                        \
+      return promise_name.set_error(try_status.move_as_error_unsafe()); \
+    }                                                                   \
   }
 
-#define TRY_STATUS_PROMISE_PREFIX(promise_name, status, prefix)        \
-  {                                                                    \
-    auto try_status = (status);                                        \
-    if (try_status.is_error()) {                                       \
-      promise_name.set_error(try_status.move_as_error_prefix(prefix)); \
-      return;                                                          \
-    }                                                                  \
+#define TRY_STATUS_PROMISE_PREFIX(promise_name, status, prefix)                      \
+  {                                                                                  \
+    auto try_status = (status);                                                      \
+    if (try_status.is_error()) {                                                     \
+      return promise_name.set_error(try_status.move_as_error_prefix_unsafe(prefix)); \
+    }                                                                                \
   }
 
 #define TRY_RESULT(name, result) TRY_RESULT_IMPL(TD_CONCAT(TD_CONCAT(r_, name), __LINE__), auto name, result)
@@ -79,39 +77,37 @@
 #define TRY_RESULT_IMPL(r_name, name, result) \
   auto r_name = (result);                     \
   if (r_name.is_error()) {                    \
-    return r_name.move_as_error();            \
+    return r_name.move_as_error_unsafe();     \
   }                                           \
-  name = r_name.move_as_ok();
+  name = r_name.move_as_ok_unsafe();
 
 #define TRY_RESULT_PREFIX_IMPL(r_name, name, result, prefix) \
   auto r_name = (result);                                    \
   if (r_name.is_error()) {                                   \
-    return r_name.move_as_error_prefix(prefix);              \
+    return r_name.move_as_error_prefix_unsafe(prefix);       \
   }                                                          \
-  name = r_name.move_as_ok();
+  name = r_name.move_as_ok_unsafe();
 
 #define TRY_RESULT_PROMISE_IMPL(promise_name, r_name, name, result) \
   auto r_name = (result);                                           \
   if (r_name.is_error()) {                                          \
-    promise_name.set_error(r_name.move_as_error());                 \
-    return;                                                         \
+    return promise_name.set_error(r_name.move_as_error_unsafe());   \
   }                                                                 \
-  name = r_name.move_as_ok();
+  name = r_name.move_as_ok_unsafe();
 
 #define TRY_RESULT_PROMISE_PREFIX_IMPL(promise_name, r_name, name, result, prefix) \
   auto r_name = (result);                                                          \
   if (r_name.is_error()) {                                                         \
-    promise_name.set_error(r_name.move_as_error_prefix(prefix));                   \
-    return;                                                                        \
+    return promise_name.set_error(r_name.move_as_error_prefix_unsafe(prefix));     \
   }                                                                                \
-  name = r_name.move_as_ok();
+  name = r_name.move_as_ok_unsafe();
 
-#define LOG_STATUS(status)                      \
-  {                                             \
-    auto log_status = (status);                 \
-    if (log_status.is_error()) {                \
-      LOG(ERROR) << log_status.move_as_error(); \
-    }                                           \
+#define LOG_STATUS(status)                             \
+  {                                                    \
+    auto log_status = (status);                        \
+    if (log_status.is_error()) {                       \
+      LOG(ERROR) << log_status.move_as_error_unsafe(); \
+    }                                                  \
   }
 
 #ifndef TD_STATUS_NO_ENSURE
@@ -318,7 +314,13 @@ class Status {
     return std::move(*this);
   }
 
+  Status move_as_error_unsafe() TD_WARN_UNUSED_RESULT {
+    return std::move(*this);
+  }
+
   Status move_as_ok() = delete;
+
+  Status move_as_ok_unsafe() = delete;
 
   Status move_as_error_prefix(const Status &status) const TD_WARN_UNUSED_RESULT {
     return status.move_as_error_suffix(message());
@@ -326,7 +328,11 @@ class Status {
 
   Status move_as_error_prefix(Slice prefix) const TD_WARN_UNUSED_RESULT;
 
+  Status move_as_error_prefix_unsafe(Slice prefix) const TD_WARN_UNUSED_RESULT;
+
   Status move_as_error_suffix(Slice suffix) const TD_WARN_UNUSED_RESULT;
+
+  Status move_as_error_suffix_unsafe(Slice suffix) const TD_WARN_UNUSED_RESULT;
 
  private:
   struct Info {
@@ -499,24 +505,44 @@ class Result {
     };
     return std::move(status_);
   }
-  Status move_as_error_prefix(Slice prefix) TD_WARN_UNUSED_RESULT {
+  Status move_as_error_unsafe() TD_WARN_UNUSED_RESULT {
     SCOPE_EXIT {
       status_ = Status::Error<-5>();
     };
-    return status_.move_as_error_prefix(prefix);
+    return std::move(status_);
   }
-  Status move_as_error_prefix(const Status &prefix) TD_WARN_UNUSED_RESULT {
+  Status move_as_error_prefix(Slice prefix) TD_WARN_UNUSED_RESULT {
     SCOPE_EXIT {
       status_ = Status::Error<-6>();
     };
     return status_.move_as_error_prefix(prefix);
   }
-  Status move_as_error_suffix(Slice suffix) TD_WARN_UNUSED_RESULT {
+  Status move_as_error_prefix_unsafe(Slice prefix) TD_WARN_UNUSED_RESULT {
     SCOPE_EXIT {
       status_ = Status::Error<-7>();
     };
+    return status_.move_as_error_prefix_unsafe(prefix);
+  }
+  Status move_as_error_prefix(const Status &prefix) TD_WARN_UNUSED_RESULT {
+    SCOPE_EXIT {
+      status_ = Status::Error<-8>();
+    };
+    return status_.move_as_error_prefix(prefix);
+  }
+
+  Status move_as_error_suffix(Slice suffix) TD_WARN_UNUSED_RESULT {
+    SCOPE_EXIT {
+      status_ = Status::Error<-9>();
+    };
     return status_.move_as_error_suffix(suffix);
   }
+  Status move_as_error_suffix_unsafe(Slice suffix) TD_WARN_UNUSED_RESULT {
+    SCOPE_EXIT {
+      status_ = Status::Error<-10>();
+    };
+    return status_.move_as_error_suffix_unsafe(suffix);
+  }
+
   const T &ok() const {
     LOG_CHECK(status_.is_ok()) << status_;
     return value_;
@@ -533,6 +559,9 @@ class Result {
     LOG_CHECK(status_.is_ok()) << status_;
     return std::move(value_);
   }
+  T move_as_ok_unsafe() {
+    return std::move(value_);
+  }
 
   Result<T> clone() const TD_WARN_UNUSED_RESULT {
     if (is_ok()) {
@@ -547,17 +576,17 @@ class Result {
   template <class F>
   Result<decltype(std::declval<F>()(std::declval<T>()))> move_map(F &&f) {
     if (is_error()) {
-      return move_as_error();
+      return move_as_error_unsafe();
     }
-    return f(move_as_ok());
+    return f(move_as_ok_unsafe());
   }
 
   template <class F>
   decltype(std::declval<F>()(std::declval<T>())) move_fmap(F &&f) {
     if (is_error()) {
-      return move_as_error();
+      return move_as_error_unsafe();
     }
-    return f(move_as_ok());
+    return f(move_as_ok_unsafe());
   }
 
  private:
