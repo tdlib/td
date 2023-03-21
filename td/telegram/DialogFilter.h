@@ -64,6 +64,10 @@ class DialogFilter {
 
   bool is_empty(bool for_server) const;
 
+  DialogFilterId get_dialog_filter_id() const {
+    return dialog_filter_id;
+  }
+
   Status check_limits() const;
 
   static string get_emoji_by_icon_name(const string &icon_name);
