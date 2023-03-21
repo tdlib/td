@@ -17088,9 +17088,7 @@ void MessagesManager::delete_dialogs_from_filter(const DialogFilter *dialog_filt
                                                  const char *source) {
   auto new_dialog_filter = td::make_unique<DialogFilter>(*dialog_filter);
   for (auto dialog_id : dialog_ids) {
-    InputDialogId::remove(new_dialog_filter->pinned_dialog_ids, dialog_id);
-    InputDialogId::remove(new_dialog_filter->included_dialog_ids, dialog_id);
-    InputDialogId::remove(new_dialog_filter->excluded_dialog_ids, dialog_id);
+    new_dialog_filter->remove_dialog_id(dialog_id);
   }
 
   if (*new_dialog_filter != *dialog_filter) {

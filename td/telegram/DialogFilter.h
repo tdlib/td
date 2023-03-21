@@ -56,6 +56,8 @@ class DialogFilter {
 
   void remove_secret_chat_dialog_ids();
 
+  void remove_dialog_id(DialogId dialog_id);
+
   bool is_empty(bool for_server) const;
 
   Status check_limits() const;

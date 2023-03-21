@@ -115,6 +115,12 @@ void DialogFilter::remove_secret_chat_dialog_ids() {
   remove_secret_chats(excluded_dialog_ids);
 }
 
+void DialogFilter::remove_dialog_id(DialogId dialog_id) {
+  InputDialogId::remove(pinned_dialog_ids, dialog_id);
+  InputDialogId::remove(included_dialog_ids, dialog_id);
+  InputDialogId::remove(excluded_dialog_ids, dialog_id);
+}
+
 bool DialogFilter::is_empty(bool for_server) const {
   if (include_contacts || include_non_contacts || include_bots || include_groups || include_channels) {
     return false;
