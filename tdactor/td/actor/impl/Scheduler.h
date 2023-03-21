@@ -110,12 +110,12 @@ ActorOwn<ActorT> Scheduler::register_actor_impl(Slice name, ActorT *actor_ptr, A
 
   ActorId<ActorT> actor_id = weak_info->actor_id(actor_ptr);
   if (sched_id != sched_id_) {
-    send<ActorSendType::LaterWeak>(actor_id, Event::start());
+    send<ActorSendType::Later>(actor_id, Event::start());
     do_migrate_actor(actor_info, sched_id);
   } else {
     pending_actors_list_.put(weak_info->get_list_node());
     if (ActorTraits<ActorT>::need_start_up) {
-      send<ActorSendType::LaterWeak>(actor_id, Event::start());
+      send<ActorSendType::Later>(actor_id, Event::start());
     }
   }
 
@@ -272,7 +272,7 @@ inline void Scheduler::yield_actor(Actor *actor) {
   yield_actor(actor->get_info());
 }
 inline void Scheduler::yield_actor(ActorInfo *actor_info) {
-  send<ActorSendType::LaterWeak>(actor_info->actor_id(), Event::yield());
+  send<ActorSendType::Later>(actor_info->actor_id(), Event::yield());
 }
 
 inline void Scheduler::stop_actor(Actor *actor) {
