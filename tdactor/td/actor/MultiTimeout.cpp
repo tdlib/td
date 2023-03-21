@@ -69,8 +69,17 @@ void MultiTimeout::update_timeout(const char *source) {
   if (items_.empty()) {
     LOG(DEBUG) << "Cancel timeout of " << get_name();
     LOG_CHECK(timeout_queue_.empty()) << get_name() << ' ' << source;
-    LOG_CHECK(Actor::has_timeout()) << get_name() << ' ' << source;
-    Actor::cancel_timeout();
+    if (!Actor::has_timeout()) {
+      bool has_pending_timeout = false;
+      for (auto &event : get_info()->mailbox_) {
+        if (event.type == Event::Type::Timeout) {
+          has_pending_timeout = true;
+        }
+      }
+      LOG_CHECK(has_pending_timeout) << get_name() << ' ' << get_info()->mailbox_.size() << ' ' << source;
+    } else {
+      Actor::cancel_timeout();
+    }
   } else {
     LOG(DEBUG) << "Set timeout of " << get_name() << " in " << timeout_queue_.top_key() - Time::now_cached();
     Actor::set_timeout_at(timeout_queue_.top_key());
