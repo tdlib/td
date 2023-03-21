@@ -78,6 +78,8 @@ class DialogFilter {
 
   telegram_api::object_ptr<telegram_api::DialogFilter> get_input_dialog_filter() const;
 
+  td_api::object_ptr<td_api::chatFilter> get_chat_filter_object(const vector<DialogId> &unknown_dialog_ids) const;
+
   td_api::object_ptr<td_api::chatFilterInfo> get_chat_filter_info_object() const;
 
   void for_each_dialog(std::function<void(const InputDialogId &)> callback) const;

@@ -22135,39 +22135,31 @@ td_api::object_ptr<td_api::chatFilter> MessagesManager::get_chat_filter_object(D
   return get_chat_filter_object(dialog_filter);
 }
 
-td_api::object_ptr<td_api::chatFilter> MessagesManager::get_chat_filter_object(const DialogFilter *filter) {
-  DialogFilterId dialog_filter_id = filter->get_dialog_filter_id();
-  vector<DialogId> left_dialog_ids;
-  auto get_chat_ids = [this, dialog_filter_id, &left_dialog_ids](const vector<InputDialogId> &input_dialog_ids) {
-    vector<int64> chat_ids;
-    chat_ids.reserve(input_dialog_ids.size());
-    for (auto &input_dialog_id : input_dialog_ids) {
-      auto dialog_id = input_dialog_id.get_dialog_id();
-      const Dialog *d = get_dialog(dialog_id);
-      if (d != nullptr) {
-        if (d->order != DEFAULT_ORDER) {
-          chat_ids.push_back(dialog_id.get());
-        } else {
-          LOG(INFO) << "Skip nonjoined " << dialog_id << " from " << dialog_filter_id;
-          left_dialog_ids.push_back(dialog_id);
-        }
-      } else {
-        LOG(ERROR) << "Can't find " << dialog_id << " from " << dialog_filter_id;
-      }
-    }
-    return chat_ids;
-  };
+td_api::object_ptr<td_api::chatFilter> MessagesManager::get_chat_filter_object(const DialogFilter *dialog_filter) {
+  DialogFilterId dialog_filter_id = dialog_filter->get_dialog_filter_id();
 
-  auto result = td_api::make_object<td_api::chatFilter>(
-      filter->title, filter->get_icon_name(), get_chat_ids(filter->pinned_dialog_ids),
-      get_chat_ids(filter->included_dialog_ids), get_chat_ids(filter->excluded_dialog_ids), filter->exclude_muted,
-      filter->exclude_read, filter->exclude_archived, filter->include_contacts, filter->include_non_contacts,
-      filter->include_bots, filter->include_groups, filter->include_channels);
+  vector<DialogId> left_dialog_ids;
+  vector<DialogId> unknown_dialog_ids;
+  dialog_filter->for_each_dialog([&](const InputDialogId &input_dialog_id) {
+    auto dialog_id = input_dialog_id.get_dialog_id();
+    const Dialog *d = get_dialog(dialog_id);
+    if (d != nullptr) {
+      if (d->order == DEFAULT_ORDER) {
+        LOG(INFO) << "Skip nonjoined " << dialog_id << " from " << dialog_filter_id;
+        unknown_dialog_ids.push_back(dialog_id);
+        left_dialog_ids.push_back(dialog_id);
+      }
+    } else {
+      LOG(ERROR) << "Can't find " << dialog_id << " from " << dialog_filter_id;
+      unknown_dialog_ids.push_back(dialog_id);
+    }
+  });
+
+  auto result = dialog_filter->get_chat_filter_object(unknown_dialog_ids);
 
   if (dialog_filter_id.is_valid()) {
-    delete_dialogs_from_filter(filter, std::move(left_dialog_ids), "get_chat_filter_object");
+    delete_dialogs_from_filter(dialog_filter, std::move(left_dialog_ids), "get_chat_filter_object");
   }
-
   return result;
 }
 

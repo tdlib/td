@@ -326,6 +326,26 @@ telegram_api::object_ptr<telegram_api::DialogFilter> DialogFilter::get_input_dia
       InputDialogId::get_input_peers(excluded_dialog_ids));
 }
 
+td_api::object_ptr<td_api::chatFilter> DialogFilter::get_chat_filter_object(
+    const vector<DialogId> &unknown_dialog_ids) const {
+  auto get_chat_ids = [unknown_dialog_ids](const vector<InputDialogId> &input_dialog_ids) {
+    vector<int64> chat_ids;
+    chat_ids.reserve(input_dialog_ids.size());
+    for (auto &input_dialog_id : input_dialog_ids) {
+      auto dialog_id = input_dialog_id.get_dialog_id();
+      if (!td::contains(unknown_dialog_ids, dialog_id)) {
+        chat_ids.push_back(dialog_id.get());
+      }
+    }
+    return chat_ids;
+  };
+
+  return td_api::make_object<td_api::chatFilter>(title, get_icon_name(), get_chat_ids(pinned_dialog_ids),
+                                                 get_chat_ids(included_dialog_ids), get_chat_ids(excluded_dialog_ids),
+                                                 exclude_muted, exclude_read, exclude_archived, include_contacts,
+                                                 include_non_contacts, include_bots, include_groups, include_channels);
+}
+
 td_api::object_ptr<td_api::chatFilterInfo> DialogFilter::get_chat_filter_info_object() const {
   return td_api::make_object<td_api::chatFilterInfo>(dialog_filter_id.get(), title, get_chosen_or_default_icon_name());
 }
