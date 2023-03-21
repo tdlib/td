@@ -698,6 +698,18 @@ Status HttpReader::parse_json_parameters(MutableSlice parameters) {
   return Status::OK();
 }
 
+Status HttpReader::parse_http_version(Slice version) {
+  if (version == "HTTP/1.1") {
+    query_->keep_alive_ = true;
+  } else if (version == "HTTP/1.0") {
+    query_->keep_alive_ = false;
+  } else {
+    LOG(INFO) << "Unsupported HTTP version: " << version;
+    return Status::Error(505, "HTTP Version Not Supported");
+  }
+  return Status::OK();
+}
+
 Status HttpReader::parse_head(MutableSlice head) {
   Parser parser(head);
 
@@ -709,16 +721,8 @@ Status HttpReader::parse_head(MutableSlice head) {
   } else if (type == "POST") {
     query_->type_ = HttpQuery::Type::Post;
   } else if (type.size() >= 4 && type.substr(0, 4) == "HTTP") {
-    if (type == "HTTP/1.1") {
-      query_->type_ = HttpQuery::Type::Response;
-      query_->keep_alive_ = true;
-    } else if (type == "HTTP/1.0") {
-      query_->type_ = HttpQuery::Type::Response;
-      query_->keep_alive_ = false;
-    } else {
-      LOG(INFO) << "Unsupported HTTP version: " << type;
-      return Status::Error(505, "HTTP Version Not Supported");
-    }
+    TRY_STATUS(parse_http_version(type));
+    query_->type_ = HttpQuery::Type::Response;
   } else {
     LOG(INFO) << "Not Implemented " << tag("type", type) << tag("head", head);
     return Status::Error(501, "Not Implemented");
@@ -739,12 +743,7 @@ Status HttpReader::parse_head(MutableSlice head) {
     }
 
     TRY_STATUS(parse_url(url_version.substr(0, space_pos)));
-
-    auto http_version = url_version.substr(space_pos + 1);
-    if (http_version != "HTTP/1.1" && http_version != "HTTP/1.0") {
-      LOG(WARNING) << "Unsupported HTTP version: " << http_version;
-      return Status::Error(505, "HTTP Version Not Supported");
-    }
+    TRY_STATUS(parse_http_version(url_version.substr(space_pos + 1)));
   }
   parser.skip('\r');
   parser.skip('\n');

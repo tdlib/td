@@ -93,6 +93,7 @@ class HttpReader {
   Status parse_url(MutableSlice url) TD_WARN_UNUSED_RESULT;
   Status parse_parameters(MutableSlice parameters) TD_WARN_UNUSED_RESULT;
   Status parse_json_parameters(MutableSlice parameters) TD_WARN_UNUSED_RESULT;
+  Status parse_http_version(Slice version) TD_WARN_UNUSED_RESULT;
   Status parse_head(MutableSlice head) TD_WARN_UNUSED_RESULT;
 
   Status open_temp_file(CSlice desired_file_name) TD_WARN_UNUSED_RESULT;
