@@ -637,6 +637,22 @@ Result<SocketFd> SocketFd::open(const IPAddress &address) {
   if (!native_fd) {
     return OS_SOCKET_ERROR("Failed to create a socket");
   }
+#if TD_PORT_POSIX
+  // Avoid the use of low-numbered file descriptors, which can be used directly by some other functions
+  constexpr int MINIMUM_FILE_DESCRIPTOR = 3;
+  while (native_fd.socket() < MINIMUM_FILE_DESCRIPTOR) {
+    native_fd.close();
+    LOG(ERROR) << "Receive " << native_fd << " as a file descriptor";
+    int dummy_fd = detail::skip_eintr([&] { return ::open("/dev/null", O_RDONLY, 0); });
+    if (dummy_fd < 0) {
+      return OS_ERROR("Can't open /dev/null");
+    }
+    native_fd = NativeFd{socket(address.get_address_family(), SOCK_STREAM, IPPROTO_TCP)};
+    if (!native_fd) {
+      return OS_SOCKET_ERROR("Failed to create a socket");
+    }
+  }
+#endif
   TRY_STATUS(detail::init_socket_options(native_fd));
 
 #if TD_PORT_POSIX
