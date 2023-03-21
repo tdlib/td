@@ -17108,8 +17108,7 @@ void MessagesManager::delete_dialogs_from_filter(const DialogFilter *dialog_filt
   CHECK(new_dialog_filter->check_limits().is_ok());
 
   if (*new_dialog_filter != *dialog_filter) {
-    LOG(INFO) << "Update " << dialog_filter->dialog_filter_id << " from " << *dialog_filter << " to "
-              << *new_dialog_filter;
+    LOG(INFO) << "Update " << *dialog_filter << " to " << *new_dialog_filter;
     edit_dialog_filter(std::move(new_dialog_filter), source);
     save_dialog_filters();
     send_update_chat_filters();
