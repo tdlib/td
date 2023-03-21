@@ -6,8 +6,10 @@
 //
 #include "td/telegram/DialogFilter.h"
 
+#include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/Td.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/emoji.h"
@@ -406,6 +408,38 @@ unique_ptr<DialogFilter> DialogFilter::merge_dialog_filter_changes(const DialogF
   update_value(new_filter->title, old_server_filter->title, new_server_filter->title);
   update_value(new_filter->emoji, old_server_filter->emoji, new_server_filter->emoji);
   return new_filter;
+}
+
+void DialogFilter::sort_input_dialog_ids(const Td *td, const char *source) {
+  if (!include_contacts && !include_non_contacts && !include_bots && !include_groups && !include_channels) {
+    excluded_dialog_ids.clear();
+  }
+
+  auto sort_input_dialog_ids = [contacts_manager =
+                                    td->contacts_manager_.get()](vector<InputDialogId> &input_dialog_ids) {
+    std::sort(input_dialog_ids.begin(), input_dialog_ids.end(),
+              [contacts_manager](InputDialogId lhs, InputDialogId rhs) {
+                auto get_order = [contacts_manager](InputDialogId input_dialog_id) {
+                  auto dialog_id = input_dialog_id.get_dialog_id();
+                  if (dialog_id.get_type() != DialogType::SecretChat) {
+                    return dialog_id.get() * 10;
+                  }
+                  auto user_id = contacts_manager->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
+                  return DialogId(user_id).get() * 10 + 1;
+                };
+                return get_order(lhs) < get_order(rhs);
+              });
+  };
+
+  sort_input_dialog_ids(excluded_dialog_ids);
+  sort_input_dialog_ids(included_dialog_ids);
+
+  FlatHashSet<DialogId, DialogIdHash> all_dialog_ids;
+  for_each_dialog([&](const InputDialogId &input_dialog_id) {
+    auto dialog_id = input_dialog_id.get_dialog_id();
+    CHECK(dialog_id.is_valid());
+    LOG_CHECK(all_dialog_ids.insert(dialog_id).second) << source << ' ' << dialog_id << ' ' << *this;
+  });
 }
 
 bool DialogFilter::are_similar(const DialogFilter &lhs, const DialogFilter &rhs) {

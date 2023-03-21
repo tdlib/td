@@ -20,6 +20,8 @@
 
 namespace td {
 
+class Td;
+
 class DialogFilter {
  public:
   DialogFilterId dialog_filter_id;
@@ -70,6 +72,8 @@ class DialogFilter {
   static unique_ptr<DialogFilter> merge_dialog_filter_changes(const DialogFilter *old_filter,
                                                               const DialogFilter *old_server_filter,
                                                               const DialogFilter *new_server_filter);
+
+  void sort_input_dialog_ids(const Td *td, const char *source);
 
   static bool are_similar(const DialogFilter &lhs, const DialogFilter &rhs);
 
