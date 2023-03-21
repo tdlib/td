@@ -5423,6 +5423,9 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
 
       return make_unique<MessageRequestedDialog>(dialog_id, action->button_id_);
     }
+    case telegram_api::messageActionSetChatWallPaper::ID:
+    case telegram_api::messageActionSetSameChatWallPaper::ID:
+      return td::make_unique<MessageUnsupported>();
     default:
       UNREACHABLE();
   }

@@ -834,8 +834,9 @@ static tl_object_ptr<telegram_api::KeyboardButton> get_input_keyboard_button(
       if (keyboard_button.type == InlineKeyboardButton::Type::SwitchInlineCurrentDialog) {
         flags |= telegram_api::keyboardButtonSwitchInline::SAME_PEER_MASK;
       }
+      vector<telegram_api::object_ptr<telegram_api::InlineQueryPeerType>> peer_types;
       return make_tl_object<telegram_api::keyboardButtonSwitchInline>(flags, false /*ignored*/, keyboard_button.text,
-                                                                      keyboard_button.data);
+                                                                      keyboard_button.data, std::move(peer_types));
     }
     case InlineKeyboardButton::Type::Buy:
       return make_tl_object<telegram_api::keyboardButtonBuy>(keyboard_button.text);

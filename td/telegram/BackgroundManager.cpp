@@ -140,8 +140,9 @@ class UploadBackgroundQuery final : public Td::ResultHandler {
     file_id_ = file_id;
     type_ = type;
     for_dark_theme_ = for_dark_theme;
+    int32 flags = 0;
     send_query(G()->net_query_creator().create(telegram_api::account_uploadWallPaper(
-        std::move(input_file), type_.get_mime_type(), type_.get_input_wallpaper_settings())));
+        flags, false /*ignored*/, std::move(input_file), type_.get_mime_type(), type_.get_input_wallpaper_settings())));
   }
 
   void on_result(BufferSlice packet) final {

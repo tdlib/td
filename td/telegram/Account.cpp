@@ -606,8 +606,8 @@ class SetBotInfoQuery final : public Td::ResultHandler {
     if (set_description) {
       flags |= telegram_api::bots_setBotInfo::DESCRIPTION_MASK;
     }
-    send_query(G()->net_query_creator().create(telegram_api::bots_setBotInfo(flags, language_code, about, description),
-                                               {{"me"}}));
+    send_query(G()->net_query_creator().create(
+        telegram_api::bots_setBotInfo(flags, nullptr, language_code, string(), about, description), {{"me"}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -638,7 +638,8 @@ class GetBotInfoQuery final : public Td::ResultHandler {
 
   void send(const string &language_code, size_t index) {
     index_ = index;
-    send_query(G()->net_query_creator().create(telegram_api::bots_getBotInfo(language_code), {{"me"}}));
+    int32 flags = 0;
+    send_query(G()->net_query_creator().create(telegram_api::bots_getBotInfo(flags, nullptr, language_code), {{"me"}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -648,10 +649,16 @@ class GetBotInfoQuery final : public Td::ResultHandler {
     }
 
     auto result = result_ptr.move_as_ok();
-    if (result.size() != 2) {
-      return on_error(Status::Error(500, "Failed to get bot info"));
+    switch (index_) {
+      case 0:
+        return promise_.set_value(std::move(result->about_));
+      case 1:
+        return promise_.set_value(std::move(result->description_));
+      case 2:
+        return promise_.set_value(std::move(result->name_));
+      default:
+        UNREACHABLE();
     }
-    promise_.set_value(std::move(result[index_]));
   }
 
   void on_error(Status status) final {

@@ -484,7 +484,7 @@ class UploadProfilePhotoQuery final : public Td::ResultHandler {
         flags |= telegram_api::photos_uploadProfilePhoto::FALLBACK_MASK;
       }
       send_query(G()->net_query_creator().create(
-          telegram_api::photos_uploadProfilePhoto(flags, false /*ignored*/, std::move(photo_input_file),
+          telegram_api::photos_uploadProfilePhoto(flags, false /*ignored*/, nullptr, std::move(photo_input_file),
                                                   std::move(video_input_file), main_frame_timestamp, nullptr),
           {{"me"}}));
     } else {
@@ -518,7 +518,7 @@ class UploadProfilePhotoQuery final : public Td::ResultHandler {
         flags |= telegram_api::photos_uploadProfilePhoto::FALLBACK_MASK;
       }
       send_query(G()->net_query_creator().create(
-          telegram_api::photos_uploadProfilePhoto(flags, false /*ignored*/, nullptr, nullptr, 0.0,
+          telegram_api::photos_uploadProfilePhoto(flags, false /*ignored*/, nullptr, nullptr, nullptr, 0.0,
                                                   sticker_photo_size->get_input_video_size_object(td_)),
           {{"me"}}));
     } else {
@@ -591,7 +591,7 @@ class UpdateProfilePhotoQuery final : public Td::ResultHandler {
       flags |= telegram_api::photos_updateProfilePhoto::FALLBACK_MASK;
     }
     send_query(G()->net_query_creator().create(
-        telegram_api::photos_updateProfilePhoto(flags, false /*ignored*/, std::move(input_photo)), {{"me"}}));
+        telegram_api::photos_updateProfilePhoto(flags, false /*ignored*/, nullptr, std::move(input_photo)), {{"me"}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -10385,9 +10385,9 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
         false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
         false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-        false /*ignored*/, false /*ignored*/, false /*ignored*/, 0, user_id.get(), 1, first_name, string(), username,
-        phone_number, std::move(profile_photo), nullptr, bot_info_version, Auto(), string(), string(), nullptr,
-        vector<telegram_api::object_ptr<telegram_api::username>>());
+        false /*ignored*/, false /*ignored*/, false /*ignored*/, 0, false /*ignored*/, user_id.get(), 1, first_name,
+        string(), username, phone_number, std::move(profile_photo), nullptr, bot_info_version, Auto(), string(),
+        string(), nullptr, vector<telegram_api::object_ptr<telegram_api::username>>());
     on_get_user(std::move(user), "get_user_force");
     u = get_user(user_id);
     CHECK(u != nullptr && u->is_received);

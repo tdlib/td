@@ -801,6 +801,8 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
         case telegram_api::messageActionTopicCreate::ID:
         case telegram_api::messageActionTopicEdit::ID:
         case telegram_api::messageActionSuggestProfilePhoto::ID:
+        case telegram_api::messageActionSetChatWallPaper::ID:
+        case telegram_api::messageActionSetSameChatWallPaper::ID:
           break;
         case telegram_api::messageActionChatCreate::ID: {
           auto chat_create = static_cast<const telegram_api::messageActionChatCreate *>(action);

@@ -2107,6 +2107,7 @@ void InlineQueriesManager::on_new_query(int64 query_id, UserId sender_user_id, L
     switch (peer_type->get_id()) {
       case telegram_api::inlineQueryPeerTypeSameBotPM::ID:
         return td_api::make_object<td_api::chatTypePrivate>(sender_user_id.get());
+      case telegram_api::inlineQueryPeerTypeBotPM::ID:
       case telegram_api::inlineQueryPeerTypePM::ID:
         return td_api::make_object<td_api::chatTypePrivate>(0);
       case telegram_api::inlineQueryPeerTypeChat::ID:
