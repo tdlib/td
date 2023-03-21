@@ -804,11 +804,17 @@ class MessageGiftPremium final : public MessageContent {
  public:
   string currency;
   int64 amount = 0;
+  string crypto_currency;
+  int64 crypto_amount = 0;
   int32 months = 0;
 
   MessageGiftPremium() = default;
-  MessageGiftPremium(string &&currency, int64 amount, int32 months)
-      : currency(std::move(currency)), amount(amount), months(months) {
+  MessageGiftPremium(string &&currency, int64 amount, string &&crypto_currency, int64 crypto_amount, int32 months)
+      : currency(std::move(currency))
+      , amount(amount)
+      , crypto_currency(std::move(crypto_currency))
+      , crypto_amount(crypto_amount)
+      , months(months) {
   }
 
   MessageContentType get_type() const final {
@@ -1228,11 +1234,17 @@ static void store(const MessageContent *content, StorerT &storer) {
     }
     case MessageContentType::GiftPremium: {
       const auto *m = static_cast<const MessageGiftPremium *>(content);
+      bool has_crypto_amount = !m->crypto_currency.empty();
       BEGIN_STORE_FLAGS();
+      STORE_FLAG(has_crypto_amount);
       END_STORE_FLAGS();
       store(m->currency, storer);
       store(m->amount, storer);
       store(m->months, storer);
+      if (has_crypto_amount) {
+        store(m->crypto_currency, storer);
+        store(m->crypto_amount, storer);
+      }
       break;
     }
     case MessageContentType::TopicCreate: {
@@ -1730,11 +1742,17 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     }
     case MessageContentType::GiftPremium: {
       auto m = make_unique<MessageGiftPremium>();
+      bool has_crypto_amount;
       BEGIN_PARSE_FLAGS();
+      PARSE_FLAG(has_crypto_amount);
       END_PARSE_FLAGS();
       parse(m->currency, parser);
       parse(m->amount, parser);
       parse(m->months, parser);
+      if (has_crypto_amount) {
+        parse(m->crypto_currency, parser);
+        parse(m->crypto_amount, parser);
+      }
       content = std::move(m);
       break;
     }
@@ -3900,7 +3918,9 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     case MessageContentType::GiftPremium: {
       const auto *old_ = static_cast<const MessageGiftPremium *>(old_content);
       const auto *new_ = static_cast<const MessageGiftPremium *>(new_content);
-      if (old_->currency != new_->currency || old_->amount != new_->amount || old_->months != new_->months) {
+      if (old_->currency != new_->currency || old_->amount != new_->amount ||
+          old_->crypto_currency != new_->crypto_currency || old_->crypto_amount != new_->crypto_amount ||
+          old_->months != new_->months) {
         need_update = true;
       }
       break;
@@ -5389,7 +5409,18 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
         LOG(ERROR) << "Receive invalid premium gift price " << action->amount_;
         action->amount_ = 0;
       }
-      return td::make_unique<MessageGiftPremium>(std::move(action->currency_), action->amount_, action->months_);
+      if (action->crypto_currency_.empty()) {
+        if (action->crypto_amount_ != 0) {
+          LOG(ERROR) << "Receive premium gift crypto price " << action->crypto_amount_ << " without currency";
+          action->crypto_amount_ = 0;
+        }
+      } else if (action->crypto_amount_ <= 0) {
+        LOG(ERROR) << "Receive invalid premium gift crypto price " << action->crypto_amount_;
+        action->crypto_amount_ = 0;
+      }
+      return td::make_unique<MessageGiftPremium>(std::move(action->currency_), action->amount_,
+                                                 std::move(action->crypto_currency_), action->crypto_amount_,
+                                                 action->months_);
     }
     case telegram_api::messageActionTopicCreate::ID: {
       auto action = move_tl_object_as<telegram_api::messageActionTopicCreate>(action_ptr);
@@ -5706,7 +5737,8 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     case MessageContentType::GiftPremium: {
       const auto *m = static_cast<const MessageGiftPremium *>(content);
       return make_tl_object<td_api::messageGiftedPremium>(
-          m->currency, m->amount, m->months, td->stickers_manager_->get_premium_gift_sticker_object(m->months));
+          m->currency, m->amount, m->crypto_currency, m->crypto_amount, m->months,
+          td->stickers_manager_->get_premium_gift_sticker_object(m->months));
     }
     case MessageContentType::TopicCreate: {
       const auto *m = static_cast<const MessageTopicCreate *>(content);

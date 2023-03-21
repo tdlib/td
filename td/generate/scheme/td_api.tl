@@ -2575,9 +2575,11 @@ messagePaymentSuccessfulBot currency:string total_amount:int53 is_recurring:Bool
 //@description Telegram Premium was gifted to the user
 //@currency Currency for the paid amount
 //@amount The paid amount, in the smallest units of the currency
+//@cryptocurrency Cryptocurrency used to pay for the gift; may be empty if none
+//@cryptocurrency_amount The paid amount, in the smallest units of the cryptocurrency
 //@month_count Number of month the Telegram Premium subscription will be active
 //@sticker A sticker to be shown in the message; may be null if unknown
-messageGiftedPremium currency:string amount:int53 month_count:int32 sticker:sticker = MessageContent;
+messageGiftedPremium currency:string amount:int53 cryptocurrency:string cryptocurrency_amount:int64 month_count:int32 sticker:sticker = MessageContent;
 
 //@description A contact has registered with Telegram
 messageContactRegistered = MessageContent;
