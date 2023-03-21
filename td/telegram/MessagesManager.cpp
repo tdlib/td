@@ -19637,7 +19637,8 @@ td_api::object_ptr<td_api::messageLinkInfo> MessagesManager::get_message_link_in
 
 InputDialogId MessagesManager::get_input_dialog_id(DialogId dialog_id) const {
   auto input_peer = get_input_peer(dialog_id, AccessRights::Read);
-  if (input_peer == nullptr || input_peer->get_id() == telegram_api::inputPeerSelf::ID) {
+  if (input_peer == nullptr || input_peer->get_id() == telegram_api::inputPeerSelf::ID ||
+      input_peer->get_id() == telegram_api::inputPeerEmpty::ID) {
     return InputDialogId(dialog_id);
   } else {
     return InputDialogId(input_peer);
@@ -19647,63 +19648,34 @@ InputDialogId MessagesManager::get_input_dialog_id(DialogId dialog_id) const {
 Result<unique_ptr<DialogFilter>> MessagesManager::create_dialog_filter(DialogFilterId dialog_filter_id,
                                                                        td_api::object_ptr<td_api::chatFilter> filter) {
   CHECK(filter != nullptr);
-  for (auto chat_ids : {&filter->pinned_chat_ids_, &filter->excluded_chat_ids_, &filter->included_chat_ids_}) {
-    for (const auto &chat_id : *chat_ids) {
-      DialogId dialog_id(chat_id);
-      if (!dialog_id.is_valid()) {
-        return Status::Error(400, "Invalid chat identifier specified");
-      }
-      const Dialog *d = get_dialog_force(dialog_id, "create_dialog_filter");
-      if (d == nullptr) {
-        return Status::Error(400, "Chat not found");
-      }
-      if (!have_input_peer(dialog_id, AccessRights::Read)) {
-        return Status::Error(400, "Can't access the chat");
-      }
-      if (d->order == DEFAULT_ORDER) {
-        return Status::Error(400, "Chat is not in the chat list");
-      }
+  TRY_RESULT(dialog_filter, DialogFilter::create_dialog_filter(td_, dialog_filter_id, std::move(filter)));
+  Status status;
+  dialog_filter->for_each_dialog([&](const InputDialogId &input_dialog_id) {
+    if (status.is_error()) {
+      return;
     }
-  }
-
-  auto dialog_filter = make_unique<DialogFilter>();
-  dialog_filter->dialog_filter_id = dialog_filter_id;
-
-  FlatHashSet<int64> added_dialog_ids;
-  auto add_chats = [this, &added_dialog_ids](vector<InputDialogId> &input_dialog_ids, const vector<int64> &chat_ids) {
-    for (const auto &chat_id : chat_ids) {
-      if (!added_dialog_ids.insert(chat_id).second) {
-        // do not allow duplicate chat_ids
-        continue;
-      }
-
-      input_dialog_ids.push_back(get_input_dialog_id(DialogId(chat_id)));
+    auto dialog_id = input_dialog_id.get_dialog_id();
+    if (!dialog_id.is_valid()) {
+      status = Status::Error(400, "Invalid chat identifier specified");
+      return;
     }
-  };
-  add_chats(dialog_filter->pinned_dialog_ids, filter->pinned_chat_ids_);
-  add_chats(dialog_filter->included_dialog_ids, filter->included_chat_ids_);
-  add_chats(dialog_filter->excluded_dialog_ids, filter->excluded_chat_ids_);
-
-  dialog_filter->title = clean_name(std::move(filter->title_), MAX_DIALOG_FILTER_TITLE_LENGTH);
-  if (dialog_filter->title.empty()) {
-    return Status::Error(400, "Title must be non-empty");
+    const Dialog *d = get_dialog_force(dialog_id, "create_dialog_filter");
+    if (d == nullptr) {
+      status = Status::Error(400, "Chat not found");
+      return;
+    }
+    if (!have_input_peer(dialog_id, AccessRights::Read)) {
+      status = Status::Error(400, "Can't access the chat");
+      return;
+    }
+    if (d->order == DEFAULT_ORDER) {
+      status = Status::Error(400, "Chat is not in the chat list");
+      return;
+    }
+  });
+  if (status.is_error()) {
+    return std::move(status);
   }
-  dialog_filter->emoji = DialogFilter::get_emoji_by_icon_name(filter->icon_name_);
-  if (dialog_filter->emoji.empty() && !filter->icon_name_.empty()) {
-    return Status::Error(400, "Invalid icon name specified");
-  }
-  dialog_filter->exclude_muted = filter->exclude_muted_;
-  dialog_filter->exclude_read = filter->exclude_read_;
-  dialog_filter->exclude_archived = filter->exclude_archived_;
-  dialog_filter->include_contacts = filter->include_contacts_;
-  dialog_filter->include_non_contacts = filter->include_non_contacts_;
-  dialog_filter->include_bots = filter->include_bots_;
-  dialog_filter->include_groups = filter->include_groups_;
-  dialog_filter->include_channels = filter->include_channels_;
-
-  TRY_STATUS(dialog_filter->check_limits());
-  dialog_filter->sort_input_dialog_ids(td_, "create_dialog_filter");
-
   return std::move(dialog_filter);
 }
 

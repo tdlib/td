@@ -668,6 +668,8 @@ class MessagesManager final : public Actor {
 
   td_api::object_ptr<td_api::messageLinkInfo> get_message_link_info_object(const MessageLinkInfo &info) const;
 
+  InputDialogId get_input_dialog_id(DialogId dialog_id) const;
+
   void create_dialog_filter(td_api::object_ptr<td_api::chatFilter> filter,
                             Promise<td_api::object_ptr<td_api::chatFilterInfo>> &&promise);
 
@@ -1800,12 +1802,11 @@ class MessagesManager final : public Actor {
   static constexpr int32 MIN_SEARCH_PUBLIC_DIALOG_PREFIX_LEN = 4;  // server side limit
   static constexpr int32 MIN_CHANNEL_DIFFERENCE = 1;
   static constexpr int32 MAX_CHANNEL_DIFFERENCE = 100;
-  static constexpr int32 MAX_BOT_CHANNEL_DIFFERENCE = 100000;   // server side limit
-  static constexpr int32 MAX_RECENT_DIALOGS = 50;               // some reasonable value
-  static constexpr size_t MAX_TITLE_LENGTH = 128;               // server side limit for chat title
-  static constexpr size_t MAX_DESCRIPTION_LENGTH = 255;         // server side limit for chat description
-  static constexpr size_t MAX_DIALOG_FILTER_TITLE_LENGTH = 12;  // server side limit for dialog filter title
-  static constexpr int32 MAX_PRIVATE_MESSAGE_TTL = 60;          // server side limit
+  static constexpr int32 MAX_BOT_CHANNEL_DIFFERENCE = 100000;  // server side limit
+  static constexpr int32 MAX_RECENT_DIALOGS = 50;              // some reasonable value
+  static constexpr size_t MAX_TITLE_LENGTH = 128;              // server side limit for chat title
+  static constexpr size_t MAX_DESCRIPTION_LENGTH = 255;        // server side limit for chat description
+  static constexpr int32 MAX_PRIVATE_MESSAGE_TTL = 60;         // server side limit
   static constexpr int32 DIALOG_FILTERS_CACHE_TIME = 86400;
   static constexpr size_t MIN_DELETED_ASYNCHRONOUSLY_MESSAGES = 10;
   static constexpr size_t MAX_UNLOADED_MESSAGES = 5000;
@@ -2858,8 +2859,6 @@ class MessagesManager final : public Actor {
 
   void on_load_recommended_dialog_filters(Result<Unit> &&result, vector<RecommendedDialogFilter> &&filters,
                                           Promise<td_api::object_ptr<td_api::recommendedChatFilters>> &&promise);
-
-  InputDialogId get_input_dialog_id(DialogId dialog_id) const;
 
   Result<unique_ptr<DialogFilter>> create_dialog_filter(DialogFilterId dialog_filter_id,
                                                         td_api::object_ptr<td_api::chatFilter> filter);

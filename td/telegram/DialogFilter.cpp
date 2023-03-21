@@ -9,6 +9,8 @@
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/MessagesManager.h"
+#include "td/telegram/misc.h"
 #include "td/telegram/Td.h"
 
 #include "td/utils/algorithm.h"
@@ -54,6 +56,52 @@ unique_ptr<DialogFilter> DialogFilter::get_dialog_filter(
   dialog_filter->include_groups = (flags & telegram_api::dialogFilter::GROUPS_MASK) != 0;
   dialog_filter->include_channels = (flags & telegram_api::dialogFilter::BROADCASTS_MASK) != 0;
   return dialog_filter;
+}
+
+Result<unique_ptr<DialogFilter>> DialogFilter::create_dialog_filter(Td *td, DialogFilterId dialog_filter_id,
+                                                                    td_api::object_ptr<td_api::chatFilter> filter) {
+  CHECK(filter != nullptr);
+
+  auto dialog_filter = make_unique<DialogFilter>();
+  dialog_filter->dialog_filter_id = dialog_filter_id;
+
+  FlatHashSet<int64> added_dialog_ids;
+  auto add_chats = [td, &added_dialog_ids](vector<InputDialogId> &input_dialog_ids, const vector<int64> &chat_ids) {
+    for (const auto &chat_id : chat_ids) {
+      if (!added_dialog_ids.insert(chat_id).second) {
+        // do not allow duplicate chat_ids
+        continue;
+      }
+
+      input_dialog_ids.push_back(td->messages_manager_->get_input_dialog_id(DialogId(chat_id)));
+    }
+  };
+  add_chats(dialog_filter->pinned_dialog_ids, filter->pinned_chat_ids_);
+  add_chats(dialog_filter->included_dialog_ids, filter->included_chat_ids_);
+  add_chats(dialog_filter->excluded_dialog_ids, filter->excluded_chat_ids_);
+
+  constexpr size_t MAX_TITLE_LENGTH = 12;  // server-side limit for dialog filter title
+  dialog_filter->title = clean_name(std::move(filter->title_), MAX_TITLE_LENGTH);
+  if (dialog_filter->title.empty()) {
+    return Status::Error(400, "Title must be non-empty");
+  }
+  dialog_filter->emoji = get_emoji_by_icon_name(filter->icon_name_);
+  if (dialog_filter->emoji.empty() && !filter->icon_name_.empty()) {
+    return Status::Error(400, "Invalid icon name specified");
+  }
+  dialog_filter->exclude_muted = filter->exclude_muted_;
+  dialog_filter->exclude_read = filter->exclude_read_;
+  dialog_filter->exclude_archived = filter->exclude_archived_;
+  dialog_filter->include_contacts = filter->include_contacts_;
+  dialog_filter->include_non_contacts = filter->include_non_contacts_;
+  dialog_filter->include_bots = filter->include_bots_;
+  dialog_filter->include_groups = filter->include_groups_;
+  dialog_filter->include_channels = filter->include_channels_;
+
+  TRY_STATUS(dialog_filter->check_limits());
+  dialog_filter->sort_input_dialog_ids(td, "create_dialog_filter");
+
+  return std::move(dialog_filter);
 }
 
 void DialogFilter::remove_secret_chat_dialog_ids() {

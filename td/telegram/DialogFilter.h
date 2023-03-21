@@ -50,6 +50,9 @@ class DialogFilter {
   static unique_ptr<DialogFilter> get_dialog_filter(telegram_api::object_ptr<telegram_api::DialogFilter> filter_ptr,
                                                     bool with_id);
 
+  static Result<unique_ptr<DialogFilter>> create_dialog_filter(Td *td, DialogFilterId dialog_filter_id,
+                                                               td_api::object_ptr<td_api::chatFilter> filter);
+
   void remove_secret_chat_dialog_ids();
 
   bool is_empty(bool for_server) const;
