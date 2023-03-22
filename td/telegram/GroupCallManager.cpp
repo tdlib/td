@@ -1217,6 +1217,31 @@ GroupCallManager::GroupCall *GroupCallManager::get_group_call(InputGroupCallId i
   }
 }
 
+Status GroupCallManager::can_join_group_calls(DialogId dialog_id) const {
+  if (!dialog_id.is_valid()) {
+    return Status::Error(400, "Invalid chat identifier specified");
+  }
+  if (!td_->messages_manager_->have_dialog_force(dialog_id, "get_group_call_join_as")) {
+    return Status::Error(400, "Chat not found");
+  }
+  if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+    return Status::Error(400, "Can't access chat");
+  }
+  switch (dialog_id.get_type()) {
+    case DialogType::Chat:
+    case DialogType::Channel:
+      break;
+    case DialogType::User:
+    case DialogType::SecretChat:
+      return Status::Error(400, "Chat can't have a voice chat");
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+      break;
+  }
+  return Status::OK();
+}
+
 Status GroupCallManager::can_manage_group_calls(DialogId dialog_id) const {
   switch (dialog_id.get_type()) {
     case DialogType::Chat: {
@@ -1267,30 +1292,14 @@ bool GroupCallManager::get_group_call_joined_date_asc(InputGroupCallId input_gro
 
 void GroupCallManager::get_group_call_join_as(DialogId dialog_id,
                                               Promise<td_api::object_ptr<td_api::messageSenders>> &&promise) {
-  if (!dialog_id.is_valid()) {
-    return promise.set_error(Status::Error(400, "Invalid chat identifier specified"));
-  }
-  if (!td_->messages_manager_->have_dialog_force(dialog_id, "get_group_call_join_as")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
-  if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
-    return promise.set_error(Status::Error(400, "Can't access chat"));
-  }
+  TRY_STATUS_PROMISE(promise, can_join_group_calls(dialog_id));
 
   td_->create_handler<GetGroupCallJoinAsQuery>(std::move(promise))->send(dialog_id);
 }
 
 void GroupCallManager::set_group_call_default_join_as(DialogId dialog_id, DialogId as_dialog_id,
                                                       Promise<Unit> &&promise) {
-  if (!dialog_id.is_valid()) {
-    return promise.set_error(Status::Error(400, "Invalid chat identifier specified"));
-  }
-  if (!td_->messages_manager_->have_dialog_force(dialog_id, "set_group_call_default_join_as")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
-  if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
-    return promise.set_error(Status::Error(400, "Can't access chat"));
-  }
+  TRY_STATUS_PROMISE(promise, can_join_group_calls(dialog_id));
 
   switch (as_dialog_id.get_type()) {
     case DialogType::User:

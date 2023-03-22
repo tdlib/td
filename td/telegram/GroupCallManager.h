@@ -188,6 +188,8 @@ class GroupCallManager final : public Actor {
   const GroupCall *get_group_call(InputGroupCallId input_group_call_id) const;
   GroupCall *get_group_call(InputGroupCallId input_group_call_id);
 
+  Status can_join_group_calls(DialogId dialog_id) const;
+
   Status can_manage_group_calls(DialogId dialog_id) const;
 
   bool can_manage_group_call(InputGroupCallId input_group_call_id) const;
