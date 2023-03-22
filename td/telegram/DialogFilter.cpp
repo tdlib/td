@@ -172,10 +172,13 @@ bool DialogFilter::is_empty(bool for_server) const {
   }
 }
 
+bool DialogFilter::is_dialog_included(DialogId dialog_id) const {
+  return InputDialogId::contains(included_dialog_ids, dialog_id) ||
+         InputDialogId::contains(pinned_dialog_ids, dialog_id);
+}
+
 bool DialogFilter::can_include_dialog(DialogId dialog_id) const {
-  if (InputDialogId::contains(included_dialog_ids, dialog_id) ||
-      InputDialogId::contains(pinned_dialog_ids, dialog_id)) {
-    // the dialog is already included
+  if (is_dialog_included(dialog_id)) {
     return false;
   }
 
@@ -579,10 +582,7 @@ vector<FolderId> DialogFilter::get_folder_ids() const {
 
 bool DialogFilter::need_dialog(const Td *td, DialogId dialog_id, bool has_unread_mentions, bool is_muted,
                                bool has_unread_messages, FolderId folder_id) const {
-  if (InputDialogId::contains(pinned_dialog_ids, dialog_id)) {
-    return true;
-  }
-  if (InputDialogId::contains(included_dialog_ids, dialog_id)) {
+  if (is_dialog_included(dialog_id)) {
     return true;
   }
   if (InputDialogId::contains(excluded_dialog_ids, dialog_id)) {
@@ -592,10 +592,7 @@ bool DialogFilter::need_dialog(const Td *td, DialogId dialog_id, bool has_unread
     auto user_id = td->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
     if (user_id.is_valid()) {
       auto user_dialog_id = DialogId(user_id);
-      if (InputDialogId::contains(pinned_dialog_ids, user_dialog_id)) {
-        return true;
-      }
-      if (InputDialogId::contains(included_dialog_ids, user_dialog_id)) {
+      if (is_dialog_included(user_dialog_id)) {
         return true;
       }
       if (InputDialogId::contains(excluded_dialog_ids, user_dialog_id)) {

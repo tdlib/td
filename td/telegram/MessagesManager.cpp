@@ -34489,17 +34489,13 @@ void MessagesManager::add_dialog_to_list(DialogId dialog_id, DialogListId dialog
     auto dialog_filter_id = dialog_list_id.get_filter_id();
     auto old_dialog_filter = get_dialog_filter(dialog_filter_id);
     CHECK(old_dialog_filter != nullptr);
-    if (InputDialogId::contains(old_dialog_filter->included_dialog_ids, dialog_id) ||
-        InputDialogId::contains(old_dialog_filter->pinned_dialog_ids, dialog_id)) {
+    if (old_dialog_filter->is_dialog_included(dialog_id)) {
       return promise.set_value(Unit());
     }
 
     auto new_dialog_filter = make_unique<DialogFilter>(*old_dialog_filter);
     new_dialog_filter->include_dialog(get_input_dialog_id(dialog_id));
-    auto status = new_dialog_filter->check_limits();
-    if (status.is_error()) {
-      return promise.set_error(std::move(status));
-    }
+    TRY_STATUS_PROMISE(promise, new_dialog_filter->check_limits());
     new_dialog_filter->sort_input_dialog_ids(td_, "add_dialog_to_list");
 
     edit_dialog_filter(std::move(new_dialog_filter), "add_dialog_to_list");
