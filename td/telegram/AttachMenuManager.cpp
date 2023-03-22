@@ -748,7 +748,8 @@ void AttachMenuManager::request_app_web_view(DialogId dialog_id, UserId bot_user
                                              string &&start_parameter,
                                              const td_api::object_ptr<td_api::themeParameters> &theme,
                                              string &&platform, bool allow_write_access, Promise<string> &&promise) {
-  if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+  if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read) ||
+      dialog_id.get_type() == DialogType::SecretChat) {
     dialog_id = DialogId(bot_user_id);
   }
   TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(bot_user_id));

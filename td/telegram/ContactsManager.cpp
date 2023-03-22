@@ -8187,6 +8187,7 @@ void ContactsManager::report_channel_spam(ChannelId channel_id, const vector<Mes
     }
 
     auto sender_dialog_id = td_->messages_manager_->get_dialog_message_sender({DialogId(channel_id), message_id});
+    CHECK(sender_dialog_id.get_type() != DialogType::SecretChat);
     if (sender_dialog_id.is_valid() && sender_dialog_id != DialogId(get_my_id()) &&
         td_->messages_manager_->have_input_peer(sender_dialog_id, AccessRights::Know)) {
       server_message_ids[sender_dialog_id].push_back(message_id);

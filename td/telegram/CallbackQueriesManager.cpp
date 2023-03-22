@@ -253,6 +253,9 @@ void CallbackQueriesManager::send_callback_query(FullMessageId full_message_id,
   if (!full_message_id.get_message_id().is_server()) {
     return promise.set_error(Status::Error(400, "Bad message identifier"));
   }
+  if (dialog_id.get_type() == DialogType::SecretChat) {
+    return promise.set_error(Status::Error(400, "Secret chat messages can't have callback buttons"));
+  }
 
   if (payload->get_id() == td_api::callbackQueryPayloadDataWithPassword::ID) {
     auto password = static_cast<const td_api::callbackQueryPayloadDataWithPassword *>(payload.get())->password_;

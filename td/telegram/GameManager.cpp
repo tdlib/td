@@ -266,7 +266,7 @@ void GameManager::get_game_high_scores(FullMessageId full_message_id, UserId use
     return promise.set_error(Status::Error(400, "Can't access the chat"));
   }
   auto message_id = full_message_id.get_message_id();
-  if (message_id.is_scheduled() || !message_id.is_server()) {
+  if (message_id.is_scheduled() || !message_id.is_server() || dialog_id.get_type() == DialogType::SecretChat) {
     return promise.set_error(Status::Error(400, "Wrong message identifier specified"));
   }
 
