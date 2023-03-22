@@ -70,6 +70,10 @@ class DialogFilter {
     return dialog_filter_id;
   }
 
+  const vector<InputDialogId> &get_pinned_dialog_ids() const {
+    return pinned_dialog_ids;
+  }
+
   bool is_dialog_pinned(DialogId dialog_id) const;
 
   bool is_dialog_included(DialogId dialog_id) const;

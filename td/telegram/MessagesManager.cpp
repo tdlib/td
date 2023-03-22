@@ -17256,7 +17256,7 @@ vector<DialogId> MessagesManager::get_dialogs(DialogListId dialog_list_id, Dialo
     auto *dialog_filter = get_dialog_filter(dialog_list_id.get_filter_id());
     CHECK(dialog_filter != nullptr);
     vector<InputDialogId> input_dialog_ids;
-    for (const auto &input_dialog_id : dialog_filter->pinned_dialog_ids) {
+    for (const auto &input_dialog_id : dialog_filter->get_pinned_dialog_ids()) {
       auto dialog_id = input_dialog_id.get_dialog_id();
       if (!have_dialog_force(dialog_id, "get_dialogs")) {
         if (dialog_id.get_type() == DialogType::SecretChat) {
@@ -17694,7 +17694,7 @@ vector<DialogId> MessagesManager::get_pinned_dialog_ids(DialogListId dialog_list
     if (dialog_filter == nullptr) {
       return {};
     }
-    return InputDialogId::get_dialog_ids(dialog_filter->pinned_dialog_ids);
+    return InputDialogId::get_dialog_ids(dialog_filter->get_pinned_dialog_ids());
   }
 
   auto *list = get_dialog_list(dialog_list_id);
@@ -19989,7 +19989,7 @@ void MessagesManager::add_dialog_filter(unique_ptr<DialogFilter> dialog_filter, 
     }
   }
 
-  for (const auto &input_dialog_id : reversed(dialog_filters_.back()->pinned_dialog_ids)) {
+  for (const auto &input_dialog_id : reversed(dialog_filters_.back()->get_pinned_dialog_ids())) {
     auto dialog_id = input_dialog_id.get_dialog_id();
     if (!dialog_id.is_valid()) {
       continue;
@@ -20036,7 +20036,7 @@ void MessagesManager::edit_dialog_filter(unique_ptr<DialogFilter> new_dialog_fil
       new_list.dialog_list_id = dialog_list_id;
 
       auto old_it = old_list.pinned_dialogs_.rbegin();
-      for (const auto &input_dialog_id : reversed(new_dialog_filter->pinned_dialog_ids)) {
+      for (const auto &input_dialog_id : reversed(new_dialog_filter->get_pinned_dialog_ids())) {
         auto dialog_id = input_dialog_id.get_dialog_id();
         if (!dialog_id.is_valid()) {
           continue;
