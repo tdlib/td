@@ -20637,17 +20637,8 @@ Status MessagesManager::set_pinned_dialogs(DialogListId dialog_list_id, vector<D
     auto old_dialog_filter = get_dialog_filter(dialog_filter_id);
     CHECK(old_dialog_filter != nullptr);
     auto new_dialog_filter = make_unique<DialogFilter>(*old_dialog_filter);
-    auto old_pinned_dialog_ids = std::move(new_dialog_filter->pinned_dialog_ids);
-    new_dialog_filter->pinned_dialog_ids =
-        transform(dialog_ids, [this](DialogId dialog_id) { return get_input_dialog_id(dialog_id); });
-    auto is_new_pinned = [&new_pinned_dialog_ids](InputDialogId input_dialog_id) {
-      return new_pinned_dialog_ids.count(input_dialog_id.get_dialog_id()) > 0;
-    };
-    td::remove_if(old_pinned_dialog_ids, is_new_pinned);
-    td::remove_if(new_dialog_filter->included_dialog_ids, is_new_pinned);
-    td::remove_if(new_dialog_filter->excluded_dialog_ids, is_new_pinned);
-    append(new_dialog_filter->included_dialog_ids, old_pinned_dialog_ids);
-
+    new_dialog_filter->set_pinned_dialog_ids(
+        transform(dialog_ids, [this](DialogId dialog_id) { return get_input_dialog_id(dialog_id); }));
     TRY_STATUS(new_dialog_filter->check_limits());
     new_dialog_filter->sort_input_dialog_ids(td_, "set_pinned_dialogs");
 

@@ -56,6 +56,8 @@ class DialogFilter {
 
   void set_dialog_is_pinned(InputDialogId input_dialog_id, bool is_pinned);
 
+  void set_pinned_dialog_ids(vector<InputDialogId> &&input_dialog_ids);
+
   void include_dialog(InputDialogId input_dialog_id);
 
   void remove_secret_chat_dialog_ids();

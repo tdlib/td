@@ -119,6 +119,23 @@ void DialogFilter::set_dialog_is_pinned(InputDialogId input_dialog_id, bool is_p
   }
 }
 
+void DialogFilter::set_pinned_dialog_ids(vector<InputDialogId> &&input_dialog_ids) {
+  FlatHashSet<DialogId, DialogIdHash> new_pinned_dialog_ids;
+  for (auto input_dialog_id : input_dialog_ids) {
+    new_pinned_dialog_ids.insert(input_dialog_id.get_dialog_id());
+  }
+
+  auto old_pinned_dialog_ids = std::move(pinned_dialog_ids);
+  pinned_dialog_ids = std::move(input_dialog_ids);
+  auto is_new_pinned = [&new_pinned_dialog_ids](InputDialogId input_dialog_id) {
+    return new_pinned_dialog_ids.count(input_dialog_id.get_dialog_id()) > 0;
+  };
+  td::remove_if(old_pinned_dialog_ids, is_new_pinned);
+  td::remove_if(included_dialog_ids, is_new_pinned);
+  td::remove_if(excluded_dialog_ids, is_new_pinned);
+  append(included_dialog_ids, old_pinned_dialog_ids);
+}
+
 void DialogFilter::include_dialog(InputDialogId input_dialog_id) {
   included_dialog_ids.push_back(input_dialog_id);
   InputDialogId::remove(excluded_dialog_ids, input_dialog_id.get_dialog_id());
