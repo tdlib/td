@@ -382,7 +382,7 @@ void LanguagePackManager::on_language_pack_version_changed(bool is_base, int32 n
 
   Language *language = get_language(database_, language_pack_, language_code_);
   int32 version = language == nullptr ? static_cast<int32>(-1) : language->version_.load();
-  LOG(INFO) << (is_base ? "Base" : "Main") << " language pack vesrion has changed from main " << version << " to "
+  LOG(INFO) << (is_base ? "Base" : "Main") << " language pack version has changed from main " << version << " to "
             << new_version;
   if (version == -1) {
     return load_empty_language_pack(language_code_);
@@ -415,7 +415,7 @@ void LanguagePackManager::on_language_pack_version_changed(bool is_base, int32 n
     return;
   }
 
-  LOG(INFO) << (is_base ? "Base" : "Main") << " language pack " << language_code << " vesrion has changed to "
+  LOG(INFO) << (is_base ? "Base" : "Main") << " language pack " << language_code << " version has changed to "
             << new_version;
   send_language_get_difference_query(language, std::move(language_code), version, Auto());
 }
