@@ -2555,6 +2555,7 @@ void Td::on_alarm_timeout(int64 alarm_id) {
   }
   if (alarm_id == PROMO_DATA_ALARM_ID) {
     if (!close_flag_ && !auth_manager_->is_bot()) {
+      reloading_promo_data_ = true;
       auto promise = PromiseCreator::lambda(
           [actor_id = actor_id(this)](Result<telegram_api::object_ptr<telegram_api::help_PromoData>> result) {
             send_closure(actor_id, &Td::on_get_promo_data, std::move(result), false);
@@ -2646,6 +2647,7 @@ void Td::on_get_promo_data(Result<telegram_api::object_ptr<telegram_api::help_Pr
   if (G()->close_flag()) {
     return;
   }
+  reloading_promo_data_ = false;
 
   if (r_promo_data.is_error()) {
     LOG(ERROR) << "Receive error for GetPromoData: " << r_promo_data.error();
@@ -2677,7 +2679,19 @@ void Td::on_get_promo_data(Result<telegram_api::object_ptr<telegram_api::help_Pr
     default:
       UNREACHABLE();
   }
+  if (need_reload_promo_data_) {
+    need_reload_promo_data_ = false;
+    expires_at = 0;
+  }
   schedule_get_promo_data(expires_at == 0 ? 0 : expires_at - G()->unix_time());
+}
+
+void Td::reload_promo_data() {
+  if (reloading_promo_data_) {
+    need_reload_promo_data_ = true;
+    return;
+  }
+  schedule_get_promo_data(0);
 }
 
 void Td::schedule_get_promo_data(int32 expires_in) {
@@ -3693,7 +3707,7 @@ void Td::init(Parameters parameters, Result<TdDb::OpenedDatabase> r_opened_datab
   } else {
     updates_manager_->get_difference("init");
     schedule_get_terms_of_service(0);
-    schedule_get_promo_data(0);
+    reload_promo_data();
   }
 
   complete_pending_preauthentication_requests([](int32 id) { return true; });

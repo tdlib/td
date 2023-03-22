@@ -1044,7 +1044,7 @@ void AuthManager::on_get_authorization(tl_object_ptr<telegram_api::auth_Authoriz
   td_->on_online_updated(false, true);
   if (!is_bot()) {
     td_->schedule_get_terms_of_service(0);
-    td_->schedule_get_promo_data(0);
+    td_->reload_promo_data();
     G()->td_db()->get_binlog_pmc()->set("fetched_marks_as_unread", "1");
   } else {
     td_->set_is_bot_online(true);

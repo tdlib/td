@@ -116,7 +116,7 @@ class Td final : public Actor {
 
   void schedule_get_terms_of_service(int32 expires_in);
 
-  void schedule_get_promo_data(int32 expires_in);
+  void reload_promo_data();
 
   void on_update(BufferSlice &&update, uint64 auth_key_id);
 
@@ -313,6 +313,9 @@ class Td final : public Actor {
 
   bool can_ignore_background_updates_ = false;
 
+  bool reloading_promo_data_ = false;
+  bool need_reload_promo_data_ = false;
+
   bool is_online_ = false;
   bool is_bot_online_ = false;
   NetQueryRef update_status_query_;
@@ -374,6 +377,8 @@ class Td final : public Actor {
   std::shared_ptr<UploadFileCallback> upload_file_callback_;
 
   std::shared_ptr<ActorContext> old_context_;
+
+  void schedule_get_promo_data(int32 expires_in);
 
   static int *get_log_verbosity_level(Slice name);
 
