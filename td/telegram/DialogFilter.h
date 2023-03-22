@@ -70,6 +70,8 @@ class DialogFilter {
     return dialog_filter_id;
   }
 
+  bool can_include_dialog(DialogId dialog_id) const;
+
   Status check_limits() const;
 
   static string get_emoji_by_icon_name(const string &icon_name);

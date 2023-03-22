@@ -172,6 +172,23 @@ bool DialogFilter::is_empty(bool for_server) const {
   }
 }
 
+bool DialogFilter::can_include_dialog(DialogId dialog_id) const {
+  if (InputDialogId::contains(included_dialog_ids, dialog_id) ||
+      InputDialogId::contains(pinned_dialog_ids, dialog_id)) {
+    // the dialog is already included
+    return false;
+  }
+
+  if (included_dialog_ids.size() + pinned_dialog_ids.size() < narrow_cast<size_t>(get_max_filter_dialogs())) {
+    // fast path
+    return true;
+  }
+
+  auto new_dialog_filter = make_unique<DialogFilter>(*this);
+  new_dialog_filter->include_dialog(InputDialogId(dialog_id));
+  return new_dialog_filter->check_limits().is_ok();
+}
+
 Status DialogFilter::check_limits() const {
   auto get_server_dialog_count = [](const vector<InputDialogId> &input_dialog_ids) {
     int32 result = 0;

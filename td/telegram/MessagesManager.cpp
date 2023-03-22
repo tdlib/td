@@ -34443,23 +34443,8 @@ vector<DialogListId> MessagesManager::get_dialog_lists_to_add_dialog(DialogId di
   }
 
   for (const auto &dialog_filter : dialog_filters_) {
-    auto dialog_filter_id = dialog_filter->dialog_filter_id;
-    if (!InputDialogId::contains(dialog_filter->included_dialog_ids, dialog_id) &&
-        !InputDialogId::contains(dialog_filter->pinned_dialog_ids, dialog_id)) {
-      // the dialog isn't added yet to the dialog list
-      // check that it can be actually added
-      if (dialog_filter->included_dialog_ids.size() + dialog_filter->pinned_dialog_ids.size() <
-          narrow_cast<size_t>(DialogFilter::get_max_filter_dialogs())) {
-        // fast path
-        result.push_back(DialogListId(dialog_filter_id));
-        continue;
-      }
-
-      auto new_dialog_filter = make_unique<DialogFilter>(*dialog_filter);
-      new_dialog_filter->include_dialog(get_input_dialog_id(dialog_id));
-      if (new_dialog_filter->check_limits().is_ok()) {
-        result.push_back(DialogListId(dialog_filter_id));
-      }
+    if (dialog_filter->can_include_dialog(dialog_id)) {
+      result.push_back(DialogListId(dialog_filter->get_dialog_filter_id()));
     }
   }
   return result;
