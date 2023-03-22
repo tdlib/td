@@ -99,6 +99,8 @@ class DialogFilter {
 
   vector<FolderId> get_folder_ids() const;
 
+  bool can_have_archived_dialogs() const;
+
   bool need_dialog(const Td *td, DialogId dialog_id, bool has_unread_mentions, bool is_muted, bool has_unread_messages,
                    FolderId folder_id) const;
 

@@ -39034,8 +39034,7 @@ bool MessagesManager::has_dialogs_from_folder(const DialogList &list, const Dial
     auto dialog_filter_id = list.dialog_list_id.get_filter_id();
     auto *dialog_filter = get_dialog_filter(dialog_filter_id);
     CHECK(dialog_filter != nullptr);
-    if (dialog_filter->exclude_archived && dialog_filter->pinned_dialog_ids.empty() &&
-        dialog_filter->included_dialog_ids.empty()) {
+    if (!dialog_filter->can_have_archived_dialogs()) {
       return folder.folder_id == FolderId::main();
     }
     return true;
