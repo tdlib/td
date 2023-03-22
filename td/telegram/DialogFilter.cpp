@@ -36,9 +36,13 @@ unique_ptr<DialogFilter> DialogFilter::get_dialog_filter(
   }
   auto filter = telegram_api::move_object_as<telegram_api::dialogFilter>(filter_ptr);
   DialogFilterId dialog_filter_id(filter->id_);
-  if (with_id && !dialog_filter_id.is_valid()) {
-    LOG(ERROR) << "Receive invalid " << to_string(filter);
-    return nullptr;
+  if (with_id) {
+    if (!dialog_filter_id.is_valid()) {
+      LOG(ERROR) << "Receive invalid " << to_string(filter);
+      return nullptr;
+    }
+  } else {
+    dialog_filter_id = DialogFilterId();
   }
   auto dialog_filter = make_unique<DialogFilter>();
   dialog_filter->dialog_filter_id = dialog_filter_id;

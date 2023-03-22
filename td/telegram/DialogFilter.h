@@ -25,27 +25,6 @@ class Td;
 
 class DialogFilter {
  public:
-  DialogFilterId dialog_filter_id;
-  string title;
-  string emoji;
-  vector<InputDialogId> pinned_dialog_ids;
-  vector<InputDialogId> included_dialog_ids;
-  vector<InputDialogId> excluded_dialog_ids;
-  bool exclude_muted = false;
-  bool exclude_read = false;
-  bool exclude_archived = false;
-  bool include_contacts = false;
-  bool include_non_contacts = false;
-  bool include_bots = false;
-  bool include_groups = false;
-  bool include_channels = false;
-
-  template <class StorerT>
-  void store(StorerT &storer) const;
-
-  template <class ParserT>
-  void parse(ParserT &parser);
-
   static int32 get_max_filter_dialogs();
 
   static unique_ptr<DialogFilter> get_dialog_filter(telegram_api::object_ptr<telegram_api::DialogFilter> filter_ptr,
@@ -66,7 +45,7 @@ class DialogFilter {
 
   bool is_empty(bool for_server) const;
 
-  DialogFilterId get_dialog_filter_id() const {
+  const DialogFilterId &get_dialog_filter_id() const {
     return dialog_filter_id;
   }
 
@@ -122,13 +101,38 @@ class DialogFilter {
 
   static bool are_flags_equal(const DialogFilter &lhs, const DialogFilter &rhs);
 
+  template <class StorerT>
+  void store(StorerT &storer) const;
+
+  template <class ParserT>
+  void parse(ParserT &parser);
+
  private:
+  DialogFilterId dialog_filter_id;
+  string title;
+  string emoji;
+  vector<InputDialogId> pinned_dialog_ids;
+  vector<InputDialogId> included_dialog_ids;
+  vector<InputDialogId> excluded_dialog_ids;
+  bool exclude_muted = false;
+  bool exclude_read = false;
+  bool exclude_archived = false;
+  bool include_contacts = false;
+  bool include_non_contacts = false;
+  bool include_bots = false;
+  bool include_groups = false;
+  bool include_channels = false;
+
   static FlatHashMap<string, string> emoji_to_icon_name_;
   static FlatHashMap<string, string> icon_name_to_emoji_;
 
   static void init_icon_names();
 
   string get_chosen_or_default_icon_name() const;
+
+  friend bool operator==(const DialogFilter &lhs, const DialogFilter &rhs);
+
+  friend StringBuilder &operator<<(StringBuilder &string_builder, const DialogFilter &filter);
 };
 
 inline bool operator==(const DialogFilter &lhs, const DialogFilter &rhs) {

@@ -13788,8 +13788,8 @@ void MessagesManager::init() {
         dialog_filters_updated_date_ = td_->ignore_background_updates() ? 0 : log_event.updated_date;
         std::unordered_set<DialogFilterId, DialogFilterIdHash> server_dialog_filter_ids;
         for (auto &dialog_filter : log_event.server_dialog_filters_out) {
-          if (dialog_filter->dialog_filter_id.is_valid() &&
-              server_dialog_filter_ids.insert(dialog_filter->dialog_filter_id).second) {
+          if (dialog_filter->get_dialog_filter_id().is_valid() &&
+              server_dialog_filter_ids.insert(dialog_filter->get_dialog_filter_id()).second) {
             server_dialog_filters_.push_back(std::move(dialog_filter));
           }
         }
@@ -17088,7 +17088,8 @@ void MessagesManager::load_dialog_filter(const DialogFilter *dialog_filter, bool
   }
 
   if (!input_dialog_ids.empty() && !force) {
-    return load_dialog_filter_dialogs(dialog_filter->dialog_filter_id, std::move(input_dialog_ids), std::move(promise));
+    return load_dialog_filter_dialogs(dialog_filter->get_dialog_filter_id(), std::move(input_dialog_ids),
+                                      std::move(promise));
   }
 
   promise.set_value(Unit());
@@ -17158,7 +17159,6 @@ void MessagesManager::on_get_recommended_dialog_filters(
     recommended_dialog_filter.dialog_filter =
         DialogFilter::get_dialog_filter(std::move(suggested_filter->filter_), false);
     CHECK(recommended_dialog_filter.dialog_filter != nullptr);
-    recommended_dialog_filter.dialog_filter->dialog_filter_id = DialogFilterId();  // just in case
     load_dialog_filter(recommended_dialog_filter.dialog_filter.get(), false, mpas.get_promise());
 
     recommended_dialog_filter.description = std::move(suggested_filter->description_);
@@ -17274,7 +17274,8 @@ vector<DialogId> MessagesManager::get_dialogs(DialogListId dialog_list_id, Dialo
         promise.set_value(Unit());
         return result;
       } else {
-        load_dialog_filter_dialogs(dialog_filter->dialog_filter_id, std::move(input_dialog_ids), std::move(promise));
+        load_dialog_filter_dialogs(dialog_filter->get_dialog_filter_id(), std::move(input_dialog_ids),
+                                   std::move(promise));
         return {};
       }
     }
@@ -17804,8 +17805,8 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
     if (dialog_filter == nullptr) {
       continue;
     }
-    if (!new_dialog_filter_ids.insert(dialog_filter->dialog_filter_id).second) {
-      LOG(ERROR) << "Receive duplicate " << dialog_filter->dialog_filter_id;
+    if (!new_dialog_filter_ids.insert(dialog_filter->get_dialog_filter_id()).second) {
+      LOG(ERROR) << "Receive duplicate " << dialog_filter->get_dialog_filter_id();
       continue;
     }
 
@@ -17831,10 +17832,10 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
               << DialogFilter::get_dialog_filter_ids(new_server_dialog_filters, server_main_dialog_list_position);
     FlatHashMap<DialogFilterId, const DialogFilter *, DialogFilterIdHash> old_server_dialog_filters;
     for (const auto &dialog_filter : server_dialog_filters_) {
-      old_server_dialog_filters.emplace(dialog_filter->dialog_filter_id, dialog_filter.get());
+      old_server_dialog_filters.emplace(dialog_filter->get_dialog_filter_id(), dialog_filter.get());
     }
     for (const auto &new_server_filter : new_server_dialog_filters) {
-      auto dialog_filter_id = new_server_filter->dialog_filter_id;
+      auto dialog_filter_id = new_server_filter->get_dialog_filter_id();
       auto old_filter = get_dialog_filter(dialog_filter_id);
       auto it = old_server_dialog_filters.find(dialog_filter_id);
       if (it != old_server_dialog_filters.end()) {
@@ -17876,8 +17877,8 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
     }
     vector<DialogFilterId> left_old_server_dialog_filter_ids;
     for (const auto &dialog_filter : server_dialog_filters_) {
-      if (old_server_dialog_filters.count(dialog_filter->dialog_filter_id) == 0) {
-        left_old_server_dialog_filter_ids.push_back(dialog_filter->dialog_filter_id);
+      if (old_server_dialog_filters.count(dialog_filter->get_dialog_filter_id()) == 0) {
+        left_old_server_dialog_filter_ids.push_back(dialog_filter->get_dialog_filter_id());
       }
     }
     LOG(INFO) << "Still existing server chat filters: " << left_old_server_dialog_filter_ids;
@@ -17904,7 +17905,7 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
     if (is_order_changed) {  // if order is changed from this and other clients, prefer order from another client
       vector<DialogFilterId> new_dialog_filter_order;
       for (const auto &new_server_filter : new_server_dialog_filters) {
-        auto dialog_filter_id = new_server_filter->dialog_filter_id;
+        auto dialog_filter_id = new_server_filter->get_dialog_filter_id();
         if (get_dialog_filter(dialog_filter_id) != nullptr) {
           new_dialog_filter_order.push_back(dialog_filter_id);
         }
@@ -17968,12 +17969,12 @@ bool MessagesManager::need_synchronize_dialog_filters() const {
     }
 
     server_dialog_filter_count++;
-    auto server_dialog_filter = get_server_dialog_filter(dialog_filter->dialog_filter_id);
+    auto server_dialog_filter = get_server_dialog_filter(dialog_filter->get_dialog_filter_id());
     if (server_dialog_filter == nullptr || !DialogFilter::are_equivalent(*server_dialog_filter, *dialog_filter)) {
       // need update dialog filter on server
       return true;
     }
-    dialog_filter_ids.push_back(dialog_filter->dialog_filter_id);
+    dialog_filter_ids.push_back(dialog_filter->get_dialog_filter_id());
   }
   if (server_dialog_filter_count != server_dialog_filters_.size()) {
     // need delete dialog filter on server
@@ -18010,8 +18011,8 @@ void MessagesManager::synchronize_dialog_filters() {
             << DialogFilter::get_dialog_filter_ids(dialog_filters_, main_dialog_list_position_) << " and server "
             << DialogFilter::get_dialog_filter_ids(server_dialog_filters_, server_main_dialog_list_position_);
   for (const auto &server_dialog_filter : server_dialog_filters_) {
-    if (get_dialog_filter(server_dialog_filter->dialog_filter_id) == nullptr) {
-      return delete_dialog_filter_on_server(server_dialog_filter->dialog_filter_id);
+    if (get_dialog_filter(server_dialog_filter->get_dialog_filter_id()) == nullptr) {
+      return delete_dialog_filter_on_server(server_dialog_filter->get_dialog_filter_id());
     }
   }
 
@@ -18021,11 +18022,11 @@ void MessagesManager::synchronize_dialog_filters() {
       continue;
     }
 
-    auto server_dialog_filter = get_server_dialog_filter(dialog_filter->dialog_filter_id);
+    auto server_dialog_filter = get_server_dialog_filter(dialog_filter->get_dialog_filter_id());
     if (server_dialog_filter == nullptr || !DialogFilter::are_equivalent(*server_dialog_filter, *dialog_filter)) {
       return update_dialog_filter_on_server(make_unique<DialogFilter>(*dialog_filter));
     }
-    dialog_filter_ids.push_back(dialog_filter->dialog_filter_id);
+    dialog_filter_ids.push_back(dialog_filter->get_dialog_filter_id());
   }
 
   auto server_main_dialog_list_position = get_server_main_dialog_list_position();
@@ -19785,7 +19786,7 @@ void MessagesManager::update_dialog_filter_on_server(unique_ptr<DialogFilter> &&
   CHECK(dialog_filter != nullptr);
   are_dialog_filters_being_synchronized_ = true;
   dialog_filter->remove_secret_chat_dialog_ids();
-  auto dialog_filter_id = dialog_filter->dialog_filter_id;
+  auto dialog_filter_id = dialog_filter->get_dialog_filter_id();
   auto input_dialog_filter = dialog_filter->get_input_dialog_filter();
 
   auto promise = PromiseCreator::lambda(
@@ -19804,7 +19805,7 @@ void MessagesManager::on_update_dialog_filter(unique_ptr<DialogFilter> dialog_fi
   } else {
     bool is_edited = false;
     for (auto &server_dialog_filter : server_dialog_filters_) {
-      if (server_dialog_filter->dialog_filter_id == dialog_filter->dialog_filter_id) {
+      if (server_dialog_filter->get_dialog_filter_id() == dialog_filter->get_dialog_filter_id()) {
         if (*server_dialog_filter != *dialog_filter) {
           server_dialog_filter = std::move(dialog_filter);
         }
@@ -19870,7 +19871,7 @@ void MessagesManager::on_delete_dialog_filter(DialogFilterId dialog_filter_id, S
     // TODO rollback dialog_filters_ changes if error isn't 429
   } else {
     for (auto it = server_dialog_filters_.begin(); it != server_dialog_filters_.end(); ++it) {
-      if ((*it)->dialog_filter_id == dialog_filter_id) {
+      if ((*it)->get_dialog_filter_id() == dialog_filter_id) {
         server_dialog_filters_.erase(it);
         save_dialog_filters();
         break;
@@ -19953,7 +19954,7 @@ void MessagesManager::add_dialog_filter(unique_ptr<DialogFilter> dialog_filter, 
   }
 
   CHECK(dialog_filter != nullptr);
-  auto dialog_filter_id = dialog_filter->dialog_filter_id;
+  auto dialog_filter_id = dialog_filter->get_dialog_filter_id();
   LOG(INFO) << "Add " << dialog_filter_id << " from " << source;
   CHECK(get_dialog_filter(dialog_filter_id) == nullptr);
   if (at_beginning) {
@@ -20012,12 +20013,12 @@ void MessagesManager::edit_dialog_filter(unique_ptr<DialogFilter> new_dialog_fil
   }
 
   CHECK(new_dialog_filter != nullptr);
-  LOG(INFO) << "Edit " << new_dialog_filter->dialog_filter_id << " from " << source;
+  LOG(INFO) << "Edit " << new_dialog_filter->get_dialog_filter_id() << " from " << source;
   for (auto &old_dialog_filter : dialog_filters_) {
-    if (old_dialog_filter->dialog_filter_id == new_dialog_filter->dialog_filter_id) {
+    if (old_dialog_filter->get_dialog_filter_id() == new_dialog_filter->get_dialog_filter_id()) {
       CHECK(*old_dialog_filter != *new_dialog_filter);
 
-      auto dialog_list_id = DialogListId(old_dialog_filter->dialog_filter_id);
+      auto dialog_list_id = DialogListId(old_dialog_filter->get_dialog_filter_id());
       auto *old_list_ptr = get_dialog_list(dialog_list_id);
       CHECK(old_list_ptr != nullptr);
       auto &old_list = *old_list_ptr;
@@ -20215,7 +20216,7 @@ int32 MessagesManager::delete_dialog_filter(DialogFilterId dialog_filter_id, con
 
   LOG(INFO) << "Delete " << dialog_filter_id << " from " << source;
   for (auto it = dialog_filters_.begin(); it != dialog_filters_.end(); ++it) {
-    if ((*it)->dialog_filter_id == dialog_filter_id) {
+    if ((*it)->get_dialog_filter_id() == dialog_filter_id) {
       auto dialog_list_id = DialogListId(dialog_filter_id);
       auto *list = get_dialog_list(dialog_list_id);
       CHECK(list != nullptr);
@@ -38964,7 +38965,7 @@ MessagesManager::Dialog *MessagesManager::on_load_dialog_from_database(DialogId 
 const DialogFilter *MessagesManager::get_server_dialog_filter(DialogFilterId dialog_filter_id) const {
   CHECK(!disable_get_dialog_filter_);
   for (const auto &dialog_filter : server_dialog_filters_) {
-    if (dialog_filter->dialog_filter_id == dialog_filter_id) {
+    if (dialog_filter->get_dialog_filter_id() == dialog_filter_id) {
       return dialog_filter.get();
     }
   }
@@ -38974,7 +38975,7 @@ const DialogFilter *MessagesManager::get_server_dialog_filter(DialogFilterId dia
 DialogFilter *MessagesManager::get_dialog_filter(DialogFilterId dialog_filter_id) {
   CHECK(!disable_get_dialog_filter_);
   for (auto &dialog_filter : dialog_filters_) {
-    if (dialog_filter->dialog_filter_id == dialog_filter_id) {
+    if (dialog_filter->get_dialog_filter_id() == dialog_filter_id) {
       return dialog_filter.get();
     }
   }
@@ -38984,7 +38985,7 @@ DialogFilter *MessagesManager::get_dialog_filter(DialogFilterId dialog_filter_id
 const DialogFilter *MessagesManager::get_dialog_filter(DialogFilterId dialog_filter_id) const {
   CHECK(!disable_get_dialog_filter_);
   for (const auto &dialog_filter : dialog_filters_) {
-    if (dialog_filter->dialog_filter_id == dialog_filter_id) {
+    if (dialog_filter->get_dialog_filter_id() == dialog_filter_id) {
       return dialog_filter.get();
     }
   }
