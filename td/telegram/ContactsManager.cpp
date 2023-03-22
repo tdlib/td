@@ -3844,7 +3844,9 @@ class GetMessageStatsQuery final : public Td::ResultHandler {
     channel_id_ = channel_id;
 
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
-    CHECK(input_channel != nullptr);
+    if (input_channel == nullptr) {
+      return promise_.set_error(Status::Error(400, "Supergroup not found"));
+    }
 
     int32 flags = 0;
     if (is_dark) {
@@ -4007,7 +4009,9 @@ ContactsManager::ContactsManager(Td *td, ActorShared<> parent) : td_(td), parent
     TRY_STATUS_PROMISE(promise, G()->close_status());
     CHECK(query_ids.size() == 1);
     auto input_channel = get_input_channel(ChannelId(query_ids[0]));
-    CHECK(input_channel != nullptr);
+    if (input_channel == nullptr) {
+      return promise.set_error(Status::Error(400, "Channel not found"));
+    }
     td_->create_handler<GetChannelsQuery>(std::move(promise))->send(std::move(input_channel));
   });
 }
@@ -12436,11 +12440,6 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
   if (chat_full_ptr->get_id() == telegram_api::chatFull::ID) {
     auto chat = move_tl_object_as<telegram_api::chatFull>(chat_full_ptr);
     ChatId chat_id(chat->id_);
-    if (!chat_id.is_valid()) {
-      LOG(ERROR) << "Receive invalid " << chat_id;
-      return promise.set_value(Unit());
-    }
-
     Chat *c = get_chat(chat_id);
     if (c == nullptr) {
       LOG(ERROR) << "Can't find " << chat_id;
@@ -12531,8 +12530,9 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     CHECK(chat_full_ptr->get_id() == telegram_api::channelFull::ID);
     auto channel = move_tl_object_as<telegram_api::channelFull>(chat_full_ptr);
     ChannelId channel_id(channel->id_);
-    if (!channel_id.is_valid()) {
-      LOG(ERROR) << "Receive invalid " << channel_id;
+    auto c = get_channel(channel_id);
+    if (c == nullptr) {
+      LOG(ERROR) << "Can't find " << channel_id;
       return promise.set_value(Unit());
     }
 
@@ -12571,12 +12571,6 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     td_->messages_manager_->on_update_dialog_message_ttl(DialogId(channel_id), MessageTtl(channel->ttl_period_));
 
     td_->messages_manager_->on_update_dialog_is_translatable(DialogId(channel_id), !channel->translations_disabled_);
-
-    auto c = get_channel(channel_id);
-    if (c == nullptr) {
-      LOG(ERROR) << channel_id << " not found";
-      return promise.set_value(Unit());
-    }
 
     ChannelFull *channel_full = add_channel_full(channel_id);
 
