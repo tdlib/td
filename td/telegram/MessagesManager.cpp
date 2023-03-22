@@ -2067,7 +2067,7 @@ class ReadChannelMessagesContentsQuery final : public Td::ResultHandler {
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
     if (input_channel == nullptr) {
       LOG(ERROR) << "Have no input channel for " << channel_id;
-      return on_error(Status::Error(500, "Can't read channel message contents"));
+      return on_error(Status::Error(400, "Can't access the chat"));
     }
 
     send_query(G()->net_query_creator().create(telegram_api::channels_readMessageContents(
@@ -2283,7 +2283,9 @@ class ReadChannelHistoryQuery final : public Td::ResultHandler {
   void send(ChannelId channel_id, MessageId max_message_id) {
     channel_id_ = channel_id;
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
-    CHECK(input_channel != nullptr);
+    if (input_channel == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
 
     send_query(G()->net_query_creator().create(
         telegram_api::channels_readHistory(std::move(input_channel), max_message_id.get_server_message_id().get()),
@@ -2928,12 +2930,14 @@ class GetMessagePublicForwardsQuery final : public Td::ResultHandler {
     auto input_peer = MessagesManager::get_input_peer_force(offset_dialog_id);
     CHECK(input_peer != nullptr);
 
-    send_query(
-        G()->net_query_creator().create(telegram_api::stats_getMessagePublicForwards(
-                                            td_->contacts_manager_->get_input_channel(dialog_id_.get_channel_id()),
-                                            full_message_id.get_message_id().get_server_message_id().get(), offset_date,
-                                            std::move(input_peer), offset_message_id.get(), limit),
-                                        {}, dc_id));
+    auto input_channel = td_->contacts_manager_->get_input_channel(dialog_id_.get_channel_id());
+    CHECK(input_channel != nullptr);
+
+    send_query(G()->net_query_creator().create(
+        telegram_api::stats_getMessagePublicForwards(
+            std::move(input_channel), full_message_id.get_message_id().get_server_message_id().get(), offset_date,
+            std::move(input_peer), offset_message_id.get(), limit),
+        {}, dc_id));
   }
 
   void on_result(BufferSlice packet) final {
@@ -3046,7 +3050,9 @@ class DeleteTopicHistoryQuery final : public Td::ResultHandler {
     channel_id_ = dialog_id.get_channel_id();
 
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id_);
-    CHECK(input_channel != nullptr);
+    if (input_channel == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
 
     send_query(G()->net_query_creator().create(telegram_api::channels_deleteTopicHistory(
         std::move(input_channel), top_thread_message_id.get_server_message_id().get())));
@@ -3082,7 +3088,9 @@ class DeleteChannelHistoryQuery final : public Td::ResultHandler {
     max_message_id_ = max_message_id;
     allow_error_ = allow_error;
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
-    CHECK(input_channel != nullptr);
+    if (input_channel == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
 
     int32 flags = 0;
     if (revoke) {
@@ -4394,7 +4402,9 @@ class DeleteChannelMessagesQuery final : public Td::ResultHandler {
     server_message_ids_ = server_message_ids;
 
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
-    CHECK(input_channel != nullptr);
+    if (input_channel == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
     send_query(G()->net_query_creator().create(
         telegram_api::channels_deleteMessages(std::move(input_channel), std::move(server_message_ids))));
   }
