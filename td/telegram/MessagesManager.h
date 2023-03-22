@@ -2850,7 +2850,7 @@ class MessagesManager final : public Actor {
   void on_load_dialog_filter_dialogs(DialogFilterId dialog_filter_id, vector<DialogId> &&dialog_ids,
                                      Promise<Unit> &&promise);
 
-  void load_dialog_filter(const DialogFilter *filter, bool force, Promise<Unit> &&promise);
+  void load_dialog_filter(const DialogFilter *dialog_filter, bool force, Promise<Unit> &&promise);
 
   void delete_dialogs_from_filter(const DialogFilter *dialog_filter, vector<DialogId> &&dialog_ids, const char *source);
 
@@ -2901,7 +2901,7 @@ class MessagesManager final : public Actor {
 
   static void remove_dialog_from_list(Dialog *d, DialogListId dialog_list_id);
 
-  bool need_dialog_in_filter(const Dialog *d, const DialogFilter *filter) const;
+  bool need_dialog_in_filter(const Dialog *d, const DialogFilter *dialog_filter) const;
 
   bool need_dialog_in_list(const Dialog *d, const DialogList &list) const;
 
