@@ -90,6 +90,8 @@ class ContactsManager final : public Actor {
 
   Result<tl_object_ptr<telegram_api::InputUser>> get_input_user(UserId user_id) const;
 
+  tl_object_ptr<telegram_api::InputUser> get_input_user_force(UserId user_id) const;
+
   // TODO get_input_chat ???
 
   tl_object_ptr<telegram_api::InputChannel> get_input_channel(ChannelId channel_id) const;

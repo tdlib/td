@@ -3996,11 +3996,7 @@ ContactsManager::ContactsManager(Td *td, ActorShared<> parent) : td_(td), parent
 
   get_user_queries_.set_merge_function([this](vector<int64> query_ids, Promise<Unit> &&promise) {
     TRY_STATUS_PROMISE(promise, G()->close_status());
-    auto input_users = transform(query_ids, [this](int64 query_id) {
-      auto r_input_user = get_input_user(UserId(query_id));
-      CHECK(r_input_user.is_ok());
-      return r_input_user.move_as_ok();
-    });
+    auto input_users = transform(query_ids, [this](int64 query_id) { return get_input_user_force(UserId(query_id)); });
     td_->create_handler<GetUsersQuery>(std::move(promise))->send(std::move(input_users));
   });
   get_chat_queries_.set_merge_function([this](vector<int64> query_ids, Promise<Unit> &&promise) {
@@ -5323,6 +5319,15 @@ Result<tl_object_ptr<telegram_api::InputUser>> ContactsManager::get_input_user(U
   }
 
   return make_tl_object<telegram_api::inputUser>(user_id.get(), u->access_hash);
+}
+
+telegram_api::object_ptr<telegram_api::InputUser> ContactsManager::get_input_user_force(UserId user_id) const {
+  auto r_input_user = get_input_user(user_id);
+  if (r_input_user.is_error()) {
+    CHECK(user_id.is_valid());
+    return make_tl_object<telegram_api::inputUser>(user_id.get(), 0);
+  }
+  return r_input_user.move_as_ok();
 }
 
 tl_object_ptr<telegram_api::InputChannel> ContactsManager::get_input_channel(ChannelId channel_id) const {
@@ -16112,13 +16117,12 @@ void ContactsManager::load_user_full(UserId user_id, bool force, Promise<Unit> &
     return send_get_user_full_query(user_id, std::move(input_user), std::move(promise), source);
   }
   if (user_full->is_expired()) {
-    auto r_input_user = get_input_user(user_id);
-    CHECK(r_input_user.is_ok());
+    auto input_user = get_input_user_force(user_id);
     if (td_->auth_manager_->is_bot() && !force) {
-      return send_get_user_full_query(user_id, r_input_user.move_as_ok(), std::move(promise), "load expired user_full");
+      return send_get_user_full_query(user_id, std::move(input_user), std::move(promise), "load expired user_full");
     }
 
-    send_get_user_full_query(user_id, r_input_user.move_as_ok(), Auto(), "load expired user_full");
+    send_get_user_full_query(user_id, std::move(input_user), Auto(), "load expired user_full");
   }
 
   promise.set_value(Unit());
@@ -16224,7 +16228,7 @@ void ContactsManager::send_get_user_photos_query(UserId user_id, const UserPhoto
   });
 
   td_->create_handler<GetUserPhotosQuery>(std::move(query_promise))
-      ->send(user_id, get_input_user(user_id).move_as_ok(), offset, max(limit, MAX_GET_PROFILE_PHOTOS / 5), 0);
+      ->send(user_id, get_input_user_force(user_id), offset, max(limit, MAX_GET_PROFILE_PHOTOS / 5), 0);
 }
 
 void ContactsManager::on_get_user_profile_photos(UserId user_id, Result<Unit> &&result) {
