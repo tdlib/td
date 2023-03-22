@@ -98,6 +98,31 @@ class EditUserInfoQuery final : public Td::ResultHandler {
   }
 };
 
+class GetSupportNameQuery final : public Td::ResultHandler {
+  Promise<string> promise_;
+
+ public:
+  explicit GetSupportNameQuery(Promise<string> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::help_getSupportName()));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::help_getSupportName>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(std::move(result_ptr.ok_ref()->name_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 void get_user_info(Td *td, UserId user_id, Promise<td_api::object_ptr<td_api::userSupportInfo>> &&promise) {
   td->create_handler<GetUserInfoQuery>(std::move(promise))->send(user_id);
 }
@@ -108,6 +133,10 @@ void set_user_info(Td *td, UserId user_id, td_api::object_ptr<td_api::formattedT
                      get_formatted_text(td, DialogId(td->contacts_manager_->get_my_id()), std::move(message), false,
                                         true, true, false));
   td->create_handler<EditUserInfoQuery>(std::move(promise))->send(user_id, std::move(formatted_text));
+}
+
+void get_support_name(Td *td, Promise<string> &&promise) {
+  td->create_handler<GetSupportNameQuery>(std::move(promise))->send();
 }
 
 }  // namespace td

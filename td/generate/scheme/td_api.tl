@@ -8296,6 +8296,9 @@ getUserSupportInfo user_id:int53 = UserSupportInfo;
 //@description Sets support information for the given user; for Telegram support only @user_id User identifier @message New information message
 setUserSupportInfo user_id:int53 message:formattedText = UserSupportInfo;
 
+//@description Returns localized name of the Telegram support user; for Telegram support only
+getSupportName = Text;
+
 
 //@description Does nothing; for testing only. This is an offline method. Can be called before authorization
 testCallEmpty = Ok;

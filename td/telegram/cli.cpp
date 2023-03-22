@@ -5297,6 +5297,8 @@ class CliClient final : public Actor {
       string text;
       get_args(args, user_id, text);
       send_request(td_api::make_object<td_api::setUserSupportInfo>(user_id, as_formatted_text(text)));
+    } else if (op == "gsn") {
+      send_request(td_api::make_object<td_api::getSupportName>());
     } else if (op == "touch") {
       auto r_fd = FileFd::open(args, FileFd::Read | FileFd::Write);
       if (r_fd.is_error()) {

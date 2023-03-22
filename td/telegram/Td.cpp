@@ -8462,6 +8462,19 @@ void Td::on_request(uint64 id, td_api::setUserSupportInfo &request) {
   set_user_info(this, UserId(request.user_id_), std::move(request.message_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getSupportName &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      promise.set_value(make_tl_object<td_api::text>(result.move_as_ok()));
+    }
+  });
+  get_support_name(this, std::move(query_promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getTextEntities &request) {
   UNREACHABLE();
 }
