@@ -70,6 +70,8 @@ class DialogFilter {
     return dialog_filter_id;
   }
 
+  bool is_dialog_pinned(DialogId dialog_id) const;
+
   bool is_dialog_included(DialogId dialog_id) const;
 
   bool can_include_dialog(DialogId dialog_id) const;

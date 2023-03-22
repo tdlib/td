@@ -172,9 +172,12 @@ bool DialogFilter::is_empty(bool for_server) const {
   }
 }
 
+bool DialogFilter::is_dialog_pinned(DialogId dialog_id) const {
+  return InputDialogId::contains(pinned_dialog_ids, dialog_id);
+}
+
 bool DialogFilter::is_dialog_included(DialogId dialog_id) const {
-  return InputDialogId::contains(included_dialog_ids, dialog_id) ||
-         InputDialogId::contains(pinned_dialog_ids, dialog_id);
+  return InputDialogId::contains(included_dialog_ids, dialog_id) || is_dialog_pinned(dialog_id);
 }
 
 bool DialogFilter::can_include_dialog(DialogId dialog_id) const {

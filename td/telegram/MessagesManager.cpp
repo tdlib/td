@@ -15430,9 +15430,7 @@ bool MessagesManager::is_dialog_pinned(DialogListId dialog_list_id, DialogId dia
   }
   if (dialog_list_id.is_filter()) {
     const auto *dialog_filter = get_dialog_filter(dialog_list_id.get_filter_id());
-    if (dialog_filter != nullptr && InputDialogId::contains(dialog_filter->pinned_dialog_ids, dialog_id)) {
-      return true;
-    }
+    return dialog_filter != nullptr && dialog_filter->is_dialog_pinned(dialog_id);
   }
   return false;
 }
