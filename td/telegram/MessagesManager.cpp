@@ -11416,7 +11416,7 @@ void MessagesManager::on_failed_scheduled_message_deletion(DialogId dialog_id, c
       d->scheduled_messages->deleted_scheduled_server_message_ids_.erase(message_id.get_scheduled_server_message_id());
     }
   }
-  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+  if (!have_input_peer(dialog_id, AccessRights::Read) || dialog_id.get_type() == DialogType::SecretChat) {
     return;
   }
   if (is_broadcast_channel(dialog_id) &&
@@ -11498,7 +11498,9 @@ void MessagesManager::delete_dialog_history(DialogId dialog_id, bool remove_from
     removed_sponsored_dialog_id_ = dialog_id;
     remove_sponsored_dialog();
 
-    td_->create_handler<HidePromoDataQuery>()->send(dialog_id);
+    if (dialog_id.get_type() != DialogType::SecretChat) {
+      td_->create_handler<HidePromoDataQuery>()->send(dialog_id);
+    }
     promise.set_value(Unit());
     return;
   }
@@ -25034,6 +25036,10 @@ vector<MessageId> MessagesManager::get_dialog_scheduled_messages(DialogId dialog
     promise.set_error(Status::Error(400, "Not enough rights to get scheduled messages"));
     return {};
   }
+  if (d->dialog_id.get_type() == DialogType::SecretChat) {
+    promise.set_value(Unit());
+    return {};
+  }
 
   if (!d->has_loaded_scheduled_messages_from_database) {
     load_dialog_scheduled_messages(dialog_id, true, 0, std::move(promise));
@@ -25093,6 +25099,7 @@ vector<MessageId> MessagesManager::get_dialog_scheduled_messages(DialogId dialog
 
 void MessagesManager::load_dialog_scheduled_messages(DialogId dialog_id, bool from_database, int64 hash,
                                                      Promise<Unit> &&promise) {
+  CHECK(dialog_id.get_type() != DialogType::SecretChat);
   if (G()->use_message_database() && from_database) {
     LOG(INFO) << "Load scheduled messages from database in " << dialog_id;
     auto &queries = load_scheduled_messages_from_database_queries_[dialog_id];
@@ -37689,6 +37696,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
           td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id()));
       d->is_has_bots_inited = true;
       d->is_available_reactions_inited = true;
+      d->has_loaded_scheduled_messages_from_database = true;
 
       break;
     case DialogType::None:
