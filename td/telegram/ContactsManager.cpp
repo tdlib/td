@@ -9469,6 +9469,9 @@ void ContactsManager::register_message_channels(FullMessageId full_message_id, v
     const Channel *c = get_channel(channel_id);
     if (c == nullptr) {
       channel_messages_[channel_id].insert(full_message_id);
+
+      // get info about the channel
+      get_channel_queries_.add_query(channel_id.get(), Promise<Unit>());
     }
   }
 }
