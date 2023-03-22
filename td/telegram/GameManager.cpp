@@ -210,10 +210,7 @@ void GameManager::set_game_score(FullMessageId full_message_id, bool edit_messag
     return promise.set_error(Status::Error(400, "Can't access the chat"));
   }
 
-  auto r_input_user = td_->contacts_manager_->get_input_user(user_id);
-  if (r_input_user.is_error()) {
-    return promise.set_error(r_input_user.move_as_error());
-  }
+  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
 
   if (!td_->messages_manager_->can_set_game_score(full_message_id)) {
     return promise.set_error(Status::Error(400, "Game score can't be set"));
@@ -227,7 +224,7 @@ void GameManager::set_game_score(FullMessageId full_message_id, bool edit_messag
         send_closure(actor_id, &GameManager::on_set_game_score, full_message_id, std::move(promise));
       });
   td_->create_handler<SetGameScoreQuery>(std::move(query_promise))
-      ->send(dialog_id, full_message_id.get_message_id(), edit_message, r_input_user.move_as_ok(), score, force);
+      ->send(dialog_id, full_message_id.get_message_id(), edit_message, std::move(input_user), score, force);
 }
 
 void GameManager::on_set_game_score(FullMessageId full_message_id,
@@ -244,13 +241,10 @@ void GameManager::set_inline_game_score(const string &inline_message_id, bool ed
     return promise.set_error(Status::Error(400, "Invalid inline message identifier specified"));
   }
 
-  auto r_input_user = td_->contacts_manager_->get_input_user(user_id);
-  if (r_input_user.is_error()) {
-    return promise.set_error(r_input_user.move_as_error());
-  }
+  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
 
   td_->create_handler<SetInlineGameScoreQuery>(std::move(promise))
-      ->send(std::move(input_bot_inline_message_id), edit_message, r_input_user.move_as_ok(), score, force);
+      ->send(std::move(input_bot_inline_message_id), edit_message, std::move(input_user), score, force);
 }
 
 void GameManager::get_game_high_scores(FullMessageId full_message_id, UserId user_id,
@@ -270,13 +264,9 @@ void GameManager::get_game_high_scores(FullMessageId full_message_id, UserId use
     return promise.set_error(Status::Error(400, "Wrong message identifier specified"));
   }
 
-  auto r_input_user = td_->contacts_manager_->get_input_user(user_id);
-  if (r_input_user.is_error()) {
-    return promise.set_error(r_input_user.move_as_error());
-  }
+  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
 
-  td_->create_handler<GetGameHighScoresQuery>(std::move(promise))
-      ->send(dialog_id, message_id, r_input_user.move_as_ok());
+  td_->create_handler<GetGameHighScoresQuery>(std::move(promise))->send(dialog_id, message_id, std::move(input_user));
 }
 
 void GameManager::get_inline_game_high_scores(const string &inline_message_id, UserId user_id,
@@ -288,13 +278,10 @@ void GameManager::get_inline_game_high_scores(const string &inline_message_id, U
     return promise.set_error(Status::Error(400, "Invalid inline message identifier specified"));
   }
 
-  auto r_input_user = td_->contacts_manager_->get_input_user(user_id);
-  if (r_input_user.is_error()) {
-    return promise.set_error(r_input_user.move_as_error());
-  }
+  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
 
   td_->create_handler<GetInlineGameHighScoresQuery>(std::move(promise))
-      ->send(std::move(input_bot_inline_message_id), r_input_user.move_as_ok());
+      ->send(std::move(input_bot_inline_message_id), std::move(input_user));
 }
 
 td_api::object_ptr<td_api::gameHighScores> GameManager::get_game_high_scores_object(

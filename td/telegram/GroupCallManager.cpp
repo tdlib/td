@@ -3496,16 +3496,13 @@ void GroupCallManager::invite_group_call_participants(GroupCallId group_call_id,
   vector<tl_object_ptr<telegram_api::InputUser>> input_users;
   auto my_user_id = td_->contacts_manager_->get_my_id();
   for (auto user_id : user_ids) {
-    auto r_input_user = td_->contacts_manager_->get_input_user(user_id);
-    if (r_input_user.is_error()) {
-      return promise.set_error(r_input_user.move_as_error());
-    }
+    TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
 
     if (user_id == my_user_id) {
       // can't invite self
       continue;
     }
-    input_users.push_back(r_input_user.move_as_ok());
+    input_users.push_back(std::move(input_user));
   }
 
   if (input_users.empty()) {
