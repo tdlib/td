@@ -14,7 +14,6 @@
 
 #include "td/utils/algorithm.h"
 #include "td/utils/ChainScheduler.h"
-#include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Promise.h"
@@ -265,11 +264,11 @@ void MultiSequenceDispatcherOld::send(NetQueryPtr query) {
   auto it_ok = dispatchers_.emplace(sequence_id, Data{0, ActorOwn<SequenceDispatcher>()});
   auto &data = it_ok.first->second;
   if (it_ok.second) {
-    LOG(DEBUG) << "Create SequenceDispatcher" << sequence_id;
+    LOG(DEBUG) << "Create SequenceDispatcher " << sequence_id;
     data.dispatcher_ = create_actor<SequenceDispatcher>("SequenceDispatcher", actor_shared(this, sequence_id));
   }
   data.cnt_++;
-  query->debug(PSTRING() << "send to SequenceDispatcher " << tag("sequence_id", sequence_id));
+  query->debug(PSTRING() << "send to SequenceDispatcher " << sequence_id);
   send_closure(data.dispatcher_, &SequenceDispatcher::send_with_callback, std::move(query), std::move(callback));
 }
 

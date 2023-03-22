@@ -80,7 +80,7 @@ class NetQuery final : public TsListNode<NetQueryDebug> {
   }
 
   void resend(DcId new_dc_id) {
-    VLOG(net_query) << "Resend" << *this;
+    VLOG(net_query) << "Resend " << *this;
     {
       auto guard = lock();
       get_data_unsafe().resend_count_++;

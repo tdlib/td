@@ -259,7 +259,7 @@ class MpmcSleepyWaiter {
         guard.unlock();
       } else {
         guard.unlock();
-        VLOG(waiter) << "Not in sleepers" << slot.worker_id;
+        VLOG(waiter) << "Not in sleepers " << slot.worker_id;
         CHECK(slot.cancel_park());
       }
     }
