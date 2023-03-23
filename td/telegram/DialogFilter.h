@@ -46,11 +46,11 @@ class DialogFilter {
   bool is_empty(bool for_server) const;
 
   const DialogFilterId &get_dialog_filter_id() const {
-    return dialog_filter_id;
+    return dialog_filter_id_;
   }
 
   const vector<InputDialogId> &get_pinned_dialog_ids() const {
-    return pinned_dialog_ids;
+    return pinned_dialog_ids_;
   }
 
   bool is_dialog_pinned(DialogId dialog_id) const;
@@ -108,20 +108,20 @@ class DialogFilter {
   void parse(ParserT &parser);
 
  private:
-  DialogFilterId dialog_filter_id;
-  string title;
-  string emoji;
-  vector<InputDialogId> pinned_dialog_ids;
-  vector<InputDialogId> included_dialog_ids;
-  vector<InputDialogId> excluded_dialog_ids;
-  bool exclude_muted = false;
-  bool exclude_read = false;
-  bool exclude_archived = false;
-  bool include_contacts = false;
-  bool include_non_contacts = false;
-  bool include_bots = false;
-  bool include_groups = false;
-  bool include_channels = false;
+  DialogFilterId dialog_filter_id_;
+  string title_;
+  string emoji_;
+  vector<InputDialogId> pinned_dialog_ids_;
+  vector<InputDialogId> included_dialog_ids_;
+  vector<InputDialogId> excluded_dialog_ids_;
+  bool exclude_muted_ = false;
+  bool exclude_read_ = false;
+  bool exclude_archived_ = false;
+  bool include_contacts_ = false;
+  bool include_non_contacts_ = false;
+  bool include_bots_ = false;
+  bool include_groups_ = false;
+  bool include_channels_ = false;
 
   static FlatHashMap<string, string> emoji_to_icon_name_;
   static FlatHashMap<string, string> icon_name_to_emoji_;
@@ -136,9 +136,9 @@ class DialogFilter {
 };
 
 inline bool operator==(const DialogFilter &lhs, const DialogFilter &rhs) {
-  return lhs.dialog_filter_id == rhs.dialog_filter_id && lhs.title == rhs.title && lhs.emoji == rhs.emoji &&
-         lhs.pinned_dialog_ids == rhs.pinned_dialog_ids && lhs.included_dialog_ids == rhs.included_dialog_ids &&
-         lhs.excluded_dialog_ids == rhs.excluded_dialog_ids && DialogFilter::are_flags_equal(lhs, rhs);
+  return lhs.dialog_filter_id_ == rhs.dialog_filter_id_ && lhs.title_ == rhs.title_ && lhs.emoji_ == rhs.emoji_ &&
+         lhs.pinned_dialog_ids_ == rhs.pinned_dialog_ids_ && lhs.included_dialog_ids_ == rhs.included_dialog_ids_ &&
+         lhs.excluded_dialog_ids_ == rhs.excluded_dialog_ids_ && DialogFilter::are_flags_equal(lhs, rhs);
 }
 
 inline bool operator!=(const DialogFilter &lhs, const DialogFilter &rhs) {

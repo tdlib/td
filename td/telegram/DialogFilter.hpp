@@ -16,34 +16,34 @@ namespace td {
 template <class StorerT>
 void DialogFilter::store(StorerT &storer) const {
   using td::store;
-  bool has_pinned_dialog_ids = !pinned_dialog_ids.empty();
-  bool has_included_dialog_ids = !included_dialog_ids.empty();
-  bool has_excluded_dialog_ids = !excluded_dialog_ids.empty();
+  bool has_pinned_dialog_ids = !pinned_dialog_ids_.empty();
+  bool has_included_dialog_ids = !included_dialog_ids_.empty();
+  bool has_excluded_dialog_ids = !excluded_dialog_ids_.empty();
   BEGIN_STORE_FLAGS();
-  STORE_FLAG(exclude_muted);
-  STORE_FLAG(exclude_read);
-  STORE_FLAG(exclude_archived);
-  STORE_FLAG(include_contacts);
-  STORE_FLAG(include_non_contacts);
-  STORE_FLAG(include_bots);
-  STORE_FLAG(include_groups);
-  STORE_FLAG(include_channels);
+  STORE_FLAG(exclude_muted_);
+  STORE_FLAG(exclude_read_);
+  STORE_FLAG(exclude_archived_);
+  STORE_FLAG(include_contacts_);
+  STORE_FLAG(include_non_contacts_);
+  STORE_FLAG(include_bots_);
+  STORE_FLAG(include_groups_);
+  STORE_FLAG(include_channels_);
   STORE_FLAG(has_pinned_dialog_ids);
   STORE_FLAG(has_included_dialog_ids);
   STORE_FLAG(has_excluded_dialog_ids);
   END_STORE_FLAGS();
 
-  store(dialog_filter_id, storer);
-  store(title, storer);
-  store(emoji, storer);
+  store(dialog_filter_id_, storer);
+  store(title_, storer);
+  store(emoji_, storer);
   if (has_pinned_dialog_ids) {
-    store(pinned_dialog_ids, storer);
+    store(pinned_dialog_ids_, storer);
   }
   if (has_included_dialog_ids) {
-    store(included_dialog_ids, storer);
+    store(included_dialog_ids_, storer);
   }
   if (has_excluded_dialog_ids) {
-    store(excluded_dialog_ids, storer);
+    store(excluded_dialog_ids_, storer);
   }
 }
 
@@ -54,30 +54,30 @@ void DialogFilter::parse(ParserT &parser) {
   bool has_included_dialog_ids;
   bool has_excluded_dialog_ids;
   BEGIN_PARSE_FLAGS();
-  PARSE_FLAG(exclude_muted);
-  PARSE_FLAG(exclude_read);
-  PARSE_FLAG(exclude_archived);
-  PARSE_FLAG(include_contacts);
-  PARSE_FLAG(include_non_contacts);
-  PARSE_FLAG(include_bots);
-  PARSE_FLAG(include_groups);
-  PARSE_FLAG(include_channels);
+  PARSE_FLAG(exclude_muted_);
+  PARSE_FLAG(exclude_read_);
+  PARSE_FLAG(exclude_archived_);
+  PARSE_FLAG(include_contacts_);
+  PARSE_FLAG(include_non_contacts_);
+  PARSE_FLAG(include_bots_);
+  PARSE_FLAG(include_groups_);
+  PARSE_FLAG(include_channels_);
   PARSE_FLAG(has_pinned_dialog_ids);
   PARSE_FLAG(has_included_dialog_ids);
   PARSE_FLAG(has_excluded_dialog_ids);
   END_PARSE_FLAGS();
 
-  parse(dialog_filter_id, parser);
-  parse(title, parser);
-  parse(emoji, parser);
+  parse(dialog_filter_id_, parser);
+  parse(title_, parser);
+  parse(emoji_, parser);
   if (has_pinned_dialog_ids) {
-    parse(pinned_dialog_ids, parser);
+    parse(pinned_dialog_ids_, parser);
   }
   if (has_included_dialog_ids) {
-    parse(included_dialog_ids, parser);
+    parse(included_dialog_ids_, parser);
   }
   if (has_excluded_dialog_ids) {
-    parse(excluded_dialog_ids, parser);
+    parse(excluded_dialog_ids_, parser);
   }
 }
 
