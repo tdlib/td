@@ -95,7 +95,11 @@ class GetAppChangelogQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->updates_manager_->on_get_updates(result_ptr.move_as_ok(), std::move(promise_));
+    auto ptr = result_ptr.move_as_ok();
+    if (td_->updates_manager_->are_empty_updates(ptr.get())) {
+      return promise_.set_error(Status::Error(404, "Changelog not found"));
+    }
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(Status status) final {

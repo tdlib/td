@@ -1174,6 +1174,25 @@ vector<tl_object_ptr<telegram_api::Update>> *UpdatesManager::get_updates(telegra
       get_updates(static_cast<const telegram_api::Updates *>(updates_ptr)));
 }
 
+bool UpdatesManager::are_empty_updates(const telegram_api::Updates *updates_ptr) {
+  switch (updates_ptr->get_id()) {
+    case telegram_api::updatesTooLong::ID:
+    case telegram_api::updateShortSentMessage::ID:
+      return true;
+    case telegram_api::updateShortMessage::ID:
+    case telegram_api::updateShortChatMessage::ID:
+    case telegram_api::updateShort::ID:
+      return false;
+    case telegram_api::updatesCombined::ID:
+      return static_cast<const telegram_api::updatesCombined *>(updates_ptr)->updates_.empty();
+    case telegram_api::updates::ID:
+      return static_cast<const telegram_api::updates *>(updates_ptr)->updates_.empty();
+    default:
+      UNREACHABLE();
+      return true;
+  }
+}
+
 vector<UserId> UpdatesManager::extract_group_invite_privacy_forbidden_updates(
     tl_object_ptr<telegram_api::Updates> &updates_ptr) {
   auto updates = get_updates(updates_ptr.get());
