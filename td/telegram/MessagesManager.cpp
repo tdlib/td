@@ -37136,12 +37136,16 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
       LOG(ERROR) << message_id << " in " << dialog_id << " has changed is_outgoing from " << old_message->is_outgoing
                  << " to " << new_message->is_outgoing << ", message content type is " << old_content_type << '/'
                  << new_content_type;
+      if (new_message->is_outgoing) {
+        old_message->is_outgoing = new_message->is_outgoing;
+        need_send_update = true;
+      }
     } else {
       LOG(DEBUG) << "Message is_outgoing has changed from " << old_message->is_outgoing << " to "
                  << new_message->is_outgoing;
+      old_message->is_outgoing = new_message->is_outgoing;
+      need_send_update = true;
     }
-    old_message->is_outgoing = new_message->is_outgoing;
-    need_send_update = true;
   }
   LOG_IF(ERROR, old_message->is_channel_post != new_message->is_channel_post)
       << message_id << " in " << dialog_id << " has changed is_channel_post from " << old_message->is_channel_post
