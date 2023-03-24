@@ -1314,6 +1314,12 @@ chatFilter title:string icon_name:string pinned_chat_ids:vector<int53> included_
 //-"Favorite", "Flower", "Game", "Home", "Love", "Mask", "Party", "Sport", "Study", "Trade", "Travel", "Work", "Airplane", "Book", "Light", "Like", "Money", "Note", "Palette"
 chatFilterInfo id:int32 title:string icon_name:string = ChatFilterInfo;
 
+//@description Contains a chat filter invite link
+//@invite_link The chat filter invite link
+//@name Name of the link
+//@chat_ids Identifiers of chats, included in the link
+chatFilterInviteLink invite_link:string name:string chat_ids:vector<int53> = ChatFilterInviteLink;
+
 //@description Describes a recommended chat filter @filter The chat filter @param_description Chat filter description
 recommendedChatFilter filter:chatFilter description:string = RecommendedChatFilter;
 
