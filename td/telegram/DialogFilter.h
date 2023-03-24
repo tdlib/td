@@ -123,6 +123,7 @@ class DialogFilter {
   bool include_bots_ = false;
   bool include_groups_ = false;
   bool include_channels_ = false;
+  bool is_shareable_ = false;
 
   static FlatHashMap<string, string> emoji_to_icon_name_;
   static FlatHashMap<string, string> icon_name_to_emoji_;
