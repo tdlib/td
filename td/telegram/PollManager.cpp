@@ -14,6 +14,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
+#include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/PollId.hpp"
@@ -707,7 +708,10 @@ void PollManager::unregister_poll(PollId poll_id, FullMessageId full_message_id,
 }
 
 bool PollManager::can_unload_poll(PollId poll_id) {
-  if (G()->close_flag() || is_local_poll_id(poll_id) || server_poll_messages_.count(poll_id) != 0 ||
+  if (G()->close_flag()) {
+    return false;
+  }
+  if (is_local_poll_id(poll_id) || server_poll_messages_.count(poll_id) != 0 ||
       other_poll_messages_.count(poll_id) != 0 || pending_answers_.count(poll_id) != 0 ||
       being_closed_polls_.count(poll_id) != 0) {
     return false;

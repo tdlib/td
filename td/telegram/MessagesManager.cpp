@@ -86,7 +86,6 @@
 #include "td/utils/utf8.h"
 
 #include <algorithm>
-#include <cstring>
 #include <limits>
 #include <tuple>
 #include <type_traits>

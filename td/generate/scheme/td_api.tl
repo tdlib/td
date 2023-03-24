@@ -89,10 +89,12 @@ emailAddressAuthenticationGoogleId token:string = EmailAddressAuthentication;
 
 //@class EmailAddressResetState @description Describes reset state of a email address
 
-//@description Email address can be reset after the given period. Call resetAuthenticationEmailAddress to reset it and allow the user to authorize with a code sent to the user's phone number @wait_period Time required to wait before the email address can be reset; 0 if the user is subscribed to Telegram Premium
+//@description Email address can be reset after the given period. Call resetAuthenticationEmailAddress to reset it and allow the user to authorize with a code sent to the user's phone number
+//@wait_period Time required to wait before the email address can be reset; 0 if the user is subscribed to Telegram Premium
 emailAddressResetStateAvailable wait_period:int32 = EmailAddressResetState;
 
-//@description Email address reset has already been requested. Call resetAuthenticationEmailAddress to try to reset it immediately @reset_in Left time before the email address will be reset, in seconds. updateAuthorizationState is not sent when this field changes
+//@description Email address reset has already been requested. Call resetAuthenticationEmailAddress to check whether immediate reset is possible
+//@reset_in Left time before the email address will be reset, in seconds. updateAuthorizationState is not sent when this field changes
 emailAddressResetStatePending reset_in:int32 = EmailAddressResetState;
 
 

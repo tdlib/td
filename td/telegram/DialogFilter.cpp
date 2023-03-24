@@ -20,6 +20,7 @@
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 
+#include <algorithm>
 #include <utility>
 
 namespace td {
