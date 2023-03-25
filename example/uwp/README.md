@@ -24,6 +24,8 @@ If you need to restart the build from scratch, call `.\build.ps1 -vcpkg_root C:\
 
 After this `TDLib` can be used from any UWP project, built in Visual Studio.
 
+Alternatively, you can build `TDLib` as a NuGet package, adding the option `-nupkg` to the `.\build.ps1` script invocation. The resulting package will be placed in the directory `build-uwp\nupkg`.
+
 ## Example of usage
 
 The `app/` directory contains a simple example of a C# application for Universal Windows Platform. Just open it with Visual Studio 2015 or later and run.
