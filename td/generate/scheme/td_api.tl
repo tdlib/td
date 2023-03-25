@@ -1245,7 +1245,7 @@ notificationSettingsScopeGroupChats = NotificationSettingsScope;
 notificationSettingsScopeChannelChats = NotificationSettingsScope;
 
 
-//@description Contains information about notification settings for a chat or a froum topic
+//@description Contains information about notification settings for a chat or a forum topic
 //@use_default_mute_for If true, mute_for is ignored and the value for the relevant type of chat or the forum chat is used instead
 //@mute_for Time left before notifications will be unmuted, in seconds
 //@use_default_sound If true, the value for the relevant type of chat or the forum chat is used instead of sound_id
