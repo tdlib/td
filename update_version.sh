@@ -3,7 +3,7 @@ cd $(dirname $0)
 
 COMMIT_FILES="example/cpp/CMakeLists.txt example/uwp/extension.vsixmanifest example/uwp/Telegram.Td.UWP.nuspec README.md td/telegram/OptionManager.cpp"
 
-# check arguemnt '-i' to drop all fixed files list.
+# check argument '-i' to drop all fixed files list.
 for arg in "$@"; do if [[ "$arg" == "-i" ]]; then COMMIT_FILES=""; break; fi; done
 
 # 'git diff' to ensure that 'CMakeLists.txt' is modified.
