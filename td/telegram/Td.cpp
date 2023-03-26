@@ -7461,9 +7461,8 @@ void Td::on_request(uint64 id, td_api::getEmojiSuggestionsUrl &request) {
 
 void Td::on_request(uint64 id, const td_api::getCustomEmojiStickers &request) {
   CREATE_REQUEST_PROMISE();
-  stickers_manager_->get_custom_emoji_stickers(
-      transform(request.custom_emoji_ids_, [](int64 custom_emoji_id) { return CustomEmojiId(custom_emoji_id); }), true,
-      std::move(promise));
+  stickers_manager_->get_custom_emoji_stickers(CustomEmojiId::get_custom_emoji_ids(request.custom_emoji_ids_), true,
+                                               std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getDefaultChatPhotoCustomEmojiStickers &request) {

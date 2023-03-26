@@ -5101,13 +5101,11 @@ void StickersManager::on_find_custom_emojis_success(const string &emoji,
     case telegram_api::emojiList::ID: {
       auto emoji_list = move_tl_object_as<telegram_api::emojiList>(stickers);
 
-      auto custom_emoji_ids =
-          transform(std::move(emoji_list->document_id_), [](int64 document_id) { return CustomEmojiId(document_id); });
-      auto hash = emoji_list->hash_;
-
+      auto custom_emoji_ids = CustomEmojiId::get_custom_emoji_ids(emoji_list->document_id_);
       get_custom_emoji_stickers_unlimited(
-          custom_emoji_ids, PromiseCreator::lambda([actor_id = actor_id(this), emoji, hash, custom_emoji_ids](
-                                                       Result<td_api::object_ptr<td_api::stickers>> &&result) {
+          custom_emoji_ids,
+          PromiseCreator::lambda([actor_id = actor_id(this), emoji, hash = emoji_list->hash_,
+                                  custom_emoji_ids](Result<td_api::object_ptr<td_api::stickers>> &&result) {
             send_closure(actor_id, &StickersManager::on_load_custom_emojis, std::move(emoji), hash, custom_emoji_ids,
                          std::move(result));
           }));
@@ -6801,8 +6799,7 @@ void StickersManager::on_get_default_dialog_photo_custom_emoji_ids(
   }
   CHECK(constructor_id == telegram_api::emojiList::ID);
   auto emoji_list = move_tl_object_as<telegram_api::emojiList>(emoji_list_ptr);
-  auto custom_emoji_ids =
-      transform(std::move(emoji_list->document_id_), [](int64 document_id) { return CustomEmojiId(document_id); });
+  auto custom_emoji_ids = CustomEmojiId::get_custom_emoji_ids(emoji_list->document_id_);
   auto hash = emoji_list->hash_;
 
   if (G()->use_sqlite_pmc()) {
