@@ -8,7 +8,7 @@ ARG ANDROID_NDK_VERSION=23.2.8568313
 COPY ./check-environment.sh ./fetch-sdk.sh ./
 RUN ./fetch-sdk.sh SDK "$ANDROID_NDK_VERSION"
 
-ARG OPENSSL_VERSION=OpenSSL_1_1_1q
+ARG OPENSSL_VERSION=OpenSSL_1_1_1t
 COPY ./build-openssl.sh ./
 RUN ./build-openssl.sh SDK "$ANDROID_NDK_VERSION" openssl "$OPENSSL_VERSION"
 

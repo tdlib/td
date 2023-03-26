@@ -3,7 +3,7 @@ cd $(dirname $0)
 
 emconfigure true 2> /dev/null || { echo 'emconfigure not found. Install emsdk and add emconfigure and emmake to PATH environment variable. See instruction at https://kripken.github.io/emscripten-site/docs/getting_started/downloads.html. Do not forget to add `emconfigure` and `emmake` to the PATH environment variable via `emsdk/emsdk_env.sh` script.'; exit 1; }
 
-OPENSSL=OpenSSL_1_1_0j
+OPENSSL=OpenSSL_1_1_0l
 if [ ! -f $OPENSSL.tar.gz ]; then
   echo "Downloading OpenSSL sources..."
   wget https://github.com/openssl/openssl/archive/$OPENSSL.tar.gz

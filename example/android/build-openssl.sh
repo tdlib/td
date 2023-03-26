@@ -3,7 +3,7 @@
 ANDROID_SDK_ROOT=${1:-SDK}
 ANDROID_NDK_VERSION=${2:-23.2.8568313}
 OPENSSL_INSTALL_DIR=${3:-third-party/openssl}
-OPENSSL_VERSION=${4:-OpenSSL_1_1_1q} # openssl-3.0.5
+OPENSSL_VERSION=${4:-OpenSSL_1_1_1t} # openssl-3.1.0
 
 if [ ! -d "$ANDROID_SDK_ROOT" ] ; then
   echo "Error: directory \"$ANDROID_SDK_ROOT\" doesn't exist. Run ./fetch-sdk.sh first, or provide a valid path to Android SDK."
