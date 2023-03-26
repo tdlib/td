@@ -70,6 +70,8 @@ class DialogId {
 
   static DialogId get_message_dialog_id(const tl_object_ptr<telegram_api::Message> &message_ptr);
 
+  static vector<DialogId> get_dialog_ids(const vector<int64> &chat_ids);
+
   template <class StorerT>
   void store(StorerT &storer) const {
     storer.store_long(id);

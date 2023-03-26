@@ -8,6 +8,7 @@
 
 #include "td/telegram/telegram_api.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/logging.h"
 
 #include <limits>
@@ -174,6 +175,10 @@ DialogId DialogId::get_message_dialog_id(const telegram_api::Message *message_pt
 
 DialogId DialogId::get_message_dialog_id(const tl_object_ptr<telegram_api::Message> &message_ptr) {
   return get_message_dialog_id(message_ptr.get());
+}
+
+vector<DialogId> DialogId::get_dialog_ids(const vector<int64> &chat_ids) {
+  return transform(chat_ids, [](int64 chat_id) { return DialogId(chat_id); });
 }
 
 }  // namespace td
