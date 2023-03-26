@@ -115,7 +115,7 @@ termsOfService text:formattedText min_user_age:int32 show_popup:Bool = TermsOfSe
 
 //@class AuthorizationState @description Represents the current authorization state of the TDLib client
 
-//@description Initializetion parameters are needed. Call setTdlibParameters to provide them
+//@description Initialization parameters are needed. Call setTdlibParameters to provide them
 authorizationStateWaitTdlibParameters = AuthorizationState;
 
 //@description TDLib needs the user's phone number to authorize. Call setAuthenticationPhoneNumber to provide the phone number, or use requestQrCodeAuthentication or checkAuthenticationBotToken for other authentication options
@@ -1245,7 +1245,7 @@ notificationSettingsScopeGroupChats = NotificationSettingsScope;
 notificationSettingsScopeChannelChats = NotificationSettingsScope;
 
 
-//@description Contains information about notification settings for a chat or a froum topic
+//@description Contains information about notification settings for a chat or a forum topic
 //@use_default_mute_for If true, mute_for is ignored and the value for the relevant type of chat or the forum chat is used instead
 //@mute_for Time left before notifications will be unmuted, in seconds
 //@use_default_sound If true, the value for the relevant type of chat or the forum chat is used instead of sound_id
@@ -2090,7 +2090,7 @@ messageExtendedMediaPhoto photo:photo caption:formattedText = MessageExtendedMed
 //@description The media is a video @video The video @caption Photo caption
 messageExtendedMediaVideo video:video caption:formattedText = MessageExtendedMedia;
 
-//@description The media is unuspported @caption Media caption
+//@description The media is unsupported @caption Media caption
 messageExtendedMediaUnsupported caption:formattedText = MessageExtendedMedia;
 
 
@@ -3902,7 +3902,7 @@ premiumFeatureAnimatedProfilePhoto = PremiumFeature;
 //@description The ability to set a custom emoji as a forum topic icon
 premiumFeatureForumTopicIcon = PremiumFeature;
 
-//@description Allowed to set a premium appllication icons
+//@description Allowed to set a premium application icons
 premiumFeatureAppIcons = PremiumFeature;
 
 //@description Allowed to translate chat messages real-time
@@ -6448,7 +6448,7 @@ getMessageAddedReactions chat_id:int53 message_id:int53 reaction_type:ReactionTy
 setDefaultReactionType reaction_type:ReactionType = Ok;
 
 
-//@description Returns all entities (mentions, hashtags, cashtags, bot commands, bank card numbers, URLs, and email addresses) found in the text. Can be called synchronously @text The text in which to look for entites
+//@description Returns all entities (mentions, hashtags, cashtags, bot commands, bank card numbers, URLs, and email addresses) found in the text. Can be called synchronously @text The text in which to look for entities
 getTextEntities text:string = TextEntities;
 
 //@description Parses Bold, Italic, Underline, Strikethrough, Spoiler, CustomEmoji, Code, Pre, PreCode, TextUrl and MentionName entities from a marked-up text. Can be called synchronously @text The text to parse @parse_mode Text parse mode
@@ -6821,7 +6821,7 @@ setChatNotificationSettings chat_id:int53 notification_settings:chatNotification
 //@has_protected_content New value of has_protected_content
 toggleChatHasProtectedContent chat_id:int53 has_protected_content:Bool = Ok;
 
-//@description Changes the tranlatable state of a chat; for Telegram Premium users only @chat_id Chat identifier @is_translatable New value of is_translatable
+//@description Changes the translatable state of a chat; for Telegram Premium users only @chat_id Chat identifier @is_translatable New value of is_translatable
 toggleChatIsTranslatable chat_id:int53 is_translatable:Bool = Ok;
 
 //@description Changes the marked as unread state of a chat @chat_id Chat identifier @is_marked_as_unread New value of is_marked_as_unread
@@ -7651,7 +7651,7 @@ terminateAllOtherSessions = Ok;
 //@description Toggles whether a session can accept incoming calls @session_id Session identifier @can_accept_calls Pass true to allow accepting incoming calls by the session; pass false otherwise
 toggleSessionCanAcceptCalls session_id:int64 can_accept_calls:Bool = Ok;
 
-//@description Toggles whether a session can accept incoming secret chats @session_id Session identifier @can_accept_secret_chats Pass true to allow accepring secret chats by the session; pass false otherwise
+//@description Toggles whether a session can accept incoming secret chats @session_id Session identifier @can_accept_secret_chats Pass true to allow accepting secret chats by the session; pass false otherwise
 toggleSessionCanAcceptSecretChats session_id:int64 can_accept_secret_chats:Bool = Ok;
 
 //@description Changes the period of inactivity after which sessions will automatically be terminated @inactive_session_ttl_days New number of days of inactivity before sessions will be automatically terminated; 1-366 days
