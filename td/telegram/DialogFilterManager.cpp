@@ -6,10 +6,12 @@
 //
 #include "td/telegram/DialogFilterManager.h"
 
+#include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogFilter.h"
 #include "td/telegram/DialogFilter.hpp"
+#include "td/telegram/DialogFilterInviteLink.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessagesManager.h"
@@ -112,6 +114,37 @@ class UpdateDialogFiltersOrderQuery final : public Td::ResultHandler {
 
     LOG(INFO) << "Receive result for UpdateDialogFiltersOrderQuery: " << result_ptr.ok();
     promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class ExportChatlistInviteQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::chatFilterInviteLink>> promise_;
+
+ public:
+  explicit ExportChatlistInviteQuery(Promise<td_api::object_ptr<td_api::chatFilterInviteLink>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(DialogFilterId dialog_filter_id, const string &title,
+            vector<tl_object_ptr<telegram_api::InputPeer>> &&input_peers) {
+    send_query(G()->net_query_creator().create(telegram_api::chatlists_exportChatlistInvite(
+        dialog_filter_id.get_input_chatlist(), title, std::move(input_peers))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::chatlists_exportChatlistInvite>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for ExportChatlistInviteQuery: " << to_string(ptr);
+    td_->dialog_filter_manager_->on_get_dialog_filter(std::move(ptr->filter_));
+    promise_.set_value(DialogFilterInviteLink(td_, std::move(ptr->invite_)).get_chat_filter_invite_link_object());
   }
 
   void on_error(Status status) final {
@@ -519,7 +552,9 @@ void DialogFilterManager::on_get_recommended_dialog_filters(
     RecommendedDialogFilter recommended_dialog_filter;
     recommended_dialog_filter.dialog_filter =
         DialogFilter::get_dialog_filter(std::move(suggested_filter->filter_), false);
-    CHECK(recommended_dialog_filter.dialog_filter != nullptr);
+    if (recommended_dialog_filter.dialog_filter == nullptr) {
+      continue;
+    }
     load_dialog_filter(recommended_dialog_filter.dialog_filter.get(), false, mpas.get_promise());
 
     recommended_dialog_filter.description = std::move(suggested_filter->description_);
@@ -768,6 +803,52 @@ void DialogFilterManager::reload_dialog_filters() {
         send_closure(actor_id, &DialogFilterManager::on_get_dialog_filters, std::move(r_filters), false);
       });
   td_->create_handler<GetDialogFiltersQuery>(std::move(promise))->send();
+}
+
+void DialogFilterManager::on_get_dialog_filter(telegram_api::object_ptr<telegram_api::DialogFilter> filter) {
+  CHECK(!td_->auth_manager_->is_bot());
+  auto new_server_filter = DialogFilter::get_dialog_filter(std::move(filter), true);
+  if (new_server_filter == nullptr) {
+    return;
+  }
+  new_server_filter->sort_input_dialog_ids(td_, "on_get_dialog_filter 1");
+
+  auto dialog_filter_id = new_server_filter->get_dialog_filter_id();
+  auto old_filter = get_dialog_filter(dialog_filter_id);
+  if (old_filter == nullptr) {
+    return;
+  }
+  bool is_server_changed = false;
+  bool is_changed = false;
+  for (auto &old_server_filter : server_dialog_filters_) {
+    if (old_server_filter->get_dialog_filter_id() == dialog_filter_id && *new_server_filter != *old_server_filter) {
+      if (!DialogFilter::are_equivalent(*old_filter, *new_server_filter)) {
+        auto new_filter =
+            DialogFilter::merge_dialog_filter_changes(old_filter, old_server_filter.get(), new_server_filter.get());
+        new_filter->sort_input_dialog_ids(td_, "on_get_dialog_filter 2");
+        if (*new_filter != *old_filter) {
+          is_changed = true;
+          edit_dialog_filter(std::move(new_filter), "on_get_dialog_filter");
+        }
+      }
+      is_server_changed = true;
+      old_server_filter = std::move(new_server_filter);
+      break;
+    }
+  }
+  if (!is_server_changed) {
+    return;
+  }
+
+  if (is_changed || !is_update_chat_filters_sent_) {
+    send_update_chat_filters();
+  }
+  schedule_dialog_filters_reload(get_dialog_filters_cache_time());
+  save_dialog_filters();
+
+  if (need_synchronize_dialog_filters()) {
+    synchronize_dialog_filters();
+  }
 }
 
 void DialogFilterManager::on_get_dialog_filters(
@@ -1259,6 +1340,29 @@ void DialogFilterManager::reorder_dialog_filters(vector<DialogFilterId> dialog_f
     synchronize_dialog_filters();
   }
   promise.set_value(Unit());
+}
+
+void DialogFilterManager::create_dialog_filter_invite_link(
+    DialogFilterId dialog_filter_id, string invite_link_name, vector<DialogId> dialog_ids,
+    Promise<td_api::object_ptr<td_api::chatFilterInviteLink>> promise) {
+  auto dialog_filter = get_dialog_filter(dialog_filter_id);
+  if (dialog_filter == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat filter not found"));
+  }
+  vector<tl_object_ptr<telegram_api::InputPeer>> input_peers;
+  input_peers.reserve(dialog_ids.size());
+  for (auto &dialog_id : dialog_ids) {
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    if (input_peer == nullptr) {
+      return promise.set_error(Status::Error(400, "Have no access to the chat"));
+    }
+    input_peers.push_back(std::move(input_peer));
+  }
+  if (input_peers.empty()) {
+    return promise.set_error(Status::Error(400, "At least one chat must be included"));
+  }
+  td_->create_handler<ExportChatlistInviteQuery>(std::move(promise))
+      ->send(dialog_filter_id, invite_link_name, std::move(input_peers));
 }
 
 void DialogFilterManager::reorder_dialog_filters_on_server(vector<DialogFilterId> dialog_filter_ids,

@@ -6,6 +6,8 @@
 //
 #pragma once
 
+#include "td/telegram/telegram_api.h"
+
 #include "td/utils/common.h"
 #include "td/utils/HashTableUtils.h"
 #include "td/utils/StringBuilder.h"
@@ -39,6 +41,10 @@ class DialogFilterId {
 
   int32 get() const {
     return id;
+  }
+
+  telegram_api::object_ptr<telegram_api::inputChatlistDialogFilter> get_input_chatlist() const {
+    return telegram_api::make_object<telegram_api::inputChatlistDialogFilter>(id);
   }
 
   bool operator==(const DialogFilterId &other) const {

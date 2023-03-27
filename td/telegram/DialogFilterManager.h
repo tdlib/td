@@ -72,6 +72,12 @@ class DialogFilterManager final : public Actor {
 
   td_api::object_ptr<td_api::chatFilter> get_chat_filter_object(DialogFilterId dialog_filter_id);
 
+  void create_dialog_filter_invite_link(DialogFilterId dialog_filter_id, string invite_link_name,
+                                        vector<DialogId> dialog_ids,
+                                        Promise<td_api::object_ptr<td_api::chatFilterInviteLink>> promise);
+
+  void on_get_dialog_filter(telegram_api::object_ptr<telegram_api::DialogFilter> filter);
+
   void get_recommended_dialog_filters(Promise<td_api::object_ptr<td_api::recommendedChatFilters>> &&promise);
 
   void load_dialog_filter(DialogFilterId dialog_filter_id, bool force, Promise<Unit> &&promise);

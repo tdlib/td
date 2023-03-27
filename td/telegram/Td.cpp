@@ -6152,6 +6152,15 @@ void Td::on_request(uint64 id, const td_api::reorderChatFilters &request) {
       request.main_chat_list_position_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::createChatFilterInviteLink &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.name_);
+  CREATE_REQUEST_PROMISE();
+  dialog_filter_manager_->create_dialog_filter_invite_link(
+      DialogFilterId(request.chat_filter_id_), std::move(request.name_), DialogId::get_dialog_ids(request.chat_ids_),
+      std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::setChatTitle &request) {
   CLEAN_INPUT_STRING(request.title_);
   CREATE_OK_REQUEST_PROMISE();

@@ -6791,6 +6791,12 @@ getRecommendedChatFilters = RecommendedChatFilters;
 //@description Returns default icon name for a filter. Can be called synchronously @filter Chat filter
 getChatFilterDefaultIconName filter:chatFilter = Text;
 
+//@description Creates a new invite link for a chat filter. A link can be created for a filter if it has only pinned and included chats
+//@chat_filter_id Chat filter identifier
+//@name Name of the link; 0-32 characters
+//@chat_ids Identifiers of supergroup or channel chats to be accessible by the invite link. The chats must be public, or the user must be able to invite new members by an invite link
+createChatFilterInviteLink chat_filter_id:int32 name:string chat_ids:vector<int53> = ChatFilterInviteLink;
+
 
 //@description Changes the chat title. Supported only for basic groups, supergroups and channels. Requires can_change_info administrator right
 //@chat_id Chat identifier
