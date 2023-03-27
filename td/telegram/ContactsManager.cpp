@@ -9446,6 +9446,9 @@ void ContactsManager::remove_inactive_channel(ChannelId channel_id) {
 }
 
 void ContactsManager::register_message_users(FullMessageId full_message_id, vector<UserId> user_ids) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
   for (auto user_id : user_ids) {
     CHECK(user_id.is_valid());
     const User *u = get_user(user_id);
@@ -9461,6 +9464,9 @@ void ContactsManager::register_message_users(FullMessageId full_message_id, vect
 }
 
 void ContactsManager::register_message_channels(FullMessageId full_message_id, vector<ChannelId> channel_ids) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
   for (auto channel_id : channel_ids) {
     CHECK(channel_id.is_valid());
     const Channel *c = get_channel(channel_id);
