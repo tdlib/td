@@ -6120,7 +6120,7 @@ void Td::on_request(uint64 id, const td_api::getChatFilter &request) {
 void Td::on_request(uint64 id, const td_api::getRecommendedChatFilters &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  messages_manager_->get_recommended_dialog_filters(std::move(promise));
+  dialog_filter_manager_->get_recommended_dialog_filters(std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::createChatFilter &request) {
