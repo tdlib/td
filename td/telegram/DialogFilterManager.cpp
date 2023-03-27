@@ -318,7 +318,7 @@ void DialogFilterManager::delete_dialogs_from_filter(const DialogFilter *dialog_
 
   if (*new_dialog_filter != *dialog_filter) {
     LOG(INFO) << "Update " << *dialog_filter << " to " << *new_dialog_filter;
-    td_->messages_manager_->do_edit_dialog_filter(std::move(new_dialog_filter), "delete_dialogs_from_filter");
+    td_->messages_manager_->do_edit_dialog_filter(std::move(new_dialog_filter), true, "delete_dialogs_from_filter");
   }
 }
 

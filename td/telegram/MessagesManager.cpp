@@ -19510,20 +19510,20 @@ void MessagesManager::edit_dialog_filter(DialogFilterId dialog_filter_id, td_api
     return promise.set_value(std::move(chat_filter_info));
   }
 
-  edit_dialog_filter(std::move(new_dialog_filter), "edit_dialog_filter");
-  save_dialog_filters();
-  send_update_chat_filters();
+  do_edit_dialog_filter(std::move(new_dialog_filter), true, "edit_dialog_filter");
 
-  synchronize_dialog_filters();
   promise.set_value(std::move(chat_filter_info));
 }
 
-void MessagesManager::do_edit_dialog_filter(unique_ptr<DialogFilter> &&filter, const char *source) {
+void MessagesManager::do_edit_dialog_filter(unique_ptr<DialogFilter> &&filter, bool need_synchronize,
+                                            const char *source) {
   edit_dialog_filter(std::move(filter), source);
   save_dialog_filters();
   send_update_chat_filters();
 
-  synchronize_dialog_filters();
+  if (need_synchronize) {
+    synchronize_dialog_filters();
+  }
 }
 
 void MessagesManager::update_dialog_filter_on_server(unique_ptr<DialogFilter> &&dialog_filter) {
@@ -20244,14 +20244,8 @@ Status MessagesManager::toggle_dialog_is_pinned(DialogListId dialog_list_id, Dia
     TRY_STATUS(new_dialog_filter->check_limits());
     new_dialog_filter->sort_input_dialog_ids(td_, "toggle_dialog_is_pinned");
 
-    edit_dialog_filter(std::move(new_dialog_filter), "toggle_dialog_is_pinned");
-    save_dialog_filters();
-    send_update_chat_filters();
-
-    if (dialog_id.get_type() != DialogType::SecretChat) {
-      synchronize_dialog_filters();
-    }
-
+    do_edit_dialog_filter(std::move(new_dialog_filter), dialog_id.get_type() != DialogType::SecretChat,
+                          "toggle_dialog_is_pinned");
     return Status::OK();
   }
 
@@ -20393,14 +20387,8 @@ Status MessagesManager::set_pinned_dialogs(DialogListId dialog_list_id, vector<D
     TRY_STATUS(new_dialog_filter->check_limits());
     new_dialog_filter->sort_input_dialog_ids(td_, "set_pinned_dialogs");
 
-    edit_dialog_filter(std::move(new_dialog_filter), "set_pinned_dialogs");
-    save_dialog_filters();
-    send_update_chat_filters();
-
-    if (server_old_dialog_ids != server_new_dialog_ids) {
-      synchronize_dialog_filters();
-    }
-
+    do_edit_dialog_filter(std::move(new_dialog_filter), server_old_dialog_ids != server_new_dialog_ids,
+                          "set_pinned_dialogs");
     return Status::OK();
   }
 
@@ -34198,14 +34186,8 @@ void MessagesManager::add_dialog_to_list(DialogId dialog_id, DialogListId dialog
     TRY_STATUS_PROMISE(promise, new_dialog_filter->check_limits());
     new_dialog_filter->sort_input_dialog_ids(td_, "add_dialog_to_list");
 
-    edit_dialog_filter(std::move(new_dialog_filter), "add_dialog_to_list");
-    save_dialog_filters();
-    send_update_chat_filters();
-
-    if (dialog_id.get_type() != DialogType::SecretChat) {
-      synchronize_dialog_filters();
-    }
-
+    do_edit_dialog_filter(std::move(new_dialog_filter), dialog_id.get_type() != DialogType::SecretChat,
+                          "add_dialog_to_list");
     return promise.set_value(Unit());
   }
 

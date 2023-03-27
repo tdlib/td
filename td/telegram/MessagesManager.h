@@ -676,7 +676,7 @@ class MessagesManager final : public Actor {
   void edit_dialog_filter(DialogFilterId dialog_filter_id, td_api::object_ptr<td_api::chatFilter> filter,
                           Promise<td_api::object_ptr<td_api::chatFilterInfo>> &&promise);
 
-  void do_edit_dialog_filter(unique_ptr<DialogFilter> &&filter, const char *source);
+  void do_edit_dialog_filter(unique_ptr<DialogFilter> &&filter, bool need_synchronize, const char *source);
 
   void delete_dialog_filter(DialogFilterId dialog_filter_id, Promise<Unit> &&promise);
 
