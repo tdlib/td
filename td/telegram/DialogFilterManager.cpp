@@ -1061,24 +1061,6 @@ td_api::object_ptr<td_api::updateChatFilters> DialogFilterManager::get_update_ch
   return update;
 }
 
-Result<unique_ptr<DialogFilter>> DialogFilterManager::create_dialog_filter(
-    DialogFilterId dialog_filter_id, td_api::object_ptr<td_api::chatFilter> filter) {
-  CHECK(filter != nullptr);
-  TRY_RESULT(dialog_filter, DialogFilter::create_dialog_filter(td_, dialog_filter_id, std::move(filter)));
-  Status status;
-  dialog_filter->for_each_dialog(
-      [messages_manager = td_->messages_manager_.get(), &status](const InputDialogId &input_dialog_id) {
-        if (status.is_error()) {
-          return;
-        }
-        status = messages_manager->can_add_dialog_to_filter(input_dialog_id.get_dialog_id());
-      });
-  if (status.is_error()) {
-    return std::move(status);
-  }
-  return std::move(dialog_filter);
-}
-
 void DialogFilterManager::create_dialog_filter(td_api::object_ptr<td_api::chatFilter> filter,
                                                Promise<td_api::object_ptr<td_api::chatFilterInfo>> &&promise) {
   CHECK(!td_->auth_manager_->is_bot());
@@ -1098,12 +1080,8 @@ void DialogFilterManager::create_dialog_filter(td_api::object_ptr<td_api::chatFi
     dialog_filter_id = DialogFilterId(static_cast<int32>(Random::fast(min_id, max_id)));
   } while (get_dialog_filter(dialog_filter_id) != nullptr || get_server_dialog_filter(dialog_filter_id) != nullptr);
 
-  auto r_dialog_filter = create_dialog_filter(dialog_filter_id, std::move(filter));
-  if (r_dialog_filter.is_error()) {
-    return promise.set_error(r_dialog_filter.move_as_error());
-  }
-  auto dialog_filter = r_dialog_filter.move_as_ok();
-  CHECK(dialog_filter != nullptr);
+  TRY_RESULT_PROMISE(promise, dialog_filter,
+                     DialogFilter::create_dialog_filter(td_, dialog_filter_id, std::move(filter)));
   auto chat_filter_info = dialog_filter->get_chat_filter_info_object();
 
   bool at_beginning = is_recommended_dialog_filter(dialog_filter.get());
@@ -1128,12 +1106,8 @@ void DialogFilterManager::edit_dialog_filter(DialogFilterId dialog_filter_id,
   }
   CHECK(is_update_chat_filters_sent_);
 
-  auto r_dialog_filter = create_dialog_filter(dialog_filter_id, std::move(filter));
-  if (r_dialog_filter.is_error()) {
-    return promise.set_error(r_dialog_filter.move_as_error());
-  }
-  auto new_dialog_filter = r_dialog_filter.move_as_ok();
-  CHECK(new_dialog_filter != nullptr);
+  TRY_RESULT_PROMISE(promise, new_dialog_filter,
+                     DialogFilter::create_dialog_filter(td_, dialog_filter_id, std::move(filter)));
   auto chat_filter_info = new_dialog_filter->get_chat_filter_info_object();
 
   if (*new_dialog_filter == *old_dialog_filter) {

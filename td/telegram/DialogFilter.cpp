@@ -135,6 +135,18 @@ Result<unique_ptr<DialogFilter>> DialogFilter::create_dialog_filter(Td *td, Dial
   TRY_STATUS(dialog_filter->check_limits());
   dialog_filter->sort_input_dialog_ids(td, "create_dialog_filter");
 
+  Status status;
+  dialog_filter->for_each_dialog(
+      [messages_manager = td->messages_manager_.get(), &status](const InputDialogId &input_dialog_id) {
+        if (status.is_error()) {
+          return;
+        }
+        status = messages_manager->can_add_dialog_to_filter(input_dialog_id.get_dialog_id());
+      });
+  if (status.is_error()) {
+    return std::move(status);
+  }
+
   return std::move(dialog_filter);
 }
 
