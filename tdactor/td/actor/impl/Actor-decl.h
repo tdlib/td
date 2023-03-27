@@ -80,7 +80,7 @@ class Actor : public ObserverBase {
   string set_tag(string tag);
 
   // for ActorInfo mostly
-  void init(ObjectPool<ActorInfo>::OwnerPtr &&info);
+  void set_info(ObjectPool<ActorInfo>::OwnerPtr &&info);
   ActorInfo *get_info();
   const ActorInfo *get_info() const;
   ObjectPool<ActorInfo>::OwnerPtr clear();

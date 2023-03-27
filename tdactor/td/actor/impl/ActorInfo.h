@@ -45,7 +45,7 @@ inline void ActorInfo::init(int32 sched_id, Slice name, ObjectPool<ActorInfo>::O
   name_.assign(name.data(), name.size());
 #endif
 
-  actor_->init(std::move(this_ptr));
+  actor_->set_info(std::move(this_ptr));
   deleter_ = deleter;
   need_context_ = need_context;
   need_start_up_ = need_start_up;

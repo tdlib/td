@@ -110,7 +110,7 @@ inline string Actor::set_tag(string tag) {
   return old_tag;
 }
 
-inline void Actor::init(ObjectPool<ActorInfo>::OwnerPtr &&info) {
+inline void Actor::set_info(ObjectPool<ActorInfo>::OwnerPtr &&info) {
   info_ = std::move(info);
 }
 
