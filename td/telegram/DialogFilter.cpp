@@ -93,7 +93,12 @@ unique_ptr<DialogFilter> DialogFilter::get_dialog_filter(
 
 Result<unique_ptr<DialogFilter>> DialogFilter::create_dialog_filter(Td *td, DialogFilterId dialog_filter_id,
                                                                     td_api::object_ptr<td_api::chatFilter> filter) {
-  CHECK(filter != nullptr);
+  if (filter == nullptr) {
+    return Status::Error(400, "Chat filter must be non-empty");
+  }
+  if (!clean_input_string(filter->title_) || !clean_input_string(filter->icon_name_)) {
+    return Status::Error(400, "Strings must be encoded in UTF-8");
+  }
 
   auto dialog_filter = make_unique<DialogFilter>();
   dialog_filter->dialog_filter_id_ = dialog_filter_id;

@@ -6127,22 +6127,12 @@ void Td::on_request(uint64 id, const td_api::getRecommendedChatFilters &request)
 
 void Td::on_request(uint64 id, td_api::createChatFilter &request) {
   CHECK_IS_USER();
-  if (request.filter_ == nullptr) {
-    return send_error_raw(id, 400, "Chat filter must be non-empty");
-  }
-  CLEAN_INPUT_STRING(request.filter_->title_);
-  CLEAN_INPUT_STRING(request.filter_->icon_name_);
   CREATE_REQUEST_PROMISE();
   dialog_filter_manager_->create_dialog_filter(std::move(request.filter_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::editChatFilter &request) {
   CHECK_IS_USER();
-  if (request.filter_ == nullptr) {
-    return send_error_raw(id, 400, "Chat filter must be non-empty");
-  }
-  CLEAN_INPUT_STRING(request.filter_->title_);
-  CLEAN_INPUT_STRING(request.filter_->icon_name_);
   CREATE_REQUEST_PROMISE();
   dialog_filter_manager_->edit_dialog_filter(DialogFilterId(request.chat_filter_id_), std::move(request.filter_),
                                              std::move(promise));
