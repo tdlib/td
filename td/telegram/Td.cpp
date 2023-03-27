@@ -4269,6 +4269,8 @@ void Td::on_request(uint64 id, const td_api::getCurrentState &request) {
 
     notification_settings_manager_->get_current_state(updates);
 
+    dialog_filter_manager_->get_current_state(updates);
+
     messages_manager_->get_current_state(updates);
 
     notification_manager_->get_current_state(updates);
@@ -6131,7 +6133,7 @@ void Td::on_request(uint64 id, td_api::createChatFilter &request) {
   CLEAN_INPUT_STRING(request.filter_->title_);
   CLEAN_INPUT_STRING(request.filter_->icon_name_);
   CREATE_REQUEST_PROMISE();
-  messages_manager_->create_dialog_filter(std::move(request.filter_), std::move(promise));
+  dialog_filter_manager_->create_dialog_filter(std::move(request.filter_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::editChatFilter &request) {
@@ -6142,20 +6144,20 @@ void Td::on_request(uint64 id, td_api::editChatFilter &request) {
   CLEAN_INPUT_STRING(request.filter_->title_);
   CLEAN_INPUT_STRING(request.filter_->icon_name_);
   CREATE_REQUEST_PROMISE();
-  messages_manager_->edit_dialog_filter(DialogFilterId(request.chat_filter_id_), std::move(request.filter_),
-                                        std::move(promise));
+  dialog_filter_manager_->edit_dialog_filter(DialogFilterId(request.chat_filter_id_), std::move(request.filter_),
+                                             std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::deleteChatFilter &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->delete_dialog_filter(DialogFilterId(request.chat_filter_id_), std::move(promise));
+  dialog_filter_manager_->delete_dialog_filter(DialogFilterId(request.chat_filter_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::reorderChatFilters &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->reorder_dialog_filters(
+  dialog_filter_manager_->reorder_dialog_filters(
       transform(request.chat_filter_ids_, [](int32 id) { return DialogFilterId(id); }),
       request.main_chat_list_position_, std::move(promise));
 }

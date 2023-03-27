@@ -644,14 +644,10 @@ void DialogFilter::sort_input_dialog_ids(const Td *td, const char *source) {
 }
 
 vector<FolderId> DialogFilter::get_folder_ids() const {
-  if (!can_have_archived_dialogs()) {
+  if (exclude_archived_ && pinned_dialog_ids_.empty() && included_dialog_ids_.empty()) {
     return {FolderId::main()};
   }
   return {FolderId::main(), FolderId::archive()};
-}
-
-bool DialogFilter::can_have_archived_dialogs() const {
-  return !(exclude_archived_ && pinned_dialog_ids_.empty() && included_dialog_ids_.empty());
 }
 
 bool DialogFilter::need_dialog(const Td *td, DialogId dialog_id, bool has_unread_mentions, bool is_muted,

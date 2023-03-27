@@ -10,6 +10,7 @@
 #include "td/telegram/AuthManager.hpp"
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/DialogFilterManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessagesManager.h"
@@ -1036,6 +1037,8 @@ void AuthManager::on_get_authorization(tl_object_ptr<telegram_api::auth_Authoriz
   }
   td_->attach_menu_manager_->init();
   td_->messages_manager_->on_authorization_success();
+  td_->dialog_filter_manager_->on_authorization_success();  // must be after MessagesManager::on_authorization_success()
+                                                            // to have folders created
   td_->notification_manager_->init();
   td_->stickers_manager_->init();
   td_->theme_manager_->init();

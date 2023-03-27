@@ -17,6 +17,7 @@
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogAction.h"
+#include "td/telegram/DialogFilterManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogInviteLink.h"
 #include "td/telegram/DialogParticipant.h"
@@ -3658,17 +3659,17 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDialogUnreadMar
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDialogFilter> update, Promise<Unit> &&promise) {
-  td_->messages_manager_->on_update_dialog_filters();
+  td_->dialog_filter_manager_->on_update_dialog_filters();
   promise.set_value(Unit());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDialogFilters> update, Promise<Unit> &&promise) {
-  td_->messages_manager_->on_update_dialog_filters();
+  td_->dialog_filter_manager_->on_update_dialog_filters();
   promise.set_value(Unit());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDialogFilterOrder> update, Promise<Unit> &&promise) {
-  td_->messages_manager_->on_update_dialog_filters();
+  td_->dialog_filter_manager_->on_update_dialog_filters();
   promise.set_value(Unit());
 }
 

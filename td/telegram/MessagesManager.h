@@ -318,8 +318,6 @@ class MessagesManager final : public Actor {
 
   void on_update_dialog_message_ttl(DialogId dialog_id, MessageTtl message_ttl);
 
-  void on_update_dialog_filters();
-
   void on_update_service_notification(tl_object_ptr<telegram_api::updateServiceNotification> &&update,
                                       bool skip_new_entities, Promise<Unit> &&promise);
 
@@ -532,6 +530,14 @@ class MessagesManager final : public Actor {
 
   void after_set_typing_query(DialogId dialog_id, int32 generation);
 
+  void add_dialog_list_for_dialog_filter(DialogFilterId dialog_filter_id);
+
+  void edit_dialog_list_for_dialog_filter(unique_ptr<DialogFilter> &old_dialog_filter,
+                                          unique_ptr<DialogFilter> new_dialog_filter, bool &disable_get_dialog_filter,
+                                          const char *source);
+
+  void delete_dialog_list_for_dialog_filter(DialogFilterId dialog_filter_id, const char *source);
+
   vector<DialogListId> get_dialog_lists_to_add_dialog(DialogId dialog_id);
 
   void add_dialog_to_list(DialogId dialog_id, DialogListId dialog_list_id, Promise<Unit> &&promise);
@@ -667,21 +673,7 @@ class MessagesManager final : public Actor {
 
   bool is_dialog_in_dialog_list(DialogId dialog_id) const;
 
-  DialogFilter *get_dialog_filter(DialogFilterId dialog_filter_id);
-  const DialogFilter *get_dialog_filter(DialogFilterId dialog_filter_id) const;
-
-  void create_dialog_filter(td_api::object_ptr<td_api::chatFilter> filter,
-                            Promise<td_api::object_ptr<td_api::chatFilterInfo>> &&promise);
-
-  void edit_dialog_filter(DialogFilterId dialog_filter_id, td_api::object_ptr<td_api::chatFilter> filter,
-                          Promise<td_api::object_ptr<td_api::chatFilterInfo>> &&promise);
-
-  void do_edit_dialog_filter(unique_ptr<DialogFilter> &&filter, bool need_synchronize, const char *source);
-
-  void delete_dialog_filter(DialogFilterId dialog_filter_id, Promise<Unit> &&promise);
-
-  void reorder_dialog_filters(vector<DialogFilterId> dialog_filter_ids, int32 main_dialog_list_position,
-                              Promise<Unit> &&promise);
+  Status can_add_dialog_to_filter(DialogId dialog_id);
 
   Status delete_dialog_reply_markup(DialogId dialog_id, MessageId message_id) TD_WARN_UNUSED_RESULT;
 
@@ -1788,8 +1780,6 @@ class MessagesManager final : public Actor {
   class UnpinAllDialogMessagesOnServerLogEvent;
   class UpdateDialogNotificationSettingsOnServerLogEvent;
 
-  class DialogFiltersLogEvent;
-
   static constexpr size_t MAX_GROUPED_MESSAGES = 10;               // server side limit
   static constexpr int32 MAX_GET_DIALOGS = 100;                    // server side limit
   static constexpr int32 MAX_GET_HISTORY = 100;                    // server side limit
@@ -1802,7 +1792,6 @@ class MessagesManager final : public Actor {
   static constexpr size_t MAX_TITLE_LENGTH = 128;              // server side limit for chat title
   static constexpr size_t MAX_DESCRIPTION_LENGTH = 255;        // server side limit for chat description
   static constexpr int32 MAX_PRIVATE_MESSAGE_TTL = 60;         // server side limit
-  static constexpr int32 DIALOG_FILTERS_CACHE_TIME = 86400;
   static constexpr size_t MIN_DELETED_ASYNCHRONOUSLY_MESSAGES = 10;
   static constexpr size_t MAX_UNLOADED_MESSAGES = 5000;
 
@@ -2540,8 +2529,6 @@ class MessagesManager final : public Actor {
 
   void send_update_chat_last_message_impl(const Dialog *d, const char *source) const;
 
-  void send_update_chat_filters();
-
   void send_update_unread_message_count(DialogList &list, DialogId dialog_id, bool force, const char *source,
                                         bool from_database = false);
 
@@ -2618,8 +2605,6 @@ class MessagesManager final : public Actor {
   void on_get_secret_chat_total_count(DialogListId dialog_list_id, int32 total_count);
 
   void recalc_unread_count(DialogListId dialog_list_id, int32 old_dialog_total_count, bool force);
-
-  td_api::object_ptr<td_api::updateChatFilters> get_update_chat_filters_object() const;
 
   td_api::object_ptr<td_api::updateUnreadMessageCount> get_update_unread_message_count_object(
       const DialogList &list) const;
@@ -2820,50 +2805,8 @@ class MessagesManager final : public Actor {
 
   void reload_pinned_dialogs(DialogListId dialog_list_id, Promise<Unit> &&promise);
 
-  static double get_dialog_filters_cache_time();
-
-  void schedule_dialog_filters_reload(double timeout);
-
-  static void on_reload_dialog_filters_timeout(void *messages_manager_ptr);
-
-  void reload_dialog_filters();
-
-  void on_get_dialog_filters(Result<vector<tl_object_ptr<telegram_api::DialogFilter>>> r_filters, bool dummy);
-
-  bool need_synchronize_dialog_filters() const;
-
-  void synchronize_dialog_filters();
-
   void update_dialogs_hints(const Dialog *d);
   void update_dialogs_hints_rating(const Dialog *d);
-
-  Result<unique_ptr<DialogFilter>> create_dialog_filter(DialogFilterId dialog_filter_id,
-                                                        td_api::object_ptr<td_api::chatFilter> filter);
-
-  void update_dialog_filter_on_server(unique_ptr<DialogFilter> &&dialog_filter);
-
-  void on_update_dialog_filter(unique_ptr<DialogFilter> dialog_filter, Status result);
-
-  void delete_dialog_filter_on_server(DialogFilterId dialog_filter_id);
-
-  void on_delete_dialog_filter(DialogFilterId dialog_filter_id, Status result);
-
-  void reorder_dialog_filters_on_server(vector<DialogFilterId> dialog_filter_ids, int32 main_dialog_list_position);
-
-  void on_reorder_dialog_filters(vector<DialogFilterId> dialog_filter_ids, int32 main_dialog_list_position,
-                                 Status result);
-
-  void save_dialog_filters();
-
-  void add_dialog_filter(unique_ptr<DialogFilter> dialog_filter, bool at_beginning, const char *source);
-
-  void edit_dialog_filter(unique_ptr<DialogFilter> new_dialog_filter, const char *source);
-
-  int32 delete_dialog_filter(DialogFilterId dialog_filter_id, const char *source);
-
-  const DialogFilter *get_server_dialog_filter(DialogFilterId dialog_filter_id) const;
-
-  int32 get_server_main_dialog_list_position() const;
 
   vector<FolderId> get_dialog_list_folder_ids(const DialogList &list) const;
 
@@ -3590,18 +3533,6 @@ class MessagesManager final : public Actor {
   std::unordered_map<DialogListId, DialogList, DialogListIdHash> dialog_lists_;
   std::unordered_map<FolderId, DialogFolder, FolderIdHash> dialog_folders_;
 
-  bool are_dialog_filters_being_synchronized_ = false;
-  bool are_dialog_filters_being_reloaded_ = false;
-  bool need_dialog_filters_reload_ = false;
-  bool disable_get_dialog_filter_ = false;
-  bool is_update_chat_filters_sent_ = false;
-  int32 dialog_filters_updated_date_ = 0;
-  vector<unique_ptr<DialogFilter>> server_dialog_filters_;
-  vector<unique_ptr<DialogFilter>> dialog_filters_;
-  vector<Promise<Unit>> dialog_filter_reload_queries_;
-  int32 server_main_dialog_list_position_ = 0;  // position of the main dialog list stored on the server
-  int32 main_dialog_list_position_ = 0;         // local position of the main dialog list stored on the server
-
   FlatHashMap<DialogId, string, DialogIdHash> active_get_channel_differencies_;
   FlatHashMap<DialogId, uint64, DialogIdHash> get_channel_difference_to_log_event_id_;
   FlatHashMap<DialogId, int32, DialogIdHash> channel_get_difference_retry_timeouts_;
@@ -3622,8 +3553,6 @@ class MessagesManager final : public Actor {
   MultiTimeout update_dialog_online_member_count_timeout_{"UpdateDialogOnlineMemberCountTimeout"};
   MultiTimeout preload_folder_dialog_list_timeout_{"PreloadFolderDialogListTimeout"};
   MultiTimeout update_viewed_messages_timeout_{"UpdateViewedMessagesTimeout"};
-
-  Timeout reload_dialog_filters_timeout_;
 
   Hints dialogs_hints_;  // search dialogs by title and usernames
 
