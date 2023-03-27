@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/DialogFilterDialogInfo.h"
 #include "td/telegram/DialogFilterId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/FolderId.h"
@@ -43,8 +44,7 @@ class DialogFilterManager final : public Actor {
 
   vector<DialogFilterId> get_dialog_filters_to_add_dialog(DialogId dialog_id) const;
 
-  bool need_dialog_in_filter(DialogFilterId dialog_filter_id, DialogId dialog_id, bool has_unread_mentions,
-                             bool is_muted, bool has_unread_messages, FolderId folder_id) const;
+  bool need_dialog_in_filter(DialogFilterId dialog_filter_id, const DialogFilterDialogInfo &dialog_info) const;
 
   bool is_dialog_pinned(DialogFilterId dialog_filter_id, DialogId dialog_id) const;
 

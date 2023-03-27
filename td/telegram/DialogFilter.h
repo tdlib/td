@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/DialogFilterDialogInfo.h"
 #include "td/telegram/DialogFilterId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/FolderId.h"
@@ -85,8 +86,7 @@ class DialogFilter {
 
   vector<FolderId> get_folder_ids() const;
 
-  bool need_dialog(const Td *td, DialogId dialog_id, bool has_unread_mentions, bool is_muted, bool has_unread_messages,
-                   FolderId folder_id) const;
+  bool need_dialog(const Td *td, const DialogFilterDialogInfo &dialog_info) const;
 
   static vector<DialogFilterId> get_dialog_filter_ids(const vector<unique_ptr<DialogFilter>> &dialog_filters,
                                                       int32 main_dialog_list_position);

@@ -13,6 +13,7 @@
 #include "td/telegram/DialogAction.h"
 #include "td/telegram/DialogDate.h"
 #include "td/telegram/DialogDb.h"
+#include "td/telegram/DialogFilterDialogInfo.h"
 #include "td/telegram/DialogFilterId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogListId.h"
@@ -2818,7 +2819,7 @@ class MessagesManager final : public Actor {
 
   static void remove_dialog_from_list(Dialog *d, DialogListId dialog_list_id);
 
-  bool need_dialog_in_filter(const Dialog *d, const DialogFilter *dialog_filter) const;
+  DialogFilterDialogInfo get_dialog_info_for_dialog_filter(const Dialog *d) const;
 
   bool need_dialog_in_list(const Dialog *d, const DialogList &list) const;
 

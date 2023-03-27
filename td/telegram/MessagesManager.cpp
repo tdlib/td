@@ -33063,7 +33063,7 @@ void MessagesManager::edit_dialog_list_for_dialog_filter(unique_ptr<DialogFilter
       const DialogPositionInList old_position = get_dialog_position_in_list(old_list_ptr, d);
       // can't use get_dialog_position_in_list, because need_dialog_in_list calls get_dialog_filter
       DialogPositionInList new_position;
-      if (need_dialog_in_filter(d, new_dialog_filter.get())) {
+      if (new_dialog_filter->need_dialog(td_, get_dialog_info_for_dialog_filter(d))) {
         new_position.private_order = get_dialog_private_order(&new_list, d);
         if (new_position.private_order != 0) {
           new_position.public_order =
@@ -37783,14 +37783,16 @@ void MessagesManager::remove_dialog_from_list(Dialog *d, DialogListId dialog_lis
   CHECK(is_removed);
 }
 
-bool MessagesManager::need_dialog_in_filter(const Dialog *d, const DialogFilter *dialog_filter) const {
+DialogFilterDialogInfo MessagesManager::get_dialog_info_for_dialog_filter(const Dialog *d) const {
   CHECK(d != nullptr);
-  CHECK(dialog_filter != nullptr);
   CHECK(d->order != DEFAULT_ORDER);
-
-  return dialog_filter->need_dialog(
-      td_, d->dialog_id, d->unread_mention_count != 0 && !is_dialog_mention_notifications_disabled(d),
-      is_dialog_muted(d), d->server_unread_count + d->local_unread_count != 0 || d->is_marked_as_unread, d->folder_id);
+  DialogFilterDialogInfo dialog_info;
+  dialog_info.dialog_id_ = d->dialog_id;
+  dialog_info.folder_id_ = d->folder_id;
+  dialog_info.has_unread_mentions_ = d->unread_mention_count != 0 && !is_dialog_mention_notifications_disabled(d);
+  dialog_info.is_muted_ = is_dialog_muted(d);
+  dialog_info.has_unread_messages_ = d->server_unread_count + d->local_unread_count != 0 || d->is_marked_as_unread;
+  return dialog_info;
 }
 
 bool MessagesManager::is_dialog_in_dialog_list(DialogId dialog_id) const {
@@ -37808,10 +37810,8 @@ bool MessagesManager::need_dialog_in_list(const Dialog *d, const DialogList &lis
     return d->folder_id == list.dialog_list_id.get_folder_id();
   }
   if (list.dialog_list_id.is_filter()) {
-    return td_->dialog_filter_manager_->need_dialog_in_filter(
-        list.dialog_list_id.get_filter_id(), d->dialog_id,
-        d->unread_mention_count != 0 && !is_dialog_mention_notifications_disabled(d), is_dialog_muted(d),
-        d->server_unread_count + d->local_unread_count != 0 || d->is_marked_as_unread, d->folder_id);
+    return td_->dialog_filter_manager_->need_dialog_in_filter(list.dialog_list_id.get_filter_id(),
+                                                              get_dialog_info_for_dialog_filter(d));
   }
   UNREACHABLE();
   return false;

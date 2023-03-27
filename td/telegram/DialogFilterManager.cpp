@@ -368,12 +368,11 @@ vector<DialogFilterId> DialogFilterManager::get_dialog_filters_to_add_dialog(Dia
   return result;
 }
 
-bool DialogFilterManager::need_dialog_in_filter(DialogFilterId dialog_filter_id, DialogId dialog_id,
-                                                bool has_unread_mentions, bool is_muted, bool has_unread_messages,
-                                                FolderId folder_id) const {
+bool DialogFilterManager::need_dialog_in_filter(DialogFilterId dialog_filter_id,
+                                                const DialogFilterDialogInfo &dialog_info) const {
   const auto *dialog_filter = get_dialog_filter(dialog_filter_id);
   CHECK(dialog_filter != nullptr);
-  return dialog_filter->need_dialog(td_, dialog_id, has_unread_mentions, is_muted, has_unread_messages, folder_id);
+  return dialog_filter->need_dialog(td_, dialog_info);
 }
 
 bool DialogFilterManager::is_dialog_pinned(DialogFilterId dialog_filter_id, DialogId dialog_id) const {

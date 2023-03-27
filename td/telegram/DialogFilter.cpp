@@ -650,8 +650,8 @@ vector<FolderId> DialogFilter::get_folder_ids() const {
   return {FolderId::main(), FolderId::archive()};
 }
 
-bool DialogFilter::need_dialog(const Td *td, DialogId dialog_id, bool has_unread_mentions, bool is_muted,
-                               bool has_unread_messages, FolderId folder_id) const {
+bool DialogFilter::need_dialog(const Td *td, const DialogFilterDialogInfo &dialog_info) const {
+  auto dialog_id = dialog_info.dialog_id_;
   if (is_dialog_included(dialog_id)) {
     return true;
   }
@@ -670,15 +670,15 @@ bool DialogFilter::need_dialog(const Td *td, DialogId dialog_id, bool has_unread
       }
     }
   }
-  if (!has_unread_mentions) {
-    if (exclude_muted_ && is_muted) {
+  if (!dialog_info.has_unread_mentions_) {
+    if (exclude_muted_ && dialog_info.is_muted_) {
       return false;
     }
-    if (exclude_read_ && !has_unread_messages) {
+    if (exclude_read_ && !dialog_info.has_unread_messages_) {
       return false;
     }
   }
-  if (exclude_archived_ && folder_id == FolderId::archive()) {
+  if (exclude_archived_ && dialog_info.folder_id_ == FolderId::archive()) {
     return false;
   }
   switch (dialog_id.get_type()) {
