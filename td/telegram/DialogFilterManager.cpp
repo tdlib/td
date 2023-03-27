@@ -825,7 +825,7 @@ void DialogFilterManager::on_get_dialog_filter(telegram_api::object_ptr<telegram
       if (!DialogFilter::are_equivalent(*old_filter, *new_server_filter)) {
         auto new_filter =
             DialogFilter::merge_dialog_filter_changes(old_filter, old_server_filter.get(), new_server_filter.get());
-        new_filter->sort_input_dialog_ids(td_, "on_get_dialog_filter 2");
+        new_filter->sort_input_dialog_ids(td_, "on_get_dialog_filter");
         if (*new_filter != *old_filter) {
           is_changed = true;
           edit_dialog_filter(std::move(new_filter), "on_get_dialog_filter");
@@ -934,11 +934,7 @@ void DialogFilterManager::on_get_dialog_filters(
             } else {
               auto new_filter =
                   DialogFilter::merge_dialog_filter_changes(old_filter, old_server_filter, new_server_filter.get());
-              LOG(INFO) << "Old  local filter: " << *old_filter;
-              LOG(INFO) << "Old server filter: " << *old_server_filter;
-              LOG(INFO) << "New server filter: " << *new_server_filter;
-              LOG(INFO) << "New  local filter: " << *new_filter;
-              new_filter->sort_input_dialog_ids(td_, "on_get_dialog_filters 2");
+              new_filter->sort_input_dialog_ids(td_, "on_get_dialog_filters");
               if (*new_filter != *old_filter) {
                 is_changed = true;
                 edit_dialog_filter(std::move(new_filter), "on_get_dialog_filters");

@@ -625,6 +625,12 @@ unique_ptr<DialogFilter> DialogFilter::merge_dialog_filter_changes(const DialogF
 
   update_value(new_filter->title_, old_server_filter->title_, new_server_filter->title_);
   update_value(new_filter->emoji_, old_server_filter->emoji_, new_server_filter->emoji_);
+
+  LOG(INFO) << "Old  local filter: " << *old_filter;
+  LOG(INFO) << "Old server filter: " << *old_server_filter;
+  LOG(INFO) << "New server filter: " << *new_server_filter;
+  LOG(INFO) << "New  local filter: " << *new_filter;
+
   return new_filter;
 }
 
