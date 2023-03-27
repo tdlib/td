@@ -78,9 +78,7 @@ class Scheduler {
   Scheduler &operator=(Scheduler &&) = delete;
   ~Scheduler();
 
-  void init();
   void init(int32 id, std::vector<std::shared_ptr<MpscPollableQueue<EventFull>>> outbound, Callback *callback);
-  void clear();
 
   int32 sched_id() const;
   int32 sched_count() const;
@@ -171,6 +169,8 @@ class Scheduler {
     void tear_down() final;
   };
   friend class ServiceActor;
+
+  void clear();
 
   void do_event(ActorInfo *actor, Event &&event);
 

@@ -58,10 +58,6 @@ inline SchedulerGuard Scheduler::get_const_guard() {
   return SchedulerGuard(this, false);
 }
 
-inline void Scheduler::init() {
-  init(0, {}, nullptr);
-}
-
 inline int32 Scheduler::sched_id() const {
   return sched_id_;
 }
