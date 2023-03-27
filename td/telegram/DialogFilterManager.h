@@ -6,6 +6,9 @@
 //
 #pragma once
 
+#include "td/telegram/DialogFilterId.h"
+#include "td/telegram/DialogId.h"
+#include "td/telegram/InputDialogId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -24,9 +27,18 @@ class DialogFilterManager final : public Actor {
  public:
   DialogFilterManager(Td *td, ActorShared<> parent);
 
+  td_api::object_ptr<td_api::chatFilter> get_chat_filter_object(DialogFilterId dialog_filter_id);
+
+  td_api::object_ptr<td_api::chatFilter> get_chat_filter_object(const DialogFilter *dialog_filter);
+
   bool is_recommended_dialog_filter(const DialogFilter *dialog_filter);
 
   void get_recommended_dialog_filters(Promise<td_api::object_ptr<td_api::recommendedChatFilters>> &&promise);
+
+  void load_dialog_filter(DialogFilterId dialog_filter_id, bool force, Promise<Unit> &&promise);
+
+  void load_dialog_filter_dialogs(DialogFilterId dialog_filter_id, vector<InputDialogId> &&input_dialog_ids,
+                                  Promise<Unit> &&promise);
 
  private:
   void tear_down() final;
@@ -42,6 +54,13 @@ class DialogFilterManager final : public Actor {
 
   void on_load_recommended_dialog_filters(Result<Unit> &&result, vector<RecommendedDialogFilter> &&filters,
                                           Promise<td_api::object_ptr<td_api::recommendedChatFilters>> &&promise);
+
+  void load_dialog_filter(const DialogFilter *dialog_filter, bool force, Promise<Unit> &&promise);
+
+  void on_load_dialog_filter_dialogs(DialogFilterId dialog_filter_id, vector<DialogId> &&dialog_ids,
+                                     Promise<Unit> &&promise);
+
+  void delete_dialogs_from_filter(const DialogFilter *dialog_filter, vector<DialogId> &&dialog_ids, const char *source);
 
   vector<RecommendedDialogFilter> recommended_dialog_filters_;
 

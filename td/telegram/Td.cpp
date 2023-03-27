@@ -731,11 +731,11 @@ class GetChatFilterRequest final : public RequestActor<> {
   DialogFilterId dialog_filter_id_;
 
   void do_run(Promise<Unit> &&promise) final {
-    td_->messages_manager_->load_dialog_filter(dialog_filter_id_, get_tries() < 2, std::move(promise));
+    td_->dialog_filter_manager_->load_dialog_filter(dialog_filter_id_, get_tries() < 2, std::move(promise));
   }
 
   void do_send_result() final {
-    send_result(td_->messages_manager_->get_chat_filter_object(dialog_filter_id_));
+    send_result(td_->dialog_filter_manager_->get_chat_filter_object(dialog_filter_id_));
   }
 
  public:

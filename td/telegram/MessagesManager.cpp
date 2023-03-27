@@ -277,46 +277,6 @@ class GetDialogQuery final : public Td::ResultHandler {
   }
 };
 
-class GetDialogsQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
-  bool is_single_ = false;
-
- public:
-  explicit GetDialogsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(vector<InputDialogId> input_dialog_ids) {
-    CHECK(!input_dialog_ids.empty());
-    CHECK(input_dialog_ids.size() <= 100);
-    is_single_ = input_dialog_ids.size() == 1;
-    auto input_dialog_peers = InputDialogId::get_input_dialog_peers(input_dialog_ids);
-    CHECK(input_dialog_peers.size() == input_dialog_ids.size());
-    send_query(G()->net_query_creator().create(telegram_api::messages_getPeerDialogs(std::move(input_dialog_peers))));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::messages_getPeerDialogs>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto result = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for GetDialogsQuery: " << to_string(result);
-
-    td_->contacts_manager_->on_get_users(std::move(result->users_), "GetDialogsQuery");
-    td_->contacts_manager_->on_get_chats(std::move(result->chats_), "GetDialogsQuery");
-    td_->messages_manager_->on_get_dialogs(FolderId(), std::move(result->dialogs_), -1, std::move(result->messages_),
-                                           std::move(promise_));
-  }
-
-  void on_error(Status status) final {
-    if (is_single_ && status.code() == 400) {
-      return promise_.set_value(Unit());
-    }
-    promise_.set_error(std::move(status));
-  }
-};
-
 class GetPinnedDialogsQuery final : public Td::ResultHandler {
   FolderId folder_id_;
   Promise<Unit> promise_;
@@ -16973,135 +16933,6 @@ bool MessagesManager::load_dialog(DialogId dialog_id, int left_tries, Promise<Un
   return true;
 }
 
-void MessagesManager::load_dialog_filter_dialogs(DialogFilterId dialog_filter_id,
-                                                 vector<InputDialogId> &&input_dialog_ids, Promise<Unit> &&promise) {
-  const size_t MAX_SLICE_SIZE = 100;  // server side limit
-  MultiPromiseActorSafe mpas{"GetFilterDialogsOnServerMultiPromiseActor"};
-  mpas.add_promise(std::move(promise));
-  auto lock = mpas.get_promise();
-
-  for (size_t i = 0; i < input_dialog_ids.size(); i += MAX_SLICE_SIZE) {
-    auto end_i = i + MAX_SLICE_SIZE;
-    auto end = end_i < input_dialog_ids.size() ? input_dialog_ids.begin() + end_i : input_dialog_ids.end();
-    vector<InputDialogId> slice_input_dialog_ids = {input_dialog_ids.begin() + i, end};
-    auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_filter_id,
-                                                 dialog_ids = InputDialogId::get_dialog_ids(slice_input_dialog_ids),
-                                                 promise = mpas.get_promise()](Result<Unit> &&result) mutable {
-      if (result.is_error()) {
-        return promise.set_error(result.move_as_error());
-      }
-      send_closure(actor_id, &MessagesManager::on_load_dialog_filter_dialogs, dialog_filter_id, std::move(dialog_ids),
-                   std::move(promise));
-    });
-    td_->create_handler<GetDialogsQuery>(std::move(query_promise))->send(std::move(slice_input_dialog_ids));
-  }
-
-  lock.set_value(Unit());
-}
-
-void MessagesManager::on_load_dialog_filter_dialogs(DialogFilterId dialog_filter_id, vector<DialogId> &&dialog_ids,
-                                                    Promise<Unit> &&promise) {
-  TRY_STATUS_PROMISE(promise, G()->close_status());
-
-  td::remove_if(dialog_ids,
-                [this](DialogId dialog_id) { return have_dialog_force(dialog_id, "on_load_dialog_filter_dialogs"); });
-  if (dialog_ids.empty()) {
-    LOG(INFO) << "All chats from " << dialog_filter_id << " were loaded";
-    return promise.set_value(Unit());
-  }
-
-  LOG(INFO) << "Failed to load chats " << dialog_ids << " from " << dialog_filter_id;
-
-  auto old_dialog_filter = get_dialog_filter(dialog_filter_id);
-  if (old_dialog_filter == nullptr) {
-    return promise.set_value(Unit());
-  }
-  CHECK(is_update_chat_filters_sent_);
-
-  delete_dialogs_from_filter(old_dialog_filter, std::move(dialog_ids), "on_load_dialog_filter_dialogs");
-
-  promise.set_value(Unit());
-}
-
-void MessagesManager::load_dialog_filter(DialogFilterId dialog_filter_id, bool force, Promise<Unit> &&promise) {
-  CHECK(!td_->auth_manager_->is_bot());
-  if (!dialog_filter_id.is_valid()) {
-    return promise.set_error(Status::Error(400, "Invalid chat filter identifier specified"));
-  }
-
-  auto dialog_filter = get_dialog_filter(dialog_filter_id);
-  if (dialog_filter == nullptr) {
-    return promise.set_value(Unit());
-  }
-
-  load_dialog_filter(dialog_filter, force, std::move(promise));
-}
-
-void MessagesManager::load_dialog_filter(const DialogFilter *dialog_filter, bool force, Promise<Unit> &&promise) {
-  CHECK(!td_->auth_manager_->is_bot());
-  vector<InputDialogId> needed_dialog_ids;
-  dialog_filter->for_each_dialog([&](const InputDialogId &input_dialog_id) {
-    if (!have_dialog(input_dialog_id.get_dialog_id())) {
-      needed_dialog_ids.push_back(input_dialog_id);
-    }
-  });
-
-  vector<InputDialogId> input_dialog_ids;
-  for (const auto &input_dialog_id : needed_dialog_ids) {
-    auto dialog_id = input_dialog_id.get_dialog_id();
-    // TODO load dialogs asynchronously
-    if (!have_dialog_force(dialog_id, "load_dialog_filter")) {
-      if (dialog_id.get_type() == DialogType::SecretChat) {
-        if (have_dialog_info_force(dialog_id)) {
-          force_create_dialog(dialog_id, "load_dialog_filter");
-        }
-      } else {
-        input_dialog_ids.push_back(input_dialog_id);
-      }
-    }
-  }
-
-  if (!input_dialog_ids.empty() && !force) {
-    return load_dialog_filter_dialogs(dialog_filter->get_dialog_filter_id(), std::move(input_dialog_ids),
-                                      std::move(promise));
-  }
-
-  promise.set_value(Unit());
-}
-
-void MessagesManager::delete_dialogs_from_filter(const DialogFilter *dialog_filter, vector<DialogId> &&dialog_ids,
-                                                 const char *source) {
-  if (dialog_ids.empty()) {
-    return;
-  }
-
-  auto new_dialog_filter = td::make_unique<DialogFilter>(*dialog_filter);
-  for (auto dialog_id : dialog_ids) {
-    new_dialog_filter->remove_dialog_id(dialog_id);
-  }
-  if (new_dialog_filter->is_empty(false)) {
-    int32 position = delete_dialog_filter(dialog_filter->get_dialog_filter_id(), "delete_dialogs_from_filter");
-    if (main_dialog_list_position_ > position) {
-      main_dialog_list_position_--;
-    }
-    save_dialog_filters();
-    send_update_chat_filters();
-
-    synchronize_dialog_filters();
-    return;
-  }
-  CHECK(new_dialog_filter->check_limits().is_ok());
-
-  if (*new_dialog_filter != *dialog_filter) {
-    LOG(INFO) << "Update " << *dialog_filter << " to " << *new_dialog_filter;
-    edit_dialog_filter(std::move(new_dialog_filter), source);
-    save_dialog_filters();
-    send_update_chat_filters();
-
-    synchronize_dialog_filters();
-  }
-}
-
 Result<DialogDate> MessagesManager::get_dialog_list_last_date(DialogListId dialog_list_id) {
   CHECK(!td_->auth_manager_->is_bot());
 
@@ -17186,8 +17017,8 @@ vector<DialogId> MessagesManager::get_dialogs(DialogListId dialog_list_id, Dialo
         promise.set_value(Unit());
         return result;
       } else {
-        load_dialog_filter_dialogs(dialog_filter->get_dialog_filter_id(), std::move(input_dialog_ids),
-                                   std::move(promise));
+        td_->dialog_filter_manager_->load_dialog_filter_dialogs(dialog_filter->get_dialog_filter_id(),
+                                                                std::move(input_dialog_ids), std::move(promise));
         return {};
       }
     }
@@ -19687,6 +19518,14 @@ void MessagesManager::edit_dialog_filter(DialogFilterId dialog_filter_id, td_api
   promise.set_value(std::move(chat_filter_info));
 }
 
+void MessagesManager::do_edit_dialog_filter(unique_ptr<DialogFilter> &&filter, const char *source) {
+  edit_dialog_filter(std::move(filter), source);
+  save_dialog_filters();
+  send_update_chat_filters();
+
+  synchronize_dialog_filters();
+}
+
 void MessagesManager::update_dialog_filter_on_server(unique_ptr<DialogFilter> &&dialog_filter) {
   CHECK(!td_->auth_manager_->is_bot());
   CHECK(dialog_filter != nullptr);
@@ -21988,44 +21827,6 @@ tl_object_ptr<td_api::chats> MessagesManager::get_chats_object(int32 total_count
 
 tl_object_ptr<td_api::chats> MessagesManager::get_chats_object(const std::pair<int32, vector<DialogId>> &dialog_ids) {
   return get_chats_object(dialog_ids.first, dialog_ids.second);
-}
-
-td_api::object_ptr<td_api::chatFilter> MessagesManager::get_chat_filter_object(DialogFilterId dialog_filter_id) {
-  CHECK(!td_->auth_manager_->is_bot());
-  auto dialog_filter = get_dialog_filter(dialog_filter_id);
-  if (dialog_filter == nullptr) {
-    return nullptr;
-  }
-
-  return get_chat_filter_object(dialog_filter);
-}
-
-td_api::object_ptr<td_api::chatFilter> MessagesManager::get_chat_filter_object(const DialogFilter *dialog_filter) {
-  DialogFilterId dialog_filter_id = dialog_filter->get_dialog_filter_id();
-
-  vector<DialogId> left_dialog_ids;
-  vector<DialogId> unknown_dialog_ids;
-  dialog_filter->for_each_dialog([&](const InputDialogId &input_dialog_id) {
-    auto dialog_id = input_dialog_id.get_dialog_id();
-    const Dialog *d = get_dialog(dialog_id);
-    if (d != nullptr) {
-      if (d->order == DEFAULT_ORDER) {
-        LOG(INFO) << "Skip nonjoined " << dialog_id << " from " << dialog_filter_id;
-        unknown_dialog_ids.push_back(dialog_id);
-        left_dialog_ids.push_back(dialog_id);
-      }
-    } else {
-      LOG(ERROR) << "Can't find " << dialog_id << " from " << dialog_filter_id;
-      unknown_dialog_ids.push_back(dialog_id);
-    }
-  });
-
-  auto result = dialog_filter->get_chat_filter_object(unknown_dialog_ids);
-
-  if (dialog_filter_id.is_valid()) {
-    delete_dialogs_from_filter(dialog_filter, std::move(left_dialog_ids), "get_chat_filter_object");
-  }
-  return result;
 }
 
 std::pair<bool, int32> MessagesManager::get_dialog_mute_until(DialogId dialog_id, const Dialog *d) const {
@@ -38970,6 +38771,12 @@ bool MessagesManager::need_dialog_in_filter(const Dialog *d, const DialogFilter 
   return dialog_filter->need_dialog(
       td_, d->dialog_id, d->unread_mention_count != 0 && !is_dialog_mention_notifications_disabled(d),
       is_dialog_muted(d), d->server_unread_count + d->local_unread_count != 0 || d->is_marked_as_unread, d->folder_id);
+}
+
+bool MessagesManager::is_dialog_in_dialog_list(DialogId dialog_id) const {
+  CHECK(!td_->auth_manager_->is_bot());
+  const Dialog *d = get_dialog(dialog_id);
+  return d != nullptr && d->order != DEFAULT_ORDER;
 }
 
 bool MessagesManager::need_dialog_in_list(const Dialog *d, const DialogList &list) const {

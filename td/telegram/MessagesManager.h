@@ -579,10 +579,6 @@ class MessagesManager final : public Actor {
 
   void load_dialogs(vector<DialogId> dialog_ids, Promise<vector<DialogId>> &&promise);
 
-  void load_dialog_filter(DialogFilterId dialog_filter_id, bool force, Promise<Unit> &&promise);
-
-  void load_dialog_filter(const DialogFilter *dialog_filter, bool force, Promise<Unit> &&promise);
-
   Result<DialogDate> get_dialog_list_last_date(DialogListId dialog_list_id);
 
   vector<DialogId> get_dialogs(DialogListId dialog_list_id, DialogDate offset, int32 limit, bool exact_limit,
@@ -669,11 +665,18 @@ class MessagesManager final : public Actor {
 
   InputDialogId get_input_dialog_id(DialogId dialog_id) const;
 
+  bool is_dialog_in_dialog_list(DialogId dialog_id) const;
+
+  DialogFilter *get_dialog_filter(DialogFilterId dialog_filter_id);
+  const DialogFilter *get_dialog_filter(DialogFilterId dialog_filter_id) const;
+
   void create_dialog_filter(td_api::object_ptr<td_api::chatFilter> filter,
                             Promise<td_api::object_ptr<td_api::chatFilterInfo>> &&promise);
 
   void edit_dialog_filter(DialogFilterId dialog_filter_id, td_api::object_ptr<td_api::chatFilter> filter,
                           Promise<td_api::object_ptr<td_api::chatFilterInfo>> &&promise);
+
+  void do_edit_dialog_filter(unique_ptr<DialogFilter> &&filter, const char *source);
 
   void delete_dialog_filter(DialogFilterId dialog_filter_id, Promise<Unit> &&promise);
 
@@ -747,10 +750,6 @@ class MessagesManager final : public Actor {
   static tl_object_ptr<td_api::chats> get_chats_object(int32 total_count, const vector<DialogId> &dialog_ids);
 
   static tl_object_ptr<td_api::chats> get_chats_object(const std::pair<int32, vector<DialogId>> &dialog_ids);
-
-  td_api::object_ptr<td_api::chatFilter> get_chat_filter_object(DialogFilterId dialog_filter_id);
-
-  td_api::object_ptr<td_api::chatFilter> get_chat_filter_object(const DialogFilter *dialog_filter);
 
   tl_object_ptr<td_api::messages> get_dialog_history(DialogId dialog_id, MessageId from_message_id, int32 offset,
                                                      int32 limit, int left_tries, bool only_local,
@@ -2838,14 +2837,6 @@ class MessagesManager final : public Actor {
   void update_dialogs_hints(const Dialog *d);
   void update_dialogs_hints_rating(const Dialog *d);
 
-  void load_dialog_filter_dialogs(DialogFilterId dialog_filter_id, vector<InputDialogId> &&input_dialog_ids,
-                                  Promise<Unit> &&promise);
-
-  void on_load_dialog_filter_dialogs(DialogFilterId dialog_filter_id, vector<DialogId> &&dialog_ids,
-                                     Promise<Unit> &&promise);
-
-  void delete_dialogs_from_filter(const DialogFilter *dialog_filter, vector<DialogId> &&dialog_ids, const char *source);
-
   Result<unique_ptr<DialogFilter>> create_dialog_filter(DialogFilterId dialog_filter_id,
                                                         td_api::object_ptr<td_api::chatFilter> filter);
 
@@ -2871,9 +2862,6 @@ class MessagesManager final : public Actor {
   int32 delete_dialog_filter(DialogFilterId dialog_filter_id, const char *source);
 
   const DialogFilter *get_server_dialog_filter(DialogFilterId dialog_filter_id) const;
-
-  DialogFilter *get_dialog_filter(DialogFilterId dialog_filter_id);
-  const DialogFilter *get_dialog_filter(DialogFilterId dialog_filter_id) const;
 
   int32 get_server_main_dialog_list_position() const;
 
