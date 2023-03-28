@@ -608,6 +608,11 @@ static Result<telegram_api::object_ptr<telegram_api::InputUser>> get_bot_input_u
 
 class SetBotInfoQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
+  UserId bot_user_id_;
+
+  void invalidate_bot_info() {
+    td_->contacts_manager_->invalidate_user_full(bot_user_id_);
+  }
 
  public:
   explicit SetBotInfoQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
@@ -628,7 +633,11 @@ class SetBotInfoQuery final : public Td::ResultHandler {
     }
     if (r_input_user.ok() != nullptr) {
       flags |= telegram_api::bots_setBotInfo::BOT_MASK;
+      bot_user_id_ = bot_user_id;
+    } else {
+      bot_user_id_ = td_->contacts_manager_->get_my_id();
     }
+    invalidate_bot_info();
     send_query(G()->net_query_creator().create(
         telegram_api::bots_setBotInfo(flags, r_input_user.move_as_ok(), language_code, string(), about, description),
         {{bot_user_id}}));
@@ -642,12 +651,12 @@ class SetBotInfoQuery final : public Td::ResultHandler {
 
     bool result = result_ptr.move_as_ok();
     LOG_IF(WARNING, !result) << "Failed to set bot info";
-    td_->contacts_manager_->invalidate_user_full(td_->contacts_manager_->get_my_id());
+    invalidate_bot_info();
     promise_.set_value(Unit());
   }
 
   void on_error(Status status) final {
-    td_->contacts_manager_->invalidate_user_full(td_->contacts_manager_->get_my_id());
+    invalidate_bot_info();
     promise_.set_error(std::move(status));
   }
 };
@@ -839,7 +848,6 @@ void set_default_channel_administrator_rights(Td *td, AdministratorRights admini
 void set_bot_info_description(Td *td, UserId bot_user_id, const string &language_code, const string &description,
                               Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, validate_bot_language_code(language_code));
-  td->contacts_manager_->invalidate_user_full(td->contacts_manager_->get_my_id());
   td->create_handler<SetBotInfoQuery>(std::move(promise))
       ->send(bot_user_id, language_code, false, string(), true, description);
 }
@@ -852,7 +860,6 @@ void get_bot_info_description(Td *td, UserId bot_user_id, const string &language
 void set_bot_info_about(Td *td, UserId bot_user_id, const string &language_code, const string &about,
                         Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, validate_bot_language_code(language_code));
-  td->contacts_manager_->invalidate_user_full(td->contacts_manager_->get_my_id());
   td->create_handler<SetBotInfoQuery>(std::move(promise))
       ->send(bot_user_id, language_code, true, about, false, string());
 }
