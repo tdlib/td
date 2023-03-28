@@ -539,6 +539,7 @@ class ContactsManager final : public Actor {
 
   struct BotData {
     string username;
+    bool can_be_edited;
     bool can_join_groups;
     bool can_read_all_group_messages;
     bool is_inline;
@@ -751,6 +752,7 @@ class ContactsManager final : public Actor {
     bool is_bot = true;
     bool can_join_groups = true;
     bool can_read_all_group_messages = true;
+    bool can_be_edited_bot = false;
     bool is_inline_bot = false;
     bool need_location_bot = false;
     bool is_scam = false;
@@ -1168,6 +1170,7 @@ class ContactsManager final : public Actor {
   static constexpr int32 USER_FLAG_ATTACH_MENU_ENABLED = 1 << 29;
   static constexpr int32 USER_FLAG_HAS_EMOJI_STATUS = 1 << 30;
   static constexpr int32 USER_FLAG_HAS_USERNAMES = 1 << 0;
+  static constexpr int32 USER_FLAG_CAN_BE_EDITED_BOT = 1 << 1;
 
   static constexpr int32 USER_FULL_FLAG_IS_BLOCKED = 1 << 0;
   static constexpr int32 USER_FULL_FLAG_HAS_ABOUT = 1 << 1;
