@@ -7635,6 +7635,17 @@ setDefaultGroupAdministratorRights default_group_administrator_rights:chatAdmini
 setDefaultChannelAdministratorRights default_channel_administrator_rights:chatAdministratorRights = Ok;
 
 
+//@description Sets the name of a bot. Can be called only if userTypeBot.can_be_edited == true
+//@bot_user_id Identifier of the target bot
+//@language_code A two-letter ISO 639-1 language code. If empty, the description will be shown to all users, for which language there are no dedicated description
+//@name New bot's name on the specified language
+setBotName bot_user_id:int53 language_code:string name:string = Ok;
+
+//@description Returns the name of a bot in the given language. Can be called only if userTypeBot.can_be_edited == true
+//@bot_user_id Identifier of the target bot
+//@language_code A two-letter ISO 639-1 language code or an empty string
+getBotName bot_user_id:int53 language_code:string = Text;
+
 //@description Sets the text shown in the chat with a bot if the chat is empty. Can be called only if userTypeBot.can_be_edited == true
 //@bot_user_id Identifier of the target bot
 //@language_code A two-letter ISO 639-1 language code. If empty, the description will be shown to all users, for which language there are no dedicated description

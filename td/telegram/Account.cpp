@@ -609,18 +609,24 @@ static Result<telegram_api::object_ptr<telegram_api::InputUser>> get_bot_input_u
 class SetBotInfoQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   UserId bot_user_id_;
+  bool set_name_ = false;
 
   void invalidate_bot_info() {
-    td_->contacts_manager_->invalidate_user_full(bot_user_id_);
+    if (!set_name_) {
+      td_->contacts_manager_->invalidate_user_full(bot_user_id_);
+    }
   }
 
  public:
   explicit SetBotInfoQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(UserId bot_user_id, const string &language_code, bool set_about, const string &about, bool set_description,
-            const string &description) {
+  void send(UserId bot_user_id, const string &language_code, bool set_name, const string &name, bool set_about,
+            const string &about, bool set_description, const string &description) {
     int32 flags = 0;
+    if (set_name) {
+      flags |= telegram_api::bots_setBotInfo::NAME_MASK;
+    }
     if (set_about) {
       flags |= telegram_api::bots_setBotInfo::ABOUT_MASK;
     }
@@ -637,9 +643,10 @@ class SetBotInfoQuery final : public Td::ResultHandler {
     } else {
       bot_user_id_ = td_->contacts_manager_->get_my_id();
     }
+    set_name_ = set_name;
     invalidate_bot_info();
     send_query(G()->net_query_creator().create(
-        telegram_api::bots_setBotInfo(flags, r_input_user.move_as_ok(), language_code, string(), about, description),
+        telegram_api::bots_setBotInfo(flags, r_input_user.move_as_ok(), language_code, name, about, description),
         {{bot_user_id}}));
   }
 
@@ -651,8 +658,12 @@ class SetBotInfoQuery final : public Td::ResultHandler {
 
     bool result = result_ptr.move_as_ok();
     LOG_IF(WARNING, !result) << "Failed to set bot info";
-    invalidate_bot_info();
-    promise_.set_value(Unit());
+    if (set_name_) {
+      td_->contacts_manager_->reload_user(bot_user_id_, std::move(promise_));
+    } else {
+      invalidate_bot_info();
+      promise_.set_value(Unit());
+    }
   }
 
   void on_error(Status status) final {
@@ -845,11 +856,23 @@ void set_default_channel_administrator_rights(Td *td, AdministratorRights admini
   td->create_handler<SetBotBroadcastDefaultAdminRightsQuery>(std::move(promise))->send(administrator_rights);
 }
 
+void set_bot_name(Td *td, UserId bot_user_id, const string &language_code, const string &name,
+                  Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, validate_bot_language_code(language_code));
+  td->create_handler<SetBotInfoQuery>(std::move(promise))
+      ->send(bot_user_id, language_code, true, name, false, string(), false, string());
+}
+
+void get_bot_name(Td *td, UserId bot_user_id, const string &language_code, Promise<string> &&promise) {
+  TRY_STATUS_PROMISE(promise, validate_bot_language_code(language_code));
+  td->create_handler<GetBotInfoQuery>(std::move(promise))->send(bot_user_id, language_code, 2);
+}
+
 void set_bot_info_description(Td *td, UserId bot_user_id, const string &language_code, const string &description,
                               Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, validate_bot_language_code(language_code));
   td->create_handler<SetBotInfoQuery>(std::move(promise))
-      ->send(bot_user_id, language_code, false, string(), true, description);
+      ->send(bot_user_id, language_code, false, string(), false, string(), true, description);
 }
 
 void get_bot_info_description(Td *td, UserId bot_user_id, const string &language_code, Promise<string> &&promise) {
@@ -861,7 +884,7 @@ void set_bot_info_about(Td *td, UserId bot_user_id, const string &language_code,
                         Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, validate_bot_language_code(language_code));
   td->create_handler<SetBotInfoQuery>(std::move(promise))
-      ->send(bot_user_id, language_code, true, about, false, string());
+      ->send(bot_user_id, language_code, false, string(), true, about, false, string());
 }
 
 void get_bot_info_about(Td *td, UserId bot_user_id, const string &language_code, Promise<string> &&promise) {

@@ -5016,6 +5016,17 @@ class CliClient final : public Actor {
       InputChatPhoto input_chat_photo;
       get_args(args, user_id, input_chat_photo);
       send_request(td_api::make_object<td_api::suggestUserProfilePhoto>(user_id, input_chat_photo));
+    } else if (op == "sbn") {
+      UserId bot_user_id;
+      string language_code;
+      string name;
+      get_args(args, bot_user_id, language_code, name);
+      send_request(td_api::make_object<td_api::setBotName>(bot_user_id, language_code, name));
+    } else if (op == "gbn") {
+      UserId bot_user_id;
+      string language_code;
+      get_args(args, bot_user_id, language_code);
+      send_request(td_api::make_object<td_api::getBotName>(bot_user_id, language_code));
     } else if (op == "sbid") {
       UserId bot_user_id;
       string language_code;
@@ -5025,7 +5036,6 @@ class CliClient final : public Actor {
     } else if (op == "gbid") {
       UserId bot_user_id;
       string language_code;
-      string description;
       get_args(args, bot_user_id, language_code);
       send_request(td_api::make_object<td_api::getBotInfoDescription>(bot_user_id, language_code));
     } else if (op == "sbisd") {

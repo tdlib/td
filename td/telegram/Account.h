@@ -51,6 +51,10 @@ void set_default_group_administrator_rights(Td *td, AdministratorRights administ
 void set_default_channel_administrator_rights(Td *td, AdministratorRights administrator_rights,
                                               Promise<Unit> &&promise);
 
+void set_bot_name(Td *td, UserId bot_user_id, const string &language_code, const string &name, Promise<Unit> &&promise);
+
+void get_bot_name(Td *td, UserId bot_user_id, const string &language_code, Promise<string> &&promise);
+
 void set_bot_info_description(Td *td, UserId bot_user_id, const string &language_code, const string &description,
                               Promise<Unit> &&promise);
 

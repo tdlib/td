@@ -7004,6 +7004,24 @@ void Td::on_request(uint64 id, const td_api::setDefaultChannelAdministratorRight
       std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::setBotName &request) {
+  CLEAN_INPUT_STRING(request.name_);
+  CREATE_OK_REQUEST_PROMISE();
+  set_bot_name(this, UserId(request.bot_user_id_), request.language_code_, request.name_, std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::getBotName &request) {
+  CREATE_REQUEST_PROMISE();
+  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      promise.set_value(td_api::make_object<td_api::text>(result.move_as_ok()));
+    }
+  });
+  get_bot_name(this, UserId(request.bot_user_id_), request.language_code_, std::move(query_promise));
+}
+
 void Td::on_request(uint64 id, td_api::setBotInfoDescription &request) {
   CLEAN_INPUT_STRING(request.description_);
   CREATE_OK_REQUEST_PROMISE();
