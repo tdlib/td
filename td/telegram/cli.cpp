@@ -5016,6 +5016,30 @@ class CliClient final : public Actor {
       InputChatPhoto input_chat_photo;
       get_args(args, user_id, input_chat_photo);
       send_request(td_api::make_object<td_api::suggestUserProfilePhoto>(user_id, input_chat_photo));
+    } else if (op == "sbid") {
+      UserId bot_user_id;
+      string language_code;
+      string description;
+      get_args(args, bot_user_id, language_code, description);
+      send_request(td_api::make_object<td_api::setBotInfoDescription>(bot_user_id, language_code, description));
+    } else if (op == "gbid") {
+      UserId bot_user_id;
+      string language_code;
+      string description;
+      get_args(args, bot_user_id, language_code);
+      send_request(td_api::make_object<td_api::getBotInfoDescription>(bot_user_id, language_code));
+    } else if (op == "sbisd") {
+      UserId bot_user_id;
+      string language_code;
+      string short_description;
+      get_args(args, bot_user_id, language_code, short_description);
+      send_request(
+          td_api::make_object<td_api::setBotInfoShortDescription>(bot_user_id, language_code, short_description));
+    } else if (op == "gbisd") {
+      UserId bot_user_id;
+      string language_code;
+      get_args(args, bot_user_id, language_code);
+      send_request(td_api::make_object<td_api::getBotInfoShortDescription>(bot_user_id, language_code));
     } else if (op == "sh") {
       const string &prefix = args;
       send_request(td_api::make_object<td_api::searchHashtags>(prefix, 10));

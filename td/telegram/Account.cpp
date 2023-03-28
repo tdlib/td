@@ -6,6 +6,7 @@
 //
 #include "td/telegram/Account.h"
 
+#include "td/telegram/AuthManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DeviceTokenManager.h"
 #include "td/telegram/Global.h"
@@ -590,6 +591,21 @@ class SetBotBroadcastDefaultAdminRightsQuery final : public Td::ResultHandler {
   }
 };
 
+static Result<telegram_api::object_ptr<telegram_api::InputUser>> get_bot_input_user(const Td *td, UserId bot_user_id) {
+  if (td->auth_manager_->is_bot()) {
+    if (bot_user_id != UserId() && bot_user_id != td->contacts_manager_->get_my_id()) {
+      return Status::Error(400, "Invalid bot user identifier specified");
+    }
+  } else {
+    TRY_RESULT(bot_data, td->contacts_manager_->get_bot_data(bot_user_id));
+    if (!bot_data.can_be_edited) {
+      return Status::Error(400, "The bot can't be edited");
+    }
+    return td->contacts_manager_->get_input_user(bot_user_id);
+  }
+  return nullptr;
+}
+
 class SetBotInfoQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -597,7 +613,7 @@ class SetBotInfoQuery final : public Td::ResultHandler {
   explicit SetBotInfoQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(const string &language_code, bool set_about, const string &about, bool set_description,
+  void send(UserId bot_user_id, const string &language_code, bool set_about, const string &about, bool set_description,
             const string &description) {
     int32 flags = 0;
     if (set_about) {
@@ -606,8 +622,16 @@ class SetBotInfoQuery final : public Td::ResultHandler {
     if (set_description) {
       flags |= telegram_api::bots_setBotInfo::DESCRIPTION_MASK;
     }
+    auto r_input_user = get_bot_input_user(td_, bot_user_id);
+    if (r_input_user.is_error()) {
+      return on_error(r_input_user.move_as_error());
+    }
+    if (r_input_user.ok() != nullptr) {
+      flags |= telegram_api::bots_setBotInfo::BOT_MASK;
+    }
     send_query(G()->net_query_creator().create(
-        telegram_api::bots_setBotInfo(flags, nullptr, language_code, string(), about, description), {{"me"}}));
+        telegram_api::bots_setBotInfo(flags, r_input_user.move_as_ok(), language_code, string(), about, description),
+        {{bot_user_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -636,10 +660,18 @@ class GetBotInfoQuery final : public Td::ResultHandler {
   explicit GetBotInfoQuery(Promise<string> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(const string &language_code, size_t index) {
+  void send(UserId bot_user_id, const string &language_code, size_t index) {
     index_ = index;
     int32 flags = 0;
-    send_query(G()->net_query_creator().create(telegram_api::bots_getBotInfo(flags, nullptr, language_code), {{"me"}}));
+    auto r_input_user = get_bot_input_user(td_, bot_user_id);
+    if (r_input_user.is_error()) {
+      return on_error(r_input_user.move_as_error());
+    }
+    if (r_input_user.ok() != nullptr) {
+      flags |= telegram_api::bots_getBotInfo::BOT_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::bots_getBotInfo(flags, r_input_user.move_as_ok(), language_code), {{bot_user_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -804,26 +836,30 @@ void set_default_channel_administrator_rights(Td *td, AdministratorRights admini
   td->create_handler<SetBotBroadcastDefaultAdminRightsQuery>(std::move(promise))->send(administrator_rights);
 }
 
-void set_bot_info_description(Td *td, const string &language_code, const string &description, Promise<Unit> &&promise) {
+void set_bot_info_description(Td *td, UserId bot_user_id, const string &language_code, const string &description,
+                              Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, validate_bot_language_code(language_code));
   td->contacts_manager_->invalidate_user_full(td->contacts_manager_->get_my_id());
-  td->create_handler<SetBotInfoQuery>(std::move(promise))->send(language_code, false, string(), true, description);
+  td->create_handler<SetBotInfoQuery>(std::move(promise))
+      ->send(bot_user_id, language_code, false, string(), true, description);
 }
 
-void get_bot_info_description(Td *td, const string &language_code, Promise<string> &&promise) {
+void get_bot_info_description(Td *td, UserId bot_user_id, const string &language_code, Promise<string> &&promise) {
   TRY_STATUS_PROMISE(promise, validate_bot_language_code(language_code));
-  td->create_handler<GetBotInfoQuery>(std::move(promise))->send(language_code, 1);
+  td->create_handler<GetBotInfoQuery>(std::move(promise))->send(bot_user_id, language_code, 1);
 }
 
-void set_bot_info_about(Td *td, const string &language_code, const string &about, Promise<Unit> &&promise) {
+void set_bot_info_about(Td *td, UserId bot_user_id, const string &language_code, const string &about,
+                        Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, validate_bot_language_code(language_code));
   td->contacts_manager_->invalidate_user_full(td->contacts_manager_->get_my_id());
-  td->create_handler<SetBotInfoQuery>(std::move(promise))->send(language_code, true, about, false, string());
+  td->create_handler<SetBotInfoQuery>(std::move(promise))
+      ->send(bot_user_id, language_code, true, about, false, string());
 }
 
-void get_bot_info_about(Td *td, const string &language_code, Promise<string> &&promise) {
+void get_bot_info_about(Td *td, UserId bot_user_id, const string &language_code, Promise<string> &&promise) {
   TRY_STATUS_PROMISE(promise, validate_bot_language_code(language_code));
-  td->create_handler<GetBotInfoQuery>(std::move(promise))->send(language_code, 0);
+  td->create_handler<GetBotInfoQuery>(std::move(promise))->send(bot_user_id, language_code, 0);
 }
 
 void export_contact_token(Td *td, Promise<td_api::object_ptr<td_api::userLink>> &&promise) {

@@ -7005,14 +7005,13 @@ void Td::on_request(uint64 id, const td_api::setDefaultChannelAdministratorRight
 }
 
 void Td::on_request(uint64 id, td_api::setBotInfoDescription &request) {
-  CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.description_);
   CREATE_OK_REQUEST_PROMISE();
-  set_bot_info_description(this, request.language_code_, request.description_, std::move(promise));
+  set_bot_info_description(this, UserId(request.bot_user_id_), request.language_code_, request.description_,
+                           std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getBotInfoDescription &request) {
-  CHECK_IS_BOT();
   CREATE_REQUEST_PROMISE();
   auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
     if (result.is_error()) {
@@ -7021,18 +7020,17 @@ void Td::on_request(uint64 id, const td_api::getBotInfoDescription &request) {
       promise.set_value(td_api::make_object<td_api::text>(result.move_as_ok()));
     }
   });
-  get_bot_info_description(this, request.language_code_, std::move(query_promise));
+  get_bot_info_description(this, UserId(request.bot_user_id_), request.language_code_, std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, td_api::setBotInfoShortDescription &request) {
-  CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.short_description_);
   CREATE_OK_REQUEST_PROMISE();
-  set_bot_info_about(this, request.language_code_, request.short_description_, std::move(promise));
+  set_bot_info_about(this, UserId(request.bot_user_id_), request.language_code_, request.short_description_,
+                     std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getBotInfoShortDescription &request) {
-  CHECK_IS_BOT();
   CREATE_REQUEST_PROMISE();
   auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
     if (result.is_error()) {
@@ -7041,7 +7039,7 @@ void Td::on_request(uint64 id, const td_api::getBotInfoShortDescription &request
       promise.set_value(td_api::make_object<td_api::text>(result.move_as_ok()));
     }
   });
-  get_bot_info_about(this, request.language_code_, std::move(query_promise));
+  get_bot_info_about(this, UserId(request.bot_user_id_), request.language_code_, std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, const td_api::setLocation &request) {
