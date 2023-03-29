@@ -5027,6 +5027,11 @@ class CliClient final : public Actor {
       string language_code;
       get_args(args, bot_user_id, language_code);
       send_request(td_api::make_object<td_api::getBotName>(bot_user_id, language_code));
+    } else if (op == "sbpp") {
+      UserId bot_user_id;
+      InputChatPhoto input_chat_photo;
+      get_args(args, bot_user_id, input_chat_photo);
+      send_request(td_api::make_object<td_api::setBotProfilePhoto>(bot_user_id, input_chat_photo));
     } else if (op == "sbid") {
       UserId bot_user_id;
       string language_code;
