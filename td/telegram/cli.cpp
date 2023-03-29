@@ -898,6 +898,57 @@ class CliClient final : public Actor {
     }
   }
 
+  struct InputChatPhoto {
+    enum class Type { Null, Previous, Static, Animation, Sticker };
+    Type type = Type::Null;
+    int64 profile_photo_id = 0;
+    string photo;
+    string main_frame_timestamp;
+    ChatPhotoSticker sticker;
+
+    operator td_api::object_ptr<td_api::InputChatPhoto>() const {
+      switch (type) {
+        case Type::Null:
+          return nullptr;
+        case Type::Previous:
+          return td_api::make_object<td_api::inputChatPhotoPrevious>(profile_photo_id);
+        case Type::Static:
+          return td_api::make_object<td_api::inputChatPhotoStatic>(as_input_file(photo));
+        case Type::Animation:
+          return td_api::make_object<td_api::inputChatPhotoAnimation>(as_input_file(photo),
+                                                                      to_double(main_frame_timestamp));
+        case Type::Sticker:
+          return td_api::make_object<td_api::inputChatPhotoSticker>(sticker);
+        default:
+          UNREACHABLE();
+          return nullptr;
+      }
+    }
+  };
+
+  void get_args(string &args, InputChatPhoto &arg) const {
+    args = trim(args);
+    if (args.empty()) {
+      return;
+    }
+    if (to_integer_safe<int64>(args).is_ok()) {
+      arg.type = InputChatPhoto::Type::Previous;
+      arg.profile_photo_id = to_integer<int64>(args);
+    } else if (args[0] == 'p') {
+      arg.type = InputChatPhoto::Type::Static;
+      arg.photo = args.substr(1);
+    } else if (args[0] == 'a') {
+      arg.type = InputChatPhoto::Type::Animation;
+      std::tie(arg.photo, arg.main_frame_timestamp) = split(args.substr(1), get_delimiter(args));
+    } else if (args[0] == 's') {
+      arg.type = InputChatPhoto::Type::Sticker;
+      args = args.substr(1);
+      get_args(args, arg.sticker);
+    } else {
+      LOG(ERROR) << "Invalid InputChatPhoto = " << args;
+    }
+  }
+
   template <class FirstType, class SecondType, class... Types>
   void get_args(string &args, FirstType &first_arg, SecondType &second_arg, Types &...other_args) const {
     string arg;
@@ -4528,36 +4579,11 @@ class CliClient final : public Actor {
       string title;
       get_args(args, chat_id, title);
       send_request(td_api::make_object<td_api::setChatTitle>(chat_id, title));
-    } else if (op == "scpe") {
-      ChatId chat_id;
-      get_args(args, chat_id);
-      send_request(td_api::make_object<td_api::setChatPhoto>(chat_id, nullptr));
-    } else if (op == "scpp") {
-      ChatId chat_id;
-      int64 photo_id;
-      get_args(args, chat_id, photo_id);
-      send_request(td_api::make_object<td_api::setChatPhoto>(
-          chat_id, td_api::make_object<td_api::inputChatPhotoPrevious>(photo_id)));
     } else if (op == "scp") {
       ChatId chat_id;
-      string photo_path;
-      get_args(args, chat_id, photo_path);
-      send_request(td_api::make_object<td_api::setChatPhoto>(
-          chat_id, td_api::make_object<td_api::inputChatPhotoStatic>(as_input_file(photo_path))));
-    } else if (op == "scpa") {
-      ChatId chat_id;
-      string animation;
-      string main_frame_timestamp;
-      get_args(args, chat_id, animation, main_frame_timestamp);
-      send_request(td_api::make_object<td_api::setChatPhoto>(
-          chat_id, td_api::make_object<td_api::inputChatPhotoAnimation>(as_input_file(animation),
-                                                                        to_double(main_frame_timestamp))));
-    } else if (op == "scps") {
-      ChatId chat_id;
-      ChatPhotoSticker sticker;
-      get_args(args, chat_id, sticker);
-      send_request(td_api::make_object<td_api::setChatPhoto>(
-          chat_id, td_api::make_object<td_api::inputChatPhotoSticker>(sticker)));
+      InputChatPhoto input_chat_photo;
+      get_args(args, chat_id, input_chat_photo);
+      send_request(td_api::make_object<td_api::setChatPhoto>(chat_id, input_chat_photo));
     } else if (op == "scmt") {
       ChatId chat_id;
       int32 auto_delete_time;
@@ -4954,71 +4980,20 @@ class CliClient final : public Actor {
       bool force_full;
       get_args(args, url, force_full);
       send_request(td_api::make_object<td_api::getWebPageInstantView>(url, force_full));
-    } else if (op == "sppp" || op == "spppf") {
-      int64 profile_photo_id;
-      get_args(args, profile_photo_id);
-      send_request(td_api::make_object<td_api::setProfilePhoto>(
-          td_api::make_object<td_api::inputChatPhotoPrevious>(profile_photo_id), op == "spppf"));
-    } else if (op == "spp" || op == "sppf") {
-      send_request(td_api::make_object<td_api::setProfilePhoto>(
-          td_api::make_object<td_api::inputChatPhotoStatic>(as_input_file(args)), op == "sppf"));
-    } else if (op == "sppa" || op == "sppaf") {
-      string animation;
-      string main_frame_timestamp;
-      get_args(args, animation, main_frame_timestamp);
-      send_request(
-          td_api::make_object<td_api::setProfilePhoto>(td_api::make_object<td_api::inputChatPhotoAnimation>(
-                                                           as_input_file(animation), to_double(main_frame_timestamp)),
-                                                       op == "sppaf"));
-    } else if (op == "spps" || op == "sppsf") {
-      ChatPhotoSticker sticker;
-      get_args(args, sticker);
-      send_request(td_api::make_object<td_api::setProfilePhoto>(
-          td_api::make_object<td_api::inputChatPhotoSticker>(sticker), op == "sppsf"));
+    } else if (op == "spp" || op == "spppf") {
+      InputChatPhoto input_chat_photo;
+      get_args(args, input_chat_photo);
+      send_request(td_api::make_object<td_api::setProfilePhoto>(input_chat_photo, op == "sppf"));
     } else if (op == "suppp") {
       UserId user_id;
-      string photo;
-      get_args(args, user_id, photo);
-      send_request(td_api::make_object<td_api::setUserPersonalProfilePhoto>(
-          user_id, td_api::make_object<td_api::inputChatPhotoStatic>(as_input_file(photo))));
-    } else if (op == "supppa") {
-      UserId user_id;
-      string animation;
-      string main_frame_timestamp;
-      get_args(args, user_id, animation, main_frame_timestamp);
-      send_request(td_api::make_object<td_api::setUserPersonalProfilePhoto>(
-          user_id, td_api::make_object<td_api::inputChatPhotoAnimation>(as_input_file(animation),
-                                                                        to_double(main_frame_timestamp))));
-    } else if (op == "supppe") {
-      UserId user_id;
-      get_args(args, user_id);
-      send_request(td_api::make_object<td_api::setUserPersonalProfilePhoto>(user_id, nullptr));
-    } else if (op == "suppps") {
-      UserId user_id;
-      ChatPhotoSticker sticker;
-      get_args(args, user_id, sticker);
-      send_request(td_api::make_object<td_api::setUserPersonalProfilePhoto>(
-          user_id, td_api::make_object<td_api::inputChatPhotoSticker>(sticker)));
+      InputChatPhoto input_chat_photo;
+      get_args(args, user_id, input_chat_photo);
+      send_request(td_api::make_object<td_api::setUserPersonalProfilePhoto>(user_id, input_chat_photo));
     } else if (op == "supp") {
       UserId user_id;
-      string photo;
-      get_args(args, user_id, photo);
-      send_request(td_api::make_object<td_api::suggestUserProfilePhoto>(
-          user_id, td_api::make_object<td_api::inputChatPhotoStatic>(as_input_file(photo))));
-    } else if (op == "suppa") {
-      UserId user_id;
-      string animation;
-      string main_frame_timestamp;
-      get_args(args, user_id, animation, main_frame_timestamp);
-      send_request(td_api::make_object<td_api::suggestUserProfilePhoto>(
-          user_id, td_api::make_object<td_api::inputChatPhotoAnimation>(as_input_file(animation),
-                                                                        to_double(main_frame_timestamp))));
-    } else if (op == "supps") {
-      UserId user_id;
-      ChatPhotoSticker sticker;
-      get_args(args, user_id, sticker);
-      send_request(td_api::make_object<td_api::suggestUserProfilePhoto>(
-          user_id, td_api::make_object<td_api::inputChatPhotoSticker>(sticker)));
+      InputChatPhoto input_chat_photo;
+      get_args(args, user_id, input_chat_photo);
+      send_request(td_api::make_object<td_api::suggestUserProfilePhoto>(user_id, input_chat_photo));
     } else if (op == "sh") {
       const string &prefix = args;
       send_request(td_api::make_object<td_api::searchHashtags>(prefix, 10));
