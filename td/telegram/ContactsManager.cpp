@@ -479,7 +479,18 @@ class UploadProfilePhotoQuery final : public Td::ResultHandler {
       flags |= telegram_api::photos_uploadProfilePhoto::FILE_MASK;
       photo_input_file = std::move(input_file);
     }
-    if (user_id == td_->contacts_manager_->get_my_id()) {
+    if (td_->contacts_manager_->is_user_bot(user_id)) {
+      auto r_input_user = td_->contacts_manager_->get_input_user(user_id);
+      if (r_input_user.is_error()) {
+        return on_error(r_input_user.move_as_error());
+      }
+      flags |= telegram_api::photos_uploadProfilePhoto::BOT_MASK;
+      send_query(G()->net_query_creator().create(
+          telegram_api::photos_uploadProfilePhoto(flags, false /*ignored*/, r_input_user.move_as_ok(),
+                                                  std::move(photo_input_file), std::move(video_input_file),
+                                                  main_frame_timestamp, nullptr),
+          {{user_id}}));
+    } else if (user_id == td_->contacts_manager_->get_my_id()) {
       if (is_fallback) {
         flags |= telegram_api::photos_uploadProfilePhoto::FALLBACK_MASK;
       }
@@ -512,7 +523,18 @@ class UploadProfilePhotoQuery final : public Td::ResultHandler {
     is_fallback_ = is_fallback;
     only_suggest_ = only_suggest;
 
-    if (user_id == td_->contacts_manager_->get_my_id()) {
+    if (td_->contacts_manager_->is_user_bot(user_id)) {
+      auto r_input_user = td_->contacts_manager_->get_input_user(user_id);
+      if (r_input_user.is_error()) {
+        return on_error(r_input_user.move_as_error());
+      }
+      int32 flags = telegram_api::photos_uploadProfilePhoto::VIDEO_EMOJI_MARKUP_MASK;
+      flags |= telegram_api::photos_uploadProfilePhoto::BOT_MASK;
+      send_query(G()->net_query_creator().create(
+          telegram_api::photos_uploadProfilePhoto(flags, false /*ignored*/, r_input_user.move_as_ok(), nullptr, nullptr,
+                                                  0.0, sticker_photo_size->get_input_video_size_object(td_)),
+          {{user_id}}));
+    } else if (user_id == td_->contacts_manager_->get_my_id()) {
       int32 flags = telegram_api::photos_uploadProfilePhoto::VIDEO_EMOJI_MARKUP_MASK;
       if (is_fallback) {
         flags |= telegram_api::photos_uploadProfilePhoto::FALLBACK_MASK;
@@ -570,6 +592,7 @@ class UploadProfilePhotoQuery final : public Td::ResultHandler {
 
 class UpdateProfilePhotoQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
+  UserId user_id_;
   FileId file_id_;
   int64 old_photo_id_;
   bool is_fallback_;
@@ -579,9 +602,10 @@ class UpdateProfilePhotoQuery final : public Td::ResultHandler {
   explicit UpdateProfilePhotoQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(FileId file_id, int64 old_photo_id, bool is_fallback,
+  void send(UserId user_id, FileId file_id, int64 old_photo_id, bool is_fallback,
             tl_object_ptr<telegram_api::InputPhoto> &&input_photo) {
     CHECK(input_photo != nullptr);
+    user_id_ = user_id;
     file_id_ = file_id;
     old_photo_id_ = old_photo_id;
     is_fallback_ = is_fallback;
@@ -590,8 +614,21 @@ class UpdateProfilePhotoQuery final : public Td::ResultHandler {
     if (is_fallback) {
       flags |= telegram_api::photos_updateProfilePhoto::FALLBACK_MASK;
     }
-    send_query(G()->net_query_creator().create(
-        telegram_api::photos_updateProfilePhoto(flags, false /*ignored*/, nullptr, std::move(input_photo)), {{"me"}}));
+    if (td_->contacts_manager_->is_user_bot(user_id)) {
+      auto r_input_user = td_->contacts_manager_->get_input_user(user_id);
+      if (r_input_user.is_error()) {
+        return on_error(r_input_user.move_as_error());
+      }
+      flags |= telegram_api::photos_updateProfilePhoto::BOT_MASK;
+      send_query(G()->net_query_creator().create(
+          telegram_api::photos_updateProfilePhoto(flags, false /*ignored*/, r_input_user.move_as_ok(),
+                                                  std::move(input_photo)),
+          {{user_id}}));
+    } else {
+      send_query(G()->net_query_creator().create(
+          telegram_api::photos_updateProfilePhoto(flags, false /*ignored*/, nullptr, std::move(input_photo)),
+          {{"me"}}));
+    }
   }
 
   void on_result(BufferSlice packet) final {
@@ -600,8 +637,7 @@ class UpdateProfilePhotoQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->contacts_manager_->on_set_profile_photo(td_->contacts_manager_->get_my_id(), result_ptr.move_as_ok(),
-                                                 is_fallback_, old_photo_id_);
+    td_->contacts_manager_->on_set_profile_photo(user_id_, result_ptr.move_as_ok(), is_fallback_, old_photo_id_);
 
     promise_.set_value(Unit());
   }
@@ -612,14 +648,14 @@ class UpdateProfilePhotoQuery final : public Td::ResultHandler {
         VLOG(file_references) << "Receive " << status << " for " << file_id_;
         td_->file_manager_->delete_file_reference(file_id_, file_reference_);
         td_->file_reference_manager_->repair_file_reference(
-            file_id_,
-            PromiseCreator::lambda([file_id = file_id_, is_fallback = is_fallback_, old_photo_id = old_photo_id_,
-                                    promise = std::move(promise_)](Result<Unit> result) mutable {
+            file_id_, PromiseCreator::lambda([user_id = user_id_, file_id = file_id_, is_fallback = is_fallback_,
+                                              old_photo_id = old_photo_id_,
+                                              promise = std::move(promise_)](Result<Unit> result) mutable {
               if (result.is_error()) {
                 return promise.set_error(Status::Error(400, "Can't find the photo"));
               }
 
-              send_closure(G()->contacts_manager(), &ContactsManager::send_update_profile_photo_query, file_id,
+              send_closure(G()->contacts_manager(), &ContactsManager::send_update_profile_photo_query, user_id, file_id,
                            old_photo_id, is_fallback, std::move(promise));
             }));
         return;
@@ -7191,6 +7227,28 @@ FileId ContactsManager::get_profile_photo_file_id(int64 photo_id) const {
   return it->second;
 }
 
+void ContactsManager::set_bot_profile_photo(UserId bot_user_id,
+                                            const td_api::object_ptr<td_api::InputChatPhoto> &input_photo,
+                                            Promise<Unit> &&promise) {
+  if (td_->auth_manager_->is_bot()) {
+    if (bot_user_id != UserId() && bot_user_id != get_my_id()) {
+      return promise.set_error(Status::Error(400, "Invalid bot user identifier specified"));
+    }
+    bot_user_id = get_my_id();
+  } else {
+    TRY_RESULT_PROMISE(promise, bot_data, get_bot_data(bot_user_id));
+    if (!bot_data.can_be_edited) {
+      return promise.set_error(Status::Error(400, "The bot can't be edited"));
+    }
+  }
+  if (input_photo == nullptr) {
+    td_->create_handler<UpdateProfilePhotoQuery>(std::move(promise))
+        ->send(bot_user_id, FileId(), 0, false, make_tl_object<telegram_api::inputPhotoEmpty>());
+    return;
+  }
+  set_profile_photo_impl(bot_user_id, input_photo, false, false, std::move(promise));
+}
+
 void ContactsManager::set_profile_photo(const td_api::object_ptr<td_api::InputChatPhoto> &input_photo, bool is_fallback,
                                         Promise<Unit> &&promise) {
   set_profile_photo_impl(get_my_id(), input_photo, is_fallback, false, std::move(promise));
@@ -7208,7 +7266,7 @@ void ContactsManager::set_profile_photo_impl(UserId user_id,
   bool is_animation = false;
   switch (input_photo->get_id()) {
     case td_api::inputChatPhotoPrevious::ID: {
-      if (user_id != get_my_id()) {
+      if (user_id != get_my_id() || td_->auth_manager_->is_bot()) {
         return promise.set_error(Status::Error(400, "Can't use inputChatPhotoPrevious"));
       }
       auto photo = static_cast<const td_api::inputChatPhotoPrevious *>(input_photo.get());
@@ -7223,7 +7281,8 @@ void ContactsManager::set_profile_photo_impl(UserId user_id,
       if (!file_id.is_valid()) {
         return promise.set_error(Status::Error(400, "Unknown profile photo ID specified"));
       }
-      return send_update_profile_photo_query(td_->file_manager_->dup_file_id(file_id, "set_profile_photo_impl"),
+      return send_update_profile_photo_query(user_id,
+                                             td_->file_manager_->dup_file_id(file_id, "set_profile_photo_impl"),
                                              photo_id, is_fallback, std::move(promise));
     }
     case td_api::inputChatPhotoStatic::ID: {
@@ -7286,11 +7345,11 @@ void ContactsManager::set_user_profile_photo(UserId user_id,
   set_profile_photo_impl(user_id, input_photo, false, only_suggest, std::move(promise));
 }
 
-void ContactsManager::send_update_profile_photo_query(FileId file_id, int64 old_photo_id, bool is_fallback,
-                                                      Promise<Unit> &&promise) {
+void ContactsManager::send_update_profile_photo_query(UserId user_id, FileId file_id, int64 old_photo_id,
+                                                      bool is_fallback, Promise<Unit> &&promise) {
   FileView file_view = td_->file_manager_->get_file_view(file_id);
   td_->create_handler<UpdateProfilePhotoQuery>(std::move(promise))
-      ->send(file_id, old_photo_id, is_fallback, file_view.main_remote_location().as_input_photo());
+      ->send(user_id, file_id, old_photo_id, is_fallback, file_view.main_remote_location().as_input_photo());
 }
 
 void ContactsManager::upload_profile_photo(UserId user_id, FileId file_id, bool is_fallback, bool only_suggest,
@@ -7329,7 +7388,7 @@ void ContactsManager::delete_profile_photo(int64 profile_photo_id, bool is_recur
   }
   if (user_full->photo.id.get() == profile_photo_id || user_full->fallback_photo.id.get() == profile_photo_id) {
     td_->create_handler<UpdateProfilePhotoQuery>(std::move(promise))
-        ->send(FileId(), profile_photo_id, user_full->fallback_photo.id.get() == profile_photo_id,
+        ->send(get_my_id(), FileId(), profile_photo_id, user_full->fallback_photo.id.get() == profile_photo_id,
                make_tl_object<telegram_api::inputPhotoEmpty>());
     return;
   }
@@ -13330,12 +13389,15 @@ void ContactsManager::on_set_profile_photo(UserId user_id, tl_object_ptr<telegra
                                            bool is_fallback, int64 old_photo_id) {
   LOG(INFO) << "Changed profile photo to " << to_string(photo);
 
+  bool is_bot = is_user_bot(user_id);
   bool is_my = (user_id == get_my_id());
   if (is_my && !is_fallback) {
     delete_my_profile_photo_from_cache(old_photo_id);
   }
   on_get_users(std::move(photo->users_), "on_set_profile_photo");
-  add_set_profile_photo_to_cache(user_id, get_photo(td_, std::move(photo->photo_), DialogId(user_id)), is_fallback);
+  if (!is_bot) {
+    add_set_profile_photo_to_cache(user_id, get_photo(td_, std::move(photo->photo_), DialogId(user_id)), is_fallback);
+  }
 }
 
 void ContactsManager::on_delete_profile_photo(int64 profile_photo_id, Promise<Unit> promise) {

@@ -7646,6 +7646,9 @@ setBotName bot_user_id:int53 language_code:string name:string = Ok;
 //@language_code A two-letter ISO 639-1 language code or an empty string
 getBotName bot_user_id:int53 language_code:string = Text;
 
+//@description Changes a profile photo for a bot @bot_user_id Identifier of the target bot @photo Profile photo to set; pass null to delete the chat photo
+setBotProfilePhoto bot_user_id:int53 photo:InputChatPhoto = Ok;
+
 //@description Sets the text shown in the chat with a bot if the chat is empty. Can be called only if userTypeBot.can_be_edited == true
 //@bot_user_id Identifier of the target bot
 //@language_code A two-letter ISO 639-1 language code. If empty, the description will be shown to all users, for which language there are no dedicated description
