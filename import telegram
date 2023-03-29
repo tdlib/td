@@ -1,0 +1,10 @@
+import telegram
+
+bot = telegram.Bot(token=('6086786065:AAHSEObv4X-ljZaNeJUCeI2LKST9zLddfp4
+')
+
+def send_message(chat_id, text):
+    bot.send_message(chat_id=chat_id, text=text)
+
+# Example usage: send a message to the chat with ID 123456
+send_message(123456, 'Hello, world!')
