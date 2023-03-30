@@ -1290,20 +1290,16 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     // settings
     return td::make_unique<InternalLinkSettings>();
   } else if (path.size() == 1 && path[0] == "list") {
-    // list?slug=<hash>
-    if (has_arg("slug")) {
-      auto slug = get_url_query_slug(true, url_query);
-      if (!slug.empty() && is_base64url_characters(slug)) {
-        return td::make_unique<InternalLinkDialogFilterInvite>(PSTRING() << "tg:list?slug=" << slug);
-      }
+    auto slug = get_url_query_slug(true, url_query);
+    if (!slug.empty() && is_base64url_characters(slug)) {
+      // list?slug=<hash>
+      return td::make_unique<InternalLinkDialogFilterInvite>(PSTRING() << "tg:list?slug=" << slug);
     }
   } else if (path.size() == 1 && path[0] == "join") {
-    // join?invite=<hash>
-    if (has_arg("invite")) {
-      auto invite_hash = get_url_query_hash(true, url_query);
-      if (!invite_hash.empty() && !is_valid_phone_number(invite_hash) && is_base64url_characters(invite_hash)) {
-        return td::make_unique<InternalLinkDialogInvite>(PSTRING() << "tg:join?invite=" << invite_hash);
-      }
+    auto invite_hash = get_url_query_hash(true, url_query);
+    if (!invite_hash.empty() && !is_valid_phone_number(invite_hash) && is_base64url_characters(invite_hash)) {
+      // join?invite=<hash>
+      return td::make_unique<InternalLinkDialogInvite>(PSTRING() << "tg:join?invite=" << invite_hash);
     }
   } else if (path.size() == 1 && (path[0] == "addstickers" || path[0] == "addemoji")) {
     // addstickers?set=<name>
@@ -1430,38 +1426,32 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
       return td::make_unique<InternalLinkAuthenticationCode>(path[1]);
     }
   } else if (path[0] == "list") {
-    if (path.size() >= 2 && !path[1].empty()) {
-      auto slug = get_url_query_slug(false, url_query);
-      if (!slug.empty() && is_base64url_characters(slug)) {
-        // /list/<slug>
-        return td::make_unique<InternalLinkDialogFilterInvite>(PSTRING() << "tg:list?slug=" << slug);
-      }
+    auto slug = get_url_query_slug(false, url_query);
+    if (!slug.empty() && is_base64url_characters(slug)) {
+      // /list/<slug>
+      return td::make_unique<InternalLinkDialogFilterInvite>(PSTRING() << "tg:list?slug=" << slug);
     }
   } else if (path[0] == "joinchat") {
-    if (path.size() >= 2 && !path[1].empty()) {
-      auto invite_hash = get_url_query_hash(false, url_query);
-      if (!invite_hash.empty() && !is_valid_phone_number(invite_hash) && is_base64url_characters(invite_hash)) {
-        // /joinchat/<hash>
-        return td::make_unique<InternalLinkDialogInvite>(PSTRING() << "tg:join?invite=" << invite_hash);
-      }
+    auto invite_hash = get_url_query_hash(false, url_query);
+    if (!invite_hash.empty() && !is_valid_phone_number(invite_hash) && is_base64url_characters(invite_hash)) {
+      // /joinchat/<hash>
+      return td::make_unique<InternalLinkDialogInvite>(PSTRING() << "tg:join?invite=" << invite_hash);
     }
   } else if (path[0][0] == ' ' || path[0][0] == '+') {
-    if (path[0].size() >= 2) {
-      auto invite_hash = get_url_query_hash(false, url_query);
-      if (is_valid_phone_number(invite_hash)) {
-        auto user_link = td::make_unique<InternalLinkUserPhoneNumber>(invite_hash);
-        if (!url_query.get_arg("attach").empty()) {
-          // /+<phone_number>?attach=<bot_username>
-          // /+<phone_number>?attach=<bot_username>&startattach=<start_parameter>
-          return td::make_unique<InternalLinkAttachMenuBot>(
-              nullptr, std::move(user_link), url_query.get_arg("attach").str(), url_query.get_arg("startattach"));
-        }
-        // /+<phone_number>
-        return std::move(user_link);
-      } else if (!invite_hash.empty() && is_base64url_characters(invite_hash)) {
-        // /+<link>
-        return td::make_unique<InternalLinkDialogInvite>(PSTRING() << "tg:join?invite=" << invite_hash);
+    auto invite_hash = get_url_query_hash(false, url_query);
+    if (is_valid_phone_number(invite_hash)) {
+      auto user_link = td::make_unique<InternalLinkUserPhoneNumber>(invite_hash);
+      if (!url_query.get_arg("attach").empty()) {
+        // /+<phone_number>?attach=<bot_username>
+        // /+<phone_number>?attach=<bot_username>&startattach=<start_parameter>
+        return td::make_unique<InternalLinkAttachMenuBot>(
+            nullptr, std::move(user_link), url_query.get_arg("attach").str(), url_query.get_arg("startattach"));
       }
+      // /+<phone_number>
+      return std::move(user_link);
+    } else if (!invite_hash.empty() && is_base64url_characters(invite_hash)) {
+      // /+<link>
+      return td::make_unique<InternalLinkDialogInvite>(PSTRING() << "tg:join?invite=" << invite_hash);
     }
   } else if (path[0] == "contact") {
     if (path.size() >= 2 && !path[1].empty()) {
