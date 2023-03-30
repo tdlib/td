@@ -6167,6 +6167,16 @@ void Td::on_request(uint64 id, td_api::getChatFilterInviteLinks &request) {
   dialog_filter_manager_->get_dialog_filter_invite_links(DialogFilterId(request.chat_filter_id_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::editChatFilterInviteLink &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.invite_link_);
+  CLEAN_INPUT_STRING(request.name_);
+  CREATE_REQUEST_PROMISE();
+  dialog_filter_manager_->edit_dialog_filter_invite_link(
+      DialogFilterId(request.chat_filter_id_), std::move(request.invite_link_), std::move(request.name_),
+      DialogId::get_dialog_ids(request.chat_ids_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::setChatTitle &request) {
   CLEAN_INPUT_STRING(request.title_);
   CREATE_OK_REQUEST_PROMISE();

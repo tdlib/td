@@ -4597,6 +4597,14 @@ class CliClient final : public Actor {
       ChatFilterId chat_filter_id;
       get_args(args, chat_filter_id);
       send_request(td_api::make_object<td_api::getChatFilterInviteLinks>(chat_filter_id));
+    } else if (op == "ecfil") {
+      ChatFilterId chat_filter_id;
+      string invite_link;
+      string name;
+      string chat_ids;
+      get_args(args, chat_filter_id, invite_link, name, chat_ids);
+      send_request(td_api::make_object<td_api::editChatFilterInviteLink>(chat_filter_id, invite_link, name,
+                                                                         as_chat_ids(chat_ids)));
     } else if (op == "grcf") {
       send_request(td_api::make_object<td_api::getRecommendedChatFilters>());
     } else if (op == "gcfdin") {

@@ -188,6 +188,38 @@ class GetExportedChatlistInvitesQuery final : public Td::ResultHandler {
   }
 };
 
+class EditExportedChatlistInviteQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::chatFilterInviteLink>> promise_;
+
+ public:
+  explicit EditExportedChatlistInviteQuery(Promise<td_api::object_ptr<td_api::chatFilterInviteLink>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(DialogFilterId dialog_filter_id, const string &slug, const string &title,
+            vector<tl_object_ptr<telegram_api::InputPeer>> &&input_peers) {
+    int32 flags =
+        telegram_api::chatlists_editExportedInvite::TITLE_MASK | telegram_api::chatlists_editExportedInvite::PEERS_MASK;
+    send_query(G()->net_query_creator().create(telegram_api::chatlists_editExportedInvite(
+        flags, dialog_filter_id.get_input_chatlist(), slug, title, std::move(input_peers))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::chatlists_editExportedInvite>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for EditExportedChatlistInviteQuery: " << to_string(ptr);
+    promise_.set_value(DialogFilterInviteLink(td_, std::move(ptr)).get_chat_filter_invite_link_object());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetDialogsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   bool is_single_ = false;
@@ -1524,6 +1556,29 @@ void DialogFilterManager::get_dialog_filter_invite_links(
     return promise.set_value(td_api::make_object<td_api::chatFilterInviteLinks>());
   }
   td_->create_handler<GetExportedChatlistInvitesQuery>(std::move(promise))->send(dialog_filter_id);
+}
+
+void DialogFilterManager::edit_dialog_filter_invite_link(
+    DialogFilterId dialog_filter_id, string invite_link, string invite_link_name, vector<DialogId> dialog_ids,
+    Promise<td_api::object_ptr<td_api::chatFilterInviteLink>> promise) {
+  auto dialog_filter = get_dialog_filter(dialog_filter_id);
+  if (dialog_filter == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat folder not found"));
+  }
+  vector<tl_object_ptr<telegram_api::InputPeer>> input_peers;
+  input_peers.reserve(dialog_ids.size());
+  for (auto &dialog_id : dialog_ids) {
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    if (input_peer == nullptr) {
+      return promise.set_error(Status::Error(400, "Have no access to the chat"));
+    }
+    input_peers.push_back(std::move(input_peer));
+  }
+  if (input_peers.empty()) {
+    return promise.set_error(Status::Error(400, "At least one chat must be included"));
+  }
+  td_->create_handler<EditExportedChatlistInviteQuery>(std::move(promise))
+      ->send(dialog_filter_id, invite_link, invite_link_name, std::move(input_peers));
 }
 
 void DialogFilterManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
