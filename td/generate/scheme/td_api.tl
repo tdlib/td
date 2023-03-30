@@ -6795,7 +6795,7 @@ getChatFilterDefaultIconName filter:chatFilter = Text;
 //@description Creates a new invite link for a chat filter. A link can be created for a filter if it has only pinned and included chats
 //@chat_filter_id Chat filter identifier
 //@name Name of the link; 0-32 characters
-//@chat_ids Identifiers of supergroup or channel chats to be accessible by the invite link. The chats must be public, or the user must be able to invite new members by an invite link
+//@chat_ids Identifiers of basic group, supergroup, or channel chats to be accessible by the invite link. The chats must be public, or the user must be able to invite new members by an invite link. Basic groups will be automatically converted to supergroups before link creation
 createChatFilterInviteLink chat_filter_id:int32 name:string chat_ids:vector<int53> = ChatFilterInviteLink;
 
 
