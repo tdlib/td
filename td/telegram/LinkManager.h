@@ -83,6 +83,10 @@ class LinkManager final : public Actor {
   static Result<string> get_background_url(const string &name,
                                            td_api::object_ptr<td_api::BackgroundType> background_type);
 
+  static string get_dialog_filter_invite_link_slug(Slice invite_link);
+
+  static string get_dialog_filter_invite_link(Slice slug, bool is_internal);
+
   static string get_dialog_invite_link_hash(Slice invite_link);
 
   static string get_dialog_invite_link(Slice hash, bool is_internal);
@@ -120,6 +124,7 @@ class LinkManager final : public Actor {
   class InternalLinkChangePhoneNumber;
   class InternalLinkConfirmPhone;
   class InternalLinkDefaultMessageAutoDeleteTimerSettings;
+  class InternalLinkDialogFilterInvite;
   class InternalLinkDialogInvite;
   class InternalLinkEditProfileSettings;
   class InternalLinkFilterSettings;
