@@ -220,6 +220,34 @@ class EditExportedChatlistInviteQuery final : public Td::ResultHandler {
   }
 };
 
+class DeleteExportedChatlistInviteQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit DeleteExportedChatlistInviteQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogFilterId dialog_filter_id, const string &slug) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::chatlists_deleteExportedInvite(dialog_filter_id.get_input_chatlist(), slug)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::chatlists_deleteExportedInvite>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for DeleteExportedChatlistInviteQuery: " << ptr;
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetDialogsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   bool is_single_ = false;
@@ -1579,6 +1607,15 @@ void DialogFilterManager::edit_dialog_filter_invite_link(
   }
   td_->create_handler<EditExportedChatlistInviteQuery>(std::move(promise))
       ->send(dialog_filter_id, invite_link, invite_link_name, std::move(input_peers));
+}
+
+void DialogFilterManager::delete_dialog_filter_invite_link(DialogFilterId dialog_filter_id, string invite_link,
+                                                           Promise<Unit> promise) {
+  auto dialog_filter = get_dialog_filter(dialog_filter_id);
+  if (dialog_filter == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat folder not found"));
+  }
+  td_->create_handler<DeleteExportedChatlistInviteQuery>(std::move(promise))->send(dialog_filter_id, invite_link);
 }
 
 void DialogFilterManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {

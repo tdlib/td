@@ -4605,6 +4605,11 @@ class CliClient final : public Actor {
       get_args(args, chat_filter_id, invite_link, name, chat_ids);
       send_request(td_api::make_object<td_api::editChatFilterInviteLink>(chat_filter_id, invite_link, name,
                                                                          as_chat_ids(chat_ids)));
+    } else if (op == "dcfil") {
+      ChatFilterId chat_filter_id;
+      string invite_link;
+      get_args(args, chat_filter_id, invite_link);
+      send_request(td_api::make_object<td_api::deleteChatFilterInviteLink>(chat_filter_id, invite_link));
     } else if (op == "grcf") {
       send_request(td_api::make_object<td_api::getRecommendedChatFilters>());
     } else if (op == "gcfdin") {

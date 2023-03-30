@@ -6812,6 +6812,11 @@ getChatFilterInviteLinks chat_filter_id:int32 = ChatFilterInviteLinks;
 //@chat_ids New identifiers of basic group, supergroup, or channel chats to be accessible by the invite link. The chats must be public, or the user must be able to invite new members to them by an invite link. Basic groups will be automatically converted to supergroups before link editing
 editChatFilterInviteLink chat_filter_id:int32 invite_link:string name:string chat_ids:vector<int53> = ChatFilterInviteLink;
 
+//@description Deletes an invite link for a chat filter
+//@chat_filter_id Chat filter identifier
+//@invite_link Invite link to be deleted
+deleteChatFilterInviteLink chat_filter_id:int32 invite_link:string = Ok;
+
 
 //@description Changes the chat title. Supported only for basic groups, supergroups and channels. Requires can_change_info administrator right
 //@chat_id Chat identifier
