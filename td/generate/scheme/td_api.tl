@@ -673,9 +673,9 @@ emojiStatuses emoji_statuses:vector<emojiStatus> = EmojiStatuses;
 
 
 //@description Describes usernames assigned to a user, a supergroup, or a channel
-//@active_usernames List of active usernames; the first one must be shown as the primary username. The order of active usernames can be changed with reorderActiveUsernames or reorderSupergroupActiveUsernames
-//@disabled_usernames List of currently disabled usernames; the username can be activated with toggleUsernameIsActive/toggleSupergroupUsernameIsActive
-//@editable_username The active username, which can be changed with setUsername/setSupergroupUsername
+//@active_usernames List of active usernames; the first one must be shown as the primary username. The order of active usernames can be changed with reorderActiveUsernames, reorderBotActiveUsernames or reorderSupergroupActiveUsernames
+//@disabled_usernames List of currently disabled usernames; the username can be activated with toggleUsernameIsActive, toggleBotUsernameIsActive, or toggleSupergroupUsernameIsActive
+//@editable_username The active username, which can be changed with setUsername or setSupergroupUsername
 usernames active_usernames:vector<string> disabled_usernames:vector<string> editable_username:string = Usernames;
 
 
@@ -7648,6 +7648,12 @@ getBotName bot_user_id:int53 language_code:string = Text;
 
 //@description Changes a profile photo for a bot @bot_user_id Identifier of the target bot @photo Profile photo to set; pass null to delete the chat photo
 setBotProfilePhoto bot_user_id:int53 photo:InputChatPhoto = Ok;
+
+//@description Changes active state for a username of a bot. The editable username can't be disabled. May return an error with a message "USERNAMES_ACTIVE_TOO_MUCH" if the maximum number of active usernames has been reached
+//@bot_user_id Identifier of the target bot
+//@username The username to change
+//@is_active Pass true to activate the username; pass false to disable it
+toggleBotUsernameIsActive bot_user_id:int53 username:string is_active:Bool = Ok;
 
 //@description Sets the text shown in the chat with a bot if the chat is empty. Can be called only if userTypeBot.can_be_edited == true
 //@bot_user_id Identifier of the target bot

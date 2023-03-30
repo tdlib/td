@@ -7027,6 +7027,14 @@ void Td::on_request(uint64 id, td_api::setBotProfilePhoto &request) {
   contacts_manager_->set_bot_profile_photo(UserId(request.bot_user_id_), request.photo_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::toggleBotUsernameIsActive &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.username_);
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->toggle_bot_username_is_active(UserId(request.bot_user_id_), std::move(request.username_),
+                                                   request.is_active_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::setBotInfoDescription &request) {
   CLEAN_INPUT_STRING(request.description_);
   CREATE_OK_REQUEST_PROMISE();
