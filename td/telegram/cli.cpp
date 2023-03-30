@@ -831,6 +831,18 @@ class CliClient final : public Actor {
     arg.user_id = as_user_id(args);
   }
 
+  struct ChatFilterId {
+    int32 chat_filter_id = 0;
+
+    operator int32() const {
+      return chat_filter_id;
+    }
+  };
+
+  void get_args(string &args, ChatFilterId &arg) const {
+    arg.chat_filter_id = as_chat_filter_id(args);
+  }
+
   struct FileId {
     int32 file_id = 0;
 
@@ -4548,7 +4560,9 @@ class CliClient final : public Actor {
       get_args(args, chat_id);
       send_request(td_api::make_object<td_api::addChatToList>(chat_id, as_chat_list(op)));
     } else if (op == "gcf") {
-      send_request(td_api::make_object<td_api::getChatFilter>(as_chat_filter_id(args)));
+      ChatFilterId chat_filter_id;
+      get_args(args, chat_filter_id);
+      send_request(td_api::make_object<td_api::getChatFilter>(chat_filter_id));
     } else if (op == "ccf") {
       send_request(td_api::make_object<td_api::createChatFilter>(as_chat_filter(args)));
     } else if (op == "ccfe") {
@@ -4557,13 +4571,14 @@ class CliClient final : public Actor {
       chat_filter->included_chat_ids_ = as_chat_ids(args);
       send_request(td_api::make_object<td_api::createChatFilter>(std::move(chat_filter)));
     } else if (op == "ecf") {
-      string chat_filter_id;
+      ChatFilterId chat_filter_id;
       string filter;
       get_args(args, chat_filter_id, filter);
-      send_request(
-          td_api::make_object<td_api::editChatFilter>(as_chat_filter_id(chat_filter_id), as_chat_filter(filter)));
+      send_request(td_api::make_object<td_api::editChatFilter>(chat_filter_id, as_chat_filter(filter)));
     } else if (op == "dcf") {
-      send_request(td_api::make_object<td_api::deleteChatFilter>(as_chat_filter_id(args)));
+      ChatFilterId chat_filter_id;
+      get_args(args, chat_filter_id);
+      send_request(td_api::make_object<td_api::deleteChatFilter>(chat_filter_id));
     } else if (op == "rcf") {
       int32 main_chat_list_position;
       string chat_filter_ids;
