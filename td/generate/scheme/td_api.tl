@@ -1321,6 +1321,9 @@ chatFilterInfo id:int32 title:string icon_name:string = ChatFilterInfo;
 //@chat_ids Identifiers of chats, included in the link
 chatFilterInviteLink invite_link:string name:string chat_ids:vector<int53> = ChatFilterInviteLink;
 
+//@description Represents a list of chat filter invite links @invite_links List of the invite links
+chatFilterInviteLinks invite_links:vector<chatFilterInviteLink> = ChatFilterInviteLinks;
+
 //@description Describes a recommended chat filter @filter The chat filter @param_description Chat filter description
 recommendedChatFilter filter:chatFilter description:string = RecommendedChatFilter;
 
@@ -6797,6 +6800,9 @@ getChatFilterDefaultIconName filter:chatFilter = Text;
 //@name Name of the link; 0-32 characters
 //@chat_ids Identifiers of basic group, supergroup, or channel chats to be accessible by the invite link. The chats must be public, or the user must be able to invite new members by an invite link. Basic groups will be automatically converted to supergroups before link creation
 createChatFilterInviteLink chat_filter_id:int32 name:string chat_ids:vector<int53> = ChatFilterInviteLink;
+
+//@description Returns invite links created by the current user for a shareable chat filter @chat_filter_id Chat filter identifier
+getChatFilterInviteLinks chat_filter_id:int32 = ChatFilterInviteLinks;
 
 
 //@description Changes the chat title. Supported only for basic groups, supergroups and channels. Requires can_change_info administrator right

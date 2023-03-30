@@ -6161,6 +6161,12 @@ void Td::on_request(uint64 id, td_api::createChatFilterInviteLink &request) {
       std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::getChatFilterInviteLinks &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  dialog_filter_manager_->get_dialog_filter_invite_links(DialogFilterId(request.chat_filter_id_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::setChatTitle &request) {
   CLEAN_INPUT_STRING(request.title_);
   CREATE_OK_REQUEST_PROMISE();

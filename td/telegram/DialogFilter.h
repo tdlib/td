@@ -47,6 +47,10 @@ class DialogFilter {
 
   bool is_empty(bool for_server) const;
 
+  bool is_shareable() const {
+    return is_shareable_;
+  }
+
   const DialogFilterId &get_dialog_filter_id() const {
     return dialog_filter_id_;
   }

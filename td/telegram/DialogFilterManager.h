@@ -76,6 +76,9 @@ class DialogFilterManager final : public Actor {
                                         vector<DialogId> dialog_ids,
                                         Promise<td_api::object_ptr<td_api::chatFilterInviteLink>> promise);
 
+  void get_dialog_filter_invite_links(DialogFilterId dialog_filter_id,
+                                      Promise<td_api::object_ptr<td_api::chatFilterInviteLinks>> promise);
+
   void on_get_dialog_filter(telegram_api::object_ptr<telegram_api::DialogFilter> filter);
 
   void get_recommended_dialog_filters(Promise<td_api::object_ptr<td_api::recommendedChatFilters>> &&promise);
