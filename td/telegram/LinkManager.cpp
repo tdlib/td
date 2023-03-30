@@ -70,12 +70,12 @@ static bool is_valid_web_app_name(Slice name) {
 static string get_url_query_hash(bool is_tg, const HttpUrlQuery &url_query) {
   const auto &path = url_query.path_;
   if (is_tg) {
-    if (path.size() == 1 && path[0] == "join" && !url_query.get_arg("invite").empty()) {
+    if (path.size() == 1 && path[0] == "join") {
       // join?invite=<hash>
       return url_query.get_arg("invite").str();
     }
   } else {
-    if (path.size() >= 2 && path[0] == "joinchat" && !path[1].empty()) {
+    if (path.size() >= 2 && path[0] == "joinchat") {
       // /joinchat/<hash>
       return path[1];
     }
@@ -90,12 +90,12 @@ static string get_url_query_hash(bool is_tg, const HttpUrlQuery &url_query) {
 static string get_url_query_slug(bool is_tg, const HttpUrlQuery &url_query) {
   const auto &path = url_query.path_;
   if (is_tg) {
-    if (path.size() == 1 && path[0] == "list" && !url_query.get_arg("slug").empty()) {
+    if (path.size() == 1 && path[0] == "list") {
       // list?slug=<hash>
       return url_query.get_arg("slug").str();
     }
   } else {
-    if (path.size() >= 2 && path[0] == "list" && !path[1].empty()) {
+    if (path.size() >= 2 && path[0] == "list") {
       // /list/<hash>
       return path[1];
     }
