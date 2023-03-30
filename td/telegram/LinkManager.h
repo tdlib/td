@@ -89,7 +89,7 @@ class LinkManager final : public Actor {
 
   static string get_dialog_invite_link_hash(Slice invite_link);
 
-  static string get_dialog_invite_link(Slice hash, bool is_internal);
+  static string get_dialog_invite_link(Slice invite_hash, bool is_internal);
 
   static string get_instant_view_link_url(Slice link);
 

@@ -1292,14 +1292,14 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
   } else if (path.size() == 1 && path[0] == "list") {
     auto slug = get_url_query_slug(true, url_query);
     if (!slug.empty() && is_base64url_characters(slug)) {
-      // list?slug=<hash>
-      return td::make_unique<InternalLinkDialogFilterInvite>(PSTRING() << "tg:list?slug=" << slug);
+      // list?slug=<slug>
+      return td::make_unique<InternalLinkDialogFilterInvite>(get_dialog_filter_invite_link(slug, true));
     }
   } else if (path.size() == 1 && path[0] == "join") {
     auto invite_hash = get_url_query_hash(true, url_query);
     if (!invite_hash.empty() && !is_valid_phone_number(invite_hash) && is_base64url_characters(invite_hash)) {
       // join?invite=<hash>
-      return td::make_unique<InternalLinkDialogInvite>(PSTRING() << "tg:join?invite=" << invite_hash);
+      return td::make_unique<InternalLinkDialogInvite>(get_dialog_invite_link(invite_hash, true));
     }
   } else if (path.size() == 1 && (path[0] == "addstickers" || path[0] == "addemoji")) {
     // addstickers?set=<name>
@@ -1429,13 +1429,13 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
     auto slug = get_url_query_slug(false, url_query);
     if (!slug.empty() && is_base64url_characters(slug)) {
       // /list/<slug>
-      return td::make_unique<InternalLinkDialogFilterInvite>(PSTRING() << "tg:list?slug=" << slug);
+      return td::make_unique<InternalLinkDialogFilterInvite>(get_dialog_filter_invite_link(slug, true));
     }
   } else if (path[0] == "joinchat") {
     auto invite_hash = get_url_query_hash(false, url_query);
     if (!invite_hash.empty() && !is_valid_phone_number(invite_hash) && is_base64url_characters(invite_hash)) {
       // /joinchat/<hash>
-      return td::make_unique<InternalLinkDialogInvite>(PSTRING() << "tg:join?invite=" << invite_hash);
+      return td::make_unique<InternalLinkDialogInvite>(get_dialog_invite_link(invite_hash, true));
     }
   } else if (path[0][0] == ' ' || path[0][0] == '+') {
     auto invite_hash = get_url_query_hash(false, url_query);
@@ -1451,7 +1451,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
       return std::move(user_link);
     } else if (!invite_hash.empty() && is_base64url_characters(invite_hash)) {
       // /+<link>
-      return td::make_unique<InternalLinkDialogInvite>(PSTRING() << "tg:join?invite=" << invite_hash);
+      return td::make_unique<InternalLinkDialogInvite>(get_dialog_invite_link(invite_hash, true));
     }
   } else if (path[0] == "contact") {
     if (path.size() >= 2 && !path[1].empty()) {
@@ -2350,14 +2350,14 @@ string LinkManager::get_dialog_invite_link_hash(Slice invite_link) {
   return invite_hash;
 }
 
-string LinkManager::get_dialog_invite_link(Slice hash, bool is_internal) {
-  if (!is_base64url_characters(hash)) {
+string LinkManager::get_dialog_invite_link(Slice invite_hash, bool is_internal) {
+  if (!is_base64url_characters(invite_hash)) {
     return string();
   }
   if (is_internal) {
-    return PSTRING() << "tg:join?invite=" << hash;
+    return PSTRING() << "tg:join?invite=" << invite_hash;
   } else {
-    return PSTRING() << get_t_me_url() << '+' << hash;
+    return PSTRING() << get_t_me_url() << '+' << invite_hash;
   }
 }
 
