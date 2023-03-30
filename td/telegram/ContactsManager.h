@@ -304,11 +304,9 @@ class ContactsManager final : public Actor {
 
   UserId add_channel_bot_user();
 
-  void on_update_username_is_active(string &&username, bool is_active, Promise<Unit> &&promise);
+  void on_update_username_is_active(UserId user_id, string &&username, bool is_active, Promise<Unit> &&promise);
 
-  void on_update_active_usernames_order(vector<string> &&usernames, Promise<Unit> &&promise);
-
-  void on_update_bot_username_is_active(UserId bot_user_id, string &&username, bool is_active, Promise<Unit> &&promise);
+  void on_update_active_usernames_order(UserId user_id, vector<string> &&usernames, Promise<Unit> &&promise);
 
   void on_update_channel_username_is_active(ChannelId channel_id, string &&username, bool is_active,
                                             Promise<Unit> &&promise);
@@ -402,6 +400,8 @@ class ContactsManager final : public Actor {
   void reorder_usernames(vector<string> &&usernames, Promise<Unit> &&promise);
 
   void toggle_bot_username_is_active(UserId bot_user_id, string &&username, bool is_active, Promise<Unit> &&promise);
+
+  void reorder_bot_usernames(UserId bot_user_id, vector<string> &&usernames, Promise<Unit> &&promise);
 
   void set_emoji_status(EmojiStatus emoji_status, Promise<Unit> &&promise);
 

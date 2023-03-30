@@ -7035,6 +7035,16 @@ void Td::on_request(uint64 id, td_api::toggleBotUsernameIsActive &request) {
                                                    request.is_active_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::reorderActiveBotUsernames &request) {
+  CHECK_IS_USER();
+  for (auto &username : request.usernames_) {
+    CLEAN_INPUT_STRING(username);
+  }
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->reorder_bot_usernames(UserId(request.bot_user_id_), std::move(request.usernames_),
+                                           std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::setBotInfoDescription &request) {
   CLEAN_INPUT_STRING(request.description_);
   CREATE_OK_REQUEST_PROMISE();

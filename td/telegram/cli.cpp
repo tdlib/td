@@ -5032,6 +5032,17 @@ class CliClient final : public Actor {
       InputChatPhoto input_chat_photo;
       get_args(args, bot_user_id, input_chat_photo);
       send_request(td_api::make_object<td_api::setBotProfilePhoto>(bot_user_id, input_chat_photo));
+    } else if (op == "tbunia") {
+      UserId bot_user_id;
+      string username;
+      bool is_active;
+      get_args(args, bot_user_id, username, is_active);
+      send_request(td_api::make_object<td_api::toggleBotUsernameIsActive>(bot_user_id, username, is_active));
+    } else if (op == "rabun") {
+      UserId bot_user_id;
+      string usernames;
+      get_args(args, bot_user_id, usernames);
+      send_request(td_api::make_object<td_api::reorderActiveBotUsernames>(bot_user_id, autosplit_str(usernames)));
     } else if (op == "sbid") {
       UserId bot_user_id;
       string language_code;
