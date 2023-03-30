@@ -1526,14 +1526,14 @@ class CliClient final : public Actor {
     return Random::fast_bool();
   }
 
-  td_api::object_ptr<td_api::chatFilter> as_chat_filter(string filter) const {
+  td_api::object_ptr<td_api::chatFilter> as_chat_filter(string filter, bool is_shareable = false) const {
     string title;
     string icon_name;
     string pinned_chat_ids;
     string included_chat_ids;
     string excluded_chat_ids;
     get_args(filter, title, icon_name, pinned_chat_ids, included_chat_ids, excluded_chat_ids);
-    return td_api::make_object<td_api::chatFilter>(title, icon_name, false, as_chat_ids(pinned_chat_ids),
+    return td_api::make_object<td_api::chatFilter>(title, icon_name, is_shareable, as_chat_ids(pinned_chat_ids),
                                                    as_chat_ids(included_chat_ids), as_chat_ids(excluded_chat_ids),
                                                    rand_bool(), rand_bool(), rand_bool(), rand_bool(), rand_bool(),
                                                    rand_bool(), rand_bool(), rand_bool());
@@ -4571,11 +4571,11 @@ class CliClient final : public Actor {
       chat_filter->title_ = "empty";
       chat_filter->included_chat_ids_ = as_chat_ids(args);
       send_request(td_api::make_object<td_api::createChatFilter>(std::move(chat_filter)));
-    } else if (op == "ecf") {
+    } else if (op == "ecf" || op == "ecfs") {
       ChatFilterId chat_filter_id;
       string filter;
       get_args(args, chat_filter_id, filter);
-      send_request(td_api::make_object<td_api::editChatFilter>(chat_filter_id, as_chat_filter(filter)));
+      send_request(td_api::make_object<td_api::editChatFilter>(chat_filter_id, as_chat_filter(filter, op == "ecfs")));
     } else if (op == "dcf") {
       ChatFilterId chat_filter_id;
       get_args(args, chat_filter_id);
