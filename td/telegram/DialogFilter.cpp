@@ -135,7 +135,7 @@ Result<unique_ptr<DialogFilter>> DialogFilter::create_dialog_filter(Td *td, Dial
   dialog_filter->include_bots_ = filter->include_bots_;
   dialog_filter->include_groups_ = filter->include_groups_;
   dialog_filter->include_channels_ = filter->include_channels_;
-  dialog_filter->is_shareable_ = false;
+  dialog_filter->is_shareable_ = filter->is_shareable_;
 
   TRY_STATUS(dialog_filter->check_limits());
   dialog_filter->sort_input_dialog_ids(td, "create_dialog_filter");
@@ -280,11 +280,11 @@ Status DialogFilter::check_limits() const {
   }
   if (is_shareable_) {
     if (!excluded_dialog_ids_.empty()) {
-      return Status::Error(400, "The folder can't have excluded chats");
+      return Status::Error(400, "Shareable folders can't have excluded chats");
     }
     if (include_contacts_ || include_non_contacts_ || include_bots_ || include_groups_ || include_channels_ ||
         exclude_archived_ || exclude_read_ || exclude_muted_) {
-      return Status::Error(400, "The folder can't have chat filters");
+      return Status::Error(400, "Shareable folders can't have chat filters");
     }
   }
 
@@ -450,7 +450,7 @@ td_api::object_ptr<td_api::chatFilter> DialogFilter::get_chat_filter_object(
   };
 
   return td_api::make_object<td_api::chatFilter>(
-      title_, get_icon_name(), get_chat_ids(pinned_dialog_ids_), get_chat_ids(included_dialog_ids_),
+      title_, get_icon_name(), is_shareable_, get_chat_ids(pinned_dialog_ids_), get_chat_ids(included_dialog_ids_),
       get_chat_ids(excluded_dialog_ids_), exclude_muted_, exclude_read_, exclude_archived_, include_contacts_,
       include_non_contacts_, include_bots_, include_groups_, include_channels_);
 }
