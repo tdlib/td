@@ -8767,10 +8767,10 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getChatFi
   if (!check_utf8(request.filter_->title_)) {
     return make_error(400, "Chat filter title must be encoded in UTF-8");
   }
-  if (!check_utf8(request.filter_->icon_name_)) {
+  if (request.filter_->icon_ != nullptr && !check_utf8(request.filter_->icon_->name_)) {
     return make_error(400, "Chat filter icon name must be encoded in UTF-8");
   }
-  return td_api::make_object<td_api::text>(DialogFilter::get_default_icon_name(request.filter_.get()));
+  return td_api::make_object<td_api::chatFilterIcon>(DialogFilter::get_default_icon_name(request.filter_.get()));
 }
 
 td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::getJsonValue &request) {

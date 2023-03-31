@@ -1533,10 +1533,10 @@ class CliClient final : public Actor {
     string included_chat_ids;
     string excluded_chat_ids;
     get_args(filter, title, icon_name, pinned_chat_ids, included_chat_ids, excluded_chat_ids);
-    return td_api::make_object<td_api::chatFilter>(title, icon_name, is_shareable, as_chat_ids(pinned_chat_ids),
-                                                   as_chat_ids(included_chat_ids), as_chat_ids(excluded_chat_ids),
-                                                   rand_bool(), rand_bool(), rand_bool(), rand_bool(), rand_bool(),
-                                                   rand_bool(), rand_bool(), rand_bool());
+    return td_api::make_object<td_api::chatFilter>(
+        title, td_api::make_object<td_api::chatFilterIcon>(icon_name), is_shareable, as_chat_ids(pinned_chat_ids),
+        as_chat_ids(included_chat_ids), as_chat_ids(excluded_chat_ids), rand_bool(), rand_bool(), rand_bool(),
+        rand_bool(), rand_bool(), rand_bool(), rand_bool(), rand_bool());
   }
 
   static td_api::object_ptr<td_api::chatAdministratorRights> as_chat_administrator_rights(

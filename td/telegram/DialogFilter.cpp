@@ -96,7 +96,11 @@ Result<unique_ptr<DialogFilter>> DialogFilter::create_dialog_filter(Td *td, Dial
   if (filter == nullptr) {
     return Status::Error(400, "Chat filter must be non-empty");
   }
-  if (!clean_input_string(filter->title_) || !clean_input_string(filter->icon_name_)) {
+  string icon_name;
+  if (filter->icon_ != nullptr) {
+    icon_name = std::move(filter->icon_->name_);
+  }
+  if (!clean_input_string(filter->title_) || !clean_input_string(icon_name)) {
     return Status::Error(400, "Strings must be encoded in UTF-8");
   }
 
@@ -123,8 +127,8 @@ Result<unique_ptr<DialogFilter>> DialogFilter::create_dialog_filter(Td *td, Dial
   if (dialog_filter->title_.empty()) {
     return Status::Error(400, "Title must be non-empty");
   }
-  dialog_filter->emoji_ = get_emoji_by_icon_name(filter->icon_name_);
-  if (dialog_filter->emoji_.empty() && !filter->icon_name_.empty()) {
+  dialog_filter->emoji_ = get_emoji_by_icon_name(icon_name);
+  if (dialog_filter->emoji_.empty() && !icon_name.empty()) {
     return Status::Error(400, "Invalid icon name specified");
   }
   dialog_filter->exclude_muted_ = filter->exclude_muted_;
@@ -353,8 +357,9 @@ string DialogFilter::get_chosen_or_default_icon_name() const {
 }
 
 string DialogFilter::get_default_icon_name(const td_api::chatFilter *filter) {
-  if (!filter->icon_name_.empty() && !get_emoji_by_icon_name(filter->icon_name_).empty()) {
-    return filter->icon_name_;
+  if (filter->icon_ != nullptr && !filter->icon_->name_.empty() &&
+      !get_emoji_by_icon_name(filter->icon_->name_).empty()) {
+    return filter->icon_->name_;
   }
 
   if (!filter->pinned_chat_ids_.empty() || !filter->included_chat_ids_.empty() || !filter->excluded_chat_ids_.empty()) {
@@ -449,15 +454,20 @@ td_api::object_ptr<td_api::chatFilter> DialogFilter::get_chat_filter_object(
     return chat_ids;
   };
 
+  td_api::object_ptr<td_api::chatFilterIcon> icon;
+  auto icon_name = get_icon_name();
+  if (!icon_name.empty()) {
+    icon = td_api::make_object<td_api::chatFilterIcon>(icon_name);
+  }
   return td_api::make_object<td_api::chatFilter>(
-      title_, get_icon_name(), is_shareable_, get_chat_ids(pinned_dialog_ids_), get_chat_ids(included_dialog_ids_),
+      title_, std::move(icon), is_shareable_, get_chat_ids(pinned_dialog_ids_), get_chat_ids(included_dialog_ids_),
       get_chat_ids(excluded_dialog_ids_), exclude_muted_, exclude_read_, exclude_archived_, include_contacts_,
       include_non_contacts_, include_bots_, include_groups_, include_channels_);
 }
 
 td_api::object_ptr<td_api::chatFilterInfo> DialogFilter::get_chat_filter_info_object() const {
-  return td_api::make_object<td_api::chatFilterInfo>(dialog_filter_id_.get(), title_,
-                                                     get_chosen_or_default_icon_name());
+  return td_api::make_object<td_api::chatFilterInfo>(
+      dialog_filter_id_.get(), title_, td_api::make_object<td_api::chatFilterIcon>(get_chosen_or_default_icon_name()));
 }
 
 void DialogFilter::for_each_dialog(std::function<void(const InputDialogId &)> callback) const {

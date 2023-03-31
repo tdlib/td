@@ -1290,11 +1290,13 @@ chatTypeSupergroup supergroup_id:int53 is_channel:Bool = ChatType;
 chatTypeSecret secret_chat_id:int32 user_id:int53 = ChatType;
 
 
+//@description Represents an icon for a chat filter @name The chosen icon name for short filter representation; one of "All", "Unread", "Unmuted", "Bots", "Channels", "Groups", "Private", "Custom", "Setup", "Cat", "Crown",
+//-"Favorite", "Flower", "Game", "Home", "Love", "Mask", "Party", "Sport", "Study", "Trade", "Travel", "Work", "Airplane", "Book", "Light", "Like", "Money", "Note", "Palette"
+chatFilterIcon name:string = ChatFilterIcon;
+
 //@description Represents a filter of user chats
 //@title The title of the filter; 1-12 characters without line feeds
-//@icon_name The chosen icon name for short filter representation. If non-empty, must be one of "All", "Unread", "Unmuted", "Bots", "Channels", "Groups", "Private", "Custom", "Setup", "Cat", "Crown",
-//-"Favorite", "Flower", "Game", "Home", "Love", "Mask", "Party", "Sport", "Study", "Trade", "Travel", "Work", "Airplane", "Book", "Light", "Like", "Money", "Note", "Palette".
-//-If empty, use getChatFilterDefaultIconName to get default icon name for the filter
+//@icon The chosen icon for the chat filter; may be null. If null, use getChatFilterDefaultIconName to get default icon name for the filter
 //@is_shareable True if at least one link has been created for the filter
 //@pinned_chat_ids The chat identifiers of pinned chats in the filtered chat list. There can be up to getOption("chat_filter_chosen_chat_count_max") pinned and always included non-secret chats and the same number of secret chats, but the limit can be increased with Telegram Premium
 //@included_chat_ids The chat identifiers of always included chats in the filtered chat list. There can be up to getOption("chat_filter_chosen_chat_count_max") pinned and always included non-secret chats and the same number of secret chats, but the limit can be increased with Telegram Premium
@@ -1307,14 +1309,13 @@ chatTypeSecret secret_chat_id:int32 user_id:int53 = ChatType;
 //@include_bots True, if bots need to be included
 //@include_groups True, if basic groups and supergroups need to be included
 //@include_channels True, if channels need to be included
-chatFilter title:string icon_name:string is_shareable:Bool pinned_chat_ids:vector<int53> included_chat_ids:vector<int53> excluded_chat_ids:vector<int53> exclude_muted:Bool exclude_read:Bool exclude_archived:Bool include_contacts:Bool include_non_contacts:Bool include_bots:Bool include_groups:Bool include_channels:Bool = ChatFilter;
+chatFilter title:string icon:chatFilterIcon is_shareable:Bool pinned_chat_ids:vector<int53> included_chat_ids:vector<int53> excluded_chat_ids:vector<int53> exclude_muted:Bool exclude_read:Bool exclude_archived:Bool include_contacts:Bool include_non_contacts:Bool include_bots:Bool include_groups:Bool include_channels:Bool = ChatFilter;
 
 //@description Contains basic information about a chat filter
 //@id Unique chat filter identifier
 //@title The title of the filter; 1-12 characters without line feeds
-//@icon_name The chosen or default icon name for short filter representation. One of "All", "Unread", "Unmuted", "Bots", "Channels", "Groups", "Private", "Custom", "Setup", "Cat", "Crown",
-//-"Favorite", "Flower", "Game", "Home", "Love", "Mask", "Party", "Sport", "Study", "Trade", "Travel", "Work", "Airplane", "Book", "Light", "Like", "Money", "Note", "Palette"
-chatFilterInfo id:int32 title:string icon_name:string = ChatFilterInfo;
+//@icon The chosen or default icon for the chat filter
+chatFilterInfo id:int32 title:string icon:chatFilterIcon = ChatFilterInfo;
 
 //@description Contains a chat filter invite link
 //@invite_link The chat filter invite link
@@ -6797,7 +6798,7 @@ reorderChatFilters chat_filter_ids:vector<int32> main_chat_list_position:int32 =
 getRecommendedChatFilters = RecommendedChatFilters;
 
 //@description Returns default icon name for a filter. Can be called synchronously @filter Chat filter
-getChatFilterDefaultIconName filter:chatFilter = Text;
+getChatFilterDefaultIconName filter:chatFilter = ChatFilterIcon;
 
 //@description Creates a new invite link for a chat filter. A link can be created for a filter if it has only pinned and included chats
 //@chat_filter_id Chat filter identifier
