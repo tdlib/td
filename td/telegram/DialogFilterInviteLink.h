@@ -38,6 +38,8 @@ class DialogFilterInviteLink {
   bool is_valid() const {
     return !invite_link_.empty();
   }
+
+  static bool is_valid_invite_link(Slice invite_link);
 };
 
 bool operator==(const DialogFilterInviteLink &lhs, const DialogFilterInviteLink &rhs);

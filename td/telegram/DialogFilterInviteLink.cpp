@@ -6,6 +6,7 @@
 //
 #include "td/telegram/DialogFilterInviteLink.h"
 
+#include "td/telegram/LinkManager.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
 
@@ -14,6 +15,7 @@ namespace td {
 DialogFilterInviteLink::DialogFilterInviteLink(
     Td *td, telegram_api::object_ptr<telegram_api::exportedChatlistInvite> exported_invite) {
   CHECK(exported_invite != nullptr);
+  LOG_IF(ERROR, !is_valid_invite_link(exported_invite->url_)) << "Unsupported " << to_string(exported_invite);
   invite_link_ = std::move(exported_invite->url_);
   title_ = std::move(exported_invite->title_);
   for (const auto &peer : exported_invite->peers_) {
@@ -28,6 +30,10 @@ DialogFilterInviteLink::DialogFilterInviteLink(
 td_api::object_ptr<td_api::chatFilterInviteLink> DialogFilterInviteLink::get_chat_filter_invite_link_object() const {
   return td_api::make_object<td_api::chatFilterInviteLink>(
       invite_link_, title_, transform(dialog_ids_, [](DialogId dialog_id) { return dialog_id.get(); }));
+}
+
+bool DialogFilterInviteLink::is_valid_invite_link(Slice invite_link) {
+  return !LinkManager::get_dialog_filter_invite_link_slug(invite_link).empty();
 }
 
 bool operator==(const DialogFilterInviteLink &lhs, const DialogFilterInviteLink &rhs) {
