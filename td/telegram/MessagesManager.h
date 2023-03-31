@@ -180,6 +180,8 @@ class MessagesManager final : public Actor {
 
   bool have_input_peer(DialogId dialog_id, AccessRights access_rights) const;
 
+  vector<DialogId> get_peers_dialog_ids(vector<tl_object_ptr<telegram_api::Peer>> &&peers);
+
   void on_get_empty_messages(DialogId dialog_id, const vector<MessageId> &empty_message_ids);
 
   void get_channel_difference_if_needed(DialogId dialog_id, MessagesInfo &&messages_info,
@@ -2592,8 +2594,6 @@ class MessagesManager final : public Actor {
                                                              bool skip_not_found);
 
   vector<DialogId> sort_dialogs_by_order(const vector<DialogId> &dialog_ids, int32 limit) const;
-
-  vector<DialogId> get_peers_dialog_ids(vector<tl_object_ptr<telegram_api::Peer>> &&peers);
 
   static bool need_unread_counter(int64 dialog_order);
 

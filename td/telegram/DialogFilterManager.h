@@ -85,6 +85,13 @@ class DialogFilterManager final : public Actor {
 
   void delete_dialog_filter_invite_link(DialogFilterId dialog_filter_id, string invite_link, Promise<Unit> promise);
 
+  void check_dialog_filter_invite_link(const string &invite_link,
+                                       Promise<td_api::object_ptr<td_api::chatFilterInviteLinkInfo>> &&promise);
+
+  void on_get_chatlist_invite(const string &invite_link,
+                              telegram_api::object_ptr<telegram_api::chatlists_ChatlistInvite> &&invite_ptr,
+                              Promise<td_api::object_ptr<td_api::chatFilterInviteLinkInfo>> &&promise);
+
   void on_get_dialog_filter(telegram_api::object_ptr<telegram_api::DialogFilter> filter);
 
   void get_recommended_dialog_filters(Promise<td_api::object_ptr<td_api::recommendedChatFilters>> &&promise);

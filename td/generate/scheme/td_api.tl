@@ -923,7 +923,7 @@ basicGroupFullInfo photo:chatPhoto description:string creator_user_id:int53 memb
 //@date Point in time (Unix timestamp) when the current user joined, or the point in time when the supergroup or channel was created, in case the user is not a member
 //@status Status of the current user in the supergroup or channel; custom title will always be empty
 //@member_count Number of members in the supergroup or channel; 0 if unknown. Currently, it is guaranteed to be known only if the supergroup or channel was received
-//-through searchPublicChats, searchChatsNearby, getInactiveSupergroupChats, getSuitableDiscussionChats, getGroupsInCommon, or getUserPrivacySettingRules
+//-through searchPublicChats, searchChatsNearby, getInactiveSupergroupChats, getSuitableDiscussionChats, getGroupsInCommon, getUserPrivacySettingRules, or in chatFilterInviteLinkInfo.missing_chat_ids
 //@has_linked_chat True, if the channel has a discussion group, or the supergroup is the designated discussion group for a channel
 //@has_location True, if the supergroup is connected to a location, i.e. the supergroup is a location-based supergroup
 //@sign_messages True, if messages sent to the channel need to contain information about the sender. This field is only applicable to channels
@@ -1325,6 +1325,12 @@ chatFilterInviteLink invite_link:string name:string chat_ids:vector<int53> = Cha
 
 //@description Represents a list of chat filter invite links @invite_links List of the invite links
 chatFilterInviteLinks invite_links:vector<chatFilterInviteLink> = ChatFilterInviteLinks;
+
+//@description Contains information about an invite link to a chat filter
+//@chat_filter_info Basic information about the chat filter; chat filter identifier will be 0 if the user didn't have the chat filter yet
+//@missing_chat_ids Identifiers of the chats from the link, which aren't added to the filter yet
+//@added_chat_ids Identifiers of the chats from the link, which are added to the filter already
+chatFilterInviteLinkInfo chat_filter_info:chatFilterInfo missing_chat_ids:vector<int53> added_chat_ids:vector<int53> = ChatFilterInviteLinkInfo;
 
 //@description Describes a recommended chat filter @filter The chat filter @param_description Chat filter description
 recommendedChatFilter filter:chatFilter description:string = RecommendedChatFilter;
@@ -6820,6 +6826,9 @@ editChatFilterInviteLink chat_filter_id:int32 invite_link:string name:string cha
 //@chat_filter_id Chat filter identifier
 //@invite_link Invite link to be deleted
 deleteChatFilterInviteLink chat_filter_id:int32 invite_link:string = Ok;
+
+//@description Checks the validity of an invite link for a chat filter and returns information about the corresponding chat filter @invite_link Invite link to be checked
+checkChatFilterInviteLink invite_link:string = ChatFilterInviteLinkInfo;
 
 
 //@description Changes the chat title. Supported only for basic groups, supergroups and channels. Requires can_change_info administrator right

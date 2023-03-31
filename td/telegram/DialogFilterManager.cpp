@@ -13,6 +13,7 @@
 #include "td/telegram/DialogFilter.hpp"
 #include "td/telegram/DialogFilterInviteLink.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/LinkManager.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/OptionManager.h"
@@ -241,6 +242,35 @@ class DeleteExportedChatlistInviteQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for DeleteExportedChatlistInviteQuery: " << ptr;
     promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class CheckChatlistInviteQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::chatFilterInviteLinkInfo>> promise_;
+  string invite_link_;
+
+ public:
+  explicit CheckChatlistInviteQuery(Promise<td_api::object_ptr<td_api::chatFilterInviteLinkInfo>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(const string &invite_link) {
+    invite_link_ = invite_link;
+    send_query(G()->net_query_creator().create(
+        telegram_api::chatlists_checkChatlistInvite(LinkManager::get_dialog_filter_invite_link_slug(invite_link_))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::chatlists_checkChatlistInvite>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    td_->dialog_filter_manager_->on_get_chatlist_invite(invite_link_, result_ptr.move_as_ok(), std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -1616,6 +1646,74 @@ void DialogFilterManager::delete_dialog_filter_invite_link(DialogFilterId dialog
     return promise.set_error(Status::Error(400, "Chat folder not found"));
   }
   td_->create_handler<DeleteExportedChatlistInviteQuery>(std::move(promise))->send(dialog_filter_id, invite_link);
+}
+
+void DialogFilterManager::check_dialog_filter_invite_link(
+    const string &invite_link, Promise<td_api::object_ptr<td_api::chatFilterInviteLinkInfo>> &&promise) {
+  if (!DialogFilterInviteLink::is_valid_invite_link(invite_link)) {
+    return promise.set_error(Status::Error(400, "Wrong invite link"));
+  }
+
+  CHECK(!invite_link.empty());
+  td_->create_handler<CheckChatlistInviteQuery>(std::move(promise))->send(invite_link);
+}
+
+void DialogFilterManager::on_get_chatlist_invite(
+    const string &invite_link, telegram_api::object_ptr<telegram_api::chatlists_ChatlistInvite> &&invite_ptr,
+    Promise<td_api::object_ptr<td_api::chatFilterInviteLinkInfo>> &&promise) {
+  CHECK(invite_ptr != nullptr);
+  LOG(INFO) << "Receive information about chat folder invite link " << invite_link << ": " << to_string(invite_ptr);
+
+  td_api::object_ptr<td_api::chatFilterInfo> info;
+  vector<telegram_api::object_ptr<telegram_api::Peer>> missing_peers;
+  vector<telegram_api::object_ptr<telegram_api::Peer>> already_peers;
+  vector<telegram_api::object_ptr<telegram_api::Chat>> chats;
+  vector<telegram_api::object_ptr<telegram_api::User>> users;
+  switch (invite_ptr->get_id()) {
+    case telegram_api::chatlists_chatlistInviteAlready::ID: {
+      auto invite = move_tl_object_as<telegram_api::chatlists_chatlistInviteAlready>(invite_ptr);
+      DialogFilterId dialog_filter_id = DialogFilterId(invite->filter_id_);
+      if (!dialog_filter_id.is_valid()) {
+        return promise.set_error(Status::Error(500, "Receive invalid chat folder identifier"));
+      }
+      auto dialog_filter = get_dialog_filter(dialog_filter_id);
+      if (dialog_filter == nullptr) {
+        reload_dialog_filters();
+        return promise.set_error(Status::Error(500, "Receive unknown chat folder"));
+      }
+      info = dialog_filter->get_chat_filter_info_object();
+      missing_peers = std::move(invite->missing_peers_);
+      already_peers = std::move(invite->already_peers_);
+      chats = std::move(invite->chats_);
+      users = std::move(invite->users_);
+      break;
+    }
+    case telegram_api::chatlists_chatlistInvite::ID: {
+      auto invite = move_tl_object_as<telegram_api::chatlists_chatlistInvite>(invite_ptr);
+      auto icon_name = DialogFilter::get_icon_name_by_emoji(invite->emoticon_);
+      if (icon_name.empty()) {
+        icon_name = "Custom";
+      }
+      info = td_api::make_object<td_api::chatFilterInfo>(0, invite->title_,
+                                                         td_api::make_object<td_api::chatFilterIcon>(icon_name));
+      missing_peers = std::move(invite->peers_);
+      chats = std::move(invite->chats_);
+      users = std::move(invite->users_);
+      break;
+    }
+    default:
+      UNREACHABLE();
+      break;
+  }
+
+  td_->contacts_manager_->on_get_users(std::move(users), "on_get_chatlist_invite");
+  td_->contacts_manager_->on_get_chats(std::move(chats), "on_get_chatlist_invite");
+
+  auto missing_dialog_ids = td_->messages_manager_->get_peers_dialog_ids(std::move(missing_peers));
+  auto already_dialog_ids = td_->messages_manager_->get_peers_dialog_ids(std::move(already_peers));
+  promise.set_value(td_api::make_object<td_api::chatFilterInviteLinkInfo>(
+      std::move(info), transform(missing_dialog_ids, [](DialogId dialog_id) { return dialog_id.get(); }),
+      transform(already_dialog_ids, [](DialogId dialog_id) { return dialog_id.get(); })));
 }
 
 void DialogFilterManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
