@@ -309,13 +309,17 @@ string DialogFilter::get_emoji_by_icon_name(const string &icon_name) {
   return string();
 }
 
-string DialogFilter::get_icon_name() const {
+string DialogFilter::get_icon_name_by_emoji(const string &emoji) {
   init_icon_names();
-  auto it = emoji_to_icon_name_.find(emoji_);
+  auto it = emoji_to_icon_name_.find(emoji);
   if (it != emoji_to_icon_name_.end()) {
     return it->second;
   }
   return string();
+}
+
+string DialogFilter::get_icon_name() const {
+  return get_icon_name_by_emoji(emoji_);
 }
 
 string DialogFilter::get_chosen_or_default_icon_name() const {

@@ -69,6 +69,8 @@ class DialogFilter {
 
   static string get_emoji_by_icon_name(const string &icon_name);
 
+  static string get_icon_name_by_emoji(const string &emoji);
+
   string get_icon_name() const;
 
   static string get_default_icon_name(const td_api::chatFilter *filter);
