@@ -6830,6 +6830,9 @@ deleteChatFilterInviteLink chat_filter_id:int32 invite_link:string = Ok;
 //@description Checks the validity of an invite link for a chat filter and returns information about the corresponding chat filter @invite_link Invite link to be checked
 checkChatFilterInviteLink invite_link:string = ChatFilterInviteLinkInfo;
 
+//@description Adds a chat filter by an invite link @invite_link Invite link for the chat filter @chat_ids Identifiers of the chats added to the chat filter. The chats are automatically joined if they aren't joined yet
+addChatFilterByInviteLink invite_link:string chat_ids:vector<int53> = Ok;
+
 
 //@description Changes the chat title. Supported only for basic groups, supergroups and channels. Requires can_change_info administrator right
 //@chat_id Chat identifier

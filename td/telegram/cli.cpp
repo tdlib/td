@@ -4612,6 +4612,11 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::deleteChatFilterInviteLink>(chat_filter_id, invite_link));
     } else if (op == "ccfil") {
       send_request(td_api::make_object<td_api::checkChatFilterInviteLink>(args));
+    } else if (op == "acfbil") {
+      string invite_link;
+      string chat_ids;
+      get_args(args, invite_link, chat_ids);
+      send_request(td_api::make_object<td_api::addChatFilterByInviteLink>(invite_link, as_chat_ids(chat_ids)));
     } else if (op == "grcf") {
       send_request(td_api::make_object<td_api::getRecommendedChatFilters>());
     } else if (op == "gcfdin") {

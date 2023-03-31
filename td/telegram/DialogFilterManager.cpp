@@ -19,6 +19,7 @@
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
+#include "td/telegram/UpdatesManager.h"
 #include "td/telegram/Version.h"
 
 #include "td/actor/MultiPromise.h"
@@ -271,6 +272,35 @@ class CheckChatlistInviteQuery final : public Td::ResultHandler {
     }
 
     td_->dialog_filter_manager_->on_get_chatlist_invite(invite_link_, result_ptr.move_as_ok(), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class JoinChatlistInviteQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit JoinChatlistInviteQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(const string &invite_link, vector<DialogId> dialog_ids) {
+    send_query(G()->net_query_creator().create(telegram_api::chatlists_joinChatlistInvite(
+        LinkManager::get_dialog_filter_invite_link_slug(invite_link),
+        td_->messages_manager_->get_input_peers(dialog_ids, AccessRights::Read))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::chatlists_joinChatlistInvite>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for JoinChatlistInviteQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -1716,10 +1746,27 @@ void DialogFilterManager::on_get_chatlist_invite(
       transform(already_dialog_ids, [](DialogId dialog_id) { return dialog_id.get(); })));
 }
 
+void DialogFilterManager::add_dialog_filter_by_invite_link(const string &invite_link, vector<DialogId> dialog_ids,
+                                                           Promise<Unit> &&promise) {
+  if (!DialogFilterInviteLink::is_valid_invite_link(invite_link)) {
+    return promise.set_error(Status::Error(400, "Wrong invite link"));
+  }
+  for (auto dialog_id : dialog_ids) {
+    if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+      return promise.set_error(Status::Error(400, "Can't access the chat"));
+    }
+  }
+
+  CHECK(!invite_link.empty());
+  td_->create_handler<JoinChatlistInviteQuery>(std::move(promise))->send(invite_link, std::move(dialog_ids));
+}
+
 void DialogFilterManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
   if (have_dialog_filters()) {
     updates.push_back(get_update_chat_filters_object());
   }
 }
+
+void add_dialog_filter_by_invite_link(const string &invite_link, vector<DialogId> dialog_ids, Promise<Unit> &&promise);
 
 }  // namespace td

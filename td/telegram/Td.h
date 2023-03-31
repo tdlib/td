@@ -935,6 +935,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::checkChatFilterInviteLink &request);
 
+  void on_request(uint64 id, td_api::addChatFilterByInviteLink &request);
+
   void on_request(uint64 id, td_api::setChatTitle &request);
 
   void on_request(uint64 id, const td_api::setChatPhoto &request);
