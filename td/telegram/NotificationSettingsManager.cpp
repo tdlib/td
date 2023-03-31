@@ -1158,7 +1158,7 @@ Result<FileId> NotificationSettingsManager::get_ringtone(
     telegram_api::object_ptr<telegram_api::Document> &&ringtone) const {
   int32 document_id = ringtone->get_id();
   if (document_id == telegram_api::documentEmpty::ID) {
-    return Status::Error("Received an empty ringtone");
+    return Status::Error("Receive an empty ringtone");
   }
   CHECK(document_id == telegram_api::document::ID);
 

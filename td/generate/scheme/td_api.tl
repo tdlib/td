@@ -2597,7 +2597,7 @@ messageBotWriteAccessAllowed web_app:webApp = MessageContent;
 //@description Data from a Web App has been sent to a bot @button_text Text of the keyboardButtonTypeWebApp button, which opened the Web App
 messageWebAppDataSent button_text:string = MessageContent;
 
-//@description Data from a Web App has been received; for bots only @button_text Text of the keyboardButtonTypeWebApp button, which opened the Web App @data Received data
+//@description Data from a Web App has been received; for bots only @button_text Text of the keyboardButtonTypeWebApp button, which opened the Web App @data The data
 messageWebAppDataReceived button_text:string data:string = MessageContent;
 
 //@description Telegram Passport data has been sent to a bot @types List of Telegram Passport element types sent
@@ -3321,7 +3321,7 @@ speechRecognitionResultPending partial_text:string = SpeechRecognitionResult;
 //@description The speech recognition successfully finished @text Recognized text
 speechRecognitionResultText text:string = SpeechRecognitionResult;
 
-//@description The speech recognition failed @error Received error
+//@description The speech recognition failed @error Recognition error
 speechRecognitionResultError error:error = SpeechRecognitionResult;
 
 
@@ -6589,7 +6589,7 @@ getWebAppUrl bot_user_id:int53 url:string theme:themeParameters application_name
 //@description Sends data received from a keyboardButtonTypeWebApp Web App to a bot
 //@bot_user_id Identifier of the target bot
 //@button_text Text of the keyboardButtonTypeWebApp button, which opened the Web App
-//@data Received data
+//@data The data
 sendWebAppData bot_user_id:int53 button_text:string data:string = Ok;
 
 //@description Informs TDLib that a Web App is being opened from attachment menu, a botMenuButton button, an internalLinkTypeAttachmentMenuBot link, or an inlineKeyboardButtonTypeWebApp button.

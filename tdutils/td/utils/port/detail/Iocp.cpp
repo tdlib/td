@@ -38,7 +38,7 @@ void Iocp::loop() {
       callback->on_iocp(bytes, overlapped);
     } else {
       if (overlapped != nullptr) {
-        auto error = OS_ERROR("Received from IOCP");
+        auto error = OS_ERROR("Receive IOCP error");
         auto callback = reinterpret_cast<Iocp::Callback *>(key);
         CHECK(callback != nullptr);
         callback->on_iocp(std::move(error), overlapped);
