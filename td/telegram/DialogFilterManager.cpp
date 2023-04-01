@@ -250,6 +250,34 @@ class DeleteExportedChatlistInviteQuery final : public Td::ResultHandler {
   }
 };
 
+class LeaveChatlistQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit LeaveChatlistQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogFilterId dialog_filter_id) {
+    send_query(G()->net_query_creator().create(telegram_api::chatlists_leaveChatlist(
+        dialog_filter_id.get_input_chatlist(), vector<telegram_api::object_ptr<telegram_api::InputPeer>>())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::chatlists_leaveChatlist>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for LeaveChatlistQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class CheckChatlistInviteQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::chatFilterInviteLinkInfo>> promise_;
   string invite_link_;
@@ -1249,7 +1277,8 @@ void DialogFilterManager::synchronize_dialog_filters() {
             << DialogFilter::get_dialog_filter_ids(server_dialog_filters_, server_main_dialog_list_position_);
   for (const auto &server_dialog_filter : server_dialog_filters_) {
     if (get_dialog_filter(server_dialog_filter->get_dialog_filter_id()) == nullptr) {
-      return delete_dialog_filter_on_server(server_dialog_filter->get_dialog_filter_id());
+      return delete_dialog_filter_on_server(server_dialog_filter->get_dialog_filter_id(),
+                                            server_dialog_filter->is_shareable());
     }
   }
 
@@ -1438,14 +1467,18 @@ void DialogFilterManager::delete_dialog_filter(DialogFilterId dialog_filter_id, 
   promise.set_value(Unit());
 }
 
-void DialogFilterManager::delete_dialog_filter_on_server(DialogFilterId dialog_filter_id) {
+void DialogFilterManager::delete_dialog_filter_on_server(DialogFilterId dialog_filter_id, bool is_shareable) {
   CHECK(!td_->auth_manager_->is_bot());
   are_dialog_filters_being_synchronized_ = true;
   auto promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_filter_id](Result<Unit> result) {
     send_closure(actor_id, &DialogFilterManager::on_delete_dialog_filter, dialog_filter_id,
                  result.is_error() ? result.move_as_error() : Status::OK());
   });
-  td_->create_handler<UpdateDialogFilterQuery>(std::move(promise))->send(dialog_filter_id, nullptr);
+  if (is_shareable) {
+    td_->create_handler<LeaveChatlistQuery>(std::move(promise))->send(dialog_filter_id);
+  } else {
+    td_->create_handler<UpdateDialogFilterQuery>(std::move(promise))->send(dialog_filter_id, nullptr);
+  }
 }
 
 void DialogFilterManager::on_delete_dialog_filter(DialogFilterId dialog_filter_id, Status result) {
