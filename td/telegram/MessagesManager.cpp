@@ -22081,8 +22081,7 @@ tl_object_ptr<td_api::chats> MessagesManager::get_chats_object(int32 total_count
   if (total_count == -1) {
     total_count = narrow_cast<int32>(dialog_ids.size());
   }
-  return td_api::make_object<td_api::chats>(total_count,
-                                            transform(dialog_ids, [](DialogId dialog_id) { return dialog_id.get(); }));
+  return td_api::make_object<td_api::chats>(total_count, DialogId::get_chat_ids(dialog_ids));
 }
 
 tl_object_ptr<td_api::chats> MessagesManager::get_chats_object(const std::pair<int32, vector<DialogId>> &dialog_ids) {
