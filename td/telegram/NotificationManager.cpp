@@ -327,7 +327,7 @@ void NotificationManager::save_announcement_ids() {
     return;
   }
 
-  auto notification_announcement_ids_string = implode(transform(ids, [](int32 id) { return to_string(id); }), ',');
+  auto notification_announcement_ids_string = implode(transform(ids, to_string<int32>));
   G()->td_db()->get_binlog_pmc()->set("notification_announcement_ids", notification_announcement_ids_string);
 }
 
