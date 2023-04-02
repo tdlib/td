@@ -65,7 +65,8 @@ class DialogFilterManager final : public Actor {
   void edit_dialog_filter(DialogFilterId dialog_filter_id, td_api::object_ptr<td_api::chatFilter> filter,
                           Promise<td_api::object_ptr<td_api::chatFilterInfo>> &&promise);
 
-  void delete_dialog_filter(DialogFilterId dialog_filter_id, Promise<Unit> &&promise);
+  void delete_dialog_filter(DialogFilterId dialog_filter_id, vector<DialogId> leave_dialog_ids,
+                            Promise<Unit> &&promise);
 
   void reorder_dialog_filters(vector<DialogFilterId> dialog_filter_ids, int32 main_dialog_list_position,
                               Promise<Unit> &&promise);
@@ -166,7 +167,7 @@ class DialogFilterManager final : public Actor {
 
   void edit_dialog_filter(unique_ptr<DialogFilter> new_dialog_filter, const char *source);
 
-  int32 delete_dialog_filter(DialogFilterId dialog_filter_id, const char *source);
+  int32 do_delete_dialog_filter(DialogFilterId dialog_filter_id, const char *source);
 
   const DialogFilter *get_server_dialog_filter(DialogFilterId dialog_filter_id) const;
 

@@ -6794,8 +6794,8 @@ createChatFilter filter:chatFilter = ChatFilterInfo;
 //@description Edits existing chat filter. Returns information about the edited chat filter @chat_filter_id Chat filter identifier @filter The edited chat filter
 editChatFilter chat_filter_id:int32 filter:chatFilter = ChatFilterInfo;
 
-//@description Deletes existing chat filter @chat_filter_id Chat filter identifier
-deleteChatFilter chat_filter_id:int32 = Ok;
+//@description Deletes existing chat filter @chat_filter_id Chat filter identifier @leave_chat_ids Identifiers of the chats to leave. The chats must be pinned or always included by the filter
+deleteChatFilter chat_filter_id:int32 leave_chat_ids:vector<int53> = Ok;
 
 //@description Changes the order of chat filters @chat_filter_ids Identifiers of chat filters in the new correct order @main_chat_list_position Position of the main chat list among chat filters, 0-based. Can be non-zero only for Premium users
 reorderChatFilters chat_filter_ids:vector<int32> main_chat_list_position:int32 = Ok;

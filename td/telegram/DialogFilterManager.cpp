@@ -879,7 +879,7 @@ void DialogFilterManager::delete_dialogs_from_filter(const DialogFilter *dialog_
     new_dialog_filter->remove_dialog_id(dialog_id);
   }
   if (new_dialog_filter->is_empty(false)) {
-    delete_dialog_filter(dialog_filter->get_dialog_filter_id(), Promise<Unit>());
+    delete_dialog_filter(dialog_filter->get_dialog_filter_id(), vector<DialogId>(), Promise<Unit>());
     return;
   }
   CHECK(new_dialog_filter->check_limits().is_ok());
@@ -1157,7 +1157,7 @@ void DialogFilterManager::on_get_dialog_filters(
         // the filter was deleted from another client
         // ignore edits done from the current client and just delete the filter
         is_changed = true;
-        delete_dialog_filter(dialog_filter_id, "on_get_dialog_filters");
+        do_delete_dialog_filter(dialog_filter_id, "on_get_dialog_filters");
       }
     }
     bool is_order_changed = [&] {
@@ -1449,14 +1449,40 @@ void DialogFilterManager::on_update_dialog_filter(unique_ptr<DialogFilter> dialo
   synchronize_dialog_filters();
 }
 
-void DialogFilterManager::delete_dialog_filter(DialogFilterId dialog_filter_id, Promise<Unit> &&promise) {
+void DialogFilterManager::delete_dialog_filter(DialogFilterId dialog_filter_id, vector<DialogId> leave_dialog_ids,
+                                               Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
   CHECK(!td_->auth_manager_->is_bot());
   auto dialog_filter = get_dialog_filter(dialog_filter_id);
   if (dialog_filter == nullptr) {
     return promise.set_value(Unit());
   }
+  for (auto &leave_dialog_id : leave_dialog_ids) {
+    if (!dialog_filter->is_dialog_included(leave_dialog_id)) {
+      return promise.set_error(Status::Error(400, "The chat doesn't included in the folder"));
+    }
+  }
+  if (!leave_dialog_ids.empty()) {
+    MultiPromiseActorSafe mpas{"LeaveDialogsMultiPromiseActor"};
+    mpas.add_promise(PromiseCreator::lambda(
+        [actor_id = actor_id(this), dialog_filter_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
+          if (result.is_error()) {
+            return promise.set_error(result.move_as_error());
+          }
+          send_closure(actor_id, &DialogFilterManager::delete_dialog_filter, dialog_filter_id, vector<DialogId>(),
+                       std::move(promise));
+        }));
+    auto lock = mpas.get_promise();
 
-  int32 position = delete_dialog_filter(dialog_filter_id, "delete_dialog_filter");
+    for (auto &leave_dialog_id : leave_dialog_ids) {
+      td_->contacts_manager_->leave_dialog(leave_dialog_id, mpas.get_promise());
+    }
+
+    lock.set_value(Unit());
+    return;
+  }
+
+  int32 position = do_delete_dialog_filter(dialog_filter_id, "delete_dialog_filter");
   if (main_dialog_list_position_ > position) {
     main_dialog_list_position_--;
   }
@@ -1605,7 +1631,7 @@ void DialogFilterManager::edit_dialog_filter(unique_ptr<DialogFilter> new_dialog
   UNREACHABLE();
 }
 
-int32 DialogFilterManager::delete_dialog_filter(DialogFilterId dialog_filter_id, const char *source) {
+int32 DialogFilterManager::do_delete_dialog_filter(DialogFilterId dialog_filter_id, const char *source) {
   if (td_->auth_manager_->is_bot()) {
     // just in case
     return -1;
