@@ -4581,6 +4581,10 @@ class CliClient final : public Actor {
       string chat_ids;
       get_args(args, chat_filter_id, chat_ids);
       send_request(td_api::make_object<td_api::deleteChatFilter>(chat_filter_id, as_chat_ids(chat_ids)));
+    } else if (op == "gcfctl") {
+      ChatFilterId chat_filter_id;
+      get_args(args, chat_filter_id);
+      send_request(td_api::make_object<td_api::getChatFilterChatsToLeave>(chat_filter_id));
     } else if (op == "rcf") {
       int32 main_chat_list_position;
       string chat_filter_ids;

@@ -6145,6 +6145,13 @@ void Td::on_request(uint64 id, const td_api::deleteChatFilter &request) {
                                                DialogId::get_dialog_ids(request.leave_chat_ids_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getChatFilterChatsToLeave &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  dialog_filter_manager_->get_leave_dialog_filter_suggestions(DialogFilterId(request.chat_filter_id_),
+                                                              std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::reorderChatFilters &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

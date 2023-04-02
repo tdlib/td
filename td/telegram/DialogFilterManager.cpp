@@ -278,6 +278,35 @@ class LeaveChatlistQuery final : public Td::ResultHandler {
   }
 };
 
+class GetLeaveChatlistSuggestionsQuery final : public Td::ResultHandler {
+  Promise<vector<telegram_api::object_ptr<telegram_api::Peer>>> promise_;
+
+ public:
+  explicit GetLeaveChatlistSuggestionsQuery(Promise<vector<telegram_api::object_ptr<telegram_api::Peer>>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(DialogFilterId dialog_filter_id) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::chatlists_getLeaveChatlistSuggestions(dialog_filter_id.get_input_chatlist())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::chatlists_getLeaveChatlistSuggestions>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetLeaveChatlistSuggestionsQuery: " << to_string(ptr);
+    promise_.set_value(std::move(ptr));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class CheckChatlistInviteQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::chatFilterInviteLinkInfo>> promise_;
   string invite_link_;
@@ -1523,6 +1552,45 @@ void DialogFilterManager::on_delete_dialog_filter(DialogFilterId dialog_filter_i
 
   are_dialog_filters_being_synchronized_ = false;
   synchronize_dialog_filters();
+}
+
+void DialogFilterManager::get_leave_dialog_filter_suggestions(DialogFilterId dialog_filter_id,
+                                                              Promise<td_api::object_ptr<td_api::chats>> &&promise) {
+  auto dialog_filter = get_dialog_filter(dialog_filter_id);
+  if (dialog_filter == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat folder not found"));
+  }
+  if (!dialog_filter->is_shareable()) {
+    return promise.set_value(td_api::make_object<td_api::chats>());
+  }
+  auto query_promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), dialog_filter_id, promise = std::move(promise)](
+                                 Result<vector<telegram_api::object_ptr<telegram_api::Peer>>> &&result) mutable {
+        if (result.is_error()) {
+          return promise.set_error(result.move_as_error());
+        }
+        send_closure(actor_id, &DialogFilterManager::on_get_leave_dialog_filter_suggestions, dialog_filter_id,
+                     result.move_as_ok(), std::move(promise));
+      });
+  td_->create_handler<GetLeaveChatlistSuggestionsQuery>(std::move(query_promise))->send(dialog_filter_id);
+}
+
+void DialogFilterManager::on_get_leave_dialog_filter_suggestions(
+    DialogFilterId dialog_filter_id, vector<telegram_api::object_ptr<telegram_api::Peer>> peers,
+    Promise<td_api::object_ptr<td_api::chats>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  auto dialog_filter = get_dialog_filter(dialog_filter_id);
+  if (dialog_filter == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat folder not found"));
+  }
+  if (!dialog_filter->is_shareable()) {
+    return promise.set_value(td_api::make_object<td_api::chats>());
+  }
+
+  auto dialog_ids = td_->messages_manager_->get_peers_dialog_ids(std::move(peers));
+  td::remove_if(dialog_ids, [&](DialogId dialog_id) { return !dialog_filter->is_dialog_included(dialog_id); });
+  promise.set_value(MessagesManager::get_chats_object(-1, dialog_ids));
 }
 
 void DialogFilterManager::reorder_dialog_filters(vector<DialogFilterId> dialog_filter_ids,

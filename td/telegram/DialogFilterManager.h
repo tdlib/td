@@ -68,6 +68,9 @@ class DialogFilterManager final : public Actor {
   void delete_dialog_filter(DialogFilterId dialog_filter_id, vector<DialogId> leave_dialog_ids,
                             Promise<Unit> &&promise);
 
+  void get_leave_dialog_filter_suggestions(DialogFilterId dialog_filter_id,
+                                           Promise<td_api::object_ptr<td_api::chats>> &&promise);
+
   void reorder_dialog_filters(vector<DialogFilterId> dialog_filter_ids, int32 main_dialog_list_position,
                               Promise<Unit> &&promise);
 
@@ -155,6 +158,10 @@ class DialogFilterManager final : public Actor {
   void delete_dialog_filter_on_server(DialogFilterId dialog_filter_id, bool is_shareable);
 
   void on_delete_dialog_filter(DialogFilterId dialog_filter_id, Status result);
+
+  void on_get_leave_dialog_filter_suggestions(DialogFilterId dialog_filter_id,
+                                              vector<telegram_api::object_ptr<telegram_api::Peer>> peers,
+                                              Promise<td_api::object_ptr<td_api::chats>> &&promise);
 
   void reorder_dialog_filters_on_server(vector<DialogFilterId> dialog_filter_ids, int32 main_dialog_list_position);
 
