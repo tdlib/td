@@ -17363,6 +17363,32 @@ void ContactsManager::set_dialog_participant_status(DialogId dialog_id, DialogId
   }
 }
 
+void ContactsManager::leave_dialog(DialogId dialog_id, Promise<Unit> &&promise) {
+  if (!td_->messages_manager_->have_dialog_force(dialog_id, "leave_dialog")) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      return promise.set_error(Status::Error(400, "Can't leave private chats"));
+    case DialogType::Chat:
+      return delete_chat_participant(dialog_id.get_chat_id(), get_my_id(), false, std::move(promise));
+    case DialogType::Channel: {
+      auto channel_id = dialog_id.get_channel_id();
+      auto old_status = get_channel_status(channel_id);
+      auto new_status = old_status;
+      new_status.set_is_member(false);
+      return restrict_channel_participant(channel_id, DialogId(get_my_id()), std::move(new_status),
+                                          std::move(old_status), std::move(promise));
+    }
+    case DialogType::SecretChat:
+      return promise.set_error(Status::Error(400, "Can't leave secret chats"));
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+  }
+}
+
 void ContactsManager::ban_dialog_participant(DialogId dialog_id, DialogId participant_dialog_id,
                                              int32 banned_until_date, bool revoke_messages, Promise<Unit> &&promise) {
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "ban_dialog_participant")) {
