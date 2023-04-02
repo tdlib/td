@@ -227,6 +227,7 @@ class ContactsManager final : public Actor {
                                   tl_object_ptr<telegram_api::ChatParticipant> old_participant,
                                   tl_object_ptr<telegram_api::ChatParticipant> new_participant);
   void on_update_channel_participant(ChannelId channel_id, UserId user_id, int32 date, DialogInviteLink invite_link,
+                                     bool via_dialog_filter_invite_link,
                                      tl_object_ptr<telegram_api::ChannelParticipant> old_participant,
                                      tl_object_ptr<telegram_api::ChannelParticipant> new_participant);
   void on_update_chat_invite_requester(DialogId dialog_id, UserId user_id, string about, int32 date,
@@ -1597,7 +1598,8 @@ class ContactsManager final : public Actor {
                                   std::pair<vector<size_t>, vector<Contact>> &&to_add, Promise<Unit> &&promise);
 
   void send_update_chat_member(DialogId dialog_id, UserId agent_user_id, int32 date,
-                               const DialogInviteLink &invite_link, const DialogParticipant &old_dialog_participant,
+                               const DialogInviteLink &invite_link, bool via_dialog_filter_invite_link,
+                               const DialogParticipant &old_dialog_participant,
                                const DialogParticipant &new_dialog_participant);
 
   static vector<td_api::object_ptr<td_api::chatNearby>> get_chats_nearby_object(
