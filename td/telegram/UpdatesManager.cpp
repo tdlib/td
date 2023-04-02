@@ -3659,18 +3659,15 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDialogUnreadMar
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDialogFilter> update, Promise<Unit> &&promise) {
-  td_->dialog_filter_manager_->on_update_dialog_filters();
-  promise.set_value(Unit());
+  td_->dialog_filter_manager_->on_update_dialog_filters(std::move(promise));
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDialogFilters> update, Promise<Unit> &&promise) {
-  td_->dialog_filter_manager_->on_update_dialog_filters();
-  promise.set_value(Unit());
+  td_->dialog_filter_manager_->on_update_dialog_filters(std::move(promise));
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDialogFilterOrder> update, Promise<Unit> &&promise) {
-  td_->dialog_filter_manager_->on_update_dialog_filters();
-  promise.set_value(Unit());
+  td_->dialog_filter_manager_->on_update_dialog_filters(std::move(promise));
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDcOptions> update, Promise<Unit> &&promise) {

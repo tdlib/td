@@ -34,7 +34,7 @@ class DialogFilterManager final : public Actor {
 
   void on_authorization_success();
 
-  void on_update_dialog_filters();
+  void on_update_dialog_filters(Promise<Unit> &&promise);
 
   void schedule_reload_dialog_filters(Promise<Unit> &&promise);
 

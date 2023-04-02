@@ -551,13 +551,13 @@ void DialogFilterManager::on_authorization_success() {
   reload_dialog_filters();
 }
 
-void DialogFilterManager::on_update_dialog_filters() {
+void DialogFilterManager::on_update_dialog_filters(Promise<Unit> &&promise) {
   if (td_->auth_manager_->is_bot()) {
     // just in case
-    return;
+    return promise.set_value(Unit());
   }
 
-  schedule_dialog_filters_reload(0.0);
+  schedule_reload_dialog_filters(std::move(promise));
 }
 
 void DialogFilterManager::schedule_reload_dialog_filters(Promise<Unit> &&promise) {
@@ -1049,7 +1049,7 @@ void DialogFilterManager::on_get_dialog_filters(
     if (!G()->is_expected_error(r_filters.error())) {
       LOG(WARNING) << "Receive error " << r_filters.error() << " for GetDialogFiltersQuery";
     }
-    fail_promises(promises, r_filters.move_as_error());
+    set_promises(promises);  // ignore error
     need_dialog_filters_reload_ = false;
     schedule_dialog_filters_reload(Random::fast(60, 5 * 60));
     return;
