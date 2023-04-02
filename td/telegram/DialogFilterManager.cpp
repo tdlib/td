@@ -1775,8 +1775,7 @@ void DialogFilterManager::on_get_chatlist_invite(
   auto missing_dialog_ids = td_->messages_manager_->get_peers_dialog_ids(std::move(missing_peers));
   auto already_dialog_ids = td_->messages_manager_->get_peers_dialog_ids(std::move(already_peers));
   promise.set_value(td_api::make_object<td_api::chatFilterInviteLinkInfo>(
-      std::move(info), transform(missing_dialog_ids, [](DialogId dialog_id) { return dialog_id.get(); }),
-      transform(already_dialog_ids, [](DialogId dialog_id) { return dialog_id.get(); })));
+      std::move(info), DialogId::get_chat_ids(missing_dialog_ids), DialogId::get_chat_ids(already_dialog_ids)));
 }
 
 void DialogFilterManager::add_dialog_filter_by_invite_link(const string &invite_link, vector<DialogId> dialog_ids,

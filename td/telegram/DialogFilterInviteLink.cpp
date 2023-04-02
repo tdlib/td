@@ -28,8 +28,7 @@ DialogFilterInviteLink::DialogFilterInviteLink(
 }
 
 td_api::object_ptr<td_api::chatFilterInviteLink> DialogFilterInviteLink::get_chat_filter_invite_link_object() const {
-  return td_api::make_object<td_api::chatFilterInviteLink>(
-      invite_link_, title_, transform(dialog_ids_, [](DialogId dialog_id) { return dialog_id.get(); }));
+  return td_api::make_object<td_api::chatFilterInviteLink>(invite_link_, title_, DialogId::get_chat_ids(dialog_ids_));
 }
 
 bool DialogFilterInviteLink::is_valid_invite_link(Slice invite_link) {
