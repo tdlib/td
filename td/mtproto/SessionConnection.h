@@ -243,7 +243,7 @@ class SessionConnection final
   Status on_packet(const MsgInfo &info, const mtproto_api::pong &pong) TD_WARN_UNUSED_RESULT;
   Status on_packet(const MsgInfo &info, const mtproto_api::future_salts &salts) TD_WARN_UNUSED_RESULT;
 
-  Status on_msgs_state_info(const vector<int64> &ids, Slice info) TD_WARN_UNUSED_RESULT;
+  Status on_msgs_state_info(const vector<int64> &message_ids, Slice info) TD_WARN_UNUSED_RESULT;
   Status on_packet(const MsgInfo &info, const mtproto_api::msgs_state_info &msgs_state_info) TD_WARN_UNUSED_RESULT;
   Status on_packet(const MsgInfo &info, const mtproto_api::msgs_all_info &msgs_all_info) TD_WARN_UNUSED_RESULT;
   Status on_packet(const MsgInfo &info, const mtproto_api::msg_detailed_info &msg_detailed_info) TD_WARN_UNUSED_RESULT;

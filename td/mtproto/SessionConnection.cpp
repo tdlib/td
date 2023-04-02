@@ -420,13 +420,14 @@ Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::futu
   return Status::OK();
 }
 
-Status SessionConnection::on_msgs_state_info(const vector<int64> &ids, Slice info) {
-  if (ids.size() != info.size()) {
-    return Status::Error(PSLICE() << tag("ids.size()", ids.size()) << " != " << tag("info.size()", info.size()));
+Status SessionConnection::on_msgs_state_info(const vector<int64> &message_ids, Slice info) {
+  if (message_ids.size() != info.size()) {
+    return Status::Error(PSLICE() << tag("message count", message_ids.size())
+                                  << " != " << tag("info.size()", info.size()));
   }
   size_t i = 0;
-  for (auto id : ids) {
-    callback_->on_message_info(id, info[i], 0, 0);
+  for (auto message_id : message_ids) {
+    callback_->on_message_info(message_id, info[i], 0, 0);
     i++;
   }
   return Status::OK();
@@ -956,7 +957,7 @@ void SessionConnection::flush_packet() {
     return result;
   };
 
-  // no more than 8192 ids per container..
+  // no more than 8192 message identifiers per container..
   auto to_resend_answer = cut_tail(to_resend_answer_, 8192, "resend_answer");
   uint64 resend_answer_id = 0;
   CHECK(queries.size() <= 1020);
@@ -994,14 +995,14 @@ void SessionConnection::flush_packet() {
   }
 
   if (container_id != 0) {
-    vector<uint64> ids = transform(queries, [](const MtprotoQuery &x) { return static_cast<uint64>(x.message_id); });
+    auto message_ids = transform(queries, [](const MtprotoQuery &x) { return static_cast<uint64>(x.message_id); });
 
     // some acks may be lost here. Nobody will resend them if something goes wrong with query.
     // It is mostly problem for server. We will just drop this answers in next connection
     //
     // get future salt too.
     // So I will re-ask salt if have no answer in 60 second.
-    callback_->on_container_sent(container_id, std::move(ids));
+    callback_->on_container_sent(container_id, std::move(message_ids));
 
     if (resend_answer_id) {
       container_to_service_msg_[container_id].push_back(resend_answer_id);

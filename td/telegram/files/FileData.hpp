@@ -129,7 +129,7 @@ void FileData::parse(ParserT &parser, bool register_file_sources) {
         }
       }
     } else {
-      parser.set_error("Wrong number of file source ids");
+      parser.set_error("Wrong number of file source identifiers");
     }
   }
 }

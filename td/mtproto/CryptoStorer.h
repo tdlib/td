@@ -107,29 +107,29 @@ class CancelVectorImpl {
 
 class InvokeAfter {
  public:
-  explicit InvokeAfter(Span<uint64> ids) : ids_(ids) {
+  explicit InvokeAfter(Span<uint64> message_ids) : message_ids_(message_ids) {
   }
   template <class StorerT>
   void store(StorerT &storer) const {
-    if (ids_.empty()) {
+    if (message_ids_.empty()) {
       return;
     }
-    if (ids_.size() == 1) {
+    if (message_ids_.size() == 1) {
       storer.store_int(static_cast<int32>(0xcb9f372d));
-      storer.store_long(static_cast<int64>(ids_[0]));
+      storer.store_long(static_cast<int64>(message_ids_[0]));
       return;
     }
     //  invokeAfterMsgs#3dc4b4f0 {X:Type} msg_ids:Vector<long> query:!X = X;
     storer.store_int(static_cast<int32>(0x3dc4b4f0));
     storer.store_int(static_cast<int32>(0x1cb5c415));
-    storer.store_int(narrow_cast<int32>(ids_.size()));
-    for (auto id : ids_) {
-      storer.store_long(static_cast<int64>(id));
+    storer.store_int(narrow_cast<int32>(message_ids_.size()));
+    for (auto message_id : message_ids_) {
+      storer.store_long(static_cast<int64>(message_id));
     }
   }
 
  private:
-  Span<uint64> ids_;
+  Span<uint64> message_ids_;
 };
 
 class QueryImpl {

@@ -107,13 +107,13 @@ class TempAuthKeyWatchdog final : public NetQueryCallback {
     need_sync_ = false;
     run_sync_ = true;
     sync_at_ = 0;
-    vector<int64> ids;
+    vector<int64> auth_key_ids;
     for (auto &id_count : id_count_) {
-      ids.push_back(id_count.first);
+      auth_key_ids.push_back(id_count.first);
     }
     if (!G()->close_flag()) {
-      LOG(WARNING) << "Start auth_dropTempAuthKeys except keys " << format::as_array(ids);
-      auto query = G()->net_query_creator().create_unauth(telegram_api::auth_dropTempAuthKeys(std::move(ids)));
+      LOG(WARNING) << "Start auth_dropTempAuthKeys except keys " << format::as_array(auth_key_ids);
+      auto query = G()->net_query_creator().create_unauth(telegram_api::auth_dropTempAuthKeys(std::move(auth_key_ids)));
       G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this));
     }
   }
