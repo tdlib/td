@@ -3663,8 +3663,8 @@ chatEventPollStopped message:message = ChatEventAction;
 //@description A new member joined the chat
 chatEventMemberJoined = ChatEventAction;
 
-//@description A new member joined the chat via an invite link @invite_link Invite link used to join the chat
-chatEventMemberJoinedByInviteLink invite_link:chatInviteLink = ChatEventAction;
+//@description A new member joined the chat via an invite link @invite_link Invite link used to join the chat @via_chat_filter_invite_link True, if the user has joined the chat using an invite link for a chat filter
+chatEventMemberJoinedByInviteLink invite_link:chatInviteLink via_chat_filter_invite_link:Bool = ChatEventAction;
 
 //@description A new member was accepted to the chat by an administrator @approver_user_id User identifier of the chat administrator, approved user join request @invite_link Invite link used to join the chat; may be null
 chatEventMemberJoinedByRequest approver_user_id:int53 invite_link:chatInviteLink = ChatEventAction;

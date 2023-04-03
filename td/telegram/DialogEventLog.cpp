@@ -48,7 +48,7 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
         return nullptr;
       }
       return td_api::make_object<td_api::chatEventMemberJoinedByInviteLink>(
-          invite_link.get_chat_invite_link_object(td->contacts_manager_.get()));
+          invite_link.get_chat_invite_link_object(td->contacts_manager_.get()), action->via_chatlist_);
     }
     case telegram_api::channelAdminLogEventActionParticipantJoinByRequest::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantJoinByRequest>(action_ptr);
