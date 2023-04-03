@@ -396,9 +396,9 @@ class LinkManager::InternalLinkEditProfileSettings final : public InternalLink {
   }
 };
 
-class LinkManager::InternalLinkFolderSettings final : public InternalLink {
+class LinkManager::InternalLinkDialogFolderSettings final : public InternalLink {
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
-    return td_api::make_object<td_api::internalLinkTypeFolderSettings>();
+    return td_api::make_object<td_api::internalLinkTypeChatFolderSettings>();
   }
 };
 
@@ -1273,7 +1273,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     }
     if (path.size() == 2 && path[1] == "folders") {
       // settings/folders
-      return td::make_unique<InternalLinkFolderSettings>();
+      return td::make_unique<InternalLinkDialogFolderSettings>();
     }
     if (path.size() == 2 && path[1] == "language") {
       // settings/language
@@ -1893,7 +1893,7 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         return Status::Error("HTTP link is unavailable for the link type");
       }
       return "tg://settings/edit_profile";
-    case td_api::internalLinkTypeFolderSettings::ID:
+    case td_api::internalLinkTypeChatFolderSettings::ID:
       if (!is_internal) {
         return Status::Error("HTTP link is unavailable for the link type");
       }

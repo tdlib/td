@@ -125,9 +125,9 @@ class LinkManager final : public Actor {
   class InternalLinkConfirmPhone;
   class InternalLinkDefaultMessageAutoDeleteTimerSettings;
   class InternalLinkDialogFolderInvite;
+  class InternalLinkDialogFolderSettings;
   class InternalLinkDialogInvite;
   class InternalLinkEditProfileSettings;
-  class InternalLinkFolderSettings;
   class InternalLinkGame;
   class InternalLinkInstantView;
   class InternalLinkInvoice;
