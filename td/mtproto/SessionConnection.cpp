@@ -442,7 +442,7 @@ Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::msgs
   service_queries_.erase(it);
 
   if (query.type != ServiceQuery::GetStateInfo) {
-    return Status::Error("Receive msg_state_info in response not to GetStateInfo");
+    return Status::Error("Receive msgs_state_info in response not to GetStateInfo");
   }
   return on_msgs_state_info(query.message_ids, msgs_state_info.info_);
 }
