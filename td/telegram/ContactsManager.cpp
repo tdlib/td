@@ -11434,7 +11434,7 @@ void ContactsManager::on_load_user_full_from_database(UserId user_id, string val
   user_full->is_update_user_full_sent = true;
   update_user_full(user_full, user_id, "on_load_user_full_from_database", true);
 
-  if (is_user_deleted(user_id)) {
+  if (is_user_deleted(u)) {
     drop_user_full(user_id);
   } else if (user_full->expires_at == 0.0) {
     reload_user_full(user_id, Auto());
@@ -12604,12 +12604,13 @@ vector<BotCommands> ContactsManager::get_bot_commands(vector<tl_object_ptr<teleg
     }
 
     auto user_id = UserId(bot_info->user_id_);
-    if (!have_user_force(user_id)) {
+    const User *u = get_user_force(user_id);
+    if (u == nullptr) {
       LOG(ERROR) << "Receive unknown " << user_id;
       continue;
     }
-    if (!is_user_bot(user_id)) {
-      if (!is_user_deleted(user_id)) {
+    if (!is_user_bot(u)) {
+      if (!is_user_deleted(u)) {
         LOG(ERROR) << "Receive non-bot " << user_id;
       }
       continue;
@@ -16084,22 +16085,34 @@ bool ContactsManager::have_min_user(UserId user_id) const {
 }
 
 bool ContactsManager::is_user_premium(UserId user_id) const {
-  auto u = get_user(user_id);
+  return is_user_premium(get_user(user_id));
+}
+
+bool ContactsManager::is_user_premium(const User *u) {
   return u != nullptr && u->is_premium;
 }
 
 bool ContactsManager::is_user_deleted(UserId user_id) const {
-  auto u = get_user(user_id);
+  return is_user_deleted(get_user(user_id));
+}
+
+bool ContactsManager::is_user_deleted(const User *u) {
   return u == nullptr || u->is_deleted;
 }
 
 bool ContactsManager::is_user_support(UserId user_id) const {
-  auto u = get_user(user_id);
+  return is_user_support(get_user(user_id));
+}
+
+bool ContactsManager::is_user_support(const User *u) {
   return u != nullptr && !u->is_deleted && u->is_support;
 }
 
 bool ContactsManager::is_user_bot(UserId user_id) const {
-  auto u = get_user(user_id);
+  return is_user_bot(get_user(user_id));
+}
+
+bool ContactsManager::is_user_bot(const User *u) {
   return u != nullptr && !u->is_deleted && u->is_bot;
 }
 
@@ -18573,8 +18586,9 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
                                                                                const UserFull *user_full) const {
   CHECK(user_full != nullptr);
   td_api::object_ptr<td_api::botInfo> bot_info;
-  bool is_bot = is_user_bot(user_id);
-  bool is_premium = is_user_premium(user_id);
+  const User *u = get_user(user_id);
+  bool is_bot = is_user_bot(u);
+  bool is_premium = is_user_premium(u);
   td_api::object_ptr<td_api::formattedText> bio_object;
   if (is_bot) {
     auto menu_button = get_bot_menu_button_object(td_, user_full->menu_button.get());
@@ -18592,7 +18606,6 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
             ? nullptr
             : user_full->broadcast_administrator_rights.get_chat_administrator_rights_object(),
         nullptr, nullptr, nullptr, nullptr);
-    const User *u = get_user(user_id);
     if (u != nullptr && u->can_be_edited_bot && u->usernames.has_editable_username()) {
       auto bot_username = u->usernames.get_editable_username();
       bot_info->edit_commands_link_ = td_api::make_object<td_api::internalLinkTypeBotStart>(
@@ -18608,7 +18621,7 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
     FormattedText bio;
     bio.text = user_full->about;
     bio.entities = find_entities(bio.text, true, true);
-    if (!is_user_premium(user_id)) {
+    if (!is_premium) {
       td::remove_if(bio.entities, [&](const MessageEntity &entity) {
         if (entity.type == MessageEntity::Type::EmailAddress) {
           return true;

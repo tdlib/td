@@ -1567,6 +1567,14 @@ class ContactsManager final : public Actor {
 
   bool is_user_contact(const User *u, UserId user_id, bool is_mutual) const;
 
+  static bool is_user_premium(const User *u);
+
+  static bool is_user_deleted(const User *u);
+
+  static bool is_user_support(const User *u);
+
+  static bool is_user_bot(const User *u);
+
   int32 get_user_was_online(const User *u, UserId user_id) const;
 
   int64 get_contacts_hash();
