@@ -18590,7 +18590,20 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
             : user_full->group_administrator_rights.get_chat_administrator_rights_object(),
         user_full->broadcast_administrator_rights == AdministratorRights()
             ? nullptr
-            : user_full->broadcast_administrator_rights.get_chat_administrator_rights_object());
+            : user_full->broadcast_administrator_rights.get_chat_administrator_rights_object(),
+        nullptr, nullptr, nullptr, nullptr);
+    const User *u = get_user(user_id);
+    if (u != nullptr && u->can_be_edited_bot && u->usernames.has_editable_username()) {
+      auto bot_username = u->usernames.get_editable_username();
+      bot_info->edit_commands_link_ = td_api::make_object<td_api::internalLinkTypeBotStart>(
+          "botfather", PSTRING() << bot_username << "-commands", true);
+      bot_info->edit_description_link_ = td_api::make_object<td_api::internalLinkTypeBotStart>(
+          "botfather", PSTRING() << bot_username << "-intro", true);
+      bot_info->edit_description_media_link_ = td_api::make_object<td_api::internalLinkTypeBotStart>(
+          "botfather", PSTRING() << bot_username << "-intropic", true);
+      bot_info->edit_settings_link_ =
+          td_api::make_object<td_api::internalLinkTypeBotStart>("botfather", bot_username, true);
+    }
   } else {
     FormattedText bio;
     bio.text = user_full->about;
