@@ -2411,6 +2411,7 @@ class GetChatInviteImportersQuery final : public Td::ResultHandler {
       }
       invite_link_members.push_back(td_api::make_object<td_api::chatInviteLinkMember>(
           td_->contacts_manager_->get_user_id_object(user_id, "chatInviteLinkMember"), importer->date_,
+          importer->via_chatlist_,
           td_->contacts_manager_->get_user_id_object(approver_user_id, "chatInviteLinkMember")));
     }
     promise_.set_value(td_api::make_object<td_api::chatInviteLinkMembers>(total_count, std::move(invite_link_members)));

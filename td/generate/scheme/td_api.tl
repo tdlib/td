@@ -866,8 +866,12 @@ chatInviteLinkCount user_id:int53 invite_link_count:int32 revoked_invite_link_co
 //@description Contains a list of chat invite link counts @invite_link_counts List of invite link counts
 chatInviteLinkCounts invite_link_counts:vector<chatInviteLinkCount> = ChatInviteLinkCounts;
 
-//@description Describes a chat member joined a chat via an invite link @user_id User identifier @joined_chat_date Point in time (Unix timestamp) when the user joined the chat @approver_user_id User identifier of the chat administrator, approved user join request
-chatInviteLinkMember user_id:int53 joined_chat_date:int32 approver_user_id:int53 = ChatInviteLinkMember;
+//@description Describes a chat member joined a chat via an invite link
+//@user_id User identifier
+//@joined_chat_date Point in time (Unix timestamp) when the user joined the chat
+//@via_chat_filter_invite_link True, if the user has joined the chat using an invite link for a chat filter
+//@approver_user_id User identifier of the chat administrator, approved user join request
+chatInviteLinkMember user_id:int53 joined_chat_date:int32 via_chat_filter_invite_link:Bool approver_user_id:int53 = ChatInviteLinkMember;
 
 //@description Contains a list of chat members joined a chat via an invite link @total_count Approximate total number of chat members found @members List of chat members, joined a chat via an invite link
 chatInviteLinkMembers total_count:int32 members:vector<chatInviteLinkMember> = ChatInviteLinkMembers;

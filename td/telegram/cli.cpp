@@ -3612,8 +3612,8 @@ class CliClient final : public Actor {
       string limit;
       get_args(args, chat_id, invite_link, offset_user_id, offset_date, limit);
       send_request(td_api::make_object<td_api::getChatInviteLinkMembers>(
-          chat_id, invite_link, td_api::make_object<td_api::chatInviteLinkMember>(offset_user_id, offset_date, 0),
-          as_limit(limit)));
+          chat_id, invite_link,
+          td_api::make_object<td_api::chatInviteLinkMember>(offset_user_id, offset_date, false, 0), as_limit(limit)));
     } else if (op == "gcjr") {
       ChatId chat_id;
       string invite_link;
