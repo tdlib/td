@@ -407,6 +407,7 @@ Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::pong
   real_last_pong_at_ = last_pong_at_;
   return callback_->on_pong();
 }
+
 Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::future_salts &salts) {
   VLOG(mtproto) << "FUTURE_SALTS";
   vector<ServerSalt> new_salts;
@@ -414,7 +415,11 @@ Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::futu
     new_salts.push_back(
         ServerSalt{it->salt_, static_cast<double>(it->valid_since_), static_cast<double>(it->valid_until_)});
   }
-  auth_data_->set_future_salts(new_salts, Time::now_cached());
+  auto now = Time::now_cached();
+  auth_data_->set_future_salts(new_salts, now);
+  VLOG(mtproto) << "Have server salts: is_valid = " << auth_data_->is_server_salt_valid(now)
+                << ", has_salt = " << auth_data_->has_salt(now)
+                << ", need_future_salts = " << auth_data_->need_future_salts(now);
   callback_->on_server_salt_updated();
 
   return Status::OK();
