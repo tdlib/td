@@ -5736,8 +5736,16 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     }
     case MessageContentType::GiftPremium: {
       const auto *m = static_cast<const MessageGiftPremium *>(content);
+      int64 gifter_user_id = 0;
+      if (dialog_id.get_type() == DialogType::User) {
+        auto user_id = dialog_id.get_user_id();
+        if (user_id != ContactsManager::get_service_notifications_user_id() &&
+            !td->contacts_manager_->is_user_bot(user_id) && !td->contacts_manager_->is_user_support(user_id)) {
+          gifter_user_id = td->contacts_manager_->get_user_id_object(user_id, "MessageGiftPremium");
+        }
+      }
       return make_tl_object<td_api::messageGiftedPremium>(
-          m->currency, m->amount, m->crypto_currency, m->crypto_amount, m->months,
+          gifter_user_id, m->currency, m->amount, m->crypto_currency, m->crypto_amount, m->months,
           td->stickers_manager_->get_premium_gift_sticker_object(m->months));
     }
     case MessageContentType::TopicCreate: {
