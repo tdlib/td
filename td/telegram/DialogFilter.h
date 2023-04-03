@@ -59,6 +59,10 @@ class DialogFilter {
     return pinned_dialog_ids_;
   }
 
+  void set_has_my_invite_links(bool has_my_invite_links) {
+    has_my_invites_ = has_my_invite_links;
+  }
+
   bool is_dialog_pinned(DialogId dialog_id) const;
 
   bool is_dialog_included(DialogId dialog_id) const;

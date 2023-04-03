@@ -156,6 +156,7 @@ class ExportChatlistInviteQuery final : public Td::ResultHandler {
 
 class GetExportedChatlistInvitesQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::chatFilterInviteLinks>> promise_;
+  DialogFilterId dialog_filter_id_;
 
  public:
   explicit GetExportedChatlistInvitesQuery(Promise<td_api::object_ptr<td_api::chatFilterInviteLinks>> &&promise)
@@ -163,6 +164,7 @@ class GetExportedChatlistInvitesQuery final : public Td::ResultHandler {
   }
 
   void send(DialogFilterId dialog_filter_id) {
+    dialog_filter_id_ = dialog_filter_id;
     send_query(G()->net_query_creator().create(
         telegram_api::chatlists_getExportedInvites(dialog_filter_id.get_input_chatlist())));
   }
@@ -182,6 +184,8 @@ class GetExportedChatlistInvitesQuery final : public Td::ResultHandler {
       result->invite_links_.push_back(
           DialogFilterInviteLink(td_, std::move(invite)).get_chat_filter_invite_link_object());
     }
+    td_->dialog_filter_manager_->set_dialog_filter_has_my_invite_links(dialog_filter_id_,
+                                                                       !result->invite_links_.empty());
     promise_.set_value(std::move(result));
   }
 
@@ -1888,12 +1892,19 @@ void DialogFilterManager::add_dialog_filter_by_invite_link(const string &invite_
   td_->create_handler<JoinChatlistInviteQuery>(std::move(promise))->send(invite_link, std::move(dialog_ids));
 }
 
+void DialogFilterManager::set_dialog_filter_has_my_invite_links(DialogFilterId dialog_filter_id,
+                                                                bool has_my_invite_links) {
+  auto dialog_filter = get_dialog_filter(dialog_filter_id);
+  if (dialog_filter == nullptr) {
+    return;
+  }
+  dialog_filter->set_has_my_invite_links(has_my_invite_links);
+}
+
 void DialogFilterManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
   if (have_dialog_filters()) {
     updates.push_back(get_update_chat_filters_object());
   }
 }
-
-void add_dialog_filter_by_invite_link(const string &invite_link, vector<DialogId> dialog_ids, Promise<Unit> &&promise);
 
 }  // namespace td

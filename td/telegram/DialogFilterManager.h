@@ -108,6 +108,8 @@ class DialogFilterManager final : public Actor {
   void load_dialog_filter_dialogs(DialogFilterId dialog_filter_id, vector<InputDialogId> &&input_dialog_ids,
                                   Promise<Unit> &&promise);
 
+  void set_dialog_filter_has_my_invite_links(DialogFilterId dialog_filter_id, bool has_my_invite_links);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
