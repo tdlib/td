@@ -1405,6 +1405,7 @@ void DialogFilterManager::edit_dialog_filter(DialogFilterId dialog_filter_id,
   if (new_dialog_filter->is_shareable() != old_dialog_filter->is_shareable()) {
     return promise.set_error(Status::Error(400, "Can't convert a shareable folder to a non-shareable"));
   }
+  new_dialog_filter->update_from(*old_dialog_filter);
   auto chat_filter_info = new_dialog_filter->get_chat_filter_info_object();
 
   if (*new_dialog_filter == *old_dialog_filter) {
@@ -1852,7 +1853,7 @@ void DialogFilterManager::on_get_chatlist_invite(
         icon_name = "Custom";
       }
       info = td_api::make_object<td_api::chatFilterInfo>(0, invite->title_,
-                                                         td_api::make_object<td_api::chatFilterIcon>(icon_name));
+                                                         td_api::make_object<td_api::chatFilterIcon>(icon_name), false);
       missing_peers = std::move(invite->peers_);
       chats = std::move(invite->chats_);
       users = std::move(invite->users_);

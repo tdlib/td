@@ -1319,7 +1319,8 @@ chatFilter title:string icon:chatFilterIcon is_shareable:Bool pinned_chat_ids:ve
 //@id Unique chat filter identifier
 //@title The title of the filter; 1-12 characters without line feeds
 //@icon The chosen or default icon for the chat filter
-chatFilterInfo id:int32 title:string icon:chatFilterIcon = ChatFilterInfo;
+//@has_my_invite_links True, if the chat filter has invite links created by the current user
+chatFilterInfo id:int32 title:string icon:chatFilterIcon has_my_invite_links:Bool = ChatFilterInfo;
 
 //@description Contains a chat filter invite link
 //@invite_link The chat filter invite link

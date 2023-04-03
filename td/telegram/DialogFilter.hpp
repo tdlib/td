@@ -32,6 +32,7 @@ void DialogFilter::store(StorerT &storer) const {
   STORE_FLAG(has_included_dialog_ids);
   STORE_FLAG(has_excluded_dialog_ids);
   STORE_FLAG(is_shareable_);
+  STORE_FLAG(has_my_invites_);
   END_STORE_FLAGS();
 
   store(dialog_filter_id_, storer);
@@ -67,6 +68,7 @@ void DialogFilter::parse(ParserT &parser) {
   PARSE_FLAG(has_included_dialog_ids);
   PARSE_FLAG(has_excluded_dialog_ids);
   PARSE_FLAG(is_shareable_);
+  PARSE_FLAG(has_my_invites_);
   END_PARSE_FLAGS();
 
   parse(dialog_filter_id_, parser);

@@ -83,6 +83,7 @@ unique_ptr<DialogFilter> DialogFilter::get_dialog_filter(
       dialog_filter->included_dialog_ids_ =
           InputDialogId::get_input_dialog_ids(filter->include_peers_, &added_dialog_ids);
       dialog_filter->is_shareable_ = true;
+      dialog_filter->has_my_invites_ = filter->has_my_invites_;
       return dialog_filter;
     }
     default:
@@ -140,6 +141,7 @@ Result<unique_ptr<DialogFilter>> DialogFilter::create_dialog_filter(Td *td, Dial
   dialog_filter->include_groups_ = filter->include_groups_;
   dialog_filter->include_channels_ = filter->include_channels_;
   dialog_filter->is_shareable_ = filter->is_shareable_;
+  dialog_filter->has_my_invites_ = false;
 
   TRY_STATUS(dialog_filter->check_limits());
   dialog_filter->sort_input_dialog_ids(td, "create_dialog_filter");
@@ -290,6 +292,8 @@ Status DialogFilter::check_limits() const {
         exclude_archived_ || exclude_read_ || exclude_muted_) {
       return Status::Error(400, "Shareable folders can't have chat filters");
     }
+  } else if (has_my_invites_) {
+    LOG(ERROR) << "Have shareable folder with invite links";
   }
 
   if (include_contacts_ && include_non_contacts_ && include_bots_ && include_groups_ && include_channels_ &&
@@ -298,6 +302,10 @@ Status DialogFilter::check_limits() const {
   }
 
   return Status::OK();
+}
+
+void DialogFilter::update_from(const DialogFilter &old_filter) {
+  has_my_invites_ = old_filter.has_my_invites_;
 }
 
 string DialogFilter::get_emoji_by_icon_name(const string &icon_name) {
@@ -404,6 +412,9 @@ telegram_api::object_ptr<telegram_api::DialogFilter> DialogFilter::get_input_dia
     if (!emoji_.empty()) {
       flags |= telegram_api::dialogFilterChatlist::EMOTICON_MASK;
     }
+    if (has_my_invites_) {
+      flags |= telegram_api::dialogFilterChatlist::HAS_MY_INVITES_MASK;
+    }
     return telegram_api::make_object<telegram_api::dialogFilterChatlist>(
         flags, false /*ignored*/, dialog_filter_id_.get(), title_, emoji_,
         InputDialogId::get_input_peers(pinned_dialog_ids_), InputDialogId::get_input_peers(included_dialog_ids_));
@@ -471,7 +482,8 @@ td_api::object_ptr<td_api::chatFilter> DialogFilter::get_chat_filter_object(
 
 td_api::object_ptr<td_api::chatFilterInfo> DialogFilter::get_chat_filter_info_object() const {
   return td_api::make_object<td_api::chatFilterInfo>(
-      dialog_filter_id_.get(), title_, td_api::make_object<td_api::chatFilterIcon>(get_chosen_or_default_icon_name()));
+      dialog_filter_id_.get(), title_, td_api::make_object<td_api::chatFilterIcon>(get_chosen_or_default_icon_name()),
+      has_my_invites_);
 }
 
 void DialogFilter::for_each_dialog(std::function<void(const InputDialogId &)> callback) const {
@@ -618,6 +630,7 @@ unique_ptr<DialogFilter> DialogFilter::merge_dialog_filter_changes(const DialogF
   update_value(new_filter->include_channels_, old_server_filter->include_channels_,
                new_server_filter->include_channels_);
   update_value(new_filter->is_shareable_, old_server_filter->is_shareable_, new_server_filter->is_shareable_);
+  update_value(new_filter->has_my_invites_, old_server_filter->has_my_invites_, new_server_filter->has_my_invites_);
 
   if (new_filter->is_shareable_) {
     new_filter->exclude_muted_ = false;
@@ -629,6 +642,8 @@ unique_ptr<DialogFilter> DialogFilter::merge_dialog_filter_changes(const DialogF
     new_filter->include_groups_ = false;
     new_filter->include_channels_ = false;
     new_filter->excluded_dialog_ids_.clear();
+  } else {
+    new_filter->has_my_invites_ = false;
   }
 
   if (new_filter->check_limits().is_error()) {
@@ -819,6 +834,7 @@ bool DialogFilter::are_similar(const DialogFilter &lhs, const DialogFilter &rhs)
 
 bool DialogFilter::are_equivalent(const DialogFilter &lhs, const DialogFilter &rhs) {
   return lhs.title_ == rhs.title_ && lhs.emoji_ == rhs.emoji_ && lhs.is_shareable_ == rhs.is_shareable_ &&
+         lhs.has_my_invites_ == rhs.has_my_invites_ &&
          InputDialogId::are_equivalent(lhs.pinned_dialog_ids_, rhs.pinned_dialog_ids_) &&
          InputDialogId::are_equivalent(lhs.included_dialog_ids_, rhs.included_dialog_ids_) &&
          InputDialogId::are_equivalent(lhs.excluded_dialog_ids_, rhs.excluded_dialog_ids_) && are_flags_equal(lhs, rhs);

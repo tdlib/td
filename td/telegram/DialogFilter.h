@@ -67,6 +67,8 @@ class DialogFilter {
 
   Status check_limits() const;
 
+  void update_from(const DialogFilter &old_filter);
+
   static string get_emoji_by_icon_name(const string &icon_name);
 
   static string get_icon_name_by_emoji(const string &emoji);
@@ -104,8 +106,6 @@ class DialogFilter {
 
   static bool are_equivalent(const DialogFilter &lhs, const DialogFilter &rhs);
 
-  static bool are_flags_equal(const DialogFilter &lhs, const DialogFilter &rhs);
-
   template <class StorerT>
   void store(StorerT &storer) const;
 
@@ -128,9 +128,12 @@ class DialogFilter {
   bool include_groups_ = false;
   bool include_channels_ = false;
   bool is_shareable_ = false;
+  bool has_my_invites_ = false;
 
   static FlatHashMap<string, string> emoji_to_icon_name_;
   static FlatHashMap<string, string> icon_name_to_emoji_;
+
+  static bool are_flags_equal(const DialogFilter &lhs, const DialogFilter &rhs);
 
   static void init_icon_names();
 
@@ -143,6 +146,7 @@ class DialogFilter {
 
 inline bool operator==(const DialogFilter &lhs, const DialogFilter &rhs) {
   return lhs.dialog_filter_id_ == rhs.dialog_filter_id_ && lhs.title_ == rhs.title_ && lhs.emoji_ == rhs.emoji_ &&
+         lhs.is_shareable_ == rhs.is_shareable_ && lhs.has_my_invites_ == rhs.has_my_invites_ &&
          lhs.pinned_dialog_ids_ == rhs.pinned_dialog_ids_ && lhs.included_dialog_ids_ == rhs.included_dialog_ids_ &&
          lhs.excluded_dialog_ids_ == rhs.excluded_dialog_ids_ && DialogFilter::are_flags_equal(lhs, rhs);
 }
