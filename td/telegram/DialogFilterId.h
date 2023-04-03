@@ -73,7 +73,7 @@ struct DialogFilterIdHash {
 };
 
 inline StringBuilder &operator<<(StringBuilder &string_builder, DialogFilterId dialog_filter_id) {
-  return string_builder << "filter " << dialog_filter_id.get();
+  return string_builder << "folder " << dialog_filter_id.get();
 }
 
 }  // namespace td

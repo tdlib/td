@@ -49,8 +49,8 @@ class DialogListId {
       case td_api::chatListMain::ID:
         CHECK(id == FolderId::main().get());
         break;
-      case td_api::chatListFilter::ID: {
-        DialogFilterId filter_id(static_cast<const td_api::chatListFilter *>(chat_list.get())->chat_filter_id_);
+      case td_api::chatListFolder::ID: {
+        DialogFilterId filter_id(static_cast<const td_api::chatListFolder *>(chat_list.get())->chat_folder_id_);
         if (filter_id.is_valid()) {
           *this = DialogListId(filter_id);
         }
@@ -74,7 +74,7 @@ class DialogListId {
       return td_api::make_object<td_api::chatListMain>();
     }
     if (is_filter()) {
-      return td_api::make_object<td_api::chatListFilter>(get_filter_id().get());
+      return td_api::make_object<td_api::chatListFolder>(get_filter_id().get());
     }
     UNREACHABLE();
     return nullptr;

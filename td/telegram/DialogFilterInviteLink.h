@@ -33,7 +33,7 @@ class DialogFilterInviteLink {
 
   DialogFilterInviteLink(Td *td, telegram_api::object_ptr<telegram_api::exportedChatlistInvite> exported_invite);
 
-  td_api::object_ptr<td_api::chatFilterInviteLink> get_chat_filter_invite_link_object() const;
+  td_api::object_ptr<td_api::chatFolderInviteLink> get_chat_folder_invite_link_object() const;
 
   bool is_valid() const {
     return !invite_link_.empty();

@@ -26,7 +26,7 @@
 namespace td {
 
 int32 DialogFilter::get_max_filter_dialogs() {
-  return narrow_cast<int32>(G()->get_option_integer("chat_filter_chosen_chat_count_max", 100));
+  return narrow_cast<int32>(G()->get_option_integer("chat_folder_chosen_chat_count_max", 100));
 }
 
 unique_ptr<DialogFilter> DialogFilter::get_dialog_filter(
@@ -93,9 +93,9 @@ unique_ptr<DialogFilter> DialogFilter::get_dialog_filter(
 }
 
 Result<unique_ptr<DialogFilter>> DialogFilter::create_dialog_filter(Td *td, DialogFilterId dialog_filter_id,
-                                                                    td_api::object_ptr<td_api::chatFilter> filter) {
+                                                                    td_api::object_ptr<td_api::chatFolder> filter) {
   if (filter == nullptr) {
-    return Status::Error(400, "Chat filter must be non-empty");
+    return Status::Error(400, "Chat folder must be non-empty");
   }
   string icon_name;
   if (filter->icon_ != nullptr) {
@@ -368,7 +368,7 @@ string DialogFilter::get_chosen_or_default_icon_name() const {
   return "Custom";
 }
 
-string DialogFilter::get_default_icon_name(const td_api::chatFilter *filter) {
+string DialogFilter::get_default_icon_name(const td_api::chatFolder *filter) {
   if (filter->icon_ != nullptr && !filter->icon_->name_.empty() &&
       !get_emoji_by_icon_name(filter->icon_->name_).empty()) {
     return filter->icon_->name_;
@@ -455,7 +455,7 @@ telegram_api::object_ptr<telegram_api::DialogFilter> DialogFilter::get_input_dia
       InputDialogId::get_input_peers(excluded_dialog_ids_));
 }
 
-td_api::object_ptr<td_api::chatFilter> DialogFilter::get_chat_filter_object(
+td_api::object_ptr<td_api::chatFolder> DialogFilter::get_chat_folder_object(
     const vector<DialogId> &unknown_dialog_ids) const {
   auto get_chat_ids = [unknown_dialog_ids](const vector<InputDialogId> &input_dialog_ids) {
     vector<int64> chat_ids;
@@ -469,20 +469,20 @@ td_api::object_ptr<td_api::chatFilter> DialogFilter::get_chat_filter_object(
     return chat_ids;
   };
 
-  td_api::object_ptr<td_api::chatFilterIcon> icon;
+  td_api::object_ptr<td_api::chatFolderIcon> icon;
   auto icon_name = get_icon_name();
   if (!icon_name.empty()) {
-    icon = td_api::make_object<td_api::chatFilterIcon>(icon_name);
+    icon = td_api::make_object<td_api::chatFolderIcon>(icon_name);
   }
-  return td_api::make_object<td_api::chatFilter>(
+  return td_api::make_object<td_api::chatFolder>(
       title_, std::move(icon), is_shareable_, get_chat_ids(pinned_dialog_ids_), get_chat_ids(included_dialog_ids_),
       get_chat_ids(excluded_dialog_ids_), exclude_muted_, exclude_read_, exclude_archived_, include_contacts_,
       include_non_contacts_, include_bots_, include_groups_, include_channels_);
 }
 
-td_api::object_ptr<td_api::chatFilterInfo> DialogFilter::get_chat_filter_info_object() const {
-  return td_api::make_object<td_api::chatFilterInfo>(
-      dialog_filter_id_.get(), title_, td_api::make_object<td_api::chatFilterIcon>(get_chosen_or_default_icon_name()),
+td_api::object_ptr<td_api::chatFolderInfo> DialogFilter::get_chat_folder_info_object() const {
+  return td_api::make_object<td_api::chatFolderInfo>(
+      dialog_filter_id_.get(), title_, td_api::make_object<td_api::chatFolderIcon>(get_chosen_or_default_icon_name()),
       has_my_invites_);
 }
 
@@ -780,7 +780,7 @@ bool DialogFilter::set_dialog_filters_order(vector<unique_ptr<DialogFilter>> &di
   if (old_dialog_filter_ids == dialog_filter_ids) {
     return false;
   }
-  LOG(INFO) << "Reorder chat filters from " << old_dialog_filter_ids << " to " << dialog_filter_ids;
+  LOG(INFO) << "Reorder chat folders from " << old_dialog_filter_ids << " to " << dialog_filter_ids;
 
   if (dialog_filter_ids.size() != old_dialog_filter_ids.size()) {
     for (auto dialog_filter_id : old_dialog_filter_ids) {

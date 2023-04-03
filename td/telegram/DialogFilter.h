@@ -33,7 +33,7 @@ class DialogFilter {
                                                     bool with_id);
 
   static Result<unique_ptr<DialogFilter>> create_dialog_filter(Td *td, DialogFilterId dialog_filter_id,
-                                                               td_api::object_ptr<td_api::chatFilter> filter);
+                                                               td_api::object_ptr<td_api::chatFolder> filter);
 
   void set_dialog_is_pinned(InputDialogId input_dialog_id, bool is_pinned);
 
@@ -79,13 +79,13 @@ class DialogFilter {
 
   string get_icon_name() const;
 
-  static string get_default_icon_name(const td_api::chatFilter *filter);
+  static string get_default_icon_name(const td_api::chatFolder *filter);
 
   telegram_api::object_ptr<telegram_api::DialogFilter> get_input_dialog_filter() const;
 
-  td_api::object_ptr<td_api::chatFilter> get_chat_filter_object(const vector<DialogId> &unknown_dialog_ids) const;
+  td_api::object_ptr<td_api::chatFolder> get_chat_folder_object(const vector<DialogId> &unknown_dialog_ids) const;
 
-  td_api::object_ptr<td_api::chatFilterInfo> get_chat_filter_info_object() const;
+  td_api::object_ptr<td_api::chatFolderInfo> get_chat_folder_info_object() const;
 
   void for_each_dialog(std::function<void(const InputDialogId &)> callback) const;
 

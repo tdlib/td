@@ -59,11 +59,11 @@ class DialogFilterManager final : public Actor {
 
   Status add_dialog(DialogFilterId dialog_filter_id, InputDialogId input_dialog_id);
 
-  void create_dialog_filter(td_api::object_ptr<td_api::chatFilter> filter,
-                            Promise<td_api::object_ptr<td_api::chatFilterInfo>> &&promise);
+  void create_dialog_filter(td_api::object_ptr<td_api::chatFolder> filter,
+                            Promise<td_api::object_ptr<td_api::chatFolderInfo>> &&promise);
 
-  void edit_dialog_filter(DialogFilterId dialog_filter_id, td_api::object_ptr<td_api::chatFilter> filter,
-                          Promise<td_api::object_ptr<td_api::chatFilterInfo>> &&promise);
+  void edit_dialog_filter(DialogFilterId dialog_filter_id, td_api::object_ptr<td_api::chatFolder> filter,
+                          Promise<td_api::object_ptr<td_api::chatFolderInfo>> &&promise);
 
   void delete_dialog_filter(DialogFilterId dialog_filter_id, vector<DialogId> leave_dialog_ids,
                             Promise<Unit> &&promise);
@@ -74,34 +74,34 @@ class DialogFilterManager final : public Actor {
   void reorder_dialog_filters(vector<DialogFilterId> dialog_filter_ids, int32 main_dialog_list_position,
                               Promise<Unit> &&promise);
 
-  td_api::object_ptr<td_api::chatFilter> get_chat_filter_object(DialogFilterId dialog_filter_id);
+  td_api::object_ptr<td_api::chatFolder> get_chat_folder_object(DialogFilterId dialog_filter_id);
 
   void create_dialog_filter_invite_link(DialogFilterId dialog_filter_id, string invite_link_name,
                                         vector<DialogId> dialog_ids,
-                                        Promise<td_api::object_ptr<td_api::chatFilterInviteLink>> promise);
+                                        Promise<td_api::object_ptr<td_api::chatFolderInviteLink>> promise);
 
   void get_dialog_filter_invite_links(DialogFilterId dialog_filter_id,
-                                      Promise<td_api::object_ptr<td_api::chatFilterInviteLinks>> promise);
+                                      Promise<td_api::object_ptr<td_api::chatFolderInviteLinks>> promise);
 
   void edit_dialog_filter_invite_link(DialogFilterId dialog_filter_id, string invite_link, string invite_link_name,
                                       vector<DialogId> dialog_ids,
-                                      Promise<td_api::object_ptr<td_api::chatFilterInviteLink>> promise);
+                                      Promise<td_api::object_ptr<td_api::chatFolderInviteLink>> promise);
 
   void delete_dialog_filter_invite_link(DialogFilterId dialog_filter_id, string invite_link, Promise<Unit> promise);
 
   void check_dialog_filter_invite_link(const string &invite_link,
-                                       Promise<td_api::object_ptr<td_api::chatFilterInviteLinkInfo>> &&promise);
+                                       Promise<td_api::object_ptr<td_api::chatFolderInviteLinkInfo>> &&promise);
 
   void on_get_chatlist_invite(const string &invite_link,
                               telegram_api::object_ptr<telegram_api::chatlists_ChatlistInvite> &&invite_ptr,
-                              Promise<td_api::object_ptr<td_api::chatFilterInviteLinkInfo>> &&promise);
+                              Promise<td_api::object_ptr<td_api::chatFolderInviteLinkInfo>> &&promise);
 
   void add_dialog_filter_by_invite_link(const string &invite_link, vector<DialogId> dialog_ids,
                                         Promise<Unit> &&promise);
 
   void on_get_dialog_filter(telegram_api::object_ptr<telegram_api::DialogFilter> filter);
 
-  void get_recommended_dialog_filters(Promise<td_api::object_ptr<td_api::recommendedChatFilters>> &&promise);
+  void get_recommended_dialog_filters(Promise<td_api::object_ptr<td_api::recommendedChatFolders>> &&promise);
 
   void load_dialog_filter(DialogFilterId dialog_filter_id, bool force, Promise<Unit> &&promise);
 
@@ -145,11 +145,11 @@ class DialogFilterManager final : public Actor {
 
   void synchronize_dialog_filters();
 
-  td_api::object_ptr<td_api::chatFilter> get_chat_filter_object(const DialogFilter *dialog_filter);
+  td_api::object_ptr<td_api::chatFolder> get_chat_folder_object(const DialogFilter *dialog_filter);
 
-  void send_update_chat_filters();
+  void send_update_chat_folders();
 
-  td_api::object_ptr<td_api::updateChatFilters> get_update_chat_filters_object() const;
+  td_api::object_ptr<td_api::updateChatFolders> get_update_chat_folders_object() const;
 
   void do_edit_dialog_filter(unique_ptr<DialogFilter> &&filter, bool need_synchronize, const char *source);
 
@@ -186,10 +186,10 @@ class DialogFilterManager final : public Actor {
 
   void on_get_recommended_dialog_filters(
       Result<vector<telegram_api::object_ptr<telegram_api::dialogFilterSuggested>>> result,
-      Promise<td_api::object_ptr<td_api::recommendedChatFilters>> &&promise);
+      Promise<td_api::object_ptr<td_api::recommendedChatFolders>> &&promise);
 
   void on_load_recommended_dialog_filters(Result<Unit> &&result, vector<RecommendedDialogFilter> &&filters,
-                                          Promise<td_api::object_ptr<td_api::recommendedChatFilters>> &&promise);
+                                          Promise<td_api::object_ptr<td_api::recommendedChatFolders>> &&promise);
 
   void load_dialog_filter(const DialogFilter *dialog_filter, bool force, Promise<Unit> &&promise);
 
@@ -204,7 +204,7 @@ class DialogFilterManager final : public Actor {
   bool are_dialog_filters_being_reloaded_ = false;
   bool need_dialog_filters_reload_ = false;
   bool disable_get_dialog_filter_ = false;
-  bool is_update_chat_filters_sent_ = false;
+  bool is_update_chat_folders_sent_ = false;
   int32 dialog_filters_updated_date_ = 0;
   vector<unique_ptr<DialogFilter>> server_dialog_filters_;
   vector<unique_ptr<DialogFilter>> dialog_filters_;

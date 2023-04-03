@@ -2037,8 +2037,8 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
 
   bool is_premium = options.get_option_boolean("is_premium");
   if (is_premium) {
-    options.set_option_integer("chat_filter_count_max", options.get_option_integer("dialog_filters_limit_premium", 20));
-    options.set_option_integer("chat_filter_chosen_chat_count_max",
+    options.set_option_integer("chat_folder_count_max", options.get_option_integer("dialog_filters_limit_premium", 20));
+    options.set_option_integer("chat_folder_chosen_chat_count_max",
                                options.get_option_integer("dialog_filters_chats_limit_premium", 200));
     options.set_option_integer("bio_length_max", options.get_option_integer("about_length_limit_premium", 140));
     options.set_option_integer("saved_animations_limit", options.get_option_integer("saved_gifs_limit_premium", 400));
@@ -2049,8 +2049,8 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
     options.set_option_integer("pinned_archived_chat_count_max",
                                options.get_option_integer("dialogs_folder_pinned_limit_premium", 200));
   } else {
-    options.set_option_integer("chat_filter_count_max", options.get_option_integer("dialog_filters_limit_default", 10));
-    options.set_option_integer("chat_filter_chosen_chat_count_max",
+    options.set_option_integer("chat_folder_count_max", options.get_option_integer("dialog_filters_limit_default", 10));
+    options.set_option_integer("chat_folder_chosen_chat_count_max",
                                options.get_option_integer("dialog_filters_chats_limit_default", 100));
     options.set_option_integer("bio_length_max", options.get_option_integer("about_length_limit_default", 70));
     options.set_option_integer("saved_animations_limit", options.get_option_integer("saved_gifs_limit_default", 200));

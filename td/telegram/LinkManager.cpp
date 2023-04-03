@@ -366,15 +366,15 @@ class LinkManager::InternalLinkDefaultMessageAutoDeleteTimerSettings final : pub
   }
 };
 
-class LinkManager::InternalLinkDialogFilterInvite final : public InternalLink {
+class LinkManager::InternalLinkDialogFolderInvite final : public InternalLink {
   string url_;
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
-    return td_api::make_object<td_api::internalLinkTypeChatFilterInvite>(url_);
+    return td_api::make_object<td_api::internalLinkTypeChatFolderInvite>(url_);
   }
 
  public:
-  explicit InternalLinkDialogFilterInvite(string url) : url_(std::move(url)) {
+  explicit InternalLinkDialogFolderInvite(string url) : url_(std::move(url)) {
   }
 };
 
@@ -396,9 +396,9 @@ class LinkManager::InternalLinkEditProfileSettings final : public InternalLink {
   }
 };
 
-class LinkManager::InternalLinkFilterSettings final : public InternalLink {
+class LinkManager::InternalLinkFolderSettings final : public InternalLink {
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
-    return td_api::make_object<td_api::internalLinkTypeFilterSettings>();
+    return td_api::make_object<td_api::internalLinkTypeFolderSettings>();
   }
 };
 
@@ -1273,7 +1273,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     }
     if (path.size() == 2 && path[1] == "folders") {
       // settings/folders
-      return td::make_unique<InternalLinkFilterSettings>();
+      return td::make_unique<InternalLinkFolderSettings>();
     }
     if (path.size() == 2 && path[1] == "language") {
       // settings/language
@@ -1293,7 +1293,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     auto slug = get_url_query_slug(true, url_query);
     if (!slug.empty() && is_base64url_characters(slug)) {
       // list?slug=<slug>
-      return td::make_unique<InternalLinkDialogFilterInvite>(get_dialog_filter_invite_link(slug, true));
+      return td::make_unique<InternalLinkDialogFolderInvite>(get_dialog_filter_invite_link(slug, true));
     }
   } else if (path.size() == 1 && path[0] == "join") {
     auto invite_hash = get_url_query_hash(true, url_query);
@@ -1429,7 +1429,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
     auto slug = get_url_query_slug(false, url_query);
     if (!slug.empty() && is_base64url_characters(slug)) {
       // /list/<slug>
-      return td::make_unique<InternalLinkDialogFilterInvite>(get_dialog_filter_invite_link(slug, true));
+      return td::make_unique<InternalLinkDialogFolderInvite>(get_dialog_filter_invite_link(slug, true));
     }
   } else if (path[0] == "joinchat") {
     auto invite_hash = get_url_query_hash(false, url_query);
@@ -1867,8 +1867,8 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         return Status::Error("HTTP link is unavailable for the link type");
       }
       return "tg://settings/change_number";
-    case td_api::internalLinkTypeChatFilterInvite::ID: {
-      auto link = static_cast<const td_api::internalLinkTypeChatFilterInvite *>(type_ptr);
+    case td_api::internalLinkTypeChatFolderInvite::ID: {
+      auto link = static_cast<const td_api::internalLinkTypeChatFolderInvite *>(type_ptr);
       auto slug = get_dialog_filter_invite_link_slug(link->invite_link_);
       if (slug.empty()) {
         return Status::Error(400, "Invalid invite link specified");
@@ -1893,7 +1893,7 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         return Status::Error("HTTP link is unavailable for the link type");
       }
       return "tg://settings/edit_profile";
-    case td_api::internalLinkTypeFilterSettings::ID:
+    case td_api::internalLinkTypeFolderSettings::ID:
       if (!is_internal) {
         return Status::Error("HTTP link is unavailable for the link type");
       }

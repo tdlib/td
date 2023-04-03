@@ -486,12 +486,12 @@ class CliClient final : public Actor {
     return to_integer<int64>(str);
   }
 
-  static int32 as_chat_filter_id(Slice str) {
+  static int32 as_chat_folder_id(Slice str) {
     return to_integer<int32>(trim(str));
   }
 
-  static vector<int32> as_chat_filter_ids(Slice chat_filter_ids) {
-    return transform(autosplit(chat_filter_ids), as_chat_filter_id);
+  static vector<int32> as_chat_folder_ids(Slice chat_folder_ids) {
+    return transform(autosplit(chat_folder_ids), as_chat_folder_id);
   }
 
   static td_api::object_ptr<td_api::ChatList> as_chat_list(string chat_list) {
@@ -499,7 +499,7 @@ class CliClient final : public Actor {
       return td_api::make_object<td_api::chatListArchive>();
     }
     if (chat_list.find('-') != string::npos) {
-      return td_api::make_object<td_api::chatListFilter>(as_chat_filter_id(chat_list.substr(chat_list.find('-') + 1)));
+      return td_api::make_object<td_api::chatListFolder>(as_chat_folder_id(chat_list.substr(chat_list.find('-') + 1)));
     }
     return td_api::make_object<td_api::chatListMain>();
   }
@@ -831,16 +831,16 @@ class CliClient final : public Actor {
     arg.user_id = as_user_id(args);
   }
 
-  struct ChatFilterId {
-    int32 chat_filter_id = 0;
+  struct ChatFolderId {
+    int32 chat_folder_id = 0;
 
     operator int32() const {
-      return chat_filter_id;
+      return chat_folder_id;
     }
   };
 
-  void get_args(string &args, ChatFilterId &arg) const {
-    arg.chat_filter_id = as_chat_filter_id(args);
+  void get_args(string &args, ChatFolderId &arg) const {
+    arg.chat_folder_id = as_chat_folder_id(args);
   }
 
   struct FileId {
@@ -1526,15 +1526,15 @@ class CliClient final : public Actor {
     return Random::fast_bool();
   }
 
-  td_api::object_ptr<td_api::chatFilter> as_chat_filter(string filter, bool is_shareable = false) const {
+  td_api::object_ptr<td_api::chatFolder> as_chat_folder(string filter, bool is_shareable = false) const {
     string title;
     string icon_name;
     string pinned_chat_ids;
     string included_chat_ids;
     string excluded_chat_ids;
     get_args(filter, title, icon_name, pinned_chat_ids, included_chat_ids, excluded_chat_ids);
-    return td_api::make_object<td_api::chatFilter>(
-        title, td_api::make_object<td_api::chatFilterIcon>(icon_name), is_shareable, as_chat_ids(pinned_chat_ids),
+    return td_api::make_object<td_api::chatFolder>(
+        title, td_api::make_object<td_api::chatFolderIcon>(icon_name), is_shareable, as_chat_ids(pinned_chat_ids),
         as_chat_ids(included_chat_ids), as_chat_ids(excluded_chat_ids), rand_bool(), rand_bool(), rand_bool(),
         rand_bool(), rand_bool(), rand_bool(), rand_bool(), rand_bool());
   }
@@ -2763,11 +2763,11 @@ class CliClient final : public Actor {
     } else if (op == "gadl") {
       send_request(td_api::make_object<td_api::getApplicationDownloadLink>());
     } else if (op == "gprl") {
-      auto limit_type = td_api::make_object<td_api::premiumLimitTypeChatFilterCount>();
+      auto limit_type = td_api::make_object<td_api::premiumLimitTypeChatFolderCount>();
       send_request(td_api::make_object<td_api::getPremiumLimit>(std::move(limit_type)));
     } else if (op == "gprf") {
       auto source = td_api::make_object<td_api::premiumSourceLimitExceeded>(
-          td_api::make_object<td_api::premiumLimitTypeChatFilterCount>());
+          td_api::make_object<td_api::premiumLimitTypeChatFolderCount>());
       send_request(td_api::make_object<td_api::getPremiumFeatures>(std::move(source)));
     } else if (op == "gprse") {
       send_request(td_api::make_object<td_api::getPremiumStickerExamples>());
@@ -4561,71 +4561,71 @@ class CliClient final : public Actor {
       get_args(args, chat_id);
       send_request(td_api::make_object<td_api::addChatToList>(chat_id, as_chat_list(op)));
     } else if (op == "gcf") {
-      ChatFilterId chat_filter_id;
-      get_args(args, chat_filter_id);
-      send_request(td_api::make_object<td_api::getChatFilter>(chat_filter_id));
+      ChatFolderId chat_folder_id;
+      get_args(args, chat_folder_id);
+      send_request(td_api::make_object<td_api::getChatFolder>(chat_folder_id));
     } else if (op == "ccf") {
-      send_request(td_api::make_object<td_api::createChatFilter>(as_chat_filter(args)));
+      send_request(td_api::make_object<td_api::createChatFolder>(as_chat_folder(args)));
     } else if (op == "ccfe") {
-      auto chat_filter = td_api::make_object<td_api::chatFilter>();
-      chat_filter->title_ = "empty";
-      chat_filter->included_chat_ids_ = as_chat_ids(args);
-      send_request(td_api::make_object<td_api::createChatFilter>(std::move(chat_filter)));
+      auto chat_folder = td_api::make_object<td_api::chatFolder>();
+      chat_folder->title_ = "empty";
+      chat_folder->included_chat_ids_ = as_chat_ids(args);
+      send_request(td_api::make_object<td_api::createChatFolder>(std::move(chat_folder)));
     } else if (op == "ecf" || op == "ecfs") {
-      ChatFilterId chat_filter_id;
+      ChatFolderId chat_folder_id;
       string filter;
-      get_args(args, chat_filter_id, filter);
-      send_request(td_api::make_object<td_api::editChatFilter>(chat_filter_id, as_chat_filter(filter, op == "ecfs")));
+      get_args(args, chat_folder_id, filter);
+      send_request(td_api::make_object<td_api::editChatFolder>(chat_folder_id, as_chat_folder(filter, op == "ecfs")));
     } else if (op == "dcf") {
-      ChatFilterId chat_filter_id;
+      ChatFolderId chat_folder_id;
       string chat_ids;
-      get_args(args, chat_filter_id, chat_ids);
-      send_request(td_api::make_object<td_api::deleteChatFilter>(chat_filter_id, as_chat_ids(chat_ids)));
+      get_args(args, chat_folder_id, chat_ids);
+      send_request(td_api::make_object<td_api::deleteChatFolder>(chat_folder_id, as_chat_ids(chat_ids)));
     } else if (op == "gcfctl") {
-      ChatFilterId chat_filter_id;
-      get_args(args, chat_filter_id);
-      send_request(td_api::make_object<td_api::getChatFilterChatsToLeave>(chat_filter_id));
+      ChatFolderId chat_folder_id;
+      get_args(args, chat_folder_id);
+      send_request(td_api::make_object<td_api::getChatFolderChatsToLeave>(chat_folder_id));
     } else if (op == "rcf") {
       int32 main_chat_list_position;
-      string chat_filter_ids;
-      get_args(args, main_chat_list_position, chat_filter_ids);
-      send_request(td_api::make_object<td_api::reorderChatFilters>(as_chat_filter_ids(chat_filter_ids),
+      string chat_folder_ids;
+      get_args(args, main_chat_list_position, chat_folder_ids);
+      send_request(td_api::make_object<td_api::reorderChatFolders>(as_chat_folder_ids(chat_folder_ids),
                                                                    main_chat_list_position));
     } else if (op == "crcfil") {
-      ChatFilterId chat_filter_id;
+      ChatFolderId chat_folder_id;
       string name;
       string chat_ids;
-      get_args(args, chat_filter_id, name, chat_ids);
+      get_args(args, chat_folder_id, name, chat_ids);
       send_request(
-          td_api::make_object<td_api::createChatFilterInviteLink>(chat_filter_id, name, as_chat_ids(chat_ids)));
+          td_api::make_object<td_api::createChatFolderInviteLink>(chat_folder_id, name, as_chat_ids(chat_ids)));
     } else if (op == "gcfil") {
-      ChatFilterId chat_filter_id;
-      get_args(args, chat_filter_id);
-      send_request(td_api::make_object<td_api::getChatFilterInviteLinks>(chat_filter_id));
+      ChatFolderId chat_folder_id;
+      get_args(args, chat_folder_id);
+      send_request(td_api::make_object<td_api::getChatFolderInviteLinks>(chat_folder_id));
     } else if (op == "ecfil") {
-      ChatFilterId chat_filter_id;
+      ChatFolderId chat_folder_id;
       string invite_link;
       string name;
       string chat_ids;
-      get_args(args, chat_filter_id, invite_link, name, chat_ids);
-      send_request(td_api::make_object<td_api::editChatFilterInviteLink>(chat_filter_id, invite_link, name,
+      get_args(args, chat_folder_id, invite_link, name, chat_ids);
+      send_request(td_api::make_object<td_api::editChatFolderInviteLink>(chat_folder_id, invite_link, name,
                                                                          as_chat_ids(chat_ids)));
     } else if (op == "dcfil") {
-      ChatFilterId chat_filter_id;
+      ChatFolderId chat_folder_id;
       string invite_link;
-      get_args(args, chat_filter_id, invite_link);
-      send_request(td_api::make_object<td_api::deleteChatFilterInviteLink>(chat_filter_id, invite_link));
+      get_args(args, chat_folder_id, invite_link);
+      send_request(td_api::make_object<td_api::deleteChatFolderInviteLink>(chat_folder_id, invite_link));
     } else if (op == "ccfil") {
-      send_request(td_api::make_object<td_api::checkChatFilterInviteLink>(args));
+      send_request(td_api::make_object<td_api::checkChatFolderInviteLink>(args));
     } else if (op == "acfbil") {
       string invite_link;
       string chat_ids;
       get_args(args, invite_link, chat_ids);
-      send_request(td_api::make_object<td_api::addChatFilterByInviteLink>(invite_link, as_chat_ids(chat_ids)));
+      send_request(td_api::make_object<td_api::addChatFolderByInviteLink>(invite_link, as_chat_ids(chat_ids)));
     } else if (op == "grcf") {
-      send_request(td_api::make_object<td_api::getRecommendedChatFilters>());
+      send_request(td_api::make_object<td_api::getRecommendedChatFolders>());
     } else if (op == "gcfdin") {
-      execute(td_api::make_object<td_api::getChatFilterDefaultIconName>(as_chat_filter(args)));
+      execute(td_api::make_object<td_api::getChatFolderDefaultIconName>(as_chat_folder(args)));
     } else if (op == "sct") {
       ChatId chat_id;
       string title;

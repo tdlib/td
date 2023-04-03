@@ -124,10 +124,10 @@ class LinkManager final : public Actor {
   class InternalLinkChangePhoneNumber;
   class InternalLinkConfirmPhone;
   class InternalLinkDefaultMessageAutoDeleteTimerSettings;
-  class InternalLinkDialogFilterInvite;
+  class InternalLinkDialogFolderInvite;
   class InternalLinkDialogInvite;
   class InternalLinkEditProfileSettings;
-  class InternalLinkFilterSettings;
+  class InternalLinkFolderSettings;
   class InternalLinkGame;
   class InternalLinkInstantView;
   class InternalLinkInvoice;

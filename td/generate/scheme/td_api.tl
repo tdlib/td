@@ -869,9 +869,9 @@ chatInviteLinkCounts invite_link_counts:vector<chatInviteLinkCount> = ChatInvite
 //@description Describes a chat member joined a chat via an invite link
 //@user_id User identifier
 //@joined_chat_date Point in time (Unix timestamp) when the user joined the chat
-//@via_chat_filter_invite_link True, if the user has joined the chat using an invite link for a chat filter
+//@via_chat_folder_invite_link True, if the user has joined the chat using an invite link for a chat folder
 //@approver_user_id User identifier of the chat administrator, approved user join request
-chatInviteLinkMember user_id:int53 joined_chat_date:int32 via_chat_filter_invite_link:Bool approver_user_id:int53 = ChatInviteLinkMember;
+chatInviteLinkMember user_id:int53 joined_chat_date:int32 via_chat_folder_invite_link:Bool approver_user_id:int53 = ChatInviteLinkMember;
 
 //@description Contains a list of chat members joined a chat via an invite link @total_count Approximate total number of chat members found @members List of chat members, joined a chat via an invite link
 chatInviteLinkMembers total_count:int32 members:vector<chatInviteLinkMember> = ChatInviteLinkMembers;
@@ -927,7 +927,7 @@ basicGroupFullInfo photo:chatPhoto description:string creator_user_id:int53 memb
 //@date Point in time (Unix timestamp) when the current user joined, or the point in time when the supergroup or channel was created, in case the user is not a member
 //@status Status of the current user in the supergroup or channel; custom title will always be empty
 //@member_count Number of members in the supergroup or channel; 0 if unknown. Currently, it is guaranteed to be known only if the supergroup or channel was received
-//-through searchPublicChats, searchChatsNearby, getInactiveSupergroupChats, getSuitableDiscussionChats, getGroupsInCommon, getUserPrivacySettingRules, or in chatFilterInviteLinkInfo.missing_chat_ids
+//-through searchPublicChats, searchChatsNearby, getInactiveSupergroupChats, getSuitableDiscussionChats, getGroupsInCommon, getUserPrivacySettingRules, or in chatFolderInviteLinkInfo.missing_chat_ids
 //@has_linked_chat True, if the channel has a discussion group, or the supergroup is the designated discussion group for a channel
 //@has_location True, if the supergroup is connected to a location, i.e. the supergroup is a location-based supergroup
 //@sign_messages True, if messages sent to the channel need to contain information about the sender. This field is only applicable to channels
@@ -1294,17 +1294,17 @@ chatTypeSupergroup supergroup_id:int53 is_channel:Bool = ChatType;
 chatTypeSecret secret_chat_id:int32 user_id:int53 = ChatType;
 
 
-//@description Represents an icon for a chat filter @name The chosen icon name for short filter representation; one of "All", "Unread", "Unmuted", "Bots", "Channels", "Groups", "Private", "Custom", "Setup", "Cat", "Crown",
+//@description Represents an icon for a chat folder @name The chosen icon name for short folder representation; one of "All", "Unread", "Unmuted", "Bots", "Channels", "Groups", "Private", "Custom", "Setup", "Cat", "Crown",
 //-"Favorite", "Flower", "Game", "Home", "Love", "Mask", "Party", "Sport", "Study", "Trade", "Travel", "Work", "Airplane", "Book", "Light", "Like", "Money", "Note", "Palette"
-chatFilterIcon name:string = ChatFilterIcon;
+chatFolderIcon name:string = ChatFolderIcon;
 
-//@description Represents a filter of user chats
-//@title The title of the filter; 1-12 characters without line feeds
-//@icon The chosen icon for the chat filter; may be null. If null, use getChatFilterDefaultIconName to get default icon name for the filter
-//@is_shareable True if at least one link has been created for the filter
-//@pinned_chat_ids The chat identifiers of pinned chats in the filtered chat list. There can be up to getOption("chat_filter_chosen_chat_count_max") pinned and always included non-secret chats and the same number of secret chats, but the limit can be increased with Telegram Premium
-//@included_chat_ids The chat identifiers of always included chats in the filtered chat list. There can be up to getOption("chat_filter_chosen_chat_count_max") pinned and always included non-secret chats and the same number of secret chats, but the limit can be increased with Telegram Premium
-//@excluded_chat_ids The chat identifiers of always excluded chats in the filtered chat list. There can be up to getOption("chat_filter_chosen_chat_count_max") always excluded non-secret chats and the same number of secret chats, but the limit can be increased with Telegram Premium
+//@description Represents a folder for user chats
+//@title The title of the folder; 1-12 characters without line feeds
+//@icon The chosen icon for the chat folder; may be null. If null, use getChatFolderDefaultIconName to get default icon name for the folder
+//@is_shareable True if at least one link has been created for the folder
+//@pinned_chat_ids The chat identifiers of pinned chats in the folder. There can be up to getOption("chat_folder_chosen_chat_count_max") pinned and always included non-secret chats and the same number of secret chats, but the limit can be increased with Telegram Premium
+//@included_chat_ids The chat identifiers of always included chats in the folder. There can be up to getOption("chat_folder_chosen_chat_count_max") pinned and always included non-secret chats and the same number of secret chats, but the limit can be increased with Telegram Premium
+//@excluded_chat_ids The chat identifiers of always excluded chats in the folder. There can be up to getOption("chat_folder_chosen_chat_count_max") always excluded non-secret chats and the same number of secret chats, but the limit can be increased with Telegram Premium
 //@exclude_muted True, if muted chats need to be excluded
 //@exclude_read True, if read chats need to be excluded
 //@exclude_archived True, if archived chats need to be excluded
@@ -1313,35 +1313,35 @@ chatFilterIcon name:string = ChatFilterIcon;
 //@include_bots True, if bots need to be included
 //@include_groups True, if basic groups and supergroups need to be included
 //@include_channels True, if channels need to be included
-chatFilter title:string icon:chatFilterIcon is_shareable:Bool pinned_chat_ids:vector<int53> included_chat_ids:vector<int53> excluded_chat_ids:vector<int53> exclude_muted:Bool exclude_read:Bool exclude_archived:Bool include_contacts:Bool include_non_contacts:Bool include_bots:Bool include_groups:Bool include_channels:Bool = ChatFilter;
+chatFolder title:string icon:chatFolderIcon is_shareable:Bool pinned_chat_ids:vector<int53> included_chat_ids:vector<int53> excluded_chat_ids:vector<int53> exclude_muted:Bool exclude_read:Bool exclude_archived:Bool include_contacts:Bool include_non_contacts:Bool include_bots:Bool include_groups:Bool include_channels:Bool = ChatFolder;
 
-//@description Contains basic information about a chat filter
-//@id Unique chat filter identifier
-//@title The title of the filter; 1-12 characters without line feeds
-//@icon The chosen or default icon for the chat filter
-//@has_my_invite_links True, if the chat filter has invite links created by the current user
-chatFilterInfo id:int32 title:string icon:chatFilterIcon has_my_invite_links:Bool = ChatFilterInfo;
+//@description Contains basic information about a chat folder
+//@id Unique chat folder identifier
+//@title The title of the folder; 1-12 characters without line feeds
+//@icon The chosen or default icon for the chat folder
+//@has_my_invite_links True, if the chat folder has invite links created by the current user
+chatFolderInfo id:int32 title:string icon:chatFolderIcon has_my_invite_links:Bool = ChatFolderInfo;
 
-//@description Contains a chat filter invite link
-//@invite_link The chat filter invite link
+//@description Contains a chat folder invite link
+//@invite_link The chat folder invite link
 //@name Name of the link
 //@chat_ids Identifiers of chats, included in the link
-chatFilterInviteLink invite_link:string name:string chat_ids:vector<int53> = ChatFilterInviteLink;
+chatFolderInviteLink invite_link:string name:string chat_ids:vector<int53> = ChatFolderInviteLink;
 
-//@description Represents a list of chat filter invite links @invite_links List of the invite links
-chatFilterInviteLinks invite_links:vector<chatFilterInviteLink> = ChatFilterInviteLinks;
+//@description Represents a list of chat folder invite links @invite_links List of the invite links
+chatFolderInviteLinks invite_links:vector<chatFolderInviteLink> = ChatFolderInviteLinks;
 
-//@description Contains information about an invite link to a chat filter
-//@chat_filter_info Basic information about the chat filter; chat filter identifier will be 0 if the user didn't have the chat filter yet
-//@missing_chat_ids Identifiers of the chats from the link, which aren't added to the filter yet
-//@added_chat_ids Identifiers of the chats from the link, which are added to the filter already
-chatFilterInviteLinkInfo chat_filter_info:chatFilterInfo missing_chat_ids:vector<int53> added_chat_ids:vector<int53> = ChatFilterInviteLinkInfo;
+//@description Contains information about an invite link to a chat folder
+//@chat_folder_info Basic information about the chat folder; chat folder identifier will be 0 if the user didn't have the chat folder yet
+//@missing_chat_ids Identifiers of the chats from the link, which aren't added to the folder yet
+//@added_chat_ids Identifiers of the chats from the link, which are added to the folder already
+chatFolderInviteLinkInfo chat_folder_info:chatFolderInfo missing_chat_ids:vector<int53> added_chat_ids:vector<int53> = ChatFolderInviteLinkInfo;
 
-//@description Describes a recommended chat filter @filter The chat filter @param_description Chat filter description
-recommendedChatFilter filter:chatFilter description:string = RecommendedChatFilter;
+//@description Describes a recommended chat folder @folder The chat folder @param_description Chat folder description
+recommendedChatFolder folder:chatFolder description:string = RecommendedChatFolder;
 
-//@description Contains a list of recommended chat filters @chat_filters List of recommended chat filters
-recommendedChatFilters chat_filters:vector<recommendedChatFilter> = RecommendedChatFilters;
+//@description Contains a list of recommended chat folders @chat_folders List of recommended chat folders
+recommendedChatFolders chat_folders:vector<recommendedChatFolder> = RecommendedChatFolders;
 
 
 //@class ChatList @description Describes a list of chats
@@ -1352,8 +1352,8 @@ chatListMain = ChatList;
 //@description A list of chats usually located at the top of the main chat list. Unmuted chats are automatically moved from the Archive to the Main chat list when a new message arrives
 chatListArchive = ChatList;
 
-//@description A list of chats belonging to a chat filter @chat_filter_id Chat filter identifier
-chatListFilter chat_filter_id:int32 = ChatList;
+//@description A list of chats added to a chat folder @chat_folder_id Chat folder identifier
+chatListFolder chat_folder_id:int32 = ChatList;
 
 //@description Contains a list of chat lists @chat_lists List of chat lists
 chatLists chat_lists:vector<ChatList> = ChatLists;
@@ -3668,8 +3668,8 @@ chatEventPollStopped message:message = ChatEventAction;
 //@description A new member joined the chat
 chatEventMemberJoined = ChatEventAction;
 
-//@description A new member joined the chat via an invite link @invite_link Invite link used to join the chat @via_chat_filter_invite_link True, if the user has joined the chat using an invite link for a chat filter
-chatEventMemberJoinedByInviteLink invite_link:chatInviteLink via_chat_filter_invite_link:Bool = ChatEventAction;
+//@description A new member joined the chat via an invite link @invite_link Invite link used to join the chat @via_chat_folder_invite_link True, if the user has joined the chat using an invite link for a chat folder
+chatEventMemberJoinedByInviteLink invite_link:chatInviteLink via_chat_folder_invite_link:Bool = ChatEventAction;
 
 //@description A new member was accepted to the chat by an administrator @approver_user_id User identifier of the chat administrator, approved user join request @invite_link Invite link used to join the chat; may be null
 chatEventMemberJoinedByRequest approver_user_id:int53 invite_link:chatInviteLink = ChatEventAction;
@@ -3870,11 +3870,11 @@ premiumLimitTypeSavedAnimationCount = PremiumLimitType;
 //@description The maximum number of favorite stickers
 premiumLimitTypeFavoriteStickerCount = PremiumLimitType;
 
-//@description The maximum number of chat filters
-premiumLimitTypeChatFilterCount = PremiumLimitType;
+//@description The maximum number of chat folders
+premiumLimitTypeChatFolderCount = PremiumLimitType;
 
-//@description The maximum number of pinned and always included, or always excluded chats in a chat filter
-premiumLimitTypeChatFilterChosenChatCount = PremiumLimitType;
+//@description The maximum number of pinned and always included, or always excluded chats in a chat folder
+premiumLimitTypeChatFolderChosenChatCount = PremiumLimitType;
 
 //@description The maximum number of pinned chats in the archive chat list
 premiumLimitTypePinnedArchivedChatCount = PremiumLimitType;
@@ -4653,8 +4653,8 @@ internalLinkTypeBotStartInGroup bot_username:string start_parameter:string admin
 //@description The link is a link to the change phone number section of the app
 internalLinkTypeChangePhoneNumber = InternalLinkType;
 
-//@description The link is an invite link to a chat filter. Call checkChatFilterInviteLink with the given invite link to process the link @invite_link Internal representation of the invite link
-internalLinkTypeChatFilterInvite invite_link:string = InternalLinkType;
+//@description The link is an invite link to a chat folder. Call checkChatFolderInviteLink with the given invite link to process the link @invite_link Internal representation of the invite link
+internalLinkTypeChatFolderInvite invite_link:string = InternalLinkType;
 
 //@description The link is a chat invite link. Call checkChatInviteLink with the given invite link to process the link @invite_link Internal representation of the invite link
 internalLinkTypeChatInvite invite_link:string = InternalLinkType;
@@ -4665,8 +4665,8 @@ internalLinkTypeDefaultMessageAutoDeleteTimerSettings = InternalLinkType;
 //@description The link is a link to the edit profile section of the app settings
 internalLinkTypeEditProfileSettings = InternalLinkType;
 
-//@description The link is a link to the filter section of the app settings
-internalLinkTypeFilterSettings = InternalLinkType;
+//@description The link is a link to the folder section of the app settings
+internalLinkTypeFolderSettings = InternalLinkType;
 
 //@description The link is a link to a game. Call searchPublicChat with the given bot username, check that the user is a bot, ask the current user to select a chat to send the game, and then call sendMessage with inputMessageGame
 //@bot_username Username of the bot that owns the game
@@ -5386,8 +5386,8 @@ updateChatIsBlocked chat_id:int53 is_blocked:Bool = Update;
 //@description A chat's has_scheduled_messages field has changed @chat_id Chat identifier @has_scheduled_messages New value of has_scheduled_messages
 updateChatHasScheduledMessages chat_id:int53 has_scheduled_messages:Bool = Update;
 
-//@description The list of chat filters or a chat filter has changed @chat_filters The new list of chat filters @main_chat_list_position Position of the main chat list among chat filters, 0-based
-updateChatFilters chat_filters:vector<chatFilterInfo> main_chat_list_position:int32 = Update;
+//@description The list of chat folders or a chat folder has changed @chat_folders The new list of chat folders @main_chat_list_position Position of the main chat list among chat folders, 0-based
+updateChatFolders chat_folders:vector<chatFolderInfo> main_chat_list_position:int32 = Update;
 
 //@description The number of online group members has changed. This update with non-zero number of online group members is sent only for currently opened chats.
 //-There is no guarantee that it will be sent just after the number of online users has changed
@@ -5673,10 +5673,10 @@ updatePollAnswer poll_id:int64 user_id:int53 option_ids:vector<int32> = Update;
 //@actor_user_id Identifier of the user, changing the rights
 //@date Point in time (Unix timestamp) when the user rights was changed
 //@invite_link If user has joined the chat using an invite link, the invite link; may be null
-//@via_chat_filter_invite_link True, if the user has joined the chat using an invite link for a chat filter
+//@via_chat_folder_invite_link True, if the user has joined the chat using an invite link for a chat folder
 //@old_chat_member Previous chat member
 //@new_chat_member New chat member
-updateChatMember chat_id:int53 actor_user_id:int53 date:int32 invite_link:chatInviteLink via_chat_filter_invite_link:Bool old_chat_member:chatMember new_chat_member:chatMember = Update;
+updateChatMember chat_id:int53 actor_user_id:int53 date:int32 invite_link:chatInviteLink via_chat_folder_invite_link:Bool old_chat_member:chatMember new_chat_member:chatMember = Update;
 
 //@description A user sent a join request to a chat; for bots only
 //@chat_id Chat identifier
@@ -6791,56 +6791,56 @@ getChatListsToAddChat chat_id:int53 = ChatLists;
 //@chat_list The chat list. Use getChatListsToAddChat to get suitable chat lists
 addChatToList chat_id:int53 chat_list:ChatList = Ok;
 
-//@description Returns information about a chat filter by its identifier @chat_filter_id Chat filter identifier
-getChatFilter chat_filter_id:int32 = ChatFilter;
+//@description Returns information about a chat folder by its identifier @chat_folder_id Chat folder identifier
+getChatFolder chat_folder_id:int32 = ChatFolder;
 
-//@description Creates new chat filter. Returns information about the created chat filter. There can be up to getOption("chat_filter_count_max") chat filters, but the limit can be increased with Telegram Premium @filter Chat filter
-createChatFilter filter:chatFilter = ChatFilterInfo;
+//@description Creates new chat folder. Returns information about the created chat folder. There can be up to getOption("chat_folder_count_max") chat folders, but the limit can be increased with Telegram Premium @folder The new chat folder
+createChatFolder folder:chatFolder = ChatFolderInfo;
 
-//@description Edits existing chat filter. Returns information about the edited chat filter @chat_filter_id Chat filter identifier @filter The edited chat filter
-editChatFilter chat_filter_id:int32 filter:chatFilter = ChatFilterInfo;
+//@description Edits existing chat folder. Returns information about the edited chat folder @chat_folder_id Chat folder identifier @folder The edited chat folder
+editChatFolder chat_folder_id:int32 folder:chatFolder = ChatFolderInfo;
 
-//@description Deletes existing chat filter @chat_filter_id Chat filter identifier @leave_chat_ids Identifiers of the chats to leave. The chats must be pinned or always included by the filter
-deleteChatFilter chat_filter_id:int32 leave_chat_ids:vector<int53> = Ok;
+//@description Deletes existing chat folder @chat_folder_id Chat folder identifier @leave_chat_ids Identifiers of the chats to leave. The chats must be pinned or always included in the folder
+deleteChatFolder chat_folder_id:int32 leave_chat_ids:vector<int53> = Ok;
 
-//@description Returns identifiers of pinned or always included chats from a chat filter, which are suggested to be left when the chat filter is deleted @chat_filter_id Chat filter identifier
-getChatFilterChatsToLeave chat_filter_id:int32 = Chats;
+//@description Returns identifiers of pinned or always included chats from a chat folder, which are suggested to be left when the chat folder is deleted @chat_folder_id Chat folder identifier
+getChatFolderChatsToLeave chat_folder_id:int32 = Chats;
 
-//@description Changes the order of chat filters @chat_filter_ids Identifiers of chat filters in the new correct order @main_chat_list_position Position of the main chat list among chat filters, 0-based. Can be non-zero only for Premium users
-reorderChatFilters chat_filter_ids:vector<int32> main_chat_list_position:int32 = Ok;
+//@description Changes the order of chat folders @chat_folder_ids Identifiers of chat folders in the new correct order @main_chat_list_position Position of the main chat list among chat folders, 0-based. Can be non-zero only for Premium users
+reorderChatFolders chat_folder_ids:vector<int32> main_chat_list_position:int32 = Ok;
 
-//@description Returns recommended chat filters for the current user
-getRecommendedChatFilters = RecommendedChatFilters;
+//@description Returns recommended chat folders for the current user
+getRecommendedChatFolders = RecommendedChatFolders;
 
-//@description Returns default icon name for a filter. Can be called synchronously @filter Chat filter
-getChatFilterDefaultIconName filter:chatFilter = ChatFilterIcon;
+//@description Returns default icon name for a folder. Can be called synchronously @folder Chat folder
+getChatFolderDefaultIconName folder:chatFolder = ChatFolderIcon;
 
-//@description Creates a new invite link for a chat filter. A link can be created for a filter if it has only pinned and included chats
-//@chat_filter_id Chat filter identifier
+//@description Creates a new invite link for a chat folder. A link can be created for a chat folder if it has only pinned and included chats
+//@chat_folder_id Chat folder identifier
 //@name Name of the link; 0-32 characters
 //@chat_ids Identifiers of basic group, supergroup, or channel chats to be accessible by the invite link. The chats must be public, or the user must be able to invite new members to them by an invite link. Basic groups will be automatically converted to supergroups before link creation
-createChatFilterInviteLink chat_filter_id:int32 name:string chat_ids:vector<int53> = ChatFilterInviteLink;
+createChatFolderInviteLink chat_folder_id:int32 name:string chat_ids:vector<int53> = ChatFolderInviteLink;
 
-//@description Returns invite links created by the current user for a shareable chat filter @chat_filter_id Chat filter identifier
-getChatFilterInviteLinks chat_filter_id:int32 = ChatFilterInviteLinks;
+//@description Returns invite links created by the current user for a shareable chat folder @chat_folder_id Chat folder identifier
+getChatFolderInviteLinks chat_folder_id:int32 = ChatFolderInviteLinks;
 
-//@description Edits an invite link for a chat filter
-//@chat_filter_id Chat filter identifier
+//@description Edits an invite link for a chat folder
+//@chat_folder_id Chat folder identifier
 //@invite_link Invite link to be edited
 //@name New name of the link; 0-32 characters
 //@chat_ids New identifiers of basic group, supergroup, or channel chats to be accessible by the invite link. The chats must be public, or the user must be able to invite new members to them by an invite link. Basic groups will be automatically converted to supergroups before link editing
-editChatFilterInviteLink chat_filter_id:int32 invite_link:string name:string chat_ids:vector<int53> = ChatFilterInviteLink;
+editChatFolderInviteLink chat_folder_id:int32 invite_link:string name:string chat_ids:vector<int53> = ChatFolderInviteLink;
 
-//@description Deletes an invite link for a chat filter
-//@chat_filter_id Chat filter identifier
+//@description Deletes an invite link for a chat folder
+//@chat_folder_id Chat folder identifier
 //@invite_link Invite link to be deleted
-deleteChatFilterInviteLink chat_filter_id:int32 invite_link:string = Ok;
+deleteChatFolderInviteLink chat_folder_id:int32 invite_link:string = Ok;
 
-//@description Checks the validity of an invite link for a chat filter and returns information about the corresponding chat filter @invite_link Invite link to be checked
-checkChatFilterInviteLink invite_link:string = ChatFilterInviteLinkInfo;
+//@description Checks the validity of an invite link for a chat folder and returns information about the corresponding chat folder @invite_link Invite link to be checked
+checkChatFolderInviteLink invite_link:string = ChatFolderInviteLinkInfo;
 
-//@description Adds a chat filter by an invite link @invite_link Invite link for the chat filter @chat_ids Identifiers of the chats added to the chat filter. The chats are automatically joined if they aren't joined yet
-addChatFilterByInviteLink invite_link:string chat_ids:vector<int53> = Ok;
+//@description Adds a chat folder by an invite link @invite_link Invite link for the chat folder @chat_ids Identifiers of the chats added to the chat folder. The chats are automatically joined if they aren't joined yet
+addChatFolderByInviteLink invite_link:string chat_ids:vector<int53> = Ok;
 
 
 //@description Changes the chat title. Supported only for basic groups, supergroups and channels. Requires can_change_info administrator right
