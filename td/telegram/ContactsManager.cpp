@@ -10207,12 +10207,15 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   if (is_verified != u->is_verified || is_support != u->is_support || is_bot != u->is_bot ||
       can_join_groups != u->can_join_groups || can_read_all_group_messages != u->can_read_all_group_messages ||
       restriction_reasons != u->restriction_reasons || is_scam != u->is_scam || is_fake != u->is_fake ||
-      can_be_edited_bot != u->can_be_edited_bot || is_inline_bot != u->is_inline_bot ||
-      inline_query_placeholder != u->inline_query_placeholder || need_location_bot != u->need_location_bot ||
-      can_be_added_to_attach_menu != u->can_be_added_to_attach_menu || attach_menu_enabled != u->attach_menu_enabled) {
-    LOG_IF(ERROR, is_bot != u->is_bot && !is_deleted && !u->is_deleted && u->is_received)
-        << "User.is_bot has changed for " << user_id << "/" << u->usernames << " from " << source << " from "
-        << u->is_bot << " to " << is_bot;
+      is_inline_bot != u->is_inline_bot || inline_query_placeholder != u->inline_query_placeholder ||
+      need_location_bot != u->need_location_bot || can_be_added_to_attach_menu != u->can_be_added_to_attach_menu ||
+      attach_menu_enabled != u->attach_menu_enabled) {
+    if (is_bot != u->is_bot) {
+      LOG_IF(ERROR, !is_deleted && !u->is_deleted && u->is_received)
+          << "User.is_bot has changed for " << user_id << "/" << u->usernames << " from " << source << " from "
+          << u->is_bot << " to " << is_bot;
+      u->is_full_info_changed = true;
+    }
     u->is_verified = is_verified;
     u->is_support = is_support;
     u->is_bot = is_bot;
@@ -10221,7 +10224,6 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     u->restriction_reasons = std::move(restriction_reasons);
     u->is_scam = is_scam;
     u->is_fake = is_fake;
-    u->can_be_edited_bot = can_be_edited_bot;
     u->is_inline_bot = is_inline_bot;
     u->inline_query_placeholder = std::move(inline_query_placeholder);
     u->need_location_bot = need_location_bot;
@@ -10231,9 +10233,11 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     LOG(DEBUG) << "Info has changed for " << user_id;
     u->is_changed = true;
   }
-  if (is_premium != u->is_premium) {
+  if (is_premium != u->is_premium || can_be_edited_bot != u->can_be_edited_bot) {
     u->is_premium = is_premium;
+    u->can_be_edited_bot = can_be_edited_bot;
     u->is_changed = true;
+    u->is_full_info_changed = true;
   }
 
   if (u->bot_info_version != bot_info_version) {
@@ -11754,6 +11758,7 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
     if (u->is_deleted) {
       auto user_full = get_user_full(user_id);  // must not load user_full from database before sending updateUser
       if (user_full != nullptr) {
+        u->is_full_info_changed = false;
         drop_user_full(user_id);
       }
     }
@@ -11865,6 +11870,15 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
 
     LOG(INFO) << "Repairing cache of " << user_id;
     reload_user(user_id, Promise<Unit>());
+  }
+
+  if (u->is_full_info_changed) {
+    u->is_full_info_changed = false;
+    auto user_full = get_user_full(user_id);
+    if (user_full != nullptr) {
+      user_full->need_send_update = true;
+      update_user_full(user_full, user_id, "update_user is_full_info_changed");
+    }
   }
 }
 
@@ -13065,6 +13079,9 @@ void ContactsManager::on_update_user_name(User *u, UserId user_id, string &&firs
 void ContactsManager::on_update_user_usernames(User *u, UserId user_id, Usernames &&usernames) {
   td_->messages_manager_->on_dialog_usernames_updated(DialogId(user_id), u->usernames, usernames);
   if (u->usernames != usernames) {
+    if (u->can_be_edited_bot && u->usernames.get_editable_username() != usernames.get_editable_username()) {
+      u->is_full_info_changed = true;
+    }
     u->usernames = std::move(usernames);
     u->is_username_changed = true;
     LOG(DEBUG) << "Usernames have changed for " << user_id;
