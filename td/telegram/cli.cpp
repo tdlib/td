@@ -4622,6 +4622,10 @@ class CliClient final : public Actor {
       string chat_ids;
       get_args(args, invite_link, chat_ids);
       send_request(td_api::make_object<td_api::addChatFolderByInviteLink>(invite_link, as_chat_ids(chat_ids)));
+    } else if (op == "gcfnc") {
+      ChatFolderId chat_folder_id;
+      get_args(args, chat_folder_id);
+      send_request(td_api::make_object<td_api::getChatFolderNewChats>(chat_folder_id));
     } else if (op == "grcf") {
       send_request(td_api::make_object<td_api::getRecommendedChatFolders>());
     } else if (op == "gcfdin") {

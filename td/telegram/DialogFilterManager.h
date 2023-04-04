@@ -99,6 +99,8 @@ class DialogFilterManager final : public Actor {
   void add_dialog_filter_by_invite_link(const string &invite_link, vector<DialogId> dialog_ids,
                                         Promise<Unit> &&promise);
 
+  void get_dialog_filter_new_chats(DialogFilterId dialog_filter_id, Promise<td_api::object_ptr<td_api::chats>> promise);
+
   void on_get_dialog_filter(telegram_api::object_ptr<telegram_api::DialogFilter> filter);
 
   void get_recommended_dialog_filters(Promise<td_api::object_ptr<td_api::recommendedChatFolders>> &&promise);

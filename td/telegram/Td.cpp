@@ -6208,6 +6208,12 @@ void Td::on_request(uint64 id, td_api::addChatFolderByInviteLink &request) {
       std::move(request.invite_link_), DialogId::get_dialog_ids(request.chat_ids_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getChatFolderNewChats &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  dialog_filter_manager_->get_dialog_filter_new_chats(DialogFilterId(request.chat_folder_id_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::setChatTitle &request) {
   CLEAN_INPUT_STRING(request.title_);
   CREATE_OK_REQUEST_PROMISE();

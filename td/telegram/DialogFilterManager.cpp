@@ -369,6 +369,38 @@ class JoinChatlistInviteQuery final : public Td::ResultHandler {
   }
 };
 
+class GetChatlistUpdatesQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::chats>> promise_;
+
+ public:
+  explicit GetChatlistUpdatesQuery(Promise<td_api::object_ptr<td_api::chats>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(DialogFilterId dialog_filter_id) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::chatlists_getChatlistUpdates(dialog_filter_id.get_input_chatlist())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::chatlists_getChatlistUpdates>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetChatlistUpdatesQuery: " << to_string(ptr);
+    td_->contacts_manager_->on_get_users(std::move(ptr->users_), "GetChatlistUpdatesQuery");
+    td_->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetChatlistUpdatesQuery");
+    auto missing_dialog_ids = td_->messages_manager_->get_peers_dialog_ids(std::move(ptr->missing_peers_));
+    promise_.set_value(MessagesManager::get_chats_object(-1, missing_dialog_ids));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetDialogsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   bool is_single_ = false;
@@ -1890,6 +1922,18 @@ void DialogFilterManager::add_dialog_filter_by_invite_link(const string &invite_
 
   CHECK(!invite_link.empty());
   td_->create_handler<JoinChatlistInviteQuery>(std::move(promise))->send(invite_link, std::move(dialog_ids));
+}
+
+void DialogFilterManager::get_dialog_filter_new_chats(DialogFilterId dialog_filter_id,
+                                                      Promise<td_api::object_ptr<td_api::chats>> promise) {
+  auto dialog_filter = get_dialog_filter(dialog_filter_id);
+  if (dialog_filter == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat folder not found"));
+  }
+  if (!dialog_filter->is_shareable()) {
+    return promise.set_value(td_api::make_object<td_api::chats>());
+  }
+  td_->create_handler<GetChatlistUpdatesQuery>(std::move(promise))->send(dialog_filter_id);
 }
 
 void DialogFilterManager::set_dialog_filter_has_my_invite_links(DialogFilterId dialog_filter_id,
