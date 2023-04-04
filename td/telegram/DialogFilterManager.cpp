@@ -401,6 +401,35 @@ class GetChatlistUpdatesQuery final : public Td::ResultHandler {
   }
 };
 
+class JoinChatlistUpdatesQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit JoinChatlistUpdatesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogFilterId dialog_filter_id, vector<DialogId> dialog_ids) {
+    send_query(G()->net_query_creator().create(telegram_api::chatlists_joinChatlistUpdates(
+        dialog_filter_id.get_input_chatlist(),
+        td_->messages_manager_->get_input_peers(dialog_ids, AccessRights::Read))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::chatlists_joinChatlistUpdates>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for JoinChatlistUpdatesQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetDialogsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   bool is_single_ = false;
@@ -1925,7 +1954,7 @@ void DialogFilterManager::add_dialog_filter_by_invite_link(const string &invite_
 }
 
 void DialogFilterManager::get_dialog_filter_new_chats(DialogFilterId dialog_filter_id,
-                                                      Promise<td_api::object_ptr<td_api::chats>> promise) {
+                                                      Promise<td_api::object_ptr<td_api::chats>> &&promise) {
   auto dialog_filter = get_dialog_filter(dialog_filter_id);
   if (dialog_filter == nullptr) {
     return promise.set_error(Status::Error(400, "Chat folder not found"));
@@ -1934,6 +1963,24 @@ void DialogFilterManager::get_dialog_filter_new_chats(DialogFilterId dialog_filt
     return promise.set_value(td_api::make_object<td_api::chats>());
   }
   td_->create_handler<GetChatlistUpdatesQuery>(std::move(promise))->send(dialog_filter_id);
+}
+
+void DialogFilterManager::add_dialog_filter_new_chats(DialogFilterId dialog_filter_id, vector<DialogId> dialog_ids,
+                                                      Promise<Unit> &&promise) {
+  auto dialog_filter = get_dialog_filter(dialog_filter_id);
+  if (dialog_filter == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat folder not found"));
+  }
+  if (!dialog_filter->is_shareable()) {
+    return promise.set_error(Status::Error(400, "Chat folder must be shareable"));
+  }
+  for (auto dialog_id : dialog_ids) {
+    if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+      return promise.set_error(Status::Error(400, "Can't access the chat"));
+    }
+  }
+
+  td_->create_handler<JoinChatlistUpdatesQuery>(std::move(promise))->send(dialog_filter_id, std::move(dialog_ids));
 }
 
 void DialogFilterManager::set_dialog_filter_has_my_invite_links(DialogFilterId dialog_filter_id,

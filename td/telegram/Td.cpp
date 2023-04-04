@@ -6214,6 +6214,13 @@ void Td::on_request(uint64 id, const td_api::getChatFolderNewChats &request) {
   dialog_filter_manager_->get_dialog_filter_new_chats(DialogFilterId(request.chat_folder_id_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::addChatFolderNewChats &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  dialog_filter_manager_->add_dialog_filter_new_chats(DialogFilterId(request.chat_folder_id_),
+                                                      DialogId::get_dialog_ids(request.chat_ids_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::setChatTitle &request) {
   CLEAN_INPUT_STRING(request.title_);
   CREATE_OK_REQUEST_PROMISE();
