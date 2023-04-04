@@ -135,6 +135,14 @@ Result<size_t> BufferedFdBase<FdT>::flush_write() {
     write_->advance(x);
     result += x;
   }
+  if (result == 0) {
+    if (write_->empty()) {
+      LOG(DEBUG) << "Nothing to write to " << get_poll_info().native_fd();
+    } else {
+      LOG(DEBUG) << "Can't flush write to " << get_poll_info().native_fd()
+                 << " with flags = " << get_poll_info().get_flags_local();
+    }
+  }
   return result;
 }
 
