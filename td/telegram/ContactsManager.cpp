@@ -5479,10 +5479,10 @@ tl_object_ptr<telegram_api::InputPeer> ContactsManager::get_simple_input_peer(Di
   CHECK(dialog_id.get_type() == DialogType::Channel);
   auto channel_id = dialog_id.get_channel_id();
   const Channel *c = get_channel(channel_id);
-  if (!have_input_peer_channel(c, channel_id, AccessRights::Read)) {
-    return nullptr;
-  }
-
+  CHECK(c != nullptr);
+  // if (!have_input_peer_channel(c, channel_id, AccessRights::Read)) {
+  //   return nullptr;
+  // }
   return make_tl_object<telegram_api::inputPeerChannel>(channel_id.get(), c->access_hash);
 }
 
