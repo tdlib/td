@@ -6823,7 +6823,8 @@ getChatFolderDefaultIconName folder:chatFolder = ChatFolderIcon;
 //@description Creates a new invite link for a chat folder. A link can be created for a chat folder if it has only pinned and included chats
 //@chat_folder_id Chat folder identifier
 //@name Name of the link; 0-32 characters
-//@chat_ids Identifiers of basic group, supergroup, or channel chats to be accessible by the invite link. The chats must be public, or the user must be able to invite new members to them by an invite link. Basic groups will be automatically converted to supergroups before link creation
+//@chat_ids Identifiers of basic group, supergroup, or channel chats to be accessible by the invite link. The chats must be public and could be join without approval by chat administrators,
+//-or the user must be able to invite new members to them by an invite link. Basic groups will be automatically converted to supergroups before link creation
 createChatFolderInviteLink chat_folder_id:int32 name:string chat_ids:vector<int53> = ChatFolderInviteLink;
 
 //@description Returns invite links created by the current user for a shareable chat folder @chat_folder_id Chat folder identifier
@@ -6833,7 +6834,8 @@ getChatFolderInviteLinks chat_folder_id:int32 = ChatFolderInviteLinks;
 //@chat_folder_id Chat folder identifier
 //@invite_link Invite link to be edited
 //@name New name of the link; 0-32 characters
-//@chat_ids New identifiers of basic group, supergroup, or channel chats to be accessible by the invite link. The chats must be public, or the user must be able to invite new members to them by an invite link. Basic groups will be automatically converted to supergroups before link editing
+//@chat_ids New identifiers of basic group, supergroup, or channel chats to be accessible by the invite link. The chats must be public and could be join without approval by chat administrators,
+//-or the user must be able to invite new members to them by an invite link. Basic groups will be automatically converted to supergroups before link editing
 editChatFolderInviteLink chat_folder_id:int32 invite_link:string name:string chat_ids:vector<int53> = ChatFolderInviteLink;
 
 //@description Deletes an invite link for a chat folder
