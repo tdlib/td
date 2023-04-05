@@ -90,13 +90,13 @@ static string get_url_query_hash(bool is_tg, const HttpUrlQuery &url_query) {
 static string get_url_query_slug(bool is_tg, const HttpUrlQuery &url_query) {
   const auto &path = url_query.path_;
   if (is_tg) {
-    if (path.size() == 1 && path[0] == "list") {
-      // list?slug=<hash>
+    if (path.size() == 1 && path[0] == "addlist") {
+      // addlist?slug=<hash>
       return url_query.get_arg("slug").str();
     }
   } else {
-    if (path.size() >= 2 && path[0] == "list") {
-      // /list/<hash>
+    if (path.size() >= 2 && path[0] == "addlist") {
+      // /addlist/<hash>
       return path[1];
     }
   }
@@ -1015,9 +1015,9 @@ LinkManager::LinkInfo LinkManager::get_link_info(Slice link) {
     to_lower_inplace(host);
     if (ends_with(host, ".t.me") && host.size() >= 9 && host.find('.') == host.size() - 5) {
       Slice subdomain(&host[0], host.size() - 5);
-      if (is_valid_username(subdomain) && subdomain != "addemoji" && subdomain != "addstickers" &&
-          subdomain != "addtheme" && subdomain != "auth" && subdomain != "confirmphone" && subdomain != "invoice" &&
-          subdomain != "joinchat" && subdomain != "list" && subdomain != "login" && subdomain != "proxy" &&
+      if (is_valid_username(subdomain) && subdomain != "addemoji" && subdomain != "addlist" &&
+          subdomain != "addstickers" && subdomain != "addtheme" && subdomain != "auth" && subdomain != "confirmphone" &&
+          subdomain != "invoice" && subdomain != "joinchat" && subdomain != "login" && subdomain != "proxy" &&
           subdomain != "setlanguage" && subdomain != "share" && subdomain != "socks" && subdomain != "web" &&
           subdomain != "k" && subdomain != "z") {
         result.type_ = LinkType::TMe;
@@ -1289,10 +1289,10 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     }
     // settings
     return td::make_unique<InternalLinkSettings>();
-  } else if (path.size() == 1 && path[0] == "list") {
+  } else if (path.size() == 1 && path[0] == "addlist") {
     auto slug = get_url_query_slug(true, url_query);
     if (!slug.empty() && is_base64url_characters(slug)) {
-      // list?slug=<slug>
+      // addlist?slug=<slug>
       return td::make_unique<InternalLinkDialogFolderInvite>(get_dialog_filter_invite_link(slug, true));
     }
   } else if (path.size() == 1 && path[0] == "join") {
@@ -1425,10 +1425,10 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
       // /login/<code>
       return td::make_unique<InternalLinkAuthenticationCode>(path[1]);
     }
-  } else if (path[0] == "list") {
+  } else if (path[0] == "addlist") {
     auto slug = get_url_query_slug(false, url_query);
     if (!slug.empty() && is_base64url_characters(slug)) {
-      // /list/<slug>
+      // /addlist/<slug>
       return td::make_unique<InternalLinkDialogFolderInvite>(get_dialog_filter_invite_link(slug, true));
     }
   } else if (path[0] == "joinchat") {
@@ -2328,9 +2328,9 @@ string LinkManager::get_dialog_filter_invite_link(Slice slug, bool is_internal) 
     return string();
   }
   if (is_internal) {
-    return PSTRING() << "tg:list?slug=" << slug;
+    return PSTRING() << "tg:addlist?slug=" << slug;
   } else {
-    return PSTRING() << get_t_me_url() << "list/" << slug;
+    return PSTRING() << get_t_me_url() << "addlist/" << slug;
   }
 }
 

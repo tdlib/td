@@ -219,7 +219,7 @@ static auto change_phone_number() {
 }
 
 static auto chat_folder_invite(const td::string &slug) {
-  return td::td_api::make_object<td::td_api::internalLinkTypeChatFolderInvite>("tg:list?slug=" + slug);
+  return td::td_api::make_object<td::td_api::internalLinkTypeChatFolderInvite>("tg:addlist?slug=" + slug);
 }
 
 static auto chat_folder_settings() {
@@ -707,23 +707,23 @@ TEST(Link, parse_internal_link_part2) {
   parse_internal_link("t.me/+123456?attach=bot&startattach=1",
                       attachment_menu_bot(nullptr, user_phone_number("123456"), "bot", "1"));
 
-  parse_internal_link("t.me/list?invite=abcdef", nullptr);
-  parse_internal_link("t.me/list", nullptr);
-  parse_internal_link("t.me/list/", nullptr);
-  parse_internal_link("t.me/list//abcdef", nullptr);
-  parse_internal_link("t.me/list?/abcdef", nullptr);
-  parse_internal_link("t.me/list/?abcdef", nullptr);
-  parse_internal_link("t.me/list/#abcdef", nullptr);
-  parse_internal_link("t.me/list/abacaba", chat_folder_invite("abacaba"));
-  parse_internal_link("t.me/list/aba%20aba", nullptr);
-  parse_internal_link("t.me/list/aba%30aba", chat_folder_invite("aba0aba"));
-  parse_internal_link("t.me/list/123456a", chat_folder_invite("123456a"));
-  parse_internal_link("t.me/list/12345678901", chat_folder_invite("12345678901"));
-  parse_internal_link("t.me/list/123456", chat_folder_invite("123456"));
-  parse_internal_link("t.me/list/123456/123123/12/31/a/s//21w/?asdas#test", chat_folder_invite("123456"));
-  parse_internal_link("t.me/list/12345678901a", chat_folder_invite("12345678901a"));
-  parse_internal_link("t.me/list/123456a", chat_folder_invite("123456a"));
-  parse_internal_link("t.me/list/123456a/123123/12/31/a/s//21w/?asdas#test", chat_folder_invite("123456a"));
+  parse_internal_link("t.me/addlist?invite=abcdef", nullptr);
+  parse_internal_link("t.me/addlist", nullptr);
+  parse_internal_link("t.me/addlist/", nullptr);
+  parse_internal_link("t.me/addlist//abcdef", nullptr);
+  parse_internal_link("t.me/addlist?/abcdef", nullptr);
+  parse_internal_link("t.me/addlist/?abcdef", nullptr);
+  parse_internal_link("t.me/addlist/#abcdef", nullptr);
+  parse_internal_link("t.me/addlist/abacaba", chat_folder_invite("abacaba"));
+  parse_internal_link("t.me/addlist/aba%20aba", nullptr);
+  parse_internal_link("t.me/addlist/aba%30aba", chat_folder_invite("aba0aba"));
+  parse_internal_link("t.me/addlist/123456a", chat_folder_invite("123456a"));
+  parse_internal_link("t.me/addlist/12345678901", chat_folder_invite("12345678901"));
+  parse_internal_link("t.me/addlist/123456", chat_folder_invite("123456"));
+  parse_internal_link("t.me/addlist/123456/123123/12/31/a/s//21w/?asdas#test", chat_folder_invite("123456"));
+  parse_internal_link("t.me/addlist/12345678901a", chat_folder_invite("12345678901a"));
+  parse_internal_link("t.me/addlist/123456a", chat_folder_invite("123456a"));
+  parse_internal_link("t.me/addlist/123456a/123123/12/31/a/s//21w/?asdas#test", chat_folder_invite("123456a"));
 
   parse_internal_link("t.me/contact/startattach/adasd", user_token("startattach"));
   parse_internal_link("t.me/contact/startattach", user_token("startattach"));
@@ -736,10 +736,10 @@ TEST(Link, parse_internal_link_part2) {
   parse_internal_link("tg://join?invite=abc%30def", chat_invite("abc0def"));
   parse_internal_link("tg:join?invite=", unknown_deep_link("tg://join?invite="));
 
-  parse_internal_link("tg:list?slug=abcdef", chat_folder_invite("abcdef"));
-  parse_internal_link("tg:list?slug=abc%20def", unknown_deep_link("tg://list?slug=abc%20def"));
-  parse_internal_link("tg://list?slug=abc%30def", chat_folder_invite("abc0def"));
-  parse_internal_link("tg:list?slug=", unknown_deep_link("tg://list?slug="));
+  parse_internal_link("tg:addlist?slug=abcdef", chat_folder_invite("abcdef"));
+  parse_internal_link("tg:addlist?slug=abc%20def", unknown_deep_link("tg://addlist?slug=abc%20def"));
+  parse_internal_link("tg://addlist?slug=abc%30def", chat_folder_invite("abc0def"));
+  parse_internal_link("tg:addlist?slug=", unknown_deep_link("tg://addlist?slug="));
 
   parse_internal_link("t.me/addstickers?set=abcdef", nullptr);
   parse_internal_link("t.me/addstickers", nullptr);
@@ -1163,13 +1163,13 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("0aaa.t.me/12345?single", nullptr);
   parse_internal_link("_aaa.t.me/12345?single", nullptr);
   parse_internal_link("addemoji.t.me", nullptr);
+  parse_internal_link("addlist.t.me", nullptr);
   parse_internal_link("addstickers.t.me", nullptr);
   parse_internal_link("addtheme.t.me", nullptr);
   parse_internal_link("auth.t.me", nullptr);
   parse_internal_link("confirmphone.t.me", nullptr);
   parse_internal_link("invoice.t.me", nullptr);
   parse_internal_link("joinchat.t.me", nullptr);
-  parse_internal_link("list.t.me", nullptr);
   parse_internal_link("login.t.me", nullptr);
   parse_internal_link("proxy.t.me", nullptr);
   parse_internal_link("setlanguage.t.me", nullptr);
