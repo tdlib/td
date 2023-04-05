@@ -430,6 +430,34 @@ class JoinChatlistUpdatesQuery final : public Td::ResultHandler {
   }
 };
 
+class HideChatlistUpdatesQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit HideChatlistUpdatesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogFilterId dialog_filter_id) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::chatlists_hideChatlistUpdates(dialog_filter_id.get_input_chatlist())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::chatlists_hideChatlistUpdates>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for HideChatlistUpdatesQuery: " << ptr;
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetDialogsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   bool is_single_ = false;
@@ -1981,6 +2009,18 @@ void DialogFilterManager::add_dialog_filter_new_chats(DialogFilterId dialog_filt
   }
 
   td_->create_handler<JoinChatlistUpdatesQuery>(std::move(promise))->send(dialog_filter_id, std::move(dialog_ids));
+}
+
+void DialogFilterManager::hide_dialog_filter_new_chats(DialogFilterId dialog_filter_id, Promise<Unit> &&promise) {
+  auto dialog_filter = get_dialog_filter(dialog_filter_id);
+  if (dialog_filter == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat folder not found"));
+  }
+  if (!dialog_filter->is_shareable()) {
+    return promise.set_error(Status::Error(400, "Chat folder must be shareable"));
+  }
+
+  td_->create_handler<HideChatlistUpdatesQuery>(std::move(promise))->send(dialog_filter_id);
 }
 
 void DialogFilterManager::set_dialog_filter_has_my_invite_links(DialogFilterId dialog_filter_id,
