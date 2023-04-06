@@ -1551,6 +1551,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   vector<string> fragment_prefixes;
   bool premium_gift_attach_menu_icon = false;
   bool premium_gift_text_field_icon = false;
+  int32 dialog_filter_update_period = 300;
   if (config->get_id() == telegram_api::jsonObject::ID) {
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
       Slice key = key_value->key_;
@@ -1943,6 +1944,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         premium_gift_text_field_icon = get_json_value_bool(std::move(key_value->value_), key);
         continue;
       }
+      if (key == "chatlist_update_period") {
+        dialog_filter_update_period = get_json_value_int(std::move(key_value->value_), key);
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
@@ -2033,6 +2038,9 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   }
   if (telegram_antispam_group_size_min >= 0) {
     options.set_option_integer("aggressive_anti_spam_supergroup_member_count_min", telegram_antispam_group_size_min);
+  }
+  if (dialog_filter_update_period > 0) {
+    options.set_option_integer("chat_folder_new_chats_update_period", dialog_filter_update_period);
   }
 
   bool is_premium = options.get_option_boolean("is_premium");

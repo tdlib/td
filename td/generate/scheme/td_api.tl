@@ -6855,7 +6855,7 @@ checkChatFolderInviteLink invite_link:string = ChatFolderInviteLinkInfo;
 //@description Adds a chat folder by an invite link @invite_link Invite link for the chat folder @chat_ids Identifiers of the chats added to the chat folder. The chats are automatically joined if they aren't joined yet
 addChatFolderByInviteLink invite_link:string chat_ids:vector<int53> = Ok;
 
-//@description Returns new chats added to a shareable chat folder by its owner. The method should be called at most once in five minutes for the given chat folder @chat_folder_id Chat folder identifier
+//@description Returns new chats added to a shareable chat folder by its owner. The method should be called at most once in getOption("chat_folder_new_chats_update_period") for the given chat folder @chat_folder_id Chat folder identifier
 getChatFolderNewChats chat_folder_id:int32 = Chats;
 
 //@description Adds new chats added to a shareable chat folder by its owner to the user's chat folder @chat_folder_id Chat folder identifier @chat_ids Identifiers of the new chats added to the chat folder. The chats are automatically joined if they aren't joined yet
