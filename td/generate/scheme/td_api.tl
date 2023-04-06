@@ -3890,6 +3890,12 @@ premiumLimitTypeCaptionLength = PremiumLimitType;
 //@description The maximum length of the user's bio
 premiumLimitTypeBioLength = PremiumLimitType;
 
+//@description The maximum number of invite links for a chat folder
+premiumLimitTypeChatFolderInviteLinkCount = PremiumLimitType;
+
+//@description The maximum number of added shareable chat folders
+premiumLimitTypeShareableChatFolderCount = PremiumLimitType;
+
 
 //@class PremiumFeature @description Describes a feature available to Premium users
 
