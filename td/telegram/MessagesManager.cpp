@@ -10093,13 +10093,14 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
   promise.set_value(Unit());
 }
 
-vector<DialogId> MessagesManager::get_peers_dialog_ids(vector<tl_object_ptr<telegram_api::Peer>> &&peers) {
+vector<DialogId> MessagesManager::get_peers_dialog_ids(vector<tl_object_ptr<telegram_api::Peer>> &&peers,
+                                                       bool expect_no_access) {
   vector<DialogId> result;
   result.reserve(peers.size());
   for (auto &peer : peers) {
     DialogId dialog_id(peer);
     if (dialog_id.is_valid()) {
-      force_create_dialog(dialog_id, "get_peers_dialog_ids");
+      force_create_dialog(dialog_id, "get_peers_dialog_ids", expect_no_access);
       result.push_back(dialog_id);
     }
   }

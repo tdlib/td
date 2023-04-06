@@ -180,7 +180,8 @@ class MessagesManager final : public Actor {
 
   bool have_input_peer(DialogId dialog_id, AccessRights access_rights) const;
 
-  vector<DialogId> get_peers_dialog_ids(vector<tl_object_ptr<telegram_api::Peer>> &&peers);
+  vector<DialogId> get_peers_dialog_ids(vector<tl_object_ptr<telegram_api::Peer>> &&peers,
+                                        bool expect_no_access = false);
 
   void on_get_empty_messages(DialogId dialog_id, const vector<MessageId> &empty_message_ids);
 
