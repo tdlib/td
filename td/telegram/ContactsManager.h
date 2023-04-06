@@ -191,7 +191,7 @@ class ContactsManager final : public Actor {
   void on_update_user_need_phone_number_privacy_exception(UserId user_id, bool need_phone_number_privacy_exception);
 
   void on_set_profile_photo(UserId user_id, tl_object_ptr<telegram_api::photos_photo> &&photo, bool is_fallback,
-                            int64 old_photo_id);
+                            int64 old_photo_id, Promise<Unit> &&promise);
 
   void on_delete_profile_photo(int64 profile_photo_id, Promise<Unit> promise);
 

@@ -571,15 +571,16 @@ class UploadProfilePhotoQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    if (!only_suggest_) {
-      td_->contacts_manager_->on_set_profile_photo(user_id_, result_ptr.move_as_ok(), is_fallback_, 0);
-    }
-
     if (file_id_.is_valid()) {
       td_->file_manager_->delete_partial_remote_location(file_id_);
     }
 
-    promise_.set_value(Unit());
+    if (!only_suggest_) {
+      td_->contacts_manager_->on_set_profile_photo(user_id_, result_ptr.move_as_ok(), is_fallback_, 0,
+                                                   std::move(promise_));
+    } else {
+      promise_.set_value(Unit());
+    }
   }
 
   void on_error(Status status) final {
@@ -637,9 +638,8 @@ class UpdateProfilePhotoQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->contacts_manager_->on_set_profile_photo(user_id_, result_ptr.move_as_ok(), is_fallback_, old_photo_id_);
-
-    promise_.set_value(Unit());
+    td_->contacts_manager_->on_set_profile_photo(user_id_, result_ptr.move_as_ok(), is_fallback_, old_photo_id_,
+                                                 std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -696,8 +696,7 @@ class DeleteContactProfilePhotoQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     ptr->photo_ = nullptr;
-    td_->contacts_manager_->on_set_profile_photo(user_id_, std::move(ptr), false, 0);
-    promise_.set_value(Unit());
+    td_->contacts_manager_->on_set_profile_photo(user_id_, std::move(ptr), false, 0, std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -13531,7 +13530,7 @@ void ContactsManager::on_ignored_restriction_reasons_changed() {
 }
 
 void ContactsManager::on_set_profile_photo(UserId user_id, tl_object_ptr<telegram_api::photos_photo> &&photo,
-                                           bool is_fallback, int64 old_photo_id) {
+                                           bool is_fallback, int64 old_photo_id, Promise<Unit> &&promise) {
   LOG(INFO) << "Changed profile photo to " << to_string(photo);
 
   bool is_bot = is_user_bot(user_id);
@@ -13539,9 +13538,20 @@ void ContactsManager::on_set_profile_photo(UserId user_id, tl_object_ptr<telegra
   if (is_my && !is_fallback) {
     delete_my_profile_photo_from_cache(old_photo_id);
   }
+  bool have_user = false;
+  for (const auto &user : photo->users_) {
+    if (get_user_id(user) == user_id) {
+      have_user = true;
+    }
+  }
   on_get_users(std::move(photo->users_), "on_set_profile_photo");
   if (!is_bot) {
     add_set_profile_photo_to_cache(user_id, get_photo(td_, std::move(photo->photo_), DialogId(user_id)), is_fallback);
+  }
+  if (have_user) {
+    promise.set_value(Unit());
+  } else {
+    reload_user(user_id, std::move(promise));
   }
 }
 
