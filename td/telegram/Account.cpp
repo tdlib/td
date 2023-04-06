@@ -662,7 +662,12 @@ class SetBotInfoQuery final : public Td::ResultHandler {
       td_->contacts_manager_->reload_user(bot_user_id_, std::move(promise_));
     } else {
       invalidate_bot_info();
-      promise_.set_value(Unit());
+      if (td_->auth_manager_->is_bot()) {
+        // invalidation is enough for bots
+        promise_.set_value(Unit());
+      } else {
+        td_->contacts_manager_->reload_user_full(bot_user_id_, std::move(promise_));
+      }
     }
   }
 
