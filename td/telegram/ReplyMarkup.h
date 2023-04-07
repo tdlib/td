@@ -53,8 +53,16 @@ struct InlineKeyboardButton {
     User,
     WebView
   };
+
+  static constexpr int64 USERS_MASK = 1;
+  static constexpr int64 BOTS_MASK = 2;
+  static constexpr int64 CHATS_MASK = 4;
+  static constexpr int64 BROADCASTS_MASK = 8;
+  static constexpr int64 FULL_MASK = USERS_MASK | BOTS_MASK | CHATS_MASK | BROADCASTS_MASK;
+
   Type type;
-  int64 id = 0;    // UrlAuth only, button_id or (2 * request_write_access - 1) * bot_user_id
+  int64 id = 0;    // UrlAuth: button_id or (2 * request_write_access - 1) * bot_user_id
+                   // SwitchInline: mask of allowed target chats; 0 if any
   UserId user_id;  // User only
   string text;
   string forward_text;  // UrlAuth only
