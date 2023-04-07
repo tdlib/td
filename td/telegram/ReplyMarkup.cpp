@@ -618,6 +618,9 @@ static Result<InlineKeyboardButton> get_inline_keyboard_button(tl_object_ptr<td_
           if (target->allow_channel_chats_) {
             current_button.id |= InlineKeyboardButton::BROADCASTS_MASK;
           }
+          if (current_button.id == 0) {
+            return Status::Error(400, "At least one chat type must be allowed");
+          }
           if (current_button.id == InlineKeyboardButton::FULL_MASK) {
             current_button.id = 0;
           }
