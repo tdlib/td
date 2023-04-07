@@ -25,6 +25,8 @@
 *.xaml text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
 *.appxmanifest text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
 *.vsixmanifest text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
+*.nuspec text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
+*.targets text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
 *.json text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
 *.csproj text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
 *.sln text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent

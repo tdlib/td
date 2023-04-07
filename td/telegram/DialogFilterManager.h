@@ -142,7 +142,7 @@ class DialogFilterManager final : public Actor {
 
   void schedule_dialog_filters_reload(double timeout);
 
-  static void on_reload_dialog_filters_timeout(void *messages_manager_ptr);
+  static void on_reload_dialog_filters_timeout(void *dialog_filter_manager_ptr);
 
   void reload_dialog_filters();
 

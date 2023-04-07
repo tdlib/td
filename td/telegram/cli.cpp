@@ -911,7 +911,7 @@ class CliClient final : public Actor {
   }
 
   struct InputChatPhoto {
-    enum class Type { Null, Previous, Static, Animation, Sticker };
+    enum class Type : int32 { Null, Previous, Static, Animation, Sticker };
     Type type = Type::Null;
     int64 profile_photo_id = 0;
     string photo;

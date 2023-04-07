@@ -28,6 +28,7 @@
 #include "td/utils/buffer.h"
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 #include "td/utils/Random.h"
 #include "td/utils/tl_helpers.h"
 
@@ -1087,11 +1088,11 @@ void DialogFilterManager::schedule_dialog_filters_reload(double timeout) {
   reload_dialog_filters_timeout_.set_timeout_in(timeout);
 }
 
-void DialogFilterManager::on_reload_dialog_filters_timeout(void *messages_manager_ptr) {
+void DialogFilterManager::on_reload_dialog_filters_timeout(void *dialog_filter_manager_ptr) {
   if (G()->close_flag()) {
     return;
   }
-  auto dialog_filter_manager = static_cast<DialogFilterManager *>(messages_manager_ptr);
+  auto dialog_filter_manager = static_cast<DialogFilterManager *>(dialog_filter_manager_ptr);
   send_closure_later(dialog_filter_manager->actor_id(dialog_filter_manager),
                      &DialogFilterManager::reload_dialog_filters);
 }

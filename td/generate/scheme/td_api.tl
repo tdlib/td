@@ -1305,7 +1305,7 @@ chatFolderIcon name:string = ChatFolderIcon;
 //@description Represents a folder for user chats
 //@title The title of the folder; 1-12 characters without line feeds
 //@icon The chosen icon for the chat folder; may be null. If null, use getChatFolderDefaultIconName to get default icon name for the folder
-//@is_shareable True if at least one link has been created for the folder
+//@is_shareable True, if at least one link has been created for the folder
 //@pinned_chat_ids The chat identifiers of pinned chats in the folder. There can be up to getOption("chat_folder_chosen_chat_count_max") pinned and always included non-secret chats and the same number of secret chats, but the limit can be increased with Telegram Premium
 //@included_chat_ids The chat identifiers of always included chats in the folder. There can be up to getOption("chat_folder_chosen_chat_count_max") pinned and always included non-secret chats and the same number of secret chats, but the limit can be increased with Telegram Premium
 //@excluded_chat_ids The chat identifiers of always excluded chats in the folder. There can be up to getOption("chat_folder_chosen_chat_count_max") always excluded non-secret chats and the same number of secret chats, but the limit can be increased with Telegram Premium
@@ -6855,7 +6855,7 @@ checkChatFolderInviteLink invite_link:string = ChatFolderInviteLinkInfo;
 //@description Adds a chat folder by an invite link @invite_link Invite link for the chat folder @chat_ids Identifiers of the chats added to the chat folder. The chats are automatically joined if they aren't joined yet
 addChatFolderByInviteLink invite_link:string chat_ids:vector<int53> = Ok;
 
-//@description Returns new chats added to a shareable chat folder by its owner. The method should be called at most once in getOption("chat_folder_new_chats_update_period") for the given chat folder @chat_folder_id Chat folder identifier
+//@description Returns new chats added to a shareable chat folder by its owner. The method must be called at most once in getOption("chat_folder_new_chats_update_period") for the given chat folder @chat_folder_id Chat folder identifier
 getChatFolderNewChats chat_folder_id:int32 = Chats;
 
 //@description Adds new chats added to a shareable chat folder by its owner to the user's chat folder @chat_folder_id Chat folder identifier @chat_ids Identifiers of the new chats added to the chat folder. The chats are automatically joined if they aren't joined yet
@@ -7704,7 +7704,7 @@ setDefaultChannelAdministratorRights default_channel_administrator_rights:chatAd
 //@description Sets the name of a bot. Can be called only if userTypeBot.can_be_edited == true
 //@bot_user_id Identifier of the target bot
 //@language_code A two-letter ISO 639-1 language code. If empty, the description will be shown to all users, for which language there are no dedicated description
-//@name New bot's name on the specified language
+//@name New bot's name on the specified language; 0-64 characters. Default name can't be empty
 setBotName bot_user_id:int53 language_code:string name:string = Ok;
 
 //@description Returns the name of a bot in the given language. Can be called only if userTypeBot.can_be_edited == true
