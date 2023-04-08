@@ -727,24 +727,6 @@ class GetChatRequest final : public RequestActor<> {
   }
 };
 
-class GetChatFolderRequest final : public RequestActor<> {
-  DialogFilterId dialog_filter_id_;
-
-  void do_run(Promise<Unit> &&promise) final {
-    td_->dialog_filter_manager_->load_dialog_filter(dialog_filter_id_, get_tries() < 2, std::move(promise));
-  }
-
-  void do_send_result() final {
-    send_result(td_->dialog_filter_manager_->get_chat_folder_object(dialog_filter_id_));
-  }
-
- public:
-  GetChatFolderRequest(ActorShared<Td> td, uint64 request_id, int32 dialog_filter_id)
-      : RequestActor(std::move(td), request_id), dialog_filter_id_(dialog_filter_id) {
-    set_tries(3);
-  }
-};
-
 class SearchUserByPhoneNumberRequest final : public RequestActor<> {
   string phone_number_;
 
@@ -6116,7 +6098,8 @@ void Td::on_request(uint64 id, const td_api::addChatToList &request) {
 
 void Td::on_request(uint64 id, const td_api::getChatFolder &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(GetChatFolderRequest, request.chat_folder_id_);
+  CREATE_REQUEST_PROMISE();
+  dialog_filter_manager_->get_dialog_filter(DialogFilterId(request.chat_folder_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getRecommendedChatFolders &request) {

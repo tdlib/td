@@ -59,6 +59,8 @@ class DialogFilterManager final : public Actor {
 
   Status add_dialog(DialogFilterId dialog_filter_id, InputDialogId input_dialog_id);
 
+  void get_dialog_filter(DialogFilterId dialog_filter_id, Promise<td_api::object_ptr<td_api::chatFolder>> &&promise);
+
   void create_dialog_filter(td_api::object_ptr<td_api::chatFolder> filter,
                             Promise<td_api::object_ptr<td_api::chatFolderInfo>> &&promise);
 
@@ -73,8 +75,6 @@ class DialogFilterManager final : public Actor {
 
   void reorder_dialog_filters(vector<DialogFilterId> dialog_filter_ids, int32 main_dialog_list_position,
                               Promise<Unit> &&promise);
-
-  td_api::object_ptr<td_api::chatFolder> get_chat_folder_object(DialogFilterId dialog_filter_id);
 
   void create_dialog_filter_invite_link(DialogFilterId dialog_filter_id, string invite_link_name,
                                         vector<DialogId> dialog_ids,
@@ -110,8 +110,6 @@ class DialogFilterManager final : public Actor {
   void on_get_dialog_filter(telegram_api::object_ptr<telegram_api::DialogFilter> filter);
 
   void get_recommended_dialog_filters(Promise<td_api::object_ptr<td_api::recommendedChatFolders>> &&promise);
-
-  void load_dialog_filter(DialogFilterId dialog_filter_id, bool force, Promise<Unit> &&promise);
 
   void load_dialog_filter_dialogs(DialogFilterId dialog_filter_id, vector<InputDialogId> &&input_dialog_ids,
                                   Promise<Unit> &&promise);
@@ -152,6 +150,8 @@ class DialogFilterManager final : public Actor {
   bool need_synchronize_dialog_filters() const;
 
   void synchronize_dialog_filters();
+
+  td_api::object_ptr<td_api::chatFolder> get_chat_folder_object(DialogFilterId dialog_filter_id);
 
   td_api::object_ptr<td_api::chatFolder> get_chat_folder_object(const DialogFilter *dialog_filter);
 
@@ -199,7 +199,10 @@ class DialogFilterManager final : public Actor {
   void on_load_recommended_dialog_filters(Result<Unit> &&result, vector<RecommendedDialogFilter> &&filters,
                                           Promise<td_api::object_ptr<td_api::recommendedChatFolders>> &&promise);
 
-  void load_dialog_filter(const DialogFilter *dialog_filter, bool force, Promise<Unit> &&promise);
+  void load_dialog_filter(const DialogFilter *dialog_filter, Promise<Unit> &&promise);
+
+  void on_load_dialog_filter(DialogFilterId dialog_filter_id,
+                             Promise<td_api::object_ptr<td_api::chatFolder>> &&promise);
 
   void on_load_dialog_filter_dialogs(DialogFilterId dialog_filter_id, vector<DialogId> &&dialog_ids,
                                      Promise<Unit> &&promise);

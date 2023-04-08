@@ -820,6 +820,7 @@ td_api::object_ptr<td_api::chatFolder> DialogFilterManager::get_chat_folder_obje
       unknown_dialog_ids.push_back(dialog_id);
       left_dialog_ids.push_back(dialog_id);
     } else {
+      // possible if the chat folder has just been edited from another device
       LOG(ERROR) << "Can't find " << dialog_id << " from " << dialog_filter_id;
       unknown_dialog_ids.push_back(dialog_id);
     }
@@ -866,7 +867,7 @@ void DialogFilterManager::on_get_recommended_dialog_filters(
     if (recommended_dialog_filter.dialog_filter == nullptr) {
       continue;
     }
-    load_dialog_filter(recommended_dialog_filter.dialog_filter.get(), false, mpas.get_promise());
+    load_dialog_filter(recommended_dialog_filter.dialog_filter.get(), mpas.get_promise());
 
     recommended_dialog_filter.description = std::move(suggested_filter->description_);
     filters.push_back(std::move(recommended_dialog_filter));
@@ -897,7 +898,8 @@ void DialogFilterManager::on_load_recommended_dialog_filters(
   promise.set_value(td_api::make_object<td_api::recommendedChatFolders>(std::move(chat_folders)));
 }
 
-void DialogFilterManager::load_dialog_filter(DialogFilterId dialog_filter_id, bool force, Promise<Unit> &&promise) {
+void DialogFilterManager::get_dialog_filter(DialogFilterId dialog_filter_id,
+                                            Promise<td_api::object_ptr<td_api::chatFolder>> &&promise) {
   CHECK(!td_->auth_manager_->is_bot());
   if (!dialog_filter_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Invalid chat folder identifier specified"));
@@ -905,13 +907,26 @@ void DialogFilterManager::load_dialog_filter(DialogFilterId dialog_filter_id, bo
 
   auto dialog_filter = get_dialog_filter(dialog_filter_id);
   if (dialog_filter == nullptr) {
-    return promise.set_value(Unit());
+    return promise.set_value(nullptr);
   }
 
-  load_dialog_filter(dialog_filter, force, std::move(promise));
+  auto load_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), dialog_filter_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
+        if (result.is_error()) {
+          return promise.set_error(result.move_as_error());
+        }
+        send_closure(actor_id, &DialogFilterManager::on_load_dialog_filter, dialog_filter_id, std::move(promise));
+      });
+  load_dialog_filter(dialog_filter, std::move(load_promise));
 }
 
-void DialogFilterManager::load_dialog_filter(const DialogFilter *dialog_filter, bool force, Promise<Unit> &&promise) {
+void DialogFilterManager::on_load_dialog_filter(DialogFilterId dialog_filter_id,
+                                                Promise<td_api::object_ptr<td_api::chatFolder>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  promise.set_value(get_chat_folder_object(dialog_filter_id));
+}
+
+void DialogFilterManager::load_dialog_filter(const DialogFilter *dialog_filter, Promise<Unit> &&promise) {
   CHECK(!td_->auth_manager_->is_bot());
   vector<InputDialogId> needed_dialog_ids;
   dialog_filter->for_each_dialog([&](const InputDialogId &input_dialog_id) {
@@ -935,7 +950,7 @@ void DialogFilterManager::load_dialog_filter(const DialogFilter *dialog_filter, 
     }
   }
 
-  if (!input_dialog_ids.empty() && !force) {
+  if (!input_dialog_ids.empty()) {
     return load_dialog_filter_dialogs(dialog_filter->get_dialog_filter_id(), std::move(input_dialog_ids),
                                       std::move(promise));
   }
