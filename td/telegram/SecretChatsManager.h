@@ -20,7 +20,6 @@
 #include "td/utils/Time.h"
 
 #include <map>
-#include <utility>
 
 namespace td {
 
@@ -59,7 +58,12 @@ class SecretChatsManager final : public Actor {
 
   bool is_online_{false};
 
-  std::vector<std::pair<Timestamp, telegram_api::object_ptr<telegram_api::updateEncryption>>> pending_chat_updates_;
+  struct PendingChatUpdate {
+    Timestamp online_process_time_;
+    Timestamp offline_process_time_;
+    telegram_api::object_ptr<telegram_api::updateEncryption> update_;
+  };
+  vector<PendingChatUpdate> pending_chat_updates_;
   void flush_pending_chat_updates();
   void do_update_chat(tl_object_ptr<telegram_api::updateEncryption> update);
 

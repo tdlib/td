@@ -164,8 +164,19 @@ void SecretChatsManager::on_update_chat(tl_object_ptr<telegram_api::updateEncryp
   if (!use_secret_chats_ || close_flag_) {
     return;
   }
-  bool chat_requested = update->chat_->get_id() == telegram_api::encryptedChatRequested::ID;
-  pending_chat_updates_.emplace_back(Timestamp::in(chat_requested ? 1 : 0), std::move(update));
+  PendingChatUpdate pending_update;
+  pending_update.online_process_time_ = Timestamp::now();
+  pending_update.update_ = std::move(update);
+
+  if (update->chat_->get_id() == telegram_api::encryptedChatRequested::ID) {
+#if TD_ANDROID || TD_DARWIN_IOS || TD_DARWIN_WATCH_OS || TD_TIZEN
+    pending_update.offline_process_time_ = Timestamp::in(1.0);
+#else
+    pending_update.online_process_time_ = Timestamp::in(2.0);
+    pending_update.offline_process_time_ = Timestamp::in(3.0);
+#endif
+  }
+  pending_chat_updates_.push_back(std::move(pending_update));
   flush_pending_chat_updates();
 }
 
@@ -437,12 +448,13 @@ void SecretChatsManager::flush_pending_chat_updates() {
     return;
   }
   auto it = pending_chat_updates_.begin();
-  while (it != pending_chat_updates_.end() && (it->first.is_in_past() || is_online_)) {
-    do_update_chat(std::move(it->second));
+  while (it != pending_chat_updates_.end() &&
+         (is_online_ ? it->online_process_time_.is_in_past() : it->offline_process_time_.is_in_past())) {
+    do_update_chat(std::move(it->update_));
     ++it;
   }
   if (it != pending_chat_updates_.end()) {
-    set_timeout_at(it->first.at());
+    set_timeout_at(is_online_ ? it->online_process_time_.at() : it->offline_process_time_.at());
   }
   pending_chat_updates_.erase(pending_chat_updates_.begin(), it);
 }
