@@ -76,6 +76,9 @@ class DialogFilterManager final : public Actor {
   void reorder_dialog_filters(vector<DialogFilterId> dialog_filter_ids, int32 main_dialog_list_position,
                               Promise<Unit> &&promise);
 
+  void get_dialogs_for_dialog_filter_invite_link(DialogFilterId dialog_filter_id,
+                                                 Promise<td_api::object_ptr<td_api::chats>> promise);
+
   void create_dialog_filter_invite_link(DialogFilterId dialog_filter_id, string invite_link_name,
                                         vector<DialogId> dialog_ids,
                                         Promise<td_api::object_ptr<td_api::chatFolderInviteLink>> promise);
@@ -208,6 +211,9 @@ class DialogFilterManager final : public Actor {
                                      Promise<Unit> &&promise);
 
   void delete_dialogs_from_filter(const DialogFilter *dialog_filter, vector<DialogId> &&dialog_ids, const char *source);
+
+  void do_get_dialogs_for_dialog_filter_invite_link(DialogFilterId dialog_filter_id,
+                                                    Promise<td_api::object_ptr<td_api::chats>> promise);
 
   bool is_inited_ = false;
 

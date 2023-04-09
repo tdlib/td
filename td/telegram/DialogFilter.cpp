@@ -695,6 +695,44 @@ void DialogFilter::sort_input_dialog_ids(const Td *td, const char *source) {
   });
 }
 
+vector<DialogId> DialogFilter::get_dialogs_for_invite_link(Td *td) {
+  if (!excluded_dialog_ids_.empty() || exclude_muted_ || exclude_read_ || exclude_archived_ || include_contacts_ ||
+      include_non_contacts_ || include_bots_ || include_groups_ || include_channels_) {
+    return {};
+  }
+  vector<DialogId> result;
+  for_each_dialog([&](const InputDialogId &input_dialog_id) {
+    auto dialog_id = input_dialog_id.get_dialog_id();
+    if (!td->messages_manager_->have_dialog_force(dialog_id, "get_dialogs_for_invite_link")) {
+      return;
+    }
+    bool is_good = false;
+    switch (dialog_id.get_type()) {
+      case DialogType::Chat: {
+        auto chat_id = dialog_id.get_chat_id();
+        // the user can manage invite links in the chat
+        is_good = td->contacts_manager_->get_chat_status(chat_id).can_manage_invite_links();
+        break;
+      }
+      case DialogType::Channel: {
+        auto channel_id = dialog_id.get_channel_id();
+        // the user can manage invite links in the chat
+        // or the chat is a public chat, which can be joined without administrator approval
+        is_good = td->contacts_manager_->get_channel_status(channel_id).can_manage_invite_links() ||
+                  (td->contacts_manager_->is_channel_public(channel_id) &&
+                   !td->contacts_manager_->get_channel_join_request(channel_id));
+        break;
+      }
+      default:
+        break;
+    }
+    if (is_good) {
+      result.push_back(dialog_id);
+    }
+  });
+  return result;
+}
+
 vector<FolderId> DialogFilter::get_folder_ids() const {
   if (exclude_archived_ && pinned_dialog_ids_.empty() && included_dialog_ids_.empty()) {
     return {FolderId::main()};

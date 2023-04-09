@@ -1852,6 +1852,34 @@ void DialogFilterManager::save_dialog_filters() {
   G()->td_db()->get_binlog_pmc()->set("dialog_filters", log_event_store(log_event).as_slice().str());
 }
 
+void DialogFilterManager::get_dialogs_for_dialog_filter_invite_link(
+    DialogFilterId dialog_filter_id, Promise<td_api::object_ptr<td_api::chats>> promise) {
+  auto dialog_filter = get_dialog_filter(dialog_filter_id);
+  if (dialog_filter == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat folder not found"));
+  }
+
+  auto load_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), dialog_filter_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
+        if (result.is_error()) {
+          return promise.set_error(result.move_as_error());
+        }
+        send_closure(actor_id, &DialogFilterManager::do_get_dialogs_for_dialog_filter_invite_link, dialog_filter_id,
+                     std::move(promise));
+      });
+  load_dialog_filter(dialog_filter, std::move(load_promise));
+}
+
+void DialogFilterManager::do_get_dialogs_for_dialog_filter_invite_link(
+    DialogFilterId dialog_filter_id, Promise<td_api::object_ptr<td_api::chats>> promise) {
+  auto dialog_filter = get_dialog_filter(dialog_filter_id);
+  if (dialog_filter == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat folder not found"));
+  }
+
+  promise.set_value(MessagesManager::get_chats_object(-1, dialog_filter->get_dialogs_for_invite_link(td_)));
+}
+
 void DialogFilterManager::create_dialog_filter_invite_link(
     DialogFilterId dialog_filter_id, string invite_link_name, vector<DialogId> dialog_ids,
     Promise<td_api::object_ptr<td_api::chatFolderInviteLink>> promise) {

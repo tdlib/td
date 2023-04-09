@@ -634,6 +634,7 @@ class ContactsManager final : public Actor {
   int32 get_channel_participant_count(ChannelId channel_id) const;
   bool get_channel_sign_messages(ChannelId channel_id) const;
   bool get_channel_has_linked_channel(ChannelId channel_id) const;
+  bool get_channel_join_request(ChannelId channel_id) const;
   bool get_channel_can_be_deleted(ChannelId channel_id) const;
   ChannelId get_channel_linked_channel_id(ChannelId channel_id);
   int32 get_channel_slow_mode_delay(ChannelId channel_id);

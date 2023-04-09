@@ -4591,6 +4591,10 @@ class CliClient final : public Actor {
       get_args(args, main_chat_list_position, chat_folder_ids);
       send_request(td_api::make_object<td_api::reorderChatFolders>(as_chat_folder_ids(chat_folder_ids),
                                                                    main_chat_list_position));
+    } else if (op == "gcfcfil") {
+      ChatFolderId chat_folder_id;
+      get_args(args, chat_folder_id);
+      send_request(td_api::make_object<td_api::getChatsForChatFolderInviteLink>(chat_folder_id));
     } else if (op == "crcfil") {
       ChatFolderId chat_folder_id;
       string name;

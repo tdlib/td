@@ -96,6 +96,8 @@ class DialogFilter {
 
   void sort_input_dialog_ids(const Td *td, const char *source);
 
+  vector<DialogId> get_dialogs_for_invite_link(Td *td);
+
   vector<FolderId> get_folder_ids() const;
 
   bool need_dialog(const Td *td, const DialogFilterDialogInfo &dialog_info) const;

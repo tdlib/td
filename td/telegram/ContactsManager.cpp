@@ -16980,6 +16980,14 @@ bool ContactsManager::get_channel_join_to_send(const Channel *c) {
   return c->join_to_send || !c->is_megagroup || !c->has_linked_channel;
 }
 
+bool ContactsManager::get_channel_join_request(ChannelId channel_id) const {
+  auto c = get_channel(channel_id);
+  if (c == nullptr) {
+    return false;
+  }
+  return get_channel_join_request(c);
+}
+
 bool ContactsManager::get_channel_join_request(const Channel *c) {
   return c->join_request && c->is_megagroup && (is_channel_public(c) || c->has_linked_channel);
 }

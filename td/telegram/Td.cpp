@@ -6143,6 +6143,13 @@ void Td::on_request(uint64 id, const td_api::reorderChatFolders &request) {
       request.main_chat_list_position_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getChatsForChatFolderInviteLink &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  dialog_filter_manager_->get_dialogs_for_dialog_filter_invite_link(DialogFilterId(request.chat_folder_id_),
+                                                                    std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::createChatFolderInviteLink &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.name_);
