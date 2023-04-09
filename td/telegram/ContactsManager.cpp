@@ -5499,6 +5499,9 @@ bool ContactsManager::have_input_peer_user(const User *u, UserId user_id, Access
     } else {
       LOG(DEBUG) << "Have user without access hash";
     }
+    if (td_->auth_manager_->is_bot() && user_id.is_valid()) {
+      return true;
+    }
     if (user_messages_.count(user_id) != 0) {
       return true;
     }
@@ -5523,14 +5526,13 @@ tl_object_ptr<telegram_api::InputPeer> ContactsManager::get_input_peer_user(User
     return make_tl_object<telegram_api::inputPeerSelf>();
   }
   const User *u = get_user(user_id);
-  if ((u == nullptr || u->access_hash == -1 || u->is_min_access_hash) && td_->auth_manager_->is_bot() &&
-      user_id.is_valid()) {
-    return make_tl_object<telegram_api::inputPeerUser>(user_id.get(), 0);
-  }
   if (!have_input_peer_user(u, user_id, access_rights)) {
     return nullptr;
   }
   if (u == nullptr || u->access_hash == -1 || u->is_min_access_hash) {
+    if (td_->auth_manager_->is_bot() && user_id.is_valid()) {
+      return make_tl_object<telegram_api::inputPeerUser>(user_id.get(), 0);
+    }
     auto it = user_messages_.find(user_id);
     CHECK(it != user_messages_.end());
     CHECK(!it->second.empty());
@@ -5587,13 +5589,13 @@ bool ContactsManager::have_input_peer_channel(ChannelId channel_id, AccessRights
 tl_object_ptr<telegram_api::InputPeer> ContactsManager::get_input_peer_channel(ChannelId channel_id,
                                                                                AccessRights access_rights) const {
   const Channel *c = get_channel(channel_id);
-  if (c == nullptr && td_->auth_manager_->is_bot() && channel_id.is_valid()) {
-    return make_tl_object<telegram_api::inputPeerChannel>(channel_id.get(), 0);
-  }
   if (!have_input_peer_channel(c, channel_id, access_rights)) {
     return nullptr;
   }
   if (c == nullptr) {
+    if (td_->auth_manager_->is_bot() && channel_id.is_valid()) {
+      return make_tl_object<telegram_api::inputPeerChannel>(channel_id.get(), 0);
+    }
     auto it = channel_messages_.find(channel_id);
     CHECK(it != channel_messages_.end());
     CHECK(!it->second.empty());
@@ -5621,6 +5623,9 @@ bool ContactsManager::have_input_peer_channel(const Channel *c, ChannelId channe
                                               bool from_linked) const {
   if (c == nullptr) {
     LOG(DEBUG) << "Have no " << channel_id;
+    if (td_->auth_manager_->is_bot() && channel_id.is_valid()) {
+      return true;
+    }
     if (channel_messages_.count(channel_id) != 0) {
       return true;
     }
