@@ -7022,7 +7022,8 @@ bool MessagesManager::is_active_message_reply_info(DialogId dialog_id, const Mes
     return false;
   }
 
-  auto linked_channel_id = td_->contacts_manager_->get_channel_linked_channel_id(channel_id);
+  auto linked_channel_id =
+      td_->contacts_manager_->get_channel_linked_channel_id(channel_id, "is_active_message_reply_info");
   if (!linked_channel_id.is_valid()) {
     // keep the comment button while linked channel is unknown
     send_closure_later(G()->contacts_manager(), &ContactsManager::load_channel_full, channel_id, false, Promise<Unit>(),
@@ -13122,8 +13123,8 @@ void MessagesManager::on_update_dialog_online_member_count_timeout(DialogId dial
 
   if (dialog_id.get_type() == DialogType::Channel && !is_broadcast_channel(dialog_id)) {
     auto participant_count = td_->contacts_manager_->get_channel_participant_count(dialog_id.get_channel_id());
-    auto has_hidden_participants =
-        td_->contacts_manager_->get_channel_effective_has_hidden_participants(dialog_id.get_channel_id());
+    auto has_hidden_participants = td_->contacts_manager_->get_channel_effective_has_hidden_participants(
+        dialog_id.get_channel_id(), "on_update_dialog_online_member_count_timeout");
     if (participant_count == 0 || participant_count >= 195 || has_hidden_participants) {
       td_->create_handler<GetOnlinesQuery>()->send(dialog_id);
     } else {
@@ -18089,7 +18090,8 @@ Status MessagesManager::can_get_message_viewers(DialogId dialog_id, const Messag
       if (is_broadcast_channel(dialog_id)) {
         return Status::Error(400, "Can't get message viewers in channel chats");
       }
-      if (td_->contacts_manager_->get_channel_effective_has_hidden_participants(dialog_id.get_channel_id())) {
+      if (td_->contacts_manager_->get_channel_effective_has_hidden_participants(dialog_id.get_channel_id(),
+                                                                                "can_get_message_viewers")) {
         return Status::Error(400, "Participant list is hidden in the chat");
       }
       participant_count = td_->contacts_manager_->get_channel_participant_count(dialog_id.get_channel_id());
@@ -20402,8 +20404,8 @@ void MessagesManager::open_dialog(Dialog *d) {
       auto channel_id = dialog_id.get_channel_id();
       if (!is_broadcast_channel(dialog_id)) {
         auto participant_count = td_->contacts_manager_->get_channel_participant_count(channel_id);
-        auto has_hidden_participants =
-            td_->contacts_manager_->get_channel_effective_has_hidden_participants(dialog_id.get_channel_id());
+        auto has_hidden_participants = td_->contacts_manager_->get_channel_effective_has_hidden_participants(
+            dialog_id.get_channel_id(), "open_dialog");
         if (participant_count < 195 && !has_hidden_participants) {  // include unknown participant_count
           td_->contacts_manager_->get_channel_participants(
               channel_id, td_api::make_object<td_api::supergroupMembersFilterRecent>(), string(), 0, 200, 200, Auto());
@@ -20413,7 +20415,7 @@ void MessagesManager::open_dialog(Dialog *d) {
       reget_dialog_action_bar(dialog_id, "open_dialog", false);
 
       if (td_->contacts_manager_->get_channel_has_linked_channel(channel_id)) {
-        auto linked_channel_id = td_->contacts_manager_->get_channel_linked_channel_id(channel_id);
+        auto linked_channel_id = td_->contacts_manager_->get_channel_linked_channel_id(channel_id, "open_dialog");
         if (!linked_channel_id.is_valid()) {
           // load linked_channel_id
           send_closure_later(G()->contacts_manager(), &ContactsManager::load_channel_full, channel_id, false,
@@ -24412,7 +24414,8 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
       }()) {
     m->reply_info.reply_count_ = 0;
     if (is_channel_post) {
-      auto linked_channel_id = td_->contacts_manager_->get_channel_linked_channel_id(dialog_id.get_channel_id());
+      auto linked_channel_id =
+          td_->contacts_manager_->get_channel_linked_channel_id(dialog_id.get_channel_id(), "create_message_to_send");
       if (linked_channel_id.is_valid()) {
         m->reply_info.is_comment_ = true;
         m->reply_info.channel_id_ = linked_channel_id;
@@ -24807,7 +24810,8 @@ void MessagesManager::get_dialog_send_message_as_dialog_ids(
       std::multimap<int64, Sender> sorted_senders;
 
       bool is_premium = td_->option_manager_->get_option_boolean("is_premium");
-      auto linked_channel_id = td_->contacts_manager_->get_channel_linked_channel_id(dialog_id.get_channel_id());
+      auto linked_channel_id = td_->contacts_manager_->get_channel_linked_channel_id(
+          dialog_id.get_channel_id(), "get_dialog_send_message_as_dialog_ids");
       for (auto channel_id : created_public_broadcasts_) {
         int64 score = td_->contacts_manager_->get_channel_participant_count(channel_id);
         bool needs_premium = !is_premium && channel_id != linked_channel_id &&
@@ -34831,7 +34835,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
     if (m->date + 3600 >= now && m->is_outgoing) {
       auto channel_id = dialog_id.get_channel_id();
-      auto slow_mode_delay = td_->contacts_manager_->get_channel_slow_mode_delay(channel_id);
+      auto slow_mode_delay = td_->contacts_manager_->get_channel_slow_mode_delay(channel_id, "add_message_to_dialog");
       auto status = td_->contacts_manager_->get_channel_status(dialog_id.get_channel_id());
       if (m->date + slow_mode_delay > now && !status.is_administrator()) {
         td_->contacts_manager_->on_update_channel_slow_mode_next_send_date(channel_id, m->date + slow_mode_delay);

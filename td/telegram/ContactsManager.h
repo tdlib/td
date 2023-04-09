@@ -636,9 +636,9 @@ class ContactsManager final : public Actor {
   bool get_channel_has_linked_channel(ChannelId channel_id) const;
   bool get_channel_join_request(ChannelId channel_id) const;
   bool get_channel_can_be_deleted(ChannelId channel_id) const;
-  ChannelId get_channel_linked_channel_id(ChannelId channel_id);
-  int32 get_channel_slow_mode_delay(ChannelId channel_id);
-  bool get_channel_effective_has_hidden_participants(ChannelId channel_id);
+  ChannelId get_channel_linked_channel_id(ChannelId channel_id, const char *source);
+  int32 get_channel_slow_mode_delay(ChannelId channel_id, const char *source);
+  bool get_channel_effective_has_hidden_participants(ChannelId channel_id, const char *source);
 
   void add_dialog_participant(DialogId dialog_id, UserId user_id, int32 forward_limit, Promise<Unit> &&promise);
 
