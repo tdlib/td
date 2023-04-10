@@ -30,6 +30,8 @@ class BackgroundInfo {
 
   td_api::object_ptr<td_api::background> get_background_object(const Td *td) const;
 
+  td_api::object_ptr<td_api::chatBackground> get_chat_background_object(const Td *td) const;
+
   bool is_valid() const {
     return background_id_.is_valid();
   }

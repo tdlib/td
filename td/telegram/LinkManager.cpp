@@ -2295,7 +2295,7 @@ void LinkManager::get_link_login_url(const string &url, bool allow_write_access,
 
 Result<string> LinkManager::get_background_url(const string &name,
                                                td_api::object_ptr<td_api::BackgroundType> background_type) {
-  TRY_RESULT(type, BackgroundType::get_background_type(background_type.get()));
+  TRY_RESULT(type, BackgroundType::get_background_type(background_type.get(), 100));
   auto url = PSTRING() << get_t_me_url() << "bg/";
   auto link = type.get_link();
   if (type.has_file()) {

@@ -601,7 +601,7 @@ void BackgroundManager::set_background(const td_api::InputBackground *input_back
                                        Promise<td_api::object_ptr<td_api::background>> &&promise) {
   BackgroundType type;
   if (background_type != nullptr) {
-    auto r_type = BackgroundType::get_background_type(background_type);
+    auto r_type = BackgroundType::get_background_type(background_type, 100);
     if (r_type.is_error()) {
       return promise.set_error(r_type.move_as_error());
     }

@@ -5880,7 +5880,7 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     case MessageContentType::SetBackground: {
       const auto *m = static_cast<const MessageSetBackground *>(content);
       return td_api::make_object<td_api::messageChatSetBackground>(m->old_message_id.get(),
-                                                                   m->background_info.get_background_object(td));
+                                                                   m->background_info.get_chat_background_object(td));
     }
     default:
       UNREACHABLE();

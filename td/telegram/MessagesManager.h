@@ -2789,7 +2789,7 @@ class MessagesManager final : public Actor {
 
   td_api::object_ptr<td_api::ChatActionBar> get_chat_action_bar_object(const Dialog *d) const;
 
-  td_api::object_ptr<td_api::background> get_dialog_background_object(const Dialog *d) const;
+  td_api::object_ptr<td_api::chatBackground> get_chat_background_object(const Dialog *d) const;
 
   string get_dialog_theme_name(const Dialog *d) const;
 

@@ -335,15 +335,22 @@ StringBuilder &operator<<(StringBuilder &string_builder, const BackgroundType &t
   return string_builder << '[' << type.get_link() << ']';
 }
 
-Result<BackgroundType> BackgroundType::get_background_type(const td_api::BackgroundType *background_type) {
+Result<BackgroundType> BackgroundType::get_background_type(const td_api::BackgroundType *background_type,
+                                                           int32 dark_theme_brightness) {
   if (background_type == nullptr) {
     return Status::Error(400, "Type must be non-empty");
+  }
+  if (dark_theme_brightness < 1 || dark_theme_brightness > 100) {
+    return Status::Error(400, "Invalid dark them brightness specified");
+  }
+  if (dark_theme_brightness == 100) {
+    dark_theme_brightness = 0;
   }
 
   switch (background_type->get_id()) {
     case td_api::backgroundTypeWallpaper::ID: {
       auto wallpaper_type = static_cast<const td_api::backgroundTypeWallpaper *>(background_type);
-      return BackgroundType(wallpaper_type->is_blurred_, wallpaper_type->is_moving_);
+      return BackgroundType(wallpaper_type->is_blurred_, wallpaper_type->is_moving_, dark_theme_brightness);
     }
     case td_api::backgroundTypePattern::ID: {
       auto pattern_type = static_cast<const td_api::backgroundTypePattern *>(background_type);
@@ -357,7 +364,7 @@ Result<BackgroundType> BackgroundType::get_background_type(const td_api::Backgro
     case td_api::backgroundTypeFill::ID: {
       auto fill_type = static_cast<const td_api::backgroundTypeFill *>(background_type);
       TRY_RESULT(background_fill, BackgroundFill::get_background_fill(fill_type->fill_.get()));
-      return BackgroundType(std::move(background_fill));
+      return BackgroundType(std::move(background_fill), dark_theme_brightness);
     }
     default:
       UNREACHABLE();
@@ -367,7 +374,7 @@ Result<BackgroundType> BackgroundType::get_background_type(const td_api::Backgro
 
 Result<BackgroundType> BackgroundType::get_local_background_type(Slice name) {
   TRY_RESULT(fill, BackgroundFill::get_background_fill(name));
-  return BackgroundType(fill);
+  return BackgroundType(std::move(fill), 0);
 }
 
 bool BackgroundType::is_background_name_local(Slice name) {
@@ -376,26 +383,26 @@ bool BackgroundType::is_background_name_local(Slice name) {
 
 BackgroundType::BackgroundType(bool is_fill, bool is_pattern,
                                telegram_api::object_ptr<telegram_api::wallPaperSettings> settings) {
+  if (settings != nullptr && (settings->flags_ & telegram_api::wallPaperSettings::INTENSITY_MASK) != 0) {
+    intensity_ = settings->intensity_;
+    if (!is_valid_intensity(intensity_, is_pattern)) {
+      LOG(ERROR) << "Receive " << to_string(settings);
+      intensity_ = is_pattern ? 50 : 0;
+    }
+  }
   if (is_fill) {
     type_ = Type::Fill;
     CHECK(settings != nullptr);
     fill_ = BackgroundFill(settings.get());
   } else if (is_pattern) {
     type_ = Type::Pattern;
-    if (settings) {
+    if (settings != nullptr) {
       fill_ = BackgroundFill(settings.get());
       is_moving_ = (settings->flags_ & telegram_api::wallPaperSettings::MOTION_MASK) != 0;
-      if ((settings->flags_ & telegram_api::wallPaperSettings::INTENSITY_MASK) != 0) {
-        intensity_ = settings->intensity_;
-        if (!is_valid_intensity(intensity_, true)) {
-          LOG(ERROR) << "Receive " << to_string(settings);
-          intensity_ = 50;
-        }
-      }
     }
   } else {
     type_ = Type::Wallpaper;
-    if (settings) {
+    if (settings != nullptr) {
       is_blurred_ = (settings->flags_ & telegram_api::wallPaperSettings::BLUR_MASK) != 0;
       is_moving_ = (settings->flags_ & telegram_api::wallPaperSettings::MOTION_MASK) != 0;
     }

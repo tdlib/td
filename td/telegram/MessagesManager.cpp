@@ -20608,7 +20608,7 @@ td_api::object_ptr<td_api::ChatActionBar> MessagesManager::get_chat_action_bar_o
   return d->action_bar->get_chat_action_bar_object(dialog_type, false);
 }
 
-td_api::object_ptr<td_api::background> MessagesManager::get_dialog_background_object(const Dialog *d) const {
+td_api::object_ptr<td_api::chatBackground> MessagesManager::get_chat_background_object(const Dialog *d) const {
   CHECK(d != nullptr);
   if (d->dialog_id.get_type() == DialogType::SecretChat) {
     auto user_id = td_->contacts_manager_->get_secret_chat_user_id(d->dialog_id.get_secret_chat_id());
@@ -20620,7 +20620,7 @@ td_api::object_ptr<td_api::background> MessagesManager::get_dialog_background_ob
       return nullptr;
     }
   }
-  return d->background_info.get_background_object(td_);
+  return d->background_info.get_chat_background_object(td_);
 }
 
 string MessagesManager::get_dialog_theme_name(const Dialog *d) const {
@@ -20688,7 +20688,7 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       d->server_unread_count + d->local_unread_count, d->last_read_inbox_message_id.get(),
       d->last_read_outbox_message_id.get(), d->unread_mention_count, d->unread_reaction_count,
       get_chat_notification_settings_object(&d->notification_settings), std::move(available_reactions),
-      d->message_ttl.get_message_auto_delete_time_object(), get_dialog_background_object(d), get_dialog_theme_name(d),
+      d->message_ttl.get_message_auto_delete_time_object(), get_chat_background_object(d), get_dialog_theme_name(d),
       get_chat_action_bar_object(d), get_video_chat_object(d), get_chat_join_requests_info_object(d),
       d->reply_markup_message_id.get(), std::move(draft_message), d->client_data);
 }
@@ -30594,7 +30594,7 @@ void MessagesManager::send_update_secret_chats_with_user_background(const Dialog
         if (secret_chat_d != nullptr && secret_chat_d->is_update_new_chat_sent) {
           send_closure(
               G()->td(), &Td::send_update,
-              td_api::make_object<td_api::updateChatBackground>(dialog_id.get(), get_dialog_background_object(user_d)));
+              td_api::make_object<td_api::updateChatBackground>(dialog_id.get(), get_chat_background_object(user_d)));
         }
       });
 }
@@ -30609,7 +30609,7 @@ void MessagesManager::send_update_chat_background(const Dialog *d) {
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_background";
   on_dialog_updated(d->dialog_id, "send_update_chat_background");
   send_closure(G()->td(), &Td::send_update,
-               td_api::make_object<td_api::updateChatBackground>(d->dialog_id.get(), get_dialog_background_object(d)));
+               td_api::make_object<td_api::updateChatBackground>(d->dialog_id.get(), get_chat_background_object(d)));
 
   send_update_secret_chats_with_user_background(d);
 }
