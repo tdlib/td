@@ -7,6 +7,7 @@
 #include "td/telegram/MessagesManager.h"
 
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/BackgroundInfo.hpp"
 #include "td/telegram/ChainId.h"
 #include "td/telegram/ChannelType.h"
 #include "td/telegram/ChatId.h"
@@ -5349,6 +5350,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   bool has_have_full_history_source = have_full_history && have_full_history_source != 0;
   bool has_available_reactions = !available_reactions.empty();
   bool has_history_generation = history_generation != 0;
+  bool has_background = background_info.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_draft_message);
   STORE_FLAG(has_last_database_message);
@@ -5434,6 +5436,8 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     STORE_FLAG(need_repair_unread_reaction_count);
     STORE_FLAG(is_translatable);
     STORE_FLAG(need_repair_unread_mention_count);
+    STORE_FLAG(is_background_inited);
+    STORE_FLAG(has_background);
     END_STORE_FLAGS();
   }
 
@@ -5549,6 +5553,9 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   if (has_history_generation) {
     store(history_generation, storer);
   }
+  if (has_background) {
+    store(background_info, storer);
+  }
 }
 
 // do not forget to resolve dialog dependencies including dependencies of last_message
@@ -5599,6 +5606,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   bool has_have_full_history_source = false;
   bool has_available_reactions = false;
   bool has_history_generation = false;
+  bool has_background = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_draft_message);
   PARSE_FLAG(has_last_database_message);
@@ -5699,10 +5707,13 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     PARSE_FLAG(need_repair_unread_reaction_count);
     PARSE_FLAG(is_translatable);
     PARSE_FLAG(need_repair_unread_mention_count);
+    PARSE_FLAG(is_background_inited);
+    PARSE_FLAG(has_background);
     END_PARSE_FLAGS();
   } else {
     need_repair_action_bar = false;
     is_available_reactions_inited = false;
+    is_background_inited = false;
   }
 
   parse(last_new_message_id, parser);
@@ -5854,6 +5865,9 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   }
   if (has_history_generation) {
     parse(history_generation, parser);
+  }
+  if (has_background) {
+    parse(background_info, parser);
   }
 
   (void)legacy_know_can_report_spam;
@@ -15722,6 +15736,10 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
       // asynchronously get has_bots from the server
       // TODO add has_bots to telegram_api::dialog
       reload_dialog_info_full(dialog_id, "on_get_dialogs init has_bots");
+    } else if (!d->is_background_inited && !td_->auth_manager_->is_bot()) {
+      // asynchronously get background from the server
+      // TODO add background to telegram_api::dialog
+      reload_dialog_info_full(dialog_id, "on_get_dialogs init background");
     } else if (!d->is_theme_name_inited && !td_->auth_manager_->is_bot()) {
       // asynchronously get theme_name from the server
       // TODO add theme_name to telegram_api::dialog
@@ -20590,6 +20608,21 @@ td_api::object_ptr<td_api::ChatActionBar> MessagesManager::get_chat_action_bar_o
   return d->action_bar->get_chat_action_bar_object(dialog_type, false);
 }
 
+td_api::object_ptr<td_api::background> MessagesManager::get_dialog_background_object(const Dialog *d) const {
+  CHECK(d != nullptr);
+  if (d->dialog_id.get_type() == DialogType::SecretChat) {
+    auto user_id = td_->contacts_manager_->get_secret_chat_user_id(d->dialog_id.get_secret_chat_id());
+    if (!user_id.is_valid()) {
+      return nullptr;
+    }
+    d = get_dialog(DialogId(user_id));
+    if (d == nullptr) {
+      return nullptr;
+    }
+  }
+  return d->background_info.get_background_object(td_);
+}
+
 string MessagesManager::get_dialog_theme_name(const Dialog *d) const {
   CHECK(d != nullptr);
   if (d->dialog_id.get_type() == DialogType::SecretChat) {
@@ -20655,9 +20688,9 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       d->server_unread_count + d->local_unread_count, d->last_read_inbox_message_id.get(),
       d->last_read_outbox_message_id.get(), d->unread_mention_count, d->unread_reaction_count,
       get_chat_notification_settings_object(&d->notification_settings), std::move(available_reactions),
-      d->message_ttl.get_message_auto_delete_time_object(), get_dialog_theme_name(d), get_chat_action_bar_object(d),
-      get_video_chat_object(d), get_chat_join_requests_info_object(d), d->reply_markup_message_id.get(),
-      std::move(draft_message), d->client_data);
+      d->message_ttl.get_message_auto_delete_time_object(), get_dialog_background_object(d), get_dialog_theme_name(d),
+      get_chat_action_bar_object(d), get_video_chat_object(d), get_chat_join_requests_info_object(d),
+      d->reply_markup_message_id.get(), std::move(draft_message), d->client_data);
 }
 
 tl_object_ptr<td_api::chat> MessagesManager::get_chat_object(DialogId dialog_id) const {
@@ -30243,6 +30276,7 @@ void MessagesManager::send_update_new_chat(Dialog *d) {
   d->is_update_new_chat_being_sent = true;
   auto chat_object = get_chat_object(d);
   bool has_action_bar = chat_object->action_bar_ != nullptr;
+  bool has_background = chat_object->background_ != nullptr;
   bool has_theme = !chat_object->theme_name_.empty();
   d->last_sent_has_scheduled_messages = chat_object->has_scheduled_messages_;
   send_closure(G()->td(), &Td::send_update, make_tl_object<td_api::updateNewChat>(std::move(chat_object)));
@@ -30251,6 +30285,9 @@ void MessagesManager::send_update_new_chat(Dialog *d) {
 
   if (has_action_bar) {
     send_update_secret_chats_with_user_action_bar(d);
+  }
+  if (has_background) {
+    send_update_secret_chats_with_user_background(d);
   }
   if (has_theme) {
     send_update_secret_chats_with_user_theme(d);
@@ -30539,6 +30576,42 @@ void MessagesManager::send_update_chat_available_reactions(const Dialog *d) {
   send_closure(
       G()->td(), &Td::send_update,
       td_api::make_object<td_api::updateChatAvailableReactions>(d->dialog_id.get(), std::move(available_reactions)));
+}
+
+void MessagesManager::send_update_secret_chats_with_user_background(const Dialog *d) const {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  if (d->dialog_id.get_type() != DialogType::User) {
+    return;
+  }
+
+  td_->contacts_manager_->for_each_secret_chat_with_user(
+      d->dialog_id.get_user_id(), [this, user_d = d](SecretChatId secret_chat_id) {
+        DialogId dialog_id(secret_chat_id);
+        auto secret_chat_d = get_dialog(dialog_id);  // must not create the dialog
+        if (secret_chat_d != nullptr && secret_chat_d->is_update_new_chat_sent) {
+          send_closure(
+              G()->td(), &Td::send_update,
+              td_api::make_object<td_api::updateChatBackground>(dialog_id.get(), get_dialog_background_object(user_d)));
+        }
+      });
+}
+
+void MessagesManager::send_update_chat_background(const Dialog *d) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  CHECK(d != nullptr);
+  CHECK(d->dialog_id.get_type() != DialogType::SecretChat);
+  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_background";
+  on_dialog_updated(d->dialog_id, "send_update_chat_background");
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateChatBackground>(d->dialog_id.get(), get_dialog_background_object(d)));
+
+  send_update_secret_chats_with_user_background(d);
 }
 
 void MessagesManager::send_update_secret_chats_with_user_theme(const Dialog *d) const {
@@ -31687,6 +31760,46 @@ void MessagesManager::drop_dialog_last_pinned_message_id(Dialog *d) {
                      "drop_dialog_last_pinned_message_id");
       }))
       .release();
+}
+
+void MessagesManager::on_update_dialog_background(DialogId dialog_id,
+                                                  telegram_api::object_ptr<telegram_api::WallPaper> &&wallpaper) {
+  if (!dialog_id.is_valid()) {
+    LOG(ERROR) << "Receive background in invalid " << dialog_id;
+    return;
+  }
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  auto d = get_dialog_force(dialog_id, "on_update_dialog_background");
+  if (d == nullptr) {
+    // nothing to do
+    return;
+  }
+
+  set_dialog_background(d, BackgroundInfo(td_, std::move(wallpaper)));
+}
+
+void MessagesManager::set_dialog_background(Dialog *d, BackgroundInfo &&background_info) {
+  CHECK(d != nullptr);
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  bool is_changed = d->background_info != background_info;
+  if (!is_changed && d->is_background_inited) {
+    return;
+  }
+  d->background_info = std::move(background_info);
+  d->is_background_inited = true;
+
+  if (is_changed) {
+    LOG(INFO) << "Set " << d->dialog_id << " backgroud to " << d->background_info;
+    send_update_chat_background(d);
+  } else {
+    on_dialog_updated(d->dialog_id, "set_dialog_background");
+  }
 }
 
 void MessagesManager::on_update_dialog_theme_name(DialogId dialog_id, string theme_name) {
@@ -34916,6 +35029,9 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       set_dialog_last_pinned_message_id(d, pinned_message_id);
     }
   }
+  if (*need_update && m->message_id.is_server() && message_content_type == MessageContentType::SetBackground) {
+    set_dialog_background(d, get_message_content_background_info(m->content.get()));
+  }
   if (*need_update && m->message_id.is_server() && message_content_type == MessageContentType::ChatSetTheme) {
     set_dialog_theme_name(d, get_message_content_theme_name(m->content.get()));
   }
@@ -36440,12 +36556,14 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
       break;
     case DialogType::Chat:
       d->is_is_blocked_inited = true;
+      d->is_background_inited = true;
       break;
     case DialogType::Channel: {
       if (td_->contacts_manager_->is_broadcast_channel(dialog_id.get_channel_id())) {
         d->last_read_outbox_message_id = MessageId::max();
         d->is_last_read_outbox_message_id_inited = true;
       }
+      d->is_background_inited = true;
 
       auto pts = load_channel_pts(dialog_id);
       if (pts > 0) {
@@ -36472,6 +36590,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
       d->is_last_read_inbox_message_id_inited = true;
       d->is_last_read_outbox_message_id_inited = true;
       d->is_last_pinned_message_id_inited = true;
+      d->is_background_inited = true;
       d->is_theme_name_inited = true;
       d->is_is_blocked_inited = true;
       if (!d->is_folder_id_inited && !td_->auth_manager_->is_bot()) {
@@ -36622,6 +36741,9 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   } else if (being_added_dialog_id_ != dialog_id && !d->is_has_bots_inited && !td_->auth_manager_->is_bot()) {
     // asynchronously get has_bots from the server
     reload_dialog_info_full(dialog_id, "fix_new_dialog init has_bots");
+  } else if (being_added_dialog_id_ != dialog_id && !d->is_background_inited && !td_->auth_manager_->is_bot()) {
+    // asynchronously get dialog background from the server
+    reload_dialog_info_full(dialog_id, "fix_new_dialog init background");
   } else if (being_added_dialog_id_ != dialog_id && !d->is_theme_name_inited && !td_->auth_manager_->is_bot()) {
     // asynchronously get dialog theme identifier from the server
     reload_dialog_info_full(dialog_id, "fix_new_dialog init theme_name");

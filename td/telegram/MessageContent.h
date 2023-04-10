@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/BackgroundInfo.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/EncryptedFile.h"
 #include "td/telegram/files/FileId.h"
@@ -134,6 +135,8 @@ int32 get_message_content_index_mask(const MessageContent *content, const Td *td
 StickerType get_message_content_sticker_type(const Td *td, const MessageContent *content);
 
 MessageId get_message_content_pinned_message_id(const MessageContent *content);
+
+BackgroundInfo get_message_content_background_info(const MessageContent *content);
 
 string get_message_content_theme_name(const MessageContent *content);
 

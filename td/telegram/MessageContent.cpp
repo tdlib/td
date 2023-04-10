@@ -11,7 +11,6 @@
 #include "td/telegram/AudiosManager.h"
 #include "td/telegram/AudiosManager.hpp"
 #include "td/telegram/AuthManager.h"
-#include "td/telegram/BackgroundInfo.h"
 #include "td/telegram/BackgroundInfo.hpp"
 #include "td/telegram/CallDiscardReason.h"
 #include "td/telegram/ChannelId.h"
@@ -3237,6 +3236,15 @@ MessageId get_message_content_pinned_message_id(const MessageContent *content) {
       return static_cast<const MessagePinMessage *>(content)->message_id;
     default:
       return MessageId();
+  }
+}
+
+BackgroundInfo get_message_content_background_info(const MessageContent *content) {
+  switch (content->get_type()) {
+    case MessageContentType::SetBackground:
+      return static_cast<const MessageSetBackground *>(content)->background_info;
+    default:
+      return BackgroundInfo();
   }
 }
 

@@ -12350,6 +12350,8 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   td_->messages_manager_->on_update_dialog_notify_settings(DialogId(user_id), std::move(user->notify_settings_),
                                                            "on_get_user_full");
 
+  td_->messages_manager_->on_update_dialog_background(DialogId(user_id), std::move(user->wallpaper_));
+
   td_->messages_manager_->on_update_dialog_theme_name(DialogId(user_id), std::move(user->theme_emoticon_));
 
   td_->messages_manager_->on_update_dialog_last_pinned_message_id(DialogId(user_id),
