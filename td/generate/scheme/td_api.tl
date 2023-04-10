@@ -506,6 +506,19 @@ webApp short_name:string title:string description:string photo:photo animation:a
 poll id:int64 question:string options:vector<pollOption> total_voter_count:int32 recent_voter_user_ids:vector<int53> is_anonymous:Bool type:PollType open_period:int32 close_date:int32 is_closed:Bool = Poll;
 
 
+//@description Describes a chat background
+//@id Unique background identifier
+//@is_default True, if this is one of default backgrounds
+//@is_dark True, if the background is dark and is recommended to be used with dark theme
+//@name Unique background name
+//@document Document with the background; may be null. Null only for filled backgrounds
+//@type Type of the background
+background id:int64 is_default:Bool is_dark:Bool name:string document:document type:BackgroundType = Background;
+
+//@description Contains a list of backgrounds @backgrounds A list of backgrounds
+backgrounds backgrounds:vector<background> = Backgrounds;
+
+
 //@description Describes a user profile photo
 //@id Photo identifier; 0 for an empty photo. Can be used to find a photo in a list of user profile photos
 //@small A small (160x160) user profile photo. The file can be downloaded only before the photo is changed
@@ -2547,6 +2560,9 @@ messagePinMessage message_id:int53 = MessageContent;
 //@description A screenshot of a message in the chat has been taken
 messageScreenshotTaken = MessageContent;
 
+//@description A new background was set in the chat @old_background_message_id Identifier of the message with a previously set same background; 0 if none. Can be an identifier of a deleted message @background The new background
+messageChatSetBackground old_background_message_id:int53 background:background = MessageContent;
+
 //@description A theme in the chat has been changed @theme_name If non-empty, name of a new theme, set for the chat. Otherwise, chat theme was reset to the default one
 messageChatSetTheme theme_name:string = MessageContent;
 
@@ -4067,19 +4083,6 @@ backgroundTypePattern fill:BackgroundFill intensity:int32 is_inverted:Bool is_mo
 
 //@description A filled background @fill The background fill
 backgroundTypeFill fill:BackgroundFill = BackgroundType;
-
-
-//@description Describes a chat background
-//@id Unique background identifier
-//@is_default True, if this is one of default backgrounds
-//@is_dark True, if the background is dark and is recommended to be used with dark theme
-//@name Unique background name
-//@document Document with the background; may be null. Null only for filled backgrounds
-//@type Type of the background
-background id:int64 is_default:Bool is_dark:Bool name:string document:document type:BackgroundType = Background;
-
-//@description Contains a list of backgrounds @backgrounds A list of backgrounds
-backgrounds backgrounds:vector<background> = Backgrounds;
 
 
 //@class InputBackground @description Contains information about background to set
@@ -5941,7 +5944,7 @@ getMessage chat_id:int53 message_id:int53 = Message;
 getMessageLocally chat_id:int53 message_id:int53 = Message;
 
 //@description Returns information about a message that is replied by a given message. Also, returns the pinned message, the game message, the invoice message, and the topic creation message for messages
-//-of the types messagePinMessage, messageGameScore, messagePaymentSuccessful, and topic messages without replied message respectively
+//-of the types messagePinMessage, messageGameScore, messagePaymentSuccessful, messageChatSetBackground and topic messages without replied message respectively
 //@chat_id Identifier of the chat the message belongs to
 //@message_id Identifier of the reply message
 getRepliedMessage chat_id:int53 message_id:int53 = Message;

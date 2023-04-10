@@ -11,6 +11,9 @@
 #include "td/telegram/AudiosManager.h"
 #include "td/telegram/AudiosManager.hpp"
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/BackgroundId.h"
+#include "td/telegram/BackgroundManager.h"
+#include "td/telegram/BackgroundType.h"
 #include "td/telegram/CallDiscardReason.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatId.h"
@@ -471,7 +474,7 @@ class MessageChatSetTtl final : public MessageContent {
 
 class MessageUnsupported final : public MessageContent {
  public:
-  static constexpr int32 CURRENT_VERSION = 17;
+  static constexpr int32 CURRENT_VERSION = 18;
   int32 version = CURRENT_VERSION;
 
   MessageUnsupported() = default;
@@ -896,6 +899,22 @@ class MessageWebViewWriteAccessAllowed final : public MessageContent {
   }
 };
 
+class MessageSetBackground final : public MessageContent {
+ public:
+  MessageId old_message_id;
+  BackgroundId background_id;
+  BackgroundType background_type;
+
+  MessageSetBackground() = default;
+  MessageSetBackground(MessageId old_message_id, BackgroundId background_id, BackgroundType background_type)
+      : old_message_id(old_message_id), background_id(background_id), background_type(std::move(background_type)) {
+  }
+
+  MessageContentType get_type() const final {
+    return MessageContentType::SetBackground;
+  }
+};
+
 template <class StorerT>
 static void store(const MessageContent *content, StorerT &storer) {
   CHECK(content != nullptr);
@@ -1274,6 +1293,19 @@ static void store(const MessageContent *content, StorerT &storer) {
     case MessageContentType::WebViewWriteAccessAllowed: {
       const auto *m = static_cast<const MessageWebViewWriteAccessAllowed *>(content);
       store(m->web_app, storer);
+      break;
+    }
+    case MessageContentType::SetBackground: {
+      const auto *m = static_cast<const MessageSetBackground *>(content);
+      bool has_message_id = m->old_message_id.is_valid();
+      BEGIN_STORE_FLAGS();
+      STORE_FLAG(has_message_id);
+      END_STORE_FLAGS();
+      if (has_message_id) {
+        store(m->old_message_id, storer);
+      }
+      storer.context()->td().get_actor_unsafe()->background_manager_->store_background(m->background_id, storer);
+      store(m->background_type, storer);
       break;
     }
     default:
@@ -1791,6 +1823,20 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     case MessageContentType::WebViewWriteAccessAllowed: {
       auto m = make_unique<MessageWebViewWriteAccessAllowed>();
       parse(m->web_app, parser);
+      content = std::move(m);
+      break;
+    }
+    case MessageContentType::SetBackground: {
+      auto m = make_unique<MessageSetBackground>();
+      bool has_message_id;
+      BEGIN_PARSE_FLAGS();
+      PARSE_FLAG(has_message_id);
+      END_PARSE_FLAGS();
+      if (has_message_id) {
+        parse(m->old_message_id, parser);
+      }
+      parser.context()->td().get_actor_unsafe()->background_manager_->parse_background(m->background_id, parser);
+      parse(m->background_type, parser);
       content = std::move(m);
       break;
     }
@@ -2419,6 +2465,7 @@ bool can_have_input_media(const Td *td, const MessageContent *content, bool is_s
     case MessageContentType::WriteAccessAllowed:
     case MessageContentType::RequestedDialog:
     case MessageContentType::WebViewWriteAccessAllowed:
+    case MessageContentType::SetBackground:
       return false;
     case MessageContentType::Animation:
     case MessageContentType::Audio:
@@ -2546,6 +2593,7 @@ SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
     case MessageContentType::WriteAccessAllowed:
     case MessageContentType::RequestedDialog:
     case MessageContentType::WebViewWriteAccessAllowed:
+    case MessageContentType::SetBackground:
       break;
     default:
       UNREACHABLE();
@@ -2673,6 +2721,7 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
     case MessageContentType::WriteAccessAllowed:
     case MessageContentType::RequestedDialog:
     case MessageContentType::WebViewWriteAccessAllowed:
+    case MessageContentType::SetBackground:
       break;
     default:
       UNREACHABLE();
@@ -2843,6 +2892,7 @@ void delete_message_content_thumbnail(MessageContent *content, Td *td) {
     case MessageContentType::WriteAccessAllowed:
     case MessageContentType::RequestedDialog:
     case MessageContentType::WebViewWriteAccessAllowed:
+    case MessageContentType::SetBackground:
       break;
     default:
       UNREACHABLE();
@@ -3031,6 +3081,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
     case MessageContentType::WriteAccessAllowed:
     case MessageContentType::RequestedDialog:
     case MessageContentType::WebViewWriteAccessAllowed:
+    case MessageContentType::SetBackground:
       UNREACHABLE();
   }
   return Status::OK();
@@ -3166,6 +3217,7 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
     case MessageContentType::WriteAccessAllowed:
     case MessageContentType::RequestedDialog:
     case MessageContentType::WebViewWriteAccessAllowed:
+    case MessageContentType::SetBackground:
       return 0;
     default:
       UNREACHABLE();
@@ -3215,6 +3267,14 @@ FullMessageId get_message_content_replied_message_id(DialogId dialog_id, const M
 
       auto reply_in_dialog_id = m->invoice_dialog_id.is_valid() ? m->invoice_dialog_id : dialog_id;
       return {reply_in_dialog_id, m->invoice_message_id};
+    }
+    case MessageContentType::SetBackground: {
+      auto *m = static_cast<const MessageSetBackground *>(content);
+      if (!m->old_message_id.is_valid()) {
+        return FullMessageId();
+      }
+
+      return {dialog_id, m->old_message_id};
     }
     default:
       return FullMessageId();
@@ -3975,6 +4035,15 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       }
       break;
     }
+    case MessageContentType::SetBackground: {
+      const auto *old_ = static_cast<const MessageSetBackground *>(old_content);
+      const auto *new_ = static_cast<const MessageSetBackground *>(new_content);
+      if (old_->old_message_id != new_->old_message_id || old_->background_id != new_->background_id ||
+          old_->background_type != new_->background_type) {
+        need_update = true;
+      }
+      break;
+    }
     default:
       UNREACHABLE();
       break;
@@ -4113,6 +4182,7 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
     case MessageContentType::WriteAccessAllowed:
     case MessageContentType::RequestedDialog:
     case MessageContentType::WebViewWriteAccessAllowed:
+    case MessageContentType::SetBackground:
       LOG(ERROR) << "Receive new file " << new_file_id << " in a sent message of the type " << content_type;
       break;
     default:
@@ -5104,6 +5174,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     case MessageContentType::WriteAccessAllowed:
     case MessageContentType::RequestedDialog:
     case MessageContentType::WebViewWriteAccessAllowed:
+    case MessageContentType::SetBackground:
       return nullptr;
     default:
       UNREACHABLE();
@@ -5454,9 +5525,30 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
 
       return make_unique<MessageRequestedDialog>(dialog_id, action->button_id_);
     }
-    case telegram_api::messageActionSetChatWallPaper::ID:
-    case telegram_api::messageActionSetSameChatWallPaper::ID:
-      return td::make_unique<MessageUnsupported>();
+    case telegram_api::messageActionSetChatWallPaper::ID: {
+      auto action = move_tl_object_as<telegram_api::messageActionSetChatWallPaper>(action_ptr);
+      auto background =
+          td->background_manager_->on_get_background(BackgroundId(), string(), std::move(action->wallpaper_), false);
+      if (!background.first.is_valid()) {
+        break;
+      }
+      return make_unique<MessageSetBackground>(MessageId(), background.first, background.second);
+    }
+    case telegram_api::messageActionSetSameChatWallPaper::ID: {
+      if (reply_in_dialog_id.is_valid() && reply_in_dialog_id != owner_dialog_id) {
+        LOG(ERROR) << "Receive old background message with " << reply_to_message_id << " in " << owner_dialog_id
+                   << " in another " << reply_in_dialog_id;
+        reply_to_message_id = MessageId();
+        reply_in_dialog_id = DialogId();
+      }
+      auto action = move_tl_object_as<telegram_api::messageActionSetSameChatWallPaper>(action_ptr);
+      auto background =
+          td->background_manager_->on_get_background(BackgroundId(), string(), std::move(action->wallpaper_), false);
+      if (!background.first.is_valid()) {
+        break;
+      }
+      return make_unique<MessageSetBackground>(reply_to_message_id, background.first, background.second);
+    }
     default:
       UNREACHABLE();
   }
@@ -5784,6 +5876,12 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       const auto *m = static_cast<const MessageWebViewWriteAccessAllowed *>(content);
       return td_api::make_object<td_api::messageBotWriteAccessAllowed>(m->web_app.get_web_app_object(td));
     }
+    case MessageContentType::SetBackground: {
+      const auto *m = static_cast<const MessageSetBackground *>(content);
+      return td_api::make_object<td_api::messageChatSetBackground>(
+          m->old_message_id.get(),
+          td->background_manager_->get_background_object(m->background_id, false, &m->background_type));
+    }
     default:
       UNREACHABLE();
       return nullptr;
@@ -6088,6 +6186,9 @@ vector<FileId> get_message_content_file_ids(const MessageContent *content, const
       return photo_get_file_ids(static_cast<const MessageSuggestProfilePhoto *>(content)->photo);
     case MessageContentType::WebViewWriteAccessAllowed:
       return static_cast<const MessageWebViewWriteAccessAllowed *>(content)->web_app.get_file_ids(td);
+    case MessageContentType::SetBackground:
+      // background file references are repaired independently
+      return {};
     default:
       return {};
   }
@@ -6185,6 +6286,7 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
     case MessageContentType::WriteAccessAllowed:
     case MessageContentType::RequestedDialog:
     case MessageContentType::WebViewWriteAccessAllowed:
+    case MessageContentType::SetBackground:
       return string();
     default:
       UNREACHABLE();
@@ -6482,6 +6584,8 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
       break;
     }
     case MessageContentType::WebViewWriteAccessAllowed:
+      break;
+    case MessageContentType::SetBackground:
       break;
     default:
       UNREACHABLE();

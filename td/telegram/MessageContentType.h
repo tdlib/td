@@ -69,7 +69,8 @@ enum class MessageContentType : int32 {
   SuggestProfilePhoto,
   WriteAccessAllowed,
   RequestedDialog,
-  WebViewWriteAccessAllowed
+  WebViewWriteAccessAllowed,
+  SetBackground
 };
 
 StringBuilder &operator<<(StringBuilder &string_builder, MessageContentType content_type);
