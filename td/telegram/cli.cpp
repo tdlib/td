@@ -1881,6 +1881,10 @@ class CliClient final : public Actor {
     return td_api::make_object<td_api::backgroundFillFreeformGradient>(std::move(colors));
   }
 
+  static td_api::object_ptr<td_api::backgroundTypeWallpaper> as_wallpaper_background(bool is_blurred, bool is_moving) {
+    return td_api::make_object<td_api::backgroundTypeWallpaper>(is_blurred, is_moving);
+  }
+
   static td_api::object_ptr<td_api::BackgroundType> as_solid_pattern_background(int32 color, int32 intensity,
                                                                                 bool is_moving) {
     return as_gradient_pattern_background(color, color, intensity, false, is_moving);
@@ -2694,10 +2698,10 @@ class CliClient final : public Actor {
     } else if (op == "gbgs") {
       send_request(td_api::make_object<td_api::getBackgrounds>(as_bool(args)));
     } else if (op == "gbgu") {
-      send_get_background_url(td_api::make_object<td_api::backgroundTypeWallpaper>(false, false));
-      send_get_background_url(td_api::make_object<td_api::backgroundTypeWallpaper>(false, true));
-      send_get_background_url(td_api::make_object<td_api::backgroundTypeWallpaper>(true, false));
-      send_get_background_url(td_api::make_object<td_api::backgroundTypeWallpaper>(true, true));
+      send_get_background_url(as_wallpaper_background(false, false));
+      send_get_background_url(as_wallpaper_background(false, true));
+      send_get_background_url(as_wallpaper_background(true, false));
+      send_get_background_url(as_wallpaper_background(true, true));
       send_get_background_url(as_solid_pattern_background(-1, 0, false));
       send_get_background_url(as_solid_pattern_background(0x1000000, 0, true));
       send_get_background_url(as_solid_pattern_background(0, -1, false));
@@ -2735,8 +2739,8 @@ class CliClient final : public Actor {
     } else if (op == "sbgw" || op == "sbgwd") {
       InputBackground input_background;
       get_args(args, input_background);
-      send_request(td_api::make_object<td_api::setBackground>(
-          input_background, td_api::make_object<td_api::backgroundTypeWallpaper>(true, true), op == "sbgwd"));
+      send_request(td_api::make_object<td_api::setBackground>(input_background, as_wallpaper_background(true, true),
+                                                              op == "sbgwd"));
     } else if (op == "sbgp" || op == "sbgpd") {
       InputBackground input_background;
       get_args(args, input_background);
