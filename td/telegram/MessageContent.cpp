@@ -11,9 +11,8 @@
 #include "td/telegram/AudiosManager.h"
 #include "td/telegram/AudiosManager.hpp"
 #include "td/telegram/AuthManager.h"
-#include "td/telegram/BackgroundId.h"
-#include "td/telegram/BackgroundManager.h"
-#include "td/telegram/BackgroundType.h"
+#include "td/telegram/BackgroundInfo.h"
+#include "td/telegram/BackgroundInfo.hpp"
 #include "td/telegram/CallDiscardReason.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatId.h"
@@ -902,12 +901,11 @@ class MessageWebViewWriteAccessAllowed final : public MessageContent {
 class MessageSetBackground final : public MessageContent {
  public:
   MessageId old_message_id;
-  BackgroundId background_id;
-  BackgroundType background_type;
+  BackgroundInfo background_info;
 
   MessageSetBackground() = default;
-  MessageSetBackground(MessageId old_message_id, BackgroundId background_id, BackgroundType background_type)
-      : old_message_id(old_message_id), background_id(background_id), background_type(std::move(background_type)) {
+  MessageSetBackground(MessageId old_message_id, BackgroundInfo background_info)
+      : old_message_id(old_message_id), background_info(std::move(background_info)) {
   }
 
   MessageContentType get_type() const final {
@@ -1304,8 +1302,7 @@ static void store(const MessageContent *content, StorerT &storer) {
       if (has_message_id) {
         store(m->old_message_id, storer);
       }
-      storer.context()->td().get_actor_unsafe()->background_manager_->store_background(m->background_id, storer);
-      store(m->background_type, storer);
+      store(m->background_info, storer);
       break;
     }
     default:
@@ -1835,8 +1832,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       if (has_message_id) {
         parse(m->old_message_id, parser);
       }
-      parser.context()->td().get_actor_unsafe()->background_manager_->parse_background(m->background_id, parser);
-      parse(m->background_type, parser);
+      parse(m->background_info, parser);
       content = std::move(m);
       break;
     }
@@ -4038,8 +4034,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     case MessageContentType::SetBackground: {
       const auto *old_ = static_cast<const MessageSetBackground *>(old_content);
       const auto *new_ = static_cast<const MessageSetBackground *>(new_content);
-      if (old_->old_message_id != new_->old_message_id || old_->background_id != new_->background_id ||
-          old_->background_type != new_->background_type) {
+      if (old_->old_message_id != new_->old_message_id || old_->background_info != new_->background_info) {
         need_update = true;
       }
       break;
@@ -5527,12 +5522,11 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     }
     case telegram_api::messageActionSetChatWallPaper::ID: {
       auto action = move_tl_object_as<telegram_api::messageActionSetChatWallPaper>(action_ptr);
-      auto background =
-          td->background_manager_->on_get_background(BackgroundId(), string(), std::move(action->wallpaper_), false);
-      if (!background.first.is_valid()) {
+      BackgroundInfo background_info(td, std::move(action->wallpaper_));
+      if (!background_info.is_valid()) {
         break;
       }
-      return make_unique<MessageSetBackground>(MessageId(), background.first, background.second);
+      return make_unique<MessageSetBackground>(MessageId(), std::move(background_info));
     }
     case telegram_api::messageActionSetSameChatWallPaper::ID: {
       if (reply_in_dialog_id.is_valid() && reply_in_dialog_id != owner_dialog_id) {
@@ -5542,12 +5536,11 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
         reply_in_dialog_id = DialogId();
       }
       auto action = move_tl_object_as<telegram_api::messageActionSetSameChatWallPaper>(action_ptr);
-      auto background =
-          td->background_manager_->on_get_background(BackgroundId(), string(), std::move(action->wallpaper_), false);
-      if (!background.first.is_valid()) {
+      BackgroundInfo background_info(td, std::move(action->wallpaper_));
+      if (!background_info.is_valid()) {
         break;
       }
-      return make_unique<MessageSetBackground>(reply_to_message_id, background.first, background.second);
+      return make_unique<MessageSetBackground>(reply_to_message_id, std::move(background_info));
     }
     default:
       UNREACHABLE();
@@ -5878,9 +5871,8 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     }
     case MessageContentType::SetBackground: {
       const auto *m = static_cast<const MessageSetBackground *>(content);
-      return td_api::make_object<td_api::messageChatSetBackground>(
-          m->old_message_id.get(),
-          td->background_manager_->get_background_object(m->background_id, false, &m->background_type));
+      return td_api::make_object<td_api::messageChatSetBackground>(m->old_message_id.get(),
+                                                                   m->background_info.get_background_object(td));
     }
     default:
       UNREACHABLE();

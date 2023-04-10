@@ -7,8 +7,7 @@
 #include "td/telegram/ThemeManager.h"
 
 #include "td/telegram/AuthManager.h"
-#include "td/telegram/BackgroundManager.h"
-#include "td/telegram/BackgroundType.hpp"
+#include "td/telegram/BackgroundInfo.hpp"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/net/NetQueryCreator.h"
@@ -54,9 +53,8 @@ class GetChatThemesQuery final : public Td::ResultHandler {
 
 bool operator==(const ThemeManager::ThemeSettings &lhs, const ThemeManager::ThemeSettings &rhs) {
   return lhs.accent_color == rhs.accent_color && lhs.message_accent_color == rhs.message_accent_color &&
-         lhs.background_id == rhs.background_id && lhs.background_type == rhs.background_type &&
-         lhs.base_theme == rhs.base_theme && lhs.message_colors == rhs.message_colors &&
-         lhs.animate_message_colors == rhs.animate_message_colors;
+         lhs.background_info == rhs.background_info && lhs.base_theme == rhs.base_theme &&
+         lhs.message_colors == rhs.message_colors && lhs.animate_message_colors == rhs.animate_message_colors;
 }
 
 bool operator!=(const ThemeManager::ThemeSettings &lhs, const ThemeManager::ThemeSettings &rhs) {
@@ -67,7 +65,7 @@ template <class StorerT>
 void ThemeManager::ThemeSettings::store(StorerT &storer) const {
   using td::store;
   bool has_message_accent_color = message_accent_color != accent_color;
-  bool has_background = background_id.is_valid();
+  bool has_background = background_info.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(animate_message_colors);
   STORE_FLAG(has_message_accent_color);
@@ -78,8 +76,7 @@ void ThemeManager::ThemeSettings::store(StorerT &storer) const {
     store(message_accent_color, storer);
   }
   if (has_background) {
-    storer.context()->td().get_actor_unsafe()->background_manager_->store_background(background_id, storer);
-    store(background_type, storer);
+    store(background_info, storer);
   }
   store(base_theme, storer);
   store(message_colors, storer);
@@ -102,8 +99,7 @@ void ThemeManager::ThemeSettings::parse(ParserT &parser) {
     message_accent_color = accent_color;
   }
   if (has_background) {
-    parser.context()->td().get_actor_unsafe()->background_manager_->parse_background(background_id, parser);
-    parse(background_type, parser);
+    parse(background_info, parser);
   }
   parse(base_theme, parser);
   parse(message_colors, parser);
@@ -304,9 +300,8 @@ td_api::object_ptr<td_api::themeSettings> ThemeManager::get_theme_settings_objec
 
   // ignore settings.base_theme for now
   return td_api::make_object<td_api::themeSettings>(
-      settings.accent_color,
-      td_->background_manager_->get_background_object(settings.background_id, false, &settings.background_type),
-      std::move(fill), settings.animate_message_colors, settings.message_accent_color);
+      settings.accent_color, settings.background_info.get_background_object(td_), std::move(fill),
+      settings.animate_message_colors, settings.message_accent_color);
 }
 
 td_api::object_ptr<td_api::chatTheme> ThemeManager::get_chat_theme_object(const ChatTheme &theme) const {
@@ -415,14 +410,10 @@ ThemeManager::ThemeSettings ThemeManager::get_chat_theme_settings(
     telegram_api::object_ptr<telegram_api::themeSettings> settings) {
   ThemeSettings result;
   if (settings != nullptr && !settings->message_colors_.empty() && settings->message_colors_.size() <= 4) {
-    auto background =
-        td_->background_manager_->on_get_background(BackgroundId(), string(), std::move(settings->wallpaper_), false);
-
     result.accent_color = settings->accent_color_;
     bool has_outbox_accent_color = (settings->flags_ & telegram_api::themeSettings::OUTBOX_ACCENT_COLOR_MASK) != 0;
     result.message_accent_color = (has_outbox_accent_color ? settings->outbox_accent_color_ : result.accent_color);
-    result.background_id = background.first;
-    result.background_type = std::move(background.second);
+    result.background_info = BackgroundInfo(td_, std::move(settings->wallpaper_));
     result.base_theme = get_base_theme(settings->base_theme_);
     result.message_colors = std::move(settings->message_colors_);
     result.animate_message_colors = settings->message_colors_animated_;

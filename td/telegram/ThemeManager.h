@@ -6,8 +6,7 @@
 //
 #pragma once
 
-#include "td/telegram/BackgroundId.h"
-#include "td/telegram/BackgroundType.h"
+#include "td/telegram/BackgroundInfo.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -43,8 +42,7 @@ class ThemeManager final : public Actor {
   struct ThemeSettings {
     int32 accent_color = 0;
     int32 message_accent_color = 0;
-    BackgroundId background_id;
-    BackgroundType background_type;
+    BackgroundInfo background_info;
     BaseTheme base_theme = BaseTheme::Classic;
     vector<int32> message_colors;
     bool animate_message_colors = false;

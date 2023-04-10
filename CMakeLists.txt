@@ -293,6 +293,7 @@ set(TDLIB_SOURCE
   td/telegram/AuthManager.cpp
   td/telegram/AutoDownloadSettings.cpp
   td/telegram/AutosaveManager.cpp
+  td/telegram/BackgroundInfo.cpp
   td/telegram/BackgroundManager.cpp
   td/telegram/BackgroundType.cpp
   td/telegram/BotCommand.cpp
@@ -526,6 +527,7 @@ set(TDLIB_SOURCE
   td/telegram/AutoDownloadSettings.h
   td/telegram/AutosaveManager.h
   td/telegram/BackgroundId.h
+  td/telegram/BackgroundInfo.h
   td/telegram/BackgroundManager.h
   td/telegram/BackgroundType.h
   td/telegram/BotCommand.h
@@ -776,6 +778,7 @@ set(TDLIB_SOURCE
   td/telegram/AnimationsManager.hpp
   td/telegram/AudiosManager.hpp
   td/telegram/AuthManager.hpp
+  td/telegram/BackgroundInfo.hpp
   td/telegram/BackgroundType.hpp
   td/telegram/DialogNotificationSettings.hpp
   td/telegram/DialogFilter.hpp
