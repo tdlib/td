@@ -2056,6 +2056,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
                                options.get_option_integer("dialogs_pinned_limit_premium", 200));
     options.set_option_integer("pinned_archived_chat_count_max",
                                options.get_option_integer("dialogs_folder_pinned_limit_premium", 200));
+    options.set_option_integer("chat_folder_invite_link_count_max",
+                               options.get_option_integer("chatlist_invites_limit_premium", 20));
+    options.set_option_integer("added_shareable_chat_folder_count_max",
+                               options.get_option_integer("chatlist_invites_limit_premium", 20));
   } else {
     options.set_option_integer("chat_folder_count_max", options.get_option_integer("dialog_filters_limit_default", 10));
     options.set_option_integer("chat_folder_chosen_chat_count_max",
@@ -2068,6 +2072,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
                                options.get_option_integer("dialogs_pinned_limit_default", 100));
     options.set_option_integer("pinned_archived_chat_count_max",
                                options.get_option_integer("dialogs_folder_pinned_limit_default", 100));
+    options.set_option_integer("chat_folder_invite_link_count_max",
+                               options.get_option_integer("chatlist_invites_limit_default", 3));
+    options.set_option_integer("added_shareable_chat_folder_count_max",
+                               options.get_option_integer("chatlist_invites_limit_default", 2));
   }
 
   if (!is_premium_available) {
