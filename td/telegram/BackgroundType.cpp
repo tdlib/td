@@ -338,7 +338,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const BackgroundType &t
 Result<BackgroundType> BackgroundType::get_background_type(const td_api::BackgroundType *background_type,
                                                            int32 dark_theme_brightness) {
   if (background_type == nullptr) {
-    return Status::Error(400, "Type must be non-empty");
+    return BackgroundType();
   }
   if (dark_theme_brightness < 1 || dark_theme_brightness > 100) {
     return Status::Error(400, "Invalid dark them brightness specified");

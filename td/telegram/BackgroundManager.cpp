@@ -599,16 +599,7 @@ BackgroundId BackgroundManager::add_local_background(const BackgroundType &type)
 void BackgroundManager::set_background(const td_api::InputBackground *input_background,
                                        const td_api::BackgroundType *background_type, bool for_dark_theme,
                                        Promise<td_api::object_ptr<td_api::background>> &&promise) {
-  BackgroundType type;
-  if (background_type != nullptr) {
-    auto r_type = BackgroundType::get_background_type(background_type, 100);
-    if (r_type.is_error()) {
-      return promise.set_error(r_type.move_as_error());
-    }
-    type = r_type.move_as_ok();
-  } else {
-    CHECK(!type.has_file());
-  }
+  TRY_RESULT_PROMISE(promise, type, BackgroundType::get_background_type(background_type, 100));
 
   if (input_background == nullptr) {
     if (background_type == nullptr) {
