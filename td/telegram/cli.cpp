@@ -989,6 +989,53 @@ class CliClient final : public Actor {
     }
   }
 
+  struct BackgroundType {
+    enum class Type : int32 { Null, Wallpaper, SolidPattern, GradientPattern, Fill };
+    Type type = Type::Null;
+    vector<int32> colors;
+
+    operator td_api::object_ptr<td_api::BackgroundType>() const {
+      switch (type) {
+        case Type::Null:
+          return nullptr;
+        case Type::Wallpaper:
+          return as_wallpaper_background(rand_bool(), rand_bool());
+        case Type::SolidPattern:
+          return as_solid_pattern_background(0xABCDef, 49, true);
+        case Type::GradientPattern:
+          return as_gradient_pattern_background(0xABCDEF, 0xFE, 51, rand_bool(), false);
+        case Type::Fill:
+          if (colors.size() == 1) {
+            return as_solid_background(colors[0]);
+          }
+          if (colors.size() == 2) {
+            return as_gradient_background(colors[0], colors[1]);
+          }
+          return as_freeform_gradient_background(colors);
+        default:
+          UNREACHABLE();
+          return nullptr;
+      }
+    }
+  };
+
+  void get_args(string &args, BackgroundType &arg) const {
+    args = trim(args);
+    if (args.empty()) {
+      return;
+    }
+    if (args == "w") {
+      arg.type = BackgroundType::Type::Wallpaper;
+    } else if (args == "sp") {
+      arg.type = BackgroundType::Type::SolidPattern;
+    } else if (args == "gp") {
+      arg.type = BackgroundType::Type::GradientPattern;
+    } else {
+      arg.type = BackgroundType::Type::Fill;
+      arg.colors = to_integers<int32>(args);
+    }
+  }
+
   template <class FirstType, class SecondType, class... Types>
   void get_args(string &args, FirstType &first_arg, SecondType &second_arg, Types &...other_args) const {
     string arg;
@@ -2732,42 +2779,13 @@ class CliClient final : public Actor {
       op_not_found_count++;
     }
 
-    if (op == "sbg") {
+    if (op == "SBG") {
       send_request(td_api::make_object<td_api::searchBackground>(args));
-    } else if (op == "sbgd") {
-      send_request(td_api::make_object<td_api::setBackground>(nullptr, nullptr, as_bool(args)));
-    } else if (op == "sbgw" || op == "sbgwd") {
+    } else if (op == "sbg" || op == "sbgd") {
       InputBackground input_background;
-      get_args(args, input_background);
-      send_request(td_api::make_object<td_api::setBackground>(input_background, as_wallpaper_background(true, true),
-                                                              op == "sbgwd"));
-    } else if (op == "sbgp" || op == "sbgpd") {
-      InputBackground input_background;
-      get_args(args, input_background);
-      send_request(td_api::make_object<td_api::setBackground>(
-          input_background, as_solid_pattern_background(0xABCDef, 49, true), op == "sbgpd"));
-    } else if (op == "sbggp" || op == "sbggpd") {
-      InputBackground input_background;
-      get_args(args, input_background);
-      send_request(td_api::make_object<td_api::setBackground>(
-          input_background, as_gradient_pattern_background(0xABCDEF, 0xFE, 51, op == "sbggpd", false), op == "sbggpd"));
-    } else if (op == "sbgs" || op == "sbgsd") {
-      int32 color;
-      get_args(args, color);
-      send_request(td_api::make_object<td_api::setBackground>(nullptr, as_solid_background(color), op == "sbgsd"));
-    } else if (op == "sbgg" || op == "sbggd") {
-      int32 top_color;
-      int32 bottom_color;
-      get_args(args, top_color, bottom_color);
-      auto background_type = as_gradient_background(top_color, bottom_color);
-      send_request(td_api::make_object<td_api::setBackground>(nullptr, std::move(background_type), op == "sbggd"));
-    } else if (op == "sbgfg" || op == "sbgfgd") {
-      auto background_type = as_freeform_gradient_background(to_integers<int32>(args));
-      send_request(td_api::make_object<td_api::setBackground>(nullptr, std::move(background_type), op == "sbgfgd"));
-    } else if (op == "sbgfid" || op == "sbgfidd") {
-      InputBackground input_background;
-      get_args(args, input_background);
-      send_request(td_api::make_object<td_api::setBackground>(input_background, nullptr, op == "sbgfidd"));
+      BackgroundType background_type;
+      get_args(args, input_background, background_type);
+      send_request(td_api::make_object<td_api::setBackground>(input_background, background_type, op == "sbgd"));
     } else if (op == "rbg") {
       int64 background_id;
       get_args(args, background_id);
