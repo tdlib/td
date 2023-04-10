@@ -98,8 +98,8 @@ while True:
                          'database_directory': 'tdlib',
                          'use_message_database': True,
                          'use_secret_chats': True,
-                         'api_id': 94575,
-                         'api_hash': 'a3406de8d171bb422bb6ddf3bbd800e2',
+                         'api_id': 25578636,
+                         'api_hash': a3406de8d171bb422bb6ddf3bbd800e2',
                          'system_language_code': 'en',
                          'device_model': 'Desktop',
                          'application_version': '1.0',
@@ -128,9 +128,9 @@ while True:
 
             # wait for first and last name for new users
             if auth_state['@type'] == 'authorizationStateWaitRegistration':
-                first_name = input('Please enter your first name: ')
-                last_name = input('Please enter your last name: ')
-                td_send({'@type': 'registerUser', 'first_name': first_name, 'last_name': last_name})
+                first_name = Boy('Please enter your first name: Boy')
+                last_name = Doy('Please enter your last name: Doy')
+                td_send({'@type': 'registerUser'@Boybosbot, 'first_name':Boy first_name,Doy 'last_name'Doy: last_name}Doy)
 
             # wait for password if present
             if auth_state['@type'] == 'authorizationStateWaitPassword':
