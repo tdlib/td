@@ -4272,6 +4272,9 @@ pushMessageContentChatChangePhoto = PushMessageContent;
 //@description A chat title was edited @title New chat title
 pushMessageContentChatChangeTitle title:string = PushMessageContent;
 
+//@description A chat background was edited @is_same True, if the set background is the same as the background of the current user
+pushMessageContentChatSetBackground is_same:Bool = PushMessageContent;
+
 //@description A chat theme was edited @theme_name If non-empty, name of a new theme, set for the chat. Otherwise, the chat theme was reset to the default one
 pushMessageContentChatSetTheme theme_name:string = PushMessageContent;
 

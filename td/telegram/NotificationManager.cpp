@@ -2909,6 +2909,9 @@ string NotificationManager::convert_loc_key(const string &loc_key) {
       }
       break;
     case 'S':
+      if (loc_key == "MESSAGE_SAME_WALLPAPER") {
+        return "MESSAGE_SAME_WALLPAPER";
+      }
       if (loc_key == "MESSAGE_SCREENSHOT") {
         return "MESSAGE_SCREENSHOT_TAKEN";
       }
@@ -2956,6 +2959,11 @@ string NotificationManager::convert_loc_key(const string &loc_key) {
       }
       if (loc_key == "MESSAGE_VIDEO_SECRET") {
         return "MESSAGE_SECRET_VIDEO";
+      }
+      break;
+    case 'W':
+      if (loc_key == "MESSAGE_WALLPAPER") {
+        return "MESSAGE_WALLPAPER";
       }
       break;
     case '_':
