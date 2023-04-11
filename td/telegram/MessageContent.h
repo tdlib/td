@@ -144,6 +144,8 @@ FullMessageId get_message_content_replied_message_id(DialogId dialog_id, const M
 
 std::pair<InputGroupCallId, bool> get_message_content_group_call_info(const MessageContent *content);
 
+UserId get_message_content_contact_user_id(const MessageContent *content);
+
 vector<UserId> get_message_content_added_user_ids(const MessageContent *content);
 
 UserId get_message_content_deleted_user_id(const MessageContent *content);

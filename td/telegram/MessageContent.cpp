@@ -3291,6 +3291,15 @@ std::pair<InputGroupCallId, bool> get_message_content_group_call_info(const Mess
   return {m->input_group_call_id, m->duration >= 0};
 }
 
+UserId get_message_content_contact_user_id(const MessageContent *content) {
+  switch (content->get_type()) {
+    case MessageContentType::Contact:
+      return static_cast<const MessageContact *>(content)->contact.get_user_id();
+    default:
+      return UserId();
+  }
+}
+
 vector<UserId> get_message_content_added_user_ids(const MessageContent *content) {
   CHECK(content->get_type() == MessageContentType::ChatAddUsers);
   return static_cast<const MessageChatAddUsers *>(content)->user_ids;

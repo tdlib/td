@@ -13231,6 +13231,23 @@ vector<UserId> MessagesManager::get_message_user_ids(const Message *m) {
   if (m->sender_user_id.is_valid()) {
     user_ids.push_back(m->sender_user_id);
   }
+  if (m->via_bot_user_id.is_valid()) {
+    user_ids.push_back(m->via_bot_user_id);
+  }
+  if (m->forward_info != nullptr && m->forward_info->sender_user_id.is_valid()) {
+    user_ids.push_back(m->forward_info->sender_user_id);
+  }
+  if (m->content->get_type() == MessageContentType::ChatAddUsers) {
+    append(user_ids, get_message_content_added_user_ids(m->content.get()));
+  }
+  auto deleted_user_id = get_message_content_deleted_user_id(m->content.get());
+  if (deleted_user_id.is_valid()) {
+    user_ids.push_back(deleted_user_id);
+  }
+  auto contact_user_id = get_message_content_contact_user_id(m->content.get());
+  if (contact_user_id.is_valid()) {
+    user_ids.push_back(contact_user_id);
+  }
   return user_ids;
 }
 
@@ -13238,6 +13255,14 @@ vector<ChannelId> MessagesManager::get_message_channel_ids(const Message *m) {
   vector<ChannelId> channel_ids;
   if (m->sender_dialog_id.is_valid() && m->sender_dialog_id.get_type() == DialogType::Channel) {
     channel_ids.push_back(m->sender_dialog_id.get_channel_id());
+  }
+  if (m->forward_info != nullptr && m->forward_info->sender_dialog_id.is_valid() &&
+      m->forward_info->sender_dialog_id.get_type() == DialogType::Channel) {
+    channel_ids.push_back(m->forward_info->sender_dialog_id.get_channel_id());
+  }
+  if (m->forward_info != nullptr && m->forward_info->from_dialog_id.is_valid() &&
+      m->forward_info->from_dialog_id.get_type() == DialogType::Channel) {
+    channel_ids.push_back(m->forward_info->from_dialog_id.get_channel_id());
   }
   return channel_ids;
 }
