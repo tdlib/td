@@ -965,6 +965,8 @@ class CliClient final : public Actor {
     string background_file;
     // or
     int64 background_id = 0;
+    // or
+    int64 message_id = 0;
 
     operator td_api::object_ptr<td_api::InputBackground>() const {
       if (!background_file.empty()) {
@@ -972,6 +974,9 @@ class CliClient final : public Actor {
       }
       if (background_id != 0) {
         return td_api::make_object<td_api::inputBackgroundRemote>(background_id);
+      }
+      if (message_id != 0) {
+        return td_api::make_object<td_api::inputBackgroundPrevious>(message_id);
       }
       return nullptr;
     }
@@ -984,6 +989,8 @@ class CliClient final : public Actor {
     }
     if (to_integer_safe<int64>(args).is_ok()) {
       arg.background_id = to_integer<int64>(args);
+    } else if (args.back() == 's' && to_integer_safe<int32>(args.substr(0, args.size() - 1)).is_ok()) {
+      arg.message_id = as_message_id(args);
     } else {
       arg.background_file = std::move(args);
     }

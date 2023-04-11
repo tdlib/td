@@ -107,7 +107,7 @@ class SetChatWallPaperQuery final : public Td::ResultHandler {
   }
 
   void send(DialogId dialog_id, telegram_api::object_ptr<telegram_api::InputWallPaper> input_wallpaper,
-            telegram_api::object_ptr<telegram_api::wallPaperSettings> settings) {
+            telegram_api::object_ptr<telegram_api::wallPaperSettings> settings, MessageId old_message_id) {
     int32 flags = 0;
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
@@ -119,8 +119,12 @@ class SetChatWallPaperQuery final : public Td::ResultHandler {
     if (settings != nullptr) {
       flags |= telegram_api::messages_setChatWallPaper::SETTINGS_MASK;
     }
-    send_query(G()->net_query_creator().create(telegram_api::messages_setChatWallPaper(
-        flags, std::move(input_peer), std::move(input_wallpaper), std::move(settings), 0)));
+    if (old_message_id.is_valid()) {
+      flags |= telegram_api::messages_setChatWallPaper::ID_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_setChatWallPaper(flags, std::move(input_peer), std::move(input_wallpaper),
+                                                std::move(settings), old_message_id.get_server_message_id().get())));
   }
 
   void on_result(BufferSlice packet) final {
@@ -692,6 +696,8 @@ void BackgroundManager::set_background(const td_api::InputBackground *input_back
       return set_background(BackgroundId(background_remote->background_id_), std::move(type), for_dark_theme,
                             std::move(promise));
     }
+    case td_api::inputBackgroundPrevious::ID:
+      return promise.set_error(Status::Error(400, "Can't use a previous background"));
     default:
       UNREACHABLE();
   }
@@ -733,11 +739,11 @@ void BackgroundManager::set_dialog_background(DialogId dialog_id, const td_api::
       return promise.set_error(Status::Error(400, "Input background must be non-empty for the background type"));
     }
     if (background_type == nullptr) {
-      return send_set_dialog_background_query(dialog_id, nullptr, nullptr, std::move(promise));
+      return send_set_dialog_background_query(dialog_id, nullptr, nullptr, MessageId(), std::move(promise));
     } else {
       return send_set_dialog_background_query(dialog_id,
                                               telegram_api::make_object<telegram_api::inputWallPaperNoFile>(0),
-                                              type.get_input_wallpaper_settings(), std::move(promise));
+                                              type.get_input_wallpaper_settings(), MessageId(), std::move(promise));
     }
   }
 
@@ -775,6 +781,16 @@ void BackgroundManager::set_dialog_background(DialogId dialog_id, const td_api::
       return do_set_dialog_background(dialog_id, BackgroundId(background_remote->background_id_), std::move(type),
                                       std::move(promise));
     }
+    case td_api::inputBackgroundPrevious::ID: {
+      auto background_previous = static_cast<const td_api::inputBackgroundPrevious *>(input_background);
+      MessageId message_id(background_previous->message_id_);
+      if (!message_id.is_valid() || !message_id.is_server()) {
+        return promise.set_error(Status::Error(400, "Invalid message identifier specified"));
+      }
+      return send_set_dialog_background_query(
+          dialog_id, nullptr, background_type == nullptr ? nullptr : type.get_input_wallpaper_settings(), message_id,
+          std::move(promise));
+    }
     default:
       UNREACHABLE();
   }
@@ -795,14 +811,15 @@ void BackgroundManager::do_set_dialog_background(DialogId dialog_id, BackgroundI
 
   send_set_dialog_background_query(
       dialog_id, telegram_api::make_object<telegram_api::inputWallPaper>(background_id.get(), background->access_hash),
-      type.get_input_wallpaper_settings(), std::move(promise));
+      type.get_input_wallpaper_settings(), MessageId(), std::move(promise));
 }
 
 void BackgroundManager::send_set_dialog_background_query(
     DialogId dialog_id, telegram_api::object_ptr<telegram_api::InputWallPaper> input_wallpaper,
-    telegram_api::object_ptr<telegram_api::wallPaperSettings> settings, Promise<Unit> &&promise) {
+    telegram_api::object_ptr<telegram_api::wallPaperSettings> settings, MessageId old_message_id,
+    Promise<Unit> &&promise) {
   td_->create_handler<SetChatWallPaperQuery>(std::move(promise))
-      ->send(dialog_id, std::move(input_wallpaper), std::move(settings));
+      ->send(dialog_id, std::move(input_wallpaper), std::move(settings), old_message_id);
 }
 
 void BackgroundManager::set_background(BackgroundId background_id, BackgroundType type, bool for_dark_theme,

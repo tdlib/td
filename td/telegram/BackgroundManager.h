@@ -145,7 +145,7 @@ class BackgroundManager final : public Actor {
   void send_set_dialog_background_query(DialogId dialog_id,
                                         telegram_api::object_ptr<telegram_api::InputWallPaper> input_wallpaper,
                                         telegram_api::object_ptr<telegram_api::wallPaperSettings> settings,
-                                        Promise<Unit> &&promise);
+                                        MessageId old_message_id, Promise<Unit> &&promise);
 
   void set_background(BackgroundId background_id, BackgroundType type, bool for_dark_theme,
                       Promise<td_api::object_ptr<td_api::background>> &&promise);

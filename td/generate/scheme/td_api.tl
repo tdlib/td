@@ -4098,6 +4098,9 @@ inputBackgroundLocal background:InputFile = InputBackground;
 //@description A background from the server @background_id The background identifier
 inputBackgroundRemote background_id:int64 = InputBackground;
 
+//@description A background previously set in the chat; for chat backgrounds only @message_id Identifier of the message with the background
+inputBackgroundPrevious message_id:int53 = InputBackground;
+
 
 //@description Describes theme settings
 //@accent_color Theme accent color in ARGB format
