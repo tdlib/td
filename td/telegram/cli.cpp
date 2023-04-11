@@ -2792,6 +2792,14 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::removeBackground>(background_id));
     } else if (op == "rbgs") {
       send_request(td_api::make_object<td_api::resetBackgrounds>());
+    } else if (op == "scbg") {
+      ChatId chat_id;
+      InputBackground input_background;
+      BackgroundType background_type;
+      int32 dark_theme_brightness;
+      get_args(args, chat_id, input_background, background_type, dark_theme_brightness);
+      send_request(td_api::make_object<td_api::setChatBackground>(chat_id, input_background, background_type,
+                                                                  dark_theme_brightness));
     } else if (op == "gcos") {
       send_request(td_api::make_object<td_api::getCountries>());
     } else if (op == "gcoc") {

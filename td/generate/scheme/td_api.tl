@@ -6900,6 +6900,13 @@ setChatMessageAutoDeleteTime chat_id:int53 message_auto_delete_time:int32 = Ok;
 //@permissions New non-administrator members permissions in the chat
 setChatPermissions chat_id:int53 permissions:chatPermissions = Ok;
 
+//@description Changes the background in a specific chat. Supported only in private and secret chats with non-deleted users
+//@chat_id Chat identifier
+//@background The input background to use; pass null to create a new filled background or to remove the current background
+//@type Background type; pass null to remove the current background
+//@dark_theme_brightness Brightness of the background in dark themes, as a percentage; 1-100
+setChatBackground chat_id:int53 background:InputBackground type:BackgroundType dark_theme_brightness:int32 = Ok;
+
 //@description Changes the chat theme. Supported only in private and secret chats @chat_id Chat identifier @theme_name Name of the new chat theme; pass an empty string to return the default theme
 setChatTheme chat_id:int53 theme_name:string = Ok;
 
@@ -7920,7 +7927,7 @@ getBackgroundUrl name:string type:BackgroundType = HttpUrl;
 searchBackground name:string = Background;
 
 //@description Changes the background selected by the user; adds background to the list of installed backgrounds
-//@background The input background to use; pass null to create a new filled backgrounds or to remove the current background
+//@background The input background to use; pass null to create a new filled background or to remove the current background
 //@type Background type; pass null to use the default type of the remote background or to remove the current background
 //@for_dark_theme Pass true if the background is changed for a dark theme
 setBackground background:InputBackground type:BackgroundType for_dark_theme:Bool = Background;

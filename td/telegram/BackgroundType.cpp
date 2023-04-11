@@ -444,8 +444,6 @@ td_api::object_ptr<td_api::BackgroundType> BackgroundType::get_background_type_o
 }
 
 telegram_api::object_ptr<telegram_api::wallPaperSettings> BackgroundType::get_input_wallpaper_settings() const {
-  CHECK(has_file());
-
   int32 flags = 0;
   if (is_blurred_) {
     flags |= telegram_api::wallPaperSettings::BLUR_MASK;

@@ -6239,6 +6239,13 @@ void Td::on_request(uint64 id, const td_api::setChatPermissions &request) {
   messages_manager_->set_dialog_permissions(DialogId(request.chat_id_), request.permissions_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::setChatBackground &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  background_manager_->set_dialog_background(DialogId(request.chat_id_), request.background_.get(), request.type_.get(),
+                                             request.dark_theme_brightness_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::setChatTheme &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.theme_name_);
