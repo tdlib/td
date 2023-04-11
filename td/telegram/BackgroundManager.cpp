@@ -651,7 +651,7 @@ BackgroundId BackgroundManager::add_local_background(const BackgroundType &type)
 void BackgroundManager::set_background(const td_api::InputBackground *input_background,
                                        const td_api::BackgroundType *background_type, bool for_dark_theme,
                                        Promise<td_api::object_ptr<td_api::background>> &&promise) {
-  TRY_RESULT_PROMISE(promise, type, BackgroundType::get_background_type(background_type, 100));
+  TRY_RESULT_PROMISE(promise, type, BackgroundType::get_background_type(background_type, 0));
 
   if (input_background == nullptr) {
     if (background_type == nullptr) {
@@ -704,8 +704,8 @@ void BackgroundManager::set_background(const td_api::InputBackground *input_back
 }
 
 void BackgroundManager::set_dialog_background(DialogId dialog_id, const td_api::InputBackground *input_background,
-                                              const td_api::BackgroundType *background_type,
-                                              int32 dark_theme_brightness, Promise<Unit> &&promise) {
+                                              const td_api::BackgroundType *background_type, int32 dark_theme_dimming,
+                                              Promise<Unit> &&promise) {
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "set_dialog_background")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
@@ -732,7 +732,7 @@ void BackgroundManager::set_dialog_background(DialogId dialog_id, const td_api::
       UNREACHABLE();
   }
 
-  TRY_RESULT_PROMISE(promise, type, BackgroundType::get_background_type(background_type, dark_theme_brightness));
+  TRY_RESULT_PROMISE(promise, type, BackgroundType::get_background_type(background_type, dark_theme_dimming));
 
   if (input_background == nullptr) {
     if (type.has_file()) {

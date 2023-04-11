@@ -48,7 +48,7 @@ class BackgroundManager final : public Actor {
   void reset_backgrounds(Promise<Unit> &&promise);
 
   void set_dialog_background(DialogId dialog_id, const td_api::InputBackground *input_background,
-                             const td_api::BackgroundType *background_type, int32 dark_theme_brightness,
+                             const td_api::BackgroundType *background_type, int32 dark_theme_dimming,
                              Promise<Unit> &&promise);
 
   td_api::object_ptr<td_api::background> get_background_object(BackgroundId background_id, bool for_dark_theme,

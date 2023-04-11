@@ -336,21 +336,18 @@ StringBuilder &operator<<(StringBuilder &string_builder, const BackgroundType &t
 }
 
 Result<BackgroundType> BackgroundType::get_background_type(const td_api::BackgroundType *background_type,
-                                                           int32 dark_theme_brightness) {
+                                                           int32 dark_theme_dimming) {
   if (background_type == nullptr) {
     return BackgroundType();
   }
-  if (dark_theme_brightness < 1 || dark_theme_brightness > 100) {
+  if (dark_theme_dimming < 0 || dark_theme_dimming > 100) {
     return Status::Error(400, "Invalid dark them brightness specified");
-  }
-  if (dark_theme_brightness == 100) {
-    dark_theme_brightness = 0;
   }
 
   switch (background_type->get_id()) {
     case td_api::backgroundTypeWallpaper::ID: {
       auto wallpaper_type = static_cast<const td_api::backgroundTypeWallpaper *>(background_type);
-      return BackgroundType(wallpaper_type->is_blurred_, wallpaper_type->is_moving_, dark_theme_brightness);
+      return BackgroundType(wallpaper_type->is_blurred_, wallpaper_type->is_moving_, dark_theme_dimming);
     }
     case td_api::backgroundTypePattern::ID: {
       auto pattern_type = static_cast<const td_api::backgroundTypePattern *>(background_type);
@@ -364,7 +361,7 @@ Result<BackgroundType> BackgroundType::get_background_type(const td_api::Backgro
     case td_api::backgroundTypeFill::ID: {
       auto fill_type = static_cast<const td_api::backgroundTypeFill *>(background_type);
       TRY_RESULT(background_fill, BackgroundFill::get_background_fill(fill_type->fill_.get()));
-      return BackgroundType(std::move(background_fill), dark_theme_brightness);
+      return BackgroundType(std::move(background_fill), dark_theme_dimming);
     }
     default:
       UNREACHABLE();

@@ -2803,10 +2803,10 @@ class CliClient final : public Actor {
       ChatId chat_id;
       InputBackground input_background;
       BackgroundType background_type;
-      int32 dark_theme_brightness;
-      get_args(args, chat_id, input_background, background_type, dark_theme_brightness);
+      int32 dark_theme_dimming;
+      get_args(args, chat_id, input_background, background_type, dark_theme_dimming);
       send_request(td_api::make_object<td_api::setChatBackground>(chat_id, input_background, background_type,
-                                                                  dark_theme_brightness));
+                                                                  dark_theme_dimming));
     } else if (op == "gcos") {
       send_request(td_api::make_object<td_api::getCountries>());
     } else if (op == "gcoc") {

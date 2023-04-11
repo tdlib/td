@@ -518,8 +518,8 @@ background id:int64 is_default:Bool is_dark:Bool name:string document:document t
 //@description Contains a list of backgrounds @backgrounds A list of backgrounds
 backgrounds backgrounds:vector<background> = Backgrounds;
 
-//@description Describes a background set for a specific chat @background The background @dark_theme_brightness Brightness of the background in dark themes, as a percentage; 1-100
-chatBackground background:background dark_theme_brightness:int32 = ChatBackground;
+//@description Describes a background set for a specific chat @background The background @dark_theme_dimming Dimmin of the background in dark themes, as a percentage; 0-100
+chatBackground background:background dark_theme_dimming:int32 = ChatBackground;
 
 
 //@description Describes a user profile photo
@@ -6907,8 +6907,8 @@ setChatPermissions chat_id:int53 permissions:chatPermissions = Ok;
 //@chat_id Chat identifier
 //@background The input background to use; pass null to create a new filled background or to remove the current background
 //@type Background type; pass null to remove the current background
-//@dark_theme_brightness Brightness of the background in dark themes, as a percentage; 1-100
-setChatBackground chat_id:int53 background:InputBackground type:BackgroundType dark_theme_brightness:int32 = Ok;
+//@dark_theme_dimming Dimming of the background in dark themes, as a percentage; 0-100
+setChatBackground chat_id:int53 background:InputBackground type:BackgroundType dark_theme_dimming:int32 = Ok;
 
 //@description Changes the chat theme. Supported only in private and secret chats @chat_id Chat identifier @theme_name Name of the new chat theme; pass an empty string to return the default theme
 setChatTheme chat_id:int53 theme_name:string = Ok;

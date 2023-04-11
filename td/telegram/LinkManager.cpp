@@ -2298,7 +2298,7 @@ Result<string> LinkManager::get_background_url(const string &name,
   if (background_type == nullptr) {
     return Status::Error(400, "Type must be non-empty");
   }
-  TRY_RESULT(type, BackgroundType::get_background_type(background_type.get(), 100));
+  TRY_RESULT(type, BackgroundType::get_background_type(background_type.get(), 0));
   auto url = PSTRING() << get_t_me_url() << "bg/";
   auto link = type.get_link();
   if (type.has_file()) {

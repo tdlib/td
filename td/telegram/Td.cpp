@@ -6243,7 +6243,7 @@ void Td::on_request(uint64 id, td_api::setChatBackground &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   background_manager_->set_dialog_background(DialogId(request.chat_id_), request.background_.get(), request.type_.get(),
-                                             request.dark_theme_brightness_, std::move(promise));
+                                             request.dark_theme_dimming_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setChatTheme &request) {

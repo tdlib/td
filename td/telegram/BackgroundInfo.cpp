@@ -27,8 +27,7 @@ td_api::object_ptr<td_api::chatBackground> BackgroundInfo::get_chat_background_o
   if (background == nullptr) {
     return nullptr;
   }
-  return td_api::make_object<td_api::chatBackground>(std::move(background),
-                                                     background_type_.get_dark_theme_brightness());
+  return td_api::make_object<td_api::chatBackground>(std::move(background), background_type_.get_dark_theme_dimming());
 }
 
 }  // namespace td
