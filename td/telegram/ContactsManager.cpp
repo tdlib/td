@@ -10215,8 +10215,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
       can_join_groups != u->can_join_groups || can_read_all_group_messages != u->can_read_all_group_messages ||
       restriction_reasons != u->restriction_reasons || is_scam != u->is_scam || is_fake != u->is_fake ||
       is_inline_bot != u->is_inline_bot || inline_query_placeholder != u->inline_query_placeholder ||
-      need_location_bot != u->need_location_bot || can_be_added_to_attach_menu != u->can_be_added_to_attach_menu ||
-      attach_menu_enabled != u->attach_menu_enabled) {
+      need_location_bot != u->need_location_bot || can_be_added_to_attach_menu != u->can_be_added_to_attach_menu) {
     if (is_bot != u->is_bot) {
       LOG_IF(ERROR, !is_deleted && !u->is_deleted && u->is_received)
           << "User.is_bot has changed for " << user_id << "/" << u->usernames << " from " << source << " from "
@@ -10240,8 +10239,16 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     LOG(DEBUG) << "Info has changed for " << user_id;
     u->is_changed = true;
   }
-  if (is_premium != u->is_premium || can_be_edited_bot != u->can_be_edited_bot) {
+  if (is_received && attach_menu_enabled != u->attach_menu_enabled) {
+    u->attach_menu_enabled = attach_menu_enabled;
+    u->is_changed = true;
+  }
+  if (is_premium != u->is_premium) {
     u->is_premium = is_premium;
+    u->is_changed = true;
+    u->is_full_info_changed = true;
+  }
+  if (is_received && can_be_edited_bot != u->can_be_edited_bot) {
     u->can_be_edited_bot = can_be_edited_bot;
     u->is_changed = true;
     u->is_full_info_changed = true;
