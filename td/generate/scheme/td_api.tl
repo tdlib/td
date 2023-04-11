@@ -6875,11 +6875,8 @@ addChatFolderByInviteLink invite_link:string chat_ids:vector<int53> = Ok;
 //@description Returns new chats added to a shareable chat folder by its owner. The method must be called at most once in getOption("chat_folder_new_chats_update_period") for the given chat folder @chat_folder_id Chat folder identifier
 getChatFolderNewChats chat_folder_id:int32 = Chats;
 
-//@description Adds new chats added to a shareable chat folder by its owner to the user's chat folder @chat_folder_id Chat folder identifier @chat_ids Identifiers of the new chats added to the chat folder. The chats are automatically joined if they aren't joined yet
-addChatFolderNewChats chat_folder_id:int32 chat_ids:vector<int53> = Ok;
-
-//@description Hides new chats added to a shareable chat folder by its owner, so they aren't received next time @chat_folder_id Chat folder identifier
-hideChatFolderNewChats chat_folder_id:int32 = Ok;
+//@description Process new chats added to a shareable chat folder by its owner @chat_folder_id Chat folder identifier @added_chat_ids Identifiers of the new chats, which are added to the chat folder. The chats are automatically joined if they aren't joined yet
+processChatFolderNewChats chat_folder_id:int32 added_chat_ids:vector<int53> = Ok;
 
 
 //@description Changes the chat title. Supported only for basic groups, supergroups and channels. Requires can_change_info administrator right

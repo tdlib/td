@@ -943,9 +943,7 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::getChatFolderNewChats &request);
 
-  void on_request(uint64 id, const td_api::addChatFolderNewChats &request);
-
-  void on_request(uint64 id, const td_api::hideChatFolderNewChats &request);
+  void on_request(uint64 id, const td_api::processChatFolderNewChats &request);
 
   void on_request(uint64 id, td_api::setChatTitle &request);
 
