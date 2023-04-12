@@ -7629,7 +7629,7 @@ void MessagesManager::on_dialog_action(DialogId dialog_id, MessageId top_thread_
     const Dialog *d = get_dialog_force(dialog_id, "on_dialog_action");
     if (d != nullptr && d->active_group_call_id.is_valid()) {
       auto group_call_id = td_->group_call_manager_->get_group_call_id(d->active_group_call_id, dialog_id);
-      td_->group_call_manager_->on_user_speaking_in_group_call(group_call_id, typing_dialog_id, date);
+      td_->group_call_manager_->on_user_speaking_in_group_call(group_call_id, typing_dialog_id, false, date);
     }
     return;
   }

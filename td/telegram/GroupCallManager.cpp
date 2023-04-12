@@ -1093,7 +1093,7 @@ void GroupCallManager::on_send_speaking_action_timeout(GroupCallId group_call_id
   }
 
   CHECK(group_call->as_dialog_id.is_valid());
-  on_user_speaking_in_group_call(group_call_id, group_call->as_dialog_id, G()->unix_time());
+  on_user_speaking_in_group_call(group_call_id, group_call->as_dialog_id, false, G()->unix_time());
 
   pending_send_speaking_action_timeout_.add_timeout_in(group_call_id.get(), 4.0);
 
@@ -3700,7 +3700,7 @@ void GroupCallManager::set_group_call_participant_is_speaking(GroupCallId group_
   }
 
   if (is_speaking) {
-    on_user_speaking_in_group_call(group_call_id, dialog_id, date, is_recursive);
+    on_user_speaking_in_group_call(group_call_id, dialog_id, date, false, is_recursive);
   }
 
   if (group_call->audio_source == audio_source && group_call->dialog_id.is_valid() &&
@@ -4500,11 +4500,12 @@ void GroupCallManager::on_participant_speaking_in_group_call(InputGroupCallId in
     return;
   }
 
-  on_user_speaking_in_group_call(group_call->group_call_id, participant.dialog_id, active_date, !participant.is_min);
+  on_user_speaking_in_group_call(group_call->group_call_id, participant.dialog_id, participant.server_is_muted_by_admin,
+                                 active_date, !participant.is_min);
 }
 
-void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id, DialogId dialog_id, int32 date,
-                                                      bool is_recursive) {
+void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id, DialogId dialog_id,
+                                                      bool is_muted_by_admin, int32 date, bool is_recursive) {
   if (G()->close_flag()) {
     return;
   }
@@ -4518,6 +4519,9 @@ void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id,
   if (group_call != nullptr && group_call->is_inited && !group_call->is_active) {
     return;
   }
+  if (group_call->has_hidden_listeners && is_muted_by_admin) {
+    return;
+  }
 
   if (!td_->messages_manager_->have_dialog_info_force(dialog_id) ||
       (!is_recursive && need_group_call_participants(input_group_call_id, group_call) &&
@@ -4525,11 +4529,11 @@ void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id,
     if (is_recursive) {
       LOG(ERROR) << "Failed to find speaking " << dialog_id << " from " << input_group_call_id;
     } else {
-      auto query_promise =
-          PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, dialog_id, date](Result<Unit> &&result) {
+      auto query_promise = PromiseCreator::lambda(
+          [actor_id = actor_id(this), group_call_id, dialog_id, is_muted_by_admin, date](Result<Unit> &&result) {
             if (!G()->close_flag() && result.is_ok()) {
-              send_closure(actor_id, &GroupCallManager::on_user_speaking_in_group_call, group_call_id, dialog_id, date,
-                           true);
+              send_closure(actor_id, &GroupCallManager::on_user_speaking_in_group_call, group_call_id, dialog_id,
+                           is_muted_by_admin, date, true);
             }
           });
       vector<tl_object_ptr<telegram_api::InputPeer>> input_peers;

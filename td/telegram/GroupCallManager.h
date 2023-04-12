@@ -128,7 +128,7 @@ class GroupCallManager final : public Actor {
 
   void on_update_group_call(tl_object_ptr<telegram_api::GroupCall> group_call_ptr, DialogId dialog_id);
 
-  void on_user_speaking_in_group_call(GroupCallId group_call_id, DialogId dialog_id, int32 date,
+  void on_user_speaking_in_group_call(GroupCallId group_call_id, DialogId dialog_id, bool is_muted_by_admin, int32 date,
                                       bool is_recursive = false);
 
   void on_get_group_call_participants(InputGroupCallId input_group_call_id,
