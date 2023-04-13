@@ -101,6 +101,8 @@ class GetBackgroundsQuery final : public Td::ResultHandler {
 
 class SetChatWallPaperQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
+  DialogId dialog_id_;
+  bool is_remove_ = false;
 
  public:
   explicit SetChatWallPaperQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
@@ -108,6 +110,12 @@ class SetChatWallPaperQuery final : public Td::ResultHandler {
 
   void send(DialogId dialog_id, telegram_api::object_ptr<telegram_api::InputWallPaper> input_wallpaper,
             telegram_api::object_ptr<telegram_api::wallPaperSettings> settings, MessageId old_message_id) {
+    dialog_id_ = dialog_id;
+    is_remove_ = input_wallpaper == nullptr && settings == nullptr;
+    if (is_remove_) {
+      td_->messages_manager_->on_update_dialog_background(dialog_id_, nullptr);
+    }
+
     int32 flags = 0;
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
@@ -135,10 +143,16 @@ class SetChatWallPaperQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for SetChatWallPaperQuery: " << to_string(ptr);
+    if (is_remove_) {
+      td_->messages_manager_->on_update_dialog_background(dialog_id_, nullptr);
+    }
     td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(Status status) final {
+    if (is_remove_) {
+      td_->messages_manager_->reload_dialog_info_full(dialog_id_, "SetChatWallPaperQuery");
+    }
     promise_.set_error(std::move(status));
   }
 };
