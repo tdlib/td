@@ -24843,9 +24843,7 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, const
     td_->contacts_manager_->add_min_channel(replier_min_channel.first, replier_min_channel.second);
   }
   for (auto recent_replier_dialog_id : m->reply_info.recent_replier_dialog_ids_) {
-    // don't load the dialog itself
-    // it will be created in get_message_reply_info_object if needed
-    dependencies.add_dialog_dependencies(recent_replier_dialog_id);
+    dependencies.add_message_sender_dependencies(recent_replier_dialog_id);
   }
   if (m->reactions != nullptr) {
     m->reactions->add_min_channels(td_);
@@ -40001,10 +39999,8 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
         auto dialog_id = log_event.dialog_id_;
         Dependencies dependencies;
-        dependencies.add_dialog_dependencies(dialog_id);
+        dependencies.add_dialog_and_dependencies(dialog_id);
         dependencies.resolve_force(td_, "RegetDialogLogEvent");
-
-        get_dialog_force(dialog_id, "RegetDialogLogEvent");  // load it if exists
 
         if (!have_input_peer(dialog_id, AccessRights::Read)) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);

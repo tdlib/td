@@ -824,9 +824,7 @@ void MessageReactions::add_dependencies(Dependencies &dependencies) const {
   for (const auto &reaction : reactions_) {
     const auto &dialog_ids = reaction.get_recent_chooser_dialog_ids();
     for (auto dialog_id : dialog_ids) {
-      // don't load the dialog itself
-      // it will be created in get_message_reaction_object if needed
-      dependencies.add_dialog_dependencies(dialog_id);
+      dependencies.add_message_sender_dependencies(dialog_id);
     }
   }
 }
