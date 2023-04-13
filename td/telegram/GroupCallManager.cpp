@@ -1846,7 +1846,9 @@ void GroupCallManager::on_update_group_call_participants(
       td_->messages_manager_->force_create_dialog(dialog_id, "on_update_group_call_participants 2", true);
     }
 
-    if (GroupCallParticipant::is_versioned_update(group_call_participant)) {
+    bool is_versioned = GroupCallParticipant::is_versioned_update(group_call_participant);
+    LOG(INFO) << "Add " << (is_versioned ? "versioned" : "muted") << " update for " << participant;
+    if (is_versioned) {
       pending_version_updates[dialog_id] = td::make_unique<GroupCallParticipant>(std::move(participant));
     } else {
       pending_mute_updates[dialog_id] = td::make_unique<GroupCallParticipant>(std::move(participant));
@@ -1927,7 +1929,10 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
       for (auto &participant_it : participants) {
         auto &participant = *participant_it.second;
         if (participant.is_self && group_call->is_joined &&
-            (participant.joined_date == 0) == (participant.audio_source == group_call->audio_source)) {
+            (participant.joined_date == 0) ==
+                is_my_audio_source(input_group_call_id, group_call, participant.audio_source)) {
+          LOG(INFO) << "Leaving " << input_group_call_id << " after processing update with joined date "
+                    << participant.joined_date;
           is_left = true;
           if (participant.joined_date != 0) {
             need_rejoin = false;
@@ -1975,6 +1980,17 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
   }
 
   return need_update;
+}
+
+bool GroupCallManager::is_my_audio_source(InputGroupCallId input_group_call_id, const GroupCall *group_call,
+                                          int32 audio_source) {
+  auto it = pending_join_requests_.find(input_group_call_id);
+  if (it == pending_join_requests_.end()) {
+    return audio_source == group_call->audio_source;
+  }
+  CHECK(it->second != nullptr);
+
+  return audio_source == it->second->audio_source;
 }
 
 void GroupCallManager::sync_group_call_participants(InputGroupCallId input_group_call_id) {
@@ -2293,6 +2309,12 @@ std::pair<int32, int32> GroupCallManager::process_group_call_participant(InputGr
       LOG(INFO) << "Edit " << old_participant << " to " << participant;
       if (old_participant != participant && (old_participant.order.is_valid() || participant.order.is_valid())) {
         send_update_group_call_participant(input_group_call_id, participant, "process_group_call_participant edit");
+        if (old_participant.dialog_id != participant.dialog_id) {
+          // delete old self-participant; shouldn't affect correct apps
+          old_participant.order = GroupCallParticipantOrder();
+          send_update_group_call_participant(input_group_call_id, old_participant,
+                                             "process_group_call_participant edit self");
+        }
       }
       on_participant_speaking_in_group_call(input_group_call_id, participant);
       int32 unmuted_video_diff = participant.get_has_video() - old_participant.get_has_video();

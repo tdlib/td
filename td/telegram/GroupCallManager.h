@@ -239,6 +239,8 @@ class GroupCallManager final : public Actor {
 
   bool process_pending_group_call_participant_updates(InputGroupCallId input_group_call_id);
 
+  bool is_my_audio_source(InputGroupCallId input_group_call_id, const GroupCall *group_call, int32 audio_source);
+
   void sync_group_call_participants(InputGroupCallId input_group_call_id);
 
   void on_sync_group_call_participants(InputGroupCallId input_group_call_id,
