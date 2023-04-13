@@ -354,7 +354,8 @@ td_api::object_ptr<td_api::updateActiveNotifications> NotificationManager::get_u
       std::reverse(notifications.begin(), notifications.end());
       groups.push_back(td_api::make_object<td_api::notificationGroup>(
           group.first.group_id.get(), get_notification_group_type_object(group.second.type),
-          group.first.dialog_id.get(), group.second.total_count, std::move(notifications)));
+          td_->messages_manager_->get_chat_id_object(group.first.dialog_id, "updateActiveNotifications"),
+          group.second.total_count, std::move(notifications)));
     }
   }
 
@@ -713,7 +714,8 @@ void NotificationManager::add_notifications_to_group_begin(NotificationGroups::i
 
     if (!added_notifications.empty()) {
       add_update_notification_group(td_api::make_object<td_api::updateNotificationGroup>(
-          group_key.group_id.get(), get_notification_group_type_object(group.type), group_key.dialog_id.get(), 0, 0,
+          group_key.group_id.get(), get_notification_group_type_object(group.type),
+          td_->messages_manager_->get_chat_id_object(group_key.dialog_id, "updateNotificationGroup"), 0, 0,
           group.total_count, std::move(added_notifications), vector<int32>()));
     }
   }
@@ -1437,9 +1439,12 @@ bool NotificationManager::do_flush_pending_notifications(NotificationGroupKey &g
 
   if (!added_notifications.empty()) {
     add_update_notification_group(td_api::make_object<td_api::updateNotificationGroup>(
-        group_key.group_id.get(), get_notification_group_type_object(group.type), group_key.dialog_id.get(),
-        pending_notifications[0].settings_dialog_id.get(), pending_notifications[0].ringtone_id, group.total_count,
-        std::move(added_notifications), std::move(removed_notification_ids)));
+        group_key.group_id.get(), get_notification_group_type_object(group.type),
+        td_->messages_manager_->get_chat_id_object(group_key.dialog_id, "updateNotificationGroup 2"),
+        td_->messages_manager_->get_chat_id_object(pending_notifications[0].settings_dialog_id,
+                                                   "updateNotificationGroup 3"),
+        pending_notifications[0].ringtone_id, group.total_count, std::move(added_notifications),
+        std::move(removed_notification_ids)));
   } else {
     CHECK(removed_notification_ids.empty());
   }
@@ -1462,9 +1467,10 @@ td_api::object_ptr<td_api::updateNotificationGroup> NotificationManager::get_rem
     return nullptr;
   }
   return td_api::make_object<td_api::updateNotificationGroup>(
-      group_key.group_id.get(), get_notification_group_type_object(group.type), group_key.dialog_id.get(),
-      group_key.dialog_id.get(), 0, group.total_count, vector<td_api::object_ptr<td_api::notification>>(),
-      std::move(removed_notification_ids));
+      group_key.group_id.get(), get_notification_group_type_object(group.type),
+      td_->messages_manager_->get_chat_id_object(group_key.dialog_id, "updateNotificationGroup 4"),
+      td_->messages_manager_->get_chat_id_object(group_key.dialog_id, "updateNotificationGroup 10"), 0,
+      group.total_count, vector<td_api::object_ptr<td_api::notification>>(), std::move(removed_notification_ids));
 }
 
 void NotificationManager::send_remove_group_update(const NotificationGroupKey &group_key,
@@ -1493,7 +1499,8 @@ void NotificationManager::send_add_group_update(const NotificationGroupKey &grou
 
   if (!added_notifications.empty()) {
     add_update_notification_group(td_api::make_object<td_api::updateNotificationGroup>(
-        group_key.group_id.get(), get_notification_group_type_object(group.type), group_key.dialog_id.get(), 0, 0,
+        group_key.group_id.get(), get_notification_group_type_object(group.type),
+        td_->messages_manager_->get_chat_id_object(group_key.dialog_id, "updateNotificationGroup 5"), 0, 0,
         group.total_count, std::move(added_notifications), vector<int32>()));
   }
 }
@@ -1748,7 +1755,8 @@ void NotificationManager::on_notifications_removed(
     if (final_group_key.last_notification_date == 0 && group.total_count == 0) {
       // send update about empty invisible group anyway
       add_update_notification_group(td_api::make_object<td_api::updateNotificationGroup>(
-          group_key.group_id.get(), get_notification_group_type_object(group.type), group_key.dialog_id.get(), 0, 0, 0,
+          group_key.group_id.get(), get_notification_group_type_object(group.type),
+          td_->messages_manager_->get_chat_id_object(group_key.dialog_id, "updateNotificationGroup 6"), 0, 0, 0,
           vector<td_api::object_ptr<td_api::notification>>(), vector<int32>()));
     } else {
       VLOG(notifications) << "There is no need to send updateNotificationGroup about " << group_key.group_id;
@@ -1757,7 +1765,8 @@ void NotificationManager::on_notifications_removed(
     if (is_updated) {
       // group is still visible
       add_update_notification_group(td_api::make_object<td_api::updateNotificationGroup>(
-          group_key.group_id.get(), get_notification_group_type_object(group.type), group_key.dialog_id.get(), 0, 0,
+          group_key.group_id.get(), get_notification_group_type_object(group.type),
+          td_->messages_manager_->get_chat_id_object(group_key.dialog_id, "updateNotificationGroup 7"), 0, 0,
           group.total_count, std::move(added_notifications), std::move(removed_notification_ids)));
     } else {
       // group needs to be removed
@@ -2534,9 +2543,10 @@ void NotificationManager::on_notification_group_size_max_changed() {
       }
       if (!is_destroyed_) {
         auto update = td_api::make_object<td_api::updateNotificationGroup>(
-            group_key.group_id.get(), get_notification_group_type_object(group.type), group_key.dialog_id.get(),
-            group_key.dialog_id.get(), 0, group.total_count, std::move(added_notifications),
-            std::move(removed_notification_ids));
+            group_key.group_id.get(), get_notification_group_type_object(group.type),
+            td_->messages_manager_->get_chat_id_object(group_key.dialog_id, "updateNotificationGroup 8"),
+            td_->messages_manager_->get_chat_id_object(group_key.dialog_id, "updateNotificationGroup 9"), 0,
+            group.total_count, std::move(added_notifications), std::move(removed_notification_ids));
         VLOG(notifications) << "Send " << as_notification_update(update.get());
         send_closure(G()->td(), &Td::send_update, std::move(update));
       }

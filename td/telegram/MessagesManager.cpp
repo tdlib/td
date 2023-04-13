@@ -7427,8 +7427,9 @@ bool MessagesManager::update_message_contains_unread_mention(Dialog *d, Message 
               << " by reading " << m->message_id << " from " << source;
 
     send_closure(G()->td(), &Td::send_update,
-                 make_tl_object<td_api::updateMessageMentionRead>(d->dialog_id.get(), m->message_id.get(),
-                                                                  d->unread_mention_count));
+                 td_api::make_object<td_api::updateMessageMentionRead>(
+                     get_chat_id_object(d->dialog_id, "updateMessageMentionRead"), m->message_id.get(),
+                     d->unread_mention_count));
     return true;
   }
   return false;
@@ -8178,8 +8179,9 @@ bool MessagesManager::update_dialog_notification_settings(DialogId dialog_id,
 
     if (need_update.need_update_server || need_update.need_update_local) {
       send_closure(G()->td(), &Td::send_update,
-                   make_tl_object<td_api::updateChatNotificationSettings>(
-                       dialog_id.get(), get_chat_notification_settings_object(current_settings)));
+                   td_api::make_object<td_api::updateChatNotificationSettings>(
+                       get_chat_id_object(dialog_id, "updateChatNotificationSettings"),
+                       get_chat_notification_settings_object(current_settings)));
     }
   }
   return need_update.need_update_server;
@@ -8345,8 +8347,9 @@ void MessagesManager::on_dialog_unmute(DialogId dialog_id) {
   update_dialog_unmute_timeout(d, d->notification_settings.use_default_mute_until, d->notification_settings.mute_until,
                                false, 0);
   send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateChatNotificationSettings>(
-                   dialog_id.get(), get_chat_notification_settings_object(&d->notification_settings)));
+               td_api::make_object<td_api::updateChatNotificationSettings>(
+                   get_chat_id_object(dialog_id, "updateChatNotificationSettings 2"),
+                   get_chat_notification_settings_object(&d->notification_settings)));
   on_dialog_updated(dialog_id, "on_dialog_unmute");
 }
 
@@ -8676,7 +8679,8 @@ bool MessagesManager::update_dialog_silent_send_message(Dialog *d, bool silent_s
   on_dialog_updated(d->dialog_id, "update_dialog_silent_send_message");
 
   send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateChatDefaultDisableNotification>(d->dialog_id.get(), silent_send_message));
+               td_api::make_object<td_api::updateChatDefaultDisableNotification>(
+                   get_chat_id_object(d->dialog_id, "updateChatDefaultDisableNotification"), silent_send_message));
   return true;
 }
 
@@ -10816,7 +10820,8 @@ bool MessagesManager::update_message_is_pinned(Dialog *d, Message *m, bool is_pi
   update_message_count_by_index(d, +1, new_index_mask & ~old_index_mask);
 
   send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateMessageIsPinned>(d->dialog_id.get(), m->message_id.get(), is_pinned));
+               td_api::make_object<td_api::updateMessageIsPinned>(
+                   get_chat_id_object(d->dialog_id, "updateMessageIsPinned"), m->message_id.get(), is_pinned));
   if (is_pinned) {
     if (d->is_last_pinned_message_id_inited && m->message_id > d->last_pinned_message_id) {
       set_dialog_last_pinned_message_id(d, m->message_id);
@@ -11958,7 +11963,8 @@ void MessagesManager::unload_dialog(DialogId dialog_id) {
   if (!unloaded_message_ids.empty()) {
     send_closure_later(
         G()->td(), &Td::send_update,
-        make_tl_object<td_api::updateDeleteMessages>(dialog_id.get(), std::move(unloaded_message_ids), false, true));
+        td_api::make_object<td_api::updateDeleteMessages>(get_chat_id_object(dialog_id, "updateDeleteMessages"),
+                                                          std::move(unloaded_message_ids), false, true));
   }
 
   if (has_left_to_unload_messages) {
@@ -12146,7 +12152,8 @@ void MessagesManager::read_all_dialog_mentions(DialogId dialog_id, MessageId top
     m->contains_unread_mention = false;
 
     send_closure(G()->td(), &Td::send_update,
-                 make_tl_object<td_api::updateMessageMentionRead>(dialog_id.get(), m->message_id.get(), 0));
+                 td_api::make_object<td_api::updateMessageMentionRead>(
+                     get_chat_id_object(dialog_id, "updateMessageMentionRead"), m->message_id.get(), 0));
     is_update_sent = true;
     on_message_changed(d, m, true, "read_all_dialog_mentions");
   }
@@ -12357,7 +12364,8 @@ bool MessagesManager::read_message_content(Dialog *d, Message *m, bool is_local_
     on_message_changed(d, m, true, "read_message_content");
     if (is_content_read) {
       send_closure(G()->td(), &Td::send_update,
-                   make_tl_object<td_api::updateMessageContentOpened>(d->dialog_id.get(), m->message_id.get()));
+                   td_api::make_object<td_api::updateMessageContentOpened>(
+                       get_chat_id_object(d->dialog_id, "updateMessageContentOpened"), m->message_id.get()));
     }
     return true;
   }
@@ -15315,7 +15323,8 @@ void MessagesManager::set_dialog_reply_markup(Dialog *d, MessageId message_id) {
     LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in set_dialog_reply_markup";
     d->reply_markup_message_id = message_id;
     send_closure(G()->td(), &Td::send_update,
-                 make_tl_object<td_api::updateChatReplyMarkup>(d->dialog_id.get(), message_id.get()));
+                 td_api::make_object<td_api::updateChatReplyMarkup>(
+                     get_chat_id_object(d->dialog_id, "updateChatReplyMarkup"), message_id.get()));
   }
 }
 
@@ -18086,9 +18095,9 @@ td_api::object_ptr<td_api::messageThreadInfo> MessagesManager::get_message_threa
       }
     }
   }
-  return td_api::make_object<td_api::messageThreadInfo>(d->dialog_id.get(), top_thread_message_id.get(),
-                                                        std::move(reply_info), info.unread_message_count,
-                                                        std::move(messages), std::move(draft_message));
+  return td_api::make_object<td_api::messageThreadInfo>(
+      get_chat_id_object(d->dialog_id, "messageThreadInfo"), top_thread_message_id.get(), std::move(reply_info),
+      info.unread_message_count, std::move(messages), std::move(draft_message));
 }
 
 Status MessagesManager::can_get_message_viewers(FullMessageId full_message_id) {
@@ -18912,8 +18921,9 @@ td_api::object_ptr<td_api::messageLinkInfo> MessagesManager::get_message_link_in
     }
   }
 
-  return td_api::make_object<td_api::messageLinkInfo>(is_public, dialog_id.get(), top_thread_message_id.get(),
-                                                      std::move(message), media_timestamp, for_album);
+  return td_api::make_object<td_api::messageLinkInfo>(is_public, get_chat_id_object(dialog_id, "messageLinkInfo"),
+                                                      top_thread_message_id.get(), std::move(message), media_timestamp,
+                                                      for_album);
 }
 
 InputDialogId MessagesManager::get_input_dialog_id(DialogId dialog_id) const {
@@ -20582,6 +20592,18 @@ void MessagesManager::close_dialog(Dialog *d) {
     }
     update_dialog_online_member_count_timeout_.set_timeout_in(dialog_id.get(), ONLINE_MEMBER_COUNT_CACHE_EXPIRE_TIME);
   }
+}
+
+int64 MessagesManager::get_chat_id_object(DialogId dialog_id, const char *source) const {
+  const Dialog *d = get_dialog(dialog_id);
+  if (d == nullptr) {
+    if (dialog_id != DialogId()) {
+      LOG(ERROR) << "Can't find " << dialog_id << ", needed from " << source;
+    }
+  } else if (!d->is_update_new_chat_sent && !d->is_update_new_chat_being_sent) {
+    LOG(ERROR) << "Didn't send updateNewChat for " << dialog_id << ", needed from " << source;
+  }
+  return dialog_id.get();
 }
 
 td_api::object_ptr<td_api::ChatType> MessagesManager::get_chat_type_object(DialogId dialog_id) const {
@@ -24188,11 +24210,12 @@ td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_messag
   auto content = get_message_content_object(m->content.get(), td_, dialog_id, 0, false, true,
                                             get_message_own_max_media_timestamp(m));
   return td_api::make_object<td_api::message>(
-      m->message_id.get(), std::move(sender), dialog_id.get(), nullptr, nullptr, m->is_outgoing, m->is_pinned, false,
-      false, can_be_saved, false, false, false, false, false, false, false, false, true, m->is_channel_post,
-      m->is_topic_message, false, m->date, edit_date, std::move(forward_info), std::move(interaction_info), Auto(), 0,
-      0, 0, 0, 0.0, 0.0, via_bot_user_id, m->author_signature, 0,
-      get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
+      m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_dialog_event_log_message_object"),
+      nullptr, nullptr, m->is_outgoing, m->is_pinned, false, false, can_be_saved, false, false, false, false, false,
+      false, false, false, true, m->is_channel_post, m->is_topic_message, false, m->date, edit_date,
+      std::move(forward_info), std::move(interaction_info), Auto(), 0, 0, 0, 0, 0.0, 0.0, via_bot_user_id,
+      m->author_signature, 0, get_restriction_reason_description(m->restriction_reasons), std::move(content),
+      std::move(reply_markup));
 }
 
 tl_object_ptr<td_api::message> MessagesManager::get_message_object(FullMessageId full_message_id, const char *source) {
@@ -24285,15 +24308,15 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   }
 
   return td_api::make_object<td_api::message>(
-      m->message_id.get(), std::move(sender), dialog_id.get(), std::move(sending_state), std::move(scheduling_state),
-      is_outgoing, is_pinned, can_be_edited, can_be_forwarded, can_be_saved, can_delete_for_self,
-      can_delete_for_all_users, can_get_added_reactions, can_get_statistics, can_get_message_thread, can_get_viewers,
-      can_get_media_timestamp_links, can_report_reactions, has_timestamped_media, m->is_channel_post,
-      m->is_topic_message, m->contains_unread_mention, date, edit_date, std::move(forward_info),
-      std::move(interaction_info), std::move(unread_reactions), reply_in_dialog_id.get(), reply_to_message_id,
-      top_thread_message_id, m->ttl, ttl_expires_in, auto_delete_in, via_bot_user_id, m->author_signature,
-      m->media_album_id, get_restriction_reason_description(m->restriction_reasons), std::move(content),
-      std::move(reply_markup));
+      m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_message_object"),
+      std::move(sending_state), std::move(scheduling_state), is_outgoing, is_pinned, can_be_edited, can_be_forwarded,
+      can_be_saved, can_delete_for_self, can_delete_for_all_users, can_get_added_reactions, can_get_statistics,
+      can_get_message_thread, can_get_viewers, can_get_media_timestamp_links, can_report_reactions,
+      has_timestamped_media, m->is_channel_post, m->is_topic_message, m->contains_unread_mention, date, edit_date,
+      std::move(forward_info), std::move(interaction_info), std::move(unread_reactions),
+      get_chat_id_object(reply_in_dialog_id, "get_message_object reply"), reply_to_message_id, top_thread_message_id,
+      m->ttl, ttl_expires_in, auto_delete_in, via_bot_user_id, m->author_signature, m->media_album_id,
+      get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
 }
 
 tl_object_ptr<td_api::messages> MessagesManager::get_messages_object(int32 total_count, DialogId dialog_id,
@@ -27612,20 +27635,21 @@ td_api::object_ptr<td_api::messageForwardInfo> MessagesManager::get_message_forw
     }
     if (forward_info->message_id.is_valid()) {
       return td_api::make_object<td_api::messageForwardOriginChannel>(
-          forward_info->sender_dialog_id.get(), forward_info->message_id.get(), forward_info->author_signature);
+          get_chat_id_object(forward_info->sender_dialog_id, "messageForwardOriginChannel"),
+          forward_info->message_id.get(), forward_info->author_signature);
     }
     if (forward_info->sender_dialog_id.is_valid()) {
       return td_api::make_object<td_api::messageForwardOriginChat>(
-          forward_info->sender_dialog_id.get(),
+          get_chat_id_object(forward_info->sender_dialog_id, "messageForwardOriginChat"),
           forward_info->sender_name.empty() ? forward_info->author_signature : forward_info->sender_name);
     }
     return td_api::make_object<td_api::messageForwardOriginUser>(
         td_->contacts_manager_->get_user_id_object(forward_info->sender_user_id, "messageForwardOriginUser"));
   }();
 
-  return td_api::make_object<td_api::messageForwardInfo>(std::move(origin), forward_info->date, forward_info->psa_type,
-                                                         forward_info->from_dialog_id.get(),
-                                                         forward_info->from_message_id.get());
+  return td_api::make_object<td_api::messageForwardInfo>(
+      std::move(origin), forward_info->date, forward_info->psa_type,
+      get_chat_id_object(forward_info->from_dialog_id, "messageForwardInfo"), forward_info->from_message_id.get());
 }
 
 Result<unique_ptr<ReplyMarkup>> MessagesManager::get_dialog_reply_markup(
@@ -28869,7 +28893,7 @@ void MessagesManager::send_update_new_message(const Dialog *d, const Message *m)
   CHECK(d->is_update_new_chat_sent);
   send_closure(
       G()->td(), &Td::send_update,
-      make_tl_object<td_api::updateNewMessage>(get_message_object(d->dialog_id, m, "send_update_new_message")));
+      td_api::make_object<td_api::updateNewMessage>(get_message_object(d->dialog_id, m, "send_update_new_message")));
 }
 
 MessagesManager::NotificationGroupInfo &MessagesManager::get_notification_group_info(Dialog *d, bool from_mentions) {
@@ -30199,7 +30223,7 @@ void MessagesManager::send_update_message_send_succeeded(const Dialog *d, Messag
     yet_unsent_full_message_id_to_persistent_message_id_.emplace({d->dialog_id, old_message_id}, m->message_id);
   }
   send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateMessageSendSucceeded>(
+               td_api::make_object<td_api::updateMessageSendSucceeded>(
                    get_message_object(d->dialog_id, m, "send_update_message_send_succeeded"), old_message_id.get()));
 }
 
@@ -30228,8 +30252,8 @@ void MessagesManager::send_update_message_content_impl(DialogId dialog_id, const
                                                    m->is_content_secret, need_skip_bot_commands(dialog_id, m),
                                                    get_message_max_media_timestamp(m));
   send_closure(G()->td(), &Td::send_update,
-               td_api::make_object<td_api::updateMessageContent>(dialog_id.get(), m->message_id.get(),
-                                                                 std::move(content_object)));
+               td_api::make_object<td_api::updateMessageContent>(get_chat_id_object(dialog_id, "updateMessageContent"),
+                                                                 m->message_id.get(), std::move(content_object)));
 }
 
 void MessagesManager::send_update_message_edited(DialogId dialog_id, const Message *m) {
@@ -30237,8 +30261,8 @@ void MessagesManager::send_update_message_edited(DialogId dialog_id, const Messa
   cancel_dialog_action(dialog_id, m);
   auto edit_date = m->hide_edit_date ? 0 : m->edit_date;
   send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateMessageEdited>(
-                   dialog_id.get(), m->message_id.get(), edit_date,
+               td_api::make_object<td_api::updateMessageEdited>(
+                   get_chat_id_object(dialog_id, "updateMessageEdited"), m->message_id.get(), edit_date,
                    get_reply_markup_object(td_->contacts_manager_.get(), m->reply_markup)));
 }
 
@@ -30249,8 +30273,9 @@ void MessagesManager::send_update_message_interaction_info(DialogId dialog_id, c
   }
 
   send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateMessageInteractionInfo>(dialog_id.get(), m->message_id.get(),
-                                                                    get_message_interaction_info_object(dialog_id, m)));
+               td_api::make_object<td_api::updateMessageInteractionInfo>(
+                   get_chat_id_object(dialog_id, "updateMessageInteractionInfo"), m->message_id.get(),
+                   get_message_interaction_info_object(dialog_id, m)));
 }
 
 void MessagesManager::send_update_message_unread_reactions(DialogId dialog_id, const Message *m,
@@ -30262,14 +30287,15 @@ void MessagesManager::send_update_message_unread_reactions(DialogId dialog_id, c
   if (!m->is_update_sent) {
     LOG(INFO) << "Update unread reaction message count in " << dialog_id << " to " << unread_reaction_count;
     send_closure(G()->td(), &Td::send_update,
-                 make_tl_object<td_api::updateChatUnreadReactionCount>(dialog_id.get(), unread_reaction_count));
+                 td_api::make_object<td_api::updateChatUnreadReactionCount>(
+                     get_chat_id_object(dialog_id, "updateChatUnreadReactionCount"), unread_reaction_count));
     return;
   }
 
-  send_closure(
-      G()->td(), &Td::send_update,
-      make_tl_object<td_api::updateMessageUnreadReactions>(
-          dialog_id.get(), m->message_id.get(), get_unread_reactions_object(dialog_id, m), unread_reaction_count));
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateMessageUnreadReactions>(
+                   get_chat_id_object(dialog_id, "updateMessageUnreadReactions"), m->message_id.get(),
+                   get_unread_reactions_object(dialog_id, m), unread_reaction_count));
 }
 
 void MessagesManager::send_update_message_live_location_viewed(FullMessageId full_message_id) {
@@ -30286,9 +30312,9 @@ void MessagesManager::send_update_delete_messages(DialogId dialog_id, vector<int
   }
 
   LOG_CHECK(have_dialog(dialog_id)) << "Wrong " << dialog_id << " in send_update_delete_messages";
-  send_closure(
-      G()->td(), &Td::send_update,
-      make_tl_object<td_api::updateDeleteMessages>(dialog_id.get(), std::move(message_ids), is_permanent, false));
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateDeleteMessages>(get_chat_id_object(dialog_id, "updateDeleteMessages"),
+                                                                 std::move(message_ids), is_permanent, false));
 }
 
 void MessagesManager::send_update_new_chat(Dialog *d) {
@@ -30304,7 +30330,7 @@ void MessagesManager::send_update_new_chat(Dialog *d) {
   bool has_background = chat_object->background_ != nullptr;
   bool has_theme = !chat_object->theme_name_.empty();
   d->last_sent_has_scheduled_messages = chat_object->has_scheduled_messages_;
-  send_closure(G()->td(), &Td::send_update, make_tl_object<td_api::updateNewChat>(std::move(chat_object)));
+  send_closure(G()->td(), &Td::send_update, td_api::make_object<td_api::updateNewChat>(std::move(chat_object)));
   d->is_update_new_chat_sent = true;
   d->is_update_new_chat_being_sent = false;
 
@@ -30330,8 +30356,9 @@ void MessagesManager::send_update_chat_draft_message(const Dialog *d) {
   on_dialog_updated(d->dialog_id, "send_update_chat_draft_message");
   if (d->draft_message == nullptr || can_send_message(d->dialog_id).is_ok()) {
     send_closure(G()->td(), &Td::send_update,
-                 make_tl_object<td_api::updateChatDraftMessage>(
-                     d->dialog_id.get(), get_draft_message_object(d->draft_message), get_chat_positions_object(d)));
+                 td_api::make_object<td_api::updateChatDraftMessage>(
+                     get_chat_id_object(d->dialog_id, "updateChatDraftMessage"),
+                     get_draft_message_object(d->draft_message), get_chat_positions_object(d)));
   }
 }
 
@@ -30352,8 +30379,9 @@ void MessagesManager::send_update_chat_last_message_impl(const Dialog *d, const 
   const auto *m = get_message(d, d->last_message_id);
   auto message_object = get_message_object(d->dialog_id, m, "send_update_chat_last_message_impl");
   auto positions_object = get_chat_positions_object(d);
-  auto update = td_api::make_object<td_api::updateChatLastMessage>(d->dialog_id.get(), std::move(message_object),
-                                                                   std::move(positions_object));
+  auto update =
+      td_api::make_object<td_api::updateChatLastMessage>(get_chat_id_object(d->dialog_id, "updateChatLastMessage"),
+                                                         std::move(message_object), std::move(positions_object));
   send_closure(G()->td(), &Td::send_update, std::move(update));
 }
 
@@ -30480,8 +30508,9 @@ void MessagesManager::send_update_chat_read_inbox(const Dialog *d, bool force, c
     LOG(INFO) << "Send updateChatReadInbox in " << d->dialog_id << "(" << get_dialog_title(d->dialog_id) << ") to "
               << d->server_unread_count << " + " << d->local_unread_count << " from " << source;
     send_closure(G()->td(), &Td::send_update,
-                 make_tl_object<td_api::updateChatReadInbox>(d->dialog_id.get(), d->last_read_inbox_message_id.get(),
-                                                             d->server_unread_count + d->local_unread_count));
+                 td_api::make_object<td_api::updateChatReadInbox>(
+                     get_chat_id_object(d->dialog_id, "updateChatReadInbox"), d->last_read_inbox_message_id.get(),
+                     d->server_unread_count + d->local_unread_count));
   }
 }
 
@@ -30494,7 +30523,8 @@ void MessagesManager::send_update_chat_read_outbox(const Dialog *d) {
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_read_outbox";
   on_dialog_updated(d->dialog_id, "send_update_chat_read_outbox");
   send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateChatReadOutbox>(d->dialog_id.get(), d->last_read_outbox_message_id.get()));
+               td_api::make_object<td_api::updateChatReadOutbox>(
+                   get_chat_id_object(d->dialog_id, "updateChatReadOutbox"), d->last_read_outbox_message_id.get()));
 }
 
 void MessagesManager::send_update_chat_unread_mention_count(const Dialog *d) {
@@ -30507,7 +30537,8 @@ void MessagesManager::send_update_chat_unread_mention_count(const Dialog *d) {
   LOG(INFO) << "Update unread mention message count in " << d->dialog_id << " to " << d->unread_mention_count;
   on_dialog_updated(d->dialog_id, "send_update_chat_unread_mention_count");
   send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateChatUnreadMentionCount>(d->dialog_id.get(), d->unread_mention_count));
+               td_api::make_object<td_api::updateChatUnreadMentionCount>(
+                   get_chat_id_object(d->dialog_id, "updateChatUnreadMentionCount"), d->unread_mention_count));
 }
 
 void MessagesManager::send_update_chat_unread_reaction_count(const Dialog *d, const char *source) {
@@ -30521,9 +30552,9 @@ void MessagesManager::send_update_chat_unread_reaction_count(const Dialog *d, co
   LOG(INFO) << "Update unread reaction message count in " << d->dialog_id << " to " << d->unread_reaction_count
             << " from " << source;
   on_dialog_updated(d->dialog_id, "send_update_chat_unread_reaction_count");
-  send_closure(
-      G()->td(), &Td::send_update,
-      td_api::make_object<td_api::updateChatUnreadReactionCount>(d->dialog_id.get(), d->unread_reaction_count));
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateChatUnreadReactionCount>(
+                   get_chat_id_object(d->dialog_id, "updateChatUnreadReactionCount"), d->unread_reaction_count));
 }
 
 void MessagesManager::send_update_chat_position(DialogListId dialog_list_id, const Dialog *d,
@@ -30540,7 +30571,8 @@ void MessagesManager::send_update_chat_position(DialogListId dialog_list_id, con
     position = td_api::make_object<td_api::chatPosition>(dialog_list_id.get_chat_list_object(), 0, false, nullptr);
   }
   send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateChatPosition>(d->dialog_id.get(), std::move(position)));
+               td_api::make_object<td_api::updateChatPosition>(get_chat_id_object(d->dialog_id, "updateChatPosition"),
+                                                               std::move(position)));
 }
 
 void MessagesManager::send_update_chat_online_member_count(DialogId dialog_id, int32 online_member_count) const {
@@ -30549,7 +30581,8 @@ void MessagesManager::send_update_chat_online_member_count(DialogId dialog_id, i
   }
 
   send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateChatOnlineMemberCount>(dialog_id.get(), online_member_count));
+               td_api::make_object<td_api::updateChatOnlineMemberCount>(
+                   get_chat_id_object(dialog_id, "updateChatOnlineMemberCount"), online_member_count));
 }
 
 void MessagesManager::send_update_secret_chats_with_user_action_bar(const Dialog *d) const {
@@ -30566,9 +30599,9 @@ void MessagesManager::send_update_secret_chats_with_user_action_bar(const Dialog
         DialogId dialog_id(secret_chat_id);
         auto secret_chat_d = get_dialog(dialog_id);  // must not create the dialog
         if (secret_chat_d != nullptr && secret_chat_d->is_update_new_chat_sent) {
-          send_closure(
-              G()->td(), &Td::send_update,
-              td_api::make_object<td_api::updateChatActionBar>(dialog_id.get(), get_chat_action_bar_object(user_d)));
+          send_closure(G()->td(), &Td::send_update,
+                       td_api::make_object<td_api::updateChatActionBar>(
+                           get_chat_id_object(dialog_id, "updateChatActionBar"), get_chat_action_bar_object(user_d)));
         }
       });
 }
@@ -30585,7 +30618,8 @@ void MessagesManager::send_update_chat_action_bar(Dialog *d) {
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_action_bar";
   on_dialog_updated(d->dialog_id, "send_update_chat_action_bar");
   send_closure(G()->td(), &Td::send_update,
-               td_api::make_object<td_api::updateChatActionBar>(d->dialog_id.get(), get_chat_action_bar_object(d)));
+               td_api::make_object<td_api::updateChatActionBar>(get_chat_id_object(d->dialog_id, "updateChatActionBar"),
+                                                                get_chat_action_bar_object(d)));
 
   send_update_secret_chats_with_user_action_bar(d);
 }
@@ -30598,9 +30632,9 @@ void MessagesManager::send_update_chat_available_reactions(const Dialog *d) {
   CHECK(d != nullptr);
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_available_reactions";
   auto available_reactions = get_dialog_active_reactions(d).get_chat_available_reactions_object();
-  send_closure(
-      G()->td(), &Td::send_update,
-      td_api::make_object<td_api::updateChatAvailableReactions>(d->dialog_id.get(), std::move(available_reactions)));
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateChatAvailableReactions>(
+                   get_chat_id_object(d->dialog_id, "updateChatAvailableReactions"), std::move(available_reactions)));
 }
 
 void MessagesManager::send_update_secret_chats_with_user_background(const Dialog *d) const {
@@ -30617,9 +30651,9 @@ void MessagesManager::send_update_secret_chats_with_user_background(const Dialog
         DialogId dialog_id(secret_chat_id);
         auto secret_chat_d = get_dialog(dialog_id);  // must not create the dialog
         if (secret_chat_d != nullptr && secret_chat_d->is_update_new_chat_sent) {
-          send_closure(
-              G()->td(), &Td::send_update,
-              td_api::make_object<td_api::updateChatBackground>(dialog_id.get(), get_chat_background_object(user_d)));
+          send_closure(G()->td(), &Td::send_update,
+                       td_api::make_object<td_api::updateChatBackground>(
+                           get_chat_id_object(dialog_id, "updateChatBackground"), get_chat_background_object(user_d)));
         }
       });
 }
@@ -30634,7 +30668,8 @@ void MessagesManager::send_update_chat_background(const Dialog *d) {
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_background";
   on_dialog_updated(d->dialog_id, "send_update_chat_background");
   send_closure(G()->td(), &Td::send_update,
-               td_api::make_object<td_api::updateChatBackground>(d->dialog_id.get(), get_chat_background_object(d)));
+               td_api::make_object<td_api::updateChatBackground>(
+                   get_chat_id_object(d->dialog_id, "updateChatBackground"), get_chat_background_object(d)));
 
   send_update_secret_chats_with_user_background(d);
 }
@@ -30654,7 +30689,8 @@ void MessagesManager::send_update_secret_chats_with_user_theme(const Dialog *d) 
         auto secret_chat_d = get_dialog(dialog_id);  // must not create the dialog
         if (secret_chat_d != nullptr && secret_chat_d->is_update_new_chat_sent) {
           send_closure(G()->td(), &Td::send_update,
-                       td_api::make_object<td_api::updateChatTheme>(dialog_id.get(), user_d->theme_name));
+                       td_api::make_object<td_api::updateChatTheme>(get_chat_id_object(dialog_id, "updateChatTheme"),
+                                                                    user_d->theme_name));
         }
       });
 }
@@ -30668,8 +30704,9 @@ void MessagesManager::send_update_chat_theme(const Dialog *d) {
   CHECK(d->dialog_id.get_type() != DialogType::SecretChat);
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_theme";
   on_dialog_updated(d->dialog_id, "send_update_chat_theme");
-  send_closure(G()->td(), &Td::send_update,
-               td_api::make_object<td_api::updateChatTheme>(d->dialog_id.get(), d->theme_name));
+  send_closure(
+      G()->td(), &Td::send_update,
+      td_api::make_object<td_api::updateChatTheme>(get_chat_id_object(d->dialog_id, "updateChatTheme"), d->theme_name));
 
   send_update_secret_chats_with_user_theme(d);
 }
@@ -30682,9 +30719,10 @@ void MessagesManager::send_update_chat_pending_join_requests(const Dialog *d) {
   CHECK(d != nullptr);
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_pending_join_requests";
   on_dialog_updated(d->dialog_id, "send_update_chat_pending_join_requests");
-  send_closure(G()->td(), &Td::send_update,
-               td_api::make_object<td_api::updateChatPendingJoinRequests>(d->dialog_id.get(),
-                                                                          get_chat_join_requests_info_object(d)));
+  send_closure(
+      G()->td(), &Td::send_update,
+      td_api::make_object<td_api::updateChatPendingJoinRequests>(
+          get_chat_id_object(d->dialog_id, "updateChatPendingJoinRequests"), get_chat_join_requests_info_object(d)));
 }
 
 void MessagesManager::send_update_chat_video_chat(const Dialog *d) {
@@ -30692,16 +30730,17 @@ void MessagesManager::send_update_chat_video_chat(const Dialog *d) {
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_video_chat";
   on_dialog_updated(d->dialog_id, "send_update_chat_video_chat");
   send_closure(G()->td(), &Td::send_update,
-               td_api::make_object<td_api::updateChatVideoChat>(d->dialog_id.get(), get_video_chat_object(d)));
+               td_api::make_object<td_api::updateChatVideoChat>(get_chat_id_object(d->dialog_id, "updateChatVideoChat"),
+                                                                get_video_chat_object(d)));
 }
 
 void MessagesManager::send_update_chat_message_sender(const Dialog *d) {
   CHECK(!td_->auth_manager_->is_bot());
   CHECK(d != nullptr);
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_message_sender";
-  send_closure(
-      G()->td(), &Td::send_update,
-      td_api::make_object<td_api::updateChatMessageSender>(d->dialog_id.get(), get_default_message_sender_object(d)));
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateChatMessageSender>(
+                   get_chat_id_object(d->dialog_id, "updateChatMessageSender"), get_default_message_sender_object(d)));
 }
 
 void MessagesManager::send_update_chat_message_auto_delete_time(const Dialog *d) {
@@ -30710,7 +30749,8 @@ void MessagesManager::send_update_chat_message_auto_delete_time(const Dialog *d)
   on_dialog_updated(d->dialog_id, "send_update_chat_message_auto_delete_time");
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateChatMessageAutoDeleteTime>(
-                   d->dialog_id.get(), d->message_ttl.get_message_auto_delete_time_object()));
+                   get_chat_id_object(d->dialog_id, "updateChatMessageAutoDeleteTime"),
+                   d->message_ttl.get_message_auto_delete_time_object()));
 }
 
 void MessagesManager::send_update_chat_has_scheduled_messages(Dialog *d, bool from_deletion) {
@@ -30749,7 +30789,8 @@ void MessagesManager::send_update_chat_has_scheduled_messages(Dialog *d, bool fr
 
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_has_scheduled_messages";
   send_closure(G()->td(), &Td::send_update,
-               td_api::make_object<td_api::updateChatHasScheduledMessages>(d->dialog_id.get(), has_scheduled_messages));
+               td_api::make_object<td_api::updateChatHasScheduledMessages>(
+                   get_chat_id_object(d->dialog_id, "updateChatHasScheduledMessages"), has_scheduled_messages));
 }
 
 void MessagesManager::send_update_chat_action(DialogId dialog_id, MessageId top_thread_message_id,
@@ -30761,8 +30802,8 @@ void MessagesManager::send_update_chat_action(DialogId dialog_id, MessageId top_
   LOG(DEBUG) << "Send " << action << " of " << typing_dialog_id << " in thread of " << top_thread_message_id << " in "
              << dialog_id;
   send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateChatAction>(
-                   dialog_id.get(), top_thread_message_id.get(),
+               td_api::make_object<td_api::updateChatAction>(
+                   get_chat_id_object(dialog_id, "updateChatAction"), top_thread_message_id.get(),
                    get_message_sender_object(td_, typing_dialog_id, "send_update_chat_action"),
                    action.get_chat_action_object()));
 }
@@ -30778,7 +30819,8 @@ void MessagesManager::on_send_message_get_quick_ack(int64 random_id) {
   auto message_id = it->second.get_message_id();
 
   send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateMessageSendAcknowledged>(dialog_id.get(), message_id.get()));
+               td_api::make_object<td_api::updateMessageSendAcknowledged>(
+                   get_chat_id_object(dialog_id, "updateMessageSendAcknowledged"), message_id.get()));
 }
 
 void MessagesManager::check_send_message_result(int64 random_id, DialogId dialog_id,
@@ -31408,9 +31450,10 @@ void MessagesManager::fail_send_message(FullMessageId full_message_id, int error
   if (!td_->auth_manager_->is_bot()) {
     yet_unsent_full_message_id_to_persistent_message_id_.emplace({dialog_id, old_message_id}, m->message_id);
   }
-  send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateMessageSendFailed>(get_message_object(dialog_id, m, "fail_send_message"),
-                                                               old_message_id.get(), error_code, error_message));
+  send_closure(
+      G()->td(), &Td::send_update,
+      td_api::make_object<td_api::updateMessageSendFailed>(get_message_object(dialog_id, m, "fail_send_message"),
+                                                           old_message_id.get(), error_code, error_message));
   if (need_update_dialog_pos) {
     send_update_chat_last_message(d, "fail_send_message");
   }
@@ -31592,7 +31635,8 @@ void MessagesManager::set_dialog_is_marked_as_unread(Dialog *d, bool is_marked_a
   LOG(INFO) << "Set " << d->dialog_id << " is marked as unread to " << is_marked_as_unread;
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in set_dialog_is_marked_as_unread";
   send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateChatIsMarkedAsUnread>(d->dialog_id.get(), is_marked_as_unread));
+               td_api::make_object<td_api::updateChatIsMarkedAsUnread>(
+                   get_chat_id_object(d->dialog_id, "updateChatIsMarkedAsUnread"), is_marked_as_unread));
 
   if (d->server_unread_count + d->local_unread_count == 0 && need_unread_counter(d->order)) {
     int32 delta = d->is_marked_as_unread ? 1 : -1;
@@ -31646,7 +31690,8 @@ void MessagesManager::update_is_translatable(bool new_is_premium) {
   dialogs_.foreach([&](const DialogId &dialog_id, const unique_ptr<Dialog> &dialog) {
     if (dialog->is_translatable) {
       send_closure(G()->td(), &Td::send_update,
-                   make_tl_object<td_api::updateChatIsTranslatable>(dialog_id.get(), new_is_premium));
+                   td_api::make_object<td_api::updateChatIsTranslatable>(
+                       get_chat_id_object(dialog_id, "updateChatIsTranslatable"), new_is_premium));
     }
   });
 }
@@ -31667,7 +31712,8 @@ void MessagesManager::set_dialog_is_translatable(Dialog *d, bool is_translatable
   bool is_premium = td_->option_manager_->get_option_boolean("is_premium");
   if (is_premium) {
     send_closure(G()->td(), &Td::send_update,
-                 make_tl_object<td_api::updateChatIsTranslatable>(d->dialog_id.get(), is_translatable));
+                 td_api::make_object<td_api::updateChatIsTranslatable>(
+                     get_chat_id_object(d->dialog_id, "updateChatIsTranslatable"), is_translatable));
   }
 }
 
@@ -31708,7 +31754,8 @@ void MessagesManager::set_dialog_is_blocked(Dialog *d, bool is_blocked) {
   LOG(INFO) << "Set " << d->dialog_id << " is_blocked to " << is_blocked;
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in set_dialog_is_blocked";
   send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateChatIsBlocked>(d->dialog_id.get(), is_blocked));
+               td_api::make_object<td_api::updateChatIsBlocked>(get_chat_id_object(d->dialog_id, "updateChatIsBlocked"),
+                                                                is_blocked));
 
   if (d->dialog_id.get_type() == DialogType::User) {
     td_->contacts_manager_->on_update_user_is_blocked(d->dialog_id.get_user_id(), is_blocked);
@@ -32105,9 +32152,9 @@ void MessagesManager::do_set_dialog_folder_id(Dialog *d, FolderId folder_id) {
     if (d->is_update_new_chat_sent && user_id.is_valid()) {
       const Dialog *user_d = get_dialog(DialogId(user_id));
       if (user_d != nullptr && user_d->action_bar != nullptr && user_d->action_bar->can_unarchive()) {
-        send_closure(
-            G()->td(), &Td::send_update,
-            td_api::make_object<td_api::updateChatActionBar>(d->dialog_id.get(), get_chat_action_bar_object(d)));
+        send_closure(G()->td(), &Td::send_update,
+                     td_api::make_object<td_api::updateChatActionBar>(
+                         get_chat_id_object(d->dialog_id, "updateChatActionBar"), get_chat_action_bar_object(d)));
       }
     }
   } else if (folder_id != FolderId::archive() && d->action_bar != nullptr && d->action_bar->on_dialog_unarchived()) {
@@ -32422,10 +32469,10 @@ void MessagesManager::set_dialog_has_bots(Dialog *d, bool has_bots) {
 void MessagesManager::on_dialog_photo_updated(DialogId dialog_id) {
   auto d = get_dialog(dialog_id);  // called from update_user, must not create the dialog
   if (d != nullptr && d->is_update_new_chat_sent) {
-    send_closure(
-        G()->td(), &Td::send_update,
-        make_tl_object<td_api::updateChatPhoto>(
-            dialog_id.get(), get_chat_photo_info_object(td_->file_manager_.get(), get_dialog_photo(dialog_id))));
+    send_closure(G()->td(), &Td::send_update,
+                 td_api::make_object<td_api::updateChatPhoto>(
+                     get_chat_id_object(dialog_id, "updateChatPhoto"),
+                     get_chat_photo_info_object(td_->file_manager_.get(), get_dialog_photo(dialog_id))));
   } else if (d != nullptr && d->is_update_new_chat_being_sent) {
     const auto *photo = get_dialog_photo(dialog_id);
     if (photo == nullptr) {
@@ -32442,7 +32489,7 @@ void MessagesManager::on_dialog_title_updated(DialogId dialog_id) {
     update_dialogs_hints(d);
     if (d->is_update_new_chat_sent) {
       send_closure(G()->td(), &Td::send_update,
-                   make_tl_object<td_api::updateChatTitle>(dialog_id.get(), get_dialog_title(dialog_id)));
+                   td_api::make_object<td_api::updateChatTitle>(dialog_id.get(), get_dialog_title(dialog_id)));
     }
   }
 }
@@ -34025,9 +34072,9 @@ void MessagesManager::unpin_all_dialog_messages(DialogId dialog_id, MessageId to
       CHECK(m != nullptr);
 
       m->is_pinned = false;
-      send_closure(
-          G()->td(), &Td::send_update,
-          make_tl_object<td_api::updateMessageIsPinned>(d->dialog_id.get(), m->message_id.get(), m->is_pinned));
+      send_closure(G()->td(), &Td::send_update,
+                   td_api::make_object<td_api::updateMessageIsPinned>(
+                       get_chat_id_object(d->dialog_id, "updateMessageIsPinned"), m->message_id.get(), m->is_pinned));
       on_message_changed(d, m, true, "unpin_all_dialog_messages");
     }
   }
@@ -40414,7 +40461,8 @@ void MessagesManager::get_current_state(vector<td_api::object_ptr<td_api::Update
     auto update = td_api::make_object<td_api::updateNewChat>(get_chat_object(d));
     if (update->chat_->last_message_ != nullptr && update->chat_->last_message_->forward_info_ != nullptr) {
       last_message_updates.push_back(td_api::make_object<td_api::updateChatLastMessage>(
-          dialog_id.get(), std::move(update->chat_->last_message_), get_chat_positions_object(d)));
+          get_chat_id_object(dialog_id, "updateChatLastMessage"), std::move(update->chat_->last_message_),
+          get_chat_positions_object(d)));
     }
     updates.push_back(std::move(update));
 
@@ -40422,7 +40470,7 @@ void MessagesManager::get_current_state(vector<td_api::object_ptr<td_api::Update
       auto info_it = dialog_online_member_counts_.find(dialog_id);
       if (info_it != dialog_online_member_counts_.end() && info_it->second.is_update_sent) {
         updates.push_back(td_api::make_object<td_api::updateChatOnlineMemberCount>(
-            dialog_id.get(), info_it->second.online_member_count));
+            get_chat_id_object(dialog_id, "updateChatOnlineMemberCount"), info_it->second.online_member_count));
       }
     }
   });

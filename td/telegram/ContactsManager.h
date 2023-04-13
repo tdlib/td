@@ -1612,8 +1612,8 @@ class ContactsManager final : public Actor {
                                const DialogParticipant &old_dialog_participant,
                                const DialogParticipant &new_dialog_participant);
 
-  static vector<td_api::object_ptr<td_api::chatNearby>> get_chats_nearby_object(
-      const vector<DialogNearby> &dialogs_nearby);
+  vector<td_api::object_ptr<td_api::chatNearby>> get_chats_nearby_object(
+      const vector<DialogNearby> &dialogs_nearby) const;
 
   void send_update_users_nearby() const;
 

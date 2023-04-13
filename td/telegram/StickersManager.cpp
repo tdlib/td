@@ -7218,10 +7218,10 @@ void StickersManager::send_update_animated_emoji_clicked(FullMessageId full_mess
     return;
   }
 
-  send_closure(
-      G()->td(), &Td::send_update,
-      td_api::make_object<td_api::updateAnimatedEmojiMessageClicked>(
-          dialog_id.get(), full_message_id.get_message_id().get(), get_sticker_object(sticker_id, false, true)));
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateAnimatedEmojiMessageClicked>(
+                   td_->messages_manager_->get_chat_id_object(dialog_id, "updateAnimatedEmojiMessageClicked"),
+                   full_message_id.get_message_id().get(), get_sticker_object(sticker_id, false, true)));
 }
 
 bool StickersManager::is_active_reaction(const string &reaction) const {

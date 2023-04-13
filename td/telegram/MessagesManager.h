@@ -743,6 +743,8 @@ class MessagesManager final : public Actor {
 
   void reset_all_notification_settings();
 
+  int64 get_chat_id_object(DialogId dialog_id, const char *source) const;
+
   tl_object_ptr<td_api::chat> get_chat_object(DialogId dialog_id) const;
 
   static tl_object_ptr<td_api::chats> get_chats_object(int32 total_count, const vector<DialogId> &dialog_ids);

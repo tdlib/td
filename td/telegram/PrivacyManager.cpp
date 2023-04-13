@@ -350,7 +350,7 @@ vector<int64> PrivacyManager::UserPrivacySettingRule::chat_ids_as_dialog_ids() c
       CHECK(td->contacts_manager_->have_channel(channel_id));
     }
     CHECK(td->messages_manager_->have_dialog(dialog_id));
-    result.push_back(dialog_id.get());
+    result.push_back(td->messages_manager_->get_chat_id_object(dialog_id, "UserPrivacySettingRule"));
   }
   return result;
 }

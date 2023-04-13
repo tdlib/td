@@ -50,6 +50,7 @@
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageSearchFilter.h"
 #include "td/telegram/MessageSender.h"
+#include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/OptionManager.h"
@@ -5756,9 +5757,10 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
             m->provider_payment_charge_id);
       } else {
         auto invoice_dialog_id = m->invoice_dialog_id.is_valid() ? m->invoice_dialog_id : dialog_id;
-        return make_tl_object<td_api::messagePaymentSuccessful>(invoice_dialog_id.get(), m->invoice_message_id.get(),
-                                                                m->currency, m->total_amount, m->is_recurring,
-                                                                m->is_first_recurring, m->invoice_payload);
+        return make_tl_object<td_api::messagePaymentSuccessful>(
+            td->messages_manager_->get_chat_id_object(invoice_dialog_id, "messagePaymentSuccessful"),
+            m->invoice_message_id.get(), m->currency, m->total_amount, m->is_recurring, m->is_first_recurring,
+            m->invoice_payload);
       }
     }
     case MessageContentType::ContactRegistered:
@@ -5880,7 +5882,13 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
         }
         return make_tl_object<td_api::messageUserShared>(user_id, m->button_id);
       }
-      return make_tl_object<td_api::messageChatShared>(m->dialog_id.get(), m->button_id);
+      int64 chat_id;
+      if (td->auth_manager_->is_bot()) {
+        chat_id = m->dialog_id.get();
+      } else {
+        chat_id = td->messages_manager_->get_chat_id_object(m->dialog_id, "messageChatShared");
+      }
+      return make_tl_object<td_api::messageChatShared>(chat_id, m->button_id);
     }
     case MessageContentType::WebViewWriteAccessAllowed: {
       const auto *m = static_cast<const MessageWebViewWriteAccessAllowed *>(content);

@@ -1111,8 +1111,9 @@ void ForumTopicManager::set_topic_info(DialogId dialog_id, Topic *topic, unique_
 
 td_api::object_ptr<td_api::updateForumTopicInfo> ForumTopicManager::get_update_forum_topic_info(
     DialogId dialog_id, const ForumTopicInfo *topic_info) const {
-  return td_api::make_object<td_api::updateForumTopicInfo>(dialog_id.get(),
-                                                           topic_info->get_forum_topic_info_object(td_));
+  return td_api::make_object<td_api::updateForumTopicInfo>(
+      td_->messages_manager_->get_chat_id_object(dialog_id, "updateForumTopicInfo"),
+      topic_info->get_forum_topic_info_object(td_));
 }
 
 void ForumTopicManager::send_update_forum_topic_info(DialogId dialog_id, const ForumTopicInfo *topic_info) const {

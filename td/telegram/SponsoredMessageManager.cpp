@@ -197,7 +197,8 @@ td_api::object_ptr<td_api::sponsoredMessage> SponsoredMessageManager::get_sponso
       break;
   }
   return td_api::make_object<td_api::sponsoredMessage>(
-      sponsored_message.local_id, sponsored_message.is_recommended, sponsored_message.sponsor_dialog_id.get(),
+      sponsored_message.local_id, sponsored_message.is_recommended,
+      td_->messages_manager_->get_chat_id_object(sponsored_message.sponsor_dialog_id, "sponsoredMessage"),
       std::move(chat_invite_link_info), sponsored_message.show_dialog_photo, std::move(link),
       get_message_content_object(sponsored_message.content.get(), td_, dialog_id, 0, false, true, -1),
       sponsored_message.sponsor_info, sponsored_message.additional_info);

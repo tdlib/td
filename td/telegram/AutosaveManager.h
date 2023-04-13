@@ -58,7 +58,7 @@ class AutosaveManager final : public Actor {
     td_api::object_ptr<td_api::scopeAutosaveSettings> get_scope_autosave_settings_object() const;
 
     td_api::object_ptr<td_api::autosaveSettingsException> get_autosave_settings_exception_object(
-        DialogId dialog_id) const;
+        const Td *td, DialogId dialog_id) const;
 
     bool operator==(const DialogAutosaveSettings &other) const;
 
@@ -80,7 +80,7 @@ class AutosaveManager final : public Actor {
     DialogAutosaveSettings broadcast_settings_;
     FlatHashMap<DialogId, DialogAutosaveSettings, DialogIdHash> exceptions_;
 
-    td_api::object_ptr<td_api::autosaveSettings> get_autosave_settings_object() const;
+    td_api::object_ptr<td_api::autosaveSettings> get_autosave_settings_object(const Td *td) const;
 
     template <class StorerT>
     void store(StorerT &storer) const;

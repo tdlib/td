@@ -179,8 +179,11 @@ AutosaveManager::DialogAutosaveSettings::get_scope_autosave_settings_object() co
 }
 
 td_api::object_ptr<td_api::autosaveSettingsException>
-AutosaveManager::DialogAutosaveSettings::get_autosave_settings_exception_object(DialogId dialog_id) const {
-  return td_api::make_object<td_api::autosaveSettingsException>(dialog_id.get(), get_scope_autosave_settings_object());
+AutosaveManager::DialogAutosaveSettings::get_autosave_settings_exception_object(const Td *td,
+                                                                                DialogId dialog_id) const {
+  return td_api::make_object<td_api::autosaveSettingsException>(
+      td->messages_manager_->get_chat_id_object(dialog_id, "autosaveSettingsException"),
+      get_scope_autosave_settings_object());
 }
 
 bool AutosaveManager::DialogAutosaveSettings::operator==(const DialogAutosaveSettings &other) const {
@@ -212,10 +215,11 @@ void AutosaveManager::DialogAutosaveSettings::parse(ParserT &parser) {
   td::parse(max_video_file_size_, parser);
 }
 
-td_api::object_ptr<td_api::autosaveSettings> AutosaveManager::AutosaveSettings::get_autosave_settings_object() const {
+td_api::object_ptr<td_api::autosaveSettings> AutosaveManager::AutosaveSettings::get_autosave_settings_object(
+    const Td *td) const {
   CHECK(are_inited_);
-  auto exceptions = transform(exceptions_, [](const auto &exception) {
-    return exception.second.get_autosave_settings_exception_object(exception.first);
+  auto exceptions = transform(exceptions_, [td](const auto &exception) {
+    return exception.second.get_autosave_settings_exception_object(td, exception.first);
   });
   return td_api::make_object<td_api::autosaveSettings>(
       user_settings_.get_scope_autosave_settings_object(), chat_settings_.get_scope_autosave_settings_object(),
@@ -267,7 +271,7 @@ void AutosaveManager::AutosaveSettings::parse(ParserT &parser) {
 
 void AutosaveManager::get_autosave_settings(Promise<td_api::object_ptr<td_api::autosaveSettings>> &&promise) {
   if (settings_.are_inited_) {
-    return promise.set_value(settings_.get_autosave_settings_object());
+    return promise.set_value(settings_.get_autosave_settings_object(td_));
   }
 
   load_autosave_settings(std::move(promise));
@@ -340,7 +344,7 @@ void AutosaveManager::on_load_autosave_settings_from_database(string value) {
 
   auto promises = std::move(load_settings_queries_);
   for (auto &promise : promises) {
-    promise.set_value(settings_.get_autosave_settings_object());
+    promise.set_value(settings_.get_autosave_settings_object(td_));
   }
 }
 
@@ -415,22 +419,26 @@ void AutosaveManager::on_get_autosave_settings(
     auto &current_settings = settings_.exceptions_[dialog_id];
     if (current_settings != new_settings) {
       current_settings = std::move(new_settings);
-      send_update_autosave_settings(td_api::make_object<td_api::autosaveSettingsScopeChat>(dialog_id.get()),
-                                    current_settings);
+      send_update_autosave_settings(
+          td_api::make_object<td_api::autosaveSettingsScopeChat>(
+              td_->messages_manager_->get_chat_id_object(dialog_id, "autosaveSettingsScopeChat")),
+          current_settings);
     }
     exception_dialog_ids.erase(dialog_id);
   }
   for (auto dialog_id : exception_dialog_ids) {
     settings_.exceptions_.erase(dialog_id);
-    send_update_autosave_settings(td_api::make_object<td_api::autosaveSettingsScopeChat>(dialog_id.get()),
-                                  DialogAutosaveSettings());
+    send_update_autosave_settings(
+        td_api::make_object<td_api::autosaveSettingsScopeChat>(
+            td_->messages_manager_->get_chat_id_object(dialog_id, "autosaveSettingsScopeChat 2")),
+        DialogAutosaveSettings());
   }
 
   save_autosave_settings();
 
   auto promises = std::move(load_settings_queries_);
   for (auto &promise : promises) {
-    promise.set_value(settings_.get_autosave_settings_object());
+    promise.set_value(settings_.get_autosave_settings_object(td_));
   }
 }
 
