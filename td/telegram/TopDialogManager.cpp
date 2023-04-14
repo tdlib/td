@@ -268,7 +268,8 @@ void TopDialogManager::remove_dialog(TopDialogCategory category, DialogId dialog
   promise.set_value(Unit());
 }
 
-void TopDialogManager::get_top_dialogs(TopDialogCategory category, int32 limit, Promise<vector<DialogId>> promise) {
+void TopDialogManager::get_top_dialogs(TopDialogCategory category, int32 limit,
+                                       Promise<td_api::object_ptr<td_api::chats>> &&promise) {
   if (category == TopDialogCategory::Size) {
     return promise.set_error(Status::Error(400, "Top chat category must be non-empty"));
   }
@@ -412,7 +413,8 @@ void TopDialogManager::on_load_dialogs(GetTopDialogsQuery &&query, vector<Dialog
     }
   }
 
-  query.promise.set_value(std::move(result));
+  query.promise.set_value(
+      td_->messages_manager_->get_chats_object(-1, std::move(result), "TopDialogManager::on_load_dialogs"));
 }
 
 void TopDialogManager::do_get_top_peers() {

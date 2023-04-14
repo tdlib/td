@@ -181,8 +181,4 @@ vector<DialogId> DialogId::get_dialog_ids(const vector<int64> &chat_ids) {
   return transform(chat_ids, [](int64 chat_id) { return DialogId(chat_id); });
 }
 
-vector<int64> DialogId::get_chat_ids(const vector<DialogId> &dialog_ids) {
-  return transform(dialog_ids, [](DialogId dialog_id) { return dialog_id.get(); });
-}
-
 }  // namespace td

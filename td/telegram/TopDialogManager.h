@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/TopDialogCategory.h"
 
@@ -34,7 +35,7 @@ class TopDialogManager final : public Actor {
 
   void remove_dialog(TopDialogCategory category, DialogId dialog_id, Promise<Unit> &&promise);
 
-  void get_top_dialogs(TopDialogCategory category, int32 limit, Promise<vector<DialogId>> promise);
+  void get_top_dialogs(TopDialogCategory category, int32 limit, Promise<td_api::object_ptr<td_api::chats>> &&promise);
 
   void update_rating_e_decay();
 
@@ -66,7 +67,7 @@ class TopDialogManager final : public Actor {
   struct GetTopDialogsQuery {
     TopDialogCategory category;
     size_t limit;
-    Promise<vector<DialogId>> promise;
+    Promise<td_api::object_ptr<td_api::chats>> promise;
   };
   vector<GetTopDialogsQuery> pending_get_top_dialogs_;
 

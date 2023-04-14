@@ -17241,7 +17241,7 @@ void MessagesManager::get_dialogs_from_list_impl(int64 task_id) {
     if (!task_promise) {
       dialog_ids.clear();
     }
-    return task_promise.set_value(get_chats_object(total_count, dialog_ids));
+    return task_promise.set_value(get_chats_object(total_count, dialog_ids, "get_dialogs_from_list_impl"));
   }
   // nor the limit, nor the end of the list were reached; wait for the promise
 }
@@ -20606,6 +20606,10 @@ int64 MessagesManager::get_chat_id_object(DialogId dialog_id, const char *source
   return dialog_id.get();
 }
 
+vector<int64> MessagesManager::get_chat_ids_object(const vector<DialogId> &dialog_ids, const char *source) const {
+  return transform(dialog_ids, [this, source](DialogId dialog_id) { return get_chat_id_object(dialog_id, source); });
+}
+
 td_api::object_ptr<td_api::ChatType> MessagesManager::get_chat_type_object(DialogId dialog_id) const {
   switch (dialog_id.get_type()) {
     case DialogType::User:
@@ -20744,15 +20748,17 @@ tl_object_ptr<td_api::chat> MessagesManager::get_chat_object(DialogId dialog_id)
   return get_chat_object(get_dialog(dialog_id));
 }
 
-tl_object_ptr<td_api::chats> MessagesManager::get_chats_object(int32 total_count, const vector<DialogId> &dialog_ids) {
+tl_object_ptr<td_api::chats> MessagesManager::get_chats_object(int32 total_count, const vector<DialogId> &dialog_ids,
+                                                               const char *source) const {
   if (total_count == -1) {
     total_count = narrow_cast<int32>(dialog_ids.size());
   }
-  return td_api::make_object<td_api::chats>(total_count, DialogId::get_chat_ids(dialog_ids));
+  return td_api::make_object<td_api::chats>(total_count, get_chat_ids_object(dialog_ids, source));
 }
 
-tl_object_ptr<td_api::chats> MessagesManager::get_chats_object(const std::pair<int32, vector<DialogId>> &dialog_ids) {
-  return get_chats_object(dialog_ids.first, dialog_ids.second);
+tl_object_ptr<td_api::chats> MessagesManager::get_chats_object(const std::pair<int32, vector<DialogId>> &dialog_ids,
+                                                               const char *source) const {
+  return get_chats_object(dialog_ids.first, dialog_ids.second, source);
 }
 
 std::pair<bool, int32> MessagesManager::get_dialog_mute_until(DialogId dialog_id, const Dialog *d) const {

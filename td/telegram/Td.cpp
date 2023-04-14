@@ -797,7 +797,7 @@ class SearchPublicChatsRequest final : public RequestActor<> {
   }
 
   void do_send_result() final {
-    send_result(MessagesManager::get_chats_object(-1, dialog_ids_));
+    send_result(td_->messages_manager_->get_chats_object(-1, dialog_ids_, "SearchPublicChatsRequest"));
   }
 
  public:
@@ -817,7 +817,7 @@ class SearchChatsRequest final : public RequestActor<> {
   }
 
   void do_send_result() final {
-    send_result(MessagesManager::get_chats_object(dialog_ids_));
+    send_result(td_->messages_manager_->get_chats_object(dialog_ids_, "SearchChatsRequest"));
   }
 
  public:
@@ -837,7 +837,7 @@ class SearchChatsOnServerRequest final : public RequestActor<> {
   }
 
   void do_send_result() final {
-    send_result(MessagesManager::get_chats_object(-1, dialog_ids_));
+    send_result(td_->messages_manager_->get_chats_object(-1, dialog_ids_, "SearchChatsOnServerRequest"));
   }
 
  public:
@@ -859,7 +859,7 @@ class GetGroupsInCommonRequest final : public RequestActor<> {
   }
 
   void do_send_result() final {
-    send_result(MessagesManager::get_chats_object(dialog_ids_));
+    send_result(td_->messages_manager_->get_chats_object(dialog_ids_, "GetGroupsInCommonRequest"));
   }
 
  public:
@@ -876,7 +876,7 @@ class GetSuitableDiscussionChatsRequest final : public RequestActor<> {
   }
 
   void do_send_result() final {
-    send_result(MessagesManager::get_chats_object(-1, dialog_ids_));
+    send_result(td_->messages_manager_->get_chats_object(-1, dialog_ids_, "GetSuitableDiscussionChatsRequest"));
   }
 
  public:
@@ -892,7 +892,7 @@ class GetInactiveSupergroupChatsRequest final : public RequestActor<> {
   }
 
   void do_send_result() final {
-    send_result(MessagesManager::get_chats_object(-1, dialog_ids_));
+    send_result(td_->messages_manager_->get_chats_object(-1, dialog_ids_, "GetInactiveSupergroupChatsRequest"));
   }
 
  public:
@@ -910,7 +910,7 @@ class GetRecentlyOpenedChatsRequest final : public RequestActor<> {
   }
 
   void do_send_result() final {
-    send_result(MessagesManager::get_chats_object(dialog_ids_));
+    send_result(td_->messages_manager_->get_chats_object(dialog_ids_, "GetRecentlyOpenedChatsRequest"));
   }
 
  public:
@@ -1896,7 +1896,8 @@ class GetChatNotificationSettingsExceptionsRequest final : public RequestActor<>
   }
 
   void do_send_result() final {
-    send_result(MessagesManager::get_chats_object(-1, dialog_ids_));
+    send_result(
+        td_->messages_manager_->get_chats_object(-1, dialog_ids_, "GetChatNotificationSettingsExceptionsRequest"));
   }
 
  public:
@@ -4922,15 +4923,8 @@ void Td::on_request(uint64 id, const td_api::clearAutosaveSettingsExceptions &re
 void Td::on_request(uint64 id, const td_api::getTopChats &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<vector<DialogId>> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(MessagesManager::get_chats_object(-1, result.ok()));
-    }
-  });
   send_closure(top_dialog_manager_actor_, &TopDialogManager::get_top_dialogs,
-               get_top_dialog_category(request.category_), request.limit_, std::move(query_promise));
+               get_top_dialog_category(request.category_), request.limit_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::removeTopChat &request) {
