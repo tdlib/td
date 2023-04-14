@@ -17275,6 +17275,57 @@ void MessagesManager::on_get_dialogs_from_list(int64 task_id, Result<Unit> &&res
   get_dialogs_from_list_impl(task_id);
 }
 
+void MessagesManager::mark_dialog_as_read(Dialog *d) {
+  if (is_forum_channel(d->dialog_id)) {
+    // TODO read forum topics
+  }
+  if (d->server_unread_count + d->local_unread_count > 0 && d->last_message_id.is_valid()) {
+    MessagesConstIterator it(d, d->last_message_id);
+    while (*it != nullptr) {
+      auto message_id = (*it)->message_id;
+      if (message_id.is_server() || message_id.is_local()) {
+        read_dialog_inbox(d, message_id);
+        break;
+      }
+      --it;
+    }
+    if (*it == nullptr) {
+      // if can't find the last message, then d->last_new_message_id is the best guess
+      read_dialog_inbox(d, d->last_new_message_id);
+    }
+  }
+  if (d->is_marked_as_unread) {
+    set_dialog_is_marked_as_unread(d, false);
+  }
+}
+
+void MessagesManager::read_all_dialogs_from_list(DialogListId dialog_list_id, Promise<Unit> &&promise,
+                                                 bool is_recursive) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  if (get_dialog_list(dialog_list_id) == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat list not found"));
+  }
+
+  dialogs_.foreach([&](const DialogId &dialog_id, unique_ptr<Dialog> &dialog) {
+    Dialog *d = dialog.get();
+    if (is_dialog_in_list(d, dialog_list_id)) {
+      mark_dialog_as_read(d);
+    }
+  });
+
+  if (is_recursive) {
+    return promise.set_value(Unit());
+  }
+
+  auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_list_id, promise = std::move(promise)](
+                                                  Result<td_api::object_ptr<td_api::chats>> &&) mutable {
+    // it is expected that loading of so many chats will fail, so just ignore the error and result itself
+    send_closure(actor_id, &MessagesManager::read_all_dialogs_from_list, dialog_list_id, std::move(promise), true);
+  });
+  get_dialogs_from_list(dialog_list_id, 10000, std::move(query_promise));
+}
+
 vector<DialogId> MessagesManager::get_pinned_dialog_ids(DialogListId dialog_list_id) const {
   CHECK(!td_->auth_manager_->is_bot());
   if (dialog_list_id.is_filter()) {

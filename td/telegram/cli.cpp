@@ -3852,6 +3852,8 @@ class CliClient final : public Actor {
           td_api::make_object<td_api::toggleChatDefaultDisableNotification>(chat_id, default_disable_notification));
     } else if (op == "spchats" || op == "spchatsa" || begins_with(op, "spchats-")) {
       send_request(td_api::make_object<td_api::setPinnedChats>(as_chat_list(op), as_chat_ids(args)));
+    } else if (op == "rcl" || op == "rcla" || begins_with(op, "rcl-")) {
+      send_request(td_api::make_object<td_api::readChatList>(as_chat_list(op)));
     } else if (op == "gamb") {
       UserId user_id;
       get_args(args, user_id);

@@ -7066,6 +7066,9 @@ toggleChatIsPinned chat_list:ChatList chat_id:int53 is_pinned:Bool = Ok;
 //@description Changes the order of pinned chats @chat_list Chat list in which to change the order of pinned chats @chat_ids The new list of pinned chats
 setPinnedChats chat_list:ChatList chat_ids:vector<int53> = Ok;
 
+//@description Traverse all chats in a chat list and marks all messages in the chats as read @chat_list Chat list in which to mark all chats as read
+readChatList chat_list:ChatList = Ok;
+
 
 //@description Returns information about a bot that can be added to attachment menu @bot_user_id Bot's user identifier
 getAttachmentMenuBot bot_user_id:int53 = AttachmentMenuBot;

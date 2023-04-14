@@ -599,6 +599,8 @@ class MessagesManager final : public Actor {
   void get_dialogs_from_list(DialogListId dialog_list_id, int32 limit,
                              Promise<td_api::object_ptr<td_api::chats>> &&promise);
 
+  void read_all_dialogs_from_list(DialogListId dialog_list_id, Promise<Unit> &&promise, bool is_recursive = false);
+
   vector<DialogId> search_public_dialogs(const string &query, Promise<Unit> &&promise);
 
   std::pair<int32, vector<DialogId>> search_dialogs(const string &query, int32 limit, Promise<Unit> &&promise);
@@ -2254,6 +2256,8 @@ class MessagesManager final : public Actor {
   bool has_incoming_notification(DialogId dialog_id, const Message *m) const;
 
   void read_dialog_inbox(Dialog *d, MessageId max_message_id);
+
+  void mark_dialog_as_read(Dialog *d);
 
   int32 calc_new_unread_count_from_last_unread(Dialog *d, MessageId max_message_id, MessageType type) const;
 
