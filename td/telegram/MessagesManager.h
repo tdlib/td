@@ -2253,6 +2253,8 @@ class MessagesManager final : public Actor {
 
   bool has_incoming_notification(DialogId dialog_id, const Message *m) const;
 
+  void read_dialog_inbox(Dialog *d, MessageId max_message_id);
+
   int32 calc_new_unread_count_from_last_unread(Dialog *d, MessageId max_message_id, MessageType type) const;
 
   int32 calc_new_unread_count_from_the_end(Dialog *d, MessageId max_message_id, MessageType type,
