@@ -7059,23 +7059,22 @@ void Td::on_request(uint64 id, const td_api::getMenuButton &request) {
 void Td::on_request(uint64 id, const td_api::setDefaultGroupAdministratorRights &request) {
   CHECK_IS_BOT();
   CREATE_OK_REQUEST_PROMISE();
-  set_default_group_administrator_rights(
-      this, AdministratorRights(request.default_group_administrator_rights_, ChannelType::Megagroup),
-      std::move(promise));
+  bot_info_manager_->set_default_group_administrator_rights(
+      AdministratorRights(request.default_group_administrator_rights_, ChannelType::Megagroup), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::setDefaultChannelAdministratorRights &request) {
   CHECK_IS_BOT();
   CREATE_OK_REQUEST_PROMISE();
-  set_default_channel_administrator_rights(
-      this, AdministratorRights(request.default_channel_administrator_rights_, ChannelType::Broadcast),
-      std::move(promise));
+  bot_info_manager_->set_default_channel_administrator_rights(
+      AdministratorRights(request.default_channel_administrator_rights_, ChannelType::Broadcast), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setBotName &request) {
   CLEAN_INPUT_STRING(request.name_);
   CREATE_OK_REQUEST_PROMISE();
-  set_bot_name(this, UserId(request.bot_user_id_), request.language_code_, request.name_, std::move(promise));
+  bot_info_manager_->set_bot_name(UserId(request.bot_user_id_), request.language_code_, request.name_,
+                                  std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getBotName &request) {
@@ -7087,7 +7086,7 @@ void Td::on_request(uint64 id, const td_api::getBotName &request) {
       promise.set_value(td_api::make_object<td_api::text>(result.move_as_ok()));
     }
   });
-  get_bot_name(this, UserId(request.bot_user_id_), request.language_code_, std::move(query_promise));
+  bot_info_manager_->get_bot_name(UserId(request.bot_user_id_), request.language_code_, std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, td_api::setBotProfilePhoto &request) {
@@ -7116,8 +7115,8 @@ void Td::on_request(uint64 id, td_api::reorderActiveBotUsernames &request) {
 void Td::on_request(uint64 id, td_api::setBotInfoDescription &request) {
   CLEAN_INPUT_STRING(request.description_);
   CREATE_OK_REQUEST_PROMISE();
-  set_bot_info_description(this, UserId(request.bot_user_id_), request.language_code_, request.description_,
-                           std::move(promise));
+  bot_info_manager_->set_bot_info_description(UserId(request.bot_user_id_), request.language_code_,
+                                              request.description_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getBotInfoDescription &request) {
@@ -7129,14 +7128,15 @@ void Td::on_request(uint64 id, const td_api::getBotInfoDescription &request) {
       promise.set_value(td_api::make_object<td_api::text>(result.move_as_ok()));
     }
   });
-  get_bot_info_description(this, UserId(request.bot_user_id_), request.language_code_, std::move(query_promise));
+  bot_info_manager_->get_bot_info_description(UserId(request.bot_user_id_), request.language_code_,
+                                              std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, td_api::setBotInfoShortDescription &request) {
   CLEAN_INPUT_STRING(request.short_description_);
   CREATE_OK_REQUEST_PROMISE();
-  set_bot_info_about(this, UserId(request.bot_user_id_), request.language_code_, request.short_description_,
-                     std::move(promise));
+  bot_info_manager_->set_bot_info_about(UserId(request.bot_user_id_), request.language_code_,
+                                        request.short_description_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getBotInfoShortDescription &request) {
@@ -7148,7 +7148,7 @@ void Td::on_request(uint64 id, const td_api::getBotInfoShortDescription &request
       promise.set_value(td_api::make_object<td_api::text>(result.move_as_ok()));
     }
   });
-  get_bot_info_about(this, UserId(request.bot_user_id_), request.language_code_, std::move(query_promise));
+  bot_info_manager_->get_bot_info_about(UserId(request.bot_user_id_), request.language_code_, std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, const td_api::setLocation &request) {
