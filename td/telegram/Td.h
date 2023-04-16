@@ -43,6 +43,7 @@ class AudiosManager;
 class AuthManager;
 class AutosaveManager;
 class BackgroundManager;
+class BotInfoManager;
 class CallManager;
 class CallbackQueriesManager;
 class ConfigManager;
@@ -155,6 +156,8 @@ class Td final : public Actor {
   ActorOwn<AutosaveManager> autosave_manager_actor_;
   unique_ptr<BackgroundManager> background_manager_;
   ActorOwn<BackgroundManager> background_manager_actor_;
+  unique_ptr<BotInfoManager> bot_info_manager_;
+  ActorOwn<BotInfoManager> bot_info_manager_actor_;
   unique_ptr<ContactsManager> contacts_manager_;
   ActorOwn<ContactsManager> contacts_manager_actor_;
   unique_ptr<CountryInfoManager> country_info_manager_;

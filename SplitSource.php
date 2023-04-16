@@ -282,6 +282,7 @@ function split_file($file, $chunks, $undo) {
                 'auth_manager[_(-][^.]|AuthManager' => 'AuthManager',
                 'autosave_manager[_(-][^.]|AutosaveManager' => 'AutosaveManager',
                 'background_manager[_(-][^.]|BackgroundManager' => "BackgroundManager",
+                'bot_info_manager[_(-][^.]|BotInfoManager' => "BotInfoManager",
                 'contacts_manager[_(-][^.]|ContactsManager([^ ;.]| [^*])' => 'ContactsManager',
                 'country_info_manager[_(-][^.]|CountryInfoManager' => 'CountryInfoManager',
                 'dialog_filter_manager[_(-][^.]|DialogFilterManager' => "DialogFilterManager",

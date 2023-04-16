@@ -298,8 +298,8 @@ set(TDLIB_SOURCE
   td/telegram/BackgroundType.cpp
   td/telegram/BotCommand.cpp
   td/telegram/BotCommandScope.cpp
+  td/telegram/BotInfoManager.cpp
   td/telegram/BotMenuButton.cpp
-  td/telegram/BotMenuButton.h
   td/telegram/CallActor.cpp
   td/telegram/CallDiscardReason.cpp
   td/telegram/CallManager.cpp
@@ -532,6 +532,8 @@ set(TDLIB_SOURCE
   td/telegram/BackgroundType.h
   td/telegram/BotCommand.h
   td/telegram/BotCommandScope.h
+  td/telegram/BotInfoManager.h
+  td/telegram/BotMenuButton.h
   td/telegram/CallActor.h
   td/telegram/CallDiscardReason.h
   td/telegram/CallId.h
