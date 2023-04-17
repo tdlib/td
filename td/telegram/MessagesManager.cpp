@@ -20279,6 +20279,9 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
 }
 
 void MessagesManager::read_dialog_inbox(Dialog *d, MessageId max_message_id) {
+  if (max_message_id == MessageId()) {
+    return;
+  }
   CHECK(d != nullptr);
   CHECK(max_message_id.is_valid());
   CHECK(max_message_id.is_server() || max_message_id.is_local());
