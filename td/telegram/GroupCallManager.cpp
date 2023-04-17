@@ -1879,9 +1879,6 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
   auto &pending_version_updates = participants_it->second->pending_version_updates_;
   auto &pending_mute_updates = participants_it->second->pending_mute_updates_;
 
-  LOG(INFO) << "Process " << pending_version_updates.size() << " versioned and " << pending_mute_updates.size()
-            << " mute updates for " << input_group_call_id;
-
   auto process_mute_updates = [&] {
     while (!pending_mute_updates.empty()) {
       auto it = pending_mute_updates.begin();
@@ -1889,7 +1886,9 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
       if (version > group_call->version) {
         return;
       }
+
       auto &participants = it->second.updates;
+      LOG(INFO) << "Process " << participants.size() << " mute updates for " << input_group_call_id;
       for (auto &participant_it : participants) {
         auto &participant = *participant_it.second;
         on_participant_speaking_in_group_call(input_group_call_id, participant);
@@ -1925,6 +1924,7 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
     }
 
     if (version == group_call->version + 1) {
+      LOG(INFO) << "Process " << participants.size() << " versioned updates for " << input_group_call_id;
       group_call->version = version;
       for (auto &participant_it : participants) {
         auto &participant = *participant_it.second;
