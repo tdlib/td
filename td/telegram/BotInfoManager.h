@@ -43,6 +43,23 @@ class BotInfoManager final : public Actor {
  private:
   static constexpr double MAX_QUERY_DELAY = 0.01;
 
+  struct PendingSetBotInfoQuery {
+    UserId bot_user_id_;
+    string language_code_;
+    int type_ = 0;
+    string value_;
+    Promise<Unit> promise_;
+
+    PendingSetBotInfoQuery(UserId bot_user_id, const string &language_code, int type, const string &value,
+                           Promise<Unit> &&promise)
+        : bot_user_id_(bot_user_id)
+        , language_code_(language_code)
+        , type_(type)
+        , value_(value)
+        , promise_(std::move(promise)) {
+    }
+  };
+
   struct PendingGetBotInfoQuery {
     UserId bot_user_id_;
     string language_code_;
@@ -60,7 +77,12 @@ class BotInfoManager final : public Actor {
 
   void timeout_expired() final;
 
+  void add_pending_set_query(UserId bot_user_id, const string &language_code, int type, const string &value,
+                             Promise<Unit> &&promise);
+
   void add_pending_get_query(UserId bot_user_id, const string &language_code, int type, Promise<string> &&promise);
+
+  vector<PendingSetBotInfoQuery> pending_set_bot_info_queries_;
 
   vector<PendingGetBotInfoQuery> pending_get_bot_info_queries_;
 

@@ -108,9 +108,10 @@ class SetBotInfoQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   UserId bot_user_id_;
   bool set_name_ = false;
+  bool set_info_ = false;
 
   void invalidate_bot_info() {
-    if (!set_name_) {
+    if (set_info_) {
       td_->contacts_manager_->invalidate_user_full(bot_user_id_);
     }
   }
@@ -142,6 +143,7 @@ class SetBotInfoQuery final : public Td::ResultHandler {
       bot_user_id_ = td_->contacts_manager_->get_my_id();
     }
     set_name_ = set_name;
+    set_info_ = set_about || set_description;
     invalidate_bot_info();
     send_query(G()->net_query_creator().create(
         telegram_api::bots_setBotInfo(flags, r_input_user.move_as_ok(), language_code, name, about, description),
@@ -156,17 +158,17 @@ class SetBotInfoQuery final : public Td::ResultHandler {
 
     bool result = result_ptr.move_as_ok();
     LOG_IF(WARNING, !result) << "Failed to set bot info";
-    if (set_name_) {
-      td_->contacts_manager_->reload_user(bot_user_id_, std::move(promise_));
-    } else {
+    if (set_info_) {
       invalidate_bot_info();
-      if (td_->auth_manager_->is_bot()) {
-        // invalidation is enough for bots
-        promise_.set_value(Unit());
-      } else {
-        td_->contacts_manager_->reload_user_full(bot_user_id_, std::move(promise_));
+      if (!td_->auth_manager_->is_bot()) {
+        return td_->contacts_manager_->reload_user_full(bot_user_id_, std::move(promise_));
       }
     }
+    if (set_name_) {
+      return td_->contacts_manager_->reload_user(bot_user_id_, std::move(promise_));
+    }
+    // invalidation is enough for bots if name wasn't changed
+    promise_.set_value(Unit());
   }
 
   void on_error(Status status) final {
@@ -209,6 +211,7 @@ class GetBotInfoQuery final : public Td::ResultHandler {
     }
 
     auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetBotInfoQuery: " << to_string(result);
     for (auto &promise : name_promises_) {
       promise.set_value(string(result->name_));
     }
@@ -235,8 +238,13 @@ void BotInfoManager::tear_down() {
 }
 
 void BotInfoManager::hangup() {
-  auto queries = std::move(pending_get_bot_info_queries_);
-  for (auto &query : queries) {
+  auto set_queries = std::move(pending_set_bot_info_queries_);
+  auto get_queries = std::move(pending_get_bot_info_queries_);
+
+  for (auto &query : set_queries) {
+    query.promise_.set_error(Global::request_aborted_error());
+  }
+  for (auto &query : get_queries) {
     query.promise_.set_error(Global::request_aborted_error());
   }
 
@@ -244,23 +252,56 @@ void BotInfoManager::hangup() {
 }
 
 void BotInfoManager::timeout_expired() {
-  auto queries = std::move(pending_get_bot_info_queries_);
+  auto set_queries = std::move(pending_set_bot_info_queries_);
+  reset_to_empty(pending_set_bot_info_queries_);
+  auto get_queries = std::move(pending_get_bot_info_queries_);
   reset_to_empty(pending_get_bot_info_queries_);
-  std::stable_sort(queries.begin(), queries.end(),
+
+  std::stable_sort(set_queries.begin(), set_queries.end(),
+                   [](const PendingSetBotInfoQuery &lhs, const PendingSetBotInfoQuery &rhs) {
+                     return lhs.bot_user_id_.get() < rhs.bot_user_id_.get() ||
+                            (lhs.bot_user_id_ == rhs.bot_user_id_ && lhs.language_code_ < rhs.language_code_);
+                   });
+  for (size_t i = 0; i < set_queries.size();) {
+    bool has_value[3] = {false, false, false};
+    string values[3];
+    vector<Promise<Unit>> promises;
+    size_t j = i;
+    while (j < set_queries.size() && set_queries[i].bot_user_id_ == set_queries[j].bot_user_id_ &&
+           set_queries[i].language_code_ == set_queries[j].language_code_) {
+      has_value[set_queries[j].type_] = true;
+      values[set_queries[j].type_] = std::move(set_queries[j].value_);
+      promises.push_back(std::move(set_queries[j].promise_));
+      j++;
+    }
+    auto promise = PromiseCreator::lambda([promises = std::move(promises)](Result<Unit> &&result) mutable {
+      if (result.is_error()) {
+        fail_promises(promises, result.move_as_error());
+      } else {
+        set_promises(promises);
+      }
+    });
+    td_->create_handler<SetBotInfoQuery>(std::move(promise))
+        ->send(set_queries[i].bot_user_id_, set_queries[i].language_code_, has_value[0], values[0], has_value[1],
+               values[1], has_value[2], values[2]);
+    i = j;
+  }
+
+  std::stable_sort(get_queries.begin(), get_queries.end(),
                    [](const PendingGetBotInfoQuery &lhs, const PendingGetBotInfoQuery &rhs) {
                      return lhs.bot_user_id_.get() < rhs.bot_user_id_.get() ||
                             (lhs.bot_user_id_ == rhs.bot_user_id_ && lhs.language_code_ < rhs.language_code_);
                    });
-  for (size_t i = 0; i < queries.size();) {
+  for (size_t i = 0; i < get_queries.size();) {
     vector<Promise<string>> promises[3];
     size_t j = i;
-    while (j < queries.size() && queries[i].bot_user_id_ == queries[j].bot_user_id_ &&
-           queries[i].language_code_ == queries[j].language_code_) {
-      promises[queries[j].type_].push_back(std::move(queries[j].promise_));
+    while (j < get_queries.size() && get_queries[i].bot_user_id_ == get_queries[j].bot_user_id_ &&
+           get_queries[i].language_code_ == get_queries[j].language_code_) {
+      promises[get_queries[j].type_].push_back(std::move(get_queries[j].promise_));
       j++;
     }
     td_->create_handler<GetBotInfoQuery>(std::move(promises[0]), std::move(promises[1]), std::move(promises[2]))
-        ->send(queries[i].bot_user_id_, queries[i].language_code_);
+        ->send(get_queries[i].bot_user_id_, get_queries[i].language_code_);
     i = j;
   }
 }
@@ -277,11 +318,12 @@ void BotInfoManager::set_default_channel_administrator_rights(AdministratorRight
   td_->create_handler<SetBotBroadcastDefaultAdminRightsQuery>(std::move(promise))->send(administrator_rights);
 }
 
-void BotInfoManager::set_bot_name(UserId bot_user_id, const string &language_code, const string &name,
-                                  Promise<Unit> &&promise) {
-  TRY_STATUS_PROMISE(promise, validate_bot_language_code(language_code));
-  td_->create_handler<SetBotInfoQuery>(std::move(promise))
-      ->send(bot_user_id, language_code, true, name, false, string(), false, string());
+void BotInfoManager::add_pending_set_query(UserId bot_user_id, const string &language_code, int type,
+                                           const string &value, Promise<Unit> &&promise) {
+  pending_set_bot_info_queries_.emplace_back(bot_user_id, language_code, type, value, std::move(promise));
+  if (!has_timeout()) {
+    set_timeout_in(MAX_QUERY_DELAY);
+  }
 }
 
 void BotInfoManager::add_pending_get_query(UserId bot_user_id, const string &language_code, int type,
@@ -292,6 +334,12 @@ void BotInfoManager::add_pending_get_query(UserId bot_user_id, const string &lan
   }
 }
 
+void BotInfoManager::set_bot_name(UserId bot_user_id, const string &language_code, const string &name,
+                                  Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, validate_bot_language_code(language_code));
+  add_pending_set_query(bot_user_id, language_code, 0, name, std::move(promise));
+}
+
 void BotInfoManager::get_bot_name(UserId bot_user_id, const string &language_code, Promise<string> &&promise) {
   TRY_STATUS_PROMISE(promise, validate_bot_language_code(language_code));
   add_pending_get_query(bot_user_id, language_code, 0, std::move(promise));
@@ -300,8 +348,7 @@ void BotInfoManager::get_bot_name(UserId bot_user_id, const string &language_cod
 void BotInfoManager::set_bot_info_description(UserId bot_user_id, const string &language_code,
                                               const string &description, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, validate_bot_language_code(language_code));
-  td_->create_handler<SetBotInfoQuery>(std::move(promise))
-      ->send(bot_user_id, language_code, false, string(), false, string(), true, description);
+  add_pending_set_query(bot_user_id, language_code, 1, description, std::move(promise));
 }
 
 void BotInfoManager::get_bot_info_description(UserId bot_user_id, const string &language_code,
@@ -313,8 +360,7 @@ void BotInfoManager::get_bot_info_description(UserId bot_user_id, const string &
 void BotInfoManager::set_bot_info_about(UserId bot_user_id, const string &language_code, const string &about,
                                         Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, validate_bot_language_code(language_code));
-  td_->create_handler<SetBotInfoQuery>(std::move(promise))
-      ->send(bot_user_id, language_code, false, string(), true, about, false, string());
+  add_pending_set_query(bot_user_id, language_code, 2, about, std::move(promise));
 }
 
 void BotInfoManager::get_bot_info_about(UserId bot_user_id, const string &language_code, Promise<string> &&promise) {
