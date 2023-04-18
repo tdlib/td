@@ -19,6 +19,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <utility>
 
 namespace td {
 namespace mtproto {
@@ -38,11 +39,12 @@ void Grease::init(MutableSlice res) {
 class TlsHello {
  public:
   struct Op {
-    enum class Type { String, Random, Zero, Domain, Grease, Key, BeginScope, EndScope };
+    enum class Type { String, Random, Zero, Domain, Grease, Key, BeginScope, EndScope, Permutation };
     Type type;
     int length;
     int seed;
-    std::string data;
+    string data;
+    vector<vector<Op>> parts;
 
     static Op string(Slice str) {
       Op res;
@@ -86,6 +88,12 @@ class TlsHello {
     static Op key() {
       Op res;
       res.type = Type::Key;
+      return res;
+    }
+    static Op permutation(vector<vector<Op>> parts) {
+      Op res;
+      res.type = Type::Permutation;
+      res.parts = std::move(parts);
       return res;
     }
   };
@@ -139,27 +147,26 @@ class TlsHello {
           Op::string("\x13\x01\x13\x02\x13\x03\xc0\x2b\xc0\x2f\xc0\x2c\xc0\x30\xcc\xa9\xcc\xa8\xc0\x13\xc0\x14\x00\x9c"
                      "\x00\x9d\x00\x2f\x00\x35\x01\x00\x01\x93"),
           Op::grease(2),
-          Op::string("\x00\x00\x00\x00"),
-          Op::begin_scope(),
-          Op::begin_scope(),
-          Op::string("\x00"),
-          Op::begin_scope(),
-          Op::domain(),
-          Op::end_scope(),
-          Op::end_scope(),
-          Op::end_scope(),
-          Op::string("\x00\x17\x00\x00\xff\x01\x00\x01\x00\x00\x0a\x00\x0a\x00\x08"),
-          Op::grease(4),
-          Op::string(
-              "\x00\x1d\x00\x17\x00\x18\x00\x0b\x00\x02\x01\x00\x00\x23\x00\x00\x00\x10\x00\x0e\x00\x0c\x02\x68\x32\x08"
-              "\x68\x74\x74\x70\x2f\x31\x2e\x31\x00\x05\x00\x05\x01\x00\x00\x00\x00\x00\x0d\x00\x12\x00\x10\x04\x03\x08"
-              "\x04\x04\x01\x05\x03\x08\x05\x05\x01\x08\x06\x06\x01\x00\x12\x00\x00\x00\x33\x00\x2b\x00\x29"),
-          Op::grease(4),
-          Op::string("\x00\x01\x00\x00\x1d\x00\x20"),
-          Op::key(),
-          Op::string("\x00\x2d\x00\x02\x01\x01\x00\x2b\x00\x0b\x0a"),
-          Op::grease(6),
-          Op::string("\x03\x04\x03\x03\x03\x02\x03\x01\x00\x1b\x00\x03\x02\x00\x02"),
+          Op::string("\x00\x00"),
+
+          Op::permutation(
+              {vector<Op>{Op::string("\x00\x00"), Op::begin_scope(), Op::begin_scope(), Op::string("\x00"),
+                          Op::begin_scope(), Op::domain(), Op::end_scope(), Op::end_scope(), Op::end_scope()},
+               vector<Op>{Op::string("\x00\x05\x00\x05\x01\x00\x00\x00\x00")},
+               vector<Op>{Op::string("\x00\x0a\x00\x0a\x00\x08"), Op::grease(4),
+                          Op::string("\x00\x1d\x00\x17\x00\x18")},
+               vector<Op>{Op::string("\x00\x0b\x00\x02\x01\x00")},
+               vector<Op>{Op::string(
+                   "\x00\x0d\x00\x12\x00\x10\x04\x03\x08\x04\x04\x01\x05\x03\x08\x05\x05\x01\x08\x06\x06\x01")},
+               vector<Op>{Op::string("\x00\x10\x00\x0e\x00\x0c\x02\x68\x32\x08\x68\x74\x74\x70\x2f\x31\x2e\x31")},
+               vector<Op>{Op::string("\x00\x12\x00\x00")}, vector<Op>{Op::string("\x00\x17\x00\x00")},
+               vector<Op>{Op::string("\x00\x1b\x00\x03\x02\x00\x02")}, vector<Op>{Op::string("\x00\x23\x00\x00")},
+               vector<Op>{Op::string("\x00\x2b\x00\x07\x06"), Op::grease(6), Op::string("\x03\x04\x03\x03")},
+               vector<Op>{Op::string("\x00\x2d\x00\x02\x01\x01")},
+               vector<Op>{Op::string("\x00\x33\x00\x2b\x00\x29"), Op::grease(4),
+                          Op::string("\x00\x01\x00\x00\x1d\x00\x20"), Op::key()},
+               vector<Op>{Op::string("\x44\x69\x00\x05\x00\x03\x02\x68\x32")},
+               vector<Op>{Op::string("\xff\x01\x00\x01\x00")}}),
           Op::grease(3),
           Op::string("\x00\x01\x00\x00\x15")};
 #endif
@@ -257,9 +264,21 @@ class TlsHelloCalcLength {
         }
         break;
       }
+      case Type::Permutation: {
+        for (const auto &part : op.parts) {
+          for (auto &nested_op : part) {
+            do_op(nested_op, context);
+          }
+        }
+        break;
+      }
       default:
         UNREACHABLE();
     }
+  }
+
+  size_t get_length() const {
+    return size_;
   }
 
   Result<size_t> finish() {
@@ -365,6 +384,32 @@ class TlsHelloStore {
         data_[begin_offset + 1] = static_cast<char>(size & 0xff);
         break;
       }
+      case Type::Permutation: {
+        vector<string> parts;
+        for (const auto &part : op.parts) {
+          TlsHelloCalcLength calc_length;
+          for (auto &nested_op : part) {
+            calc_length.do_op(nested_op, context);
+          }
+          auto length = calc_length.get_length();
+          string data(length, '\0');
+          TlsHelloStore storer(data);
+          for (auto &nested_op : part) {
+            storer.do_op(nested_op, context);
+          }
+          CHECK(storer.get_offset() == data.size());
+          parts.push_back(std::move(data));
+        }
+        for (size_t i = 1; i < parts.size(); i++) {
+          auto pos = static_cast<size_t>(Random::secure_int32()) % (i + 1);
+          std::swap(parts[i], parts[pos]);
+        }
+        for (auto &part : parts) {
+          dest_.copy_from(part);
+          dest_.remove_prefix(part.size());
+        }
+        break;
+      }
       default:
         UNREACHABLE();
     }
@@ -387,7 +432,7 @@ class TlsHelloStore {
  private:
   MutableSlice data_;
   MutableSlice dest_;
-  std::vector<size_t> scope_offset_;
+  vector<size_t> scope_offset_;
 
   static BigNum get_y2(BigNum &x, const BigNum &mod, BigNumContext &big_num_context) {
     // returns y = x^3 + 486662 * x^2 + x
