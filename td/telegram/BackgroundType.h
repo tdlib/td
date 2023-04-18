@@ -82,7 +82,7 @@ class BackgroundType {
       : type_(Type::Pattern), is_moving_(is_moving), intensity_(intensity), fill_(std::move(fill)) {
   }
   BackgroundType(BackgroundFill &&fill, int32 dark_theme_dimming)
-      : type_(Type::Fill), fill_(std::move(fill)), intensity_(dark_theme_dimming) {
+      : type_(Type::Fill), intensity_(dark_theme_dimming), fill_(std::move(fill)) {
   }
 
  public:
