@@ -46,7 +46,7 @@ class TlsHello {
     string data;
     vector<vector<Op>> parts;
 
-    static Op string(Slice str) {
+    static Op str(Slice str) {
       Op res;
       res.type = Type::String;
       res.data = str.str();
@@ -103,71 +103,70 @@ class TlsHello {
       TlsHello res;
 #if TD_DARWIN
       res.ops_ = {
-          Op::string("\x16\x03\x01\x02\x00\x01\x00\x01\xfc\x03\x03"),
+          Op::str("\x16\x03\x01\x02\x00\x01\x00\x01\xfc\x03\x03"),
           Op::zero(32),
-          Op::string("\x20"),
+          Op::str("\x20"),
           Op::random(32),
-          Op::string("\x00\x2a"),
+          Op::str("\x00\x2a"),
           Op::grease(0),
-          Op::string("\x13\x01\x13\x02\x13\x03\xc0\x2c\xc0\x2b\xcc\xa9\xc0\x30\xc0\x2f\xcc\xa8\xc0\x0a\xc0\x09\xc0\x14"
-                     "\xc0\x13\x00\x9d\x00\x9c\x00\x35\x00\x2f\xc0\x08\xc0\x12\x00\x0a\x01\x00\x01\x89"),
+          Op::str("\x13\x01\x13\x02\x13\x03\xc0\x2c\xc0\x2b\xcc\xa9\xc0\x30\xc0\x2f\xcc\xa8\xc0\x0a\xc0\x09\xc0\x14"
+                  "\xc0\x13\x00\x9d\x00\x9c\x00\x35\x00\x2f\xc0\x08\xc0\x12\x00\x0a\x01\x00\x01\x89"),
           Op::grease(2),
-          Op::string("\x00\x00\x00\x00"),
+          Op::str("\x00\x00\x00\x00"),
           Op::begin_scope(),
           Op::begin_scope(),
-          Op::string("\x00"),
+          Op::str("\x00"),
           Op::begin_scope(),
           Op::domain(),
           Op::end_scope(),
           Op::end_scope(),
           Op::end_scope(),
-          Op::string("\x00\x17\x00\x00\xff\x01\x00\x01\x00\x00\x0a\x00\x0c\x00\x0a"),
+          Op::str("\x00\x17\x00\x00\xff\x01\x00\x01\x00\x00\x0a\x00\x0c\x00\x0a"),
           Op::grease(4),
-          Op::string("\x00\x1d\x00\x17\x00\x18\x00\x19\x00\x0b\x00\x02\x01\x00\x00\x10\x00\x0e\x00\x0c\x02\x68\x32\x08"
-                     "\x68\x74\x74\x70\x2f\x31\x2e\x31\x00\x05\x00\x05\x01\x00\x00\x00\x00\x00\x0d\x00\x18\x00\x16\x04"
-                     "\x03\x08\x04\x04\x01\x05\x03\x02\x03\x08\x05\x08\x05\x05\x01\x08\x06\x06\x01\x02\x01\x00\x12\x00"
-                     "\x00\x00\x33\x00\x2b\x00\x29"),
+          Op::str("\x00\x1d\x00\x17\x00\x18\x00\x19\x00\x0b\x00\x02\x01\x00\x00\x10\x00\x0e\x00\x0c\x02\x68\x32\x08"
+                  "\x68\x74\x74\x70\x2f\x31\x2e\x31\x00\x05\x00\x05\x01\x00\x00\x00\x00\x00\x0d\x00\x18\x00\x16\x04"
+                  "\x03\x08\x04\x04\x01\x05\x03\x02\x03\x08\x05\x08\x05\x05\x01\x08\x06\x06\x01\x02\x01\x00\x12\x00"
+                  "\x00\x00\x33\x00\x2b\x00\x29"),
           Op::grease(4),
-          Op::string("\x00\x01\x00\x00\x1d\x00\x20"),
+          Op::str("\x00\x01\x00\x00\x1d\x00\x20"),
           Op::key(),
-          Op::string("\x00\x2d\x00\x02\x01\x01\x00\x2b\x00\x0b\x0a"),
+          Op::str("\x00\x2d\x00\x02\x01\x01\x00\x2b\x00\x0b\x0a"),
           Op::grease(6),
-          Op::string("\x03\x04\x03\x03\x03\x02\x03\x01\x00\x1b\x00\x03\x02\x00\x01"),
+          Op::str("\x03\x04\x03\x03\x03\x02\x03\x01\x00\x1b\x00\x03\x02\x00\x01"),
           Op::grease(3),
-          Op::string("\x00\x01\x00\x00\x15")};
+          Op::str("\x00\x01\x00\x00\x15")};
 #else
       res.ops_ = {
-          Op::string("\x16\x03\x01\x02\x00\x01\x00\x01\xfc\x03\x03"),
+          Op::str("\x16\x03\x01\x02\x00\x01\x00\x01\xfc\x03\x03"),
           Op::zero(32),
-          Op::string("\x20"),
+          Op::str("\x20"),
           Op::random(32),
-          Op::string("\x00\x20"),
+          Op::str("\x00\x20"),
           Op::grease(0),
-          Op::string("\x13\x01\x13\x02\x13\x03\xc0\x2b\xc0\x2f\xc0\x2c\xc0\x30\xcc\xa9\xcc\xa8\xc0\x13\xc0\x14\x00\x9c"
-                     "\x00\x9d\x00\x2f\x00\x35\x01\x00\x01\x93"),
+          Op::str("\x13\x01\x13\x02\x13\x03\xc0\x2b\xc0\x2f\xc0\x2c\xc0\x30\xcc\xa9\xcc\xa8\xc0\x13\xc0\x14\x00\x9c"
+                  "\x00\x9d\x00\x2f\x00\x35\x01\x00\x01\x93"),
           Op::grease(2),
-          Op::string("\x00\x00"),
+          Op::str("\x00\x00"),
 
           Op::permutation(
-              {vector<Op>{Op::string("\x00\x00"), Op::begin_scope(), Op::begin_scope(), Op::string("\x00"),
-                          Op::begin_scope(), Op::domain(), Op::end_scope(), Op::end_scope(), Op::end_scope()},
-               vector<Op>{Op::string("\x00\x05\x00\x05\x01\x00\x00\x00\x00")},
-               vector<Op>{Op::string("\x00\x0a\x00\x0a\x00\x08"), Op::grease(4),
-                          Op::string("\x00\x1d\x00\x17\x00\x18")},
-               vector<Op>{Op::string("\x00\x0b\x00\x02\x01\x00")},
-               vector<Op>{Op::string(
-                   "\x00\x0d\x00\x12\x00\x10\x04\x03\x08\x04\x04\x01\x05\x03\x08\x05\x05\x01\x08\x06\x06\x01")},
-               vector<Op>{Op::string("\x00\x10\x00\x0e\x00\x0c\x02\x68\x32\x08\x68\x74\x74\x70\x2f\x31\x2e\x31")},
-               vector<Op>{Op::string("\x00\x12\x00\x00")}, vector<Op>{Op::string("\x00\x17\x00\x00")},
-               vector<Op>{Op::string("\x00\x1b\x00\x03\x02\x00\x02")}, vector<Op>{Op::string("\x00\x23\x00\x00")},
-               vector<Op>{Op::string("\x00\x2b\x00\x07\x06"), Op::grease(6), Op::string("\x03\x04\x03\x03")},
-               vector<Op>{Op::string("\x00\x2d\x00\x02\x01\x01")},
-               vector<Op>{Op::string("\x00\x33\x00\x2b\x00\x29"), Op::grease(4),
-                          Op::string("\x00\x01\x00\x00\x1d\x00\x20"), Op::key()},
-               vector<Op>{Op::string("\x44\x69\x00\x05\x00\x03\x02\x68\x32")},
-               vector<Op>{Op::string("\xff\x01\x00\x01\x00")}}),
+              {vector<Op>{Op::str("\x00\x00"), Op::begin_scope(), Op::begin_scope(), Op::str("\x00"), Op::begin_scope(),
+                          Op::domain(), Op::end_scope(), Op::end_scope(), Op::end_scope()},
+               vector<Op>{Op::str("\x00\x05\x00\x05\x01\x00\x00\x00\x00")},
+               vector<Op>{Op::str("\x00\x0a\x00\x0a\x00\x08"), Op::grease(4), Op::str("\x00\x1d\x00\x17\x00\x18")},
+               vector<Op>{Op::str("\x00\x0b\x00\x02\x01\x00")},
+               vector<Op>{
+                   Op::str("\x00\x0d\x00\x12\x00\x10\x04\x03\x08\x04\x04\x01\x05\x03\x08\x05\x05\x01\x08\x06\x06\x01")},
+               vector<Op>{Op::str("\x00\x10\x00\x0e\x00\x0c\x02\x68\x32\x08\x68\x74\x74\x70\x2f\x31\x2e\x31")},
+               vector<Op>{Op::str("\x00\x12\x00\x00")}, vector<Op>{Op::str("\x00\x17\x00\x00")},
+               vector<Op>{Op::str("\x00\x1b\x00\x03\x02\x00\x02")}, vector<Op>{Op::str("\x00\x23\x00\x00")},
+               vector<Op>{Op::str("\x00\x2b\x00\x07\x06"), Op::grease(6), Op::str("\x03\x04\x03\x03")},
+               vector<Op>{Op::str("\x00\x2d\x00\x02\x01\x01")},
+               vector<Op>{Op::str("\x00\x33\x00\x2b\x00\x29"), Op::grease(4), Op::str("\x00\x01\x00\x00\x1d\x00\x20"),
+                          Op::key()},
+               vector<Op>{Op::str("\x44\x69\x00\x05\x00\x03\x02\x68\x32")},
+               vector<Op>{Op::str("\xff\x01\x00\x01\x00")}}),
           Op::grease(3),
-          Op::string("\x00\x01\x00\x00\x15")};
+          Op::str("\x00\x01\x00\x00\x15")};
 #endif
       return res;
     }();
@@ -189,7 +188,7 @@ class TlsHello {
 
 class TlsHelloContext {
  public:
-  TlsHelloContext(size_t grease_size, std::string domain) : grease_(grease_size, '\0'), domain_(std::move(domain)) {
+  TlsHelloContext(size_t grease_size, string domain) : grease_(grease_size, '\0'), domain_(std::move(domain)) {
     Grease::init(grease_);
   }
 
@@ -205,8 +204,8 @@ class TlsHelloContext {
   }
 
  private:
-  std::string grease_;
-  std::string domain_;
+  string grease_;
+  string domain_;
 };
 
 class TlsHelloCalcLength {
@@ -482,7 +481,7 @@ class TlsHelloStore {
 
 class TlsObfusaction {
  public:
-  static std::string generate_header(std::string domain, Slice secret, int32 unix_time) {
+  static string generate_header(string domain, Slice secret, int32 unix_time) {
     CHECK(!domain.empty());
     CHECK(secret.size() == 16);
 
@@ -493,7 +492,7 @@ class TlsObfusaction {
       calc_length.do_op(op, &context);
     }
     auto length = calc_length.finish().move_as_ok();
-    std::string data(length, '\0');
+    string data(length, '\0');
     TlsHelloStore storer(data);
     for (auto &op : hello.get_ops()) {
       storer.do_op(op, &context);
@@ -518,7 +517,7 @@ Status TlsInit::wait_hello_response() {
       return Status::OK();
     }
 
-    std::string got_first(first.size(), '\0');
+    string got_first(first.size(), '\0');
     it.advance(first.size(), got_first);
     if (first != got_first) {
       return Status::Error("First part of response to hello is invalid");
@@ -537,7 +536,7 @@ Status TlsInit::wait_hello_response() {
   auto response_rand_slice = response.as_mutable_slice().substr(11, 32);
   auto response_rand = response_rand_slice.str();
   std::fill(response_rand_slice.begin(), response_rand_slice.end(), '\0');
-  std::string hash_dest(32, '\0');
+  string hash_dest(32, '\0');
   hmac_sha256(password_, PSLICE() << hello_rand_ << response.as_slice(), hash_dest);
   if (hash_dest != response_rand) {
     return Status::Error("Response hash mismatch");
