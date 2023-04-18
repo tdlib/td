@@ -51,7 +51,7 @@ class FlatHashTable {
   struct Iterator {
     using iterator_category = std::forward_iterator_tag;
     using difference_type = std::ptrdiff_t;
-    using value_type = FlatHashTable::value_type;
+    using value_type = typename NodeT::public_type;
     using pointer = value_type *;
     using reference = value_type &;
 
@@ -108,7 +108,7 @@ class FlatHashTable {
   struct ConstIterator {
     using iterator_category = std::forward_iterator_tag;
     using difference_type = std::ptrdiff_t;
-    using value_type = FlatHashTable::value_type;
+    using value_type = typename NodeT::public_type;
     using pointer = const value_type *;
     using reference = const value_type &;
 
