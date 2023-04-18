@@ -896,6 +896,7 @@ void LanguagePackManager::search_language_info(string language_code,
           return promise.set_error(r_result.move_as_error());
         }
 
+        LOG(INFO) << "Receive " << to_string(r_result.ok());
         send_closure(actor_id, &LanguagePackManager::on_get_language, r_result.move_as_ok(), std::move(language_pack),
                      std::move(language_code), std::move(promise));
       });
