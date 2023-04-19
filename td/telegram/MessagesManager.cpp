@@ -9990,9 +9990,6 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
     on_dialog_updated(dialog_id, "set have_full_history 2");
   }
 
-  //  LOG_IF(ERROR, d->first_message_id.is_valid() && d->first_message_id > first_received_message_id)
-  //      << "Receive " << first_received_message_id << ", but first chat message is " << d->first_message_id;
-
   if (from_the_end && !d->last_new_message_id.is_valid()) {
     set_dialog_last_new_message_id(
         d, last_added_message_id.is_valid() ? last_added_message_id : last_received_message_id, "on_get_history");
