@@ -518,7 +518,7 @@ background id:int64 is_default:Bool is_dark:Bool name:string document:document t
 //@description Contains a list of backgrounds @backgrounds A list of backgrounds
 backgrounds backgrounds:vector<background> = Backgrounds;
 
-//@description Describes a background set for a specific chat @background The background @dark_theme_dimming Dimmin of the background in dark themes, as a percentage; 0-100
+//@description Describes a background set for a specific chat @background The background @dark_theme_dimming Dimming of the background in dark themes, as a percentage; 0-100
 chatBackground background:background dark_theme_dimming:int32 = ChatBackground;
 
 
@@ -7728,7 +7728,7 @@ setDefaultChannelAdministratorRights default_channel_administrator_rights:chatAd
 //@description Sets the name of a bot. Can be called only if userTypeBot.can_be_edited == true
 //@bot_user_id Identifier of the target bot
 //@language_code A two-letter ISO 639-1 language code. If empty, the description will be shown to all users, for which language there are no dedicated description
-//@name New bot's name on the specified language; 0-64 characters. Default name can't be empty
+//@name New bot's name on the specified language; 0-64 characters; must be non-empty if language code is empty
 setBotName bot_user_id:int53 language_code:string name:string = Ok;
 
 //@description Returns the name of a bot in the given language. Can be called only if userTypeBot.can_be_edited == true

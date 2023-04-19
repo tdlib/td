@@ -194,8 +194,7 @@ class GetBotInfoQuery final : public Td::ResultHandler {
     int32 flags = 0;
     auto r_input_user = get_bot_input_user(td_, bot_user_id);
     if (r_input_user.is_error()) {
-      on_error(r_input_user.move_as_error());
-      return;
+      return on_error(r_input_user.move_as_error());
     }
     if (r_input_user.ok() != nullptr) {
       flags |= telegram_api::bots_getBotInfo::BOT_MASK;

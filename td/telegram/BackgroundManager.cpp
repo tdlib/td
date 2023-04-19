@@ -6,6 +6,7 @@
 //
 #include "td/telegram/BackgroundManager.h"
 
+#include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/BackgroundType.hpp"
 #include "td/telegram/ContactsManager.h"
