@@ -108,8 +108,6 @@ class DialogFilterManager final : public Actor {
   void add_dialog_filter_new_chats(DialogFilterId dialog_filter_id, vector<DialogId> dialog_ids,
                                    Promise<Unit> &&promise);
 
-  void hide_dialog_filter_new_chats(DialogFilterId dialog_filter_id, Promise<Unit> &&promise);
-
   void on_get_dialog_filter(telegram_api::object_ptr<telegram_api::DialogFilter> filter);
 
   void get_recommended_dialog_filters(Promise<td_api::object_ptr<td_api::recommendedChatFolders>> &&promise);

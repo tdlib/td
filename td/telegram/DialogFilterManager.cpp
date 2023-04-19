@@ -2070,19 +2070,11 @@ void DialogFilterManager::add_dialog_filter_new_chats(DialogFilterId dialog_filt
     }
   }
 
-  td_->create_handler<JoinChatlistUpdatesQuery>(std::move(promise))->send(dialog_filter_id, std::move(dialog_ids));
-}
-
-void DialogFilterManager::hide_dialog_filter_new_chats(DialogFilterId dialog_filter_id, Promise<Unit> &&promise) {
-  auto dialog_filter = get_dialog_filter(dialog_filter_id);
-  if (dialog_filter == nullptr) {
-    return promise.set_error(Status::Error(400, "Chat folder not found"));
+  if (dialog_ids.empty()) {
+    td_->create_handler<HideChatlistUpdatesQuery>(std::move(promise))->send(dialog_filter_id);
+  } else {
+    td_->create_handler<JoinChatlistUpdatesQuery>(std::move(promise))->send(dialog_filter_id, std::move(dialog_ids));
   }
-  if (!dialog_filter->is_shareable()) {
-    return promise.set_error(Status::Error(400, "Chat folder must be shareable"));
-  }
-
-  td_->create_handler<HideChatlistUpdatesQuery>(std::move(promise))->send(dialog_filter_id);
 }
 
 void DialogFilterManager::set_dialog_filter_has_my_invite_links(DialogFilterId dialog_filter_id,
