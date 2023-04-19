@@ -9263,7 +9263,10 @@ void StickersManager::remove_recent_sticker(bool is_attached, const tl_object_pt
                      td_->file_manager_->get_input_file_id(FileType::Sticker, input_file, DialogId(), false, false));
 
   vector<FileId> &sticker_ids = recent_sticker_ids_[is_attached];
-  if (!td::remove(sticker_ids, file_id)) {
+  auto is_equal = [sticker_id = file_id](FileId file_id) {
+    return file_id == sticker_id || (file_id.get_remote() == sticker_id.get_remote() && sticker_id.get_remote() != 0);
+  };
+  if (!td::remove_if(sticker_ids, is_equal)) {
     return promise.set_value(Unit());
   }
 
