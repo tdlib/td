@@ -111,7 +111,7 @@ Result<unique_ptr<DialogFilter>> DialogFilter::create_dialog_filter(Td *td, Dial
   FlatHashSet<int64> added_dialog_ids;
   auto add_chats = [td, &added_dialog_ids](vector<InputDialogId> &input_dialog_ids, const vector<int64> &chat_ids) {
     for (const auto &chat_id : chat_ids) {
-      if (!added_dialog_ids.insert(chat_id).second) {
+      if (chat_id == 0 || !added_dialog_ids.insert(chat_id).second) {
         // do not allow duplicate chat_ids
         continue;
       }
@@ -177,7 +177,9 @@ void DialogFilter::set_dialog_is_pinned(InputDialogId input_dialog_id, bool is_p
 void DialogFilter::set_pinned_dialog_ids(vector<InputDialogId> &&input_dialog_ids) {
   FlatHashSet<DialogId, DialogIdHash> new_pinned_dialog_ids;
   for (auto input_dialog_id : input_dialog_ids) {
-    new_pinned_dialog_ids.insert(input_dialog_id.get_dialog_id());
+    auto dialog_id = input_dialog_id.get_dialog_id();
+    CHECK(dialog_id.is_valid());
+    new_pinned_dialog_ids.insert(dialog_id);
   }
 
   auto old_pinned_dialog_ids = std::move(pinned_dialog_ids_);

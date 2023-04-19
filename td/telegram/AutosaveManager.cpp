@@ -263,8 +263,9 @@ void AutosaveManager::AutosaveSettings::parse(ParserT &parser) {
       DialogAutosaveSettings settings;
       td::parse(dialog_id, parser);
       td::parse(settings, parser);
-      CHECK(dialog_id.is_valid());
-      exceptions_.emplace(dialog_id, std::move(settings));
+      if (dialog_id.is_valid()) {
+        exceptions_.emplace(dialog_id, std::move(settings));
+      }
     }
   }
 }
