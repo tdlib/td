@@ -1176,20 +1176,21 @@ void ConnectionCreator::hangup() {
 DcOptions ConnectionCreator::get_default_dc_options(bool is_test) {
   DcOptions res;
   enum class HostType : int32 { IPv4, IPv6, Url };
-  auto add_ip_ports = [&res](int32 dc_id, const vector<string> &ips, const vector<int> &ports,
+  auto add_ip_ports = [&res](int32 dc_id, vector<string> ip_address_strings, const vector<int> &ports,
                              HostType type = HostType::IPv4) {
     IPAddress ip_address;
+    Random::shuffle(ip_address_strings);
     for (auto port : ports) {
-      for (auto &ip : ips) {
+      for (auto &ip_address_string : ip_address_strings) {
         switch (type) {
           case HostType::IPv4:
-            ip_address.init_ipv4_port(ip, port).ensure();
+            ip_address.init_ipv4_port(ip_address_string, port).ensure();
             break;
           case HostType::IPv6:
-            ip_address.init_ipv6_port(ip, port).ensure();
+            ip_address.init_ipv6_port(ip_address_string, port).ensure();
             break;
           case HostType::Url:
-            ip_address.init_host_port(ip, port).ensure();
+            ip_address.init_host_port(ip_address_string, port).ensure();
             break;
         }
         res.dc_options.emplace_back(DcId::internal(dc_id), ip_address);
