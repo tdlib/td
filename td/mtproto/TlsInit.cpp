@@ -19,7 +19,6 @@
 
 #include <algorithm>
 #include <cstring>
-#include <utility>
 
 namespace td {
 namespace mtproto {
@@ -398,10 +397,7 @@ class TlsHelloStore {
           CHECK(storer.get_offset() == data.size());
           parts.push_back(std::move(data));
         }
-        for (size_t i = 1; i < parts.size(); i++) {
-          auto pos = static_cast<size_t>(Random::secure_int32()) % (i + 1);
-          std::swap(parts[i], parts[pos]);
-        }
+        Random::shuffle(parts);
         for (auto &part : parts) {
           dest_.copy_from(part);
           dest_.remove_prefix(part.size());
