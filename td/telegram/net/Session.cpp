@@ -1582,12 +1582,8 @@ void Session::loop() {
   double wakeup_in = 0;
   if (wakeup_at != 0) {
     wakeup_in = wakeup_at - now;
-    LOG(DEBUG) << "Wakeup after " << wakeup_in;
     set_timeout_at(wakeup_at);
   }
-  // TODO: write proper condition..
-  // LOG_IF(ERROR, !close_flag_ && ((wakeup_at == 0 && network_flag_) || wakeup_in < 0 || wakeup_in > 3000))
-  // << "Bad timeout in: " << wakeup_in;
 }
 
 }  // namespace td

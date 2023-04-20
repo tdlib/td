@@ -1084,6 +1084,7 @@ double SessionConnection::flush(SessionConnection::Callback *callback) {
   // check error
   if (status.is_error()) {
     do_close(std::move(status));
+    LOG(DEBUG) << "Close session because of an error";
     return 0;
   }
 
@@ -1100,7 +1101,8 @@ double SessionConnection::flush(SessionConnection::Callback *callback) {
   LOG(DEBUG) << "Last pong was in " << (now - last_pong_at_) << '/' << (now - real_last_pong_at_)
              << ", last read was in " << (now - last_read_at_) << '/' << (now - real_last_read_at_)
              << ", RTT = " << rtt() << ", ping timeout = " << ping_disconnect_delay()
-             << ", read timeout = " << read_disconnect_delay() << ", flush packet in " << (flush_packet_at_ - now);
+             << ", read timeout = " << read_disconnect_delay() << ", flush packet in " << (flush_packet_at_ - now)
+             << ", wakeup in " << (wakeup_at_ - now);
 
   return wakeup_at_;
 }
