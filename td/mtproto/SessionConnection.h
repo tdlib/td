@@ -197,7 +197,6 @@ class SessionConnection final
   bool need_destroy_auth_key_ = false;
   bool sent_destroy_auth_key_ = false;
 
-  double wakeup_at_ = 0;
   double flush_packet_at_ = 0;
 
   double last_get_future_salt_at_ = 0;

@@ -1079,7 +1079,6 @@ Status SessionConnection::do_flush() {
 
 double SessionConnection::flush(SessionConnection::Callback *callback) {
   callback_ = callback;
-  wakeup_at_ = 0;
   auto status = do_flush();
   // check error
   if (status.is_error()) {
@@ -1088,23 +1087,23 @@ double SessionConnection::flush(SessionConnection::Callback *callback) {
     return 0;
   }
 
-  // wakeup_at
+  double wakeup_at = 0;
   // three independent timeouts
   // 1. close connection after ping_disconnect_delay() after last pong
   // 2. close connection after read_disconnect_delay() after last read
   // 3. the one returned by must_flush_packet
-  relax_timeout_at(&wakeup_at_, last_pong_at_ + ping_disconnect_delay() + 0.002);
-  relax_timeout_at(&wakeup_at_, last_read_at_ + read_disconnect_delay() + 0.002);
-  relax_timeout_at(&wakeup_at_, flush_packet_at_);
+  relax_timeout_at(&wakeup_at, last_pong_at_ + ping_disconnect_delay() + 0.002);
+  relax_timeout_at(&wakeup_at, last_read_at_ + read_disconnect_delay() + 0.002);
+  relax_timeout_at(&wakeup_at, flush_packet_at_);
 
   auto now = Time::now();
   LOG(DEBUG) << "Last pong was in " << (now - last_pong_at_) << '/' << (now - real_last_pong_at_)
              << ", last read was in " << (now - last_read_at_) << '/' << (now - real_last_read_at_)
              << ", RTT = " << rtt() << ", ping timeout = " << ping_disconnect_delay()
              << ", read timeout = " << read_disconnect_delay() << ", flush packet in " << (flush_packet_at_ - now)
-             << ", wakeup in " << (wakeup_at_ - now);
+             << ", wakeup in " << (wakeup_at - now);
 
-  return wakeup_at_;
+  return wakeup_at;
 }
 
 void SessionConnection::force_close(SessionConnection::Callback *callback) {
