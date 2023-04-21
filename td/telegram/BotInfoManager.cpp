@@ -120,8 +120,8 @@ class SetBotInfoQuery final : public Td::ResultHandler {
   explicit SetBotInfoQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(UserId bot_user_id, const string &language_code, bool set_name, const string &name, bool set_about,
-            const string &about, bool set_description, const string &description) {
+  void send(UserId bot_user_id, const string &language_code, bool set_name, const string &name, bool set_description,
+            const string &description, bool set_about, const string &about) {
     int32 flags = 0;
     if (set_name) {
       flags |= telegram_api::bots_setBotInfo::NAME_MASK;
