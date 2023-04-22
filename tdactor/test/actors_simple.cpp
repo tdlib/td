@@ -15,6 +15,7 @@
 #include "td/utils/MpscPollableQueue.h"
 #include "td/utils/Observer.h"
 #include "td/utils/port/FileFd.h"
+#include "td/utils/port/path.h"
 #include "td/utils/port/thread.h"
 #include "td/utils/Promise.h"
 #include "td/utils/Slice.h"
@@ -281,8 +282,9 @@ class OpenClose final : public td::Actor {
   }
   void wakeup() final {
     auto observer = reinterpret_cast<td::ObserverBase *>(123);
+    td::CSlice file_name = "server";
     if (cnt_ > 0) {
-      auto r_file_fd = td::FileFd::open("server", td::FileFd::Read | td::FileFd::Create);
+      auto r_file_fd = td::FileFd::open(file_name, td::FileFd::Read | td::FileFd::Create);
       LOG_CHECK(r_file_fd.is_ok()) << r_file_fd.error();
       auto file_fd = r_file_fd.move_as_ok();
       { auto pollable_fd = file_fd.get_poll_info().extract_pollable_fd(observer); }
@@ -290,6 +292,7 @@ class OpenClose final : public td::Actor {
       cnt_--;
       yield();
     } else {
+      td::unlink(file_name);
       td::Scheduler::instance()->finish();
     }
   }

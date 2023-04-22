@@ -68,6 +68,15 @@ class TestTQueue {
     binlog_->set_callback(std::move(tqueue_binlog));
   }
 
+  TestTQueue(const TestTQueue &) = delete;
+  TestTQueue &operator=(const TestTQueue &) = delete;
+  TestTQueue(TestTQueue &&) = delete;
+  TestTQueue &operator=(TestTQueue &&) = delete;
+
+  ~TestTQueue() {
+    td::Binlog::destroy(binlog_path()).ensure();
+  }
+
   void restart(td::Random::Xorshift128plus &rnd, td::int32 now) {
     if (rnd.fast(0, 10) == 0) {
       baseline_->run_gc(now);

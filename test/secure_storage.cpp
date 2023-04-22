@@ -67,5 +67,8 @@ TEST(SecureStorage, simple) {
     auto hash = td::secure_storage::encrypt_file(value_secret, value_path, encrypted_path).move_as_ok();
     td::secure_storage::decrypt_file(value_secret, hash, encrypted_path, decrypted_path).ensure();
     ASSERT_TRUE(td::read_file(decrypted_path).move_as_ok().as_slice() == file_value);
+    td::unlink(value_path).ignore();
+    td::unlink(encrypted_path).ignore();
+    td::unlink(decrypted_path).ignore();
   }
 }

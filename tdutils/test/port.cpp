@@ -106,6 +106,7 @@ TEST(Port, files) {
   fd.seek(0).ensure();
   ASSERT_EQ(13u, fd.read(buf_slice.substr(0, 13)).move_as_ok());
   ASSERT_STREQ("Habcd world?!", buf_slice.substr(0, 13));
+  td::rmrf(main_dir).ensure();
 }
 
 TEST(Port, SparseFiles) {

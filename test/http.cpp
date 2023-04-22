@@ -347,6 +347,7 @@ TEST(Http, aes_file_encryption) {
     auto result = sink.result()->move_as_buffer_slice().as_slice().str();
     ASSERT_EQ(str, result);
   }
+  td::unlink(name).ignore();
 }
 
 TEST(Http, chunked_flow) {

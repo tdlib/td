@@ -63,6 +63,7 @@ TEST(DB, binlog_encryption_bug) {
             binlog_name.str(), [&](const td::BinlogEvent &x) {}, cucumber)
         .ensure();
   }
+  td::Binlog::destroy(binlog_name).ignore();
 }
 
 TEST(DB, binlog_encryption) {
@@ -91,6 +92,7 @@ TEST(DB, binlog_encryption) {
     binlog.close().ensure();
   }
 
+  td::Binlog::destroy(binlog_name).ignore();
   return;
 
   auto add_suffix = [&] {
@@ -132,6 +134,8 @@ TEST(DB, binlog_encryption) {
         binlog_name.str(), [&](const td::BinlogEvent &x) { v.push_back(x.get_data().str()); }, cucumber, hello);
     CHECK(v == td::vector<td::string>({"AAAA", "BBBB", long_data, "CCCC"}));
   }
+
+  td::Binlog::destroy(binlog_name).ignore();
 }
 
 TEST(DB, sqlite_lfs) {
