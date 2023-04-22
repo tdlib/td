@@ -268,20 +268,20 @@ void NotificationManager::init() {
 
   auto notification_announcement_ids_string = G()->td_db()->get_binlog_pmc()->get("notification_announcement_ids");
   if (!notification_announcement_ids_string.empty()) {
-    VLOG(notifications) << "Load announcement ids = " << notification_announcement_ids_string;
-    auto ids = transform(full_split(notification_announcement_ids_string, ','),
-                         [](Slice str) { return to_integer_safe<int32>(str).ok(); });
-    CHECK(ids.size() % 2 == 0);
+    VLOG(notifications) << "Load announcement identifiers = " << notification_announcement_ids_string;
+    auto stored_ids = transform(full_split(notification_announcement_ids_string, ','),
+                                [](Slice str) { return to_integer_safe<int32>(str).ok(); });
+    CHECK(stored_ids.size() % 2 == 0);
     bool is_changed = false;
     auto min_date = G()->unix_time() - ANNOUNCEMENT_ID_CACHE_TIME;
-    for (size_t i = 0; i < ids.size(); i += 2) {
-      auto id = ids[i];
-      auto date = ids[i + 1];
-      if (date < min_date || id == 0) {
+    for (size_t i = 0; i < stored_ids.size(); i += 2) {
+      auto announcement_id = stored_ids[i];
+      auto date = stored_ids[i + 1];
+      if (date < min_date || announcement_id == 0) {
         is_changed = true;
         continue;
       }
-      announcement_id_date_.emplace(id, date);
+      announcement_id_date_.emplace(announcement_id, date);
     }
     if (is_changed) {
       save_announcement_ids();
@@ -310,24 +310,24 @@ void NotificationManager::init() {
 
 void NotificationManager::save_announcement_ids() {
   auto min_date = G()->unix_time() - ANNOUNCEMENT_ID_CACHE_TIME;
-  vector<int32> ids;
+  vector<int32> stored_ids;
   for (auto &it : announcement_id_date_) {
-    auto id = it.first;
+    auto announcement_id = it.first;
     auto date = it.second;
     if (date < min_date) {
       continue;
     }
-    ids.push_back(id);
-    ids.push_back(date);
+    stored_ids.push_back(announcement_id);
+    stored_ids.push_back(date);
   }
 
-  VLOG(notifications) << "Save announcement ids " << ids;
-  if (ids.empty()) {
+  VLOG(notifications) << "Save announcement identifiers " << stored_ids;
+  if (stored_ids.empty()) {
     G()->td_db()->get_binlog_pmc()->erase("notification_announcement_ids");
     return;
   }
 
-  auto notification_announcement_ids_string = implode(transform(ids, to_string<int32>));
+  auto notification_announcement_ids_string = implode(transform(stored_ids, to_string<int32>));
   G()->td_db()->get_binlog_pmc()->set("notification_announcement_ids", notification_announcement_ids_string);
 }
 

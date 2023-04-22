@@ -6601,22 +6601,22 @@ MessagesManager::Dialog *MessagesManager::get_service_notifications_dialog() {
 
 void MessagesManager::save_auth_notification_ids() {
   auto min_date = G()->unix_time() - AUTH_NOTIFICATION_ID_CACHE_TIME;
-  vector<string> ids;
+  vector<string> stored_ids;
   for (const auto &it : auth_notification_id_date_) {
     auto date = it.second;
     if (date < min_date) {
       continue;
     }
-    ids.push_back(it.first);
-    ids.push_back(to_string(date));
+    stored_ids.push_back(it.first);
+    stored_ids.push_back(to_string(date));
   }
 
-  if (ids.empty()) {
+  if (stored_ids.empty()) {
     G()->td_db()->get_binlog_pmc()->erase("auth_notification_ids");
     return;
   }
 
-  G()->td_db()->get_binlog_pmc()->set("auth_notification_ids", implode(ids, ','));
+  G()->td_db()->get_binlog_pmc()->set("auth_notification_ids", implode(stored_ids, ','));
 }
 
 void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api::updateServiceNotification> &&update,
@@ -13777,13 +13777,13 @@ void MessagesManager::init() {
   auto auth_notification_ids_string = G()->td_db()->get_binlog_pmc()->get("auth_notification_ids");
   if (!auth_notification_ids_string.empty()) {
     VLOG(notifications) << "Loaded auth_notification_ids = " << auth_notification_ids_string;
-    auto ids = full_split(auth_notification_ids_string, ',');
-    CHECK(ids.size() % 2 == 0);
+    auto stored_ids = full_split(auth_notification_ids_string, ',');
+    CHECK(stored_ids.size() % 2 == 0);
     bool is_changed = false;
     auto min_date = G()->unix_time() - AUTH_NOTIFICATION_ID_CACHE_TIME;
-    for (size_t i = 0; i < ids.size(); i += 2) {
-      auto date = to_integer_safe<int32>(ids[i + 1]).ok();
-      if (date < min_date || ids[i].empty()) {
+    for (size_t i = 0; i < stored_ids.size(); i += 2) {
+      auto date = to_integer_safe<int32>(stored_ids[i + 1]).ok();
+      if (date < min_date || stored_ids[i].empty()) {
         is_changed = true;
         continue;
       }
@@ -13791,7 +13791,7 @@ void MessagesManager::init() {
         is_changed = true;
         break;
       }
-      auth_notification_id_date_.emplace(std::move(ids[i]), date);
+      auth_notification_id_date_.emplace(std::move(stored_ids[i]), date);
     }
     if (is_changed) {
       save_auth_notification_ids();

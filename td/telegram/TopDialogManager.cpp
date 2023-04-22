@@ -418,19 +418,19 @@ void TopDialogManager::on_load_dialogs(GetTopDialogsQuery &&query, vector<Dialog
 }
 
 void TopDialogManager::do_get_top_peers() {
-  std::vector<uint64> ids;
+  std::vector<uint64> peer_ids;
   for (auto &category : by_category_) {
     for (auto &top_dialog : category.dialogs) {
       auto dialog_id = top_dialog.dialog_id;
       switch (dialog_id.get_type()) {
         case DialogType::User:
-          ids.push_back(dialog_id.get_user_id().get());
+          peer_ids.push_back(dialog_id.get_user_id().get());
           break;
         case DialogType::Chat:
-          ids.push_back(dialog_id.get_chat_id().get());
+          peer_ids.push_back(dialog_id.get_chat_id().get());
           break;
         case DialogType::Channel:
-          ids.push_back(dialog_id.get_channel_id().get());
+          peer_ids.push_back(dialog_id.get_channel_id().get());
           break;
         default:
           break;
@@ -441,7 +441,7 @@ void TopDialogManager::do_get_top_peers() {
       [actor_id = actor_id(this)](Result<telegram_api::object_ptr<telegram_api::contacts_TopPeers>> result) {
         send_closure(actor_id, &TopDialogManager::on_get_top_peers, std::move(result));
       });
-  td_->create_handler<GetTopPeersQuery>(std::move(promise))->send(get_vector_hash(ids));
+  td_->create_handler<GetTopPeersQuery>(std::move(promise))->send(get_vector_hash(peer_ids));
 }
 
 void TopDialogManager::on_get_top_peers(Result<telegram_api::object_ptr<telegram_api::contacts_TopPeers>> result) {
