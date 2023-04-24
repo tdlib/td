@@ -17720,6 +17720,11 @@ void MessagesManager::block_message_sender_from_replies_on_server(MessageId mess
       ->send(message_id, need_delete_message, need_delete_all_messages, report_spam);
 }
 
+bool MessagesManager::is_dialog_blocked(DialogId dialog_id) const {
+  const Dialog *d = get_dialog(dialog_id);
+  return d != nullptr && d->is_blocked;
+}
+
 void MessagesManager::get_blocked_dialogs(int32 offset, int32 limit,
                                           Promise<td_api::object_ptr<td_api::messageSenders>> &&promise) {
   if (offset < 0) {

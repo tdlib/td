@@ -615,6 +615,8 @@ class MessagesManager final : public Actor {
   void block_message_sender_from_replies(MessageId message_id, bool need_delete_message, bool need_delete_all_messages,
                                          bool report_spam, Promise<Unit> &&promise);
 
+  bool is_dialog_blocked(DialogId dialog_id) const;
+
   void get_blocked_dialogs(int32 offset, int32 limit, Promise<td_api::object_ptr<td_api::messageSenders>> &&promise);
 
   void on_get_blocked_dialogs(int32 offset, int32 limit, int32 total_count,

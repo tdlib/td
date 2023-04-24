@@ -306,7 +306,8 @@ class LinkManager::InternalLinkBotStart final : public InternalLink {
         const Td *td = G()->td().get_actor_unsafe();
         auto dialog_id = td->messages_manager_->resolve_dialog_username(bot_username_);
         if (dialog_id.is_valid() && dialog_id.get_type() == DialogType::User &&
-            td->messages_manager_->get_dialog_has_last_message(dialog_id)) {
+            td->messages_manager_->get_dialog_has_last_message(dialog_id) &&
+            !td->messages_manager_->is_dialog_blocked(dialog_id)) {
           autostart = true;
         }
       }
