@@ -7727,7 +7727,7 @@ setDefaultChannelAdministratorRights default_channel_administrator_rights:chatAd
 
 //@description Sets the name of a bot. Can be called only if userTypeBot.can_be_edited == true
 //@bot_user_id Identifier of the target bot
-//@language_code A two-letter ISO 639-1 language code. If empty, the description will be shown to all users, for which language there are no dedicated description
+//@language_code A two-letter ISO 639-1 language code. If empty, the name will be shown to all users for whose languages there is no dedicated name
 //@name New bot's name on the specified language; 0-64 characters; must be non-empty if language code is empty
 setBotName bot_user_id:int53 language_code:string name:string = Ok;
 
@@ -7750,7 +7750,7 @@ reorderActiveBotUsernames bot_user_id:int53 usernames:vector<string> = Ok;
 
 //@description Sets the text shown in the chat with a bot if the chat is empty. Can be called only if userTypeBot.can_be_edited == true
 //@bot_user_id Identifier of the target bot
-//@language_code A two-letter ISO 639-1 language code. If empty, the description will be shown to all users, for which language there are no dedicated description
+//@language_code A two-letter ISO 639-1 language code. If empty, the description will be shown to all users for whose languages there is no dedicated description
 //@param_description New bot's description on the specified language
 setBotInfoDescription bot_user_id:int53 language_code:string description:string = Ok;
 
@@ -7761,7 +7761,7 @@ getBotInfoDescription bot_user_id:int53 language_code:string = Text;
 
 //@description Sets the text shown on a bot's profile page and sent together with the link when users share the bot. Can be called only if userTypeBot.can_be_edited == true
 //@bot_user_id Identifier of the target bot
-//@language_code A two-letter ISO 639-1 language code. If empty, the short description will be shown to all users, for which language there are no dedicated description
+//@language_code A two-letter ISO 639-1 language code. If empty, the short description will be shown to all users for whose languages there is no dedicated description
 //@short_description New bot's short description on the specified language
 setBotInfoShortDescription bot_user_id:int53 language_code:string short_description:string = Ok;
 
