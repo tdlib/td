@@ -65,7 +65,7 @@ set (IOS_PLATFORM ${IOS_PLATFORM} CACHE STRING "Type of iOS Platform")
 # Check the platform selection and setup for developer root
 if (IOS_PLATFORM STREQUAL "OS")
     set (IOS_PLATFORM_LOCATION "iPhoneOS.platform")
-    set (XCODE_IOS_PLATFORM iphoneos)
+    set (XCODE_IOS_PLATFORM ios)
 
     # This causes the installers to properly locate the output libraries
     set (CMAKE_XCODE_EFFECTIVE_PLATFORMS "-iphoneos")
@@ -74,7 +74,7 @@ if (IOS_PLATFORM STREQUAL "OS")
 elseif (IOS_PLATFORM STREQUAL "SIMULATOR")
     set (SIMULATOR_FLAG true)
     set (IOS_PLATFORM_LOCATION "iPhoneSimulator.platform")
-    set (XCODE_IOS_PLATFORM iphonesimulator)
+    set (XCODE_IOS_PLATFORM ios-simulator)
 
     # This causes the installers to properly locate the output libraries
     set (CMAKE_XCODE_EFFECTIVE_PLATFORMS "-iphonesimulator")
@@ -91,7 +91,7 @@ elseif (IOS_PLATFORM STREQUAL "WATCHOS")
 elseif (IOS_PLATFORM STREQUAL "WATCHSIMULATOR")
     set (SIMULATOR_FLAG true)
     set (IOS_PLATFORM_LOCATION "WatchSimulator.platform")
-    set (XCODE_IOS_PLATFORM watchsimulator)
+    set (XCODE_IOS_PLATFORM watchos-simulator)
 
     # This causes the installers to properly locate the output libraries
     set (CMAKE_XCODE_EFFECTIVE_PLATFORMS "-watchsimulator")
@@ -108,7 +108,7 @@ elseif (IOS_PLATFORM STREQUAL "TVOS")
 elseif (IOS_PLATFORM STREQUAL "TVSIMULATOR")
     set (SIMULATOR_FLAG true)
     set (IOS_PLATFORM_LOCATION "AppleTvSimulator.platform")
-    set (XCODE_IOS_PLATFORM tvsimulator)
+    set (XCODE_IOS_PLATFORM tvos-simulator)
 
     # This causes the installers to properly locate the output libraries
     set (CMAKE_XCODE_EFFECTIVE_PLATFORMS "-tvsimulator")
@@ -132,19 +132,7 @@ set (CMAKE_CXX_OSX_COMPATIBILITY_VERSION_FLAG "${CMAKE_C_OSX_COMPATIBILITY_VERSI
 set (CMAKE_CXX_OSX_CURRENT_VERSION_FLAG "${CMAKE_C_OSX_CURRENT_VERSION_FLAG}")
 
 if (IOS_DEPLOYMENT_TARGET)
-    if (IOS_PLATFORM STREQUAL "OS")
-        set(XCODE_IOS_PLATFORM_VERSION_FLAGS "-mios-version-min=${IOS_DEPLOYMENT_TARGET}")
-    elseif (IOS_PLATFORM STREQUAL "SIMULATOR")
-        set(XCODE_IOS_PLATFORM_VERSION_FLAGS "-mios-simulator-version-min=${IOS_DEPLOYMENT_TARGET}")
-    elseif (IOS_PLATFORM STREQUAL "TVOS")
-        set(XCODE_IOS_PLATFORM_VERSION_FLAGS "-mtvos-version-min=${IOS_DEPLOYMENT_TARGET}")
-    elseif (IOS_PLATFORM STREQUAL "TVSIMULATOR")
-        set(XCODE_IOS_PLATFORM_VERSION_FLAGS "-mtvos-simulator-version-min=${IOS_DEPLOYMENT_TARGET}")
-    elseif (IOS_PLATFORM STREQUAL "WATCHOS")
-        set(XCODE_IOS_PLATFORM_VERSION_FLAGS "-mwatchos-version-min=${IOS_DEPLOYMENT_TARGET}")
-    elseif (IOS_PLATFORM STREQUAL "WATCHSIMULATOR")
-        set(XCODE_IOS_PLATFORM_VERSION_FLAGS "-mwatchos-simulator-version-min=${IOS_DEPLOYMENT_TARGET}")
-    endif()
+    set (XCODE_IOS_PLATFORM_VERSION_FLAGS "-m${XCODE_IOS_PLATFORM}-version-min=${IOS_DEPLOYMENT_TARGET}")
 endif()
 
 set (CMAKE_SHARED_LINKER_FLAGS_INIT "-fapplication-extension")
