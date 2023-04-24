@@ -292,7 +292,7 @@ class OpenClose final : public td::Actor {
       cnt_--;
       yield();
     } else {
-      td::unlink(file_name);
+      td::unlink(file_name).ignore();
       td::Scheduler::instance()->finish();
     }
   }
