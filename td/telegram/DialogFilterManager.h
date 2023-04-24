@@ -29,6 +29,11 @@ class Td;
 class DialogFilterManager final : public Actor {
  public:
   DialogFilterManager(Td *td, ActorShared<> parent);
+  DialogFilterManager(const DialogFilterManager &) = delete;
+  DialogFilterManager &operator=(const DialogFilterManager &) = delete;
+  DialogFilterManager(DialogFilterManager &&) = delete;
+  DialogFilterManager &operator=(DialogFilterManager &&) = delete;
+  ~DialogFilterManager() final;
 
   void init();
 

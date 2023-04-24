@@ -533,6 +533,8 @@ class GetSuggestedDialogFiltersQuery final : public Td::ResultHandler {
 DialogFilterManager::DialogFilterManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 
+DialogFilterManager::~DialogFilterManager() = default;
+
 void DialogFilterManager::hangup() {
   fail_promises(dialog_filter_reload_queries_, Global::request_aborted_error());
   stop();
