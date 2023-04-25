@@ -5073,6 +5073,9 @@ suggestedActionSetPassword authorization_delay:int32 = SuggestedAction;
 //@description Suggests the user to upgrade the Premium subscription from monthly payments to annual payments
 suggestedActionUpgradePremium = SuggestedAction;
 
+//@description Suggests the user to restore a recently expired Premium subscription
+suggestedActionRestorePremium = SuggestedAction;
+
 //@description Suggests the user to subscribe to the Premium subscription with annual payments
 suggestedActionSubscribeToAnnualPremium = SuggestedAction;
 

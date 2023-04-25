@@ -25,7 +25,8 @@ struct SuggestedAction {
     CheckPassword,
     SetPassword,
     UpgradePremium,
-    SubscribeToAnnualPremium
+    SubscribeToAnnualPremium,
+    RestorePremium
   };
   Type type_ = Type::Empty;
   DialogId dialog_id_;
