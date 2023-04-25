@@ -34,6 +34,7 @@ done
 
 if [[ $(which make) = *" "* ]] ; then
   echo "Error: OpenSSL expects that full path to make tool doesn't contain spaces. Move it to some other place."
+  exit 1
 fi
 
 if ! perl -MExtUtils::MakeMaker -MLocale::Maketext::Simple -MPod::Usage -e '' >/dev/null 2>&1 ; then
