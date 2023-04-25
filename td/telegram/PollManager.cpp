@@ -1114,6 +1114,7 @@ void PollManager::on_get_poll_voters(PollId poll_id, int32 option_id, string off
 
   auto vote_list = result.move_as_ok();
   td_->contacts_manager_->on_get_users(std::move(vote_list->users_), "on_get_poll_voters");
+  td_->contacts_manager_->on_get_chats(std::move(vote_list->chats_), "on_get_poll_voters");
 
   voters.next_offset_ = std::move(vote_list->next_offset_);
   if (poll->options_[option_id].voter_count_ != vote_list->count_) {
@@ -1122,39 +1123,41 @@ void PollManager::on_get_poll_voters(PollId poll_id, int32 option_id, string off
   }
 
   vector<UserId> user_ids;
-  for (auto &user_vote : vote_list->votes_) {
-    UserId user_id;
-    switch (user_vote->get_id()) {
-      case telegram_api::messageUserVote::ID: {
-        auto voter = telegram_api::move_object_as<telegram_api::messageUserVote>(user_vote);
+  for (auto &peer_vote : vote_list->votes_) {
+    DialogId dialog_id;
+    switch (peer_vote->get_id()) {
+      case telegram_api::messagePeerVote::ID: {
+        auto voter = telegram_api::move_object_as<telegram_api::messagePeerVote>(peer_vote);
         if (voter->option_ != poll->options_[option_id].data_) {
           continue;
         }
 
-        user_id = UserId(voter->user_id_);
+        dialog_id = DialogId(voter->peer_);
         break;
       }
-      case telegram_api::messageUserVoteInputOption::ID: {
-        auto voter = telegram_api::move_object_as<telegram_api::messageUserVoteInputOption>(user_vote);
-        user_id = UserId(voter->user_id_);
+      case telegram_api::messagePeerVoteInputOption::ID: {
+        auto voter = telegram_api::move_object_as<telegram_api::messagePeerVoteInputOption>(peer_vote);
+        dialog_id = DialogId(voter->peer_);
         break;
       }
-      case telegram_api::messageUserVoteMultiple::ID: {
-        auto voter = telegram_api::move_object_as<telegram_api::messageUserVoteMultiple>(user_vote);
+      case telegram_api::messagePeerVoteMultiple::ID: {
+        auto voter = telegram_api::move_object_as<telegram_api::messagePeerVoteMultiple>(peer_vote);
         if (!td::contains(voter->options_, poll->options_[option_id].data_)) {
           continue;
         }
 
-        user_id = UserId(voter->user_id_);
+        dialog_id = DialogId(voter->peer_);
         break;
       }
       default:
         UNREACHABLE();
     }
-    if (user_id.is_valid()) {
-      user_ids.push_back(user_id);
+    if (dialog_id.is_valid()) {
+      if (dialog_id.get_type() == DialogType::User) {
+        user_ids.push_back(dialog_id.get_user_id());
+      }
     } else {
-      LOG(ERROR) << "Receive " << user_id << " as voter in " << poll_id;
+      LOG(ERROR) << "Receive " << dialog_id << " as voter in " << poll_id;
     }
   }
   append(voters.voter_user_ids_, user_ids);
@@ -1771,8 +1774,12 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
 
   vector<UserId> recent_voter_user_ids;
   if (!is_bot) {
-    for (auto &user_id_int : poll_results->recent_voters_) {
-      UserId user_id(user_id_int);
+    for (auto &peer_id : poll_results->recent_voters_) {
+      DialogId dialog_id(peer_id);
+      if (dialog_id.get_type() != DialogType::User) {
+        continue;
+      }
+      auto user_id = dialog_id.get_user_id();
       if (user_id.is_valid()) {
         recent_voter_user_ids.push_back(user_id);
       } else {

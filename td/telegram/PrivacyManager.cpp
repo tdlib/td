@@ -61,6 +61,9 @@ PrivacyManager::UserPrivacySetting::UserPrivacySetting(const telegram_api::Priva
     case telegram_api::privacyKeyVoiceMessages::ID:
       type_ = Type::VoiceMessages;
       break;
+    case telegram_api::privacyKeyAbout::ID:
+      type_ = Type::VoiceMessages;
+      break;
     default:
       UNREACHABLE();
       type_ = Type::UserStatus;

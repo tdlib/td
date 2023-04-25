@@ -162,7 +162,7 @@ class GetDifferenceQuery final : public Td::ResultHandler {
   }
 
   void send(int32 pts, int32 date, int32 qts) {
-    send_query(G()->net_query_creator().create(telegram_api::updates_getDifference(0, pts, 0, date, qts)));
+    send_query(G()->net_query_creator().create(telegram_api::updates_getDifference(0, pts, 0, 0, date, qts, 0)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -2686,8 +2686,11 @@ void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&up
     }
     case telegram_api::updateMessagePollVote::ID: {
       auto update = move_tl_object_as<telegram_api::updateMessagePollVote>(update_ptr);
-      td_->poll_manager_->on_get_poll_vote(PollId(update->poll_id_), UserId(update->user_id_),
-                                           std::move(update->options_));
+      DialogId dialog_id(update->peer_);
+      if (dialog_id.get_type() == DialogType::User) {
+        td_->poll_manager_->on_get_poll_vote(PollId(update->poll_id_), dialog_id.get_user_id(),
+                                             std::move(update->options_));
+      }
       add_qts(qts).set_value(Unit());
       break;
     }
