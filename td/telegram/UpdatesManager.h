@@ -250,8 +250,8 @@ class UpdatesManager final : public Actor {
 
   bool running_get_difference_ = false;
   bool finished_first_get_difference_ = false;
-  int32 last_get_difference_pts_ = 0;
-  int32 last_get_difference_qts_ = 0;
+  int32 last_confirmed_pts_ = 0;
+  int32 last_confirmed_qts_ = 0;
   int32 min_postponed_update_pts_ = 0;
   int32 min_postponed_update_qts_ = 0;
   double get_difference_start_time_ = 0;  // time from which we started to get difference without success

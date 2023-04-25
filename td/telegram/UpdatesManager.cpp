@@ -393,8 +393,8 @@ void UpdatesManager::run_get_difference(bool is_recursive, const char *source) {
     }
   });
   td_->create_handler<GetDifferenceQuery>(std::move(promise))->send(pts, date, qts);
-  last_get_difference_pts_ = pts;
-  last_get_difference_qts_ = qts;
+  last_confirmed_pts_ = pts;
+  last_confirmed_qts_ = qts;
 }
 
 void UpdatesManager::before_get_difference(bool is_initial) {
@@ -513,11 +513,11 @@ Promise<> UpdatesManager::set_pts(int32 pts, const char *source) {
     }
 
     result = add_pts(pts);
-    if (last_get_difference_pts_ < get_pts() - FORCED_GET_DIFFERENCE_PTS_DIFF) {
-      if (last_get_difference_pts_ != 0) {
+    if (last_confirmed_pts_ < get_pts() - FORCED_GET_DIFFERENCE_PTS_DIFF) {
+      if (last_confirmed_pts_ != 0) {
         schedule_get_difference("rare PTS getDifference");
       }
-      last_get_difference_pts_ = get_pts();
+      last_confirmed_pts_ = get_pts();
     }
   } else if (pts < get_pts() && (pts > 1 || td_->option_manager_->get_option_integer("session_count") <= 1)) {
     LOG(ERROR) << "Receive wrong PTS = " << pts << " from " << source << ". Current PTS = " << get_pts();
@@ -1136,7 +1136,7 @@ void UpdatesManager::on_get_updates_state(tl_object_ptr<telegram_api::updates_st
     process_postponed_pts_updates();  // drop all updates with old PTS
     running_get_difference_ = real_running_get_difference;
     pts_manager_.init(state->pts_);
-    last_get_difference_pts_ = get_pts();
+    last_confirmed_pts_ = get_pts();
     last_pts_save_time_ = Time::now() - 2 * MAX_PTS_SAVE_DELAY;
     save_pts(state->pts_);
   } else {
@@ -1560,9 +1560,9 @@ void UpdatesManager::init_state() {
     return;
   }
   pts_manager_.init(to_integer<int32>(pts_str));
-  last_get_difference_pts_ = get_pts();
+  last_confirmed_pts_ = get_pts();
   qts_manager_.init(to_integer<int32>(pmc->get("updates.qts")));
-  last_get_difference_qts_ = get_qts();
+  last_confirmed_qts_ = get_qts();
   date_ = to_integer<int32>(pmc->get("updates.date"));
   date_source_ = "database";
   LOG(DEBUG) << "Init: " << get_pts() << " " << get_qts() << " " << date_;
@@ -2338,7 +2338,7 @@ void UpdatesManager::add_pending_qts_update(tl_object_ptr<telegram_api::Update> 
     add_qts(qts - 1).set_value(Unit());
     CHECK(get_qts() == qts - 1);
     old_qts = qts - 1;
-    last_get_difference_qts_ = get_qts();
+    last_confirmed_qts_ = get_qts();
   }
 
   if (qts <= old_qts) {
@@ -2671,11 +2671,11 @@ void UpdatesManager::process_seq_updates(int32 seq_end, int32 date,
 void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&update_ptr, int32 qts,
                                         Promise<Unit> &&promise) {
   LOG(DEBUG) << "Process " << to_string(update_ptr);
-  if (last_get_difference_qts_ < qts - FORCED_GET_DIFFERENCE_PTS_DIFF) {
-    if (last_get_difference_qts_ != 0) {
+  if (last_confirmed_qts_ < qts - FORCED_GET_DIFFERENCE_PTS_DIFF) {
+    if (last_confirmed_qts_ != 0) {
       schedule_get_difference("rare QTS getDifference");
     }
-    last_get_difference_qts_ = qts;
+    last_confirmed_qts_ = qts;
   }
   switch (update_ptr->get_id()) {
     case telegram_api::updateNewEncryptedMessage::ID: {
