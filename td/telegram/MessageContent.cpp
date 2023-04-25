@@ -3320,7 +3320,7 @@ void set_message_content_poll_answer(Td *td, const MessageContent *content, Full
 
 void get_message_content_poll_voters(Td *td, const MessageContent *content, FullMessageId full_message_id,
                                      int32 option_id, int32 offset, int32 limit,
-                                     Promise<std::pair<int32, vector<UserId>>> &&promise) {
+                                     Promise<td_api::object_ptr<td_api::messageSenders>> &&promise) {
   CHECK(content->get_type() == MessageContentType::Poll);
   td->poll_manager_->get_poll_voters(static_cast<const MessagePoll *>(content)->poll_id, full_message_id, option_id,
                                      offset, limit, std::move(promise));

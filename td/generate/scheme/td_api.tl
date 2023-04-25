@@ -497,13 +497,13 @@ webApp short_name:string title:string description:string photo:photo animation:a
 //@question Poll question; 1-300 characters
 //@options List of poll answer options
 //@total_voter_count Total number of voters, participating in the poll
-//@recent_voter_user_ids User identifiers of recent voters, if the poll is non-anonymous
+//@recent_voter_ids Identifiers of recent voters, if the poll is non-anonymous
 //@is_anonymous True, if the poll is anonymous
 //@type Type of the poll
 //@open_period Amount of time the poll will be active after creation, in seconds
 //@close_date Point in time (Unix timestamp) when the poll will automatically be closed
 //@is_closed True, if the poll is closed
-poll id:int64 question:string options:vector<pollOption> total_voter_count:int32 recent_voter_user_ids:vector<int53> is_anonymous:Bool type:PollType open_period:int32 close_date:int32 is_closed:Bool = Poll;
+poll id:int64 question:string options:vector<pollOption> total_voter_count:int32 recent_voter_ids:vector<MessageSender> is_anonymous:Bool type:PollType open_period:int32 close_date:int32 is_closed:Bool = Poll;
 
 
 //@description Describes a chat background
@@ -5692,8 +5692,11 @@ updateNewCustomQuery id:int64 data:string timeout:int32 = Update;
 //@description A poll was updated; for bots only @poll New data about the poll
 updatePoll poll:poll = Update;
 
-//@description A user changed the answer to a poll; for bots only @poll_id Unique poll identifier @user_id The user, who changed the answer to the poll @option_ids 0-based identifiers of answer options, chosen by the user
-updatePollAnswer poll_id:int64 user_id:int53 option_ids:vector<int32> = Update;
+//@description A user changed the answer to a poll; for bots only
+//@poll_id Unique poll identifier
+//@voter_id Identifier of the message sender that changed the answer to the poll
+//@option_ids 0-based identifiers of answer options, chosen by the user
+updatePollAnswer poll_id:int64 voter_id:MessageSender option_ids:vector<int32> = Update;
 
 //@description User rights changed in a chat; for bots only
 //@chat_id Chat identifier
@@ -6549,13 +6552,13 @@ getThemeParametersJsonString theme:themeParameters = Text;
 //@option_ids 0-based identifiers of answer options, chosen by the user. User can choose more than 1 answer option only is the poll allows multiple answers
 setPollAnswer chat_id:int53 message_id:int53 option_ids:vector<int32> = Ok;
 
-//@description Returns users voted for the specified option in a non-anonymous polls. For optimal performance, the number of returned users is chosen by TDLib
+//@description Returns message senders voted for the specified option in a non-anonymous polls. For optimal performance, the number of returned users is chosen by TDLib
 //@chat_id Identifier of the chat to which the poll belongs
 //@message_id Identifier of the message containing the poll
 //@option_id 0-based identifier of the answer option
-//@offset Number of users to skip in the result; must be non-negative
-//@limit The maximum number of users to be returned; must be positive and can't be greater than 50. For optimal performance, the number of returned users is chosen by TDLib and can be smaller than the specified limit, even if the end of the voter list has not been reached
-getPollVoters chat_id:int53 message_id:int53 option_id:int32 offset:int32 limit:int32 = Users;
+//@offset Number of voters to skip in the result; must be non-negative
+//@limit The maximum number of voters to be returned; must be positive and can't be greater than 50. For optimal performance, the number of returned voters is chosen by TDLib and can be smaller than the specified limit, even if the end of the voter list has not been reached
+getPollVoters chat_id:int53 message_id:int53 option_id:int32 offset:int32 limit:int32 = MessageSenders;
 
 //@description Stops a poll. A poll in a message can be stopped when the message has can_be_edited flag set
 //@chat_id Identifier of the chat to which the poll belongs

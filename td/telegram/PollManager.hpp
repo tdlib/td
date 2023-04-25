@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/MinChannel.hpp"
 #include "td/telegram/PollManager.h"
 #include "td/telegram/Version.h"
 
@@ -43,20 +44,23 @@ template <class StorerT>
 void PollManager::Poll::store(StorerT &storer) const {
   using ::td::store;
   bool is_public = !is_anonymous_;
-  bool has_recent_voters = !recent_voter_user_ids_.empty();
   bool has_open_period = open_period_ != 0;
   bool has_close_date = close_date_ != 0;
   bool has_explanation = !explanation_.text.empty();
+  bool has_recent_voter_dialog_ids = !recent_voter_dialog_ids_.empty();
+  bool has_recent_voter_min_channels = !recent_voter_min_channels_.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_closed_);
   STORE_FLAG(is_public);
   STORE_FLAG(allow_multiple_answers_);
   STORE_FLAG(is_quiz_);
-  STORE_FLAG(has_recent_voters);
+  STORE_FLAG(false);
   STORE_FLAG(has_open_period);
   STORE_FLAG(has_close_date);
   STORE_FLAG(has_explanation);
   STORE_FLAG(is_updated_after_close_);
+  STORE_FLAG(has_recent_voter_dialog_ids);
+  STORE_FLAG(has_recent_voter_min_channels);
   END_STORE_FLAGS();
 
   store(question_, storer);
@@ -64,9 +68,6 @@ void PollManager::Poll::store(StorerT &storer) const {
   store(total_voter_count_, storer);
   if (is_quiz_) {
     store(correct_option_id_, storer);
-  }
-  if (has_recent_voters) {
-    store(recent_voter_user_ids_, storer);
   }
   if (has_open_period) {
     store(open_period_, storer);
@@ -77,26 +78,36 @@ void PollManager::Poll::store(StorerT &storer) const {
   if (has_explanation) {
     store(explanation_, storer);
   }
+  if (has_recent_voter_dialog_ids) {
+    store(recent_voter_dialog_ids_, storer);
+  }
+  if (has_recent_voter_min_channels) {
+    store(recent_voter_min_channels_, storer);
+  }
 }
 
 template <class ParserT>
 void PollManager::Poll::parse(ParserT &parser) {
   using ::td::parse;
   bool is_public;
-  bool has_recent_voters;
+  bool has_recent_voter_user_ids;
   bool has_open_period;
   bool has_close_date;
   bool has_explanation;
+  bool has_recent_voter_dialog_ids;
+  bool has_recent_voter_min_channels;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_closed_);
   PARSE_FLAG(is_public);
   PARSE_FLAG(allow_multiple_answers_);
   PARSE_FLAG(is_quiz_);
-  PARSE_FLAG(has_recent_voters);
+  PARSE_FLAG(has_recent_voter_user_ids);
   PARSE_FLAG(has_open_period);
   PARSE_FLAG(has_close_date);
   PARSE_FLAG(has_explanation);
   PARSE_FLAG(is_updated_after_close_);
+  PARSE_FLAG(has_recent_voter_dialog_ids);
+  PARSE_FLAG(has_recent_voter_min_channels);
   END_PARSE_FLAGS();
   is_anonymous_ = !is_public;
 
@@ -109,8 +120,10 @@ void PollManager::Poll::parse(ParserT &parser) {
       parser.set_error("Wrong correct_option_id");
     }
   }
-  if (has_recent_voters) {
-    parse(recent_voter_user_ids_, parser);
+  if (has_recent_voter_user_ids) {
+    vector<UserId> recent_voter_user_ids;
+    parse(recent_voter_user_ids, parser);
+    recent_voter_dialog_ids_ = transform(recent_voter_user_ids, [](UserId user_id) { return DialogId(user_id); });
   }
   if (has_open_period) {
     parse(open_period_, parser);
@@ -120,6 +133,12 @@ void PollManager::Poll::parse(ParserT &parser) {
   }
   if (has_explanation) {
     parse(explanation_, parser);
+  }
+  if (has_recent_voter_dialog_ids) {
+    parse(recent_voter_dialog_ids_, parser);
+  }
+  if (has_recent_voter_min_channels) {
+    parse(recent_voter_min_channels_, parser);
   }
 }
 

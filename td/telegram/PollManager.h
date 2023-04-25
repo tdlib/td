@@ -6,14 +6,15 @@
 //
 #pragma once
 
+#include "td/telegram/DialogId.h"
 #include "td/telegram/FullMessageId.h"
 #include "td/telegram/MessageEntity.h"
+#include "td/telegram/MinChannel.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/PollId.h"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
-#include "td/telegram/UserId.h"
 
 #include "td/actor/actor.h"
 #include "td/actor/MultiTimeout.h"
@@ -65,7 +66,7 @@ class PollManager final : public Actor {
                        Promise<Unit> &&promise);
 
   void get_poll_voters(PollId poll_id, FullMessageId full_message_id, int32 option_id, int32 offset, int32 limit,
-                       Promise<std::pair<int32, vector<UserId>>> &&promise);
+                       Promise<td_api::object_ptr<td_api::messageSenders>> &&promise);
 
   void stop_poll(PollId poll_id, FullMessageId full_message_id, unique_ptr<ReplyMarkup> &&reply_markup,
                  Promise<Unit> &&promise);
@@ -81,7 +82,7 @@ class PollManager final : public Actor {
   PollId on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll> &&poll_server,
                      tl_object_ptr<telegram_api::pollResults> &&poll_results, const char *source);
 
-  void on_get_poll_vote(PollId poll_id, UserId user_id, vector<BufferSlice> &&options);
+  void on_get_poll_vote(PollId poll_id, DialogId dialog_id, vector<BufferSlice> &&options);
 
   td_api::object_ptr<td_api::poll> get_poll_object(PollId poll_id) const;
 
@@ -111,7 +112,8 @@ class PollManager final : public Actor {
   struct Poll {
     string question_;
     vector<PollOption> options_;
-    vector<UserId> recent_voter_user_ids_;
+    vector<DialogId> recent_voter_dialog_ids_;
+    vector<std::pair<ChannelId, MinChannel>> recent_voter_min_channels_;
     FormattedText explanation_;
     int32 total_voter_count_ = 0;
     int32 correct_option_id_ = -1;
@@ -131,9 +133,9 @@ class PollManager final : public Actor {
   };
 
   struct PollOptionVoters {
-    vector<UserId> voter_user_ids_;
+    vector<DialogId> voter_dialog_ids_;
     string next_offset_;
-    vector<Promise<std::pair<int32, vector<UserId>>>> pending_queries_;
+    vector<Promise<td_api::object_ptr<td_api::messageSenders>>> pending_queries_;
     bool was_invalidated_ = false;  // the list needs to be invalidated when voters are changed
   };
 
@@ -208,6 +210,9 @@ class PollManager final : public Actor {
   void invalidate_poll_option_voters(const Poll *poll, PollId poll_id, size_t option_index);
 
   PollOptionVoters &get_poll_option_voters(const Poll *poll, PollId poll_id, int32 option_id);
+
+  td_api::object_ptr<td_api::messageSenders> get_poll_voters_object(int32 total_count,
+                                                                    const vector<DialogId> &voter_dialog_ids) const;
 
   void on_get_poll_voters(PollId poll_id, int32 option_id, string offset, int32 limit,
                           Result<tl_object_ptr<telegram_api::messages_votesList>> &&result);

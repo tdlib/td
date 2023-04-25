@@ -7839,16 +7839,8 @@ void Td::on_request(uint64 id, td_api::setPollAnswer &request) {
 void Td::on_request(uint64 id, td_api::getPollVoters &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  auto query_promise = PromiseCreator::lambda(
-      [promise = std::move(promise), td = this](Result<std::pair<int32, vector<UserId>>> result) mutable {
-        if (result.is_error()) {
-          promise.set_error(result.move_as_error());
-        } else {
-          promise.set_value(td->contacts_manager_->get_users_object(result.ok().first, result.ok().second));
-        }
-      });
   messages_manager_->get_poll_voters({DialogId(request.chat_id_), MessageId(request.message_id_)}, request.option_id_,
-                                     request.offset_, request.limit_, std::move(query_promise));
+                                     request.offset_, request.limit_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::stopPoll &request) {

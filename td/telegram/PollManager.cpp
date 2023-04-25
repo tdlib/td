@@ -15,6 +15,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessageId.h"
+#include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/PollId.hpp"
@@ -380,8 +381,17 @@ void PollManager::on_load_poll_from_database(PollId poll_id, string value) {
     if (log_event_parse(*poll, value).is_error()) {
       return;
     }
-    for (auto &user_id : poll->recent_voter_user_ids_) {
-      td_->contacts_manager_->have_user_force(user_id);
+    for (const auto &recent_voter_min_channel : poll->recent_voter_min_channels_) {
+      LOG(INFO) << "Add min voted " << recent_voter_min_channel.first;
+      td_->contacts_manager_->add_min_channel(recent_voter_min_channel.first, recent_voter_min_channel.second);
+    }
+    Dependencies dependencies;
+    for (auto dialog_id : poll->recent_voter_dialog_ids_) {
+      dependencies.add_message_sender_dependencies(dialog_id);
+    }
+    if (!dependencies.resolve_force(td_, "on_load_poll_from_database")) {
+      poll->recent_voter_dialog_ids_.clear();
+      poll->recent_voter_min_channels_.clear();
     }
     if (!poll->is_closed_ && poll->close_date_ != 0) {
       if (poll->close_date_ <= G()->server_time()) {
@@ -613,10 +623,17 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
     open_period = 0;
     close_date = 0;
   }
-  return td_api::make_object<td_api::poll>(
-      poll_id.get(), poll->question_, std::move(poll_options), total_voter_count,
-      td_->contacts_manager_->get_user_ids_object(poll->recent_voter_user_ids_, "get_poll_object"), poll->is_anonymous_,
-      std::move(poll_type), open_period, close_date, poll->is_closed_);
+
+  vector<td_api::object_ptr<td_api::MessageSender>> recent_voters;
+  for (auto dialog_id : poll->recent_voter_dialog_ids_) {
+    auto recent_voter = get_min_message_sender_object(td_, dialog_id, "get_poll_object");
+    if (recent_voter != nullptr) {
+      recent_voters.push_back(std::move(recent_voter));
+    }
+  }
+  return td_api::make_object<td_api::poll>(poll_id.get(), poll->question_, std::move(poll_options), total_voter_count,
+                                           std::move(recent_voters), poll->is_anonymous_, std::move(poll_type),
+                                           open_period, close_date, poll->is_closed_);
 }
 
 telegram_api::object_ptr<telegram_api::pollAnswer> PollManager::get_input_poll_option(const PollOption &poll_option) {
@@ -1014,8 +1031,21 @@ PollManager::PollOptionVoters &PollManager::get_poll_option_voters(const Poll *p
   return poll_voters[index];
 }
 
+td_api::object_ptr<td_api::messageSenders> PollManager::get_poll_voters_object(
+    int32 total_count, const vector<DialogId> &voter_dialog_ids) const {
+  auto result = td_api::make_object<td_api::messageSenders>();
+  result->total_count_ = total_count;
+  for (auto dialog_id : voter_dialog_ids) {
+    auto message_sender = get_min_message_sender_object(td_, dialog_id, "get_poll_voters_object");
+    if (message_sender != nullptr) {
+      result->senders_.push_back(std::move(message_sender));
+    }
+  }
+  return result;
+}
+
 void PollManager::get_poll_voters(PollId poll_id, FullMessageId full_message_id, int32 option_id, int32 offset,
-                                  int32 limit, Promise<std::pair<int32, vector<UserId>>> &&promise) {
+                                  int32 limit, Promise<td_api::object_ptr<td_api::messageSenders>> &&promise) {
   if (is_local_poll_id(poll_id)) {
     return promise.set_error(Status::Error(400, "Poll results can't be received"));
   }
@@ -1040,26 +1070,27 @@ void PollManager::get_poll_voters(PollId poll_id, FullMessageId full_message_id,
 
   auto &voters = get_poll_option_voters(poll, poll_id, option_id);
   if (voters.pending_queries_.empty() && voters.was_invalidated_ && offset == 0) {
-    voters.voter_user_ids_.clear();
+    voters.voter_dialog_ids_.clear();
     voters.next_offset_.clear();
     voters.was_invalidated_ = false;
   }
 
-  auto cur_offset = narrow_cast<int32>(voters.voter_user_ids_.size());
+  auto cur_offset = narrow_cast<int32>(voters.voter_dialog_ids_.size());
 
   if (offset > cur_offset) {
     return promise.set_error(Status::Error(400, "Too big offset specified; voters can be received only consequently"));
   }
   if (offset < cur_offset) {
-    vector<UserId> result;
+    vector<DialogId> result;
     for (int32 i = offset; i != cur_offset && i - offset < limit; i++) {
-      result.push_back(voters.voter_user_ids_[i]);
+      result.push_back(voters.voter_dialog_ids_[i]);
     }
-    return promise.set_value({max(poll->options_[option_id].voter_count_, cur_offset), std::move(result)});
+    return promise.set_value(
+        get_poll_voters_object(max(poll->options_[option_id].voter_count_, cur_offset), std::move(result)));
   }
 
   if (poll->options_[option_id].voter_count_ == 0 || (voters.next_offset_.empty() && cur_offset > 0)) {
-    return promise.set_value({0, vector<UserId>()});
+    return promise.set_value(get_poll_voters_object(0, vector<DialogId>()));
   }
 
   voters.pending_queries_.push_back(std::move(promise));
@@ -1122,7 +1153,7 @@ void PollManager::on_get_poll_voters(PollId poll_id, int32 option_id, string off
     update_poll_timeout_.set_timeout_in(poll_id.get(), 0.0);
   }
 
-  vector<UserId> user_ids;
+  vector<DialogId> dialog_ids;
   for (auto &peer_vote : vote_list->votes_) {
     DialogId dialog_id;
     switch (peer_vote->get_id()) {
@@ -1153,25 +1184,23 @@ void PollManager::on_get_poll_voters(PollId poll_id, int32 option_id, string off
         UNREACHABLE();
     }
     if (dialog_id.is_valid()) {
-      if (dialog_id.get_type() == DialogType::User) {
-        user_ids.push_back(dialog_id.get_user_id());
-      }
+      dialog_ids.push_back(dialog_id);
     } else {
       LOG(ERROR) << "Receive " << dialog_id << " as voter in " << poll_id;
     }
   }
-  append(voters.voter_user_ids_, user_ids);
-  if (static_cast<int32>(user_ids.size()) > limit) {
-    user_ids.resize(limit);
+  append(voters.voter_dialog_ids_, dialog_ids);
+  if (static_cast<int32>(dialog_ids.size()) > limit) {
+    dialog_ids.resize(limit);
   }
-  auto known_voter_count = narrow_cast<int32>(voters.voter_user_ids_.size());
+  auto known_voter_count = narrow_cast<int32>(voters.voter_dialog_ids_.size());
   if (voters.next_offset_.empty() && known_voter_count != vote_list->count_) {
     // invalidate_poll_option_voters(poll, poll_id, option_id);
     voters.was_invalidated_ = true;
   }
 
   for (auto &promise : promises) {
-    promise.set_value({max(vote_list->count_, known_voter_count), vector<UserId>(user_ids)});
+    promise.set_value(get_poll_voters_object(max(vote_list->count_, known_voter_count), vector<DialogId>(dialog_ids)));
   }
 }
 
@@ -1772,28 +1801,24 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
     }
   }
 
-  vector<UserId> recent_voter_user_ids;
+  vector<DialogId> recent_voter_dialog_ids;
   if (!is_bot) {
     for (auto &peer_id : poll_results->recent_voters_) {
       DialogId dialog_id(peer_id);
-      if (dialog_id.get_type() != DialogType::User) {
-        continue;
-      }
-      auto user_id = dialog_id.get_user_id();
-      if (user_id.is_valid()) {
-        recent_voter_user_ids.push_back(user_id);
+      if (dialog_id.is_valid()) {
+        recent_voter_dialog_ids.push_back(dialog_id);
       } else {
-        LOG(ERROR) << "Receive " << user_id << " as recent voter in " << poll_id << " from " << source;
+        LOG(ERROR) << "Receive " << dialog_id << " as recent voter in " << poll_id << " from " << source;
       }
     }
   }
-  if (poll->is_anonymous_ && !recent_voter_user_ids.empty()) {
-    LOG(ERROR) << "Receive anonymous " << poll_id << " with recent voters " << recent_voter_user_ids << " from "
+  if (poll->is_anonymous_ && !recent_voter_dialog_ids.empty()) {
+    LOG(ERROR) << "Receive anonymous " << poll_id << " with recent voters " << recent_voter_dialog_ids << " from "
                << source;
-    recent_voter_user_ids.clear();
+    recent_voter_dialog_ids.clear();
   }
-  if (recent_voter_user_ids != poll->recent_voter_user_ids_) {
-    poll->recent_voter_user_ids_ = std::move(recent_voter_user_ids);
+  if (recent_voter_dialog_ids != poll->recent_voter_dialog_ids_) {
+    poll->recent_voter_dialog_ids_ = std::move(recent_voter_dialog_ids);
     invalidate_poll_voters(poll, poll_id);
     is_changed = true;
   }
@@ -1817,13 +1842,13 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
   return poll_id;
 }
 
-void PollManager::on_get_poll_vote(PollId poll_id, UserId user_id, vector<BufferSlice> &&options) {
+void PollManager::on_get_poll_vote(PollId poll_id, DialogId dialog_id, vector<BufferSlice> &&options) {
   if (!poll_id.is_valid()) {
     LOG(ERROR) << "Receive updateMessagePollVote about invalid " << poll_id;
     return;
   }
-  if (!user_id.is_valid()) {
-    LOG(ERROR) << "Receive updateMessagePollVote from invalid " << user_id;
+  if (!dialog_id.is_valid()) {
+    LOG(ERROR) << "Receive updateMessagePollVote from invalid " << dialog_id;
     return;
   }
   if (!td_->auth_manager_->is_bot()) {
@@ -1840,10 +1865,10 @@ void PollManager::on_get_poll_vote(PollId poll_id, UserId user_id, vector<Buffer
     option_ids.push_back(static_cast<int32>(slice[0] - '0'));
   }
 
-  send_closure(G()->td(), &Td::send_update,
-               td_api::make_object<td_api::updatePollAnswer>(
-                   poll_id.get(), td_->contacts_manager_->get_user_id_object(user_id, "on_get_poll_vote"),
-                   std::move(option_ids)));
+  send_closure(
+      G()->td(), &Td::send_update,
+      td_api::make_object<td_api::updatePollAnswer>(
+          poll_id.get(), get_message_sender_object(td_, dialog_id, "on_get_poll_vote"), std::move(option_ids)));
 }
 
 void PollManager::on_binlog_events(vector<BinlogEvent> &&events) {

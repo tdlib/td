@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/MessageReaction.h"
+#include "td/telegram/MinChannel.hpp"
 
 #include "td/utils/common.h"
 #include "td/utils/tl_helpers.h"
