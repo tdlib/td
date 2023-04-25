@@ -1123,12 +1123,6 @@ void PollManager::on_get_poll_voters(PollId poll_id, int32 option_id, string off
   vector<UserId> user_ids;
   for (auto &user_vote : vote_list->votes_) {
     UserId user_id;
-    downcast_call(*user_vote, [&user_id](auto &voter) { user_id = UserId(voter.user_id_); });
-    if (!user_id.is_valid()) {
-      LOG(ERROR) << "Receive " << user_id << " as voter in " << poll_id;
-      continue;
-    }
-
     switch (user_vote->get_id()) {
       case telegram_api::messageUserVote::ID: {
         auto voter = telegram_api::move_object_as<telegram_api::messageUserVote>(user_vote);
@@ -1136,21 +1130,30 @@ void PollManager::on_get_poll_voters(PollId poll_id, int32 option_id, string off
           continue;
         }
 
-        user_ids.push_back(user_id);
+        user_id = UserId(voter->user_id_);
         break;
       }
-      case telegram_api::messageUserVoteInputOption::ID:
-        user_ids.push_back(user_id);
+      case telegram_api::messageUserVoteInputOption::ID: {
+        auto voter = telegram_api::move_object_as<telegram_api::messageUserVoteInputOption>(user_vote);
+        user_id = UserId(voter->user_id_);
         break;
+      }
       case telegram_api::messageUserVoteMultiple::ID: {
         auto voter = telegram_api::move_object_as<telegram_api::messageUserVoteMultiple>(user_vote);
         if (!td::contains(voter->options_, poll->options[option_id].data)) {
           continue;
         }
 
-        user_ids.push_back(user_id);
+        user_id = UserId(voter->user_id_);
         break;
       }
+      default:
+        UNREACHABLE();
+    }
+    if (user_id.is_valid()) {
+      user_ids.push_back(user_id);
+    } else {
+      LOG(ERROR) << "Receive " << user_id << " as voter in " << poll_id;
     }
   }
   voters.voter_user_ids.insert(voters.voter_user_ids.end(), user_ids.begin(), user_ids.end());
