@@ -19,24 +19,24 @@ template <class StorerT>
 void PollManager::PollOption::store(StorerT &storer) const {
   using ::td::store;
   BEGIN_STORE_FLAGS();
-  STORE_FLAG(is_chosen);
+  STORE_FLAG(is_chosen_);
   END_STORE_FLAGS();
 
-  store(text, storer);
-  store(data, storer);
-  store(voter_count, storer);
+  store(text_, storer);
+  store(data_, storer);
+  store(voter_count_, storer);
 }
 
 template <class ParserT>
 void PollManager::PollOption::parse(ParserT &parser) {
   using ::td::parse;
   BEGIN_PARSE_FLAGS();
-  PARSE_FLAG(is_chosen);
+  PARSE_FLAG(is_chosen_);
   END_PARSE_FLAGS();
 
-  parse(text, parser);
-  parse(data, parser);
-  parse(voter_count, parser);
+  parse(text_, parser);
+  parse(data_, parser);
+  parse(voter_count_, parser);
 }
 
 template <class StorerT>
@@ -142,7 +142,7 @@ void PollManager::store_poll(PollId poll_id, StorerT &storer) const {
     STORE_FLAG(has_explanation);
     END_STORE_FLAGS();
     store(poll->question, storer);
-    vector<string> options = transform(poll->options, [](const PollOption &option) { return option.text; });
+    vector<string> options = transform(poll->options, [](const PollOption &option) { return option.text_; });
     store(options, storer);
     if (poll->is_quiz) {
       store(poll->correct_option_id, storer);

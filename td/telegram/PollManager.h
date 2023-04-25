@@ -97,10 +97,10 @@ class PollManager final : public Actor {
 
  private:
   struct PollOption {
-    string text;
-    string data;
-    int32 voter_count = 0;
-    bool is_chosen = false;
+    string text_;
+    string data_;
+    int32 voter_count_ = 0;
+    bool is_chosen_ = false;
 
     template <class StorerT>
     void store(StorerT &storer) const;
@@ -131,10 +131,10 @@ class PollManager final : public Actor {
   };
 
   struct PollOptionVoters {
-    vector<UserId> voter_user_ids;
-    string next_offset;
-    vector<Promise<std::pair<int32, vector<UserId>>>> pending_queries;
-    bool was_invalidated = false;  // the list needs to be invalidated when voters are changed
+    vector<UserId> voter_user_ids_;
+    string next_offset_;
+    vector<Promise<std::pair<int32, vector<UserId>>>> pending_queries_;
+    bool was_invalidated_ = false;  // the list needs to be invalidated when voters are changed
   };
 
   static constexpr int32 MAX_GET_POLL_VOTERS = 50;  // server side limit
