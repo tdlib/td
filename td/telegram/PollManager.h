@@ -109,20 +109,20 @@ class PollManager final : public Actor {
   };
 
   struct Poll {
-    string question;
-    vector<PollOption> options;
-    vector<UserId> recent_voter_user_ids;
-    FormattedText explanation;
-    int32 total_voter_count = 0;
-    int32 correct_option_id = -1;
-    int32 open_period = 0;
-    int32 close_date = 0;
-    bool is_anonymous = true;
-    bool allow_multiple_answers = false;
-    bool is_quiz = false;
-    bool is_closed = false;
-    bool is_updated_after_close = false;
-    mutable bool was_saved = false;
+    string question_;
+    vector<PollOption> options_;
+    vector<UserId> recent_voter_user_ids_;
+    FormattedText explanation_;
+    int32 total_voter_count_ = 0;
+    int32 correct_option_id_ = -1;
+    int32 open_period_ = 0;
+    int32 close_date_ = 0;
+    bool is_anonymous_ = true;
+    bool allow_multiple_answers_ = false;
+    bool is_quiz_ = false;
+    bool is_closed_ = false;
+    bool is_updated_after_close_ = false;
+    mutable bool was_saved_ = false;
 
     template <class StorerT>
     void store(StorerT &storer) const;

@@ -42,40 +42,40 @@ void PollManager::PollOption::parse(ParserT &parser) {
 template <class StorerT>
 void PollManager::Poll::store(StorerT &storer) const {
   using ::td::store;
-  bool is_public = !is_anonymous;
-  bool has_recent_voters = !recent_voter_user_ids.empty();
-  bool has_open_period = open_period != 0;
-  bool has_close_date = close_date != 0;
-  bool has_explanation = !explanation.text.empty();
+  bool is_public = !is_anonymous_;
+  bool has_recent_voters = !recent_voter_user_ids_.empty();
+  bool has_open_period = open_period_ != 0;
+  bool has_close_date = close_date_ != 0;
+  bool has_explanation = !explanation_.text.empty();
   BEGIN_STORE_FLAGS();
-  STORE_FLAG(is_closed);
+  STORE_FLAG(is_closed_);
   STORE_FLAG(is_public);
-  STORE_FLAG(allow_multiple_answers);
-  STORE_FLAG(is_quiz);
+  STORE_FLAG(allow_multiple_answers_);
+  STORE_FLAG(is_quiz_);
   STORE_FLAG(has_recent_voters);
   STORE_FLAG(has_open_period);
   STORE_FLAG(has_close_date);
   STORE_FLAG(has_explanation);
-  STORE_FLAG(is_updated_after_close);
+  STORE_FLAG(is_updated_after_close_);
   END_STORE_FLAGS();
 
-  store(question, storer);
-  store(options, storer);
-  store(total_voter_count, storer);
-  if (is_quiz) {
-    store(correct_option_id, storer);
+  store(question_, storer);
+  store(options_, storer);
+  store(total_voter_count_, storer);
+  if (is_quiz_) {
+    store(correct_option_id_, storer);
   }
   if (has_recent_voters) {
-    store(recent_voter_user_ids, storer);
+    store(recent_voter_user_ids_, storer);
   }
   if (has_open_period) {
-    store(open_period, storer);
+    store(open_period_, storer);
   }
   if (has_close_date) {
-    store(close_date, storer);
+    store(close_date_, storer);
   }
   if (has_explanation) {
-    store(explanation, storer);
+    store(explanation_, storer);
   }
 }
 
@@ -88,38 +88,38 @@ void PollManager::Poll::parse(ParserT &parser) {
   bool has_close_date;
   bool has_explanation;
   BEGIN_PARSE_FLAGS();
-  PARSE_FLAG(is_closed);
+  PARSE_FLAG(is_closed_);
   PARSE_FLAG(is_public);
-  PARSE_FLAG(allow_multiple_answers);
-  PARSE_FLAG(is_quiz);
+  PARSE_FLAG(allow_multiple_answers_);
+  PARSE_FLAG(is_quiz_);
   PARSE_FLAG(has_recent_voters);
   PARSE_FLAG(has_open_period);
   PARSE_FLAG(has_close_date);
   PARSE_FLAG(has_explanation);
-  PARSE_FLAG(is_updated_after_close);
+  PARSE_FLAG(is_updated_after_close_);
   END_PARSE_FLAGS();
-  is_anonymous = !is_public;
+  is_anonymous_ = !is_public;
 
-  parse(question, parser);
-  parse(options, parser);
-  parse(total_voter_count, parser);
-  if (is_quiz) {
-    parse(correct_option_id, parser);
-    if (correct_option_id < -1 || correct_option_id >= static_cast<int32>(options.size())) {
+  parse(question_, parser);
+  parse(options_, parser);
+  parse(total_voter_count_, parser);
+  if (is_quiz_) {
+    parse(correct_option_id_, parser);
+    if (correct_option_id_ < -1 || correct_option_id_ >= static_cast<int32>(options_.size())) {
       parser.set_error("Wrong correct_option_id");
     }
   }
   if (has_recent_voters) {
-    parse(recent_voter_user_ids, parser);
+    parse(recent_voter_user_ids_, parser);
   }
   if (has_open_period) {
-    parse(open_period, parser);
+    parse(open_period_, parser);
   }
   if (has_close_date) {
-    parse(close_date, parser);
+    parse(close_date_, parser);
   }
   if (has_explanation) {
-    parse(explanation, parser);
+    parse(explanation_, parser);
   }
 }
 
@@ -129,32 +129,32 @@ void PollManager::store_poll(PollId poll_id, StorerT &storer) const {
   if (is_local_poll_id(poll_id)) {
     auto poll = get_poll(poll_id);
     CHECK(poll != nullptr);
-    bool has_open_period = poll->open_period != 0;
-    bool has_close_date = poll->close_date != 0;
-    bool has_explanation = !poll->explanation.text.empty();
+    bool has_open_period = poll->open_period_ != 0;
+    bool has_close_date = poll->close_date_ != 0;
+    bool has_explanation = !poll->explanation_.text.empty();
     BEGIN_STORE_FLAGS();
-    STORE_FLAG(poll->is_closed);
-    STORE_FLAG(poll->is_anonymous);
-    STORE_FLAG(poll->allow_multiple_answers);
-    STORE_FLAG(poll->is_quiz);
+    STORE_FLAG(poll->is_closed_);
+    STORE_FLAG(poll->is_anonymous_);
+    STORE_FLAG(poll->allow_multiple_answers_);
+    STORE_FLAG(poll->is_quiz_);
     STORE_FLAG(has_open_period);
     STORE_FLAG(has_close_date);
     STORE_FLAG(has_explanation);
     END_STORE_FLAGS();
-    store(poll->question, storer);
-    vector<string> options = transform(poll->options, [](const PollOption &option) { return option.text_; });
+    store(poll->question_, storer);
+    vector<string> options = transform(poll->options_, [](const PollOption &option) { return option.text_; });
     store(options, storer);
-    if (poll->is_quiz) {
-      store(poll->correct_option_id, storer);
+    if (poll->is_quiz_) {
+      store(poll->correct_option_id_, storer);
     }
     if (has_open_period) {
-      store(poll->open_period, storer);
+      store(poll->open_period_, storer);
     }
     if (has_close_date) {
-      store(poll->close_date, storer);
+      store(poll->close_date_, storer);
     }
     if (has_explanation) {
-      store(poll->explanation, storer);
+      store(poll->explanation_, storer);
     }
   }
 }
