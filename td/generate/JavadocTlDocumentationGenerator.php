@@ -171,6 +171,8 @@ EOT
         $this->addDocumentation('    public abstract static class Function<R extends Object> extends Object {', <<<EOT
     /**
      * This class is a base class for all TDLib interface function-classes.
+     *
+     * @param <R> The object type that is returned by the function
      */
 EOT
 );
