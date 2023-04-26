@@ -1579,9 +1579,7 @@ void Session::loop() {
 
   relax_timeout_at(&wakeup_at, main_connection_.wakeup_at_);
 
-  double wakeup_in = 0;
   if (wakeup_at != 0) {
-    wakeup_in = wakeup_at - now;
     set_timeout_at(wakeup_at);
   }
 }
