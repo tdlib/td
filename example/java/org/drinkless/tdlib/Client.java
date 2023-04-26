@@ -225,11 +225,6 @@ public final class Client {
         send(new TdApi.GetOption("version"), null, null);
     }
 
-    @Override
-    protected void finalize() throws Throwable {
-        send(new TdApi.Close(), null, null);
-    }
-
     private static native int createNativeClient();
 
     private static native void nativeClientSend(int nativeClientId, long eventId, TdApi.Function function);
