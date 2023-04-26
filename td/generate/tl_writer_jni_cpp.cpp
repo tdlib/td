@@ -391,11 +391,16 @@ std::string TD_TL_writer_jni_cpp::gen_fetch_function_begin(const std::string &pa
 
   assert(parser_type != 0);
 
-  return "\n" + returned_type + class_name + "::fetch(" + parser_name + " &p) {\n" +
-         (parser_type == -1 ? ""
-                            : "  if (p == nullptr) return nullptr;\n"
-                              "  " +
-                                  fetched_type + "res = make_object<" + class_name + ">();\n");
+  std::string result = "\n" + returned_type + class_name + "::fetch(" + parser_name + " &p) {\n";
+  if (parser_type != -1) {
+    result += "  if (p == nullptr) return nullptr;\n";
+    if (field_count == 0 && vars.empty()) {
+      result += "  return make_object<" + class_name + ">();\n";
+    } else {
+      result += "  " + fetched_type + "res = make_object<" + class_name + ">();\n";
+    }
+  }
+  return result;
 }
 
 std::string TD_TL_writer_jni_cpp::gen_fetch_function_end(bool has_parent, int field_count,
@@ -407,7 +412,7 @@ std::string TD_TL_writer_jni_cpp::gen_fetch_function_end(bool has_parent, int fi
 
   assert(parser_type != 0);
 
-  if (parser_type == -1) {
+  if (parser_type == -1 || field_count == 0) {
     return "}\n";
   }
 
