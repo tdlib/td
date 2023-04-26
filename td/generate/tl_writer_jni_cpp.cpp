@@ -616,6 +616,7 @@ std::string TD_TL_writer_jni_cpp::gen_additional_function(const std::string &fun
   res +=
       "    return true;\n"
       "  }();\n"
+      "  (void)is_inited;\n"
       "}\n";
   return res;
 }
