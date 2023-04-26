@@ -108,6 +108,7 @@ jobjectArray store_vector(JNIEnv *env, const std::vector<std::string> &v);
 template <class T>
 jobjectArray store_vector(JNIEnv *env, const std::vector<T> &v) {
   auto length = static_cast<jint>(v.size());
+  T::element_type::init_jni_vars(env);
   jobjectArray arr = env->NewObjectArray(length, T::element_type::Class, jobject());
   if (arr != nullptr) {
     for (jint i = 0; i < length; i++) {

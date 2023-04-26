@@ -129,7 +129,8 @@ class DoxygenTlDocumentationGenerator extends TlDocumentationGenerator
             preg_match('/class [A-Za-z0-9_]*;/', $line) || $tline === 'if (value == nullptr) {' ||
             strpos($tline, 'result += ') === 0 || strpos($tline, 'result = ') || strpos($tline, ' : values') ||
             strpos($line, 'JNIEnv') || strpos($line, 'jfieldID') || $tline === 'virtual ~Object() {' ||
-            $tline === 'virtual void store(TlStorerToString &s, const char *field_name) const = 0;';
+            $tline === 'virtual void store(TlStorerToString &s, const char *field_name) const = 0;' ||
+            $tline === 'void set_package_name(const char *new_package_name);';
     }
 
     protected function isHeaderLine($line)
