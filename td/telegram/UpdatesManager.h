@@ -370,6 +370,8 @@ class UpdatesManager final : public Actor {
 
   void run_get_difference(bool is_recursive, const char *source);
 
+  void confirm_pts_qts(int32 qts);
+
   void on_failed_get_updates_state(Status &&error);
 
   void on_failed_get_difference(Status &&error);
