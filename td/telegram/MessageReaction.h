@@ -71,6 +71,8 @@ class MessageReaction {
 
   bool remove_recent_chooser_dialog_id();
 
+  void update_from(const MessageReaction &old_reaction);
+
   void update_recent_chooser_dialog_ids(const MessageReaction &old_reaction);
 
   int32 get_choose_count() const {

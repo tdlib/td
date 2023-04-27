@@ -422,6 +422,16 @@ bool MessageReaction::remove_recent_chooser_dialog_id() {
   return false;
 }
 
+void MessageReaction::update_from(const MessageReaction &old_reaction) {
+  CHECK(old_reaction.is_chosen());
+  is_chosen_ = true;
+
+  auto my_dialog_id = old_reaction.get_my_recent_chooser_dialog_id();
+  if (my_dialog_id.is_valid() && td::contains(recent_chooser_dialog_ids_, my_dialog_id)) {
+    my_recent_chooser_dialog_id_ = my_dialog_id;
+  }
+}
+
 void MessageReaction::update_recent_chooser_dialog_ids(const MessageReaction &old_reaction) {
   if (recent_chooser_dialog_ids_.size() != MAX_RECENT_CHOOSERS) {
     return;
@@ -643,7 +653,7 @@ void MessageReactions::update_from(const MessageReactions &old_reactions) {
       if (old_reaction.is_chosen()) {
         auto *reaction = get_reaction(old_reaction.get_reaction());
         if (reaction != nullptr) {
-          reaction->set_is_chosen(true, DialogId(), false);
+          reaction->update_from(old_reaction);
         }
       }
     }
