@@ -708,12 +708,11 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
           }
         }
         /*
-        // the users are always min, so no need to check
+        // the users and chats are always min, so no need to check
         if (media_id == telegram_api::messageMediaPoll::ID) {
           auto message_media_poll = static_cast<const telegram_api::messageMediaPoll *>(message->media_.get());
-          for (auto recent_voter_user_id : message_media_poll->results_->recent_voters_) {
-            UserId user_id(recent_voter_user_id);
-            if (!is_acceptable_user(user_id)) {
+          for (auto recent_voter : message_media_poll->results_->recent_voters_) {
+            if (!is_acceptable_peer(recent_voter)) {
               return false;
             }
           }
