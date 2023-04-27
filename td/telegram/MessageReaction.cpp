@@ -403,6 +403,8 @@ class ReportReactionQuery final : public Td::ResultHandler {
 };
 
 void MessageReaction::add_recent_chooser_dialog_id(DialogId dialog_id) {
+  CHECK(!my_recent_chooser_dialog_id_.is_valid());
+  my_recent_chooser_dialog_id_ = dialog_id;
   recent_chooser_dialog_ids_.insert(recent_chooser_dialog_ids_.begin(), dialog_id);
   if (recent_chooser_dialog_ids_.size() > MAX_RECENT_CHOOSERS + 1) {
     LOG(ERROR) << "Have " << recent_chooser_dialog_ids_.size() << " recent reaction choosers";
@@ -410,8 +412,14 @@ void MessageReaction::add_recent_chooser_dialog_id(DialogId dialog_id) {
   }
 }
 
-bool MessageReaction::remove_recent_chooser_dialog_id(DialogId dialog_id) {
-  return td::remove(recent_chooser_dialog_ids_, dialog_id);
+bool MessageReaction::remove_recent_chooser_dialog_id() {
+  if (my_recent_chooser_dialog_id_.is_valid()) {
+    bool is_removed = td::remove(recent_chooser_dialog_ids_, my_recent_chooser_dialog_id_);
+    CHECK(is_removed);
+    my_recent_chooser_dialog_id_ = DialogId();
+    return true;
+  }
+  return false;
 }
 
 void MessageReaction::update_recent_chooser_dialog_ids(const MessageReaction &old_reaction) {
@@ -426,6 +434,7 @@ void MessageReaction::update_recent_chooser_dialog_ids(const MessageReaction &ol
       return;
     }
   }
+  my_recent_chooser_dialog_id_ = old_reaction.my_recent_chooser_dialog_id_;
   recent_chooser_dialog_ids_ = old_reaction.recent_chooser_dialog_ids_;
   recent_chooser_min_channels_ = old_reaction.recent_chooser_min_channels_;
 }
@@ -440,7 +449,7 @@ void MessageReaction::set_is_chosen(bool is_chosen, DialogId chooser_dialog_id, 
   if (chooser_dialog_id.is_valid()) {
     choose_count_ += is_chosen_ ? 1 : -1;
     if (have_recent_choosers) {
-      remove_recent_chooser_dialog_id(chooser_dialog_id);
+      remove_recent_chooser_dialog_id();
       if (is_chosen_) {
         add_recent_chooser_dialog_id(chooser_dialog_id);
       }
@@ -484,6 +493,7 @@ td_api::object_ptr<td_api::messageReaction> MessageReaction::get_message_reactio
 
 bool operator==(const MessageReaction &lhs, const MessageReaction &rhs) {
   return lhs.reaction_ == rhs.reaction_ && lhs.choose_count_ == rhs.choose_count_ && lhs.is_chosen_ == rhs.is_chosen_ &&
+         lhs.my_recent_chooser_dialog_id_ == rhs.my_recent_chooser_dialog_id_ &&
          lhs.recent_chooser_dialog_ids_ == rhs.recent_chooser_dialog_ids_;
 }
 
@@ -538,6 +548,7 @@ unique_ptr<MessageReactions> MessageReactions::get_message_reactions(
       continue;
     }
 
+    DialogId my_dialog_id;
     FlatHashSet<DialogId, DialogIdHash> recent_choosers;
     vector<DialogId> recent_chooser_dialog_ids;
     vector<std::pair<ChannelId, MinChannel>> recent_chooser_min_channels;
@@ -574,6 +585,12 @@ unique_ptr<MessageReactions> MessageReactions::get_message_reactions(
             continue;
           }
         }
+        if (peer_reaction->my_) {
+          if (my_dialog_id.is_valid() && dialog_id != my_dialog_id) {
+            LOG(ERROR) << "Receive my reactions with " << dialog_id << " and " << my_dialog_id;
+          }
+          my_dialog_id = dialog_id;
+        }
 
         recent_chooser_dialog_ids.push_back(dialog_id);
         if (peer_reaction->unread_) {
@@ -589,7 +606,7 @@ unique_ptr<MessageReactions> MessageReactions::get_message_reactions(
     if (is_chosen) {
       chosen_reaction_order.emplace_back(reaction_count->chosen_order_, reaction_str);
     }
-    result->reactions_.push_back({std::move(reaction_str), reaction_count->count_, is_chosen,
+    result->reactions_.push_back({std::move(reaction_str), reaction_count->count_, is_chosen, my_dialog_id,
                                   std::move(recent_chooser_dialog_ids), std::move(recent_chooser_min_channels)});
   }
   if (chosen_reaction_order.size() > 1) {
@@ -654,7 +671,7 @@ bool MessageReactions::add_reaction(const string &reaction, bool is_big, DialogI
     if (have_recent_choosers) {
       recent_chooser_dialog_ids.push_back(chooser_dialog_id);
     }
-    reactions_.push_back({reaction, 1, true, std::move(recent_chooser_dialog_ids), Auto()});
+    reactions_.push_back({reaction, 1, true, chooser_dialog_id, std::move(recent_chooser_dialog_ids), Auto()});
     new_chosen_reaction_order.emplace_back(reaction);
   } else if (!added_reaction->is_chosen()) {
     added_reaction->set_is_chosen(true, chooser_dialog_id, have_recent_choosers);
@@ -738,20 +755,30 @@ void MessageReactions::sort_reactions(const FlatHashMap<string, size_t> &active_
             });
 }
 
-void MessageReactions::fix_chosen_reaction(DialogId my_dialog_id) {
-  bool need_fix = false;
+void MessageReactions::fix_chosen_reaction() {
+  DialogId my_dialog_id;
   for (auto &reaction : reactions_) {
-    if (!reaction.is_chosen() && reaction.remove_recent_chooser_dialog_id(my_dialog_id)) {
+    if (!reaction.is_chosen() && reaction.get_my_recent_chooser_dialog_id().is_valid()) {
+      my_dialog_id = reaction.get_my_recent_chooser_dialog_id();
       LOG(WARNING) << "Fix recent chosen reaction in " << *this;
-      need_fix = true;
+      reaction.remove_recent_chooser_dialog_id();
     }
   }
-  if (!need_fix) {
+  if (!my_dialog_id.is_valid()) {
     return;
   }
   for (auto &reaction : reactions_) {
-    if (reaction.is_chosen() && !td::contains(reaction.get_recent_chooser_dialog_ids(), my_dialog_id)) {
+    if (reaction.is_chosen() && !reaction.get_my_recent_chooser_dialog_id().is_valid()) {
       reaction.add_recent_chooser_dialog_id(my_dialog_id);
+    }
+  }
+}
+
+void MessageReactions::fix_my_recent_chooser_dialog_id(DialogId my_dialog_id) {
+  for (auto &reaction : reactions_) {
+    if (reaction.is_chosen() && !reaction.get_my_recent_chooser_dialog_id().is_valid() &&
+        td::contains(reaction.get_recent_chooser_dialog_ids(), my_dialog_id)) {
+      reaction.my_recent_chooser_dialog_id_ = my_dialog_id;
     }
   }
 }

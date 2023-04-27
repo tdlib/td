@@ -7111,11 +7111,7 @@ bool MessagesManager::update_message_interaction_info(Dialog *d, Message *m, int
       reactions->update_from(*m->reactions);
     }
     reactions->sort_reactions(active_reaction_pos_);
-    reactions->fix_chosen_reaction(get_my_dialog_id());
-    if (d->default_send_message_as_dialog_id.is_valid()) {
-      // the reaction could be set by previous owner of the broadcast
-      // reactions->fix_chosen_reaction(d->default_send_message_as_dialog_id);
-    }
+    reactions->fix_chosen_reaction();
   }
   bool need_update_reactions =
       has_reactions && MessageReactions::need_update_message_reactions(m->reactions.get(), reactions.get());
@@ -14558,7 +14554,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
       MessageReactions::get_message_reactions(td_, std::move(message_info.reactions), td_->auth_manager_->is_bot());
   if (reactions != nullptr) {
     reactions->sort_reactions(active_reaction_pos_);
-    reactions->fix_chosen_reaction(get_my_dialog_id());
+    reactions->fix_chosen_reaction();
   }
 
   bool has_forward_info = message_info.forward_header != nullptr;
@@ -23033,6 +23029,9 @@ unique_ptr<MessagesManager::Message> MessagesManager::parse_message(Dialog *d, M
                      << m->message_id << " in " << dialog_id;
           break;
       }
+    }
+    if (m->reactions != nullptr) {
+      m->reactions->fix_my_recent_chooser_dialog_id(get_my_dialog_id());
     }
   }
   if (m->contains_mention && td_->auth_manager_->is_bot()) {

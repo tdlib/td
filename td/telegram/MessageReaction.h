@@ -36,6 +36,7 @@ class MessageReaction {
   string reaction_;
   int32 choose_count_ = 0;
   bool is_chosen_ = false;
+  DialogId my_recent_chooser_dialog_id_;
   vector<DialogId> recent_chooser_dialog_ids_;
   vector<std::pair<ChannelId, MinChannel>> recent_chooser_min_channels_;
 
@@ -45,11 +46,13 @@ class MessageReaction {
 
   friend struct MessageReactions;
 
-  MessageReaction(string reaction, int32 choose_count, bool is_chosen, vector<DialogId> &&recent_chooser_dialog_ids,
+  MessageReaction(string reaction, int32 choose_count, bool is_chosen, DialogId my_recent_chooser_dialog_id,
+                  vector<DialogId> &&recent_chooser_dialog_ids,
                   vector<std::pair<ChannelId, MinChannel>> &&recent_chooser_min_channels)
       : reaction_(std::move(reaction))
       , choose_count_(choose_count)
       , is_chosen_(is_chosen)
+      , my_recent_chooser_dialog_id_(my_recent_chooser_dialog_id)
       , recent_chooser_dialog_ids_(std::move(recent_chooser_dialog_ids))
       , recent_chooser_min_channels_(std::move(recent_chooser_min_channels)) {
   }
@@ -66,12 +69,16 @@ class MessageReaction {
 
   void add_recent_chooser_dialog_id(DialogId dialog_id);
 
-  bool remove_recent_chooser_dialog_id(DialogId dialog_id);
+  bool remove_recent_chooser_dialog_id();
 
   void update_recent_chooser_dialog_ids(const MessageReaction &old_reaction);
 
   int32 get_choose_count() const {
     return choose_count_;
+  }
+
+  DialogId get_my_recent_chooser_dialog_id() const {
+    return my_recent_chooser_dialog_id_;
   }
 
   const vector<DialogId> &get_recent_chooser_dialog_ids() const {
@@ -166,7 +173,9 @@ struct MessageReactions {
 
   void sort_reactions(const FlatHashMap<string, size_t> &active_reaction_pos);
 
-  void fix_chosen_reaction(DialogId my_dialog_id);
+  void fix_chosen_reaction();
+
+  void fix_my_recent_chooser_dialog_id(DialogId my_dialog_id);
 
   vector<string> get_chosen_reactions() const;
 

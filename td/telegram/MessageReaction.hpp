@@ -19,10 +19,12 @@ void MessageReaction::store(StorerT &storer) const {
   CHECK(!is_empty());
   bool has_recent_chooser_dialog_ids = !recent_chooser_dialog_ids_.empty();
   bool has_recent_chooser_min_channels = !recent_chooser_min_channels_.empty();
+  bool has_my_recent_chooser_dialog_id = my_recent_chooser_dialog_id_.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_chosen_);
   STORE_FLAG(has_recent_chooser_dialog_ids);
   STORE_FLAG(has_recent_chooser_min_channels);
+  STORE_FLAG(has_my_recent_chooser_dialog_id);
   END_STORE_FLAGS();
   td::store(reaction_, storer);
   td::store(choose_count_, storer);
@@ -32,16 +34,21 @@ void MessageReaction::store(StorerT &storer) const {
   if (has_recent_chooser_min_channels) {
     td::store(recent_chooser_min_channels_, storer);
   }
+  if (has_my_recent_chooser_dialog_id) {
+    td::store(my_recent_chooser_dialog_id_, storer);
+  }
 }
 
 template <class ParserT>
 void MessageReaction::parse(ParserT &parser) {
   bool has_recent_chooser_dialog_ids;
   bool has_recent_chooser_min_channels;
+  bool has_my_recent_chooser_dialog_id;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_chosen_);
   PARSE_FLAG(has_recent_chooser_dialog_ids);
   PARSE_FLAG(has_recent_chooser_min_channels);
+  PARSE_FLAG(has_my_recent_chooser_dialog_id);
   END_PARSE_FLAGS();
   td::parse(reaction_, parser);
   td::parse(choose_count_, parser);
@@ -50,6 +57,9 @@ void MessageReaction::parse(ParserT &parser) {
   }
   if (has_recent_chooser_min_channels) {
     td::parse(recent_chooser_min_channels_, parser);
+  }
+  if (has_my_recent_chooser_dialog_id) {
+    td::parse(my_recent_chooser_dialog_id_, parser);
   }
   CHECK(!is_empty());
   CHECK(!reaction_.empty());
