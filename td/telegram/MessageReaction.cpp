@@ -449,22 +449,23 @@ void MessageReaction::update_recent_chooser_dialog_ids(const MessageReaction &ol
   recent_chooser_min_channels_ = old_reaction.recent_chooser_min_channels_;
 }
 
-void MessageReaction::set_is_chosen(bool is_chosen, DialogId chooser_dialog_id, bool have_recent_choosers) {
-  if (is_chosen_ == is_chosen) {
-    return;
-  }
+void MessageReaction::set_as_chosen(DialogId chooser_dialog_id, bool have_recent_choosers) {
+  CHECK(!is_chosen_);
 
-  is_chosen_ = is_chosen;
-
-  if (chooser_dialog_id.is_valid()) {
-    choose_count_ += is_chosen_ ? 1 : -1;
-    if (have_recent_choosers) {
-      remove_recent_chooser_dialog_id();
-      if (is_chosen_) {
-        add_recent_chooser_dialog_id(chooser_dialog_id);
-      }
-    }
+  is_chosen_ = true;
+  choose_count_++;
+  if (have_recent_choosers) {
+    remove_recent_chooser_dialog_id();
+    add_recent_chooser_dialog_id(chooser_dialog_id);
   }
+}
+
+void MessageReaction::unset_as_chosen() {
+  CHECK(is_chosen_);
+
+  is_chosen_ = false;
+  choose_count_--;
+  remove_recent_chooser_dialog_id();
 }
 
 td_api::object_ptr<td_api::messageReaction> MessageReaction::get_message_reaction_object(Td *td, UserId my_user_id,
@@ -684,7 +685,7 @@ bool MessageReactions::add_reaction(const string &reaction, bool is_big, DialogI
     reactions_.push_back({reaction, 1, true, chooser_dialog_id, std::move(recent_chooser_dialog_ids), Auto()});
     new_chosen_reaction_order.emplace_back(reaction);
   } else if (!added_reaction->is_chosen()) {
-    added_reaction->set_is_chosen(true, chooser_dialog_id, have_recent_choosers);
+    added_reaction->set_as_chosen(chooser_dialog_id, have_recent_choosers);
     new_chosen_reaction_order.emplace_back(reaction);
   } else if (!is_big) {
     return false;
@@ -694,7 +695,7 @@ bool MessageReactions::add_reaction(const string &reaction, bool is_big, DialogI
   while (new_chosen_reaction_order.size() > max_reaction_count) {
     auto index = new_chosen_reaction_order[0] == reaction ? 1 : 0;
     CHECK(static_cast<size_t>(index) < new_chosen_reaction_order.size());
-    bool is_removed = do_remove_reaction(new_chosen_reaction_order[index], chooser_dialog_id, have_recent_choosers);
+    bool is_removed = do_remove_reaction(new_chosen_reaction_order[index]);
     CHECK(is_removed);
     new_chosen_reaction_order.erase(new_chosen_reaction_order.begin() + index);
   }
@@ -706,15 +707,16 @@ bool MessageReactions::add_reaction(const string &reaction, bool is_big, DialogI
   return true;
 }
 
-bool MessageReactions::remove_reaction(const string &reaction, DialogId chooser_dialog_id, bool have_recent_choosers) {
-  if (do_remove_reaction(reaction, chooser_dialog_id, have_recent_choosers)) {
+bool MessageReactions::remove_reaction(const string &reaction) {
+  if (do_remove_reaction(reaction)) {
     if (!chosen_reaction_order_.empty()) {
       bool is_removed = td::remove(chosen_reaction_order_, reaction);
       CHECK(is_removed);
 
+      // if the user isn't a Premium user, then max_reaction_count could be reduced from 3 to 1
       auto max_reaction_count = get_max_reaction_count();
       while (chosen_reaction_order_.size() > max_reaction_count) {
-        is_removed = do_remove_reaction(chosen_reaction_order_[0], chooser_dialog_id, have_recent_choosers);
+        is_removed = do_remove_reaction(chosen_reaction_order_[0]);
         CHECK(is_removed);
         chosen_reaction_order_.erase(chosen_reaction_order_.begin());
       }
@@ -729,13 +731,12 @@ bool MessageReactions::remove_reaction(const string &reaction, DialogId chooser_
   return false;
 }
 
-bool MessageReactions::do_remove_reaction(const string &reaction, DialogId chooser_dialog_id,
-                                          bool have_recent_choosers) {
+bool MessageReactions::do_remove_reaction(const string &reaction) {
   for (auto it = reactions_.begin(); it != reactions_.end(); ++it) {
     auto &message_reaction = *it;
     if (message_reaction.get_reaction() == reaction) {
       if (message_reaction.is_chosen()) {
-        message_reaction.set_is_chosen(false, chooser_dialog_id, have_recent_choosers);
+        message_reaction.unset_as_chosen();
         if (message_reaction.is_empty()) {
           it = reactions_.erase(it);
         }

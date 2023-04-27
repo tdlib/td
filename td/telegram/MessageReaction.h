@@ -65,7 +65,9 @@ class MessageReaction {
     return is_chosen_;
   }
 
-  void set_is_chosen(bool is_chosen, DialogId chooser_dialog_id, bool have_recent_choosers);
+  void set_as_chosen(DialogId chooser_dialog_id, bool have_recent_choosers);
+
+  void unset_as_chosen();
 
   void add_recent_chooser_dialog_id(DialogId dialog_id);
 
@@ -171,7 +173,7 @@ struct MessageReactions {
 
   bool add_reaction(const string &reaction, bool is_big, DialogId chooser_dialog_id, bool have_recent_choosers);
 
-  bool remove_reaction(const string &reaction, DialogId chooser_dialog_id, bool have_recent_choosers);
+  bool remove_reaction(const string &reaction);
 
   void sort_reactions(const FlatHashMap<string, size_t> &active_reaction_pos);
 
@@ -204,7 +206,7 @@ struct MessageReactions {
   void parse(ParserT &parser);
 
  private:
-  bool do_remove_reaction(const string &reaction, DialogId chooser_dialog_id, bool have_recent_choosers);
+  bool do_remove_reaction(const string &reaction);
 };
 
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageReactions &reactions);
