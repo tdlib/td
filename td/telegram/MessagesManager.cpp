@@ -23756,7 +23756,9 @@ void MessagesManager::add_message_reaction(FullMessageId full_message_id, string
     m->available_reactions_generation = d->available_reactions_generation;
   }
 
-  if (!m->reactions->add_reaction(reaction, is_big, get_my_dialog_id(), have_recent_choosers)) {
+  auto my_dialog_id =
+      d->default_send_message_as_dialog_id.is_valid() ? d->default_send_message_as_dialog_id : get_my_dialog_id();
+  if (!m->reactions->add_reaction(reaction, is_big, my_dialog_id, have_recent_choosers)) {
     return promise.set_value(Unit());
   }
 

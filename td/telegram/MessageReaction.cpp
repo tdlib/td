@@ -449,14 +449,14 @@ void MessageReaction::update_recent_chooser_dialog_ids(const MessageReaction &ol
   recent_chooser_min_channels_ = old_reaction.recent_chooser_min_channels_;
 }
 
-void MessageReaction::set_as_chosen(DialogId chooser_dialog_id, bool have_recent_choosers) {
+void MessageReaction::set_as_chosen(DialogId my_dialog_id, bool have_recent_choosers) {
   CHECK(!is_chosen_);
 
   is_chosen_ = true;
   choose_count_++;
   if (have_recent_choosers) {
     remove_recent_chooser_dialog_id();
-    add_recent_chooser_dialog_id(chooser_dialog_id);
+    add_recent_chooser_dialog_id(my_dialog_id);
   }
 }
 
@@ -466,6 +466,17 @@ void MessageReaction::unset_as_chosen() {
   is_chosen_ = false;
   choose_count_--;
   remove_recent_chooser_dialog_id();
+}
+
+void MessageReaction::set_my_recent_chooser_dialog_id(DialogId my_dialog_id) {
+  if (!my_recent_chooser_dialog_id_.is_valid() || my_recent_chooser_dialog_id_ == my_dialog_id) {
+    return;
+  }
+  if (td::contains(recent_chooser_dialog_ids_, my_dialog_id)) {
+    my_recent_chooser_dialog_id_ = my_dialog_id;
+  } else {
+    my_recent_chooser_dialog_id_ = DialogId();
+  }
 }
 
 td_api::object_ptr<td_api::messageReaction> MessageReaction::get_message_reaction_object(Td *td, UserId my_user_id,
@@ -684,7 +695,7 @@ void MessageReactions::update_from(const MessageReactions &old_reactions) {
   }
 }
 
-bool MessageReactions::add_reaction(const string &reaction, bool is_big, DialogId chooser_dialog_id,
+bool MessageReactions::add_reaction(const string &reaction, bool is_big, DialogId my_dialog_id,
                                     bool have_recent_choosers) {
   vector<string> new_chosen_reaction_order = get_chosen_reactions();
 
@@ -692,12 +703,12 @@ bool MessageReactions::add_reaction(const string &reaction, bool is_big, DialogI
   if (added_reaction == nullptr) {
     vector<DialogId> recent_chooser_dialog_ids;
     if (have_recent_choosers) {
-      recent_chooser_dialog_ids.push_back(chooser_dialog_id);
+      recent_chooser_dialog_ids.push_back(my_dialog_id);
     }
-    reactions_.push_back({reaction, 1, true, chooser_dialog_id, std::move(recent_chooser_dialog_ids), Auto()});
+    reactions_.push_back({reaction, 1, true, my_dialog_id, std::move(recent_chooser_dialog_ids), Auto()});
     new_chosen_reaction_order.emplace_back(reaction);
   } else if (!added_reaction->is_chosen()) {
-    added_reaction->set_as_chosen(chooser_dialog_id, have_recent_choosers);
+    added_reaction->set_as_chosen(my_dialog_id, have_recent_choosers);
     new_chosen_reaction_order.emplace_back(reaction);
   } else if (!is_big) {
     return false;
@@ -716,6 +727,11 @@ bool MessageReactions::add_reaction(const string &reaction, bool is_big, DialogI
     new_chosen_reaction_order.clear();
   }
   chosen_reaction_order_ = std::move(new_chosen_reaction_order);
+
+  for (auto &message_reaction : reactions_) {
+    message_reaction.set_my_recent_chooser_dialog_id(my_dialog_id);
+  }
+
   return true;
 }
 

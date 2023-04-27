@@ -65,7 +65,7 @@ class MessageReaction {
     return is_chosen_;
   }
 
-  void set_as_chosen(DialogId chooser_dialog_id, bool have_recent_choosers);
+  void set_as_chosen(DialogId my_dialog_id, bool have_recent_choosers);
 
   void unset_as_chosen();
 
@@ -80,6 +80,8 @@ class MessageReaction {
   int32 get_choose_count() const {
     return choose_count_;
   }
+
+  void set_my_recent_chooser_dialog_id(DialogId my_dialog_id);
 
   DialogId get_my_recent_chooser_dialog_id() const {
     return my_recent_chooser_dialog_id_;
@@ -171,7 +173,7 @@ struct MessageReactions {
 
   void update_from(const MessageReactions &old_reactions);
 
-  bool add_reaction(const string &reaction, bool is_big, DialogId chooser_dialog_id, bool have_recent_choosers);
+  bool add_reaction(const string &reaction, bool is_big, DialogId my_dialog_id, bool have_recent_choosers);
 
   bool remove_reaction(const string &reaction);
 
