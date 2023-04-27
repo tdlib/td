@@ -148,6 +148,7 @@ class UpdatesManager final : public Actor {
  private:
   static constexpr int32 FORCED_GET_DIFFERENCE_PTS_DIFF = 100000;
   static constexpr int32 GAP_TIMEOUT_UPDATE_COUNT = 20;
+  static constexpr double MIN_UNFILLED_GAP_TIME = 0.1;
   static constexpr double MAX_UNFILLED_GAP_TIME = 0.7;
   static constexpr double MAX_PTS_SAVE_DELAY = 0.05;
   static constexpr double UPDATE_APPLY_WARNING_TIME = 0.25;
@@ -234,6 +235,7 @@ class UpdatesManager final : public Actor {
 
   std::map<int32, PendingQtsUpdate> pending_qts_updates_;  // updates with too big QTS
 
+  Timeout min_pts_gap_timeout_;
   Timeout pts_gap_timeout_;
 
   Timeout seq_gap_timeout_;
@@ -350,6 +352,8 @@ class UpdatesManager final : public Actor {
 
   void process_pending_qts_updates();
 
+  static void check_pts_gap(void *td);
+
   static void fill_pts_gap(void *td);
 
   static void fill_seq_gap(void *td);
@@ -361,6 +365,10 @@ class UpdatesManager final : public Actor {
   static void fill_gap(void *td, const char *source);
 
   static void on_pending_audio_transcription_timeout_callback(void *td, int64 transcription_id);
+
+  void repair_pts_gap();
+
+  void on_get_pts_update(int32 pts, telegram_api::object_ptr<telegram_api::updates_Difference> difference_ptr);
 
   void set_pts_gap_timeout(double timeout);
 
