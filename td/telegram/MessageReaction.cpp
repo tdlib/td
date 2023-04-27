@@ -648,18 +648,23 @@ const MessageReaction *MessageReactions::get_reaction(const string &reaction) co
 
 void MessageReactions::update_from(const MessageReactions &old_reactions) {
   if (is_min_ && !old_reactions.is_min_) {
-    // chosen reaction was known, keep it
+    // chosen reactions were known, keep them
     is_min_ = false;
+    chosen_reaction_order_ = old_reactions.chosen_reaction_order_;
     for (const auto &old_reaction : old_reactions.reactions_) {
       if (old_reaction.is_chosen()) {
         auto *reaction = get_reaction(old_reaction.get_reaction());
         if (reaction != nullptr) {
           reaction->update_from(old_reaction);
         }
+      } else {
+        td::remove(chosen_reaction_order_, old_reaction.get_reaction());
       }
     }
     unread_reactions_ = old_reactions.unread_reactions_;
-    chosen_reaction_order_ = old_reactions.chosen_reaction_order_;
+    if (chosen_reaction_order_.size() == 1) {
+      reset_to_empty(chosen_reaction_order_);
+    }
   }
   for (const auto &old_reaction : old_reactions.reactions_) {
     if (old_reaction.is_chosen() &&
