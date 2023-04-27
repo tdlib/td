@@ -544,6 +544,20 @@ unique_ptr<MessageReactions> MessageReactions::get_message_reactions(
   result->can_get_added_reactions_ = reactions->can_see_list_;
   result->is_min_ = reactions->min_;
 
+  DialogId my_dialog_id;
+  for (auto &peer_reaction : reactions->recent_reactions_) {
+    if (peer_reaction->my_) {
+      DialogId dialog_id(peer_reaction->peer_id_);
+      if (!dialog_id.is_valid()) {
+        continue;
+      }
+      if (my_dialog_id.is_valid() && dialog_id != my_dialog_id) {
+        LOG(ERROR) << "Receive my reactions with " << dialog_id << " and " << my_dialog_id;
+      }
+      my_dialog_id = dialog_id;
+    }
+  }
+
   FlatHashSet<string> reaction_strings;
   vector<std::pair<int32, string>> chosen_reaction_order;
   for (auto &reaction_count : reactions->results_) {
@@ -559,7 +573,6 @@ unique_ptr<MessageReactions> MessageReactions::get_message_reactions(
       continue;
     }
 
-    DialogId my_dialog_id;
     FlatHashSet<DialogId, DialogIdHash> recent_choosers;
     vector<DialogId> recent_chooser_dialog_ids;
     vector<std::pair<ChannelId, MinChannel>> recent_chooser_min_channels;
@@ -595,12 +608,6 @@ unique_ptr<MessageReactions> MessageReactions::get_message_reactions(
             LOG(ERROR) << "Receive unknown reacted " << dialog_id;
             continue;
           }
-        }
-        if (peer_reaction->my_) {
-          if (my_dialog_id.is_valid() && dialog_id != my_dialog_id) {
-            LOG(ERROR) << "Receive my reactions with " << dialog_id << " and " << my_dialog_id;
-          }
-          my_dialog_id = dialog_id;
         }
 
         recent_chooser_dialog_ids.push_back(dialog_id);
