@@ -2031,7 +2031,35 @@ class CliClient final : public Actor {
   }
 
   void on_cmd(string cmd) {
-    // TODO: need to remove https://en.wikipedia.org/wiki/ANSI_escape_code from cmd
+    for (size_t i = 0; i < cmd.size();) {
+      // https://en.wikipedia.org/wiki/ANSI_escape_code#Terminal_input_sequences
+      if (cmd[i] == 27 && cmd[i + 1] == '[') {
+        // likely an ANSI escape code
+        int j = i + 2;
+        if ('1' <= cmd[j] && cmd[j] <= '9') {
+          while ('0' <= cmd[j] && cmd[j] <= '9') {
+            j++;
+          }
+        }
+        if ('A' <= cmd[j] && cmd[j] <= 'Z') {
+          // xterm sequence
+          cmd = cmd.substr(0, i) + cmd.substr(j + 1);
+          continue;
+        }
+        if (cmd[j] == ';' && '1' <= cmd[j + 1] && cmd[j + 1] <= '9') {
+          j += 2;
+          while ('0' <= cmd[j] && cmd[j] <= '9') {
+            j++;
+          }
+        }
+        if (cmd[j] == '~') {
+          // vt sequence
+          cmd = cmd.substr(0, i) + cmd.substr(j + 1);
+          continue;
+        }
+      }
+      i++;
+    }
     td::remove_if(cmd, [](unsigned char c) { return c < 32; });
     LOG(INFO) << "CMD:[" << cmd << "]";
 
