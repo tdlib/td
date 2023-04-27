@@ -1905,6 +1905,14 @@ void UpdatesManager::on_get_pts_update(int32 pts,
   LOG(DEBUG) << "Receive update with PTS " << pts << ": " << to_string(difference_ptr);
 
   switch (difference_ptr->get_id()) {
+    case telegram_api::updates_difference::ID: {
+      auto difference = move_tl_object_as<telegram_api::updates_difference>(difference_ptr);
+      difference_ptr = telegram_api::make_object<telegram_api::updates_differenceSlice>(
+          std::move(difference->new_messages_), std::move(difference->new_encrypted_messages_),
+          std::move(difference->other_updates_), std::move(difference->chats_), std::move(difference->users_),
+          std::move(difference->state_));
+      // fallthrough
+    }
     case telegram_api::updates_differenceSlice::ID: {
       auto difference = move_tl_object_as<telegram_api::updates_differenceSlice>(difference_ptr);
 
@@ -1946,7 +1954,6 @@ void UpdatesManager::on_get_pts_update(int32 pts,
       break;
     }
     case telegram_api::updates_differenceEmpty::ID:
-    case telegram_api::updates_difference::ID:
     case telegram_api::updates_differenceTooLong::ID: {
       LOG(ERROR) << "Receive " << to_string(difference_ptr);
       break;
