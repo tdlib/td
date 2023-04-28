@@ -2035,7 +2035,7 @@ class CliClient final : public Actor {
       // https://en.wikipedia.org/wiki/ANSI_escape_code#Terminal_input_sequences
       if (cmd[i] == 27 && cmd[i + 1] == '[') {
         // likely an ANSI escape code
-        int j = i + 2;
+        auto j = i + 2;
         if ('1' <= cmd[j] && cmd[j] <= '9') {
           while ('0' <= cmd[j] && cmd[j] <= '9') {
             j++;
