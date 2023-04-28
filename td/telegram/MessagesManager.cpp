@@ -28091,6 +28091,9 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
 
   bool is_secret = to_dialog_id.get_type() == DialogType::SecretChat;
   bool is_copy = !is_secret;
+  bool need_invalidate_authentication_code =
+      from_dialog_id == DialogId(ContactsManager::get_service_notifications_user_id()) && !td_->auth_manager_->is_bot();
+  vector<string> authentication_codes;
   for (const auto &copied_message : copied_messages) {
     if (forwarded_message_id_to_new_message_id.count(copied_message.original_reply_to_message_id) > 0) {
       is_copy = true;
@@ -28119,6 +28122,12 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
       message->message_id = new_message_id;
       m = message.get();
     } else {
+      if (need_invalidate_authentication_code) {
+        const Message *forwarded_message = get_message(from_dialog, copied_message.original_message_id);
+        CHECK(forwarded_message != nullptr);
+        extract_authentication_codes(from_dialog_id, forwarded_message, authentication_codes);
+      }
+
       m = get_message_to_send(to_dialog, top_thread_message_id, reply_to_message_id, message_send_options,
                               std::move(copied_message.content), &need_update_dialog_pos, false, nullptr, is_copy);
     }
@@ -28141,6 +28150,10 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
   if (need_update_dialog_pos) {
     CHECK(!only_preview);
     send_update_chat_last_message(to_dialog, "forward_messages");
+  }
+
+  if (!authentication_codes.empty()) {
+    invalidate_authentication_codes(td_, std::move(authentication_codes));
   }
 
   return get_messages_object(-1, std::move(result), false);
