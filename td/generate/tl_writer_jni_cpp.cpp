@@ -631,8 +631,13 @@ std::string TD_TL_writer_jni_cpp::gen_additional_proxy_function_begin(const std:
          "void " +
          class_name + "::" + function_name +
          "(JNIEnv *env) {\n"
-         "  Class = jni::get_jclass(env, " +
-         gen_java_class_name(class_name) + ");\n";
+         "  static bool is_inited = [&] {\n"
+         "    Class = jni::get_jclass(env, " +
+         gen_java_class_name(class_name) +
+         ");\n"
+         "    return true;\n"
+         "  }();\n"
+         "  (void)is_inited;\n";
 }
 
 std::string TD_TL_writer_jni_cpp::gen_additional_proxy_function_case(const std::string &function_name,
