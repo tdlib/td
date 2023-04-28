@@ -23,6 +23,7 @@ enum class MessageSource : int32 {
   Search,
   DialogEventLog,
   Notification,
+  Screenshot,
   Other
 };
 

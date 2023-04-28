@@ -1217,6 +1217,9 @@ messageSourceChatEventLog = MessageSource;
 //@description The message is from a notification
 messageSourceNotification = MessageSource;
 
+//@description The message was screenshotted; the source must be used only if the message content was visible during the screenshot
+messageSourceScreenshot = MessageSource;
+
 //@description The message is from some other source
 messageSourceOther = MessageSource;
 

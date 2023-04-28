@@ -48,4 +48,6 @@ void export_contact_token(Td *td, Promise<td_api::object_ptr<td_api::userLink>> 
 
 void import_contact_token(Td *td, const string &token, Promise<td_api::object_ptr<td_api::user>> &&promise);
 
+void invalidate_authentication_codes(Td *td, vector<string> &&authentication_codes);
+
 }  // namespace td

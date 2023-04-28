@@ -6,6 +6,7 @@
 //
 #include "td/telegram/MessagesManager.h"
 
+#include "td/telegram/Account.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/BackgroundInfo.hpp"
 #include "td/telegram/ChainId.h"
@@ -6502,6 +6503,37 @@ MessagesManager::Dialog *MessagesManager::get_service_notifications_dialog() {
   DialogId service_notifications_dialog_id(service_notifications_user_id);
   force_create_dialog(service_notifications_dialog_id, "get_service_notifications_dialog");
   return get_dialog(service_notifications_dialog_id);
+}
+
+void MessagesManager::extract_authentication_codes(DialogId dialog_id, const Message *m,
+                                                   vector<string> &authentication_codes) {
+  CHECK(m != nullptr);
+  if (dialog_id != DialogId(ContactsManager::get_service_notifications_user_id()) || !m->message_id.is_valid() ||
+      !m->message_id.is_server() || m->content->get_type() != MessageContentType::Text || m->is_outgoing) {
+    return;
+  }
+  auto *formatted_text = get_message_content_text(m->content.get());
+  CHECK(formatted_text != nullptr);
+  const string &text = formatted_text->text;
+  for (size_t i = 0; i < text.size(); i++) {
+    if (is_digit(text[i])) {
+      string code;
+      do {
+        if (is_digit(text[i])) {
+          code += text[i++];
+          continue;
+        }
+        if (text[i] == '-') {
+          i++;
+          continue;
+        }
+        break;
+      } while (true);
+      if (5 <= code.size() && code.size() <= 7) {
+        authentication_codes.push_back(code);
+      }
+    }
+  }
 }
 
 void MessagesManager::save_auth_notification_ids() {
@@ -19843,6 +19875,9 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
                                 source == MessageSource::DialogList || source == MessageSource::Other;
   bool need_mark_download_as_viewed = is_dialog_history || source == MessageSource::HistoryPreview ||
                                       source == MessageSource::Search || source == MessageSource::Other;
+  bool need_invalidate_authentication_code =
+      dialog_id == DialogId(ContactsManager::get_service_notifications_user_id()) &&
+      source == MessageSource::Screenshot;
 
   // keep only valid message identifiers
   size_t pos = 0;
@@ -19968,6 +20003,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
   vector<MessageId> read_reaction_message_ids;
   vector<MessageId> new_viewed_message_ids;
   vector<MessageId> viewed_reaction_message_ids;
+  vector<string> authentication_codes;
   for (auto message_id : message_ids) {
     auto *m = get_message_force(d, message_id, "view_messages 4");
     if (m != nullptr) {
@@ -20027,6 +20063,10 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
         view_id = ++info->current_view_id;
         info->recently_viewed_messages[view_id] = message_id;
       }
+
+      if (need_invalidate_authentication_code) {
+        extract_authentication_codes(dialog_id, m, authentication_codes);
+      }
     } else if (!message_id.is_yet_unsent() && message_id > max_message_id) {
       if ((d->notification_info != nullptr && message_id <= d->notification_info->max_notification_message_id_) ||
           message_id <= d->last_new_message_id || message_id <= max_thread_message_id) {
@@ -20071,6 +20111,9 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
   }
   if (td_->is_online() && dialog_viewed_messages_.count(dialog_id) != 0) {
     update_viewed_messages_timeout_.add_timeout_in(dialog_id.get(), UPDATE_VIEWED_MESSAGES_PERIOD);
+  }
+  if (!authentication_codes.empty()) {
+    invalidate_authentication_codes(td_, std::move(authentication_codes));
   }
 
   if (!need_read) {

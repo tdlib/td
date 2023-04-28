@@ -3107,6 +3107,8 @@ class MessagesManager final : public Actor {
 
   Dialog *get_service_notifications_dialog();
 
+  static void extract_authentication_codes(DialogId dialog_id, const Message *m, vector<string> &authentication_codes);
+
   void save_auth_notification_ids();
 
   MessageId get_next_message_id(Dialog *d, MessageType type) const;

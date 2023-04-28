@@ -582,6 +582,26 @@ class ImportContactTokenQuery final : public Td::ResultHandler {
   }
 };
 
+class InvalidateSignInCodesQuery final : public Td::ResultHandler {
+ public:
+  void send(vector<string> &&codes) {
+    send_query(G()->net_query_creator().create(telegram_api::account_invalidateSignInCodes(std::move(codes))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_invalidateSignInCodes>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    LOG(DEBUG) << "Receive result for InvalidateSignInCodesQuery: " << result_ptr.ok();
+  }
+
+  void on_error(Status status) final {
+    LOG(DEBUG) << "Receive error for InvalidateSignInCodesQuery: " << status;
+  }
+};
+
 void set_default_message_ttl(Td *td, int32 message_ttl, Promise<Unit> &&promise) {
   td->create_handler<SetDefaultHistoryTtlQuery>(std::move(promise))->send(message_ttl);
 }
@@ -656,6 +676,10 @@ void export_contact_token(Td *td, Promise<td_api::object_ptr<td_api::userLink>> 
 
 void import_contact_token(Td *td, const string &token, Promise<td_api::object_ptr<td_api::user>> &&promise) {
   td->create_handler<ImportContactTokenQuery>(std::move(promise))->send(token);
+}
+
+void invalidate_authentication_codes(Td *td, vector<string> &&authentication_codes) {
+  td->create_handler<InvalidateSignInCodesQuery>()->send(std::move(authentication_codes));
 }
 
 }  // namespace td

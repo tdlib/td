@@ -28,6 +28,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, MessageSource source) {
       return string_builder << "DialogEventLog";
     case MessageSource::Notification:
       return string_builder << "Notification";
+    case MessageSource::Screenshot:
+      return string_builder << "Screenshot";
     case MessageSource::Other:
       return string_builder << "Other";
     default:
@@ -56,6 +58,8 @@ MessageSource get_message_source(const td_api::object_ptr<td_api::MessageSource>
       return MessageSource::DialogEventLog;
     case td_api::messageSourceNotification::ID:
       return MessageSource::Notification;
+    case td_api::messageSourceScreenshot::ID:
+      return MessageSource::Screenshot;
     case td_api::messageSourceOther::ID:
       return MessageSource::Other;
     default:
