@@ -7102,7 +7102,7 @@ void Td::on_request(uint64 id, td_api::toggleBotUsernameIsActive &request) {
                                                    request.is_active_, std::move(promise));
 }
 
-void Td::on_request(uint64 id, td_api::reorderActiveBotUsernames &request) {
+void Td::on_request(uint64 id, td_api::reorderBotActiveUsernames &request) {
   CHECK_IS_USER();
   for (auto &username : request.usernames_) {
     CLEAN_INPUT_STRING(username);

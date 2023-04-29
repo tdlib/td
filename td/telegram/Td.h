@@ -1170,7 +1170,7 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::toggleBotUsernameIsActive &request);
 
-  void on_request(uint64 id, td_api::reorderActiveBotUsernames &request);
+  void on_request(uint64 id, td_api::reorderBotActiveUsernames &request);
 
   void on_request(uint64 id, td_api::setBotInfoDescription &request);
 

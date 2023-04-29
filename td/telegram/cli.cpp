@@ -5187,11 +5187,11 @@ class CliClient final : public Actor {
       bool is_active;
       get_args(args, bot_user_id, username, is_active);
       send_request(td_api::make_object<td_api::toggleBotUsernameIsActive>(bot_user_id, username, is_active));
-    } else if (op == "rabun") {
+    } else if (op == "rbaun") {
       UserId bot_user_id;
       string usernames;
       get_args(args, bot_user_id, usernames);
-      send_request(td_api::make_object<td_api::reorderActiveBotUsernames>(bot_user_id, autosplit_str(usernames)));
+      send_request(td_api::make_object<td_api::reorderBotActiveUsernames>(bot_user_id, autosplit_str(usernames)));
     } else if (op == "sbid") {
       UserId bot_user_id;
       string language_code;

@@ -7756,7 +7756,7 @@ setBotProfilePhoto bot_user_id:int53 photo:InputChatPhoto = Ok;
 toggleBotUsernameIsActive bot_user_id:int53 username:string is_active:Bool = Ok;
 
 //@description Changes order of active usernames of a bot. Can be called only if userTypeBot.can_be_edited == true @bot_user_id Identifier of the target bot @usernames The new order of active usernames. All currently active usernames must be specified
-reorderActiveBotUsernames bot_user_id:int53 usernames:vector<string> = Ok;
+reorderBotActiveUsernames bot_user_id:int53 usernames:vector<string> = Ok;
 
 //@description Sets the text shown in the chat with a bot if the chat is empty. Can be called only if userTypeBot.can_be_edited == true
 //@bot_user_id Identifier of the target bot
