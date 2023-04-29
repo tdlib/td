@@ -2545,6 +2545,8 @@ class MessagesManager final : public Actor {
 
   void send_update_new_chat(Dialog *d);
 
+  bool need_hide_dialog_draft_message(DialogId dialog_id) const;
+
   void send_update_chat_draft_message(const Dialog *d);
 
   void send_update_chat_last_message(Dialog *d, const char *source);

@@ -20788,8 +20788,9 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
   bool is_premium = td_->option_manager_->get_option_boolean("is_premium");
   auto chat_source = is_dialog_sponsored(d) ? sponsored_dialog_source_.get_chat_source_object() : nullptr;
   auto can_delete = can_delete_dialog(d);
-  // TODO hide/show draft message when can_send_message(dialog_id) changes
-  auto draft_message = can_send_message(d->dialog_id).is_ok() ? get_draft_message_object(d->draft_message) : nullptr;
+  // TODO hide/show draft message when need_hide_dialog_draft_message changes
+  auto draft_message =
+      !need_hide_dialog_draft_message(d->dialog_id) ? get_draft_message_object(d->draft_message) : nullptr;
   auto available_reactions = get_dialog_active_reactions(d).get_chat_available_reactions_object();
   auto is_translatable = d->is_translatable && is_premium;
   return make_tl_object<td_api::chat>(
@@ -30414,6 +30415,10 @@ void MessagesManager::send_update_new_chat(Dialog *d) {
   }
 }
 
+bool MessagesManager::need_hide_dialog_draft_message(DialogId dialog_id) const {
+  return is_forum_channel(dialog_id) || can_send_message(dialog_id).is_error();
+}
+
 void MessagesManager::send_update_chat_draft_message(const Dialog *d) {
   if (td_->auth_manager_->is_bot()) {
     // just in case
@@ -30423,7 +30428,7 @@ void MessagesManager::send_update_chat_draft_message(const Dialog *d) {
   CHECK(d != nullptr);
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_draft_message";
   on_dialog_updated(d->dialog_id, "send_update_chat_draft_message");
-  if (d->draft_message == nullptr || can_send_message(d->dialog_id).is_ok()) {
+  if (d->draft_message == nullptr || !need_hide_dialog_draft_message(d->dialog_id)) {
     send_closure(G()->td(), &Td::send_update,
                  td_api::make_object<td_api::updateChatDraftMessage>(
                      get_chat_id_object(d->dialog_id, "updateChatDraftMessage"),
