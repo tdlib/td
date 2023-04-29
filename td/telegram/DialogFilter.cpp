@@ -485,7 +485,7 @@ td_api::object_ptr<td_api::chatFolder> DialogFilter::get_chat_folder_object(
 td_api::object_ptr<td_api::chatFolderInfo> DialogFilter::get_chat_folder_info_object() const {
   return td_api::make_object<td_api::chatFolderInfo>(
       dialog_filter_id_.get(), title_, td_api::make_object<td_api::chatFolderIcon>(get_chosen_or_default_icon_name()),
-      has_my_invites_);
+      is_shareable_, has_my_invites_);
 }
 
 void DialogFilter::for_each_dialog(std::function<void(const InputDialogId &)> callback) const {
