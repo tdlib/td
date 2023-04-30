@@ -33,6 +33,8 @@ class MpscPollableQueue {
       auto guard = lock_.lock();
       if (writer_vector_.empty()) {
         if (i == 1) {
+          reader_vector_.clear();
+          reader_pos_ = 0;
           wait_event_fd_ = true;
           return 0;
         }
