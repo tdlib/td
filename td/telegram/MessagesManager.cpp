@@ -19878,6 +19878,10 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
   bool need_invalidate_authentication_code =
       dialog_id == DialogId(ContactsManager::get_service_notifications_user_id()) &&
       source == MessageSource::Screenshot;
+  auto dialog_type = dialog_id.get_type();
+  bool need_screenshot_notification = source == MessageSource::Screenshot &&
+                                      (dialog_type == DialogType::User || dialog_type == DialogType::SecretChat) &&
+                                      can_send_message(dialog_id).is_ok();
 
   // keep only valid message identifiers
   size_t pos = 0;
@@ -19923,7 +19927,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
   // get information about thread of the messages
   MessageId top_thread_message_id;
   if (source == MessageSource::MessageThreadHistory) {
-    if (dialog_id.get_type() != DialogType::Channel || is_broadcast_channel(dialog_id)) {
+    if (dialog_type != DialogType::Channel || is_broadcast_channel(dialog_id)) {
       return Status::Error(400, "There are no message threads in the chat");
     }
 
@@ -20004,6 +20008,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
   vector<MessageId> new_viewed_message_ids;
   vector<MessageId> viewed_reaction_message_ids;
   vector<string> authentication_codes;
+  vector<MessageId> screenshotted_secret_message_ids;
   for (auto message_id : message_ids) {
     auto *m = get_message_force(d, message_id, "view_messages 4");
     if (m != nullptr) {
@@ -20067,6 +20072,11 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
       if (need_invalidate_authentication_code) {
         extract_authentication_codes(dialog_id, m, authentication_codes);
       }
+      if (need_screenshot_notification && !m->is_outgoing) {
+        if ((dialog_type == DialogType::User && m->is_content_secret) || dialog_type == DialogType::SecretChat) {
+          screenshotted_secret_message_ids.push_back(m->message_id);
+        }
+      }
     } else if (!message_id.is_yet_unsent() && message_id > max_message_id) {
       if ((d->notification_info != nullptr && message_id <= d->notification_info->max_notification_message_id_) ||
           message_id <= d->last_new_message_id || message_id <= max_thread_message_id) {
@@ -20114,6 +20124,9 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
   }
   if (!authentication_codes.empty()) {
     invalidate_authentication_codes(td_, std::move(authentication_codes));
+  }
+  if (!screenshotted_secret_message_ids.empty()) {
+    send_screenshot_taken_notification_message(d);
   }
 
   if (!need_read) {
@@ -28282,39 +28295,25 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
   return result;
 }
 
-Status MessagesManager::send_screenshot_taken_notification_message(DialogId dialog_id) {
-  auto dialog_type = dialog_id.get_type();
-  if (dialog_type != DialogType::User && dialog_type != DialogType::SecretChat) {
-    return Status::Error(400, "Notification about taken screenshot can be sent only in private and secret chats");
-  }
-
-  LOG(INFO) << "Begin to send notification about taken screenshot in " << dialog_id;
-
-  Dialog *d = get_dialog_force(dialog_id, "send_screenshot_taken_notification_message");
-  if (d == nullptr) {
-    return Status::Error(400, "Chat not found");
-  }
-
-  TRY_STATUS(can_send_message(dialog_id));
-
+void MessagesManager::send_screenshot_taken_notification_message(Dialog *d) {
+  LOG(INFO) << "Begin to send notification about taken screenshot in " << d->dialog_id;
+  auto dialog_type = d->dialog_id.get_type();
   if (dialog_type == DialogType::User) {
     bool need_update_dialog_pos = false;
     const Message *m = get_message_to_send(d, MessageId(), MessageId(), MessageSendOptions(),
                                            create_screenshot_taken_message_content(), &need_update_dialog_pos);
 
-    do_send_screenshot_taken_notification_message(dialog_id, m, 0);
+    do_send_screenshot_taken_notification_message(d->dialog_id, m, 0);
 
     send_update_new_message(d, m);
     if (need_update_dialog_pos) {
       send_update_chat_last_message(d, "send_screenshot_taken_notification_message");
     }
   } else {
+    CHECK(dialog_type == DialogType::SecretChat);
     send_closure(td_->secret_chats_manager_, &SecretChatsManager::notify_screenshot_taken,
-                 dialog_id.get_secret_chat_id(),
-                 Promise<Unit>());  // TODO Promise
+                 d->dialog_id.get_secret_chat_id(), Promise<Unit>());
   }
-
-  return Status::OK();
 }
 
 class MessagesManager::SendScreenshotTakenNotificationMessageLogEvent {

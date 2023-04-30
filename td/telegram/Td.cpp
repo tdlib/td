@@ -5673,11 +5673,6 @@ void Td::on_request(uint64 id, td_api::sendChatAction &request) {
                                         DialogAction(std::move(request.action_)), std::move(promise));
 }
 
-void Td::on_request(uint64 id, td_api::sendChatScreenshotTakenNotification &request) {
-  CHECK_IS_USER();
-  answer_ok_query(id, messages_manager_->send_screenshot_taken_notification_message(DialogId(request.chat_id_)));
-}
-
 void Td::on_request(uint64 id, td_api::forwardMessages &request) {
   auto input_message_ids = MessageId::get_message_ids(request.message_ids_);
   auto message_copy_options =

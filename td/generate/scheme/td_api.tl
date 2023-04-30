@@ -6309,9 +6309,6 @@ forwardMessages chat_id:int53 message_thread_id:int53 from_chat_id:int53 message
 //@message_ids Identifiers of the messages to resend. Message identifiers must be in a strictly increasing order
 resendMessages chat_id:int53 message_ids:vector<int53> = Messages;
 
-//@description Sends a notification about a screenshot taken in a chat. Supported only in private and secret chats @chat_id Chat identifier
-sendChatScreenshotTakenNotification chat_id:int53 = Ok;
-
 //@description Adds a local message to a chat. The message is persistent across application restarts only if the message database is used. Returns the added message
 //@chat_id Target chat
 //@sender_id Identifier of the sender of the message
