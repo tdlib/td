@@ -5992,6 +5992,9 @@ MessagesManager::MessagesManager(Td *td, ActorShared<> parent)
 
   update_viewed_messages_timeout_.set_callback(on_update_viewed_messages_timeout_callback);
   update_viewed_messages_timeout_.set_callback_data(static_cast<void *>(this));
+
+  send_update_chat_read_inbox_timeout_.set_callback(on_send_update_chat_read_inbox_timeout_callback);
+  send_update_chat_read_inbox_timeout_.set_callback_data(static_cast<void *>(this));
 }
 
 MessagesManager::~MessagesManager() {
@@ -6137,6 +6140,16 @@ void MessagesManager::on_update_viewed_messages_timeout_callback(void *messages_
   auto messages_manager = static_cast<MessagesManager *>(messages_manager_ptr);
   send_closure_later(messages_manager->actor_id(messages_manager), &MessagesManager::on_update_viewed_messages_timeout,
                      DialogId(dialog_id_int));
+}
+
+void MessagesManager::on_send_update_chat_read_inbox_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto messages_manager = static_cast<MessagesManager *>(messages_manager_ptr);
+  send_closure_later(messages_manager->actor_id(messages_manager),
+                     &MessagesManager::on_send_update_chat_read_inbox_timeout, DialogId(dialog_id_int));
 }
 
 BufferSlice MessagesManager::get_dialog_database_value(const Dialog *d) {
@@ -13212,6 +13225,16 @@ void MessagesManager::on_update_viewed_messages_timeout(DialogId dialog_id) {
   }
 
   update_viewed_messages_timeout_.add_timeout_in(dialog_id.get(), UPDATE_VIEWED_MESSAGES_PERIOD);
+}
+
+void MessagesManager::on_send_update_chat_read_inbox_timeout(DialogId dialog_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  if (postponed_chat_read_inbox_updates_.erase(dialog_id) > 0) {
+    send_update_chat_read_inbox(get_dialog(dialog_id), true, "on_send_update_chat_read_inbox_timeout");
+  }
 }
 
 int32 MessagesManager::get_message_date(const tl_object_ptr<telegram_api::Message> &message_ptr) {
@@ -20651,6 +20674,10 @@ void MessagesManager::close_dialog(Dialog *d) {
   }
 
   if (!td_->auth_manager_->is_bot()) {
+    if (postponed_chat_read_inbox_updates_.erase(dialog_id) > 0) {
+      send_update_chat_read_inbox(d, false, "close_dialog");
+    }
+
     auto online_count_it = dialog_online_member_counts_.find(dialog_id);
     if (online_count_it != dialog_online_member_counts_.end()) {
       auto &info = online_count_it->second;
@@ -30573,10 +30600,14 @@ void MessagesManager::send_update_chat_read_inbox(const Dialog *d, bool force, c
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_read_inbox from "
                                         << source;
   if (!force && (running_get_difference_ || running_get_channel_difference(d->dialog_id) ||
-                 get_channel_difference_to_log_event_id_.count(d->dialog_id) != 0)) {
+                 get_channel_difference_to_log_event_id_.count(d->dialog_id) != 0 ||
+                 (d->open_count > 0 && d->server_unread_count + d->local_unread_count > 0))) {
     LOG(INFO) << "Postpone updateChatReadInbox in " << d->dialog_id << "(" << get_dialog_title(d->dialog_id) << ") to "
               << d->server_unread_count << " + " << d->local_unread_count << " from " << source;
     postponed_chat_read_inbox_updates_.insert(d->dialog_id);
+    if (d->open_count > 0) {
+      send_update_chat_read_inbox_timeout_.add_timeout_in(d->dialog_id.get(), 0.1);
+    }
   } else {
     postponed_chat_read_inbox_updates_.erase(d->dialog_id);
     LOG(INFO) << "Send updateChatReadInbox in " << d->dialog_id << "(" << get_dialog_title(d->dialog_id) << ") to "

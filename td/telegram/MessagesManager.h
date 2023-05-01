@@ -2303,6 +2303,8 @@ class MessagesManager final : public Actor {
 
   void on_update_viewed_messages_timeout(DialogId dialog_id);
 
+  void on_send_update_chat_read_inbox_timeout(DialogId dialog_id);
+
   bool delete_newer_server_messages_at_the_end(Dialog *d, MessageId max_message_id);
 
   template <class T, class It>
@@ -3175,6 +3177,8 @@ class MessagesManager final : public Actor {
 
   static void on_update_viewed_messages_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int);
 
+  static void on_send_update_chat_read_inbox_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int);
+
   void load_secret_thumbnail(FileId thumbnail_file_id);
 
   void on_upload_media(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file,
@@ -3583,6 +3587,7 @@ class MessagesManager final : public Actor {
   MultiTimeout update_dialog_online_member_count_timeout_{"UpdateDialogOnlineMemberCountTimeout"};
   MultiTimeout preload_folder_dialog_list_timeout_{"PreloadFolderDialogListTimeout"};
   MultiTimeout update_viewed_messages_timeout_{"UpdateViewedMessagesTimeout"};
+  MultiTimeout send_update_chat_read_inbox_timeout_{"SendUpdateChatReadInboxTimeout"};
 
   Hints dialogs_hints_;  // search dialogs by title and usernames
 
