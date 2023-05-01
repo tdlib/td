@@ -4669,6 +4669,8 @@ class CliClient final : public Actor {
       ChatFolderId chat_folder_id;
       get_args(args, chat_folder_id);
       send_request(td_api::make_object<td_api::getChatFolderChatsToLeave>(chat_folder_id));
+    } else if (op == "gcfcc") {
+      send_request(td_api::make_object<td_api::getChatFolderChatCount>(as_chat_folder(args)));
     } else if (op == "rcf") {
       int32 main_chat_list_position;
       string chat_folder_ids;

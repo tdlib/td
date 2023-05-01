@@ -1469,7 +1469,6 @@ td_api::object_ptr<td_api::updateChatFolders> DialogFilterManager::get_update_ch
 
 void DialogFilterManager::create_dialog_filter(td_api::object_ptr<td_api::chatFolder> filter,
                                                Promise<td_api::object_ptr<td_api::chatFolderInfo>> &&promise) {
-  CHECK(!td_->auth_manager_->is_bot());
   auto max_dialog_filters = clamp(td_->option_manager_->get_option_integer("chat_folder_count_max"),
                                   static_cast<int64>(0), static_cast<int64>(100));
   if (dialog_filters_.size() >= narrow_cast<size_t>(max_dialog_filters)) {

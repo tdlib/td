@@ -538,6 +538,8 @@ class MessagesManager final : public Actor {
 
   void after_set_typing_query(DialogId dialog_id, int32 generation);
 
+  void get_dialog_filter_dialog_count(td_api::object_ptr<td_api::chatFolder> filter, Promise<int32> &&promise);
+
   void add_dialog_list_for_dialog_filter(DialogFilterId dialog_filter_id);
 
   void edit_dialog_list_for_dialog_filter(unique_ptr<DialogFilter> &old_dialog_filter,

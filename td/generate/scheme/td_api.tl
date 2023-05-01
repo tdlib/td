@@ -6840,6 +6840,9 @@ deleteChatFolder chat_folder_id:int32 leave_chat_ids:vector<int53> = Ok;
 //@description Returns identifiers of pinned or always included chats from a chat folder, which are suggested to be left when the chat folder is deleted @chat_folder_id Chat folder identifier
 getChatFolderChatsToLeave chat_folder_id:int32 = Chats;
 
+//@description Returns approximate number of chats in a being created chat folder. Main and archive chat lists must be fully preloaded for this function to work correctly @folder The new chat folder
+getChatFolderChatCount folder:chatFolder = Count;
+
 //@description Changes the order of chat folders @chat_folder_ids Identifiers of chat folders in the new correct order @main_chat_list_position Position of the main chat list among chat folders, 0-based. Can be non-zero only for Premium users
 reorderChatFolders chat_folder_ids:vector<int32> main_chat_list_position:int32 = Ok;
 

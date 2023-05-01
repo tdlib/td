@@ -32993,6 +32993,28 @@ void MessagesManager::clear_active_dialog_actions(DialogId dialog_id) {
   }
 }
 
+void MessagesManager::get_dialog_filter_dialog_count(td_api::object_ptr<td_api::chatFolder> filter,
+                                                     Promise<int32> &&promise) {
+  TRY_RESULT_PROMISE(promise, dialog_filter,
+                     DialogFilter::create_dialog_filter(td_, DialogFilterId(), std::move(filter)));
+
+  int32 total_count = 0;
+  for (auto folder_id : dialog_filter->get_folder_ids()) {
+    const auto &folder = *get_dialog_folder(folder_id);
+    for (const auto &dialog_date : folder.ordered_dialogs_) {
+      if (dialog_date.get_order() == DEFAULT_ORDER) {
+        break;
+      }
+
+      auto dialog_id = dialog_date.get_dialog_id();
+      if (dialog_filter->need_dialog(td_, get_dialog_info_for_dialog_filter(get_dialog(dialog_id)))) {
+        total_count++;
+      }
+    }
+  }
+  promise.set_value(std::move(total_count));
+}
+
 void MessagesManager::add_dialog_list_for_dialog_filter(DialogFilterId dialog_filter_id) {
   DialogListId dialog_list_id(dialog_filter_id);
   CHECK(dialog_lists_.count(dialog_list_id) == 0);

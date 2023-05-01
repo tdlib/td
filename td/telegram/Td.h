@@ -926,6 +926,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::getChatFolderChatsToLeave &request);
 
+  void on_request(uint64 id, td_api::getChatFolderChatCount &request);
+
   void on_request(uint64 id, const td_api::reorderChatFolders &request);
 
   void on_request(uint64 id, const td_api::getChatsForChatFolderInviteLink &request);

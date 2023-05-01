@@ -6135,6 +6135,19 @@ void Td::on_request(uint64 id, const td_api::getChatFolderChatsToLeave &request)
                                                               std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::getChatFolderChatCount &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<int32> result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      promise.set_value(make_tl_object<td_api::count>(result.move_as_ok()));
+    }
+  });
+  messages_manager_->get_dialog_filter_dialog_count(std::move(request.folder_), std::move(query_promise));
+}
+
 void Td::on_request(uint64 id, const td_api::reorderChatFolders &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
