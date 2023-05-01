@@ -6299,7 +6299,7 @@ void MessagesManager::update_message_count_by_index(Dialog *d, int diff, int32 i
 
 int32 MessagesManager::get_message_index_mask(DialogId dialog_id, const Message *m) const {
   CHECK(m != nullptr);
-  if (m->message_id.is_scheduled() || m->message_id.is_yet_unsent()) {
+  if (td_->auth_manager_->is_bot() || m->message_id.is_scheduled() || m->message_id.is_yet_unsent()) {
     return 0;
   }
   if (m->is_failed_to_send) {
@@ -8476,6 +8476,7 @@ void MessagesManager::set_dialog_next_available_reactions_generation(Dialog *d, 
 }
 
 void MessagesManager::hide_dialog_message_reactions(Dialog *d) {
+  CHECK(!td_->auth_manager_->is_bot());
   vector<MessageId> message_ids;
   find_messages(d->messages.get(), message_ids,
                 [](const Message *m) { return m->reactions != nullptr && !m->reactions->reactions_.empty(); });
@@ -8509,6 +8510,10 @@ void MessagesManager::set_active_reactions(vector<string> active_reactions) {
   active_reaction_pos_.clear();
   for (size_t i = 0; i < active_reactions_.size(); i++) {
     active_reaction_pos_[active_reactions_[i]] = i;
+  }
+
+  if (td_->auth_manager_->is_bot()) {
+    return;
   }
 
   dialogs_.foreach([&](const DialogId &dialog_id, unique_ptr<Dialog> &dialog) {
@@ -12335,6 +12340,9 @@ void MessagesManager::read_channel_message_content_from_updates(Dialog *d, Messa
     LOG(ERROR) << "Incoming update tries to read content of " << message_id << " in " << d->dialog_id;
     return;
   }
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
 
   Message *m = get_message_force(d, message_id, "read_channel_message_content_from_updates");
   if (m != nullptr) {
@@ -14699,7 +14707,8 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->is_channel_post = is_channel_post;
   message->contains_mention =
       !is_outgoing && dialog_type != DialogType::User &&
-      ((flags & MESSAGE_FLAG_HAS_MENTION) != 0 || content_type == MessageContentType::PinMessage);
+      ((flags & MESSAGE_FLAG_HAS_MENTION) != 0 || content_type == MessageContentType::PinMessage) &&
+      !td_->auth_manager_->is_bot();
   message->contains_unread_mention =
       !message_id.is_scheduled() && message_id.is_server() && message->contains_mention &&
       (flags & MESSAGE_FLAG_HAS_UNREAD_CONTENT) != 0 &&
@@ -15925,7 +15934,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
         d->need_repair_unread_mention_count = false;
         on_dialog_updated(dialog_id, "repaired dialog unread mention count");
       }
-      if (d->unread_mention_count != dialog->unread_mentions_count_) {
+      if (d->unread_mention_count != dialog->unread_mentions_count_ && !td_->auth_manager_->is_bot()) {
         set_dialog_unread_mention_count(d, dialog->unread_mentions_count_);
         update_dialog_mention_notification_count(d);
         send_update_chat_unread_mention_count(d);
@@ -15940,7 +15949,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
         d->need_repair_unread_reaction_count = false;
         on_dialog_updated(dialog_id, "repaired dialog unread reaction count");
       }
-      if (d->unread_reaction_count != dialog->unread_reactions_count_) {
+      if (d->unread_reaction_count != dialog->unread_reactions_count_ && !td_->auth_manager_->is_bot()) {
         set_dialog_unread_reaction_count(d, dialog->unread_reactions_count_);
         // update_dialog_reaction_notification_count(d);
         send_update_chat_unread_reaction_count(d, source);
@@ -23308,7 +23317,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::parse_message(Dialog *d, M
     return nullptr;
   }
   if (m->reactions != nullptr) {
-    if (m->available_reactions_generation < d->available_reactions_generation) {
+    if (td_->auth_manager_->is_bot() || m->available_reactions_generation < d->available_reactions_generation) {
       m->reactions = nullptr;
       m->available_reactions_generation = 0;
     } else if (m->available_reactions_generation > d->available_reactions_generation &&
@@ -38012,6 +38021,15 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
     send_get_dialog_query(dialog_id, Auto(), 0, source);
   }
 
+  if (td_->auth_manager_->is_bot()) {
+    if (d->unread_mention_count > 0) {
+      set_dialog_unread_mention_count(d, 0);
+    }
+    if (d->unread_reaction_count > 0) {
+      set_dialog_unread_reaction_count(d, 0);
+    }
+  }
+
   auto dialog_type = d->dialog_id.get_type();
   switch (dialog_type) {
     case DialogType::Chat:
@@ -38734,12 +38752,12 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
     set_dialog_last_read_inbox_message_id(d, read_inbox_max_message_id, server_unread_count, d->local_unread_count,
                                           false, "on_get_channel_dialog 50");
   }
-  if (d->unread_mention_count != unread_mention_count) {
+  if (d->unread_mention_count != unread_mention_count && !td_->auth_manager_->is_bot()) {
     set_dialog_unread_mention_count(d, unread_mention_count);
     update_dialog_mention_notification_count(d);
     send_update_chat_unread_mention_count(d);
   }
-  if (d->unread_reaction_count != unread_reaction_count) {
+  if (d->unread_reaction_count != unread_reaction_count && !td_->auth_manager_->is_bot()) {
     set_dialog_unread_reaction_count(d, unread_reaction_count);
     // update_dialog_mention_notification_count(d);
     send_update_chat_unread_reaction_count(d, "on_get_channel_dialog 60");
