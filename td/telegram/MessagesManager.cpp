@@ -16498,56 +16498,62 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
                          Promise<Unit>());
     }
 
-    if (d->reply_markup_message_id == message_id) {
-      set_dialog_reply_markup(d, MessageId());
-    }
-    // if last_read_inbox_message_id is not known, we can't be sure whether unread_count should be decreased or not
-    if (has_incoming_notification(d->dialog_id, result.get()) && message_id > d->last_read_inbox_message_id &&
-        d->is_last_read_inbox_message_id_inited && !td_->auth_manager_->is_bot()) {
-      int32 server_unread_count = d->server_unread_count;
-      int32 local_unread_count = d->local_unread_count;
-      int32 &unread_count = message_id.is_server() ? server_unread_count : local_unread_count;
-      if (unread_count == 0) {
-        if (need_unread_counter(d->order)) {
-          LOG(ERROR) << "Unread count became negative in " << d->dialog_id << " after deletion of " << message_id
-                     << ". Last read is " << d->last_read_inbox_message_id;
-        }
-      } else {
-        unread_count--;
-        set_dialog_last_read_inbox_message_id(d, MessageId::min(), server_unread_count, local_unread_count, false,
-                                              source);
-      }
-    }
-    if (result->contains_unread_mention) {
-      if (d->unread_mention_count == 0) {
-        if (is_dialog_inited(d)) {
-          LOG(ERROR) << "Unread mention count became negative in " << d->dialog_id << " after deletion of "
-                     << message_id;
-        }
-      } else {
-        set_dialog_unread_mention_count(d, d->unread_mention_count - 1);
-        send_update_chat_unread_mention_count(d);
-      }
-    }
-    if (has_unread_message_reactions(d->dialog_id, result.get())) {
-      if (d->unread_reaction_count == 0) {
-        if (is_dialog_inited(d)) {
-          LOG(ERROR) << "Unread reaction count became negative in " << d->dialog_id << " after deletion of "
-                     << message_id;
-        }
-      } else {
-        set_dialog_unread_reaction_count(d, d->unread_reaction_count - 1);
-        send_update_chat_unread_reaction_count(d, "do_delete_message");
-      }
-    }
-
-    update_message_count_by_index(d, -1, result.get());
-    update_reply_count_by_message(d, -1, result.get());
+    on_message_deleted_from_database(d, result.get(), source);
   }
 
   on_message_deleted(d, result.get(), is_permanently_deleted, source);
 
   return result;
+}
+
+void MessagesManager::on_message_deleted_from_database(Dialog *d, const Message *m, const char *source) {
+  CHECK(d != nullptr);
+  CHECK(m != nullptr);
+  auto message_id = m->message_id;
+  if (d->reply_markup_message_id == message_id) {
+    set_dialog_reply_markup(d, MessageId());
+  }
+  // if last_read_inbox_message_id is not known, we can't be sure whether unread_count should be decreased or not
+  if (has_incoming_notification(d->dialog_id, m) && message_id > d->last_read_inbox_message_id &&
+      d->is_last_read_inbox_message_id_inited && !td_->auth_manager_->is_bot()) {
+    int32 server_unread_count = d->server_unread_count;
+    int32 local_unread_count = d->local_unread_count;
+    int32 &unread_count = message_id.is_server() ? server_unread_count : local_unread_count;
+    if (unread_count == 0) {
+      if (need_unread_counter(d->order)) {
+        LOG(ERROR) << "Unread count became negative in " << d->dialog_id << " after deletion of " << message_id
+                   << ". Last read is " << d->last_read_inbox_message_id;
+      }
+    } else {
+      unread_count--;
+      set_dialog_last_read_inbox_message_id(d, MessageId::min(), server_unread_count, local_unread_count, false,
+                                            source);
+    }
+  }
+  if (m->contains_unread_mention) {
+    if (d->unread_mention_count == 0) {
+      if (is_dialog_inited(d)) {
+        LOG(ERROR) << "Unread mention count became negative in " << d->dialog_id << " after deletion of " << message_id;
+      }
+    } else {
+      set_dialog_unread_mention_count(d, d->unread_mention_count - 1);
+      send_update_chat_unread_mention_count(d);
+    }
+  }
+  if (has_unread_message_reactions(d->dialog_id, m)) {
+    if (d->unread_reaction_count == 0) {
+      if (is_dialog_inited(d)) {
+        LOG(ERROR) << "Unread reaction count became negative in " << d->dialog_id << " after deletion of "
+                   << message_id;
+      }
+    } else {
+      set_dialog_unread_reaction_count(d, d->unread_reaction_count - 1);
+      send_update_chat_unread_reaction_count(d, source);
+    }
+  }
+
+  update_message_count_by_index(d, -1, m);
+  update_reply_count_by_message(d, -1, m);
 }
 
 void MessagesManager::on_message_deleted(Dialog *d, Message *m, bool is_permanently_deleted, const char *source) {

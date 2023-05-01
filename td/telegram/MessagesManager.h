@@ -2138,6 +2138,8 @@ class MessagesManager final : public Actor {
   unique_ptr<Message> do_delete_scheduled_message(Dialog *d, MessageId message_id, bool is_permanently_deleted,
                                                   const char *source);
 
+  void on_message_deleted_from_database(Dialog *d, const Message *m, const char *source);
+
   void on_message_deleted(Dialog *d, Message *m, bool is_permanently_deleted, const char *source);
 
   static bool is_deleted_message(const Dialog *d, MessageId message_id);
