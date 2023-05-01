@@ -20857,8 +20857,12 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       d->reply_markup_message_id.get(), std::move(draft_message), d->client_data);
 }
 
-tl_object_ptr<td_api::chat> MessagesManager::get_chat_object(DialogId dialog_id) const {
-  return get_chat_object(get_dialog(dialog_id));
+td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(DialogId dialog_id) {
+  const Dialog *d = get_dialog(dialog_id);
+  if (postponed_chat_read_inbox_updates_.erase(dialog_id) > 0) {
+    send_update_chat_read_inbox(d, true, "get_chat_object");
+  }
+  return get_chat_object(d);
 }
 
 tl_object_ptr<td_api::chats> MessagesManager::get_chats_object(int32 total_count, const vector<DialogId> &dialog_ids,
