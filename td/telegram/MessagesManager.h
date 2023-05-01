@@ -1578,7 +1578,6 @@ class MessagesManager final : public Actor {
     }
   };
 
-  template <bool is_scheduled>
   class MessagesIteratorBase {
     vector<const Message *> stack_;
 
@@ -1587,7 +1586,7 @@ class MessagesManager final : public Actor {
 
     // points iterator to message with greatest identifier which is less or equal than message_id
     MessagesIteratorBase(const Message *root, MessageId message_id) {
-      CHECK(message_id.is_scheduled() == is_scheduled);
+      CHECK(!message_id.is_scheduled());
 
       size_t last_right_pos = 0;
       while (root != nullptr) {
@@ -1680,7 +1679,7 @@ class MessagesManager final : public Actor {
     }
   };
 
-  class MessagesIterator final : public MessagesIteratorBase<false> {
+  class MessagesIterator final : public MessagesIteratorBase {
    public:
     MessagesIterator() = default;
 
@@ -1692,7 +1691,7 @@ class MessagesManager final : public Actor {
     }
   };
 
-  class MessagesConstIterator final : public MessagesIteratorBase<false> {
+  class MessagesConstIterator final : public MessagesIteratorBase {
    public:
     MessagesConstIterator() = default;
 
