@@ -238,8 +238,8 @@ class GetNotifySettingsExceptionsQuery final : public Td::ResultHandler {
     if (compare_sound) {
       flags |= telegram_api::account_getNotifyExceptions::COMPARE_SOUND_MASK;
     }
-    send_query(G()->net_query_creator().create(
-        telegram_api::account_getNotifyExceptions(flags, false /*ignored*/, std::move(input_notify_peer))));
+    send_query(G()->net_query_creator().create(telegram_api::account_getNotifyExceptions(
+        flags, false /*ignored*/, false /*ignored*/, std::move(input_notify_peer))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -348,9 +348,10 @@ class UpdateDialogNotifySettingsQuery final : public Td::ResultHandler {
       flags |= telegram_api::inputPeerNotifySettings::SILENT_MASK;
     }
     send_query(G()->net_query_creator().create(telegram_api::account_updateNotifySettings(
-        std::move(input_notify_peer), make_tl_object<telegram_api::inputPeerNotifySettings>(
-                                          flags, new_settings.show_preview, new_settings.silent_send_message,
-                                          new_settings.mute_until, get_input_notification_sound(new_settings.sound)))));
+        std::move(input_notify_peer),
+        make_tl_object<telegram_api::inputPeerNotifySettings>(
+            flags, new_settings.show_preview, new_settings.silent_send_message, new_settings.mute_until,
+            get_input_notification_sound(new_settings.sound), false, false, nullptr))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -402,7 +403,7 @@ class UpdateScopeNotifySettingsQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::account_updateNotifySettings(
         std::move(input_notify_peer), make_tl_object<telegram_api::inputPeerNotifySettings>(
                                           flags, new_settings.show_preview, false, new_settings.mute_until,
-                                          get_input_notification_sound(new_settings.sound)))));
+                                          get_input_notification_sound(new_settings.sound), false, false, nullptr))));
     scope_ = scope;
   }
 

@@ -80,8 +80,9 @@ telegram_api::object_ptr<telegram_api::autoDownloadSettings> get_input_auto_down
     flags |= telegram_api::autoDownloadSettings::PHONECALLS_LESS_DATA_MASK;
   }
   return telegram_api::make_object<telegram_api::autoDownloadSettings>(
-      flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, settings.max_photo_file_size,
-      settings.max_video_file_size, settings.max_other_file_size, settings.video_upload_bitrate, 0, 0);
+      flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+      settings.max_photo_file_size, settings.max_video_file_size, settings.max_other_file_size,
+      settings.video_upload_bitrate, 0, 0);
 }
 
 class SaveAutoDownloadSettingsQuery final : public Td::ResultHandler {

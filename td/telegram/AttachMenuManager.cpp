@@ -167,12 +167,9 @@ class RequestWebViewQuery final : public Td::ResultHandler {
       flags |= telegram_api::messages_requestWebView::THEME_PARAMS_MASK;
     }
 
-    if (top_thread_message_id.is_valid()) {
-      flags |= telegram_api::messages_requestWebView::TOP_MSG_ID_MASK;
-    }
-
-    if (reply_to_message_id.is_valid()) {
-      flags |= telegram_api::messages_requestWebView::REPLY_TO_MSG_ID_MASK;
+    auto reply_to = MessagesManager::get_input_reply_to(reply_to_message_id, top_thread_message_id);
+    if (reply_to != nullptr) {
+      flags |= telegram_api::messages_requestWebView::REPLY_TO_MASK;
     }
 
     if (silent) {
@@ -189,8 +186,7 @@ class RequestWebViewQuery final : public Td::ResultHandler {
 
     send_query(G()->net_query_creator().create(telegram_api::messages_requestWebView(
         flags, false /*ignored*/, false /*ignored*/, std::move(input_peer), std::move(input_user), url, start_parameter,
-        std::move(theme_parameters), platform, reply_to_message_id.get_server_message_id().get(),
-        top_thread_message_id.get_server_message_id().get(), std::move(as_input_peer))));
+        std::move(theme_parameters), platform, std::move(reply_to), std::move(as_input_peer))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -230,14 +226,10 @@ class ProlongWebViewQuery final : public Td::ResultHandler {
     }
 
     int32 flags = 0;
-    if (reply_to_message_id.is_valid()) {
-      flags |= telegram_api::messages_prolongWebView::REPLY_TO_MSG_ID_MASK;
+    auto reply_to = MessagesManager::get_input_reply_to(reply_to_message_id, top_thread_message_id);
+    if (reply_to != nullptr) {
+      flags |= telegram_api::messages_prolongWebView::REPLY_TO_MASK;
     }
-
-    if (top_thread_message_id.is_valid()) {
-      flags |= telegram_api::messages_prolongWebView::TOP_MSG_ID_MASK;
-    }
-
     if (silent) {
       flags |= telegram_api::messages_prolongWebView::SILENT_MASK;
     }
@@ -251,8 +243,7 @@ class ProlongWebViewQuery final : public Td::ResultHandler {
     }
 
     send_query(G()->net_query_creator().create(telegram_api::messages_prolongWebView(
-        flags, false /*ignored*/, std::move(input_peer), r_input_user.move_as_ok(), query_id,
-        reply_to_message_id.get_server_message_id().get(), top_thread_message_id.get_server_message_id().get(),
+        flags, false /*ignored*/, std::move(input_peer), r_input_user.move_as_ok(), query_id, std::move(reply_to),
         std::move(as_input_peer))));
   }
 

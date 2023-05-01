@@ -339,8 +339,8 @@ tl_object_ptr<telegram_api::InputMedia> AnimationsManager::get_input_media(
     string mime_type = animation->mime_type;
     if (mime_type == "video/mp4") {
       attributes.push_back(make_tl_object<telegram_api::documentAttributeVideo>(
-          0, false /*ignored*/, false /*ignored*/, animation->duration, animation->dimensions.width,
-          animation->dimensions.height));
+          0, false /*ignored*/, false /*ignored*/, false /*ignored*/, animation->duration, animation->dimensions.width,
+          animation->dimensions.height, 0));
     } else if (animation->dimensions.width != 0 && animation->dimensions.height != 0) {
       if (!begins_with(mime_type, "image/")) {
         mime_type = "image/gif";

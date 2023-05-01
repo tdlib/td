@@ -164,6 +164,24 @@ class MessagesManager final : public Actor {
   MessagesManager &operator=(MessagesManager &&) = delete;
   ~MessagesManager() final;
 
+  static telegram_api::object_ptr<telegram_api::InputReplyTo> get_input_reply_to(MessageId reply_to_message_id,
+                                                                                 MessageId top_thread_message_id) {
+    if (reply_to_message_id == MessageId()) {
+      if (top_thread_message_id == MessageId()) {
+        return nullptr;
+      }
+      reply_to_message_id = top_thread_message_id;
+    }
+    CHECK(reply_to_message_id.is_server());
+    int32 flags = 0;
+    if (top_thread_message_id != MessageId()) {
+      CHECK(top_thread_message_id.is_server());
+      flags |= telegram_api::inputReplyToMessage::TOP_MSG_ID_MASK;
+    }
+    return telegram_api::make_object<telegram_api::inputReplyToMessage>(
+        flags, reply_to_message_id.get_server_message_id().get(), top_thread_message_id.get_server_message_id().get());
+  }
+
   tl_object_ptr<telegram_api::InputPeer> get_input_peer(DialogId dialog_id, AccessRights access_rights) const;
 
   static tl_object_ptr<telegram_api::InputPeer> get_input_peer_force(DialogId dialog_id);

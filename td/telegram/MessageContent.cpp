@@ -4280,8 +4280,8 @@ static auto secret_to_telegram(secret_api::documentAttributeSticker &sticker) {
 
 // documentAttributeVideo23 duration:int w:int h:int = DocumentAttribute;
 static auto secret_to_telegram(secret_api::documentAttributeVideo23 &video) {
-  return make_tl_object<telegram_api::documentAttributeVideo>(0, false /*ignored*/, false /*ignored*/, video.duration_,
-                                                              video.w_, video.h_);
+  return make_tl_object<telegram_api::documentAttributeVideo>(
+      0, false /*ignored*/, false /*ignored*/, false /*ignored*/, video.duration_, video.w_, video.h_, 0);
 }
 
 // documentAttributeFilename file_name:string = DocumentAttribute;
@@ -4296,7 +4296,7 @@ static auto secret_to_telegram(secret_api::documentAttributeFilename &filename) 
 static auto secret_to_telegram(secret_api::documentAttributeVideo &video) {
   return make_tl_object<telegram_api::documentAttributeVideo>(
       video.round_message_ ? telegram_api::documentAttributeVideo::ROUND_MESSAGE_MASK : 0, video.round_message_, false,
-      video.duration_, video.w_, video.h_);
+      false /*ignored*/, video.duration_, video.w_, video.h_, 0);
 }
 
 static auto telegram_documentAttributeAudio(bool is_voice_note, int duration, string title, string performer,
@@ -4778,6 +4778,8 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       }
       return make_unique<MessagePoll>(poll_id);
     }
+    case telegram_api::messageMediaStory::ID:
+      return make_unique<MessageUnsupported>();
     case telegram_api::messageMediaUnsupported::ID:
       return make_unique<MessageUnsupported>();
     default:

@@ -233,6 +233,9 @@ PrivacyManager::UserPrivacySettingRule::UserPrivacySettingRule(const telegram_ap
     case telegram_api::privacyValueAllowContacts::ID:
       type_ = Type::AllowContacts;
       break;
+    case telegram_api::privacyValueAllowCloseFriends::ID:
+      type_ = Type::AllowContacts;
+      break;
     case telegram_api::privacyValueAllowAll::ID:
       type_ = Type::AllowAll;
       break;

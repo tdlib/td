@@ -1108,8 +1108,12 @@ void ConfigManager::set_archive_and_mute(bool archive_and_mute, Promise<Unit> &&
   queries.push_back(std::move(promise));
   if (!is_set_archive_and_mute_request_sent_) {
     is_set_archive_and_mute_request_sent_ = true;
-    int32 flags = telegram_api::globalPrivacySettings::ARCHIVE_AND_MUTE_NEW_NONCONTACT_PEERS_MASK;
-    auto settings = make_tl_object<telegram_api::globalPrivacySettings>(flags, archive_and_mute);
+    int32 flags = 0;
+    if (archive_and_mute) {
+      flags |= telegram_api::globalPrivacySettings::ARCHIVE_AND_MUTE_NEW_NONCONTACT_PEERS_MASK;
+    }
+    auto settings = make_tl_object<telegram_api::globalPrivacySettings>(flags, false /*ignored*/, false /*ignored*/,
+                                                                        false /*ignored*/);
     G()->net_query_dispatcher().dispatch_with_callback(
         G()->net_query_creator().create(telegram_api::account_setGlobalPrivacySettings(std::move(settings))),
         actor_shared(this, 6 + static_cast<uint64>(archive_and_mute)));
@@ -1229,11 +1233,7 @@ void ConfigManager::on_result(NetQueryPtr res) {
     }
 
     auto result = result_ptr.move_as_ok();
-    if ((result->flags_ & telegram_api::globalPrivacySettings::ARCHIVE_AND_MUTE_NEW_NONCONTACT_PEERS_MASK) != 0) {
-      do_set_archive_and_mute(result->archive_and_mute_new_noncontact_peers_);
-    } else {
-      LOG(ERROR) << "Receive wrong response: " << to_string(result);
-    }
+    do_set_archive_and_mute(result->archive_and_mute_new_noncontact_peers_);
 
     set_promises(get_global_privacy_settings_queries_);
     return;

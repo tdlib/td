@@ -14,11 +14,12 @@
 
 namespace td {
 
-MessageReplyHeader::MessageReplyHeader(tl_object_ptr<telegram_api::messageReplyHeader> &&reply_header,
+MessageReplyHeader::MessageReplyHeader(tl_object_ptr<telegram_api::MessageReplyHeader> &&reply_header_ptr,
                                        DialogId dialog_id, MessageId message_id, int32 date, bool can_have_thread) {
-  if (reply_header == nullptr) {
+  if (reply_header_ptr == nullptr || reply_header_ptr->get_id() != telegram_api::messageReplyHeader::ID) {
     return;
   }
+  auto reply_header = telegram_api::move_object_as<telegram_api::messageReplyHeader>(reply_header_ptr);
   if (reply_header->reply_to_scheduled_) {
     reply_to_message_id = MessageId(ScheduledServerMessageId(reply_header->reply_to_msg_id_), date);
     if (message_id.is_scheduled()) {

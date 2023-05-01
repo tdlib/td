@@ -445,7 +445,7 @@ class UpdatesManager final : public Actor {
   bool is_acceptable_reply_markup(const tl_object_ptr<telegram_api::ReplyMarkup> &reply_markup) const;
 
   bool is_acceptable_message_reply_header(
-      const telegram_api::object_ptr<telegram_api::messageReplyHeader> &header) const;
+      const telegram_api::object_ptr<telegram_api::MessageReplyHeader> &header) const;
 
   bool is_acceptable_message_forward_header(
       const telegram_api::object_ptr<telegram_api::messageFwdHeader> &header) const;
@@ -614,6 +614,12 @@ class UpdatesManager final : public Actor {
   void on_update(tl_object_ptr<telegram_api::updateAutoSaveSettings> update, Promise<Unit> &&promise);
 
   // unsupported updates
+
+  void on_update(tl_object_ptr<telegram_api::updateStory> update, Promise<Unit> &&promise);
+
+  void on_update(tl_object_ptr<telegram_api::updateReadStories> update, Promise<Unit> &&promise);
+
+  void on_update(tl_object_ptr<telegram_api::updateStoryID> update, Promise<Unit> &&promise);
 };
 
 }  // namespace td

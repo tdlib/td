@@ -45,6 +45,7 @@
 #include "td/utils/StringBuilder.h"
 #include "td/utils/utf8.h"
 
+#include <cmath>
 #include <limits>
 
 namespace td {
@@ -123,7 +124,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
   int32 video_duration = 0;
   string video_waveform;
   if (video != nullptr) {
-    video_duration = video->duration_;
+    video_duration = static_cast<int32>(std::ceil(video->duration_));
     auto video_dimensions = get_dimensions(video->w_, video->h_, "documentAttributeVideo");
     if (dimensions.width == 0 || (video_dimensions.width != 0 && video_dimensions != dimensions)) {
       if (dimensions.width != 0) {

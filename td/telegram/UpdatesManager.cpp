@@ -728,12 +728,13 @@ bool UpdatesManager::is_acceptable_reply_markup(const tl_object_ptr<telegram_api
 }
 
 bool UpdatesManager::is_acceptable_message_reply_header(
-    const telegram_api::object_ptr<telegram_api::messageReplyHeader> &header) const {
-  if (header == nullptr) {
+    const telegram_api::object_ptr<telegram_api::MessageReplyHeader> &header) const {
+  if (header == nullptr || header->get_id() != telegram_api::messageReplyHeader::ID) {
     return true;
   }
 
-  if (!is_acceptable_peer(header->reply_to_peer_id_)) {
+  auto reply_header = static_cast<const telegram_api::messageReplyHeader *>(header.get());
+  if (!is_acceptable_peer(reply_header->reply_to_peer_id_)) {
     return false;
   }
   return true;
@@ -790,9 +791,16 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
       if (message->media_ != nullptr) {
         auto media_id = message->media_->get_id();
         if (media_id == telegram_api::messageMediaContact::ID) {
-          auto message_media_contact = static_cast<const telegram_api::messageMediaContact *>(message->media_.get());
-          UserId user_id(message_media_contact->user_id_);
+          auto message_media = static_cast<const telegram_api::messageMediaContact *>(message->media_.get());
+          UserId user_id(message_media->user_id_);
           if (user_id != UserId() && !is_acceptable_user(user_id)) {
+            return false;
+          }
+        }
+        if (media_id == telegram_api::messageMediaStory::ID) {
+          auto message_media = static_cast<const telegram_api::messageMediaStory *>(message->media_.get());
+          UserId user_id(message_media->user_id_);
+          if (!is_acceptable_user(user_id)) {
             return false;
           }
         }
@@ -4182,5 +4190,17 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateAutoSaveSetting
 }
 
 // unsupported updates
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStory> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadStories> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStoryID> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
 
 }  // namespace td

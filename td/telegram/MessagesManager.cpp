@@ -3151,14 +3151,12 @@ class SendMessageQuery final : public Td::ResultHandler {
       flags |= MessagesManager::SEND_MESSAGE_FLAG_HAS_SEND_AS;
     }
 
-    CHECK(reply_to_message_id == MessageId() || reply_to_message_id.is_server());
-    CHECK(top_thread_message_id == MessageId() || top_thread_message_id.is_server());
     auto query = G()->net_query_creator().create(
         telegram_api::messages_sendMessage(
             flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-            false /*ignored*/, std::move(input_peer), reply_to_message_id.get_server_message_id().get(),
-            top_thread_message_id.get_server_message_id().get(), text, random_id, std::move(reply_markup),
-            std::move(entities), schedule_date, std::move(as_input_peer)),
+            false /*ignored*/, std::move(input_peer),
+            MessagesManager::get_input_reply_to(reply_to_message_id, top_thread_message_id), text, random_id,
+            std::move(reply_markup), std::move(entities), schedule_date, std::move(as_input_peer)),
         {{dialog_id, MessageContentType::Text},
          {dialog_id, is_copy ? MessageContentType::Photo : MessageContentType::Text}});
     if (td_->option_manager_->get_option_boolean("use_quick_ack")) {
@@ -3289,8 +3287,8 @@ class SendInlineBotResultQuery final : public Td::ResultHandler {
     auto query = G()->net_query_creator().create(
         telegram_api::messages_sendInlineBotResult(
             flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_peer),
-            reply_to_message_id.get_server_message_id().get(), top_thread_message_id.get_server_message_id().get(),
-            random_id, query_id, result_id, schedule_date, std::move(as_input_peer)),
+            MessagesManager::get_input_reply_to(reply_to_message_id, top_thread_message_id), random_id, query_id,
+            result_id, schedule_date, std::move(as_input_peer)),
         {{dialog_id, MessageContentType::Text}, {dialog_id, MessageContentType::Photo}});
     auto send_query_ref = query.get_weak();
     send_query(std::move(query));
@@ -3353,11 +3351,10 @@ class SendMultiMediaQuery final : public Td::ResultHandler {
     CHECK(reply_to_message_id == MessageId() || reply_to_message_id.is_server());
     CHECK(top_thread_message_id == MessageId() || top_thread_message_id.is_server());
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_sendMultiMedia(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                              false /*ignored*/, false /*ignored*/, std::move(input_peer),
-                                              reply_to_message_id.get_server_message_id().get(),
-                                              top_thread_message_id.get_server_message_id().get(),
-                                              std::move(input_single_media), schedule_date, std::move(as_input_peer)),
+        telegram_api::messages_sendMultiMedia(
+            flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+            std::move(input_peer), MessagesManager::get_input_reply_to(reply_to_message_id, top_thread_message_id),
+            std::move(input_single_media), schedule_date, std::move(as_input_peer)),
         {{dialog_id, is_copy ? MessageContentType::Text : MessageContentType::Photo},
          {dialog_id, MessageContentType::Photo}}));
   }
@@ -3475,9 +3472,9 @@ class SendMediaQuery final : public Td::ResultHandler {
     auto query = G()->net_query_creator().create(
         telegram_api::messages_sendMedia(
             flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-            std::move(input_peer), reply_to_message_id.get_server_message_id().get(),
-            top_thread_message_id.get_server_message_id().get(), std::move(input_media), text, random_id,
-            std::move(reply_markup), std::move(entities), schedule_date, std::move(as_input_peer)),
+            std::move(input_peer), MessagesManager::get_input_reply_to(reply_to_message_id, top_thread_message_id),
+            std::move(input_media), text, random_id, std::move(reply_markup), std::move(entities), schedule_date,
+            std::move(as_input_peer)),
         {{dialog_id, content_type}, {dialog_id, is_copy ? MessageContentType::Text : content_type}});
     if (td_->option_manager_->get_option_boolean("use_quick_ack") && was_uploaded_) {
       query->quick_ack_promise_ = PromiseCreator::lambda([random_id](Result<Unit> result) {
@@ -3941,7 +3938,8 @@ class SendScreenshotNotificationQuery final : public Td::ResultHandler {
     CHECK(input_peer != nullptr);
 
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_sendScreenshotNotification(std::move(input_peer), 0, random_id),
+        telegram_api::messages_sendScreenshotNotification(
+            std::move(input_peer), telegram_api::make_object<telegram_api::inputReplyToMessage>(0, 0, 0), random_id),
         {{dialog_id, MessageContentType::Text}}));
   }
 
@@ -27304,13 +27302,8 @@ bool MessagesManager::get_message_disable_web_page_preview(const Message *m) {
 
 int32 MessagesManager::get_message_flags(const Message *m) {
   int32 flags = 0;
-  if (m->reply_to_message_id.is_valid()) {
-    CHECK(m->reply_to_message_id.is_server());
+  if (m->reply_to_message_id.is_valid() || m->top_thread_message_id.is_valid()) {
     flags |= SEND_MESSAGE_FLAG_IS_REPLY;
-  }
-  if (m->top_thread_message_id.is_valid()) {
-    CHECK(m->top_thread_message_id.is_server());
-    flags |= SEND_MESSAGE_FLAG_IS_FROM_THREAD;
   }
   if (m->disable_web_page_preview) {
     flags |= SEND_MESSAGE_FLAG_DISABLE_WEB_PAGE_PREVIEW;

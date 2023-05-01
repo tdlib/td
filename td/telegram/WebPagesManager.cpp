@@ -507,20 +507,30 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
           page->document = std::move(parsed_document);
         }
       }
-      for (auto &attribute : web_page->attributes_) {
-        CHECK(attribute != nullptr);
-        page->documents.clear();
-        for (auto &document : attribute->documents_) {
-          int32 document_id = document->get_id();
-          if (document_id == telegram_api::document::ID) {
-            auto parsed_document = td_->documents_manager_->on_get_document(
-                move_tl_object_as<telegram_api::document>(document), owner_dialog_id);
-            if (!parsed_document.empty()) {
-              page->documents.push_back(std::move(parsed_document));
+      page->documents.clear();
+      for (auto &attribute_ptr : web_page->attributes_) {
+        CHECK(attribute_ptr != nullptr);
+        switch (attribute_ptr->get_id()) {
+          case telegram_api::webPageAttributeTheme::ID: {
+            auto attribute = telegram_api::move_object_as<telegram_api::webPageAttributeTheme>(attribute_ptr);
+            for (auto &document : attribute->documents_) {
+              int32 document_id = document->get_id();
+              if (document_id == telegram_api::document::ID) {
+                auto parsed_document = td_->documents_manager_->on_get_document(
+                    move_tl_object_as<telegram_api::document>(document), owner_dialog_id);
+                if (!parsed_document.empty()) {
+                  page->documents.push_back(std::move(parsed_document));
+                }
+              }
             }
+            // TODO attribute->settings_
+            break;
+          }
+          case telegram_api::webPageAttributeStory::ID: {
+            // auto attribute = telegram_api::move_object_as<telegram_api::webPageAttributeStory>(attribute_ptr);
+            break;
           }
         }
-        // TODO attribute->settings_
       }
       if (web_page->cached_page_ != nullptr) {
         on_get_web_page_instant_view(page.get(), std::move(web_page->cached_page_), web_page->hash_, owner_dialog_id);
