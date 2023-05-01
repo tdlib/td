@@ -7129,12 +7129,14 @@ bool MessagesManager::update_message_interaction_info(Dialog *d, Message *m, int
   if (has_reactions) {
     auto it = pending_reactions_.find({dialog_id, m->message_id});
     if (it != pending_reactions_.end()) {
-      LOG(INFO) << "Ignore reactions, because have a pending message reaction";
+      LOG(INFO) << "Ignore reactions for " << FullMessageId{dialog_id, m->message_id}
+                << ", because they are being changed";
       has_reactions = false;
       it->second.was_updated = true;
     }
     if (has_reactions && pending_read_reactions_.count({dialog_id, m->message_id}) > 0) {
-      LOG(INFO) << "Ignore reactions, because have a pending message reaction read";
+      LOG(INFO) << "Ignore reactions for " << FullMessageId{dialog_id, m->message_id}
+                << ", because they are being read";
       has_reactions = false;
     }
   }

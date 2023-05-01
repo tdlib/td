@@ -472,11 +472,14 @@ void MessageReaction::set_my_recent_chooser_dialog_id(DialogId my_dialog_id) {
   if (!my_recent_chooser_dialog_id_.is_valid() || my_recent_chooser_dialog_id_ == my_dialog_id) {
     return;
   }
-  if (td::contains(recent_chooser_dialog_ids_, my_dialog_id)) {
-    my_recent_chooser_dialog_id_ = my_dialog_id;
-  } else {
-    my_recent_chooser_dialog_id_ = DialogId();
+  td::remove(recent_chooser_dialog_ids_, my_dialog_id);
+  for (auto &dialog_id : recent_chooser_dialog_ids_) {
+    if (dialog_id == my_recent_chooser_dialog_id_) {
+      dialog_id = my_dialog_id;
+    }
   }
+  CHECK(td::contains(recent_chooser_dialog_ids_, my_dialog_id));
+  my_recent_chooser_dialog_id_ = my_dialog_id;
 }
 
 td_api::object_ptr<td_api::messageReaction> MessageReaction::get_message_reaction_object(Td *td, UserId my_user_id,
@@ -523,6 +526,9 @@ StringBuilder &operator<<(StringBuilder &string_builder, const MessageReaction &
   string_builder << '[' << reaction.reaction_ << (reaction.is_chosen_ ? " X " : " x ") << reaction.choose_count_;
   if (!reaction.recent_chooser_dialog_ids_.empty()) {
     string_builder << " by " << reaction.recent_chooser_dialog_ids_;
+    if (reaction.my_recent_chooser_dialog_id_.is_valid()) {
+      string_builder << " and my " << reaction.my_recent_chooser_dialog_id_;
+    }
   }
   return string_builder << ']';
 }
