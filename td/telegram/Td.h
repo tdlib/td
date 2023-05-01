@@ -77,6 +77,7 @@ class SponsoredMessageManager;
 class StateManager;
 class StickersManager;
 class StorageManager;
+class StoryManager;
 class ThemeManager;
 class TopDialogManager;
 class TranslationManager;
@@ -192,6 +193,8 @@ class Td final : public Actor {
   ActorOwn<SponsoredMessageManager> sponsored_message_manager_actor_;
   unique_ptr<StickersManager> stickers_manager_;
   ActorOwn<StickersManager> stickers_manager_actor_;
+  unique_ptr<StoryManager> story_manager_;
+  ActorOwn<StoryManager> story_manager_actor_;
   unique_ptr<ThemeManager> theme_manager_;
   ActorOwn<ThemeManager> theme_manager_actor_;
   unique_ptr<TopDialogManager> top_dialog_manager_;

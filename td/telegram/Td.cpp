@@ -121,6 +121,7 @@
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/StickerType.h"
 #include "td/telegram/StorageManager.h"
+#include "td/telegram/StoryManager.h"
 #include "td/telegram/SuggestedAction.h"
 #include "td/telegram/Support.h"
 #include "td/telegram/td_api.hpp"
@@ -3226,6 +3227,8 @@ void Td::dec_actor_refcnt() {
       LOG(DEBUG) << "SponsoredMessageManager was cleared" << timer;
       stickers_manager_.reset();
       LOG(DEBUG) << "StickersManager was cleared" << timer;
+      story_manager_.reset();
+      LOG(DEBUG) << "StoryManager was cleared" << timer;
       theme_manager_.reset();
       LOG(DEBUG) << "ThemeManager was cleared" << timer;
       top_dialog_manager_.reset();
@@ -3426,6 +3429,8 @@ void Td::clear() {
   LOG(DEBUG) << "SponsoredMessageManager actor was cleared" << timer;
   stickers_manager_actor_.reset();
   LOG(DEBUG) << "StickersManager actor was cleared" << timer;
+  story_manager_actor_.reset();
+  LOG(DEBUG) << "StoryManager actor was cleared" << timer;
   theme_manager_actor_.reset();
   LOG(DEBUG) << "ThemeManager actor was cleared" << timer;
   top_dialog_manager_actor_.reset();
@@ -3915,6 +3920,8 @@ void Td::init_managers() {
   stickers_manager_ = make_unique<StickersManager>(this, create_reference());
   stickers_manager_actor_ = register_actor("StickersManager", stickers_manager_.get());
   G()->set_stickers_manager(stickers_manager_actor_.get());
+  story_manager_ = make_unique<StoryManager>(this, create_reference());
+  story_manager_actor_ = register_actor("StoryManager", story_manager_.get());
   theme_manager_ = make_unique<ThemeManager>(this, create_reference());
   theme_manager_actor_ = register_actor("ThemeManager", theme_manager_.get());
   G()->set_theme_manager(theme_manager_actor_.get());
