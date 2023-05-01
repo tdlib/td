@@ -4814,8 +4814,8 @@ void MessagesManager::Message::store(StorerT &storer) const {
   STORE_FLAG(from_background);
   STORE_FLAG(disable_web_page_preview);
   STORE_FLAG(clear_draft);
-  STORE_FLAG(have_previous);
-  STORE_FLAG(have_next);
+  STORE_FLAG(false);
+  STORE_FLAG(false);
   STORE_FLAG(has_sender);
   STORE_FLAG(has_edit_date);
   STORE_FLAG(has_random_id);
@@ -5013,6 +5013,8 @@ void MessagesManager::Message::store(StorerT &storer) const {
 template <class ParserT>
 void MessagesManager::Message::parse(ParserT &parser) {
   using td::parse;
+  bool legacy_have_previous;
+  bool legacy_have_next;
   bool has_sender;
   bool has_edit_date;
   bool has_random_id;
@@ -5062,8 +5064,8 @@ void MessagesManager::Message::parse(ParserT &parser) {
   PARSE_FLAG(from_background);
   PARSE_FLAG(disable_web_page_preview);
   PARSE_FLAG(clear_draft);
-  PARSE_FLAG(have_previous);
-  PARSE_FLAG(have_next);
+  PARSE_FLAG(legacy_have_previous);
+  PARSE_FLAG(legacy_have_next);
   PARSE_FLAG(has_sender);
   PARSE_FLAG(has_edit_date);
   PARSE_FLAG(has_random_id);
