@@ -34573,6 +34573,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     LOG(INFO) << "Skip adding cleared " << message_id << " to " << dialog_id << " from " << source;
     if (message->from_database) {
       delete_message_from_database(d, message_id, message.get(), true);
+      on_message_deleted_from_database(d, message.get(), "cleared full history");
     }
     debug_add_message_to_dialog_fail_reason_ = "cleared full history";
     return nullptr;
@@ -34667,6 +34668,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     LOG(INFO) << "Can't add an unavailable " << message_id << " to " << dialog_id << " from " << source;
     if (message->from_database) {
       delete_message_from_database(d, message_id, message.get(), true);
+      on_message_deleted_from_database(d, message.get(), "ignore unavailable message");
     }
     debug_add_message_to_dialog_fail_reason_ = "ignore unavailable message";
     return nullptr;
@@ -34882,6 +34884,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         LOG(INFO) << "Can't add " << message_id << " with expired self-destruct timer to " << dialog_id << " from "
                   << source;
         delete_message_from_database(d, message_id, message.get(), true);
+        on_message_deleted_from_database(d, message.get(), "delete self-destructed message");
         debug_add_message_to_dialog_fail_reason_ = "delete self-destructed message";
         d->being_added_message_id = MessageId();
         return nullptr;
@@ -34902,6 +34905,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     if (message->date + message->ttl_period <= server_time) {
       LOG(INFO) << "Can't add auto-deleted " << message_id << " to " << dialog_id << " from " << source;
       delete_message_from_database(d, message_id, message.get(), true);
+      on_message_deleted_from_database(d, message.get(), "delete auto-deleted message");
       debug_add_message_to_dialog_fail_reason_ = "delete auto-deleted message";
       d->being_added_message_id = MessageId();
       return nullptr;
