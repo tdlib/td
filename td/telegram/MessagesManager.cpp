@@ -16509,13 +16509,17 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
 void MessagesManager::on_message_deleted_from_database(Dialog *d, const Message *m, const char *source) {
   CHECK(d != nullptr);
   CHECK(m != nullptr);
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   auto message_id = m->message_id;
   if (d->reply_markup_message_id == message_id) {
     set_dialog_reply_markup(d, MessageId());
   }
   // if last_read_inbox_message_id is not known, we can't be sure whether unread_count should be decreased or not
   if (has_incoming_notification(d->dialog_id, m) && message_id > d->last_read_inbox_message_id &&
-      d->is_last_read_inbox_message_id_inited && !td_->auth_manager_->is_bot()) {
+      d->is_last_read_inbox_message_id_inited) {
     int32 server_unread_count = d->server_unread_count;
     int32 local_unread_count = d->local_unread_count;
     int32 &unread_count = message_id.is_server() ? server_unread_count : local_unread_count;
