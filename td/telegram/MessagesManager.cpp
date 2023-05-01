@@ -6550,6 +6550,10 @@ tl_object_ptr<telegram_api::inputEncryptedChat> MessagesManager::get_input_encry
   }
 }
 
+bool MessagesManager::have_dialog_scheduled_messages_in_memory(const Dialog *d) {
+  return d->scheduled_messages != nullptr && d->scheduled_messages->scheduled_messages_ != nullptr;
+}
+
 bool MessagesManager::is_allowed_useless_update(const tl_object_ptr<telegram_api::Update> &update) {
   auto constructor_id = update->get_id();
   if (constructor_id == dummyUpdate::ID) {
@@ -30889,7 +30893,7 @@ void MessagesManager::send_update_chat_has_scheduled_messages(Dialog *d, bool fr
     return;
   }
 
-  if (d->scheduled_messages == nullptr || d->scheduled_messages->scheduled_messages_ == nullptr) {
+  if (!have_dialog_scheduled_messages_in_memory(d)) {
     if (d->has_scheduled_database_messages) {
       if (d->has_loaded_scheduled_messages_from_database) {
         set_dialog_has_scheduled_database_messages_impl(d, false);
@@ -30909,8 +30913,8 @@ void MessagesManager::send_update_chat_has_scheduled_messages(Dialog *d, bool fr
   }
 
   LOG(INFO) << "In " << d->dialog_id << " have scheduled messages on server = " << d->has_scheduled_server_messages
-            << ", in database = " << d->has_scheduled_database_messages << " and in memory = "
-            << (d->scheduled_messages != nullptr && d->scheduled_messages->scheduled_messages_ != nullptr)
+            << ", in database = " << d->has_scheduled_database_messages
+            << " and in memory = " << have_dialog_scheduled_messages_in_memory(d)
             << "; was loaded from database = " << d->has_loaded_scheduled_messages_from_database;
   bool has_scheduled_messages = get_dialog_has_scheduled_messages(d);
   if (has_scheduled_messages == d->last_sent_has_scheduled_messages) {
@@ -32178,8 +32182,7 @@ void MessagesManager::on_update_dialog_has_scheduled_server_messages(DialogId di
   if (d->has_scheduled_server_messages != has_scheduled_server_messages) {
     set_dialog_has_scheduled_server_messages(d, has_scheduled_server_messages);
   } else if (has_scheduled_server_messages !=
-             (d->has_scheduled_database_messages ||
-              (d->scheduled_messages != nullptr && d->scheduled_messages->scheduled_messages_ != nullptr))) {
+             (d->has_scheduled_database_messages || have_dialog_scheduled_messages_in_memory(d))) {
     repair_dialog_scheduled_messages(d);
   }
 }
@@ -32210,8 +32213,7 @@ void MessagesManager::set_dialog_has_scheduled_database_messages_impl(Dialog *d,
     return;
   }
 
-  if (d->has_scheduled_database_messages && d->scheduled_messages != nullptr &&
-      d->scheduled_messages->scheduled_messages_ != nullptr &&
+  if (d->has_scheduled_database_messages && have_dialog_scheduled_messages_in_memory(d) &&
       !d->scheduled_messages->scheduled_messages_->message_id.is_yet_unsent()) {
     // to prevent race between add_message_to_database and check of has_scheduled_database_messages
     return;
@@ -33058,7 +33060,7 @@ bool MessagesManager::get_dialog_has_scheduled_messages(const Dialog *d) const {
   // TODO send updateChatHasScheduledMessage when can_post_messages changes
 
   return d->has_scheduled_server_messages || d->has_scheduled_database_messages ||
-         (d->scheduled_messages != nullptr && d->scheduled_messages->scheduled_messages_ != nullptr);
+         have_dialog_scheduled_messages_in_memory(d);
 }
 
 MessagesManager::DialogScheduledMessages *MessagesManager::add_dialog_scheduled_messages(Dialog *d) {
@@ -35500,7 +35502,7 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
 
   Message *result_message = treap_insert_message(&scheduled_messages->scheduled_messages_, std::move(message));
   CHECK(result_message != nullptr);
-  CHECK(scheduled_messages->scheduled_messages_ != nullptr);
+  CHECK(have_dialog_scheduled_messages_in_memory(d));
   being_readded_message_id_ = FullMessageId();
   return result_message;
 }

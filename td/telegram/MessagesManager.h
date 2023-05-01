@@ -2347,6 +2347,8 @@ class MessagesManager final : public Actor {
 
   static void set_message_id(unique_ptr<Message> &message, MessageId message_id);
 
+  static bool have_dialog_scheduled_messages_in_memory(const Dialog *d);
+
   static bool is_allowed_useless_update(const tl_object_ptr<telegram_api::Update> &update);
 
   bool is_message_auto_read(DialogId dialog_id, bool is_outgoing) const;
