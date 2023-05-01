@@ -1290,7 +1290,7 @@ class MessagesManager final : public Actor {
 
     FlatHashSet<ScheduledServerMessageId, ScheduledServerMessageIdHash> deleted_scheduled_server_message_ids_;
 
-    unique_ptr<Message> scheduled_messages_;
+    FlatHashMap<MessageId, unique_ptr<Message>, MessageIdHash> scheduled_messages_;
   };
 
   struct NotificationInfo {
@@ -1697,19 +1697,6 @@ class MessagesManager final : public Actor {
     MessagesConstIterator() = default;
 
     MessagesConstIterator(const Dialog *d, MessageId message_id) : MessagesIteratorBase(d->messages.get(), message_id) {
-    }
-
-    const Message *operator*() const {
-      return MessagesIteratorBase::operator*();
-    }
-  };
-
-  class MessagesConstScheduledIterator final : public MessagesIteratorBase<true> {
-   public:
-    MessagesConstScheduledIterator() = default;
-
-    MessagesConstScheduledIterator(Dialog *d, MessageId message_id)
-        : MessagesIteratorBase(d->scheduled_messages->scheduled_messages_.get(), message_id) {
     }
 
     const Message *operator*() const {

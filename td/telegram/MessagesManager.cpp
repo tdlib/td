@@ -6551,7 +6551,7 @@ tl_object_ptr<telegram_api::inputEncryptedChat> MessagesManager::get_input_encry
 }
 
 bool MessagesManager::have_dialog_scheduled_messages_in_memory(const Dialog *d) {
-  return d->scheduled_messages != nullptr && d->scheduled_messages->scheduled_messages_ != nullptr;
+  return d->scheduled_messages != nullptr && !d->scheduled_messages->scheduled_messages_.empty();
 }
 
 bool MessagesManager::is_allowed_useless_update(const tl_object_ptr<telegram_api::Update> &update) {
@@ -10587,8 +10587,9 @@ void MessagesManager::on_get_scheduled_server_messages(DialogId dialog_id, uint3
 
   vector<MessageId> old_message_ids;
   if (d->scheduled_messages != nullptr) {
-    find_old_messages(d->scheduled_messages->scheduled_messages_.get(),
-                      MessageId(ScheduledServerMessageId(), std::numeric_limits<int32>::max(), true), old_message_ids);
+    for (const auto &it : d->scheduled_messages->scheduled_messages_) {
+      old_message_ids.push_back(it.first);
+    };
   }
   FlatHashMap<ScheduledServerMessageId, MessageId, ScheduledServerMessageIdHash> old_server_message_ids;
   for (auto &message_id : old_message_ids) {
@@ -16669,8 +16670,8 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_messag
     }
     CHECK(d->scheduled_messages != nullptr);
   }
-  unique_ptr<Message> *v = treap_find_message(&d->scheduled_messages->scheduled_messages_, message_id);
-  if (*v == nullptr) {
+  auto it = d->scheduled_messages->scheduled_messages_.find(message_id);
+  if (it == d->scheduled_messages->scheduled_messages_.end()) {
     LOG(INFO) << message_id << " is not found in " << d->dialog_id << " to be deleted from " << source;
     auto message = get_message_force(d, message_id, "do_delete_scheduled_message");
     if (message == nullptr) {
@@ -16681,11 +16682,11 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_messag
     }
 
     message_id = message->message_id;
-    v = treap_find_message(&d->scheduled_messages->scheduled_messages_, message_id);
-    CHECK(*v != nullptr);
+    it = d->scheduled_messages->scheduled_messages_.find(message_id);
+    CHECK(it != d->scheduled_messages->scheduled_messages_.end());
   }
 
-  const Message *m = v->get();
+  const Message *m = it->second.get();
   CHECK(m->message_id == message_id);
 
   LOG(INFO) << "Deleting " << FullMessageId{d->dialog_id, message_id} << " from " << source;
@@ -16694,7 +16695,9 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_messag
 
   remove_message_file_sources(d->dialog_id, m);
 
-  auto result = treap_delete_message(v);
+  it = d->scheduled_messages->scheduled_messages_.find(message_id);
+  auto result = std::move(it->second);
+  d->scheduled_messages->scheduled_messages_.erase(it);
   CHECK(m == result.get());
 
   if (message_id.is_scheduled_server()) {
@@ -23811,9 +23814,10 @@ vector<MessageId> MessagesManager::get_dialog_scheduled_messages(DialogId dialog
 
   vector<MessageId> message_ids;
   if (d->scheduled_messages != nullptr) {
-    find_old_messages(d->scheduled_messages->scheduled_messages_.get(),
-                      MessageId(ScheduledServerMessageId(), std::numeric_limits<int32>::max(), true), message_ids);
-    std::reverse(message_ids.begin(), message_ids.end());
+    for (const auto &it : d->scheduled_messages->scheduled_messages_) {
+      message_ids.push_back(it.first);
+    };
+    std::sort(message_ids.begin(), message_ids.end(), std::greater<>());
   }
 
   if (G()->use_message_database()) {
@@ -31493,13 +31497,13 @@ MessageId MessagesManager::get_next_local_message_id(Dialog *d) {
 MessageId MessagesManager::get_next_yet_unsent_scheduled_message_id(Dialog *d, int32 date) {
   CHECK(date > 0);
 
-  MessageId message_id(ScheduledServerMessageId(1), date);
-
   auto *scheduled_messages = add_dialog_scheduled_messages(d);
-  auto it = MessagesConstScheduledIterator(d, MessageId(ScheduledServerMessageId(), date + 1, true));
-  if (*it != nullptr && (*it)->message_id > message_id) {
-    message_id = (*it)->message_id;
-  }
+  MessageId message_id(ScheduledServerMessageId(1), date);
+  for (const auto &it : d->scheduled_messages->scheduled_messages_) {
+    if (it.first.get_scheduled_message_date() == date && it.first > message_id) {
+      message_id = it.first;
+    }
+  };
 
   auto &last_assigned_message_id = scheduled_messages->last_assigned_scheduled_message_id_[date];
   if (last_assigned_message_id != MessageId() && last_assigned_message_id > message_id) {
@@ -32214,7 +32218,7 @@ void MessagesManager::set_dialog_has_scheduled_database_messages_impl(Dialog *d,
   }
 
   if (d->has_scheduled_database_messages && have_dialog_scheduled_messages_in_memory(d) &&
-      !d->scheduled_messages->scheduled_messages_->message_id.is_yet_unsent()) {
+      !d->scheduled_messages->scheduled_messages_.begin()->first.is_yet_unsent()) {
     // to prevent race between add_message_to_database and check of has_scheduled_database_messages
     return;
   }
@@ -34356,7 +34360,10 @@ const MessagesManager::Message *MessagesManager::get_message(const Dialog *d, Me
           CHECK(message_id.is_scheduled_server());
         }
       }
-      result = treap_find_message(&d->scheduled_messages->scheduled_messages_, message_id)->get();
+      auto it = d->scheduled_messages->scheduled_messages_.find(message_id);
+      if (it != d->scheduled_messages->scheduled_messages_.end()) {
+        result = it->second.get();
+      }
     }
   } else {
     if (message_id.is_valid()) {
@@ -35500,9 +35507,10 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
     CHECK(is_inserted);
   }
 
-  Message *result_message = treap_insert_message(&scheduled_messages->scheduled_messages_, std::move(message));
-  CHECK(result_message != nullptr);
-  CHECK(have_dialog_scheduled_messages_in_memory(d));
+  auto result_message = message.get();
+  auto is_inserted =
+      scheduled_messages->scheduled_messages_.emplace(result_message->message_id, std::move(message)).second;
+  CHECK(is_inserted);
   being_readded_message_id_ = FullMessageId();
   return result_message;
 }
