@@ -10843,7 +10843,8 @@ bool MessagesManager::update_message_is_pinned(Dialog *d, Message *m, bool is_pi
     }
   } else {
     if (d->is_last_pinned_message_id_inited && m->message_id == d->last_pinned_message_id) {
-      if (d->message_count_by_index[message_search_filter_index(MessageSearchFilter::Pinned)] == 0) {
+      if (!td_->auth_manager_->is_bot() &&
+          d->message_count_by_index[message_search_filter_index(MessageSearchFilter::Pinned)] == 0) {
         set_dialog_last_pinned_message_id(d, MessageId());
       } else {
         drop_dialog_last_pinned_message_id(d);
@@ -34217,7 +34218,8 @@ void MessagesManager::unpin_all_dialog_messages(DialogId dialog_id, MessageId to
   }
 
   set_dialog_last_pinned_message_id(d, MessageId());
-  if (d->message_count_by_index[message_search_filter_index(MessageSearchFilter::Pinned)] != 0) {
+  if (!td_->auth_manager_->is_bot() &&
+      d->message_count_by_index[message_search_filter_index(MessageSearchFilter::Pinned)] != 0) {
     d->message_count_by_index[message_search_filter_index(MessageSearchFilter::Pinned)] = 0;
     on_dialog_updated(dialog_id, "unpin_all_dialog_messages");
   }
