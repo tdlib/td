@@ -175,7 +175,7 @@ struct MessageReactions {
 
   bool add_reaction(const string &reaction, bool is_big, DialogId my_dialog_id, bool have_recent_choosers);
 
-  bool remove_reaction(const string &reaction);
+  bool remove_reaction(const string &reaction, DialogId my_dialog_id);
 
   void sort_reactions(const FlatHashMap<string, size_t> &active_reaction_pos);
 

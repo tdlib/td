@@ -23843,7 +23843,9 @@ void MessagesManager::remove_message_reaction(FullMessageId full_message_id, str
     return promise.set_error(Status::Error(400, "Invalid reaction specified"));
   }
 
-  if (m->reactions == nullptr || !m->reactions->remove_reaction(reaction)) {
+  auto my_dialog_id =
+      d->default_send_message_as_dialog_id.is_valid() ? d->default_send_message_as_dialog_id : get_my_dialog_id();
+  if (m->reactions == nullptr || !m->reactions->remove_reaction(reaction, my_dialog_id)) {
     return promise.set_value(Unit());
   }
 

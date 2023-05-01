@@ -741,7 +741,7 @@ bool MessageReactions::add_reaction(const string &reaction, bool is_big, DialogI
   return true;
 }
 
-bool MessageReactions::remove_reaction(const string &reaction) {
+bool MessageReactions::remove_reaction(const string &reaction, DialogId my_dialog_id) {
   if (do_remove_reaction(reaction)) {
     if (!chosen_reaction_order_.empty()) {
       bool is_removed = td::remove(chosen_reaction_order_, reaction);
@@ -758,6 +758,10 @@ bool MessageReactions::remove_reaction(const string &reaction) {
       if (chosen_reaction_order_.size() <= 1) {
         reset_to_empty(chosen_reaction_order_);
       }
+    }
+
+    for (auto &message_reaction : reactions_) {
+      message_reaction.set_my_recent_chooser_dialog_id(my_dialog_id);
     }
 
     return true;
