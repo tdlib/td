@@ -12985,6 +12985,7 @@ void MessagesManager::set_dialog_last_read_inbox_message_id(Dialog *d, MessageId
     }
   }
 
+  on_dialog_updated(d->dialog_id, source);
   send_update_chat_read_inbox(d, force_update, source);
 }
 
@@ -30571,7 +30572,6 @@ void MessagesManager::send_update_chat_read_inbox(const Dialog *d, bool force, c
   CHECK(d != nullptr);
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_read_inbox from "
                                         << source;
-  on_dialog_updated(d->dialog_id, source);
   if (!force && (running_get_difference_ || running_get_channel_difference(d->dialog_id) ||
                  get_channel_difference_to_log_event_id_.count(d->dialog_id) != 0)) {
     LOG(INFO) << "Postpone updateChatReadInbox in " << d->dialog_id << "(" << get_dialog_title(d->dialog_id) << ") to "
