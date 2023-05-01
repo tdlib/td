@@ -4341,7 +4341,9 @@ Result<FormattedText> get_formatted_text(const Td *td, DialogId dialog_id,
   TRY_RESULT(entities, get_message_entities(td->contacts_manager_.get(), std::move(text->entities_)));
   auto need_skip_bot_commands = need_always_skip_bot_commands(td->contacts_manager_.get(), dialog_id, is_bot);
   bool parse_markdown = td->option_manager_->get_option_boolean("always_parse_markdown");
-  TRY_STATUS(fix_formatted_text(text->text_, entities, allow_empty, parse_markdown, need_skip_bot_commands,
+  bool skip_new_entities = is_bot && td->option_manager_->get_option_integer("session_count") > 1;
+  TRY_STATUS(fix_formatted_text(text->text_, entities, allow_empty, skip_new_entities || parse_markdown,
+                                skip_new_entities || need_skip_bot_commands,
                                 is_bot || skip_media_timestamps || parse_markdown, skip_trim));
 
   FormattedText result{std::move(text->text_), std::move(entities)};
