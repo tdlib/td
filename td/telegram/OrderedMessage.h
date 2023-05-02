@@ -10,6 +10,8 @@
 
 #include "td/utils/common.h"
 
+#include <functional>
+
 namespace td {
 
 struct OrderedMessage {
@@ -34,6 +36,9 @@ struct OrderedMessages {
   vector<MessageId> find_older_messages(MessageId max_message_id) const;
 
   vector<MessageId> find_newer_messages(MessageId min_message_id) const;
+
+  vector<MessageId> find_messages_by_date(int32 min_date, int32 max_date,
+                                          const std::function<int32(MessageId)> &get_date) const;
 };
 
 }  // namespace td

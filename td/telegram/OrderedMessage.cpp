@@ -119,4 +119,28 @@ vector<MessageId> OrderedMessages::find_newer_messages(MessageId min_message_id)
   return message_ids;
 }
 
+void do_find_messages_by_date(const OrderedMessage *ordered_message, int32 min_date, int32 max_date,
+                              const std::function<int32(MessageId)> &get_date, vector<MessageId> &message_ids) {
+  if (ordered_message == nullptr) {
+    return;
+  }
+
+  auto date = get_date(ordered_message->message_id);
+  if (date >= min_date) {
+    do_find_messages_by_date(ordered_message->left.get(), min_date, max_date, get_date, message_ids);
+    if (date <= max_date) {
+      message_ids.push_back(ordered_message->message_id);
+    }
+  }
+  if (date <= max_date) {
+    do_find_messages_by_date(ordered_message->right.get(), min_date, max_date, get_date, message_ids);
+  }
+}
+
+vector<MessageId> OrderedMessages::find_messages_by_date(int32 min_date, int32 max_date,
+                                                         const std::function<int32(MessageId)> &get_date) const {
+  vector<MessageId> message_ids;
+  do_find_messages_by_date(messages_.get(), min_date, max_date, get_date, message_ids);
+  return message_ids;
+}
 }  // namespace td

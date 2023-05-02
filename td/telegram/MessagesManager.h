@@ -2180,10 +2180,9 @@ class MessagesManager final : public Actor {
 
   static vector<MessageId> find_dialog_messages(const Dialog *d, const std::function<bool(const Message *)> &condition);
 
-  static MessageId find_message_by_date(const Dialog *d, const OrderedMessage *ordered_message, int32 date);
+  std::function<int32(MessageId)> get_get_message_date(const Dialog *d) const;
 
-  static void find_messages_by_date(const Dialog *d, const OrderedMessage *ordered_message, int32 min_date,
-                                    int32 max_date, vector<MessageId> &message_ids);
+  static MessageId find_message_by_date(const Dialog *d, const OrderedMessage *ordered_message, int32 date);
 
   void find_unloadable_messages(const Dialog *d, int32 unload_before_date, const OrderedMessage *ordered_message,
                                 vector<MessageId> &message_ids, bool &has_left_to_unload_messages) const;

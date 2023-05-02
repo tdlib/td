@@ -11823,8 +11823,7 @@ void MessagesManager::delete_dialog_messages_by_date(DialogId dialog_id, int32 m
 
   // TODO delete in database by dates
 
-  vector<MessageId> message_ids;
-  find_messages_by_date(d, d->ordered_messages.messages_.get(), min_date, max_date, message_ids);
+  auto message_ids = d->ordered_messages.find_messages_by_date(min_date, max_date, get_get_message_date(d));
 
   delete_dialog_messages(d, message_ids, false, DELETE_MESSAGE_USER_REQUEST_SOURCE);
 
@@ -22867,6 +22866,14 @@ void MessagesManager::on_get_affected_history(DialogId dialog_id, AffectedHistor
   }
 }
 
+std::function<int32(MessageId)> MessagesManager::get_get_message_date(const Dialog *d) const {
+  return [this, d](MessageId message_id) {
+    auto *m = get_message(d, message_id);
+    CHECK(m != nullptr);
+    return m->date;
+  };
+}
+
 MessageId MessagesManager::find_message_by_date(const Dialog *d, const OrderedMessage *ordered_message, int32 date) {
   if (ordered_message == nullptr) {
     return MessageId();
@@ -22884,25 +22891,6 @@ MessageId MessagesManager::find_message_by_date(const Dialog *d, const OrderedMe
   }
 
   return ordered_message->message_id;
-}
-
-void MessagesManager::find_messages_by_date(const Dialog *d, const OrderedMessage *ordered_message, int32 min_date,
-                                            int32 max_date, vector<MessageId> &message_ids) {
-  if (ordered_message == nullptr) {
-    return;
-  }
-
-  const Message *m = get_message(d, ordered_message->message_id);
-  CHECK(m != nullptr);
-  if (m->date >= min_date) {
-    find_messages_by_date(d, ordered_message->left.get(), min_date, max_date, message_ids);
-    if (m->date <= max_date) {
-      message_ids.push_back(m->message_id);
-    }
-  }
-  if (m->date <= max_date) {
-    find_messages_by_date(d, ordered_message->right.get(), min_date, max_date, message_ids);
-  }
 }
 
 void MessagesManager::on_get_dialog_message_by_date_from_database(DialogId dialog_id, int32 date, int64 random_id,
