@@ -2871,7 +2871,7 @@ class MessagesManager final : public Actor {
 
   static OrderedMessage *treap_insert_message(unique_ptr<OrderedMessage> *v, unique_ptr<OrderedMessage> message);
 
-  static unique_ptr<OrderedMessage> treap_delete_message(unique_ptr<OrderedMessage> *v);
+  static void treap_delete_message(unique_ptr<OrderedMessage> *v);
 
   static Message *get_message(Dialog *d, MessageId message_id);
   static const Message *get_message(const Dialog *d, MessageId message_id);

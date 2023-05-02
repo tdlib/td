@@ -34268,7 +34268,7 @@ MessagesManager::OrderedMessage *MessagesManager::treap_insert_message(unique_pt
   return v->get();
 }
 
-unique_ptr<MessagesManager::OrderedMessage> MessagesManager::treap_delete_message(unique_ptr<OrderedMessage> *v) {
+void MessagesManager::treap_delete_message(unique_ptr<OrderedMessage> *v) {
   unique_ptr<OrderedMessage> result = std::move(*v);
   CHECK(result != nullptr);
   unique_ptr<OrderedMessage> left = std::move(result->left);
@@ -34286,8 +34286,6 @@ unique_ptr<MessagesManager::OrderedMessage> MessagesManager::treap_delete_messag
     }
   }
   CHECK(*v == nullptr);
-
-  return result;
 }
 
 MessagesManager::Message *MessagesManager::get_message(Dialog *d, MessageId message_id) {
