@@ -16,16 +16,16 @@ namespace td {
 
 class OrderedMessage {
  public:
-  MessageId message_id;
+  MessageId message_id_;
 
-  bool have_previous = false;
-  bool have_next = false;
+  bool have_previous_ = false;
+  bool have_next_ = false;
 
  private:
-  int32 random_y = 0;
+  int32 random_y_ = 0;
 
-  unique_ptr<OrderedMessage> left;
-  unique_ptr<OrderedMessage> right;
+  unique_ptr<OrderedMessage> left_;
+  unique_ptr<OrderedMessage> right_;
 
   friend class OrderedMessages;
 };
@@ -44,15 +44,15 @@ class OrderedMessages {
 
       size_t last_right_pos = 0;
       while (root != nullptr) {
-        //        LOG(DEBUG) << "Have root->message_id = " << root->message_id;
+        //        LOG(DEBUG) << "Have root->message_id_ = " << root->message_id_;
         stack_.push_back(root);
-        if (root->message_id <= message_id) {
+        if (root->message_id_ <= message_id) {
           //          LOG(DEBUG) << "Go right";
           last_right_pos = stack_.size();
-          root = root->right.get();
+          root = root->right_.get();
         } else {
           //          LOG(DEBUG) << "Go left";
-          root = root->left.get();
+          root = root->left_.get();
         }
       }
       stack_.resize(last_right_pos);
@@ -76,28 +76,28 @@ class OrderedMessages {
       }
 
       const OrderedMessage *cur = stack_.back();
-      if (!cur->have_next) {
+      if (!cur->have_next_) {
         stack_.clear();
         return;
       }
-      if (cur->right == nullptr) {
+      if (cur->right_ == nullptr) {
         while (true) {
           stack_.pop_back();
           if (stack_.empty()) {
             return;
           }
           const OrderedMessage *new_cur = stack_.back();
-          if (new_cur->left.get() == cur) {
+          if (new_cur->left_.get() == cur) {
             return;
           }
           cur = new_cur;
         }
       }
 
-      cur = cur->right.get();
+      cur = cur->right_.get();
       while (cur != nullptr) {
         stack_.push_back(cur);
-        cur = cur->left.get();
+        cur = cur->left_.get();
       }
     }
 
@@ -107,28 +107,28 @@ class OrderedMessages {
       }
 
       const OrderedMessage *cur = stack_.back();
-      if (!cur->have_previous) {
+      if (!cur->have_previous_) {
         stack_.clear();
         return;
       }
-      if (cur->left == nullptr) {
+      if (cur->left_ == nullptr) {
         while (true) {
           stack_.pop_back();
           if (stack_.empty()) {
             return;
           }
           const OrderedMessage *new_cur = stack_.back();
-          if (new_cur->right.get() == cur) {
+          if (new_cur->right_.get() == cur) {
             return;
           }
           cur = new_cur;
         }
       }
 
-      cur = cur->left.get();
+      cur = cur->left_.get();
       while (cur != nullptr) {
         stack_.push_back(cur);
-        cur = cur->right.get();
+        cur = cur->right_.get();
       }
     }
   };
