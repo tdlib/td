@@ -77,4 +77,25 @@ void OrderedMessages::erase(MessageId message_id) {
   CHECK(*v == nullptr);
 }
 
+static void do_find_older_messages(const OrderedMessage *ordered_message, MessageId max_message_id,
+                                   vector<MessageId> &message_ids) {
+  if (ordered_message == nullptr) {
+    return;
+  }
+
+  do_find_older_messages(ordered_message->left.get(), max_message_id, message_ids);
+
+  if (ordered_message->message_id <= max_message_id) {
+    message_ids.push_back(ordered_message->message_id);
+
+    do_find_older_messages(ordered_message->right.get(), max_message_id, message_ids);
+  }
+}
+
+vector<MessageId> OrderedMessages::find_older_messages(MessageId max_message_id) const {
+  vector<MessageId> message_ids;
+  do_find_older_messages(messages_.get(), max_message_id, message_ids);
+  return message_ids;
+}
+
 }  // namespace td

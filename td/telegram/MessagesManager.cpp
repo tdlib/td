@@ -11625,21 +11625,6 @@ vector<MessageId> MessagesManager::find_dialog_messages(const Dialog *d,
   return message_ids;
 }
 
-void MessagesManager::find_old_messages(const OrderedMessage *ordered_message, MessageId max_message_id,
-                                        vector<MessageId> &message_ids) {
-  if (ordered_message == nullptr) {
-    return;
-  }
-
-  find_old_messages(ordered_message->left.get(), max_message_id, message_ids);
-
-  if (ordered_message->message_id <= max_message_id) {
-    message_ids.push_back(ordered_message->message_id);
-
-    find_old_messages(ordered_message->right.get(), max_message_id, message_ids);
-  }
-}
-
 void MessagesManager::find_newer_messages(const OrderedMessage *ordered_message, MessageId min_message_id,
                                           vector<MessageId> &message_ids) {
   if (ordered_message == nullptr) {
@@ -13072,8 +13057,7 @@ void MessagesManager::set_dialog_max_unavailable_message_id(DialogId dialog_id, 
 
     d->max_unavailable_message_id = max_unavailable_message_id;
 
-    vector<MessageId> message_ids;
-    find_old_messages(d->ordered_messages.messages_.get(), max_unavailable_message_id, message_ids);
+    auto message_ids = d->ordered_messages.find_older_messages(max_unavailable_message_id);
 
     vector<int64> deleted_message_ids;
     bool need_update_dialog_pos = false;
