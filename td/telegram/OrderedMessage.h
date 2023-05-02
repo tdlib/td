@@ -16,13 +16,17 @@ namespace td {
 
 class OrderedMessage {
  public:
-  MessageId message_id_;
+  MessageId get_message_id() const {
+    return message_id_;
+  }
 
   bool have_previous_ = false;
   bool have_next_ = false;
 
  private:
   int32 random_y_ = 0;
+
+  MessageId message_id_;
 
   unique_ptr<OrderedMessage> left_;
   unique_ptr<OrderedMessage> right_;
