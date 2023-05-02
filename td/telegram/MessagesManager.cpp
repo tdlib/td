@@ -9811,8 +9811,7 @@ void MessagesManager::on_get_messages(vector<tl_object_ptr<telegram_api::Message
 }
 
 bool MessagesManager::delete_newer_server_messages_at_the_end(Dialog *d, MessageId max_message_id) {
-  vector<MessageId> message_ids;
-  find_newer_messages(d->ordered_messages.messages_.get(), max_message_id, message_ids);
+  auto message_ids = d->ordered_messages.find_newer_messages(max_message_id);
   if (message_ids.empty()) {
     return false;
   }
@@ -11623,21 +11622,6 @@ vector<MessageId> MessagesManager::find_dialog_messages(const Dialog *d,
     }
   });
   return message_ids;
-}
-
-void MessagesManager::find_newer_messages(const OrderedMessage *ordered_message, MessageId min_message_id,
-                                          vector<MessageId> &message_ids) {
-  if (ordered_message == nullptr) {
-    return;
-  }
-
-  if (ordered_message->message_id > min_message_id) {
-    find_newer_messages(ordered_message->left.get(), min_message_id, message_ids);
-
-    message_ids.push_back(ordered_message->message_id);
-  }
-
-  find_newer_messages(ordered_message->right.get(), min_message_id, message_ids);
 }
 
 void MessagesManager::find_unloadable_messages(const Dialog *d, int32 unload_before_date,
@@ -15053,8 +15037,7 @@ void MessagesManager::remove_dialog_newer_messages(Dialog *d, MessageId from_mes
   }
   invalidate_message_indexes(d);
 
-  vector<MessageId> to_delete_message_ids;
-  find_newer_messages(d->ordered_messages.messages_.get(), from_message_id, to_delete_message_ids);
+  auto to_delete_message_ids = d->ordered_messages.find_newer_messages(from_message_id);
   td::remove_if(to_delete_message_ids, [](MessageId message_id) { return message_id.is_yet_unsent(); });
   if (!to_delete_message_ids.empty()) {
     LOG(INFO) << "Delete " << format::as_array(to_delete_message_ids) << " newer than " << from_message_id << " in "

@@ -32,6 +32,8 @@ struct OrderedMessages {
   void erase(MessageId message_id);
 
   vector<MessageId> find_older_messages(MessageId max_message_id) const;
+
+  vector<MessageId> find_newer_messages(MessageId min_message_id) const;
 };
 
 }  // namespace td

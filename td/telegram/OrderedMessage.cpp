@@ -98,4 +98,25 @@ vector<MessageId> OrderedMessages::find_older_messages(MessageId max_message_id)
   return message_ids;
 }
 
+static void do_find_newer_messages(const OrderedMessage *ordered_message, MessageId min_message_id,
+                                   vector<MessageId> &message_ids) {
+  if (ordered_message == nullptr) {
+    return;
+  }
+
+  if (ordered_message->message_id > min_message_id) {
+    do_find_newer_messages(ordered_message->left.get(), min_message_id, message_ids);
+
+    message_ids.push_back(ordered_message->message_id);
+  }
+
+  do_find_newer_messages(ordered_message->right.get(), min_message_id, message_ids);
+}
+
+vector<MessageId> OrderedMessages::find_newer_messages(MessageId min_message_id) const {
+  vector<MessageId> message_ids;
+  do_find_newer_messages(messages_.get(), min_message_id, message_ids);
+  return message_ids;
+}
+
 }  // namespace td

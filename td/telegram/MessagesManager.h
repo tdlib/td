@@ -2185,9 +2185,6 @@ class MessagesManager final : public Actor {
   static void find_messages_by_date(const Dialog *d, const OrderedMessage *ordered_message, int32 min_date,
                                     int32 max_date, vector<MessageId> &message_ids);
 
-  static void find_newer_messages(const OrderedMessage *ordered_message, MessageId min_message_id,
-                                  vector<MessageId> &message_ids);
-
   void find_unloadable_messages(const Dialog *d, int32 unload_before_date, const OrderedMessage *ordered_message,
                                 vector<MessageId> &message_ids, bool &has_left_to_unload_messages) const;
 
