@@ -14,16 +14,20 @@
 
 namespace td {
 
-struct OrderedMessage {
-  int32 random_y = 0;
+class OrderedMessage {
+ public:
+  MessageId message_id;
 
   bool have_previous = false;
   bool have_next = false;
 
-  MessageId message_id;
+ private:
+  int32 random_y = 0;
 
   unique_ptr<OrderedMessage> left;
   unique_ptr<OrderedMessage> right;
+
+  friend class OrderedMessages;
 };
 
 class OrderedMessages {
@@ -191,6 +195,23 @@ class OrderedMessages {
                          const std::function<bool(MessageId)> &need_scan_newer) const;
 
  private:
+  static void do_find_older_messages(const OrderedMessage *ordered_message, MessageId max_message_id,
+                                     vector<MessageId> &message_ids);
+
+  static void do_find_newer_messages(const OrderedMessage *ordered_message, MessageId min_message_id,
+                                     vector<MessageId> &message_ids);
+
+  static MessageId do_find_message_by_date(const OrderedMessage *ordered_message, int32 date,
+                                           const std::function<int32(MessageId)> &get_message_date);
+
+  static void do_find_messages_by_date(const OrderedMessage *ordered_message, int32 min_date, int32 max_date,
+                                       const std::function<int32(MessageId)> &get_message_date,
+                                       vector<MessageId> &message_ids);
+
+  static void do_traverse_messages(const OrderedMessage *ordered_message,
+                                   const std::function<bool(MessageId)> &need_scan_older,
+                                   const std::function<bool(MessageId)> &need_scan_newer);
+
   unique_ptr<OrderedMessage> messages_;
 };
 
