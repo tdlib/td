@@ -2145,8 +2145,6 @@ class MessagesManager final : public Actor {
 
   void delete_all_dialog_messages(Dialog *d, bool remove_from_dialog_list, bool is_permanently_deleted);
 
-  void do_delete_all_dialog_messages(Dialog *d, bool is_permanently_deleted, vector<int64> &deleted_message_ids);
-
   void erase_delete_messages_log_event(uint64 log_event_id);
 
   void delete_sent_message_on_server(DialogId dialog_id, MessageId message_id, MessageId old_message_id);

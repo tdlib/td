@@ -12040,14 +12040,24 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
   }
 
   vector<int64> deleted_message_ids;
-  do_delete_all_dialog_messages(d, is_permanently_deleted, deleted_message_ids);
-  delete_all_dialog_messages_from_database(d, MessageId::max(), "delete_all_dialog_messages 3");
-  if (is_permanently_deleted) {
-    for (auto id : deleted_message_ids) {
-      CHECK(id != 0);
-      d->deleted_message_ids.insert(MessageId{id});
+  d->messages.foreach([&](const MessageId &message_id, unique_ptr<Message> &message) {
+    Message *m = message.get();
+
+    LOG(INFO) << "Delete " << message_id;
+    deleted_message_ids.push_back(message_id.get());
+
+    delete_active_live_location(d->dialog_id, m);
+    remove_message_file_sources(d->dialog_id, m);
+
+    on_message_deleted(d, m, is_permanently_deleted, "do_delete_all_dialog_messages");
+
+    if (is_permanently_deleted) {
+      d->deleted_message_ids.insert(m->message_id);
     }
-  }
+  });
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), d->messages, d->ordered_messages);
+
+  delete_all_dialog_messages_from_database(d, MessageId::max(), "delete_all_dialog_messages 3");
 
   if (d->reply_markup_message_id != MessageId()) {
     set_dialog_reply_markup(d, MessageId());
@@ -16299,7 +16309,7 @@ void MessagesManager::do_fix_dialog_last_notification_id(DialogId dialog_id, boo
   CHECK(is_fixed);
 }
 
-// DO NOT FORGET TO ADD ALL CHANGES OF THIS FUNCTION AS WELL TO do_delete_all_dialog_messages
+// DO NOT FORGET TO ADD ALL CHANGES OF THIS FUNCTION AS WELL TO delete_all_dialog_messages
 unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *d, MessageId message_id,
                                                                         bool is_permanently_deleted,
                                                                         bool only_from_memory,
@@ -16710,22 +16720,6 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_messag
   }
 
   return result;
-}
-
-void MessagesManager::do_delete_all_dialog_messages(Dialog *d, bool is_permanently_deleted,
-                                                    vector<int64> &deleted_message_ids) {
-  d->messages.foreach([&](const MessageId &message_id, unique_ptr<Message> &message) {
-    Message *m = message.get();
-
-    LOG(INFO) << "Delete " << message_id;
-    deleted_message_ids.push_back(message_id.get());
-
-    delete_active_live_location(d->dialog_id, m);
-    remove_message_file_sources(d->dialog_id, m);
-
-    on_message_deleted(d, m, is_permanently_deleted, "do_delete_all_dialog_messages");
-  });
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), d->messages, d->ordered_messages);
 }
 
 bool MessagesManager::have_dialog(DialogId dialog_id) const {
@@ -24890,7 +24884,7 @@ void MessagesManager::cancel_send_message_query(DialogId dialog_id, Message *m) 
           if (queue.empty()) {
             yet_unsent_media_queues_.erase(queue_it);
           } else {
-            // send later, because do_delete_all_dialog_messages can be called right now
+            // send later, because delete_all_dialog_messages can be called right now
             send_closure_later(actor_id(this), &MessagesManager::on_yet_unsent_media_queue_updated, dialog_id);
           }
         }
