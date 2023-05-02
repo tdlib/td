@@ -14895,8 +14895,6 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
 
     set_message_id(new_message, old_message_id);
     new_message->from_database = false;
-    new_message->have_previous = false;
-    new_message->have_next = false;
     update_message(d, old_message.get(), std::move(new_message), &need_update_dialog_pos, false);
     new_message = std::move(old_message);
 
@@ -34790,6 +34788,16 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         auto old_index_mask = get_message_index_mask(dialog_id, m) & INDEX_MASK_MASK;
         bool was_deleted = delete_active_live_location(dialog_id, m);
         auto old_file_ids = get_message_content_file_ids(m->content.get(), td_);
+
+        CHECK(!message->have_previous || !message->have_next);
+        if (message->have_previous && !m->have_previous) {
+          m->have_previous = true;
+          attach_message_to_previous(d, message_id, source);
+        } else if (message->have_next && !m->have_next) {
+          m->have_next = true;
+          attach_message_to_next(d, message_id, source);
+        }
+
         bool need_send_update = update_message(d, m, std::move(message), need_update_dialog_pos, true);
         if (!need_send_update) {
           LOG(INFO) << message_id << " in " << dialog_id << " is not changed";
@@ -36428,17 +36436,6 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
                                       std::move(new_message->reply_info), true, std::move(new_message->reactions),
                                       "update_message")) {
     need_send_update = true;
-  }
-
-  if (!is_scheduled) {
-    CHECK(!new_message->have_previous || !new_message->have_next);
-    if (new_message->have_previous && !old_message->have_previous) {
-      old_message->have_previous = true;
-      attach_message_to_previous(d, message_id, "update_message");
-    } else if (new_message->have_next && !old_message->have_next) {
-      old_message->have_next = true;
-      attach_message_to_next(d, message_id, "update_message");
-    }
   }
 
   bool is_content_changed = false;
