@@ -34803,63 +34803,10 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   bool is_attached = false;
   if (auto_attach) {
-    auto it = d->ordered_messages.get_iterator(message_id);
-    OrderedMessage *previous_message = *it;
-    if (previous_message != nullptr) {
-      auto previous_message_id = previous_message->message_id;
-      CHECK(previous_message_id < message_id);
-      if (previous_message->have_next || (d->last_message_id.is_valid() && previous_message_id >= d->last_message_id)) {
-        if (message_id.is_server() && previous_message_id.is_server() && previous_message->have_next) {
-          ++it;
-          auto next_message = *it;
-          if (next_message != nullptr) {
-            if (next_message->message_id.is_server() && !has_qts_messages(dialog_id)) {
-              LOG(ERROR) << "Attach " << message_id << " from " << source << " before " << next_message->message_id
-                         << " and after " << previous_message_id << " in " << dialog_id;
-            }
-          } else {
-            LOG(ERROR) << "Have_next is true, but there is no next message after " << previous_message_id << " from "
-                       << source << " in " << dialog_id;
-          }
-        }
-
-        LOG(INFO) << "Attach " << message_id << " to the previous " << previous_message_id << " in " << dialog_id;
-        have_previous = true;
-        have_next = previous_message->have_next;
-        previous_message->have_next = true;
-        is_attached = true;
-      }
-    }
-    if (!is_attached && !message_id.is_yet_unsent()) {
-      // message may be attached to the next message if there is no previous message
-      OrderedMessage *cur = d->ordered_messages.messages_.get();
-      OrderedMessage *next_message = nullptr;
-      while (cur != nullptr) {
-        if (cur->message_id < message_id) {
-          cur = cur->right.get();
-        } else {
-          next_message = cur;
-          cur = cur->left.get();
-        }
-      }
-      if (next_message != nullptr) {
-        CHECK(!next_message->have_previous);
-        LOG(INFO) << "Attach " << message_id << " to the next " << next_message->message_id << " in " << dialog_id;
-        if (from_update && !next_message->message_id.is_yet_unsent() && !has_qts_messages(dialog_id)) {
-          LOG(ERROR) << "Attach " << message_id << " from " << source << " to the next " << next_message->message_id
-                     << " in " << dialog_id;
-        }
-        have_next = true;
-        have_previous = next_message->have_previous;
-        next_message->have_previous = true;
-        is_attached = true;
-      }
-    }
-    if (!is_attached) {
-      LOG(INFO) << "Can't auto-attach " << message_id << " in " << dialog_id;
-      have_previous = false;
-      have_next = false;
-    }
+    auto attach_info = d->ordered_messages.auto_attach_message(message_id, d->last_message_id, source);
+    have_previous = attach_info.have_previous_;
+    have_next = attach_info.have_next_;
+    is_attached = have_previous || have_next;
   }
 
   if (!td_->auth_manager_->is_bot()) {

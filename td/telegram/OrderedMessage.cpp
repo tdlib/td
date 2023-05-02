@@ -119,6 +119,58 @@ void OrderedMessages::attach_message_to_next(MessageId message_id, const char *s
   }
 }
 
+OrderedMessages::AttachInfo OrderedMessages::auto_attach_message(MessageId message_id, MessageId last_message_id,
+                                                                 const char *source) {
+  auto it = get_iterator(message_id);
+  OrderedMessage *previous_message = *it;
+  if (previous_message != nullptr) {
+    auto previous_message_id = previous_message->message_id;
+    CHECK(previous_message_id < message_id);
+    if (previous_message->have_next || (last_message_id.is_valid() && previous_message_id >= last_message_id)) {
+      if (message_id.is_server() && previous_message_id.is_server() && previous_message->have_next) {
+        ++it;
+        auto next_message = *it;
+        if (next_message != nullptr) {
+          if (next_message->message_id.is_server()) {
+            LOG(ERROR) << "Attach " << message_id << " from " << source << " before " << next_message->message_id
+                       << " and after " << previous_message_id;
+          }
+        } else {
+          LOG(ERROR) << "Supposed to have next message, but there is no next message after " << previous_message_id
+                     << " from " << source;
+        }
+      }
+
+      LOG(INFO) << "Attach " << message_id << " to the previous " << previous_message_id;
+      auto have_next = previous_message->have_next;
+      previous_message->have_next = true;
+      return {true, have_next};
+    }
+  }
+  if (!message_id.is_yet_unsent()) {
+    // message may be attached to the next message if there is no previous message
+    OrderedMessage *cur = messages_.get();
+    OrderedMessage *next_message = nullptr;
+    while (cur != nullptr) {
+      if (cur->message_id < message_id) {
+        cur = cur->right.get();
+      } else {
+        next_message = cur;
+        cur = cur->left.get();
+      }
+    }
+    if (next_message != nullptr) {
+      CHECK(!next_message->have_previous);
+      LOG(INFO) << "Attach " << message_id << " to the next " << next_message->message_id;
+      auto have_previous = next_message->have_previous;
+      return {have_previous, true};
+    }
+  }
+
+  LOG(INFO) << "Can't auto-attach " << message_id;
+  return {false, false};
+}
+
 static void do_find_older_messages(const OrderedMessage *ordered_message, MessageId max_message_id,
                                    vector<MessageId> &message_ids) {
   if (ordered_message == nullptr) {
