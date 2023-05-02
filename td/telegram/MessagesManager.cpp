@@ -34759,19 +34759,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
           }
         }
       }
-      if (auto_attach) {
-        CHECK(message->have_previous);
-        CHECK(message->have_next);
-        message->have_previous = false;
-        message->have_next = false;
-      }
-      if (!message->from_database && (from_update || message->edit_date >= m->edit_date)) {
-        const int32 INDEX_MASK_MASK = ~(message_search_filter_index_mask(MessageSearchFilter::UnreadMention) |
-                                        message_search_filter_index_mask(MessageSearchFilter::UnreadReaction));
-        auto old_index_mask = get_message_index_mask(dialog_id, m) & INDEX_MASK_MASK;
-        bool was_deleted = delete_active_live_location(dialog_id, m);
-        auto old_file_ids = get_message_content_file_ids(m->content.get(), td_);
-
+      if (!auto_attach && !message->from_database) {
         CHECK(!message->have_previous || !message->have_next);
         if (message->have_previous && !m->have_previous) {
           m->have_previous = true;
@@ -34780,6 +34768,13 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
           m->have_next = true;
           attach_message_to_next(d, message_id, source);
         }
+      }
+      if (!message->from_database && (from_update || message->edit_date >= m->edit_date)) {
+        const int32 INDEX_MASK_MASK = ~(message_search_filter_index_mask(MessageSearchFilter::UnreadMention) |
+                                        message_search_filter_index_mask(MessageSearchFilter::UnreadReaction));
+        auto old_index_mask = get_message_index_mask(dialog_id, m) & INDEX_MASK_MASK;
+        bool was_deleted = delete_active_live_location(dialog_id, m);
+        auto old_file_ids = get_message_content_file_ids(m->content.get(), td_);
 
         bool need_send_update = update_message(d, m, std::move(message), need_update_dialog_pos, true);
         if (!need_send_update) {
