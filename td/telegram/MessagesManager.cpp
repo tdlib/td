@@ -23484,14 +23484,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
         added_new_message = true;
       }
       if (next_message != nullptr && !next_message->have_previous) {
-        LOG_CHECK(m->message_id < next_message->message_id)
-            << m->message_id << ' ' << next_message->message_id << ' ' << first_received_message_id << ' '
-            << last_received_message_id << ' ' << dialog_id << ' ' << from_message_id << ' ' << offset << ' ' << limit
-            << ' ' << from_the_end << ' ' << only_local << ' ' << messages.size() << ' '
-            << debug_first_database_message_id << ' ' << last_added_message_id << ' ' << added_new_message << ' ' << pos
-            << ' ' << m << ' ' << next_message << ' ' << old_message << ' '
-            << to_string(get_message_object(dialog_id, m, "on_get_history_from_database"))
-            << to_string(get_message_object(dialog_id, next_message, "on_get_history_from_database"));
+        CHECK(m->message_id < next_message->message_id);
         LOG(INFO) << "Fix have_previous for " << next_message->message_id;
         next_message->have_previous = true;
         attach_message_to_previous(
@@ -34529,9 +34522,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   CHECK(source != nullptr);
   debug_add_message_to_dialog_fail_reason_ = "success";
 
-  message->have_previous = have_previous;
-  message->have_next = have_next;
-
   DialogId dialog_id = d->dialog_id;
   MessageId message_id = message->message_id;
 
@@ -34592,8 +34582,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   LOG(INFO) << "Adding " << message_id << " of type " << message->content->get_type() << " to " << dialog_id << " from "
             << source << ". Last new is " << d->last_new_message_id << ", last is " << d->last_message_id
-            << ", from_update = " << from_update << ", have_previous = " << message->have_previous
-            << ", have_next = " << message->have_next;
+            << ", from_update = " << from_update << ", have_previous = " << have_previous
+            << ", have_next = " << have_next;
 
   if (!message_id.is_valid()) {
     if (message_id.is_valid_scheduled()) {
@@ -34618,8 +34608,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   message->last_access_date = G()->unix_time_cached();
 
   if (from_update) {
-    CHECK(message->have_next);
-    CHECK(message->have_previous);
+    CHECK(have_next);
+    CHECK(have_previous);
     if (message_id <= d->last_new_message_id && dialog_type != DialogType::Channel) {
       if (!G()->use_message_database()) {
         if (td_->auth_manager_->is_bot() && Time::now() > start_time_ + 300 &&
@@ -34736,8 +34726,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     message->reply_markup = nullptr;
   }
 
-  bool auto_attach = message->have_previous && message->have_next &&
-                     (from_update || message_id.is_local() || message_id.is_yet_unsent());
+  bool auto_attach = have_previous && have_next && (from_update || message_id.is_local() || message_id.is_yet_unsent());
 
   {
     Message *m = message->from_database ? get_message(d, message_id)
@@ -34760,11 +34749,11 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         }
       }
       if (!auto_attach && !message->from_database) {
-        CHECK(!message->have_previous || !message->have_next);
-        if (message->have_previous && !m->have_previous) {
+        CHECK(!have_previous || !have_next);
+        if (have_previous && !m->have_previous) {
           m->have_previous = true;
           attach_message_to_previous(d, message_id, source);
-        } else if (message->have_next && !m->have_next) {
+        } else if (have_next && !m->have_next) {
           m->have_next = true;
           attach_message_to_next(d, message_id, source);
         }
@@ -35013,8 +35002,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         }
 
         LOG(INFO) << "Attach " << message_id << " to the previous " << previous_message_id << " in " << dialog_id;
-        message->have_previous = true;
-        message->have_next = previous_message->have_next;
+        have_previous = true;
+        have_next = previous_message->have_next;
         previous_message->have_next = true;
         is_attached = true;
       }
@@ -35038,16 +35027,16 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
           LOG(ERROR) << "Attach " << message_id << " from " << source << " to the next " << next_message->message_id
                      << " in " << dialog_id;
         }
-        message->have_next = true;
-        message->have_previous = next_message->have_previous;
+        have_next = true;
+        have_previous = next_message->have_previous;
         next_message->have_previous = true;
         is_attached = true;
       }
     }
     if (!is_attached) {
       LOG(INFO) << "Can't auto-attach " << message_id << " in " << dialog_id;
-      message->have_previous = false;
-      message->have_next = false;
+      have_previous = false;
+      have_next = false;
     }
   }
 
@@ -35163,7 +35152,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
   }
 
-  if (!is_attached && !m->have_next && !m->have_previous) {
+  if (!is_attached && !have_next && !have_previous) {
     MessagesIterator it(d, m->message_id);
     if (*it != nullptr && (*it)->have_next) {
       // need to drop a connection between messages
@@ -35284,16 +35273,17 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   CHECK(d->messages != nullptr);
 
   if (!is_attached) {
-    if (m->have_next) {
-      LOG_CHECK(!m->have_previous) << auto_attach << " " << dialog_id << " " << m->message_id << " " << from_update
-                                   << " " << *need_update << " " << d->being_updated_last_new_message_id << " "
-                                   << d->last_new_message_id << " " << d->being_updated_last_database_message_id << " "
-                                   << d->last_database_message_id << " " << have_previous << " " << have_next << " "
-                                   << source;
+    if (have_next) {
+      CHECK(!have_previous);
+      result_message->have_next = true;
       attach_message_to_next(d, m->message_id, source);
-    } else if (m->have_previous) {
+    } else if (have_previous) {
+      result_message->have_previous = true;
       attach_message_to_previous(d, m->message_id, source);
     }
+  } else {
+    result_message->have_previous = have_previous;
+    result_message->have_next = have_next;
   }
 
   if (m->message_id.is_yet_unsent() && !m->message_id.is_scheduled() && m->top_thread_message_id.is_valid() &&
