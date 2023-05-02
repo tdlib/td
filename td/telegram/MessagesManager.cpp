@@ -10042,7 +10042,7 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
     }
     if (!d->last_database_message_id.is_valid()) {
       CHECK(d->last_message_id.is_valid());
-      MessagesConstIterator it(d, d->last_message_id);
+      auto it = d->ordered_messages.get_const_iterator(d->last_message_id);
       MessageId new_first_database_message_id;
       while (*it != nullptr) {
         auto message_id = (*it)->message_id;
@@ -10070,7 +10070,7 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
           << d->debug_set_dialog_last_database_message_id;
       CHECK(d->first_database_message_id.is_valid());
       {
-        MessagesConstIterator it(d, d->first_database_message_id);
+        auto it = d->ordered_messages.get_const_iterator(d->first_database_message_id);
         if (*it != nullptr && ((*it)->message_id == d->first_database_message_id || (*it)->have_next)) {
           MessageId new_first_database_message_id = d->first_database_message_id;
           while (*it != nullptr) {
@@ -10087,7 +10087,7 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
         }
       }
       {
-        MessagesConstIterator it(d, d->last_database_message_id);
+        auto it = d->ordered_messages.get_const_iterator(d->last_database_message_id);
         if (*it != nullptr && ((*it)->message_id == d->last_database_message_id || (*it)->have_next)) {
           MessageId new_last_database_message_id = d->last_database_message_id;
           while (*it != nullptr) {
@@ -12378,7 +12378,7 @@ bool MessagesManager::has_incoming_notification(DialogId dialog_id, const Messag
 int32 MessagesManager::calc_new_unread_count_from_last_unread(Dialog *d, MessageId max_message_id,
                                                               MessageType type) const {
   CHECK(!max_message_id.is_scheduled());
-  MessagesConstIterator it(d, max_message_id);
+  auto it = d->ordered_messages.get_const_iterator(max_message_id);
   if (*it == nullptr || (*it)->message_id != max_message_id) {
     return -1;
   }
@@ -12403,7 +12403,7 @@ int32 MessagesManager::calc_new_unread_count_from_the_end(Dialog *d, MessageId m
                                                           int32 hint_unread_count) const {
   CHECK(!max_message_id.is_scheduled());
   int32 unread_count = 0;
-  MessagesConstIterator it(d, MessageId::max());
+  auto it = d->ordered_messages.get_const_iterator(MessageId::max());
   while (*it != nullptr && (*it)->message_id > max_message_id) {
     auto message_id = (*it)->message_id;
     if (message_id.get_type() == type && has_incoming_notification(d->dialog_id, get_message(d, message_id))) {
@@ -13305,7 +13305,8 @@ void MessagesManager::ttl_read_history_impl(DialogId dialog_id, bool is_outgoing
   auto *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
   auto now = Time::now();
-  for (auto it = MessagesIterator(d, from_message_id); *it && (*it)->message_id >= till_message_id; --it) {
+  for (auto it = d->ordered_messages.get_const_iterator(from_message_id); *it && (*it)->message_id >= till_message_id;
+       --it) {
     auto *m = get_message(d, (*it)->message_id);
     CHECK(m != nullptr);
     if (m->is_outgoing == is_outgoing) {
@@ -14046,7 +14047,7 @@ void MessagesManager::read_secret_chat_outbox_inner(DialogId dialog_id, int32 up
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
 
-  auto end = MessagesConstIterator(d, MessageId::max());
+  auto end = d->ordered_messages.get_const_iterator(MessageId::max());
   while (*end && (get_message(d, (*end)->message_id)->date > up_to_date || (*end)->message_id.is_yet_unsent())) {
     --end;
   }
@@ -16202,7 +16203,7 @@ void MessagesManager::fix_dialog_last_notification_id(Dialog *d, bool from_menti
   if (d->notification_info == nullptr) {
     return;
   }
-  MessagesConstIterator it(d, message_id);
+  auto it = d->ordered_messages.get_const_iterator(message_id);
   auto &group_info = get_notification_group_info(d, from_mentions);
   VLOG(notifications) << "Trying to fix last notification identifier in " << group_info.group_id << " from "
                       << d->dialog_id << " from " << message_id << "/" << group_info.last_notification_id;
@@ -16331,7 +16332,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
       << d->being_deleted_message_id << " " << message_id << " " << source;
   d->being_deleted_message_id = message_id;
 
-  const MessagesIterator message_it(d, message_id);
+  const auto message_it = d->ordered_messages.get_iterator(message_id);
   CHECK(*message_it != nullptr);
   CHECK((*message_it)->message_id == message_id);
 
@@ -17267,7 +17268,7 @@ void MessagesManager::mark_dialog_as_read(Dialog *d) {
     // TODO read forum topics
   }
   if (d->server_unread_count + d->local_unread_count > 0 && d->last_message_id.is_valid()) {
-    MessagesConstIterator it(d, d->last_message_id);
+    auto it = d->ordered_messages.get_const_iterator(d->last_message_id);
     while (*it != nullptr) {
       auto message_id = (*it)->message_id;
       if (message_id.is_server() || message_id.is_local()) {
@@ -21047,7 +21048,7 @@ tl_object_ptr<td_api::messages> MessagesManager::get_dialog_history(DialogId dia
             << ", have_full_history = " << d->have_full_history
             << ", have_full_history_source = " << d->have_full_history_source;
 
-  MessagesConstIterator p(d, from_message_id);
+  auto p = d->ordered_messages.get_const_iterator(from_message_id);
   LOG(DEBUG) << "Iterator points to " << (*p ? (*p)->message_id : MessageId());
   bool from_the_end = (d->last_message_id != MessageId() && from_message_id > d->last_message_id) ||
                       from_message_id >= MessageId::max();
@@ -21056,7 +21057,7 @@ tl_object_ptr<td_api::messages> MessagesManager::get_dialog_history(DialogId dia
     limit += offset;
     offset = 0;
     if (d->last_message_id == MessageId()) {
-      p = MessagesConstIterator();
+      p = OrderedMessages::ConstIterator();
     }
   } else {
     bool have_a_gap = false;
@@ -21069,7 +21070,7 @@ tl_object_ptr<td_api::messages> MessagesManager::get_dialog_history(DialogId dia
         }
         CHECK(cur->message_id > from_message_id);
         from_message_id = cur->message_id;
-        p = MessagesConstIterator(d, from_message_id);
+        p = d->ordered_messages.get_const_iterator(from_message_id);
       } else {
         have_a_gap = true;
       }
@@ -21082,7 +21083,7 @@ tl_object_ptr<td_api::messages> MessagesManager::get_dialog_history(DialogId dia
 
     if (have_a_gap) {
       LOG(INFO) << "Have a gap near message to get chat history from";
-      p = MessagesConstIterator();
+      p = OrderedMessages::ConstIterator();
     }
     if (*p != nullptr && (*p)->message_id == from_message_id) {
       if (offset < 0) {
@@ -21105,7 +21106,7 @@ tl_object_ptr<td_api::messages> MessagesManager::get_dialog_history(DialogId dia
       CHECK(!have_a_gap);
       limit += offset;
       offset = 0;
-      p = MessagesConstIterator(d, from_message_id);
+      p = d->ordered_messages.get_const_iterator(from_message_id);
     }
 
     if (!have_a_gap && offset < 0) {
@@ -22800,7 +22801,7 @@ int64 MessagesManager::get_dialog_message_by_date(DialogId dialog_id, int32 date
 
   auto message_id = d->ordered_messages.find_message_by_date(date, get_get_message_date(d));
   if (message_id.is_valid() &&
-      (message_id == d->last_message_id || (*MessagesConstIterator(d, message_id))->have_next)) {
+      (message_id == d->last_message_id || (*d->ordered_messages.get_const_iterator(message_id))->have_next)) {
     get_dialog_message_by_date_results_[random_id] = {dialog_id, message_id};
     promise.set_value(Unit());
     return random_id;
@@ -23161,7 +23162,7 @@ void MessagesManager::preload_newer_messages(const Dialog *d, MessageId max_mess
     return;
   }
 
-  MessagesConstIterator p(d, max_message_id);
+  auto p = d->ordered_messages.get_const_iterator(max_message_id);
   int32 limit = MAX_GET_HISTORY * 3 / 10;
   while (*p != nullptr && limit-- > 0) {
     ++p;
@@ -23189,7 +23190,7 @@ void MessagesManager::preload_older_messages(const Dialog *d, MessageId min_mess
       return;
     }
   */
-  MessagesConstIterator p(d, min_message_id);
+  auto p = d->ordered_messages.get_const_iterator(min_message_id);
   int32 limit = MAX_GET_HISTORY * 3 / 10 + 1;
   while (*p != nullptr && limit-- > 0) {
     min_message_id = (*p)->message_id;
@@ -34810,7 +34811,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   bool is_attached = false;
   if (auto_attach) {
-    auto it = MessagesIterator(d, message_id);
+    auto it = d->ordered_messages.get_iterator(message_id);
     OrderedMessage *previous_message = *it;
     if (previous_message != nullptr) {
       auto previous_message_id = previous_message->message_id;
@@ -34982,7 +34983,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   if (!is_attached && !have_next && !have_previous) {
-    MessagesIterator it(d, m->message_id);
+    auto it = d->ordered_messages.get_iterator(m->message_id);
     if (*it != nullptr && (*it)->have_next) {
       // need to drop a connection between messages
       auto previous_message = *it;
@@ -35721,7 +35722,7 @@ void MessagesManager::do_delete_message_log_event(const DeleteMessageLogEvent &l
 void MessagesManager::attach_message_to_previous(Dialog *d, MessageId message_id, const char *source) {
   CHECK(d != nullptr);
   CHECK(message_id.is_valid());
-  MessagesIterator it(d, message_id);
+  auto it = d->ordered_messages.get_iterator(message_id);
   OrderedMessage *m = *it;
   CHECK(m != nullptr);
   CHECK(m->message_id == message_id);
@@ -35743,7 +35744,7 @@ void MessagesManager::attach_message_to_previous(Dialog *d, MessageId message_id
 void MessagesManager::attach_message_to_next(Dialog *d, MessageId message_id, const char *source) {
   CHECK(d != nullptr);
   CHECK(message_id.is_valid());
-  MessagesIterator it(d, message_id);
+  auto it = d->ordered_messages.get_iterator(message_id);
   OrderedMessage *m = *it;
   CHECK(m != nullptr);
   CHECK(m->message_id == message_id);
@@ -40049,7 +40050,7 @@ void MessagesManager::suffix_load_update_first_message_id(const Dialog *d, Suffi
 
     queries->suffix_load_first_message_id_ = d->last_message_id;
   }
-  auto it = MessagesConstIterator(d, queries->suffix_load_first_message_id_);
+  auto it = d->ordered_messages.get_const_iterator(queries->suffix_load_first_message_id_);
   CHECK(*it != nullptr);
   CHECK((*it)->message_id == queries->suffix_load_first_message_id_);
   while ((*it)->have_previous) {
