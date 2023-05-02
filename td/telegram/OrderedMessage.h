@@ -26,9 +26,8 @@ struct OrderedMessage {
   unique_ptr<OrderedMessage> right;
 };
 
-struct OrderedMessages {
-  unique_ptr<OrderedMessage> messages_;
-
+class OrderedMessages {
+ public:
   class IteratorBase {
     vector<const OrderedMessage *> stack_;
 
@@ -190,6 +189,9 @@ struct OrderedMessages {
 
   void traverse_messages(const std::function<bool(MessageId)> &need_scan_older,
                          const std::function<bool(MessageId)> &need_scan_newer) const;
+
+ private:
+  unique_ptr<OrderedMessage> messages_;
 };
 
 }  // namespace td
