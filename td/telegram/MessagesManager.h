@@ -1611,8 +1611,8 @@ class MessagesManager final : public Actor {
     ~MessagesIteratorBase() = default;
 
    public:
-    MessagesIteratorBase(const MessagesIteratorBase &) = delete;
-    MessagesIteratorBase &operator=(const MessagesIteratorBase &) = delete;
+    MessagesIteratorBase(const MessagesIteratorBase &) = default;
+    MessagesIteratorBase &operator=(const MessagesIteratorBase &) = default;
     MessagesIteratorBase(MessagesIteratorBase &&other) = default;
     MessagesIteratorBase &operator=(MessagesIteratorBase &&other) = default;
 

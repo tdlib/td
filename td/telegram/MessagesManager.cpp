@@ -16353,6 +16353,10 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
       << d->being_deleted_message_id << " " << message_id << " " << source;
   d->being_deleted_message_id = message_id;
 
+  const MessagesIterator message_it(d, message_id);
+  CHECK(*message_it != nullptr);
+  CHECK((*message_it)->message_id == message_id);
+
   bool need_get_history = false;
   if (!only_from_memory) {
     LOG(INFO) << "Deleting " << full_message_id << " with have_previous = " << m->have_previous
@@ -16364,12 +16368,11 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
     remove_message_file_sources(d->dialog_id, m);
 
     if (message_id == d->last_message_id) {
-      MessagesConstIterator it(d, message_id);
-      CHECK(*it == m);
-      if ((*it)->have_previous) {
+      if ((*message_it)->have_previous) {
+        auto it = message_it;
         --it;
         if (*it != nullptr) {
-          set_dialog_last_message_id(d, (*it)->message_id, "do_delete_message", *it);
+          set_dialog_last_message_id(d, (*it)->message_id, "do_delete_message");
         } else {
           LOG(ERROR) << "Have have_previous is true, but there is no previous for " << full_message_id << " from "
                      << source;
@@ -16387,8 +16390,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
     }
 
     if (message_id == d->last_database_message_id) {
-      MessagesConstIterator it(d, message_id);
-      CHECK(*it == m);
+      auto it = message_it;
       while ((*it)->have_previous) {
         --it;
         if (*it == nullptr || !(*it)->message_id.is_yet_unsent()) {
@@ -16429,8 +16431,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
     auto suffix_load_queries_it = dialog_suffix_load_queries_.find(d->dialog_id);
     if (suffix_load_queries_it != dialog_suffix_load_queries_.end() &&
         message_id == suffix_load_queries_it->second->suffix_load_first_message_id_) {
-      MessagesConstIterator it(d, message_id);
-      CHECK(*it == m);
+      auto it = message_it;
       if ((*it)->have_previous) {
         --it;
         if (*it != nullptr) {
@@ -16460,9 +16461,8 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
     }
   }
 
-  if (m->have_previous && (only_from_memory || !m->have_next)) {
-    MessagesIterator it(d, message_id);
-    CHECK(*it == m);
+  if ((*message_it)->have_previous && (only_from_memory || !(*message_it)->have_next)) {
+    auto it = message_it;
     --it;
     Message *prev_m = *it;
     if (prev_m != nullptr) {
@@ -16472,9 +16472,8 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
                  << source;
     }
   }
-  if ((*v)->have_next && (only_from_memory || !(*v)->have_previous)) {
-    MessagesIterator it(d, message_id);
-    CHECK(*it == m);
+  if ((*message_it)->have_next && (only_from_memory || !(*message_it)->have_previous)) {
+    auto it = message_it;
     ++it;
     Message *next_m = *it;
     if (next_m != nullptr) {
