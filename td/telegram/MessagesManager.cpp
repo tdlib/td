@@ -11624,37 +11624,35 @@ vector<MessageId> MessagesManager::find_dialog_messages(const Dialog *d,
   return message_ids;
 }
 
-void MessagesManager::find_unloadable_messages(const Dialog *d, int32 unload_before_date,
-                                               const OrderedMessage *ordered_message, vector<MessageId> &message_ids,
-                                               bool &has_left_to_unload_messages) const {
-  if (ordered_message == nullptr) {
-    return;
-  }
-  if (message_ids.size() >= MAX_UNLOADED_MESSAGES) {
-    has_left_to_unload_messages = true;
-    return;
-  }
+vector<MessageId> MessagesManager::find_unloadable_messages(const Dialog *d, int32 unload_before_date,
+                                                            bool &has_left_to_unload_messages) const {
+  vector<MessageId> message_ids;
+  d->ordered_messages.traverse_messages(
+      [&](MessageId message_id) {
+        if (message_ids.size() >= MAX_UNLOADED_MESSAGES) {
+          has_left_to_unload_messages = true;
+          return false;
+        }
+        return true;
+      },
+      [&](MessageId message_id) {
+        const Message *m = get_message(d, message_id);
+        CHECK(m != nullptr);
+        if (can_unload_message(d, m)) {
+          if (m->last_access_date <= unload_before_date) {
+            message_ids.push_back(message_id);
+          } else {
+            has_left_to_unload_messages = true;
+          }
+        }
 
-  find_unloadable_messages(d, unload_before_date, ordered_message->left.get(), message_ids,
-                           has_left_to_unload_messages);
-
-  const Message *m = get_message(d, ordered_message->message_id);
-  CHECK(m != nullptr);
-  if (can_unload_message(d, m)) {
-    if (m->last_access_date <= unload_before_date) {
-      message_ids.push_back(ordered_message->message_id);
-    } else {
-      has_left_to_unload_messages = true;
-    }
-  }
-
-  if (has_left_to_unload_messages && m->date > unload_before_date) {
-    // we aren't interested in unloading too new messages
-    return;
-  }
-
-  find_unloadable_messages(d, unload_before_date, ordered_message->right.get(), message_ids,
-                           has_left_to_unload_messages);
+        if (has_left_to_unload_messages && m->date > unload_before_date) {
+          // we aren't interested in unloading too new messages
+          return false;
+        }
+        return true;
+      });
+  return message_ids;
 }
 
 void MessagesManager::delete_dialog_messages_by_sender(DialogId dialog_id, DialogId sender_dialog_id,
@@ -11919,10 +11917,9 @@ void MessagesManager::unload_dialog(DialogId dialog_id) {
     return;
   }
 
-  vector<MessageId> to_unload_message_ids;
   bool has_left_to_unload_messages = false;
-  find_unloadable_messages(d, G()->unix_time_cached() - get_unload_dialog_delay() + 2,
-                           d->ordered_messages.messages_.get(), to_unload_message_ids, has_left_to_unload_messages);
+  auto to_unload_message_ids =
+      find_unloadable_messages(d, G()->unix_time_cached() - get_unload_dialog_delay() + 2, has_left_to_unload_messages);
 
   vector<int64> unloaded_message_ids;
   vector<unique_ptr<Message>> unloaded_messages;

@@ -2055,8 +2055,8 @@ class MessagesManager final : public Actor {
 
   std::function<int32(MessageId)> get_get_message_date(const Dialog *d) const;
 
-  void find_unloadable_messages(const Dialog *d, int32 unload_before_date, const OrderedMessage *ordered_message,
-                                vector<MessageId> &message_ids, bool &has_left_to_unload_messages) const;
+  vector<MessageId> find_unloadable_messages(const Dialog *d, int32 unload_before_date,
+                                             bool &has_left_to_unload_messages) const;
 
   void on_pending_message_views_timeout(DialogId dialog_id);
 
