@@ -22798,7 +22798,7 @@ int64 MessagesManager::get_dialog_message_by_date(DialogId dialog_id, int32 date
   } while (random_id == 0 || get_dialog_message_by_date_results_.count(random_id) > 0);
   get_dialog_message_by_date_results_[random_id];  // reserve place for result
 
-  auto message_id = find_message_by_date(d, d->ordered_messages.messages_.get(), date);
+  auto message_id = d->ordered_messages.find_message_by_date(date, get_get_message_date(d));
   if (message_id.is_valid() &&
       (message_id == d->last_message_id || (*MessagesConstIterator(d, message_id))->have_next)) {
     get_dialog_message_by_date_results_[random_id] = {dialog_id, message_id};
@@ -22874,25 +22874,6 @@ std::function<int32(MessageId)> MessagesManager::get_get_message_date(const Dial
   };
 }
 
-MessageId MessagesManager::find_message_by_date(const Dialog *d, const OrderedMessage *ordered_message, int32 date) {
-  if (ordered_message == nullptr) {
-    return MessageId();
-  }
-
-  const Message *m = get_message(d, ordered_message->message_id);
-  CHECK(m != nullptr);
-  if (m->date > date) {
-    return find_message_by_date(d, ordered_message->left.get(), date);
-  }
-
-  auto message_id = find_message_by_date(d, ordered_message->right.get(), date);
-  if (message_id.is_valid()) {
-    return message_id;
-  }
-
-  return ordered_message->message_id;
-}
-
 void MessagesManager::on_get_dialog_message_by_date_from_database(DialogId dialog_id, int32 date, int64 random_id,
                                                                   Result<MessageDbDialogMessage> result,
                                                                   Promise<Unit> promise) {
@@ -22903,7 +22884,7 @@ void MessagesManager::on_get_dialog_message_by_date_from_database(DialogId dialo
   if (result.is_ok()) {
     Message *m = on_get_message_from_database(d, result.ok(), false, "on_get_dialog_message_by_date_from_database");
     if (m != nullptr) {
-      auto message_id = find_message_by_date(d, d->ordered_messages.messages_.get(), date);
+      auto message_id = d->ordered_messages.find_message_by_date(date, get_get_message_date(d));
       if (!message_id.is_valid()) {
         LOG(ERROR) << "Failed to find " << m->message_id << " in " << dialog_id << " by date " << date;
         message_id = m->message_id;
@@ -22927,7 +22908,7 @@ void MessagesManager::get_dialog_message_by_date_from_server(const Dialog *d, in
       return promise.set_value(Unit());
     }
 
-    auto message_id = find_message_by_date(d, d->ordered_messages.messages_.get(), date);
+    auto message_id = d->ordered_messages.find_message_by_date(date, get_get_message_date(d));
     if (message_id.is_valid()) {
       get_dialog_message_by_date_results_[random_id] = {d->dialog_id, message_id};
     }
@@ -22965,7 +22946,7 @@ void MessagesManager::on_get_dialog_message_by_date_success(DialogId dialog_id, 
       if (result != FullMessageId()) {
         const Dialog *d = get_dialog(dialog_id);
         CHECK(d != nullptr);
-        auto message_id = find_message_by_date(d, d->ordered_messages.messages_.get(), date);
+        auto message_id = d->ordered_messages.find_message_by_date(date, get_get_message_date(d));
         if (!message_id.is_valid()) {
           LOG(ERROR) << "Failed to find " << result.get_message_id() << " in " << dialog_id << " by date " << date;
           message_id = result.get_message_id();

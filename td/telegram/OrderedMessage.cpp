@@ -119,28 +119,54 @@ vector<MessageId> OrderedMessages::find_newer_messages(MessageId min_message_id)
   return message_ids;
 }
 
-void do_find_messages_by_date(const OrderedMessage *ordered_message, int32 min_date, int32 max_date,
-                              const std::function<int32(MessageId)> &get_date, vector<MessageId> &message_ids) {
+static MessageId do_find_message_by_date(const OrderedMessage *ordered_message, int32 date,
+                                         const std::function<int32(MessageId)> &get_message_date) {
+  if (ordered_message == nullptr) {
+    return MessageId();
+  }
+
+  auto message_date = get_message_date(ordered_message->message_id);
+  if (message_date > date) {
+    return do_find_message_by_date(ordered_message->left.get(), date, get_message_date);
+  }
+
+  auto message_id = do_find_message_by_date(ordered_message->right.get(), date, get_message_date);
+  if (message_id.is_valid()) {
+    return message_id;
+  }
+
+  return ordered_message->message_id;
+}
+
+MessageId OrderedMessages::find_message_by_date(int32 date,
+                                                const std::function<int32(MessageId)> &get_message_date) const {
+  return do_find_message_by_date(messages_.get(), date, get_message_date);
+}
+
+static void do_find_messages_by_date(const OrderedMessage *ordered_message, int32 min_date, int32 max_date,
+                                     const std::function<int32(MessageId)> &get_message_date,
+                                     vector<MessageId> &message_ids) {
   if (ordered_message == nullptr) {
     return;
   }
 
-  auto date = get_date(ordered_message->message_id);
-  if (date >= min_date) {
-    do_find_messages_by_date(ordered_message->left.get(), min_date, max_date, get_date, message_ids);
-    if (date <= max_date) {
+  auto message_date = get_message_date(ordered_message->message_id);
+  if (message_date >= min_date) {
+    do_find_messages_by_date(ordered_message->left.get(), min_date, max_date, get_message_date, message_ids);
+    if (message_date <= max_date) {
       message_ids.push_back(ordered_message->message_id);
     }
   }
-  if (date <= max_date) {
-    do_find_messages_by_date(ordered_message->right.get(), min_date, max_date, get_date, message_ids);
+  if (message_date <= max_date) {
+    do_find_messages_by_date(ordered_message->right.get(), min_date, max_date, get_message_date, message_ids);
   }
 }
 
-vector<MessageId> OrderedMessages::find_messages_by_date(int32 min_date, int32 max_date,
-                                                         const std::function<int32(MessageId)> &get_date) const {
+vector<MessageId> OrderedMessages::find_messages_by_date(
+    int32 min_date, int32 max_date, const std::function<int32(MessageId)> &get_message_date) const {
   vector<MessageId> message_ids;
-  do_find_messages_by_date(messages_.get(), min_date, max_date, get_date, message_ids);
+  do_find_messages_by_date(messages_.get(), min_date, max_date, get_message_date, message_ids);
   return message_ids;
 }
+
 }  // namespace td

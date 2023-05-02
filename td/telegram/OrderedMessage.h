@@ -37,8 +37,10 @@ struct OrderedMessages {
 
   vector<MessageId> find_newer_messages(MessageId min_message_id) const;
 
+  MessageId find_message_by_date(int32 date, const std::function<int32(MessageId)> &get_message_date) const;
+
   vector<MessageId> find_messages_by_date(int32 min_date, int32 max_date,
-                                          const std::function<int32(MessageId)> &get_date) const;
+                                          const std::function<int32(MessageId)> &get_message_date) const;
 };
 
 }  // namespace td

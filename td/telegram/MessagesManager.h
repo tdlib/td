@@ -2182,8 +2182,6 @@ class MessagesManager final : public Actor {
 
   std::function<int32(MessageId)> get_get_message_date(const Dialog *d) const;
 
-  static MessageId find_message_by_date(const Dialog *d, const OrderedMessage *ordered_message, int32 date);
-
   void find_unloadable_messages(const Dialog *d, int32 unload_before_date, const OrderedMessage *ordered_message,
                                 vector<MessageId> &message_ids, bool &has_left_to_unload_messages) const;
 
