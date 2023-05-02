@@ -6,6 +6,8 @@
 //
 #include "td/telegram/OrderedMessage.h"
 
+#include "td/utils/logging.h"
+
 namespace td {
 
 OrderedMessage *OrderedMessages::insert(MessageId message_id) {
@@ -75,6 +77,46 @@ void OrderedMessages::erase(MessageId message_id) {
     }
   }
   CHECK(*v == nullptr);
+}
+
+void OrderedMessages::attach_message_to_previous(MessageId message_id, const char *source) {
+  CHECK(message_id.is_valid());
+  auto it = get_iterator(message_id);
+  OrderedMessage *ordered_message = *it;
+  CHECK(ordered_message != nullptr);
+  CHECK(ordered_message->message_id == message_id);
+  if (ordered_message->have_previous) {
+    return;
+  }
+  ordered_message->have_previous = true;
+  --it;
+  LOG_CHECK(*it != nullptr) << message_id << ' ' << source;
+  LOG(INFO) << "Attach " << message_id << " to the previous " << (*it)->message_id << " from " << source;
+  if ((*it)->have_next) {
+    ordered_message->have_next = true;
+  } else {
+    (*it)->have_next = true;
+  }
+}
+
+void OrderedMessages::attach_message_to_next(MessageId message_id, const char *source) {
+  CHECK(message_id.is_valid());
+  auto it = get_iterator(message_id);
+  OrderedMessage *ordered_message = *it;
+  CHECK(ordered_message != nullptr);
+  CHECK(ordered_message->message_id == message_id);
+  if (ordered_message->have_next) {
+    return;
+  }
+  ordered_message->have_next = true;
+  ++it;
+  LOG_CHECK(*it != nullptr) << message_id << ' ' << source;
+  LOG(INFO) << "Attach " << message_id << " to the next " << (*it)->message_id << " from " << source;
+  if ((*it)->have_previous) {
+    ordered_message->have_previous = true;
+  } else {
+    (*it)->have_previous = true;
+  }
 }
 
 static void do_find_older_messages(const OrderedMessage *ordered_message, MessageId max_message_id,

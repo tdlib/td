@@ -9831,7 +9831,7 @@ bool MessagesManager::delete_newer_server_messages_at_the_end(Dialog *d, Message
 
   // connect all messages with ID > max_message_id
   for (size_t i = 0; i + 1 < kept_message_ids.size(); i++) {
-    attach_message_to_next(d, kept_message_ids[i], "delete_newer_server_messages_at_the_end");
+    d->ordered_messages.attach_message_to_next(kept_message_ids[i], "delete_newer_server_messages_at_the_end");
   }
 
   return !kept_message_ids.empty();
@@ -9986,7 +9986,7 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
       if (!have_next) {
         have_next = true;
       } else if (first_added_message_id.is_valid()) {
-        attach_message_to_previous(d, first_added_message_id, "on_get_history");
+        d->ordered_messages.attach_message_to_previous(first_added_message_id, "on_get_history");
       }
       first_added_message_id = message_id;
     }
@@ -23401,12 +23401,11 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
       }
       if (next_message_id.is_valid()) {
         CHECK(m->message_id < next_message_id);
-        attach_message_to_previous(
-            d, next_message_id,
-            (PSLICE() << "on_get_history_from_database 1 " << m->message_id << ' ' << from_message_id << ' ' << offset
-                      << ' ' << limit << ' ' << d->first_database_message_id << ' ' << d->have_full_history << ' '
-                      << pos)
-                .c_str());
+        d->ordered_messages.attach_message_to_previous(
+            next_message_id, (PSLICE() << "on_get_history_from_database 1 " << m->message_id << ' ' << from_message_id
+                                       << ' ' << offset << ' ' << limit << ' ' << d->first_database_message_id << ' '
+                                       << d->have_full_history << ' ' << pos)
+                                 .c_str());
       }
 
       have_next = true;
@@ -34576,9 +34575,9 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       if (!auto_attach && !message->from_database) {
         if (have_previous) {
           CHECK(!have_next);
-          attach_message_to_previous(d, message_id, source);
+          d->ordered_messages.attach_message_to_previous(message_id, source);
         } else if (have_next) {
-          attach_message_to_next(d, message_id, source);
+          d->ordered_messages.attach_message_to_next(message_id, source);
         }
       }
       if (!message->from_database && (from_update || message->edit_date >= m->edit_date)) {
@@ -35097,9 +35096,9 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   if (!is_attached) {
     if (have_next) {
       CHECK(!have_previous);
-      attach_message_to_next(d, message_id, source);
+      d->ordered_messages.attach_message_to_next(message_id, source);
     } else if (have_previous) {
-      attach_message_to_previous(d, message_id, source);
+      d->ordered_messages.attach_message_to_previous(message_id, source);
     }
   } else {
     ordered_message->have_previous = have_previous;
@@ -35710,50 +35709,6 @@ void MessagesManager::do_delete_message_log_event(const DeleteMessageLogEvent &l
   // message may not exist in the dialog
   LOG(INFO) << "Delete " << log_event.full_message_id_ << " from database";
   G()->td_db()->get_message_db_async()->delete_message(log_event.full_message_id_, std::move(db_promise));
-}
-
-void MessagesManager::attach_message_to_previous(Dialog *d, MessageId message_id, const char *source) {
-  CHECK(d != nullptr);
-  CHECK(message_id.is_valid());
-  auto it = d->ordered_messages.get_iterator(message_id);
-  OrderedMessage *m = *it;
-  CHECK(m != nullptr);
-  CHECK(m->message_id == message_id);
-  if (m->have_previous) {
-    return;
-  }
-  m->have_previous = true;
-  --it;
-  LOG_CHECK(*it != nullptr) << d->dialog_id << " " << message_id << " " << source;
-  LOG(INFO) << "Attach " << message_id << " to the previous " << (*it)->message_id << " in " << d->dialog_id << " from "
-            << source;
-  if ((*it)->have_next) {
-    m->have_next = true;
-  } else {
-    (*it)->have_next = true;
-  }
-}
-
-void MessagesManager::attach_message_to_next(Dialog *d, MessageId message_id, const char *source) {
-  CHECK(d != nullptr);
-  CHECK(message_id.is_valid());
-  auto it = d->ordered_messages.get_iterator(message_id);
-  OrderedMessage *m = *it;
-  CHECK(m != nullptr);
-  CHECK(m->message_id == message_id);
-  if (m->have_next) {
-    return;
-  }
-  m->have_next = true;
-  ++it;
-  LOG_CHECK(*it != nullptr) << d->dialog_id << " " << message_id << " " << source;
-  LOG(INFO) << "Attach " << message_id << " to the next " << (*it)->message_id << " in " << d->dialog_id << " from "
-            << source;
-  if ((*it)->have_previous) {
-    m->have_previous = true;
-  } else {
-    (*it)->have_previous = true;
-  }
 }
 
 bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr<Message> new_message,

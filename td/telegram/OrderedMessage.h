@@ -166,6 +166,10 @@ struct OrderedMessages {
 
   void erase(MessageId message_id);
 
+  void attach_message_to_previous(MessageId message_id, const char *source);
+
+  void attach_message_to_next(MessageId message_id, const char *source);
+
   vector<MessageId> find_older_messages(MessageId max_message_id) const;
 
   vector<MessageId> find_newer_messages(MessageId min_message_id) const;
