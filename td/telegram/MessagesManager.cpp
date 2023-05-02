@@ -16498,7 +16498,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
   CHECK(m == result.get());
   d->messages.erase(message_id);
 
-  treap_delete_message(treap_find_message(&d->ordered_messages, message_id));
+  treap_delete_message(&d->ordered_messages, message_id);
 
   d->being_deleted_message_id = MessageId();
 
@@ -34220,20 +34220,6 @@ void MessagesManager::unpin_all_dialog_messages_on_server(DialogId dialog_id, ui
                                             get_erase_log_event_promise(log_event_id, std::move(promise)));
 }
 
-unique_ptr<MessagesManager::OrderedMessage> *MessagesManager::treap_find_message(unique_ptr<OrderedMessage> *v,
-                                                                                 MessageId message_id) {
-  while (*v != nullptr) {
-    if ((*v)->message_id.get() < message_id.get()) {
-      v = &(*v)->right;
-    } else if ((*v)->message_id.get() > message_id.get()) {
-      v = &(*v)->left;
-    } else {
-      break;
-    }
-  }
-  return v;
-}
-
 MessagesManager::OrderedMessage *MessagesManager::treap_insert_message(unique_ptr<OrderedMessage> *v,
                                                                        unique_ptr<OrderedMessage> message) {
   auto message_id = message->message_id;
@@ -34268,7 +34254,17 @@ MessagesManager::OrderedMessage *MessagesManager::treap_insert_message(unique_pt
   return v->get();
 }
 
-void MessagesManager::treap_delete_message(unique_ptr<OrderedMessage> *v) {
+void MessagesManager::treap_delete_message(unique_ptr<OrderedMessage> *v, MessageId message_id) {
+  while (*v != nullptr) {
+    if ((*v)->message_id.get() < message_id.get()) {
+      v = &(*v)->right;
+    } else if ((*v)->message_id.get() > message_id.get()) {
+      v = &(*v)->left;
+    } else {
+      break;
+    }
+  }
+
   unique_ptr<OrderedMessage> result = std::move(*v);
   CHECK(result != nullptr);
   unique_ptr<OrderedMessage> left = std::move(result->left);

@@ -2867,11 +2867,9 @@ class MessagesManager final : public Actor {
   DialogFolder *get_dialog_folder(FolderId folder_id);
   const DialogFolder *get_dialog_folder(FolderId folder_id) const;
 
-  static unique_ptr<OrderedMessage> *treap_find_message(unique_ptr<OrderedMessage> *v, MessageId message_id);
-
   static OrderedMessage *treap_insert_message(unique_ptr<OrderedMessage> *v, unique_ptr<OrderedMessage> message);
 
-  static void treap_delete_message(unique_ptr<OrderedMessage> *v);
+  static void treap_delete_message(unique_ptr<OrderedMessage> *v, MessageId message_id);
 
   static Message *get_message(Dialog *d, MessageId message_id);
   static const Message *get_message(const Dialog *d, MessageId message_id);
