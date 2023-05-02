@@ -16330,10 +16330,6 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
       << d->being_deleted_message_id << " " << message_id << " " << source;
   d->being_deleted_message_id = message_id;
 
-  const auto message_it = d->ordered_messages.get_iterator(message_id);
-  CHECK(*message_it != nullptr);
-  CHECK((*message_it)->get_message_id() == message_id);
-
   bool need_get_history = false;
   if (!only_from_memory) {
     LOG(INFO) << "Deleting " << full_message_id << " from " << source;
@@ -16342,6 +16338,10 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
 
     delete_active_live_location(d->dialog_id, m);
     remove_message_file_sources(d->dialog_id, m);
+
+    const auto message_it = d->ordered_messages.get_const_iterator(message_id);
+    CHECK(*message_it != nullptr);
+    CHECK((*message_it)->get_message_id() == message_id);
 
     if (message_id == d->last_message_id) {
       if ((*message_it)->have_previous_) {
@@ -16438,33 +16438,11 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
     }
   }
 
-  if ((*message_it)->have_previous_ && (only_from_memory || !(*message_it)->have_next_)) {
-    auto it = message_it;
-    --it;
-    OrderedMessage *prev_m = *it;
-    if (prev_m != nullptr) {
-      prev_m->have_next_ = false;
-    } else {
-      LOG(ERROR) << "Have have_previous is true, but there is no previous for " << full_message_id << " from "
-                 << source;
-    }
-  }
-  if ((*message_it)->have_next_ && (only_from_memory || !(*message_it)->have_previous_)) {
-    auto it = message_it;
-    ++it;
-    OrderedMessage *next_m = *it;
-    if (next_m != nullptr) {
-      next_m->have_previous_ = false;
-    } else {
-      LOG(ERROR) << "Have have_next is true, but there is no next for " << full_message_id << " from " << source;
-    }
-  }
-
   auto result = std::move(d->messages[message_id]);
   CHECK(m == result.get());
   d->messages.erase(message_id);
 
-  d->ordered_messages.erase(message_id);
+  d->ordered_messages.erase(message_id, only_from_memory);
 
   d->being_deleted_message_id = MessageId();
 

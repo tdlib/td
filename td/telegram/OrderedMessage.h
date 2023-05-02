@@ -171,7 +171,7 @@ class OrderedMessages {
 
   void insert(MessageId message_id, bool was_auto_attached, bool have_previous, bool have_next);
 
-  void erase(MessageId message_id);
+  void erase(MessageId message_id, bool only_from_memory);
 
   struct AttachInfo {
     bool have_previous_ = false;

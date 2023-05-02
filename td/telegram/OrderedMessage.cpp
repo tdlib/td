@@ -59,7 +59,7 @@ void OrderedMessages::insert(MessageId message_id, bool was_auto_attached, bool 
   }
 }
 
-void OrderedMessages::erase(MessageId message_id) {
+void OrderedMessages::erase(MessageId message_id, bool only_from_memory) {
   unique_ptr<OrderedMessage> *v = &messages_;
   while (*v != nullptr) {
     if ((*v)->message_id_.get() < message_id.get()) {
@@ -71,8 +71,25 @@ void OrderedMessages::erase(MessageId message_id) {
     }
   }
 
+  CHECK(*v != nullptr);
+  if ((*v)->have_previous_ && (only_from_memory || !(*v)->have_next_)) {
+    Iterator it(messages_.get(), message_id);
+    CHECK(*it == v->get());
+    --it;
+    OrderedMessage *prev_m = *it;
+    CHECK(prev_m != nullptr);
+    prev_m->have_next_ = false;
+  }
+  if ((*v)->have_next_ && (only_from_memory || !(*v)->have_previous_)) {
+    Iterator it(messages_.get(), message_id);
+    CHECK(*it == v->get());
+    ++it;
+    OrderedMessage *next_m = *it;
+    CHECK(next_m != nullptr);
+    next_m->have_previous_ = false;
+  }
+
   unique_ptr<OrderedMessage> result = std::move(*v);
-  CHECK(result != nullptr);
   unique_ptr<OrderedMessage> left = std::move(result->left_);
   unique_ptr<OrderedMessage> right = std::move(result->right_);
 
