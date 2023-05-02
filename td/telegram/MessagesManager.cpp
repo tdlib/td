@@ -8485,9 +8485,8 @@ void MessagesManager::set_dialog_next_available_reactions_generation(Dialog *d, 
 
 void MessagesManager::hide_dialog_message_reactions(Dialog *d) {
   CHECK(!td_->auth_manager_->is_bot());
-  vector<MessageId> message_ids;
-  find_messages(d, d->ordered_messages.get(), message_ids,
-                [](const Message *m) { return m->reactions != nullptr && !m->reactions->reactions_.empty(); });
+  auto message_ids = find_dialog_messages(
+      d, [](const Message *m) { return m->reactions != nullptr && !m->reactions->reactions_.empty(); });
   for (auto message_id : message_ids) {
     Message *m = get_message(d, message_id);
     CHECK(m != nullptr);
@@ -11614,20 +11613,16 @@ void MessagesManager::delete_all_call_messages_on_server(bool revoke, uint64 log
                                             get_erase_log_event_promise(log_event_id, std::move(promise)));
 }
 
-void MessagesManager::find_messages(const Dialog *d, const OrderedMessage *ordered_message,
-                                    vector<MessageId> &message_ids,
-                                    const std::function<bool(const Message *)> &condition) {
-  if (ordered_message == nullptr) {
-    return;
-  }
-
-  find_messages(d, ordered_message->left.get(), message_ids, condition);
-
-  if (condition(get_message(d, ordered_message->message_id))) {
-    message_ids.push_back(ordered_message->message_id);
-  }
-
-  find_messages(d, ordered_message->right.get(), message_ids, condition);
+vector<MessageId> MessagesManager::find_dialog_messages(const Dialog *d,
+                                                        const std::function<bool(const Message *)> &condition) {
+  vector<MessageId> message_ids;
+  d->messages.foreach([&](const MessageId &message_id, const unique_ptr<Message> &message) {
+    CHECK(message_id == message->message_id);
+    if (condition(message.get())) {
+      message_ids.push_back(message_id);
+    }
+  });
+  return message_ids;
 }
 
 void MessagesManager::find_old_messages(const OrderedMessage *ordered_message, MessageId max_message_id,
@@ -11748,11 +11743,9 @@ void MessagesManager::delete_dialog_messages_by_sender(DialogId dialog_id, Dialo
                                                                            Auto());  // TODO Promise
   }
 
-  vector<MessageId> message_ids;
-  find_messages(
-      d, d->ordered_messages.get(), message_ids, [sender_dialog_id, channel_status, is_bot](const Message *m) {
-        return sender_dialog_id == get_message_sender(m) && can_delete_channel_message(channel_status, m, is_bot);
-      });
+  vector<MessageId> message_ids = find_dialog_messages(d, [sender_dialog_id, channel_status, is_bot](const Message *m) {
+    return sender_dialog_id == get_message_sender(m) && can_delete_channel_message(channel_status, m, is_bot);
+  });
 
   delete_dialog_messages(d, message_ids, false, DELETE_MESSAGE_USER_REQUEST_SOURCE);
 
@@ -12041,6 +12034,7 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
 
   vector<int64> deleted_message_ids;
   d->messages.foreach([&](const MessageId &message_id, unique_ptr<Message> &message) {
+    CHECK(message_id == message->message_id);
     Message *m = message.get();
 
     LOG(INFO) << "Delete " << message_id;
@@ -12169,8 +12163,7 @@ void MessagesManager::read_all_dialog_mentions(DialogId dialog_id, MessageId top
     on_dialog_updated(dialog_id, "read_all_dialog_mentions");
   }
 
-  vector<MessageId> message_ids;
-  find_messages(d, d->ordered_messages.get(), message_ids, [](const Message *m) { return m->contains_unread_mention; });
+  auto message_ids = find_dialog_messages(d, [](const Message *m) { return m->contains_unread_mention; });
 
   LOG(INFO) << "Found " << message_ids.size() << " messages with unread mentions in memory";
   bool is_update_sent = false;
@@ -12269,9 +12262,8 @@ void MessagesManager::read_all_dialog_reactions(DialogId dialog_id, MessageId to
     return promise.set_value(Unit());
   }
 
-  vector<MessageId> message_ids;
-  find_messages(d, d->ordered_messages.get(), message_ids,
-                [this, dialog_id](const Message *m) { return has_unread_message_reactions(dialog_id, m); });
+  auto message_ids = find_dialog_messages(
+      d, [this, dialog_id](const Message *m) { return has_unread_message_reactions(dialog_id, m); });
 
   LOG(INFO) << "Found " << message_ids.size() << " messages with unread reactions in memory";
   bool is_update_sent = false;
@@ -15464,10 +15456,9 @@ void MessagesManager::remove_dialog_mention_notifications(Dialog *d) {
 
   VLOG(notifications) << "Remove mention notifications in " << d->dialog_id;
 
-  vector<MessageId> message_ids;
-  FlatHashSet<NotificationId, NotificationIdHash> removed_notification_ids_set;
-  find_messages(d, d->ordered_messages.get(), message_ids, [](const Message *m) { return m->contains_unread_mention; });
+  auto message_ids = find_dialog_messages(d, [](const Message *m) { return m->contains_unread_mention; });
   VLOG(notifications) << "Found unread mentions in " << message_ids;
+  FlatHashSet<NotificationId, NotificationIdHash> removed_notification_ids_set;
   for (auto &message_id : message_ids) {
     auto m = get_message(d, message_id);
     CHECK(m != nullptr);
@@ -17687,7 +17678,7 @@ void MessagesManager::block_message_sender_from_replies(MessageId message_id, bo
   }
   vector<MessageId> message_ids;
   if (need_delete_all_messages && sender_user_id.is_valid()) {
-    find_messages(d, d->ordered_messages.get(), message_ids, [sender_user_id](const Message *m) {
+    message_ids = find_dialog_messages(d, [sender_user_id](const Message *m) {
       return !m->is_outgoing && m->forward_info != nullptr && m->forward_info->sender_user_id == sender_user_id;
     });
     CHECK(td::contains(message_ids, message_id));
@@ -32690,13 +32681,10 @@ void MessagesManager::on_dialog_linked_channel_updated(DialogId dialog_id, Chann
     return;
   }
 
-  vector<MessageId> message_ids;
-  find_messages(d, d->ordered_messages.get(), message_ids,
-                [old_linked_channel_id, new_linked_channel_id](const Message *m) {
-                  return !m->reply_info.is_empty() && m->reply_info.channel_id_.is_valid() &&
-                         (m->reply_info.channel_id_ == old_linked_channel_id ||
-                          m->reply_info.channel_id_ == new_linked_channel_id);
-                });
+  auto message_ids = find_dialog_messages(d, [old_linked_channel_id, new_linked_channel_id](const Message *m) {
+    return !m->reply_info.is_empty() && m->reply_info.channel_id_.is_valid() &&
+           (m->reply_info.channel_id_ == old_linked_channel_id || m->reply_info.channel_id_ == new_linked_channel_id);
+  });
   LOG(INFO) << "Found discussion messages " << message_ids;
   for (auto message_id : message_ids) {
     send_update_message_interaction_info(dialog_id, get_message(d, message_id));
@@ -34161,8 +34149,7 @@ void MessagesManager::unpin_all_dialog_messages(DialogId dialog_id, MessageId to
   TRY_STATUS_PROMISE(promise, can_use_top_thread_message_id(d, top_thread_message_id, MessageId()));
 
   if (!td_->auth_manager_->is_bot()) {
-    vector<MessageId> message_ids;
-    find_messages(d, d->ordered_messages.get(), message_ids, [top_thread_message_id](const Message *m) {
+    auto message_ids = find_dialog_messages(d, [top_thread_message_id](const Message *m) {
       return m->is_pinned && (!top_thread_message_id.is_valid() ||
                               (m->is_topic_message && m->top_thread_message_id == top_thread_message_id));
     });
