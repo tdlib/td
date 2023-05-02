@@ -169,7 +169,7 @@ class OrderedMessages {
     return ConstIterator(messages_.get(), message_id);
   }
 
-  OrderedMessage *insert(MessageId message_id);
+  void insert(MessageId message_id, bool was_auto_attached, bool have_previous, bool have_next);
 
   void erase(MessageId message_id);
 

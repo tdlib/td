@@ -10,7 +10,7 @@
 
 namespace td {
 
-OrderedMessage *OrderedMessages::insert(MessageId message_id) {
+void OrderedMessages::insert(MessageId message_id, bool was_auto_attached, bool have_previous, bool have_next) {
   auto random_y = static_cast<int32>(static_cast<uint32>(message_id.get() * 2101234567u));
   unique_ptr<OrderedMessage> *v = &messages_;
   while (*v != nullptr && (*v)->random_y_ >= random_y) {
@@ -45,7 +45,18 @@ OrderedMessage *OrderedMessages::insert(MessageId message_id) {
   CHECK(*left == nullptr);
   CHECK(*right == nullptr);
   *v = std::move(message);
-  return v->get();
+
+  if (!was_auto_attached) {
+    if (have_next) {
+      CHECK(!have_previous);
+      attach_message_to_next(message_id, "OrderedMessages::insert");
+    } else if (have_previous) {
+      attach_message_to_previous(message_id, "OrderedMessages::insert");
+    }
+  } else {
+    (*v)->have_previous_ = have_previous;
+    (*v)->have_next_ = have_next;
+  }
 }
 
 void OrderedMessages::erase(MessageId message_id) {

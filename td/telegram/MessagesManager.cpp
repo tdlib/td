@@ -35046,18 +35046,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   Message *result_message = message.get();
   d->messages.set(message_id, std::move(message));
 
-  OrderedMessage *ordered_message = d->ordered_messages.insert(message_id);
-  if (!is_attached) {
-    if (have_next) {
-      CHECK(!have_previous);
-      d->ordered_messages.attach_message_to_next(message_id, source);
-    } else if (have_previous) {
-      d->ordered_messages.attach_message_to_previous(message_id, source);
-    }
-  } else {
-    ordered_message->have_previous_ = have_previous;
-    ordered_message->have_next_ = have_next;
-  }
+  d->ordered_messages.insert(message_id, is_attached, have_previous, have_next);
 
   if (m->message_id.is_yet_unsent() && !m->message_id.is_scheduled() && m->top_thread_message_id.is_valid() &&
       !td_->auth_manager_->is_bot()) {
