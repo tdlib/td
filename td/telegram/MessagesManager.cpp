@@ -34221,9 +34221,9 @@ void MessagesManager::unpin_all_dialog_messages_on_server(DialogId dialog_id, ui
 }
 
 MessagesManager::OrderedMessage *MessagesManager::treap_insert_message(unique_ptr<OrderedMessage> *v,
-                                                                       unique_ptr<OrderedMessage> message) {
-  auto message_id = message->message_id;
-  while (*v != nullptr && (*v)->random_y >= message->random_y) {
+                                                                       MessageId message_id) {
+  auto random_y = static_cast<int32>(static_cast<uint32>(message_id.get() * 2101234567u));
+  while (*v != nullptr && (*v)->random_y >= random_y) {
     if ((*v)->message_id.get() < message_id.get()) {
       v = &(*v)->right;
     } else if ((*v)->message_id == message_id) {
@@ -34232,6 +34232,10 @@ MessagesManager::OrderedMessage *MessagesManager::treap_insert_message(unique_pt
       v = &(*v)->left;
     }
   }
+
+  auto message = make_unique<OrderedMessage>();
+  message->message_id = message_id;
+  message->random_y = random_y;
 
   unique_ptr<OrderedMessage> *left = &message->left;
   unique_ptr<OrderedMessage> *right = &message->right;
@@ -34435,13 +34439,6 @@ MessagesManager::Message *MessagesManager::on_get_message_from_database(Dialog *
                << " in " << dialog_id << " from " << source;
     send_update_chat_last_message(d, source);
   }
-  return result;
-}
-
-unique_ptr<MessagesManager::OrderedMessage> MessagesManager::create_ordered_message(MessageId message_id) {
-  auto result = make_unique<OrderedMessage>();
-  result->message_id = message_id;
-  result->random_y = static_cast<int32>(static_cast<uint32>(message_id.get() * 2101234567u));
   return result;
 }
 
@@ -35234,7 +35231,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   Message *result_message = message.get();
   d->messages.set(message_id, std::move(message));
 
-  OrderedMessage *ordered_message = treap_insert_message(&d->ordered_messages, create_ordered_message(message_id));
+  OrderedMessage *ordered_message = treap_insert_message(&d->ordered_messages, message_id);
   if (!is_attached) {
     if (have_next) {
       CHECK(!have_previous);

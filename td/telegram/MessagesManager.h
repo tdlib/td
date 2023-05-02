@@ -2335,8 +2335,6 @@ class MessagesManager final : public Actor {
 
   void on_get_scheduled_messages_from_database(DialogId dialog_id, vector<MessageDbDialogMessage> &&messages);
 
-  static unique_ptr<OrderedMessage> create_ordered_message(MessageId message_id);
-
   static bool have_dialog_scheduled_messages_in_memory(const Dialog *d);
 
   static bool is_allowed_useless_update(const tl_object_ptr<telegram_api::Update> &update);
@@ -2867,7 +2865,7 @@ class MessagesManager final : public Actor {
   DialogFolder *get_dialog_folder(FolderId folder_id);
   const DialogFolder *get_dialog_folder(FolderId folder_id) const;
 
-  static OrderedMessage *treap_insert_message(unique_ptr<OrderedMessage> *v, unique_ptr<OrderedMessage> message);
+  static OrderedMessage *treap_insert_message(unique_ptr<OrderedMessage> *v, MessageId message_id);
 
   static void treap_delete_message(unique_ptr<OrderedMessage> *v, MessageId message_id);
 
