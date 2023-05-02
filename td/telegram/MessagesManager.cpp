@@ -5137,7 +5137,6 @@ void MessagesManager::Message::parse(ParserT &parser) {
   if (!message_id.is_valid() && !message_id.is_valid_scheduled()) {
     return parser.set_error("Invalid message identifier");
   }
-  random_y = get_random_y(message_id);
   if (has_sender) {
     parse(sender_user_id, parser);
   }
@@ -5739,7 +5738,12 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   parse(last_clear_history_date, parser);
   parse(order, parser);
   if (has_last_database_message) {
-    parse(messages, parser);
+    unique_ptr<Message> last_database_message;
+    parse(last_database_message, parser);
+    auto loaded_last_database_message_id = last_database_message->message_id;
+    if (loaded_last_database_message_id.is_valid()) {
+      messages.set(loaded_last_database_message_id, std::move(last_database_message));
+    }
   }
   if (has_first_database_message_id) {
     parse(first_database_message_id, parser);
@@ -8482,7 +8486,7 @@ void MessagesManager::set_dialog_next_available_reactions_generation(Dialog *d, 
 void MessagesManager::hide_dialog_message_reactions(Dialog *d) {
   CHECK(!td_->auth_manager_->is_bot());
   vector<MessageId> message_ids;
-  find_messages(d->messages.get(), message_ids,
+  find_messages(d, d->ordered_messages.get(), message_ids,
                 [](const Message *m) { return m->reactions != nullptr && !m->reactions->reactions_.empty(); });
   for (auto message_id : message_ids) {
     Message *m = get_message(d, message_id);
@@ -9809,7 +9813,7 @@ void MessagesManager::on_get_messages(vector<tl_object_ptr<telegram_api::Message
 
 bool MessagesManager::delete_newer_server_messages_at_the_end(Dialog *d, MessageId max_message_id) {
   vector<MessageId> message_ids;
-  find_newer_messages(d->messages.get(), max_message_id, message_ids);
+  find_newer_messages(d->ordered_messages.get(), max_message_id, message_ids);
   if (message_ids.empty()) {
     return false;
   }
@@ -9873,7 +9877,7 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
       on_dialog_updated(dialog_id, "set have_full_history");
     }
 
-    if (from_the_end && d->have_full_history && d->messages == nullptr) {
+    if (from_the_end && d->have_full_history && d->messages.empty()) {
       if (!d->last_database_message_id.is_valid()) {
         set_dialog_is_empty(d, "on_get_history empty");
       } else {
@@ -10049,7 +10053,7 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
             set_dialog_last_database_message_id(d, message_id, "on_get_history");
           }
           new_first_database_message_id = message_id;
-          try_restore_dialog_reply_markup(d, *it);
+          try_restore_dialog_reply_markup(d, get_message(d, message_id));
         }
         --it;
       }
@@ -10075,7 +10079,7 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
             auto message_id = (*it)->message_id;
             if ((message_id.is_server() || message_id.is_local()) && message_id < new_first_database_message_id) {
               new_first_database_message_id = message_id;
-              try_restore_dialog_reply_markup(d, *it);
+              try_restore_dialog_reply_markup(d, get_message(d, message_id));
             }
             --it;
           }
@@ -11413,7 +11417,7 @@ void MessagesManager::delete_dialog_history(DialogId dialog_id, bool remove_from
     // TODO get dialog from the server and delete history from last message identifier
   }
 
-  bool allow_error = d->messages == nullptr;
+  bool allow_error = d->messages.empty();
   auto old_order = d->order;
 
   delete_all_dialog_messages(d, remove_from_dialog_list, true);
@@ -11610,53 +11614,56 @@ void MessagesManager::delete_all_call_messages_on_server(bool revoke, uint64 log
                                             get_erase_log_event_promise(log_event_id, std::move(promise)));
 }
 
-void MessagesManager::find_messages(const Message *m, vector<MessageId> &message_ids,
+void MessagesManager::find_messages(const Dialog *d, const OrderedMessage *ordered_message,
+                                    vector<MessageId> &message_ids,
                                     const std::function<bool(const Message *)> &condition) {
-  if (m == nullptr) {
+  if (ordered_message == nullptr) {
     return;
   }
 
-  find_messages(m->left.get(), message_ids, condition);
+  find_messages(d, ordered_message->left.get(), message_ids, condition);
 
-  if (condition(m)) {
-    message_ids.push_back(m->message_id);
+  if (condition(get_message(d, ordered_message->message_id))) {
+    message_ids.push_back(ordered_message->message_id);
   }
 
-  find_messages(m->right.get(), message_ids, condition);
+  find_messages(d, ordered_message->right.get(), message_ids, condition);
 }
 
-void MessagesManager::find_old_messages(const Message *m, MessageId max_message_id, vector<MessageId> &message_ids) {
-  if (m == nullptr) {
+void MessagesManager::find_old_messages(const OrderedMessage *ordered_message, MessageId max_message_id,
+                                        vector<MessageId> &message_ids) {
+  if (ordered_message == nullptr) {
     return;
   }
 
-  find_old_messages(m->left.get(), max_message_id, message_ids);
+  find_old_messages(ordered_message->left.get(), max_message_id, message_ids);
 
-  if (m->message_id <= max_message_id) {
-    message_ids.push_back(m->message_id);
+  if (ordered_message->message_id <= max_message_id) {
+    message_ids.push_back(ordered_message->message_id);
 
-    find_old_messages(m->right.get(), max_message_id, message_ids);
+    find_old_messages(ordered_message->right.get(), max_message_id, message_ids);
   }
 }
 
-void MessagesManager::find_newer_messages(const Message *m, MessageId min_message_id, vector<MessageId> &message_ids) {
-  if (m == nullptr) {
+void MessagesManager::find_newer_messages(const OrderedMessage *ordered_message, MessageId min_message_id,
+                                          vector<MessageId> &message_ids) {
+  if (ordered_message == nullptr) {
     return;
   }
 
-  if (m->message_id > min_message_id) {
-    find_newer_messages(m->left.get(), min_message_id, message_ids);
+  if (ordered_message->message_id > min_message_id) {
+    find_newer_messages(ordered_message->left.get(), min_message_id, message_ids);
 
-    message_ids.push_back(m->message_id);
+    message_ids.push_back(ordered_message->message_id);
   }
 
-  find_newer_messages(m->right.get(), min_message_id, message_ids);
+  find_newer_messages(ordered_message->right.get(), min_message_id, message_ids);
 }
 
-void MessagesManager::find_unloadable_messages(const Dialog *d, int32 unload_before_date, const Message *m,
-                                               vector<MessageId> &message_ids,
+void MessagesManager::find_unloadable_messages(const Dialog *d, int32 unload_before_date,
+                                               const OrderedMessage *ordered_message, vector<MessageId> &message_ids,
                                                bool &has_left_to_unload_messages) const {
-  if (m == nullptr) {
+  if (ordered_message == nullptr) {
     return;
   }
   if (message_ids.size() >= MAX_UNLOADED_MESSAGES) {
@@ -11664,11 +11671,14 @@ void MessagesManager::find_unloadable_messages(const Dialog *d, int32 unload_bef
     return;
   }
 
-  find_unloadable_messages(d, unload_before_date, m->left.get(), message_ids, has_left_to_unload_messages);
+  find_unloadable_messages(d, unload_before_date, ordered_message->left.get(), message_ids,
+                           has_left_to_unload_messages);
 
+  const Message *m = get_message(d, ordered_message->message_id);
+  CHECK(m != nullptr);
   if (can_unload_message(d, m)) {
     if (m->last_access_date <= unload_before_date) {
-      message_ids.push_back(m->message_id);
+      message_ids.push_back(ordered_message->message_id);
     } else {
       has_left_to_unload_messages = true;
     }
@@ -11679,7 +11689,8 @@ void MessagesManager::find_unloadable_messages(const Dialog *d, int32 unload_bef
     return;
   }
 
-  find_unloadable_messages(d, unload_before_date, m->right.get(), message_ids, has_left_to_unload_messages);
+  find_unloadable_messages(d, unload_before_date, ordered_message->right.get(), message_ids,
+                           has_left_to_unload_messages);
 }
 
 void MessagesManager::delete_dialog_messages_by_sender(DialogId dialog_id, DialogId sender_dialog_id,
@@ -11738,9 +11749,10 @@ void MessagesManager::delete_dialog_messages_by_sender(DialogId dialog_id, Dialo
   }
 
   vector<MessageId> message_ids;
-  find_messages(d->messages.get(), message_ids, [sender_dialog_id, channel_status, is_bot](const Message *m) {
-    return sender_dialog_id == get_message_sender(m) && can_delete_channel_message(channel_status, m, is_bot);
-  });
+  find_messages(
+      d, d->ordered_messages.get(), message_ids, [sender_dialog_id, channel_status, is_bot](const Message *m) {
+        return sender_dialog_id == get_message_sender(m) && can_delete_channel_message(channel_status, m, is_bot);
+      });
 
   delete_dialog_messages(d, message_ids, false, DELETE_MESSAGE_USER_REQUEST_SOURCE);
 
@@ -11850,7 +11862,7 @@ void MessagesManager::delete_dialog_messages_by_date(DialogId dialog_id, int32 m
   // TODO delete in database by dates
 
   vector<MessageId> message_ids;
-  find_messages_by_date(d->messages.get(), min_date, max_date, message_ids);
+  find_messages_by_date(d, d->ordered_messages.get(), min_date, max_date, message_ids);
 
   delete_dialog_messages(d, message_ids, false, DELETE_MESSAGE_USER_REQUEST_SOURCE);
 
@@ -11948,7 +11960,7 @@ void MessagesManager::unload_dialog(DialogId dialog_id) {
 
   vector<MessageId> to_unload_message_ids;
   bool has_left_to_unload_messages = false;
-  find_unloadable_messages(d, G()->unix_time_cached() - get_unload_dialog_delay() + 2, d->messages.get(),
+  find_unloadable_messages(d, G()->unix_time_cached() - get_unload_dialog_delay() + 2, d->ordered_messages.get(),
                            to_unload_message_ids, has_left_to_unload_messages);
 
   vector<int64> unloaded_message_ids;
@@ -12028,7 +12040,7 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
   }
 
   vector<int64> deleted_message_ids;
-  do_delete_all_dialog_messages(d, d->messages, is_permanently_deleted, deleted_message_ids);
+  do_delete_all_dialog_messages(d, is_permanently_deleted, deleted_message_ids);
   delete_all_dialog_messages_from_database(d, MessageId::max(), "delete_all_dialog_messages 3");
   if (is_permanently_deleted) {
     for (auto id : deleted_message_ids) {
@@ -12148,7 +12160,7 @@ void MessagesManager::read_all_dialog_mentions(DialogId dialog_id, MessageId top
   }
 
   vector<MessageId> message_ids;
-  find_messages(d->messages.get(), message_ids, [](const Message *m) { return m->contains_unread_mention; });
+  find_messages(d, d->ordered_messages.get(), message_ids, [](const Message *m) { return m->contains_unread_mention; });
 
   LOG(INFO) << "Found " << message_ids.size() << " messages with unread mentions in memory";
   bool is_update_sent = false;
@@ -12248,7 +12260,7 @@ void MessagesManager::read_all_dialog_reactions(DialogId dialog_id, MessageId to
   }
 
   vector<MessageId> message_ids;
-  find_messages(d->messages.get(), message_ids,
+  find_messages(d, d->ordered_messages.get(), message_ids,
                 [this, dialog_id](const Message *m) { return has_unread_message_reactions(dialog_id, m); });
 
   LOG(INFO) << "Found " << message_ids.size() << " messages with unread reactions in memory";
@@ -12386,6 +12398,7 @@ bool MessagesManager::read_message_content(Dialog *d, Message *m, bool is_local_
 }
 
 bool MessagesManager::has_incoming_notification(DialogId dialog_id, const Message *m) const {
+  CHECK(m != nullptr);
   if (m->is_from_scheduled) {
     return true;
   }
@@ -12402,7 +12415,8 @@ int32 MessagesManager::calc_new_unread_count_from_last_unread(Dialog *d, Message
 
   int32 unread_count = type == MessageType::Server ? d->server_unread_count : d->local_unread_count;
   while (*it != nullptr && (*it)->message_id > d->last_read_inbox_message_id) {
-    if (has_incoming_notification(d->dialog_id, *it) && (*it)->message_id.get_type() == type) {
+    auto message_id = (*it)->message_id;
+    if (message_id.get_type() == type && has_incoming_notification(d->dialog_id, get_message(d, message_id))) {
       unread_count--;
     }
     --it;
@@ -12421,7 +12435,8 @@ int32 MessagesManager::calc_new_unread_count_from_the_end(Dialog *d, MessageId m
   int32 unread_count = 0;
   MessagesConstIterator it(d, MessageId::max());
   while (*it != nullptr && (*it)->message_id > max_message_id) {
-    if (has_incoming_notification(d->dialog_id, *it) && (*it)->message_id.get_type() == type) {
+    auto message_id = (*it)->message_id;
+    if (message_id.get_type() == type && has_incoming_notification(d->dialog_id, get_message(d, message_id))) {
       unread_count++;
     }
     --it;
@@ -13056,7 +13071,7 @@ void MessagesManager::set_dialog_max_unavailable_message_id(DialogId dialog_id, 
     d->max_unavailable_message_id = max_unavailable_message_id;
 
     vector<MessageId> message_ids;
-    find_old_messages(d->messages.get(), max_unavailable_message_id, message_ids);
+    find_old_messages(d->ordered_messages.get(), max_unavailable_message_id, message_ids);
 
     vector<int64> deleted_message_ids;
     bool need_update_dialog_pos = false;
@@ -13322,7 +13337,8 @@ void MessagesManager::ttl_read_history_impl(DialogId dialog_id, bool is_outgoing
   CHECK(d != nullptr);
   auto now = Time::now();
   for (auto it = MessagesIterator(d, from_message_id); *it && (*it)->message_id >= till_message_id; --it) {
-    auto *m = *it;
+    auto *m = get_message(d, (*it)->message_id);
+    CHECK(m != nullptr);
     if (m->is_outgoing == is_outgoing) {
       ttl_on_view(d, m, view_date, now);
     }
@@ -14062,7 +14078,7 @@ void MessagesManager::read_secret_chat_outbox_inner(DialogId dialog_id, int32 up
   CHECK(d != nullptr);
 
   auto end = MessagesConstIterator(d, MessageId::max());
-  while (*end && ((*end)->date > up_to_date || (*end)->message_id.is_yet_unsent())) {
+  while (*end && (get_message(d, (*end)->message_id)->date > up_to_date || (*end)->message_id.is_yet_unsent())) {
     --end;
   }
   if (!*end) {
@@ -14948,7 +14964,6 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
   if (dialog_id.get_type() == DialogType::Channel && !have_input_peer(dialog_id, AccessRights::Read)) {
     auto p = delete_message(d, message_id, false, &need_update_dialog_pos, "get a message in inaccessible chat");
     CHECK(p.get() == m);
-    // CHECK(d->messages == nullptr);
     send_update_delete_messages(dialog_id, {p->message_id.get()}, false);
     // don't need to update dialog pos
     return FullMessageId();
@@ -15053,7 +15068,7 @@ void MessagesManager::remove_dialog_newer_messages(Dialog *d, MessageId from_mes
   invalidate_message_indexes(d);
 
   vector<MessageId> to_delete_message_ids;
-  find_newer_messages(d->messages.get(), from_message_id, to_delete_message_ids);
+  find_newer_messages(d->ordered_messages.get(), from_message_id, to_delete_message_ids);
   td::remove_if(to_delete_message_ids, [](MessageId message_id) { return message_id.is_yet_unsent(); });
   if (!to_delete_message_ids.empty()) {
     LOG(INFO) << "Delete " << format::as_array(to_delete_message_ids) << " newer than " << from_message_id << " in "
@@ -15441,7 +15456,7 @@ void MessagesManager::remove_dialog_mention_notifications(Dialog *d) {
 
   vector<MessageId> message_ids;
   FlatHashSet<NotificationId, NotificationIdHash> removed_notification_ids_set;
-  find_messages(d->messages.get(), message_ids, [](const Message *m) { return m->contains_unread_mention; });
+  find_messages(d, d->ordered_messages.get(), message_ids, [](const Message *m) { return m->contains_unread_mention; });
   VLOG(notifications) << "Found unread mentions in " << message_ids;
   for (auto &message_id : message_ids) {
     auto m = get_message(d, message_id);
@@ -16226,7 +16241,7 @@ void MessagesManager::fix_dialog_last_notification_id(Dialog *d, bool from_menti
                       << d->dialog_id << " from " << message_id << "/" << group_info.last_notification_id;
   if (*it != nullptr && ((*it)->message_id == message_id || (*it)->have_next)) {
     while (*it != nullptr) {
-      const Message *m = *it;
+      const Message *m = get_message(d, (*it)->message_id);
       if (is_from_mention_notification_group(m) == from_mentions && m->notification_id.is_valid() &&
           is_message_notification_active(d, m) && m->message_id != message_id) {
         bool is_fixed = set_dialog_last_notification(d->dialog_id, group_info, m->date, m->notification_id,
@@ -16301,14 +16316,15 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
   }
 
   FullMessageId full_message_id(d->dialog_id, message_id);
-  unique_ptr<Message> *v = treap_find_message(&d->messages, message_id);
-  if (*v == nullptr) {
-    LOG(INFO) << message_id << " is not found in " << d->dialog_id << " to be deleted from " << source;
+  const Message *m = get_message(d, message_id);
+  if (m == nullptr) {
     if (only_from_memory) {
       return nullptr;
     }
 
-    if (get_message_force(d, message_id, "do_delete_message") == nullptr) {
+    LOG(INFO) << message_id << " is not found in " << d->dialog_id << " to be deleted from " << source;
+    m = get_message_force(d, message_id, "do_delete_message");
+    if (m == nullptr) {
       // currently there may be a race between add_message_to_database and get_message_force,
       // so delete a message from database just in case
       delete_message_from_database(d, message_id, nullptr, is_permanently_deleted);
@@ -16338,12 +16354,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
       */
       return nullptr;
     }
-    v = treap_find_message(&d->messages, message_id);
-    CHECK(*v != nullptr);
   }
-
-  const Message *m = v->get();
-  CHECK(m->message_id == message_id);
 
   if (only_from_memory && !can_unload_message(d, m)) {
     return nullptr;
@@ -16359,8 +16370,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
 
   bool need_get_history = false;
   if (!only_from_memory) {
-    LOG(INFO) << "Deleting " << full_message_id << " with have_previous = " << m->have_previous
-              << " and have_next = " << m->have_next << " from " << source;
+    LOG(INFO) << "Deleting " << full_message_id << " from " << source;
 
     delete_message_from_database(d, message_id, m, is_permanently_deleted);
 
@@ -16464,7 +16474,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
   if ((*message_it)->have_previous && (only_from_memory || !(*message_it)->have_next)) {
     auto it = message_it;
     --it;
-    Message *prev_m = *it;
+    OrderedMessage *prev_m = *it;
     if (prev_m != nullptr) {
       prev_m->have_next = false;
     } else {
@@ -16475,7 +16485,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
   if ((*message_it)->have_next && (only_from_memory || !(*message_it)->have_previous)) {
     auto it = message_it;
     ++it;
-    Message *next_m = *it;
+    OrderedMessage *next_m = *it;
     if (next_m != nullptr) {
       next_m->have_previous = false;
     } else {
@@ -16483,7 +16493,11 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
     }
   }
 
-  auto result = treap_delete_message(v);
+  auto result = std::move(d->messages[message_id]);
+  CHECK(m == result.get());
+  d->messages.erase(message_id);
+
+  treap_delete_message(treap_find_message(&d->ordered_messages, message_id));
 
   d->being_deleted_message_id = MessageId();
 
@@ -16698,26 +16712,20 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_messag
   return result;
 }
 
-void MessagesManager::do_delete_all_dialog_messages(Dialog *d, unique_ptr<Message> &message,
-                                                    bool is_permanently_deleted, vector<int64> &deleted_message_ids) {
-  if (message == nullptr) {
-    return;
-  }
-  const Message *m = message.get();
-  MessageId message_id = m->message_id;
+void MessagesManager::do_delete_all_dialog_messages(Dialog *d, bool is_permanently_deleted,
+                                                    vector<int64> &deleted_message_ids) {
+  d->messages.foreach([&](const MessageId &message_id, unique_ptr<Message> &message) {
+    Message *m = message.get();
 
-  LOG(INFO) << "Delete " << message_id;
-  deleted_message_ids.push_back(message_id.get());
+    LOG(INFO) << "Delete " << message_id;
+    deleted_message_ids.push_back(message_id.get());
 
-  do_delete_all_dialog_messages(d, message->right, is_permanently_deleted, deleted_message_ids);
-  do_delete_all_dialog_messages(d, message->left, is_permanently_deleted, deleted_message_ids);
+    delete_active_live_location(d->dialog_id, m);
+    remove_message_file_sources(d->dialog_id, m);
 
-  delete_active_live_location(d->dialog_id, m);
-  remove_message_file_sources(d->dialog_id, m);
-
-  on_message_deleted(d, message.get(), is_permanently_deleted, "do_delete_all_dialog_messages");
-
-  message = nullptr;
+    on_message_deleted(d, m, is_permanently_deleted, "do_delete_all_dialog_messages");
+  });
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), d->messages, d->ordered_messages);
 }
 
 bool MessagesManager::have_dialog(DialogId dialog_id) const {
@@ -17685,7 +17693,7 @@ void MessagesManager::block_message_sender_from_replies(MessageId message_id, bo
   }
   vector<MessageId> message_ids;
   if (need_delete_all_messages && sender_user_id.is_valid()) {
-    find_messages(d->messages.get(), message_ids, [sender_user_id](const Message *m) {
+    find_messages(d, d->ordered_messages.get(), message_ids, [sender_user_id](const Message *m) {
       return !m->is_outgoing && m->forward_info != nullptr && m->forward_info->sender_user_id == sender_user_id;
     });
     CHECK(td::contains(message_ids, message_id));
@@ -20507,14 +20515,14 @@ void MessagesManager::open_dialog(Dialog *d) {
   d->was_opened = true;
 
   auto min_message_id = MessageId(ServerMessageId(1));
-  if (d->last_message_id == MessageId() && d->last_read_outbox_message_id < min_message_id && d->messages != nullptr &&
-      d->messages->message_id < min_message_id) {
-    Message *m = d->messages.get();
-    while (m->right != nullptr) {
-      m = m->right.get();
+  if (d->last_message_id == MessageId() && d->last_read_outbox_message_id < min_message_id &&
+      d->ordered_messages != nullptr && d->ordered_messages->message_id < min_message_id) {
+    OrderedMessage *ordered_message = d->ordered_messages.get();
+    while (ordered_message->right != nullptr) {
+      ordered_message = ordered_message->right.get();
     }
-    if (m->message_id < min_message_id) {
-      read_history_inbox(dialog_id, m->message_id, -1, "open_dialog");
+    if (ordered_message->message_id < min_message_id) {
+      read_history_inbox(dialog_id, ordered_message->message_id, -1, "open_dialog");
     }
   }
 
@@ -21103,8 +21111,8 @@ tl_object_ptr<td_api::messages> MessagesManager::get_dialog_history(DialogId dia
     bool have_a_gap = false;
     if (*p == nullptr) {
       // there is no gap if from_message_id is less than first message in the dialog
-      if (left_tries == 0 && d->messages != nullptr && offset < 0) {
-        const Message *cur = d->messages.get();
+      if (left_tries == 0 && d->ordered_messages != nullptr && offset < 0) {
+        const OrderedMessage *cur = d->ordered_messages.get();
         while (cur->left != nullptr) {
           cur = cur->left.get();
         }
@@ -21159,8 +21167,8 @@ tl_object_ptr<td_api::messages> MessagesManager::get_dialog_history(DialogId dia
   vector<tl_object_ptr<td_api::message>> messages;
   if (*p != nullptr && offset == 0) {
     while (*p != nullptr && messages.size() < static_cast<size_t>(limit)) {
-      messages.push_back(get_message_object(dialog_id, *p, "get_dialog_history"));
       from_message_id = (*p)->message_id;
+      messages.push_back(get_message_object(dialog_id, get_message(d, from_message_id), "get_dialog_history"));
       from_the_end = false;
       --p;
     }
@@ -22839,8 +22847,9 @@ int64 MessagesManager::get_dialog_message_by_date(DialogId dialog_id, int32 date
   } while (random_id == 0 || get_dialog_message_by_date_results_.count(random_id) > 0);
   get_dialog_message_by_date_results_[random_id];  // reserve place for result
 
-  auto message_id = find_message_by_date(d->messages.get(), date);
-  if (message_id.is_valid() && (message_id == d->last_message_id || get_message(d, message_id)->have_next)) {
+  auto message_id = find_message_by_date(d, d->ordered_messages.get(), date);
+  if (message_id.is_valid() &&
+      (message_id == d->last_message_id || (*MessagesConstIterator(d, message_id))->have_next)) {
     get_dialog_message_by_date_results_[random_id] = {dialog_id, message_id};
     promise.set_value(Unit());
     return random_id;
@@ -22906,37 +22915,41 @@ void MessagesManager::on_get_affected_history(DialogId dialog_id, AffectedHistor
   }
 }
 
-MessageId MessagesManager::find_message_by_date(const Message *m, int32 date) {
-  if (m == nullptr) {
+MessageId MessagesManager::find_message_by_date(const Dialog *d, const OrderedMessage *ordered_message, int32 date) {
+  if (ordered_message == nullptr) {
     return MessageId();
   }
 
+  const Message *m = get_message(d, ordered_message->message_id);
+  CHECK(m != nullptr);
   if (m->date > date) {
-    return find_message_by_date(m->left.get(), date);
+    return find_message_by_date(d, ordered_message->left.get(), date);
   }
 
-  auto message_id = find_message_by_date(m->right.get(), date);
+  auto message_id = find_message_by_date(d, ordered_message->right.get(), date);
   if (message_id.is_valid()) {
     return message_id;
   }
 
-  return m->message_id;
+  return ordered_message->message_id;
 }
 
-void MessagesManager::find_messages_by_date(const Message *m, int32 min_date, int32 max_date,
-                                            vector<MessageId> &message_ids) {
-  if (m == nullptr) {
+void MessagesManager::find_messages_by_date(const Dialog *d, const OrderedMessage *ordered_message, int32 min_date,
+                                            int32 max_date, vector<MessageId> &message_ids) {
+  if (ordered_message == nullptr) {
     return;
   }
 
+  const Message *m = get_message(d, ordered_message->message_id);
+  CHECK(m != nullptr);
   if (m->date >= min_date) {
-    find_messages_by_date(m->left.get(), min_date, max_date, message_ids);
+    find_messages_by_date(d, ordered_message->left.get(), min_date, max_date, message_ids);
     if (m->date <= max_date) {
       message_ids.push_back(m->message_id);
     }
   }
   if (m->date <= max_date) {
-    find_messages_by_date(m->right.get(), min_date, max_date, message_ids);
+    find_messages_by_date(d, ordered_message->right.get(), min_date, max_date, message_ids);
   }
 }
 
@@ -22950,7 +22963,7 @@ void MessagesManager::on_get_dialog_message_by_date_from_database(DialogId dialo
   if (result.is_ok()) {
     Message *m = on_get_message_from_database(d, result.ok(), false, "on_get_dialog_message_by_date_from_database");
     if (m != nullptr) {
-      auto message_id = find_message_by_date(d->messages.get(), date);
+      auto message_id = find_message_by_date(d, d->ordered_messages.get(), date);
       if (!message_id.is_valid()) {
         LOG(ERROR) << "Failed to find " << m->message_id << " in " << dialog_id << " by date " << date;
         message_id = m->message_id;
@@ -22974,7 +22987,7 @@ void MessagesManager::get_dialog_message_by_date_from_server(const Dialog *d, in
       return promise.set_value(Unit());
     }
 
-    auto message_id = find_message_by_date(d->messages.get(), date);
+    auto message_id = find_message_by_date(d, d->ordered_messages.get(), date);
     if (message_id.is_valid()) {
       get_dialog_message_by_date_results_[random_id] = {d->dialog_id, message_id};
     }
@@ -23012,7 +23025,7 @@ void MessagesManager::on_get_dialog_message_by_date_success(DialogId dialog_id, 
       if (result != FullMessageId()) {
         const Dialog *d = get_dialog(dialog_id);
         CHECK(d != nullptr);
-        auto message_id = find_message_by_date(d->messages.get(), date);
+        auto message_id = find_message_by_date(d, d->ordered_messages.get(), date);
         if (!message_id.is_valid()) {
           LOG(ERROR) << "Failed to find " << result.get_message_id() << " in " << dialog_id << " by date " << date;
           message_id = result.get_message_id();
@@ -23390,7 +23403,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
     return;
   }
 
-  if (messages.empty() && from_the_end && d->messages == nullptr) {
+  if (messages.empty() && from_the_end && d->messages.empty()) {
     if (d->have_full_history) {
       set_dialog_is_empty(d, "on_get_history_from_database empty");
     } else if (d->last_database_message_id.is_valid()) {
@@ -26653,7 +26666,7 @@ bool MessagesManager::is_deleted_secret_chat(const Dialog *d) const {
     return false;
   }
 
-  if (d->order != DEFAULT_ORDER || d->messages != nullptr) {
+  if (d->order != DEFAULT_ORDER || !d->messages.empty()) {
     return false;
   }
 
@@ -30411,7 +30424,7 @@ void MessagesManager::send_update_delete_messages(DialogId dialog_id, vector<int
 
 void MessagesManager::send_update_new_chat(Dialog *d) {
   CHECK(d != nullptr);
-  CHECK(d->messages == nullptr);
+  CHECK(d->messages.empty());
   if ((d->dialog_id.get_type() == DialogType::User || d->dialog_id.get_type() == DialogType::SecretChat) &&
       td_->auth_manager_->is_bot()) {
     (void)get_dialog_photo(d->dialog_id);  // to apply pending user photo
@@ -32686,10 +32699,12 @@ void MessagesManager::on_dialog_linked_channel_updated(DialogId dialog_id, Chann
   }
 
   vector<MessageId> message_ids;
-  find_messages(d->messages.get(), message_ids, [old_linked_channel_id, new_linked_channel_id](const Message *m) {
-    return !m->reply_info.is_empty() && m->reply_info.channel_id_.is_valid() &&
-           (m->reply_info.channel_id_ == old_linked_channel_id || m->reply_info.channel_id_ == new_linked_channel_id);
-  });
+  find_messages(d, d->ordered_messages.get(), message_ids,
+                [old_linked_channel_id, new_linked_channel_id](const Message *m) {
+                  return !m->reply_info.is_empty() && m->reply_info.channel_id_.is_valid() &&
+                         (m->reply_info.channel_id_ == old_linked_channel_id ||
+                          m->reply_info.channel_id_ == new_linked_channel_id);
+                });
   LOG(INFO) << "Found discussion messages " << message_ids;
   for (auto message_id : message_ids) {
     send_update_message_interaction_info(dialog_id, get_message(d, message_id));
@@ -34155,7 +34170,7 @@ void MessagesManager::unpin_all_dialog_messages(DialogId dialog_id, MessageId to
 
   if (!td_->auth_manager_->is_bot()) {
     vector<MessageId> message_ids;
-    find_messages(d->messages.get(), message_ids, [top_thread_message_id](const Message *m) {
+    find_messages(d, d->ordered_messages.get(), message_ids, [top_thread_message_id](const Message *m) {
       return m->is_pinned && (!top_thread_message_id.is_valid() ||
                               (m->is_topic_message && m->top_thread_message_id == top_thread_message_id));
     });
@@ -34226,13 +34241,8 @@ void MessagesManager::unpin_all_dialog_messages_on_server(DialogId dialog_id, ui
                                             get_erase_log_event_promise(log_event_id, std::move(promise)));
 }
 
-unique_ptr<MessagesManager::Message> *MessagesManager::treap_find_message(unique_ptr<Message> *v,
-                                                                          MessageId message_id) {
-  return const_cast<unique_ptr<Message> *>(treap_find_message(static_cast<const unique_ptr<Message> *>(v), message_id));
-}
-
-const unique_ptr<MessagesManager::Message> *MessagesManager::treap_find_message(const unique_ptr<Message> *v,
-                                                                                MessageId message_id) {
+unique_ptr<MessagesManager::OrderedMessage> *MessagesManager::treap_find_message(unique_ptr<OrderedMessage> *v,
+                                                                                 MessageId message_id) {
   while (*v != nullptr) {
     if ((*v)->message_id.get() < message_id.get()) {
       v = &(*v)->right;
@@ -34245,7 +34255,8 @@ const unique_ptr<MessagesManager::Message> *MessagesManager::treap_find_message(
   return v;
 }
 
-MessagesManager::Message *MessagesManager::treap_insert_message(unique_ptr<Message> *v, unique_ptr<Message> message) {
+MessagesManager::OrderedMessage *MessagesManager::treap_insert_message(unique_ptr<OrderedMessage> *v,
+                                                                       unique_ptr<OrderedMessage> message) {
   auto message_id = message->message_id;
   while (*v != nullptr && (*v)->random_y >= message->random_y) {
     if ((*v)->message_id.get() < message_id.get()) {
@@ -34257,10 +34268,10 @@ MessagesManager::Message *MessagesManager::treap_insert_message(unique_ptr<Messa
     }
   }
 
-  unique_ptr<Message> *left = &message->left;
-  unique_ptr<Message> *right = &message->right;
+  unique_ptr<OrderedMessage> *left = &message->left;
+  unique_ptr<OrderedMessage> *right = &message->right;
 
-  unique_ptr<Message> cur = std::move(*v);
+  unique_ptr<OrderedMessage> cur = std::move(*v);
   while (cur != nullptr) {
     if (cur->message_id.get() < message_id.get()) {
       *left = std::move(cur);
@@ -34278,10 +34289,11 @@ MessagesManager::Message *MessagesManager::treap_insert_message(unique_ptr<Messa
   return v->get();
 }
 
-unique_ptr<MessagesManager::Message> MessagesManager::treap_delete_message(unique_ptr<Message> *v) {
-  unique_ptr<Message> result = std::move(*v);
-  unique_ptr<Message> left = std::move(result->left);
-  unique_ptr<Message> right = std::move(result->right);
+unique_ptr<MessagesManager::OrderedMessage> MessagesManager::treap_delete_message(unique_ptr<OrderedMessage> *v) {
+  unique_ptr<OrderedMessage> result = std::move(*v);
+  CHECK(result != nullptr);
+  unique_ptr<OrderedMessage> left = std::move(result->left);
+  unique_ptr<OrderedMessage> right = std::move(result->right);
 
   while (left != nullptr || right != nullptr) {
     if (left == nullptr || (right != nullptr && right->random_y > left->random_y)) {
@@ -34323,11 +34335,9 @@ const MessagesManager::Message *MessagesManager::get_message(const Dialog *d, Me
       }
     }
   } else {
-    if (message_id.is_valid()) {
-      result = treap_find_message(&d->messages, message_id)->get();
-      if (result != nullptr) {
-        result->last_access_date = G()->unix_time_cached();
-      }
+    result = d->messages.get_pointer(message_id);
+    if (result != nullptr) {
+      result->last_access_date = G()->unix_time_cached();
     }
   }
   LOG(INFO) << "Search for " << message_id << " in " << d->dialog_id << " found " << result;
@@ -34455,13 +34465,15 @@ MessagesManager::Message *MessagesManager::on_get_message_from_database(Dialog *
   return result;
 }
 
-int32 MessagesManager::get_random_y(MessageId message_id) {
-  return static_cast<int32>(static_cast<uint32>(message_id.get() * 2101234567u));
+unique_ptr<MessagesManager::OrderedMessage> MessagesManager::create_ordered_message(MessageId message_id) {
+  auto result = make_unique<OrderedMessage>();
+  result->message_id = message_id;
+  result->random_y = static_cast<int32>(static_cast<uint32>(message_id.get() * 2101234567u));
+  return result;
 }
 
 void MessagesManager::set_message_id(unique_ptr<Message> &message, MessageId message_id) {
   message->message_id = message_id;
-  message->random_y = get_random_y(message_id);
 }
 
 MessagesManager::Message *MessagesManager::add_message_to_dialog(DialogId dialog_id, unique_ptr<Message> message,
@@ -34859,7 +34871,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     on_dialog_updated(dialog_id, "drop have_full_history");
   }
 
-  if (d->open_count == 0 && d->messages != nullptr && is_message_unload_enabled() && !d->has_unload_timeout) {
+  if (d->open_count == 0 && !d->messages.empty() && is_message_unload_enabled() && !d->has_unload_timeout) {
     LOG(INFO) << "Schedule unload of " << dialog_id;
     pending_unload_dialog_timeout_.add_timeout_in(dialog_id.get(), get_next_unload_dialog_delay(d));
     d->has_unload_timeout = true;
@@ -34965,7 +34977,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   bool is_attached = false;
   if (auto_attach) {
     auto it = MessagesIterator(d, message_id);
-    Message *previous_message = *it;
+    OrderedMessage *previous_message = *it;
     if (previous_message != nullptr) {
       auto previous_message_id = previous_message->message_id;
       CHECK(previous_message_id < message_id);
@@ -34993,8 +35005,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
     if (!is_attached && !message_id.is_yet_unsent()) {
       // message may be attached to the next message if there is no previous message
-      Message *cur = d->messages.get();
-      Message *next_message = nullptr;
+      OrderedMessage *cur = d->ordered_messages.get();
+      OrderedMessage *next_message = nullptr;
       while (cur != nullptr) {
         if (cur->message_id < message_id) {
           cur = cur->right.get();
@@ -35221,7 +35233,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     cancel_dialog_action(dialog_id, m);
     update_has_outgoing_messages(dialog_id, m);
 
-    if (!td_->auth_manager_->is_bot() && d->messages == nullptr && !m->is_outgoing && dialog_id != get_my_dialog_id()) {
+    if (!td_->auth_manager_->is_bot() && d->messages.empty() && !m->is_outgoing && dialog_id != get_my_dialog_id()) {
       switch (dialog_type) {
         case DialogType::User:
           td_->contacts_manager_->invalidate_user_full(dialog_id.get_user_id());
@@ -35250,21 +35262,20 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     td_->forum_topic_manager_->on_topic_message_count_changed(dialog_id, m->top_thread_message_id, +1);
   }
 
-  Message *result_message = treap_insert_message(&d->messages, std::move(message));
-  CHECK(result_message != nullptr);
-  CHECK(result_message == m);
-  CHECK(d->messages != nullptr);
+  Message *result_message = message.get();
+  d->messages.set(message_id, std::move(message));
 
+  OrderedMessage *ordered_message = treap_insert_message(&d->ordered_messages, create_ordered_message(message_id));
   if (!is_attached) {
     if (have_next) {
       CHECK(!have_previous);
-      attach_message_to_next(d, m->message_id, source);
+      attach_message_to_next(d, message_id, source);
     } else if (have_previous) {
-      attach_message_to_previous(d, m->message_id, source);
+      attach_message_to_previous(d, message_id, source);
     }
   } else {
-    result_message->have_previous = have_previous;
-    result_message->have_next = have_next;
+    ordered_message->have_previous = have_previous;
+    ordered_message->have_next = have_next;
   }
 
   if (m->message_id.is_yet_unsent() && !m->message_id.is_scheduled() && m->top_thread_message_id.is_valid() &&
@@ -35877,7 +35888,7 @@ void MessagesManager::attach_message_to_previous(Dialog *d, MessageId message_id
   CHECK(d != nullptr);
   CHECK(message_id.is_valid());
   MessagesIterator it(d, message_id);
-  Message *m = *it;
+  OrderedMessage *m = *it;
   CHECK(m != nullptr);
   CHECK(m->message_id == message_id);
   if (m->have_previous) {
@@ -35899,7 +35910,7 @@ void MessagesManager::attach_message_to_next(Dialog *d, MessageId message_id, co
   CHECK(d != nullptr);
   CHECK(message_id.is_valid());
   MessagesIterator it(d, message_id);
-  Message *m = *it;
+  OrderedMessage *m = *it;
   CHECK(m != nullptr);
   CHECK(m->message_id == message_id);
   if (m->have_next) {
@@ -35925,7 +35936,6 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
   LOG_CHECK(old_message->message_id == new_message->message_id)
       << d->dialog_id << ' ' << old_message->message_id << ' ' << new_message->message_id << ' '
       << is_message_in_dialog;
-  CHECK(old_message->random_y == new_message->random_y);
   CHECK(need_update_dialog_pos != nullptr);
 
   DialogId dialog_id = d->dialog_id;
@@ -36792,7 +36802,14 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
     d->is_channel_difference_finished = true;
   }
 
-  unique_ptr<Message> last_database_message = std::move(d->messages);
+  unique_ptr<Message> last_database_message;
+  if (!d->messages.empty()) {
+    d->messages.foreach([&](const MessageId &message_id, unique_ptr<Message> &message) {
+      CHECK(last_database_message == nullptr);
+      last_database_message = std::move(message);
+    });
+    d->messages = {};
+  }
   MessageId last_database_message_id = d->last_database_message_id;
   d->last_database_message_id = MessageId();
   int64 order = d->order;
@@ -36862,9 +36879,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
 
   being_added_new_dialog_id_ = DialogId();
 
-  LOG_CHECK(d->messages == nullptr) << d->messages->message_id << ' ' << d->last_message_id << ' '
-                                    << d->last_database_message_id << ' '
-                                    << d->debug_set_dialog_last_database_message_id << ' ' << d->messages->debug_source;
+  CHECK(d->messages.empty());
 
   fix_new_dialog(d, std::move(last_database_message), last_database_message_id, order, last_clear_history_date,
                  last_clear_history_message_id, default_join_group_call_as_dialog_id, default_send_message_as_dialog_id,
@@ -37233,24 +37248,13 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
                         << ", max_notification_message_id = " << d->notification_info->max_notification_message_id_;
   }
 
-  if (d->messages != nullptr) {
-    if (d->messages->message_id != last_message_id || d->messages->left != nullptr || d->messages->right != nullptr) {
-      auto common_data = PSTRING() << ' ' << last_message_id << ' ' << d->last_message_id << ' '
-                                   << d->last_database_message_id << ' ' << d->debug_set_dialog_last_database_message_id
-                                   << ' ' << d->messages->debug_source << ' ' << is_loaded_from_database << ' '
-                                   << source << ' ' << being_added_dialog_id_ << ' ' << being_added_new_dialog_id_
-                                   << ' ' << dialog_id << ' ' << d->is_channel_difference_finished << ' '
-                                   << debug_last_get_channel_difference_dialog_id_ << ' '
-                                   << debug_last_get_channel_difference_source_ << ' ' << G()->use_message_database();
-      LOG_CHECK(d->messages->message_id == last_message_id) << d->messages->message_id << common_data;
-      LOG_CHECK(d->messages->left == nullptr)
-          << d->messages->left->message_id << ' ' << d->messages->message_id << ' ' << d->messages->left->message_id
-          << ' ' << d->messages->left->debug_source << common_data;
-      LOG_CHECK(d->messages->right == nullptr)
-          << d->messages->right->message_id << ' ' << d->messages->message_id << ' ' << d->messages->right->message_id
-          << ' ' << d->messages->right->debug_source << common_data;
-    }
-  }
+  LOG_CHECK(d->messages.calc_size() <= 1)
+      << d->messages.calc_size() << ' ' << last_message_id << ' ' << d->last_message_id << ' '
+      << d->last_database_message_id << ' ' << d->debug_set_dialog_last_database_message_id << ' '
+      << is_loaded_from_database << ' ' << source << ' ' << being_added_dialog_id_ << ' ' << being_added_new_dialog_id_
+      << ' ' << dialog_id << ' ' << d->is_channel_difference_finished << ' '
+      << debug_last_get_channel_difference_dialog_id_ << ' ' << debug_last_get_channel_difference_source_ << ' '
+      << G()->use_message_database();
 
   // must be after update_dialog_pos, because uses d->order
   // must be after checks that dialog has at most one message, because read_history_inbox can load
@@ -37295,8 +37299,6 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
 bool MessagesManager::add_dialog_last_database_message(Dialog *d, unique_ptr<Message> &&last_database_message) {
   CHECK(d != nullptr);
   CHECK(last_database_message != nullptr);
-  CHECK(last_database_message->left == nullptr);
-  CHECK(last_database_message->right == nullptr);
 
   auto dialog_id = d->dialog_id;
   auto message_id = last_database_message->message_id;
@@ -37978,9 +37980,9 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
   if (d->default_send_message_as_dialog_id != dialog_id) {
     dependencies.add_message_sender_dependencies(d->default_send_message_as_dialog_id);
   }
-  if (d->messages != nullptr) {
-    add_message_dependencies(dependencies, d->messages.get());
-  }
+  d->messages.foreach([&](const MessageId &message_id, const unique_ptr<Message> &message) {
+    add_message_dependencies(dependencies, message.get());
+  });
   if (d->draft_message != nullptr) {
     add_formatted_text_dependencies(dependencies, &d->draft_message->input_message_text.text);
   }

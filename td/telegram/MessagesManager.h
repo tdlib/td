@@ -1139,10 +1139,20 @@ class MessagesManager final : public Actor {
     }
   };
 
-  // Do not forget to update MessagesManager::update_message and all make_unique<Message> when this class is changed
-  struct Message {
+  struct OrderedMessage {
     int32 random_y = 0;
 
+    bool have_previous = false;
+    bool have_next = false;
+
+    MessageId message_id;
+
+    unique_ptr<OrderedMessage> left;
+    unique_ptr<OrderedMessage> right;
+  };
+
+  // Do not forget to update MessagesManager::update_message and all make_unique<Message> when this class is changed
+  struct Message {
     MessageId message_id;
     UserId sender_user_id;
     DialogId sender_dialog_id;
@@ -1195,8 +1205,6 @@ class MessagesManager final : public Actor {
     bool hide_via_bot = false;              // for resend_message
     bool is_bot_start_message = false;      // for resend_message
 
-    bool have_previous = false;
-    bool have_next = false;
     bool from_database = false;
 
     bool has_get_message_views_query = false;
@@ -1249,9 +1257,6 @@ class MessagesManager final : public Actor {
     int32 last_edit_pts = 0;
 
     const char *debug_source = "null";
-
-    unique_ptr<Message> left;
-    unique_ptr<Message> right;
 
     mutable int32 last_access_date = 0;
     mutable bool is_update_sent = false;  // whether the message is known to the app
@@ -1447,7 +1452,8 @@ class MessagesManager final : public Actor {
 
     string client_data;
 
-    unique_ptr<Message> messages;
+    WaitFreeHashMap<MessageId, unique_ptr<Message>, MessageIdHash> messages;
+    unique_ptr<OrderedMessage> ordered_messages;
 
     unique_ptr<DialogScheduledMessages> scheduled_messages;
 
@@ -1579,13 +1585,13 @@ class MessagesManager final : public Actor {
   };
 
   class MessagesIteratorBase {
-    vector<const Message *> stack_;
+    vector<const OrderedMessage *> stack_;
 
    protected:
     MessagesIteratorBase() = default;
 
     // points iterator to message with greatest identifier which is less or equal than message_id
-    MessagesIteratorBase(const Message *root, MessageId message_id) {
+    MessagesIteratorBase(const OrderedMessage *root, MessageId message_id) {
       CHECK(!message_id.is_scheduled());
 
       size_t last_right_pos = 0;
@@ -1604,7 +1610,7 @@ class MessagesManager final : public Actor {
       stack_.resize(last_right_pos);
     }
 
-    const Message *operator*() const {
+    const OrderedMessage *operator*() const {
       return stack_.empty() ? nullptr : stack_.back();
     }
 
@@ -1621,7 +1627,7 @@ class MessagesManager final : public Actor {
         return;
       }
 
-      const Message *cur = stack_.back();
+      const OrderedMessage *cur = stack_.back();
       if (!cur->have_next) {
         stack_.clear();
         return;
@@ -1632,7 +1638,7 @@ class MessagesManager final : public Actor {
           if (stack_.empty()) {
             return;
           }
-          const Message *new_cur = stack_.back();
+          const OrderedMessage *new_cur = stack_.back();
           if (new_cur->left.get() == cur) {
             return;
           }
@@ -1652,7 +1658,7 @@ class MessagesManager final : public Actor {
         return;
       }
 
-      const Message *cur = stack_.back();
+      const OrderedMessage *cur = stack_.back();
       if (!cur->have_previous) {
         stack_.clear();
         return;
@@ -1663,7 +1669,7 @@ class MessagesManager final : public Actor {
           if (stack_.empty()) {
             return;
           }
-          const Message *new_cur = stack_.back();
+          const OrderedMessage *new_cur = stack_.back();
           if (new_cur->right.get() == cur) {
             return;
           }
@@ -1683,11 +1689,11 @@ class MessagesManager final : public Actor {
    public:
     MessagesIterator() = default;
 
-    MessagesIterator(Dialog *d, MessageId message_id) : MessagesIteratorBase(d->messages.get(), message_id) {
+    MessagesIterator(Dialog *d, MessageId message_id) : MessagesIteratorBase(d->ordered_messages.get(), message_id) {
     }
 
-    Message *operator*() const {
-      return const_cast<Message *>(MessagesIteratorBase::operator*());
+    OrderedMessage *operator*() const {
+      return const_cast<OrderedMessage *>(MessagesIteratorBase::operator*());
     }
   };
 
@@ -1695,10 +1701,11 @@ class MessagesManager final : public Actor {
    public:
     MessagesConstIterator() = default;
 
-    MessagesConstIterator(const Dialog *d, MessageId message_id) : MessagesIteratorBase(d->messages.get(), message_id) {
+    MessagesConstIterator(const Dialog *d, MessageId message_id)
+        : MessagesIteratorBase(d->ordered_messages.get(), message_id) {
     }
 
-    const Message *operator*() const {
+    const OrderedMessage *operator*() const {
       return MessagesIteratorBase::operator*();
     }
   };
@@ -2138,8 +2145,7 @@ class MessagesManager final : public Actor {
 
   void delete_all_dialog_messages(Dialog *d, bool remove_from_dialog_list, bool is_permanently_deleted);
 
-  void do_delete_all_dialog_messages(Dialog *d, unique_ptr<Message> &message, bool is_permanently_deleted,
-                                     vector<int64> &deleted_message_ids);
+  void do_delete_all_dialog_messages(Dialog *d, bool is_permanently_deleted, vector<int64> &deleted_message_ids);
 
   void erase_delete_messages_log_event(uint64 log_event_id);
 
@@ -2183,18 +2189,21 @@ class MessagesManager final : public Actor {
   void on_get_affected_history(DialogId dialog_id, AffectedHistoryQuery query, bool get_affected_messages,
                                AffectedHistory affected_history, Promise<Unit> &&promise);
 
-  static MessageId find_message_by_date(const Message *m, int32 date);
+  static MessageId find_message_by_date(const Dialog *d, const OrderedMessage *ordered_message, int32 date);
 
-  static void find_messages_by_date(const Message *m, int32 min_date, int32 max_date, vector<MessageId> &message_ids);
+  static void find_messages_by_date(const Dialog *d, const OrderedMessage *ordered_message, int32 min_date,
+                                    int32 max_date, vector<MessageId> &message_ids);
 
-  static void find_messages(const Message *m, vector<MessageId> &message_ids,
+  static void find_messages(const Dialog *d, const OrderedMessage *ordered_message, vector<MessageId> &message_ids,
                             const std::function<bool(const Message *)> &condition);
 
-  static void find_old_messages(const Message *m, MessageId max_message_id, vector<MessageId> &message_ids);
+  static void find_old_messages(const OrderedMessage *ordered_message, MessageId max_message_id,
+                                vector<MessageId> &message_ids);
 
-  static void find_newer_messages(const Message *m, MessageId min_message_id, vector<MessageId> &message_ids);
+  static void find_newer_messages(const OrderedMessage *ordered_message, MessageId min_message_id,
+                                  vector<MessageId> &message_ids);
 
-  void find_unloadable_messages(const Dialog *d, int32 unload_before_date, const Message *m,
+  void find_unloadable_messages(const Dialog *d, int32 unload_before_date, const OrderedMessage *ordered_message,
                                 vector<MessageId> &message_ids, bool &has_left_to_unload_messages) const;
 
   void on_pending_message_views_timeout(DialogId dialog_id);
@@ -2329,7 +2338,7 @@ class MessagesManager final : public Actor {
 
   void on_get_scheduled_messages_from_database(DialogId dialog_id, vector<MessageDbDialogMessage> &&messages);
 
-  static int32 get_random_y(MessageId message_id);
+  static unique_ptr<OrderedMessage> create_ordered_message(MessageId message_id);
 
   static void set_message_id(unique_ptr<Message> &message, MessageId message_id);
 
@@ -2863,11 +2872,11 @@ class MessagesManager final : public Actor {
   DialogFolder *get_dialog_folder(FolderId folder_id);
   const DialogFolder *get_dialog_folder(FolderId folder_id) const;
 
-  static unique_ptr<Message> *treap_find_message(unique_ptr<Message> *v, MessageId message_id);
-  static const unique_ptr<Message> *treap_find_message(const unique_ptr<Message> *v, MessageId message_id);
+  static unique_ptr<OrderedMessage> *treap_find_message(unique_ptr<OrderedMessage> *v, MessageId message_id);
 
-  static Message *treap_insert_message(unique_ptr<Message> *v, unique_ptr<Message> message);
-  static unique_ptr<Message> treap_delete_message(unique_ptr<Message> *v);
+  static OrderedMessage *treap_insert_message(unique_ptr<OrderedMessage> *v, unique_ptr<OrderedMessage> message);
+
+  static unique_ptr<OrderedMessage> treap_delete_message(unique_ptr<OrderedMessage> *v);
 
   static Message *get_message(Dialog *d, MessageId message_id);
   static const Message *get_message(const Dialog *d, MessageId message_id);
