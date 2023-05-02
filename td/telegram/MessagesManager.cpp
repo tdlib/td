@@ -16498,7 +16498,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
   CHECK(m == result.get());
   d->messages.erase(message_id);
 
-  treap_delete_message(&d->ordered_messages, message_id);
+  OrderedMessage::erase(&d->ordered_messages, message_id);
 
   d->being_deleted_message_id = MessageId();
 
@@ -34220,74 +34220,6 @@ void MessagesManager::unpin_all_dialog_messages_on_server(DialogId dialog_id, ui
                                             get_erase_log_event_promise(log_event_id, std::move(promise)));
 }
 
-MessagesManager::OrderedMessage *MessagesManager::treap_insert_message(unique_ptr<OrderedMessage> *v,
-                                                                       MessageId message_id) {
-  auto random_y = static_cast<int32>(static_cast<uint32>(message_id.get() * 2101234567u));
-  while (*v != nullptr && (*v)->random_y >= random_y) {
-    if ((*v)->message_id.get() < message_id.get()) {
-      v = &(*v)->right;
-    } else if ((*v)->message_id == message_id) {
-      UNREACHABLE();
-    } else {
-      v = &(*v)->left;
-    }
-  }
-
-  auto message = make_unique<OrderedMessage>();
-  message->message_id = message_id;
-  message->random_y = random_y;
-
-  unique_ptr<OrderedMessage> *left = &message->left;
-  unique_ptr<OrderedMessage> *right = &message->right;
-
-  unique_ptr<OrderedMessage> cur = std::move(*v);
-  while (cur != nullptr) {
-    if (cur->message_id.get() < message_id.get()) {
-      *left = std::move(cur);
-      left = &((*left)->right);
-      cur = std::move(*left);
-    } else {
-      *right = std::move(cur);
-      right = &((*right)->left);
-      cur = std::move(*right);
-    }
-  }
-  CHECK(*left == nullptr);
-  CHECK(*right == nullptr);
-  *v = std::move(message);
-  return v->get();
-}
-
-void MessagesManager::treap_delete_message(unique_ptr<OrderedMessage> *v, MessageId message_id) {
-  while (*v != nullptr) {
-    if ((*v)->message_id.get() < message_id.get()) {
-      v = &(*v)->right;
-    } else if ((*v)->message_id.get() > message_id.get()) {
-      v = &(*v)->left;
-    } else {
-      break;
-    }
-  }
-
-  unique_ptr<OrderedMessage> result = std::move(*v);
-  CHECK(result != nullptr);
-  unique_ptr<OrderedMessage> left = std::move(result->left);
-  unique_ptr<OrderedMessage> right = std::move(result->right);
-
-  while (left != nullptr || right != nullptr) {
-    if (left == nullptr || (right != nullptr && right->random_y > left->random_y)) {
-      *v = std::move(right);
-      v = &((*v)->left);
-      right = std::move(*v);
-    } else {
-      *v = std::move(left);
-      v = &((*v)->right);
-      left = std::move(*v);
-    }
-  }
-  CHECK(*v == nullptr);
-}
-
 MessagesManager::Message *MessagesManager::get_message(Dialog *d, MessageId message_id) {
   return const_cast<Message *>(get_message(static_cast<const Dialog *>(d), message_id));
 }
@@ -35231,7 +35163,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   Message *result_message = message.get();
   d->messages.set(message_id, std::move(message));
 
-  OrderedMessage *ordered_message = treap_insert_message(&d->ordered_messages, message_id);
+  OrderedMessage *ordered_message = OrderedMessage::insert(&d->ordered_messages, message_id);
   if (!is_attached) {
     if (have_next) {
       CHECK(!have_previous);

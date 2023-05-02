@@ -51,6 +51,7 @@
 #include "td/telegram/NotificationGroupType.h"
 #include "td/telegram/NotificationId.h"
 #include "td/telegram/NotificationSettingsScope.h"
+#include "td/telegram/OrderedMessage.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/RecentDialogList.h"
 #include "td/telegram/ReplyMarkup.h"
@@ -1137,18 +1138,6 @@ class MessagesManager final : public Actor {
       }
       return string_builder << " at " << forward_info.date << ']';
     }
-  };
-
-  struct OrderedMessage {
-    int32 random_y = 0;
-
-    bool have_previous = false;
-    bool have_next = false;
-
-    MessageId message_id;
-
-    unique_ptr<OrderedMessage> left;
-    unique_ptr<OrderedMessage> right;
   };
 
   // Do not forget to update MessagesManager::update_message and all make_unique<Message> when this class is changed
@@ -2864,10 +2853,6 @@ class MessagesManager final : public Actor {
 
   DialogFolder *get_dialog_folder(FolderId folder_id);
   const DialogFolder *get_dialog_folder(FolderId folder_id) const;
-
-  static OrderedMessage *treap_insert_message(unique_ptr<OrderedMessage> *v, MessageId message_id);
-
-  static void treap_delete_message(unique_ptr<OrderedMessage> *v, MessageId message_id);
 
   static Message *get_message(Dialog *d, MessageId message_id);
   static const Message *get_message(const Dialog *d, MessageId message_id);
