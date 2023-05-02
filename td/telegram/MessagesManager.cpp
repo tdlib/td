@@ -21056,14 +21056,18 @@ tl_object_ptr<td_api::messages> MessagesManager::get_dialog_history(DialogId dia
     bool have_a_gap = false;
     if (*p == nullptr) {
       // there is no gap if from_message_id is less than first message in the dialog
-      if (left_tries == 0 && d->ordered_messages.messages_ != nullptr && offset < 0) {
-        const OrderedMessage *cur = d->ordered_messages.messages_.get();
-        while (cur->left != nullptr) {
-          cur = cur->left.get();
-        }
-        CHECK(cur->message_id > from_message_id);
-        from_message_id = cur->message_id;
+      if (left_tries == 0 && offset < 0 && !d->messages.empty()) {
+        MessageId min_message_id;
+        d->ordered_messages.traverse_messages(
+            [&](MessageId message_id) {
+              min_message_id = message_id;
+              return true;
+            },
+            [](MessageId) { return false; });
+        CHECK(min_message_id > from_message_id);
+        from_message_id = min_message_id;
         p = d->ordered_messages.get_const_iterator(from_message_id);
+        CHECK(*p != nullptr);
       } else {
         have_a_gap = true;
       }
