@@ -11636,7 +11636,7 @@ vector<MessageId> MessagesManager::find_unloadable_messages(const Dialog *d, int
         return true;
       },
       [&](MessageId message_id) {
-        const Message *m = get_message(d, message_id);
+        const Message *m = d->messages.get_pointer(message_id);
         CHECK(m != nullptr);
         if (can_unload_message(d, m)) {
           if (m->last_access_date <= unload_before_date) {
