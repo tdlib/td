@@ -22,10 +22,14 @@ struct OrderedMessage {
 
   unique_ptr<OrderedMessage> left;
   unique_ptr<OrderedMessage> right;
+};
 
-  static OrderedMessage *insert(unique_ptr<OrderedMessage> *v, MessageId message_id);
+struct OrderedMessages {
+  unique_ptr<OrderedMessage> messages_;
 
-  static void erase(unique_ptr<OrderedMessage> *v, MessageId message_id);
+  OrderedMessage *insert(MessageId message_id);
+
+  void erase(MessageId message_id);
 };
 
 }  // namespace td

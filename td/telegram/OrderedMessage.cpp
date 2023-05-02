@@ -8,8 +8,9 @@
 
 namespace td {
 
-OrderedMessage *OrderedMessage::insert(unique_ptr<OrderedMessage> *v, MessageId message_id) {
+OrderedMessage *OrderedMessages::insert(MessageId message_id) {
   auto random_y = static_cast<int32>(static_cast<uint32>(message_id.get() * 2101234567u));
+  unique_ptr<OrderedMessage> *v = &messages_;
   while (*v != nullptr && (*v)->random_y >= random_y) {
     if ((*v)->message_id.get() < message_id.get()) {
       v = &(*v)->right;
@@ -45,7 +46,8 @@ OrderedMessage *OrderedMessage::insert(unique_ptr<OrderedMessage> *v, MessageId 
   return v->get();
 }
 
-void OrderedMessage::erase(unique_ptr<OrderedMessage> *v, MessageId message_id) {
+void OrderedMessages::erase(MessageId message_id) {
+  unique_ptr<OrderedMessage> *v = &messages_;
   while (*v != nullptr) {
     if ((*v)->message_id.get() < message_id.get()) {
       v = &(*v)->right;

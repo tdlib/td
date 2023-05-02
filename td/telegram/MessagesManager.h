@@ -1442,7 +1442,8 @@ class MessagesManager final : public Actor {
     string client_data;
 
     WaitFreeHashMap<MessageId, unique_ptr<Message>, MessageIdHash> messages;
-    unique_ptr<OrderedMessage> ordered_messages;
+
+    OrderedMessages ordered_messages;
 
     unique_ptr<DialogScheduledMessages> scheduled_messages;
 
@@ -1678,7 +1679,8 @@ class MessagesManager final : public Actor {
    public:
     MessagesIterator() = default;
 
-    MessagesIterator(Dialog *d, MessageId message_id) : MessagesIteratorBase(d->ordered_messages.get(), message_id) {
+    MessagesIterator(Dialog *d, MessageId message_id)
+        : MessagesIteratorBase(d->ordered_messages.messages_.get(), message_id) {
     }
 
     OrderedMessage *operator*() const {
@@ -1691,7 +1693,7 @@ class MessagesManager final : public Actor {
     MessagesConstIterator() = default;
 
     MessagesConstIterator(const Dialog *d, MessageId message_id)
-        : MessagesIteratorBase(d->ordered_messages.get(), message_id) {
+        : MessagesIteratorBase(d->ordered_messages.messages_.get(), message_id) {
     }
 
     const OrderedMessage *operator*() const {
