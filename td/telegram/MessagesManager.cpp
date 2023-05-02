@@ -20464,14 +20464,10 @@ void MessagesManager::open_dialog(Dialog *d) {
   d->was_opened = true;
 
   auto min_message_id = MessageId(ServerMessageId(1));
-  if (d->last_message_id == MessageId() && d->last_read_outbox_message_id < min_message_id &&
-      d->ordered_messages.messages_ != nullptr && d->ordered_messages.messages_->message_id < min_message_id) {
-    OrderedMessage *ordered_message = d->ordered_messages.messages_.get();
-    while (ordered_message->right != nullptr) {
-      ordered_message = ordered_message->right.get();
-    }
-    if (ordered_message->message_id < min_message_id) {
-      read_history_inbox(dialog_id, ordered_message->message_id, -1, "open_dialog");
+  if (d->last_message_id == MessageId() && d->last_read_outbox_message_id < min_message_id) {
+    auto it = d->ordered_messages.get_const_iterator(MessageId::max());
+    if (*it != nullptr && (*it)->message_id < min_message_id) {
+      read_history_inbox(dialog_id, (*it)->message_id, -1, "open_dialog");
     }
   }
 
