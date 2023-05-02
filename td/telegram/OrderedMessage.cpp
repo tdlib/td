@@ -169,4 +169,25 @@ vector<MessageId> OrderedMessages::find_messages_by_date(
   return message_ids;
 }
 
+static void do_traverse_messages(const OrderedMessage *ordered_message,
+                                 const std::function<bool(MessageId)> &need_scan_older,
+                                 const std::function<bool(MessageId)> &need_scan_newer) {
+  if (ordered_message == nullptr) {
+    return;
+  }
+
+  if (need_scan_older(ordered_message->message_id)) {
+    do_traverse_messages(ordered_message->left.get(), need_scan_older, need_scan_newer);
+  }
+
+  if (need_scan_newer(ordered_message->message_id)) {
+    do_traverse_messages(ordered_message->right.get(), need_scan_older, need_scan_newer);
+  }
+}
+
+void OrderedMessages::traverse_messages(const std::function<bool(MessageId)> &need_scan_older,
+                                        const std::function<bool(MessageId)> &need_scan_newer) const {
+  do_traverse_messages(messages_.get(), need_scan_older, need_scan_newer);
+}
+
 }  // namespace td

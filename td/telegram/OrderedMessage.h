@@ -174,6 +174,9 @@ struct OrderedMessages {
 
   vector<MessageId> find_messages_by_date(int32 min_date, int32 max_date,
                                           const std::function<int32(MessageId)> &get_message_date) const;
+
+  void traverse_messages(const std::function<bool(MessageId)> &need_scan_older,
+                         const std::function<bool(MessageId)> &need_scan_newer) const;
 };
 
 }  // namespace td
