@@ -34404,19 +34404,9 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   if (from_update) {
     CHECK(have_next);
     CHECK(have_previous);
-    if (message_id <= d->last_new_message_id && dialog_type != DialogType::Channel) {
-      if (!G()->use_message_database()) {
-        if (td_->auth_manager_->is_bot() && Time::now() > start_time_ + 300 &&
-            MessageId(ServerMessageId(100)) <= message_id && message_id <= MessageId(ServerMessageId(1000)) &&
-            d->last_new_message_id >= MessageId(ServerMessageId(2147483000))) {
-          LOG(FATAL) << "Force restart because of message_id overflow in " << dialog_id << " from "
-                     << d->last_new_message_id << " to " << message_id;
-        }
-        if (!has_qts_messages(dialog_id)) {
-          LOG(ERROR) << "New " << message_id << " in " << dialog_id << " from " << source
-                     << " has identifier less than last_new_message_id = " << d->last_new_message_id;
-        }
-      }
+    if (message_id <= d->last_new_message_id && dialog_type != DialogType::Channel && !has_qts_messages(dialog_id)) {
+      LOG(ERROR) << "New " << message_id << " in " << dialog_id << " from " << source
+                 << " has identifier less than last_new_message_id = " << d->last_new_message_id;
     }
   }
 
