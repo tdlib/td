@@ -78,6 +78,7 @@ function build {
     cd $arch
     ForEach ($config in $config_list) {
       cmake --build . --config $config --target tddotnet
+      CheckLastExitCode
     }
     cd ..
   }
