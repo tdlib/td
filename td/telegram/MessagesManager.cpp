@@ -14960,6 +14960,9 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
 void MessagesManager::set_dialog_last_message_id(Dialog *d, MessageId last_message_id, const char *source,
                                                  const Message *m) {
   CHECK(!last_message_id.is_scheduled());
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
 
   LOG(INFO) << "Set " << d->dialog_id << " last message to " << last_message_id << " from " << source;
   d->last_message_id = last_message_id;
@@ -16413,6 +16416,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
   } else {
     if (message_id == d->last_message_id) {
       CHECK(td_->auth_manager_->is_bot() && !G()->use_message_database());
+      UNREACHABLE();
       set_dialog_last_message_id(d, MessageId(), "do_delete_message");
     }
 
@@ -38368,7 +38372,9 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
     if (added_full_message_id.get_message_id().is_valid()) {
       if (added_full_message_id.get_message_id() == d->last_new_message_id) {
         CHECK(last_full_message_id == added_full_message_id);
-        CHECK(d->last_message_id == d->last_new_message_id);
+        if (!td_->auth_manager_->is_bot()) {
+          CHECK(d->last_message_id == d->last_new_message_id);
+        }
       } else {
         LOG(ERROR) << added_full_message_id << " doesn't became last new message, which is " << d->last_new_message_id;
       }
