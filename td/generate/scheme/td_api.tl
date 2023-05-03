@@ -4443,8 +4443,11 @@ jsonValueObject members:vector<jsonObjectMember> = JsonValue;
 //@description A rule to allow all users to do something
 userPrivacySettingRuleAllowAll = UserPrivacySettingRule;
 
-//@description A rule to allow all of a user's contacts to do something
+//@description A rule to allow all contacts of the user to do something
 userPrivacySettingRuleAllowContacts = UserPrivacySettingRule;
+
+//@description A rule to allow all close friends of the user to do something
+userPrivacySettingRuleAllowCloseFriends = UserPrivacySettingRule;
 
 //@description A rule to allow certain specified users to do something @user_ids The user identifiers, total number of users in all rules must not exceed 1000
 userPrivacySettingRuleAllowUsers user_ids:vector<int53> = UserPrivacySettingRule;
@@ -4455,7 +4458,7 @@ userPrivacySettingRuleAllowChatMembers chat_ids:vector<int53> = UserPrivacySetti
 //@description A rule to restrict all users from doing something
 userPrivacySettingRuleRestrictAll = UserPrivacySettingRule;
 
-//@description A rule to restrict all contacts of a user from doing something
+//@description A rule to restrict all contacts of the user from doing something
 userPrivacySettingRuleRestrictContacts = UserPrivacySettingRule;
 
 //@description A rule to restrict all specified users from doing something @user_ids The user identifiers, total number of users in all rules must not exceed 1000

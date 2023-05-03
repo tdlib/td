@@ -1463,6 +1463,8 @@ class CliClient final : public Actor {
     vector<td_api::object_ptr<td_api::UserPrivacySettingRule>> rules;
     if (allow == "c" || allow == "contacts") {
       rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleAllowContacts>());
+    } else if (allow == "f" || allow == "friends") {
+      rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleAllowCloseFriends>());
     } else if (allow == "users") {
       rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleAllowUsers>(as_user_ids(ids)));
     } else if (allow == "chats") {

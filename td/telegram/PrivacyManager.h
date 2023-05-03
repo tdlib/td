@@ -91,6 +91,7 @@ class PrivacyManager final : public NetQueryCallback {
    private:
     enum class Type : int32 {
       AllowContacts,
+      AllowCloseFriends,
       AllowAll,
       AllowUsers,
       AllowChatParticipants,
