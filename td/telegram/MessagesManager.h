@@ -3061,11 +3061,11 @@ class MessagesManager final : public Actor {
 
   void save_auth_notification_ids();
 
-  static MessageId get_next_message_id(Dialog *d, MessageType type);
+  MessageId get_next_message_id(Dialog *d, MessageType type) const;
 
-  static MessageId get_next_local_message_id(Dialog *d);
+  MessageId get_next_local_message_id(Dialog *d) const;
 
-  static MessageId get_next_yet_unsent_message_id(Dialog *d);
+  MessageId get_next_yet_unsent_message_id(Dialog *d) const;
 
   static MessageId get_next_yet_unsent_scheduled_message_id(Dialog *d, int32 date);
 

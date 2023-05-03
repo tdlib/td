@@ -31314,19 +31314,23 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
   fail_send_message(full_message_id, error_code, error_message);
 }
 
-MessageId MessagesManager::get_next_message_id(Dialog *d, MessageType type) {
+MessageId MessagesManager::get_next_message_id(Dialog *d, MessageType type) const {
   CHECK(d != nullptr);
-  MessageId last_message_id =
-      std::max({d->last_message_id, d->last_new_message_id, d->last_database_message_id, d->last_assigned_message_id,
-                d->last_clear_history_message_id, d->deleted_last_message_id, d->max_unavailable_message_id,
-                d->max_added_message_id});
-  if (last_message_id < d->last_read_inbox_message_id &&
-      d->last_read_inbox_message_id < d->last_new_message_id.get_next_server_message_id()) {
-    last_message_id = d->last_read_inbox_message_id;
-  }
-  if (last_message_id < d->last_read_outbox_message_id &&
-      d->last_read_outbox_message_id < d->last_new_message_id.get_next_server_message_id()) {
-    last_message_id = d->last_read_outbox_message_id;
+  MessageId last_message_id;
+  if (td_->auth_manager_->is_bot()) {
+    last_message_id = max(d->last_assigned_message_id, d->max_unavailable_message_id);
+  } else {
+    last_message_id = std::max({d->last_message_id, d->last_new_message_id, d->last_database_message_id,
+                                d->last_assigned_message_id, d->last_clear_history_message_id,
+                                d->deleted_last_message_id, d->max_unavailable_message_id, d->max_added_message_id});
+    if (last_message_id < d->last_read_inbox_message_id &&
+        d->last_read_inbox_message_id < d->last_new_message_id.get_next_server_message_id()) {
+      last_message_id = d->last_read_inbox_message_id;
+    }
+    if (last_message_id < d->last_read_outbox_message_id &&
+        d->last_read_outbox_message_id < d->last_new_message_id.get_next_server_message_id()) {
+      last_message_id = d->last_read_outbox_message_id;
+    }
   }
 
   d->last_assigned_message_id = last_message_id.get_next_message_id(type);
@@ -31340,11 +31344,11 @@ MessageId MessagesManager::get_next_message_id(Dialog *d, MessageType type) {
   return d->last_assigned_message_id;
 }
 
-MessageId MessagesManager::get_next_yet_unsent_message_id(Dialog *d) {
+MessageId MessagesManager::get_next_yet_unsent_message_id(Dialog *d) const {
   return get_next_message_id(d, MessageType::YetUnsent);
 }
 
-MessageId MessagesManager::get_next_local_message_id(Dialog *d) {
+MessageId MessagesManager::get_next_local_message_id(Dialog *d) const {
   return get_next_message_id(d, MessageType::Local);
 }
 
@@ -36472,6 +36476,8 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
     last_database_message = nullptr;
     d->first_database_message_id = MessageId();
     last_database_message_id = MessageId();
+
+    d->last_assigned_message_id = MessageId(ServerMessageId(1));
   }
   int64 order = d->order;
   d->order = DEFAULT_ORDER;
