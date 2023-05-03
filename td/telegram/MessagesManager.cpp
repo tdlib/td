@@ -34785,13 +34785,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
   }
 
-  bool is_attached = false;
-  if (auto_attach) {
-    auto attach_info = d->ordered_messages.auto_attach_message(message_id, d->last_message_id, source);
-    have_previous = attach_info.have_previous_;
-    have_next = attach_info.have_next_;
-    is_attached = have_previous || have_next;
-  }
+  auto old_last_message_id = d->last_message_id;
 
   if (!td_->auth_manager_->is_bot()) {
     if (*need_update) {
@@ -35002,7 +34996,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   Message *result_message = message.get();
   d->messages.set(message_id, std::move(message));
 
-  d->ordered_messages.insert(message_id, is_attached, have_previous, have_next);
+  d->ordered_messages.insert(message_id, auto_attach, have_previous, have_next, old_last_message_id, source);
 
   if (m->message_id.is_yet_unsent() && !m->message_id.is_scheduled() && m->top_thread_message_id.is_valid() &&
       !td_->auth_manager_->is_bot()) {

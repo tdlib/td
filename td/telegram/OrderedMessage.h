@@ -153,18 +153,10 @@ class OrderedMessages {
     return ConstIterator(messages_.get(), message_id);
   }
 
-  void insert(MessageId message_id, bool was_auto_attached, bool have_previous, bool have_next);
+  void insert(MessageId message_id, bool auto_attach, bool have_previous, bool have_next, MessageId old_last_message_id,
+              const char *source);
 
   void erase(MessageId message_id, bool only_from_memory);
-
-  struct AttachInfo {
-    bool have_previous_ = false;
-    bool have_next_ = false;
-
-    AttachInfo(bool have_previous, bool have_next) : have_previous_(have_previous), have_next_(have_next) {
-    }
-  };
-  AttachInfo auto_attach_message(MessageId message_id, MessageId last_message_id, const char *source);
 
   void attach_message_to_previous(MessageId message_id, const char *source);
 
@@ -183,6 +175,14 @@ class OrderedMessages {
                          const std::function<bool(MessageId)> &need_scan_newer) const;
 
  private:
+  struct AttachInfo {
+    bool have_previous_ = false;
+    bool have_next_ = false;
+
+    AttachInfo(bool have_previous, bool have_next) : have_previous_(have_previous), have_next_(have_next) {
+    }
+  };
+
   class Iterator final : public IteratorBase {
    public:
     Iterator() = default;
@@ -194,6 +194,8 @@ class OrderedMessages {
       return const_cast<OrderedMessage *>(IteratorBase::operator*());
     }
   };
+
+  AttachInfo auto_attach_message(MessageId message_id, MessageId last_message_id, const char *source);
 
   Iterator get_iterator(MessageId message_id) {
     return Iterator(messages_.get(), message_id);

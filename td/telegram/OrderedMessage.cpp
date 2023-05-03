@@ -10,8 +10,18 @@
 
 namespace td {
 
-void OrderedMessages::insert(MessageId message_id, bool was_auto_attached, bool have_previous, bool have_next) {
-  if (!was_auto_attached && !have_previous && !have_next) {
+void OrderedMessages::insert(MessageId message_id, bool auto_attach, bool have_previous, bool have_next,
+                             MessageId old_last_message_id, const char *source) {
+  bool is_attached = false;
+  if (auto_attach) {
+    CHECK(have_previous && have_next);
+    auto attach_info = auto_attach_message(message_id, old_last_message_id, source);
+    have_previous = attach_info.have_previous_;
+    have_next = attach_info.have_next_;
+    is_attached = have_previous || have_next;
+  }
+
+  if (!is_attached && !have_previous && !have_next) {
     auto it = get_iterator(message_id);
     if (*it != nullptr && (*it)->have_next_) {
       // need to drop a connection between messages
@@ -62,12 +72,12 @@ void OrderedMessages::insert(MessageId message_id, bool was_auto_attached, bool 
   CHECK(*right == nullptr);
   *v = std::move(message);
 
-  if (!was_auto_attached) {
+  if (!is_attached) {
     if (have_next) {
       CHECK(!have_previous);
-      attach_message_to_next(message_id, "OrderedMessages::insert");
+      attach_message_to_next(message_id, source);
     } else if (have_previous) {
-      attach_message_to_previous(message_id, "OrderedMessages::insert");
+      attach_message_to_previous(message_id, source);
     }
   } else {
     (*v)->have_previous_ = have_previous;
@@ -177,11 +187,11 @@ OrderedMessages::AttachInfo OrderedMessages::auto_attach_message(MessageId messa
         CHECK(next_message != nullptr);
         if (next_message->message_id_.is_server()) {
           LOG(ERROR) << "Attach " << message_id << " before " << next_message->message_id_ << " and after "
-                     << previous_message_id;
+                     << previous_message_id << " from " << source;
         }
       }
 
-      LOG(INFO) << "Attach " << message_id << " to the previous " << previous_message_id;
+      LOG(INFO) << "Attach " << message_id << " to the previous " << previous_message_id << " from " << source;
       auto have_next = previous_message->have_next_;
       previous_message->have_next_ = true;
       return {true, have_next};
@@ -201,13 +211,13 @@ OrderedMessages::AttachInfo OrderedMessages::auto_attach_message(MessageId messa
     }
     if (next_message != nullptr) {
       CHECK(!next_message->have_previous_);
-      LOG(INFO) << "Attach " << message_id << " to the next " << next_message->message_id_;
+      LOG(INFO) << "Attach " << message_id << " to the next " << next_message->message_id_ << " from " << source;
       auto have_previous = next_message->have_previous_;
       return {have_previous, true};
     }
   }
 
-  LOG(INFO) << "Can't auto-attach " << message_id;
+  LOG(INFO) << "Can't auto-attach " << message_id << " from " << source;
   return {false, false};
 }
 
