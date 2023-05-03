@@ -34408,7 +34408,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   if (from_update) {
     CHECK(have_next);
     CHECK(have_previous);
-    if (message_id <= d->last_new_message_id && dialog_type != DialogType::Channel && !has_qts_messages(dialog_id)) {
+    if (message_id <= d->last_new_message_id && dialog_type != DialogType::Channel && !has_qts_messages(dialog_id) &&
+        (message_id.is_server() || !td_->auth_manager_->is_bot())) {
       LOG(ERROR) << "New " << message_id << " in " << dialog_id << " from " << source
                  << " has identifier less than last_new_message_id = " << d->last_new_message_id;
     }
