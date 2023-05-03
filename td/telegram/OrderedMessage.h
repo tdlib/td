@@ -137,18 +137,6 @@ class OrderedMessages {
     }
   };
 
-  class Iterator final : public IteratorBase {
-   public:
-    Iterator() = default;
-
-    Iterator(OrderedMessage *root, MessageId message_id) : IteratorBase(root, message_id) {
-    }
-
-    OrderedMessage *operator*() const {
-      return const_cast<OrderedMessage *>(IteratorBase::operator*());
-    }
-  };
-
   class ConstIterator final : public IteratorBase {
    public:
     ConstIterator() = default;
@@ -160,10 +148,6 @@ class OrderedMessages {
       return IteratorBase::operator*();
     }
   };
-
-  Iterator get_iterator(MessageId message_id) {
-    return Iterator(messages_.get(), message_id);
-  }
 
   ConstIterator get_const_iterator(MessageId message_id) const {
     return ConstIterator(messages_.get(), message_id);
@@ -199,6 +183,22 @@ class OrderedMessages {
                          const std::function<bool(MessageId)> &need_scan_newer) const;
 
  private:
+  class Iterator final : public IteratorBase {
+   public:
+    Iterator() = default;
+
+    Iterator(OrderedMessage *root, MessageId message_id) : IteratorBase(root, message_id) {
+    }
+
+    OrderedMessage *operator*() const {
+      return const_cast<OrderedMessage *>(IteratorBase::operator*());
+    }
+  };
+
+  Iterator get_iterator(MessageId message_id) {
+    return Iterator(messages_.get(), message_id);
+  }
+
   static void do_find_older_messages(const OrderedMessage *ordered_message, MessageId max_message_id,
                                      vector<MessageId> &message_ids);
 
