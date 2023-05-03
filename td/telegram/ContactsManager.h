@@ -771,6 +771,7 @@ class ContactsManager final : public Actor {
     bool is_fake = false;
     bool is_contact = false;
     bool is_mutual_contact = false;
+    bool is_close_friend = false;
     bool need_apply_min_photo = false;
     bool can_be_added_to_attach_menu = false;
     bool attach_menu_enabled = false;
@@ -1184,6 +1185,7 @@ class ContactsManager final : public Actor {
   static constexpr int32 USER_FLAG_HAS_EMOJI_STATUS = 1 << 30;
   static constexpr int32 USER_FLAG_HAS_USERNAMES = 1 << 0;
   static constexpr int32 USER_FLAG_CAN_BE_EDITED_BOT = 1 << 1;
+  static constexpr int32 USER_FLAG_IS_CLOSE_FRIEND = 1 << 2;
 
   static constexpr int32 USER_FULL_FLAG_IS_BLOCKED = 1 << 0;
   static constexpr int32 USER_FULL_FLAG_HAS_ABOUT = 1 << 1;
@@ -1378,7 +1380,8 @@ class ContactsManager final : public Actor {
   void on_update_user_photo(User *u, UserId user_id, tl_object_ptr<telegram_api::UserProfilePhoto> &&photo,
                             const char *source);
   void on_update_user_emoji_status(User *u, UserId user_id, EmojiStatus emoji_status);
-  void on_update_user_is_contact(User *u, UserId user_id, bool is_contact, bool is_mutual_contact);
+  void on_update_user_is_contact(User *u, UserId user_id, bool is_contact, bool is_mutual_contact,
+                                 bool is_close_friend);
   void on_update_user_online(User *u, UserId user_id, tl_object_ptr<telegram_api::UserStatus> &&status);
   void on_update_user_local_was_online(User *u, UserId user_id, int32 local_was_online);
 

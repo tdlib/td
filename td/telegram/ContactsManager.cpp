@@ -4398,38 +4398,44 @@ void ContactsManager::User::store(StorerT &storer) const {
   bool has_restriction_reasons = !restriction_reasons.empty();
   bool has_emoji_status = !emoji_status.is_empty();
   bool has_usernames = !usernames.is_empty();
+  bool has_flags2 = true;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_received);
   STORE_FLAG(is_verified);
   STORE_FLAG(is_deleted);
   STORE_FLAG(is_bot);
   STORE_FLAG(can_join_groups);
-  STORE_FLAG(can_read_all_group_messages);  // 5
+  STORE_FLAG(can_read_all_group_messages);
   STORE_FLAG(is_inline_bot);
   STORE_FLAG(need_location_bot);
   STORE_FLAG(has_last_name);
   STORE_FLAG(legacy_has_username);
-  STORE_FLAG(has_photo);  // 10
-  STORE_FLAG(false);      // legacy is_restricted
+  STORE_FLAG(has_photo);
+  STORE_FLAG(false);  // legacy is_restricted
   STORE_FLAG(has_language_code);
   STORE_FLAG(have_access_hash);
   STORE_FLAG(is_support);
-  STORE_FLAG(is_min_access_hash);  // 15
+  STORE_FLAG(is_min_access_hash);
   STORE_FLAG(is_scam);
   STORE_FLAG(has_cache_version);
   STORE_FLAG(has_is_contact);
   STORE_FLAG(is_contact);
-  STORE_FLAG(is_mutual_contact);  // 20
+  STORE_FLAG(is_mutual_contact);
   STORE_FLAG(has_restriction_reasons);
   STORE_FLAG(need_apply_min_photo);
   STORE_FLAG(is_fake);
   STORE_FLAG(can_be_added_to_attach_menu);
-  STORE_FLAG(is_premium);  // 25
+  STORE_FLAG(is_premium);
   STORE_FLAG(attach_menu_enabled);
   STORE_FLAG(has_emoji_status);
   STORE_FLAG(has_usernames);
   STORE_FLAG(can_be_edited_bot);
   END_STORE_FLAGS();
+  if (has_flags2) {
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(is_close_friend);
+    END_STORE_FLAGS();
+  }
   store(first_name, storer);
   if (has_last_name) {
     store(last_name, storer);
@@ -4479,6 +4485,7 @@ void ContactsManager::User::parse(ParserT &parser) {
   bool has_restriction_reasons;
   bool has_emoji_status;
   bool has_usernames;
+  bool has_flags2 = parser.version() >= static_cast<int32>(Version::AddUserFlags2);
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_received);
   PARSE_FLAG(is_verified);
@@ -4511,6 +4518,11 @@ void ContactsManager::User::parse(ParserT &parser) {
   PARSE_FLAG(has_usernames);
   PARSE_FLAG(can_be_edited_bot);
   END_PARSE_FLAGS();
+  if (has_flags2) {
+    BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(is_close_friend);
+    END_PARSE_FLAGS();
+  }
   parse(first_name, parser);
   if (has_last_name) {
     parse(last_name, parser);
@@ -4543,6 +4555,7 @@ void ContactsManager::User::parse(ParserT &parser) {
 
     is_contact = link_state_outbound == 3;
     is_mutual_contact = is_contact && link_state_inbound == 3;
+    is_close_friend = false;
   }
   parse(was_online, parser);
   if (legacy_is_restricted) {
@@ -4590,6 +4603,11 @@ void ContactsManager::User::parse(ParserT &parser) {
   if (!is_contact && is_mutual_contact) {
     LOG(ERROR) << "Have invalid flag is_mutual_contact";
     is_mutual_contact = false;
+    cache_version = 0;
+  }
+  if (!is_contact && is_close_friend) {
+    LOG(ERROR) << "Have invalid flag is_close_friend";
+    is_close_friend = false;
     cache_version = 0;
   }
 }
@@ -6770,7 +6788,7 @@ void ContactsManager::on_update_contacts_reset() {
       if (user_id != my_id) {
         CHECK(contacts_hints_.has_key(user_id.get()));
       }
-      on_update_user_is_contact(u, user_id, false, false);
+      on_update_user_is_contact(u, user_id, false, false, false);
       CHECK(u->is_is_contact_changed);
       u->cache_version = 0;
       u->is_repaired = false;
@@ -9840,7 +9858,7 @@ void ContactsManager::on_deleted_contacts(const vector<UserId> &deleted_contact_
     }
 
     LOG(INFO) << "Drop contact with " << user_id;
-    on_update_user_is_contact(u, user_id, false, false);
+    on_update_user_is_contact(u, user_id, false, false, false);
     CHECK(u->is_is_contact_changed);
     u->cache_version = 0;
     u->is_repaired = false;
@@ -9896,7 +9914,7 @@ void ContactsManager::on_get_contacts(tl_object_ptr<telegram_api::contacts_Conta
           LOG_CHECK(contacts_hints_.has_key(user_id.get()))
               << my_id << " " << user_id << " " << to_string(get_user_object(user_id, u));
         }
-        on_update_user_is_contact(u, user_id, false, false);
+        on_update_user_is_contact(u, user_id, false, false, false);
         CHECK(u->is_is_contact_changed);
         u->cache_version = 0;
         u->is_repaired = false;
@@ -10157,7 +10175,8 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     on_update_user_online(u, user_id, std::move(user->status_));
 
     auto is_mutual_contact = (flags & USER_FLAG_IS_MUTUAL_CONTACT) != 0;
-    on_update_user_is_contact(u, user_id, is_contact, is_mutual_contact);
+    auto is_close_friend = (flags2 & USER_FLAG_IS_CLOSE_FRIEND) != 0;
+    on_update_user_is_contact(u, user_id, is_contact, is_mutual_contact, is_close_friend);
   }
 
   if (is_received || !u->is_received) {
@@ -13298,24 +13317,31 @@ void ContactsManager::on_update_user_emoji_status(User *u, UserId user_id, Emoji
   }
 }
 
-void ContactsManager::on_update_user_is_contact(User *u, UserId user_id, bool is_contact, bool is_mutual_contact) {
+void ContactsManager::on_update_user_is_contact(User *u, UserId user_id, bool is_contact, bool is_mutual_contact,
+                                                bool is_close_friend) {
   UserId my_id = get_my_id();
   if (user_id == my_id) {
     is_mutual_contact = is_contact;
+    is_close_friend = false;
   }
-  if (!is_contact && is_mutual_contact) {
-    LOG(ERROR) << "Receive is_mutual_contact == true for non-contact " << user_id;
+  if (!is_contact && (is_mutual_contact || is_close_friend)) {
+    LOG(ERROR) << "Receive is_mutual_contact = " << is_mutual_contact << ", and is_close_friend = " << is_close_friend
+               << " for non-contact " << user_id;
     is_mutual_contact = false;
+    is_close_friend = false;
   }
 
-  if (u->is_contact != is_contact || u->is_mutual_contact != is_mutual_contact) {
-    LOG(DEBUG) << "Update " << user_id << " is_contact from (" << u->is_contact << ", " << u->is_mutual_contact
-               << ") to (" << is_contact << ", " << is_mutual_contact << ")";
+  if (u->is_contact != is_contact || u->is_mutual_contact != is_mutual_contact ||
+      u->is_close_friend != is_close_friend) {
+    LOG(DEBUG) << "Update " << user_id << " is_contact from (" << u->is_contact << ", " << u->is_mutual_contact << ", "
+               << u->is_close_friend << ") to (" << is_contact << ", " << is_mutual_contact << ", "
+               << u->is_close_friend << ")";
     if (u->is_contact != is_contact) {
       u->is_is_contact_changed = true;
     }
     u->is_contact = is_contact;
     u->is_mutual_contact = is_mutual_contact;
+    u->is_close_friend = is_close_friend;
     u->is_changed = true;
   }
 }
@@ -18601,8 +18627,8 @@ td_api::object_ptr<td_api::updateUser> ContactsManager::get_update_unknown_user_
   auto have_access = user_id == get_my_id() || user_messages_.count(user_id) != 0;
   return td_api::make_object<td_api::updateUser>(td_api::make_object<td_api::user>(
       user_id.get(), "", "", nullptr, "", td_api::make_object<td_api::userStatusEmpty>(), nullptr, nullptr, false,
-      false, false, false, false, "", false, false, have_access, td_api::make_object<td_api::userTypeUnknown>(), "",
-      false));
+      false, false, false, false, false, "", false, false, have_access, td_api::make_object<td_api::userTypeUnknown>(),
+      "", false));
 }
 
 int64 ContactsManager::get_user_id_object(UserId user_id, const char *source) const {
@@ -18638,9 +18664,9 @@ tl_object_ptr<td_api::user> ContactsManager::get_user_object(UserId user_id, con
   return make_tl_object<td_api::user>(
       user_id.get(), u->first_name, u->last_name, u->usernames.get_usernames_object(), u->phone_number,
       get_user_status_object(user_id, u), get_profile_photo_object(td_->file_manager_.get(), u->photo),
-      std::move(emoji_status), u->is_contact, u->is_mutual_contact, u->is_verified, u->is_premium, u->is_support,
-      get_restriction_reason_description(u->restriction_reasons), u->is_scam, u->is_fake, have_access, std::move(type),
-      u->language_code, u->attach_menu_enabled);
+      std::move(emoji_status), u->is_contact, u->is_mutual_contact, u->is_close_friend, u->is_verified, u->is_premium,
+      u->is_support, get_restriction_reason_description(u->restriction_reasons), u->is_scam, u->is_fake, have_access,
+      std::move(type), u->language_code, u->attach_menu_enabled);
 }
 
 vector<int64> ContactsManager::get_user_ids_object(const vector<UserId> &user_ids, const char *source) const {

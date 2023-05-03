@@ -61,6 +61,7 @@ enum class Version : int32 {
   AddMessageMediaSpoiler,  // 45
   MakeParticipantFlags64Bit,
   AddDocumentFlags,
+  AddUserFlags2,
   Next
 };
 

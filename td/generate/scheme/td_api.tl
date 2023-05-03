@@ -706,6 +706,7 @@ usernames active_usernames:vector<string> disabled_usernames:vector<string> edit
 //@emoji_status Emoji status to be shown instead of the default Telegram Premium badge; may be null. For Telegram Premium users only
 //@is_contact The user is a contact of the current user
 //@is_mutual_contact The user is a contact of the current user and the current user is a contact of the user
+//@is_close_friend The user is a close friend of the current user; implies that the user is a contact
 //@is_verified True, if the user is verified
 //@is_premium True, if the user is a Telegram Premium user
 //@is_support True, if the user is Telegram support account
@@ -716,7 +717,7 @@ usernames active_usernames:vector<string> disabled_usernames:vector<string> edit
 //@type Type of the user
 //@language_code IETF language tag of the user's language; only available to bots
 //@added_to_attachment_menu True, if the user added the current bot to attachment menu; only available to bots
-user id:int53 first_name:string last_name:string usernames:usernames phone_number:string status:UserStatus profile_photo:profilePhoto emoji_status:emojiStatus is_contact:Bool is_mutual_contact:Bool is_verified:Bool is_premium:Bool is_support:Bool restriction_reason:string is_scam:Bool is_fake:Bool have_access:Bool type:UserType language_code:string added_to_attachment_menu:Bool = User;
+user id:int53 first_name:string last_name:string usernames:usernames phone_number:string status:UserStatus profile_photo:profilePhoto emoji_status:emojiStatus is_contact:Bool is_mutual_contact:Bool is_close_friend:Bool is_verified:Bool is_premium:Bool is_support:Bool restriction_reason:string is_scam:Bool is_fake:Bool have_access:Bool type:UserType language_code:string added_to_attachment_menu:Bool = User;
 
 
 //@description Contains information about a bot
