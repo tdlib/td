@@ -11,6 +11,22 @@
 namespace td {
 
 void OrderedMessages::insert(MessageId message_id, bool was_auto_attached, bool have_previous, bool have_next) {
+  if (!was_auto_attached && !have_previous && !have_next) {
+    auto it = get_iterator(message_id);
+    if (*it != nullptr && (*it)->have_next_) {
+      // need to drop a connection between messages
+      auto previous_message = *it;
+      CHECK(previous_message->message_id_ < message_id);
+      ++it;
+      auto next_message = *it;
+      CHECK(next_message != nullptr);
+      CHECK(next_message->message_id_ > message_id);
+
+      next_message->have_previous_ = false;
+      previous_message->have_next_ = false;
+    }
+  }
+
   auto random_y = static_cast<int32>(static_cast<uint32>(message_id.get() * 2101234567u));
   unique_ptr<OrderedMessage> *v = &messages_;
   while (*v != nullptr && (*v)->random_y_ >= random_y) {
@@ -73,7 +89,7 @@ void OrderedMessages::erase(MessageId message_id, bool only_from_memory) {
 
   CHECK(*v != nullptr);
   if ((*v)->have_previous_ && (only_from_memory || !(*v)->have_next_)) {
-    Iterator it(messages_.get(), message_id);
+    auto it = get_iterator(message_id);
     CHECK(*it == v->get());
     --it;
     OrderedMessage *prev_m = *it;
@@ -81,7 +97,7 @@ void OrderedMessages::erase(MessageId message_id, bool only_from_memory) {
     prev_m->have_next_ = false;
   }
   if ((*v)->have_next_ && (only_from_memory || !(*v)->have_previous_)) {
-    Iterator it(messages_.get(), message_id);
+    auto it = get_iterator(message_id);
     CHECK(*it == v->get());
     ++it;
     OrderedMessage *next_m = *it;

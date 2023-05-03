@@ -34906,28 +34906,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   if (!is_attached && !have_next && !have_previous) {
-    auto it = d->ordered_messages.get_iterator(m->message_id);
-    if (*it != nullptr && (*it)->have_next_) {
-      // need to drop a connection between messages
-      auto previous_message = *it;
-      ++it;
-      auto next_message = *it;
-      if (next_message != nullptr) {
-        if (next_message->get_message_id().is_server() &&
-            !(td_->auth_manager_->is_bot() && Slice(source) == Slice("GetRepliedChannelMessageQuery"))) {
-          LOG(ERROR) << "Can't attach " << m->message_id << " of type " << m->content->get_type() << " from " << source
-                     << " from " << (m->from_database ? "database" : "server") << " before "
-                     << next_message->get_message_id() << " and after " << previous_message->get_message_id() << " in "
-                     << dialog_id;
-        }
-
-        next_message->have_previous_ = false;
-        previous_message->have_next_ = false;
-      } else {
-        LOG(ERROR) << "Have_next is true, but there is no next message after " << previous_message->get_message_id()
-                   << " from " << source << " in " << dialog_id;
-      }
-    } else if (m->message_id.is_server() && d->last_message_id.is_valid() && m->message_id > d->last_message_id) {
+    if (m->message_id.is_server() && d->last_message_id.is_valid() && m->message_id > d->last_message_id) {
       LOG(INFO) << "Receive " << m->message_id << ", which is newer than the last " << d->last_message_id
                 << " not from update";
       set_dialog_last_message_id(d, MessageId(), source);
