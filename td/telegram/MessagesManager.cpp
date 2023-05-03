@@ -15002,7 +15002,7 @@ void MessagesManager::set_dialog_last_message_id(Dialog *d, MessageId last_messa
 void MessagesManager::set_dialog_first_database_message_id(Dialog *d, MessageId first_database_message_id,
                                                            const char *source) {
   CHECK(!first_database_message_id.is_scheduled());
-  if (first_database_message_id == d->first_database_message_id) {
+  if (first_database_message_id == d->first_database_message_id || td_->auth_manager_->is_bot()) {
     return;
   }
 
@@ -15015,7 +15015,7 @@ void MessagesManager::set_dialog_first_database_message_id(Dialog *d, MessageId 
 void MessagesManager::set_dialog_last_database_message_id(Dialog *d, MessageId last_database_message_id,
                                                           const char *source, bool is_loaded_from_database) {
   CHECK(!last_database_message_id.is_scheduled());
-  if (last_database_message_id == d->last_database_message_id) {
+  if (last_database_message_id == d->last_database_message_id || td_->auth_manager_->is_bot()) {
     return;
   }
 
@@ -36478,6 +36478,11 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
   }
   MessageId last_database_message_id = d->last_database_message_id;
   d->last_database_message_id = MessageId();
+  if (td_->auth_manager_->is_bot()) {
+    last_database_message = nullptr;
+    d->first_database_message_id = MessageId();
+    last_database_message_id = MessageId();
+  }
   int64 order = d->order;
   d->order = DEFAULT_ORDER;
   int32 last_clear_history_date = d->last_clear_history_date;
