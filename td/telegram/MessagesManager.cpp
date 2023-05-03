@@ -16339,21 +16339,13 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
     delete_active_live_location(d->dialog_id, m);
     remove_message_file_sources(d->dialog_id, m);
 
-    const auto message_it = d->ordered_messages.get_const_iterator(message_id);
-    CHECK(*message_it != nullptr);
-    CHECK((*message_it)->get_message_id() == message_id);
-
     if (message_id == d->last_message_id) {
-      if ((*message_it)->have_previous_) {
-        auto it = message_it;
-        --it;
-        if (*it != nullptr) {
-          set_dialog_last_message_id(d, (*it)->get_message_id(), "do_delete_message");
-        } else {
-          LOG(ERROR) << "Have have_previous is true, but there is no previous for " << full_message_id << " from "
-                     << source;
-          set_dialog_last_message_id(d, MessageId(), "do_delete_message");
-        }
+      auto it = d->ordered_messages.get_const_iterator(message_id);
+      CHECK(*it != nullptr);
+      CHECK((*it)->get_message_id() == message_id);
+      --it;
+      if (*it != nullptr) {
+        set_dialog_last_message_id(d, (*it)->get_message_id(), "do_delete_message");
       } else {
         need_get_history = true;
         set_dialog_last_message_id(d, MessageId(), "do_delete_message");
@@ -16366,37 +16358,33 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
     }
 
     if (message_id == d->last_database_message_id) {
-      auto it = message_it;
-      while ((*it)->have_previous_) {
+      auto it = d->ordered_messages.get_const_iterator(message_id);
+      CHECK(*it != nullptr);
+      CHECK((*it)->get_message_id() == message_id);
+      do {
         --it;
-        if (*it == nullptr || !(*it)->get_message_id().is_yet_unsent()) {
-          break;
-        }
-      }
+      } while (*it != nullptr && (*it)->get_message_id().is_yet_unsent());
 
       if (*it != nullptr) {
-        if (!(*it)->get_message_id().is_yet_unsent() && (*it)->get_message_id() != d->last_database_message_id) {
-          if ((*it)->get_message_id() < d->first_database_message_id &&
-              d->dialog_id.get_type() == DialogType::Channel) {
-            // possible if messages was deleted from database, but not from memory after updateChannelTooLong
-            set_dialog_last_database_message_id(d, MessageId(), "do_delete_message 1");
-          } else {
-            set_dialog_last_database_message_id(d, (*it)->get_message_id(), "do_delete_message 2");
-            if (d->last_database_message_id < d->first_database_message_id) {
-              LOG(ERROR) << "Last database " << d->last_database_message_id << " became less than first database "
-                         << d->first_database_message_id << " after deletion of " << full_message_id;
-              set_dialog_first_database_message_id(d, d->last_database_message_id, "do_delete_message 2");
-            }
+        if ((*it)->get_message_id() < d->first_database_message_id && d->dialog_id.get_type() == DialogType::Channel) {
+          // possible if messages was deleted from database, but not from memory after updateChannelTooLong
+          set_dialog_last_database_message_id(d, MessageId(), "do_delete_message 1");
+        } else {
+          set_dialog_last_database_message_id(d, (*it)->get_message_id(), "do_delete_message 2");
+          if (d->last_database_message_id < d->first_database_message_id) {
+            LOG(ERROR) << "Last database " << d->last_database_message_id << " became less than first database "
+                       << d->first_database_message_id << " after deletion of " << full_message_id;
+            set_dialog_first_database_message_id(d, d->last_database_message_id, "do_delete_message 2");
           }
-        } else if (d->first_database_message_id == d->last_database_message_id) {
+        }
+      } else {
+        if (d->first_database_message_id == d->last_database_message_id) {
           // database definitely has no more messages
           set_dialog_last_database_message_id(d, MessageId(), "do_delete_message 3");
         } else {
           LOG(INFO) << "Need to get history to repair last_database_message_id in " << d->dialog_id;
           need_get_history = true;
         }
-      } else {
-        LOG(ERROR) << "Have have_previous is true, but there is no previous";
       }
     }
     if (d->last_database_message_id.is_valid()) {
@@ -16408,17 +16396,12 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
     auto suffix_load_queries_it = dialog_suffix_load_queries_.find(d->dialog_id);
     if (suffix_load_queries_it != dialog_suffix_load_queries_.end() &&
         message_id == suffix_load_queries_it->second->suffix_load_first_message_id_) {
-      auto it = message_it;
-      if ((*it)->have_previous_) {
-        --it;
-        if (*it != nullptr) {
-          suffix_load_queries_it->second->suffix_load_first_message_id_ = (*it)->get_message_id();
-        } else {
-          LOG(ERROR) << "Have have_previous is true, but there is no previous for " << full_message_id << " from "
-                     << source;
-          suffix_load_queries_it->second->suffix_load_first_message_id_ = MessageId();
-          suffix_load_queries_it->second->suffix_load_done_ = false;
-        }
+      auto it = d->ordered_messages.get_const_iterator(message_id);
+      CHECK(*it != nullptr);
+      CHECK((*it)->get_message_id() == message_id);
+      --it;
+      if (*it != nullptr) {
+        suffix_load_queries_it->second->suffix_load_first_message_id_ = (*it)->get_message_id();
       } else {
         suffix_load_queries_it->second->suffix_load_first_message_id_ = MessageId();
         suffix_load_queries_it->second->suffix_load_done_ = false;
@@ -39894,10 +39877,13 @@ void MessagesManager::suffix_load_update_first_message_id(const Dialog *d, Suffi
   auto it = d->ordered_messages.get_const_iterator(queries->suffix_load_first_message_id_);
   CHECK(*it != nullptr);
   CHECK((*it)->get_message_id() == queries->suffix_load_first_message_id_);
-  while ((*it)->have_previous_) {
+  while (true) {
     --it;
+    if (*it == nullptr) {
+      break;
+    }
+    queries->suffix_load_first_message_id_ = (*it)->get_message_id();
   }
-  queries->suffix_load_first_message_id_ = (*it)->get_message_id();
 }
 
 void MessagesManager::suffix_load_query_ready(DialogId dialog_id) {
