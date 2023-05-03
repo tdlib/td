@@ -200,6 +200,11 @@ Status log_event_parse(T &data, Slice slice) {
   return parser.get_status();
 }
 
+inline int32 log_event_get_version(Slice slice) {
+  LogEventParser parser(slice);
+  return parser.version();
+}
+
 template <class T>
 BufferSlice log_event_store_impl(const T &data, const char *file, int line) {
   LogEventStorerCalcLength storer_calc_length;

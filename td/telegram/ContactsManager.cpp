@@ -10000,6 +10000,12 @@ void ContactsManager::on_load_contacts_from_database(string value) {
     return;
   }
 
+  if (log_event_get_version(value) < static_cast<int32>(Version::AddUserFlags2)) {
+    next_contacts_sync_date_ = 0;
+    save_next_contacts_sync_date();
+    reload_contacts(true);
+  }
+
   LOG(INFO) << "Successfully loaded " << user_ids.size() << " contacts from database";
 
   load_contact_users_multipromise_.add_promise(PromiseCreator::lambda(
