@@ -358,6 +358,8 @@ class ContactsManager final : public Actor {
 
   void on_update_contacts_reset();
 
+  vector<UserId> get_close_friends(Promise<Unit> &&promise);
+
   UserId search_user_by_phone_number(string phone_number, Promise<Unit> &&promise);
 
   void on_resolved_phone_number(const string &phone_number, UserId user_id);

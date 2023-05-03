@@ -1125,6 +1125,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::clearImportedContacts &request);
 
+  void on_request(uint64 id, const td_api::getCloseFriends &request);
+
   void on_request(uint64 id, td_api::setUserPersonalProfilePhoto &request);
 
   void on_request(uint64 id, td_api::suggestUserProfilePhoto &request);

@@ -6858,6 +6858,28 @@ std::pair<int32, vector<UserId>> ContactsManager::search_contacts(const string &
   return {narrow_cast<int32>(result.first), std::move(user_ids)};
 }
 
+vector<UserId> ContactsManager::get_close_friends(Promise<Unit> &&promise) {
+  if (!are_contacts_loaded_) {
+    load_contacts(std::move(promise));
+    return {};
+  }
+  reload_contacts(false);
+
+  auto result = contacts_hints_.search_empty(10000);
+
+  vector<UserId> user_ids;
+  for (auto key : result.second) {
+    UserId user_id(key);
+    const User *u = get_user(user_id);
+    if (u != nullptr && u->is_close_friend) {
+      user_ids.push_back(user_id);
+    }
+  }
+
+  promise.set_value(Unit());
+  return user_ids;
+}
+
 UserId ContactsManager::search_user_by_phone_number(string phone_number, Promise<Unit> &&promise) {
   clean_phone_number(phone_number);
   if (phone_number.empty()) {

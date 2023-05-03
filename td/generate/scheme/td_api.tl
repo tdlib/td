@@ -7509,7 +7509,7 @@ addContact contact:contact share_phone_number:Bool = Ok;
 //@description Adds new contacts or edits existing contacts by their phone numbers; contacts' user identifiers are ignored @contacts The list of contacts to import or edit; contacts' vCard are ignored and are not imported
 importContacts contacts:vector<contact> = ImportedContacts;
 
-//@description Returns all user contacts
+//@description Returns all contacts of the user
 getContacts = Users;
 
 //@description Searches for the specified query in the first names, last names and usernames of the known user contacts
@@ -7530,6 +7530,9 @@ changeImportedContacts contacts:vector<contact> = ImportedContacts;
 
 //@description Clears all imported contacts, contact list remains unchanged
 clearImportedContacts = Ok;
+
+//@description Returns all close friends of the user
+getCloseFriends = Users;
 
 //@description Changes a personal profile photo of a contact user @user_id User identifier @photo Profile photo to set; pass null to delete the photo; inputChatPhotoPrevious isn't supported in this function
 setUserPersonalProfilePhoto user_id:int53 photo:InputChatPhoto = Ok;

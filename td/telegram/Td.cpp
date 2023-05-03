@@ -1889,6 +1889,22 @@ class ChangeImportedContactsRequest final : public RequestActor<> {
   }
 };
 
+class GetCloseFriendsRequest final : public RequestActor<> {
+  vector<UserId> user_ids_;
+
+  void do_run(Promise<Unit> &&promise) final {
+    user_ids_ = td_->contacts_manager_->get_close_friends(std::move(promise));
+  }
+
+  void do_send_result() final {
+    send_result(td_->contacts_manager_->get_users_object(-1, user_ids_));
+  }
+
+ public:
+  GetCloseFriendsRequest(ActorShared<Td> td, uint64 request_id) : RequestActor(std::move(td), request_id) {
+  }
+};
+
 class GetRecentInlineBotsRequest final : public RequestActor<> {
   vector<UserId> user_ids_;
 
@@ -6974,6 +6990,11 @@ void Td::on_request(uint64 id, const td_api::clearImportedContacts &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   contacts_manager_->clear_imported_contacts(std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::getCloseFriends &request) {
+  CHECK_IS_USER();
+  CREATE_NO_ARGS_REQUEST(GetCloseFriendsRequest);
 }
 
 void Td::on_request(uint64 id, td_api::setUserPersonalProfilePhoto &request) {
