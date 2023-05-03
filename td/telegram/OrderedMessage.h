@@ -52,14 +52,11 @@ class OrderedMessages {
 
       size_t last_right_pos = 0;
       while (root != nullptr) {
-        //        LOG(DEBUG) << "Have root->message_id_ = " << root->message_id_;
         stack_.push_back(root);
         if (root->message_id_ <= message_id) {
-          //          LOG(DEBUG) << "Go right";
           last_right_pos = stack_.size();
           root = root->right_.get();
         } else {
-          //          LOG(DEBUG) << "Go left";
           root = root->left_.get();
         }
       }
