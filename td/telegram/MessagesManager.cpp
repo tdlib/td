@@ -10071,7 +10071,7 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
       CHECK(d->first_database_message_id.is_valid());
       {
         auto it = d->ordered_messages.get_const_iterator(d->first_database_message_id);
-        if (*it != nullptr && ((*it)->get_message_id() == d->first_database_message_id || (*it)->have_next_)) {
+        if (*it != nullptr && ((*it)->get_message_id() == d->first_database_message_id || (*it)->have_next())) {
           MessageId new_first_database_message_id = d->first_database_message_id;
           while (*it != nullptr) {
             auto message_id = (*it)->get_message_id();
@@ -10088,7 +10088,7 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
       }
       {
         auto it = d->ordered_messages.get_const_iterator(d->last_database_message_id);
-        if (*it != nullptr && ((*it)->get_message_id() == d->last_database_message_id || (*it)->have_next_)) {
+        if (*it != nullptr && ((*it)->get_message_id() == d->last_database_message_id || (*it)->have_next())) {
           MessageId new_last_database_message_id = d->last_database_message_id;
           while (*it != nullptr) {
             auto message_id = (*it)->get_message_id();
@@ -16205,7 +16205,7 @@ void MessagesManager::fix_dialog_last_notification_id(Dialog *d, bool from_menti
   auto &group_info = get_notification_group_info(d, from_mentions);
   VLOG(notifications) << "Trying to fix last notification identifier in " << group_info.group_id << " from "
                       << d->dialog_id << " from " << message_id << "/" << group_info.last_notification_id;
-  if (*it != nullptr && ((*it)->get_message_id() == message_id || (*it)->have_next_)) {
+  if (*it != nullptr && ((*it)->get_message_id() == message_id || (*it)->have_next())) {
     while (*it != nullptr) {
       const Message *m = get_message(d, (*it)->get_message_id());
       if (is_from_mention_notification_group(m) == from_mentions && m->notification_id.is_valid() &&
@@ -21036,7 +21036,7 @@ tl_object_ptr<td_api::messages> MessagesManager::get_dialog_history(DialogId dia
       }
     } else if ((*p)->get_message_id() != from_message_id) {
       CHECK((*p)->get_message_id() < from_message_id);
-      if (!(*p)->have_next_ && (d->last_message_id == MessageId() || (*p)->get_message_id() < d->last_message_id)) {
+      if (!(*p)->have_next() && (d->last_message_id == MessageId() || (*p)->get_message_id() < d->last_message_id)) {
         have_a_gap = true;
       }
     }
@@ -22761,7 +22761,7 @@ int64 MessagesManager::get_dialog_message_by_date(DialogId dialog_id, int32 date
 
   auto message_id = d->ordered_messages.find_message_by_date(date, get_get_message_date(d));
   if (message_id.is_valid() &&
-      (message_id == d->last_message_id || (*d->ordered_messages.get_const_iterator(message_id))->have_next_)) {
+      (message_id == d->last_message_id || (*d->ordered_messages.get_const_iterator(message_id))->have_next())) {
     get_dialog_message_by_date_results_[random_id] = {dialog_id, message_id};
     promise.set_value(Unit());
     return random_id;

@@ -20,11 +20,15 @@ class OrderedMessage {
     return message_id_;
   }
 
-  bool have_previous_ = false;
-  bool have_next_ = false;
+  bool have_next() const {
+    return have_next_;
+  }
 
  private:
   int32 random_y_ = 0;
+
+  bool have_previous_ = false;
+  bool have_next_ = false;
 
   MessageId message_id_;
 
