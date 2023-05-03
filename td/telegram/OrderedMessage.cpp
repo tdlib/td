@@ -174,14 +174,10 @@ OrderedMessages::AttachInfo OrderedMessages::auto_attach_message(MessageId messa
       if (message_id.is_server() && previous_message_id.is_server() && previous_message->have_next_) {
         ++it;
         auto next_message = *it;
-        if (next_message != nullptr) {
-          if (next_message->message_id_.is_server()) {
-            LOG(ERROR) << "Attach " << message_id << " from " << source << " before " << next_message->message_id_
-                       << " and after " << previous_message_id;
-          }
-        } else {
-          LOG(ERROR) << "Supposed to have next message, but there is no next message after " << previous_message_id
-                     << " from " << source;
+        CHECK(next_message != nullptr);
+        if (next_message->message_id_.is_server()) {
+          LOG(ERROR) << "Attach " << message_id << " before " << next_message->message_id_ << " and after "
+                     << previous_message_id;
         }
       }
 

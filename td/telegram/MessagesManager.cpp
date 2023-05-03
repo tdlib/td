@@ -34905,33 +34905,32 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
   }
 
-  if (!is_attached && !have_next && !have_previous) {
-    if (m->message_id.is_server() && d->last_message_id.is_valid() && m->message_id > d->last_message_id) {
-      LOG(INFO) << "Receive " << m->message_id << ", which is newer than the last " << d->last_message_id
-                << " not from update";
-      set_dialog_last_message_id(d, MessageId(), source);
-      if (m->message_id > d->deleted_last_message_id) {
-        d->delete_last_message_date = m->date;
-        d->deleted_last_message_id = message_id;
-      }
+  if (!auto_attach && !have_next && !have_previous && m->message_id.is_server() && d->last_message_id.is_valid() &&
+      m->message_id > d->last_message_id) {
+    LOG(INFO) << "Receive " << m->message_id << ", which is newer than the last " << d->last_message_id
+              << " not from update";
+    set_dialog_last_message_id(d, MessageId(), source);
+    if (m->message_id > d->deleted_last_message_id) {
+      d->delete_last_message_date = m->date;
+      d->deleted_last_message_id = message_id;
+    }
 
-      set_dialog_first_database_message_id(d, MessageId(), source);
-      set_dialog_last_database_message_id(d, MessageId(), source);
-      d->have_full_history = false;
-      d->have_full_history_source = 0;
-      invalidate_message_indexes(d);
+    set_dialog_first_database_message_id(d, MessageId(), source);
+    set_dialog_last_database_message_id(d, MessageId(), source);
+    d->have_full_history = false;
+    d->have_full_history_source = 0;
+    invalidate_message_indexes(d);
 
-      on_dialog_updated(dialog_id, source);
+    on_dialog_updated(dialog_id, source);
 
-      send_update_chat_last_message(d, source);
-      *need_update_dialog_pos = false;
+    send_update_chat_last_message(d, source);
+    *need_update_dialog_pos = false;
 
-      on_dialog_updated(d->dialog_id, "do delete last message");
+    on_dialog_updated(d->dialog_id, "do delete last message");
 
-      if (!td_->auth_manager_->is_bot()) {
-        send_closure_later(actor_id(this), &MessagesManager::get_history_from_the_end, d->dialog_id, false, false,
-                           Promise<Unit>());
-      }
+    if (!td_->auth_manager_->is_bot()) {
+      send_closure_later(actor_id(this), &MessagesManager::get_history_from_the_end, d->dialog_id, false, false,
+                         Promise<Unit>());
     }
   }
 
