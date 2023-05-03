@@ -9811,6 +9811,7 @@ void MessagesManager::on_get_messages(vector<tl_object_ptr<telegram_api::Message
 }
 
 bool MessagesManager::delete_newer_server_messages_at_the_end(Dialog *d, MessageId max_message_id) {
+  CHECK(!td_->auth_manager_->is_bot());
   auto message_ids = d->ordered_messages.find_newer_messages(max_message_id);
   if (message_ids.empty()) {
     return false;
@@ -12440,6 +12441,7 @@ int32 MessagesManager::calc_new_unread_count_from_the_end(Dialog *d, MessageId m
 
 int32 MessagesManager::calc_new_unread_count(Dialog *d, MessageId max_message_id, MessageType type,
                                              int32 hint_unread_count) const {
+  CHECK(!td_->auth_manager_->is_bot());
   CHECK(!max_message_id.is_scheduled());
   if (d->is_empty) {
     return 0;
@@ -16201,6 +16203,7 @@ void MessagesManager::fix_dialog_last_notification_id(Dialog *d, bool from_menti
   if (d->notification_info == nullptr) {
     return;
   }
+  CHECK(!td_->auth_manager_->is_bot());
   auto it = d->ordered_messages.get_const_iterator(message_id);
   auto &group_info = get_notification_group_info(d, from_mentions);
   VLOG(notifications) << "Trying to fix last notification identifier in " << group_info.group_id << " from "
@@ -23118,9 +23121,7 @@ void MessagesManager::get_dialog_message_position(FullMessageId full_message_id,
 void MessagesManager::preload_newer_messages(const Dialog *d, MessageId max_message_id) {
   CHECK(d != nullptr);
   CHECK(max_message_id.is_valid());
-  if (td_->auth_manager_->is_bot()) {
-    return;
-  }
+  CHECK(!td_->auth_manager_->is_bot());
 
   auto p = d->ordered_messages.get_const_iterator(max_message_id);
   int32 limit = MAX_GET_HISTORY * 3 / 10;
@@ -23140,9 +23141,7 @@ void MessagesManager::preload_newer_messages(const Dialog *d, MessageId max_mess
 void MessagesManager::preload_older_messages(const Dialog *d, MessageId min_message_id) {
   CHECK(d != nullptr);
   CHECK(min_message_id.is_valid());
-  if (td_->auth_manager_->is_bot()) {
-    return;
-  }
+  CHECK(!td_->auth_manager_->is_bot());
 
   /*
     if (d->first_remote_message_id == -1) {
@@ -34517,6 +34516,10 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     message->reply_markup = nullptr;
   }
 
+  if (td_->auth_manager_->is_bot()) {
+    have_previous = false;
+    have_next = false;
+  }
   bool auto_attach = have_previous && have_next && (from_update || message_id.is_local() || message_id.is_yet_unsent());
 
   {
@@ -34539,7 +34542,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
           }
         }
       }
-      if (!auto_attach && !message->from_database) {
+      if (!auto_attach && !message->from_database && !td_->auth_manager_->is_bot()) {
         if (have_previous) {
           CHECK(!have_next);
           d->ordered_messages.attach_message_to_previous(message_id, source);
