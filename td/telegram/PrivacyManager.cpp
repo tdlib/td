@@ -62,7 +62,7 @@ PrivacyManager::UserPrivacySetting::UserPrivacySetting(const telegram_api::Priva
       type_ = Type::VoiceMessages;
       break;
     case telegram_api::privacyKeyAbout::ID:
-      type_ = Type::VoiceMessages;
+      type_ = Type::UserBio;
       break;
     default:
       UNREACHABLE();
@@ -90,6 +90,8 @@ tl_object_ptr<td_api::UserPrivacySetting> PrivacyManager::UserPrivacySetting::ge
       return make_tl_object<td_api::userPrivacySettingAllowFindingByPhoneNumber>();
     case Type::VoiceMessages:
       return make_tl_object<td_api::userPrivacySettingAllowPrivateVoiceAndVideoNoteMessages>();
+    case Type::UserBio:
+      return make_tl_object<td_api::userPrivacySettingShowBio>();
     default:
       UNREACHABLE();
       return nullptr;
@@ -115,6 +117,8 @@ tl_object_ptr<telegram_api::InputPrivacyKey> PrivacyManager::UserPrivacySetting:
       return make_tl_object<telegram_api::inputPrivacyKeyAddedByPhone>();
     case Type::VoiceMessages:
       return make_tl_object<telegram_api::inputPrivacyKeyVoiceMessages>();
+    case Type::UserBio:
+      return make_tl_object<telegram_api::inputPrivacyKeyAbout>();
     default:
       UNREACHABLE();
       return nullptr;
@@ -149,6 +153,9 @@ PrivacyManager::UserPrivacySetting::UserPrivacySetting(const td_api::UserPrivacy
       break;
     case td_api::userPrivacySettingAllowPrivateVoiceAndVideoNoteMessages::ID:
       type_ = Type::VoiceMessages;
+      break;
+    case td_api::userPrivacySettingShowBio::ID:
+      type_ = Type::UserBio;
       break;
     default:
       UNREACHABLE();

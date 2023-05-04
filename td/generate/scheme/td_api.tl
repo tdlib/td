@@ -4465,6 +4465,9 @@ userPrivacySettingShowLinkInForwardedMessages = UserPrivacySetting;
 //@description A privacy setting for managing whether the user's phone number is visible
 userPrivacySettingShowPhoneNumber = UserPrivacySetting;
 
+//@description A privacy setting for managing whether the user's bio is visible
+userPrivacySettingShowBio = UserPrivacySetting;
+
 //@description A privacy setting for managing whether the user can be invited to chats
 userPrivacySettingAllowChatInvites = UserPrivacySetting;
 

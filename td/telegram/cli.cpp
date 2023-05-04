@@ -1450,6 +1450,9 @@ class CliClient final : public Actor {
     if (setting == "phone_number") {
       return td_api::make_object<td_api::userPrivacySettingShowPhoneNumber>();
     }
+    if (setting == "bio") {
+      return td_api::make_object<td_api::userPrivacySettingShowBio>();
+    }
     if (setting == "find") {
       return td_api::make_object<td_api::userPrivacySettingAllowFindingByPhoneNumber>();
     }

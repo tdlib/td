@@ -48,6 +48,7 @@ class PrivacyManager final : public NetQueryCallback {
       UserPhoneNumber,
       FindByPhoneNumber,
       VoiceMessages,
+      UserBio,
       Size
     };
 
