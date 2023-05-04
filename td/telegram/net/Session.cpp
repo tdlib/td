@@ -1451,7 +1451,8 @@ void Session::create_gen_auth_key_actor(HandshakeId handshake_id) {
   info.flag_ = true;
   bool is_main = handshake_id == MainAuthKeyHandshake;
   if (!info.handshake_) {
-    info.handshake_ = make_unique<mtproto::AuthKeyHandshake>(dc_id_, is_main && !is_cdn_ ? 0 : 24 * 60 * 60);
+    auto key_validity_time = is_main && !is_cdn_ ? 0 : Random::fast(23 * 60 * 60, 24 * 60 * 60);
+    info.handshake_ = make_unique<mtproto::AuthKeyHandshake>(dc_id_, key_validity_time);
   }
   class AuthKeyHandshakeContext final : public mtproto::AuthKeyHandshakeContext {
    public:
