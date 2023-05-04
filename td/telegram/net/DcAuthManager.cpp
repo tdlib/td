@@ -8,6 +8,7 @@
 
 #include "td/telegram/Global.h"
 #include "td/telegram/net/AuthDataShared.h"
+#include "td/telegram/net/AuthKeyState.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/TdDb.h"
@@ -62,7 +63,7 @@ void DcAuthManager::add_dc(std::shared_ptr<AuthDataShared> auth_data) {
   info.dc_id = auth_data->dc_id();
   CHECK(info.dc_id.is_exact());
   info.shared_auth_data = std::move(auth_data);
-  info.auth_key_state = info.shared_auth_data->get_auth_key_state();
+  info.auth_key_state = get_auth_key_state(info.shared_auth_data->get_auth_key());
   VLOG(dc) << "Add " << info.dc_id << " with auth key state " << info.auth_key_state;
   if (!main_dc_id_.is_exact()) {
     main_dc_id_ = info.dc_id;
@@ -95,7 +96,7 @@ DcAuthManager::DcInfo *DcAuthManager::find_dc(int32 dc_id) {
 void DcAuthManager::update_auth_key_state() {
   auto dc_id = narrow_cast<int32>(get_link_token());
   auto &dc = get_dc(dc_id);
-  dc.auth_key_state = dc.shared_auth_data->get_auth_key_state();
+  dc.auth_key_state = get_auth_key_state(dc.shared_auth_data->get_auth_key());
   VLOG(dc) << "Update " << dc_id << " auth key state from " << dc.auth_key_state << " to " << dc.auth_key_state;
 
   loop();

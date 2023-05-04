@@ -7,6 +7,7 @@
 #include "td/telegram/net/SessionProxy.h"
 
 #include "td/telegram/Global.h"
+#include "td/telegram/net/AuthKeyState.h"
 #include "td/telegram/net/ConnectionCreator.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
@@ -107,7 +108,7 @@ void SessionProxy::start_up() {
    private:
     ActorShared<SessionProxy> session_proxy_;
   };
-  auth_key_state_ = auth_data_->get_auth_key_state();
+  auth_key_state_ = get_auth_key_state(auth_data_->get_auth_key());
   auth_data_->add_auth_key_listener(make_unique<Listener>(actor_shared(this)));
   open_session();
 }
@@ -222,7 +223,7 @@ void SessionProxy::open_session(bool force) {
 
 void SessionProxy::update_auth_key_state() {
   auto old_auth_key_state = auth_key_state_;
-  auth_key_state_ = auth_data_->get_auth_key_state();
+  auth_key_state_ = get_auth_key_state(auth_data_->get_auth_key());
   if (auth_key_state_ != old_auth_key_state && old_auth_key_state == AuthKeyState::OK) {
     close_session();
   }

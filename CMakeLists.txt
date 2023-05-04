@@ -669,6 +669,7 @@ set(TDLIB_SOURCE
   td/telegram/MinChannel.h
   td/telegram/misc.h
   td/telegram/net/AuthDataShared.h
+  td/telegram/net/AuthKeyState.h
   td/telegram/net/ConnectionCreator.h
   td/telegram/net/DcAuthManager.h
   td/telegram/net/DcId.h

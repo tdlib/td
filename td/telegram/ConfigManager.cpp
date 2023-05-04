@@ -453,9 +453,6 @@ static ActorOwn<> get_full_config(DcOption option, Promise<tl_object_ptr<telegra
       }
       return res;
     }
-    AuthKeyState get_auth_key_state() final {
-      return AuthDataShared::get_auth_key_state(get_auth_key());
-    }
     void set_auth_key(const mtproto::AuthKey &auth_key) final {
       G()->td_db()->get_binlog_pmc()->set(auth_key_key(), serialize(auth_key));
 
