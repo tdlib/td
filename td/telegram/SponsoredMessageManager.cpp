@@ -148,10 +148,16 @@ struct SponsoredMessageManager::SponsoredMessage {
   }
 };
 
+struct SponsoredMessageManager::SponsoredMessageInfo {
+  string random_id_;
+  bool is_viewed_ = false;
+  bool is_clicked_ = false;
+};
+
 struct SponsoredMessageManager::DialogSponsoredMessages {
   vector<Promise<td_api::object_ptr<td_api::sponsoredMessages>>> promises;
   vector<SponsoredMessage> messages;
-  FlatHashMap<int64, string> message_random_ids;
+  FlatHashMap<int64, SponsoredMessageInfo> message_infos;
   int32 messages_between = 0;
   bool is_premium = false;
 };
@@ -302,7 +308,7 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
   auto promises = std::move(messages->promises);
   reset_to_empty(messages->promises);
   CHECK(messages->messages.empty());
-  CHECK(messages->message_random_ids.empty());
+  CHECK(messages->message_infos.empty());
 
   if (result.is_error()) {
     dialog_sponsored_messages_.erase(dialog_id);
@@ -378,8 +384,9 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
         auto local_id = current_sponsored_message_id_.get();
         CHECK(!current_sponsored_message_id_.is_valid());
         CHECK(!current_sponsored_message_id_.is_scheduled());
-        auto is_inserted =
-            messages->message_random_ids.emplace(local_id, sponsored_message->random_id_.as_slice().str()).second;
+        SponsoredMessageInfo message_info;
+        message_info.random_id_ = sponsored_message->random_id_.as_slice().str();
+        auto is_inserted = messages->message_infos.emplace(local_id, std::move(message_info)).second;
         CHECK(is_inserted);
         messages->messages.emplace_back(
             local_id, sponsored_message->recommended_, sponsored_message->show_peer_photo_, sponsor_dialog_id,
@@ -407,14 +414,13 @@ void SponsoredMessageManager::view_sponsored_message(DialogId dialog_id, Message
   if (it == dialog_sponsored_messages_.end()) {
     return;
   }
-  auto random_id_it = it->second->message_random_ids.find(sponsored_message_id.get());
-  if (random_id_it == it->second->message_random_ids.end()) {
+  auto random_id_it = it->second->message_infos.find(sponsored_message_id.get());
+  if (random_id_it == it->second->message_infos.end() || random_id_it->second.is_viewed_) {
     return;
   }
 
-  auto random_id = std::move(random_id_it->second);
-  it->second->message_random_ids.erase(random_id_it);
-  td_->create_handler<ViewSponsoredMessageQuery>()->send(dialog_id.get_channel_id(), random_id);
+  random_id_it->second.is_viewed_ = true;
+  td_->create_handler<ViewSponsoredMessageQuery>()->send(dialog_id.get_channel_id(), random_id_it->second.random_id_);
 }
 
 void SponsoredMessageManager::click_sponsored_message(DialogId dialog_id, MessageId sponsored_message_id,
@@ -426,14 +432,14 @@ void SponsoredMessageManager::click_sponsored_message(DialogId dialog_id, Messag
   if (it == dialog_sponsored_messages_.end()) {
     return promise.set_value(Unit());
   }
-  auto random_id_it = it->second->message_random_ids.find(sponsored_message_id.get());
-  if (random_id_it == it->second->message_random_ids.end()) {
+  auto random_id_it = it->second->message_infos.find(sponsored_message_id.get());
+  if (random_id_it == it->second->message_infos.end() || random_id_it->second.is_clicked_) {
     return promise.set_value(Unit());
   }
 
-  auto random_id = std::move(random_id_it->second);
-  it->second->message_random_ids.erase(random_id_it);
-  td_->create_handler<ClickSponsoredMessageQuery>(std::move(promise))->send(dialog_id.get_channel_id(), random_id);
+  random_id_it->second.is_clicked_ = true;
+  td_->create_handler<ClickSponsoredMessageQuery>(std::move(promise))
+      ->send(dialog_id.get_channel_id(), random_id_it->second.random_id_);
 }
 
 }  // namespace td

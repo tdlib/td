@@ -41,6 +41,7 @@ class SponsoredMessageManager final : public Actor {
 
  private:
   struct SponsoredMessage;
+  struct SponsoredMessageInfo;
   struct DialogSponsoredMessages;
 
   void tear_down() final;
