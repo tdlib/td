@@ -198,14 +198,16 @@ class AddContactQuery final : public Td::ResultHandler {
 
 class EditCloseFriendsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
+  vector<UserId> user_ids_;
 
  public:
   explicit EditCloseFriendsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(const vector<UserId> &user_ids) {
-    send_query(
-        G()->net_query_creator().create(telegram_api::contacts_editCloseFriends(UserId::get_input_user_ids(user_ids))));
+  void send(vector<UserId> user_ids) {
+    user_ids_ = std::move(user_ids);
+    send_query(G()->net_query_creator().create(
+        telegram_api::contacts_editCloseFriends(UserId::get_input_user_ids(user_ids_))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -214,7 +216,7 @@ class EditCloseFriendsQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    promise_.set_value(Unit());
+    td_->contacts_manager_->on_set_close_friends(user_ids_, std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -6808,7 +6810,8 @@ void ContactsManager::clear_imported_contacts(Promise<Unit> &&promise) {
 void ContactsManager::on_update_contacts_reset() {
   /*
   UserId my_id = get_my_id();
-  users_.foreach([&](const UserId &user_id, unique_ptr<User> &u) {
+  users_.foreach([&](const UserId &user_id, unique_ptr<User> &user) {
+    User *u = user.get();
     if (u->is_contact) {
       LOG(INFO) << "Drop contact with " << user_id;
       if (user_id != my_id) {
@@ -6906,14 +6909,29 @@ vector<UserId> ContactsManager::get_close_friends(Promise<Unit> &&promise) {
   return user_ids;
 }
 
-void ContactsManager::set_close_friends(const vector<UserId> &user_ids, Promise<Unit> &&promise) {
+void ContactsManager::set_close_friends(vector<UserId> user_ids, Promise<Unit> &&promise) {
   for (auto &user_id : user_ids) {
     if (!have_user(user_id)) {
       return promise.set_error(Status::Error(400, "User not found"));
     }
   }
 
-  td_->create_handler<EditCloseFriendsQuery>(std::move(promise))->send(user_ids);
+  td_->create_handler<EditCloseFriendsQuery>(std::move(promise))->send(std::move(user_ids));
+}
+
+void ContactsManager::on_set_close_friends(const vector<UserId> &user_ids, Promise<Unit> &&promise) {
+  FlatHashSet<UserId, UserIdHash> close_friend_user_ids;
+  for (auto &user_id : user_ids) {
+    close_friend_user_ids.insert(user_id);
+  }
+  users_.foreach([&](const UserId &user_id, unique_ptr<User> &user) {
+    User *u = user.get();
+    if (u->is_contact && u->is_close_friend != (close_friend_user_ids.count(user_id) > 0)) {
+      on_update_user_is_contact(u, user_id, u->is_contact, u->is_mutual_contact, !u->is_close_friend);
+      update_user(u, user_id);
+    }
+  });
+  promise.set_value(Unit());
 }
 
 UserId ContactsManager::search_user_by_phone_number(string phone_number, Promise<Unit> &&promise) {

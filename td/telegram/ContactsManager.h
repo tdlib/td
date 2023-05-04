@@ -360,7 +360,9 @@ class ContactsManager final : public Actor {
 
   vector<UserId> get_close_friends(Promise<Unit> &&promise);
 
-  void set_close_friends(const vector<UserId> &user_ids, Promise<Unit> &&promise);
+  void set_close_friends(vector<UserId> user_ids, Promise<Unit> &&promise);
+
+  void on_set_close_friends(const vector<UserId> &user_ids, Promise<Unit> &&promise);
 
   UserId search_user_by_phone_number(string phone_number, Promise<Unit> &&promise);
 
