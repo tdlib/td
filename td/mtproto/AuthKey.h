@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/utils/common.h"
+#include "td/utils/port/Clocks.h"
 #include "td/utils/Time.h"
 
 namespace td {
@@ -60,7 +61,6 @@ class AuthKey {
 
   void set_expires_at(double expires_at) {
     expires_at_ = expires_at;
-    // expires_at_ = Time::now() + 60 * 60 + 10 * 60;
   }
   void set_created_at(double created_at) {
     created_at_ = created_at;
@@ -71,15 +71,32 @@ class AuthKey {
 
   static constexpr int32 AUTH_FLAG = 1;
   static constexpr int32 HAS_CREATED_AT = 4;
+  static constexpr int32 HAS_EXPIRES_AT = 8;
 
   template <class StorerT>
   void store(StorerT &storer) const {
     storer.store_binary(auth_key_id_);
     bool has_created_at = created_at_ != 0;
-    storer.store_binary(static_cast<int32>((auth_flag_ ? AUTH_FLAG : 0) | (has_created_at ? HAS_CREATED_AT : 0)));
+    bool has_expires_at = expires_at_ != 0;
+    int32 flags = 0;
+    if (auth_flag_) {
+      flags |= AUTH_FLAG;
+    }
+    if (has_created_at) {
+      flags |= HAS_CREATED_AT;
+    }
+    if (has_expires_at) {
+      flags |= HAS_EXPIRES_AT;
+    }
+    storer.store_binary(flags);
     storer.store_string(auth_key_);
     if (has_created_at) {
       storer.store_binary(created_at_);
+    }
+    if (has_expires_at) {
+      double time_left = max(expires_at_ - Time::now(), 0.0);
+      storer.store_binary(time_left);
+      storer.store_binary(Clocks::system());
     }
   }
 
@@ -91,6 +108,13 @@ class AuthKey {
     auth_key_ = parser.template fetch_string<string>();
     if ((flags & HAS_CREATED_AT) != 0) {
       created_at_ = parser.fetch_double();
+    }
+    if ((flags & HAS_EXPIRES_AT) != 0) {
+      double time_left = parser.fetch_double();
+      double old_server_time = parser.fetch_double();
+      double passed_server_time = max(Clocks::system() - old_server_time, 0.0);
+      time_left = max(time_left - passed_server_time, 0.0);
+      expires_at_ = Time::now() + time_left;
     }
     // just in case
     have_header_ = true;
