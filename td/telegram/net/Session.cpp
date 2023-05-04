@@ -851,7 +851,7 @@ void Session::mark_as_unknown(uint64 message_id, Query *query) {
 
 Status Session::on_update(BufferSlice packet) {
   if (is_cdn_) {
-    return Status::Error("Receive at update from CDN connection");
+    return Status::Error("Receive an update from a CDN connection");
   }
 
   if (!use_pfs_ && !auth_data_.use_pfs()) {
