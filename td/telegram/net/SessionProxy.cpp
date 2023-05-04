@@ -80,7 +80,7 @@ class SessionCallback final : public Session::Callback {
 
 SessionProxy::SessionProxy(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> shared_auth_data,
                            bool is_primary, bool is_main, bool allow_media_only, bool is_media, bool use_pfs,
-                           bool is_cdn, bool need_destroy)
+                           bool persist_tmp_auth_key, bool is_cdn, bool need_destroy)
     : callback_(std::move(callback))
     , auth_data_(std::move(shared_auth_data))
     , is_primary_(is_primary)
@@ -88,6 +88,7 @@ SessionProxy::SessionProxy(unique_ptr<Callback> callback, std::shared_ptr<AuthDa
     , allow_media_only_(allow_media_only)
     , is_media_(is_media)
     , use_pfs_(use_pfs)
+    , persist_tmp_auth_key_(use_pfs && persist_tmp_auth_key)
     , is_cdn_(is_cdn)
     , need_destroy_(need_destroy) {
 }
@@ -110,6 +111,21 @@ void SessionProxy::start_up() {
   };
   auth_key_state_ = get_auth_key_state(auth_data_->get_auth_key());
   auth_data_->add_auth_key_listener(make_unique<Listener>(actor_shared(this)));
+
+  string saved_auth_key = G()->td_db()->get_binlog_pmc()->get(tmp_auth_key_key());
+  if (!saved_auth_key.empty()) {
+    if (persist_tmp_auth_key_) {
+      unserialize(tmp_auth_key_, saved_auth_key).ensure();
+      if (tmp_auth_key_.expires_at() < Time::now()) {
+        tmp_auth_key_ = {};
+      } else {
+        LOG(WARNING) << "Loaded tmp_auth_key " << tmp_auth_key_.id() << ": " << get_auth_key_state(tmp_auth_key_);
+      }
+    } else {
+      LOG(WARNING) << "Drop saved tmp_auth_key";
+      G()->td_db()->get_binlog_pmc()->erase(tmp_auth_key_key());
+    }
+  }
   open_session();
 }
 
@@ -241,6 +257,13 @@ void SessionProxy::update_auth_key_state() {
 void SessionProxy::on_tmp_auth_key_updated(mtproto::AuthKey auth_key) {
   LOG(WARNING) << "Have tmp_auth_key " << auth_key.id() << ": " << get_auth_key_state(auth_key);
   tmp_auth_key_ = std::move(auth_key);
+  if (persist_tmp_auth_key_) {
+    G()->td_db()->get_binlog_pmc()->set(tmp_auth_key_key(), serialize(tmp_auth_key_));
+  }
+}
+
+string SessionProxy::tmp_auth_key_key() const {
+  return PSTRING() << "tmp_auth" << get_name();
 }
 
 void SessionProxy::on_server_salt_updated(std::vector<mtproto::ServerSalt> server_salts) {

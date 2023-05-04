@@ -141,9 +141,10 @@ void SessionMultiProxy::init() {
       uint32 generation_;
       int32 session_id_;
     };
-    info.proxy = create_actor<SessionProxy>(name, make_unique<Callback>(actor_id(this), sessions_generation_, i),
-                                            auth_data_, is_primary_, is_main_, allow_media_only_, is_media_,
-                                            get_pfs_flag(), is_cdn_, need_destroy_auth_key_ && i == 0);
+    info.proxy =
+        create_actor<SessionProxy>(name, make_unique<Callback>(actor_id(this), sessions_generation_, i), auth_data_,
+                                   is_primary_, is_main_, allow_media_only_, is_media_, get_pfs_flag(),
+                                   session_count_ > 1 && is_primary_, is_cdn_, need_destroy_auth_key_ && i == 0);
     sessions_.push_back(std::move(info));
   }
 }
