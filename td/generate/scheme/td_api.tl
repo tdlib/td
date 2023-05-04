@@ -7531,7 +7531,10 @@ changeImportedContacts contacts:vector<contact> = ImportedContacts;
 //@description Clears all imported contacts, contact list remains unchanged
 clearImportedContacts = Ok;
 
-//@description Returns all close friends of the user
+//@description Changes the list of close friends of the current user @user_ids User identifiers of close friends; the users must be contacts of the current user
+setCloseFriends user_ids:vector<int53> = Ok;
+
+//@description Returns all close friends of the current user
 getCloseFriends = Users;
 
 //@description Changes a personal profile photo of a contact user @user_id User identifier @photo Profile photo to set; pass null to delete the photo; inputChatPhotoPrevious isn't supported in this function

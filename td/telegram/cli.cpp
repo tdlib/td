@@ -2393,6 +2393,8 @@ class CliClient final : public Actor {
       }
     } else if (op == "gcfr") {
       send_request(td_api::make_object<td_api::getCloseFriends>());
+    } else if (op == "scfr") {
+      send_request(td_api::make_object<td_api::setCloseFriends>(as_user_ids(args)));
     } else if (op == "gul") {
       send_request(td_api::make_object<td_api::getUserLink>());
     } else if (op == "subt") {

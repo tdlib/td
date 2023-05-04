@@ -6997,6 +6997,12 @@ void Td::on_request(uint64 id, const td_api::getCloseFriends &request) {
   CREATE_NO_ARGS_REQUEST(GetCloseFriendsRequest);
 }
 
+void Td::on_request(uint64 id, const td_api::setCloseFriends &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->set_close_friends(UserId::get_user_ids(request.user_ids_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::setUserPersonalProfilePhoto &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

@@ -196,6 +196,32 @@ class AddContactQuery final : public Td::ResultHandler {
   }
 };
 
+class EditCloseFriendsQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit EditCloseFriendsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(const vector<UserId> &user_ids) {
+    send_query(
+        G()->net_query_creator().create(telegram_api::contacts_editCloseFriends(UserId::get_input_user_ids(user_ids))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::contacts_editCloseFriends>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class ResolvePhoneQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   string phone_number_;
@@ -6878,6 +6904,16 @@ vector<UserId> ContactsManager::get_close_friends(Promise<Unit> &&promise) {
 
   promise.set_value(Unit());
   return user_ids;
+}
+
+void ContactsManager::set_close_friends(const vector<UserId> &user_ids, Promise<Unit> &&promise) {
+  for (auto &user_id : user_ids) {
+    if (!have_user(user_id)) {
+      return promise.set_error(Status::Error(400, "User not found"));
+    }
+  }
+
+  td_->create_handler<EditCloseFriendsQuery>(std::move(promise))->send(user_ids);
 }
 
 UserId ContactsManager::search_user_by_phone_number(string phone_number, Promise<Unit> &&promise) {
