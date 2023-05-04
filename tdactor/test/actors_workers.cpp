@@ -10,6 +10,7 @@
 #include "td/utils/common.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/tests.h"
+#include "td/utils/Time.h"
 
 class PowerWorker final : public td::Actor {
  public:
@@ -146,4 +147,42 @@ TEST(Actors, workers_small_query_two_threads) {
 
 TEST(Actors, workers_small_query_nine_threads) {
   test_workers(9, 10, 10000, 1);
+}
+
+class SenderActor;
+
+class ReceiverActor final : public td::Actor {
+ public:
+  void receive(td::ActorId<SenderActor>) {
+  }
+};
+
+class SenderActor final : public td::Actor {
+ public:
+  explicit SenderActor(td::ActorId<ReceiverActor> actor_id) : actor_id_(std::move(actor_id)) {
+  }
+
+ private:
+  td::ActorId<ReceiverActor> actor_id_;
+
+  void loop() final {
+    for (int i = 0; i < 10000; i++) {
+      send_closure(actor_id_, &ReceiverActor::receive, actor_id(this));
+    }
+    set_timeout_in(0.001);
+  }
+};
+
+TEST(Actors, send_closure_while_finish) {
+  td::ConcurrentScheduler sched(1, 0);
+
+  auto receiver = sched.create_actor_unsafe<ReceiverActor>(0, "ReceiverActor").release();
+  sched.create_actor_unsafe<SenderActor>(1, "SenderActor", receiver).release();
+
+  sched.start();
+  auto end_time = td::Time::now() + 0.2;
+  while (td::Time::now() < end_time) {
+    sched.run_main(0.1);
+  }
+  sched.finish();
 }
