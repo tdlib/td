@@ -239,15 +239,7 @@ void SessionProxy::update_auth_key_state() {
 }
 
 void SessionProxy::on_tmp_auth_key_updated(mtproto::AuthKey auth_key) {
-  Slice state;
-  if (auth_key.empty()) {
-    state = Slice("Empty");
-  } else if (auth_key.auth_flag()) {
-    state = Slice("OK");
-  } else {
-    state = Slice("NoAuth");
-  }
-  LOG(WARNING) << "Have tmp_auth_key " << auth_key.id() << ": " << state;
+  LOG(WARNING) << "Have tmp_auth_key " << auth_key.id() << ": " << get_auth_key_state(auth_key);
   tmp_auth_key_ = std::move(auth_key);
 }
 
