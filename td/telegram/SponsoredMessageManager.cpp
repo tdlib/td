@@ -88,6 +88,38 @@ class ViewSponsoredMessageQuery final : public Td::ResultHandler {
   }
 };
 
+class ClickSponsoredMessageQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  ChannelId channel_id_;
+
+ public:
+  explicit ClickSponsoredMessageQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(ChannelId channel_id, const string &message_id) {
+    channel_id_ = channel_id;
+    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+    if (input_channel == nullptr) {
+      return promise_.set_value(Unit());
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::channels_clickSponsoredMessage(std::move(input_channel), BufferSlice(message_id))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::channels_clickSponsoredMessage>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    td_->contacts_manager_->on_get_channel_error(channel_id_, status, "ClickSponsoredMessageQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 struct SponsoredMessageManager::SponsoredMessage {
   int64 local_id = 0;
   bool is_recommended = false;
@@ -383,6 +415,25 @@ void SponsoredMessageManager::view_sponsored_message(DialogId dialog_id, Message
   auto random_id = std::move(random_id_it->second);
   it->second->message_random_ids.erase(random_id_it);
   td_->create_handler<ViewSponsoredMessageQuery>()->send(dialog_id.get_channel_id(), random_id);
+}
+
+void SponsoredMessageManager::click_sponsored_message(DialogId dialog_id, MessageId sponsored_message_id,
+                                                      Promise<Unit> &&promise) {
+  if (!dialog_id.is_valid() || !sponsored_message_id.is_valid_sponsored()) {
+    return promise.set_error(Status::Error(400, "Invalid message specified"));
+  }
+  auto it = dialog_sponsored_messages_.find(dialog_id);
+  if (it == dialog_sponsored_messages_.end()) {
+    return promise.set_value(Unit());
+  }
+  auto random_id_it = it->second->message_random_ids.find(sponsored_message_id.get());
+  if (random_id_it == it->second->message_random_ids.end()) {
+    return promise.set_value(Unit());
+  }
+
+  auto random_id = std::move(random_id_it->second);
+  it->second->message_random_ids.erase(random_id_it);
+  td_->create_handler<ClickSponsoredMessageQuery>(std::move(promise))->send(dialog_id.get_channel_id(), random_id);
 }
 
 }  // namespace td

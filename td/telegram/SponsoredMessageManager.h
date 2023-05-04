@@ -37,6 +37,8 @@ class SponsoredMessageManager final : public Actor {
 
   void view_sponsored_message(DialogId dialog_id, MessageId sponsored_message_id);
 
+  void click_sponsored_message(DialogId dialog_id, MessageId sponsored_message_id, Promise<Unit> &&promise);
+
  private:
   struct SponsoredMessage;
   struct DialogSponsoredMessages;
