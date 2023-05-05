@@ -14022,6 +14022,9 @@ void MessagesManager::read_secret_chat_outbox(SecretChatId secret_chat_id, int32
     LOG(ERROR) << "Receive read secret chat outbox in the invalid " << secret_chat_id;
     return;
   }
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
   auto dialog_id = DialogId(secret_chat_id);
   Dialog *d = get_dialog_force(dialog_id, "read_secret_chat_outbox");
   if (d == nullptr) {
@@ -39834,6 +39837,7 @@ void MessagesManager::suffix_load_query_ready(DialogId dialog_id) {
 
 void MessagesManager::suffix_load_add_query(Dialog *d,
                                             std::pair<Promise<Unit>, std::function<bool(const Message *)>> query) {
+  CHECK(!td_->auth_manager_->is_bot());
   auto &queries = dialog_suffix_load_queries_[d->dialog_id];
   if (queries == nullptr) {
     queries = make_unique<SuffixLoadQueries>();
