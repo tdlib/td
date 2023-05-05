@@ -38,7 +38,7 @@ class MemoryMapping {
   MutableSlice as_mutable_slice();  // returns empty slice if memory is read-only
 
   MemoryMapping(const MemoryMapping &) = delete;
-  const MemoryMapping &operator=(const MemoryMapping &) = delete;
+  MemoryMapping &operator=(const MemoryMapping &) = delete;
   MemoryMapping(MemoryMapping &&other) noexcept;
   MemoryMapping &operator=(MemoryMapping &&other) noexcept;
   ~MemoryMapping();

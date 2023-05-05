@@ -223,10 +223,10 @@ class JsonScope {
     CHECK(is_active());
   }
   JsonScope(const JsonScope &) = delete;
+  JsonScope &operator=(const JsonScope &) = delete;
   JsonScope(JsonScope &&other) noexcept : sb_(other.sb_), jb_(other.jb_), save_scope_(other.save_scope_) {
     other.jb_ = nullptr;
   }
-  JsonScope &operator=(const JsonScope &) = delete;
   JsonScope &operator=(JsonScope &&) = delete;
   ~JsonScope() {
     if (jb_) {
@@ -342,7 +342,10 @@ class JsonArrayScope final : public JsonScope {
     jb->inc_offset();
     *sb_ << "[";
   }
+  JsonArrayScope(const JsonArrayScope &) = delete;
+  JsonArrayScope &operator=(const JsonArrayScope &) = delete;
   JsonArrayScope(JsonArrayScope &&) = default;
+  JsonArrayScope &operator=(JsonArrayScope &&) = delete;
   ~JsonArrayScope() {
     if (jb_) {
       leave();
@@ -383,7 +386,10 @@ class JsonObjectScope final : public JsonScope {
     jb->inc_offset();
     *sb_ << "{";
   }
+  JsonObjectScope(const JsonObjectScope &) = delete;
+  JsonObjectScope &operator=(const JsonObjectScope &) = delete;
   JsonObjectScope(JsonObjectScope &&) = default;
+  JsonObjectScope &operator=(JsonObjectScope &&) = delete;
   ~JsonObjectScope() {
     if (jb_) {
       leave();

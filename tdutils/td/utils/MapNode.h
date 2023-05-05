@@ -110,7 +110,7 @@ struct MapNode<KeyT, ValueT, typename std::enable_if_t<(sizeof(KeyT) + sizeof(Va
     Impl(const Impl &) = delete;
     Impl &operator=(const Impl &) = delete;
     Impl(Impl &&) = delete;
-    void operator=(Impl &&) = delete;
+    Impl &operator=(Impl &&) = delete;
     ~Impl() {
       second.~ValueT();
     }

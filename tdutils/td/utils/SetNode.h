@@ -81,7 +81,7 @@ struct SetNode<KeyT, typename std::enable_if_t<(sizeof(KeyT) > 28 * sizeof(void 
     Impl(const Impl &) = delete;
     Impl &operator=(const Impl &) = delete;
     Impl(Impl &&) = delete;
-    void operator=(Impl &&) = delete;
+    Impl &operator=(Impl &&) = delete;
   };
 
   using public_key_type = KeyT;
