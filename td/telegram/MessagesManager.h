@@ -1140,7 +1140,7 @@ class MessagesManager final : public Actor {
   };
 
   // Do not forget to update MessagesManager::update_message and all make_unique<Message> when this class is changed
-  struct Message {
+  struct Message final : public ListNode {
     MessageId message_id;
     UserId sender_user_id;
     DialogId sender_dialog_id;
@@ -1258,6 +1258,13 @@ class MessagesManager final : public Actor {
 
     template <class ParserT>
     void parse(ParserT &parser);
+
+    Message() = default;
+    Message(const Message &) = delete;
+    Message &operator=(const Message &) = delete;
+    Message(Message &&) = delete;
+    Message &operator=(Message &&) = delete;
+    ~Message() = default;
   };
 
   struct NotificationGroupInfo {
@@ -1441,6 +1448,8 @@ class MessagesManager final : public Actor {
     string client_data;
 
     WaitFreeHashMap<MessageId, unique_ptr<Message>, MessageIdHash> messages;
+
+    mutable ListNode message_lru_list;
 
     OrderedMessages ordered_messages;
 

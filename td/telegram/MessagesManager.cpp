@@ -11629,31 +11629,24 @@ vector<MessageId> MessagesManager::find_dialog_messages(const Dialog *d,
 vector<MessageId> MessagesManager::find_unloadable_messages(const Dialog *d, int32 unload_before_date,
                                                             bool &has_left_to_unload_messages) const {
   vector<MessageId> message_ids;
-  d->ordered_messages.traverse_messages(
-      [&](MessageId message_id) {
-        if (message_ids.size() >= MAX_UNLOADED_MESSAGES) {
-          has_left_to_unload_messages = true;
-          return false;
-        }
-        return true;
-      },
-      [&](MessageId message_id) {
-        const Message *m = d->messages.get_pointer(message_id);
-        CHECK(m != nullptr);
-        if (can_unload_message(d, m)) {
-          if (m->last_access_date <= unload_before_date) {
-            message_ids.push_back(message_id);
-          } else {
-            has_left_to_unload_messages = true;
-          }
-        }
-
-        if (has_left_to_unload_messages && m->date > unload_before_date) {
-          // we aren't interested in unloading too new messages
-          return false;
-        }
-        return true;
-      });
+  for (auto it = d->message_lru_list.next; it != &d->message_lru_list; it = it->next) {
+    if (message_ids.size() >= MAX_UNLOADED_MESSAGES) {
+      has_left_to_unload_messages = true;
+      break;
+    }
+    const auto *m = static_cast<const Message *>(it);
+    if (can_unload_message(d, m)) {
+      if (m->last_access_date <= unload_before_date) {
+        message_ids.push_back(m->message_id);
+      } else {
+        has_left_to_unload_messages = true;
+      }
+    }
+    if (has_left_to_unload_messages && m->date > unload_before_date) {
+      // we aren't interested in unloading too new messages
+      break;
+    }
+  }
   return message_ids;
 }
 
@@ -12003,6 +11996,8 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
   d->messages.foreach([&](const MessageId &message_id, unique_ptr<Message> &message) {
     CHECK(message_id == message->message_id);
     Message *m = message.get();
+
+    static_cast<ListNode *>(m)->remove();
 
     LOG(INFO) << "Delete " << message_id;
     deleted_message_ids.push_back(message_id.get());
@@ -16438,6 +16433,8 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
   auto result = std::move(d->messages[message_id]);
   CHECK(m == result.get());
   d->messages.erase(message_id);
+
+  static_cast<ListNode *>(result.get())->remove();
 
   d->ordered_messages.erase(message_id, only_from_memory);
 
@@ -34058,7 +34055,13 @@ const MessagesManager::Message *MessagesManager::get_message(const Dialog *d, Me
   } else {
     result = d->messages.get_pointer(message_id);
     if (result != nullptr) {
-      result->last_access_date = G()->unix_time_cached();
+      auto unix_time = G()->unix_time_cached();
+      if (unix_time > result->last_access_date + 5) {
+        result->last_access_date = unix_time;
+        auto list_node = const_cast<ListNode *>(static_cast<const ListNode *>(result));
+        list_node->remove();
+        d->message_lru_list.put_back(list_node);
+      }
     }
   }
   LOG(INFO) << "Search for " << message_id << " in " << d->dialog_id << " found " << result;
@@ -34889,6 +34892,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   Message *result_message = message.get();
   d->messages.set(message_id, std::move(message));
+
+  d->message_lru_list.put_back(result_message);
 
   d->ordered_messages.insert(message_id, auto_attach, have_previous, have_next, old_last_message_id, source);
 
