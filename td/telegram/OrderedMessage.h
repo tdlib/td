@@ -136,6 +136,10 @@ class OrderedMessages {
         cur = cur->right_.get();
       }
     }
+
+    void clear() {
+      stack_.clear();
+    }
   };
 
   class ConstIterator final : public IteratorBase {

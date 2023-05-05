@@ -21021,7 +21021,7 @@ tl_object_ptr<td_api::messages> MessagesManager::get_dialog_history(DialogId dia
     limit += offset;
     offset = 0;
     if (d->last_message_id == MessageId()) {
-      p = OrderedMessages::ConstIterator();
+      p.clear();
     }
   } else {
     bool have_a_gap = false;
@@ -21051,7 +21051,7 @@ tl_object_ptr<td_api::messages> MessagesManager::get_dialog_history(DialogId dia
 
     if (have_a_gap) {
       LOG(INFO) << "Have a gap near message to get chat history from";
-      p = OrderedMessages::ConstIterator();
+      p.clear();
     }
     if (*p != nullptr && (*p)->get_message_id() == from_message_id) {
       if (offset < 0) {
