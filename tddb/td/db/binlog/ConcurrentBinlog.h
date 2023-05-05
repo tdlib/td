@@ -35,10 +35,10 @@ class ConcurrentBinlog final : public BinlogInterface {
 
   ConcurrentBinlog();
   explicit ConcurrentBinlog(unique_ptr<Binlog> binlog, int scheduler_id = -1);
-  ConcurrentBinlog(const ConcurrentBinlog &other) = delete;
-  ConcurrentBinlog &operator=(const ConcurrentBinlog &other) = delete;
-  ConcurrentBinlog(ConcurrentBinlog &&other) = delete;
-  ConcurrentBinlog &operator=(ConcurrentBinlog &&other) = delete;
+  ConcurrentBinlog(const ConcurrentBinlog &) = delete;
+  ConcurrentBinlog &operator=(const ConcurrentBinlog &) = delete;
+  ConcurrentBinlog(ConcurrentBinlog &&) = delete;
+  ConcurrentBinlog &operator=(ConcurrentBinlog &&) = delete;
   ~ConcurrentBinlog() final;
 
   void force_sync(Promise<> promise) final;

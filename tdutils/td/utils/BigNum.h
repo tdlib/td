@@ -19,8 +19,8 @@ namespace td {
 class BigNumContext {
  public:
   BigNumContext();
-  BigNumContext(const BigNumContext &other) = delete;
-  BigNumContext &operator=(const BigNumContext &other) = delete;
+  BigNumContext(const BigNumContext &) = delete;
+  BigNumContext &operator=(const BigNumContext &) = delete;
   BigNumContext(BigNumContext &&other) noexcept;
   BigNumContext &operator=(BigNumContext &&other) noexcept;
   ~BigNumContext();

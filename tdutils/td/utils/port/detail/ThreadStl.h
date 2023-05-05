@@ -35,8 +35,8 @@ namespace detail {
 class ThreadStl {
  public:
   ThreadStl() = default;
-  ThreadStl(const ThreadStl &other) = delete;
-  ThreadStl &operator=(const ThreadStl &other) = delete;
+  ThreadStl(const ThreadStl &) = delete;
+  ThreadStl &operator=(const ThreadStl &) = delete;
   ThreadStl(ThreadStl &&) = default;
   ThreadStl &operator=(ThreadStl &&) = default;
   ~ThreadStl() {

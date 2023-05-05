@@ -72,8 +72,8 @@ class OrderedMessages {
    public:
     IteratorBase(const IteratorBase &) = delete;
     IteratorBase &operator=(const IteratorBase &) = delete;
-    IteratorBase(IteratorBase &&other) = default;
-    IteratorBase &operator=(IteratorBase &&other) = default;
+    IteratorBase(IteratorBase &&) = default;
+    IteratorBase &operator=(IteratorBase &&) = default;
 
     void operator++() {
       if (stack_.empty()) {

@@ -46,10 +46,10 @@ class SchedulerGuard {
  public:
   explicit SchedulerGuard(Scheduler *scheduler, bool lock = true);
   ~SchedulerGuard();
-  SchedulerGuard(const SchedulerGuard &other) = delete;
-  SchedulerGuard &operator=(const SchedulerGuard &other) = delete;
-  SchedulerGuard(SchedulerGuard &&other) = default;
-  SchedulerGuard &operator=(SchedulerGuard &&other) = delete;
+  SchedulerGuard(const SchedulerGuard &) = delete;
+  SchedulerGuard &operator=(const SchedulerGuard &) = delete;
+  SchedulerGuard(SchedulerGuard &&) = default;
+  SchedulerGuard &operator=(SchedulerGuard &&) = delete;
 
  private:
   MovableValue<bool> is_valid_ = true;

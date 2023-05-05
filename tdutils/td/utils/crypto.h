@@ -131,8 +131,8 @@ string sha512(Slice data) TD_WARN_UNUSED_RESULT;
 class Sha256State {
  public:
   Sha256State();
-  Sha256State(const Sha256State &other) = delete;
-  Sha256State &operator=(const Sha256State &other) = delete;
+  Sha256State(const Sha256State &) = delete;
+  Sha256State &operator=(const Sha256State &) = delete;
   Sha256State(Sha256State &&other) noexcept;
   Sha256State &operator=(Sha256State &&other) noexcept;
   ~Sha256State();

@@ -34,8 +34,8 @@ struct SetNode {
   }
   explicit SetNode(KeyT key) : first(std::move(key)) {
   }
-  SetNode(const SetNode &other) = delete;
-  SetNode &operator=(const SetNode &other) = delete;
+  SetNode(const SetNode &) = delete;
+  SetNode &operator=(const SetNode &) = delete;
   SetNode(SetNode &&other) noexcept {
     *this = std::move(other);
   }
@@ -78,10 +78,10 @@ struct SetNode<KeyT, typename std::enable_if_t<(sizeof(KeyT) > 28 * sizeof(void 
     explicit Impl(InputKeyT &&key) : first(std::forward<InputKeyT>(key)) {
       DCHECK(!is_hash_table_key_empty(first));
     }
-    Impl(const Impl &other) = delete;
-    Impl &operator=(const Impl &other) = delete;
-    Impl(Impl &&other) = delete;
-    void operator=(Impl &&other) = delete;
+    Impl(const Impl &) = delete;
+    Impl &operator=(const Impl &) = delete;
+    Impl(Impl &&) = delete;
+    void operator=(Impl &&) = delete;
   };
 
   using public_key_type = KeyT;

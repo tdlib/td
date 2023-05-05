@@ -97,8 +97,8 @@ class unique_ptr {
   using element_type = T;
 
   unique_ptr() noexcept = default;
-  unique_ptr(const unique_ptr &other) = delete;
-  unique_ptr &operator=(const unique_ptr &other) = delete;
+  unique_ptr(const unique_ptr &) = delete;
+  unique_ptr &operator=(const unique_ptr &) = delete;
   unique_ptr(unique_ptr &&other) noexcept : ptr_(other.release()) {
   }
   unique_ptr &operator=(unique_ptr &&other) noexcept {

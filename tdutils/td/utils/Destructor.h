@@ -16,10 +16,10 @@ namespace td {
 class Destructor {
  public:
   Destructor() = default;
-  Destructor(const Destructor &other) = delete;
-  Destructor &operator=(const Destructor &other) = delete;
-  Destructor(Destructor &&other) = default;
-  Destructor &operator=(Destructor &&other) = default;
+  Destructor(const Destructor &) = delete;
+  Destructor &operator=(const Destructor &) = delete;
+  Destructor(Destructor &&) = default;
+  Destructor &operator=(Destructor &&) = default;
   virtual ~Destructor() = default;
 };
 
@@ -28,10 +28,10 @@ class LambdaDestructor final : public Destructor {
  public:
   explicit LambdaDestructor(F &&f) : f_(std::move(f)) {
   }
-  LambdaDestructor(const LambdaDestructor &other) = delete;
-  LambdaDestructor &operator=(const LambdaDestructor &other) = delete;
-  LambdaDestructor(LambdaDestructor &&other) = default;
-  LambdaDestructor &operator=(LambdaDestructor &&other) = default;
+  LambdaDestructor(const LambdaDestructor &) = delete;
+  LambdaDestructor &operator=(const LambdaDestructor &) = delete;
+  LambdaDestructor(LambdaDestructor &&) = default;
+  LambdaDestructor &operator=(LambdaDestructor &&) = default;
   ~LambdaDestructor() final {
     f_();
   }

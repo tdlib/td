@@ -163,7 +163,7 @@ class ConcurrentHashMapJunction {
 
   ConcurrentHashMapJunction(const ConcurrentHashMapJunction &) = delete;
   ConcurrentHashMapJunction &operator=(const ConcurrentHashMapJunction &) = delete;
-  ConcurrentHashMapJunction(ConcurrentHashMapJunction &&other) = delete;
+  ConcurrentHashMapJunction(ConcurrentHashMapJunction &&) = delete;
   ConcurrentHashMapJunction &operator=(ConcurrentHashMapJunction &&) = delete;
   ~ConcurrentHashMapJunction() {
     junction::DefaultQSBR.flush();

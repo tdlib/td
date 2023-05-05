@@ -294,10 +294,10 @@ unique_ptr<SecretChatActor::Context> SecretChatsManager::make_secret_chat_contex
         : secret_chat_id_(SecretChatId(id)), parent_(std::move(parent)), secret_chat_db_(std::move(secret_chat_db)) {
       sequence_dispatcher_ = create_actor<SequenceDispatcher>("SecretChat SequenceDispatcher");
     }
-    Context(const Context &other) = delete;
-    Context &operator=(const Context &other) = delete;
-    Context(Context &&other) = delete;
-    Context &operator=(Context &&other) = delete;
+    Context(const Context &) = delete;
+    Context &operator=(const Context &) = delete;
+    Context(Context &&) = delete;
+    Context &operator=(Context &&) = delete;
     ~Context() final {
       send_closure(std::move(sequence_dispatcher_), &SequenceDispatcher::close_silent);
     }

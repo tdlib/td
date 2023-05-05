@@ -30,10 +30,10 @@ class EventPromise final : public PromiseInterface<Unit> {
     do_set_error();
   }
 
-  EventPromise(const EventPromise &other) = delete;
-  EventPromise &operator=(const EventPromise &other) = delete;
-  EventPromise(EventPromise &&other) = delete;
-  EventPromise &operator=(EventPromise &&other) = delete;
+  EventPromise(const EventPromise &) = delete;
+  EventPromise &operator=(const EventPromise &) = delete;
+  EventPromise(EventPromise &&) = delete;
+  EventPromise &operator=(EventPromise &&) = delete;
   ~EventPromise() final {
     do_set_error();
   }
@@ -95,8 +95,8 @@ class PromiseActor final : public PromiseInterface<T> {
 
  public:
   PromiseActor() = default;
-  PromiseActor(const PromiseActor &other) = delete;
-  PromiseActor &operator=(const PromiseActor &other) = delete;
+  PromiseActor(const PromiseActor &) = delete;
+  PromiseActor &operator=(const PromiseActor &) = delete;
   PromiseActor(PromiseActor &&) = default;
   PromiseActor &operator=(PromiseActor &&) = default;
   ~PromiseActor() final {
@@ -156,11 +156,11 @@ class FutureActor final : public Actor {
 
   FutureActor() = default;
 
-  FutureActor(const FutureActor &other) = delete;
-  FutureActor &operator=(const FutureActor &other) = delete;
+  FutureActor(const FutureActor &) = delete;
+  FutureActor &operator=(const FutureActor &) = delete;
 
-  FutureActor(FutureActor &&other) = default;
-  FutureActor &operator=(FutureActor &&other) = default;
+  FutureActor(FutureActor &&) = default;
+  FutureActor &operator=(FutureActor &&) = default;
 
   ~FutureActor() final = default;
 

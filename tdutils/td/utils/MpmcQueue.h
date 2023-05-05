@@ -217,10 +217,10 @@ class MpmcQueueOld {
     node.release();
   }
 
-  MpmcQueueOld(const MpmcQueueOld &other) = delete;
-  MpmcQueueOld &operator=(const MpmcQueueOld &other) = delete;
-  MpmcQueueOld(MpmcQueueOld &&other) = delete;
-  MpmcQueueOld &operator=(MpmcQueueOld &&other) = delete;
+  MpmcQueueOld(const MpmcQueueOld &) = delete;
+  MpmcQueueOld &operator=(const MpmcQueueOld &) = delete;
+  MpmcQueueOld(MpmcQueueOld &&) = delete;
+  MpmcQueueOld &operator=(MpmcQueueOld &&) = delete;
   ~MpmcQueueOld() {
     auto *ptr = read_pos_.load(std::memory_order_relaxed);
     while (ptr) {
@@ -342,10 +342,10 @@ class MpmcQueue {
     node.release();
   }
 
-  MpmcQueue(const MpmcQueue &other) = delete;
-  MpmcQueue &operator=(const MpmcQueue &other) = delete;
-  MpmcQueue(MpmcQueue &&other) = delete;
-  MpmcQueue &operator=(MpmcQueue &&other) = delete;
+  MpmcQueue(const MpmcQueue &) = delete;
+  MpmcQueue &operator=(const MpmcQueue &) = delete;
+  MpmcQueue(MpmcQueue &&) = delete;
+  MpmcQueue &operator=(MpmcQueue &&) = delete;
   ~MpmcQueue() {
     auto *ptr = read_pos_.load(std::memory_order_relaxed);
     while (ptr) {

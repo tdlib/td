@@ -34,10 +34,10 @@ class EventGuard {
     return event_context_.flags == 0;
   }
 
-  EventGuard(const EventGuard &other) = delete;
-  EventGuard &operator=(const EventGuard &other) = delete;
-  EventGuard(EventGuard &&other) = delete;
-  EventGuard &operator=(EventGuard &&other) = delete;
+  EventGuard(const EventGuard &) = delete;
+  EventGuard &operator=(const EventGuard &) = delete;
+  EventGuard(EventGuard &&) = delete;
+  EventGuard &operator=(EventGuard &&) = delete;
   ~EventGuard();
 
  private:

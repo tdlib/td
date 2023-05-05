@@ -47,10 +47,10 @@ class Binlog {
  public:
   enum class Error : int { WrongPassword = -1037284 };
   Binlog();
-  Binlog(const Binlog &other) = delete;
-  Binlog &operator=(const Binlog &other) = delete;
-  Binlog(Binlog &&other) = delete;
-  Binlog &operator=(Binlog &&other) = delete;
+  Binlog(const Binlog &) = delete;
+  Binlog &operator=(const Binlog &) = delete;
+  Binlog(Binlog &&) = delete;
+  Binlog &operator=(Binlog &&) = delete;
   ~Binlog();
 
   using Callback = std::function<void(const BinlogEvent &)>;

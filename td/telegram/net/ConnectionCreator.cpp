@@ -132,9 +132,9 @@ void ConnectionCreator::ClientInfo::add_session_id(int64 session_id) {
 ConnectionCreator::ConnectionCreator(ActorShared<> parent) : parent_(std::move(parent)) {
 }
 
-ConnectionCreator::ConnectionCreator(ConnectionCreator &&other) = default;
+ConnectionCreator::ConnectionCreator(ConnectionCreator &&) = default;
 
-ConnectionCreator &ConnectionCreator::operator=(ConnectionCreator &&other) = default;
+ConnectionCreator &ConnectionCreator::operator=(ConnectionCreator &&) = default;
 
 ConnectionCreator::~ConnectionCreator() = default;
 

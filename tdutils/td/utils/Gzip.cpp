@@ -25,10 +25,10 @@ class Gzip::Impl {
 
   // z_stream is not copyable nor movable
   Impl() = default;
-  Impl(const Impl &other) = delete;
-  Impl &operator=(const Impl &other) = delete;
-  Impl(Impl &&other) = delete;
-  Impl &operator=(Impl &&other) = delete;
+  Impl(const Impl &) = delete;
+  Impl &operator=(const Impl &) = delete;
+  Impl(Impl &&) = delete;
+  Impl &operator=(Impl &&) = delete;
   ~Impl() = default;
 };
 

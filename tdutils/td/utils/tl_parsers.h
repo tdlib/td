@@ -40,8 +40,8 @@ class TlParser {
  public:
   explicit TlParser(Slice slice);
 
-  TlParser(const TlParser &other) = delete;
-  TlParser &operator=(const TlParser &other) = delete;
+  TlParser(const TlParser &) = delete;
+  TlParser &operator=(const TlParser &) = delete;
 
   void set_error(const string &error_message);
 

@@ -38,8 +38,8 @@ namespace detail {
 class ThreadPthread {
  public:
   ThreadPthread() = default;
-  ThreadPthread(const ThreadPthread &other) = delete;
-  ThreadPthread &operator=(const ThreadPthread &other) = delete;
+  ThreadPthread(const ThreadPthread &) = delete;
+  ThreadPthread &operator=(const ThreadPthread &) = delete;
   ThreadPthread(ThreadPthread &&other) noexcept : is_inited_(std::move(other.is_inited_)), thread_(other.thread_) {
   }
   ThreadPthread &operator=(ThreadPthread &&other) noexcept {

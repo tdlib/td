@@ -44,8 +44,8 @@ class CancellationTokenSource {
     token_ = std::move(other.token_);
     return *this;
   }
-  CancellationTokenSource(const CancellationTokenSource &other) = delete;
-  CancellationTokenSource &operator=(const CancellationTokenSource &other) = delete;
+  CancellationTokenSource(const CancellationTokenSource &) = delete;
+  CancellationTokenSource &operator=(const CancellationTokenSource &) = delete;
   ~CancellationTokenSource() {
     cancel();
   }

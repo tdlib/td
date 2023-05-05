@@ -28,10 +28,10 @@ class TempAuthKeyWatchdog final : public NetQueryCallback {
     explicit RegisteredAuthKeyImpl(int64 auth_key_id)
         : watchdog_(G()->temp_auth_key_watchdog()), auth_key_id_(auth_key_id) {
     }
-    RegisteredAuthKeyImpl(const RegisteredAuthKeyImpl &other) = delete;
-    RegisteredAuthKeyImpl &operator=(const RegisteredAuthKeyImpl &other) = delete;
-    RegisteredAuthKeyImpl(RegisteredAuthKeyImpl &&other) = delete;
-    RegisteredAuthKeyImpl &operator=(RegisteredAuthKeyImpl &&other) = delete;
+    RegisteredAuthKeyImpl(const RegisteredAuthKeyImpl &) = delete;
+    RegisteredAuthKeyImpl &operator=(const RegisteredAuthKeyImpl &) = delete;
+    RegisteredAuthKeyImpl(RegisteredAuthKeyImpl &&) = delete;
+    RegisteredAuthKeyImpl &operator=(RegisteredAuthKeyImpl &&) = delete;
     ~RegisteredAuthKeyImpl() {
       send_closure(watchdog_, &TempAuthKeyWatchdog::unregister_auth_key_id_impl, auth_key_id_);
     }

@@ -32,13 +32,13 @@ class StackAllocator {
    public:
     Ptr(AllocatorImpl *allocator, size_t size) : allocator_(allocator), slice_(allocator_->allocate(size)) {
     }
-    Ptr(const Ptr &other) = delete;
-    Ptr &operator=(const Ptr &other) = delete;
+    Ptr(const Ptr &) = delete;
+    Ptr &operator=(const Ptr &) = delete;
     Ptr(Ptr &&other) noexcept : allocator_(other.allocator_), slice_(other.slice_) {
       other.allocator_ = nullptr;
       other.slice_ = MutableSlice();
     }
-    Ptr &operator=(Ptr &&other) = delete;
+    Ptr &operator=(Ptr &&) = delete;
     ~Ptr();
 
     MutableSlice as_slice() const {

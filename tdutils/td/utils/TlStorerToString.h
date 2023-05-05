@@ -49,8 +49,8 @@ class TlStorerToString {
 
  public:
   TlStorerToString() = default;
-  TlStorerToString(const TlStorerToString &other) = delete;
-  TlStorerToString &operator=(const TlStorerToString &other) = delete;
+  TlStorerToString(const TlStorerToString &) = delete;
+  TlStorerToString &operator=(const TlStorerToString &) = delete;
 
   void store_field(const char *name, bool value) {
     store_field_begin(name);

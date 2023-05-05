@@ -155,7 +155,7 @@ class Event {
 
   Event() : Event(Type::NoType) {
   }
-  Event(const Event &other) = delete;
+  Event(const Event &) = delete;
   Event &operator=(const Event &) = delete;
   Event(Event &&other) noexcept : type(other.type), link_token(other.link_token), data(other.data) {
     other.type = Type::NoType;

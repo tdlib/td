@@ -26,8 +26,8 @@ class Signal {
 class Slot final : public Actor {
  public:
   Slot() = default;
-  Slot(const Slot &other) = delete;
-  Slot &operator=(const Slot &other) = delete;
+  Slot(const Slot &) = delete;
+  Slot &operator=(const Slot &) = delete;
   Slot(Slot &&) = default;
   Slot &operator=(Slot &&) = default;
   ~Slot() final {

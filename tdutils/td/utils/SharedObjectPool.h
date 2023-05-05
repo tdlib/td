@@ -187,10 +187,10 @@ class SharedObjectPool {
   using Ptr = detail::SharedPtr<DataT, Deleter>;
 
   SharedObjectPool() = default;
-  SharedObjectPool(const SharedObjectPool &other) = delete;
-  SharedObjectPool &operator=(const SharedObjectPool &other) = delete;
-  SharedObjectPool(SharedObjectPool &&other) = delete;
-  SharedObjectPool &operator=(SharedObjectPool &&other) = delete;
+  SharedObjectPool(const SharedObjectPool &) = delete;
+  SharedObjectPool &operator=(const SharedObjectPool &) = delete;
+  SharedObjectPool(SharedObjectPool &&) = delete;
+  SharedObjectPool &operator=(SharedObjectPool &&) = delete;
   ~SharedObjectPool() {
     free_queue_.pop_all(free_queue_reader_);
     size_t free_cnt = 0;

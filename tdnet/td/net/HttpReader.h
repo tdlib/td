@@ -30,10 +30,10 @@ class HttpReader {
   Result<size_t> read_next(HttpQuery *query, bool can_be_slow = true) TD_WARN_UNUSED_RESULT;  // TODO move query to init
 
   HttpReader() = default;
-  HttpReader(const HttpReader &other) = delete;
-  HttpReader &operator=(const HttpReader &other) = delete;
-  HttpReader(HttpReader &&other) = delete;
-  HttpReader &operator=(HttpReader &&other) = delete;
+  HttpReader(const HttpReader &) = delete;
+  HttpReader &operator=(const HttpReader &) = delete;
+  HttpReader(HttpReader &&) = delete;
+  HttpReader &operator=(HttpReader &&) = delete;
   ~HttpReader() {
     if (!temp_file_.empty()) {
       clean_temporary_file();

@@ -222,7 +222,7 @@ class JsonScope {
     jb_->scope_ = this;
     CHECK(is_active());
   }
-  JsonScope(const JsonScope &other) = delete;
+  JsonScope(const JsonScope &) = delete;
   JsonScope(JsonScope &&other) noexcept : sb_(other.sb_), jb_(other.jb_), save_scope_(other.save_scope_) {
     other.jb_ = nullptr;
   }
@@ -342,7 +342,7 @@ class JsonArrayScope final : public JsonScope {
     jb->inc_offset();
     *sb_ << "[";
   }
-  JsonArrayScope(JsonArrayScope &&other) = default;
+  JsonArrayScope(JsonArrayScope &&) = default;
   ~JsonArrayScope() {
     if (jb_) {
       leave();
@@ -383,7 +383,7 @@ class JsonObjectScope final : public JsonScope {
     jb->inc_offset();
     *sb_ << "{";
   }
-  JsonObjectScope(JsonObjectScope &&other) = default;
+  JsonObjectScope(JsonObjectScope &&) = default;
   ~JsonObjectScope() {
     if (jb_) {
       leave();
@@ -470,8 +470,8 @@ class JsonValue final : private Jsonable {
     init(std::move(other));
     return *this;
   }
-  JsonValue(const JsonValue &other) = delete;
-  JsonValue &operator=(const JsonValue &other) = delete;
+  JsonValue(const JsonValue &) = delete;
+  JsonValue &operator=(const JsonValue &) = delete;
 
   Type type() const {
     return type_;

@@ -31,8 +31,8 @@ class unique_value_ptr final {
     }
     return *this;
   }
-  unique_value_ptr(unique_value_ptr &&other) noexcept = default;
-  unique_value_ptr &operator=(unique_value_ptr &&other) = default;
+  unique_value_ptr(unique_value_ptr &&) noexcept = default;
+  unique_value_ptr &operator=(unique_value_ptr &&) = default;
   unique_value_ptr(std::nullptr_t) noexcept {
   }
   unique_value_ptr(unique_ptr<T> &&ptr) noexcept : ptr_(std::move(ptr)) {

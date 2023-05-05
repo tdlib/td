@@ -42,8 +42,8 @@ class optional {
     return *this;
   }
 
-  optional(optional &&other) = default;
-  optional &operator=(optional &&other) = default;
+  optional(optional &&) = default;
+  optional &operator=(optional &&) = default;
   ~optional() = default;
 
   explicit operator bool() const noexcept {
@@ -89,8 +89,8 @@ struct optional<T, false> : optional<T, true> {
 
   using optional<T, true>::optional;
 
-  optional(const optional &other) = delete;
-  optional &operator=(const optional &other) = delete;
+  optional(const optional &) = delete;
+  optional &operator=(const optional &) = delete;
   optional(optional &&) = default;
   optional &operator=(optional &&) = default;
   ~optional() = default;

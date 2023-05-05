@@ -311,8 +311,8 @@ class NetQuery final : public TsListNode<NetQueryDebug> {
       this->store(other.load(std::memory_order_relaxed), std::memory_order_relaxed);
       return *this;
     }
-    movable_atomic(const movable_atomic &other) = delete;
-    movable_atomic &operator=(const movable_atomic &other) = delete;
+    movable_atomic(const movable_atomic &) = delete;
+    movable_atomic &operator=(const movable_atomic &) = delete;
     ~movable_atomic() = default;
   };
 

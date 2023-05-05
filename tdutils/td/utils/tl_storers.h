@@ -22,8 +22,8 @@ class TlStorerUnsafe {
   explicit TlStorerUnsafe(unsigned char *buf) : buf_(buf) {
   }
 
-  TlStorerUnsafe(const TlStorerUnsafe &other) = delete;
-  TlStorerUnsafe &operator=(const TlStorerUnsafe &other) = delete;
+  TlStorerUnsafe(const TlStorerUnsafe &) = delete;
+  TlStorerUnsafe &operator=(const TlStorerUnsafe &) = delete;
 
   template <class T>
   void store_binary(const T &x) {
@@ -97,8 +97,8 @@ class TlStorerCalcLength {
 
  public:
   TlStorerCalcLength() = default;
-  TlStorerCalcLength(const TlStorerCalcLength &other) = delete;
-  TlStorerCalcLength &operator=(const TlStorerCalcLength &other) = delete;
+  TlStorerCalcLength(const TlStorerCalcLength &) = delete;
+  TlStorerCalcLength &operator=(const TlStorerCalcLength &) = delete;
 
   template <class T>
   void store_binary(const T &x) {

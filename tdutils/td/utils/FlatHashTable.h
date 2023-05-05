@@ -198,8 +198,8 @@ class FlatHashTable {
   };
 
   FlatHashTable() = default;
-  FlatHashTable(const FlatHashTable &other) = delete;
-  FlatHashTable &operator=(const FlatHashTable &other) = delete;
+  FlatHashTable(const FlatHashTable &) = delete;
+  FlatHashTable &operator=(const FlatHashTable &) = delete;
 
   FlatHashTable(std::initializer_list<NodeT> nodes) {
     if (nodes.size() == 0) {

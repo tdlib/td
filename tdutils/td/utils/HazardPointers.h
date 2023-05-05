@@ -29,10 +29,10 @@ class HazardPointers {
       }
     }
   }
-  HazardPointers(const HazardPointers &other) = delete;
-  HazardPointers &operator=(const HazardPointers &other) = delete;
-  HazardPointers(HazardPointers &&other) = delete;
-  HazardPointers &operator=(HazardPointers &&other) = delete;
+  HazardPointers(const HazardPointers &) = delete;
+  HazardPointers &operator=(const HazardPointers &) = delete;
+  HazardPointers(HazardPointers &&) = delete;
+  HazardPointers &operator=(HazardPointers &&) = delete;
 
   class Holder {
    public:
@@ -44,10 +44,10 @@ class HazardPointers {
       CHECK(hazard_ptr_.load() == 0);
       hazard_ptr_.store(reinterpret_cast<T *>(1));
     }
-    Holder(const Holder &other) = delete;
-    Holder &operator=(const Holder &other) = delete;
-    Holder(Holder &&other) = delete;
-    Holder &operator=(Holder &&other) = delete;
+    Holder(const Holder &) = delete;
+    Holder &operator=(const Holder &) = delete;
+    Holder(Holder &&) = delete;
+    Holder &operator=(Holder &&) = delete;
     ~Holder() {
       clear();
     }

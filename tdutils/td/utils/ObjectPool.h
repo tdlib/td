@@ -179,8 +179,8 @@ class ObjectPool {
   ObjectPool() = default;
   ObjectPool(const ObjectPool &) = delete;
   ObjectPool &operator=(const ObjectPool &) = delete;
-  ObjectPool(ObjectPool &&other) = delete;
-  ObjectPool &operator=(ObjectPool &&other) = delete;
+  ObjectPool(ObjectPool &&) = delete;
+  ObjectPool &operator=(ObjectPool &&) = delete;
   ~ObjectPool() {
     while (head_.load()) {
       auto to_delete = head_.load();

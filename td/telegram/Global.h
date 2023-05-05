@@ -73,8 +73,8 @@ class Global final : public ActorContext {
   ~Global() final;
   Global(const Global &) = delete;
   Global &operator=(const Global &) = delete;
-  Global(Global &&other) = delete;
-  Global &operator=(Global &&other) = delete;
+  Global(Global &&) = delete;
+  Global &operator=(Global &&) = delete;
 
   static constexpr int32 ID = -572104940;
   int32 get_id() const final {

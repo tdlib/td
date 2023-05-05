@@ -411,10 +411,10 @@ class FileManager final : public FileLoadManager::Callback {
   };
 
   explicit FileManager(unique_ptr<Context> context);
-  FileManager(const FileManager &other) = delete;
-  FileManager &operator=(const FileManager &other) = delete;
-  FileManager(FileManager &&other) = delete;
-  FileManager &operator=(FileManager &&other) = delete;
+  FileManager(const FileManager &) = delete;
+  FileManager &operator=(const FileManager &) = delete;
+  FileManager(FileManager &&) = delete;
+  FileManager &operator=(FileManager &&) = delete;
   ~FileManager() final;
 
   static bool is_remotely_generated_file(Slice conversion);

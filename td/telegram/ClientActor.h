@@ -76,9 +76,9 @@ class ClientActor final : public Actor {
    */
   ClientActor &operator=(ClientActor &&other) noexcept;
 
-  ClientActor(const ClientActor &other) = delete;
+  ClientActor(const ClientActor &) = delete;
 
-  ClientActor &operator=(const ClientActor &other) = delete;
+  ClientActor &operator=(const ClientActor &) = delete;
 
  private:
   void start_up() final;
