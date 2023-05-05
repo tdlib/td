@@ -21003,12 +21003,6 @@ tl_object_ptr<td_api::messages> MessagesManager::get_dialog_history(DialogId dia
             << " tries left, have_full_history = " << d->have_full_history
             << ", have_full_history_source = " << d->have_full_history_source;
 
-  bool is_limit_increased = false;
-  if (limit == -offset) {
-    limit++;
-    is_limit_increased = true;
-  }
-
   auto message_ids =
       d->ordered_messages.get_history(d->last_message_id, from_message_id, offset, limit, left_tries == 0);
   if (!message_ids.empty()) {
@@ -21022,12 +21016,6 @@ tl_object_ptr<td_api::messages> MessagesManager::get_dialog_history(DialogId dia
     send_closure_later(actor_id(this), &MessagesManager::load_messages, dialog_id, from_message_id, offset,
                        limit - static_cast<int32>(message_ids.size()), left_tries, only_local, std::move(promise));
     return nullptr;
-  }
-
-  LOG(INFO) << "Have " << message_ids.size() << " messages out of requested "
-            << (is_limit_increased ? "increased " : "exact ") << limit;
-  if (is_limit_increased && static_cast<size_t>(limit) == message_ids.size()) {
-    message_ids.pop_back();
   }
 
   LOG(INFO) << "Return " << message_ids << " in result to getChatHistory";

@@ -336,6 +336,12 @@ void OrderedMessages::traverse_messages(const std::function<bool(MessageId)> &ne
 
 vector<MessageId> OrderedMessages::get_history(MessageId last_message_id, MessageId &from_message_id, int32 &offset,
                                                int32 &limit, bool force) const {
+  CHECK(limit > 0);
+  bool is_limit_increased = false;
+  if (limit == -offset) {
+    limit++;
+    is_limit_increased = true;
+  }
   CHECK(-limit < offset && offset <= 0);
 
   auto it = get_const_iterator(from_message_id);
@@ -421,6 +427,10 @@ vector<MessageId> OrderedMessages::get_history(MessageId last_message_id, Messag
   }
   if (from_the_end) {
     from_message_id = MessageId();
+  }
+
+  if (is_limit_increased && static_cast<size_t>(limit) == message_ids.size()) {
+    message_ids.pop_back();
   }
   return message_ids;
 }
