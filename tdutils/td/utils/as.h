@@ -21,17 +21,17 @@ class As {
   explicit As(void *ptr) : ptr_(ptr) {
   }
 
-  As(const As &new_value) = delete;
+  As(const As &) = delete;
   As &operator=(const As &) = delete;
   As(As &&) = default;
-  As &operator=(As &&new_value) && noexcept {
-    std::memcpy(ptr_, new_value.ptr_, sizeof(T));
+  As &operator=(As &&other) && noexcept {
+    std::memcpy(ptr_, other.ptr_, sizeof(T));
     return *this;
   }
   ~As() = default;
 
-  As &operator=(const T &new_value) && {
-    std::memcpy(ptr_, &new_value, sizeof(T));
+  As &operator=(const T &other) && {
+    std::memcpy(ptr_, &other, sizeof(T));
     return *this;
   }
 

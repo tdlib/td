@@ -24,8 +24,8 @@ int pq_factorize(Slice pq_str, string *p_str, string *q_str);
 class AesState {
  public:
   AesState();
-  AesState(const AesState &from) = delete;
-  AesState &operator=(const AesState &from) = delete;
+  AesState(const AesState &) = delete;
+  AesState &operator=(const AesState &) = delete;
   AesState(AesState &&from) noexcept;
   AesState &operator=(AesState &&from) noexcept;
   ~AesState();
@@ -49,8 +49,8 @@ class AesIgeStateImpl;
 class AesIgeState {
  public:
   AesIgeState();
-  AesIgeState(const AesIgeState &from) = delete;
-  AesIgeState &operator=(const AesIgeState &from) = delete;
+  AesIgeState(const AesIgeState &) = delete;
+  AesIgeState &operator=(const AesIgeState &) = delete;
   AesIgeState(AesIgeState &&from) noexcept;
   AesIgeState &operator=(AesIgeState &&from) noexcept;
   ~AesIgeState();
@@ -71,8 +71,8 @@ void aes_cbc_decrypt(Slice aes_key, MutableSlice aes_iv, Slice from, MutableSlic
 class AesCtrState {
  public:
   AesCtrState();
-  AesCtrState(const AesCtrState &from) = delete;
-  AesCtrState &operator=(const AesCtrState &from) = delete;
+  AesCtrState(const AesCtrState &) = delete;
+  AesCtrState &operator=(const AesCtrState &) = delete;
   AesCtrState(AesCtrState &&from) noexcept;
   AesCtrState &operator=(AesCtrState &&from) noexcept;
   ~AesCtrState();
@@ -91,8 +91,8 @@ class AesCtrState {
 class AesCbcState {
  public:
   AesCbcState(Slice key256, Slice iv128);
-  AesCbcState(const AesCbcState &from) = delete;
-  AesCbcState &operator=(const AesCbcState &from) = delete;
+  AesCbcState(const AesCbcState &) = delete;
+  AesCbcState &operator=(const AesCbcState &) = delete;
   AesCbcState(AesCbcState &&from) noexcept;
   AesCbcState &operator=(AesCbcState &&from) noexcept;
   ~AesCbcState();

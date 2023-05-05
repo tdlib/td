@@ -30,7 +30,7 @@ class MutableSlice {
   MutableSlice(char *s, char *t);
   MutableSlice(unsigned char *s, unsigned char *t);
   template <size_t N>
-  constexpr MutableSlice(char (&a)[N]) = delete;
+  constexpr MutableSlice(char (&)[N]) = delete;
 
   bool empty() const;
   size_t size() const;
@@ -84,16 +84,16 @@ class Slice {
   Slice(const unsigned char *s, const unsigned char *t);
 
   template <size_t N>
-  constexpr Slice(char (&a)[N]) = delete;
+  constexpr Slice(char (&)[N]) = delete;
 
   template <size_t N>
   constexpr Slice(const char (&a)[N]) : s_(a), len_(N - 1) {
   }
 
-  Slice &operator=(string &&s) = delete;
+  Slice &operator=(string &&) = delete;
 
   template <size_t N>
-  constexpr Slice &operator=(char (&a)[N]) = delete;
+  constexpr Slice &operator=(char (&)[N]) = delete;
 
   template <size_t N>
   constexpr Slice &operator=(const char (&a)[N]) {
@@ -149,7 +149,7 @@ class MutableCSlice : public MutableSlice {
   MutableCSlice(char *s, char *t);
 
   template <size_t N>
-  constexpr MutableCSlice(char (&a)[N]) = delete;
+  constexpr MutableCSlice(char (&)[N]) = delete;
 
   const char *c_str() const {
     return begin();
@@ -180,7 +180,7 @@ class CSlice : public Slice {
   CSlice(const char *s, const char *t);
 
   template <size_t N>
-  constexpr CSlice(char (&a)[N]) = delete;
+  constexpr CSlice(char (&)[N]) = delete;
 
   template <size_t N>
   constexpr CSlice(const char (&a)[N]) : Slice(a) {
@@ -189,10 +189,10 @@ class CSlice : public Slice {
   CSlice() : CSlice("") {
   }
 
-  CSlice &operator=(string &&s) = delete;
+  CSlice &operator=(string &&) = delete;
 
   template <size_t N>
-  constexpr CSlice &operator=(char (&a)[N]) = delete;
+  constexpr CSlice &operator=(char (&)[N]) = delete;
 
   template <size_t N>
   constexpr CSlice &operator=(const char (&a)[N]) {

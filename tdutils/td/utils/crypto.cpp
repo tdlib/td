@@ -319,10 +319,10 @@ class Evp {
     ctx_ = EVP_CIPHER_CTX_new();
     LOG_IF(FATAL, ctx_ == nullptr);
   }
-  Evp(const Evp &from) = delete;
-  Evp &operator=(const Evp &from) = delete;
-  Evp(Evp &&from) = delete;
-  Evp &operator=(Evp &&from) = delete;
+  Evp(const Evp &) = delete;
+  Evp &operator=(const Evp &) = delete;
+  Evp(Evp &&) = delete;
+  Evp &operator=(Evp &&) = delete;
   ~Evp() {
     CHECK(ctx_ != nullptr);
     EVP_CIPHER_CTX_free(ctx_);
@@ -436,8 +436,8 @@ struct AesState::Impl {
 };
 
 AesState::AesState() = default;
-AesState::AesState(AesState &&from) noexcept = default;
-AesState &AesState::operator=(AesState &&from) noexcept = default;
+AesState::AesState(AesState &&) noexcept = default;
+AesState &AesState::operator=(AesState &&) noexcept = default;
 AesState::~AesState() = default;
 
 void AesState::init(Slice key, bool encrypt) {
@@ -555,8 +555,8 @@ class AesIgeStateImpl {
 };
 
 AesIgeState::AesIgeState() = default;
-AesIgeState::AesIgeState(AesIgeState &&from) noexcept = default;
-AesIgeState &AesIgeState::operator=(AesIgeState &&from) noexcept = default;
+AesIgeState::AesIgeState(AesIgeState &&) noexcept = default;
+AesIgeState &AesIgeState::operator=(AesIgeState &&) noexcept = default;
 AesIgeState::~AesIgeState() = default;
 
 void AesIgeState::init(Slice key, Slice iv, bool encrypt) {
@@ -620,8 +620,8 @@ AesCbcState::AesCbcState(Slice key256, Slice iv128) : raw_{SecureString(key256),
   CHECK(raw_.iv.size() == 16);
 }
 
-AesCbcState::AesCbcState(AesCbcState &&from) noexcept = default;
-AesCbcState &AesCbcState::operator=(AesCbcState &&from) noexcept = default;
+AesCbcState::AesCbcState(AesCbcState &&) noexcept = default;
+AesCbcState &AesCbcState::operator=(AesCbcState &&) noexcept = default;
 AesCbcState::~AesCbcState() = default;
 
 void AesCbcState::encrypt(Slice from, MutableSlice to) {
@@ -674,8 +674,8 @@ struct AesCtrState::Impl {
 };
 
 AesCtrState::AesCtrState() = default;
-AesCtrState::AesCtrState(AesCtrState &&from) noexcept = default;
-AesCtrState &AesCtrState::operator=(AesCtrState &&from) noexcept = default;
+AesCtrState::AesCtrState(AesCtrState &&) noexcept = default;
+AesCtrState &AesCtrState::operator=(AesCtrState &&) noexcept = default;
 AesCtrState::~AesCtrState() = default;
 
 void AesCtrState::init(Slice key, Slice iv) {
@@ -828,10 +828,10 @@ class Sha256State::Impl {
   ~Impl() = default;
 #endif
 
-  Impl(const Impl &from) = delete;
-  Impl &operator=(const Impl &from) = delete;
-  Impl(Impl &&from) = delete;
-  Impl &operator=(Impl &&from) = delete;
+  Impl(const Impl &) = delete;
+  Impl &operator=(const Impl &) = delete;
+  Impl(Impl &&) = delete;
+  Impl &operator=(Impl &&) = delete;
 };
 
 Sha256State::Sha256State() = default;

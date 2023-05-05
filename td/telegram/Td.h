@@ -410,7 +410,7 @@ class Td final : public Actor {
   static bool is_preauthentication_request(int32 id);
 
   template <class T>
-  void on_request(uint64 id, const T &request) = delete;
+  void on_request(uint64 id, const T &) = delete;
 
   void on_request(uint64 id, const td_api::setTdlibParameters &request);
 
