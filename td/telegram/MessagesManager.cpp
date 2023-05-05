@@ -21009,114 +21009,31 @@ tl_object_ptr<td_api::messages> MessagesManager::get_dialog_history(DialogId dia
     is_limit_increased = true;
   }
 
-  auto p = d->ordered_messages.get_const_iterator(from_message_id);
-  LOG(DEBUG) << "Iterator points to " << (*p ? (*p)->get_message_id() : MessageId());
-  bool from_the_end = (d->last_message_id != MessageId() && from_message_id > d->last_message_id) ||
-                      from_message_id >= MessageId::max();
-
-  if (from_the_end) {
-    limit += offset;
-    offset = 0;
-    if (d->last_message_id == MessageId()) {
-      p.clear();
-    }
-  } else {
-    bool have_a_gap = false;
-    if (*p == nullptr) {
-      // there is no gap if from_message_id is less than first message in the dialog
-      if (left_tries == 0 && offset < 0 && !d->messages.empty()) {
-        MessageId min_message_id;
-        d->ordered_messages.traverse_messages(
-            [&](MessageId message_id) {
-              min_message_id = message_id;
-              return true;
-            },
-            [](MessageId) { return false; });
-        CHECK(min_message_id > from_message_id);
-        from_message_id = min_message_id;
-        p = d->ordered_messages.get_const_iterator(from_message_id);
-        CHECK(*p != nullptr);
-      } else {
-        have_a_gap = true;
-      }
-    } else if ((*p)->get_message_id() != from_message_id) {
-      CHECK((*p)->get_message_id() < from_message_id);
-      if (!(*p)->have_next() && (d->last_message_id == MessageId() || (*p)->get_message_id() < d->last_message_id)) {
-        have_a_gap = true;
-      }
-    }
-
-    if (have_a_gap) {
-      LOG(INFO) << "Have a gap near message to get chat history from";
-      p.clear();
-    }
-    if (*p != nullptr && (*p)->get_message_id() == from_message_id) {
-      if (offset < 0) {
-        offset++;
-      } else {
-        --p;
-      }
-    }
-
-    while (*p != nullptr && offset < 0) {
-      ++p;
-      if (*p) {
-        ++offset;
-        from_message_id = (*p)->get_message_id();
-      }
-    }
-
-    if (offset < 0 && ((d->last_message_id != MessageId() && from_message_id >= d->last_message_id) ||
-                       (!have_a_gap && left_tries == 0))) {
-      CHECK(!have_a_gap);
-      limit += offset;
-      offset = 0;
-      p = d->ordered_messages.get_const_iterator(from_message_id);
-    }
-
-    if (!have_a_gap && offset < 0) {
-      offset--;
-    }
-  }
-
-  LOG(INFO) << "Iterator after applying offset points to " << (*p ? (*p)->get_message_id() : MessageId())
-            << ", offset = " << offset << ", limit = " << limit << ", from_the_end = " << from_the_end;
-  vector<tl_object_ptr<td_api::message>> messages;
-  if (*p != nullptr && offset == 0) {
-    while (*p != nullptr && messages.size() < static_cast<size_t>(limit)) {
-      from_message_id = (*p)->get_message_id();
-      messages.push_back(get_message_object(dialog_id, get_message(d, from_message_id), "get_dialog_history"));
-      from_the_end = false;
-      --p;
-    }
-  }
-
-  if (!messages.empty()) {
+  auto message_ids =
+      d->ordered_messages.get_history(d->last_message_id, from_message_id, offset, limit, left_tries == 0);
+  if (!message_ids.empty()) {
     // maybe need some messages
     CHECK(offset == 0);
-    preload_newer_messages(d, MessageId(messages[0]->id_));
-    preload_older_messages(d, MessageId(messages.back()->id_));
-  } else if (messages.size() < static_cast<size_t>(limit) && left_tries != 0 &&
+    preload_newer_messages(d, message_ids[0]);
+    preload_older_messages(d, message_ids.back());
+  } else if (message_ids.size() < static_cast<size_t>(limit) && left_tries != 0 &&
              !(d->is_empty && d->have_full_history && left_tries < 3)) {
     // there can be more messages in the database or on the server, need to load them
-    if (from_the_end) {
-      from_message_id = MessageId();
-    }
     send_closure_later(actor_id(this), &MessagesManager::load_messages, dialog_id, from_message_id, offset,
-                       limit - static_cast<int32>(messages.size()), left_tries, only_local, std::move(promise));
+                       limit - static_cast<int32>(message_ids.size()), left_tries, only_local, std::move(promise));
     return nullptr;
   }
 
-  LOG(INFO) << "Have " << messages.size() << " messages out of requested "
+  LOG(INFO) << "Have " << message_ids.size() << " messages out of requested "
             << (is_limit_increased ? "increased " : "exact ") << limit;
-  if (is_limit_increased && static_cast<size_t>(limit) == messages.size()) {
-    messages.pop_back();
+  if (is_limit_increased && static_cast<size_t>(limit) == message_ids.size()) {
+    message_ids.pop_back();
   }
 
-  LOG(INFO) << "Return " << messages.size() << " messages in result to getChatHistory";
+  LOG(INFO) << "Return " << message_ids << " in result to getChatHistory";
   promise.set_value(Unit());  // can return some messages
-  return get_messages_object(-1, std::move(messages),
-                             false);  // TODO return real total_count of messages in the dialog
+  return get_messages_object(-1, dialog_id, message_ids, true,
+                             "get_dialog_history");  // TODO return real total_count of messages in the dialog
 }
 
 class MessagesManager::ReadHistoryOnServerLogEvent {

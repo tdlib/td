@@ -334,4 +334,95 @@ void OrderedMessages::traverse_messages(const std::function<bool(MessageId)> &ne
   do_traverse_messages(messages_.get(), need_scan_older, need_scan_newer);
 }
 
+vector<MessageId> OrderedMessages::get_history(MessageId last_message_id, MessageId &from_message_id, int32 &offset,
+                                               int32 &limit, bool force) const {
+  CHECK(-limit < offset && offset <= 0);
+
+  auto it = get_const_iterator(from_message_id);
+  LOG(DEBUG) << "Iterator points to " << (*it ? (*it)->get_message_id() : MessageId());
+  bool from_the_end =
+      (last_message_id != MessageId() && from_message_id > last_message_id) || from_message_id >= MessageId::max();
+
+  if (from_the_end) {
+    limit += offset;
+    offset = 0;
+    if (last_message_id == MessageId()) {
+      it.clear();
+    }
+  } else {
+    bool have_a_gap = false;
+    if (*it == nullptr) {
+      // there is no gap if from_message_id is less than the first message
+      if (force && offset < 0 && messages_ != nullptr) {
+        MessageId min_message_id;
+        traverse_messages(
+            [&](MessageId message_id) {
+              min_message_id = message_id;
+              return true;
+            },
+            [](MessageId) { return false; });
+        CHECK(min_message_id > from_message_id);
+        from_message_id = min_message_id;
+        it = get_const_iterator(from_message_id);
+        CHECK(*it != nullptr);
+      } else {
+        have_a_gap = true;
+      }
+    } else if ((*it)->message_id_ != from_message_id) {
+      CHECK((*it)->message_id_ < from_message_id);
+      if (!(*it)->have_next_ && (last_message_id == MessageId() || (*it)->message_id_ < last_message_id)) {
+        have_a_gap = true;
+      }
+    }
+
+    if (have_a_gap) {
+      LOG(DEBUG) << "Have a gap near message to get message history from";
+      it.clear();
+    }
+    if (*it != nullptr && (*it)->message_id_ == from_message_id) {
+      if (offset < 0) {
+        offset++;
+      } else {
+        --it;
+      }
+    }
+
+    while (*it != nullptr && offset < 0) {
+      ++it;
+      if (*it) {
+        ++offset;
+        from_message_id = (*it)->message_id_;
+      }
+    }
+
+    if (offset < 0 &&
+        ((last_message_id != MessageId() && from_message_id >= last_message_id) || (!have_a_gap && force))) {
+      CHECK(!have_a_gap);
+      limit += offset;
+      offset = 0;
+      it = get_const_iterator(from_message_id);
+    }
+
+    if (!have_a_gap && offset < 0) {
+      offset--;
+    }
+  }
+
+  LOG(INFO) << "Iterator after applying offset points to " << (*it ? (*it)->message_id_ : MessageId())
+            << ", offset = " << offset << ", limit = " << limit << ", from_the_end = " << from_the_end;
+  vector<MessageId> message_ids;
+  if (*it != nullptr && offset == 0) {
+    while (*it != nullptr && message_ids.size() < static_cast<size_t>(limit)) {
+      from_message_id = (*it)->message_id_;
+      message_ids.push_back(from_message_id);
+      from_the_end = false;
+      --it;
+    }
+  }
+  if (from_the_end) {
+    from_message_id = MessageId();
+  }
+  return message_ids;
+}
+
 }  // namespace td
