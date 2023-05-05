@@ -70,8 +70,8 @@ class OrderedMessages {
     ~IteratorBase() = default;
 
    public:
-    IteratorBase(const IteratorBase &) = default;
-    IteratorBase &operator=(const IteratorBase &) = default;
+    IteratorBase(const IteratorBase &) = delete;
+    IteratorBase &operator=(const IteratorBase &) = delete;
     IteratorBase(IteratorBase &&other) = default;
     IteratorBase &operator=(IteratorBase &&other) = default;
 
