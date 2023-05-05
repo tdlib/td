@@ -16436,7 +16436,9 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
 
   static_cast<ListNode *>(result.get())->remove();
 
-  d->ordered_messages.erase(message_id, only_from_memory);
+  if (!td_->auth_manager_->is_bot()) {
+    d->ordered_messages.erase(message_id, only_from_memory);
+  }
 
   d->being_deleted_message_id = MessageId();
 
@@ -34895,7 +34897,9 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   d->message_lru_list.put_back(result_message);
 
-  d->ordered_messages.insert(message_id, auto_attach, have_previous, have_next, old_last_message_id, source);
+  if (!td_->auth_manager_->is_bot()) {
+    d->ordered_messages.insert(message_id, auto_attach, have_previous, have_next, old_last_message_id, source);
+  }
 
   if (m->message_id.is_yet_unsent() && !m->message_id.is_scheduled() && m->top_thread_message_id.is_valid() &&
       !td_->auth_manager_->is_bot()) {
