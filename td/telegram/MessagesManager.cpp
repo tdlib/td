@@ -14825,9 +14825,8 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
                      << " and trying to add it anyway";
         }
       } else {
-        // TODO move to INFO
-        LOG(ERROR) << "Ignore " << old_message_id << "/" << message_id << " received not through update from " << source
-                   << ": " << oneline(to_string(get_message_object(dialog_id, new_message.get(), "on_get_message")));
+        LOG(INFO) << "Ignore " << old_message_id << "/" << message_id << " received not through update from " << source
+                  << ": " << oneline(to_string(get_message_object(dialog_id, new_message.get(), "on_get_message")));
         if (dialog_id.get_type() == DialogType::Channel && have_input_peer(dialog_id, AccessRights::Read)) {
           channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
         }
@@ -15031,6 +15030,7 @@ void MessagesManager::set_dialog_last_database_message_id(Dialog *d, MessageId l
 void MessagesManager::remove_dialog_newer_messages(Dialog *d, MessageId from_message_id, const char *source) {
   LOG(INFO) << "Remove messages in " << d->dialog_id << " newer than " << from_message_id << " from " << source;
   CHECK(!d->last_new_message_id.is_valid());
+  CHECK(!td_->auth_manager_->is_bot());
 
   delete_all_dialog_messages_from_database(d, MessageId::max(), "remove_dialog_newer_messages");
   set_dialog_first_database_message_id(d, MessageId(), "remove_dialog_newer_messages");
@@ -15064,6 +15064,9 @@ void MessagesManager::remove_dialog_newer_messages(Dialog *d, MessageId from_mes
 
 void MessagesManager::set_dialog_last_new_message_id(Dialog *d, MessageId last_new_message_id, const char *source) {
   CHECK(!last_new_message_id.is_scheduled());
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
 
   LOG_CHECK(last_new_message_id > d->last_new_message_id)
       << last_new_message_id << " " << d->last_new_message_id << " " << source;
@@ -15794,7 +15797,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
         d, get_draft_message(td_->contacts_manager_.get(), std::move(dialog->draft_)), true, false);
     if (is_new) {
       bool has_pts = (dialog->flags_ & DIALOG_FLAG_HAS_PTS) != 0;
-      if (last_message_id.is_valid()) {
+      if (last_message_id.is_valid() && !td_->auth_manager_->is_bot()) {
         FullMessageId full_message_id(dialog_id, last_message_id);
         auto it = full_message_id_to_message.find(full_message_id);
         if (it == full_message_id_to_message.end()) {
@@ -17783,7 +17786,7 @@ void MessagesManager::get_message_force_from_server(Dialog *d, MessageId message
   if (m == nullptr && !is_deleted_message(d, message_id) && dialog_type != DialogType::SecretChat) {
     if (message_id.is_valid() && message_id.is_server()) {
       if (d->last_new_message_id != MessageId() && message_id > d->last_new_message_id &&
-          dialog_type != DialogType::Channel) {
+          dialog_type != DialogType::Channel && !td_->auth_manager_->is_bot()) {
         // message will not be added to the dialog anyway
         return promise.set_value(Unit());
       }
@@ -36382,6 +36385,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
     last_database_message_id = MessageId();
 
     d->last_assigned_message_id = MessageId(ServerMessageId(1));
+    d->last_new_message_id = MessageId();
   }
   int64 order = d->order;
   d->order = DEFAULT_ORDER;
@@ -38261,7 +38265,8 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
   on_dialog_updated(dialog_id, "on_get_channel_dialog 10");
 
   // TODO properly support last_message_id <= d->last_new_message_id
-  if (last_message_id > d->last_new_message_id) {  // if last message is really a new message
+  if (last_message_id > d->last_new_message_id &&
+      !td_->auth_manager_->is_bot()) {  // if last message is really a new message
     if (!d->last_new_message_id.is_valid() && last_message_id <= d->max_added_message_id) {
       auto prev_message_id = MessageId(ServerMessageId(last_message_id.get_server_message_id().get() - 1));
       remove_dialog_newer_messages(d, prev_message_id, "on_get_channel_dialog 15");
