@@ -20979,21 +20979,6 @@ tl_object_ptr<td_api::messages> MessagesManager::get_dialog_history(DialogId dia
     promise.set_error(Status::Error(400, "Parameter offset must be greater than or equal to -limit"));
     return nullptr;
   }
-  bool is_limit_increased = false;
-  if (limit == -offset) {
-    limit++;
-    is_limit_increased = true;
-  }
-  CHECK(0 < limit && limit <= MAX_GET_HISTORY);
-  CHECK(-limit < offset && offset <= 0);
-
-  if (from_message_id == MessageId() || from_message_id.get() > MessageId::max().get()) {
-    from_message_id = MessageId::max();
-  }
-  if (!from_message_id.is_valid()) {
-    promise.set_error(Status::Error(400, "Invalid value of parameter from_message_id specified"));
-    return nullptr;
-  }
 
   const Dialog *d = get_dialog_force(dialog_id, "get_dialog_history");
   if (d == nullptr) {
@@ -21005,12 +20990,24 @@ tl_object_ptr<td_api::messages> MessagesManager::get_dialog_history(DialogId dia
     return nullptr;
   }
 
+  if (from_message_id == MessageId() || from_message_id.get() > MessageId::max().get()) {
+    from_message_id = MessageId::max();
+  }
+  if (!from_message_id.is_valid()) {
+    promise.set_error(Status::Error(400, "Invalid value of parameter from_message_id specified"));
+    return nullptr;
+  }
+
   LOG(INFO) << "Get " << (only_local ? "local " : "") << "history in " << dialog_id << " from " << from_message_id
             << " with offset " << offset << " and limit " << limit << ", " << left_tries
-            << " tries left. Last read inbox message is " << d->last_read_inbox_message_id
-            << ", last read outbox message is " << d->last_read_outbox_message_id
-            << ", have_full_history = " << d->have_full_history
+            << " tries left, have_full_history = " << d->have_full_history
             << ", have_full_history_source = " << d->have_full_history_source;
+
+  bool is_limit_increased = false;
+  if (limit == -offset) {
+    limit++;
+    is_limit_increased = true;
+  }
 
   auto p = d->ordered_messages.get_const_iterator(from_message_id);
   LOG(DEBUG) << "Iterator points to " << (*p ? (*p)->get_message_id() : MessageId());
