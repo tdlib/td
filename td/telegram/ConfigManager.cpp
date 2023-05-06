@@ -64,6 +64,7 @@
 #include "td/utils/tl_parsers.h"
 #include "td/utils/UInt.h"
 
+#include <algorithm>
 #include <functional>
 #include <memory>
 #include <utility>
@@ -1383,7 +1384,15 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
   Global &options = *G();
 
   // Do not save dc_options in config, because it will be interpreted and saved by ConnectionCreator.
-  send_closure(G()->connection_creator(), &ConnectionCreator::on_dc_options, DcOptions(config->dc_options_));
+  DcOptions dc_options(config->dc_options_);
+  std::stable_sort(dc_options.dc_options.begin(), dc_options.dc_options.end(),
+                   [](const DcOption &lhs, const DcOption &rhs) {
+                     if (lhs.get_dc_id() != rhs.get_dc_id()) {
+                       return lhs.get_dc_id() < rhs.get_dc_id();
+                     }
+                     return !lhs.is_ipv6() && rhs.is_ipv6();
+                   });
+  send_closure(G()->connection_creator(), &ConnectionCreator::on_dc_options, std::move(dc_options));
 
   options.set_option_integer("recent_stickers_limit", config->stickers_recent_limit_);
   options.set_option_integer("channels_read_media_period", config->channels_read_media_period_);
