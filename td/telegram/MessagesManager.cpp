@@ -24576,10 +24576,9 @@ void MessagesManager::fix_server_reply_to_message_id(DialogId dialog_id, Message
     return;
   }
 
-  if (!message_id.is_scheduled() && !reply_in_dialog_id.is_valid() && reply_to_message_id >= message_id) {
-    if (!has_qts_messages(dialog_id)) {
-      LOG(ERROR) << "Receive reply to wrong " << reply_to_message_id << " in " << message_id << " in " << dialog_id;
-    }
+  if (!message_id.is_scheduled() && !reply_in_dialog_id.is_valid() &&
+      ((reply_to_message_id > message_id && !has_qts_messages(dialog_id)) || reply_to_message_id == message_id)) {
+    LOG(ERROR) << "Receive reply to wrong " << reply_to_message_id << " in " << message_id << " in " << dialog_id;
     reply_to_message_id = MessageId();
   }
 }
