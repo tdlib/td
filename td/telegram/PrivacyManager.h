@@ -38,7 +38,9 @@ class PrivacyManager final : public Actor {
  private:
   struct PrivacyInfo {
     UserPrivacySettingRules rules_;
+    UserPrivacySettingRules pending_rules_;
     vector<Promise<tl_object_ptr<td_api::userPrivacySettingRules>>> get_promises_;
+    vector<Promise<Unit>> set_promises_;
     bool has_set_query_ = false;
     bool is_synchronized_ = false;
   };
@@ -51,6 +53,9 @@ class PrivacyManager final : public Actor {
 
   void on_get_user_privacy_settings(UserPrivacySetting user_privacy_setting,
                                     Result<UserPrivacySettingRules> r_privacy_rules);
+
+  void set_privacy_impl(UserPrivacySetting user_privacy_setting, UserPrivacySettingRules &&privacy_rules,
+                        Promise<Unit> &&promise);
 
   void on_set_user_privacy_settings(UserPrivacySetting user_privacy_setting,
                                     Result<UserPrivacySettingRules> r_privacy_rules, Promise<Unit> &&promise);

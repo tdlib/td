@@ -117,10 +117,17 @@ void PrivacyManager::set_privacy(tl_object_ptr<td_api::UserPrivacySetting> key,
 
   auto &info = get_info(user_privacy_setting);
   if (info.has_set_query_) {
-    return promise.set_error(Status::Error(400, "Another setUserPrivacySettingRules query is active"));
+    info.pending_rules_ = std::move(privacy_rules);
+    info.set_promises_.push_back(std::move(promise));
+    return;
   }
   info.has_set_query_ = true;
 
+  set_privacy_impl(user_privacy_setting, std::move(privacy_rules), std::move(promise));
+}
+
+void PrivacyManager::set_privacy_impl(UserPrivacySetting user_privacy_setting, UserPrivacySettingRules &&privacy_rules,
+                                      Promise<Unit> &&promise) {
   auto query_promise =
       PromiseCreator::lambda([actor_id = actor_id(this), user_privacy_setting,
                               promise = std::move(promise)](Result<UserPrivacySettingRules> r_privacy_rules) mutable {
@@ -164,10 +171,27 @@ void PrivacyManager::on_set_user_privacy_settings(UserPrivacySetting user_privac
   CHECK(info.has_set_query_);
   info.has_set_query_ = false;
   if (r_privacy_rules.is_error()) {
-    return promise.set_error(r_privacy_rules.move_as_error());
+    promise.set_error(r_privacy_rules.move_as_error());
+    if (G()->close_flag()) {
+      return fail_promises(info.set_promises_, Global::request_aborted_error());
+    }
+  } else {
+    do_update_privacy(user_privacy_setting, r_privacy_rules.move_as_ok(), true);
+    promise.set_value(Unit());
   }
-  do_update_privacy(user_privacy_setting, r_privacy_rules.move_as_ok(), true);
-  promise.set_value(Unit());
+  if (!info.set_promises_.empty()) {
+    info.has_set_query_ = true;
+    auto join_promise =
+        PromiseCreator::lambda([promises = std::move(info.set_promises_)](Result<Unit> &&result) mutable {
+          if (result.is_ok()) {
+            set_promises(promises);
+          } else {
+            fail_promises(promises, result.move_as_error());
+          }
+        });
+    reset_to_empty(info.set_promises_);
+    set_privacy_impl(user_privacy_setting, std::move(info.pending_rules_), std::move(join_promise));
+  }
 }
 
 void PrivacyManager::do_update_privacy(UserPrivacySetting user_privacy_setting, UserPrivacySettingRules &&privacy_rules,
