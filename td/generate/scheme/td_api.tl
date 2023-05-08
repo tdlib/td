@@ -7675,7 +7675,7 @@ setEmojiStatus emoji_status:emojiStatus duration:int32 = Ok;
 //@description Changes the location of the current user. Needs to be called if getOption("is_location_visible") is true and location changes for more than 1 kilometer @location The new location of the user
 setLocation location:location = Ok;
 
-//@description Changes the phone number of the user and sends an authentication code to the user's new phone number. On success, returns information about the sent code
+//@description Changes the phone number of the user and sends an authentication code to the user's new phone number; for official Android and iOS applications only. On success, returns information about the sent code
 //@phone_number The new phone number of the user in international format
 //@settings Settings for the authentication of the user's phone number; pass null to use default settings
 changePhoneNumber phone_number:string settings:phoneNumberAuthenticationSettings = AuthenticationCodeInfo;
