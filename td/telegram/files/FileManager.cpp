@@ -6,6 +6,7 @@
 //
 #include "td/telegram/files/FileManager.h"
 
+#include "td/telegram/ConfigManager.h"
 #include "td/telegram/DownloadManager.h"
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileData.h"
@@ -3961,6 +3962,7 @@ void FileManager::on_error_impl(FileNodePtr node, Query::Type type, bool was_act
   }
 
   if (status.message() == "MTPROTO_CLUSTER_INVALID") {
+    send_closure(G()->config_manager(), &ConfigManager::request_config, true);
     run_download(node, true);
     return;
   }
