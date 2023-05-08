@@ -36192,6 +36192,13 @@ MessageId MessagesManager::get_message_id_by_random_id(Dialog *d, int64 random_i
   return it->second;
 }
 
+void MessagesManager::try_update_dialog_pos(DialogId dialog_id) {
+  Dialog *d = get_dialog(dialog_id);
+  if (d != nullptr && d->is_update_new_chat_sent) {
+    update_dialog_pos(d, "try_update_dialog_pos");
+  }
+}
+
 void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source, bool expect_no_access,
                                           bool force_update_dialog_pos) {
   LOG_CHECK(dialog_id.is_valid()) << source;

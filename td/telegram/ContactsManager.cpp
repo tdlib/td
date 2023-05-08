@@ -11933,6 +11933,10 @@ void ContactsManager::update_chat(Chat *c, ChatId chat_id, bool from_binlog, boo
     if (!c->status.can_manage_invite_links()) {
       td_->messages_manager_->drop_dialog_pending_join_requests(DialogId(chat_id));
     }
+    if (!from_database) {
+      // if the chat is empty, this can add it to a chat list or remove it from a chat list
+      send_closure_later(G()->messages_manager(), &MessagesManager::try_update_dialog_pos, DialogId(chat_id));
+    }
     c->is_status_changed = false;
   }
   if (c->is_noforwards_changed) {
