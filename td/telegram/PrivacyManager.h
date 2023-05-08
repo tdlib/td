@@ -37,10 +37,10 @@ class PrivacyManager final : public Actor {
 
  private:
   struct PrivacyInfo {
-    UserPrivacySettingRules rules;
-    vector<Promise<tl_object_ptr<td_api::userPrivacySettingRules>>> get_promises;
-    bool has_set_query = false;
-    bool is_synchronized = false;
+    UserPrivacySettingRules rules_;
+    vector<Promise<tl_object_ptr<td_api::userPrivacySettingRules>>> get_promises_;
+    bool has_set_query_ = false;
+    bool is_synchronized_ = false;
   };
 
   void tear_down() final;

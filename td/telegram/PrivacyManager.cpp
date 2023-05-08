@@ -93,11 +93,11 @@ void PrivacyManager::get_privacy(tl_object_ptr<td_api::UserPrivacySetting> key,
   }
   auto user_privacy_setting = r_user_privacy_setting.move_as_ok();
   auto &info = get_info(user_privacy_setting);
-  if (info.is_synchronized) {
-    return promise.set_value(info.rules.get_user_privacy_setting_rules_object(td_));
+  if (info.is_synchronized_) {
+    return promise.set_value(info.rules_.get_user_privacy_setting_rules_object(td_));
   }
-  info.get_promises.push_back(std::move(promise));
-  if (info.get_promises.size() > 1u) {
+  info.get_promises_.push_back(std::move(promise));
+  if (info.get_promises_.size() > 1u) {
     // query has already been sent, just wait for the result
     return;
   }
@@ -116,11 +116,10 @@ void PrivacyManager::set_privacy(tl_object_ptr<td_api::UserPrivacySetting> key,
                      UserPrivacySettingRules::get_user_privacy_setting_rules(td_, std::move(rules)));
 
   auto &info = get_info(user_privacy_setting);
-  if (info.has_set_query) {
-    // TODO cancel previous query
+  if (info.has_set_query_) {
     return promise.set_error(Status::Error(400, "Another setUserPrivacySettingRules query is active"));
   }
-  info.has_set_query = true;
+  info.has_set_query_ = true;
 
   auto query_promise =
       PromiseCreator::lambda([actor_id = actor_id(this), user_privacy_setting,
@@ -143,8 +142,8 @@ void PrivacyManager::on_get_user_privacy_settings(UserPrivacySetting user_privac
                                                   Result<UserPrivacySettingRules> r_privacy_rules) {
   G()->ignore_result_if_closing(r_privacy_rules);
   auto &info = get_info(user_privacy_setting);
-  auto promises = std::move(info.get_promises);
-  reset_to_empty(info.get_promises);
+  auto promises = std::move(info.get_promises_);
+  reset_to_empty(info.get_promises_);
   for (auto &promise : promises) {
     if (r_privacy_rules.is_error()) {
       promise.set_error(r_privacy_rules.error().clone());
@@ -162,8 +161,8 @@ void PrivacyManager::on_set_user_privacy_settings(UserPrivacySetting user_privac
                                                   Promise<Unit> &&promise) {
   G()->ignore_result_if_closing(r_privacy_rules);
   auto &info = get_info(user_privacy_setting);
-  CHECK(info.has_set_query);
-  info.has_set_query = false;
+  CHECK(info.has_set_query_);
+  info.has_set_query_ = false;
   if (r_privacy_rules.is_error()) {
     return promise.set_error(r_privacy_rules.move_as_error());
   }
@@ -174,16 +173,16 @@ void PrivacyManager::on_set_user_privacy_settings(UserPrivacySetting user_privac
 void PrivacyManager::do_update_privacy(UserPrivacySetting user_privacy_setting, UserPrivacySettingRules &&privacy_rules,
                                        bool from_update) {
   auto &info = get_info(user_privacy_setting);
-  bool was_synchronized = info.is_synchronized;
-  info.is_synchronized = true;
+  bool was_synchronized = info.is_synchronized_;
+  info.is_synchronized_ = true;
 
-  if (!(info.rules == privacy_rules)) {
+  if (!(info.rules_ == privacy_rules)) {
     if ((from_update || was_synchronized) && !G()->close_flag()) {
       switch (user_privacy_setting.type()) {
         case UserPrivacySetting::Type::UserStatus: {
           send_closure_later(G()->contacts_manager(), &ContactsManager::on_update_online_status_privacy);
 
-          auto old_restricted = info.rules.get_restricted_user_ids();
+          auto old_restricted = info.rules_.get_restricted_user_ids();
           auto new_restricted = privacy_rules.get_restricted_user_ids();
           if (old_restricted != new_restricted) {
             // if a user was unrestricted, it is not received from the server anymore
@@ -206,11 +205,11 @@ void PrivacyManager::do_update_privacy(UserPrivacySetting user_privacy_setting, 
       }
     }
 
-    info.rules = std::move(privacy_rules);
+    info.rules_ = std::move(privacy_rules);
     send_closure(
         G()->td(), &Td::send_update,
         make_tl_object<td_api::updateUserPrivacySettingRules>(user_privacy_setting.get_user_privacy_setting_object(),
-                                                              info.rules.get_user_privacy_setting_rules_object(td_)));
+                                                              info.rules_.get_user_privacy_setting_rules_object(td_)));
   }
 }
 
