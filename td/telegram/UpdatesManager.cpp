@@ -3932,7 +3932,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateEncryptedMessag
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePrivacy> update, Promise<Unit> &&promise) {
-  send_closure(td_->privacy_manager_, &PrivacyManager::on_update_privacy, std::move(update));
+  td_->privacy_manager_->on_update_privacy(std::move(update));
   promise.set_value(Unit());
 }
 

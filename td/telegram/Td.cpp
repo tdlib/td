@@ -3239,6 +3239,8 @@ void Td::dec_actor_refcnt() {
       LOG(DEBUG) << "NotificationSettingsManager was cleared" << timer;
       poll_manager_.reset();
       LOG(DEBUG) << "PollManager was cleared" << timer;
+      privacy_manager_.reset();
+      LOG(DEBUG) << "PrivacyManager was cleared" << timer;
       sponsored_message_manager_.reset();
       LOG(DEBUG) << "SponsoredMessageManager was cleared" << timer;
       stickers_manager_.reset();
@@ -3382,8 +3384,6 @@ void Td::clear() {
   LOG(DEBUG) << "NetStatsManager was cleared" << timer;
   password_manager_.reset();
   LOG(DEBUG) << "PasswordManager was cleared" << timer;
-  privacy_manager_.reset();
-  LOG(DEBUG) << "PrivacyManager was cleared" << timer;
   secure_manager_.reset();
   LOG(DEBUG) << "SecureManager was cleared" << timer;
   secret_chats_manager_.reset();
@@ -3441,6 +3441,8 @@ void Td::clear() {
   LOG(DEBUG) << "NotificationSettingsManager actor was cleared" << timer;
   poll_manager_actor_.reset();
   LOG(DEBUG) << "PollManager actor was cleared" << timer;
+  privacy_manager_actor_.reset();
+  LOG(DEBUG) << "PrivacyManager actor was cleared" << timer;
   sponsored_message_manager_actor_.reset();
   LOG(DEBUG) << "SponsoredMessageManager actor was cleared" << timer;
   stickers_manager_actor_.reset();
@@ -3930,6 +3932,8 @@ void Td::init_managers() {
   G()->set_notification_settings_manager(notification_settings_manager_actor_.get());
   poll_manager_ = make_unique<PollManager>(this, create_reference());
   poll_manager_actor_ = register_actor("PollManager", poll_manager_.get());
+  privacy_manager_ = make_unique<PrivacyManager>(this, create_reference());
+  privacy_manager_actor_ = register_actor("PrivacyManager", privacy_manager_.get());
   sponsored_message_manager_ = make_unique<SponsoredMessageManager>(this, create_reference());
   sponsored_message_manager_actor_ = register_actor("SponsoredMessageManager", sponsored_message_manager_.get());
   G()->set_sponsored_message_manager(sponsored_message_manager_actor_.get());
@@ -3969,7 +3973,6 @@ void Td::init_managers() {
   G()->set_language_pack_manager(language_pack_manager_.get());
   password_manager_ = create_actor<PasswordManager>("PasswordManager", create_reference());
   G()->set_password_manager(password_manager_.get());
-  privacy_manager_ = create_actor<PrivacyManager>("PrivacyManager", create_reference());
   secure_manager_ = create_actor<SecureManager>("SecureManager", create_reference());
   verify_phone_number_manager_ = create_actor<PhoneNumberManager>(
       "VerifyPhoneNumberManager", PhoneNumberManager::Type::VerifyPhone, create_reference());
@@ -4492,14 +4495,13 @@ void Td::on_request(uint64 id, td_api::registerDevice &request) {
 void Td::on_request(uint64 id, td_api::getUserPrivacySettingRules &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  send_closure(privacy_manager_, &PrivacyManager::get_privacy, std::move(request.setting_), std::move(promise));
+  privacy_manager_->get_privacy(std::move(request.setting_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setUserPrivacySettingRules &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  send_closure(privacy_manager_, &PrivacyManager::set_privacy, std::move(request.setting_), std::move(request.rules_),
-               std::move(promise));
+  privacy_manager_->set_privacy(std::move(request.setting_), std::move(request.rules_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getDefaultMessageAutoDeleteTime &request) {

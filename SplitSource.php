@@ -306,6 +306,7 @@ function split_file($file, $chunks, $undo) {
                 'option_manager[_(-][^.]|OptionManager' => "OptionManager",
                 'phone_number_manager[_(-][^.]|PhoneNumberManager' => "PhoneNumberManager",
                 'poll_manager[_(-][^.]|PollManager' => "PollManager",
+                'privacy_manager[_(-][^.]|PrivacyManager' => "PrivacyManager",
                 'PublicDialogType|get_public_dialog_type' => 'PublicDialogType',
                 'SecretChatActor' => 'SecretChatActor',
                 'secret_chats_manager[_(-]|SecretChatsManager' => 'SecretChatsManager',

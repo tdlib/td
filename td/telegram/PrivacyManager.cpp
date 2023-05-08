@@ -14,12 +14,76 @@
 #include "td/telegram/UserId.h"
 
 #include "td/utils/algorithm.h"
+#include "td/utils/buffer.h"
 #include "td/utils/logging.h"
 
 #include <algorithm>
 #include <iterator>
 
 namespace td {
+
+class GetPrivacyQuery final : public Td::ResultHandler {
+  Promise<UserPrivacySettingRules> promise_;
+
+ public:
+  explicit GetPrivacyQuery(Promise<UserPrivacySettingRules> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(UserPrivacySetting user_privacy_setting) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::account_getPrivacy(user_privacy_setting.get_input_privacy_key())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_getPrivacy>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetPrivacyQuery: " << to_string(ptr);
+    promise_.set_value(UserPrivacySettingRules::get_user_privacy_setting_rules(td_, std::move(ptr)));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class SetPrivacyQuery final : public Td::ResultHandler {
+  Promise<UserPrivacySettingRules> promise_;
+
+ public:
+  explicit SetPrivacyQuery(Promise<UserPrivacySettingRules> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(UserPrivacySetting user_privacy_setting, UserPrivacySettingRules &&privacy_rules) {
+    send_query(G()->net_query_creator().create(telegram_api::account_setPrivacy(
+        user_privacy_setting.get_input_privacy_key(), privacy_rules.get_input_privacy_rules(td_))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_setPrivacy>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SetPrivacyQuery: " << to_string(ptr);
+    promise_.set_value(UserPrivacySettingRules::get_user_privacy_setting_rules(td_, std::move(ptr)));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+PrivacyManager::PrivacyManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
+}
+
+void PrivacyManager::tear_down() {
+  parent_.reset();
+}
 
 void PrivacyManager::get_privacy(tl_object_ptr<td_api::UserPrivacySetting> key,
                                  Promise<tl_object_ptr<td_api::userPrivacySettingRules>> promise) {
@@ -30,72 +94,54 @@ void PrivacyManager::get_privacy(tl_object_ptr<td_api::UserPrivacySetting> key,
   auto user_privacy_setting = r_user_privacy_setting.move_as_ok();
   auto &info = get_info(user_privacy_setting);
   if (info.is_synchronized) {
-    return promise.set_value(info.rules.get_user_privacy_setting_rules_object(G()->td().get_actor_unsafe()));
+    return promise.set_value(info.rules.get_user_privacy_setting_rules_object(td_));
   }
   info.get_promises.push_back(std::move(promise));
   if (info.get_promises.size() > 1u) {
     // query has already been sent, just wait for the result
     return;
   }
-  auto net_query =
-      G()->net_query_creator().create(telegram_api::account_getPrivacy(user_privacy_setting.get_input_privacy_key()));
-
-  send_with_promise(std::move(net_query),
-                    PromiseCreator::lambda([this, user_privacy_setting](Result<NetQueryPtr> x_net_query) {
-                      on_get_result(user_privacy_setting, [&]() -> Result<UserPrivacySettingRules> {
-                        TRY_RESULT(net_query, std::move(x_net_query));
-                        TRY_RESULT(rules, fetch_result<telegram_api::account_getPrivacy>(std::move(net_query)));
-                        LOG(INFO) << "Receive " << to_string(rules);
-                        return UserPrivacySettingRules::get_user_privacy_setting_rules(G()->td().get_actor_unsafe(),
-                                                                                       std::move(rules));
-                      }());
-                    }));
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), user_privacy_setting](Result<UserPrivacySettingRules> r_privacy_rules) {
+        send_closure(actor_id, &PrivacyManager::on_get_user_privacy_settings, user_privacy_setting,
+                     std::move(r_privacy_rules));
+      });
+  td_->create_handler<GetPrivacyQuery>(std::move(query_promise))->send(user_privacy_setting);
 }
 
 void PrivacyManager::set_privacy(tl_object_ptr<td_api::UserPrivacySetting> key,
                                  tl_object_ptr<td_api::userPrivacySettingRules> rules, Promise<Unit> promise) {
   TRY_RESULT_PROMISE(promise, user_privacy_setting, UserPrivacySetting::get_user_privacy_setting(std::move(key)));
-  TRY_RESULT_PROMISE(
-      promise, privacy_rules,
-      UserPrivacySettingRules::get_user_privacy_setting_rules(G()->td().get_actor_unsafe(), std::move(rules)));
+  TRY_RESULT_PROMISE(promise, privacy_rules,
+                     UserPrivacySettingRules::get_user_privacy_setting_rules(td_, std::move(rules)));
 
   auto &info = get_info(user_privacy_setting);
   if (info.has_set_query) {
     // TODO cancel previous query
-    return promise.set_error(Status::Error(400, "Another set_privacy query is active"));
+    return promise.set_error(Status::Error(400, "Another setUserPrivacySettingRules query is active"));
   }
-  auto net_query = G()->net_query_creator().create(
-      telegram_api::account_setPrivacy(user_privacy_setting.get_input_privacy_key(),
-                                       privacy_rules.get_input_privacy_rules(G()->td().get_actor_unsafe())));
-
   info.has_set_query = true;
-  send_with_promise(
-      std::move(net_query), PromiseCreator::lambda([this, user_privacy_setting, promise = std::move(promise)](
-                                                       Result<NetQueryPtr> x_net_query) mutable {
-        promise.set_result([&]() -> Result<Unit> {
-          get_info(user_privacy_setting).has_set_query = false;
-          TRY_RESULT(net_query, std::move(x_net_query));
-          TRY_RESULT(rules, fetch_result<telegram_api::account_setPrivacy>(std::move(net_query)));
-          LOG(INFO) << "Receive " << to_string(rules);
-          auto privacy_rules =
-              UserPrivacySettingRules::get_user_privacy_setting_rules(G()->td().get_actor_unsafe(), std::move(rules));
-          do_update_privacy(user_privacy_setting, std::move(privacy_rules), true);
-          return Unit();
-        }());
-      }));
+
+  auto query_promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), user_privacy_setting,
+                              promise = std::move(promise)](Result<UserPrivacySettingRules> r_privacy_rules) mutable {
+        send_closure(actor_id, &PrivacyManager::on_set_user_privacy_settings, user_privacy_setting,
+                     std::move(r_privacy_rules), std::move(promise));
+      });
+  td_->create_handler<SetPrivacyQuery>(std::move(query_promise))->send(user_privacy_setting, std::move(privacy_rules));
 }
 
 void PrivacyManager::on_update_privacy(tl_object_ptr<telegram_api::updatePrivacy> update) {
   CHECK(update != nullptr);
   CHECK(update->key_ != nullptr);
   UserPrivacySetting user_privacy_setting(*update->key_);
-  auto privacy_rules =
-      UserPrivacySettingRules::get_user_privacy_setting_rules(G()->td().get_actor_unsafe(), std::move(update->rules_));
+  auto privacy_rules = UserPrivacySettingRules::get_user_privacy_setting_rules(td_, std::move(update->rules_));
   do_update_privacy(user_privacy_setting, std::move(privacy_rules), true);
 }
 
-void PrivacyManager::on_get_result(UserPrivacySetting user_privacy_setting,
-                                   Result<UserPrivacySettingRules> r_privacy_rules) {
+void PrivacyManager::on_get_user_privacy_settings(UserPrivacySetting user_privacy_setting,
+                                                  Result<UserPrivacySettingRules> r_privacy_rules) {
+  G()->ignore_result_if_closing(r_privacy_rules);
   auto &info = get_info(user_privacy_setting);
   auto promises = std::move(info.get_promises);
   reset_to_empty(info.get_promises);
@@ -103,12 +149,26 @@ void PrivacyManager::on_get_result(UserPrivacySetting user_privacy_setting,
     if (r_privacy_rules.is_error()) {
       promise.set_error(r_privacy_rules.error().clone());
     } else {
-      promise.set_value(r_privacy_rules.ok().get_user_privacy_setting_rules_object(G()->td().get_actor_unsafe()));
+      promise.set_value(r_privacy_rules.ok().get_user_privacy_setting_rules_object(td_));
     }
   }
   if (r_privacy_rules.is_ok()) {
     do_update_privacy(user_privacy_setting, r_privacy_rules.move_as_ok(), false);
   }
+}
+
+void PrivacyManager::on_set_user_privacy_settings(UserPrivacySetting user_privacy_setting,
+                                                  Result<UserPrivacySettingRules> r_privacy_rules,
+                                                  Promise<Unit> &&promise) {
+  G()->ignore_result_if_closing(r_privacy_rules);
+  auto &info = get_info(user_privacy_setting);
+  CHECK(info.has_set_query);
+  info.has_set_query = false;
+  if (r_privacy_rules.is_error()) {
+    return promise.set_error(r_privacy_rules.move_as_error());
+  }
+  do_update_privacy(user_privacy_setting, r_privacy_rules.move_as_ok(), true);
+  promise.set_value(Unit());
 }
 
 void PrivacyManager::do_update_privacy(UserPrivacySetting user_privacy_setting, UserPrivacySettingRules &&privacy_rules,
@@ -147,27 +207,11 @@ void PrivacyManager::do_update_privacy(UserPrivacySetting user_privacy_setting, 
     }
 
     info.rules = std::move(privacy_rules);
-    send_closure(G()->td(), &Td::send_update,
-                 make_tl_object<td_api::updateUserPrivacySettingRules>(
-                     user_privacy_setting.get_user_privacy_setting_object(),
-                     info.rules.get_user_privacy_setting_rules_object(G()->td().get_actor_unsafe())));
+    send_closure(
+        G()->td(), &Td::send_update,
+        make_tl_object<td_api::updateUserPrivacySettingRules>(user_privacy_setting.get_user_privacy_setting_object(),
+                                                              info.rules.get_user_privacy_setting_rules_object(td_)));
   }
-}
-
-void PrivacyManager::on_result(NetQueryPtr query) {
-  auto token = get_link_token();
-  container_.extract(token).set_value(std::move(query));
-}
-
-void PrivacyManager::send_with_promise(NetQueryPtr query, Promise<NetQueryPtr> promise) {
-  auto id = container_.create(std::move(promise));
-  G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this, id));
-}
-
-void PrivacyManager::hangup() {
-  container_.for_each(
-      [](auto id, Promise<NetQueryPtr> &promise) { promise.set_error(Global::request_aborted_error()); });
-  stop();
 }
 
 }  // namespace td

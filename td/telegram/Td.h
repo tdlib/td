@@ -189,6 +189,8 @@ class Td final : public Actor {
   ActorOwn<NotificationSettingsManager> notification_settings_manager_actor_;
   unique_ptr<PollManager> poll_manager_;
   ActorOwn<PollManager> poll_manager_actor_;
+  unique_ptr<PrivacyManager> privacy_manager_;
+  ActorOwn<PrivacyManager> privacy_manager_actor_;
   unique_ptr<SponsoredMessageManager> sponsored_message_manager_;
   ActorOwn<SponsoredMessageManager> sponsored_message_manager_actor_;
   unique_ptr<StickersManager> stickers_manager_;
@@ -219,7 +221,6 @@ class Td final : public Actor {
   ActorOwn<LanguagePackManager> language_pack_manager_;
   ActorOwn<NetStatsManager> net_stats_manager_;
   ActorOwn<PasswordManager> password_manager_;
-  ActorOwn<PrivacyManager> privacy_manager_;
   ActorOwn<SecretChatsManager> secret_chats_manager_;
   ActorOwn<SecureManager> secure_manager_;
   ActorOwn<StateManager> state_manager_;
