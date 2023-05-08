@@ -9,6 +9,7 @@
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserPrivacySetting.h"
 #include "td/telegram/UserPrivacySettingRule.h"
 
 #include "td/actor/actor.h"
@@ -36,40 +37,6 @@ class PrivacyManager final : public NetQueryCallback {
   void update_privacy(tl_object_ptr<telegram_api::updatePrivacy> update);
 
  private:
-  class UserPrivacySetting {
-   public:
-    enum class Type : int32 {
-      UserStatus,
-      ChatInvite,
-      Call,
-      PeerToPeerCall,
-      LinkInForwardedMessages,
-      UserProfilePhoto,
-      UserPhoneNumber,
-      FindByPhoneNumber,
-      VoiceMessages,
-      UserBio,
-      Size
-    };
-
-    explicit UserPrivacySetting(const telegram_api::PrivacyKey &key);
-
-    static Result<UserPrivacySetting> get_user_privacy_setting(tl_object_ptr<td_api::UserPrivacySetting> key);
-
-    tl_object_ptr<td_api::UserPrivacySetting> get_user_privacy_setting_object() const;
-
-    tl_object_ptr<telegram_api::InputPrivacyKey> get_input_privacy_key() const;
-
-    Type type() const {
-      return type_;
-    }
-
-   private:
-    Type type_;
-
-    explicit UserPrivacySetting(const td_api::UserPrivacySetting &key);
-  };
-
   ActorShared<> parent_;
 
   struct PrivacyInfo {

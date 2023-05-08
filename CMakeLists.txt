@@ -481,6 +481,7 @@ set(TDLIB_SOURCE
   td/telegram/TranslationManager.cpp
   td/telegram/UpdatesManager.cpp
   td/telegram/Usernames.cpp
+  td/telegram/UserPrivacySetting.cpp
   td/telegram/UserPrivacySettingRule.cpp
   td/telegram/Venue.cpp
   td/telegram/VideoNotesManager.cpp
@@ -774,6 +775,7 @@ set(TDLIB_SOURCE
   td/telegram/UpdatesManager.h
   td/telegram/UserId.h
   td/telegram/Usernames.h
+  td/telegram/UserPrivacySetting.h
   td/telegram/UserPrivacySettingRule.h
   td/telegram/Venue.h
   td/telegram/Version.h
