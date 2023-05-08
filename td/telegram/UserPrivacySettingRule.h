@@ -15,18 +15,20 @@
 
 namespace td {
 
+class Td;
+
 class UserPrivacySettingRule {
  public:
   UserPrivacySettingRule() = default;
 
-  explicit UserPrivacySettingRule(const td_api::UserPrivacySettingRule &rule);
+  UserPrivacySettingRule(Td *td, const td_api::UserPrivacySettingRule &rule);
 
   static Result<UserPrivacySettingRule> get_user_privacy_setting_rule(
-      telegram_api::object_ptr<telegram_api::PrivacyRule> rule);
+      Td *td, telegram_api::object_ptr<telegram_api::PrivacyRule> rule);
 
-  td_api::object_ptr<td_api::UserPrivacySettingRule> get_user_privacy_setting_rule_object() const;
+  td_api::object_ptr<td_api::UserPrivacySettingRule> get_user_privacy_setting_rule_object(Td *td) const;
 
-  telegram_api::object_ptr<telegram_api::InputPrivacyRule> get_input_privacy_rule() const;
+  telegram_api::object_ptr<telegram_api::InputPrivacyRule> get_input_privacy_rule(Td *td) const;
 
   bool operator==(const UserPrivacySettingRule &other) const {
     return type_ == other.type_ && user_ids_ == other.user_ids_ && chat_ids_ == other.chat_ids_;
@@ -50,11 +52,11 @@ class UserPrivacySettingRule {
   vector<UserId> user_ids_;
   vector<int64> chat_ids_;
 
-  vector<telegram_api::object_ptr<telegram_api::InputUser>> get_input_users() const;
+  vector<telegram_api::object_ptr<telegram_api::InputUser>> get_input_users(Td *td) const;
 
-  void set_chat_ids(const vector<int64> &dialog_ids);
+  void set_chat_ids(Td *td, const vector<int64> &dialog_ids);
 
-  vector<int64> chat_ids_as_dialog_ids() const;
+  vector<int64> chat_ids_as_dialog_ids(Td *td) const;
 
   explicit UserPrivacySettingRule(const telegram_api::PrivacyRule &rule);
 };
@@ -64,17 +66,17 @@ class UserPrivacySettingRules {
   UserPrivacySettingRules() = default;
 
   static Result<UserPrivacySettingRules> get_user_privacy_setting_rules(
-      telegram_api::object_ptr<telegram_api::account_privacyRules> rules);
+      Td *td, telegram_api::object_ptr<telegram_api::account_privacyRules> rules);
 
   static Result<UserPrivacySettingRules> get_user_privacy_setting_rules(
-      vector<telegram_api::object_ptr<telegram_api::PrivacyRule>> rules);
+      Td *td, vector<telegram_api::object_ptr<telegram_api::PrivacyRule>> rules);
 
   static Result<UserPrivacySettingRules> get_user_privacy_setting_rules(
-      td_api::object_ptr<td_api::userPrivacySettingRules> rules);
+      Td *td, td_api::object_ptr<td_api::userPrivacySettingRules> rules);
 
-  td_api::object_ptr<td_api::userPrivacySettingRules> get_user_privacy_setting_rules_object() const;
+  td_api::object_ptr<td_api::userPrivacySettingRules> get_user_privacy_setting_rules_object(Td *td) const;
 
-  vector<telegram_api::object_ptr<telegram_api::InputPrivacyRule>> get_input_privacy_rules() const;
+  vector<telegram_api::object_ptr<telegram_api::InputPrivacyRule>> get_input_privacy_rules(Td *td) const;
 
   bool operator==(const UserPrivacySettingRules &other) const {
     return rules_ == other.rules_;
