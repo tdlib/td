@@ -15154,6 +15154,9 @@ void MessagesManager::set_dialog_unread_reaction_count(Dialog *d, int32 unread_r
 void MessagesManager::set_dialog_is_empty(Dialog *d, const char *source) {
   LOG(INFO) << "Set " << d->dialog_id << " is_empty to true from " << source;
   CHECK(d->have_full_history);
+  if (!d->is_empty && d->order != DEFAULT_ORDER) {
+    reload_dialog_info_full(d->dialog_id, "set_dialog_is_empty");
+  }
   d->is_empty = true;
 
   if (d->server_unread_count + d->local_unread_count > 0) {
