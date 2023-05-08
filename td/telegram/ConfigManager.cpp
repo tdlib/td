@@ -1331,6 +1331,7 @@ void ConfigManager::on_result(NetQueryPtr res) {
     process_config(r_config.move_as_ok());
     if (token == 9) {
       G()->net_query_dispatcher().update_mtproto_header();
+      reopen_sessions_after_get_config_ = false;
     }
     set_promises(reget_config_queries_);
   }
