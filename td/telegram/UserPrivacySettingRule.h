@@ -23,8 +23,8 @@ class UserPrivacySettingRule {
 
   UserPrivacySettingRule(Td *td, const td_api::UserPrivacySettingRule &rule);
 
-  static Result<UserPrivacySettingRule> get_user_privacy_setting_rule(
-      Td *td, telegram_api::object_ptr<telegram_api::PrivacyRule> rule);
+  static UserPrivacySettingRule get_user_privacy_setting_rule(Td *td,
+                                                              telegram_api::object_ptr<telegram_api::PrivacyRule> rule);
 
   td_api::object_ptr<td_api::UserPrivacySettingRule> get_user_privacy_setting_rule_object(Td *td) const;
 
@@ -65,10 +65,10 @@ class UserPrivacySettingRules {
  public:
   UserPrivacySettingRules() = default;
 
-  static Result<UserPrivacySettingRules> get_user_privacy_setting_rules(
+  static UserPrivacySettingRules get_user_privacy_setting_rules(
       Td *td, telegram_api::object_ptr<telegram_api::account_privacyRules> rules);
 
-  static Result<UserPrivacySettingRules> get_user_privacy_setting_rules(
+  static UserPrivacySettingRules get_user_privacy_setting_rules(
       Td *td, vector<telegram_api::object_ptr<telegram_api::PrivacyRule>> rules);
 
   static Result<UserPrivacySettingRules> get_user_privacy_setting_rules(

@@ -34,7 +34,7 @@ class PrivacyManager final : public NetQueryCallback {
   void set_privacy(tl_object_ptr<td_api::UserPrivacySetting> key, tl_object_ptr<td_api::userPrivacySettingRules> rules,
                    Promise<Unit> promise);
 
-  void update_privacy(tl_object_ptr<telegram_api::updatePrivacy> update);
+  void on_update_privacy(tl_object_ptr<telegram_api::updatePrivacy> update);
 
  private:
   ActorShared<> parent_;

@@ -69,35 +69,29 @@ void PrivacyManager::set_privacy(tl_object_ptr<td_api::UserPrivacySetting> key,
                                        privacy_rules.get_input_privacy_rules(G()->td().get_actor_unsafe())));
 
   info.has_set_query = true;
-  send_with_promise(std::move(net_query),
-                    PromiseCreator::lambda([this, user_privacy_setting,
-                                            promise = std::move(promise)](Result<NetQueryPtr> x_net_query) mutable {
-                      promise.set_result([&]() -> Result<Unit> {
-                        get_info(user_privacy_setting).has_set_query = false;
-                        TRY_RESULT(net_query, std::move(x_net_query));
-                        TRY_RESULT(rules, fetch_result<telegram_api::account_setPrivacy>(std::move(net_query)));
-                        LOG(INFO) << "Receive " << to_string(rules);
-                        TRY_RESULT(privacy_rules, UserPrivacySettingRules::get_user_privacy_setting_rules(
-                                                      G()->td().get_actor_unsafe(), std::move(rules)));
-                        do_update_privacy(user_privacy_setting, std::move(privacy_rules), true);
-                        return Unit();
-                      }());
-                    }));
+  send_with_promise(
+      std::move(net_query), PromiseCreator::lambda([this, user_privacy_setting, promise = std::move(promise)](
+                                                       Result<NetQueryPtr> x_net_query) mutable {
+        promise.set_result([&]() -> Result<Unit> {
+          get_info(user_privacy_setting).has_set_query = false;
+          TRY_RESULT(net_query, std::move(x_net_query));
+          TRY_RESULT(rules, fetch_result<telegram_api::account_setPrivacy>(std::move(net_query)));
+          LOG(INFO) << "Receive " << to_string(rules);
+          auto privacy_rules =
+              UserPrivacySettingRules::get_user_privacy_setting_rules(G()->td().get_actor_unsafe(), std::move(rules));
+          do_update_privacy(user_privacy_setting, std::move(privacy_rules), true);
+          return Unit();
+        }());
+      }));
 }
 
-void PrivacyManager::update_privacy(tl_object_ptr<telegram_api::updatePrivacy> update) {
+void PrivacyManager::on_update_privacy(tl_object_ptr<telegram_api::updatePrivacy> update) {
   CHECK(update != nullptr);
   CHECK(update->key_ != nullptr);
   UserPrivacySetting user_privacy_setting(*update->key_);
-  auto r_privacy_rules =
+  auto privacy_rules =
       UserPrivacySettingRules::get_user_privacy_setting_rules(G()->td().get_actor_unsafe(), std::move(update->rules_));
-  if (r_privacy_rules.is_error()) {
-    LOG(INFO) << "Skip updatePrivacy: " << r_privacy_rules.error().message();
-    auto &info = get_info(user_privacy_setting);
-    info.is_synchronized = false;
-  } else {
-    do_update_privacy(user_privacy_setting, r_privacy_rules.move_as_ok(), true);
-  }
+  do_update_privacy(user_privacy_setting, std::move(privacy_rules), true);
 }
 
 void PrivacyManager::on_get_result(UserPrivacySetting user_privacy_setting,

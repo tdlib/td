@@ -179,27 +179,31 @@ telegram_api::object_ptr<telegram_api::InputPrivacyRule> UserPrivacySettingRule:
   }
 }
 
-Result<UserPrivacySettingRule> UserPrivacySettingRule::get_user_privacy_setting_rule(
+UserPrivacySettingRule UserPrivacySettingRule::get_user_privacy_setting_rule(
     Td *td, telegram_api::object_ptr<telegram_api::PrivacyRule> rule) {
   CHECK(rule != nullptr);
   UserPrivacySettingRule result(*rule);
-  for (auto user_id : result.user_ids_) {
+  td::remove_if(result.user_ids_, [td](UserId user_id) {
     if (!td->contacts_manager_->have_user(user_id)) {
-      return Status::Error(500, "Receive inaccessible user from the server");
+      LOG(ERROR) << "Receive unknown " << user_id << " from the server";
+      return true;
     }
-  }
-  for (auto chat_id_int : result.chat_ids_) {
+    return false;
+  });
+  td::remove_if(result.chat_ids_, [td](int64 chat_id_int) {
     ChatId chat_id(chat_id_int);
     DialogId dialog_id(chat_id);
     if (!td->contacts_manager_->have_chat(chat_id)) {
       ChannelId channel_id(chat_id_int);
       dialog_id = DialogId(channel_id);
       if (!td->contacts_manager_->have_channel(channel_id)) {
-        return Status::Error(500, "Receive inaccessible chat from the server");
+        LOG(ERROR) << "Receive unknown group " << channel_id << " from the server";
+        return true;
       }
     }
     td->messages_manager_->force_create_dialog(dialog_id, "UserPrivacySettingRule");
-  }
+    return false;
+  });
   return result;
 }
 
@@ -239,19 +243,18 @@ vector<UserId> UserPrivacySettingRule::get_restricted_user_ids() const {
   return {};
 }
 
-Result<UserPrivacySettingRules> UserPrivacySettingRules::get_user_privacy_setting_rules(
+UserPrivacySettingRules UserPrivacySettingRules::get_user_privacy_setting_rules(
     Td *td, telegram_api::object_ptr<telegram_api::account_privacyRules> rules) {
   td->contacts_manager_->on_get_users(std::move(rules->users_), "on get privacy rules");
   td->contacts_manager_->on_get_chats(std::move(rules->chats_), "on get privacy rules");
   return get_user_privacy_setting_rules(td, std::move(rules->rules_));
 }
 
-Result<UserPrivacySettingRules> UserPrivacySettingRules::get_user_privacy_setting_rules(
+UserPrivacySettingRules UserPrivacySettingRules::get_user_privacy_setting_rules(
     Td *td, vector<telegram_api::object_ptr<telegram_api::PrivacyRule>> rules) {
   UserPrivacySettingRules result;
   for (auto &rule : rules) {
-    TRY_RESULT(new_rule, UserPrivacySettingRule::get_user_privacy_setting_rule(td, std::move(rule)));
-    result.rules_.push_back(new_rule);
+    result.rules_.push_back(UserPrivacySettingRule::get_user_privacy_setting_rule(td, std::move(rule)));
   }
   if (!result.rules_.empty() && result.rules_.back().get_user_privacy_setting_rule_object(td)->get_id() ==
                                     td_api::userPrivacySettingRuleRestrictAll::ID) {
