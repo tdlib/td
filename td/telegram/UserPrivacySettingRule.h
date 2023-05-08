@@ -12,6 +12,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/Status.h"
+#include "td/utils/tl_helpers.h"
 
 namespace td {
 
@@ -35,6 +36,28 @@ class UserPrivacySettingRule {
   }
 
   vector<UserId> get_restricted_user_ids() const;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    td::store(type_, storer);
+    if (type_ == Type::AllowUsers || type_ == Type::RestrictUsers) {
+      td::store(user_ids_, storer);
+    }
+    if (type_ == Type::AllowChatParticipants || type_ == Type::RestrictChatParticipants) {
+      td::store(chat_ids_, storer);
+    }
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    td::parse(type_, parser);
+    if (type_ == Type::AllowUsers || type_ == Type::RestrictUsers) {
+      td::parse(user_ids_, parser);
+    }
+    if (type_ == Type::AllowChatParticipants || type_ == Type::RestrictChatParticipants) {
+      td::parse(chat_ids_, parser);
+    }
+  }
 
  private:
   enum class Type : int32 {
@@ -83,6 +106,16 @@ class UserPrivacySettingRules {
   }
 
   vector<UserId> get_restricted_user_ids() const;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    td::store(rules_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    td::parse(rules_, parser);
+  }
 
  private:
   vector<UserPrivacySettingRule> rules_;
