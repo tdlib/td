@@ -218,6 +218,14 @@ class UpdatesManager final : public Actor {
   int32 pending_pts_ = 0;
   int32 pending_qts_ = 0;
 
+  int32 pts_short_gap_ = 0;
+  int32 pts_fixed_short_gap_ = 0;
+  int32 pts_gap_ = 0;
+  int32 pts_diff_ = 0;
+
+  int32 qts_gap_ = 0;
+  int32 qts_diff_ = 0;
+
   int64 being_processed_updates_ = 0;
 
   int32 short_update_date_ = 0;

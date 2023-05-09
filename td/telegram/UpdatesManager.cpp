@@ -309,6 +309,7 @@ void UpdatesManager::repair_pts_gap() {
     return;
   }
   VLOG(get_difference) << "Fetch update with PTS = " << pts;
+  pts_short_gap_++;
   auto promise =
       PromiseCreator::lambda([pts](Result<telegram_api::object_ptr<telegram_api::updates_Difference>> result) {
         if (result.is_ok()) {
@@ -336,6 +337,7 @@ void UpdatesManager::fill_pts_gap(void *td) {
     max_pts = max(max_pts, updates_manager->postponed_pts_updates_.rbegin()->first);
   }
   string source = PSTRING() << "PTS from " << updates_manager->get_pts() << " to " << min_pts << '-' << max_pts;
+  updates_manager->pts_gap_++;
   fill_gap(td, source.c_str());
 }
 
@@ -370,6 +372,7 @@ void UpdatesManager::fill_qts_gap(void *td) {
     max_qts = updates_manager->pending_qts_updates_.rbegin()->first;
   }
   string source = PSTRING() << "QTS from " << updates_manager->get_qts() << " to " << min_qts << '-' << max_qts;
+  updates_manager->qts_gap_++;
   fill_gap(td, source.c_str());
 }
 
@@ -584,11 +587,21 @@ Promise<> UpdatesManager::set_pts(int32 pts, const char *source) {
     return result;
   }
   Promise<> result;
-  if (pts > get_pts() || (0 < pts && pts < get_pts() - 399999)) {  // PTS can only go up or drop cardinally
-    if (pts < get_pts() - 399999) {
-      LOG(WARNING) << "PTS decreases from " << get_pts() << " to " << pts << " from " << source;
+  auto old_pts = get_pts();
+  if (pts > old_pts || (0 < pts && pts < old_pts - 1000009)) {  // PTS can only go up or drop cardinally
+    if (pts < old_pts - 1000009) {
+      LOG(WARNING) << "PTS decreases from " << old_pts << " to " << pts << " from " << source;
     } else {
-      LOG(INFO) << "Update PTS from " << get_pts() << " to " << pts << " from " << source;
+      LOG(INFO) << "Update PTS from " << old_pts << " to " << pts << " from " << source;
+      pts_diff_ += pts - old_pts;
+      if (pts_diff_ >= 1000000) {
+        LOG(WARNING) << "Fixed " << pts_gap_ << " PTS gaps and " << pts_fixed_short_gap_ << " short gaps by sending "
+                     << pts_short_gap_ << " requests";
+        pts_short_gap_ = 0;
+        pts_fixed_short_gap_ = 0;
+        pts_gap_ = 0;
+        pts_diff_ = 0;
+      }
     }
 
     result = add_pts(pts);
@@ -1949,7 +1962,8 @@ void UpdatesManager::on_get_pts_update(int32 pts,
       }
 
       CHECK(update_ptr != nullptr);
-      LOG(WARNING) << "Repair update with PTS " << pts;
+      VLOG(get_difference) << "Repair update with PTS " << pts;
+      pts_fixed_short_gap_++;
       add_pending_pts_update(std::move(*update_ptr), pts, 1, Time::now(), Promise<Unit>(), "on_get_pts_update");
       break;
     }
@@ -2489,7 +2503,7 @@ void UpdatesManager::add_pending_qts_update(tl_object_ptr<telegram_api::Update> 
 
   int32 old_qts = get_qts();
   LOG(INFO) << "Process update with QTS = " << qts << ", current QTS = " << old_qts;
-  if (qts < old_qts - 100001) {
+  if (qts < old_qts - 1000009) {
     LOG(WARNING) << "Restore QTS after QTS overflow from " << old_qts << " to " << qts << " by "
                  << oneline(to_string(update));
     add_qts(qts - 1).set_value(Unit());
@@ -2830,6 +2844,12 @@ void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&up
   LOG(DEBUG) << "Process " << to_string(update_ptr);
   if (last_confirmed_qts_ < qts - FORCED_GET_DIFFERENCE_PTS_DIFF && last_confirmed_qts_ != 0) {
     confirm_pts_qts(qts);
+  }
+  qts_diff_++;
+  if (qts_diff_ >= 1000000) {
+    LOG(WARNING) << "Fixed " << qts_gap_ << " QTS gaps";
+    qts_gap_ = 0;
+    qts_diff_ = 0;
   }
   switch (update_ptr->get_id()) {
     case telegram_api::updateNewEncryptedMessage::ID: {
