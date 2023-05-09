@@ -28278,7 +28278,7 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
         std::move(new_contents[i]), &need_update_dialog_pos, false, nullptr, message->is_copy,
         need_another_sender ? DialogId() : get_message_sender(message.get()));
     m->reply_markup = std::move(message->reply_markup);
-    m->via_bot_user_id = message->via_bot_user_id;
+    // m->via_bot_user_id = message->via_bot_user_id;
     m->disable_web_page_preview = message->disable_web_page_preview;
     m->clear_draft = false;  // never clear draft in resend
     m->ttl = message->ttl;
