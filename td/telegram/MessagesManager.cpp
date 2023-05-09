@@ -24137,9 +24137,10 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   }
   LOG_CHECK(have_dialog(dialog_id)) << source;
 
-  m->is_update_sent = true;
-
   auto sending_state = get_message_sending_state_object(m);
+  if (sending_state == nullptr || !td_->auth_manager_->is_bot()) {
+    m->is_update_sent = true;
+  }
   bool can_delete = can_delete_message(dialog_id, m);
   bool is_scheduled = m->message_id.is_scheduled();
   DialogId my_dialog_id = get_my_dialog_id();
