@@ -14802,11 +14802,12 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
   bool need_update = from_update;
   bool need_update_dialog_pos = false;
 
+  Dialog *d = get_dialog_force(dialog_id, source);
+
   MessageId old_message_id = find_old_message_id(dialog_id, message_id);
   bool is_sent_message = false;
   if (old_message_id.is_valid() || old_message_id.is_valid_scheduled()) {
     LOG(INFO) << "Found temporary " << old_message_id << " for " << FullMessageId{dialog_id, message_id};
-    Dialog *d = get_dialog(dialog_id);
     CHECK(d != nullptr);
 
     if (!from_update && !message_id.is_scheduled()) {
@@ -14884,17 +14885,25 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
       have_next = true;
     }
   }
+  if (d == nullptr) {
+    if (from_update) {
+      CHECK(!being_added_by_new_message_dialog_id_.is_valid());
+      being_added_by_new_message_dialog_id_ = dialog_id;
+    }
+    d = add_dialog(dialog_id, source);
+    CHECK(d != nullptr);
+    need_update_dialog_pos = true;
+    being_added_by_new_message_dialog_id_ = DialogId();
+  }
 
-  const Message *m = add_message_to_dialog(dialog_id, std::move(new_message), false, have_previous, have_next,
-                                           from_update, &need_update, &need_update_dialog_pos, source);
+  const Message *m = add_message_to_dialog(d, std::move(new_message), false, have_previous, have_next, from_update,
+                                           &need_update, &need_update_dialog_pos, source);
   being_readded_message_id_ = FullMessageId();
-  Dialog *d = get_dialog(dialog_id);
   if (m == nullptr) {
-    if (need_update_dialog_pos && d != nullptr) {
+    if (need_update_dialog_pos) {
       send_update_chat_last_message(d, "on_get_message");
     }
     if (old_message_id.is_valid() || old_message_id.is_valid_scheduled()) {
-      CHECK(d != nullptr);
       if (!old_message_id.is_valid() || !message_id.is_valid() || old_message_id <= message_id) {
         LOG(ERROR) << "Failed to add just sent " << old_message_id << " to " << dialog_id << " as " << message_id
                    << " from " << source << ": " << debug_add_message_to_dialog_fail_reason_;
@@ -14904,8 +14913,6 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
 
     return FullMessageId();
   }
-
-  CHECK(d != nullptr);
 
   auto pcc_it = pending_created_dialogs_.find(dialog_id);
   if (from_update && pcc_it != pending_created_dialogs_.end()) {
@@ -31328,7 +31335,7 @@ void MessagesManager::fail_send_message(FullMessageId full_message_id, int error
   update_failed_to_send_message_content(td_, message->content);
 
   bool need_update = false;
-  Message *m = add_message_to_dialog(dialog_id, std::move(message), false, true, true, false, &need_update,
+  Message *m = add_message_to_dialog(d, std::move(message), false, true, true, false, &need_update,
                                      &need_update_dialog_pos, "fail_send_message");
   LOG_CHECK(m != nullptr) << "Failed to add failed to send " << new_message_id << " to " << dialog_id << " due to "
                           << debug_add_message_to_dialog_fail_reason_;
@@ -34178,37 +34185,6 @@ MessagesManager::Message *MessagesManager::on_get_message_from_database(Dialog *
     send_update_chat_last_message(d, source);
   }
   return result;
-}
-
-MessagesManager::Message *MessagesManager::add_message_to_dialog(DialogId dialog_id, unique_ptr<Message> message,
-                                                                 bool from_database, bool have_previous, bool have_next,
-                                                                 bool from_update, bool *need_update,
-                                                                 bool *need_update_dialog_pos, const char *source) {
-  CHECK(message != nullptr);
-  CHECK(dialog_id.get_type() != DialogType::None);
-  CHECK(need_update_dialog_pos != nullptr);
-
-  MessageId message_id = message->message_id;
-  if (!message_id.is_valid() && !message_id.is_valid_scheduled()) {
-    LOG(ERROR) << "Receive " << message_id << " in " << dialog_id << " from " << source;
-    debug_add_message_to_dialog_fail_reason_ = "invalid message identifier";
-    return nullptr;
-  }
-
-  Dialog *d = get_dialog_force(dialog_id, source);
-  if (d == nullptr) {
-    if (from_update) {
-      CHECK(!being_added_by_new_message_dialog_id_.is_valid());
-      being_added_by_new_message_dialog_id_ = dialog_id;
-    }
-    d = add_dialog(dialog_id, source);
-    *need_update_dialog_pos = true;
-    being_added_by_new_message_dialog_id_ = DialogId();
-  } else {
-    CHECK(d->dialog_id == dialog_id);
-  }
-  return add_message_to_dialog(d, std::move(message), from_database, have_previous, have_next, from_update, need_update,
-                               need_update_dialog_pos, source);
 }
 
 // keep synced with add_scheduled_message_to_dialog
