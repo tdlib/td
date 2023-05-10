@@ -16305,7 +16305,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
     if (m == nullptr) {
       // currently there may be a race between add_message_to_database and get_message_force,
       // so delete a message from database just in case
-      delete_message_from_database(d, message_id, nullptr, is_permanently_deleted);
+      delete_message_from_database(d, message_id, nullptr, is_permanently_deleted, source);
 
       if (is_permanently_deleted && d->last_clear_history_message_id == message_id) {
         set_dialog_last_clear_history_date(d, 0, MessageId(), "do_delete_message");
@@ -16346,7 +16346,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
   if (!only_from_memory) {
     LOG(INFO) << "Deleting " << full_message_id << " from " << source;
 
-    delete_message_from_database(d, message_id, m, is_permanently_deleted);
+    delete_message_from_database(d, message_id, m, is_permanently_deleted, source);
 
     delete_active_live_location(d->dialog_id, m);
     remove_message_file_sources(d->dialog_id, m);
@@ -16440,13 +16440,9 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
 
   d->being_deleted_message_id = MessageId();
 
-  if (!only_from_memory) {
-    if (need_get_history && !td_->auth_manager_->is_bot() && have_input_peer(d->dialog_id, AccessRights::Read)) {
-      send_closure_later(actor_id(this), &MessagesManager::get_history_from_the_end, d->dialog_id, true, false,
-                         Promise<Unit>());
-    }
-
-    on_message_deleted_from_database(d, result.get(), source);
+  if (need_get_history) {
+    send_closure_later(actor_id(this), &MessagesManager::get_history_from_the_end, d->dialog_id, true, false,
+                       Promise<Unit>());
   }
 
   on_message_deleted(d, result.get(), is_permanently_deleted, source);
@@ -16456,8 +16452,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
 
 void MessagesManager::on_message_deleted_from_database(Dialog *d, const Message *m, const char *source) {
   CHECK(d != nullptr);
-  CHECK(m != nullptr);
-  if (td_->auth_manager_->is_bot()) {
+  if (m == nullptr || td_->auth_manager_->is_bot()) {
     return;
   }
 
@@ -16596,7 +16591,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_messag
     if (message == nullptr) {
       // currently there may be a race between add_message_to_database and get_message_force,
       // so delete a message from database just in case
-      delete_message_from_database(d, message_id, nullptr, is_permanently_deleted);
+      delete_message_from_database(d, message_id, nullptr, is_permanently_deleted, source);
       return nullptr;
     }
     CHECK(d->scheduled_messages != nullptr);
@@ -16608,7 +16603,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_messag
     if (message == nullptr) {
       // currently there may be a race between add_message_to_database and get_message_force,
       // so delete a message from database just in case
-      delete_message_from_database(d, message_id, nullptr, is_permanently_deleted);
+      delete_message_from_database(d, message_id, nullptr, is_permanently_deleted, source);
       return nullptr;
     }
 
@@ -16622,7 +16617,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_messag
 
   LOG(INFO) << "Deleting " << FullMessageId{d->dialog_id, message_id} << " from " << source;
 
-  delete_message_from_database(d, message_id, m, is_permanently_deleted);
+  delete_message_from_database(d, message_id, m, is_permanently_deleted, source);
 
   remove_message_file_sources(d->dialog_id, m);
 
@@ -34245,8 +34240,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   if (!message_id.is_scheduled() && message_id <= d->last_clear_history_message_id) {
     LOG(INFO) << "Skip adding cleared " << message_id << " to " << dialog_id << " from " << source;
     if (from_database) {
-      delete_message_from_database(d, message_id, message.get(), true);
-      on_message_deleted_from_database(d, message.get(), "cleared full history");
+      delete_message_from_database(d, message_id, message.get(), true, "cleared full history");
     }
     debug_add_message_to_dialog_fail_reason_ = "cleared full history";
     return nullptr;
@@ -34331,8 +34325,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       message_id <= d->max_unavailable_message_id) {
     LOG(INFO) << "Can't add an unavailable " << message_id << " to " << dialog_id << " from " << source;
     if (from_database) {
-      delete_message_from_database(d, message_id, message.get(), true);
-      on_message_deleted_from_database(d, message.get(), "ignore unavailable message");
+      delete_message_from_database(d, message_id, message.get(), true, "ignore unavailable message");
     }
     debug_add_message_to_dialog_fail_reason_ = "ignore unavailable message";
     return nullptr;
@@ -34552,8 +34545,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       if (dialog_type == DialogType::SecretChat) {
         LOG(INFO) << "Can't add " << message_id << " with expired self-destruct timer to " << dialog_id << " from "
                   << source;
-        delete_message_from_database(d, message_id, message.get(), true);
-        on_message_deleted_from_database(d, message.get(), "delete self-destructed message");
+        delete_message_from_database(d, message_id, message.get(), true, "delete self-destructed message");
         debug_add_message_to_dialog_fail_reason_ = "delete self-destructed message";
         d->being_added_message_id = MessageId();
         return nullptr;
@@ -34573,8 +34565,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     auto server_time = G()->server_time();
     if (message->date + message->ttl_period <= server_time) {
       LOG(INFO) << "Can't add auto-deleted " << message_id << " to " << dialog_id << " from " << source;
-      delete_message_from_database(d, message_id, message.get(), true);
-      on_message_deleted_from_database(d, message.get(), "delete auto-deleted message");
+      delete_message_from_database(d, message_id, message.get(), true, "delete auto-deleted message");
       debug_add_message_to_dialog_fail_reason_ = "delete auto-deleted message";
       d->being_added_message_id = MessageId();
       return nullptr;
@@ -35329,7 +35320,7 @@ bool MessagesManager::need_delete_message_files(DialogId dialog_id, const Messag
 }
 
 void MessagesManager::delete_message_from_database(Dialog *d, MessageId message_id, const Message *m,
-                                                   bool is_permanently_deleted) {
+                                                   bool is_permanently_deleted, const char *source) {
   CHECK(d != nullptr);
   if (!message_id.is_valid() && !message_id.is_valid_scheduled()) {
     return;
@@ -35409,19 +35400,19 @@ void MessagesManager::delete_message_from_database(Dialog *d, MessageId message_
     delete_message_files(d->dialog_id, m);
   }
 
-  if (!G()->use_message_database()) {
-    return;
+  if (G()->use_message_database()) {
+    DeleteMessageLogEvent log_event;
+
+    log_event.full_message_id_ = {d->dialog_id, message_id};
+
+    if (need_delete_files) {
+      log_event.file_ids_ = get_message_file_ids(m);
+    }
+
+    do_delete_message_log_event(log_event);
   }
 
-  DeleteMessageLogEvent log_event;
-
-  log_event.full_message_id_ = {d->dialog_id, message_id};
-
-  if (need_delete_files) {
-    log_event.file_ids_ = get_message_file_ids(m);
-  }
-
-  do_delete_message_log_event(log_event);
+  on_message_deleted_from_database(d, m, source);
 }
 
 void MessagesManager::do_delete_message_log_event(const DeleteMessageLogEvent &log_event) const {
