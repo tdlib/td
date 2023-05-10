@@ -13011,10 +13011,9 @@ void MessagesManager::set_dialog_max_unavailable_message_id(DialogId dialog_id, 
   Dialog *d = get_dialog_force(dialog_id, source);
   if (d != nullptr) {
     if (d->last_new_message_id.is_valid() && max_unavailable_message_id > d->last_new_message_id && from_update) {
-      if (!td_->auth_manager_->is_bot()) {
-        LOG(ERROR) << "Tried to set " << dialog_id << " max unavailable message to " << max_unavailable_message_id
-                   << " from " << source << ", but last new message is " << d->last_new_message_id;
-      }
+      // possible if the last unavailable message has already been deleted
+      LOG(INFO) << "Tried to set " << dialog_id << " max unavailable message to " << max_unavailable_message_id
+                << " from " << source << ", but last new message is " << d->last_new_message_id;
       max_unavailable_message_id = d->last_new_message_id;
     }
 
