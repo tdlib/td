@@ -592,7 +592,6 @@ class FileManager final : public FileLoadManager::Callback {
   std::map<FullRemoteFileLocation, FileId> remote_location_to_file_id_;
   std::map<FullLocalFileLocation, FileId> local_location_to_file_id_;
   std::map<FullGenerateFileLocation, FileId> generate_location_to_file_id_;
-  std::map<FileDbId, int32> pmc_id_to_file_node_id_;
 
   WaitFreeVector<FileIdInfo> file_id_info_;
   WaitFreeVector<int32> empty_file_ids_;
