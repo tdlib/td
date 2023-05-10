@@ -14962,9 +14962,7 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
 void MessagesManager::set_dialog_last_message_id(Dialog *d, MessageId last_message_id, const char *source,
                                                  const Message *m) {
   CHECK(!last_message_id.is_scheduled());
-  if (td_->auth_manager_->is_bot()) {
-    return;
-  }
+  CHECK(!td_->auth_manager_->is_bot());
 
   LOG(INFO) << "Set " << d->dialog_id << " last message to " << last_message_id << " from " << source;
   d->last_message_id = last_message_id;
@@ -15068,9 +15066,7 @@ void MessagesManager::remove_dialog_newer_messages(Dialog *d, MessageId from_mes
 
 void MessagesManager::set_dialog_last_new_message_id(Dialog *d, MessageId last_new_message_id, const char *source) {
   CHECK(!last_new_message_id.is_scheduled());
-  if (td_->auth_manager_->is_bot()) {
-    return;
-  }
+  CHECK(!td_->auth_manager_->is_bot());
 
   LOG_CHECK(last_new_message_id > d->last_new_message_id)
       << last_new_message_id << " " << d->last_new_message_id << " " << source;
@@ -16425,12 +16421,6 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
       }
     }
   } else {
-    if (message_id == d->last_message_id) {
-      CHECK(td_->auth_manager_->is_bot() && !G()->use_message_database());
-      UNREACHABLE();
-      set_dialog_last_message_id(d, MessageId(), "do_delete_message");
-    }
-
     auto suffix_load_queries_it = dialog_suffix_load_queries_.find(d->dialog_id);
     if (suffix_load_queries_it != dialog_suffix_load_queries_.end() &&
         message_id >= suffix_load_queries_it->second->suffix_load_first_message_id_) {
@@ -34686,7 +34676,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     *need_update_dialog_pos = false;
   }
 
-  if (from_update && message_id > d->last_new_message_id && !message_id.is_yet_unsent()) {
+  if (from_update && message_id > d->last_new_message_id && !message_id.is_yet_unsent() &&
+      !td_->auth_manager_->is_bot()) {
     if (dialog_type == DialogType::SecretChat || message_id.is_server()) {
       // can delete messages, therefore must be called before message attaching/adding
       set_dialog_last_new_message_id(d, message_id, "add_message_to_dialog");
@@ -36905,6 +36896,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
 bool MessagesManager::add_dialog_last_database_message(Dialog *d, unique_ptr<Message> &&last_database_message) {
   CHECK(d != nullptr);
   CHECK(last_database_message != nullptr);
+  CHECK(!td_->auth_manager_->is_bot());
 
   auto dialog_id = d->dialog_id;
   auto message_id = last_database_message->message_id;
