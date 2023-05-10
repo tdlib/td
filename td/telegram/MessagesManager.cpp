@@ -10600,7 +10600,7 @@ void MessagesManager::on_get_scheduled_server_messages(DialogId dialog_id, uint3
     }
 
     auto full_message_id = on_get_message(std::move(message), d->sent_scheduled_messages, is_channel_message, true,
-                                          false, false, "on_get_scheduled_server_messages");
+                                          false /*ignored*/, false /*ignored*/, "on_get_scheduled_server_messages");
     auto message_id = full_message_id.get_message_id();
     if (message_id.is_valid_scheduled()) {
       CHECK(message_id.is_scheduled_server());
@@ -14878,11 +14878,6 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
 
     if (!message_id.is_scheduled()) {
       is_sent_message = true;
-    }
-
-    if (from_update) {
-      have_previous = true;
-      have_next = true;
     }
   }
   if (d == nullptr) {
