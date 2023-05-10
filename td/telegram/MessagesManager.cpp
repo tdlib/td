@@ -12015,34 +12015,38 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
 
   delete_all_dialog_messages_from_database(d, MessageId::max(), "delete_all_dialog_messages 3");
 
-  if (d->reply_markup_message_id != MessageId()) {
-    set_dialog_reply_markup(d, MessageId());
-  }
+  if (!td_->auth_manager_->is_bot()) {
+    if (d->reply_markup_message_id != MessageId()) {
+      set_dialog_reply_markup(d, MessageId());
+    }
 
-  set_dialog_first_database_message_id(d, MessageId(), "delete_all_dialog_messages 4");
-  set_dialog_last_database_message_id(d, MessageId(), "delete_all_dialog_messages 5");
-  set_dialog_last_clear_history_date(d, last_message_date, last_clear_history_message_id,
-                                     "delete_all_dialog_messages 6");
-  d->last_read_all_mentions_message_id = MessageId();  // it is not needed anymore
-  if (d->notification_info != nullptr) {
-    d->notification_info->message_notification_group_.max_removed_notification_id =
-        NotificationId();                                                                    // it is not needed anymore
-    d->notification_info->message_notification_group_.max_removed_message_id = MessageId();  // it is not needed anymore
-    d->notification_info->mention_notification_group_.max_removed_notification_id =
-        NotificationId();                                                                    // it is not needed anymore
-    d->notification_info->mention_notification_group_.max_removed_message_id = MessageId();  // it is not needed anymore
-    d->notification_info->notification_id_to_message_id_.clear();
-  }
-  std::fill(d->message_count_by_index.begin(), d->message_count_by_index.end(), 0);
+    set_dialog_first_database_message_id(d, MessageId(), "delete_all_dialog_messages 4");
+    set_dialog_last_database_message_id(d, MessageId(), "delete_all_dialog_messages 5");
+    set_dialog_last_clear_history_date(d, last_message_date, last_clear_history_message_id,
+                                       "delete_all_dialog_messages 6");
+    d->last_read_all_mentions_message_id = MessageId();  // it is not needed anymore
+    if (d->notification_info != nullptr) {
+      d->notification_info->message_notification_group_.max_removed_notification_id =
+          NotificationId();  // it is not needed anymore
+      d->notification_info->message_notification_group_.max_removed_message_id =
+          MessageId();  // it is not needed anymore
+      d->notification_info->mention_notification_group_.max_removed_notification_id =
+          NotificationId();  // it is not needed anymore
+      d->notification_info->mention_notification_group_.max_removed_message_id =
+          MessageId();  // it is not needed anymore
+      d->notification_info->notification_id_to_message_id_.clear();
+    }
+    std::fill(d->message_count_by_index.begin(), d->message_count_by_index.end(), 0);
 
-  if (has_last_message_id) {
-    set_dialog_last_message_id(d, MessageId(), "delete_all_dialog_messages 7");
-    send_update_chat_last_message(d, "delete_all_dialog_messages 8");
-  }
-  if (remove_from_dialog_list) {
-    set_dialog_order(d, DEFAULT_ORDER, true, false, "delete_all_dialog_messages 9");
-  } else {
-    update_dialog_pos(d, "delete_all_dialog_messages 10");
+    if (has_last_message_id) {
+      set_dialog_last_message_id(d, MessageId(), "delete_all_dialog_messages 7");
+      send_update_chat_last_message(d, "delete_all_dialog_messages 8");
+    }
+    if (remove_from_dialog_list) {
+      set_dialog_order(d, DEFAULT_ORDER, true, false, "delete_all_dialog_messages 9");
+    } else {
+      update_dialog_pos(d, "delete_all_dialog_messages 10");
+    }
   }
 
   on_dialog_updated(d->dialog_id, "delete_all_dialog_messages 11");
@@ -15000,7 +15004,8 @@ void MessagesManager::set_dialog_last_message_id(Dialog *d, MessageId last_messa
 void MessagesManager::set_dialog_first_database_message_id(Dialog *d, MessageId first_database_message_id,
                                                            const char *source) {
   CHECK(!first_database_message_id.is_scheduled());
-  if (first_database_message_id == d->first_database_message_id || td_->auth_manager_->is_bot()) {
+  CHECK(!td_->auth_manager_->is_bot());
+  if (first_database_message_id == d->first_database_message_id) {
     return;
   }
 
@@ -15013,7 +15018,8 @@ void MessagesManager::set_dialog_first_database_message_id(Dialog *d, MessageId 
 void MessagesManager::set_dialog_last_database_message_id(Dialog *d, MessageId last_database_message_id,
                                                           const char *source, bool is_loaded_from_database) {
   CHECK(!last_database_message_id.is_scheduled());
-  if (last_database_message_id == d->last_database_message_id || td_->auth_manager_->is_bot()) {
+  CHECK(!td_->auth_manager_->is_bot());
+  if (last_database_message_id == d->last_database_message_id) {
     return;
   }
 
@@ -16400,7 +16406,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
     }
     if (d->last_database_message_id.is_valid()) {
       CHECK(d->first_database_message_id.is_valid());
-    } else {
+    } else if (d->first_database_message_id.is_valid()) {
       set_dialog_first_database_message_id(d, MessageId(), "do_delete_message");
     }
 
@@ -36408,6 +36414,9 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
 
     d->last_assigned_message_id = MessageId(ServerMessageId(1));
     d->last_new_message_id = MessageId();
+    d->last_clear_history_date = 0;
+    d->last_clear_history_message_id = MessageId();
+    d->order = DEFAULT_ORDER;
   }
   int64 order = d->order;
   d->order = DEFAULT_ORDER;
@@ -38273,7 +38282,7 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
   //    offline. It is the best way for gaps support, but it is pretty hard to implement correctly.
   // It should be also noted that some messages like outgoing live location messages shouldn't be deleted.
 
-  if (last_message_id > d->last_new_message_id) {
+  if (last_message_id > d->last_new_message_id && !td_->auth_manager_->is_bot()) {
     // TODO properly support last_message_id <= d->last_new_message_id
     set_dialog_first_database_message_id(d, MessageId(), "on_get_channel_dialog 6");
     set_dialog_last_database_message_id(d, MessageId(), "on_get_channel_dialog 7");
