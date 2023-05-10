@@ -7741,13 +7741,6 @@ void ContactsManager::set_channel_username(ChannelId channel_id, const string &u
     return promise.set_error(Status::Error(400, "Username is invalid"));
   }
 
-  if (!username.empty() && !c->usernames.has_editable_username()) {
-    auto channel_full = get_channel_full(channel_id, false, "set_channel_username");
-    if (channel_full != nullptr && !channel_full->can_set_username) {
-      return promise.set_error(Status::Error(400, "Can't set supergroup username"));
-    }
-  }
-
   td_->create_handler<UpdateChannelUsernameQuery>(std::move(promise))->send(channel_id, username);
 }
 
@@ -12742,7 +12735,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     }
     if (chat_full->can_set_username != chat->can_set_username_) {
       chat_full->can_set_username = chat->can_set_username_;
-      chat_full->is_changed = true;
+      chat_full->need_save_to_database = true;
     }
 
     on_get_chat_participants(std::move(chat->participants_), false);
@@ -12860,7 +12853,6 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
         channel_full->administrator_count != administrator_count ||
         channel_full->restricted_count != restricted_count || channel_full->banned_count != banned_count ||
         channel_full->can_get_participants != can_get_participants ||
-        channel_full->can_set_username != can_set_username ||
         channel_full->can_set_sticker_set != can_set_sticker_set ||
         channel_full->can_set_location != can_set_location ||
         channel_full->can_view_statistics != can_view_statistics || channel_full->stats_dc_id != stats_dc_id ||
@@ -12874,7 +12866,6 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       channel_full->banned_count = banned_count;
       channel_full->can_get_participants = can_get_participants;
       channel_full->has_hidden_participants = has_hidden_participants;
-      channel_full->can_set_username = can_set_username;
       channel_full->can_set_sticker_set = can_set_sticker_set;
       channel_full->can_set_location = can_set_location;
       channel_full->can_view_statistics = can_view_statistics;
@@ -12898,6 +12889,10 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     }
     if (!channel_full->is_can_view_statistics_inited) {
       channel_full->is_can_view_statistics_inited = true;
+      channel_full->need_save_to_database = true;
+    }
+    if (channel_full->can_set_username != can_set_username) {
+      channel_full->can_set_username = can_set_username;
       channel_full->need_save_to_database = true;
     }
 
@@ -18856,8 +18851,8 @@ tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_i
       channel_full->participant_count, channel_full->administrator_count, channel_full->restricted_count,
       channel_full->banned_count, DialogId(channel_full->linked_channel_id).get(), channel_full->slow_mode_delay,
       slow_mode_delay_expires_in, channel_full->can_get_participants, has_hidden_participants,
-      can_hide_channel_participants(channel_id, channel_full).is_ok(), channel_full->can_set_username,
-      channel_full->can_set_sticker_set, channel_full->can_set_location, channel_full->can_view_statistics,
+      can_hide_channel_participants(channel_id, channel_full).is_ok(), channel_full->can_set_sticker_set,
+      channel_full->can_set_location, channel_full->can_view_statistics,
       can_toggle_channel_aggressive_anti_spam(channel_id, channel_full).is_ok(), channel_full->is_all_history_available,
       channel_full->has_aggressive_anti_spam_enabled, channel_full->sticker_set_id.get(),
       channel_full->location.get_chat_location_object(), channel_full->invite_link.get_chat_invite_link_object(this),
