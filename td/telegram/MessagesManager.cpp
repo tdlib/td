@@ -9877,7 +9877,7 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
       on_dialog_updated(dialog_id, "set have_full_history");
     }
 
-    if (from_the_end && d->have_full_history && d->messages.empty()) {
+    if (from_the_end && d->have_full_history && d->ordered_messages.empty()) {
       if (!d->last_database_message_id.is_valid()) {
         set_dialog_is_empty(d, "on_get_history empty");
       } else {
@@ -23199,7 +23199,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
     return;
   }
 
-  if (messages.empty() && from_the_end && d->messages.empty()) {
+  if (messages.empty() && from_the_end && d->ordered_messages.empty()) {
     if (d->have_full_history) {
       set_dialog_is_empty(d, "on_get_history_from_database empty");
     } else if (d->last_database_message_id.is_valid()) {
@@ -34584,7 +34584,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     on_dialog_updated(dialog_id, "drop have_full_history");
   }
 
-  if (d->open_count == 0 && !d->messages.empty() && is_message_unload_enabled() && !d->has_unload_timeout) {
+  if (d->open_count == 0 && !d->has_unload_timeout && !d->ordered_messages.empty() && is_message_unload_enabled()) {
     LOG(INFO) << "Schedule unload of " << dialog_id;
     pending_unload_dialog_timeout_.add_timeout_in(dialog_id.get(), get_next_unload_dialog_delay(d));
     d->has_unload_timeout = true;

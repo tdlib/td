@@ -183,6 +183,10 @@ class OrderedMessages {
   vector<MessageId> get_history(MessageId last_message_id, MessageId &from_message_id, int32 &offset, int32 &limit,
                                 bool force) const;
 
+  bool empty() const {
+    return messages_ == nullptr;
+  }
+
  private:
   struct AttachInfo {
     bool have_previous_ = false;
