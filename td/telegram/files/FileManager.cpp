@@ -841,8 +841,9 @@ void FileManager::init_actor() {
 
 FileManager::~FileManager() {
   Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), remote_location_info_, file_hash_to_file_id_,
-                                              local_location_to_file_id_, generate_location_to_file_id_,
-                                              pmc_id_to_file_node_id_, file_id_info_, empty_file_ids_, file_nodes_);
+                                              remote_location_to_file_id_, local_location_to_file_id_,
+                                              generate_location_to_file_id_, pmc_id_to_file_node_id_, file_id_info_,
+                                              empty_file_ids_, file_nodes_);
 }
 
 string FileManager::fix_file_extension(Slice file_name, Slice file_type, Slice file_extension) {
@@ -1300,21 +1301,27 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
     }
   };
   bool new_remote = false;
+  FileId *new_remote_file_id = nullptr;
   int32 remote_key = 0;
   if (file_view.has_remote_location()) {
-    RemoteInfo info{file_view.remote_location(), file_location_source, file_id};
-    remote_key = remote_location_info_.add(info);
-    auto &stored_info = remote_location_info_.get(remote_key);
-    if (stored_info.file_id_ == file_id) {
-      get_file_id_info(file_id)->pin_flag_ = true;
-      new_remote = true;
-    } else {
-      to_merge.push_back(stored_info.file_id_);
-      if (merge_choose_remote_location(file_view.remote_location(), file_location_source, stored_info.remote_,
-                                       stored_info.file_location_source_) == 0) {
-        stored_info.remote_ = file_view.remote_location();
-        stored_info.file_location_source_ = file_location_source;
+    if (context_->keep_exact_remote_location()) {
+      RemoteInfo info{file_view.remote_location(), file_location_source, file_id};
+      remote_key = remote_location_info_.add(info);
+      auto &stored_info = remote_location_info_.get(remote_key);
+      if (stored_info.file_id_ == file_id) {
+        get_file_id_info(file_id)->pin_flag_ = true;
+        new_remote = true;
+      } else {
+        to_merge.push_back(stored_info.file_id_);
+        if (merge_choose_remote_location(file_view.remote_location(), file_location_source, stored_info.remote_,
+                                         stored_info.file_location_source_) == 0) {
+          stored_info.remote_ = file_view.remote_location();
+          stored_info.file_location_source_ = file_location_source;
+        }
       }
+    } else {
+      new_remote_file_id = register_location(file_view.remote_location(), remote_location_to_file_id_);
+      new_remote = new_remote_file_id != nullptr;
     }
   }
   FileId *new_local_file_id = nullptr;
@@ -1344,6 +1351,9 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
   try_flush_node(get_file_node(file_id), "register_file");
   auto main_file_id = get_file_node(file_id)->main_file_id_;
   if (main_file_id != file_id) {
+    if (new_remote_file_id != nullptr) {
+      *new_remote_file_id = main_file_id;
+    }
     if (new_local_file_id != nullptr) {
       *new_local_file_id = main_file_id;
     }
@@ -1352,7 +1362,7 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
     }
     try_forget_file_id(file_id);
   }
-  if ((new_local_file_id != nullptr) || (new_generate_file_id != nullptr)) {
+  if (new_cnt > 0) {
     get_file_id_info(main_file_id)->pin_flag_ = true;
   }
 
@@ -3221,7 +3231,7 @@ Result<FileId> FileManager::check_input_file_id(FileType type, Result<FileId> re
   }
 
   int32 remote_id = file_id.get_remote();
-  if (remote_id == 0) {
+  if (remote_id == 0 && context_->keep_exact_remote_location()) {
     RemoteInfo info{file_view.remote_location(), FileLocationSource::FromUser, file_id};
     remote_id = remote_location_info_.add(info);
     if (remote_location_info_.get(remote_id).file_id_ == file_id) {
@@ -4062,7 +4072,7 @@ std::pair<FileManager::Query, bool> FileManager::finish_query(QueryId query_id) 
 }
 
 FullRemoteFileLocation *FileManager::get_remote(int32 key) {
-  if (key == 0) {
+  if (key == 0 || !context_->keep_exact_remote_location()) {
     return nullptr;
   }
   return &remote_location_info_.get(key).remote_;

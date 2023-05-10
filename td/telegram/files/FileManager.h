@@ -402,6 +402,8 @@ class FileManager final : public FileLoadManager::Callback {
 
     virtual void reload_photo(PhotoSizeSource source, Promise<Unit> promise) = 0;
 
+    virtual bool keep_exact_remote_location() = 0;
+
     virtual ActorShared<> create_reference() = 0;
 
     Context() = default;
@@ -587,6 +589,7 @@ class FileManager final : public FileLoadManager::Callback {
 
   WaitFreeHashMap<string, FileId> file_hash_to_file_id_;
 
+  std::map<FullRemoteFileLocation, FileId> remote_location_to_file_id_;
   std::map<FullLocalFileLocation, FileId> local_location_to_file_id_;
   std::map<FullGenerateFileLocation, FileId> generate_location_to_file_id_;
   std::map<FileDbId, int32> pmc_id_to_file_node_id_;

@@ -3809,6 +3809,10 @@ void Td::init_file_manager() {
       FileReferenceManager::reload_photo(std::move(source), std::move(promise));
     }
 
+    bool keep_exact_remote_location() final {
+      return !td_->auth_manager_->is_bot();
+    }
+
     ActorShared<> create_reference() final {
       return td_->create_reference();
     }
