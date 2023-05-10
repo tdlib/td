@@ -1195,8 +1195,6 @@ class MessagesManager final : public Actor {
     bool hide_via_bot = false;              // for resend_message
     bool is_bot_start_message = false;      // for resend_message
 
-    bool from_database = false;
-
     bool has_get_message_views_query = false;
     bool need_view_counter_increment = false;
 
@@ -2249,14 +2247,16 @@ class MessagesManager final : public Actor {
   void update_message_reply_count(Dialog *d, MessageId message_id, DialogId replier_dialog_id,
                                   MessageId reply_message_id, int32 update_date, int diff, bool is_recursive = false);
 
-  Message *add_message_to_dialog(DialogId dialog_id, unique_ptr<Message> message, bool have_previous, bool have_next,
-                                 bool from_update, bool *need_update, bool *need_update_dialog_pos, const char *source);
+  Message *add_message_to_dialog(DialogId dialog_id, unique_ptr<Message> message, bool from_database,
+                                 bool have_previous, bool have_next, bool from_update, bool *need_update,
+                                 bool *need_update_dialog_pos, const char *source);
 
-  Message *add_message_to_dialog(Dialog *d, unique_ptr<Message> message, bool have_previous, bool have_next,
-                                 bool from_update, bool *need_update, bool *need_update_dialog_pos, const char *source);
+  Message *add_message_to_dialog(Dialog *d, unique_ptr<Message> message, bool from_database, bool have_previous,
+                                 bool have_next, bool from_update, bool *need_update, bool *need_update_dialog_pos,
+                                 const char *source);
 
-  Message *add_scheduled_message_to_dialog(Dialog *d, unique_ptr<Message> message, bool from_update, bool *need_update,
-                                           const char *source);
+  Message *add_scheduled_message_to_dialog(Dialog *d, unique_ptr<Message> message, bool from_database, bool from_update,
+                                           bool *need_update, const char *source);
 
   void register_new_local_message_id(Dialog *d, const Message *m);
 

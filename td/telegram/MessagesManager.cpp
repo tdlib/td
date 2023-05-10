@@ -6714,7 +6714,7 @@ void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api:
     bool need_update = true;
     bool need_update_dialog_pos = false;
 
-    const Message *m = add_message_to_dialog(d, std::move(new_message), true, true, true, &need_update,
+    const Message *m = add_message_to_dialog(d, std::move(new_message), false, true, true, true, &need_update,
                                              &need_update_dialog_pos, "on_update_service_notification");
     if (m != nullptr && need_update) {
       send_update_new_message(d, m);
@@ -13373,9 +13373,7 @@ void MessagesManager::ttl_unregister_message(DialogId dialog_id, const Message *
   auto it = ttl_nodes_.find(TtlNode(dialog_id, m->message_id, false));
 
   // expect m->ttl == 0, but m->ttl_expires_at > 0 from binlog
-  LOG_CHECK(it != ttl_nodes_.end()) << dialog_id << " " << m->message_id << " " << source << " " << G()->close_flag()
-                                    << " " << m->ttl << " " << m->ttl_expires_at << " " << Time::now() << " "
-                                    << m->from_database;
+  CHECK(it != ttl_nodes_.end());
 
   auto *heap_node = it->as_heap_node();
   if (heap_node->in_heap()) {
@@ -14866,7 +14864,6 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
     }
 
     new_message->message_id = old_message_id;
-    new_message->from_database = false;
     update_message(d, old_message.get(), std::move(new_message), &need_update_dialog_pos, false);
     new_message = std::move(old_message);
 
@@ -14888,8 +14885,8 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
     }
   }
 
-  const Message *m = add_message_to_dialog(dialog_id, std::move(new_message), have_previous, have_next, from_update,
-                                           &need_update, &need_update_dialog_pos, source);
+  const Message *m = add_message_to_dialog(dialog_id, std::move(new_message), false, have_previous, have_next,
+                                           from_update, &need_update, &need_update_dialog_pos, source);
   being_readded_message_id_ = FullMessageId();
   Dialog *d = get_dialog(dialog_id);
   if (m == nullptr) {
@@ -23259,11 +23256,9 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
       have_next = true;
     }
 
-    message->from_database = true;
-
     auto old_message = get_message(d, message->message_id);
     Message *m = old_message ? old_message
-                             : add_message_to_dialog(d, std::move(message), false, have_next, false, &need_update,
+                             : add_message_to_dialog(d, std::move(message), true, false, have_next, false, &need_update,
                                                      &need_update_dialog_pos, "on_get_history_from_database");
     if (m != nullptr) {
       first_added_message_id = m->message_id;
@@ -23680,14 +23675,13 @@ void MessagesManager::on_get_scheduled_messages_from_database(DialogId dialog_id
     if (message == nullptr) {
       continue;
     }
-    message->from_database = true;
 
     if (get_message(d, message->message_id) != nullptr) {
       continue;
     }
 
     bool need_update = false;
-    Message *m = add_scheduled_message_to_dialog(d, std::move(message), false, &need_update,
+    Message *m = add_scheduled_message_to_dialog(d, std::move(message), true, false, &need_update,
                                                  "on_get_scheduled_messages_from_database");
     if (m != nullptr) {
       add_message_dependencies(dependencies, m);
@@ -24458,8 +24452,8 @@ MessagesManager::Message *MessagesManager::get_message_to_send(
 
   bool need_update = false;
   CHECK(have_input_peer(d->dialog_id, AccessRights::Read));
-  auto result = add_message_to_dialog(d, std::move(message), true, true, true, &need_update, need_update_dialog_pos,
-                                      "send message");
+  auto result = add_message_to_dialog(d, std::move(message), false, true, true, true, &need_update,
+                                      need_update_dialog_pos, "send message");
   LOG_CHECK(result != nullptr) << message_id << " " << debug_add_message_to_dialog_fail_reason_;
   if (result->message_id.is_scheduled()) {
     send_update_chat_has_scheduled_messages(d, false);
@@ -28528,7 +28522,7 @@ Result<MessageId> MessagesManager::add_local_message(
 
   bool need_update = true;
   bool need_update_dialog_pos = false;
-  auto result = add_message_to_dialog(d, std::move(m), true, true, true, &need_update, &need_update_dialog_pos,
+  auto result = add_message_to_dialog(d, std::move(m), false, true, true, true, &need_update, &need_update_dialog_pos,
                                       "add local message");
   LOG_CHECK(result != nullptr) << message_id << " " << debug_add_message_to_dialog_fail_reason_;
   register_new_local_message_id(d, result);
@@ -30877,7 +30871,6 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
   }
 
   sent_message->message_id = new_message_id;
-  sent_message->from_database = false;
 
   if (sent_message->reply_to_message_id != MessageId() && sent_message->reply_to_message_id.is_yet_unsent()) {
     LOG(INFO) << "Drop reply to " << sent_message->reply_to_message_id;
@@ -30887,7 +30880,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
   send_update_message_send_succeeded(d, old_message_id, sent_message.get());
 
   bool need_update = true;
-  Message *m = add_message_to_dialog(d, std::move(sent_message), true, true, true, &need_update,
+  Message *m = add_message_to_dialog(d, std::move(sent_message), false, true, true, true, &need_update,
                                      &need_update_dialog_pos, source);
   if (need_update_dialog_pos) {
     send_update_chat_last_message(d, source);
@@ -31334,10 +31327,8 @@ void MessagesManager::fail_send_message(FullMessageId full_message_id, int error
   }
   update_failed_to_send_message_content(td_, message->content);
 
-  message->from_database = false;
-
   bool need_update = false;
-  Message *m = add_message_to_dialog(dialog_id, std::move(message), true, true, false, &need_update,
+  Message *m = add_message_to_dialog(dialog_id, std::move(message), false, true, true, false, &need_update,
                                      &need_update_dialog_pos, "fail_send_message");
   LOG_CHECK(m != nullptr) << "Failed to add failed to send " << new_message_id << " to " << dialog_id << " due to "
                           << debug_add_message_to_dialog_fail_reason_;
@@ -34177,11 +34168,10 @@ MessagesManager::Message *MessagesManager::on_get_message_from_database(Dialog *
     get_message_from_server({dialog_id, m->message_id}, Auto(), "on_get_message_from_database 2");
   }
 
-  m->from_database = true;
   bool need_update = false;
   bool need_update_dialog_pos = false;
   auto result =
-      add_message_to_dialog(d, std::move(m), false, false, false, &need_update, &need_update_dialog_pos, source);
+      add_message_to_dialog(d, std::move(m), true, false, false, false, &need_update, &need_update_dialog_pos, source);
   if (need_update_dialog_pos) {
     LOG(ERROR) << "Need update dialog pos after load " << (result == nullptr ? MessageId() : result->message_id)
                << " in " << dialog_id << " from " << source;
@@ -34191,9 +34181,9 @@ MessagesManager::Message *MessagesManager::on_get_message_from_database(Dialog *
 }
 
 MessagesManager::Message *MessagesManager::add_message_to_dialog(DialogId dialog_id, unique_ptr<Message> message,
-                                                                 bool have_previous, bool have_next, bool from_update,
-                                                                 bool *need_update, bool *need_update_dialog_pos,
-                                                                 const char *source) {
+                                                                 bool from_database, bool have_previous, bool have_next,
+                                                                 bool from_update, bool *need_update,
+                                                                 bool *need_update_dialog_pos, const char *source) {
   CHECK(message != nullptr);
   CHECK(dialog_id.get_type() != DialogType::None);
   CHECK(need_update_dialog_pos != nullptr);
@@ -34217,15 +34207,15 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(DialogId dialog
   } else {
     CHECK(d->dialog_id == dialog_id);
   }
-  return add_message_to_dialog(d, std::move(message), have_previous, have_next, from_update, need_update,
+  return add_message_to_dialog(d, std::move(message), from_database, have_previous, have_next, from_update, need_update,
                                need_update_dialog_pos, source);
 }
 
 // keep synced with add_scheduled_message_to_dialog
 MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, unique_ptr<Message> message,
-                                                                 bool have_previous, bool have_next, bool from_update,
-                                                                 bool *need_update, bool *need_update_dialog_pos,
-                                                                 const char *source) {
+                                                                 bool from_database, bool have_previous, bool have_next,
+                                                                 bool from_update, bool *need_update,
+                                                                 bool *need_update_dialog_pos, const char *source) {
   CHECK(message != nullptr);
   CHECK(d != nullptr);
   CHECK(need_update != nullptr);
@@ -34254,7 +34244,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     message->sender_dialog_id = dialog_id;
   }
 
-  if (!message->from_database && message_id.is_valid()) {
+  if (!from_database && message_id.is_valid()) {
     switch (dialog_type) {
       case DialogType::Chat:
       case DialogType::Channel: {
@@ -34283,7 +34273,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   if (!message_id.is_scheduled() && message_id <= d->last_clear_history_message_id) {
     LOG(INFO) << "Skip adding cleared " << message_id << " to " << dialog_id << " from " << source;
-    if (message->from_database) {
+    if (from_database) {
       delete_message_from_database(d, message_id, message.get(), true);
       on_message_deleted_from_database(d, message.get(), "cleared full history");
     }
@@ -34298,10 +34288,10 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   if (!message_id.is_valid()) {
     if (message_id.is_valid_scheduled()) {
-      return add_scheduled_message_to_dialog(d, std::move(message), from_update, need_update, source);
+      return add_scheduled_message_to_dialog(d, std::move(message), from_database, from_update, need_update, source);
     }
     LOG(ERROR) << "Receive " << message_id << " in " << dialog_id << " from " << source;
-    CHECK(!message->from_database);
+    CHECK(!from_database);
     debug_add_message_to_dialog_fail_reason_ = "invalid message identifier";
     return nullptr;
   }
@@ -34346,7 +34336,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       }
     }
     if (max_message_id != MessageId() && message_id > max_message_id) {
-      if (!message->from_database) {
+      if (!from_database) {
         if (!has_qts_messages(dialog_id)) {
           LOG(ERROR) << "Ignore " << message_id << " in " << dialog_id << " received not through update from " << source
                      << ". The maximum allowed is " << max_message_id << ", last is " << d->last_message_id
@@ -34369,7 +34359,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   if ((message_id.is_server() || (message_id.is_local() && dialog_type == DialogType::SecretChat)) &&
       message_id <= d->max_unavailable_message_id) {
     LOG(INFO) << "Can't add an unavailable " << message_id << " to " << dialog_id << " from " << source;
-    if (message->from_database) {
+    if (from_database) {
       delete_message_from_database(d, message_id, message.get(), true);
       on_message_deleted_from_database(d, message.get(), "ignore unavailable message");
     }
@@ -34402,7 +34392,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     if (message_id > d->max_unavailable_message_id) {
       set_dialog_max_unavailable_message_id(dialog_id, message_id, false, "message chat delete history");
     }
-    CHECK(!message->from_database);
+    CHECK(!from_database);
     debug_add_message_to_dialog_fail_reason_ = "skip adding MessageChatDeleteHistory";
     return nullptr;
   }
@@ -34435,8 +34425,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   bool auto_attach = have_previous && have_next && (from_update || message_id.is_local() || message_id.is_yet_unsent());
 
   {
-    Message *m = message->from_database ? get_message(d, message_id)
-                                        : get_message_force(d, message_id, "add_message_to_dialog 2");
+    Message *m =
+        from_database ? get_message(d, message_id) : get_message_force(d, message_id, "add_message_to_dialog 2");
     if (m != nullptr) {
       CHECK(m->message_id == message_id);
       CHECK(message->message_id == message_id);
@@ -34454,7 +34444,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
           }
         }
       }
-      if (!auto_attach && !message->from_database && !td_->auth_manager_->is_bot()) {
+      if (!auto_attach && !from_database && !td_->auth_manager_->is_bot()) {
         if (have_previous) {
           CHECK(!have_next);
           d->ordered_messages.attach_message_to_previous(message_id, source);
@@ -34462,7 +34452,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
           d->ordered_messages.attach_message_to_next(message_id, source);
         }
       }
-      if (!message->from_database && (from_update || message->edit_date >= m->edit_date)) {
+      if (!from_database && (from_update || message->edit_date >= m->edit_date)) {
         const int32 INDEX_MASK_MASK = ~(message_search_filter_index_mask(MessageSearchFilter::UnreadMention) |
                                         message_search_filter_index_mask(MessageSearchFilter::UnreadReaction));
         auto old_index_mask = get_message_index_mask(dialog_id, m) & INDEX_MASK_MASK;
@@ -34504,7 +34494,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   if (message->contains_unread_mention && message_id <= d->last_read_all_mentions_message_id) {
     LOG(INFO) << "Ignore unread mention in " << message_id;
     message->contains_unread_mention = false;
-    if (message->from_database) {
+    if (from_database) {
       on_message_changed(d, message.get(), false, "add already read mention message to dialog");
     }
   }
@@ -34562,8 +34552,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     d->max_added_message_id = message->message_id;
   }
 
-  if (d->have_full_history && !message->from_database && !from_update && !message_id.is_local() &&
-      !message_id.is_yet_unsent()) {
+  if (d->have_full_history && !from_database && !from_update && !message_id.is_local() && !message_id.is_yet_unsent()) {
     LOG(ERROR) << "Have full history in " << dialog_id << ", but receive unknown " << message_id
                << " with content of type " << message_content_type << " from " << source << ". Last new is "
                << d->last_new_message_id << ", last is " << d->last_message_id << ", first database is "
@@ -34600,7 +34589,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       } else {
         on_message_ttl_expired_impl(d, message.get());
         message_content_type = message->content->get_type();
-        if (message->from_database) {
+        if (from_database) {
           on_message_changed(d, message.get(), false, "add expired message to dialog");
         }
       }
@@ -34623,7 +34612,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
   }
 
-  if (message->from_database && !message->are_media_timestamp_entities_found) {
+  if (from_database && !message->are_media_timestamp_entities_found) {
     auto text = get_message_content_text_mutable(message->content.get());
     if (text != nullptr) {
       fix_formatted_text(text->text, text->entities, true, true, true, false, false).ensure();
@@ -34692,9 +34681,9 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       // in get_message_notification_group_force
       add_new_message_notification(d, message.get(), false);
     } else {
-      if (message->from_database && message->notification_id.is_valid() &&
-          is_from_mention_notification_group(message.get()) && is_message_notification_active(d, message.get()) &&
-          is_dialog_mention_notifications_disabled(d) && d->notification_info != nullptr &&
+      if (from_database && message->notification_id.is_valid() && is_from_mention_notification_group(message.get()) &&
+          is_message_notification_active(d, message.get()) && is_dialog_mention_notifications_disabled(d) &&
+          d->notification_info != nullptr &&
           message_id != d->notification_info->pinned_message_notification_message_id_) {
         auto notification_id = message->notification_id;
         VLOG(notifications) << "Remove mention " << notification_id << " in " << message_id << " in " << dialog_id;
@@ -34775,7 +34764,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
   }
 
-  if (!m->from_database && !m->message_id.is_yet_unsent()) {
+  if (!from_database && !m->message_id.is_yet_unsent()) {
     add_message_to_database(d, m, "add_message_to_dialog");
   }
 
@@ -34963,8 +34952,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 }
 
 MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialog *d, unique_ptr<Message> message,
-                                                                           bool from_update, bool *need_update,
-                                                                           const char *source) {
+                                                                           bool from_database, bool from_update,
+                                                                           bool *need_update, const char *source) {
   CHECK(message != nullptr);
   CHECK(d != nullptr);
   CHECK(need_update != nullptr);
@@ -35020,13 +35009,13 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
   }
 
   {
-    Message *m = message->from_database ? get_message(d, message_id)
-                                        : get_message_force(d, message_id, "add_scheduled_message_to_dialog");
+    Message *m = from_database ? get_message(d, message_id)
+                               : get_message_force(d, message_id, "add_scheduled_message_to_dialog");
     if (m != nullptr) {
       auto old_message_id = m->message_id;
       LOG(INFO) << "Adding already existing " << old_message_id << " in " << dialog_id << " from " << source;
       message->message_id = old_message_id;
-      if (!message->from_database) {
+      if (!from_database) {
         auto old_file_ids = get_message_content_file_ids(m->content.get(), td_);
         bool need_update_dialog_pos = false;
         update_message(d, m, std::move(message), &need_update_dialog_pos, true);
@@ -35039,7 +35028,7 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
         CHECK(message != nullptr);
         send_update_delete_messages(dialog_id, {message->message_id.get()}, false);
         message->message_id = message_id;
-        message->from_database = false;
+        from_database = false;
       } else {
         *need_update = false;
         return m;
@@ -35060,7 +35049,7 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
     }
   }
 
-  if (!m->from_database && !m->message_id.is_yet_unsent()) {
+  if (!from_database && !m->message_id.is_yet_unsent()) {
     add_message_to_database(d, m, "add_scheduled_message_to_dialog");
   }
 
@@ -35690,9 +35679,6 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
   if (new_message->is_mention_notification_disabled) {
     old_message->is_mention_notification_disabled = true;
   }
-  if (!new_message->from_database) {
-    old_message->from_database = false;
-  }
 
   if (old_message->ttl_period != new_message->ttl_period) {
     if (old_message->ttl_period != 0 || !message_id.is_yet_unsent()) {
@@ -36164,16 +36150,15 @@ MessageId MessagesManager::get_message_id_by_random_id(Dialog *d, int64 random_i
           LOG_CHECK(m->random_id == random_id)
               << random_id << " " << m->random_id << " " << d->random_id_to_message_id[random_id] << " "
               << d->random_id_to_message_id[m->random_id] << " " << m->message_id << " " << source << " "
-              << m->from_database << get_message(d, m->message_id) << " " << m << " "
-              << debug_add_message_to_dialog_fail_reason_;
+              << get_message(d, m->message_id) << " " << m << " " << debug_add_message_to_dialog_fail_reason_;
           LOG_CHECK(d->random_id_to_message_id.count(random_id))
               << source << " " << random_id << " " << m->message_id << " " << m->is_failed_to_send << " "
-              << m->is_outgoing << " " << m->from_database << " " << get_message(d, m->message_id) << " " << m << " "
+              << m->is_outgoing << " " << get_message(d, m->message_id) << " " << m << " "
               << debug_add_message_to_dialog_fail_reason_;
           LOG_CHECK(d->random_id_to_message_id[random_id] == m->message_id)
               << source << " " << random_id << " " << d->random_id_to_message_id[random_id] << " " << m->message_id
-              << " " << m->is_failed_to_send << " " << m->is_outgoing << " " << m->from_database << " "
-              << get_message(d, m->message_id) << " " << m << " " << debug_add_message_to_dialog_fail_reason_;
+              << " " << m->is_failed_to_send << " " << m->is_outgoing << " " << get_message(d, m->message_id) << " "
+              << m << " " << debug_add_message_to_dialog_fail_reason_;
           LOG(INFO) << "Found " << FullMessageId{d->dialog_id, m->message_id} << " by random_id " << random_id
                     << " from " << source;
           return m->message_id;
@@ -36908,8 +36893,7 @@ bool MessagesManager::add_dialog_last_database_message(Dialog *d, unique_ptr<Mes
   const Message *m = nullptr;
   if (have_input_peer(dialog_id, AccessRights::Read)) {
     bool need_update = false;
-    last_database_message->from_database = true;
-    m = add_message_to_dialog(d, std::move(last_database_message), false, false, false, &need_update,
+    m = add_message_to_dialog(d, std::move(last_database_message), true, false, false, false, &need_update,
                               &need_update_dialog_pos, "add_dialog_last_database_message 1");
     if (need_update_dialog_pos) {
       LOG(ERROR) << "Need to update pos in " << dialog_id;
@@ -38948,8 +38932,8 @@ MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog
   restore_message_reply_to_message_id(d, m.get());
 
   bool need_update = false;
-  auto result_message = add_message_to_dialog(d, std::move(m), true, true, true, &need_update, need_update_dialog_pos,
-                                              "continue_send_message");
+  auto result_message = add_message_to_dialog(d, std::move(m), false, true, true, true, &need_update,
+                                              need_update_dialog_pos, "continue_send_message");
   CHECK(result_message != nullptr);
 
   if (result_message->message_id.is_scheduled()) {
@@ -39200,8 +39184,9 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
           restore_message_reply_to_message_id(to_dialog, m.get());
 
-          forwarded_messages.push_back(add_message_to_dialog(to_dialog, std::move(m), true, true, true, &need_update,
-                                                             &need_update_dialog_pos, "forward message again"));
+          forwarded_messages.push_back(add_message_to_dialog(to_dialog, std::move(m), false, true, true, true,
+                                                             &need_update, &need_update_dialog_pos,
+                                                             "forward message again"));
           send_update_new_message(to_dialog, forwarded_messages.back());
         }
 
