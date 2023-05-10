@@ -6,10 +6,12 @@ This is an example of building TDLib SDK for Universal Windows Platform and an e
 
 * Download and install Microsoft Visual Studio 2015+ with Windows 10 SDK. We recommend to use the latest available versions of Microsoft Visual Studio and Windows 10 SDK.
 * Download and install [CMake](https://cmake.org/download/).
-* Install [vcpkg](https://github.com/Microsoft/vcpkg#quick-start) or update it to the latest version using `vcpkg update` and following received instructions.
-* Install `zlib` and `openssl` for all UWP architectures and `gperf` for x86 using `vcpkg`:
+* Install `zlib` and `openssl` for all UWP architectures and `gperf` for x86 using [vcpkg](https://github.com/Microsoft/vcpkg#quick-start):
 ```
-cd <path to vcpkg>
+git clone https://github.com/Microsoft/vcpkg.git
+cd vcpkg
+git checkout 1b1ae50e1a69f7c659bd7d731e80b358d21c86ad
+.\bootstrap-vcpkg.bat
 .\vcpkg.exe install gperf:x86-windows openssl:arm-uwp openssl:arm64-uwp openssl:x64-uwp openssl:x86-uwp zlib:arm-uwp zlib:arm64-uwp zlib:x64-uwp zlib:x86-uwp
 ```
 * (Optional. For XML documentation generation.) Download [PHP](https://windows.php.net/download). Add the path to php.exe to the PATH environment variable.
