@@ -36240,7 +36240,7 @@ MessagesManager::Dialog *MessagesManager::add_dialog(DialogId dialog_id, const c
   CHECK(!have_dialog(dialog_id));
   LOG_CHECK(dialog_id.is_valid()) << source;
 
-  if (G()->use_message_database()) {
+  if (G()->use_message_database() && failed_to_load_dialogs_.count(dialog_id) == 0) {
     auto r_value = G()->td_db()->get_dialog_db_sync()->get_dialog(dialog_id);
     if (r_value.is_ok()) {
       LOG(INFO) << "Synchronously loaded " << dialog_id << " from database from " << source;
