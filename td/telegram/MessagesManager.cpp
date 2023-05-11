@@ -24870,7 +24870,7 @@ class MessagesManager::SendMessageLogEvent {
  public:
   DialogId dialog_id;
   const Message *m_in;
-  unique_ptr<Message> m_out;
+  unique_ptr<Message> message_out;
 
   SendMessageLogEvent() : dialog_id(), m_in(nullptr) {
   }
@@ -24887,7 +24887,7 @@ class MessagesManager::SendMessageLogEvent {
   template <class ParserT>
   void parse(ParserT &parser) {
     td::parse(dialog_id, parser);
-    td::parse(m_out, parser);
+    td::parse(message_out, parser);
   }
 };
 
@@ -25963,7 +25963,7 @@ class MessagesManager::SendBotStartMessageLogEvent {
   DialogId dialog_id;
   string parameter;
   const Message *m_in = nullptr;
-  unique_ptr<Message> m_out;
+  unique_ptr<Message> message_out;
 
   template <class StorerT>
   void store(StorerT &storer) const {
@@ -25978,7 +25978,7 @@ class MessagesManager::SendBotStartMessageLogEvent {
     td::parse(bot_user_id, parser);
     td::parse(dialog_id, parser);
     td::parse(parameter, parser);
-    td::parse(m_out, parser);
+    td::parse(message_out, parser);
   }
 };
 
@@ -26121,7 +26121,7 @@ class MessagesManager::SendInlineQueryResultMessageLogEvent {
   int64 query_id;
   string result_id;
   const Message *m_in = nullptr;
-  unique_ptr<Message> m_out;
+  unique_ptr<Message> message_out;
 
   template <class StorerT>
   void store(StorerT &storer) const {
@@ -26136,7 +26136,7 @@ class MessagesManager::SendInlineQueryResultMessageLogEvent {
     td::parse(dialog_id, parser);
     td::parse(query_id, parser);
     td::parse(result_id, parser);
-    td::parse(m_out, parser);
+    td::parse(message_out, parser);
   }
 };
 
@@ -28322,7 +28322,7 @@ class MessagesManager::SendScreenshotTakenNotificationMessageLogEvent {
  public:
   DialogId dialog_id;
   const Message *m_in = nullptr;
-  unique_ptr<Message> m_out;
+  unique_ptr<Message> message_out;
 
   template <class StorerT>
   void store(StorerT &storer) const {
@@ -28333,7 +28333,7 @@ class MessagesManager::SendScreenshotTakenNotificationMessageLogEvent {
   template <class ParserT>
   void parse(ParserT &parser) {
     td::parse(dialog_id, parser);
-    td::parse(m_out, parser);
+    td::parse(message_out, parser);
   }
 };
 
@@ -34120,8 +34120,8 @@ MessagesManager::Message *MessagesManager::on_get_message_from_database(Dialog *
     return nullptr;
   }
 
-  auto m = parse_message(d, expected_message_id, value, is_scheduled);
-  if (m == nullptr) {
+  auto message = parse_message(d, expected_message_id, value, is_scheduled);
+  if (message == nullptr) {
     return nullptr;
   }
 
@@ -34131,7 +34131,7 @@ MessagesManager::Message *MessagesManager::on_get_message_from_database(Dialog *
     return nullptr;
   }
 
-  auto old_message = get_message(d, m->message_id);
+  auto old_message = get_message(d, message->message_id);
   if (old_message != nullptr) {
     // data in the database is always outdated, so return a message from the memory
     if (dialog_id.get_type() == DialogType::SecretChat) {
@@ -34151,16 +34151,16 @@ MessagesManager::Message *MessagesManager::on_get_message_from_database(Dialog *
   }
 
   Dependencies dependencies;
-  add_message_dependencies(dependencies, m.get());
+  add_message_dependencies(dependencies, message.get());
   if (!dependencies.resolve_force(td_, "on_get_message_from_database") &&
       dialog_id.get_type() != DialogType::SecretChat) {
-    get_message_from_server({dialog_id, m->message_id}, Auto(), "on_get_message_from_database 2");
+    get_message_from_server({dialog_id, message->message_id}, Auto(), "on_get_message_from_database 2");
   }
 
   bool need_update = false;
   bool need_update_dialog_pos = false;
-  auto result =
-      add_message_to_dialog(d, std::move(m), true, false, false, false, &need_update, &need_update_dialog_pos, source);
+  auto result = add_message_to_dialog(d, std::move(message), true, false, false, false, &need_update,
+                                      &need_update_dialog_pos, source);
   if (need_update_dialog_pos) {
     LOG(ERROR) << "Need update dialog pos after load " << (result == nullptr ? MessageId() : result->message_id)
                << " in " << dialog_id << " from " << source;
@@ -38868,11 +38868,11 @@ void MessagesManager::restore_message_reply_to_message_id(Dialog *d, Message *m)
   }
 }
 
-MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog_id, unique_ptr<Message> &&m,
+MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog_id, unique_ptr<Message> &&message,
                                                                  bool *need_update_dialog_pos, uint64 log_event_id) {
   CHECK(log_event_id != 0);
-  CHECK(m != nullptr);
-  CHECK(m->content != nullptr);
+  CHECK(message != nullptr);
+  CHECK(message->content != nullptr);
 
   Dialog *d = get_dialog_force(dialog_id, "continue_send_message");
   if (d == nullptr) {
@@ -38885,23 +38885,23 @@ MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog
     return nullptr;
   }
 
-  LOG(INFO) << "Continue to send " << m->message_id << " to " << dialog_id << " initially sent at " << m->send_date
-            << " from binlog";
+  LOG(INFO) << "Continue to send " << message->message_id << " to " << dialog_id << " initially sent at "
+            << message->send_date << " from binlog";
 
   d->was_opened = true;
 
   auto now = G()->unix_time();
-  if (m->message_id.is_scheduled()) {
-    m->message_id = get_next_yet_unsent_scheduled_message_id(d, m->date);
+  if (message->message_id.is_scheduled()) {
+    message->message_id = get_next_yet_unsent_scheduled_message_id(d, message->date);
   } else {
-    m->message_id = get_next_yet_unsent_message_id(d);
-    m->date = now;
+    message->message_id = get_next_yet_unsent_message_id(d);
+    message->date = now;
   }
 
-  restore_message_reply_to_message_id(d, m.get());
+  restore_message_reply_to_message_id(d, message.get());
 
   bool need_update = false;
-  auto result_message = add_message_to_dialog(d, std::move(m), false, true, true, true, &need_update,
+  auto result_message = add_message_to_dialog(d, std::move(message), false, true, true, true, &need_update,
                                               need_update_dialog_pos, "continue_send_message");
   CHECK(result_message != nullptr);
 
@@ -38946,10 +38946,10 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         log_event_parse(log_event, event.get_data()).ensure();
 
         auto dialog_id = log_event.dialog_id;
-        auto m = std::move(log_event.m_out);
-        m->send_message_log_event_id = event.id_;
+        auto message = std::move(log_event.message_out);
+        message->send_message_log_event_id = event.id_;
 
-        if (m->content->get_type() == MessageContentType::Unsupported) {
+        if (message->content->get_type() == MessageContentType::Unsupported) {
           LOG(ERROR) << "Message content is invalid: " << format::as_hex_dump<4>(event.get_data());
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           continue;
@@ -38957,14 +38957,14 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
         Dependencies dependencies;
         dependencies.add_dialog_dependencies(dialog_id);
-        add_message_dependencies(dependencies, m.get());
+        add_message_dependencies(dependencies, message.get());
         dependencies.resolve_force(td_, "SendMessageLogEvent");
 
-        m->content =
-            dup_message_content(td_, dialog_id, m->content.get(), MessageContentDupType::Send, MessageCopyOptions());
+        message->content = dup_message_content(td_, dialog_id, message->content.get(), MessageContentDupType::Send,
+                                               MessageCopyOptions());
 
         bool need_update_dialog_pos = false;
-        auto result_message = continue_send_message(dialog_id, std::move(m), &need_update_dialog_pos, event.id_);
+        auto result_message = continue_send_message(dialog_id, std::move(message), &need_update_dialog_pos, event.id_);
         if (result_message != nullptr) {
           // uses send_closure_later internally
           do_send_message(dialog_id, result_message);
@@ -38987,14 +38987,14 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         log_event_parse(log_event, event.get_data()).ensure();
 
         auto dialog_id = log_event.dialog_id;
-        auto m = std::move(log_event.m_out);
-        m->send_message_log_event_id = event.id_;
+        auto message = std::move(log_event.message_out);
+        message->send_message_log_event_id = event.id_;
 
-        CHECK(m->content->get_type() == MessageContentType::Text);
+        CHECK(message->content->get_type() == MessageContentType::Text);
 
         Dependencies dependencies;
         dependencies.add_dialog_dependencies(dialog_id);
-        add_message_dependencies(dependencies, m.get());
+        add_message_dependencies(dependencies, message.get());
         dependencies.resolve_force(td_, "SendBotStartMessageLogEvent");
 
         auto bot_user_id = log_event.bot_user_id;
@@ -39005,7 +39005,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         }
 
         bool need_update_dialog_pos = false;
-        auto result_message = continue_send_message(dialog_id, std::move(m), &need_update_dialog_pos, event.id_);
+        auto result_message = continue_send_message(dialog_id, std::move(message), &need_update_dialog_pos, event.id_);
         if (result_message != nullptr) {
           send_closure_later(actor_id(this), &MessagesManager::do_send_bot_start_message, bot_user_id, dialog_id,
                              result_message->message_id, log_event.parameter);
@@ -39027,10 +39027,10 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         log_event_parse(log_event, event.get_data()).ensure();
 
         auto dialog_id = log_event.dialog_id;
-        auto m = std::move(log_event.m_out);
-        m->send_message_log_event_id = event.id_;
+        auto message = std::move(log_event.message_out);
+        message->send_message_log_event_id = event.id_;
 
-        if (m->content->get_type() == MessageContentType::Unsupported) {
+        if (message->content->get_type() == MessageContentType::Unsupported) {
           LOG(ERROR) << "Message content is invalid: " << format::as_hex_dump<4>(event.get_data());
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           continue;
@@ -39038,14 +39038,14 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
         Dependencies dependencies;
         dependencies.add_dialog_dependencies(dialog_id);
-        add_message_dependencies(dependencies, m.get());
+        add_message_dependencies(dependencies, message.get());
         dependencies.resolve_force(td_, "SendInlineQueryResultMessageLogEvent");
 
-        m->content = dup_message_content(td_, dialog_id, m->content.get(), MessageContentDupType::SendViaBot,
-                                         MessageCopyOptions());
+        message->content = dup_message_content(td_, dialog_id, message->content.get(),
+                                               MessageContentDupType::SendViaBot, MessageCopyOptions());
 
         bool need_update_dialog_pos = false;
-        auto result_message = continue_send_message(dialog_id, std::move(m), &need_update_dialog_pos, event.id_);
+        auto result_message = continue_send_message(dialog_id, std::move(message), &need_update_dialog_pos, event.id_);
         if (result_message != nullptr) {
           send_closure_later(actor_id(this), &MessagesManager::do_send_inline_query_result_message, dialog_id,
                              result_message->message_id, log_event.query_id, log_event.result_id);
@@ -39067,18 +39067,18 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         log_event_parse(log_event, event.get_data()).ensure();
 
         auto dialog_id = log_event.dialog_id;
-        auto m = std::move(log_event.m_out);
-        m->send_message_log_event_id = 0;  // to not allow event deletion by message deletion
+        auto message = std::move(log_event.message_out);
+        message->send_message_log_event_id = 0;  // to not allow event deletion by message deletion
 
-        CHECK(m->content->get_type() == MessageContentType::ScreenshotTaken);
+        CHECK(message->content->get_type() == MessageContentType::ScreenshotTaken);
 
         Dependencies dependencies;
         dependencies.add_dialog_dependencies(dialog_id);
-        add_message_dependencies(dependencies, m.get());
+        add_message_dependencies(dependencies, message.get());
         dependencies.resolve_force(td_, "SendScreenshotTakenNotificationMessageLogEvent");
 
         bool need_update_dialog_pos = false;
-        auto result_message = continue_send_message(dialog_id, std::move(m), &need_update_dialog_pos, event.id_);
+        auto result_message = continue_send_message(dialog_id, std::move(message), &need_update_dialog_pos, event.id_);
         if (result_message != nullptr) {
           // order with other messages isn't kept
           do_send_screenshot_taken_notification_message(dialog_id, result_message, event.id_);
@@ -39106,8 +39106,8 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         Dependencies dependencies;
         dependencies.add_dialog_dependencies(to_dialog_id);
         dependencies.add_dialog_dependencies(from_dialog_id);
-        for (auto &m : messages) {
-          add_message_dependencies(dependencies, m.get());
+        for (auto &message : messages) {
+          add_message_dependencies(dependencies, message.get());
         }
         dependencies.resolve_force(td_, "ForwardMessagesLogEvent");
 
@@ -39140,20 +39140,20 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         bool need_update = false;
         bool need_update_dialog_pos = false;
         vector<Message *> forwarded_messages;
-        for (auto &m : messages) {
-          if (m->message_id.is_scheduled()) {
-            m->message_id = get_next_yet_unsent_scheduled_message_id(to_dialog, m->date);
+        for (auto &message : messages) {
+          if (message->message_id.is_scheduled()) {
+            message->message_id = get_next_yet_unsent_scheduled_message_id(to_dialog, message->date);
           } else {
-            m->message_id = get_next_yet_unsent_message_id(to_dialog);
-            m->date = now;
+            message->message_id = get_next_yet_unsent_message_id(to_dialog);
+            message->date = now;
           }
-          m->content = dup_message_content(td_, to_dialog_id, m->content.get(), MessageContentDupType::Forward,
-                                           MessageCopyOptions());
-          CHECK(m->content != nullptr);
+          message->content = dup_message_content(td_, to_dialog_id, message->content.get(),
+                                                 MessageContentDupType::Forward, MessageCopyOptions());
+          CHECK(message->content != nullptr);
 
-          restore_message_reply_to_message_id(to_dialog, m.get());
+          restore_message_reply_to_message_id(to_dialog, message.get());
 
-          forwarded_messages.push_back(add_message_to_dialog(to_dialog, std::move(m), false, true, true, true,
+          forwarded_messages.push_back(add_message_to_dialog(to_dialog, std::move(message), false, true, true, true,
                                                              &need_update, &need_update_dialog_pos,
                                                              "forward message again"));
           send_update_new_message(to_dialog, forwarded_messages.back());
