@@ -449,6 +449,7 @@ void write_class(tl_outputer &out, const tl_type *t, const std::set<std::string>
       std::fprintf(stderr, "Skip complex constructor %s of %s\n", t->constructors[i]->name.c_str(), t->name.c_str());
     }
   }
+  (void)written_constructors;
   assert(written_constructors == t->simple_constructors);
 }
 
