@@ -12,28 +12,6 @@ namespace td {
 
 void OrderedMessages::insert(MessageId message_id, bool auto_attach, MessageId old_last_message_id,
                              const char *source) {
-  bool have_previous = false;
-  bool have_next = false;
-  if (auto_attach) {
-    auto attach_info = auto_attach_message(message_id, old_last_message_id, source);
-    have_previous = attach_info.have_previous_;
-    have_next = attach_info.have_next_;
-  } else {
-    auto it = get_iterator(message_id);
-    if (*it != nullptr && (*it)->have_next_) {
-      // need to drop the connection between messages
-      auto previous_message = *it;
-      CHECK(previous_message->message_id_ < message_id);
-      ++it;
-      auto next_message = *it;
-      CHECK(next_message != nullptr);
-      CHECK(next_message->message_id_ > message_id);
-
-      next_message->have_previous_ = false;
-      previous_message->have_next_ = false;
-    }
-  }
-
   auto random_y = static_cast<int32>(static_cast<uint32>(message_id.get() * 2101234567u));
   unique_ptr<OrderedMessage> *v = &messages_;
   while (*v != nullptr && (*v)->random_y_ >= random_y) {
@@ -49,8 +27,26 @@ void OrderedMessages::insert(MessageId message_id, bool auto_attach, MessageId o
   auto message = make_unique<OrderedMessage>();
   message->message_id_ = message_id;
   message->random_y_ = random_y;
-  message->have_previous_ = have_previous;
-  message->have_next_ = have_next;
+
+  if (auto_attach) {
+    auto attach_info = auto_attach_message(message_id, old_last_message_id, source);
+    message->have_previous_ = attach_info.have_previous_;
+    message->have_next_ = attach_info.have_next_;
+  } else {
+    auto it = get_iterator(message_id);
+    if (*it != nullptr && (*it)->have_next_) {
+      // need to drop the connection between messages
+      auto previous_message = *it;
+      CHECK(previous_message->message_id_ < message_id);
+      ++it;
+      auto next_message = *it;
+      CHECK(next_message != nullptr);
+      CHECK(next_message->message_id_ > message_id);
+
+      next_message->have_previous_ = false;
+      previous_message->have_next_ = false;
+    }
+  }
 
   unique_ptr<OrderedMessage> *left = &message->left_;
   unique_ptr<OrderedMessage> *right = &message->right_;
