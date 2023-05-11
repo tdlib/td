@@ -241,8 +241,7 @@ class MessagesManager final : public Actor {
 
   // if message is from_update, flags have_previous and have_next are ignored and must be both true
   FullMessageId on_get_message(tl_object_ptr<telegram_api::Message> message_ptr, bool from_update,
-                               bool is_channel_message, bool is_scheduled, bool have_previous, bool have_next,
-                               const char *source);
+                               bool is_channel_message, bool is_scheduled, const char *source);
 
   void open_secret_message(SecretChatId secret_chat_id, int64 random_id, Promise<Unit>);
 
@@ -1769,7 +1768,7 @@ class MessagesManager final : public Actor {
   void get_dialog_message_count_from_server(DialogId dialog_id, MessageSearchFilter filter, Promise<int32> &&promise);
 
   FullMessageId on_get_message(MessageInfo &&message_info, const bool from_update, const bool is_channel_message,
-                               const bool have_previous, const bool have_next, const char *source);
+                               const char *source);
 
   Result<InputMessageContent> process_input_message_content(
       DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content);
@@ -2249,9 +2248,9 @@ class MessagesManager final : public Actor {
 
   void fix_new_message(const Dialog *d, Message *m, bool from_database) const;
 
-  Message *add_message_to_dialog(Dialog *d, unique_ptr<Message> message, const bool from_database, bool have_previous,
-                                 bool have_next, const bool from_update, bool *need_update,
-                                 bool *need_update_dialog_pos, const char *source);
+  Message *add_message_to_dialog(Dialog *d, unique_ptr<Message> message, const bool from_database,
+                                 const bool from_update, bool *need_update, bool *need_update_dialog_pos,
+                                 const char *source);
 
   Message *add_scheduled_message_to_dialog(Dialog *d, unique_ptr<Message> message, bool from_database, bool from_update,
                                            bool *need_update, const char *source);

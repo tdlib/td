@@ -1680,7 +1680,7 @@ void UpdatesManager::process_get_difference_updates(
 
   for (auto &message : new_messages) {
     // channel messages must not be received in this vector
-    td_->messages_manager_->on_get_message(std::move(message), true, false, false, true, true, "get difference");
+    td_->messages_manager_->on_get_message(std::move(message), true, false, false, "get difference");
     CHECK(!running_get_difference_);
   }
 
@@ -3917,8 +3917,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMessagePollVote
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewScheduledMessage> update, Promise<Unit> &&promise) {
-  td_->messages_manager_->on_get_message(std::move(update->message_), true, false, true, true, true,
-                                         "updateNewScheduledMessage");
+  td_->messages_manager_->on_get_message(std::move(update->message_), true, false, true, "updateNewScheduledMessage");
   promise.set_value(Unit());
 }
 

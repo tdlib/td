@@ -10,18 +10,15 @@
 
 namespace td {
 
-void OrderedMessages::insert(MessageId message_id, bool auto_attach, bool have_previous, bool have_next,
-                             MessageId old_last_message_id, const char *source) {
-  bool is_attached = false;
+void OrderedMessages::insert(MessageId message_id, bool auto_attach, MessageId old_last_message_id,
+                             const char *source) {
+  bool have_previous = false;
+  bool have_next = false;
   if (auto_attach) {
-    CHECK(have_previous && have_next);
     auto attach_info = auto_attach_message(message_id, old_last_message_id, source);
     have_previous = attach_info.have_previous_;
     have_next = attach_info.have_next_;
-    is_attached = have_previous || have_next;
-  }
-
-  if (!is_attached && !have_previous && !have_next) {
+  } else {
     auto it = get_iterator(message_id);
     if (*it != nullptr && (*it)->have_next_) {
       // need to drop the connection between messages
@@ -52,10 +49,8 @@ void OrderedMessages::insert(MessageId message_id, bool auto_attach, bool have_p
   auto message = make_unique<OrderedMessage>();
   message->message_id_ = message_id;
   message->random_y_ = random_y;
-  if (is_attached) {
-    message->have_previous_ = have_previous;
-    message->have_next_ = have_next;
-  }
+  message->have_previous_ = have_previous;
+  message->have_next_ = have_next;
 
   unique_ptr<OrderedMessage> *left = &message->left_;
   unique_ptr<OrderedMessage> *right = &message->right_;

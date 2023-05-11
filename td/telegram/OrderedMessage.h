@@ -158,8 +158,7 @@ class OrderedMessages {
     return ConstIterator(messages_.get(), message_id);
   }
 
-  void insert(MessageId message_id, bool auto_attach, bool have_previous, bool have_next, MessageId old_last_message_id,
-              const char *source);
+  void insert(MessageId message_id, bool auto_attach, MessageId old_last_message_id, const char *source);
 
   void erase(MessageId message_id, bool only_from_memory);
 
