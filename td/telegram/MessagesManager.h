@@ -2639,6 +2639,9 @@ class MessagesManager final : public Actor {
 
   MessageId get_message_id_by_random_id(Dialog *d, int64 random_id, const char *source);
 
+  Dialog *add_dialog_for_new_message(DialogId dialog_id, bool have_last_message, bool *need_update_dialog_pos,
+                                     const char *source);
+
   Dialog *add_dialog(DialogId dialog_id, const char *source);
 
   Dialog *add_new_dialog(unique_ptr<Dialog> &&dialog, bool is_loaded_from_database, const char *source);

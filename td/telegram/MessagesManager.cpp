@@ -14880,14 +14880,7 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
     }
   }
   if (d == nullptr) {
-    if (from_update) {
-      CHECK(!being_added_by_new_message_dialog_id_.is_valid());
-      being_added_by_new_message_dialog_id_ = dialog_id;
-    }
-    d = add_dialog(dialog_id, source);
-    CHECK(d != nullptr);
-    need_update_dialog_pos = true;
-    being_added_by_new_message_dialog_id_ = DialogId();
+    d = add_dialog_for_new_message(dialog_id, from_update, &need_update_dialog_pos, source);
   }
 
   const Message *m = add_message_to_dialog(d, std::move(new_message), false, have_previous, have_next, from_update,
@@ -36229,13 +36222,25 @@ void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source
   }
 }
 
+MessagesManager::Dialog *MessagesManager::add_dialog_for_new_message(DialogId dialog_id, bool have_last_message,
+                                                                     bool *need_update_dialog_pos, const char *source) {
+  if (have_last_message) {
+    CHECK(!being_added_by_new_message_dialog_id_.is_valid());
+    being_added_by_new_message_dialog_id_ = dialog_id;
+  }
+  auto *d = add_dialog(dialog_id, source);
+  CHECK(d != nullptr);
+  being_added_by_new_message_dialog_id_ = DialogId();
+  *need_update_dialog_pos = true;
+  return d;
+}
+
 MessagesManager::Dialog *MessagesManager::add_dialog(DialogId dialog_id, const char *source) {
   LOG(DEBUG) << "Creating " << dialog_id << " from " << source;
   CHECK(!have_dialog(dialog_id));
   LOG_CHECK(dialog_id.is_valid()) << source;
 
   if (G()->use_message_database()) {
-    // TODO preload dialog asynchronously, remove loading from this function
     auto r_value = G()->td_db()->get_dialog_db_sync()->get_dialog(dialog_id);
     if (r_value.is_ok()) {
       LOG(INFO) << "Synchronously loaded " << dialog_id << " from database from " << source;
@@ -38352,13 +38357,7 @@ void MessagesManager::on_get_channel_difference(
 
   bool need_update_dialog_pos = false;
   if (d == nullptr) {
-    if (have_new_messages) {
-      CHECK(!being_added_by_new_message_dialog_id_.is_valid());
-      being_added_by_new_message_dialog_id_ = dialog_id;
-    }
-    d = add_dialog(dialog_id, "on_get_channel_difference");
-    being_added_by_new_message_dialog_id_ = DialogId();
-    need_update_dialog_pos = true;
+    d = add_dialog_for_new_message(dialog_id, have_new_messages, &need_update_dialog_pos, "on_get_channel_difference");
   }
 
   int32 cur_pts = d->pts <= 0 ? 1 : d->pts;
