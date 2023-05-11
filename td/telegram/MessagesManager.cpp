@@ -14815,12 +14815,10 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, const 
         }
         // if there is no message yet, then it is likely was missed because of a server bug and is being repaired via
         // get_message_from_server from after_get_difference
-        if (!has_qts_messages(dialog_id)) {
-          // TODO move to INFO
-          LOG(ERROR) << "Receive " << old_message_id << "/" << message_id << " in " << dialog_id << " from " << source
-                     << " with identifier less than last_new_message_id = " << d->last_new_message_id
-                     << " and trying to add it anyway";
-        }
+        // TODO move to INFO
+        LOG(ERROR) << "Receive " << old_message_id << "/" << message_id << " in " << dialog_id << " from " << source
+                   << " with identifier less than last_new_message_id = " << d->last_new_message_id
+                   << " and trying to add it anyway";
       } else {
         LOG(INFO) << "Ignore " << old_message_id << "/" << message_id << " received not through update from " << source
                   << ": " << oneline(to_string(get_message_object(dialog_id, new_message.get(), "on_get_message")));
@@ -14856,7 +14854,7 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, const 
     need_update = false;
 
     if (old_message_id.is_valid() && message_id.is_valid() && message_id < old_message_id &&
-        !has_qts_messages(dialog_id) && !d->had_yet_unsent_message_id_overflow) {
+        !d->had_yet_unsent_message_id_overflow) {
       LOG(ERROR) << "Sent " << old_message_id << " to " << dialog_id << " as " << message_id;
     }
 
@@ -30855,8 +30853,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
     send_update_message_content(d, sent_message.get(), false, source);
   }
 
-  if (old_message_id.is_valid() && new_message_id < old_message_id && !has_qts_messages(dialog_id) &&
-      !d->had_yet_unsent_message_id_overflow) {
+  if (old_message_id.is_valid() && new_message_id < old_message_id && !d->had_yet_unsent_message_id_overflow) {
     LOG(ERROR) << "Sent " << old_message_id << " to " << dialog_id << " as " << new_message_id;
   }
 
@@ -34331,13 +34328,11 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
     if (max_message_id != MessageId() && message_id > max_message_id) {
       if (!from_database) {
-        if (!has_qts_messages(dialog_id)) {
-          LOG(ERROR) << "Ignore " << message_id << " in " << dialog_id << " received not through update from " << source
-                     << ". The maximum allowed is " << max_message_id << ", last is " << d->last_message_id
-                     << ", being added message is " << d->being_added_message_id << ", channel difference "
-                     << debug_channel_difference_dialog_ << " "
-                     << to_string(get_message_object(dialog_id, message.get(), "add_message_to_dialog"));
-        }
+        LOG(ERROR) << "Ignore " << message_id << " in " << dialog_id << " received not through update from " << source
+                   << ". The maximum allowed is " << max_message_id << ", last is " << d->last_message_id
+                   << ", being added message is " << d->being_added_message_id << ", channel difference "
+                   << debug_channel_difference_dialog_ << " "
+                   << to_string(get_message_object(dialog_id, message.get(), "add_message_to_dialog"));
 
         if (need_channel_difference_to_add_message(dialog_id, nullptr)) {
           LOG(INFO) << "Schedule getDifference in " << dialog_id.get_channel_id();
