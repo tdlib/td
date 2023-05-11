@@ -11133,8 +11133,8 @@ void MessagesManager::delete_sent_message_on_server(DialogId dialog_id, MessageI
     }
 
     bool need_update_dialog_pos = false;
-    auto m = delete_message(d, message_id, true, &need_update_dialog_pos, "delete_sent_message_on_server");
-    CHECK(m == nullptr);
+    auto message = delete_message(d, message_id, true, &need_update_dialog_pos, "delete_sent_message_on_server");
+    CHECK(message == nullptr);
     if (need_update_dialog_pos) {  // last_clear_history_message_id might be removed
       update_dialog_pos(d, "delete_sent_message_on_server");
     }
@@ -13054,10 +13054,10 @@ void MessagesManager::set_dialog_max_unavailable_message_id(DialogId dialog_id, 
       CHECK(m != nullptr);
       CHECK(m->message_id <= max_unavailable_message_id);
       CHECK(m->message_id == message_id);
-      auto p =
+      auto message =
           delete_message(d, message_id, !from_update, &need_update_dialog_pos, "set_dialog_max_unavailable_message_id");
-      CHECK(p.get() == m);
-      deleted_message_ids.push_back(p->message_id.get());
+      CHECK(message.get() == m);
+      deleted_message_ids.push_back(m->message_id.get());
     }
 
     if (need_update_dialog_pos) {
@@ -14929,9 +14929,9 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, const 
   }
 
   if (dialog_id.get_type() == DialogType::Channel && !have_input_peer(dialog_id, AccessRights::Read)) {
-    auto p = delete_message(d, message_id, false, &need_update_dialog_pos, "get a message in inaccessible chat");
-    CHECK(p.get() == m);
-    send_update_delete_messages(dialog_id, {p->message_id.get()}, false);
+    auto message = delete_message(d, message_id, false, &need_update_dialog_pos, "get a message in inaccessible chat");
+    CHECK(message.get() == m);
+    send_update_delete_messages(dialog_id, {m->message_id.get()}, false);
     // don't need to update dialog pos
     return FullMessageId();
   }
@@ -16071,9 +16071,9 @@ unique_ptr<MessagesManager::Message> MessagesManager::unload_message(Dialog *d, 
   CHECK(d != nullptr);
   CHECK(message_id.is_valid());
   bool need_update_dialog_pos = false;
-  auto m = do_delete_message(d, message_id, false, true, &need_update_dialog_pos, "unload_message");
+  auto message = do_delete_message(d, message_id, false, true, &need_update_dialog_pos, "unload_message");
   CHECK(!need_update_dialog_pos);
-  return m;
+  return message;
 }
 
 unique_ptr<MessagesManager::Message> MessagesManager::delete_message(Dialog *d, MessageId message_id,
@@ -23024,12 +23024,12 @@ void MessagesManager::preload_newer_messages(const Dialog *d, MessageId max_mess
   CHECK(max_message_id.is_valid());
   CHECK(!td_->auth_manager_->is_bot());
 
-  auto p = d->ordered_messages.get_const_iterator(max_message_id);
+  auto it = d->ordered_messages.get_const_iterator(max_message_id);
   int32 limit = MAX_GET_HISTORY * 3 / 10;
-  while (*p != nullptr && limit-- > 0) {
-    ++p;
-    if (*p) {
-      max_message_id = (*p)->get_message_id();
+  while (*it != nullptr && limit-- > 0) {
+    ++it;
+    if (*it) {
+      max_message_id = (*it)->get_message_id();
     }
   }
   if (limit > 0 && (d->last_message_id == MessageId() || max_message_id < d->last_message_id)) {
@@ -23050,11 +23050,11 @@ void MessagesManager::preload_older_messages(const Dialog *d, MessageId min_mess
       return;
     }
   */
-  auto p = d->ordered_messages.get_const_iterator(min_message_id);
+  auto it = d->ordered_messages.get_const_iterator(min_message_id);
   int32 limit = MAX_GET_HISTORY * 3 / 10 + 1;
-  while (*p != nullptr && limit-- > 0) {
-    min_message_id = (*p)->get_message_id();
-    --p;
+  while (*it != nullptr && limit-- > 0) {
+    min_message_id = (*it)->get_message_id();
+    --it;
   }
   if (limit > 0) {
     // need to preload some old messages
@@ -23067,7 +23067,8 @@ unique_ptr<MessagesManager::Message> MessagesManager::parse_message(Dialog *d, M
                                                                     const BufferSlice &value, bool is_scheduled) {
   CHECK(d != nullptr);
   auto dialog_id = d->dialog_id;
-  auto m = make_unique<Message>();
+  auto message = make_unique<Message>();
+  auto *m = message.get();
 
   auto status = log_event_parse(*m, value.as_slice());
   bool is_message_id_valid = [&] {
@@ -23146,7 +23147,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::parse_message(Dialog *d, M
   }
 
   LOG(INFO) << "Loaded " << m->message_id << " in " << dialog_id << " of size " << value.size() << " from database";
-  return m;
+  return message;
 }
 
 void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId from_message_id,
@@ -24315,7 +24316,8 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
   auto dialog_type = dialog_id.get_type();
   auto my_id = td_->contacts_manager_->get_my_id();
 
-  auto m = make_unique<Message>();
+  auto message = make_unique<Message>();
+  auto *m = message.get();
   bool is_channel_post = is_broadcast_channel(dialog_id);
   if (is_channel_post) {
     // sender of the post can be hidden
@@ -24429,7 +24431,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
     }
   }
 
-  return m;
+  return message;
 }
 
 MessagesManager::Message *MessagesManager::get_message_to_send(
@@ -28250,7 +28252,7 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
     }
 
     being_readded_message_id_ = {dialog_id, message_ids[i]};
-    unique_ptr<Message> message = delete_message(d, message_ids[i], true, &need_update_dialog_pos, "resend_messages");
+    auto message = delete_message(d, message_ids[i], true, &need_update_dialog_pos, "resend_messages");
     CHECK(message != nullptr);
     send_update_delete_messages(dialog_id, {message->message_id.get()}, true);
 
@@ -28472,7 +28474,8 @@ Result<MessageId> MessagesManager::add_local_message(
 
   MessageId message_id = get_next_local_message_id(d);
 
-  auto m = make_unique<Message>();
+  auto message = make_unique<Message>();
+  auto *m = message.get();
   m->message_id = message_id;
   if (is_channel_post) {
     // sender of the post can be hidden
@@ -28518,8 +28521,8 @@ Result<MessageId> MessagesManager::add_local_message(
 
   bool need_update = true;
   bool need_update_dialog_pos = false;
-  auto result = add_message_to_dialog(d, std::move(m), false, true, true, true, &need_update, &need_update_dialog_pos,
-                                      "add local message");
+  auto result = add_message_to_dialog(d, std::move(message), false, true, true, true, &need_update,
+                                      &need_update_dialog_pos, "add local message");
   LOG_CHECK(result != nullptr) << message_id << " " << debug_add_message_to_dialog_fail_reason_;
   register_new_local_message_id(d, result);
 
@@ -30837,7 +30840,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
 
   bool need_update_dialog_pos = false;
   being_readded_message_id_ = {dialog_id, old_message_id};
-  unique_ptr<Message> sent_message = delete_message(d, old_message_id, false, &need_update_dialog_pos, source);
+  auto sent_message = delete_message(d, old_message_id, false, &need_update_dialog_pos, source);
   if (sent_message == nullptr) {
     delete_sent_message_on_server(dialog_id, new_message_id, old_message_id);
     being_readded_message_id_ = FullMessageId();
@@ -31280,7 +31283,7 @@ void MessagesManager::fail_send_message(FullMessageId full_message_id, int error
 
   bool need_update_dialog_pos = false;
   being_readded_message_id_ = full_message_id;
-  unique_ptr<Message> message = delete_message(d, old_message_id, false, &need_update_dialog_pos, "fail send message");
+  auto message = delete_message(d, old_message_id, false, &need_update_dialog_pos, "fail send message");
   if (message == nullptr) {
     // message has already been deleted by the user or sent to inaccessible channel
     // don't need to send update to the user, because the message has already been deleted
@@ -34373,9 +34376,9 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   auto message_content_type = message->content->get_type();
   if (message_content_type == MessageContentType::ChatDeleteHistory) {
     {
-      auto m = delete_message(d, message_id, true, need_update_dialog_pos, "message chat delete history");
-      if (m != nullptr) {
-        send_update_delete_messages(dialog_id, {m->message_id.get()}, true);
+      auto old_message = delete_message(d, message_id, true, need_update_dialog_pos, "message chat delete history");
+      if (old_message != nullptr) {
+        send_update_delete_messages(dialog_id, {old_message->message_id.get()}, true);
       }
     }
     int32 last_message_date = 0;
