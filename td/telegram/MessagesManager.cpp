@@ -34409,6 +34409,17 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     message->had_reply_markup = true;
     message->reply_markup = nullptr;
   }
+  if (from_update && d->reply_markup_message_id != MessageId()) {
+    auto deleted_user_id = get_message_content_deleted_user_id(message->content.get());
+    if (deleted_user_id.is_valid()) {  // do not check for is_user_bot to allow deleted bots
+      const Message *old_message = get_message_force(d, d->reply_markup_message_id, "add_message_to_dialog 3");
+      if (old_message == nullptr || old_message->sender_user_id == deleted_user_id) {
+        LOG(INFO) << "Remove reply markup in " << dialog_id << ", because bot " << deleted_user_id
+                  << " isn't a member of the chat";
+        set_dialog_reply_markup(d, MessageId());
+      }
+    }
+  }
 
   if (td_->auth_manager_->is_bot()) {
     have_previous = false;
@@ -34896,18 +34907,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   result_message->debug_source = source;
   d->being_added_message_id = MessageId();
-
-  if (!td_->auth_manager_->is_bot() && from_update && d->reply_markup_message_id != MessageId()) {
-    auto deleted_user_id = get_message_content_deleted_user_id(m->content.get());
-    if (deleted_user_id.is_valid()) {  // do not check for is_user_bot to allow deleted bots
-      const Message *old_message = get_message_force(d, d->reply_markup_message_id, "add_message_to_dialog 3");
-      if (old_message == nullptr || old_message->sender_user_id == deleted_user_id) {
-        LOG(INFO) << "Remove reply markup in " << dialog_id << ", because bot " << deleted_user_id
-                  << " isn't a member of the chat";
-        set_dialog_reply_markup(d, MessageId());
-      }
-    }
-  }
 
   added_message_count_++;
 
@@ -36366,6 +36365,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
     d->first_database_message_id = MessageId();
     last_database_message_id = MessageId();
 
+    d->reply_markup_message_id = MessageId();
     d->last_assigned_message_id = MessageId(ServerMessageId(1));
     d->last_new_message_id = MessageId();
     d->last_clear_history_date = 0;
