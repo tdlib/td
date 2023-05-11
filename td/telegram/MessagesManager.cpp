@@ -34169,44 +34169,35 @@ MessagesManager::Message *MessagesManager::on_get_message_from_database(Dialog *
   return result;
 }
 
-// keep synced with add_scheduled_message_to_dialog
-MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, unique_ptr<Message> message,
-                                                                 bool from_database, bool have_previous, bool have_next,
-                                                                 bool from_update, bool *need_update,
-                                                                 bool *need_update_dialog_pos, const char *source) {
-  CHECK(message != nullptr);
+void MessagesManager::fix_new_message(const Dialog *d, Message *m, bool from_database) const {
   CHECK(d != nullptr);
-  CHECK(need_update != nullptr);
-  CHECK(need_update_dialog_pos != nullptr);
-  CHECK(source != nullptr);
-  debug_add_message_to_dialog_fail_reason_ = "success";
+  CHECK(m != nullptr);
 
   DialogId dialog_id = d->dialog_id;
-  MessageId message_id = message->message_id;
-
-  if (!has_message_sender_user_id(dialog_id, message.get()) && !message->sender_dialog_id.is_valid()) {
+  if (!has_message_sender_user_id(dialog_id, m) && !m->sender_dialog_id.is_valid()) {
     if (is_broadcast_channel(dialog_id)) {
-      message->sender_dialog_id = dialog_id;
+      m->sender_dialog_id = dialog_id;
     } else {
-      if (is_discussion_message(dialog_id, message.get())) {
-        message->sender_dialog_id = message->forward_info->from_dialog_id;
+      if (is_discussion_message(dialog_id, m)) {
+        m->sender_dialog_id = m->forward_info->from_dialog_id;
       } else {
-        LOG(ERROR) << "Failed to repair sender chat in " << message_id << " in " << dialog_id;
+        LOG(ERROR) << "Failed to repair sender chat in " << m->message_id << " in " << dialog_id;
       }
     }
   }
+
   auto dialog_type = dialog_id.get_type();
-  if (message->sender_user_id == ContactsManager::get_anonymous_bot_user_id() &&
-      !message->sender_dialog_id.is_valid() && dialog_type == DialogType::Channel && !is_broadcast_channel(dialog_id)) {
-    message->sender_user_id = UserId();
-    message->sender_dialog_id = dialog_id;
+  if (m->sender_user_id == ContactsManager::get_anonymous_bot_user_id() && !m->sender_dialog_id.is_valid() &&
+      dialog_type == DialogType::Channel && !is_broadcast_channel(dialog_id)) {
+    m->sender_user_id = UserId();
+    m->sender_dialog_id = dialog_id;
   }
 
-  if (!from_database && message_id.is_valid()) {
+  if (!from_database && m->message_id.is_valid()) {
     switch (dialog_type) {
       case DialogType::Chat:
       case DialogType::Channel: {
-        message->available_reactions_generation = d->available_reactions_generation;
+        m->available_reactions_generation = d->available_reactions_generation;
         break;
       }
       case DialogType::User:
@@ -34216,27 +34207,64 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         UNREACHABLE();
         break;
     }
-    message->history_generation = d->history_generation;
+    m->history_generation = d->history_generation;
   }
 
-  if (message->top_thread_message_id.is_valid()) {
+  if (m->top_thread_message_id.is_valid()) {
     if (is_broadcast_channel(dialog_id)) {
-      message->top_thread_message_id = MessageId();
+      m->top_thread_message_id = MessageId();
     }
   } else {
-    if (is_thread_message(dialog_id, message.get())) {
-      message->top_thread_message_id = message_id;
+    if (is_thread_message(dialog_id, m)) {
+      m->top_thread_message_id = m->message_id;
     }
   }
 
-  if (!message_id.is_scheduled() && message_id <= d->last_clear_history_message_id) {
-    LOG(INFO) << "Skip adding cleared " << message_id << " to " << dialog_id << " from " << source;
-    if (from_database) {
-      delete_message_from_database(d, message_id, message.get(), true, "cleared full history");
+  m->last_access_date = G()->unix_time_cached();
+
+  if (m->contains_mention) {
+    CHECK(!td_->auth_manager_->is_bot());
+    auto message_content_type = m->content->get_type();
+    if (message_content_type == MessageContentType::PinMessage) {
+      if (is_dialog_pinned_message_notifications_disabled(d) ||
+          !get_message_content_pinned_message_id(m->content.get()).is_valid()) {
+        // treat message pin without pinned message as an ordinary message
+        m->contains_mention = false;
+      }
+    } else if (is_dialog_mention_notifications_disabled(d)) {
+      // disable mention notification
+      m->is_mention_notification_disabled = true;
     }
-    debug_add_message_to_dialog_fail_reason_ = "cleared full history";
-    return nullptr;
   }
+
+  if (m->contains_unread_mention && m->message_id <= d->last_read_all_mentions_message_id) {
+    m->contains_unread_mention = false;
+  }
+
+  if (dialog_type == DialogType::Channel && !m->contains_unread_mention) {
+    auto channel_read_media_period =
+        td_->option_manager_->get_option_integer("channels_read_media_period", (G()->is_test_dc() ? 300 : 7 * 86400));
+    if (m->date < G()->unix_time_cached() - channel_read_media_period) {
+      update_opened_message_content(m->content.get());
+    }
+  }
+}
+
+// keep synced with add_scheduled_message_to_dialog
+MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, unique_ptr<Message> message,
+                                                                 bool from_database, bool have_previous, bool have_next,
+                                                                 bool from_update, bool *need_update,
+                                                                 bool *need_update_dialog_pos, const char *source) {
+  CHECK(need_update != nullptr);
+  CHECK(need_update_dialog_pos != nullptr);
+  CHECK(source != nullptr);
+
+  fix_new_message(d, message.get(), from_database);
+
+  debug_add_message_to_dialog_fail_reason_ = "success";
+
+  DialogId dialog_id = d->dialog_id;
+  MessageId message_id = message->message_id;
 
   LOG(INFO) << "Adding " << message_id << " of type " << message->content->get_type() << " to " << dialog_id << " from "
             << source << ". Last new is " << d->last_new_message_id << ", last is " << d->last_message_id
@@ -34257,14 +34285,22 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     CHECK(from_update);
   }
 
+  if (message_id <= d->last_clear_history_message_id) {
+    LOG(INFO) << "Skip adding cleared " << message_id << " to " << dialog_id;
+    if (from_database) {
+      delete_message_from_database(d, message_id, message.get(), true, "cleared full history");
+    }
+    debug_add_message_to_dialog_fail_reason_ = "cleared full history";
+    return nullptr;
+  }
+
   if (is_deleted_message(d, message_id)) {
-    LOG(INFO) << "Skip adding deleted " << message_id << " to " << dialog_id << " from " << source;
+    LOG(INFO) << "Skip adding deleted " << message_id << " to " << dialog_id;
     debug_add_message_to_dialog_fail_reason_ = "adding deleted message";
     return nullptr;
   }
 
-  message->last_access_date = G()->unix_time_cached();
-
+  auto dialog_type = dialog_id.get_type();
   if (from_update) {
     CHECK(have_next);
     CHECK(have_previous);
@@ -34315,7 +34351,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
   if ((message_id.is_server() || (message_id.is_local() && dialog_type == DialogType::SecretChat)) &&
       message_id <= d->max_unavailable_message_id) {
-    LOG(INFO) << "Can't add an unavailable " << message_id << " to " << dialog_id << " from " << source;
+    LOG(INFO) << "Can't add an unavailable " << message_id << " to " << dialog_id;
     if (from_database) {
       delete_message_from_database(d, message_id, message.get(), true, "ignore unavailable message");
     }
@@ -34431,27 +34467,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         update_message_count_by_index(d, +1, new_index_mask & ~old_index_mask);
       }
       return m;
-    }
-  }
-
-  if (*need_update && !td_->auth_manager_->is_bot()) {
-    if (message_content_type == MessageContentType::PinMessage) {
-      if (is_dialog_pinned_message_notifications_disabled(d) ||
-          !get_message_content_pinned_message_id(message->content.get()).is_valid()) {
-        // treat message pin without pinned message as an ordinary message
-        message->contains_mention = false;
-      }
-    } else if (message->contains_mention && is_dialog_mention_notifications_disabled(d)) {
-      // disable mention notification
-      message->is_mention_notification_disabled = true;
-    }
-  }
-
-  if (message->contains_unread_mention && message_id <= d->last_read_all_mentions_message_id) {
-    LOG(INFO) << "Ignore unread mention in " << message_id;
-    message->contains_unread_mention = false;
-    if (from_database) {
-      on_message_changed(d, message.get(), false, "add already read mention message to dialog");
     }
   }
 
@@ -34580,14 +34595,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   if (d->is_empty) {
     d->is_empty = false;
     *need_update_dialog_pos = true;
-  }
-
-  if (dialog_type == DialogType::Channel && !message->contains_unread_mention) {
-    auto channel_read_media_period =
-        td_->option_manager_->get_option_integer("channels_read_media_period", (G()->is_test_dc() ? 300 : 7 * 86400));
-    if (message->date < G()->unix_time_cached() - channel_read_media_period) {
-      update_opened_message_content(message->content.get());
-    }
   }
 
   if (G()->keep_media_order() && message_id.is_yet_unsent() && !message->via_bot_user_id.is_valid() &&

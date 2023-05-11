@@ -2247,6 +2247,8 @@ class MessagesManager final : public Actor {
   void update_message_reply_count(Dialog *d, MessageId message_id, DialogId replier_dialog_id,
                                   MessageId reply_message_id, int32 update_date, int diff, bool is_recursive = false);
 
+  void fix_new_message(const Dialog *d, Message *m, bool from_database) const;
+
   Message *add_message_to_dialog(Dialog *d, unique_ptr<Message> message, bool from_database, bool have_previous,
                                  bool have_next, bool from_update, bool *need_update, bool *need_update_dialog_pos,
                                  const char *source);
