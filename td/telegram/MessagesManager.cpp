@@ -34250,6 +34250,13 @@ void MessagesManager::fix_new_message(const Dialog *d, Message *m, bool from_dat
       update_opened_message_content(m->content.get());
     }
   }
+
+  if (m->reply_markup != nullptr && !m->reply_markup->is_personal &&
+      (m->reply_markup->type == ReplyMarkup::Type::ForceReply ||
+       m->reply_markup->type == ReplyMarkup::Type::RemoveKeyboard) &&
+      !td_->auth_manager_->is_bot()) {
+    m->reply_markup = nullptr;
+  }
 }
 
 // keep synced with add_scheduled_message_to_dialog
@@ -34389,20 +34396,17 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     *need_update = false;
   }
 
-  if (message->reply_markup != nullptr &&
-      (message->reply_markup->type == ReplyMarkup::Type::RemoveKeyboard ||
-       (message->reply_markup->type == ReplyMarkup::Type::ForceReply && !message->reply_markup->is_personal)) &&
+  if (message->reply_markup != nullptr && message->reply_markup->type == ReplyMarkup::Type::RemoveKeyboard &&
       !td_->auth_manager_->is_bot()) {
-    if (from_update && message->reply_markup->is_personal) {  // if this keyboard is for us
-      if (d->reply_markup_message_id != MessageId() && message_id > d->reply_markup_message_id) {
-        const Message *old_message = get_message_force(d, d->reply_markup_message_id, "add_message_to_dialog 1");
-        if (old_message == nullptr ||
-            (old_message->sender_user_id.is_valid() && old_message->sender_user_id == message->sender_user_id)) {
-          set_dialog_reply_markup(d, MessageId());
-        }
+    CHECK(message->reply_markup->is_personal);  // otherwise it was removed in fix_new_message
+    if (from_update && d->reply_markup_message_id != MessageId() && message_id > d->reply_markup_message_id) {
+      const Message *old_message = get_message_force(d, d->reply_markup_message_id, "add_message_to_dialog 1");
+      if (old_message == nullptr ||
+          (old_message->sender_user_id.is_valid() && old_message->sender_user_id == message->sender_user_id)) {
+        set_dialog_reply_markup(d, MessageId());
       }
     }
-    message->had_reply_markup = message->reply_markup->is_personal;
+    message->had_reply_markup = true;
     message->reply_markup = nullptr;
   }
 
