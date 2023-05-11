@@ -31324,7 +31324,7 @@ void MessagesManager::fail_send_message(FullMessageId full_message_id, int error
   update_failed_to_send_message_content(td_, message->content);
 
   bool need_update = false;
-  Message *m = add_message_to_dialog(d, std::move(message), false, true, true, false, &need_update,
+  Message *m = add_message_to_dialog(d, std::move(message), false, true, true, true, &need_update,
                                      &need_update_dialog_pos, "fail_send_message");
   LOG_CHECK(m != nullptr) << "Failed to add failed to send " << new_message_id << " to " << dialog_id << " due to "
                           << debug_add_message_to_dialog_fail_reason_;
@@ -34312,10 +34312,10 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   auto dialog_type = dialog_id.get_type();
-  if (from_update) {
+  if (from_update && !message->is_failed_to_send) {
     CHECK(have_next);
     CHECK(have_previous);
-    if (message_id <= d->last_new_message_id && dialog_type != DialogType::Channel && !has_qts_messages(dialog_id) &&
+    if (message_id <= d->last_new_message_id && dialog_type != DialogType::Channel &&
         (message_id.is_server() || !td_->auth_manager_->is_bot())) {
       LOG(ERROR) << "New " << message_id << " in " << dialog_id << " from " << source
                  << " has identifier less than last_new_message_id = " << d->last_new_message_id;
@@ -34486,7 +34486,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     // in get_message_notification_group_force
     get_dialog_notification_group_id(d->dialog_id, get_notification_group_info(d, message.get()));
   }
-  if (*need_update || (!d->last_new_message_id.is_valid() && !message_id.is_yet_unsent() && from_update)) {
+  if (*need_update || (!d->last_new_message_id.is_valid() && !message_id.is_yet_unsent() && from_update &&
+                       !message->is_failed_to_send)) {
     auto pinned_message_id = get_message_content_pinned_message_id(message->content.get());
     if (pinned_message_id.is_valid() && pinned_message_id < message_id &&
         have_message_force(d, pinned_message_id, "preload pinned message")) {
@@ -34501,8 +34502,9 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
                 << " from database";
     }
   }
-  if (from_update && message->top_thread_message_id.is_valid() && message->top_thread_message_id != message_id &&
-      message_id.is_server() && have_message_force(d, message->top_thread_message_id, "preload top reply message")) {
+  if (from_update && !message->is_failed_to_send && message->top_thread_message_id.is_valid() &&
+      message->top_thread_message_id != message_id && message_id.is_server() &&
+      have_message_force(d, message->top_thread_message_id, "preload top reply message")) {
     LOG(INFO) << "Preloaded top thread " << message->top_thread_message_id << " from database";
 
     Message *top_m = get_message(d, message->top_thread_message_id);
@@ -34639,8 +34641,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     *need_update_dialog_pos = false;
   }
 
-  if (from_update && message_id > d->last_new_message_id && !message_id.is_yet_unsent() &&
-      !td_->auth_manager_->is_bot()) {
+  if (from_update && !message->is_failed_to_send && message_id > d->last_new_message_id &&
+      !message_id.is_yet_unsent() && !td_->auth_manager_->is_bot()) {
     if (dialog_type == DialogType::SecretChat || message_id.is_server()) {
       // can delete messages, therefore must be called before message attaching/adding
       set_dialog_last_new_message_id(d, message_id, "add_message_to_dialog");
@@ -34742,7 +34744,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     add_message_to_database(d, m, "add_message_to_dialog");
   }
 
-  if (from_update && dialog_type == DialogType::Channel) {
+  if (from_update && !m->is_failed_to_send && dialog_type == DialogType::Channel) {
     auto now = max(G()->unix_time_cached(), m->date);
     if (m->date < now - 2 * 86400 && Slice(source) == Slice("updateNewChannelMessage")) {
       // if the message is pretty old, we might have missed the update that the message has already been read
@@ -34816,7 +34818,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     set_dialog_theme_name(d, get_message_content_theme_name(m->content.get()));
   }
 
-  if (from_update) {
+  if (from_update && !m->is_failed_to_send) {
     speculatively_update_active_group_call_id(d, m);
     speculatively_update_channel_participants(dialog_id, m);
     update_forum_topic_info_by_service_message_content(td_, m->content.get(), dialog_id, m->top_thread_message_id);
@@ -35034,7 +35036,7 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
 
   register_message_reply(dialog_id, m);
 
-  if (from_update) {
+  if (from_update && !m->is_failed_to_send) {
     update_sent_message_contents(dialog_id, m);
     update_used_hashtags(dialog_id, m);
     update_has_outgoing_messages(dialog_id, m);
