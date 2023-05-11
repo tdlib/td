@@ -9977,10 +9977,13 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
     }
 
     auto full_message_id =
-        on_get_message(std::move(message), false, is_channel_message, false, false, have_next, "get history");
+        on_get_message(std::move(message), false, is_channel_message, false, false, false, "get history");
     auto message_id = full_message_id.get_message_id();
     if (message_id.is_valid()) {
       CHECK(message_id == expected_message_id);
+      if (have_next) {
+        d->ordered_messages.attach_message_to_next(message_id, "on_get_history");
+      }
       if (!last_added_message_id.is_valid()) {
         last_added_message_id = message_id;
       }
@@ -23248,9 +23251,12 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
 
     auto old_message = get_message(d, message->message_id);
     Message *m = old_message ? old_message
-                             : add_message_to_dialog(d, std::move(message), true, false, have_next, false, &need_update,
+                             : add_message_to_dialog(d, std::move(message), true, false, false, false, &need_update,
                                                      &need_update_dialog_pos, "on_get_history_from_database");
     if (m != nullptr) {
+      if (have_next) {
+        d->ordered_messages.attach_message_to_next(m->message_id, "on_get_history");
+      }
       first_added_message_id = m->message_id;
       if (!last_added_message_id.is_valid()) {
         last_added_message_id = m->message_id;
@@ -34447,14 +34453,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
                        << " with content of type " << message_content_type << " in " << dialog_id << " from " << source
                        << ", current last new is " << d->last_new_message_id << ", last is " << d->last_message_id;
           }
-        }
-      }
-      if (!auto_attach && !from_database && !td_->auth_manager_->is_bot()) {
-        if (have_previous) {
-          CHECK(!have_next);
-          d->ordered_messages.attach_message_to_previous(message_id, source);
-        } else if (have_next) {
-          d->ordered_messages.attach_message_to_next(message_id, source);
         }
       }
       if (!from_database && (from_update || message->edit_date >= m->edit_date)) {

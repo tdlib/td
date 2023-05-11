@@ -24,7 +24,7 @@ void OrderedMessages::insert(MessageId message_id, bool auto_attach, bool have_p
   if (!is_attached && !have_previous && !have_next) {
     auto it = get_iterator(message_id);
     if (*it != nullptr && (*it)->have_next_) {
-      // need to drop a connection between messages
+      // need to drop the connection between messages
       auto previous_message = *it;
       CHECK(previous_message->message_id_ < message_id);
       ++it;
@@ -52,6 +52,10 @@ void OrderedMessages::insert(MessageId message_id, bool auto_attach, bool have_p
   auto message = make_unique<OrderedMessage>();
   message->message_id_ = message_id;
   message->random_y_ = random_y;
+  if (is_attached) {
+    message->have_previous_ = have_previous;
+    message->have_next_ = have_next;
+  }
 
   unique_ptr<OrderedMessage> *left = &message->left_;
   unique_ptr<OrderedMessage> *right = &message->right_;
@@ -71,18 +75,6 @@ void OrderedMessages::insert(MessageId message_id, bool auto_attach, bool have_p
   CHECK(*left == nullptr);
   CHECK(*right == nullptr);
   *v = std::move(message);
-
-  if (!is_attached) {
-    if (have_next) {
-      CHECK(!have_previous);
-      attach_message_to_next(message_id, source);
-    } else if (have_previous) {
-      attach_message_to_previous(message_id, source);
-    }
-  } else {
-    (*v)->have_previous_ = have_previous;
-    (*v)->have_next_ = have_next;
-  }
 }
 
 void OrderedMessages::erase(MessageId message_id, bool only_from_memory) {
