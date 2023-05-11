@@ -34272,13 +34272,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
             << ", have_next = " << have_next;
 
   if (!message_id.is_valid()) {
-    if (message_id.is_valid_scheduled()) {
-      return add_scheduled_message_to_dialog(d, std::move(message), from_database, from_update, need_update, source);
-    }
-    LOG(ERROR) << "Receive " << message_id << " in " << dialog_id << " from " << source;
-    CHECK(!from_database);
-    debug_add_message_to_dialog_fail_reason_ = "invalid message identifier";
-    return nullptr;
+    return add_scheduled_message_to_dialog(d, std::move(message), from_database, from_update, need_update, source);
   }
 
   if (*need_update) {
