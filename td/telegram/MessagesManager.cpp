@@ -14788,8 +14788,9 @@ FullMessageId MessagesManager::on_get_message(tl_object_ptr<telegram_api::Messag
                         is_channel_message, have_previous, have_next, source);
 }
 
-FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool from_update, bool is_channel_message,
-                                              bool have_previous, bool have_next, const char *source) {
+FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, const bool from_update,
+                                              const bool is_channel_message, const bool have_previous,
+                                              const bool have_next, const char *source) {
   DialogId dialog_id;
   unique_ptr<Message> new_message;
   std::tie(dialog_id, new_message) = create_message(std::move(message_info), is_channel_message);
@@ -34261,9 +34262,10 @@ void MessagesManager::fix_new_message(const Dialog *d, Message *m, bool from_dat
 
 // keep synced with add_scheduled_message_to_dialog
 MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, unique_ptr<Message> message,
-                                                                 bool from_database, bool have_previous, bool have_next,
-                                                                 bool from_update, bool *need_update,
-                                                                 bool *need_update_dialog_pos, const char *source) {
+                                                                 const bool from_database, bool have_previous,
+                                                                 bool have_next, const bool from_update,
+                                                                 bool *need_update, bool *need_update_dialog_pos,
+                                                                 const char *source) {
   if (!message->message_id.is_valid()) {
     return add_scheduled_message_to_dialog(d, std::move(message), from_database, from_update, need_update, source);
   }
