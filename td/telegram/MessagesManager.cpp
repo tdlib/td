@@ -34210,7 +34210,9 @@ void MessagesManager::fix_new_message(const Dialog *d, Message *m, bool from_dat
     m->history_generation = d->history_generation;
   }
 
-  if (m->top_thread_message_id.is_valid()) {
+  if (m->message_id.is_scheduled() && !m->message_id.is_yet_unsent()) {
+    m->top_thread_message_id = MessageId();
+  } else if (m->top_thread_message_id.is_valid()) {
     if (is_broadcast_channel(dialog_id)) {
       m->top_thread_message_id = MessageId();
     }
@@ -34255,6 +34257,10 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
                                                                  bool from_database, bool have_previous, bool have_next,
                                                                  bool from_update, bool *need_update,
                                                                  bool *need_update_dialog_pos, const char *source) {
+  if (!message->message_id.is_valid()) {
+    return add_scheduled_message_to_dialog(d, std::move(message), from_database, from_update, need_update, source);
+  }
+
   CHECK(need_update != nullptr);
   CHECK(need_update_dialog_pos != nullptr);
   CHECK(source != nullptr);
@@ -34270,10 +34276,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
             << source << ". Last new is " << d->last_new_message_id << ", last is " << d->last_message_id
             << ", from_update = " << from_update << ", have_previous = " << have_previous
             << ", have_next = " << have_next;
-
-  if (!message_id.is_valid()) {
-    return add_scheduled_message_to_dialog(d, std::move(message), from_database, from_update, need_update, source);
-  }
 
   if (*need_update) {
     CHECK(from_update);
@@ -34922,9 +34924,12 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
   CHECK(!message->notification_id.is_valid());
   CHECK(!message->removed_notification_id.is_valid());
 
-  if (!message_id.is_yet_unsent()) {
-    message->top_thread_message_id = MessageId();
-  }
+  fix_new_message(d, message.get(), from_database);
+
+  debug_add_message_to_dialog_fail_reason_ = "success";
+
+  LOG(INFO) << "Adding " << message_id << " of type " << message->content->get_type() << " to " << dialog_id << " from "
+            << source;
 
   if (is_deleted_message(d, message_id)) {
     LOG(INFO) << "Skip adding deleted " << message_id << " to " << dialog_id << " from " << source;
