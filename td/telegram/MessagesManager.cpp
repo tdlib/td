@@ -34257,6 +34257,17 @@ void MessagesManager::fix_new_message(const Dialog *d, Message *m, bool from_dat
   }
 }
 
+void MessagesManager::remove_message_remove_keyboard_reply_markup(Message *m) const {
+  CHECK(m != nullptr);
+  if (m->reply_markup == nullptr || m->reply_markup->type != ReplyMarkup::Type::RemoveKeyboard ||
+      td_->auth_manager_->is_bot()) {
+    return;
+  }
+  CHECK(m->reply_markup->is_personal);  // otherwise it was removed in fix_new_message
+  m->had_reply_markup = true;
+  m->reply_markup = nullptr;
+}
+
 // keep synced with add_scheduled_message_to_dialog
 MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, unique_ptr<Message> message,
                                                                  const bool from_database, const bool from_update,
@@ -34389,30 +34400,25 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     *need_update = false;
   }
 
-  if (message->reply_markup != nullptr && message->reply_markup->type == ReplyMarkup::Type::RemoveKeyboard &&
-      !td_->auth_manager_->is_bot()) {
-    CHECK(message->reply_markup->is_personal);  // otherwise it was removed in fix_new_message
-    if (from_update && d->reply_markup_message_id != MessageId() && message_id > d->reply_markup_message_id) {
+  if (*need_update && d->reply_markup_message_id != MessageId()) {
+    UserId bot_user_id;
+    if (message->reply_markup != nullptr && message->reply_markup->type == ReplyMarkup::Type::RemoveKeyboard &&
+        message_id > d->reply_markup_message_id) {
+      bot_user_id = message->sender_user_id;
+    } else {
+      bot_user_id = get_message_content_deleted_user_id(message->content.get());
+      // do not check for is_user_bot to allow deleted bots
+    }
+    if (bot_user_id.is_valid()) {
       const Message *old_message = get_message_force(d, d->reply_markup_message_id, "add_message_to_dialog 1");
-      if (old_message == nullptr ||
-          (old_message->sender_user_id.is_valid() && old_message->sender_user_id == message->sender_user_id)) {
-        set_dialog_reply_markup(d, MessageId());
-      }
-    }
-    message->had_reply_markup = true;
-    message->reply_markup = nullptr;
-  }
-  if (from_update && d->reply_markup_message_id != MessageId()) {
-    auto deleted_user_id = get_message_content_deleted_user_id(message->content.get());
-    if (deleted_user_id.is_valid()) {  // do not check for is_user_bot to allow deleted bots
-      const Message *old_message = get_message_force(d, d->reply_markup_message_id, "add_message_to_dialog 3");
-      if (old_message == nullptr || old_message->sender_user_id == deleted_user_id) {
-        LOG(INFO) << "Remove reply markup in " << dialog_id << ", because bot " << deleted_user_id
-                  << " isn't a member of the chat";
+      if (old_message == nullptr || old_message->sender_user_id == bot_user_id) {
         set_dialog_reply_markup(d, MessageId());
       }
     }
   }
+
+  // must be after set_dialog_reply_markup(d, MessageId()), but before try_restore_dialog_reply_markup
+  remove_message_remove_keyboard_reply_markup(message.get());
 
   {
     Message *m =

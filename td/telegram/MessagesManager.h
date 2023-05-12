@@ -2248,6 +2248,8 @@ class MessagesManager final : public Actor {
 
   void fix_new_message(const Dialog *d, Message *m, bool from_database) const;
 
+  void remove_message_remove_keyboard_reply_markup(Message *m) const;
+
   Message *add_message_to_dialog(Dialog *d, unique_ptr<Message> message, const bool from_database,
                                  const bool from_update, bool *need_update, bool *need_update_dialog_pos,
                                  const char *source);
