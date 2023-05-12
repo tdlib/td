@@ -34268,6 +34268,146 @@ void MessagesManager::remove_message_remove_keyboard_reply_markup(Message *m) co
   m->reply_markup = nullptr;
 }
 
+void MessagesManager::add_message_to_dialog_message_list(const Message *m, Dialog *d, const bool from_database,
+                                                         const bool from_update, const bool need_update,
+                                                         bool *need_update_dialog_pos, const char *source) {
+  auto dialog_id = d->dialog_id;
+  auto dialog_type = dialog_id.get_type();
+  auto message_id = m->message_id;
+  if (d->have_full_history && !from_database && !from_update && !message_id.is_local() && !message_id.is_yet_unsent()) {
+    LOG(ERROR) << "Have full history in " << dialog_id << ", but receive unknown " << message_id
+               << " with content of type " << m->content->get_type() << " from " << source << ". Last new is "
+               << d->last_new_message_id << ", last is " << d->last_message_id << ", first database is "
+               << d->first_database_message_id << ", last database is " << d->last_database_message_id
+               << ", last read inbox is " << d->last_read_inbox_message_id << ", last read outbox is "
+               << d->last_read_outbox_message_id << ", last read all mentions is "
+               << d->last_read_all_mentions_message_id << ", last clear history date is " << d->last_clear_history_date
+               << ", last clear history is " << d->last_clear_history_message_id << ", last delete is "
+               << d->deleted_last_message_id << ", delete last message date is " << d->delete_last_message_date
+               << ", have_full_history source = " << d->have_full_history_source;
+    d->have_full_history = false;
+    d->have_full_history_source = 0;
+    on_dialog_updated(dialog_id, "drop have_full_history");
+  }
+
+  if (d->is_empty) {
+    d->is_empty = false;
+    *need_update_dialog_pos = true;
+  }
+
+  if (!(d->have_full_history && from_update) && d->last_message_id.is_valid() &&
+      d->last_message_id < MessageId(ServerMessageId(1)) && message_id >= MessageId(ServerMessageId(1))) {
+    set_dialog_last_message_id(d, MessageId(), "add_message_to_dialog");
+
+    set_dialog_first_database_message_id(d, MessageId(), "add_message_to_dialog");
+    set_dialog_last_database_message_id(d, MessageId(), source);
+    d->have_full_history = false;
+    d->have_full_history_source = 0;
+    invalidate_message_indexes(d);
+    d->local_unread_count = 0;  // read all local messages. They will not be reachable anymore
+
+    on_dialog_updated(dialog_id, "add gap to dialog");
+
+    send_update_chat_last_message(d, "add gap to dialog");
+    *need_update_dialog_pos = false;
+  }
+
+  if (from_update && !m->is_failed_to_send && message_id > d->last_new_message_id && !message_id.is_yet_unsent() &&
+      !td_->auth_manager_->is_bot()) {
+    if (dialog_type == DialogType::SecretChat || message_id.is_server()) {
+      // can delete messages, therefore must be called before message attaching/adding
+      set_dialog_last_new_message_id(d, message_id, "add_message_to_dialog");
+    }
+  }
+
+  auto old_last_message_id = d->last_message_id;
+
+  if (need_update && message_id > d->last_read_inbox_message_id && !td_->auth_manager_->is_bot()) {
+    if (has_incoming_notification(dialog_id, m)) {
+      int32 server_unread_count = d->server_unread_count;
+      int32 local_unread_count = d->local_unread_count;
+      if (message_id.is_server()) {
+        server_unread_count++;
+      } else {
+        local_unread_count++;
+      }
+      set_dialog_last_read_inbox_message_id(d, MessageId::min(), server_unread_count, local_unread_count, false,
+                                            source);
+    } else {
+      // if non-scheduled outgoing message has identifier one greater than last_read_inbox_message_id,
+      // then definitely there are no unread incoming messages before it
+      if (message_id.is_server() && d->last_read_inbox_message_id.is_valid() &&
+          d->last_read_inbox_message_id.is_server() &&
+          message_id == d->last_read_inbox_message_id.get_next_message_id(MessageType::Server)) {
+        read_history_inbox(dialog_id, message_id, 0, "add_message_to_dialog");
+      }
+    }
+  }
+  if (need_update && m->contains_unread_mention) {
+    set_dialog_unread_mention_count(d, d->unread_mention_count + 1);
+    send_update_chat_unread_mention_count(d);
+  }
+  if (need_update && has_unread_message_reactions(dialog_id, m)) {
+    set_dialog_unread_reaction_count(d, d->unread_reaction_count + 1);
+    send_update_chat_unread_reaction_count(d, "add_message_to_dialog");
+  }
+  if (need_update) {
+    update_message_count_by_index(d, +1, m);
+  }
+  if (from_update && !td_->auth_manager_->is_bot() && message_id > d->last_message_id &&
+      message_id >= d->last_new_message_id) {
+    set_dialog_last_message_id(d, message_id, "add_message_to_dialog", m);
+    *need_update_dialog_pos = true;
+  }
+  if (from_update && !message_id.is_yet_unsent() && message_id >= d->last_new_message_id &&
+      (d->last_new_message_id.is_valid() ||
+       (message_id.is_local() && d->last_message_id.is_valid() &&
+        (message_id >= d->last_message_id ||
+         (d->last_database_message_id.is_valid() && message_id > d->last_database_message_id))))) {
+    CHECK(message_id <= d->last_message_id);
+    if (message_id > d->last_database_message_id) {
+      set_dialog_last_database_message_id(d, message_id, "add_message_to_dialog");
+      if (!d->first_database_message_id.is_valid()) {
+        set_dialog_first_database_message_id(d, message_id, "add_message_to_dialog");
+        try_restore_dialog_reply_markup(d, m);
+      }
+    }
+  }
+
+  if (!from_update && m->message_id.is_server() && d->last_message_id.is_valid() &&
+      m->message_id > d->last_message_id) {
+    LOG(INFO) << "Receive " << m->message_id << ", which is newer than the last " << d->last_message_id
+              << " not from update";
+    set_dialog_last_message_id(d, MessageId(), source);
+    if (m->message_id > d->deleted_last_message_id) {
+      d->delete_last_message_date = m->date;
+      d->deleted_last_message_id = message_id;
+    }
+
+    set_dialog_first_database_message_id(d, MessageId(), source);
+    set_dialog_last_database_message_id(d, MessageId(), source);
+    d->have_full_history = false;
+    d->have_full_history_source = 0;
+    invalidate_message_indexes(d);
+
+    on_dialog_updated(dialog_id, source);
+
+    send_update_chat_last_message(d, source);
+    *need_update_dialog_pos = false;
+
+    on_dialog_updated(dialog_id, "do delete last message");
+
+    if (!td_->auth_manager_->is_bot()) {
+      send_closure_later(actor_id(this), &MessagesManager::get_history_from_the_end, dialog_id, false, false,
+                         Promise<Unit>());
+    }
+  }
+
+  if (!td_->auth_manager_->is_bot()) {
+    d->ordered_messages.insert(message_id, from_update, old_last_message_id, source);
+  }
+}
+
 // keep synced with add_scheduled_message_to_dialog
 MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, unique_ptr<Message> message,
                                                                  const bool from_database, const bool from_update,
@@ -34521,24 +34661,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     d->max_added_message_id = message->message_id;
   }
 
-  if (d->have_full_history && !from_database && !from_update && !message_id.is_local() && !message_id.is_yet_unsent()) {
-    LOG(ERROR) << "Have full history in " << dialog_id << ", but receive unknown " << message_id
-               << " with content of type " << message_content_type << " from " << source << ". Last new is "
-               << d->last_new_message_id << ", last is " << d->last_message_id << ", first database is "
-               << d->first_database_message_id << ", last database is " << d->last_database_message_id
-               << ", last read inbox is " << d->last_read_inbox_message_id << ", last read outbox is "
-               << d->last_read_inbox_message_id << ", last read all mentions is "
-               << d->last_read_all_mentions_message_id << ", max unavailable is " << d->max_unavailable_message_id
-               << ", last assigned is " << d->last_assigned_message_id << ", last clear history date is "
-               << d->last_clear_history_date << ", last clear history is " << d->last_clear_history_message_id
-               << ", last delete is " << d->deleted_last_message_id << ", delete last message date is "
-               << d->delete_last_message_date << ", have_full_history source = " << d->have_full_history_source;
-    d->have_full_history = false;
-    d->have_full_history_source = 0;
-    on_dialog_updated(dialog_id, "drop have_full_history");
-  }
-
-  if (d->open_count == 0 && !d->has_unload_timeout && !d->ordered_messages.empty() && is_message_unload_enabled()) {
+  if (d->open_count == 0 && !d->has_unload_timeout && !d->messages.empty() && is_message_unload_enabled()) {
     LOG(INFO) << "Schedule unload of " << dialog_id;
     pending_unload_dialog_timeout_.add_timeout_in(dialog_id.get(), get_next_unload_dialog_delay(d));
     d->has_unload_timeout = true;
@@ -34592,11 +34715,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   LOG(INFO) << "Adding not found " << message_id << " to " << dialog_id << " from " << source;
-  if (d->is_empty) {
-    d->is_empty = false;
-    *need_update_dialog_pos = true;
-  }
-
   if (G()->keep_media_order() && message_id.is_yet_unsent() && !message->via_bot_user_id.is_valid() &&
       !message->hide_via_bot && !message->is_copy) {
     auto queue_id = ChainId(dialog_id, message_content_type).get();
@@ -34608,33 +34726,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       }
     }
   }
-
-  if (!(d->have_full_history && from_update) && d->last_message_id.is_valid() &&
-      d->last_message_id < MessageId(ServerMessageId(1)) && message_id >= MessageId(ServerMessageId(1))) {
-    set_dialog_last_message_id(d, MessageId(), "add_message_to_dialog");
-
-    set_dialog_first_database_message_id(d, MessageId(), "add_message_to_dialog");
-    set_dialog_last_database_message_id(d, MessageId(), source);
-    d->have_full_history = false;
-    d->have_full_history_source = 0;
-    invalidate_message_indexes(d);
-    d->local_unread_count = 0;  // read all local messages. They will not be reachable anymore
-
-    on_dialog_updated(dialog_id, "add gap to dialog");
-
-    send_update_chat_last_message(d, "add gap to dialog");
-    *need_update_dialog_pos = false;
-  }
-
-  if (from_update && !message->is_failed_to_send && message_id > d->last_new_message_id &&
-      !message_id.is_yet_unsent() && !td_->auth_manager_->is_bot()) {
-    if (dialog_type == DialogType::SecretChat || message_id.is_server()) {
-      // can delete messages, therefore must be called before message attaching/adding
-      set_dialog_last_new_message_id(d, message_id, "add_message_to_dialog");
-    }
-  }
-
-  auto old_last_message_id = d->last_message_id;
 
   if (!td_->auth_manager_->is_bot()) {
     if (*need_update) {
@@ -34664,57 +34755,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   const Message *m = message.get();
-  if (*need_update && message_id > d->last_read_inbox_message_id && !td_->auth_manager_->is_bot()) {
-    if (has_incoming_notification(dialog_id, m)) {
-      int32 server_unread_count = d->server_unread_count;
-      int32 local_unread_count = d->local_unread_count;
-      if (message_id.is_server()) {
-        server_unread_count++;
-      } else {
-        local_unread_count++;
-      }
-      set_dialog_last_read_inbox_message_id(d, MessageId::min(), server_unread_count, local_unread_count, false,
-                                            source);
-    } else {
-      // if non-scheduled outgoing message has identifier one greater than last_read_inbox_message_id,
-      // then definitely there are no unread incoming messages before it
-      if (message_id.is_server() && d->last_read_inbox_message_id.is_valid() &&
-          d->last_read_inbox_message_id.is_server() &&
-          message_id == d->last_read_inbox_message_id.get_next_message_id(MessageType::Server)) {
-        read_history_inbox(dialog_id, message_id, 0, "add_message_to_dialog");
-      }
-    }
-  }
-  if (*need_update && m->contains_unread_mention) {
-    set_dialog_unread_mention_count(d, d->unread_mention_count + 1);
-    send_update_chat_unread_mention_count(d);
-  }
-  if (*need_update && has_unread_message_reactions(dialog_id, m)) {
-    set_dialog_unread_reaction_count(d, d->unread_reaction_count + 1);
-    send_update_chat_unread_reaction_count(d, "add_message_to_dialog");
-  }
-  if (*need_update) {
-    update_message_count_by_index(d, +1, m);
-  }
-  if (from_update && !td_->auth_manager_->is_bot() && message_id > d->last_message_id &&
-      message_id >= d->last_new_message_id) {
-    set_dialog_last_message_id(d, message_id, "add_message_to_dialog", m);
-    *need_update_dialog_pos = true;
-  }
-  if (from_update && !message_id.is_yet_unsent() && message_id >= d->last_new_message_id &&
-      (d->last_new_message_id.is_valid() ||
-       (message_id.is_local() && d->last_message_id.is_valid() &&
-        (message_id >= d->last_message_id ||
-         (d->last_database_message_id.is_valid() && message_id > d->last_database_message_id))))) {
-    CHECK(message_id <= d->last_message_id);
-    if (message_id > d->last_database_message_id) {
-      set_dialog_last_database_message_id(d, message_id, "add_message_to_dialog");
-      if (!d->first_database_message_id.is_valid()) {
-        set_dialog_first_database_message_id(d, message_id, "add_message_to_dialog");
-        try_restore_dialog_reply_markup(d, m);
-      }
-    }
-  }
+  add_message_to_dialog_message_list(m, d, from_database, from_update, *need_update, need_update_dialog_pos, source);
 
   if (m->message_id.is_yet_unsent() && m->reply_to_message_id != MessageId()) {
     if (!m->reply_to_message_id.is_yet_unsent()) {
@@ -34749,35 +34790,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
   }
 
-  if (!from_update && m->message_id.is_server() && d->last_message_id.is_valid() &&
-      m->message_id > d->last_message_id) {
-    LOG(INFO) << "Receive " << m->message_id << ", which is newer than the last " << d->last_message_id
-              << " not from update";
-    set_dialog_last_message_id(d, MessageId(), source);
-    if (m->message_id > d->deleted_last_message_id) {
-      d->delete_last_message_date = m->date;
-      d->deleted_last_message_id = message_id;
-    }
-
-    set_dialog_first_database_message_id(d, MessageId(), source);
-    set_dialog_last_database_message_id(d, MessageId(), source);
-    d->have_full_history = false;
-    d->have_full_history_source = 0;
-    invalidate_message_indexes(d);
-
-    on_dialog_updated(dialog_id, source);
-
-    send_update_chat_last_message(d, source);
-    *need_update_dialog_pos = false;
-
-    on_dialog_updated(d->dialog_id, "do delete last message");
-
-    if (!td_->auth_manager_->is_bot()) {
-      send_closure_later(actor_id(this), &MessagesManager::get_history_from_the_end, d->dialog_id, false, false,
-                         Promise<Unit>());
-    }
-  }
-
   if (message_content_type == MessageContentType::ContactRegistered && !d->has_contact_registered_message) {
     d->has_contact_registered_message = true;
     on_dialog_updated(dialog_id, "update_has_contact_registered_message");
@@ -34791,17 +34803,19 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   register_message_reply(dialog_id, m);
 
-  if (*need_update && m->message_id.is_server() && message_content_type == MessageContentType::PinMessage) {
-    auto pinned_message_id = get_message_content_pinned_message_id(m->content.get());
-    if (d->is_last_pinned_message_id_inited && pinned_message_id > d->last_pinned_message_id) {
-      set_dialog_last_pinned_message_id(d, pinned_message_id);
+  if (*need_update && m->message_id.is_server()) {
+    if (message_content_type == MessageContentType::PinMessage) {
+      auto pinned_message_id = get_message_content_pinned_message_id(m->content.get());
+      if (d->is_last_pinned_message_id_inited && pinned_message_id > d->last_pinned_message_id) {
+        set_dialog_last_pinned_message_id(d, pinned_message_id);
+      }
     }
-  }
-  if (*need_update && m->message_id.is_server() && message_content_type == MessageContentType::SetBackground) {
-    set_dialog_background(d, get_message_content_background_info(m->content.get()));
-  }
-  if (*need_update && m->message_id.is_server() && message_content_type == MessageContentType::ChatSetTheme) {
-    set_dialog_theme_name(d, get_message_content_theme_name(m->content.get()));
+    if (message_content_type == MessageContentType::SetBackground) {
+      set_dialog_background(d, get_message_content_background_info(m->content.get()));
+    }
+    if (message_content_type == MessageContentType::ChatSetTheme) {
+      set_dialog_theme_name(d, get_message_content_theme_name(m->content.get()));
+    }
   }
 
   if (from_update && !m->is_failed_to_send) {
@@ -34847,10 +34861,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   d->messages.set(message_id, std::move(message));
 
   d->message_lru_list.put_back(result_message);
-
-  if (!td_->auth_manager_->is_bot()) {
-    d->ordered_messages.insert(message_id, from_update, old_last_message_id, source);
-  }
 
   if (m->message_id.is_yet_unsent() && !m->message_id.is_scheduled() && m->top_thread_message_id.is_valid() &&
       !td_->auth_manager_->is_bot()) {
