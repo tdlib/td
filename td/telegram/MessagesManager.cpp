@@ -24951,9 +24951,11 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_message(
   save_send_message_log_event(dialog_id, m);
   do_send_message(dialog_id, m);
 
-  send_update_new_message(d, m);
-  if (need_update_dialog_pos) {
-    send_update_chat_last_message(d, "send_message");
+  if (!td_->auth_manager_->is_bot()) {
+    send_update_new_message(d, m);
+    if (need_update_dialog_pos) {
+      send_update_chat_last_message(d, "send_message");
+    }
   }
 
   return get_message_object(dialog_id, m, "send_message");
@@ -25221,7 +25223,9 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_message_group
       save_send_message_log_event(dialog_id, m);
       do_send_message(dialog_id, m);
 
-      send_update_new_message(d, m);
+      if (!td_->auth_manager_->is_bot()) {
+        send_update_new_message(d, m);
+      }
     }
   }
 
@@ -28089,7 +28093,9 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
     forwarded_message_id_to_new_message_id.emplace(message_id, m->message_id);
 
     if (!only_preview) {
-      send_update_new_message(to_dialog, m);
+      if (!td_->auth_manager_->is_bot()) {
+        send_update_new_message(to_dialog, m);
+      }
       forwarded_messages.push_back(m);
       forwarded_message_ids.push_back(message_id);
     }
@@ -28144,7 +28150,9 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
     if (!only_preview) {
       save_send_message_log_event(to_dialog_id, m);
       do_send_message(to_dialog_id, m);
-      send_update_new_message(to_dialog, m);
+      if (!td_->auth_manager_->is_bot()) {
+        send_update_new_message(to_dialog, m);
+      }
     }
 
     result[copied_message.index] = get_message_object(to_dialog_id, m, "forward_messages");
