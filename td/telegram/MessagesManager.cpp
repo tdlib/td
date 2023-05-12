@@ -34271,6 +34271,7 @@ void MessagesManager::remove_message_remove_keyboard_reply_markup(Message *m) co
 void MessagesManager::add_message_to_dialog_message_list(const Message *m, Dialog *d, const bool from_database,
                                                          const bool from_update, const bool need_update,
                                                          bool *need_update_dialog_pos, const char *source) {
+  CHECK(!td_->auth_manager_->is_bot());
   auto dialog_id = d->dialog_id;
   auto dialog_type = dialog_id.get_type();
   auto message_id = m->message_id;
@@ -34312,8 +34313,7 @@ void MessagesManager::add_message_to_dialog_message_list(const Message *m, Dialo
     *need_update_dialog_pos = false;
   }
 
-  if (from_update && !m->is_failed_to_send && message_id > d->last_new_message_id && !message_id.is_yet_unsent() &&
-      !td_->auth_manager_->is_bot()) {
+  if (from_update && !m->is_failed_to_send && message_id > d->last_new_message_id && !message_id.is_yet_unsent()) {
     if (dialog_type == DialogType::SecretChat || message_id.is_server()) {
       // can delete messages, therefore must be called before message attaching/adding
       set_dialog_last_new_message_id(d, message_id, "add_message_to_dialog");
@@ -34322,7 +34322,7 @@ void MessagesManager::add_message_to_dialog_message_list(const Message *m, Dialo
 
   auto old_last_message_id = d->last_message_id;
 
-  if (need_update && message_id > d->last_read_inbox_message_id && !td_->auth_manager_->is_bot()) {
+  if (need_update && message_id > d->last_read_inbox_message_id) {
     if (has_incoming_notification(dialog_id, m)) {
       int32 server_unread_count = d->server_unread_count;
       int32 local_unread_count = d->local_unread_count;
@@ -34354,8 +34354,7 @@ void MessagesManager::add_message_to_dialog_message_list(const Message *m, Dialo
   if (need_update) {
     update_message_count_by_index(d, +1, m);
   }
-  if (from_update && !td_->auth_manager_->is_bot() && message_id > d->last_message_id &&
-      message_id >= d->last_new_message_id) {
+  if (from_update && message_id > d->last_message_id && message_id >= d->last_new_message_id) {
     set_dialog_last_message_id(d, message_id, "add_message_to_dialog", m);
     *need_update_dialog_pos = true;
   }
@@ -34397,15 +34396,11 @@ void MessagesManager::add_message_to_dialog_message_list(const Message *m, Dialo
 
     on_dialog_updated(dialog_id, "do delete last message");
 
-    if (!td_->auth_manager_->is_bot()) {
-      send_closure_later(actor_id(this), &MessagesManager::get_history_from_the_end, dialog_id, false, false,
-                         Promise<Unit>());
-    }
+    send_closure_later(actor_id(this), &MessagesManager::get_history_from_the_end, dialog_id, false, false,
+                       Promise<Unit>());
   }
 
-  if (!td_->auth_manager_->is_bot()) {
-    d->ordered_messages.insert(message_id, from_update, old_last_message_id, source);
-  }
+  d->ordered_messages.insert(message_id, from_update, old_last_message_id, source);
 }
 
 // keep synced with add_scheduled_message_to_dialog
@@ -34755,7 +34750,10 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   const Message *m = message.get();
-  add_message_to_dialog_message_list(m, d, from_database, from_update, *need_update, need_update_dialog_pos, source);
+
+  if (!td_->auth_manager_->is_bot()) {
+    add_message_to_dialog_message_list(m, d, from_database, from_update, *need_update, need_update_dialog_pos, source);
+  }
 
   if (m->message_id.is_yet_unsent() && m->reply_to_message_id != MessageId()) {
     if (!m->reply_to_message_id.is_yet_unsent()) {
