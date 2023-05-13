@@ -7508,7 +7508,7 @@ void MessagesManager::on_read_channel_inbox(ChannelId channel_id, MessageId max_
   */
 
   if (d->pts == pts) {
-    read_history_inbox(dialog_id, max_message_id, server_unread_count, source);
+    read_history_inbox(d, max_message_id, server_unread_count, source);
   } else if (d->pts > pts) {
     // outdated update, need to repair server_unread_count from the server
     repair_channel_server_unread_count(d);
@@ -11956,7 +11956,7 @@ void MessagesManager::clear_dialog_message_list(Dialog *d, bool remove_from_dial
     MessageId max_message_id =
         d->last_database_message_id.is_valid() ? d->last_database_message_id : d->last_new_message_id;
     if (max_message_id.is_valid()) {
-      read_history_inbox(d->dialog_id, max_message_id, -1, "delete_all_dialog_messages 1");
+      read_history_inbox(d, max_message_id, -1, "delete_all_dialog_messages 1");
     }
     if (d->server_unread_count != 0 || d->local_unread_count != 0) {
       set_dialog_last_read_inbox_message_id(d, MessageId::min(), 0, 0, true, "delete_all_dialog_messages 2");
@@ -12545,86 +12545,95 @@ void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_messa
 
   Dialog *d = get_dialog_force(dialog_id, "read_history_inbox");
   if (d != nullptr) {
-    if (d->need_repair_channel_server_unread_count) {
-      d->need_repair_channel_server_unread_count = false;
-      on_dialog_updated(dialog_id, "read_history_inbox");
-    }
-
-    // there can be updateReadHistoryInbox up to message 0, if messages where read and then all messages where deleted
-    if (!max_message_id.is_valid() && max_message_id != MessageId()) {
-      LOG(ERROR) << "Receive read inbox update in " << dialog_id << " up to " << max_message_id << " from " << source;
-      return;
-    }
-    if (d->is_last_read_inbox_message_id_inited && max_message_id <= d->last_read_inbox_message_id) {
-      LOG(INFO) << "Receive read inbox update in " << dialog_id << " up to " << max_message_id << " from " << source
-                << ", but all messages have already been read up to " << d->last_read_inbox_message_id;
-      if (max_message_id == d->last_read_inbox_message_id && unread_count >= 0 &&
-          unread_count != d->server_unread_count) {
-        set_dialog_last_read_inbox_message_id(d, MessageId::min(), unread_count, d->local_unread_count, true, source);
-      }
-      return;
-    }
-
-    if (max_message_id != MessageId() && max_message_id.is_yet_unsent()) {
-      LOG(ERROR) << "Tried to update last read inbox message in " << dialog_id << " with " << max_message_id << " from "
-                 << source;
-      return;
-    }
-
-    if (max_message_id != MessageId() && unread_count > 0 && max_message_id >= d->last_new_message_id &&
-        max_message_id >= d->last_message_id && max_message_id >= d->last_database_message_id) {
-      if (d->last_new_message_id.is_valid()) {
-        LOG(ERROR) << "Have unknown " << unread_count << " unread messages up to " << max_message_id << " in "
-                   << dialog_id << " with last_new_message_id = " << d->last_new_message_id
-                   << ", last_message_id = " << d->last_message_id
-                   << ", last_database_message_id = " << d->last_database_message_id << " from " << source;
-      }
-      unread_count = 0;
-    }
-
-    LOG_IF(
-        INFO,
-        d->last_new_message_id.is_valid() && max_message_id > d->last_new_message_id &&
-            (d->notification_info != nullptr && max_message_id > d->notification_info->max_notification_message_id_) &&
-            max_message_id.is_server() && dialog_id.get_type() != DialogType::Channel && !running_get_difference_)
-        << "Receive read inbox update up to unknown " << max_message_id << " in " << dialog_id << " from " << source
-        << ". Last new is " << d->last_new_message_id << ", unread_count = " << unread_count
-        << ". Possible only for deleted incoming message";
-
-    if (dialog_id.get_type() == DialogType::SecretChat) {
-      ttl_read_history(d, false, max_message_id, d->last_read_inbox_message_id, Time::now());
-    }
-
-    if (max_message_id > d->last_new_message_id && dialog_id.get_type() == DialogType::Channel) {
-      LOG(INFO) << "Schedule getDifference in " << dialog_id.get_channel_id();
-      channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
-    }
-
-    int32 server_unread_count = calc_new_unread_count(d, max_message_id, MessageType::Server, unread_count);
-    int32 local_unread_count =
-        d->local_unread_count == 0 ? 0 : calc_new_unread_count(d, max_message_id, MessageType::Local, -1);
-
-    if (server_unread_count < 0) {
-      server_unread_count = unread_count >= 0 ? unread_count : d->server_unread_count;
-      if (dialog_id.get_type() != DialogType::SecretChat && have_input_peer(dialog_id, AccessRights::Read) &&
-          need_unread_counter(d->order)) {
-        d->need_repair_server_unread_count = true;
-        on_dialog_updated(dialog_id, "read_history_inbox");
-        repair_server_unread_count(dialog_id, server_unread_count, "read_history_inbox");
-      }
-    }
-    if (local_unread_count < 0) {
-      // TODO repair local unread count
-      local_unread_count = d->local_unread_count;
-    }
-
-    set_dialog_last_read_inbox_message_id(d, max_message_id, server_unread_count, local_unread_count, true, source);
-
-    if (d->is_marked_as_unread && max_message_id != MessageId()) {
-      set_dialog_is_marked_as_unread(d, false);
-    }
+    read_history_inbox(d, max_message_id, unread_count, source);
   } else {
     LOG(INFO) << "Receive read inbox about unknown " << dialog_id << " from " << source;
+  }
+}
+
+void MessagesManager::read_history_inbox(Dialog *d, MessageId max_message_id, int32 unread_count,
+                                         const char *source) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  auto dialog_id = d->dialog_id;
+  if (d->need_repair_channel_server_unread_count) {
+    d->need_repair_channel_server_unread_count = false;
+    on_dialog_updated(dialog_id, "read_history_inbox");
+  }
+
+  // there can be updateReadHistoryInbox up to message 0, if messages where read and then all messages where deleted
+  if (!max_message_id.is_valid() && max_message_id != MessageId()) {
+    LOG(ERROR) << "Receive read inbox update in " << dialog_id << " up to " << max_message_id << " from " << source;
+    return;
+  }
+  if (d->is_last_read_inbox_message_id_inited && max_message_id <= d->last_read_inbox_message_id) {
+    LOG(INFO) << "Receive read inbox update in " << dialog_id << " up to " << max_message_id << " from " << source
+              << ", but all messages have already been read up to " << d->last_read_inbox_message_id;
+    if (max_message_id == d->last_read_inbox_message_id && unread_count >= 0 &&
+        unread_count != d->server_unread_count) {
+      set_dialog_last_read_inbox_message_id(d, MessageId::min(), unread_count, d->local_unread_count, true, source);
+    }
+    return;
+  }
+
+  if (max_message_id != MessageId() && max_message_id.is_yet_unsent()) {
+    LOG(ERROR) << "Tried to update last read inbox message in " << dialog_id << " with " << max_message_id << " from "
+               << source;
+    return;
+  }
+
+  if (max_message_id != MessageId() && unread_count > 0 && max_message_id >= d->last_new_message_id &&
+      max_message_id >= d->last_message_id && max_message_id >= d->last_database_message_id) {
+    if (d->last_new_message_id.is_valid()) {
+      LOG(ERROR) << "Have unknown " << unread_count << " unread messages up to " << max_message_id << " in "
+                 << dialog_id << " with last_new_message_id = " << d->last_new_message_id
+                 << ", last_message_id = " << d->last_message_id
+                 << ", last_database_message_id = " << d->last_database_message_id << " from " << source;
+    }
+    unread_count = 0;
+  }
+
+  LOG_IF(INFO,
+         d->last_new_message_id.is_valid() && max_message_id > d->last_new_message_id &&
+             (d->notification_info != nullptr && max_message_id > d->notification_info->max_notification_message_id_) &&
+             max_message_id.is_server() && dialog_id.get_type() != DialogType::Channel && !running_get_difference_)
+      << "Receive read inbox update up to unknown " << max_message_id << " in " << dialog_id << " from " << source
+      << ". Last new is " << d->last_new_message_id << ", unread_count = " << unread_count
+      << ". Possible only for deleted incoming message";
+
+  if (dialog_id.get_type() == DialogType::SecretChat) {
+    ttl_read_history(d, false, max_message_id, d->last_read_inbox_message_id, Time::now());
+  }
+
+  if (max_message_id > d->last_new_message_id && dialog_id.get_type() == DialogType::Channel) {
+    LOG(INFO) << "Schedule getDifference in " << dialog_id.get_channel_id();
+    channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
+  }
+
+  int32 server_unread_count = calc_new_unread_count(d, max_message_id, MessageType::Server, unread_count);
+  int32 local_unread_count =
+      d->local_unread_count == 0 ? 0 : calc_new_unread_count(d, max_message_id, MessageType::Local, -1);
+
+  if (server_unread_count < 0) {
+    server_unread_count = unread_count >= 0 ? unread_count : d->server_unread_count;
+    if (dialog_id.get_type() != DialogType::SecretChat && have_input_peer(dialog_id, AccessRights::Read) &&
+        need_unread_counter(d->order)) {
+      d->need_repair_server_unread_count = true;
+      on_dialog_updated(dialog_id, "read_history_inbox");
+      repair_server_unread_count(dialog_id, server_unread_count, "read_history_inbox");
+    }
+  }
+  if (local_unread_count < 0) {
+    // TODO repair local unread count
+    local_unread_count = d->local_unread_count;
+  }
+
+  set_dialog_last_read_inbox_message_id(d, max_message_id, server_unread_count, local_unread_count, true, source);
+
+  if (d->is_marked_as_unread && max_message_id != MessageId()) {
+    set_dialog_is_marked_as_unread(d, false);
   }
 }
 
@@ -13068,7 +13077,7 @@ void MessagesManager::set_dialog_max_unavailable_message_id(DialogId dialog_id, 
     send_update_delete_messages(dialog_id, std::move(deleted_message_ids), !from_update);
 
     if (d->server_unread_count + d->local_unread_count > 0) {
-      read_history_inbox(dialog_id, max_unavailable_message_id, -1, "set_dialog_max_unavailable_message_id");
+      read_history_inbox(d, max_unavailable_message_id, -1, "set_dialog_max_unavailable_message_id");
     }
   } else {
     LOG(INFO) << "Receive max unavailable message in unknown " << dialog_id << " from " << source;
@@ -15154,7 +15163,7 @@ void MessagesManager::set_dialog_is_empty(Dialog *d, const char *source) {
     MessageId max_message_id =
         d->last_database_message_id.is_valid() ? d->last_database_message_id : d->last_new_message_id;
     if (max_message_id.is_valid()) {
-      read_history_inbox(d->dialog_id, max_message_id, -1, "set_dialog_is_empty");
+      read_history_inbox(d, max_message_id, -1, "set_dialog_is_empty");
     }
     if (d->server_unread_count != 0 || d->local_unread_count != 0) {
       set_dialog_last_read_inbox_message_id(d, MessageId::min(), 0, 0, true, "set_dialog_is_empty");
@@ -20255,7 +20264,7 @@ void MessagesManager::read_dialog_inbox(Dialog *d, MessageId max_message_id) {
     // the timeout will be overwritten in the read_history_on_server call
     pending_read_history_timeout_.add_timeout_in(d->dialog_id.get(), 0);
   }
-  read_history_inbox(d->dialog_id, last_read_message_id, -1, "read_dialog_inbox");
+  read_history_inbox(d, last_read_message_id, -1, "read_dialog_inbox");
   if (read_history_on_server_message_id.is_valid()) {
     // call read_history_on_server after read_history_inbox to not have delay before request if all messages are read
     read_history_on_server(d, read_history_on_server_message_id);
@@ -20424,7 +20433,7 @@ void MessagesManager::open_dialog(Dialog *d) {
   if (d->last_message_id == MessageId() && d->last_read_outbox_message_id < min_message_id) {
     auto it = d->ordered_messages.get_const_iterator(MessageId::max());
     if (*it != nullptr && (*it)->get_message_id() < min_message_id) {
-      read_history_inbox(dialog_id, (*it)->get_message_id(), -1, "open_dialog");
+      read_history_inbox(d, (*it)->get_message_id(), -1, "open_dialog");
     }
   }
 
@@ -28530,7 +28539,7 @@ Result<MessageId> MessagesManager::add_local_message(
     if (result->is_outgoing) {
       read_history_outbox(dialog_id, message_id);
     } else {
-      read_history_inbox(dialog_id, message_id, 0, "add_local_message");
+      read_history_inbox(d, message_id, 0, "add_local_message");
     }
   }
 
@@ -34350,7 +34359,7 @@ void MessagesManager::add_message_to_dialog_message_list(const Message *m, Dialo
       if (message_id.is_server() && d->last_read_inbox_message_id.is_valid() &&
           d->last_read_inbox_message_id.is_server() &&
           message_id == d->last_read_inbox_message_id.get_next_message_id(MessageType::Server)) {
-        read_history_inbox(dialog_id, message_id, 0, "add_message_to_dialog");
+        read_history_inbox(d, message_id, 0, "add_message_to_dialog");
       }
     }
   }
@@ -36754,7 +36763,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
         // can't fix last_read_inbox_message_id by last_read_outbox_message_id because last_read_outbox_message_id is
         // just a message identifier not less than an identifier of last read outgoing message and less than
         // an identifier of first unread outgoing message, so it may not point to the outgoing message
-        // read_history_inbox(dialog_id, d->last_read_outbox_message_id, d->server_unread_count, "fix_new_dialog 6");
+        // read_history_inbox(d, d->last_read_outbox_message_id, d->server_unread_count, "fix_new_dialog 6");
       }
       break;
     case DialogType::Channel:
@@ -36830,7 +36839,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
       have_input_peer(dialog_id, AccessRights::Read) && need_unread_counter(d->order)) {
     if (d->pts == d->pending_read_channel_inbox_pts) {
       d->pending_read_channel_inbox_pts = 0;
-      read_history_inbox(dialog_id, d->pending_read_channel_inbox_max_message_id,
+      read_history_inbox(d, d->pending_read_channel_inbox_max_message_id,
                          d->pending_read_channel_inbox_server_unread_count, "fix_new_dialog 12");
       on_dialog_updated(dialog_id, "fix_new_dialog 13");
     } else if (d->pts > d->pending_read_channel_inbox_pts) {
@@ -37854,7 +37863,7 @@ void MessagesManager::set_channel_pts(Dialog *d, int32 new_pts, const char *sour
       d->pending_read_channel_inbox_pts = 0;
       on_dialog_updated(d->dialog_id, "set_channel_pts");
       if (d->pts == pts) {
-        read_history_inbox(d->dialog_id, d->pending_read_channel_inbox_max_message_id,
+        read_history_inbox(d, d->pending_read_channel_inbox_max_message_id,
                            d->pending_read_channel_inbox_server_unread_count, "set_channel_pts");
       } else if (d->pts > pts) {
         repair_channel_server_unread_count(d);
