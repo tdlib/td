@@ -12551,8 +12551,7 @@ void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_messa
   }
 }
 
-void MessagesManager::read_history_inbox(Dialog *d, MessageId max_message_id, int32 unread_count,
-                                         const char *source) {
+void MessagesManager::read_history_inbox(Dialog *d, MessageId max_message_id, int32 unread_count, const char *source) {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
@@ -12646,43 +12645,52 @@ void MessagesManager::read_history_outbox(DialogId dialog_id, MessageId max_mess
 
   Dialog *d = get_dialog_force(dialog_id, "read_history_outbox");
   if (d != nullptr) {
-    if (!max_message_id.is_valid()) {
-      LOG(ERROR) << "Receive read outbox update in " << dialog_id << " with " << max_message_id;
-      return;
-    }
-    if (max_message_id <= d->last_read_outbox_message_id) {
-      LOG(INFO) << "Receive read outbox update up to " << max_message_id
-                << ", but all messages have already been read up to " << d->last_read_outbox_message_id;
-      return;
-    }
-
-    if (max_message_id.is_yet_unsent()) {
-      LOG(ERROR) << "Tried to update last read outbox message with " << max_message_id << " in " << dialog_id;
-      return;
-    }
-
-    // it is impossible for just sent outgoing messages because updates are ordered by PTS
-    if (d->last_new_message_id.is_valid() && max_message_id > d->last_new_message_id &&
-        dialog_id.get_type() != DialogType::Channel) {
-      LOG(INFO) << "Receive read outbox update about unknown " << max_message_id << " in " << dialog_id
-                << " with last new " << d->last_new_message_id << ". Possible only for deleted outgoing message";
-    }
-
-    if (dialog_id.get_type() == DialogType::SecretChat) {
-      double server_time = G()->server_time();
-      double read_time = Time::now();
-      if (read_date <= 0) {
-        LOG(ERROR) << "Receive wrong read date " << read_date << " in " << dialog_id;
-      } else if (read_date < server_time) {
-        read_time -= (server_time - read_date);
-      }
-      ttl_read_history(d, true, max_message_id, d->last_read_outbox_message_id, read_time);
-    }
-
-    set_dialog_last_read_outbox_message_id(d, max_message_id);
+    read_history_outbox(d, max_message_id, read_date);
   } else {
     LOG(INFO) << "Receive read outbox update about unknown " << dialog_id;
   }
+}
+
+void MessagesManager::read_history_outbox(Dialog *d, MessageId max_message_id, int32 read_date) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  auto dialog_id = d->dialog_id;
+  if (!max_message_id.is_valid()) {
+    LOG(ERROR) << "Receive read outbox update in " << dialog_id << " with " << max_message_id;
+    return;
+  }
+  if (max_message_id <= d->last_read_outbox_message_id) {
+    LOG(INFO) << "Receive read outbox update up to " << max_message_id
+              << ", but all messages have already been read up to " << d->last_read_outbox_message_id;
+    return;
+  }
+
+  if (max_message_id.is_yet_unsent()) {
+    LOG(ERROR) << "Tried to update last read outbox message with " << max_message_id << " in " << dialog_id;
+    return;
+  }
+
+  // it is impossible for just sent outgoing messages because updates are ordered by PTS
+  if (d->last_new_message_id.is_valid() && max_message_id > d->last_new_message_id &&
+      dialog_id.get_type() != DialogType::Channel) {
+    LOG(INFO) << "Receive read outbox update about unknown " << max_message_id << " in " << dialog_id
+              << " with last new " << d->last_new_message_id << ". Possible only for deleted outgoing message";
+  }
+
+  if (dialog_id.get_type() == DialogType::SecretChat) {
+    double server_time = G()->server_time();
+    double read_time = Time::now();
+    if (read_date <= 0) {
+      LOG(ERROR) << "Receive wrong read date " << read_date << " in " << dialog_id;
+    } else if (read_date < server_time) {
+      read_time -= (server_time - read_date);
+    }
+    ttl_read_history(d, true, max_message_id, d->last_read_outbox_message_id, read_time);
+  }
+
+  set_dialog_last_read_outbox_message_id(d, max_message_id);
 }
 
 bool MessagesManager::need_unread_counter(int64 dialog_order) {
@@ -14068,7 +14076,7 @@ void MessagesManager::read_secret_chat_outbox_inner(DialogId dialog_id, int32 up
     return;
   }
   auto max_message_id = (*end)->get_message_id();
-  read_history_outbox(dialog_id, max_message_id, read_date);
+  read_history_outbox(d, max_message_id, read_date);
 }
 
 void MessagesManager::open_secret_message(SecretChatId secret_chat_id, int64 random_id, Promise<Unit> promise) {
@@ -28537,7 +28545,7 @@ Result<MessageId> MessagesManager::add_local_message(
 
   if (is_message_auto_read(dialog_id, result->is_outgoing)) {
     if (result->is_outgoing) {
-      read_history_outbox(dialog_id, message_id);
+      read_history_outbox(d, message_id);
     } else {
       read_history_inbox(d, message_id, 0, "add_local_message");
     }

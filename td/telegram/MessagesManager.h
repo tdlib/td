@@ -2115,6 +2115,8 @@ class MessagesManager final : public Actor {
 
   bool has_incoming_notification(DialogId dialog_id, const Message *m) const;
 
+  void read_history_outbox(Dialog *d, MessageId max_message_id, int32 read_date = -1);
+
   void read_history_inbox(Dialog *d, MessageId max_message_id, int32 unread_count, const char *source);
 
   void read_dialog_inbox(Dialog *d, MessageId max_message_id);
