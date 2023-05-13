@@ -2014,6 +2014,8 @@ class MessagesManager final : public Actor {
 
   void unload_dialog(DialogId dialog_id);
 
+  void clear_dialog_message_list(Dialog *d, bool remove_from_dialog_list, int32 last_message_date);
+
   void delete_all_dialog_messages(Dialog *d, bool remove_from_dialog_list, bool is_permanently_deleted);
 
   void erase_delete_messages_log_event(uint64 log_event_id);

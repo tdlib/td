@@ -11951,11 +11951,7 @@ void MessagesManager::unload_dialog(DialogId dialog_id) {
   }
 }
 
-void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dialog_list, bool is_permanently_deleted) {
-  CHECK(d != nullptr);
-  LOG(INFO) << "Delete all messages in " << d->dialog_id
-            << " with remove_from_dialog_list = " << remove_from_dialog_list
-            << " and is_permanently_deleted = " << is_permanently_deleted;
+void MessagesManager::clear_dialog_message_list(Dialog *d, bool remove_from_dialog_list, int32 last_message_date) {
   if (d->server_unread_count + d->local_unread_count > 0) {
     MessageId max_message_id =
         d->last_database_message_id.is_valid() ? d->last_database_message_id : d->last_new_message_id;
@@ -11977,18 +11973,51 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
   }
 
   bool has_last_message_id = d->last_message_id != MessageId();
-  int32 last_message_date = 0;
   MessageId last_clear_history_message_id;
   if (!remove_from_dialog_list) {
     if (has_last_message_id) {
-      auto m = get_message(d, d->last_message_id);
-      CHECK(m != nullptr);
-      last_message_date = m->date;
       last_clear_history_message_id = d->last_message_id;
     } else {
       last_message_date = d->last_clear_history_date;
       last_clear_history_message_id = d->last_clear_history_message_id;
     }
+  }
+
+  if (d->reply_markup_message_id != MessageId()) {
+    set_dialog_reply_markup(d, MessageId());
+  }
+
+  set_dialog_first_database_message_id(d, MessageId(), "delete_all_dialog_messages 4");
+  set_dialog_last_database_message_id(d, MessageId(), "delete_all_dialog_messages 5");
+  set_dialog_last_clear_history_date(d, last_message_date, last_clear_history_message_id,
+                                     "delete_all_dialog_messages 6");
+  d->last_read_all_mentions_message_id = MessageId();  // it is not needed anymore
+  std::fill(d->message_count_by_index.begin(), d->message_count_by_index.end(), 0);
+
+  if (has_last_message_id) {
+    set_dialog_last_message_id(d, MessageId(), "delete_all_dialog_messages 7");
+    send_update_chat_last_message(d, "delete_all_dialog_messages 8");
+  }
+  if (remove_from_dialog_list) {
+    set_dialog_order(d, DEFAULT_ORDER, true, false, "delete_all_dialog_messages 9");
+  } else {
+    update_dialog_pos(d, "delete_all_dialog_messages 10");
+  }
+}
+
+void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dialog_list, bool is_permanently_deleted) {
+  CHECK(d != nullptr);
+  LOG(INFO) << "Delete all messages in " << d->dialog_id
+            << " with remove_from_dialog_list = " << remove_from_dialog_list
+            << " and is_permanently_deleted = " << is_permanently_deleted;
+  if (!td_->auth_manager_->is_bot()) {
+    int32 last_message_date = 0;
+    if (!remove_from_dialog_list && d->last_message_id.is_valid()) {
+      auto m = get_message(d, d->last_message_id);
+      CHECK(m != nullptr);
+      last_message_date = m->date;
+    }
+    clear_dialog_message_list(d, remove_from_dialog_list, last_message_date);
   }
 
   vector<int64> deleted_message_ids;
@@ -12014,38 +12043,14 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
 
   delete_all_dialog_messages_from_database(d, MessageId::max(), "delete_all_dialog_messages 3");
 
-  if (!td_->auth_manager_->is_bot()) {
-    if (d->reply_markup_message_id != MessageId()) {
-      set_dialog_reply_markup(d, MessageId());
-    }
-
-    set_dialog_first_database_message_id(d, MessageId(), "delete_all_dialog_messages 4");
-    set_dialog_last_database_message_id(d, MessageId(), "delete_all_dialog_messages 5");
-    set_dialog_last_clear_history_date(d, last_message_date, last_clear_history_message_id,
-                                       "delete_all_dialog_messages 6");
-    d->last_read_all_mentions_message_id = MessageId();  // it is not needed anymore
-    if (d->notification_info != nullptr) {
-      d->notification_info->message_notification_group_.max_removed_notification_id =
-          NotificationId();  // it is not needed anymore
-      d->notification_info->message_notification_group_.max_removed_message_id =
-          MessageId();  // it is not needed anymore
-      d->notification_info->mention_notification_group_.max_removed_notification_id =
-          NotificationId();  // it is not needed anymore
-      d->notification_info->mention_notification_group_.max_removed_message_id =
-          MessageId();  // it is not needed anymore
-      d->notification_info->notification_id_to_message_id_.clear();
-    }
-    std::fill(d->message_count_by_index.begin(), d->message_count_by_index.end(), 0);
-
-    if (has_last_message_id) {
-      set_dialog_last_message_id(d, MessageId(), "delete_all_dialog_messages 7");
-      send_update_chat_last_message(d, "delete_all_dialog_messages 8");
-    }
-    if (remove_from_dialog_list) {
-      set_dialog_order(d, DEFAULT_ORDER, true, false, "delete_all_dialog_messages 9");
-    } else {
-      update_dialog_pos(d, "delete_all_dialog_messages 10");
-    }
+  if (d->notification_info != nullptr) {
+    d->notification_info->message_notification_group_.max_removed_notification_id =
+        NotificationId();                                                                    // it is not needed anymore
+    d->notification_info->message_notification_group_.max_removed_message_id = MessageId();  // it is not needed anymore
+    d->notification_info->mention_notification_group_.max_removed_notification_id =
+        NotificationId();                                                                    // it is not needed anymore
+    d->notification_info->mention_notification_group_.max_removed_message_id = MessageId();  // it is not needed anymore
+    d->notification_info->notification_id_to_message_id_.clear();
   }
 
   on_dialog_updated(d->dialog_id, "delete_all_dialog_messages 11");
@@ -13460,10 +13465,8 @@ void MessagesManager::on_message_ttl_expired_impl(Dialog *d, Message *m) {
   m->ttl_expires_at = 0;
   if (m->reply_markup != nullptr) {
     if (m->reply_markup->type != ReplyMarkup::Type::InlineKeyboard) {
-      if (!td_->auth_manager_->is_bot()) {
-        if (d->reply_markup_message_id == m->message_id) {
-          set_dialog_reply_markup(d, MessageId());
-        }
+      if (d->reply_markup_message_id == m->message_id) {
+        set_dialog_reply_markup(d, MessageId());
       }
       m->had_reply_markup = true;
     }
