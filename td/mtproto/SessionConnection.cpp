@@ -361,8 +361,8 @@ Status SessionConnection::on_packet(const MsgInfo &info,
       return Status::Error("SeqNo is not even for an irrelevant message");
     }
     case SeqNoNotOdd: {
-      LOG(ERROR) << bad_info << ": SeqNo is not odd for an irrelevant message" << common;
-      return Status::Error("SeqNo is not odd for an irrelevant message");
+      LOG(ERROR) << bad_info << ": SeqNo is not odd for a relevant message" << common;
+      return Status::Error("SeqNo is not odd for a relevant message");
     }
 
     case InvalidContainer: {
