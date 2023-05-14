@@ -459,8 +459,8 @@ static ActorOwn<> get_full_config(DcOption option, Promise<tl_object_ptr<telegra
 
       //notify();
     }
-    void update_server_time_difference(double diff) final {
-      G()->update_server_time_difference(diff);
+    void update_server_time_difference(double diff, bool force) final {
+      G()->update_server_time_difference(diff, force);
     }
     double get_server_time_difference() final {
       return G()->get_server_time_difference();

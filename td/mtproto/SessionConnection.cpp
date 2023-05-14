@@ -330,6 +330,8 @@ Status SessionConnection::on_packet(const MsgInfo &info,
       LOG(WARNING) << bad_info << ": MessageId is too high. Session will be closed";
       // All this queries will be re-sent by parent
       to_send_.clear();
+      auth_data_->reset_server_time_difference(static_cast<uint32>(info.message_id >> 32) - Time::now());
+      callback_->on_server_time_difference_updated(true);
       callback_->on_session_failed(Status::Error("MessageId is too high"));
       return Status::Error("MessageId is too high");
     }
@@ -692,7 +694,7 @@ Status SessionConnection::on_raw_packet(const PacketInfo &info, BufferSlice pack
   auto status =
       auth_data_->check_packet(info.session_id, info.message_id, Time::now_cached(), time_difference_was_updated);
   if (time_difference_was_updated) {
-    callback_->on_server_time_difference_updated();
+    callback_->on_server_time_difference_updated(false);
   }
   if (status.is_error()) {
     if (status.code() == 1) {

@@ -159,7 +159,7 @@ class Global final : public ActorContext {
     return to_unix_time(server_time_cached());
   }
 
-  void update_server_time_difference(double diff);
+  void update_server_time_difference(double diff, bool force);
 
   void save_server_time();
 

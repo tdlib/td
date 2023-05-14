@@ -185,8 +185,8 @@ int32 Global::to_unix_time(double server_time) const {
   return static_cast<int32>(server_time);
 }
 
-void Global::update_server_time_difference(double diff) {
-  if (!server_time_difference_was_updated_ || server_time_difference_ < diff) {
+void Global::update_server_time_difference(double diff, bool force) {
+  if (force || !server_time_difference_was_updated_ || server_time_difference_ < diff) {
     server_time_difference_ = diff;
     server_time_difference_was_updated_ = true;
     do_save_server_time_difference();

@@ -250,7 +250,7 @@ Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> 
   auth_data_.set_use_pfs(use_pfs);
   auth_data_.set_main_auth_key(shared_auth_data_->get_auth_key());
   // auth_data_.break_main_auth_key();
-  auth_data_.set_server_time_difference(shared_auth_data_->get_server_time_difference());
+  auth_data_.reset_server_time_difference(shared_auth_data_->get_server_time_difference());
   auto now = Time::now();
   auth_data_.set_future_salts(shared_auth_data_->get_future_salts(), now);
   if (use_pfs && !tmp_auth_key.empty()) {
@@ -612,8 +612,8 @@ void Session::on_server_salt_updated() {
   shared_auth_data_->set_future_salts(auth_data_.get_future_salts());
 }
 
-void Session::on_server_time_difference_updated() {
-  shared_auth_data_->update_server_time_difference(auth_data_.get_server_time_difference());
+void Session::on_server_time_difference_updated(bool force) {
+  shared_auth_data_->update_server_time_difference(auth_data_.get_server_time_difference(), force);
 }
 
 void Session::on_closed(Status status) {
@@ -1434,7 +1434,7 @@ void Session::on_handshake_ready(Result<unique_ptr<mtproto::AuthKeyHandshake>> r
         on_server_salt_updated();
       }
       if (auth_data_.update_server_time_difference(handshake->get_server_time_diff())) {
-        on_server_time_difference_updated();
+        on_server_time_difference_updated(true);
       }
     }
   }

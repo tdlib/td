@@ -37,7 +37,7 @@ class AuthDataShared {
   virtual const std::shared_ptr<PublicRsaKeyShared> &public_rsa_key() = 0;
   virtual mtproto::AuthKey get_auth_key() = 0;
   virtual void set_auth_key(const mtproto::AuthKey &auth_key) = 0;
-  virtual void update_server_time_difference(double diff) = 0;
+  virtual void update_server_time_difference(double diff, bool force) = 0;
   virtual double get_server_time_difference() = 0;
   virtual void add_auth_key_listener(unique_ptr<Listener> listener) = 0;
 

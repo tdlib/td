@@ -119,7 +119,7 @@ class PingConnectionPingPong final
   }
   void on_server_salt_updated() final {
   }
-  void on_server_time_difference_updated() final {
+  void on_server_time_difference_updated(bool force) final {
   }
 
   void on_session_created(uint64 unique_id, uint64 first_id) final {

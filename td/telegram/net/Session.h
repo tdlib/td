@@ -207,7 +207,7 @@ class Session final
   void on_auth_key_updated() final;
   void on_tmp_auth_key_updated() final;
   void on_server_salt_updated() final;
-  void on_server_time_difference_updated() final;
+  void on_server_time_difference_updated(bool force) final;
 
   void on_session_created(uint64 unique_id, uint64 first_message_id) final;
   void on_session_failed(Status status) final;

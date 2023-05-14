@@ -51,8 +51,8 @@ class AuthDataSharedImpl final : public AuthDataShared {
   }
 
   // TODO: extract it from G()
-  void update_server_time_difference(double diff) final {
-    G()->update_server_time_difference(diff);
+  void update_server_time_difference(double diff, bool force) final {
+    G()->update_server_time_difference(diff, force);
   }
 
   double get_server_time_difference() final {
