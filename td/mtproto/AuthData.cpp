@@ -129,10 +129,10 @@ bool AuthData::is_valid_inbound_msg_id(uint64 message_id, double now) const {
   return server_time - 300 < id_time && id_time < server_time + 30;
 }
 
-Status AuthData::check_packet(int64 session_id, uint64 message_id, double now, bool &time_difference_was_updated) {
+Status AuthData::check_packet(uint64 session_id, uint64 message_id, double now, bool &time_difference_was_updated) {
   // Client is to check that the session_id field in the decrypted message indeed equals to that of an active session
   // created by the client.
-  if (get_session_id() != static_cast<uint64>(session_id)) {
+  if (get_session_id() != session_id) {
     return Status::Error(PSLICE() << "Receive packet from different session " << session_id << " in session "
                                   << get_session_id());
   }

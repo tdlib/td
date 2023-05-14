@@ -142,8 +142,8 @@ class ConnectionCreator final : public NetQueryCallback {
       int32 next_delay_ = 1;
     };
     ClientInfo();
-    int64 extract_session_id();
-    void add_session_id(int64 session_id);
+    uint64 extract_session_id();
+    void add_session_id(uint64 session_id);
 
     Backoff backoff;
     FloodControlStrict sanity_flood_control;
@@ -163,7 +163,7 @@ class ConnectionCreator final : public NetQueryCallback {
     DcId dc_id;
     bool allow_media_only{false};
     bool is_media{false};
-    std::set<int64> session_ids_;
+    std::set<uint64> session_ids_;
     unique_ptr<mtproto::AuthData> auth_data;
     uint64 auth_data_generation{0};
   };
@@ -223,7 +223,7 @@ class ConnectionCreator final : public NetQueryCallback {
                                     mtproto::TransportType transport_type, uint32 hash, string debug_str,
                                     uint32 network_generation);
   void client_add_connection(uint32 hash, Result<unique_ptr<mtproto::RawConnection>> r_raw_connection, bool check_flag,
-                             uint64 auth_data_generation, int64 session_id);
+                             uint64 auth_data_generation, uint64 session_id);
   void client_set_timeout_at(ClientInfo &client, double wakeup_at);
 
   void on_proxy_resolved(Result<IPAddress> ip_address, bool dummy);

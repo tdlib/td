@@ -54,7 +54,7 @@ class RawConnectionDefault final : public RawConnection {
     return transport_->get_type();
   }
 
-  size_t send_crypto(const Storer &storer, int64 session_id, int64 salt, const AuthKey &auth_key,
+  size_t send_crypto(const Storer &storer, uint64 session_id, int64 salt, const AuthKey &auth_key,
                      uint64 quick_ack_token) final {
     PacketInfo info;
     info.version = 2;
@@ -299,7 +299,7 @@ class RawConnectionHttp final : public RawConnection {
     return mtproto::TransportType{mtproto::TransportType::Http, 0, mtproto::ProxySecret()};
   }
 
-  size_t send_crypto(const Storer &storer, int64 session_id, int64 salt, const AuthKey &auth_key,
+  size_t send_crypto(const Storer &storer, uint64 session_id, int64 salt, const AuthKey &auth_key,
                      uint64 quick_ack_token) final {
     PacketInfo info;
     info.version = 2;

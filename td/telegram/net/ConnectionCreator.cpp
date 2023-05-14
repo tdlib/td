@@ -110,20 +110,20 @@ ConnectionCreator::ClientInfo::ClientInfo() {
   mtproto_error_flood_control.add_limit(8, 3);
 }
 
-int64 ConnectionCreator::ClientInfo::extract_session_id() {
+uint64 ConnectionCreator::ClientInfo::extract_session_id() {
   if (!session_ids_.empty()) {
     auto res = *session_ids_.begin();
     session_ids_.erase(session_ids_.begin());
     return res;
   }
-  int64 res = 0;
+  uint64 res = 0;
   while (res == 0) {
-    res = Random::secure_int64();
+    res = Random::secure_uint64();
   }
   return res;
 }
 
-void ConnectionCreator::ClientInfo::add_session_id(int64 session_id) {
+void ConnectionCreator::ClientInfo::add_session_id(uint64 session_id) {
   if (session_id != 0) {
     session_ids_.insert(session_id);
   }
@@ -934,7 +934,7 @@ void ConnectionCreator::client_create_raw_connection(Result<ConnectionData> r_co
                                                      string debug_str, uint32 network_generation) {
   unique_ptr<mtproto::AuthData> auth_data;
   uint64 auth_data_generation{0};
-  int64 session_id{0};
+  uint64 session_id{0};
   if (check_mode) {
     auto it = clients_.find(hash);
     CHECK(it != clients_.end());
@@ -992,7 +992,7 @@ void ConnectionCreator::client_set_timeout_at(ClientInfo &client, double wakeup_
 }
 
 void ConnectionCreator::client_add_connection(uint32 hash, Result<unique_ptr<mtproto::RawConnection>> r_raw_connection,
-                                              bool check_flag, uint64 auth_data_generation, int64 session_id) {
+                                              bool check_flag, uint64 auth_data_generation, uint64 session_id) {
   auto &client = clients_[hash];
   client.add_session_id(session_id);
   CHECK(client.pending_connections > 0);

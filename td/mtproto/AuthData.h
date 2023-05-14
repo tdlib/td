@@ -245,7 +245,7 @@ class AuthData {
 
   bool is_valid_inbound_msg_id(uint64 message_id, double now) const;
 
-  Status check_packet(int64 session_id, uint64 message_id, double now, bool &time_difference_was_updated);
+  Status check_packet(uint64 session_id, uint64 message_id, double now, bool &time_difference_was_updated);
 
   Status check_update(uint64 message_id) {
     return updates_duplicate_checker_.check(message_id);
