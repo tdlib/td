@@ -4297,7 +4297,7 @@ pushMessageContentChatJoinByLink = PushMessageContent;
 //@description A new member was accepted to the chat by an administrator
 pushMessageContentChatJoinByRequest = PushMessageContent;
 
-//@description A new recurrent payment was made by the current user @amount The paid amount
+//@description A new recurring payment was made by the current user @amount The paid amount
 pushMessageContentRecurringPayment amount:string = PushMessageContent;
 
 //@description A profile photo was suggested to the user
