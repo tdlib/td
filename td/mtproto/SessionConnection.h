@@ -221,6 +221,8 @@ class SessionConnection final
     };
   }
 
+  void reset_server_time_difference(uint64 message_id);
+
   static Status parse_message(TlParser &parser, MsgInfo *info, Slice *packet,
                               bool crypto_flag = true) TD_WARN_UNUSED_RESULT;
   Status parse_packet(TlParser &parser) TD_WARN_UNUSED_RESULT;

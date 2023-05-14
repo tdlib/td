@@ -225,6 +225,12 @@ Status SessionConnection::on_packet_container(const MsgInfo &info, Slice packet)
   return Status::OK();
 }
 
+void SessionConnection::reset_server_time_difference(uint64 message_id) {
+  VLOG(mtproto) << "Reset server time difference";
+  auth_data_->reset_server_time_difference(static_cast<uint32>(message_id >> 32) - Time::now());
+  callback_->on_server_time_difference_updated(true);
+}
+
 Status SessionConnection::on_packet_rpc_result(const MsgInfo &info, Slice packet) {
   TlParser parser(packet);
   uint64 req_msg_id = parser.fetch_long();
@@ -234,6 +240,10 @@ Status SessionConnection::on_packet_rpc_result(const MsgInfo &info, Slice packet
   if (req_msg_id == 0) {
     LOG(ERROR) << "Receive an update in rpc_result: message_id = " << info.message_id << ", seq_no = " << info.seq_no;
     return Status::Error("Receive an update in rpc_result");
+  }
+
+  if (info.message_id < req_msg_id - (static_cast<uint64>(15) << 32)) {
+    reset_server_time_difference(info.message_id);
   }
 
   switch (parser.fetch_int()) {
@@ -331,8 +341,7 @@ Status SessionConnection::on_packet(const MsgInfo &info,
       LOG(WARNING) << bad_info << ": MessageId is too high. Session will be closed";
       // All this queries will be re-sent by parent
       to_send_.clear();
-      auth_data_->reset_server_time_difference(static_cast<uint32>(info.message_id >> 32) - Time::now());
-      callback_->on_server_time_difference_updated(true);
+      reset_server_time_difference(info.message_id);
       callback_->on_session_failed(Status::Error("MessageId is too high"));
       return Status::Error("MessageId is too high");
     }
@@ -407,6 +416,9 @@ Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::gzip
 
 Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::pong &pong) {
   VLOG(mtproto) << "PONG";
+  if (info.message_id < static_cast<uint64>(pong.msg_id_) - (static_cast<uint64>(15) << 32)) {
+    reset_server_time_difference(info.message_id);
+  }
   last_pong_at_ = Time::now_cached();
   real_last_pong_at_ = last_pong_at_;
   return callback_->on_pong();
