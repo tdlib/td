@@ -13,11 +13,11 @@ namespace td {
 namespace mtproto {
 
 struct MtprotoQuery {
-  int64 message_id;
+  uint64 message_id;
   int32 seq_no;
   BufferSlice packet;
   bool gzip_flag;
-  std::vector<uint64> invoke_after_ids;
+  vector<uint64> invoke_after_ids;
   bool use_quick_ack;
 };
 

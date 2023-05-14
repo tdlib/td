@@ -111,7 +111,7 @@ struct NoCryptoHeader {
 
   // message_id is removed from CryptoHeader. Should be removed from here too.
   //
-  // int64 message_id;
+  // uint64 message_id;
   // uint32 message_data_length;
   uint8 data[0];  // use compiler extension
 

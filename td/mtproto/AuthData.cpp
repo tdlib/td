@@ -17,7 +17,7 @@
 namespace td {
 namespace mtproto {
 
-Status check_message_id_duplicates(int64 *saved_message_ids, size_t max_size, size_t &end_pos, int64 message_id) {
+Status check_message_id_duplicates(uint64 *saved_message_ids, size_t max_size, size_t &end_pos, uint64 message_id) {
   // In addition, the identifiers (msg_id) of the last N messages received from the other side must be stored, and if
   // a message comes in with msg_id lower than all or equal to any of the stored values, that message is to be
   // ignored. Otherwise, the new message msg_id is added to the set, and, if the number of stored msg_id values is
@@ -98,9 +98,9 @@ std::vector<ServerSalt> AuthData::get_future_salts() const {
   return res;
 }
 
-int64 AuthData::next_message_id(double now) {
+uint64 AuthData::next_message_id(double now) {
   double server_time = get_server_time(now);
-  auto t = static_cast<int64>(server_time * (static_cast<int64>(1) << 32));
+  auto t = static_cast<uint64>(server_time * (static_cast<uint64>(1) << 32));
 
   // randomize lower bits for clocks with low precision
   // TODO(perf) do not do this for systems with good precision?..
@@ -109,7 +109,7 @@ int64 AuthData::next_message_id(double now) {
   auto to_mul = ((rx >> 22) & 1023) + 1;
 
   t ^= to_xor;
-  auto result = t & -4;
+  auto result = t & static_cast<uint64>(-4);
   if (last_message_id_ >= result) {
     result = last_message_id_ + 8 * to_mul;
   }
@@ -117,19 +117,19 @@ int64 AuthData::next_message_id(double now) {
   return result;
 }
 
-bool AuthData::is_valid_outbound_msg_id(int64 id, double now) const {
+bool AuthData::is_valid_outbound_msg_id(uint64 message_id, double now) const {
   double server_time = get_server_time(now);
-  auto id_time = static_cast<double>(id) / static_cast<double>(static_cast<int64>(1) << 32);
+  auto id_time = static_cast<double>(message_id) / static_cast<double>(static_cast<uint64>(1) << 32);
   return server_time - 150 < id_time && id_time < server_time + 30;
 }
 
-bool AuthData::is_valid_inbound_msg_id(int64 id, double now) const {
+bool AuthData::is_valid_inbound_msg_id(uint64 message_id, double now) const {
   double server_time = get_server_time(now);
-  auto id_time = static_cast<double>(id) / static_cast<double>(static_cast<int64>(1) << 32);
+  auto id_time = static_cast<double>(message_id) / static_cast<double>(static_cast<uint64>(1) << 32);
   return server_time - 300 < id_time && id_time < server_time + 30;
 }
 
-Status AuthData::check_packet(int64 session_id, int64 message_id, double now, bool &time_difference_was_updated) {
+Status AuthData::check_packet(int64 session_id, uint64 message_id, double now, bool &time_difference_was_updated) {
   // Client is to check that the session_id field in the decrypted message indeed equals to that of an active session
   // created by the client.
   if (get_session_id() != static_cast<uint64>(session_id)) {

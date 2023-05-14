@@ -30,7 +30,6 @@ namespace td {
 extern int VERBOSITY_NAME(mtproto);
 
 namespace mtproto_api {
-
 class rpc_error;
 class new_session_created;
 class bad_msg_notification;
@@ -55,7 +54,7 @@ class AuthData;
 
 struct MsgInfo {
   uint64 session_id;
-  int64 message_id;
+  uint64 message_id;
   int32 seq_no;
   size_t size;
 };
@@ -81,13 +80,13 @@ class SessionConnection final
   unique_ptr<RawConnection> move_as_raw_connection();
 
   // Interface
-  Result<uint64> TD_WARN_UNUSED_RESULT send_query(BufferSlice buffer, bool gzip_flag, int64 message_id = 0,
+  Result<uint64> TD_WARN_UNUSED_RESULT send_query(BufferSlice buffer, bool gzip_flag, uint64 message_id = 0,
                                                   std::vector<uint64> invoke_after_id = {}, bool use_quick_ack = false);
   std::pair<uint64, BufferSlice> encrypted_bind(int64 perm_key, int64 nonce, int32 expires_at);
 
-  void get_state_info(int64 message_id);
-  void resend_answer(int64 message_id);
-  void cancel_answer(int64 message_id);
+  void get_state_info(uint64 message_id);
+  void resend_answer(uint64 message_id);
+  void cancel_answer(uint64 message_id);
   void destroy_key();
 
   void set_online(bool online_flag, bool is_main);
@@ -187,7 +186,7 @@ class SessionConnection final
   double last_pong_at_ = 0;
   double real_last_read_at_ = 0;
   double real_last_pong_at_ = 0;
-  int64 cur_ping_id_ = 0;
+  uint64 cur_ping_id_ = 0;
   uint64 last_ping_message_id_ = 0;
   uint64 last_ping_container_id_ = 0;
 
@@ -205,7 +204,7 @@ class SessionConnection final
   bool connected_flag_ = false;
 
   uint64 container_id_ = 0;
-  int64 main_message_id_ = 0;
+  uint64 main_message_id_ = 0;
   double created_at_ = 0;
 
   unique_ptr<RawConnection> raw_connection_;

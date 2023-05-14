@@ -1382,7 +1382,7 @@ bool Session::connection_send_bind_key(ConnectionInfo *info) {
   int64 perm_auth_key_id = auth_data_.get_main_auth_key().id();
   int64 nonce = Random::secure_int64();
   auto expires_at = static_cast<int32>(auth_data_.get_server_time(auth_data_.get_tmp_auth_key().expires_at()));
-  int64 message_id;
+  uint64 message_id;
   BufferSlice encrypted;
   std::tie(message_id, encrypted) = info->connection_->encrypted_bind(perm_auth_key_id, nonce, expires_at);
 

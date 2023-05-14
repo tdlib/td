@@ -116,7 +116,7 @@ class InvokeAfter {
     }
     if (message_ids_.size() == 1) {
       storer.store_int(static_cast<int32>(0xcb9f372d));
-      storer.store_long(static_cast<int64>(message_ids_[0]));
+      storer.store_binary(message_ids_[0]);
       return;
     }
     //  invokeAfterMsgs#3dc4b4f0 {X:Type} msg_ids:Vector<long> query:!X = X;
@@ -124,7 +124,7 @@ class InvokeAfter {
     storer.store_int(static_cast<int32>(0x1cb5c415));
     storer.store_int(narrow_cast<int32>(message_ids_.size()));
     for (auto message_id : message_ids_) {
-      storer.store_long(static_cast<int64>(message_id));
+      storer.store_binary(message_id);
     }
   }
 

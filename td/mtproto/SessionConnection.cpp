@@ -302,7 +302,8 @@ Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::new_
 
 Status SessionConnection::on_packet(const MsgInfo &info,
                                     const mtproto_api::bad_msg_notification &bad_msg_notification) {
-  MsgInfo bad_info{info.session_id, bad_msg_notification.bad_msg_id_, bad_msg_notification.bad_msg_seqno_, 0};
+  MsgInfo bad_info{info.session_id, static_cast<uint64>(bad_msg_notification.bad_msg_id_),
+                   bad_msg_notification.bad_msg_seqno_, 0};
   enum Code {
     MsgIdTooLow = 16,
     MsgIdTooHigh = 17,
@@ -381,7 +382,8 @@ Status SessionConnection::on_packet(const MsgInfo &info,
 }
 
 Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::bad_server_salt &bad_server_salt) {
-  MsgInfo bad_info{info.session_id, bad_server_salt.bad_msg_id_, bad_server_salt.bad_msg_seqno_, 0};
+  MsgInfo bad_info{info.session_id, static_cast<uint64>(bad_server_salt.bad_msg_id_), bad_server_salt.bad_msg_seqno_,
+                   0};
   VLOG(mtproto) << "BAD_SERVER_SALT: " << bad_info;
   auth_data_->set_server_salt(bad_server_salt.new_server_salt_, Time::now_cached());
   callback_->on_server_salt_updated();
@@ -434,7 +436,7 @@ Status SessionConnection::on_msgs_state_info(const vector<int64> &message_ids, S
   }
   size_t i = 0;
   for (auto message_id : message_ids) {
-    callback_->on_message_info(message_id, info[i], 0, 0);
+    callback_->on_message_info(static_cast<uint64>(message_id), info[i], 0, 0);
     i++;
   }
   return Status::OK();
@@ -780,7 +782,7 @@ void SessionConnection::send_crypto(const Storer &storer, uint64 quick_ack_token
                                                    auth_data_->get_auth_key(), quick_ack_token);
 }
 
-Result<uint64> SessionConnection::send_query(BufferSlice buffer, bool gzip_flag, int64 message_id,
+Result<uint64> SessionConnection::send_query(BufferSlice buffer, bool gzip_flag, uint64 message_id,
                                              vector<uint64> invoke_after_ids, bool use_quick_ack) {
   CHECK(mode_ != Mode::HttpLongPoll);  // "LongPoll connection is only for http_wait"
   if (message_id == 0) {
@@ -798,24 +800,24 @@ Result<uint64> SessionConnection::send_query(BufferSlice buffer, bool gzip_flag,
   return message_id;
 }
 
-void SessionConnection::get_state_info(int64 message_id) {
+void SessionConnection::get_state_info(uint64 message_id) {
   if (to_get_state_info_.empty()) {
     send_before(Time::now_cached());
   }
-  to_get_state_info_.push_back(message_id);
+  to_get_state_info_.push_back(static_cast<int64>(message_id));
 }
 
-void SessionConnection::resend_answer(int64 message_id) {
+void SessionConnection::resend_answer(uint64 message_id) {
   if (to_resend_answer_.empty()) {
     send_before(Time::now_cached() + RESEND_ANSWER_DELAY);
   }
-  to_resend_answer_.push_back(message_id);
+  to_resend_answer_.push_back(static_cast<int64>(message_id));
 }
-void SessionConnection::cancel_answer(int64 message_id) {
+void SessionConnection::cancel_answer(uint64 message_id) {
   if (to_cancel_answer_.empty()) {
     send_before(Time::now_cached() + RESEND_ANSWER_DELAY);
   }
-  to_cancel_answer_.push_back(message_id);
+  to_cancel_answer_.push_back(static_cast<int64>(message_id));
 }
 
 void SessionConnection::destroy_key() {
