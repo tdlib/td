@@ -59,7 +59,7 @@ if (CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 endif()
 
 if (GCC OR CLANG)
-  target_compile_options(tdsqlite PRIVATE -Wno-deprecated-declarations -Wno-unused-variable -Wno-unused-const-variable -Wno-unused-function)
+  target_compile_options(tdsqlite PRIVATE -Wno-deprecated-declarations -Wno-unused-variable -Wno-unused-const-variable -Wno-unused-function -Wno-maybe-uninitialized -Wno-return-local-addr)
   if (CLANG)
     target_compile_options(tdsqlite PRIVATE -Wno-parentheses-equality -Wno-unused-value -Wno-unused-command-line-argument -Qunused-arguments)
   endif()
