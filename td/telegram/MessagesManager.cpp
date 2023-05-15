@@ -13797,7 +13797,7 @@ void MessagesManager::init() {
   G()->td_db()->get_binlog_pmc()->erase("dialog_pinned_current_order");
 
   if (G()->use_message_database()) {
-    ttl_db_loop_start();
+    ttl_db_loop();
   }
 
   load_calls_db_state();
@@ -13838,23 +13838,8 @@ void MessagesManager::on_authorization_success() {
   create_folders();
 }
 
-void MessagesManager::ttl_db_loop_start() {
-  ttl_db_next_request_time_ = 0;
-  ttl_db_expires_till_ = G()->unix_time() + 15;
-  ttl_db_has_query_ = false;
-
-  ttl_db_loop();
-}
-
 void MessagesManager::ttl_db_loop() {
-  LOG(INFO) << "Begin ttl_db loop: " << tag("expires_till", ttl_db_expires_till_)
-            << tag("has_query", ttl_db_has_query_);
   if (ttl_db_has_query_) {
-    return;
-  }
-
-  if (ttl_db_expires_till_ < 0) {
-    LOG(INFO) << "Finish ttl_db loop";
     return;
   }
 
@@ -13868,17 +13853,15 @@ void MessagesManager::ttl_db_loop() {
   }
 
   ttl_db_has_query_ = true;
-  int32 limit = 50;
-  LOG(INFO) << "Send ttl_db query " << tag("expires_till", ttl_db_expires_till_) << tag("limit", limit);
+  LOG(INFO) << "Send ttl_db query with limit " << ttl_db_next_limit_;
   G()->td_db()->get_message_db_async()->get_expiring_messages(
-      ttl_db_expires_till_, limit,
-      PromiseCreator::lambda(
-          [actor_id = actor_id(this)](Result<std::pair<std::vector<MessageDbMessage>, int32>> result) {
-            send_closure(actor_id, &MessagesManager::ttl_db_on_result, std::move(result), false);
-          }));
+      G()->unix_time() - 1, ttl_db_next_limit_,
+      PromiseCreator::lambda([actor_id = actor_id(this)](Result<std::vector<MessageDbMessage>> result) {
+        send_closure(actor_id, &MessagesManager::ttl_db_on_result, std::move(result), false);
+      }));
 }
 
-void MessagesManager::ttl_db_on_result(Result<std::pair<std::vector<MessageDbMessage>, int32>> r_result, bool dummy) {
+void MessagesManager::ttl_db_on_result(Result<std::vector<MessageDbMessage>> r_result, bool dummy) {
   if (G()->close_flag()) {
     return;
   }
@@ -13886,12 +13869,21 @@ void MessagesManager::ttl_db_on_result(Result<std::pair<std::vector<MessageDbMes
   CHECK(r_result.is_ok());
   auto result = r_result.move_as_ok();
   ttl_db_has_query_ = false;
-  ttl_db_next_request_time_ = Time::now() + Random::fast(3000, 4200);
-  ttl_db_expires_till_ = result.second;
 
-  LOG(INFO) << "Receive " << result.first.size()
-            << " expired messages from database with new expires_till = " << ttl_db_expires_till_;
-  for (auto &dialog_message : result.first) {
+  int32 next_request_delay;
+  if (result.size() == static_cast<size_t>(ttl_db_next_limit_)) {
+    CHECK(ttl_db_next_limit_ < (1 << 30));
+    ttl_db_next_limit_ *= 2;
+    next_request_delay = 1;
+  } else {
+    ttl_db_next_limit_ = DEFAULT_LOADED_EXPIRED_MESSAGES;
+    next_request_delay = Random::fast(3000, 4200);
+  }
+  ttl_db_next_request_time_ = Time::now() + next_request_delay;
+
+  LOG(INFO) << "Receive " << result.size() << " expired messages from ttl_db with next request in "
+            << next_request_delay << " seconds";
+  for (auto &dialog_message : result) {
     on_get_message_from_database(dialog_message, false, "ttl_db_on_result");
   }
   ttl_db_loop();

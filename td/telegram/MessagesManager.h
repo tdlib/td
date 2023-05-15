@@ -1695,6 +1695,8 @@ class MessagesManager final : public Actor {
   static constexpr int32 MIN_READ_HISTORY_DELAY = 3;  // seconds
   static constexpr int32 MAX_SAVE_DIALOG_DELAY = 0;   // seconds
 
+  static constexpr int32 DEFAULT_LOADED_EXPIRED_MESSAGES = 50;
+
   static constexpr int32 LIVE_LOCATION_VIEW_PERIOD = 60;      // seconds, server-side limit
   static constexpr int32 UPDATE_VIEWED_MESSAGES_PERIOD = 15;  // seconds
 
@@ -2832,11 +2834,12 @@ class MessagesManager final : public Actor {
   void hangup() final;
 
   void create_folders();
+
   void init();
 
-  void ttl_db_loop_start();
   void ttl_db_loop();
-  void ttl_db_on_result(Result<std::pair<std::vector<MessageDbMessage>, int32>> r_result, bool dummy);
+
+  void ttl_db_on_result(Result<std::vector<MessageDbMessage>> r_result, bool dummy);
 
   void on_restore_missing_message_after_get_difference(FullMessageId full_message_id, MessageId old_message_id,
                                                        Result<Unit> result);
@@ -3263,7 +3266,7 @@ class MessagesManager final : public Actor {
 
   enum YieldType : int32 { None, TtlDb };  // None must be first
   double ttl_db_next_request_time_ = 0;
-  int32 ttl_db_expires_till_ = 0;
+  int32 ttl_db_next_limit_ = DEFAULT_LOADED_EXPIRED_MESSAGES;
   bool ttl_db_has_query_ = false;
   Slot ttl_db_slot_;
 
