@@ -410,6 +410,11 @@ Status TdDb::init_sqlite(const Parameters &parameters, const DbKey &key, const D
   common_kv_safe_ = std::make_shared<SqliteKeyValueSafe>("common", sql_connection_);
   common_kv_async_ = create_sqlite_key_value_async(common_kv_safe_);
 
+  if (was_dialog_db_created_) {
+    get_sqlite_sync_pmc()->erase("calls_db_state");
+    get_sqlite_sync_pmc()->erase("di_active_live_location_messages");
+  }
+
   if (use_dialog_db) {
     dialog_db_sync_safe_ = create_dialog_db_sync(sql_connection_);
     dialog_db_async_ = create_dialog_db_async(dialog_db_sync_safe_);
