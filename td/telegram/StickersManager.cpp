@@ -5752,9 +5752,10 @@ void StickersManager::on_load_sticker_set_from_database(StickerSetId sticker_set
                                             << " stickers was changed before it is loaded from database";
     LogEventParser parser(value);
     parse_sticker_set(sticker_set, parser);
-    LOG_IF(ERROR, sticker_set->is_changed_)
-        << sticker_set_id << " with" << (with_stickers ? "" : "out") << " stickers is changed";
     parser.fetch_end();
+    if (sticker_set->is_changed_) {
+      LOG(INFO) << sticker_set_id << " with" << (with_stickers ? "" : "out") << " stickers is changed";
+    }
     auto status = parser.get_status();
     if (status.is_error()) {
       G()->td_db()->get_sqlite_sync_pmc()->erase(with_stickers ? get_full_sticker_set_database_key(sticker_set_id)
