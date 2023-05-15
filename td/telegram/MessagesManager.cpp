@@ -34694,8 +34694,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     auto now = Time::now();
     if (message->ttl_expires_at <= now) {
       if (dialog_type == DialogType::SecretChat) {
-        LOG(INFO) << "Can't add " << message_id << " with expired self-destruct timer to " << dialog_id << " from "
-                  << source;
+        LOG(INFO) << "Can't add " << message_id << " with expired " << (now - message->ttl_expires_at)
+                  << " seconds ago self-destruct timer to " << dialog_id << " from " << source;
         delete_message_from_database(d, message_id, message.get(), true, "delete self-destructed message");
         debug_add_message_to_dialog_fail_reason_ = "delete self-destructed message";
         d->being_added_message_id = MessageId();
@@ -34715,7 +34715,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     CHECK(dialog_type != DialogType::SecretChat);
     auto server_time = G()->server_time();
     if (message->date + message->ttl_period <= server_time) {
-      LOG(INFO) << "Can't add auto-deleted " << message_id << " to " << dialog_id << " from " << source;
+      LOG(INFO) << "Can't add auto-deleted " << message_id << " sent at " << message->date << " with auto-delete time "
+                << message->ttl_period << " to " << dialog_id << " from " << source;
       delete_message_from_database(d, message_id, message.get(), true, "delete auto-deleted message");
       debug_add_message_to_dialog_fail_reason_ = "delete auto-deleted message";
       d->being_added_message_id = MessageId();
