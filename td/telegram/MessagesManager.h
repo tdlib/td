@@ -2834,8 +2834,8 @@ class MessagesManager final : public Actor {
   void create_folders();
   void init();
 
-  void ttl_db_loop_start(double server_now);
-  void ttl_db_loop(double server_now);
+  void ttl_db_loop_start();
+  void ttl_db_loop();
   void ttl_db_on_result(Result<std::pair<std::vector<MessageDbMessage>, int32>> r_result, bool dummy);
 
   void on_restore_missing_message_after_get_difference(FullMessageId full_message_id, MessageId old_message_id,
@@ -3262,9 +3262,9 @@ class MessagesManager final : public Actor {
   Slot ttl_slot_;
 
   enum YieldType : int32 { None, TtlDb };  // None must be first
-  int32 ttl_db_expires_from_;
-  int32 ttl_db_expires_till_;
-  bool ttl_db_has_query_;
+  double ttl_db_next_request_time_ = 0;
+  int32 ttl_db_expires_till_ = 0;
+  bool ttl_db_has_query_ = false;
   Slot ttl_db_slot_;
 
   FlatHashMap<int64, FullMessageId> being_sent_messages_;  // message_random_id -> message
