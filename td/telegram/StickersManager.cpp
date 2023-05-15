@@ -5773,8 +5773,9 @@ void StickersManager::on_load_sticker_set_from_database(StickerSetId sticker_set
   if (with_stickers && old_sticker_count < get_max_featured_sticker_count(sticker_set->sticker_type_) &&
       old_sticker_count < sticker_set->sticker_ids_.size()) {
     sticker_set->need_save_to_database_ = true;
-    update_sticker_set(sticker_set, "on_load_sticker_set_from_database");
   }
+
+  update_sticker_set(sticker_set, "on_load_sticker_set_from_database");
 
   update_load_requests(sticker_set, with_stickers, Status::OK());
 }

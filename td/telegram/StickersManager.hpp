@@ -354,15 +354,19 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
       }
       on_update_sticker_set(sticker_set, is_installed, is_archived, false, true);
     } else {
-      if (sticker_set->title_ != title) {
-        LOG(INFO) << "Title of " << sticker_set->id_ << " has changed";
+      if (sticker_set->title_ != title || sticker_set->minithumbnail_ != minithumbnail ||
+          sticker_set->thumbnail_ != thumbnail || sticker_set->thumbnail_document_id_ != thumbnail_document_id ||
+          sticker_set->is_official_ != is_official) {
+        sticker_set->is_changed_ = true;
       }
       if (sticker_set->short_name_ != short_name) {
         LOG(INFO) << "Short name of " << sticker_set->id_ << " has changed from \"" << short_name << "\" to \""
                   << sticker_set->short_name_ << "\"";
+        sticker_set->is_changed_ = true;
       }
       if (sticker_set->sticker_count_ != sticker_count || sticker_set->hash_ != hash) {
         sticker_set->is_loaded_ = false;
+        sticker_set->is_changed_ = true;
       }
       if (sticker_set->sticker_format_ != sticker_format) {
         LOG(ERROR) << "Sticker format of " << sticker_set->id_ << " has changed from \"" << sticker_format << "\" to \""
