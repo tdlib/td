@@ -13793,6 +13793,7 @@ void MessagesManager::init() {
     G()->td_db()->get_binlog_pmc()->erase_by_prefix("unread_message_count");
     G()->td_db()->get_binlog_pmc()->erase_by_prefix("unread_dialog_count");
     G()->td_db()->get_binlog_pmc()->erase("sponsored_dialog_id");
+    G()->td_db()->get_binlog_pmc()->erase("fetched_marks_as_unread");
   }
   G()->td_db()->get_binlog_pmc()->erase("dialog_pinned_current_order");
 
