@@ -37993,9 +37993,9 @@ void MessagesManager::get_channel_difference(DialogId dialog_id, int32 pts, bool
     return;
   }
 
-  if (force && get_channel_difference_to_log_event_id_.count(dialog_id) == 0 && !td_->ignore_background_updates()) {
+  if (force && get_channel_difference_to_log_event_id_.count(dialog_id) == 0 && !td_->ignore_background_updates() &&
+      input_channel->get_id() == telegram_api::inputChannel::ID) {
     auto channel_id = dialog_id.get_channel_id();
-    CHECK(input_channel->get_id() == telegram_api::inputChannel::ID);
     auto access_hash = static_cast<const telegram_api::inputChannel &>(*input_channel).access_hash_;
     auto log_event = GetChannelDifferenceLogEvent(channel_id, access_hash);
     auto log_event_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::GetChannelDifference,

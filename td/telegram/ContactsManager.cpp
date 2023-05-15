@@ -3479,6 +3479,9 @@ class GetChannelsQuery final : public Td::ResultHandler {
     CHECK(input_channel != nullptr);
     if (input_channel->get_id() == telegram_api::inputChannel::ID) {
       channel_id_ = ChannelId(static_cast<const telegram_api::inputChannel *>(input_channel.get())->channel_id_);
+    } else if (input_channel->get_id() == telegram_api::inputChannelFromMessage::ID) {
+      channel_id_ =
+          ChannelId(static_cast<const telegram_api::inputChannelFromMessage *>(input_channel.get())->channel_id_);
     }
 
     vector<tl_object_ptr<telegram_api::InputChannel>> input_channels;
@@ -14084,8 +14087,7 @@ bool ContactsManager::on_get_channel_error(ChannelId channel_id, const Status &s
 
     auto c = get_channel(channel_id);
     if (c == nullptr) {
-      if (Slice(source) == Slice("GetChannelDifferenceQuery") ||
-          (td_->auth_manager_->is_bot() && Slice(source) == Slice("GetChannelsQuery"))) {
+      if (Slice(source) == Slice("GetChannelDifferenceQuery") || Slice(source) == Slice("GetChannelsQuery")) {
         // get channel difference after restart
         // get channel from server by its identifier
         return true;
@@ -18034,10 +18036,10 @@ void ContactsManager::on_chat_update(telegram_api::chat &chat, const char *sourc
   ChannelId migrated_to_channel_id;
   if (chat.flags_ & CHAT_FLAG_WAS_MIGRATED) {
     switch (chat.migrated_to_->get_id()) {
-      case telegram_api::inputChannelEmpty::ID: {
-        LOG(ERROR) << "Receive empty upgraded to supergroup for " << chat_id << debug_str;
+      case telegram_api::inputChannelFromMessage::ID:
+      case telegram_api::inputChannelEmpty::ID:
+        LOG(ERROR) << "Receive invalid information about upgraded supergroup for " << chat_id << debug_str;
         break;
-      }
       case telegram_api::inputChannel::ID: {
         auto input_channel = move_tl_object_as<telegram_api::inputChannel>(chat.migrated_to_);
         migrated_to_channel_id = ChannelId(input_channel->channel_id_);
