@@ -364,7 +364,7 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
                   << sticker_set->short_name_ << "\"";
         sticker_set->is_changed_ = true;
       }
-      if (sticker_set->sticker_count_ != sticker_count || sticker_set->hash_ != hash) {
+      if (sticker_set->is_loaded_ && (sticker_set->sticker_count_ != sticker_count || sticker_set->hash_ != hash)) {
         sticker_set->is_loaded_ = false;
         sticker_set->is_changed_ = true;
       }

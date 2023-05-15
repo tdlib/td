@@ -5745,6 +5745,7 @@ void StickersManager::on_load_sticker_set_from_database(StickerSetId sticker_set
   LOG(INFO) << "Successfully loaded " << sticker_set_id << " with" << (with_stickers ? "" : "out")
             << " stickers of size " << value.size() << " from database";
 
+  auto was_inited = sticker_set->is_inited_;
   auto old_sticker_count = sticker_set->sticker_ids_.size();
 
   {
@@ -5771,7 +5772,7 @@ void StickersManager::on_load_sticker_set_from_database(StickerSetId sticker_set
                           "on_load_sticker_set_from_database 2");
   }
 
-  if (with_stickers && old_sticker_count < get_max_featured_sticker_count(sticker_set->sticker_type_) &&
+  if (with_stickers && was_inited && old_sticker_count < get_max_featured_sticker_count(sticker_set->sticker_type_) &&
       old_sticker_count < sticker_set->sticker_ids_.size()) {
     sticker_set->need_save_to_database_ = true;
   }
