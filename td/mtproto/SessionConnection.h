@@ -53,16 +53,14 @@ namespace mtproto {
 class AuthData;
 
 struct MsgInfo {
-  uint64 session_id;
   uint64 message_id;
   int32 seq_no;
   size_t size;
 };
 
 inline StringBuilder &operator<<(StringBuilder &string_builder, const MsgInfo &info) {
-  return string_builder << "[session_id:" << format::as_hex(info.session_id)
-                        << "] [msg_id:" << format::as_hex(info.message_id)
-                        << "] [seq_no:" << format::as_hex(info.seq_no) << "]";
+  return string_builder << "[msg_id:" << format::as_hex(info.message_id) << "] [seq_no:" << format::as_hex(info.seq_no)
+                        << "]";
 }
 
 class SessionConnection final

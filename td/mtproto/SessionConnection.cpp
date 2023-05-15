@@ -312,8 +312,7 @@ Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::new_
 
 Status SessionConnection::on_packet(const MsgInfo &info,
                                     const mtproto_api::bad_msg_notification &bad_msg_notification) {
-  MsgInfo bad_info{info.session_id, static_cast<uint64>(bad_msg_notification.bad_msg_id_),
-                   bad_msg_notification.bad_msg_seqno_, 0};
+  MsgInfo bad_info{static_cast<uint64>(bad_msg_notification.bad_msg_id_), bad_msg_notification.bad_msg_seqno_, 0};
   enum Code {
     MsgIdTooLow = 16,
     MsgIdTooHigh = 17,
@@ -391,8 +390,7 @@ Status SessionConnection::on_packet(const MsgInfo &info,
 }
 
 Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::bad_server_salt &bad_server_salt) {
-  MsgInfo bad_info{info.session_id, static_cast<uint64>(bad_server_salt.bad_msg_id_), bad_server_salt.bad_msg_seqno_,
-                   0};
+  MsgInfo bad_info{static_cast<uint64>(bad_server_salt.bad_msg_id_), bad_server_salt.bad_msg_seqno_, 0};
   VLOG(mtproto) << "BAD_SERVER_SALT: " << bad_info;
   auth_data_->set_server_salt(bad_server_salt.new_server_salt_, Time::now_cached());
   callback_->on_server_salt_updated();
