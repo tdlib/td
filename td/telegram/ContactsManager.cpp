@@ -6873,7 +6873,15 @@ void ContactsManager::on_resolved_phone_number(const string &phone_number, UserI
     return;
   }
 
-  LOG(ERROR) << "Resolve phone number \"" << phone_number << "\" to " << user_id << ", but doesn't have it";
+  auto *u = get_user(user_id);
+  if (u == nullptr) {
+    LOG(ERROR) << "Resolve phone number \"" << phone_number << "\" to unknown " << user_id;
+  } else if (!u->phone_number.empty()) {
+    LOG(ERROR) << "Resolve phone number \"" << phone_number << "\" to " << user_id << " with phone number "
+               << u->phone_number;
+  } else {
+    // the user's phone number can be hidden by privacy settings, despite the user can be found by the phone number
+  }
   resolved_phone_numbers_[phone_number] = user_id;  // always update cached value
 }
 
