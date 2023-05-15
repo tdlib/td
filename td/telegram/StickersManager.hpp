@@ -358,8 +358,8 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
         LOG(INFO) << "Title of " << sticker_set->id_ << " has changed";
       }
       if (sticker_set->short_name_ != short_name) {
-        LOG(ERROR) << "Short name of " << sticker_set->id_ << " has changed from \"" << short_name << "\" to \""
-                   << sticker_set->short_name_ << "\"";
+        LOG(INFO) << "Short name of " << sticker_set->id_ << " has changed from \"" << short_name << "\" to \""
+                  << sticker_set->short_name_ << "\"";
       }
       if (sticker_set->sticker_count_ != sticker_count || sticker_set->hash_ != hash) {
         sticker_set->is_loaded_ = false;

@@ -3771,8 +3771,8 @@ StickerSetId StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::sti
       }
     }
     if (s->short_name_ != set->short_name_) {
-      LOG(ERROR) << "Short name of " << set_id << " has changed from \"" << s->short_name_ << "\" to \""
-                 << set->short_name_ << "\" from " << source;
+      LOG(INFO) << "Short name of " << set_id << " has changed from \"" << s->short_name_ << "\" to \""
+                << set->short_name_ << "\" from " << source;
       short_name_to_sticker_set_id_.erase(clean_username(s->short_name_));
       s->short_name_ = std::move(set->short_name_);
       s->is_changed_ = true;
@@ -4448,15 +4448,16 @@ void StickersManager::on_get_installed_sticker_sets(StickerType sticker_type,
 
     auto sticker_set = get_sticker_set(set_id);
     CHECK(sticker_set != nullptr);
-    LOG_IF(ERROR, !sticker_set->is_installed_) << "Receive non-installed sticker set in getAllStickers";
-    LOG_IF(ERROR, sticker_set->is_archived_) << "Receive archived sticker set in getAllStickers";
-    LOG_IF(ERROR, sticker_set->sticker_type_ != sticker_type)
-        << "Receive sticker set of a wrong type in getAllStickers";
     CHECK(sticker_set->is_inited_);
 
     if (sticker_set->is_installed_ && !sticker_set->is_archived_ && sticker_set->sticker_type_ == sticker_type) {
       installed_sticker_set_ids.push_back(set_id);
       uninstalled_sticker_sets.erase(set_id);
+    } else {
+      LOG_IF(ERROR, !sticker_set->is_installed_) << "Receive non-installed sticker set in getAllStickers";
+      LOG_IF(ERROR, sticker_set->is_archived_) << "Receive archived sticker set in getAllStickers";
+      LOG_IF(ERROR, sticker_set->sticker_type_ != sticker_type)
+          << "Receive sticker set of a wrong type in getAllStickers";
     }
     update_sticker_set(sticker_set, "on_get_installed_sticker_sets");
 
