@@ -322,6 +322,9 @@ Status TdDb::init_sqlite(const Parameters &parameters, const DbKey &key, const D
   bool use_dialog_db = parameters.use_message_database_;
   bool use_message_thread_db = parameters.use_message_database_ && false;
   bool use_message_database_ = parameters.use_message_database_;
+
+  was_dialog_db_created_ = false;
+
   if (!use_sqlite) {
     SqliteDb::destroy(sql_database_path).ignore();
     return Status::OK();
@@ -346,9 +349,8 @@ Status TdDb::init_sqlite(const Parameters &parameters, const DbKey &key, const D
   LOG(INFO) << "Have PRAGMA user_version = " << user_version;
 
   // init DialogDb
-  bool dialog_db_was_created = false;
   if (use_dialog_db) {
-    TRY_STATUS(init_dialog_db(db, user_version, binlog_pmc, dialog_db_was_created));
+    TRY_STATUS(init_dialog_db(db, user_version, binlog_pmc, was_dialog_db_created_));
   } else {
     TRY_STATUS(drop_dialog_db(db, user_version));
   }
@@ -367,7 +369,7 @@ Status TdDb::init_sqlite(const Parameters &parameters, const DbKey &key, const D
     TRY_STATUS(drop_message_db(db, user_version));
   }
 
-  // init filesDb
+  // init FileDb
   if (use_file_database_) {
     TRY_STATUS(init_file_db(db, user_version));
   } else {
@@ -381,7 +383,7 @@ Status TdDb::init_sqlite(const Parameters &parameters, const DbKey &key, const D
     TRY_STATUS(db.set_user_version(db_version));
   }
 
-  if (dialog_db_was_created) {
+  if (was_dialog_db_created_) {
     binlog_pmc.erase_by_prefix("pinned_dialog_ids");
     binlog_pmc.erase_by_prefix("last_server_dialog_date");
     binlog_pmc.erase_by_prefix("unread_message_count");

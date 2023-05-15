@@ -107,6 +107,10 @@ class TdDb {
     return parameters_.use_message_database_;
   }
 
+  bool was_dialog_db_created() const {
+    return was_dialog_db_created_;
+  }
+
   std::shared_ptr<FileDbInterface> get_file_db_shared();
   std::shared_ptr<SqliteConnectionSafe> &get_sqlite_connection_safe();
 #define get_binlog() get_binlog_impl(__FILE__, __LINE__)
@@ -144,6 +148,8 @@ class TdDb {
 
  private:
   Parameters parameters_;
+
+  bool was_dialog_db_created_ = false;
 
   std::shared_ptr<SqliteConnectionSafe> sql_connection_;
 

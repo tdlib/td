@@ -4215,8 +4215,9 @@ void NotificationManager::on_binlog_events(vector<BinlogEvent> &&events) {
     return;
   }
   VLOG(notifications) << "Begin to process " << events.size() << " binlog events";
+  bool have_old_message_database = G()->use_message_database() && !G()->td_db()->was_dialog_db_created();
   for (auto &event : events) {
-    if (!G()->use_message_database() || is_disabled() || max_notification_group_count_ == 0) {
+    if (!have_old_message_database || is_disabled() || max_notification_group_count_ == 0) {
       binlog_erase(G()->td_db()->get_binlog(), event.id_);
       break;
     }

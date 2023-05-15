@@ -38951,11 +38951,12 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
   if (G()->close_flag()) {
     return;
   }
+  bool have_old_message_database = G()->use_message_database() && !G()->td_db()->was_dialog_db_created();
   for (auto &event : events) {
     CHECK(event.id_ != 0);
     switch (event.type_) {
       case LogEvent::HandlerType::SendMessage: {
-        if (!G()->use_message_database()) {
+        if (!have_old_message_database) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
@@ -38996,7 +38997,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         break;
       }
       case LogEvent::HandlerType::SendBotStartMessage: {
-        if (!G()->use_message_database()) {
+        if (!have_old_message_database) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
@@ -39036,7 +39037,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         break;
       }
       case LogEvent::HandlerType::SendInlineQueryResultMessage: {
-        if (!G()->use_message_database()) {
+        if (!have_old_message_database) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
@@ -39076,7 +39077,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         break;
       }
       case LogEvent::HandlerType::SendScreenshotTakenNotificationMessage: {
-        if (!G()->use_message_database()) {
+        if (!have_old_message_database) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
@@ -39109,7 +39110,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         break;
       }
       case LogEvent::HandlerType::ForwardMessages: {
-        if (!G()->use_message_database()) {
+        if (!have_old_message_database) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           continue;
         }
@@ -39187,7 +39188,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         break;
       }
       case LogEvent::HandlerType::DeleteMessage: {
-        if (!G()->use_message_database()) {
+        if (!have_old_message_database) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
@@ -39211,7 +39212,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         break;
       }
       case LogEvent::HandlerType::DeleteMessagesOnServer: {
-        if (!G()->use_message_database()) {
+        if (!have_old_message_database) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
@@ -39235,7 +39236,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         break;
       }
       case LogEvent::HandlerType::DeleteScheduledMessagesOnServer: {
-        if (!G()->use_message_database()) {
+        if (!have_old_message_database) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
@@ -39260,7 +39261,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         break;
       }
       case LogEvent::HandlerType::DeleteDialogHistoryOnServer: {
-        if (!G()->use_message_database()) {
+        if (!have_old_message_database) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
@@ -39280,7 +39281,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         break;
       }
       case LogEvent::HandlerType::DeleteTopicHistoryOnServer: {
-        if (!G()->use_message_database()) {
+        if (!have_old_message_database) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
@@ -39341,7 +39342,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         break;
       }
       case LogEvent::HandlerType::DeleteDialogMessagesByDateOnServer: {
-        if (!G()->use_message_database()) {
+        if (!have_old_message_database) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
@@ -39361,7 +39362,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         break;
       }
       case LogEvent::HandlerType::ReadHistoryOnServer: {
-        if (!G()->use_message_database()) {
+        if (!have_old_message_database) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
@@ -39414,7 +39415,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         break;
       }
       case LogEvent::HandlerType::ReadMessageThreadHistoryOnServer: {
-        if (!G()->use_message_database()) {
+        if (!have_old_message_database) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
@@ -39440,7 +39441,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         break;
       }
       case LogEvent::HandlerType::ReadMessageContentsOnServer: {
-        if (!G()->use_message_database()) {
+        if (!have_old_message_database) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
@@ -39459,7 +39460,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         break;
       }
       case LogEvent::HandlerType::ReadAllDialogMentionsOnServer: {
-        if (!G()->use_message_database()) {
+        if (!have_old_message_database) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
@@ -39478,7 +39479,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         break;
       }
       case LogEvent::HandlerType::ReadAllDialogReactionsOnServer: {
-        if (!G()->use_message_database()) {
+        if (!have_old_message_database) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
@@ -39497,7 +39498,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         break;
       }
       case LogEvent::HandlerType::ToggleDialogIsPinnedOnServer: {
-        if (!G()->use_message_database()) {
+        if (!have_old_message_database) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
@@ -39516,7 +39517,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         break;
       }
       case LogEvent::HandlerType::ReorderPinnedDialogsOnServer: {
-        if (!G()->use_message_database()) {
+        if (!have_old_message_database) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
@@ -39540,7 +39541,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         break;
       }
       case LogEvent::HandlerType::ToggleDialogIsMarkedAsUnreadOnServer: {
-        if (!G()->use_message_database()) {
+        if (!have_old_message_database) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
@@ -39561,7 +39562,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         break;
       }
       case LogEvent::HandlerType::ToggleDialogIsBlockedOnServer: {
-        if (!G()->use_message_database()) {
+        if (!have_old_message_database) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
@@ -39580,7 +39581,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         break;
       }
       case LogEvent::HandlerType::SaveDialogDraftMessageOnServer: {
-        if (!G()->use_message_database()) {
+        if (!have_old_message_database) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
@@ -39600,7 +39601,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         break;
       }
       case LogEvent::HandlerType::UpdateDialogNotificationSettingsOnServer: {
-        if (!G()->use_message_database()) {
+        if (!have_old_message_database) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
@@ -39627,7 +39628,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         break;
       }
       case LogEvent::HandlerType::ToggleDialogReportSpamStateOnServer: {
-        if (!G()->use_message_database()) {
+        if (!have_old_message_database) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
@@ -39646,7 +39647,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         break;
       }
       case LogEvent::HandlerType::SetDialogFolderIdOnServer: {
-        if (!G()->use_message_database()) {
+        if (!have_old_message_database) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
@@ -39668,7 +39669,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         break;
       }
       case LogEvent::HandlerType::RegetDialog: {
-        if (!G()->use_message_database()) {
+        if (!have_old_message_database) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
@@ -39690,7 +39691,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         break;
       }
       case LogEvent::HandlerType::UnpinAllDialogMessagesOnServer: {
-        if (!G()->use_message_database()) {
+        if (!have_old_message_database) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }

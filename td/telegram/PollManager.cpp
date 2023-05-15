@@ -1843,10 +1843,11 @@ void PollManager::on_binlog_events(vector<BinlogEvent> &&events) {
   if (G()->close_flag()) {
     return;
   }
+  bool have_old_message_database = G()->use_message_database() && !G()->td_db()->was_dialog_db_created();
   for (auto &event : events) {
     switch (event.type_) {
       case LogEvent::HandlerType::SetPollAnswer: {
-        if (!G()->use_message_database()) {
+        if (!have_old_message_database) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
@@ -1865,7 +1866,7 @@ void PollManager::on_binlog_events(vector<BinlogEvent> &&events) {
         break;
       }
       case LogEvent::HandlerType::StopPoll: {
-        if (!G()->use_message_database()) {
+        if (!have_old_message_database) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
