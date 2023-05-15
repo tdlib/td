@@ -203,10 +203,7 @@ class AuthData {
   // server_time_difference >= max{diff}
   bool update_server_time_difference(double diff);
 
-  void reset_server_time_difference(double diff) {
-    server_time_difference_was_updated_ = false;
-    server_time_difference_ = diff;
-  }
+  void reset_server_time_difference(double diff);
 
   uint64 get_server_salt(double now) {
     update_salt(now);

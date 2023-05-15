@@ -69,17 +69,23 @@ bool AuthData::is_ready(double now) {
 
 bool AuthData::update_server_time_difference(double diff) {
   if (!server_time_difference_was_updated_) {
+    LOG(DEBUG) << "Set server time difference: " << server_time_difference_ << " -> " << diff;
     server_time_difference_was_updated_ = true;
-    LOG(DEBUG) << "UPDATE_SERVER_TIME_DIFFERENCE: " << server_time_difference_ << " -> " << diff;
     server_time_difference_ = diff;
   } else if (server_time_difference_ + 1e-4 < diff) {
-    LOG(DEBUG) << "UPDATE_SERVER_TIME_DIFFERENCE: " << server_time_difference_ << " -> " << diff;
+    LOG(DEBUG) << "Update server time difference: " << server_time_difference_ << " -> " << diff;
     server_time_difference_ = diff;
   } else {
     return false;
   }
-  LOG(DEBUG) << "SERVER_TIME: " << format::as_hex(static_cast<int32>(get_server_time(Time::now_cached())));
+  LOG(DEBUG) << "New server time: " << get_server_time(Time::now_cached());
   return true;
+}
+
+void AuthData::reset_server_time_difference(double diff) {
+  LOG(DEBUG) << "Reset server time difference: " << server_time_difference_ << " -> " << diff;
+  server_time_difference_was_updated_ = false;
+  server_time_difference_ = diff;
 }
 
 void AuthData::set_future_salts(const std::vector<ServerSalt> &salts, double now) {
