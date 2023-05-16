@@ -377,8 +377,8 @@ Status SessionConnection::on_packet(const MsgInfo &info,
     }
 
     case InvalidContainer: {
-      LOG(ERROR) << bad_info << ": Invalid Contailer" << common;
-      return Status::Error("Invalid Contailer");
+      LOG(ERROR) << bad_info << ": Invalid Container" << common;
+      return Status::Error("Invalid Container");
     }
 
     default: {
