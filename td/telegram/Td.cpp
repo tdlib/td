@@ -901,6 +901,26 @@ class GetInactiveSupergroupChatsRequest final : public RequestActor<> {
   }
 };
 
+class SearchRecentlyFoundChatsRequest final : public RequestActor<> {
+  string query_;
+  int32 limit_;
+
+  std::pair<int32, vector<DialogId>> dialog_ids_;
+
+  void do_run(Promise<Unit> &&promise) final {
+    dialog_ids_ = td_->messages_manager_->search_recently_found_dialogs(query_, limit_, std::move(promise));
+  }
+
+  void do_send_result() final {
+    send_result(td_->messages_manager_->get_chats_object(dialog_ids_, "SearchRecentlyFoundChatsRequest"));
+  }
+
+ public:
+  SearchRecentlyFoundChatsRequest(ActorShared<Td> td, uint64 request_id, string query, int32 limit)
+      : RequestActor(std::move(td), request_id), query_(std::move(query)), limit_(limit) {
+  }
+};
+
 class GetRecentlyOpenedChatsRequest final : public RequestActor<> {
   int32 limit_;
 
@@ -5043,6 +5063,12 @@ void Td::on_request(uint64 id, const td_api::getSuitableDiscussionChats &request
 void Td::on_request(uint64 id, const td_api::getInactiveSupergroupChats &request) {
   CHECK_IS_USER();
   CREATE_NO_ARGS_REQUEST(GetInactiveSupergroupChatsRequest);
+}
+
+void Td::on_request(uint64 id, td_api::searchRecentlyFoundChats &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.query_);
+  CREATE_REQUEST(SearchRecentlyFoundChatsRequest, request.query_, request.limit_);
 }
 
 void Td::on_request(uint64 id, const td_api::addRecentlyFoundChat &request) {

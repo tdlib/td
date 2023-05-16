@@ -420,6 +420,9 @@ class MessagesManager final : public Actor {
 
   void clear_recently_found_dialogs();
 
+  std::pair<int32, vector<DialogId>> search_recently_found_dialogs(const string &query, int32 limit,
+                                                                   Promise<Unit> &&promise);
+
   std::pair<int32, vector<DialogId>> get_recently_opened_dialogs(int32 limit, Promise<Unit> &&promise);
 
   DialogId resolve_dialog_username(const string &username) const;

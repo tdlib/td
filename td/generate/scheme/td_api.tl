@@ -5959,7 +5959,7 @@ getSupergroupFullInfo supergroup_id:int53 = SupergroupFullInfo;
 //@description Returns information about a secret chat by its identifier. This is an offline request @secret_chat_id Secret chat identifier
 getSecretChat secret_chat_id:int32 = SecretChat;
 
-//@description Returns information about a chat by its identifier, this is an offline request if the current user is not a bot @chat_id Chat identifier
+//@description Returns information about a chat by its identifier; this is an offline request if the current user is not a bot @chat_id Chat identifier
 getChat chat_id:int53 = Chat;
 
 //@description Returns information about a message @chat_id Identifier of the chat the message belongs to @message_id Identifier of the message to get
@@ -6018,7 +6018,7 @@ searchPublicChat username:string = Chat;
 //@query Query to search for
 searchPublicChats query:string = Chats;
 
-//@description Searches for the specified query in the title and username of already known chats, this is an offline request. Returns chats in the order seen in the main chat list
+//@description Searches for the specified query in the title and username of already known chats; this is an offline request. Returns chats in the order seen in the main chat list
 //@query Query to search for. If the query is empty, returns up to 50 recently found chats
 //@limit The maximum number of chats to be returned
 searchChats query:string limit:int32 = Chats;
@@ -6037,6 +6037,11 @@ getTopChats category:TopChatCategory limit:int32 = Chats;
 //@description Removes a chat from the list of frequently used chats. Supported only if the chat info database is enabled @category Category of frequently used chats @chat_id Chat identifier
 removeTopChat category:TopChatCategory chat_id:int53 = Ok;
 
+//@description Searches for the specified query in the title and username of up to 50 recently found chats; this is an offline request
+//@query Query to search for
+//@limit The maximum number of chats to be returned
+searchRecentlyFoundChats query:string limit:int32 = Chats;
+
 //@description Adds a chat to the list of recently found chats. The chat is added to the beginning of the list. If the chat is already in the list, it will be removed from the list first @chat_id Identifier of the chat to add
 addRecentlyFoundChat chat_id:int53 = Ok;
 
@@ -6046,7 +6051,7 @@ removeRecentlyFoundChat chat_id:int53 = Ok;
 //@description Clears the list of recently found chats
 clearRecentlyFoundChats = Ok;
 
-//@description Returns recently opened chats, this is an offline request. Returns chats in the order of last opening @limit The maximum number of chats to be returned
+//@description Returns recently opened chats; this is an offline request. Returns chats in the order of last opening @limit The maximum number of chats to be returned
 getRecentlyOpenedChats limit:int32 = Chats;
 
 //@description Checks whether a username can be set for a chat @chat_id Chat identifier; must be identifier of a supergroup chat, or a channel chat, or a private chat with self, or zero if the chat is being created @username Username to be checked

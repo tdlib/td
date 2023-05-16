@@ -17321,6 +17321,25 @@ std::pair<int32, vector<DialogId>> MessagesManager::search_dialogs(const string 
   return {narrow_cast<int32>(result.first), std::move(dialog_ids)};
 }
 
+std::pair<int32, vector<DialogId>> MessagesManager::search_recently_found_dialogs(const string &query, int32 limit,
+                                                                                  Promise<Unit> &&promise) {
+  auto result = recently_found_dialogs_.get_dialogs(query.empty() ? limit : 50, std::move(promise));
+  if (result.first == 0 || query.empty()) {
+    return result;
+  }
+
+  Hints hints;
+  int rating = 1;
+  for (auto dialog_id : result.second) {
+    hints.add(dialog_id.get(), td_->contacts_manager_->get_dialog_search_text(dialog_id));
+    hints.set_rating(dialog_id.get(), ++rating);
+  }
+
+  auto hints_result = hints.search(query, limit, false);
+  return {narrow_cast<int32>(hints_result.first),
+          transform(hints_result.second, [](int64 key) { return DialogId(key); })};
+}
+
 std::pair<int32, vector<DialogId>> MessagesManager::get_recently_opened_dialogs(int32 limit, Promise<Unit> &&promise) {
   CHECK(!td_->auth_manager_->is_bot());
   return recently_opened_dialogs_.get_dialogs(limit, std::move(promise));

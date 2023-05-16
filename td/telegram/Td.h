@@ -634,6 +634,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::searchChatsNearby &request);
 
+  void on_request(uint64 id, td_api::searchRecentlyFoundChats &request);
+
   void on_request(uint64 id, const td_api::addRecentlyFoundChat &request);
 
   void on_request(uint64 id, const td_api::removeRecentlyFoundChat &request);
