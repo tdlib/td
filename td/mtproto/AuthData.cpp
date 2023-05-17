@@ -151,6 +151,8 @@ Status AuthData::check_packet(uint64 session_id, uint64 message_id, double now, 
 
   TRY_STATUS(duplicate_checker_.check(message_id));
 
+  LOG(DEBUG) << "Receive packet " << format::as_hex(message_id) << " from session " << format::as_hex(session_id)
+             << " at " << now;
   time_difference_was_updated = update_server_time_difference(static_cast<uint32>(message_id >> 32) - now);
 
   // In addition, msg_id values that belong over 30 seconds in the future or over 300 seconds in the past are to be
