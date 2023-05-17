@@ -1310,8 +1310,7 @@ static Slice fix_url(Slice str) {
 }
 
 const FlatHashSet<Slice, SliceHash> &get_valid_short_usernames() {
-  static const FlatHashSet<Slice, SliceHash> valid_usernames{"gif",  "wiki", "vid",  "bing", "pic",
-                                                             "bold", "imdb", "coub", "like", "vote"};
+  static const FlatHashSet<Slice, SliceHash> valid_usernames{"gif", "vid", "pic"};
   return valid_usernames;
 }
 
