@@ -119,6 +119,7 @@ uint64 AuthData::next_message_id(double now) {
   if (last_message_id_ >= result) {
     result = last_message_id_ + 8 * to_mul;
   }
+  LOG(DEBUG) << "Create message identifier " << format::as_hex(result) << " at " << now;
   last_message_id_ = result;
   return result;
 }
