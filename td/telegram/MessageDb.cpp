@@ -586,7 +586,7 @@ class MessageDbImpl final : public MessageDbSyncInterface {
       get_expiring_messages_stmt_.step().ensure();
     }
 
-    return std::move(messages);
+    return messages;
   }
 
   MessageDbCalendar get_dialog_message_calendar(MessageDbDialogCalendarQuery query) final {
