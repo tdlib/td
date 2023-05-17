@@ -151,8 +151,11 @@ class Status {
  public:
   Status() = default;
 
-  bool operator==(const Status &other) const {
-    return ptr_ == other.ptr_;
+  bool is_static() const {
+    if (is_ok()) {
+      return true;
+    }
+    return get_info().static_flag;
   }
 
   Status clone() const TD_WARN_UNUSED_RESULT {
