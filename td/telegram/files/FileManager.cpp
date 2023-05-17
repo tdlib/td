@@ -3980,7 +3980,8 @@ void FileManager::on_error_impl(FileNodePtr node, Query::Type type, bool was_act
     return;
   }
 
-  if (G()->close_flag() && status.code() < 400) {
+  if (G()->close_flag() && (status.code() < 400 || (status.code() == Global::request_aborted_error().code() &&
+                                                    status.message() == Global::request_aborted_error().message()))) {
     status = Global::request_aborted_error();
   } else {
     if (status.code() != -1) {
