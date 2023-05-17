@@ -1310,13 +1310,8 @@ static Slice fix_url(Slice str) {
 }
 
 const FlatHashSet<Slice, SliceHash> &get_valid_short_usernames() {
-  static const FlatHashSet<Slice, SliceHash> valid_usernames = [] {
-    FlatHashSet<Slice, SliceHash> result;
-    for (auto username : {"gif", "wiki", "vid", "bing", "pic", "bold", "imdb", "coub", "like", "vote"}) {
-      result.insert(Slice(username));
-    }
-    return result;
-  }();
+  static const FlatHashSet<Slice, SliceHash> valid_usernames{"gif",  "wiki", "vid",  "bing", "pic",
+                                                             "bold", "imdb", "coub", "like", "vote"};
   return valid_usernames;
 }
 

@@ -226,6 +226,13 @@ class FlatHashTable {
     used_node_count_ = used_nodes;
   }
 
+  template <class T>
+  FlatHashTable(std::initializer_list<T> keys) {
+    for (auto &key : keys) {
+      emplace(KeyT(key));
+    }
+  }
+
   FlatHashTable(FlatHashTable &&other) noexcept
       : nodes_(other.nodes_)
       , used_node_count_(other.used_node_count_)
