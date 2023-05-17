@@ -193,10 +193,6 @@ class Status {
   }
 #endif
 
-  static Status Error() TD_WARN_UNUSED_RESULT {
-    return Error<0>();
-  }
-
   template <int Code>
   static Status Error() {
     static Status status(true, ErrorType::General, Code, "");
