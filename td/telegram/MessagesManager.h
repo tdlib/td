@@ -80,6 +80,7 @@
 #include "td/utils/HashTableUtils.h"
 #include "td/utils/Heap.h"
 #include "td/utils/Hints.h"
+#include "td/utils/List.h"
 #include "td/utils/Promise.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"

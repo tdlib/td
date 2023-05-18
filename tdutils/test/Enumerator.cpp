@@ -5,12 +5,13 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/utils/benchmark.h"
+#include "td/utils/common.h"
 #include "td/utils/Enumerator.h"
 #include "td/utils/Random.h"
 #include "td/utils/tests.h"
 
 TEST(Enumerator, simple) {
-  td::Enumerator<std::string> e;
+  td::Enumerator<td::string> e;
   auto b = e.add("b");
   auto a = e.add("a");
   auto d = e.add("d");

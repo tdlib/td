@@ -6,7 +6,6 @@
 //
 #pragma once
 
-#include "td/telegram/net/AuthKeyState.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/PublicRsaKeyShared.h"
 

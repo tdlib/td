@@ -13,6 +13,7 @@
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/net/Session.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/TdDb.h"
 #include "td/telegram/UniqueId.h"
 
 #include "td/utils/buffer.h"
@@ -22,6 +23,8 @@
 #include "td/utils/Promise.h"
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
+#include "td/utils/Time.h"
+#include "td/utils/tl_helpers.h"
 
 namespace td {
 

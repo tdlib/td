@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/net/AuthDataShared.h"
+#include "td/telegram/net/AuthKeyState.h"
 #include "td/telegram/net/NetQuery.h"
 
 #include "td/mtproto/AuthData.h"
