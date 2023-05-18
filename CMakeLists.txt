@@ -468,6 +468,8 @@ set(TDLIB_SOURCE
   td/telegram/StickersManager.cpp
   td/telegram/StickerType.cpp
   td/telegram/StorageManager.cpp
+  td/telegram/StoryContent.cpp
+  td/telegram/StoryContentType.cpp
   td/telegram/StoryManager.cpp
   td/telegram/SuggestedAction.cpp
   td/telegram/Support.cpp
@@ -758,6 +760,8 @@ set(TDLIB_SOURCE
   td/telegram/StickersManager.h
   td/telegram/StickerType.h
   td/telegram/StorageManager.h
+  td/telegram/StoryContent.h
+  td/telegram/StoryContentType.h
   td/telegram/StoryId.h
   td/telegram/StoryManager.h
   td/telegram/SuggestedAction.h

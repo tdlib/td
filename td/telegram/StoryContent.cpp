@@ -1,0 +1,167 @@
+//
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2023
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
+#include "td/telegram/StoryContent.h"
+
+#include "td/telegram/DocumentsManager.h"
+#include "td/telegram/files/FileId.h"
+#include "td/telegram/Photo.h"
+#include "td/telegram/Td.h"
+#include "td/telegram/VideosManager.h"
+
+#include "td/utils/common.h"
+
+namespace td {
+
+class StoryContentPhoto final : public StoryContent {
+ public:
+  Photo photo_;
+
+  StoryContentPhoto() = default;
+  explicit StoryContentPhoto(Photo &&photo) : photo_(std::move(photo)) {
+  }
+
+  StoryContentType get_type() const final {
+    return StoryContentType::Photo;
+  }
+};
+
+class StoryContentVideo final : public StoryContent {
+ public:
+  FileId file_id_;
+  FileId alt_file_id_;
+
+  StoryContentVideo() = default;
+  StoryContentVideo(FileId file_id, FileId alt_file_id) : file_id_(file_id), alt_file_id_(alt_file_id) {
+  }
+
+  StoryContentType get_type() const final {
+    return StoryContentType::Video;
+  }
+};
+
+class StoryContentUnsupported final : public StoryContent {
+ public:
+  static constexpr int32 CURRENT_VERSION = 1;
+  int32 version_ = CURRENT_VERSION;
+
+  StoryContentUnsupported() = default;
+  explicit StoryContentUnsupported(int32 version) : version_(version) {
+  }
+
+  StoryContentType get_type() const final {
+    return StoryContentType::Unsupported;
+  }
+};
+
+unique_ptr<StoryContent> get_story_content(Td *td, tl_object_ptr<telegram_api::MessageMedia> &&media_ptr,
+                                           DialogId owner_dialog_id) {
+  CHECK(media_ptr != nullptr);
+  int32 constructor_id = media_ptr->get_id();
+  switch (constructor_id) {
+    case telegram_api::messageMediaPhoto::ID: {
+      auto media = move_tl_object_as<telegram_api::messageMediaPhoto>(media_ptr);
+      if (media->photo_ == nullptr || (media->flags_ & telegram_api::messageMediaPhoto::TTL_SECONDS_MASK) != 0 ||
+          media->spoiler_) {
+        break;
+      }
+
+      auto photo = get_photo(td, std::move(media->photo_), owner_dialog_id);
+      if (photo.is_empty()) {
+        break;
+      }
+      return make_unique<StoryContentPhoto>(std::move(photo));
+    }
+    case telegram_api::messageMediaDocument::ID: {
+      auto media = move_tl_object_as<telegram_api::messageMediaDocument>(media_ptr);
+      if (media->document_ == nullptr || (media->flags_ & telegram_api::messageMediaDocument::TTL_SECONDS_MASK) != 0 ||
+          media->spoiler_) {
+        break;
+      }
+
+      auto document_ptr = std::move(media->document_);
+      int32 document_id = document_ptr->get_id();
+      if (document_id == telegram_api::documentEmpty::ID) {
+        break;
+      }
+      CHECK(document_id == telegram_api::document::ID);
+      auto parsed_document = td->documents_manager_->on_get_document(
+          move_tl_object_as<telegram_api::document>(document_ptr), owner_dialog_id, nullptr);
+      if (parsed_document.empty() || parsed_document.type != Document::Type::Video) {
+        break;
+      }
+      CHECK(parsed_document.file_id.is_valid());
+
+      FileId alt_file_id;
+      if (media->alt_document_ != nullptr) {
+        auto alt_document_ptr = std::move(media->alt_document_);
+        int32 alt_document_id = alt_document_ptr->get_id();
+        if (alt_document_id == telegram_api::documentEmpty::ID) {
+          LOG(ERROR) << "Receive alternative " << to_string(alt_document_ptr);
+        } else {
+          CHECK(alt_document_id == telegram_api::document::ID);
+          auto parsed_alt_document = td->documents_manager_->on_get_document(
+              move_tl_object_as<telegram_api::document>(alt_document_ptr), owner_dialog_id, nullptr);
+          if (parsed_alt_document.empty() || parsed_alt_document.type != Document::Type::Video) {
+            LOG(ERROR) << "Receive alternative " << to_string(alt_document_ptr);
+          } else {
+            alt_file_id = parsed_alt_document.file_id;
+          }
+        }
+      }
+
+      return make_unique<StoryContentVideo>(parsed_document.file_id, alt_file_id);
+    }
+    case telegram_api::messageMediaUnsupported::ID:
+      return make_unique<StoryContentUnsupported>();
+    default:
+      break;
+  }
+  LOG(ERROR) << "Receive a story with content " << to_string(media_ptr);
+  return nullptr;
+}
+
+void merge_story_contents(Td *td, const StoryContent *old_content, StoryContent *new_content, DialogId dialog_id,
+                          bool need_merge_files, bool &is_content_changed, bool &need_update) {
+  StoryContentType content_type = new_content->get_type();
+  CHECK(old_content->get_type() == content_type);
+
+  switch (content_type) {
+    case StoryContentType::Photo: {
+      const auto *old_ = static_cast<const StoryContentPhoto *>(old_content);
+      auto *new_ = static_cast<StoryContentPhoto *>(new_content);
+      merge_photos(td, &old_->photo_, &new_->photo_, dialog_id, need_merge_files, is_content_changed, need_update);
+      break;
+    }
+    case StoryContentType::Video: {
+      const auto *old_ = static_cast<const StoryContentVideo *>(old_content);
+      const auto *new_ = static_cast<const StoryContentVideo *>(new_content);
+      if (old_->file_id_ != new_->file_id_) {
+        if (need_merge_files) {
+          td->videos_manager_->merge_videos(new_->file_id_, old_->file_id_);
+        }
+        need_update = true;
+      }
+      if (old_->alt_file_id_ != new_->alt_file_id_) {
+        need_update = true;
+      }
+      break;
+    }
+    case StoryContentType::Unsupported: {
+      const auto *old_ = static_cast<const StoryContentUnsupported *>(old_content);
+      const auto *new_ = static_cast<const StoryContentUnsupported *>(new_content);
+      if (old_->version_ != new_->version_) {
+        is_content_changed = true;
+      }
+      break;
+    }
+    default:
+      UNREACHABLE();
+      break;
+  }
+}
+
+}  // namespace td

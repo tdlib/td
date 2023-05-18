@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/MessageEntity.h"
 #include "td/telegram/StoryId.h"
 #include "td/telegram/UserId.h"
 #include "td/telegram/UserPrivacySettingRule.h"
@@ -18,12 +19,17 @@
 
 namespace td {
 
-class MessageContent;
+class StoryContent;
 class Td;
 
 class StoryManager final : public Actor {
  public:
   StoryManager(Td *td, ActorShared<> parent);
+  StoryManager(const StoryManager &) = delete;
+  StoryManager &operator=(const StoryManager &) = delete;
+  StoryManager(StoryManager &&) = delete;
+  StoryManager &operator=(StoryManager &&) = delete;
+  ~StoryManager() final;
 
   StoryId on_get_story(DialogId owner_dialog_id, telegram_api::object_ptr<telegram_api::storyItem> &&story_item);
 
@@ -37,7 +43,8 @@ class StoryManager final : public Actor {
     vector<UserId> recent_viewer_user_ids_;
     int32 view_count_ = 0;
     UserPrivacySettingRules privacy_rules_;
-    unique_ptr<MessageContent> content_;
+    unique_ptr<StoryContent> content_;
+    FormattedText caption_;
   };
 
   void tear_down() final;
