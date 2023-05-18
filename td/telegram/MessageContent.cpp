@@ -3593,88 +3593,9 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     case MessageContentType::Photo: {
       const auto *old_ = static_cast<const MessagePhoto *>(old_content);
       auto *new_ = static_cast<MessagePhoto *>(new_content);
-      const Photo *old_photo = &old_->photo;
-      Photo *new_photo = &new_->photo;
-      if (old_photo->date != new_photo->date) {
-        LOG(DEBUG) << "Photo date has changed from " << old_photo->date << " to " << new_photo->date;
-        is_content_changed = true;
-      }
+      merge_photos(td, &old_->photo, &new_->photo, dialog_id, need_merge_files, is_content_changed, need_update);
       if (old_->caption != new_->caption || old_->has_spoiler != new_->has_spoiler) {
         need_update = true;
-      }
-      if (old_photo->id.get() != new_photo->id.get() || old_photo->minithumbnail != new_photo->minithumbnail) {
-        need_update = true;
-      }
-      if (old_photo->photos != new_photo->photos) {
-        LOG(DEBUG) << "Merge photos " << old_photo->photos << " and " << new_photo->photos
-                   << ", need_merge_files = " << need_merge_files;
-        auto new_photos_size = new_photo->photos.size();
-        auto old_photos_size = old_photo->photos.size();
-
-        bool need_merge = false;
-        if (need_merge_files && (old_photos_size == 1 || (old_photos_size == 2 && old_photo->photos[0].type == 't')) &&
-            old_photo->photos.back().type == 'i') {
-          // first time get info about sent photo
-          if (!new_photo->photos.empty() && new_photo->photos.back().type == 'i') {
-            // remove previous 'i' size for the photo if any
-            new_photo->photos.pop_back();
-          }
-          if (!new_photo->photos.empty() && new_photo->photos.back().type == 't') {
-            // remove previous 't' size for the photo if any
-            new_photo->photos.pop_back();
-          }
-
-          // add back 't' and 'i' sizes
-          if (old_photos_size == 2) {
-            new_photo->photos.push_back(old_photo->photos[0]);
-          }
-          new_photo->photos.push_back(old_photo->photos.back());
-          need_merge = true;
-          need_update = true;
-        } else {
-          // get sent photo again
-          if (old_photos_size == 2 + new_photos_size && old_photo->photos[new_photos_size].type == 't') {
-            new_photo->photos.push_back(old_photo->photos[new_photos_size]);
-          }
-          if (old_photos_size == 1 + new_photo->photos.size() && old_photo->photos.back().type == 'i') {
-            new_photo->photos.push_back(old_photo->photos.back());
-            need_merge = true;
-          }
-          if (old_photo->photos != new_photo->photos) {
-            new_photo->photos.resize(
-                new_photos_size);  // return previous size, because we shouldn't add local photo sizes
-            need_merge = false;
-            need_update = true;
-          }
-        }
-
-        LOG(DEBUG) << "Merge photos " << old_photo->photos << " and " << new_photo->photos
-                   << " with new photos size = " << new_photos_size << ", need_merge = " << need_merge
-                   << ", need_update = " << need_update;
-        if (need_merge && new_photos_size != 0) {
-          FileId old_file_id = get_message_content_upload_file_id(old_content);
-          FileView old_file_view = td->file_manager_->get_file_view(old_file_id);
-          FileId new_file_id = new_photo->photos[0].file_id;
-          FileView new_file_view = td->file_manager_->get_file_view(new_file_id);
-          CHECK(new_file_view.has_remote_location());
-
-          LOG(DEBUG) << "Trying to merge old file " << old_file_id << " and new file " << new_file_id;
-          if (new_file_view.remote_location().is_web()) {
-            LOG(ERROR) << "Have remote web photo location";
-          } else if (!old_file_view.has_remote_location() ||
-                     old_file_view.main_remote_location().get_file_reference() !=
-                         new_file_view.remote_location().get_file_reference() ||
-                     old_file_view.main_remote_location().get_access_hash() !=
-                         new_file_view.remote_location().get_access_hash()) {
-            FileId file_id = td->file_manager_->register_remote(
-                FullRemoteFileLocation(PhotoSizeSource::thumbnail(new_file_view.get_type(), 'i'),
-                                       new_file_view.remote_location().get_id(),
-                                       new_file_view.remote_location().get_access_hash(), DcId::invalid(),
-                                       new_file_view.remote_location().get_file_reference().str()),
-                FileLocationSource::FromServer, dialog_id, old_photo->photos.back().size, 0, "");
-            LOG_STATUS(td->file_manager_->merge(file_id, old_file_id));
-          }
-        }
       }
       break;
     }

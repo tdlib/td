@@ -112,6 +112,9 @@ Photo get_web_document_photo(FileManager *file_manager, tl_object_ptr<telegram_a
 tl_object_ptr<td_api::photo> get_photo_object(FileManager *file_manager, const Photo &photo);
 tl_object_ptr<td_api::chatPhoto> get_chat_photo_object(FileManager *file_manager, const Photo &photo);
 
+void merge_photos(Td *td, const Photo *old_photo, Photo *new_photo, DialogId dialog_id, bool need_merge_files,
+                  bool &is_content_changed, bool &need_update);
+
 void photo_delete_thumbnail(Photo &photo);
 
 bool photo_has_input_media(FileManager *file_manager, const Photo &photo, bool is_secret, bool is_bot);
