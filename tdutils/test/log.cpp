@@ -168,7 +168,7 @@ TEST(Log, Bench) {
     class AsyncFileLog final : public td::LogInterface {
      public:
       AsyncFileLog() {
-        file_log_.init("tmplog", std::numeric_limits<td::int64>::max()).ensure();
+        file_log_.init("tmplog", std::numeric_limits<td::int64>::max(), false).ensure();
       }
       void do_append(int log_level, td::CSlice slice) final {
         static_cast<td::LogInterface &>(file_log_).do_append(log_level, slice);
