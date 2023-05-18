@@ -63,45 +63,29 @@ StoryId StoryManager::on_get_story(DialogId owner_dialog_id,
     return StoryId();
   }
   auto content_type = content->get_type();
-
-  auto privacy_rules = UserPrivacySettingRules::get_user_privacy_setting_rules(td_, std::move(story_item->privacy_));
-
-  vector<UserId> recent_viewer_user_ids;
-  int32 view_count = 0;
-  if (story_item->views_ != nullptr) {
-    for (auto &viewer_id : story_item->views_->recent_viewers_) {
-      UserId user_id(viewer_id);
-      if (user_id.is_valid() && td_->contacts_manager_->have_min_user(user_id)) {
-        recent_viewer_user_ids.push_back(user_id);
-      } else {
-        LOG(ERROR) << "Receive " << user_id << " as recent viewer in " << story_id;
-      }
-    }
-    view_count = story_item->views_->views_count_;
-  }
-
-  if (story->is_pinned_ != story_item->pinned_ || story->is_public_ != story_item->public_ ||
-      story->is_for_close_friends_ != story_item->close_friends_ || story->date_ != story_item->date_ ||
-      story->expire_date_ != story_item->expire_date_ || !(story->privacy_rules_ == privacy_rules) ||
-      story->recent_viewer_user_ids_ != recent_viewer_user_ids || story->view_count_ != view_count ||
-      story->caption_ != caption) {
-    story->is_pinned_ = story_item->pinned_;
-    story->is_public_ = story_item->public_;
-    story->is_for_close_friends_ = story_item->close_friends_;
-    story->date_ = story_item->date_;
-    story->expire_date_ = story_item->expire_date_;
-    story->privacy_rules_ = std::move(privacy_rules);
-    story->recent_viewer_user_ids_ = std::move(recent_viewer_user_ids);
-    story->view_count_ = view_count;
-    story->caption_ = std::move(caption);
-    is_changed = true;
-  }
   if (story->content_ == nullptr || story->content_->get_type() != content_type) {
     story->content_ = std::move(content);
     is_changed = true;
   } else {
     merge_story_contents(td_, story->content_.get(), content.get(), owner_dialog_id, false, need_save_to_database,
                          is_changed);
+  }
+
+  auto privacy_rules = UserPrivacySettingRules::get_user_privacy_setting_rules(td_, std::move(story_item->privacy_));
+  auto interaction_info = StoryInteractionInfo(td_, std::move(story_item->views_));
+  if (story->is_pinned_ != story_item->pinned_ || story->is_public_ != story_item->public_ ||
+      story->is_for_close_friends_ != story_item->close_friends_ || story->date_ != story_item->date_ ||
+      story->expire_date_ != story_item->expire_date_ || !(story->privacy_rules_ == privacy_rules) ||
+      story->interaction_info_ != interaction_info || story->caption_ != caption) {
+    story->is_pinned_ = story_item->pinned_;
+    story->is_public_ = story_item->public_;
+    story->is_for_close_friends_ = story_item->close_friends_;
+    story->date_ = story_item->date_;
+    story->expire_date_ = story_item->expire_date_;
+    story->privacy_rules_ = std::move(privacy_rules);
+    story->interaction_info_ = std::move(interaction_info);
+    story->caption_ = std::move(caption);
+    is_changed = true;
   }
 
   if (is_changed || need_save_to_database) {

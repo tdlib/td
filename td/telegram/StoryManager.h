@@ -9,6 +9,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/StoryId.h"
+#include "td/telegram/StoryInteractionInfo.h"
 #include "td/telegram/UserId.h"
 #include "td/telegram/UserPrivacySettingRule.h"
 
@@ -40,8 +41,7 @@ class StoryManager final : public Actor {
     bool is_pinned_ = false;
     bool is_public_ = false;
     bool is_for_close_friends_ = false;
-    vector<UserId> recent_viewer_user_ids_;
-    int32 view_count_ = 0;
+    StoryInteractionInfo interaction_info_;
     UserPrivacySettingRules privacy_rules_;
     unique_ptr<StoryContent> content_;
     FormattedText caption_;

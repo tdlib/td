@@ -1,0 +1,47 @@
+//
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2023
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
+#pragma once
+
+#include "td/telegram/telegram_api.h"
+#include "td/telegram/UserId.h"
+
+#include "td/utils/common.h"
+#include "td/utils/StringBuilder.h"
+
+namespace td {
+
+class Td;
+
+class StoryInteractionInfo {
+  vector<UserId> recent_viewer_user_ids_;
+  int32 view_count_ = -1;
+
+  static constexpr size_t MAX_RECENT_VIEWERS = 3;
+
+  friend bool operator==(const StoryInteractionInfo &lhs, const StoryInteractionInfo &rhs);
+
+  friend StringBuilder &operator<<(StringBuilder &string_builder, const StoryInteractionInfo &info);
+
+ public:
+  StoryInteractionInfo() = default;
+
+  StoryInteractionInfo(Td *td, telegram_api::object_ptr<telegram_api::storyViews> &&story_views);
+
+  bool is_empty() const {
+    return view_count_ < 0;
+  }
+};
+
+bool operator==(const StoryInteractionInfo &lhs, const StoryInteractionInfo &rhs);
+
+inline bool operator!=(const StoryInteractionInfo &lhs, const StoryInteractionInfo &rhs) {
+  return !(lhs == rhs);
+}
+
+StringBuilder &operator<<(StringBuilder &string_builder, const StoryInteractionInfo &info);
+
+}  // namespace td
