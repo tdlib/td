@@ -94,6 +94,7 @@ class TestsRunner final : public TestContext {
 
   void add_test(string name, std::function<unique_ptr<Test>()> test);
   void add_substr_filter(string str);
+  void set_offset(string str);
   void set_stress_flag(bool flag);
   void run_all();
   bool run_all_step();
@@ -109,6 +110,7 @@ class TestsRunner final : public TestContext {
   };
   bool stress_flag_{false};
   vector<string> substr_filters_;
+  string offset_;
   struct TestInfo {
     std::function<unique_ptr<Test>()> creator;
     unique_ptr<Test> test;

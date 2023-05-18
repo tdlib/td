@@ -32,6 +32,8 @@ int main(int argc, char **argv) {
   td::OptionParser options;
   options.add_option('f', "filter", "run only specified tests",
                      [&](td::Slice filter) { runner.add_substr_filter(filter.str()); });
+  options.add_option('o', "offset", "run tests from the specified test",
+                     [&](td::Slice offset) { runner.set_offset(offset.str()); });
   options.add_option('s', "stress", "run tests infinitely", [&] { runner.set_stress_flag(true); });
   options.add_checked_option('v', "verbosity", "log verbosity level",
                              td::OptionParser::parse_integer(default_verbosity_level));

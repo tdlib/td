@@ -182,6 +182,10 @@ void TestsRunner::add_substr_filter(string str) {
   substr_filters_.push_back(std::move(str));
 }
 
+void TestsRunner::set_offset(string str) {
+  offset_ = std::move(str);
+}
+
 void TestsRunner::set_regression_tester(unique_ptr<RegressionTester> regression_tester) {
   regression_tester_ = std::move(regression_tester);
 }
@@ -202,6 +206,7 @@ bool TestsRunner::run_all_step() {
     state_.it = 0;
   }
 
+  bool skip_tests = true;
   while (state_.it != state_.end) {
     auto &name = tests_[state_.it].first;
     auto &test = tests_[state_.it].second.test;
@@ -214,7 +219,10 @@ bool TestsRunner::run_all_step() {
           break;
         }
       }
-      if (!ok) {
+      if (name.find(offset_) != string::npos) {
+        skip_tests = false;
+      }
+      if (!ok || skip_tests) {
         ++state_.it;
         continue;
       }
