@@ -12,7 +12,6 @@
 
 namespace td {
 
-// increase MessageUnsupported::CURRENT_VERSION each time a new message content type is added
 enum class MessageContentType : int32 {
   None = -1,
   Text,
@@ -72,6 +71,7 @@ enum class MessageContentType : int32 {
   WebViewWriteAccessAllowed,
   SetBackground
 };
+// increase MessageUnsupported::CURRENT_VERSION each time a new message content type is added
 
 StringBuilder &operator<<(StringBuilder &string_builder, MessageContentType content_type);
 
