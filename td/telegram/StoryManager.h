@@ -8,6 +8,7 @@
 
 #include "td/telegram/DialogId.h"
 #include "td/telegram/MessageEntity.h"
+#include "td/telegram/StoryFullId.h"
 #include "td/telegram/StoryId.h"
 #include "td/telegram/StoryInteractionInfo.h"
 #include "td/telegram/UserId.h"
@@ -49,13 +50,13 @@ class StoryManager final : public Actor {
 
   void tear_down() final;
 
-  const Story *get_story(StoryId story_id) const;
+  const Story *get_story(StoryFullId story_full_id) const;
 
-  Story *get_story_editable(StoryId story_id);
+  Story *get_story_editable(StoryFullId story_full_id);
 
   static bool is_local_story_id(StoryId story_id);
 
-  WaitFreeHashMap<StoryId, unique_ptr<Story>, StoryIdHash> stories_;
+  WaitFreeHashMap<StoryFullId, unique_ptr<Story>, StoryFullIdHash> stories_;
 
   Td *td_;
   ActorShared<> parent_;

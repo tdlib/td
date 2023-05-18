@@ -28,12 +28,12 @@ bool StoryManager::is_local_story_id(StoryId story_id) {
   return story_id.get() < 0;
 }
 
-const StoryManager::Story *StoryManager::get_story(StoryId story_id) const {
-  return stories_.get_pointer(story_id);
+const StoryManager::Story *StoryManager::get_story(StoryFullId story_full_id) const {
+  return stories_.get_pointer(story_full_id);
 }
 
-StoryManager::Story *StoryManager::get_story_editable(StoryId story_id) {
-  return stories_.get_pointer(story_id);
+StoryManager::Story *StoryManager::get_story_editable(StoryFullId story_full_id) {
+  return stories_.get_pointer(story_full_id);
 }
 
 StoryId StoryManager::on_get_story(DialogId owner_dialog_id,
@@ -44,13 +44,14 @@ StoryId StoryManager::on_get_story(DialogId owner_dialog_id,
     return StoryId();
   }
 
-  auto story = get_story_editable(story_id);
+  StoryFullId story_full_id{owner_dialog_id, story_id};
+  auto story = get_story_editable(story_full_id);
   bool is_changed = false;
   bool need_save_to_database = false;
   if (story == nullptr) {
     auto s = make_unique<Story>();
     story = s.get();
-    stories_.set(story_id, std::move(s));
+    stories_.set(story_full_id, std::move(s));
   }
   CHECK(story != nullptr);
 

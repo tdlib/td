@@ -763,6 +763,7 @@ set(TDLIB_SOURCE
   td/telegram/StorageManager.h
   td/telegram/StoryContent.h
   td/telegram/StoryContentType.h
+  td/telegram/StoryFullId.h
   td/telegram/StoryId.h
   td/telegram/StoryInteractionInfo.h
   td/telegram/StoryManager.h
