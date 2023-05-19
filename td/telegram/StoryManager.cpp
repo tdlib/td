@@ -8,6 +8,7 @@
 
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/files/FileManager.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/StoryContent.h"
 #include "td/telegram/StoryContentType.h"
@@ -66,6 +67,17 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
       story->is_pinned_, story->interaction_info_.get_story_interaction_info_object(td_), std::move(privacy_rules),
       story->is_public_, story->is_for_close_friends_, get_story_content_object(td_, story->content_.get()),
       get_formatted_text_object(story->caption_, true, -1));
+}
+
+vector<FileId> StoryManager::get_story_file_ids(const Story *story) const {
+  CHECK(story != nullptr);
+  return get_story_content_file_ids(td_, story->content_.get());
+}
+
+void StoryManager::delete_story_files(const Story *story) const {
+  for (auto file_id : get_story_file_ids(story)) {
+    send_closure(G()->file_manager(), &FileManager::delete_file, file_id, Promise<Unit>(), "delete_story_files");
+  }
 }
 
 StoryId StoryManager::on_get_story(DialogId owner_dialog_id,

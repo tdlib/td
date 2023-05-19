@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/files/FileId.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/StoryFullId.h"
 #include "td/telegram/StoryId.h"
@@ -60,6 +61,10 @@ class StoryManager final : public Actor {
   Story *get_story_editable(StoryFullId story_full_id);
 
   td_api::object_ptr<td_api::story> get_story_object(StoryFullId story_full_id, const Story *story) const;
+
+  vector<FileId> get_story_file_ids(const Story *story) const;
+
+  void delete_story_files(const Story *story) const;
 
   static bool is_local_story_id(StoryId story_id);
 
