@@ -19989,7 +19989,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
   for (auto message_id : message_ids) {
     auto *m = get_message_force(d, message_id, "view_messages 20");
     if (m != nullptr) {
-      auto file_ids = get_message_content_file_ids(m->content.get(), td_);
+      auto file_ids = get_message_file_ids(m);
       for (auto file_id : file_ids) {
         td_->file_manager_->check_local_location_async(file_id, true);
       }
@@ -20318,7 +20318,7 @@ Status MessagesManager::open_message_content(FullMessageId full_message_id) {
     on_message_live_location_viewed(d, m);
   }
 
-  auto file_ids = get_message_content_file_ids(m->content.get(), td_);
+  auto file_ids = get_message_file_ids(m);
   for (auto file_id : file_ids) {
     td_->file_manager_->check_local_location_async(file_id, true);
   }
@@ -22231,7 +22231,7 @@ void MessagesManager::add_message_file_sources(DialogId dialog_id, const Message
     // return;
   }
 
-  auto file_ids = get_message_content_file_ids(m->content.get(), td_);
+  auto file_ids = get_message_file_ids(m);
   if (file_ids.empty()) {
     return;
   }
@@ -22250,7 +22250,7 @@ void MessagesManager::remove_message_file_sources(DialogId dialog_id, const Mess
     return;
   }
 
-  auto file_ids = get_message_content_file_ids(m->content.get(), td_);
+  auto file_ids = get_message_file_ids(m);
   if (file_ids.empty()) {
     return;
   }
@@ -22272,7 +22272,7 @@ void MessagesManager::change_message_files(DialogId dialog_id, const Message *m,
     // return;
   }
 
-  auto new_file_ids = get_message_content_file_ids(m->content.get(), td_);
+  auto new_file_ids = get_message_file_ids(m);
   if (new_file_ids == old_file_ids) {
     return;
   }
@@ -34599,7 +34599,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
                                         message_search_filter_index_mask(MessageSearchFilter::UnreadReaction));
         auto old_index_mask = get_message_index_mask(dialog_id, m) & INDEX_MASK_MASK;
         bool was_deleted = delete_active_live_location(dialog_id, m);
-        auto old_file_ids = get_message_content_file_ids(m->content.get(), td_);
+        auto old_file_ids = get_message_file_ids(m);
 
         bool need_send_update = update_message(d, m, std::move(message), need_update_dialog_pos, true);
         if (!need_send_update) {
@@ -34997,7 +34997,7 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
       LOG(INFO) << "Adding already existing " << old_message_id << " in " << dialog_id << " from " << source;
       message->message_id = old_message_id;
       if (!from_database) {
-        auto old_file_ids = get_message_content_file_ids(m->content.get(), td_);
+        auto old_file_ids = get_message_file_ids(m);
         bool need_update_dialog_pos = false;
         update_message(d, m, std::move(message), &need_update_dialog_pos, true);
         CHECK(need_update_dialog_pos == false);
