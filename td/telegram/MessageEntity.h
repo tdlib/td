@@ -31,7 +31,6 @@ class Td;
 
 class MessageEntity {
  public:
-  // don't forget to update get_type_priority()
   enum class Type : int32 {
     Mention,
     Hashtag,
