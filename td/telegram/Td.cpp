@@ -3942,6 +3942,7 @@ void Td::init_managers() {
   G()->set_stickers_manager(stickers_manager_actor_.get());
   story_manager_ = make_unique<StoryManager>(this, create_reference());
   story_manager_actor_ = register_actor("StoryManager", story_manager_.get());
+  G()->set_story_manager(story_manager_actor_.get());
   theme_manager_ = make_unique<ThemeManager>(this, create_reference());
   theme_manager_actor_ = register_actor("ThemeManager", theme_manager_.get());
   G()->set_theme_manager(theme_manager_actor_.get());
