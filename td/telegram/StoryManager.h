@@ -21,6 +21,8 @@
 #include "td/utils/common.h"
 #include "td/utils/WaitFreeHashMap.h"
 
+#include <utility>
+
 namespace td {
 
 class StoryContent;
@@ -36,6 +38,9 @@ class StoryManager final : public Actor {
   ~StoryManager() final;
 
   StoryId on_get_story(DialogId owner_dialog_id, telegram_api::object_ptr<telegram_api::storyItem> &&story_item);
+
+  std::pair<int32, vector<StoryId>> on_get_stories(DialogId owner_dialog_id,
+                                                   telegram_api::object_ptr<telegram_api::stories_stories> &&stories);
 
   td_api::object_ptr<td_api::story> get_story_object(StoryFullId story_full_id) const;
 

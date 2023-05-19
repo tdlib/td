@@ -14,6 +14,8 @@
 #include "td/telegram/StoryContentType.h"
 #include "td/telegram/Td.h"
 
+#include "td/utils/logging.h"
+
 namespace td {
 
 StoryManager::StoryManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
@@ -85,6 +87,7 @@ StoryId StoryManager::on_get_story(DialogId owner_dialog_id,
   CHECK(story_item != nullptr);
   StoryId story_id(story_item->id_);
   if (!story_id.is_valid() || is_local_story_id(story_id)) {
+    LOG(ERROR) << "Receive " << to_string(story_item);
     return StoryId();
   }
 
@@ -140,6 +143,37 @@ StoryId StoryManager::on_get_story(DialogId owner_dialog_id,
     // send_closure(G()->td(), &Td::send_update, td_api::make_object<td_api::updateStory>(get_story_object(story_id, story)));
   }
   return story_id;
+}
+
+std::pair<int32, vector<StoryId>> StoryManager::on_get_stories(
+    DialogId owner_dialog_id, telegram_api::object_ptr<telegram_api::stories_stories> &&stories) {
+  td_->contacts_manager_->on_get_users(std::move(stories->users_), "on_get_stories");
+  vector<StoryId> story_ids;
+  for (auto &story : stories->stories_) {
+    switch (story->get_id()) {
+      case telegram_api::storyItemDeleted::ID:
+        LOG(ERROR) << "Receive storyItemDeleted";
+        break;
+      case telegram_api::storyItemSkipped::ID:
+        LOG(ERROR) << "Receive storyItemSkipped";
+        break;
+      case telegram_api::storyItem::ID: {
+        auto story_id = on_get_story(owner_dialog_id, telegram_api::move_object_as<telegram_api::storyItem>(story));
+        if (story_id.is_valid()) {
+          story_ids.push_back(story_id);
+        }
+        break;
+      }
+      default:
+        UNREACHABLE();
+    }
+  }
+  auto total_count = stories->count_;
+  if (total_count < static_cast<int32>(story_ids.size())) {
+    LOG(ERROR) << "Expected at most " << total_count << " stories, but receive " << story_ids.size();
+    total_count = static_cast<int32>(story_ids.size());
+  }
+  return {total_count, std::move(story_ids)};
 }
 
 }  // namespace td
