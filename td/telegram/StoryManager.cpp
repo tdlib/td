@@ -9,14 +9,52 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/files/FileManager.h"
+#include "td/telegram/Global.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/StoryContent.h"
 #include "td/telegram/StoryContentType.h"
 #include "td/telegram/Td.h"
 
+#include "td/utils/buffer.h"
 #include "td/utils/logging.h"
+#include "td/utils/Status.h"
 
 namespace td {
+
+class GetStoriesByIDQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  UserId user_id_;
+
+ public:
+  explicit GetStoriesByIDQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(UserId user_id, vector<int32> input_story_ids) {
+    user_id_ = user_id;
+    auto r_input_user = td_->contacts_manager_->get_input_user(user_id_);
+    if (r_input_user.is_error()) {
+      return on_error(r_input_user.move_as_error());
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::stories_getStoriesByID(r_input_user.move_as_ok(), std::move(input_story_ids))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stories_getStoriesByID>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for GetStoriesByIDQuery: " << to_string(result);
+    td_->story_manager_->on_get_stories(DialogId(user_id_), std::move(result));
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
 
 StoryManager::StoryManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
@@ -117,6 +155,8 @@ StoryId StoryManager::on_get_story(DialogId owner_dialog_id,
   } else {
     merge_story_contents(td_, story->content_.get(), content.get(), owner_dialog_id, false, need_save_to_database,
                          is_changed);
+    story->content_ = std::move(content);
+    // story->last_edit_pts_ = 0;
   }
 
   auto privacy_rules = UserPrivacySettingRules::get_user_privacy_setting_rules(td_, std::move(story_item->privacy_));
@@ -174,6 +214,15 @@ std::pair<int32, vector<StoryId>> StoryManager::on_get_stories(
     total_count = static_cast<int32>(story_ids.size());
   }
   return {total_count, std::move(story_ids)};
+}
+
+void StoryManager::reload_story(StoryFullId story_full_id, Promise<Unit> &&promise) {
+  auto dialog_id = story_full_id.get_dialog_id();
+  if (dialog_id.get_type() != DialogType::User) {
+    return promise.set_error(Status::Error(400, "Unsupported story owner"));
+  }
+  auto user_id = dialog_id.get_user_id();
+  td_->create_handler<GetStoriesByIDQuery>(std::move(promise))->send(user_id, {story_full_if.get_story_id().get()});
 }
 
 }  // namespace td

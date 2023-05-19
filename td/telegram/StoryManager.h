@@ -19,6 +19,7 @@
 #include "td/actor/actor.h"
 
 #include "td/utils/common.h"
+#include "td/utils/Promise.h"
 #include "td/utils/WaitFreeHashMap.h"
 
 #include <utility>
@@ -43,6 +44,8 @@ class StoryManager final : public Actor {
                                                    telegram_api::object_ptr<telegram_api::stories_stories> &&stories);
 
   td_api::object_ptr<td_api::story> get_story_object(StoryFullId story_full_id) const;
+
+  void reload_story(StoryFullId story_full_id, Promise<Unit> &&promise);
 
  private:
   struct Story {
