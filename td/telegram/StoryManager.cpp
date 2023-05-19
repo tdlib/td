@@ -28,12 +28,44 @@ bool StoryManager::is_local_story_id(StoryId story_id) {
   return story_id.get() < 0;
 }
 
+bool StoryManager::is_story_owned(DialogId owner_dialog_id) const {
+  return owner_dialog_id == DialogId(td_->contacts_manager_->get_my_id());
+}
+
 const StoryManager::Story *StoryManager::get_story(StoryFullId story_full_id) const {
   return stories_.get_pointer(story_full_id);
 }
 
 StoryManager::Story *StoryManager::get_story_editable(StoryFullId story_full_id) {
   return stories_.get_pointer(story_full_id);
+}
+
+td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId story_full_id) const {
+  return get_story_object(story_full_id, get_story(story_full_id));
+}
+
+td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId story_full_id, const Story *story) const {
+  if (story == nullptr) {
+    return nullptr;
+  }
+  auto dialog_id = story_full_id.get_dialog_id();
+  bool is_owned = is_story_owned(dialog_id);
+  if (!is_owned && !story->is_pinned_ && G()->unix_time() >= story->expire_date_) {
+    return nullptr;
+  }
+
+  td_api::object_ptr<td_api::userPrivacySettingRules> privacy_rules;
+  if (is_owned) {
+    privacy_rules = story->privacy_rules_.get_user_privacy_setting_rules_object(td_);
+  }
+
+  CHECK(dialog_id.get_type() == DialogType::User);
+  return td_api::make_object<td_api::story>(
+      story_full_id.get_story_id().get(),
+      td_->contacts_manager_->get_user_id_object(dialog_id.get_user_id(), "get_story_object"), story->date_,
+      story->is_pinned_, story->interaction_info_.get_story_interaction_info_object(td_), std::move(privacy_rules),
+      story->is_public_, story->is_for_close_friends_, get_story_content_object(td_, story->content_.get()),
+      get_formatted_text_object(story->caption_, true, -1));
 }
 
 StoryId StoryManager::on_get_story(DialogId owner_dialog_id,

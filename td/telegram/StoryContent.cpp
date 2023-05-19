@@ -164,4 +164,28 @@ void merge_story_contents(Td *td, const StoryContent *old_content, StoryContent 
   }
 }
 
+td_api::object_ptr<td_api::StoryContent> get_story_content_object(Td *td, const StoryContent *content) {
+  CHECK(content != nullptr);
+  switch (content->get_type()) {
+    case StoryContentType::Photo: {
+      const auto *s = static_cast<const StoryContentPhoto *>(content);
+      auto photo = get_photo_object(td->file_manager_.get(), s->photo_);
+      if (photo == nullptr) {
+        return td_api::make_object<td_api::storyContentUnsupported>();
+      }
+      return td_api::make_object<td_api::storyContentPhoto>(std::move(photo));
+    }
+    case StoryContentType::Video: {
+      const auto *s = static_cast<const StoryContentVideo *>(content);
+      return td_api::make_object<td_api::storyContentVideo>(td->videos_manager_->get_video_object(s->file_id_),
+                                                            td->videos_manager_->get_video_object(s->alt_file_id_));
+    }
+    case StoryContentType::Unsupported:
+      return td_api::make_object<td_api::storyContentUnsupported>();
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
+}
+
 }  // namespace td

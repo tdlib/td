@@ -8,6 +8,7 @@
 
 #include "td/telegram/DialogId.h"
 #include "td/telegram/StoryContentType.h"
+#include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
 namespace td {
@@ -31,5 +32,7 @@ unique_ptr<StoryContent> get_story_content(Td *td, telegram_api::object_ptr<tele
 
 void merge_story_contents(Td *td, const StoryContent *old_content, StoryContent *new_content, DialogId dialog_id,
                           bool need_merge_files, bool &is_content_changed, bool &need_update);
+
+td_api::object_ptr<td_api::StoryContent> get_story_content_object(Td *td, const StoryContent *content);
 
 }  // namespace td

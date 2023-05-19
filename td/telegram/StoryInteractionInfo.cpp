@@ -36,6 +36,15 @@ StoryInteractionInfo::StoryInteractionInfo(Td *td, telegram_api::object_ptr<tele
   }
 }
 
+td_api::object_ptr<td_api::storyInteractionInfo> StoryInteractionInfo::get_story_interaction_info_object(Td *td) const {
+  if (is_empty()) {
+    return nullptr;
+  }
+  return td_api::make_object<td_api::storyInteractionInfo>(
+      view_count_,
+      td->contacts_manager_->get_user_ids_object(recent_viewer_user_ids_, "get_story_interaction_info_object"));
+}
+
 bool operator==(const StoryInteractionInfo &lhs, const StoryInteractionInfo &rhs) {
   return lhs.recent_viewer_user_ids_ == rhs.recent_viewer_user_ids_ && lhs.view_count_ == rhs.view_count_;
 }

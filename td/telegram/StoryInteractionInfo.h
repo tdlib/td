@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
 
@@ -34,6 +35,8 @@ class StoryInteractionInfo {
   bool is_empty() const {
     return view_count_ < 0;
   }
+
+  td_api::object_ptr<td_api::storyInteractionInfo> get_story_interaction_info_object(Td *td) const;
 };
 
 bool operator==(const StoryInteractionInfo &lhs, const StoryInteractionInfo &rhs);

@@ -11,6 +11,7 @@
 #include "td/telegram/StoryFullId.h"
 #include "td/telegram/StoryId.h"
 #include "td/telegram/StoryInteractionInfo.h"
+#include "td/telegram/td_api.h"
 #include "td/telegram/UserId.h"
 #include "td/telegram/UserPrivacySettingRule.h"
 
@@ -35,6 +36,8 @@ class StoryManager final : public Actor {
 
   StoryId on_get_story(DialogId owner_dialog_id, telegram_api::object_ptr<telegram_api::storyItem> &&story_item);
 
+  td_api::object_ptr<td_api::story> get_story_object(StoryFullId story_full_id) const;
+
  private:
   struct Story {
     int32 date_ = 0;
@@ -50,9 +53,13 @@ class StoryManager final : public Actor {
 
   void tear_down() final;
 
+  bool is_story_owned(DialogId owner_dialog_id) const;
+
   const Story *get_story(StoryFullId story_full_id) const;
 
   Story *get_story_editable(StoryFullId story_full_id);
+
+  td_api::object_ptr<td_api::story> get_story_object(StoryFullId story_full_id, const Story *story) const;
 
   static bool is_local_story_id(StoryId story_id);
 

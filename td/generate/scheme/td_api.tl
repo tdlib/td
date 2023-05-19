@@ -1662,7 +1662,7 @@ forumTopicIcon color:int32 custom_emoji_id:int64 = ForumTopicIcon;
 //@message_thread_id Message thread identifier of the topic
 //@name Name of the topic
 //@icon Icon of the topic
-//@creation_date Date the topic was created
+//@creation_date Point in time (Unix timestamp) when the topic was created
 //@creator_id Identifier of the creator of the topic
 //@is_general True, if the topic is the General topic list
 //@is_outgoing True, if the topic was created by the current user
@@ -2680,7 +2680,7 @@ messagePassportDataReceived elements:vector<encryptedPassportElement> credential
 //@description A user in the chat came within proximity alert range @traveler_id The identifier of a user or chat that triggered the proximity alert @watcher_id The identifier of a user or chat that subscribed for the proximity alert @distance The distance between the users
 messageProximityAlertTriggered traveler_id:MessageSender watcher_id:MessageSender distance:int32 = MessageContent;
 
-//@description Message content that is not supported in the current TDLib version
+//@description A message content that is not supported in the current TDLib version
 messageUnsupported = MessageContent;
 
 
@@ -2756,7 +2756,7 @@ inputThumbnail thumbnail:InputFile width:int32 height:int32 = InputThumbnail;
 
 //@class MessageSchedulingState @description Contains information about the time when a scheduled message will be sent
 
-//@description The message will be sent at the specified date @send_date Date the message will be sent. The date must be within 367 days in the future
+//@description The message will be sent at the specified date @send_date Point in time (Unix timestamp) when the message will be sent. The date must be within 367 days in the future
 messageSchedulingStateSendAtDate send_date:int32 = MessageSchedulingState;
 
 //@description The message will be sent when the peer will be online. Applicable to private chats only and when the exact online status of the peer is known
@@ -4831,6 +4831,37 @@ messageLink link:string is_public:Bool = MessageLink;
 //@media_timestamp Timestamp from which the video/audio/video note/voice note playing must start, in seconds; 0 if not specified. The media can be in the message content or in its web page preview
 //@for_album True, if the whole media album to which the message belongs is linked
 messageLinkInfo is_public:Bool chat_id:int53 message_thread_id:int53 message:message media_timestamp:int32 for_album:Bool = MessageLinkInfo;
+
+
+//@class StoryContent @description Contains the content of a story
+
+//@description A photo story @photo The photo
+storyContentPhoto photo:photo = StoryContent;
+
+//@description A video story @video The video in MPEG4 format, encoded by x265 codec @alternative_video Alternative version of the video in MPEG4 format, encoded by x264 codec; may be null
+storyContentVideo video:video alternative_video:video = StoryContent;
+
+//@description A story content that is not supported in the current TDLib version
+storyContentUnsupported = StoryContent;
+
+
+//@description Contains information about interactions with a story
+//@view_count Number of times the story was viewed
+//@recent_viewer_user_ids Identifiers of at most 3 recent viewers of the story
+storyInteractionInfo view_count:int32 recent_viewer_user_ids:vector<int53> = StoryInteractionInfo;
+
+//@description Represents a story
+//@id Unique story identifier among stories of the given sender
+//@sender_user_id Identifier of the user that created the story
+//@date Point in time (Unix timestamp) when the story was published
+//@is_pinned True, if the story is saved in the sender's profile and will be available there after the expiration
+//@interaction_info Information about interactions with the story; may be null if the story isn't owned or there were no interactions
+//@privacy_rules Pryvacy rules affecting story visibility; may be null if the story isn't owned
+//@is_public True, if the story is available for everyone
+//@is_for_close_friends True, if the story is available only for close friends
+//@content Content of the story
+//@caption Caption of the story
+story id:int32 sender_user_id:int53 date:int32 is_pinned:Bool interaction_info:storyInteractionInfo privacy_rules:userPrivacySettingRules is_public:Bool is_for_close_friends:Bool content:StoryContent caption:formattedText = Story;
 
 
 //@description Contains a part of a file @data File bytes
