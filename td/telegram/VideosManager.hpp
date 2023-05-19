@@ -22,10 +22,12 @@ void VideosManager::store_video(FileId file_id, StorerT &storer) const {
   const Video *video = get_video(file_id);
   CHECK(video != nullptr);
   bool has_animated_thumbnail = video->animated_thumbnail.file_id.is_valid();
+  bool has_preload_prefix_size = video->preload_prefix_size != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(video->has_stickers);
   STORE_FLAG(video->supports_streaming);
   STORE_FLAG(has_animated_thumbnail);
+  STORE_FLAG(has_preload_prefix_size);
   END_STORE_FLAGS();
   store(video->file_name, storer);
   store(video->mime_type, storer);
@@ -40,16 +42,21 @@ void VideosManager::store_video(FileId file_id, StorerT &storer) const {
   if (has_animated_thumbnail) {
     store(video->animated_thumbnail, storer);
   }
+  if (has_preload_prefix_size) {
+    store(video->preload_prefix_size, storer);
+  }
 }
 
 template <class ParserT>
 FileId VideosManager::parse_video(ParserT &parser) {
   auto video = make_unique<Video>();
   bool has_animated_thumbnail;
+  bool has_preload_prefix_size;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(video->has_stickers);
   PARSE_FLAG(video->supports_streaming);
   PARSE_FLAG(has_animated_thumbnail);
+  PARSE_FLAG(has_preload_prefix_size);
   END_PARSE_FLAGS();
   parse(video->file_name, parser);
   parse(video->mime_type, parser);
@@ -65,6 +72,9 @@ FileId VideosManager::parse_video(ParserT &parser) {
   }
   if (has_animated_thumbnail) {
     parse(video->animated_thumbnail, parser);
+  }
+  if (has_preload_prefix_size) {
+    parse(video->preload_prefix_size, parser);
   }
   if (parser.get_error() != nullptr || !video->file_id.is_valid()) {
     return FileId();

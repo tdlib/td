@@ -422,8 +422,9 @@ sticker id:int64 set_id:int64 width:int32 height:int32 emoji:string format:Stick
 //@supports_streaming True, if the video is supposed to be streamed
 //@minithumbnail Video minithumbnail; may be null
 //@thumbnail Video thumbnail in JPEG or MPEG4 format; as defined by the sender; may be null
+//@preload_prefix_size Number of bytes from the video file beginning, which is enough to load to play the video for one second; 0 if unknown. Currently, it is expected to be known only for video stories
 //@video File containing the video
-video duration:int32 width:int32 height:int32 file_name:string mime_type:string has_stickers:Bool supports_streaming:Bool minithumbnail:minithumbnail thumbnail:thumbnail video:file = Video;
+video duration:int32 width:int32 height:int32 file_name:string mime_type:string has_stickers:Bool supports_streaming:Bool minithumbnail:minithumbnail thumbnail:thumbnail preload_prefix_size:int32 video:file = Video;
 
 //@description Describes a video note. The video must be equal in width and height, cropped to a circle, and stored in MPEG4 format
 //@duration Duration of the video, in seconds; as defined by the sender

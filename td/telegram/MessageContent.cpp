@@ -2101,10 +2101,11 @@ static Result<InputMessageContent> create_input_message_content(
       ttl = input_video->self_destruct_time_;
 
       bool has_stickers = !sticker_file_ids.empty();
-      td->videos_manager_->create_video(
-          file_id, string(), thumbnail, AnimationSize(), has_stickers, std::move(sticker_file_ids),
-          std::move(file_name), std::move(mime_type), input_video->duration_,
-          get_dimensions(input_video->width_, input_video->height_, nullptr), input_video->supports_streaming_, false);
+      td->videos_manager_->create_video(file_id, string(), thumbnail, AnimationSize(), has_stickers,
+                                        std::move(sticker_file_ids), std::move(file_name), std::move(mime_type),
+                                        input_video->duration_,
+                                        get_dimensions(input_video->width_, input_video->height_, nullptr),
+                                        input_video->supports_streaming_, 0, false);
 
       content = make_unique<MessageVideo>(file_id, std::move(caption), input_video->has_spoiler_ && !is_secret);
       break;

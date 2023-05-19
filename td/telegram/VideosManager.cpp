@@ -46,10 +46,10 @@ tl_object_ptr<td_api::video> VideosManager::get_video_object(FileId file_id) con
   auto thumbnail = video->animated_thumbnail.file_id.is_valid()
                        ? get_thumbnail_object(td_->file_manager_.get(), video->animated_thumbnail, PhotoFormat::Mpeg4)
                        : get_thumbnail_object(td_->file_manager_.get(), video->thumbnail, PhotoFormat::Jpeg);
-  return make_tl_object<td_api::video>(video->duration, video->dimensions.width, video->dimensions.height,
-                                       video->file_name, video->mime_type, video->has_stickers,
-                                       video->supports_streaming, get_minithumbnail_object(video->minithumbnail),
-                                       std::move(thumbnail), td_->file_manager_->get_file_object(file_id));
+  return make_tl_object<td_api::video>(
+      video->duration, video->dimensions.width, video->dimensions.height, video->file_name, video->mime_type,
+      video->has_stickers, video->supports_streaming, get_minithumbnail_object(video->minithumbnail),
+      std::move(thumbnail), video->preload_prefix_size, td_->file_manager_->get_file_object(file_id));
 }
 
 FileId VideosManager::on_get_video(unique_ptr<Video> new_video, bool replace) {
@@ -66,11 +66,13 @@ FileId VideosManager::on_get_video(unique_ptr<Video> new_video, bool replace) {
       v->mime_type = std::move(new_video->mime_type);
     }
     if (v->duration != new_video->duration || v->dimensions != new_video->dimensions ||
-        v->supports_streaming != new_video->supports_streaming) {
+        v->supports_streaming != new_video->supports_streaming ||
+        v->preload_prefix_size != new_video->preload_prefix_size) {
       LOG(DEBUG) << "Video " << file_id << " info has changed";
       v->duration = new_video->duration;
       v->dimensions = new_video->dimensions;
       v->supports_streaming = new_video->supports_streaming;
+      v->preload_prefix_size = new_video->preload_prefix_size;
     }
     if (v->file_name != new_video->file_name) {
       LOG(DEBUG) << "Video " << file_id << " file name has changed";
@@ -169,7 +171,7 @@ void VideosManager::merge_videos(FileId new_id, FileId old_id) {
 void VideosManager::create_video(FileId file_id, string minithumbnail, PhotoSize thumbnail,
                                  AnimationSize animated_thumbnail, bool has_stickers, vector<FileId> &&sticker_file_ids,
                                  string file_name, string mime_type, int32 duration, Dimensions dimensions,
-                                 bool supports_streaming, bool replace) {
+                                 bool supports_streaming, int32 preload_prefix_size, bool replace) {
   auto v = make_unique<Video>();
   v->file_id = file_id;
   v->file_name = std::move(file_name);
@@ -182,6 +184,7 @@ void VideosManager::create_video(FileId file_id, string minithumbnail, PhotoSize
   v->thumbnail = std::move(thumbnail);
   v->animated_thumbnail = std::move(animated_thumbnail);
   v->supports_streaming = supports_streaming;
+  v->preload_prefix_size = preload_prefix_size;
   v->has_stickers = has_stickers;
   v->sticker_file_ids = std::move(sticker_file_ids);
   on_get_video(std::move(v), replace);
