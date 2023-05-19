@@ -1015,7 +1015,7 @@ bool is_email_address(Slice str) {
 }
 
 static bool is_common_tld(Slice str) {
-  static const std::unordered_set<Slice, SliceHash> tlds(
+  static const FlatHashSet<Slice, SliceHash> tlds(
       {"aaa", "aarp", "abarth", "abb", "abbott", "abbvie", "abc", "able", "abogado", "abudhabi", "ac", "academy",
        "accenture", "accountant", "accountants", "aco", "active", "actor", "ad", "adac", "ads", "adult", "ae", "aeg",
        "aero", "aetna", "af", "afamilycompany", "afl", "africa", "ag", "agakhan", "agency", "ai", "aig", "aigo",
