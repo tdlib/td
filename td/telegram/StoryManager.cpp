@@ -9,12 +9,14 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/files/FileManager.h"
+#include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/StoryContent.h"
 #include "td/telegram/StoryContentType.h"
 #include "td/telegram/Td.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
 #include "td/utils/Status.h"
@@ -110,13 +112,34 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
 }
 
 vector<FileId> StoryManager::get_story_file_ids(const Story *story) const {
-  CHECK(story != nullptr);
+  if (story == nullptr) {
+    return {};
+  }
   return get_story_content_file_ids(td_, story->content_.get());
 }
 
 void StoryManager::delete_story_files(const Story *story) const {
   for (auto file_id : get_story_file_ids(story)) {
     send_closure(G()->file_manager(), &FileManager::delete_file, file_id, Promise<Unit>(), "delete_story_files");
+  }
+}
+
+void StoryManager::change_story_files(StoryFullId story_full_id, const Story *story,
+                                      const vector<FileId> &old_file_ids) {
+  auto new_file_ids = get_story_file_ids(story);
+  if (new_file_ids == old_file_ids) {
+    return;
+  }
+
+  for (auto file_id : old_file_ids) {
+    if (!td::contains(new_file_ids, file_id)) {
+      send_closure(G()->file_manager(), &FileManager::delete_file, file_id, Promise<Unit>(), "change_story_files");
+    }
+  }
+
+  auto file_source_id = get_story_file_source_id(story_full_id);
+  if (file_source_id.is_valid()) {
+    td_->file_manager_->change_files_source(file_source_id, old_file_ids, new_file_ids);
   }
 }
 
@@ -149,6 +172,7 @@ StoryId StoryManager::on_get_story(DialogId owner_dialog_id,
     return StoryId();
   }
   auto content_type = content->get_type();
+  auto old_file_ids = get_story_file_ids(story);
   if (story->content_ == nullptr || story->content_->get_type() != content_type) {
     story->content_ = std::move(content);
     is_changed = true;
@@ -177,6 +201,8 @@ StoryId StoryManager::on_get_story(DialogId owner_dialog_id,
   }
 
   if (is_changed || need_save_to_database) {
+    change_story_files(story_full_id, story, old_file_ids);
+
     // save_story(story, story_id);
   }
   if (is_changed) {
@@ -216,13 +242,31 @@ std::pair<int32, vector<StoryId>> StoryManager::on_get_stories(
   return {total_count, std::move(story_ids)};
 }
 
+FileSourceId StoryManager::get_story_file_source_id(StoryFullId story_full_id) {
+  if (td_->auth_manager_->is_bot()) {
+    return FileSourceId();
+  }
+
+  auto dialog_id = story_full_id.get_dialog_id();
+  auto story_id = story_full_id.get_story_id();
+  if (!dialog_id.is_valid() || !story_id.is_valid()) {
+    return FileSourceId();
+  }
+
+  auto &file_source_id = story_full_id_to_file_source_id_[story_full_id];
+  if (!file_source_id.is_valid()) {
+    file_source_id = td_->file_reference_manager_->create_story_file_source(story_full_id);
+  }
+  return file_source_id;
+}
+
 void StoryManager::reload_story(StoryFullId story_full_id, Promise<Unit> &&promise) {
   auto dialog_id = story_full_id.get_dialog_id();
   if (dialog_id.get_type() != DialogType::User) {
     return promise.set_error(Status::Error(400, "Unsupported story owner"));
   }
   auto user_id = dialog_id.get_user_id();
-  td_->create_handler<GetStoriesByIDQuery>(std::move(promise))->send(user_id, {story_full_if.get_story_id().get()});
+  td_->create_handler<GetStoriesByIDQuery>(std::move(promise))->send(user_id, {story_full_id.get_story_id().get()});
 }
 
 }  // namespace td

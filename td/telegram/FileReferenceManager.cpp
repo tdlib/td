@@ -17,6 +17,7 @@
 #include "td/telegram/NotificationSettingsManager.h"
 #include "td/telegram/StickerSetId.h"
 #include "td/telegram/StickersManager.h"
+#include "td/telegram/StoryManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/WebPageId.h"
 #include "td/telegram/WebPagesManager.h"
@@ -77,6 +78,7 @@ fileSourceSavedRingtones = FileSource;                                   // repa
 fileSourceUserFull = FileSource;                                         // repaired with users.getFullUser
 fileSourceAttachmentMenuBot user_id:int53 = FileSource;                  // repaired with messages.getAttachMenuBot
 fileSourceWebApp user_id:int53 short_name:string = FileSource;           // repaired with messages.getAttachMenuBot
+fileSourceStory chat_id:int53 story_id:int32 = FileSource;               // repaired with stories.getStoriesByID
 */
 
 FileSourceId FileReferenceManager::get_current_file_source_id() const {
@@ -159,6 +161,11 @@ FileSourceId FileReferenceManager::create_attach_menu_bot_file_source(UserId use
 FileSourceId FileReferenceManager::create_web_app_file_source(UserId user_id, const string &short_name) {
   FileSourceWebApp source{user_id, short_name};
   return add_file_source_id(source, PSLICE() << "Web App " << user_id << '/' << short_name);
+}
+
+FileSourceId FileReferenceManager::create_story_file_source(StoryFullId story_full_id) {
+  FileSourceStory source{story_full_id};
+  return add_file_source_id(source, PSLICE() << story_full_id);
 }
 
 FileReferenceManager::Node &FileReferenceManager::add_node(NodeId node_id) {
@@ -370,6 +377,9 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
       [&](const FileSourceWebApp &source) {
         send_closure_later(G()->attach_menu_manager(), &AttachMenuManager::reload_web_app, source.user_id,
                            source.short_name, std::move(promise));
+      },
+      [&](const FileSourceStory &source) {
+        send_closure_later(G()->story_manager(), &StoryManager::reload_story, source.story_full_id, std::move(promise));
       }));
 }
 

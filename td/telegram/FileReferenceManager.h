@@ -14,6 +14,7 @@
 #include "td/telegram/FullMessageId.h"
 #include "td/telegram/PhotoSizeSource.h"
 #include "td/telegram/SetWithPosition.h"
+#include "td/telegram/StoryFullId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/UserId.h"
 
@@ -64,6 +65,7 @@ class FileReferenceManager final : public Actor {
   FileSourceId create_user_full_file_source(UserId user_id);
   FileSourceId create_attach_menu_bot_file_source(UserId user_id);
   FileSourceId create_web_app_file_source(UserId user_id, const string &short_name);
+  FileSourceId create_story_file_source(StoryFullId story_full_id);
 
   using NodeId = FileId;
   void repair_file_reference(NodeId node_id, Promise<> promise);
@@ -169,13 +171,16 @@ class FileReferenceManager final : public Actor {
     UserId user_id;
     string short_name;
   };
+  struct FileSourceStory {
+    StoryFullId story_full_id;
+  };
 
   // append only
   using FileSource =
       Variant<FileSourceMessage, FileSourceUserPhoto, FileSourceChatPhoto, FileSourceChannelPhoto, FileSourceWallpapers,
               FileSourceWebPage, FileSourceSavedAnimations, FileSourceRecentStickers, FileSourceFavoriteStickers,
               FileSourceBackground, FileSourceChatFull, FileSourceChannelFull, FileSourceAppConfig,
-              FileSourceSavedRingtones, FileSourceUserFull, FileSourceAttachMenuBot, FileSourceWebApp>;
+              FileSourceSavedRingtones, FileSourceUserFull, FileSourceAttachMenuBot, FileSourceWebApp, FileSourceStory>;
   WaitFreeVector<FileSource> file_sources_;
 
   int64 query_generation_{0};

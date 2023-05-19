@@ -8,6 +8,7 @@
 
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileId.h"
+#include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/StoryFullId.h"
 #include "td/telegram/StoryId.h"
@@ -45,6 +46,8 @@ class StoryManager final : public Actor {
 
   td_api::object_ptr<td_api::story> get_story_object(StoryFullId story_full_id) const;
 
+  FileSourceId get_story_file_source_id(StoryFullId story_full_id);
+
   void reload_story(StoryFullId story_full_id, Promise<Unit> &&promise);
 
  private:
@@ -74,7 +77,11 @@ class StoryManager final : public Actor {
 
   void delete_story_files(const Story *story) const;
 
+  void change_story_files(StoryFullId story_full_id, const Story *story, const vector<FileId> &old_file_ids);
+
   static bool is_local_story_id(StoryId story_id);
+
+  WaitFreeHashMap<StoryFullId, FileSourceId, StoryFullIdHash> story_full_id_to_file_source_id_;
 
   WaitFreeHashMap<StoryFullId, unique_ptr<Story>, StoryFullIdHash> stories_;
 
