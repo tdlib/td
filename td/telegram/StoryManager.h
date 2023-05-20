@@ -39,12 +39,18 @@ class StoryManager final : public Actor {
   StoryManager &operator=(StoryManager &&) = delete;
   ~StoryManager() final;
 
+  void get_dialog_pinned_stories(DialogId owner_dialog_id, StoryId from_story_id, int32 limit,
+                                 Promise<td_api::object_ptr<td_api::stories>> &&promise);
+
   StoryId on_get_story(DialogId owner_dialog_id, telegram_api::object_ptr<telegram_api::storyItem> &&story_item);
 
   std::pair<int32, vector<StoryId>> on_get_stories(DialogId owner_dialog_id,
                                                    telegram_api::object_ptr<telegram_api::stories_stories> &&stories);
 
   td_api::object_ptr<td_api::story> get_story_object(StoryFullId story_full_id) const;
+
+  td_api::object_ptr<td_api::stories> get_stories_object(int32 total_count,
+                                                         const vector<StoryFullId> &story_full_ids) const;
 
   FileSourceId get_story_file_source_id(StoryFullId story_full_id);
 
@@ -72,6 +78,10 @@ class StoryManager final : public Actor {
   Story *get_story_editable(StoryFullId story_full_id);
 
   td_api::object_ptr<td_api::story> get_story_object(StoryFullId story_full_id, const Story *story) const;
+
+  void on_get_dialog_pinned_stories(DialogId owner_dialog_id,
+                                    telegram_api::object_ptr<telegram_api::stories_stories> &&stories,
+                                    Promise<td_api::object_ptr<td_api::stories>> &&promise);
 
   vector<FileId> get_story_file_ids(const Story *story) const;
 

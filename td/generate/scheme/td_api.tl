@@ -4864,6 +4864,9 @@ storyInteractionInfo view_count:int32 recent_viewer_user_ids:vector<int53> = Sto
 //@caption Caption of the story
 story id:int32 sender_user_id:int53 date:int32 is_pinned:Bool interaction_info:storyInteractionInfo privacy_rules:userPrivacySettingRules is_public:Bool is_for_close_friends:Bool content:StoryContent caption:formattedText = Story;
 
+//@description Represents a list of stories @total_count Approximate total number of stories found @stories The list of stories
+stories total_count:int32 stories:vector<story> = Stories;
+
 
 //@description Contains a part of a file @data File bytes
 filePart data:bytes = FilePart;
@@ -7143,6 +7146,15 @@ setPinnedChats chat_list:ChatList chat_ids:vector<int53> = Ok;
 
 //@description Traverse all chats in a chat list and marks all messages in the chats as read @chat_list Chat list in which to mark all chats as read
 readChatList chat_list:ChatList = Ok;
+
+
+//@description Returns the list of pinned stories of a given user. The stories are returned in a reverse chronological order (i.e., in order of decreasing story_id).
+//-For optimal performance, the number of returned stories is chosen by TDLib
+//@user_id User identifier
+//@from_story_id Identifier of the story starting from which stories must be returned; use 0 to get results from the last story
+//@limit The maximum number of stories to be returned
+//-For optimal performance, the number of returned stories is chosen by TDLib and can be smaller than the specified limit
+getUserPinnedStories user_id:int53 from_story_id:int32 limit:int32 = Stories;
 
 
 //@description Returns information about a bot that can be added to attachment menu @bot_user_id Bot's user identifier

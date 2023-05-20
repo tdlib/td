@@ -6374,6 +6374,13 @@ void Td::on_request(uint64 id, const td_api::readChatList &request) {
   messages_manager_->read_all_dialogs_from_list(DialogListId(request.chat_list_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getUserPinnedStories &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  story_manager_->get_dialog_pinned_stories(DialogId(UserId(request.user_id_)), StoryId(request.from_story_id_),
+                                            request.limit_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getAttachmentMenuBot &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

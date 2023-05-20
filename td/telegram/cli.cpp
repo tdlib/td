@@ -538,6 +538,10 @@ class CliClient final : public Actor {
     }
   }
 
+  static int32 as_story_id(Slice str) {
+    return to_integer<int32>(trim(str));
+  }
+
   static td_api::object_ptr<td_api::StickerFormat> as_sticker_format(string sticker_format) {
     if (!sticker_format.empty() && sticker_format.back() == 'a') {
       return td_api::make_object<td_api::stickerFormatTgs>();
@@ -844,6 +848,18 @@ class CliClient final : public Actor {
 
   void get_args(string &args, ChatFolderId &arg) const {
     arg.chat_folder_id = as_chat_folder_id(args);
+  }
+
+  struct StoryId {
+    int32 story_id = 0;
+
+    operator int32() const {
+      return story_id;
+    }
+  };
+
+  void get_args(string &args, StoryId &arg) const {
+    arg.story_id = as_story_id(args);
   }
 
   struct FileId {
@@ -3895,6 +3911,12 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::setPinnedChats>(as_chat_list(op), as_chat_ids(args)));
     } else if (op == "rcl" || op == "rcla" || begins_with(op, "rcl-")) {
       send_request(td_api::make_object<td_api::readChatList>(as_chat_list(op)));
+    } else if (op == "gups") {
+      UserId user_id;
+      StoryId from_story_id;
+      string limit;
+      get_args(args, user_id, from_story_id, limit);
+      send_request(td_api::make_object<td_api::getUserPinnedStories>(user_id, from_story_id, as_limit(limit)));
     } else if (op == "gamb") {
       UserId user_id;
       get_args(args, user_id);

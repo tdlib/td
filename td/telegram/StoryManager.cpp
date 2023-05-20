@@ -8,10 +8,11 @@
 
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ContactsManager.h"
-#include "td/telegram/files/FileManager.h"
 #include "td/telegram/FileReferenceManager.h"
+#include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageEntity.h"
+#include "td/telegram/MessagesManager.h"
 #include "td/telegram/StoryContent.h"
 #include "td/telegram/StoryContentType.h"
 #include "td/telegram/Td.h"
@@ -58,6 +59,39 @@ class GetStoriesByIDQuery final : public Td::ResultHandler {
   }
 };
 
+class GetPinnedStoriesQuery final : public Td::ResultHandler {
+  Promise<telegram_api::object_ptr<telegram_api::stories_stories>> promise_;
+
+ public:
+  explicit GetPinnedStoriesQuery(Promise<telegram_api::object_ptr<telegram_api::stories_stories>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(UserId user_id, StoryId offset_story_id, int32 limit) {
+    auto r_input_user = td_->contacts_manager_->get_input_user(user_id);
+    if (r_input_user.is_error()) {
+      return on_error(r_input_user.move_as_error());
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::stories_getPinnedStories(r_input_user.move_as_ok(), offset_story_id.get(), limit)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stories_getPinnedStories>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for GetPinnedStoriesQuery: " << to_string(result);
+    promise_.set_value(std::move(result));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 StoryManager::StoryManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 
@@ -81,6 +115,49 @@ const StoryManager::Story *StoryManager::get_story(StoryFullId story_full_id) co
 
 StoryManager::Story *StoryManager::get_story_editable(StoryFullId story_full_id) {
   return stories_.get_pointer(story_full_id);
+}
+
+void StoryManager::get_dialog_pinned_stories(DialogId owner_dialog_id, StoryId from_story_id, int32 limit,
+                                             Promise<td_api::object_ptr<td_api::stories>> &&promise) {
+  if (limit <= 0) {
+    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+  }
+
+  if (!td_->messages_manager_->have_dialog_force(owner_dialog_id, "get_dialog_pinned_stories")) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+  if (!td_->messages_manager_->have_input_peer(owner_dialog_id, AccessRights::Read)) {
+    return promise.set_error(Status::Error(400, "Can't access the chat"));
+  }
+  if (owner_dialog_id.get_type() != DialogType::User) {
+    return promise.set_value(td_api::make_object<td_api::stories>());
+  }
+
+  if (is_local_story_id(from_story_id)) {
+    return promise.set_error(Status::Error(400, "Invalid value of parameter from_story_id specified"));
+  }
+
+  auto query_promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), owner_dialog_id, promise = std::move(promise)](
+                                 Result<telegram_api::object_ptr<telegram_api::stories_stories>> &&result) mutable {
+        if (result.is_error()) {
+          return promise.set_error(result.move_as_error());
+        }
+        send_closure(actor_id, &StoryManager::on_get_dialog_pinned_stories, owner_dialog_id, result.move_as_ok(),
+                     std::move(promise));
+      });
+  td_->create_handler<GetPinnedStoriesQuery>(std::move(query_promise))
+      ->send(owner_dialog_id.get_user_id(), from_story_id, limit);
+}
+
+void StoryManager::on_get_dialog_pinned_stories(DialogId owner_dialog_id,
+                                                telegram_api::object_ptr<telegram_api::stories_stories> &&stories,
+                                                Promise<td_api::object_ptr<td_api::stories>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  auto result = on_get_stories(owner_dialog_id, std::move(stories));
+  promise.set_value(get_stories_object(result.first, transform(result.second, [owner_dialog_id](StoryId story_id) {
+                                         return StoryFullId(owner_dialog_id, story_id);
+                                       })));
 }
 
 td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId story_full_id) const {
@@ -109,6 +186,16 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
       story->is_pinned_, story->interaction_info_.get_story_interaction_info_object(td_), std::move(privacy_rules),
       story->is_public_, story->is_for_close_friends_, get_story_content_object(td_, story->content_.get()),
       get_formatted_text_object(story->caption_, true, -1));
+}
+
+td_api::object_ptr<td_api::stories> StoryManager::get_stories_object(int32 total_count,
+                                                                     const vector<StoryFullId> &story_full_ids) const {
+  if (total_count == -1) {
+    total_count = static_cast<int32>(story_full_ids.size());
+  }
+  return td_api::make_object<td_api::stories>(total_count, transform(story_full_ids, [this](StoryFullId story_full_id) {
+                                                return get_story_object(story_full_id);
+                                              }));
 }
 
 vector<FileId> StoryManager::get_story_file_ids(const Story *story) const {

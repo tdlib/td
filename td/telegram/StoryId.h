@@ -21,10 +21,14 @@ class StoryId {
  public:
   StoryId() = default;
 
-  explicit StoryId(int32 story_id) : id(story_id) {
+  explicit constexpr StoryId(int32 story_id) : id(story_id) {
   }
   template <class T, typename = std::enable_if_t<std::is_convertible<T, int32>::value>>
   StoryId(T story_id) = delete;
+
+  static constexpr StoryId max() {
+    return StoryId(std::numeric_limits<int32>::max());
+  }
 
   int32 get() const {
     return id;
