@@ -2278,20 +2278,19 @@ static Result<InputMessageContent> create_input_message_content(
 
 Result<InputMessageContent> get_input_message_content(
     DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content, Td *td, bool is_premium) {
-  bool is_secret = dialog_id.get_type() == DialogType::SecretChat;
-
   LOG(INFO) << "Get input message content from " << to_string(input_message_content);
 
-  bool have_file = true;
-  // TODO: send from secret chat to common
-  Result<FileId> r_file_id = Status::Error(500, "Have no file");
-  tl_object_ptr<td_api::inputThumbnail> input_thumbnail;
+  td_api::object_ptr<td_api::InputFile> input_file;
+  auto file_type = FileType::None;
+  auto allow_get_by_hash = false;
+  td_api::object_ptr<td_api::inputThumbnail> input_thumbnail;
   vector<FileId> sticker_file_ids;
   switch (input_message_content->get_id()) {
     case td_api::inputMessageAnimation::ID: {
       auto input_message = static_cast<td_api::inputMessageAnimation *>(input_message_content.get());
-      r_file_id = td->file_manager_->get_input_file_id(FileType::Animation, input_message->animation_, dialog_id, false,
-                                                       is_secret, true);
+      file_type = FileType::Animation;
+      input_file = std::move(input_message->animation_);
+      allow_get_by_hash = true;
       input_thumbnail = std::move(input_message->thumbnail_);
       if (!input_message->added_sticker_file_ids_.empty()) {
         sticker_file_ids = td->stickers_manager_->get_attached_sticker_file_ids(input_message->added_sticker_file_ids_);
@@ -2300,23 +2299,23 @@ Result<InputMessageContent> get_input_message_content(
     }
     case td_api::inputMessageAudio::ID: {
       auto input_message = static_cast<td_api::inputMessageAudio *>(input_message_content.get());
-      r_file_id =
-          td->file_manager_->get_input_file_id(FileType::Audio, input_message->audio_, dialog_id, false, is_secret);
+      file_type = FileType::Audio;
+      input_file = std::move(input_message->audio_);
       input_thumbnail = std::move(input_message->album_cover_thumbnail_);
       break;
     }
     case td_api::inputMessageDocument::ID: {
       auto input_message = static_cast<td_api::inputMessageDocument *>(input_message_content.get());
-      auto file_type = input_message->disable_content_type_detection_ ? FileType::DocumentAsFile : FileType::Document;
-      r_file_id =
-          td->file_manager_->get_input_file_id(file_type, input_message->document_, dialog_id, false, is_secret, true);
+      file_type = input_message->disable_content_type_detection_ ? FileType::DocumentAsFile : FileType::Document;
+      input_file = std::move(input_message->document_);
+      allow_get_by_hash = true;
       input_thumbnail = std::move(input_message->thumbnail_);
       break;
     }
     case td_api::inputMessagePhoto::ID: {
       auto input_message = static_cast<td_api::inputMessagePhoto *>(input_message_content.get());
-      r_file_id =
-          td->file_manager_->get_input_file_id(FileType::Photo, input_message->photo_, dialog_id, false, is_secret);
+      file_type = FileType::Photo;
+      input_file = std::move(input_message->photo_);
       input_thumbnail = std::move(input_message->thumbnail_);
       if (!input_message->added_sticker_file_ids_.empty()) {
         sticker_file_ids = td->stickers_manager_->get_attached_sticker_file_ids(input_message->added_sticker_file_ids_);
@@ -2325,15 +2324,15 @@ Result<InputMessageContent> get_input_message_content(
     }
     case td_api::inputMessageSticker::ID: {
       auto input_message = static_cast<td_api::inputMessageSticker *>(input_message_content.get());
-      r_file_id =
-          td->file_manager_->get_input_file_id(FileType::Sticker, input_message->sticker_, dialog_id, false, is_secret);
+      file_type = FileType::Sticker;
+      input_file = std::move(input_message->sticker_);
       input_thumbnail = std::move(input_message->thumbnail_);
       break;
     }
     case td_api::inputMessageVideo::ID: {
       auto input_message = static_cast<td_api::inputMessageVideo *>(input_message_content.get());
-      r_file_id =
-          td->file_manager_->get_input_file_id(FileType::Video, input_message->video_, dialog_id, false, is_secret);
+      file_type = FileType::Video;
+      input_file = std::move(input_message->video_);
       input_thumbnail = std::move(input_message->thumbnail_);
       if (!input_message->added_sticker_file_ids_.empty()) {
         sticker_file_ids = td->stickers_manager_->get_attached_sticker_file_ids(input_message->added_sticker_file_ids_);
@@ -2342,26 +2341,28 @@ Result<InputMessageContent> get_input_message_content(
     }
     case td_api::inputMessageVideoNote::ID: {
       auto input_message = static_cast<td_api::inputMessageVideoNote *>(input_message_content.get());
-      r_file_id = td->file_manager_->get_input_file_id(FileType::VideoNote, input_message->video_note_, dialog_id,
-                                                       false, is_secret);
+      file_type = FileType::VideoNote;
+      input_file = std::move(input_message->video_note_);
       input_thumbnail = std::move(input_message->thumbnail_);
       break;
     }
     case td_api::inputMessageVoiceNote::ID: {
       auto input_message = static_cast<td_api::inputMessageVoiceNote *>(input_message_content.get());
-      r_file_id = td->file_manager_->get_input_file_id(FileType::VoiceNote, input_message->voice_note_, dialog_id,
-                                                       false, is_secret);
+      file_type = FileType::VoiceNote;
+      input_file = std::move(input_message->voice_note_);
       break;
     }
     default:
-      have_file = false;
       break;
   }
-  // TODO is path of files must be stored in bytes instead of UTF-8 string?
+  // TODO path of files must be stored in bytes instead of UTF-8 string
+
+  bool is_secret = dialog_id.get_type() == DialogType::SecretChat;
 
   FileId file_id;
-  if (have_file) {
-    TRY_RESULT_ASSIGN(file_id, std::move(r_file_id));
+  if (file_type != FileType::None) {
+    TRY_RESULT_ASSIGN(file_id, td->file_manager_->get_input_file_id(file_type, input_file, dialog_id, false, is_secret,
+                                                                    allow_get_by_hash));
     CHECK(file_id.is_valid());
   }
 
