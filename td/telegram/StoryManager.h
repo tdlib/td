@@ -42,6 +42,8 @@ class StoryManager final : public Actor {
   void get_dialog_pinned_stories(DialogId owner_dialog_id, StoryId from_story_id, int32 limit,
                                  Promise<td_api::object_ptr<td_api::stories>> &&promise);
 
+  void get_dialog_expiring_stories(DialogId owner_dialog_id, Promise<td_api::object_ptr<td_api::stories>> &&promise);
+
   StoryId on_get_story(DialogId owner_dialog_id, telegram_api::object_ptr<telegram_api::storyItem> &&story_item);
 
   std::pair<int32, vector<StoryId>> on_get_stories(DialogId owner_dialog_id,
@@ -79,9 +81,16 @@ class StoryManager final : public Actor {
 
   td_api::object_ptr<td_api::story> get_story_object(StoryFullId story_full_id, const Story *story) const;
 
+  vector<StoryId> on_get_stories(DialogId owner_dialog_id,
+                                 vector<telegram_api::object_ptr<telegram_api::StoryItem>> &&stories);
+
   void on_get_dialog_pinned_stories(DialogId owner_dialog_id,
                                     telegram_api::object_ptr<telegram_api::stories_stories> &&stories,
                                     Promise<td_api::object_ptr<td_api::stories>> &&promise);
+
+  void on_get_dialog_expiring_stories(DialogId owner_dialog_id,
+                                      telegram_api::object_ptr<telegram_api::stories_userStories> &&stories,
+                                      Promise<td_api::object_ptr<td_api::stories>> &&promise);
 
   vector<FileId> get_story_file_ids(const Story *story) const;
 

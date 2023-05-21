@@ -7156,6 +7156,9 @@ readChatList chat_list:ChatList = Ok;
 //-For optimal performance, the number of returned stories is chosen by TDLib and can be smaller than the specified limit
 getUserPinnedStories user_id:int53 from_story_id:int32 limit:int32 = Stories;
 
+//@description Returns the list of expiring stories of a given user. The stories are returned in a reverse chronological order (i.e., in order of decreasing story_id) @user_id User identifier
+getUserExpiringStories user_id:int53 = Stories;
+
 
 //@description Returns information about a bot that can be added to attachment menu @bot_user_id Bot's user identifier
 getAttachmentMenuBot bot_user_id:int53 = AttachmentMenuBot;
