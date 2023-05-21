@@ -2074,13 +2074,10 @@ static Result<InputMessageContent> create_input_message_content(
     case td_api::inputMessagePhoto::ID: {
       auto input_photo = static_cast<td_api::inputMessagePhoto *>(input_message_content.get());
 
-      if (input_photo->width_ < 0 || input_photo->width_ > 10000) {
-        return Status::Error(400, "Wrong photo width");
-      }
-      if (input_photo->height_ < 0 || input_photo->height_ > 10000) {
-        return Status::Error(400, "Wrong photo height");
-      }
       ttl = input_photo->self_destruct_time_;
+
+      TRY_RESULT(input_photo_size,
+                 get_input_photo_size(td->file_manager_.get(), file_id, input_photo->width_, input_photo->height_));
 
       auto message_photo = make_unique<MessagePhoto>();
 
@@ -2091,32 +2088,12 @@ static Result<InputMessageContent> create_input_message_content(
         message_photo->photo.id = 0;
       }
       message_photo->photo.date = G()->unix_time();
-      int32 type = 'i';
-      if (file_view.has_remote_location() && !file_view.remote_location().is_web()) {
-        auto photo_size_source = file_view.remote_location().get_source();
-        if (photo_size_source.get_type("create_input_message_content") == PhotoSizeSource::Type::Thumbnail) {
-          auto old_type = photo_size_source.thumbnail().thumbnail_type;
-          if (old_type != 't') {
-            type = old_type;
-          }
-        }
-      }
-
-      PhotoSize s;
-      s.type = type;
-      s.dimensions = get_dimensions(input_photo->width_, input_photo->height_, nullptr);
-      auto size = file_view.size();
-      if (size < 0 || size >= 1000000000) {
-        return Status::Error(400, "Wrong photo size");
-      }
-      s.size = static_cast<int32>(size);
-      s.file_id = file_id;
 
       if (thumbnail.file_id.is_valid()) {
         message_photo->photo.photos.push_back(std::move(thumbnail));
       }
 
-      message_photo->photo.photos.push_back(s);
+      message_photo->photo.photos.push_back(std::move(input_photo_size));
 
       message_photo->photo.has_stickers = !sticker_file_ids.empty();
       message_photo->photo.sticker_file_ids = std::move(sticker_file_ids);

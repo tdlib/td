@@ -408,6 +408,42 @@ PhotoSize get_web_document_photo_size(FileManager *file_manager, FileType file_t
   return s;
 }
 
+Result<PhotoSize> get_input_photo_size(FileManager *file_manager, FileId file_id, int32 width, int32 height) {
+  if (width < 0 || width > 10000) {
+    return Status::Error(400, "Wrong photo width");
+  }
+  if (height < 0 || height > 10000) {
+    return Status::Error(400, "Wrong photo height");
+  }
+  if (width + height > 10000) {
+    return Status::Error(400, "Photo dimensions are too big");
+  }
+
+  auto file_view = file_manager->get_file_view(file_id);
+  auto file_size = file_view.size();
+  if (file_size < 0 || file_size >= 1000000000) {
+    return Status::Error(400, "Photo is too big");
+  }
+
+  int32 type = 'i';
+  if (file_view.has_remote_location() && !file_view.remote_location().is_web()) {
+    auto photo_size_source = file_view.remote_location().get_source();
+    if (photo_size_source.get_type("create_input_message_content") == PhotoSizeSource::Type::Thumbnail) {
+      auto old_type = photo_size_source.thumbnail().thumbnail_type;
+      if (old_type != 't') {
+        type = old_type;
+      }
+    }
+  }
+
+  PhotoSize result;
+  result.type = type;
+  result.dimensions = get_dimensions(width, height, nullptr);
+  result.size = static_cast<int32>(file_size);
+  result.file_id = file_id;
+  return std::move(result);
+}
+
 td_api::object_ptr<td_api::thumbnail> get_thumbnail_object(FileManager *file_manager, const PhotoSize &photo_size,
                                                            PhotoFormat format) {
   if (!photo_size.file_id.is_valid()) {
