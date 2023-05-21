@@ -20,7 +20,7 @@ class FolderId {
  public:
   FolderId() = default;
 
-  explicit FolderId(int32 folder_id) : id(folder_id) {
+  explicit constexpr FolderId(int32 folder_id) : id(folder_id) {
   }
   template <class T, typename = std::enable_if_t<std::is_convertible<T, int32>::value>>
   FolderId(T folder_id) = delete;

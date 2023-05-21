@@ -22,7 +22,7 @@ class InputDialogId {
  public:
   InputDialogId() = default;
 
-  explicit InputDialogId(DialogId dialog_id) : dialog_id(dialog_id) {
+  explicit constexpr InputDialogId(DialogId dialog_id) : dialog_id(dialog_id) {
   }
 
   explicit InputDialogId(const tl_object_ptr<telegram_api::InputPeer> &input_peer);

@@ -18,7 +18,7 @@ class NotificationGroupId {
  public:
   NotificationGroupId() = default;
 
-  explicit NotificationGroupId(int32 group_id) : id(group_id) {
+  explicit constexpr NotificationGroupId(int32 group_id) : id(group_id) {
   }
 
   template <class T, typename = std::enable_if_t<std::is_convertible<T, int32>::value>>

@@ -20,7 +20,7 @@ class ScheduledServerMessageId {
  public:
   ScheduledServerMessageId() = default;
 
-  explicit ScheduledServerMessageId(int32 message_id) : id(message_id) {
+  explicit constexpr ScheduledServerMessageId(int32 message_id) : id(message_id) {
   }
   template <class T, typename = std::enable_if_t<std::is_convertible<T, int32>::value>>
   ScheduledServerMessageId(T message_id) = delete;

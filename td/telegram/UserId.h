@@ -24,7 +24,7 @@ class UserId {
 
   UserId() = default;
 
-  explicit UserId(int64 user_id) : id(user_id) {
+  explicit constexpr UserId(int64 user_id) : id(user_id) {
   }
   template <class T, typename = std::enable_if_t<std::is_convertible<T, int64>::value>>
   UserId(T user_id) = delete;

@@ -21,7 +21,7 @@ class BackgroundId {
  public:
   BackgroundId() = default;
 
-  explicit BackgroundId(int64 background_id) : id(background_id) {
+  explicit constexpr BackgroundId(int64 background_id) : id(background_id) {
   }
   template <class T, typename = std::enable_if_t<std::is_convertible<T, int64>::value>>
   BackgroundId(T background_id) = delete;

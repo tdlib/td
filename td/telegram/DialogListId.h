@@ -27,7 +27,7 @@ class DialogListId {
  public:
   DialogListId() = default;
 
-  explicit DialogListId(int64 dialog_list_id) : id(dialog_list_id) {
+  explicit constexpr DialogListId(int64 dialog_list_id) : id(dialog_list_id) {
   }
   template <class T, typename = std::enable_if_t<std::is_convertible<T, int32>::value>>
   DialogListId(T dialog_list_id) = delete;

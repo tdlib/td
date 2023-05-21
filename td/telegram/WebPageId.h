@@ -21,7 +21,7 @@ class WebPageId {
  public:
   WebPageId() = default;
 
-  explicit WebPageId(int64 web_page_id) : id(web_page_id) {
+  explicit constexpr WebPageId(int64 web_page_id) : id(web_page_id) {
   }
   template <class T, typename = std::enable_if_t<std::is_convertible<T, int64>::value>>
   WebPageId(T web_page_id) = delete;

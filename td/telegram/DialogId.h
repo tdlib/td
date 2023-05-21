@@ -33,7 +33,7 @@ class DialogId {
  public:
   DialogId() = default;
 
-  explicit DialogId(int64 dialog_id) : id(dialog_id) {
+  explicit constexpr DialogId(int64 dialog_id) : id(dialog_id) {
   }
   template <class T, typename = std::enable_if_t<std::is_convertible<T, int64>::value>>
   DialogId(T dialog_id) = delete;

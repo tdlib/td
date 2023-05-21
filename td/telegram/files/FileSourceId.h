@@ -20,7 +20,7 @@ class FileSourceId {
  public:
   FileSourceId() = default;
 
-  explicit FileSourceId(int32 file_source_id) : id(file_source_id) {
+  explicit constexpr FileSourceId(int32 file_source_id) : id(file_source_id) {
   }
   template <class T1, typename = std::enable_if_t<std::is_convertible<T1, int32>::value>>
   FileSourceId(T1 file_source_id) = delete;

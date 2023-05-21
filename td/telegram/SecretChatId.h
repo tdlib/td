@@ -22,7 +22,7 @@ class SecretChatId {
  public:
   SecretChatId() = default;
 
-  explicit SecretChatId(int32 chat_id) : id(chat_id) {
+  explicit constexpr SecretChatId(int32 chat_id) : id(chat_id) {
   }
   template <class T, typename = std::enable_if_t<std::is_convertible<T, int32>::value>>
   SecretChatId(T chat_id) = delete;

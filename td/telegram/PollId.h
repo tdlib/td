@@ -20,7 +20,7 @@ class PollId {
  public:
   PollId() = default;
 
-  explicit PollId(int64 poll_id) : id(poll_id) {
+  explicit constexpr PollId(int64 poll_id) : id(poll_id) {
   }
   template <class T, typename = std::enable_if_t<std::is_convertible<T, int64>::value>>
   PollId(T poll_id) = delete;

@@ -19,7 +19,7 @@ class FileDbId {
  public:
   FileDbId() = default;
 
-  explicit FileDbId(uint64 file_db_id) : id(file_db_id) {
+  explicit constexpr FileDbId(uint64 file_db_id) : id(file_db_id) {
   }
   template <class T1, typename = std::enable_if_t<std::is_convertible<T1, uint64>::value>>
   FileDbId(T1 file_db_id) = delete;

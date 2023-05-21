@@ -24,7 +24,7 @@ class ChatId {
 
   ChatId() = default;
 
-  explicit ChatId(int64 chat_id) : id(chat_id) {
+  explicit constexpr ChatId(int64 chat_id) : id(chat_id) {
   }
   template <class T, typename = std::enable_if_t<std::is_convertible<T, int64>::value>>
   ChatId(T chat_id) = delete;

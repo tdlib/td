@@ -18,7 +18,7 @@ class GroupCallId {
  public:
   GroupCallId() = default;
 
-  explicit GroupCallId(int32 group_call_id) : id(group_call_id) {
+  explicit constexpr GroupCallId(int32 group_call_id) : id(group_call_id) {
   }
 
   template <class T, typename = std::enable_if_t<std::is_convertible<T, int32>::value>>

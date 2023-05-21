@@ -25,7 +25,7 @@ class ChannelId {
 
   ChannelId() = default;
 
-  explicit ChannelId(int64 channel_id) : id(channel_id) {
+  explicit constexpr ChannelId(int64 channel_id) : id(channel_id) {
   }
   template <class T, typename = std::enable_if_t<std::is_convertible<T, int64>::value>>
   ChannelId(T channel_id) = delete;

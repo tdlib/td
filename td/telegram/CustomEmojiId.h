@@ -20,7 +20,7 @@ class CustomEmojiId {
  public:
   CustomEmojiId() = default;
 
-  explicit CustomEmojiId(int64 custom_emoji_id) : id(custom_emoji_id) {
+  explicit constexpr CustomEmojiId(int64 custom_emoji_id) : id(custom_emoji_id) {
   }
   template <class T, typename = std::enable_if_t<std::is_convertible<T, int64>::value>>
   CustomEmojiId(T custom_emoji_id) = delete;
