@@ -444,6 +444,29 @@ Result<PhotoSize> get_input_photo_size(FileManager *file_manager, FileId file_id
   return std::move(result);
 }
 
+PhotoSize get_input_thumbnail_photo_size(FileManager *file_manager, const td_api::inputThumbnail *input_thumbnail,
+                                         DialogId dialog_id, bool is_secret) {
+  PhotoSize thumbnail;
+  if (input_thumbnail != nullptr) {
+    auto r_thumbnail_file_id =
+        file_manager->get_input_thumbnail_file_id(input_thumbnail->thumbnail_, dialog_id, is_secret);
+    if (r_thumbnail_file_id.is_error()) {
+      LOG(WARNING) << "Ignore thumbnail file: " << r_thumbnail_file_id.error().message();
+    } else {
+      thumbnail.type = 't';
+      thumbnail.dimensions = get_dimensions(input_thumbnail->width_, input_thumbnail->height_, nullptr);
+      thumbnail.file_id = r_thumbnail_file_id.ok();
+      CHECK(thumbnail.file_id.is_valid());
+
+      FileView thumbnail_file_view = file_manager->get_file_view(thumbnail.file_id);
+      if (thumbnail_file_view.has_remote_location()) {
+        // TODO file_manager->delete_remote_location(thumbnail.file_id);
+      }
+    }
+  }
+  return thumbnail;
+}
+
 td_api::object_ptr<td_api::thumbnail> get_thumbnail_object(FileManager *file_manager, const PhotoSize &photo_size,
                                                            PhotoFormat format) {
   if (!photo_size.file_id.is_valid()) {

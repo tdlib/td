@@ -2365,33 +2365,16 @@ Result<InputMessageContent> get_input_message_content(
     CHECK(file_id.is_valid());
   }
 
-  PhotoSize thumbnail;
-  if (input_thumbnail != nullptr) {
-    auto r_thumbnail_file_id =
-        td->file_manager_->get_input_thumbnail_file_id(input_thumbnail->thumbnail_, dialog_id, is_secret);
-    if (r_thumbnail_file_id.is_error()) {
-      LOG(WARNING) << "Ignore thumbnail file: " << r_thumbnail_file_id.error().message();
-    } else {
-      thumbnail.type = 't';
-      thumbnail.dimensions = get_dimensions(input_thumbnail->width_, input_thumbnail->height_, nullptr);
-      thumbnail.file_id = r_thumbnail_file_id.ok();
-      CHECK(thumbnail.file_id.is_valid());
-
-      FileView thumbnail_file_view = td->file_manager_->get_file_view(thumbnail.file_id);
-      if (thumbnail_file_view.has_remote_location()) {
-        // TODO td->file_manager_->delete_remote_location(thumbnail.file_id);
-      }
-    }
-  }
-
   bool is_bot = td->auth_manager_->is_bot();
   TRY_RESULT(caption, get_formatted_text(td, dialog_id, extract_input_caption(input_message_content), is_bot, true,
                                          false, false));
   if (is_bot && static_cast<int64>(utf8_length(caption.text)) > G()->get_option_integer("message_caption_length_max")) {
     return Status::Error(400, "Message caption is too long");
   }
-  return create_input_message_content(dialog_id, std::move(input_message_content), td, std::move(caption), file_id,
-                                      std::move(thumbnail), std::move(sticker_file_ids), is_premium);
+  return create_input_message_content(
+      dialog_id, std::move(input_message_content), td, std::move(caption), file_id,
+      get_input_thumbnail_photo_size(td->file_manager_.get(), input_thumbnail.get(), dialog_id, is_secret),
+      std::move(sticker_file_ids), is_premium);
 }
 
 bool can_have_input_media(const Td *td, const MessageContent *content, bool is_server) {

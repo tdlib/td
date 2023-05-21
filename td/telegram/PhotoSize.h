@@ -68,6 +68,9 @@ PhotoSize get_web_document_photo_size(FileManager *file_manager, FileType file_t
 
 Result<PhotoSize> get_input_photo_size(FileManager *file_manager, FileId file_id, int32 width, int32 height);
 
+PhotoSize get_input_thumbnail_photo_size(FileManager *file_manager, const td_api::inputThumbnail *input_thumbnail,
+                                         DialogId dialog_id, bool is_secret);
+
 td_api::object_ptr<td_api::thumbnail> get_thumbnail_object(FileManager *file_manager, const PhotoSize &photo_size,
                                                            PhotoFormat format);
 
