@@ -387,7 +387,7 @@ Result<Photo> create_photo(FileManager *file_manager, FileId file_id, PhotoSize 
   photo.photos.push_back(std::move(input_photo_size));
   photo.has_stickers = !sticker_file_ids.empty();
   photo.sticker_file_ids = std::move(sticker_file_ids);
-  return photo;
+  return std::move(photo);
 }
 
 tl_object_ptr<td_api::photo> get_photo_object(FileManager *file_manager, const Photo &photo) {
