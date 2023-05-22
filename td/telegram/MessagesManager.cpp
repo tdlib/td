@@ -23128,6 +23128,10 @@ unique_ptr<MessagesManager::Message> MessagesManager::parse_message(Dialog *d, M
       }
     }
   }
+  if (m->contains_mention && td_->auth_manager_->is_bot()) {
+    m->contains_mention = false;
+    m->contains_unread_mention = false;
+  }
   if (m->history_generation > d->history_generation && m->history_generation - d->history_generation < 1000000000) {
     switch (dialog_id.get_type()) {
       case DialogType::Channel:
