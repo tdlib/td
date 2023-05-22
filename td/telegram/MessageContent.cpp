@@ -2076,32 +2076,11 @@ static Result<InputMessageContent> create_input_message_content(
 
       ttl = input_photo->self_destruct_time_;
 
-      TRY_RESULT(input_photo_size,
-                 get_input_photo_size(td->file_manager_.get(), file_id, input_photo->width_, input_photo->height_));
+      TRY_RESULT(photo, create_photo(td->file_manager_.get(), file_id, std::move(thumbnail), input_photo->width_,
+                                     input_photo->height_, std::move(sticker_file_ids)));
 
-      auto message_photo = make_unique<MessagePhoto>();
-
-      if (file_view.has_remote_location() && !file_view.remote_location().is_web()) {
-        message_photo->photo.id = file_view.remote_location().get_id();
-      }
-      if (message_photo->photo.is_empty()) {
-        message_photo->photo.id = 0;
-      }
-      message_photo->photo.date = G()->unix_time();
-
-      if (thumbnail.file_id.is_valid()) {
-        message_photo->photo.photos.push_back(std::move(thumbnail));
-      }
-
-      message_photo->photo.photos.push_back(std::move(input_photo_size));
-
-      message_photo->photo.has_stickers = !sticker_file_ids.empty();
-      message_photo->photo.sticker_file_ids = std::move(sticker_file_ids);
-
-      message_photo->caption = std::move(caption);
-      message_photo->has_spoiler = input_photo->has_spoiler_ && !is_secret;
-
-      content = std::move(message_photo);
+      content =
+          make_unique<MessagePhoto>(std::move(photo), std::move(caption), input_photo->has_spoiler_ && !is_secret);
       break;
     }
     case td_api::inputMessageSticker::ID: {

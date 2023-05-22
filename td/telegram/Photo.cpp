@@ -11,6 +11,7 @@
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
+#include "td/telegram/Global.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/PhotoFormat.h"
 #include "td/telegram/PhotoSizeSource.h"
@@ -364,6 +365,28 @@ Photo get_web_document_photo(FileManager *file_manager, tl_object_ptr<telegram_a
     photo.id = 0;
     photo.photos.push_back(s);
   }
+  return photo;
+}
+
+Result<Photo> create_photo(FileManager *file_manager, FileId file_id, PhotoSize &&thumbnail, int32 width, int32 height,
+                           vector<FileId> &&sticker_file_ids) {
+  TRY_RESULT(input_photo_size, get_input_photo_size(file_manager, file_id, width, height));
+
+  Photo photo;
+  auto file_view = file_manager->get_file_view(file_id);
+  if (file_view.has_remote_location() && !file_view.remote_location().is_web()) {
+    photo.id = file_view.remote_location().get_id();
+  }
+  if (photo.is_empty()) {
+    photo.id = 0;
+  }
+  photo.date = G()->unix_time();
+  if (thumbnail.file_id.is_valid()) {
+    photo.photos.push_back(std::move(thumbnail));
+  }
+  photo.photos.push_back(std::move(input_photo_size));
+  photo.has_stickers = !sticker_file_ids.empty();
+  photo.sticker_file_ids = std::move(sticker_file_ids);
   return photo;
 }
 
