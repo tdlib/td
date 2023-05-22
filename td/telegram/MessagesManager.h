@@ -3438,7 +3438,7 @@ class MessagesManager final : public Actor {
   std::unordered_map<DialogListId, DialogList, DialogListIdHash> dialog_lists_;
   std::unordered_map<FolderId, DialogFolder, FolderIdHash> dialog_folders_;
 
-  FlatHashMap<DialogId, string, DialogIdHash> active_get_channel_differencies_;
+  FlatHashMap<DialogId, string, DialogIdHash> active_get_channel_differences_;
   FlatHashMap<DialogId, uint64, DialogIdHash> get_channel_difference_to_log_event_id_;
   FlatHashMap<DialogId, int32, DialogIdHash> channel_get_difference_retry_timeouts_;
   FlatHashMap<DialogId, std::multimap<int32, PendingPtsUpdate>, DialogIdHash> postponed_channel_updates_;

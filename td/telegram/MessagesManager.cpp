@@ -6010,7 +6010,7 @@ MessagesManager::~MessagesManager() {
       update_scheduled_message_ids_, message_id_to_dialog_id_, last_clear_history_message_id_to_dialog_id_, dialogs_,
       postponed_chat_read_inbox_updates_, found_public_dialogs_, found_on_server_dialogs_, found_common_dialogs_,
       message_embedding_codes_[0], message_embedding_codes_[1], replied_by_media_timestamp_messages_,
-      notification_group_id_to_dialog_id_, active_get_channel_differencies_, get_channel_difference_to_log_event_id_,
+      notification_group_id_to_dialog_id_, active_get_channel_differences_, get_channel_difference_to_log_event_id_,
       channel_get_difference_retry_timeouts_, is_channel_difference_finished_, resolved_usernames_,
       inaccessible_resolved_usernames_, dialog_bot_command_message_ids_, full_message_id_to_file_source_id_,
       last_outgoing_forwarded_message_date_, dialog_viewed_messages_, dialog_online_member_counts_,
@@ -7947,7 +7947,7 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
       promise.set_value(Unit());
       return;
     }
-    LOG_CHECK(!running_get_channel_difference(dialog_id)) << '"' << active_get_channel_differencies_[dialog_id] << '"';
+    LOG_CHECK(!running_get_channel_difference(dialog_id)) << '"' << active_get_channel_differences_[dialog_id] << '"';
   } else {
     LOG_IF(INFO, update->get_id() != dummyUpdate::ID)
         << "Skip useless channel update from " << source << ": " << to_string(update);
@@ -37918,7 +37918,7 @@ void MessagesManager::run_after_channel_difference(DialogId dialog_id, MessageId
 }
 
 bool MessagesManager::running_get_channel_difference(DialogId dialog_id) const {
-  return active_get_channel_differencies_.count(dialog_id) > 0;
+  return active_get_channel_differences_.count(dialog_id) > 0;
 }
 
 void MessagesManager::on_channel_get_difference_timeout(DialogId dialog_id) {
@@ -37998,7 +37998,7 @@ void MessagesManager::get_channel_difference(DialogId dialog_id, int32 pts, int3
   }
   LOG_CHECK(dialog_id.get_type() == DialogType::Channel) << dialog_id << " " << source;
 
-  if (active_get_channel_differencies_.count(dialog_id)) {
+  if (active_get_channel_differences_.count(dialog_id)) {
     LOG(INFO) << "Skip running channels.getDifference for " << dialog_id << " from " << source
               << " because it has already been run";
     return;
@@ -38038,7 +38038,7 @@ void MessagesManager::get_channel_difference(DialogId dialog_id, int32 pts, int3
 void MessagesManager::do_get_channel_difference(DialogId dialog_id, int32 pts, bool force,
                                                 tl_object_ptr<telegram_api::InputChannel> &&input_channel, bool is_old,
                                                 const char *source) {
-  auto inserted = active_get_channel_differencies_.emplace(dialog_id, source);
+  auto inserted = active_get_channel_differences_.emplace(dialog_id, source);
   if (!inserted.second) {
     LOG(INFO) << "Skip running channels.getDifference for " << dialog_id << " from " << source
               << " because it has already been run";
@@ -38226,7 +38226,7 @@ void MessagesManager::process_get_channel_difference_updates(
       process_channel_update(std::move(update));
     }
   }
-  LOG_CHECK(!running_get_channel_difference(dialog_id)) << '"' << active_get_channel_differencies_[dialog_id] << '"';
+  LOG_CHECK(!running_get_channel_difference(dialog_id)) << '"' << active_get_channel_differences_[dialog_id] << '"';
 
   if (need_repair_unread_count) {
     repair_channel_server_unread_count(get_dialog(dialog_id));
@@ -38359,10 +38359,10 @@ void MessagesManager::on_get_channel_difference(
     DialogId dialog_id, int32 request_pts, int32 request_limit,
     tl_object_ptr<telegram_api::updates_ChannelDifference> &&difference_ptr) {
   LOG(INFO) << "----- END  GET CHANNEL DIFFERENCE----- for " << dialog_id;
-  auto it = active_get_channel_differencies_.find(dialog_id);
-  CHECK(it != active_get_channel_differencies_.end());
+  auto it = active_get_channel_differences_.find(dialog_id);
+  CHECK(it != active_get_channel_differences_.end());
   string source = std::move(it->second);
-  active_get_channel_differencies_.erase(it);
+  active_get_channel_differences_.erase(it);
   auto d = get_dialog_force(dialog_id, "on_get_channel_difference");
 
   if (difference_ptr == nullptr) {
@@ -38591,7 +38591,7 @@ void MessagesManager::on_get_channel_difference(
 
 void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool success) {
   LOG(INFO) << "After " << (success ? "" : "un") << "successful get channel difference in " << dialog_id;
-  LOG_CHECK(!running_get_channel_difference(dialog_id)) << '"' << active_get_channel_differencies_[dialog_id] << '"';
+  LOG_CHECK(!running_get_channel_difference(dialog_id)) << '"' << active_get_channel_differences_[dialog_id] << '"';
 
   auto log_event_it = get_channel_difference_to_log_event_id_.find(dialog_id);
   if (log_event_it != get_channel_difference_to_log_event_id_.end()) {
