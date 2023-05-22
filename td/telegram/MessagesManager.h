@@ -2997,6 +2997,8 @@ class MessagesManager final : public Actor {
 
   void on_channel_get_difference_timeout(DialogId dialog_id);
 
+  void schedule_get_channel_difference(DialogId dialog_id, double delay);
+
   void get_channel_difference(DialogId dialog_id, int32 pts, bool force, const char *source, bool is_old = false);
 
   void do_get_channel_difference(DialogId dialog_id, int32 pts, bool force,

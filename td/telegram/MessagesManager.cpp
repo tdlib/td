@@ -7516,7 +7516,7 @@ void MessagesManager::on_read_channel_inbox(ChannelId channel_id, MessageId max_
     // update from the future, keep it until it can be applied
     if (pts >= d->pending_read_channel_inbox_pts) {
       if (d->pending_read_channel_inbox_pts == 0) {
-        channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
+        schedule_get_channel_difference(dialog_id, 0.001);
       }
       d->pending_read_channel_inbox_pts = pts;
       d->pending_read_channel_inbox_max_message_id = max_message_id;
@@ -9702,8 +9702,7 @@ void MessagesManager::after_get_difference() {
               }),
               "get missing");
         } else if (dialog_id.get_type() == DialogType::Channel) {
-          LOG(INFO) << "Schedule getDifference in " << dialog_id.get_channel_id();
-          channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
+          schedule_get_channel_difference(dialog_id, 0.001);
         }
         break;
       }
@@ -12607,8 +12606,7 @@ void MessagesManager::read_history_inbox(Dialog *d, MessageId max_message_id, in
   }
 
   if (max_message_id > d->last_new_message_id && dialog_id.get_type() == DialogType::Channel) {
-    LOG(INFO) << "Schedule getDifference in " << dialog_id.get_channel_id();
-    channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
+    schedule_get_channel_difference(dialog_id, 0.001);
   }
 
   int32 server_unread_count = calc_new_unread_count(d, max_message_id, MessageType::Server, unread_count);
@@ -14565,7 +14563,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
       // it is safer to completely ignore the message and re-get it through getChannelDifference
       Dialog *d = get_dialog(dialog_id);
       if (d != nullptr) {
-        channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
+        schedule_get_channel_difference(dialog_id, 0.001);
         return {DialogId(), nullptr};
       }
     }
@@ -14834,7 +14832,7 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, const 
         LOG(INFO) << "Ignore " << old_message_id << "/" << message_id << " received not through update from " << source
                   << ": " << oneline(to_string(get_message_object(dialog_id, new_message.get(), "on_get_message")));
         if (dialog_id.get_type() == DialogType::Channel && have_input_peer(dialog_id, AccessRights::Read)) {
-          channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
+          schedule_get_channel_difference(dialog_id, 0.001);
         }
         return FullMessageId();
       }
@@ -34504,8 +34502,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
                    << to_string(get_message_object(dialog_id, message.get(), "add_message_to_dialog"));
 
         if (need_channel_difference_to_add_message(dialog_id, nullptr)) {
-          LOG(INFO) << "Schedule getDifference in " << dialog_id.get_channel_id();
-          channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
+          schedule_get_channel_difference(dialog_id, 0.001);
         }
       } else {
         LOG(INFO) << "Ignore " << message_id << " in " << dialog_id << " received not through update from " << source;
@@ -36851,7 +36848,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
       d->pending_read_channel_inbox_pts = 0;
       on_dialog_updated(dialog_id, "fix_new_dialog 14");
     } else {
-      channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
+      schedule_get_channel_difference(dialog_id, 0.001);
     }
   } else {
     d->pending_read_channel_inbox_pts = 0;
@@ -37201,8 +37198,7 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
     auto dialog_type = dialog_id.get_type();
     if (dialog_type == DialogType::Channel && is_added && being_added_dialog_id_ != dialog_id) {
       repair_channel_server_unread_count(d);
-      LOG(INFO) << "Schedule getDifference in " << dialog_id.get_channel_id();
-      channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
+      schedule_get_channel_difference(dialog_id, 0.001);
     }
     if (dialog_type == DialogType::Channel && is_removed) {
       remove_all_dialog_notifications(d, false, source);
@@ -37957,6 +37953,11 @@ class MessagesManager::GetChannelDifferenceLogEvent {
   }
 };
 
+void MessagesManager::schedule_get_channel_difference(DialogId dialog_id, double delay) {
+  LOG(INFO) << "Schedule getDifference in " << dialog_id;
+  channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), delay);
+}
+
 void MessagesManager::get_channel_difference(DialogId dialog_id, int32 pts, bool force, const char *source,
                                              bool is_old) {
   if (channel_get_difference_retry_timeout_.has_timeout(dialog_id.get())) {
@@ -38343,8 +38344,7 @@ void MessagesManager::on_get_channel_difference(
       if (delay == 0) {
         delay = 1;
       }
-      channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(),
-                                                           Random::fast(delay * 1000, delay * 1500) * 1e-3);
+      schedule_get_channel_difference(dialog_id, Random::fast(delay * 1000, delay * 1500) * 1e-3);
       delay *= 2;
       if (delay > 60) {
         delay = Random::fast(60, 80);
