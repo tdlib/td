@@ -26,7 +26,7 @@ MessageId::MessageId(ScheduledServerMessageId server_message_id, int32 send_date
 }
 
 MessageId MessageId::get_message_id(const telegram_api::Message *message_ptr, bool is_scheduled) {
-  CHECK(message_ptr != nullptr)
+  CHECK(message_ptr != nullptr);
   switch (message_ptr->get_id()) {
     case telegram_api::messageEmpty::ID: {
       auto message = static_cast<const telegram_api::messageEmpty *>(message_ptr);
@@ -50,6 +50,17 @@ MessageId MessageId::get_message_id(const telegram_api::Message *message_ptr, bo
 
 MessageId MessageId::get_message_id(const tl_object_ptr<telegram_api::Message> &message_ptr, bool is_scheduled) {
   return get_message_id(message_ptr.get(), is_scheduled);
+}
+
+MessageId MessageId::get_max_message_id(const vector<telegram_api::object_ptr<telegram_api::Message>> &messages) {
+  MessageId max_message_id;
+  for (auto &message : messages) {
+    auto message_id = get_message_id(message, false);
+    if (message_id > max_message_id) {
+      max_message_id = message_id;
+    }
+  }
+  return max_message_id;
 }
 
 vector<MessageId> MessageId::get_message_ids(const vector<int64> &input_message_ids) {

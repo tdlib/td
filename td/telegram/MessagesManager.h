@@ -2991,15 +2991,21 @@ class MessagesManager final : public Actor {
   bool need_channel_difference_to_add_message(DialogId dialog_id,
                                               const tl_object_ptr<telegram_api::Message> &message_ptr);
 
-  void run_after_channel_difference(DialogId dialog_id, Promise<Unit> &&promise);
+  void run_after_channel_difference(DialogId dialog_id, MessageId expected_max_message_id, Promise<Unit> &&promise);
 
   bool running_get_channel_difference(DialogId dialog_id) const;
 
   void on_channel_get_difference_timeout(DialogId dialog_id);
 
-  void schedule_get_channel_difference(DialogId dialog_id, double delay);
+  void update_expected_channel_pts(DialogId dialog_id, int32 expected_pts);
 
-  void get_channel_difference(DialogId dialog_id, int32 pts, bool force, const char *source, bool is_old = false);
+  void update_expected_channel_max_message_id(DialogId dialog_id, MessageId expected_max_message_id);
+
+  void schedule_get_channel_difference(DialogId dialog_id, int32 expected_pts, MessageId expected_max_message_id,
+                                       double delay);
+
+  void get_channel_difference(DialogId dialog_id, int32 pts, int32 expected_pts, MessageId expected_max_message_id,
+                              bool force, const char *source, bool is_old = false);
 
   void do_get_channel_difference(DialogId dialog_id, int32 pts, bool force,
                                  tl_object_ptr<telegram_api::InputChannel> &&input_channel, bool is_old,
@@ -3437,6 +3443,8 @@ class MessagesManager final : public Actor {
   FlatHashMap<DialogId, int32, DialogIdHash> channel_get_difference_retry_timeouts_;
   FlatHashMap<DialogId, std::multimap<int32, PendingPtsUpdate>, DialogIdHash> postponed_channel_updates_;
   FlatHashSet<DialogId, DialogIdHash> is_channel_difference_finished_;
+  FlatHashMap<DialogId, int32, DialogIdHash> expected_channel_pts_;
+  FlatHashMap<DialogId, MessageId, DialogIdHash> expected_channel_max_message_id_;
 
   MultiTimeout channel_get_difference_timeout_{"ChannelGetDifferenceTimeout"};
   MultiTimeout channel_get_difference_retry_timeout_{"ChannelGetDifferenceRetryTimeout"};
