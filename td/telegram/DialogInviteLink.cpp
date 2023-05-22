@@ -21,7 +21,7 @@ DialogInviteLink::DialogInviteLink(tl_object_ptr<telegram_api::ExportedChatInvit
     return;
   }
   if (exported_invite_ptr->get_id() != telegram_api::chatInviteExported::ID) {
-    CHECK(exported_invite_ptr->get_id() == telegram_api::chatInvitePublicJoinRequests::ID)
+    CHECK(exported_invite_ptr->get_id() == telegram_api::chatInvitePublicJoinRequests::ID);
     Slice slice(source);
     if (slice != "channelAdminLogEventActionParticipantJoinByRequest" && slice != "updateChatParticipant" &&
         slice != "updateChannelParticipant" && slice != "updateBotChatInviteRequester") {

@@ -183,7 +183,7 @@ void Td::ResultHandler::set_td(Td *td) {
 }
 
 void Td::ResultHandler::send_query(NetQueryPtr query) {
-  CHECK(!is_query_sent_)
+  CHECK(!is_query_sent_);
   is_query_sent_ = true;
   td_->add_handler(query->id(), shared_from_this());
   query->debug("Send to NetQueryDispatcher");

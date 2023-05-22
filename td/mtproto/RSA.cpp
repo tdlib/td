@@ -128,8 +128,8 @@ size_t RSA::size() const {
 }
 
 bool RSA::encrypt(Slice from, MutableSlice to) const {
-  CHECK(from.size() == 256)
-  CHECK(to.size() == 256)
+  CHECK(from.size() == 256);
+  CHECK(to.size() == 256);
   int bits = n_.get_num_bits();
   CHECK(bits >= 2041 && bits <= 2048);
 

@@ -338,7 +338,7 @@ class TlsHelloStore {
         break;
       }
       case Type::Grease: {
-        CHECK(context)
+        CHECK(context);
         auto grease = context->get_grease(op.seed);
         dest_[0] = grease;
         dest_[1] = grease;

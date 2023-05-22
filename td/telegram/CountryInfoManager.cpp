@@ -558,7 +558,7 @@ const CountryInfoManager::CountryList *CountryInfoManager::get_country_list(Coun
       on_get_country_list_impl(language_code, std::move(result));
 
       it = countries_.find(language_code);
-      CHECK(it != countries_.end())
+      CHECK(it != countries_.end());
       auto *country = it->second.get();
       if (manager != nullptr) {
         manager->load_country_list(language_code, country->hash, Auto());
