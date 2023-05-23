@@ -92,6 +92,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <queue>
 #include <set>
 #include <unordered_map>
 #include <unordered_set>
@@ -3011,6 +3012,8 @@ class MessagesManager final : public Actor {
                                  tl_object_ptr<telegram_api::InputChannel> &&input_channel, bool is_old,
                                  const char *source);
 
+  void process_pending_get_channel_differences();
+
   void process_get_channel_difference_updates(DialogId dialog_id, int32 new_pts,
                                               vector<tl_object_ptr<telegram_api::Message>> &&new_messages,
                                               vector<tl_object_ptr<telegram_api::Update>> &&other_updates);
@@ -3437,6 +3440,28 @@ class MessagesManager final : public Actor {
 
   std::unordered_map<DialogListId, DialogList, DialogListIdHash> dialog_lists_;
   std::unordered_map<FolderId, DialogFolder, FolderIdHash> dialog_folders_;
+
+  struct PendingGetChannelDifference {
+    DialogId dialog_id_;
+    int32 pts_ = 0;
+    int32 limit_ = 0;
+    bool force_ = false;
+    telegram_api::object_ptr<telegram_api::InputChannel> input_channel_;
+    const char *source_ = nullptr;
+
+    PendingGetChannelDifference(DialogId dialog_id, int32 pts, int32 limit, bool force,
+                                telegram_api::object_ptr<telegram_api::InputChannel> &&input_channel,
+                                const char *source)
+        : dialog_id_(dialog_id)
+        , pts_(pts)
+        , limit_(limit)
+        , force_(force)
+        , input_channel_(std::move(input_channel))
+        , source_(source) {
+    }
+  };
+  std::queue<unique_ptr<PendingGetChannelDifference>> pending_get_channel_differences_;
+  int32 get_channel_difference_count_ = 0;
 
   FlatHashMap<DialogId, string, DialogIdHash> active_get_channel_differences_;
   FlatHashMap<DialogId, uint64, DialogIdHash> get_channel_difference_to_log_event_id_;

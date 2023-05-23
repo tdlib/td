@@ -6010,11 +6010,12 @@ MessagesManager::~MessagesManager() {
       update_scheduled_message_ids_, message_id_to_dialog_id_, last_clear_history_message_id_to_dialog_id_, dialogs_,
       postponed_chat_read_inbox_updates_, found_public_dialogs_, found_on_server_dialogs_, found_common_dialogs_,
       message_embedding_codes_[0], message_embedding_codes_[1], replied_by_media_timestamp_messages_,
-      notification_group_id_to_dialog_id_, active_get_channel_differences_, get_channel_difference_to_log_event_id_,
-      channel_get_difference_retry_timeouts_, is_channel_difference_finished_, resolved_usernames_,
-      inaccessible_resolved_usernames_, dialog_bot_command_message_ids_, full_message_id_to_file_source_id_,
-      last_outgoing_forwarded_message_date_, dialog_viewed_messages_, dialog_online_member_counts_,
-      previous_repaired_read_inbox_max_message_id_, failed_to_load_dialogs_);
+      notification_group_id_to_dialog_id_, pending_get_channel_differences_, active_get_channel_differences_,
+      get_channel_difference_to_log_event_id_, channel_get_difference_retry_timeouts_, is_channel_difference_finished_,
+      expected_channel_pts_, expected_channel_max_message_id_, resolved_usernames_, inaccessible_resolved_usernames_,
+      dialog_bot_command_message_ids_, full_message_id_to_file_source_id_, last_outgoing_forwarded_message_date_,
+      dialog_viewed_messages_, dialog_online_member_counts_, previous_repaired_read_inbox_max_message_id_,
+      failed_to_load_dialogs_);
 }
 
 void MessagesManager::on_channel_get_difference_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int) {
@@ -38065,10 +38066,29 @@ void MessagesManager::do_get_channel_difference(DialogId dialog_id, int32 pts, b
     limit = MIN_CHANNEL_DIFFERENCE;
   }
 
-  LOG(INFO) << "-----BEGIN GET CHANNEL DIFFERENCE----- for " << dialog_id << " with PTS " << pts << " and limit "
-            << limit << " from " << source;
+  pending_get_channel_differences_.push(
+      td::make_unique<PendingGetChannelDifference>(dialog_id, pts, limit, force, std::move(input_channel), source));
+  process_pending_get_channel_differences();
+}
 
-  td_->create_handler<GetChannelDifferenceQuery>()->send(dialog_id, std::move(input_channel), pts, limit, force);
+void MessagesManager::process_pending_get_channel_differences() {
+  static constexpr int32 MAX_CONCURRENT_GET_CHANNEL_DIFFERENCES = 10;
+
+  if (pending_get_channel_differences_.empty() ||
+      get_channel_difference_count_ >= MAX_CONCURRENT_GET_CHANNEL_DIFFERENCES) {
+    return;
+  }
+
+  get_channel_difference_count_++;
+
+  auto query = std::move(pending_get_channel_differences_.front());
+  pending_get_channel_differences_.pop();
+
+  LOG(INFO) << "-----BEGIN GET CHANNEL DIFFERENCE----- for " << query->dialog_id_ << " with PTS " << query->pts_
+            << " and limit " << query->limit_ << " from " << query->source_;
+
+  td_->create_handler<GetChannelDifferenceQuery>()->send(query->dialog_id_, std::move(query->input_channel_),
+                                                         query->pts_, query->limit_, query->force_);
 }
 
 void MessagesManager::process_get_channel_difference_updates(
@@ -38358,6 +38378,9 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
 void MessagesManager::on_get_channel_difference(
     DialogId dialog_id, int32 request_pts, int32 request_limit,
     tl_object_ptr<telegram_api::updates_ChannelDifference> &&difference_ptr) {
+  get_channel_difference_count_--;
+  CHECK(get_channel_difference_count_ >= 0);
+  process_pending_get_channel_differences();
   LOG(INFO) << "----- END  GET CHANNEL DIFFERENCE----- for " << dialog_id;
   auto it = active_get_channel_differences_.find(dialog_id);
   CHECK(it != active_get_channel_differences_.end());
