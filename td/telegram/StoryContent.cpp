@@ -8,7 +8,10 @@
 
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/files/FileId.h"
+#include "td/telegram/files/FileManager.h"
+#include "td/telegram/files/FileType.h"
 #include "td/telegram/Photo.h"
+#include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/VideosManager.h"
 
@@ -122,6 +125,40 @@ unique_ptr<StoryContent> get_story_content(Td *td, tl_object_ptr<telegram_api::M
   }
   LOG(ERROR) << "Receive a story with content " << to_string(media_ptr);
   return nullptr;
+}
+
+Result<unique_ptr<StoryContent>> get_input_story_content(
+    Td *td, td_api::object_ptr<td_api::InputStoryContent> &&input_story_content, DialogId owner_dialog_id) {
+  LOG(INFO) << "Get input story content from " << to_string(input_story_content);
+
+  switch (input_story_content->get_id()) {
+    case td_api::inputStoryContentPhoto::ID: {
+      auto input_story = static_cast<const td_api::inputStoryContentPhoto *>(input_story_content.get());
+      TRY_RESULT(file_id, td->file_manager_->get_input_file_id(FileType::Photo, input_story->photo_, owner_dialog_id,
+                                                               false, false));
+      auto sticker_file_ids =
+          td->stickers_manager_->get_attached_sticker_file_ids(input_story->added_sticker_file_ids_);
+      TRY_RESULT(photo,
+                 create_photo(td->file_manager_.get(), file_id, PhotoSize(), 720, 1280, std::move(sticker_file_ids)));
+      return make_unique<StoryContentPhoto>(std::move(photo));
+    }
+    case td_api::inputStoryContentVideo::ID: {
+      auto input_story = static_cast<const td_api::inputStoryContentVideo *>(input_story_content.get());
+      TRY_RESULT(file_id, td->file_manager_->get_input_file_id(FileType::Video, input_story->video_, owner_dialog_id,
+                                                               false, false));
+      auto sticker_file_ids =
+          td->stickers_manager_->get_attached_sticker_file_ids(input_story->added_sticker_file_ids_);
+      bool has_stickers = !sticker_file_ids.empty();
+      td->videos_manager_->create_video(file_id, string(), PhotoSize(), AnimationSize(), has_stickers,
+                                        std::move(sticker_file_ids), "story.mp4", "video/mp4", input_story->duration_,
+                                        get_dimensions(720, 1280, nullptr), true, 0, false);
+
+      return make_unique<StoryContentVideo>(file_id, FileId());
+    }
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
 }
 
 void merge_story_contents(Td *td, const StoryContent *old_content, StoryContent *new_content, DialogId dialog_id,

@@ -13,6 +13,7 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
+#include "td/utils/Status.h"
 
 namespace td {
 
@@ -32,6 +33,9 @@ class StoryContent {
 
 unique_ptr<StoryContent> get_story_content(Td *td, telegram_api::object_ptr<telegram_api::MessageMedia> &&media_ptr,
                                            DialogId owner_dialog_id);
+
+Result<unique_ptr<StoryContent>> get_input_story_content(
+    Td *td, td_api::object_ptr<td_api::InputStoryContent> &&input_story_content, DialogId owner_dialog_id);
 
 void merge_story_contents(Td *td, const StoryContent *old_content, StoryContent *new_content, DialogId dialog_id,
                           bool need_merge_files, bool &is_content_changed, bool &need_update);

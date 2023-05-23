@@ -4846,6 +4846,20 @@ storyContentVideo video:video alternative_video:video = StoryContent;
 storyContentUnsupported = StoryContent;
 
 
+//@class InputStoryContent @description The content of a story to send
+
+//@description A photo story
+//@photo Photo to send. The photo must be at most 10 MB in size. The photo size must be 720x1280
+//@added_sticker_file_ids File identifiers of the stickers added to the photo, if applicable
+inputStoryContentPhoto photo:InputFile added_sticker_file_ids:vector<int32> = InputStoryContent;
+
+//@description A video story
+//@video Video to be sent. The video size must be 720x1280. The video must be stored in MPEG4 format, encoded by x265 codec and must be streamable
+//@added_sticker_file_ids File identifiers of the stickers added to the video, if applicable
+//@duration Duration of the video, in seconds
+inputStoryContentVideo video:InputFile added_sticker_file_ids:vector<int32> duration:int32 = InputStoryContent;
+
+
 //@description Contains information about interactions with a story
 //@view_count Number of times the story was viewed
 //@recent_viewer_user_ids Identifiers of at most 3 recent viewers of the story
