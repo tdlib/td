@@ -15687,6 +15687,9 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
       if (last_message_id.is_valid()) {
         FullMessageId full_message_id(dialog_id, last_message_id);
         auto it = full_message_id_to_dialog_date.find(full_message_id);
+        if (it == full_message_id_to_dialog_date.end() && dialog_id.get_type() != DialogType::Channel) {
+          it = full_message_id_to_dialog_date.find({DialogId(), last_message_id});
+        }
         if (it == full_message_id_to_dialog_date.end()) {
           LOG(ERROR) << "Last " << last_message_id << " in " << dialog_id << " not found";
           return promise.set_error(Status::Error(500, "Wrong query result returned: last message not found"));
@@ -15698,9 +15701,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
         }
 
         DialogDate dialog_date = it->second;
-        CHECK(dialog_date.get_dialog_id() == dialog_id);
-
-        if (dialog_date.get_date() > 0 && max_dialog_date < dialog_date) {
+        if (dialog_date.get_date() > 0 && dialog_date.get_dialog_id() == dialog_id && max_dialog_date < dialog_date) {
           max_dialog_date = dialog_date;
         }
       } else {
@@ -15812,6 +15813,9 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
       if (last_message_id.is_valid() && !td_->auth_manager_->is_bot()) {
         FullMessageId full_message_id(dialog_id, last_message_id);
         auto it = full_message_id_to_message.find(full_message_id);
+        if (it == full_message_id_to_message.end() && dialog_id.get_type() != DialogType::Channel) {
+          it = full_message_id_to_message.find({DialogId(), last_message_id});
+        }
         if (it == full_message_id_to_message.end()) {
           LOG(ERROR) << "Last " << full_message_id << " not found";
         } else if (!has_pts || d->pts == 0 || dialog->pts_ <= d->pts || d->is_channel_difference_finished) {
