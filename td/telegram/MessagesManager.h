@@ -3570,7 +3570,11 @@ class MessagesManager final : public Actor {
   FlatHashMap<DialogId, FlatHashMap<MessageId, int64, MessageIdHash>, DialogIdHash>
       pending_viewed_live_locations_;  // ... -> task_id
 
-  FlatHashMap<uint64, std::map<MessageId, Promise<Message *>>> yet_unsent_media_queues_;
+  struct UnsentMediaQueue {
+    DialogId dialog_id_;
+    std::map<MessageId, Promise<Message *>> queue_;
+  };
+  FlatHashMap<uint64, UnsentMediaQueue> yet_unsent_media_queues_;
 
   FlatHashMap<DialogId, NetQueryRef, DialogIdHash> set_typing_query_;
 
