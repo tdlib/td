@@ -15638,7 +15638,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
   FlatHashMap<FullMessageId, tl_object_ptr<telegram_api::Message>, FullMessageIdHash> full_message_id_to_message;
   for (auto &message : messages) {
     auto full_message_id = FullMessageId::get_full_message_id(message, false);
-    if (!full_message_id.get_message_id().is_valid()) {
+    if (!full_message_id.get_message_id().is_valid()) {  // must not check dialog_id because of messageEmpty
       continue;
     }
     if (from_dialog_list) {
@@ -15953,6 +15953,10 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     being_added_dialog_id_ = DialogId();
 
     update_dialog_lists(d, std::move(positions), true, false, source);
+
+    if ((from_dialog_list || from_pinned_dialog_list) && d->order == DEFAULT_ORDER) {
+      get_history_from_the_end_impl(d, false, false, Auto(), "on_get_dialog");
+    }
   }
 
   if (from_dialog_list) {
@@ -36877,8 +36881,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
     d->pending_read_channel_inbox_pts = 0;
   }
   if (need_get_history && !td_->auth_manager_->is_bot() && dialog_id != being_added_dialog_id_ &&
-      dialog_id != being_added_by_new_message_dialog_id_ && have_input_peer(dialog_id, AccessRights::Read) &&
-      (d->order != DEFAULT_ORDER || is_dialog_sponsored(d))) {
+      dialog_id != being_added_by_new_message_dialog_id_ && (d->order != DEFAULT_ORDER || is_dialog_sponsored(d))) {
     get_history_from_the_end_impl(d, true, false, Auto(), "fix_new_dialog");
   }
   if (d->need_repair_server_unread_count && need_unread_counter(d->order)) {
@@ -36929,8 +36932,7 @@ bool MessagesManager::add_dialog_last_database_message(Dialog *d, unique_ptr<Mes
     on_dialog_updated(dialog_id, "add_dialog_last_database_message 4");  // resave without last database message
 
     if (!td_->auth_manager_->is_bot() && dialog_id != being_added_dialog_id_ &&
-        dialog_id != being_added_by_new_message_dialog_id_ && have_input_peer(dialog_id, AccessRights::Read) &&
-        (d->order != DEFAULT_ORDER || is_dialog_sponsored(d))) {
+        dialog_id != being_added_by_new_message_dialog_id_ && (d->order != DEFAULT_ORDER || is_dialog_sponsored(d))) {
       get_history_from_the_end_impl(d, true, false, Auto(), "add_dialog_last_database_message 5");
     }
   }
