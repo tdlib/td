@@ -105,9 +105,11 @@ bool need_update_dialog_photo(const DialogPhoto &from, const DialogPhoto &to);
 
 StringBuilder &operator<<(StringBuilder &string_builder, const DialogPhoto &dialog_photo);
 
-Photo get_photo(Td *td, tl_object_ptr<telegram_api::Photo> &&photo, DialogId owner_dialog_id);
+Photo get_photo(Td *td, tl_object_ptr<telegram_api::Photo> &&photo, DialogId owner_dialog_id,
+                FileType file_type = FileType::Photo);
 
-Photo get_photo(Td *td, tl_object_ptr<telegram_api::photo> &&photo, DialogId owner_dialog_id);
+Photo get_photo(Td *td, tl_object_ptr<telegram_api::photo> &&photo, DialogId owner_dialog_id,
+                FileType file_type = FileType::Photo);
 
 Photo get_encrypted_file_photo(FileManager *file_manager, unique_ptr<EncryptedFile> &&file,
                                tl_object_ptr<secret_api::decryptedMessageMediaPhoto> &&photo, DialogId owner_dialog_id);

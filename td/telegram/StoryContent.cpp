@@ -73,7 +73,7 @@ unique_ptr<StoryContent> get_story_content(Td *td, tl_object_ptr<telegram_api::M
         break;
       }
 
-      auto photo = get_photo(td, std::move(media->photo_), owner_dialog_id);
+      auto photo = get_photo(td, std::move(media->photo_), owner_dialog_id, FileType::PhotoStory);
       if (photo.is_empty()) {
         LOG(ERROR) << "Receive a story with empty photo";
         break;
@@ -140,6 +140,8 @@ Result<unique_ptr<StoryContent>> get_input_story_content(
       auto input_story = static_cast<const td_api::inputStoryContentPhoto *>(input_story_content.get());
       TRY_RESULT(file_id, td->file_manager_->get_input_file_id(FileType::Photo, input_story->photo_, owner_dialog_id,
                                                                false, false));
+      file_id =
+          td->file_manager_->copy_file_id(file_id, FileType::PhotoStory, owner_dialog_id, "get_input_story_content");
       auto sticker_file_ids =
           td->stickers_manager_->get_attached_sticker_file_ids(input_story->added_sticker_file_ids_);
       TRY_RESULT(photo,

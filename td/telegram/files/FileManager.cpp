@@ -867,6 +867,7 @@ string FileManager::get_file_name(FileType file_type, Slice path) {
       break;
     case FileType::ProfilePhoto:
     case FileType::Photo:
+    case FileType::PhotoStory:
       if (extension != "jpg" && extension != "jpeg" && extension != "gif" && extension != "png" && extension != "tif" &&
           extension != "bmp") {
         return fix_file_extension(file_name, "photo", "jpg");

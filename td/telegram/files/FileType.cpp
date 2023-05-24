@@ -93,6 +93,8 @@ tl_object_ptr<td_api::FileType> get_file_type_object(FileType file_type) {
       return make_tl_object<td_api::fileTypeNotificationSound>();
     case FileType::CallLog:
       return make_tl_object<td_api::fileTypeDocument>();
+    case FileType::PhotoStory:
+      return make_tl_object<td_api::fileTypePhoto>();
     case FileType::None:
       return make_tl_object<td_api::fileTypeNone>();
     default:
@@ -111,6 +113,8 @@ FileType get_main_file_type(FileType file_type) {
       return FileType::Document;
     case FileType::CallLog:
       return FileType::Document;
+    case FileType::PhotoStory:
+      return FileType::Photo;
     default:
       return file_type;
   }
@@ -150,6 +154,8 @@ CSlice get_file_type_name(FileType file_type) {
       return CSlice("wallpapers");
     case FileType::Ringtone:
       return CSlice("notification_sounds");
+    case FileType::PhotoStory:
+      return CSlice("stories");
     default:
       UNREACHABLE();
       return CSlice("none");
@@ -163,6 +169,7 @@ FileTypeClass get_file_type_class(FileType file_type) {
     case FileType::Thumbnail:
     case FileType::EncryptedThumbnail:
     case FileType::Wallpaper:
+    case FileType::PhotoStory:
       return FileTypeClass::Photo;
     case FileType::Video:
     case FileType::VoiceNote:
@@ -237,6 +244,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, FileType file_type) {
       return string_builder << "NotificationSound";
     case FileType::CallLog:
       return string_builder << "CallLog";
+    case FileType::PhotoStory:
+      return string_builder << "PhotoStory";
     case FileType::Size:
     case FileType::None:
     default:
@@ -257,6 +266,7 @@ FileDirType get_file_dir_type(FileType file_type) {
     case FileType::SecureDecrypted:
     case FileType::Background:
     case FileType::Ringtone:
+    case FileType::PhotoStory:
       return FileDirType::Secure;
     default:
       return FileDirType::Common;
@@ -286,6 +296,7 @@ bool can_reuse_remote_file(FileType file_type) {
     case FileType::EncryptedThumbnail:
     case FileType::Background:
     case FileType::CallLog:
+    case FileType::PhotoStory:
       return false;
     default:
       return true;

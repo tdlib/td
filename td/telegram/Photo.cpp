@@ -297,15 +297,15 @@ Photo get_encrypted_file_photo(FileManager *file_manager, unique_ptr<EncryptedFi
   return res;
 }
 
-Photo get_photo(Td *td, tl_object_ptr<telegram_api::Photo> &&photo, DialogId owner_dialog_id) {
+Photo get_photo(Td *td, tl_object_ptr<telegram_api::Photo> &&photo, DialogId owner_dialog_id, FileType file_type) {
   if (photo == nullptr || photo->get_id() == telegram_api::photoEmpty::ID) {
     return Photo();
   }
   CHECK(photo->get_id() == telegram_api::photo::ID);
-  return get_photo(td, move_tl_object_as<telegram_api::photo>(photo), owner_dialog_id);
+  return get_photo(td, move_tl_object_as<telegram_api::photo>(photo), owner_dialog_id, file_type);
 }
 
-Photo get_photo(Td *td, tl_object_ptr<telegram_api::photo> &&photo, DialogId owner_dialog_id) {
+Photo get_photo(Td *td, tl_object_ptr<telegram_api::photo> &&photo, DialogId owner_dialog_id, FileType file_type) {
   CHECK(photo != nullptr);
   Photo res;
 
@@ -320,8 +320,8 @@ Photo get_photo(Td *td, tl_object_ptr<telegram_api::photo> &&photo, DialogId own
 
   DcId dc_id = DcId::create(photo->dc_id_);
   for (auto &size_ptr : photo->sizes_) {
-    auto photo_size = get_photo_size(td->file_manager_.get(), PhotoSizeSource::thumbnail(FileType::Photo, 0),
-                                     photo->id_, photo->access_hash_, photo->file_reference_.as_slice().str(), dc_id,
+    auto photo_size = get_photo_size(td->file_manager_.get(), PhotoSizeSource::thumbnail(file_type, 0), photo->id_,
+                                     photo->access_hash_, photo->file_reference_.as_slice().str(), dc_id,
                                      owner_dialog_id, std::move(size_ptr), PhotoFormat::Jpeg);
     if (photo_size.get_offset() == 0) {
       PhotoSize &size = photo_size.get<0>();
@@ -338,7 +338,7 @@ Photo get_photo(Td *td, tl_object_ptr<telegram_api::photo> &&photo, DialogId own
 
   for (auto &size_ptr : photo->video_sizes_) {
     auto animation =
-        process_video_size(td, PhotoSizeSource::thumbnail(FileType::Photo, 0), photo->id_, photo->access_hash_,
+        process_video_size(td, PhotoSizeSource::thumbnail(file_type, 0), photo->id_, photo->access_hash_,
                            photo->file_reference_.as_slice().str(), dc_id, owner_dialog_id, std::move(size_ptr));
     if (animation.empty()) {
       continue;

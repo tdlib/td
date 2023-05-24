@@ -35,6 +35,7 @@ enum class FileType : int32 {
   DocumentAsFile,
   Ringtone,
   CallLog,
+  PhotoStory,
   Size,
   None
 };
