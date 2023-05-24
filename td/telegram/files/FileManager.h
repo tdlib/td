@@ -425,6 +425,8 @@ class FileManager final : public FileLoadManager::Callback {
 
   FileId dup_file_id(FileId file_id, const char *source);
 
+  FileId copy_file_id(FileId file_id, FileType file_type, DialogId owner_dialog_id, const char *source);
+
   void on_file_unlink(const FullLocalFileLocation &location);
 
   FileId register_empty(FileType type);

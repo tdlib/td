@@ -949,13 +949,9 @@ void NotificationSettingsManager::add_saved_ringtone(td_api::object_ptr<td_api::
     return;
   }
 
-  auto download_file_id = td_->file_manager_->dup_file_id(file_id, "add_saved_ringtone");
-  file_id = td_->file_manager_
-                ->register_generate(FileType::Ringtone, FileLocationSource::FromServer, file_view.suggested_path(),
-                                    PSTRING() << "#file_id#" << download_file_id.get(), DialogId(), file_view.size())
-                .ok();
+  file_id = td_->file_manager_->copy_file_id(file_id, FileType::Ringtone, DialogId(), "add_saved_ringtone");
 
-  upload_ringtone(file_id, false, std::move(promise));
+  upload_ringtone(td_->file_manager_->dup_file_id(file_id, "add_saved_ringtone"), false, std::move(promise));
 }
 
 void NotificationSettingsManager::upload_ringtone(FileId file_id, bool is_reupload,
