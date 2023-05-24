@@ -217,7 +217,7 @@ void MessageExtendedMedia::delete_thumbnail(Td *td) {
 
 int32 MessageExtendedMedia::get_duration(const Td *td) const {
   if (!has_media_timestamp()) {
-    return 0;
+    return -1;
   }
   return td->videos_manager_->get_video_duration(video_file_id_);
 }

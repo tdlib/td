@@ -5859,7 +5859,7 @@ int32 get_message_content_duration(const MessageContent *content, const Td *td) 
       return td->voice_notes_manager_->get_voice_note_duration(voice_file_id);
     }
     default:
-      return 0;
+      return -1;
   }
 }
 

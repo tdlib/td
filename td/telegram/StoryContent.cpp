@@ -246,4 +246,16 @@ vector<FileId> get_story_content_file_ids(const Td *td, const StoryContent *cont
   }
 }
 
+int32 get_story_content_duration(const Td *td, const StoryContent *content) {
+  CHECK(content != nullptr);
+  switch (content->get_type()) {
+    case StoryContentType::Video: {
+      auto file_id = static_cast<const StoryContentVideo *>(content)->file_id_;
+      return td->videos_manager_->get_video_duration(file_id);
+    }
+    default:
+      return -1;
+  }
+}
+
 }  // namespace td
