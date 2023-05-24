@@ -165,6 +165,24 @@ Result<unique_ptr<StoryContent>> get_input_story_content(
   }
 }
 
+telegram_api::object_ptr<telegram_api::InputMedia> get_story_content_input_media(
+    Td *td, const StoryContent *content, telegram_api::object_ptr<telegram_api::InputFile> input_file) {
+  switch (content->get_type()) {
+    case StoryContentType::Photo: {
+      const auto *story_content = static_cast<const StoryContentPhoto *>(content);
+      return photo_get_input_media(td->file_manager_.get(), story_content->photo_, std::move(input_file), 0, false);
+    }
+    case StoryContentType::Video: {
+      const auto *story_content = static_cast<const StoryContentVideo *>(content);
+      return td->videos_manager_->get_input_media(story_content->file_id_, std::move(input_file), nullptr, 0, false);
+    }
+    case StoryContentType::Unsupported:
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
+}
+
 void merge_story_contents(Td *td, const StoryContent *old_content, StoryContent *new_content, DialogId dialog_id,
                           bool need_merge_files, bool &is_content_changed, bool &need_update) {
   StoryContentType content_type = new_content->get_type();

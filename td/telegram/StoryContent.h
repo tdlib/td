@@ -37,6 +37,9 @@ unique_ptr<StoryContent> get_story_content(Td *td, telegram_api::object_ptr<tele
 Result<unique_ptr<StoryContent>> get_input_story_content(
     Td *td, td_api::object_ptr<td_api::InputStoryContent> &&input_story_content, DialogId owner_dialog_id);
 
+telegram_api::object_ptr<telegram_api::InputMedia> get_story_content_input_media(
+    Td *td, const StoryContent *content, telegram_api::object_ptr<telegram_api::InputFile> input_file);
+
 void merge_story_contents(Td *td, const StoryContent *old_content, StoryContent *new_content, DialogId dialog_id,
                           bool need_merge_files, bool &is_content_changed, bool &need_update);
 
