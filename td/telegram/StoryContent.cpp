@@ -69,11 +69,13 @@ unique_ptr<StoryContent> get_story_content(Td *td, tl_object_ptr<telegram_api::M
       auto media = move_tl_object_as<telegram_api::messageMediaPhoto>(media_ptr);
       if (media->photo_ == nullptr || (media->flags_ & telegram_api::messageMediaPhoto::TTL_SECONDS_MASK) != 0 ||
           media->spoiler_) {
+        LOG(ERROR) << "Receive a story with content " << to_string(media);
         break;
       }
 
       auto photo = get_photo(td, std::move(media->photo_), owner_dialog_id);
       if (photo.is_empty()) {
+        LOG(ERROR) << "Receive a story with empty photo";
         break;
       }
       return make_unique<StoryContentPhoto>(std::move(photo));
@@ -82,18 +84,21 @@ unique_ptr<StoryContent> get_story_content(Td *td, tl_object_ptr<telegram_api::M
       auto media = move_tl_object_as<telegram_api::messageMediaDocument>(media_ptr);
       if (media->document_ == nullptr || (media->flags_ & telegram_api::messageMediaDocument::TTL_SECONDS_MASK) != 0 ||
           media->spoiler_) {
+        LOG(ERROR) << "Receive a story with content " << to_string(media);
         break;
       }
 
       auto document_ptr = std::move(media->document_);
       int32 document_id = document_ptr->get_id();
       if (document_id == telegram_api::documentEmpty::ID) {
+        LOG(ERROR) << "Receive a story with empty document";
         break;
       }
       CHECK(document_id == telegram_api::document::ID);
       auto parsed_document = td->documents_manager_->on_get_document(
           move_tl_object_as<telegram_api::document>(document_ptr), owner_dialog_id, nullptr);
       if (parsed_document.empty() || parsed_document.type != Document::Type::Video) {
+        LOG(ERROR) << "Receive a story with " << parsed_document;
         break;
       }
       CHECK(parsed_document.file_id.is_valid());
@@ -123,7 +128,6 @@ unique_ptr<StoryContent> get_story_content(Td *td, tl_object_ptr<telegram_api::M
     default:
       break;
   }
-  LOG(ERROR) << "Receive a story with content " << to_string(media_ptr);
   return nullptr;
 }
 
