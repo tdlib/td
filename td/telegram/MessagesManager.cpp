@@ -9769,8 +9769,9 @@ void MessagesManager::get_channel_difference_if_needed(DialogId dialog_id, Messa
   }
   for (auto &message : messages_info.messages) {
     if (need_channel_difference_to_add_message(dialog_id, message)) {
+      auto max_message_id = MessageId::get_max_message_id(messages_info.messages);
       return run_after_channel_difference(
-          dialog_id, MessageId::get_max_message_id(messages_info.messages),
+          dialog_id, max_message_id,
           PromiseCreator::lambda([messages_info = std::move(messages_info), promise = std::move(promise)](
                                      Unit ignored) mutable { promise.set_value(std::move(messages_info)); }));
     }
@@ -17968,8 +17969,9 @@ void MessagesManager::process_discussion_message(
 
   for (auto &message : result->messages_) {
     if (need_channel_difference_to_add_message(expected_dialog_id, message)) {
+      auto max_message_id = MessageId::get_max_message_id(result->messages_);
       return run_after_channel_difference(
-          expected_dialog_id, MessageId::get_max_message_id(result->messages_),
+          expected_dialog_id, max_message_id,
           PromiseCreator::lambda([actor_id = actor_id(this), result = std::move(result), dialog_id, message_id,
                                   expected_dialog_id, expected_message_id,
                                   promise = std::move(promise)](Unit ignored) mutable {
