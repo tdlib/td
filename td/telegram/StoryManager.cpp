@@ -250,6 +250,7 @@ StoryManager::PendingStory::PendingStory(DialogId dialog_id, StoryId story_id, u
     , log_event_id_(log_event_id)
     , send_story_num_(send_story_num)
     , random_id_(random_id)
+    , was_reuploaded_(false)
     , story_(std::move(story)) {
 }
 
@@ -627,11 +628,30 @@ void StoryManager::on_upload_story(FileId file_id, telegram_api::object_ptr<tele
     // callback may be called just before the file upload was canceled
     return;
   }
-  CHECK(input_file != nullptr);
 
   auto pending_story = std::move(it->second);
 
   being_uploaded_files_.erase(it);
+
+  FileView file_view = td_->file_manager_->get_file_view(file_id);
+  CHECK(!file_view.is_encrypted());
+  if (input_file == nullptr && file_view.has_remote_location()) {
+    if (file_view.main_remote_location().is_web()) {
+      LOG(ERROR) << "Can't use web photo as story";
+      return;
+    }
+    if (pending_story->was_reuploaded_) {
+      LOG(ERROR) << "Failed to reupload story";
+      return;
+    }
+    pending_story->was_reuploaded_ = true;
+
+    // delete file reference and forcely reupload the file
+    td_->file_manager_->delete_file_reference(file_id, file_view.main_remote_location().get_file_reference());
+    do_send_story(std::move(pending_story), {-1});
+    return;
+  }
+  CHECK(input_file != nullptr);
 
   td_->create_handler<SendStoryQuery>()->send(file_id, std::move(pending_story), std::move(input_file));
 }

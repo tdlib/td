@@ -504,7 +504,9 @@ class FileManager final : public FileLoadManager::Callback {
   vector<tl_object_ptr<telegram_api::InputDocument>> get_input_documents(const vector<FileId> &file_ids);
 
   static bool extract_was_uploaded(const tl_object_ptr<telegram_api::InputMedia> &input_media);
+
   static bool extract_was_thumbnail_uploaded(const tl_object_ptr<telegram_api::InputMedia> &input_media);
+
   static string extract_file_reference(const tl_object_ptr<telegram_api::InputMedia> &input_media);
 
   static string extract_file_reference(const tl_object_ptr<telegram_api::InputDocument> &input_document);
@@ -512,6 +514,7 @@ class FileManager final : public FileLoadManager::Callback {
   static string extract_file_reference(const tl_object_ptr<telegram_api::InputPhoto> &input_photo);
 
   static bool extract_was_uploaded(const tl_object_ptr<telegram_api::InputChatPhoto> &input_chat_photo);
+
   static string extract_file_reference(const tl_object_ptr<telegram_api::InputChatPhoto> &input_chat_photo);
 
   template <class StorerT>

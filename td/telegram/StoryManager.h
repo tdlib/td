@@ -49,6 +49,7 @@ class StoryManager final : public Actor {
     uint64 log_event_id_ = 0;
     uint32 send_story_num_ = 0;
     int64 random_id_ = 0;
+    bool was_reuploaded_ = false;
     unique_ptr<Story> story_;
 
     PendingStory(DialogId dialog_id, StoryId story_id, uint64 log_event_id, uint32 send_story_num, int64 random_id,
