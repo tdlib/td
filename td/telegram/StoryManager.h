@@ -31,39 +31,6 @@ class StoryContent;
 class Td;
 
 class StoryManager final : public Actor {
- public:
-  StoryManager(Td *td, ActorShared<> parent);
-  StoryManager(const StoryManager &) = delete;
-  StoryManager &operator=(const StoryManager &) = delete;
-  StoryManager(StoryManager &&) = delete;
-  StoryManager &operator=(StoryManager &&) = delete;
-  ~StoryManager() final;
-
-  void send_story(td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,
-                  td_api::object_ptr<td_api::formattedText> &&input_caption,
-                  td_api::object_ptr<td_api::userPrivacySettingRules> &&rules, bool is_pinned,
-                  Promise<td_api::object_ptr<td_api::story>> &&promise);
-
-  void get_dialog_pinned_stories(DialogId owner_dialog_id, StoryId from_story_id, int32 limit,
-                                 Promise<td_api::object_ptr<td_api::stories>> &&promise);
-
-  void get_dialog_expiring_stories(DialogId owner_dialog_id, Promise<td_api::object_ptr<td_api::stories>> &&promise);
-
-  StoryId on_get_story(DialogId owner_dialog_id, telegram_api::object_ptr<telegram_api::storyItem> &&story_item);
-
-  std::pair<int32, vector<StoryId>> on_get_stories(DialogId owner_dialog_id,
-                                                   telegram_api::object_ptr<telegram_api::stories_stories> &&stories);
-
-  td_api::object_ptr<td_api::story> get_story_object(StoryFullId story_full_id) const;
-
-  td_api::object_ptr<td_api::stories> get_stories_object(int32 total_count,
-                                                         const vector<StoryFullId> &story_full_ids) const;
-
-  FileSourceId get_story_file_source_id(StoryFullId story_full_id);
-
-  void reload_story(StoryFullId story_full_id, Promise<Unit> &&promise);
-
- private:
   struct Story {
     int32 date_ = 0;
     int32 expire_date_ = 0;
@@ -88,6 +55,41 @@ class StoryManager final : public Actor {
                  unique_ptr<Story> &&story);
   };
 
+ public:
+  StoryManager(Td *td, ActorShared<> parent);
+  StoryManager(const StoryManager &) = delete;
+  StoryManager &operator=(const StoryManager &) = delete;
+  StoryManager(StoryManager &&) = delete;
+  StoryManager &operator=(StoryManager &&) = delete;
+  ~StoryManager() final;
+
+  void send_story(td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,
+                  td_api::object_ptr<td_api::formattedText> &&input_caption,
+                  td_api::object_ptr<td_api::userPrivacySettingRules> &&rules, bool is_pinned,
+                  Promise<td_api::object_ptr<td_api::story>> &&promise);
+
+  void on_send_story_file_part_missing(unique_ptr<PendingStory> &&pending_story, int bad_part);
+
+  void get_dialog_pinned_stories(DialogId owner_dialog_id, StoryId from_story_id, int32 limit,
+                                 Promise<td_api::object_ptr<td_api::stories>> &&promise);
+
+  void get_dialog_expiring_stories(DialogId owner_dialog_id, Promise<td_api::object_ptr<td_api::stories>> &&promise);
+
+  StoryId on_get_story(DialogId owner_dialog_id, telegram_api::object_ptr<telegram_api::storyItem> &&story_item);
+
+  std::pair<int32, vector<StoryId>> on_get_stories(DialogId owner_dialog_id,
+                                                   telegram_api::object_ptr<telegram_api::stories_stories> &&stories);
+
+  td_api::object_ptr<td_api::story> get_story_object(StoryFullId story_full_id) const;
+
+  td_api::object_ptr<td_api::stories> get_stories_object(int32 total_count,
+                                                         const vector<StoryFullId> &story_full_ids) const;
+
+  FileSourceId get_story_file_source_id(StoryFullId story_full_id);
+
+  void reload_story(StoryFullId story_full_id, Promise<Unit> &&promise);
+
+ private:
   class UploadMediaCallback;
 
   class SendStoryQuery;
@@ -122,8 +124,7 @@ class StoryManager final : public Actor {
   static bool is_local_story_id(StoryId story_id);
 
   void do_send_story(DialogId dialog_id, StoryId story_id, uint64 log_event_id, uint32 send_story_num, int64 random_id,
-                     unique_ptr<Story> &&story, vector<int> bad_parts,
-                     Promise<td_api::object_ptr<td_api::story>> &&promise);
+                     unique_ptr<Story> &&story, vector<int> bad_parts);
 
   void on_upload_story(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);
 

@@ -186,7 +186,13 @@ class StoryManager::SendStoryQuery final : public Td::ResultHandler {
       return;
     }
 
-    td_->file_manager_->delete_partial_remote_location(file_id_);
+    if (begins_with(status.message(), "FILE_PART_") && ends_with(status.message(), "_MISSING")) {
+      td_->story_manager_->on_send_story_file_part_missing(std::move(pending_story_),
+                                                           to_integer<int32>(status.message().substr(10)));
+      return;
+    } else {
+      td_->file_manager_->delete_partial_remote_location(file_id_);
+    }
   }
 };
 
@@ -551,17 +557,17 @@ void StoryManager::send_story(td_api::object_ptr<td_api::InputStoryContent> &&in
     random_id = Random::secure_int64();
   } while (random_id == 0);
 
-  // auto log_event_id = save_send_story_log_event(dialog_id, random_id, story.get());
+  auto story_ptr = story.get();
 
-  do_send_story(dialog_id, StoryId(), 0 /*log_event_id*/, ++send_story_count_, random_id, std::move(story), {},
-                std::move(promise));
+  do_send_story(dialog_id, StoryId(), 0 /*log_event_id*/, ++send_story_count_, random_id, std::move(story), {});
+
+  promise.set_value(get_story_object({dialog_id, StoryId()}, story_ptr));
 }
 
 void StoryManager::do_send_story(DialogId dialog_id, StoryId story_id, uint64 log_event_id, uint32 send_story_num,
-                                 int64 random_id, unique_ptr<Story> &&story, vector<int> bad_parts,
-                                 Promise<td_api::object_ptr<td_api::story>> &&promise) {
-  auto story_ptr = story.get();
-  auto content = story_ptr->content_.get();
+                                 int64 random_id, unique_ptr<Story> &&story, vector<int> bad_parts) {
+  CHECK(story != nullptr);
+  auto content = story->content_.get();
   CHECK(content != nullptr);
 
   FileId file_id = get_story_content_any_file_id(td_, content);
@@ -575,8 +581,6 @@ void StoryManager::do_send_story(DialogId dialog_id, StoryId story_id, uint64 lo
   // need to call resume_upload synchronously to make upload process consistent with being_uploaded_files_
   // and to send is_uploading_active == true in response
   td_->file_manager_->resume_upload(file_id, std::move(bad_parts), upload_media_callback_, 1, send_story_num);
-
-  promise.set_value(get_story_object({dialog_id, story_id}, story_ptr));
 }
 
 void StoryManager::on_upload_story(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) {
@@ -621,6 +625,12 @@ void StoryManager::on_upload_story_error(FileId file_id, Status status) {
   }
 
   being_uploaded_files_.erase(it);
+}
+
+void StoryManager::on_send_story_file_part_missing(unique_ptr<PendingStory> &&pending_story, int bad_part) {
+  do_send_story(pending_story->dialog_id_, pending_story->story_id_, pending_story->log_event_id_,
+                pending_story->send_story_num_, pending_story->random_id_, std::move(pending_story->story_),
+                {bad_part});
 }
 
 }  // namespace td
