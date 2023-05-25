@@ -70,6 +70,9 @@ class StoryManager final : public Actor {
 
   void on_send_story_file_part_missing(unique_ptr<PendingStory> &&pending_story, int bad_part);
 
+  void set_story_privacy_rules(StoryId story_id, td_api::object_ptr<td_api::userPrivacySettingRules> &&rules,
+                               Promise<Unit> &&promise);
+
   void get_dialog_pinned_stories(DialogId owner_dialog_id, StoryId from_story_id, int32 limit,
                                  Promise<td_api::object_ptr<td_api::stories>> &&promise);
 

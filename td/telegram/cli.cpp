@@ -3934,6 +3934,13 @@ class CliClient final : public Actor {
           td_api::make_object<td_api::inputStoryContentVideo>(as_input_file(video),
                                                               to_integers<int32>(sticker_file_ids), duration),
           as_caption(caption), as_user_privacy_setting_rules(allow, ids), false));
+    } else if (op == "sspr") {
+      StoryId story_id;
+      string allow;
+      string ids;
+      get_args(args, story_id, allow, ids);
+      send_request(
+          td_api::make_object<td_api::setStoryPrivacyRules>(story_id, as_user_privacy_setting_rules(allow, ids)));
     } else if (op == "gups") {
       UserId user_id;
       StoryId from_story_id;

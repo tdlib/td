@@ -7169,6 +7169,9 @@ readChatList chat_list:ChatList = Ok;
 //@is_pinned Pass true to keep the story accessible after 24 hours
 sendStory content:InputStoryContent caption:formattedText privacy_rules:userPrivacySettingRules is_pinned:Bool = Story;
 
+//@description Changes privacy rules of a previously sent story @story_id Identifier of the story @privacy_rules The new privacy rules for the story
+setStoryPrivacyRules story_id:int32 privacy_rules:userPrivacySettingRules = Ok;
+
 //@description Returns the list of pinned stories of a given user. The stories are returned in a reverse chronological order (i.e., in order of decreasing story_id).
 //-For optimal performance, the number of returned stories is chosen by TDLib
 //@user_id User identifier

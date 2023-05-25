@@ -128,6 +128,36 @@ class GetUserStoriesQuery final : public Td::ResultHandler {
   }
 };
 
+class EditStoryPrivacyQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit EditStoryPrivacyQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(StoryId story_id, UserPrivacySettingRules &&privacy_rules) {
+    int32 flags = telegram_api::stories_editStory::PRIVACY_RULES_MASK;
+    send_query(G()->net_query_creator().create(telegram_api::stories_editStory(
+        flags, story_id.get(), nullptr, string(), vector<telegram_api::object_ptr<telegram_api::MessageEntity>>(),
+        privacy_rules.get_input_privacy_rules(td_))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stories_editStory>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for EditStoryPrivacyQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class StoryManager::SendStoryQuery final : public Td::ResultHandler {
   FileId file_id_;
   unique_ptr<StoryManager::PendingStory> pending_story_;
@@ -631,6 +661,19 @@ void StoryManager::on_send_story_file_part_missing(unique_ptr<PendingStory> &&pe
   do_send_story(pending_story->dialog_id_, pending_story->story_id_, pending_story->log_event_id_,
                 pending_story->send_story_num_, pending_story->random_id_, std::move(pending_story->story_),
                 {bad_part});
+}
+
+void StoryManager::set_story_privacy_rules(StoryId story_id,
+                                           td_api::object_ptr<td_api::userPrivacySettingRules> &&rules,
+                                           Promise<Unit> &&promise) {
+  DialogId dialog_id(td_->contacts_manager_->get_my_id());
+  const Story *story = get_story({dialog_id, story_id});
+  if (story == nullptr) {
+    return promise.set_error(Status::Error(400, "Story not found"));
+  }
+  TRY_RESULT_PROMISE(promise, privacy_rules,
+                     UserPrivacySettingRules::get_user_privacy_setting_rules(td_, std::move(rules)));
+  td_->create_handler<EditStoryPrivacyQuery>(std::move(promise))->send(story_id, std::move(privacy_rules));
 }
 
 }  // namespace td
