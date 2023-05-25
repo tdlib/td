@@ -126,8 +126,7 @@ class StoryManager final : public Actor {
 
   static bool is_local_story_id(StoryId story_id);
 
-  void do_send_story(DialogId dialog_id, StoryId story_id, uint64 log_event_id, uint32 send_story_num, int64 random_id,
-                     unique_ptr<Story> &&story, vector<int> bad_parts);
+  void do_send_story(unique_ptr<PendingStory> &&pending_story, vector<int> bad_parts);
 
   void on_upload_story(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);
 

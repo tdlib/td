@@ -396,7 +396,7 @@ td_api::object_ptr<td_api::stories> StoryManager::get_stories_object(int32 total
 }
 
 vector<FileId> StoryManager::get_story_file_ids(const Story *story) const {
-  if (story == nullptr) {
+  if (story == nullptr || story->content_ == nullptr) {
     return {};
   }
   return get_story_content_file_ids(td_, story->content_.get());
@@ -444,6 +444,7 @@ StoryId StoryManager::on_get_story(DialogId owner_dialog_id,
     auto s = make_unique<Story>();
     story = s.get();
     stories_.set(story_full_id, std::move(s));
+    is_changed = true;
   }
   CHECK(story != nullptr);
 
@@ -589,28 +590,29 @@ void StoryManager::send_story(td_api::object_ptr<td_api::InputStoryContent> &&in
 
   auto story_ptr = story.get();
 
-  do_send_story(dialog_id, StoryId(), 0 /*log_event_id*/, ++send_story_count_, random_id, std::move(story), {});
+  auto pending_story = td::make_unique<PendingStory>(dialog_id, StoryId(), 0 /*log_event_id*/, ++send_story_count_,
+                                                     random_id, std::move(story));
+  do_send_story(std::move(pending_story), {});
 
   promise.set_value(get_story_object({dialog_id, StoryId()}, story_ptr));
 }
 
-void StoryManager::do_send_story(DialogId dialog_id, StoryId story_id, uint64 log_event_id, uint32 send_story_num,
-                                 int64 random_id, unique_ptr<Story> &&story, vector<int> bad_parts) {
-  CHECK(story != nullptr);
-  auto content = story->content_.get();
+void StoryManager::do_send_story(unique_ptr<PendingStory> &&pending_story, vector<int> bad_parts) {
+  CHECK(pending_story != nullptr);
+  CHECK(pending_story->story_ != nullptr);
+  auto content = pending_story->story_->content_.get();
   CHECK(content != nullptr);
+  auto upload_order = pending_story->send_story_num_;
 
   FileId file_id = get_story_content_any_file_id(td_, content);
   CHECK(file_id.is_valid());
 
   LOG(INFO) << "Ask to upload file " << file_id << " with bad parts " << bad_parts;
-  auto pending_story =
-      td::make_unique<PendingStory>(dialog_id, story_id, log_event_id, send_story_num, random_id, std::move(story));
   bool is_inserted = being_uploaded_files_.emplace(file_id, std::move(pending_story)).second;
   CHECK(is_inserted);
   // need to call resume_upload synchronously to make upload process consistent with being_uploaded_files_
   // and to send is_uploading_active == true in response
-  td_->file_manager_->resume_upload(file_id, std::move(bad_parts), upload_media_callback_, 1, send_story_num);
+  td_->file_manager_->resume_upload(file_id, std::move(bad_parts), upload_media_callback_, 1, upload_order);
 }
 
 void StoryManager::on_upload_story(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) {
@@ -658,9 +660,7 @@ void StoryManager::on_upload_story_error(FileId file_id, Status status) {
 }
 
 void StoryManager::on_send_story_file_part_missing(unique_ptr<PendingStory> &&pending_story, int bad_part) {
-  do_send_story(pending_story->dialog_id_, pending_story->story_id_, pending_story->log_event_id_,
-                pending_story->send_story_num_, pending_story->random_id_, std::move(pending_story->story_),
-                {bad_part});
+  do_send_story(std::move(pending_story), {bad_part});
 }
 
 void StoryManager::set_story_privacy_rules(StoryId story_id,
