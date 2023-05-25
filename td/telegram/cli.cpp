@@ -1062,6 +1062,44 @@ class CliClient final : public Actor {
     }
   }
 
+  struct PrivacyRules {
+    string rules_str;
+
+    operator td_api::object_ptr<td_api::userPrivacySettingRules>() const {
+      vector<td_api::object_ptr<td_api::UserPrivacySettingRule>> rules;
+      for (size_t i = 0; i < rules_str.size(); i++) {
+        auto arg = vector<int64>{to_integer<int64>(Slice(rules_str).substr(i + 1))};
+        if (rules_str[i] == 'a') {
+          rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleAllowAll>());
+        } else if (rules_str[i] == 'A') {
+          rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleRestrictAll>());
+        } else if (rules_str[i] == 'c') {
+          rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleAllowContacts>());
+        } else if (rules_str[i] == 'C') {
+          rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleRestrictContacts>());
+        } else if (rules_str[i] == 'f') {
+          rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleAllowCloseFriends>());
+        } else if (rules_str[i] == 'u') {
+          rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleAllowUsers>(std::move(arg)));
+        } else if (rules_str[i] == 'U') {
+          rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleRestrictUsers>(std::move(arg)));
+        } else if (rules_str[i] == 'm') {
+          rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleAllowChatMembers>(std::move(arg)));
+        } else if (rules_str[i] == 'M') {
+          rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleRestrictChatMembers>(std::move(arg)));
+        } else if (!is_digit(rules_str[i]) && rules_str[i] != '-') {
+          LOG(ERROR) << "Invalid character " << rules_str[i] << " in privacy rules " << rules_str;
+          break;
+        }
+      }
+      return td_api::make_object<td_api::userPrivacySettingRules>(std::move(rules));
+    }
+  };
+
+  void get_args(string &args, PrivacyRules &arg) const {
+    arg.rules_str = trim(args);
+  }
+
   template <class FirstType, class SecondType, class... Types>
   void get_args(string &args, FirstType &first_arg, SecondType &second_arg, Types &...other_args) const {
     string arg;
@@ -1473,25 +1511,6 @@ class CliClient final : public Actor {
       return td_api::make_object<td_api::userPrivacySettingAllowFindingByPhoneNumber>();
     }
     return nullptr;
-  }
-
-  td_api::object_ptr<td_api::userPrivacySettingRules> as_user_privacy_setting_rules(Slice allow, Slice ids) const {
-    vector<td_api::object_ptr<td_api::UserPrivacySettingRule>> rules;
-    if (allow == "c" || allow == "contacts") {
-      rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleAllowContacts>());
-    } else if (allow == "f" || allow == "friends") {
-      rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleAllowCloseFriends>());
-    } else if (allow == "users") {
-      rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleAllowUsers>(as_user_ids(ids)));
-    } else if (allow == "chats") {
-      rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleAllowChatMembers>(as_chat_ids(ids)));
-    } else if (as_bool(allow.str())) {
-      rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleAllowAll>());
-      rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleRestrictAll>());
-    } else {
-      rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleRestrictAll>());
-    }
-    return td_api::make_object<td_api::userPrivacySettingRules>(std::move(rules));
   }
 
   static td_api::object_ptr<td_api::SearchMessagesFilter> as_search_messages_filter(Slice filter) {
@@ -2390,11 +2409,9 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getUserPrivacySettingRules>(as_user_privacy_setting(args)));
     } else if (op == "spr") {
       string setting;
-      string allow;
-      string ids;
-      get_args(args, setting, allow, ids);
-      send_request(td_api::make_object<td_api::setUserPrivacySettingRules>(as_user_privacy_setting(setting),
-                                                                           as_user_privacy_setting_rules(allow, ids)));
+      PrivacyRules rules;
+      get_args(args, setting, rules);
+      send_request(td_api::make_object<td_api::setUserPrivacySettingRules>(as_user_privacy_setting(setting), rules));
     } else if (op == "cp" || op == "ChangePhone") {
       send_request(td_api::make_object<td_api::changePhoneNumber>(args, nullptr));
     } else if (op == "ccpc" || op == "CheckChangePhoneCode") {
@@ -3914,33 +3931,29 @@ class CliClient final : public Actor {
     } else if (op == "ssp") {
       string photo;
       string caption;
-      string allow;
-      string ids;
+      PrivacyRules rules;
       string sticker_file_ids;
-      get_args(args, photo, caption, allow, ids, sticker_file_ids);
+      get_args(args, photo, caption, rules, sticker_file_ids);
       send_request(
           td_api::make_object<td_api::sendStory>(td_api::make_object<td_api::inputStoryContentPhoto>(
                                                      as_input_file(photo), to_integers<int32>(sticker_file_ids)),
-                                                 as_caption(caption), as_user_privacy_setting_rules(allow, ids), true));
+                                                 as_caption(caption), rules, true));
     } else if (op == "ssv") {
       string video;
       string caption;
-      string allow;
-      string ids;
+      PrivacyRules rules;
       int32 duration;
       string sticker_file_ids;
-      get_args(args, video, caption, allow, ids, duration, sticker_file_ids);
+      get_args(args, video, caption, rules, duration, sticker_file_ids);
       send_request(td_api::make_object<td_api::sendStory>(
           td_api::make_object<td_api::inputStoryContentVideo>(as_input_file(video),
                                                               to_integers<int32>(sticker_file_ids), duration),
-          as_caption(caption), as_user_privacy_setting_rules(allow, ids), false));
+          as_caption(caption), rules, false));
     } else if (op == "sspr") {
       StoryId story_id;
-      string allow;
-      string ids;
-      get_args(args, story_id, allow, ids);
-      send_request(
-          td_api::make_object<td_api::setStoryPrivacyRules>(story_id, as_user_privacy_setting_rules(allow, ids)));
+      PrivacyRules rules;
+      get_args(args, story_id, rules);
+      send_request(td_api::make_object<td_api::setStoryPrivacyRules>(story_id, rules));
     } else if (op == "gups") {
       UserId user_id;
       StoryId from_story_id;
