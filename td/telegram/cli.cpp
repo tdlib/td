@@ -1098,6 +1098,9 @@ class CliClient final : public Actor {
 
   void get_args(string &args, PrivacyRules &arg) const {
     arg.rules_str = trim(args);
+    if (arg.rules_str.empty()) {
+      arg.rules_str = "a";
+    }
   }
 
   template <class FirstType, class SecondType, class... Types>
@@ -3928,7 +3931,7 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::setPinnedChats>(as_chat_list(op), as_chat_ids(args)));
     } else if (op == "rcl" || op == "rcla" || begins_with(op, "rcl-")) {
       send_request(td_api::make_object<td_api::readChatList>(as_chat_list(op)));
-    } else if (op == "ssp") {
+    } else if (op == "ssp" || op == "sspp") {
       string photo;
       string caption;
       PrivacyRules rules;
@@ -3937,8 +3940,8 @@ class CliClient final : public Actor {
       send_request(
           td_api::make_object<td_api::sendStory>(td_api::make_object<td_api::inputStoryContentPhoto>(
                                                      as_input_file(photo), to_integers<int32>(sticker_file_ids)),
-                                                 as_caption(caption), rules, true));
-    } else if (op == "ssv") {
+                                                 as_caption(caption), rules, op == "sspp"));
+    } else if (op == "ssv" || op == "ssvp") {
       string video;
       string caption;
       PrivacyRules rules;
@@ -3948,7 +3951,7 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::sendStory>(
           td_api::make_object<td_api::inputStoryContentVideo>(as_input_file(video),
                                                               to_integers<int32>(sticker_file_ids), duration),
-          as_caption(caption), rules, false));
+          as_caption(caption), rules, op == "ssvp"));
     } else if (op == "sspr") {
       StoryId story_id;
       PrivacyRules rules;
