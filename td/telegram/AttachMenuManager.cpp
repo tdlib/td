@@ -133,6 +133,7 @@ class RequestWebViewQuery final : public Td::ResultHandler {
             MessageId reply_to_message_id, bool silent, DialogId as_dialog_id) {
     dialog_id_ = dialog_id;
     bot_user_id_ = bot_user_id;
+    top_thread_message_id_ = top_thread_message_id;
     reply_to_message_id_ = reply_to_message_id;
     as_dialog_id_ = as_dialog_id;
 
