@@ -126,7 +126,9 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
   string video_waveform;
   if (video != nullptr) {
     video_duration = static_cast<int32>(std::ceil(video->duration_));
-    video_preload_prefix_size = video->preload_prefix_size_;
+    if (document_subtype == Subtype::Story) {
+      video_preload_prefix_size = video->preload_prefix_size_;
+    }
     auto video_dimensions = get_dimensions(video->w_, video->h_, "documentAttributeVideo");
     if (dimensions.width == 0 || (video_dimensions.width != 0 && video_dimensions != dimensions)) {
       if (dimensions.width != 0) {
@@ -262,6 +264,14 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
       }
       file_type = FileType::Ringtone;
       default_extension = Slice("mp3");
+      break;
+    case Subtype::Story:
+      if (document_type != Document::Type::Video) {
+        LOG(ERROR) << "Receive story of type " << document_type;
+        document_type = Document::Type::Video;
+      }
+      file_type = FileType::VideoStory;
+      default_extension = Slice("mp4");
       break;
     default:
       break;

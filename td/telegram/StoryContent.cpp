@@ -96,7 +96,8 @@ unique_ptr<StoryContent> get_story_content(Td *td, tl_object_ptr<telegram_api::M
       }
       CHECK(document_id == telegram_api::document::ID);
       auto parsed_document = td->documents_manager_->on_get_document(
-          move_tl_object_as<telegram_api::document>(document_ptr), owner_dialog_id, nullptr);
+          move_tl_object_as<telegram_api::document>(document_ptr), owner_dialog_id, nullptr, Document::Type::Video,
+          DocumentsManager::Subtype::Story);
       if (parsed_document.empty() || parsed_document.type != Document::Type::Video) {
         LOG(ERROR) << "Receive a story with " << parsed_document;
         break;
@@ -112,7 +113,8 @@ unique_ptr<StoryContent> get_story_content(Td *td, tl_object_ptr<telegram_api::M
         } else {
           CHECK(alt_document_id == telegram_api::document::ID);
           auto parsed_alt_document = td->documents_manager_->on_get_document(
-              move_tl_object_as<telegram_api::document>(alt_document_ptr), owner_dialog_id, nullptr);
+              move_tl_object_as<telegram_api::document>(alt_document_ptr), owner_dialog_id, nullptr,
+              Document::Type::Video, DocumentsManager::Subtype::Story);
           if (parsed_alt_document.empty() || parsed_alt_document.type != Document::Type::Video) {
             LOG(ERROR) << "Receive alternative " << to_string(alt_document_ptr);
           } else {
@@ -152,6 +154,8 @@ Result<unique_ptr<StoryContent>> get_input_story_content(
       auto input_story = static_cast<const td_api::inputStoryContentVideo *>(input_story_content.get());
       TRY_RESULT(file_id, td->file_manager_->get_input_file_id(FileType::Video, input_story->video_, owner_dialog_id,
                                                                false, false));
+      file_id =
+          td->file_manager_->copy_file_id(file_id, FileType::VideoStory, owner_dialog_id, "get_input_story_content");
       auto sticker_file_ids =
           td->stickers_manager_->get_attached_sticker_file_ids(input_story->added_sticker_file_ids_);
       bool has_stickers = !sticker_file_ids.empty();

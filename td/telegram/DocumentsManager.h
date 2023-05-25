@@ -82,7 +82,7 @@ class DocumentsManager {
 
   tl_object_ptr<td_api::document> get_document_object(FileId file_id, PhotoFormat thumbnail_format) const;
 
-  enum class Subtype : int32 { Background, Pattern, Ringtone, Other };
+  enum class Subtype : int32 { Background, Pattern, Ringtone, Story, Other };
 
   Document on_get_document(RemoteDocument remote_document, DialogId owner_dialog_id,
                            MultiPromiseActor *load_data_multipromise_ptr = nullptr,

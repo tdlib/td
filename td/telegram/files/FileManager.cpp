@@ -886,6 +886,11 @@ string FileManager::get_file_name(FileType file_type, Slice path) {
         return fix_file_extension(file_name, "video", "mp4");
       }
       break;
+    case FileType::VideoStory:
+      if (extension != "mp4") {
+        return fix_file_extension(file_name, "video", "mp4");
+      }
+      break;
     case FileType::Audio:
       if (extension != "ogg" && extension != "oga" && extension != "mp3" && extension != "mpeg3" &&
           extension != "m4a") {
@@ -3227,7 +3232,9 @@ Result<FileId> FileManager::check_input_file_id(FileType type, Result<FileId> re
     if (real_type != type && !(real_type == FileType::Temp && file_view.has_url()) &&
         !(is_document_file_type(real_type) && is_document_file_type(type)) &&
         !(is_background_type(real_type) && is_background_type(type)) &&
-        !(file_view.is_encrypted() && type == FileType::Ringtone)) {
+        !(file_view.is_encrypted() && type == FileType::Ringtone) &&
+        !(real_type == FileType::PhotoStory && type == FileType::Photo) &&
+        !(real_type == FileType::Photo && type == FileType::PhotoStory)) {
       // TODO: send encrypted file to unencrypted chat
       return Status::Error(400, PSLICE() << "Can't use file of type " << real_type << " as " << type);
     }

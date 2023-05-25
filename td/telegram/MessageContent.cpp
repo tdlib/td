@@ -2731,7 +2731,7 @@ tl_object_ptr<telegram_api::InputMedia> get_fake_input_media(Td *td, tl_object_p
     }
     string mime_type = MimeType::from_extension(path_view.extension());
     int32 flags = 0;
-    if (file_type == FileType::Video) {
+    if (file_type == FileType::Video || file_type == FileType::VideoStory) {
       flags |= telegram_api::inputMediaUploadedDocument::NOSOUND_VIDEO_MASK;
     }
     if (file_type == FileType::DocumentAsFile) {
@@ -2741,7 +2741,7 @@ tl_object_ptr<telegram_api::InputMedia> get_fake_input_media(Td *td, tl_object_p
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_file), nullptr, mime_type,
         std::move(attributes), vector<tl_object_ptr<telegram_api::InputDocument>>(), 0);
   } else {
-    CHECK(file_type == FileType::Photo);
+    CHECK(file_type == FileType::Photo || file_type == FileType::PhotoStory);
     int32 flags = 0;
     return make_tl_object<telegram_api::inputMediaUploadedPhoto>(
         flags, false /*ignored*/, std::move(input_file), vector<tl_object_ptr<telegram_api::InputDocument>>(), 0);
