@@ -1160,7 +1160,7 @@ Result<FileId> NotificationSettingsManager::get_ringtone(
 
   auto parsed_document =
       td_->documents_manager_->on_get_document(move_tl_object_as<telegram_api::document>(ringtone), DialogId(), nullptr,
-                                               Document::Type::Audio, false, false, true);
+                                               Document::Type::Audio, DocumentsManager::Subtype::Ringtone);
   if (parsed_document.type != Document::Type::Audio) {
     return Status::Error("Receive ringtone of a wrong type");
   }

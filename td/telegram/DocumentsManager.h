@@ -82,10 +82,12 @@ class DocumentsManager {
 
   tl_object_ptr<td_api::document> get_document_object(FileId file_id, PhotoFormat thumbnail_format) const;
 
+  enum class Subtype : int32 { Background, Pattern, Ringtone, Other };
+
   Document on_get_document(RemoteDocument remote_document, DialogId owner_dialog_id,
                            MultiPromiseActor *load_data_multipromise_ptr = nullptr,
-                           Document::Type default_document_type = Document::Type::General, bool is_background = false,
-                           bool is_pattern = false, bool is_ringtone = false);
+                           Document::Type default_document_type = Document::Type::General,
+                           Subtype document_subtype = Subtype::Other);
 
   void create_document(FileId file_id, string minithumbnail, PhotoSize thumbnail, string file_name, string mime_type,
                        bool replace);

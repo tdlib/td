@@ -72,8 +72,7 @@ tl_object_ptr<td_api::document> DocumentsManager::get_document_object(FileId fil
 
 Document DocumentsManager::on_get_document(RemoteDocument remote_document, DialogId owner_dialog_id,
                                            MultiPromiseActor *load_data_multipromise_ptr,
-                                           Document::Type default_document_type, bool is_background, bool is_pattern,
-                                           bool is_ringtone) {
+                                           Document::Type default_document_type, Subtype document_subtype) {
   tl_object_ptr<telegram_api::documentAttributeAnimated> animated;
   tl_object_ptr<telegram_api::documentAttributeVideo> video;
   tl_object_ptr<telegram_api::documentAttributeAudio> audio;
@@ -235,27 +234,34 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
                  << ", has_stickers = " << has_stickers;
   }
 
-  if (is_background) {
-    if (document_type != Document::Type::General) {
-      LOG(ERROR) << "Receive background of type " << document_type;
-      document_type = Document::Type::General;
-    }
-    file_type = FileType::Background;
-    if (is_pattern) {
+  switch (document_subtype) {
+    case Subtype::Background:
+      if (document_type != Document::Type::General) {
+        LOG(ERROR) << "Receive background of type " << document_type;
+        document_type = Document::Type::General;
+      }
+      file_type = FileType::Background;
+      default_extension = Slice("jpg");
+      break;
+    case Subtype::Pattern:
+      if (document_type != Document::Type::General) {
+        LOG(ERROR) << "Receive background of type " << document_type;
+        document_type = Document::Type::General;
+      }
+      file_type = FileType::Background;
       default_extension = Slice("png");
       thumbnail_format = PhotoFormat::Png;
-    } else {
-      default_extension = Slice("jpg");
-    }
-  }
-
-  if (is_ringtone) {
-    if (document_type != Document::Type::Audio) {
-      LOG(ERROR) << "Receive notification tone of type " << document_type;
-      document_type = Document::Type::Audio;
-    }
-    file_type = FileType::Ringtone;
-    default_extension = Slice("mp3");
+      break;
+    case Subtype::Ringtone:
+      if (document_type != Document::Type::Audio) {
+        LOG(ERROR) << "Receive notification tone of type " << document_type;
+        document_type = Document::Type::Audio;
+      }
+      file_type = FileType::Ringtone;
+      default_extension = Slice("mp3");
+      break;
+    default:
+      break;
   }
 
   int64 id;
@@ -298,7 +304,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
     access_hash = document->access_hash_;
     dc_id = document->dc_id_;
     size = document->size_;
-    if (is_ringtone) {
+    if (document_subtype == Subtype::Ringtone) {
       date = document->date_;
     }
     mime_type = std::move(document->mime_type_);

@@ -74,7 +74,7 @@ MessageExtendedMedia::MessageExtendedMedia(
           CHECK(document_id == telegram_api::document::ID);
 
           auto parsed_document = td->documents_manager_->on_get_document(
-              move_tl_object_as<telegram_api::document>(document_ptr), owner_dialog_id, nullptr);
+              move_tl_object_as<telegram_api::document>(document_ptr), owner_dialog_id);
           if (parsed_document.empty() || parsed_document.type != Document::Type::Video) {
             break;
           }
