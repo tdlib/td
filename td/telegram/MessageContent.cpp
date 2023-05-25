@@ -2259,6 +2259,9 @@ static Result<InputMessageContent> create_input_message_content(
 Result<InputMessageContent> get_input_message_content(
     DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content, Td *td, bool is_premium) {
   LOG(INFO) << "Get input message content from " << to_string(input_message_content);
+  if (input_message_content == nullptr) {
+    return Status::Error(400, "Input message content must be non-empty");
+  }
 
   td_api::object_ptr<td_api::InputFile> input_file;
   auto file_type = FileType::None;

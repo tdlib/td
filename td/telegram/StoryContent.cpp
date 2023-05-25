@@ -136,6 +136,9 @@ unique_ptr<StoryContent> get_story_content(Td *td, tl_object_ptr<telegram_api::M
 Result<unique_ptr<StoryContent>> get_input_story_content(
     Td *td, td_api::object_ptr<td_api::InputStoryContent> &&input_story_content, DialogId owner_dialog_id) {
   LOG(INFO) << "Get input story content from " << to_string(input_story_content);
+  if (input_story_content == nullptr) {
+    return Status::Error(400, "Input story content must be non-empty");
+  }
 
   switch (input_story_content->get_id()) {
     case td_api::inputStoryContentPhoto::ID: {

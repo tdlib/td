@@ -565,9 +565,6 @@ void StoryManager::send_story(td_api::object_ptr<td_api::InputStoryContent> &&in
                               td_api::object_ptr<td_api::formattedText> &&input_caption,
                               td_api::object_ptr<td_api::userPrivacySettingRules> &&rules, bool is_pinned,
                               Promise<td_api::object_ptr<td_api::story>> &&promise) {
-  if (input_story_content == nullptr) {
-    return promise.set_error(Status::Error(400, "Can't send story without content"));
-  }
   bool is_bot = td_->auth_manager_->is_bot();
   DialogId dialog_id(td_->contacts_manager_->get_my_id());
   TRY_RESULT_PROMISE(promise, content, get_input_story_content(td_, std::move(input_story_content), dialog_id));

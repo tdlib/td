@@ -24958,11 +24958,7 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_message(
 
 Result<InputMessageContent> MessagesManager::process_input_message_content(
     DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content) {
-  if (input_message_content == nullptr) {
-    return Status::Error(400, "Can't send message without content");
-  }
-
-  if (input_message_content->get_id() == td_api::inputMessageForwarded::ID) {
+  if (input_message_content != nullptr && input_message_content->get_id() == td_api::inputMessageForwarded::ID) {
     // for sendMessageAlbum/editMessageMedia/addLocalMessage
     auto input_message = td_api::move_object_as<td_api::inputMessageForwarded>(input_message_content);
     TRY_RESULT(copy_options, process_message_copy_options(dialog_id, std::move(input_message->copy_options_)));
