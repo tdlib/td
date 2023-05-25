@@ -129,10 +129,13 @@ class GetUserStoriesQuery final : public Td::ResultHandler {
 };
 
 class StoryManager::SendStoryQuery final : public Td::ResultHandler {
+  FileId file_id_;
   unique_ptr<StoryManager::PendingStory> pending_story_;
 
  public:
-  void send(unique_ptr<PendingStory> pending_story, telegram_api::object_ptr<telegram_api::InputFile> input_file) {
+  void send(FileId file_id, unique_ptr<PendingStory> pending_story,
+            telegram_api::object_ptr<telegram_api::InputFile> input_file) {
+    file_id_ = file_id;
     pending_story_ = std::move(pending_story);
     CHECK(pending_story_ != nullptr);
 
@@ -171,14 +174,19 @@ class StoryManager::SendStoryQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for SendStoryQuery: " << to_string(ptr);
     td_->updates_manager_->on_get_updates(std::move(ptr), Promise<Unit>());
+
+    td_->file_manager_->delete_partial_remote_location(file_id_);
   }
 
   void on_error(Status status) final {
     LOG(INFO) << "Receive error for SendStoryQuery: " << status;
+
     if (G()->close_flag() && G()->use_message_database()) {
       // do not send error, message will be re-sent
       return;
     }
+
+    td_->file_manager_->delete_partial_remote_location(file_id_);
   }
 };
 
@@ -589,7 +597,7 @@ void StoryManager::on_upload_story(FileId file_id, telegram_api::object_ptr<tele
 
   being_uploaded_files_.erase(it);
 
-  td_->create_handler<SendStoryQuery>()->send(std::move(pending_story), std::move(input_file));
+  td_->create_handler<SendStoryQuery>()->send(file_id, std::move(pending_story), std::move(input_file));
 }
 
 void StoryManager::on_upload_story_error(FileId file_id, Status status) {
