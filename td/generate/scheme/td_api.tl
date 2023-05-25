@@ -4856,7 +4856,7 @@ inputStoryContentPhoto photo:InputFile added_sticker_file_ids:vector<int32> = In
 //@description A video story
 //@video Video to be sent. The video size must be 720x1280. The video must be stored in MPEG4 format, encoded by x265 codec and must be streamable
 //@added_sticker_file_ids File identifiers of the stickers added to the video, if applicable
-//@duration Duration of the video, in seconds
+//@duration Duration of the video, in seconds; 0-60
 inputStoryContentVideo video:InputFile added_sticker_file_ids:vector<int32> duration:int32 = InputStoryContent;
 
 
@@ -7161,6 +7161,13 @@ setPinnedChats chat_list:ChatList chat_ids:vector<int53> = Ok;
 //@description Traverse all chats in a chat list and marks all messages in the chats as read @chat_list Chat list in which to mark all chats as read
 readChatList chat_list:ChatList = Ok;
 
+
+//@description Sends a new story. Returns a temporary story with identifier 0
+//@content Content of the story
+//@caption Story caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
+//@privacy_rules The privacy rules for the story
+//@is_pinned Pass true to keep the story accessible after 24 hours
+sendStory content:InputStoryContent caption:formattedText privacy_rules:userPrivacySettingRules is_pinned:Bool = Story;
 
 //@description Returns the list of pinned stories of a given user. The stories are returned in a reverse chronological order (i.e., in order of decreasing story_id).
 //-For optimal performance, the number of returned stories is chosen by TDLib

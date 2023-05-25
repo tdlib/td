@@ -16,10 +16,14 @@
 #include "td/telegram/StoryContent.h"
 #include "td/telegram/StoryContentType.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/UpdatesManager.h"
+
+#include "tddb/td/db/binlog/BinlogHelper.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
+#include "td/utils/Random.h"
 #include "td/utils/Status.h"
 
 namespace td {
@@ -124,7 +128,89 @@ class GetUserStoriesQuery final : public Td::ResultHandler {
   }
 };
 
+class StoryManager::SendStoryQuery final : public Td::ResultHandler {
+  unique_ptr<StoryManager::PendingStory> pending_story_;
+
+ public:
+  void send(unique_ptr<PendingStory> pending_story, telegram_api::object_ptr<telegram_api::InputFile> input_file) {
+    pending_story_ = std::move(pending_story);
+    CHECK(pending_story_ != nullptr);
+
+    const auto *story = pending_story_->story_.get();
+    const StoryContent *content = story->content_.get();
+    auto input_media = get_story_content_input_media(td_, content, std::move(input_file));
+    CHECK(input_media != nullptr);
+
+    const FormattedText &caption = story->caption_;
+    auto entities = get_input_message_entities(td_->contacts_manager_.get(), &caption, "SendStoryQuery");
+    auto privacy_rules = story->privacy_rules_.get_input_privacy_rules(td_);
+    int32 flags = 0;
+    if (!caption.text.empty()) {
+      flags |= telegram_api::stories_sendStory::CAPTION_MASK;
+    }
+    if (!entities.empty()) {
+      flags |= telegram_api::stories_sendStory::ENTITIES_MASK;
+    }
+    if (pending_story_->story_->is_pinned_) {
+      flags |= telegram_api::stories_sendStory::PINNED_MASK;
+    }
+
+    send_query(G()->net_query_creator().create(
+        telegram_api::stories_sendStory(flags, false /*ignored*/, false /*ignored*/, std::move(input_media),
+                                        caption.text, std::move(entities), std::move(privacy_rules),
+                                        pending_story_->random_id_, 86400),
+        {{pending_story_->dialog_id_}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stories_sendStory>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SendStoryQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), Promise<Unit>());
+  }
+
+  void on_error(Status status) final {
+    LOG(INFO) << "Receive error for SendStoryQuery: " << status;
+    if (G()->close_flag() && G()->use_message_database()) {
+      // do not send error, message will be re-sent
+      return;
+    }
+  }
+};
+
+class StoryManager::UploadMediaCallback final : public FileManager::UploadCallback {
+ public:
+  void on_upload_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
+    send_closure_later(G()->story_manager(), &StoryManager::on_upload_story, file_id, std::move(input_file));
+  }
+  void on_upload_encrypted_ok(FileId file_id,
+                              telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file) final {
+    UNREACHABLE();
+  }
+  void on_upload_secure_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputSecureFile> input_file) final {
+    UNREACHABLE();
+  }
+  void on_upload_error(FileId file_id, Status error) final {
+    send_closure_later(G()->story_manager(), &StoryManager::on_upload_story_error, file_id, std::move(error));
+  }
+};
+
+StoryManager::PendingStory::PendingStory(DialogId dialog_id, StoryId story_id, uint64 log_event_id,
+                                         uint32 send_story_num, int64 random_id, unique_ptr<Story> &&story)
+    : dialog_id_(dialog_id)
+    , story_id_(story_id)
+    , log_event_id_(log_event_id)
+    , send_story_num_(send_story_num)
+    , random_id_(random_id)
+    , story_(std::move(story)) {
+}
+
 StoryManager::StoryManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
+  upload_media_callback_ = std::make_shared<UploadMediaCallback>();
 }
 
 StoryManager::~StoryManager() = default;
@@ -427,6 +513,106 @@ void StoryManager::reload_story(StoryFullId story_full_id, Promise<Unit> &&promi
   }
   auto user_id = dialog_id.get_user_id();
   td_->create_handler<GetStoriesByIDQuery>(std::move(promise))->send(user_id, {story_full_id.get_story_id().get()});
+}
+
+void StoryManager::send_story(td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,
+                              td_api::object_ptr<td_api::formattedText> &&input_caption,
+                              td_api::object_ptr<td_api::userPrivacySettingRules> &&rules, bool is_pinned,
+                              Promise<td_api::object_ptr<td_api::story>> &&promise) {
+  if (input_story_content == nullptr) {
+    return promise.set_error(Status::Error(400, "Can't send story without content"));
+  }
+  bool is_bot = td_->auth_manager_->is_bot();
+  DialogId dialog_id(td_->contacts_manager_->get_my_id());
+  TRY_RESULT_PROMISE(promise, content, get_input_story_content(td_, std::move(input_story_content), dialog_id));
+  TRY_RESULT_PROMISE(promise, caption,
+                     get_formatted_text(td_, DialogId(), std::move(input_caption), is_bot, true, false, false));
+  TRY_RESULT_PROMISE(promise, privacy_rules,
+                     UserPrivacySettingRules::get_user_privacy_setting_rules(td_, std::move(rules)));
+
+  auto story = make_unique<Story>();
+  story->date_ = G()->unix_time();
+  story->expire_date_ = std::numeric_limits<int32>::max();
+  story->is_pinned_ = is_pinned;
+  story->privacy_rules_ = std::move(privacy_rules);
+  story->content_ = std::move(content);
+  story->caption_ = std::move(caption);
+
+  int64 random_id;
+  do {
+    random_id = Random::secure_int64();
+  } while (random_id == 0);
+
+  // auto log_event_id = save_send_story_log_event(dialog_id, random_id, story.get());
+
+  do_send_story(dialog_id, StoryId(), 0 /*log_event_id*/, ++send_story_count_, random_id, std::move(story), {},
+                std::move(promise));
+}
+
+void StoryManager::do_send_story(DialogId dialog_id, StoryId story_id, uint64 log_event_id, uint32 send_story_num,
+                                 int64 random_id, unique_ptr<Story> &&story, vector<int> bad_parts,
+                                 Promise<td_api::object_ptr<td_api::story>> &&promise) {
+  auto story_ptr = story.get();
+  auto content = story_ptr->content_.get();
+  CHECK(content != nullptr);
+
+  FileId file_id = get_story_content_any_file_id(td_, content);
+  CHECK(file_id.is_valid());
+
+  LOG(INFO) << "Ask to upload file " << file_id << " with bad parts " << bad_parts;
+  auto pending_story =
+      td::make_unique<PendingStory>(dialog_id, story_id, log_event_id, send_story_num, random_id, std::move(story));
+  bool is_inserted = being_uploaded_files_.emplace(file_id, std::move(pending_story)).second;
+  CHECK(is_inserted);
+  // need to call resume_upload synchronously to make upload process consistent with being_uploaded_files_
+  // and to send is_uploading_active == true in response
+  td_->file_manager_->resume_upload(file_id, std::move(bad_parts), upload_media_callback_, 1, send_story_num);
+
+  promise.set_value(get_story_object({dialog_id, story_id}, story_ptr));
+}
+
+void StoryManager::on_upload_story(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  LOG(INFO) << "File " << file_id << " has been uploaded";
+
+  auto it = being_uploaded_files_.find(file_id);
+  if (it == being_uploaded_files_.end()) {
+    // callback may be called just before the file upload was canceled
+    return;
+  }
+  CHECK(input_file != nullptr);
+
+  auto pending_story = std::move(it->second);
+
+  being_uploaded_files_.erase(it);
+
+  td_->create_handler<SendStoryQuery>()->send(std::move(pending_story), std::move(input_file));
+}
+
+void StoryManager::on_upload_story_error(FileId file_id, Status status) {
+  if (G()->close_flag()) {
+    // do not fail upload if closing
+    return;
+  }
+
+  LOG(INFO) << "File " << file_id << " has upload error " << status;
+
+  auto it = being_uploaded_files_.find(file_id);
+  if (it == being_uploaded_files_.end()) {
+    // callback may be called just before the file upload was canceled
+    return;
+  }
+
+  auto pending_story = std::move(it->second);
+
+  if (pending_story->log_event_id_ != 0) {
+    binlog_erase(G()->td_db()->get_binlog(), pending_story->log_event_id_);
+  }
+
+  being_uploaded_files_.erase(it);
 }
 
 }  // namespace td

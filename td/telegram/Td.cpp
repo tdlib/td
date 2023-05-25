@@ -5617,6 +5617,13 @@ void Td::on_request(uint64 id, td_api::editMessageSchedulingState &request) {
                                                    std::move(request.scheduling_state_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::sendStory &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  story_manager_->send_story(std::move(request.content_), std::move(request.caption_),
+                             std::move(request.privacy_rules_), request.is_pinned_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getForumTopicDefaultIcons &request) {
   CREATE_REQUEST_PROMISE();
   stickers_manager_->get_default_topic_icons(false, std::move(promise));

@@ -39,6 +39,11 @@ class StoryManager final : public Actor {
   StoryManager &operator=(StoryManager &&) = delete;
   ~StoryManager() final;
 
+  void send_story(td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,
+                  td_api::object_ptr<td_api::formattedText> &&input_caption,
+                  td_api::object_ptr<td_api::userPrivacySettingRules> &&rules, bool is_pinned,
+                  Promise<td_api::object_ptr<td_api::story>> &&promise);
+
   void get_dialog_pinned_stories(DialogId owner_dialog_id, StoryId from_story_id, int32 limit,
                                  Promise<td_api::object_ptr<td_api::stories>> &&promise);
 
@@ -71,6 +76,22 @@ class StoryManager final : public Actor {
     FormattedText caption_;
   };
 
+  struct PendingStory {
+    DialogId dialog_id_;
+    StoryId story_id_;
+    uint64 log_event_id_ = 0;
+    uint32 send_story_num_ = 0;
+    int64 random_id_ = 0;
+    unique_ptr<Story> story_;
+
+    PendingStory(DialogId dialog_id, StoryId story_id, uint64 log_event_id, uint32 send_story_num, int64 random_id,
+                 unique_ptr<Story> &&story);
+  };
+
+  class UploadMediaCallback;
+
+  class SendStoryQuery;
+
   void tear_down() final;
 
   bool is_story_owned(DialogId owner_dialog_id) const;
@@ -100,9 +121,23 @@ class StoryManager final : public Actor {
 
   static bool is_local_story_id(StoryId story_id);
 
+  void do_send_story(DialogId dialog_id, StoryId story_id, uint64 log_event_id, uint32 send_story_num, int64 random_id,
+                     unique_ptr<Story> &&story, vector<int> bad_parts,
+                     Promise<td_api::object_ptr<td_api::story>> &&promise);
+
+  void on_upload_story(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);
+
+  void on_upload_story_error(FileId file_id, Status status);
+
+  std::shared_ptr<UploadMediaCallback> upload_media_callback_;
+
   WaitFreeHashMap<StoryFullId, FileSourceId, StoryFullIdHash> story_full_id_to_file_source_id_;
 
   WaitFreeHashMap<StoryFullId, unique_ptr<Story>, StoryFullIdHash> stories_;
+
+  uint32 send_story_count_ = 0;
+
+  FlatHashMap<FileId, unique_ptr<PendingStory>, FileIdHash> being_uploaded_files_;
 
   Td *td_;
   ActorShared<> parent_;

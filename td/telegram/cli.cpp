@@ -3911,6 +3911,29 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::setPinnedChats>(as_chat_list(op), as_chat_ids(args)));
     } else if (op == "rcl" || op == "rcla" || begins_with(op, "rcl-")) {
       send_request(td_api::make_object<td_api::readChatList>(as_chat_list(op)));
+    } else if (op == "ssp") {
+      string photo;
+      string caption;
+      string allow;
+      string ids;
+      string sticker_file_ids;
+      get_args(args, photo, caption, allow, ids, sticker_file_ids);
+      send_request(
+          td_api::make_object<td_api::sendStory>(td_api::make_object<td_api::inputStoryContentPhoto>(
+                                                     as_input_file(photo), to_integers<int32>(sticker_file_ids)),
+                                                 as_caption(caption), as_user_privacy_setting_rules(allow, ids), true));
+    } else if (op == "ssv") {
+      string video;
+      string caption;
+      string allow;
+      string ids;
+      int32 duration;
+      string sticker_file_ids;
+      get_args(args, video, caption, allow, ids, duration, sticker_file_ids);
+      send_request(td_api::make_object<td_api::sendStory>(
+          td_api::make_object<td_api::inputStoryContentVideo>(as_input_file(video),
+                                                              to_integers<int32>(sticker_file_ids), duration),
+          as_caption(caption), as_user_privacy_setting_rules(allow, ids), false));
     } else if (op == "gups") {
       UserId user_id;
       StoryId from_story_id;
