@@ -6998,7 +6998,7 @@ void MessagesManager::update_message_interaction_info(FullMessageId full_message
   Message *m = get_message_force(d, message_id, "update_message_interaction_info");
   if (m == nullptr) {
     LOG(INFO) << "Ignore message interaction info about unknown " << full_message_id;
-    if (!message_id.is_scheduled() && message_id > d->last_new_message_id && d->last_new_message_id.is_valid() &&
+    if (!message_id.is_scheduled() && d->last_new_message_id.is_valid() && message_id > d->last_new_message_id &&
         dialog_id.get_type() == DialogType::Channel) {
       get_channel_difference(dialog_id, d->pts, 0, message_id, true, "update_message_interaction_info");
     }
@@ -9814,6 +9814,7 @@ void MessagesManager::on_get_messages(vector<tl_object_ptr<telegram_api::Message
 
 bool MessagesManager::delete_newer_server_messages_at_the_end(Dialog *d, MessageId max_message_id) {
   CHECK(!td_->auth_manager_->is_bot());
+  CHECK(!max_message_id.is_scheduled());
   auto message_ids = d->ordered_messages.find_newer_messages(max_message_id);
   if (message_ids.empty()) {
     return false;
@@ -9958,7 +9959,7 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
   if (from_the_end) {
     // delete all server messages with ID > last_received_message_id
     // there were no new messages received after the getHistory request was sent, so they are already deleted message
-    if (delete_newer_server_messages_at_the_end(d, last_received_message_id)) {
+    if (last_received_message_id.is_valid() && delete_newer_server_messages_at_the_end(d, last_received_message_id)) {
       have_next = true;
     }
   }
@@ -12377,7 +12378,7 @@ bool MessagesManager::has_incoming_notification(DialogId dialog_id, const Messag
   if (m->is_from_scheduled) {
     return true;
   }
-  return !m->is_outgoing && dialog_id != get_my_dialog_id();
+  return !m->message_id.is_scheduled() && !m->is_outgoing && dialog_id != get_my_dialog_id();
 }
 
 int32 MessagesManager::calc_new_unread_count_from_last_unread(Dialog *d, MessageId max_message_id,
@@ -16470,7 +16471,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
 
 void MessagesManager::on_message_deleted_from_database(Dialog *d, const Message *m, const char *source) {
   CHECK(d != nullptr);
-  if (m == nullptr || td_->auth_manager_->is_bot()) {
+  if (m == nullptr || m->message_id.is_scheduled() || td_->auth_manager_->is_bot()) {
     return;
   }
 
@@ -21194,6 +21195,7 @@ void MessagesManager::do_read_history_on_server(DialogId dialog_id) {
 
 void MessagesManager::read_history_on_server_impl(Dialog *d, MessageId max_message_id) {
   CHECK(d != nullptr);
+  CHECK(max_message_id == MessageId() || max_message_id.is_valid());
   auto dialog_id = d->dialog_id;
 
   {
@@ -21260,6 +21262,7 @@ void MessagesManager::read_history_on_server_impl(Dialog *d, MessageId max_messa
 void MessagesManager::read_message_thread_history_on_server_impl(Dialog *d, MessageId top_thread_message_id,
                                                                  MessageId max_message_id) {
   CHECK(d != nullptr);
+  CHECK(max_message_id == MessageId() || max_message_id.is_valid());
   auto dialog_id = d->dialog_id;
   CHECK(dialog_id.get_type() == DialogType::Channel);
 
@@ -34421,12 +34424,11 @@ void MessagesManager::add_message_to_dialog_message_list(const Message *m, Dialo
     }
   }
 
-  if (!from_update && m->message_id.is_server() && d->last_message_id.is_valid() &&
-      m->message_id > d->last_message_id) {
-    LOG(INFO) << "Receive " << m->message_id << ", which is newer than the last " << d->last_message_id
+  if (!from_update && message_id.is_server() && d->last_message_id.is_valid() && message_id > d->last_message_id) {
+    LOG(INFO) << "Receive " << message_id << ", which is newer than the last " << d->last_message_id
               << " not from update";
     set_dialog_last_message_id(d, MessageId(), source);
-    if (m->message_id > d->deleted_last_message_id) {
+    if (message_id > d->deleted_last_message_id) {
       d->delete_last_message_date = m->date;
       d->deleted_last_message_id = message_id;
     }
