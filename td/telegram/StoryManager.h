@@ -74,6 +74,8 @@ class StoryManager final : public Actor {
   void set_story_privacy_rules(StoryId story_id, td_api::object_ptr<td_api::userPrivacySettingRules> &&rules,
                                Promise<Unit> &&promise);
 
+  void toggle_story_is_pinned(StoryId story_id, bool is_pinned, Promise<Unit> &&promise);
+
   void get_dialog_pinned_stories(DialogId owner_dialog_id, StoryId from_story_id, int32 limit,
                                  Promise<td_api::object_ptr<td_api::stories>> &&promise);
 
@@ -106,6 +108,8 @@ class StoryManager final : public Actor {
 
   Story *get_story_editable(StoryFullId story_full_id);
 
+  void on_story_changed(StoryFullId story_full_id, const Story *story, bool is_changed, bool need_save_to_database);
+
   td_api::object_ptr<td_api::story> get_story_object(StoryFullId story_full_id, const Story *story) const;
 
   vector<StoryId> on_get_stories(DialogId owner_dialog_id,
@@ -132,6 +136,8 @@ class StoryManager final : public Actor {
   void on_upload_story(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);
 
   void on_upload_story_error(FileId file_id, Status status);
+
+  void on_toggle_story_is_pinned(StoryId story_id, bool is_pinned, Promise<Unit> &&promise);
 
   std::shared_ptr<UploadMediaCallback> upload_media_callback_;
 

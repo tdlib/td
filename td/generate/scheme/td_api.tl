@@ -4869,7 +4869,7 @@ storyInteractionInfo view_count:int32 recent_viewer_user_ids:vector<int53> = Sto
 //@id Unique story identifier among stories of the given sender
 //@sender_user_id Identifier of the user that created the story
 //@date Point in time (Unix timestamp) when the story was published
-//@is_pinned True, if the story is saved in the sender's profile and will be available there after the expiration
+//@is_pinned True, if the story is saved in the sender's profile and will be available there after expiration
 //@interaction_info Information about interactions with the story; may be null if the story isn't owned or there were no interactions
 //@privacy_rules Pryvacy rules affecting story visibility; may be null if the story isn't owned
 //@is_public True, if the story is available for everyone
@@ -7166,11 +7166,14 @@ readChatList chat_list:ChatList = Ok;
 //@content Content of the story
 //@caption Story caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
 //@privacy_rules The privacy rules for the story
-//@is_pinned Pass true to keep the story accessible after 24 hours
+//@is_pinned Pass true to keep the story accessible after expiration
 sendStory content:InputStoryContent caption:formattedText privacy_rules:userPrivacySettingRules is_pinned:Bool = Story;
 
 //@description Changes privacy rules of a previously sent story @story_id Identifier of the story @privacy_rules The new privacy rules for the story
 setStoryPrivacyRules story_id:int32 privacy_rules:userPrivacySettingRules = Ok;
+
+//@description Toggles whether a story is accessible after expiration @story_id Identifier of the story @is_pinned Pass true to make the story accessible after expiration; pass false to make it private
+toggleStoryIsPinned story_id:int32 is_pinned:Bool = Ok;
 
 //@description Returns the list of pinned stories of a given user. The stories are returned in a reverse chronological order (i.e., in order of decreasing story_id).
 //-For optimal performance, the number of returned stories is chosen by TDLib

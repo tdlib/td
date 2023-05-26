@@ -790,6 +790,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::setStoryPrivacyRules &request);
 
+  void on_request(uint64 id, const td_api::toggleStoryIsPinned &request);
+
   void on_request(uint64 id, const td_api::getForumTopicDefaultIcons &request);
 
   void on_request(uint64 id, td_api::createForumTopic &request);

@@ -3957,6 +3957,11 @@ class CliClient final : public Actor {
       PrivacyRules rules;
       get_args(args, story_id, rules);
       send_request(td_api::make_object<td_api::setStoryPrivacyRules>(story_id, rules));
+    } else if (op == "tsip") {
+      StoryId story_id;
+      bool is_pinned;
+      get_args(args, story_id, is_pinned);
+      send_request(td_api::make_object<td_api::toggleStoryIsPinned>(story_id, is_pinned));
     } else if (op == "gups") {
       UserId user_id;
       StoryId from_story_id;

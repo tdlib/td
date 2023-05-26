@@ -158,6 +158,33 @@ class EditStoryPrivacyQuery final : public Td::ResultHandler {
   }
 };
 
+class ToggleStoryPinnedQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit ToggleStoryPinnedQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(StoryId story_id, bool is_pinned) {
+    send_query(G()->net_query_creator().create(telegram_api::stories_togglePinned({story_id.get()}, is_pinned)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stories_togglePinned>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for ToggleStoryPinnedQuery: " << ptr;
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class StoryManager::SendStoryQuery final : public Td::ResultHandler {
   FileId file_id_;
   unique_ptr<StoryManager::PendingStory> pending_story_;
@@ -469,6 +496,10 @@ StoryId StoryManager::on_get_story(DialogId owner_dialog_id,
     // story->last_edit_pts_ = 0;
   }
 
+  if (is_changed || need_save_to_database) {
+    change_story_files(story_full_id, story, old_file_ids);
+  }
+
   auto privacy_rules = UserPrivacySettingRules::get_user_privacy_setting_rules(td_, std::move(story_item->privacy_));
   auto interaction_info = StoryInteractionInfo(td_, std::move(story_item->views_));
   if (story->is_pinned_ != story_item->pinned_ || story->is_public_ != story_item->public_ ||
@@ -486,15 +517,20 @@ StoryId StoryManager::on_get_story(DialogId owner_dialog_id,
     is_changed = true;
   }
 
-  if (is_changed || need_save_to_database) {
-    change_story_files(story_full_id, story, old_file_ids);
+  on_story_changed(story_full_id, story, is_changed, need_save_to_database);
 
-    // save_story(story, story_id);
-  }
-  if (is_changed) {
-    // send_closure(G()->td(), &Td::send_update, td_api::make_object<td_api::updateStory>(get_story_object(story_id, story)));
-  }
   return story_id;
+}
+
+void StoryManager::on_story_changed(StoryFullId story_full_id, const Story *story, bool is_changed,
+                                    bool need_save_to_database) {
+  if (is_changed || need_save_to_database) {
+    // save_story(story, story_id);
+
+    if (is_changed) {
+      // send_closure(G()->td(), &Td::send_update, td_api::make_object<td_api::updateStory>(get_story_object(story_full_id, story)));
+    }
+  }
 }
 
 std::pair<int32, vector<StoryId>> StoryManager::on_get_stories(
@@ -691,6 +727,31 @@ void StoryManager::set_story_privacy_rules(StoryId story_id,
   TRY_RESULT_PROMISE(promise, privacy_rules,
                      UserPrivacySettingRules::get_user_privacy_setting_rules(td_, std::move(rules)));
   td_->create_handler<EditStoryPrivacyQuery>(std::move(promise))->send(story_id, std::move(privacy_rules));
+}
+
+void StoryManager::toggle_story_is_pinned(StoryId story_id, bool is_pinned, Promise<Unit> &&promise) {
+  DialogId dialog_id(td_->contacts_manager_->get_my_id());
+  const Story *story = get_story({dialog_id, story_id});
+  if (story == nullptr) {
+    return promise.set_error(Status::Error(400, "Story not found"));
+  }
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), story_id, is_pinned, promise = std::move(promise)](Result<Unit> &&result) mutable {
+        if (result.is_error()) {
+          return promise.set_error(result.move_as_error());
+        }
+        send_closure(actor_id, &StoryManager::on_toggle_story_is_pinned, story_id, is_pinned, std::move(promise));
+      });
+  td_->create_handler<ToggleStoryPinnedQuery>(std::move(query_promise))->send(story_id, is_pinned);
+}
+
+void StoryManager::on_toggle_story_is_pinned(StoryId story_id, bool is_pinned, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  DialogId dialog_id(td_->contacts_manager_->get_my_id());
+  Story *story = get_story_editable({dialog_id, story_id});
+  CHECK(story != nullptr);
+  story->is_pinned_ = is_pinned;
+  on_story_changed({dialog_id, story_id}, story, true, true);
 }
 
 }  // namespace td
