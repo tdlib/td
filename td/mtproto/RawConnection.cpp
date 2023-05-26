@@ -162,6 +162,18 @@ class RawConnectionDefault final : public RawConnection {
       BufferSlice packet;
       uint32 quick_ack = 0;
       TRY_RESULT(wait_size, transport_->read_next(&packet, &quick_ack));
+      if (wait_size != 0) {
+        constexpr size_t MAX_PACKET_SIZE = (1 << 22) + 1024;
+        if (wait_size > MAX_PACKET_SIZE) {
+          return Status::Error(PSLICE() << "Expected packet size is too big: " << wait_size);
+        }
+        break;
+      }
+      if (quick_ack != 0) {
+        TRY_STATUS(on_quick_ack(quick_ack, callback));
+        continue;
+      }
+
       auto old_pointer = packet.as_slice().ubegin();
       if (!is_aligned_pointer<4>(old_pointer)) {
         BufferSlice new_packet(packet.size());
@@ -171,33 +183,19 @@ class RawConnectionDefault final : public RawConnection {
       LOG_CHECK(is_aligned_pointer<4>(packet.as_slice().ubegin()))
           << old_pointer << ' ' << packet.as_slice().ubegin() << ' ' << BufferSlice(0).as_slice().ubegin() << ' '
           << packet.size() << ' ' << wait_size << ' ' << quick_ack;
-      if (wait_size != 0) {
-        constexpr size_t MAX_PACKET_SIZE = (1 << 22) + 1024;
-        if (wait_size > MAX_PACKET_SIZE) {
-          return Status::Error(PSLICE() << "Expected packet size is too big: " << wait_size);
-        }
-        break;
-      }
-
-      if (quick_ack != 0) {
-        TRY_STATUS(on_quick_ack(quick_ack, callback));
-        continue;
-      }
 
       PacketInfo info;
       info.version = 2;
 
       TRY_RESULT(read_result, Transport::read(packet.as_mutable_slice(), auth_key, &info));
       switch (read_result.type()) {
-        case Transport::ReadResult::Quickack: {
+        case Transport::ReadResult::Quickack:
           TRY_STATUS(on_quick_ack(read_result.quick_ack(), callback));
           break;
-        }
-        case Transport::ReadResult::Error: {
+        case Transport::ReadResult::Error:
           TRY_STATUS(on_read_mtproto_error(read_result.error()));
           break;
-        }
-        case Transport::ReadResult::Packet: {
+        case Transport::ReadResult::Packet:
           // If a packet was successfully decrypted, then it is ok to assume that the connection is alive
           if (!auth_key.empty()) {
             if (stats_callback_) {
@@ -207,7 +205,6 @@ class RawConnectionDefault final : public RawConnection {
 
           TRY_STATUS(callback.on_raw_packet(info, packet.from_slice(read_result.packet())));
           break;
-        }
         case Transport::ReadResult::Nop:
           break;
         default:
