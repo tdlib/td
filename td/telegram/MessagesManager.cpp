@@ -14948,7 +14948,7 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, const 
     auto message = delete_message(d, message_id, false, &need_update_dialog_pos, "get a message in inaccessible chat");
     CHECK(message.get() == m);
     send_update_delete_messages(dialog_id, {m->message_id.get()}, false);
-    // don't need to update dialog pos
+    // don't need to update chat position
     return FullMessageId();
   }
 
@@ -15849,7 +15849,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     }
 
     if (!td_->auth_manager_->is_bot() && !from_pinned_dialog_list) {
-      // set is_pinned only after updating dialog pos to ensure that order is initialized
+      // set is_pinned only after updating chat position to ensure that order is initialized
       bool is_pinned = (dialog->flags_ & DIALOG_FLAG_IS_PINNED) != 0;
       bool was_pinned = is_dialog_pinned(DialogListId(d->folder_id), dialog_id);
       if (is_pinned != was_pinned) {
@@ -34211,8 +34211,8 @@ MessagesManager::Message *MessagesManager::on_get_message_from_database(Dialog *
   auto result =
       add_message_to_dialog(d, std::move(message), true, false, &need_update, &need_update_dialog_pos, source);
   if (need_update_dialog_pos) {
-    LOG(ERROR) << "Need update dialog pos after load " << (result == nullptr ? MessageId() : result->message_id)
-               << " in " << dialog_id << " from " << source;
+    LOG(ERROR) << "Need update chat position after loading of "
+               << (result == nullptr ? MessageId() : result->message_id) << " in " << dialog_id << " from " << source;
     send_update_chat_last_message(d, source);
   }
   return result;
@@ -36277,7 +36277,7 @@ void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source
       }
     }
   } else if (force_update_dialog_pos) {
-    update_dialog_pos(d, "force update dialog pos");
+    update_dialog_pos(d, "force update chat position");
   }
 }
 
@@ -38605,7 +38605,7 @@ void MessagesManager::on_get_channel_difference(
       update_dialog_pos(d, "updates.channelDifferenceTooLong");
 
       if (!td_->auth_manager_->is_bot()) {
-        // set is_pinned only after updating dialog pos to ensure that order is initialized
+        // set is_pinned only after updating chat position to ensure that order is initialized
         bool is_pinned = (dialog->flags_ & DIALOG_FLAG_IS_PINNED) != 0;
         bool was_pinned = is_dialog_pinned(DialogListId(d->folder_id), dialog_id);
         if (is_pinned != was_pinned) {
