@@ -23228,7 +23228,6 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
   bool have_next = false;
   bool need_update = false;
   bool need_update_dialog_pos = false;
-  bool added_new_message = false;
   MessageId first_added_message_id;
   MessageId last_added_message_id;
   MessageId next_message_id;
@@ -23294,9 +23293,6 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
       }
       if (old_message == nullptr) {
         add_message_dependencies(dependencies, m);
-        added_new_message = true;
-      } else if (m->message_id != from_message_id) {
-        added_new_message = true;
       }
       if (next_message_id.is_valid()) {
         CHECK(m->message_id < next_message_id);
@@ -23358,14 +23354,6 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
         set_dialog_last_database_message_id(d, MessageId(), "on_get_history_from_database 14");
       }
     }
-  }
-
-  if (!added_new_message && !only_local && dialog_id.get_type() != DialogType::SecretChat) {
-    if (from_the_end) {
-      from_message_id = MessageId();
-    }
-    load_messages_impl(d, from_message_id, offset, limit, 1, false, std::move(promise));
-    return;
   }
 
   if (from_the_end && last_added_message_id.is_valid()) {
