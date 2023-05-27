@@ -5813,9 +5813,7 @@ void main(int argc, char **argv) {
   options.add_option('W', "", "Preload chat list", [&] { get_chat_list = true; });
   options.add_option('n', "disable-network", "Disable network", [&] { disable_network = true; });
   options.add_checked_option('\0', "api-id", "Set Telegram API ID", OptionParser::parse_integer(api_id));
-  options.add_checked_option('\0', "api_id", "Set Telegram API ID", OptionParser::parse_integer(api_id));
   options.add_option('\0', "api-hash", "Set Telegram API hash", OptionParser::parse_string(api_hash));
-  options.add_option('\0', "api_hash", "Set Telegram API hash", OptionParser::parse_string(api_hash));
   options.add_check([&] {
     if (api_id == 0 || api_hash.empty()) {
       return Status::Error("You must provide valid api-id and api-hash obtained at https://my.telegram.org");
