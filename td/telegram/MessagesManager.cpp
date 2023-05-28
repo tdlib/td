@@ -23189,25 +23189,15 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
   CHECK(offset < 0 || from_the_end);
   CHECK(!from_message_id.is_scheduled());
 
-  if (!have_input_peer(dialog_id, AccessRights::Read)) {
-    LOG(WARNING) << "Ignore result of get_history_from_database in " << dialog_id;
-    promise.set_value(Unit());
-    return;
-  }
-
   auto d = get_dialog(dialog_id);
   CHECK(d != nullptr);
-
-  LOG(INFO) << "Receive " << messages.size() << " history messages from database "
-            << (from_the_end ? "from the end " : "") << "in " << dialog_id << " from " << from_message_id
-            << " with offset " << offset << " and limit " << limit << ". First database message is "
-            << d->first_database_message_id << ", last database message is " << d->last_database_message_id
-            << ", have_full_history = " << d->have_full_history
-            << ", have_full_history_source = " << d->have_full_history_source;
 
   if (old_last_database_message_id < d->last_database_message_id && old_last_database_message_id < from_message_id) {
     // new messages where added to the database since the request was sent
     // they should have been received from the database, so we must repeat the request to get them
+    LOG(INFO) << "Reget chat history from database in " << dialog_id
+              << ", because last database message was changed from " << old_last_database_message_id << " to "
+              << d->last_database_message_id;
     if (from_the_end) {
       get_history_from_the_end_impl(d, true, only_local, std::move(promise), "on_get_history_from_database 20");
     } else {
@@ -23216,13 +23206,16 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
     return;
   }
 
-  if (messages.empty() && from_the_end && d->ordered_messages.empty()) {
-    if (d->have_full_history) {
-      set_dialog_is_empty(d, "on_get_history_from_database empty");
-    } else if (d->last_database_message_id.is_valid()) {
-      set_dialog_first_database_message_id(d, MessageId(), "on_get_history_from_database empty");
-      set_dialog_last_database_message_id(d, MessageId(), "on_get_history_from_database empty");
-    }
+  LOG(INFO) << "Receive " << messages.size() << " history messages from database "
+            << (from_the_end ? "from the end " : "") << "in " << dialog_id << " from " << from_message_id
+            << " with offset " << offset << " and limit " << limit << ". First database message is "
+            << d->first_database_message_id << ", last database message is " << d->last_database_message_id
+            << ", have_full_history = " << d->have_full_history
+            << ", have_full_history_source = " << d->have_full_history_source;
+
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    LOG(INFO) << "Ignore result of get_history_from_database in " << dialog_id;
+    return promise.set_value(Unit());
   }
 
   bool have_next = false;
@@ -23310,6 +23303,15 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
     pos++;
   }
   dependencies.resolve_force(td_, "on_get_history_from_database");
+
+  if (from_the_end && messages.empty() && d->ordered_messages.empty()) {
+    if (d->have_full_history) {
+      set_dialog_is_empty(d, "on_get_history_from_database empty");
+    } else if (d->last_database_message_id.is_valid()) {
+      set_dialog_first_database_message_id(d, MessageId(), "on_get_history_from_database empty");
+      set_dialog_last_database_message_id(d, MessageId(), "on_get_history_from_database empty");
+    }
+  }
 
   if (from_the_end && !last_added_message_id.is_valid() && d->first_database_message_id.is_valid() &&
       !d->have_full_history) {
