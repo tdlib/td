@@ -2765,6 +2765,9 @@ class MessagesManager final : public Actor {
   Message *on_get_message_from_database(Dialog *d, MessageId message_id, const BufferSlice &value, bool is_scheduled,
                                         const char *source);
 
+  vector<MessageId> on_get_messages_from_database(Dialog *d, vector<MessageDbDialogMessage> &&messages,
+                                                  MessageId first_message_id, bool &have_error, const char *source);
+
   void get_dialog_message_by_date_from_server(const Dialog *d, int32 date, int64 random_id, bool after_database_search,
                                               Promise<Unit> &&promise);
 

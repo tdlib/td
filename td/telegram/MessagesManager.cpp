@@ -23213,96 +23213,73 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
             << ", have_full_history = " << d->have_full_history
             << ", have_full_history_source = " << d->have_full_history_source;
 
-  if (!have_input_peer(dialog_id, AccessRights::Read)) {
-    LOG(INFO) << "Ignore result of get_history_from_database in " << dialog_id;
-    return promise.set_value(Unit());
-  }
-
-  bool have_next = false;
-  bool need_update = false;
-  bool need_update_dialog_pos = false;
-  MessageId first_added_message_id;
-  MessageId last_added_message_id;
-  MessageId next_message_id;
-  Dependencies dependencies;
-  bool is_first = true;
   bool had_full_history = d->have_full_history;
   auto debug_first_database_message_id = d->first_database_message_id;
   auto debug_last_message_id = d->last_message_id;
   auto debug_last_new_message_id = d->last_new_message_id;
+
+  bool have_error = false;
+  auto message_ids = on_get_messages_from_database(
+      d, std::move(messages), d->have_full_history ? MessageId::min() : d->first_database_message_id, have_error,
+      "on_get_history_from_database");
+  if (have_error) {
+    // database is broken
+    message_ids.clear();  // ignore received messages just in case
+    if (d->have_full_history) {
+      d->have_full_history = false;
+      d->have_full_history_source = 0;
+      d->is_empty = false;  // just in case
+      on_dialog_updated(dialog_id, "drop have_full_history in on_get_history_from_database");
+    }
+  }
+
+  vector<bool> is_added_to_dialog;
+  for (auto &message_id : message_ids) {
+    Message *m = get_message(d, message_id);
+    is_added_to_dialog.push_back(m != nullptr);
+  }
+
+  bool have_next = false;
+  MessageId first_added_message_id;
+  MessageId last_added_message_id;
+  MessageId next_message_id;
   auto first_received_message_id = MessageId::max();
   MessageId last_received_message_id;
-  size_t pos = 0;
-  for (auto &message_slice : messages) {
-    if (!d->first_database_message_id.is_valid() && !d->have_full_history) {
-      break;
-    }
-    auto message = parse_message(d, message_slice.message_id, message_slice.data, false);
-    if (message == nullptr) {
-      if (d->have_full_history) {
-        d->have_full_history = false;
-        d->have_full_history_source = 0;
-        d->is_empty = false;  // just in case
-        on_dialog_updated(dialog_id, "drop have_full_history in on_get_history_from_database");
-      }
-      break;
-    }
-    if (message->message_id >= first_received_message_id) {
-      LOG(ERROR) << "Receive " << message->message_id << " after " << first_received_message_id
-                 << " from database in the history of " << dialog_id << " from " << from_message_id << " with offset "
-                 << offset << ", limit " << limit << ", from_the_end = " << from_the_end;
-      break;
-    }
-    first_received_message_id = message->message_id;
+  for (size_t pos = 0; pos < message_ids.size(); pos++) {
+    auto message_id = message_ids[pos];
+    bool is_added = is_added_to_dialog[pos];
+    first_received_message_id = message_id;
     if (!last_received_message_id.is_valid()) {
-      last_received_message_id = message->message_id;
+      last_received_message_id = message_id;
     }
 
-    if (message->message_id < d->first_database_message_id) {
-      if (d->have_full_history) {
-        LOG(ERROR) << "Have full history in the " << dialog_id << " and receive " << message->message_id
-                   << " from database, but first database message is " << d->first_database_message_id;
-      } else {
-        break;
-      }
-    }
-    if (!have_next && (from_the_end || (is_first && offset < -1 && message->message_id <= from_message_id)) &&
-        message->message_id < d->last_message_id) {
+    if (!have_next && (from_the_end || (pos == 0 && offset < -1 && message_id <= from_message_id)) &&
+        message_id < d->last_message_id) {
       // last message in the dialog must be attached to the next local message
       have_next = true;
     }
 
-    auto old_message = get_message(d, message->message_id);
-    Message *m = old_message ? old_message
-                             : add_message_to_dialog(d, std::move(message), true, false, &need_update,
-                                                     &need_update_dialog_pos, "on_get_history_from_database");
-    if (m != nullptr) {
+    if (is_added) {
       if (have_next) {
-        d->ordered_messages.attach_message_to_next(m->message_id, "on_get_history");
+        d->ordered_messages.attach_message_to_next(message_id, "on_get_history");
       }
-      first_added_message_id = m->message_id;
+      first_added_message_id = message_id;
       if (!last_added_message_id.is_valid()) {
-        last_added_message_id = m->message_id;
-      }
-      if (old_message == nullptr) {
-        add_message_dependencies(dependencies, m);
+        last_added_message_id = message_id;
       }
       if (next_message_id.is_valid()) {
-        CHECK(m->message_id < next_message_id);
+        CHECK(message_id < next_message_id);
         d->ordered_messages.attach_message_to_previous(
-            next_message_id, (PSLICE() << "on_get_history_from_database 1 " << m->message_id << ' ' << from_message_id
+            next_message_id, (PSLICE() << "on_get_history_from_database 1 " << message_id << ' ' << from_message_id
                                        << ' ' << offset << ' ' << limit << ' ' << d->first_database_message_id << ' '
                                        << d->have_full_history << ' ' << pos)
                                  .c_str());
       }
 
       have_next = true;
-      next_message_id = m->message_id;
+      next_message_id = message_id;
     }
-    is_first = false;
-    pos++;
   }
-  dependencies.resolve_force(td_, "on_get_history_from_database");
 
   if (from_the_end && messages.empty() && d->ordered_messages.empty()) {
     if (d->have_full_history) {
@@ -23358,6 +23335,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
     }
   }
 
+  bool need_update_dialog_pos = false;
   if (from_the_end && last_added_message_id.is_valid()) {
     CHECK(next_message_id.is_valid());
     // CHECK(d->first_database_message_id.is_valid());
@@ -34203,6 +34181,53 @@ MessagesManager::Message *MessagesManager::on_get_message_from_database(Dialog *
   if (need_update_dialog_pos) {
     LOG(ERROR) << "Need update chat position after loading of "
                << (result == nullptr ? MessageId() : result->message_id) << " in " << dialog_id << " from " << source;
+    send_update_chat_last_message(d, source);
+  }
+  return result;
+}
+
+vector<MessageId> MessagesManager::on_get_messages_from_database(Dialog *d, vector<MessageDbDialogMessage> &&messages,
+                                                                 MessageId first_message_id, bool &have_error,
+                                                                 const char *source) {
+  vector<MessageId> result;
+  if (!first_message_id.is_valid() || !have_input_peer(d->dialog_id, AccessRights::Read)) {
+    return result;
+  }
+  bool need_update = false;
+  bool need_update_dialog_pos = false;
+  auto next_message_id = MessageId::max();
+  Dependencies dependencies;
+  for (auto &message_slice : messages) {
+    auto message = parse_message(d, message_slice.message_id, message_slice.data, false);
+    if (message == nullptr) {
+      have_error = true;
+      break;
+    }
+    if (message->message_id >= next_message_id) {
+      LOG(ERROR) << "Receive " << message->message_id << " after " << next_message_id
+                 << " from database in the history of " << d->dialog_id;
+      have_error = true;
+      break;
+    }
+    next_message_id = message->message_id;
+
+    if (message->message_id < first_message_id) {
+      break;
+    }
+
+    result.push_back(message->message_id);
+    auto *m = get_message(d, message->message_id);
+    if (m == nullptr) {
+      m = add_message_to_dialog(d, std::move(message), true, false, &need_update, &need_update_dialog_pos, source);
+      if (m != nullptr) {
+        add_message_dependencies(dependencies, m);
+      }
+    }
+  }
+  dependencies.resolve_force(td_, source);
+  if (need_update_dialog_pos) {
+    LOG(ERROR) << "Need update chat position after loading of " << result << " in " << d->dialog_id << " from "
+               << source;
     send_update_chat_last_message(d, source);
   }
   return result;
