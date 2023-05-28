@@ -14884,7 +14884,7 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, const 
     }
 
     new_message->message_id = old_message_id;
-    update_message(d, old_message.get(), std::move(new_message), &need_update_dialog_pos, false);
+    update_message(d, old_message.get(), std::move(new_message), false);
     new_message = std::move(old_message);
 
     if (new_message->reply_to_message_id != MessageId() && new_message->reply_to_message_id.is_yet_unsent()) {
@@ -30854,7 +30854,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
     return {};
   }
 
-  // imitation of update_message(d, sent_message.get(), std::move(new_message), &need_update_dialog_pos, false);
+  // imitation of update_message(d, sent_message.get(), std::move(new_message), false);
   if (date <= 0) {
     LOG(ERROR) << "Receive " << new_message_id << " in " << dialog_id << " with wrong date " << date << " from "
                << source;
@@ -34646,7 +34646,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         bool was_deleted = delete_active_live_location(dialog_id, m);
         auto old_file_ids = get_message_file_ids(m);
 
-        bool need_send_update = update_message(d, m, std::move(message), need_update_dialog_pos, true);
+        bool need_send_update = update_message(d, m, std::move(message), true);
         if (!need_send_update) {
           LOG(INFO) << message_id << " in " << dialog_id << " is not changed";
         }
@@ -35045,9 +35045,7 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
       message->message_id = old_message_id;
       if (!from_database) {
         auto old_file_ids = get_message_file_ids(m);
-        bool need_update_dialog_pos = false;
-        update_message(d, m, std::move(message), &need_update_dialog_pos, true);
-        CHECK(need_update_dialog_pos == false);
+        update_message(d, m, std::move(message), true);
         change_message_files(dialog_id, m, old_file_ids);
       }
       if (old_message_id != message_id) {
@@ -35525,14 +35523,13 @@ void MessagesManager::do_delete_message_log_event(const DeleteMessageLogEvent &l
 }
 
 bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr<Message> new_message,
-                                     bool *need_update_dialog_pos, bool is_message_in_dialog) {
+                                     bool is_message_in_dialog) {
   CHECK(d != nullptr);
   CHECK(old_message != nullptr);
   CHECK(new_message != nullptr);
   LOG_CHECK(old_message->message_id == new_message->message_id)
       << d->dialog_id << ' ' << old_message->message_id << ' ' << new_message->message_id << ' '
       << is_message_in_dialog;
-  CHECK(need_update_dialog_pos != nullptr);
 
   DialogId dialog_id = d->dialog_id;
   MessageId message_id = old_message->message_id;
@@ -35547,7 +35544,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
                         old_content_type == MessageContentType::Unsupported;
   bool was_visible_message_reply_info = is_visible_message_reply_info(dialog_id, old_message);
   if (old_message->date != new_message->date) {
-    if (new_message->date > 0) {
+    if (new_message->date > 0 && (is_scheduled || !is_message_in_dialog)) {
       if (!(is_scheduled || message_id.is_yet_unsent() ||
             (message_id.is_server() && message_id.get_server_message_id().get() == 1) ||
             old_content_type == MessageContentType::ChannelMigrateFrom ||
@@ -35562,18 +35559,17 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
 
       if (is_scheduled && message_id.is_scheduled_server()) {
         CHECK(d->scheduled_messages != nullptr);
+        CHECK(is_message_in_dialog);
         int32 &date = d->scheduled_messages->scheduled_message_date_[message_id.get_scheduled_server_message_id()];
         CHECK(date != 0);
         date = new_message->date;
       }
 
-      if (!is_scheduled && d->last_message_id == message_id) {
-        *need_update_dialog_pos = true;
-      }
       need_send_update = true;
     } else {
-      LOG(ERROR) << "Receive " << message_id << " in " << dialog_id << " with wrong date " << new_message->date
-                 << ", message content type is " << old_content_type << '/' << new_content_type;
+      LOG(ERROR) << "Receive " << message_id << " in " << dialog_id << " with date changed from " << old_message->date
+                 << " to " << new_message->date << ", message content type is " << old_content_type << '/'
+                 << new_content_type;
     }
   }
   if (old_message->date == old_message->edited_schedule_date) {
