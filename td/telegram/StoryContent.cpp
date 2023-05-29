@@ -232,6 +232,29 @@ void merge_story_contents(Td *td, const StoryContent *old_content, StoryContent 
   }
 }
 
+unique_ptr<StoryContent> copy_story_content(const StoryContent *content) {
+  if (content == nullptr) {
+    return nullptr;
+  }
+  switch (content->get_type()) {
+    case StoryContentType::Photo: {
+      const auto *story_content = static_cast<const StoryContentPhoto *>(content);
+      return make_unique<StoryContentPhoto>(Photo(story_content->photo_));
+    }
+    case StoryContentType::Video: {
+      const auto *story_content = static_cast<const StoryContentVideo *>(content);
+      return make_unique<StoryContentVideo>(story_content->file_id_, story_content->alt_file_id_);
+    }
+    case StoryContentType::Unsupported: {
+      const auto *story_content = static_cast<const StoryContentUnsupported *>(content);
+      return make_unique<StoryContentUnsupported>(story_content->version_);
+    }
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
+}
+
 td_api::object_ptr<td_api::StoryContent> get_story_content_object(Td *td, const StoryContent *content) {
   CHECK(content != nullptr);
   switch (content->get_type()) {
