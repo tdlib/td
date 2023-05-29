@@ -255,6 +255,52 @@ unique_ptr<StoryContent> copy_story_content(const StoryContent *content) {
   }
 }
 
+unique_ptr<StoryContent> dup_story_content(Td *td, const StoryContent *content) {
+  if (content == nullptr) {
+    return nullptr;
+  }
+
+  auto fix_file_id = [file_manager = td->file_manager_.get()](FileId file_id) {
+    return file_manager->dup_file_id(file_id, "dup_story_content");
+  };
+
+  switch (content->get_type()) {
+    case StoryContentType::Photo: {
+      const auto *old_content = static_cast<const StoryContentPhoto *>(content);
+      // Find 'i' or largest
+      PhotoSize photo_size;
+      for (const auto &size : old_content->photo_.photos) {
+        if (size.type == 'i') {
+          photo_size = size;
+        }
+      }
+      if (photo_size.type == 0) {
+        for (const auto &size : old_content->photo_.photos) {
+          if (photo_size.type == 0 || photo_size < size) {
+            photo_size = size;
+          }
+        }
+      }
+      photo_size.type = 'i';
+      photo_size.file_id = fix_file_id(photo_size.file_id);
+
+      auto result = make_unique<StoryContentPhoto>();
+      result->photo_.photos.push_back(std::move(photo_size));
+      return std::move(result);
+    }
+    case StoryContentType::Video: {
+      const auto *old_content = static_cast<const StoryContentVideo *>(content);
+      return make_unique<StoryContentVideo>(
+          td->videos_manager_->dup_video(fix_file_id(old_content->file_id_), old_content->file_id_), FileId());
+    }
+    case StoryContentType::Unsupported:
+      return nullptr;
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
+}
+
 td_api::object_ptr<td_api::StoryContent> get_story_content_object(Td *td, const StoryContent *content) {
   CHECK(content != nullptr);
   switch (content->get_type()) {
