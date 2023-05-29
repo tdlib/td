@@ -291,10 +291,6 @@ void StoryManager::tear_down() {
   parent_.reset();
 }
 
-bool StoryManager::is_local_story_id(StoryId story_id) {
-  return story_id.get() < 0;
-}
-
 bool StoryManager::is_story_owned(DialogId owner_dialog_id) const {
   return owner_dialog_id == DialogId(td_->contacts_manager_->get_my_id());
 }
@@ -323,7 +319,7 @@ void StoryManager::get_dialog_pinned_stories(DialogId owner_dialog_id, StoryId f
     return promise.set_value(td_api::make_object<td_api::stories>());
   }
 
-  if (is_local_story_id(from_story_id)) {
+  if (from_story_id != StoryId() && !from_story_id.is_server()) {
     return promise.set_error(Status::Error(400, "Invalid value of parameter from_story_id specified"));
   }
 
@@ -459,7 +455,7 @@ StoryId StoryManager::on_get_story(DialogId owner_dialog_id,
                                    telegram_api::object_ptr<telegram_api::storyItem> &&story_item) {
   CHECK(story_item != nullptr);
   StoryId story_id(story_item->id_);
-  if (!story_id.is_valid() || is_local_story_id(story_id)) {
+  if (!story_id.is_server()) {
     LOG(ERROR) << "Receive " << to_string(story_item);
     return StoryId();
   }

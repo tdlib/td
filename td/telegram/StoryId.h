@@ -46,6 +46,10 @@ class StoryId {
     return id != 0;
   }
 
+  bool is_server() const {
+    return id > 0;
+  }
+
   template <class StorerT>
   void store(StorerT &storer) const {
     td::store(id, storer);

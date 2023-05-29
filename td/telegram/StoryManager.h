@@ -129,8 +129,6 @@ class StoryManager final : public Actor {
 
   void change_story_files(StoryFullId story_full_id, const Story *story, const vector<FileId> &old_file_ids);
 
-  static bool is_local_story_id(StoryId story_id);
-
   void do_send_story(unique_ptr<PendingStory> &&pending_story, vector<int> bad_parts);
 
   void on_upload_story(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);
