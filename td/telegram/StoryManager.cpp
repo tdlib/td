@@ -352,7 +352,9 @@ StoryManager::StoryManager(Td *td, ActorShared<> parent) : td_(td), parent_(std:
   upload_media_callback_ = std::make_shared<UploadMediaCallback>();
 }
 
-StoryManager::~StoryManager() = default;
+StoryManager::~StoryManager() {
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), story_full_id_to_file_source_id_, stories_);
+}
 
 void StoryManager::tear_down() {
   parent_.reset();
