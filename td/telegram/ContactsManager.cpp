@@ -571,15 +571,15 @@ class UploadProfilePhotoQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    if (file_id_.is_valid()) {
-      td_->file_manager_->delete_partial_remote_location(file_id_);
-    }
-
     if (!only_suggest_) {
       td_->contacts_manager_->on_set_profile_photo(user_id_, result_ptr.move_as_ok(), is_fallback_, 0,
                                                    std::move(promise_));
     } else {
       promise_.set_value(Unit());
+    }
+
+    if (file_id_.is_valid()) {
+      td_->file_manager_->delete_partial_remote_location(file_id_);
     }
   }
 

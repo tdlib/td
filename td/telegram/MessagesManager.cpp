@@ -989,11 +989,11 @@ class InitHistoryImportQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->file_manager_->delete_partial_remote_location(file_id_);
-
     auto ptr = result_ptr.move_as_ok();
     td_->messages_manager_->start_import_messages(dialog_id_, ptr->id_, std::move(attached_file_ids_),
                                                   std::move(promise_));
+
+    td_->file_manager_->delete_partial_remote_location(file_id_);
   }
 
   void on_error(Status status) final {
@@ -1005,7 +1005,6 @@ class InitHistoryImportQuery final : public Td::ResultHandler {
     }
 
     td_->file_manager_->delete_partial_remote_location(file_id_);
-
     td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "InitHistoryImportQuery");
     promise_.set_error(std::move(status));
   }
@@ -1043,11 +1042,11 @@ class UploadImportedMediaQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->file_manager_->delete_partial_remote_location(file_id_);
-
     // ignore response
 
     promise_.set_value(Unit());
+
+    td_->file_manager_->delete_partial_remote_location(file_id_);
   }
 
   void on_error(Status status) final {
@@ -1148,11 +1147,11 @@ class EditDialogPhotoQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for EditDialogPhotoQuery: " << to_string(ptr);
 
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+
     if (file_id_.is_valid() && was_uploaded_) {
       td_->file_manager_->delete_partial_remote_location(file_id_);
     }
-
-    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -3614,17 +3613,16 @@ class SendMediaQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    if (was_thumbnail_uploaded_) {
-      CHECK(thumbnail_file_id_.is_valid());
-      // always delete partial remote location for the thumbnail, because it can't be reused anyway
-      // TODO delete it only in the case it can't be merged with file thumbnail
-      td_->file_manager_->delete_partial_remote_location(thumbnail_file_id_);
-    }
-
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for SendMediaQuery for " << random_id_ << ": " << to_string(ptr);
     td_->messages_manager_->check_send_message_result(random_id_, dialog_id_, ptr.get(), "SendMedia");
     td_->updates_manager_->on_get_updates(std::move(ptr), Promise<Unit>());
+
+    if (was_thumbnail_uploaded_) {
+      CHECK(thumbnail_file_id_.is_valid());
+      // always delete partial remote location for the thumbnail, because it can't be reused anyway
+      td_->file_manager_->delete_partial_remote_location(thumbnail_file_id_);
+    }
   }
 
   void on_error(Status status) final {

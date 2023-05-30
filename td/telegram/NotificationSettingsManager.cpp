@@ -73,11 +73,11 @@ class UploadRingtoneQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->file_manager_->delete_partial_remote_location(file_id_);
-
     auto result = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for UploadRingtoneQuery: " << to_string(result);
     promise_.set_value(std::move(result));
+
+    td_->file_manager_->delete_partial_remote_location(file_id_);
   }
 
   void on_error(Status status) final {

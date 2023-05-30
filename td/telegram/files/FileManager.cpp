@@ -291,6 +291,12 @@ void FileNode::delete_partial_remote_location() {
     remote_.partial.reset();
     on_changed();
   }
+  if (remote_.ready_size != 0) {
+    VLOG(update_file) << "File " << main_file_id_ << " has changed remote ready size from " << remote_.ready_size
+                      << " to " << 0;
+    remote_.ready_size = 0;
+    on_info_changed();
+  }
 }
 
 void FileNode::set_partial_remote_location(PartialRemoteFileLocation remote, int64 ready_size) {
