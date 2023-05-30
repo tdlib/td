@@ -7169,6 +7169,12 @@ readChatList chat_list:ChatList = Ok;
 //@is_pinned Pass true to keep the story accessible after expiration
 sendStory content:InputStoryContent caption:formattedText privacy_rules:userPrivacySettingRules is_pinned:Bool = Story;
 
+//@description Changes content and caption of a previously sent story
+//@story_id Identifier of the story to edit
+//@content New content of the story; pass null to keep the current content
+//@caption New story caption; pass null to keep the current caption
+editStory story_id:int32 content:InputStoryContent caption:formattedText = Ok;
+
 //@description Changes privacy rules of a previously sent story @story_id Identifier of the story @privacy_rules The new privacy rules for the story
 setStoryPrivacyRules story_id:int32 privacy_rules:userPrivacySettingRules = Ok;
 

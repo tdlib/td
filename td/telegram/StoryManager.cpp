@@ -187,7 +187,7 @@ class ToggleStoryPinnedQuery final : public Td::ResultHandler {
 
 class StoryManager::SendStoryQuery final : public Td::ResultHandler {
   FileId file_id_;
-  unique_ptr<StoryManager::PendingStory> pending_story_;
+  unique_ptr<PendingStory> pending_story_;
 
  public:
   void send(FileId file_id, unique_ptr<PendingStory> pending_story,
@@ -239,7 +239,7 @@ class StoryManager::SendStoryQuery final : public Td::ResultHandler {
     LOG(INFO) << "Receive error for SendStoryQuery: " << status;
 
     if (G()->close_flag() && G()->use_message_database()) {
-      // do not send error, message will be re-sent
+      // do not send error, story will be re-sent after restart
       return;
     }
 
@@ -250,6 +250,73 @@ class StoryManager::SendStoryQuery final : public Td::ResultHandler {
     } else {
       td_->file_manager_->delete_partial_remote_location(file_id_);
     }
+  }
+};
+
+class StoryManager::EditStoryQuery final : public Td::ResultHandler {
+  FileId file_id_;
+  unique_ptr<PendingStory> pending_story_;
+
+ public:
+  void send(FileId file_id, unique_ptr<PendingStory> pending_story,
+            telegram_api::object_ptr<telegram_api::InputFile> input_file, const BeingEditedStory *edited_story) {
+    file_id_ = file_id;
+    pending_story_ = std::move(pending_story);
+    CHECK(pending_story_ != nullptr);
+
+    int32 flags = 0;
+
+    telegram_api::object_ptr<telegram_api::InputMedia> input_media;
+    const StoryContent *content = edited_story->content_.get();
+    if (content != nullptr) {
+      CHECK(input_file != nullptr);
+      input_media = get_story_content_input_media(td_, content, std::move(input_file));
+      CHECK(input_media != nullptr);
+      flags |= telegram_api::stories_editStory::MEDIA_MASK;
+    }
+    vector<telegram_api::object_ptr<telegram_api::MessageEntity>> entities;
+    if (edited_story->edit_caption_) {
+      flags |= telegram_api::stories_editStory::CAPTION_MASK;
+      flags |= telegram_api::stories_editStory::ENTITIES_MASK;
+
+      entities = get_input_message_entities(td_->contacts_manager_.get(), &edited_story->caption_, "EditStoryQuery");
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::stories_editStory(flags, pending_story_->story_id_.get(), std::move(input_media),
+                                        edited_story->caption_.text, std::move(entities), Auto()),
+        {{StoryFullId{pending_story_->dialog_id_, pending_story_->story_id_}}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stories_editStory>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for EditStoryQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(
+        std::move(ptr), PromiseCreator::lambda([file_id = file_id_, pending_story = std::move(pending_story_)](
+                                                   Result<Unit> &&result) mutable {
+          send_closure(G()->story_manager(), &StoryManager::on_story_edited, file_id, std::move(pending_story),
+                       std::move(result));
+        }));
+  }
+
+  void on_error(Status status) final {
+    LOG(INFO) << "Receive error for EditStoryQuery: " << status;
+
+    if (G()->close_flag() && G()->use_message_database()) {
+      // do not send error, story will be edited after restart
+      return;
+    }
+
+    if (begins_with(status.message(), "FILE_PART_") && ends_with(status.message(), "_MISSING")) {
+      td_->story_manager_->on_send_story_file_part_missing(std::move(pending_story_),
+                                                           to_integer<int32>(status.message().substr(10)));
+      return;
+    }
+    td_->story_manager_->on_story_edited(file_id_, std::move(pending_story_), std::move(status));
   }
 };
 
@@ -400,13 +467,27 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
     privacy_rules = story->privacy_rules_.get_user_privacy_setting_rules_object(td_);
   }
 
+  auto *content = story->content_.get();
+  auto *caption = &story->caption_;
+  if (is_owned && story_full_id.get_story_id().is_server()) {
+    auto it = being_edited_stories_.find(story_full_id);
+    if (it != being_edited_stories_.end()) {
+      if (it->second->content_ != nullptr) {
+        content = it->second->content_.get();
+      }
+      if (it->second->edit_caption_) {
+        caption = &it->second->caption_;
+      }
+    }
+  }
+
   CHECK(dialog_id.get_type() == DialogType::User);
   return td_api::make_object<td_api::story>(
       story_full_id.get_story_id().get(),
       td_->contacts_manager_->get_user_id_object(dialog_id.get_user_id(), "get_story_object"), story->date_,
       story->is_pinned_, story->interaction_info_.get_story_interaction_info_object(td_), std::move(privacy_rules),
-      story->is_public_, story->is_for_close_friends_, get_story_content_object(td_, story->content_.get()),
-      get_formatted_text_object(story->caption_, true, get_story_content_duration(td_, story->content_.get())));
+      story->is_public_, story->is_for_close_friends_, get_story_content_object(td_, content),
+      get_formatted_text_object(story->caption_, true, get_story_content_duration(td_, content)));
 }
 
 td_api::object_ptr<td_api::stories> StoryManager::get_stories_object(int32 total_count,
@@ -682,7 +763,12 @@ void StoryManager::on_upload_story(FileId file_id, telegram_api::object_ptr<tele
   }
   CHECK(input_file != nullptr);
 
-  td_->create_handler<SendStoryQuery>()->send(file_id, std::move(pending_story), std::move(input_file));
+  bool is_edit = pending_story->story_id_.is_server();
+  if (is_edit) {
+    do_edit_story(file_id, std::move(pending_story), std::move(input_file));
+  } else {
+    td_->create_handler<SendStoryQuery>()->send(file_id, std::move(pending_story), std::move(input_file));
+  }
 }
 
 void StoryManager::on_upload_story_error(FileId file_id, Status status) {
@@ -701,15 +787,127 @@ void StoryManager::on_upload_story_error(FileId file_id, Status status) {
 
   auto pending_story = std::move(it->second);
 
-  if (pending_story->log_event_id_ != 0) {
-    binlog_erase(G()->td_db()->get_binlog(), pending_story->log_event_id_);
-  }
-
   being_uploaded_files_.erase(it);
+
+  bool is_edit = pending_story->story_id_.is_server();
+  if (is_edit) {
+    on_story_edited(file_id, std::move(pending_story), std::move(status));
+  } else {
+    if (pending_story->log_event_id_ != 0) {
+      binlog_erase(G()->td_db()->get_binlog(), pending_story->log_event_id_);
+    }
+  }
 }
 
 void StoryManager::on_send_story_file_part_missing(unique_ptr<PendingStory> &&pending_story, int bad_part) {
   do_send_story(std::move(pending_story), {bad_part});
+}
+
+void StoryManager::edit_story(StoryId story_id, td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,
+                              td_api::object_ptr<td_api::formattedText> &&input_caption, Promise<Unit> &&promise) {
+  DialogId dialog_id(td_->contacts_manager_->get_my_id());
+  StoryFullId story_full_id{dialog_id, story_id};
+  const Story *story = get_story(story_full_id);
+  if (story == nullptr) {
+    return promise.set_error(Status::Error(400, "Story not found"));
+  }
+  if (!story_id.is_server()) {
+    return promise.set_error(Status::Error(400, "Story can't be edited"));
+  }
+
+  bool is_bot = td_->auth_manager_->is_bot();
+  unique_ptr<StoryContent> content;
+  bool is_caption_edited = input_caption != nullptr;
+  FormattedText caption;
+  if (input_story_content != nullptr) {
+    TRY_RESULT_PROMISE_ASSIGN(promise, content,
+                              get_input_story_content(td_, std::move(input_story_content), dialog_id));
+  }
+  if (is_caption_edited) {
+    TRY_RESULT_PROMISE_ASSIGN(
+        promise, caption, get_formatted_text(td_, DialogId(), std::move(input_caption), is_bot, true, false, false));
+    auto *current_caption = &story->caption_;
+    auto it = being_edited_stories_.find(story_full_id);
+    if (it != being_edited_stories_.end() && it->second->edit_caption_) {
+      current_caption = &it->second->caption_;
+    }
+    if (*current_caption == caption) {
+      is_caption_edited = false;
+    }
+  }
+  if (content == nullptr && !is_caption_edited) {
+    return promise.set_value(Unit());
+  }
+
+  auto &edited_story = being_edited_stories_[story_full_id];
+  if (edited_story == nullptr) {
+    edited_story = make_unique<BeingEditedStory>();
+  }
+  if (content != nullptr) {
+    edited_story->content_ = std::move(content);
+    story->edit_generation_++;
+  }
+  if (is_caption_edited) {
+    edited_story->caption_ = std::move(caption);
+    edited_story->edit_caption_ = true;
+    story->edit_generation_++;
+  }
+  edited_story->promises_.push_back(std::move(promise));
+
+  auto new_story = make_unique<Story>();
+  new_story->content_ = dup_story_content(td_, edited_story->content_.get());
+
+  auto pending_story = td::make_unique<PendingStory>(dialog_id, story_id, 0 /*log_event_id*/,
+                                                     std::numeric_limits<uint32>::max() - (++send_story_count_),
+                                                     story->edit_generation_, std::move(new_story));
+
+  if (edited_story->content_ == nullptr) {
+    return do_edit_story(FileId(), std::move(pending_story), nullptr);
+  }
+
+  do_send_story(std::move(pending_story), {});
+}
+
+void StoryManager::do_edit_story(FileId file_id, unique_ptr<PendingStory> &&pending_story,
+                                 telegram_api::object_ptr<telegram_api::InputFile> input_file) {
+  StoryFullId story_full_id{pending_story->dialog_id_, pending_story->story_id_};
+  const Story *story = get_story(story_full_id);
+  auto it = being_edited_stories_.find(story_full_id);
+  if (story == nullptr || story->edit_generation_ != pending_story->random_id_ || it == being_edited_stories_.end()) {
+    LOG(INFO) << "Skip outdated edit of " << story_full_id;
+    if (file_id.is_valid()) {
+      td_->file_manager_->cancel_upload(file_id);
+    }
+    return;
+  }
+  td_->create_handler<EditStoryQuery>()->send(file_id, std::move(pending_story), std::move(input_file),
+                                              it->second.get());
+}
+
+void StoryManager::on_story_edited(FileId file_id, unique_ptr<PendingStory> pending_story, Result<Unit> result) {
+  G()->ignore_result_if_closing(result);
+
+  if (file_id.is_valid()) {
+    td_->file_manager_->delete_partial_remote_location(file_id);
+  }
+
+  StoryFullId story_full_id{pending_story->dialog_id_, pending_story->story_id_};
+  const Story *story = get_story(story_full_id);
+  auto it = being_edited_stories_.find(story_full_id);
+  if (story == nullptr || story->edit_generation_ != pending_story->random_id_ || it == being_edited_stories_.end()) {
+    LOG(INFO) << "Ignore outdated edit of " << story_full_id;
+    return;
+  }
+  if (pending_story->log_event_id_ != 0) {
+    binlog_erase(G()->td_db()->get_binlog(), pending_story->log_event_id_);
+  }
+  auto promises = std::move(it->second->promises_);
+  being_edited_stories_.erase(it);
+  if (result.is_ok()) {
+    set_promises(promises);
+  } else {
+    fail_promises(promises, result.move_as_error());
+  }
 }
 
 void StoryManager::set_story_privacy_rules(StoryId story_id,

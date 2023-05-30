@@ -3205,7 +3205,7 @@ class SendMessageQuery final : public Td::ResultHandler {
   void on_error(Status status) final {
     LOG(INFO) << "Receive error for SendMessage: " << status;
     if (G()->close_flag() && G()->use_message_database()) {
-      // do not send error, message will be re-sent
+      // do not send error, message will be re-sent after restart
       return;
     }
     td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "SendMessageQuery");
@@ -3256,7 +3256,7 @@ class StartBotQuery final : public Td::ResultHandler {
   void on_error(Status status) final {
     LOG(INFO) << "Receive error for StartBotQuery: " << status;
     if (G()->close_flag() && G()->use_message_database()) {
-      // do not send error, message should be re-sent
+      // do not send error, message should be re-sent after restart
       return;
     }
     td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "StartBotQuery");
@@ -3310,7 +3310,7 @@ class SendInlineBotResultQuery final : public Td::ResultHandler {
   void on_error(Status status) final {
     LOG(INFO) << "Receive error for SendInlineBotResultQuery: " << status;
     if (G()->close_flag() && G()->use_message_database()) {
-      // do not send error, message will be re-sent
+      // do not send error, message will be re-sent after restart
       return;
     }
     td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "SendInlineBotResultQuery");
@@ -3408,7 +3408,7 @@ class SendMultiMediaQuery final : public Td::ResultHandler {
   void on_error(Status status) final {
     LOG(INFO) << "Receive error for SendMultiMedia: " << status;
     if (G()->close_flag() && G()->use_message_database()) {
-      // do not send error, message will be re-sent
+      // do not send error, message will be re-sent after restart
       return;
     }
     if (!td_->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
@@ -3508,7 +3508,7 @@ class SendMediaQuery final : public Td::ResultHandler {
   void on_error(Status status) final {
     LOG(INFO) << "Receive error for SendMedia: " << status;
     if (G()->close_flag() && G()->use_message_database()) {
-      // do not send error, message will be re-sent
+      // do not send error, message will be re-sent after restart
       return;
     }
     if (was_uploaded_) {
@@ -3596,7 +3596,7 @@ class UploadMediaQuery final : public Td::ResultHandler {
   void on_error(Status status) final {
     LOG(INFO) << "Receive error for UploadMediaQuery for " << message_id_ << " in " << dialog_id_ << ": " << status;
     if (G()->close_flag() && G()->use_message_database()) {
-      // do not send error, message will be re-sent
+      // do not send error, message will be re-sent after restart
       return;
     }
     td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "UploadMediaQuery");
@@ -3904,7 +3904,7 @@ class ForwardMessagesQuery final : public Td::ResultHandler {
   void on_error(Status status) final {
     LOG(INFO) << "Receive error for forward messages: " << status;
     if (G()->close_flag() && G()->use_message_database()) {
-      // do not send error, messages should be re-sent
+      // do not send error, messages will be re-sent after restart
       return;
     }
     // no on_get_dialog_error call, because two dialogs are involved
@@ -3959,7 +3959,7 @@ class SendScreenshotNotificationQuery final : public Td::ResultHandler {
   void on_error(Status status) final {
     LOG(INFO) << "Receive error for SendScreenshotNotificationQuery: " << status;
     if (G()->close_flag() && G()->use_message_database()) {
-      // do not send error, messages should be re-sent
+      // do not send error, messages will be re-sent after restart
       return;
     }
     td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "SendScreenshotNotificationQuery");
@@ -13823,7 +13823,7 @@ void MessagesManager::on_send_secret_message_error(int64 random_id, Status error
       auto file_id = get_message_content_upload_file_id(m->content.get());
       if (file_id.is_valid()) {
         if (G()->close_flag() && G()->use_message_database()) {
-          // do not send error, message will be re-sent
+          // do not send error, message will be re-sent after restart
           return;
         }
         if (begins_with(error.message(), "FILE_PART_") && ends_with(error.message(), "_MISSING")) {

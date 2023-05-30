@@ -3952,6 +3952,34 @@ class CliClient final : public Actor {
           td_api::make_object<td_api::inputStoryContentVideo>(as_input_file(video),
                                                               to_integers<int32>(sticker_file_ids), duration),
           as_caption(caption), rules, op == "ssvp"));
+    } else if (op == "esc") {
+      StoryId story_id;
+      string caption;
+      get_args(args, story_id, caption);
+      send_request(td_api::make_object<td_api::editStory>(story_id, nullptr, as_caption(caption)));
+    } else if (op == "esp") {
+      StoryId story_id;
+      string photo;
+      string caption;
+      string sticker_file_ids;
+      get_args(args, story_id, photo, caption, sticker_file_ids);
+      send_request(
+          td_api::make_object<td_api::editStory>(story_id,
+                                                 td_api::make_object<td_api::inputStoryContentPhoto>(
+                                                     as_input_file(photo), to_integers<int32>(sticker_file_ids)),
+                                                 as_caption(caption)));
+    } else if (op == "esv") {
+      StoryId story_id;
+      string video;
+      string caption;
+      int32 duration;
+      string sticker_file_ids;
+      get_args(args, story_id, video, caption, duration, sticker_file_ids);
+      send_request(td_api::make_object<td_api::editStory>(
+          story_id,
+          td_api::make_object<td_api::inputStoryContentVideo>(as_input_file(video),
+                                                              to_integers<int32>(sticker_file_ids), duration),
+          as_caption(caption)));
     } else if (op == "sspr") {
       StoryId story_id;
       PrivacyRules rules;

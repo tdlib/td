@@ -13,6 +13,7 @@
 #include "td/telegram/FullMessageId.h"
 #include "td/telegram/MessageContentType.h"
 #include "td/telegram/PollId.h"
+#include "td/telegram/StoryFullId.h"
 #include "td/telegram/UserId.h"
 
 #include "td/utils/common.h"
@@ -51,6 +52,10 @@ class ChainId {
   }
 
   ChainId(UserId user_id) : ChainId(DialogId(user_id)) {
+  }
+
+  ChainId(StoryFullId story_full_id) : ChainId(story_full_id.get_dialog_id()) {
+    id += static_cast<uint64>(story_full_id.get_story_id().get()) << 10;
   }
 
   uint64 get() const {

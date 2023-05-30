@@ -41,6 +41,14 @@ class StoryManager final : public Actor {
     UserPrivacySettingRules privacy_rules_;
     unique_ptr<StoryContent> content_;
     FormattedText caption_;
+    mutable int64 edit_generation_ = 0;
+  };
+
+  struct BeingEditedStory {
+    unique_ptr<StoryContent> content_;
+    FormattedText caption_;
+    bool edit_caption_ = false;
+    vector<Promise<Unit>> promises_;
   };
 
   struct PendingStory {
@@ -71,6 +79,9 @@ class StoryManager final : public Actor {
 
   void on_send_story_file_part_missing(unique_ptr<PendingStory> &&pending_story, int bad_part);
 
+  void edit_story(StoryId story_id, td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,
+                  td_api::object_ptr<td_api::formattedText> &&input_caption, Promise<Unit> &&promise);
+
   void set_story_privacy_rules(StoryId story_id, td_api::object_ptr<td_api::userPrivacySettingRules> &&rules,
                                Promise<Unit> &&promise);
 
@@ -99,6 +110,7 @@ class StoryManager final : public Actor {
   class UploadMediaCallback;
 
   class SendStoryQuery;
+  class EditStoryQuery;
 
   void tear_down() final;
 
@@ -135,6 +147,11 @@ class StoryManager final : public Actor {
 
   void on_upload_story_error(FileId file_id, Status status);
 
+  void do_edit_story(FileId file_id, unique_ptr<PendingStory> &&pending_story,
+                     telegram_api::object_ptr<telegram_api::InputFile> input_file);
+
+  void on_story_edited(FileId file_id, unique_ptr<PendingStory> pending_story, Result<Unit> result);
+
   void on_toggle_story_is_pinned(StoryId story_id, bool is_pinned, Promise<Unit> &&promise);
 
   std::shared_ptr<UploadMediaCallback> upload_media_callback_;
@@ -142,6 +159,8 @@ class StoryManager final : public Actor {
   WaitFreeHashMap<StoryFullId, FileSourceId, StoryFullIdHash> story_full_id_to_file_source_id_;
 
   WaitFreeHashMap<StoryFullId, unique_ptr<Story>, StoryFullIdHash> stories_;
+
+  FlatHashMap<StoryFullId, unique_ptr<BeingEditedStory>, StoryFullIdHash> being_edited_stories_;
 
   uint32 send_story_count_ = 0;
 
