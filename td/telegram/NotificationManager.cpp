@@ -3100,10 +3100,10 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     TRY_RESULT(dc_id, get_json_object_int_field(custom, "dc", false));
     TRY_RESULT(addr, get_json_object_string_field(custom, "addr", false));
     if (!DcId::is_valid(dc_id)) {
-      return Status::Error("Invalid datacenter ID");
+      return Status::Error("Invalid datacenter identifier");
     }
     if (!clean_input_string(addr)) {
-      return Status::Error(PSLICE() << "Receive invalid addr " << format::escaped(addr));
+      return Status::Error(PSLICE() << "Receive invalid datacenter address " << format::escaped(addr));
     }
     send_closure(G()->connection_creator(), &ConnectionCreator::on_dc_update, DcId::internal(dc_id), std::move(addr),
                  std::move(promise));
@@ -3139,7 +3139,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     TRY_RESULT(user_id_int, get_json_object_long_field(custom, "from_id"));
     UserId user_id(user_id_int);
     if (!user_id.is_valid()) {
-      return Status::Error("Receive invalid user_id");
+      return Status::Error("Receive invalid user identifier");
     }
     dialog_id = DialogId(user_id);
   }
@@ -3147,7 +3147,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     TRY_RESULT(chat_id_int, get_json_object_long_field(custom, "chat_id"));
     ChatId chat_id(chat_id_int);
     if (!chat_id.is_valid()) {
-      return Status::Error("Receive invalid chat_id");
+      return Status::Error("Receive invalid basic group identifier");
     }
     dialog_id = DialogId(chat_id);
   }
@@ -3155,7 +3155,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     TRY_RESULT(channel_id_int, get_json_object_long_field(custom, "channel_id"));
     ChannelId channel_id(channel_id_int);
     if (!channel_id.is_valid()) {
-      return Status::Error("Receive invalid channel_id");
+      return Status::Error("Receive invalid supergroup identifier");
     }
     dialog_id = DialogId(channel_id);
   }
@@ -3163,7 +3163,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     TRY_RESULT(secret_chat_id_int, get_json_object_int_field(custom, "encryption_id"));
     SecretChatId secret_chat_id(secret_chat_id_int);
     if (!secret_chat_id.is_valid()) {
-      return Status::Error("Receive invalid secret_chat_id");
+      return Status::Error("Receive invalid secret chat identifier");
     }
     dialog_id = DialogId(secret_chat_id);
   }
@@ -3171,7 +3171,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     if (loc_key == "ENCRYPTED_MESSAGE" || loc_key == "MESSAGE_MUTED") {
       return Status::Error(406, "Force loading data from the server");
     }
-    return Status::Error("Can't find dialog_id");
+    return Status::Error("Can't find chat identifier");
   }
 
   if (loc_key == "READ_HISTORY") {
@@ -3202,7 +3202,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
       TRY_RESULT(server_message_id_int, to_integer_safe<int32>(server_message_id_str));
       ServerMessageId server_message_id(server_message_id_int);
       if (!server_message_id.is_valid()) {
-        return Status::Error("Receive invalid message_id");
+        return Status::Error("Receive invalid message identifier");
       }
       message_ids.push_back(MessageId(server_message_id));
     }
@@ -3268,13 +3268,13 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
       loc_key = loc_key.substr(5);
     }
     if (loc_args.empty()) {
-      return Status::Error("Expect sender name as first argument");
+      return Status::Error("Expect sender name as the first argument");
     }
     sender_name = std::move(loc_args[0]);
     loc_args.erase(loc_args.begin());
   }
   if (begins_with(loc_key, "MESSAGE") && !server_message_id.is_valid()) {
-    return Status::Error("Receive no message ID");
+    return Status::Error("Receive no message identifier");
   }
   if (begins_with(loc_key, "ENCRYPT") || random_id != 0) {
     if (dialog_id.get_type() != DialogType::SecretChat) {
@@ -3282,7 +3282,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     }
   }
   if (server_message_id.is_valid() && dialog_id.get_type() == DialogType::SecretChat) {
-    return Status::Error("Receive message ID in secret chat push");
+    return Status::Error("Receive message identifier in a secret chat push notification");
   }
 
   if (begins_with(loc_key, "ENCRYPTION_")) {
@@ -3306,7 +3306,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
   }
 
   if (loc_args.empty()) {
-    return Status::Error("Expected chat name as next argument");
+    return Status::Error("Expected chat name as the next argument");
   }
   if (dialog_id.get_type() == DialogType::User) {
     sender_name = std::move(loc_args[0]);
@@ -3990,7 +3990,7 @@ Result<string> NotificationManager::decrypt_push(int64 encryption_key_id, string
       return decrypt_push_payload(encryption_key_id, std::move(encryption_key), r_decoded.move_as_ok());
     }
   }
-  return Status::Error(400, "No 'p'(payload) field found in push");
+  return Status::Error(400, "No 'p'(payload) field found in the push notification");
 }
 
 Result<string> NotificationManager::decrypt_push_payload(int64 encryption_key_id, string encryption_key,
