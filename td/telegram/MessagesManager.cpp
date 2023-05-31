@@ -36973,7 +36973,7 @@ void MessagesManager::update_dialog_pos(Dialog *d, const char *source, bool need
         new_order = pending_order;
       }
     }
-    if (d->draft_message != nullptr && can_send_message(d->dialog_id).is_ok()) {
+    if (d->draft_message != nullptr && !need_hide_dialog_draft_message(d->dialog_id)) {
       auto draft_message_date = d->draft_message->get_date();
       LOG(INFO) << "Draft message at " << draft_message_date << " found";
       int64 draft_order = get_dialog_order(MessageId(), draft_message_date);
