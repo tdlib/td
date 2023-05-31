@@ -18932,15 +18932,7 @@ Status MessagesManager::set_dialog_draft_message(DialogId dialog_id, MessageId t
 
   TRY_STATUS(can_use_top_thread_message_id(d, top_thread_message_id, MessageId()));
 
-  TRY_RESULT(new_draft_message, get_draft_message(td_, dialog_id, std::move(draft_message)));
-  if (new_draft_message != nullptr) {
-    new_draft_message->reply_to_message_id =
-        get_reply_to_message_id(d, top_thread_message_id, new_draft_message->reply_to_message_id, true);
-
-    if (!new_draft_message->reply_to_message_id.is_valid() && new_draft_message->input_message_text.text.text.empty()) {
-      new_draft_message = nullptr;
-    }
-  }
+  TRY_RESULT(new_draft_message, get_draft_message(td_, dialog_id, top_thread_message_id, std::move(draft_message)));
 
   if (top_thread_message_id != MessageId()) {
     CHECK(top_thread_message_id.is_valid());
@@ -24164,6 +24156,11 @@ DialogId MessagesManager::get_dialog_default_send_message_as_dialog_id(DialogId 
   auto *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
   return d->default_send_message_as_dialog_id;
+}
+
+MessageId MessagesManager::get_reply_to_message_id(DialogId dialog_id, MessageId top_thread_message_id,
+                                                   MessageId message_id, bool for_draft) {
+  return get_reply_to_message_id(get_dialog(dialog_id), top_thread_message_id, message_id, for_draft);
 }
 
 int64 MessagesManager::generate_new_random_id(const Dialog *d) {

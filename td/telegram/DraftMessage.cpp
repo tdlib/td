@@ -212,18 +212,19 @@ unique_ptr<DraftMessage> get_draft_message(ContactsManager *contacts_manager,
   }
 }
 
-Result<unique_ptr<DraftMessage>> get_draft_message(Td *td, DialogId dialog_id,
+Result<unique_ptr<DraftMessage>> get_draft_message(Td *td, DialogId dialog_id, MessageId top_thread_message_id,
                                                    td_api::object_ptr<td_api::draftMessage> &&draft_message) {
   if (draft_message == nullptr) {
     return nullptr;
   }
 
   auto result = make_unique<DraftMessage>();
-  result->date = G()->unix_time();
   result->reply_to_message_id = MessageId(draft_message->reply_to_message_id_);
   if (result->reply_to_message_id != MessageId() && !result->reply_to_message_id.is_valid()) {
     return Status::Error(400, "Invalid reply_to_message_id specified");
   }
+  result->reply_to_message_id = td->messages_manager_->get_reply_to_message_id(dialog_id, top_thread_message_id,
+                                                                               result->reply_to_message_id, true);
 
   auto input_message_content = std::move(draft_message->input_message_text_);
   if (input_message_content != nullptr) {
@@ -235,6 +236,11 @@ Result<unique_ptr<DraftMessage>> get_draft_message(Td *td, DialogId dialog_id,
     result->input_message_text = std::move(message_content);
   }
 
+  if (!result->reply_to_message_id.is_valid() && result->input_message_text.text.text.empty()) {
+    return nullptr;
+  }
+
+  result->date = G()->unix_time();
   return std::move(result);
 }
 

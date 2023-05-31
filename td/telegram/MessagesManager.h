@@ -441,6 +441,9 @@ class MessagesManager final : public Actor {
 
   DialogId get_dialog_default_send_message_as_dialog_id(DialogId dialog_id) const;
 
+  MessageId get_reply_to_message_id(DialogId dialog_id, MessageId top_thread_message_id, MessageId message_id,
+                                    bool for_draft);
+
   Result<td_api::object_ptr<td_api::message>> send_message(
       DialogId dialog_id, MessageId top_thread_message_id, MessageId reply_to_message_id,
       tl_object_ptr<td_api::messageSendOptions> &&options, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
