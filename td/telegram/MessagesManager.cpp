@@ -19070,14 +19070,11 @@ Status MessagesManager::set_dialog_draft_message(DialogId dialog_id, MessageId t
       return Status::OK();
     }
 
-    auto &old_draft_message = m->thread_draft_message;
-    if (((new_draft_message == nullptr) != (old_draft_message == nullptr)) ||
-        (new_draft_message != nullptr &&
-         (old_draft_message->reply_to_message_id != new_draft_message->reply_to_message_id ||
-          old_draft_message->input_message_text != new_draft_message->input_message_text))) {
-      old_draft_message = std::move(new_draft_message);
+    if (need_update_draft_message(m->thread_draft_message, new_draft_message, false)) {
+      m->thread_draft_message = std::move(new_draft_message);
       on_message_changed(d, m, false, "set_dialog_draft_message");
     }
+
     return Status::OK();
   }
 
@@ -31406,36 +31403,13 @@ void MessagesManager::on_update_dialog_draft_message(DialogId dialog_id, Message
 bool MessagesManager::update_dialog_draft_message(Dialog *d, unique_ptr<DraftMessage> &&draft_message, bool from_update,
                                                   bool need_update_dialog_pos) {
   CHECK(d != nullptr);
-  if (draft_message == nullptr) {
-    if (d->draft_message != nullptr) {
-      d->draft_message = nullptr;
-      if (need_update_dialog_pos) {
-        update_dialog_pos(d, "update_dialog_draft_message", false);
-      }
-      send_update_chat_draft_message(d);
-      return true;
+  if (need_update_draft_message(d->draft_message, draft_message, from_update)) {
+    d->draft_message = std::move(draft_message);
+    if (need_update_dialog_pos) {
+      update_dialog_pos(d, "update_dialog_draft_message", false);
     }
-  } else {
-    if (d->draft_message != nullptr && d->draft_message->reply_to_message_id == draft_message->reply_to_message_id &&
-        d->draft_message->input_message_text == draft_message->input_message_text) {
-      if (d->draft_message->date < draft_message->date) {
-        d->draft_message->date = draft_message->date;
-        if (need_update_dialog_pos) {
-          update_dialog_pos(d, "update_dialog_draft_message 2", false);
-        }
-        send_update_chat_draft_message(d);
-        return true;
-      }
-    } else {
-      if (!from_update || d->draft_message == nullptr || d->draft_message->date <= draft_message->date) {
-        d->draft_message = std::move(draft_message);
-        if (need_update_dialog_pos) {
-          update_dialog_pos(d, "update_dialog_draft_message 3", false);
-        }
-        send_update_chat_draft_message(d);
-        return true;
-      }
-    }
+    send_update_chat_draft_message(d);
+    return true;
   }
   return false;
 }

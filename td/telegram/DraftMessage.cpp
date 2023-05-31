@@ -15,6 +15,23 @@
 
 namespace td {
 
+bool need_update_draft_message(const unique_ptr<DraftMessage> &old_draft_message,
+                               const unique_ptr<DraftMessage> &new_draft_message, bool from_update) {
+  if (new_draft_message == nullptr) {
+    return old_draft_message != nullptr;
+  } else {
+    if (old_draft_message == nullptr) {
+      return true;
+    }
+    if (old_draft_message->reply_to_message_id == new_draft_message->reply_to_message_id &&
+        old_draft_message->input_message_text == new_draft_message->input_message_text) {
+      return old_draft_message->date < new_draft_message->date;
+    } else {
+      return !from_update || old_draft_message->date <= new_draft_message->date;
+    }
+  }
+}
+
 td_api::object_ptr<td_api::draftMessage> get_draft_message_object(const unique_ptr<DraftMessage> &draft_message) {
   if (draft_message == nullptr) {
     return nullptr;

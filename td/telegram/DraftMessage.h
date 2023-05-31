@@ -27,6 +27,9 @@ class DraftMessage {
   InputMessageText input_message_text;
 };
 
+bool need_update_draft_message(const unique_ptr<DraftMessage> &old_draft_message,
+                               const unique_ptr<DraftMessage> &new_draft_message, bool from_update);
+
 td_api::object_ptr<td_api::draftMessage> get_draft_message_object(const unique_ptr<DraftMessage> &draft_message);
 
 unique_ptr<DraftMessage> get_draft_message(ContactsManager *contacts_manager,
