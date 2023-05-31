@@ -127,31 +127,6 @@ class GetOnlinesQuery final : public Td::ResultHandler {
   }
 };
 
-class GetAllDraftsQuery final : public Td::ResultHandler {
- public:
-  void send() {
-    send_query(G()->net_query_creator().create(telegram_api::messages_getAllDrafts()));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::messages_getAllDrafts>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for GetAllDraftsQuery: " << to_string(ptr);
-    td_->updates_manager_->on_get_updates(std::move(ptr), Promise<Unit>());
-  }
-
-  void on_error(Status status) final {
-    if (!G()->is_expected_error(status)) {
-      LOG(ERROR) << "Receive error for GetAllDraftsQuery: " << status;
-    }
-    status.ignore();
-  }
-};
-
 class GetDialogQuery final : public Td::ResultHandler {
   DialogId dialog_id_;
 
@@ -16943,7 +16918,7 @@ void MessagesManager::load_folder_dialog_list(FolderId folder_id, int32 limit, b
     }
     if (folder_id == FolderId::main() && folder.last_server_dialog_date_ == MIN_DIALOG_DATE) {
       // do not pass promise to not wait for drafts before showing chat list
-      td_->create_handler<GetAllDraftsQuery>()->send();
+      load_all_draft_messages(td_);
     }
     lock.set_value(Unit());
   }

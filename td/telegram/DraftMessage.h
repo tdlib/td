@@ -42,4 +42,6 @@ Result<unique_ptr<DraftMessage>> get_draft_message(Td *td, DialogId dialog_id,
 void save_draft_message(Td *td, DialogId dialog_id, const unique_ptr<DraftMessage> &draft_message,
                         Promise<Unit> &&promise);
 
+void load_all_draft_messages(Td *td);
+
 }  // namespace td

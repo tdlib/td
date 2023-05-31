@@ -12,6 +12,7 @@
 #include "td/telegram/misc.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/UpdatesManager.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
@@ -79,6 +80,31 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
       LOG(ERROR) << "Receive error for SaveDraftMessageQuery: " << status;
     }
     promise_.set_error(std::move(status));
+  }
+};
+
+class GetAllDraftsQuery final : public Td::ResultHandler {
+ public:
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::messages_getAllDrafts()));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getAllDrafts>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetAllDraftsQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), Promise<Unit>());
+  }
+
+  void on_error(Status status) final {
+    if (!G()->is_expected_error(status)) {
+      LOG(ERROR) << "Receive error for GetAllDraftsQuery: " << status;
+    }
+    status.ignore();
   }
 };
 
@@ -179,6 +205,10 @@ Result<unique_ptr<DraftMessage>> get_draft_message(Td *td, DialogId dialog_id,
 void save_draft_message(Td *td, DialogId dialog_id, const unique_ptr<DraftMessage> &draft_message,
                         Promise<Unit> &&promise) {
   td->create_handler<SaveDraftMessageQuery>(std::move(promise))->send(dialog_id, draft_message);
+}
+
+void load_all_draft_messages(Td *td) {
+  td->create_handler<GetAllDraftsQuery>()->send();
 }
 
 }  // namespace td
