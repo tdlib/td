@@ -19,6 +19,7 @@
 namespace td {
 
 class ContactsManager;
+class Dependencies;
 class Td;
 
 class DraftMessage {
@@ -30,6 +31,8 @@ class DraftMessage {
 
 bool need_update_draft_message(const unique_ptr<DraftMessage> &old_draft_message,
                                const unique_ptr<DraftMessage> &new_draft_message, bool from_update);
+
+void add_draft_message_dependencies(Dependencies &dependencies, const unique_ptr<DraftMessage> &draft_message);
 
 td_api::object_ptr<td_api::draftMessage> get_draft_message_object(const unique_ptr<DraftMessage> &draft_message);
 

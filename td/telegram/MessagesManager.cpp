@@ -24615,6 +24615,7 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, const
   }
   add_message_content_dependencies(dependencies, m->content.get(), td_->auth_manager_->is_bot());
   add_reply_markup_dependencies(dependencies, m->reply_markup.get());
+  add_draft_message_dependencies(dependencies, m->thread_draft_message);
 }
 
 void MessagesManager::get_dialog_send_message_as_dialog_ids(
@@ -37450,9 +37451,7 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
   d->messages.foreach([&](const MessageId &message_id, const unique_ptr<Message> &message) {
     add_message_dependencies(dependencies, message.get());
   });
-  if (d->draft_message != nullptr) {
-    add_formatted_text_dependencies(dependencies, &d->draft_message->input_message_text.text);
-  }
+  add_draft_message_dependencies(dependencies, d->draft_message);
   for (auto user_id : d->pending_join_request_user_ids) {
     dependencies.add(user_id);
   }
