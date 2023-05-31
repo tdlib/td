@@ -23,13 +23,19 @@ class Dependencies;
 class Td;
 
 class DraftMessage {
- public:
-  int32 date = 0;
-  MessageId reply_to_message_id;
-  InputMessageText input_message_text;
+  int32 date_ = 0;
+  MessageId reply_to_message_id_;
+  InputMessageText input_message_text_;
 
+  friend class SaveDraftMessageQuery;
+
+ public:
   DraftMessage() = default;
   DraftMessage(ContactsManager *contacts_manager, telegram_api::object_ptr<telegram_api::draftMessage> &&draft_message);
+
+  int32 get_date() const {
+    return date_;
+  }
 
   bool need_update_to(const DraftMessage &other, bool from_update) const;
 
@@ -39,6 +45,12 @@ class DraftMessage {
 
   static Result<unique_ptr<DraftMessage>> get_draft_message(Td *td, DialogId dialog_id, MessageId top_thread_message_id,
                                                             td_api::object_ptr<td_api::draftMessage> &&draft_message);
+
+  template <class StorerT>
+  void store(StorerT &storer) const;
+
+  template <class ParserT>
+  void parse(ParserT &parser);
 };
 
 bool need_update_draft_message(const unique_ptr<DraftMessage> &old_draft_message,

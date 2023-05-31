@@ -41,15 +41,15 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
     ServerMessageId reply_to_message_id;
     vector<telegram_api::object_ptr<telegram_api::MessageEntity>> input_message_entities;
     if (draft_message != nullptr) {
-      if (draft_message->reply_to_message_id.is_valid() && draft_message->reply_to_message_id.is_server()) {
-        reply_to_message_id = draft_message->reply_to_message_id.get_server_message_id();
+      if (draft_message->reply_to_message_id_.is_valid() && draft_message->reply_to_message_id_.is_server()) {
+        reply_to_message_id = draft_message->reply_to_message_id_.get_server_message_id();
         flags |= telegram_api::messages_saveDraft::REPLY_TO_MSG_ID_MASK;
       }
-      if (draft_message->input_message_text.disable_web_page_preview) {
+      if (draft_message->input_message_text_.disable_web_page_preview) {
         flags |= telegram_api::messages_saveDraft::NO_WEBPAGE_MASK;
       }
       input_message_entities = get_input_message_entities(
-          td_->contacts_manager_.get(), draft_message->input_message_text.text.entities, "SaveDraftMessageQuery");
+          td_->contacts_manager_.get(), draft_message->input_message_text_.text.entities, "SaveDraftMessageQuery");
       if (!input_message_entities.empty()) {
         flags |= telegram_api::messages_saveDraft::ENTITIES_MASK;
       }
@@ -57,7 +57,7 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(
         telegram_api::messages_saveDraft(
             flags, false /*ignored*/, reply_to_message_id.get(), 0, std::move(input_peer),
-            draft_message == nullptr ? string() : draft_message->input_message_text.text.text,
+            draft_message == nullptr ? string() : draft_message->input_message_text_.text.text,
             std::move(input_message_entities)),
         {{dialog_id}}));
   }
@@ -139,32 +139,32 @@ class ClearAllDraftsQuery final : public Td::ResultHandler {
 };
 
 bool DraftMessage::need_update_to(const DraftMessage &other, bool from_update) const {
-  if (reply_to_message_id == other.reply_to_message_id && input_message_text == other.input_message_text) {
-    return date < other.date;
+  if (reply_to_message_id_ == other.reply_to_message_id_ && input_message_text_ == other.input_message_text_) {
+    return date_ < other.date_;
   } else {
-    return !from_update || date <= other.date;
+    return !from_update || date_ <= other.date_;
   }
 }
 
 void DraftMessage::add_dependencies(Dependencies &dependencies) const {
-  add_formatted_text_dependencies(dependencies, &input_message_text.text);
+  add_formatted_text_dependencies(dependencies, &input_message_text_.text);
 }
 
 td_api::object_ptr<td_api::draftMessage> DraftMessage::get_draft_message_object() const {
-  return td_api::make_object<td_api::draftMessage>(reply_to_message_id.get(), date,
-                                                   get_input_message_text_object(input_message_text));
+  return td_api::make_object<td_api::draftMessage>(reply_to_message_id_.get(), date_,
+                                                   get_input_message_text_object(input_message_text_));
 }
 
 DraftMessage::DraftMessage(ContactsManager *contacts_manager,
                            telegram_api::object_ptr<telegram_api::draftMessage> &&draft_message) {
   CHECK(draft_message != nullptr);
   auto flags = draft_message->flags_;
-  date = draft_message->date_;
+  date_ = draft_message->date_;
   if ((flags & telegram_api::draftMessage::REPLY_TO_MSG_ID_MASK) != 0) {
-    reply_to_message_id = MessageId(ServerMessageId(draft_message->reply_to_msg_id_));
-    if (!reply_to_message_id.is_valid()) {
-      LOG(ERROR) << "Receive " << reply_to_message_id << " as reply_to_message_id in the draft message";
-      reply_to_message_id = MessageId();
+    reply_to_message_id_ = MessageId(ServerMessageId(draft_message->reply_to_msg_id_));
+    if (!reply_to_message_id_.is_valid()) {
+      LOG(ERROR) << "Receive " << reply_to_message_id_ << " as reply_to_message_id in the draft message";
+      reply_to_message_id_ = MessageId();
     }
   }
 
@@ -177,9 +177,9 @@ DraftMessage::DraftMessage(ContactsManager *contacts_manager,
     }
     entities = find_entities(draft_message->message_, false, true);
   }
-  input_message_text.text = FormattedText{std::move(draft_message->message_), std::move(entities)};
-  input_message_text.disable_web_page_preview = draft_message->no_webpage_;
-  input_message_text.clear_draft = false;
+  input_message_text_.text = FormattedText{std::move(draft_message->message_), std::move(entities)};
+  input_message_text_.disable_web_page_preview = draft_message->no_webpage_;
+  input_message_text_.clear_draft = false;
 }
 
 Result<unique_ptr<DraftMessage>> DraftMessage::get_draft_message(
@@ -190,12 +190,12 @@ Result<unique_ptr<DraftMessage>> DraftMessage::get_draft_message(
   }
 
   auto result = make_unique<DraftMessage>();
-  result->reply_to_message_id = MessageId(draft_message->reply_to_message_id_);
-  if (result->reply_to_message_id != MessageId() && !result->reply_to_message_id.is_valid()) {
+  result->reply_to_message_id_ = MessageId(draft_message->reply_to_message_id_);
+  if (result->reply_to_message_id_ != MessageId() && !result->reply_to_message_id_.is_valid()) {
     return Status::Error(400, "Invalid reply_to_message_id specified");
   }
-  result->reply_to_message_id = td->messages_manager_->get_reply_to_message_id(dialog_id, top_thread_message_id,
-                                                                               result->reply_to_message_id, true);
+  result->reply_to_message_id_ = td->messages_manager_->get_reply_to_message_id(dialog_id, top_thread_message_id,
+                                                                                result->reply_to_message_id_, true);
 
   auto input_message_content = std::move(draft_message->input_message_text_);
   if (input_message_content != nullptr) {
@@ -204,14 +204,14 @@ Result<unique_ptr<DraftMessage>> DraftMessage::get_draft_message(
     }
     TRY_RESULT(message_content,
                process_input_message_text(td, dialog_id, std::move(input_message_content), false, true));
-    result->input_message_text = std::move(message_content);
+    result->input_message_text_ = std::move(message_content);
   }
 
-  if (!result->reply_to_message_id.is_valid() && result->input_message_text.text.text.empty()) {
+  if (!result->reply_to_message_id_.is_valid() && result->input_message_text_.text.text.empty()) {
     return nullptr;
   }
 
-  result->date = G()->unix_time();
+  result->date_ = G()->unix_time();
   return std::move(result);
 }
 
