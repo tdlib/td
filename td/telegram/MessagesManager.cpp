@@ -1437,72 +1437,6 @@ class ToggleNoForwardsQuery final : public Td::ResultHandler {
   }
 };
 
-class SaveDraftMessageQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
-  DialogId dialog_id_;
-
- public:
-  explicit SaveDraftMessageQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(DialogId dialog_id, const unique_ptr<DraftMessage> &draft_message) {
-    dialog_id_ = dialog_id;
-
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
-    if (input_peer == nullptr) {
-      LOG(INFO) << "Can't update draft message because have no write access to " << dialog_id;
-      return on_error(Status::Error(400, "Can't save draft message"));
-    }
-
-    int32 flags = 0;
-    ServerMessageId reply_to_message_id;
-    if (draft_message != nullptr) {
-      if (draft_message->reply_to_message_id.is_valid() && draft_message->reply_to_message_id.is_server()) {
-        reply_to_message_id = draft_message->reply_to_message_id.get_server_message_id();
-        flags |= MessagesManager::SEND_MESSAGE_FLAG_IS_REPLY;
-      }
-      if (draft_message->input_message_text.disable_web_page_preview) {
-        flags |= MessagesManager::SEND_MESSAGE_FLAG_DISABLE_WEB_PAGE_PREVIEW;
-      }
-      if (!draft_message->input_message_text.text.entities.empty()) {
-        flags |= MessagesManager::SEND_MESSAGE_FLAG_HAS_ENTITIES;
-      }
-    }
-
-    vector<tl_object_ptr<telegram_api::MessageEntity>> input_message_entities;
-    if (draft_message != nullptr) {
-      input_message_entities = get_input_message_entities(
-          td_->contacts_manager_.get(), draft_message->input_message_text.text.entities, "SaveDraftMessageQuery");
-    }
-    send_query(G()->net_query_creator().create(
-        telegram_api::messages_saveDraft(flags, false /*ignored*/, reply_to_message_id.get(), 0, std::move(input_peer),
-                                         draft_message == nullptr ? "" : draft_message->input_message_text.text.text,
-                                         std::move(input_message_entities)),
-        {{dialog_id}}));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::messages_saveDraft>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    bool result = result_ptr.ok();
-    if (!result) {
-      return on_error(Status::Error(400, "Save draft failed"));
-    }
-
-    promise_.set_value(Unit());
-  }
-
-  void on_error(Status status) final {
-    if (!td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "SaveDraftMessageQuery")) {
-      LOG(ERROR) << "Receive error for SaveDraftMessageQuery: " << status;
-    }
-    promise_.set_error(std::move(status));
-  }
-};
-
 class ClearAllDraftsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -19112,8 +19046,7 @@ void MessagesManager::save_dialog_draft_message_on_server(DialogId dialog_id) {
     });
   }
 
-  // TODO do not send two queries simultaneously or use InvokeAfter
-  td_->create_handler<SaveDraftMessageQuery>(std::move(promise))->send(dialog_id, d->draft_message);
+  save_draft_message(td_, dialog_id, d->draft_message, std::move(promise));
 }
 
 void MessagesManager::on_saved_dialog_draft_message(DialogId dialog_id, uint64 generation) {

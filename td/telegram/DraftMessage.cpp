@@ -8,12 +8,79 @@
 
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageEntity.h"
+#include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/ServerMessageId.h"
+#include "td/telegram/Td.h"
 
+#include "td/utils/buffer.h"
 #include "td/utils/logging.h"
 
 namespace td {
+
+class SaveDraftMessageQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit SaveDraftMessageQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, const unique_ptr<DraftMessage> &draft_message) {
+    dialog_id_ = dialog_id;
+
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    if (input_peer == nullptr) {
+      LOG(INFO) << "Can't update draft message because have no write access to " << dialog_id;
+      return on_error(Status::Error(400, "Can't save draft message"));
+    }
+
+    int32 flags = 0;
+    ServerMessageId reply_to_message_id;
+    vector<telegram_api::object_ptr<telegram_api::MessageEntity>> input_message_entities;
+    if (draft_message != nullptr) {
+      if (draft_message->reply_to_message_id.is_valid() && draft_message->reply_to_message_id.is_server()) {
+        reply_to_message_id = draft_message->reply_to_message_id.get_server_message_id();
+        flags |= telegram_api::messages_saveDraft::REPLY_TO_MSG_ID_MASK;
+      }
+      if (draft_message->input_message_text.disable_web_page_preview) {
+        flags |= telegram_api::messages_saveDraft::NO_WEBPAGE_MASK;
+      }
+      input_message_entities = get_input_message_entities(
+          td_->contacts_manager_.get(), draft_message->input_message_text.text.entities, "SaveDraftMessageQuery");
+      if (!input_message_entities.empty()) {
+        flags |= telegram_api::messages_saveDraft::ENTITIES_MASK;
+      }
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_saveDraft(
+            flags, false /*ignored*/, reply_to_message_id.get(), 0, std::move(input_peer),
+            draft_message == nullptr ? string() : draft_message->input_message_text.text.text,
+            std::move(input_message_entities)),
+        {{dialog_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_saveDraft>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    bool result = result_ptr.ok();
+    if (!result) {
+      return on_error(Status::Error(400, "Save draft failed"));
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    if (!td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "SaveDraftMessageQuery")) {
+      LOG(ERROR) << "Receive error for SaveDraftMessageQuery: " << status;
+    }
+    promise_.set_error(std::move(status));
+  }
+};
 
 bool need_update_draft_message(const unique_ptr<DraftMessage> &old_draft_message,
                                const unique_ptr<DraftMessage> &new_draft_message, bool from_update) {
@@ -107,6 +174,11 @@ Result<unique_ptr<DraftMessage>> get_draft_message(Td *td, DialogId dialog_id,
   }
 
   return std::move(result);
+}
+
+void save_draft_message(Td *td, DialogId dialog_id, const unique_ptr<DraftMessage> &draft_message,
+                        Promise<Unit> &&promise) {
+  td->create_handler<SaveDraftMessageQuery>(std::move(promise))->send(dialog_id, draft_message);
 }
 
 }  // namespace td

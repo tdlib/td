@@ -13,6 +13,7 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
+#include "td/utils/Promise.h"
 #include "td/utils/Status.h"
 
 namespace td {
@@ -37,5 +38,8 @@ unique_ptr<DraftMessage> get_draft_message(ContactsManager *contacts_manager,
 
 Result<unique_ptr<DraftMessage>> get_draft_message(Td *td, DialogId dialog_id,
                                                    td_api::object_ptr<td_api::draftMessage> &&draft_message);
+
+void save_draft_message(Td *td, DialogId dialog_id, const unique_ptr<DraftMessage> &draft_message,
+                        Promise<Unit> &&promise);
 
 }  // namespace td
