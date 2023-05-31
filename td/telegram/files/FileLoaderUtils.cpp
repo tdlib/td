@@ -26,7 +26,7 @@
 
 namespace td {
 
-int VERBOSITY_NAME(file_loader) = VERBOSITY_NAME(DEBUG) + 2;
+int VERBOSITY_NAME(file_loader) = VERBOSITY_NAME(DEBUG);
 
 namespace {
 
