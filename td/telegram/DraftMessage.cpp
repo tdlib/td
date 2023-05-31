@@ -138,82 +138,53 @@ class ClearAllDraftsQuery final : public Td::ResultHandler {
   }
 };
 
-bool need_update_draft_message(const unique_ptr<DraftMessage> &old_draft_message,
-                               const unique_ptr<DraftMessage> &new_draft_message, bool from_update) {
-  if (new_draft_message == nullptr) {
-    return old_draft_message != nullptr;
-  }
-  if (old_draft_message == nullptr) {
-    return true;
-  }
-  if (old_draft_message->reply_to_message_id == new_draft_message->reply_to_message_id &&
-      old_draft_message->input_message_text == new_draft_message->input_message_text) {
-    return old_draft_message->date < new_draft_message->date;
+bool DraftMessage::need_update_to(const DraftMessage &other, bool from_update) const {
+  if (reply_to_message_id == other.reply_to_message_id && input_message_text == other.input_message_text) {
+    return date < other.date;
   } else {
-    return !from_update || old_draft_message->date <= new_draft_message->date;
+    return !from_update || date <= other.date;
   }
 }
 
-void add_draft_message_dependencies(Dependencies &dependencies, const unique_ptr<DraftMessage> &draft_message) {
-  if (draft_message == nullptr) {
-    return;
-  }
-  add_formatted_text_dependencies(dependencies, &draft_message->input_message_text.text);
+void DraftMessage::add_dependencies(Dependencies &dependencies) const {
+  add_formatted_text_dependencies(dependencies, &input_message_text.text);
 }
 
-td_api::object_ptr<td_api::draftMessage> get_draft_message_object(const unique_ptr<DraftMessage> &draft_message) {
-  if (draft_message == nullptr) {
-    return nullptr;
-  }
-  return td_api::make_object<td_api::draftMessage>(draft_message->reply_to_message_id.get(), draft_message->date,
-                                                   get_input_message_text_object(draft_message->input_message_text));
+td_api::object_ptr<td_api::draftMessage> DraftMessage::get_draft_message_object() const {
+  return td_api::make_object<td_api::draftMessage>(reply_to_message_id.get(), date,
+                                                   get_input_message_text_object(input_message_text));
 }
 
-unique_ptr<DraftMessage> get_draft_message(ContactsManager *contacts_manager,
-                                           telegram_api::object_ptr<telegram_api::DraftMessage> &&draft_message_ptr) {
-  if (draft_message_ptr == nullptr) {
-    return nullptr;
-  }
-  auto constructor_id = draft_message_ptr->get_id();
-  switch (constructor_id) {
-    case telegram_api::draftMessageEmpty::ID:
-      return nullptr;
-    case telegram_api::draftMessage::ID: {
-      auto draft = move_tl_object_as<telegram_api::draftMessage>(draft_message_ptr);
-      auto flags = draft->flags_;
-      auto result = make_unique<DraftMessage>();
-      result->date = draft->date_;
-      if ((flags & telegram_api::draftMessage::REPLY_TO_MSG_ID_MASK) != 0) {
-        result->reply_to_message_id = MessageId(ServerMessageId(draft->reply_to_msg_id_));
-        if (!result->reply_to_message_id.is_valid()) {
-          LOG(ERROR) << "Receive " << result->reply_to_message_id << " as reply_to_message_id in the draft";
-          result->reply_to_message_id = MessageId();
-        }
-      }
-
-      auto entities = get_message_entities(contacts_manager, std::move(draft->entities_), "draftMessage");
-      auto status = fix_formatted_text(draft->message_, entities, true, true, true, true, true);
-      if (status.is_error()) {
-        LOG(ERROR) << "Receive error " << status << " while parsing draft " << draft->message_;
-        if (!clean_input_string(draft->message_)) {
-          draft->message_.clear();
-        }
-        entities = find_entities(draft->message_, false, true);
-      }
-      result->input_message_text.text = FormattedText{std::move(draft->message_), std::move(entities)};
-      result->input_message_text.disable_web_page_preview = draft->no_webpage_;
-      result->input_message_text.clear_draft = false;
-
-      return result;
+DraftMessage::DraftMessage(ContactsManager *contacts_manager,
+                           telegram_api::object_ptr<telegram_api::draftMessage> &&draft_message) {
+  CHECK(draft_message != nullptr);
+  auto flags = draft_message->flags_;
+  date = draft_message->date_;
+  if ((flags & telegram_api::draftMessage::REPLY_TO_MSG_ID_MASK) != 0) {
+    reply_to_message_id = MessageId(ServerMessageId(draft_message->reply_to_msg_id_));
+    if (!reply_to_message_id.is_valid()) {
+      LOG(ERROR) << "Receive " << reply_to_message_id << " as reply_to_message_id in the draft message";
+      reply_to_message_id = MessageId();
     }
-    default:
-      UNREACHABLE();
-      return nullptr;
   }
+
+  auto entities = get_message_entities(contacts_manager, std::move(draft_message->entities_), "draftMessage");
+  auto status = fix_formatted_text(draft_message->message_, entities, true, true, true, true, true);
+  if (status.is_error()) {
+    LOG(ERROR) << "Receive error " << status << " while parsing draft " << draft_message->message_;
+    if (!clean_input_string(draft_message->message_)) {
+      draft_message->message_.clear();
+    }
+    entities = find_entities(draft_message->message_, false, true);
+  }
+  input_message_text.text = FormattedText{std::move(draft_message->message_), std::move(entities)};
+  input_message_text.disable_web_page_preview = draft_message->no_webpage_;
+  input_message_text.clear_draft = false;
 }
 
-Result<unique_ptr<DraftMessage>> get_draft_message(Td *td, DialogId dialog_id, MessageId top_thread_message_id,
-                                                   td_api::object_ptr<td_api::draftMessage> &&draft_message) {
+Result<unique_ptr<DraftMessage>> DraftMessage::get_draft_message(
+    Td *td, DialogId dialog_id, MessageId top_thread_message_id,
+    td_api::object_ptr<td_api::draftMessage> &&draft_message) {
   if (draft_message == nullptr) {
     return nullptr;
   }
@@ -242,6 +213,49 @@ Result<unique_ptr<DraftMessage>> get_draft_message(Td *td, DialogId dialog_id, M
 
   result->date = G()->unix_time();
   return std::move(result);
+}
+
+bool need_update_draft_message(const unique_ptr<DraftMessage> &old_draft_message,
+                               const unique_ptr<DraftMessage> &new_draft_message, bool from_update) {
+  if (new_draft_message == nullptr) {
+    return old_draft_message != nullptr;
+  }
+  if (old_draft_message == nullptr) {
+    return true;
+  }
+  return old_draft_message->need_update_to(*new_draft_message, from_update);
+}
+
+void add_draft_message_dependencies(Dependencies &dependencies, const unique_ptr<DraftMessage> &draft_message) {
+  if (draft_message == nullptr) {
+    return;
+  }
+  draft_message->add_dependencies(dependencies);
+}
+
+td_api::object_ptr<td_api::draftMessage> get_draft_message_object(const unique_ptr<DraftMessage> &draft_message) {
+  if (draft_message == nullptr) {
+    return nullptr;
+  }
+  return draft_message->get_draft_message_object();
+}
+
+unique_ptr<DraftMessage> get_draft_message(ContactsManager *contacts_manager,
+                                           telegram_api::object_ptr<telegram_api::DraftMessage> &&draft_message_ptr) {
+  if (draft_message_ptr == nullptr) {
+    return nullptr;
+  }
+  auto constructor_id = draft_message_ptr->get_id();
+  switch (constructor_id) {
+    case telegram_api::draftMessageEmpty::ID:
+      return nullptr;
+    case telegram_api::draftMessage::ID:
+      return td::make_unique<DraftMessage>(contacts_manager,
+                                           telegram_api::move_object_as<telegram_api::draftMessage>(draft_message_ptr));
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
 }
 
 void save_draft_message(Td *td, DialogId dialog_id, const unique_ptr<DraftMessage> &draft_message,

@@ -18932,7 +18932,8 @@ Status MessagesManager::set_dialog_draft_message(DialogId dialog_id, MessageId t
 
   TRY_STATUS(can_use_top_thread_message_id(d, top_thread_message_id, MessageId()));
 
-  TRY_RESULT(new_draft_message, get_draft_message(td_, dialog_id, top_thread_message_id, std::move(draft_message)));
+  TRY_RESULT(new_draft_message,
+             DraftMessage::get_draft_message(td_, dialog_id, top_thread_message_id, std::move(draft_message)));
 
   if (top_thread_message_id != MessageId()) {
     CHECK(top_thread_message_id.is_valid());
