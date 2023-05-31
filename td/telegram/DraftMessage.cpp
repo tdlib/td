@@ -108,6 +108,35 @@ class GetAllDraftsQuery final : public Td::ResultHandler {
   }
 };
 
+class ClearAllDraftsQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit ClearAllDraftsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::messages_clearAllDrafts()));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_clearAllDrafts>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    LOG(INFO) << "Receive result for ClearAllDraftsQuery: " << result_ptr.ok();
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    if (!G()->is_expected_error(status)) {
+      LOG(ERROR) << "Receive error for ClearAllDraftsQuery: " << status;
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 bool need_update_draft_message(const unique_ptr<DraftMessage> &old_draft_message,
                                const unique_ptr<DraftMessage> &new_draft_message, bool from_update) {
   if (new_draft_message == nullptr) {
@@ -209,6 +238,10 @@ void save_draft_message(Td *td, DialogId dialog_id, const unique_ptr<DraftMessag
 
 void load_all_draft_messages(Td *td) {
   td->create_handler<GetAllDraftsQuery>()->send();
+}
+
+void clear_all_draft_messages(Td *td, Promise<Unit> &&promise) {
+  td->create_handler<ClearAllDraftsQuery>(std::move(promise))->send();
 }
 
 }  // namespace td

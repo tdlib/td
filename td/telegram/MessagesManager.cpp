@@ -1412,35 +1412,6 @@ class ToggleNoForwardsQuery final : public Td::ResultHandler {
   }
 };
 
-class ClearAllDraftsQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
-
- public:
-  explicit ClearAllDraftsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send() {
-    send_query(G()->net_query_creator().create(telegram_api::messages_clearAllDrafts()));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::messages_clearAllDrafts>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    LOG(INFO) << "Receive result for ClearAllDraftsQuery: " << result_ptr.ok();
-    promise_.set_value(Unit());
-  }
-
-  void on_error(Status status) final {
-    if (!G()->is_expected_error(status)) {
-      LOG(ERROR) << "Receive error for ClearAllDraftsQuery: " << status;
-    }
-    promise_.set_error(std::move(status));
-  }
-};
-
 class ToggleDialogPinQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
@@ -19039,7 +19010,7 @@ void MessagesManager::clear_all_draft_messages(bool exclude_secret_chats, Promis
       }
     });
   }
-  td_->create_handler<ClearAllDraftsQuery>(std::move(promise))->send();
+  ::td::clear_all_draft_messages(td_, std::move(promise));
 }
 
 int32 MessagesManager::get_pinned_dialogs_limit(DialogListId dialog_list_id) const {
