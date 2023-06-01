@@ -3990,6 +3990,10 @@ class CliClient final : public Actor {
       bool is_pinned;
       get_args(args, story_id, is_pinned);
       send_request(td_api::make_object<td_api::toggleStoryIsPinned>(story_id, is_pinned));
+    } else if (op == "ds") {
+      StoryId story_id;
+      get_args(args, story_id);
+      send_request(td_api::make_object<td_api::deleteStory>(story_id));
     } else if (op == "gups") {
       UserId user_id;
       StoryId from_story_id;

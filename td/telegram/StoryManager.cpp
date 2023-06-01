@@ -185,6 +185,33 @@ class ToggleStoryPinnedQuery final : public Td::ResultHandler {
   }
 };
 
+class DeleteStoriesQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit DeleteStoriesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(vector<int32> story_ids) {
+    send_query(G()->net_query_creator().create(telegram_api::stories_deleteStories(std::move(story_ids))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stories_deleteStories>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for DeleteStoriesQuery: " << ptr;
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class StoryManager::SendStoryQuery final : public Td::ResultHandler {
   FileId file_id_;
   unique_ptr<PendingStory> pending_story_;
@@ -634,6 +661,11 @@ void StoryManager::on_delete_story(DialogId owner_dialog_id, StoryId story_id) {
   }
 
   StoryFullId story_full_id{owner_dialog_id, story_id};
+  const Story *story = get_story(story_full_id);
+  if (story == nullptr) {
+    return;
+  }
+  delete_story_files(story);
   stories_.erase(story_full_id);
 }
 
@@ -984,9 +1016,32 @@ void StoryManager::on_toggle_story_is_pinned(StoryId story_id, bool is_pinned, P
   TRY_STATUS_PROMISE(promise, G()->close_status());
   DialogId dialog_id(td_->contacts_manager_->get_my_id());
   Story *story = get_story_editable({dialog_id, story_id});
-  CHECK(story != nullptr);
-  story->is_pinned_ = is_pinned;
-  on_story_changed({dialog_id, story_id}, story, true, true);
+  if (story != nullptr) {
+    story->is_pinned_ = is_pinned;
+    on_story_changed({dialog_id, story_id}, story, true, true);
+  }
+  promise.set_value(Unit());
+}
+
+void StoryManager::delete_story(StoryId story_id, Promise<Unit> &&promise) {
+  DialogId dialog_id(td_->contacts_manager_->get_my_id());
+  const Story *story = get_story({dialog_id, story_id});
+  if (story == nullptr) {
+    return promise.set_error(Status::Error(400, "Story not found"));
+  }
+  if (!story_id.is_server()) {
+    return promise.set_error(Status::Error(400, "Invalid story identifier"));
+  }
+
+  delete_story_on_server(dialog_id, story_id, 0, std::move(promise));
+
+  on_delete_story(dialog_id, story_id);
+}
+
+void StoryManager::delete_story_on_server(DialogId dialog_id, StoryId story_id, uint64 log_event_id,
+                                          Promise<Unit> &&promise) {
+  LOG(INFO) << "Delete " << story_id << " in " << dialog_id << " from server";
+  td_->create_handler<DeleteStoriesQuery>(std::move(promise))->send({story_id.get()});
 }
 
 }  // namespace td

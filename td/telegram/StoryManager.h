@@ -88,6 +88,8 @@ class StoryManager final : public Actor {
 
   void toggle_story_is_pinned(StoryId story_id, bool is_pinned, Promise<Unit> &&promise);
 
+  void delete_story(StoryId story_id, Promise<Unit> &&promise);
+
   void get_dialog_pinned_stories(DialogId owner_dialog_id, StoryId from_story_id, int32 limit,
                                  Promise<td_api::object_ptr<td_api::stories>> &&promise);
 
@@ -141,6 +143,8 @@ class StoryManager final : public Actor {
                                       Promise<td_api::object_ptr<td_api::stories>> &&promise);
 
   vector<FileId> get_story_file_ids(const Story *story) const;
+
+  void delete_story_on_server(DialogId dialog_id, StoryId story_id, uint64 log_event_id, Promise<Unit> &&promise);
 
   void delete_story_files(const Story *story) const;
 

@@ -7184,6 +7184,9 @@ setStoryPrivacyRules story_id:int32 privacy_rules:userPrivacySettingRules = Ok;
 //@description Toggles whether a story is accessible after expiration @story_id Identifier of the story @is_pinned Pass true to make the story accessible after expiration; pass false to make it private
 toggleStoryIsPinned story_id:int32 is_pinned:Bool = Ok;
 
+//@description Deletes a previously sent story @story_id Identifier of the story to delete
+deleteStory story_id:int32 = Ok;
+
 //@description Returns the list of pinned stories of a given user. The stories are returned in a reverse chronological order (i.e., in order of decreasing story_id).
 //-For optimal performance, the number of returned stories is chosen by TDLib
 //@user_id User identifier
