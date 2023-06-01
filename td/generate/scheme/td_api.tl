@@ -5639,6 +5639,9 @@ updateUnreadChatCount chat_list:ChatList total_count:int32 unread_count:int32 un
 //@description A story was changed @story The new information about the story
 updateStory story:story = Update;
 
+//@description A story became inaccessible @sender_user_id Identifier of the user that created the story @story_id Story identifier
+updateStoryDeleted sender_user_id:int53 story_id:int32 = Update;
+
 //@description An option changed its value @name The option name @value The new option value
 updateOption name:string value:OptionValue = Update;
 

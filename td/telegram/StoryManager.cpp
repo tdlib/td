@@ -668,6 +668,13 @@ void StoryManager::on_delete_story(DialogId owner_dialog_id, StoryId story_id) {
   if (story == nullptr) {
     return;
   }
+  if (story->is_update_sent_) {
+    CHECK(owner_dialog_id.get_type() == DialogType::User);
+    send_closure(G()->td(), &Td::send_update,
+                 td_api::make_object<td_api::updateStoryDeleted>(
+                     td_->contacts_manager_->get_user_id_object(owner_dialog_id.get_user_id(), "updateStoryDeleted"),
+                     story_id.get()));
+  }
   delete_story_files(story);
   stories_.erase(story_full_id);
 }
