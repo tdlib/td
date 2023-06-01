@@ -7095,8 +7095,13 @@ bool MessagesManager::update_message_interaction_info(Dialog *d, Message *m, int
   if (has_reactions) {
     auto it = pending_reactions_.find({dialog_id, m->message_id});
     if (it != pending_reactions_.end()) {
+      LOG(INFO) << "Ignore reactions, because have a pending message reaction";
       has_reactions = false;
       it->second.was_updated = true;
+    }
+    if (has_reactions && pending_read_reactions_.count({dialog_id, m->message_id}) > 0) {
+      LOG(INFO) << "Ignore reactions, because have a pending message reaction read";
+      has_reactions = false;
     }
   }
   if (has_reactions && reactions != nullptr) {
@@ -19967,6 +19972,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
 
   MessageId max_message_id;  // max server or local viewed message_id
   vector<MessageId> read_content_message_ids;
+  vector<MessageId> read_reaction_message_ids;
   vector<MessageId> new_viewed_message_ids;
   vector<MessageId> viewed_reaction_message_ids;
   for (auto message_id : message_ids) {
@@ -19995,7 +20001,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
 
       if (need_read && remove_message_unread_reactions(d, m, "view_messages 7")) {
         CHECK(m->message_id.is_server());
-        read_content_message_ids.push_back(m->message_id);
+        read_reaction_message_ids.push_back(m->message_id);
         on_message_changed(d, m, true, "view_messages 8");
       }
 
@@ -20043,6 +20049,17 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
   }
   if (!read_content_message_ids.empty()) {
     read_message_contents_on_server(dialog_id, std::move(read_content_message_ids), 0, Auto());
+  }
+  if (!read_reaction_message_ids.empty()) {
+    for (auto message_id : read_reaction_message_ids) {
+      pending_read_reactions_[{dialog_id, message_id}]++;
+    }
+    auto promise = PromiseCreator::lambda(
+        [actor_id = actor_id(this), dialog_id, read_reaction_message_ids](Result<Unit> &&result) mutable {
+          send_closure(actor_id, &MessagesManager::on_read_message_reactions, dialog_id,
+                       std::move(read_reaction_message_ids), std::move(result));
+        });
+    read_message_contents_on_server(dialog_id, std::move(read_reaction_message_ids), 0, std::move(promise));
   }
   if (!new_viewed_message_ids.empty()) {
     LOG(INFO) << "Have new viewed " << new_viewed_message_ids;
@@ -23818,7 +23835,7 @@ void MessagesManager::on_set_message_reactions(FullMessageId full_message_id, Re
     pending_reactions_.erase(it);
   }
 
-  if (!have_message_force(full_message_id, "on_set_message_reaction")) {
+  if (!have_message_force(full_message_id, "on_set_message_reactions")) {
     return promise.set_value(Unit());
   }
 
@@ -23827,6 +23844,26 @@ void MessagesManager::on_set_message_reactions(FullMessageId full_message_id, Re
   }
 
   promise.set_result(std::move(result));
+}
+
+void MessagesManager::on_read_message_reactions(DialogId dialog_id, vector<MessageId> &&message_ids,
+                                                Result<Unit> &&result) {
+  for (auto message_id : message_ids) {
+    FullMessageId full_message_id{dialog_id, message_id};
+    auto it = pending_read_reactions_.find(full_message_id);
+    CHECK(it != pending_read_reactions_.end());
+    if (--it->second == 0) {
+      pending_read_reactions_.erase(it);
+    }
+
+    if (!have_message_force(full_message_id, "on_read_message_reactions")) {
+      continue;
+    }
+
+    if (result.is_error()) {
+      queue_message_reactions_reload(full_message_id);
+    }
+  }
 }
 
 void MessagesManager::get_message_public_forwards(FullMessageId full_message_id, string offset, int32 limit,

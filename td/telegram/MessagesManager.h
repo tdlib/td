@@ -2623,6 +2623,8 @@ class MessagesManager final : public Actor {
 
   void on_set_message_reactions(FullMessageId full_message_id, Result<Unit> result, Promise<Unit> promise);
 
+  void on_read_message_reactions(DialogId dialog_id, vector<MessageId> &&message_ids, Result<Unit> &&result);
+
   void set_dialog_available_reactions(Dialog *d, ChatReactions &&available_reactions);
 
   void set_dialog_next_available_reactions_generation(Dialog *d, uint32 generation);
@@ -3635,6 +3637,8 @@ class MessagesManager final : public Actor {
     bool was_updated = false;
   };
   FlatHashMap<FullMessageId, PendingReaction, FullMessageIdHash> pending_reactions_;
+
+  FlatHashMap<FullMessageId, int32, FullMessageIdHash> pending_read_reactions_;
 
   vector<string> active_reactions_;
   FlatHashMap<string, size_t> active_reaction_pos_;
