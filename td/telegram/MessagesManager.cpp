@@ -1796,8 +1796,10 @@ class ReadChannelMessagesContentsQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
 
-    send_query(G()->net_query_creator().create(telegram_api::channels_readMessageContents(
-        std::move(input_channel), MessageId::get_server_message_ids(message_ids))));
+    send_query(
+        G()->net_query_creator().create(telegram_api::channels_readMessageContents(
+                                            std::move(input_channel), MessageId::get_server_message_ids(message_ids)),
+                                        {{channel_id_}}));
   }
 
   void on_result(BufferSlice packet) final {

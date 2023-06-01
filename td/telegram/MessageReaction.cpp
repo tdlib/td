@@ -134,8 +134,10 @@ class GetMessagesReactionsQuery final : public Td::ResultHandler {
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     CHECK(input_peer != nullptr);
 
-    send_query(G()->net_query_creator().create(telegram_api::messages_getMessagesReactions(
-        std::move(input_peer), MessageId::get_server_message_ids(message_ids_))));
+    send_query(
+        G()->net_query_creator().create(telegram_api::messages_getMessagesReactions(
+                                            std::move(input_peer), MessageId::get_server_message_ids(message_ids_)),
+                                        {{dialog_id_}}));
   }
 
   void on_result(BufferSlice packet) final {
