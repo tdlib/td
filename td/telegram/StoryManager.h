@@ -37,6 +37,7 @@ class StoryManager final : public Actor {
     bool is_pinned_ = false;
     bool is_public_ = false;
     bool is_for_close_friends_ = false;
+    mutable bool is_update_sent_ = false;  // whether the story is known to the app
     StoryInteractionInfo interaction_info_;
     UserPrivacySettingRules privacy_rules_;
     unique_ptr<StoryContent> content_;

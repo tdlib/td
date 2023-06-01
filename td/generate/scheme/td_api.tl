@@ -5636,6 +5636,9 @@ updateUnreadMessageCount chat_list:ChatList unread_count:int32 unread_unmuted_co
 //@marked_as_unread_unmuted_count Total number of unmuted chats marked as unread
 updateUnreadChatCount chat_list:ChatList total_count:int32 unread_count:int32 unread_unmuted_count:int32 marked_as_unread_count:int32 marked_as_unread_unmuted_count:int32 = Update;
 
+//@description A story was changed @story The new information about the story
+updateStory story:story = Update;
+
 //@description An option changed its value @name The option name @value The new option value
 updateOption name:string value:OptionValue = Update;
 

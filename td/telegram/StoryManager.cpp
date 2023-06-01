@@ -458,6 +458,7 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
   if (story == nullptr) {
     return nullptr;
   }
+  story->is_update_sent_ = true;
   auto dialog_id = story_full_id.get_dialog_id();
   bool is_owned = is_story_owned(dialog_id);
   if (!is_owned && !story->is_pinned_ && G()->unix_time() >= story->expire_date_) {
@@ -606,8 +607,9 @@ void StoryManager::on_story_changed(StoryFullId story_full_id, const Story *stor
   if (is_changed || need_save_to_database) {
     // save_story(story, story_id);
 
-    if (is_changed) {
-      // send_closure(G()->td(), &Td::send_update, td_api::make_object<td_api::updateStory>(get_story_object(story_full_id, story)));
+    if (is_changed && story->is_update_sent_) {
+      send_closure(G()->td(), &Td::send_update,
+                   td_api::make_object<td_api::updateStory>(get_story_object(story_full_id, story)));
     }
   }
 }
@@ -862,6 +864,8 @@ void StoryManager::edit_story(StoryId story_id, td_api::object_ptr<td_api::Input
   auto pending_story = td::make_unique<PendingStory>(dialog_id, story_id, 0 /*log_event_id*/,
                                                      std::numeric_limits<uint32>::max() - (++send_story_count_),
                                                      story->edit_generation_, std::move(new_story));
+
+  on_story_changed(story_full_id, story, true, true);
 
   if (edited_story->content_ == nullptr) {
     return do_edit_story(FileId(), std::move(pending_story), nullptr);
