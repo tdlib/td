@@ -72,6 +72,7 @@ class TdDb {
     vector<BinlogEvent> to_messages_manager;
     vector<BinlogEvent> to_notification_manager;
     vector<BinlogEvent> to_notification_settings_manager;
+    vector<BinlogEvent> to_story_manager;
 
     int64 since_last_open = 0;
   };

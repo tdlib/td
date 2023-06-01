@@ -126,6 +126,9 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
       case LogEvent::HandlerType::ToggleDialogIsTranslatableOnServer:
         events.to_messages_manager.push_back(event.clone());
         break;
+      case LogEvent::HandlerType::DeleteStoryOnServer:
+        events.to_story_manager.push_back(event.clone());
+        break;
       case LogEvent::HandlerType::UpdateScopeNotificationSettingsOnServer:
         events.to_notification_settings_manager.push_back(event.clone());
         break;

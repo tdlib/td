@@ -3728,6 +3728,8 @@ void Td::init(Parameters parameters, Result<TdDb::OpenedDatabase> r_opened_datab
   send_closure_later(messages_manager_actor_, &MessagesManager::on_binlog_events,
                      std::move(events.to_messages_manager));
 
+  send_closure_later(story_manager_actor_, &StoryManager::on_binlog_events, std::move(events.to_story_manager));
+
   send_closure_later(notification_manager_actor_, &NotificationManager::on_binlog_events,
                      std::move(events.to_notification_manager));
 

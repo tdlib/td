@@ -11,6 +11,8 @@
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/logevent/LogEvent.h"
+#include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/StoryContent.h"
@@ -18,6 +20,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/UpdatesManager.h"
 
+#include "tddb/td/db/binlog/BinlogEvent.h"
 #include "tddb/td/db/binlog/BinlogHelper.h"
 
 #include "td/utils/algorithm.h"
@@ -1038,10 +1041,68 @@ void StoryManager::delete_story(StoryId story_id, Promise<Unit> &&promise) {
   on_delete_story(dialog_id, story_id);
 }
 
+class StoryManager::DeleteStoryOnServerLogEvent {
+ public:
+  DialogId dialog_id_;
+  StoryId story_id_;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    td::store(dialog_id_, storer);
+    td::store(story_id_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    td::parse(dialog_id_, parser);
+    td::parse(story_id_, parser);
+  }
+};
+
+uint64 StoryManager::save_delete_story_on_server_log_event(DialogId dialog_id, StoryId story_id) {
+  DeleteStoryOnServerLogEvent log_event{dialog_id, story_id};
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteStoryOnServer,
+                    get_log_event_storer(log_event));
+}
+
 void StoryManager::delete_story_on_server(DialogId dialog_id, StoryId story_id, uint64 log_event_id,
                                           Promise<Unit> &&promise) {
   LOG(INFO) << "Delete " << story_id << " in " << dialog_id << " from server";
+
+  if (log_event_id == 0) {
+    log_event_id = save_delete_story_on_server_log_event(dialog_id, story_id);
+  }
+
+  auto new_promise = get_erase_log_event_promise(log_event_id, std::move(promise));
+  promise = std::move(new_promise);  // to prevent self-move
+
   td_->create_handler<DeleteStoriesQuery>(std::move(promise))->send({story_id.get()});
+}
+
+void StoryManager::on_binlog_events(vector<BinlogEvent> &&events) {
+  if (G()->close_flag()) {
+    return;
+  }
+  for (auto &event : events) {
+    CHECK(event.id_ != 0);
+    switch (event.type_) {
+      case LogEvent::HandlerType::DeleteStoryOnServer: {
+        DeleteStoryOnServerLogEvent log_event;
+        log_event_parse(log_event, event.get_data()).ensure();
+
+        auto dialog_id = log_event.dialog_id_;
+        if (dialog_id != DialogId(td_->contacts_manager_->get_my_id())) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        delete_story_on_server(dialog_id, log_event.story_id_, event.id_, Auto());
+        break;
+      }
+      default:
+        LOG(FATAL) << "Unsupported log event type " << event.type_;
+    }
+  }
 }
 
 }  // namespace td

@@ -107,6 +107,7 @@ class LogEvent {
     AddMessagePushNotification = 0x200,
     EditMessagePushNotification = 0x201,
     SaveAppLog = 0x300,
+    DeleteStoryOnServer = 0x400,
     ConfigPmcMagic = 0x1f18,
     BinlogPmcMagic = 0x4327
   };

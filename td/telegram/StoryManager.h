@@ -27,6 +27,7 @@
 
 namespace td {
 
+struct BinlogEvent;
 class StoryContent;
 class Td;
 
@@ -109,11 +110,15 @@ class StoryManager final : public Actor {
 
   void reload_story(StoryFullId story_full_id, Promise<Unit> &&promise);
 
+  void on_binlog_events(vector<BinlogEvent> &&events);
+
  private:
   class UploadMediaCallback;
 
   class SendStoryQuery;
   class EditStoryQuery;
+
+  class DeleteStoryOnServerLogEvent;
 
   void tear_down() final;
 
@@ -143,6 +148,8 @@ class StoryManager final : public Actor {
                                       Promise<td_api::object_ptr<td_api::stories>> &&promise);
 
   vector<FileId> get_story_file_ids(const Story *story) const;
+
+  static uint64 save_delete_story_on_server_log_event(DialogId dialog_id, StoryId story_id);
 
   void delete_story_on_server(DialogId dialog_id, StoryId story_id, uint64 log_event_id, Promise<Unit> &&promise);
 
