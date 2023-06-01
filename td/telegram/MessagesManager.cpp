@@ -7126,17 +7126,16 @@ bool MessagesManager::update_message_interaction_info(Dialog *d, Message *m, int
       }
     }
   }
+  FullMessageId full_message_id{dialog_id, m->message_id};
   if (has_reactions) {
-    auto it = pending_reactions_.find({dialog_id, m->message_id});
+    auto it = pending_reactions_.find(full_message_id);
     if (it != pending_reactions_.end()) {
-      LOG(INFO) << "Ignore reactions for " << FullMessageId{dialog_id, m->message_id}
-                << ", because they are being changed";
+      LOG(INFO) << "Ignore reactions for " << full_message_id << ", because they are being changed";
       has_reactions = false;
       it->second.was_updated = true;
     }
-    if (has_reactions && pending_read_reactions_.count({dialog_id, m->message_id}) > 0) {
-      LOG(INFO) << "Ignore reactions for " << FullMessageId{dialog_id, m->message_id}
-                << ", because they are being read";
+    if (has_reactions && pending_read_reactions_.count(full_message_id) > 0) {
+      LOG(INFO) << "Ignore reactions for " << full_message_id << ", because they are being read";
       has_reactions = false;
     }
   }
@@ -7155,8 +7154,8 @@ bool MessagesManager::update_message_interaction_info(Dialog *d, Message *m, int
                                            m->reactions->chosen_reaction_order_ != reactions->chosen_reaction_order_;
   if (view_count > m->view_count || forward_count > m->forward_count || need_update_reply_info ||
       need_update_reactions || need_update_unread_reactions || need_update_chosen_reaction_order) {
-    LOG(DEBUG) << "Update interaction info of " << FullMessageId{dialog_id, m->message_id} << " from " << m->view_count
-               << '/' << m->forward_count << '/' << m->reply_info << '/' << m->reactions << " to " << view_count << '/'
+    LOG(DEBUG) << "Update interaction info of " << full_message_id << " from " << m->view_count << '/'
+               << m->forward_count << '/' << m->reply_info << '/' << m->reactions << " to " << view_count << '/'
                << forward_count << '/' << reply_info << '/' << reactions;
     bool need_update = false;
     if (view_count > m->view_count) {
@@ -7170,8 +7169,8 @@ bool MessagesManager::update_message_interaction_info(Dialog *d, Message *m, int
     if (need_update_reply_info) {
       if (m->reply_info.channel_id_ != reply_info.channel_id_) {
         if (m->reply_info.channel_id_.is_valid() && reply_info.channel_id_.is_valid() && m->message_id.is_server()) {
-          LOG(ERROR) << "Reply info of " << FullMessageId{dialog_id, m->message_id} << " changed from " << m->reply_info
-                     << " to " << reply_info << " from " << source;
+          LOG(ERROR) << "Reply info of " << full_message_id << " changed from " << m->reply_info << " to " << reply_info
+                     << " from " << source;
         }
       }
       m->reply_info = std::move(reply_info);
