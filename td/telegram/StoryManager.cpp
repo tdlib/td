@@ -535,6 +535,31 @@ void StoryManager::change_story_files(StoryFullId story_full_id, const Story *st
   }
 }
 
+void StoryManager::on_get_story(DialogId owner_dialog_id,
+                                telegram_api::object_ptr<telegram_api::StoryItem> &&story_item_ptr) {
+  if (!owner_dialog_id.is_valid()) {
+    LOG(ERROR) << "Receive a story in " << owner_dialog_id;
+    return;
+  }
+  CHECK(story_item_ptr != nullptr);
+  switch (story_item_ptr->get_id()) {
+    case telegram_api::storyItemDeleted::ID: {
+      auto story_item = telegram_api::move_object_as<telegram_api::storyItemDeleted>(story_item_ptr);
+      on_delete_story(owner_dialog_id, StoryId(story_item->id_));
+      break;
+    }
+    case telegram_api::storyItemSkipped::ID:
+      LOG(ERROR) << "Receive storyItemSkipped";
+      break;
+    case telegram_api::storyItem::ID: {
+      on_get_story(owner_dialog_id, telegram_api::move_object_as<telegram_api::storyItem>(story_item_ptr));
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
+}
+
 StoryId StoryManager::on_get_story(DialogId owner_dialog_id,
                                    telegram_api::object_ptr<telegram_api::storyItem> &&story_item) {
   CHECK(story_item != nullptr);
@@ -600,6 +625,16 @@ StoryId StoryManager::on_get_story(DialogId owner_dialog_id,
   on_story_changed(story_full_id, story, is_changed, need_save_to_database);
 
   return story_id;
+}
+
+void StoryManager::on_delete_story(DialogId owner_dialog_id, StoryId story_id) {
+  if (!story_id.is_server()) {
+    LOG(ERROR) << "Receive deleted " << story_id << " in " << owner_dialog_id;
+    return;
+  }
+
+  StoryFullId story_full_id{owner_dialog_id, story_id};
+  stories_.erase(story_full_id);
 }
 
 void StoryManager::on_story_changed(StoryFullId story_full_id, const Story *story, bool is_changed,

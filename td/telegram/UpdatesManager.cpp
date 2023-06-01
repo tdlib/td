@@ -54,6 +54,7 @@
 #include "td/telegram/StickerSetId.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/StickerType.h"
+#include "td/telegram/StoryManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/TdDb.h"
@@ -4189,11 +4190,12 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateAutoSaveSetting
   promise.set_value(Unit());
 }
 
-// unsupported updates
-
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStory> update, Promise<Unit> &&promise) {
+  td_->story_manager_->on_get_story(DialogId(UserId(update->user_id_)), std::move(update->story_));
   promise.set_value(Unit());
 }
+
+// unsupported updates
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadStories> update, Promise<Unit> &&promise) {
   promise.set_value(Unit());

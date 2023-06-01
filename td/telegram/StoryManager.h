@@ -93,7 +93,7 @@ class StoryManager final : public Actor {
 
   void get_dialog_expiring_stories(DialogId owner_dialog_id, Promise<td_api::object_ptr<td_api::stories>> &&promise);
 
-  StoryId on_get_story(DialogId owner_dialog_id, telegram_api::object_ptr<telegram_api::storyItem> &&story_item);
+  void on_get_story(DialogId owner_dialog_id, telegram_api::object_ptr<telegram_api::StoryItem> &&story_item_ptr);
 
   std::pair<int32, vector<StoryId>> on_get_stories(DialogId owner_dialog_id,
                                                    telegram_api::object_ptr<telegram_api::stories_stories> &&stories);
@@ -124,6 +124,10 @@ class StoryManager final : public Actor {
   void on_story_changed(StoryFullId story_full_id, const Story *story, bool is_changed, bool need_save_to_database);
 
   td_api::object_ptr<td_api::story> get_story_object(StoryFullId story_full_id, const Story *story) const;
+
+  StoryId on_get_story(DialogId owner_dialog_id, telegram_api::object_ptr<telegram_api::storyItem> &&story_item);
+
+  void on_delete_story(DialogId owner_dialog_id, StoryId story_id);
 
   vector<StoryId> on_get_stories(DialogId owner_dialog_id,
                                  vector<telegram_api::object_ptr<telegram_api::StoryItem>> &&stories);
