@@ -619,9 +619,19 @@ StoryId StoryManager::on_get_story(DialogId owner_dialog_id,
   if (content == nullptr) {
     return StoryId();
   }
+
+  const BeingEditedStory *edited_story = nullptr;
+  auto it = being_edited_stories_.find(story_full_id);
+  if (it != being_edited_stories_.end()) {
+    edited_story = it->second.get();
+  }
+
   auto content_type = content->get_type();
   auto old_file_ids = get_story_file_ids(story);
-  if (story->content_ == nullptr || story->content_->get_type() != content_type) {
+  if (edited_story != nullptr && edited_story->content_ != nullptr) {
+    story->content_ = std::move(content);
+    need_save_to_database = true;
+  } else if (story->content_ == nullptr || story->content_->get_type() != content_type) {
     story->content_ = std::move(content);
     is_changed = true;
   } else {
@@ -640,7 +650,7 @@ StoryId StoryManager::on_get_story(DialogId owner_dialog_id,
   if (story->is_pinned_ != story_item->pinned_ || story->is_public_ != story_item->public_ ||
       story->is_for_close_friends_ != story_item->close_friends_ || story->date_ != story_item->date_ ||
       story->expire_date_ != story_item->expire_date_ || !(story->privacy_rules_ == privacy_rules) ||
-      story->interaction_info_ != interaction_info || story->caption_ != caption) {
+      story->interaction_info_ != interaction_info) {
     story->is_pinned_ = story_item->pinned_;
     story->is_public_ = story_item->public_;
     story->is_for_close_friends_ = story_item->close_friends_;
@@ -648,8 +658,15 @@ StoryId StoryManager::on_get_story(DialogId owner_dialog_id,
     story->expire_date_ = story_item->expire_date_;
     story->privacy_rules_ = std::move(privacy_rules);
     story->interaction_info_ = std::move(interaction_info);
-    story->caption_ = std::move(caption);
     is_changed = true;
+  }
+  if (story->caption_ != caption) {
+    story->caption_ = std::move(caption);
+    if (edited_story != nullptr && edited_story->edit_caption_) {
+      need_save_to_database = true;
+    } else {
+      is_changed = true;
+    }
   }
 
   on_story_changed(story_full_id, story, is_changed, need_save_to_database);
@@ -682,6 +699,7 @@ void StoryManager::on_delete_story(DialogId owner_dialog_id, StoryId story_id) {
 void StoryManager::on_story_changed(StoryFullId story_full_id, const Story *story, bool is_changed,
                                     bool need_save_to_database) {
   if (is_changed || need_save_to_database) {
+    // TODO save Story and BeingEditedStory
     // save_story(story, story_id);
 
     if (is_changed && story->is_update_sent_) {
@@ -985,7 +1003,12 @@ void StoryManager::on_story_edited(FileId file_id, unique_ptr<PendingStory> pend
     binlog_erase(G()->td_db()->get_binlog(), pending_story->log_event_id_);
   }
   auto promises = std::move(it->second->promises_);
+  bool is_changed =
+      it->second->content_ != nullptr || (it->second->edit_caption_ && it->second->caption_ != story->caption_);
   being_edited_stories_.erase(it);
+
+  on_story_changed(story_full_id, story, is_changed, true);
+
   if (result.is_ok()) {
     set_promises(promises);
   } else {
