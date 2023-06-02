@@ -51,6 +51,9 @@ class SponsoredMessageManager final : public Actor {
 
   void delete_cached_sponsored_messages(DialogId dialog_id);
 
+  td_api::object_ptr<td_api::messageSponsor> get_message_sponsor_object(
+      const SponsoredMessage &sponsored_message) const;
+
   td_api::object_ptr<td_api::sponsoredMessage> get_sponsored_message_object(
       DialogId dialog_id, const SponsoredMessage &sponsored_message) const;
 
