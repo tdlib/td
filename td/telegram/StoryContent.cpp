@@ -192,6 +192,45 @@ telegram_api::object_ptr<telegram_api::InputMedia> get_story_content_input_media
   }
 }
 
+void compare_story_contents(const StoryContent *old_content, const StoryContent *new_content, bool &is_content_changed,
+                            bool &need_update) {
+  StoryContentType content_type = new_content->get_type();
+  if (old_content->get_type() != content_type) {
+    need_update = true;
+    return;
+  }
+
+  switch (content_type) {
+    case StoryContentType::Photo: {
+      const auto *old_ = static_cast<const StoryContentPhoto *>(old_content);
+      const auto *new_ = static_cast<const StoryContentPhoto *>(new_content);
+      if (old_->photo_ != new_->photo_) {
+        need_update = true;
+      }
+      break;
+    }
+    case StoryContentType::Video: {
+      const auto *old_ = static_cast<const StoryContentVideo *>(old_content);
+      const auto *new_ = static_cast<const StoryContentVideo *>(new_content);
+      if (old_->file_id_ != new_->file_id_ || old_->alt_file_id_ != new_->alt_file_id_) {
+        need_update = true;
+      }
+      break;
+    }
+    case StoryContentType::Unsupported: {
+      const auto *old_ = static_cast<const StoryContentUnsupported *>(old_content);
+      const auto *new_ = static_cast<const StoryContentUnsupported *>(new_content);
+      if (old_->version_ != new_->version_) {
+        is_content_changed = true;
+      }
+      break;
+    }
+    default:
+      UNREACHABLE();
+      break;
+  }
+}
+
 void merge_story_contents(Td *td, const StoryContent *old_content, StoryContent *new_content, DialogId dialog_id,
                           bool need_merge_files, bool &is_content_changed, bool &need_update) {
   StoryContentType content_type = new_content->get_type();
