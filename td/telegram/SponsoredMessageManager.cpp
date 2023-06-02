@@ -165,29 +165,41 @@ td_api::object_ptr<td_api::sponsoredMessage> SponsoredMessageManager::get_sponso
     case DialogType::User: {
       auto user_id = sponsored_message.sponsor_dialog_id.get_user_id();
       if (!td_->contacts_manager_->is_user_bot(user_id)) {
-        break;
+        LOG(ERROR) << "Sponsor " << user_id << " is not a bot";
+        return nullptr;
       }
       auto bot_username = td_->contacts_manager_->get_user_first_username(user_id);
       if (bot_username.empty()) {
-        break;
+        LOG(ERROR) << "Sponsor " << user_id << " has no username";
+        return nullptr;
       }
       link = td_api::make_object<td_api::internalLinkTypeBotStart>(bot_username, sponsored_message.start_param, false);
       break;
     }
-    case DialogType::Channel:
+    case DialogType::Channel: {
+      auto channel_id = sponsored_message.sponsor_dialog_id.get_channel_id();
+      if (!td_->contacts_manager_->is_broadcast_channel(channel_id)) {
+        LOG(ERROR) << "Sponsor " << channel_id << " is not a channel";
+        return nullptr;
+      }
       if (sponsored_message.server_message_id.is_valid()) {
-        auto channel_id = sponsored_message.sponsor_dialog_id.get_channel_id();
         link = td_api::make_object<td_api::internalLinkTypeMessage>(
             PSTRING() << LinkManager::get_t_me_url() << "c/" << channel_id.get() << '/'
                       << sponsored_message.server_message_id.get());
       }
       break;
+    }
     case DialogType::None: {
       CHECK(!sponsored_message.invite_hash.empty());
       auto invite_link = LinkManager::get_dialog_invite_link(sponsored_message.invite_hash, false);
       chat_invite_link_info = td_->contacts_manager_->get_chat_invite_link_info_object(invite_link);
       if (chat_invite_link_info == nullptr) {
         LOG(ERROR) << "Failed to get invite link info for " << invite_link;
+        return nullptr;
+      }
+      if (chat_invite_link_info->type_->get_id() != td_api::chatTypeSupergroup::ID ||
+          !static_cast<const td_api::chatTypeSupergroup *>(chat_invite_link_info->type_.get())->is_channel_) {
+        LOG(ERROR) << "Receive sponsor chat of a wrong type " << to_string(chat_invite_link_info->type_);
         return nullptr;
       }
       link = td_api::make_object<td_api::internalLinkTypeChatInvite>(
@@ -209,6 +221,7 @@ td_api::object_ptr<td_api::sponsoredMessages> SponsoredMessageManager::get_spons
   auto messages = transform(sponsored_messages.messages, [this, dialog_id](const SponsoredMessage &message) {
     return get_sponsored_message_object(dialog_id, message);
   });
+  td::remove_if(messages, [](const auto &message) { return message == nullptr; });
   return td_api::make_object<td_api::sponsoredMessages>(std::move(messages), sponsored_messages.messages_between);
 }
 
