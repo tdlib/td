@@ -598,6 +598,9 @@ StoryId StoryManager::on_get_story(DialogId owner_dialog_id,
     LOG(ERROR) << "Receive " << to_string(story_item);
     return StoryId();
   }
+  if (deleted_story_full_ids_.count({owner_dialog_id, story_id}) > 0) {
+    return StoryId();
+  }
 
   StoryFullId story_full_id{owner_dialog_id, story_id};
   auto story = get_story_editable(story_full_id);
@@ -1105,6 +1108,8 @@ void StoryManager::delete_story_on_server(DialogId dialog_id, StoryId story_id, 
 
   auto new_promise = get_erase_log_event_promise(log_event_id, std::move(promise));
   promise = std::move(new_promise);  // to prevent self-move
+
+  deleted_story_full_ids_.insert({dialog_id, story_id});
 
   td_->create_handler<DeleteStoriesQuery>(std::move(promise))->send({story_id.get()});
 }

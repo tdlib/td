@@ -22,6 +22,7 @@
 #include "td/utils/common.h"
 #include "td/utils/Promise.h"
 #include "td/utils/WaitFreeHashMap.h"
+#include "td/utils/WaitFreeHashSet.h"
 
 #include <utility>
 
@@ -175,6 +176,8 @@ class StoryManager final : public Actor {
   WaitFreeHashMap<StoryFullId, FileSourceId, StoryFullIdHash> story_full_id_to_file_source_id_;
 
   WaitFreeHashMap<StoryFullId, unique_ptr<Story>, StoryFullIdHash> stories_;
+
+  WaitFreeHashSet<StoryFullId, StoryFullIdHash> deleted_story_full_ids_;
 
   FlatHashMap<StoryFullId, unique_ptr<BeingEditedStory>, StoryFullIdHash> being_edited_stories_;
 
