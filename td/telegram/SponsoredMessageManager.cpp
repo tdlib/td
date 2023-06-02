@@ -54,7 +54,9 @@ class GetSponsoredMessagesQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    promise_.set_value(result_ptr.move_as_ok());
+    auto ptr = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for GetSponsoredMessagesQuery: " << to_string(ptr);
+    promise_.set_value(std::move(ptr));
   }
 
   void on_error(Status status) final {
@@ -132,10 +134,14 @@ struct SponsoredMessageManager::SponsoredMessage {
   unique_ptr<MessageContent> content;
   string sponsor_info;
   string additional_info;
+  string site_url;
+  string site_name;
+  DialogPhoto site_photo;
 
   SponsoredMessage(int64 local_id, bool is_recommended, bool show_dialog_photo, DialogId sponsor_dialog_id,
                    ServerMessageId server_message_id, string start_param, string invite_hash,
-                   unique_ptr<MessageContent> content, string sponsor_info, string additional_info)
+                   unique_ptr<MessageContent> content, string sponsor_info, string additional_info, string site_url,
+                   string site_name, DialogPhoto site_photo)
       : local_id(local_id)
       , is_recommended(is_recommended)
       , show_dialog_photo(show_dialog_photo)
@@ -145,7 +151,10 @@ struct SponsoredMessageManager::SponsoredMessage {
       , invite_hash(std::move(invite_hash))
       , content(std::move(content))
       , sponsor_info(std::move(sponsor_info))
-      , additional_info(std::move(additional_info)) {
+      , additional_info(std::move(additional_info))
+      , site_url(std::move(site_url))
+      , site_name(std::move(site_name))
+      , site_photo(std::move(site_photo)) {
   }
 };
 
@@ -243,7 +252,15 @@ td_api::object_ptr<td_api::messageSponsor> SponsoredMessageManager::get_message_
       break;
     }
     case DialogType::None: {
-      CHECK(!sponsored_message.invite_hash.empty());
+      if (sponsored_message.invite_hash.empty()) {
+        CHECK(!sponsored_message.site_url.empty());
+        type = td_api::make_object<td_api::messageSponsorTypeWebsite>(sponsored_message.site_url,
+                                                                      sponsored_message.site_name);
+        if (sponsored_message.show_dialog_photo) {
+          photo = get_chat_photo_info_object(td_->file_manager_.get(), &sponsored_message.site_photo);
+        }
+        break;
+      }
       auto invite_link = LinkManager::get_dialog_invite_link(sponsored_message.invite_hash, false);
       auto chat_invite_link_info = td_->contacts_manager_->get_chat_invite_link_info_object(invite_link);
       if (chat_invite_link_info == nullptr) {
@@ -354,6 +371,9 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
         DialogId sponsor_dialog_id;
         ServerMessageId server_message_id;
         string invite_hash;
+        string site_url;
+        string site_name;
+        DialogPhoto site_photo;
         if (sponsored_message->from_id_ != nullptr) {
           sponsor_dialog_id = DialogId(sponsored_message->from_id_);
           if (!sponsor_dialog_id.is_valid() || !td_->messages_manager_->have_dialog_info_force(sponsor_dialog_id)) {
@@ -382,6 +402,13 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
             continue;
           }
           invite_hash = std::move(sponsored_message->chat_invite_hash_);
+        } else if (sponsored_message->webpage_ != nullptr && !sponsored_message->webpage_->url_.empty()) {
+          site_url = std::move(sponsored_message->webpage_->url_);
+          site_name = std::move(sponsored_message->webpage_->site_name_);
+          if (sponsored_message->webpage_->photo_ != nullptr) {
+            auto photo = get_photo(td_, std::move(sponsored_message->webpage_->photo_), DialogId());
+            site_photo = as_fake_dialog_photo(photo, DialogId(), false);
+          }
         } else {
           LOG(ERROR) << "Receive " << to_string(sponsored_message);
           continue;
@@ -402,7 +429,7 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
 
         current_sponsored_message_id_ = current_sponsored_message_id_.get_next_message_id(MessageType::Local);
         if (!current_sponsored_message_id_.is_valid_sponsored()) {
-          LOG(ERROR) << "Sponsored message ID overflowed";
+          LOG(ERROR) << "Sponsored message identifier overflowed";
           current_sponsored_message_id_ = MessageId::max().get_next_message_id(MessageType::Local);
           CHECK(current_sponsored_message_id_.is_valid_sponsored());
         }
@@ -416,7 +443,8 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
         messages->messages.emplace_back(
             local_id, sponsored_message->recommended_, sponsored_message->show_peer_photo_, sponsor_dialog_id,
             server_message_id, std::move(sponsored_message->start_param_), std::move(invite_hash), std::move(content),
-            std::move(sponsored_message->sponsor_info_), std::move(sponsored_message->additional_info_));
+            std::move(sponsored_message->sponsor_info_), std::move(sponsored_message->additional_info_),
+            std::move(site_url), std::move(site_name), std::move(site_photo));
       }
       messages->messages_between = sponsored_messages->posts_between_;
       break;

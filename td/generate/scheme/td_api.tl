@@ -1234,6 +1234,9 @@ messageSponsorTypePublicChannel chat_id:int53 link:InternalLinkType = MessageSpo
 //@description The sponsor is a private channel chat @title Title of the chat @invite_link Invite link for the channel
 messageSponsorTypePrivateChannel title:string invite_link:string = MessageSponsorType;
 
+//@description The sponsor is a website @url Url of the website @name Name of the website
+messageSponsorTypeWebsite url:string name:string = MessageSponsorType;
+
 
 //@description Information about the sponsor of a message
 //@type Type of the sponsor
