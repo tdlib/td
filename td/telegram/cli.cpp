@@ -530,8 +530,9 @@ class CliClient final : public Actor {
 
   td_api::object_ptr<td_api::MessageSender> as_message_sender(Slice sender_id) const {
     sender_id = trim(sender_id);
-    if (sender_id.empty() || sender_id[0] != '-') {
-      return td_api::make_object<td_api::messageSenderUser>(as_user_id(sender_id));
+    auto user_id = as_user_id(sender_id, true);
+    if (sender_id.empty() || user_id > 0) {
+      return td_api::make_object<td_api::messageSenderUser>(user_id);
     } else {
       return td_api::make_object<td_api::messageSenderChat>(as_chat_id(sender_id));
     }
@@ -573,7 +574,7 @@ class CliClient final : public Actor {
     return to_integer<int32>(trim(str));
   }
 
-  int64 as_user_id(Slice str) const {
+  int64 as_user_id(Slice str, bool expect_error = false) const {
     str = trim(str);
     if (str == "me") {
       return my_id_;
@@ -586,7 +587,9 @@ class CliClient final : public Actor {
       if (it != username_to_user_id_.end()) {
         return it->second;
       }
-      LOG(ERROR) << "Can't find user " << str;
+      if (!expect_error) {
+        LOG(ERROR) << "Can't find user " << str;
+      }
       return 0;
     }
     return to_integer<int64>(str);
