@@ -15,7 +15,7 @@ class JavadocTlDocumentationGenerator extends TlDocumentationGenerator
             {
                 return preg_replace_callback('/_([A-Za-z])/', function ($matches) {return strtoupper($matches[1]);}, $word_matches[0]);
             }, $doc);
-        $doc = htmlspecialchars($doc);
+        $doc = htmlspecialchars($doc, ENT_COMPAT);
         $doc = str_replace('*/', '*&#47;', $doc);
         return $doc;
     }
