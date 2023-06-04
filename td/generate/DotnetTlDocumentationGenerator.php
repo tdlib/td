@@ -11,7 +11,7 @@ class DotnetTlDocumentationGenerator extends TlDocumentationGenerator
             {
                 return ucfirst(preg_replace_callback('/_([A-Za-z])/', function ($matches) {return strtoupper($matches[1]);}, $word_matches[0]));
             }, $doc);
-        $doc = htmlspecialchars($doc, ENT_XML1);
+        $doc = htmlspecialchars($doc, ENT_XML1, 'UTF-8');
         $doc = str_replace('*/', '*&#47;', $doc);
         return $doc;
     }
