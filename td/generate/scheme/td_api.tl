@@ -4789,6 +4789,11 @@ internalLinkTypeSettings = InternalLinkType;
 //@expect_custom_emoji True, if the sticker set is expected to contain custom emoji
 internalLinkTypeStickerSet sticker_set_name:string expect_custom_emoji:Bool = InternalLinkType;
 
+//@description The link is a link to a story. Call searchPublicChat with the given sender username, check that a user is returned, then call getStory with the received user identifier and the given story identifier
+//@sender_username Username of the sender of the story
+//@story_id Story identifier
+internalLinkTypeStory sender_username:string story_id:int32 = InternalLinkType;
+
 //@description The link is a link to a theme. TDLib has no theme support yet @theme_name Name of the theme
 internalLinkTypeTheme theme_name:string = InternalLinkType;
 

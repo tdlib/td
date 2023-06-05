@@ -144,6 +144,7 @@ class LinkManager final : public Actor {
   class InternalLinkRestorePurchases;
   class InternalLinkSettings;
   class InternalLinkStickerSet;
+  class InternalLinkStory;
   class InternalLinkTheme;
   class InternalLinkThemeSettings;
   class InternalLinkUnknownDeepLink;
