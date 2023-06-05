@@ -2103,7 +2103,7 @@ static Result<InputMessageContent> create_input_message_content(
       bool has_stickers = !sticker_file_ids.empty();
       td->videos_manager_->create_video(file_id, string(), thumbnail, AnimationSize(), has_stickers,
                                         std::move(sticker_file_ids), std::move(file_name), std::move(mime_type),
-                                        input_video->duration_,
+                                        input_video->duration_, input_video->duration_,
                                         get_dimensions(input_video->width_, input_video->height_, nullptr),
                                         input_video->supports_streaming_, 0, false);
 

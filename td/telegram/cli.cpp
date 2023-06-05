@@ -790,6 +790,10 @@ class CliClient final : public Actor {
     arg = to_integer<int64>(args);
   }
 
+  static void get_args(string &args, double &arg) {
+    arg = to_double(args);
+  }
+
   struct ChatId {
     int64 chat_id = 0;
 
@@ -3945,7 +3949,7 @@ class CliClient final : public Actor {
       string video;
       string caption;
       PrivacyRules rules;
-      int32 duration;
+      double duration;
       string sticker_file_ids;
       get_args(args, video, caption, rules, duration, sticker_file_ids);
       send_request(td_api::make_object<td_api::sendStory>(

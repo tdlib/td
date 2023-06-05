@@ -65,11 +65,12 @@ FileId VideosManager::on_get_video(unique_ptr<Video> new_video, bool replace) {
       LOG(DEBUG) << "Video " << file_id << " MIME type has changed";
       v->mime_type = std::move(new_video->mime_type);
     }
-    if (v->duration != new_video->duration || v->dimensions != new_video->dimensions ||
-        v->supports_streaming != new_video->supports_streaming ||
+    if (v->duration != new_video->duration || v->precise_duration != new_video->precise_duration ||
+        v->dimensions != new_video->dimensions || v->supports_streaming != new_video->supports_streaming ||
         v->preload_prefix_size != new_video->preload_prefix_size) {
       LOG(DEBUG) << "Video " << file_id << " info has changed";
       v->duration = new_video->duration;
+      v->precise_duration = new_video->precise_duration;
       v->dimensions = new_video->dimensions;
       v->supports_streaming = new_video->supports_streaming;
       v->preload_prefix_size = new_video->preload_prefix_size;
@@ -170,13 +171,15 @@ void VideosManager::merge_videos(FileId new_id, FileId old_id) {
 
 void VideosManager::create_video(FileId file_id, string minithumbnail, PhotoSize thumbnail,
                                  AnimationSize animated_thumbnail, bool has_stickers, vector<FileId> &&sticker_file_ids,
-                                 string file_name, string mime_type, int32 duration, Dimensions dimensions,
-                                 bool supports_streaming, int32 preload_prefix_size, bool replace) {
+                                 string file_name, string mime_type, int32 duration, double precise_duration,
+                                 Dimensions dimensions, bool supports_streaming, int32 preload_prefix_size,
+                                 bool replace) {
   auto v = make_unique<Video>();
   v->file_id = file_id;
   v->file_name = std::move(file_name);
   v->mime_type = std::move(mime_type);
   v->duration = max(duration, 0);
+  v->precise_duration = duration == 0 ? 0.0 : clamp(precise_duration, duration - 1.0, duration + 0.0);
   v->dimensions = dimensions;
   if (!td_->auth_manager_->is_bot()) {
     v->minithumbnail = std::move(minithumbnail);
@@ -267,7 +270,7 @@ tl_object_ptr<telegram_api::InputMedia> VideosManager::get_input_media(
 
     vector<tl_object_ptr<telegram_api::DocumentAttribute>> attributes;
     attributes.push_back(make_tl_object<telegram_api::documentAttributeVideo>(
-        attribute_flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, video->duration,
+        attribute_flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, video->precise_duration,
         video->dimensions.width, video->dimensions.height, 0));
     if (!video->file_name.empty()) {
       attributes.push_back(make_tl_object<telegram_api::documentAttributeFilename>(video->file_name));

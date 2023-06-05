@@ -17,6 +17,8 @@
 
 #include "td/utils/common.h"
 
+#include <cmath>
+
 namespace td {
 
 class StoryContentPhoto final : public StoryContent {
@@ -159,11 +161,15 @@ Result<unique_ptr<StoryContent>> get_input_story_content(
                                                                false, false));
       file_id =
           td->file_manager_->copy_file_id(file_id, FileType::VideoStory, owner_dialog_id, "get_input_story_content");
+      if (input_story->duration_ < 0 || input_story->duration_ > 60.0) {
+        return Status::Error(400, "Invalid video duration specified");
+      }
       auto sticker_file_ids =
           td->stickers_manager_->get_attached_sticker_file_ids(input_story->added_sticker_file_ids_);
       bool has_stickers = !sticker_file_ids.empty();
       td->videos_manager_->create_video(file_id, string(), PhotoSize(), AnimationSize(), has_stickers,
-                                        std::move(sticker_file_ids), "story.mp4", "video/mp4", input_story->duration_,
+                                        std::move(sticker_file_ids), "story.mp4", "video/mp4",
+                                        static_cast<int32>(std::ceil(input_story->duration_)), input_story->duration_,
                                         get_dimensions(720, 1280, nullptr), true, 0, false);
 
       return make_unique<StoryContentVideo>(file_id, FileId());
