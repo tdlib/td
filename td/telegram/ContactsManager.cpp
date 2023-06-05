@@ -4462,6 +4462,7 @@ void ContactsManager::User::store(StorerT &storer) const {
   if (has_flags2) {
     BEGIN_STORE_FLAGS();
     STORE_FLAG(is_close_friend);
+    STORE_FLAG(stories_hidden);
     END_STORE_FLAGS();
   }
   store(first_name, storer);
@@ -4549,6 +4550,7 @@ void ContactsManager::User::parse(ParserT &parser) {
   if (has_flags2) {
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(is_close_friend);
+    PARSE_FLAG(stories_hidden);
     END_PARSE_FLAGS();
   }
   parse(first_name, parser);
@@ -10284,6 +10286,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   bool has_bot_info_version = (flags & USER_FLAG_HAS_BOT_INFO_VERSION) != 0;
   bool need_apply_min_photo = (flags & USER_FLAG_NEED_APPLY_MIN_PHOTO) != 0;
   bool is_fake = (flags & USER_FLAG_IS_FAKE) != 0;
+  bool stories_hidden = user->stories_hidden_;
 
   LOG_IF(ERROR, !can_join_groups && !is_bot)
       << "Receive not bot " << user_id << " which can't join groups from " << source;
@@ -10345,8 +10348,9 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     LOG(DEBUG) << "Info has changed for " << user_id;
     u->is_changed = true;
   }
-  if (is_received && attach_menu_enabled != u->attach_menu_enabled) {
+  if (is_received && (attach_menu_enabled != u->attach_menu_enabled || stories_hidden != u->stories_hidden)) {
     u->attach_menu_enabled = attach_menu_enabled;
+    u->stories_hidden = stories_hidden;
     u->is_changed = true;
   }
   if (is_premium != u->is_premium) {
@@ -18709,8 +18713,8 @@ td_api::object_ptr<td_api::updateUser> ContactsManager::get_update_unknown_user_
   auto have_access = user_id == get_my_id() || user_messages_.count(user_id) != 0;
   return td_api::make_object<td_api::updateUser>(td_api::make_object<td_api::user>(
       user_id.get(), "", "", nullptr, "", td_api::make_object<td_api::userStatusEmpty>(), nullptr, nullptr, false,
-      false, false, false, false, false, "", false, false, have_access, td_api::make_object<td_api::userTypeUnknown>(),
-      "", false));
+      false, false, false, false, false, "", false, false, false, have_access,
+      td_api::make_object<td_api::userTypeUnknown>(), "", false));
 }
 
 int64 ContactsManager::get_user_id_object(UserId user_id, const char *source) const {
@@ -18747,8 +18751,8 @@ tl_object_ptr<td_api::user> ContactsManager::get_user_object(UserId user_id, con
       user_id.get(), u->first_name, u->last_name, u->usernames.get_usernames_object(), u->phone_number,
       get_user_status_object(user_id, u), get_profile_photo_object(td_->file_manager_.get(), u->photo),
       std::move(emoji_status), u->is_contact, u->is_mutual_contact, u->is_close_friend, u->is_verified, u->is_premium,
-      u->is_support, get_restriction_reason_description(u->restriction_reasons), u->is_scam, u->is_fake, have_access,
-      std::move(type), u->language_code, u->attach_menu_enabled);
+      u->is_support, get_restriction_reason_description(u->restriction_reasons), u->is_scam, u->is_fake,
+      u->stories_hidden, have_access, std::move(type), u->language_code, u->attach_menu_enabled);
 }
 
 vector<int64> ContactsManager::get_user_ids_object(const vector<UserId> &user_ids, const char *source) const {
