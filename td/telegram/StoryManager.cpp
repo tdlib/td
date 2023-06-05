@@ -408,11 +408,11 @@ void StoryManager::get_dialog_pinned_stories(DialogId owner_dialog_id, StoryId f
     return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
   }
 
-  if (!td_->messages_manager_->have_dialog_force(owner_dialog_id, "get_dialog_pinned_stories")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
+  if (!td_->messages_manager_->have_dialog_info_force(owner_dialog_id)) {
+    return promise.set_error(Status::Error(400, "Story sender not found"));
   }
   if (!td_->messages_manager_->have_input_peer(owner_dialog_id, AccessRights::Read)) {
-    return promise.set_error(Status::Error(400, "Can't access the chat"));
+    return promise.set_error(Status::Error(400, "Can't access the story sender"));
   }
   if (owner_dialog_id.get_type() != DialogType::User) {
     return promise.set_value(td_api::make_object<td_api::stories>());
@@ -447,11 +447,11 @@ void StoryManager::on_get_dialog_pinned_stories(DialogId owner_dialog_id,
 
 void StoryManager::get_dialog_expiring_stories(DialogId owner_dialog_id,
                                                Promise<td_api::object_ptr<td_api::stories>> &&promise) {
-  if (!td_->messages_manager_->have_dialog_force(owner_dialog_id, "get_dialog_pinned_stories")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
+  if (!td_->messages_manager_->have_dialog_info_force(owner_dialog_id)) {
+    return promise.set_error(Status::Error(400, "Story sender not found"));
   }
   if (!td_->messages_manager_->have_input_peer(owner_dialog_id, AccessRights::Read)) {
-    return promise.set_error(Status::Error(400, "Can't access the chat"));
+    return promise.set_error(Status::Error(400, "Can't access the story sender"));
   }
   if (owner_dialog_id.get_type() != DialogType::User) {
     return promise.set_value(td_api::make_object<td_api::stories>());
