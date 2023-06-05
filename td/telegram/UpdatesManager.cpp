@@ -730,15 +730,29 @@ bool UpdatesManager::is_acceptable_reply_markup(const tl_object_ptr<telegram_api
 
 bool UpdatesManager::is_acceptable_message_reply_header(
     const telegram_api::object_ptr<telegram_api::MessageReplyHeader> &header) const {
-  if (header == nullptr || header->get_id() != telegram_api::messageReplyHeader::ID) {
+  if (header == nullptr) {
     return true;
   }
 
-  auto reply_header = static_cast<const telegram_api::messageReplyHeader *>(header.get());
-  if (!is_acceptable_peer(reply_header->reply_to_peer_id_)) {
-    return false;
+  switch (header->get_id()) {
+    case telegram_api::messageReplyHeader::ID: {
+      auto reply_header = static_cast<const telegram_api::messageReplyHeader *>(header.get());
+      if (!is_acceptable_peer(reply_header->reply_to_peer_id_)) {
+        return false;
+      }
+      return true;
+    }
+    case telegram_api::messageReplyStoryHeader::ID: {
+      auto reply_header = static_cast<const telegram_api::messageReplyStoryHeader *>(header.get());
+      if (!is_acceptable_user(UserId(reply_header->user_id_))) {
+        return false;
+      }
+      return true;
+    }
+    default:
+      UNREACHABLE();
+      return true;
   }
-  return true;
 }
 
 bool UpdatesManager::is_acceptable_message_forward_header(
