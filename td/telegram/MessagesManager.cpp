@@ -4685,6 +4685,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_reactions = reactions != nullptr;
   bool has_available_reactions_generation = available_reactions_generation != 0;
   bool has_history_generation = history_generation != 0;
+  bool is_reply_to_story = reply_to_story_sender_user_id != UserId();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
   STORE_FLAG(is_outgoing);
@@ -4760,6 +4761,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(update_stickersets_order);
     STORE_FLAG(is_topic_message);
     STORE_FLAG(has_history_generation);
+    STORE_FLAG(is_reply_to_story);
     END_STORE_FLAGS();
   }
 
@@ -4887,6 +4889,10 @@ void MessagesManager::Message::store(StorerT &storer) const {
   if (has_history_generation) {
     store(history_generation, storer);
   }
+  if (is_reply_to_story) {
+    store(reply_to_story_sender_user_id, storer);
+    store(reply_to_story_id, storer);
+  }
 }
 
 // do not forget to resolve message dependencies
@@ -4935,6 +4941,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool has_reactions = false;
   bool has_available_reactions_generation = false;
   bool has_history_generation = false;
+  bool is_reply_to_story = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_channel_post);
   PARSE_FLAG(is_outgoing);
@@ -5010,6 +5017,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(update_stickersets_order);
     PARSE_FLAG(is_topic_message);
     PARSE_FLAG(has_history_generation);
+    PARSE_FLAG(is_reply_to_story);
     END_PARSE_FLAGS();
   }
 
@@ -5146,6 +5154,10 @@ void MessagesManager::Message::parse(ParserT &parser) {
   }
   if (has_history_generation) {
     parse(history_generation, parser);
+  }
+  if (is_reply_to_story) {
+    parse(reply_to_story_sender_user_id, parser);
+    parse(reply_to_story_id, parser);
   }
 
   CHECK(content != nullptr);
@@ -14388,6 +14400,8 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
                                                         message_info.reply_header.reply_to_message_id_);
       message_info.reply_header.reply_in_dialog_id_ = DialogId();
       message_info.reply_header.reply_to_message_id_ = MessageId();
+      message_info.reply_header.story_sender_user_id_ = UserId();
+      message_info.reply_header.story_id_ = StoryId();
       break;
     }
     default:
@@ -14507,6 +14521,17 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   fix_server_reply_to_message_id(dialog_id, message_id, reply_in_dialog_id, reply_to_message_id);
   fix_server_reply_to_message_id(dialog_id, message_id, reply_in_dialog_id, top_thread_message_id);
 
+  UserId reply_to_story_sender_user_id = message_info.reply_header.story_sender_user_id_;
+  StoryId reply_to_story_id = message_info.reply_header.story_id_;
+  if (reply_to_story_sender_user_id != UserId() &&
+      (dialog_type != DialogType::User ||
+       (reply_to_story_sender_user_id != my_id && reply_to_story_sender_user_id != dialog_id.get_user_id()))) {
+    LOG(ERROR) << "Receive reply to " << reply_to_story_id << " by " << reply_to_story_sender_user_id << " in "
+               << dialog_id;
+    reply_to_story_sender_user_id = UserId();
+    reply_to_story_id = StoryId();
+  }
+
   UserId via_bot_user_id = message_info.via_bot_user_id;
   if (!via_bot_user_id.is_valid()) {
     via_bot_user_id = UserId();
@@ -14612,7 +14637,8 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->reply_in_dialog_id = reply_in_dialog_id;
   message->top_thread_message_id = top_thread_message_id;
   message->is_topic_message = is_topic_message;
-  message->via_bot_user_id = via_bot_user_id;
+  message->reply_to_story_sender_user_id = reply_to_story_sender_user_id;
+  message->reply_to_story_id = reply_to_story_id;
   message->restriction_reasons = std::move(message_info.restriction_reasons);
   message->author_signature = std::move(message_info.author_signature);
   message->is_outgoing = is_outgoing;
@@ -24078,7 +24104,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_messag
       m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_dialog_event_log_message_object"),
       nullptr, nullptr, m->is_outgoing, m->is_pinned, false, false, can_be_saved, false, false, false, false, false,
       false, false, false, true, m->is_channel_post, m->is_topic_message, false, m->date, edit_date,
-      std::move(forward_info), std::move(interaction_info), Auto(), 0, 0, 0, 0, 0.0, 0.0, via_bot_user_id,
+      std::move(forward_info), std::move(interaction_info), Auto(), 0, 0, 0, 0, 0, 0, 0.0, 0.0, via_bot_user_id,
       m->author_signature, 0, get_restriction_reason_description(m->restriction_reasons), std::move(content),
       std::move(reply_markup));
 }
@@ -24180,9 +24206,11 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
       can_get_message_thread, can_get_viewers, can_get_media_timestamp_links, can_report_reactions,
       has_timestamped_media, m->is_channel_post, m->is_topic_message, m->contains_unread_mention, date, edit_date,
       std::move(forward_info), std::move(interaction_info), std::move(unread_reactions),
-      get_chat_id_object(reply_in_dialog_id, "get_message_object reply"), reply_to_message_id, top_thread_message_id,
-      m->ttl, ttl_expires_in, auto_delete_in, via_bot_user_id, m->author_signature, m->media_album_id,
-      get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
+      get_chat_id_object(reply_in_dialog_id, "get_message_object reply"), reply_to_message_id,
+      td_->contacts_manager_->get_user_id_object(m->reply_to_story_sender_user_id, "reply_to_story_sender_user_id"),
+      m->reply_to_story_id.get(), top_thread_message_id, m->ttl, ttl_expires_in, auto_delete_in, via_bot_user_id,
+      m->author_signature, m->media_album_id, get_restriction_reason_description(m->restriction_reasons),
+      std::move(content), std::move(reply_markup));
 }
 
 tl_object_ptr<td_api::messages> MessagesManager::get_messages_object(int32 total_count, DialogId dialog_id,

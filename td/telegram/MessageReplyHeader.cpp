@@ -16,9 +16,22 @@ namespace td {
 
 MessageReplyHeader::MessageReplyHeader(tl_object_ptr<telegram_api::MessageReplyHeader> &&reply_header_ptr,
                                        DialogId dialog_id, MessageId message_id, int32 date, bool can_have_thread) {
-  if (reply_header_ptr == nullptr || reply_header_ptr->get_id() != telegram_api::messageReplyHeader::ID) {
+  if (reply_header_ptr == nullptr) {
     return;
   }
+  if (reply_header_ptr->get_id() == telegram_api::messageReplyStoryHeader::ID) {
+    auto reply_header = telegram_api::move_object_as<telegram_api::messageReplyStoryHeader>(reply_header_ptr);
+    UserId user_id(reply_header->user_id_);
+    StoryId story_id(reply_header->story_id_);
+    if (!user_id.is_valid() || !story_id.is_server()) {
+      LOG(ERROR) << "Receive " << to_string(reply_header);
+    } else {
+      story_sender_user_id_ = user_id;
+      story_id_ = story_id;
+    }
+    return;
+  }
+  CHECK(reply_header_ptr->get_id() == telegram_api::messageReplyHeader::ID);
   auto reply_header = telegram_api::move_object_as<telegram_api::messageReplyHeader>(reply_header_ptr);
   if (reply_header->reply_to_scheduled_) {
     reply_to_message_id_ = MessageId(ScheduledServerMessageId(reply_header->reply_to_msg_id_), date);

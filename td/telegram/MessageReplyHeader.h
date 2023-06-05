@@ -8,7 +8,9 @@
 
 #include "td/telegram/DialogId.h"
 #include "td/telegram/MessageId.h"
+#include "td/telegram/StoryId.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserId.h"
 
 #include "td/utils/common.h"
 
@@ -19,6 +21,11 @@ struct MessageReplyHeader {
   DialogId reply_in_dialog_id_;
   MessageId top_thread_message_id_;
   bool is_topic_message_ = false;
+
+  // or
+
+  UserId story_sender_user_id_;
+  StoryId story_id_;
 
   MessageReplyHeader() = default;
 

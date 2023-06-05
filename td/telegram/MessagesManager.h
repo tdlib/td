@@ -62,6 +62,7 @@
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/SecretInputMedia.h"
 #include "td/telegram/ServerMessageId.h"
+#include "td/telegram/StoryId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
@@ -1184,6 +1185,8 @@ class MessagesManager final : public Actor {
     int64 reply_to_random_id = 0;  // for send_message
     DialogId reply_in_dialog_id;
     MessageId top_thread_message_id;
+    UserId reply_to_story_sender_user_id;
+    StoryId reply_to_story_id;
     MessageId linked_top_thread_message_id;
     vector<MessageId> local_thread_message_ids;
 

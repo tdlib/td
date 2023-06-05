@@ -229,8 +229,6 @@ class PollManager final : public Actor {
   MultiTimeout close_poll_timeout_{"ClosePollTimeout"};
   MultiTimeout unload_poll_timeout_{"UnloadPollTimeout"};
 
-  Td *td_;
-  ActorShared<> parent_;
   WaitFreeHashMap<PollId, unique_ptr<Poll>, PollIdHash> polls_;
 
   WaitFreeHashMap<PollId, WaitFreeHashSet<FullMessageId, FullMessageIdHash>, PollIdHash> server_poll_messages_;
@@ -254,6 +252,9 @@ class PollManager final : public Actor {
   FlatHashSet<PollId, PollIdHash> loaded_from_database_polls_;
 
   FlatHashSet<PollId, PollIdHash> being_closed_polls_;
+
+  Td *td_;
+  ActorShared<> parent_;
 };
 
 }  // namespace td
