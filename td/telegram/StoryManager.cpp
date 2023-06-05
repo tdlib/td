@@ -196,6 +196,9 @@ class EditStoryPrivacyQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    if (!td_->auth_manager_->is_bot() && status.message() == "STORY_NOT_MODIFIED") {
+      return promise_.set_value(Unit());
+    }
     promise_.set_error(std::move(status));
   }
 };
@@ -374,6 +377,10 @@ class StoryManager::EditStoryQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     LOG(INFO) << "Receive error for EditStoryQuery: " << status;
+
+    if (!td_->auth_manager_->is_bot() && status.message() == "STORY_NOT_MODIFIED") {
+      return td_->story_manager_->on_story_edited(file_id_, std::move(pending_story_), Status::OK());
+    }
 
     if (G()->close_flag() && G()->use_message_database()) {
       // do not send error, story will be edited after restart
