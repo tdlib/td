@@ -121,6 +121,7 @@
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/StickerType.h"
 #include "td/telegram/StorageManager.h"
+#include "td/telegram/StoryId.h"
 #include "td/telegram/StoryManager.h"
 #include "td/telegram/SuggestedAction.h"
 #include "td/telegram/Support.h"
@@ -5617,6 +5618,12 @@ void Td::on_request(uint64 id, td_api::editMessageSchedulingState &request) {
   CREATE_OK_REQUEST_PROMISE();
   messages_manager_->edit_message_scheduling_state({DialogId(request.chat_id_), MessageId(request.message_id_)},
                                                    std::move(request.scheduling_state_), std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::getStory &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  story_manager_->get_story(DialogId(UserId(request.user_id_)), StoryId(request.story_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::sendStory &request) {

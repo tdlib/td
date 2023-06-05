@@ -75,6 +75,8 @@ class StoryManager final : public Actor {
   StoryManager &operator=(StoryManager &&) = delete;
   ~StoryManager() final;
 
+  void get_story(DialogId owner_dialog_id, StoryId story_id, Promise<td_api::object_ptr<td_api::story>> &&promise);
+
   void send_story(td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,
                   td_api::object_ptr<td_api::formattedText> &&input_caption,
                   td_api::object_ptr<td_api::userPrivacySettingRules> &&rules, bool is_pinned,
@@ -159,6 +161,9 @@ class StoryManager final : public Actor {
   void delete_story_files(const Story *story) const;
 
   void change_story_files(StoryFullId story_full_id, const Story *story, const vector<FileId> &old_file_ids);
+
+  void do_get_story(StoryFullId story_full_id, Result<Unit> &&result,
+                    Promise<td_api::object_ptr<td_api::story>> &&promise);
 
   void do_send_story(unique_ptr<PendingStory> &&pending_story, vector<int> bad_parts);
 

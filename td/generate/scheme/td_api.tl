@@ -7180,6 +7180,9 @@ setPinnedChats chat_list:ChatList chat_ids:vector<int53> = Ok;
 readChatList chat_list:ChatList = Ok;
 
 
+//@description Returns a story @user_id Identifier of the user, which sent the story @story_id Story identifier
+getStory user_id:int53 story_id:int32 = Story;
+
 //@description Sends a new story. Returns a temporary story with identifier 0
 //@content Content of the story
 //@caption Story caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters

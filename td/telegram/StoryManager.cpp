@@ -829,6 +829,44 @@ void StoryManager::reload_story(StoryFullId story_full_id, Promise<Unit> &&promi
   td_->create_handler<GetStoriesByIDQuery>(std::move(promise))->send(user_id, {story_full_id.get_story_id().get()});
 }
 
+void StoryManager::get_story(DialogId owner_dialog_id, StoryId story_id,
+                             Promise<td_api::object_ptr<td_api::story>> &&promise) {
+  if (!td_->messages_manager_->have_dialog_info_force(owner_dialog_id)) {
+    return promise.set_error(Status::Error(400, "Story sender not found"));
+  }
+  if (!td_->messages_manager_->have_input_peer(owner_dialog_id, AccessRights::Read)) {
+    return promise.set_error(Status::Error(400, "Can't access the story sender"));
+  }
+  if (!story_id.is_server()) {
+    return promise.set_error(Status::Error(400, "Invalid story identifier specified"));
+  }
+  if (owner_dialog_id.get_type() != DialogType::User) {
+    return promise.set_value(nullptr);
+  }
+
+  StoryFullId story_full_id{owner_dialog_id, story_id};
+  const Story *story = get_story(story_full_id);
+  if (story != nullptr) {
+    return promise.set_value(get_story_object(story_full_id, story));
+  }
+
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), story_full_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
+        send_closure(actor_id, &StoryManager::do_get_story, story_full_id, std::move(result), std::move(promise));
+      });
+  td_->create_handler<GetStoriesByIDQuery>(std::move(query_promise))
+      ->send(owner_dialog_id.get_user_id(), {story_id.get()});
+}
+
+void StoryManager::do_get_story(StoryFullId story_full_id, Result<Unit> &&result,
+                                Promise<td_api::object_ptr<td_api::story>> &&promise) {
+  G()->ignore_result_if_closing(result);
+  if (result.is_error()) {
+    return promise.set_error(result.move_as_error());
+  }
+  promise.set_value(get_story_object(story_full_id));
+}
+
 void StoryManager::send_story(td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,
                               td_api::object_ptr<td_api::formattedText> &&input_caption,
                               td_api::object_ptr<td_api::userPrivacySettingRules> &&rules, bool is_pinned,

@@ -3935,6 +3935,11 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::setPinnedChats>(as_chat_list(op), as_chat_ids(args)));
     } else if (op == "rcl" || op == "rcla" || begins_with(op, "rcl-")) {
       send_request(td_api::make_object<td_api::readChatList>(as_chat_list(op)));
+    } else if (op == "gst") {
+      UserId user_id;
+      StoryId story_id;
+      get_args(args, user_id, story_id);
+      send_request(td_api::make_object<td_api::getStory>(user_id, story_id));
     } else if (op == "ssp" || op == "sspp") {
       string photo;
       string caption;
