@@ -15,10 +15,10 @@
 namespace td {
 
 struct MessageReplyHeader {
-  MessageId reply_to_message_id;
-  DialogId reply_in_dialog_id;
-  MessageId top_thread_message_id;
-  bool is_topic_message = false;
+  MessageId reply_to_message_id_;
+  DialogId reply_in_dialog_id_;
+  MessageId top_thread_message_id_;
+  bool is_topic_message_ = false;
 
   MessageReplyHeader() = default;
 
