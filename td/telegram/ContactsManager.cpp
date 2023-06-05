@@ -10348,10 +10348,12 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     LOG(DEBUG) << "Info has changed for " << user_id;
     u->is_changed = true;
   }
-  if (is_received && (attach_menu_enabled != u->attach_menu_enabled || stories_hidden != u->stories_hidden)) {
+  if (is_received && attach_menu_enabled != u->attach_menu_enabled) {
     u->attach_menu_enabled = attach_menu_enabled;
-    u->stories_hidden = stories_hidden;
     u->is_changed = true;
+  }
+  if (is_received) {
+    on_update_user_stories_hidden(u, user_id, stories_hidden);
   }
   if (is_premium != u->is_premium) {
     u->is_premium = is_premium;
@@ -13400,6 +13402,30 @@ void ContactsManager::on_update_user_emoji_status(User *u, UserId user_id, Emoji
     u->emoji_status = emoji_status;
     // effective emoji status might not be changed; checked in update_user
     // u->is_changed = true;
+  }
+}
+
+void ContactsManager::on_update_user_stories_hidden(UserId user_id, bool stories_hidden) {
+  if (!user_id.is_valid()) {
+    LOG(ERROR) << "Receive invalid " << user_id;
+    return;
+  }
+
+  User *u = get_user_force(user_id);
+  if (u != nullptr) {
+    on_update_user_stories_hidden(u, user_id, stories_hidden);
+    update_user(u, user_id);
+  } else {
+    LOG(INFO) << "Ignore update user stories are archived about unknown " << user_id;
+  }
+}
+
+void ContactsManager::on_update_user_stories_hidden(User *u, UserId user_id, bool stories_hidden) {
+  if (u->stories_hidden != stories_hidden) {
+    LOG(DEBUG) << "Change stories are archived of " << user_id << " from " << u->stories_hidden << " to "
+               << stories_hidden;
+    u->stories_hidden = stories_hidden;
+    u->is_changed = true;
   }
 }
 

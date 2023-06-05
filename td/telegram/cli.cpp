@@ -3998,6 +3998,11 @@ class CliClient final : public Actor {
       StoryId story_id;
       get_args(args, story_id);
       send_request(td_api::make_object<td_api::deleteStory>(story_id));
+    } else if (op == "tusaa") {
+      UserId user_id;
+      bool are_archived;
+      get_args(args, user_id, are_archived);
+      send_request(td_api::make_object<td_api::toggleUserStoriesAreArchived>(user_id, are_archived));
     } else if (op == "gups") {
       UserId user_id;
       StoryId from_story_id;

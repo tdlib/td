@@ -92,6 +92,8 @@ class StoryManager final : public Actor {
 
   void delete_story(StoryId story_id, Promise<Unit> &&promise);
 
+  void toggle_dialog_stories_hidden(DialogId dialog_id, bool are_hidden, Promise<Unit> &&promise);
+
   void get_dialog_pinned_stories(DialogId owner_dialog_id, StoryId from_story_id, int32 limit,
                                  Promise<td_api::object_ptr<td_api::stories>> &&promise);
 

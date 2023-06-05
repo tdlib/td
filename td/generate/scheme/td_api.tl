@@ -7202,6 +7202,9 @@ toggleStoryIsPinned story_id:int32 is_pinned:Bool = Ok;
 //@description Deletes a previously sent story @story_id Identifier of the story to delete
 deleteStory story_id:int32 = Ok;
 
+//@description Toggles whether stories of the user are available on the main chat list @user_id Identifier of the user @are_archived Pass true to make the story unavailable on the main chat list; pass false to make them available
+toggleUserStoriesAreArchived user_id:int53 are_archived:Bool = Ok;
+
 //@description Returns the list of pinned stories of a given user. The stories are returned in a reverse chronological order (i.e., in order of decreasing story_id).
 //-For optimal performance, the number of returned stories is chosen by TDLib
 //@user_id User identifier

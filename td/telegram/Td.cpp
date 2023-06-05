@@ -5652,6 +5652,13 @@ void Td::on_request(uint64 id, const td_api::deleteStory &request) {
   story_manager_->delete_story(StoryId(request.story_id_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::toggleUserStoriesAreArchived &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  story_manager_->toggle_dialog_stories_hidden(DialogId(UserId(request.user_id_)), request.are_archived_,
+                                               std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getForumTopicDefaultIcons &request) {
   CREATE_REQUEST_PROMISE();
   stickers_manager_->get_default_topic_icons(false, std::move(promise));
