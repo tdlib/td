@@ -422,9 +422,8 @@ sticker id:int64 set_id:int64 width:int32 height:int32 emoji:string format:Stick
 //@supports_streaming True, if the video is supposed to be streamed
 //@minithumbnail Video minithumbnail; may be null
 //@thumbnail Video thumbnail in JPEG or MPEG4 format; as defined by the sender; may be null
-//@preload_prefix_size Number of bytes from the video file beginning, which is enough to load to play the video for one second; 0 if unknown. Currently, it is expected to be known only for video stories
 //@video File containing the video
-video duration:int32 width:int32 height:int32 file_name:string mime_type:string has_stickers:Bool supports_streaming:Bool minithumbnail:minithumbnail thumbnail:thumbnail preload_prefix_size:int32 video:file = Video;
+video duration:int32 width:int32 height:int32 file_name:string mime_type:string has_stickers:Bool supports_streaming:Bool minithumbnail:minithumbnail thumbnail:thumbnail video:file = Video;
 
 //@description Describes a video note. The video must be equal in width and height, cropped to a circle, and stored in MPEG4 format
 //@duration Duration of the video, in seconds; as defined by the sender
@@ -4834,13 +4833,25 @@ messageLink link:string is_public:Bool = MessageLink;
 messageLinkInfo is_public:Bool chat_id:int53 message_thread_id:int53 message:message media_timestamp:int32 for_album:Bool = MessageLinkInfo;
 
 
+//@description Describes a video file sent in a story
+//@duration Duration of the video, in seconds
+//@width Video width
+//@height Video height
+//@has_stickers True, if stickers were added to the video. The list of corresponding sticker sets can be received using getAttachedStickerSets
+//@minithumbnail Video minithumbnail; may be null
+//@thumbnail Video thumbnail in JPEG or MPEG4 format; may be null
+//@preload_prefix_size Number of bytes from the video file beginning, which is enough to load to play the video for one second; 0 if unknown
+//@video File containing the video
+storyVideo duration:double width:int32 height:int32 has_stickers:Bool minithumbnail:minithumbnail thumbnail:thumbnail preload_prefix_size:int32 video:file = StoryVideo;
+
+
 //@class StoryContent @description Contains the content of a story
 
 //@description A photo story @photo The photo
 storyContentPhoto photo:photo = StoryContent;
 
-//@description A video story @video The video in MPEG4 format, encoded by x265 codec @alternative_video Alternative version of the video in MPEG4 format, encoded by x264 codec; may be null
-storyContentVideo video:video alternative_video:video = StoryContent;
+//@description A video story @video The video in MPEG4 format @alternative_video Alternative version of the video in MPEG4 format, encoded by x264 codec; may be null
+storyContentVideo video:storyVideo alternative_video:storyVideo = StoryContent;
 
 //@description A story content that is not supported in the current TDLib version
 storyContentUnsupported = StoryContent;

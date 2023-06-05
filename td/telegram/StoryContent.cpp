@@ -359,8 +359,9 @@ td_api::object_ptr<td_api::StoryContent> get_story_content_object(Td *td, const 
     }
     case StoryContentType::Video: {
       const auto *s = static_cast<const StoryContentVideo *>(content);
-      return td_api::make_object<td_api::storyContentVideo>(td->videos_manager_->get_video_object(s->file_id_),
-                                                            td->videos_manager_->get_video_object(s->alt_file_id_));
+      return td_api::make_object<td_api::storyContentVideo>(
+          td->videos_manager_->get_story_video_object(s->file_id_),
+          td->videos_manager_->get_story_video_object(s->alt_file_id_));
     }
     case StoryContentType::Unsupported:
       return td_api::make_object<td_api::storyContentUnsupported>();

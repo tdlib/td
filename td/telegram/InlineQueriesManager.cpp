@@ -1322,7 +1322,7 @@ template <>
 tl_object_ptr<td_api::video> copy(const td_api::video &obj) {
   return td_api::make_object<td_api::video>(obj.duration_, obj.width_, obj.height_, obj.file_name_, obj.mime_type_,
                                             obj.has_stickers_, obj.supports_streaming_, copy(obj.minithumbnail_),
-                                            copy(obj.thumbnail_), obj.preload_prefix_size_, copy(obj.video_));
+                                            copy(obj.thumbnail_), copy(obj.video_));
 }
 
 template <>

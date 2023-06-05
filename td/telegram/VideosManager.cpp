@@ -36,7 +36,7 @@ int32 VideosManager::get_video_duration(FileId file_id) const {
   return video->duration;
 }
 
-tl_object_ptr<td_api::video> VideosManager::get_video_object(FileId file_id) const {
+td_api::object_ptr<td_api::video> VideosManager::get_video_object(FileId file_id) const {
   if (!file_id.is_valid()) {
     return nullptr;
   }
@@ -46,10 +46,26 @@ tl_object_ptr<td_api::video> VideosManager::get_video_object(FileId file_id) con
   auto thumbnail = video->animated_thumbnail.file_id.is_valid()
                        ? get_thumbnail_object(td_->file_manager_.get(), video->animated_thumbnail, PhotoFormat::Mpeg4)
                        : get_thumbnail_object(td_->file_manager_.get(), video->thumbnail, PhotoFormat::Jpeg);
-  return make_tl_object<td_api::video>(
-      video->duration, video->dimensions.width, video->dimensions.height, video->file_name, video->mime_type,
-      video->has_stickers, video->supports_streaming, get_minithumbnail_object(video->minithumbnail),
-      std::move(thumbnail), video->preload_prefix_size, td_->file_manager_->get_file_object(file_id));
+  return td_api::make_object<td_api::video>(video->duration, video->dimensions.width, video->dimensions.height,
+                                            video->file_name, video->mime_type, video->has_stickers,
+                                            video->supports_streaming, get_minithumbnail_object(video->minithumbnail),
+                                            std::move(thumbnail), td_->file_manager_->get_file_object(file_id));
+}
+
+td_api::object_ptr<td_api::storyVideo> VideosManager::get_story_video_object(FileId file_id) const {
+  if (!file_id.is_valid()) {
+    return nullptr;
+  }
+
+  auto video = get_video(file_id);
+  CHECK(video != nullptr);
+  auto thumbnail = video->animated_thumbnail.file_id.is_valid()
+                       ? get_thumbnail_object(td_->file_manager_.get(), video->animated_thumbnail, PhotoFormat::Mpeg4)
+                       : get_thumbnail_object(td_->file_manager_.get(), video->thumbnail, PhotoFormat::Jpeg);
+  return td_api::make_object<td_api::storyVideo>(
+      video->precise_duration, video->dimensions.width, video->dimensions.height, video->has_stickers,
+      get_minithumbnail_object(video->minithumbnail), std::move(thumbnail), video->preload_prefix_size,
+      td_->file_manager_->get_file_object(file_id));
 }
 
 FileId VideosManager::on_get_video(unique_ptr<Video> new_video, bool replace) {
