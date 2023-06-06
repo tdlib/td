@@ -10247,7 +10247,6 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     u->inline_query_placeholder = std::move(inline_query_placeholder);
     u->need_location_bot = need_location_bot;
     u->can_be_added_to_attach_menu = can_be_added_to_attach_menu;
-    u->attach_menu_enabled = attach_menu_enabled;
 
     LOG(DEBUG) << "Info has changed for " << user_id;
     u->is_changed = true;
