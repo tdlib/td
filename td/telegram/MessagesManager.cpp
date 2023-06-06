@@ -14775,6 +14775,7 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, const 
     if (new_message->reply_to_message_id != MessageId() && new_message->reply_to_message_id.is_yet_unsent()) {
       LOG(INFO) << "Drop reply to " << new_message->reply_to_message_id;
       new_message->reply_to_message_id = MessageId();
+      new_message->reply_in_dialog_id = DialogId();
     }
 
     new_message->message_id = message_id;
@@ -24532,6 +24533,7 @@ void MessagesManager::cancel_send_message_query(DialogId dialog_id, Message *m) 
   }
 
   if (m->reply_to_message_id.is_valid() && !m->reply_to_message_id.is_yet_unsent()) {
+    CHECK(m->reply_in_dialog_id == DialogId());
     auto it = replied_by_yet_unsent_messages_.find({dialog_id, m->reply_to_message_id});
     CHECK(it != replied_by_yet_unsent_messages_.end());
     it->second--;
@@ -24542,6 +24544,7 @@ void MessagesManager::cancel_send_message_query(DialogId dialog_id, Message *m) 
   }
   if ((m->reply_to_message_id.is_valid() || m->reply_to_message_id.is_valid_scheduled()) &&
       m->reply_to_message_id.is_yet_unsent()) {
+    CHECK(m->reply_in_dialog_id == DialogId());
     auto it = replied_yet_unsent_messages_.find({dialog_id, m->reply_to_message_id});
     CHECK(it != replied_yet_unsent_messages_.end());
     size_t erased_count = it->second.erase(m->message_id);
@@ -27077,12 +27080,17 @@ void MessagesManager::update_message_max_reply_media_timestamp(const Dialog *d, 
 
   auto new_max_reply_media_timestamp = -1;
   if (m->reply_to_message_id.is_valid() && !m->reply_to_message_id.is_yet_unsent()) {
-    auto replied_m = get_message(d, m->reply_to_message_id);
+    const auto *reply_d = m->reply_in_dialog_id != DialogId() ? get_dialog(m->reply_in_dialog_id) : d;
+    if (reply_d == nullptr) {
+      // replied message isn't loaded yet
+      return;
+    }
+    auto replied_m = get_message(reply_d, m->reply_to_message_id);
     if (replied_m != nullptr) {
       new_max_reply_media_timestamp = get_message_own_max_media_timestamp(replied_m);
-    } else if (!is_deleted_message(d, m->reply_to_message_id) &&
-               m->reply_to_message_id > d->last_clear_history_message_id &&
-               m->reply_to_message_id > d->max_unavailable_message_id) {
+    } else if (!is_deleted_message(reply_d, m->reply_to_message_id) &&
+               m->reply_to_message_id > reply_d->last_clear_history_message_id &&
+               m->reply_to_message_id > reply_d->max_unavailable_message_id) {
       // replied message isn't deleted and isn't loaded yet
       return;
     }
@@ -27155,7 +27163,8 @@ void MessagesManager::update_message_max_reply_media_timestamp_in_replied_messag
 }
 
 void MessagesManager::register_message_reply(DialogId dialog_id, const Message *m) {
-  if (!m->reply_to_message_id.is_valid() || m->reply_to_message_id.is_yet_unsent() || td_->auth_manager_->is_bot()) {
+  if (!m->reply_to_message_id.is_valid() || m->reply_to_message_id.is_yet_unsent() ||
+      m->reply_in_dialog_id != DialogId() || td_->auth_manager_->is_bot()) {
     return;
   }
 
@@ -27168,7 +27177,8 @@ void MessagesManager::register_message_reply(DialogId dialog_id, const Message *
 }
 
 void MessagesManager::reregister_message_reply(DialogId dialog_id, const Message *m) {
-  if (!m->reply_to_message_id.is_valid() || m->reply_to_message_id.is_yet_unsent() || td_->auth_manager_->is_bot()) {
+  if (!m->reply_to_message_id.is_valid() || m->reply_to_message_id.is_yet_unsent() ||
+      m->reply_in_dialog_id != DialogId() || td_->auth_manager_->is_bot()) {
     return;
   }
 
@@ -27187,6 +27197,10 @@ void MessagesManager::reregister_message_reply(DialogId dialog_id, const Message
 }
 
 void MessagesManager::unregister_message_reply(DialogId dialog_id, const Message *m) {
+  if (!m->reply_to_message_id.is_valid() || m->reply_to_message_id.is_yet_unsent() ||
+      m->reply_in_dialog_id != DialogId() || td_->auth_manager_->is_bot()) {
+    return;
+  }
   auto it = replied_by_media_timestamp_messages_.find({dialog_id, m->reply_to_message_id});
   if (it == replied_by_media_timestamp_messages_.end()) {
     return;
@@ -27895,8 +27909,10 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
     }
 
     if (is_local_copy) {
+      auto original_reply_to_message_id =
+          forwarded_message->reply_in_dialog_id == DialogId() ? forwarded_message->reply_to_message_id : MessageId();
       copied_messages.push_back({std::move(content), reply_to_message_id, forwarded_message->message_id,
-                                 forwarded_message->reply_to_message_id, std::move(reply_markup),
+                                 original_reply_to_message_id, std::move(reply_markup),
                                  forwarded_message->media_album_id,
                                  get_message_disable_web_page_preview(forwarded_message), i});
     } else {
@@ -27983,7 +27999,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
       }
     }
     MessageId reply_to_message_id;
-    if (forwarded_message->reply_to_message_id.is_valid()) {
+    if (forwarded_message->reply_to_message_id.is_valid() && forwarded_message->reply_in_dialog_id == DialogId()) {
       auto it = forwarded_message_id_to_new_message_id.find(forwarded_message->reply_to_message_id);
       if (it != forwarded_message_id_to_new_message_id.end()) {
         reply_to_message_id = it->second;
@@ -30696,6 +30712,7 @@ void MessagesManager::update_reply_to_message_id(DialogId dialog_id, MessageId o
     auto replied_m = get_message(full_message_id);
     CHECK(replied_m != nullptr);
     CHECK(replied_m->reply_to_message_id == old_message_id);
+    CHECK(replied_m->reply_in_dialog_id == DialogId());
     LOG(INFO) << "Update replied message in " << full_message_id << " from " << old_message_id << " to "
               << new_message_id;
     unregister_message_reply(dialog_id, replied_m);
@@ -34712,6 +34729,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   if (m->message_id.is_yet_unsent() && m->reply_to_message_id != MessageId()) {
+    CHECK(m->reply_in_dialog_id == DialogId());
     if (!m->reply_to_message_id.is_yet_unsent()) {
       if (!m->reply_to_message_id.is_scheduled()) {
         replied_by_yet_unsent_messages_[FullMessageId{dialog_id, m->reply_to_message_id}]++;
@@ -34955,6 +34973,7 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
 
   const Message *m = message.get();
   if (m->message_id.is_yet_unsent() && m->reply_to_message_id != MessageId()) {
+    CHECK(m->reply_in_dialog_id == DialogId());
     if (!m->reply_to_message_id.is_yet_unsent()) {
       if (!m->reply_to_message_id.is_scheduled()) {
         replied_by_yet_unsent_messages_[FullMessageId{dialog_id, m->reply_to_message_id}]++;
@@ -38873,6 +38892,7 @@ void MessagesManager::restore_message_reply_to_message_id(Dialog *d, Message *m)
   if (m->reply_to_message_id == MessageId() || !m->reply_to_message_id.is_yet_unsent()) {
     return;
   }
+  m->reply_in_dialog_id = DialogId();
 
   auto message_id = get_message_id_by_random_id(d, m->reply_to_random_id, "restore_message_reply_to_message_id");
   if (!message_id.is_valid() && !message_id.is_valid_scheduled()) {
