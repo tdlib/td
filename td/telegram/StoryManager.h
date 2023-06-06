@@ -106,6 +106,8 @@ class StoryManager final : public Actor {
   std::pair<int32, vector<StoryId>> on_get_stories(DialogId owner_dialog_id,
                                                    telegram_api::object_ptr<telegram_api::stories_stories> &&stories);
 
+  bool have_story(StoryFullId story_full_id) const;
+
   td_api::object_ptr<td_api::story> get_story_object(StoryFullId story_full_id) const;
 
   td_api::object_ptr<td_api::stories> get_stories_object(int32 total_count,

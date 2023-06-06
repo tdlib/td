@@ -540,6 +540,10 @@ void StoryManager::on_get_dialog_expiring_stories(DialogId owner_dialog_id,
   })));
 }
 
+bool StoryManager::have_story(StoryFullId story_full_id) const {
+  return get_story(story_full_id) != nullptr;
+}
+
 td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId story_full_id) const {
   return get_story_object(story_full_id, get_story(story_full_id));
 }
