@@ -13297,6 +13297,8 @@ void ContactsManager::on_update_user_emoji_status(User *u, UserId user_id, Emoji
   if (u->emoji_status != emoji_status) {
     LOG(DEBUG) << "Change emoji status of " << user_id << " from " << u->emoji_status << " to " << emoji_status;
     u->emoji_status = emoji_status;
+    // effective emoji status might not be changed; checked in update_user
+    // u->is_changed = true;
   }
 }
 
