@@ -26,7 +26,7 @@ MessageReplyHeader::MessageReplyHeader(tl_object_ptr<telegram_api::MessageReplyH
     if (!user_id.is_valid() || !story_id.is_server()) {
       LOG(ERROR) << "Receive " << to_string(reply_header);
     } else {
-      story_sender_user_id_ = user_id;
+      story_sender_dialog_id_ = DialogId(user_id);
       story_id_ = story_id;
     }
     return;

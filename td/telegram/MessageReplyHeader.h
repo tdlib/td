@@ -24,7 +24,7 @@ struct MessageReplyHeader {
 
   // or
 
-  UserId story_sender_user_id_;
+  DialogId story_sender_dialog_id_;
   StoryId story_id_;
 
   MessageReplyHeader() = default;

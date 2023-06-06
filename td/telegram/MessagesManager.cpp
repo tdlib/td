@@ -4685,7 +4685,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_reactions = reactions != nullptr;
   bool has_available_reactions_generation = available_reactions_generation != 0;
   bool has_history_generation = history_generation != 0;
-  bool is_reply_to_story = reply_to_story_sender_user_id != UserId();
+  bool is_reply_to_story = reply_to_story_sender_dialog_id != DialogId();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
   STORE_FLAG(is_outgoing);
@@ -4890,7 +4890,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     store(history_generation, storer);
   }
   if (is_reply_to_story) {
-    store(reply_to_story_sender_user_id, storer);
+    store(reply_to_story_sender_dialog_id, storer);
     store(reply_to_story_id, storer);
   }
 }
@@ -5156,7 +5156,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     parse(history_generation, parser);
   }
   if (is_reply_to_story) {
-    parse(reply_to_story_sender_user_id, parser);
+    parse(reply_to_story_sender_dialog_id, parser);
     parse(reply_to_story_id, parser);
   }
 
@@ -14400,7 +14400,7 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
                                                         message_info.reply_header.reply_to_message_id_);
       message_info.reply_header.reply_in_dialog_id_ = DialogId();
       message_info.reply_header.reply_to_message_id_ = MessageId();
-      message_info.reply_header.story_sender_user_id_ = UserId();
+      message_info.reply_header.story_sender_dialog_id_ = DialogId();
       message_info.reply_header.story_id_ = StoryId();
       break;
     }
@@ -14521,14 +14521,14 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   fix_server_reply_to_message_id(dialog_id, message_id, reply_in_dialog_id, reply_to_message_id);
   fix_server_reply_to_message_id(dialog_id, message_id, reply_in_dialog_id, top_thread_message_id);
 
-  UserId reply_to_story_sender_user_id = message_info.reply_header.story_sender_user_id_;
-  StoryId reply_to_story_id = message_info.reply_header.story_id_;
-  if (reply_to_story_sender_user_id != UserId() &&
+  auto reply_to_story_sender_dialog_id = message_info.reply_header.story_sender_dialog_id_;
+  auto reply_to_story_id = message_info.reply_header.story_id_;
+  if (reply_to_story_sender_dialog_id != DialogId() &&
       (dialog_type != DialogType::User ||
-       (reply_to_story_sender_user_id != my_id && reply_to_story_sender_user_id != dialog_id.get_user_id()))) {
-    LOG(ERROR) << "Receive reply to " << reply_to_story_id << " by " << reply_to_story_sender_user_id << " in "
+       (reply_to_story_sender_dialog_id != my_dialog_id && reply_to_story_sender_dialog_id != dialog_id))) {
+    LOG(ERROR) << "Receive reply to " << reply_to_story_id << " by " << reply_to_story_sender_dialog_id << " in "
                << dialog_id;
-    reply_to_story_sender_user_id = UserId();
+    reply_to_story_sender_dialog_id = DialogId();
     reply_to_story_id = StoryId();
   }
 
@@ -14637,7 +14637,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->reply_in_dialog_id = reply_in_dialog_id;
   message->top_thread_message_id = top_thread_message_id;
   message->is_topic_message = is_topic_message;
-  message->reply_to_story_sender_user_id = reply_to_story_sender_user_id;
+  message->reply_to_story_sender_dialog_id = reply_to_story_sender_dialog_id;
   message->reply_to_story_id = reply_to_story_id;
   message->restriction_reasons = std::move(message_info.restriction_reasons);
   message->author_signature = std::move(message_info.author_signature);
@@ -24181,6 +24181,13 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto reply_to_message_id = m->reply_to_message_id.get();
   auto reply_in_dialog_id =
       reply_to_message_id == 0 ? DialogId() : (m->reply_in_dialog_id.is_valid() ? m->reply_in_dialog_id : dialog_id);
+  auto reply_to_story_id = m->reply_to_story_id.get();
+  int64 reply_to_story_sender_dialog_id = 0;
+  if (reply_to_story_id != 0) {
+    CHECK(m->reply_to_story_sender_dialog_id.get_type() == DialogType::User);
+    reply_to_story_sender_dialog_id = td_->contacts_manager_->get_user_id_object(
+        m->reply_to_story_sender_dialog_id.get_user_id(), "reply_to_story_sender_dialog_id");
+  }
   auto top_thread_message_id = m->top_thread_message_id.get();
   auto date = is_scheduled ? 0 : m->date;
   auto edit_date = m->hide_edit_date ? 0 : m->edit_date;
@@ -24207,10 +24214,9 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
       has_timestamped_media, m->is_channel_post, m->is_topic_message, m->contains_unread_mention, date, edit_date,
       std::move(forward_info), std::move(interaction_info), std::move(unread_reactions),
       get_chat_id_object(reply_in_dialog_id, "get_message_object reply"), reply_to_message_id,
-      td_->contacts_manager_->get_user_id_object(m->reply_to_story_sender_user_id, "reply_to_story_sender_user_id"),
-      m->reply_to_story_id.get(), top_thread_message_id, m->ttl, ttl_expires_in, auto_delete_in, via_bot_user_id,
-      m->author_signature, m->media_album_id, get_restriction_reason_description(m->restriction_reasons),
-      std::move(content), std::move(reply_markup));
+      reply_to_story_sender_dialog_id, reply_to_story_id, top_thread_message_id, m->ttl, ttl_expires_in, auto_delete_in,
+      via_bot_user_id, m->author_signature, m->media_album_id,
+      get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
 }
 
 tl_object_ptr<td_api::messages> MessagesManager::get_messages_object(int32 total_count, DialogId dialog_id,
@@ -25388,8 +25394,7 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
           CHECK(input_media != nullptr);
 
           const FormattedText *caption = get_message_content_caption(m->content.get());
-          LOG(INFO) << "Send media from " << m->message_id << " in " << dialog_id << " in reply to "
-                    << m->reply_to_message_id;
+          LOG(INFO) << "Send media from " << m->message_id << " in " << dialog_id;
           int64 random_id = begin_send_message(dialog_id, m);
           td_->create_handler<SendMediaQuery>()->send(
               file_id, thumbnail_file_id, get_message_flags(m), dialog_id, get_send_message_as_input_peer(m),
