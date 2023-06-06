@@ -1966,6 +1966,8 @@ class MessagesManager final : public Actor {
 
   void do_send_screenshot_taken_notification_message(DialogId dialog_id, const Message *m, uint64 log_event_id);
 
+  void set_message_reply(const Dialog *d, Message *m, MessageId reply_to_message_id, bool is_message_in_dialog);
+
   void restore_message_reply_to_message_id(Dialog *d, Message *m);
 
   Message *continue_send_message(DialogId dialog_id, unique_ptr<Message> &&message, bool *need_update_dialog_pos,
@@ -2832,7 +2834,8 @@ class MessagesManager final : public Actor {
   void ttl_update_timeout(double now);
 
   void on_message_ttl_expired(Dialog *d, Message *m);
-  void on_message_ttl_expired_impl(Dialog *d, Message *m);
+
+  void on_message_ttl_expired_impl(Dialog *d, Message *m, bool is_message_in_dialog);
 
   void start_up() final;
 

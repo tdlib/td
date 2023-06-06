@@ -13351,13 +13351,13 @@ void MessagesManager::on_message_ttl_expired(Dialog *d, Message *m) {
   ttl_unregister_message(d->dialog_id, m, "on_message_ttl_expired");
   unregister_message_content(td_, m->content.get(), {d->dialog_id, m->message_id}, "on_message_ttl_expired");
   remove_message_file_sources(d->dialog_id, m);
-  on_message_ttl_expired_impl(d, m);
+  on_message_ttl_expired_impl(d, m, true);
   register_message_content(td_, m->content.get(), {d->dialog_id, m->message_id}, "on_message_ttl_expired");
   send_update_message_content(d, m, true, "on_message_ttl_expired");
   // the caller must call on_message_changed
 }
 
-void MessagesManager::on_message_ttl_expired_impl(Dialog *d, Message *m) {
+void MessagesManager::on_message_ttl_expired_impl(Dialog *d, Message *m, bool is_message_in_dialog) {
   CHECK(d != nullptr);
   CHECK(m != nullptr);
   CHECK(m->message_id.is_valid());
@@ -13380,13 +13380,9 @@ void MessagesManager::on_message_ttl_expired_impl(Dialog *d, Message *m) {
   remove_message_notification_id(d, m, true, true);
   update_message_contains_unread_mention(d, m, false, "on_message_ttl_expired_impl");
   remove_message_unread_reactions(d, m, "on_message_ttl_expired_impl");
-  unregister_message_reply(d->dialog_id, m);
+  set_message_reply(d, m, MessageId(), is_message_in_dialog);
   m->noforwards = false;
   m->contains_mention = false;
-  m->reply_to_message_id = MessageId();
-  m->reply_to_random_id = 0;
-  m->max_reply_media_timestamp = -1;
-  m->reply_in_dialog_id = DialogId();
   m->linked_top_thread_message_id = MessageId();
   m->is_content_secret = false;
 }
@@ -14773,9 +14769,7 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, const 
     new_message = std::move(old_message);
 
     if (new_message->reply_to_message_id != MessageId() && new_message->reply_to_message_id.is_yet_unsent()) {
-      LOG(INFO) << "Drop reply to " << new_message->reply_to_message_id;
-      new_message->reply_to_message_id = MessageId();
-      new_message->reply_in_dialog_id = DialogId();
+      set_message_reply(d, new_message.get(), MessageId(), false);
     }
 
     new_message->message_id = message_id;
@@ -24556,14 +24550,12 @@ void MessagesManager::cancel_send_message_query(DialogId dialog_id, Message *m) 
   {
     auto it = replied_yet_unsent_messages_.find({dialog_id, m->message_id});
     if (it != replied_yet_unsent_messages_.end()) {
+      Dialog *d = get_dialog(dialog_id);
       for (auto message_id : it->second) {
-        auto replied_m = get_message({dialog_id, message_id});
+        auto replied_m = get_message(d, message_id);
         CHECK(replied_m != nullptr);
         CHECK(replied_m->reply_to_message_id == m->message_id);
-        unregister_message_reply(dialog_id, replied_m);
-        replied_m->reply_to_message_id = replied_m->top_thread_message_id;
-        replied_m->reply_to_random_id = 0;
-        register_message_reply(dialog_id, replied_m);
+        set_message_reply(d, replied_m, replied_m->top_thread_message_id, true);
       }
       replied_yet_unsent_messages_.erase(it);
     }
@@ -30706,19 +30698,16 @@ void MessagesManager::update_reply_to_message_id(DialogId dialog_id, MessageId o
   }
   CHECK(old_message_id.is_yet_unsent());
 
+  Dialog *d = get_dialog(dialog_id);
   for (auto message_id : it->second) {
     CHECK(message_id.is_yet_unsent());
     FullMessageId full_message_id{dialog_id, message_id};
-    auto replied_m = get_message(full_message_id);
+    auto replied_m = get_message(d, message_id);
     CHECK(replied_m != nullptr);
     CHECK(replied_m->reply_to_message_id == old_message_id);
     CHECK(replied_m->reply_in_dialog_id == DialogId());
-    LOG(INFO) << "Update replied message in " << full_message_id << " from " << old_message_id << " to "
-              << new_message_id;
-    unregister_message_reply(dialog_id, replied_m);
-    replied_m->reply_to_message_id = new_message_id;
+    set_message_reply(d, replied_m, new_message_id, true);
     // TODO rewrite send message log event
-    register_message_reply(dialog_id, replied_m);
   }
   if (have_new_message) {
     CHECK(!new_message_id.is_yet_unsent());
@@ -30807,8 +30796,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
   sent_message->message_id = new_message_id;
 
   if (sent_message->reply_to_message_id != MessageId() && sent_message->reply_to_message_id.is_yet_unsent()) {
-    LOG(INFO) << "Drop reply to " << sent_message->reply_to_message_id;
-    sent_message->reply_to_message_id = MessageId();
+    set_message_reply(d, sent_message.get(), MessageId(), false);
   }
 
   send_update_message_send_succeeded(d, old_message_id, sent_message.get());
@@ -34643,7 +34631,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         d->being_added_message_id = MessageId();
         return nullptr;
       } else {
-        on_message_ttl_expired_impl(d, message.get());
+        on_message_ttl_expired_impl(d, message.get(), false);
         message_content_type = message->content->get_type();
         if (from_database) {
           on_message_changed(d, message.get(), false, "add expired message to dialog");
@@ -35627,21 +35615,13 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     // Can't check "&& get_message_force(d, old_message->reply_to_message_id, "update_message") == nullptr", because it
     // can change message tree and invalidate reference to old_message
     if (new_message->reply_to_message_id == MessageId() || replace_legacy) {
-      LOG(DEBUG) << "Drop message reply_to_message_id";
-      unregister_message_reply(dialog_id, old_message);
-      old_message->reply_to_message_id = MessageId();
-      old_message->reply_in_dialog_id = DialogId();
-      update_message_max_reply_media_timestamp(d, old_message, is_message_in_dialog);
+      set_message_reply(d, old_message, MessageId(), is_message_in_dialog);
       need_send_update = true;
     } else if (is_new_available) {
       if (message_id.is_yet_unsent() && old_message->reply_to_message_id == MessageId() &&
           new_message->reply_in_dialog_id == DialogId() && is_deleted_message(d, new_message->reply_to_message_id) &&
           get_message(d, new_message->reply_to_message_id) == nullptr && !is_message_in_dialog) {
-        LOG(INFO) << "Update replied message from " << old_message->reply_to_message_id << " to deleted "
-                  << new_message->reply_to_message_id;
-        old_message->reply_to_message_id = new_message->reply_to_message_id;
-        old_message->reply_in_dialog_id = DialogId();
-        update_message_max_reply_media_timestamp(d, old_message, is_message_in_dialog);
+        set_message_reply(d, old_message, new_message->reply_to_message_id, is_message_in_dialog);
         need_send_update = true;
       } else if (old_message->reply_to_message_id.is_valid_scheduled() &&
                  old_message->reply_to_message_id.is_scheduled_server() &&
@@ -35651,17 +35631,10 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
                      new_message->reply_to_message_id.get_scheduled_server_message_id() &&
                  new_message->reply_in_dialog_id == DialogId()) {
         // schedule date has changed
-        old_message->reply_to_message_id = new_message->reply_to_message_id;
-        old_message->reply_in_dialog_id = DialogId();
-        need_send_update = true;
+        set_message_reply(d, old_message, new_message->reply_to_message_id, is_message_in_dialog);
       } else if (message_id.is_yet_unsent() && old_message->top_thread_message_id == new_message->reply_to_message_id &&
                  new_message->reply_in_dialog_id == DialogId()) {
-        LOG(INFO) << "Update replied message from " << old_message->reply_to_message_id << " to top thread "
-                  << new_message->reply_to_message_id;
-        unregister_message_reply(dialog_id, old_message);
-        old_message->reply_to_message_id = new_message->reply_to_message_id;
-        old_message->reply_in_dialog_id = DialogId();
-        register_message_reply(dialog_id, old_message);
+        set_message_reply(d, old_message, new_message->reply_to_message_id, is_message_in_dialog);
         need_send_update = true;
       } else {
         LOG(ERROR) << message_id << " in " << dialog_id << " has changed replied message from "
@@ -38888,21 +38861,38 @@ void MessagesManager::update_has_outgoing_messages(DialogId dialog_id, const Mes
   }
 }
 
+void MessagesManager::set_message_reply(const Dialog *d, Message *m, MessageId reply_to_message_id,
+                                        bool is_message_in_dialog) {
+  LOG(INFO) << "Update replied message of " << FullMessageId{d->dialog_id, m->message_id} << " from "
+            << m->reply_to_message_id << " to " << reply_to_message_id;
+  if (is_message_in_dialog) {
+    unregister_message_reply(d->dialog_id, m);
+  }
+  m->reply_in_dialog_id = DialogId();
+  m->reply_to_message_id = reply_to_message_id;
+  m->reply_to_random_id = 0;
+  if (reply_to_message_id != MessageId() && m->message_id.is_yet_unsent() &&
+      (d->dialog_id.get_type() == DialogType::SecretChat || reply_to_message_id.is_yet_unsent())) {
+    auto *replied_m = get_message(d, reply_to_message_id);
+    if (replied_m != nullptr) {
+      m->reply_to_random_id = replied_m->random_id;
+    }
+  }
+  if (is_message_in_dialog) {
+    register_message_reply(d->dialog_id, m);
+  }
+  update_message_max_reply_media_timestamp(d, m, is_message_in_dialog);
+}
+
 void MessagesManager::restore_message_reply_to_message_id(Dialog *d, Message *m) {
   if (m->reply_to_message_id == MessageId() || !m->reply_to_message_id.is_yet_unsent()) {
     return;
   }
-  m->reply_in_dialog_id = DialogId();
 
   auto message_id = get_message_id_by_random_id(d, m->reply_to_random_id, "restore_message_reply_to_message_id");
-  if (!message_id.is_valid() && !message_id.is_valid_scheduled()) {
-    LOG(INFO) << "Failed to find replied " << m->reply_to_message_id << " with random_id = " << m->reply_to_random_id;
-    m->reply_to_message_id = m->top_thread_message_id;
-    m->reply_to_random_id = 0;
-  } else {
-    LOG(INFO) << "Restore message reply to " << message_id << " with random_id = " << m->reply_to_random_id;
-    m->reply_to_message_id = message_id;
-  }
+  auto new_reply_to_message_id =
+      message_id.is_valid() || message_id.is_valid_scheduled() ? message_id : m->top_thread_message_id;
+  set_message_reply(d, m, new_reply_to_message_id, false);
 }
 
 MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog_id, unique_ptr<Message> &&message,
