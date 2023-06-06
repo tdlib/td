@@ -108,6 +108,8 @@ class StoryManager final : public Actor {
 
   bool have_story(StoryFullId story_full_id) const;
 
+  int32 get_story_duration(StoryFullId story_full_id) const;
+
   td_api::object_ptr<td_api::story> get_story_object(StoryFullId story_full_id) const;
 
   td_api::object_ptr<td_api::stories> get_stories_object(int32 total_count,

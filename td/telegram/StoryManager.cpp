@@ -544,6 +544,21 @@ bool StoryManager::have_story(StoryFullId story_full_id) const {
   return get_story(story_full_id) != nullptr;
 }
 
+int32 StoryManager::get_story_duration(StoryFullId story_full_id) const {
+  auto story = get_story(story_full_id);
+  if (story == nullptr) {
+    return -1;
+  }
+  auto *content = story->content_.get();
+  auto it = being_edited_stories_.find(story_full_id);
+  if (it != being_edited_stories_.end()) {
+    if (it->second->content_ != nullptr) {
+      content = it->second->content_.get();
+    }
+  }
+  return get_story_content_duration(td_, content);
+}
+
 td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId story_full_id) const {
   return get_story_object(story_full_id, get_story(story_full_id));
 }
