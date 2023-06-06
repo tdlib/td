@@ -73,6 +73,7 @@ class ToggleStoriesHiddenQuery final : public Td::ResultHandler {
 class GetStoriesByIDQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   UserId user_id_;
+  vector<int32> input_story_ids_;
 
  public:
   explicit GetStoriesByIDQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
@@ -80,6 +81,7 @@ class GetStoriesByIDQuery final : public Td::ResultHandler {
 
   void send(UserId user_id, vector<int32> input_story_ids) {
     user_id_ = user_id;
+    input_story_ids_ = input_story_ids;
     auto r_input_user = td_->contacts_manager_->get_input_user(user_id_);
     if (r_input_user.is_error()) {
       return on_error(r_input_user.move_as_error());
@@ -96,7 +98,7 @@ class GetStoriesByIDQuery final : public Td::ResultHandler {
 
     auto result = result_ptr.move_as_ok();
     LOG(DEBUG) << "Receive result for GetStoriesByIDQuery: " << to_string(result);
-    td_->story_manager_->on_get_stories(DialogId(user_id_), std::move(result));
+    td_->story_manager_->on_get_stories(DialogId(user_id_), std::move(input_story_ids_), std::move(result));
     promise_.set_value(Unit());
   }
 
@@ -499,7 +501,7 @@ void StoryManager::on_get_dialog_pinned_stories(DialogId owner_dialog_id,
                                                 telegram_api::object_ptr<telegram_api::stories_stories> &&stories,
                                                 Promise<td_api::object_ptr<td_api::stories>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
-  auto result = on_get_stories(owner_dialog_id, std::move(stories));
+  auto result = on_get_stories(owner_dialog_id, {}, std::move(stories));
   promise.set_value(get_stories_object(result.first, transform(result.second, [owner_dialog_id](StoryId story_id) {
                                          return StoryFullId(owner_dialog_id, story_id);
                                        })));
@@ -542,6 +544,10 @@ void StoryManager::on_get_dialog_expiring_stories(DialogId owner_dialog_id,
 
 bool StoryManager::have_story(StoryFullId story_full_id) const {
   return get_story(story_full_id) != nullptr;
+}
+
+bool StoryManager::is_inaccessible_story(StoryFullId story_full_id) const {
+  return inaccessible_story_full_ids_.count(story_full_id) > 0;
 }
 
 int32 StoryManager::get_story_duration(StoryFullId story_full_id) const {
@@ -690,6 +696,8 @@ StoryId StoryManager::on_get_story(DialogId owner_dialog_id,
     story = s.get();
     stories_.set(story_full_id, std::move(s));
     is_changed = true;
+
+    inaccessible_story_full_ids_.erase(story_full_id);
   }
   CHECK(story != nullptr);
 
@@ -792,13 +800,31 @@ void StoryManager::on_story_changed(StoryFullId story_full_id, const Story *stor
 }
 
 std::pair<int32, vector<StoryId>> StoryManager::on_get_stories(
-    DialogId owner_dialog_id, telegram_api::object_ptr<telegram_api::stories_stories> &&stories) {
+    DialogId owner_dialog_id, vector<int32> &&expected_story_ids,
+    telegram_api::object_ptr<telegram_api::stories_stories> &&stories) {
   td_->contacts_manager_->on_get_users(std::move(stories->users_), "on_get_stories");
   auto story_ids = on_get_stories(owner_dialog_id, std::move(stories->stories_));
   auto total_count = stories->count_;
   if (total_count < static_cast<int32>(story_ids.size())) {
     LOG(ERROR) << "Expected at most " << total_count << " stories, but receive " << story_ids.size();
     total_count = static_cast<int32>(story_ids.size());
+  }
+  if (!expected_story_ids.empty()) {
+    FlatHashSet<int32> all_story_ids;
+    for (auto expected_story_id : expected_story_ids) {
+      CHECK(expected_story_id != 0);
+      all_story_ids.insert(expected_story_id);
+    }
+    for (auto story_id : story_ids) {
+      if (all_story_ids.erase(story_id.get()) == 0) {
+        LOG(ERROR) << "Receive " << story_id << " in " << owner_dialog_id << ", but didn't request it";
+      }
+    }
+    for (auto story_id : all_story_ids) {
+      StoryFullId story_full_id{owner_dialog_id, StoryId(story_id)};
+      LOG(INFO) << "Mark " << story_full_id << " as inaccessible";
+      inaccessible_story_full_ids_.insert(story_full_id);
+    }
   }
   return {total_count, std::move(story_ids)};
 }
@@ -851,8 +877,12 @@ void StoryManager::reload_story(StoryFullId story_full_id, Promise<Unit> &&promi
   if (dialog_id.get_type() != DialogType::User) {
     return promise.set_error(Status::Error(400, "Unsupported story owner"));
   }
+  auto story_id = story_full_id.get_story_id();
+  if (!story_id.is_server()) {
+    return promise.set_error(Status::Error(400, "Invalid story identifier"));
+  }
   auto user_id = dialog_id.get_user_id();
-  td_->create_handler<GetStoriesByIDQuery>(std::move(promise))->send(user_id, {story_full_id.get_story_id().get()});
+  td_->create_handler<GetStoriesByIDQuery>(std::move(promise))->send(user_id, {story_id.get()});
 }
 
 void StoryManager::get_story(DialogId owner_dialog_id, StoryId story_id,

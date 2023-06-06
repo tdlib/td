@@ -103,10 +103,12 @@ class StoryManager final : public Actor {
 
   void on_get_story(DialogId owner_dialog_id, telegram_api::object_ptr<telegram_api::StoryItem> &&story_item_ptr);
 
-  std::pair<int32, vector<StoryId>> on_get_stories(DialogId owner_dialog_id,
+  std::pair<int32, vector<StoryId>> on_get_stories(DialogId owner_dialog_id, vector<int32> &&expected_story_ids,
                                                    telegram_api::object_ptr<telegram_api::stories_stories> &&stories);
 
   bool have_story(StoryFullId story_full_id) const;
+
+  bool is_inaccessible_story(StoryFullId story_full_id) const;
 
   int32 get_story_duration(StoryFullId story_full_id) const;
 
@@ -187,6 +189,8 @@ class StoryManager final : public Actor {
   WaitFreeHashMap<StoryFullId, FileSourceId, StoryFullIdHash> story_full_id_to_file_source_id_;
 
   WaitFreeHashMap<StoryFullId, unique_ptr<Story>, StoryFullIdHash> stories_;
+
+  WaitFreeHashSet<StoryFullId, StoryFullIdHash> inaccessible_story_full_ids_;
 
   WaitFreeHashSet<StoryFullId, StoryFullIdHash> deleted_story_full_ids_;
 
