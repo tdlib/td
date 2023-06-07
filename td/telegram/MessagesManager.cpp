@@ -4685,7 +4685,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_reactions = reactions != nullptr;
   bool has_available_reactions_generation = available_reactions_generation != 0;
   bool has_history_generation = history_generation != 0;
-  bool is_reply_to_story = reply_to_story_sender_dialog_id != DialogId();
+  bool is_reply_to_story = reply_to_story_full_id != StoryFullId();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
   STORE_FLAG(is_outgoing);
@@ -4890,8 +4890,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     store(history_generation, storer);
   }
   if (is_reply_to_story) {
-    store(reply_to_story_sender_dialog_id, storer);
-    store(reply_to_story_id, storer);
+    store(reply_to_story_full_id, storer);
   }
 }
 
@@ -5156,8 +5155,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     parse(history_generation, parser);
   }
   if (is_reply_to_story) {
-    parse(reply_to_story_sender_dialog_id, parser);
-    parse(reply_to_story_id, parser);
+    parse(reply_to_story_full_id, parser);
   }
 
   CHECK(content != nullptr);
@@ -14400,8 +14398,7 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
                                                         message_info.reply_header.reply_to_message_id_);
       message_info.reply_header.reply_in_dialog_id_ = DialogId();
       message_info.reply_header.reply_to_message_id_ = MessageId();
-      message_info.reply_header.story_sender_dialog_id_ = DialogId();
-      message_info.reply_header.story_id_ = StoryId();
+      message_info.reply_header.story_full_id_ = StoryFullId();
       break;
     }
     default:
@@ -14521,15 +14518,12 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   fix_server_reply_to_message_id(dialog_id, message_id, reply_in_dialog_id, reply_to_message_id);
   fix_server_reply_to_message_id(dialog_id, message_id, reply_in_dialog_id, top_thread_message_id);
 
-  auto reply_to_story_sender_dialog_id = message_info.reply_header.story_sender_dialog_id_;
-  auto reply_to_story_id = message_info.reply_header.story_id_;
-  if (reply_to_story_sender_dialog_id != DialogId() &&
-      (dialog_type != DialogType::User ||
-       (reply_to_story_sender_dialog_id != my_dialog_id && reply_to_story_sender_dialog_id != dialog_id))) {
-    LOG(ERROR) << "Receive reply to " << reply_to_story_id << " by " << reply_to_story_sender_dialog_id << " in "
-               << dialog_id;
-    reply_to_story_sender_dialog_id = DialogId();
-    reply_to_story_id = StoryId();
+  auto reply_to_story_full_id = message_info.reply_header.story_full_id_;
+  if (reply_to_story_full_id != StoryFullId() &&
+      (dialog_type != DialogType::User || (reply_to_story_full_id.get_dialog_id() != my_dialog_id &&
+                                           reply_to_story_full_id.get_dialog_id() != dialog_id))) {
+    LOG(ERROR) << "Receive reply to " << reply_to_story_full_id << " in " << dialog_id;
+    reply_to_story_full_id = {};
   }
 
   UserId via_bot_user_id = message_info.via_bot_user_id;
@@ -14637,8 +14631,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->reply_in_dialog_id = reply_in_dialog_id;
   message->top_thread_message_id = top_thread_message_id;
   message->is_topic_message = is_topic_message;
-  message->reply_to_story_sender_dialog_id = reply_to_story_sender_dialog_id;
-  message->reply_to_story_id = reply_to_story_id;
+  message->reply_to_story_full_id = reply_to_story_full_id;
   message->restriction_reasons = std::move(message_info.restriction_reasons);
   message->author_signature = std::move(message_info.author_signature);
   message->is_outgoing = is_outgoing;
@@ -24181,12 +24174,12 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto reply_to_message_id = m->reply_to_message_id.get();
   auto reply_in_dialog_id =
       reply_to_message_id == 0 ? DialogId() : (m->reply_in_dialog_id.is_valid() ? m->reply_in_dialog_id : dialog_id);
-  auto reply_to_story_id = m->reply_to_story_id.get();
+  auto reply_to_story_id = m->reply_to_story_full_id.get_story_id().get();
   int64 reply_to_story_sender_dialog_id = 0;
   if (reply_to_story_id != 0) {
-    CHECK(m->reply_to_story_sender_dialog_id.get_type() == DialogType::User);
+    CHECK(m->reply_to_story_full_id.get_dialog_id().get_type() == DialogType::User);
     reply_to_story_sender_dialog_id = td_->contacts_manager_->get_user_id_object(
-        m->reply_to_story_sender_dialog_id.get_user_id(), "reply_to_story_sender_dialog_id");
+        m->reply_to_story_full_id.get_dialog_id().get_user_id(), "reply_to_story_sender_dialog_id");
   }
   auto top_thread_message_id = m->top_thread_message_id.get();
   auto date = is_scheduled ? 0 : m->date;
