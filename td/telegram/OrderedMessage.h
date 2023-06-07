@@ -187,14 +187,6 @@ class OrderedMessages {
   }
 
  private:
-  struct AttachInfo {
-    bool have_previous_ = false;
-    bool have_next_ = false;
-
-    AttachInfo(bool have_previous, bool have_next) : have_previous_(have_previous), have_next_(have_next) {
-    }
-  };
-
   class Iterator final : public IteratorBase {
    public:
     Iterator() = default;
@@ -207,7 +199,7 @@ class OrderedMessages {
     }
   };
 
-  AttachInfo auto_attach_message(MessageId message_id, MessageId last_message_id, const char *source);
+  void auto_attach_message(OrderedMessage *message, MessageId last_message_id, const char *source);
 
   Iterator get_iterator(MessageId message_id) {
     return Iterator(messages_.get(), message_id);

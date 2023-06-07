@@ -29,9 +29,7 @@ void OrderedMessages::insert(MessageId message_id, bool auto_attach, MessageId o
   message->random_y_ = random_y;
 
   if (auto_attach) {
-    auto attach_info = auto_attach_message(message_id, old_last_message_id, source);
-    message->have_previous_ = attach_info.have_previous_;
-    message->have_next_ = attach_info.have_next_;
+    auto_attach_message(message.get(), old_last_message_id, source);
   } else {
     auto it = get_iterator(message_id);
     if (*it != nullptr && (*it)->have_next_) {
@@ -156,8 +154,8 @@ void OrderedMessages::attach_message_to_next(MessageId message_id, const char *s
   }
 }
 
-OrderedMessages::AttachInfo OrderedMessages::auto_attach_message(MessageId message_id, MessageId last_message_id,
-                                                                 const char *source) {
+void OrderedMessages::auto_attach_message(OrderedMessage *message, MessageId last_message_id, const char *source) {
+  auto message_id = message->message_id_;
   auto it = get_iterator(message_id);
   OrderedMessage *previous_message = *it;
   if (previous_message != nullptr) {
@@ -175,9 +173,10 @@ OrderedMessages::AttachInfo OrderedMessages::auto_attach_message(MessageId messa
       }
 
       LOG(INFO) << "Attach " << message_id << " to the previous " << previous_message_id << " from " << source;
-      auto have_next = previous_message->have_next_;
+      message->have_next_ = previous_message->have_next_;
+      message->have_previous_ = true;
       previous_message->have_next_ = true;
-      return {true, have_next};
+      return;
     }
   }
   if (!message_id.is_yet_unsent()) {
@@ -195,14 +194,13 @@ OrderedMessages::AttachInfo OrderedMessages::auto_attach_message(MessageId messa
     if (next_message != nullptr) {
       CHECK(!next_message->have_previous_);
       LOG(INFO) << "Attach " << message_id << " to the next " << next_message->message_id_ << " from " << source;
-      auto have_previous = next_message->have_previous_;
+      message->have_next_ = true;
       next_message->have_previous_ = true;
-      return {have_previous, true};
+      return;
     }
   }
 
   LOG(INFO) << "Can't auto-attach " << message_id << " from " << source;
-  return {false, false};
 }
 
 void OrderedMessages::do_find_older_messages(const OrderedMessage *ordered_message, MessageId max_message_id,
