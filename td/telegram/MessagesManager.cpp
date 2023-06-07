@@ -20902,8 +20902,8 @@ tl_object_ptr<td_api::messages> MessagesManager::get_dialog_history(DialogId dia
             << " tries left, have_full_history = " << d->have_full_history
             << ", have_full_history_source = " << d->have_full_history_source;
 
-  auto message_ids =
-      d->ordered_messages.get_history(d->last_message_id, from_message_id, offset, limit, left_tries == 0);
+  auto message_ids = d->ordered_messages.get_history(d->last_message_id, from_message_id, offset, limit,
+                                                     left_tries == 0 && !only_local);
   if (!message_ids.empty()) {
     // maybe need some messages
     CHECK(offset == 0);
