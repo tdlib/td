@@ -14614,6 +14614,17 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     force_create_dialog(sender_dialog_id, "create_message", true);
   }
 
+  bool is_expired =
+      content_type == MessageContentType::ExpiredPhoto || content_type == MessageContentType::ExpiredVideo;
+  if (is_expired) {
+    CHECK(ttl == 0);  // self-destruct time is ignored/set to 0 if the message has already been expired
+    reply_to_message_id = MessageId();
+    reply_in_dialog_id = DialogId();
+    reply_to_story_full_id = StoryFullId();
+    noforwards = false;
+    is_content_secret = false;
+  }
+
   LOG(INFO) << "Receive " << message_id << " in " << dialog_id << " from " << sender_user_id << "/" << sender_dialog_id;
 
   auto message = make_unique<Message>();
@@ -14637,7 +14648,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->is_outgoing = is_outgoing;
   message->is_channel_post = is_channel_post;
   message->contains_mention =
-      !is_outgoing && dialog_type != DialogType::User &&
+      !is_outgoing && dialog_type != DialogType::User && !is_expired &&
       ((flags & MESSAGE_FLAG_HAS_MENTION) != 0 || content_type == MessageContentType::PinMessage) &&
       !td_->auth_manager_->is_bot();
   message->contains_unread_mention =
@@ -14659,19 +14670,12 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->content = std::move(message_info.content);
   message->reply_markup = get_reply_markup(std::move(message_info.reply_markup), td_->auth_manager_->is_bot(), false,
                                            message->contains_mention || dialog_type == DialogType::User);
-
-  if (content_type == MessageContentType::ExpiredPhoto || content_type == MessageContentType::ExpiredVideo) {
-    CHECK(message->ttl == 0);  // self-destruct time is ignored/set to 0 if the message has already been expired
-    if (message->reply_markup != nullptr) {
-      if (message->reply_markup->type != ReplyMarkup::Type::InlineKeyboard) {
-        message->had_reply_markup = true;
-      }
-      message->reply_markup = nullptr;
+  if (message->reply_markup != nullptr && is_expired) {
+    // just in case
+    if (message->reply_markup->type != ReplyMarkup::Type::InlineKeyboard) {
+      message->had_reply_markup = true;
     }
-    message->reply_to_message_id = MessageId();
-    message->reply_to_random_id = 0;
-    message->reply_in_dialog_id = DialogId();
-    message->linked_top_thread_message_id = MessageId();
+    message->reply_markup = nullptr;
   }
 
   if (message_info.media_album_id != 0) {
@@ -35863,8 +35867,8 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
       << " to " << new_message->is_channel_post << ", message content type is " << old_content_type << '/'
       << new_content_type;
   if (old_message->contains_mention != new_message->contains_mention) {
-    if (old_message->edit_date == 0 && is_new_available && old_content_type != MessageContentType::PinMessage &&
-        old_content_type != MessageContentType::ExpiredPhoto && old_content_type != MessageContentType::ExpiredVideo &&
+    if (old_message->edit_date == 0 && is_new_available && new_content_type != MessageContentType::PinMessage &&
+        new_content_type != MessageContentType::ExpiredPhoto && new_content_type != MessageContentType::ExpiredVideo &&
         !replace_legacy) {
       LOG(ERROR) << message_id << " in " << dialog_id << " has changed contains_mention from "
                  << old_message->contains_mention << " to " << new_message->contains_mention
