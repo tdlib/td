@@ -23398,14 +23398,9 @@ void MessagesManager::load_messages_impl(const Dialog *d, MessageId from_message
     only_local = true;
   }
   bool from_database = (left_tries > 2 || only_local) && G()->use_message_database();
-
   if (from_message_id == MessageId()) {
     get_history_from_the_end_impl(d, from_database, only_local, std::move(promise), "load_messages_impl");
     return;
-  }
-  if ((!d->first_database_message_id.is_valid() || from_message_id <= d->first_database_message_id) &&
-      !d->have_full_history) {
-    from_database = false;
   }
   if (offset >= -1) {
     // get history before some server or local message
