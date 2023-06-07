@@ -1156,7 +1156,7 @@ messageSendingStateFailed error_code:int32 error_message:string can_retry:Bool n
 //@forward_info Information about the initial message sender; may be null
 //@interaction_info Information about interactions with the message; may be null
 //@unread_reactions Information about unread reactions added to the message
-//@reply_in_chat_id If non-zero, the identifier of the chat to which the replied message belongs; Currently, only messages in the Replies chat can have different reply_in_chat_id and chat_id
+//@reply_in_chat_id If non-zero, the identifier of the chat to which the replied message belongs. For example, messages in the Replies chat can have different reply_in_chat_id and chat_id
 //@reply_to_message_id If non-zero, the identifier of the message this message is replying to; can be the identifier of a deleted message
 //@replied_story_sender_user_id If non-zero, the identifier of the sender of the story this message is replying to
 //@replied_story_id If non-zero, the identifier of the story this message is replying to; can be the identifier of a deleted or an unaccessible message
