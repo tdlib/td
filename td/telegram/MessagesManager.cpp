@@ -24101,7 +24101,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_messag
       m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_dialog_event_log_message_object"),
       nullptr, nullptr, m->is_outgoing, m->is_pinned, false, false, can_be_saved, false, false, false, false, false,
       false, false, false, true, m->is_channel_post, m->is_topic_message, false, m->date, edit_date,
-      std::move(forward_info), std::move(interaction_info), Auto(), 0, 0, 0, 0, 0, 0, 0.0, 0.0, via_bot_user_id,
+      std::move(forward_info), std::move(interaction_info), Auto(), nullptr, 0, 0, 0.0, 0.0, via_bot_user_id,
       m->author_signature, 0, get_restriction_reason_description(m->restriction_reasons), std::move(content),
       std::move(reply_markup));
 }
@@ -24175,21 +24175,31 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto can_get_media_timestamp_links = can_get_media_timestamp_link(dialog_id, m).is_ok();
   auto can_report_reactions = can_report_message_reactions(dialog_id, m);
   auto via_bot_user_id = td_->contacts_manager_->get_user_id_object(m->via_bot_user_id, "via_bot_user_id");
-  auto reply_to_message_id = m->reply_to_message_id.get();
-  auto reply_in_dialog_id =
-      reply_to_message_id == 0 ? DialogId() : (m->reply_in_dialog_id.is_valid() ? m->reply_in_dialog_id : dialog_id);
-  auto reply_to_story_id = m->reply_to_story_full_id.get_story_id().get();
-  int64 reply_to_story_sender_dialog_id = 0;
-  if (reply_to_story_id != 0) {
-    CHECK(m->reply_to_story_full_id.get_dialog_id().get_type() == DialogType::User);
-    reply_to_story_sender_dialog_id = td_->contacts_manager_->get_user_id_object(
-        m->reply_to_story_full_id.get_dialog_id().get_user_id(), "reply_to_story_sender_dialog_id");
-  }
+  auto reply_to = [&]() -> td_api::object_ptr<td_api::MessageReplyTo> {
+    if (m->reply_to_message_id != MessageId()) {
+      if (m->is_topic_message && m->reply_in_dialog_id == DialogId() &&
+          m->reply_to_message_id == m->top_thread_message_id && !td_->auth_manager_->is_bot()) {
+        return nullptr;
+      }
+      return td_api::make_object<td_api::messageReplyToMessage>(
+          get_chat_id_object(m->reply_in_dialog_id.is_valid() ? m->reply_in_dialog_id : dialog_id,
+                             "messageReplyToMessage"),
+          m->reply_to_message_id.get());
+    }
+    if (m->reply_to_story_full_id.get_story_id() != StoryId()) {
+      CHECK(m->reply_to_story_full_id.get_dialog_id().get_type() == DialogType::User);
+      return td_api::make_object<td_api::messageReplyToStory>(
+          td_->contacts_manager_->get_user_id_object(m->reply_to_story_full_id.get_dialog_id().get_user_id(),
+                                                     "messageReplyToStory"),
+          m->reply_to_story_full_id.get_story_id().get());
+    }
+    return nullptr;
+  }();
   auto top_thread_message_id = m->top_thread_message_id.get();
   auto date = is_scheduled ? 0 : m->date;
   auto edit_date = m->hide_edit_date ? 0 : m->edit_date;
   auto is_pinned = is_scheduled ? false : m->is_pinned;
-  auto has_timestamped_media = reply_to_message_id == 0 || m->max_own_media_timestamp >= 0;
+  auto has_timestamped_media = reply_to == nullptr || m->max_own_media_timestamp >= 0;
   auto reply_markup = get_reply_markup_object(td_->contacts_manager_.get(), m->reply_markup);
   auto live_location_date = m->is_failed_to_send ? 0 : m->date;
   auto skip_bot_commands = need_skip_bot_commands(dialog_id, m);
@@ -24197,23 +24207,16 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto content = get_message_content_object(m->content.get(), td_, dialog_id, live_location_date, m->is_content_secret,
                                             skip_bot_commands, max_media_timestamp);
 
-  if (m->is_topic_message && reply_in_dialog_id == dialog_id && reply_to_message_id == top_thread_message_id &&
-      !td_->auth_manager_->is_bot()) {
-    reply_in_dialog_id = DialogId();
-    reply_to_message_id = 0;
-  }
-
   return td_api::make_object<td_api::message>(
       m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_message_object"),
       std::move(sending_state), std::move(scheduling_state), is_outgoing, is_pinned, can_be_edited, can_be_forwarded,
       can_be_saved, can_delete_for_self, can_delete_for_all_users, can_get_added_reactions, can_get_statistics,
       can_get_message_thread, can_get_viewers, can_get_media_timestamp_links, can_report_reactions,
       has_timestamped_media, m->is_channel_post, m->is_topic_message, m->contains_unread_mention, date, edit_date,
-      std::move(forward_info), std::move(interaction_info), std::move(unread_reactions),
-      get_chat_id_object(reply_in_dialog_id, "get_message_object reply"), reply_to_message_id,
-      reply_to_story_sender_dialog_id, reply_to_story_id, top_thread_message_id, m->ttl, ttl_expires_in, auto_delete_in,
-      via_bot_user_id, m->author_signature, m->media_album_id,
-      get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
+      std::move(forward_info), std::move(interaction_info), std::move(unread_reactions), std::move(reply_to),
+      top_thread_message_id, m->ttl, ttl_expires_in, auto_delete_in, via_bot_user_id, m->author_signature,
+      m->media_album_id, get_restriction_reason_description(m->restriction_reasons), std::move(content),
+      std::move(reply_markup));
 }
 
 tl_object_ptr<td_api::messages> MessagesManager::get_messages_object(int32 total_count, DialogId dialog_id,
