@@ -196,6 +196,7 @@ OrderedMessages::AttachInfo OrderedMessages::auto_attach_message(MessageId messa
       CHECK(!next_message->have_previous_);
       LOG(INFO) << "Attach " << message_id << " to the next " << next_message->message_id_ << " from " << source;
       auto have_previous = next_message->have_previous_;
+      next_message->have_previous_ = true;
       return {have_previous, true};
     }
   }
