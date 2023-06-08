@@ -35614,69 +35614,98 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     }
   }
 
-  if (old_message->reply_to_message_id != new_message->reply_to_message_id) {
-    // Can't check "&& get_message_force(d, old_message->reply_to_message_id, "update_message") == nullptr", because it
-    // can change message tree and invalidate reference to old_message
-    if (new_message->reply_to_message_id == MessageId() || replace_legacy) {
-      set_message_reply(d, old_message, MessageId(), is_message_in_dialog);
-      need_send_update = true;
-    } else if (is_new_available) {
-      if (message_id.is_yet_unsent() && old_message->reply_to_message_id == MessageId() &&
-          new_message->reply_in_dialog_id == DialogId() && is_deleted_message(d, new_message->reply_to_message_id) &&
-          get_message(d, new_message->reply_to_message_id) == nullptr && !is_message_in_dialog) {
-        set_message_reply(d, old_message, new_message->reply_to_message_id, is_message_in_dialog);
-        need_send_update = true;
-      } else if (old_message->reply_to_message_id.is_valid_scheduled() &&
-                 old_message->reply_to_message_id.is_scheduled_server() &&
-                 new_message->reply_to_message_id.is_valid_scheduled() &&
-                 new_message->reply_to_message_id.is_scheduled_server() &&
-                 old_message->reply_to_message_id.get_scheduled_server_message_id() ==
-                     new_message->reply_to_message_id.get_scheduled_server_message_id() &&
-                 new_message->reply_in_dialog_id == DialogId()) {
-        // schedule date has changed
-        set_message_reply(d, old_message, new_message->reply_to_message_id, is_message_in_dialog);
-      } else if (message_id.is_yet_unsent() && old_message->top_thread_message_id == new_message->reply_to_message_id &&
-                 new_message->reply_in_dialog_id == DialogId()) {
-        set_message_reply(d, old_message, new_message->reply_to_message_id, is_message_in_dialog);
-        need_send_update = true;
-      } else {
-        LOG(ERROR) << message_id << " in " << dialog_id << " has changed replied message from "
-                   << old_message->reply_to_message_id << " to " << new_message->reply_to_message_id
+  const bool is_top_thread_message_id_changed =
+      old_message->top_thread_message_id != new_message->top_thread_message_id;
+  const bool is_is_topic_message_changed = old_message->is_topic_message != new_message->is_topic_message;
+  if (is_new_available && (old_message->reply_to_message_id != new_message->reply_to_message_id ||
+                           old_message->reply_in_dialog_id != new_message->reply_in_dialog_id ||
+                           is_top_thread_message_id_changed || is_is_topic_message_changed)) {
+    if (!replace_legacy) {
+      if (old_message->reply_to_message_id != new_message->reply_to_message_id) {
+        LOG(INFO) << "Update replied message of " << FullMessageId{dialog_id, message_id} << " from "
+                  << old_message->reply_to_message_id << " to " << new_message->reply_to_message_id;
+        if (message_id.is_yet_unsent() && new_message->reply_to_message_id == MessageId() &&
+            old_message->reply_in_dialog_id == DialogId() && is_deleted_message(d, old_message->reply_to_message_id) &&
+            !is_message_in_dialog) {
+          // reply to a deleted message
+        } else if (message_id.is_yet_unsent() && old_message->reply_to_message_id == MessageId() &&
+                   new_message->reply_in_dialog_id == DialogId() &&
+                   is_deleted_message(d, new_message->reply_to_message_id) && !is_message_in_dialog) {
+          // reply to a deleted message
+        } else if (old_message->reply_to_message_id.is_valid_scheduled() &&
+                   old_message->reply_to_message_id.is_scheduled_server() &&
+                   new_message->reply_to_message_id.is_valid_scheduled() &&
+                   new_message->reply_to_message_id.is_scheduled_server() &&
+                   old_message->reply_to_message_id.get_scheduled_server_message_id() ==
+                       new_message->reply_to_message_id.get_scheduled_server_message_id() &&
+                   new_message->reply_in_dialog_id == DialogId()) {
+          // schedule date change
+        } else if (message_id.is_yet_unsent() &&
+                   old_message->top_thread_message_id == new_message->reply_to_message_id &&
+                   new_message->reply_in_dialog_id == DialogId()) {
+          // move of reply to the top thread message
+        } else {
+          LOG(ERROR) << message_id << " in " << dialog_id << " has changed replied message from "
+                     << old_message->reply_to_message_id << " to " << new_message->reply_to_message_id
+                     << ", message content type is " << old_content_type << '/' << new_content_type;
+        }
+      }
+      if (old_message->reply_in_dialog_id != new_message->reply_in_dialog_id) {
+        LOG(ERROR) << message_id << " in " << dialog_id << " has changed replied message chat from "
+                   << old_message->reply_in_dialog_id << " to " << new_message->reply_in_dialog_id
                    << ", message content type is " << old_content_type << '/' << new_content_type;
       }
-    }
-  }
-  if (old_message->reply_in_dialog_id != new_message->reply_in_dialog_id) {
-    if (new_message->reply_in_dialog_id == DialogId() || replace_legacy) {
-      LOG(DEBUG) << "Drop message reply_in_dialog_id";
-      old_message->reply_in_dialog_id = DialogId();
-      need_send_update = true;
-    } else if (is_new_available && old_message->reply_in_dialog_id.is_valid()) {
-      LOG(ERROR) << message_id << " in " << dialog_id << " has changed replied message chat from "
-                 << old_message->reply_in_dialog_id << " to " << new_message->reply_in_dialog_id
-                 << ", message content type is " << old_content_type << '/' << new_content_type;
-    }
-  }
-  if (old_message->top_thread_message_id != new_message->top_thread_message_id) {
-    if ((new_message->top_thread_message_id == MessageId() || old_message->top_thread_message_id == MessageId()) &&
-        (!is_message_in_dialog || replace_legacy)) {
-      LOG(DEBUG) << "Change message thread from " << old_message->top_thread_message_id << " to "
-                 << new_message->top_thread_message_id;
-      if (is_message_in_dialog && old_message->is_topic_message) {
-        if (old_message->top_thread_message_id != MessageId()) {
-          td_->forum_topic_manager_->on_topic_message_count_changed(dialog_id, old_message->top_thread_message_id, -1);
-        }
-        if (new_message->top_thread_message_id != MessageId()) {
-          td_->forum_topic_manager_->on_topic_message_count_changed(dialog_id, new_message->top_thread_message_id, +1);
+      if (is_top_thread_message_id_changed) {
+        if ((new_message->top_thread_message_id != MessageId() && old_message->top_thread_message_id != MessageId()) ||
+            is_message_in_dialog) {
+          LOG(ERROR) << message_id << " in " << dialog_id << " has changed message thread from "
+                     << old_message->top_thread_message_id << " to " << new_message->top_thread_message_id
+                     << ", message content type is " << old_content_type << '/' << new_content_type;
+        } else {
+          LOG(INFO) << "Update message thread of " << FullMessageId{dialog_id, message_id} << " from "
+                    << old_message->top_thread_message_id << " to " << new_message->top_thread_message_id;
         }
       }
-      old_message->top_thread_message_id = new_message->top_thread_message_id;
-      need_send_update = true;
-    } else if (is_new_available) {
-      LOG(ERROR) << message_id << " in " << dialog_id << " has changed message thread from "
-                 << old_message->top_thread_message_id << " to " << new_message->top_thread_message_id
-                 << ", message content type is " << old_content_type << '/' << new_content_type;
+      if (is_is_topic_message_changed) {
+        if (!message_id.is_yet_unsent()) {
+          LOG(ERROR) << message_id << " in " << dialog_id << " has changed is_topic_message to "
+                     << new_message->is_topic_message;
+        } else {
+          LOG(INFO) << "Update is_topic_message of " << FullMessageId{dialog_id, message_id} << " from "
+                    << old_message->is_topic_message << " to " << new_message->is_topic_message;
+        }
+      }
     }
+
+    if ((is_top_thread_message_id_changed || is_is_topic_message_changed) && is_message_in_dialog &&
+        old_message->is_topic_message && old_message->top_thread_message_id != MessageId()) {
+      td_->forum_topic_manager_->on_topic_message_count_changed(dialog_id, old_message->top_thread_message_id, -1);
+    }
+
+    if (is_message_in_dialog) {
+      unregister_message_reply(d->dialog_id, old_message);
+    }
+    old_message->reply_in_dialog_id = new_message->reply_in_dialog_id;
+    old_message->reply_to_message_id = new_message->reply_to_message_id;
+    old_message->top_thread_message_id = new_message->top_thread_message_id;
+    old_message->reply_to_random_id = 0;
+    if (old_message->reply_in_dialog_id == DialogId() && old_message->reply_to_message_id != MessageId() &&
+        old_message->message_id.is_yet_unsent() &&
+        (dialog_id.get_type() == DialogType::SecretChat || old_message->reply_to_message_id.is_yet_unsent())) {
+      auto *replied_m = get_message(d, old_message->reply_to_message_id);
+      if (replied_m != nullptr) {
+        old_message->reply_to_random_id = replied_m->random_id;
+      }
+    }
+    if (is_message_in_dialog) {
+      register_message_reply(d->dialog_id, old_message);
+    }
+    update_message_max_reply_media_timestamp(d, old_message, is_message_in_dialog);
+    if ((is_top_thread_message_id_changed || is_is_topic_message_changed) && is_message_in_dialog &&
+        old_message->is_topic_message && old_message->top_thread_message_id != MessageId()) {
+      td_->forum_topic_manager_->on_topic_message_count_changed(dialog_id, old_message->top_thread_message_id, +1);
+    }
+    need_send_update = true;
   }
   if (old_message->via_bot_user_id != new_message->via_bot_user_id) {
     if ((!message_id.is_yet_unsent() || old_message->via_bot_user_id.is_valid()) && is_new_available &&
@@ -35715,21 +35744,6 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
       << message_id << " in " << dialog_id << " has changed is_channel_post from " << old_message->is_channel_post
       << " to " << new_message->is_channel_post << ", message content type is " << old_content_type << '/'
       << new_content_type;
-  if (!old_message->top_thread_message_id.is_valid()) {
-    new_message->is_topic_message = false;
-  }
-  if (old_message->is_topic_message != new_message->is_topic_message &&
-      old_message->top_thread_message_id == new_message->top_thread_message_id) {
-    if (is_message_in_dialog) {
-      td_->forum_topic_manager_->on_topic_message_count_changed(
-          dialog_id, old_message->top_thread_message_id,
-          static_cast<int>(new_message->is_topic_message) - static_cast<int>(old_message->is_topic_message));
-    }
-    LOG_IF(ERROR, !message_id.is_yet_unsent() && !replace_legacy)
-        << message_id << " in " << dialog_id << " has changed is_topic_message to " << new_message->is_topic_message;
-    old_message->is_topic_message = new_message->is_topic_message;
-    need_send_update = true;
-  }
   if (old_message->contains_mention != new_message->contains_mention) {
     if (old_message->edit_date == 0 && is_new_available && old_content_type != MessageContentType::PinMessage &&
         old_content_type != MessageContentType::ExpiredPhoto && old_content_type != MessageContentType::ExpiredVideo &&
