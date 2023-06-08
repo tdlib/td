@@ -27068,7 +27068,7 @@ int32 MessagesManager::get_message_max_media_timestamp(const Message *m) {
 }
 
 void MessagesManager::update_message_max_reply_media_timestamp(const Dialog *d, Message *m,
-                                                               bool need_send_update_message_content) {
+                                                               bool need_send_update_message_content) const {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
