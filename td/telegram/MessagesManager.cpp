@@ -35766,10 +35766,10 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
   const bool is_top_thread_message_id_changed =
       old_message->top_thread_message_id != new_message->top_thread_message_id;
   const bool is_is_topic_message_changed = old_message->is_topic_message != new_message->is_topic_message;
-  if (is_new_available && (old_message->reply_to_message_id != new_message->reply_to_message_id ||
-                           old_message->reply_in_dialog_id != new_message->reply_in_dialog_id ||
-                           is_top_thread_message_id_changed || is_is_topic_message_changed)) {
-    if (!replace_legacy) {
+  if (old_message->reply_to_message_id != new_message->reply_to_message_id ||
+      old_message->reply_in_dialog_id != new_message->reply_in_dialog_id || is_top_thread_message_id_changed ||
+      is_is_topic_message_changed || old_message->reply_to_story_full_id != new_message->reply_to_story_full_id) {
+    if (!replace_legacy && is_new_available) {
       if (old_message->reply_to_message_id != new_message->reply_to_message_id) {
         LOG(INFO) << "Update replied message of " << FullMessageId{dialog_id, message_id} << " from "
                   << old_message->reply_to_message_id << " to " << new_message->reply_to_message_id;
@@ -35824,6 +35824,16 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
                     << old_message->is_topic_message << " to " << new_message->is_topic_message;
         }
       }
+      if (old_message->reply_to_story_full_id != new_message->reply_to_story_full_id) {
+        if (!message_id.is_yet_unsent() || new_message->reply_to_story_full_id.is_valid() || is_message_in_dialog) {
+          LOG(ERROR) << message_id << " in " << dialog_id << " has changed replied story from "
+                     << old_message->reply_to_story_full_id << " to " << new_message->reply_to_story_full_id
+                     << ", message content type is " << old_content_type << '/' << new_content_type;
+        } else {
+          LOG(INFO) << "Update replied story of " << FullMessageId{dialog_id, message_id} << " from "
+                    << old_message->reply_to_story_full_id << " to " << new_message->reply_to_story_full_id;
+        }
+      }
     }
 
     if ((is_top_thread_message_id_changed || is_is_topic_message_changed) && is_message_in_dialog &&
@@ -35836,6 +35846,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     }
     old_message->reply_in_dialog_id = new_message->reply_in_dialog_id;
     old_message->reply_to_message_id = new_message->reply_to_message_id;
+    old_message->reply_to_story_full_id = new_message->reply_to_story_full_id;
     old_message->top_thread_message_id = new_message->top_thread_message_id;
     old_message->reply_to_random_id = 0;
     if (old_message->reply_in_dialog_id == DialogId() && old_message->reply_to_message_id != MessageId() &&
@@ -39036,6 +39047,7 @@ void MessagesManager::set_message_reply(const Dialog *d, Message *m, MessageId r
   }
   m->reply_in_dialog_id = DialogId();
   m->reply_to_message_id = reply_to_message_id;
+  m->reply_to_story_full_id = StoryFullId();
   m->reply_to_random_id = 0;
   if (reply_to_message_id != MessageId() && m->message_id.is_yet_unsent() &&
       (d->dialog_id.get_type() == DialogType::SecretChat || reply_to_message_id.is_yet_unsent())) {
