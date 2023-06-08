@@ -14636,6 +14636,11 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     is_content_secret = false;
   }
 
+  if (is_pinned && message_id.is_scheduled()) {
+    LOG(ERROR) << "Receive pinned " << message_id << " in " << dialog_id;
+    is_pinned = false;
+  }
+
   LOG(INFO) << "Receive " << message_id << " in " << dialog_id << " from " << sender_user_id << "/" << sender_dialog_id;
 
   auto message = make_unique<Message>();
@@ -23163,6 +23168,9 @@ unique_ptr<MessagesManager::Message> MessagesManager::parse_message(Dialog *d, M
         break;
     }
   }
+  if (m->is_pinned && is_scheduled) {
+    m->is_pinned = false;
+  }
 
   LOG(INFO) << "Loaded " << m->message_id << " in " << dialog_id << " of size " << value.size() << " from database";
   return message;
@@ -24110,11 +24118,10 @@ td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_messag
                                             get_message_own_max_media_timestamp(m));
   return td_api::make_object<td_api::message>(
       m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_dialog_event_log_message_object"),
-      nullptr, nullptr, m->is_outgoing, m->is_pinned, false, false, can_be_saved, false, false, false, false, false,
-      false, false, false, true, m->is_channel_post, m->is_topic_message, false, m->date, edit_date,
-      std::move(forward_info), std::move(interaction_info), Auto(), nullptr, 0, 0, 0.0, 0.0, via_bot_user_id,
-      m->author_signature, 0, get_restriction_reason_description(m->restriction_reasons), std::move(content),
-      std::move(reply_markup));
+      nullptr, nullptr, m->is_outgoing, false, false, false, can_be_saved, false, false, false, false, false, false,
+      false, false, true, m->is_channel_post, m->is_topic_message, false, m->date, edit_date, std::move(forward_info),
+      std::move(interaction_info), Auto(), nullptr, 0, 0, 0.0, 0.0, via_bot_user_id, m->author_signature, 0,
+      get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
 }
 
 tl_object_ptr<td_api::message> MessagesManager::get_message_object(FullMessageId full_message_id, const char *source) {
@@ -24209,7 +24216,6 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto top_thread_message_id = m->top_thread_message_id.get();
   auto date = is_scheduled ? 0 : m->date;
   auto edit_date = m->hide_edit_date ? 0 : m->edit_date;
-  auto is_pinned = is_scheduled ? false : m->is_pinned;
   auto has_timestamped_media = reply_to == nullptr || m->max_own_media_timestamp >= 0;
   auto reply_markup = get_reply_markup_object(td_->contacts_manager_.get(), m->reply_markup);
   auto live_location_date = m->is_failed_to_send ? 0 : m->date;
@@ -24220,7 +24226,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
 
   return td_api::make_object<td_api::message>(
       m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_message_object"),
-      std::move(sending_state), std::move(scheduling_state), is_outgoing, is_pinned, can_be_edited, can_be_forwarded,
+      std::move(sending_state), std::move(scheduling_state), is_outgoing, m->is_pinned, can_be_edited, can_be_forwarded,
       can_be_saved, can_delete_for_self, can_delete_for_all_users, can_get_added_reactions, can_get_statistics,
       can_get_message_thread, can_get_viewers, can_get_media_timestamp_links, can_report_reactions,
       has_timestamped_media, m->is_channel_post, m->is_topic_message, m->contains_unread_mention, date, edit_date,
