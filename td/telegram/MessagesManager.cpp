@@ -24215,6 +24215,36 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
   auto dialog_type = dialog_id.get_type();
   auto my_id = td_->contacts_manager_->get_my_id();
 
+  int64 reply_to_random_id = 0;
+  bool is_topic_message = false;
+  if (reply_to_message_id.is_valid()) {
+    // the message was forcely preloaded in get_reply_to_message_id
+    // it can be missing, only if it is unknown message from a push notification, or an unknown top thread message
+    const Message *reply_m = get_message(d, reply_to_message_id);
+    if (reply_m != nullptr) {
+      if (reply_m->top_thread_message_id.is_valid()) {
+        top_thread_message_id = reply_m->top_thread_message_id;
+      }
+      is_topic_message = reply_m->is_topic_message;
+    }
+    if (dialog_type == DialogType::SecretChat || reply_to_message_id.is_yet_unsent()) {
+      if (reply_m != nullptr) {
+        reply_to_random_id = reply_m->random_id;
+      } else {
+        CHECK(dialog_type == DialogType::SecretChat);
+        CHECK(top_thread_message_id == MessageId());
+        reply_to_message_id = MessageId();
+      }
+    }
+  } else if (top_thread_message_id.is_valid()) {
+    LOG(ERROR) << "Creating a message in thread of " << top_thread_message_id << " in " << d->dialog_id
+               << " without reply";
+    const Message *top_m = get_message(d, top_thread_message_id);
+    if (top_m != nullptr) {
+      is_topic_message = top_m->is_topic_message;
+    }
+  }
+
   auto message = make_unique<Message>();
   auto *m = message.get();
   bool is_channel_post = is_broadcast_channel(dialog_id);
@@ -24249,21 +24279,9 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
   m->send_date = G()->unix_time();
   m->date = is_scheduled ? options.schedule_date : m->send_date;
   m->reply_to_message_id = reply_to_message_id;
+  m->reply_to_random_id = reply_to_random_id;
   m->top_thread_message_id = top_thread_message_id;
-  if (reply_to_message_id.is_valid()) {
-    const Message *reply_m = get_message(d, reply_to_message_id);
-    if (reply_m != nullptr && reply_m->top_thread_message_id.is_valid()) {
-      m->top_thread_message_id = reply_m->top_thread_message_id;
-    }
-    if (reply_m != nullptr && m->top_thread_message_id.is_valid()) {
-      m->is_topic_message = reply_m->is_topic_message;
-    }
-  } else if (m->top_thread_message_id.is_valid()) {
-    const Message *top_m = get_message(d, m->top_thread_message_id);
-    if (top_m != nullptr) {
-      m->is_topic_message = top_m->is_topic_message;
-    }
-  }
+  m->is_topic_message = is_topic_message;
   m->is_channel_post = is_channel_post;
   m->is_outgoing = is_scheduled || dialog_id != DialogId(my_id);
   m->from_background = options.from_background;
@@ -24318,16 +24336,6 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
       m->ttl = 0;
     }
     m->is_content_secret = is_secret_message_content(m->ttl, m->content->get_type());
-  }
-  if ((reply_to_message_id.is_valid() || reply_to_message_id.is_valid_scheduled()) &&
-      (dialog_type == DialogType::SecretChat || reply_to_message_id.is_yet_unsent())) {
-    // the message was forcely preloaded in get_reply_to_message_id
-    auto *reply_to_message = get_message(d, reply_to_message_id);
-    if (reply_to_message == nullptr) {
-      m->reply_to_message_id = MessageId();
-    } else {
-      m->reply_to_random_id = reply_to_message->random_id;
-    }
   }
 
   return message;
