@@ -5475,7 +5475,7 @@ void Td::on_request(uint64 id, const td_api::setChatMessageSender &request) {
 
 void Td::on_request(uint64 id, td_api::sendMessage &request) {
   auto r_sent_message = messages_manager_->send_message(
-      DialogId(request.chat_id_), MessageId(request.message_thread_id_), MessageId(request.reply_to_message_id_),
+      DialogId(request.chat_id_), MessageId(request.message_thread_id_), std::move(request.reply_to_),
       std::move(request.options_), std::move(request.reply_markup_), std::move(request.input_message_content_));
   if (r_sent_message.is_error()) {
     send_closure(actor_id(this), &Td::send_error, id, r_sent_message.move_as_error());
@@ -5486,7 +5486,7 @@ void Td::on_request(uint64 id, td_api::sendMessage &request) {
 
 void Td::on_request(uint64 id, td_api::sendMessageAlbum &request) {
   auto r_messages = messages_manager_->send_message_group(
-      DialogId(request.chat_id_), MessageId(request.message_thread_id_), MessageId(request.reply_to_message_id_),
+      DialogId(request.chat_id_), MessageId(request.message_thread_id_), std::move(request.reply_to_),
       std::move(request.options_), std::move(request.input_message_contents_), request.only_preview_);
   if (r_messages.is_error()) {
     send_closure(actor_id(this), &Td::send_error, id, r_messages.move_as_error());
@@ -5517,8 +5517,8 @@ void Td::on_request(uint64 id, td_api::sendInlineQueryResultMessage &request) {
 
   DialogId dialog_id(request.chat_id_);
   auto r_new_message_id = messages_manager_->send_inline_query_result_message(
-      dialog_id, MessageId(request.message_thread_id_), MessageId(request.reply_to_message_id_),
-      std::move(request.options_), request.query_id_, request.result_id_, request.hide_via_bot_);
+      dialog_id, MessageId(request.message_thread_id_), std::move(request.reply_to_), std::move(request.options_),
+      request.query_id_, request.result_id_, request.hide_via_bot_);
   if (r_new_message_id.is_error()) {
     return send_closure(actor_id(this), &Td::send_error, id, r_new_message_id.move_as_error());
   }
@@ -5533,9 +5533,9 @@ void Td::on_request(uint64 id, td_api::addLocalMessage &request) {
   CHECK_IS_USER();
 
   DialogId dialog_id(request.chat_id_);
-  auto r_new_message_id = messages_manager_->add_local_message(
-      dialog_id, std::move(request.sender_id_), MessageId(request.reply_to_message_id_), request.disable_notification_,
-      std::move(request.input_message_content_));
+  auto r_new_message_id =
+      messages_manager_->add_local_message(dialog_id, std::move(request.sender_id_), std::move(request.reply_to_),
+                                           request.disable_notification_, std::move(request.input_message_content_));
   if (r_new_message_id.is_error()) {
     return send_closure(actor_id(this), &Td::send_error, id, r_new_message_id.move_as_error());
   }
@@ -8100,7 +8100,7 @@ void Td::on_request(uint64 id, td_api::openWebApp &request) {
   CLEAN_INPUT_STRING(request.application_name_);
   CREATE_REQUEST_PROMISE();
   attach_menu_manager_->request_web_view(DialogId(request.chat_id_), UserId(request.bot_user_id_),
-                                         MessageId(request.message_thread_id_), MessageId(request.reply_to_message_id_),
+                                         MessageId(request.message_thread_id_), std::move(request.reply_to_),
                                          std::move(request.url_), std::move(request.theme_),
                                          std::move(request.application_name_), std::move(promise));
 }

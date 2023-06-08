@@ -42,6 +42,10 @@ struct StoryFullId {
     return story_id;
   }
 
+  bool is_valid() const {
+    return dialog_id.is_valid() && story_id.is_valid();
+  }
+
   template <class StorerT>
   void store(StorerT &storer) const {
     dialog_id.store(storer);
@@ -57,8 +61,7 @@ struct StoryFullId {
 
 struct StoryFullIdHash {
   uint32 operator()(StoryFullId story_full_id) const {
-    return DialogIdHash()(story_full_id.get_dialog_id()) * 2023654985u +
-           StoryIdHash()(story_full_id.get_story_id());
+    return DialogIdHash()(story_full_id.get_dialog_id()) * 2023654985u + StoryIdHash()(story_full_id.get_story_id());
   }
 };
 

@@ -34,6 +34,7 @@
 #include "td/telegram/MessageCopyOptions.h"
 #include "td/telegram/MessageDb.h"
 #include "td/telegram/MessageId.h"
+#include "td/telegram/MessageInputReplyTo.h"
 #include "td/telegram/MessageLinkInfo.h"
 #include "td/telegram/MessageReplyHeader.h"
 #include "td/telegram/MessageReplyInfo.h"
@@ -140,7 +141,6 @@ class MessagesManager final : public Actor {
   static constexpr int32 MESSAGE_FLAG_HAS_TTL_PERIOD = 1 << 25;
   static constexpr int32 MESSAGE_FLAG_NOFORWARDS = 1 << 26;
 
-  static constexpr int32 SEND_MESSAGE_FLAG_IS_REPLY = 1 << 0;
   static constexpr int32 SEND_MESSAGE_FLAG_DISABLE_WEB_PAGE_PREVIEW = 1 << 1;
   static constexpr int32 SEND_MESSAGE_FLAG_HAS_REPLY_MARKUP = 1 << 2;
   static constexpr int32 SEND_MESSAGE_FLAG_HAS_ENTITIES = 1 << 3;
@@ -164,24 +164,6 @@ class MessagesManager final : public Actor {
   MessagesManager(MessagesManager &&) = delete;
   MessagesManager &operator=(MessagesManager &&) = delete;
   ~MessagesManager() final;
-
-  static telegram_api::object_ptr<telegram_api::InputReplyTo> get_input_reply_to(MessageId reply_to_message_id,
-                                                                                 MessageId top_thread_message_id) {
-    if (reply_to_message_id == MessageId()) {
-      if (top_thread_message_id == MessageId()) {
-        return nullptr;
-      }
-      reply_to_message_id = top_thread_message_id;
-    }
-    CHECK(reply_to_message_id.is_server());
-    int32 flags = 0;
-    if (top_thread_message_id != MessageId()) {
-      CHECK(top_thread_message_id.is_server());
-      flags |= telegram_api::inputReplyToMessage::TOP_MSG_ID_MASK;
-    }
-    return telegram_api::make_object<telegram_api::inputReplyToMessage>(
-        flags, reply_to_message_id.get_server_message_id().get(), top_thread_message_id.get_server_message_id().get());
-  }
 
   tl_object_ptr<telegram_api::InputPeer> get_input_peer(DialogId dialog_id, AccessRights access_rights) const;
 
@@ -463,16 +445,16 @@ class MessagesManager final : public Actor {
 
   DialogId get_dialog_default_send_message_as_dialog_id(DialogId dialog_id) const;
 
-  MessageId get_reply_to_message_id(DialogId dialog_id, MessageId top_thread_message_id, MessageId message_id,
-                                    bool for_draft);
+  MessageInputReplyTo get_message_input_reply_to(DialogId dialog_id, MessageId top_thread_message_id,
+                                                 td_api::object_ptr<td_api::MessageReplyTo> &&reply_to, bool for_draft);
 
   Result<td_api::object_ptr<td_api::message>> send_message(
-      DialogId dialog_id, MessageId top_thread_message_id, MessageId reply_to_message_id,
+      DialogId dialog_id, MessageId top_thread_message_id, td_api::object_ptr<td_api::MessageReplyTo> &&reply_to,
       tl_object_ptr<td_api::messageSendOptions> &&options, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
       tl_object_ptr<td_api::InputMessageContent> &&input_message_content) TD_WARN_UNUSED_RESULT;
 
   Result<td_api::object_ptr<td_api::messages>> send_message_group(
-      DialogId dialog_id, MessageId top_thread_message_id, MessageId reply_to_message_id,
+      DialogId dialog_id, MessageId top_thread_message_id, td_api::object_ptr<td_api::MessageReplyTo> &&reply_to,
       tl_object_ptr<td_api::messageSendOptions> &&options,
       vector<tl_object_ptr<td_api::InputMessageContent>> &&input_message_contents,
       bool only_preview) TD_WARN_UNUSED_RESULT;
@@ -481,7 +463,7 @@ class MessagesManager final : public Actor {
                                            const string &parameter) TD_WARN_UNUSED_RESULT;
 
   Result<MessageId> send_inline_query_result_message(DialogId dialog_id, MessageId top_thread_message_id,
-                                                     MessageId reply_to_message_id,
+                                                     td_api::object_ptr<td_api::MessageReplyTo> &&reply_to,
                                                      tl_object_ptr<td_api::messageSendOptions> &&options,
                                                      int64 query_id, const string &result_id,
                                                      bool hide_via_bot) TD_WARN_UNUSED_RESULT;
@@ -501,7 +483,7 @@ class MessagesManager final : public Actor {
                              bool expect_user, bool only_check, Promise<Unit> &&promise);
 
   Result<MessageId> add_local_message(DialogId dialog_id, td_api::object_ptr<td_api::MessageSender> &&sender,
-                                      MessageId reply_to_message_id, bool disable_notification,
+                                      td_api::object_ptr<td_api::MessageReplyTo> &&reply_to, bool disable_notification,
                                       tl_object_ptr<td_api::InputMessageContent> &&input_message_content)
       TD_WARN_UNUSED_RESULT;
 
@@ -1815,18 +1797,20 @@ class MessagesManager final : public Actor {
 
   static Status can_use_message_send_options(const MessageSendOptions &options, const InputMessageContent &content);
 
-  Status can_use_top_thread_message_id(Dialog *d, MessageId top_thread_message_id, MessageId reply_to_message_id);
+  Status can_use_top_thread_message_id(Dialog *d, MessageId top_thread_message_id,
+                                       const MessageInputReplyTo &input_reply_to);
 
   bool is_anonymous_administrator(DialogId dialog_id, string *author_signature) const;
 
   int64 generate_new_random_id(const Dialog *d);
 
-  unique_ptr<Message> create_message_to_send(Dialog *d, MessageId top_thread_message_id, MessageId reply_to_message_id,
-                                             const MessageSendOptions &options, unique_ptr<MessageContent> &&content,
-                                             bool suppress_reply_info, unique_ptr<MessageForwardInfo> forward_info,
-                                             bool is_copy, DialogId send_as_dialog_id) const;
+  unique_ptr<Message> create_message_to_send(Dialog *d, MessageId top_thread_message_id,
+                                             MessageInputReplyTo input_reply_to, const MessageSendOptions &options,
+                                             unique_ptr<MessageContent> &&content, bool suppress_reply_info,
+                                             unique_ptr<MessageForwardInfo> forward_info, bool is_copy,
+                                             DialogId send_as_dialog_id) const;
 
-  Message *get_message_to_send(Dialog *d, MessageId top_thread_message_id, MessageId reply_to_message_id,
+  Message *get_message_to_send(Dialog *d, MessageId top_thread_message_id, MessageInputReplyTo input_reply_to,
                                const MessageSendOptions &options, unique_ptr<MessageContent> &&content,
                                bool *need_update_dialog_pos, bool suppress_reply_info = false,
                                unique_ptr<MessageForwardInfo> forward_info = nullptr, bool is_copy = false,
@@ -1864,7 +1848,8 @@ class MessagesManager final : public Actor {
 
   static FullMessageId get_replied_message_id(DialogId dialog_id, const Message *m);
 
-  MessageId get_reply_to_message_id(Dialog *d, MessageId top_thread_message_id, MessageId message_id, bool for_draft);
+  MessageInputReplyTo get_message_input_reply_to(Dialog *d, MessageId top_thread_message_id,
+                                                 td_api::object_ptr<td_api::MessageReplyTo> &&reply_to, bool for_draft);
 
   void fix_server_reply_to_message_id(DialogId dialog_id, MessageId message_id, DialogId reply_in_dialog_id,
                                       MessageId &reply_to_message_id) const;
@@ -1915,7 +1900,7 @@ class MessagesManager final : public Actor {
   struct ForwardedMessages {
     struct CopiedMessage {
       unique_ptr<MessageContent> content;
-      MessageId reply_to_message_id;
+      MessageInputReplyTo input_reply_to;
       MessageId original_message_id;
       MessageId original_reply_to_message_id;
       unique_ptr<ReplyMarkup> reply_markup;

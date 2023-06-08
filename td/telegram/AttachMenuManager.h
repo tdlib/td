@@ -10,6 +10,7 @@
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/MessageId.h"
+#include "td/telegram/MessageInputReplyTo.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
@@ -42,12 +43,12 @@ class AttachMenuManager final : public Actor {
                             string &&platform, bool allow_write_access, Promise<string> &&promise);
 
   void request_web_view(DialogId dialog_id, UserId bot_user_id, MessageId top_thread_message_id,
-                        MessageId reply_to_message_id, string &&url,
+                        td_api::object_ptr<td_api::MessageReplyTo> &&reply_to, string &&url,
                         td_api::object_ptr<td_api::themeParameters> &&theme, string &&platform,
                         Promise<td_api::object_ptr<td_api::webAppInfo>> &&promise);
 
   void open_web_view(int64 query_id, DialogId dialog_id, UserId bot_user_id, MessageId top_thread_message_id,
-                     MessageId reply_to_message_id, DialogId as_dialog_id);
+                     MessageInputReplyTo input_reply_to, DialogId as_dialog_id);
 
   void close_web_view(int64 query_id, Promise<Unit> &&promise);
 
@@ -175,7 +176,7 @@ class AttachMenuManager final : public Actor {
     DialogId dialog_id_;
     UserId bot_user_id_;
     MessageId top_thread_message_id_;
-    MessageId reply_to_message_id_;
+    MessageInputReplyTo input_reply_to_;
     DialogId as_dialog_id_;
   };
   FlatHashMap<int64, OpenedWebView> opened_web_views_;
