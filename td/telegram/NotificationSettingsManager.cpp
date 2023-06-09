@@ -395,15 +395,8 @@ class UpdateScopeNotifySettingsQuery final : public Td::ResultHandler {
   void send(NotificationSettingsScope scope, const ScopeNotificationSettings &new_settings) {
     auto input_notify_peer = get_input_notify_peer(scope);
     CHECK(input_notify_peer != nullptr);
-    int32 flags = telegram_api::inputPeerNotifySettings::MUTE_UNTIL_MASK |
-                  telegram_api::inputPeerNotifySettings::SHOW_PREVIEWS_MASK;
-    if (new_settings.sound != nullptr) {
-      flags |= telegram_api::inputPeerNotifySettings::SOUND_MASK;
-    }
     send_query(G()->net_query_creator().create(telegram_api::account_updateNotifySettings(
-        std::move(input_notify_peer), make_tl_object<telegram_api::inputPeerNotifySettings>(
-                                          flags, new_settings.show_preview, false, new_settings.mute_until,
-                                          get_input_notification_sound(new_settings.sound), false, false, nullptr))));
+        std::move(input_notify_peer), new_settings.get_input_peer_notify_settings())));
     scope_ = scope;
   }
 

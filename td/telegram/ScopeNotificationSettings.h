@@ -38,6 +38,8 @@ class ScopeNotificationSettings {
       , disable_pinned_message_notifications(disable_pinned_message_notifications)
       , disable_mention_notifications(disable_mention_notifications) {
   }
+
+  telegram_api::object_ptr<telegram_api::inputPeerNotifySettings> get_input_peer_notify_settings() const;
 };
 
 StringBuilder &operator<<(StringBuilder &string_builder, const ScopeNotificationSettings &notification_settings);
