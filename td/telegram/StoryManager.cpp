@@ -15,6 +15,7 @@
 #include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/OptionManager.h"
 #include "td/telegram/StoryContent.h"
 #include "td/telegram/StoryContentType.h"
 #include "td/telegram/Td.h"
@@ -278,6 +279,7 @@ class StoryManager::SendStoryQuery final : public Td::ResultHandler {
     const FormattedText &caption = story->caption_;
     auto entities = get_input_message_entities(td_->contacts_manager_.get(), &caption, "SendStoryQuery");
     auto privacy_rules = story->privacy_rules_.get_input_privacy_rules(td_);
+    auto period = story->expire_date_ - story->date_;
     int32 flags = 0;
     if (!caption.text.empty()) {
       flags |= telegram_api::stories_sendStory::CAPTION_MASK;
@@ -288,11 +290,14 @@ class StoryManager::SendStoryQuery final : public Td::ResultHandler {
     if (pending_story_->story_->is_pinned_) {
       flags |= telegram_api::stories_sendStory::PINNED_MASK;
     }
+    if (period != 86400) {
+      flags |= telegram_api::stories_sendStory::PERIOD_MASK;
+    }
 
     send_query(G()->net_query_creator().create(
         telegram_api::stories_sendStory(flags, false /*ignored*/, false /*ignored*/, std::move(input_media),
                                         caption.text, std::move(entities), std::move(privacy_rules),
-                                        pending_story_->random_id_, 86400),
+                                        pending_story_->random_id_, period),
         {{pending_story_->dialog_id_}}));
   }
 
@@ -798,7 +803,7 @@ void StoryManager::on_story_changed(StoryFullId story_full_id, const Story *stor
       send_closure(G()->td(), &Td::send_update,
                    td_api::make_object<td_api::updateStory>(get_story_object(story_full_id, story)));
     }
-    
+
     send_closure_later(G()->messages_manager(),
                        &MessagesManager::update_story_max_reply_media_timestamp_in_replied_messages, story_full_id);
   }
@@ -932,8 +937,8 @@ void StoryManager::do_get_story(StoryFullId story_full_id, Result<Unit> &&result
 
 void StoryManager::send_story(td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,
                               td_api::object_ptr<td_api::formattedText> &&input_caption,
-                              td_api::object_ptr<td_api::userPrivacySettingRules> &&rules, bool is_pinned,
-                              Promise<td_api::object_ptr<td_api::story>> &&promise) {
+                              td_api::object_ptr<td_api::userPrivacySettingRules> &&rules, int32 active_period,
+                              bool is_pinned, Promise<td_api::object_ptr<td_api::story>> &&promise) {
   bool is_bot = td_->auth_manager_->is_bot();
   DialogId dialog_id(td_->contacts_manager_->get_my_id());
   TRY_RESULT_PROMISE(promise, content, get_input_story_content(td_, std::move(input_story_content), dialog_id));
@@ -941,10 +946,16 @@ void StoryManager::send_story(td_api::object_ptr<td_api::InputStoryContent> &&in
                      get_formatted_text(td_, DialogId(), std::move(input_caption), is_bot, true, false, false));
   TRY_RESULT_PROMISE(promise, privacy_rules,
                      UserPrivacySettingRules::get_user_privacy_setting_rules(td_, std::move(rules)));
+  bool is_premium = td_->option_manager_->get_option_boolean("is_premium");
+  if (active_period != 86400 &&
+      !(is_premium &&
+        td::contains(vector<int32>{6 * 3600, 12 * 3600, 2 * 86400, 3 * 86400, 7 * 86400}, active_period))) {
+    return promise.set_error(Status::Error(400, "Invalid story active period specified"));
+  }
 
   auto story = make_unique<Story>();
   story->date_ = G()->unix_time();
-  story->expire_date_ = std::numeric_limits<int32>::max();
+  story->expire_date_ = story->date_ + active_period;
   story->is_pinned_ = is_pinned;
   story->privacy_rules_ = std::move(privacy_rules);
   story->content_ = std::move(content);

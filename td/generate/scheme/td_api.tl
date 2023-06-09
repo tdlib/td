@@ -7202,8 +7202,9 @@ getStory user_id:int53 story_id:int32 = Story;
 //@content Content of the story
 //@caption Story caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
 //@privacy_rules The privacy rules for the story
+//@active_period Period after which the story is moved to archive, in seconds; must be one of 6 * 3600, 12 * 3600, 86400, 2 * 86400, 3 * 86400, or 7 * 86400 for Telegram Premium users, and 86400 otherwise
 //@is_pinned Pass true to keep the story accessible after expiration
-sendStory content:InputStoryContent caption:formattedText privacy_rules:userPrivacySettingRules is_pinned:Bool = Story;
+sendStory content:InputStoryContent caption:formattedText privacy_rules:userPrivacySettingRules active_period:int32 is_pinned:Bool = Story;
 
 //@description Changes content and caption of a previously sent story
 //@story_id Identifier of the story to edit

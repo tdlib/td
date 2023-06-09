@@ -3977,23 +3977,25 @@ class CliClient final : public Actor {
       string photo;
       string caption;
       PrivacyRules rules;
+      int32 active_period;
       string sticker_file_ids;
-      get_args(args, photo, caption, rules, sticker_file_ids);
-      send_request(
-          td_api::make_object<td_api::sendStory>(td_api::make_object<td_api::inputStoryContentPhoto>(
-                                                     as_input_file(photo), to_integers<int32>(sticker_file_ids)),
-                                                 as_caption(caption), rules, op == "sspp"));
+      get_args(args, photo, caption, rules, active_period, sticker_file_ids);
+      send_request(td_api::make_object<td_api::sendStory>(
+          td_api::make_object<td_api::inputStoryContentPhoto>(as_input_file(photo),
+                                                              to_integers<int32>(sticker_file_ids)),
+          as_caption(caption), rules, active_period ? active_period : 86400, op == "sspp"));
     } else if (op == "ssv" || op == "ssvp") {
       string video;
       string caption;
       PrivacyRules rules;
+      int32 active_period;
       double duration;
       string sticker_file_ids;
-      get_args(args, video, caption, rules, duration, sticker_file_ids);
+      get_args(args, video, caption, rules, active_period, duration, sticker_file_ids);
       send_request(td_api::make_object<td_api::sendStory>(
           td_api::make_object<td_api::inputStoryContentVideo>(as_input_file(video),
                                                               to_integers<int32>(sticker_file_ids), duration),
-          as_caption(caption), rules, op == "ssvp"));
+          as_caption(caption), rules, active_period ? active_period : 86400, op == "ssvp"));
     } else if (op == "esc") {
       StoryId story_id;
       string caption;
