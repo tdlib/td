@@ -755,6 +755,8 @@ class MessagesManager final : public Actor {
 
   void reset_all_notification_settings();
 
+  void update_story_max_reply_media_timestamp_in_replied_messages(StoryFullId story_full_id);
+
   int64 get_chat_id_object(DialogId dialog_id, const char *source) const;
 
   vector<int64> get_chat_ids_object(const vector<DialogId> &dialog_ids, const char *source) const;
@@ -2344,6 +2346,8 @@ class MessagesManager final : public Actor {
 
   void update_message_max_reply_media_timestamp_in_replied_messages(DialogId dialog_id, MessageId reply_to_message_id);
 
+  bool can_register_message_reply(const Message *m) const;
+
   void register_message_reply(DialogId dialog_id, const Message *m);
 
   void reregister_message_reply(DialogId dialog_id, const Message *m);
@@ -3433,7 +3437,11 @@ class MessagesManager final : public Actor {
 
   // full_message_id -> replies with media timestamps
   FlatHashMap<FullMessageId, FlatHashSet<FullMessageId, FullMessageIdHash>, FullMessageIdHash>
-      replied_by_media_timestamp_messages_;
+      message_to_replied_media_timestamp_messages_;
+
+  // story_full_id -> replies with media timestamps
+  FlatHashMap<StoryFullId, FlatHashSet<FullMessageId, FullMessageIdHash>, StoryFullIdHash>
+      story_to_replied_media_timestamp_messages_;
 
   struct ActiveDialogAction {
     MessageId top_thread_message_id;

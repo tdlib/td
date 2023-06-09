@@ -5910,13 +5910,13 @@ MessagesManager::~MessagesManager() {
       G()->get_gc_scheduler_id(), ttl_nodes_, ttl_heap_, being_sent_messages_, update_message_ids_,
       update_scheduled_message_ids_, message_id_to_dialog_id_, last_clear_history_message_id_to_dialog_id_, dialogs_,
       postponed_chat_read_inbox_updates_, found_public_dialogs_, found_on_server_dialogs_, found_common_dialogs_,
-      message_embedding_codes_[0], message_embedding_codes_[1], replied_by_media_timestamp_messages_,
-      notification_group_id_to_dialog_id_, pending_get_channel_differences_, active_get_channel_differences_,
-      get_channel_difference_to_log_event_id_, channel_get_difference_retry_timeouts_, is_channel_difference_finished_,
-      expected_channel_pts_, expected_channel_max_message_id_, resolved_usernames_, inaccessible_resolved_usernames_,
-      dialog_bot_command_message_ids_, full_message_id_to_file_source_id_, last_outgoing_forwarded_message_date_,
-      dialog_viewed_messages_, dialog_online_member_counts_, previous_repaired_read_inbox_max_message_id_,
-      failed_to_load_dialogs_);
+      message_embedding_codes_[0], message_embedding_codes_[1], message_to_replied_media_timestamp_messages_,
+      story_to_replied_media_timestamp_messages_, notification_group_id_to_dialog_id_, pending_get_channel_differences_,
+      active_get_channel_differences_, get_channel_difference_to_log_event_id_, channel_get_difference_retry_timeouts_,
+      is_channel_difference_finished_, expected_channel_pts_, expected_channel_max_message_id_, resolved_usernames_,
+      inaccessible_resolved_usernames_, dialog_bot_command_message_ids_, full_message_id_to_file_source_id_,
+      last_outgoing_forwarded_message_date_, dialog_viewed_messages_, dialog_online_member_counts_,
+      previous_repaired_read_inbox_max_message_id_, failed_to_load_dialogs_);
 }
 
 void MessagesManager::on_channel_get_difference_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int) {
@@ -27287,8 +27287,8 @@ void MessagesManager::update_message_max_reply_media_timestamp_in_replied_messag
   }
 
   FullMessageId full_message_id{dialog_id, reply_to_message_id};
-  auto it = replied_by_media_timestamp_messages_.find(full_message_id);
-  if (it == replied_by_media_timestamp_messages_.end()) {
+  auto it = message_to_replied_media_timestamp_messages_.find(full_message_id);
+  if (it == message_to_replied_media_timestamp_messages_.end()) {
     return;
   }
 
@@ -27305,30 +27305,77 @@ void MessagesManager::update_message_max_reply_media_timestamp_in_replied_messag
   }
 }
 
+void MessagesManager::update_story_max_reply_media_timestamp_in_replied_messages(StoryFullId story_full_id) {
+  auto it = story_to_replied_media_timestamp_messages_.find(story_full_id);
+  if (it == story_to_replied_media_timestamp_messages_.end()) {
+    return;
+  }
+
+  LOG(INFO) << "Update max_reply_media_timestamp for replies of " << story_full_id;
+
+  for (auto replied_full_message_id : it->second) {
+    auto replied_dialog_id = replied_full_message_id.get_dialog_id();
+    Dialog *d = get_dialog(replied_dialog_id);
+    auto m = get_message(d, replied_full_message_id.get_message_id());
+    CHECK(m != nullptr);
+    CHECK(m->reply_to_story_full_id == story_full_id);
+    update_message_max_reply_media_timestamp(d, m, true);
+  }
+}
+
+bool MessagesManager::can_register_message_reply(const Message *m) const {
+  if (td_->auth_manager_->is_bot()) {
+    return false;
+  }
+  if (m->reply_to_message_id.is_valid() && !m->reply_to_message_id.is_yet_unsent()) {
+    return true;
+  }
+  if (m->reply_to_story_full_id.is_valid()) {
+    return true;
+  }
+  return false;
+}
+
 void MessagesManager::register_message_reply(DialogId dialog_id, const Message *m) {
-  if (!m->reply_to_message_id.is_valid() || m->reply_to_message_id.is_yet_unsent() || td_->auth_manager_->is_bot()) {
+  if (!can_register_message_reply(m)) {
     return;
   }
 
   if (has_media_timestamps(get_message_content_text(m->content.get()), 0, std::numeric_limits<int32>::max())) {
-    FullMessageId full_message_id{m->reply_in_dialog_id.is_valid() ? m->reply_in_dialog_id : dialog_id,
-                                  m->reply_to_message_id};
-    LOG(INFO) << "Register " << m->message_id << " in " << dialog_id << " as reply to " << full_message_id;
-    bool is_inserted = replied_by_media_timestamp_messages_[full_message_id].insert({dialog_id, m->message_id}).second;
-    CHECK(is_inserted);
+    if (m->reply_to_story_full_id.is_valid()) {
+      LOG(INFO) << "Register " << m->message_id << " in " << dialog_id << " as reply to " << m->reply_to_story_full_id;
+      bool is_inserted = story_to_replied_media_timestamp_messages_[m->reply_to_story_full_id]
+                             .insert({dialog_id, m->message_id})
+                             .second;
+      CHECK(is_inserted);
+    } else {
+      FullMessageId full_message_id{m->reply_in_dialog_id.is_valid() ? m->reply_in_dialog_id : dialog_id,
+                                    m->reply_to_message_id};
+      LOG(INFO) << "Register " << m->message_id << " in " << dialog_id << " as reply to " << full_message_id;
+      bool is_inserted =
+          message_to_replied_media_timestamp_messages_[full_message_id].insert({dialog_id, m->message_id}).second;
+      CHECK(is_inserted);
+    }
   }
 }
 
 void MessagesManager::reregister_message_reply(DialogId dialog_id, const Message *m) {
-  if (!m->reply_to_message_id.is_valid() || m->reply_to_message_id.is_yet_unsent() || td_->auth_manager_->is_bot()) {
+  if (!can_register_message_reply(m)) {
     return;
   }
 
-  FullMessageId full_message_id{m->reply_in_dialog_id.is_valid() ? m->reply_in_dialog_id : dialog_id,
-                                m->reply_to_message_id};
-  auto it = replied_by_media_timestamp_messages_.find(full_message_id);
-  bool was_registered =
-      it != replied_by_media_timestamp_messages_.end() && it->second.count({dialog_id, m->message_id}) > 0;
+  bool was_registered = false;
+  if (m->reply_to_story_full_id.is_valid()) {
+    auto it = story_to_replied_media_timestamp_messages_.find(m->reply_to_story_full_id);
+    was_registered =
+        it != story_to_replied_media_timestamp_messages_.end() && it->second.count({dialog_id, m->message_id}) > 0;
+  } else {
+    FullMessageId full_message_id{m->reply_in_dialog_id.is_valid() ? m->reply_in_dialog_id : dialog_id,
+                                  m->reply_to_message_id};
+    auto it = message_to_replied_media_timestamp_messages_.find(full_message_id);
+    was_registered =
+        it != message_to_replied_media_timestamp_messages_.end() && it->second.count({dialog_id, m->message_id}) > 0;
+  }
   bool need_register =
       has_media_timestamps(get_message_content_text(m->content.get()), 0, std::numeric_limits<int32>::max());
   if (was_registered == need_register) {
@@ -27342,21 +27389,38 @@ void MessagesManager::reregister_message_reply(DialogId dialog_id, const Message
 }
 
 void MessagesManager::unregister_message_reply(DialogId dialog_id, const Message *m) {
-  if (!m->reply_to_message_id.is_valid() || m->reply_to_message_id.is_yet_unsent() || td_->auth_manager_->is_bot()) {
-    return;
-  }
-  FullMessageId full_message_id{m->reply_in_dialog_id.is_valid() ? m->reply_in_dialog_id : dialog_id,
-                                m->reply_to_message_id};
-  auto it = replied_by_media_timestamp_messages_.find(full_message_id);
-  if (it == replied_by_media_timestamp_messages_.end()) {
+  if (!can_register_message_reply(m)) {
     return;
   }
 
-  auto is_deleted = it->second.erase({dialog_id, m->message_id}) > 0;
-  if (is_deleted) {
-    LOG(INFO) << "Unregister " << m->message_id << " in " << dialog_id << " as reply to " << full_message_id;
-    if (it->second.empty()) {
-      replied_by_media_timestamp_messages_.erase(it);
+  if (m->reply_to_story_full_id.is_valid()) {
+    auto it = story_to_replied_media_timestamp_messages_.find(m->reply_to_story_full_id);
+    if (it == story_to_replied_media_timestamp_messages_.end()) {
+      return;
+    }
+
+    auto is_deleted = it->second.erase({dialog_id, m->message_id}) > 0;
+    if (is_deleted) {
+      LOG(INFO) << "Unregister " << m->message_id << " in " << dialog_id << " as reply to "
+                << m->reply_to_story_full_id;
+      if (it->second.empty()) {
+        story_to_replied_media_timestamp_messages_.erase(it);
+      }
+    }
+  } else {
+    FullMessageId full_message_id{m->reply_in_dialog_id.is_valid() ? m->reply_in_dialog_id : dialog_id,
+                                  m->reply_to_message_id};
+    auto it = message_to_replied_media_timestamp_messages_.find(full_message_id);
+    if (it == message_to_replied_media_timestamp_messages_.end()) {
+      return;
+    }
+
+    auto is_deleted = it->second.erase({dialog_id, m->message_id}) > 0;
+    if (is_deleted) {
+      LOG(INFO) << "Unregister " << m->message_id << " in " << dialog_id << " as reply to " << full_message_id;
+      if (it->second.empty()) {
+        message_to_replied_media_timestamp_messages_.erase(it);
+      }
     }
   }
 }
