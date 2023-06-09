@@ -3420,7 +3420,7 @@ class MessagesManager final : public Actor {
   FlatHashMap<FullMessageId, FlatHashSet<MessageId, MessageIdHash>, FullMessageIdHash> replied_yet_unsent_messages_;
 
   // full_message_id -> replies with media timestamps
-  FlatHashMap<FullMessageId, FlatHashSet<MessageId, MessageIdHash>, FullMessageIdHash>
+  FlatHashMap<FullMessageId, FlatHashSet<FullMessageId, FullMessageIdHash>, FullMessageIdHash>
       replied_by_media_timestamp_messages_;
 
   struct ActiveDialogAction {
