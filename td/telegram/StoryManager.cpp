@@ -698,6 +698,8 @@ StoryId StoryManager::on_get_story(DialogId owner_dialog_id,
     is_changed = true;
 
     inaccessible_story_full_ids_.erase(story_full_id);
+    send_closure_later(G()->messages_manager(),
+                       &MessagesManager::update_story_max_reply_media_timestamp_in_replied_messages, story_full_id);
   }
   CHECK(story != nullptr);
 
@@ -796,6 +798,9 @@ void StoryManager::on_story_changed(StoryFullId story_full_id, const Story *stor
       send_closure(G()->td(), &Td::send_update,
                    td_api::make_object<td_api::updateStory>(get_story_object(story_full_id, story)));
     }
+    
+    send_closure_later(G()->messages_manager(),
+                       &MessagesManager::update_story_max_reply_media_timestamp_in_replied_messages, story_full_id);
   }
 }
 
@@ -824,6 +829,8 @@ std::pair<int32, vector<StoryId>> StoryManager::on_get_stories(
       StoryFullId story_full_id{owner_dialog_id, StoryId(story_id)};
       LOG(INFO) << "Mark " << story_full_id << " as inaccessible";
       inaccessible_story_full_ids_.insert(story_full_id);
+      send_closure_later(G()->messages_manager(),
+                         &MessagesManager::update_story_max_reply_media_timestamp_in_replied_messages, story_full_id);
     }
   }
   return {total_count, std::move(story_ids)};
