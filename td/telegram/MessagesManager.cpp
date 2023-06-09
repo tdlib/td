@@ -61,6 +61,7 @@
 #include "td/telegram/SponsoredMessageManager.h"
 #include "td/telegram/StickerPhotoSize.h"
 #include "td/telegram/StickerType.h"
+#include "td/telegram/StoryManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/TopDialogCategory.h"
@@ -17743,6 +17744,9 @@ MessagesManager::Message *MessagesManager::get_message_force(FullMessageId full_
 }
 
 FullMessageId MessagesManager::get_replied_message_id(DialogId dialog_id, const Message *m) {
+  if (m->reply_to_story_full_id.is_valid()) {
+    return {};
+  }
   auto full_message_id = get_message_content_replied_message_id(dialog_id, m->content.get());
   if (full_message_id.get_message_id().is_valid()) {
     CHECK(m->reply_to_message_id == MessageId());
@@ -27223,6 +27227,15 @@ void MessagesManager::update_message_max_reply_media_timestamp(const Dialog *d, 
       // replied message isn't deleted and isn't loaded yet
       return;
     }
+  } else if (m->reply_to_story_full_id != StoryFullId()) {
+    if (!td_->story_manager_->have_story(m->reply_to_story_full_id)) {
+      if (!td_->story_manager_->is_inaccessible_story(m->reply_to_story_full_id)) {
+        // replied story isn't loaded yet
+        return;
+      }
+    } else {
+      new_max_reply_media_timestamp = td_->story_manager_->get_story_duration(m->reply_to_story_full_id);
+    }
   }
 
   if (m->max_reply_media_timestamp == new_max_reply_media_timestamp) {
@@ -35776,11 +35789,11 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
         if (message_id.is_yet_unsent() && new_message->reply_to_message_id == MessageId() &&
             old_message->reply_in_dialog_id == DialogId() && is_deleted_message(d, old_message->reply_to_message_id) &&
             !is_message_in_dialog) {
-          // reply to a deleted message
+          // reply to a deleted message, which was available locally
         } else if (message_id.is_yet_unsent() && old_message->reply_to_message_id == MessageId() &&
                    new_message->reply_in_dialog_id == DialogId() &&
                    is_deleted_message(d, new_message->reply_to_message_id) && !is_message_in_dialog) {
-          // reply to a deleted message
+          // reply to a locally deleted yet unsent message, which was available server-side
         } else if (old_message->reply_to_message_id.is_valid_scheduled() &&
                    old_message->reply_to_message_id.is_scheduled_server() &&
                    new_message->reply_to_message_id.is_valid_scheduled() &&
@@ -35792,7 +35805,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
         } else if (message_id.is_yet_unsent() &&
                    old_message->top_thread_message_id == new_message->reply_to_message_id &&
                    new_message->reply_in_dialog_id == DialogId()) {
-          // move of reply to the top thread message
+          // move of reply to the top thread message after deletion of the replied message
         } else {
           LOG(ERROR) << message_id << " in " << dialog_id << " has changed replied message from "
                      << old_message->reply_to_message_id << " to " << new_message->reply_to_message_id
@@ -35850,7 +35863,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     old_message->top_thread_message_id = new_message->top_thread_message_id;
     old_message->reply_to_random_id = 0;
     if (old_message->reply_in_dialog_id == DialogId() && old_message->reply_to_message_id != MessageId() &&
-        old_message->message_id.is_yet_unsent() &&
+        message_id.is_yet_unsent() &&
         (dialog_id.get_type() == DialogType::SecretChat || old_message->reply_to_message_id.is_yet_unsent())) {
       auto *replied_m = get_message(d, old_message->reply_to_message_id);
       if (replied_m != nullptr) {
