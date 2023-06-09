@@ -141,6 +141,34 @@ class GetPinnedStoriesQuery final : public Td::ResultHandler {
   }
 };
 
+class GetStoriesArchiveQuery final : public Td::ResultHandler {
+  Promise<telegram_api::object_ptr<telegram_api::stories_stories>> promise_;
+
+ public:
+  explicit GetStoriesArchiveQuery(Promise<telegram_api::object_ptr<telegram_api::stories_stories>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(StoryId offset_story_id, int32 limit) {
+    send_query(G()->net_query_creator().create(telegram_api::stories_getStoriesArchive(offset_story_id.get(), limit)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stories_getStoriesArchive>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for GetStoriesArchiveQuery: " << to_string(result);
+    promise_.set_value(std::move(result));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetUserStoriesQuery final : public Td::ResultHandler {
   Promise<telegram_api::object_ptr<telegram_api::stories_userStories>> promise_;
 
@@ -509,6 +537,37 @@ void StoryManager::on_get_dialog_pinned_stories(DialogId owner_dialog_id,
   auto result = on_get_stories(owner_dialog_id, {}, std::move(stories));
   promise.set_value(get_stories_object(result.first, transform(result.second, [owner_dialog_id](StoryId story_id) {
                                          return StoryFullId(owner_dialog_id, story_id);
+                                       })));
+}
+
+void StoryManager::get_story_archive(StoryId from_story_id, int32 limit,
+                                     Promise<td_api::object_ptr<td_api::stories>> &&promise) {
+  if (limit <= 0) {
+    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+  }
+
+  if (from_story_id != StoryId() && !from_story_id.is_server()) {
+    return promise.set_error(Status::Error(400, "Invalid value of parameter from_story_id specified"));
+  }
+
+  auto query_promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](
+                                 Result<telegram_api::object_ptr<telegram_api::stories_stories>> &&result) mutable {
+        if (result.is_error()) {
+          return promise.set_error(result.move_as_error());
+        }
+        send_closure(actor_id, &StoryManager::on_get_story_archive, result.move_as_ok(), std::move(promise));
+      });
+  td_->create_handler<GetStoriesArchiveQuery>(std::move(query_promise))->send(from_story_id, limit);
+}
+
+void StoryManager::on_get_story_archive(telegram_api::object_ptr<telegram_api::stories_stories> &&stories,
+                                        Promise<td_api::object_ptr<td_api::stories>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  DialogId dialog_id(td_->contacts_manager_->get_my_id());
+  auto result = on_get_stories(dialog_id, {}, std::move(stories));
+  promise.set_value(get_stories_object(result.first, transform(result.second, [dialog_id](StoryId story_id) {
+                                         return StoryFullId(dialog_id, story_id);
                                        })));
 }
 

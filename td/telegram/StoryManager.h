@@ -99,6 +99,8 @@ class StoryManager final : public Actor {
   void get_dialog_pinned_stories(DialogId owner_dialog_id, StoryId from_story_id, int32 limit,
                                  Promise<td_api::object_ptr<td_api::stories>> &&promise);
 
+  void get_story_archive(StoryId from_story_id, int32 limit, Promise<td_api::object_ptr<td_api::stories>> &&promise);
+
   void get_dialog_expiring_stories(DialogId owner_dialog_id, Promise<td_api::object_ptr<td_api::stories>> &&promise);
 
   void on_get_story(DialogId owner_dialog_id, telegram_api::object_ptr<telegram_api::StoryItem> &&story_item_ptr);
@@ -153,6 +155,9 @@ class StoryManager final : public Actor {
   void on_get_dialog_pinned_stories(DialogId owner_dialog_id,
                                     telegram_api::object_ptr<telegram_api::stories_stories> &&stories,
                                     Promise<td_api::object_ptr<td_api::stories>> &&promise);
+
+  void on_get_story_archive(telegram_api::object_ptr<telegram_api::stories_stories> &&stories,
+                            Promise<td_api::object_ptr<td_api::stories>> &&promise);
 
   void on_get_dialog_expiring_stories(DialogId owner_dialog_id,
                                       telegram_api::object_ptr<telegram_api::stories_userStories> &&stories,

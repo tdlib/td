@@ -4049,6 +4049,11 @@ class CliClient final : public Actor {
       string limit;
       get_args(args, user_id, from_story_id, limit);
       send_request(td_api::make_object<td_api::getUserPinnedStories>(user_id, from_story_id, as_limit(limit)));
+    } else if (op == "gast") {
+      StoryId from_story_id;
+      string limit;
+      get_args(args, from_story_id, limit);
+      send_request(td_api::make_object<td_api::getArchivedStories>(from_story_id, as_limit(limit)));
     } else if (op == "gues") {
       UserId user_id;
       get_args(args, user_id);

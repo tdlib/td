@@ -7224,6 +7224,9 @@ deleteStory story_id:int32 = Ok;
 //@description Toggles whether stories of the user are available on the main chat list @user_id Identifier of the user @are_archived Pass true to make the story unavailable on the main chat list; pass false to make them available
 toggleUserStoriesAreArchived user_id:int53 are_archived:Bool = Ok;
 
+//@description Returns the list of expiring stories of a given user. The stories are returned in a reverse chronological order (i.e., in order of decreasing story_id) @user_id User identifier
+getUserExpiringStories user_id:int53 = Stories;
+
 //@description Returns the list of pinned stories of a given user. The stories are returned in a reverse chronological order (i.e., in order of decreasing story_id).
 //-For optimal performance, the number of returned stories is chosen by TDLib
 //@user_id User identifier
@@ -7232,8 +7235,12 @@ toggleUserStoriesAreArchived user_id:int53 are_archived:Bool = Ok;
 //-For optimal performance, the number of returned stories is chosen by TDLib and can be smaller than the specified limit
 getUserPinnedStories user_id:int53 from_story_id:int32 limit:int32 = Stories;
 
-//@description Returns the list of expiring stories of a given user. The stories are returned in a reverse chronological order (i.e., in order of decreasing story_id) @user_id User identifier
-getUserExpiringStories user_id:int53 = Stories;
+//@description Returns the list of all stories of the current user. The stories are returned in a reverse chronological order (i.e., in order of decreasing story_id).
+//-For optimal performance, the number of returned stories is chosen by TDLib
+//@from_story_id Identifier of the story starting from which stories must be returned; use 0 to get results from the last story
+//@limit The maximum number of stories to be returned
+//-For optimal performance, the number of returned stories is chosen by TDLib and can be smaller than the specified limit
+getArchivedStories from_story_id:int32 limit:int32 = Stories;
 
 
 //@description Returns information about a bot that can be added to attachment menu @bot_user_id Bot's user identifier
