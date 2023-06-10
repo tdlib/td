@@ -12,6 +12,7 @@
 #include "td/actor/impl/Event.h"
 #include "td/actor/impl/EventFull.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/common.h"
 #include "td/utils/ExitGuard.h"
 #include "td/utils/format.h"
@@ -26,7 +27,6 @@
 #include "td/utils/Time.h"
 
 #include <functional>
-#include <iterator>
 #include <memory>
 #include <utility>
 
@@ -314,8 +314,7 @@ void Scheduler::register_migrated_actor(ActorInfo *actor_info) {
   }
   auto it = pending_events_.find(actor_info);
   if (it != pending_events_.end()) {
-    actor_info->mailbox_.insert(actor_info->mailbox_.end(), std::make_move_iterator(it->second.begin()),
-                                std::make_move_iterator(it->second.end()));
+    append(actor_info->mailbox_, std::move(it->second));
     pending_events_.erase(it);
   }
   if (actor_info->mailbox_.empty()) {

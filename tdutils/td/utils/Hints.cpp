@@ -115,7 +115,7 @@ void Hints::add_search_results(vector<KeyT> &results, const string &word,
   LOG(DEBUG) << "Search for word " << word;
   auto it = word_to_keys.lower_bound(word);
   while (it != word_to_keys.end() && begins_with(it->first, word)) {
-    results.insert(results.end(), it->second.begin(), it->second.end());
+    append(results, it->second);
     ++it;
   }
 }

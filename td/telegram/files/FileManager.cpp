@@ -1777,7 +1777,7 @@ Status FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sync) {
 
   bool send_updates_flag = false;
   auto other_pmc_id = other_node->pmc_id_;
-  node->file_ids_.insert(node->file_ids_.end(), other_node->file_ids_.begin(), other_node->file_ids_.end());
+  append(node->file_ids_, other_node->file_ids_);
 
   for (auto file_id : other_node->file_ids_) {
     auto file_id_info = get_file_id_info(file_id);

@@ -1157,7 +1157,7 @@ void PollManager::on_get_poll_voters(PollId poll_id, int32 option_id, string off
       LOG(ERROR) << "Receive " << user_id << " as voter in " << poll_id;
     }
   }
-  voters.voter_user_ids_.insert(voters.voter_user_ids_.end(), user_ids.begin(), user_ids.end());
+  append(voters.voter_user_ids_, user_ids);
   if (static_cast<int32>(user_ids.size()) > limit) {
     user_ids.resize(limit);
   }
