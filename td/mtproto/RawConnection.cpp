@@ -460,8 +460,8 @@ class RawConnectionHttp final : public RawConnection {
   }
 
   Status do_send(Slice data) {
-    DarwinHttp::post(PSLICE() << "http://" << ip_address_.get_ip_str() << ":" << ip_address_.get_port() << "/api", data,
-                     [answers = answers_](auto res) { answers->writer_put(std::move(res)); });
+    DarwinHttp::post(PSLICE() << "http://" << ip_address_.get_ip_host() << ":" << ip_address_.get_port() << "/api",
+                     data, [answers = answers_](auto res) { answers->writer_put(std::move(res)); });
     return Status::OK();
   }
 
