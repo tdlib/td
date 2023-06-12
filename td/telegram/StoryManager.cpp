@@ -601,6 +601,8 @@ void StoryManager::on_get_dialog_expiring_stories(DialogId owner_dialog_id,
   TRY_STATUS_PROMISE(promise, G()->close_status());
   td_->contacts_manager_->on_get_users(std::move(stories->users_), "on_get_dialog_expiring_stories");
   auto story_ids = on_get_stories(owner_dialog_id, std::move(stories->stories_->stories_));
+  CHECK(owner_dialog_id.get_type() == DialogType::User);
+  td_->contacts_manager_->on_update_user_has_stories(owner_dialog_id.get_user_id(), !story_ids.empty());
   promise.set_value(get_stories_object(-1, transform(story_ids, [owner_dialog_id](StoryId story_id) {
     return StoryFullId(owner_dialog_id, story_id);
   })));
