@@ -4882,7 +4882,7 @@ storyContentUnsupported = StoryContent;
 inputStoryContentPhoto photo:InputFile added_sticker_file_ids:vector<int32> = InputStoryContent;
 
 //@description A video story
-//@video Video to be sent. The video size must be 720x1280. The video must be stored in MPEG4 format, encoded by x265 codec and must be streamable
+//@video Video to be sent. The video size must be 720x1280. The video must be streamable and stored in MPEG4 format, after encoding with x265 codec and key frames added each second
 //@added_sticker_file_ids File identifiers of the stickers added to the video, if applicable
 //@duration Precise duration of the video, in seconds; 0-60
 inputStoryContentVideo video:InputFile added_sticker_file_ids:vector<int32> duration:double = InputStoryContent;
