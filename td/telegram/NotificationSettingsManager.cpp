@@ -334,24 +334,8 @@ class UpdateDialogNotifySettingsQuery final : public Td::ResultHandler {
       return on_error(Status::Error(500, "Can't update chat notification settings"));
     }
 
-    int32 flags = 0;
-    if (!new_settings.use_default_mute_until) {
-      flags |= telegram_api::inputPeerNotifySettings::MUTE_UNTIL_MASK;
-    }
-    if (new_settings.sound != nullptr) {
-      flags |= telegram_api::inputPeerNotifySettings::SOUND_MASK;
-    }
-    if (!new_settings.use_default_show_preview) {
-      flags |= telegram_api::inputPeerNotifySettings::SHOW_PREVIEWS_MASK;
-    }
-    if (new_settings.silent_send_message) {
-      flags |= telegram_api::inputPeerNotifySettings::SILENT_MASK;
-    }
     send_query(G()->net_query_creator().create(telegram_api::account_updateNotifySettings(
-        std::move(input_notify_peer),
-        make_tl_object<telegram_api::inputPeerNotifySettings>(
-            flags, new_settings.show_preview, new_settings.silent_send_message, new_settings.mute_until,
-            get_input_notification_sound(new_settings.sound), false, false, nullptr))));
+        std::move(input_notify_peer), new_settings.get_input_peer_notify_settings())));
   }
 
   void on_result(BufferSlice packet) final {

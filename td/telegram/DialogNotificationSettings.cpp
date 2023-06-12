@@ -12,6 +12,25 @@
 
 namespace td {
 
+telegram_api::object_ptr<telegram_api::inputPeerNotifySettings>
+DialogNotificationSettings::get_input_peer_notify_settings() const {
+  int32 flags = 0;
+  if (!use_default_mute_until) {
+    flags |= telegram_api::inputPeerNotifySettings::MUTE_UNTIL_MASK;
+  }
+  if (sound != nullptr) {
+    flags |= telegram_api::inputPeerNotifySettings::SOUND_MASK;
+  }
+  if (!use_default_show_preview) {
+    flags |= telegram_api::inputPeerNotifySettings::SHOW_PREVIEWS_MASK;
+  }
+  if (silent_send_message) {
+    flags |= telegram_api::inputPeerNotifySettings::SILENT_MASK;
+  }
+  return telegram_api::make_object<telegram_api::inputPeerNotifySettings>(
+      flags, show_preview, silent_send_message, mute_until, get_input_notification_sound(sound), false, false, nullptr);
+}
+
 StringBuilder &operator<<(StringBuilder &string_builder, const DialogNotificationSettings &notification_settings) {
   return string_builder << "[" << notification_settings.mute_until << ", " << notification_settings.sound << ", "
                         << notification_settings.show_preview << ", " << notification_settings.silent_send_message

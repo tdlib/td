@@ -53,6 +53,8 @@ class DialogNotificationSettings {
       , use_default_disable_mention_notifications(use_default_disable_mention_notifications)
       , disable_mention_notifications(disable_mention_notifications) {
   }
+
+  telegram_api::object_ptr<telegram_api::inputPeerNotifySettings> get_input_peer_notify_settings() const;
 };
 
 StringBuilder &operator<<(StringBuilder &string_builder, const DialogNotificationSettings &notification_settings);
