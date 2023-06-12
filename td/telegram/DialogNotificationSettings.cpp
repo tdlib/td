@@ -24,20 +24,26 @@ DialogNotificationSettings::get_input_peer_notify_settings() const {
   if (!use_default_show_preview) {
     flags |= telegram_api::inputPeerNotifySettings::SHOW_PREVIEWS_MASK;
   }
+  if (!use_default_mute_stories) {
+    flags |= telegram_api::inputPeerNotifySettings::STORIES_MUTED_MASK;
+  }
   if (silent_send_message) {
     flags |= telegram_api::inputPeerNotifySettings::SILENT_MASK;
   }
   return telegram_api::make_object<telegram_api::inputPeerNotifySettings>(
-      flags, show_preview, silent_send_message, mute_until, get_input_notification_sound(sound), false, false, nullptr);
+      flags, show_preview, silent_send_message, mute_until, get_input_notification_sound(sound), mute_stories, false,
+      nullptr);
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const DialogNotificationSettings &notification_settings) {
   return string_builder << "[" << notification_settings.mute_until << ", " << notification_settings.sound << ", "
-                        << notification_settings.show_preview << ", " << notification_settings.silent_send_message
-                        << ", " << notification_settings.disable_pinned_message_notifications << ", "
+                        << notification_settings.show_preview << ", " << notification_settings.mute_stories << ", "
+                        << notification_settings.silent_send_message << ", "
+                        << notification_settings.disable_pinned_message_notifications << ", "
                         << notification_settings.disable_mention_notifications << ", "
                         << notification_settings.use_default_mute_until << ", "
                         << notification_settings.use_default_show_preview << ", "
+                        << notification_settings.use_default_mute_stories << ", "
                         << notification_settings.use_default_disable_pinned_message_notifications << ", "
                         << notification_settings.use_default_disable_mention_notifications << ", "
                         << notification_settings.is_synchronized << "]";
@@ -50,7 +56,8 @@ td_api::object_ptr<td_api::chatNotificationSettings> get_chat_notification_setti
       notification_settings->use_default_mute_until, max(0, notification_settings->mute_until - G()->unix_time()),
       is_notification_sound_default(notification_settings->sound),
       get_notification_sound_ringtone_id(notification_settings->sound), notification_settings->use_default_show_preview,
-      notification_settings->show_preview, notification_settings->use_default_disable_pinned_message_notifications,
+      notification_settings->show_preview, notification_settings->use_default_mute_stories,
+      notification_settings->mute_stories, notification_settings->use_default_disable_pinned_message_notifications,
       notification_settings->disable_pinned_message_notifications,
       notification_settings->use_default_disable_mention_notifications,
       notification_settings->disable_mention_notifications);
@@ -85,13 +92,14 @@ Result<DialogNotificationSettings> get_dialog_notification_settings(
   if (is_notification_sound_default(old_settings->sound) && is_notification_sound_default(notification_sound)) {
     notification_sound = dup_notification_sound(old_settings->sound);
   }
-  return DialogNotificationSettings(notification_settings->use_default_mute_for_, mute_until,
-                                    std::move(notification_sound), notification_settings->use_default_show_preview_,
-                                    notification_settings->show_preview_, old_settings->silent_send_message,
-                                    notification_settings->use_default_disable_pinned_message_notifications_,
-                                    notification_settings->disable_pinned_message_notifications_,
-                                    notification_settings->use_default_disable_mention_notifications_,
-                                    notification_settings->disable_mention_notifications_);
+  return DialogNotificationSettings(
+      notification_settings->use_default_mute_for_, mute_until, std::move(notification_sound),
+      notification_settings->use_default_show_preview_, notification_settings->show_preview_,
+      notification_settings->use_default_mute_stories_, notification_settings->mute_stories_,
+      old_settings->silent_send_message, notification_settings->use_default_disable_pinned_message_notifications_,
+      notification_settings->disable_pinned_message_notifications_,
+      notification_settings->use_default_disable_mention_notifications_,
+      notification_settings->disable_mention_notifications_);
 }
 
 DialogNotificationSettings get_dialog_notification_settings(tl_object_ptr<telegram_api::peerNotifySettings> &&settings,
@@ -119,6 +127,7 @@ DialogNotificationSettings get_dialog_notification_settings(tl_object_ptr<telegr
 
   bool use_default_mute_until = (settings->flags_ & telegram_api::peerNotifySettings::MUTE_UNTIL_MASK) == 0;
   bool use_default_show_preview = (settings->flags_ & telegram_api::peerNotifySettings::SHOW_PREVIEWS_MASK) == 0;
+  bool use_default_mute_stories = (settings->flags_ & telegram_api::peerNotifySettings::STORIES_MUTED_MASK) == 0;
   auto mute_until = use_default_mute_until || settings->mute_until_ <= G()->unix_time() ? 0 : settings->mute_until_;
   bool silent_send_message = settings->silent_;
   return {use_default_mute_until,
@@ -126,6 +135,8 @@ DialogNotificationSettings get_dialog_notification_settings(tl_object_ptr<telegr
           get_notification_sound(settings.get()),
           use_default_show_preview,
           settings->show_previews_,
+          use_default_mute_stories,
+          settings->stories_muted_,
           silent_send_message,
           old_use_default_disable_pinned_message_notifications,
           old_disable_pinned_message_notifications,
@@ -135,7 +146,8 @@ DialogNotificationSettings get_dialog_notification_settings(tl_object_ptr<telegr
 
 bool are_default_dialog_notification_settings(const DialogNotificationSettings &settings, bool compare_sound) {
   return settings.use_default_mute_until && (!compare_sound || is_notification_sound_default(settings.sound)) &&
-         settings.use_default_show_preview && settings.use_default_disable_pinned_message_notifications &&
+         settings.use_default_show_preview && settings.use_default_mute_stories &&
+         settings.use_default_disable_pinned_message_notifications &&
          settings.use_default_disable_mention_notifications;
 }
 
@@ -145,8 +157,10 @@ NeedUpdateDialogNotificationSettings need_update_dialog_notification_settings(
   result.need_update_server = current_settings->mute_until != new_settings.mute_until ||
                               !are_equivalent_notification_sounds(current_settings->sound, new_settings.sound) ||
                               current_settings->show_preview != new_settings.show_preview ||
+                              current_settings->mute_stories != new_settings.mute_stories ||
                               current_settings->use_default_mute_until != new_settings.use_default_mute_until ||
-                              current_settings->use_default_show_preview != new_settings.use_default_show_preview;
+                              current_settings->use_default_show_preview != new_settings.use_default_show_preview ||
+                              current_settings->use_default_mute_stories != new_settings.use_default_mute_stories;
   result.need_update_local =
       current_settings->use_default_disable_pinned_message_notifications !=
           new_settings.use_default_disable_pinned_message_notifications ||

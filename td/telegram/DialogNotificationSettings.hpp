@@ -20,6 +20,7 @@ void store(const DialogNotificationSettings &notification_settings, StorerT &sto
                   notification_settings.mute_until > G()->unix_time();
   bool has_sound = notification_settings.sound != nullptr;
   bool has_ringtone_support = true;
+  bool use_mute_stories = !notification_settings.use_default_mute_stories;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_muted);
   STORE_FLAG(has_sound);
@@ -36,6 +37,8 @@ void store(const DialogNotificationSettings &notification_settings, StorerT &sto
   STORE_FLAG(notification_settings.disable_mention_notifications);
   STORE_FLAG(notification_settings.is_secret_chat_show_preview_fixed);
   STORE_FLAG(has_ringtone_support);
+  STORE_FLAG(notification_settings.mute_stories);
+  STORE_FLAG(use_mute_stories);
   END_STORE_FLAGS();
   if (is_muted) {
     store(notification_settings.mute_until, storer);
@@ -53,6 +56,7 @@ void parse(DialogNotificationSettings &notification_settings, ParserT &parser) {
   bool use_disable_pinned_message_notifications;
   bool use_disable_mention_notifications;
   bool has_ringtone_support;
+  bool use_mute_stories;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_muted);
   PARSE_FLAG(has_sound);
@@ -69,9 +73,12 @@ void parse(DialogNotificationSettings &notification_settings, ParserT &parser) {
   PARSE_FLAG(notification_settings.disable_mention_notifications);
   PARSE_FLAG(notification_settings.is_secret_chat_show_preview_fixed);
   PARSE_FLAG(has_ringtone_support);
+  PARSE_FLAG(notification_settings.mute_stories);
+  PARSE_FLAG(use_mute_stories);
   END_PARSE_FLAGS();
   notification_settings.use_default_disable_pinned_message_notifications = !use_disable_pinned_message_notifications;
   notification_settings.use_default_disable_mention_notifications = !use_disable_mention_notifications;
+  notification_settings.use_default_mute_stories = !use_mute_stories;
   if (is_muted) {
     parse(notification_settings.mute_until, parser);
   }

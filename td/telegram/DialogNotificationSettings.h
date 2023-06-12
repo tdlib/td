@@ -21,9 +21,11 @@ class DialogNotificationSettings {
   int32 mute_until = 0;
   unique_ptr<NotificationSound> sound;
   bool show_preview = true;
+  bool mute_stories = false;
   bool silent_send_message = false;
   bool use_default_mute_until = true;
   bool use_default_show_preview = true;
+  bool use_default_mute_stories = true;
   bool is_use_default_fixed = true;
   bool is_secret_chat_show_preview_fixed = false;
   bool is_synchronized = false;
@@ -37,16 +39,19 @@ class DialogNotificationSettings {
   DialogNotificationSettings() = default;
 
   DialogNotificationSettings(bool use_default_mute_until, int32 mute_until, unique_ptr<NotificationSound> &&sound,
-                             bool use_default_show_preview, bool show_preview, bool silent_send_message,
+                             bool use_default_show_preview, bool show_preview, bool use_default_mute_stories,
+                             bool mute_stories, bool silent_send_message,
                              bool use_default_disable_pinned_message_notifications,
                              bool disable_pinned_message_notifications, bool use_default_disable_mention_notifications,
                              bool disable_mention_notifications)
       : mute_until(mute_until)
       , sound(std::move(sound))
       , show_preview(show_preview)
+      , mute_stories(mute_stories)
       , silent_send_message(silent_send_message)
       , use_default_mute_until(use_default_mute_until)
       , use_default_show_preview(use_default_show_preview)
+      , use_default_mute_stories(use_default_mute_stories)
       , is_synchronized(true)
       , use_default_disable_pinned_message_notifications(use_default_disable_pinned_message_notifications)
       , disable_pinned_message_notifications(disable_pinned_message_notifications)

@@ -1309,11 +1309,13 @@ notificationSettingsScopeChannelChats = NotificationSettingsScope;
 //@sound_id Identifier of the notification sound to be played; 0 if sound is disabled
 //@use_default_show_preview If true, show_preview is ignored and the value for the relevant type of chat or the forum chat is used instead
 //@show_preview True, if message content must be displayed in notifications
+//@use_default_mute_stories If true, mute_stories is ignored and the value for the relevant type of chat is used instead
+//@mute_stories True, if story notifications are received without sound
 //@use_default_disable_pinned_message_notifications If true, disable_pinned_message_notifications is ignored and the value for the relevant type of chat or the forum chat is used instead
 //@disable_pinned_message_notifications If true, notifications for incoming pinned messages will be created as for an ordinary unread message
 //@use_default_disable_mention_notifications If true, disable_mention_notifications is ignored and the value for the relevant type of chat or the forum chat is used instead
 //@disable_mention_notifications If true, notifications for messages with mentions will be created as for an ordinary unread message
-chatNotificationSettings use_default_mute_for:Bool mute_for:int32 use_default_sound:Bool sound_id:int64 use_default_show_preview:Bool show_preview:Bool use_default_disable_pinned_message_notifications:Bool disable_pinned_message_notifications:Bool use_default_disable_mention_notifications:Bool disable_mention_notifications:Bool = ChatNotificationSettings;
+chatNotificationSettings use_default_mute_for:Bool mute_for:int32 use_default_sound:Bool sound_id:int64 use_default_show_preview:Bool show_preview:Bool use_default_mute_stories:Bool mute_stories:Bool use_default_disable_pinned_message_notifications:Bool disable_pinned_message_notifications:Bool use_default_disable_mention_notifications:Bool disable_mention_notifications:Bool = ChatNotificationSettings;
 
 //@description Contains information about notification settings for several chats
 //@mute_for Time left before notifications will be unmuted, in seconds

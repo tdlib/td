@@ -36375,7 +36375,8 @@ void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source
           auto new_notification_settings = DialogNotificationSettings(
               user_settings->use_default_mute_until, user_settings->mute_until,
               dup_notification_sound(user_settings->sound), true /*use_default_show_preview*/, false /*show_preview*/,
-              user_settings->silent_send_message, true, false, true, false);
+              user_settings->use_default_mute_stories, user_settings->mute_stories, user_settings->silent_send_message,
+              true, false, true, false);
           new_notification_settings.is_secret_chat_show_preview_fixed = true;
           update_dialog_notification_settings(dialog_id, &d->notification_settings,
                                               std::move(new_notification_settings));
