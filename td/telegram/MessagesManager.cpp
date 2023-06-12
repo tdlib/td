@@ -25370,7 +25370,8 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, vect
     auto input_media =
         get_input_media(content, td_, m->ttl, m->send_emoji, td_->auth_manager_->is_bot() && bad_parts.empty());
     if (input_media == nullptr) {
-      if (content_type == MessageContentType::Game || content_type == MessageContentType::Poll) {
+      if (content_type == MessageContentType::Game || content_type == MessageContentType::Poll ||
+          content_type == MessageContentType::Story) {
         return;
       }
       if (get_main_file_type(file_view.get_type()) == FileType::Photo) {
@@ -26385,6 +26386,7 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
       }
       return !get_message_content_poll_is_closed(td_, m->content.get());
     }
+    case MessageContentType::Story:
     case MessageContentType::Contact:
     case MessageContentType::Dice:
     case MessageContentType::Location:
@@ -31302,6 +31304,8 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
           error_message = "Wrong poll data specified";
         } else if (content_type == MessageContentType::Contact) {
           error_message = "Wrong phone number specified";
+        } else if (content_type == MessageContentType::Story) {
+          error_message = "Wrong story data specified";
         } else {
           error_message = "Wrong file identifier/HTTP URL specified";
         }

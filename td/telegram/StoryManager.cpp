@@ -716,25 +716,25 @@ void StoryManager::change_story_files(StoryFullId story_full_id, const Story *st
   }
 }
 
-void StoryManager::on_get_story(DialogId owner_dialog_id,
-                                telegram_api::object_ptr<telegram_api::StoryItem> &&story_item_ptr) {
+StoryId StoryManager::on_get_story(DialogId owner_dialog_id,
+                                   telegram_api::object_ptr<telegram_api::StoryItem> &&story_item_ptr) {
   if (!owner_dialog_id.is_valid()) {
     LOG(ERROR) << "Receive a story in " << owner_dialog_id;
-    return;
+    return {};
   }
   CHECK(story_item_ptr != nullptr);
   switch (story_item_ptr->get_id()) {
     case telegram_api::storyItemDeleted::ID: {
       auto story_item = telegram_api::move_object_as<telegram_api::storyItemDeleted>(story_item_ptr);
-      on_delete_story(owner_dialog_id, StoryId(story_item->id_));
-      break;
+      StoryId story_id(story_item->id_);
+      on_delete_story(owner_dialog_id, story_id);
+      return story_id;
     }
     case telegram_api::storyItemSkipped::ID:
       LOG(ERROR) << "Receive storyItemSkipped";
-      break;
+      return {};
     case telegram_api::storyItem::ID: {
-      on_get_story(owner_dialog_id, telegram_api::move_object_as<telegram_api::storyItem>(story_item_ptr));
-      break;
+      return on_get_story(owner_dialog_id, telegram_api::move_object_as<telegram_api::storyItem>(story_item_ptr));
     }
     default:
       UNREACHABLE();
@@ -1338,6 +1338,17 @@ void StoryManager::delete_story_on_server(DialogId dialog_id, StoryId story_id, 
   deleted_story_full_ids_.insert({dialog_id, story_id});
 
   td_->create_handler<DeleteStoriesQuery>(std::move(promise))->send({story_id.get()});
+}
+
+telegram_api::object_ptr<telegram_api::InputMedia> StoryManager::get_input_media(StoryFullId story_full_id) const {
+  auto dialog_id = story_full_id.get_dialog_id();
+  CHECK(dialog_id.get_type() == DialogType::User);
+  auto r_input_user = td_->contacts_manager_->get_input_user(dialog_id.get_user_id());
+  if (r_input_user.is_error()) {
+    return nullptr;
+  }
+  return telegram_api::make_object<telegram_api::inputMediaStory>(r_input_user.move_as_ok(),
+                                                                  story_full_id.get_story_id().get());
 }
 
 void StoryManager::on_binlog_events(vector<BinlogEvent> &&events) {

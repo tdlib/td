@@ -2530,6 +2530,12 @@ messageGame game:game = MessageContent;
 //@description A message with a poll @poll The poll description
 messagePoll poll:poll = MessageContent;
 
+//@description A message with a forwarded story
+//@sender_user_id Identifier of the user that created the story
+//@story_id Story identifier
+//@via_mention True, if the story was forwarded because of a mention of the user
+messageStory sender_user_id:int53 story_id:int32 via_mention:Bool = MessageContent;
+
 //@description A message with an invoice from a bot. Use getInternalLink with internalLinkTypeBotStart to share the invoice
 //@title Product title
 //@param_description Product description
@@ -2915,6 +2921,11 @@ inputMessageInvoice invoice:invoice title:string description:string photo_url:st
 //@close_date Point in time (Unix timestamp) when the poll will automatically be closed; for bots only
 //@is_closed True, if the poll needs to be sent already closed; for bots only
 inputMessagePoll question:string options:vector<string> is_anonymous:Bool type:PollType open_period:int32 close_date:int32 is_closed:Bool = InputMessageContent;
+
+//@description A message with a forwarded story. Stories can't be sent to secret chats. A story can be forwarded only if it is available to everyone
+//@sender_user_id Identifier of the user that created the story
+//@story_id Story identifier
+inputMessageStory sender_user_id:int53 story_id:int32 = InputMessageContent;
 
 //@description A forwarded message
 //@from_chat_id Identifier for the chat this forwarded message came from

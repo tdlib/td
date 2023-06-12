@@ -69,7 +69,8 @@ enum class MessageContentType : int32 {
   WriteAccessAllowed,
   RequestedDialog,
   WebViewWriteAccessAllowed,
-  SetBackground
+  SetBackground,
+  Story
 };
 // increase MessageUnsupported::CURRENT_VERSION each time a new message content type is added
 

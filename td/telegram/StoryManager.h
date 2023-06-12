@@ -103,7 +103,7 @@ class StoryManager final : public Actor {
 
   void get_dialog_expiring_stories(DialogId owner_dialog_id, Promise<td_api::object_ptr<td_api::stories>> &&promise);
 
-  void on_get_story(DialogId owner_dialog_id, telegram_api::object_ptr<telegram_api::StoryItem> &&story_item_ptr);
+  StoryId on_get_story(DialogId owner_dialog_id, telegram_api::object_ptr<telegram_api::StoryItem> &&story_item_ptr);
 
   std::pair<int32, vector<StoryId>> on_get_stories(DialogId owner_dialog_id, vector<int32> &&expected_story_ids,
                                                    telegram_api::object_ptr<telegram_api::stories_stories> &&stories);
@@ -120,6 +120,8 @@ class StoryManager final : public Actor {
                                                          const vector<StoryFullId> &story_full_ids) const;
 
   FileSourceId get_story_file_source_id(StoryFullId story_full_id);
+
+  telegram_api::object_ptr<telegram_api::InputMedia> get_input_media(StoryFullId story_full_id) const;
 
   void reload_story(StoryFullId story_full_id, Promise<Unit> &&promise);
 

@@ -71,6 +71,8 @@
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/StickersManager.hpp"
 #include "td/telegram/StickerType.h"
+#include "td/telegram/StoryFullId.h"
+#include "td/telegram/StoryManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TopDialogManager.h"
 #include "td/telegram/UserId.h"
@@ -473,7 +475,7 @@ class MessageChatSetTtl final : public MessageContent {
 
 class MessageUnsupported final : public MessageContent {
  public:
-  static constexpr int32 CURRENT_VERSION = 18;
+  static constexpr int32 CURRENT_VERSION = 19;
   int32 version = CURRENT_VERSION;
 
   MessageUnsupported() = default;
@@ -913,6 +915,20 @@ class MessageSetBackground final : public MessageContent {
   }
 };
 
+class MessageStory final : public MessageContent {
+ public:
+  StoryFullId story_full_id;
+  bool via_mention = false;
+
+  MessageStory() = default;
+  MessageStory(StoryFullId story_full_id, bool via_mention) : story_full_id(story_full_id), via_mention(via_mention) {
+  }
+
+  MessageContentType get_type() const final {
+    return MessageContentType::Story;
+  }
+};
+
 template <class StorerT>
 static void store(const MessageContent *content, StorerT &storer) {
   CHECK(content != nullptr);
@@ -1303,6 +1319,14 @@ static void store(const MessageContent *content, StorerT &storer) {
         store(m->old_message_id, storer);
       }
       store(m->background_info, storer);
+      break;
+    }
+    case MessageContentType::Story: {
+      const auto *m = static_cast<const MessageStory *>(content);
+      BEGIN_STORE_FLAGS();
+      STORE_FLAG(m->via_mention);
+      END_STORE_FLAGS();
+      store(m->story_full_id, storer);
       break;
     }
     default:
@@ -1836,6 +1860,15 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       content = std::move(m);
       break;
     }
+    case MessageContentType::Story: {
+      auto m = make_unique<MessageStory>();
+      BEGIN_PARSE_FLAGS();
+      PARSE_FLAG(m->via_mention);
+      END_PARSE_FLAGS();
+      parse(m->story_full_id, parser);
+      content = std::move(m);
+      break;
+    }
     default:
       LOG(FATAL) << "Have unknown message content type " << static_cast<int32>(content_type);
   }
@@ -2249,6 +2282,20 @@ static Result<InputMessageContent> create_input_message_content(
                                          std::move(explanation), open_period, close_date, is_closed));
       break;
     }
+    case td_api::inputMessageStory::ID: {
+      auto input_story = static_cast<td_api::inputMessageStory *>(input_message_content.get());
+      UserId user_id(input_story->sender_user_id_);
+      StoryId story_id(input_story->story_id_);
+      StoryFullId story_full_id(DialogId(user_id), story_id);
+      if (!td->story_manager_->have_story(story_full_id)) {
+        return Status::Error(400, "Story not found");
+      }
+      if (td->contacts_manager_->get_input_user(user_id).is_error()) {
+        return Status::Error(400, "Can't access the user");
+      }
+      content = make_unique<MessageStory>(story_full_id, false);
+      break;
+    }
     default:
       UNREACHABLE();
   }
@@ -2367,6 +2414,12 @@ bool can_have_input_media(const Td *td, const MessageContent *content, bool is_s
       return is_server || static_cast<const MessageGame *>(content)->game.has_input_media();
     case MessageContentType::Poll:
       return td->poll_manager_->has_input_media(static_cast<const MessagePoll *>(content)->poll_id);
+    case MessageContentType::Story: {
+      auto story_full_id = static_cast<const MessageStory *>(content)->story_full_id;
+      auto dialog_id = story_full_id.get_dialog_id();
+      CHECK(dialog_id.get_type() == DialogType::User);
+      return td->contacts_manager_->get_input_user(dialog_id.get_user_id()).is_ok();
+    }
     case MessageContentType::Unsupported:
     case MessageContentType::ChatCreate:
     case MessageContentType::ChatChangeTitle:
@@ -2496,6 +2549,7 @@ SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
     case MessageContentType::Invoice:
     case MessageContentType::LiveLocation:
     case MessageContentType::Poll:
+    case MessageContentType::Story:
     case MessageContentType::Unsupported:
     case MessageContentType::ChatCreate:
     case MessageContentType::ChatChangeTitle:
@@ -2604,6 +2658,10 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
       const auto *m = static_cast<const MessageSticker *>(content);
       return td->stickers_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail),
                                                     emoji);
+    }
+    case MessageContentType::Story: {
+      const auto *m = static_cast<const MessageStory *>(content);
+      return td->story_manager_->get_input_media(m->story_full_id);
     }
     case MessageContentType::Venue: {
       const auto *m = static_cast<const MessageVenue *>(content);
@@ -2790,6 +2848,7 @@ void delete_message_content_thumbnail(MessageContent *content, Td *td) {
     case MessageContentType::Game:
     case MessageContentType::LiveLocation:
     case MessageContentType::Location:
+    case MessageContentType::Story:
     case MessageContentType::Venue:
     case MessageContentType::VoiceNote:
     case MessageContentType::Text:
@@ -2942,11 +3001,16 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
       }
       break;
     case MessageContentType::Sticker:
-      if (!permissions.can_send_stickers()) {
+      if (!permissions.can_send_messages()) {
         return Status::Error(400, "Not enough rights to send stickers to the chat");
       }
       if (get_message_content_sticker_type(td, content) == StickerType::CustomEmoji) {
         return Status::Error(400, "Can't send emoji stickers in messages");
+      }
+      break;
+    case MessageContentType::Story:
+      if (!permissions.can_send_photos() || !permissions.can_send_videos()) {
+        return Status::Error(400, "Not enough rights to send stories to the chat");
       }
       break;
     case MessageContentType::Text:
@@ -3118,6 +3182,7 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
     case MessageContentType::LiveLocation:
     case MessageContentType::Location:
     case MessageContentType::Sticker:
+    case MessageContentType::Story:
     case MessageContentType::Unsupported:
     case MessageContentType::Venue:
     case MessageContentType::ChatCreate:
@@ -3923,6 +3988,14 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       }
       break;
     }
+    case MessageContentType::Story: {
+      const auto *old_ = static_cast<const MessageStory *>(old_content);
+      const auto *new_ = static_cast<const MessageStory *>(new_content);
+      if (old_->story_full_id != new_->story_full_id || old_->via_mention != new_->via_mention) {
+        need_update = true;
+      }
+      break;
+    }
     default:
       UNREACHABLE();
       break;
@@ -4019,6 +4092,7 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
     case MessageContentType::Invoice:
     case MessageContentType::LiveLocation:
     case MessageContentType::Location:
+    case MessageContentType::Story:
     case MessageContentType::Text:
     case MessageContentType::Venue:
     case MessageContentType::ChatCreate:
@@ -4782,8 +4856,23 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       }
       return make_unique<MessagePoll>(poll_id);
     }
-    case telegram_api::messageMediaStory::ID:
-      return make_unique<MessageUnsupported>();
+    case telegram_api::messageMediaStory::ID: {
+      auto media = move_tl_object_as<telegram_api::messageMediaStory>(media_ptr);
+      auto dialog_id = DialogId(UserId(media->user_id_));
+      auto story_id = StoryId(media->id_);
+      if (!dialog_id.is_valid() || !story_id.is_valid()) {
+        LOG(ERROR) << "Receive " << to_string(media);
+        break;
+      }
+      auto story_full_id = StoryFullId(dialog_id, story_id);
+      if (media->story_ != nullptr) {
+        auto actual_story_id = td->story_manager_->on_get_story(dialog_id, std::move(media->story_));
+        if (story_id != actual_story_id) {
+          LOG(ERROR) << "Receive " << actual_story_id << " instead of " << story_id;
+        }
+      }
+      return make_unique<MessageStory>(story_full_id, media->via_mention_);
+    }
     case telegram_api::messageMediaUnsupported::ID:
       return make_unique<MessageUnsupported>();
     default:
@@ -4969,6 +5058,8 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       CHECK(result->file_id.is_valid());
       return std::move(result);
     }
+    case MessageContentType::Story:
+      return make_unique<MessageStory>(static_cast<const MessageStory *>(content)->story_full_id, false);
     case MessageContentType::Text: {
       auto result = make_unique<MessageText>(*static_cast<const MessageText *>(content));
       if (type == MessageContentDupType::Copy || type == MessageContentDupType::ServerCopy) {
@@ -5763,6 +5854,14 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       return td_api::make_object<td_api::messageChatSetBackground>(m->old_message_id.get(),
                                                                    m->background_info.get_chat_background_object(td));
     }
+    case MessageContentType::Story: {
+      const auto *m = static_cast<const MessageStory *>(content);
+      auto story_sender_dialog_id = m->story_full_id.get_dialog_id();
+      CHECK(story_sender_dialog_id.get_type() == DialogType::User);
+      return td_api::make_object<td_api::messageStory>(
+          td->contacts_manager_->get_user_id_object(story_sender_dialog_id.get_user_id(), "messageStory"),
+          m->story_full_id.get_story_id().get(), m->via_mention);
+    }
     default:
       UNREACHABLE();
       return nullptr;
@@ -6070,6 +6169,9 @@ vector<FileId> get_message_content_file_ids(const MessageContent *content, const
     case MessageContentType::SetBackground:
       // background file references are repaired independently
       return {};
+    case MessageContentType::Story:
+      // story file references are repaired independently
+      return {};
     default:
       return {};
   }
@@ -6127,6 +6229,7 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
     case MessageContentType::LiveLocation:
     case MessageContentType::Location:
     case MessageContentType::Sticker:
+    case MessageContentType::Story:
     case MessageContentType::Unsupported:
     case MessageContentType::Venue:
     case MessageContentType::VideoNote:
@@ -6468,6 +6571,11 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
       break;
     case MessageContentType::SetBackground:
       break;
+    case MessageContentType::Story: {
+      const auto *content = static_cast<const MessageStory *>(message_content);
+      dependencies.add_message_sender_dependencies(content->story_full_id.get_dialog_id());
+      break;
+    }
     default:
       UNREACHABLE();
       break;
