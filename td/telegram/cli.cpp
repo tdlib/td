@@ -4054,10 +4054,10 @@ class CliClient final : public Actor {
       string limit;
       get_args(args, from_story_id, limit);
       send_request(td_api::make_object<td_api::getArchivedStories>(from_story_id, as_limit(limit)));
-    } else if (op == "gues") {
+    } else if (op == "guas") {
       UserId user_id;
       get_args(args, user_id);
-      send_request(td_api::make_object<td_api::getUserExpiringStories>(user_id));
+      send_request(td_api::make_object<td_api::getUserActiveStories>(user_id));
     } else if (op == "gamb") {
       UserId user_id;
       get_args(args, user_id);

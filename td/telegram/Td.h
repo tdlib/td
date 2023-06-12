@@ -1000,7 +1000,7 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::readChatList &request);
 
-  void on_request(uint64 id, const td_api::getUserExpiringStories &request);
+  void on_request(uint64 id, const td_api::getUserActiveStories &request);
 
   void on_request(uint64 id, const td_api::getUserPinnedStories &request);
 

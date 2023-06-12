@@ -6424,7 +6424,7 @@ void Td::on_request(uint64 id, const td_api::readChatList &request) {
   messages_manager_->read_all_dialogs_from_list(DialogListId(request.chat_list_), std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::getUserExpiringStories &request) {
+void Td::on_request(uint64 id, const td_api::getUserActiveStories &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   story_manager_->get_dialog_expiring_stories(DialogId(UserId(request.user_id_)), std::move(promise));

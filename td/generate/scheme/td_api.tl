@@ -7225,8 +7225,8 @@ deleteStory story_id:int32 = Ok;
 //@description Toggles whether stories of the user are available on the main chat list @user_id Identifier of the user @are_archived Pass true to make the story unavailable on the main chat list; pass false to make them available
 toggleUserStoriesAreArchived user_id:int53 are_archived:Bool = Ok;
 
-//@description Returns the list of expiring stories of a given user. The stories are returned in a reverse chronological order (i.e., in order of decreasing story_id) @user_id User identifier
-getUserExpiringStories user_id:int53 = Stories;
+//@description Returns the list of active stories of a given user. The stories are returned in a reverse chronological order (i.e., in order of decreasing story_id) @user_id User identifier
+getUserActiveStories user_id:int53 = Stories;
 
 //@description Returns the list of pinned stories of a given user. The stories are returned in a reverse chronological order (i.e., in order of decreasing story_id).
 //-For optimal performance, the number of returned stories is chosen by TDLib
