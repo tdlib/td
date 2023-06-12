@@ -21,6 +21,7 @@ class ScopeNotificationSettings {
   int32 mute_until = 0;
   unique_ptr<NotificationSound> sound;
   bool show_preview = true;
+  bool mute_stories = false;
   bool is_synchronized = false;
 
   // local settings
@@ -30,10 +31,12 @@ class ScopeNotificationSettings {
   ScopeNotificationSettings() = default;
 
   ScopeNotificationSettings(int32 mute_until, unique_ptr<NotificationSound> &&sound, bool show_preview,
-                            bool disable_pinned_message_notifications, bool disable_mention_notifications)
+                            bool mute_stories, bool disable_pinned_message_notifications,
+                            bool disable_mention_notifications)
       : mute_until(mute_until)
       , sound(std::move(sound))
       , show_preview(show_preview)
+      , mute_stories(mute_stories)
       , is_synchronized(true)
       , disable_pinned_message_notifications(disable_pinned_message_notifications)
       , disable_mention_notifications(disable_mention_notifications) {

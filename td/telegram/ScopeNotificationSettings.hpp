@@ -28,6 +28,7 @@ void store(const ScopeNotificationSettings &notification_settings, StorerT &stor
   STORE_FLAG(notification_settings.disable_pinned_message_notifications);
   STORE_FLAG(notification_settings.disable_mention_notifications);
   STORE_FLAG(has_ringtone_support);
+  STORE_FLAG(notification_settings.mute_stories);
   END_STORE_FLAGS();
   if (is_muted) {
     store(notification_settings.mute_until, storer);
@@ -52,6 +53,7 @@ void parse(ScopeNotificationSettings &notification_settings, ParserT &parser) {
   PARSE_FLAG(notification_settings.disable_pinned_message_notifications);
   PARSE_FLAG(notification_settings.disable_mention_notifications);
   PARSE_FLAG(has_ringtone_support);
+  PARSE_FLAG(notification_settings.mute_stories);
   END_PARSE_FLAGS();
   (void)silent_send_message_ignored;
   if (is_muted) {

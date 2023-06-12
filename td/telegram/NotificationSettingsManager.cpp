@@ -540,7 +540,7 @@ void NotificationSettingsManager::init() {
     if (!channels_notification_settings_.is_synchronized && is_authorized) {
       channels_notification_settings_ = ScopeNotificationSettings(
           chats_notification_settings_.mute_until, dup_notification_sound(chats_notification_settings_.sound),
-          chats_notification_settings_.show_preview, false, false);
+          chats_notification_settings_.show_preview, chats_notification_settings_.mute_stories, false, false);
       channels_notification_settings_.is_synchronized = false;
       send_get_scope_notification_settings_query(NotificationSettingsScope::Channel, Promise<>());
     }
