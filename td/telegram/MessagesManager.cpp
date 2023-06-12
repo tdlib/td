@@ -27846,7 +27846,8 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::forward_message(
 unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::create_message_forward_info(
     DialogId from_dialog_id, DialogId to_dialog_id, const Message *forwarded_message) const {
   auto content_type = forwarded_message->content->get_type();
-  if (content_type == MessageContentType::Game || content_type == MessageContentType::Audio) {
+  if (content_type == MessageContentType::Game || content_type == MessageContentType::Audio ||
+      content_type == MessageContentType::Story) {
     return nullptr;
   }
 
