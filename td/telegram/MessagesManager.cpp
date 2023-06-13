@@ -13209,17 +13209,7 @@ vector<UserId> MessagesManager::get_message_user_ids(const Message *m) {
   if (m->forward_info != nullptr && m->forward_info->sender_user_id.is_valid()) {
     user_ids.push_back(m->forward_info->sender_user_id);
   }
-  if (m->content->get_type() == MessageContentType::ChatAddUsers) {
-    append(user_ids, get_message_content_added_user_ids(m->content.get()));
-  }
-  auto deleted_user_id = get_message_content_deleted_user_id(m->content.get());
-  if (deleted_user_id.is_valid()) {
-    user_ids.push_back(deleted_user_id);
-  }
-  auto contact_user_id = get_message_content_contact_user_id(m->content.get());
-  if (contact_user_id.is_valid()) {
-    user_ids.push_back(contact_user_id);
-  }
+  append(user_ids, get_message_content_min_user_ids(m->content.get()));
   return user_ids;
 }
 

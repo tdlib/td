@@ -3301,13 +3301,148 @@ std::pair<InputGroupCallId, bool> get_message_content_group_call_info(const Mess
   return {m->input_group_call_id, m->duration >= 0};
 }
 
-UserId get_message_content_contact_user_id(const MessageContent *content) {
-  switch (content->get_type()) {
-    case MessageContentType::Contact:
-      return static_cast<const MessageContact *>(content)->contact.get_user_id();
+vector<UserId> get_message_content_min_user_ids(const MessageContent *message_content) {
+  switch (message_content->get_type()) {
+    case MessageContentType::Text: {
+      // const auto *content = static_cast<const MessageText *>(message_content);
+      break;
+    }
+    case MessageContentType::Animation:
+      break;
+    case MessageContentType::Audio:
+      break;
+    case MessageContentType::Contact: {
+      const auto *content = static_cast<const MessageContact *>(message_content);
+      return {content->contact.get_user_id()};
+    }
+    case MessageContentType::Document:
+      break;
+    case MessageContentType::Game: {
+      // not supported
+      // const auto *content = static_cast<const MessageGame *>(message_content);
+      // return {content->game.get_bot_user_id())};
+    }
+    case MessageContentType::Invoice:
+      break;
+    case MessageContentType::LiveLocation:
+      break;
+    case MessageContentType::Location:
+      break;
+    case MessageContentType::Photo:
+      break;
+    case MessageContentType::Sticker:
+      break;
+    case MessageContentType::Venue:
+      break;
+    case MessageContentType::Video:
+      break;
+    case MessageContentType::VideoNote:
+      break;
+    case MessageContentType::VoiceNote:
+      break;
+    case MessageContentType::ChatCreate: {
+      const auto *content = static_cast<const MessageChatCreate *>(message_content);
+      return content->participant_user_ids;
+    }
+    case MessageContentType::ChatChangeTitle:
+      break;
+    case MessageContentType::ChatChangePhoto:
+      break;
+    case MessageContentType::ChatDeletePhoto:
+      break;
+    case MessageContentType::ChatDeleteHistory:
+      break;
+    case MessageContentType::ChatAddUsers: {
+      const auto *content = static_cast<const MessageChatAddUsers *>(message_content);
+      return content->user_ids;
+    }
+    case MessageContentType::ChatJoinedByLink:
+      break;
+    case MessageContentType::ChatDeleteUser: {
+      const auto *content = static_cast<const MessageChatDeleteUser *>(message_content);
+      return {content->user_id};
+    }
+    case MessageContentType::ChatMigrateTo:
+      break;
+    case MessageContentType::ChannelCreate:
+      break;
+    case MessageContentType::ChannelMigrateFrom:
+      break;
+    case MessageContentType::PinMessage:
+      break;
+    case MessageContentType::GameScore:
+      break;
+    case MessageContentType::ScreenshotTaken:
+      break;
+    case MessageContentType::ChatSetTtl:
+      // the content->from_user_id user can't be min
+      break;
+    case MessageContentType::Unsupported:
+      break;
+    case MessageContentType::Call:
+      break;
+    case MessageContentType::PaymentSuccessful:
+      break;
+    case MessageContentType::ContactRegistered:
+      break;
+    case MessageContentType::ExpiredPhoto:
+      break;
+    case MessageContentType::ExpiredVideo:
+      break;
+    case MessageContentType::CustomServiceAction:
+      break;
+    case MessageContentType::WebsiteConnected:
+      break;
+    case MessageContentType::PassportDataSent:
+      break;
+    case MessageContentType::PassportDataReceived:
+      break;
+    case MessageContentType::Poll:
+      break;
+    case MessageContentType::Dice:
+      break;
+    case MessageContentType::ProximityAlertTriggered:
+      break;
+    case MessageContentType::GroupCall:
+      break;
+    case MessageContentType::InviteToGroupCall: {
+      const auto *content = static_cast<const MessageInviteToGroupCall *>(message_content);
+      return content->user_ids;
+    }
+    case MessageContentType::ChatSetTheme:
+      break;
+    case MessageContentType::WebViewDataSent:
+      break;
+    case MessageContentType::WebViewDataReceived:
+      break;
+    case MessageContentType::GiftPremium:
+      break;
+    case MessageContentType::TopicCreate:
+      break;
+    case MessageContentType::TopicEdit:
+      break;
+    case MessageContentType::SuggestProfilePhoto:
+      break;
+    case MessageContentType::WriteAccessAllowed:
+      break;
+    case MessageContentType::RequestedDialog:
+      break;
+    case MessageContentType::WebViewWriteAccessAllowed:
+      break;
+    case MessageContentType::SetBackground:
+      break;
+    case MessageContentType::Story: {
+      const auto *content = static_cast<const MessageStory *>(message_content);
+      if (content->story_full_id.get_dialog_id().get_type() == DialogType::User) {
+        return {content->story_full_id.get_dialog_id().get_user_id()};
+      }
+      break;
+    }
     default:
-      return UserId();
+      UNREACHABLE();
+      break;
   }
+  return {};
 }
 
 vector<UserId> get_message_content_added_user_ids(const MessageContent *content) {
