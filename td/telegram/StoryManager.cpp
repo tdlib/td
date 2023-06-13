@@ -20,6 +20,7 @@
 #include "td/telegram/StoryContentType.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UpdatesManager.h"
+#include "td/telegram/WebPagesManager.h"
 
 #include "tddb/td/db/binlog/BinlogEvent.h"
 #include "tddb/td/db/binlog/BinlogHelper.h"
@@ -879,6 +880,7 @@ void StoryManager::on_story_changed(StoryFullId story_full_id, const Story *stor
 
     send_closure_later(G()->messages_manager(),
                        &MessagesManager::update_story_max_reply_media_timestamp_in_replied_messages, story_full_id);
+    send_closure_later(G()->web_pages_manager(), &WebPagesManager::on_story_changed, story_full_id);
   }
 }
 

@@ -395,6 +395,7 @@ class WebPagesManager::WebPage {
     }
     if (has_story_full_ids) {
       parse(story_full_ids, parser);
+      td::remove_if(story_full_ids, [](StoryFullId story_full_id) { return !story_full_id.is_valid(); });
     }
 
     if (has_instant_view) {
@@ -607,6 +608,21 @@ void WebPagesManager::update_web_page(unique_ptr<WebPage> web_page, WebPageId we
   if (page != nullptr) {
     if (*page == *web_page) {
       is_changed = false;
+    }
+
+    if (page->story_full_ids != web_page->story_full_ids) {
+      for (auto story_full_id : page->story_full_ids) {
+        auto it = story_web_pages_.find(story_full_id);
+        if (it != story_web_pages_.end()) {
+          it->second.erase(web_page_id);
+          if (it->second.empty()) {
+            story_web_pages_.erase(it);
+          }
+        }
+      }
+      for (auto story_full_id : web_page->story_full_ids) {
+        story_web_pages_[story_full_id].insert(web_page_id);
+      }
     }
 
     old_instant_view = std::move(page->instant_view);
@@ -1378,6 +1394,20 @@ void WebPagesManager::on_web_page_changed(WebPageId web_page_id, bool have_web_p
     }
   }
   pending_web_pages_timeout_.cancel_timeout(web_page_id.get());
+}
+
+void WebPagesManager::on_story_changed(StoryFullId story_full_id) {
+  auto story_it = story_web_pages_.find(story_full_id);
+  if (story_it == story_web_pages_.end()) {
+    return;
+  }
+  vector<WebPageId> web_page_ids;
+  for (auto web_page_id : story_it->second) {
+    web_page_ids.push_back(web_page_id);
+  }
+  for (auto web_page_id : web_page_ids) {
+    on_web_page_changed(web_page_id, true);
+  }
 }
 
 const WebPagesManager::WebPage *WebPagesManager::get_web_page(WebPageId web_page_id) const {
