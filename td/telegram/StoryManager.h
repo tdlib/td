@@ -9,6 +9,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
+#include "td/telegram/FullMessageId.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/StoryFullId.h"
 #include "td/telegram/StoryId.h"
@@ -116,6 +117,10 @@ class StoryManager final : public Actor {
 
   int32 get_story_duration(StoryFullId story_full_id) const;
 
+  void register_story(StoryFullId story_full_id, FullMessageId full_message_id, const char *source);
+
+  void unregister_story(StoryFullId story_full_id, FullMessageId full_message_id, const char *source);
+
   td_api::object_ptr<td_api::story> get_story_object(StoryFullId story_full_id) const;
 
   td_api::object_ptr<td_api::stories> get_stories_object(int32 total_count,
@@ -202,6 +207,8 @@ class StoryManager final : public Actor {
   WaitFreeHashSet<StoryFullId, StoryFullIdHash> inaccessible_story_full_ids_;
 
   WaitFreeHashSet<StoryFullId, StoryFullIdHash> deleted_story_full_ids_;
+
+  WaitFreeHashMap<StoryFullId, WaitFreeHashSet<FullMessageId, FullMessageIdHash>, StoryFullIdHash> story_messages_;
 
   FlatHashMap<StoryFullId, unique_ptr<BeingEditedStory>, StoryFullIdHash> being_edited_stories_;
 

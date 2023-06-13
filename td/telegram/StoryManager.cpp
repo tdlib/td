@@ -465,7 +465,8 @@ StoryManager::StoryManager(Td *td, ActorShared<> parent) : td_(td), parent_(std:
 }
 
 StoryManager::~StoryManager() {
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), story_full_id_to_file_source_id_, stories_);
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), story_full_id_to_file_source_id_, stories_,
+                                              inaccessible_story_full_ids_, deleted_story_full_ids_, story_messages_);
 }
 
 void StoryManager::tear_down() {
@@ -635,6 +636,28 @@ int32 StoryManager::get_story_duration(StoryFullId story_full_id) const {
     }
   }
   return get_story_content_duration(td_, content);
+}
+
+void StoryManager::register_story(StoryFullId story_full_id, FullMessageId full_message_id, const char *source) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  LOG(INFO) << "Register " << story_full_id << " from " << full_message_id << " from " << source;
+  story_messages_[story_full_id].insert(full_message_id);
+}
+
+void StoryManager::unregister_story(StoryFullId story_full_id, FullMessageId full_message_id, const char *source) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+  LOG(INFO) << "Unregister " << story_full_id << " from " << full_message_id << " from " << source;
+  auto &message_ids = story_messages_[story_full_id];
+  auto is_deleted = message_ids.erase(full_message_id) > 0;
+  LOG_CHECK(is_deleted) << source << ' ' << story_full_id << ' ' << full_message_id;
+  if (message_ids.empty()) {
+    story_messages_.erase(story_full_id);
+  }
 }
 
 td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId story_full_id) const {
@@ -881,6 +904,16 @@ void StoryManager::on_story_changed(StoryFullId story_full_id, const Story *stor
     send_closure_later(G()->messages_manager(),
                        &MessagesManager::update_story_max_reply_media_timestamp_in_replied_messages, story_full_id);
     send_closure_later(G()->web_pages_manager(), &WebPagesManager::on_story_changed, story_full_id);
+
+    if (story_messages_.count(story_full_id) != 0) {
+      vector<FullMessageId> full_message_ids;
+      story_messages_[story_full_id].foreach(
+          [&full_message_ids](const FullMessageId &full_message_id) { full_message_ids.push_back(full_message_id); });
+      CHECK(!full_message_ids.empty());
+      for (const auto &full_message_id : full_message_ids) {
+        td_->messages_manager_->on_external_update_message_content(full_message_id);
+      }
+    }
   }
 }
 

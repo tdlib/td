@@ -3505,6 +3505,7 @@ bool can_message_content_have_media_timestamp(const MessageContent *content) {
   CHECK(content != nullptr);
   switch (content->get_type()) {
     case MessageContentType::Audio:
+    case MessageContentType::Story:
     case MessageContentType::Video:
     case MessageContentType::VideoNote:
     case MessageContentType::VoiceNote:
@@ -4334,6 +4335,9 @@ void register_message_content(Td *td, const MessageContent *content, FullMessage
     case MessageContentType::SuggestProfilePhoto:
       return td->contacts_manager_->register_suggested_profile_photo(
           static_cast<const MessageSuggestProfilePhoto *>(content)->photo);
+    case MessageContentType::Story:
+      return td->story_manager_->register_story(static_cast<const MessageStory *>(content)->story_full_id,
+                                                full_message_id, source);
     default:
       return;
   }
@@ -4387,6 +4391,12 @@ void reregister_message_content(Td *td, const MessageContent *old_content, const
           return;
         }
         break;
+      case MessageContentType::Story:
+        if (static_cast<const MessageStory *>(old_content)->story_full_id ==
+            static_cast<const MessageStory *>(new_content)->story_full_id) {
+          return;
+        }
+        break;
       default:
         return;
     }
@@ -4424,6 +4434,9 @@ void unregister_message_content(Td *td, const MessageContent *content, FullMessa
     case MessageContentType::GiftPremium:
       return td->stickers_manager_->unregister_premium_gift(static_cast<const MessageGiftPremium *>(content)->months,
                                                             full_message_id, source);
+    case MessageContentType::Story:
+      return td->story_manager_->unregister_story(static_cast<const MessageStory *>(content)->story_full_id,
+                                                  full_message_id, source);
     default:
       return;
   }
@@ -6112,6 +6125,10 @@ int32 get_message_content_media_duration(const MessageContent *content, const Td
     }
     case MessageContentType::Invoice:
       return static_cast<const MessageInvoice *>(content)->input_invoice.get_duration(td);
+    case MessageContentType::Story: {
+      auto story_full_id = static_cast<const MessageStory *>(content)->story_full_id;
+      return td->story_manager_->get_story_duration(story_full_id);
+    }
     case MessageContentType::Text: {
       auto web_page_id = static_cast<const MessageText *>(content)->web_page_id;
       return td->web_pages_manager_->get_web_page_media_duration(web_page_id);
