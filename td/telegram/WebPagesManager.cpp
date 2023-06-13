@@ -1808,6 +1808,20 @@ int32 WebPagesManager::get_web_page_media_duration(const WebPage *web_page) cons
   return -1;
 }
 
+vector<UserId> WebPagesManager::get_web_page_user_ids(WebPageId web_page_id) const {
+  const WebPage *web_page = get_web_page(web_page_id);
+  vector<UserId> user_ids;
+  if (web_page != nullptr && !web_page->story_full_ids.empty()) {
+    for (auto story_full_id : web_page->story_full_ids) {
+      auto dialog_id = story_full_id.get_dialog_id();
+      if (dialog_id.get_type() == DialogType::User) {
+        user_ids.push_back(dialog_id.get_user_id());
+      }
+    }
+  }
+  return user_ids;
+}
+
 vector<FileId> WebPagesManager::get_web_page_file_ids(const WebPage *web_page) const {
   if (web_page == nullptr) {
     return vector<FileId>();

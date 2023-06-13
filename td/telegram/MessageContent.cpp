@@ -3301,10 +3301,13 @@ std::pair<InputGroupCallId, bool> get_message_content_group_call_info(const Mess
   return {m->input_group_call_id, m->duration >= 0};
 }
 
-vector<UserId> get_message_content_min_user_ids(const MessageContent *message_content) {
+vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageContent *message_content) {
   switch (message_content->get_type()) {
     case MessageContentType::Text: {
-      // const auto *content = static_cast<const MessageText *>(message_content);
+      const auto *content = static_cast<const MessageText *>(message_content);
+      if (content->web_page_id.is_valid()) {
+        return td->web_pages_manager_->get_web_page_user_ids(content->web_page_id);
+      }
       break;
     }
     case MessageContentType::Animation:

@@ -1730,7 +1730,7 @@ class MessagesManager final : public Actor {
 
   static int32 get_message_date(const tl_object_ptr<telegram_api::Message> &message_ptr);
 
-  static vector<UserId> get_message_user_ids(const Message *m);
+  vector<UserId> get_message_user_ids(const Message *m) const;
 
   static vector<ChannelId> get_message_channel_ids(const Message *m);
 

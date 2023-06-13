@@ -13198,7 +13198,7 @@ int32 MessagesManager::get_message_date(const tl_object_ptr<telegram_api::Messag
   }
 }
 
-vector<UserId> MessagesManager::get_message_user_ids(const Message *m) {
+vector<UserId> MessagesManager::get_message_user_ids(const Message *m) const {
   vector<UserId> user_ids;
   if (m->sender_user_id.is_valid()) {
     user_ids.push_back(m->sender_user_id);
@@ -13209,7 +13209,7 @@ vector<UserId> MessagesManager::get_message_user_ids(const Message *m) {
   if (m->forward_info != nullptr && m->forward_info->sender_user_id.is_valid()) {
     user_ids.push_back(m->forward_info->sender_user_id);
   }
-  append(user_ids, get_message_content_min_user_ids(m->content.get()));
+  append(user_ids, get_message_content_min_user_ids(td_, m->content.get()));
   return user_ids;
 }
 
