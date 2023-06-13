@@ -793,10 +793,8 @@ StoryId StoryManager::on_get_story(DialogId owner_dialog_id,
     story->content_ = std::move(content);
     is_changed = true;
   } else {
-    merge_story_contents(td_, story->content_.get(), content.get(), owner_dialog_id, false, need_save_to_database,
-                         is_changed);
+    merge_story_contents(td_, story->content_.get(), content.get(), owner_dialog_id, need_save_to_database, is_changed);
     story->content_ = std::move(content);
-    // story->last_edit_pts_ = 0;
   }
 
   if (is_changed || need_save_to_database) {

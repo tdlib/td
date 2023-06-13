@@ -238,7 +238,7 @@ void compare_story_contents(const StoryContent *old_content, const StoryContent 
 }
 
 void merge_story_contents(Td *td, const StoryContent *old_content, StoryContent *new_content, DialogId dialog_id,
-                          bool need_merge_files, bool &is_content_changed, bool &need_update) {
+                          bool &is_content_changed, bool &need_update) {
   StoryContentType content_type = new_content->get_type();
   CHECK(old_content->get_type() == content_type);
 
@@ -246,19 +246,13 @@ void merge_story_contents(Td *td, const StoryContent *old_content, StoryContent 
     case StoryContentType::Photo: {
       const auto *old_ = static_cast<const StoryContentPhoto *>(old_content);
       auto *new_ = static_cast<StoryContentPhoto *>(new_content);
-      merge_photos(td, &old_->photo_, &new_->photo_, dialog_id, need_merge_files, is_content_changed, need_update);
+      merge_photos(td, &old_->photo_, &new_->photo_, dialog_id, false, is_content_changed, need_update);
       break;
     }
     case StoryContentType::Video: {
       const auto *old_ = static_cast<const StoryContentVideo *>(old_content);
       const auto *new_ = static_cast<const StoryContentVideo *>(new_content);
-      if (old_->file_id_ != new_->file_id_) {
-        if (need_merge_files) {
-          td->videos_manager_->merge_videos(new_->file_id_, old_->file_id_);
-        }
-        need_update = true;
-      }
-      if (old_->alt_file_id_ != new_->alt_file_id_) {
+      if (old_->file_id_ != new_->file_id_ || old_->alt_file_id_ != new_->alt_file_id_) {
         need_update = true;
       }
       break;

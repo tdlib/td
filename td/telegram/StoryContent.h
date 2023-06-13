@@ -44,7 +44,7 @@ void compare_story_contents(Td *td, const StoryContent *old_content, const Story
                             bool &is_content_changed, bool &need_update);
 
 void merge_story_contents(Td *td, const StoryContent *old_content, StoryContent *new_content, DialogId dialog_id,
-                          bool need_merge_files, bool &is_content_changed, bool &need_update);
+                          bool &is_content_changed, bool &need_update);
 
 unique_ptr<StoryContent> copy_story_content(const StoryContent *content);
 
