@@ -110,6 +110,8 @@ class StoryManager final : public Actor {
 
   bool have_story(StoryFullId story_full_id) const;
 
+  bool have_story_force(StoryFullId story_full_id) const;
+
   bool is_inaccessible_story(StoryFullId story_full_id) const;
 
   int32 get_story_duration(StoryFullId story_full_id) const;

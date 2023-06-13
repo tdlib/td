@@ -1136,8 +1136,8 @@ messageSendingStateFailed error_code:int32 error_message:string can_retry:Bool n
 //@message_id The identifier of the replied message
 messageReplyToMessage chat_id:int53 message_id:int53 = MessageReplyTo;
 
-//@description Describes a replied story @sender_user_id The identifier of the sender of the replied story. Currently, stories can be replied only in the corresponding private chats @story_id The identifier of the replied story
-messageReplyToStory sender_user_id:int53 story_id:int32 = MessageReplyTo;
+//@description Describes a replied story @story_sender_user_id The identifier of the sender of the replied story. Currently, stories can be replied only in the corresponding private chats @story_id The identifier of the replied story
+messageReplyToStory story_sender_user_id:int53 story_id:int32 = MessageReplyTo;
 
 
 //@description Describes a message
@@ -1986,8 +1986,10 @@ webPageInstantView page_blocks:vector<PageBlock> view_count:int32 version:int32 
 //@video Preview of the content as a video, if available; may be null
 //@video_note Preview of the content as a video note, if available; may be null
 //@voice_note Preview of the content as a voice note, if available; may be null
+//@story_sender_user_id The identifier of the sender of the previewed story; 0 if none
+//@story_id The identifier of the previewed story; 0 if none
 //@instant_view_version Version of web page instant view (currently, can be 1 or 2); 0 if none
-webPage url:string display_url:string type:string site_name:string title:string description:formattedText photo:photo embed_url:string embed_type:string embed_width:int32 embed_height:int32 duration:int32 author:string animation:animation audio:audio document:document sticker:sticker video:video video_note:videoNote voice_note:voiceNote instant_view_version:int32 = WebPage;
+webPage url:string display_url:string type:string site_name:string title:string description:formattedText photo:photo embed_url:string embed_type:string embed_width:int32 embed_height:int32 duration:int32 author:string animation:animation audio:audio document:document sticker:sticker video:video video_note:videoNote voice_note:voiceNote story_sender_user_id:int53 story_id:int32 instant_view_version:int32 = WebPage;
 
 
 //@description Contains information about a country

@@ -156,7 +156,7 @@ class WebPagesManager final : public Actor {
 
   void tear_down() final;
 
-  static int32 get_web_page_media_duration(const WebPage *web_page);
+  int32 get_web_page_media_duration(const WebPage *web_page) const;
 
   FileSourceId get_web_page_file_source_id(WebPage *web_page);
 

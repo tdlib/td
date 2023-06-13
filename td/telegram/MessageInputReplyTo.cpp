@@ -23,7 +23,7 @@ MessageInputReplyTo::MessageInputReplyTo(const td_api::object_ptr<td_api::Messag
     }
     case td_api::messageReplyToStory::ID: {
       auto reply_to = static_cast<const td_api::messageReplyToStory *>(reply_to_ptr.get());
-      story_full_id_ = {DialogId(reply_to->sender_user_id_), StoryId(reply_to->story_id_)};
+      story_full_id_ = {DialogId(reply_to->story_sender_user_id_), StoryId(reply_to->story_id_)};
       break;
     }
     default:

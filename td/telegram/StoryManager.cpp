@@ -612,6 +612,11 @@ bool StoryManager::have_story(StoryFullId story_full_id) const {
   return get_story(story_full_id) != nullptr;
 }
 
+bool StoryManager::have_story_force(StoryFullId story_full_id) const {
+  // TODO try load story
+  return have_story(story_full_id);
+}
+
 bool StoryManager::is_inaccessible_story(StoryFullId story_full_id) const {
   return inaccessible_story_full_ids_.count(story_full_id) > 0;
 }
