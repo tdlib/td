@@ -105,6 +105,10 @@ class UserPrivacySettingRules {
     return rules_ == other.rules_;
   }
 
+  bool operator!=(const UserPrivacySettingRules &other) const {
+    return !(rules_ == other.rules_);
+  }
+
   vector<UserId> get_restricted_user_ids() const;
 
   template <class StorerT>

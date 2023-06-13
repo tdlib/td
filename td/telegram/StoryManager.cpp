@@ -762,6 +762,7 @@ StoryId StoryManager::on_get_story(DialogId owner_dialog_id,
     story = s.get();
     stories_.set(story_full_id, std::move(s));
     is_changed = true;
+    story_item->min_ = false;
 
     inaccessible_story_full_ids_.erase(story_full_id);
     send_closure_later(G()->messages_manager(),
@@ -801,20 +802,28 @@ StoryId StoryManager::on_get_story(DialogId owner_dialog_id,
     change_story_files(story_full_id, story, old_file_ids);
   }
 
-  auto privacy_rules = UserPrivacySettingRules::get_user_privacy_setting_rules(td_, std::move(story_item->privacy_));
-  auto interaction_info = StoryInteractionInfo(td_, std::move(story_item->views_));
   if (story->is_pinned_ != story_item->pinned_ || story->is_public_ != story_item->public_ ||
       story->is_for_close_friends_ != story_item->close_friends_ || story->date_ != story_item->date_ ||
-      story->expire_date_ != story_item->expire_date_ || !(story->privacy_rules_ == privacy_rules) ||
-      story->interaction_info_ != interaction_info) {
+      story->expire_date_ != story_item->expire_date_) {
     story->is_pinned_ = story_item->pinned_;
     story->is_public_ = story_item->public_;
     story->is_for_close_friends_ = story_item->close_friends_;
     story->date_ = story_item->date_;
     story->expire_date_ = story_item->expire_date_;
-    story->privacy_rules_ = std::move(privacy_rules);
-    story->interaction_info_ = std::move(interaction_info);
     is_changed = true;
+  }
+  if (!is_story_owned(owner_dialog_id)) {
+    story_item->min_ = false;
+  }
+  if (!story_item->min_) {
+    auto privacy_rules = UserPrivacySettingRules::get_user_privacy_setting_rules(td_, std::move(story_item->privacy_));
+    auto interaction_info = StoryInteractionInfo(td_, std::move(story_item->views_));
+
+    if (story->privacy_rules_ != privacy_rules || story->interaction_info_ != interaction_info) {
+      story->privacy_rules_ = std::move(privacy_rules);
+      story->interaction_info_ = std::move(interaction_info);
+      is_changed = true;
+    }
   }
   if (story->caption_ != caption) {
     story->caption_ = std::move(caption);
