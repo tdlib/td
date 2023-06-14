@@ -1006,6 +1006,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::getArchivedStories &request);
 
+  void on_request(uint64 id, const td_api::openStory &request);
+
   void on_request(uint64 id, const td_api::getAttachmentMenuBot &request);
 
   void on_request(uint64 id, const td_api::toggleBotIsAddedToAttachmentMenu &request);

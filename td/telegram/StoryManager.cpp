@@ -610,6 +610,30 @@ void StoryManager::on_get_dialog_expiring_stories(DialogId owner_dialog_id,
   })));
 }
 
+void StoryManager::open_story(DialogId owner_dialog_id, StoryId story_id, Promise<Unit> &&promise) {
+  if (!td_->messages_manager_->have_dialog_info_force(owner_dialog_id)) {
+    return promise.set_error(Status::Error(400, "Story sender not found"));
+  }
+  if (!td_->messages_manager_->have_input_peer(owner_dialog_id, AccessRights::Read)) {
+    return promise.set_error(Status::Error(400, "Can't access the story sender"));
+  }
+  if (!story_id.is_valid()) {
+    return promise.set_error(Status::Error(400, "Invalid story identifier specified"));
+  }
+
+  StoryFullId story_full_id{owner_dialog_id, story_id};
+  const Story *story = get_story(story_full_id);
+  if (story == nullptr) {
+    return promise.set_value(Unit());
+  }
+
+  for (auto file_id : get_story_file_ids(story)) {
+    td_->file_manager_->check_local_location_async(file_id, true);
+  }
+
+  promise.set_value(Unit());
+}
+
 bool StoryManager::have_story(StoryFullId story_full_id) const {
   return get_story(story_full_id) != nullptr;
 }

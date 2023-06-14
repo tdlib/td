@@ -104,6 +104,8 @@ class StoryManager final : public Actor {
 
   void get_dialog_expiring_stories(DialogId owner_dialog_id, Promise<td_api::object_ptr<td_api::stories>> &&promise);
 
+  void open_story(DialogId owner_dialog_id, StoryId story_id, Promise<Unit> &&promise);
+
   StoryId on_get_story(DialogId owner_dialog_id, telegram_api::object_ptr<telegram_api::StoryItem> &&story_item_ptr);
 
   std::pair<int32, vector<StoryId>> on_get_stories(DialogId owner_dialog_id, vector<int32> &&expected_story_ids,

@@ -7259,6 +7259,11 @@ getUserPinnedStories user_id:int53 from_story_id:int32 limit:int32 = Stories;
 //-For optimal performance, the number of returned stories is chosen by TDLib and can be smaller than the specified limit
 getArchivedStories from_story_id:int32 limit:int32 = Stories;
 
+//@description Informs TDLib that a story is opened and is being viewed by the user
+//@story_sender_user_id The identifier of the sender of the opened story
+//@story_id The identifier of the story
+openStory story_sender_user_id:int53 story_id:int32 = Ok;
+
 
 //@description Returns information about a bot that can be added to attachment menu @bot_user_id Bot's user identifier
 getAttachmentMenuBot bot_user_id:int53 = AttachmentMenuBot;

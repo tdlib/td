@@ -6443,6 +6443,13 @@ void Td::on_request(uint64 id, const td_api::getArchivedStories &request) {
   story_manager_->get_story_archive(StoryId(request.from_story_id_), request.limit_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::openStory &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  story_manager_->open_story(DialogId(UserId(request.story_sender_user_id_)), StoryId(request.story_id_),
+                             std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getAttachmentMenuBot &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
