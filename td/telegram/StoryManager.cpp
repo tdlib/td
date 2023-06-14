@@ -882,12 +882,9 @@ StoryId StoryManager::on_get_story(DialogId owner_dialog_id,
   }
   CHECK(story_item_ptr != nullptr);
   switch (story_item_ptr->get_id()) {
-    case telegram_api::storyItemDeleted::ID: {
-      auto story_item = telegram_api::move_object_as<telegram_api::storyItemDeleted>(story_item_ptr);
-      StoryId story_id(story_item->id_);
-      on_delete_story(owner_dialog_id, story_id);
-      return story_id;
-    }
+    case telegram_api::storyItemDeleted::ID:
+      return on_get_deleted_story(owner_dialog_id,
+                                  telegram_api::move_object_as<telegram_api::storyItemDeleted>(story_item_ptr));
     case telegram_api::storyItemSkipped::ID:
       LOG(ERROR) << "Receive " << to_string(story_item_ptr);
       return {};
@@ -1027,6 +1024,13 @@ StoryId StoryManager::on_get_skipped_story(DialogId owner_dialog_id,
   return story_id;
 }
 
+StoryId StoryManager::on_get_deleted_story(DialogId owner_dialog_id,
+                                           telegram_api::object_ptr<telegram_api::storyItemDeleted> &&story_item) {
+  StoryId story_id(story_item->id_);
+  on_delete_story(owner_dialog_id, story_id);
+  return story_id;
+}
+
 void StoryManager::on_delete_story(DialogId owner_dialog_id, StoryId story_id) {
   if (!story_id.is_server()) {
     LOG(ERROR) << "Receive deleted " << story_id << " in " << owner_dialog_id;
@@ -1088,7 +1092,7 @@ std::pair<int32, vector<StoryId>> StoryManager::on_get_stories(
   for (auto &story : stories->stories_) {
     switch (story->get_id()) {
       case telegram_api::storyItemDeleted::ID:
-        LOG(ERROR) << "Receive " << to_string(story);
+        on_get_deleted_story(owner_dialog_id, telegram_api::move_object_as<telegram_api::storyItemDeleted>(story));
         break;
       case telegram_api::storyItemSkipped::ID:
         LOG(ERROR) << "Receive " << to_string(story);
@@ -1154,7 +1158,7 @@ StoryManager::ActiveStories StoryManager::on_get_user_stories(
   for (auto &story : user_stories->stories_) {
     switch (story->get_id()) {
       case telegram_api::storyItemDeleted::ID:
-        LOG(ERROR) << "Receive " << to_string(story);
+        on_get_deleted_story(owner_dialog_id, telegram_api::move_object_as<telegram_api::storyItemDeleted>(story));
         break;
       case telegram_api::storyItemSkipped::ID: {
         auto story_id =

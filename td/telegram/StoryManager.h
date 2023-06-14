@@ -179,6 +179,9 @@ class StoryManager final : public Actor {
   StoryId on_get_skipped_story(DialogId owner_dialog_id,
                                telegram_api::object_ptr<telegram_api::storyItemSkipped> &&story_item);
 
+  StoryId on_get_deleted_story(DialogId owner_dialog_id,
+                               telegram_api::object_ptr<telegram_api::storyItemDeleted> &&story_item);
+
   void on_delete_story(DialogId owner_dialog_id, StoryId story_id);
 
   ActiveStories on_get_user_stories(DialogId owner_dialog_id,
