@@ -650,7 +650,7 @@ void StoryManager::open_story(DialogId owner_dialog_id, StoryId story_id, Promis
 
   StoryFullId story_full_id{owner_dialog_id, story_id};
   const Story *story = get_story(story_full_id);
-  if (story == nullptr) {
+  if (story == nullptr || story->content_ == nullptr) {
     return promise.set_value(Unit());
   }
 
@@ -716,8 +716,8 @@ bool StoryManager::is_inaccessible_story(StoryFullId story_full_id) const {
 }
 
 int32 StoryManager::get_story_duration(StoryFullId story_full_id) const {
-  auto story = get_story(story_full_id);
-  if (story == nullptr) {
+  const Story *story = get_story(story_full_id);
+  if (story == nullptr || story->content_ == nullptr) {
     return -1;
   }
   auto *content = story->content_.get();
@@ -770,10 +770,9 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
 }
 
 td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId story_full_id, const Story *story) const {
-  if (story == nullptr) {
+  if (story == nullptr || story->content_ == nullptr) {
     return nullptr;
   }
-  story->is_update_sent_ = true;
   auto dialog_id = story_full_id.get_dialog_id();
   bool is_owned = is_story_owned(dialog_id);
   if (!is_owned && !story->is_pinned_ && G()->unix_time() >= story->expire_date_) {
@@ -805,6 +804,8 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
       }
     }
   }
+
+  story->is_update_sent_ = true;
 
   CHECK(dialog_id.get_type() == DialogType::User);
   return td_api::make_object<td_api::story>(
@@ -911,7 +912,7 @@ StoryId StoryManager::on_get_story(DialogId owner_dialog_id,
   }
 
   StoryFullId story_full_id{owner_dialog_id, story_id};
-  auto story = get_story_editable(story_full_id);
+  Story *story = get_story_editable(story_full_id);
   bool is_changed = false;
   bool need_save_to_database = false;
   if (story == nullptr) {
@@ -996,6 +997,36 @@ StoryId StoryManager::on_get_story(DialogId owner_dialog_id,
   return story_id;
 }
 
+StoryId StoryManager::on_get_skipped_story(DialogId owner_dialog_id,
+                                           telegram_api::object_ptr<telegram_api::storyItemSkipped> &&story_item) {
+  CHECK(story_item != nullptr);
+  StoryId story_id(story_item->id_);
+  if (!story_id.is_server()) {
+    LOG(ERROR) << "Receive " << to_string(story_item);
+    return StoryId();
+  }
+  if (deleted_story_full_ids_.count({owner_dialog_id, story_id}) > 0) {
+    return StoryId();
+  }
+
+  StoryFullId story_full_id{owner_dialog_id, story_id};
+  Story *story = get_story_editable(story_full_id);
+  if (story == nullptr) {
+    auto s = make_unique<Story>();
+    story = s.get();
+    stories_.set(story_full_id, std::move(s));
+
+    inaccessible_story_full_ids_.erase(story_full_id);
+  }
+  CHECK(story != nullptr);
+  if (story->date_ != story_item->date_ || story->expire_date_ != story_item->expire_date_) {
+    story->date_ = story_item->date_;
+    story->expire_date_ = story_item->expire_date_;
+    on_story_changed(story_full_id, story, true, true);
+  }
+  return story_id;
+}
+
 void StoryManager::on_delete_story(DialogId owner_dialog_id, StoryId story_id) {
   if (!story_id.is_server()) {
     LOG(ERROR) << "Receive deleted " << story_id << " in " << owner_dialog_id;
@@ -1020,6 +1051,9 @@ void StoryManager::on_delete_story(DialogId owner_dialog_id, StoryId story_id) {
 
 void StoryManager::on_story_changed(StoryFullId story_full_id, const Story *story, bool is_changed,
                                     bool need_save_to_database) {
+  if (story->content_ == nullptr) {
+    return;
+  }
   if (is_changed || need_save_to_database) {
     // TODO save Story and BeingEditedStory
     // save_story(story, story_id);
@@ -1122,9 +1156,14 @@ StoryManager::ActiveStories StoryManager::on_get_user_stories(
       case telegram_api::storyItemDeleted::ID:
         LOG(ERROR) << "Receive " << to_string(story);
         break;
-      case telegram_api::storyItemSkipped::ID:
-        // TODO
+      case telegram_api::storyItemSkipped::ID: {
+        auto story_id =
+            on_get_skipped_story(owner_dialog_id, telegram_api::move_object_as<telegram_api::storyItemSkipped>(story));
+        if (story_id.is_valid()) {
+          story_ids.push_back(story_id);
+        }
         break;
+      }
       case telegram_api::storyItem::ID: {
         auto story_id = on_get_story(owner_dialog_id, telegram_api::move_object_as<telegram_api::storyItem>(story));
         if (story_id.is_valid()) {
@@ -1192,7 +1231,7 @@ void StoryManager::get_story(DialogId owner_dialog_id, StoryId story_id,
 
   StoryFullId story_full_id{owner_dialog_id, story_id};
   const Story *story = get_story(story_full_id);
-  if (story != nullptr) {
+  if (story != nullptr && story->content_ != nullptr) {
     return promise.set_value(get_story_object(story_full_id, story));
   }
 
@@ -1353,7 +1392,7 @@ void StoryManager::edit_story(StoryId story_id, td_api::object_ptr<td_api::Input
   DialogId dialog_id(td_->contacts_manager_->get_my_id());
   StoryFullId story_full_id{dialog_id, story_id};
   const Story *story = get_story(story_full_id);
-  if (story == nullptr) {
+  if (story == nullptr || story->content_ == nullptr) {
     return promise.set_error(Status::Error(400, "Story not found"));
   }
   if (!story_id.is_server()) {
@@ -1427,6 +1466,7 @@ void StoryManager::do_edit_story(FileId file_id, unique_ptr<PendingStory> &&pend
     }
     return;
   }
+  CHECK(story->content_ != nullptr);
   td_->create_handler<EditStoryQuery>()->send(file_id, std::move(pending_story), std::move(input_file),
                                               it->second.get());
 }
@@ -1445,6 +1485,7 @@ void StoryManager::on_story_edited(FileId file_id, unique_ptr<PendingStory> pend
     LOG(INFO) << "Ignore outdated edit of " << story_full_id;
     return;
   }
+  CHECK(story->content_ != nullptr);
   if (pending_story->log_event_id_ != 0) {
     binlog_erase(G()->td_db()->get_binlog(), pending_story->log_event_id_);
   }
@@ -1467,7 +1508,7 @@ void StoryManager::set_story_privacy_rules(StoryId story_id,
                                            Promise<Unit> &&promise) {
   DialogId dialog_id(td_->contacts_manager_->get_my_id());
   const Story *story = get_story({dialog_id, story_id});
-  if (story == nullptr) {
+  if (story == nullptr || story->content_ == nullptr) {
     return promise.set_error(Status::Error(400, "Story not found"));
   }
   TRY_RESULT_PROMISE(promise, privacy_rules,
@@ -1478,7 +1519,7 @@ void StoryManager::set_story_privacy_rules(StoryId story_id,
 void StoryManager::toggle_story_is_pinned(StoryId story_id, bool is_pinned, Promise<Unit> &&promise) {
   DialogId dialog_id(td_->contacts_manager_->get_my_id());
   const Story *story = get_story({dialog_id, story_id});
-  if (story == nullptr) {
+  if (story == nullptr || story->content_ == nullptr) {
     return promise.set_error(Status::Error(400, "Story not found"));
   }
   auto query_promise = PromiseCreator::lambda(
@@ -1496,6 +1537,7 @@ void StoryManager::on_toggle_story_is_pinned(StoryId story_id, bool is_pinned, P
   DialogId dialog_id(td_->contacts_manager_->get_my_id());
   Story *story = get_story_editable({dialog_id, story_id});
   if (story != nullptr) {
+    CHECK(story->content_ != nullptr);
     story->is_pinned_ = is_pinned;
     on_story_changed({dialog_id, story_id}, story, true, true);
   }
