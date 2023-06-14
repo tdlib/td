@@ -1802,7 +1802,8 @@ int32 WebPagesManager::get_web_page_media_duration(const WebPage *web_page) cons
     return web_page->duration;
   }
   if (!web_page->story_full_ids.empty()) {
-    return td_->story_manager_->get_story_duration(web_page->story_full_ids[0]);
+    auto story_duration = td_->story_manager_->get_story_duration(web_page->story_full_ids[0]);
+    return story_duration >= 0 ? story_duration : web_page->duration;
   }
 
   return -1;
