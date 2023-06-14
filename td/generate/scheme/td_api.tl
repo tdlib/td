@@ -2927,7 +2927,7 @@ inputMessageInvoice invoice:invoice title:string description:string photo_url:st
 //@is_closed True, if the poll needs to be sent already closed; for bots only
 inputMessagePoll question:string options:vector<string> is_anonymous:Bool type:PollType open_period:int32 close_date:int32 is_closed:Bool = InputMessageContent;
 
-//@description A message with a forwarded story. Stories can't be sent to secret chats. A story can be forwarded only if it is available to everyone
+//@description A message with a forwarded story. Stories can't be sent to secret chats. A story can be forwarded only if its privacy rules contains exactly one rule userPrivacySettingRuleAllowAll
 //@sender_user_id Identifier of the user that created the story
 //@story_id Story identifier
 inputMessageStory sender_user_id:int53 story_id:int32 = InputMessageContent;
@@ -4916,11 +4916,9 @@ storyInteractionInfo view_count:int32 recent_viewer_user_ids:vector<int53> = Sto
 //@is_pinned True, if the story is saved in the sender's profile and will be available there after expiration
 //@interaction_info Information about interactions with the story; may be null if the story isn't owned or there were no interactions
 //@privacy_rules Pryvacy rules affecting story visibility; may be null if the story isn't owned
-//@is_public True, if the story is available for everyone
-//@is_for_close_friends True, if the story is available only for close friends
 //@content Content of the story
 //@caption Caption of the story
-story id:int32 sender_user_id:int53 date:int32 is_pinned:Bool interaction_info:storyInteractionInfo privacy_rules:userPrivacySettingRules is_public:Bool is_for_close_friends:Bool content:StoryContent caption:formattedText = Story;
+story id:int32 sender_user_id:int53 date:int32 is_pinned:Bool interaction_info:storyInteractionInfo privacy_rules:userPrivacySettingRules content:StoryContent caption:formattedText = Story;
 
 //@description Represents a list of stories @total_count Approximate total number of stories found @stories The list of stories
 stories total_count:int32 stories:vector<story> = Stories;

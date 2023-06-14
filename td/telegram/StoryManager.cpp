@@ -772,7 +772,14 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
   }
 
   td_api::object_ptr<td_api::userPrivacySettingRules> privacy_rules;
-  if (is_owned) {
+  if (story->is_public_ || story->is_for_close_friends_) {
+    privacy_rules = td_api::make_object<td_api::userPrivacySettingRules>();
+    if (story->is_public_) {
+      privacy_rules->rules_.push_back(td_api::make_object<td_api::userPrivacySettingRuleAllowAll>());
+    } else {
+      privacy_rules->rules_.push_back(td_api::make_object<td_api::userPrivacySettingRuleAllowCloseFriends>());
+    }
+  } else if (is_owned) {
     privacy_rules = story->privacy_rules_.get_user_privacy_setting_rules_object(td_);
   }
 
@@ -795,7 +802,7 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
       story_full_id.get_story_id().get(),
       td_->contacts_manager_->get_user_id_object(dialog_id.get_user_id(), "get_story_object"), story->date_,
       story->is_pinned_, story->interaction_info_.get_story_interaction_info_object(td_), std::move(privacy_rules),
-      story->is_public_, story->is_for_close_friends_, get_story_content_object(td_, content),
+      get_story_content_object(td_, content),
       get_formatted_text_object(story->caption_, true, get_story_content_duration(td_, content)));
 }
 
