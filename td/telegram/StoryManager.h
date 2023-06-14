@@ -73,6 +73,12 @@ class StoryManager final : public Actor {
     bool has_query_ = false;
   };
 
+  struct ActiveStories {
+    DialogId dialog_id_;
+    StoryId max_read_story_id_;
+    vector<StoryId> story_ids_;
+  };
+
  public:
   StoryManager(Td *td, ActorShared<> parent);
   StoryManager(const StoryManager &) = delete;
@@ -107,7 +113,8 @@ class StoryManager final : public Actor {
 
   void get_story_archive(StoryId from_story_id, int32 limit, Promise<td_api::object_ptr<td_api::stories>> &&promise);
 
-  void get_dialog_expiring_stories(DialogId owner_dialog_id, Promise<td_api::object_ptr<td_api::stories>> &&promise);
+  void get_dialog_expiring_stories(DialogId owner_dialog_id,
+                                   Promise<td_api::object_ptr<td_api::activeStories>> &&promise);
 
   void open_story(DialogId owner_dialog_id, StoryId story_id, Promise<Unit> &&promise);
 
@@ -159,14 +166,20 @@ class StoryManager final : public Actor {
 
   void on_story_changed(StoryFullId story_full_id, const Story *story, bool is_changed, bool need_save_to_database);
 
+  td_api::object_ptr<td_api::storyInfo> get_story_info_object(StoryFullId story_full_id) const;
+
+  td_api::object_ptr<td_api::storyInfo> get_story_info_object(StoryFullId story_full_id, const Story *story) const;
+
   td_api::object_ptr<td_api::story> get_story_object(StoryFullId story_full_id, const Story *story) const;
+
+  td_api::object_ptr<td_api::activeStories> get_active_stories_object(const ActiveStories &active_stories) const;
 
   StoryId on_get_story(DialogId owner_dialog_id, telegram_api::object_ptr<telegram_api::storyItem> &&story_item);
 
   void on_delete_story(DialogId owner_dialog_id, StoryId story_id);
 
-  vector<StoryId> on_get_stories(DialogId owner_dialog_id,
-                                 vector<telegram_api::object_ptr<telegram_api::StoryItem>> &&stories);
+  ActiveStories on_get_user_stories(DialogId owner_dialog_id,
+                                    telegram_api::object_ptr<telegram_api::userStories> &&user_stories);
 
   void on_get_dialog_pinned_stories(DialogId owner_dialog_id,
                                     telegram_api::object_ptr<telegram_api::stories_stories> &&stories,
@@ -177,7 +190,7 @@ class StoryManager final : public Actor {
 
   void on_get_dialog_expiring_stories(DialogId owner_dialog_id,
                                       telegram_api::object_ptr<telegram_api::stories_userStories> &&stories,
-                                      Promise<td_api::object_ptr<td_api::stories>> &&promise);
+                                      Promise<td_api::object_ptr<td_api::activeStories>> &&promise);
 
   vector<FileId> get_story_file_ids(const Story *story) const;
 

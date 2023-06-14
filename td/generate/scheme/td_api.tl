@@ -4923,6 +4923,15 @@ story id:int32 sender_user_id:int53 date:int32 is_pinned:Bool interaction_info:s
 //@description Represents a list of stories @total_count Approximate total number of stories found @stories The list of stories
 stories total_count:int32 stories:vector<story> = Stories;
 
+//@description Contains basic information about a story @story_id Unique story identifier among stories of the given sender @date Point in time (Unix timestamp) when the story was published
+storyInfo story_id:int32 date:int32 = StoryInfo;
+
+//@description Describes active stories sent by the same sender
+//@story_sender_user_id Identifier of the sender of the stories
+//@max_read_story_id Identifier of the last read active story
+//@stories Basic information about the stories; use getStory to get full information about the stories
+activeStories story_sender_user_id:int53 max_read_story_id:int32 stories:vector<storyInfo> = ActiveStories;
+
 
 //@description Contains a part of a file @data File bytes
 filePart data:bytes = FilePart;
@@ -7239,8 +7248,8 @@ deleteStory story_id:int32 = Ok;
 //@description Toggles whether stories of the user are available on the main chat list @user_id Identifier of the user @are_archived Pass true to make the story unavailable on the main chat list; pass false to make them available
 toggleUserStoriesAreArchived user_id:int53 are_archived:Bool = Ok;
 
-//@description Returns the list of active stories of a given user. The stories are returned in a reverse chronological order (i.e., in order of decreasing story_id) @user_id User identifier
-getUserActiveStories user_id:int53 = Stories;
+//@description Returns the list of active stories of a given user. The stories are returned in a chronological order (i.e., in order of increasing story_id) @user_id User identifier
+getUserActiveStories user_id:int53 = ActiveStories;
 
 //@description Returns the list of pinned stories of a given user. The stories are returned in a reverse chronological order (i.e., in order of decreasing story_id).
 //-For optimal performance, the number of returned stories is chosen by TDLib

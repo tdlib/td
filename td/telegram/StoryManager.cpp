@@ -605,7 +605,7 @@ void StoryManager::on_get_story_archive(telegram_api::object_ptr<telegram_api::s
 }
 
 void StoryManager::get_dialog_expiring_stories(DialogId owner_dialog_id,
-                                               Promise<td_api::object_ptr<td_api::stories>> &&promise) {
+                                               Promise<td_api::object_ptr<td_api::activeStories>> &&promise) {
   if (!td_->messages_manager_->have_dialog_info_force(owner_dialog_id)) {
     return promise.set_error(Status::Error(400, "Story sender not found"));
   }
@@ -613,7 +613,7 @@ void StoryManager::get_dialog_expiring_stories(DialogId owner_dialog_id,
     return promise.set_error(Status::Error(400, "Can't access the story sender"));
   }
   if (owner_dialog_id.get_type() != DialogType::User) {
-    return promise.set_value(td_api::make_object<td_api::stories>());
+    return promise.set_value(td_api::make_object<td_api::activeStories>(owner_dialog_id.get(), 0, Auto()));
   }
 
   auto query_promise =
@@ -630,15 +630,11 @@ void StoryManager::get_dialog_expiring_stories(DialogId owner_dialog_id,
 
 void StoryManager::on_get_dialog_expiring_stories(DialogId owner_dialog_id,
                                                   telegram_api::object_ptr<telegram_api::stories_userStories> &&stories,
-                                                  Promise<td_api::object_ptr<td_api::stories>> &&promise) {
+                                                  Promise<td_api::object_ptr<td_api::activeStories>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   td_->contacts_manager_->on_get_users(std::move(stories->users_), "on_get_dialog_expiring_stories");
-  auto story_ids = on_get_stories(owner_dialog_id, std::move(stories->stories_->stories_));
-  CHECK(owner_dialog_id.get_type() == DialogType::User);
-  td_->contacts_manager_->on_update_user_has_stories(owner_dialog_id.get_user_id(), !story_ids.empty());
-  promise.set_value(get_stories_object(-1, transform(story_ids, [owner_dialog_id](StoryId story_id) {
-    return StoryFullId(owner_dialog_id, story_id);
-  })));
+  auto active_stories = on_get_user_stories(owner_dialog_id, std::move(stories->stories_));
+  promise.set_value(get_active_stories_object(active_stories));
 }
 
 void StoryManager::open_story(DialogId owner_dialog_id, StoryId story_id, Promise<Unit> &&promise) {
@@ -756,6 +752,19 @@ void StoryManager::unregister_story(StoryFullId story_full_id, FullMessageId ful
   }
 }
 
+td_api::object_ptr<td_api::storyInfo> StoryManager::get_story_info_object(StoryFullId story_full_id) const {
+  return get_story_info_object(story_full_id, get_story(story_full_id));
+}
+
+td_api::object_ptr<td_api::storyInfo> StoryManager::get_story_info_object(StoryFullId story_full_id,
+                                                                          const Story *story) const {
+  if (story == nullptr || G()->unix_time() >= story->expire_date_) {
+    return nullptr;
+  }
+
+  return td_api::make_object<td_api::storyInfo>(story_full_id.get_story_id().get(), story->date_);
+}
+
 td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId story_full_id) const {
   return get_story_object(story_full_id, get_story(story_full_id));
 }
@@ -816,6 +825,22 @@ td_api::object_ptr<td_api::stories> StoryManager::get_stories_object(int32 total
                                               }));
 }
 
+td_api::object_ptr<td_api::activeStories> StoryManager::get_active_stories_object(
+    const ActiveStories &active_stories) const {
+  auto owner_dialog_id = active_stories.dialog_id_;
+  vector<td_api::object_ptr<td_api::storyInfo>> stories;
+  for (auto story_id : active_stories.story_ids_) {
+    auto story_info = get_story_info_object({owner_dialog_id, story_id});
+    if (story_info != nullptr) {
+      stories.push_back(std::move(story_info));
+    }
+  }
+  CHECK(owner_dialog_id.get_type() == DialogType::User);
+  return td_api::make_object<td_api::activeStories>(
+      td_->contacts_manager_->get_user_id_object(owner_dialog_id.get_user_id(), "get_active_stories_object"),
+      active_stories.max_read_story_id_.get(), std::move(stories));
+}
+
 vector<FileId> StoryManager::get_story_file_ids(const Story *story) const {
   if (story == nullptr || story->content_ == nullptr) {
     return {};
@@ -863,7 +888,7 @@ StoryId StoryManager::on_get_story(DialogId owner_dialog_id,
       return story_id;
     }
     case telegram_api::storyItemSkipped::ID:
-      LOG(ERROR) << "Receive storyItemSkipped";
+      LOG(ERROR) << "Receive " << to_string(story_item_ptr);
       return {};
     case telegram_api::storyItem::ID: {
       return on_get_story(owner_dialog_id, telegram_api::move_object_as<telegram_api::storyItem>(story_item_ptr));
@@ -1024,7 +1049,28 @@ std::pair<int32, vector<StoryId>> StoryManager::on_get_stories(
     DialogId owner_dialog_id, vector<int32> &&expected_story_ids,
     telegram_api::object_ptr<telegram_api::stories_stories> &&stories) {
   td_->contacts_manager_->on_get_users(std::move(stories->users_), "on_get_stories");
-  auto story_ids = on_get_stories(owner_dialog_id, std::move(stories->stories_));
+
+  vector<StoryId> story_ids;
+  for (auto &story : stories->stories_) {
+    switch (story->get_id()) {
+      case telegram_api::storyItemDeleted::ID:
+        LOG(ERROR) << "Receive " << to_string(story);
+        break;
+      case telegram_api::storyItemSkipped::ID:
+        LOG(ERROR) << "Receive " << to_string(story);
+        break;
+      case telegram_api::storyItem::ID: {
+        auto story_id = on_get_story(owner_dialog_id, telegram_api::move_object_as<telegram_api::storyItem>(story));
+        if (story_id.is_valid()) {
+          story_ids.push_back(story_id);
+        }
+        break;
+      }
+      default:
+        UNREACHABLE();
+    }
+  }
+
   auto total_count = stories->count_;
   if (total_count < static_cast<int32>(story_ids.size())) {
     LOG(ERROR) << "Expected at most " << total_count << " stories, but receive " << story_ids.size();
@@ -1052,16 +1098,32 @@ std::pair<int32, vector<StoryId>> StoryManager::on_get_stories(
   return {total_count, std::move(story_ids)};
 }
 
-vector<StoryId> StoryManager::on_get_stories(DialogId owner_dialog_id,
-                                             vector<telegram_api::object_ptr<telegram_api::StoryItem>> &&stories) {
+StoryManager::ActiveStories StoryManager::on_get_user_stories(
+    DialogId owner_dialog_id, telegram_api::object_ptr<telegram_api::userStories> &&user_stories) {
+  CHECK(user_stories != nullptr);
+
+  DialogId story_dialog_id(UserId(user_stories->user_id_));
+  if (owner_dialog_id.is_valid() && owner_dialog_id != story_dialog_id) {
+    LOG(ERROR) << "Receive stories from " << story_dialog_id << " instead of " << owner_dialog_id;
+    ActiveStories result;
+    result.dialog_id_ = owner_dialog_id;
+    return result;
+  }
+
+  StoryId max_read_story_id(user_stories->max_read_id_);
+  if (!max_read_story_id.is_server() && max_read_story_id != StoryId()) {
+    LOG(ERROR) << "Receive max read " << max_read_story_id;
+    max_read_story_id = StoryId();
+  }
+
   vector<StoryId> story_ids;
-  for (auto &story : stories) {
+  for (auto &story : user_stories->stories_) {
     switch (story->get_id()) {
       case telegram_api::storyItemDeleted::ID:
-        LOG(ERROR) << "Receive storyItemDeleted";
+        LOG(ERROR) << "Receive " << to_string(story);
         break;
       case telegram_api::storyItemSkipped::ID:
-        LOG(ERROR) << "Receive storyItemSkipped";
+        // TODO
         break;
       case telegram_api::storyItem::ID: {
         auto story_id = on_get_story(owner_dialog_id, telegram_api::move_object_as<telegram_api::storyItem>(story));
@@ -1074,7 +1136,12 @@ vector<StoryId> StoryManager::on_get_stories(DialogId owner_dialog_id,
         UNREACHABLE();
     }
   }
-  return story_ids;
+
+  ActiveStories result;
+  result.dialog_id_ = story_dialog_id;
+  result.max_read_story_id_ = max_read_story_id;
+  result.story_ids_ = std::move(story_ids);
+  return result;
 }
 
 FileSourceId StoryManager::get_story_file_source_id(StoryFullId story_full_id) {
