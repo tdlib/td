@@ -72,6 +72,37 @@ class ToggleStoriesHiddenQuery final : public Td::ResultHandler {
   }
 };
 
+class IncrementStoryViewsQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit IncrementStoryViewsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId owner_dialog_id, vector<int32> input_story_ids) {
+    CHECK(owner_dialog_id.get_type() == DialogType::User);
+    auto r_input_user = td_->contacts_manager_->get_input_user(owner_dialog_id.get_user_id());
+    if (r_input_user.is_error()) {
+      return on_error(r_input_user.move_as_error());
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::stories_incrementStoryViews(r_input_user.move_as_ok(), std::move(input_story_ids))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stories_incrementStoryViews>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetStoriesByIDQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   UserId user_id_;
@@ -631,7 +662,48 @@ void StoryManager::open_story(DialogId owner_dialog_id, StoryId story_id, Promis
     td_->file_manager_->check_local_location_async(file_id, true);
   }
 
+  bool need_increment_story_views = G()->unix_time() >= story->expire_date_ && story->is_pinned_;
+  if (story_id.is_server() && need_increment_story_views) {
+    auto &story_views = pending_story_views_[owner_dialog_id];
+    story_views.story_ids_.insert(story_id);
+    if (!story_views.has_query_) {
+      increment_story_views(owner_dialog_id, story_views);
+    }
+  }
+
   promise.set_value(Unit());
+}
+
+void StoryManager::increment_story_views(DialogId owner_dialog_id, PendingStoryViews &story_views) {
+  CHECK(!story_views.has_query_);
+  vector<int32> viewed_story_ids;
+  const size_t MAX_VIEWED_STORIES = 200;  // server-side limit
+  while (!story_views.story_ids_.empty() && viewed_story_ids.size() < MAX_VIEWED_STORIES) {
+    auto story_id_it = story_views.story_ids_.begin();
+    viewed_story_ids.push_back(story_id_it->get());
+    story_views.story_ids_.erase(story_id_it);
+  }
+  CHECK(!viewed_story_ids.empty());
+  story_views.has_query_ = true;
+  auto promise = PromiseCreator::lambda([actor_id = actor_id(this), owner_dialog_id](Result<Unit>) {
+    send_closure(actor_id, &StoryManager::on_increment_story_views, owner_dialog_id);
+  });
+  td_->create_handler<IncrementStoryViewsQuery>(std::move(promise))->send(owner_dialog_id, std::move(viewed_story_ids));
+}
+
+void StoryManager::on_increment_story_views(DialogId owner_dialog_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto &story_views = pending_story_views_[owner_dialog_id];
+  CHECK(story_views.has_query_);
+  story_views.has_query_ = false;
+  if (story_views.story_ids_.empty()) {
+    pending_story_views_.erase(owner_dialog_id);
+    return;
+  }
+  increment_story_views(owner_dialog_id, story_views);
 }
 
 bool StoryManager::have_story(StoryFullId story_full_id) const {
@@ -639,7 +711,7 @@ bool StoryManager::have_story(StoryFullId story_full_id) const {
 }
 
 bool StoryManager::have_story_force(StoryFullId story_full_id) const {
-  // TODO try load story
+  // TODO try load story from the database
   return have_story(story_full_id);
 }
 

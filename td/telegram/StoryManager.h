@@ -68,6 +68,11 @@ class StoryManager final : public Actor {
                  unique_ptr<Story> &&story);
   };
 
+  struct PendingStoryViews {
+    FlatHashSet<StoryId, StoryIdHash> story_ids_;
+    bool has_query_ = false;
+  };
+
  public:
   StoryManager(Td *td, ActorShared<> parent);
   StoryManager(const StoryManager &) = delete;
@@ -200,6 +205,10 @@ class StoryManager final : public Actor {
 
   void on_toggle_story_is_pinned(StoryId story_id, bool is_pinned, Promise<Unit> &&promise);
 
+  void increment_story_views(DialogId owner_dialog_id, PendingStoryViews &story_views);
+
+  void on_increment_story_views(DialogId owner_dialog_id);
+
   std::shared_ptr<UploadMediaCallback> upload_media_callback_;
 
   WaitFreeHashMap<StoryFullId, FileSourceId, StoryFullIdHash> story_full_id_to_file_source_id_;
@@ -213,6 +222,8 @@ class StoryManager final : public Actor {
   WaitFreeHashMap<StoryFullId, WaitFreeHashSet<FullMessageId, FullMessageIdHash>, StoryFullIdHash> story_messages_;
 
   FlatHashMap<StoryFullId, unique_ptr<BeingEditedStory>, StoryFullIdHash> being_edited_stories_;
+
+  FlatHashMap<DialogId, PendingStoryViews, DialogIdHash> pending_story_views_;
 
   uint32 send_story_count_ = 0;
 
