@@ -725,10 +725,13 @@ void StoryManager::open_story(DialogId owner_dialog_id, StoryId story_id, Promis
     return promise.set_value(Unit());
   }
 
-  if (is_story_owned(owner_dialog_id)) {
+  if (is_story_owned(owner_dialog_id) && story_id.is_server()) {
+    if (opened_owned_stories_.empty()) {
+      schedule_interaction_info_update();
+    }
     auto &open_count = opened_owned_stories_[story_full_id];
     if (++open_count == 1) {
-      on_owned_story_opened(story_full_id);
+      td_->create_handler<GetStoriesViewsQuery>()->send({story_id});
     }
   }
 
@@ -771,25 +774,55 @@ void StoryManager::close_story(DialogId owner_dialog_id, StoryId story_id, Promi
   }
 
   StoryFullId story_full_id{owner_dialog_id, story_id};
-  if (is_story_owned(owner_dialog_id)) {
+  if (is_story_owned(owner_dialog_id) && story_id.is_server()) {
     auto &open_count = opened_owned_stories_[story_full_id];
     if (open_count == 0) {
       return promise.set_error(Status::Error(400, "The story wasn't opened"));
     }
     if (--open_count == 0) {
       opened_owned_stories_.erase(story_full_id);
+      if (opened_owned_stories_.empty()) {
+        interaction_info_update_timeout_.cancel_timeout();
+      }
     }
   }
 
   promise.set_value(Unit());
 }
 
-void StoryManager::on_owned_story_opened(StoryFullId story_full_id) {
-  CHECK(is_story_owned(story_full_id.get_dialog_id()));
-  auto story_id = story_full_id.get_story_id();
-  if (story_id.is_server()) {
-    td_->create_handler<GetStoriesViewsQuery>()->send({story_id});
+void StoryManager::schedule_interaction_info_update() {
+  if (interaction_info_update_timeout_.has_timeout()) {
+    return;
   }
+
+  interaction_info_update_timeout_.set_callback(std::move(update_interaction_info_static));
+  interaction_info_update_timeout_.set_callback_data(static_cast<void *>(this));
+  interaction_info_update_timeout_.set_timeout_in(10.0);
+}
+
+void StoryManager::update_interaction_info_static(void *story_manager) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  CHECK(story_manager != nullptr);
+  static_cast<StoryManager *>(story_manager)->update_interaction_info();
+}
+
+void StoryManager::update_interaction_info() {
+  if (opened_owned_stories_.empty()) {
+    return;
+  }
+  vector<StoryId> story_ids;
+  for (auto &it : opened_owned_stories_) {
+    auto story_full_id = it.first;
+    CHECK(story_full_id.get_dialog_id() == DialogId(td_->contacts_manager_->get_my_id()));
+    story_ids.push_back(story_full_id.get_story_id());
+    if (story_ids.size() >= 100) {
+      break;
+    }
+  }
+  td_->create_handler<GetStoriesViewsQuery>()->send(std::move(story_ids));
 }
 
 void StoryManager::increment_story_views(DialogId owner_dialog_id, PendingStoryViews &story_views) {
@@ -1419,6 +1452,7 @@ bool StoryManager::on_update_read_stories(DialogId owner_dialog_id, StoryId max_
 
 void StoryManager::on_get_story_views(const vector<StoryId> &story_ids,
                                       telegram_api::object_ptr<telegram_api::stories_storyViews> &&story_views) {
+  schedule_interaction_info_update();
   td_->contacts_manager_->on_get_users(std::move(story_views->users_), "on_get_story_views");
   if (story_ids.size() != story_views->views_.size()) {
     LOG(ERROR) << "Receive invalid views for " << story_ids << ": " << to_string(story_views);

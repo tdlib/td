@@ -19,6 +19,7 @@
 #include "td/telegram/UserPrivacySettingRule.h"
 
 #include "td/actor/actor.h"
+#include "td/actor/Timeout.h"
 
 #include "td/utils/common.h"
 #include "td/utils/Promise.h"
@@ -241,8 +242,6 @@ class StoryManager final : public Actor {
 
   void send_update_active_stories(DialogId owner_dialog_id);
 
-  void on_owned_story_opened(StoryFullId story_full_id);
-
   void increment_story_views(DialogId owner_dialog_id, PendingStoryViews &story_views);
 
   void on_increment_story_views(DialogId owner_dialog_id);
@@ -250,6 +249,12 @@ class StoryManager final : public Actor {
   static uint64 save_read_stories_on_server_log_event(DialogId dialog_id, StoryId max_story_id);
 
   void read_stories_on_server(DialogId owner_dialog_id, StoryId story_id, uint64 log_event_id);
+
+  void schedule_interaction_info_update();
+
+  static void update_interaction_info_static(void *story_manager);
+
+  void update_interaction_info();
 
   std::shared_ptr<UploadMediaCallback> upload_media_callback_;
 
@@ -276,6 +281,8 @@ class StoryManager final : public Actor {
   uint32 send_story_count_ = 0;
 
   FlatHashMap<FileId, unique_ptr<PendingStory>, FileIdHash> being_uploaded_files_;
+
+  Timeout interaction_info_update_timeout_;
 
   Td *td_;
   ActorShared<> parent_;
