@@ -525,6 +525,10 @@ StoryManager::Story *StoryManager::get_story_editable(StoryFullId story_full_id)
   return stories_.get_pointer(story_full_id);
 }
 
+const StoryManager::ActiveStories *StoryManager::get_active_stories(DialogId owner_dialog_id) const {
+  return active_stories_.get_pointer(owner_dialog_id);
+}
+
 void StoryManager::toggle_dialog_stories_hidden(DialogId dialog_id, bool are_hidden, Promise<Unit> &&promise) {
   if (!td_->messages_manager_->have_dialog_info_force(dialog_id)) {
     return promise.set_error(Status::Error(400, "Story sender not found"));
@@ -836,7 +840,7 @@ td_api::object_ptr<td_api::stories> StoryManager::get_stories_object(int32 total
 }
 
 td_api::object_ptr<td_api::activeStories> StoryManager::get_active_stories_object(DialogId owner_dialog_id) const {
-  const auto *active_stories = active_stories_.get_pointer(owner_dialog_id);
+  const auto *active_stories = get_active_stories(owner_dialog_id);
   StoryId max_read_story_id;
   vector<td_api::object_ptr<td_api::storyInfo>> stories;
   if (active_stories != nullptr) {
@@ -1064,7 +1068,7 @@ void StoryManager::on_delete_story(DialogId owner_dialog_id, StoryId story_id) {
   delete_story_files(story);
   stories_.erase(story_full_id);
 
-  auto active_stories = active_stories_.get_pointer(owner_dialog_id);
+  auto active_stories = get_active_stories(owner_dialog_id);
   if (active_stories != nullptr && contains(active_stories->story_ids_, story_id)) {
     auto story_ids = active_stories->story_ids_;
     td::remove(story_ids, story_id);
@@ -1242,7 +1246,7 @@ void StoryManager::send_update_active_stories(DialogId owner_dialog_id) {
 }
 
 void StoryManager::on_update_read_stories(DialogId owner_dialog_id, StoryId max_read_story_id) {
-  auto active_stories = active_stories_.get_pointer(owner_dialog_id);
+  auto active_stories = get_active_stories(owner_dialog_id);
   if (active_stories != nullptr && max_read_story_id.get() > active_stories->max_read_story_id_.get()) {
     auto story_ids = active_stories->story_ids_;
     on_update_active_stories(owner_dialog_id, max_read_story_id, std::move(story_ids));
