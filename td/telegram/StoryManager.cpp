@@ -1171,21 +1171,14 @@ DialogId StoryManager::on_get_user_stories(DialogId owner_dialog_id,
       case telegram_api::storyItemDeleted::ID:
         on_get_deleted_story(owner_dialog_id, telegram_api::move_object_as<telegram_api::storyItemDeleted>(story));
         break;
-      case telegram_api::storyItemSkipped::ID: {
-        auto story_id =
-            on_get_skipped_story(owner_dialog_id, telegram_api::move_object_as<telegram_api::storyItemSkipped>(story));
-        if (is_active_story({owner_dialog_id, story_id})) {
-          story_ids.push_back(story_id);
-        }
+      case telegram_api::storyItemSkipped::ID:
+        story_ids.push_back(
+            on_get_skipped_story(owner_dialog_id, telegram_api::move_object_as<telegram_api::storyItemSkipped>(story)));
         break;
-      }
-      case telegram_api::storyItem::ID: {
-        auto story_id = on_get_story(owner_dialog_id, telegram_api::move_object_as<telegram_api::storyItem>(story));
-        if (is_active_story({owner_dialog_id, story_id})) {
-          story_ids.push_back(story_id);
-        }
+      case telegram_api::storyItem::ID:
+        story_ids.push_back(
+            on_get_story(owner_dialog_id, telegram_api::move_object_as<telegram_api::storyItem>(story)));
         break;
-      }
       default:
         UNREACHABLE();
     }
@@ -1197,6 +1190,17 @@ DialogId StoryManager::on_get_user_stories(DialogId owner_dialog_id,
 
 void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId max_read_story_id,
                                             vector<StoryId> &&story_ids) {
+  td::remove_if(story_ids, [&](StoryId story_id) {
+    if (!story_id.is_server()) {
+      return true;
+    }
+    if (!is_active_story({owner_dialog_id, story_id})) {
+      LOG(INFO) << "Receive expired " << story_id << " in " << owner_dialog_id;
+      return true;
+    }
+    return false;
+  });
+
   if (max_read_story_id == StoryId() && story_ids.empty()) {
     if (active_stories_.erase(owner_dialog_id) > 0) {
       send_update_active_stories(owner_dialog_id);
