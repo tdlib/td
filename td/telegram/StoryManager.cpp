@@ -498,7 +498,7 @@ StoryManager::StoryManager(Td *td, ActorShared<> parent) : td_(td), parent_(std:
 StoryManager::~StoryManager() {
   Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), story_full_id_to_file_source_id_, stories_,
                                               inaccessible_story_full_ids_, deleted_story_full_ids_, story_messages_,
-                                              active_stories_);
+                                              active_stories_, max_read_story_ids_);
 }
 
 void StoryManager::tear_down() {
@@ -671,8 +671,10 @@ void StoryManager::open_story(DialogId owner_dialog_id, StoryId story_id, Promis
     td_->file_manager_->check_local_location_async(file_id, true);
   }
 
-  bool need_increment_story_views = !is_active_story(story) && story->is_pinned_;
-  if (story_id.is_server() && need_increment_story_views) {
+  bool is_active = is_active_story(story);
+  bool need_increment_story_views = story_id.is_server() && !is_active && story->is_pinned_;
+
+  if (need_increment_story_views) {
     auto &story_views = pending_story_views_[owner_dialog_id];
     story_views.story_ids_.insert(story_id);
     if (!story_views.has_query_) {
@@ -1225,6 +1227,8 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
   if (max_read_story_id == StoryId() && story_ids.empty()) {
     if (active_stories_.erase(owner_dialog_id) > 0) {
       send_update_active_stories(owner_dialog_id);
+    } else {
+      max_read_story_ids_.erase(owner_dialog_id);
     }
     return;
   }
@@ -1232,6 +1236,7 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
   auto &active_stories = active_stories_[owner_dialog_id];
   if (active_stories == nullptr) {
     active_stories = make_unique<ActiveStories>();
+    max_read_story_ids_.erase(owner_dialog_id);
   }
   if (active_stories->max_read_story_id_ != max_read_story_id || active_stories->story_ids_ != story_ids) {
     active_stories->max_read_story_id_ = max_read_story_id;
@@ -1247,7 +1252,12 @@ void StoryManager::send_update_active_stories(DialogId owner_dialog_id) {
 
 void StoryManager::on_update_read_stories(DialogId owner_dialog_id, StoryId max_read_story_id) {
   auto active_stories = get_active_stories(owner_dialog_id);
-  if (active_stories != nullptr && max_read_story_id.get() > active_stories->max_read_story_id_.get()) {
+  if (active_stories == nullptr) {
+    auto old_max_read_story_id = max_read_story_ids_.get(owner_dialog_id);
+    if (max_read_story_id.get() > old_max_read_story_id.get()) {
+      max_read_story_ids_.set(owner_dialog_id, max_read_story_id);
+    }
+  } else if (max_read_story_id.get() > active_stories->max_read_story_id_.get()) {
     auto story_ids = active_stories->story_ids_;
     on_update_active_stories(owner_dialog_id, max_read_story_id, std::move(story_ids));
   }

@@ -253,6 +253,8 @@ class StoryManager final : public Actor {
 
   WaitFreeHashMap<DialogId, unique_ptr<ActiveStories>, DialogIdHash> active_stories_;
 
+  WaitFreeHashMap<DialogId, StoryId, DialogIdHash> max_read_story_ids_;
+
   FlatHashMap<StoryFullId, unique_ptr<BeingEditedStory>, StoryFullIdHash> being_edited_stories_;
 
   FlatHashMap<DialogId, PendingStoryViews, DialogIdHash> pending_story_views_;
