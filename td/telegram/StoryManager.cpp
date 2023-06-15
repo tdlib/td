@@ -1561,11 +1561,12 @@ void StoryManager::send_story(td_api::object_ptr<td_api::InputStoryContent> &&in
                      get_formatted_text(td_, DialogId(), std::move(input_caption), is_bot, true, false, false));
   TRY_RESULT_PROMISE(promise, privacy_rules,
                      UserPrivacySettingRules::get_user_privacy_setting_rules(td_, std::move(rules)));
-  bool is_premium = td_->option_manager_->get_option_boolean("is_premium");
-  if (active_period != 86400 &&
-      !(is_premium &&
-        td::contains(vector<int32>{6 * 3600, 12 * 3600, 2 * 86400, 3 * 86400, 7 * 86400}, active_period))) {
-    return promise.set_error(Status::Error(400, "Invalid story active period specified"));
+  if (active_period != 86400 && !(G()->is_test_dc() && (active_period == 60 || active_period == 300))) {
+    bool is_premium = td_->option_manager_->get_option_boolean("is_premium");
+    if (!is_premium ||
+        !td::contains(vector<int32>{6 * 3600, 12 * 3600, 2 * 86400, 3 * 86400, 7 * 86400}, active_period)) {
+      return promise.set_error(Status::Error(400, "Invalid story active period specified"));
+    }
   }
 
   auto story = make_unique<Story>();
