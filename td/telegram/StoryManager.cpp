@@ -1063,6 +1063,13 @@ void StoryManager::on_delete_story(DialogId owner_dialog_id, StoryId story_id) {
   }
   delete_story_files(story);
   stories_.erase(story_full_id);
+
+  auto active_stories = active_stories_.get_pointer(owner_dialog_id);
+  if (active_stories != nullptr && contains(active_stories->story_ids_, story_id)) {
+    auto story_ids = active_stories->story_ids_;
+    td::remove(story_ids, story_id);
+    on_update_active_stories(owner_dialog_id, active_stories->max_read_story_id_, std::move(story_ids));
+  }
 }
 
 void StoryManager::on_story_changed(StoryFullId story_full_id, const Story *story, bool is_changed,
@@ -1200,6 +1207,9 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
     }
     return false;
   });
+  if (story_ids.empty() || max_read_story_id.get() < story_ids[0].get()) {
+    max_read_story_id = StoryId();
+  }
 
   if (max_read_story_id == StoryId() && story_ids.empty()) {
     if (active_stories_.erase(owner_dialog_id) > 0) {
