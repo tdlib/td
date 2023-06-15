@@ -159,6 +159,7 @@ class StoryManager final : public Actor {
   class EditStoryQuery;
 
   class DeleteStoryOnServerLogEvent;
+  class ReadStoriesOnServerLogEvent;
 
   void tear_down() final;
 
@@ -239,7 +240,9 @@ class StoryManager final : public Actor {
 
   void on_increment_story_views(DialogId owner_dialog_id);
 
-  void read_stories_on_server(DialogId owner_dialog_id, StoryId story_id);
+  static uint64 save_read_stories_on_server_log_event(DialogId dialog_id, StoryId max_story_id);
+
+  void read_stories_on_server(DialogId owner_dialog_id, StoryId story_id, uint64 log_event_id);
 
   std::shared_ptr<UploadMediaCallback> upload_media_callback_;
 

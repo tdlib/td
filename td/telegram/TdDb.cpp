@@ -127,6 +127,7 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
         events.to_messages_manager.push_back(event.clone());
         break;
       case LogEvent::HandlerType::DeleteStoryOnServer:
+      case LogEvent::HandlerType::ReadStoriesOnServer:
         events.to_story_manager.push_back(event.clone());
         break;
       case LogEvent::HandlerType::UpdateScopeNotificationSettingsOnServer:

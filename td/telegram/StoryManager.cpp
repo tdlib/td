@@ -715,7 +715,7 @@ void StoryManager::open_story(DialogId owner_dialog_id, StoryId story_id, Promis
   }
 
   if (need_read_story && on_update_read_stories(owner_dialog_id, story_id)) {
-    read_stories_on_server(owner_dialog_id, story_id);
+    read_stories_on_server(owner_dialog_id, story_id, 0);
   }
 
   promise.set_value(Unit());
@@ -753,8 +753,36 @@ void StoryManager::on_increment_story_views(DialogId owner_dialog_id) {
   increment_story_views(owner_dialog_id, story_views);
 }
 
-void StoryManager::read_stories_on_server(DialogId owner_dialog_id, StoryId story_id) {
-  td_->create_handler<ReadStoriesQuery>(Promise<Unit>())->send(owner_dialog_id, story_id);
+class StoryManager::ReadStoriesOnServerLogEvent {
+ public:
+  DialogId dialog_id_;
+  StoryId max_story_id_;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    td::store(dialog_id_, storer);
+    td::store(max_story_id_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    td::parse(dialog_id_, parser);
+    td::parse(max_story_id_, parser);
+  }
+};
+
+uint64 StoryManager::save_read_stories_on_server_log_event(DialogId dialog_id, StoryId max_story_id) {
+  ReadStoriesOnServerLogEvent log_event{dialog_id, max_story_id};
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ReadStoriesOnServer,
+                    get_log_event_storer(log_event));
+}
+
+void StoryManager::read_stories_on_server(DialogId owner_dialog_id, StoryId story_id, uint64 log_event_id) {
+  if (log_event_id == 0 && G()->use_chat_info_database()) {
+    log_event_id = save_read_stories_on_server_log_event(owner_dialog_id, story_id);
+  }
+
+  td_->create_handler<ReadStoriesQuery>(get_erase_log_event_promise(log_event_id))->send(owner_dialog_id, story_id);
 }
 
 bool StoryManager::have_story(StoryFullId story_full_id) const {
@@ -1756,7 +1784,20 @@ void StoryManager::on_binlog_events(vector<BinlogEvent> &&events) {
           break;
         }
 
+        td_->messages_manager_->have_dialog_info_force(dialog_id);
         delete_story_on_server(dialog_id, log_event.story_id_, event.id_, Auto());
+        break;
+      }
+      case LogEvent::HandlerType::ReadStoriesOnServer: {
+        ReadStoriesOnServerLogEvent log_event;
+        log_event_parse(log_event, event.get_data()).ensure();
+
+        auto dialog_id = log_event.dialog_id_;
+        if (!td_->messages_manager_->have_dialog_info_force(dialog_id)) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+        read_stories_on_server(dialog_id, log_event.max_story_id_, event.id_);
         break;
       }
       default:
