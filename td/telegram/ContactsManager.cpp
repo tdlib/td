@@ -46,6 +46,7 @@
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StickerPhotoSize.h"
 #include "td/telegram/StickersManager.h"
+#include "td/telegram/StoryManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.hpp"
@@ -12497,6 +12498,8 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   td_->messages_manager_->on_update_dialog_is_blocked(DialogId(user_id), user->blocked_);
 
   td_->messages_manager_->on_update_dialog_is_translatable(DialogId(user_id), !user->translations_disabled_);
+
+  td_->story_manager_->on_get_user_stories(DialogId(user_id), std::move(user->stories_));
 
   UserFull *user_full = add_user_full(user_id);
   user_full->expires_at = Time::now() + USER_FULL_EXPIRE_TIME;

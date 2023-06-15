@@ -1157,7 +1157,10 @@ std::pair<int32, vector<StoryId>> StoryManager::on_get_stories(
 
 DialogId StoryManager::on_get_user_stories(DialogId owner_dialog_id,
                                            telegram_api::object_ptr<telegram_api::userStories> &&user_stories) {
-  CHECK(user_stories != nullptr);
+  if (user_stories == nullptr) {
+    on_update_active_stories(owner_dialog_id, StoryId(), {});
+    return owner_dialog_id;
+  }
 
   DialogId story_dialog_id(UserId(user_stories->user_id_));
   if (owner_dialog_id.is_valid() && owner_dialog_id != story_dialog_id) {
@@ -1209,6 +1212,10 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
   });
   if (story_ids.empty() || max_read_story_id.get() < story_ids[0].get()) {
     max_read_story_id = StoryId();
+  }
+
+  if (owner_dialog_id.get_type() == DialogType::User) {
+    td_->contacts_manager_->on_update_user_has_stories(owner_dialog_id.get_user_id(), !story_ids.empty());
   }
 
   if (max_read_story_id == StoryId() && story_ids.empty()) {
