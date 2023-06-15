@@ -2284,7 +2284,7 @@ static Result<InputMessageContent> create_input_message_content(
     }
     case td_api::inputMessageStory::ID: {
       auto input_story = static_cast<td_api::inputMessageStory *>(input_message_content.get());
-      UserId user_id(input_story->sender_user_id_);
+      UserId user_id(input_story->story_sender_user_id_);
       StoryId story_id(input_story->story_id_);
       StoryFullId story_full_id(DialogId(user_id), story_id);
       if (!td->story_manager_->have_story(story_full_id)) {

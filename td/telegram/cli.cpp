@@ -4691,10 +4691,10 @@ class CliClient final : public Actor {
                    td_api::make_object<td_api::inputMessageSticker>(as_input_file_id(file_id), nullptr, 0, 0, emoji));
     } else if (op == "sstory") {
       ChatId chat_id;
-      UserId user_id;
+      UserId story_sender_user_id;
       StoryId story_id;
-      get_args(args, chat_id, user_id, story_id);
-      send_message(chat_id, td_api::make_object<td_api::inputMessageStory>(user_id, story_id));
+      get_args(args, chat_id, story_sender_user_id, story_id);
+      send_message(chat_id, td_api::make_object<td_api::inputMessageStory>(story_sender_user_id, story_id));
     } else if (op == "sv") {
       ChatId chat_id;
       string video_path;

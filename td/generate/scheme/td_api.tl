@@ -2536,10 +2536,10 @@ messageGame game:game = MessageContent;
 messagePoll poll:poll = MessageContent;
 
 //@description A message with a forwarded story
-//@sender_user_id Identifier of the user that created the story
+//@story_sender_user_id Identifier of the user that created the story
 //@story_id Story identifier
 //@via_mention True, if the story was forwarded because of a mention of the user
-messageStory sender_user_id:int53 story_id:int32 via_mention:Bool = MessageContent;
+messageStory story_sender_user_id:int53 story_id:int32 via_mention:Bool = MessageContent;
 
 //@description A message with an invoice from a bot. Use getInternalLink with internalLinkTypeBotStart to share the invoice
 //@title Product title
@@ -2928,9 +2928,9 @@ inputMessageInvoice invoice:invoice title:string description:string photo_url:st
 inputMessagePoll question:string options:vector<string> is_anonymous:Bool type:PollType open_period:int32 close_date:int32 is_closed:Bool = InputMessageContent;
 
 //@description A message with a forwarded story. Stories can't be sent to secret chats. A story can be forwarded only if its privacy rules contains exactly one rule userPrivacySettingRuleAllowAll
-//@sender_user_id Identifier of the user that created the story
+//@story_sender_user_id Identifier of the user that created the story
 //@story_id Story identifier
-inputMessageStory sender_user_id:int53 story_id:int32 = InputMessageContent;
+inputMessageStory story_sender_user_id:int53 story_id:int32 = InputMessageContent;
 
 //@description A forwarded message
 //@from_chat_id Identifier for the chat this forwarded message came from
@@ -5690,8 +5690,8 @@ updateUnreadChatCount chat_list:ChatList total_count:int32 unread_count:int32 un
 //@description A story was changed @story The new information about the story
 updateStory story:story = Update;
 
-//@description A story became inaccessible @sender_user_id Identifier of the user that created the story @story_id Story identifier
-updateStoryDeleted sender_user_id:int53 story_id:int32 = Update;
+//@description A story became inaccessible @story_sender_user_id Identifier of the user that created the story @story_id Story identifier
+updateStoryDeleted story_sender_user_id:int53 story_id:int32 = Update;
 
 //@description An option changed its value @name The option name @value The new option value
 updateOption name:string value:OptionValue = Update;
