@@ -1300,6 +1300,9 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
     }
     return;
   }
+  if (owner_dialog_id == DialogId(td_->contacts_manager_->get_my_id())) {
+    max_read_story_id = StoryId::max();
+  }
 
   auto &active_stories = active_stories_[owner_dialog_id];
   if (active_stories == nullptr) {
@@ -1325,6 +1328,9 @@ void StoryManager::send_update_active_stories(DialogId owner_dialog_id) {
 }
 
 bool StoryManager::on_update_read_stories(DialogId owner_dialog_id, StoryId max_read_story_id) {
+  if (owner_dialog_id == DialogId(td_->contacts_manager_->get_my_id())) {
+    return false;
+  }
   auto active_stories = get_active_stories(owner_dialog_id);
   if (active_stories == nullptr) {
     auto old_max_read_story_id = max_read_story_ids_.get(owner_dialog_id);
