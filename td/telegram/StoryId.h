@@ -30,6 +30,15 @@ class StoryId {
     return StoryId(std::numeric_limits<int32>::max());
   }
 
+  static vector<int32> get_input_story_ids(const vector<StoryId> &story_ids) {
+    vector<int32> input_story_ids;
+    input_story_ids.reserve(story_ids.size());
+    for (auto &story_id : story_ids) {
+      input_story_ids.emplace_back(story_id.get());
+    }
+    return input_story_ids;
+  }
+
   int32 get() const {
     return id;
   }

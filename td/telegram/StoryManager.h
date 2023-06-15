@@ -121,7 +121,7 @@ class StoryManager final : public Actor {
 
   StoryId on_get_story(DialogId owner_dialog_id, telegram_api::object_ptr<telegram_api::StoryItem> &&story_item_ptr);
 
-  std::pair<int32, vector<StoryId>> on_get_stories(DialogId owner_dialog_id, vector<int32> &&expected_story_ids,
+  std::pair<int32, vector<StoryId>> on_get_stories(DialogId owner_dialog_id, vector<StoryId> &&expected_story_ids,
                                                    telegram_api::object_ptr<telegram_api::stories_stories> &&stories);
 
   DialogId on_get_user_stories(DialogId owner_dialog_id,
