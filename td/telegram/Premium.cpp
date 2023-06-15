@@ -302,7 +302,8 @@ const vector<Slice> &get_premium_limit_keys() {
                                         "caption_length",
                                         "about_length",
                                         "chatlist_invites",
-                                        "chatlists_joined"};
+                                        "chatlists_joined",
+                                        "story_expiring"};
   return limit_keys;
 }
 
@@ -333,6 +334,8 @@ static Slice get_limit_type_key(const td_api::PremiumLimitType *limit_type) {
       return Slice("chatlist_invites");
     case td_api::premiumLimitTypeShareableChatFolderCount::ID:
       return Slice("chatlists_joined");
+    case td_api::premiumLimitTypeActiveStoryCount::ID:
+      return Slice("story_expiring");
     default:
       UNREACHABLE();
       return Slice();
@@ -459,6 +462,9 @@ static td_api::object_ptr<td_api::premiumLimit> get_premium_limit_object(Slice k
     }
     if (key == "chatlists_joined") {
       return td_api::make_object<td_api::premiumLimitTypeShareableChatFolderCount>();
+    }
+    if (key == "story_expiring") {
+      return td_api::make_object<td_api::premiumLimitTypeActiveStoryCount>();
     }
     UNREACHABLE();
     return nullptr;

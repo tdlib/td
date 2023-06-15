@@ -3965,6 +3965,9 @@ premiumLimitTypeChatFolderInviteLinkCount = PremiumLimitType;
 //@description The maximum number of added shareable chat folders
 premiumLimitTypeShareableChatFolderCount = PremiumLimitType;
 
+//@description The maximum number of active stories
+premiumLimitTypeActiveStoryCount = PremiumLimitType;
+
 
 //@class PremiumFeature @description Describes a feature available to Premium users
 
