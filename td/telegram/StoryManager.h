@@ -74,7 +74,6 @@ class StoryManager final : public Actor {
   };
 
   struct ActiveStories {
-    DialogId dialog_id_;
     StoryId max_read_story_id_;
     vector<StoryId> story_ids_;
   };
@@ -176,7 +175,7 @@ class StoryManager final : public Actor {
 
   td_api::object_ptr<td_api::story> get_story_object(StoryFullId story_full_id, const Story *story) const;
 
-  td_api::object_ptr<td_api::activeStories> get_active_stories_object(const ActiveStories &active_stories) const;
+  td_api::object_ptr<td_api::activeStories> get_active_stories_object(DialogId owner_dialog_id) const;
 
   StoryId on_get_story(DialogId owner_dialog_id, telegram_api::object_ptr<telegram_api::storyItem> &&story_item);
 
@@ -188,8 +187,8 @@ class StoryManager final : public Actor {
 
   void on_delete_story(DialogId owner_dialog_id, StoryId story_id);
 
-  ActiveStories on_get_user_stories(DialogId owner_dialog_id,
-                                    telegram_api::object_ptr<telegram_api::userStories> &&user_stories);
+  DialogId on_get_user_stories(DialogId owner_dialog_id,
+                               telegram_api::object_ptr<telegram_api::userStories> &&user_stories);
 
   void on_get_dialog_pinned_stories(DialogId owner_dialog_id,
                                     telegram_api::object_ptr<telegram_api::stories_stories> &&stories,
@@ -228,6 +227,10 @@ class StoryManager final : public Actor {
 
   void on_toggle_story_is_pinned(StoryId story_id, bool is_pinned, Promise<Unit> &&promise);
 
+  void on_update_active_stories(DialogId owner_dialog_id, StoryId max_read_story_id, vector<StoryId> &&story_ids);
+
+  void send_update_active_stories(DialogId owner_dialog_id);
+
   void increment_story_views(DialogId owner_dialog_id, PendingStoryViews &story_views);
 
   void on_increment_story_views(DialogId owner_dialog_id);
@@ -243,6 +246,8 @@ class StoryManager final : public Actor {
   WaitFreeHashSet<StoryFullId, StoryFullIdHash> deleted_story_full_ids_;
 
   WaitFreeHashMap<StoryFullId, WaitFreeHashSet<FullMessageId, FullMessageIdHash>, StoryFullIdHash> story_messages_;
+
+  WaitFreeHashMap<DialogId, unique_ptr<ActiveStories>, DialogIdHash> active_stories_;
 
   FlatHashMap<StoryFullId, unique_ptr<BeingEditedStory>, StoryFullIdHash> being_edited_stories_;
 
