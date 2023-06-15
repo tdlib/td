@@ -4209,11 +4209,12 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStory> update, 
   promise.set_value(Unit());
 }
 
-// unsupported updates
-
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadStories> update, Promise<Unit> &&promise) {
+  td_->story_manager_->on_update_read_stories(DialogId(UserId(update->user_id_)), StoryId(update->max_id_));
   promise.set_value(Unit());
 }
+
+// unsupported updates
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStoryID> update, Promise<Unit> &&promise) {
   promise.set_value(Unit());

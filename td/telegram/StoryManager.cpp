@@ -1233,6 +1233,14 @@ void StoryManager::send_update_active_stories(DialogId owner_dialog_id) {
   // TODO
 }
 
+void StoryManager::on_update_read_stories(DialogId owner_dialog_id, StoryId max_read_story_id) {
+  auto active_stories = active_stories_.get_pointer(owner_dialog_id);
+  if (active_stories != nullptr && max_read_story_id.get() > active_stories->max_read_story_id_.get()) {
+    auto story_ids = active_stories->story_ids_;
+    on_update_active_stories(owner_dialog_id, max_read_story_id, std::move(story_ids));
+  }
+}
+
 FileSourceId StoryManager::get_story_file_source_id(StoryFullId story_full_id) {
   if (td_->auth_manager_->is_bot()) {
     return FileSourceId();
