@@ -639,6 +639,9 @@ void StoryManager::on_get_dialog_pinned_stories(DialogId owner_dialog_id,
                                                 Promise<td_api::object_ptr<td_api::stories>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   auto result = on_get_stories(owner_dialog_id, {}, std::move(stories));
+  if (owner_dialog_id.get_type() == DialogType::User) {
+    td_->contacts_manager_->on_update_user_has_pinned_stories(owner_dialog_id.get_user_id(), result.first > 0);
+  }
   promise.set_value(get_stories_object(result.first, transform(result.second, [owner_dialog_id](StoryId story_id) {
                                          return StoryFullId(owner_dialog_id, story_id);
                                        })));

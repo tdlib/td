@@ -189,6 +189,7 @@ class ContactsManager final : public Actor {
   void on_update_user_online(UserId user_id, tl_object_ptr<telegram_api::UserStatus> &&status);
   void on_update_user_local_was_online(UserId user_id, int32 local_was_online);
   void on_update_user_is_blocked(UserId user_id, bool is_blocked);
+  void on_update_user_has_pinned_stories(UserId user_id, bool has_pinned_stories);
   void on_update_user_common_chat_count(UserId user_id, int32 common_chat_count);
   void on_update_user_need_phone_number_privacy_exception(UserId user_id, bool need_phone_number_privacy_exception);
 
@@ -848,6 +849,7 @@ class ContactsManager final : public Actor {
     bool can_pin_messages = true;
     bool need_phone_number_privacy_exception = false;
     bool voice_messages_forbidden = false;
+    bool has_pinned_stories = false;
 
     bool is_common_chat_count_changed = true;
     bool is_changed = true;             // have new changes that need to be sent to the client and database

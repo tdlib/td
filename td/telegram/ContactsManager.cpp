@@ -4682,6 +4682,7 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   STORE_FLAG(voice_messages_forbidden);
   STORE_FLAG(has_personal_photo);
   STORE_FLAG(has_fallback_photo);
+  STORE_FLAG(has_pinned_stories);
   END_STORE_FLAGS();
   if (has_about) {
     store(about, storer);
@@ -4764,6 +4765,7 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   PARSE_FLAG(voice_messages_forbidden);
   PARSE_FLAG(has_personal_photo);
   PARSE_FLAG(has_fallback_photo);
+  PARSE_FLAG(has_pinned_stories);
   END_PARSE_FLAGS();
   if (has_about) {
     parse(about, parser);
@@ -12517,13 +12519,14 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   auto premium_gift_options = get_premium_gift_options(std::move(user->premium_gifts_));
   AdministratorRights group_administrator_rights(user->bot_group_admin_rights_, ChannelType::Megagroup);
   AdministratorRights broadcast_administrator_rights(user->bot_broadcast_admin_rights_, ChannelType::Broadcast);
+  bool has_pinned_stories = user->stories_pinned_available_;
   if (user_full->can_be_called != can_be_called || user_full->supports_video_calls != supports_video_calls ||
       user_full->has_private_calls != has_private_calls ||
       user_full->group_administrator_rights != group_administrator_rights ||
       user_full->broadcast_administrator_rights != broadcast_administrator_rights ||
       user_full->premium_gift_options != premium_gift_options ||
       user_full->voice_messages_forbidden != voice_messages_forbidden ||
-      user_full->can_pin_messages != can_pin_messages) {
+      user_full->can_pin_messages != can_pin_messages || user_full->has_pinned_stories != has_pinned_stories) {
     user_full->can_be_called = can_be_called;
     user_full->supports_video_calls = supports_video_calls;
     user_full->has_private_calls = has_private_calls;
@@ -12532,6 +12535,7 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
     user_full->premium_gift_options = std::move(premium_gift_options);
     user_full->voice_messages_forbidden = voice_messages_forbidden;
     user_full->can_pin_messages = can_pin_messages;
+    user_full->has_pinned_stories = has_pinned_stories;
 
     user_full->is_changed = true;
   }
@@ -13637,6 +13641,21 @@ void ContactsManager::on_update_user_full_is_blocked(UserFull *user_full, UserId
   }
 }
 
+void ContactsManager::on_update_user_has_pinned_stories(UserId user_id, bool has_pinned_stories) {
+  if (!user_id.is_valid()) {
+    LOG(ERROR) << "Receive invalid " << user_id;
+    return;
+  }
+
+  UserFull *user_full = get_user_full_force(user_id);
+  if (user_full == nullptr || user_full->has_pinned_stories == has_pinned_stories) {
+    return;
+  }
+  user_full->has_pinned_stories = has_pinned_stories;
+  user_full->is_changed = true;
+  update_user_full(user_full, user_id, "on_update_user_has_pinned_stories");
+}
+
 void ContactsManager::on_update_user_common_chat_count(UserId user_id, int32 common_chat_count) {
   LOG(INFO) << "Receive " << common_chat_count << " common chat count with " << user_id;
   if (!user_id.is_valid()) {
@@ -14031,6 +14050,7 @@ void ContactsManager::drop_user_full(UserId user_id) {
   user_full->broadcast_administrator_rights = {};
   user_full->premium_gift_options.clear();
   user_full->voice_messages_forbidden = false;
+  user_full->has_pinned_stories = false;
   user_full->is_changed = true;
 
   update_user_full(user_full, user_id, "drop_user_full");
@@ -18888,7 +18908,7 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
       get_chat_photo_object(td_->file_manager_.get(), user_full->photo),
       get_chat_photo_object(td_->file_manager_.get(), user_full->fallback_photo), user_full->is_blocked,
       user_full->can_be_called, user_full->supports_video_calls, user_full->has_private_calls,
-      !user_full->private_forward_name.empty(), voice_messages_forbidden,
+      !user_full->private_forward_name.empty(), voice_messages_forbidden, user_full->has_pinned_stories,
       user_full->need_phone_number_privacy_exception, std::move(bio_object),
       get_premium_payment_options_object(user_full->premium_gift_options), user_full->common_chat_count,
       std::move(bot_info));
