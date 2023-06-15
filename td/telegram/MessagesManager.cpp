@@ -21166,14 +21166,15 @@ void MessagesManager::do_read_history_on_server(DialogId dialog_id) {
 
   auto it = updated_read_history_message_ids_.find(dialog_id);
   if (it != updated_read_history_message_ids_.end()) {
-    for (auto top_thread_message_id : it->second) {
+    auto top_thread_message_ids = std::move(it->second);
+    updated_read_history_message_ids_.erase(it);
+    for (auto top_thread_message_id : top_thread_message_ids) {
       if (!top_thread_message_id.is_valid()) {
         read_history_on_server_impl(d, MessageId());
       } else {
         read_message_thread_history_on_server_impl(d, top_thread_message_id, MessageId());
       }
     }
-    updated_read_history_message_ids_.erase(it);
   }
 }
 

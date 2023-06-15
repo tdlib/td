@@ -103,6 +103,37 @@ class IncrementStoryViewsQuery final : public Td::ResultHandler {
   }
 };
 
+class ReadStoriesQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit ReadStoriesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId owner_dialog_id, StoryId max_read_story_id) {
+    CHECK(owner_dialog_id.get_type() == DialogType::User);
+    auto r_input_user = td_->contacts_manager_->get_input_user(owner_dialog_id.get_user_id());
+    if (r_input_user.is_error()) {
+      return on_error(r_input_user.move_as_error());
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::stories_readStories(r_input_user.move_as_ok(), max_read_story_id.get())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stories_readStories>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetStoriesByIDQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   UserId user_id_;
@@ -673,6 +704,7 @@ void StoryManager::open_story(DialogId owner_dialog_id, StoryId story_id, Promis
 
   bool is_active = is_active_story(story);
   bool need_increment_story_views = story_id.is_server() && !is_active && story->is_pinned_;
+  bool need_read_story = story_id.is_server() && is_active;
 
   if (need_increment_story_views) {
     auto &story_views = pending_story_views_[owner_dialog_id];
@@ -680,6 +712,10 @@ void StoryManager::open_story(DialogId owner_dialog_id, StoryId story_id, Promis
     if (!story_views.has_query_) {
       increment_story_views(owner_dialog_id, story_views);
     }
+  }
+
+  if (need_read_story && on_update_read_stories(owner_dialog_id, story_id)) {
+    read_stories_on_server(owner_dialog_id, story_id);
   }
 
   promise.set_value(Unit());
@@ -715,6 +751,10 @@ void StoryManager::on_increment_story_views(DialogId owner_dialog_id) {
     return;
   }
   increment_story_views(owner_dialog_id, story_views);
+}
+
+void StoryManager::read_stories_on_server(DialogId owner_dialog_id, StoryId story_id) {
+  td_->create_handler<ReadStoriesQuery>(Promise<Unit>())->send(owner_dialog_id, story_id);
 }
 
 bool StoryManager::have_story(StoryFullId story_full_id) const {
@@ -1224,7 +1264,7 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
     td_->contacts_manager_->on_update_user_has_stories(owner_dialog_id.get_user_id(), !story_ids.empty());
   }
 
-  if (max_read_story_id == StoryId() && story_ids.empty()) {
+  if (story_ids.empty()) {
     if (active_stories_.erase(owner_dialog_id) > 0) {
       send_update_active_stories(owner_dialog_id);
     } else {
@@ -1236,7 +1276,13 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
   auto &active_stories = active_stories_[owner_dialog_id];
   if (active_stories == nullptr) {
     active_stories = make_unique<ActiveStories>();
-    max_read_story_ids_.erase(owner_dialog_id);
+    auto old_max_read_story_id = max_read_story_ids_.get(owner_dialog_id);
+    if (old_max_read_story_id != StoryId()) {
+      max_read_story_ids_.erase(owner_dialog_id);
+      if (old_max_read_story_id.get() > max_read_story_id.get() && old_max_read_story_id.get() >= story_ids[0].get()) {
+        max_read_story_id = old_max_read_story_id;
+      }
+    }
   }
   if (active_stories->max_read_story_id_ != max_read_story_id || active_stories->story_ids_ != story_ids) {
     active_stories->max_read_story_id_ = max_read_story_id;
@@ -1250,17 +1296,20 @@ void StoryManager::send_update_active_stories(DialogId owner_dialog_id) {
                td_api::make_object<td_api::updateActiveStories>(get_active_stories_object(owner_dialog_id)));
 }
 
-void StoryManager::on_update_read_stories(DialogId owner_dialog_id, StoryId max_read_story_id) {
+bool StoryManager::on_update_read_stories(DialogId owner_dialog_id, StoryId max_read_story_id) {
   auto active_stories = get_active_stories(owner_dialog_id);
   if (active_stories == nullptr) {
     auto old_max_read_story_id = max_read_story_ids_.get(owner_dialog_id);
     if (max_read_story_id.get() > old_max_read_story_id.get()) {
       max_read_story_ids_.set(owner_dialog_id, max_read_story_id);
+      return true;
     }
   } else if (max_read_story_id.get() > active_stories->max_read_story_id_.get()) {
     auto story_ids = active_stories->story_ids_;
     on_update_active_stories(owner_dialog_id, max_read_story_id, std::move(story_ids));
+    return true;
   }
+  return false;
 }
 
 FileSourceId StoryManager::get_story_file_source_id(StoryFullId story_full_id) {

@@ -125,7 +125,7 @@ class StoryManager final : public Actor {
   DialogId on_get_user_stories(DialogId owner_dialog_id,
                                telegram_api::object_ptr<telegram_api::userStories> &&user_stories);
 
-  void on_update_read_stories(DialogId owner_dialog_id, StoryId max_read_story_id);
+  bool on_update_read_stories(DialogId owner_dialog_id, StoryId max_read_story_id);
 
   bool have_story(StoryFullId story_full_id) const;
 
@@ -238,6 +238,8 @@ class StoryManager final : public Actor {
   void increment_story_views(DialogId owner_dialog_id, PendingStoryViews &story_views);
 
   void on_increment_story_views(DialogId owner_dialog_id);
+
+  void read_stories_on_server(DialogId owner_dialog_id, StoryId story_id);
 
   std::shared_ptr<UploadMediaCallback> upload_media_callback_;
 
