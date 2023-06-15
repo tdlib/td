@@ -5693,6 +5693,9 @@ updateStory story:story = Update;
 //@description A story became inaccessible @story_sender_user_id Identifier of the user that created the story @story_id Story identifier
 updateStoryDeleted story_sender_user_id:int53 story_id:int32 = Update;
 
+//@description The list of active stories of a specific sender has changed @active_stories The new list of active stories
+updateActiveStories active_stories:activeStories = Update;
+
 //@description An option changed its value @name The option name @value The new option value
 updateOption name:string value:OptionValue = Update;
 

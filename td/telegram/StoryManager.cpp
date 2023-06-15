@@ -1237,7 +1237,8 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
 }
 
 void StoryManager::send_update_active_stories(DialogId owner_dialog_id) {
-  // TODO
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateActiveStories>(get_active_stories_object(owner_dialog_id)));
 }
 
 void StoryManager::on_update_read_stories(DialogId owner_dialog_id, StoryId max_read_story_id) {
