@@ -352,6 +352,32 @@ class DeleteStoriesQuery final : public Td::ResultHandler {
   }
 };
 
+class GetStoriesViewsQuery final : public Td::ResultHandler {
+  vector<StoryId> story_ids_;
+
+ public:
+  void send(vector<StoryId> story_ids) {
+    story_ids_ = std::move(story_ids);
+    send_query(G()->net_query_creator().create(
+        telegram_api::stories_getStoriesViews(StoryId::get_input_story_ids(story_ids_))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stories_getStoriesViews>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for GetStoriesViewsQuery: " << to_string(ptr);
+    td_->story_manager_->on_get_story_views(story_ids_, std::move(ptr));
+  }
+
+  void on_error(Status status) final {
+    LOG(INFO) << "Failed to get views of " << story_ids_ << ": " << status;
+  }
+};
+
 class StoryManager::SendStoryQuery final : public Td::ResultHandler {
   FileId file_id_;
   unique_ptr<PendingStory> pending_story_;
@@ -759,7 +785,11 @@ void StoryManager::close_story(DialogId owner_dialog_id, StoryId story_id, Promi
 }
 
 void StoryManager::on_owned_story_opened(StoryFullId story_full_id) {
-  // TODO reget story view counter
+  CHECK(is_story_owned(story_full_id.get_dialog_id()));
+  auto story_id = story_full_id.get_story_id();
+  if (story_id.is_server()) {
+    td_->create_handler<GetStoriesViewsQuery>()->send({story_id});
+  }
 }
 
 void StoryManager::increment_story_views(DialogId owner_dialog_id, PendingStoryViews &story_views) {
@@ -1385,6 +1415,34 @@ bool StoryManager::on_update_read_stories(DialogId owner_dialog_id, StoryId max_
     return true;
   }
   return false;
+}
+
+void StoryManager::on_get_story_views(const vector<StoryId> &story_ids,
+                                      telegram_api::object_ptr<telegram_api::stories_storyViews> &&story_views) {
+  td_->contacts_manager_->on_get_users(std::move(story_views->users_), "on_get_story_views");
+  if (story_ids.size() != story_views->views_.size()) {
+    LOG(ERROR) << "Receive invalid views for " << story_ids << ": " << to_string(story_views);
+    return;
+  }
+  DialogId owner_dialog_id(td_->contacts_manager_->get_my_id());
+  for (size_t i = 0; i < story_ids.size(); i++) {
+    auto story_id = story_ids[i];
+    CHECK(story_id.is_server());
+
+    StoryFullId story_full_id{owner_dialog_id, story_id};
+    Story *story = get_story_editable(story_full_id);
+    if (story == nullptr || story->content_ == nullptr) {
+      continue;
+    }
+
+    bool is_changed = false;
+    StoryInteractionInfo interaction_info(td_, std::move(story_views->views_[i]));
+    CHECK(!interaction_info.is_empty());
+    if (story->interaction_info_ != interaction_info) {
+      story->interaction_info_ = std::move(interaction_info);
+      on_story_changed(story_full_id, story, is_changed, false);
+    }
+  }
 }
 
 FileSourceId StoryManager::get_story_file_source_id(StoryFullId story_full_id) {

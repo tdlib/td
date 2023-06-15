@@ -129,6 +129,9 @@ class StoryManager final : public Actor {
 
   bool on_update_read_stories(DialogId owner_dialog_id, StoryId max_read_story_id);
 
+  void on_get_story_views(const vector<StoryId> &story_ids,
+                          telegram_api::object_ptr<telegram_api::stories_storyViews> &&story_views);
+
   bool have_story(StoryFullId story_full_id) const;
 
   bool have_story_force(StoryFullId story_full_id) const;
