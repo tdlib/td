@@ -508,6 +508,14 @@ bool StoryManager::is_story_owned(DialogId owner_dialog_id) const {
   return owner_dialog_id == DialogId(td_->contacts_manager_->get_my_id());
 }
 
+bool StoryManager::is_active_story(StoryFullId story_full_id) const {
+  return is_active_story(get_story(story_full_id));
+}
+
+bool StoryManager::is_active_story(const Story *story) const {
+  return story != nullptr && G()->unix_time() < story->expire_date_;
+}
+
 const StoryManager::Story *StoryManager::get_story(StoryFullId story_full_id) const {
   return stories_.get_pointer(story_full_id);
 }
@@ -658,7 +666,7 @@ void StoryManager::open_story(DialogId owner_dialog_id, StoryId story_id, Promis
     td_->file_manager_->check_local_location_async(file_id, true);
   }
 
-  bool need_increment_story_views = G()->unix_time() >= story->expire_date_ && story->is_pinned_;
+  bool need_increment_story_views = !is_active_story(story) && story->is_pinned_;
   if (story_id.is_server() && need_increment_story_views) {
     auto &story_views = pending_story_views_[owner_dialog_id];
     story_views.story_ids_.insert(story_id);
@@ -758,7 +766,7 @@ td_api::object_ptr<td_api::storyInfo> StoryManager::get_story_info_object(StoryF
 
 td_api::object_ptr<td_api::storyInfo> StoryManager::get_story_info_object(StoryFullId story_full_id,
                                                                           const Story *story) const {
-  if (story == nullptr || G()->unix_time() >= story->expire_date_) {
+  if (story == nullptr || !is_active_story(story)) {
     return nullptr;
   }
 
@@ -775,7 +783,7 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
   }
   auto dialog_id = story_full_id.get_dialog_id();
   bool is_owned = is_story_owned(dialog_id);
-  if (!is_owned && !story->is_pinned_ && G()->unix_time() >= story->expire_date_) {
+  if (!is_owned && !story->is_pinned_ && !is_active_story(story)) {
     return nullptr;
   }
 
@@ -1163,14 +1171,14 @@ StoryManager::ActiveStories StoryManager::on_get_user_stories(
       case telegram_api::storyItemSkipped::ID: {
         auto story_id =
             on_get_skipped_story(owner_dialog_id, telegram_api::move_object_as<telegram_api::storyItemSkipped>(story));
-        if (story_id.is_valid()) {
+        if (is_active_story({owner_dialog_id, story_id})) {
           story_ids.push_back(story_id);
         }
         break;
       }
       case telegram_api::storyItem::ID: {
         auto story_id = on_get_story(owner_dialog_id, telegram_api::move_object_as<telegram_api::storyItem>(story));
-        if (story_id.is_valid()) {
+        if (is_active_story({owner_dialog_id, story_id})) {
           story_ids.push_back(story_id);
         }
         break;

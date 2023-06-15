@@ -160,6 +160,10 @@ class StoryManager final : public Actor {
 
   bool is_story_owned(DialogId owner_dialog_id) const;
 
+  bool is_active_story(StoryFullId story_full_id) const;
+
+  bool is_active_story(const Story *story) const;
+
   const Story *get_story(StoryFullId story_full_id) const;
 
   Story *get_story_editable(StoryFullId story_full_id);
