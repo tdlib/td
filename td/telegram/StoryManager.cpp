@@ -694,7 +694,18 @@ void StoryManager::open_story(DialogId owner_dialog_id, StoryId story_id, Promis
 
   StoryFullId story_full_id{owner_dialog_id, story_id};
   const Story *story = get_story(story_full_id);
-  if (story == nullptr || story->content_ == nullptr) {
+  if (story == nullptr) {
+    return promise.set_value(Unit());
+  }
+
+  if (is_story_owned(owner_dialog_id)) {
+    auto &open_count = opened_owned_stories_[story_full_id];
+    if (++open_count == 1) {
+      on_owned_story_opened(story_full_id);
+    }
+  }
+
+  if (story->content_ == nullptr) {
     return promise.set_value(Unit());
   }
 
@@ -719,6 +730,35 @@ void StoryManager::open_story(DialogId owner_dialog_id, StoryId story_id, Promis
   }
 
   promise.set_value(Unit());
+}
+
+void StoryManager::close_story(DialogId owner_dialog_id, StoryId story_id, Promise<Unit> &&promise) {
+  if (!td_->messages_manager_->have_dialog_info_force(owner_dialog_id)) {
+    return promise.set_error(Status::Error(400, "Story sender not found"));
+  }
+  if (!td_->messages_manager_->have_input_peer(owner_dialog_id, AccessRights::Read)) {
+    return promise.set_error(Status::Error(400, "Can't access the story sender"));
+  }
+  if (!story_id.is_valid()) {
+    return promise.set_error(Status::Error(400, "Invalid story identifier specified"));
+  }
+
+  StoryFullId story_full_id{owner_dialog_id, story_id};
+  if (is_story_owned(owner_dialog_id)) {
+    auto &open_count = opened_owned_stories_[story_full_id];
+    if (open_count == 0) {
+      return promise.set_error(Status::Error(400, "The story wasn't opened"));
+    }
+    if (--open_count == 0) {
+      opened_owned_stories_.erase(story_full_id);
+    }
+  }
+
+  promise.set_value(Unit());
+}
+
+void StoryManager::on_owned_story_opened(StoryFullId story_full_id) {
+  // TODO reget story view counter
 }
 
 void StoryManager::increment_story_views(DialogId owner_dialog_id, PendingStoryViews &story_views) {

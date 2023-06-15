@@ -117,6 +117,8 @@ class StoryManager final : public Actor {
 
   void open_story(DialogId owner_dialog_id, StoryId story_id, Promise<Unit> &&promise);
 
+  void close_story(DialogId owner_dialog_id, StoryId story_id, Promise<Unit> &&promise);
+
   StoryId on_get_story(DialogId owner_dialog_id, telegram_api::object_ptr<telegram_api::StoryItem> &&story_item_ptr);
 
   std::pair<int32, vector<StoryId>> on_get_stories(DialogId owner_dialog_id, vector<int32> &&expected_story_ids,
@@ -236,6 +238,8 @@ class StoryManager final : public Actor {
 
   void send_update_active_stories(DialogId owner_dialog_id);
 
+  void on_owned_story_opened(StoryFullId story_full_id);
+
   void increment_story_views(DialogId owner_dialog_id, PendingStoryViews &story_views);
 
   void on_increment_story_views(DialogId owner_dialog_id);
@@ -263,6 +267,8 @@ class StoryManager final : public Actor {
   FlatHashMap<StoryFullId, unique_ptr<BeingEditedStory>, StoryFullIdHash> being_edited_stories_;
 
   FlatHashMap<DialogId, PendingStoryViews, DialogIdHash> pending_story_views_;
+
+  FlatHashMap<StoryFullId, uint32, StoryFullIdHash> opened_owned_stories_;
 
   uint32 send_story_count_ = 0;
 

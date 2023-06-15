@@ -4063,6 +4063,11 @@ class CliClient final : public Actor {
       StoryId story_id;
       get_args(args, story_sender_user_id, story_id);
       send_request(td_api::make_object<td_api::openStory>(story_sender_user_id, story_id));
+    } else if (op == "cs") {
+      UserId story_sender_user_id;
+      StoryId story_id;
+      get_args(args, story_sender_user_id, story_id);
+      send_request(td_api::make_object<td_api::closeStory>(story_sender_user_id, story_id));
     } else if (op == "gamb") {
       UserId user_id;
       get_args(args, user_id);
