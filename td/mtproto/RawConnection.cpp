@@ -32,6 +32,10 @@
 namespace td {
 namespace mtproto {
 
+RawConnection::~RawConnection() {
+  LOG(DEBUG) << "Destroy raw connection " << this;
+}
+
 class RawConnectionDefault final : public RawConnection {
  public:
   RawConnectionDefault(BufferedFd<SocketFd> buffered_socket_fd, TransportType transport_type,
@@ -39,6 +43,7 @@ class RawConnectionDefault final : public RawConnection {
       : socket_fd_(std::move(buffered_socket_fd))
       , transport_(create_transport(std::move(transport_type)))
       , stats_callback_(std::move(stats_callback)) {
+    LOG(DEBUG) << "Create raw connection " << this;
     transport_->init(&socket_fd_.input_buffer(), &socket_fd_.output_buffer());
   }
 
@@ -120,6 +125,7 @@ class RawConnectionDefault final : public RawConnection {
   }
 
   void close() final {
+    LOG(DEBUG) << "Close raw connection " << this;
     transport_.reset();
     socket_fd_.close();
   }
@@ -280,6 +286,7 @@ class RawConnectionHttp final : public RawConnection {
  public:
   RawConnectionHttp(IPAddress ip_address, unique_ptr<StatsCallback> stats_callback)
       : ip_address_(std::move(ip_address)), stats_callback_(std::move(stats_callback)) {
+    LOG(DEBUG) << "Create raw connection " << this;
     answers_ = std::make_shared<MpscPollableQueue<Result<BufferSlice>>>();
     answers_->init();
   }
@@ -349,6 +356,7 @@ class RawConnectionHttp final : public RawConnection {
   }
 
   void close() final {
+    LOG(DEBUG) << "Close raw connection " << this;
   }
 
   PublicFields &extra() final {

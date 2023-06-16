@@ -39,7 +39,7 @@ class RawConnection {
   RawConnection() = default;
   RawConnection(const RawConnection &) = delete;
   RawConnection &operator=(const RawConnection &) = delete;
-  virtual ~RawConnection() = default;
+  virtual ~RawConnection();
 
   static unique_ptr<RawConnection> create(IPAddress ip_address, BufferedFd<SocketFd> buffered_socket_fd,
                                           TransportType transport_type, unique_ptr<StatsCallback> stats_callback);
