@@ -156,6 +156,8 @@ class StoryManager final : public Actor {
 
   void reload_story(StoryFullId story_full_id, Promise<Unit> &&promise);
 
+  void try_synchronize_archive_all_stories();
+
   void on_binlog_events(vector<BinlogEvent> &&events);
 
  private:
@@ -166,6 +168,8 @@ class StoryManager final : public Actor {
 
   class DeleteStoryOnServerLogEvent;
   class ReadStoriesOnServerLogEvent;
+
+  void start_up() final;
 
   void tear_down() final;
 
@@ -256,6 +260,8 @@ class StoryManager final : public Actor {
 
   void update_interaction_info();
 
+  void on_synchronized_archive_all_stories(bool set_archive_all_stories, Result<Unit> result);
+
   std::shared_ptr<UploadMediaCallback> upload_media_callback_;
 
   WaitFreeHashMap<StoryFullId, FileSourceId, StoryFullIdHash> story_full_id_to_file_source_id_;
@@ -279,6 +285,8 @@ class StoryManager final : public Actor {
   FlatHashMap<StoryFullId, uint32, StoryFullIdHash> opened_owned_stories_;
 
   uint32 send_story_count_ = 0;
+
+  bool has_active_synchronize_archive_all_stories_query_ = false;
 
   FlatHashMap<FileId, unique_ptr<PendingStory>, FileIdHash> being_uploaded_files_;
 

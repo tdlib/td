@@ -7,6 +7,7 @@
 #include "td/telegram/StoryManager.h"
 
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/ConfigManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileManager.h"
@@ -64,6 +65,33 @@ class ToggleStoriesHiddenQuery final : public Td::ResultHandler {
     if (result) {
       td_->contacts_manager_->on_update_user_stories_hidden(user_id_, are_hidden_);
     }
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class ToggleAllStoriesHiddenQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit ToggleAllStoriesHiddenQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(bool all_stories_hidden) {
+    send_query(G()->net_query_creator().create(telegram_api::stories_toggleAllStoriesHidden(all_stories_hidden)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stories_toggleAllStoriesHidden>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for ToggleAllStoriesHiddenQuery: " << result;
     promise_.set_value(Unit());
   }
 
@@ -559,6 +587,10 @@ StoryManager::~StoryManager() {
                                               active_stories_, max_read_story_ids_);
 }
 
+void StoryManager::start_up() {
+  try_synchronize_archive_all_stories();
+}
+
 void StoryManager::tear_down() {
   parent_.reset();
 }
@@ -585,6 +617,44 @@ StoryManager::Story *StoryManager::get_story_editable(StoryFullId story_full_id)
 
 const StoryManager::ActiveStories *StoryManager::get_active_stories(DialogId owner_dialog_id) const {
   return active_stories_.get_pointer(owner_dialog_id);
+}
+
+void StoryManager::try_synchronize_archive_all_stories() {
+  if (G()->close_flag()) {
+    return;
+  }
+  if (has_active_synchronize_archive_all_stories_query_) {
+    return;
+  }
+  if (!td_->option_manager_->get_option_boolean("need_synchronize_archive_all_stories")) {
+    return;
+  }
+
+  has_active_synchronize_archive_all_stories_query_ = true;
+  auto archive_all_stories = td_->option_manager_->get_option_boolean("archive_all_stories");
+
+  auto promise = PromiseCreator::lambda([actor_id = actor_id(this), archive_all_stories](Result<Unit> result) {
+    send_closure(actor_id, &StoryManager::on_synchronized_archive_all_stories, archive_all_stories, std::move(result));
+  });
+  td_->create_handler<ToggleAllStoriesHiddenQuery>(std::move(promise))->send(archive_all_stories);
+}
+
+void StoryManager::on_synchronized_archive_all_stories(bool set_archive_all_stories, Result<Unit> result) {
+  if (G()->close_flag()) {
+    return;
+  }
+  CHECK(has_active_synchronize_archive_all_stories_query_);
+  has_active_synchronize_archive_all_stories_query_ = false;
+
+  auto archive_all_stories = td_->option_manager_->get_option_boolean("archive_all_stories");
+  if (archive_all_stories != set_archive_all_stories) {
+    return try_synchronize_archive_all_stories();
+  }
+  td_->option_manager_->set_option_empty("need_synchronize_archive_all_stories");
+
+  if (result.is_error()) {
+    send_closure(G()->config_manager(), &ConfigManager::reget_app_config, Promise<Unit>());
+  }
 }
 
 void StoryManager::toggle_dialog_stories_hidden(DialogId dialog_id, bool are_hidden, Promise<Unit> &&promise) {

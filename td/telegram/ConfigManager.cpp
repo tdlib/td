@@ -2126,7 +2126,9 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
     options.set_option_empty("gift_premium_from_input_field");
   }
 
-  options.set_option_boolean("archive_all_stories", archive_all_stories);
+  if (!options.get_option_boolean("need_synchronize_archive_all_stories")) {
+    options.set_option_boolean("archive_all_stories", archive_all_stories);
+  }
 
   options.set_option_integer("stickers_premium_by_emoji_num", stickers_premium_by_emoji_num);
   options.set_option_integer("stickers_normal_by_emoji_per_premium_num", stickers_normal_by_emoji_per_premium_num);

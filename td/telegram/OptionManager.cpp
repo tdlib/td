@@ -24,6 +24,7 @@
 #include "td/telegram/StateManager.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/StorageManager.h"
+#include "td/telegram/StoryManager.h"
 #include "td/telegram/SuggestedAction.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
@@ -277,7 +278,8 @@ bool OptionManager::is_internal_option(Slice name) {
     case 'm':
       return name == "my_phone_number";
     case 'n':
-      return name == "notification_cloud_delay_ms" || name == "notification_default_delay_ms";
+      return name == "need_synchronize_archive_all_stories" || name == "notification_cloud_delay_ms" ||
+             name == "notification_default_delay_ms";
     case 'o':
       return name == "online_cloud_timeout_ms" || name == "online_update_period_ms" || name == "otherwise_relogin_days";
     case 'p':
@@ -408,6 +410,9 @@ void OptionManager::on_option_updated(Slice name) {
       }
       break;
     case 'n':
+      if (name == "need_synchronize_archive_all_stories") {
+        send_closure(td_->story_manager_actor_, &StoryManager::try_synchronize_archive_all_stories);
+      }
       if (name == "notification_cloud_delay_ms") {
         send_closure(td_->notification_manager_actor_, &NotificationManager::on_notification_cloud_delay_changed);
       }
@@ -617,6 +622,10 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
   switch (name[0]) {
     case 'a':
       if (set_boolean_option("always_parse_markdown")) {
+        return;
+      }
+      if (!is_bot && set_boolean_option("archive_all_stories")) {
+        set_option_boolean("need_synchronize_archive_all_stories", true);
         return;
       }
       if (!is_bot && name == "archive_and_mute_new_chats_from_unknown_users") {
