@@ -1559,6 +1559,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   bool premium_gift_attach_menu_icon = false;
   bool premium_gift_text_field_icon = false;
   int32 dialog_filter_update_period = 300;
+  bool archive_all_stories = false;
   if (config->get_id() == telegram_api::jsonObject::ID) {
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
       Slice key = key_value->key_;
@@ -1955,6 +1956,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         dialog_filter_update_period = get_json_value_int(std::move(key_value->value_), key);
         continue;
       }
+      if (key == "stories_all_hidden") {
+        archive_all_stories = get_json_value_bool(std::move(key_value->value_), key);
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
@@ -2120,6 +2125,8 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   } else {
     options.set_option_empty("gift_premium_from_input_field");
   }
+
+  options.set_option_boolean("archive_all_stories", archive_all_stories);
 
   options.set_option_integer("stickers_premium_by_emoji_num", stickers_premium_by_emoji_num);
   options.set_option_integer("stickers_normal_by_emoji_per_premium_num", stickers_normal_by_emoji_per_premium_num);

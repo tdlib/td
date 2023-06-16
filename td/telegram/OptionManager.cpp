@@ -109,6 +109,9 @@ OptionManager::OptionManager(Td *td)
   if (!have_option("pinned_forum_topic_count_max")) {
     set_option_integer("pinned_forum_topic_count_max", G()->is_test_dc() ? 3 : 5);
   }
+  if (!have_option("archive_all_stories")) {
+    set_option_boolean("archive_all_stories", false);
+  }
 
   set_option_empty("chat_filter_count_max");
   set_option_empty("chat_filter_chosen_chat_count_max");
