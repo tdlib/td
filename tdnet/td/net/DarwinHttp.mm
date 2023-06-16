@@ -15,7 +15,15 @@ namespace td {
 
 namespace {
 
-static NSURLSession *urlSession = nil;
+NSURLSession *getSession() {
+  static NSURLSession *urlSession = [] {
+    auto configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
+    configuration.networkServiceType = NSURLNetworkServiceTypeResponsiveData;
+    configuration.waitsForConnectivity = true;
+    return [NSURLSession sessionWithConfiguration:configuration];
+  }();
+  return urlSession;
+}
 
 NSString *to_ns_string(CSlice slice) {
   return [NSString stringWithUTF8String:slice.c_str()];
@@ -23,15 +31,6 @@ NSString *to_ns_string(CSlice slice) {
 
 NSData *to_ns_data(Slice data) {
   return [NSData dataWithBytes:static_cast<const void *>(data.data()) length:data.size()];
-}
-
-void prepareSession() {
-  if (urlSession == nil) {
-    auto configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
-    configuration.networkServiceType = NSURLNetworkServiceTypeResponsiveData;
-    configuration.waitsForConnectivity = true;
-    urlSession = [NSURLSession sessionWithConfiguration:configuration];
-  }
 }
 
 auto http_get(CSlice url) {
@@ -53,10 +52,9 @@ auto http_post(CSlice url, Slice data) {
 }
 
 void http_send(NSURLRequest *request, Promise<BufferSlice> promise) {
-  prepareSession();
   __block auto callback = std::move(promise);
   NSURLSessionDataTask *dataTask =
-    [urlSession
+    [getSession()
       dataTaskWithRequest:request
       completionHandler:
         ^(NSData *data, NSURLResponse *response, NSError *error) {
