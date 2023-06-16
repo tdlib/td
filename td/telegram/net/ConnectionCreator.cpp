@@ -892,6 +892,7 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
     flood_control.add_event(Time::now());
 
     auto socket_fd = r_socket_fd.move_as_ok();
+#if !TD_DARWIN_WATCH_OS
     IPAddress debug_ip;
     auto debug_ip_status = debug_ip.init_socket_address(socket_fd);
     if (debug_ip_status.is_ok()) {
@@ -899,6 +900,7 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
     } else {
       LOG(ERROR) << debug_ip_status;
     }
+#endif
 
     client.pending_connections++;
     if (check_mode) {
