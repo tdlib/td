@@ -2009,7 +2009,15 @@ void StoryManager::on_binlog_events(vector<BinlogEvent> &&events) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
-        read_stories_on_server(dialog_id, log_event.max_story_id_, event.id_);
+        auto max_read_story_id = log_event.max_story_id_;
+        auto active_stories = get_active_stories(dialog_id);
+        if (active_stories == nullptr) {
+          max_read_story_ids_[dialog_id] = max_read_story_id;
+        } else {
+          auto story_ids = active_stories->story_ids_;
+          on_update_active_stories(dialog_id, max_read_story_id, std::move(story_ids));
+        }
+        read_stories_on_server(dialog_id, max_read_story_id, event.id_);
         break;
       }
       default:
