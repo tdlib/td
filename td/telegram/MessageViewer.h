@@ -26,6 +26,9 @@ class MessageViewer {
  public:
   explicit MessageViewer(telegram_api::object_ptr<telegram_api::readParticipantDate> &&read_date);
 
+  MessageViewer(UserId user_id, int32 date) : user_id_(user_id), date_(td::max(date, static_cast<int32>(0))) {
+  }
+
   UserId get_user_id() const {
     return user_id_;
   }
@@ -37,6 +40,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, const MessageViewer &vi
 
 struct MessageViewers {
   vector<MessageViewer> message_viewers_;
+
+  explicit MessageViewers(vector<telegram_api::object_ptr<telegram_api::storyView>> &&story_views);
 
   explicit MessageViewers(vector<telegram_api::object_ptr<telegram_api::readParticipantDate>> &&read_dates);
 

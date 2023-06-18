@@ -13,7 +13,7 @@
 namespace td {
 
 MessageViewer::MessageViewer(telegram_api::object_ptr<telegram_api::readParticipantDate> &&read_date)
-    : user_id_(read_date->user_id_), date_(read_date->date_) {
+    : MessageViewer(UserId(read_date->user_id_), read_date->date_) {
 }
 
 td_api::object_ptr<td_api::messageViewer> MessageViewer::get_message_viewer_object(
@@ -24,6 +24,17 @@ td_api::object_ptr<td_api::messageViewer> MessageViewer::get_message_viewer_obje
 
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageViewer &viewer) {
   return string_builder << '[' << viewer.user_id_ << " at " << viewer.date_ << ']';
+}
+
+MessageViewers::MessageViewers(vector<telegram_api::object_ptr<telegram_api::storyView>> &&story_views) {
+  for (auto &story_view : story_views) {
+    UserId user_id(story_view->user_id_);
+    if (!user_id.is_valid()) {
+      LOG(ERROR) << "Receive " << user_id << " as story viewer";
+      continue;
+    }
+    message_viewers_.emplace_back(user_id, story_view->date_);
+  }
 }
 
 MessageViewers::MessageViewers(vector<telegram_api::object_ptr<telegram_api::readParticipantDate>> &&read_dates)

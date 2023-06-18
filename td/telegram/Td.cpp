@@ -6457,6 +6457,13 @@ void Td::on_request(uint64 id, const td_api::closeStory &request) {
                               std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getStoryViewers &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  story_manager_->get_story_viewers(StoryId(request.story_id_), request.offset_viewer_.get(), request.limit_,
+                                    std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getAttachmentMenuBot &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

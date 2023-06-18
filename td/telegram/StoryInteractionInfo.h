@@ -36,6 +36,14 @@ class StoryInteractionInfo {
     return view_count_ < 0;
   }
 
+  bool set_view_count(int32 view_count) {
+    if (view_count > view_count_) {
+      view_count = view_count_;
+      return true;
+    }
+    return false;
+  }
+
   td_api::object_ptr<td_api::storyInteractionInfo> get_story_interaction_info_object(Td *td) const;
 };
 

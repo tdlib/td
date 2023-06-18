@@ -16,6 +16,7 @@
 #include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/MessageViewer.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/StoryContent.h"
 #include "td/telegram/StoryContentType.h"
@@ -155,6 +156,33 @@ class ReadStoriesQuery final : public Td::ResultHandler {
     }
 
     promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class GetStoryViewsListQuery final : public Td::ResultHandler {
+  Promise<telegram_api::object_ptr<telegram_api::stories_storyViewsList>> promise_;
+
+ public:
+  explicit GetStoryViewsListQuery(Promise<telegram_api::object_ptr<telegram_api::stories_storyViewsList>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(StoryId story_id, int32 offset_date, int64 offset_user_id, int32 limit) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::stories_getStoryViewsList(story_id.get(), offset_date, offset_user_id, limit)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stories_getStoryViewsList>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(result_ptr.move_as_ok());
   }
 
   void on_error(Status status) final {
@@ -962,6 +990,66 @@ void StoryManager::read_stories_on_server(DialogId owner_dialog_id, StoryId stor
   td_->create_handler<ReadStoriesQuery>(get_erase_log_event_promise(log_event_id))->send(owner_dialog_id, story_id);
 }
 
+void StoryManager::get_story_viewers(StoryId story_id, const td_api::messageViewer *offset, int32 limit,
+                                     Promise<td_api::object_ptr<td_api::messageViewers>> &&promise) {
+  DialogId owner_dialog_id(td_->contacts_manager_->get_my_id());
+  StoryFullId story_full_id{owner_dialog_id, story_id};
+  const Story *story = get_story(story_full_id);
+  if (story == nullptr) {
+    return promise.set_error(Status::Error(400, "Story not found"));
+  }
+  if (!story_id.is_server()) {
+    return promise.set_value(td_api::object_ptr<td_api::messageViewers>());
+  }
+  // TRY_STATUS_PROMISE(promise, can_get_story_viewers(story_full_id));
+
+  if (limit <= 0) {
+    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+  }
+  int32 offset_date = 0;
+  int64 offset_user_id = 0;
+  if (offset != nullptr) {
+    offset_date = offset->view_date_;
+    offset_user_id = offset->user_id_;
+  }
+
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), story_id, promise = std::move(promise)](
+          Result<telegram_api::object_ptr<telegram_api::stories_storyViewsList>> result) mutable {
+        send_closure(actor_id, &StoryManager::on_get_story_viewers, story_id, std::move(result), std::move(promise));
+      });
+
+  td_->create_handler<GetStoryViewsListQuery>(std::move(query_promise))
+      ->send(story_full_id.get_story_id(), offset_date, offset_user_id, limit);
+}
+
+void StoryManager::on_get_story_viewers(
+    StoryId story_id, Result<telegram_api::object_ptr<telegram_api::stories_storyViewsList>> r_view_list,
+    Promise<td_api::object_ptr<td_api::messageViewers>> &&promise) {
+  G()->ignore_result_if_closing(r_view_list);
+  if (r_view_list.is_error()) {
+    return promise.set_error(r_view_list.move_as_error());
+  }
+  auto view_list = r_view_list.move_as_ok();
+
+  DialogId owner_dialog_id(td_->contacts_manager_->get_my_id());
+  CHECK(story_id.is_server());
+  StoryFullId story_full_id{owner_dialog_id, story_id};
+  Story *story = get_story_editable(story_full_id);
+  if (story == nullptr) {
+    return promise.set_value(td_api::object_ptr<td_api::messageViewers>());
+  }
+
+  td_->contacts_manager_->on_get_users(std::move(view_list->users_), "on_get_story_viewers");
+
+  if (story->content_ != nullptr && story->interaction_info_.set_view_count(view_list->count_)) {
+    on_story_changed(story_full_id, story, true, true);
+  }
+
+  MessageViewers story_viewers(std::move(view_list->views_));
+  promise.set_value(story_viewers.get_message_viewers_object(td_->contacts_manager_.get()));
+}
+
 bool StoryManager::have_story(StoryFullId story_full_id) const {
   return get_story(story_full_id) != nullptr;
 }
@@ -1542,12 +1630,11 @@ void StoryManager::on_get_story_views(const vector<StoryId> &story_ids,
       continue;
     }
 
-    bool is_changed = false;
     StoryInteractionInfo interaction_info(td_, std::move(story_views->views_[i]));
     CHECK(!interaction_info.is_empty());
     if (story->interaction_info_ != interaction_info) {
       story->interaction_info_ = std::move(interaction_info);
-      on_story_changed(story_full_id, story, is_changed, false);
+      on_story_changed(story_full_id, story, true, true);
     }
   }
 }

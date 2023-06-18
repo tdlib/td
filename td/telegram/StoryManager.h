@@ -120,6 +120,9 @@ class StoryManager final : public Actor {
 
   void close_story(DialogId owner_dialog_id, StoryId story_id, Promise<Unit> &&promise);
 
+  void get_story_viewers(StoryId story_id, const td_api::messageViewer *offset, int32 limit,
+                         Promise<td_api::object_ptr<td_api::messageViewers>> &&promise);
+
   StoryId on_get_story(DialogId owner_dialog_id, telegram_api::object_ptr<telegram_api::StoryItem> &&story_item_ptr);
 
   std::pair<int32, vector<StoryId>> on_get_stories(DialogId owner_dialog_id, vector<StoryId> &&expected_story_ids,
@@ -261,6 +264,10 @@ class StoryManager final : public Actor {
   void update_interaction_info();
 
   void on_synchronized_archive_all_stories(bool set_archive_all_stories, Result<Unit> result);
+
+  void on_get_story_viewers(StoryId story_id,
+                            Result<telegram_api::object_ptr<telegram_api::stories_storyViewsList>> r_view_list,
+                            Promise<td_api::object_ptr<td_api::messageViewers>> &&promise);
 
   std::shared_ptr<UploadMediaCallback> upload_media_callback_;
 

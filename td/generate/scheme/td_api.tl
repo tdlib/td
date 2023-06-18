@@ -7283,6 +7283,12 @@ openStory story_sender_user_id:int53 story_id:int32 = Ok;
 //@story_id The identifier of the story
 closeStory story_sender_user_id:int53 story_id:int32 = Ok;
 
+//@description Returns viewers of a recent outgoing story. The method can be called if story.can_get_viewers == true
+//@story_id Story identifier
+//@offset_viewer A viewer from which to return next viewers; pass null to get results from the beginning
+//@limit The maximum number of story viewers to return
+getStoryViewers story_id:int32 offset_viewer:messageViewer limit:int32 = MessageViewers;
+
 
 //@description Returns information about a bot that can be added to attachment menu @bot_user_id Bot's user identifier
 getAttachmentMenuBot bot_user_id:int53 = AttachmentMenuBot;

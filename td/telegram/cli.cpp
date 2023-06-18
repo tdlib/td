@@ -4068,6 +4068,14 @@ class CliClient final : public Actor {
       StoryId story_id;
       get_args(args, story_sender_user_id, story_id);
       send_request(td_api::make_object<td_api::closeStory>(story_sender_user_id, story_id));
+    } else if (op == "gsv") {
+      StoryId story_id;
+      string limit;
+      int32 offset_date;
+      UserId offset_user_id;
+      get_args(args, story_id, limit, offset_date, offset_user_id);
+      send_request(td_api::make_object<td_api::getStoryViewers>(
+          story_id, td_api::make_object<td_api::messageViewer>(offset_user_id, offset_date), as_limit(limit)));
     } else if (op == "gamb") {
       UserId user_id;
       get_args(args, user_id);
