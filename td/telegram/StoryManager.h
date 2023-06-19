@@ -23,6 +23,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/Promise.h"
+#include "td/utils/Status.h"
 #include "td/utils/WaitFreeHashMap.h"
 #include "td/utils/WaitFreeHashSet.h"
 
@@ -132,6 +133,8 @@ class StoryManager final : public Actor {
                                telegram_api::object_ptr<telegram_api::userStories> &&user_stories);
 
   bool on_update_read_stories(DialogId owner_dialog_id, StoryId max_read_story_id);
+
+  Status can_get_story_viewers(StoryFullId story_full_id, const Story *story) const;
 
   void on_get_story_views(const vector<StoryId> &story_ids,
                           telegram_api::object_ptr<telegram_api::stories_storyViews> &&story_views);

@@ -1560,6 +1560,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   bool premium_gift_text_field_icon = false;
   int32 dialog_filter_update_period = 300;
   bool archive_all_stories = false;
+  int32 story_viewers_expire_period = 86400;
   if (config->get_id() == telegram_api::jsonObject::ID) {
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
       Slice key = key_value->key_;
@@ -1960,6 +1961,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         archive_all_stories = get_json_value_bool(std::move(key_value->value_), key);
         continue;
       }
+      if (key == "story_viewers_expire_period") {
+        story_viewers_expire_period = get_json_value_int(std::move(key_value->value_), key);
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
@@ -2124,6 +2129,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
     options.set_option_boolean("gift_premium_from_input_field", premium_gift_text_field_icon);
   } else {
     options.set_option_empty("gift_premium_from_input_field");
+  }
+
+  if (story_viewers_expire_period >= 0) {
+    options.set_option_integer("story_viewers_expire_period", story_viewers_expire_period);
   }
 
   if (!options.get_option_boolean("need_synchronize_archive_all_stories")) {

@@ -292,7 +292,8 @@ bool OptionManager::is_internal_option(Slice name) {
       return name == "saved_animations_limit" || name == "saved_gifs_limit_default" ||
              name == "saved_gifs_limit_premium" || name == "session_count" || name == "since_last_open" ||
              name == "stickers_faved_limit_default" || name == "stickers_faved_limit_premium" ||
-             name == "stickers_normal_by_emoji_per_premium_num" || name == "stickers_premium_by_emoji_num";
+             name == "stickers_normal_by_emoji_per_premium_num" || name == "stickers_premium_by_emoji_num" ||
+             name == "story_viewers_expire_period";
     case 'v':
       return name == "video_note_size_max";
     case 'w':

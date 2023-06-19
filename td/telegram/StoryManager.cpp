@@ -990,6 +990,21 @@ void StoryManager::read_stories_on_server(DialogId owner_dialog_id, StoryId stor
   td_->create_handler<ReadStoriesQuery>(get_erase_log_event_promise(log_event_id))->send(owner_dialog_id, story_id);
 }
 
+Status StoryManager::can_get_story_viewers(StoryFullId story_full_id, const Story *story) const {
+  CHECK(story != nullptr);
+  if (!is_story_owned(story_full_id.get_dialog_id())) {
+    return Status::Error(400, "Story is not outgoing");
+  }
+  if (!story_full_id.get_story_id().is_server()) {
+    return Status::Error(400, "Story is not sent yet");
+  }
+  if (G()->unix_time() >=
+      story->expire_date_ + td_->option_manager_->get_option_integer("story_viewers_expire_period", 86400)) {
+    return Status::Error(400, "Story is too old");
+  }
+  return Status::OK();
+}
+
 void StoryManager::get_story_viewers(StoryId story_id, const td_api::messageViewer *offset, int32 limit,
                                      Promise<td_api::object_ptr<td_api::messageViewers>> &&promise) {
   DialogId owner_dialog_id(td_->contacts_manager_->get_my_id());
@@ -998,14 +1013,13 @@ void StoryManager::get_story_viewers(StoryId story_id, const td_api::messageView
   if (story == nullptr) {
     return promise.set_error(Status::Error(400, "Story not found"));
   }
-  if (!story_id.is_server()) {
-    return promise.set_value(td_api::object_ptr<td_api::messageViewers>());
-  }
-  // TRY_STATUS_PROMISE(promise, can_get_story_viewers(story_full_id));
-
   if (limit <= 0) {
     return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
   }
+  if (can_get_story_viewers(story_full_id, story).is_error()) {
+    return promise.set_value(td_api::object_ptr<td_api::messageViewers>());
+  }
+
   int32 offset_date = 0;
   int64 offset_user_id = 0;
   if (offset != nullptr) {
@@ -1159,7 +1173,8 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
   return td_api::make_object<td_api::story>(
       story_full_id.get_story_id().get(),
       td_->contacts_manager_->get_user_id_object(dialog_id.get_user_id(), "get_story_object"), story->date_,
-      story->is_pinned_, story->interaction_info_.get_story_interaction_info_object(td_), std::move(privacy_rules),
+      story->is_pinned_, can_get_story_viewers(story_full_id, story).is_ok(),
+      story->interaction_info_.get_story_interaction_info_object(td_), std::move(privacy_rules),
       get_story_content_object(td_, content),
       get_formatted_text_object(story->caption_, true, get_story_content_duration(td_, content)));
 }
