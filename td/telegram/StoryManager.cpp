@@ -610,9 +610,9 @@ StoryManager::StoryManager(Td *td, ActorShared<> parent) : td_(td), parent_(std:
 }
 
 StoryManager::~StoryManager() {
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), story_full_id_to_file_source_id_, stories_,
-                                              inaccessible_story_full_ids_, deleted_story_full_ids_, story_messages_,
-                                              active_stories_, max_read_story_ids_);
+  Scheduler::instance()->destroy_on_scheduler(
+      G()->get_gc_scheduler_id(), story_full_id_to_file_source_id_, stories_, stories_by_global_id_,
+      inaccessible_story_full_ids_, deleted_story_full_ids_, story_messages_, active_stories_, max_read_story_ids_);
 }
 
 void StoryManager::start_up() {
@@ -1290,6 +1290,7 @@ StoryId StoryManager::on_get_story(DialogId owner_dialog_id,
     stories_.set(story_full_id, std::move(s));
     is_changed = true;
     story_item->min_ = false;
+    register_story_global_id(story_full_id, story);
 
     inaccessible_story_full_ids_.erase(story_full_id);
     send_closure_later(G()->messages_manager(),
@@ -1399,6 +1400,7 @@ StoryId StoryManager::on_get_skipped_story(DialogId owner_dialog_id,
     auto s = make_unique<Story>();
     story = s.get();
     stories_.set(story_full_id, std::move(s));
+    register_story_global_id(story_full_id, story);
 
     inaccessible_story_full_ids_.erase(story_full_id);
   }
@@ -1437,6 +1439,7 @@ void StoryManager::on_delete_story(DialogId owner_dialog_id, StoryId story_id) {
                      story_id.get()));
   }
   delete_story_files(story);
+  unregister_story_global_id(story);
   stories_.erase(story_full_id);
 
   auto active_stories = get_active_stories(owner_dialog_id);
@@ -1475,6 +1478,17 @@ void StoryManager::on_story_changed(StoryFullId story_full_id, const Story *stor
       }
     }
   }
+}
+
+void StoryManager::register_story_global_id(StoryFullId story_full_id, Story *story) {
+  CHECK(story->global_id_ == 0);
+  story->global_id_ = ++max_story_global_id_;
+  stories_by_global_id_[story->global_id_] = story_full_id;
+}
+
+void StoryManager::unregister_story_global_id(const Story *story) {
+  CHECK(story->global_id_ > 0);
+  stories_by_global_id_.erase(story->global_id_);
 }
 
 std::pair<int32, vector<StoryId>> StoryManager::on_get_stories(

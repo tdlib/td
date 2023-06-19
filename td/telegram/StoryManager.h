@@ -48,6 +48,7 @@ class StoryManager final : public Actor {
     unique_ptr<StoryContent> content_;
     FormattedText caption_;
     mutable int64 edit_generation_ = 0;
+    int64 global_id_ = 0;
   };
 
   struct BeingEditedStory {
@@ -193,6 +194,10 @@ class StoryManager final : public Actor {
 
   void on_story_changed(StoryFullId story_full_id, const Story *story, bool is_changed, bool need_save_to_database);
 
+  void register_story_global_id(StoryFullId story_full_id, Story *story);
+
+  void unregister_story_global_id(const Story *story);
+
   td_api::object_ptr<td_api::storyInfo> get_story_info_object(StoryFullId story_full_id) const;
 
   td_api::object_ptr<td_api::storyInfo> get_story_info_object(StoryFullId story_full_id, const Story *story) const;
@@ -278,6 +283,8 @@ class StoryManager final : public Actor {
 
   WaitFreeHashMap<StoryFullId, unique_ptr<Story>, StoryFullIdHash> stories_;
 
+  WaitFreeHashMap<int64, StoryFullId> stories_by_global_id_;
+
   WaitFreeHashSet<StoryFullId, StoryFullIdHash> inaccessible_story_full_ids_;
 
   WaitFreeHashSet<StoryFullId, StoryFullIdHash> deleted_story_full_ids_;
@@ -295,6 +302,8 @@ class StoryManager final : public Actor {
   FlatHashMap<StoryFullId, uint32, StoryFullIdHash> opened_owned_stories_;
 
   uint32 send_story_count_ = 0;
+
+  int64 max_story_global_id_ = 0;
 
   bool has_active_synchronize_archive_all_stories_query_ = false;
 
