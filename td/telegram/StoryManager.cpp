@@ -610,6 +610,9 @@ StoryManager::StoryManager(Td *td, ActorShared<> parent) : td_(td), parent_(std:
 
   story_expire_timeout_.set_callback(on_story_expire_timeout_callback);
   story_expire_timeout_.set_callback_data(static_cast<void *>(this));
+
+  story_can_get_viewers_timeout_.set_callback(on_story_can_get_viewers_timeout_callback);
+  story_can_get_viewers_timeout_.set_callback_data(static_cast<void *>(this));
 }
 
 StoryManager::~StoryManager() {
@@ -663,6 +666,37 @@ void StoryManager::on_story_expire_timeout(int64 story_global_id) {
   }
 }
 
+void StoryManager::on_story_can_get_viewers_timeout_callback(void *story_manager_ptr, int64 story_global_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto story_manager = static_cast<StoryManager *>(story_manager_ptr);
+  send_closure_later(story_manager->actor_id(story_manager), &StoryManager::on_story_can_get_viewers_timeout,
+                     story_global_id);
+}
+
+void StoryManager::on_story_can_get_viewers_timeout(int64 story_global_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto story_full_id = stories_by_global_id_.get(story_global_id);
+  auto story = get_story(story_full_id);
+  if (story == nullptr) {
+    return;
+  }
+  if (can_get_story_viewers(story_full_id, story).is_ok()) {
+    LOG(ERROR) << "Receive timeout for " << story_full_id << " with available viewers";
+    return on_story_changed(story_full_id, story, false, false);
+  }
+  if (story->content_ != nullptr && story->is_update_sent_) {
+    // can_get_viewers flag has changed
+    send_closure(G()->td(), &Td::send_update,
+                 td_api::make_object<td_api::updateStory>(get_story_object(story_full_id, story)));
+  }
+}
+
 bool StoryManager::is_story_owned(DialogId owner_dialog_id) const {
   return owner_dialog_id == DialogId(td_->contacts_manager_->get_my_id());
 }
@@ -671,8 +705,13 @@ bool StoryManager::is_active_story(StoryFullId story_full_id) const {
   return is_active_story(get_story(story_full_id));
 }
 
-bool StoryManager::is_active_story(const Story *story) const {
+bool StoryManager::is_active_story(const Story *story) {
   return story != nullptr && G()->unix_time() < story->expire_date_;
+}
+
+int32 StoryManager::get_story_viewers_expire_date(const Story *story) const {
+  return story->expire_date_ +
+         narrow_cast<int32>(td_->option_manager_->get_option_integer("story_viewers_expire_period", 86400));
 }
 
 const StoryManager::Story *StoryManager::get_story(StoryFullId story_full_id) const {
@@ -1044,8 +1083,7 @@ Status StoryManager::can_get_story_viewers(StoryFullId story_full_id, const Stor
   if (!story_full_id.get_story_id().is_server()) {
     return Status::Error(400, "Story is not sent yet");
   }
-  if (G()->unix_time() >=
-      story->expire_date_ + td_->option_manager_->get_option_integer("story_viewers_expire_period", 86400)) {
+  if (G()->unix_time() >= get_story_viewers_expire_date(story)) {
     return Status::Error(400, "Story is too old");
   }
   return Status::OK();
@@ -1495,6 +1533,10 @@ void StoryManager::on_story_changed(StoryFullId story_full_id, const Story *stor
   if (is_active_story(story)) {
     CHECK(story->global_id_ > 0);
     story_expire_timeout_.set_timeout_in(story->global_id_, story->expire_date_ - G()->unix_time());
+  }
+  if (can_get_story_viewers(story_full_id, story).is_ok()) {
+    story_can_get_viewers_timeout_.set_timeout_in(story->global_id_,
+                                                  get_story_viewers_expire_date(story) - G()->unix_time());
   }
   if (story->content_ == nullptr) {
     return;

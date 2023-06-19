@@ -185,11 +185,17 @@ class StoryManager final : public Actor {
 
   void on_story_expire_timeout(int64 story_global_id);
 
+  static void on_story_can_get_viewers_timeout_callback(void *story_manager_ptr, int64 story_global_id);
+
+  void on_story_can_get_viewers_timeout(int64 story_global_id);
+
   bool is_story_owned(DialogId owner_dialog_id) const;
 
   bool is_active_story(StoryFullId story_full_id) const;
 
-  bool is_active_story(const Story *story) const;
+  int32 get_story_viewers_expire_date(const Story *story) const;
+
+  static bool is_active_story(const Story *story);
 
   const Story *get_story(StoryFullId story_full_id) const;
 
@@ -317,6 +323,7 @@ class StoryManager final : public Actor {
   Timeout interaction_info_update_timeout_;
 
   MultiTimeout story_expire_timeout_{"StoryExpireTimeout"};
+  MultiTimeout story_can_get_viewers_timeout_{"StoryCanGetViewersTimeout"};
 
   Td *td_;
   ActorShared<> parent_;
