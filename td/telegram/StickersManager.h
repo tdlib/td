@@ -1053,7 +1053,7 @@ class StickersManager final : public Actor {
 
   bool is_inited_ = false;
 
-  WaitFreeHashMap<FileId, unique_ptr<Sticker>, FileIdHash> stickers_;  // file_id -> Sticker
+  WaitFreeHashMap<FileId, unique_ptr<Sticker>, FileIdHash> stickers_;
   WaitFreeHashMap<StickerSetId, unique_ptr<StickerSet>, StickerSetIdHash>
       sticker_sets_;  // sticker_set_id -> StickerSet
   WaitFreeHashMap<string, StickerSetId> short_name_to_sticker_set_id_;

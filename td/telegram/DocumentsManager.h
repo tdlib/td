@@ -133,7 +133,7 @@ class DocumentsManager {
   FileId on_get_document(unique_ptr<GeneralDocument> new_document, bool replace);
 
   Td *td_;
-  WaitFreeHashMap<FileId, unique_ptr<GeneralDocument>, FileIdHash> documents_;  // file_id -> GeneralDocument
+  WaitFreeHashMap<FileId, unique_ptr<GeneralDocument>, FileIdHash> documents_;
 };
 
 }  // namespace td

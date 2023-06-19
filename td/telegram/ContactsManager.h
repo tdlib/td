@@ -1988,7 +1988,7 @@ class ContactsManager final : public Actor {
         , promise(std::move(promise)) {
     }
   };
-  FlatHashMap<FileId, UploadedProfilePhoto, FileIdHash> uploaded_profile_photos_;  // file_id -> promise
+  FlatHashMap<FileId, UploadedProfilePhoto, FileIdHash> uploaded_profile_photos_;
 
   struct ImportContactsTask {
     Promise<Unit> promise_;
