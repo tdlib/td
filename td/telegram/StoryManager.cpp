@@ -788,6 +788,12 @@ void StoryManager::get_dialog_expiring_stories(DialogId owner_dialog_id,
     return promise.set_value(td_api::make_object<td_api::activeStories>(owner_dialog_id.get(), 0, Auto()));
   }
 
+  auto active_stories = get_active_stories(owner_dialog_id);
+  if (active_stories != nullptr && promise) {
+    promise.set_value(get_active_stories_object(owner_dialog_id));
+    promise = {};
+  }
+
   auto query_promise =
       PromiseCreator::lambda([actor_id = actor_id(this), owner_dialog_id, promise = std::move(promise)](
                                  Result<telegram_api::object_ptr<telegram_api::stories_userStories>> &&result) mutable {
