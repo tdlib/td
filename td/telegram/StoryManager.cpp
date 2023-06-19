@@ -1270,11 +1270,11 @@ StoryId StoryManager::on_get_story(DialogId owner_dialog_id,
     LOG(ERROR) << "Receive " << to_string(story_item);
     return StoryId();
   }
-  if (deleted_story_full_ids_.count({owner_dialog_id, story_id}) > 0) {
+  StoryFullId story_full_id{owner_dialog_id, story_id};
+  if (deleted_story_full_ids_.count(story_full_id) > 0) {
     return StoryId();
   }
 
-  StoryFullId story_full_id{owner_dialog_id, story_id};
   Story *story = get_story_editable(story_full_id);
   bool is_changed = false;
   bool need_save_to_database = false;
@@ -1356,6 +1356,21 @@ StoryId StoryManager::on_get_story(DialogId owner_dialog_id,
   }
 
   on_story_changed(story_full_id, story, is_changed, need_save_to_database);
+
+  if (is_active_story(story)) {
+    auto active_stories = get_active_stories(owner_dialog_id);
+    if (active_stories != nullptr && !contains(active_stories->story_ids_, story_id)) {
+      auto story_ids = active_stories->story_ids_;
+      story_ids.push_back(story_id);
+      size_t i = story_ids.size() - 1;
+      while (i > 0 && story_ids[i - 1].get() > story_id.get()) {
+        story_ids[i] = story_ids[i - 1];
+        i--;
+      }
+      story_ids[i] = story_id;
+      on_update_active_stories(owner_dialog_id, active_stories->max_read_story_id_, std::move(story_ids));
+    }
+  }
 
   return story_id;
 }
