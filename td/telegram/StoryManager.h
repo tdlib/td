@@ -19,6 +19,7 @@
 #include "td/telegram/UserPrivacySettingRule.h"
 
 #include "td/actor/actor.h"
+#include "td/actor/MultiTimeout.h"
 #include "td/actor/Timeout.h"
 
 #include "td/utils/common.h"
@@ -180,6 +181,10 @@ class StoryManager final : public Actor {
 
   void tear_down() final;
 
+  static void on_story_expire_timeout_callback(void *story_manager_ptr, int64 story_global_id);
+
+  void on_story_expire_timeout(int64 story_global_id);
+
   bool is_story_owned(DialogId owner_dialog_id) const;
 
   bool is_active_story(StoryFullId story_full_id) const;
@@ -310,6 +315,8 @@ class StoryManager final : public Actor {
   FlatHashMap<FileId, unique_ptr<PendingStory>, FileIdHash> being_uploaded_files_;
 
   Timeout interaction_info_update_timeout_;
+
+  MultiTimeout story_expire_timeout_{"StoryExpireTimeout"};
 
   Td *td_;
   ActorShared<> parent_;

@@ -607,6 +607,9 @@ StoryManager::PendingStory::PendingStory(DialogId dialog_id, StoryId story_id, u
 
 StoryManager::StoryManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   upload_media_callback_ = std::make_shared<UploadMediaCallback>();
+
+  story_expire_timeout_.set_callback(on_story_expire_timeout_callback);
+  story_expire_timeout_.set_callback_data(static_cast<void *>(this));
 }
 
 StoryManager::~StoryManager() {
@@ -621,6 +624,43 @@ void StoryManager::start_up() {
 
 void StoryManager::tear_down() {
   parent_.reset();
+}
+
+void StoryManager::on_story_expire_timeout_callback(void *story_manager_ptr, int64 story_global_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto story_manager = static_cast<StoryManager *>(story_manager_ptr);
+  send_closure_later(story_manager->actor_id(story_manager), &StoryManager::on_story_expire_timeout, story_global_id);
+}
+
+void StoryManager::on_story_expire_timeout(int64 story_global_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto story_full_id = stories_by_global_id_.get(story_global_id);
+  auto story = get_story(story_full_id);
+  if (story == nullptr) {
+    return;
+  }
+  if (is_active_story(story)) {
+    LOG(ERROR) << "Receive timeout for non-expired " << story_full_id;
+    return on_story_changed(story_full_id, story, false, false);
+  }
+  auto owner_dialog_id = story_full_id.get_dialog_id();
+  auto story_id = story_full_id.get_story_id();
+  if (!is_story_owned(owner_dialog_id) && story->content_ != nullptr && !story->is_pinned_) {
+    // non-owned expired non-pinned stories are fully deleted
+    on_delete_story(owner_dialog_id, story_id);
+  }
+
+  auto active_stories = get_active_stories(owner_dialog_id);
+  if (active_stories != nullptr && contains(active_stories->story_ids_, story_id)) {
+    auto story_ids = active_stories->story_ids_;
+    on_update_active_stories(owner_dialog_id, active_stories->max_read_story_id_, std::move(story_ids));
+  }
 }
 
 bool StoryManager::is_story_owned(DialogId owner_dialog_id) const {
@@ -1452,6 +1492,10 @@ void StoryManager::on_delete_story(DialogId owner_dialog_id, StoryId story_id) {
 
 void StoryManager::on_story_changed(StoryFullId story_full_id, const Story *story, bool is_changed,
                                     bool need_save_to_database) {
+  if (is_active_story(story)) {
+    CHECK(story->global_id_ > 0);
+    story_expire_timeout_.set_timeout_in(story->global_id_, story->expire_date_ - G()->unix_time());
+  }
   if (story->content_ == nullptr) {
     return;
   }
