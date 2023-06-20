@@ -1117,6 +1117,8 @@ void StoryManager::get_story_viewers(StoryId story_id, const td_api::messageView
       (cached_viewers->total_count_ == story->interaction_info_.get_view_count() || !offset_viewer.is_empty())) {
     auto result = cached_viewers->viewers_.get_sublist(offset_viewer, limit);
     if (!result.is_empty()) {
+      // can return the viewers
+      // don't need to reget the viewers, because story->interaction_info_.get_view_count() is updated every 10 seconds
       return promise.set_value(result.get_message_viewers_object(td_->contacts_manager_.get()));
     }
   }
