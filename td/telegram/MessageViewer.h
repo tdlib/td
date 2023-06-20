@@ -35,6 +35,10 @@ class MessageViewer {
     return user_id_;
   }
 
+  bool is_empty() const {
+    return user_id_ == UserId() && date_ == 0;
+  }
+
   td_api::object_ptr<td_api::messageViewer> get_message_viewer_object(ContactsManager *contacts_manager) const;
 };
 

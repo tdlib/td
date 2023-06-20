@@ -54,7 +54,7 @@ MessageViewers::MessageViewers(vector<telegram_api::object_ptr<telegram_api::rea
 
 MessageViewers MessageViewers::get_sublist(const MessageViewer &offset, int32 limit) const {
   MessageViewers result{vector<telegram_api::object_ptr<telegram_api::storyView>>()};
-  bool found = offset == MessageViewer(UserId(), 0);
+  bool found = offset.is_empty();
   for (auto &message_viewer : message_viewers_) {
     if (found) {
       if (limit-- <= 0) {
