@@ -44,6 +44,10 @@ class StoryInteractionInfo {
     return false;
   }
 
+  int32 get_view_count() const {
+    return view_count_;
+  }
+
   td_api::object_ptr<td_api::storyInteractionInfo> get_story_interaction_info_object(Td *td) const;
 };
 

@@ -51,11 +51,19 @@ StringBuilder &operator<<(StringBuilder &string_builder, const MessageViewer &vi
 struct MessageViewers {
   vector<MessageViewer> message_viewers_;
 
+  MessageViewers() = default;
+
   explicit MessageViewers(vector<telegram_api::object_ptr<telegram_api::storyView>> &&story_views);
 
   explicit MessageViewers(vector<telegram_api::object_ptr<telegram_api::readParticipantDate>> &&read_dates);
 
+  bool is_empty() const {
+    return message_viewers_.empty();
+  }
+
   MessageViewers get_sublist(const MessageViewer &offset, int32 limit) const;
+
+  void add_sublist(const MessageViewer &offset, const MessageViewers &sublist);
 
   td_api::object_ptr<td_api::messageViewers> get_message_viewers_object(ContactsManager *contacts_manager) const;
 };

@@ -11,6 +11,7 @@
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/FullMessageId.h"
 #include "td/telegram/MessageEntity.h"
+#include "td/telegram/MessageViewer.h"
 #include "td/telegram/StoryFullId.h"
 #include "td/telegram/StoryId.h"
 #include "td/telegram/StoryInteractionInfo.h"
@@ -80,6 +81,11 @@ class StoryManager final : public Actor {
   struct ActiveStories {
     StoryId max_read_story_id_;
     vector<StoryId> story_ids_;
+  };
+
+  struct CachedStoryViewers {
+    int32 total_count_ = -1;
+    MessageViewers viewers_;
   };
 
  public:
@@ -284,7 +290,7 @@ class StoryManager final : public Actor {
 
   void on_synchronized_archive_all_stories(bool set_archive_all_stories, Result<Unit> result);
 
-  void on_get_story_viewers(StoryId story_id,
+  void on_get_story_viewers(StoryId story_id, MessageViewer offset,
                             Result<telegram_api::object_ptr<telegram_api::stories_storyViewsList>> r_view_list,
                             Promise<td_api::object_ptr<td_api::messageViewers>> &&promise);
 
@@ -311,6 +317,8 @@ class StoryManager final : public Actor {
   FlatHashMap<DialogId, PendingStoryViews, DialogIdHash> pending_story_views_;
 
   FlatHashMap<StoryFullId, uint32, StoryFullIdHash> opened_owned_stories_;
+
+  FlatHashMap<StoryFullId, unique_ptr<CachedStoryViewers>, StoryFullIdHash> cached_story_viewers_;
 
   uint32 send_story_count_ = 0;
 

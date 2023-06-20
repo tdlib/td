@@ -16,7 +16,6 @@
 #include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessagesManager.h"
-#include "td/telegram/MessageViewer.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/StoryContent.h"
 #include "td/telegram/StoryContentType.h"
@@ -695,6 +694,7 @@ void StoryManager::on_story_can_get_viewers_timeout(int64 story_global_id) {
     send_closure(G()->td(), &Td::send_update,
                  td_api::make_object<td_api::updateStory>(get_story_object(story_full_id, story)));
   }
+  cached_story_viewers_.erase(story_full_id);
 }
 
 bool StoryManager::is_story_owned(DialogId owner_dialog_id) const {
@@ -1100,7 +1100,7 @@ void StoryManager::get_story_viewers(StoryId story_id, const td_api::messageView
   if (limit <= 0) {
     return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
   }
-  if (can_get_story_viewers(story_full_id, story).is_error()) {
+  if (can_get_story_viewers(story_full_id, story).is_error() || story->interaction_info_.get_view_count() == 0) {
     return promise.set_value(td_api::object_ptr<td_api::messageViewers>());
   }
 
@@ -1110,11 +1110,22 @@ void StoryManager::get_story_viewers(StoryId story_id, const td_api::messageView
     offset_date = offset->view_date_;
     offset_user_id = offset->user_id_;
   }
+  MessageViewer offset_viewer{UserId(offset_user_id), offset_date};
+
+  auto &cached_viewers = cached_story_viewers_[story_full_id];
+  if (cached_viewers != nullptr && story->content_ != nullptr &&
+      (cached_viewers->total_count_ == story->interaction_info_.get_view_count() || !offset_viewer.is_empty())) {
+    auto result = cached_viewers->viewers_.get_sublist(offset_viewer, limit);
+    if (!result.is_empty()) {
+      return promise.set_value(result.get_message_viewers_object(td_->contacts_manager_.get()));
+    }
+  }
 
   auto query_promise = PromiseCreator::lambda(
-      [actor_id = actor_id(this), story_id, promise = std::move(promise)](
+      [actor_id = actor_id(this), story_id, offset_viewer, promise = std::move(promise)](
           Result<telegram_api::object_ptr<telegram_api::stories_storyViewsList>> result) mutable {
-        send_closure(actor_id, &StoryManager::on_get_story_viewers, story_id, std::move(result), std::move(promise));
+        send_closure(actor_id, &StoryManager::on_get_story_viewers, story_id, offset_viewer, std::move(result),
+                     std::move(promise));
       });
 
   td_->create_handler<GetStoryViewsListQuery>(std::move(query_promise))
@@ -1122,7 +1133,8 @@ void StoryManager::get_story_viewers(StoryId story_id, const td_api::messageView
 }
 
 void StoryManager::on_get_story_viewers(
-    StoryId story_id, Result<telegram_api::object_ptr<telegram_api::stories_storyViewsList>> r_view_list,
+    StoryId story_id, MessageViewer offset,
+    Result<telegram_api::object_ptr<telegram_api::stories_storyViewsList>> r_view_list,
     Promise<td_api::object_ptr<td_api::messageViewers>> &&promise) {
   G()->ignore_result_if_closing(r_view_list);
   if (r_view_list.is_error()) {
@@ -1140,11 +1152,29 @@ void StoryManager::on_get_story_viewers(
 
   td_->contacts_manager_->on_get_users(std::move(view_list->users_), "on_get_story_viewers");
 
-  if (story->content_ != nullptr && story->interaction_info_.set_view_count(view_list->count_)) {
-    on_story_changed(story_full_id, story, true, true);
+  auto total_count = view_list->count_;
+  if (total_count < 0 || static_cast<size_t>(total_count) < view_list->views_.size()) {
+    LOG(ERROR) << "Receive total_count = " << total_count << " and " << view_list->views_.size() << " story viewers";
+    total_count = static_cast<int32>(view_list->views_.size());
   }
 
   MessageViewers story_viewers(std::move(view_list->views_));
+  if (story->content_ != nullptr) {
+    if (story->interaction_info_.set_view_count(view_list->count_)) {
+      on_story_changed(story_full_id, story, true, true);
+    }
+    auto &cached_viewers = cached_story_viewers_[story_full_id];
+    if (cached_viewers == nullptr) {
+      cached_viewers = make_unique<CachedStoryViewers>();
+    }
+    if (total_count < cached_viewers->total_count_) {
+      LOG(ERROR) << "Total viewer count decreased from " << cached_viewers->total_count_ << " to " << total_count;
+    } else {
+      cached_viewers->total_count_ = total_count;
+    }
+    cached_viewers->viewers_.add_sublist(offset, story_viewers);
+  }
+
   promise.set_value(story_viewers.get_message_viewers_object(td_->contacts_manager_.get()));
 }
 

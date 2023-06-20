@@ -53,7 +53,7 @@ MessageViewers::MessageViewers(vector<telegram_api::object_ptr<telegram_api::rea
 }
 
 MessageViewers MessageViewers::get_sublist(const MessageViewer &offset, int32 limit) const {
-  MessageViewers result{vector<telegram_api::object_ptr<telegram_api::storyView>>()};
+  MessageViewers result;
   bool found = offset.is_empty();
   for (auto &message_viewer : message_viewers_) {
     if (found) {
@@ -66,6 +66,25 @@ MessageViewers MessageViewers::get_sublist(const MessageViewer &offset, int32 li
     }
   }
   return result;
+}
+
+void MessageViewers::add_sublist(const MessageViewer &offset, const MessageViewers &sublist) {
+  if (offset.is_empty()) {
+    if (message_viewers_.empty()) {
+      message_viewers_ = sublist.message_viewers_;
+    } else {
+      auto old_viewers = std::move(message_viewers_);
+      for (auto &viewer : sublist.message_viewers_) {
+        if (viewer == old_viewers[0]) {
+          append(message_viewers_, old_viewers);
+          return;
+        }
+        message_viewers_.push_back(viewer);
+      }
+    }
+  } else if (!message_viewers_.empty() && message_viewers_.back() == offset) {
+    append(message_viewers_, sublist.message_viewers_);
+  }
 }
 
 td_api::object_ptr<td_api::messageViewers> MessageViewers::get_message_viewers_object(

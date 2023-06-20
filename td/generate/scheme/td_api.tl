@@ -7284,10 +7284,12 @@ openStory story_sender_user_id:int53 story_id:int32 = Ok;
 //@story_id The identifier of the story
 closeStory story_sender_user_id:int53 story_id:int32 = Ok;
 
-//@description Returns viewers of a recent outgoing story. The method can be called if story.can_get_viewers == true
+//@description Returns viewers of a recent outgoing story. The method can be called if story.can_get_viewers == true. The views are returned in a reverse chronological order (i.e., in order of decreasing view_date)
+//-For optimal performance, the number of returned stories is chosen by TDLib
 //@story_id Story identifier
 //@offset_viewer A viewer from which to return next viewers; pass null to get results from the beginning
 //@limit The maximum number of story viewers to return
+//-For optimal performance, the number of returned stories is chosen by TDLib and can be smaller than the specified limit
 getStoryViewers story_id:int32 offset_viewer:messageViewer limit:int32 = MessageViewers;
 
 
