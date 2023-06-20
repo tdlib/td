@@ -36,6 +36,13 @@ StoryInteractionInfo::StoryInteractionInfo(Td *td, telegram_api::object_ptr<tele
   }
 }
 
+void StoryInteractionInfo::set_recent_viewer_user_ids(vector<UserId> &&user_ids) {
+  if (user_ids.size() > MAX_RECENT_VIEWERS) {
+    user_ids.resize(MAX_RECENT_VIEWERS);
+  }
+  recent_viewer_user_ids_ = std::move(user_ids);
+}
+
 td_api::object_ptr<td_api::storyInteractionInfo> StoryInteractionInfo::get_story_interaction_info_object(Td *td) const {
   if (is_empty()) {
     return nullptr;

@@ -1161,6 +1161,9 @@ void StoryManager::on_get_story_viewers(
   MessageViewers story_viewers(std::move(view_list->views_));
   if (story->content_ != nullptr) {
     if (story->interaction_info_.set_view_count(view_list->count_)) {
+      if (offset.is_empty()) {
+        story->interaction_info_.set_recent_viewer_user_ids(story_viewers.get_user_ids());
+      }
       on_story_changed(story_full_id, story, true, true);
     }
     auto &cached_viewers = cached_story_viewers_[story_full_id];

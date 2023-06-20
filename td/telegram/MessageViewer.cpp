@@ -87,6 +87,10 @@ void MessageViewers::add_sublist(const MessageViewer &offset, const MessageViewe
   }
 }
 
+vector<UserId> MessageViewers::get_user_ids() const {
+  return transform(message_viewers_, [](auto &viewer) { return viewer.get_user_id(); });
+}
+
 td_api::object_ptr<td_api::messageViewers> MessageViewers::get_message_viewers_object(
     ContactsManager *contacts_manager) const {
   return td_api::make_object<td_api::messageViewers>(

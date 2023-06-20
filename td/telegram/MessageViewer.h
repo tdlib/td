@@ -65,6 +65,8 @@ struct MessageViewers {
 
   void add_sublist(const MessageViewer &offset, const MessageViewers &sublist);
 
+  vector<UserId> get_user_ids() const;
+
   td_api::object_ptr<td_api::messageViewers> get_message_viewers_object(ContactsManager *contacts_manager) const;
 };
 
