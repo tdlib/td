@@ -17,6 +17,7 @@
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/OptionManager.h"
+#include "td/telegram/ReportReason.h"
 #include "td/telegram/StoryContent.h"
 #include "td/telegram/StoryContentType.h"
 #include "td/telegram/Td.h"
@@ -430,6 +431,43 @@ class GetStoriesViewsQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     LOG(INFO) << "Failed to get views of " << story_ids_ << ": " << status;
+  }
+};
+
+class ReportStoryQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit ReportStoryQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(StoryFullId story_full_id, ReportReason &&report_reason) {
+    dialog_id_ = story_full_id.get_dialog_id();
+    CHECK(dialog_id_.get_type() == DialogType::User);
+
+    auto r_input_user = td_->contacts_manager_->get_input_user(dialog_id_.get_user_id());
+    if (r_input_user.is_error()) {
+      return on_error(r_input_user.move_as_error());
+    }
+
+    send_query(G()->net_query_creator().create(
+        telegram_api::stories_report(r_input_user.move_as_ok(), {story_full_id.get_story_id().get()},
+                                     report_reason.get_input_report_reason(), report_reason.get_message())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stories_report>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "ReportStoryQuery");
+    promise_.set_error(std::move(status));
   }
 };
 
@@ -1181,6 +1219,14 @@ void StoryManager::on_get_story_viewers(
   }
 
   promise.set_value(story_viewers.get_message_viewers_object(td_->contacts_manager_.get()));
+}
+
+void StoryManager::report_story(StoryFullId story_full_id, ReportReason &&reason, Promise<Unit> &&promise) {
+  if (!have_story(story_full_id)) {
+    return promise.set_error(Status::Error(400, "Story not found"));
+  }
+
+  td_->create_handler<ReportStoryQuery>(std::move(promise))->send(story_full_id, std::move(reason));
 }
 
 bool StoryManager::have_story(StoryFullId story_full_id) const {

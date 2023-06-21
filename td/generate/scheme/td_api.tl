@@ -7280,7 +7280,7 @@ getArchivedStories from_story_id:int32 limit:int32 = Stories;
 openStory story_sender_user_id:int53 story_id:int32 = Ok;
 
 //@description Informs TDLib that a story is closed by the user
-//@story_sender_user_id The identifier of the sender of the closed story
+//@story_sender_user_id The identifier of the sender of the story to close
 //@story_id The identifier of the story
 closeStory story_sender_user_id:int53 story_id:int32 = Ok;
 
@@ -7291,6 +7291,13 @@ closeStory story_sender_user_id:int53 story_id:int32 = Ok;
 //@limit The maximum number of story viewers to return
 //-For optimal performance, the number of returned stories is chosen by TDLib and can be smaller than the specified limit
 getStoryViewers story_id:int32 offset_viewer:messageViewer limit:int32 = MessageViewers;
+
+//@description Reports a story to the Telegram moderators
+//@story_sender_user_id The identifier of the sender of the story to report
+//@story_id The identifier of the story to report
+//@reason The reason for reporting the story
+//@text Additional report details; 0-1024 characters
+reportStory story_sender_user_id:int53 story_id:int32 reason:ChatReportReason text:string = Ok;
 
 
 //@description Returns information about a bot that can be added to attachment menu @bot_user_id Bot's user identifier

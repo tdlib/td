@@ -57,6 +57,7 @@
 #include "td/telegram/PublicDialogType.h"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/ReplyMarkup.hpp"
+#include "td/telegram/ReportReason.h"
 #include "td/telegram/SecretChatsManager.h"
 #include "td/telegram/SponsoredMessageManager.h"
 #include "td/telegram/StickerPhotoSize.h"
@@ -4371,7 +4372,6 @@ class ReportPeerQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    LOG(INFO) << "Receive error for report peer: " << status;
     td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "ReportPeerQuery");
     td_->messages_manager_->reget_dialog_action_bar(dialog_id_, "ReportPeerQuery");
     promise_.set_error(std::move(status));

@@ -6464,6 +6464,17 @@ void Td::on_request(uint64 id, const td_api::getStoryViewers &request) {
                                     std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::reportStory &request) {
+  CHECK_IS_USER();
+  auto r_report_reason = ReportReason::get_report_reason(std::move(request.reason_), std::move(request.text_));
+  if (r_report_reason.is_error()) {
+    return send_error_raw(id, r_report_reason.error().code(), r_report_reason.error().message());
+  }
+  CREATE_OK_REQUEST_PROMISE();
+  story_manager_->report_story({DialogId(UserId(request.story_sender_user_id_)), StoryId(request.story_id_)},
+                               r_report_reason.move_as_ok(), std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getAttachmentMenuBot &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

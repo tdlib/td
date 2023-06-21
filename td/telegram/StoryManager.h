@@ -34,6 +34,7 @@
 namespace td {
 
 struct BinlogEvent;
+class ReportReason;
 class StoryContent;
 class Td;
 
@@ -131,6 +132,8 @@ class StoryManager final : public Actor {
 
   void get_story_viewers(StoryId story_id, const td_api::messageViewer *offset, int32 limit,
                          Promise<td_api::object_ptr<td_api::messageViewers>> &&promise);
+
+  void report_story(StoryFullId story_full_id, ReportReason &&reason, Promise<Unit> &&promise);
 
   StoryId on_get_story(DialogId owner_dialog_id, telegram_api::object_ptr<telegram_api::StoryItem> &&story_item_ptr);
 

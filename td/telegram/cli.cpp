@@ -4076,6 +4076,14 @@ class CliClient final : public Actor {
       get_args(args, story_id, limit, offset_date, offset_user_id);
       send_request(td_api::make_object<td_api::getStoryViewers>(
           story_id, td_api::make_object<td_api::messageViewer>(offset_user_id, offset_date), as_limit(limit)));
+    } else if (op == "rst") {
+      UserId story_sender_user_id;
+      StoryId story_id;
+      string reason;
+      string text;
+      get_args(args, story_sender_user_id, story_id, reason, text);
+      send_request(td_api::make_object<td_api::reportStory>(story_sender_user_id, story_id,
+                                                            as_chat_report_reason(reason), text));
     } else if (op == "gamb") {
       UserId user_id;
       get_args(args, user_id);
