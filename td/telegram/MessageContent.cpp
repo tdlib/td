@@ -6332,6 +6332,18 @@ vector<FileId> get_message_content_file_ids(const MessageContent *content, const
   }
 }
 
+StoryFullId get_message_content_story_full_id(const Td *td, const MessageContent *content) {
+  CHECK(content != nullptr);
+  switch (content->get_type()) {
+    case MessageContentType::Text:
+      return td->web_pages_manager_->get_web_page_story_full_id(static_cast<const MessageText *>(content)->web_page_id);
+    case MessageContentType::Story:
+      return static_cast<const MessageStory *>(content)->story_full_id;
+    default:
+      return StoryFullId();
+  }
+}
+
 string get_message_content_search_text(const Td *td, const MessageContent *content) {
   switch (content->get_type()) {
     case MessageContentType::Text: {

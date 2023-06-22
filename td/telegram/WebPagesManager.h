@@ -87,6 +87,8 @@ class WebPagesManager final : public Actor {
 
   int32 get_web_page_media_duration(WebPageId web_page_id) const;
 
+  StoryFullId get_web_page_story_full_id(WebPageId web_page_id) const;
+
   vector<UserId> get_web_page_user_ids(WebPageId web_page_id) const;
 
   void on_story_changed(StoryFullId story_full_id);

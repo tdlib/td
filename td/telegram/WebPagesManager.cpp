@@ -1809,6 +1809,14 @@ int32 WebPagesManager::get_web_page_media_duration(const WebPage *web_page) cons
   return -1;
 }
 
+StoryFullId WebPagesManager::get_web_page_story_full_id(WebPageId web_page_id) const {
+  const WebPage *web_page = get_web_page(web_page_id);
+  if (web_page == nullptr || web_page->story_full_ids.empty()) {
+    return StoryFullId();
+  }
+  return web_page->story_full_ids[0];
+}
+
 vector<UserId> WebPagesManager::get_web_page_user_ids(WebPageId web_page_id) const {
   const WebPage *web_page = get_web_page(web_page_id);
   vector<UserId> user_ids;

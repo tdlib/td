@@ -237,6 +237,8 @@ FileId get_message_content_thumbnail_file_id(const MessageContent *content, cons
 
 vector<FileId> get_message_content_file_ids(const MessageContent *content, const Td *td);
 
+StoryFullId get_message_content_story_full_id(const Td *td, const MessageContent *content);
+
 string get_message_content_search_text(const Td *td, const MessageContent *content);
 
 bool update_message_content_extended_media(MessageContent *content,
