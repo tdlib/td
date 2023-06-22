@@ -3222,6 +3222,22 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     return Status::Error(406, "Notifications about muted messages force loading data from the server");
   }
 
+  if (loc_key == "READ_STORIES") {
+    if (dialog_id.get_type() == DialogType::SecretChat) {
+      return Status::Error("Receive READ_STORIES in a secret chat");
+    }
+
+    TRY_RESULT(max_id, get_json_object_int_field(custom, "max_id"));
+    StoryId max_story_id(max_id);
+    if (!max_story_id.is_server()) {
+      return Status::Error("Receive invalid max_id");
+    }
+
+    td_->story_manager_->on_update_read_stories(dialog_id, max_story_id);
+    promise.set_value(Unit());
+    return Status::OK();
+  }
+
   if (loc_key == "STORY_DELETED") {
     if (dialog_id.get_type() != DialogType::SecretChat) {
       return Status::Error("Receive STORY_DELETED in a secret chat");
