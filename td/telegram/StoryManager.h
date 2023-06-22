@@ -42,6 +42,7 @@ class StoryManager final : public Actor {
   struct Story {
     int32 date_ = 0;
     int32 expire_date_ = 0;
+    int32 receive_date_ = 0;
     bool is_pinned_ = false;
     bool is_public_ = false;
     bool is_for_close_friends_ = false;
@@ -187,6 +188,8 @@ class StoryManager final : public Actor {
 
   class DeleteStoryOnServerLogEvent;
   class ReadStoriesOnServerLogEvent;
+
+  static constexpr int32 OPENED_STORY_POLL_PERIOD = 60;
 
   void start_up() final;
 

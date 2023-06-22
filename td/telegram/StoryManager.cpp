@@ -964,6 +964,10 @@ void StoryManager::open_story(DialogId owner_dialog_id, StoryId story_id, Promis
     return promise.set_value(Unit());
   }
 
+  if (story_id.is_server() && story->receive_date_ < G()->unix_time() - OPENED_STORY_POLL_PERIOD) {
+    reload_story(story_full_id, Auto());
+  }
+
   for (auto file_id : get_story_file_ids(story)) {
     td_->file_manager_->check_local_location_async(file_id, true);
   }
@@ -1457,6 +1461,8 @@ StoryId StoryManager::on_get_story(DialogId owner_dialog_id,
                        &MessagesManager::update_story_max_reply_media_timestamp_in_replied_messages, story_full_id);
   }
   CHECK(story != nullptr);
+
+  story->receive_date_ = G()->unix_time();
 
   bool is_bot = td_->auth_manager_->is_bot();
   auto caption =
