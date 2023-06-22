@@ -646,6 +646,9 @@ StoryManager::PendingStory::PendingStory(DialogId dialog_id, StoryId story_id, u
 StoryManager::StoryManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   upload_media_callback_ = std::make_shared<UploadMediaCallback>();
 
+  story_reload_timeout_.set_callback(on_story_reload_timeout_callback);
+  story_reload_timeout_.set_callback_data(static_cast<void *>(this));
+
   story_expire_timeout_.set_callback(on_story_expire_timeout_callback);
   story_expire_timeout_.set_callback_data(static_cast<void *>(this));
 
@@ -679,6 +682,30 @@ void StoryManager::hangup() {
 
 void StoryManager::tear_down() {
   parent_.reset();
+}
+
+void StoryManager::on_story_reload_timeout_callback(void *story_manager_ptr, int64 story_global_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto story_manager = static_cast<StoryManager *>(story_manager_ptr);
+  send_closure_later(story_manager->actor_id(story_manager), &StoryManager::on_story_reload_timeout, story_global_id);
+}
+
+void StoryManager::on_story_reload_timeout(int64 story_global_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto story_full_id = stories_by_global_id_.get(story_global_id);
+  auto story = get_story(story_full_id);
+  if (story == nullptr || !opened_stories_.count(story_full_id)) {
+    return;
+  }
+
+  reload_story(story_full_id, Promise<Unit>());
+  story_reload_timeout_.set_timeout_in(story_global_id, OPENED_STORY_POLL_PERIOD);
 }
 
 void StoryManager::on_story_expire_timeout_callback(void *story_manager_ptr, int64 story_global_id) {
@@ -978,8 +1005,13 @@ void StoryManager::open_story(DialogId owner_dialog_id, StoryId story_id, Promis
     return promise.set_value(Unit());
   }
 
-  if (story_id.is_server() && story->receive_date_ < G()->unix_time() - OPENED_STORY_POLL_PERIOD) {
-    reload_story(story_full_id, Auto());
+  if (story_id.is_server()) {
+    auto &open_count = opened_stories_[story_full_id];
+    if (++open_count == 1) {
+      CHECK(story->global_id_ > 0);
+      story_reload_timeout_.set_timeout_in(story->global_id_,
+                                           story->receive_date_ + OPENED_STORY_POLL_PERIOD - G()->unix_time());
+    }
   }
 
   for (auto file_id : get_story_file_ids(story)) {
@@ -1027,6 +1059,19 @@ void StoryManager::close_story(DialogId owner_dialog_id, StoryId story_id, Promi
       if (opened_owned_stories_.empty()) {
         interaction_info_update_timeout_.cancel_timeout();
       }
+    }
+  }
+
+  const Story *story = get_story(story_full_id);
+  if (story == nullptr) {
+    return promise.set_value(Unit());
+  }
+
+  if (story_id.is_server()) {
+    auto &open_count = opened_stories_[story_full_id];
+    if (open_count > 0 && --open_count == 0) {
+      opened_stories_.erase(story_full_id);
+      story_reload_timeout_.cancel_timeout(story->global_id_);
     }
   }
 
