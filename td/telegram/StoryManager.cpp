@@ -16,6 +16,7 @@
 #include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/NotificationManager.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/ReportReason.h"
 #include "td/telegram/StoryContent.h"
@@ -2281,6 +2282,20 @@ telegram_api::object_ptr<telegram_api::InputMedia> StoryManager::get_input_media
   }
   return telegram_api::make_object<telegram_api::inputMediaStory>(r_input_user.move_as_ok(),
                                                                   story_full_id.get_story_id().get());
+}
+
+void StoryManager::remove_story_notifications_by_story_ids(DialogId dialog_id, const vector<StoryId> &story_ids) {
+  VLOG(notifications) << "Trying to remove notification about " << story_ids << " in " << dialog_id;
+  for (auto story_id : story_ids) {
+    if (!have_story_force({dialog_id, story_id})) {
+      LOG(INFO) << "Can't delete " << story_id << " because it is not found";
+      // call synchronously to remove them before ProcessPush returns
+      // td_->notification_manager_->remove_temporary_notification_by_story_id(
+      //    story_notification_group_id, story_id, true, "remove_story_notifications_by_story_ids");
+      continue;
+    }
+    on_delete_story(dialog_id, story_id);
+  }
 }
 
 void StoryManager::on_binlog_events(vector<BinlogEvent> &&events) {

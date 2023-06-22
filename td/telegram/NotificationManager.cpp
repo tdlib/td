@@ -27,6 +27,7 @@
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StateManager.h"
+#include "td/telegram/StoryManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
@@ -3213,6 +3214,26 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
 
   if (loc_key == "MESSAGE_MUTED") {
     return Status::Error(406, "Notifications about muted messages force loading data from the server");
+  }
+
+  if (loc_key == "STORY_DELETED") {
+    if (dialog_id.get_type() != DialogType::SecretChat) {
+      return Status::Error("Receive STORY_DELETED in a secret chat");
+    }
+    TRY_RESULT(server_story_ids_str, get_json_object_string_field(custom, "story_id", false));
+    auto server_story_ids = full_split(server_story_ids_str, ',');
+    vector<StoryId> story_ids;
+    for (const auto &server_story_id_str : server_story_ids) {
+      TRY_RESULT(story_id_int, to_integer_safe<int32>(server_story_id_str));
+      StoryId story_id(story_id_int);
+      if (!story_id.is_server()) {
+        return Status::Error("Receive invalid story identifier");
+      }
+      story_ids.push_back(story_id);
+    }
+    td_->story_manager_->remove_story_notifications_by_story_ids(dialog_id, story_ids);
+    promise.set_value(Unit());
+    return Status::OK();
   }
 
   TRY_RESULT(msg_id, get_json_object_int_field(custom, "msg_id"));
