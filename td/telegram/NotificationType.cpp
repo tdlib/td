@@ -313,6 +313,9 @@ class NotificationTypePushMessage final : public NotificationType {
           return td_api::make_object<td_api::pushMessageContentSticker>(
               stickers_manager->get_sticker_object(document.file_id), trim(arg), is_pinned);
         }
+        if (key == "MESSAGE_STORY") {
+          return td_api::make_object<td_api::pushMessageContentStory>(is_pinned);
+        }
         if (key == "MESSAGE_SUGGEST_PHOTO") {
           return td_api::make_object<td_api::pushMessageContentSuggestProfilePhoto>();
         }

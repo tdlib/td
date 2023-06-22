@@ -4301,6 +4301,9 @@ pushMessageContentScreenshotTaken = PushMessageContent;
 //@is_pinned True, if the message is a pinned message with the specified content
 pushMessageContentSticker sticker:sticker emoji:string is_pinned:Bool = PushMessageContent;
 
+//@description A message with a story @is_pinned True, if the message is a pinned message with the specified content
+pushMessageContentStory is_pinned:Bool = PushMessageContent;
+
 //@description A text message @text Message text @is_pinned True, if the message is a pinned message with the specified content
 pushMessageContentText text:string is_pinned:Bool = PushMessageContent;
 

@@ -2929,6 +2929,9 @@ string NotificationManager::convert_loc_key(const string &loc_key) {
       if (loc_key == "MESSAGE_STICKER") {
         return "MESSAGE_STICKER";
       }
+      if (loc_key == "MESSAGE_STORY") {
+        return "MESSAGE_STORY";
+      }
       if (loc_key == "MESSAGE_SUGGEST_PHOTO") {
         return "MESSAGE_SUGGEST_PHOTO";
       }
@@ -2942,6 +2945,9 @@ string NotificationManager::convert_loc_key(const string &loc_key) {
       }
       if (loc_key == "PINNED_STICKER") {
         return "PINNED_MESSAGE_STICKER";
+      }
+      if (loc_key == "PINNED_STORY") {
+        return "PINNED_MESSAGE_STORY";
       }
       if (loc_key == "CHAT_PHOTO_EDITED") {
         return "MESSAGE_CHAT_CHANGE_PHOTO";
