@@ -1784,39 +1784,39 @@ class CliClient final : public Actor {
     return td_api::make_object<td_api::chatActionTyping>();
   }
 
-  static td_api::object_ptr<td_api::ChatReportReason> as_chat_report_reason(MutableSlice reason) {
+  static td_api::object_ptr<td_api::ReportReason> as_report_reason(MutableSlice reason) {
     reason = trim(reason);
     if (reason == "null") {
       return nullptr;
     }
     if (reason == "spam") {
-      return td_api::make_object<td_api::chatReportReasonSpam>();
+      return td_api::make_object<td_api::reportReasonSpam>();
     }
     if (reason == "violence") {
-      return td_api::make_object<td_api::chatReportReasonViolence>();
+      return td_api::make_object<td_api::reportReasonViolence>();
     }
     if (reason == "porno") {
-      return td_api::make_object<td_api::chatReportReasonPornography>();
+      return td_api::make_object<td_api::reportReasonPornography>();
     }
     if (reason == "ca") {
-      return td_api::make_object<td_api::chatReportReasonChildAbuse>();
+      return td_api::make_object<td_api::reportReasonChildAbuse>();
     }
     if (reason == "copyright") {
-      return td_api::make_object<td_api::chatReportReasonCopyright>();
+      return td_api::make_object<td_api::reportReasonCopyright>();
     }
     if (reason == "geo" || reason == "location") {
-      return td_api::make_object<td_api::chatReportReasonUnrelatedLocation>();
+      return td_api::make_object<td_api::reportReasonUnrelatedLocation>();
     }
     if (reason == "fake") {
-      return td_api::make_object<td_api::chatReportReasonFake>();
+      return td_api::make_object<td_api::reportReasonFake>();
     }
     if (reason == "drugs") {
-      return td_api::make_object<td_api::chatReportReasonIllegalDrugs>();
+      return td_api::make_object<td_api::reportReasonIllegalDrugs>();
     }
     if (reason == "pd") {
-      return td_api::make_object<td_api::chatReportReasonPersonalDetails>();
+      return td_api::make_object<td_api::reportReasonPersonalDetails>();
     }
-    return td_api::make_object<td_api::chatReportReasonCustom>();
+    return td_api::make_object<td_api::reportReasonCustom>();
   }
 
   static td_api::object_ptr<td_api::NetworkType> as_network_type(MutableSlice type) {
@@ -4082,8 +4082,8 @@ class CliClient final : public Actor {
       string reason;
       string text;
       get_args(args, story_sender_user_id, story_id, reason, text);
-      send_request(td_api::make_object<td_api::reportStory>(story_sender_user_id, story_id,
-                                                            as_chat_report_reason(reason), text));
+      send_request(
+          td_api::make_object<td_api::reportStory>(story_sender_user_id, story_id, as_report_reason(reason), text));
     } else if (op == "gamb") {
       UserId user_id;
       get_args(args, user_id);
@@ -5566,14 +5566,14 @@ class CliClient final : public Actor {
       string text;
       get_args(args, chat_id, message_ids, reason, text);
       send_request(td_api::make_object<td_api::reportChat>(chat_id, as_message_ids(message_ids),
-                                                           as_chat_report_reason(reason), text));
+                                                           as_report_reason(reason), text));
     } else if (op == "rcp") {
       ChatId chat_id;
       FileId file_id;
       string reason;
       string text;
       get_args(args, chat_id, file_id, reason, text);
-      send_request(td_api::make_object<td_api::reportChatPhoto>(chat_id, file_id, as_chat_report_reason(reason), text));
+      send_request(td_api::make_object<td_api::reportChatPhoto>(chat_id, file_id, as_report_reason(reason), text));
     } else if (op == "reportmr") {
       ChatId chat_id;
       MessageId message_id;

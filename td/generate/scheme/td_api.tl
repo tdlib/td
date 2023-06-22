@@ -1507,11 +1507,11 @@ publicChatTypeIsLocationBased = PublicChatType;
 
 //@class ChatActionBar @description Describes actions which must be possible to do through a chat action bar
 
-//@description The chat can be reported as spam using the method reportChat with the reason chatReportReasonSpam. If the chat is a private chat with a user with an emoji status, then a notice about emoji status usage must be shown
+//@description The chat can be reported as spam using the method reportChat with the reason reportReasonSpam. If the chat is a private chat with a user with an emoji status, then a notice about emoji status usage must be shown
 //@can_unarchive If true, the chat was automatically archived and can be moved back to the main chat list using addChatToList simultaneously with setting chat notification settings to default using setChatNotificationSettings
 chatActionBarReportSpam can_unarchive:Bool = ChatActionBar;
 
-//@description The chat is a location-based supergroup, which can be reported as having unrelated location using the method reportChat with the reason chatReportReasonUnrelatedLocation
+//@description The chat is a location-based supergroup, which can be reported as having unrelated location using the method reportChat with the reason reportReasonUnrelatedLocation
 chatActionBarReportUnrelatedLocation = ChatActionBar;
 
 //@description The chat is a recently created group chat to which new members can be invited
@@ -4639,37 +4639,37 @@ connectedWebsite id:int64 domain_name:string bot_user_id:int53 browser:string pl
 connectedWebsites websites:vector<connectedWebsite> = ConnectedWebsites;
 
 
-//@class ChatReportReason @description Describes the reason why a chat is reported
+//@class ReportReason @description Describes the reason why a chat is reported
 
 //@description The chat contains spam messages
-chatReportReasonSpam = ChatReportReason;
+reportReasonSpam = ReportReason;
 
 //@description The chat promotes violence
-chatReportReasonViolence = ChatReportReason;
+reportReasonViolence = ReportReason;
 
 //@description The chat contains pornographic messages
-chatReportReasonPornography = ChatReportReason;
+reportReasonPornography = ReportReason;
 
 //@description The chat has child abuse related content
-chatReportReasonChildAbuse = ChatReportReason;
+reportReasonChildAbuse = ReportReason;
 
 //@description The chat contains copyrighted content
-chatReportReasonCopyright = ChatReportReason;
+reportReasonCopyright = ReportReason;
 
 //@description The location-based chat is unrelated to its stated location
-chatReportReasonUnrelatedLocation = ChatReportReason;
+reportReasonUnrelatedLocation = ReportReason;
 
 //@description The chat represents a fake account
-chatReportReasonFake = ChatReportReason;
+reportReasonFake = ReportReason;
 
 //@description The chat has illegal drugs related content
-chatReportReasonIllegalDrugs = ChatReportReason;
+reportReasonIllegalDrugs = ReportReason;
 
 //@description The chat contains messages with personal details
-chatReportReasonPersonalDetails = ChatReportReason;
+reportReasonPersonalDetails = ReportReason;
 
 //@description A custom reason provided by the user
-chatReportReasonCustom = ChatReportReason;
+reportReasonCustom = ReportReason;
 
 
 //@class TargetChat @description Describes the target chat to be opened
@@ -7297,7 +7297,7 @@ getStoryViewers story_id:int32 offset_viewer:messageViewer limit:int32 = Message
 //@story_id The identifier of the story to report
 //@reason The reason for reporting the story
 //@text Additional report details; 0-1024 characters
-reportStory story_sender_user_id:int53 story_id:int32 reason:ChatReportReason text:string = Ok;
+reportStory story_sender_user_id:int53 story_id:int32 reason:ReportReason text:string = Ok;
 
 
 //@description Returns information about a bot that can be added to attachment menu @bot_user_id Bot's user identifier
@@ -8272,14 +8272,14 @@ removeChatActionBar chat_id:int53 = Ok;
 //@message_ids Identifiers of reported messages; may be empty to report the whole chat
 //@reason The reason for reporting the chat
 //@text Additional report details; 0-1024 characters
-reportChat chat_id:int53 message_ids:vector<int53> reason:ChatReportReason text:string = Ok;
+reportChat chat_id:int53 message_ids:vector<int53> reason:ReportReason text:string = Ok;
 
 //@description Reports a chat photo to the Telegram moderators. A chat photo can be reported only if chat.can_be_reported
 //@chat_id Chat identifier
 //@file_id Identifier of the photo to report. Only full photos from chatPhoto can be reported
 //@reason The reason for reporting the chat photo
 //@text Additional report details; 0-1024 characters
-reportChatPhoto chat_id:int53 file_id:int32 reason:ChatReportReason text:string = Ok;
+reportChatPhoto chat_id:int53 file_id:int32 reason:ReportReason text:string = Ok;
 
 //@description Reports reactions set on a message to the Telegram moderators. Reactions on a message can be reported only if message.can_report_reactions
 //@chat_id Chat identifier

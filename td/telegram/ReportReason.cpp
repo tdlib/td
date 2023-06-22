@@ -10,7 +10,7 @@
 
 namespace td {
 
-Result<ReportReason> ReportReason::get_report_reason(td_api::object_ptr<td_api::ChatReportReason> reason,
+Result<ReportReason> ReportReason::get_report_reason(td_api::object_ptr<td_api::ReportReason> reason,
                                                      string &&message) {
   if (reason == nullptr) {
     return Status::Error(400, "Chat report reason must be non-empty");
@@ -21,25 +21,25 @@ Result<ReportReason> ReportReason::get_report_reason(td_api::object_ptr<td_api::
 
   auto type = [&] {
     switch (reason->get_id()) {
-      case td_api::chatReportReasonSpam::ID:
+      case td_api::reportReasonSpam::ID:
         return ReportReason::Type::Spam;
-      case td_api::chatReportReasonViolence::ID:
+      case td_api::reportReasonViolence::ID:
         return ReportReason::Type::Violence;
-      case td_api::chatReportReasonPornography::ID:
+      case td_api::reportReasonPornography::ID:
         return ReportReason::Type::Pornography;
-      case td_api::chatReportReasonChildAbuse::ID:
+      case td_api::reportReasonChildAbuse::ID:
         return ReportReason::Type::ChildAbuse;
-      case td_api::chatReportReasonCopyright::ID:
+      case td_api::reportReasonCopyright::ID:
         return ReportReason::Type::Copyright;
-      case td_api::chatReportReasonUnrelatedLocation::ID:
+      case td_api::reportReasonUnrelatedLocation::ID:
         return ReportReason::Type::UnrelatedLocation;
-      case td_api::chatReportReasonFake::ID:
+      case td_api::reportReasonFake::ID:
         return ReportReason::Type::Fake;
-      case td_api::chatReportReasonIllegalDrugs::ID:
+      case td_api::reportReasonIllegalDrugs::ID:
         return ReportReason::Type::IllegalDrugs;
-      case td_api::chatReportReasonPersonalDetails::ID:
+      case td_api::reportReasonPersonalDetails::ID:
         return ReportReason::Type::PersonalDetails;
-      case td_api::chatReportReasonCustom::ID:
+      case td_api::reportReasonCustom::ID:
         return ReportReason::Type::Custom;
       default:
         UNREACHABLE();

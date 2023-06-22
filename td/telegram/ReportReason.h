@@ -39,7 +39,7 @@ class ReportReason {
  public:
   ReportReason() = default;
 
-  static Result<ReportReason> get_report_reason(td_api::object_ptr<td_api::ChatReportReason> reason, string &&message);
+  static Result<ReportReason> get_report_reason(td_api::object_ptr<td_api::ReportReason> reason, string &&message);
 
   tl_object_ptr<telegram_api::ReportReason> get_input_report_reason() const;
 
