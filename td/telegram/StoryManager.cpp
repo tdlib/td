@@ -663,6 +663,20 @@ void StoryManager::start_up() {
   try_synchronize_archive_all_stories();
 }
 
+void StoryManager::hangup() {
+  auto fail_promise_map = [](auto &queries) {
+    while (!queries.empty()) {
+      auto it = queries.begin();
+      auto promises = std::move(it->second);
+      queries.erase(it);
+      fail_promises(promises, Global::request_aborted_error());
+    }
+  };
+  fail_promise_map(reload_story_queries_);
+
+  stop();
+}
+
 void StoryManager::tear_down() {
   parent_.reset();
 }
@@ -1890,8 +1904,35 @@ void StoryManager::reload_story(StoryFullId story_full_id, Promise<Unit> &&promi
   if (!story_id.is_server()) {
     return promise.set_error(Status::Error(400, "Invalid story identifier"));
   }
-  auto user_id = dialog_id.get_user_id();
-  td_->create_handler<GetStoriesByIDQuery>(std::move(promise))->send(user_id, {story_id});
+
+  auto &queries = reload_story_queries_[story_full_id];
+  queries.push_back(std::move(promise));
+  if (queries.size() != 1) {
+    return;
+  }
+
+  auto query_promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), story_full_id](Result<Unit> &&result) mutable {
+        send_closure(actor_id, &StoryManager::on_reload_story, story_full_id, std::move(result));
+      });
+  td_->create_handler<GetStoriesByIDQuery>(std::move(query_promise))->send(dialog_id.get_user_id(), {story_id});
+}
+
+void StoryManager::on_reload_story(StoryFullId story_full_id, Result<Unit> &&result) {
+  if (G()->close_flag()) {
+    return;
+  }
+  auto it = reload_story_queries_.find(story_full_id);
+  CHECK(it != reload_story_queries_.end());
+  CHECK(!it->second.empty());
+  auto promises = std::move(it->second);
+  reload_story_queries_.erase(it);
+
+  if (result.is_ok()) {
+    set_promises(promises);
+  } else {
+    fail_promises(promises, result.move_as_error());
+  }
 }
 
 void StoryManager::get_story(DialogId owner_dialog_id, StoryId story_id,

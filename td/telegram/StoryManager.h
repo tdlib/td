@@ -193,6 +193,8 @@ class StoryManager final : public Actor {
 
   void start_up() final;
 
+  void hangup() final;
+
   void tear_down() final;
 
   static void on_story_expire_timeout_callback(void *story_manager_ptr, int64 story_global_id);
@@ -265,6 +267,8 @@ class StoryManager final : public Actor {
   void do_get_story(StoryFullId story_full_id, Result<Unit> &&result,
                     Promise<td_api::object_ptr<td_api::story>> &&promise);
 
+  void on_reload_story(StoryFullId story_full_id, Result<Unit> &&result);
+
   void do_send_story(unique_ptr<PendingStory> &&pending_story, vector<int> bad_parts);
 
   void on_upload_story(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);
@@ -327,6 +331,8 @@ class StoryManager final : public Actor {
   FlatHashMap<StoryFullId, uint32, StoryFullIdHash> opened_owned_stories_;
 
   FlatHashMap<StoryFullId, unique_ptr<CachedStoryViewers>, StoryFullIdHash> cached_story_viewers_;
+
+  FlatHashMap<StoryFullId, vector<Promise<Unit>>, StoryFullIdHash> reload_story_queries_;
 
   uint32 send_story_count_ = 0;
 
