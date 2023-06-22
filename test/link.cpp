@@ -1065,15 +1065,15 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg:resolve?domain=telegram&&&&&&&story=%31%39", story("telegram", 19));
   parse_internal_link("tg:resolve?domain=telegram&&&&&&&story=2222222222", public_chat("telegram"));
 
-  parse_internal_link("t.me/username/0/a//s/as?story=1234", story("username", 1234));
-  parse_internal_link("t.me/username/aasdas/2?test=1&story=3#12312", story("username", 3));
-  parse_internal_link("t.me/username/0?story=1", story("username", 1));
-  parse_internal_link("t.me/username/-1?story=2", story("username", 2));
-  parse_internal_link("t.me/username?story=5", story("username", 5));
-  parse_internal_link("t.me/username?story=", public_chat("username"));
-  parse_internal_link("t.me/username#story=123", public_chat("username"));
-  parse_internal_link("t.me//username?story=123", nullptr);
-  parse_internal_link("https://telegram.dog/tele%63ram?story=%31%39", story("telecram", 19));
+  parse_internal_link("t.me/username/s/1234", story("username", 1234));
+  parse_internal_link("t.me/username/s/3?qwe=12312#12312", story("username", 3));
+  parse_internal_link("t.me/username/s/1", story("username", 1));
+  parse_internal_link("t.me/username/s/2", story("username", 2));
+  parse_internal_link("t.me/username/s/5", story("username", 5));
+  parse_internal_link("t.me/username/s/", public_chat("username"));
+  parse_internal_link("t.me/username#/s/123", public_chat("username"));
+  parse_internal_link("t.me/username?story=123", public_chat("username"));
+  parse_internal_link("https://telegram.dog/tele%63ram/s/%31%39", story("telecram", 19));
 
   parse_internal_link("tg:resolve?domain=username&appname=aasdasd&startapp=123asd",
                       web_app("username", "aasdasd", "123asd"));

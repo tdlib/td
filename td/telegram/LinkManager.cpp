@@ -1578,12 +1578,16 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
                                                             << "&post=" << post << copy_arg("single") << thread
                                                             << copy_arg("comment") << copy_arg("t"));
     }
+    auto username = path[0];
+    if (path.size() == 3 && path[1] == "s" && is_valid_story_id(path[2])) {
+      // /<username>/s/<story_id>
+      return td::make_unique<InternalLinkStory>(std::move(username), StoryId(to_integer<int32>(path[2])));
+    }
     if (path.size() == 2 && is_valid_web_app_name(path[1])) {
       // /<username>/<web_app_name>
       // /<username>/<web_app_name>?startapp=<start_parameter>
-      return td::make_unique<InternalLinkWebApp>(path[0], path[1], url_query.get_arg("startapp").str());
+      return td::make_unique<InternalLinkWebApp>(std::move(username), path[1], url_query.get_arg("startapp").str());
     }
-    auto username = path[0];
     for (auto &arg : url_query.args_) {
       if (arg.first == "voicechat" || arg.first == "videochat" || arg.first == "livestream") {
         // /<username>?videochat
@@ -1615,10 +1619,6 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
       if (arg.first == "game" && is_valid_game_name(arg.second)) {
         // /<bot_username>?game=<short_name>
         return td::make_unique<InternalLinkGame>(std::move(username), arg.second);
-      }
-      if (arg.first == "story" && is_valid_story_id(arg.second)) {
-        // /<username>?story=<story_id>
-        return td::make_unique<InternalLinkStory>(std::move(username), StoryId(to_integer<int32>(arg.second)));
       }
     }
     if (!url_query.get_arg("attach").empty()) {
@@ -2106,7 +2106,7 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
       if (is_internal) {
         return PSTRING() << "tg://resolve?domain=" << link->sender_username_ << "&story=" << link->story_id_;
       } else {
-        return PSTRING() << get_t_me_url() << link->sender_username_ << "?story=" << link->story_id_;
+        return PSTRING() << get_t_me_url() << link->sender_username_ << "/s/" << link->story_id_;
       }
     }
     case td_api::internalLinkTypeTheme::ID: {
