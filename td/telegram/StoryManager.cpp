@@ -1960,7 +1960,7 @@ void StoryManager::get_story(DialogId owner_dialog_id, StoryId story_id,
       [actor_id = actor_id(this), story_full_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
         send_closure(actor_id, &StoryManager::do_get_story, story_full_id, std::move(result), std::move(promise));
       });
-  td_->create_handler<GetStoriesByIDQuery>(std::move(query_promise))->send(owner_dialog_id.get_user_id(), {story_id});
+  reload_story(story_full_id, std::move(query_promise));
 }
 
 void StoryManager::do_get_story(StoryFullId story_full_id, Result<Unit> &&result,
