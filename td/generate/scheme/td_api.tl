@@ -8588,7 +8588,7 @@ getDeepLinkInfo link:string = DeepLinkInfo;
 //@description Returns application config, provided by the server. Can be called before authorization
 getApplicationConfig = JsonValue;
 
-//@description Adds server-provided application changelog as messages to the chat 777000 (Telegram); for official applications only. Returns a 404 error if nothing changed @previous_application_version The previous application version
+//@description Adds server-provided application changelog as messages to the chat 777000 (Telegram) or as a stories; for official applications only. Returns a 404 error if nothing changed @previous_application_version The previous application version
 addApplicationChangelog previous_application_version:string = Ok;
 
 //@description Saves application log event on the server. Can be called before authorization @type Event type @chat_id Optional chat identifier, associated with the event @data The log event data
