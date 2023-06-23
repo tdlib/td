@@ -714,12 +714,12 @@ usernames active_usernames:vector<string> disabled_usernames:vector<string> edit
 //@is_scam True, if many users reported this user as a scam
 //@is_fake True, if many users reported this user as a fake account
 //@has_active_stories True, if the user has non-expired stories available to the current user
-//@stories_are_archived True, if stories of the user aren't available on the main chat list
+//@stories_are_hidden True, if stories of the user aren't available on the main chat list
 //@have_access If false, the user is inaccessible, and the only information known about the user is inside this class. Identifier of the user can't be passed to any method
 //@type Type of the user
 //@language_code IETF language tag of the user's language; only available to bots
 //@added_to_attachment_menu True, if the user added the current bot to attachment menu; only available to bots
-user id:int53 first_name:string last_name:string usernames:usernames phone_number:string status:UserStatus profile_photo:profilePhoto emoji_status:emojiStatus is_contact:Bool is_mutual_contact:Bool is_close_friend:Bool is_verified:Bool is_premium:Bool is_support:Bool restriction_reason:string is_scam:Bool is_fake:Bool has_active_stories:Bool stories_are_archived:Bool have_access:Bool type:UserType language_code:string added_to_attachment_menu:Bool = User;
+user id:int53 first_name:string last_name:string usernames:usernames phone_number:string status:UserStatus profile_photo:profilePhoto emoji_status:emojiStatus is_contact:Bool is_mutual_contact:Bool is_close_friend:Bool is_verified:Bool is_premium:Bool is_support:Bool restriction_reason:string is_scam:Bool is_fake:Bool has_active_stories:Bool stories_are_hidden:Bool have_access:Bool type:UserType language_code:string added_to_attachment_menu:Bool = User;
 
 
 //@description Contains information about a bot
@@ -7258,8 +7258,8 @@ toggleStoryIsPinned story_id:int32 is_pinned:Bool = Ok;
 //@description Deletes a previously sent story @story_id Identifier of the story to delete
 deleteStory story_id:int32 = Ok;
 
-//@description Toggles whether stories of the user are available on the main chat list @user_id Identifier of the user @are_archived Pass true to make the story unavailable on the main chat list; pass false to make them available
-toggleUserStoriesAreArchived user_id:int53 are_archived:Bool = Ok;
+//@description Toggles whether stories of the user are available on the main chat list @user_id Identifier of the user @are_hidden Pass true to make the story unavailable from the main chat list; pass false to make them available
+toggleUserStoriesAreHidden user_id:int53 are_hidden:Bool = Ok;
 
 //@description Returns the list of active stories of a given user. The stories are returned in a chronological order (i.e., in order of increasing story_id) @user_id User identifier
 getUserActiveStories user_id:int53 = ActiveStories;
