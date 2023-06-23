@@ -10179,7 +10179,7 @@ DialogId ContactsManager::get_dialog_id(const tl_object_ptr<telegram_api::Chat> 
   return DialogId(get_chat_id(chat));
 }
 
-void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, const char *source, bool is_me) {
+void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, const char *source) {
   LOG(DEBUG) << "Receive from " << source << ' ' << to_string(user_ptr);
   int32 constructor_id = user_ptr->get_id();
   if (constructor_id == telegram_api::userEmpty::ID) {
@@ -10211,12 +10211,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   int32 flags2 = user->flags2_;
   LOG(INFO) << "Receive " << user_id << " with flags " << flags << ' ' << flags2 << " from " << source;
 
-  // the boolean fields aren't set for manually created telegram_api::user objects, therefore the flags must be used
-  if (is_me && (flags & USER_FLAG_IS_ME) == 0) {
-    LOG(ERROR) << user_id << " doesn't have flag IS_ME, but must have it when received from " << source;
-    flags |= USER_FLAG_IS_ME;
-  }
-
+  // the True fields aren't set for manually created telegram_api::user objects, therefore the flags must be used
   bool is_bot = (flags & USER_FLAG_IS_BOT) != 0;
   if (flags & USER_FLAG_IS_ME) {
     set_my_id(user_id);

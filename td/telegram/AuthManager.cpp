@@ -1015,12 +1015,21 @@ void AuthManager::on_get_authorization(tl_object_ptr<telegram_api::auth_Authoriz
   new_password_.clear();
   new_hint_.clear();
   state_ = State::Ok;
-  td_->contacts_manager_->on_get_user(std::move(auth->user_), "on_get_authorization", true);
+  if (auth->user_->get_id() == telegram_api::user::ID) {
+    auto *user = static_cast<telegram_api::user *>(auth->user_.get());
+    int32 mask = 1 << 10;
+    if ((user->flags_ & mask) == 0) {
+      LOG(ERROR) << "Receive invalid authorization for " << to_string(auth->user_);
+      user->flags_ |= mask;
+      user->self_ = true;
+    }
+  }
+  td_->contacts_manager_->on_get_user(std::move(auth->user_), "on_get_authorization");
   update_state(State::Ok, true);
   if (!td_->contacts_manager_->get_my_id().is_valid()) {
-    LOG(ERROR) << "Server doesn't send proper authorization";
+    LOG(ERROR) << "Server didsn't send proper authorization";
     if (query_id_ != 0) {
-      on_query_error(Status::Error(500, "Server doesn't send proper authorization"));
+      on_query_error(Status::Error(500, "Server didn't send proper authorization"));
     }
     log_out(0);
     return;
