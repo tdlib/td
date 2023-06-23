@@ -1962,6 +1962,9 @@ void StoryManager::reload_story(StoryFullId story_full_id, Promise<Unit> &&promi
   }
 
   auto &queries = reload_story_queries_[story_full_id];
+  if (!queries.empty() && !promise) {
+    return;
+  }
   queries.push_back(std::move(promise));
   if (queries.size() != 1) {
     return;
