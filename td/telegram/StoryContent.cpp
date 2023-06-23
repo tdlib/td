@@ -170,7 +170,7 @@ Result<unique_ptr<StoryContent>> get_input_story_content(
       td->videos_manager_->create_video(file_id, string(), PhotoSize(), AnimationSize(), has_stickers,
                                         std::move(sticker_file_ids), "story.mp4", "video/mp4",
                                         static_cast<int32>(std::ceil(input_story->duration_)), input_story->duration_,
-                                        get_dimensions(720, 1280, nullptr), true, 0, false);
+                                        get_dimensions(720, 1280, nullptr), true, input_story->is_animation_, 0, false);
 
       return make_unique<StoryContentVideo>(file_id, FileId());
     }

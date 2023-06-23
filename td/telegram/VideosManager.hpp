@@ -30,6 +30,7 @@ void VideosManager::store_video(FileId file_id, StorerT &storer) const {
   STORE_FLAG(has_animated_thumbnail);
   STORE_FLAG(has_preload_prefix_size);
   STORE_FLAG(has_precise_duration);
+  STORE_FLAG(video->is_animation);
   END_STORE_FLAGS();
   store(video->file_name, storer);
   store(video->mime_type, storer);
@@ -64,6 +65,7 @@ FileId VideosManager::parse_video(ParserT &parser) {
   PARSE_FLAG(has_animated_thumbnail);
   PARSE_FLAG(has_preload_prefix_size);
   PARSE_FLAG(has_precise_duration);
+  PARSE_FLAG(video->is_animation);
   END_PARSE_FLAGS();
   parse(video->file_name, parser);
   parse(video->mime_type, parser);

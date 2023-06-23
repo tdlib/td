@@ -4878,11 +4878,12 @@ messageLinkInfo is_public:Bool chat_id:int53 message_thread_id:int53 message:mes
 //@width Video width
 //@height Video height
 //@has_stickers True, if stickers were added to the video. The list of corresponding sticker sets can be received using getAttachedStickerSets
+//@is_animation True, if the video has no sound
 //@minithumbnail Video minithumbnail; may be null
 //@thumbnail Video thumbnail in JPEG or MPEG4 format; may be null
 //@preload_prefix_size Number of bytes from the video file beginning, which is enough to load to play the video for one second; 0 if unknown
 //@video File containing the video
-storyVideo duration:double width:int32 height:int32 has_stickers:Bool minithumbnail:minithumbnail thumbnail:thumbnail preload_prefix_size:int32 video:file = StoryVideo;
+storyVideo duration:double width:int32 height:int32 has_stickers:Bool is_animation:Bool minithumbnail:minithumbnail thumbnail:thumbnail preload_prefix_size:int32 video:file = StoryVideo;
 
 
 //@class StoryContent @description Contains the content of a story
@@ -4908,7 +4909,8 @@ inputStoryContentPhoto photo:InputFile added_sticker_file_ids:vector<int32> = In
 //@video Video to be sent. The video size must be 720x1280. The video must be streamable and stored in MPEG4 format, after encoding with x265 codec and key frames added each second
 //@added_sticker_file_ids File identifiers of the stickers added to the video, if applicable
 //@duration Precise duration of the video, in seconds; 0-60
-inputStoryContentVideo video:InputFile added_sticker_file_ids:vector<int32> duration:double = InputStoryContent;
+//@is_animation True, if the video has no sound
+inputStoryContentVideo video:InputFile added_sticker_file_ids:vector<int32> duration:double is_animation:Bool = InputStoryContent;
 
 
 //@description Contains information about interactions with a story

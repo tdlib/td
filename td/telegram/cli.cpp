@@ -3994,7 +3994,7 @@ class CliClient final : public Actor {
       get_args(args, video, caption, rules, active_period, duration, sticker_file_ids);
       send_request(td_api::make_object<td_api::sendStory>(
           td_api::make_object<td_api::inputStoryContentVideo>(as_input_file(video),
-                                                              to_integers<int32>(sticker_file_ids), duration),
+                                                              to_integers<int32>(sticker_file_ids), duration, true),
           as_caption(caption), rules, active_period ? active_period : 86400, op == "ssvp"));
     } else if (op == "esc") {
       StoryId story_id;
@@ -4022,7 +4022,7 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::editStory>(
           story_id,
           td_api::make_object<td_api::inputStoryContentVideo>(as_input_file(video),
-                                                              to_integers<int32>(sticker_file_ids), duration),
+                                                              to_integers<int32>(sticker_file_ids), duration, false),
           as_caption(caption)));
     } else if (op == "sspr") {
       StoryId story_id;
