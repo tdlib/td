@@ -1078,6 +1078,17 @@ void StoryManager::close_story(DialogId owner_dialog_id, StoryId story_id, Promi
   promise.set_value(Unit());
 }
 
+void StoryManager::view_story_message(StoryFullId story_full_id) {
+  const Story *story = get_story(story_full_id);
+  if (story == nullptr || !story_full_id.get_story_id().is_server()) {
+    return;
+  }
+
+  if (story->receive_date_ < G()->unix_time() - VIEWED_STORY_POLL_PERIOD) {
+    reload_story(story_full_id, Promise<Unit>());
+  }
+}
+
 void StoryManager::schedule_interaction_info_update() {
   if (interaction_info_update_timeout_.has_timeout()) {
     return;

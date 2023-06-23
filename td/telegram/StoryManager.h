@@ -131,6 +131,8 @@ class StoryManager final : public Actor {
 
   void close_story(DialogId owner_dialog_id, StoryId story_id, Promise<Unit> &&promise);
 
+  void view_story_message(StoryFullId story_full_id);
+
   void get_story_viewers(StoryId story_id, const td_api::messageViewer *offset, int32 limit,
                          Promise<td_api::object_ptr<td_api::messageViewers>> &&promise);
 
@@ -190,6 +192,7 @@ class StoryManager final : public Actor {
   class ReadStoriesOnServerLogEvent;
 
   static constexpr int32 OPENED_STORY_POLL_PERIOD = 60;
+  static constexpr int32 VIEWED_STORY_POLL_PERIOD = 300;
 
   void start_up() final;
 

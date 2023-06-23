@@ -20102,6 +20102,11 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
         }
       }
 
+      auto story_full_id = get_message_content_story_full_id(td_, m->content.get());
+      if (story_full_id.is_valid()) {
+        td_->story_manager_->view_story_message(story_full_id);
+      }
+
       if (m->message_id.is_server() && d->open_count > 0) {
         auto &info = dialog_viewed_messages_[dialog_id];
         if (info == nullptr) {
