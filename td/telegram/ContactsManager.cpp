@@ -10206,9 +10206,12 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     LOG(ERROR) << "Receive invalid " << user_id;
     return;
   }
+
   int32 flags = user->flags_;
   int32 flags2 = user->flags2_;
   LOG(INFO) << "Receive " << user_id << " with flags " << flags << ' ' << flags2 << " from " << source;
+
+  // the boolean fields aren't set for manually created telegram_api::user objects, therefore the flags must be used
   if (is_me && (flags & USER_FLAG_IS_ME) == 0) {
     LOG(ERROR) << user_id << " doesn't have flag IS_ME, but must have it when received from " << source;
     flags |= USER_FLAG_IS_ME;
@@ -10708,8 +10711,8 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
 
     telegram_api::object_ptr<telegram_api::userProfilePhoto> profile_photo;
     if (!G()->is_test_dc() && profile_photo_id != 0) {
-      profile_photo = telegram_api::make_object<telegram_api::userProfilePhoto>(
-          0, false /*ignored*/, false /*ignored*/, profile_photo_id, BufferSlice(), profile_photo_dc_id);
+      profile_photo = telegram_api::make_object<telegram_api::userProfilePhoto>(0, false, false, profile_photo_id,
+                                                                                BufferSlice(), profile_photo_dc_id);
     }
 
     auto user = telegram_api::make_object<telegram_api::user>(

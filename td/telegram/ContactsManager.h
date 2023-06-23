@@ -1166,6 +1166,7 @@ class ContactsManager final : public Actor {
 
   static constexpr int32 CHANNEL_PARTICIPANT_CACHE_TIME = 1800;  // some reasonable limit
 
+  // the boolean fields aren't set for manually created telegram_api::user objects, therefore the flags must be used
   static constexpr int32 USER_FLAG_HAS_ACCESS_HASH = 1 << 0;
   static constexpr int32 USER_FLAG_HAS_FIRST_NAME = 1 << 1;
   static constexpr int32 USER_FLAG_HAS_LAST_NAME = 1 << 2;

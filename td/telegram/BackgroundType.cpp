@@ -468,8 +468,8 @@ telegram_api::object_ptr<telegram_api::wallPaperSettings> BackgroundType::get_in
     flags |= telegram_api::wallPaperSettings::INTENSITY_MASK;
   }
   return telegram_api::make_object<telegram_api::wallPaperSettings>(
-      flags, false /*ignored*/, false /*ignored*/, fill_.top_color_, fill_.bottom_color_, fill_.third_color_,
-      fill_.fourth_color_, intensity_, fill_.rotation_angle_);
+      flags, is_blurred_, is_moving_, fill_.top_color_, fill_.bottom_color_, fill_.third_color_, fill_.fourth_color_,
+      intensity_, fill_.rotation_angle_);
 }
 
 }  // namespace td

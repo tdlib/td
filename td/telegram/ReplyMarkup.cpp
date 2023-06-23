@@ -882,7 +882,7 @@ static tl_object_ptr<telegram_api::KeyboardButton> get_input_keyboard_button(
     case InlineKeyboardButton::Type::Url:
       return make_tl_object<telegram_api::keyboardButtonUrl>(keyboard_button.text, keyboard_button.data);
     case InlineKeyboardButton::Type::Callback:
-      return make_tl_object<telegram_api::keyboardButtonCallback>(0, false /*ignored*/, keyboard_button.text,
+      return make_tl_object<telegram_api::keyboardButtonCallback>(0, false, keyboard_button.text,
                                                                   BufferSlice(keyboard_button.data));
     case InlineKeyboardButton::Type::CallbackGame:
       return make_tl_object<telegram_api::keyboardButtonGame>(keyboard_button.text);
@@ -906,13 +906,13 @@ static tl_object_ptr<telegram_api::KeyboardButton> get_input_keyboard_button(
           peer_types.push_back(telegram_api::make_object<telegram_api::inlineQueryPeerTypeBroadcast>());
         }
       }
-      return make_tl_object<telegram_api::keyboardButtonSwitchInline>(flags, false /*ignored*/, keyboard_button.text,
+      return make_tl_object<telegram_api::keyboardButtonSwitchInline>(flags, false, keyboard_button.text,
                                                                       keyboard_button.data, std::move(peer_types));
     }
     case InlineKeyboardButton::Type::SwitchInlineCurrentDialog:
       return make_tl_object<telegram_api::keyboardButtonSwitchInline>(
-          telegram_api::keyboardButtonSwitchInline::SAME_PEER_MASK, false /*ignored*/, keyboard_button.text,
-          keyboard_button.data, vector<telegram_api::object_ptr<telegram_api::InlineQueryPeerType>>());
+          telegram_api::keyboardButtonSwitchInline::SAME_PEER_MASK, true, keyboard_button.text, keyboard_button.data,
+          vector<telegram_api::object_ptr<telegram_api::InlineQueryPeerType>>());
     case InlineKeyboardButton::Type::Buy:
       return make_tl_object<telegram_api::keyboardButtonBuy>(keyboard_button.text);
     case InlineKeyboardButton::Type::UrlAuth: {

@@ -92,7 +92,7 @@ telegram_api::object_ptr<telegram_api::ChatReactions> ChatReactions::get_input_c
     if (allow_custom_) {
       flags |= telegram_api::chatReactionsAll::ALLOW_CUSTOM_MASK;
     }
-    return telegram_api::make_object<telegram_api::chatReactionsAll>(flags, false /*ignored*/);
+    return telegram_api::make_object<telegram_api::chatReactionsAll>(flags, allow_custom_);
   }
   if (!reactions_.empty()) {
     return telegram_api::make_object<telegram_api::chatReactionsSome>(transform(reactions_, get_input_reaction));

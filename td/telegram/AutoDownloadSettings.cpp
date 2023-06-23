@@ -64,7 +64,7 @@ class GetAutoDownloadSettingsQuery final : public Td::ResultHandler {
   }
 };
 
-telegram_api::object_ptr<telegram_api::autoDownloadSettings> get_input_auto_download_settings(
+static telegram_api::object_ptr<telegram_api::autoDownloadSettings> get_input_auto_download_settings(
     const AutoDownloadSettings &settings) {
   int32 flags = 0;
   if (!settings.is_enabled) {
