@@ -21,6 +21,7 @@
 #include "td/telegram/UpdatesManager.h"
 
 #include "td/actor/actor.h"
+#include "td/actor/SleepActor.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/as.h"
@@ -957,6 +958,12 @@ bool is_active_reaction(const string &reaction, const FlatHashMap<string, size_t
 void reload_message_reactions(Td *td, DialogId dialog_id, vector<MessageId> &&message_ids) {
   if (!td->messages_manager_->have_input_peer(dialog_id, AccessRights::Read) ||
       dialog_id.get_type() == DialogType::SecretChat || message_ids.empty()) {
+    create_actor<SleepActor>(
+        "RetryReloadMessageReactionsActor", 0.2,
+        PromiseCreator::lambda([actor_id = G()->messages_manager(), dialog_id](Result<Unit> result) mutable {
+          send_closure(actor_id, &MessagesManager::try_reload_message_reactions, dialog_id, true);
+        }))
+        .release();
     return;
   }
 

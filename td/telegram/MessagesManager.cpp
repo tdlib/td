@@ -7176,7 +7176,10 @@ bool MessagesManager::update_message_interaction_info(Dialog *d, Message *m, int
       need_update_reactions || need_update_unread_reactions || need_update_chosen_reaction_order) {
     LOG(DEBUG) << "Update interaction info of " << full_message_id << " from " << m->view_count << '/'
                << m->forward_count << '/' << m->reply_info << '/' << m->reactions << " to " << view_count << '/'
-               << forward_count << '/' << reply_info << '/' << reactions;
+               << forward_count << '/' << reply_info << '/' << reactions
+               << ", need_update_reactions = " << need_update_reactions
+               << ", need_update_unread_reactions = " << need_update_unread_reactions
+               << ", need_update_chosen_reaction_order = " << need_update_chosen_reaction_order;
     bool need_update = false;
     if (view_count > m->view_count) {
       m->view_count = view_count;
@@ -8612,7 +8615,10 @@ void MessagesManager::try_reload_message_reactions(DialogId dialog_id, bool is_f
   vector<MessageId> message_ids;
   for (auto message_id_it = it->second.message_ids.begin();
        message_id_it != it->second.message_ids.end() && message_ids.size() < MAX_MESSAGE_IDS; ++message_id_it) {
-    message_ids.push_back(*message_id_it);
+    auto message_id = *message_id_it;
+    if (pending_read_reactions_.count({dialog_id, message_id}) == 0) {
+      message_ids.push_back(message_id);
+    }
   }
   for (auto message_id : message_ids) {
     it->second.message_ids.erase(message_id);
