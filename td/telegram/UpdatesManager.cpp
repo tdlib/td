@@ -1105,12 +1105,11 @@ void UpdatesManager::on_get_updates(tl_object_ptr<telegram_api::Updates> &&updat
       update->flags_ |= MessagesManager::MESSAGE_FLAG_HAS_FROM_ID;
 
       auto message = make_tl_object<telegram_api::message>(
-          update->flags_, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-          false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, update->id_,
-          make_tl_object<telegram_api::peerUser>(from_id), make_tl_object<telegram_api::peerUser>(update->user_id_),
-          std::move(update->fwd_from_), update->via_bot_id_, std::move(update->reply_to_), update->date_,
-          update->message_, nullptr, nullptr, std::move(update->entities_), 0, 0, nullptr, 0, string(), 0, nullptr,
-          Auto(), update->ttl_period_);
+          update->flags_, update->out_, update->mentioned_, update->media_unread_, update->silent_, false, false, false,
+          false, false, false, update->id_, make_tl_object<telegram_api::peerUser>(from_id),
+          make_tl_object<telegram_api::peerUser>(update->user_id_), std::move(update->fwd_from_), update->via_bot_id_,
+          std::move(update->reply_to_), update->date_, update->message_, nullptr, nullptr, std::move(update->entities_),
+          0, 0, nullptr, 0, string(), 0, nullptr, Auto(), update->ttl_period_);
       on_pending_update(
           make_tl_object<telegram_api::updateNewMessage>(std::move(message), update->pts_, update->pts_count_), 0,
           std::move(promise), "telegram_api::updatesShortMessage");
@@ -1129,9 +1128,8 @@ void UpdatesManager::on_get_updates(tl_object_ptr<telegram_api::Updates> &&updat
 
       update->flags_ |= MessagesManager::MESSAGE_FLAG_HAS_FROM_ID;
       auto message = make_tl_object<telegram_api::message>(
-          update->flags_, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-          false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, update->id_,
-          make_tl_object<telegram_api::peerUser>(update->from_id_),
+          update->flags_, update->out_, update->mentioned_, update->media_unread_, update->silent_, false, false, false,
+          false, false, false, update->id_, make_tl_object<telegram_api::peerUser>(update->from_id_),
           make_tl_object<telegram_api::peerChat>(update->chat_id_), std::move(update->fwd_from_), update->via_bot_id_,
           std::move(update->reply_to_), update->date_, update->message_, nullptr, nullptr, std::move(update->entities_),
           0, 0, nullptr, 0, string(), 0, nullptr, Auto(), update->ttl_period_);
