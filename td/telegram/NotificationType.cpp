@@ -148,7 +148,8 @@ class NotificationTypePushMessage final : public NotificationType {
     return photo_get_file_ids(photo_);
   }
 
-  static td_api::object_ptr<td_api::PushMessageContent> get_push_message_content_object(Slice key, const string &arg,
+  static td_api::object_ptr<td_api::PushMessageContent> get_push_message_content_object(Td *td, Slice key,
+                                                                                        const string &arg,
                                                                                         const Photo &photo,
                                                                                         const Document &document) {
     bool is_pinned = false;
@@ -167,14 +168,12 @@ class NotificationTypePushMessage final : public NotificationType {
     switch (key[8]) {
       case 'A':
         if (key == "MESSAGE_ANIMATION") {
-          auto animations_manager = G()->td().get_actor_unsafe()->animations_manager_.get();
           return td_api::make_object<td_api::pushMessageContentAnimation>(
-              animations_manager->get_animation_object(document.file_id), arg, is_pinned);
+              td->animations_manager_->get_animation_object(document.file_id), arg, is_pinned);
         }
         if (key == "MESSAGE_AUDIO") {
-          auto audios_manager = G()->td().get_actor_unsafe()->audios_manager_.get();
           return td_api::make_object<td_api::pushMessageContentAudio>(
-              audios_manager->get_audio_object(document.file_id), is_pinned);
+              td->audios_manager_->get_audio_object(document.file_id), is_pinned);
         }
         if (key == "MESSAGE_AUDIOS") {
           return td_api::make_object<td_api::pushMessageContentMediaAlbum>(to_integer<int32>(arg), false, false, true,
@@ -229,9 +228,8 @@ class NotificationTypePushMessage final : public NotificationType {
         break;
       case 'D':
         if (key == "MESSAGE_DOCUMENT") {
-          auto documents_manager = G()->td().get_actor_unsafe()->documents_manager_.get();
           return td_api::make_object<td_api::pushMessageContentDocument>(
-              documents_manager->get_document_object(document.file_id, PhotoFormat::Jpeg), is_pinned);
+              td->documents_manager_->get_document_object(document.file_id, PhotoFormat::Jpeg), is_pinned);
         }
         if (key == "MESSAGE_DOCUMENTS") {
           return td_api::make_object<td_api::pushMessageContentMediaAlbum>(to_integer<int32>(arg), false, false, false,
@@ -273,9 +271,8 @@ class NotificationTypePushMessage final : public NotificationType {
         break;
       case 'P':
         if (key == "MESSAGE_PHOTO") {
-          auto file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
-          return td_api::make_object<td_api::pushMessageContentPhoto>(get_photo_object(file_manager, photo), arg, false,
-                                                                      is_pinned);
+          return td_api::make_object<td_api::pushMessageContentPhoto>(get_photo_object(td->file_manager_.get(), photo),
+                                                                      arg, false, is_pinned);
         }
         if (key == "MESSAGE_PHOTOS") {
           return td_api::make_object<td_api::pushMessageContentMediaAlbum>(to_integer<int32>(arg), true, false, false,
@@ -309,9 +306,8 @@ class NotificationTypePushMessage final : public NotificationType {
           return td_api::make_object<td_api::pushMessageContentVideo>(nullptr, arg, true, false);
         }
         if (key == "MESSAGE_STICKER") {
-          auto stickers_manager = G()->td().get_actor_unsafe()->stickers_manager_.get();
           return td_api::make_object<td_api::pushMessageContentSticker>(
-              stickers_manager->get_sticker_object(document.file_id), trim(arg), is_pinned);
+              td->stickers_manager_->get_sticker_object(document.file_id), trim(arg), is_pinned);
         }
         if (key == "MESSAGE_STORY") {
           return td_api::make_object<td_api::pushMessageContentStory>(is_pinned);
@@ -327,23 +323,20 @@ class NotificationTypePushMessage final : public NotificationType {
         break;
       case 'V':
         if (key == "MESSAGE_VIDEO") {
-          auto videos_manager = G()->td().get_actor_unsafe()->videos_manager_.get();
           return td_api::make_object<td_api::pushMessageContentVideo>(
-              videos_manager->get_video_object(document.file_id), arg, false, is_pinned);
+              td->videos_manager_->get_video_object(document.file_id), arg, false, is_pinned);
         }
         if (key == "MESSAGE_VIDEO_NOTE") {
-          auto video_notes_manager = G()->td().get_actor_unsafe()->video_notes_manager_.get();
           return td_api::make_object<td_api::pushMessageContentVideoNote>(
-              video_notes_manager->get_video_note_object(document.file_id), is_pinned);
+              td->video_notes_manager_->get_video_note_object(document.file_id), is_pinned);
         }
         if (key == "MESSAGE_VIDEOS") {
           return td_api::make_object<td_api::pushMessageContentMediaAlbum>(to_integer<int32>(arg), false, true, false,
                                                                            false);
         }
         if (key == "MESSAGE_VOICE_NOTE") {
-          auto voice_notes_manager = G()->td().get_actor_unsafe()->voice_notes_manager_.get();
           return td_api::make_object<td_api::pushMessageContentVoiceNote>(
-              voice_notes_manager->get_voice_note_object(document.file_id), is_pinned);
+              td->voice_notes_manager_->get_voice_note_object(document.file_id), is_pinned);
         }
         break;
       case 'W':
@@ -358,11 +351,11 @@ class NotificationTypePushMessage final : public NotificationType {
   }
 
   td_api::object_ptr<td_api::NotificationType> get_notification_type_object(DialogId dialog_id) const final {
-    auto sender = get_message_sender_object(G()->td().get_actor_unsafe(), sender_user_id_, sender_dialog_id_,
-                                            "get_notification_type_object");
+    auto td = G()->td().get_actor_unsafe();
+    auto sender = get_message_sender_object(td, sender_user_id_, sender_dialog_id_, "get_notification_type_object");
     return td_api::make_object<td_api::notificationTypeNewPushMessage>(
         message_id_.get(), std::move(sender), sender_name_, is_outgoing_,
-        get_push_message_content_object(key_, arg_, photo_, document_));
+        get_push_message_content_object(td, key_, arg_, photo_, document_));
   }
 
   StringBuilder &to_string_builder(StringBuilder &string_builder) const final {
