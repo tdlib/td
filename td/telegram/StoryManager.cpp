@@ -732,14 +732,13 @@ void StoryManager::on_story_expire_timeout(int64 story_global_id) {
     return on_story_changed(story_full_id, story, false, false);
   }
   auto owner_dialog_id = story_full_id.get_dialog_id();
-  auto story_id = story_full_id.get_story_id();
   if (!is_story_owned(owner_dialog_id) && story->content_ != nullptr && !story->is_pinned_) {
     // non-owned expired non-pinned stories are fully deleted
-    on_delete_story(owner_dialog_id, story_id);
+    on_delete_story(story_full_id);
   }
 
   auto active_stories = get_active_stories(owner_dialog_id);
-  if (active_stories != nullptr && contains(active_stories->story_ids_, story_id)) {
+  if (active_stories != nullptr && contains(active_stories->story_ids_, story_full_id.get_story_id())) {
     auto story_ids = active_stories->story_ids_;
     on_update_active_stories(owner_dialog_id, active_stories->max_read_story_id_, std::move(story_ids));
   }
@@ -1656,21 +1655,22 @@ StoryId StoryManager::on_get_skipped_story(DialogId owner_dialog_id,
 StoryId StoryManager::on_get_deleted_story(DialogId owner_dialog_id,
                                            telegram_api::object_ptr<telegram_api::storyItemDeleted> &&story_item) {
   StoryId story_id(story_item->id_);
-  on_delete_story(owner_dialog_id, story_id);
+  on_delete_story({owner_dialog_id, story_id});
   return story_id;
 }
 
-void StoryManager::on_delete_story(DialogId owner_dialog_id, StoryId story_id) {
+void StoryManager::on_delete_story(StoryFullId story_full_id) {
+  auto story_id = story_full_id.get_story_id();
   if (!story_id.is_server()) {
-    LOG(ERROR) << "Receive deleted " << story_id << " in " << owner_dialog_id;
+    LOG(ERROR) << "Receive deleted " << story_full_id;
     return;
   }
 
-  StoryFullId story_full_id{owner_dialog_id, story_id};
   const Story *story = get_story(story_full_id);
   if (story == nullptr) {
     return;
   }
+  auto owner_dialog_id = story_full_id.get_dialog_id();
   if (story->is_update_sent_) {
     CHECK(owner_dialog_id.get_type() == DialogType::User);
     send_closure(G()->td(), &Td::send_update,
@@ -2329,8 +2329,9 @@ void StoryManager::on_toggle_story_is_pinned(StoryId story_id, bool is_pinned, P
 }
 
 void StoryManager::delete_story(StoryId story_id, Promise<Unit> &&promise) {
-  DialogId dialog_id(td_->contacts_manager_->get_my_id());
-  const Story *story = get_story({dialog_id, story_id});
+  DialogId owner_dialog_id(td_->contacts_manager_->get_my_id());
+  StoryFullId story_full_id{owner_dialog_id, story_id};
+  const Story *story = get_story(story_full_id);
   if (story == nullptr) {
     return promise.set_error(Status::Error(400, "Story not found"));
   }
@@ -2338,49 +2339,45 @@ void StoryManager::delete_story(StoryId story_id, Promise<Unit> &&promise) {
     return promise.set_error(Status::Error(400, "Invalid story identifier"));
   }
 
-  delete_story_on_server(dialog_id, story_id, 0, std::move(promise));
+  delete_story_on_server(story_full_id, 0, std::move(promise));
 
-  on_delete_story(dialog_id, story_id);
+  on_delete_story(story_full_id);
 }
 
 class StoryManager::DeleteStoryOnServerLogEvent {
  public:
-  DialogId dialog_id_;
-  StoryId story_id_;
+  StoryFullId story_full_id_;
 
   template <class StorerT>
   void store(StorerT &storer) const {
-    td::store(dialog_id_, storer);
-    td::store(story_id_, storer);
+    td::store(story_full_id_, storer);
   }
 
   template <class ParserT>
   void parse(ParserT &parser) {
-    td::parse(dialog_id_, parser);
-    td::parse(story_id_, parser);
+    td::parse(story_full_id_, parser);
   }
 };
 
-uint64 StoryManager::save_delete_story_on_server_log_event(DialogId dialog_id, StoryId story_id) {
-  DeleteStoryOnServerLogEvent log_event{dialog_id, story_id};
+uint64 StoryManager::save_delete_story_on_server_log_event(StoryFullId story_full_id) {
+  DeleteStoryOnServerLogEvent log_event{story_full_id};
   return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteStoryOnServer,
                     get_log_event_storer(log_event));
 }
 
-void StoryManager::delete_story_on_server(DialogId dialog_id, StoryId story_id, uint64 log_event_id,
-                                          Promise<Unit> &&promise) {
-  LOG(INFO) << "Delete " << story_id << " in " << dialog_id << " from server";
+void StoryManager::delete_story_on_server(StoryFullId story_full_id, uint64 log_event_id, Promise<Unit> &&promise) {
+  LOG(INFO) << "Delete " << story_full_id << " from server";
 
   if (log_event_id == 0) {
-    log_event_id = save_delete_story_on_server_log_event(dialog_id, story_id);
+    log_event_id = save_delete_story_on_server_log_event(story_full_id);
   }
 
   auto new_promise = get_erase_log_event_promise(log_event_id, std::move(promise));
   promise = std::move(new_promise);  // to prevent self-move
 
-  deleted_story_full_ids_.insert({dialog_id, story_id});
+  deleted_story_full_ids_.insert(story_full_id);
 
-  td_->create_handler<DeleteStoriesQuery>(std::move(promise))->send({story_id});
+  td_->create_handler<DeleteStoriesQuery>(std::move(promise))->send({story_full_id.get_story_id()});
 }
 
 telegram_api::object_ptr<telegram_api::InputMedia> StoryManager::get_input_media(StoryFullId story_full_id) const {
@@ -2397,14 +2394,15 @@ telegram_api::object_ptr<telegram_api::InputMedia> StoryManager::get_input_media
 void StoryManager::remove_story_notifications_by_story_ids(DialogId dialog_id, const vector<StoryId> &story_ids) {
   VLOG(notifications) << "Trying to remove notification about " << story_ids << " in " << dialog_id;
   for (auto story_id : story_ids) {
-    if (!have_story_force({dialog_id, story_id})) {
-      LOG(INFO) << "Can't delete " << story_id << " because it is not found";
+    StoryFullId story_full_id{dialog_id, story_id};
+    if (!have_story_force(story_full_id)) {
+      LOG(INFO) << "Can't delete " << story_full_id << " because it is not found";
       // call synchronously to remove them before ProcessPush returns
       // td_->notification_manager_->remove_temporary_notification_by_story_id(
-      //    story_notification_group_id, story_id, true, "remove_story_notifications_by_story_ids");
+      //    story_notification_group_id, story_full_id, true, "remove_story_notifications_by_story_ids");
       continue;
     }
-    on_delete_story(dialog_id, story_id);
+    on_delete_story(story_full_id);
   }
 }
 
@@ -2419,14 +2417,14 @@ void StoryManager::on_binlog_events(vector<BinlogEvent> &&events) {
         DeleteStoryOnServerLogEvent log_event;
         log_event_parse(log_event, event.get_data()).ensure();
 
-        auto dialog_id = log_event.dialog_id_;
+        auto dialog_id = log_event.story_full_id_.get_dialog_id();
         if (dialog_id != DialogId(td_->contacts_manager_->get_my_id())) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
 
         td_->messages_manager_->have_dialog_info_force(dialog_id);
-        delete_story_on_server(dialog_id, log_event.story_id_, event.id_, Auto());
+        delete_story_on_server(log_event.story_full_id_, event.id_, Auto());
         break;
       }
       case LogEvent::HandlerType::ReadStoriesOnServer: {

@@ -248,7 +248,7 @@ class StoryManager final : public Actor {
   StoryId on_get_deleted_story(DialogId owner_dialog_id,
                                telegram_api::object_ptr<telegram_api::storyItemDeleted> &&story_item);
 
-  void on_delete_story(DialogId owner_dialog_id, StoryId story_id);
+  void on_delete_story(StoryFullId story_full_id);
 
   void on_get_dialog_pinned_stories(DialogId owner_dialog_id,
                                     telegram_api::object_ptr<telegram_api::stories_stories> &&stories,
@@ -263,9 +263,9 @@ class StoryManager final : public Actor {
 
   vector<FileId> get_story_file_ids(const Story *story) const;
 
-  static uint64 save_delete_story_on_server_log_event(DialogId dialog_id, StoryId story_id);
+  static uint64 save_delete_story_on_server_log_event(StoryFullId story_full_id);
 
-  void delete_story_on_server(DialogId dialog_id, StoryId story_id, uint64 log_event_id, Promise<Unit> &&promise);
+  void delete_story_on_server(StoryFullId story_full_id, uint64 log_event_id, Promise<Unit> &&promise);
 
   void delete_story_files(const Story *story) const;
 
