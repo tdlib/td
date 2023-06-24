@@ -1407,13 +1407,17 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
     }
   }
 
+  bool is_visible_only_for_self = !story_full_id.get_story_id().is_server() ||
+                                  dialog_id == DialogId(ContactsManager::get_service_notifications_user_id()) ||
+                                  (!story->is_pinned_ && !is_active_story(story));
+
   story->is_update_sent_ = true;
 
   CHECK(dialog_id.get_type() == DialogType::User);
   return td_api::make_object<td_api::story>(
       story_full_id.get_story_id().get(),
       td_->contacts_manager_->get_user_id_object(dialog_id.get_user_id(), "get_story_object"), story->date_,
-      story->is_pinned_, can_get_story_viewers(story_full_id, story).is_ok(),
+      story->is_pinned_, is_visible_only_for_self, can_get_story_viewers(story_full_id, story).is_ok(),
       story->interaction_info_.get_story_interaction_info_object(td_), std::move(privacy_rules),
       get_story_content_object(td_, content),
       get_formatted_text_object(story->caption_, true, get_story_content_duration(td_, content)));
