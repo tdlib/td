@@ -43,9 +43,9 @@ class NotificationTypeMessage final : public NotificationType {
     return {};
   }
 
-  td_api::object_ptr<td_api::NotificationType> get_notification_type_object(DialogId dialog_id) const final {
-    auto message_object = G()->td().get_actor_unsafe()->messages_manager_->get_message_object(
-        {dialog_id, message_id_}, "get_notification_type_object");
+  td_api::object_ptr<td_api::NotificationType> get_notification_type_object(Td *td, DialogId dialog_id) const final {
+    auto message_object =
+        td->messages_manager_->get_message_object({dialog_id, message_id_}, "get_notification_type_object");
     if (message_object == nullptr) {
       return nullptr;
     }
@@ -82,7 +82,7 @@ class NotificationTypeSecretChat final : public NotificationType {
     return {};
   }
 
-  td_api::object_ptr<td_api::NotificationType> get_notification_type_object(DialogId dialog_id) const final {
+  td_api::object_ptr<td_api::NotificationType> get_notification_type_object(Td *, DialogId) const final {
     return td_api::make_object<td_api::notificationTypeNewSecretChat>();
   }
 
@@ -112,7 +112,7 @@ class NotificationTypeCall final : public NotificationType {
     return {};
   }
 
-  td_api::object_ptr<td_api::NotificationType> get_notification_type_object(DialogId dialog_id) const final {
+  td_api::object_ptr<td_api::NotificationType> get_notification_type_object(Td *, DialogId) const final {
     return td_api::make_object<td_api::notificationTypeNewCall>(call_id_.get());
   }
 
@@ -350,8 +350,7 @@ class NotificationTypePushMessage final : public NotificationType {
     UNREACHABLE();
   }
 
-  td_api::object_ptr<td_api::NotificationType> get_notification_type_object(DialogId dialog_id) const final {
-    auto td = G()->td().get_actor_unsafe();
+  td_api::object_ptr<td_api::NotificationType> get_notification_type_object(Td *td, DialogId) const final {
     auto sender = get_message_sender_object(td, sender_user_id_, sender_dialog_id_, "get_notification_type_object");
     return td_api::make_object<td_api::notificationTypeNewPushMessage>(
         message_id_.get(), std::move(sender), sender_name_, is_outgoing_,

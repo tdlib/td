@@ -31,12 +31,12 @@ class Notification {
   }
 };
 
-inline td_api::object_ptr<td_api::notification> get_notification_object(DialogId dialog_id,
+inline td_api::object_ptr<td_api::notification> get_notification_object(Td *td, DialogId dialog_id,
                                                                         const Notification &notification) {
   CHECK(notification.type != nullptr);
   return td_api::make_object<td_api::notification>(notification.notification_id.get(), notification.date,
                                                    notification.disable_notification,
-                                                   notification.type->get_notification_type_object(dialog_id));
+                                                   notification.type->get_notification_type_object(td, dialog_id));
 }
 
 inline StringBuilder &operator<<(StringBuilder &sb, const Notification &notification) {

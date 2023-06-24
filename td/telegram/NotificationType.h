@@ -37,7 +37,8 @@ class NotificationType {
 
   virtual vector<FileId> get_file_ids(const Td *td) const = 0;
 
-  virtual td_api::object_ptr<td_api::NotificationType> get_notification_type_object(DialogId dialog_id) const = 0;
+  virtual td_api::object_ptr<td_api::NotificationType> get_notification_type_object(Td *td,
+                                                                                    DialogId dialog_id) const = 0;
 
   virtual StringBuilder &to_string_builder(StringBuilder &string_builder) const = 0;
 };

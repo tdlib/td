@@ -343,7 +343,7 @@ td_api::object_ptr<td_api::updateActiveNotifications> NotificationManager::get_u
 
     vector<td_api::object_ptr<td_api::notification>> notifications;
     for (auto &notification : reversed(group.second.notifications)) {
-      auto notification_object = get_notification_object(group.first.dialog_id, notification);
+      auto notification_object = get_notification_object(td_, group.first.dialog_id, notification);
       if (notification_object->type_ != nullptr) {
         notifications.push_back(std::move(notification_object));
       }
@@ -628,8 +628,8 @@ void NotificationManager::add_notifications_to_group_begin(NotificationGroups::i
                                                            vector<Notification> notifications) {
   CHECK(group_it != groups_.end());
 
-  td::remove_if(notifications, [dialog_id = group_it->first.dialog_id](const Notification &notification) {
-    return notification.type->get_notification_type_object(dialog_id) == nullptr;
+  td::remove_if(notifications, [td = td_, dialog_id = group_it->first.dialog_id](const Notification &notification) {
+    return notification.type->get_notification_type_object(td, dialog_id) == nullptr;
   });
 
   if (notifications.empty()) {
@@ -686,7 +686,7 @@ void NotificationManager::add_notifications_to_group_begin(NotificationGroups::i
     new_notifications.reserve(notifications.size());
     added_notifications.reserve(notifications.size());
     for (auto &notification : notifications) {
-      added_notifications.push_back(get_notification_object(group_key.dialog_id, notification));
+      added_notifications.push_back(get_notification_object(td_, group_key.dialog_id, notification));
       CHECK(added_notifications.back()->type_ != nullptr);
       new_notifications.push_back(std::move(notification));
     }
@@ -1003,7 +1003,7 @@ void NotificationManager::add_update_notification_group(td_api::object_ptr<td_ap
 
 void NotificationManager::add_update_notification(NotificationGroupId notification_group_id, DialogId dialog_id,
                                                   const Notification &notification) {
-  auto notification_object = get_notification_object(dialog_id, notification);
+  auto notification_object = get_notification_object(td_, dialog_id, notification);
   if (notification_object->type_ == nullptr) {
     return;
   }
@@ -1414,7 +1414,7 @@ bool NotificationManager::do_flush_pending_notifications(NotificationGroupKey &g
   for (auto &pending_notification : pending_notifications) {
     Notification notification(pending_notification.notification_id, pending_notification.date,
                               pending_notification.disable_notification, std::move(pending_notification.type));
-    added_notifications.push_back(get_notification_object(group_key.dialog_id, notification));
+    added_notifications.push_back(get_notification_object(td_, group_key.dialog_id, notification));
     CHECK(added_notifications.back()->type_ != nullptr);
 
     if (!notification.type->can_be_delayed()) {
@@ -1492,7 +1492,7 @@ void NotificationManager::send_add_group_update(const NotificationGroupKey &grou
   vector<td_api::object_ptr<td_api::notification>> added_notifications;
   added_notifications.reserve(added_size);
   for (size_t i = total_size - added_size; i < total_size; i++) {
-    added_notifications.push_back(get_notification_object(group_key.dialog_id, group.notifications[i]));
+    added_notifications.push_back(get_notification_object(td_, group_key.dialog_id, group.notifications[i]));
     if (added_notifications.back()->type_ == nullptr) {
       added_notifications.pop_back();
     }
@@ -1513,8 +1513,8 @@ void NotificationManager::flush_pending_notifications(NotificationGroupId group_
   }
 
   td::remove_if(group_it->second.pending_notifications,
-                [dialog_id = group_it->first.dialog_id](const PendingNotification &pending_notification) {
-                  return pending_notification.type->get_notification_type_object(dialog_id) == nullptr;
+                [td = td_, dialog_id = group_it->first.dialog_id](const PendingNotification &pending_notification) {
+                  return pending_notification.type->get_notification_type_object(td, dialog_id) == nullptr;
                 });
 
   if (group_it->second.pending_notifications.empty()) {
@@ -1918,7 +1918,7 @@ void NotificationManager::remove_notification(NotificationGroupId group_id, Noti
     removed_notification_ids.push_back(notification_id.get());
     if (old_group_size >= max_notification_group_size_ + 1) {
       added_notifications.push_back(
-          get_notification_object(group_it->first.dialog_id,
+          get_notification_object(td_, group_it->first.dialog_id,
                                   group_it->second.notifications[old_group_size - max_notification_group_size_ - 1]));
       if (added_notifications.back()->type_ == nullptr) {
         added_notifications.pop_back();
@@ -2180,7 +2180,7 @@ void NotificationManager::remove_temporary_notifications(NotificationGroupId gro
     size_t added_notification_count = 0;
     for (size_t i = min(old_group_size - max_notification_group_size_, notification_pos);
          i-- > 0 && added_notification_count++ < removed_notification_ids.size();) {
-      added_notifications.push_back(get_notification_object(group_it->first.dialog_id, group.notifications[i]));
+      added_notifications.push_back(get_notification_object(td_, group_it->first.dialog_id, group.notifications[i]));
       if (added_notifications.back()->type_ == nullptr) {
         added_notifications.pop_back();
       }
@@ -2533,7 +2533,7 @@ void NotificationManager::on_notification_group_size_max_changed() {
         }
         for (size_t i = notification_count - min(notification_count, new_max_notification_group_size_size_t);
              i < notification_count - max_notification_group_size_; i++) {
-          added_notifications.push_back(get_notification_object(group_key.dialog_id, group.notifications[i]));
+          added_notifications.push_back(get_notification_object(td_, group_key.dialog_id, group.notifications[i]));
           if (added_notifications.back()->type_ == nullptr) {
             added_notifications.pop_back();
           }
