@@ -295,11 +295,12 @@ class TlWriterCCommon final : public tl::TL_writer {
     }
     return "struct Td" + class_name +
            ";\n"
-           "TDC_VECTOR(" +
-           class_name + ", struct Td" + class_name +
-           " *);\n"
-           "TDC_VECTOR(Vector" +
-           class_name + ", struct TdVector" + class_name + " *);\n";
+           "struct TdVector" +
+           class_name +
+           ";\n"
+           "struct TdVectorVector" +
+           class_name + ";\n";
+    ;
   }
 
   std::string gen_class_begin(const std::string &class_name, const std::string &base_class_name, bool is_proxy,
@@ -312,7 +313,13 @@ class TlWriterCCommon final : public tl::TL_writer {
     if (class_name == "Function" || class_name == "Object") {
       tail = "};\n";
     }
-    return "struct Td" + class_name + " {\n" + "  int ID;\n  int refcnt;\n" + tail;
+    return "TDC_VECTOR(" + class_name + ", struct Td" + class_name +
+           " *);\n"
+           "TDC_VECTOR(Vector" +
+           class_name + ", struct TdVector" + class_name +
+           " *);\n"
+           "struct Td" +
+           class_name + " {\n" + "  int ID;\n  int refcnt;\n" + tail;
   }
   std::string gen_class_end() const final {
     return "";
