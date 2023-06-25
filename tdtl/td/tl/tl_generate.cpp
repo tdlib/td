@@ -632,19 +632,6 @@ void write_tl(const tl_config &config, tl_outputer &out, const TL_writer &w) {
       }
     }
   }
-  for (int i = 0; i <= w.get_max_arity(); i++) {
-    out.append(w.gen_forward_class_declaration(w.gen_base_type_class_name(i), true));
-  }
-
-  for (std::size_t function = 0; function < functions_n; function++) {
-    tl_combinator *t = config.get_function_by_num(function);
-    if (!w.is_combinator_supported(t)) {
-      continue;
-    }
-
-    // out.append(w.gen_forward_class_declaration(w.gen_class_name(t->name), false));
-  }
-  // out.append(w.gen_forward_class_declaration(w.gen_base_function_class_name(), true));
 
   // write base classes
   std::vector<var_description> empty_vars;
