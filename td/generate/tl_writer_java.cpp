@@ -191,7 +191,7 @@ std::string TD_TL_writer_java::gen_int_const(const tl::tl_tree *tree_c,
 }
 
 std::string TD_TL_writer_java::gen_output_begin(const std::string &additional_imports) const {
-  return "package " + package_name + ";\n\n" + additional_imports;
+  return "package " + package_name + ";\n\n";
 }
 
 std::string TD_TL_writer_java::gen_output_begin_once() const {
@@ -216,6 +216,10 @@ std::string TD_TL_writer_java::gen_output_end() const {
 
 std::string TD_TL_writer_java::gen_import_declaration(const std::string &name, bool is_system) const {
   return "import " + name + ";\n";
+}
+
+std::string TD_TL_writer_java::gen_package_suffix() const {
+  return "";
 }
 
 std::string TD_TL_writer_java::gen_forward_class_declaration(const std::string &class_name, bool is_proxy) const {

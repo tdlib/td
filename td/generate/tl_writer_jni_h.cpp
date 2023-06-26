@@ -69,11 +69,9 @@ std::string TD_TL_writer_jni_h::gen_output_begin(const std::string &additional_i
          "#include <utility>\n"
          "#include <vector>\n\n"
          "#include <jni.h>\n\n" +
-         ext_include_str +
-         "\n"
+         ext_include_str + "\n" + additional_imports +
 
-         "namespace td {\n" +
-         forward_declaration("TlStorerToString") +
+         "namespace td {\n" + forward_declaration("TlStorerToString") +
          "\n"
          "namespace " +
          tl_name + " {\n\n";

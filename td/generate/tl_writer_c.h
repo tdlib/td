@@ -224,7 +224,7 @@ class TlWriterCCommon final : public tl::TL_writer {
   }
   std::string gen_output_begin(const std::string &additional_imports) const final {
     if (is_header_ == 1) {
-      return "#pragma once\n"
+      return "#pragma once\n\n" + additional_imports +
              "#ifdef __cplusplus\n"
              "extern \"C\" {\n"
              "#endif\n"
@@ -298,6 +298,10 @@ class TlWriterCCommon final : public tl::TL_writer {
     } else {
       return "#include \"" + name + "\"\n";
     }
+  }
+
+  std::string gen_package_suffix() const final {
+    return ".h";
   }
 
   std::string gen_forward_class_declaration(const std::string &class_name, bool is_proxy) const final {

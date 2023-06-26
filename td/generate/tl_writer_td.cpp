@@ -125,6 +125,10 @@ std::string TD_TL_writer::gen_import_declaration(const std::string &name, bool i
   }
 }
 
+std::string TD_TL_writer::gen_package_suffix() const {
+  return ".h";
+}
+
 std::string TD_TL_writer::gen_base_tl_class_name() const {
   return base_tl_class_name;
 }

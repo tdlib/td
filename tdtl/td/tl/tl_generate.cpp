@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <map>
 #include <set>
 #include <string>
 #include <vector>
@@ -896,6 +897,120 @@ bool write_tl_to_file(const tl_config &config, const std::string &file_name, con
   tl_string_outputer out;
   write_tl(config, out, w);
   return put_file_contents(file_name, out.get_result(), w.is_documentation_generated());
+}
+
+static std::string get_additional_imports(const std::map<std::string, bool> &types, const std::string base_class_name,
+                                          const std::string &file_name_prefix, const std::string &file_name_suffix,
+                                          const TL_writer &w) {
+  std::string result =
+      w.gen_import_declaration(file_name_prefix + "_" + base_class_name + w.gen_package_suffix(), false);
+  if (w.gen_package_suffix() != file_name_suffix) {
+    for (std::map<std::string, bool>::const_iterator it = types.begin(); it != types.end(); ++it) {
+      std::string package_name = file_name_prefix + "_" + w.gen_class_name(it->first) + w.gen_package_suffix();
+      result += w.gen_import_declaration(package_name, false);
+    }
+  }
+  result += "\n";
+  return result;
+}
+
+bool write_tl_to_multiple_files(const tl_config &config, const std::string &file_name_prefix,
+                                const std::string &file_name_suffix, const TL_writer &w) {
+  find_complex_types(config, w);
+
+  std::map<std::string, tl_string_outputer> outs;
+
+  tl_string_outputer *out = &outs["common"];
+  out->append(w.gen_output_begin(std::string()));
+  out->append(w.gen_output_begin_once());
+  out->append(w.gen_output_end());
+
+  std::set<std::string> request_types;
+  std::set<std::string> result_types;
+  for (std::size_t function = 0; function < config.get_function_count(); function++) {
+    const tl_combinator *t = config.get_function_by_num(function);
+    dfs_combinator(t, request_types, w);
+    dfs_tree(t->result, result_types, w);
+  }
+
+  std::map<std::string, bool> object_types;
+  for (std::size_t type = 0; type < config.get_type_count(); type++) {
+    tl_type *t = config.get_type_by_num(type);
+    if (t->constructors_num == 0 || w.is_built_in_simple_type(t->name) ||
+        w.is_built_in_complex_type(t->name)) {  // built-in dummy or complex types
+      continue;
+    }
+
+    if (t->flags & FLAG_COMPLEX) {
+      std::fprintf(stderr, "Can't generate class %s\n", t->name.c_str());
+      continue;
+    }
+
+    object_types[t->name] = (t->simple_constructors != 1);
+    out = &outs[w.gen_main_class_name(t)];
+    auto additional_imports =
+        get_additional_imports(get_children_types(t, w), "Object", file_name_prefix, file_name_suffix, w);
+    out->append(w.gen_output_begin(additional_imports));
+    write_class(*out, t, request_types, result_types, w);
+    out->append(w.gen_output_end());
+  }
+
+  std::map<std::string, bool> function_types;
+  for (std::size_t function = 0; function < config.get_function_count(); function++) {
+    tl_combinator *t = config.get_function_by_num(function);
+    if (!w.is_combinator_supported(t)) {
+      // std::fprintf(stderr, "Function %s is too hard to store\n", t->name.c_str());
+      continue;
+    }
+
+    function_types[t->name] = false;
+    out = &outs[w.gen_class_name(t->name)];
+    auto additional_imports =
+        get_additional_imports(get_children_types(t, w), "Function", file_name_prefix, file_name_suffix, w);
+    out->append(w.gen_output_begin(additional_imports));
+    write_function(*out, t, request_types, result_types, w);
+    out->append(w.gen_output_end());
+  }
+
+  for (std::size_t type = 0; type < config.get_type_count(); type++) {
+    tl_type *t = config.get_type_by_num(type);
+    if (t->flags & FLAG_COMPLEX) {
+      t->flags &= ~FLAG_COMPLEX;  // remove temporary flag
+    }
+  }
+
+  out = &outs["Object"];
+  out->append(
+      w.gen_output_begin(get_additional_imports(object_types, "common", file_name_prefix, file_name_suffix, w)));
+  write_base_object_classes(config, *out, request_types, result_types, w);
+  out->append(w.gen_output_end());
+
+  out = &outs["Function"];
+  out->append(
+      w.gen_output_begin(get_additional_imports(function_types, "common", file_name_prefix, file_name_suffix, w)));
+  write_base_function_class(config, *out, request_types, result_types, w);
+  out->append(w.gen_output_end());
+
+  std::string additional_main_imports;
+  for (std::map<std::string, tl_string_outputer>::const_iterator it = outs.begin(); it != outs.end(); ++it) {
+    std::string file_name = file_name_prefix + "_" + it->first + file_name_suffix;
+    if (!put_file_contents(file_name, it->second.get_result(), w.is_documentation_generated())) {
+      return false;
+    }
+
+    if (file_name_suffix == w.gen_package_suffix()) {
+      additional_main_imports += w.gen_import_declaration(file_name, false);
+    }
+  }
+  if (!additional_main_imports.empty()) {
+    additional_main_imports += "\n";
+  }
+
+  tl_string_outputer main_out;
+  main_out.append(w.gen_output_begin(additional_main_imports));
+  main_out.append(w.gen_output_end());
+
+  return put_file_contents(file_name_prefix + file_name_suffix, main_out.get_result(), w.is_documentation_generated());
 }
 
 }  // namespace tl

@@ -59,6 +59,8 @@ class TD_TL_writer_java final : public tl::TL_writer {
 
   std::string gen_import_declaration(const std::string &name, bool is_system) const final;
 
+  std::string gen_package_suffix() const final;
+
   std::string gen_forward_class_declaration(const std::string &class_name, bool is_proxy) const final;
 
   std::string gen_class_begin(const std::string &class_name, const std::string &base_class_name, bool is_proxy,

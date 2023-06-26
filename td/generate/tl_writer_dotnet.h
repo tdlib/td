@@ -206,6 +206,10 @@ class TlWriterDotNet final : public TL_writer {
     }
   }
 
+  std::string gen_package_suffix() const final {
+    return ".h";
+  }
+
   std::string gen_forward_class_declaration(const std::string &class_name, bool is_proxy) const final {
     if (!is_header_) {
       return "";
