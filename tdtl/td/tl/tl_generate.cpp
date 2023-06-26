@@ -69,11 +69,11 @@ static void get_children_types(const tl_tree *tree, const TL_writer &w, std::map
   assert(t->flags == 0);
 
   if (t->simple_constructors != 1) {
-    children_types.emplace(t->name, true);
+    children_types.emplace(w.gen_main_class_name(t), true);
   } else {
     for (std::size_t i = 0; i < t->constructors_num; i++) {
       if (w.is_combinator_supported(t->constructors[i])) {
-        children_types.emplace(t->constructors[i]->name, false);
+        children_types.emplace(w.gen_class_name(t->constructors[i]->name), false);
       }
     }
   }
@@ -103,7 +103,7 @@ static std::map<std::string, bool> get_children_types(const tl_type *t, const TL
 static void write_forward_declarations(tl_outputer &out, const std::map<std::string, bool> &children_types,
                                        const TL_writer &w) {
   for (std::map<std::string, bool>::const_iterator it = children_types.begin(); it != children_types.end(); ++it) {
-    out.append(w.gen_forward_class_declaration(w.gen_class_name(it->first), it->second));
+    out.append(w.gen_forward_class_declaration(it->first, it->second));
   }
 }
 
@@ -906,7 +906,7 @@ static std::string get_additional_imports(const std::map<std::string, bool> &typ
       w.gen_import_declaration(file_name_prefix + "_" + base_class_name + w.gen_package_suffix(), false);
   if (w.gen_package_suffix() != file_name_suffix) {
     for (std::map<std::string, bool>::const_iterator it = types.begin(); it != types.end(); ++it) {
-      std::string package_name = file_name_prefix + "_" + w.gen_class_name(it->first) + w.gen_package_suffix();
+      std::string package_name = file_name_prefix + "_" + it->first + w.gen_package_suffix();
       result += w.gen_import_declaration(package_name, false);
     }
   }
@@ -946,7 +946,7 @@ bool write_tl_to_multiple_files(const tl_config &config, const std::string &file
       continue;
     }
 
-    object_types[t->name] = (t->simple_constructors != 1);
+    object_types[w.gen_main_class_name(t)] = (t->simple_constructors != 1);
     out = &outs[w.gen_main_class_name(t)];
     auto additional_imports =
         get_additional_imports(get_children_types(t, w), "Object", file_name_prefix, file_name_suffix, w);
@@ -963,7 +963,7 @@ bool write_tl_to_multiple_files(const tl_config &config, const std::string &file
       continue;
     }
 
-    function_types[t->name] = false;
+    function_types[w.gen_class_name(t->name)] = false;
     out = &outs[w.gen_class_name(t->name)];
     auto additional_imports =
         get_additional_imports(get_children_types(t, w), "Function", file_name_prefix, file_name_suffix, w);
