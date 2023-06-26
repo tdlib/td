@@ -12,8 +12,8 @@
 namespace td {
 namespace tl {
 
-std::string get_file_contents(const std::string &file_name, const std::string &mode) {
-  FILE *f = std::fopen(file_name.c_str(), mode.c_str());
+std::string get_file_contents(const std::string &file_name) {
+  FILE *f = std::fopen(file_name.c_str(), "rb");
   if (f == NULL) {
     return std::string();
   }
@@ -44,8 +44,8 @@ std::string get_file_contents(const std::string &file_name, const std::string &m
   return result;
 }
 
-bool put_file_contents(const std::string &file_name, const std::string &mode, const std::string &contents) {
-  FILE *f = std::fopen(file_name.c_str(), mode.c_str());
+bool put_file_contents(const std::string &file_name, const std::string &contents) {
+  FILE *f = std::fopen(file_name.c_str(), "wb");
   if (f == NULL) {
     std::fprintf(stderr, "Can't open file \"%s\"\n", file_name.c_str());
     return false;

@@ -11,9 +11,9 @@
 namespace td {
 namespace tl {
 
-std::string get_file_contents(const std::string &file_name, const std::string &mode);
+std::string get_file_contents(const std::string &file_name);
 
-bool put_file_contents(const std::string &file_name, const std::string &mode, const std::string &contents);
+bool put_file_contents(const std::string &file_name, const std::string &contents);
 
 std::string remove_documentation(const std::string &str);
 

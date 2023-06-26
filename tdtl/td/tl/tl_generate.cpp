@@ -837,7 +837,7 @@ void write_tl(const tl_config &config, tl_outputer &out, const TL_writer &w) {
 }
 
 tl_config read_tl_config_from_file(const std::string &file_name) {
-  std::string config = get_file_contents(file_name, "rb");
+  std::string config = get_file_contents(file_name);
   if (config.empty()) {
     std::fprintf(stderr, "Config file %s is empty\n", file_name.c_str());
     std::abort();
@@ -856,14 +856,14 @@ bool write_tl_to_file(const tl_config &config, const std::string &file_name, con
   tl_string_outputer out;
   write_tl(config, out, w);
 
-  std::string old_file_contents = get_file_contents(file_name, "rb");
+  std::string old_file_contents = get_file_contents(file_name);
   if (!w.is_documentation_generated()) {
     old_file_contents = remove_documentation(old_file_contents);
   }
 
   if (old_file_contents != out.get_result()) {
     std::fprintf(stderr, "Write tl to file %s\n", file_name.c_str());
-    return put_file_contents(file_name, "wb", out.get_result());
+    return put_file_contents(file_name, out.get_result());
   }
 
   return true;

@@ -13,9 +13,9 @@
 int main(int argc, char *argv[]) {
   for (int i = 1; i < argc; i++) {
     std::string file_name = argv[i];
-    std::string old_contents = td::tl::get_file_contents(file_name, "rb");
+    std::string old_contents = td::tl::get_file_contents(file_name);
     std::string new_contents = td::tl::remove_documentation(old_contents);
-    if (new_contents != old_contents && !td::tl::put_file_contents(file_name, "wb", new_contents)) {
+    if (new_contents != old_contents && !td::tl::put_file_contents(file_name, new_contents)) {
       std::fprintf(stderr, "Can't write file %s\n", file_name.c_str());
       std::abort();
     }
