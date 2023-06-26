@@ -227,13 +227,7 @@ class TlWriterCCommon final : public tl::TL_writer {
       return "#pragma once\n\n" + additional_imports +
              "#ifdef __cplusplus\n"
              "extern \"C\" {\n"
-             "#endif\n"
-             "#define TDC_VECTOR(tdc_type_name,tdc_type) \\\n"
-             "   struct TdVector ## tdc_type_name { \\\n"
-             "     int len;\\\n"
-             "     tdc_type *data;\\\n"
-             "   };\\\n"
-             "\n";
+             "#endif\n";
     }
     if (is_header_ == -1) {
       return "#pragma once\n\n" + gen_import_declaration("td/telegram/td_tdc_api.h", false) +
@@ -251,6 +245,12 @@ class TlWriterCCommon final : public tl::TL_writer {
              "  unsigned char *data;\n"
              "  int len;\n"
              "};\n"
+             "#define TDC_VECTOR(tdc_type_name,tdc_type) \\\n"
+             "   struct TdVector ## tdc_type_name { \\\n"
+             "     int len;\\\n"
+             "     tdc_type *data;\\\n"
+             "   };\\\n"
+             "\n"
              "TDC_VECTOR(Int,int)\n"
              "TDC_VECTOR(Long,long long)\n"
              "TDC_VECTOR(String,char *)\n"
