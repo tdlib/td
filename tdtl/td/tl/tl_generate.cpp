@@ -50,6 +50,39 @@ static bool is_reachable_for_storer(int storer_type, const std::string &name,
   return true;
 }
 
+static void write_forward_declaration(tl_outputer &out, const tl_tree *tree, const TL_writer &w,
+                                      std::set<std::string> &existing_forward_declarations) {
+  if (tree->get_type() != NODE_TYPE_TYPE) {
+    return;
+  }
+  const tl_tree_type *tree_type = static_cast<const tl_tree_type *>(tree);
+  for (std::size_t i = 0; i < tree_type->children.size(); i++) {
+    write_forward_declaration(out, tree_type->children[i], w, existing_forward_declarations);
+  }
+
+  const tl_type *t = tree_type->type;
+  if (t->constructors_num == 0 || w.is_built_in_simple_type(t->name) || w.is_built_in_complex_type(t->name) ||
+      (t->flags & FLAG_COMPLEX)) {  // built-in or complex types
+    return;
+  }
+
+  assert(t->flags == 0);
+
+  if (t->simple_constructors != 1) {
+    if (existing_forward_declarations.insert(w.gen_class_name(t->name)).second) {
+      out.append(w.gen_forward_class_declaration(w.gen_class_name(t->name), true));
+    }
+  } else {
+    for (std::size_t i = 0; i < t->constructors_num; i++) {
+      if (w.is_combinator_supported(t->constructors[i])) {
+        if (existing_forward_declarations.insert(w.gen_class_name(t->constructors[i]->name)).second) {
+          out.append(w.gen_forward_class_declaration(w.gen_class_name(t->constructors[i]->name), false));
+        }
+      }
+    }
+  }
+}
+
 static void write_class_constructor(tl_outputer &out, const tl_combinator *t, const std::string &class_name,
                                     bool is_default, const TL_writer &w) {
   //  std::fprintf(stderr, "Gen constructor %s\n", class_name.c_str());
@@ -243,6 +276,12 @@ static void write_function(tl_outputer &out, const tl_combinator *t, const std::
                            const std::set<std::string> &result_types, const TL_writer &w) {
   assert(w.is_combinator_supported(t));
 
+  std::set<std::string> existing_forward_declarations;
+  for (std::size_t i = 0; i < t->args.size(); i++) {
+    write_forward_declaration(out, t->args[i].type, w, existing_forward_declarations);
+  }
+  write_forward_declaration(out, t->result, w, existing_forward_declarations);
+
   std::string class_name = w.gen_class_name(t->name);
 
   out.append(w.gen_class_begin(class_name, w.gen_base_function_class_name(), false, t->result));
@@ -369,8 +408,8 @@ static void write_constructor(tl_outputer &out, const tl_combinator *t, const st
   out.append(w.gen_class_end());
 }
 
-void write_class(tl_outputer &out, const tl_type *t, const std::set<std::string> &request_types,
-                 const std::set<std::string> &result_types, const TL_writer &w) {
+static void write_class(tl_outputer &out, const tl_type *t, const std::set<std::string> &request_types,
+                        const std::set<std::string> &result_types, const TL_writer &w) {
   assert(t->constructors_num > 0);
   assert(!w.is_built_in_simple_type(t->name));
   assert(!w.is_built_in_complex_type(t->name));
@@ -382,6 +421,15 @@ void write_class(tl_outputer &out, const tl_type *t, const std::set<std::string>
 
   const std::string base_class = w.gen_base_type_class_name(t->arity);
   const std::string class_name = w.gen_class_name(t->name);
+
+  std::set<std::string> existing_forward_declarations;
+  for (std::size_t i = 0; i < t->constructors_num; i++) {
+    if (w.is_combinator_supported(t->constructors[i])) {
+      for (std::size_t j = 0; j < t->constructors[i]->args.size(); j++) {
+        write_forward_declaration(out, t->constructors[i]->args[j].type, w, existing_forward_declarations);
+      }
+    }
+  }
 
   std::vector<var_description> empty_vars;
   bool optimize_one_constructor = (t->simple_constructors == 1);
@@ -776,27 +824,6 @@ void write_tl(const tl_config &config, tl_outputer &out, const TL_writer &w) {
     const tl_combinator *t = config.get_function_by_num(function);
     dfs_combinator(t, request_types, w);
     dfs_tree(t->result, result_types, w);
-  }
-
-  // write forward declarations
-  for (std::size_t type = 0; type < config.get_type_count(); type++) {
-    tl_type *t = config.get_type_by_num(type);
-    if (t->constructors_num == 0 || w.is_built_in_simple_type(t->name) || w.is_built_in_complex_type(t->name) ||
-        (t->flags & FLAG_COMPLEX)) {  // built-in or complex types
-      continue;
-    }
-
-    assert(t->flags == 0);
-
-    if (t->simple_constructors != 1) {
-      out.append(w.gen_forward_class_declaration(w.gen_class_name(t->name), true));
-    } else {
-      for (std::size_t i = 0; i < t->constructors_num; i++) {
-        if (w.is_combinator_supported(t->constructors[i])) {
-          out.append(w.gen_forward_class_declaration(w.gen_class_name(t->constructors[i]->name), false));
-        }
-      }
-    }
   }
 
   write_base_object_classes(config, out, request_types, result_types, w);
