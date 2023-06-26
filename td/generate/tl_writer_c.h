@@ -17,11 +17,10 @@
 namespace td {
 
 class TlWriterCCommon final : public tl::TL_writer {
- public:
   int is_header_;
-  std::string prefix_;
-  TlWriterCCommon(const std::string &name, int is_header, const std::string &prefix = "")
-      : TL_writer(name), is_header_(is_header), prefix_(prefix) {
+
+ public:
+  TlWriterCCommon(const std::string &name, int is_header) : TL_writer(name), is_header_(is_header) {
   }
 
   int get_max_arity() const final {
@@ -1360,4 +1359,5 @@ class TlWriterCCommon final : public tl::TL_writer {
     return 2;
   }
 };
+
 }  // namespace td
