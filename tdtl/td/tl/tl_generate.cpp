@@ -78,6 +78,27 @@ static void get_children_types(const tl_tree *tree, const TL_writer &w, std::map
   }
 }
 
+static std::map<std::string, bool> get_children_types(const tl_combinator *t, const TL_writer &w) {
+  std::map<std::string, bool> children_types;
+  for (std::size_t i = 0; i < t->args.size(); i++) {
+    get_children_types(t->args[i].type, w, children_types);
+  }
+  get_children_types(t->result, w, children_types);
+  return children_types;
+}
+
+static std::map<std::string, bool> get_children_types(const tl_type *t, const TL_writer &w) {
+  std::map<std::string, bool> children_types;
+  for (std::size_t i = 0; i < t->constructors_num; i++) {
+    if (w.is_combinator_supported(t->constructors[i])) {
+      for (std::size_t j = 0; j < t->constructors[i]->args.size(); j++) {
+        get_children_types(t->constructors[i]->args[j].type, w, children_types);
+      }
+    }
+  }
+  return children_types;
+}
+
 static void write_forward_declarations(tl_outputer &out, const std::map<std::string, bool> &children_types,
                                        const TL_writer &w) {
   for (std::map<std::string, bool>::const_iterator it = children_types.begin(); it != children_types.end(); ++it) {
@@ -278,12 +299,7 @@ static void write_function(tl_outputer &out, const tl_combinator *t, const std::
                            const std::set<std::string> &result_types, const TL_writer &w) {
   assert(w.is_combinator_supported(t));
 
-  std::map<std::string, bool> children_types;
-  for (std::size_t i = 0; i < t->args.size(); i++) {
-    get_children_types(t->args[i].type, w, children_types);
-  }
-  get_children_types(t->result, w, children_types);
-  write_forward_declarations(out, children_types, w);
+  write_forward_declarations(out, get_children_types(t, w), w);
 
   std::string class_name = w.gen_class_name(t->name);
 
@@ -425,15 +441,7 @@ static void write_class(tl_outputer &out, const tl_type *t, const std::set<std::
   const std::string base_class = w.gen_base_type_class_name(t->arity);
   const std::string class_name = w.gen_class_name(t->name);
 
-  std::map<std::string, bool> children_types;
-  for (std::size_t i = 0; i < t->constructors_num; i++) {
-    if (w.is_combinator_supported(t->constructors[i])) {
-      for (std::size_t j = 0; j < t->constructors[i]->args.size(); j++) {
-        get_children_types(t->constructors[i]->args[j].type, w, children_types);
-      }
-    }
-  }
-  write_forward_declarations(out, children_types, w);
+  write_forward_declarations(out, get_children_types(t, w), w);
 
   std::vector<var_description> empty_vars;
   bool optimize_one_constructor = (t->simple_constructors == 1);
