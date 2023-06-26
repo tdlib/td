@@ -191,17 +191,18 @@ std::string TD_TL_writer_java::gen_int_const(const tl::tl_tree *tree_c,
 }
 
 std::string TD_TL_writer_java::gen_output_begin(const std::string &additional_imports) const {
-  return "package " + package_name + ";\n\n";
+  return "package " + package_name +
+         ";\n\n"
+         "public class " +
+         tl_name + " {\n";
 }
 
 std::string TD_TL_writer_java::gen_output_begin_once() const {
-  return "public class " + tl_name +
-         " {\n"
-         "    static {\n"
+  return "    static {\n"
          "        try {\n"
          "            System.loadLibrary(\"tdjni\");\n"
          "        } catch (UnsatisfiedLinkError e) {\n"
-         "            e.printStackTrace();\n" +
+         "            e.printStackTrace();\n"
          "        }\n"
          "    }\n\n"
          "    private " +

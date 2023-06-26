@@ -437,7 +437,7 @@ std::string TD_TL_writer_jni_cpp::gen_fetch_function_result_begin(const std::str
                                                                   const tl::tl_tree *result) const {
   return "\n" + class_name + "::ReturnType " + class_name + "::fetch_result(" + parser_name +
          " &p) {\n"
-         "  if (p == nullptr) return ReturnType();\n" +
+         "  if (p == nullptr) return ReturnType();\n"
          "  return ";
 }
 
