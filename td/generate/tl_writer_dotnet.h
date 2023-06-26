@@ -181,9 +181,8 @@ class TlWriterDotNet final : public TL_writer {
     return gen_main_class_name(t) + "^";
   }
 
-  std::string gen_output_begin(void) const final {
-    return prefix_ +
-           "#include \"td/tl/tl_dotnet_object.h\"\n\n"
+  std::string gen_output_begin(const std::string &additional_imports) const final {
+    return prefix_ + "#include \"td/tl/tl_dotnet_object.h\"\n\n" + additional_imports +
            "namespace Telegram {\n"
            "namespace Td {\n"
            "namespace Api {\n";

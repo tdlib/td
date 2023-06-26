@@ -32,7 +32,7 @@ class TD_TL_writer_jni_h final : public TD_TL_writer_h {
   std::string gen_base_type_class_name(int arity) const final;
   std::string gen_base_tl_class_name() const final;
 
-  std::string gen_output_begin() const final;
+  std::string gen_output_begin(const std::string &additional_imports) const final;
   std::string gen_output_begin_once() const final;
 
   std::string gen_class_begin(const std::string &class_name, const std::string &base_class_name, bool is_proxy,

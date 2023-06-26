@@ -38,7 +38,7 @@ std::string TD_TL_writer_hpp::gen_base_tl_class_name() const {
   return "BaseObject";
 }
 
-std::string TD_TL_writer_hpp::gen_output_begin() const {
+std::string TD_TL_writer_hpp::gen_output_begin(const std::string &additional_imports) const {
   return "#pragma once\n"
          "\n"
 #ifndef DISABLE_HPP_DOCUMENTATION

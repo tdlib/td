@@ -190,8 +190,8 @@ std::string TD_TL_writer_java::gen_int_const(const tl::tl_tree *tree_c,
   return std::string();
 }
 
-std::string TD_TL_writer_java::gen_output_begin() const {
-  return "package " + package_name + ";\n\n";
+std::string TD_TL_writer_java::gen_output_begin(const std::string &additional_imports) const {
+  return "package " + package_name + ";\n\n" + additional_imports;
 }
 
 std::string TD_TL_writer_java::gen_output_begin_once() const {

@@ -58,7 +58,7 @@ std::string TD_TL_writer_jni_h::gen_base_tl_class_name() const {
   return "Object";
 }
 
-std::string TD_TL_writer_jni_h::gen_output_begin() const {
+std::string TD_TL_writer_jni_h::gen_output_begin(const std::string &additional_imports) const {
   std::string ext_include_str;
   for (auto &it : ext_include) {
     ext_include_str += "#include " + it + "\n";

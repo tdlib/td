@@ -28,7 +28,7 @@ class TD_TL_writer_h : public TD_TL_writer {
       : TD_TL_writer(tl_name, string_type, bytes_type), ext_include(ext_include) {
   }
 
-  std::string gen_output_begin() const override;
+  std::string gen_output_begin(const std::string &additional_imports) const override;
   std::string gen_output_begin_once() const override;
   std::string gen_output_end() const override;
 

@@ -819,7 +819,7 @@ static void write_base_function_class(const tl_config &config, tl_outputer &out,
 void write_tl(const tl_config &config, tl_outputer &out, const TL_writer &w) {
   find_complex_types(config, w);
 
-  out.append(w.gen_output_begin());
+  out.append(w.gen_output_begin(std::string()));
   out.append(w.gen_output_begin_once());
 
   std::set<std::string> request_types;

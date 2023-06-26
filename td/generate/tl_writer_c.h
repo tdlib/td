@@ -222,7 +222,7 @@ class TlWriterCCommon final : public tl::TL_writer {
   std::string gen_type_name(const tl::tl_tree_type *tree_type) const final {
     return gen_type_name(tree_type, false);
   }
-  std::string gen_output_begin() const final {
+  std::string gen_output_begin(const std::string &additional_imports) const final {
     if (is_header_ == 1) {
       return "#pragma once\n"
              "#ifdef __cplusplus\n"
@@ -236,12 +236,13 @@ class TlWriterCCommon final : public tl::TL_writer {
              "\n";
     }
     if (is_header_ == -1) {
-      return "#pragma once\n" + gen_import_declaration("td/telegram/td_tdc_api.h", false) +
-             gen_import_declaration("td/telegram/td_api.h", false);
+      return "#pragma once\n\n" + gen_import_declaration("td/telegram/td_tdc_api.h", false) +
+             gen_import_declaration("td/telegram/td_api.h", false) + "\n" + additional_imports;
     }
     return gen_import_declaration("td/telegram/td_tdc_api_inner.h", false) + "\n" +
            gen_import_declaration("td/utils/format.h", false) + gen_import_declaration("td/utils/logging.h", false) +
-           gen_import_declaration("td/utils/misc.h", false) + gen_import_declaration("td/utils/Slice.h", false) + "\n";
+           gen_import_declaration("td/utils/misc.h", false) + gen_import_declaration("td/utils/Slice.h", false) + "\n" +
+           additional_imports;
   }
 
   std::string gen_output_begin_once() const final {

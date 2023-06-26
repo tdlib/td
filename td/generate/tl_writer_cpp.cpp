@@ -10,7 +10,7 @@
 
 namespace td {
 
-std::string TD_TL_writer_cpp::gen_output_begin() const {
+std::string TD_TL_writer_cpp::gen_output_begin(const std::string &additional_imports) const {
   std::string ext_include_str;
   for (auto &it : ext_include) {
     ext_include_str += "#include " + it + "\n";
@@ -26,7 +26,8 @@ std::string TD_TL_writer_cpp::gen_output_begin() const {
          "#include \"td/utils/SliceBuilder.h\"\n"
          "#include \"td/utils/tl_parsers.h\"\n"
          "#include \"td/utils/tl_storers.h\"\n"
-         "#include \"td/utils/TlStorerToString.h\"\n\n"
+         "#include \"td/utils/TlStorerToString.h\"\n\n" +
+         additional_imports +
          "namespace td {\n"
          "namespace " +
          tl_name + " {\n\n";

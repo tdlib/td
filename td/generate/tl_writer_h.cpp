@@ -28,7 +28,7 @@ std::string TD_TL_writer_h::forward_declaration(std::string type) {
   return "";
 }
 
-std::string TD_TL_writer_h::gen_output_begin() const {
+std::string TD_TL_writer_h::gen_output_begin(const std::string &additional_imports) const {
   std::string ext_include_str;
   for (auto &it : ext_include) {
     ext_include_str += "#include " + it + "\n";
