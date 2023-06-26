@@ -187,7 +187,6 @@ void gen_tl_constructor_from_string(StringBuilder &sb, const tl::simple::Schema 
 void gen_json_converter_file(const tl::simple::Schema &schema, const std::string &file_name_base, bool is_header,
                              Mode mode) {
   auto file_name = is_header ? file_name_base + ".h" : file_name_base + ".cpp";
-  file_name = "auto/" + file_name;
   auto old_file_content = [&] {
     auto r_content = read_file(file_name);
     if (r_content.is_error()) {

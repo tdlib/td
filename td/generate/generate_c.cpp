@@ -10,8 +10,8 @@
 #include "td/tl/tl_generate.h"
 
 int main() {
-  td::tl::tl_config config_td = td::tl::read_tl_config_from_file("auto/tlo/td_api.tlo");
-  td::tl::write_tl_to_file(config_td, "auto/td/telegram/td_tdc_api.h", td::TlWriterCCommon("TdApi", 1));
-  td::tl::write_tl_to_file(config_td, "auto/td/telegram/td_tdc_api_inner.h", td::TlWriterCCommon("TdApi", -1));
-  td::tl::write_tl_to_file(config_td, "auto/td/telegram/td_tdc_api.cpp", td::TlWriterCCommon("TdApi", 0));
+  td::tl::tl_config config_td = td::tl::read_tl_config_from_file("tlo/td_api.tlo");
+  td::tl::write_tl_to_file(config_td, "td/telegram/td_tdc_api.h", td::TlWriterCCommon("TdApi", 1));
+  td::tl::write_tl_to_file(config_td, "td/telegram/td_tdc_api_inner.h", td::TlWriterCCommon("TdApi", -1));
+  td::tl::write_tl_to_file(config_td, "td/telegram/td_tdc_api.cpp", td::TlWriterCCommon("TdApi", 0));
 }
