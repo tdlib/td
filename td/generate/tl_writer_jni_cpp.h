@@ -16,7 +16,7 @@
 namespace td {
 
 class TD_TL_writer_jni_cpp final : public TD_TL_writer_cpp {
-  std::string gen_output_begin() const final;
+  std::string gen_output_begin_once() const final;
 
   std::string gen_vector_fetch(std::string field_name, const tl::tl_tree_type *t,
                                const std::vector<tl::var_description> &vars, int parser_type) const;

@@ -54,6 +54,7 @@ class TD_TL_writer_java final : public tl::TL_writer {
   std::string gen_int_const(const tl::tl_tree *tree_c, const std::vector<tl::var_description> &vars) const final;
 
   std::string gen_output_begin() const final;
+  std::string gen_output_begin_once() const final;
   std::string gen_output_end() const final;
 
   std::string gen_import_declaration(const std::string &name, bool is_system) const final;

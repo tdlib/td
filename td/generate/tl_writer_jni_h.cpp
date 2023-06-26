@@ -76,55 +76,20 @@ std::string TD_TL_writer_jni_h::gen_output_begin() const {
          forward_declaration("TlStorerToString") +
          "\n"
          "namespace " +
-         tl_name +
-         " {\n\n"
+         tl_name + " {\n\n";
+}
 
-         "using int32 = std::int32_t;\n"
-         "using int53 = std::int64_t;\n"
-         "using int64 = std::int64_t;\n\n"
-
-         "using string = " +
-         string_type +
-         ";\n\n"
-
-         "using bytes = " +
-         bytes_type +
-         ";\n\n"
-
-         "template <class Type>\n"
-         "using array = std::vector<Type>;\n\n"
-
-         "class " +
-         gen_base_tl_class_name() +
-         ";\n"
-         "using BaseObject = " +
-         gen_base_tl_class_name() +
-         ";\n\n"
-
-         "template <class Type>\n"
-         "using object_ptr = ::td::tl_object_ptr<Type>;\n\n"
-         "template <class Type, class... Args>\n"
-         "object_ptr<Type> make_object(Args &&... args) {\n"
-         "  return object_ptr<Type>(new Type(std::forward<Args>(args)...));\n"
-         "}\n\n"
-
-         "template <class ToType, class FromType>\n"
-         "object_ptr<ToType> move_object_as(FromType &&from) {\n"
-         "  return object_ptr<ToType>(static_cast<ToType *>(from.release()));\n"
-         "}\n\n"
-
-         "std::string to_string(const BaseObject &value);\n\n"
-
-         "template <class T>\n"
-         "std::string to_string(const object_ptr<T> &value) {\n"
-         "  if (value == nullptr) {\n"
-         "    return \"null\";\n"
-         "  }\n"
-         "\n"
-         "  return to_string(*value);\n"
-         "}\n\n"
-
-         "void set_package_name(const char *new_package_name);\n\n";
+std::string TD_TL_writer_jni_h::gen_output_begin_once() const {
+  std::string result = TD_TL_writer_h::gen_output_begin_once();
+  std::string old_base_object = "using BaseObject = ::td::TlObject";
+  std::size_t pos = result.find(old_base_object);
+  assert(pos != std::string::npos);
+  result.replace(pos, old_base_object.size(),
+                 "class " + gen_base_tl_class_name() +
+                     ";\n"
+                     "using BaseObject = " +
+                     gen_base_tl_class_name());
+  return result + "void set_package_name(const char *new_package_name);\n\n";
 }
 
 std::string TD_TL_writer_jni_h::gen_class_begin(const std::string &class_name, const std::string &base_class_name,

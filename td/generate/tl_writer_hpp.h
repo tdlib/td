@@ -29,6 +29,7 @@ class TD_TL_writer_hpp final : public TD_TL_writer {
   std::string gen_base_tl_class_name() const final;
 
   std::string gen_output_begin() const final;
+  std::string gen_output_begin_once() const final;
   std::string gen_output_end() const final;
 
   std::string gen_forward_class_declaration(const std::string &class_name, bool is_proxy) const final;

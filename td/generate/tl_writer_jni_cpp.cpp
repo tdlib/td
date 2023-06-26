@@ -11,8 +11,8 @@
 
 namespace td {
 
-std::string TD_TL_writer_jni_cpp::gen_output_begin() const {
-  return TD_TL_writer_cpp::gen_output_begin() +
+std::string TD_TL_writer_jni_cpp::gen_output_begin_once() const {
+  return TD_TL_writer_cpp::gen_output_begin_once() +
          "\nstatic const char *package_name = \"Call set_package_name\";\n\n"
          "void set_package_name(const char *new_package_name) {\n"
          "  package_name = new_package_name;\n"

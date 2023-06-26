@@ -57,6 +57,10 @@ std::string TD_TL_writer_hpp::gen_output_begin() const {
          tl_name + " {\n\n";
 }
 
+std::string TD_TL_writer_hpp::gen_output_begin_once() const {
+  return std::string();
+}
+
 std::string TD_TL_writer_hpp::gen_output_end() const {
   return "}  // namespace " + tl_name +
          "\n"

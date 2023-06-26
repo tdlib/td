@@ -29,6 +29,7 @@ class TD_TL_writer_h : public TD_TL_writer {
   }
 
   std::string gen_output_begin() const override;
+  std::string gen_output_begin_once() const override;
   std::string gen_output_end() const override;
 
   std::string gen_forward_class_declaration(const std::string &class_name, bool is_proxy) const override;

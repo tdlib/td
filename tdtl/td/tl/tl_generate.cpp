@@ -768,6 +768,7 @@ void write_tl(const tl_config &config, tl_outputer &out, const TL_writer &w) {
   find_complex_types(config, w);
 
   out.append(w.gen_output_begin());
+  out.append(w.gen_output_begin_once());
 
   std::set<std::string> request_types;
   std::set<std::string> result_types;

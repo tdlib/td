@@ -29,9 +29,11 @@ std::string TD_TL_writer_cpp::gen_output_begin() const {
          "#include \"td/utils/TlStorerToString.h\"\n\n"
          "namespace td {\n"
          "namespace " +
-         tl_name +
-         " {\n\n"
-         "std::string to_string(const BaseObject &value) {\n"
+         tl_name + " {\n\n";
+}
+
+std::string TD_TL_writer_cpp::gen_output_begin_once() const {
+  return "std::string to_string(const BaseObject &value) {\n"
          "  TlStorerToString storer;\n"
          "  value.store(storer, \"\");\n"
          "  return storer.move_as_string();\n"

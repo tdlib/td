@@ -228,16 +228,28 @@ class TlWriterCCommon final : public tl::TL_writer {
              "#ifdef __cplusplus\n"
              "extern \"C\" {\n"
              "#endif\n"
-             "struct TdBytes {\n"
-             "  unsigned char *data;\n"
-             "  int len;\n"
-             "};\n"
              "#define TDC_VECTOR(tdc_type_name,tdc_type) \\\n"
              "   struct TdVector ## tdc_type_name { \\\n"
              "     int len;\\\n"
              "     tdc_type *data;\\\n"
              "   };\\\n"
-             "\n"
+             "\n";
+    }
+    if (is_header_ == -1) {
+      return "#pragma once\n" + gen_import_declaration("td/telegram/td_tdc_api.h", false) +
+             gen_import_declaration("td/telegram/td_api.h", false);
+    }
+    return gen_import_declaration("td/telegram/td_tdc_api_inner.h", false) + "\n" +
+           gen_import_declaration("td/utils/format.h", false) + gen_import_declaration("td/utils/logging.h", false) +
+           gen_import_declaration("td/utils/misc.h", false) + gen_import_declaration("td/utils/Slice.h", false) + "\n";
+  }
+
+  std::string gen_output_begin_once() const final {
+    if (is_header_ == 1) {
+      return "struct TdBytes {\n"
+             "  unsigned char *data;\n"
+             "  int len;\n"
+             "};\n"
              "TDC_VECTOR(Int,int)\n"
              "TDC_VECTOR(Long,long long)\n"
              "TDC_VECTOR(String,char *)\n"
@@ -265,14 +277,9 @@ class TlWriterCCommon final : public tl::TL_writer {
              "  int (*is_nil)(void);\n"
              "};\n";
     }
-    if (is_header_ == -1) {
-      return "#pragma once\n" + gen_import_declaration("td/telegram/td_tdc_api.h", false) +
-             gen_import_declaration("td/telegram/td_api.h", false);
-    }
-    return gen_import_declaration("td/telegram/td_tdc_api_inner.h", false) + "\n" +
-           gen_import_declaration("td/utils/format.h", false) + gen_import_declaration("td/utils/logging.h", false) +
-           gen_import_declaration("td/utils/misc.h", false) + gen_import_declaration("td/utils/Slice.h", false) + "\n";
+    return std::string();
   }
+
   std::string gen_output_end() const final {
     if (is_header_ == 1) {
       return "#ifdef __cplusplus\n"

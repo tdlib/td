@@ -180,6 +180,7 @@ class TlWriterDotNet final : public TL_writer {
 
     return gen_main_class_name(t) + "^";
   }
+
   std::string gen_output_begin(void) const final {
     return prefix_ +
            "#include \"td/tl/tl_dotnet_object.h\"\n\n"
@@ -187,6 +188,11 @@ class TlWriterDotNet final : public TL_writer {
            "namespace Td {\n"
            "namespace Api {\n";
   }
+
+  std::string gen_output_begin_once(void) const final {
+    return std::string();
+  }
+
   std::string gen_output_end() const final {
     return "}\n"
            "}\n"
