@@ -13,7 +13,7 @@ namespace tl {
 
 std::string get_file_contents(const std::string &file_name);
 
-bool put_file_contents(const std::string &file_name, const std::string &contents);
+bool put_file_contents(const std::string &file_name, const std::string &contents, bool compare_documentation);
 
 std::string remove_documentation(const std::string &str);
 

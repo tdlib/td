@@ -44,7 +44,18 @@ std::string get_file_contents(const std::string &file_name) {
   return result;
 }
 
-bool put_file_contents(const std::string &file_name, const std::string &contents) {
+bool put_file_contents(const std::string &file_name, const std::string &contents, bool compare_documentation) {
+  std::string old_file_contents = get_file_contents(file_name);
+  if (!compare_documentation) {
+    old_file_contents = remove_documentation(old_file_contents);
+  }
+
+  if (old_file_contents == contents) {
+    return true;
+  }
+
+  std::fprintf(stderr, "Write file %s\n", file_name.c_str());
+
   FILE *f = std::fopen(file_name.c_str(), "wb");
   if (f == NULL) {
     std::fprintf(stderr, "Can't open file \"%s\"\n", file_name.c_str());

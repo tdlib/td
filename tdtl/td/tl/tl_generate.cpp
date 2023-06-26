@@ -883,18 +883,7 @@ tl_config read_tl_config_from_file(const std::string &file_name) {
 bool write_tl_to_file(const tl_config &config, const std::string &file_name, const TL_writer &w) {
   tl_string_outputer out;
   write_tl(config, out, w);
-
-  std::string old_file_contents = get_file_contents(file_name);
-  if (!w.is_documentation_generated()) {
-    old_file_contents = remove_documentation(old_file_contents);
-  }
-
-  if (old_file_contents != out.get_result()) {
-    std::fprintf(stderr, "Write tl to file %s\n", file_name.c_str());
-    return put_file_contents(file_name, out.get_result());
-  }
-
-  return true;
+  return put_file_contents(file_name, out.get_result(), w.is_documentation_generated());
 }
 
 }  // namespace tl
