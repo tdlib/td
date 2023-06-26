@@ -117,6 +117,14 @@ std::vector<std::string> TD_TL_writer::get_storers() const {
   return storers;
 }
 
+std::string TD_TL_writer::gen_import_declaration(const std::string &name, bool is_system) const {
+  if (is_system) {
+    return "#include <" + name + ">\n";
+  } else {
+    return "#include \"" + name + "\"\n";
+  }
+}
+
 std::string TD_TL_writer::gen_base_tl_class_name() const {
   return base_tl_class_name;
 }

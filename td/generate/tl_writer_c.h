@@ -266,16 +266,12 @@ class TlWriterCCommon final : public tl::TL_writer {
              "};\n";
     }
     if (is_header_ == -1) {
-      return "#pragma once\n"
-             "#include \"td/telegram/td_tdc_api.h\"\n"
-             "#include \"td/telegram/td_api.h\"\n";
+      return "#pragma once\n" + gen_import_declaration("td/telegram/td_tdc_api.h", false) +
+             gen_import_declaration("td/telegram/td_api.h", false);
     }
-    return "#include \"td/telegram/td_tdc_api_inner.h\"\n\n"
-           "#include \"td/utils/format.h\"\n"
-           "#include \"td/utils/logging.h\"\n"
-           "#include \"td/utils/misc.h\"\n"
-           "#include \"td/utils/Slice.h\"\n"
-           "\n";
+    return gen_import_declaration("td/telegram/td_tdc_api_inner.h", false) + "\n" +
+           gen_import_declaration("td/utils/format.h", false) + gen_import_declaration("td/utils/logging.h", false) +
+           gen_import_declaration("td/utils/misc.h", false) + gen_import_declaration("td/utils/Slice.h", false) + "\n";
   }
   std::string gen_output_end() const final {
     if (is_header_ == 1) {
@@ -286,6 +282,14 @@ class TlWriterCCommon final : public tl::TL_writer {
       return "";
     }
     return "";
+  }
+
+  std::string gen_import_declaration(const std::string &name, bool is_system) const final {
+    if (is_system) {
+      return "#include <" + name + ">\n";
+    } else {
+      return "#include \"" + name + "\"\n";
+    }
   }
 
   std::string gen_forward_class_declaration(const std::string &class_name, bool is_proxy) const final {

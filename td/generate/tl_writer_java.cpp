@@ -213,6 +213,10 @@ std::string TD_TL_writer_java::gen_output_end() const {
   return "}\n";
 }
 
+std::string TD_TL_writer_java::gen_import_declaration(const std::string &name, bool is_system) const {
+  return "import " + name + ";\n";
+}
+
 std::string TD_TL_writer_java::gen_forward_class_declaration(const std::string &class_name, bool is_proxy) const {
   return "";
 }

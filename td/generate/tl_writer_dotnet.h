@@ -18,12 +18,14 @@ namespace td {
 namespace tl {
 
 class TlWriterDotNet final : public TL_writer {
- public:
   bool is_header_;
   std::string prefix_;
-  TlWriterDotNet(const std::string &name, bool is_header, const std::string &prefix = "")
+
+ public:
+  TlWriterDotNet(const std::string &name, bool is_header, const std::string &prefix)
       : TL_writer(name), is_header_(is_header), prefix_(prefix) {
   }
+
   int get_max_arity(void) const final {
     return 0;
   }
@@ -189,6 +191,14 @@ class TlWriterDotNet final : public TL_writer {
     return "}\n"
            "}\n"
            "}\n";
+  }
+
+  std::string gen_import_declaration(const std::string &name, bool is_system) const final {
+    if (is_system) {
+      return "#include <" + name + ">\n";
+    } else {
+      return "#include \"" + name + "\"\n";
+    }
   }
 
   std::string gen_forward_class_declaration(const std::string &class_name, bool is_proxy) const final {

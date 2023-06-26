@@ -45,6 +45,7 @@ class TD_TL_writer : public tl::TL_writer {
   std::vector<std::string> get_parsers() const override;
   std::vector<std::string> get_storers() const override;
 
+  std::string gen_import_declaration(const std::string &package_name, bool is_system) const override;
   std::string gen_base_tl_class_name() const override;
   std::string gen_base_type_class_name(int arity) const override;
   std::string gen_base_function_class_name() const override;
