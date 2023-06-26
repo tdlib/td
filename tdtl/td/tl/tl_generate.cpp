@@ -50,14 +50,13 @@ static bool is_reachable_for_storer(int storer_type, const std::string &name,
   return true;
 }
 
-static void write_forward_declaration(tl_outputer &out, const tl_tree *tree, const TL_writer &w,
-                                      std::set<std::string> &existing_forward_declarations) {
+static void get_children_types(const tl_tree *tree, const TL_writer &w, std::map<std::string, bool> &children_types) {
   if (tree->get_type() != NODE_TYPE_TYPE) {
     return;
   }
   const tl_tree_type *tree_type = static_cast<const tl_tree_type *>(tree);
   for (std::size_t i = 0; i < tree_type->children.size(); i++) {
-    write_forward_declaration(out, tree_type->children[i], w, existing_forward_declarations);
+    get_children_types(tree_type->children[i], w, children_types);
   }
 
   const tl_type *t = tree_type->type;
@@ -69,17 +68,20 @@ static void write_forward_declaration(tl_outputer &out, const tl_tree *tree, con
   assert(t->flags == 0);
 
   if (t->simple_constructors != 1) {
-    if (existing_forward_declarations.insert(w.gen_class_name(t->name)).second) {
-      out.append(w.gen_forward_class_declaration(w.gen_class_name(t->name), true));
-    }
+    children_types.emplace(t->name, true);
   } else {
     for (std::size_t i = 0; i < t->constructors_num; i++) {
       if (w.is_combinator_supported(t->constructors[i])) {
-        if (existing_forward_declarations.insert(w.gen_class_name(t->constructors[i]->name)).second) {
-          out.append(w.gen_forward_class_declaration(w.gen_class_name(t->constructors[i]->name), false));
-        }
+        children_types.emplace(t->constructors[i]->name, false);
       }
     }
+  }
+}
+
+static void write_forward_declarations(tl_outputer &out, const std::map<std::string, bool> &children_types,
+                                       const TL_writer &w) {
+  for (std::map<std::string, bool>::const_iterator it = children_types.begin(); it != children_types.end(); ++it) {
+    out.append(w.gen_forward_class_declaration(w.gen_class_name(it->first), it->second));
   }
 }
 
@@ -276,11 +278,12 @@ static void write_function(tl_outputer &out, const tl_combinator *t, const std::
                            const std::set<std::string> &result_types, const TL_writer &w) {
   assert(w.is_combinator_supported(t));
 
-  std::set<std::string> existing_forward_declarations;
+  std::map<std::string, bool> children_types;
   for (std::size_t i = 0; i < t->args.size(); i++) {
-    write_forward_declaration(out, t->args[i].type, w, existing_forward_declarations);
+    get_children_types(t->args[i].type, w, children_types);
   }
-  write_forward_declaration(out, t->result, w, existing_forward_declarations);
+  get_children_types(t->result, w, children_types);
+  write_forward_declarations(out, children_types, w);
 
   std::string class_name = w.gen_class_name(t->name);
 
@@ -422,14 +425,15 @@ static void write_class(tl_outputer &out, const tl_type *t, const std::set<std::
   const std::string base_class = w.gen_base_type_class_name(t->arity);
   const std::string class_name = w.gen_class_name(t->name);
 
-  std::set<std::string> existing_forward_declarations;
+  std::map<std::string, bool> children_types;
   for (std::size_t i = 0; i < t->constructors_num; i++) {
     if (w.is_combinator_supported(t->constructors[i])) {
       for (std::size_t j = 0; j < t->constructors[i]->args.size(); j++) {
-        write_forward_declaration(out, t->constructors[i]->args[j].type, w, existing_forward_declarations);
+        get_children_types(t->constructors[i]->args[j].type, w, children_types);
       }
     }
   }
+  write_forward_declarations(out, children_types, w);
 
   std::vector<var_description> empty_vars;
   bool optimize_one_constructor = (t->simple_constructors == 1);
