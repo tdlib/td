@@ -4045,21 +4045,21 @@ class CliClient final : public Actor {
       bool are_hidden;
       get_args(args, chat_id, are_hidden);
       send_request(td_api::make_object<td_api::toggleChatStoriesAreHidden>(chat_id, are_hidden));
-    } else if (op == "gups") {
-      UserId user_id;
+    } else if (op == "gcps") {
+      ChatId chat_id;
       StoryId from_story_id;
       string limit;
-      get_args(args, user_id, from_story_id, limit);
-      send_request(td_api::make_object<td_api::getUserPinnedStories>(user_id, from_story_id, as_limit(limit)));
+      get_args(args, chat_id, from_story_id, limit);
+      send_request(td_api::make_object<td_api::getChatPinnedStories>(chat_id, from_story_id, as_limit(limit)));
     } else if (op == "gast") {
       StoryId from_story_id;
       string limit;
       get_args(args, from_story_id, limit);
       send_request(td_api::make_object<td_api::getArchivedStories>(from_story_id, as_limit(limit)));
-    } else if (op == "guas") {
-      UserId user_id;
-      get_args(args, user_id);
-      send_request(td_api::make_object<td_api::getUserActiveStories>(user_id));
+    } else if (op == "gcas") {
+      ChatId chat_id;
+      get_args(args, chat_id);
+      send_request(td_api::make_object<td_api::getChatActiveStories>(chat_id));
     } else if (op == "os") {
       ChatId story_sender_chat_id;
       StoryId story_id;

@@ -6423,17 +6423,17 @@ void Td::on_request(uint64 id, const td_api::readChatList &request) {
   messages_manager_->read_all_dialogs_from_list(DialogListId(request.chat_list_), std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::getUserActiveStories &request) {
+void Td::on_request(uint64 id, const td_api::getChatActiveStories &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  story_manager_->get_dialog_expiring_stories(DialogId(UserId(request.user_id_)), std::move(promise));
+  story_manager_->get_dialog_expiring_stories(DialogId(request.chat_id_), std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::getUserPinnedStories &request) {
+void Td::on_request(uint64 id, const td_api::getChatPinnedStories &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  story_manager_->get_dialog_pinned_stories(DialogId(UserId(request.user_id_)), StoryId(request.from_story_id_),
-                                            request.limit_, std::move(promise));
+  story_manager_->get_dialog_pinned_stories(DialogId(request.chat_id_), StoryId(request.from_story_id_), request.limit_,
+                                            std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getArchivedStories &request) {

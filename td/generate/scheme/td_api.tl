@@ -7271,16 +7271,16 @@ deleteStory story_id:int32 = Ok;
 //@description Toggles whether stories posted by the chat are available on the main chat list @chat_id Identifier of the chat @are_hidden Pass true to make the story unavailable from the main chat list; pass false to make them available
 toggleChatStoriesAreHidden chat_id:int53 are_hidden:Bool = Ok;
 
-//@description Returns the list of active stories of a given user. The stories are returned in a chronological order (i.e., in order of increasing story_id) @user_id User identifier
-getUserActiveStories user_id:int53 = ActiveStories;
+//@description Returns the list of active stories posted by the given chat. The stories are returned in a chronological order (i.e., in order of increasing story_id) @chat_id Chat identifier
+getChatActiveStories chat_id:int53 = ActiveStories;
 
-//@description Returns the list of pinned stories of a given user. The stories are returned in a reverse chronological order (i.e., in order of decreasing story_id).
+//@description Returns the list of pinned stories posted by the given chat. The stories are returned in a reverse chronological order (i.e., in order of decreasing story_id).
 //-For optimal performance, the number of returned stories is chosen by TDLib
-//@user_id User identifier
+//@chat_id Chat identifier
 //@from_story_id Identifier of the story starting from which stories must be returned; use 0 to get results from the last story
 //@limit The maximum number of stories to be returned
 //-For optimal performance, the number of returned stories is chosen by TDLib and can be smaller than the specified limit
-getUserPinnedStories user_id:int53 from_story_id:int32 limit:int32 = Stories;
+getChatPinnedStories chat_id:int53 from_story_id:int32 limit:int32 = Stories;
 
 //@description Returns the list of all stories of the current user. The stories are returned in a reverse chronological order (i.e., in order of decreasing story_id).
 //-For optimal performance, the number of returned stories is chosen by TDLib
