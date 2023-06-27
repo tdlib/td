@@ -1417,6 +1417,7 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
   bool can_be_forwarded = !story->noforwards_ && story_id.is_server() && privacy_rules != nullptr &&
                           privacy_rules->rules_.size() == 1u &&
                           privacy_rules->rules_[0]->get_id() == td_api::userPrivacySettingRuleAllowAll::ID;
+  bool can_be_replied = story_id.is_server() && dialog_id != DialogId(changelog_user_id);
 
   story->is_update_sent_ = true;
 
@@ -1424,7 +1425,7 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
   return td_api::make_object<td_api::story>(
       story_full_id.get_story_id().get(),
       td_->contacts_manager_->get_user_id_object(dialog_id.get_user_id(), "get_story_object"), story->date_,
-      story->is_pinned_, is_visible_only_for_self, can_be_forwarded,
+      story->is_pinned_, is_visible_only_for_self, can_be_forwarded, can_be_replied,
       can_get_story_viewers(story_full_id, story).is_ok(),
       story->interaction_info_.get_story_interaction_info_object(td_), std::move(privacy_rules),
       get_story_content_object(td_, content),
