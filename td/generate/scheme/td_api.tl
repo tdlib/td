@@ -4924,7 +4924,7 @@ storyInteractionInfo view_count:int32 recent_viewer_user_ids:vector<int53> = Sto
 //@date Point in time (Unix timestamp) when the story was published
 //@is_pinned True, if the story is saved in the sender's profile and will be available there after expiration
 //@is_visible_only_for_self True, if the story is visible only for the current user
-//@can_be_forwarded True, if the story can be forwarded as a message. Otherwise, screenshots of the story must be also forbidden
+//@can_be_forwarded True, if the story can be forwarded as a message. Otherwise, screenshots and saving of the story content must be also forbidden
 //@can_be_replied True, if the story can be replied in the chat with the story sender
 //@can_get_viewers True, users viewed the story can be received through getStoryViewers
 //@interaction_info Information about interactions with the story; may be null if the story isn't owned or there were no interactions
@@ -5082,8 +5082,9 @@ networkStatistics since_date:int32 entries:vector<NetworkStatisticsEntry> = Netw
 //@video_upload_bitrate The maximum suggested bitrate for uploaded videos, in kbit/s
 //@preload_large_videos True, if the beginning of video files needs to be preloaded for instant playback
 //@preload_next_audio True, if the next audio track needs to be preloaded while the user is listening to an audio file
+//@preload_stories True, if stories needs to be preloaded
 //@use_less_data_for_calls True, if "use less data for calls" option needs to be enabled
-autoDownloadSettings is_auto_download_enabled:Bool max_photo_file_size:int32 max_video_file_size:int53 max_other_file_size:int53 video_upload_bitrate:int32 preload_large_videos:Bool preload_next_audio:Bool use_less_data_for_calls:Bool = AutoDownloadSettings;
+autoDownloadSettings is_auto_download_enabled:Bool max_photo_file_size:int32 max_video_file_size:int53 max_other_file_size:int53 video_upload_bitrate:int32 preload_large_videos:Bool preload_next_audio:Bool preload_stories:Bool use_less_data_for_calls:Bool = AutoDownloadSettings;
 
 //@description Contains auto-download settings presets for the current user
 //@low Preset with lowest settings; supposed to be used by default when roaming

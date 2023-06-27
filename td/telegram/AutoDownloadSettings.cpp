@@ -25,6 +25,7 @@ static td_api::object_ptr<td_api::autoDownloadSettings> convert_auto_download_se
   auto disabled = (flags & telegram_api::autoDownloadSettings::DISABLED_MASK) != 0;
   auto video_preload_large = (flags & telegram_api::autoDownloadSettings::VIDEO_PRELOAD_LARGE_MASK) != 0;
   auto audio_preload_next = (flags & telegram_api::autoDownloadSettings::AUDIO_PRELOAD_NEXT_MASK) != 0;
+  auto stories_preload = (flags & telegram_api::autoDownloadSettings::STORIES_PRELOAD_MASK) != 0;
   auto phonecalls_less_data = (flags & telegram_api::autoDownloadSettings::PHONECALLS_LESS_DATA_MASK) != 0;
   constexpr int32 MAX_PHOTO_SIZE = 10 * (1 << 20) /* 10 MB */;
   constexpr int64 MAX_DOCUMENT_SIZE = (static_cast<int64>(1) << 52);
@@ -32,7 +33,7 @@ static td_api::object_ptr<td_api::autoDownloadSettings> convert_auto_download_se
       !disabled, clamp(settings->photo_size_max_, static_cast<int32>(0), MAX_PHOTO_SIZE),
       clamp(settings->video_size_max_, static_cast<int64>(0), MAX_DOCUMENT_SIZE),
       clamp(settings->file_size_max_, static_cast<int64>(0), MAX_DOCUMENT_SIZE), settings->video_upload_maxbitrate_,
-      video_preload_large, audio_preload_next, phonecalls_less_data);
+      video_preload_large, audio_preload_next, stories_preload, phonecalls_less_data);
 }
 
 class GetAutoDownloadSettingsQuery final : public Td::ResultHandler {
@@ -75,6 +76,9 @@ static telegram_api::object_ptr<telegram_api::autoDownloadSettings> get_input_au
   }
   if (settings.preload_next_audio) {
     flags |= telegram_api::autoDownloadSettings::AUDIO_PRELOAD_NEXT_MASK;
+  }
+  if (settings.preload_stories) {
+    flags |= telegram_api::autoDownloadSettings::STORIES_PRELOAD_MASK;
   }
   if (settings.use_less_data_for_calls) {
     flags |= telegram_api::autoDownloadSettings::PHONECALLS_LESS_DATA_MASK;
@@ -129,6 +133,7 @@ AutoDownloadSettings get_auto_download_settings(const td_api::object_ptr<td_api:
   result.is_enabled = settings->is_auto_download_enabled_;
   result.preload_large_videos = settings->preload_large_videos_;
   result.preload_next_audio = settings->preload_next_audio_;
+  result.preload_stories = settings->preload_stories_;
   result.use_less_data_for_calls = settings->use_less_data_for_calls_;
   return result;
 }

@@ -25,6 +25,7 @@ class AutoDownloadSettings {
   bool is_enabled = false;
   bool preload_large_videos = false;
   bool preload_next_audio = false;
+  bool preload_stories = false;
   bool use_less_data_for_calls = false;
 };
 
