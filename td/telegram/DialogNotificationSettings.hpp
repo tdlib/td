@@ -21,6 +21,8 @@ void store(const DialogNotificationSettings &notification_settings, StorerT &sto
   bool has_sound = notification_settings.sound != nullptr;
   bool has_ringtone_support = true;
   bool use_mute_stories = !notification_settings.use_default_mute_stories;
+  bool has_story_sound = notification_settings.story_sound != nullptr;
+  bool use_hide_story_sender = !notification_settings.use_default_hide_story_sender;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_muted);
   STORE_FLAG(has_sound);
@@ -39,12 +41,18 @@ void store(const DialogNotificationSettings &notification_settings, StorerT &sto
   STORE_FLAG(has_ringtone_support);
   STORE_FLAG(notification_settings.mute_stories);
   STORE_FLAG(use_mute_stories);
+  STORE_FLAG(has_story_sound);
+  STORE_FLAG(notification_settings.hide_story_sender);
+  STORE_FLAG(use_hide_story_sender);
   END_STORE_FLAGS();
   if (is_muted) {
     store(notification_settings.mute_until, storer);
   }
   if (has_sound) {
     store(notification_settings.sound, storer);
+  }
+  if (has_story_sound) {
+    store(notification_settings.story_sound, storer);
   }
 }
 
@@ -57,6 +65,8 @@ void parse(DialogNotificationSettings &notification_settings, ParserT &parser) {
   bool use_disable_mention_notifications;
   bool has_ringtone_support;
   bool use_mute_stories;
+  bool has_story_sound;
+  bool use_hide_story_sender;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_muted);
   PARSE_FLAG(has_sound);
@@ -75,10 +85,14 @@ void parse(DialogNotificationSettings &notification_settings, ParserT &parser) {
   PARSE_FLAG(has_ringtone_support);
   PARSE_FLAG(notification_settings.mute_stories);
   PARSE_FLAG(use_mute_stories);
+  PARSE_FLAG(has_story_sound);
+  PARSE_FLAG(notification_settings.hide_story_sender);
+  PARSE_FLAG(use_hide_story_sender);
   END_PARSE_FLAGS();
   notification_settings.use_default_disable_pinned_message_notifications = !use_disable_pinned_message_notifications;
   notification_settings.use_default_disable_mention_notifications = !use_disable_mention_notifications;
   notification_settings.use_default_mute_stories = !use_mute_stories;
+  notification_settings.use_default_hide_story_sender = !use_hide_story_sender;
   if (is_muted) {
     parse(notification_settings.mute_until, parser);
   }
@@ -90,6 +104,9 @@ void parse(DialogNotificationSettings &notification_settings, ParserT &parser) {
       parse(sound, parser);
       notification_settings.sound = use_default_sound ? nullptr : get_legacy_notification_sound(sound);
     }
+  }
+  if (has_story_sound) {
+    parse_notification_sound(notification_settings.story_sound, parser);
   }
 }
 

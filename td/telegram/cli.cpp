@@ -5520,8 +5520,8 @@ class CliClient final : public Actor {
       string hide_story_sender;
       string disable_pinned_message_notifications;
       string disable_mention_notifications;
-      get_args(args, scope, mute_for, sound_id, show_preview, mute_stories, disable_pinned_message_notifications,
-               disable_mention_notifications);
+      get_args(args, scope, mute_for, sound_id, show_preview, mute_stories, story_sound_id, hide_story_sender,
+               disable_pinned_message_notifications, disable_mention_notifications);
       if (op == "ssns") {
         send_request(td_api::make_object<td_api::setScopeNotificationSettings>(
             as_notification_settings_scope(scope),
@@ -5532,9 +5532,10 @@ class CliClient final : public Actor {
       } else {
         auto settings = td_api::make_object<td_api::chatNotificationSettings>(
             mute_for.empty(), to_integer<int32>(mute_for), sound_id == -1, sound_id, show_preview.empty(),
-            as_bool(show_preview), mute_stories.empty(), as_bool(mute_stories),
-            disable_pinned_message_notifications.empty(), as_bool(disable_pinned_message_notifications),
-            disable_mention_notifications.empty(), as_bool(disable_mention_notifications));
+            as_bool(show_preview), mute_stories.empty(), as_bool(mute_stories), story_sound_id == -1, story_sound_id,
+            hide_story_sender.empty(), as_bool(hide_story_sender), disable_pinned_message_notifications.empty(),
+            as_bool(disable_pinned_message_notifications), disable_mention_notifications.empty(),
+            as_bool(disable_mention_notifications));
         if (op == "scns") {
           send_request(
               td_api::make_object<td_api::setChatNotificationSettings>(as_chat_id(scope), std::move(settings)));
