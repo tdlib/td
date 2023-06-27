@@ -132,7 +132,7 @@ DialogNotificationSettings get_dialog_notification_settings(tl_object_ptr<telegr
   bool silent_send_message = settings->silent_;
   return {use_default_mute_until,
           mute_until,
-          get_notification_sound(settings.get()),
+          get_notification_sound(settings.get(), false),
           use_default_show_preview,
           settings->show_previews_,
           use_default_mute_stories,

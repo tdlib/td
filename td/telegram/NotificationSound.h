@@ -57,7 +57,7 @@ unique_ptr<NotificationSound> get_legacy_notification_sound(const string &sound)
 
 unique_ptr<NotificationSound> get_notification_sound(bool use_default_sound, int64 ringtone_id);
 
-unique_ptr<NotificationSound> get_notification_sound(telegram_api::peerNotifySettings *settings);
+unique_ptr<NotificationSound> get_notification_sound(telegram_api::peerNotifySettings *settings, bool for_stories);
 
 telegram_api::object_ptr<telegram_api::NotificationSound> get_input_notification_sound(
     const unique_ptr<NotificationSound> &notification_sound);

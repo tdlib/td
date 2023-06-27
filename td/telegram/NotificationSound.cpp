@@ -251,15 +251,15 @@ static unique_ptr<NotificationSound> get_notification_sound(telegram_api::Notifi
   }
 }
 
-unique_ptr<NotificationSound> get_notification_sound(telegram_api::peerNotifySettings *settings) {
+unique_ptr<NotificationSound> get_notification_sound(telegram_api::peerNotifySettings *settings, bool for_stories) {
   CHECK(settings != nullptr);
   telegram_api::NotificationSound *sound =
 #if TD_ANDROID
-      settings->android_sound_.get();
+      for_stories ? settings->stories_android_sound_.get() : settings->android_sound_.get();
 #elif TD_DARWIN_IOS || TD_DARWIN_TV_OS || TD_DARWIN_WATCH_OS
-      settings->ios_sound_.get();
+      for_stories ? settings->stories_ios_sound_.get() : settings->ios_sound_.get();
 #else
-      settings->other_sound_.get();
+      for_stories ? settings->stories_other_sound_.get() : settings->other_sound_.get();
 #endif
   return get_notification_sound(sound);
 }

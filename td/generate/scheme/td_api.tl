@@ -1323,9 +1323,11 @@ chatNotificationSettings use_default_mute_for:Bool mute_for:int32 use_default_so
 //@sound_id Identifier of the notification sound to be played; 0 if sound is disabled
 //@show_preview True, if message content must be displayed in notifications
 //@mute_stories True, if story notifications are received without sound
+//@story_sound_id Identifier of the notification sound to be played for stories; 0 if sound is disabled
+//@show_story_sender True, if the sender of the story must be displayed in notifications
 //@disable_pinned_message_notifications True, if notifications for incoming pinned messages will be created as for an ordinary unread message
 //@disable_mention_notifications True, if notifications for messages with mentions will be created as for an ordinary unread message
-scopeNotificationSettings mute_for:int32 sound_id:int64 show_preview:Bool mute_stories:Bool disable_pinned_message_notifications:Bool disable_mention_notifications:Bool = ScopeNotificationSettings;
+scopeNotificationSettings mute_for:int32 sound_id:int64 show_preview:Bool mute_stories:Bool story_sound_id:int64 show_story_sender:Bool disable_pinned_message_notifications:Bool disable_mention_notifications:Bool = ScopeNotificationSettings;
 
 
 //@description Contains information about a message draft

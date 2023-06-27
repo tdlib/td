@@ -19,6 +19,7 @@ void store(const ScopeNotificationSettings &notification_settings, StorerT &stor
   bool is_muted = notification_settings.mute_until != 0 && notification_settings.mute_until > G()->unix_time();
   bool has_sound = notification_settings.sound != nullptr;
   bool has_ringtone_support = true;
+  bool has_story_sound = notification_settings.story_sound != nullptr;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_muted);
   STORE_FLAG(has_sound);
@@ -29,12 +30,17 @@ void store(const ScopeNotificationSettings &notification_settings, StorerT &stor
   STORE_FLAG(notification_settings.disable_mention_notifications);
   STORE_FLAG(has_ringtone_support);
   STORE_FLAG(notification_settings.mute_stories);
+  STORE_FLAG(has_story_sound);
+  STORE_FLAG(notification_settings.hide_story_sender);
   END_STORE_FLAGS();
   if (is_muted) {
     store(notification_settings.mute_until, storer);
   }
   if (has_sound) {
     store(notification_settings.sound, storer);
+  }
+  if (has_story_sound) {
+    store(notification_settings.story_sound, storer);
   }
 }
 
@@ -44,6 +50,7 @@ void parse(ScopeNotificationSettings &notification_settings, ParserT &parser) {
   bool has_sound;
   bool silent_send_message_ignored;
   bool has_ringtone_support;
+  bool has_story_sound;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_muted);
   PARSE_FLAG(has_sound);
@@ -54,6 +61,8 @@ void parse(ScopeNotificationSettings &notification_settings, ParserT &parser) {
   PARSE_FLAG(notification_settings.disable_mention_notifications);
   PARSE_FLAG(has_ringtone_support);
   PARSE_FLAG(notification_settings.mute_stories);
+  PARSE_FLAG(has_story_sound);
+  PARSE_FLAG(notification_settings.hide_story_sender);
   END_PARSE_FLAGS();
   (void)silent_send_message_ignored;
   if (is_muted) {
@@ -67,6 +76,9 @@ void parse(ScopeNotificationSettings &notification_settings, ParserT &parser) {
       parse(sound, parser);
       notification_settings.sound = get_legacy_notification_sound(sound);
     }
+  }
+  if (has_story_sound) {
+    parse_notification_sound(notification_settings.story_sound, parser);
   }
 }
 

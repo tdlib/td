@@ -5516,6 +5516,8 @@ class CliClient final : public Actor {
       int64 sound_id;
       string show_preview;
       string mute_stories;
+      int64 story_sound_id;
+      string hide_story_sender;
       string disable_pinned_message_notifications;
       string disable_mention_notifications;
       get_args(args, scope, mute_for, sound_id, show_preview, mute_stories, disable_pinned_message_notifications,
@@ -5524,8 +5526,9 @@ class CliClient final : public Actor {
         send_request(td_api::make_object<td_api::setScopeNotificationSettings>(
             as_notification_settings_scope(scope),
             td_api::make_object<td_api::scopeNotificationSettings>(
-                to_integer<int32>(mute_for), sound_id, as_bool(show_preview), as_bool(mute_stories),
-                as_bool(disable_pinned_message_notifications), as_bool(disable_mention_notifications))));
+                to_integer<int32>(mute_for), sound_id, as_bool(show_preview), as_bool(mute_stories), story_sound_id,
+                as_bool(hide_story_sender), as_bool(disable_pinned_message_notifications),
+                as_bool(disable_mention_notifications))));
       } else {
         auto settings = td_api::make_object<td_api::chatNotificationSettings>(
             mute_for.empty(), to_integer<int32>(mute_for), sound_id == -1, sound_id, show_preview.empty(),
