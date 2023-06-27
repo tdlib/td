@@ -104,7 +104,7 @@ class StoryManager final : public Actor {
   void send_story(td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,
                   td_api::object_ptr<td_api::formattedText> &&input_caption,
                   td_api::object_ptr<td_api::userPrivacySettingRules> &&rules, int32 active_period, bool is_pinned,
-                  Promise<td_api::object_ptr<td_api::story>> &&promise);
+                  bool protect_content, Promise<td_api::object_ptr<td_api::story>> &&promise);
 
   void on_send_story_file_part_missing(unique_ptr<PendingStory> &&pending_story, int bad_part);
 

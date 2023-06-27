@@ -7243,7 +7243,8 @@ getStory user_id:int53 story_id:int32 = Story;
 //@privacy_rules The privacy rules for the story
 //@active_period Period after which the story is moved to archive, in seconds; must be one of 6 * 3600, 12 * 3600, 86400, 2 * 86400, 3 * 86400, or 7 * 86400 for Telegram Premium users, and 86400 otherwise
 //@is_pinned Pass true to keep the story accessible after expiration
-sendStory content:InputStoryContent caption:formattedText privacy_rules:userPrivacySettingRules active_period:int32 is_pinned:Bool = Story;
+//@protect_content Pass true if the content of the story must be protected from forwarding and screenshotting
+sendStory content:InputStoryContent caption:formattedText privacy_rules:userPrivacySettingRules active_period:int32 is_pinned:Bool protect_content:Bool = Story;
 
 //@description Changes content and caption of a previously sent story
 //@story_id Identifier of the story to edit

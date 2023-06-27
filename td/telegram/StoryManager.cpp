@@ -505,6 +505,9 @@ class StoryManager::SendStoryQuery final : public Td::ResultHandler {
     if (period != 86400) {
       flags |= telegram_api::stories_sendStory::PERIOD_MASK;
     }
+    if (story->noforwards_) {
+      flags |= telegram_api::stories_sendStory::NOFORWARDS_MASK;
+    }
 
     send_query(G()->net_query_creator().create(
         telegram_api::stories_sendStory(flags, false /*ignored*/, false /*ignored*/, std::move(input_media),
@@ -2044,7 +2047,8 @@ void StoryManager::do_get_story(StoryFullId story_full_id, Result<Unit> &&result
 void StoryManager::send_story(td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,
                               td_api::object_ptr<td_api::formattedText> &&input_caption,
                               td_api::object_ptr<td_api::userPrivacySettingRules> &&rules, int32 active_period,
-                              bool is_pinned, Promise<td_api::object_ptr<td_api::story>> &&promise) {
+                              bool is_pinned, bool protect_content,
+                              Promise<td_api::object_ptr<td_api::story>> &&promise) {
   bool is_bot = td_->auth_manager_->is_bot();
   DialogId dialog_id(td_->contacts_manager_->get_my_id());
   TRY_RESULT_PROMISE(promise, content, get_input_story_content(td_, std::move(input_story_content), dialog_id));
@@ -2064,6 +2068,7 @@ void StoryManager::send_story(td_api::object_ptr<td_api::InputStoryContent> &&in
   story->date_ = G()->unix_time();
   story->expire_date_ = story->date_ + active_period;
   story->is_pinned_ = is_pinned;
+  story->noforwards_ = protect_content;
   story->privacy_rules_ = std::move(privacy_rules);
   story->content_ = std::move(content);
   story->caption_ = std::move(caption);

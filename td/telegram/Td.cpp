@@ -5631,7 +5631,7 @@ void Td::on_request(uint64 id, td_api::sendStory &request) {
   CREATE_REQUEST_PROMISE();
   story_manager_->send_story(std::move(request.content_), std::move(request.caption_),
                              std::move(request.privacy_rules_), request.active_period_, request.is_pinned_,
-                             std::move(promise));
+                             request.protect_content_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::editStory &request) {
