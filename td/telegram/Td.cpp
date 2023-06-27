@@ -5660,11 +5660,10 @@ void Td::on_request(uint64 id, const td_api::deleteStory &request) {
   story_manager_->delete_story(StoryId(request.story_id_), std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::toggleUserStoriesAreHidden &request) {
+void Td::on_request(uint64 id, const td_api::toggleChatStoriesAreHidden &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  story_manager_->toggle_dialog_stories_hidden(DialogId(UserId(request.user_id_)), request.are_hidden_,
-                                               std::move(promise));
+  story_manager_->toggle_dialog_stories_hidden(DialogId(request.chat_id_), request.are_hidden_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getForumTopicDefaultIcons &request) {

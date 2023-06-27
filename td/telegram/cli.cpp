@@ -4040,11 +4040,11 @@ class CliClient final : public Actor {
       StoryId story_id;
       get_args(args, story_id);
       send_request(td_api::make_object<td_api::deleteStory>(story_id));
-    } else if (op == "tusah") {
-      UserId user_id;
+    } else if (op == "tcsah") {
+      ChatId chat_id;
       bool are_hidden;
-      get_args(args, user_id, are_hidden);
-      send_request(td_api::make_object<td_api::toggleUserStoriesAreHidden>(user_id, are_hidden));
+      get_args(args, chat_id, are_hidden);
+      send_request(td_api::make_object<td_api::toggleChatStoriesAreHidden>(chat_id, are_hidden));
     } else if (op == "gups") {
       UserId user_id;
       StoryId from_story_id;
