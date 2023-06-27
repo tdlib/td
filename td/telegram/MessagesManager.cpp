@@ -24211,10 +24211,8 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
           m->reply_to_message_id.get());
     }
     if (m->reply_to_story_full_id.get_story_id() != StoryId()) {
-      CHECK(m->reply_to_story_full_id.get_dialog_id().get_type() == DialogType::User);
       return td_api::make_object<td_api::messageReplyToStory>(
-          td_->contacts_manager_->get_user_id_object(m->reply_to_story_full_id.get_dialog_id().get_user_id(),
-                                                     "messageReplyToStory"),
+          get_chat_id_object(m->reply_to_story_full_id.get_dialog_id(), "messageReplyToStory"),
           m->reply_to_story_full_id.get_story_id().get());
     }
     return nullptr;
@@ -24568,16 +24566,16 @@ MessageInputReplyTo MessagesManager::get_message_input_reply_to(Dialog *d, Messa
     CHECK(!for_draft);
     auto reply_to_story = td_api::move_object_as<td_api::messageReplyToStory>(reply_to);
     auto story_id = StoryId(reply_to_story->story_id_);
-    auto sender_user_id = UserId(reply_to_story->story_sender_user_id_);
-    if (d->dialog_id != DialogId(sender_user_id)) {
-      LOG(INFO) << "Ignore reply to story from " << sender_user_id << " in a wrong " << d->dialog_id;
+    auto sender_dialog_id = DialogId(reply_to_story->story_sender_chat_id_);
+    if (d->dialog_id != sender_dialog_id) {
+      LOG(INFO) << "Ignore reply to story from " << sender_dialog_id << " in a wrong " << d->dialog_id;
       return {};
     }
     if (!story_id.is_server()) {
       LOG(INFO) << "Ignore reply to invalid " << story_id;
       return {};
     }
-    return {MessageId(), StoryFullId(DialogId(sender_user_id), story_id)};
+    return {MessageId(), StoryFullId(sender_dialog_id, story_id)};
   }
   MessageId message_id;
   if (reply_to != nullptr && reply_to->get_id() == td_api::messageReplyToMessage::ID) {
@@ -24787,6 +24785,7 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, const
   dependencies.add(m->sender_user_id);
   dependencies.add_dialog_and_dependencies(m->sender_dialog_id);
   dependencies.add_dialog_and_dependencies(m->reply_in_dialog_id);
+  dependencies.add_dialog_and_dependencies(m->reply_to_story_full_id.get_dialog_id());
   dependencies.add_dialog_and_dependencies(m->real_forward_from_dialog_id);
   dependencies.add(m->via_bot_user_id);
   if (m->forward_info != nullptr) {

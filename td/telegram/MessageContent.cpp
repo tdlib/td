@@ -2284,13 +2284,13 @@ static Result<InputMessageContent> create_input_message_content(
     }
     case td_api::inputMessageStory::ID: {
       auto input_story = static_cast<td_api::inputMessageStory *>(input_message_content.get());
-      UserId user_id(input_story->story_sender_user_id_);
+      DialogId story_sender_dialog_id(input_story->story_sender_chat_id_);
       StoryId story_id(input_story->story_id_);
-      StoryFullId story_full_id(DialogId(user_id), story_id);
-      if (!td->story_manager_->have_story(story_full_id)) {
+      StoryFullId story_full_id(story_sender_dialog_id, story_id);
+      if (!td->story_manager_->have_story(story_full_id) || story_sender_dialog_id.get_type() != DialogType::User) {
         return Status::Error(400, "Story not found");
       }
-      if (td->contacts_manager_->get_input_user(user_id).is_error()) {
+      if (td->contacts_manager_->get_input_user(story_sender_dialog_id.get_user_id()).is_error()) {
         return Status::Error(400, "Can't access the user");
       }
       content = make_unique<MessageStory>(story_full_id, false);
@@ -6006,10 +6006,8 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     }
     case MessageContentType::Story: {
       const auto *m = static_cast<const MessageStory *>(content);
-      auto story_sender_dialog_id = m->story_full_id.get_dialog_id();
-      CHECK(story_sender_dialog_id.get_type() == DialogType::User);
       return td_api::make_object<td_api::messageStory>(
-          td->contacts_manager_->get_user_id_object(story_sender_dialog_id.get_user_id(), "messageStory"),
+          td->messages_manager_->get_chat_id_object(m->story_full_id.get_dialog_id(), "messageStory"),
           m->story_full_id.get_story_id().get(), m->via_mention);
     }
     default:
@@ -6739,7 +6737,7 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
       break;
     case MessageContentType::Story: {
       const auto *content = static_cast<const MessageStory *>(message_content);
-      dependencies.add_message_sender_dependencies(content->story_full_id.get_dialog_id());
+      dependencies.add_dialog_and_dependencies(content->story_full_id.get_dialog_id());
       break;
     }
     default:

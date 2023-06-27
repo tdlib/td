@@ -3969,10 +3969,10 @@ class CliClient final : public Actor {
     } else if (op == "rcl" || op == "rcla" || begins_with(op, "rcl-")) {
       send_request(td_api::make_object<td_api::readChatList>(as_chat_list(op)));
     } else if (op == "gst") {
-      UserId user_id;
+      ChatId story_sender_chat_id;
       StoryId story_id;
-      get_args(args, user_id, story_id);
-      send_request(td_api::make_object<td_api::getStory>(user_id, story_id));
+      get_args(args, story_sender_chat_id, story_id);
+      send_request(td_api::make_object<td_api::getStory>(story_sender_chat_id, story_id));
     } else if (op == "ssp" || op == "sspp") {
       string photo;
       string caption;
@@ -4061,15 +4061,15 @@ class CliClient final : public Actor {
       get_args(args, user_id);
       send_request(td_api::make_object<td_api::getUserActiveStories>(user_id));
     } else if (op == "os") {
-      UserId story_sender_user_id;
+      ChatId story_sender_chat_id;
       StoryId story_id;
-      get_args(args, story_sender_user_id, story_id);
-      send_request(td_api::make_object<td_api::openStory>(story_sender_user_id, story_id));
+      get_args(args, story_sender_chat_id, story_id);
+      send_request(td_api::make_object<td_api::openStory>(story_sender_chat_id, story_id));
     } else if (op == "cs") {
-      UserId story_sender_user_id;
+      ChatId story_sender_chat_id;
       StoryId story_id;
-      get_args(args, story_sender_user_id, story_id);
-      send_request(td_api::make_object<td_api::closeStory>(story_sender_user_id, story_id));
+      get_args(args, story_sender_chat_id, story_id);
+      send_request(td_api::make_object<td_api::closeStory>(story_sender_chat_id, story_id));
     } else if (op == "gsv") {
       StoryId story_id;
       string limit;
@@ -4079,13 +4079,13 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getStoryViewers>(
           story_id, td_api::make_object<td_api::messageViewer>(offset_user_id, offset_date), as_limit(limit)));
     } else if (op == "rst") {
-      UserId story_sender_user_id;
+      ChatId story_sender_chat_id;
       StoryId story_id;
       string reason;
       string text;
-      get_args(args, story_sender_user_id, story_id, reason, text);
+      get_args(args, story_sender_chat_id, story_id, reason, text);
       send_request(
-          td_api::make_object<td_api::reportStory>(story_sender_user_id, story_id, as_report_reason(reason), text));
+          td_api::make_object<td_api::reportStory>(story_sender_chat_id, story_id, as_report_reason(reason), text));
     } else if (op == "gamb") {
       UserId user_id;
       get_args(args, user_id);
@@ -4714,10 +4714,10 @@ class CliClient final : public Actor {
                    td_api::make_object<td_api::inputMessageSticker>(as_input_file_id(file_id), nullptr, 0, 0, emoji));
     } else if (op == "sstory") {
       ChatId chat_id;
-      UserId story_sender_user_id;
+      ChatId story_sender_chat_id;
       StoryId story_id;
-      get_args(args, chat_id, story_sender_user_id, story_id);
-      send_message(chat_id, td_api::make_object<td_api::inputMessageStory>(story_sender_user_id, story_id));
+      get_args(args, chat_id, story_sender_chat_id, story_id);
+      send_message(chat_id, td_api::make_object<td_api::inputMessageStory>(story_sender_chat_id, story_id));
     } else if (op == "sv") {
       ChatId chat_id;
       string video_path;

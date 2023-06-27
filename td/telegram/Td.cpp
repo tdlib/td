@@ -5623,7 +5623,7 @@ void Td::on_request(uint64 id, td_api::editMessageSchedulingState &request) {
 void Td::on_request(uint64 id, const td_api::getStory &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  story_manager_->get_story(DialogId(UserId(request.user_id_)), StoryId(request.story_id_), std::move(promise));
+  story_manager_->get_story(DialogId(request.story_sender_chat_id_), StoryId(request.story_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::sendStory &request) {
@@ -6446,15 +6446,13 @@ void Td::on_request(uint64 id, const td_api::getArchivedStories &request) {
 void Td::on_request(uint64 id, const td_api::openStory &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  story_manager_->open_story(DialogId(UserId(request.story_sender_user_id_)), StoryId(request.story_id_),
-                             std::move(promise));
+  story_manager_->open_story(DialogId(request.story_sender_chat_id_), StoryId(request.story_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::closeStory &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  story_manager_->close_story(DialogId(UserId(request.story_sender_user_id_)), StoryId(request.story_id_),
-                              std::move(promise));
+  story_manager_->close_story(DialogId(request.story_sender_chat_id_), StoryId(request.story_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getStoryViewers &request) {
@@ -6471,7 +6469,7 @@ void Td::on_request(uint64 id, td_api::reportStory &request) {
     return send_error_raw(id, r_report_reason.error().code(), r_report_reason.error().message());
   }
   CREATE_OK_REQUEST_PROMISE();
-  story_manager_->report_story({DialogId(UserId(request.story_sender_user_id_)), StoryId(request.story_id_)},
+  story_manager_->report_story({DialogId(request.story_sender_chat_id_), StoryId(request.story_id_)},
                                r_report_reason.move_as_ok(), std::move(promise));
 }
 

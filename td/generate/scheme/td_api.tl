@@ -1137,8 +1137,8 @@ messageSendingStateFailed error_code:int32 error_message:string can_retry:Bool n
 //@message_id The identifier of the replied message
 messageReplyToMessage chat_id:int53 message_id:int53 = MessageReplyTo;
 
-//@description Describes a replied story @story_sender_user_id The identifier of the sender of the replied story. Currently, stories can be replied only in the corresponding private chats @story_id The identifier of the replied story
-messageReplyToStory story_sender_user_id:int53 story_id:int32 = MessageReplyTo;
+//@description Describes a replied story @story_sender_chat_id The identifier of the sender of the replied story. Currently, stories can be replied only in the sender's chat @story_id The identifier of the replied story
+messageReplyToStory story_sender_chat_id:int53 story_id:int32 = MessageReplyTo;
 
 
 //@description Describes a message
@@ -1993,10 +1993,10 @@ webPageInstantView page_blocks:vector<PageBlock> view_count:int32 version:int32 
 //@video Preview of the content as a video, if available; may be null
 //@video_note Preview of the content as a video note, if available; may be null
 //@voice_note Preview of the content as a voice note, if available; may be null
-//@story_sender_user_id The identifier of the sender of the previewed story; 0 if none
+//@story_sender_chat_id The identifier of the sender of the previewed story; 0 if none
 //@story_id The identifier of the previewed story; 0 if none
 //@instant_view_version Version of web page instant view (currently, can be 1 or 2); 0 if none
-webPage url:string display_url:string type:string site_name:string title:string description:formattedText photo:photo embed_url:string embed_type:string embed_width:int32 embed_height:int32 duration:int32 author:string animation:animation audio:audio document:document sticker:sticker video:video video_note:videoNote voice_note:voiceNote story_sender_user_id:int53 story_id:int32 instant_view_version:int32 = WebPage;
+webPage url:string display_url:string type:string site_name:string title:string description:formattedText photo:photo embed_url:string embed_type:string embed_width:int32 embed_height:int32 duration:int32 author:string animation:animation audio:audio document:document sticker:sticker video:video video_note:videoNote voice_note:voiceNote story_sender_chat_id:int53 story_id:int32 instant_view_version:int32 = WebPage;
 
 
 //@description Contains information about a country
@@ -2543,10 +2543,10 @@ messageGame game:game = MessageContent;
 messagePoll poll:poll = MessageContent;
 
 //@description A message with a forwarded story
-//@story_sender_user_id Identifier of the user that created the story
+//@story_sender_chat_id Identifier of the chat that posted the story
 //@story_id Story identifier
-//@via_mention True, if the story was forwarded because of a mention of the user
-messageStory story_sender_user_id:int53 story_id:int32 via_mention:Bool = MessageContent;
+//@via_mention True, if the story was automatically forwarded because of a mention of the user
+messageStory story_sender_chat_id:int53 story_id:int32 via_mention:Bool = MessageContent;
 
 //@description A message with an invoice from a bot. Use getInternalLink with internalLinkTypeBotStart to share the invoice
 //@title Product title
@@ -2934,10 +2934,10 @@ inputMessageInvoice invoice:invoice title:string description:string photo_url:st
 //@is_closed True, if the poll needs to be sent already closed; for bots only
 inputMessagePoll question:string options:vector<string> is_anonymous:Bool type:PollType open_period:int32 close_date:int32 is_closed:Bool = InputMessageContent;
 
-//@description A message with a forwarded story. Stories can't be sent to secret chats. A story can be forwarded only story.can_be_forwarded
-//@story_sender_user_id Identifier of the user that created the story
+//@description A message with a forwarded story. Stories can't be sent to secret chats. A story can be forwarded only if story.can_be_forwarded
+//@story_sender_chat_id Identifier of the chat that posted the story
 //@story_id Story identifier
-inputMessageStory story_sender_user_id:int53 story_id:int32 = InputMessageContent;
+inputMessageStory story_sender_chat_id:int53 story_id:int32 = InputMessageContent;
 
 //@description A forwarded message
 //@from_chat_id Identifier for the chat this forwarded message came from
@@ -4829,10 +4829,10 @@ internalLinkTypeSettings = InternalLinkType;
 //@expect_custom_emoji True, if the sticker set is expected to contain custom emoji
 internalLinkTypeStickerSet sticker_set_name:string expect_custom_emoji:Bool = InternalLinkType;
 
-//@description The link is a link to a story. Call searchPublicChat with the given sender username, check that a user is returned, then call getStory with the received user identifier and the given story identifier
-//@sender_username Username of the sender of the story
+//@description The link is a link to a story. Call searchPublicChat with the given sender username, then call getStory with the received chat identifier and the given story identifier
+//@story_sender_username Username of the sender of the story
 //@story_id Story identifier
-internalLinkTypeStory sender_username:string story_id:int32 = InternalLinkType;
+internalLinkTypeStory story_sender_username:string story_id:int32 = InternalLinkType;
 
 //@description The link is a link to a theme. TDLib has no theme support yet @theme_name Name of the theme
 internalLinkTypeTheme theme_name:string = InternalLinkType;
@@ -4926,18 +4926,18 @@ storyInteractionInfo view_count:int32 recent_viewer_user_ids:vector<int53> = Sto
 
 //@description Represents a story
 //@id Unique story identifier among stories of the given sender
-//@sender_user_id Identifier of the user that created the story
+//@sender_chat_id Identifier of the chat that posted the story
 //@date Point in time (Unix timestamp) when the story was published
 //@is_pinned True, if the story is saved in the sender's profile and will be available there after expiration
 //@is_visible_only_for_self True, if the story is visible only for the current user
 //@can_be_forwarded True, if the story can be forwarded as a message. Otherwise, screenshots and saving of the story content must be also forbidden
 //@can_be_replied True, if the story can be replied in the chat with the story sender
-//@can_get_viewers True, users viewed the story can be received through getStoryViewers
+//@can_get_viewers True, if users viewed the story can be received through getStoryViewers
 //@interaction_info Information about interactions with the story; may be null if the story isn't owned or there were no interactions
 //@privacy_rules Privacy rules affecting story visibility; may be null if the story isn't owned
 //@content Content of the story
 //@caption Caption of the story
-story id:int32 sender_user_id:int53 date:int32 is_pinned:Bool is_visible_only_for_self:Bool can_be_forwarded:Bool can_be_replied:Bool can_get_viewers:Bool interaction_info:storyInteractionInfo privacy_rules:userPrivacySettingRules content:StoryContent caption:formattedText = Story;
+story id:int32 sender_chat_id:int53 date:int32 is_pinned:Bool is_visible_only_for_self:Bool can_be_forwarded:Bool can_be_replied:Bool can_get_viewers:Bool interaction_info:storyInteractionInfo privacy_rules:userPrivacySettingRules content:StoryContent caption:formattedText = Story;
 
 //@description Represents a list of stories @total_count Approximate total number of stories found @stories The list of stories
 stories total_count:int32 stories:vector<story> = Stories;
@@ -4946,10 +4946,10 @@ stories total_count:int32 stories:vector<story> = Stories;
 storyInfo story_id:int32 date:int32 = StoryInfo;
 
 //@description Describes active stories sent by the same sender
-//@story_sender_user_id Identifier of the sender of the stories
+//@story_sender_chat_id Identifier of the sender of the stories
 //@max_read_story_id Identifier of the last read active story
 //@stories Basic information about the stories; use getStory to get full information about the stories
-activeStories story_sender_user_id:int53 max_read_story_id:int32 stories:vector<storyInfo> = ActiveStories;
+activeStories story_sender_chat_id:int53 max_read_story_id:int32 stories:vector<storyInfo> = ActiveStories;
 
 
 //@description Contains a part of a file @data File bytes
@@ -5710,8 +5710,8 @@ updateUnreadChatCount chat_list:ChatList total_count:int32 unread_count:int32 un
 //@description A story was changed @story The new information about the story
 updateStory story:story = Update;
 
-//@description A story became inaccessible @story_sender_user_id Identifier of the user that created the story @story_id Story identifier
-updateStoryDeleted story_sender_user_id:int53 story_id:int32 = Update;
+//@description A story became inaccessible @story_sender_chat_id Identifier of the chat that posted the story @story_id Story identifier
+updateStoryDeleted story_sender_chat_id:int53 story_id:int32 = Update;
 
 //@description The list of active stories of a specific sender has changed @active_stories The new list of active stories
 updateActiveStories active_stories:activeStories = Update;
@@ -7242,8 +7242,8 @@ setPinnedChats chat_list:ChatList chat_ids:vector<int53> = Ok;
 readChatList chat_list:ChatList = Ok;
 
 
-//@description Returns a story @user_id Identifier of the user, which sent the story @story_id Story identifier
-getStory user_id:int53 story_id:int32 = Story;
+//@description Returns a story @story_sender_chat_id Identifier of the chat that posted the story @story_id Story identifier
+getStory story_sender_chat_id:int53 story_id:int32 = Story;
 
 //@description Sends a new story. Returns a temporary story with identifier 0
 //@content Content of the story
@@ -7291,14 +7291,14 @@ getUserPinnedStories user_id:int53 from_story_id:int32 limit:int32 = Stories;
 getArchivedStories from_story_id:int32 limit:int32 = Stories;
 
 //@description Informs TDLib that a story is opened and is being viewed by the user
-//@story_sender_user_id The identifier of the sender of the opened story
+//@story_sender_chat_id The identifier of the sender of the opened story
 //@story_id The identifier of the story
-openStory story_sender_user_id:int53 story_id:int32 = Ok;
+openStory story_sender_chat_id:int53 story_id:int32 = Ok;
 
 //@description Informs TDLib that a story is closed by the user
-//@story_sender_user_id The identifier of the sender of the story to close
+//@story_sender_chat_id The identifier of the sender of the story to close
 //@story_id The identifier of the story
-closeStory story_sender_user_id:int53 story_id:int32 = Ok;
+closeStory story_sender_chat_id:int53 story_id:int32 = Ok;
 
 //@description Returns viewers of a recent outgoing story. The method can be called if story.can_get_viewers == true. The views are returned in a reverse chronological order (i.e., in order of decreasing view_date)
 //-For optimal performance, the number of returned stories is chosen by TDLib
@@ -7309,11 +7309,11 @@ closeStory story_sender_user_id:int53 story_id:int32 = Ok;
 getStoryViewers story_id:int32 offset_viewer:messageViewer limit:int32 = MessageViewers;
 
 //@description Reports a story to the Telegram moderators
-//@story_sender_user_id The identifier of the sender of the story to report
+//@story_sender_chat_id The identifier of the sender of the story to report
 //@story_id The identifier of the story to report
 //@reason The reason for reporting the story
 //@text Additional report details; 0-1024 characters
-reportStory story_sender_user_id:int53 story_id:int32 reason:ReportReason text:string = Ok;
+reportStory story_sender_chat_id:int53 story_id:int32 reason:ReportReason text:string = Ok;
 
 
 //@description Returns information about a bot that can be added to attachment menu @bot_user_id Bot's user identifier

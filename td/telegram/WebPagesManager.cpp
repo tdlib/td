@@ -587,8 +587,7 @@ void WebPagesManager::update_web_page(unique_ptr<WebPage> web_page, WebPageId we
     if (!web_page->story_full_ids.empty()) {
       Dependencies dependencies;
       for (auto story_full_id : web_page->story_full_ids) {
-        auto story_sender_dialog_id = story_full_id.get_dialog_id();
-        dependencies.add_message_sender_dependencies(story_sender_dialog_id);
+        dependencies.add_dialog_and_dependencies(story_full_id.get_dialog_id());
       }
       if (!dependencies.resolve_force(td_, "update_web_page")) {
         web_page->story_full_ids = {};
@@ -1293,12 +1292,10 @@ tl_object_ptr<td_api::webPage> WebPagesManager::get_web_page_object(WebPageId we
   }
 
   auto duration = get_web_page_media_duration(web_page);
-  UserId story_sender_user_id;
+  DialogId story_sender_dialog_id;
   StoryId story_id;
   if (web_page->story_full_ids.size() == 1) {
-    DialogId story_sender_dialog_id = web_page->story_full_ids[0].get_dialog_id();
-    CHECK(story_sender_dialog_id.get_type() == DialogType::User);
-    story_sender_user_id = story_sender_dialog_id.get_user_id();
+    story_sender_dialog_id = web_page->story_full_ids[0].get_dialog_id();
     story_id = web_page->story_full_ids[0].get_story_id();
   }
   return make_tl_object<td_api::webPage>(
@@ -1327,7 +1324,7 @@ tl_object_ptr<td_api::webPage> WebPagesManager::get_web_page_object(WebPageId we
       web_page->document.type == Document::Type::VoiceNote
           ? td_->voice_notes_manager_->get_voice_note_object(web_page->document.file_id)
           : nullptr,
-      td_->contacts_manager_->get_user_id_object(story_sender_user_id, "webPage"), story_id.get(),
+      td_->messages_manager_->get_chat_id_object(story_sender_dialog_id, "webPage"), story_id.get(),
       instant_view_version);
 }
 

@@ -612,16 +612,16 @@ class LinkManager::InternalLinkStickerSet final : public InternalLink {
 };
 
 class LinkManager::InternalLinkStory final : public InternalLink {
-  string sender_username_;
+  string story_sender_username_;
   StoryId story_id_;
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
-    return td_api::make_object<td_api::internalLinkTypeStory>(sender_username_, story_id_.get());
+    return td_api::make_object<td_api::internalLinkTypeStory>(story_sender_username_, story_id_.get());
   }
 
  public:
-  InternalLinkStory(string sender_username, StoryId story_id)
-      : sender_username_(std::move(sender_username)), story_id_(story_id) {
+  InternalLinkStory(string story_sender_username, StoryId story_id)
+      : story_sender_username_(std::move(story_sender_username)), story_id_(story_id) {
   }
 };
 
@@ -2097,16 +2097,16 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
     }
     case td_api::internalLinkTypeStory::ID: {
       auto link = static_cast<const td_api::internalLinkTypeStory *>(type_ptr);
-      if (!is_valid_username(link->sender_username_)) {
-        return Status::Error(400, "Invalid sender username specified");
+      if (!is_valid_username(link->story_sender_username_)) {
+        return Status::Error(400, "Invalid story sender username specified");
       }
       if (!StoryId(link->story_id_).is_server()) {
         return Status::Error(400, "Invalid story identifier specified");
       }
       if (is_internal) {
-        return PSTRING() << "tg://resolve?domain=" << link->sender_username_ << "&story=" << link->story_id_;
+        return PSTRING() << "tg://resolve?domain=" << link->story_sender_username_ << "&story=" << link->story_id_;
       } else {
-        return PSTRING() << get_t_me_url() << link->sender_username_ << "/s/" << link->story_id_;
+        return PSTRING() << get_t_me_url() << link->story_sender_username_ << "/s/" << link->story_id_;
       }
     }
     case td_api::internalLinkTypeTheme::ID: {
