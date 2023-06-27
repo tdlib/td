@@ -2928,7 +2928,7 @@ inputMessageInvoice invoice:invoice title:string description:string photo_url:st
 //@is_closed True, if the poll needs to be sent already closed; for bots only
 inputMessagePoll question:string options:vector<string> is_anonymous:Bool type:PollType open_period:int32 close_date:int32 is_closed:Bool = InputMessageContent;
 
-//@description A message with a forwarded story. Stories can't be sent to secret chats. A story can be forwarded only if its privacy rules contains exactly one rule userPrivacySettingRuleAllowAll
+//@description A message with a forwarded story. Stories can't be sent to secret chats. A story can be forwarded only story.can_be_forwarded
 //@story_sender_user_id Identifier of the user that created the story
 //@story_id Story identifier
 inputMessageStory story_sender_user_id:int53 story_id:int32 = InputMessageContent;
@@ -4924,12 +4924,13 @@ storyInteractionInfo view_count:int32 recent_viewer_user_ids:vector<int53> = Sto
 //@date Point in time (Unix timestamp) when the story was published
 //@is_pinned True, if the story is saved in the sender's profile and will be available there after expiration
 //@is_visible_only_for_self True, if the story is visible only for the current user
+//@can_be_forwarded True, if the story can be forwarded as a message. Otherwise, screenshots of the story must be also forbidden
 //@can_get_viewers True, users viewed the story can be received through getStoryViewers
 //@interaction_info Information about interactions with the story; may be null if the story isn't owned or there were no interactions
 //@privacy_rules Pryvacy rules affecting story visibility; may be null if the story isn't owned
 //@content Content of the story
 //@caption Caption of the story
-story id:int32 sender_user_id:int53 date:int32 is_pinned:Bool is_visible_only_for_self:Bool can_get_viewers:Bool interaction_info:storyInteractionInfo privacy_rules:userPrivacySettingRules content:StoryContent caption:formattedText = Story;
+story id:int32 sender_user_id:int53 date:int32 is_pinned:Bool is_visible_only_for_self:Bool can_be_forwarded:Bool can_get_viewers:Bool interaction_info:storyInteractionInfo privacy_rules:userPrivacySettingRules content:StoryContent caption:formattedText = Story;
 
 //@description Represents a list of stories @total_count Approximate total number of stories found @stories The list of stories
 stories total_count:int32 stories:vector<story> = Stories;
