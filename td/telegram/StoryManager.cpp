@@ -1410,8 +1410,9 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
   }
 
   auto story_id = story_full_id.get_story_id();
-  bool is_visible_only_for_self = !story_id.is_server() ||
-                                  dialog_id == DialogId(ContactsManager::get_service_notifications_user_id()) ||
+  auto changelog_user_id = td_->option_manager_->get_option_integer(
+      "stories_changelog_user_id", ContactsManager::get_service_notifications_user_id().get());
+  bool is_visible_only_for_self = !story_id.is_server() || dialog_id == DialogId(changelog_user_id) ||
                                   (!story->is_pinned_ && !is_active_story(story));
   bool can_be_forwarded = !story->noforwards_ && story_id.is_server() && privacy_rules != nullptr &&
                           privacy_rules->rules_.size() == 1u &&

@@ -8,6 +8,7 @@
 
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ConnectionState.h"
+#include "td/telegram/ContactsManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/JsonValue.h"
 #include "td/telegram/LinkManager.h"
@@ -1561,6 +1562,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   int32 dialog_filter_update_period = 300;
   bool archive_all_stories = false;
   int32 story_viewers_expire_period = 86400;
+  int64 stories_changelog_user_id = ContactsManager::get_service_notifications_user_id().get();
   if (config->get_id() == telegram_api::jsonObject::ID) {
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
       Slice key = key_value->key_;
@@ -1965,6 +1967,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         story_viewers_expire_period = get_json_value_int(std::move(key_value->value_), key);
         continue;
       }
+      if (key == "stories_changelog_user_id") {
+        stories_changelog_user_id = get_json_value_long(std::move(key_value->value_), key);
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
@@ -2129,6 +2135,11 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
     options.set_option_boolean("gift_premium_from_input_field", premium_gift_text_field_icon);
   } else {
     options.set_option_empty("gift_premium_from_input_field");
+  }
+  if (stories_changelog_user_id != ContactsManager::get_service_notifications_user_id().get()) {
+    options.set_option_integer("stories_changelog_user_id", stories_changelog_user_id);
+  } else {
+    options.set_option_empty("stories_changelog_user_id");
   }
 
   if (story_viewers_expire_period >= 0) {
