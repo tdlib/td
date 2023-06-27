@@ -4928,7 +4928,7 @@ storyInteractionInfo view_count:int32 recent_viewer_user_ids:vector<int53> = Sto
 //@can_be_replied True, if the story can be replied in the chat with the story sender
 //@can_get_viewers True, users viewed the story can be received through getStoryViewers
 //@interaction_info Information about interactions with the story; may be null if the story isn't owned or there were no interactions
-//@privacy_rules Pryvacy rules affecting story visibility; may be null if the story isn't owned
+//@privacy_rules Privacy rules affecting story visibility; may be null if the story isn't owned
 //@content Content of the story
 //@caption Caption of the story
 story id:int32 sender_user_id:int53 date:int32 is_pinned:Bool is_visible_only_for_self:Bool can_be_forwarded:Bool can_be_replied:Bool can_get_viewers:Bool interaction_info:storyInteractionInfo privacy_rules:userPrivacySettingRules content:StoryContent caption:formattedText = Story;
