@@ -1018,6 +1018,7 @@ void DialogFilterManager::delete_dialogs_from_filter(const DialogFilter *dialog_
     return;
   }
 
+  bool was_valid = dialog_filter->check_limits().is_ok();
   auto new_dialog_filter = td::make_unique<DialogFilter>(*dialog_filter);
   for (auto dialog_id : dialog_ids) {
     new_dialog_filter->remove_dialog_id(dialog_id);
@@ -1026,7 +1027,7 @@ void DialogFilterManager::delete_dialogs_from_filter(const DialogFilter *dialog_
     delete_dialog_filter(dialog_filter->get_dialog_filter_id(), vector<DialogId>(), Promise<Unit>());
     return;
   }
-  CHECK(new_dialog_filter->check_limits().is_ok());
+  CHECK(!was_valid || new_dialog_filter->check_limits().is_ok());
 
   if (*new_dialog_filter != *dialog_filter) {
     LOG(INFO) << "Update " << *dialog_filter << " to " << *new_dialog_filter;
