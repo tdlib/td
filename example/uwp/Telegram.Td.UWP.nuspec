@@ -12,5 +12,8 @@
     <releaseNotes>https://github.com/tdlib/td/blob/master/CHANGELOG.md</releaseNotes>
     <description>TDLib for Universal Windows Platform</description>
     <copyright>© Telegram FZ-LLC. All rights reserved.</copyright>
+    <dependencies>
+      <group targetFramework="UAP10.0" />
+    </dependencies>
   </metadata>
 </package>
