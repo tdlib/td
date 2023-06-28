@@ -2472,7 +2472,7 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getUserLink>());
     } else if (op == "subt") {
       send_request(td_api::make_object<td_api::searchUserByToken>(args));
-    } else if (op == "AddContact") {
+    } else if (op == "aco") {
       UserId user_id;
       string first_name;
       string last_name;
