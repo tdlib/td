@@ -4954,7 +4954,7 @@ stories total_count:int32 stories:vector<story> = Stories;
 storyInfo story_id:int32 date:int32 = StoryInfo;
 
 //@description Describes active stories sent by the same sender
-//@list Identifier of the story list in which the stories are shown; maybe null if the stories aren't from a current user's contact
+//@list Identifier of the story list in which the stories are shown; may be null if the stories aren't from a current user's contact
 //@story_sender_chat_id Identifier of the sender of the stories
 //@max_read_story_id Identifier of the last read active story
 //@stories Basic information about the stories; use getStory to get full information about the stories

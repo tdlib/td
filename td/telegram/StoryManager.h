@@ -195,6 +195,7 @@ class StoryManager final : public Actor {
 
   class DeleteStoryOnServerLogEvent;
   class ReadStoriesOnServerLogEvent;
+  class LoadDialogExpiringStoriesLogEvent;
 
   static constexpr int32 OPENED_STORY_POLL_PERIOD = 60;
   static constexpr int32 VIEWED_STORY_POLL_PERIOD = 300;
@@ -268,7 +269,11 @@ class StoryManager final : public Actor {
                                       telegram_api::object_ptr<telegram_api::stories_userStories> &&stories,
                                       Promise<td_api::object_ptr<td_api::activeStories>> &&promise);
 
-  void load_dialog_expiring_stories(DialogId owner_dialog_id);
+  static uint64 save_load_dialog_expiring_stories_log_event(DialogId owner_dialog_id);
+
+  void load_dialog_expiring_stories(DialogId owner_dialog_id, uint64 log_event_id);
+
+  void on_load_dialog_expiring_stories(DialogId owner_dialog_id);
 
   vector<FileId> get_story_file_ids(const Story *story) const;
 
@@ -339,6 +344,8 @@ class StoryManager final : public Actor {
   WaitFreeHashMap<DialogId, unique_ptr<ActiveStories>, DialogIdHash> active_stories_;
 
   WaitFreeHashMap<DialogId, StoryId, DialogIdHash> max_read_story_ids_;
+
+  FlatHashMap<DialogId, uint64, DialogIdHash> load_expiring_stories_log_event_ids_;
 
   FlatHashMap<StoryFullId, unique_ptr<BeingEditedStory>, StoryFullIdHash> being_edited_stories_;
 

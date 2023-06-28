@@ -971,10 +971,62 @@ void StoryManager::get_dialog_expiring_stories(DialogId owner_dialog_id,
   td_->create_handler<GetUserStoriesQuery>(std::move(query_promise))->send(owner_dialog_id.get_user_id());
 }
 
-void StoryManager::load_dialog_expiring_stories(DialogId owner_dialog_id) {
+class StoryManager::LoadDialogExpiringStoriesLogEvent {
+ public:
+  DialogId dialog_id_;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    td::store(dialog_id_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    td::parse(dialog_id_, parser);
+  }
+};
+
+uint64 StoryManager::save_load_dialog_expiring_stories_log_event(DialogId owner_dialog_id) {
+  LoadDialogExpiringStoriesLogEvent log_event{owner_dialog_id};
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::LoadDialogExpiringStories,
+                    get_log_event_storer(log_event));
+}
+
+void StoryManager::load_dialog_expiring_stories(DialogId owner_dialog_id, uint64 log_event_id) {
+  if (load_expiring_stories_log_event_ids_.count(owner_dialog_id)) {
+    if (log_event_id != 0) {
+      binlog_erase(G()->td_db()->get_binlog(), log_event_id);
+    }
+    return;
+  }
+  if (log_event_id == 0 && G()->use_message_database()) {
+    log_event_id = save_load_dialog_expiring_stories_log_event(owner_dialog_id);
+  }
+  load_expiring_stories_log_event_ids_[owner_dialog_id] = log_event_id;
+
   // send later to ensure that active stories are inited before sending the request
-  send_closure_later(actor_id(this), &StoryManager::get_dialog_expiring_stories, owner_dialog_id,
-                     Promise<td_api::object_ptr<td_api::activeStories>>());
+  auto promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), owner_dialog_id](Result<td_api::object_ptr<td_api::activeStories>> &&) {
+        if (!G()->close_flag()) {
+          send_closure(actor_id, &StoryManager::on_load_dialog_expiring_stories, owner_dialog_id);
+        }
+      });
+  send_closure_later(actor_id(this), &StoryManager::get_dialog_expiring_stories, owner_dialog_id, std::move(promise));
+}
+
+void StoryManager::on_load_dialog_expiring_stories(DialogId owner_dialog_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+  auto it = load_expiring_stories_log_event_ids_.find(owner_dialog_id);
+  if (it != load_expiring_stories_log_event_ids_.end()) {
+    return;
+  }
+  auto log_event_id = it->second;
+  load_expiring_stories_log_event_ids_.erase(it);
+  if (log_event_id != 0) {
+    binlog_erase(G()->td_db()->get_binlog(), log_event_id);
+  }
 }
 
 void StoryManager::on_get_dialog_expiring_stories(DialogId owner_dialog_id,
@@ -1197,7 +1249,7 @@ uint64 StoryManager::save_read_stories_on_server_log_event(DialogId dialog_id, S
 }
 
 void StoryManager::read_stories_on_server(DialogId owner_dialog_id, StoryId story_id, uint64 log_event_id) {
-  if (log_event_id == 0 && G()->use_chat_info_database()) {
+  if (log_event_id == 0 && G()->use_message_database()) {
     log_event_id = save_read_stories_on_server_log_event(owner_dialog_id, story_id);
   }
 
@@ -1638,7 +1690,7 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
     auto active_stories = get_active_stories(owner_dialog_id);
     if (active_stories == nullptr) {
       if (is_subscribed_to_dialog_stories(owner_dialog_id)) {
-        load_dialog_expiring_stories(owner_dialog_id);
+        load_dialog_expiring_stories(owner_dialog_id, 0);
       }
     } else if (!contains(active_stories->story_ids_, story_id)) {
       auto story_ids = active_stories->story_ids_;
@@ -2506,6 +2558,18 @@ void StoryManager::on_binlog_events(vector<BinlogEvent> &&events) {
           on_update_active_stories(dialog_id, max_read_story_id, std::move(story_ids));
         }
         read_stories_on_server(dialog_id, max_read_story_id, event.id_);
+        break;
+      }
+      case LogEvent::HandlerType::LoadDialogExpiringStories: {
+        LoadDialogExpiringStoriesLogEvent log_event;
+        log_event_parse(log_event, event.get_data()).ensure();
+
+        auto dialog_id = log_event.dialog_id_;
+        if (!td_->messages_manager_->have_dialog_force(dialog_id, "LoadDialogExpiringStoriesLogEvent")) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+        load_dialog_expiring_stories(dialog_id, event.id_);
         break;
       }
       default:

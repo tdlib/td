@@ -109,6 +109,7 @@ class LogEvent {
     SaveAppLog = 0x300,
     DeleteStoryOnServer = 0x400,
     ReadStoriesOnServer = 0x401,
+    LoadDialogExpiringStories = 0x402,
     ConfigPmcMagic = 0x1f18,
     BinlogPmcMagic = 0x4327
   };
