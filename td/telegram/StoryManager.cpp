@@ -973,7 +973,11 @@ void StoryManager::on_get_dialog_expiring_stories(DialogId owner_dialog_id,
   TRY_STATUS_PROMISE(promise, G()->close_status());
   td_->contacts_manager_->on_get_users(std::move(stories->users_), "on_get_dialog_expiring_stories");
   owner_dialog_id = on_get_user_stories(owner_dialog_id, std::move(stories->stories_));
-  promise.set_value(get_active_stories_object(owner_dialog_id));
+  if (promise) {
+    promise.set_value(get_active_stories_object(owner_dialog_id));
+  } else {
+    promise.set_value(nullptr);
+  }
 }
 
 void StoryManager::open_story(DialogId owner_dialog_id, StoryId story_id, Promise<Unit> &&promise) {
@@ -1516,15 +1520,15 @@ StoryId StoryManager::on_get_story(DialogId owner_dialog_id,
       LOG(ERROR) << "Receive " << to_string(story_item_ptr);
       return {};
     case telegram_api::storyItem::ID: {
-      return on_get_story(owner_dialog_id, telegram_api::move_object_as<telegram_api::storyItem>(story_item_ptr));
+      return on_get_new_story(owner_dialog_id, telegram_api::move_object_as<telegram_api::storyItem>(story_item_ptr));
     }
     default:
       UNREACHABLE();
   }
 }
 
-StoryId StoryManager::on_get_story(DialogId owner_dialog_id,
-                                   telegram_api::object_ptr<telegram_api::storyItem> &&story_item) {
+StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
+                                       telegram_api::object_ptr<telegram_api::storyItem> &&story_item) {
   CHECK(story_item != nullptr);
   StoryId story_id(story_item->id_);
   if (!story_id.is_server()) {
@@ -1558,7 +1562,7 @@ StoryId StoryManager::on_get_story(DialogId owner_dialog_id,
   bool is_bot = td_->auth_manager_->is_bot();
   auto caption =
       get_message_text(td_->contacts_manager_.get(), std::move(story_item->caption_), std::move(story_item->entities_),
-                       true, is_bot, story_item->date_, false, "on_get_story");
+                       true, is_bot, story_item->date_, false, "on_get_new_story");
   auto content = get_story_content(td_, std::move(story_item->media_), owner_dialog_id);
   if (content == nullptr) {
     return StoryId();
@@ -1772,7 +1776,7 @@ std::pair<int32, vector<StoryId>> StoryManager::on_get_stories(
         LOG(ERROR) << "Receive " << to_string(story);
         break;
       case telegram_api::storyItem::ID: {
-        auto story_id = on_get_story(owner_dialog_id, telegram_api::move_object_as<telegram_api::storyItem>(story));
+        auto story_id = on_get_new_story(owner_dialog_id, telegram_api::move_object_as<telegram_api::storyItem>(story));
         if (story_id.is_valid()) {
           story_ids.push_back(story_id);
         }
@@ -1842,7 +1846,7 @@ DialogId StoryManager::on_get_user_stories(DialogId owner_dialog_id,
         break;
       case telegram_api::storyItem::ID:
         story_ids.push_back(
-            on_get_story(owner_dialog_id, telegram_api::move_object_as<telegram_api::storyItem>(story)));
+            on_get_new_story(owner_dialog_id, telegram_api::move_object_as<telegram_api::storyItem>(story)));
         break;
       default:
         UNREACHABLE();
