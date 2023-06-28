@@ -1457,15 +1457,13 @@ td_api::object_ptr<td_api::activeStories> StoryManager::get_active_stories_objec
       }
     }
   }
-  bool stories_hidden = false;
-  if (owner_dialog_id.get_type() == DialogType::User) {
-    stories_hidden = td_->contacts_manager_->get_user_stories_hidden(owner_dialog_id.get_user_id());
-  }
   td_api::object_ptr<td_api::StoryList> list;
-  if (stories_hidden) {
-    list = td_api::make_object<td_api::storyListHidden>();
-  } else {
-    list = td_api::make_object<td_api::storyListMain>();
+  if (is_subscribed_to_dialog_stories(owner_dialog_id)) {
+    if (td_->contacts_manager_->get_user_stories_hidden(owner_dialog_id.get_user_id())) {
+      list = td_api::make_object<td_api::storyListHidden>();
+    } else {
+      list = td_api::make_object<td_api::storyListMain>();
+    }
   }
 
   return td_api::make_object<td_api::activeStories>(
@@ -1931,8 +1929,27 @@ bool StoryManager::on_update_read_stories(DialogId owner_dialog_id, StoryId max_
   return false;
 }
 
-void StoryManager::on_dialog_stories_hidden_updated(DialogId owner_dialog_id) {
+bool StoryManager::is_subscribed_to_dialog_stories(DialogId owner_dialog_id) const {
+  switch (owner_dialog_id.get_type()) {
+    case DialogType::User:
+      return td_->contacts_manager_->is_user_contact(owner_dialog_id.get_user_id());
+    case DialogType::Chat:
+    case DialogType::Channel:
+    case DialogType::SecretChat:
+    case DialogType::None:
+    default:
+      return false;
+  }
+}
+
+void StoryManager::on_dialog_user_is_contact_updated(DialogId owner_dialog_id) {
   if (active_stories_.count(owner_dialog_id)) {
+    send_update_active_stories(owner_dialog_id);
+  }
+}
+
+void StoryManager::on_dialog_stories_hidden_updated(DialogId owner_dialog_id) {
+  if (active_stories_.count(owner_dialog_id) && is_subscribed_to_dialog_stories(owner_dialog_id)) {
     send_update_active_stories(owner_dialog_id);
   }
 }
