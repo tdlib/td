@@ -268,6 +268,8 @@ class StoryManager final : public Actor {
                                       telegram_api::object_ptr<telegram_api::stories_userStories> &&stories,
                                       Promise<td_api::object_ptr<td_api::activeStories>> &&promise);
 
+  void load_dialog_expiring_stories(DialogId owner_dialog_id);
+
   vector<FileId> get_story_file_ids(const Story *story) const;
 
   static uint64 save_delete_story_on_server_log_event(StoryFullId story_full_id);

@@ -939,6 +939,7 @@ void StoryManager::on_get_story_archive(telegram_api::object_ptr<telegram_api::s
 
 void StoryManager::get_dialog_expiring_stories(DialogId owner_dialog_id,
                                                Promise<td_api::object_ptr<td_api::activeStories>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
   if (!td_->messages_manager_->have_dialog_force(owner_dialog_id, "get_dialog_expiring_stories")) {
     return promise.set_error(Status::Error(400, "Story sender not found"));
   }
@@ -950,7 +951,10 @@ void StoryManager::get_dialog_expiring_stories(DialogId owner_dialog_id,
   }
 
   auto active_stories = get_active_stories(owner_dialog_id);
-  if (active_stories != nullptr && promise) {
+  if (active_stories != nullptr) {
+    if (!promise) {
+      return promise.set_value(nullptr);
+    }
     promise.set_value(get_active_stories_object(owner_dialog_id));
     promise = {};
   }
@@ -965,6 +969,12 @@ void StoryManager::get_dialog_expiring_stories(DialogId owner_dialog_id,
                      std::move(promise));
       });
   td_->create_handler<GetUserStoriesQuery>(std::move(query_promise))->send(owner_dialog_id.get_user_id());
+}
+
+void StoryManager::load_dialog_expiring_stories(DialogId owner_dialog_id) {
+  // send later to ensure that active stories are inited before sending the request
+  send_closure_later(actor_id(this), &StoryManager::get_dialog_expiring_stories, owner_dialog_id,
+                     Promise<td_api::object_ptr<td_api::activeStories>>());
 }
 
 void StoryManager::on_get_dialog_expiring_stories(DialogId owner_dialog_id,
@@ -1626,7 +1636,11 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
 
   if (is_active_story(story)) {
     auto active_stories = get_active_stories(owner_dialog_id);
-    if (active_stories != nullptr && !contains(active_stories->story_ids_, story_id)) {
+    if (active_stories == nullptr) {
+      if (is_subscribed_to_dialog_stories(owner_dialog_id)) {
+        load_dialog_expiring_stories(owner_dialog_id);
+      }
+    } else if (!contains(active_stories->story_ids_, story_id)) {
       auto story_ids = active_stories->story_ids_;
       story_ids.push_back(story_id);
       size_t i = story_ids.size() - 1;
