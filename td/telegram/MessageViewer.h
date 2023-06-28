@@ -48,9 +48,12 @@ bool operator!=(const MessageViewer &lhs, const MessageViewer &rhs);
 
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageViewer &viewer);
 
-struct MessageViewers {
+class MessageViewers {
   vector<MessageViewer> message_viewers_;
 
+  friend StringBuilder &operator<<(StringBuilder &string_builder, const MessageViewers &viewers);
+
+ public:
   MessageViewers() = default;
 
   explicit MessageViewers(vector<telegram_api::object_ptr<telegram_api::storyView>> &&story_views);

@@ -18200,8 +18200,7 @@ void MessagesManager::on_get_message_viewers(DialogId dialog_id, MessageViewers 
                                              Promise<td_api::object_ptr<td_api::messageViewers>> &&promise) {
   if (!is_recursive) {
     bool need_participant_list = false;
-    for (auto message_viewer : message_viewers.message_viewers_) {
-      auto user_id = message_viewer.get_user_id();
+    for (auto user_id : message_viewers.get_user_ids()) {
       if (!user_id.is_valid()) {
         LOG(ERROR) << "Receive invalid " << user_id << " as viewer of a message in " << dialog_id;
         continue;
