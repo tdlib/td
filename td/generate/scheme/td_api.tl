@@ -4918,6 +4918,15 @@ inputStoryContentPhoto photo:InputFile added_sticker_file_ids:vector<int32> = In
 inputStoryContentVideo video:InputFile added_sticker_file_ids:vector<int32> duration:double is_animation:Bool = InputStoryContent;
 
 
+//@class StoryList @description Describes a list of stories
+
+//@description The main list of stories, shown above the chat list
+storyListMain = StoryList;
+
+//@description The list of hidden stories, shown only in the Contacts section
+storyListHidden = StoryList;
+
+
 //@description Contains information about interactions with a story
 //@view_count Number of times the story was viewed
 //@recent_viewer_user_ids Identifiers of at most 3 recent viewers of the story
@@ -4945,10 +4954,11 @@ stories total_count:int32 stories:vector<story> = Stories;
 storyInfo story_id:int32 date:int32 = StoryInfo;
 
 //@description Describes active stories sent by the same sender
+//@list Identifier of the story list in which the stories are shown
 //@story_sender_chat_id Identifier of the sender of the stories
 //@max_read_story_id Identifier of the last read active story
 //@stories Basic information about the stories; use getStory to get full information about the stories
-activeStories story_sender_chat_id:int53 max_read_story_id:int32 stories:vector<storyInfo> = ActiveStories;
+activeStories list:StoryList story_sender_chat_id:int53 max_read_story_id:int32 stories:vector<storyInfo> = ActiveStories;
 
 
 //@description Contains a part of a file @data File bytes
@@ -7268,7 +7278,7 @@ toggleStoryIsPinned story_id:int32 is_pinned:Bool = Ok;
 //@description Deletes a previously sent story @story_id Identifier of the story to delete
 deleteStory story_id:int32 = Ok;
 
-//@description Toggles whether stories posted by the chat are available on the main chat list @chat_id Identifier of the chat @are_hidden Pass true to make the story unavailable from the main chat list; pass false to make them available
+//@description Toggles whether stories posted by the chat are available above chat lists @chat_id Identifier of the chat that posted stories @are_hidden Pass true to make the stories unavailable above the chat lists; pass false to make them available
 toggleChatStoriesAreHidden chat_id:int53 are_hidden:Bool = Ok;
 
 //@description Returns the list of active stories posted by the given chat. The stories are returned in a chronological order (i.e., in order of increasing story_id) @chat_id Chat identifier

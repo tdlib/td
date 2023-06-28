@@ -151,6 +151,8 @@ class StoryManager final : public Actor {
 
   bool on_update_read_stories(DialogId owner_dialog_id, StoryId max_read_story_id);
 
+  void on_dialog_stories_hidden_updated(DialogId owner_dialog_id);
+
   Status can_get_story_viewers(StoryFullId story_full_id, const Story *story) const;
 
   void on_get_story_views(const vector<StoryId> &story_ids,

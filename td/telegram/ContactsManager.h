@@ -127,6 +127,8 @@ class ContactsManager final : public Actor {
   bool get_chat_has_protected_content(ChatId chat_id) const;
   bool get_channel_has_protected_content(ChannelId channel_id) const;
 
+  bool get_user_stories_hidden(UserId user_id) const;
+
   string get_user_private_forward_name(UserId user_id);
   bool get_user_voice_messages_forbidden(UserId user_id) const;
 
@@ -797,6 +799,7 @@ class ContactsManager final : public Actor {
     bool is_phone_number_changed = true;
     bool is_is_contact_changed = true;
     bool is_is_deleted_changed = true;
+    bool is_stories_hidden_changed = true;
     bool is_full_info_changed = false;
     bool is_changed = true;             // have new changes that need to be sent to the client and database
     bool need_save_to_database = true;  // have new changes that need only to be saved to the database

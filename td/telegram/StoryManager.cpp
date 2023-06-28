@@ -946,7 +946,7 @@ void StoryManager::get_dialog_expiring_stories(DialogId owner_dialog_id,
     return promise.set_error(Status::Error(400, "Can't access the story sender"));
   }
   if (owner_dialog_id.get_type() != DialogType::User) {
-    return promise.set_value(td_api::make_object<td_api::activeStories>(owner_dialog_id.get(), 0, Auto()));
+    return promise.set_value(get_active_stories_object(owner_dialog_id));
   }
 
   auto active_stories = get_active_stories(owner_dialog_id);
@@ -1453,9 +1453,20 @@ td_api::object_ptr<td_api::activeStories> StoryManager::get_active_stories_objec
       }
     }
   }
+  bool stories_hidden = false;
+  if (owner_dialog_id.get_type() == DialogType::User) {
+    stories_hidden = td_->contacts_manager_->get_user_stories_hidden(owner_dialog_id.get_user_id());
+  }
+  td_api::object_ptr<td_api::StoryList> list;
+  if (stories_hidden) {
+    list = td_api::make_object<td_api::storyListHidden>();
+  } else {
+    list = td_api::make_object<td_api::storyListMain>();
+  }
+
   return td_api::make_object<td_api::activeStories>(
-      td_->messages_manager_->get_chat_id_object(owner_dialog_id, "get_active_stories_object"), max_read_story_id.get(),
-      std::move(stories));
+      std::move(list), td_->messages_manager_->get_chat_id_object(owner_dialog_id, "get_active_stories_object"),
+      max_read_story_id.get(), std::move(stories));
 }
 
 vector<FileId> StoryManager::get_story_file_ids(const Story *story) const {
@@ -1914,6 +1925,12 @@ bool StoryManager::on_update_read_stories(DialogId owner_dialog_id, StoryId max_
     return true;
   }
   return false;
+}
+
+void StoryManager::on_dialog_stories_hidden_updated(DialogId owner_dialog_id) {
+  if (active_stories_.count(owner_dialog_id)) {
+    send_update_active_stories(owner_dialog_id);
+  }
 }
 
 void StoryManager::on_get_story_views(const vector<StoryId> &story_ids,

@@ -5908,6 +5908,14 @@ bool ContactsManager::get_channel_has_protected_content(ChannelId channel_id) co
   return c->noforwards;
 }
 
+bool ContactsManager::get_user_stories_hidden(UserId user_id) const {
+  auto u = get_user(user_id);
+  if (u == nullptr) {
+    return false;
+  }
+  return u->stories_hidden;
+}
+
 string ContactsManager::get_user_private_forward_name(UserId user_id) {
   auto user_full = get_user_full_force(user_id);
   if (user_full != nullptr) {
@@ -10541,7 +10549,8 @@ void ContactsManager::on_save_user_to_database(UserId user_id, bool success) {
                                << u->is_deleted << ' ' << u->is_bot << ' ' << u->need_save_to_database << ' '
                                << u->is_changed << ' ' << u->is_status_changed << ' ' << u->is_name_changed << ' '
                                << u->is_username_changed << ' ' << u->is_photo_changed << ' '
-                               << u->is_is_contact_changed << ' ' << u->is_is_deleted_changed << ' ' << u->log_event_id;
+                               << u->is_is_contact_changed << ' ' << u->is_is_deleted_changed << ' '
+                               << u->is_stories_hidden_changed << ' ' << u->log_event_id;
   CHECK(load_user_from_database_queries_.count(user_id) == 0);
   u->is_being_saved = false;
 
@@ -11931,6 +11940,10 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
       LOG(DEBUG) << "Cancel online timeout for " << user_id;
       user_online_timeout_.cancel_timeout(user_id.get());
     }
+  }
+  if (u->is_stories_hidden_changed) {
+    td_->story_manager_->on_dialog_stories_hidden_updated(DialogId(user_id));
+    u->is_stories_hidden_changed = false;
   }
   if (!td_->auth_manager_->is_bot()) {
     if (u->restriction_reasons.empty()) {
@@ -13459,6 +13472,7 @@ void ContactsManager::on_update_user_stories_hidden(User *u, UserId user_id, boo
   if (u->stories_hidden != stories_hidden) {
     LOG(DEBUG) << "Change stories are archived of " << user_id << " to " << stories_hidden;
     u->stories_hidden = stories_hidden;
+    u->is_stories_hidden_changed = true;
     u->need_save_to_database = true;
   }
 }
