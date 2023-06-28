@@ -1934,10 +1934,10 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
       auto inline_message = move_tl_object_as<telegram_api::botInlineMessageMediaGeo>(bot_inline_message);
       if (inline_message->period_ > 0) {
         result.message_content =
-            make_unique<MessageLiveLocation>(Location(inline_message->geo_), inline_message->period_,
+            make_unique<MessageLiveLocation>(Location(td, inline_message->geo_), inline_message->period_,
                                              inline_message->heading_, inline_message->proximity_notification_radius_);
       } else {
-        result.message_content = make_unique<MessageLocation>(Location(inline_message->geo_));
+        result.message_content = make_unique<MessageLocation>(Location(td, inline_message->geo_));
       }
       reply_markup = std::move(inline_message->reply_markup_);
       break;
@@ -1945,7 +1945,7 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
     case telegram_api::botInlineMessageMediaVenue::ID: {
       auto inline_message = move_tl_object_as<telegram_api::botInlineMessageMediaVenue>(bot_inline_message);
       result.message_content = make_unique<MessageVenue>(
-          Venue(inline_message->geo_, std::move(inline_message->title_), std::move(inline_message->address_),
+          Venue(td, inline_message->geo_, std::move(inline_message->title_), std::move(inline_message->address_),
                 std::move(inline_message->provider_), std::move(inline_message->venue_id_),
                 std::move(inline_message->venue_type_)));
       reply_markup = std::move(inline_message->reply_markup_);
@@ -4749,9 +4749,9 @@ unique_ptr<MessageContent> get_secret_message_content(
         media->venue_id_.clear();
       }
 
-      auto m = make_unique<MessageVenue>(Venue(Location(media->lat_, media->long_, 0.0, 0), std::move(media->title_),
-                                               std::move(media->address_), std::move(media->provider_),
-                                               std::move(media->venue_id_), string()));
+      auto m = make_unique<MessageVenue>(Venue(Location(td, media->lat_, media->long_, 0.0, 0),
+                                               std::move(media->title_), std::move(media->address_),
+                                               std::move(media->provider_), std::move(media->venue_id_), string()));
       if (m->venue.empty()) {
         is_media_empty = true;
         break;
@@ -4907,7 +4907,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
     case telegram_api::messageMediaGeo::ID: {
       auto media = move_tl_object_as<telegram_api::messageMediaGeo>(media_ptr);
 
-      auto m = make_unique<MessageLocation>(Location(media->geo_));
+      auto m = make_unique<MessageLocation>(Location(td, media->geo_));
       if (m->location.empty()) {
         break;
       }
@@ -4916,7 +4916,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
     }
     case telegram_api::messageMediaGeoLive::ID: {
       auto media = move_tl_object_as<telegram_api::messageMediaGeoLive>(media_ptr);
-      auto location = Location(media->geo_);
+      auto location = Location(td, media->geo_);
       if (location.empty()) {
         break;
       }
@@ -4931,7 +4931,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
     }
     case telegram_api::messageMediaVenue::ID: {
       auto media = move_tl_object_as<telegram_api::messageMediaVenue>(media_ptr);
-      auto m = make_unique<MessageVenue>(Venue(media->geo_, std::move(media->title_), std::move(media->address_),
+      auto m = make_unique<MessageVenue>(Venue(td, media->geo_, std::move(media->title_), std::move(media->address_),
                                                std::move(media->provider_), std::move(media->venue_id_),
                                                std::move(media->venue_type_)));
       if (m->venue.empty()) {

@@ -19,6 +19,8 @@
 
 namespace td {
 
+class Td;
+
 class Location {
   bool is_empty_ = true;
   double latitude_ = 0.0;
@@ -31,18 +33,18 @@ class Location {
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const Location &location);
 
-  void init(double latitude, double longitude, double horizontal_accuracy, int64 access_hash);
+  void init(Td *td, double latitude, double longitude, double horizontal_accuracy, int64 access_hash);
 
   static double fix_accuracy(double accuracy);
 
  public:
   Location() = default;
 
-  Location(double latitude, double longitude, double horizontal_accuracy, int64 access_hash);
+  Location(Td *td, double latitude, double longitude, double horizontal_accuracy, int64 access_hash);
 
   explicit Location(const tl_object_ptr<secret_api::decryptedMessageMediaGeoPoint> &geo_point);
 
-  explicit Location(const tl_object_ptr<telegram_api::GeoPoint> &geo_point_ptr);
+  Location(Td *td, const tl_object_ptr<telegram_api::GeoPoint> &geo_point_ptr);
 
   explicit Location(const tl_object_ptr<td_api::location> &location);
 

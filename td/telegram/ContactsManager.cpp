@@ -13117,7 +13117,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     }
     on_update_channel_full_linked_channel_id(channel_full, channel_id, linked_channel_id);
 
-    on_update_channel_full_location(channel_full, channel_id, DialogLocation(std::move(channel->location_)));
+    on_update_channel_full_location(channel_full, channel_id, DialogLocation(td_, std::move(channel->location_)));
 
     if (c->is_megagroup) {
       on_update_channel_full_slow_mode_delay(channel_full, channel_id, channel->slowmode_seconds_,

@@ -1778,11 +1778,11 @@ void InlineQueriesManager::on_get_inline_query_results(DialogId dialog_id, UserI
           if (result->send_message_->get_id() == telegram_api::botInlineMessageMediaGeo::ID) {
             auto inline_message_geo =
                 static_cast<const telegram_api::botInlineMessageMediaGeo *>(result->send_message_.get());
-            Location l(inline_message_geo->geo_);
+            Location l(td_, inline_message_geo->geo_);
             location->location_ = l.get_location_object();
           } else {
             auto latitude_longitude = split(Slice(result->description_));
-            Location l(to_double(latitude_longitude.first), to_double(latitude_longitude.second), 0.0, 0);
+            Location l(td_, to_double(latitude_longitude.first), to_double(latitude_longitude.second), 0.0, 0);
             location->location_ = l.get_location_object();
           }
           location->thumbnail_ = register_thumbnail(std::move(result->thumb_));
@@ -1798,18 +1798,19 @@ void InlineQueriesManager::on_get_inline_query_results(DialogId dialog_id, UserI
           if (result->send_message_->get_id() == telegram_api::botInlineMessageMediaVenue::ID) {
             auto inline_message_venue =
                 static_cast<const telegram_api::botInlineMessageMediaVenue *>(result->send_message_.get());
-            Venue v(inline_message_venue->geo_, inline_message_venue->title_, inline_message_venue->address_,
+            Venue v(td_, inline_message_venue->geo_, inline_message_venue->title_, inline_message_venue->address_,
                     inline_message_venue->provider_, inline_message_venue->venue_id_,
                     inline_message_venue->venue_type_);
             venue->venue_ = v.get_venue_object();
           } else if (result->send_message_->get_id() == telegram_api::botInlineMessageMediaGeo::ID) {
             auto inline_message_geo =
                 static_cast<const telegram_api::botInlineMessageMediaGeo *>(result->send_message_.get());
-            Venue v(inline_message_geo->geo_, std::move(result->title_), std::move(result->description_), string(),
+            Venue v(td_, inline_message_geo->geo_, std::move(result->title_), std::move(result->description_), string(),
                     string(), string());
             venue->venue_ = v.get_venue_object();
           } else {
-            Venue v(nullptr, std::move(result->title_), std::move(result->description_), string(), string(), string());
+            Venue v(td_, nullptr, std::move(result->title_), std::move(result->description_), string(), string(),
+                    string());
             venue->venue_ = v.get_venue_object();
           }
           venue->thumbnail_ = register_thumbnail(std::move(result->thumb_));

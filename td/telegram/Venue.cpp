@@ -11,9 +11,9 @@
 
 namespace td {
 
-Venue::Venue(const tl_object_ptr<telegram_api::GeoPoint> &geo_point_ptr, string title, string address, string provider,
-             string id, string type)
-    : location_(geo_point_ptr)
+Venue::Venue(Td *td, const tl_object_ptr<telegram_api::GeoPoint> &geo_point_ptr, string title, string address,
+             string provider, string id, string type)
+    : location_(td, geo_point_ptr)
     , title_(std::move(title))
     , address_(std::move(address))
     , provider_(std::move(provider))

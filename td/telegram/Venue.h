@@ -19,6 +19,8 @@
 
 namespace td {
 
+class Td;
+
 class Venue {
   Location location_;
   string title_;
@@ -34,8 +36,8 @@ class Venue {
  public:
   Venue() = default;
 
-  Venue(const tl_object_ptr<telegram_api::GeoPoint> &geo_point_ptr, string title, string address, string provider,
-        string id, string type);
+  Venue(Td *td, const tl_object_ptr<telegram_api::GeoPoint> &geo_point_ptr, string title, string address,
+        string provider, string id, string type);
 
   Venue(Location location, string title, string address, string provider, string id, string type);
 

@@ -3881,13 +3881,13 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDcOptions> upda
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotInlineQuery> update, Promise<Unit> &&promise) {
-  td_->inline_queries_manager_->on_new_query(update->query_id_, UserId(update->user_id_), Location(update->geo_),
+  td_->inline_queries_manager_->on_new_query(update->query_id_, UserId(update->user_id_), Location(td_, update->geo_),
                                              std::move(update->peer_type_), update->query_, update->offset_);
   promise.set_value(Unit());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotInlineSend> update, Promise<Unit> &&promise) {
-  td_->inline_queries_manager_->on_chosen_result(UserId(update->user_id_), Location(update->geo_), update->query_,
+  td_->inline_queries_manager_->on_chosen_result(UserId(update->user_id_), Location(td_, update->geo_), update->query_,
                                                  update->id_, std::move(update->msg_id_));
   promise.set_value(Unit());
 }

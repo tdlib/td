@@ -249,8 +249,8 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
     }
     case telegram_api::channelAdminLogEventActionChangeLocation::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeLocation>(action_ptr);
-      auto old_location = DialogLocation(std::move(action->prev_value_));
-      auto new_location = DialogLocation(std::move(action->new_value_));
+      auto old_location = DialogLocation(td, std::move(action->prev_value_));
+      auto new_location = DialogLocation(td, std::move(action->new_value_));
       return td_api::make_object<td_api::chatEventLocationChanged>(old_location.get_chat_location_object(),
                                                                    new_location.get_chat_location_object());
     }
