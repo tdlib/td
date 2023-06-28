@@ -45,11 +45,15 @@ MessageViewers::MessageViewers(vector<telegram_api::object_ptr<telegram_api::sto
   }
 }
 
-MessageViewers::MessageViewers(vector<telegram_api::object_ptr<telegram_api::readParticipantDate>> &&read_dates)
-    : message_viewers_(
-          transform(std::move(read_dates), [](telegram_api::object_ptr<telegram_api::readParticipantDate> &&read_date) {
-            return MessageViewer(std::move(read_date));
-          })) {
+MessageViewers::MessageViewers(vector<telegram_api::object_ptr<telegram_api::readParticipantDate>> &&read_dates) {
+  for (auto &read_date : read_dates) {
+    message_viewers_.emplace_back(std::move(read_date));
+    auto user_id = message_viewers_.back().get_user_id();
+    if (!user_id.is_valid()) {
+      LOG(ERROR) << "Receive invalid " << user_id << " as a viewer of a message";
+      message_viewers_.pop_back();
+    }
+  }
 }
 
 MessageViewers MessageViewers::get_sublist(const MessageViewer &offset, int32 limit) const {

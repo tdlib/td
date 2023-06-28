@@ -18201,10 +18201,6 @@ void MessagesManager::on_get_message_viewers(DialogId dialog_id, MessageViewers 
   if (!is_recursive) {
     bool need_participant_list = false;
     for (auto user_id : message_viewers.get_user_ids()) {
-      if (!user_id.is_valid()) {
-        LOG(ERROR) << "Receive invalid " << user_id << " as viewer of a message in " << dialog_id;
-        continue;
-      }
       if (!td_->contacts_manager_->have_user_force(user_id)) {
         need_participant_list = true;
       }
