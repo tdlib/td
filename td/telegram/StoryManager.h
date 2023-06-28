@@ -226,6 +226,8 @@ class StoryManager final : public Actor {
 
   static bool is_active_story(const Story *story);
 
+  DialogId get_changelog_story_dialog_id() const;
+
   bool is_subscribed_to_dialog_stories(DialogId owner_dialog_id) const;
 
   const Story *get_story(StoryFullId story_full_id) const;

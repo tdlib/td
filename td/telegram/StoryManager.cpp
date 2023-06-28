@@ -1476,14 +1476,13 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
   }
 
   auto story_id = story_full_id.get_story_id();
-  auto changelog_user_id = td_->option_manager_->get_option_integer(
-      "stories_changelog_user_id", ContactsManager::get_service_notifications_user_id().get());
-  bool is_visible_only_for_self = !story_id.is_server() || dialog_id == DialogId(changelog_user_id) ||
-                                  (!story->is_pinned_ && !is_active_story(story));
+  auto changelog_dialog_id = get_changelog_story_dialog_id();
+  bool is_visible_only_for_self =
+      !story_id.is_server() || dialog_id == changelog_dialog_id || (!story->is_pinned_ && !is_active_story(story));
   bool can_be_forwarded = !story->noforwards_ && story_id.is_server() && privacy_rules != nullptr &&
                           privacy_rules->rules_.size() == 1u &&
                           privacy_rules->rules_[0]->get_id() == td_api::userPrivacySettingRuleAllowAll::ID;
-  bool can_be_replied = story_id.is_server() && dialog_id != DialogId(changelog_user_id);
+  bool can_be_replied = story_id.is_server() && dialog_id != changelog_dialog_id;
 
   story->is_update_sent_ = true;
 
@@ -1995,7 +1994,15 @@ bool StoryManager::on_update_read_stories(DialogId owner_dialog_id, StoryId max_
   return false;
 }
 
+DialogId StoryManager::get_changelog_story_dialog_id() const {
+  return DialogId(UserId(td_->option_manager_->get_option_integer(
+      "stories_changelog_user_id", ContactsManager::get_service_notifications_user_id().get())));
+}
+
 bool StoryManager::is_subscribed_to_dialog_stories(DialogId owner_dialog_id) const {
+  if (owner_dialog_id == get_changelog_story_dialog_id()) {
+    return true;
+  }
   switch (owner_dialog_id.get_type()) {
     case DialogType::User:
       return td_->contacts_manager_->is_user_contact(owner_dialog_id.get_user_id());
