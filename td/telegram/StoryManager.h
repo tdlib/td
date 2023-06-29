@@ -84,11 +84,21 @@ class StoryManager final : public Actor {
   struct ActiveStories {
     StoryId max_read_story_id_;
     vector<StoryId> story_ids_;
+    int64 private_order_ = 0;
+    int64 public_order_ = 0;
   };
 
   struct CachedStoryViewers {
     int32 total_count_ = -1;
     MessageViewers viewers_;
+  };
+
+  struct StoryList {
+    bool has_more_ = true;
+    int32 server_total_count_ = -1;
+    string state_;
+
+    vector<Promise<Unit>> load_list_queries_;
   };
 
  public:
@@ -117,6 +127,8 @@ class StoryManager final : public Actor {
   void toggle_story_is_pinned(StoryId story_id, bool is_pinned, Promise<Unit> &&promise);
 
   void delete_story(StoryId story_id, Promise<Unit> &&promise);
+
+  void load_active_stories(const td_api::object_ptr<td_api::StoryList> &story_list_ptr, Promise<Unit> &&promise);
 
   void toggle_dialog_stories_hidden(DialogId dialog_id, bool are_hidden, Promise<Unit> &&promise);
 
@@ -277,6 +289,9 @@ class StoryManager final : public Actor {
 
   void on_load_dialog_expiring_stories(DialogId owner_dialog_id);
 
+  void on_load_active_stories(bool is_hidden,
+                              Result<telegram_api::object_ptr<telegram_api::stories_AllStories>> r_all_stories);
+
   vector<FileId> get_story_file_ids(const Story *story) const;
 
   static uint64 save_delete_story_on_server_log_event(StoryFullId story_full_id);
@@ -360,6 +375,8 @@ class StoryManager final : public Actor {
   FlatHashMap<StoryFullId, unique_ptr<CachedStoryViewers>, StoryFullIdHash> cached_story_viewers_;
 
   FlatHashMap<StoryFullId, vector<Promise<Unit>>, StoryFullIdHash> reload_story_queries_;
+
+  StoryList story_lists_[2];
 
   uint32 send_story_count_ = 0;
 

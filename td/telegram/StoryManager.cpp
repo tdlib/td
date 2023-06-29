@@ -36,6 +36,45 @@
 
 namespace td {
 
+class GetAllStoriesQuery final : public Td::ResultHandler {
+  Promise<telegram_api::object_ptr<telegram_api::stories_AllStories>> promise_;
+
+ public:
+  explicit GetAllStoriesQuery(Promise<telegram_api::object_ptr<telegram_api::stories_AllStories>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(bool is_next, bool is_hidden, const string &state) {
+    int32 flags = 0;
+    if (!state.empty()) {
+      flags |= telegram_api::stories_getAllStories::STATE_MASK;
+    }
+    if (is_next) {
+      flags |= telegram_api::stories_getAllStories::NEXT_MASK;
+    }
+    if (is_hidden) {
+      flags |= telegram_api::stories_getAllStories::HIDDEN_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::stories_getAllStories(flags, false /*ignored*/, false /*ignored*/, state)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stories_getAllStories>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for GetAllStoriesQuery: " << to_string(result);
+    promise_.set_value(std::move(result));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class ToggleStoriesHiddenQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   UserId user_id_;
@@ -808,6 +847,73 @@ const StoryManager::ActiveStories *StoryManager::get_active_stories(DialogId own
   return active_stories_.get_pointer(owner_dialog_id);
 }
 
+void StoryManager::load_active_stories(const td_api::object_ptr<td_api::StoryList> &story_list_ptr,
+                                       Promise<Unit> &&promise) {
+  if (story_list_ptr == nullptr) {
+    return promise.set_error(Status::Error(400, "Story list must not be empty"));
+  }
+  bool is_hidden = story_list_ptr->get_id() == td_api::storyListHidden::ID;
+  auto &story_list = story_lists_[is_hidden];
+  if (!story_list.has_more_) {
+    return promise.set_error(Status::Error(404, "Not found"));
+  }
+  story_list.load_list_queries_.push_back(std::move(promise));
+  if (story_list.load_list_queries_.size() == 1u) {
+    bool is_next = !story_list.state_.empty();
+    auto query_promise =
+        PromiseCreator::lambda([actor_id = actor_id(this), is_hidden](
+                                   Result<telegram_api::object_ptr<telegram_api::stories_AllStories>> r_all_stories) {
+          send_closure(actor_id, &StoryManager::on_load_active_stories, is_hidden, std::move(r_all_stories));
+        });
+    td_->create_handler<GetAllStoriesQuery>(std::move(query_promise))->send(is_next, is_hidden, story_list.state_);
+  }
+}
+
+void StoryManager::on_load_active_stories(
+    bool is_hidden, Result<telegram_api::object_ptr<telegram_api::stories_AllStories>> r_all_stories) {
+  G()->ignore_result_if_closing(r_all_stories);
+  auto &story_list = story_lists_[is_hidden];
+  auto promises = std::move(story_list.load_list_queries_);
+  CHECK(!promises.empty());
+  if (r_all_stories.is_error()) {
+    return fail_promises(promises, r_all_stories.move_as_error());
+  }
+  auto all_stories = r_all_stories.move_as_ok();
+  switch (all_stories->get_id()) {
+    case telegram_api::stories_allStoriesNotModified::ID: {
+      auto stories = telegram_api::move_object_as<telegram_api::stories_allStoriesNotModified>(all_stories);
+      if (stories->state_.empty()) {
+        LOG(ERROR) << "Receive empty state in " << to_string(stories);
+      } else {
+        story_list.state_ = std::move(stories->state_);
+      }
+      break;
+    }
+    case telegram_api::stories_allStories::ID: {
+      auto stories = telegram_api::move_object_as<telegram_api::stories_allStories>(all_stories);
+      td_->contacts_manager_->on_get_users(std::move(stories->users_), "on_load_active_stories");
+      if (stories->state_.empty()) {
+        LOG(ERROR) << "Receive empty state in " << to_string(stories);
+      } else {
+        story_list.state_ = std::move(stories->state_);
+      }
+      story_list.has_more_ = stories->has_more_;
+      story_list.server_total_count_ = stories->count_;
+
+      // auto min_story_date = MIN_DIALOG_DATE;
+      for (auto &user_stories : stories->user_stories_) {
+        auto owner_dialog_id = on_get_user_stories(DialogId(), std::move(user_stories));
+        // DialogDate story_date(0, owner_dialog_id);
+      }
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
+
+  set_promises(promises);
+}
+
 void StoryManager::try_synchronize_archive_all_stories() {
   if (G()->close_flag()) {
     return;
@@ -1506,18 +1612,6 @@ td_api::object_ptr<td_api::stories> StoryManager::get_stories_object(int32 total
 }
 
 td_api::object_ptr<td_api::activeStories> StoryManager::get_active_stories_object(DialogId owner_dialog_id) const {
-  const auto *active_stories = get_active_stories(owner_dialog_id);
-  StoryId max_read_story_id;
-  vector<td_api::object_ptr<td_api::storyInfo>> stories;
-  if (active_stories != nullptr) {
-    max_read_story_id = active_stories->max_read_story_id_;
-    for (auto story_id : active_stories->story_ids_) {
-      auto story_info = get_story_info_object({owner_dialog_id, story_id});
-      if (story_info != nullptr) {
-        stories.push_back(std::move(story_info));
-      }
-    }
-  }
   td_api::object_ptr<td_api::StoryList> list;
   if (is_subscribed_to_dialog_stories(owner_dialog_id)) {
     if (td_->contacts_manager_->get_user_stories_hidden(owner_dialog_id.get_user_id())) {
@@ -1527,8 +1621,24 @@ td_api::object_ptr<td_api::activeStories> StoryManager::get_active_stories_objec
     }
   }
 
+  const auto *active_stories = get_active_stories(owner_dialog_id);
+  StoryId max_read_story_id;
+  vector<td_api::object_ptr<td_api::storyInfo>> stories;
+  int64 order = 0;
+  if (active_stories != nullptr) {
+    max_read_story_id = active_stories->max_read_story_id_;
+    for (auto story_id : active_stories->story_ids_) {
+      auto story_info = get_story_info_object({owner_dialog_id, story_id});
+      if (story_info != nullptr) {
+        stories.push_back(std::move(story_info));
+      }
+    }
+    if (list != nullptr) {
+      order = active_stories->public_order_;
+    }
+  }
   return td_api::make_object<td_api::activeStories>(
-      std::move(list), td_->messages_manager_->get_chat_id_object(owner_dialog_id, "get_active_stories_object"),
+      std::move(list), order, td_->messages_manager_->get_chat_id_object(owner_dialog_id, "get_active_stories_object"),
       max_read_story_id.get(), std::move(stories));
 }
 

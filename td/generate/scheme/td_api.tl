@@ -4955,10 +4955,11 @@ storyInfo story_id:int32 date:int32 = StoryInfo;
 
 //@description Describes active stories sent by the same sender
 //@list Identifier of the story list in which the stories are shown; may be null if the stories aren't from a current user's contact
+//@order A parameter used to determine order of the stories in the story list. Stories must be sorted by the pair (order, story_sender_chat_id) in descending order
 //@story_sender_chat_id Identifier of the sender of the stories
 //@max_read_story_id Identifier of the last read active story
 //@stories Basic information about the stories; use getStory to get full information about the stories
-activeStories list:StoryList story_sender_chat_id:int53 max_read_story_id:int32 stories:vector<storyInfo> = ActiveStories;
+activeStories list:StoryList order:int53 story_sender_chat_id:int53 max_read_story_id:int32 stories:vector<storyInfo> = ActiveStories;
 
 
 //@description Contains a part of a file @data File bytes
@@ -7277,6 +7278,11 @@ toggleStoryIsPinned story_id:int32 is_pinned:Bool = Ok;
 
 //@description Deletes a previously sent story @story_id Identifier of the story to delete
 deleteStory story_id:int32 = Ok;
+
+//@description Loads more active stories from a story list. The loaded stories will be sent through updates. Active stories are sorted by
+//-the pair (active_stories.order, active_stories.story_sender_chat_id) in descending order. Returns a 404 error if all active stories have been loaded
+//@story_list The story list in which to load active stories
+loadActiveStories story_list:StoryList = Ok;
 
 //@description Toggles whether stories posted by the chat are available above chat lists @chat_id Identifier of the chat that posted stories @are_hidden Pass true to make the stories unavailable above the chat lists; pass false to make them available
 toggleChatStoriesAreHidden chat_id:int53 are_hidden:Bool = Ok;
