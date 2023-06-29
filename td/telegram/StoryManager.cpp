@@ -2135,6 +2135,9 @@ bool StoryManager::is_subscribed_to_dialog_stories(DialogId owner_dialog_id) con
   }
   switch (owner_dialog_id.get_type()) {
     case DialogType::User:
+      if (owner_dialog_id == DialogId(td_->contacts_manager_->get_my_id())) {
+        return true;
+      }
       return td_->contacts_manager_->is_user_contact(owner_dialog_id.get_user_id());
     case DialogType::Chat:
     case DialogType::Channel:
