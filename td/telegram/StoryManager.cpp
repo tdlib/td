@@ -1707,10 +1707,13 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
     LOG(ERROR) << "Receive " << to_string(story_item);
     return StoryId();
   }
+  CHECK(owner_dialog_id.is_valid());
   StoryFullId story_full_id{owner_dialog_id, story_id};
   if (deleted_story_full_ids_.count(story_full_id) > 0) {
     return StoryId();
   }
+
+  td_->messages_manager_->force_create_dialog(owner_dialog_id, "on_get_new_story");
 
   Story *story = get_story_editable(story_full_id);
   bool is_changed = false;
@@ -1726,6 +1729,7 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
     inaccessible_story_full_ids_.erase(story_full_id);
     send_closure_later(G()->messages_manager(),
                        &MessagesManager::update_story_max_reply_media_timestamp_in_replied_messages, story_full_id);
+    LOG(INFO) << "Add new " << story_full_id;
   }
   CHECK(story != nullptr);
 
@@ -1799,6 +1803,8 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
   }
 
   on_story_changed(story_full_id, story, is_changed, need_save_to_database);
+
+  LOG(INFO) << "Receive " << story_full_id;
 
   if (is_active_story(story)) {
     auto active_stories = get_active_stories(owner_dialog_id);
@@ -1995,7 +2001,9 @@ std::pair<int32, vector<StoryId>> StoryManager::on_get_stories(
 DialogId StoryManager::on_get_user_stories(DialogId owner_dialog_id,
                                            telegram_api::object_ptr<telegram_api::userStories> &&user_stories) {
   if (user_stories == nullptr) {
-    on_update_active_stories(owner_dialog_id, StoryId(), {});
+    if (owner_dialog_id.is_valid()) {
+      on_update_active_stories(owner_dialog_id, StoryId(), {});
+    }
     return owner_dialog_id;
   }
 
@@ -2005,6 +2013,11 @@ DialogId StoryManager::on_get_user_stories(DialogId owner_dialog_id,
     on_update_active_stories(owner_dialog_id, StoryId(), {});
     return owner_dialog_id;
   }
+  if (!story_dialog_id.is_valid()) {
+    LOG(ERROR) << "Receive stories in " << story_dialog_id;
+    return owner_dialog_id;
+  }
+  owner_dialog_id = story_dialog_id;
 
   StoryId max_read_story_id(user_stories->max_read_id_);
   if (!max_read_story_id.is_server() && max_read_story_id != StoryId()) {
@@ -2051,6 +2064,8 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
     max_read_story_id = StoryId();
   }
 
+  LOG(INFO) << "Update active stories in " << owner_dialog_id << " to " << story_ids << " with max read "
+            << max_read_story_id;
   if (owner_dialog_id.get_type() == DialogType::User) {
     td_->contacts_manager_->on_update_user_has_stories(owner_dialog_id.get_user_id(), !story_ids.empty());
   }
