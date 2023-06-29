@@ -7258,7 +7258,7 @@ getStory story_sender_chat_id:int53 story_id:int32 = Story;
 
 //@description Sends a new story. Returns a temporary story with identifier 0
 //@content Content of the story
-//@caption Story caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
+//@caption Story caption; pass null to use an empty caption; 0-getOption("story_caption_length_max") characters
 //@privacy_rules The privacy rules for the story
 //@active_period Period after which the story is moved to archive, in seconds; must be one of 6 * 3600, 12 * 3600, 86400, 2 * 86400, 3 * 86400, or 7 * 86400 for Telegram Premium users, and 86400 otherwise
 //@is_pinned Pass true to keep the story accessible after expiration

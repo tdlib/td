@@ -1563,6 +1563,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   bool archive_all_stories = false;
   int32 story_viewers_expire_period = 86400;
   int64 stories_changelog_user_id = ContactsManager::get_service_notifications_user_id().get();
+  int32 story_caption_length_limit = 1024;
   if (config->get_id() == telegram_api::jsonObject::ID) {
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
       Slice key = key_value->key_;
@@ -1971,6 +1972,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         stories_changelog_user_id = get_json_value_long(std::move(key_value->value_), key);
         continue;
       }
+      if (key == "story_caption_length_limit") {
+        story_caption_length_limit = get_json_value_int(std::move(key_value->value_), key);
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
@@ -2100,6 +2105,8 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
     options.set_option_integer("added_shareable_chat_folder_count_max",
                                options.get_option_integer("chatlist_invites_limit_default", 2));
   }
+
+  options.set_option_integer("story_caption_length_max", clamp(story_caption_length_limit, 1024, 1000000));
 
   if (!is_premium_available) {
     premium_bot_username.clear();  // just in case
