@@ -1567,6 +1567,8 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
     privacy_rules = story->privacy_rules_.get_user_privacy_setting_rules_object(td_);
   }
 
+  bool is_edited = story->is_edited_;
+
   auto *content = story->content_.get();
   auto *caption = &story->caption_;
   if (is_owned && story_full_id.get_story_id().is_server()) {
@@ -1578,6 +1580,7 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
       if (it->second->edit_caption_) {
         caption = &it->second->caption_;
       }
+      is_edited = true;
     }
   }
 
@@ -1594,7 +1597,7 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
 
   return td_api::make_object<td_api::story>(
       story_full_id.get_story_id().get(), td_->messages_manager_->get_chat_id_object(dialog_id, "get_story_object"),
-      story->date_, story->is_pinned_, is_visible_only_for_self, can_be_forwarded, can_be_replied,
+      story->date_, story->is_edited_, story->is_pinned_, is_visible_only_for_self, can_be_forwarded, can_be_replied,
       can_get_story_viewers(story_full_id, story).is_ok(),
       story->interaction_info_.get_story_interaction_info_object(td_), std::move(privacy_rules),
       get_story_content_object(td_, content),
@@ -1760,9 +1763,11 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
     change_story_files(story_full_id, story, old_file_ids);
   }
 
-  if (story->is_pinned_ != story_item->pinned_ || story->is_public_ != story_item->public_ ||
-      story->is_for_close_friends_ != story_item->close_friends_ || story->noforwards_ != story_item->noforwards_ ||
-      story->date_ != story_item->date_ || story->expire_date_ != story_item->expire_date_) {
+  if (story->is_edited_ != story_item->edited_ || story->is_pinned_ != story_item->pinned_ ||
+      story->is_public_ != story_item->public_ || story->is_for_close_friends_ != story_item->close_friends_ ||
+      story->noforwards_ != story_item->noforwards_ || story->date_ != story_item->date_ ||
+      story->expire_date_ != story_item->expire_date_) {
+    story->is_edited_ = story_item->edited_;
     story->is_pinned_ = story_item->pinned_;
     story->is_public_ = story_item->public_;
     story->is_for_close_friends_ = story_item->close_friends_;
@@ -2504,8 +2509,9 @@ void StoryManager::on_story_edited(FileId file_id, unique_ptr<PendingStory> pend
     binlog_erase(G()->td_db()->get_binlog(), pending_story->log_event_id_);
   }
   auto promises = std::move(it->second->promises_);
-  bool is_changed =
-      it->second->content_ != nullptr || (it->second->edit_caption_ && it->second->caption_ != story->caption_);
+  bool is_changed = it->second->content_ != nullptr ||
+                    (it->second->edit_caption_ && it->second->caption_ != story->caption_) ||
+                    (result.is_error() && !story->is_edited_);
   being_edited_stories_.erase(it);
 
   on_story_changed(story_full_id, story, is_changed, true);

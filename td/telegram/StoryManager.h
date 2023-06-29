@@ -43,6 +43,7 @@ class StoryManager final : public Actor {
     int32 date_ = 0;
     int32 expire_date_ = 0;
     int32 receive_date_ = 0;
+    bool is_edited_ = false;
     bool is_pinned_ = false;
     bool is_public_ = false;
     bool is_for_close_friends_ = false;
