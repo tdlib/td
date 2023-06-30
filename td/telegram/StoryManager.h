@@ -290,7 +290,7 @@ class StoryManager final : public Actor {
 
   static uint64 save_load_dialog_expiring_stories_log_event(DialogId owner_dialog_id);
 
-  void load_dialog_expiring_stories(DialogId owner_dialog_id, uint64 log_event_id);
+  void load_dialog_expiring_stories(DialogId owner_dialog_id, uint64 log_event_id, const char *source);
 
   void on_load_dialog_expiring_stories(DialogId owner_dialog_id);
 
