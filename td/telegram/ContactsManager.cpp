@@ -5909,9 +5909,6 @@ bool ContactsManager::get_channel_has_protected_content(ChannelId channel_id) co
 }
 
 bool ContactsManager::get_user_stories_hidden(UserId user_id) const {
-  if (user_id == get_my_id()) {
-    return false;
-  }
   auto u = get_user(user_id);
   if (u == nullptr) {
     return false;
