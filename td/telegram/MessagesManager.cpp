@@ -37041,6 +37041,10 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
     CHECK(dialog_type != DialogType::SecretChat);
     repair_server_unread_count(dialog_id, d->server_unread_count, "fix_new_dialog");
   }
+  if (dialog_type == DialogType::Channel && need_unread_counter(d->order) && d->server_unread_count > 0 &&
+      !td_->auth_manager_->is_bot() && td_->option_manager_->get_option_integer("since_last_open") >= 2 * 86400) {
+    d->need_repair_channel_server_unread_count = true;
+  }
   if (d->need_repair_channel_server_unread_count) {
     repair_channel_server_unread_count(d);
   }
