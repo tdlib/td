@@ -1800,6 +1800,16 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
     change_story_files(story_full_id, story, old_file_ids);
   }
 
+  if (story_item->date_ <= 0) {
+    LOG(ERROR) << "Receive " << story_full_id << " sent at " << story_item->date_;
+    story_item->date_ = 1;
+  }
+  if (story_item->expire_date_ <= story_item->date_) {
+    LOG(ERROR) << "Receive " << story_full_id << " sent at " << story_item->date_ << ", but expired at "
+               << story_item->expire_date_;
+    story_item->expire_date_ = story_item->date_ + 1;
+  }
+
   if (story->is_edited_ != story_item->edited_ || story->is_pinned_ != story_item->pinned_ ||
       story->is_public_ != story_item->public_ || story->is_for_close_friends_ != story_item->close_friends_ ||
       story->noforwards_ != story_item->noforwards_ || story->date_ != story_item->date_ ||
@@ -1884,6 +1894,17 @@ StoryId StoryManager::on_get_skipped_story(DialogId owner_dialog_id,
     inaccessible_story_full_ids_.erase(story_full_id);
   }
   CHECK(story != nullptr);
+
+  if (story_item->date_ <= 0) {
+    LOG(ERROR) << "Receive " << story_full_id << " sent at " << story_item->date_;
+    story_item->date_ = 1;
+  }
+  if (story_item->expire_date_ <= story_item->date_) {
+    LOG(ERROR) << "Receive " << story_full_id << " sent at " << story_item->date_ << ", but expired at "
+               << story_item->expire_date_;
+    story_item->expire_date_ = story_item->date_ + 1;
+  }
+
   if (story->date_ != story_item->date_ || story->expire_date_ != story_item->expire_date_) {
     story->date_ = story_item->date_;
     story->expire_date_ = story_item->expire_date_;
@@ -2160,12 +2181,19 @@ bool StoryManager::update_active_stories_order(DialogId owner_dialog_id, ActiveS
   if (owner_dialog_id == DialogId(td_->contacts_manager_->get_my_id())) {
     new_private_order += static_cast<int64>(1) << 36;
   }
+  CHECK(new_private_order != 0);
 
   int64 new_public_order = 0;
   if (is_subscribed_to_dialog_stories(owner_dialog_id)) {
-    const auto &story_list = story_lists_[are_dialog_stories_hidden(owner_dialog_id)];
+    auto &story_list = story_lists_[are_dialog_stories_hidden(owner_dialog_id)];
     if (DialogDate(active_stories->private_order_, owner_dialog_id) <= story_list.list_last_story_date_) {
       new_public_order = active_stories->private_order_;
+    }
+
+    if (active_stories->private_order_ != new_private_order) {
+      story_list.ordered_stories_.erase({active_stories->private_order_, owner_dialog_id});
+      bool is_inserted = story_list.ordered_stories_.insert({new_private_order, owner_dialog_id}).second;
+      CHECK(is_inserted);
     }
   }
 
@@ -2178,6 +2206,7 @@ bool StoryManager::update_active_stories_order(DialogId owner_dialog_id, ActiveS
       return true;
     }
   }
+
   return false;
 }
 

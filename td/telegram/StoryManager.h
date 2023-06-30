@@ -101,6 +101,8 @@ class StoryManager final : public Actor {
 
     vector<Promise<Unit>> load_list_queries_;
 
+    std::set<DialogDate> ordered_stories_;  // all known active stories from the story list
+
     DialogDate list_last_story_date_ = MIN_DIALOG_DATE;  // in memory
   };
 
