@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/DialogDate.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
@@ -95,11 +96,12 @@ class StoryManager final : public Actor {
   };
 
   struct StoryList {
-    bool has_more_ = true;
     int32 server_total_count_ = -1;
     string state_;
 
     vector<Promise<Unit>> load_list_queries_;
+
+    DialogDate list_last_story_date_ = MIN_DIALOG_DATE;  // in memory
   };
 
  public:
@@ -240,6 +242,8 @@ class StoryManager final : public Actor {
   DialogId get_changelog_story_dialog_id() const;
 
   bool is_subscribed_to_dialog_stories(DialogId owner_dialog_id) const;
+
+  bool are_dialog_stories_hidden(DialogId owner_dialog_id) const;
 
   const Story *get_story(StoryFullId story_full_id) const;
 
