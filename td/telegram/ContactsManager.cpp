@@ -10376,6 +10376,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   }
   if (is_premium != u->is_premium) {
     u->is_premium = is_premium;
+    u->is_is_premium_changed = true;
     u->is_changed = true;
     u->is_full_info_changed = true;
   }
@@ -11891,7 +11892,7 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
   }
   if (u->is_is_contact_changed) {
     td_->messages_manager_->on_dialog_user_is_contact_updated(DialogId(user_id), u->is_contact);
-    td_->story_manager_->on_dialog_user_is_contact_updated(DialogId(user_id));
+    td_->story_manager_->on_dialog_active_stories_order_updated(DialogId(user_id));
     if (is_user_contact(u, user_id, false)) {
       auto user_full = get_user_full(user_id);
       if (user_full != nullptr && user_full->need_phone_number_privacy_exception) {
@@ -11911,6 +11912,10 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
       }
     }
     u->is_is_deleted_changed = false;
+  }
+  if (u->is_is_premium_changed) {
+    td_->story_manager_->on_dialog_active_stories_order_updated(DialogId(user_id));
+    u->is_is_premium_changed = false;
   }
   if (u->is_name_changed) {
     auto messages_manager = td_->messages_manager_.get();
@@ -11946,7 +11951,7 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
     }
   }
   if (u->is_stories_hidden_changed) {
-    td_->story_manager_->on_dialog_stories_hidden_updated(DialogId(user_id));
+    td_->story_manager_->on_dialog_active_stories_order_updated(DialogId(user_id));
     u->is_stories_hidden_changed = false;
   }
   if (!td_->auth_manager_->is_bot()) {

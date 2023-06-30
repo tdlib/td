@@ -2197,21 +2197,10 @@ bool StoryManager::is_subscribed_to_dialog_stories(DialogId owner_dialog_id) con
   }
 }
 
-void StoryManager::on_dialog_user_is_contact_updated(DialogId owner_dialog_id) {
+void StoryManager::on_dialog_active_stories_order_updated(DialogId owner_dialog_id) {
   auto active_stories = get_active_stories_editable(owner_dialog_id);
-  if (active_stories != nullptr) {
-    update_active_stories_order(owner_dialog_id, active_stories);
+  if (active_stories != nullptr && update_active_stories_order(owner_dialog_id, active_stories)) {
     send_update_active_stories(owner_dialog_id);
-  }
-}
-
-void StoryManager::on_dialog_stories_hidden_updated(DialogId owner_dialog_id) {
-  auto active_stories = get_active_stories_editable(owner_dialog_id);
-  if (active_stories != nullptr) {
-    update_active_stories_order(owner_dialog_id, active_stories);
-    if (is_subscribed_to_dialog_stories(owner_dialog_id)) {
-      send_update_active_stories(owner_dialog_id);
-    }
   }
 }
 
