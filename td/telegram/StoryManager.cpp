@@ -865,16 +865,16 @@ void StoryManager::load_active_stories(const td_api::object_ptr<td_api::StoryLis
   if (story_list.load_list_queries_.size() == 1u) {
     bool is_next = !story_list.state_.empty();
     auto query_promise =
-        PromiseCreator::lambda([actor_id = actor_id(this), is_hidden](
+        PromiseCreator::lambda([actor_id = actor_id(this), is_hidden, is_next](
                                    Result<telegram_api::object_ptr<telegram_api::stories_AllStories>> r_all_stories) {
-          send_closure(actor_id, &StoryManager::on_load_active_stories, is_hidden, std::move(r_all_stories));
+          send_closure(actor_id, &StoryManager::on_load_active_stories, is_hidden, is_next, std::move(r_all_stories));
         });
     td_->create_handler<GetAllStoriesQuery>(std::move(query_promise))->send(is_next, is_hidden, story_list.state_);
   }
 }
 
 void StoryManager::on_load_active_stories(
-    bool is_hidden, Result<telegram_api::object_ptr<telegram_api::stories_AllStories>> r_all_stories) {
+    bool is_hidden, bool is_next, Result<telegram_api::object_ptr<telegram_api::stories_AllStories>> r_all_stories) {
   G()->ignore_result_if_closing(r_all_stories);
   auto &story_list = story_lists_[is_hidden];
   auto promises = std::move(story_list.load_list_queries_);
@@ -903,9 +903,16 @@ void StoryManager::on_load_active_stories(
       }
       story_list.server_total_count_ = stories->count_;
 
+      vector<DialogId> delete_dialog_ids;
       if (stories->user_stories_.empty()) {
         if (stories->has_more_) {
           LOG(ERROR) << "Receive no stories, but expected more";
+        }
+        if (!is_next) {
+          // there should be no more active stories; reload all of them
+          for (const auto &story_date : story_list.ordered_stories_) {
+            delete_dialog_ids.push_back(story_date.get_dialog_id());
+          }
         }
         story_list.list_last_story_date_ = MAX_DIALOG_DATE;
       } else {
@@ -929,12 +936,26 @@ void StoryManager::on_load_active_stories(
         if (!stories->has_more_) {
           max_story_date = MAX_DIALOG_DATE;
         }
+        for (auto it =
+                 story_list.ordered_stories_.upper_bound(is_next ? story_list.list_last_story_date_ : MIN_DIALOG_DATE);
+             it != story_list.ordered_stories_.end() && *it <= max_story_date; ++it) {
+          auto dialog_id = it->get_dialog_id();
+          if (!td::contains(owner_dialog_ids, dialog_id)) {
+            delete_dialog_ids.push_back(dialog_id);
+          }
+        }
         if (story_list.list_last_story_date_ < max_story_date) {
           story_list.list_last_story_date_ = max_story_date;
           for (auto owner_dialog_id : owner_dialog_ids) {
             on_dialog_active_stories_order_updated(owner_dialog_id);
           }
+        } else if (is_next) {
+          LOG(ERROR) << "Last story date didn't increase";
         }
+      }
+      for (auto dialog_id : delete_dialog_ids) {
+        on_update_active_stories(dialog_id, StoryId(), vector<StoryId>());
+        load_dialog_expiring_stories(dialog_id, 0, "on_load_active_stories 1");
       }
       break;
     }

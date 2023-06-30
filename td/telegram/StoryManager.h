@@ -296,7 +296,7 @@ class StoryManager final : public Actor {
 
   void on_load_dialog_expiring_stories(DialogId owner_dialog_id);
 
-  void on_load_active_stories(bool is_hidden,
+  void on_load_active_stories(bool is_hidden, bool is_next,
                               Result<telegram_api::object_ptr<telegram_api::stories_AllStories>> r_all_stories);
 
   vector<FileId> get_story_file_ids(const Story *story) const;
