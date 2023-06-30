@@ -4959,7 +4959,7 @@ storyInfo story_id:int32 date:int32 = StoryInfo;
 //@order A parameter used to determine order of the stories in the story list. Stories must be sorted by the pair (order, story_sender_chat_id) in descending order
 //@story_sender_chat_id Identifier of the sender of the stories
 //@max_read_story_id Identifier of the last read active story
-//@stories Basic information about the stories; use getStory to get full information about the stories
+//@stories Basic information about the stories; use getStory to get full information about the stories. The stories are in a chronological order (i.e., in order of increasing story identifiers)
 activeStories list:StoryList order:int53 story_sender_chat_id:int53 max_read_story_id:int32 stories:vector<storyInfo> = ActiveStories;
 
 
@@ -7288,7 +7288,7 @@ loadActiveStories story_list:StoryList = Ok;
 //@description Toggles whether stories posted by the chat are available above chat lists @chat_id Identifier of the chat that posted stories @are_hidden Pass true to make the stories unavailable above the chat lists; pass false to make them available
 toggleChatStoriesAreHidden chat_id:int53 are_hidden:Bool = Ok;
 
-//@description Returns the list of active stories posted by the given chat. The stories are returned in a chronological order (i.e., in order of increasing story_id) @chat_id Chat identifier
+//@description Returns the list of active stories posted by the given chat @chat_id Chat identifier
 getChatActiveStories chat_id:int53 = ActiveStories;
 
 //@description Returns the list of pinned stories posted by the given chat. The stories are returned in a reverse chronological order (i.e., in order of decreasing story_id).

@@ -847,6 +847,10 @@ const StoryManager::ActiveStories *StoryManager::get_active_stories(DialogId own
   return active_stories_.get_pointer(owner_dialog_id);
 }
 
+StoryManager::ActiveStories *StoryManager::get_active_stories_editable(DialogId owner_dialog_id) {
+  return active_stories_.get_pointer(owner_dialog_id);
+}
+
 void StoryManager::load_active_stories(const td_api::object_ptr<td_api::StoryList> &story_list_ptr,
                                        Promise<Unit> &&promise) {
   if (story_list_ptr == nullptr) {
@@ -2096,8 +2100,53 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
   if (active_stories->max_read_story_id_ != max_read_story_id || active_stories->story_ids_ != story_ids) {
     active_stories->max_read_story_id_ = max_read_story_id;
     active_stories->story_ids_ = std::move(story_ids);
+    update_active_stories_order(owner_dialog_id, active_stories.get());
+    send_update_active_stories(owner_dialog_id);
+  } else if (update_active_stories_order(owner_dialog_id, active_stories.get())) {
     send_update_active_stories(owner_dialog_id);
   }
+}
+
+bool StoryManager::update_active_stories_order(DialogId owner_dialog_id, ActiveStories *active_stories) {
+  CHECK(active_stories != nullptr);
+  CHECK(!active_stories->story_ids_.empty());
+  CHECK(owner_dialog_id.is_valid());
+
+  auto last_story_id = active_stories->story_ids_.back();
+  const Story *last_story = get_story({owner_dialog_id, last_story_id});
+  CHECK(last_story != nullptr);
+
+  int64 new_private_order = 0;
+  new_private_order += last_story->date_;
+  if (owner_dialog_id.get_type() == DialogType::User &&
+      td_->contacts_manager_->is_user_premium(owner_dialog_id.get_user_id())) {
+    new_private_order += static_cast<int64>(1) << 33;
+  }
+  if (owner_dialog_id == get_changelog_story_dialog_id()) {
+    new_private_order += static_cast<int64>(1) << 34;
+  }
+  if (active_stories->max_read_story_id_.get() < last_story_id.get()) {
+    new_private_order += static_cast<int64>(1) << 35;
+  }
+  if (owner_dialog_id == DialogId(td_->contacts_manager_->get_my_id())) {
+    new_private_order += static_cast<int64>(1) << 36;
+  }
+
+  if (active_stories->private_order_ != new_private_order) {
+    active_stories->private_order_ = new_private_order;
+  }
+
+  int64 new_public_order = 0;
+  if (is_subscribed_to_dialog_stories(owner_dialog_id)) {
+    // TODO check last_story_date_
+    new_public_order = active_stories->private_order_;
+  }
+
+  if (active_stories->public_order_ != new_public_order) {
+    active_stories->public_order_ = new_public_order;
+    return true;
+  }
+  return false;
 }
 
 void StoryManager::send_update_active_stories(DialogId owner_dialog_id) {
@@ -2149,14 +2198,20 @@ bool StoryManager::is_subscribed_to_dialog_stories(DialogId owner_dialog_id) con
 }
 
 void StoryManager::on_dialog_user_is_contact_updated(DialogId owner_dialog_id) {
-  if (active_stories_.count(owner_dialog_id)) {
+  auto active_stories = get_active_stories_editable(owner_dialog_id);
+  if (active_stories != nullptr) {
+    update_active_stories_order(owner_dialog_id, active_stories);
     send_update_active_stories(owner_dialog_id);
   }
 }
 
 void StoryManager::on_dialog_stories_hidden_updated(DialogId owner_dialog_id) {
-  if (active_stories_.count(owner_dialog_id) && is_subscribed_to_dialog_stories(owner_dialog_id)) {
-    send_update_active_stories(owner_dialog_id);
+  auto active_stories = get_active_stories_editable(owner_dialog_id);
+  if (active_stories != nullptr) {
+    update_active_stories_order(owner_dialog_id, active_stories);
+    if (is_subscribed_to_dialog_stories(owner_dialog_id)) {
+      send_update_active_stories(owner_dialog_id);
+    }
   }
 }
 

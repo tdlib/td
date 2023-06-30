@@ -249,6 +249,8 @@ class StoryManager final : public Actor {
 
   const ActiveStories *get_active_stories(DialogId owner_dialog_id) const;
 
+  ActiveStories *get_active_stories_editable(DialogId owner_dialog_id);
+
   void on_story_changed(StoryFullId story_full_id, const Story *story, bool is_changed, bool need_save_to_database);
 
   void register_story_global_id(StoryFullId story_full_id, Story *story);
@@ -322,6 +324,8 @@ class StoryManager final : public Actor {
   void on_toggle_story_is_pinned(StoryId story_id, bool is_pinned, Promise<Unit> &&promise);
 
   void on_update_active_stories(DialogId owner_dialog_id, StoryId max_read_story_id, vector<StoryId> &&story_ids);
+
+  bool update_active_stories_order(DialogId owner_dialog_id, ActiveStories *active_stories);
 
   void send_update_active_stories(DialogId owner_dialog_id);
 
