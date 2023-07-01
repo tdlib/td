@@ -6,8 +6,6 @@
 //
 #include "td/telegram/DialogId.h"
 
-#include "td/telegram/telegram_api.h"
-
 #include "td/utils/algorithm.h"
 #include "td/utils/logging.h"
 
