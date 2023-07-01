@@ -1114,7 +1114,7 @@ void UpdatesManager::on_get_updates(tl_object_ptr<telegram_api::Updates> &&updat
           0, 0, nullptr, 0, string(), 0, nullptr, Auto(), update->ttl_period_);
       on_pending_update(
           make_tl_object<telegram_api::updateNewMessage>(std::move(message), update->pts_, update->pts_count_), 0,
-          std::move(promise), "telegram_api::updatesShortMessage");
+          std::move(promise), "telegram_api::updateShortMessage");
       break;
     }
     case telegram_api::updateShortChatMessage::ID: {
@@ -1137,7 +1137,7 @@ void UpdatesManager::on_get_updates(tl_object_ptr<telegram_api::Updates> &&updat
           0, 0, nullptr, 0, string(), 0, nullptr, Auto(), update->ttl_period_);
       on_pending_update(
           make_tl_object<telegram_api::updateNewMessage>(std::move(message), update->pts_, update->pts_count_), 0,
-          std::move(promise), "telegram_api::updatesShortChatMessage");
+          std::move(promise), "telegram_api::updateShortChatMessage");
       break;
     }
     case telegram_api::updateShort::ID: {
