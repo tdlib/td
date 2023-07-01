@@ -9,7 +9,6 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
-#include "td/telegram/td_api.hpp"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
