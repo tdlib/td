@@ -13,6 +13,7 @@
 #include "td/telegram/DialogFilterManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
+#include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/DcId.h"
@@ -21,6 +22,7 @@
 #include "td/telegram/NotificationManager.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/PasswordManager.h"
+#include "td/telegram/SendCodeHelper.hpp"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
@@ -29,6 +31,7 @@
 #include "td/telegram/ThemeManager.h"
 #include "td/telegram/TopDialogManager.h"
 #include "td/telegram/UpdatesManager.h"
+#include "td/telegram/Version.h"
 
 #include "td/utils/base64.h"
 #include "td/utils/format.h"
@@ -37,9 +40,244 @@
 #include "td/utils/Promise.h"
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/Slice.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/Time.h"
+#include "td/utils/tl_helpers.h"
 
 namespace td {
+
+struct AuthManager::DbState {
+  State state_;
+  int32 api_id_;
+  string api_hash_;
+  double expires_at_;
+
+  // WaitEmailAddress and WaitEmailCode
+  bool allow_apple_id_ = false;
+  bool allow_google_id_ = false;
+
+  // WaitEmailCode
+  string email_address_;
+  SentEmailCode email_code_info_;
+  int32 reset_available_period_ = -1;
+  int32 reset_pending_date_ = -1;
+
+  // WaitEmailAddress, WaitEmailCode, WaitCode and WaitRegistration
+  SendCodeHelper send_code_helper_;
+
+  // WaitQrCodeConfirmation
+  vector<UserId> other_user_ids_;
+  string login_token_;
+  double login_token_expires_at_ = 0;
+
+  // WaitPassword
+  WaitPasswordState wait_password_state_;
+
+  // WaitRegistration
+  TermsOfService terms_of_service_;
+
+  DbState() = default;
+
+  static DbState wait_email_address(int32 api_id, string api_hash, bool allow_apple_id, bool allow_google_id,
+                                    SendCodeHelper send_code_helper) {
+    DbState state(State::WaitEmailAddress, api_id, std::move(api_hash));
+    state.send_code_helper_ = std::move(send_code_helper);
+    state.allow_apple_id_ = allow_apple_id;
+    state.allow_google_id_ = allow_google_id;
+    return state;
+  }
+
+  static DbState wait_email_code(int32 api_id, string api_hash, bool allow_apple_id, bool allow_google_id,
+                                 string email_address, SentEmailCode email_code_info, int32 reset_available_period,
+                                 int32 reset_pending_date, SendCodeHelper send_code_helper) {
+    DbState state(State::WaitEmailCode, api_id, std::move(api_hash));
+    state.send_code_helper_ = std::move(send_code_helper);
+    state.allow_apple_id_ = allow_apple_id;
+    state.allow_google_id_ = allow_google_id;
+    state.email_address_ = std::move(email_address);
+    state.email_code_info_ = std::move(email_code_info);
+    state.reset_available_period_ = reset_available_period;
+    state.reset_pending_date_ = reset_pending_date;
+    return state;
+  }
+
+  static DbState wait_code(int32 api_id, string api_hash, SendCodeHelper send_code_helper) {
+    DbState state(State::WaitCode, api_id, std::move(api_hash));
+    state.send_code_helper_ = std::move(send_code_helper);
+    return state;
+  }
+
+  static DbState wait_qr_code_confirmation(int32 api_id, string api_hash, vector<UserId> other_user_ids,
+                                           string login_token, double login_token_expires_at) {
+    DbState state(State::WaitQrCodeConfirmation, api_id, std::move(api_hash));
+    state.other_user_ids_ = std::move(other_user_ids);
+    state.login_token_ = std::move(login_token);
+    state.login_token_expires_at_ = login_token_expires_at;
+    return state;
+  }
+
+  static DbState wait_password(int32 api_id, string api_hash, WaitPasswordState wait_password_state) {
+    DbState state(State::WaitPassword, api_id, std::move(api_hash));
+    state.wait_password_state_ = std::move(wait_password_state);
+    return state;
+  }
+
+  static DbState wait_registration(int32 api_id, string api_hash, SendCodeHelper send_code_helper,
+                                   TermsOfService terms_of_service) {
+    DbState state(State::WaitRegistration, api_id, std::move(api_hash));
+    state.send_code_helper_ = std::move(send_code_helper);
+    state.terms_of_service_ = std::move(terms_of_service);
+    return state;
+  }
+
+  template <class StorerT>
+  void store(StorerT &storer) const;
+  template <class ParserT>
+  void parse(ParserT &parser);
+
+ private:
+  DbState(State state, int32 api_id, string &&api_hash)
+      : state_(state), api_id_(api_id), api_hash_(std::move(api_hash)) {
+    auto state_timeout = [state] {
+      switch (state) {
+        case State::WaitPassword:
+        case State::WaitRegistration:
+          return 86400;
+        case State::WaitEmailAddress:
+        case State::WaitEmailCode:
+        case State::WaitCode:
+        case State::WaitQrCodeConfirmation:
+          return 5 * 60;
+        default:
+          UNREACHABLE();
+          return 0;
+      }
+    }();
+    expires_at_ = Time::now() + state_timeout;
+  }
+};
+
+template <class StorerT>
+void AuthManager::DbState::store(StorerT &storer) const {
+  using td::store;
+  bool has_terms_of_service = !terms_of_service_.get_id().empty();
+  bool is_pbkdf2_supported = true;
+  bool is_srp_supported = true;
+  bool is_wait_registration_supported = true;
+  bool is_wait_registration_stores_phone_number = true;
+  bool is_wait_qr_code_confirmation_supported = true;
+  bool is_time_store_supported = true;
+  bool is_reset_email_address_supported = true;
+  BEGIN_STORE_FLAGS();
+  STORE_FLAG(has_terms_of_service);
+  STORE_FLAG(is_pbkdf2_supported);
+  STORE_FLAG(is_srp_supported);
+  STORE_FLAG(is_wait_registration_supported);
+  STORE_FLAG(is_wait_registration_stores_phone_number);
+  STORE_FLAG(is_wait_qr_code_confirmation_supported);
+  STORE_FLAG(allow_apple_id_);
+  STORE_FLAG(allow_google_id_);
+  STORE_FLAG(is_time_store_supported);
+  STORE_FLAG(is_reset_email_address_supported);
+  END_STORE_FLAGS();
+  store(state_, storer);
+  store(api_id_, storer);
+  store(api_hash_, storer);
+  store_time(expires_at_, storer);
+
+  if (has_terms_of_service) {
+    store(terms_of_service_, storer);
+  }
+
+  if (state_ == State::WaitEmailAddress) {
+    store(send_code_helper_, storer);
+  } else if (state_ == State::WaitEmailCode) {
+    store(send_code_helper_, storer);
+    store(email_address_, storer);
+    store(email_code_info_, storer);
+    store(reset_available_period_, storer);
+    store(reset_pending_date_, storer);
+  } else if (state_ == State::WaitCode) {
+    store(send_code_helper_, storer);
+  } else if (state_ == State::WaitQrCodeConfirmation) {
+    store(other_user_ids_, storer);
+    store(login_token_, storer);
+    store_time(login_token_expires_at_, storer);
+  } else if (state_ == State::WaitPassword) {
+    store(wait_password_state_, storer);
+  } else if (state_ == State::WaitRegistration) {
+    store(send_code_helper_, storer);
+  } else {
+    UNREACHABLE();
+  }
+}
+
+template <class ParserT>
+void AuthManager::DbState::parse(ParserT &parser) {
+  using td::parse;
+  bool has_terms_of_service = false;
+  bool is_pbkdf2_supported = false;
+  bool is_srp_supported = false;
+  bool is_wait_registration_supported = false;
+  bool is_wait_registration_stores_phone_number = false;
+  bool is_wait_qr_code_confirmation_supported = false;
+  bool is_time_store_supported = false;
+  bool is_reset_email_address_supported = false;
+  if (parser.version() >= static_cast<int32>(Version::AddTermsOfService)) {
+    BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(has_terms_of_service);
+    PARSE_FLAG(is_pbkdf2_supported);
+    PARSE_FLAG(is_srp_supported);
+    PARSE_FLAG(is_wait_registration_supported);
+    PARSE_FLAG(is_wait_registration_stores_phone_number);
+    PARSE_FLAG(is_wait_qr_code_confirmation_supported);
+    PARSE_FLAG(allow_apple_id_);
+    PARSE_FLAG(allow_google_id_);
+    PARSE_FLAG(is_time_store_supported);
+    PARSE_FLAG(is_reset_email_address_supported);
+    END_PARSE_FLAGS();
+  }
+  if (!is_reset_email_address_supported) {
+    return parser.set_error("Have no reset email address support");
+  }
+  CHECK(is_pbkdf2_supported);
+  CHECK(is_srp_supported);
+  CHECK(is_wait_registration_supported);
+  CHECK(is_wait_registration_stores_phone_number);
+  CHECK(is_wait_qr_code_confirmation_supported);
+  CHECK(is_time_store_supported);
+
+  parse(state_, parser);
+  parse(api_id_, parser);
+  parse(api_hash_, parser);
+  parse_time(expires_at_, parser);
+
+  if (has_terms_of_service) {
+    parse(terms_of_service_, parser);
+  }
+
+  if (state_ == State::WaitEmailAddress) {
+    parse(send_code_helper_, parser);
+  } else if (state_ == State::WaitEmailCode) {
+    parse(send_code_helper_, parser);
+    parse(email_address_, parser);
+    parse(email_code_info_, parser);
+    parse(reset_available_period_, parser);
+    parse(reset_pending_date_, parser);
+  } else if (state_ == State::WaitCode) {
+    parse(send_code_helper_, parser);
+  } else if (state_ == State::WaitQrCodeConfirmation) {
+    parse(other_user_ids_, parser);
+    parse(login_token_, parser);
+    parse_time(login_token_expires_at_, parser);
+  } else if (state_ == State::WaitPassword) {
+    parse(wait_password_state_, parser);
+  } else if (state_ == State::WaitRegistration) {
+    parse(send_code_helper_, parser);
+  } else {
+    parser.set_error(PSTRING() << "Unexpected " << tag("state", static_cast<int32>(state_)));
+  }
+}
 
 AuthManager::AuthManager(int32 api_id, const string &api_hash, ActorShared<> parent)
     : parent_(std::move(parent)), api_id_(api_id), api_hash_(api_hash) {

@@ -21,7 +21,6 @@
 
 #include "td/utils/common.h"
 #include "td/utils/Status.h"
-#include "td/utils/Time.h"
 
 namespace td {
 
@@ -78,6 +77,7 @@ class AuthManager final : public NetActor {
     DestroyingKeys,
     Closing
   } state_ = State::None;
+
   enum class NetQueryType : int32 {
     None,
     SignIn,
@@ -118,116 +118,7 @@ class AuthManager final : public NetActor {
     void parse(ParserT &parser);
   };
 
-  struct DbState {
-    State state_;
-    int32 api_id_;
-    string api_hash_;
-    double expires_at_;
-
-    // WaitEmailAddress and WaitEmailCode
-    bool allow_apple_id_ = false;
-    bool allow_google_id_ = false;
-
-    // WaitEmailCode
-    string email_address_;
-    SentEmailCode email_code_info_;
-    int32 reset_available_period_ = -1;
-    int32 reset_pending_date_ = -1;
-
-    // WaitEmailAddress, WaitEmailCode, WaitCode and WaitRegistration
-    SendCodeHelper send_code_helper_;
-
-    // WaitQrCodeConfirmation
-    vector<UserId> other_user_ids_;
-    string login_token_;
-    double login_token_expires_at_ = 0;
-
-    // WaitPassword
-    WaitPasswordState wait_password_state_;
-
-    // WaitRegistration
-    TermsOfService terms_of_service_;
-
-    DbState() = default;
-
-    static DbState wait_email_address(int32 api_id, string api_hash, bool allow_apple_id, bool allow_google_id,
-                                      SendCodeHelper send_code_helper) {
-      DbState state(State::WaitEmailAddress, api_id, std::move(api_hash));
-      state.send_code_helper_ = std::move(send_code_helper);
-      state.allow_apple_id_ = allow_apple_id;
-      state.allow_google_id_ = allow_google_id;
-      return state;
-    }
-
-    static DbState wait_email_code(int32 api_id, string api_hash, bool allow_apple_id, bool allow_google_id,
-                                   string email_address, SentEmailCode email_code_info, int32 reset_available_period,
-                                   int32 reset_pending_date, SendCodeHelper send_code_helper) {
-      DbState state(State::WaitEmailCode, api_id, std::move(api_hash));
-      state.send_code_helper_ = std::move(send_code_helper);
-      state.allow_apple_id_ = allow_apple_id;
-      state.allow_google_id_ = allow_google_id;
-      state.email_address_ = std::move(email_address);
-      state.email_code_info_ = std::move(email_code_info);
-      state.reset_available_period_ = reset_available_period;
-      state.reset_pending_date_ = reset_pending_date;
-      return state;
-    }
-
-    static DbState wait_code(int32 api_id, string api_hash, SendCodeHelper send_code_helper) {
-      DbState state(State::WaitCode, api_id, std::move(api_hash));
-      state.send_code_helper_ = std::move(send_code_helper);
-      return state;
-    }
-
-    static DbState wait_qr_code_confirmation(int32 api_id, string api_hash, vector<UserId> other_user_ids,
-                                             string login_token, double login_token_expires_at) {
-      DbState state(State::WaitQrCodeConfirmation, api_id, std::move(api_hash));
-      state.other_user_ids_ = std::move(other_user_ids);
-      state.login_token_ = std::move(login_token);
-      state.login_token_expires_at_ = login_token_expires_at;
-      return state;
-    }
-
-    static DbState wait_password(int32 api_id, string api_hash, WaitPasswordState wait_password_state) {
-      DbState state(State::WaitPassword, api_id, std::move(api_hash));
-      state.wait_password_state_ = std::move(wait_password_state);
-      return state;
-    }
-
-    static DbState wait_registration(int32 api_id, string api_hash, SendCodeHelper send_code_helper,
-                                     TermsOfService terms_of_service) {
-      DbState state(State::WaitRegistration, api_id, std::move(api_hash));
-      state.send_code_helper_ = std::move(send_code_helper);
-      state.terms_of_service_ = std::move(terms_of_service);
-      return state;
-    }
-
-    template <class StorerT>
-    void store(StorerT &storer) const;
-    template <class ParserT>
-    void parse(ParserT &parser);
-
-   private:
-    DbState(State state, int32 api_id, string &&api_hash)
-        : state_(state), api_id_(api_id), api_hash_(std::move(api_hash)) {
-      auto state_timeout = [state] {
-        switch (state) {
-          case State::WaitPassword:
-          case State::WaitRegistration:
-            return 86400;
-          case State::WaitEmailAddress:
-          case State::WaitEmailCode:
-          case State::WaitCode:
-          case State::WaitQrCodeConfirmation:
-            return 5 * 60;
-          default:
-            UNREACHABLE();
-            return 0;
-        }
-      }();
-      expires_at_ = Time::now() + state_timeout;
-    }
-  };
+  struct DbState;
 
   bool load_state();
   void save_state();
