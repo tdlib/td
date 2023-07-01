@@ -74,6 +74,7 @@
 #include "td/telegram/StoryFullId.h"
 #include "td/telegram/StoryManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/telegram_api.h"
 #include "td/telegram/TopDialogManager.h"
 #include "td/telegram/UserId.h"
 #include "td/telegram/Venue.h"

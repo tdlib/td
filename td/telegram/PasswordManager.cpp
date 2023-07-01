@@ -14,6 +14,7 @@
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/SuggestedAction.h"
 #include "td/telegram/TdDb.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/mtproto/DhHandshake.h"
 

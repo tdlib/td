@@ -18,6 +18,7 @@
 #include "td/telegram/SequenceDispatcher.h"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/TdDb.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/mtproto/DhCallback.h"
 

@@ -13,6 +13,7 @@
 #include "td/telegram/PhotoSize.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"

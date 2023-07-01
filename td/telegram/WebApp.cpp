@@ -11,6 +11,7 @@
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
 #include "td/utils/logging.h"

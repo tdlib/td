@@ -11,6 +11,7 @@
 #include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
+#include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
 
 #include "td/db/binlog/BinlogEvent.h"

@@ -13,6 +13,7 @@
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"

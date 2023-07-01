@@ -36,6 +36,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/td_api.hpp"
 #include "td/telegram/TdDb.h"
+#include "td/telegram/telegram_api.h"
 #include "td/telegram/ThemeManager.h"
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/Venue.h"

@@ -22,6 +22,7 @@
 #include "td/telegram/StoryContent.h"
 #include "td/telegram/StoryContentType.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/WebPagesManager.h"
 

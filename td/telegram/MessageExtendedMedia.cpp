@@ -12,6 +12,7 @@
 #include "td/telegram/MessageContentType.h"
 #include "td/telegram/PhotoSize.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/telegram_api.h"
 #include "td/telegram/VideosManager.h"
 
 #include "td/utils/algorithm.h"

@@ -17,6 +17,7 @@
 #include "td/telegram/StoryId.h"
 #include "td/telegram/StoryInteractionInfo.h"
 #include "td/telegram/td_api.h"
+#include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
 #include "td/telegram/UserPrivacySettingRule.h"
 

@@ -9,6 +9,7 @@
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/utils/base64.h"
 #include "td/utils/HttpUrl.h"

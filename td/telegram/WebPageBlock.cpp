@@ -24,6 +24,7 @@
 #include "td/telegram/Photo.hpp"
 #include "td/telegram/PhotoFormat.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/telegram_api.h"
 #include "td/telegram/Version.h"
 #include "td/telegram/VideosManager.h"
 #include "td/telegram/VideosManager.hpp"

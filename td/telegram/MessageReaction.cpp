@@ -18,6 +18,7 @@
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
 
 #include "td/actor/actor.h"

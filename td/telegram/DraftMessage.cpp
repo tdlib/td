@@ -13,6 +13,7 @@
 #include "td/telegram/misc.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
 
 #include "td/utils/buffer.h"

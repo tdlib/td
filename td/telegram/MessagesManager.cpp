@@ -65,6 +65,7 @@
 #include "td/telegram/StoryManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
+#include "td/telegram/telegram_api.h"
 #include "td/telegram/TopDialogCategory.h"
 #include "td/telegram/TranslationManager.h"
 #include "td/telegram/UpdatesManager.h"

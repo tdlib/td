@@ -17,6 +17,7 @@
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/NotificationManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
 
 #include "td/utils/algorithm.h"

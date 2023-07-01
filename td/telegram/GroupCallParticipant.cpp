@@ -8,6 +8,7 @@
 
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageSender.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/utils/logging.h"
 

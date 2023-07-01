@@ -9,6 +9,7 @@
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/ForumTopicManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"

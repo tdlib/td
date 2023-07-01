@@ -13,6 +13,7 @@
 #include "td/telegram/Photo.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/telegram_api.h"
 #include "td/telegram/VideosManager.h"
 
 #include "td/utils/common.h"

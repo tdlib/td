@@ -7,6 +7,7 @@
 #include "td/telegram/JsonValue.h"
 
 #include "td/telegram/misc.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/JsonBuilder.h"

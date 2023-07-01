@@ -14,6 +14,7 @@
 #include "td/telegram/PhotoFormat.h"
 #include "td/telegram/secret_api.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/actor/actor.h"
 

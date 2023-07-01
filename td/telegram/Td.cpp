@@ -127,6 +127,7 @@
 #include "td/telegram/Support.h"
 #include "td/telegram/td_api.hpp"
 #include "td/telegram/TdDb.h"
+#include "td/telegram/telegram_api.h"
 #include "td/telegram/ThemeManager.h"
 #include "td/telegram/TopDialogCategory.h"
 #include "td/telegram/TopDialogManager.h"
