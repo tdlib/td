@@ -6,6 +6,7 @@
 //
 #include "td/telegram/StoryManager.h"
 
+#include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/ContactsManager.h"
@@ -20,20 +21,25 @@
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/ReportReason.h"
 #include "td/telegram/StoryContent.h"
-#include "td/telegram/StoryContentType.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
+#include "td/telegram/UserId.h"
 #include "td/telegram/WebPagesManager.h"
 
-#include "tddb/td/db/binlog/BinlogEvent.h"
-#include "tddb/td/db/binlog/BinlogHelper.h"
+#include "td/db/binlog/BinlogEvent.h"
+#include "td/db/binlog/BinlogHelper.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 #include "td/utils/Random.h"
 #include "td/utils/Status.h"
+#include "td/utils/tl_helpers.h"
+
+#include <limits>
 
 namespace td {
 
@@ -471,7 +477,7 @@ class GetStoriesViewsQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    LOG(INFO) << "Failed to get views of " << story_ids_ << ": " << status;
+    LOG(INFO) << "Receive error for GetStoriesViewsQuery for " << story_ids_ << ": " << status;
   }
 };
 
@@ -571,7 +577,6 @@ class StoryManager::SendStoryQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     LOG(INFO) << "Receive error for SendStoryQuery: " << status;
-
     if (G()->close_flag() && G()->use_message_database()) {
       // do not send error, story will be re-sent after restart
       return;
@@ -639,14 +644,13 @@ class StoryManager::EditStoryQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     LOG(INFO) << "Receive error for EditStoryQuery: " << status;
-
-    if (!td_->auth_manager_->is_bot() && status.message() == "STORY_NOT_MODIFIED") {
-      return td_->story_manager_->on_story_edited(file_id_, std::move(pending_story_), Status::OK());
-    }
-
     if (G()->close_flag() && G()->use_message_database()) {
       // do not send error, story will be edited after restart
       return;
+    }
+
+    if (!td_->auth_manager_->is_bot() && status.message() == "STORY_NOT_MODIFIED") {
+      return td_->story_manager_->on_story_edited(file_id_, std::move(pending_story_), Status::OK());
     }
 
     if (begins_with(status.message(), "FILE_PART_") && ends_with(status.message(), "_MISSING")) {
@@ -855,7 +859,7 @@ StoryManager::ActiveStories *StoryManager::get_active_stories_editable(DialogId 
 void StoryManager::load_active_stories(const td_api::object_ptr<td_api::StoryList> &story_list_ptr,
                                        Promise<Unit> &&promise) {
   if (story_list_ptr == nullptr) {
-    return promise.set_error(Status::Error(400, "Story list must not be empty"));
+    return promise.set_error(Status::Error(400, "Story list must be non-empty"));
   }
   bool is_hidden = story_list_ptr->get_id() == td_api::storyListHidden::ID;
   auto &story_list = story_lists_[is_hidden];
@@ -1443,7 +1447,7 @@ void StoryManager::get_story_viewers(StoryId story_id, const td_api::messageView
     return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
   }
   if (can_get_story_viewers(story_full_id, story).is_error() || story->interaction_info_.get_view_count() == 0) {
-    return promise.set_value(td_api::object_ptr<td_api::messageViewers>());
+    return promise.set_value(td_api::make_object<td_api::messageViewers>());
   }
 
   int32 offset_date = 0;
@@ -1491,7 +1495,7 @@ void StoryManager::on_get_story_viewers(
   StoryFullId story_full_id{owner_dialog_id, story_id};
   Story *story = get_story_editable(story_full_id);
   if (story == nullptr) {
-    return promise.set_value(td_api::object_ptr<td_api::messageViewers>());
+    return promise.set_value(td_api::make_object<td_api::messageViewers>());
   }
 
   td_->contacts_manager_->on_get_users(std::move(view_list->users_), "on_get_story_viewers");
@@ -1538,7 +1542,7 @@ bool StoryManager::have_story(StoryFullId story_full_id) const {
 }
 
 bool StoryManager::have_story_force(StoryFullId story_full_id) const {
-  // TODO try load story from the database
+  // TODO try to load story from the database
   return have_story(story_full_id);
 }
 

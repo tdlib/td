@@ -54,6 +54,7 @@
 #include "td/telegram/StickerSetId.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/StickerType.h"
+#include "td/telegram/StoryId.h"
 #include "td/telegram/StoryManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/td_api.h"
@@ -1803,12 +1804,12 @@ void UpdatesManager::process_get_difference_updates(
 }
 
 void UpdatesManager::on_get_difference(tl_object_ptr<telegram_api::updates_Difference> &&difference_ptr) {
-  VLOG(get_difference) << "----- END  GET DIFFERENCE-----";
-  running_get_difference_ = false;
-
   if (G()->close_flag()) {
     return;
   }
+
+  VLOG(get_difference) << "----- END  GET DIFFERENCE-----";
+  running_get_difference_ = false;
 
   LOG(DEBUG) << "Result of get difference: " << to_string(difference_ptr);
 

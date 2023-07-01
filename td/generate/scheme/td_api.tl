@@ -1247,7 +1247,7 @@ messageSponsorTypePublicChannel chat_id:int53 link:InternalLinkType = MessageSpo
 //@description The sponsor is a private channel chat @title Title of the chat @invite_link Invite link for the channel
 messageSponsorTypePrivateChannel title:string invite_link:string = MessageSponsorType;
 
-//@description The sponsor is a website @url Url of the website @name Name of the website
+//@description The sponsor is a website @url URL of the website @name Name of the website
 messageSponsorTypeWebsite url:string name:string = MessageSponsorType;
 
 
@@ -4886,7 +4886,7 @@ messageLinkInfo is_public:Bool chat_id:int53 message_thread_id:int53 message:mes
 //@is_animation True, if the video has no sound
 //@minithumbnail Video minithumbnail; may be null
 //@thumbnail Video thumbnail in JPEG or MPEG4 format; may be null
-//@preload_prefix_size Number of bytes from the video file beginning, which is enough to load to play the video for one second; 0 if unknown
+//@preload_prefix_size Size of file prefix, which is supposed to be preloaded, in bytes
 //@video File containing the video
 storyVideo duration:double width:int32 height:int32 has_stickers:Bool is_animation:Bool minithumbnail:minithumbnail thumbnail:thumbnail preload_prefix_size:int32 video:file = StoryVideo;
 
@@ -4955,7 +4955,7 @@ stories total_count:int32 stories:vector<story> = Stories;
 storyInfo story_id:int32 date:int32 = StoryInfo;
 
 //@description Describes active stories sent by the same sender
-//@list Identifier of the story list in which the stories are shown; may be null if the stories aren't from a current user's contact
+//@list Identifier of the story list in which the stories are shown; may be null if the stories aren't shown in a story list
 //@order A parameter used to determine order of the stories in the story list; 0 if the stories doesn't need to be shown in the story list. Stories must be sorted by the pair (order, story_sender_chat_id) in descending order
 //@story_sender_chat_id Identifier of the sender of the stories
 //@max_read_story_id Identifier of the last read active story
@@ -8221,7 +8221,9 @@ getLanguagePackInfo language_pack_id:string = LanguagePackInfo;
 //@keys Language pack keys of the strings to be returned; leave empty to request all available strings
 getLanguagePackStrings language_pack_id:string keys:vector<string> = LanguagePackStrings;
 
-//@description Fetches the latest versions of all strings from a language pack in the current localization target from the server. This method doesn't need to be called explicitly for the current used/base language packs. Can be called before authorization @language_pack_id Language pack identifier
+//@description Fetches the latest versions of all strings from a language pack in the current localization target from the server.
+//-This method doesn't need to be called explicitly for the current used/base language packs. Can be called before authorization
+//@language_pack_id Language pack identifier
 synchronizeLanguagePack language_pack_id:string = Ok;
 
 //@description Adds a custom server language pack to the list of installed language packs in current localization target. Can be called before authorization @language_pack_id Identifier of a language pack to be added

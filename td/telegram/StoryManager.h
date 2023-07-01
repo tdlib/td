@@ -18,7 +18,6 @@
 #include "td/telegram/StoryInteractionInfo.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
-#include "td/telegram/UserId.h"
 #include "td/telegram/UserPrivacySettingRule.h"
 
 #include "td/actor/actor.h"
@@ -26,11 +25,15 @@
 #include "td/actor/Timeout.h"
 
 #include "td/utils/common.h"
+#include "td/utils/FlatHashMap.h"
+#include "td/utils/FlatHashSet.h"
 #include "td/utils/Promise.h"
 #include "td/utils/Status.h"
 #include "td/utils/WaitFreeHashMap.h"
 #include "td/utils/WaitFreeHashSet.h"
 
+#include <memory>
+#include <set>
 #include <utility>
 
 namespace td {

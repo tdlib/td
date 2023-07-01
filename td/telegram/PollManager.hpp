@@ -8,6 +8,7 @@
 
 #include "td/telegram/MinChannel.hpp"
 #include "td/telegram/PollManager.h"
+#include "td/telegram/UserId.h"
 #include "td/telegram/Version.h"
 
 #include "td/utils/algorithm.h"

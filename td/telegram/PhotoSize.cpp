@@ -411,19 +411,19 @@ PhotoSize get_web_document_photo_size(FileManager *file_manager, FileType file_t
 
 Result<PhotoSize> get_input_photo_size(FileManager *file_manager, FileId file_id, int32 width, int32 height) {
   if (width < 0 || width > 10000) {
-    return Status::Error(400, "Wrong photo width");
+    return Status::Error(400, "Width of the photo is too big");
   }
   if (height < 0 || height > 10000) {
-    return Status::Error(400, "Wrong photo height");
+    return Status::Error(400, "Height of the photo is too big");
   }
   if (width + height > 10000) {
-    return Status::Error(400, "Photo dimensions are too big");
+    return Status::Error(400, "Dimensions of the photo are too big");
   }
 
   auto file_view = file_manager->get_file_view(file_id);
   auto file_size = file_view.size();
   if (file_size < 0 || file_size >= 1000000000) {
-    return Status::Error(400, "Photo is too big");
+    return Status::Error(400, "Size of the photo is too big");
   }
 
   int32 type = 'i';

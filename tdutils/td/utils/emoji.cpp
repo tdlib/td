@@ -141,7 +141,7 @@ static bool is_emoji_element(Slice str) {
 
 bool is_emoji(Slice str) {
   size_t i = str.substr(0, MAX_EMOJI_LENGTH + 4).find('\xE2');
-  if (i == td::Slice::npos) {
+  if (i == Slice::npos) {
     return is_emoji_element(str);
   }
 

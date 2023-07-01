@@ -62,6 +62,7 @@
 #include "td/telegram/SponsoredMessageManager.h"
 #include "td/telegram/StickerPhotoSize.h"
 #include "td/telegram/StickerType.h"
+#include "td/telegram/StoryId.h"
 #include "td/telegram/StoryManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"

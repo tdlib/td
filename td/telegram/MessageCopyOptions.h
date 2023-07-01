@@ -7,7 +7,6 @@
 #pragma once
 
 #include "td/telegram/MessageEntity.h"
-#include "td/telegram/MessageId.h"
 #include "td/telegram/MessageInputReplyTo.h"
 #include "td/telegram/ReplyMarkup.h"
 

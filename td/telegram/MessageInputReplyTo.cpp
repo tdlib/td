@@ -7,7 +7,11 @@
 #include "td/telegram/MessageInputReplyTo.h"
 
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/DialogId.h"
+#include "td/telegram/StoryId.h"
 #include "td/telegram/Td.h"
+
+#include "td/utils/logging.h"
 
 namespace td {
 

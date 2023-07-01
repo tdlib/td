@@ -315,7 +315,6 @@ class TlWriterCCommon final : public tl::TL_writer {
            ";\n"
            "struct TdVectorVector" +
            class_name + ";\n";
-    ;
   }
 
   std::string gen_class_begin(const std::string &class_name, const std::string &base_class_name, bool is_proxy,

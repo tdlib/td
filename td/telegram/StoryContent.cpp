@@ -6,17 +6,21 @@
 //
 #include "td/telegram/StoryContent.h"
 
+#include "td/telegram/Dimensions.h"
+#include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/Photo.h"
+#include "td/telegram/PhotoSize.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/VideosManager.h"
 
 #include "td/utils/common.h"
+#include "td/utils/logging.h"
 
 #include <cmath>
 

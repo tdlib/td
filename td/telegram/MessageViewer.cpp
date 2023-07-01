@@ -9,6 +9,7 @@
 #include "td/telegram/ContactsManager.h"
 
 #include "td/utils/algorithm.h"
+#include "td/utils/logging.h"
 
 namespace td {
 

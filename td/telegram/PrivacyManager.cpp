@@ -167,15 +167,21 @@ void PrivacyManager::on_get_user_privacy_settings(UserPrivacySetting user_privac
 void PrivacyManager::on_set_user_privacy_settings(UserPrivacySetting user_privacy_setting,
                                                   Result<UserPrivacySettingRules> r_privacy_rules,
                                                   Promise<Unit> &&promise) {
-  G()->ignore_result_if_closing(r_privacy_rules);
+  if (G()->close_flag()) {
+    auto &info = get_info(user_privacy_setting);
+    CHECK(info.has_set_query_);
+    info.has_set_query_ = false;
+    auto promises = std::move(info.set_promises_);
+    fail_promises(promises, Global::request_aborted_error());
+    promise.set_error(Global::request_aborted_error());
+    return;
+  }
+
   auto &info = get_info(user_privacy_setting);
   CHECK(info.has_set_query_);
   info.has_set_query_ = false;
   if (r_privacy_rules.is_error()) {
     promise.set_error(r_privacy_rules.move_as_error());
-    if (G()->close_flag()) {
-      return fail_promises(info.set_promises_, Global::request_aborted_error());
-    }
   } else {
     do_update_privacy(user_privacy_setting, r_privacy_rules.move_as_ok(), true);
     promise.set_value(Unit());

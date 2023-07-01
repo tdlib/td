@@ -27,6 +27,7 @@
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StateManager.h"
+#include "td/telegram/StoryId.h"
 #include "td/telegram/StoryManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"

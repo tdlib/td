@@ -6,6 +6,7 @@
 //
 #include "td/telegram/DraftMessage.h"
 
+#include "td/telegram/AccessRights.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageEntity.h"
