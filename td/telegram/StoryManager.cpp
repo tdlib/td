@@ -1656,11 +1656,11 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
 
   return td_api::make_object<td_api::story>(
       story_full_id.get_story_id().get(), td_->messages_manager_->get_chat_id_object(dialog_id, "get_story_object"),
-      story->date_, story->is_edited_, story->is_pinned_, is_visible_only_for_self, can_be_forwarded, can_be_replied,
+      story->date_, is_edited, story->is_pinned_, is_visible_only_for_self, can_be_forwarded, can_be_replied,
       can_get_story_viewers(story_full_id, story).is_ok(),
       story->interaction_info_.get_story_interaction_info_object(td_), std::move(privacy_rules),
       get_story_content_object(td_, content),
-      get_formatted_text_object(story->caption_, true, get_story_content_duration(td_, content)));
+      get_formatted_text_object(*caption, true, get_story_content_duration(td_, content)));
 }
 
 td_api::object_ptr<td_api::stories> StoryManager::get_stories_object(int32 total_count,

@@ -884,6 +884,10 @@ class CliClient final : public Actor {
     int64 user_id = 0;
     int32 story_id = 0;
 
+    static MessageReplyTo get_default() {
+      return {};
+    }
+
     operator td_api::object_ptr<td_api::MessageReplyTo>() const {
       if (message_id == 0 && user_id == 0 && story_id == 0) {
         return nullptr;
@@ -2092,7 +2096,7 @@ class CliClient final : public Actor {
 
   void send_message(int64 chat_id, td_api::object_ptr<td_api::InputMessageContent> &&input_message_content,
                     bool disable_notification = false, bool from_background = false,
-                    MessageReplyTo message_reply_to = {}) {
+                    MessageReplyTo message_reply_to = MessageReplyTo::get_default()) {
     auto id = send_request(td_api::make_object<td_api::sendMessage>(
         chat_id, message_thread_id_, message_reply_to,
         td_api::make_object<td_api::messageSendOptions>(disable_notification, from_background, true, true,
