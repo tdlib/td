@@ -49,7 +49,6 @@
 #include "td/telegram/StoryManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
-#include "td/telegram/telegram_api.hpp"
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/Version.h"
 
@@ -12750,7 +12749,25 @@ void ContactsManager::on_get_user_photos(UserId user_id, int32 offset, int32 lim
 
 void ContactsManager::on_get_chat(tl_object_ptr<telegram_api::Chat> &&chat, const char *source) {
   LOG(DEBUG) << "Receive from " << source << ' ' << to_string(chat);
-  downcast_call(*chat, [this, source](auto &c) { this->on_chat_update(c, source); });
+  switch (chat->get_id()) {
+    case telegram_api::chatEmpty::ID:
+      on_chat_update(static_cast<telegram_api::chatEmpty &>(*chat), source);
+      break;
+    case telegram_api::chat::ID:
+      on_chat_update(static_cast<telegram_api::chat &>(*chat), source);
+      break;
+    case telegram_api::chatForbidden::ID:
+      on_chat_update(static_cast<telegram_api::chatForbidden &>(*chat), source);
+      break;
+    case telegram_api::channel::ID:
+      on_chat_update(static_cast<telegram_api::channel &>(*chat), source);
+      break;
+    case telegram_api::channelForbidden::ID:
+      on_chat_update(static_cast<telegram_api::channelForbidden &>(*chat), source);
+      break;
+    default:
+      UNREACHABLE();
+  }
 }
 
 void ContactsManager::on_get_chats(vector<tl_object_ptr<telegram_api::Chat>> &&chats, const char *source) {

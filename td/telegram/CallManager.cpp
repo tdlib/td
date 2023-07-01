@@ -6,8 +6,6 @@
 //
 #include "td/telegram/CallManager.h"
 
-#include "td/telegram/telegram_api.hpp"
-
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -21,8 +19,25 @@ CallManager::CallManager(ActorShared<> parent) : parent_(std::move(parent)) {
 }
 
 void CallManager::update_call(Update call) {
-  int64 call_id = 0;
-  downcast_call(*call->phone_call_, [&](auto &update) { call_id = update.id_; });
+  auto call_id = [phone_call = call->phone_call_.get()] {
+    switch (phone_call->get_id()) {
+      case telegram_api::phoneCallEmpty::ID:
+        return static_cast<const telegram_api::phoneCallEmpty *>(phone_call)->id_;
+      case telegram_api::phoneCallWaiting::ID:
+        return static_cast<const telegram_api::phoneCallWaiting *>(phone_call)->id_;
+      case telegram_api::phoneCallRequested::ID:
+        return static_cast<const telegram_api::phoneCallRequested *>(phone_call)->id_;
+      case telegram_api::phoneCallAccepted::ID:
+        return static_cast<const telegram_api::phoneCallAccepted *>(phone_call)->id_;
+      case telegram_api::phoneCall::ID:
+        return static_cast<const telegram_api::phoneCall *>(phone_call)->id_;
+      case telegram_api::phoneCallDiscarded::ID:
+        return static_cast<const telegram_api::phoneCallDiscarded *>(phone_call)->id_;
+      default:
+        UNREACHABLE();
+        return static_cast<int64>(0);
+    }
+  }();
   LOG(DEBUG) << "Receive UpdateCall for " << call_id;
 
   auto &info = call_info_[call_id];

@@ -17,7 +17,6 @@
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/NotificationManager.h"
 #include "td/telegram/Td.h"
-#include "td/telegram/telegram_api.hpp"
 #include "td/telegram/UpdatesManager.h"
 
 #include "td/utils/algorithm.h"
@@ -475,8 +474,25 @@ void CallActor::on_save_log_query_result(FileId file_id, Promise<Unit> promise, 
 // Requests
 void CallActor::update_call(tl_object_ptr<telegram_api::PhoneCall> call) {
   LOG(INFO) << "Receive " << to_string(call);
-  Status status;
-  downcast_call(*call, [&](auto &call) { status = this->do_update_call(call); });
+  auto status = [&] {
+    switch (call->get_id()) {
+      case telegram_api::phoneCallEmpty::ID:
+        return do_update_call(static_cast<telegram_api::phoneCallEmpty &>(*call));
+      case telegram_api::phoneCallWaiting::ID:
+        return do_update_call(static_cast<telegram_api::phoneCallWaiting &>(*call));
+      case telegram_api::phoneCallRequested::ID:
+        return do_update_call(static_cast<telegram_api::phoneCallRequested &>(*call));
+      case telegram_api::phoneCallAccepted::ID:
+        return do_update_call(static_cast<telegram_api::phoneCallAccepted &>(*call));
+      case telegram_api::phoneCall::ID:
+        return do_update_call(static_cast<telegram_api::phoneCall &>(*call));
+      case telegram_api::phoneCallDiscarded::ID:
+        return do_update_call(static_cast<telegram_api::phoneCallDiscarded &>(*call));
+      default:
+        UNREACHABLE();
+        return Status::OK();
+    }
+  }();
   if (status.is_error()) {
     LOG(INFO) << "Receive error " << status << ", while handling update " << to_string(call);
     on_error(std::move(status));

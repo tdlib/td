@@ -36,7 +36,6 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/td_api.hpp"
 #include "td/telegram/TdDb.h"
-#include "td/telegram/telegram_api.hpp"
 #include "td/telegram/ThemeManager.h"
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/Venue.h"
@@ -1856,9 +1855,17 @@ void InlineQueriesManager::on_get_inline_query_results(DialogId dialog_id, UserI
             continue;
           }
 
-          vector<tl_object_ptr<telegram_api::DocumentAttribute>> attributes;
-          downcast_call(*result->content_,
-                        [&attributes](auto &web_document) { attributes = std::move(web_document.attributes_); });
+          auto attributes = [content = result->content_.get()] {
+            switch (content->get_id()) {
+              case telegram_api::webDocument::ID:
+                return std::move(static_cast<telegram_api::webDocument *>(content)->attributes_);
+              case telegram_api::webDocumentNoProxy::ID:
+                return std::move(static_cast<telegram_api::webDocumentNoProxy *>(content)->attributes_);
+              default:
+                UNREACHABLE();
+                return vector<telegram_api::object_ptr<telegram_api::DocumentAttribute>>();
+            }
+          }();
 
           bool is_animation = result->type_ == "gif" && (content_type == "image/gif" || content_type == "video/mp4");
           if (is_animation) {
