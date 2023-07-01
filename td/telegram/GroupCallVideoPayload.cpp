@@ -6,6 +6,8 @@
 //
 #include "td/telegram/GroupCallVideoPayload.h"
 
+#include "td/telegram/telegram_api.h"
+
 #include "td/utils/algorithm.h"
 
 namespace td {

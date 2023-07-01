@@ -8,6 +8,7 @@
 
 #include "td/telegram/misc.h"
 #include "td/telegram/ServerMessageId.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/utils/emoji.h"
 #include "td/utils/misc.h"
