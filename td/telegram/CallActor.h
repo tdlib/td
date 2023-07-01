@@ -160,12 +160,14 @@ class CallActor final : public NetQueryCallback {
   void on_dh_config(Result<std::shared_ptr<DhConfig>> r_dh_config, bool dummy);
   void do_load_dh_config(Promise<std::shared_ptr<DhConfig>> promise);
 
-  Status do_update_call(telegram_api::phoneCallEmpty &call);
-  Status do_update_call(telegram_api::phoneCallWaiting &call);
-  Status do_update_call(telegram_api::phoneCallRequested &call);
-  Status do_update_call(telegram_api::phoneCallAccepted &call);
-  Status do_update_call(telegram_api::phoneCall &call);
-  Status do_update_call(telegram_api::phoneCallDiscarded &call);
+  Status do_update_call(const telegram_api::phoneCallEmpty &call);
+  Status do_update_call(const telegram_api::phoneCallWaiting &call);
+  Status do_update_call(const telegram_api::phoneCallRequested &call);
+  Status do_update_call(const telegram_api::phoneCallAccepted &call);
+  Status do_update_call(const telegram_api::phoneCall &call);
+  Status do_update_call(const telegram_api::phoneCallDiscarded &call);
+
+  void on_get_call_id();
 
   void send_received_query();
   void on_received_query_result(Result<NetQueryPtr> r_net_query);

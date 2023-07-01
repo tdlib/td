@@ -477,17 +477,17 @@ void CallActor::update_call(tl_object_ptr<telegram_api::PhoneCall> call) {
   auto status = [&] {
     switch (call->get_id()) {
       case telegram_api::phoneCallEmpty::ID:
-        return do_update_call(static_cast<telegram_api::phoneCallEmpty &>(*call));
+        return do_update_call(static_cast<const telegram_api::phoneCallEmpty &>(*call));
       case telegram_api::phoneCallWaiting::ID:
-        return do_update_call(static_cast<telegram_api::phoneCallWaiting &>(*call));
+        return do_update_call(static_cast<const telegram_api::phoneCallWaiting &>(*call));
       case telegram_api::phoneCallRequested::ID:
-        return do_update_call(static_cast<telegram_api::phoneCallRequested &>(*call));
+        return do_update_call(static_cast<const telegram_api::phoneCallRequested &>(*call));
       case telegram_api::phoneCallAccepted::ID:
-        return do_update_call(static_cast<telegram_api::phoneCallAccepted &>(*call));
+        return do_update_call(static_cast<const telegram_api::phoneCallAccepted &>(*call));
       case telegram_api::phoneCall::ID:
-        return do_update_call(static_cast<telegram_api::phoneCall &>(*call));
+        return do_update_call(static_cast<const telegram_api::phoneCall &>(*call));
       case telegram_api::phoneCallDiscarded::ID:
-        return do_update_call(static_cast<telegram_api::phoneCallDiscarded &>(*call));
+        return do_update_call(static_cast<const telegram_api::phoneCallDiscarded &>(*call));
       default:
         UNREACHABLE();
         return Status::OK();
@@ -506,11 +506,11 @@ void CallActor::update_call_inner(tl_object_ptr<telegram_api::phone_phoneCall> c
   update_call(std::move(call->phone_call_));
 }
 
-Status CallActor::do_update_call(telegram_api::phoneCallEmpty &call) {
+Status CallActor::do_update_call(const telegram_api::phoneCallEmpty &call) {
   return Status::Error(400, "Call is finished");
 }
 
-Status CallActor::do_update_call(telegram_api::phoneCallWaiting &call) {
+Status CallActor::do_update_call(const telegram_api::phoneCallWaiting &call) {
   if (state_ != State::WaitRequestResult && state_ != State::WaitAcceptResult) {
     return Status::Error(500, PSLICE() << "Drop unexpected " << to_string(call));
   }
@@ -534,9 +534,7 @@ Status CallActor::do_update_call(telegram_api::phoneCallWaiting &call) {
   is_video_ |= call.video_;
   call_admin_user_id_ = UserId(call.admin_id_);
   // call_participant_user_id_ = UserId(call.participant_id_);
-  if (call_id_promise_) {
-    call_id_promise_.set_value(std::move(call.id_));
-  }
+  on_get_call_id();
 
   if (!call_state_.is_created) {
     call_state_.is_created = true;
@@ -546,7 +544,7 @@ Status CallActor::do_update_call(telegram_api::phoneCallWaiting &call) {
   return Status::OK();
 }
 
-Status CallActor::do_update_call(telegram_api::phoneCallRequested &call) {
+Status CallActor::do_update_call(const telegram_api::phoneCallRequested &call) {
   if (state_ != State::Empty) {
     return Status::Error(500, PSLICE() << "Drop unexpected " << to_string(call));
   }
@@ -557,9 +555,7 @@ Status CallActor::do_update_call(telegram_api::phoneCallRequested &call) {
   is_video_ |= call.video_;
   call_admin_user_id_ = UserId(call.admin_id_);
   // call_participant_user_id_ = UserId(call.participant_id_);
-  if (call_id_promise_) {
-    call_id_promise_.set_value(std::move(call.id_));
-  }
+  on_get_call_id();
 
   dh_handshake_.set_g_a_hash(call.g_a_hash_.as_slice());
   state_ = State::SendAcceptQuery;
@@ -578,7 +574,7 @@ tl_object_ptr<telegram_api::inputPhoneCall> CallActor::get_input_phone_call(cons
   return make_tl_object<telegram_api::inputPhoneCall>(call_id_, call_access_hash_);
 }
 
-Status CallActor::do_update_call(telegram_api::phoneCallAccepted &call) {
+Status CallActor::do_update_call(const telegram_api::phoneCallAccepted &call) {
   if (state_ != State::WaitRequestResult) {
     return Status::Error(500, PSLICE() << "Drop unexpected " << to_string(call));
   }
@@ -590,9 +586,7 @@ Status CallActor::do_update_call(telegram_api::phoneCallAccepted &call) {
     is_call_id_inited_ = true;
     call_admin_user_id_ = UserId(call.admin_id_);
     // call_participant_user_id_ = UserId(call.participant_id_);
-    if (call_id_promise_) {
-      call_id_promise_.set_value(std::move(call.id_));
-    }
+    on_get_call_id();
   }
   is_video_ |= call.video_;
   dh_handshake_.set_g_a(call.g_b_.as_slice());
@@ -612,7 +606,7 @@ void CallActor::on_begin_exchanging_key() {
   set_timeout_in(timeout);
 }
 
-Status CallActor::do_update_call(telegram_api::phoneCall &call) {
+Status CallActor::do_update_call(const telegram_api::phoneCall &call) {
   if (state_ != State::WaitAcceptResult && state_ != State::WaitConfirmResult) {
     return Status::Error(500, PSLICE() << "Drop unexpected " << to_string(call));
   }
@@ -644,10 +638,18 @@ Status CallActor::do_update_call(telegram_api::phoneCall &call) {
   return Status::OK();
 }
 
-Status CallActor::do_update_call(telegram_api::phoneCallDiscarded &call) {
+Status CallActor::do_update_call(const telegram_api::phoneCallDiscarded &call) {
   LOG(DEBUG) << "Do update call to Discarded";
   on_call_discarded(get_call_discard_reason(call.reason_), call.need_rating_, call.need_debug_, call.video_);
   return Status::OK();
+}
+
+void CallActor::on_get_call_id() {
+  if (call_id_promise_) {
+    int64 call_id = call_id_;
+    call_id_promise_.set_value(std::move(call_id));
+    call_id_promise_ = {};
+  }
 }
 
 void CallActor::on_call_discarded(CallDiscardReason reason, bool need_rating, bool need_debug, bool is_video) {
