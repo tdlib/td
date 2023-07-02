@@ -34987,6 +34987,16 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     on_dialog_updated(dialog_id, "update_has_contact_registered_message");
   }
 
+  if (m->sender_user_id.is_valid()) {
+    auto story_full_id = get_message_content_story_full_id(td_, m->content.get());
+    if (story_full_id.is_valid()) {
+      td_->story_manager_->on_story_replied(story_full_id, m->sender_user_id);
+    }
+    if (m->reply_to_story_full_id.is_valid()) {
+      td_->story_manager_->on_story_replied(m->reply_to_story_full_id, m->sender_user_id);
+    }
+  }
+
   reget_message_from_server_if_needed(dialog_id, m);
 
   add_message_file_sources(dialog_id, m);

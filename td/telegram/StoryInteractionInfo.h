@@ -48,6 +48,8 @@ class StoryInteractionInfo {
     return view_count_;
   }
 
+  bool definitely_has_no_user(UserId user_id) const;
+
   void set_recent_viewer_user_ids(vector<UserId> &&user_ids);
 
   td_api::object_ptr<td_api::storyInteractionInfo> get_story_interaction_info_object(Td *td) const;

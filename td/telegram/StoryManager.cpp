@@ -1322,6 +1322,21 @@ void StoryManager::view_story_message(StoryFullId story_full_id) {
   }
 }
 
+void StoryManager::on_story_replied(StoryFullId story_full_id, UserId replier_user_id) {
+  if (!replier_user_id.is_valid() || replier_user_id == td_->contacts_manager_->get_my_id()) {
+    return;
+  }
+  const Story *story = get_story(story_full_id);
+  if (story == nullptr || !story_full_id.get_story_id().is_server() || !is_story_owned(story_full_id.get_dialog_id())) {
+    return;
+  }
+
+  if (story->content_ != nullptr && is_active_story(story) &&
+      story->interaction_info_.definitely_has_no_user(replier_user_id)) {
+    reload_story(story_full_id, Promise<Unit>());
+  }
+}
+
 void StoryManager::schedule_interaction_info_update() {
   if (interaction_info_update_timeout_.has_timeout()) {
     return;

@@ -9,6 +9,7 @@
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Td.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/logging.h"
 
 namespace td {
@@ -41,6 +42,10 @@ void StoryInteractionInfo::set_recent_viewer_user_ids(vector<UserId> &&user_ids)
     user_ids.resize(MAX_RECENT_VIEWERS);
   }
   recent_viewer_user_ids_ = std::move(user_ids);
+}
+
+bool StoryInteractionInfo::definitely_has_no_user(UserId user_id) const {
+  return !is_empty() && view_count_ <= MAX_RECENT_VIEWERS && !contains(recent_viewer_user_ids_, user_id);
 }
 
 td_api::object_ptr<td_api::storyInteractionInfo> StoryInteractionInfo::get_story_interaction_info_object(Td *td) const {

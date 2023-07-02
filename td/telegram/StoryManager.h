@@ -155,6 +155,8 @@ class StoryManager final : public Actor {
 
   void view_story_message(StoryFullId story_full_id);
 
+  void on_story_replied(StoryFullId story_full_id, UserId replier_user_id);
+
   void get_story_viewers(StoryId story_id, const td_api::messageViewer *offset, int32 limit,
                          Promise<td_api::object_ptr<td_api::messageViewers>> &&promise);
 
