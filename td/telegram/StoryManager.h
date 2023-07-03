@@ -342,7 +342,7 @@ class StoryManager final : public Actor {
 
   int64 save_send_story_log_event(const PendingStory *pending_story);
 
-  static void delete_pending_story(unique_ptr<PendingStory> &&pending_story);
+  void delete_pending_story(FileId file_id, unique_ptr<PendingStory> &&pending_story, Status status);
 
   void do_send_story(unique_ptr<PendingStory> &&pending_story, vector<int> bad_parts);
 
@@ -352,8 +352,6 @@ class StoryManager final : public Actor {
 
   void do_edit_story(FileId file_id, unique_ptr<PendingStory> &&pending_story,
                      telegram_api::object_ptr<telegram_api::InputFile> input_file);
-
-  void on_story_edited(FileId file_id, unique_ptr<PendingStory> pending_story, Result<Unit> result);
 
   void on_toggle_story_is_pinned(StoryId story_id, bool is_pinned, Promise<Unit> &&promise);
 
