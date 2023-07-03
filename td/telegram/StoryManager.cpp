@@ -2015,6 +2015,12 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
     }
   }
 
+  Dependencies dependencies;
+  add_story_dependencies(dependencies, story);
+  for (auto dependent_dialog_id : dependencies.get_dialog_ids()) {
+    td_->messages_manager_->force_create_dialog(dependent_dialog_id, "on_get_new_story", true);
+  }
+
   on_story_changed(story_full_id, story, is_changed, need_save_to_database);
 
   LOG(INFO) << "Receive " << story_full_id;
