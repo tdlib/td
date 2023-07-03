@@ -326,6 +326,8 @@ class StoryManager final : public Actor {
 
   void on_reload_story(StoryFullId story_full_id, Result<Unit> &&result);
 
+  static void delete_pending_story(unique_ptr<PendingStory> &&pending_story);
+
   void do_send_story(unique_ptr<PendingStory> &&pending_story, vector<int> bad_parts);
 
   void on_upload_story(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);

@@ -573,6 +573,8 @@ class StoryManager::SendStoryQuery final : public Td::ResultHandler {
     LOG(INFO) << "Receive result for SendStoryQuery: " << to_string(ptr);
     td_->updates_manager_->on_get_updates(std::move(ptr), Promise<Unit>());
 
+    td_->story_manager_->delete_pending_story(std::move(pending_story_));
+
     td_->file_manager_->delete_partial_remote_location(file_id_);
   }
 
@@ -589,6 +591,7 @@ class StoryManager::SendStoryQuery final : public Td::ResultHandler {
       return;
     } else {
       td_->file_manager_->delete_partial_remote_location(file_id_);
+      td_->story_manager_->delete_pending_story(std::move(pending_story_));
     }
   }
 };
@@ -2565,9 +2568,17 @@ void StoryManager::send_story(td_api::object_ptr<td_api::InputStoryContent> &&in
 
   auto pending_story = td::make_unique<PendingStory>(dialog_id, StoryId(), 0 /*log_event_id*/, ++send_story_count_,
                                                      random_id, std::move(story));
+
   do_send_story(std::move(pending_story), {});
 
   promise.set_value(get_story_object({dialog_id, StoryId()}, story_ptr));
+}
+
+void StoryManager::delete_pending_story(unique_ptr<PendingStory> &&pending_story) {
+  CHECK(pending_story != nullptr);
+  if (pending_story->log_event_id_ != 0) {
+    binlog_erase(G()->td_db()->get_binlog(), pending_story->log_event_id_);
+  }
 }
 
 void StoryManager::do_send_story(unique_ptr<PendingStory> &&pending_story, vector<int> bad_parts) {
@@ -2610,10 +2621,12 @@ void StoryManager::on_upload_story(FileId file_id, telegram_api::object_ptr<tele
   if (input_file == nullptr && file_view.has_remote_location()) {
     if (file_view.main_remote_location().is_web()) {
       LOG(ERROR) << "Can't use web photo as story";
+      delete_pending_story(std::move(pending_story));
       return;
     }
     if (pending_story->was_reuploaded_) {
       LOG(ERROR) << "Failed to reupload story";
+      delete_pending_story(std::move(pending_story));
       return;
     }
     pending_story->was_reuploaded_ = true;
@@ -2655,9 +2668,7 @@ void StoryManager::on_upload_story_error(FileId file_id, Status status) {
   if (is_edit) {
     on_story_edited(file_id, std::move(pending_story), std::move(status));
   } else {
-    if (pending_story->log_event_id_ != 0) {
-      binlog_erase(G()->td_db()->get_binlog(), pending_story->log_event_id_);
-    }
+    delete_pending_story(std::move(pending_story));
   }
 }
 
@@ -2742,6 +2753,7 @@ void StoryManager::do_edit_story(FileId file_id, unique_ptr<PendingStory> &&pend
     if (file_id.is_valid()) {
       td_->file_manager_->cancel_upload(file_id);
     }
+    delete_pending_story(std::move(pending_story));
     return;
   }
   CHECK(story->content_ != nullptr);
@@ -2761,12 +2773,11 @@ void StoryManager::on_story_edited(FileId file_id, unique_ptr<PendingStory> pend
   auto it = being_edited_stories_.find(story_full_id);
   if (story == nullptr || story->edit_generation_ != pending_story->random_id_ || it == being_edited_stories_.end()) {
     LOG(INFO) << "Ignore outdated edit of " << story_full_id;
+    delete_pending_story(std::move(pending_story));
     return;
   }
+  delete_pending_story(std::move(pending_story));
   CHECK(story->content_ != nullptr);
-  if (pending_story->log_event_id_ != 0) {
-    binlog_erase(G()->td_db()->get_binlog(), pending_story->log_event_id_);
-  }
   auto promises = std::move(it->second->promises_);
   bool is_changed = it->second->content_ != nullptr ||
                     (it->second->edit_caption_ && it->second->caption_ != story->caption_) ||
