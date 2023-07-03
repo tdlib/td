@@ -21,6 +21,7 @@
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/ReportReason.h"
 #include "td/telegram/StoryContent.h"
+#include "td/telegram/StoryInteractionInfo.hpp"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
@@ -688,6 +689,84 @@ StoryManager::PendingStory::PendingStory(DialogId dialog_id, StoryId story_id, u
     , random_id_(random_id)
     , was_reuploaded_(false)
     , story_(std::move(story)) {
+}
+
+template <class StorerT>
+void StoryManager::Story::store(StorerT &storer) const {
+  using td::store;
+  bool has_receive_date = receive_date_ != 0;
+  bool has_interaction_info = !interaction_info_.is_empty();
+  bool has_privacy_rules = privacy_rules_ != UserPrivacySettingRules();
+  bool has_content = content_ != nullptr;
+  bool has_caption = !caption_.text.empty();
+  BEGIN_STORE_FLAGS();
+  STORE_FLAG(is_edited_);
+  STORE_FLAG(is_pinned_);
+  STORE_FLAG(is_public_);
+  STORE_FLAG(is_for_close_friends_);
+  STORE_FLAG(noforwards_);
+  STORE_FLAG(has_receive_date);
+  STORE_FLAG(has_interaction_info);
+  STORE_FLAG(has_privacy_rules);
+  STORE_FLAG(has_content);
+  STORE_FLAG(has_caption);
+  END_STORE_FLAGS();
+  store(date_, storer);
+  store(expire_date_, storer);
+  if (has_receive_date) {
+    store(receive_date_, storer);
+  }
+  if (has_interaction_info) {
+    store(interaction_info_, storer);
+  }
+  if (has_privacy_rules) {
+    store(privacy_rules_, storer);
+  }
+  if (has_content) {
+    store_story_content(content_.get(), storer);
+  }
+  if (has_caption) {
+    store(caption_, storer);
+  }
+}
+
+template <class ParserT>
+void StoryManager::Story::parse(ParserT &parser) {
+  using td::parse;
+  bool has_receive_date;
+  bool has_interaction_info;
+  bool has_privacy_rules;
+  bool has_content;
+  bool has_caption;
+  BEGIN_PARSE_FLAGS();
+  PARSE_FLAG(is_edited_);
+  PARSE_FLAG(is_pinned_);
+  PARSE_FLAG(is_public_);
+  PARSE_FLAG(is_for_close_friends_);
+  PARSE_FLAG(noforwards_);
+  PARSE_FLAG(has_receive_date);
+  PARSE_FLAG(has_interaction_info);
+  PARSE_FLAG(has_privacy_rules);
+  PARSE_FLAG(has_content);
+  PARSE_FLAG(has_caption);
+  END_PARSE_FLAGS();
+  parse(date_, parser);
+  parse(expire_date_, parser);
+  if (has_receive_date) {
+    parse(receive_date_, parser);
+  }
+  if (has_interaction_info) {
+    parse(interaction_info_, parser);
+  }
+  if (has_privacy_rules) {
+    parse(privacy_rules_, parser);
+  }
+  if (has_content) {
+    parse_story_content(content_, parser);
+  }
+  if (has_caption) {
+    parse(caption_, parser);
+  }
 }
 
 StoryManager::StoryManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {

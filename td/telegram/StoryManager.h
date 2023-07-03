@@ -60,6 +60,12 @@ class StoryManager final : public Actor {
     FormattedText caption_;
     mutable int64 edit_generation_ = 0;
     int64 global_id_ = 0;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
   };
 
   struct BeingEditedStory {

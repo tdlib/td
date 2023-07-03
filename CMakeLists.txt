@@ -841,6 +841,7 @@ set(TDLIB_SOURCE
   td/telegram/StickerMaskPosition.hpp
   td/telegram/StickerPhotoSize.hpp
   td/telegram/StickersManager.hpp
+  td/telegram/StoryInteractionInfo.hpp
   td/telegram/TranscriptionInfo.hpp
   td/telegram/VideoNotesManager.hpp
   td/telegram/VideosManager.hpp

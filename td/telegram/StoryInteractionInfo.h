@@ -53,6 +53,12 @@ class StoryInteractionInfo {
   void set_recent_viewer_user_ids(vector<UserId> &&user_ids);
 
   td_api::object_ptr<td_api::storyInteractionInfo> get_story_interaction_info_object(Td *td) const;
+
+  template <class StorerT>
+  void store(StorerT &storer) const;
+
+  template <class ParserT>
+  void parse(ParserT &parser);
 };
 
 bool operator==(const StoryInteractionInfo &lhs, const StoryInteractionInfo &rhs);
