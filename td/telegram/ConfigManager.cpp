@@ -939,7 +939,8 @@ void ConfigManager::start_up() {
   send_closure(config_recoverer_, &ConfigRecoverer::on_dc_options_update, load_dc_options_update());
 
   auto expire_time = load_config_expire_time();
-  if (expire_time.is_in_past() || true) {
+  bool reload_config_on_restart = true;
+  if (expire_time.is_in_past() || reload_config_on_restart) {
     request_config(false);
   } else {
     expire_time_ = expire_time;
