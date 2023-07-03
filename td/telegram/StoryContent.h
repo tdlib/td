@@ -18,6 +18,7 @@
 
 namespace td {
 
+class Dependencies;
 class Td;
 
 class StoryContent {
@@ -37,6 +38,8 @@ void store_story_content(const StoryContent *content, LogEventStorerCalcLength &
 void store_story_content(const StoryContent *content, LogEventStorerUnsafe &storer);
 
 void parse_story_content(unique_ptr<StoryContent> &content, LogEventParser &parser);
+
+void add_story_content_dependencies(Dependencies &dependencies, const StoryContent *story_content);
 
 unique_ptr<StoryContent> get_story_content(Td *td, telegram_api::object_ptr<telegram_api::MessageMedia> &&media_ptr,
                                            DialogId owner_dialog_id);

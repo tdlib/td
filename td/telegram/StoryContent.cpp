@@ -6,6 +6,7 @@
 //
 #include "td/telegram/StoryContent.h"
 
+#include "td/telegram/Dependencies.h"
 #include "td/telegram/Dimensions.h"
 #include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
@@ -168,6 +169,20 @@ void store_story_content(const StoryContent *content, LogEventStorerUnsafe &stor
 
 void parse_story_content(unique_ptr<StoryContent> &content, LogEventParser &parser) {
   parse(content, parser);
+}
+
+void add_story_content_dependencies(Dependencies &dependencies, const StoryContent *story_content) {
+  switch (story_content->get_type()) {
+    case StoryContentType::Photo:
+      break;
+    case StoryContentType::Video:
+      break;
+    case StoryContentType::Unsupported:
+      break;
+    default:
+      UNREACHABLE();
+      break;
+  }
 }
 
 unique_ptr<StoryContent> get_story_content(Td *td, tl_object_ptr<telegram_api::MessageMedia> &&media_ptr,

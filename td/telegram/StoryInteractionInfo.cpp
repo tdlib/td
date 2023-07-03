@@ -7,6 +7,7 @@
 #include "td/telegram/StoryInteractionInfo.h"
 
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/Dependencies.h"
 #include "td/telegram/Td.h"
 
 #include "td/utils/algorithm.h"
@@ -34,6 +35,12 @@ StoryInteractionInfo::StoryInteractionInfo(Td *td, telegram_api::object_ptr<tele
   if (view_count_ < 0) {
     LOG(ERROR) << "Receive " << view_count_ << " story views";
     view_count_ = 0;
+  }
+}
+
+void StoryInteractionInfo::add_dependencies(Dependencies &dependencies) const {
+  for (auto user_id : recent_viewer_user_ids_) {
+    dependencies.add(user_id);
   }
 }
 

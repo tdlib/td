@@ -15,6 +15,7 @@
 
 namespace td {
 
+class Dependencies;
 class Td;
 
 class StoryInteractionInfo {
@@ -35,6 +36,8 @@ class StoryInteractionInfo {
   bool is_empty() const {
     return view_count_ < 0;
   }
+
+  void add_dependencies(Dependencies &dependencies) const;
 
   bool set_view_count(int32 view_count) {
     if (view_count > view_count_) {

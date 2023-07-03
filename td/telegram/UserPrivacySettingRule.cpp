@@ -9,6 +9,7 @@
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatId.h"
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/Dependencies.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
 
@@ -246,6 +247,15 @@ vector<UserId> UserPrivacySettingRule::get_restricted_user_ids() const {
   return {};
 }
 
+void UserPrivacySettingRule::add_dependencies(Dependencies &dependencies) const {
+  for (auto user_id : user_ids_) {
+    dependencies.add(user_id);
+  }
+  for (auto dialog_id : dialog_ids_) {
+    dependencies.add_dialog_and_dependencies(dialog_id);
+  }
+}
+
 UserPrivacySettingRules UserPrivacySettingRules::get_user_privacy_setting_rules(
     Td *td, telegram_api::object_ptr<telegram_api::account_privacyRules> rules) {
   td->contacts_manager_->on_get_users(std::move(rules->users_), "on get privacy rules");
@@ -304,6 +314,12 @@ vector<UserId> UserPrivacySettingRules::get_restricted_user_ids() const {
   std::sort(result.begin(), result.end(), [](UserId lhs, UserId rhs) { return lhs.get() < rhs.get(); });
   result.erase(std::unique(result.begin(), result.end()), result.end());
   return result;
+}
+
+void UserPrivacySettingRules::add_dependencies(Dependencies &dependencies) const {
+  for (auto &rule : rules_) {
+    rule.add_dependencies(dependencies);
+  }
 }
 
 }  // namespace td

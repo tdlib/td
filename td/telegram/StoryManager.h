@@ -39,6 +39,7 @@
 namespace td {
 
 struct BinlogEvent;
+class Dependencies;
 class ReportReason;
 class StoryContent;
 class Td;
@@ -258,6 +259,10 @@ class StoryManager final : public Actor {
   bool is_subscribed_to_dialog_stories(DialogId owner_dialog_id) const;
 
   bool are_dialog_stories_hidden(DialogId owner_dialog_id) const;
+
+  void add_story_dependencies(Dependencies &dependencies, const Story *story);
+
+  void add_pending_story_dependencies(Dependencies &dependencies, const PendingStory *pending_story);
 
   const Story *get_story(StoryFullId story_full_id) const;
 

@@ -17,6 +17,7 @@
 
 namespace td {
 
+class Dependencies;
 class Td;
 
 class UserPrivacySettingRule {
@@ -36,6 +37,8 @@ class UserPrivacySettingRule {
   }
 
   vector<UserId> get_restricted_user_ids() const;
+
+  void add_dependencies(Dependencies &dependencies) const;
 
   template <class StorerT>
   void store(StorerT &storer) const {
@@ -123,6 +126,8 @@ class UserPrivacySettingRules {
   }
 
   vector<UserId> get_restricted_user_ids() const;
+
+  void add_dependencies(Dependencies &dependencies) const;
 
   template <class StorerT>
   void store(StorerT &storer) const {

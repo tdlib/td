@@ -10,6 +10,7 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/Dependencies.h"
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
@@ -936,6 +937,20 @@ const StoryManager::ActiveStories *StoryManager::get_active_stories(DialogId own
 
 StoryManager::ActiveStories *StoryManager::get_active_stories_editable(DialogId owner_dialog_id) {
   return active_stories_.get_pointer(owner_dialog_id);
+}
+
+void StoryManager::add_story_dependencies(Dependencies &dependencies, const Story *story) {
+  story->interaction_info_.add_dependencies(dependencies);
+  story->privacy_rules_.add_dependencies(dependencies);
+  if (story->content_ != nullptr) {
+    add_story_content_dependencies(dependencies, story->content_.get());
+  }
+  add_formatted_text_dependencies(dependencies, &story->caption_);
+}
+
+void StoryManager::add_pending_story_dependencies(Dependencies &dependencies, const PendingStory *pending_story) {
+  dependencies.add_dialog_and_dependencies(pending_story->dialog_id_);
+  add_story_dependencies(dependencies, pending_story->story_.get());
 }
 
 void StoryManager::load_active_stories(const td_api::object_ptr<td_api::StoryList> &story_list_ptr,
