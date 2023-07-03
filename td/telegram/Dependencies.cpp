@@ -114,7 +114,7 @@ bool Dependencies::resolve_force(Td *td, const char *source) const {
   for (auto dialog_id : dialog_ids) {
     if (!td->messages_manager_->have_dialog_force(dialog_id, source)) {
       LOG(ERROR) << "Can't find " << dialog_id << " from " << source;
-      td->messages_manager_->force_create_dialog(dialog_id, "resolve_dependencies_force", true);
+      td->messages_manager_->force_create_dialog(dialog_id, source, true);
       success = false;
     }
   }

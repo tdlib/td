@@ -6649,6 +6649,12 @@ void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api:
     bool need_update = true;
     bool need_update_dialog_pos = false;
 
+    Dependencies dependencies;
+    add_message_dependencies(dependencies, new_message.get());
+    for (auto dependent_dialog_id : dependencies.get_dialog_ids()) {
+      force_create_dialog(dependent_dialog_id, "on_update_service_notification", true);
+    }
+
     const Message *m = add_message_to_dialog(d, std::move(new_message), false, true, &need_update,
                                              &need_update_dialog_pos, "on_update_service_notification");
     if (m != nullptr && need_update) {
@@ -14846,6 +14852,11 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, const 
   }
   if (d == nullptr) {
     d = add_dialog_for_new_message(dialog_id, from_update, &need_update_dialog_pos, source);
+  }
+  Dependencies dependencies;
+  add_message_dependencies(dependencies, new_message.get());
+  for (auto dependent_dialog_id : dependencies.get_dialog_ids()) {
+    force_create_dialog(dependent_dialog_id, source, true);
   }
 
   const Message *m = add_message_to_dialog(d, std::move(new_message), false, from_update, &need_update,
