@@ -34490,9 +34490,9 @@ void MessagesManager::add_message_to_dialog_message_list(const Message *m, Dialo
 
   if (!(d->have_full_history && from_update) && d->last_message_id.is_valid() &&
       d->last_message_id < MessageId(ServerMessageId(1)) && message_id >= MessageId(ServerMessageId(1))) {
-    set_dialog_last_message_id(d, MessageId(), "add_message_to_dialog");
+    set_dialog_last_message_id(d, MessageId(), "add_message_to_dialog_message_list");
 
-    set_dialog_first_database_message_id(d, MessageId(), "add_message_to_dialog");
+    set_dialog_first_database_message_id(d, MessageId(), "add_message_to_dialog_message_list");
     set_dialog_last_database_message_id(d, MessageId(), source);
     d->have_full_history = false;
     d->have_full_history_source = 0;
@@ -34508,7 +34508,7 @@ void MessagesManager::add_message_to_dialog_message_list(const Message *m, Dialo
   if (from_update && !m->is_failed_to_send && message_id > d->last_new_message_id && !message_id.is_yet_unsent()) {
     if (dialog_type == DialogType::SecretChat || message_id.is_server()) {
       // can delete messages, therefore must be called before message attaching/adding
-      set_dialog_last_new_message_id(d, message_id, "add_message_to_dialog");
+      set_dialog_last_new_message_id(d, message_id, "add_message_to_dialog_message_list");
     }
   }
 
@@ -34531,7 +34531,7 @@ void MessagesManager::add_message_to_dialog_message_list(const Message *m, Dialo
       if (message_id.is_server() && d->last_read_inbox_message_id.is_valid() &&
           d->last_read_inbox_message_id.is_server() &&
           message_id == d->last_read_inbox_message_id.get_next_message_id(MessageType::Server)) {
-        read_history_inbox(d, message_id, 0, "add_message_to_dialog");
+        read_history_inbox(d, message_id, 0, "add_message_to_dialog_message_list");
       }
     }
   }
@@ -34541,13 +34541,13 @@ void MessagesManager::add_message_to_dialog_message_list(const Message *m, Dialo
   }
   if (need_update && has_unread_message_reactions(dialog_id, m)) {
     set_dialog_unread_reaction_count(d, d->unread_reaction_count + 1);
-    send_update_chat_unread_reaction_count(d, "add_message_to_dialog");
+    send_update_chat_unread_reaction_count(d, "add_message_to_dialog_message_list");
   }
   if (need_update) {
     update_message_count_by_index(d, +1, m);
   }
   if (from_update && message_id > d->last_message_id && message_id >= d->last_new_message_id) {
-    set_dialog_last_message_id(d, message_id, "add_message_to_dialog", m);
+    set_dialog_last_message_id(d, message_id, "add_message_to_dialog_message_list", m);
     *need_update_dialog_pos = true;
   }
   if (from_update && !message_id.is_yet_unsent() && message_id >= d->last_new_message_id &&
@@ -34557,9 +34557,9 @@ void MessagesManager::add_message_to_dialog_message_list(const Message *m, Dialo
          (d->last_database_message_id.is_valid() && message_id > d->last_database_message_id))))) {
     CHECK(message_id <= d->last_message_id);
     if (message_id > d->last_database_message_id) {
-      set_dialog_last_database_message_id(d, message_id, "add_message_to_dialog");
+      set_dialog_last_database_message_id(d, message_id, "add_message_to_dialog_message_list");
       if (!d->first_database_message_id.is_valid()) {
-        set_dialog_first_database_message_id(d, message_id, "add_message_to_dialog");
+        set_dialog_first_database_message_id(d, message_id, "add_message_to_dialog_message_list");
         try_restore_dialog_reply_markup(d, m);
       }
     }
