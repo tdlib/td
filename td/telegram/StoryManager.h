@@ -87,7 +87,7 @@ class StoryManager final : public Actor {
 
     PendingStory() = default;
 
-    PendingStory(DialogId dialog_id, StoryId story_id, uint64 log_event_id, uint32 send_story_num, int64 random_id,
+    PendingStory(DialogId dialog_id, StoryId story_id, uint32 send_story_num, int64 random_id,
                  unique_ptr<Story> &&story);
 
     template <class StorerT>
@@ -232,6 +232,7 @@ class StoryManager final : public Actor {
   class DeleteStoryOnServerLogEvent;
   class ReadStoriesOnServerLogEvent;
   class LoadDialogExpiringStoriesLogEvent;
+  class SendStoryLogEvent;
 
   static constexpr int32 OPENED_STORY_POLL_PERIOD = 60;
   static constexpr int32 VIEWED_STORY_POLL_PERIOD = 300;
@@ -338,6 +339,8 @@ class StoryManager final : public Actor {
                     Promise<td_api::object_ptr<td_api::story>> &&promise);
 
   void on_reload_story(StoryFullId story_full_id, Result<Unit> &&result);
+
+  int64 save_send_story_log_event(const PendingStory *pending_story);
 
   static void delete_pending_story(unique_ptr<PendingStory> &&pending_story);
 

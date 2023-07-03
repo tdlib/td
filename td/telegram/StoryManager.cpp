@@ -684,14 +684,12 @@ class StoryManager::UploadMediaCallback final : public FileManager::UploadCallba
   }
 };
 
-StoryManager::PendingStory::PendingStory(DialogId dialog_id, StoryId story_id, uint64 log_event_id,
-                                         uint32 send_story_num, int64 random_id, unique_ptr<Story> &&story)
+StoryManager::PendingStory::PendingStory(DialogId dialog_id, StoryId story_id, uint32 send_story_num, int64 random_id,
+                                         unique_ptr<Story> &&story)
     : dialog_id_(dialog_id)
     , story_id_(story_id)
-    , log_event_id_(log_event_id)
     , send_story_num_(send_story_num)
     , random_id_(random_id)
-    , was_reuploaded_(false)
     , story_(std::move(story)) {
 }
 
@@ -2609,7 +2607,7 @@ void StoryManager::send_story(td_api::object_ptr<td_api::InputStoryContent> &&in
   story->is_pinned_ = is_pinned;
   story->noforwards_ = protect_content;
   story->privacy_rules_ = std::move(privacy_rules);
-  story->content_ = std::move(content);
+  story->content_ = dup_story_content(td_, content.get());
   story->caption_ = std::move(caption);
 
   int64 random_id;
@@ -2619,12 +2617,44 @@ void StoryManager::send_story(td_api::object_ptr<td_api::InputStoryContent> &&in
 
   auto story_ptr = story.get();
 
-  auto pending_story = td::make_unique<PendingStory>(dialog_id, StoryId(), 0 /*log_event_id*/, ++send_story_count_,
-                                                     random_id, std::move(story));
+  auto pending_story =
+      td::make_unique<PendingStory>(dialog_id, StoryId(), ++send_story_count_, random_id, std::move(story));
+  pending_story->log_event_id_ = save_send_story_log_event(pending_story.get());
 
   do_send_story(std::move(pending_story), {});
 
   promise.set_value(get_story_object({dialog_id, StoryId()}, story_ptr));
+}
+
+class StoryManager::SendStoryLogEvent {
+ public:
+  const PendingStory *pending_story_in;
+  unique_ptr<PendingStory> pending_story_out;
+
+  SendStoryLogEvent() : pending_story_in(nullptr) {
+  }
+
+  explicit SendStoryLogEvent(const PendingStory *pending_story) : pending_story_in(pending_story) {
+  }
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    td::store(*pending_story_in, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    td::parse(pending_story_out, parser);
+  }
+};
+
+int64 StoryManager::save_send_story_log_event(const PendingStory *pending_story) {
+  if (!G()->use_message_database()) {
+    return 0;
+  }
+
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::SendStory,
+                    get_log_event_storer(SendStoryLogEvent(pending_story)));
 }
 
 void StoryManager::delete_pending_story(unique_ptr<PendingStory> &&pending_story) {
@@ -2783,9 +2813,9 @@ void StoryManager::edit_story(StoryId story_id, td_api::object_ptr<td_api::Input
   auto new_story = make_unique<Story>();
   new_story->content_ = dup_story_content(td_, edited_story->content_.get());
 
-  auto pending_story = td::make_unique<PendingStory>(dialog_id, story_id, 0 /*log_event_id*/,
-                                                     std::numeric_limits<uint32>::max() - (++send_story_count_),
-                                                     story->edit_generation_, std::move(new_story));
+  auto pending_story =
+      td::make_unique<PendingStory>(dialog_id, story_id, std::numeric_limits<uint32>::max() - (++send_story_count_),
+                                    story->edit_generation_, std::move(new_story));
 
   on_story_changed(story_full_id, story, true, true);
 
@@ -2969,6 +2999,7 @@ void StoryManager::on_binlog_events(vector<BinlogEvent> &&events) {
   if (G()->close_flag()) {
     return;
   }
+  bool have_old_message_database = G()->use_message_database() && !G()->td_db()->was_dialog_db_created();
   for (auto &event : events) {
     CHECK(event.id_ != 0);
     switch (event.type_) {
@@ -3016,6 +3047,39 @@ void StoryManager::on_binlog_events(vector<BinlogEvent> &&events) {
           break;
         }
         load_dialog_expiring_stories(dialog_id, event.id_, "LoadDialogExpiringStoriesLogEvent");
+        break;
+      }
+      case LogEvent::HandlerType::SendStory: {
+        if (!have_old_message_database) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        SendStoryLogEvent log_event;
+        log_event_parse(log_event, event.get_data()).ensure();
+
+        auto pending_story = std::move(log_event.pending_story_out);
+        pending_story->log_event_id_ = event.id_;
+
+        CHECK(pending_story->story_->content_ != nullptr);
+        if (pending_story->story_->content_->get_type() == StoryContentType::Unsupported) {
+          LOG(ERROR) << "Sent story content is invalid: " << format::as_hex_dump<4>(event.get_data());
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        Dependencies dependencies;
+        add_pending_story_dependencies(dependencies, pending_story.get());
+        if (!dependencies.resolve_force(td_, "SendStoryLogEvent")) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        ++send_story_count_;
+        CHECK(!pending_story->story_id_.is_server());
+        pending_story->send_story_num_ = send_story_count_;
+        pending_story->story_->content_ = dup_story_content(td_, pending_story->story_->content_.get());
+        do_send_story(std::move(pending_story), {});
         break;
       }
       default:

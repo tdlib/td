@@ -110,6 +110,7 @@ class LogEvent {
     DeleteStoryOnServer = 0x400,
     ReadStoriesOnServer = 0x401,
     LoadDialogExpiringStories = 0x402,
+    SendStory = 0x403,
     ConfigPmcMagic = 0x1f18,
     BinlogPmcMagic = 0x4327
   };
