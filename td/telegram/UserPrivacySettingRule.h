@@ -53,9 +53,22 @@ class UserPrivacySettingRule {
     td::parse(type_, parser);
     if (type_ == Type::AllowUsers || type_ == Type::RestrictUsers) {
       td::parse(user_ids_, parser);
-    }
-    if (type_ == Type::AllowChatParticipants || type_ == Type::RestrictChatParticipants) {
+      for (auto user_id : user_ids_) {
+        if (!user_id.is_valid()) {
+          parser.set_error("Failed to parse user identifiers");
+        }
+      }
+    } else if (type_ == Type::AllowChatParticipants || type_ == Type::RestrictChatParticipants) {
       td::parse(dialog_ids_, parser);
+      for (auto dialog_id : dialog_ids_) {
+        auto dialog_type = dialog_id.get_type();
+        if (!dialog_id.is_valid() || (dialog_type != DialogType::Chat && dialog_type != DialogType::Channel)) {
+          parser.set_error("Failed to parse chat identifiers");
+        }
+      }
+    } else if (type_ != Type::AllowContacts && type_ != Type::AllowCloseFriends && type_ != Type::AllowAll &&
+               type_ != Type::RestrictContacts && type_ != Type::RestrictAll) {
+      parser.set_error("Invalid privacy rule type");
     }
   }
 
