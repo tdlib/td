@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/DialogId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
@@ -24,15 +25,14 @@ class UserPrivacySettingRule {
 
   UserPrivacySettingRule(Td *td, const td_api::UserPrivacySettingRule &rule);
 
-  static UserPrivacySettingRule get_user_privacy_setting_rule(Td *td,
-                                                              telegram_api::object_ptr<telegram_api::PrivacyRule> rule);
+  UserPrivacySettingRule(Td *td, const telegram_api::object_ptr<telegram_api::PrivacyRule> &rule);
 
   td_api::object_ptr<td_api::UserPrivacySettingRule> get_user_privacy_setting_rule_object(Td *td) const;
 
   telegram_api::object_ptr<telegram_api::InputPrivacyRule> get_input_privacy_rule(Td *td) const;
 
   bool operator==(const UserPrivacySettingRule &other) const {
-    return type_ == other.type_ && user_ids_ == other.user_ids_ && chat_ids_ == other.chat_ids_;
+    return type_ == other.type_ && user_ids_ == other.user_ids_ && dialog_ids_ == other.dialog_ids_;
   }
 
   vector<UserId> get_restricted_user_ids() const;
@@ -44,7 +44,7 @@ class UserPrivacySettingRule {
       td::store(user_ids_, storer);
     }
     if (type_ == Type::AllowChatParticipants || type_ == Type::RestrictChatParticipants) {
-      td::store(chat_ids_, storer);
+      td::store(dialog_ids_, storer);
     }
   }
 
@@ -55,7 +55,7 @@ class UserPrivacySettingRule {
       td::parse(user_ids_, parser);
     }
     if (type_ == Type::AllowChatParticipants || type_ == Type::RestrictChatParticipants) {
-      td::parse(chat_ids_, parser);
+      td::parse(dialog_ids_, parser);
     }
   }
 
@@ -73,15 +73,15 @@ class UserPrivacySettingRule {
   } type_ = Type::RestrictAll;
 
   vector<UserId> user_ids_;
-  vector<int64> chat_ids_;
+  vector<DialogId> dialog_ids_;
 
   vector<telegram_api::object_ptr<telegram_api::InputUser>> get_input_users(Td *td) const;
 
-  void set_chat_ids(Td *td, const vector<int64> &dialog_ids);
+  vector<int64> get_input_chat_ids(Td *td) const;
 
-  vector<int64> chat_ids_as_dialog_ids(Td *td) const;
+  void set_dialog_ids(Td *td, const vector<int64> &chat_ids);
 
-  explicit UserPrivacySettingRule(const telegram_api::PrivacyRule &rule);
+  void set_dialog_ids_from_server(Td *td, const vector<int64> &chat_ids);
 };
 
 class UserPrivacySettingRules {

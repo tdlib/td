@@ -9,7 +9,6 @@
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatId.h"
 #include "td/telegram/ContactsManager.h"
-#include "td/telegram/DialogId.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
 
@@ -20,30 +19,30 @@
 
 namespace td {
 
-void UserPrivacySettingRule::set_chat_ids(Td *td, const vector<int64> &dialog_ids) {
-  chat_ids_.clear();
-  for (auto dialog_id_int : dialog_ids) {
-    DialogId dialog_id(dialog_id_int);
-    if (!td->messages_manager_->have_dialog_force(dialog_id, "UserPrivacySettingRule::set_chat_ids")) {
-      LOG(ERROR) << "Ignore not found " << dialog_id;
+void UserPrivacySettingRule::set_dialog_ids(Td *td, const vector<int64> &chat_ids) {
+  dialog_ids_.clear();
+  for (auto chat_id : chat_ids) {
+    DialogId dialog_id(chat_id);
+    if (!td->messages_manager_->have_dialog_force(dialog_id, "UserPrivacySettingRule::set_dialog_ids")) {
+      LOG(INFO) << "Ignore not found " << dialog_id;
       continue;
     }
 
     switch (dialog_id.get_type()) {
       case DialogType::Chat:
-        chat_ids_.push_back(dialog_id.get_chat_id().get());
+        dialog_ids_.push_back(dialog_id);
         break;
       case DialogType::Channel: {
         auto channel_id = dialog_id.get_channel_id();
         if (!td->contacts_manager_->is_megagroup_channel(channel_id)) {
-          LOG(ERROR) << "Ignore broadcast " << channel_id;
+          LOG(INFO) << "Ignore broadcast " << channel_id;
           break;
         }
-        chat_ids_.push_back(channel_id.get());
+        dialog_ids_.push_back(dialog_id);
         break;
       }
       default:
-        LOG(ERROR) << "Ignore " << dialog_id;
+        LOG(INFO) << "Ignore " << dialog_id;
     }
   }
 }
@@ -65,7 +64,7 @@ UserPrivacySettingRule::UserPrivacySettingRule(Td *td, const td_api::UserPrivacy
       break;
     case td_api::userPrivacySettingRuleAllowChatMembers::ID:
       type_ = Type::AllowChatParticipants;
-      set_chat_ids(td, static_cast<const td_api::userPrivacySettingRuleAllowChatMembers &>(rule).chat_ids_);
+      set_dialog_ids(td, static_cast<const td_api::userPrivacySettingRuleAllowChatMembers &>(rule).chat_ids_);
       break;
     case td_api::userPrivacySettingRuleRestrictContacts::ID:
       type_ = Type::RestrictContacts;
@@ -80,16 +79,17 @@ UserPrivacySettingRule::UserPrivacySettingRule(Td *td, const td_api::UserPrivacy
       break;
     case td_api::userPrivacySettingRuleRestrictChatMembers::ID:
       type_ = Type::RestrictChatParticipants;
-      set_chat_ids(td, static_cast<const td_api::userPrivacySettingRuleRestrictChatMembers &>(rule).chat_ids_);
+      set_dialog_ids(td, static_cast<const td_api::userPrivacySettingRuleRestrictChatMembers &>(rule).chat_ids_);
       break;
     default:
       UNREACHABLE();
   }
-  td::remove_if(user_ids_, [](UserId user_id) { return !user_id.is_valid(); });
 }
 
-UserPrivacySettingRule::UserPrivacySettingRule(const telegram_api::PrivacyRule &rule) {
-  switch (rule.get_id()) {
+UserPrivacySettingRule::UserPrivacySettingRule(Td *td,
+                                               const telegram_api::object_ptr<telegram_api::PrivacyRule> &rule) {
+  CHECK(rule != nullptr);
+  switch (rule->get_id()) {
     case telegram_api::privacyValueAllowContacts::ID:
       type_ = Type::AllowContacts;
       break;
@@ -101,11 +101,12 @@ UserPrivacySettingRule::UserPrivacySettingRule(const telegram_api::PrivacyRule &
       break;
     case telegram_api::privacyValueAllowUsers::ID:
       type_ = Type::AllowUsers;
-      user_ids_ = UserId::get_user_ids(static_cast<const telegram_api::privacyValueAllowUsers &>(rule).users_);
+      user_ids_ = UserId::get_user_ids(static_cast<const telegram_api::privacyValueAllowUsers &>(*rule).users_);
       break;
     case telegram_api::privacyValueAllowChatParticipants::ID:
       type_ = Type::AllowChatParticipants;
-      chat_ids_ = static_cast<const telegram_api::privacyValueAllowChatParticipants &>(rule).chats_;
+      set_dialog_ids_from_server(td,
+                                 static_cast<const telegram_api::privacyValueAllowChatParticipants &>(*rule).chats_);
       break;
     case telegram_api::privacyValueDisallowContacts::ID:
       type_ = Type::RestrictContacts;
@@ -115,14 +116,40 @@ UserPrivacySettingRule::UserPrivacySettingRule(const telegram_api::PrivacyRule &
       break;
     case telegram_api::privacyValueDisallowUsers::ID:
       type_ = Type::RestrictUsers;
-      user_ids_ = UserId::get_user_ids(static_cast<const telegram_api::privacyValueDisallowUsers &>(rule).users_);
+      user_ids_ = UserId::get_user_ids(static_cast<const telegram_api::privacyValueDisallowUsers &>(*rule).users_);
       break;
     case telegram_api::privacyValueDisallowChatParticipants::ID:
       type_ = Type::RestrictChatParticipants;
-      chat_ids_ = static_cast<const telegram_api::privacyValueDisallowChatParticipants &>(rule).chats_;
+      set_dialog_ids_from_server(td,
+                                 static_cast<const telegram_api::privacyValueDisallowChatParticipants &>(*rule).chats_);
       break;
     default:
       UNREACHABLE();
+  }
+  td::remove_if(user_ids_, [td](UserId user_id) {
+    if (!td->contacts_manager_->have_user(user_id)) {
+      LOG(ERROR) << "Receive unknown " << user_id;
+      return true;
+    }
+    return false;
+  });
+}
+
+void UserPrivacySettingRule::set_dialog_ids_from_server(Td *td, const vector<int64> &server_chat_ids) {
+  dialog_ids_.clear();
+  for (auto server_chat_id : server_chat_ids) {
+    ChatId chat_id(server_chat_id);
+    DialogId dialog_id(chat_id);
+    if (!td->contacts_manager_->have_chat(chat_id)) {
+      ChannelId channel_id(server_chat_id);
+      dialog_id = DialogId(channel_id);
+      if (!td->contacts_manager_->have_channel(channel_id)) {
+        LOG(ERROR) << "Receive unknown group " << server_chat_id << " from the server";
+        continue;
+      }
+    }
+    td->messages_manager_->force_create_dialog(dialog_id, "set_dialog_ids_from_server");
+    dialog_ids_.push_back(dialog_id);
   }
 }
 
@@ -139,7 +166,8 @@ td_api::object_ptr<td_api::UserPrivacySettingRule> UserPrivacySettingRule::get_u
       return make_tl_object<td_api::userPrivacySettingRuleAllowUsers>(
           td->contacts_manager_->get_user_ids_object(user_ids_, "userPrivacySettingRuleAllowUsers"));
     case Type::AllowChatParticipants:
-      return make_tl_object<td_api::userPrivacySettingRuleAllowChatMembers>(chat_ids_as_dialog_ids(td));
+      return make_tl_object<td_api::userPrivacySettingRuleAllowChatMembers>(
+          td->messages_manager_->get_chat_ids_object(dialog_ids_, "UserPrivacySettingRule"));
     case Type::RestrictContacts:
       return make_tl_object<td_api::userPrivacySettingRuleRestrictContacts>();
     case Type::RestrictAll:
@@ -148,9 +176,11 @@ td_api::object_ptr<td_api::UserPrivacySettingRule> UserPrivacySettingRule::get_u
       return make_tl_object<td_api::userPrivacySettingRuleRestrictUsers>(
           td->contacts_manager_->get_user_ids_object(user_ids_, "userPrivacySettingRuleRestrictUsers"));
     case Type::RestrictChatParticipants:
-      return make_tl_object<td_api::userPrivacySettingRuleRestrictChatMembers>(chat_ids_as_dialog_ids(td));
+      return make_tl_object<td_api::userPrivacySettingRuleRestrictChatMembers>(
+          td->messages_manager_->get_chat_ids_object(dialog_ids_, "UserPrivacySettingRule"));
     default:
       UNREACHABLE();
+      return nullptr;
   }
 }
 
@@ -165,7 +195,7 @@ telegram_api::object_ptr<telegram_api::InputPrivacyRule> UserPrivacySettingRule:
     case Type::AllowUsers:
       return make_tl_object<telegram_api::inputPrivacyValueAllowUsers>(get_input_users(td));
     case Type::AllowChatParticipants:
-      return make_tl_object<telegram_api::inputPrivacyValueAllowChatParticipants>(vector<int64>{chat_ids_});
+      return make_tl_object<telegram_api::inputPrivacyValueAllowChatParticipants>(get_input_chat_ids(td));
     case Type::RestrictContacts:
       return make_tl_object<telegram_api::inputPrivacyValueDisallowContacts>();
     case Type::RestrictAll:
@@ -173,38 +203,10 @@ telegram_api::object_ptr<telegram_api::InputPrivacyRule> UserPrivacySettingRule:
     case Type::RestrictUsers:
       return make_tl_object<telegram_api::inputPrivacyValueDisallowUsers>(get_input_users(td));
     case Type::RestrictChatParticipants:
-      return make_tl_object<telegram_api::inputPrivacyValueDisallowChatParticipants>(vector<int64>{chat_ids_});
+      return make_tl_object<telegram_api::inputPrivacyValueDisallowChatParticipants>(get_input_chat_ids(td));
     default:
       UNREACHABLE();
   }
-}
-
-UserPrivacySettingRule UserPrivacySettingRule::get_user_privacy_setting_rule(
-    Td *td, telegram_api::object_ptr<telegram_api::PrivacyRule> rule) {
-  CHECK(rule != nullptr);
-  UserPrivacySettingRule result(*rule);
-  td::remove_if(result.user_ids_, [td](UserId user_id) {
-    if (!td->contacts_manager_->have_user(user_id)) {
-      LOG(ERROR) << "Receive unknown " << user_id << " from the server";
-      return true;
-    }
-    return false;
-  });
-  td::remove_if(result.chat_ids_, [td](int64 chat_id_int) {
-    ChatId chat_id(chat_id_int);
-    DialogId dialog_id(chat_id);
-    if (!td->contacts_manager_->have_chat(chat_id)) {
-      ChannelId channel_id(chat_id_int);
-      dialog_id = DialogId(channel_id);
-      if (!td->contacts_manager_->have_channel(channel_id)) {
-        LOG(ERROR) << "Receive unknown group " << channel_id << " from the server";
-        return true;
-      }
-    }
-    td->messages_manager_->force_create_dialog(dialog_id, "UserPrivacySettingRule");
-    return false;
-  });
-  return result;
 }
 
 vector<telegram_api::object_ptr<telegram_api::InputUser>> UserPrivacySettingRule::get_input_users(Td *td) const {
@@ -214,24 +216,25 @@ vector<telegram_api::object_ptr<telegram_api::InputUser>> UserPrivacySettingRule
     if (r_input_user.is_ok()) {
       result.push_back(r_input_user.move_as_ok());
     } else {
-      LOG(ERROR) << "Have no access to " << user_id;
+      LOG(INFO) << "Have no access to " << user_id;
     }
   }
   return result;
 }
 
-vector<int64> UserPrivacySettingRule::chat_ids_as_dialog_ids(Td *td) const {
+vector<int64> UserPrivacySettingRule::get_input_chat_ids(Td *td) const {
   vector<int64> result;
-  for (auto chat_id_int : chat_ids_) {
-    ChatId chat_id(chat_id_int);
-    DialogId dialog_id(chat_id);
-    if (!td->contacts_manager_->have_chat(chat_id)) {
-      ChannelId channel_id(chat_id_int);
-      dialog_id = DialogId(channel_id);
-      CHECK(td->contacts_manager_->have_channel(channel_id));
+  for (auto dialog_id : dialog_ids_) {
+    switch (dialog_id.get_type()) {
+      case DialogType::Chat:
+        result.push_back(dialog_id.get_chat_id().get());
+        break;
+      case DialogType::Channel:
+        result.push_back(dialog_id.get_channel_id().get());
+        break;
+      default:
+        UNREACHABLE();
     }
-    CHECK(td->messages_manager_->have_dialog(dialog_id));
-    result.push_back(td->messages_manager_->get_chat_id_object(dialog_id, "UserPrivacySettingRule"));
   }
   return result;
 }
@@ -254,7 +257,7 @@ UserPrivacySettingRules UserPrivacySettingRules::get_user_privacy_setting_rules(
     Td *td, vector<telegram_api::object_ptr<telegram_api::PrivacyRule>> rules) {
   UserPrivacySettingRules result;
   for (auto &rule : rules) {
-    result.rules_.push_back(UserPrivacySettingRule::get_user_privacy_setting_rule(td, std::move(rule)));
+    result.rules_.push_back(UserPrivacySettingRule(td, std::move(rule)));
   }
   if (!result.rules_.empty() && result.rules_.back().get_user_privacy_setting_rule_object(td)->get_id() ==
                                     td_api::userPrivacySettingRuleRestrictAll::ID) {
