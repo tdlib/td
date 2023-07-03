@@ -8,6 +8,7 @@
 
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileId.h"
+#include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/StoryContentType.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -30,6 +31,12 @@ class StoryContent {
   virtual StoryContentType get_type() const = 0;
   virtual ~StoryContent() = default;
 };
+
+void store_story_content(const StoryContent *content, LogEventStorerCalcLength &storer);
+
+void store_story_content(const StoryContent *content, LogEventStorerUnsafe &storer);
+
+void parse_story_content(unique_ptr<StoryContent> &content, LogEventParser &parser);
 
 unique_ptr<StoryContent> get_story_content(Td *td, telegram_api::object_ptr<telegram_api::MessageMedia> &&media_ptr,
                                            DialogId owner_dialog_id);

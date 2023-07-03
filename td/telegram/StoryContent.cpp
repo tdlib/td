@@ -13,6 +13,7 @@
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/Photo.h"
+#include "td/telegram/Photo.hpp"
 #include "td/telegram/PhotoSize.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
@@ -66,6 +67,109 @@ class StoryContentUnsupported final : public StoryContent {
     return StoryContentType::Unsupported;
   }
 };
+
+template <class StorerT>
+static void store(const StoryContent *content, StorerT &storer) {
+  CHECK(content != nullptr);
+
+  Td *td = storer.context()->td().get_actor_unsafe();
+  CHECK(td != nullptr);
+
+  auto content_type = content->get_type();
+  store(content_type, storer);
+
+  switch (content_type) {
+    case StoryContentType::Photo: {
+      const auto *story_content = static_cast<const StoryContentPhoto *>(content);
+      BEGIN_STORE_FLAGS();
+      END_STORE_FLAGS();
+      store(story_content->photo_, storer);
+      break;
+    }
+    case StoryContentType::Video: {
+      const auto *story_content = static_cast<const StoryContentVideo *>(content);
+      bool has_alt_file_id = story_content->alt_file_id_.is_valid();
+      BEGIN_STORE_FLAGS();
+      STORE_FLAG(has_alt_file_id);
+      END_STORE_FLAGS();
+      td->videos_manager_->store_video(story_content->file_id_, storer);
+      if (has_alt_file_id) {
+        td->videos_manager_->store_video(story_content->alt_file_id_, storer);
+      }
+      break;
+    }
+    case StoryContentType::Unsupported: {
+      const auto *story_content = static_cast<const StoryContentUnsupported *>(content);
+      store(story_content->version_, storer);
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
+}
+
+template <class ParserT>
+static void parse(unique_ptr<StoryContent> &content, ParserT &parser) {
+  Td *td = parser.context()->td().get_actor_unsafe();
+  CHECK(td != nullptr);
+
+  StoryContentType content_type;
+  parse(content_type, parser);
+
+  bool is_bad = false;
+  switch (content_type) {
+    case StoryContentType::Photo: {
+      auto story_content = make_unique<StoryContentPhoto>();
+      BEGIN_PARSE_FLAGS();
+      END_PARSE_FLAGS();
+      parse(story_content->photo_, parser);
+      is_bad |= story_content->photo_.is_bad();
+      content = std::move(story_content);
+      break;
+    }
+    case StoryContentType::Video: {
+      auto story_content = make_unique<StoryContentVideo>();
+      bool has_alt_file_id;
+      BEGIN_PARSE_FLAGS();
+      PARSE_FLAG(has_alt_file_id);
+      END_PARSE_FLAGS();
+      story_content->file_id_ = td->videos_manager_->parse_video(parser);
+      if (has_alt_file_id) {
+        story_content->alt_file_id_ = td->videos_manager_->parse_video(parser);
+        if (!story_content->alt_file_id_.is_valid()) {
+          LOG(ERROR) << "Failed to parse alternative video";
+        }
+      }
+      content = std::move(story_content);
+      break;
+    }
+    case StoryContentType::Unsupported: {
+      auto story_content = make_unique<StoryContentUnsupported>();
+      parse(story_content->version_, parser);
+      content = std::move(story_content);
+      break;
+    }
+    default:
+      LOG(ERROR) << "Have unknown story content type " << static_cast<int32>(content_type);
+      is_bad = true;
+  }
+  if (is_bad) {
+    LOG(ERROR) << "Load a story with an invalid content of type " << content_type;
+    content = make_unique<StoryContentUnsupported>(0);
+  }
+}
+
+void store_story_content(const StoryContent *content, LogEventStorerCalcLength &storer) {
+  store(content, storer);
+}
+
+void store_story_content(const StoryContent *content, LogEventStorerUnsafe &storer) {
+  store(content, storer);
+}
+
+void parse_story_content(unique_ptr<StoryContent> &content, LogEventParser &parser) {
+  parse(content, parser);
+}
 
 unique_ptr<StoryContent> get_story_content(Td *td, tl_object_ptr<telegram_api::MessageMedia> &&media_ptr,
                                            DialogId owner_dialog_id) {
