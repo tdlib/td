@@ -17,8 +17,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, StoryContentType conten
     case StoryContentType::Unsupported:
       return string_builder << "Unsupported";
     default:
-      UNREACHABLE();
-      return string_builder;
+      return string_builder << "Invalid type " << static_cast<int32>(content_type);
   }
 }
 

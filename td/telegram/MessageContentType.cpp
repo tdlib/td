@@ -127,8 +127,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, MessageContentType cont
     case MessageContentType::Story:
       return string_builder << "Story";
     default:
-      UNREACHABLE();
-      return string_builder;
+      return string_builder << "Invalid type " << static_cast<int32>(content_type);
   }
 }
 

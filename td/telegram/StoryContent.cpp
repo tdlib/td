@@ -150,7 +150,6 @@ static void parse(unique_ptr<StoryContent> &content, ParserT &parser) {
       break;
     }
     default:
-      LOG(ERROR) << "Have unknown story content type " << static_cast<int32>(content_type);
       is_bad = true;
   }
   if (is_bad) {
