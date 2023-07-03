@@ -85,8 +85,16 @@ class StoryManager final : public Actor {
     bool was_reuploaded_ = false;
     unique_ptr<Story> story_;
 
+    PendingStory() = default;
+
     PendingStory(DialogId dialog_id, StoryId story_id, uint64 log_event_id, uint32 send_story_num, int64 random_id,
                  unique_ptr<Story> &&story);
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
   };
 
   struct PendingStoryViews {

@@ -773,6 +773,38 @@ void StoryManager::Story::parse(ParserT &parser) {
   }
 }
 
+template <class StorerT>
+void StoryManager::PendingStory::store(StorerT &storer) const {
+  using td::store;
+  bool is_edit = story_id_.is_server();
+  BEGIN_STORE_FLAGS();
+  STORE_FLAG(is_edit);
+  END_STORE_FLAGS();
+  store(dialog_id_, storer);
+  if (is_edit) {
+    store(story_id_, storer);
+  } else {
+    store(random_id_, storer);
+  }
+  store(story_, storer);
+}
+
+template <class ParserT>
+void StoryManager::PendingStory::parse(ParserT &parser) {
+  using td::parse;
+  bool is_edit;
+  BEGIN_PARSE_FLAGS();
+  PARSE_FLAG(is_edit);
+  END_PARSE_FLAGS();
+  parse(dialog_id_, parser);
+  if (is_edit) {
+    parse(story_id_, parser);
+  } else {
+    parse(random_id_, parser);
+  }
+  parse(story_, parser);
+}
+
 StoryManager::StoryManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   upload_media_callback_ = std::make_shared<UploadMediaCallback>();
 
