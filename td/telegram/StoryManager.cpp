@@ -1455,9 +1455,9 @@ void StoryManager::on_story_replied(StoryFullId story_full_id, UserId replier_us
     return;
   }
 
-  if (story->content_ != nullptr && is_active_story(story) &&
+  if (story->content_ != nullptr && G()->unix_time() < get_story_viewers_expire_date(story) &&
       story->interaction_info_.definitely_has_no_user(replier_user_id)) {
-    reload_story(story_full_id, Promise<Unit>());
+    td_->create_handler<GetStoriesViewsQuery>()->send({story_full_id.get_story_id()});
   }
 }
 
