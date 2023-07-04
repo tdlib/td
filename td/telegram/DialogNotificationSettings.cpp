@@ -170,10 +170,13 @@ DialogNotificationSettings get_dialog_notification_settings(tl_object_ptr<telegr
 
 bool are_default_dialog_notification_settings(const DialogNotificationSettings &settings, bool compare_sound) {
   return settings.use_default_mute_until && (!compare_sound || is_notification_sound_default(settings.sound)) &&
-         settings.use_default_show_preview && settings.use_default_mute_stories &&
-         (!compare_sound || is_notification_sound_default(settings.story_sound)) &&
-         settings.use_default_hide_story_sender && settings.use_default_disable_pinned_message_notifications &&
+         settings.use_default_show_preview && settings.use_default_disable_pinned_message_notifications &&
          settings.use_default_disable_mention_notifications;
+}
+
+bool are_default_story_notification_settings(const DialogNotificationSettings &settings) {
+  return settings.use_default_mute_stories && is_notification_sound_default(settings.story_sound) &&
+         settings.use_default_hide_story_sender;
 }
 
 NeedUpdateDialogNotificationSettings need_update_dialog_notification_settings(

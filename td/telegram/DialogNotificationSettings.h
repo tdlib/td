@@ -83,6 +83,8 @@ DialogNotificationSettings get_dialog_notification_settings(tl_object_ptr<telegr
 
 bool are_default_dialog_notification_settings(const DialogNotificationSettings &settings, bool compare_sound);
 
+bool are_default_story_notification_settings(const DialogNotificationSettings &settings);
+
 struct NeedUpdateDialogNotificationSettings {
   bool need_update_server = false;
   bool need_update_local = false;
