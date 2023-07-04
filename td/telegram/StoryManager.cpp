@@ -2112,7 +2112,15 @@ void StoryManager::on_delete_story(StoryFullId story_full_id) {
   delete_story_files(story);
   unregister_story_global_id(story);
   stories_.erase(story_full_id);
-  being_edited_stories_.erase(story_full_id);
+  auto edited_stories_it = being_edited_stories_.find(story_full_id);
+  if (edited_stories_it != being_edited_stories_.end()) {
+    CHECK(edited_stories_it->second != nullptr);
+    auto log_event_id = edited_stories_it->second->log_event_id_;
+    if (log_event_id != 0) {
+      binlog_erase(G()->td_db()->get_binlog(), log_event_id);
+    }
+    being_edited_stories_.erase(edited_stories_it);
+  }
   cached_story_viewers_.erase(story_full_id);
 
   auto active_stories = get_active_stories(owner_dialog_id);
@@ -2627,23 +2635,23 @@ void StoryManager::send_story(td_api::object_ptr<td_api::InputStoryContent> &&in
 
 class StoryManager::SendStoryLogEvent {
  public:
-  const PendingStory *pending_story_in;
-  unique_ptr<PendingStory> pending_story_out;
+  const PendingStory *pending_story_in_;
+  unique_ptr<PendingStory> pending_story_out_;
 
-  SendStoryLogEvent() : pending_story_in(nullptr) {
+  SendStoryLogEvent() : pending_story_in_(nullptr) {
   }
 
-  explicit SendStoryLogEvent(const PendingStory *pending_story) : pending_story_in(pending_story) {
+  explicit SendStoryLogEvent(const PendingStory *pending_story) : pending_story_in_(pending_story) {
   }
 
   template <class StorerT>
   void store(StorerT &storer) const {
-    td::store(*pending_story_in, storer);
+    td::store(*pending_story_in_, storer);
   }
 
   template <class ParserT>
   void parse(ParserT &parser) {
-    td::parse(pending_story_out, parser);
+    td::parse(pending_story_out_, parser);
   }
 };
 
@@ -2744,6 +2752,47 @@ void StoryManager::on_send_story_file_part_missing(unique_ptr<PendingStory> &&pe
   do_send_story(std::move(pending_story), {bad_part});
 }
 
+class StoryManager::EditStoryLogEvent {
+ public:
+  const PendingStory *pending_story_in_;
+  unique_ptr<PendingStory> pending_story_out_;
+  bool edit_caption_;
+  FormattedText caption_;
+
+  EditStoryLogEvent() : pending_story_in_(nullptr), edit_caption_(false) {
+  }
+
+  EditStoryLogEvent(const PendingStory *pending_story, bool edit_caption, const FormattedText &caption)
+      : pending_story_in_(pending_story), edit_caption_(edit_caption), caption_(caption) {
+  }
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    bool has_caption = edit_caption_ && !caption_.text.empty();
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(edit_caption_);
+    STORE_FLAG(has_caption);
+    END_STORE_FLAGS();
+    td::store(*pending_story_in_, storer);
+    if (has_caption) {
+      td::store(caption_, storer);
+    }
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    bool has_caption;
+    BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(edit_caption_);
+    PARSE_FLAG(has_caption);
+    END_PARSE_FLAGS();
+    td::parse(pending_story_out_, parser);
+    if (has_caption) {
+      td::parse(caption_, parser);
+    }
+  }
+};
+
 void StoryManager::edit_story(StoryId story_id, td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,
                               td_api::object_ptr<td_api::formattedText> &&input_caption, Promise<Unit> &&promise) {
   DialogId dialog_id(td_->contacts_manager_->get_my_id());
@@ -2801,6 +2850,20 @@ void StoryManager::edit_story(StoryId story_id, td_api::object_ptr<td_api::Input
   auto pending_story =
       td::make_unique<PendingStory>(dialog_id, story_id, std::numeric_limits<uint32>::max() - (++send_story_count_),
                                     story->edit_generation_, std::move(new_story));
+  if (G()->use_message_database()) {
+    EditStoryLogEvent log_event(pending_story.get(), edited_story->edit_caption_, edited_story->caption_);
+    auto storer = get_log_event_storer(log_event);
+    auto &cur_log_event_id = edited_story->log_event_id_;
+    if (cur_log_event_id == 0) {
+      cur_log_event_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::EditStory, storer);
+      VLOG(notifications) << "Add edit message push notification log event " << cur_log_event_id;
+    } else {
+      auto new_log_event_id =
+          binlog_rewrite(G()->td_db()->get_binlog(), cur_log_event_id, LogEvent::HandlerType::EditStory, storer);
+      VLOG(notifications) << "Rewrite edit message push notification log event " << cur_log_event_id << " with "
+                          << new_log_event_id;
+    }
+  }
 
   on_story_changed(story_full_id, story, true, true);
 
@@ -2848,6 +2911,10 @@ void StoryManager::delete_pending_story(FileId file_id, unique_ptr<PendingStory>
     bool is_changed = it->second->content_ != nullptr ||
                       (it->second->edit_caption_ && it->second->caption_ != story->caption_) ||
                       (status.is_error() && !story->is_edited_);
+    auto log_event_id = it->second->log_event_id_;
+    if (log_event_id != 0) {
+      binlog_erase(G()->td_db()->get_binlog(), log_event_id);
+    }
     being_edited_stories_.erase(it);
 
     on_story_changed(story_full_id, story, is_changed, true);
@@ -3046,7 +3113,7 @@ void StoryManager::on_binlog_events(vector<BinlogEvent> &&events) {
         SendStoryLogEvent log_event;
         log_event_parse(log_event, event.get_data()).ensure();
 
-        auto pending_story = std::move(log_event.pending_story_out);
+        auto pending_story = std::move(log_event.pending_story_out_);
         pending_story->log_event_id_ = event.id_;
 
         CHECK(pending_story->story_->content_ != nullptr);
@@ -3068,6 +3135,67 @@ void StoryManager::on_binlog_events(vector<BinlogEvent> &&events) {
         pending_story->send_story_num_ = send_story_count_;
         pending_story->story_->content_ = dup_story_content(td_, pending_story->story_->content_.get());
         do_send_story(std::move(pending_story), {});
+        break;
+      }
+      case LogEvent::HandlerType::EditStory: {
+        if (!have_old_message_database) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        EditStoryLogEvent log_event;
+        log_event_parse(log_event, event.get_data()).ensure();
+
+        auto pending_story = std::move(log_event.pending_story_out_);
+        CHECK(pending_story->story_id_.is_server());
+        StoryFullId story_full_id{pending_story->dialog_id_, pending_story->story_id_};
+        const Story *story = get_story(story_full_id);
+        if (story == nullptr || story->content_ == nullptr) {
+          LOG(INFO) << "Failed to find " << story_full_id;
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        if (pending_story->story_->content_ != nullptr &&
+            pending_story->story_->content_->get_type() == StoryContentType::Unsupported) {
+          LOG(ERROR) << "Sent story content is invalid: " << format::as_hex_dump<4>(event.get_data());
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        Dependencies dependencies;
+        add_pending_story_dependencies(dependencies, pending_story.get());
+        if (!dependencies.resolve_force(td_, "EditStoryLogEvent")) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        auto &edited_story = being_edited_stories_[story_full_id];
+        if (edited_story != nullptr) {
+          LOG(INFO) << "Ignore outdated edit of " << story_full_id;
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+        edited_story = make_unique<BeingEditedStory>();
+        if (pending_story->story_->content_ != nullptr) {
+          edited_story->content_ = std::move(pending_story->story_->content_);
+        }
+        if (log_event.edit_caption_) {
+          edited_story->caption_ = std::move(log_event.caption_);
+          edited_story->edit_caption_ = true;
+        }
+        edited_story->log_event_id_ = event.id_;
+
+        ++send_story_count_;
+        pending_story->send_story_num_ = std::numeric_limits<uint32>::max() - send_story_count_;
+        pending_story->random_id_ = ++story->edit_generation_;
+
+        if (edited_story->content_ == nullptr) {
+          do_edit_story(FileId(), std::move(pending_story), nullptr);
+        } else {
+          pending_story->story_->content_ = dup_story_content(td_, edited_story->content_.get());
+          do_send_story(std::move(pending_story), {});
+        }
         break;
       }
       default:

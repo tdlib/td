@@ -74,6 +74,7 @@ class StoryManager final : public Actor {
     FormattedText caption_;
     bool edit_caption_ = false;
     vector<Promise<Unit>> promises_;
+    int64 log_event_id_ = 0;
   };
 
   struct PendingStory {
@@ -233,6 +234,7 @@ class StoryManager final : public Actor {
   class ReadStoriesOnServerLogEvent;
   class LoadDialogExpiringStoriesLogEvent;
   class SendStoryLogEvent;
+  class EditStoryLogEvent;
 
   static constexpr int32 OPENED_STORY_POLL_PERIOD = 60;
   static constexpr int32 VIEWED_STORY_POLL_PERIOD = 300;

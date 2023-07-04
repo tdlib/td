@@ -130,6 +130,7 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
       case LogEvent::HandlerType::ReadStoriesOnServer:
       case LogEvent::HandlerType::LoadDialogExpiringStories:
       case LogEvent::HandlerType::SendStory:
+      case LogEvent::HandlerType::EditStory:
         events.to_story_manager.push_back(event.clone());
         break;
       case LogEvent::HandlerType::UpdateScopeNotificationSettingsOnServer:
