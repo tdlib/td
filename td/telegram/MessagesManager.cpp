@@ -38594,6 +38594,10 @@ void MessagesManager::on_get_channel_difference(
     if (have_access) {
       if (d == nullptr) {
         force_create_dialog(dialog_id, "on_get_channel_difference failed");
+        d = get_dialog(dialog_id);
+        if (d == nullptr) {
+          return after_get_channel_difference(dialog_id, false);
+        }
       }
       auto &delay = channel_get_difference_retry_timeouts_[dialog_id];
       if (delay == 0) {
@@ -38923,7 +38927,7 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
 
   auto expected_channel_pts_it = expected_channel_pts_.find(dialog_id);
   if (expected_channel_pts_it != expected_channel_pts_.end()) {
-    if (success && expected_channel_pts_it->second > pts) {
+    if (success && d != nullptr && expected_channel_pts_it->second > pts) {
       schedule_get_channel_difference(dialog_id, 0, MessageId(), 1.0, "after_get_channel_difference");
     }
     expected_channel_pts_.erase(expected_channel_pts_it);
