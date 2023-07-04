@@ -79,10 +79,15 @@ Result<FileLoader::FileInfo> FileUploader::init() {
       parts.push_back(i);
     }
   }
-  LOG(DEBUG) << "Init file uploader for " << remote_ << " with offset = " << offset << " and part size = " << part_size;
   if (!ok.empty() && !ok[0]) {
     parts.clear();
+    part_size = 0;
+    remote_ = RemoteFileLocation();
+    file_id_ = Random::secure_int64();
+    big_flag_ = is_file_big(file_type_, expected_size_);
   }
+
+  LOG(DEBUG) << "Init file uploader for " << remote_ << " with offset = " << offset << " and part size = " << part_size;
   FileInfo res;
   res.size = local_size_;
   res.is_size_final = local_is_ready_;
