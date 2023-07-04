@@ -3028,7 +3028,7 @@ class MessagesManager final : public Actor {
   void update_expected_channel_max_message_id(DialogId dialog_id, MessageId expected_max_message_id);
 
   void schedule_get_channel_difference(DialogId dialog_id, int32 expected_pts, MessageId expected_max_message_id,
-                                       double delay);
+                                       double delay, const char *source);
 
   void get_channel_difference(DialogId dialog_id, int32 pts, int32 expected_pts, MessageId expected_max_message_id,
                               bool force, const char *source, bool is_old = false);
