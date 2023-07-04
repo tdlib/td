@@ -2112,6 +2112,8 @@ void StoryManager::on_delete_story(StoryFullId story_full_id) {
   delete_story_files(story);
   unregister_story_global_id(story);
   stories_.erase(story_full_id);
+  being_edited_stories_.erase(story_full_id);
+  cached_story_viewers_.erase(story_full_id);
 
   auto active_stories = get_active_stories(owner_dialog_id);
   if (active_stories != nullptr && contains(active_stories->story_ids_, story_id)) {

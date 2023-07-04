@@ -413,6 +413,8 @@ class StoryManager final : public Actor {
 
   FlatHashMap<StoryFullId, vector<Promise<Unit>>, StoryFullIdHash> reload_story_queries_;
 
+  FlatHashMap<FileId, unique_ptr<PendingStory>, FileIdHash> being_uploaded_files_;
+
   StoryList story_lists_[2];
 
   uint32 send_story_count_ = 0;
@@ -420,8 +422,6 @@ class StoryManager final : public Actor {
   int64 max_story_global_id_ = 0;
 
   bool has_active_synchronize_archive_all_stories_query_ = false;
-
-  FlatHashMap<FileId, unique_ptr<PendingStory>, FileIdHash> being_uploaded_files_;
 
   Timeout interaction_info_update_timeout_;
 
