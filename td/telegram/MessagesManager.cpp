@@ -23349,6 +23349,14 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
     }
   }
 
+  if (!first_added_message_id.is_valid() && !only_local && dialog_id.get_type() != DialogType::SecretChat) {
+    if (from_the_end) {
+      from_message_id = MessageId();
+    }
+    load_messages_impl(d, from_message_id, offset, limit, 1, false, std::move(promise));
+    return;
+  }
+
   bool need_update_dialog_pos = false;
   if (from_the_end && last_added_message_id.is_valid()) {
     CHECK(next_message_id.is_valid());
