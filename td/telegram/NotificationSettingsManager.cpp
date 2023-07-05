@@ -83,8 +83,9 @@ class UploadRingtoneQuery final : public Td::ResultHandler {
     if (FileReferenceManager::is_file_reference_error(status)) {
       LOG(ERROR) << "Receive file reference error " << status;
     }
-    if (begins_with(status.message(), "FILE_PART_") && ends_with(status.message(), "_MISSING")) {
-      // TODO support FILE_PART_*_MISSING
+    auto bad_parts = FileManager::get_missing_file_parts(status);
+    if (!bad_parts.empty()) {
+      // TODO reupload the file
     }
 
     td_->file_manager_->delete_partial_remote_location(file_id_);

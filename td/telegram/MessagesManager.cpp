@@ -980,8 +980,9 @@ class InitHistoryImportQuery final : public Td::ResultHandler {
     if (FileReferenceManager::is_file_reference_error(status)) {
       LOG(ERROR) << "Receive file reference error " << status;
     }
-    if (begins_with(status.message(), "FILE_PART_") && ends_with(status.message(), "_MISSING")) {
-      // TODO support FILE_PART_*_MISSING
+    auto bad_parts = FileManager::get_missing_file_parts(status);
+    if (!bad_parts.empty()) {
+      // TODO reupload the file
     }
 
     td_->file_manager_->delete_partial_remote_location(file_id_);
@@ -1033,8 +1034,9 @@ class UploadImportedMediaQuery final : public Td::ResultHandler {
     if (FileReferenceManager::is_file_reference_error(status)) {
       LOG(ERROR) << "Receive file reference error " << status;
     }
-    if (begins_with(status.message(), "FILE_PART_") && ends_with(status.message(), "_MISSING")) {
-      // TODO support FILE_PART_*_MISSING
+    auto bad_parts = FileManager::get_missing_file_parts(status);
+    if (!bad_parts.empty()) {
+      // TODO reupload the file
     }
 
     td_->file_manager_->delete_partial_remote_location(file_id_);
@@ -3534,9 +3536,9 @@ class SendMediaQuery final : public Td::ResultHandler {
       }
 
       CHECK(file_id_.is_valid());
-      if (begins_with(status.message(), "FILE_PART_") && ends_with(status.message(), "_MISSING")) {
-        td_->messages_manager_->on_send_message_file_part_missing(random_id_,
-                                                                  to_integer<int32>(status.message().substr(10)));
+      auto bad_parts = FileManager::get_missing_file_parts(status);
+      if (!bad_parts.empty()) {
+        td_->messages_manager_->on_send_message_file_parts_missing(random_id_, std::move(bad_parts));
         return;
       } else {
         if (status.code() != 429 && status.code() < 500 && !G()->close_flag()) {
@@ -3623,9 +3625,10 @@ class UploadMediaQuery final : public Td::ResultHandler {
       }
 
       CHECK(file_id_.is_valid());
-      if (begins_with(status.message(), "FILE_PART_") && ends_with(status.message(), "_MISSING")) {
-        td_->messages_manager_->on_upload_message_media_file_part_missing(
-            dialog_id_, message_id_, to_integer<int32>(status.message().substr(10)));
+      auto bad_parts = FileManager::get_missing_file_parts(status);
+      if (!bad_parts.empty()) {
+        td_->messages_manager_->on_upload_message_media_file_parts_missing(dialog_id_, message_id_,
+                                                                           std::move(bad_parts));
         return;
       } else {
         if (status.code() != 429 && status.code() < 500 && !G()->close_flag()) {
@@ -13852,8 +13855,9 @@ void MessagesManager::on_send_secret_message_error(int64 random_id, Status error
           // do not send error, message will be re-sent after restart
           return;
         }
-        if (begins_with(error.message(), "FILE_PART_") && ends_with(error.message(), "_MISSING")) {
-          on_send_message_file_part_missing(random_id, to_integer<int32>(error.message().substr(10)));
+        auto bad_parts = FileManager::get_missing_file_parts(error);
+        if (!bad_parts.empty()) {
+          on_send_message_file_parts_missing(random_id, std::move(bad_parts));
           return;
         }
 
@@ -25623,8 +25627,8 @@ void MessagesManager::on_upload_message_media_success(DialogId dialog_id, Messag
                      m->message_id, std::move(result));
 }
 
-void MessagesManager::on_upload_message_media_file_part_missing(DialogId dialog_id, MessageId message_id,
-                                                                int bad_part) {
+void MessagesManager::on_upload_message_media_file_parts_missing(DialogId dialog_id, MessageId message_id,
+                                                                 vector<int> &&bad_parts) {
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
 
@@ -25644,7 +25648,7 @@ void MessagesManager::on_upload_message_media_file_part_missing(DialogId dialog_
 
   CHECK(dialog_id.get_type() != DialogType::SecretChat);
 
-  do_send_message(dialog_id, m, {bad_part});
+  do_send_message(dialog_id, m, std::move(bad_parts));
 }
 
 void MessagesManager::on_upload_message_media_fail(DialogId dialog_id, MessageId message_id, Status error) {
@@ -26742,9 +26746,9 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
         td_->file_manager_->delete_partial_remote_location(thumbnail_file_id);
       }
       CHECK(file_id.is_valid());
-      auto error_message = result.error().message();
-      if (begins_with(error_message, "FILE_PART_") && ends_with(error_message, "_MISSING")) {
-        do_send_message(dialog_id, m, {to_integer<int32>(error_message.substr(10))});
+      auto bad_parts = FileManager::get_missing_file_parts(result.error());
+      if (!bad_parts.empty()) {
+        do_send_message(dialog_id, m, std::move(bad_parts));
         return;
       }
 
@@ -31049,13 +31053,12 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
   return {dialog_id, new_message_id};
 }
 
-void MessagesManager::on_send_message_file_part_missing(int64 random_id, int bad_part) {
+void MessagesManager::on_send_message_file_parts_missing(int64 random_id, vector<int> &&bad_parts) {
   auto it = being_sent_messages_.find(random_id);
   if (it == being_sent_messages_.end()) {
     // we can't receive fail more than once
     // but message can be successfully sent before
-    LOG(WARNING) << "Receive FILE_PART_" << bad_part
-                 << "_MISSING about successfully sent message with random_id = " << random_id;
+    LOG(INFO) << "Receive error for successfully sent message with random_id = " << random_id;
     return;
   }
 
@@ -31091,7 +31094,7 @@ void MessagesManager::on_send_message_file_part_missing(int64 random_id, int bad
                    get_log_event_storer(log_event));
   }
 
-  do_send_message(dialog_id, m, {bad_part});
+  do_send_message(dialog_id, m, std::move(bad_parts));
 }
 
 void MessagesManager::on_send_message_file_reference_error(int64 random_id) {

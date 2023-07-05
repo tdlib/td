@@ -458,8 +458,9 @@ void CallActor::on_save_log_query_result(FileId file_id, Promise<Unit> promise, 
   auto res = fetch_result<telegram_api::phone_saveCallLog>(std::move(r_net_query));
   if (res.is_error()) {
     auto error = res.move_as_error();
-    if (begins_with(error.message(), "FILE_PART_") && ends_with(error.message(), "_MISSING")) {
-      // TODO on_upload_log_file_part_missing(file_id, to_integer<int32>(error.message().substr(10)));
+    auto bad_parts = FileManager::get_missing_file_parts(error);
+    if (!bad_parts.empty()) {
+      // TODO on_upload_log_file_parts_missing(file_id, std::move(bad_parts));
       // return;
     }
     return promise.set_error(std::move(error));

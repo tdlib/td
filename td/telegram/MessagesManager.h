@@ -944,7 +944,7 @@ class MessagesManager final : public Actor {
   FullMessageId on_send_message_success(int64 random_id, MessageId new_message_id, int32 date, int32 ttl_period,
                                         FileId new_file_id, const char *source);
 
-  void on_send_message_file_part_missing(int64 random_id, int bad_part);
+  void on_send_message_file_parts_missing(int64 random_id, vector<int> &&bad_parts);
 
   void on_send_message_file_reference_error(int64 random_id);
 
@@ -955,7 +955,7 @@ class MessagesManager final : public Actor {
   void on_upload_message_media_success(DialogId dialog_id, MessageId message_id,
                                        tl_object_ptr<telegram_api::MessageMedia> &&media);
 
-  void on_upload_message_media_file_part_missing(DialogId dialog_id, MessageId message_id, int bad_part);
+  void on_upload_message_media_file_parts_missing(DialogId dialog_id, MessageId message_id, vector<int> &&bad_parts);
 
   void on_upload_message_media_fail(DialogId dialog_id, MessageId message_id, Status error);
 

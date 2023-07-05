@@ -933,6 +933,20 @@ bool FileManager::is_remotely_generated_file(Slice conversion) {
   return begins_with(conversion, "#map#") || begins_with(conversion, "#audio_t#");
 }
 
+vector<int> FileManager::get_missing_file_parts(const Status &error) {
+  vector<int> result;
+  auto error_message = error.message();
+  if (begins_with(error_message, "FILE_PART_") && ends_with(error_message, "_MISSING")) {
+    auto r_file_part = to_integer_safe<int>(error_message.substr(10, error_message.size() - 18));
+    if (r_file_part.is_error()) {
+      LOG(ERROR) << "Receive error " << error;
+    } else {
+      result.push_back(r_file_part.ok());
+    }
+  }
+  return result;
+}
+
 void FileManager::check_local_location(FileId file_id, bool skip_file_size_checks) {
   auto node = get_sync_file_node(file_id);
   if (node) {

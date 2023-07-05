@@ -421,6 +421,8 @@ class FileManager final : public FileLoadManager::Callback {
 
   static bool is_remotely_generated_file(Slice conversion);
 
+  static vector<int> get_missing_file_parts(const Status &error);
+
   void init_actor();
 
   FileId dup_file_id(FileId file_id, const char *source);
@@ -461,7 +463,7 @@ class FileManager final : public FileLoadManager::Callback {
   void download(FileId file_id, std::shared_ptr<DownloadCallback> callback, int32 new_priority, int64 offset,
                 int64 limit, Promise<td_api::object_ptr<td_api::file>> promise);
   void upload(FileId file_id, std::shared_ptr<UploadCallback> callback, int32 new_priority, uint64 upload_order);
-  void resume_upload(FileId file_id, std::vector<int> bad_parts, std::shared_ptr<UploadCallback> callback,
+  void resume_upload(FileId file_id, vector<int> bad_parts, std::shared_ptr<UploadCallback> callback,
                      int32 new_priority, uint64 upload_order, bool force = false, bool prefer_small = false);
   void cancel_upload(FileId file_id);
   bool delete_partial_remote_location(FileId file_id);

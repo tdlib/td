@@ -225,8 +225,9 @@ class UploadBackgroundQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     CHECK(file_id_.is_valid());
-    if (begins_with(status.message(), "FILE_PART_") && ends_with(status.message(), "_MISSING")) {
-      // TODO td_->background_manager_->on_upload_background_file_part_missing(file_id_, to_integer<int32>(status.message().substr(10)));
+    auto bad_parts = FileManager::get_missing_file_parts(status);
+    if (!bad_parts.empty()) {
+      // TODO td_->background_manager_->on_upload_background_file_parts_missing(file_id_, std::move(bad_parts));
       // return;
     } else {
       if (status.code() != 429 && status.code() < 500 && !G()->close_flag()) {

@@ -141,7 +141,7 @@ class StoryManager final : public Actor {
                   td_api::object_ptr<td_api::userPrivacySettingRules> &&rules, int32 active_period, bool is_pinned,
                   bool protect_content, Promise<td_api::object_ptr<td_api::story>> &&promise);
 
-  void on_send_story_file_part_missing(unique_ptr<PendingStory> &&pending_story, int bad_part);
+  void on_send_story_file_parts_missing(unique_ptr<PendingStory> &&pending_story, vector<int> &&bad_parts);
 
   void edit_story(StoryId story_id, td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,
                   td_api::object_ptr<td_api::formattedText> &&input_caption, Promise<Unit> &&promise);

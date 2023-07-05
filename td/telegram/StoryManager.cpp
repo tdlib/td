@@ -584,9 +584,9 @@ class StoryManager::SendStoryQuery final : public Td::ResultHandler {
       return;
     }
 
-    if (begins_with(status.message(), "FILE_PART_") && ends_with(status.message(), "_MISSING")) {
-      td_->story_manager_->on_send_story_file_part_missing(std::move(pending_story_),
-                                                           to_integer<int32>(status.message().substr(10)));
+    auto bad_parts = FileManager::get_missing_file_parts(status);
+    if (!bad_parts.empty()) {
+      td_->story_manager_->on_send_story_file_parts_missing(std::move(pending_story_), std::move(bad_parts));
       return;
     } else {
       td_->story_manager_->delete_pending_story(file_id_, std::move(pending_story_), std::move(status));
@@ -655,9 +655,9 @@ class StoryManager::EditStoryQuery final : public Td::ResultHandler {
       return td_->story_manager_->delete_pending_story(file_id_, std::move(pending_story_), Status::OK());
     }
 
-    if (begins_with(status.message(), "FILE_PART_") && ends_with(status.message(), "_MISSING")) {
-      td_->story_manager_->on_send_story_file_part_missing(std::move(pending_story_),
-                                                           to_integer<int32>(status.message().substr(10)));
+    auto bad_parts = FileManager::get_missing_file_parts(status);
+    if (!bad_parts.empty()) {
+      td_->story_manager_->on_send_story_file_parts_missing(std::move(pending_story_), std::move(bad_parts));
       return;
     }
     td_->story_manager_->delete_pending_story(file_id_, std::move(pending_story_), std::move(status));
@@ -2748,8 +2748,8 @@ void StoryManager::on_upload_story_error(FileId file_id, Status status) {
   delete_pending_story(file_id, std::move(pending_story), std::move(status));
 }
 
-void StoryManager::on_send_story_file_part_missing(unique_ptr<PendingStory> &&pending_story, int bad_part) {
-  do_send_story(std::move(pending_story), {bad_part});
+void StoryManager::on_send_story_file_parts_missing(unique_ptr<PendingStory> &&pending_story, vector<int> &&bad_parts) {
+  do_send_story(std::move(pending_story), std::move(bad_parts));
 }
 
 class StoryManager::EditStoryLogEvent {
