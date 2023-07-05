@@ -944,6 +944,9 @@ vector<int> FileManager::get_missing_file_parts(const Status &error) {
       result.push_back(r_file_part.ok());
     }
   }
+  if (error_message == "FILE_PART_INVALID") {
+    result.push_back(0);
+  }
   return result;
 }
 
