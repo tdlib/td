@@ -37336,6 +37336,7 @@ void MessagesManager::update_dialog_pos(Dialog *d, const char *source, bool need
     if (new_order == DEFAULT_ORDER && !d->is_empty) {
       LOG(INFO) << "There are no known messages in the chat, just leave it where it is";
       new_order = d->order;
+      get_history_from_the_end_impl(d, true, false, Promise<Unit>(), source);
     }
   }
 
