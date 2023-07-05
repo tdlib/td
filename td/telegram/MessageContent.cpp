@@ -5172,6 +5172,9 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       }
 
       result->photo.photos.clear();
+      result->photo.animations.clear();
+      result->photo.sticker_photo_size = nullptr;
+
       bool has_thumbnail = thumbnail.type != 0;
       if (has_thumbnail) {
         thumbnail.type = 't';

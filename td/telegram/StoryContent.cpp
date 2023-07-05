@@ -446,7 +446,12 @@ unique_ptr<StoryContent> dup_story_content(Td *td, const StoryContent *content) 
       photo_size.type = 'i';
       photo_size.file_id = fix_file_id(photo_size.file_id);
 
-      auto result = make_unique<StoryContentPhoto>();
+      auto result = make_unique<StoryContentPhoto>(Photo(old_content->photo_));
+
+      result->photo_.photos.clear();
+      result->photo_.animations.clear();
+      result->photo_.sticker_photo_size = nullptr;
+
       result->photo_.photos.push_back(std::move(photo_size));
       return std::move(result);
     }
