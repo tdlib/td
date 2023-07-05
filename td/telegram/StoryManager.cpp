@@ -2054,6 +2054,8 @@ StoryId StoryManager::on_get_skipped_story(DialogId owner_dialog_id,
     return StoryId();
   }
 
+  td_->messages_manager_->force_create_dialog(owner_dialog_id, "on_get_skipped_story");
+
   StoryFullId story_full_id{owner_dialog_id, story_id};
   Story *story = get_story_editable(story_full_id);
   if (story == nullptr) {
@@ -2141,7 +2143,7 @@ void StoryManager::on_story_changed(StoryFullId story_full_id, const Story *stor
     story_can_get_viewers_timeout_.set_timeout_in(story->global_id_,
                                                   get_story_viewers_expire_date(story) - G()->unix_time());
   }
-  if (story->content_ == nullptr) {
+  if (story->content_ == nullptr || !story_full_id.get_story_id().is_valid()) {
     return;
   }
   if (is_changed || need_save_to_database) {
@@ -2607,6 +2609,8 @@ void StoryManager::send_story(td_api::object_ptr<td_api::InputStoryContent> &&in
       return promise.set_error(Status::Error(400, "Invalid story active period specified"));
     }
   }
+
+  td_->messages_manager_->force_create_dialog(dialog_id, "send_story");
 
   auto story = make_unique<Story>();
   story->date_ = G()->unix_time();
