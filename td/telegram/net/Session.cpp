@@ -955,9 +955,9 @@ void Session::on_message_result_error(uint64 message_id, int error_code, string 
         error_code = 500;
       } else {
         if (message == "USER_DEACTIVATED_BAN") {
-          LOG(PLAIN)
-              << "Your account was suspended for suspicious activity. If you think that this is a mistake, please "
-                 "write to recover@telegram.org your phone number and other details to recover the account.";
+          LOG(ERROR) << "Your phone number was banned for suspicious activity. If you think that this is a mistake, "
+                        "please try to log in from an official mobile app and send a email to recover the account by "
+                        "following instructions provided by the app.";
         }
         auth_data_.set_auth_flag(false);
         G()->log_out(message);
