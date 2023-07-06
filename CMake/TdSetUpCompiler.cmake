@@ -121,6 +121,7 @@ function(td_set_up_compiler)
     add_cxx_compiler_flag("-Wdeprecated")
     add_cxx_compiler_flag("-Wno-unused-command-line-argument")
     add_cxx_compiler_flag("-Qunused-arguments")
+    add_cxx_compiler_flag("-Wno-unknown-warning-option")
     add_cxx_compiler_flag("-Wodr")
     add_cxx_compiler_flag("-flto-odr-type-merging")
 
