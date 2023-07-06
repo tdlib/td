@@ -16,13 +16,15 @@ telegram_api::object_ptr<telegram_api::inputPeerNotifySettings>
 ScopeNotificationSettings::get_input_peer_notify_settings() const {
   int32 flags = telegram_api::inputPeerNotifySettings::MUTE_UNTIL_MASK |
                 telegram_api::inputPeerNotifySettings::SHOW_PREVIEWS_MASK |
-                telegram_api::inputPeerNotifySettings::STORIES_MUTED_MASK |
                 telegram_api::inputPeerNotifySettings::STORIES_HIDE_SENDER_MASK;
   if (sound != nullptr) {
     flags |= telegram_api::inputPeerNotifySettings::SOUND_MASK;
   }
   if (story_sound != nullptr) {
     flags |= telegram_api::inputPeerNotifySettings::STORIES_SOUND_MASK;
+  }
+  if (!use_default_mute_stories) {
+    flags |= telegram_api::inputPeerNotifySettings::STORIES_MUTED_MASK;
   }
   return telegram_api::make_object<telegram_api::inputPeerNotifySettings>(
       flags, show_preview, false, mute_until, get_input_notification_sound(sound), mute_stories, hide_story_sender,
@@ -31,8 +33,9 @@ ScopeNotificationSettings::get_input_peer_notify_settings() const {
 
 StringBuilder &operator<<(StringBuilder &string_builder, const ScopeNotificationSettings &notification_settings) {
   return string_builder << "[" << notification_settings.mute_until << ", " << notification_settings.sound << ", "
-                        << notification_settings.show_preview << ", " << notification_settings.mute_stories << ", "
-                        << notification_settings.story_sound << ", " << notification_settings.hide_story_sender << ", "
+                        << notification_settings.show_preview << ", " << notification_settings.use_default_mute_stories
+                        << ", " << notification_settings.mute_stories << ", " << notification_settings.story_sound
+                        << ", " << notification_settings.hide_story_sender << ", "
                         << notification_settings.is_synchronized << ", "
                         << notification_settings.disable_pinned_message_notifications << ", "
                         << notification_settings.disable_mention_notifications << "]";
@@ -44,8 +47,9 @@ td_api::object_ptr<td_api::scopeNotificationSettings> get_scope_notification_set
   return td_api::make_object<td_api::scopeNotificationSettings>(
       max(0, notification_settings->mute_until - G()->unix_time()),
       get_notification_sound_ringtone_id(notification_settings->sound), notification_settings->show_preview,
-      notification_settings->mute_stories, get_notification_sound_ringtone_id(notification_settings->story_sound),
-      !notification_settings->hide_story_sender, notification_settings->disable_pinned_message_notifications,
+      notification_settings->use_default_mute_stories, notification_settings->mute_stories,
+      get_notification_sound_ringtone_id(notification_settings->story_sound), !notification_settings->hide_story_sender,
+      notification_settings->disable_pinned_message_notifications,
       notification_settings->disable_mention_notifications);
 }
 
@@ -71,8 +75,9 @@ Result<ScopeNotificationSettings> get_scope_notification_settings(
   auto mute_until = get_mute_until(notification_settings->mute_for_);
   return ScopeNotificationSettings(
       mute_until, get_notification_sound(false, notification_settings->sound_id_), notification_settings->show_preview_,
-      notification_settings->mute_stories_, get_notification_sound(false, notification_settings->story_sound_id_),
-      !notification_settings->show_story_sender_, notification_settings->disable_pinned_message_notifications_,
+      notification_settings->use_default_mute_stories_, notification_settings->mute_stories_,
+      get_notification_sound(false, notification_settings->story_sound_id_), !notification_settings->show_story_sender_,
+      notification_settings->disable_pinned_message_notifications_,
       notification_settings->disable_mention_notifications_);
 }
 
@@ -87,11 +92,13 @@ ScopeNotificationSettings get_scope_notification_settings(tl_object_ptr<telegram
     mute_until = 0;
   }
   auto show_preview = settings->show_previews_;
+  auto use_default_mute_stories = (settings->flags_ & telegram_api::peerNotifySettings::STORIES_MUTED_MASK) == 0;
   auto mute_stories = settings->stories_muted_;
   auto hide_story_sender = settings->stories_hide_sender_;
   return {mute_until,
           get_notification_sound(settings.get(), false),
           show_preview,
+          use_default_mute_stories,
           mute_stories,
           get_notification_sound(settings.get(), true),
           hide_story_sender,
