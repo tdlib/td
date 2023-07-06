@@ -2765,6 +2765,7 @@ class MessagesManager final : public Actor {
 
   static Message *get_message(Dialog *d, MessageId message_id);
   static const Message *get_message(const Dialog *d, MessageId message_id);
+  static const Message *get_message_static(const Dialog *d, MessageId message_id);
 
   Message *get_message(FullMessageId full_message_id);
   const Message *get_message(FullMessageId full_message_id) const;

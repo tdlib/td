@@ -22766,8 +22766,8 @@ void MessagesManager::on_get_affected_history(DialogId dialog_id, AffectedHistor
 }
 
 std::function<int32(MessageId)> MessagesManager::get_get_message_date(const Dialog *d) const {
-  return [this, d](MessageId message_id) {
-    auto *m = get_message(d, message_id);
+  return [d](MessageId message_id) {
+    const auto *m = get_message_static(d, message_id);
     CHECK(m != nullptr);
     return m->date;
   };
@@ -34212,6 +34212,10 @@ const MessagesManager::Message *MessagesManager::get_message(const Dialog *d, Me
   }
   LOG(INFO) << "Search for " << message_id << " in " << d->dialog_id << " found " << result;
   return result;
+}
+
+const MessagesManager::Message *MessagesManager::get_message_static(const Dialog *d, MessageId message_id) {
+  return get_message(d, message_id);
 }
 
 MessagesManager::Message *MessagesManager::get_message_force(Dialog *d, MessageId message_id, const char *source) {

@@ -52,7 +52,8 @@ void StoryInteractionInfo::set_recent_viewer_user_ids(vector<UserId> &&user_ids)
 }
 
 bool StoryInteractionInfo::definitely_has_no_user(UserId user_id) const {
-  return !is_empty() && view_count_ <= MAX_RECENT_VIEWERS && !contains(recent_viewer_user_ids_, user_id);
+  return !is_empty() && view_count_ <= static_cast<int32>(MAX_RECENT_VIEWERS) &&
+         !contains(recent_viewer_user_ids_, user_id);
 }
 
 td_api::object_ptr<td_api::storyInteractionInfo> StoryInteractionInfo::get_story_interaction_info_object(Td *td) const {
