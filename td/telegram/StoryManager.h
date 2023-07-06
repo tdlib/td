@@ -155,6 +155,8 @@ class StoryManager final : public Actor {
 
   void load_active_stories(const td_api::object_ptr<td_api::StoryList> &story_list_ptr, Promise<Unit> &&promise);
 
+  void reload_active_stories();
+
   void toggle_dialog_stories_hidden(DialogId dialog_id, bool are_hidden, Promise<Unit> &&promise);
 
   void get_dialog_pinned_stories(DialogId owner_dialog_id, StoryId from_story_id, int32 limit,
@@ -323,6 +325,8 @@ class StoryManager final : public Actor {
   void load_dialog_expiring_stories(DialogId owner_dialog_id, uint64 log_event_id, const char *source);
 
   void on_load_dialog_expiring_stories(DialogId owner_dialog_id);
+
+  void load_active_stories(StoryList &story_list, bool is_hidden, bool is_next, Promise<Unit> &&promise);
 
   void on_load_active_stories(bool is_hidden, bool is_next,
                               Result<telegram_api::object_ptr<telegram_api::stories_AllStories>> r_all_stories);

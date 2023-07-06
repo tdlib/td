@@ -990,15 +990,24 @@ void StoryManager::load_active_stories(const td_api::object_ptr<td_api::StoryLis
   if (story_list.list_last_story_date_ == MAX_DIALOG_DATE) {
     return promise.set_error(Status::Error(404, "Not found"));
   }
+  load_active_stories(story_list, is_hidden, !story_list.state_.empty(), std::move(promise));
+}
+
+void StoryManager::load_active_stories(StoryList &story_list, bool is_hidden, bool is_next, Promise<Unit> &&promise) {
   story_list.load_list_queries_.push_back(std::move(promise));
   if (story_list.load_list_queries_.size() == 1u) {
-    bool is_next = !story_list.state_.empty();
     auto query_promise =
         PromiseCreator::lambda([actor_id = actor_id(this), is_hidden, is_next](
                                    Result<telegram_api::object_ptr<telegram_api::stories_AllStories>> r_all_stories) {
           send_closure(actor_id, &StoryManager::on_load_active_stories, is_hidden, is_next, std::move(r_all_stories));
         });
     td_->create_handler<GetAllStoriesQuery>(std::move(query_promise))->send(is_next, is_hidden, story_list.state_);
+  }
+}
+
+void StoryManager::reload_active_stories() {
+  for (int is_hidden = 0; is_hidden < 2; is_hidden++) {
+    load_active_stories(story_lists_[is_hidden], is_hidden != 0, false, Promise<Unit>());
   }
 }
 
