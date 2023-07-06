@@ -102,6 +102,8 @@ class NotificationSettingsManager final : public Actor {
   void get_notify_settings_exceptions(NotificationSettingsScope scope, bool filter_scope, bool compare_sound,
                                       Promise<Unit> &&promise);
 
+  void get_story_notification_settings_exceptions(Promise<td_api::object_ptr<td_api::chats>> &&promise);
+
   void init();
 
   void on_binlog_events(vector<BinlogEvent> &&events);

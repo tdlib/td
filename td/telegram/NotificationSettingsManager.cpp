@@ -283,6 +283,64 @@ class GetNotifySettingsExceptionsQuery final : public Td::ResultHandler {
   }
 };
 
+class GetStoryNotifySettingsExceptionsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::chats>> promise_;
+
+ public:
+  explicit GetStoryNotifySettingsExceptionsQuery(Promise<td_api::object_ptr<td_api::chats>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    int32 flags = telegram_api::account_getNotifyExceptions::COMPARE_STORIES_MASK;
+    send_query(G()->net_query_creator().create(
+        telegram_api::account_getNotifyExceptions(flags, false /*ignored*/, false /*ignored*/, nullptr)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_getNotifyExceptions>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto updates_ptr = result_ptr.move_as_ok();
+    auto dialog_ids = UpdatesManager::get_update_notify_settings_dialog_ids(updates_ptr.get());
+    vector<tl_object_ptr<telegram_api::User>> users;
+    vector<tl_object_ptr<telegram_api::Chat>> chats;
+    switch (updates_ptr->get_id()) {
+      case telegram_api::updatesCombined::ID: {
+        auto updates = static_cast<telegram_api::updatesCombined *>(updates_ptr.get());
+        users = std::move(updates->users_);
+        chats = std::move(updates->chats_);
+        reset_to_empty(updates->users_);
+        reset_to_empty(updates->chats_);
+        break;
+      }
+      case telegram_api::updates::ID: {
+        auto updates = static_cast<telegram_api::updates *>(updates_ptr.get());
+        users = std::move(updates->users_);
+        chats = std::move(updates->chats_);
+        reset_to_empty(updates->users_);
+        reset_to_empty(updates->chats_);
+        break;
+      }
+    }
+    td_->contacts_manager_->on_get_users(std::move(users), "GetStoryNotifySettingsExceptionsQuery");
+    td_->contacts_manager_->on_get_chats(std::move(chats), "GetStoryNotifySettingsExceptionsQuery");
+    for (auto &dialog_id : dialog_ids) {
+      td_->messages_manager_->force_create_dialog(dialog_id, "GetStoryNotifySettingsExceptionsQuery");
+    }
+    auto chat_ids = td_->messages_manager_->get_chats_object(-1, dialog_ids, "GetStoryNotifySettingsExceptionsQuery");
+    auto promise = PromiseCreator::lambda([promise = std::move(promise_), chat_ids = std::move(chat_ids)](
+                                              Result<Unit>) mutable { promise.set_value(std::move(chat_ids)); });
+    td_->updates_manager_->on_get_updates(std::move(updates_ptr), std::move(promise));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetScopeNotifySettingsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   NotificationSettingsScope scope_;
@@ -1453,6 +1511,11 @@ void NotificationSettingsManager::reset_notify_settings(Promise<Unit> &&promise)
 void NotificationSettingsManager::get_notify_settings_exceptions(NotificationSettingsScope scope, bool filter_scope,
                                                                  bool compare_sound, Promise<Unit> &&promise) {
   td_->create_handler<GetNotifySettingsExceptionsQuery>(std::move(promise))->send(scope, filter_scope, compare_sound);
+}
+
+void NotificationSettingsManager::get_story_notification_settings_exceptions(
+    Promise<td_api::object_ptr<td_api::chats>> &&promise) {
+  td_->create_handler<GetStoryNotifySettingsExceptionsQuery>(std::move(promise))->send();
 }
 
 void NotificationSettingsManager::on_binlog_events(vector<BinlogEvent> &&events) {

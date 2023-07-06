@@ -4064,6 +4064,8 @@ class CliClient final : public Actor {
       string limit;
       get_args(args, from_story_id, limit);
       send_request(td_api::make_object<td_api::getArchivedStories>(from_story_id, as_limit(limit)));
+    } else if (op == "gsnse") {
+      send_request(td_api::make_object<td_api::getStoryNotificationSettingsExceptions>());
     } else if (op == "gcas") {
       ChatId chat_id;
       get_args(args, chat_id);

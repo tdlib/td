@@ -7226,7 +7226,7 @@ addSavedNotificationSound sound:InputFile = NotificationSound;
 removeSavedNotificationSound notification_sound_id:int64 = Ok;
 
 
-//@description Returns list of chats with non-default notification settings
+//@description Returns list of chats with non-default notification settings for new messages
 //@scope If specified, only chats from the scope will be returned; pass null to return chats from all scopes
 //@compare_sound Pass true to include in the response chats with only non-default sound
 getChatNotificationSettingsExceptions scope:NotificationSettingsScope compare_sound:Bool = Chats;
@@ -7288,6 +7288,9 @@ loadActiveStories story_list:StoryList = Ok;
 
 //@description Toggles whether stories posted by the chat are available above chat lists @chat_id Identifier of the chat that posted stories @are_hidden Pass true to make the stories unavailable above the chat lists; pass false to make them available
 toggleChatStoriesAreHidden chat_id:int53 are_hidden:Bool = Ok;
+
+//@description Returns list of chats with non-default notification settings for stories
+getStoryNotificationSettingsExceptions = Chats;
 
 //@description Returns the list of active stories posted by the given chat @chat_id Chat identifier
 getChatActiveStories chat_id:int53 = ActiveStories;
