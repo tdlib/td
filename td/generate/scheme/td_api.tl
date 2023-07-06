@@ -681,8 +681,10 @@ premiumPaymentOption currency:string amount:int53 discount_percentage:int32 mont
 premiumStatePaymentOption payment_option:premiumPaymentOption is_current:Bool is_upgrade:Bool last_transaction_id:string = PremiumStatePaymentOption;
 
 
-//@description Describes a custom emoji to be shown instead of the Telegram Premium badge @custom_emoji_id Identifier of the custom emoji in stickerFormatTgs format
-emojiStatus custom_emoji_id:int64 = EmojiStatus;
+//@description Describes a custom emoji to be shown instead of the Telegram Premium badge
+//@custom_emoji_id Identifier of the custom emoji in stickerFormatTgs format
+//@expiration_date Point in time (Unix timestamp) when the status will expire; 0 if never
+emojiStatus custom_emoji_id:int64 expiration_date:int32 = EmojiStatus;
 
 //@description Contains a list of custom emoji identifiers, which can be set as emoji statuses @custom_emoji_ids The list of custom emoji identifiers
 emojiStatuses custom_emoji_ids:vector<int64> = EmojiStatuses;
@@ -7939,10 +7941,8 @@ toggleUsernameIsActive username:string is_active:Bool = Ok;
 //@description Changes order of active usernames of the current user @usernames The new order of active usernames. All currently active usernames must be specified
 reorderActiveUsernames usernames:vector<string> = Ok;
 
-//@description Changes the emoji status of the current user; for Telegram Premium users only
-//@emoji_status New emoji status; pass null to switch to the default badge
-//@duration Duration of the status, in seconds; pass 0 to keep the status active until it will be changed manually
-setEmojiStatus emoji_status:emojiStatus duration:int32 = Ok;
+//@description Changes the emoji status of the current user; for Telegram Premium users only @emoji_status New emoji status; pass null to switch to the default badge
+setEmojiStatus emoji_status:emojiStatus = Ok;
 
 //@description Changes the location of the current user. Needs to be called if getOption("is_location_visible") is true and location changes for more than 1 kilometer @location The new location of the user
 setLocation location:location = Ok;

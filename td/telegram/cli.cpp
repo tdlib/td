@@ -5158,13 +5158,13 @@ class CliClient final : public Actor {
     } else if (op == "raun") {
       send_request(td_api::make_object<td_api::reorderActiveUsernames>(autosplit_str(args)));
     } else if (op == "sese") {
-      send_request(td_api::make_object<td_api::setEmojiStatus>(nullptr, 0));
+      send_request(td_api::make_object<td_api::setEmojiStatus>(nullptr));
     } else if (op == "ses") {
       int64 custom_emoji_id;
-      int32 until_date;
-      get_args(args, custom_emoji_id, until_date);
+      int32 expiration_date;
+      get_args(args, custom_emoji_id, expiration_date);
       send_request(td_api::make_object<td_api::setEmojiStatus>(
-          td_api::make_object<td_api::emojiStatus>(custom_emoji_id), until_date));
+          td_api::make_object<td_api::emojiStatus>(custom_emoji_id, expiration_date)));
     } else if (op == "gtes") {
       send_request(td_api::make_object<td_api::getThemedEmojiStatuses>());
     } else if (op == "gdes") {

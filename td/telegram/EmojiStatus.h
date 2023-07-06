@@ -30,7 +30,7 @@ class EmojiStatus {
  public:
   EmojiStatus() = default;
 
-  EmojiStatus(const td_api::object_ptr<td_api::emojiStatus> &emoji_status, int32 duration);
+  explicit EmojiStatus(const td_api::object_ptr<td_api::emojiStatus> &emoji_status);
 
   explicit EmojiStatus(tl_object_ptr<telegram_api::EmojiStatus> &&emoji_status);
 
@@ -38,7 +38,7 @@ class EmojiStatus {
 
   td_api::object_ptr<td_api::emojiStatus> get_emoji_status_object() const;
 
-  CustomEmojiId get_effective_custom_emoji_id(bool is_premium, int32 unix_time) const;
+  EmojiStatus get_effective_emoji_status(bool is_premium, int32 unix_time) const;
 
   bool is_empty() const {
     return !custom_emoji_id_.is_valid();

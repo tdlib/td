@@ -746,7 +746,7 @@ class ContactsManager final : public Actor {
     string phone_number;
     int64 access_hash = -1;
     EmojiStatus emoji_status;
-    CustomEmojiId last_sent_emoji_status;
+    EmojiStatus last_sent_emoji_status;
 
     ProfilePhoto photo;
 

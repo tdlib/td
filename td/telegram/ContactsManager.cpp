@@ -11960,15 +11960,15 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
   }
 
   auto unix_time = G()->unix_time();
-  auto effective_custom_emoji_id = u->emoji_status.get_effective_custom_emoji_id(u->is_premium, unix_time);
-  if (effective_custom_emoji_id != u->last_sent_emoji_status) {
-    u->last_sent_emoji_status = effective_custom_emoji_id;
+  auto effective_emoji_status = u->emoji_status.get_effective_emoji_status(u->is_premium, unix_time);
+  if (effective_emoji_status != u->last_sent_emoji_status) {
+    u->last_sent_emoji_status = effective_emoji_status;
     u->is_changed = true;
   } else {
     u->need_save_to_database = true;
   }
-  if (u->last_sent_emoji_status.is_valid()) {
-    auto until_date = u->emoji_status.get_until_date();
+  if (!u->last_sent_emoji_status.is_empty()) {
+    auto until_date = u->last_sent_emoji_status.get_until_date();
     auto left_time = until_date - unix_time;
     if (left_time >= 0 && left_time < 30 * 86400) {
       LOG(DEBUG) << "Set emoji status timeout for " << user_id << " in " << left_time << " seconds";
@@ -18859,7 +18859,8 @@ tl_object_ptr<td_api::user> ContactsManager::get_user_object(UserId user_id, con
     type = make_tl_object<td_api::userTypeRegular>();
   }
 
-  auto emoji_status = u->last_sent_emoji_status.is_valid() ? u->emoji_status.get_emoji_status_object() : nullptr;
+  auto emoji_status =
+      !u->last_sent_emoji_status.is_empty() ? u->last_sent_emoji_status.get_emoji_status_object() : nullptr;
   auto have_access = user_id == get_my_id() || have_input_peer_user(u, user_id, AccessRights::Know);
   return td_api::make_object<td_api::user>(
       user_id.get(), u->first_name, u->last_name, u->usernames.get_usernames_object(), u->phone_number,

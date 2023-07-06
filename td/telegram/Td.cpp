@@ -7186,7 +7186,7 @@ void Td::on_request(uint64 id, td_api::reorderActiveUsernames &request) {
 void Td::on_request(uint64 id, const td_api::setEmojiStatus &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  contacts_manager_->set_emoji_status(EmojiStatus(request.emoji_status_, request.duration_), std::move(promise));
+  contacts_manager_->set_emoji_status(EmojiStatus(request.emoji_status_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getThemedEmojiStatuses &request) {

@@ -202,18 +202,18 @@ class ClearRecentEmojiStatusesQuery final : public Td::ResultHandler {
   }
 };
 
-EmojiStatus::EmojiStatus(const td_api::object_ptr<td_api::emojiStatus> &emoji_status, int32 duration) {
+EmojiStatus::EmojiStatus(const td_api::object_ptr<td_api::emojiStatus> &emoji_status) {
   if (emoji_status == nullptr) {
     return;
   }
 
   custom_emoji_id_ = CustomEmojiId(emoji_status->custom_emoji_id_);
-  if (duration != 0) {
+  if (emoji_status->expiration_date_ != 0) {
     int32 current_time = G()->unix_time();
-    if (duration >= std::numeric_limits<int32>::max() - current_time) {
-      until_date_ = std::numeric_limits<int32>::max();
+    if (emoji_status->expiration_date_ > current_time) {
+      until_date_ = emoji_status->expiration_date_;
     } else {
-      until_date_ = current_time + duration;
+      custom_emoji_id_ = {};
     }
   }
 }
@@ -255,17 +255,17 @@ td_api::object_ptr<td_api::emojiStatus> EmojiStatus::get_emoji_status_object() c
   if (is_empty()) {
     return nullptr;
   }
-  return td_api::make_object<td_api::emojiStatus>(custom_emoji_id_.get());
+  return td_api::make_object<td_api::emojiStatus>(custom_emoji_id_.get(), until_date_);
 }
 
-CustomEmojiId EmojiStatus::get_effective_custom_emoji_id(bool is_premium, int32 unix_time) const {
+EmojiStatus EmojiStatus::get_effective_emoji_status(bool is_premium, int32 unix_time) const {
   if (!is_premium) {
-    return CustomEmojiId();
+    return EmojiStatus();
   }
   if (until_date_ != 0 && until_date_ <= unix_time) {
-    return CustomEmojiId();
+    return EmojiStatus();
   }
-  return custom_emoji_id_;
+  return *this;
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const EmojiStatus &emoji_status) {
