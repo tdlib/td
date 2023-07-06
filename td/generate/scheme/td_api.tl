@@ -684,8 +684,8 @@ premiumStatePaymentOption payment_option:premiumPaymentOption is_current:Bool is
 //@description Describes a custom emoji to be shown instead of the Telegram Premium badge @custom_emoji_id Identifier of the custom emoji in stickerFormatTgs format
 emojiStatus custom_emoji_id:int64 = EmojiStatus;
 
-//@description Contains a list of emoji statuses @emoji_statuses The list of emoji statuses
-emojiStatuses emoji_statuses:vector<emojiStatus> = EmojiStatuses;
+//@description Contains a list of custom emoji identifiers, which can be set as emoji statuses @custom_emoji_ids The list of custom emoji identifiers
+emojiStatuses custom_emoji_ids:vector<int64> = EmojiStatuses;
 
 
 //@description Describes usernames assigned to a user, a supergroup, or a channel

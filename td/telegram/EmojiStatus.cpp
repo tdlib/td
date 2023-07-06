@@ -27,12 +27,12 @@ struct EmojiStatuses {
   vector<EmojiStatus> emoji_statuses_;
 
   td_api::object_ptr<td_api::emojiStatuses> get_emoji_statuses_object() const {
-    auto emoji_statuses = transform(emoji_statuses_, [](const EmojiStatus &emoji_status) {
+    auto custom_emoji_ids = transform(emoji_statuses_, [](const EmojiStatus &emoji_status) {
       CHECK(!emoji_status.is_empty());
-      return emoji_status.get_emoji_status_object();
+      return emoji_status.get_custom_emoji_id().get();
     });
 
-    return td_api::make_object<td_api::emojiStatuses>(std::move(emoji_statuses));
+    return td_api::make_object<td_api::emojiStatuses>(std::move(custom_emoji_ids));
   }
 
   EmojiStatuses() = default;

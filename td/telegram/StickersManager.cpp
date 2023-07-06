@@ -6378,19 +6378,19 @@ void StickersManager::get_default_emoji_statuses(bool is_recursive,
     return;
   }
 
-  vector<td_api::object_ptr<td_api::emojiStatus>> statuses;
+  vector<int64> custom_emoji_ids;
   for (auto sticker_id : sticker_set->sticker_ids_) {
     auto custom_emoji_id = get_custom_emoji_id(sticker_id);
     if (!custom_emoji_id.is_valid()) {
       LOG(ERROR) << "Ignore wrong sticker " << sticker_id;
       continue;
     }
-    statuses.push_back(td_api::make_object<td_api::emojiStatus>(custom_emoji_id.get()));
-    if (statuses.size() >= 8) {
+    custom_emoji_ids.push_back(custom_emoji_id.get());
+    if (custom_emoji_ids.size() >= 8) {
       break;
     }
   }
-  promise.set_value(td_api::make_object<td_api::emojiStatuses>(std::move(statuses)));
+  promise.set_value(td_api::make_object<td_api::emojiStatuses>(std::move(custom_emoji_ids)));
 }
 
 bool StickersManager::is_default_emoji_status(CustomEmojiId custom_emoji_id) {
