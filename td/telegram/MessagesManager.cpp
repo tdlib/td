@@ -39995,8 +39995,10 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
         auto dialog_id = log_event.dialog_id_;
         Dependencies dependencies;
-        dependencies.add_dialog_and_dependencies(dialog_id);
+        dependencies.add_dialog_dependencies(dialog_id);  // dialog itself may not exist
         dependencies.resolve_force(td_, "RegetDialogLogEvent");
+
+        get_dialog_force(dialog_id, "RegetDialogLogEvent");  // load it if exists
 
         if (!have_input_peer(dialog_id, AccessRights::Read)) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
