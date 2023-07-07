@@ -1846,8 +1846,9 @@ td_api::object_ptr<td_api::activeStories> StoryManager::get_active_stories_objec
       order = active_stories->public_order_;
     }
   }
-  return td_api::make_object<td_api::activeStories>(std::move(list), order, max_read_story_id.get(),
-                                                    std::move(stories));
+  return td_api::make_object<td_api::activeStories>(
+      td_->messages_manager_->get_chat_id_object(owner_dialog_id, "updateChatActiveStories"), std::move(list), order,
+      max_read_story_id.get(), std::move(stories));
 }
 
 vector<FileId> StoryManager::get_story_file_ids(const Story *story) const {
@@ -2423,9 +2424,7 @@ void StoryManager::delete_active_stories_from_story_list(DialogId owner_dialog_i
 
 td_api::object_ptr<td_api::updateChatActiveStories> StoryManager::get_update_chat_active_stories(
     DialogId owner_dialog_id) const {
-  return td_api::make_object<td_api::updateChatActiveStories>(
-      td_->messages_manager_->get_chat_id_object(owner_dialog_id, "updateChatActiveStories"),
-      get_active_stories_object(owner_dialog_id));
+  return td_api::make_object<td_api::updateChatActiveStories>(get_active_stories_object(owner_dialog_id));
 }
 
 void StoryManager::send_update_chat_active_stories(DialogId owner_dialog_id) {

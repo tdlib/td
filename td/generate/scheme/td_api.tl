@@ -4957,12 +4957,13 @@ stories total_count:int32 stories:vector<story> = Stories;
 //@description Contains basic information about a story @story_id Unique story identifier among stories of the given sender @date Point in time (Unix timestamp) when the story was published
 storyInfo story_id:int32 date:int32 = StoryInfo;
 
-//@description Describes active stories sent by the same sender
+//@description Describes active stories posted by a chat
+//@chat_id Identifier of the chat that posted the stories
 //@list Identifier of the story list in which the stories are shown; may be null if the stories aren't shown in a story list
 //@order A parameter used to determine order of the stories in the story list; 0 if the stories doesn't need to be shown in the story list. Stories must be sorted by the pair (order, story_sender_chat_id) in descending order
 //@max_read_story_id Identifier of the last read active story
 //@stories Basic information about the stories; use getStory to get full information about the stories. The stories are in a chronological order (i.e., in order of increasing story identifiers)
-activeStories list:StoryList order:int53 max_read_story_id:int32 stories:vector<storyInfo> = ActiveStories;
+activeStories chat_id:int53 list:StoryList order:int53 max_read_story_id:int32 stories:vector<storyInfo> = ActiveStories;
 
 
 //@description Contains a part of a file @data File bytes
@@ -5727,9 +5728,8 @@ updateStory story:story = Update;
 updateStoryDeleted story_sender_chat_id:int53 story_id:int32 = Update;
 
 //@description The list of active stories posted by a specific chat has changed
-//@chat_id Identifier of the chat that posted the stories
 //@active_stories The new list of active stories
-updateChatActiveStories chat_id:int53 active_stories:activeStories = Update;
+updateChatActiveStories active_stories:activeStories = Update;
 
 //@description An option changed its value @name The option name @value The new option value
 updateOption name:string value:OptionValue = Update;
