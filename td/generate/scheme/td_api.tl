@@ -4960,10 +4960,9 @@ storyInfo story_id:int32 date:int32 = StoryInfo;
 //@description Describes active stories sent by the same sender
 //@list Identifier of the story list in which the stories are shown; may be null if the stories aren't shown in a story list
 //@order A parameter used to determine order of the stories in the story list; 0 if the stories doesn't need to be shown in the story list. Stories must be sorted by the pair (order, story_sender_chat_id) in descending order
-//@chat_id Identifier of the chat that posted the the stories
 //@max_read_story_id Identifier of the last read active story
 //@stories Basic information about the stories; use getStory to get full information about the stories. The stories are in a chronological order (i.e., in order of increasing story identifiers)
-activeStories list:StoryList order:int53 chat_id:int53 max_read_story_id:int32 stories:vector<storyInfo> = ActiveStories;
+activeStories list:StoryList order:int53 max_read_story_id:int32 stories:vector<storyInfo> = ActiveStories;
 
 
 //@description Contains a part of a file @data File bytes
@@ -5727,8 +5726,10 @@ updateStory story:story = Update;
 //@description A story became inaccessible @story_sender_chat_id Identifier of the chat that posted the story @story_id Story identifier
 updateStoryDeleted story_sender_chat_id:int53 story_id:int32 = Update;
 
-//@description The list of active stories of a specific sender has changed @active_stories The new list of active stories
-updateActiveStories active_stories:activeStories = Update;
+//@description The list of active stories of a specific sender has changed
+//@chat_id Identifier of the chat that posted the stories
+//@active_stories The new list of active stories
+updateActiveStories chat_id:int53 active_stories:activeStories = Update;
 
 //@description An option changed its value @name The option name @value The new option value
 updateOption name:string value:OptionValue = Update;
@@ -7673,7 +7674,7 @@ setGroupCallParticipantIsSpeaking group_call_id:int32 audio_source:int32 is_spea
 //@description Toggles whether a participant of an active group call is muted, unmuted, or allowed to unmute themselves
 //@group_call_id Group call identifier
 //@participant_id Participant identifier
-//@is_muted Pass true to mute the user; pass false to unmute the them
+//@is_muted Pass true to mute the user; pass false to unmute them
 toggleGroupCallParticipantIsMuted group_call_id:int32 participant_id:MessageSender is_muted:Bool = Ok;
 
 //@description Changes volume level of a participant of an active group call. If the current user can manage the group call, then the participant's volume level will be changed for all users with the default volume level
