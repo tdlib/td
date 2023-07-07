@@ -2338,16 +2338,11 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
 
   LOG(INFO) << "Update active stories in " << owner_dialog_id << " to " << story_ids << " with max read "
             << max_read_story_id;
-  if (owner_dialog_id.get_type() == DialogType::User) {
-    if (story_ids.empty()) {
-      td_->contacts_manager_->on_update_user_has_stories(owner_dialog_id.get_user_id(), false, StoryId(), StoryId());
-    } else {
-      td_->contacts_manager_->on_update_user_has_stories(owner_dialog_id.get_user_id(), true, story_ids.back(),
-                                                         max_read_story_id);
-    }
-  }
 
   if (story_ids.empty()) {
+    if (owner_dialog_id.get_type() == DialogType::User) {
+      td_->contacts_manager_->on_update_user_has_stories(owner_dialog_id.get_user_id(), false, StoryId(), StoryId());
+    }
     if (active_stories_.erase(owner_dialog_id) > 0) {
       LOG(INFO) << "Delete active stories for " << owner_dialog_id;
       send_update_chat_active_stories(owner_dialog_id);
@@ -2371,6 +2366,10 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
         max_read_story_id = old_max_read_story_id;
       }
     }
+  }
+  if (owner_dialog_id.get_type() == DialogType::User) {
+    td_->contacts_manager_->on_update_user_has_stories(owner_dialog_id.get_user_id(), true, story_ids.back(),
+                                                       max_read_story_id);
   }
   if (active_stories->max_read_story_id_ != max_read_story_id || active_stories->story_ids_ != story_ids) {
     active_stories->max_read_story_id_ = max_read_story_id;
