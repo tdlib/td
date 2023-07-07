@@ -225,6 +225,8 @@ class StoryManager final : public Actor {
 
   void try_synchronize_archive_all_stories();
 
+  void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
+
   void on_binlog_events(vector<BinlogEvent> &&events);
 
  private:

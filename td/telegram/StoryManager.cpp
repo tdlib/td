@@ -3087,6 +3087,14 @@ void StoryManager::remove_story_notifications_by_story_ids(DialogId dialog_id, c
   }
 }
 
+void StoryManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
+  if (!td_->auth_manager_->is_bot()) {
+    active_stories_.foreach([&](const DialogId &dialog_id, const unique_ptr<ActiveStories> &) {
+      updates.push_back(get_update_chat_active_stories(dialog_id));
+    });
+  }
+}
+
 void StoryManager::on_binlog_events(vector<BinlogEvent> &&events) {
   if (G()->close_flag()) {
     return;

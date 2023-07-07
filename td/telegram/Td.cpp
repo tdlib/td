@@ -4319,6 +4319,8 @@ void Td::on_request(uint64 id, const td_api::getCurrentState &request) {
 
     notification_manager_->get_current_state(updates);
 
+    story_manager_->get_current_state(updates);
+
     config_manager_.get_actor_unsafe()->get_current_state(updates);
 
     autosave_manager_->get_current_state(updates);
