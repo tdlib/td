@@ -1852,16 +1852,15 @@ td_api::object_ptr<td_api::chatActiveStories> StoryManager::get_chat_active_stor
   const auto *active_stories = get_active_stories(owner_dialog_id);
 
   td_api::object_ptr<td_api::StoryList> list;
-  if (active_stories->story_list_id_ == 1) {
-    list = td_api::make_object<td_api::storyListHidden>();
-  } else if (active_stories->story_list_id_ == 0) {
-    list = td_api::make_object<td_api::storyListMain>();
-  }
-
   StoryId max_read_story_id;
   vector<td_api::object_ptr<td_api::storyInfo>> stories;
   int64 order = 0;
   if (active_stories != nullptr) {
+    if (active_stories->story_list_id_ == 1) {
+      list = td_api::make_object<td_api::storyListHidden>();
+    } else if (active_stories->story_list_id_ == 0) {
+      list = td_api::make_object<td_api::storyListMain>();
+    }
     max_read_story_id = active_stories->max_read_story_id_;
     for (auto story_id : active_stories->story_ids_) {
       auto story_info = get_story_info_object({owner_dialog_id, story_id});
@@ -1871,6 +1870,12 @@ td_api::object_ptr<td_api::chatActiveStories> StoryManager::get_chat_active_stor
     }
     if (list != nullptr) {
       order = active_stories->public_order_;
+    }
+  } else if (is_subscribed_to_dialog_stories(owner_dialog_id)) {
+    if (are_dialog_stories_hidden(owner_dialog_id)) {
+      list = td_api::make_object<td_api::storyListHidden>();
+    } else {
+      list = td_api::make_object<td_api::storyListMain>();
     }
   }
   return td_api::make_object<td_api::chatActiveStories>(
