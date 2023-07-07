@@ -106,6 +106,7 @@ class StoryManager final : public Actor {
   struct ActiveStories {
     StoryId max_read_story_id_;
     vector<StoryId> story_ids_;
+    int32 story_list_id_ = -1;
     int64 private_order_ = 0;
     int64 public_order_ = 0;
   };
@@ -364,6 +365,8 @@ class StoryManager final : public Actor {
   void on_update_active_stories(DialogId owner_dialog_id, StoryId max_read_story_id, vector<StoryId> &&story_ids);
 
   bool update_active_stories_order(DialogId owner_dialog_id, ActiveStories *active_stories);
+
+  void delete_active_stories_from_story_list(DialogId owner_dialog_id, const ActiveStories *active_stories);
 
   void send_update_active_stories(DialogId owner_dialog_id);
 
