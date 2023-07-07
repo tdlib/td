@@ -4428,6 +4428,7 @@ void ContactsManager::User::store(StorerT &storer) const {
   bool has_emoji_status = !emoji_status.is_empty();
   bool has_usernames = !usernames.is_empty();
   bool has_flags2 = true;
+  bool has_max_active_story_id = max_active_story_id.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_received);
   STORE_FLAG(is_verified);
@@ -4465,6 +4466,7 @@ void ContactsManager::User::store(StorerT &storer) const {
     STORE_FLAG(is_close_friend);
     STORE_FLAG(stories_hidden);
     STORE_FLAG(has_stories);
+    STORE_FLAG(has_max_active_story_id);
     END_STORE_FLAGS();
   }
   store(first_name, storer);
@@ -4500,6 +4502,9 @@ void ContactsManager::User::store(StorerT &storer) const {
   if (has_usernames) {
     store(usernames, storer);
   }
+  if (has_max_active_story_id) {
+    store(max_active_story_id, storer);
+  }
 }
 
 template <class ParserT>
@@ -4517,6 +4522,7 @@ void ContactsManager::User::parse(ParserT &parser) {
   bool has_emoji_status;
   bool has_usernames;
   bool has_flags2 = parser.version() >= static_cast<int32>(Version::AddUserFlags2);
+  bool has_max_active_story_id = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_received);
   PARSE_FLAG(is_verified);
@@ -4554,6 +4560,7 @@ void ContactsManager::User::parse(ParserT &parser) {
     PARSE_FLAG(is_close_friend);
     PARSE_FLAG(stories_hidden);
     PARSE_FLAG(has_stories);
+    PARSE_FLAG(has_max_active_story_id);
     END_PARSE_FLAGS();
   }
   parse(first_name, parser);
@@ -4616,6 +4623,9 @@ void ContactsManager::User::parse(ParserT &parser) {
   if (has_usernames) {
     CHECK(!legacy_has_username);
     parse(usernames, parser);
+  }
+  if (has_max_active_story_id) {
+    parse(max_active_story_id, parser);
   }
 
   if (!check_utf8(first_name)) {
@@ -10366,7 +10376,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     u->is_changed = true;
   }
   if (stories_available || stories_unavailable) {
-    on_update_user_has_stories(u, user_id, stories_available);
+    on_update_user_has_stories(u, user_id, stories_available, StoryId(user->stories_max_id_));
   }
   if (is_received) {
     on_update_user_stories_hidden(u, user_id, stories_hidden);
@@ -13454,7 +13464,7 @@ void ContactsManager::on_update_user_emoji_status(User *u, UserId user_id, Emoji
   }
 }
 
-void ContactsManager::on_update_user_has_stories(UserId user_id, bool has_stories) {
+void ContactsManager::on_update_user_has_stories(UserId user_id, bool has_stories, StoryId max_active_story_id) {
   if (!user_id.is_valid()) {
     LOG(ERROR) << "Receive invalid " << user_id;
     return;
@@ -13462,18 +13472,23 @@ void ContactsManager::on_update_user_has_stories(UserId user_id, bool has_storie
 
   User *u = get_user_force(user_id);
   if (u != nullptr) {
-    on_update_user_has_stories(u, user_id, has_stories);
+    on_update_user_has_stories(u, user_id, has_stories, max_active_story_id);
     update_user(u, user_id);
   } else {
     LOG(INFO) << "Ignore update user has stories about unknown " << user_id;
   }
 }
 
-void ContactsManager::on_update_user_has_stories(User *u, UserId user_id, bool has_stories) {
+void ContactsManager::on_update_user_has_stories(User *u, UserId user_id, bool has_stories,
+                                                 StoryId max_active_story_id) {
   if (u->has_stories != has_stories) {
     LOG(DEBUG) << "Change has stories of " << user_id << " to " << has_stories;
     u->has_stories = has_stories;
     u->is_changed = true;
+  }
+  if (u->max_active_story_id != max_active_story_id) {
+    u->max_active_story_id = max_active_story_id;
+    u->need_save_to_database = true;
   }
 }
 

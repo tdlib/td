@@ -2339,7 +2339,11 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
   LOG(INFO) << "Update active stories in " << owner_dialog_id << " to " << story_ids << " with max read "
             << max_read_story_id;
   if (owner_dialog_id.get_type() == DialogType::User) {
-    td_->contacts_manager_->on_update_user_has_stories(owner_dialog_id.get_user_id(), !story_ids.empty());
+    if (story_ids.empty()) {
+      td_->contacts_manager_->on_update_user_has_stories(owner_dialog_id.get_user_id(), false, StoryId());
+    } else {
+      td_->contacts_manager_->on_update_user_has_stories(owner_dialog_id.get_user_id(), true, story_ids.back());
+    }
   }
 
   if (story_ids.empty()) {

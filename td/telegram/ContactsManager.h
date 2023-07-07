@@ -36,6 +36,7 @@
 #include "td/telegram/RestrictionReason.h"
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/StickerSetId.h"
+#include "td/telegram/StoryId.h"
 #include "td/telegram/SuggestedAction.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -186,7 +187,7 @@ class ContactsManager final : public Actor {
   void on_update_user_name(UserId user_id, string &&first_name, string &&last_name, Usernames &&usernames);
   void on_update_user_phone_number(UserId user_id, string &&phone_number);
   void on_update_user_emoji_status(UserId user_id, tl_object_ptr<telegram_api::EmojiStatus> &&emoji_status);
-  void on_update_user_has_stories(UserId user_id, bool has_stories);
+  void on_update_user_has_stories(UserId user_id, bool has_stories, StoryId max_active_story_id);
   void on_update_user_stories_hidden(UserId user_id, bool stories_hidden);
   void on_update_user_online(UserId user_id, tl_object_ptr<telegram_api::UserStatus> &&status);
   void on_update_user_local_was_online(UserId user_id, int32 local_was_online);
@@ -756,6 +757,8 @@ class ContactsManager final : public Actor {
 
     int32 was_online = 0;
     int32 local_was_online = 0;
+
+    StoryId max_active_story_id;
 
     string language_code;
 
@@ -1397,7 +1400,7 @@ class ContactsManager final : public Actor {
   void on_update_user_photo(User *u, UserId user_id, tl_object_ptr<telegram_api::UserProfilePhoto> &&photo,
                             const char *source);
   void on_update_user_emoji_status(User *u, UserId user_id, EmojiStatus emoji_status);
-  void on_update_user_has_stories(User *u, UserId user_id, bool has_stories);
+  void on_update_user_has_stories(User *u, UserId user_id, bool has_stories, StoryId max_active_story_id);
   void on_update_user_stories_hidden(User *u, UserId user_id, bool stories_hidden);
   void on_update_user_is_contact(User *u, UserId user_id, bool is_contact, bool is_mutual_contact,
                                  bool is_close_friend);
