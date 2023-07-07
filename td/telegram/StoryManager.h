@@ -166,7 +166,7 @@ class StoryManager final : public Actor {
   void get_story_archive(StoryId from_story_id, int32 limit, Promise<td_api::object_ptr<td_api::stories>> &&promise);
 
   void get_dialog_expiring_stories(DialogId owner_dialog_id,
-                                   Promise<td_api::object_ptr<td_api::activeStories>> &&promise);
+                                   Promise<td_api::object_ptr<td_api::chatActiveStories>> &&promise);
 
   void open_story(DialogId owner_dialog_id, StoryId story_id, Promise<Unit> &&promise);
 
@@ -300,7 +300,7 @@ class StoryManager final : public Actor {
 
   td_api::object_ptr<td_api::story> get_story_object(StoryFullId story_full_id, const Story *story) const;
 
-  td_api::object_ptr<td_api::activeStories> get_active_stories_object(DialogId owner_dialog_id) const;
+  td_api::object_ptr<td_api::chatActiveStories> get_chat_active_stories_object(DialogId owner_dialog_id) const;
 
   StoryId on_get_new_story(DialogId owner_dialog_id, telegram_api::object_ptr<telegram_api::storyItem> &&story_item);
 
@@ -321,7 +321,7 @@ class StoryManager final : public Actor {
 
   void on_get_dialog_expiring_stories(DialogId owner_dialog_id,
                                       telegram_api::object_ptr<telegram_api::stories_userStories> &&stories,
-                                      Promise<td_api::object_ptr<td_api::activeStories>> &&promise);
+                                      Promise<td_api::object_ptr<td_api::chatActiveStories>> &&promise);
 
   static uint64 save_load_dialog_expiring_stories_log_event(DialogId owner_dialog_id);
 

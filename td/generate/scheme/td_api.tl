@@ -4963,7 +4963,7 @@ storyInfo story_id:int32 date:int32 = StoryInfo;
 //@order A parameter used to determine order of the stories in the story list; 0 if the stories doesn't need to be shown in the story list. Stories must be sorted by the pair (order, story_sender_chat_id) in descending order
 //@max_read_story_id Identifier of the last read active story
 //@stories Basic information about the stories; use getStory to get full information about the stories. The stories are in a chronological order (i.e., in order of increasing story identifiers)
-activeStories chat_id:int53 list:StoryList order:int53 max_read_story_id:int32 stories:vector<storyInfo> = ActiveStories;
+chatActiveStories chat_id:int53 list:StoryList order:int53 max_read_story_id:int32 stories:vector<storyInfo> = ChatActiveStories;
 
 
 //@description Contains a part of a file @data File bytes
@@ -5729,7 +5729,7 @@ updateStoryDeleted story_sender_chat_id:int53 story_id:int32 = Update;
 
 //@description The list of active stories posted by a specific chat has changed
 //@active_stories The new list of active stories
-updateChatActiveStories active_stories:activeStories = Update;
+updateChatActiveStories active_stories:chatActiveStories = Update;
 
 //@description An option changed its value @name The option name @value The new option value
 updateOption name:string value:OptionValue = Update;
@@ -7296,7 +7296,7 @@ toggleChatStoriesAreHidden chat_id:int53 are_hidden:Bool = Ok;
 getStoryNotificationSettingsExceptions = Chats;
 
 //@description Returns the list of active stories posted by the given chat @chat_id Chat identifier
-getChatActiveStories chat_id:int53 = ActiveStories;
+getChatActiveStories chat_id:int53 = ChatActiveStories;
 
 //@description Returns the list of pinned stories posted by the given chat. The stories are returned in a reverse chronological order (i.e., in order of decreasing story_id).
 //-For optimal performance, the number of returned stories is chosen by TDLib

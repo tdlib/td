@@ -1234,7 +1234,7 @@ void StoryManager::on_get_story_archive(telegram_api::object_ptr<telegram_api::s
 }
 
 void StoryManager::get_dialog_expiring_stories(DialogId owner_dialog_id,
-                                               Promise<td_api::object_ptr<td_api::activeStories>> &&promise) {
+                                               Promise<td_api::object_ptr<td_api::chatActiveStories>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   if (!td_->messages_manager_->have_dialog_force(owner_dialog_id, "get_dialog_expiring_stories")) {
     return promise.set_error(Status::Error(400, "Story sender not found"));
@@ -1243,7 +1243,7 @@ void StoryManager::get_dialog_expiring_stories(DialogId owner_dialog_id,
     return promise.set_error(Status::Error(400, "Can't access the story sender"));
   }
   if (owner_dialog_id.get_type() != DialogType::User) {
-    return promise.set_value(get_active_stories_object(owner_dialog_id));
+    return promise.set_value(get_chat_active_stories_object(owner_dialog_id));
   }
 
   auto active_stories = get_active_stories(owner_dialog_id);
@@ -1251,7 +1251,7 @@ void StoryManager::get_dialog_expiring_stories(DialogId owner_dialog_id,
     if (!promise) {
       return promise.set_value(nullptr);
     }
-    promise.set_value(get_active_stories_object(owner_dialog_id));
+    promise.set_value(get_chat_active_stories_object(owner_dialog_id));
     promise = {};
   }
 
@@ -1303,7 +1303,7 @@ void StoryManager::load_dialog_expiring_stories(DialogId owner_dialog_id, uint64
 
   // send later to ensure that active stories are inited before sending the request
   auto promise = PromiseCreator::lambda(
-      [actor_id = actor_id(this), owner_dialog_id](Result<td_api::object_ptr<td_api::activeStories>> &&) {
+      [actor_id = actor_id(this), owner_dialog_id](Result<td_api::object_ptr<td_api::chatActiveStories>> &&) {
         if (!G()->close_flag()) {
           send_closure(actor_id, &StoryManager::on_load_dialog_expiring_stories, owner_dialog_id);
         }
@@ -1329,12 +1329,12 @@ void StoryManager::on_load_dialog_expiring_stories(DialogId owner_dialog_id) {
 
 void StoryManager::on_get_dialog_expiring_stories(DialogId owner_dialog_id,
                                                   telegram_api::object_ptr<telegram_api::stories_userStories> &&stories,
-                                                  Promise<td_api::object_ptr<td_api::activeStories>> &&promise) {
+                                                  Promise<td_api::object_ptr<td_api::chatActiveStories>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   td_->contacts_manager_->on_get_users(std::move(stories->users_), "on_get_dialog_expiring_stories");
   owner_dialog_id = on_get_user_stories(owner_dialog_id, std::move(stories->stories_));
   if (promise) {
-    promise.set_value(get_active_stories_object(owner_dialog_id));
+    promise.set_value(get_chat_active_stories_object(owner_dialog_id));
   } else {
     promise.set_value(nullptr);
   }
@@ -1821,7 +1821,8 @@ td_api::object_ptr<td_api::stories> StoryManager::get_stories_object(int32 total
                                               }));
 }
 
-td_api::object_ptr<td_api::activeStories> StoryManager::get_active_stories_object(DialogId owner_dialog_id) const {
+td_api::object_ptr<td_api::chatActiveStories> StoryManager::get_chat_active_stories_object(
+    DialogId owner_dialog_id) const {
   const auto *active_stories = get_active_stories(owner_dialog_id);
 
   td_api::object_ptr<td_api::StoryList> list;
@@ -1846,7 +1847,7 @@ td_api::object_ptr<td_api::activeStories> StoryManager::get_active_stories_objec
       order = active_stories->public_order_;
     }
   }
-  return td_api::make_object<td_api::activeStories>(
+  return td_api::make_object<td_api::chatActiveStories>(
       td_->messages_manager_->get_chat_id_object(owner_dialog_id, "updateChatActiveStories"), std::move(list), order,
       max_read_story_id.get(), std::move(stories));
 }
@@ -2424,7 +2425,7 @@ void StoryManager::delete_active_stories_from_story_list(DialogId owner_dialog_i
 
 td_api::object_ptr<td_api::updateChatActiveStories> StoryManager::get_update_chat_active_stories(
     DialogId owner_dialog_id) const {
-  return td_api::make_object<td_api::updateChatActiveStories>(get_active_stories_object(owner_dialog_id));
+  return td_api::make_object<td_api::updateChatActiveStories>(get_chat_active_stories_object(owner_dialog_id));
 }
 
 void StoryManager::send_update_chat_active_stories(DialogId owner_dialog_id) {
