@@ -193,7 +193,7 @@ class StoryManager final : public Actor {
 
   bool on_update_read_stories(DialogId owner_dialog_id, StoryId max_read_story_id);
 
-  void on_dialog_active_stories_order_updated(DialogId owner_dialog_id);
+  void on_dialog_active_stories_order_updated(DialogId owner_dialog_id, const char *source);
 
   Status can_get_story_viewers(StoryFullId story_full_id, const Story *story) const;
 

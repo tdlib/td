@@ -1085,7 +1085,7 @@ void StoryManager::on_load_active_stories(
         if (story_list.list_last_story_date_ < max_story_date) {
           story_list.list_last_story_date_ = max_story_date;
           for (auto owner_dialog_id : owner_dialog_ids) {
-            on_dialog_active_stories_order_updated(owner_dialog_id);
+            on_dialog_active_stories_order_updated(owner_dialog_id, "on_load_active_stories");
           }
         } else if (is_next) {
           LOG(ERROR) << "Last story date didn't increase";
@@ -2483,7 +2483,8 @@ bool StoryManager::are_dialog_stories_hidden(DialogId owner_dialog_id) const {
   }
 }
 
-void StoryManager::on_dialog_active_stories_order_updated(DialogId owner_dialog_id) {
+void StoryManager::on_dialog_active_stories_order_updated(DialogId owner_dialog_id, const char *source) {
+  LOG(INFO) << "Update order of active stories in " << owner_dialog_id << " from " << source;
   auto active_stories = get_active_stories_editable(owner_dialog_id);
   if (active_stories != nullptr && update_active_stories_order(owner_dialog_id, active_stories)) {
     send_update_active_stories(owner_dialog_id);

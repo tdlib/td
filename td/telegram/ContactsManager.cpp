@@ -11889,7 +11889,7 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
   }
   if (u->is_is_contact_changed) {
     td_->messages_manager_->on_dialog_user_is_contact_updated(DialogId(user_id), u->is_contact);
-    td_->story_manager_->on_dialog_active_stories_order_updated(DialogId(user_id));
+    td_->story_manager_->on_dialog_active_stories_order_updated(DialogId(user_id), "is_contact");
     if (is_user_contact(u, user_id, false)) {
       auto user_full = get_user_full(user_id);
       if (user_full != nullptr && user_full->need_phone_number_privacy_exception) {
@@ -11911,7 +11911,7 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
     u->is_is_deleted_changed = false;
   }
   if (u->is_is_premium_changed) {
-    td_->story_manager_->on_dialog_active_stories_order_updated(DialogId(user_id));
+    td_->story_manager_->on_dialog_active_stories_order_updated(DialogId(user_id), "is_premium");
     u->is_is_premium_changed = false;
   }
   if (u->is_name_changed) {
@@ -11948,7 +11948,7 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
     }
   }
   if (u->is_stories_hidden_changed) {
-    td_->story_manager_->on_dialog_active_stories_order_updated(DialogId(user_id));
+    td_->story_manager_->on_dialog_active_stories_order_updated(DialogId(user_id), "stories_hidden");
     u->is_stories_hidden_changed = false;
   }
   if (!td_->auth_manager_->is_bot()) {
