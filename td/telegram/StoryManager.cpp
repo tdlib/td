@@ -2340,9 +2340,10 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
             << max_read_story_id;
   if (owner_dialog_id.get_type() == DialogType::User) {
     if (story_ids.empty()) {
-      td_->contacts_manager_->on_update_user_has_stories(owner_dialog_id.get_user_id(), false, StoryId());
+      td_->contacts_manager_->on_update_user_has_stories(owner_dialog_id.get_user_id(), false, StoryId(), StoryId());
     } else {
-      td_->contacts_manager_->on_update_user_has_stories(owner_dialog_id.get_user_id(), true, story_ids.back());
+      td_->contacts_manager_->on_update_user_has_stories(owner_dialog_id.get_user_id(), true, story_ids.back(),
+                                                         max_read_story_id);
     }
   }
 

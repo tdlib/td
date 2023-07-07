@@ -187,7 +187,8 @@ class ContactsManager final : public Actor {
   void on_update_user_name(UserId user_id, string &&first_name, string &&last_name, Usernames &&usernames);
   void on_update_user_phone_number(UserId user_id, string &&phone_number);
   void on_update_user_emoji_status(UserId user_id, tl_object_ptr<telegram_api::EmojiStatus> &&emoji_status);
-  void on_update_user_has_stories(UserId user_id, bool has_stories, StoryId max_active_story_id);
+  void on_update_user_has_stories(UserId user_id, bool has_stories, StoryId max_active_story_id,
+                                  StoryId max_read_story_id);
   void on_update_user_stories_hidden(UserId user_id, bool stories_hidden);
   void on_update_user_online(UserId user_id, tl_object_ptr<telegram_api::UserStatus> &&status);
   void on_update_user_local_was_online(UserId user_id, int32 local_was_online);
@@ -759,6 +760,7 @@ class ContactsManager final : public Actor {
     int32 local_was_online = 0;
 
     StoryId max_active_story_id;
+    StoryId max_read_story_id;
 
     string language_code;
 
@@ -1400,7 +1402,8 @@ class ContactsManager final : public Actor {
   void on_update_user_photo(User *u, UserId user_id, tl_object_ptr<telegram_api::UserProfilePhoto> &&photo,
                             const char *source);
   void on_update_user_emoji_status(User *u, UserId user_id, EmojiStatus emoji_status);
-  void on_update_user_has_stories(User *u, UserId user_id, bool has_stories, StoryId max_active_story_id);
+  void on_update_user_has_stories(User *u, UserId user_id, bool has_stories, StoryId max_active_story_id,
+                                  StoryId max_read_story_id);
   void on_update_user_stories_hidden(User *u, UserId user_id, bool stories_hidden);
   void on_update_user_is_contact(User *u, UserId user_id, bool is_contact, bool is_mutual_contact,
                                  bool is_close_friend);
@@ -1735,6 +1738,8 @@ class ContactsManager final : public Actor {
   void remove_dialog_suggested_action(SuggestedAction action);
 
   void on_dismiss_suggested_action(SuggestedAction action, Result<Unit> &&result);
+
+  static bool get_has_unread_stories(const User *u);
 
   td_api::object_ptr<td_api::updateUser> get_update_user_object(UserId user_id, const User *u) const;
 
