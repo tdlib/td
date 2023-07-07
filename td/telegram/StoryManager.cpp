@@ -2375,18 +2375,25 @@ bool StoryManager::update_active_stories_order(DialogId owner_dialog_id, ActiveS
   }
   CHECK(new_private_order != 0);
 
+  auto &story_list = story_lists_[are_dialog_stories_hidden(owner_dialog_id)];
+  LOG(INFO) << "Update order of active stories of " << owner_dialog_id << " from " << active_stories->private_order_
+            << '/' << active_stories->public_order_ << " to " << new_private_order;
+
   int64 new_public_order = 0;
   if (is_subscribed_to_dialog_stories(owner_dialog_id)) {
-    auto &story_list = story_lists_[are_dialog_stories_hidden(owner_dialog_id)];
     if (DialogDate(new_private_order, owner_dialog_id) <= story_list.list_last_story_date_) {
       new_public_order = new_private_order;
     }
 
     if (active_stories->private_order_ != new_private_order) {
-      story_list.ordered_stories_.erase({active_stories->private_order_, owner_dialog_id});
+      story_lists_[0].ordered_stories_.erase({active_stories->private_order_, owner_dialog_id});
+      story_lists_[1].ordered_stories_.erase({active_stories->private_order_, owner_dialog_id});
       bool is_inserted = story_list.ordered_stories_.insert({new_private_order, owner_dialog_id}).second;
       CHECK(is_inserted);
     }
+  } else {
+    story_lists_[0].ordered_stories_.erase({active_stories->private_order_, owner_dialog_id});
+    story_lists_[1].ordered_stories_.erase({active_stories->private_order_, owner_dialog_id});
   }
 
   if (active_stories->private_order_ != new_private_order || active_stories->public_order_ != new_public_order) {
