@@ -13517,6 +13517,29 @@ void ContactsManager::on_update_user_has_stories(User *u, UserId user_id, bool h
   }
 }
 
+void ContactsManager::on_update_user_max_read_story_id(UserId user_id, StoryId max_read_story_id) {
+  CHECK(user_id.is_valid());
+
+  User *u = get_user(user_id);
+  if (u != nullptr) {
+    on_update_user_max_read_story_id(u, user_id, max_read_story_id);
+    update_user(u, user_id);
+  } else {
+    LOG(ERROR) << "Ignore update user max_read_story_id about unknown " << user_id;
+  }
+}
+
+void ContactsManager::on_update_user_max_read_story_id(User *u, UserId user_id, StoryId max_read_story_id) {
+  auto has_unread_stories = get_has_unread_stories(u);
+  if (max_read_story_id.get() > u->max_read_story_id.get()) {
+    u->max_read_story_id = max_read_story_id;
+    u->need_save_to_database = true;
+  }
+  if (has_unread_stories != get_has_unread_stories(u)) {
+    u->is_changed = true;
+  }
+}
+
 void ContactsManager::on_update_user_stories_hidden(UserId user_id, bool stories_hidden) {
   if (!user_id.is_valid()) {
     LOG(ERROR) << "Receive invalid " << user_id;

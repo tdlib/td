@@ -2471,6 +2471,9 @@ bool StoryManager::on_update_read_stories(DialogId owner_dialog_id, StoryId max_
     auto old_max_read_story_id = max_read_story_ids_.get(owner_dialog_id);
     if (max_read_story_id.get() > old_max_read_story_id.get()) {
       max_read_story_ids_.set(owner_dialog_id, max_read_story_id);
+      if (owner_dialog_id.get_type() == DialogType::User) {
+        td_->contacts_manager_->on_update_user_max_read_story_id(owner_dialog_id.get_user_id(), max_read_story_id);
+      }
       return true;
     }
   } else if (max_read_story_id.get() > active_stories->max_read_story_id_.get()) {
@@ -3162,6 +3165,9 @@ void StoryManager::on_binlog_events(vector<BinlogEvent> &&events) {
         auto active_stories = get_active_stories(dialog_id);
         if (active_stories == nullptr) {
           max_read_story_ids_[dialog_id] = max_read_story_id;
+          if (dialog_id.get_type() == DialogType::User) {
+            td_->contacts_manager_->on_update_user_max_read_story_id(dialog_id.get_user_id(), max_read_story_id);
+          }
         } else {
           auto story_ids = active_stories->story_ids_;
           on_update_active_stories(dialog_id, max_read_story_id, std::move(story_ids));
