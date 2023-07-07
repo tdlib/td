@@ -4924,11 +4924,11 @@ inputStoryContentVideo video:InputFile added_sticker_file_ids:vector<int32> dura
 
 //@class StoryList @description Describes a list of stories
 
-//@description The main list of stories, shown above the chat list
+//@description The list of stories, shown in the main chat list and folder chat lists
 storyListMain = StoryList;
 
-//@description The list of hidden stories, shown only in the Contacts section
-storyListHidden = StoryList;
+//@description The list of stories, shown in the Arvhive chat list
+storyListArchive = StoryList;
 
 
 //@description Contains information about interactions with a story

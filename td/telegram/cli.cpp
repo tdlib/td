@@ -4046,8 +4046,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::deleteStory>(story_id));
     } else if (op == "las") {
       send_request(td_api::make_object<td_api::loadActiveStories>(td_api::make_object<td_api::storyListMain>()));
-    } else if (op == "lash") {
-      send_request(td_api::make_object<td_api::loadActiveStories>(td_api::make_object<td_api::storyListHidden>()));
+    } else if (op == "lasa") {
+      send_request(td_api::make_object<td_api::loadActiveStories>(td_api::make_object<td_api::storyListArchive>()));
     } else if (op == "tcsah") {
       ChatId chat_id;
       bool are_hidden;

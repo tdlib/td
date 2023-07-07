@@ -1007,7 +1007,7 @@ void StoryManager::load_active_stories(const td_api::object_ptr<td_api::StoryLis
   if (story_list_ptr == nullptr) {
     return promise.set_error(Status::Error(400, "Story list must be non-empty"));
   }
-  bool is_hidden = story_list_ptr->get_id() == td_api::storyListHidden::ID;
+  bool is_hidden = story_list_ptr->get_id() == td_api::storyListArchive::ID;
   auto &story_list = story_lists_[is_hidden];
   if (story_list.list_last_story_date_ == MAX_DIALOG_DATE) {
     return promise.set_error(Status::Error(404, "Not found"));
@@ -1857,7 +1857,7 @@ td_api::object_ptr<td_api::chatActiveStories> StoryManager::get_chat_active_stor
   int64 order = 0;
   if (active_stories != nullptr) {
     if (active_stories->story_list_id_ == 1) {
-      list = td_api::make_object<td_api::storyListHidden>();
+      list = td_api::make_object<td_api::storyListArchive>();
     } else if (active_stories->story_list_id_ == 0) {
       list = td_api::make_object<td_api::storyListMain>();
     }
@@ -1873,7 +1873,7 @@ td_api::object_ptr<td_api::chatActiveStories> StoryManager::get_chat_active_stor
     }
   } else if (is_subscribed_to_dialog_stories(owner_dialog_id)) {
     if (are_dialog_stories_hidden(owner_dialog_id)) {
-      list = td_api::make_object<td_api::storyListHidden>();
+      list = td_api::make_object<td_api::storyListArchive>();
     } else {
       list = td_api::make_object<td_api::storyListMain>();
     }
