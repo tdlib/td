@@ -2377,9 +2377,10 @@ bool StoryManager::update_active_stories_order(DialogId owner_dialog_id, ActiveS
   LOG(INFO) << "Update order of active stories of " << owner_dialog_id << " from " << active_stories->private_order_
             << '/' << active_stories->public_order_ << " to " << new_private_order;
 
+  int32 story_list_id = -1;
   int64 new_public_order = 0;
   if (is_subscribed_to_dialog_stories(owner_dialog_id)) {
-    auto story_list_id = static_cast<int32>(are_dialog_stories_hidden(owner_dialog_id));
+    story_list_id = static_cast<int32>(are_dialog_stories_hidden(owner_dialog_id));
     auto &story_list = story_lists_[story_list_id];
     if (DialogDate(new_private_order, owner_dialog_id) <= story_list.list_last_story_date_) {
       new_public_order = new_private_order;
@@ -2389,19 +2390,19 @@ bool StoryManager::update_active_stories_order(DialogId owner_dialog_id, ActiveS
       delete_active_stories_from_story_list(owner_dialog_id, active_stories);
       bool is_inserted = story_list.ordered_stories_.insert({new_private_order, owner_dialog_id}).second;
       CHECK(is_inserted);
-      active_stories->story_list_id_ = story_list_id;
     }
   } else {
     delete_active_stories_from_story_list(owner_dialog_id, active_stories);
-    active_stories->story_list_id_ = -1;
   }
 
-  if (active_stories->private_order_ != new_private_order || active_stories->public_order_ != new_public_order) {
+  if (active_stories->private_order_ != new_private_order || active_stories->public_order_ != new_public_order ||
+      active_stories->story_list_id_ != story_list_id) {
     LOG(INFO) << "Update order of active stories of " << owner_dialog_id << " to " << new_private_order << '/'
-              << new_public_order;
+              << new_public_order << " in list " << story_list_id;
     active_stories->private_order_ = new_private_order;
-    if (active_stories->public_order_ != new_public_order) {
+    if (active_stories->public_order_ != new_public_order || active_stories->story_list_id_ != story_list_id) {
       active_stories->public_order_ = new_public_order;
+      active_stories->story_list_id_ = story_list_id;
       return true;
     }
   }
