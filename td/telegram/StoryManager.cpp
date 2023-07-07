@@ -2316,7 +2316,7 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
 
   if (story_ids.empty()) {
     if (active_stories_.erase(owner_dialog_id) > 0) {
-      send_update_active_stories(owner_dialog_id);
+      send_update_chat_active_stories(owner_dialog_id);
     } else {
       max_read_story_ids_.erase(owner_dialog_id);
     }
@@ -2341,9 +2341,9 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
     active_stories->max_read_story_id_ = max_read_story_id;
     active_stories->story_ids_ = std::move(story_ids);
     update_active_stories_order(owner_dialog_id, active_stories.get());
-    send_update_active_stories(owner_dialog_id);
+    send_update_chat_active_stories(owner_dialog_id);
   } else if (update_active_stories_order(owner_dialog_id, active_stories.get())) {
-    send_update_active_stories(owner_dialog_id);
+    send_update_chat_active_stories(owner_dialog_id);
   }
 }
 
@@ -2419,11 +2419,15 @@ void StoryManager::delete_active_stories_from_story_list(DialogId owner_dialog_i
   CHECK(is_deleted);
 }
 
-void StoryManager::send_update_active_stories(DialogId owner_dialog_id) {
-  send_closure(G()->td(), &Td::send_update,
-               td_api::make_object<td_api::updateActiveStories>(
-                   td_->messages_manager_->get_chat_id_object(owner_dialog_id, "updateActiveStories"),
-                   get_active_stories_object(owner_dialog_id)));
+td_api::object_ptr<td_api::updateChatActiveStories> StoryManager::get_update_chat_active_stories(
+    DialogId owner_dialog_id) const {
+  return td_api::make_object<td_api::updateChatActiveStories>(
+      td_->messages_manager_->get_chat_id_object(owner_dialog_id, "updateChatActiveStories"),
+      get_active_stories_object(owner_dialog_id));
+}
+
+void StoryManager::send_update_chat_active_stories(DialogId owner_dialog_id) {
+  send_closure(G()->td(), &Td::send_update, get_update_chat_active_stories(owner_dialog_id));
 }
 
 bool StoryManager::on_update_read_stories(DialogId owner_dialog_id, StoryId max_read_story_id) {
@@ -2489,7 +2493,7 @@ void StoryManager::on_dialog_active_stories_order_updated(DialogId owner_dialog_
   LOG(INFO) << "Update order of active stories in " << owner_dialog_id << " from " << source;
   auto active_stories = get_active_stories_editable(owner_dialog_id);
   if (active_stories != nullptr && update_active_stories_order(owner_dialog_id, active_stories)) {
-    send_update_active_stories(owner_dialog_id);
+    send_update_chat_active_stories(owner_dialog_id);
   }
 }
 

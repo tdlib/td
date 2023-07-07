@@ -5726,10 +5726,10 @@ updateStory story:story = Update;
 //@description A story became inaccessible @story_sender_chat_id Identifier of the chat that posted the story @story_id Story identifier
 updateStoryDeleted story_sender_chat_id:int53 story_id:int32 = Update;
 
-//@description The list of active stories of a specific sender has changed
+//@description The list of active stories posted by a specific chat has changed
 //@chat_id Identifier of the chat that posted the stories
 //@active_stories The new list of active stories
-updateActiveStories chat_id:int53 active_stories:activeStories = Update;
+updateChatActiveStories chat_id:int53 active_stories:activeStories = Update;
 
 //@description An option changed its value @name The option name @value The new option value
 updateOption name:string value:OptionValue = Update;

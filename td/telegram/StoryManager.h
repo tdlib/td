@@ -368,7 +368,9 @@ class StoryManager final : public Actor {
 
   void delete_active_stories_from_story_list(DialogId owner_dialog_id, const ActiveStories *active_stories);
 
-  void send_update_active_stories(DialogId owner_dialog_id);
+  td_api::object_ptr<td_api::updateChatActiveStories> get_update_chat_active_stories(DialogId owner_dialog_id) const;
+
+  void send_update_chat_active_stories(DialogId owner_dialog_id);
 
   void increment_story_views(DialogId owner_dialog_id, PendingStoryViews &story_views);
 
