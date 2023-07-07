@@ -123,6 +123,28 @@ class ToggleStoriesHiddenQuery final : public Td::ResultHandler {
   }
 };
 
+class GetAllReadUserStoriesQuery final : public Td::ResultHandler {
+ public:
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::stories_getAllReadUserStories()));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stories_getAllReadUserStories>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for GetAllReadUserStoriesQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), Promise<Unit>());
+  }
+
+  void on_error(Status status) final {
+    LOG(INFO) << "Failed to get all read user stories: " << status;
+  }
+};
+
 class ToggleAllStoriesHiddenQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -1102,6 +1124,10 @@ void StoryManager::on_load_active_stories(
   }
 
   set_promises(promises);
+}
+
+void StoryManager::reload_all_read_stories() {
+  td_->create_handler<GetAllReadUserStoriesQuery>()->send();
 }
 
 void StoryManager::try_synchronize_archive_all_stories() {

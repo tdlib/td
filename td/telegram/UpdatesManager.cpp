@@ -2171,6 +2171,7 @@ void UpdatesManager::try_reload_data() {
   td_->stickers_manager_->get_default_dialog_photo_custom_emoji_stickers(false, true, Auto());
   td_->stickers_manager_->get_default_dialog_photo_custom_emoji_stickers(true, true, Auto());
   td_->story_manager_->reload_active_stories();
+  td_->story_manager_->reload_all_read_stories();
 
   schedule_data_reload();
 }

@@ -158,6 +158,8 @@ class StoryManager final : public Actor {
 
   void reload_active_stories();
 
+  void reload_all_read_stories();
+
   void toggle_dialog_stories_hidden(DialogId dialog_id, bool are_hidden, Promise<Unit> &&promise);
 
   void get_dialog_pinned_stories(DialogId owner_dialog_id, StoryId from_story_id, int32 limit,
