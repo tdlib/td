@@ -2316,6 +2316,7 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
 
   if (story_ids.empty()) {
     if (active_stories_.erase(owner_dialog_id) > 0) {
+      LOG(INFO) << "Delete active stories for " << owner_dialog_id;
       send_update_chat_active_stories(owner_dialog_id);
     } else {
       max_read_story_ids_.erase(owner_dialog_id);
@@ -2328,6 +2329,7 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
 
   auto &active_stories = active_stories_[owner_dialog_id];
   if (active_stories == nullptr) {
+    LOG(INFO) << "Create active stories for " << owner_dialog_id;
     active_stories = make_unique<ActiveStories>();
     auto old_max_read_story_id = max_read_story_ids_.get(owner_dialog_id);
     if (old_max_read_story_id != StoryId()) {
