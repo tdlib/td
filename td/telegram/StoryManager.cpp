@@ -1802,9 +1802,10 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
 
   bool is_edited = story->is_edited_;
 
+  auto story_id = story_full_id.get_story_id();
   auto *content = story->content_.get();
   auto *caption = &story->caption_;
-  if (is_owned && story_full_id.get_story_id().is_server()) {
+  if (is_owned && story_id.is_server()) {
     auto it = being_edited_stories_.find(story_full_id);
     if (it != being_edited_stories_.end()) {
       if (it->second->content_ != nullptr) {
@@ -1817,7 +1818,6 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
     }
   }
 
-  auto story_id = story_full_id.get_story_id();
   auto changelog_dialog_id = get_changelog_story_dialog_id();
   bool is_visible_only_for_self =
       !story_id.is_server() || dialog_id == changelog_dialog_id || (!story->is_pinned_ && !is_active_story(story));
@@ -1825,14 +1825,15 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
                           privacy_rules->rules_.size() == 1u &&
                           privacy_rules->rules_[0]->get_id() == td_api::userPrivacySettingRuleAllowAll::ID;
   bool can_be_replied = story_id.is_server() && dialog_id != changelog_dialog_id;
+  bool can_get_viewers = can_get_story_viewers(story_full_id, story).is_ok();
+  bool has_expired_viewers = !can_get_viewers && is_story_owned(dialog_id) && story_id.is_server();
 
   story->is_update_sent_ = true;
 
   return td_api::make_object<td_api::story>(
-      story_full_id.get_story_id().get(), td_->messages_manager_->get_chat_id_object(dialog_id, "get_story_object"),
-      story->date_, is_edited, story->is_pinned_, is_visible_only_for_self, can_be_forwarded, can_be_replied,
-      can_get_story_viewers(story_full_id, story).is_ok(),
-      story->interaction_info_.get_story_interaction_info_object(td_), std::move(privacy_rules),
+      story_id.get(), td_->messages_manager_->get_chat_id_object(dialog_id, "get_story_object"), story->date_,
+      is_edited, story->is_pinned_, is_visible_only_for_self, can_be_forwarded, can_be_replied, can_get_viewers,
+      has_expired_viewers, story->interaction_info_.get_story_interaction_info_object(td_), std::move(privacy_rules),
       get_story_content_object(td_, content),
       get_formatted_text_object(*caption, true, get_story_content_duration(td_, content)));
 }
