@@ -16,6 +16,7 @@
 #include "td/telegram/StoryFullId.h"
 #include "td/telegram/StoryId.h"
 #include "td/telegram/StoryInteractionInfo.h"
+#include "td/telegram/StoryListId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserPrivacySettingRule.h"
@@ -106,7 +107,7 @@ class StoryManager final : public Actor {
   struct ActiveStories {
     StoryId max_read_story_id_;
     vector<StoryId> story_ids_;
-    int32 story_list_id_ = -1;
+    StoryListId story_list_id_;
     int64 private_order_ = 0;
     int64 public_order_ = 0;
   };
@@ -154,7 +155,7 @@ class StoryManager final : public Actor {
 
   void delete_story(StoryId story_id, Promise<Unit> &&promise);
 
-  void load_active_stories(const td_api::object_ptr<td_api::StoryList> &story_list_ptr, Promise<Unit> &&promise);
+  void load_active_stories(StoryListId story_list_id, Promise<Unit> &&promise);
 
   void reload_active_stories();
 
@@ -276,7 +277,7 @@ class StoryManager final : public Actor {
 
   bool is_subscribed_to_dialog_stories(DialogId owner_dialog_id) const;
 
-  bool are_dialog_stories_hidden(DialogId owner_dialog_id) const;
+  StoryListId get_dialog_story_list_id(DialogId owner_dialog_id) const;
 
   void add_story_dependencies(Dependencies &dependencies, const Story *story);
 

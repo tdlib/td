@@ -122,6 +122,7 @@
 #include "td/telegram/StickerType.h"
 #include "td/telegram/StorageManager.h"
 #include "td/telegram/StoryId.h"
+#include "td/telegram/StoryListId.h"
 #include "td/telegram/StoryManager.h"
 #include "td/telegram/SuggestedAction.h"
 #include "td/telegram/Support.h"
@@ -5665,7 +5666,7 @@ void Td::on_request(uint64 id, const td_api::deleteStory &request) {
 void Td::on_request(uint64 id, const td_api::loadActiveStories &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  story_manager_->load_active_stories(request.story_list_, std::move(promise));
+  story_manager_->load_active_stories(StoryListId(request.story_list_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::toggleChatStoriesAreHidden &request) {

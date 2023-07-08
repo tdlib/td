@@ -1002,12 +1002,11 @@ void StoryManager::add_pending_story_dependencies(Dependencies &dependencies, co
   add_story_dependencies(dependencies, pending_story->story_.get());
 }
 
-void StoryManager::load_active_stories(const td_api::object_ptr<td_api::StoryList> &story_list_ptr,
-                                       Promise<Unit> &&promise) {
-  if (story_list_ptr == nullptr) {
+void StoryManager::load_active_stories(StoryListId story_list_id, Promise<Unit> &&promise) {
+  if (!story_list_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Story list must be non-empty"));
   }
-  bool is_hidden = story_list_ptr->get_id() == td_api::storyListArchive::ID;
+  bool is_hidden = story_list_id == StoryListId::archive();
   auto &story_list = story_lists_[is_hidden];
   if (story_list.list_last_story_date_ == MAX_DIALOG_DATE) {
     return promise.set_error(Status::Error(404, "Not found"));
@@ -1852,16 +1851,12 @@ td_api::object_ptr<td_api::chatActiveStories> StoryManager::get_chat_active_stor
     DialogId owner_dialog_id) const {
   const auto *active_stories = get_active_stories(owner_dialog_id);
 
-  td_api::object_ptr<td_api::StoryList> list;
+  StoryListId story_list_id;
   StoryId max_read_story_id;
   vector<td_api::object_ptr<td_api::storyInfo>> stories;
   int64 order = 0;
   if (active_stories != nullptr) {
-    if (active_stories->story_list_id_ == 1) {
-      list = td_api::make_object<td_api::storyListArchive>();
-    } else if (active_stories->story_list_id_ == 0) {
-      list = td_api::make_object<td_api::storyListMain>();
-    }
+    story_list_id = active_stories->story_list_id_;
     max_read_story_id = active_stories->max_read_story_id_;
     for (auto story_id : active_stories->story_ids_) {
       auto story_info = get_story_info_object({owner_dialog_id, story_id});
@@ -1869,19 +1864,15 @@ td_api::object_ptr<td_api::chatActiveStories> StoryManager::get_chat_active_stor
         stories.push_back(std::move(story_info));
       }
     }
-    if (list != nullptr) {
+    if (story_list_id.is_valid()) {
       order = active_stories->public_order_;
     }
-  } else if (is_subscribed_to_dialog_stories(owner_dialog_id)) {
-    if (are_dialog_stories_hidden(owner_dialog_id)) {
-      list = td_api::make_object<td_api::storyListArchive>();
-    } else {
-      list = td_api::make_object<td_api::storyListMain>();
-    }
+  } else {
+    story_list_id = get_dialog_story_list_id(owner_dialog_id);
   }
   return td_api::make_object<td_api::chatActiveStories>(
-      td_->messages_manager_->get_chat_id_object(owner_dialog_id, "updateChatActiveStories"), std::move(list), order,
-      max_read_story_id.get(), std::move(stories));
+      td_->messages_manager_->get_chat_id_object(owner_dialog_id, "updateChatActiveStories"),
+      story_list_id.get_story_list_object(), order, max_read_story_id.get(), std::move(stories));
 }
 
 vector<FileId> StoryManager::get_story_file_ids(const Story *story) const {
@@ -2416,11 +2407,11 @@ bool StoryManager::update_active_stories_order(DialogId owner_dialog_id, ActiveS
   LOG(INFO) << "Update order of active stories of " << owner_dialog_id << " from " << active_stories->private_order_
             << '/' << active_stories->public_order_ << " to " << new_private_order;
 
-  int32 story_list_id = -1;
+  StoryListId story_list_id = get_dialog_story_list_id(owner_dialog_id);
   int64 new_public_order = 0;
   if (is_subscribed_to_dialog_stories(owner_dialog_id)) {
-    story_list_id = static_cast<int32>(are_dialog_stories_hidden(owner_dialog_id));
-    auto &story_list = story_lists_[story_list_id];
+    bool is_hidden = story_list_id == StoryListId::archive();
+    auto &story_list = story_lists_[is_hidden];
     if (DialogDate(new_private_order, owner_dialog_id) <= story_list.list_last_story_date_) {
       new_public_order = new_private_order;
     }
@@ -2451,11 +2442,12 @@ bool StoryManager::update_active_stories_order(DialogId owner_dialog_id, ActiveS
 
 void StoryManager::delete_active_stories_from_story_list(DialogId owner_dialog_id,
                                                          const ActiveStories *active_stories) {
-  if (active_stories->story_list_id_ < 0) {
+  if (!active_stories->story_list_id_.is_valid()) {
     return;
   }
-  bool is_deleted = story_lists_[active_stories->story_list_id_].ordered_stories_.erase(
-                        {active_stories->private_order_, owner_dialog_id}) > 0;
+  bool is_hidden = active_stories->story_list_id_ == StoryListId::archive();
+  bool is_deleted =
+      story_lists_[is_hidden].ordered_stories_.erase({active_stories->private_order_, owner_dialog_id}) > 0;
   CHECK(is_deleted);
 }
 
@@ -2514,19 +2506,23 @@ bool StoryManager::is_subscribed_to_dialog_stories(DialogId owner_dialog_id) con
   }
 }
 
-bool StoryManager::are_dialog_stories_hidden(DialogId owner_dialog_id) const {
+StoryListId StoryManager::get_dialog_story_list_id(DialogId owner_dialog_id) const {
+  if (!is_subscribed_to_dialog_stories(owner_dialog_id)) {
+    return StoryListId();
+  }
   switch (owner_dialog_id.get_type()) {
     case DialogType::User:
-      if (owner_dialog_id == DialogId(td_->contacts_manager_->get_my_id())) {
-        return false;
+      if (owner_dialog_id != DialogId(td_->contacts_manager_->get_my_id()) &&
+          td_->contacts_manager_->get_user_stories_hidden(owner_dialog_id.get_user_id())) {
+        return StoryListId::archive();
       }
-      return td_->contacts_manager_->get_user_stories_hidden(owner_dialog_id.get_user_id());
+      return StoryListId::main();
     case DialogType::Chat:
     case DialogType::Channel:
     case DialogType::SecretChat:
     case DialogType::None:
     default:
-      return false;
+      return StoryListId::archive();
   }
 }
 
