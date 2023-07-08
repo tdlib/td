@@ -4056,11 +4056,10 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::deleteStory>(story_id));
     } else if (op == "las" || op == "lasa" || op == "lase") {
       send_request(td_api::make_object<td_api::loadActiveStories>(as_story_list(op)));
-    } else if (op == "tcsah") {
+    } else if (op == "scasl" || op == "scasla" || op == "scasle") {
       ChatId chat_id;
-      bool are_hidden;
-      get_args(args, chat_id, are_hidden);
-      send_request(td_api::make_object<td_api::toggleChatStoriesAreHidden>(chat_id, are_hidden));
+      get_args(args, chat_id);
+      send_request(td_api::make_object<td_api::setChatActiveStoriesList>(chat_id, as_story_list(op)));
     } else if (op == "gcps") {
       ChatId chat_id;
       StoryId from_story_id;

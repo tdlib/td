@@ -800,7 +800,7 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::loadActiveStories &request);
 
-  void on_request(uint64 id, const td_api::toggleChatStoriesAreHidden &request);
+  void on_request(uint64 id, const td_api::setChatActiveStoriesList &request);
 
   void on_request(uint64 id, const td_api::getForumTopicDefaultIcons &request);
 

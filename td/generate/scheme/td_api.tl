@@ -7286,16 +7286,16 @@ toggleStoryIsPinned story_id:int32 is_pinned:Bool = Ok;
 //@description Deletes a previously sent story @story_id Identifier of the story to delete
 deleteStory story_id:int32 = Ok;
 
+//@description Returns list of chats with non-default notification settings for stories
+getStoryNotificationSettingsExceptions = Chats;
+
 //@description Loads more active stories from a story list. The loaded stories will be sent through updates. Active stories are sorted by
 //-the pair (active_stories.order, active_stories.story_sender_chat_id) in descending order. Returns a 404 error if all active stories have been loaded
 //@story_list The story list in which to load active stories
 loadActiveStories story_list:StoryList = Ok;
 
-//@description Toggles whether stories posted by the chat are available above chat lists @chat_id Identifier of the chat that posted stories @are_hidden Pass true to make the stories unavailable above the chat lists; pass false to make them available
-toggleChatStoriesAreHidden chat_id:int53 are_hidden:Bool = Ok;
-
-//@description Returns list of chats with non-default notification settings for stories
-getStoryNotificationSettingsExceptions = Chats;
+//@description Changes story list in which stories from the chat are shown @chat_id Identifier of the chat that posted stories @story_list New list for active stories posted by the chat
+setChatActiveStoriesList chat_id:int53 story_list:StoryList = Ok;
 
 //@description Returns the list of active stories posted by the given chat @chat_id Chat identifier
 getChatActiveStories chat_id:int53 = ChatActiveStories;

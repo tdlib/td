@@ -1167,7 +1167,8 @@ void StoryManager::on_synchronized_archive_all_stories(bool set_archive_all_stor
   }
 }
 
-void StoryManager::toggle_dialog_stories_hidden(DialogId dialog_id, bool are_hidden, Promise<Unit> &&promise) {
+void StoryManager::toggle_dialog_stories_hidden(DialogId dialog_id, StoryListId story_list_id,
+                                                Promise<Unit> &&promise) {
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "toggle_dialog_stories_hidden")) {
     return promise.set_error(Status::Error(400, "Story sender not found"));
   }
@@ -1177,8 +1178,15 @@ void StoryManager::toggle_dialog_stories_hidden(DialogId dialog_id, bool are_hid
   if (dialog_id.get_type() != DialogType::User) {
     return promise.set_error(Status::Error(400, "Can't archive sender stories"));
   }
+  if (story_list_id == get_dialog_story_list_id(dialog_id)) {
+    return promise.set_value(Unit());
+  }
+  if (!story_list_id.is_valid()) {
+    return promise.set_error(Status::Error(400, "Story list must not be empty"));
+  }
 
-  td_->create_handler<ToggleStoriesHiddenQuery>(std::move(promise))->send(dialog_id.get_user_id(), are_hidden);
+  td_->create_handler<ToggleStoriesHiddenQuery>(std::move(promise))
+      ->send(dialog_id.get_user_id(), story_list_id == StoryListId::archive());
 }
 
 void StoryManager::get_dialog_pinned_stories(DialogId owner_dialog_id, StoryId from_story_id, int32 limit,
