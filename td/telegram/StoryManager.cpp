@@ -969,7 +969,7 @@ bool StoryManager::is_active_story(const Story *story) {
 
 int32 StoryManager::get_story_viewers_expire_date(const Story *story) const {
   return story->expire_date_ +
-         narrow_cast<int32>(td_->option_manager_->get_option_integer("story_viewers_expire_period", 86400));
+         narrow_cast<int32>(td_->option_manager_->get_option_integer("story_viewers_expiration_delay", 86400));
 }
 
 const StoryManager::Story *StoryManager::get_story(StoryFullId story_full_id) const {

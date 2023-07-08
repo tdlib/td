@@ -2151,7 +2151,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   }
 
   if (story_viewers_expire_period >= 0) {
-    options.set_option_integer("story_viewers_expire_period", story_viewers_expire_period);
+    options.set_option_integer("story_viewers_expiration_delay", story_viewers_expire_period);
   }
 
   if (!options.get_option_boolean("need_synchronize_archive_all_stories")) {
@@ -2163,6 +2163,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
 
   options.set_option_empty("default_ton_blockchain_config");
   options.set_option_empty("default_ton_blockchain_name");
+  options.set_option_empty("story_viewers_expire_period");
 
   // do not update suggested actions while changing content settings or dismissing an action
   if (!is_set_content_settings_request_sent_ && dismiss_suggested_action_request_count_ == 0) {
