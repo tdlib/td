@@ -504,6 +504,16 @@ class CliClient final : public Actor {
     return td_api::make_object<td_api::chatListMain>();
   }
 
+  static td_api::object_ptr<td_api::StoryList> as_story_list(string story_list) {
+    if (!story_list.empty() && story_list.back() == 'a') {
+      return td_api::make_object<td_api::storyListArchive>();
+    }
+    if (!story_list.empty() && story_list.back() == 'e') {
+      return nullptr;
+    }
+    return td_api::make_object<td_api::storyListMain>();
+  }
+
   vector<int64> as_chat_ids(Slice chat_ids) const {
     return transform(autosplit(chat_ids), [this](Slice str) { return as_chat_id(str); });
   }
@@ -4044,10 +4054,8 @@ class CliClient final : public Actor {
       StoryId story_id;
       get_args(args, story_id);
       send_request(td_api::make_object<td_api::deleteStory>(story_id));
-    } else if (op == "las") {
-      send_request(td_api::make_object<td_api::loadActiveStories>(td_api::make_object<td_api::storyListMain>()));
-    } else if (op == "lasa") {
-      send_request(td_api::make_object<td_api::loadActiveStories>(td_api::make_object<td_api::storyListArchive>()));
+    } else if (op == "las" || op == "lasa" || op == "lase") {
+      send_request(td_api::make_object<td_api::loadActiveStories>(as_story_list(op)));
     } else if (op == "tcsah") {
       ChatId chat_id;
       bool are_hidden;
