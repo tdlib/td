@@ -2251,21 +2251,21 @@ personalDetails first_name:string middle_name:string last_name:string native_fir
 
 //@description An identity document
 //@number Document number; 1-24 characters
-//@expiry_date Document expiry date; may be null if not applicable
+//@expiration_date Document expiration date; may be null if not applicable
 //@front_side Front side of the document
 //@reverse_side Reverse side of the document; only for driver license and identity card; may be null
 //@selfie Selfie with the document; may be null
 //@translation List of files containing a certified English translation of the document
-identityDocument number:string expiry_date:date front_side:datedFile reverse_side:datedFile selfie:datedFile translation:vector<datedFile> = IdentityDocument;
+identityDocument number:string expiration_date:date front_side:datedFile reverse_side:datedFile selfie:datedFile translation:vector<datedFile> = IdentityDocument;
 
 //@description An identity document to be saved to Telegram Passport
 //@number Document number; 1-24 characters
-//@expiry_date Document expiry date; pass null if not applicable
+//@expiration_date Document expiration date; pass null if not applicable
 //@front_side Front side of the document
 //@reverse_side Reverse side of the document; only for driver license and identity card; pass null otherwise
 //@selfie Selfie with the document; pass null if unavailable
 //@translation List of files containing a certified English translation of the document
-inputIdentityDocument number:string expiry_date:date front_side:InputFile reverse_side:InputFile selfie:InputFile translation:vector<InputFile> = InputIdentityDocument;
+inputIdentityDocument number:string expiration_date:date front_side:InputFile reverse_side:InputFile selfie:InputFile translation:vector<InputFile> = InputIdentityDocument;
 
 //@description A personal document, containing some information about a user @files List of files containing the pages of the document @translation List of files containing a certified English translation of the document
 personalDocument files:vector<datedFile> translation:vector<datedFile> = PersonalDocument;

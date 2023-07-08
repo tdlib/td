@@ -869,7 +869,7 @@ static Result<SecureValue> get_identity_document(SecureValueType type, FileManag
     return Status::Error(400, "Identity document must be non-empty");
   }
   TRY_STATUS(check_document_number(identity_document->number_));
-  TRY_RESULT(date, get_date(std::move(identity_document->expiry_date_)));
+  TRY_RESULT(date, get_date(std::move(identity_document->expiration_date_)));
 
   SecureValue res;
   res.type = type;
