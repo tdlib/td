@@ -5733,6 +5733,9 @@ updateStoryDeleted story_sender_chat_id:int53 story_id:int32 = Update;
 //@active_stories The new list of active stories
 updateChatActiveStories active_stories:chatActiveStories = Update;
 
+//@description Number of chats in a story list has changed @story_list The story list @chat_count Approximate total number of chats with active stories in the list
+updateStoryListChatCount story_list:StoryList chat_count:int32 = Update;
+
 //@description An option changed its value @name The option name @value The new option value
 updateOption name:string value:OptionValue = Update;
 

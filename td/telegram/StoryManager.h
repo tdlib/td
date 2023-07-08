@@ -119,6 +119,7 @@ class StoryManager final : public Actor {
 
   struct StoryList {
     int32 server_total_count_ = -1;
+    int32 sent_total_count_ = -1;
     string state_;
 
     vector<Promise<Unit>> load_list_queries_;
@@ -336,6 +337,11 @@ class StoryManager final : public Actor {
 
   void on_load_active_stories(bool is_hidden, bool is_next,
                               Result<telegram_api::object_ptr<telegram_api::stories_AllStories>> r_all_stories);
+
+  td_api::object_ptr<td_api::updateStoryListChatCount> get_update_story_list_chat_count_object(
+      StoryListId story_list_id, const StoryList &story_list) const;
+
+  void update_sent_total_count(StoryListId story_list_id, StoryList &story_list);
 
   vector<FileId> get_story_file_ids(const Story *story) const;
 

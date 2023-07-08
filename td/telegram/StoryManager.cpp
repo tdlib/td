@@ -1060,7 +1060,7 @@ void StoryManager::on_load_active_stories(
       } else {
         story_list.state_ = std::move(stories->state_);
       }
-      story_list.server_total_count_ = stories->count_;
+      story_list.server_total_count_ = max(stories->count_, 0);
 
       vector<DialogId> delete_dialog_ids;
       if (stories->user_stories_.empty()) {
@@ -1095,8 +1095,8 @@ void StoryManager::on_load_active_stories(
         if (!stories->has_more_) {
           max_story_date = MAX_DIALOG_DATE;
         }
-        for (auto it =
-                 story_list.ordered_stories_.upper_bound(is_next ? story_list.list_last_story_date_ : MIN_DIALOG_DATE);
+        auto min_story_date = is_next ? story_list.list_last_story_date_ : MIN_DIALOG_DATE;
+        for (auto it = story_list.ordered_stories_.upper_bound(min_story_date);
              it != story_list.ordered_stories_.end() && *it <= max_story_date; ++it) {
           auto dialog_id = it->get_dialog_id();
           if (!td::contains(owner_dialog_ids, dialog_id)) {
@@ -1116,6 +1116,7 @@ void StoryManager::on_load_active_stories(
         on_update_active_stories(dialog_id, StoryId(), vector<StoryId>());
         load_dialog_expiring_stories(dialog_id, 0, "on_load_active_stories 1");
       }
+      update_sent_total_count(is_hidden ? StoryListId::archive() : StoryListId::main(), story_list);
       break;
     }
     default:
@@ -1123,6 +1124,26 @@ void StoryManager::on_load_active_stories(
   }
 
   set_promises(promises);
+}
+
+td_api::object_ptr<td_api::updateStoryListChatCount> StoryManager::get_update_story_list_chat_count_object(
+    StoryListId story_list_id, const StoryList &story_list) const {
+  return td_api::make_object<td_api::updateStoryListChatCount>(story_list_id.get_story_list_object(),
+                                                               story_list.sent_total_count_);
+}
+
+void StoryManager::update_sent_total_count(StoryListId story_list_id, StoryList &story_list) {
+  if (story_list.list_last_story_date_ == MIN_DIALOG_DATE || story_list.server_total_count_ == -1) {
+    return;
+  }
+  auto new_total_count = static_cast<int32>(story_list.ordered_stories_.size());
+  if (story_list.list_last_story_date_ != MAX_DIALOG_DATE) {
+    new_total_count = max(new_total_count, story_list.server_total_count_);
+  }
+  if (story_list.sent_total_count_ != new_total_count) {
+    story_list.sent_total_count_ = new_total_count;
+    send_closure(G()->td(), &Td::send_update, get_update_story_list_chat_count_object(story_list_id, story_list));
+  }
 }
 
 void StoryManager::reload_all_read_stories() {
@@ -2417,7 +2438,7 @@ bool StoryManager::update_active_stories_order(DialogId owner_dialog_id, ActiveS
 
   StoryListId story_list_id = get_dialog_story_list_id(owner_dialog_id);
   int64 new_public_order = 0;
-  if (is_subscribed_to_dialog_stories(owner_dialog_id)) {
+  if (story_list_id.is_valid()) {
     bool is_hidden = story_list_id == StoryListId::archive();
     auto &story_list = story_lists_[is_hidden];
     if (DialogDate(new_private_order, owner_dialog_id) <= story_list.list_last_story_date_) {
@@ -2428,9 +2449,17 @@ bool StoryManager::update_active_stories_order(DialogId owner_dialog_id, ActiveS
       delete_active_stories_from_story_list(owner_dialog_id, active_stories);
       bool is_inserted = story_list.ordered_stories_.insert({new_private_order, owner_dialog_id}).second;
       CHECK(is_inserted);
+
+      if (active_stories->story_list_id_ != story_list_id) {
+        update_sent_total_count(active_stories->story_list_id_,
+                                story_lists_[active_stories->story_list_id_ == StoryListId::archive()]);
+      }
+      update_sent_total_count(story_list_id, story_list);
     }
-  } else {
+  } else if (active_stories->story_list_id_.is_valid()) {
     delete_active_stories_from_story_list(owner_dialog_id, active_stories);
+    update_sent_total_count(active_stories->story_list_id_,
+                            story_lists_[active_stories->story_list_id_ == StoryListId::archive()]);
   }
 
   if (active_stories->private_order_ != new_private_order || active_stories->public_order_ != new_public_order ||
@@ -3137,6 +3166,14 @@ void StoryManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> 
     active_stories_.foreach([&](const DialogId &dialog_id, const unique_ptr<ActiveStories> &) {
       updates.push_back(get_update_chat_active_stories(dialog_id));
     });
+    for (int is_hidden = 0; is_hidden < 2; is_hidden++) {
+      auto &story_list = story_lists_[is_hidden];
+      if (story_list.sent_total_count_ != -1) {
+        send_closure(G()->td(), &Td::send_update,
+                     get_update_story_list_chat_count_object(is_hidden ? StoryListId::archive() : StoryListId::main(),
+                                                             story_list));
+      }
+    }
   }
 }
 
