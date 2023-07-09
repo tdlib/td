@@ -716,6 +716,11 @@ StoryManager::PendingStory::PendingStory(DialogId dialog_id, StoryId story_id, u
     , story_(std::move(story)) {
 }
 
+StoryManager::ReadyToSendStory::ReadyToSendStory(FileId file_id, unique_ptr<PendingStory> &&pending_story,
+                                                 telegram_api::object_ptr<telegram_api::InputFile> &&input_file)
+    : file_id_(file_id), pending_story_(std::move(pending_story)), input_file_(std::move(input_file)) {
+}
+
 template <class StorerT>
 void StoryManager::Story::store(StorerT &storer) const {
   using td::store;
@@ -2743,6 +2748,8 @@ void StoryManager::send_story(td_api::object_ptr<td_api::InputStoryContent> &&in
       td::make_unique<PendingStory>(dialog_id, StoryId(), ++send_story_count_, random_id, std::move(story));
   pending_story->log_event_id_ = save_send_story_log_event(pending_story.get());
 
+  yet_unsent_stories_.insert(pending_story->send_story_num_);
+
   do_send_story(std::move(pending_story), {});
 
   promise.set_value(get_story_object({dialog_id, StoryId()}, story_ptr));
@@ -2838,7 +2845,11 @@ void StoryManager::on_upload_story(FileId file_id, telegram_api::object_ptr<tele
   if (is_edit) {
     do_edit_story(file_id, std::move(pending_story), std::move(input_file));
   } else {
-    td_->create_handler<SendStoryQuery>()->send(file_id, std::move(pending_story), std::move(input_file));
+    auto send_story_num = pending_story->send_story_num_;
+    LOG(INFO) << "Story " << send_story_num << " is ready to be sent";
+    ready_to_send_stories_.emplace(
+        send_story_num, td::make_unique<ReadyToSendStory>(file_id, std::move(pending_story), std::move(input_file)));
+    try_send_story();
   }
 }
 
@@ -2861,6 +2872,25 @@ void StoryManager::on_upload_story_error(FileId file_id, Status status) {
   being_uploaded_files_.erase(it);
 
   delete_pending_story(file_id, std::move(pending_story), std::move(status));
+}
+
+void StoryManager::try_send_story() {
+  if (yet_unsent_stories_.empty()) {
+    LOG(INFO) << "There is no more stories to send";
+    return;
+  }
+  auto send_story_num = *yet_unsent_stories_.begin();
+  auto it = ready_to_send_stories_.find(send_story_num);
+  if (it == ready_to_send_stories_.end()) {
+    LOG(INFO) << "Story " << send_story_num << " isn't ready to be sent or is being sent";
+    return;
+  }
+  auto ready_to_send_story = std::move(it->second);
+  ready_to_send_stories_.erase(it);
+
+  td_->create_handler<SendStoryQuery>()->send(ready_to_send_story->file_id_,
+                                              std::move(ready_to_send_story->pending_story_),
+                                              std::move(ready_to_send_story->input_file_));
 }
 
 void StoryManager::on_send_story_file_parts_missing(unique_ptr<PendingStory> &&pending_story, vector<int> &&bad_parts) {
@@ -3039,10 +3069,15 @@ void StoryManager::delete_pending_story(FileId file_id, unique_ptr<PendingStory>
     } else {
       fail_promises(promises, std::move(status));
     }
-  }
+    CHECK(pending_story->log_event_id_ == 0);
+  } else {
+    LOG(INFO) << "Finish sending of story " << pending_story->send_story_num_;
+    yet_unsent_stories_.erase(pending_story->send_story_num_);
+    try_send_story();
 
-  if (pending_story->log_event_id_ != 0) {
-    binlog_erase(G()->td_db()->get_binlog(), pending_story->log_event_id_);
+    if (pending_story->log_event_id_ != 0) {
+      binlog_erase(G()->td_db()->get_binlog(), pending_story->log_event_id_);
+    }
   }
 }
 
@@ -3268,6 +3303,7 @@ void StoryManager::on_binlog_events(vector<BinlogEvent> &&events) {
         CHECK(!pending_story->story_id_.is_server());
         pending_story->send_story_num_ = send_story_count_;
         pending_story->story_->content_ = dup_story_content(td_, pending_story->story_->content_.get());
+        yet_unsent_stories_.insert(pending_story->send_story_num_);
         do_send_story(std::move(pending_story), {});
         break;
       }

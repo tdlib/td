@@ -99,6 +99,15 @@ class StoryManager final : public Actor {
     void parse(ParserT &parser);
   };
 
+  struct ReadyToSendStory {
+    FileId file_id_;
+    unique_ptr<PendingStory> pending_story_;
+    telegram_api::object_ptr<telegram_api::InputFile> input_file_;
+
+    ReadyToSendStory(FileId file_id, unique_ptr<PendingStory> &&pending_story,
+                     telegram_api::object_ptr<telegram_api::InputFile> &&input_file);
+  };
+
   struct PendingStoryViews {
     FlatHashSet<StoryId, StoryIdHash> story_ids_;
     bool has_query_ = false;
@@ -368,6 +377,8 @@ class StoryManager final : public Actor {
 
   void on_upload_story_error(FileId file_id, Status status);
 
+  void try_send_story();
+
   void do_edit_story(FileId file_id, unique_ptr<PendingStory> &&pending_story,
                      telegram_api::object_ptr<telegram_api::InputFile> input_file);
 
@@ -436,6 +447,10 @@ class StoryManager final : public Actor {
   FlatHashMap<StoryFullId, vector<Promise<Unit>>, StoryFullIdHash> reload_story_queries_;
 
   FlatHashMap<FileId, unique_ptr<PendingStory>, FileIdHash> being_uploaded_files_;
+
+  std::set<uint32> yet_unsent_stories_;
+
+  FlatHashMap<uint32, unique_ptr<ReadyToSendStory>> ready_to_send_stories_;
 
   StoryList story_lists_[2];
 
