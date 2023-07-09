@@ -101,7 +101,7 @@ class ToggleStoriesHiddenQuery final : public Td::ResultHandler {
       return on_error(r_input_user.move_as_error());
     }
     send_query(G()->net_query_creator().create(
-        telegram_api::contacts_toggleStoriesHidden(r_input_user.move_as_ok(), are_hidden)));
+        telegram_api::contacts_toggleStoriesHidden(r_input_user.move_as_ok(), are_hidden), {{user_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -153,7 +153,8 @@ class ToggleAllStoriesHiddenQuery final : public Td::ResultHandler {
   }
 
   void send(bool all_stories_hidden) {
-    send_query(G()->net_query_creator().create(telegram_api::stories_toggleAllStoriesHidden(all_stories_hidden)));
+    send_query(
+        G()->net_query_creator().create(telegram_api::stories_toggleAllStoriesHidden(all_stories_hidden), {{"me"}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -398,11 +399,13 @@ class EditStoryPrivacyQuery final : public Td::ResultHandler {
   explicit EditStoryPrivacyQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(StoryId story_id, UserPrivacySettingRules &&privacy_rules) {
+  void send(DialogId dialog_id, StoryId story_id, UserPrivacySettingRules &&privacy_rules) {
     int32 flags = telegram_api::stories_editStory::PRIVACY_RULES_MASK;
-    send_query(G()->net_query_creator().create(telegram_api::stories_editStory(
-        flags, story_id.get(), nullptr, string(), vector<telegram_api::object_ptr<telegram_api::MessageEntity>>(),
-        privacy_rules.get_input_privacy_rules(td_))));
+    send_query(G()->net_query_creator().create(
+        telegram_api::stories_editStory(flags, story_id.get(), nullptr, string(),
+                                        vector<telegram_api::object_ptr<telegram_api::MessageEntity>>(),
+                                        privacy_rules.get_input_privacy_rules(td_)),
+        {{StoryFullId{dialog_id, story_id}}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -431,8 +434,9 @@ class ToggleStoryPinnedQuery final : public Td::ResultHandler {
   explicit ToggleStoryPinnedQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(StoryId story_id, bool is_pinned) {
-    send_query(G()->net_query_creator().create(telegram_api::stories_togglePinned({story_id.get()}, is_pinned)));
+  void send(DialogId dialog_id, StoryId story_id, bool is_pinned) {
+    send_query(G()->net_query_creator().create(telegram_api::stories_togglePinned({story_id.get()}, is_pinned),
+                                               {{StoryFullId{dialog_id, story_id}}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -3052,7 +3056,7 @@ void StoryManager::set_story_privacy_rules(StoryId story_id,
   }
   TRY_RESULT_PROMISE(promise, privacy_rules,
                      UserPrivacySettingRules::get_user_privacy_setting_rules(td_, std::move(rules)));
-  td_->create_handler<EditStoryPrivacyQuery>(std::move(promise))->send(story_id, std::move(privacy_rules));
+  td_->create_handler<EditStoryPrivacyQuery>(std::move(promise))->send(dialog_id, story_id, std::move(privacy_rules));
 }
 
 void StoryManager::toggle_story_is_pinned(StoryId story_id, bool is_pinned, Promise<Unit> &&promise) {
@@ -3068,7 +3072,7 @@ void StoryManager::toggle_story_is_pinned(StoryId story_id, bool is_pinned, Prom
         }
         send_closure(actor_id, &StoryManager::on_toggle_story_is_pinned, story_id, is_pinned, std::move(promise));
       });
-  td_->create_handler<ToggleStoryPinnedQuery>(std::move(query_promise))->send(story_id, is_pinned);
+  td_->create_handler<ToggleStoryPinnedQuery>(std::move(query_promise))->send(dialog_id, story_id, is_pinned);
 }
 
 void StoryManager::on_toggle_story_is_pinned(StoryId story_id, bool is_pinned, Promise<Unit> &&promise) {
