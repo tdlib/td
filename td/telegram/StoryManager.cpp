@@ -853,6 +853,11 @@ StoryManager::~StoryManager() {
 
 void StoryManager::start_up() {
   try_synchronize_archive_all_stories();
+  load_expired_database_stories();
+}
+
+void StoryManager::timeout_expired() {
+  load_expired_database_stories();
 }
 
 void StoryManager::hangup() {
@@ -965,6 +970,45 @@ void StoryManager::on_story_can_get_viewers_timeout(int64 story_global_id) {
   cached_story_viewers_.erase(story_full_id);
 }
 
+void StoryManager::load_expired_database_stories() {
+  LOG(INFO) << "Load " << load_expired_database_stories_next_limit_ << " expired stories";
+  G()->td_db()->get_story_db_async()->get_expiring_stories(
+      G()->unix_time() - 1, load_expired_database_stories_next_limit_,
+      PromiseCreator::lambda([actor_id = actor_id(this)](Result<vector<StoryDbStory>> r_stories) {
+        if (G()->close_flag()) {
+          return;
+        }
+        CHECK(r_stories.is_ok());
+        send_closure(actor_id, &StoryManager::on_load_expired_database_stories, r_stories.move_as_ok());
+      }));
+}
+
+void StoryManager::on_load_expired_database_stories(vector<StoryDbStory> stories) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  int32 next_request_delay;
+  if (stories.size() == static_cast<size_t>(load_expired_database_stories_next_limit_)) {
+    CHECK(load_expired_database_stories_next_limit_ < (1 << 30));
+    load_expired_database_stories_next_limit_ *= 2;
+    next_request_delay = 1;
+  } else {
+    load_expired_database_stories_next_limit_ = DEFAULT_LOADED_EXPIRED_STORIES;
+    next_request_delay = Random::fast(300, 420);
+  }
+  set_timeout_in(next_request_delay);
+
+  LOG(INFO) << "Receive " << stories.size() << " expired stories with next request in " << next_request_delay
+            << " seconds";
+  for (auto &database_story : stories) {
+    auto story = parse_story(database_story.story_full_id_, std::move(database_story.data_));
+    if (story != nullptr) {
+      LOG(ERROR) << "Receive non-expired " << database_story.story_full_id_;
+    }
+  }
+}
+
 bool StoryManager::is_story_owned(DialogId owner_dialog_id) const {
   return owner_dialog_id == DialogId(td_->contacts_manager_->get_my_id());
 }
@@ -1052,14 +1096,14 @@ StoryManager::Story *StoryManager::on_get_story_from_database(StoryFullId story_
     return nullptr;
   }
 
-  auto story = parse_story(story_full_id, value);
-  if (story == nullptr) {
-    return nullptr;
-  }
-
   auto old_story = get_story_editable(story_full_id);
   if (old_story != nullptr) {
     return old_story;
+  }
+
+  auto story = parse_story(story_full_id, value);
+  if (story == nullptr) {
+    return nullptr;
   }
 
   Dependencies dependencies;

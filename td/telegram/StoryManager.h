@@ -43,6 +43,7 @@ struct BinlogEvent;
 class Dependencies;
 class ReportReason;
 class StoryContent;
+struct StoryDbStory;
 class Td;
 
 class StoryManager final : public Actor {
@@ -256,7 +257,11 @@ class StoryManager final : public Actor {
   static constexpr int32 OPENED_STORY_POLL_PERIOD = 60;
   static constexpr int32 VIEWED_STORY_POLL_PERIOD = 300;
 
+  static constexpr int32 DEFAULT_LOADED_EXPIRED_STORIES = 50;
+
   void start_up() final;
+
+  void timeout_expired() final;
 
   void hangup() final;
 
@@ -420,6 +425,10 @@ class StoryManager final : public Actor {
                             Result<telegram_api::object_ptr<telegram_api::stories_storyViewsList>> r_view_list,
                             Promise<td_api::object_ptr<td_api::messageViewers>> &&promise);
 
+  void load_expired_database_stories();
+
+  void on_load_expired_database_stories(vector<StoryDbStory> stories);
+
   std::shared_ptr<UploadMediaCallback> upload_media_callback_;
 
   WaitFreeHashMap<StoryFullId, FileSourceId, StoryFullIdHash> story_full_id_to_file_source_id_;
@@ -469,6 +478,8 @@ class StoryManager final : public Actor {
   bool has_active_synchronize_archive_all_stories_query_ = false;
 
   Timeout interaction_info_update_timeout_;
+
+  int32 load_expired_database_stories_next_limit_ = DEFAULT_LOADED_EXPIRED_STORIES;
 
   MultiTimeout story_reload_timeout_{"StoryReloadTimeout"};
   MultiTimeout story_expire_timeout_{"StoryExpireTimeout"};
