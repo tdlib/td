@@ -215,7 +215,7 @@ class StoryManager final : public Actor {
 
   bool have_story(StoryFullId story_full_id) const;
 
-  bool have_story_force(StoryFullId story_full_id) const;
+  bool have_story_force(StoryFullId story_full_id);
 
   bool is_inaccessible_story(StoryFullId story_full_id) const;
 
@@ -297,11 +297,18 @@ class StoryManager final : public Actor {
 
   Story *get_story_editable(StoryFullId story_full_id);
 
+  Story *get_story_force(StoryFullId story_full_id, const char *source);
+
+  unique_ptr<Story> parse_story(StoryFullId story_full_id, const BufferSlice &value);
+
+  Story *on_get_story_from_database(StoryFullId story_full_id, const BufferSlice &value, const char *source);
+
   const ActiveStories *get_active_stories(DialogId owner_dialog_id) const;
 
   ActiveStories *get_active_stories_editable(DialogId owner_dialog_id);
 
-  void on_story_changed(StoryFullId story_full_id, const Story *story, bool is_changed, bool need_save_to_database);
+  void on_story_changed(StoryFullId story_full_id, const Story *story, bool is_changed, bool need_save_to_database,
+                        bool from_database = false);
 
   void register_story_global_id(StoryFullId story_full_id, Story *story);
 

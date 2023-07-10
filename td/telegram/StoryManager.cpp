@@ -990,6 +990,79 @@ StoryManager::Story *StoryManager::get_story_editable(StoryFullId story_full_id)
   return stories_.get_pointer(story_full_id);
 }
 
+StoryManager::Story *StoryManager::get_story_force(StoryFullId story_full_id, const char *source) {
+  if (!story_full_id.is_valid()) {
+    return nullptr;
+  }
+
+  auto result = get_story_editable(story_full_id);
+  if (result != nullptr) {
+    return result;
+  }
+
+  if (!G()->use_message_database() || is_inaccessible_story(story_full_id) ||
+      deleted_story_full_ids_.count(story_full_id) > 0) {
+    return nullptr;
+  }
+
+  LOG(INFO) << "Trying to load " << story_full_id << " from database from " << source;
+
+  auto r_value = G()->td_db()->get_story_db_sync()->get_story(story_full_id);
+  if (r_value.is_error()) {
+    return nullptr;
+  }
+  return on_get_story_from_database(story_full_id, r_value.ok(), source);
+}
+
+unique_ptr<StoryManager::Story> StoryManager::parse_story(StoryFullId story_full_id, const BufferSlice &value) {
+  auto story = make_unique<Story>();
+  auto status = log_event_parse(*story, value.as_slice());
+  if (status.is_error()) {
+    LOG(ERROR) << "Receive invalid " << story_full_id << " from database: " << status << ' '
+               << format::as_hex_dump<4>(value.as_slice());
+    reload_story(story_full_id, Auto());
+    return nullptr;
+  }
+  return story;
+}
+
+StoryManager::Story *StoryManager::on_get_story_from_database(StoryFullId story_full_id, const BufferSlice &value,
+                                                              const char *source) {
+  if (value.empty()) {
+    return nullptr;
+  }
+
+  auto story = parse_story(story_full_id, value);
+  if (story == nullptr) {
+    return nullptr;
+  }
+
+  auto old_story = get_story_editable(story_full_id);
+  if (old_story != nullptr) {
+    return old_story;
+  }
+
+  Dependencies dependencies;
+  add_story_dependencies(dependencies, story.get());
+  if (!dependencies.resolve_force(td_, "on_get_story_from_database")) {
+    reload_story(story_full_id, Auto());
+    return nullptr;
+  }
+
+  LOG(INFO) << "Load new " << story_full_id << " from " << source;
+
+  auto result = story.get();
+  stories_.set(story_full_id, std::move(story));
+  register_story_global_id(story_full_id, result);
+
+  CHECK(!is_inaccessible_story(story_full_id));
+  CHECK(being_edited_stories_.find(story_full_id) == being_edited_stories_.end());
+
+  on_story_changed(story_full_id, result, true, false, true);
+
+  return result;
+}
+
 const StoryManager::ActiveStories *StoryManager::get_active_stories(DialogId owner_dialog_id) const {
   return active_stories_.get_pointer(owner_dialog_id);
 }
@@ -1753,9 +1826,8 @@ bool StoryManager::have_story(StoryFullId story_full_id) const {
   return get_story(story_full_id) != nullptr;
 }
 
-bool StoryManager::have_story_force(StoryFullId story_full_id) const {
-  // TODO try to load story from the database
-  return have_story(story_full_id);
+bool StoryManager::have_story_force(StoryFullId story_full_id) {
+  return get_story_force(story_full_id, "have_story_force") != nullptr;
 }
 
 bool StoryManager::is_inaccessible_story(StoryFullId story_full_id) const {
@@ -2005,8 +2077,6 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
     register_story_global_id(story_full_id, story);
 
     inaccessible_story_full_ids_.erase(story_full_id);
-    send_closure_later(G()->messages_manager(),
-                       &MessagesManager::update_story_max_reply_media_timestamp_in_replied_messages, story_full_id);
     LOG(INFO) << "Add new " << story_full_id;
   }
   CHECK(story != nullptr);
@@ -2215,7 +2285,7 @@ void StoryManager::delete_story_from_database(StoryFullId story_full_id) {
 }
 
 void StoryManager::on_story_changed(StoryFullId story_full_id, const Story *story, bool is_changed,
-                                    bool need_save_to_database) {
+                                    bool need_save_to_database, bool from_database) {
   if (is_active_story(story)) {
     CHECK(story->global_id_ > 0);
     story_expire_timeout_.set_timeout_in(story->global_id_, story->expire_date_ - G()->unix_time());
@@ -2228,7 +2298,7 @@ void StoryManager::on_story_changed(StoryFullId story_full_id, const Story *stor
     return;
   }
   if (is_changed || need_save_to_database) {
-    if (G()->use_message_database()) {
+    if (G()->use_message_database() && !from_database) {
       LOG(INFO) << "Add " << story_full_id << " to database";
 
       int32 expires_at = 0;
