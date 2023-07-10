@@ -22,6 +22,7 @@
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/ReportReason.h"
 #include "td/telegram/StoryContent.h"
+#include "td/telegram/StoryDb.h"
 #include "td/telegram/StoryInteractionInfo.hpp"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
@@ -2217,8 +2218,18 @@ void StoryManager::on_story_changed(StoryFullId story_full_id, const Story *stor
     return;
   }
   if (is_changed || need_save_to_database) {
-    // TODO save Story and BeingEditedStory
-    // save_story(story, story_id);
+    if (G()->use_message_database()) {
+      LOG(INFO) << "Add " << story_full_id << " to database";
+
+      int32 expires_at = 0;
+      if (is_active_story(story) && !is_story_owned(story_full_id.get_dialog_id()) && !story->is_pinned_) {
+        // non-owned expired non-pinned stories must be deleted
+        expires_at = story->expire_date_;
+      }
+
+      G()->td_db()->get_story_db_async()->add_story(story_full_id, expires_at, NotificationId(),
+                                                    log_event_store(*story), Promise<Unit>());
+    }
 
     if (is_changed && story->is_update_sent_) {
       send_closure(G()->td(), &Td::send_update,
