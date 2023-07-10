@@ -2287,7 +2287,8 @@ static Result<InputMessageContent> create_input_message_content(
       DialogId story_sender_dialog_id(input_story->story_sender_chat_id_);
       StoryId story_id(input_story->story_id_);
       StoryFullId story_full_id(story_sender_dialog_id, story_id);
-      if (!td->story_manager_->have_story(story_full_id) || story_sender_dialog_id.get_type() != DialogType::User) {
+      if (!td->story_manager_->have_story_force(story_full_id) ||
+          story_sender_dialog_id.get_type() != DialogType::User) {
         return Status::Error(400, "Story not found");
       }
       if (td->contacts_manager_->get_input_user(story_sender_dialog_id.get_user_id()).is_error()) {

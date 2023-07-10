@@ -969,10 +969,6 @@ bool StoryManager::is_story_owned(DialogId owner_dialog_id) const {
   return owner_dialog_id == DialogId(td_->contacts_manager_->get_my_id());
 }
 
-bool StoryManager::is_active_story(StoryFullId story_full_id) const {
-  return is_active_story(get_story(story_full_id));
-}
-
 bool StoryManager::is_active_story(const Story *story) {
   return story != nullptr && G()->unix_time() < story->expire_date_;
 }
@@ -1606,7 +1602,7 @@ void StoryManager::close_story(DialogId owner_dialog_id, StoryId story_id, Promi
 }
 
 void StoryManager::view_story_message(StoryFullId story_full_id) {
-  const Story *story = get_story(story_full_id);
+  const Story *story = get_story_force(story_full_id, "view_story_message");
   if (story == nullptr || !story_full_id.get_story_id().is_server()) {
     return;
   }
@@ -1620,7 +1616,7 @@ void StoryManager::on_story_replied(StoryFullId story_full_id, UserId replier_us
   if (!replier_user_id.is_valid() || replier_user_id == td_->contacts_manager_->get_my_id()) {
     return;
   }
-  const Story *story = get_story(story_full_id);
+  const Story *story = get_story_force(story_full_id, "on_story_replied");
   if (story == nullptr || !story_full_id.get_story_id().is_server() || !is_story_owned(story_full_id.get_dialog_id())) {
     return;
   }
@@ -1839,7 +1835,7 @@ void StoryManager::on_get_story_viewers(
 }
 
 void StoryManager::report_story(StoryFullId story_full_id, ReportReason &&reason, Promise<Unit> &&promise) {
-  if (!have_story(story_full_id)) {
+  if (!have_story_force(story_full_id)) {
     return promise.set_error(Status::Error(400, "Story not found"));
   }
 
@@ -2089,7 +2085,7 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
     return StoryId();
   }
 
-  Story *story = get_story_editable(story_full_id);
+  Story *story = get_story_force(story_full_id, "on_get_new_story");
   bool is_changed = false;
   bool need_save_to_database = false;
   if (story == nullptr) {
@@ -2222,7 +2218,7 @@ StoryId StoryManager::on_get_skipped_story(DialogId owner_dialog_id,
   td_->messages_manager_->force_create_dialog(owner_dialog_id, "on_get_skipped_story");
 
   StoryFullId story_full_id{owner_dialog_id, story_id};
-  Story *story = get_story_editable(story_full_id);
+  Story *story = get_story_force(story_full_id, "on_get_skipped_story");
   if (story == nullptr) {
     auto s = make_unique<Story>();
     story = s.get();
@@ -2265,7 +2261,7 @@ void StoryManager::on_delete_story(StoryFullId story_full_id) {
     return;
   }
 
-  const Story *story = get_story(story_full_id);
+  const Story *story = get_story_force(story_full_id, "on_delete_story");
   if (story == nullptr) {
     delete_story_from_database(story_full_id);
     return;
@@ -2476,7 +2472,7 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
     if (!story_id.is_server()) {
       return true;
     }
-    if (!is_active_story({owner_dialog_id, story_id})) {
+    if (!is_active_story(get_story({owner_dialog_id, story_id}))) {
       LOG(INFO) << "Receive expired " << story_id << " in " << owner_dialog_id;
       return true;
     }
@@ -2806,7 +2802,7 @@ void StoryManager::get_story(DialogId owner_dialog_id, StoryId story_id,
   }
 
   StoryFullId story_full_id{owner_dialog_id, story_id};
-  const Story *story = get_story(story_full_id);
+  const Story *story = get_story_force(story_full_id, "get_story");
   if (story != nullptr && story->content_ != nullptr) {
     return promise.set_value(get_story_object(story_full_id, story));
   }
@@ -3440,7 +3436,7 @@ void StoryManager::on_binlog_events(vector<BinlogEvent> &&events) {
         auto pending_story = std::move(log_event.pending_story_out_);
         CHECK(pending_story->story_id_.is_server());
         StoryFullId story_full_id{pending_story->dialog_id_, pending_story->story_id_};
-        const Story *story = get_story(story_full_id);
+        const Story *story = get_story_force(story_full_id, "EditStoryLogEvent");
         if (story == nullptr || story->content_ == nullptr) {
           LOG(INFO) << "Failed to find " << story_full_id;
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
