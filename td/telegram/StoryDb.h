@@ -23,6 +23,14 @@ namespace td {
 class SqliteConnectionSafe;
 class SqliteDb;
 
+struct StoryDbStory {
+  StoryFullId story_full_id_;
+  BufferSlice data_;
+
+  StoryDbStory(StoryFullId story_full_id, BufferSlice &&data) : story_full_id_(story_full_id), data_(std::move(data)) {
+  }
+};
+
 class StoryDbSyncInterface {
  public:
   StoryDbSyncInterface() = default;
@@ -37,10 +45,10 @@ class StoryDbSyncInterface {
 
   virtual Result<BufferSlice> get_story(StoryFullId story_full_id) = 0;
 
-  virtual vector<BufferSlice> get_expiring_stories(int32 expires_till, int32 limit) = 0;
+  virtual vector<StoryDbStory> get_expiring_stories(int32 expires_till, int32 limit) = 0;
 
-  virtual vector<BufferSlice> get_stories_from_notification_id(DialogId dialog_id, NotificationId from_notification_id,
-                                                               int32 limit) = 0;
+  virtual vector<StoryDbStory> get_stories_from_notification_id(DialogId dialog_id, NotificationId from_notification_id,
+                                                                int32 limit) = 0;
 
   virtual Status begin_write_transaction() = 0;
   virtual Status commit_transaction() = 0;
@@ -70,10 +78,10 @@ class StoryDbAsyncInterface {
 
   virtual void get_story(StoryFullId story_full_id, Promise<BufferSlice> promise) = 0;
 
-  virtual void get_expiring_stories(int32 expires_till, int32 limit, Promise<vector<BufferSlice>> promise) = 0;
+  virtual void get_expiring_stories(int32 expires_till, int32 limit, Promise<vector<StoryDbStory>> promise) = 0;
 
   virtual void get_stories_from_notification_id(DialogId dialog_id, NotificationId from_notification_id, int32 limit,
-                                                Promise<vector<BufferSlice>> promise) = 0;
+                                                Promise<vector<StoryDbStory>> promise) = 0;
 
   virtual void close(Promise<Unit> promise) = 0;
   virtual void force_flush() = 0;

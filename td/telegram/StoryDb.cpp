@@ -87,11 +87,12 @@ class StoryDbImpl final : public StoryDbSyncInterface {
     TRY_RESULT_ASSIGN(get_story_stmt_,
                       db_.get_statement("SELECT data FROM stories WHERE dialog_id = ?1 AND story_id = ?2"));
 
-    TRY_RESULT_ASSIGN(get_expiring_stories_stmt_,
-                      db_.get_statement("SELECT data FROM stories WHERE expires_at <= ?1 LIMIT ?2"));
+    TRY_RESULT_ASSIGN(
+        get_expiring_stories_stmt_,
+        db_.get_statement("SELECT dialog_id, story_id, data FROM stories WHERE expires_at <= ?1 LIMIT ?2"));
 
     TRY_RESULT_ASSIGN(get_stories_from_notification_id_stmt_,
-                      db_.get_statement("SELECT data FROM stories WHERE dialog_id = ?1 AND "
+                      db_.get_statement("SELECT story_id, data FROM stories WHERE dialog_id = ?1 AND "
                                         "notification_id < ?2 ORDER BY notification_id DESC LIMIT ?3"));
 
     return Status::OK();
@@ -156,26 +157,30 @@ class StoryDbImpl final : public StoryDbSyncInterface {
     return BufferSlice(get_story_stmt_.view_blob(0));
   }
 
-  vector<BufferSlice> get_expiring_stories(int32 expires_till, int32 limit) final {
+  vector<StoryDbStory> get_expiring_stories(int32 expires_till, int32 limit) final {
+    auto &stmt = get_expiring_stories_stmt_;
     SCOPE_EXIT {
-      get_expiring_stories_stmt_.reset();
+      stmt.reset();
     };
 
-    vector<BufferSlice> stories;
-    get_expiring_stories_stmt_.bind_int32(1, expires_till).ensure();
-    get_expiring_stories_stmt_.bind_int32(2, limit).ensure();
-    get_expiring_stories_stmt_.step().ensure();
+    stmt.bind_int32(1, expires_till).ensure();
+    stmt.bind_int32(2, limit).ensure();
+    stmt.step().ensure();
 
-    while (get_expiring_stories_stmt_.has_row()) {
-      stories.emplace_back(get_expiring_stories_stmt_.view_blob(0));
-      get_expiring_stories_stmt_.step().ensure();
+    vector<StoryDbStory> stories;
+    while (stmt.has_row()) {
+      DialogId dialog_id(stmt.view_int64(0));
+      StoryId story_id(stmt.view_int32(1));
+      BufferSlice data(stmt.view_blob(2));
+      stories.emplace_back(StoryFullId{dialog_id, story_id}, std::move(data));
+      stmt.step().ensure();
     }
 
     return stories;
   }
 
-  vector<BufferSlice> get_stories_from_notification_id(DialogId dialog_id, NotificationId from_notification_id,
-                                                       int32 limit) final {
+  vector<StoryDbStory> get_stories_from_notification_id(DialogId dialog_id, NotificationId from_notification_id,
+                                                        int32 limit) final {
     auto &stmt = get_stories_from_notification_id_stmt_;
     SCOPE_EXIT {
       stmt.reset();
@@ -183,14 +188,16 @@ class StoryDbImpl final : public StoryDbSyncInterface {
     stmt.bind_int64(1, dialog_id.get()).ensure();
     stmt.bind_int32(2, from_notification_id.get()).ensure();
     stmt.bind_int32(3, limit).ensure();
-
-    vector<BufferSlice> result;
     stmt.step().ensure();
+
+    vector<StoryDbStory> stories;
     while (stmt.has_row()) {
-      result.emplace_back(stmt.view_blob(0));
+      StoryId story_id(stmt.view_int32(0));
+      BufferSlice data(stmt.view_blob(1));
+      stories.emplace_back(StoryFullId{dialog_id, story_id}, std::move(data));
       stmt.step().ensure();
     }
-    return result;
+    return stories;
   }
 
   Status begin_write_transaction() final {
@@ -249,12 +256,12 @@ class StoryDbAsync final : public StoryDbAsyncInterface {
     send_closure_later(impl_, &Impl::get_story, story_full_id, std::move(promise));
   }
 
-  void get_expiring_stories(int32 expires_till, int32 limit, Promise<vector<BufferSlice>> promise) final {
+  void get_expiring_stories(int32 expires_till, int32 limit, Promise<vector<StoryDbStory>> promise) final {
     send_closure_later(impl_, &Impl::get_expiring_stories, expires_till, limit, std::move(promise));
   }
 
   void get_stories_from_notification_id(DialogId dialog_id, NotificationId from_notification_id, int32 limit,
-                                        Promise<vector<BufferSlice>> promise) final {
+                                        Promise<vector<StoryDbStory>> promise) final {
     send_closure_later(impl_, &Impl::get_stories_from_notification_id, dialog_id, from_notification_id, limit,
                        std::move(promise));
   }
@@ -298,13 +305,13 @@ class StoryDbAsync final : public StoryDbAsyncInterface {
       promise.set_result(sync_db_->get_story(story_full_id));
     }
 
-    void get_expiring_stories(int32 expires_till, int32 limit, Promise<vector<BufferSlice>> promise) {
+    void get_expiring_stories(int32 expires_till, int32 limit, Promise<vector<StoryDbStory>> promise) {
       add_read_query();
       promise.set_value(sync_db_->get_expiring_stories(expires_till, limit));
     }
 
     void get_stories_from_notification_id(DialogId dialog_id, NotificationId from_notification_id, int32 limit,
-                                          Promise<vector<BufferSlice>> promise) {
+                                          Promise<vector<StoryDbStory>> promise) {
       add_read_query();
       promise.set_value(sync_db_->get_stories_from_notification_id(dialog_id, from_notification_id, limit));
     }
