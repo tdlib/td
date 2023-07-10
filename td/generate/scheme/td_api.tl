@@ -4940,6 +4940,7 @@ storyInteractionInfo view_count:int32 recent_viewer_user_ids:vector<int53> = Sto
 //@id Unique story identifier among stories of the given sender
 //@sender_chat_id Identifier of the chat that posted the story
 //@date Point in time (Unix timestamp) when the story was published
+//@is_being_edited True, if the story is being edited by the current user
 //@is_edited True, if the story was edited
 //@is_pinned True, if the story is saved in the sender's profile and will be available there after expiration
 //@is_visible_only_for_self True, if the story is visible only for the current user
@@ -4951,7 +4952,7 @@ storyInteractionInfo view_count:int32 recent_viewer_user_ids:vector<int53> = Sto
 //@privacy_rules Privacy rules affecting story visibility; may be null if the story isn't owned
 //@content Content of the story
 //@caption Caption of the story
-story id:int32 sender_chat_id:int53 date:int32 is_edited:Bool is_pinned:Bool is_visible_only_for_self:Bool can_be_forwarded:Bool can_be_replied:Bool can_get_viewers:Bool has_expired_viewers:Bool interaction_info:storyInteractionInfo privacy_rules:userPrivacySettingRules content:StoryContent caption:formattedText = Story;
+story id:int32 sender_chat_id:int53 date:int32 is_being_edited:Bool is_edited:Bool is_pinned:Bool is_visible_only_for_self:Bool can_be_forwarded:Bool can_be_replied:Bool can_get_viewers:Bool has_expired_viewers:Bool interaction_info:storyInteractionInfo privacy_rules:userPrivacySettingRules content:StoryContent caption:formattedText = Story;
 
 //@description Represents a list of stories @total_count Approximate total number of stories found @stories The list of stories
 stories total_count:int32 stories:vector<story> = Stories;

@@ -1974,6 +1974,7 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
     privacy_rules = story->privacy_rules_.get_user_privacy_setting_rules_object(td_);
   }
 
+  bool is_being_edited = false;
   bool is_edited = story->is_edited_;
 
   auto story_id = story_full_id.get_story_id();
@@ -1988,7 +1989,7 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
       if (it->second->edit_caption_) {
         caption = &it->second->caption_;
       }
-      is_edited = true;
+      is_being_edited = true;
     }
   }
 
@@ -2006,9 +2007,9 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
 
   return td_api::make_object<td_api::story>(
       story_id.get(), td_->messages_manager_->get_chat_id_object(dialog_id, "get_story_object"), story->date_,
-      is_edited, story->is_pinned_, is_visible_only_for_self, can_be_forwarded, can_be_replied, can_get_viewers,
-      has_expired_viewers, story->interaction_info_.get_story_interaction_info_object(td_), std::move(privacy_rules),
-      get_story_content_object(td_, content),
+      is_being_edited, is_edited, story->is_pinned_, is_visible_only_for_self, can_be_forwarded, can_be_replied,
+      can_get_viewers, has_expired_viewers, story->interaction_info_.get_story_interaction_info_object(td_),
+      std::move(privacy_rules), get_story_content_object(td_, content),
       get_formatted_text_object(*caption, true, get_story_content_duration(td_, content)));
 }
 
@@ -3218,16 +3219,13 @@ void StoryManager::delete_pending_story(FileId file_id, unique_ptr<PendingStory>
     }
     CHECK(story->content_ != nullptr);
     auto promises = std::move(it->second->promises_);
-    bool is_changed = it->second->content_ != nullptr ||
-                      (it->second->edit_caption_ && it->second->caption_ != story->caption_) ||
-                      (status.is_error() && !story->is_edited_);
     auto log_event_id = it->second->log_event_id_;
     if (log_event_id != 0) {
       binlog_erase(G()->td_db()->get_binlog(), log_event_id);
     }
     being_edited_stories_.erase(it);
 
-    on_story_changed(story_full_id, story, is_changed, true);
+    on_story_changed(story_full_id, story, true, true);
 
     if (status.is_ok()) {
       set_promises(promises);
