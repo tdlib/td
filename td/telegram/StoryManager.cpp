@@ -2625,13 +2625,19 @@ bool StoryManager::on_update_read_stories(DialogId owner_dialog_id, StoryId max_
   if (owner_dialog_id == DialogId(td_->contacts_manager_->get_my_id())) {
     return false;
   }
+  if (!td_->messages_manager_->have_dialog_info_force(owner_dialog_id)) {
+    return false;
+  }
   auto active_stories = get_active_stories(owner_dialog_id);
   if (active_stories == nullptr) {
     auto old_max_read_story_id = max_read_story_ids_.get(owner_dialog_id);
     if (max_read_story_id.get() > old_max_read_story_id.get()) {
       max_read_story_ids_.set(owner_dialog_id, max_read_story_id);
       if (owner_dialog_id.get_type() == DialogType::User) {
-        td_->contacts_manager_->on_update_user_max_read_story_id(owner_dialog_id.get_user_id(), max_read_story_id);
+        auto user_id = owner_dialog_id.get_user_id();
+        if (td_->contacts_manager_->have_user(user_id)) {
+          td_->contacts_manager_->on_update_user_max_read_story_id(user_id, max_read_story_id);
+        }
       }
       return true;
     }
