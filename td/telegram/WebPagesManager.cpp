@@ -588,15 +588,10 @@ void WebPagesManager::update_web_page(unique_ptr<WebPage> web_page, WebPageId we
     if (!web_page->story_full_ids.empty()) {
       Dependencies dependencies;
       for (auto story_full_id : web_page->story_full_ids) {
-        dependencies.add_dialog_and_dependencies(story_full_id.get_dialog_id());
+        dependencies.add(story_full_id);
       }
       if (!dependencies.resolve_force(td_, "update_web_page")) {
         web_page->story_full_ids = {};
-      }
-      for (auto story_full_id : web_page->story_full_ids) {
-        if (!td_->story_manager_->have_story_force(story_full_id)) {
-          LOG(INFO) << "Have unknown story " << story_full_id << " in " << web_page_id;
-        }
       }
     }
   }

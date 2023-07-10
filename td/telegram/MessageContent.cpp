@@ -6740,7 +6740,7 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
       break;
     case MessageContentType::Story: {
       const auto *content = static_cast<const MessageStory *>(message_content);
-      dependencies.add_dialog_and_dependencies(content->story_full_id.get_dialog_id());
+      dependencies.add(content->story_full_id);
       break;
     }
     default:

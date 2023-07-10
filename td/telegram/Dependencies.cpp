@@ -8,6 +8,7 @@
 
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/StoryManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/WebPagesManager.h"
 
@@ -43,6 +44,13 @@ void Dependencies::add(SecretChatId secret_chat_id) {
 void Dependencies::add(WebPageId web_page_id) {
   if (web_page_id.is_valid()) {
     web_page_ids.insert(web_page_id);
+  }
+}
+
+void Dependencies::add(StoryFullId story_full_id) {
+  if (story_full_id.is_valid()) {
+    add_dialog_and_dependencies(story_full_id.get_dialog_id());
+    story_full_ids.insert(story_full_id);
   }
 }
 
@@ -121,7 +129,11 @@ bool Dependencies::resolve_force(Td *td, const char *source) const {
   for (auto web_page_id : web_page_ids) {
     if (!td->web_pages_manager_->have_web_page_force(web_page_id)) {
       LOG(INFO) << "Can't find " << web_page_id << " from " << source;
-      success = false;
+    }
+  }
+  for (auto story_full_id : story_full_ids) {
+    if (!td->story_manager_->have_story_force(story_full_id)) {
+      LOG(INFO) << "Can't find " << story_full_id << " from " << source;
     }
   }
   return success;
