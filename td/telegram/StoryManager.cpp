@@ -2173,6 +2173,7 @@ void StoryManager::on_delete_story(StoryFullId story_full_id) {
 
   const Story *story = get_story(story_full_id);
   if (story == nullptr) {
+    delete_story_from_database(story_full_id);
     return;
   }
   auto owner_dialog_id = story_full_id.get_dialog_id();
@@ -2201,6 +2202,15 @@ void StoryManager::on_delete_story(StoryFullId story_full_id) {
     auto story_ids = active_stories->story_ids_;
     td::remove(story_ids, story_id);
     on_update_active_stories(owner_dialog_id, active_stories->max_read_story_id_, std::move(story_ids));
+  }
+
+  delete_story_from_database(story_full_id);
+}
+
+void StoryManager::delete_story_from_database(StoryFullId story_full_id) {
+  if (G()->use_message_database()) {
+    LOG(INFO) << "Delete " << story_full_id << " from database";
+    G()->td_db()->get_story_db_async()->delete_story(story_full_id, Promise<Unit>());
   }
 }
 
@@ -3145,8 +3155,6 @@ void StoryManager::delete_story(StoryId story_id, Promise<Unit> &&promise) {
   }
 
   delete_story_on_server(story_full_id, 0, std::move(promise));
-
-  on_delete_story(story_full_id);
 }
 
 class StoryManager::DeleteStoryOnServerLogEvent {
@@ -3183,6 +3191,8 @@ void StoryManager::delete_story_on_server(StoryFullId story_full_id, uint64 log_
   deleted_story_full_ids_.insert(story_full_id);
 
   td_->create_handler<DeleteStoriesQuery>(std::move(promise))->send({story_full_id.get_story_id()});
+
+  on_delete_story(story_full_id);
 }
 
 telegram_api::object_ptr<telegram_api::InputMedia> StoryManager::get_input_media(StoryFullId story_full_id) const {

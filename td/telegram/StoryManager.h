@@ -358,6 +358,8 @@ class StoryManager final : public Actor {
 
   void delete_story_on_server(StoryFullId story_full_id, uint64 log_event_id, Promise<Unit> &&promise);
 
+  void delete_story_from_database(StoryFullId story_full_id);
+
   void delete_story_files(const Story *story) const;
 
   void change_story_files(StoryFullId story_full_id, const Story *story, const vector<FileId> &old_file_ids);
