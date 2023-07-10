@@ -2285,6 +2285,7 @@ void StoryManager::on_delete_story(StoryFullId story_full_id) {
     }
     being_edited_stories_.erase(edited_stories_it);
   }
+  edit_generations_.erase(story_full_id);
   cached_story_viewers_.erase(story_full_id);
 
   auto active_stories = get_active_stories(owner_dialog_id);
@@ -3095,14 +3096,15 @@ void StoryManager::edit_story(StoryId story_id, td_api::object_ptr<td_api::Input
   if (edited_story == nullptr) {
     edited_story = make_unique<BeingEditedStory>();
   }
+  auto &edit_generation = edit_generations_[story_full_id];
   if (content != nullptr) {
     edited_story->content_ = std::move(content);
-    story->edit_generation_++;
+    edit_generation++;
   }
   if (is_caption_edited) {
     edited_story->caption_ = std::move(caption);
     edited_story->edit_caption_ = true;
-    story->edit_generation_++;
+    edit_generation++;
   }
   edited_story->promises_.push_back(std::move(promise));
 
@@ -3111,7 +3113,7 @@ void StoryManager::edit_story(StoryId story_id, td_api::object_ptr<td_api::Input
 
   auto pending_story =
       td::make_unique<PendingStory>(dialog_id, story_id, std::numeric_limits<uint32>::max() - (++send_story_count_),
-                                    story->edit_generation_, std::move(new_story));
+                                    edit_generation, std::move(new_story));
   if (G()->use_message_database()) {
     EditStoryLogEvent log_event(pending_story.get(), edited_story->edit_caption_, edited_story->caption_);
     auto storer = get_log_event_storer(log_event);
@@ -3141,7 +3143,8 @@ void StoryManager::do_edit_story(FileId file_id, unique_ptr<PendingStory> &&pend
   StoryFullId story_full_id{pending_story->dialog_id_, pending_story->story_id_};
   const Story *story = get_story(story_full_id);
   auto it = being_edited_stories_.find(story_full_id);
-  if (story == nullptr || story->edit_generation_ != pending_story->random_id_ || it == being_edited_stories_.end()) {
+  if (story == nullptr || it == being_edited_stories_.end() ||
+      edit_generations_[story_full_id] != pending_story->random_id_) {
     LOG(INFO) << "Skip outdated edit of " << story_full_id;
     if (file_id.is_valid()) {
       td_->file_manager_->cancel_upload(file_id);
@@ -3164,7 +3167,8 @@ void StoryManager::delete_pending_story(FileId file_id, unique_ptr<PendingStory>
     StoryFullId story_full_id{pending_story->dialog_id_, pending_story->story_id_};
     const Story *story = get_story(story_full_id);
     auto it = being_edited_stories_.find(story_full_id);
-    if (story == nullptr || story->edit_generation_ != pending_story->random_id_ || it == being_edited_stories_.end()) {
+    if (story == nullptr || it == being_edited_stories_.end() ||
+        edit_generations_[story_full_id] != pending_story->random_id_) {
       LOG(INFO) << "Ignore outdated edit of " << story_full_id;
       return;
     }
@@ -3475,7 +3479,7 @@ void StoryManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
         ++send_story_count_;
         pending_story->send_story_num_ = std::numeric_limits<uint32>::max() - send_story_count_;
-        pending_story->random_id_ = ++story->edit_generation_;
+        pending_story->random_id_ = ++edit_generations_[story_full_id];
 
         if (edited_story->content_ == nullptr) {
           do_edit_story(FileId(), std::move(pending_story), nullptr);

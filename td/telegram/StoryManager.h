@@ -60,7 +60,6 @@ class StoryManager final : public Actor {
     UserPrivacySettingRules privacy_rules_;
     unique_ptr<StoryContent> content_;
     FormattedText caption_;
-    mutable int64 edit_generation_ = 0;
     int64 global_id_ = 0;
 
     template <class StorerT>
@@ -442,6 +441,8 @@ class StoryManager final : public Actor {
   FlatHashMap<DialogId, uint64, DialogIdHash> load_expiring_stories_log_event_ids_;
 
   FlatHashMap<StoryFullId, unique_ptr<BeingEditedStory>, StoryFullIdHash> being_edited_stories_;
+
+  FlatHashMap<StoryFullId, int64, StoryFullIdHash> edit_generations_;
 
   FlatHashMap<DialogId, PendingStoryViews, DialogIdHash> pending_story_views_;
 
