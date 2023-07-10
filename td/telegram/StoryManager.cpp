@@ -1020,9 +1020,33 @@ unique_ptr<StoryManager::Story> StoryManager::parse_story(StoryFullId story_full
   if (status.is_error()) {
     LOG(ERROR) << "Receive invalid " << story_full_id << " from database: " << status << ' '
                << format::as_hex_dump<4>(value.as_slice());
+    delete_story_from_database(story_full_id);
     reload_story(story_full_id, Auto());
     return nullptr;
   }
+  if (story->content_ == nullptr) {
+    LOG(ERROR) << "Receive " << story_full_id << " without content from database";
+    delete_story_from_database(story_full_id);
+    return nullptr;
+  }
+
+  auto owner_dialog_id = story_full_id.get_dialog_id();
+  if (is_active_story(story.get())) {
+    auto active_stories = get_active_stories(owner_dialog_id);
+    if (active_stories != nullptr && !contains(active_stories->story_ids_, story_full_id.get_story_id())) {
+      delete_story_files(story.get());
+      delete_story_from_database(story_full_id);
+      return nullptr;
+    }
+  } else {
+    if (!is_story_owned(owner_dialog_id) && !story->is_pinned_) {
+      // non-owned expired non-pinned stories are fully deleted
+      delete_story_files(story.get());
+      delete_story_from_database(story_full_id);
+      return nullptr;
+    }
+  }
+
   return story;
 }
 
