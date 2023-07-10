@@ -5021,6 +5021,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
           LOG(ERROR) << "Receive " << actual_story_id << " instead of " << story_id;
         }
       }
+      td->messages_manager_->force_create_dialog(dialog_id, "messageMediaStory");
       return make_unique<MessageStory>(story_full_id, media->via_mention_);
     }
     case telegram_api::messageMediaUnsupported::ID:

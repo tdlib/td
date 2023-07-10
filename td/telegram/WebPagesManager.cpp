@@ -557,6 +557,7 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
                 LOG(ERROR) << "Receive " << actual_story_id << " instead of " << story_id;
               }
             }
+            td_->messages_manager_->force_create_dialog(dialog_id, "webPageAttributeStory");
             page->story_full_ids.push_back(story_full_id);
             break;
           }
