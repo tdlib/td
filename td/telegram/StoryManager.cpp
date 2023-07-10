@@ -1984,6 +1984,15 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
 
   td_->messages_manager_->force_create_dialog(owner_dialog_id, "on_get_new_story");
 
+  bool is_bot = td_->auth_manager_->is_bot();
+  auto caption =
+      get_message_text(td_->contacts_manager_.get(), std::move(story_item->caption_), std::move(story_item->entities_),
+                       true, is_bot, story_item->date_, false, "on_get_new_story");
+  auto content = get_story_content(td_, std::move(story_item->media_), owner_dialog_id);
+  if (content == nullptr) {
+    return StoryId();
+  }
+
   Story *story = get_story_editable(story_full_id);
   bool is_changed = false;
   bool need_save_to_database = false;
@@ -2003,15 +2012,6 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
   CHECK(story != nullptr);
 
   story->receive_date_ = G()->unix_time();
-
-  bool is_bot = td_->auth_manager_->is_bot();
-  auto caption =
-      get_message_text(td_->contacts_manager_.get(), std::move(story_item->caption_), std::move(story_item->entities_),
-                       true, is_bot, story_item->date_, false, "on_get_new_story");
-  auto content = get_story_content(td_, std::move(story_item->media_), owner_dialog_id);
-  if (content == nullptr) {
-    return StoryId();
-  }
 
   const BeingEditedStory *edited_story = nullptr;
   auto it = being_edited_stories_.find(story_full_id);
