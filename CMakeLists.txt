@@ -471,6 +471,7 @@ set(TDLIB_SOURCE
   td/telegram/StorageManager.cpp
   td/telegram/StoryContent.cpp
   td/telegram/StoryContentType.cpp
+  td/telegram/StoryDb.cpp
   td/telegram/StoryInteractionInfo.cpp
   td/telegram/StoryManager.cpp
   td/telegram/SuggestedAction.cpp
@@ -765,6 +766,7 @@ set(TDLIB_SOURCE
   td/telegram/StorageManager.h
   td/telegram/StoryContent.h
   td/telegram/StoryContentType.h
+  td/telegram/StoryDb.h
   td/telegram/StoryFullId.h
   td/telegram/StoryId.h
   td/telegram/StoryInteractionInfo.h

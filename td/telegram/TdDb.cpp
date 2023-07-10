@@ -13,6 +13,7 @@
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessageDb.h"
 #include "td/telegram/MessageThreadDb.h"
+#include "td/telegram/StoryDb.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/Version.h"
 
@@ -233,6 +234,14 @@ DialogDbAsyncInterface *TdDb::get_dialog_db_async() {
   return dialog_db_async_.get();
 }
 
+StoryDbSyncInterface *TdDb::get_story_db_sync() {
+  return &story_db_sync_safe_->get();
+}
+
+StoryDbAsyncInterface *TdDb::get_story_db_async() {
+  return story_db_async_.get();
+}
+
 void TdDb::flush_all() {
   LOG(INFO) << "Flush all databases";
   if (message_db_async_) {
@@ -243,6 +252,9 @@ void TdDb::flush_all() {
   }
   if (dialog_db_async_) {
     dialog_db_async_->force_flush();
+  }
+  if (story_db_async_) {
+    story_db_async_->force_flush();
   }
   binlog_->force_flush();
 }
@@ -299,6 +311,11 @@ void TdDb::do_close(Promise<> on_finished, bool destroy_flag) {
     dialog_db_async_->close(mpas.get_promise());
   }
 
+  story_db_sync_safe_.reset();
+  if (story_db_async_) {
+    story_db_async_->close(mpas.get_promise());
+  }
+
   // binlog_pmc is dependent on binlog_ and anyway it doesn't support close_and_destroy
   CHECK(binlog_pmc_.unique());
   binlog_pmc_.reset();
@@ -325,10 +342,11 @@ Status TdDb::init_sqlite(const Parameters &parameters, const DbKey &key, const D
   const string sql_database_path = get_sqlite_path(parameters);
 
   bool use_sqlite = parameters.use_file_database_;
-  bool use_file_database_ = parameters.use_file_database_;
+  bool use_file_database = parameters.use_file_database_;
   bool use_dialog_db = parameters.use_message_database_;
   bool use_message_thread_db = parameters.use_message_database_ && false;
-  bool use_message_database_ = parameters.use_message_database_;
+  bool use_message_database = parameters.use_message_database_;
+  bool use_story_database = parameters.use_message_database_;
 
   was_dialog_db_created_ = false;
 
@@ -370,14 +388,21 @@ Status TdDb::init_sqlite(const Parameters &parameters, const DbKey &key, const D
   }
 
   // init MessageDb
-  if (use_message_database_) {
+  if (use_message_database) {
     TRY_STATUS(init_message_db(db, user_version));
   } else {
     TRY_STATUS(drop_message_db(db, user_version));
   }
 
+  // init StoryDb
+  if (use_story_database) {
+    TRY_STATUS(init_story_db(db, user_version));
+  } else {
+    TRY_STATUS(drop_story_db(db, user_version));
+  }
+
   // init FileDb
-  if (use_file_database_) {
+  if (use_file_database) {
     TRY_STATUS(init_file_db(db, user_version));
   } else {
     TRY_STATUS(drop_file_db(db, user_version));
@@ -432,9 +457,14 @@ Status TdDb::init_sqlite(const Parameters &parameters, const DbKey &key, const D
     message_thread_db_async_ = create_message_thread_db_async(message_thread_db_sync_safe_);
   }
 
-  if (use_message_database_) {
+  if (use_message_database) {
     message_db_sync_safe_ = create_message_db_sync(sql_connection_);
     message_db_async_ = create_message_db_async(message_db_sync_safe_);
+  }
+
+  if (use_story_database) {
+    story_db_sync_safe_ = create_story_db_sync(sql_connection_);
+    story_db_async_ = create_story_db_async(story_db_sync_safe_);
   }
 
   return Status::OK();
@@ -644,6 +674,7 @@ Result<string> TdDb::get_stats() {
                               << mask << "'",
                      PSLICE() << table << ":" << mask);
   };
+  TRY_STATUS(run_query("SELECT 0, SUM(length(data)), COUNT(*) FROM stories WHERE 1", "stories"));
   TRY_STATUS(run_query("SELECT 0, SUM(length(data)), COUNT(*) FROM messages WHERE 1", "messages"));
   TRY_STATUS(run_query("SELECT 0, SUM(length(data)), COUNT(*) FROM dialogs WHERE 1", "dialogs"));
   TRY_STATUS(run_kv_query("%", "common"));
