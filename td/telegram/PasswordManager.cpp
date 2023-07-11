@@ -244,8 +244,8 @@ void PasswordManager::do_get_secure_secret(bool allow_recursive, string password
     return promise.set_error(Status::Error(400, "PASSWORD_HASH_INVALID"));
   }
   get_full_state(
-      password, PromiseCreator::lambda([password, allow_recursive, promise = std::move(promise),
-                                        actor_id = actor_id(this)](Result<PasswordFullState> r_state) mutable {
+      password, PromiseCreator::lambda([actor_id = actor_id(this), password, allow_recursive,
+                                        promise = std::move(promise)](Result<PasswordFullState> r_state) mutable {
         if (r_state.is_error()) {
           return promise.set_error(r_state.move_as_error());
         }
@@ -262,7 +262,7 @@ void PasswordManager::do_get_secure_secret(bool allow_recursive, string password
         }
 
         auto new_promise =
-            PromiseCreator::lambda([password, promise = std::move(promise), actor_id](Result<bool> r_ok) mutable {
+            PromiseCreator::lambda([actor_id, password, promise = std::move(promise)](Result<bool> r_ok) mutable {
               if (r_ok.is_error()) {
                 return promise.set_error(r_ok.move_as_error());
               }
@@ -302,8 +302,8 @@ void PasswordManager::create_temp_password(string password, int32 timeout, Promi
     send_closure(actor_id, &PasswordManager::on_finish_create_temp_password, std::move(result), false);
   });
 
-  do_get_state(PromiseCreator::lambda([password = std::move(password), timeout, promise = std::move(new_promise),
-                                       actor_id = actor_id(this)](Result<PasswordState> r_state) mutable {
+  do_get_state(PromiseCreator::lambda([actor_id = actor_id(this), password = std::move(password), timeout,
+                                       promise = std::move(new_promise)](Result<PasswordState> r_state) mutable {
     if (r_state.is_error()) {
       return promise.set_error(r_state.move_as_error());
     }
@@ -350,8 +350,8 @@ void PasswordManager::get_full_state(string password, Promise<PasswordFullState>
   send_closure(G()->config_manager(), &ConfigManager::hide_suggested_action,
                SuggestedAction{SuggestedAction::Type::CheckPassword});
 
-  do_get_state(PromiseCreator::lambda([password = std::move(password), promise = std::move(promise),
-                                       actor_id = actor_id(this)](Result<PasswordState> r_state) mutable {
+  do_get_state(PromiseCreator::lambda([actor_id = actor_id(this), password = std::move(password),
+                                       promise = std::move(promise)](Result<PasswordState> r_state) mutable {
     if (r_state.is_error()) {
       return promise.set_error(r_state.move_as_error());
     }

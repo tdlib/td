@@ -394,7 +394,7 @@ class Td final : public Actor {
 
   template <class T>
   Promise<T> create_request_promise(uint64 id) {
-    return PromiseCreator::lambda([id = id, actor_id = actor_id(this)](Result<T> r_state) {
+    return PromiseCreator::lambda([actor_id = actor_id(this), id](Result<T> r_state) {
       if (r_state.is_error()) {
         send_closure(actor_id, &Td::send_error, id, r_state.move_as_error());
       } else {

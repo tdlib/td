@@ -23442,9 +23442,10 @@ void MessagesManager::get_history_from_the_end_impl(const Dialog *d, bool from_d
     db_query.from_message_id = MessageId::max();
     db_query.limit = limit;
     G()->td_db()->get_message_db_async()->get_messages(
-        db_query, PromiseCreator::lambda([dialog_id, old_last_database_message_id = d->last_database_message_id,
-                                          only_local, limit, actor_id = actor_id(this), promise = std::move(promise)](
-                                             vector<MessageDbDialogMessage> messages) mutable {
+        db_query,
+        PromiseCreator::lambda([actor_id = actor_id(this), dialog_id,
+                                old_last_database_message_id = d->last_database_message_id, only_local, limit,
+                                promise = std::move(promise)](vector<MessageDbDialogMessage> messages) mutable {
           send_closure(actor_id, &MessagesManager::on_get_history_from_database, dialog_id, MessageId::max(),
                        old_last_database_message_id, 0, limit, true, only_local, std::move(messages),
                        std::move(promise));
@@ -23497,8 +23498,8 @@ void MessagesManager::get_history_impl(const Dialog *d, MessageId from_message_i
     db_query.limit = limit;
     G()->td_db()->get_message_db_async()->get_messages(
         db_query,
-        PromiseCreator::lambda([dialog_id, from_message_id, old_last_database_message_id = d->last_database_message_id,
-                                offset, limit, only_local, actor_id = actor_id(this),
+        PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, from_message_id,
+                                old_last_database_message_id = d->last_database_message_id, offset, limit, only_local,
                                 promise = std::move(promise)](vector<MessageDbDialogMessage> messages) mutable {
           send_closure(actor_id, &MessagesManager::on_get_history_from_database, dialog_id, from_message_id,
                        old_last_database_message_id, offset, limit, false, only_local, std::move(messages),
@@ -23647,7 +23648,7 @@ void MessagesManager::load_dialog_scheduled_messages(DialogId dialog_id, bool fr
     if (queries.size() == 1) {
       G()->td_db()->get_message_db_async()->get_scheduled_messages(
           dialog_id, 1000,
-          PromiseCreator::lambda([dialog_id, actor_id = actor_id(this)](vector<MessageDbDialogMessage> messages) {
+          PromiseCreator::lambda([actor_id = actor_id(this), dialog_id](vector<MessageDbDialogMessage> messages) {
             send_closure(actor_id, &MessagesManager::on_get_scheduled_messages_from_database, dialog_id,
                          std::move(messages));
           }));
@@ -29736,8 +29737,8 @@ void MessagesManager::remove_message_notification(DialogId dialog_id, Notificati
   if (G()->use_message_database()) {
     G()->td_db()->get_message_db_async()->get_messages_from_notification_id(
         dialog_id, NotificationId(notification_id.get() + 1), 1,
-        PromiseCreator::lambda([dialog_id, from_mentions, notification_id,
-                                actor_id = actor_id(this)](vector<MessageDbDialogMessage> result) {
+        PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, from_mentions,
+                                notification_id](vector<MessageDbDialogMessage> result) {
           send_closure(actor_id, &MessagesManager::do_remove_message_notification, dialog_id, from_mentions,
                        notification_id, std::move(result));
         }));

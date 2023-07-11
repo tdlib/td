@@ -295,9 +295,9 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
   auto &node = add_node(dest.node_id);
   node.query->active_queries++;
 
-  auto promise = PromiseCreator::lambda([dest, file_source_id, actor_id = actor_id(this),
-                                         file_manager_actor_id = G()->file_manager()](Result<Unit> result) {
-    auto new_promise = PromiseCreator::lambda([dest, file_source_id, actor_id](Result<Unit> result) {
+  auto promise = PromiseCreator::lambda([actor_id = actor_id(this), file_manager_actor_id = G()->file_manager(), dest,
+                                         file_source_id](Result<Unit> result) {
+    auto new_promise = PromiseCreator::lambda([actor_id, dest, file_source_id](Result<Unit> result) {
       Status status;
       if (result.is_error()) {
         status = result.move_as_error();

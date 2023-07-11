@@ -919,7 +919,7 @@ void PollManager::do_set_poll_answer(PollId poll_id, FullMessageId full_message_
   notify_on_poll_update(poll_id);
 
   auto query_promise = PromiseCreator::lambda(
-      [poll_id, generation, actor_id = actor_id(this)](Result<tl_object_ptr<telegram_api::Updates>> &&result) {
+      [actor_id = actor_id(this), poll_id, generation](Result<tl_object_ptr<telegram_api::Updates>> &&result) {
         send_closure(actor_id, &PollManager::on_set_poll_answer, poll_id, generation, std::move(result));
       });
   td_->create_handler<SendVoteQuery>(std::move(query_promise))
@@ -1327,7 +1327,7 @@ void PollManager::on_update_poll_timeout(PollId poll_id) {
 
   auto full_message_id = server_poll_messages_[poll_id].get_random();
   LOG(INFO) << "Fetching results of " << poll_id << " from " << full_message_id;
-  auto query_promise = PromiseCreator::lambda([poll_id, generation = current_generation_, actor_id = actor_id(this)](
+  auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), poll_id, generation = current_generation_](
                                                   Result<tl_object_ptr<telegram_api::Updates>> &&result) {
     send_closure(actor_id, &PollManager::on_get_poll_results, poll_id, generation, std::move(result));
   });

@@ -2481,7 +2481,7 @@ void FileManager::run_download(FileNodePtr node, bool force_update_priority) {
     QueryId query_id = queries_container_.create(Query{file_id, Query::Type::DownloadReloadDialog});
     node->download_id_ = query_id;
     context_->reload_photo(file_view.remote_location().get_source(),
-                           PromiseCreator::lambda([query_id, actor_id = actor_id(this), file_id](Result<Unit> res) {
+                           PromiseCreator::lambda([actor_id = actor_id(this), query_id, file_id](Result<Unit> res) {
                              Status error;
                              if (res.is_ok()) {
                                error = Status::Error("FILE_DOWNLOAD_ID_INVALID");
@@ -2507,7 +2507,7 @@ void FileManager::run_download(FileNodePtr node, bool force_update_priority) {
     node->download_was_update_file_reference_ = true;
 
     context_->repair_file_reference(
-        file_id, PromiseCreator::lambda([query_id, actor_id = actor_id(this), file_id](Result<Unit> res) {
+        file_id, PromiseCreator::lambda([actor_id = actor_id(this), query_id, file_id](Result<Unit> res) {
           Status error;
           if (res.is_ok()) {
             error = Status::Error("FILE_DOWNLOAD_RESTART_WITH_FILE_REFERENCE");
@@ -3011,7 +3011,7 @@ void FileManager::run_upload(FileNodePtr node, vector<int> bad_parts) {
     node->upload_was_update_file_reference_ = true;
 
     context_->repair_file_reference(node->main_file_id_,
-                                    PromiseCreator::lambda([query_id, actor_id = actor_id(this)](Result<Unit> res) {
+                                    PromiseCreator::lambda([actor_id = actor_id(this), query_id](Result<Unit> res) {
                                       send_closure(actor_id, &FileManager::on_error, query_id,
                                                    Status::Error("FILE_UPLOAD_RESTART_WITH_FILE_REFERENCE"));
                                     }));

@@ -343,7 +343,7 @@ void ConnectionCreator::ping_proxy_resolved(int32 proxy_id, IPAddress ip_address
   auto socket_fd = r_socket_fd.move_as_ok();
 
   auto connection_promise = PromiseCreator::lambda(
-      [ip_address, promise = std::move(promise), actor_id = actor_id(this), transport_type = extra.transport_type,
+      [actor_id = actor_id(this), ip_address, promise = std::move(promise), transport_type = extra.transport_type,
        debug_str = extra.debug_str](Result<ConnectionData> r_connection_data) mutable {
         if (r_connection_data.is_error()) {
           return promise.set_error(Status::Error(400, r_connection_data.error().public_message()));
@@ -619,7 +619,7 @@ void ConnectionCreator::request_raw_connection_by_ip(IPAddress ip_address, mtpro
   }
   auto socket_fd = r_socket_fd.move_as_ok();
 
-  auto connection_promise = PromiseCreator::lambda([promise = std::move(promise), actor_id = actor_id(this),
+  auto connection_promise = PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise),
                                                     transport_type, network_generation = network_generation_,
                                                     ip_address](Result<ConnectionData> r_connection_data) mutable {
     if (r_connection_data.is_error()) {
