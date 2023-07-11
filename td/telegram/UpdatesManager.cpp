@@ -584,7 +584,7 @@ void UpdatesManager::timeout_expired() {
 Promise<> UpdatesManager::set_pts(int32 pts, const char *source) {
   if (pts == std::numeric_limits<int32>::max()) {
     LOG(WARNING) << "Update PTS from " << get_pts() << " to -1 from " << source;
-    save_pts(pts);
+    save_pts(pts);  // drop saved PTS value
     auto result = add_pts(pts);
     init_state();
     return result;
@@ -3931,7 +3931,18 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateConfig> update,
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePtsChanged> update, Promise<Unit> &&promise) {
-  set_pts(std::numeric_limits<int32>::max(), "updatePtsChanged").set_value(Unit());
+  if (td_->option_manager_->get_option_integer("session_count") > 1) {
+    auto old_pts = get_pts();
+    auto new_pts = 1;
+    if (old_pts != new_pts) {
+      LOG(WARNING) << "PTS changes from " << old_pts << " from updatePtsChanged";
+      save_pts(new_pts);
+      add_pts(new_pts).set_value(Unit());
+      get_difference("updatePtsChanged");
+    }
+  } else {
+    set_pts(std::numeric_limits<int32>::max(), "updatePtsChanged").set_value(Unit());
+  }
   promise.set_value(Unit());
 }
 
