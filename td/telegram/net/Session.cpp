@@ -624,14 +624,6 @@ void Session::on_closed(Status status) {
   Scheduler::unsubscribe_before_close(raw_connection->get_poll_info().get_pollable_fd_ref());
   raw_connection->close();
 
-  if (status.is_error()) {
-    LOG(WARNING) << "Session connection with " << sent_queries_.size() << " pending requests was closed: " << status
-                 << ' ' << current_info_->connection_->get_name();
-  } else {
-    LOG(INFO) << "Session connection with " << sent_queries_.size() << " pending requests was closed: " << status << ' '
-              << current_info_->connection_->get_name();
-  }
-
   if (status.is_error() && status.code() == -404) {
     if (auth_data_.use_pfs()) {
       LOG(WARNING) << "Invalidate tmp_key";
@@ -644,6 +636,7 @@ void Session::on_closed(Status status) {
       on_auth_key_updated();
       on_session_failed(status.clone());
     } else if (need_destroy_) {
+      LOG(WARNING) << "Session connection was closed, because main auth_key has been successfully destroyed";
       auth_data_.drop_main_auth_key();
       on_auth_key_updated();
     } else {
@@ -656,8 +649,18 @@ void Session::on_closed(Status status) {
         auth_data_.drop_main_auth_key();
         on_auth_key_updated();
         G()->log_out("Main PFS authorization key is invalid");
+      } else {
+        LOG(WARNING) << "Session connection was closed: " << status << ' ' << current_info_->connection_->get_name();
       }
       yield();
+    }
+  } else {
+    if (status.is_error()) {
+      LOG(WARNING) << "Session connection with " << sent_queries_.size() << " pending requests was closed: " << status
+                   << ' ' << current_info_->connection_->get_name();
+    } else {
+      LOG(INFO) << "Session connection with " << sent_queries_.size() << " pending requests was closed: " << status
+                << ' ' << current_info_->connection_->get_name();
     }
   }
 
