@@ -1641,7 +1641,7 @@ void UpdatesManager::init_state() {
     return;
   }
 
-  bool drop_state = td_->can_ignore_background_updates() && td_->auth_manager_->is_bot() &&
+  bool drop_state = get_pts() == -1 && td_->can_ignore_background_updates() && td_->auth_manager_->is_bot() &&
                     td_->option_manager_->get_option_integer("since_last_open") >= 2 * 86400;
 
   auto pmc = G()->td_db()->get_binlog_pmc();
