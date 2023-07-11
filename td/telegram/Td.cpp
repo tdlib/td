@@ -5626,7 +5626,8 @@ void Td::on_request(uint64 id, td_api::editMessageSchedulingState &request) {
 void Td::on_request(uint64 id, const td_api::getStory &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  story_manager_->get_story(DialogId(request.story_sender_chat_id_), StoryId(request.story_id_), std::move(promise));
+  story_manager_->get_story(DialogId(request.story_sender_chat_id_), StoryId(request.story_id_), request.only_local_,
+                            std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::sendStory &request) {

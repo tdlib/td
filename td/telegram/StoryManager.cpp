@@ -2832,7 +2832,7 @@ void StoryManager::on_reload_story(StoryFullId story_full_id, Result<Unit> &&res
   }
 }
 
-void StoryManager::get_story(DialogId owner_dialog_id, StoryId story_id,
+void StoryManager::get_story(DialogId owner_dialog_id, StoryId story_id, bool only_local,
                              Promise<td_api::object_ptr<td_api::story>> &&promise) {
   if (!td_->messages_manager_->have_dialog_force(owner_dialog_id, "get_story")) {
     return promise.set_error(Status::Error(400, "Story sender not found"));
@@ -2851,6 +2851,9 @@ void StoryManager::get_story(DialogId owner_dialog_id, StoryId story_id,
   const Story *story = get_story_force(story_full_id, "get_story");
   if (story != nullptr && story->content_ != nullptr) {
     return promise.set_value(get_story_object(story_full_id, story));
+  }
+  if (only_local) {
+    return promise.set_value(nullptr);
   }
 
   auto query_promise = PromiseCreator::lambda(

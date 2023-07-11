@@ -146,7 +146,8 @@ class StoryManager final : public Actor {
   StoryManager &operator=(StoryManager &&) = delete;
   ~StoryManager() final;
 
-  void get_story(DialogId owner_dialog_id, StoryId story_id, Promise<td_api::object_ptr<td_api::story>> &&promise);
+  void get_story(DialogId owner_dialog_id, StoryId story_id, bool only_local,
+                 Promise<td_api::object_ptr<td_api::story>> &&promise);
 
   void send_story(td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,
                   td_api::object_ptr<td_api::formattedText> &&input_caption,

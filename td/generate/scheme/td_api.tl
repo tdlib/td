@@ -7263,8 +7263,11 @@ setPinnedChats chat_list:ChatList chat_ids:vector<int53> = Ok;
 readChatList chat_list:ChatList = Ok;
 
 
-//@description Returns a story @story_sender_chat_id Identifier of the chat that posted the story @story_id Story identifier
-getStory story_sender_chat_id:int53 story_id:int32 = Story;
+//@description Returns a story
+//@story_sender_chat_id Identifier of the chat that posted the story
+//@story_id Story identifier
+//@only_local Pass true to get only locally available information without sending network requests
+getStory story_sender_chat_id:int53 story_id:int32 only_local:Bool = Story;
 
 //@description Sends a new story. Returns a temporary story with identifier 0
 //@content Content of the story
