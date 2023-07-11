@@ -6487,33 +6487,29 @@ void MessagesManager::skip_old_pending_pts_update(tl_object_ptr<telegram_api::Up
     auto update_new_message = static_cast<telegram_api::updateNewMessage *>(update.get());
     auto full_message_id = FullMessageId::get_full_message_id(update_new_message->message_, false);
     if (update_message_ids_.count(full_message_id) > 0) {
-      if (new_pts == old_pts || old_pts == std::numeric_limits<int32>::max()) {
-        // apply sent message anyway if it is definitely non-deleted or being skipped because of PTS overflow
-        auto added_full_message_id = on_get_message(std::move(update_new_message->message_), true, false, false,
-                                                    "updateNewMessage with an awaited message");
-        if (added_full_message_id != full_message_id) {
-          LOG(ERROR) << "Failed to add an awaited " << full_message_id << " from " << source;
-        }
-        return;
-      } else {
-        LOG(ERROR) << "Receive awaited sent " << full_message_id << " from " << source << " with PTS " << new_pts
-                   << " and pts_count " << pts_count << ", but current PTS is " << old_pts;
+      // apply the sent message anyway, even it could have been deleted or edited already
+
+      CHECK(full_message_id.get_dialog_id().get_type() == DialogType::User ||
+            full_message_id.get_dialog_id().get_type() == DialogType::Chat);  // checked in check_pts_update
+      delete_messages_from_updates({full_message_id.get_message_id()}, false);
+
+      auto added_full_message_id = on_get_message(std::move(update_new_message->message_), true, false, false,
+                                                  "updateNewMessage with an awaited message");
+      if (added_full_message_id != full_message_id) {
+        LOG(ERROR) << "Failed to add an awaited " << full_message_id << " from " << source;
       }
+      return;
     }
   }
   if (update->get_id() == updateSentMessage::ID) {
     auto update_sent_message = static_cast<updateSentMessage *>(update.get());
     if (being_sent_messages_.count(update_sent_message->random_id_) > 0) {
-      if (new_pts == old_pts || old_pts == std::numeric_limits<int32>::max()) {
-        // apply sent message anyway if it is definitely non-deleted or being skipped because of PTS overflow
-        on_send_message_success(update_sent_message->random_id_, update_sent_message->message_id_,
-                                update_sent_message->date_, update_sent_message->ttl_period_, FileId(),
-                                "process old updateSentMessage");
-        return;
-      } else if (update_sent_message->random_id_ != 0) {
-        LOG(ERROR) << "Receive awaited sent " << update_sent_message->message_id_ << " from " << source << " with PTS "
-                   << new_pts << " and pts_count " << pts_count << ", but current PTS is " << old_pts;
-      }
+      // apply the sent message anyway, even it could have been deleted or edited already
+      delete_messages_from_updates({update_sent_message->message_id_}, false);
+      on_send_message_success(update_sent_message->random_id_, update_sent_message->message_id_,
+                              update_sent_message->date_, update_sent_message->ttl_period_, FileId(),
+                              "process old updateSentMessage");
+      return;
     }
     return;
   }
@@ -7968,7 +7964,7 @@ void MessagesManager::process_pts_update(tl_object_ptr<telegram_api::Update> &&u
       for (auto message : update->messages_) {
         message_ids.push_back(MessageId(ServerMessageId(message)));
       }
-      delete_messages_from_updates(message_ids);
+      delete_messages_from_updates(message_ids, true);
       break;
     }
     case telegram_api::updateReadHistoryInbox::ID: {
@@ -10660,7 +10656,7 @@ void MessagesManager::on_get_message_public_forwards(int32 total_count,
   promise.set_value(td_api::make_object<td_api::foundMessages>(total_count, std::move(result), next_offset));
 }
 
-void MessagesManager::delete_messages_from_updates(const vector<MessageId> &message_ids) {
+void MessagesManager::delete_messages_from_updates(const vector<MessageId> &message_ids, bool is_permanent) {
   FlatHashMap<DialogId, vector<int64>, DialogIdHash> deleted_message_ids;
   FlatHashMap<DialogId, bool, DialogIdHash> need_update_dialog_pos;
   vector<unique_ptr<Message>> deleted_messages;
@@ -10672,8 +10668,8 @@ void MessagesManager::delete_messages_from_updates(const vector<MessageId> &mess
 
     Dialog *d = get_dialog_by_message_id(message_id);
     if (d != nullptr) {
-      auto message =
-          delete_message(d, message_id, true, &need_update_dialog_pos[d->dialog_id], "delete_messages_from_updates");
+      auto message = delete_message(d, message_id, is_permanent, &need_update_dialog_pos[d->dialog_id],
+                                    "delete_messages_from_updates");
       CHECK(message != nullptr);
       LOG_CHECK(message->message_id == message_id) << message_id << " " << message->message_id << " " << d->dialog_id;
       deleted_message_ids[d->dialog_id].push_back(message->message_id.get());
@@ -10682,8 +10678,8 @@ void MessagesManager::delete_messages_from_updates(const vector<MessageId> &mess
     if (last_clear_history_message_id_to_dialog_id_.count(message_id)) {
       d = get_dialog(last_clear_history_message_id_to_dialog_id_[message_id]);
       CHECK(d != nullptr);
-      auto message =
-          delete_message(d, message_id, true, &need_update_dialog_pos[d->dialog_id], "delete_messages_from_updates");
+      auto message = delete_message(d, message_id, is_permanent, &need_update_dialog_pos[d->dialog_id],
+                                    "delete_messages_from_updates");
       CHECK(message == nullptr);
     }
   }
@@ -10700,7 +10696,7 @@ void MessagesManager::delete_messages_from_updates(const vector<MessageId> &mess
   }
   for (auto &it : deleted_message_ids) {
     auto dialog_id = it.first;
-    send_update_delete_messages(dialog_id, std::move(it.second), true);
+    send_update_delete_messages(dialog_id, std::move(it.second), is_permanent);
   }
 }
 

@@ -1865,7 +1865,7 @@ class MessagesManager final : public Actor {
 
   void on_message_edited(FullMessageId full_message_id, int32 pts, bool had_message);
 
-  void delete_messages_from_updates(const vector<MessageId> &message_ids);
+  void delete_messages_from_updates(const vector<MessageId> &message_ids, bool is_permanent);
 
   void delete_dialog_messages(DialogId dialog_id, const vector<MessageId> &message_ids,
                               bool force_update_for_not_found_messages, const char *source);
