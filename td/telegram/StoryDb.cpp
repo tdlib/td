@@ -43,10 +43,9 @@ Status init_story_db(SqliteDb &db, int32 version) {
   LOG(INFO) << "Init story database " << tag("version", version);
 
   // Check if database exists
-  TRY_RESULT(has_table, db.has_table("stories"));
-  if (!has_table) {
-    version = 0;
-  } else if (version < static_cast<int32>(DbVersion::DialogDbCreated) || version > current_db_version()) {
+  TRY_RESULT(has_stories_table, db.has_table("stories"));
+  TRY_RESULT(has_active_stories_table, db.has_table("active_stories"));
+  if ((!has_stories_table || !has_active_stories_table) || version > current_db_version()) {
     TRY_STATUS(drop_story_db(db, version));
     version = 0;
   }
@@ -63,6 +62,18 @@ Status init_story_db(SqliteDb &db, int32 version) {
         db.exec("CREATE INDEX IF NOT EXISTS story_by_notification_id ON stories (dialog_id, notification_id) WHERE "
                 "notification_id IS NOT NULL"));
 
+    TRY_STATUS(
+        db.exec("CREATE TABLE IF NOT EXISTS stories (dialog_id INT8, story_id INT4, expires_at INT4, notification_id "
+                "INT4, data BLOB, PRIMARY KEY (dialog_id, story_id))"));
+
+    TRY_STATUS(
+        db.exec("CREATE TABLE IF NOT EXISTS active_stories (dialog_id INT8 PRIMARY KEY, story_list_id INT4, "
+                "dialog_order INT8, data BLOB)"));
+
+    TRY_STATUS(
+        db.exec("CREATE INDEX IF NOT EXISTS active_stories_by_order ON active_stories (story_list_id, dialog_order, "
+                "dialog_id) WHERE story_list_id IS NOT NULL"));
+
     version = current_db_version();
   }
   return Status::OK();
@@ -70,8 +81,13 @@ Status init_story_db(SqliteDb &db, int32 version) {
 
 // NB: must happen inside a transaction
 Status drop_story_db(SqliteDb &db, int32 version) {
-  LOG(WARNING) << "Drop story database " << tag("version", version) << tag("current_db_version", current_db_version());
-  return db.exec("DROP TABLE IF EXISTS stories");
+  if (version != 0) {
+    LOG(WARNING) << "Drop story database " << tag("version", version)
+                 << tag("current_db_version", current_db_version());
+  }
+  auto status = db.exec("DROP TABLE IF EXISTS stories");
+  TRY_STATUS(db.exec("DROP TABLE IF EXISTS active_stories"));
+  return status;
 }
 
 class StoryDbImpl final : public StoryDbSyncInterface {
@@ -94,6 +110,9 @@ class StoryDbImpl final : public StoryDbSyncInterface {
     TRY_RESULT_ASSIGN(get_stories_from_notification_id_stmt_,
                       db_.get_statement("SELECT story_id, data FROM stories WHERE dialog_id = ?1 AND "
                                         "notification_id < ?2 ORDER BY notification_id DESC LIMIT ?3"));
+
+    TRY_RESULT_ASSIGN(add_active_stories_stmt_,
+                      db_.get_statement("INSERT OR REPLACE INTO active_stories VALUES(?1, ?2, ?3, ?4)"));
 
     return Status::OK();
   }
@@ -200,6 +219,21 @@ class StoryDbImpl final : public StoryDbSyncInterface {
     return stories;
   }
 
+  void add_active_stories(DialogId dialog_id, StoryListId story_list_id, int64 dialog_order, BufferSlice data) final {
+    SCOPE_EXIT {
+      add_active_stories_stmt_.reset();
+    };
+    add_active_stories_stmt_.bind_int64(1, dialog_id.get()).ensure();
+    if (story_list_id.is_valid()) {
+      add_active_stories_stmt_.bind_int32(2, story_list_id == StoryListId::archive() ? 1 : 0).ensure();
+    } else {
+      add_active_stories_stmt_.bind_null(2).ensure();
+    }
+    add_active_stories_stmt_.bind_int64(3, dialog_order).ensure();
+    add_active_stories_stmt_.bind_blob(4, data.as_slice()).ensure();
+    add_active_stories_stmt_.step().ensure();
+  }
+
   Status begin_write_transaction() final {
     return db_.begin_write_transaction();
   }
@@ -215,6 +249,8 @@ class StoryDbImpl final : public StoryDbSyncInterface {
   SqliteStatement get_story_stmt_;
   SqliteStatement get_expiring_stories_stmt_;
   SqliteStatement get_stories_from_notification_id_stmt_;
+
+  SqliteStatement add_active_stories_stmt_;
 };
 
 std::shared_ptr<StoryDbSyncSafeInterface> create_story_db_sync(
@@ -266,6 +302,12 @@ class StoryDbAsync final : public StoryDbAsyncInterface {
                        std::move(promise));
   }
 
+  void add_active_stories(DialogId dialog_id, StoryListId story_list_id, int64 dialog_order, BufferSlice data,
+                          Promise<Unit> promise) final {
+    send_closure_later(impl_, &Impl::add_active_stories, dialog_id, story_list_id, dialog_order, std::move(data),
+                       std::move(promise));
+  }
+
   void close(Promise<Unit> promise) final {
     send_closure_later(impl_, &Impl::close, std::move(promise));
   }
@@ -314,6 +356,15 @@ class StoryDbAsync final : public StoryDbAsyncInterface {
                                           Promise<vector<StoryDbStory>> promise) {
       add_read_query();
       promise.set_value(sync_db_->get_stories_from_notification_id(dialog_id, from_notification_id, limit));
+    }
+
+    void add_active_stories(DialogId dialog_id, StoryListId story_list_id, int64 dialog_order, BufferSlice data,
+                            Promise<Unit> promise) {
+      add_write_query([this, dialog_id, story_list_id, dialog_order, data = std::move(data),
+                       promise = std::move(promise)](Unit) mutable {
+        sync_db_->add_active_stories(dialog_id, story_list_id, dialog_order, std::move(data));
+        on_write_result(std::move(promise));
+      });
     }
 
     void close(Promise<Unit> promise) {

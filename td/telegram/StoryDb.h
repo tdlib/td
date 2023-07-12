@@ -9,6 +9,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/NotificationId.h"
 #include "td/telegram/StoryFullId.h"
+#include "td/telegram/StoryListId.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
@@ -50,6 +51,9 @@ class StoryDbSyncInterface {
   virtual vector<StoryDbStory> get_stories_from_notification_id(DialogId dialog_id, NotificationId from_notification_id,
                                                                 int32 limit) = 0;
 
+  virtual void add_active_stories(DialogId dialog_id, StoryListId story_list_id, int64 dialog_order,
+                                  BufferSlice data) = 0;
+
   virtual Status begin_write_transaction() = 0;
   virtual Status commit_transaction() = 0;
 };
@@ -82,6 +86,9 @@ class StoryDbAsyncInterface {
 
   virtual void get_stories_from_notification_id(DialogId dialog_id, NotificationId from_notification_id, int32 limit,
                                                 Promise<vector<StoryDbStory>> promise) = 0;
+
+  virtual void add_active_stories(DialogId dialog_id, StoryListId story_list_id, int64 dialog_order, BufferSlice data,
+                                  Promise<Unit> promise) = 0;
 
   virtual void close(Promise<Unit> promise) = 0;
   virtual void force_flush() = 0;
