@@ -139,6 +139,8 @@ class UpdatesManager final : public Actor {
 
   void ping_server();
 
+  void init_sessions(bool is_first);
+
   bool running_get_difference() const {
     return running_get_difference_;
   }
@@ -257,6 +259,8 @@ class UpdatesManager final : public Actor {
   Timeout data_reload_timeout_;
 
   bool is_ping_sent_ = false;
+
+  bool are_sessions_inited_ = false;
 
   bool running_get_difference_ = false;
   bool finished_first_get_difference_ = false;

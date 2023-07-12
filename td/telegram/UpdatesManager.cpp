@@ -156,6 +156,19 @@ class PingServerQuery final : public Td::ResultHandler {
   }
 };
 
+class InitSessionQuery final : public Td::ResultHandler {
+ public:
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::help_getCdnConfig()));
+  }
+
+  void on_result(BufferSlice) final {
+  }
+
+  void on_error(Status) final {
+  }
+};
+
 class GetDifferenceQuery final : public Td::ResultHandler {
   Promise<tl_object_ptr<telegram_api::updates_Difference>> promise_;
 
@@ -1732,6 +1745,26 @@ void UpdatesManager::on_server_pong(tl_object_ptr<telegram_api::updates_state> &
   }
 }
 
+void UpdatesManager::init_sessions(bool is_first) {
+  if (G()->close_flag()) {
+    return;
+  }
+  if (are_sessions_inited_ == is_first || !td_->auth_manager_->is_authorized()) {
+    return;
+  }
+  are_sessions_inited_ = true;
+
+  auto session_count = td_->option_manager_->get_option_integer("session_count", 1);
+  if (session_count <= 1) {
+    return;
+  }
+
+  LOG(INFO) << "Init " << session_count << " sessions";
+  for (size_t i = 0; i < session_count; i++) {
+    td_->create_handler<InitSessionQuery>()->send();
+  }
+}
+
 void UpdatesManager::process_get_difference_updates(
     vector<tl_object_ptr<telegram_api::Message>> &&new_messages,
     vector<tl_object_ptr<telegram_api::EncryptedMessage>> &&new_encrypted_messages,
@@ -2096,6 +2129,8 @@ void UpdatesManager::after_get_difference() {
   send_closure_later(td_->notification_manager_actor_, &NotificationManager::after_get_difference);
   send_closure(G()->state_manager(), &StateManager::on_synchronized, true);
   get_difference_start_time_ = 0.0;
+
+  init_sessions(true);
 
   try_reload_data();
 }
