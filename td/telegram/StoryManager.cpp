@@ -2653,8 +2653,9 @@ void StoryManager::delete_active_stories_from_story_list(DialogId owner_dialog_i
 }
 
 void StoryManager::send_update_story(StoryFullId story_full_id, const Story *story) {
-  send_closure(G()->td(), &Td::send_update,
-               td_api::make_object<td_api::updateStory>(get_story_object(story_full_id, story)));
+  auto story_object = get_story_object(story_full_id, story);
+  CHECK(story_object != nullptr);
+  send_closure(G()->td(), &Td::send_update, td_api::make_object<td_api::updateStory>(std::move(story_object)));
 }
 
 td_api::object_ptr<td_api::updateChatActiveStories> StoryManager::get_update_chat_active_stories(
@@ -2853,6 +2854,9 @@ void StoryManager::get_story(DialogId owner_dialog_id, StoryId story_id, bool on
   StoryFullId story_full_id{owner_dialog_id, story_id};
   const Story *story = get_story_force(story_full_id, "get_story");
   if (story != nullptr && story->content_ != nullptr) {
+    if (!story->is_update_sent_) {
+      send_update_story(story_full_id, story);
+    }
     return promise.set_value(get_story_object(story_full_id, story));
   }
   if (only_local) {
@@ -2872,7 +2876,11 @@ void StoryManager::do_get_story(StoryFullId story_full_id, Result<Unit> &&result
   if (result.is_error()) {
     return promise.set_error(result.move_as_error());
   }
-  promise.set_value(get_story_object(story_full_id));
+  const Story *story = get_story(story_full_id);
+  if (story != nullptr && story->content_ != nullptr && !story->is_update_sent_) {
+    send_update_story(story_full_id, story);
+  }
+  promise.set_value(get_story_object(story_full_id, story));
 }
 
 void StoryManager::send_story(td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,
