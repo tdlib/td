@@ -964,8 +964,7 @@ void StoryManager::on_story_can_get_viewers_timeout(int64 story_global_id) {
   }
   if (story->content_ != nullptr && story->is_update_sent_) {
     // can_get_viewers flag has changed
-    send_closure(G()->td(), &Td::send_update,
-                 td_api::make_object<td_api::updateStory>(get_story_object(story_full_id, story)));
+    send_update_story(story_full_id, story);
   }
   cached_story_viewers_.erase(story_full_id);
 }
@@ -2378,8 +2377,7 @@ void StoryManager::on_story_changed(StoryFullId story_full_id, const Story *stor
     }
 
     if (is_changed && story->is_update_sent_) {
-      send_closure(G()->td(), &Td::send_update,
-                   td_api::make_object<td_api::updateStory>(get_story_object(story_full_id, story)));
+      send_update_story(story_full_id, story);
     }
 
     send_closure_later(G()->messages_manager(),
@@ -2652,6 +2650,11 @@ void StoryManager::delete_active_stories_from_story_list(DialogId owner_dialog_i
   bool is_deleted =
       story_lists_[is_hidden].ordered_stories_.erase({active_stories->private_order_, owner_dialog_id}) > 0;
   CHECK(is_deleted);
+}
+
+void StoryManager::send_update_story(StoryFullId story_full_id, const Story *story) {
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateStory>(get_story_object(story_full_id, story)));
 }
 
 td_api::object_ptr<td_api::updateChatActiveStories> StoryManager::get_update_chat_active_stories(
