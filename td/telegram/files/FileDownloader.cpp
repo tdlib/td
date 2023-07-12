@@ -113,9 +113,10 @@ Result<FileLoader::FileInfo> FileDownloader::init() {
   res.only_check = only_check_;
   auto file_type = get_main_file_type(remote_.file_type_);
   res.need_delay =
-      !is_small_ && (file_type == FileType::VideoNote || file_type == FileType::Document ||
-                     file_type == FileType::VoiceNote || file_type == FileType::Audio || file_type == FileType::Video ||
-                     file_type == FileType::Animation || (file_type == FileType::Encrypted && size_ > (1 << 20)));
+      !is_small_ &&
+      (file_type == FileType::VideoNote || file_type == FileType::Document || file_type == FileType::VoiceNote ||
+       file_type == FileType::Audio || file_type == FileType::Video || file_type == FileType::Animation ||
+       file_type == FileType::VideoStory || (file_type == FileType::Encrypted && size_ > (1 << 20)));
   res.offset = offset_;
   res.limit = limit_;
   return res;
