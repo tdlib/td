@@ -1152,8 +1152,7 @@ void StoryManager::load_active_stories(StoryListId story_list_id, Promise<Unit> 
   if (!story_list_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Story list must be non-empty"));
   }
-  bool is_hidden = story_list_id == StoryListId::archive();
-  auto &story_list = story_lists_[is_hidden];
+  auto &story_list = get_story_list(story_list_id);
   if (story_list.list_last_story_date_ == MAX_DIALOG_DATE) {
     return promise.set_error(Status::Error(404, "Not found"));
   }
@@ -1175,16 +1174,16 @@ void StoryManager::load_active_stories(StoryListId story_list_id, StoryList &sto
 }
 
 void StoryManager::reload_active_stories() {
-  load_active_stories(StoryListId::main(), story_lists_[0], false, Promise<Unit>());
-  load_active_stories(StoryListId::archive(), story_lists_[1], false, Promise<Unit>());
+  for (auto story_list_id : {StoryListId::main(), StoryListId::archive()}) {
+    load_active_stories(story_list_id, get_story_list(story_list_id), false, Promise<Unit>());
+  }
 }
 
 void StoryManager::on_load_active_stories(
     StoryListId story_list_id, bool is_next,
     Result<telegram_api::object_ptr<telegram_api::stories_AllStories>> r_all_stories) {
   G()->ignore_result_if_closing(r_all_stories);
-  bool is_hidden = story_list_id == StoryListId::archive();
-  auto &story_list = story_lists_[is_hidden];
+  auto &story_list = get_story_list(story_list_id);
   auto promises = std::move(story_list.load_list_queries_);
   CHECK(!promises.empty());
   if (r_all_stories.is_error()) {
@@ -1275,6 +1274,14 @@ void StoryManager::on_load_active_stories(
   set_promises(promises);
 }
 
+StoryManager::StoryList &StoryManager::get_story_list(StoryListId story_list_id) {
+  return story_lists_[story_list_id == StoryListId::archive()];
+}
+
+const StoryManager::StoryList &StoryManager::get_story_list(StoryListId story_list_id) const {
+  return story_lists_[story_list_id == StoryListId::archive()];
+}
+
 td_api::object_ptr<td_api::updateStoryListChatCount> StoryManager::get_update_story_list_chat_count_object(
     StoryListId story_list_id, const StoryList &story_list) const {
   return td_api::make_object<td_api::updateStoryListChatCount>(story_list_id.get_story_list_object(),
@@ -1282,7 +1289,7 @@ td_api::object_ptr<td_api::updateStoryListChatCount> StoryManager::get_update_st
 }
 
 void StoryManager::update_story_list_sent_total_count(StoryListId story_list_id) {
-  update_story_list_sent_total_count(story_list_id, story_lists_[story_list_id == StoryListId::archive()]);
+  update_story_list_sent_total_count(story_list_id, get_story_list(story_list_id));
 }
 
 void StoryManager::update_story_list_sent_total_count(StoryListId story_list_id, StoryList &story_list) {
@@ -2616,8 +2623,7 @@ bool StoryManager::update_active_stories_order(DialogId owner_dialog_id, ActiveS
 
   int64 new_public_order = 0;
   if (story_list_id.is_valid()) {
-    bool is_hidden = story_list_id == StoryListId::archive();
-    auto &story_list = story_lists_[is_hidden];
+    auto &story_list = get_story_list(story_list_id);
     if (DialogDate(new_private_order, owner_dialog_id) <= story_list.list_last_story_date_) {
       new_public_order = new_private_order;
     }
@@ -2657,9 +2663,8 @@ void StoryManager::delete_active_stories_from_story_list(DialogId owner_dialog_i
   if (!active_stories->story_list_id_.is_valid()) {
     return;
   }
-  bool is_hidden = active_stories->story_list_id_ == StoryListId::archive();
-  bool is_deleted =
-      story_lists_[is_hidden].ordered_stories_.erase({active_stories->private_order_, owner_dialog_id}) > 0;
+  auto &story_list = get_story_list(active_stories->story_list_id_);
+  bool is_deleted = story_list.ordered_stories_.erase({active_stories->private_order_, owner_dialog_id}) > 0;
   CHECK(is_deleted);
 }
 
@@ -3393,12 +3398,10 @@ void StoryManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> 
     active_stories_.foreach([&](const DialogId &dialog_id, const unique_ptr<ActiveStories> &) {
       updates.push_back(get_update_chat_active_stories(dialog_id));
     });
-    for (int is_hidden = 0; is_hidden < 2; is_hidden++) {
-      auto &story_list = story_lists_[is_hidden];
+    for (auto story_list_id : {StoryListId::main(), StoryListId::archive()}) {
+      const auto &story_list = get_story_list(story_list_id);
       if (story_list.sent_total_count_ != -1) {
-        send_closure(G()->td(), &Td::send_update,
-                     get_update_story_list_chat_count_object(is_hidden ? StoryListId::archive() : StoryListId::main(),
-                                                             story_list));
+        send_closure(G()->td(), &Td::send_update, get_update_story_list_chat_count_object(story_list_id, story_list));
       }
     }
   }

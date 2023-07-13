@@ -357,6 +357,10 @@ class StoryManager final : public Actor {
   void on_load_active_stories(StoryListId story_list_id, bool is_next,
                               Result<telegram_api::object_ptr<telegram_api::stories_AllStories>> r_all_stories);
 
+  StoryList &get_story_list(StoryListId story_list_id);
+
+  const StoryList &get_story_list(StoryListId story_list_id) const;
+
   td_api::object_ptr<td_api::updateStoryListChatCount> get_update_story_list_chat_count_object(
       StoryListId story_list_id, const StoryList &story_list) const;
 
