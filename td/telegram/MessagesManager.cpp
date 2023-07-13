@@ -29366,8 +29366,13 @@ vector<Notification> MessagesManager::get_message_notifications_from_database_fo
 
       auto notification_id = m->notification_id.is_valid() ? m->notification_id : m->removed_notification_id;
       if (!notification_id.is_valid()) {
-        LOG(ERROR) << "Can't find notification identifier for " << m->message_id << " in " << d->dialog_id
-                   << " with from_mentions = " << from_mentions;
+        if (from_mentions) {
+          VLOG(notifications) << "Receive " << m->message_id << " with unread mention, but without notification";
+          is_found = false;
+        } else {
+          LOG(ERROR) << "Can't find notification identifier for " << m->message_id << " in " << d->dialog_id
+                     << " with from_mentions = " << from_mentions;
+        }
         continue;
       }
       CHECK(m->message_id.is_valid());
@@ -29622,8 +29627,13 @@ void MessagesManager::on_get_message_notifications_from_database(DialogId dialog
 
     auto notification_id = m->notification_id.is_valid() ? m->notification_id : m->removed_notification_id;
     if (!notification_id.is_valid()) {
-      LOG(ERROR) << "Can't find notification identifier for " << m->message_id << " in " << d->dialog_id
-                 << " with from_mentions = " << from_mentions;
+      if (from_mentions) {
+        VLOG(notifications) << "Receive " << m->message_id << " with unread mention, but without notification";
+        from_notification_id = NotificationId();  // stop requesting database
+      } else {
+        LOG(ERROR) << "Can't find notification identifier for " << m->message_id << " in " << d->dialog_id
+                   << " with from_mentions = " << from_mentions;
+      }
       continue;
     }
     CHECK(m->message_id.is_valid());
