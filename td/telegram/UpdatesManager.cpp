@@ -2770,7 +2770,7 @@ void UpdatesManager::add_pending_pts_update(tl_object_ptr<telegram_api::Update> 
     auto now = Time::now();
     if (old_pts == 2100000000 && new_pts < 1100000000 && pts_count <= 10000 &&
         td_->option_manager_->get_option_integer("session_count") > 1) {
-      set_pts(1, "restore PTS");
+      set_pts(1, "restore PTS").set_value(Unit());
       old_pts = get_pts();
       set_pts_gap_timeout(0.001);
       return promise.set_value(Unit());
@@ -2783,13 +2783,6 @@ void UpdatesManager::add_pending_pts_update(tl_object_ptr<telegram_api::Update> 
     }
     if (need_restore_pts) {
       set_pts_gap_timeout(0.001);
-
-      /*
-      LOG(WARNING) << "Restore PTS after delete_first_messages";
-      set_pts(new_pts - 1, "restore PTS after delete_first_messages");
-      old_pts = get_pts();
-      CHECK(old_pts == new_pts - 1);
-      */
     }
   }
 
