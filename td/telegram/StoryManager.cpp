@@ -2692,8 +2692,10 @@ bool StoryManager::on_update_read_stories(DialogId owner_dialog_id, StoryId max_
   }
   auto active_stories = get_active_stories(owner_dialog_id);
   if (active_stories == nullptr) {
+    LOG(INFO) << "Can't find active stories in " << owner_dialog_id;
     auto old_max_read_story_id = max_read_story_ids_.get(owner_dialog_id);
     if (max_read_story_id.get() > old_max_read_story_id.get()) {
+      LOG(INFO) << "Set max read story identifier in " << owner_dialog_id << " to " << max_read_story_id;
       max_read_story_ids_.set(owner_dialog_id, max_read_story_id);
       if (owner_dialog_id.get_type() == DialogType::User) {
         auto user_id = owner_dialog_id.get_user_id();
@@ -2704,6 +2706,9 @@ bool StoryManager::on_update_read_stories(DialogId owner_dialog_id, StoryId max_
       return true;
     }
   } else if (max_read_story_id.get() > active_stories->max_read_story_id_.get()) {
+    LOG(INFO) << "Update max read story identifier in " << owner_dialog_id << " with stories "
+              << active_stories->story_ids_ << " from " << active_stories->max_read_story_id_ << " to "
+              << max_read_story_id;
     auto story_ids = active_stories->story_ids_;
     on_update_active_stories(owner_dialog_id, max_read_story_id, std::move(story_ids));
     return true;
