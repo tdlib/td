@@ -1278,6 +1278,10 @@ td_api::object_ptr<td_api::updateStoryListChatCount> StoryManager::get_update_st
                                                                story_list.sent_total_count_);
 }
 
+void StoryManager::update_story_list_sent_total_count(StoryListId story_list_id) {
+  update_story_list_sent_total_count(story_list_id, story_lists_[story_list_id == StoryListId::archive()]);
+}
+
 void StoryManager::update_story_list_sent_total_count(StoryListId story_list_id, StoryList &story_list) {
   if (story_list.list_last_story_date_ == MIN_DIALOG_DATE || story_list.server_total_count_ == -1) {
     return;
@@ -2538,8 +2542,7 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
       LOG(INFO) << "Delete active stories for " << owner_dialog_id;
       if (active_stories->story_list_id_.is_valid()) {
         delete_active_stories_from_story_list(owner_dialog_id, active_stories);
-        update_story_list_sent_total_count(active_stories->story_list_id_,
-                                story_lists_[active_stories->story_list_id_ == StoryListId::archive()]);
+        update_story_list_sent_total_count(active_stories->story_list_id_);
       }
       active_stories_.erase(owner_dialog_id);
       send_update_chat_active_stories(owner_dialog_id);
@@ -2622,15 +2625,13 @@ bool StoryManager::update_active_stories_order(DialogId owner_dialog_id, ActiveS
       CHECK(is_inserted);
 
       if (active_stories->story_list_id_ != story_list_id) {
-        update_story_list_sent_total_count(active_stories->story_list_id_,
-                                story_lists_[active_stories->story_list_id_ == StoryListId::archive()]);
+        update_story_list_sent_total_count(active_stories->story_list_id_);
       }
       update_story_list_sent_total_count(story_list_id, story_list);
     }
   } else if (active_stories->story_list_id_.is_valid()) {
     delete_active_stories_from_story_list(owner_dialog_id, active_stories);
-    update_story_list_sent_total_count(active_stories->story_list_id_,
-                            story_lists_[active_stories->story_list_id_ == StoryListId::archive()]);
+    update_story_list_sent_total_count(active_stories->story_list_id_);
   }
 
   if (active_stories->private_order_ != new_private_order || active_stories->public_order_ != new_public_order ||
