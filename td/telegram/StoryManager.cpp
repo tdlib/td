@@ -2533,8 +2533,15 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
     if (owner_dialog_id.get_type() == DialogType::User) {
       td_->contacts_manager_->on_update_user_has_stories(owner_dialog_id.get_user_id(), false, StoryId(), StoryId());
     }
-    if (active_stories_.erase(owner_dialog_id) > 0) {
+    auto *active_stories = get_active_stories(owner_dialog_id);
+    if (active_stories != nullptr) {
       LOG(INFO) << "Delete active stories for " << owner_dialog_id;
+      if (active_stories->story_list_id_.is_valid()) {
+        delete_active_stories_from_story_list(owner_dialog_id, active_stories);
+        update_sent_total_count(active_stories->story_list_id_,
+                                story_lists_[active_stories->story_list_id_ == StoryListId::archive()]);
+      }
+      active_stories_.erase(owner_dialog_id);
       send_update_chat_active_stories(owner_dialog_id);
     } else {
       max_read_story_ids_.erase(owner_dialog_id);
@@ -2597,10 +2604,10 @@ bool StoryManager::update_active_stories_order(DialogId owner_dialog_id, ActiveS
   }
   CHECK(new_private_order != 0);
 
-  LOG(INFO) << "Update order of active stories of " << owner_dialog_id << " from " << active_stories->private_order_
-            << '/' << active_stories->public_order_ << " to " << new_private_order;
-
   StoryListId story_list_id = get_dialog_story_list_id(owner_dialog_id);
+  LOG(INFO) << "Update order of active stories of " << owner_dialog_id << " in " << story_list_id << " from "
+            << active_stories->private_order_ << '/' << active_stories->public_order_ << " to " << new_private_order;
+
   int64 new_public_order = 0;
   if (story_list_id.is_valid()) {
     bool is_hidden = story_list_id == StoryListId::archive();
