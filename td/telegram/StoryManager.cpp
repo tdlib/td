@@ -925,6 +925,8 @@ void StoryManager::on_story_expire_timeout(int64 story_global_id) {
     LOG(ERROR) << "Receive timeout for non-expired " << story_full_id;
     return on_story_changed(story_full_id, story, false, false);
   }
+
+  LOG(INFO) << "Have expired " << story_full_id;
   auto owner_dialog_id = story_full_id.get_dialog_id();
   if (!is_story_owned(owner_dialog_id) && story->content_ != nullptr && !story->is_pinned_) {
     // non-owned expired non-pinned stories are fully deleted
@@ -958,6 +960,8 @@ void StoryManager::on_story_can_get_viewers_timeout(int64 story_global_id) {
   if (story == nullptr) {
     return;
   }
+
+  LOG(INFO) << "Have expired viewers in " << story_full_id;
   if (can_get_story_viewers(story_full_id, story).is_ok()) {
     LOG(ERROR) << "Receive timeout for " << story_full_id << " with available viewers";
     return on_story_changed(story_full_id, story, false, false);
