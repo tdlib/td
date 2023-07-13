@@ -9,6 +9,7 @@
 #include "td/telegram/MessageReaction.h"
 #include "td/telegram/MinChannel.hpp"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/common.h"
 #include "td/utils/tl_helpers.h"
 
@@ -60,6 +61,8 @@ void MessageReaction::parse(ParserT &parser) {
   }
   if (has_my_recent_chooser_dialog_id) {
     td::parse(my_recent_chooser_dialog_id_, parser);
+    CHECK(my_recent_chooser_dialog_id_.is_valid());
+    CHECK(td::contains(recent_chooser_dialog_ids_, my_recent_chooser_dialog_id_));
   }
   CHECK(!is_empty());
   CHECK(!reaction_.empty());

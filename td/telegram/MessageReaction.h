@@ -48,14 +48,7 @@ class MessageReaction {
 
   MessageReaction(string reaction, int32 choose_count, bool is_chosen, DialogId my_recent_chooser_dialog_id,
                   vector<DialogId> &&recent_chooser_dialog_ids,
-                  vector<std::pair<ChannelId, MinChannel>> &&recent_chooser_min_channels)
-      : reaction_(std::move(reaction))
-      , choose_count_(choose_count)
-      , is_chosen_(is_chosen)
-      , my_recent_chooser_dialog_id_(my_recent_chooser_dialog_id)
-      , recent_chooser_dialog_ids_(std::move(recent_chooser_dialog_ids))
-      , recent_chooser_min_channels_(std::move(recent_chooser_min_channels)) {
-  }
+                  vector<std::pair<ChannelId, MinChannel>> &&recent_chooser_min_channels);
 
   bool is_empty() const {
     return choose_count_ <= 0;

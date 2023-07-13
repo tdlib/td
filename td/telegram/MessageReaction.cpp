@@ -404,6 +404,20 @@ class ReportReactionQuery final : public Td::ResultHandler {
   }
 };
 
+MessageReaction::MessageReaction(string reaction, int32 choose_count, bool is_chosen,
+                                 DialogId my_recent_chooser_dialog_id, vector<DialogId> &&recent_chooser_dialog_ids,
+                                 vector<std::pair<ChannelId, MinChannel>> &&recent_chooser_min_channels)
+    : reaction_(std::move(reaction))
+    , choose_count_(choose_count)
+    , is_chosen_(is_chosen)
+    , my_recent_chooser_dialog_id_(my_recent_chooser_dialog_id)
+    , recent_chooser_dialog_ids_(std::move(recent_chooser_dialog_ids))
+    , recent_chooser_min_channels_(std::move(recent_chooser_min_channels)) {
+  if (my_recent_chooser_dialog_id_.is_valid()) {
+    CHECK(td::contains(recent_chooser_dialog_ids_, my_recent_chooser_dialog_id_));
+  }
+}
+
 void MessageReaction::add_recent_chooser_dialog_id(DialogId dialog_id) {
   CHECK(!my_recent_chooser_dialog_id_.is_valid());
   my_recent_chooser_dialog_id_ = dialog_id;
@@ -593,6 +607,7 @@ unique_ptr<MessageReactions> MessageReactions::get_message_reactions(
     }
 
     FlatHashSet<DialogId, DialogIdHash> recent_choosers;
+    DialogId my_recent_chooser_dialog_id;
     vector<DialogId> recent_chooser_dialog_ids;
     vector<std::pair<ChannelId, MinChannel>> recent_chooser_min_channels;
     for (auto &peer_reaction : reactions->recent_reactions_) {
@@ -630,6 +645,9 @@ unique_ptr<MessageReactions> MessageReactions::get_message_reactions(
         }
 
         recent_chooser_dialog_ids.push_back(dialog_id);
+        if (dialog_id == my_dialog_id) {
+          my_recent_chooser_dialog_id = dialog_id;
+        }
         if (peer_reaction->unread_) {
           result->unread_reactions_.emplace_back(std::move(peer_reaction_str), dialog_id, peer_reaction->big_);
         }
@@ -643,8 +661,9 @@ unique_ptr<MessageReactions> MessageReactions::get_message_reactions(
     if (is_chosen) {
       chosen_reaction_order.emplace_back(reaction_count->chosen_order_, reaction_str);
     }
-    result->reactions_.push_back({std::move(reaction_str), reaction_count->count_, is_chosen, my_dialog_id,
-                                  std::move(recent_chooser_dialog_ids), std::move(recent_chooser_min_channels)});
+    result->reactions_.push_back({std::move(reaction_str), reaction_count->count_, is_chosen,
+                                  my_recent_chooser_dialog_id, std::move(recent_chooser_dialog_ids),
+                                  std::move(recent_chooser_min_channels)});
   }
   if (chosen_reaction_order.size() > 1) {
     std::sort(chosen_reaction_order.begin(), chosen_reaction_order.end());
@@ -710,10 +729,13 @@ bool MessageReactions::add_reaction(const string &reaction, bool is_big, DialogI
   auto added_reaction = get_reaction(reaction);
   if (added_reaction == nullptr) {
     vector<DialogId> recent_chooser_dialog_ids;
+    DialogId my_recent_chooser_dialog_id;
     if (have_recent_choosers) {
       recent_chooser_dialog_ids.push_back(my_dialog_id);
+      my_recent_chooser_dialog_id = my_dialog_id;
     }
-    reactions_.push_back({reaction, 1, true, my_dialog_id, std::move(recent_chooser_dialog_ids), Auto()});
+    reactions_.push_back(
+        {reaction, 1, true, my_recent_chooser_dialog_id, std::move(recent_chooser_dialog_ids), Auto()});
     new_chosen_reaction_order.emplace_back(reaction);
   } else if (!added_reaction->is_chosen()) {
     added_reaction->set_as_chosen(my_dialog_id, have_recent_choosers);
