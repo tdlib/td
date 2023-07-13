@@ -4957,8 +4957,11 @@ story id:int32 sender_chat_id:int53 date:int32 is_being_edited:Bool is_edited:Bo
 //@description Represents a list of stories @total_count Approximate total number of stories found @stories The list of stories
 stories total_count:int32 stories:vector<story> = Stories;
 
-//@description Contains basic information about a story @story_id Unique story identifier among stories of the given sender @date Point in time (Unix timestamp) when the story was published
-storyInfo story_id:int32 date:int32 = StoryInfo;
+//@description Contains basic information about a story
+//@story_id Unique story identifier among stories of the given sender
+//@date Point in time (Unix timestamp) when the story was published
+//@is_for_close_friends True, if the story is available only for close friends
+storyInfo story_id:int32 date:int32 is_for_close_friends:Bool = StoryInfo;
 
 //@description Describes active stories posted by a chat
 //@chat_id Identifier of the chat that posted the stories

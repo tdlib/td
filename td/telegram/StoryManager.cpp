@@ -1965,7 +1965,8 @@ td_api::object_ptr<td_api::storyInfo> StoryManager::get_story_info_object(StoryF
     return nullptr;
   }
 
-  return td_api::make_object<td_api::storyInfo>(story_full_id.get_story_id().get(), story->date_);
+  return td_api::make_object<td_api::storyInfo>(story_full_id.get_story_id().get(), story->date_,
+                                                story->is_for_close_friends_);
 }
 
 td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId story_full_id) const {
@@ -2304,9 +2305,11 @@ StoryId StoryManager::on_get_skipped_story(DialogId owner_dialog_id,
     story_item->expire_date_ = story_item->date_ + 1;
   }
 
-  if (story->date_ != story_item->date_ || story->expire_date_ != story_item->expire_date_) {
+  if (story->date_ != story_item->date_ || story->expire_date_ != story_item->expire_date_ ||
+      story->is_for_close_friends_ != story_item->close_friends_) {
     story->date_ = story_item->date_;
     story->expire_date_ = story_item->expire_date_;
+    story->is_for_close_friends_ = story_item->close_friends_;
     on_story_changed(story_full_id, story, true, true);
   }
   return story_id;
