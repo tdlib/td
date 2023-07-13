@@ -18,10 +18,12 @@
 #include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/NotificationId.h"
 #include "td/telegram/NotificationManager.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/ReportReason.h"
 #include "td/telegram/StoryContent.h"
+#include "td/telegram/StoryContentType.h"
 #include "td/telegram/StoryDb.h"
 #include "td/telegram/StoryInteractionInfo.hpp"
 #include "td/telegram/Td.h"
@@ -36,6 +38,7 @@
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
+#include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Random.h"
@@ -142,7 +145,7 @@ class GetAllReadUserStoriesQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    LOG(INFO) << "Failed to get all read user stories: " << status;
+    LOG(INFO) << "Receive error for GetAllReadUserStoriesQuery: " << status;
   }
 };
 
@@ -1123,7 +1126,7 @@ StoryManager::Story *StoryManager::on_get_story_from_database(StoryFullId story_
   register_story_global_id(story_full_id, result);
 
   CHECK(!is_inaccessible_story(story_full_id));
-  CHECK(being_edited_stories_.find(story_full_id) == being_edited_stories_.end());
+  CHECK(being_edited_stories_.count(story_full_id) == 0);
 
   on_story_changed(story_full_id, result, true, false, true);
 
@@ -1370,7 +1373,7 @@ void StoryManager::toggle_dialog_stories_hidden(DialogId dialog_id, StoryListId 
     return promise.set_value(Unit());
   }
   if (!story_list_id.is_valid()) {
-    return promise.set_error(Status::Error(400, "Story list must not be empty"));
+    return promise.set_error(Status::Error(400, "Story list must be non-empty"));
   }
 
   td_->create_handler<ToggleStoriesHiddenQuery>(std::move(promise))

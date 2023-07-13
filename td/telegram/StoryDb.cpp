@@ -6,8 +6,7 @@
 //
 #include "td/telegram/StoryDb.h"
 
-#include "td/telegram/logevent/LogEvent.h"
-#include "td/telegram/UserId.h"
+#include "td/telegram/StoryId.h"
 #include "td/telegram/Version.h"
 
 #include "td/db/SqliteConnectionSafe.h"
@@ -20,20 +19,9 @@
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/ScopeGuard.h"
-#include "td/utils/Slice.h"
-#include "td/utils/SliceBuilder.h"
-#include "td/utils/StackAllocator.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/Time.h"
-#include "td/utils/tl_helpers.h"
-#include "td/utils/unicode.h"
-#include "td/utils/utf8.h"
 
-#include <algorithm>
-#include <array>
-#include <iterator>
-#include <limits>
-#include <tuple>
 #include <utility>
 
 namespace td {

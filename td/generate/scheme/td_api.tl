@@ -4960,7 +4960,7 @@ stories total_count:int32 stories:vector<story> = Stories;
 //@description Contains basic information about a story
 //@story_id Unique story identifier among stories of the given sender
 //@date Point in time (Unix timestamp) when the story was published
-//@is_for_close_friends True, if the story is available only for close friends
+//@is_for_close_friends True, if the story is available only to close friends
 storyInfo story_id:int32 date:int32 is_for_close_friends:Bool = StoryInfo;
 
 //@description Describes active stories posted by a chat

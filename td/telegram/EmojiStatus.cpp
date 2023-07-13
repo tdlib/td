@@ -18,8 +18,6 @@
 #include "td/utils/logging.h"
 #include "td/utils/Status.h"
 
-#include <limits>
-
 namespace td {
 
 struct EmojiStatuses {
