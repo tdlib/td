@@ -1760,7 +1760,7 @@ void UpdatesManager::init_sessions(bool is_first) {
   }
 
   LOG(INFO) << "Init " << session_count << " sessions";
-  for (size_t i = 0; i < session_count; i++) {
+  for (int64 i = 0; i < session_count; i++) {
     td_->create_handler<InitSessionQuery>()->send();
   }
 }
