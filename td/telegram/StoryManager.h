@@ -352,9 +352,9 @@ class StoryManager final : public Actor {
 
   void on_load_dialog_expiring_stories(DialogId owner_dialog_id);
 
-  void load_active_stories(StoryList &story_list, bool is_hidden, bool is_next, Promise<Unit> &&promise);
+  void load_active_stories(StoryListId story_list_id, StoryList &story_list, bool is_next, Promise<Unit> &&promise);
 
-  void on_load_active_stories(bool is_hidden, bool is_next,
+  void on_load_active_stories(StoryListId story_list_id, bool is_next,
                               Result<telegram_api::object_ptr<telegram_api::stories_AllStories>> r_all_stories);
 
   td_api::object_ptr<td_api::updateStoryListChatCount> get_update_story_list_chat_count_object(

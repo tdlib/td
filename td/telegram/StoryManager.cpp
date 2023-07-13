@@ -54,7 +54,7 @@ class GetAllStoriesQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(bool is_next, bool is_hidden, const string &state) {
+  void send(StoryListId story_list_id, bool is_next, const string &state) {
     int32 flags = 0;
     if (!state.empty()) {
       flags |= telegram_api::stories_getAllStories::STATE_MASK;
@@ -62,7 +62,7 @@ class GetAllStoriesQuery final : public Td::ResultHandler {
     if (is_next) {
       flags |= telegram_api::stories_getAllStories::NEXT_MASK;
     }
-    if (is_hidden) {
+    if (story_list_id == StoryListId::archive()) {
       flags |= telegram_api::stories_getAllStories::HIDDEN_MASK;
     }
     send_query(G()->net_query_creator().create(
@@ -1157,30 +1157,33 @@ void StoryManager::load_active_stories(StoryListId story_list_id, Promise<Unit> 
   if (story_list.list_last_story_date_ == MAX_DIALOG_DATE) {
     return promise.set_error(Status::Error(404, "Not found"));
   }
-  load_active_stories(story_list, is_hidden, !story_list.state_.empty(), std::move(promise));
+  load_active_stories(story_list_id, story_list, !story_list.state_.empty(), std::move(promise));
 }
 
-void StoryManager::load_active_stories(StoryList &story_list, bool is_hidden, bool is_next, Promise<Unit> &&promise) {
+void StoryManager::load_active_stories(StoryListId story_list_id, StoryList &story_list, bool is_next,
+                                       Promise<Unit> &&promise) {
   story_list.load_list_queries_.push_back(std::move(promise));
   if (story_list.load_list_queries_.size() == 1u) {
     auto query_promise =
-        PromiseCreator::lambda([actor_id = actor_id(this), is_hidden, is_next](
+        PromiseCreator::lambda([actor_id = actor_id(this), story_list_id, is_next](
                                    Result<telegram_api::object_ptr<telegram_api::stories_AllStories>> r_all_stories) {
-          send_closure(actor_id, &StoryManager::on_load_active_stories, is_hidden, is_next, std::move(r_all_stories));
+          send_closure(actor_id, &StoryManager::on_load_active_stories, story_list_id, is_next,
+                       std::move(r_all_stories));
         });
-    td_->create_handler<GetAllStoriesQuery>(std::move(query_promise))->send(is_next, is_hidden, story_list.state_);
+    td_->create_handler<GetAllStoriesQuery>(std::move(query_promise))->send(story_list_id, is_next, story_list.state_);
   }
 }
 
 void StoryManager::reload_active_stories() {
-  for (int is_hidden = 0; is_hidden < 2; is_hidden++) {
-    load_active_stories(story_lists_[is_hidden], is_hidden != 0, false, Promise<Unit>());
-  }
+  load_active_stories(StoryListId::main(), story_lists_[0], false, Promise<Unit>());
+  load_active_stories(StoryListId::archive(), story_lists_[1], false, Promise<Unit>());
 }
 
 void StoryManager::on_load_active_stories(
-    bool is_hidden, bool is_next, Result<telegram_api::object_ptr<telegram_api::stories_AllStories>> r_all_stories) {
+    StoryListId story_list_id, bool is_next,
+    Result<telegram_api::object_ptr<telegram_api::stories_AllStories>> r_all_stories) {
   G()->ignore_result_if_closing(r_all_stories);
+  bool is_hidden = story_list_id == StoryListId::archive();
   auto &story_list = story_lists_[is_hidden];
   auto promises = std::move(story_list.load_list_queries_);
   CHECK(!promises.empty());
@@ -1262,7 +1265,7 @@ void StoryManager::on_load_active_stories(
         on_update_active_stories(dialog_id, StoryId(), vector<StoryId>());
         load_dialog_expiring_stories(dialog_id, 0, "on_load_active_stories 1");
       }
-      update_story_list_sent_total_count(is_hidden ? StoryListId::archive() : StoryListId::main(), story_list);
+      update_story_list_sent_total_count(story_list_id, story_list);
       break;
     }
     default:
