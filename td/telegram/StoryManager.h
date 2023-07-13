@@ -360,7 +360,7 @@ class StoryManager final : public Actor {
   td_api::object_ptr<td_api::updateStoryListChatCount> get_update_story_list_chat_count_object(
       StoryListId story_list_id, const StoryList &story_list) const;
 
-  void update_sent_total_count(StoryListId story_list_id, StoryList &story_list);
+  void update_story_list_sent_total_count(StoryListId story_list_id, StoryList &story_list);
 
   vector<FileId> get_story_file_ids(const Story *story) const;
 
