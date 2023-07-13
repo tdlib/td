@@ -233,18 +233,18 @@ StringBuilder &operator<<(StringBuilder &string_builder, const PhotoSizeSource &
       return string_builder << "PhotoSizeSourceThumbnail[" << source.thumbnail().file_type
                             << ", type = " << source.thumbnail().thumbnail_type << ']';
     case PhotoSizeSource::Type::DialogPhotoSmall:
-      return string_builder << "PhotoSizeSourceChatPhotoSmall[" << source.dialog_photo().dialog_id << ']';
+      return string_builder << "PhotoSizeSourceChatPhotoSmall[]";
     case PhotoSizeSource::Type::DialogPhotoBig:
-      return string_builder << "PhotoSizeSourceChatPhotoBig[" << source.dialog_photo().dialog_id << ']';
+      return string_builder << "PhotoSizeSourceChatPhotoBig[]";
     case PhotoSizeSource::Type::StickerSetThumbnail:
       return string_builder << "PhotoSizeSourceStickerSetThumbnail[" << source.sticker_set_thumbnail().sticker_set_id
                             << ']';
     case PhotoSizeSource::Type::FullLegacy:
       return string_builder << "PhotoSizeSourceFullLegacy[]";
     case PhotoSizeSource::Type::DialogPhotoSmallLegacy:
-      return string_builder << "PhotoSizeSourceChatPhotoSmallLegacy[" << source.dialog_photo().dialog_id << ']';
+      return string_builder << "PhotoSizeSourceChatPhotoSmallLegacy[]";
     case PhotoSizeSource::Type::DialogPhotoBigLegacy:
-      return string_builder << "PhotoSizeSourceChatPhotoBigLegacy[" << source.dialog_photo().dialog_id << ']';
+      return string_builder << "PhotoSizeSourceChatPhotoBigLegacy[]";
     case PhotoSizeSource::Type::StickerSetThumbnailLegacy:
       return string_builder << "PhotoSizeSourceStickerSetThumbnailLegacy["
                             << source.sticker_set_thumbnail().sticker_set_id << ']';
