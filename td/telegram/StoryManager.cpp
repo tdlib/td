@@ -898,7 +898,7 @@ void StoryManager::on_story_reload_timeout(int64 story_global_id) {
     return;
   }
 
-  reload_story(story_full_id, Promise<Unit>());
+  reload_story(story_full_id, Promise<Unit>(), "on_story_reload_timeout");
   story_reload_timeout_.set_timeout_in(story_global_id, OPENED_STORY_POLL_PERIOD);
 }
 
@@ -1064,7 +1064,7 @@ unique_ptr<StoryManager::Story> StoryManager::parse_story(StoryFullId story_full
     LOG(ERROR) << "Receive invalid " << story_full_id << " from database: " << status << ' '
                << format::as_hex_dump<4>(value.as_slice());
     delete_story_from_database(story_full_id);
-    reload_story(story_full_id, Auto());
+    reload_story(story_full_id, Auto(), "parse_story");
     return nullptr;
   }
   if (story->content_ == nullptr) {
@@ -1112,7 +1112,7 @@ StoryManager::Story *StoryManager::on_get_story_from_database(StoryFullId story_
   Dependencies dependencies;
   add_story_dependencies(dependencies, story.get());
   if (!dependencies.resolve_force(td_, "on_get_story_from_database")) {
-    reload_story(story_full_id, Auto());
+    reload_story(story_full_id, Auto(), "on_get_story_from_database");
     return nullptr;
   }
 
@@ -1672,7 +1672,7 @@ void StoryManager::view_story_message(StoryFullId story_full_id) {
   }
 
   if (story->receive_date_ < G()->unix_time() - VIEWED_STORY_POLL_PERIOD) {
-    reload_story(story_full_id, Promise<Unit>());
+    reload_story(story_full_id, Promise<Unit>(), "view_story_message");
   }
 }
 
@@ -2822,7 +2822,8 @@ FileSourceId StoryManager::get_story_file_source_id(StoryFullId story_full_id) {
   return file_source_id;
 }
 
-void StoryManager::reload_story(StoryFullId story_full_id, Promise<Unit> &&promise) {
+void StoryManager::reload_story(StoryFullId story_full_id, Promise<Unit> &&promise, const char *source) {
+  LOG(INFO) << "Reload " << story_full_id << " from " << source;
   auto dialog_id = story_full_id.get_dialog_id();
   if (dialog_id.get_type() != DialogType::User) {
     return promise.set_error(Status::Error(400, "Unsupported story owner"));
@@ -2896,7 +2897,7 @@ void StoryManager::get_story(DialogId owner_dialog_id, StoryId story_id, bool on
       [actor_id = actor_id(this), story_full_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
         send_closure(actor_id, &StoryManager::do_get_story, story_full_id, std::move(result), std::move(promise));
       });
-  reload_story(story_full_id, std::move(query_promise));
+  reload_story(story_full_id, std::move(query_promise), "get_story");
 }
 
 void StoryManager::do_get_story(StoryFullId story_full_id, Result<Unit> &&result,

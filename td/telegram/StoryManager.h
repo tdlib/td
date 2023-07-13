@@ -235,7 +235,7 @@ class StoryManager final : public Actor {
 
   telegram_api::object_ptr<telegram_api::InputMedia> get_input_media(StoryFullId story_full_id) const;
 
-  void reload_story(StoryFullId story_full_id, Promise<Unit> &&promise);
+  void reload_story(StoryFullId story_full_id, Promise<Unit> &&promise, const char *source);
 
   void try_synchronize_archive_all_stories();
 

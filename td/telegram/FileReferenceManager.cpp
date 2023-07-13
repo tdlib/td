@@ -379,7 +379,8 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
                            source.short_name, std::move(promise));
       },
       [&](const FileSourceStory &source) {
-        send_closure_later(G()->story_manager(), &StoryManager::reload_story, source.story_full_id, std::move(promise));
+        send_closure_later(G()->story_manager(), &StoryManager::reload_story, source.story_full_id, std::move(promise),
+                           "FileSourceStory");
       }));
 }
 
