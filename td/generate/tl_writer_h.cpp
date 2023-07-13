@@ -29,6 +29,13 @@ std::string TD_TL_writer_h::forward_declaration(std::string type) {
 }
 
 std::string TD_TL_writer_h::gen_output_begin(const std::string &additional_imports) const {
+  if (!additional_imports.empty()) {
+    return "#pragma once\n\n" + additional_imports +
+           "namespace td {\n"
+           "namespace " +
+           tl_name + " {\n\n";
+  }
+
   std::string ext_include_str;
   for (auto &it : ext_include) {
     ext_include_str += "#include " + it + "\n";
@@ -51,8 +58,9 @@ std::string TD_TL_writer_h::gen_output_begin(const std::string &additional_impor
          ext_include_str +
          "#include <cstdint>\n"
          "#include <utility>\n"
-         "#include <vector>\n\n" +
-         additional_imports + "namespace td {\n" + ext_forward_declaration + "namespace " + tl_name + " {\n\n";
+         "#include <vector>\n\n"
+         "namespace td {\n" +
+         ext_forward_declaration + "namespace " + tl_name + " {\n\n";
 }
 
 std::string TD_TL_writer_h::gen_output_begin_once() const {
