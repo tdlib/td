@@ -1264,6 +1264,9 @@ void StoryManager::on_load_active_stories(
           LOG(ERROR) << "Last story date didn't increase";
         }
       }
+      if (!delete_dialog_ids.empty()) {
+        LOG(INFO) << "Delete active stories in " << delete_dialog_ids;
+      }
       for (auto dialog_id : delete_dialog_ids) {
         on_update_active_stories(dialog_id, StoryId(), vector<StoryId>());
         load_dialog_expiring_stories(dialog_id, 0, "on_load_active_stories 1");
@@ -2482,6 +2485,7 @@ DialogId StoryManager::on_get_user_stories(DialogId owner_dialog_id,
                                            telegram_api::object_ptr<telegram_api::userStories> &&user_stories) {
   if (user_stories == nullptr) {
     if (owner_dialog_id.is_valid()) {
+      LOG(INFO) << "Receive no stories in " << owner_dialog_id;
       on_update_active_stories(owner_dialog_id, StoryId(), {});
     }
     return owner_dialog_id;
