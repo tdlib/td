@@ -1083,45 +1083,6 @@ void ConfigManager::set_content_settings(bool ignore_sensitive_content_restricti
   }
 }
 
-void ConfigManager::get_global_privacy_settings(Promise<Unit> &&promise) {
-  TRY_STATUS_PROMISE(promise, G()->close_status());
-
-  auto auth_manager = G()->td().get_actor_unsafe()->auth_manager_.get();
-  if (auth_manager == nullptr || !auth_manager->is_authorized() || auth_manager->is_bot()) {
-    return promise.set_value(Unit());
-  }
-
-  get_global_privacy_settings_queries_.push_back(std::move(promise));
-  if (get_global_privacy_settings_queries_.size() == 1) {
-    G()->net_query_dispatcher().dispatch_with_callback(
-        G()->net_query_creator().create(telegram_api::account_getGlobalPrivacySettings()), actor_shared(this, 5));
-  }
-}
-
-void ConfigManager::set_archive_and_mute(bool archive_and_mute, Promise<Unit> &&promise) {
-  TRY_STATUS_PROMISE(promise, G()->close_status());
-
-  if (archive_and_mute) {
-    remove_suggested_action(suggested_actions_, SuggestedAction{SuggestedAction::Type::EnableArchiveAndMuteNewChats});
-  }
-
-  last_set_archive_and_mute_ = archive_and_mute;
-  auto &queries = set_archive_and_mute_queries_[archive_and_mute];
-  queries.push_back(std::move(promise));
-  if (!is_set_archive_and_mute_request_sent_) {
-    is_set_archive_and_mute_request_sent_ = true;
-    int32 flags = 0;
-    if (archive_and_mute) {
-      flags |= telegram_api::globalPrivacySettings::ARCHIVE_AND_MUTE_NEW_NONCONTACT_PEERS_MASK;
-    }
-    auto settings = make_tl_object<telegram_api::globalPrivacySettings>(flags, false /*ignored*/, false /*ignored*/,
-                                                                        false /*ignored*/);
-    G()->net_query_dispatcher().dispatch_with_callback(
-        G()->net_query_creator().create(telegram_api::account_setGlobalPrivacySettings(std::move(settings))),
-        actor_shared(this, 6 + static_cast<uint64>(archive_and_mute)));
-  }
-}
-
 void ConfigManager::on_dc_options_update(DcOptions dc_options) {
   save_dc_options_update(dc_options);
   if (!dc_options.dc_options.empty()) {
@@ -1147,13 +1108,6 @@ void ConfigManager::do_set_ignore_sensitive_content_restrictions(bool ignore_sen
   if (have_ignored_restriction_reasons != ignore_sensitive_content_restrictions) {
     reget_app_config(Auto());
   }
-}
-
-void ConfigManager::do_set_archive_and_mute(bool archive_and_mute) {
-  if (archive_and_mute) {
-    remove_suggested_action(suggested_actions_, SuggestedAction{SuggestedAction::Type::EnableArchiveAndMuteNewChats});
-  }
-  G()->set_option_boolean("archive_and_mute_new_chats_from_unknown_users", archive_and_mute);
 }
 
 void ConfigManager::hide_suggested_action(SuggestedAction suggested_action) {
@@ -1202,42 +1156,6 @@ void ConfigManager::on_result(NetQueryPtr res) {
     reget_app_config(Auto());
 
     set_promises(promises);
-    return;
-  }
-  if (token == 6 || token == 7) {
-    is_set_archive_and_mute_request_sent_ = false;
-    bool archive_and_mute = (token == 7);
-    auto result_ptr = fetch_result<telegram_api::account_setGlobalPrivacySettings>(std::move(res));
-    if (result_ptr.is_error()) {
-      fail_promises(set_archive_and_mute_queries_[archive_and_mute], result_ptr.move_as_error());
-    } else {
-      if (last_set_archive_and_mute_ == archive_and_mute) {
-        do_set_archive_and_mute(archive_and_mute);
-      }
-
-      set_promises(set_archive_and_mute_queries_[archive_and_mute]);
-    }
-
-    if (!set_archive_and_mute_queries_[!archive_and_mute].empty()) {
-      if (archive_and_mute == last_set_archive_and_mute_) {
-        set_promises(set_archive_and_mute_queries_[!archive_and_mute]);
-      } else {
-        set_archive_and_mute(!archive_and_mute, Auto());
-      }
-    }
-    return;
-  }
-  if (token == 5) {
-    auto result_ptr = fetch_result<telegram_api::account_getGlobalPrivacySettings>(std::move(res));
-    if (result_ptr.is_error()) {
-      fail_promises(get_global_privacy_settings_queries_, result_ptr.move_as_error());
-      return;
-    }
-
-    auto result = result_ptr.move_as_ok();
-    do_set_archive_and_mute(result->archive_and_mute_new_noncontact_peers_);
-
-    set_promises(get_global_privacy_settings_queries_);
     return;
   }
   if (token == 3 || token == 4) {
@@ -1519,9 +1437,6 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
         !options.have_option("ignore_sensitive_content_restrictions")) {
       get_content_settings(Auto());
     }
-    if (!options.have_option("archive_and_mute_new_chats_from_unknown_users")) {
-      get_global_privacy_settings(Auto());
-    }
   }
 }
 
@@ -1734,17 +1649,13 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       if (key == "pending_suggestions") {
         if (value->get_id() == telegram_api::jsonArray::ID) {
           auto actions = std::move(static_cast<telegram_api::jsonArray *>(value)->value_);
-          const bool archive_and_mute = G()->get_option_boolean("archive_and_mute_new_chats_from_unknown_users");
           auto otherwise_relogin_days = G()->get_option_integer("otherwise_relogin_days");
           for (auto &action : actions) {
             auto action_str = get_json_value_string(std::move(action), key);
             SuggestedAction suggested_action(action_str);
             if (!suggested_action.is_empty()) {
-              if (archive_and_mute &&
-                  suggested_action == SuggestedAction{SuggestedAction::Type::EnableArchiveAndMuteNewChats}) {
-                LOG(INFO) << "Skip EnableArchiveAndMuteNewChats suggested action";
-              } else if (otherwise_relogin_days > 0 &&
-                         suggested_action == SuggestedAction{SuggestedAction::Type::SetPassword}) {
+              if (otherwise_relogin_days > 0 &&
+                  suggested_action == SuggestedAction{SuggestedAction::Type::SetPassword}) {
                 LOG(INFO) << "Skip SetPassword suggested action";
               } else {
                 suggested_actions.push_back(suggested_action);

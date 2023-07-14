@@ -118,6 +118,7 @@ OptionManager::OptionManager(Td *td)
     set_option_boolean("archive_all_stories", false);
   }
 
+  set_option_empty("archive_and_mute_new_chats_from_unknown_users");
   set_option_empty("chat_filter_count_max");
   set_option_empty("chat_filter_chosen_chat_count_max");
   set_option_empty("forum_member_count_min");
@@ -482,11 +483,6 @@ void OptionManager::get_option(const string &name, Promise<td_api::object_ptr<td
   };
   switch (name[0]) {
     // all these options should be added to getCurrentState
-    case 'a':
-      if (!is_bot && name == "archive_and_mute_new_chats_from_unknown_users") {
-        return send_closure_later(td_->config_manager_, &ConfigManager::get_global_privacy_settings, wrap_promise());
-      }
-      break;
     case 'c':
       if (!is_bot && name == "can_ignore_sensitive_content_restrictions") {
         return send_closure_later(td_->config_manager_, &ConfigManager::get_content_settings, wrap_promise());
@@ -632,19 +628,6 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
       }
       if (!is_bot && set_boolean_option("archive_all_stories")) {
         set_option_boolean("need_synchronize_archive_all_stories", true);
-        return;
-      }
-      if (!is_bot && name == "archive_and_mute_new_chats_from_unknown_users") {
-        if (value_constructor_id != td_api::optionValueBoolean::ID &&
-            value_constructor_id != td_api::optionValueEmpty::ID) {
-          return promise.set_error(
-              Status::Error(400, "Option \"archive_and_mute_new_chats_from_unknown_users\" must have boolean value"));
-        }
-
-        auto archive_and_mute = value_constructor_id == td_api::optionValueBoolean::ID &&
-                                static_cast<td_api::optionValueBoolean *>(value.get())->value_;
-        send_closure_later(td_->config_manager_, &ConfigManager::set_archive_and_mute, archive_and_mute,
-                           std::move(promise));
         return;
       }
       break;
