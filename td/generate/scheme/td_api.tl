@@ -5224,7 +5224,7 @@ tMeUrls urls:vector<tMeUrl> = TMeUrls;
 
 //@class SuggestedAction @description Describes an action suggested to the current user
 
-//@description Suggests the user to enable "archive_and_mute_new_chats_from_unknown_users" option
+//@description Suggests the user to enable archive_and_mute_new_chats_from_unknown_users setting in archiveChatListSettings
 suggestedActionEnableArchiveAndMuteNewChats = SuggestedAction;
 
 //@description Suggests the user to check whether they still remember their 2-step verification password

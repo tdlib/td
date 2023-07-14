@@ -6,8 +6,10 @@
 //
 #include "td/telegram/GlobalPrivacySettings.h"
 
+#include "td/telegram/ConfigManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/net/NetQueryCreator.h"
+#include "td/telegram/SuggestedAction.h"
 #include "td/telegram/Td.h"
 
 #include "td/utils/buffer.h"
@@ -111,6 +113,11 @@ void GlobalPrivacySettings::get_global_privacy_settings(
 
 void GlobalPrivacySettings::set_global_privacy_settings(Td *td, GlobalPrivacySettings settings,
                                                         Promise<Unit> &&promise) {
+  if (settings.archive_and_mute_new_noncontact_peers_) {
+    send_closure(td->config_manager_, &ConfigManager::hide_suggested_action,
+                 SuggestedAction{SuggestedAction::Type::EnableArchiveAndMuteNewChats});
+  }
+
   td->create_handler<SetGlobalPrivacySettingsQuery>(std::move(promise))->send(std::move(settings));
 }
 
