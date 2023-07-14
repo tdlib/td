@@ -121,6 +121,12 @@ class StoryManager final : public Actor {
     StoryListId story_list_id_;
     int64 private_order_ = 0;
     int64 public_order_ = 0;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
   };
 
   struct CachedStoryViewers {
@@ -420,6 +426,8 @@ class StoryManager final : public Actor {
       DialogId owner_dialog_id, const ActiveStories *active_stories) const;
 
   void send_update_chat_active_stories(DialogId owner_dialog_id, const ActiveStories *active_stories) const;
+
+  void save_active_stories(DialogId owner_dialog_id, const ActiveStories *active_stories) const;
 
   void increment_story_views(DialogId owner_dialog_id, PendingStoryViews &story_views);
 

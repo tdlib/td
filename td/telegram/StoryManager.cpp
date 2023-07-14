@@ -835,6 +835,43 @@ void StoryManager::PendingStory::parse(ParserT &parser) {
   parse(story_, parser);
 }
 
+template <class StorerT>
+void StoryManager::ActiveStories::store(StorerT &storer) const {
+  using td::store;
+  CHECK(!story_ids_.empty());
+  bool has_max_read_story_id = max_read_story_id_ != StoryId();
+  bool has_order = private_order_ != 0;
+  BEGIN_STORE_FLAGS();
+  STORE_FLAG(has_max_read_story_id);
+  STORE_FLAG(has_order);
+  END_STORE_FLAGS();
+  store(story_ids_, storer);
+  if (has_max_read_story_id) {
+    store(max_read_story_id_, storer);
+  }
+  if (has_order) {
+    store(private_order_, storer);
+  }
+}
+
+template <class ParserT>
+void StoryManager::ActiveStories::parse(ParserT &parser) {
+  using td::parse;
+  bool has_max_read_story_id;
+  bool has_order;
+  BEGIN_PARSE_FLAGS();
+  PARSE_FLAG(has_max_read_story_id);
+  PARSE_FLAG(has_order);
+  END_PARSE_FLAGS();
+  parse(story_ids_, parser);
+  if (has_max_read_story_id) {
+    parse(max_read_story_id_, parser);
+  }
+  if (has_order) {
+    parse(private_order_, parser);
+  }
+}
+
 StoryManager::StoryManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   upload_media_callback_ = std::make_shared<UploadMediaCallback>();
 
@@ -2572,6 +2609,7 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
         update_story_list_sent_total_count(active_stories->story_list_id_);
       }
       active_stories_.erase(owner_dialog_id);
+      save_active_stories(owner_dialog_id, nullptr);
       send_update_chat_active_stories(owner_dialog_id, nullptr);
     } else {
       max_read_story_ids_.erase(owner_dialog_id);
@@ -2607,6 +2645,9 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
     send_update_chat_active_stories(owner_dialog_id, active_stories.get());
   } else if (update_active_stories_order(owner_dialog_id, active_stories.get(), &need_save_to_database)) {
     send_update_chat_active_stories(owner_dialog_id, active_stories.get());
+  }
+  if (need_save_to_database) {
+    save_active_stories(owner_dialog_id, active_stories.get());
   }
 }
 
@@ -2708,6 +2749,21 @@ void StoryManager::send_update_chat_active_stories(DialogId owner_dialog_id,
   send_closure(G()->td(), &Td::send_update, get_update_chat_active_stories(owner_dialog_id, active_stories));
 }
 
+void StoryManager::save_active_stories(DialogId owner_dialog_id, const ActiveStories *active_stories) const {
+  if (!G()->use_message_database()) {
+    return;
+  }
+  if (active_stories == nullptr) {
+    LOG(INFO) << "Delete active stories of " << owner_dialog_id << " from database";
+    G()->td_db()->get_story_db_async()->delete_active_stories(owner_dialog_id, Promise<Unit>());
+  } else {
+    LOG(INFO) << "Add active stories of " << owner_dialog_id << " to database";
+    auto order = active_stories->story_list_id_.is_valid() ? active_stories->private_order_ : 0;
+    G()->td_db()->get_story_db_async()->add_active_stories(owner_dialog_id, active_stories->story_list_id_, order,
+                                                           log_event_store(*active_stories), Promise<Unit>());
+  }
+}
+
 bool StoryManager::on_update_read_stories(DialogId owner_dialog_id, StoryId max_read_story_id) {
   if (owner_dialog_id == DialogId(td_->contacts_manager_->get_my_id())) {
     return false;
@@ -2792,6 +2848,9 @@ void StoryManager::on_dialog_active_stories_order_updated(DialogId owner_dialog_
   if (active_stories != nullptr &&
       update_active_stories_order(owner_dialog_id, active_stories, &need_save_to_database)) {
     send_update_chat_active_stories(owner_dialog_id, active_stories);
+  }
+  if (need_save_to_database) {
+    save_active_stories(owner_dialog_id, active_stories);
   }
 }
 
