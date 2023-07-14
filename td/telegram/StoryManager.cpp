@@ -1117,6 +1117,7 @@ unique_ptr<StoryManager::Story> StoryManager::parse_story(StoryFullId story_full
   if (is_active_story(story.get())) {
     auto active_stories = get_active_stories(owner_dialog_id);
     if (active_stories != nullptr && !contains(active_stories->story_ids_, story_full_id.get_story_id())) {
+      LOG(INFO) << "Ignore unavailable active " << story_full_id << " from database";
       delete_story_files(story.get());
       delete_story_from_database(story_full_id);
       return nullptr;
@@ -1124,6 +1125,7 @@ unique_ptr<StoryManager::Story> StoryManager::parse_story(StoryFullId story_full
   } else {
     if (!is_story_owned(owner_dialog_id) && !story->is_pinned_) {
       // non-owned expired non-pinned stories are fully deleted
+      LOG(INFO) << "Delete expired " << story_full_id;
       delete_story_files(story.get());
       delete_story_from_database(story_full_id);
       return nullptr;
