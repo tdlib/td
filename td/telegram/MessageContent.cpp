@@ -3317,14 +3317,19 @@ vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageConte
       break;
     case MessageContentType::Contact: {
       const auto *content = static_cast<const MessageContact *>(message_content);
-      return {content->contact.get_user_id()};
+      auto user_id = content->contact.get_user_id();
+      if (user_id.is_valid()) {
+        return {user_id};
+      }
+      break;
     }
     case MessageContentType::Document:
       break;
     case MessageContentType::Game: {
-      // not supported
+      // not supported server-side
       // const auto *content = static_cast<const MessageGame *>(message_content);
       // return {content->game.get_bot_user_id())};
+      break;
     }
     case MessageContentType::Invoice:
       break;
@@ -3437,8 +3442,9 @@ vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageConte
       break;
     case MessageContentType::Story: {
       const auto *content = static_cast<const MessageStory *>(message_content);
-      if (content->story_full_id.get_dialog_id().get_type() == DialogType::User) {
-        return {content->story_full_id.get_dialog_id().get_user_id()};
+      auto dialog_id = content->story_full_id.get_dialog_id();
+      if (dialog_id.get_type() == DialogType::User) {
+        return {dialog_id.get_user_id()};
       }
       break;
     }
