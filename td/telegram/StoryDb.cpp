@@ -102,6 +102,9 @@ class StoryDbImpl final : public StoryDbSyncInterface {
     TRY_RESULT_ASSIGN(add_active_stories_stmt_,
                       db_.get_statement("INSERT OR REPLACE INTO active_stories VALUES(?1, ?2, ?3, ?4)"));
 
+    TRY_RESULT_ASSIGN(delete_active_stories_stmt_,
+                      db_.get_statement("DELETE FROM active_stories WHERE dialog_id = ?1"));
+
     return Status::OK();
   }
 
@@ -222,6 +225,14 @@ class StoryDbImpl final : public StoryDbSyncInterface {
     add_active_stories_stmt_.step().ensure();
   }
 
+  void delete_active_stories(DialogId dialog_id) final {
+    SCOPE_EXIT {
+      delete_active_stories_stmt_.reset();
+    };
+    delete_active_stories_stmt_.bind_int64(1, dialog_id.get()).ensure();
+    delete_active_stories_stmt_.step().ensure();
+  }
+
   Status begin_write_transaction() final {
     return db_.begin_write_transaction();
   }
@@ -239,6 +250,7 @@ class StoryDbImpl final : public StoryDbSyncInterface {
   SqliteStatement get_stories_from_notification_id_stmt_;
 
   SqliteStatement add_active_stories_stmt_;
+  SqliteStatement delete_active_stories_stmt_;
 };
 
 std::shared_ptr<StoryDbSyncSafeInterface> create_story_db_sync(
@@ -296,6 +308,10 @@ class StoryDbAsync final : public StoryDbAsyncInterface {
                        std::move(promise));
   }
 
+  void delete_active_stories(DialogId dialog_id, Promise<Unit> promise) final {
+    send_closure_later(impl_, &Impl::delete_active_stories, dialog_id, std::move(promise));
+  }
+
   void close(Promise<Unit> promise) final {
     send_closure_later(impl_, &Impl::close, std::move(promise));
   }
@@ -351,6 +367,13 @@ class StoryDbAsync final : public StoryDbAsyncInterface {
       add_write_query([this, dialog_id, story_list_id, dialog_order, data = std::move(data),
                        promise = std::move(promise)](Unit) mutable {
         sync_db_->add_active_stories(dialog_id, story_list_id, dialog_order, std::move(data));
+        on_write_result(std::move(promise));
+      });
+    }
+
+    void delete_active_stories(DialogId dialog_id, Promise<Unit> promise) {
+      add_write_query([this, dialog_id, promise = std::move(promise)](Unit) mutable {
+        sync_db_->delete_active_stories(dialog_id);
         on_write_result(std::move(promise));
       });
     }
