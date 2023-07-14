@@ -80,7 +80,7 @@ GlobalPrivacySettings::GlobalPrivacySettings(td_api::object_ptr<td_api::archiveC
   if (settings != nullptr) {
     archive_and_mute_new_noncontact_peers_ = settings->archive_and_mute_new_chats_from_unknown_users_;
     keep_archived_unmuted_ = settings->keep_unmuted_chats_archived_;
-    keep_archived_folders_ = settings->keep_chats_from_shareable_folders_archived_;
+    keep_archived_folders_ = settings->keep_chats_from_folders_archived_;
   }
 }
 

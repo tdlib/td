@@ -1412,8 +1412,8 @@ recommendedChatFolders chat_folders:vector<recommendedChatFolder> = RecommendedC
 //@description Contains settings for automatic moving of chats to and from the Archive chat lists
 //@archive_and_mute_new_chats_from_unknown_users True, if new chats from non-contacts will be automatically archived and muted. Can be set to true only if the option "can_archive_and_mute_new_chats_from_unknown_users" is true
 //@keep_unmuted_chats_archived True, if unmuted chats will be kept in the Archive chat list when they get a new message
-//@keep_chats_from_shareable_folders_archived True, if unmuted chats added via a shareable folder will be kept in the Archive chat list when they get a new message. Ignored if keep_unmuted_chats_archived == true
-archiveChatListSettings archive_and_mute_new_chats_from_unknown_users:Bool keep_unmuted_chats_archived:Bool keep_chats_from_shareable_folders_archived:Bool = ArchiveChatListSettings;
+//@keep_chats_from_folders_archived True, if unmuted chats, that are always included or pinned in a folder, will be kept in the Archive chat list when they get a new message. Ignored if keep_unmuted_chats_archived == true
+archiveChatListSettings archive_and_mute_new_chats_from_unknown_users:Bool keep_unmuted_chats_archived:Bool keep_chats_from_folders_archived:Bool = ArchiveChatListSettings;
 
 
 //@class ChatList @description Describes a list of chats
