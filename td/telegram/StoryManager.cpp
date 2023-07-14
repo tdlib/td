@@ -2572,7 +2572,7 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
         update_story_list_sent_total_count(active_stories->story_list_id_);
       }
       active_stories_.erase(owner_dialog_id);
-      send_update_chat_active_stories(owner_dialog_id);
+      send_update_chat_active_stories(owner_dialog_id, nullptr);
     } else {
       max_read_story_ids_.erase(owner_dialog_id);
     }
@@ -2602,9 +2602,9 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
     active_stories->max_read_story_id_ = max_read_story_id;
     active_stories->story_ids_ = std::move(story_ids);
     update_active_stories_order(owner_dialog_id, active_stories.get());
-    send_update_chat_active_stories(owner_dialog_id);
+    send_update_chat_active_stories(owner_dialog_id, active_stories.get());
   } else if (update_active_stories_order(owner_dialog_id, active_stories.get())) {
-    send_update_chat_active_stories(owner_dialog_id);
+    send_update_chat_active_stories(owner_dialog_id, active_stories.get());
   }
 }
 
@@ -2692,12 +2692,14 @@ void StoryManager::send_update_story(StoryFullId story_full_id, const Story *sto
 }
 
 td_api::object_ptr<td_api::updateChatActiveStories> StoryManager::get_update_chat_active_stories(
-    DialogId owner_dialog_id) const {
-  return td_api::make_object<td_api::updateChatActiveStories>(get_chat_active_stories_object(owner_dialog_id));
+    DialogId owner_dialog_id, const ActiveStories *active_stories) const {
+  return td_api::make_object<td_api::updateChatActiveStories>(
+      get_chat_active_stories_object(owner_dialog_id, active_stories));
 }
 
-void StoryManager::send_update_chat_active_stories(DialogId owner_dialog_id) {
-  send_closure(G()->td(), &Td::send_update, get_update_chat_active_stories(owner_dialog_id));
+void StoryManager::send_update_chat_active_stories(DialogId owner_dialog_id,
+                                                   const ActiveStories *active_stories) const {
+  send_closure(G()->td(), &Td::send_update, get_update_chat_active_stories(owner_dialog_id, active_stories));
 }
 
 bool StoryManager::on_update_read_stories(DialogId owner_dialog_id, StoryId max_read_story_id) {
@@ -2781,7 +2783,7 @@ void StoryManager::on_dialog_active_stories_order_updated(DialogId owner_dialog_
   LOG(INFO) << "Update order of active stories in " << owner_dialog_id << " from " << source;
   auto active_stories = get_active_stories_editable(owner_dialog_id);
   if (active_stories != nullptr && update_active_stories_order(owner_dialog_id, active_stories)) {
-    send_update_chat_active_stories(owner_dialog_id);
+    send_update_chat_active_stories(owner_dialog_id, active_stories);
   }
 }
 
@@ -3418,8 +3420,8 @@ void StoryManager::remove_story_notifications_by_story_ids(DialogId dialog_id, c
 
 void StoryManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
   if (!td_->auth_manager_->is_bot()) {
-    active_stories_.foreach([&](const DialogId &dialog_id, const unique_ptr<ActiveStories> &) {
-      updates.push_back(get_update_chat_active_stories(dialog_id));
+    active_stories_.foreach([&](const DialogId &dialog_id, const unique_ptr<ActiveStories> &active_stories) {
+      updates.push_back(get_update_chat_active_stories(dialog_id, active_stories.get()));
     });
     for (auto story_list_id : {StoryListId::main(), StoryListId::archive()}) {
       const auto &story_list = get_story_list(story_list_id);

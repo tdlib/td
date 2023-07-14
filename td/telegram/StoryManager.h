@@ -415,9 +415,10 @@ class StoryManager final : public Actor {
 
   void send_update_story(StoryFullId story_full_id, const Story *story);
 
-  td_api::object_ptr<td_api::updateChatActiveStories> get_update_chat_active_stories(DialogId owner_dialog_id) const;
+  td_api::object_ptr<td_api::updateChatActiveStories> get_update_chat_active_stories(
+      DialogId owner_dialog_id, const ActiveStories *active_stories) const;
 
-  void send_update_chat_active_stories(DialogId owner_dialog_id);
+  void send_update_chat_active_stories(DialogId owner_dialog_id, const ActiveStories *active_stories) const;
 
   void increment_story_views(DialogId owner_dialog_id, PendingStoryViews &story_views);
 
