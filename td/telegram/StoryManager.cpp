@@ -858,39 +858,29 @@ void StoryManager::PendingStory::parse(ParserT &parser) {
 }
 
 template <class StorerT>
-void StoryManager::ActiveStories::store(StorerT &storer) const {
+void StoryManager::SavedActiveStories::store(StorerT &storer) const {
   using td::store;
-  CHECK(!story_ids_.empty());
+  CHECK(!story_infos_.empty());
   bool has_max_read_story_id = max_read_story_id_ != StoryId();
-  bool has_order = private_order_ != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_max_read_story_id);
-  STORE_FLAG(has_order);
   END_STORE_FLAGS();
-  store(story_ids_, storer);
+  store(story_infos_, storer);
   if (has_max_read_story_id) {
     store(max_read_story_id_, storer);
-  }
-  if (has_order) {
-    store(private_order_, storer);
   }
 }
 
 template <class ParserT>
-void StoryManager::ActiveStories::parse(ParserT &parser) {
+void StoryManager::SavedActiveStories::parse(ParserT &parser) {
   using td::parse;
   bool has_max_read_story_id;
-  bool has_order;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_max_read_story_id);
-  PARSE_FLAG(has_order);
   END_PARSE_FLAGS();
-  parse(story_ids_, parser);
+  parse(story_infos_, parser);
   if (has_max_read_story_id) {
     parse(max_read_story_id_, parser);
-  }
-  if (has_order) {
-    parse(private_order_, parser);
   }
 }
 
@@ -2791,8 +2781,16 @@ void StoryManager::save_active_stories(DialogId owner_dialog_id, const ActiveSto
   } else {
     LOG(INFO) << "Add active stories of " << owner_dialog_id << " to database";
     auto order = active_stories->story_list_id_.is_valid() ? active_stories->private_order_ : 0;
+    SavedActiveStories saved_active_stories;
+    saved_active_stories.max_read_story_id_ = active_stories->max_read_story_id_;
+    for (auto story_id : active_stories->story_ids_) {
+      auto story_info = get_story_info({owner_dialog_id, story_id});
+      if (story_info.story_id_.is_valid()) {
+        saved_active_stories.story_infos_.push_back(std::move(story_info));
+      }
+    }
     G()->td_db()->get_story_db_async()->add_active_stories(owner_dialog_id, active_stories->story_list_id_, order,
-                                                           log_event_store(*active_stories), Promise<Unit>());
+                                                           log_event_store(saved_active_stories), Promise<Unit>());
   }
 }
 
