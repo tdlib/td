@@ -55,6 +55,8 @@ class StoryDbSyncInterface {
 
   virtual void delete_active_stories(DialogId dialog_id) = 0;
 
+  virtual Result<BufferSlice> get_active_stories(DialogId dialog_id) = 0;
+
   virtual Status begin_write_transaction() = 0;
   virtual Status commit_transaction() = 0;
 };
@@ -92,6 +94,8 @@ class StoryDbAsyncInterface {
                                   Promise<Unit> promise) = 0;
 
   virtual void delete_active_stories(DialogId dialog_id, Promise<Unit> promise) = 0;
+
+  virtual void get_active_stories(DialogId dialog_id, Promise<BufferSlice> promise) = 0;
 
   virtual void close(Promise<Unit> promise) = 0;
   virtual void force_flush() = 0;

@@ -86,8 +86,10 @@ class StoryDbImpl final : public StoryDbSyncInterface {
 
   Status init() {
     TRY_RESULT_ASSIGN(add_story_stmt_, db_.get_statement("INSERT OR REPLACE INTO stories VALUES(?1, ?2, ?3, ?4, ?5)"));
+
     TRY_RESULT_ASSIGN(delete_story_stmt_,
                       db_.get_statement("DELETE FROM stories WHERE dialog_id = ?1 AND story_id = ?2"));
+
     TRY_RESULT_ASSIGN(get_story_stmt_,
                       db_.get_statement("SELECT data FROM stories WHERE dialog_id = ?1 AND story_id = ?2"));
 
@@ -104,6 +106,9 @@ class StoryDbImpl final : public StoryDbSyncInterface {
 
     TRY_RESULT_ASSIGN(delete_active_stories_stmt_,
                       db_.get_statement("DELETE FROM active_stories WHERE dialog_id = ?1"));
+
+    TRY_RESULT_ASSIGN(get_active_stories_stmt_,
+                      db_.get_statement("SELECT data FROM active_stories WHERE dialog_id = ?1"));
 
     return Status::OK();
   }
@@ -233,6 +238,19 @@ class StoryDbImpl final : public StoryDbSyncInterface {
     delete_active_stories_stmt_.step().ensure();
   }
 
+  Result<BufferSlice> get_active_stories(DialogId dialog_id) final {
+    SCOPE_EXIT {
+      get_active_stories_stmt_.reset();
+    };
+
+    get_active_stories_stmt_.bind_int64(1, dialog_id.get()).ensure();
+    get_active_stories_stmt_.step().ensure();
+    if (!get_active_stories_stmt_.has_row()) {
+      return Status::Error("Not found");
+    }
+    return BufferSlice(get_active_stories_stmt_.view_blob(0));
+  }
+
   Status begin_write_transaction() final {
     return db_.begin_write_transaction();
   }
@@ -251,6 +269,7 @@ class StoryDbImpl final : public StoryDbSyncInterface {
 
   SqliteStatement add_active_stories_stmt_;
   SqliteStatement delete_active_stories_stmt_;
+  SqliteStatement get_active_stories_stmt_;
 };
 
 std::shared_ptr<StoryDbSyncSafeInterface> create_story_db_sync(
@@ -310,6 +329,10 @@ class StoryDbAsync final : public StoryDbAsyncInterface {
 
   void delete_active_stories(DialogId dialog_id, Promise<Unit> promise) final {
     send_closure_later(impl_, &Impl::delete_active_stories, dialog_id, std::move(promise));
+  }
+
+  void get_active_stories(DialogId dialog_id, Promise<BufferSlice> promise) final {
+    send_closure_later(impl_, &Impl::get_active_stories, dialog_id, std::move(promise));
   }
 
   void close(Promise<Unit> promise) final {
@@ -376,6 +399,11 @@ class StoryDbAsync final : public StoryDbAsyncInterface {
         sync_db_->delete_active_stories(dialog_id);
         on_write_result(std::move(promise));
       });
+    }
+
+    void get_active_stories(DialogId dialog_id, Promise<BufferSlice> promise) {
+      add_read_query();
+      promise.set_result(sync_db_->get_active_stories(dialog_id));
     }
 
     void close(Promise<Unit> promise) {
