@@ -60,6 +60,7 @@
 #include "td/telegram/FullMessageId.h"
 #include "td/telegram/GameManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/GlobalPrivacySettings.h"
 #include "td/telegram/GroupCallId.h"
 #include "td/telegram/GroupCallManager.h"
 #include "td/telegram/HashtagHints.h"
@@ -6341,6 +6342,12 @@ void Td::on_request(uint64 id, const td_api::processChatFolderNewChats &request)
   CREATE_OK_REQUEST_PROMISE();
   dialog_filter_manager_->add_dialog_filter_new_chats(
       DialogFilterId(request.chat_folder_id_), DialogId::get_dialog_ids(request.added_chat_ids_), std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::getArchiveChatListSettings &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  GlobalPrivacySettings::get_global_privacy_settings(this, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setChatTitle &request) {

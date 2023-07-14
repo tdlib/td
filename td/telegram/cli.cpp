@@ -4952,6 +4952,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getRecommendedChatFolders>());
     } else if (op == "gcfdin") {
       execute(td_api::make_object<td_api::getChatFolderDefaultIconName>(as_chat_folder(args)));
+    } else if (op == "gacls") {
+      send_request(td_api::make_object<td_api::getArchiveChatListSettings>());
     } else if (op == "sct") {
       ChatId chat_id;
       string title;

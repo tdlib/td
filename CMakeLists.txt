@@ -369,6 +369,7 @@ set(TDLIB_SOURCE
   td/telegram/Game.cpp
   td/telegram/GameManager.cpp
   td/telegram/Global.cpp
+  td/telegram/GlobalPrivacySettings.cpp
   td/telegram/GroupCallManager.cpp
   td/telegram/GroupCallParticipant.cpp
   td/telegram/GroupCallParticipantOrder.cpp
@@ -634,6 +635,7 @@ set(TDLIB_SOURCE
   td/telegram/GameManager.h
   td/telegram/GitCommitHash.h
   td/telegram/Global.h
+  td/telegram/GlobalPrivacySettings.h
   td/telegram/GroupCallId.h
   td/telegram/GroupCallManager.h
   td/telegram/GroupCallParticipant.h

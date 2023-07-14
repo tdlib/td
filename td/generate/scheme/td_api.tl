@@ -1409,6 +1409,12 @@ recommendedChatFolder folder:chatFolder description:string = RecommendedChatFold
 //@description Contains a list of recommended chat folders @chat_folders List of recommended chat folders
 recommendedChatFolders chat_folders:vector<recommendedChatFolder> = RecommendedChatFolders;
 
+//@description Contains settings for automatic moving of chats to and from the Archive chat lists
+//@archive_and_mute_new_chats_from_unknown_users True, if new chats from non-contacts will be automatically archived and muted. Can be set to true only if the option "can_archive_and_mute_new_chats_from_unknown_users" is true
+//@keep_unmuted_chats_archived True, if unmuted chats will be kept in the Archive chat list when they get a new message
+//@keep_chats_from_shareable_folders_archived True, if unmuted chats added via a shareable folder will be kept in the Archive chat list when they get a new message. Ignored if keep_unmuted_chats_archived == true
+archiveChatListSettings archive_and_mute_new_chats_from_unknown_users:Bool keep_unmuted_chats_archived:Bool keep_chats_from_shareable_folders_archived:Bool = ArchiveChatListSettings;
+
 
 //@class ChatList @description Describes a list of chats
 
@@ -7073,6 +7079,9 @@ getChatFolderNewChats chat_folder_id:int32 = Chats;
 
 //@description Process new chats added to a shareable chat folder by its owner @chat_folder_id Chat folder identifier @added_chat_ids Identifiers of the new chats, which are added to the chat folder. The chats are automatically joined if they aren't joined yet
 processChatFolderNewChats chat_folder_id:int32 added_chat_ids:vector<int53> = Ok;
+
+//@description Returns settings for automatic moving of chats to and from the Archive chat lists
+getArchiveChatListSettings = ArchiveChatListSettings;
 
 
 //@description Changes the chat title. Supported only for basic groups, supergroups and channels. Requires can_change_info administrator right
