@@ -72,6 +72,19 @@ class StoryManager final : public Actor {
     void parse(ParserT &parser);
   };
 
+  struct StoryInfo {
+    StoryId story_id_;
+    int32 date_ = 0;
+    int32 expire_date_ = 0;
+    bool is_for_close_friends_ = false;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
+  };
+
   struct BeingEditedStory {
     unique_ptr<StoryContent> content_;
     FormattedText caption_;
@@ -325,9 +338,9 @@ class StoryManager final : public Actor {
 
   void unregister_story_global_id(const Story *story);
 
-  td_api::object_ptr<td_api::storyInfo> get_story_info_object(StoryFullId story_full_id) const;
+  StoryInfo get_story_info(StoryFullId story_full_id) const;
 
-  td_api::object_ptr<td_api::storyInfo> get_story_info_object(StoryFullId story_full_id, const Story *story) const;
+  td_api::object_ptr<td_api::storyInfo> get_story_info_object(StoryFullId story_full_id) const;
 
   td_api::object_ptr<td_api::story> get_story_object(StoryFullId story_full_id, const Story *story) const;
 

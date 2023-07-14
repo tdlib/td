@@ -804,6 +804,28 @@ void StoryManager::Story::parse(ParserT &parser) {
 }
 
 template <class StorerT>
+void StoryManager::StoryInfo::store(StorerT &storer) const {
+  using td::store;
+  BEGIN_STORE_FLAGS();
+  STORE_FLAG(is_for_close_friends_);
+  END_STORE_FLAGS();
+  store(story_id_, storer);
+  store(date_, storer);
+  store(expire_date_, storer);
+}
+
+template <class ParserT>
+void StoryManager::StoryInfo::parse(ParserT &parser) {
+  using td::parse;
+  BEGIN_PARSE_FLAGS();
+  PARSE_FLAG(is_for_close_friends_);
+  END_PARSE_FLAGS();
+  parse(story_id_, parser);
+  parse(date_, parser);
+  parse(expire_date_, parser);
+}
+
+template <class StorerT>
 void StoryManager::PendingStory::store(StorerT &storer) const {
   using td::store;
   bool is_edit = story_id_.is_server();
@@ -1997,18 +2019,26 @@ void StoryManager::unregister_story(StoryFullId story_full_id, FullMessageId ful
   }
 }
 
-td_api::object_ptr<td_api::storyInfo> StoryManager::get_story_info_object(StoryFullId story_full_id) const {
-  return get_story_info_object(story_full_id, get_story(story_full_id));
+StoryManager::StoryInfo StoryManager::get_story_info(StoryFullId story_full_id) const {
+  const auto *story = get_story(story_full_id);
+  if (story == nullptr || !is_active_story(story)) {
+    return {};
+  }
+  StoryInfo story_info;
+  story_info.story_id_ = story_full_id.get_story_id();
+  story_info.date_ = story->date_;
+  story_info.expire_date_ = story->expire_date_;
+  story_info.is_for_close_friends_ = story->is_for_close_friends_;
+  return story_info;
 }
 
-td_api::object_ptr<td_api::storyInfo> StoryManager::get_story_info_object(StoryFullId story_full_id,
-                                                                          const Story *story) const {
-  if (story == nullptr || !is_active_story(story)) {
+td_api::object_ptr<td_api::storyInfo> StoryManager::get_story_info_object(StoryFullId story_full_id) const {
+  auto story_info = get_story_info(story_full_id);
+  if (!story_info.story_id_.is_valid()) {
     return nullptr;
   }
-
-  return td_api::make_object<td_api::storyInfo>(story_full_id.get_story_id().get(), story->date_,
-                                                story->is_for_close_friends_);
+  return td_api::make_object<td_api::storyInfo>(story_info.story_id_.get(), story_info.date_,
+                                                story_info.is_for_close_friends_);
 }
 
 td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId story_full_id) const {
