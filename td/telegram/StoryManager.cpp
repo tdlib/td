@@ -2598,17 +2598,20 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
     td_->contacts_manager_->on_update_user_has_stories(owner_dialog_id.get_user_id(), true, story_ids.back(),
                                                        max_read_story_id);
   }
+  bool need_save_to_database = false;
   if (active_stories->max_read_story_id_ != max_read_story_id || active_stories->story_ids_ != story_ids) {
+    need_save_to_database = true;
     active_stories->max_read_story_id_ = max_read_story_id;
     active_stories->story_ids_ = std::move(story_ids);
-    update_active_stories_order(owner_dialog_id, active_stories.get());
+    update_active_stories_order(owner_dialog_id, active_stories.get(), &need_save_to_database);
     send_update_chat_active_stories(owner_dialog_id, active_stories.get());
-  } else if (update_active_stories_order(owner_dialog_id, active_stories.get())) {
+  } else if (update_active_stories_order(owner_dialog_id, active_stories.get(), &need_save_to_database)) {
     send_update_chat_active_stories(owner_dialog_id, active_stories.get());
   }
 }
 
-bool StoryManager::update_active_stories_order(DialogId owner_dialog_id, ActiveStories *active_stories) {
+bool StoryManager::update_active_stories_order(DialogId owner_dialog_id, ActiveStories *active_stories,
+                                               bool *need_save_to_database) {
   CHECK(active_stories != nullptr);
   CHECK(!active_stories->story_ids_.empty());
   CHECK(owner_dialog_id.is_valid());
@@ -2664,6 +2667,9 @@ bool StoryManager::update_active_stories_order(DialogId owner_dialog_id, ActiveS
       active_stories->story_list_id_ != story_list_id) {
     LOG(INFO) << "Update order of active stories of " << owner_dialog_id << " to " << new_private_order << '/'
               << new_public_order << " in list " << story_list_id;
+    if (active_stories->private_order_ != new_private_order || active_stories->story_list_id_ != story_list_id) {
+      *need_save_to_database = true;
+    }
     active_stories->private_order_ = new_private_order;
     if (active_stories->public_order_ != new_public_order || active_stories->story_list_id_ != story_list_id) {
       active_stories->public_order_ = new_public_order;
@@ -2782,7 +2788,9 @@ StoryListId StoryManager::get_dialog_story_list_id(DialogId owner_dialog_id) con
 void StoryManager::on_dialog_active_stories_order_updated(DialogId owner_dialog_id, const char *source) {
   LOG(INFO) << "Update order of active stories in " << owner_dialog_id << " from " << source;
   auto active_stories = get_active_stories_editable(owner_dialog_id);
-  if (active_stories != nullptr && update_active_stories_order(owner_dialog_id, active_stories)) {
+  bool need_save_to_database = false;
+  if (active_stories != nullptr &&
+      update_active_stories_order(owner_dialog_id, active_stories, &need_save_to_database)) {
     send_update_chat_active_stories(owner_dialog_id, active_stories);
   }
 }
