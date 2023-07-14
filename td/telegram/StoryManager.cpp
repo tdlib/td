@@ -1467,7 +1467,7 @@ void StoryManager::get_dialog_expiring_stories(DialogId owner_dialog_id,
     return promise.set_error(Status::Error(400, "Can't access the story sender"));
   }
   if (owner_dialog_id.get_type() != DialogType::User) {
-    return promise.set_value(get_chat_active_stories_object(owner_dialog_id));
+    return promise.set_value(get_chat_active_stories_object(owner_dialog_id, nullptr));
   }
 
   auto active_stories = get_active_stories(owner_dialog_id);
@@ -1475,7 +1475,7 @@ void StoryManager::get_dialog_expiring_stories(DialogId owner_dialog_id,
     if (!promise) {
       return promise.set_value(nullptr);
     }
-    promise.set_value(get_chat_active_stories_object(owner_dialog_id));
+    promise.set_value(get_chat_active_stories_object(owner_dialog_id, active_stories));
     promise = {};
   }
 
@@ -2049,8 +2049,11 @@ td_api::object_ptr<td_api::stories> StoryManager::get_stories_object(int32 total
 
 td_api::object_ptr<td_api::chatActiveStories> StoryManager::get_chat_active_stories_object(
     DialogId owner_dialog_id) const {
-  const auto *active_stories = get_active_stories(owner_dialog_id);
+  return get_chat_active_stories_object(owner_dialog_id, get_active_stories(owner_dialog_id));
+}
 
+td_api::object_ptr<td_api::chatActiveStories> StoryManager::get_chat_active_stories_object(
+    DialogId owner_dialog_id, const ActiveStories *active_stories) const {
   StoryListId story_list_id;
   StoryId max_read_story_id;
   vector<td_api::object_ptr<td_api::storyInfo>> stories;

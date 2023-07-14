@@ -327,6 +327,9 @@ class StoryManager final : public Actor {
 
   td_api::object_ptr<td_api::chatActiveStories> get_chat_active_stories_object(DialogId owner_dialog_id) const;
 
+  td_api::object_ptr<td_api::chatActiveStories> get_chat_active_stories_object(
+      DialogId owner_dialog_id, const ActiveStories *active_stories) const;
+
   StoryId on_get_new_story(DialogId owner_dialog_id, telegram_api::object_ptr<telegram_api::storyItem> &&story_item);
 
   StoryId on_get_skipped_story(DialogId owner_dialog_id,
