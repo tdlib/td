@@ -343,6 +343,8 @@ class StoryManager final : public Actor {
 
   void unregister_story_global_id(const Story *story);
 
+  StoryId on_get_story_info(DialogId owner_dialog_id, StoryInfo &&story_info);
+
   StoryInfo get_story_info(StoryFullId story_full_id) const;
 
   td_api::object_ptr<td_api::storyInfo> get_story_info_object(StoryFullId story_full_id) const;

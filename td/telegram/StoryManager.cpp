@@ -2337,9 +2337,18 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
 StoryId StoryManager::on_get_skipped_story(DialogId owner_dialog_id,
                                            telegram_api::object_ptr<telegram_api::storyItemSkipped> &&story_item) {
   CHECK(story_item != nullptr);
-  StoryId story_id(story_item->id_);
+  StoryInfo story_info;
+  story_info.story_id_ = StoryId(story_item->id_);
+  story_info.date_ = story_item->date_;
+  story_info.expire_date_ = story_item->expire_date_;
+  story_info.is_for_close_friends_ = story_item->close_friends_;
+  return on_get_story_info(owner_dialog_id, std::move(story_info));
+}
+
+StoryId StoryManager::on_get_story_info(DialogId owner_dialog_id, StoryInfo &&story_info) {
+  StoryId story_id = story_info.story_id_;
   if (!story_id.is_server()) {
-    LOG(ERROR) << "Receive " << to_string(story_item);
+    LOG(ERROR) << "Receive " << story_id;
     return StoryId();
   }
   if (deleted_story_full_ids_.count({owner_dialog_id, story_id}) > 0) {
@@ -2349,7 +2358,7 @@ StoryId StoryManager::on_get_skipped_story(DialogId owner_dialog_id,
   td_->messages_manager_->force_create_dialog(owner_dialog_id, "on_get_skipped_story");
 
   StoryFullId story_full_id{owner_dialog_id, story_id};
-  Story *story = get_story_force(story_full_id, "on_get_skipped_story");
+  Story *story = get_story_editable(story_full_id);
   if (story == nullptr) {
     auto s = make_unique<Story>();
     story = s.get();
@@ -2360,21 +2369,21 @@ StoryId StoryManager::on_get_skipped_story(DialogId owner_dialog_id,
   }
   CHECK(story != nullptr);
 
-  if (story_item->date_ <= 0) {
-    LOG(ERROR) << "Receive " << story_full_id << " sent at " << story_item->date_;
-    story_item->date_ = 1;
+  if (story_info.date_ <= 0) {
+    LOG(ERROR) << "Receive " << story_full_id << " sent at " << story_info.date_;
+    story_info.date_ = 1;
   }
-  if (story_item->expire_date_ <= story_item->date_) {
-    LOG(ERROR) << "Receive " << story_full_id << " sent at " << story_item->date_ << ", but expired at "
-               << story_item->expire_date_;
-    story_item->expire_date_ = story_item->date_ + 1;
+  if (story_info.expire_date_ <= story_info.date_) {
+    LOG(ERROR) << "Receive " << story_full_id << " sent at " << story_info.date_ << ", but expired at "
+               << story_info.expire_date_;
+    story_info.expire_date_ = story_info.date_ + 1;
   }
 
-  if (story->date_ != story_item->date_ || story->expire_date_ != story_item->expire_date_ ||
-      story->is_for_close_friends_ != story_item->close_friends_) {
-    story->date_ = story_item->date_;
-    story->expire_date_ = story_item->expire_date_;
-    story->is_for_close_friends_ = story_item->close_friends_;
+  if (story->date_ != story_info.date_ || story->expire_date_ != story_info.expire_date_ ||
+      story->is_for_close_friends_ != story_info.is_for_close_friends_) {
+    story->date_ = story_info.date_;
+    story->expire_date_ = story_info.expire_date_;
+    story->is_for_close_friends_ = story_info.is_for_close_friends_;
     on_story_changed(story_full_id, story, true, true);
   }
   return story_id;
