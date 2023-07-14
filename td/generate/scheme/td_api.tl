@@ -7083,6 +7083,9 @@ processChatFolderNewChats chat_folder_id:int32 added_chat_ids:vector<int53> = Ok
 //@description Returns settings for automatic moving of chats to and from the Archive chat lists
 getArchiveChatListSettings = ArchiveChatListSettings;
 
+//@description Changes settings for automatic moving of chats to and from the Archive chat lists @settings New settings
+setArchiveChatListSettings settings:archiveChatListSettings = Ok;
+
 
 //@description Changes the chat title. Supported only for basic groups, supergroups and channels. Requires can_change_info administrator right
 //@chat_id Chat identifier

@@ -4954,6 +4954,16 @@ class CliClient final : public Actor {
       execute(td_api::make_object<td_api::getChatFolderDefaultIconName>(as_chat_folder(args)));
     } else if (op == "gacls") {
       send_request(td_api::make_object<td_api::getArchiveChatListSettings>());
+    } else if (op == "sacls") {
+      bool archive_and_mute_new_chats_from_unknown_users;
+      bool keep_unmuted_chats_archived;
+      bool keep_chats_from_shareable_folders_archived;
+      get_args(args, archive_and_mute_new_chats_from_unknown_users, keep_unmuted_chats_archived,
+               keep_chats_from_shareable_folders_archived);
+      auto settings = td_api::make_object<td_api::archiveChatListSettings>(
+          archive_and_mute_new_chats_from_unknown_users, keep_unmuted_chats_archived,
+          keep_chats_from_shareable_folders_archived);
+      send_request(td_api::make_object<td_api::setArchiveChatListSettings>(std::move(settings)));
     } else if (op == "sct") {
       ChatId chat_id;
       string title;

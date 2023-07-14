@@ -24,10 +24,16 @@ class GlobalPrivacySettings {
  public:
   explicit GlobalPrivacySettings(telegram_api::object_ptr<telegram_api::globalPrivacySettings> &&settings);
 
+  explicit GlobalPrivacySettings(td_api::object_ptr<td_api::archiveChatListSettings> &&settings);
+
+  telegram_api::object_ptr<telegram_api::globalPrivacySettings> get_input_global_privacy_settings() const;
+
   td_api::object_ptr<td_api::archiveChatListSettings> get_archive_chat_list_settings_object() const;
 
   static void get_global_privacy_settings(Td *td,
                                           Promise<td_api::object_ptr<td_api::archiveChatListSettings>> &&promise);
+
+  static void set_global_privacy_settings(Td *td, GlobalPrivacySettings settings, Promise<Unit> &&promise);
 };
 
 }  // namespace td
