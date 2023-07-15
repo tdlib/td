@@ -336,6 +336,11 @@ class StoryManager final : public Actor {
 
   ActiveStories *get_active_stories_editable(DialogId owner_dialog_id);
 
+  ActiveStories *get_active_stories_force(DialogId owner_dialog_id, const char *source);
+
+  ActiveStories *on_get_active_stories_from_database(DialogId owner_dialog_id, const BufferSlice &value,
+                                                     const char *source);
+
   void on_story_changed(StoryFullId story_full_id, const Story *story, bool is_changed, bool need_save_to_database,
                         bool from_database = false);
 

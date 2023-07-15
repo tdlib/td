@@ -1192,6 +1192,55 @@ StoryManager::ActiveStories *StoryManager::get_active_stories_editable(DialogId 
   return active_stories_.get_pointer(owner_dialog_id);
 }
 
+StoryManager::ActiveStories *StoryManager::get_active_stories_force(DialogId owner_dialog_id, const char *source) {
+  auto active_stories = get_active_stories_editable(owner_dialog_id);
+  if (active_stories != nullptr) {
+    return active_stories;
+  }
+
+  if (!G()->use_message_database()) {
+    return nullptr;
+  }
+
+  LOG(INFO) << "Trying to load active stories of " << owner_dialog_id << " from database from " << source;
+  auto r_value = G()->td_db()->get_story_db_sync()->get_active_stories(owner_dialog_id);
+  if (r_value.is_error()) {
+    return nullptr;
+  }
+  return on_get_active_stories_from_database(owner_dialog_id, r_value.ok(), source);
+}
+
+StoryManager::ActiveStories *StoryManager::on_get_active_stories_from_database(DialogId owner_dialog_id,
+                                                                               const BufferSlice &value,
+                                                                               const char *source) {
+  if (value.empty()) {
+    return nullptr;
+  }
+
+  auto active_stories = get_active_stories_editable(owner_dialog_id);
+  if (active_stories != nullptr) {
+    return active_stories;
+  }
+
+  SavedActiveStories saved_active_stories;
+  auto status = log_event_parse(saved_active_stories, value.as_slice());
+  if (status.is_error()) {
+    LOG(ERROR) << "Receive invalid active stories in " << owner_dialog_id << " from database: " << status << ' '
+               << format::as_hex_dump<4>(value.as_slice());
+    save_active_stories(owner_dialog_id, nullptr);
+    return nullptr;
+  }
+
+  vector<StoryId> story_ids;
+  for (auto &story_info : saved_active_stories.story_infos_) {
+    story_ids.push_back(on_get_story_info(owner_dialog_id, std::move(story_info)));
+  }
+
+  on_update_active_stories(owner_dialog_id, saved_active_stories.max_read_story_id_, std::move(story_ids));
+
+  return get_active_stories_editable(owner_dialog_id);
+}
+
 void StoryManager::add_story_dependencies(Dependencies &dependencies, const Story *story) {
   story->interaction_info_.add_dependencies(dependencies);
   story->privacy_rules_.add_dependencies(dependencies);
@@ -1521,7 +1570,7 @@ void StoryManager::get_dialog_expiring_stories(DialogId owner_dialog_id,
     return promise.set_value(get_chat_active_stories_object(owner_dialog_id, nullptr));
   }
 
-  auto active_stories = get_active_stories(owner_dialog_id);
+  auto active_stories = get_active_stories_force(owner_dialog_id, "get_dialog_expiring_stories");
   if (active_stories != nullptr) {
     if (!promise) {
       return promise.set_value(nullptr);
@@ -2313,7 +2362,7 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
   LOG(INFO) << "Receive " << story_full_id;
 
   if (is_active_story(story)) {
-    auto active_stories = get_active_stories(owner_dialog_id);
+    auto active_stories = get_active_stories_force(owner_dialog_id, "on_get_new_story");
     if (active_stories == nullptr) {
       if (is_subscribed_to_dialog_stories(owner_dialog_id)) {
         load_dialog_expiring_stories(owner_dialog_id, 0, "on_get_new_story");
@@ -2430,7 +2479,7 @@ void StoryManager::on_delete_story(StoryFullId story_full_id) {
   edit_generations_.erase(story_full_id);
   cached_story_viewers_.erase(story_full_id);
 
-  auto active_stories = get_active_stories(owner_dialog_id);
+  auto active_stories = get_active_stories_force(owner_dialog_id, "on_get_deleted_story");
   if (active_stories != nullptr && contains(active_stories->story_ids_, story_id)) {
     auto story_ids = active_stories->story_ids_;
     td::remove(story_ids, story_id);
@@ -2810,7 +2859,7 @@ bool StoryManager::on_update_read_stories(DialogId owner_dialog_id, StoryId max_
   if (!td_->messages_manager_->have_dialog_info_force(owner_dialog_id)) {
     return false;
   }
-  auto active_stories = get_active_stories(owner_dialog_id);
+  auto active_stories = get_active_stories_force(owner_dialog_id, "on_update_read_stories");
   if (active_stories == nullptr) {
     LOG(INFO) << "Can't find active stories in " << owner_dialog_id;
     auto old_max_read_story_id = max_read_story_ids_.get(owner_dialog_id);
@@ -2882,6 +2931,7 @@ StoryListId StoryManager::get_dialog_story_list_id(DialogId owner_dialog_id) con
 
 void StoryManager::on_dialog_active_stories_order_updated(DialogId owner_dialog_id, const char *source) {
   LOG(INFO) << "Update order of active stories in " << owner_dialog_id << " from " << source;
+  // called from update_user, must not create the dialog and hence must not load active stories
   auto active_stories = get_active_stories_editable(owner_dialog_id);
   bool need_save_to_database = false;
   if (active_stories != nullptr &&
@@ -3570,7 +3620,7 @@ void StoryManager::on_binlog_events(vector<BinlogEvent> &&events) {
           break;
         }
         auto max_read_story_id = log_event.max_story_id_;
-        auto active_stories = get_active_stories(dialog_id);
+        auto active_stories = get_active_stories_force(dialog_id, "ReadStoriesOnServerLogEvent");
         if (active_stories == nullptr) {
           max_read_story_ids_[dialog_id] = max_read_story_id;
           if (dialog_id.get_type() == DialogType::User) {
