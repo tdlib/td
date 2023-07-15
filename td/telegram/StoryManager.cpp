@@ -43,6 +43,7 @@
 #include "td/utils/misc.h"
 #include "td/utils/Random.h"
 #include "td/utils/Status.h"
+#include "td/utils/Time.h"
 #include "td/utils/tl_helpers.h"
 
 #include <limits>
@@ -2605,7 +2606,7 @@ std::pair<int32, vector<StoryId>> StoryManager::on_get_stories(
     for (auto story_id : all_story_ids) {
       StoryFullId story_full_id{owner_dialog_id, story_id};
       LOG(INFO) << "Mark " << story_full_id << " as inaccessible";
-      inaccessible_story_full_ids_.insert(story_full_id);
+      inaccessible_story_full_ids_.set(story_full_id, Time::now());
       send_closure_later(G()->messages_manager(),
                          &MessagesManager::update_story_max_reply_media_timestamp_in_replied_messages, story_full_id);
     }
@@ -2996,6 +2997,14 @@ FileSourceId StoryManager::get_story_file_source_id(StoryFullId story_full_id) {
 }
 
 void StoryManager::reload_story(StoryFullId story_full_id, Promise<Unit> &&promise, const char *source) {
+  if (deleted_story_full_ids_.count(story_full_id) > 0) {
+    return promise.set_value(Unit());
+  }
+  double last_reloaded_at = inaccessible_story_full_ids_.get(story_full_id);
+  if (last_reloaded_at >= Time::now() - OPENED_STORY_POLL_PERIOD && last_reloaded_at > 0.0) {
+    return promise.set_value(Unit());
+  }
+
   LOG(INFO) << "Reload " << story_full_id << " from " << source;
   auto dialog_id = story_full_id.get_dialog_id();
   if (dialog_id.get_type() != DialogType::User) {

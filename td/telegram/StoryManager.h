@@ -486,7 +486,7 @@ class StoryManager final : public Actor {
 
   WaitFreeHashMap<int64, StoryFullId> stories_by_global_id_;
 
-  WaitFreeHashSet<StoryFullId, StoryFullIdHash> inaccessible_story_full_ids_;
+  WaitFreeHashMap<StoryFullId, double, StoryFullIdHash> inaccessible_story_full_ids_;
 
   WaitFreeHashSet<StoryFullId, StoryFullIdHash> deleted_story_full_ids_;
 
