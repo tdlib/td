@@ -490,6 +490,8 @@ class StoryManager final : public Actor {
 
   WaitFreeHashSet<StoryFullId, StoryFullIdHash> deleted_story_full_ids_;
 
+  WaitFreeHashSet<StoryFullId, StoryFullIdHash> failed_to_load_story_full_ids_;
+
   WaitFreeHashMap<StoryFullId, WaitFreeHashSet<FullMessageId, FullMessageIdHash>, StoryFullIdHash> story_messages_;
 
   WaitFreeHashMap<DialogId, unique_ptr<ActiveStories>, DialogIdHash> active_stories_;

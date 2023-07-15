@@ -898,9 +898,10 @@ StoryManager::StoryManager(Td *td, ActorShared<> parent) : td_(td), parent_(std:
 }
 
 StoryManager::~StoryManager() {
-  Scheduler::instance()->destroy_on_scheduler(
-      G()->get_gc_scheduler_id(), story_full_id_to_file_source_id_, stories_, stories_by_global_id_,
-      inaccessible_story_full_ids_, deleted_story_full_ids_, story_messages_, active_stories_, max_read_story_ids_);
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), story_full_id_to_file_source_id_, stories_,
+                                              stories_by_global_id_, inaccessible_story_full_ids_,
+                                              deleted_story_full_ids_, failed_to_load_story_full_ids_, story_messages_,
+                                              active_stories_, max_read_story_ids_);
 }
 
 void StoryManager::start_up() {
@@ -1095,8 +1096,8 @@ StoryManager::Story *StoryManager::get_story_force(StoryFullId story_full_id, co
     return story;
   }
 
-  if (!G()->use_message_database() || is_inaccessible_story(story_full_id) ||
-      deleted_story_full_ids_.count(story_full_id) > 0) {
+  if (!G()->use_message_database() || failed_to_load_story_full_ids_.count(story_full_id) ||
+      is_inaccessible_story(story_full_id) || deleted_story_full_ids_.count(story_full_id) > 0) {
     return nullptr;
   }
 
@@ -1104,6 +1105,7 @@ StoryManager::Story *StoryManager::get_story_force(StoryFullId story_full_id, co
 
   auto r_value = G()->td_db()->get_story_db_sync()->get_story(story_full_id);
   if (r_value.is_error()) {
+    failed_to_load_story_full_ids_.insert(story_full_id);
     return nullptr;
   }
   return on_get_story_from_database(story_full_id, r_value.ok(), source);
@@ -1149,17 +1151,19 @@ unique_ptr<StoryManager::Story> StoryManager::parse_story(StoryFullId story_full
 
 StoryManager::Story *StoryManager::on_get_story_from_database(StoryFullId story_full_id, const BufferSlice &value,
                                                               const char *source) {
-  if (value.empty()) {
-    return nullptr;
-  }
-
   auto old_story = get_story_editable(story_full_id);
   if (old_story != nullptr && old_story->content_ != nullptr) {
     return old_story;
   }
 
+  if (value.empty()) {
+    failed_to_load_story_full_ids_.insert(story_full_id);
+    return nullptr;
+  }
+
   auto story = parse_story(story_full_id, value);
   if (story == nullptr) {
+    failed_to_load_story_full_ids_.insert(story_full_id);
     return nullptr;
   }
 
@@ -1167,6 +1171,7 @@ StoryManager::Story *StoryManager::on_get_story_from_database(StoryFullId story_
   add_story_dependencies(dependencies, story.get());
   if (!dependencies.resolve_force(td_, "on_get_story_from_database")) {
     reload_story(story_full_id, Auto(), "on_get_story_from_database");
+    failed_to_load_story_full_ids_.insert(story_full_id);
     return nullptr;
   }
 
@@ -2277,6 +2282,7 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
     register_story_global_id(story_full_id, story);
 
     inaccessible_story_full_ids_.erase(story_full_id);
+    failed_to_load_story_full_ids_.erase(story_full_id);
     LOG(INFO) << "Add new " << story_full_id;
   }
   CHECK(story != nullptr);
