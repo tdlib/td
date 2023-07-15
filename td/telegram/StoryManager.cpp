@@ -1090,9 +1090,9 @@ StoryManager::Story *StoryManager::get_story_force(StoryFullId story_full_id, co
     return nullptr;
   }
 
-  auto result = get_story_editable(story_full_id);
-  if (result != nullptr) {
-    return result;
+  auto story = get_story_editable(story_full_id);
+  if (story != nullptr && story->content_ != nullptr) {
+    return story;
   }
 
   if (!G()->use_message_database() || is_inaccessible_story(story_full_id) ||
@@ -1154,7 +1154,7 @@ StoryManager::Story *StoryManager::on_get_story_from_database(StoryFullId story_
   }
 
   auto old_story = get_story_editable(story_full_id);
-  if (old_story != nullptr) {
+  if (old_story != nullptr && old_story->content_ != nullptr) {
     return old_story;
   }
 
