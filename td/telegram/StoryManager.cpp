@@ -948,7 +948,7 @@ void StoryManager::on_story_reload_timeout(int64 story_global_id) {
 
   auto story_full_id = stories_by_global_id_.get(story_global_id);
   auto story = get_story(story_full_id);
-  if (story == nullptr || !opened_stories_.count(story_full_id)) {
+  if (story == nullptr || opened_stories_.count(story_full_id) == 0) {
     return;
   }
 
@@ -1102,7 +1102,7 @@ StoryManager::Story *StoryManager::get_story_force(StoryFullId story_full_id, co
     return story;
   }
 
-  if (!G()->use_message_database() || failed_to_load_story_full_ids_.count(story_full_id) ||
+  if (!G()->use_message_database() || failed_to_load_story_full_ids_.count(story_full_id) > 0 ||
       is_inaccessible_story(story_full_id) || deleted_story_full_ids_.count(story_full_id) > 0) {
     return nullptr;
   }
@@ -1209,13 +1209,14 @@ StoryManager::ActiveStories *StoryManager::get_active_stories_force(DialogId own
     return active_stories;
   }
 
-  if (!G()->use_message_database()) {
+  if (!G()->use_message_database() || failed_to_load_active_stories_.count(owner_dialog_id) > 0) {
     return nullptr;
   }
 
   LOG(INFO) << "Trying to load active stories of " << owner_dialog_id << " from database from " << source;
   auto r_value = G()->td_db()->get_story_db_sync()->get_active_stories(owner_dialog_id);
   if (r_value.is_error()) {
+    failed_to_load_active_stories_.insert(owner_dialog_id);
     return nullptr;
   }
   return on_get_active_stories_from_database(owner_dialog_id, r_value.ok(), source);
@@ -1224,13 +1225,14 @@ StoryManager::ActiveStories *StoryManager::get_active_stories_force(DialogId own
 StoryManager::ActiveStories *StoryManager::on_get_active_stories_from_database(DialogId owner_dialog_id,
                                                                                const BufferSlice &value,
                                                                                const char *source) {
-  if (value.empty()) {
-    return nullptr;
-  }
-
   auto active_stories = get_active_stories_editable(owner_dialog_id);
   if (active_stories != nullptr) {
     return active_stories;
+  }
+
+  if (value.empty()) {
+    failed_to_load_active_stories_.insert(owner_dialog_id);
+    return nullptr;
   }
 
   SavedActiveStories saved_active_stories;
@@ -1239,6 +1241,7 @@ StoryManager::ActiveStories *StoryManager::on_get_active_stories_from_database(D
     LOG(ERROR) << "Receive invalid active stories in " << owner_dialog_id << " from database: " << status << ' '
                << format::as_hex_dump<4>(value.as_slice());
     save_active_stories(owner_dialog_id, nullptr);
+    failed_to_load_active_stories_.insert(owner_dialog_id);
     return nullptr;
   }
 
@@ -1624,7 +1627,7 @@ uint64 StoryManager::save_load_dialog_expiring_stories_log_event(DialogId owner_
 }
 
 void StoryManager::load_dialog_expiring_stories(DialogId owner_dialog_id, uint64 log_event_id, const char *source) {
-  if (load_expiring_stories_log_event_ids_.count(owner_dialog_id)) {
+  if (load_expiring_stories_log_event_ids_.count(owner_dialog_id) > 0) {
     if (log_event_id != 0) {
       binlog_erase(G()->td_db()->get_binlog(), log_event_id);
     }
@@ -2706,8 +2709,11 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
     } else {
       max_read_story_ids_.erase(owner_dialog_id);
     }
+    failed_to_load_active_stories_.insert(owner_dialog_id);
     return;
   }
+  failed_to_load_active_stories_.erase(owner_dialog_id);
+
   if (owner_dialog_id == DialogId(td_->contacts_manager_->get_my_id())) {
     max_read_story_id = StoryId::max();
   }

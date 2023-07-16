@@ -498,6 +498,8 @@ class StoryManager final : public Actor {
 
   WaitFreeHashMap<DialogId, StoryId, DialogIdHash> max_read_story_ids_;
 
+  WaitFreeHashSet<DialogId, DialogIdHash> failed_to_load_active_stories_;
+
   FlatHashMap<DialogId, uint64, DialogIdHash> load_expiring_stories_log_event_ids_;
 
   FlatHashMap<StoryFullId, unique_ptr<BeingEditedStory>, StoryFullIdHash> being_edited_stories_;
