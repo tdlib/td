@@ -17,6 +17,7 @@
 #include "td/utils/Status.h"
 
 #include <memory>
+#include <utility>
 
 namespace td {
 
@@ -29,6 +30,12 @@ struct StoryDbStory {
 
   StoryDbStory(StoryFullId story_full_id, BufferSlice &&data) : story_full_id_(story_full_id), data_(std::move(data)) {
   }
+};
+
+struct StoryDbGetActiveStoryListResult {
+  vector<std::pair<DialogId, BufferSlice>> active_stories_;
+  int64 next_order_ = 0;
+  DialogId next_dialog_id_;
 };
 
 class StoryDbSyncInterface {
@@ -56,6 +63,9 @@ class StoryDbSyncInterface {
   virtual void delete_active_stories(DialogId dialog_id) = 0;
 
   virtual Result<BufferSlice> get_active_stories(DialogId dialog_id) = 0;
+
+  virtual StoryDbGetActiveStoryListResult get_active_story_list(StoryListId story_list_id, int64 order,
+                                                                DialogId dialog_id, int32 limit) = 0;
 
   virtual void add_active_story_list_state(StoryListId story_list_id, BufferSlice data) = 0;
 
@@ -100,6 +110,9 @@ class StoryDbAsyncInterface {
   virtual void delete_active_stories(DialogId dialog_id, Promise<Unit> promise) = 0;
 
   virtual void get_active_stories(DialogId dialog_id, Promise<BufferSlice> promise) = 0;
+
+  virtual void get_active_story_list(StoryListId story_list_id, int64 order, DialogId dialog_id, int32 limit,
+                                     Promise<StoryDbGetActiveStoryListResult> promise) = 0;
 
   virtual void add_active_story_list_state(StoryListId story_list_id, BufferSlice data, Promise<Unit> promise) = 0;
 

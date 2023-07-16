@@ -107,6 +107,12 @@ class StoryDbImpl final : public StoryDbSyncInterface {
     TRY_RESULT_ASSIGN(delete_active_stories_stmt_,
                       db_.get_statement("DELETE FROM active_stories WHERE dialog_id = ?1"));
 
+    TRY_RESULT_ASSIGN(
+        get_active_story_list_stmt_,
+        db_.get_statement("SELECT data, dialog_id, dialog_order FROM active_stories WHERE "
+                          "story_list_id = ?1 AND (dialog_order < ?2 OR (dialog_order = ?2 AND dialog_id < ?3)) ORDER "
+                          "BY dialog_order DESC, dialog_id DESC LIMIT ?4"));
+
     TRY_RESULT_ASSIGN(get_active_stories_stmt_,
                       db_.get_statement("SELECT data FROM active_stories WHERE dialog_id = ?1"));
 
@@ -257,6 +263,33 @@ class StoryDbImpl final : public StoryDbSyncInterface {
     return BufferSlice(get_active_stories_stmt_.view_blob(0));
   }
 
+  StoryDbGetActiveStoryListResult get_active_story_list(StoryListId story_list_id, int64 order, DialogId dialog_id,
+                                                        int32 limit) final {
+    SCOPE_EXIT {
+      get_active_story_list_stmt_.reset();
+    };
+
+    get_active_story_list_stmt_.bind_int32(1, story_list_id == StoryListId::archive() ? 1 : 0).ensure();
+    get_active_story_list_stmt_.bind_int64(2, order).ensure();
+    get_active_story_list_stmt_.bind_int64(3, dialog_id.get()).ensure();
+    get_active_story_list_stmt_.bind_int32(4, limit).ensure();
+
+    StoryDbGetActiveStoryListResult result;
+    result.next_dialog_id_ = dialog_id;
+    result.next_order_ = order;
+    get_active_story_list_stmt_.step().ensure();
+    while (get_active_story_list_stmt_.has_row()) {
+      BufferSlice data(get_active_story_list_stmt_.view_blob(0));
+      result.next_dialog_id_ = DialogId(get_active_story_list_stmt_.view_int64(1));
+      result.next_order_ = get_active_story_list_stmt_.view_int64(2);
+      LOG(INFO) << "Load active stories in " << result.next_dialog_id_ << " with order " << result.next_order_;
+      result.active_stories_.emplace_back(result.next_dialog_id_, std::move(data));
+      get_active_story_list_stmt_.step().ensure();
+    }
+
+    return result;
+  }
+
   void add_active_story_list_state(StoryListId story_list_id, BufferSlice data) final {
     SCOPE_EXIT {
       add_active_story_list_state_stmt_.reset();
@@ -298,6 +331,7 @@ class StoryDbImpl final : public StoryDbSyncInterface {
   SqliteStatement add_active_stories_stmt_;
   SqliteStatement delete_active_stories_stmt_;
   SqliteStatement get_active_stories_stmt_;
+  SqliteStatement get_active_story_list_stmt_;
 
   SqliteStatement add_active_story_list_state_stmt_;
   SqliteStatement get_active_story_list_state_stmt_;
@@ -364,6 +398,11 @@ class StoryDbAsync final : public StoryDbAsyncInterface {
 
   void get_active_stories(DialogId dialog_id, Promise<BufferSlice> promise) final {
     send_closure_later(impl_, &Impl::get_active_stories, dialog_id, std::move(promise));
+  }
+
+  void get_active_story_list(StoryListId story_list_id, int64 order, DialogId dialog_id, int32 limit,
+                             Promise<StoryDbGetActiveStoryListResult> promise) final {
+    send_closure_later(impl_, &Impl::get_active_story_list, story_list_id, order, dialog_id, limit, std::move(promise));
   }
 
   void add_active_story_list_state(StoryListId story_list_id, BufferSlice data, Promise<Unit> promise) final {
@@ -443,6 +482,12 @@ class StoryDbAsync final : public StoryDbAsyncInterface {
     void get_active_stories(DialogId dialog_id, Promise<BufferSlice> promise) {
       add_read_query();
       promise.set_result(sync_db_->get_active_stories(dialog_id));
+    }
+
+    void get_active_story_list(StoryListId story_list_id, int64 order, DialogId dialog_id, int32 limit,
+                               Promise<StoryDbGetActiveStoryListResult> promise) {
+      add_read_query();
+      promise.set_value(sync_db_->get_active_story_list(story_list_id, order, dialog_id, limit));
     }
 
     void add_active_story_list_state(StoryListId story_list_id, BufferSlice data, Promise<Unit> promise) {
