@@ -885,6 +885,26 @@ void StoryManager::SavedActiveStories::parse(ParserT &parser) {
   }
 }
 
+template <class StorerT>
+void StoryManager::SavedStoryList::store(StorerT &storer) const {
+  using td::store;
+  BEGIN_STORE_FLAGS();
+  STORE_FLAG(has_more_);
+  END_STORE_FLAGS();
+  store(state_, storer);
+  store(total_count_, storer);
+}
+
+template <class ParserT>
+void StoryManager::SavedStoryList::parse(ParserT &parser) {
+  using td::parse;
+  BEGIN_PARSE_FLAGS();
+  PARSE_FLAG(has_more_);
+  END_PARSE_FLAGS();
+  parse(state_, parser);
+  parse(total_count_, parser);
+}
+
 StoryManager::StoryManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   upload_media_callback_ = std::make_shared<UploadMediaCallback>();
 
@@ -1320,6 +1340,7 @@ void StoryManager::on_load_active_stories(
         LOG(ERROR) << "Receive empty state in " << to_string(stories);
       } else {
         story_list.state_ = std::move(stories->state_);
+        save_story_list(story_list_id, story_list.state_, story_list.server_total_count_, story_list.server_has_more_);
       }
       break;
     }
@@ -1332,6 +1353,20 @@ void StoryManager::on_load_active_stories(
         story_list.state_ = std::move(stories->state_);
       }
       story_list.server_total_count_ = max(stories->count_, 0);
+      if (!stories->has_more_ || stories->user_stories_.empty()) {
+        story_list.server_has_more_ = false;
+      }
+
+      MultiPromiseActorSafe mpas{"SaveActiveStoryMultiPromiseActor"};
+      mpas.add_promise(PromiseCreator::lambda([actor_id = actor_id(this), story_list_id, state = story_list.state_,
+                                               server_total_count = story_list.server_total_count_,
+                                               has_more = story_list.server_has_more_](Result<Unit> &&result) mutable {
+        if (result.is_ok()) {
+          send_closure(actor_id, &StoryManager::save_story_list, story_list_id, std::move(state), server_total_count,
+                       has_more);
+        }
+      }));
+      auto lock = mpas.get_promise();
 
       vector<DialogId> delete_dialog_ids;
       if (stories->user_stories_.empty()) {
@@ -1349,7 +1384,7 @@ void StoryManager::on_load_active_stories(
         auto max_story_date = MIN_DIALOG_DATE;
         vector<DialogId> owner_dialog_ids;
         for (auto &user_stories : stories->user_stories_) {
-          auto owner_dialog_id = on_get_user_stories(DialogId(), std::move(user_stories), Promise<Unit>());
+          auto owner_dialog_id = on_get_user_stories(DialogId(), std::move(user_stories), mpas.get_promise());
           auto active_stories = get_active_stories(owner_dialog_id);
           if (active_stories == nullptr) {
             LOG(ERROR) << "Receive invalid stories";
@@ -1387,10 +1422,11 @@ void StoryManager::on_load_active_stories(
         LOG(INFO) << "Delete active stories in " << delete_dialog_ids;
       }
       for (auto dialog_id : delete_dialog_ids) {
-        on_update_active_stories(dialog_id, StoryId(), vector<StoryId>(), Promise<Unit>());
+        on_update_active_stories(dialog_id, StoryId(), vector<StoryId>(), mpas.get_promise());
         load_dialog_expiring_stories(dialog_id, 0, "on_load_active_stories 1");
       }
       update_story_list_sent_total_count(story_list_id, story_list);
+      lock.set_value(Unit());
       break;
     }
     default:
@@ -1398,6 +1434,19 @@ void StoryManager::on_load_active_stories(
   }
 
   set_promises(promises);
+}
+
+void StoryManager::save_story_list(StoryListId story_list_id, string state, int32 total_count, bool has_more) {
+  if (G()->close_flag() || !G()->use_message_database()) {
+    return;
+  }
+
+  SavedStoryList saved_story_list;
+  saved_story_list.state_ = std::move(state);
+  saved_story_list.total_count_ = total_count;
+  saved_story_list.has_more_ = has_more;
+  G()->td_db()->get_story_db_async()->add_active_story_list(story_list_id, log_event_store(saved_story_list),
+                                                            Promise<Unit>());
 }
 
 StoryManager::StoryList &StoryManager::get_story_list(StoryListId story_list_id) {

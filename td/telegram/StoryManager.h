@@ -157,11 +157,25 @@ class StoryManager final : public Actor {
     int32 sent_total_count_ = -1;
     string state_;
 
+    bool server_has_more_ = true;
+
     vector<Promise<Unit>> load_list_queries_;
 
     std::set<DialogDate> ordered_stories_;  // all known active stories from the story list
 
     DialogDate list_last_story_date_ = MIN_DIALOG_DATE;  // in memory
+  };
+
+  struct SavedStoryList {
+    string state_;
+    int32 total_count_ = -1;
+    bool has_more_ = true;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
   };
 
  public:
@@ -393,6 +407,8 @@ class StoryManager final : public Actor {
 
   void on_load_active_stories(StoryListId story_list_id, bool is_next,
                               Result<telegram_api::object_ptr<telegram_api::stories_AllStories>> r_all_stories);
+
+  void save_story_list(StoryListId story_list_id, string state, int32 total_count, bool has_more);
 
   StoryList &get_story_list(StoryListId story_list_id);
 
