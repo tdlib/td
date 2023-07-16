@@ -10409,6 +10409,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     u->need_save_to_database = true;
   }
   if (is_received && u->need_apply_min_photo != need_apply_min_photo) {
+    LOG(DEBUG) << "Need apply min photo has changed for " << user_id;
     u->need_apply_min_photo = need_apply_min_photo;
     u->need_save_to_database = true;
   }
@@ -13499,20 +13500,26 @@ void ContactsManager::on_update_user_has_stories(User *u, UserId user_id, bool h
     u->is_changed = true;
   }
   if (u->max_active_story_id != max_active_story_id) {
+    LOG(DEBUG) << "Change last active story of " << user_id << " from " << u->max_active_story_id << " to "
+               << max_active_story_id;
     u->max_active_story_id = max_active_story_id;
     u->need_save_to_database = true;
   }
   if (!has_stories && !max_active_story_id.is_valid()) {
     CHECK(max_read_story_id == StoryId());
     if (u->max_read_story_id != StoryId()) {
+      LOG(DEBUG) << "Drop last read " << u->max_read_story_id << " of " << user_id;
       u->max_read_story_id = StoryId();
       u->need_save_to_database = true;
     }
   } else if (max_read_story_id.get() > u->max_read_story_id.get()) {
+    LOG(DEBUG) << "Change last read story of " << user_id << " from " << u->max_read_story_id << " to "
+               << max_read_story_id;
     u->max_read_story_id = max_read_story_id;
     u->need_save_to_database = true;
   }
   if (has_unread_stories != get_has_unread_stories(u, user_id)) {
+    LOG(DEBUG) << "Change has_unread_stories of " << user_id;
     u->is_changed = true;
   }
 }
@@ -13532,10 +13539,13 @@ void ContactsManager::on_update_user_max_read_story_id(UserId user_id, StoryId m
 void ContactsManager::on_update_user_max_read_story_id(User *u, UserId user_id, StoryId max_read_story_id) {
   auto has_unread_stories = get_has_unread_stories(u, user_id);
   if (max_read_story_id.get() > u->max_read_story_id.get()) {
+    LOG(DEBUG) << "Change last read story of " << user_id << " from " << u->max_read_story_id << " to "
+               << max_read_story_id;
     u->max_read_story_id = max_read_story_id;
     u->need_save_to_database = true;
   }
   if (has_unread_stories != get_has_unread_stories(u, user_id)) {
+    LOG(DEBUG) << "Change has_unread_stories of " << user_id;
     u->is_changed = true;
   }
 }
