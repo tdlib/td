@@ -229,7 +229,8 @@ class StoryManager final : public Actor {
                                                    telegram_api::object_ptr<telegram_api::stories_stories> &&stories);
 
   DialogId on_get_user_stories(DialogId owner_dialog_id,
-                               telegram_api::object_ptr<telegram_api::userStories> &&user_stories);
+                               telegram_api::object_ptr<telegram_api::userStories> &&user_stories,
+                               Promise<Unit> &&promise);
 
   bool on_update_read_stories(DialogId owner_dialog_id, StoryId max_read_story_id);
 
@@ -438,7 +439,8 @@ class StoryManager final : public Actor {
 
   void on_toggle_story_is_pinned(StoryId story_id, bool is_pinned, Promise<Unit> &&promise);
 
-  void on_update_active_stories(DialogId owner_dialog_id, StoryId max_read_story_id, vector<StoryId> &&story_ids);
+  void on_update_active_stories(DialogId owner_dialog_id, StoryId max_read_story_id, vector<StoryId> &&story_ids,
+                                Promise<Unit> &&promise);
 
   bool update_active_stories_order(DialogId owner_dialog_id, ActiveStories *active_stories,
                                    bool *need_save_to_database);
@@ -452,7 +454,8 @@ class StoryManager final : public Actor {
 
   void send_update_chat_active_stories(DialogId owner_dialog_id, const ActiveStories *active_stories) const;
 
-  void save_active_stories(DialogId owner_dialog_id, const ActiveStories *active_stories) const;
+  void save_active_stories(DialogId owner_dialog_id, const ActiveStories *active_stories,
+                           Promise<Unit> &&promise) const;
 
   void increment_story_views(DialogId owner_dialog_id, PendingStoryViews &story_views);
 
