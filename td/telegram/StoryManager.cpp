@@ -1445,8 +1445,8 @@ void StoryManager::save_story_list(StoryListId story_list_id, string state, int3
   saved_story_list.state_ = std::move(state);
   saved_story_list.total_count_ = total_count;
   saved_story_list.has_more_ = has_more;
-  G()->td_db()->get_story_db_async()->add_active_story_list(story_list_id, log_event_store(saved_story_list),
-                                                            Promise<Unit>());
+  G()->td_db()->get_story_db_async()->add_active_story_list_state(story_list_id, log_event_store(saved_story_list),
+                                                                  Promise<Unit>());
 }
 
 StoryManager::StoryList &StoryManager::get_story_list(StoryListId story_list_id) {

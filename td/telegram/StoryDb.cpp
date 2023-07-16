@@ -110,10 +110,10 @@ class StoryDbImpl final : public StoryDbSyncInterface {
     TRY_RESULT_ASSIGN(get_active_stories_stmt_,
                       db_.get_statement("SELECT data FROM active_stories WHERE dialog_id = ?1"));
 
-    TRY_RESULT_ASSIGN(add_active_story_list_stmt_,
+    TRY_RESULT_ASSIGN(add_active_story_list_state_stmt_,
                       db_.get_statement("INSERT OR REPLACE INTO active_story_lists VALUES(?1, ?2)"));
 
-    TRY_RESULT_ASSIGN(get_active_story_list_stmt_,
+    TRY_RESULT_ASSIGN(get_active_story_list_state_stmt_,
                       db_.get_statement("SELECT data FROM active_story_lists WHERE story_list_id = ?1"));
 
     return Status::OK();
@@ -257,26 +257,26 @@ class StoryDbImpl final : public StoryDbSyncInterface {
     return BufferSlice(get_active_stories_stmt_.view_blob(0));
   }
 
-  void add_active_story_list(StoryListId story_list_id, BufferSlice data) final {
+  void add_active_story_list_state(StoryListId story_list_id, BufferSlice data) final {
     SCOPE_EXIT {
-      add_active_story_list_stmt_.reset();
+      add_active_story_list_state_stmt_.reset();
     };
-    add_active_story_list_stmt_.bind_int32(1, story_list_id == StoryListId::archive() ? 1 : 0).ensure();
-    add_active_story_list_stmt_.bind_blob(2, data.as_slice()).ensure();
-    add_active_story_list_stmt_.step().ensure();
+    add_active_story_list_state_stmt_.bind_int32(1, story_list_id == StoryListId::archive() ? 1 : 0).ensure();
+    add_active_story_list_state_stmt_.bind_blob(2, data.as_slice()).ensure();
+    add_active_story_list_state_stmt_.step().ensure();
   }
 
-  Result<BufferSlice> get_active_story_list(StoryListId story_list_id) final {
+  Result<BufferSlice> get_active_story_list_state(StoryListId story_list_id) final {
     SCOPE_EXIT {
-      get_active_story_list_stmt_.reset();
+      get_active_story_list_state_stmt_.reset();
     };
 
-    get_active_story_list_stmt_.bind_int64(1, story_list_id == StoryListId::archive() ? 1 : 0).ensure();
-    get_active_story_list_stmt_.step().ensure();
-    if (!get_active_story_list_stmt_.has_row()) {
+    get_active_story_list_state_stmt_.bind_int64(1, story_list_id == StoryListId::archive() ? 1 : 0).ensure();
+    get_active_story_list_state_stmt_.step().ensure();
+    if (!get_active_story_list_state_stmt_.has_row()) {
       return Status::Error("Not found");
     }
-    return BufferSlice(get_active_story_list_stmt_.view_blob(0));
+    return BufferSlice(get_active_story_list_state_stmt_.view_blob(0));
   }
 
   Status begin_write_transaction() final {
@@ -299,8 +299,8 @@ class StoryDbImpl final : public StoryDbSyncInterface {
   SqliteStatement delete_active_stories_stmt_;
   SqliteStatement get_active_stories_stmt_;
 
-  SqliteStatement add_active_story_list_stmt_;
-  SqliteStatement get_active_story_list_stmt_;
+  SqliteStatement add_active_story_list_state_stmt_;
+  SqliteStatement get_active_story_list_state_stmt_;
 };
 
 std::shared_ptr<StoryDbSyncSafeInterface> create_story_db_sync(
@@ -366,12 +366,12 @@ class StoryDbAsync final : public StoryDbAsyncInterface {
     send_closure_later(impl_, &Impl::get_active_stories, dialog_id, std::move(promise));
   }
 
-  void add_active_story_list(StoryListId story_list_id, BufferSlice data, Promise<Unit> promise) final {
-    send_closure_later(impl_, &Impl::add_active_story_list, story_list_id, std::move(data), std::move(promise));
+  void add_active_story_list_state(StoryListId story_list_id, BufferSlice data, Promise<Unit> promise) final {
+    send_closure_later(impl_, &Impl::add_active_story_list_state, story_list_id, std::move(data), std::move(promise));
   }
 
-  void get_active_story_list(StoryListId story_list_id, Promise<BufferSlice> promise) final {
-    send_closure_later(impl_, &Impl::get_active_story_list, story_list_id, std::move(promise));
+  void get_active_story_list_state(StoryListId story_list_id, Promise<BufferSlice> promise) final {
+    send_closure_later(impl_, &Impl::get_active_story_list_state, story_list_id, std::move(promise));
   }
 
   void close(Promise<Unit> promise) final {
@@ -445,16 +445,16 @@ class StoryDbAsync final : public StoryDbAsyncInterface {
       promise.set_result(sync_db_->get_active_stories(dialog_id));
     }
 
-    void add_active_story_list(StoryListId story_list_id, BufferSlice data, Promise<Unit> promise) {
+    void add_active_story_list_state(StoryListId story_list_id, BufferSlice data, Promise<Unit> promise) {
       add_write_query([this, story_list_id, data = std::move(data), promise = std::move(promise)](Unit) mutable {
-        sync_db_->add_active_story_list(story_list_id, std::move(data));
+        sync_db_->add_active_story_list_state(story_list_id, std::move(data));
         on_write_result(std::move(promise));
       });
     }
 
-    void get_active_story_list(StoryListId story_list_id, Promise<BufferSlice> promise) {
+    void get_active_story_list_state(StoryListId story_list_id, Promise<BufferSlice> promise) {
       add_read_query();
-      promise.set_result(sync_db_->get_active_story_list(story_list_id));
+      promise.set_result(sync_db_->get_active_story_list_state(story_list_id));
     }
 
     void close(Promise<Unit> promise) {
