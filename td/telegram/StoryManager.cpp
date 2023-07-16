@@ -976,7 +976,9 @@ void StoryManager::on_story_expire_timeout(int64 story_global_id) {
     return;
   }
   if (is_active_story(story)) {
-    LOG(ERROR) << "Receive timeout for non-expired " << story_full_id;
+    // timeout used monotonic time instead of wall clock time
+    LOG(INFO) << "Receive timeout for non-expired " << story_full_id << ": expire_date = " << story->expire_date_
+              << ", current time = " << G()->unix_time();
     return on_story_changed(story_full_id, story, false, false);
   }
 
@@ -1017,7 +1019,10 @@ void StoryManager::on_story_can_get_viewers_timeout(int64 story_global_id) {
 
   LOG(INFO) << "Have expired viewers in " << story_full_id;
   if (can_get_story_viewers(story_full_id, story).is_ok()) {
-    LOG(ERROR) << "Receive timeout for " << story_full_id << " with available viewers";
+    // timeout used monotonic time instead of wall clock time
+    LOG(INFO) << "Receive timeout for " << story_full_id
+              << " with available viewers: expire_date = " << story->expire_date_
+              << ", current time = " << G()->unix_time();
     return on_story_changed(story_full_id, story, false, false);
   }
   if (story->content_ != nullptr && story->is_update_sent_) {
