@@ -11985,14 +11985,15 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
   if (effective_emoji_status != u->last_sent_emoji_status) {
     u->last_sent_emoji_status = effective_emoji_status;
     u->is_changed = true;
-  } else {
+  } else if (u->is_emoji_status_changed) {
+    LOG(DEBUG) << "Emoji status for " << user_id << " has changed";
     u->need_save_to_database = true;
   }
+  u->is_emoji_status_changed = false;
   if (!u->last_sent_emoji_status.is_empty()) {
     auto until_date = u->last_sent_emoji_status.get_until_date();
     auto left_time = until_date - unix_time;
     if (left_time >= 0 && left_time < 30 * 86400) {
-      LOG(DEBUG) << "Set emoji status timeout for " << user_id << " in " << left_time << " seconds";
       user_emoji_status_timeout_.set_timeout_in(user_id.get(), left_time);
     } else {
       user_emoji_status_timeout_.cancel_timeout(user_id.get());
@@ -13470,6 +13471,7 @@ void ContactsManager::on_update_user_emoji_status(User *u, UserId user_id, Emoji
   if (u->emoji_status != emoji_status) {
     LOG(DEBUG) << "Change emoji status of " << user_id << " from " << u->emoji_status << " to " << emoji_status;
     u->emoji_status = emoji_status;
+    u->is_emoji_status_changed = true;
     // effective emoji status might not be changed; checked in update_user
     // u->is_changed = true;
   }
