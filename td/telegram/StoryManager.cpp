@@ -1307,9 +1307,9 @@ void StoryManager::load_active_stories(StoryListId story_list_id, StoryList &sto
   story_list.load_list_queries_.push_back(std::move(promise));
   if (story_list.load_list_queries_.size() == 1u) {
     auto query_promise =
-        PromiseCreator::lambda([actor_id = actor_id(this), story_list_id, is_next](
+        PromiseCreator::lambda([actor_id = actor_id(this), story_list_id, is_next, state = story_list.state_](
                                    Result<telegram_api::object_ptr<telegram_api::stories_AllStories>> r_all_stories) {
-          send_closure(actor_id, &StoryManager::on_load_active_stories, story_list_id, is_next,
+          send_closure(actor_id, &StoryManager::on_load_active_stories, story_list_id, is_next, state,
                        std::move(r_all_stories));
         });
     td_->create_handler<GetAllStoriesQuery>(std::move(query_promise))->send(story_list_id, is_next, story_list.state_);
@@ -1323,7 +1323,7 @@ void StoryManager::reload_active_stories() {
 }
 
 void StoryManager::on_load_active_stories(
-    StoryListId story_list_id, bool is_next,
+    StoryListId story_list_id, bool is_next, string old_state,
     Result<telegram_api::object_ptr<telegram_api::stories_AllStories>> r_all_stories) {
   G()->ignore_result_if_closing(r_all_stories);
   auto &story_list = get_story_list(story_list_id);
@@ -1393,7 +1393,9 @@ void StoryManager::on_load_active_stories(
             if (max_story_date < story_date) {
               max_story_date = story_date;
             } else {
-              LOG(ERROR) << "Receive " << story_date << " after " << max_story_date;
+              LOG(ERROR) << "Receive " << story_date << " after " << max_story_date << " for "
+                         << (is_next ? "next" : "first") << " request with state \"" << old_state << "\" in "
+                         << story_list_id << " of " << td_->contacts_manager_->get_my_id();
             }
             owner_dialog_ids.push_back(owner_dialog_id);
           }
