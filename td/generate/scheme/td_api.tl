@@ -5002,6 +5002,9 @@ fileTypeNotificationSound = FileType;
 //@description The file is a photo
 fileTypePhoto = FileType;
 
+//@description The file is a photo published as a story
+fileTypePhotoStory = FileType;
+
 //@description The file is a profile photo
 fileTypeProfilePhoto = FileType;
 
@@ -5028,6 +5031,9 @@ fileTypeVideo = FileType;
 
 //@description The file is a video note
 fileTypeVideoNote = FileType;
+
+//@description The file is a video published as a story
+fileTypeVideoStory = FileType;
 
 //@description The file is a voice note
 fileTypeVoiceNote = FileType;

@@ -16,10 +16,14 @@ FileType get_file_type(const td_api::FileType &file_type) {
       return FileType::ProfilePhoto;
     case td_api::fileTypePhoto::ID:
       return FileType::Photo;
+    case td_api::fileTypePhotoStory::ID:
+      return FileType::PhotoStory;
     case td_api::fileTypeVoiceNote::ID:
       return FileType::VoiceNote;
     case td_api::fileTypeVideo::ID:
       return FileType::Video;
+    case td_api::fileTypeVideoStory::ID:
+      return FileType::VideoStory;
     case td_api::fileTypeDocument::ID:
       return FileType::Document;
     case td_api::fileTypeSecret::ID:
@@ -94,9 +98,9 @@ tl_object_ptr<td_api::FileType> get_file_type_object(FileType file_type) {
     case FileType::CallLog:
       return make_tl_object<td_api::fileTypeDocument>();
     case FileType::PhotoStory:
-      return make_tl_object<td_api::fileTypePhoto>();
+      return make_tl_object<td_api::fileTypePhotoStory>();
     case FileType::VideoStory:
-      return make_tl_object<td_api::fileTypeVideo>();
+      return make_tl_object<td_api::fileTypeVideoStory>();
     case FileType::None:
       return make_tl_object<td_api::fileTypeNone>();
     default:
@@ -115,10 +119,6 @@ FileType get_main_file_type(FileType file_type) {
       return FileType::Document;
     case FileType::CallLog:
       return FileType::Document;
-    case FileType::PhotoStory:
-      return FileType::Photo;
-    case FileType::VideoStory:
-      return FileType::Video;
     default:
       return file_type;
   }
