@@ -89,14 +89,14 @@ class AuthData {
   bool was_tmp_auth_key() const {
     return use_pfs() && !tmp_auth_key_.empty();
   }
-  bool need_tmp_auth_key(double now) const {
+  bool need_tmp_auth_key(double now, double refresh_margin) const {
     if (!use_pfs()) {
       return false;
     }
     if (tmp_auth_key_.empty()) {
       return true;
     }
-    if (now > tmp_auth_key_.expires_at() - 60 * 60 * 2 /*2 hours*/) {
+    if (now > tmp_auth_key_.expires_at() - refresh_margin) {
       return true;
     }
     return false;

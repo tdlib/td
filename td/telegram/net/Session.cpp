@@ -232,12 +232,14 @@ bool Session::PriorityQueue::empty() const {
 }
 
 Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> shared_auth_data, int32 raw_dc_id,
-                 int32 dc_id, bool is_primary, bool is_main, bool use_pfs, bool is_cdn, bool need_destroy,
-                 const mtproto::AuthKey &tmp_auth_key, const vector<mtproto::ServerSalt> &server_salts)
+                 int32 dc_id, bool is_primary, bool is_main, bool use_pfs, bool persist_tmp_auth_key, bool is_cdn,
+                 bool need_destroy, const mtproto::AuthKey &tmp_auth_key,
+                 const vector<mtproto::ServerSalt> &server_salts)
     : raw_dc_id_(raw_dc_id)
     , dc_id_(dc_id)
     , is_primary_(is_primary)
     , is_main_(is_main)
+    , persist_tmp_auth_key_(use_pfs && persist_tmp_auth_key)
     , is_cdn_(is_cdn)
     , need_destroy_(need_destroy) {
   VLOG(dc) << "Start connection " << tag("need_destroy", need_destroy_);
@@ -1504,7 +1506,7 @@ void Session::auth_loop(double now) {
   if (auth_data_.need_main_auth_key()) {
     create_gen_auth_key_actor(MainAuthKeyHandshake);
   }
-  if (auth_data_.need_tmp_auth_key(now)) {
+  if (auth_data_.need_tmp_auth_key(now, persist_tmp_auth_key_ ? 2 * 60 : 60 * 60)) {
     create_gen_auth_key_actor(TmpAuthKeyHandshake);
   }
 }

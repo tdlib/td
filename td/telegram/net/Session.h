@@ -67,7 +67,7 @@ class Session final
   };
 
   Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> shared_auth_data, int32 raw_dc_id, int32 dc_id,
-          bool is_primary, bool is_main, bool use_pfs, bool is_cdn, bool need_destroy,
+          bool is_primary, bool is_main, bool use_pfs, bool persist_tmp_auth_key, bool is_cdn, bool need_destroy,
           const mtproto::AuthKey &tmp_auth_key, const vector<mtproto::ServerSalt> &server_salts);
 
   void send(NetQueryPtr &&query);
@@ -108,6 +108,7 @@ class Session final
   const int32 dc_id_;      // unique datacenter ID, i.e. -10002
   const bool is_primary_;  // true for primary Sessions to all DCs
   const bool is_main_;     // true only for the primary Session(s) to the main DC
+  const bool persist_tmp_auth_key_;
   const bool is_cdn_;
   const bool need_destroy_;
   bool was_on_network_ = false;
