@@ -55,10 +55,13 @@ class TempAuthKeyWatchdog final : public NetQueryCallback {
  private:
   static constexpr double SYNC_WAIT = 0.1;
   static constexpr double SYNC_WAIT_MAX = 1.0;
+  static constexpr double RESYNC_DELAY = 5.0;
+  static constexpr int32 MAX_RESYNC_COUNT = 6;
 
   ActorShared<> parent_;
   std::map<uint64, uint32> id_count_;
   double sync_at_ = 0;
+  int32 resync_count_ = 0;
   bool need_sync_ = false;
   bool run_sync_ = false;
 
@@ -80,12 +83,22 @@ class TempAuthKeyWatchdog final : public NetQueryCallback {
 
   void need_sync() {
     need_sync_ = true;
+    resync_count_ = MAX_RESYNC_COUNT;
     try_sync();
     LOG(DEBUG) << "Need sync temp auth keys";
   }
 
   void try_sync() {
-    if (run_sync_ || !need_sync_) {
+    if (run_sync_) {
+      return;
+    }
+    if (!need_sync_) {
+      if (resync_count_ > 0 && id_count_.size() > 1) {
+        resync_count_--;
+        need_sync_ = true;
+        sync_at_ = Time::now() + RESYNC_DELAY;
+        set_timeout_at(sync_at_);
+      }
       return;
     }
 
@@ -126,6 +139,7 @@ class TempAuthKeyWatchdog final : public NetQueryCallback {
       }
       LOG(ERROR) << "Receive error for auth_dropTempAuthKeys: " << query->error();
       need_sync_ = true;
+      resync_count_ = MAX_RESYNC_COUNT;
     } else {
       LOG(INFO) << "Receive OK for auth_dropTempAuthKeys";
     }
