@@ -4430,6 +4430,7 @@ void ContactsManager::User::store(StorerT &storer) const {
   bool has_flags2 = true;
   bool has_max_active_story_id = max_active_story_id.is_valid();
   bool has_max_read_story_id = max_read_story_id.is_valid();
+  bool has_max_active_story_id_next_reload_time = max_active_story_id_next_reload_time > Time::now();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_received);
   STORE_FLAG(is_verified);
@@ -4469,6 +4470,7 @@ void ContactsManager::User::store(StorerT &storer) const {
     STORE_FLAG(has_stories);
     STORE_FLAG(has_max_active_story_id);
     STORE_FLAG(has_max_read_story_id);
+    STORE_FLAG(has_max_active_story_id_next_reload_time);
     END_STORE_FLAGS();
   }
   store(first_name, storer);
@@ -4510,6 +4512,9 @@ void ContactsManager::User::store(StorerT &storer) const {
   if (has_max_read_story_id) {
     store(max_read_story_id, storer);
   }
+  if (has_max_active_story_id_next_reload_time) {
+    store_time(max_active_story_id_next_reload_time, storer);
+  }
 }
 
 template <class ParserT>
@@ -4529,6 +4534,7 @@ void ContactsManager::User::parse(ParserT &parser) {
   bool has_flags2 = parser.version() >= static_cast<int32>(Version::AddUserFlags2);
   bool has_max_active_story_id = false;
   bool has_max_read_story_id = false;
+  bool has_max_active_story_id_next_reload_time = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_received);
   PARSE_FLAG(is_verified);
@@ -4568,6 +4574,7 @@ void ContactsManager::User::parse(ParserT &parser) {
     PARSE_FLAG(has_stories);
     PARSE_FLAG(has_max_active_story_id);
     PARSE_FLAG(has_max_read_story_id);
+    PARSE_FLAG(has_max_active_story_id_next_reload_time);
     END_PARSE_FLAGS();
   }
   parse(first_name, parser);
@@ -4636,6 +4643,9 @@ void ContactsManager::User::parse(ParserT &parser) {
   }
   if (has_max_read_story_id) {
     parse(max_read_story_id, parser);
+  }
+  if (has_max_active_story_id_next_reload_time) {
+    parse_time(max_active_story_id_next_reload_time, parser);
   }
 
   if (!check_utf8(first_name)) {
@@ -13505,6 +13515,13 @@ void ContactsManager::on_update_user_has_stories(User *u, UserId user_id, bool h
     LOG(DEBUG) << "Change last active story of " << user_id << " from " << u->max_active_story_id << " to "
                << max_active_story_id;
     u->max_active_story_id = max_active_story_id;
+    u->need_save_to_database = true;
+  }
+  auto max_active_story_id_next_reload_time = Time::now() + MAX_ACTIVE_STORY_ID_RELOAD_TIME;
+  if (max_active_story_id_next_reload_time >
+      u->max_active_story_id_next_reload_time + MAX_ACTIVE_STORY_ID_RELOAD_TIME / 5) {
+    LOG(DEBUG) << "Change max_active_story_id_next_reload_time of " << user_id;
+    u->max_active_story_id_next_reload_time = max_active_story_id_next_reload_time;
     u->need_save_to_database = true;
   }
   if (!has_stories && !max_active_story_id.is_valid()) {

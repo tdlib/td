@@ -759,6 +759,7 @@ class ContactsManager final : public Actor {
     int32 was_online = 0;
     int32 local_was_online = 0;
 
+    double max_active_story_id_next_reload_time = 0.0;
     StoryId max_active_story_id;
     StoryId max_read_story_id;
 
@@ -1174,7 +1175,8 @@ class ContactsManager final : public Actor {
   static constexpr size_t MAX_INVITE_LINK_TITLE_LENGTH = 32;  // server side limit
   static constexpr int32 MAX_GET_CHANNEL_PARTICIPANTS = 200;  // server side limit
 
-  static constexpr int32 CHANNEL_PARTICIPANT_CACHE_TIME = 1800;  // some reasonable limit
+  static constexpr int32 CHANNEL_PARTICIPANT_CACHE_TIME = 1800;   // some reasonable limit
+  static constexpr int32 MAX_ACTIVE_STORY_ID_RELOAD_TIME = 3600;  // some reasonable limit
 
   // the True fields aren't set for manually created telegram_api::user objects, therefore the flags must be used
   static constexpr int32 USER_FLAG_HAS_ACCESS_HASH = 1 << 0;
