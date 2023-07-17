@@ -158,8 +158,9 @@ class StoryManager final : public Actor {
     string state_;
 
     bool server_has_more_ = true;
+    bool database_has_more_ = true;
 
-    vector<Promise<Unit>> load_list_queries_;
+    vector<Promise<Unit>> load_list_from_server_queries_;
 
     std::set<DialogDate> ordered_stories_;  // all known active stories from the story list
 
@@ -403,10 +404,12 @@ class StoryManager final : public Actor {
 
   void on_load_dialog_expiring_stories(DialogId owner_dialog_id);
 
-  void load_active_stories(StoryListId story_list_id, StoryList &story_list, bool is_next, Promise<Unit> &&promise);
+  void load_active_stories_from_server(StoryListId story_list_id, StoryList &story_list, bool is_next,
+                                       Promise<Unit> &&promise);
 
-  void on_load_active_stories(StoryListId story_list_id, bool is_next, string old_state,
-                              Result<telegram_api::object_ptr<telegram_api::stories_AllStories>> r_all_stories);
+  void on_load_active_stories_from_server(
+      StoryListId story_list_id, bool is_next, string old_state,
+      Result<telegram_api::object_ptr<telegram_api::stories_AllStories>> r_all_stories);
 
   void save_story_list(StoryListId story_list_id, string state, int32 total_count, bool has_more);
 

@@ -1322,17 +1322,18 @@ void StoryManager::load_active_stories(StoryListId story_list_id, Promise<Unit> 
   if (story_list.list_last_story_date_ == MAX_DIALOG_DATE) {
     return promise.set_error(Status::Error(404, "Not found"));
   }
-  load_active_stories(story_list_id, story_list, !story_list.state_.empty(), std::move(promise));
+
+  load_active_stories_from_server(story_list_id, story_list, !story_list.state_.empty(), std::move(promise));
 }
 
-void StoryManager::load_active_stories(StoryListId story_list_id, StoryList &story_list, bool is_next,
-                                       Promise<Unit> &&promise) {
-  story_list.load_list_queries_.push_back(std::move(promise));
-  if (story_list.load_list_queries_.size() == 1u) {
+void StoryManager::load_active_stories_from_server(StoryListId story_list_id, StoryList &story_list, bool is_next,
+                                                   Promise<Unit> &&promise) {
+  story_list.load_list_from_server_queries_.push_back(std::move(promise));
+  if (story_list.load_list_from_server_queries_.size() == 1u) {
     auto query_promise =
         PromiseCreator::lambda([actor_id = actor_id(this), story_list_id, is_next, state = story_list.state_](
                                    Result<telegram_api::object_ptr<telegram_api::stories_AllStories>> r_all_stories) {
-          send_closure(actor_id, &StoryManager::on_load_active_stories, story_list_id, is_next, state,
+          send_closure(actor_id, &StoryManager::on_load_active_stories_from_server, story_list_id, is_next, state,
                        std::move(r_all_stories));
         });
     td_->create_handler<GetAllStoriesQuery>(std::move(query_promise))->send(story_list_id, is_next, story_list.state_);
@@ -1341,16 +1342,16 @@ void StoryManager::load_active_stories(StoryListId story_list_id, StoryList &sto
 
 void StoryManager::reload_active_stories() {
   for (auto story_list_id : {StoryListId::main(), StoryListId::archive()}) {
-    load_active_stories(story_list_id, get_story_list(story_list_id), false, Promise<Unit>());
+    load_active_stories_from_server(story_list_id, get_story_list(story_list_id), false, Promise<Unit>());
   }
 }
 
-void StoryManager::on_load_active_stories(
+void StoryManager::on_load_active_stories_from_server(
     StoryListId story_list_id, bool is_next, string old_state,
     Result<telegram_api::object_ptr<telegram_api::stories_AllStories>> r_all_stories) {
   G()->ignore_result_if_closing(r_all_stories);
   auto &story_list = get_story_list(story_list_id);
-  auto promises = std::move(story_list.load_list_queries_);
+  auto promises = std::move(story_list.load_list_from_server_queries_);
   CHECK(!promises.empty());
   if (r_all_stories.is_error()) {
     return fail_promises(promises, r_all_stories.move_as_error());
@@ -1369,7 +1370,7 @@ void StoryManager::on_load_active_stories(
     }
     case telegram_api::stories_allStories::ID: {
       auto stories = telegram_api::move_object_as<telegram_api::stories_allStories>(all_stories);
-      td_->contacts_manager_->on_get_users(std::move(stories->users_), "on_load_active_stories");
+      td_->contacts_manager_->on_get_users(std::move(stories->users_), "on_load_active_stories_from_server");
       if (stories->state_.empty()) {
         LOG(ERROR) << "Receive empty state in " << to_string(stories);
       } else {
@@ -1437,7 +1438,7 @@ void StoryManager::on_load_active_stories(
         if (story_list.list_last_story_date_ < max_story_date) {
           story_list.list_last_story_date_ = max_story_date;
           for (auto owner_dialog_id : owner_dialog_ids) {
-            on_dialog_active_stories_order_updated(owner_dialog_id, "on_load_active_stories");
+            on_dialog_active_stories_order_updated(owner_dialog_id, "on_load_active_stories_from_server");
           }
         } else if (is_next) {
           LOG(ERROR) << "Last story date didn't increase";
@@ -1448,7 +1449,7 @@ void StoryManager::on_load_active_stories(
       }
       for (auto dialog_id : delete_dialog_ids) {
         on_update_active_stories(dialog_id, StoryId(), vector<StoryId>(), mpas.get_promise());
-        load_dialog_expiring_stories(dialog_id, 0, "on_load_active_stories 1");
+        load_dialog_expiring_stories(dialog_id, 0, "on_load_active_stories_from_server 1");
       }
       update_story_list_sent_total_count(story_list_id, story_list);
       lock.set_value(Unit());
