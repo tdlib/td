@@ -947,6 +947,10 @@ StoryManager::~StoryManager() {
 void StoryManager::start_up() {
   try_synchronize_archive_all_stories();
   load_expired_database_stories();
+
+  for (auto story_list_id : {StoryListId::main(), StoryListId::archive()}) {
+    update_story_list_sent_total_count(story_list_id);
+  }
 }
 
 void StoryManager::timeout_expired() {
@@ -1572,7 +1576,7 @@ void StoryManager::update_story_list_sent_total_count(StoryListId story_list_id)
 }
 
 void StoryManager::update_story_list_sent_total_count(StoryListId story_list_id, StoryList &story_list) {
-  if (story_list.list_last_story_date_ == MIN_DIALOG_DATE || story_list.server_total_count_ == -1) {
+  if (story_list.server_total_count_ == -1) {
     return;
   }
   auto new_total_count = static_cast<int32>(story_list.ordered_stories_.size());
