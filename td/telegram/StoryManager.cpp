@@ -916,6 +916,25 @@ StoryManager::StoryManager(Td *td, ActorShared<> parent) : td_(td), parent_(std:
 
   story_can_get_viewers_timeout_.set_callback(on_story_can_get_viewers_timeout_callback);
   story_can_get_viewers_timeout_.set_callback_data(static_cast<void *>(this));
+
+  if (G()->use_message_database()) {
+    for (auto story_list_id : {StoryListId::main(), StoryListId::archive()}) {
+      auto r_value = G()->td_db()->get_story_db_sync()->get_active_story_list_state(story_list_id);
+      if (r_value.is_ok() && !r_value.ok().empty()) {
+        SavedStoryList saved_story_list;
+        auto status = log_event_parse(saved_story_list, r_value.ok().as_slice());
+        if (status.is_error()) {
+          LOG(ERROR) << "Load invalid state for " << story_list_id << " from database";
+        } else {
+          LOG(INFO) << "Load state for " << story_list_id << " from database: " << saved_story_list.state_;
+          auto &story_list = get_story_list(story_list_id);
+          story_list.state_ = std::move(saved_story_list.state_);
+          story_list.server_total_count_ = td::max(saved_story_list.total_count_, 0);
+          story_list.server_has_more_ = saved_story_list.has_more_;
+        }
+      }
+    }
+  }
 }
 
 StoryManager::~StoryManager() {
@@ -1054,6 +1073,10 @@ void StoryManager::on_story_can_get_viewers_timeout(int64 story_global_id) {
 }
 
 void StoryManager::load_expired_database_stories() {
+  if (!G()->use_message_database()) {
+    return;
+  }
+
   LOG(INFO) << "Load " << load_expired_database_stories_next_limit_ << " expired stories";
   G()->td_db()->get_story_db_async()->get_expiring_stories(
       G()->unix_time() - 1, load_expired_database_stories_next_limit_,
