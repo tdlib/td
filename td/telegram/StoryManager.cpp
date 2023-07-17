@@ -2871,13 +2871,12 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
         update_story_list_sent_total_count(active_stories->story_list_id_);
       }
       active_stories_.erase(owner_dialog_id);
-      if (!from_database) {
-        save_active_stories(owner_dialog_id, nullptr, std::move(promise));
-      }
       send_update_chat_active_stories(owner_dialog_id, nullptr);
     } else {
       max_read_story_ids_.erase(owner_dialog_id);
-      promise.set_value(Unit());
+    }
+    if (!from_database) {
+      save_active_stories(owner_dialog_id, nullptr, std::move(promise));
     }
     failed_to_load_active_stories_.insert(owner_dialog_id);
     return;
