@@ -84,7 +84,6 @@ class AuthData {
     tmp_auth_key_ = std::move(auth_key);
   }
   const AuthKey &get_tmp_auth_key() const {
-    // CHECK(has_tmp_auth_key());
     return tmp_auth_key_;
   }
   bool was_tmp_auth_key() const {
@@ -98,9 +97,6 @@ class AuthData {
       return true;
     }
     if (now > tmp_auth_key_.expires_at() - 60 * 60 * 2 /*2 hours*/) {
-      return true;
-    }
-    if (!has_tmp_auth_key(now)) {
       return true;
     }
     return false;
@@ -118,7 +114,7 @@ class AuthData {
     if (tmp_auth_key_.empty()) {
       return false;
     }
-    if (now > tmp_auth_key_.expires_at() - 60 * 60 /*1 hour*/) {
+    if (now > tmp_auth_key_.expires_at()) {
       return false;
     }
     return true;
