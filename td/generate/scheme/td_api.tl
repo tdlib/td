@@ -3168,7 +3168,7 @@ callDiscardReasonHungUp = CallDiscardReason;
 //@udp_p2p True, if UDP peer-to-peer connections are supported
 //@udp_reflector True, if connection through UDP reflectors is supported
 //@min_layer The minimum supported API layer; use 65
-//@max_layer The maximum supported API layer; use 65
+//@max_layer The maximum supported API layer; use 92
 //@library_versions List of supported tgcalls versions
 callProtocol udp_p2p:Bool udp_reflector:Bool min_layer:int32 max_layer:int32 library_versions:vector<string> = CallProtocol;
 
