@@ -24,7 +24,6 @@
 #include "td/telegram/ReportReason.h"
 #include "td/telegram/StoryContent.h"
 #include "td/telegram/StoryContentType.h"
-#include "td/telegram/StoryDb.h"
 #include "td/telegram/StoryInteractionInfo.hpp"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
@@ -931,6 +930,7 @@ StoryManager::StoryManager(Td *td, ActorShared<> parent) : td_(td), parent_(std:
           story_list.state_ = std::move(saved_story_list.state_);
           story_list.server_total_count_ = td::max(saved_story_list.total_count_, 0);
           story_list.server_has_more_ = saved_story_list.has_more_;
+          story_list.database_has_more_ = true;
         }
       }
     }
@@ -1323,7 +1323,91 @@ void StoryManager::load_active_stories(StoryListId story_list_id, Promise<Unit> 
     return promise.set_error(Status::Error(404, "Not found"));
   }
 
+  if (story_list.database_has_more_) {
+    CHECK(G()->use_message_database());
+    story_list.load_list_from_database_queries_.push_back(std::move(promise));
+    if (story_list.load_list_from_database_queries_.size() == 1u) {
+      G()->td_db()->get_story_db_async()->get_active_story_list(
+          story_list_id, story_list.last_loaded_database_dialog_date_.get_order(),
+          story_list.last_loaded_database_dialog_date_.get_dialog_id(), 10,
+          PromiseCreator::lambda(
+              [actor_id = actor_id(this), story_list_id](Result<StoryDbGetActiveStoryListResult> &&result) {
+                send_closure(actor_id, &StoryManager::on_load_active_stories_from_database, story_list_id,
+                             std::move(result));
+              }));
+    }
+    return;
+  }
+
+  if (!story_list.server_has_more_) {
+    auto min_story_date = story_list.list_last_story_date_;
+    story_list.list_last_story_date_ = MAX_DIALOG_DATE;
+    for (auto it = story_list.ordered_stories_.upper_bound(min_story_date); it != story_list.ordered_stories_.end();
+         ++it) {
+      on_dialog_active_stories_order_updated(it->get_dialog_id(), "load_active_stories");
+    }
+    return promise.set_error(Status::Error(404, "Not found"));
+  }
+
   load_active_stories_from_server(story_list_id, story_list, !story_list.state_.empty(), std::move(promise));
+}
+
+void StoryManager::on_load_active_stories_from_database(StoryListId story_list_id,
+                                                        Result<StoryDbGetActiveStoryListResult> result) {
+  G()->ignore_result_if_closing(result);
+  auto &story_list = get_story_list(story_list_id);
+  auto promises = std::move(story_list.load_list_from_database_queries_);
+  CHECK(!promises.empty());
+  if (result.is_error()) {
+    return fail_promises(promises, result.move_as_error());
+  }
+
+  auto active_story_list = result.move_as_ok();
+
+  LOG(INFO) << "Load " << active_story_list.active_stories_.size() << " chats with active stories from database";
+
+  Dependencies dependencies;
+  for (auto &active_stories_it : active_story_list.active_stories_) {
+    dependencies.add_dialog_and_dependencies(active_stories_it.first);
+  }
+  if (!dependencies.resolve_force(td_, "on_load_active_stories_from_database")) {
+    active_story_list.active_stories_.clear();
+    story_list.state_.clear();
+    story_list.server_has_more_ = true;
+  }
+
+  if (active_story_list.active_stories_.empty()) {
+    story_list.last_loaded_database_dialog_date_ = MAX_DIALOG_DATE;
+    story_list.database_has_more_ = false;
+  } else {
+    for (auto &active_stories_it : active_story_list.active_stories_) {
+      on_get_active_stories_from_database(active_stories_it.first, active_stories_it.second,
+                                          "on_load_active_stories_from_database");
+    }
+    DialogDate max_story_date(active_story_list.next_order_, active_story_list.next_dialog_id_);
+    if (story_list.last_loaded_database_dialog_date_ < max_story_date) {
+      story_list.last_loaded_database_dialog_date_ = max_story_date;
+
+      auto min_story_date = story_list.list_last_story_date_;
+      story_list.list_last_story_date_ = max_story_date;
+      auto &owner_dialog_ids = dependencies.get_dialog_ids();
+      for (auto it = story_list.ordered_stories_.upper_bound(min_story_date);
+           it != story_list.ordered_stories_.end() && *it <= max_story_date; ++it) {
+        auto dialog_id = it->get_dialog_id();
+        if (owner_dialog_ids.count(dialog_id) == 0) {
+          on_dialog_active_stories_order_updated(dialog_id, "on_load_active_stories_from_database 1");
+        }
+      }
+      for (auto owner_dialog_id : owner_dialog_ids) {
+        on_dialog_active_stories_order_updated(owner_dialog_id, "on_load_active_stories_from_database 2");
+      }
+    } else {
+      LOG(ERROR) << "Last database story date didn't increase";
+    }
+    update_story_list_sent_total_count(story_list_id, story_list);
+  }
+
+  set_promises(promises);
 }
 
 void StoryManager::load_active_stories_from_server(StoryListId story_list_id, StoryList &story_list, bool is_next,
@@ -1392,57 +1476,50 @@ void StoryManager::on_load_active_stories_from_server(
       }));
       auto lock = mpas.get_promise();
 
-      vector<DialogId> delete_dialog_ids;
-      if (stories->user_stories_.empty()) {
-        if (stories->has_more_) {
-          LOG(ERROR) << "Receive no stories, but expected more";
-        }
-        if (!is_next) {
-          // there should be no more active stories; reload all of them
-          for (const auto &story_date : story_list.ordered_stories_) {
-            delete_dialog_ids.push_back(story_date.get_dialog_id());
-          }
-        }
-        story_list.list_last_story_date_ = MAX_DIALOG_DATE;
-      } else {
-        auto max_story_date = MIN_DIALOG_DATE;
-        vector<DialogId> owner_dialog_ids;
-        for (auto &user_stories : stories->user_stories_) {
-          auto owner_dialog_id = on_get_user_stories(DialogId(), std::move(user_stories), mpas.get_promise());
-          auto active_stories = get_active_stories(owner_dialog_id);
-          if (active_stories == nullptr) {
-            LOG(ERROR) << "Receive invalid stories";
+      if (stories->user_stories_.empty() && stories->has_more_) {
+        LOG(ERROR) << "Receive no stories, but expected more";
+        stories->has_more_ = false;
+      }
+
+      auto max_story_date = MIN_DIALOG_DATE;
+      vector<DialogId> owner_dialog_ids;
+      for (auto &user_stories : stories->user_stories_) {
+        auto owner_dialog_id = on_get_user_stories(DialogId(), std::move(user_stories), mpas.get_promise());
+        auto active_stories = get_active_stories(owner_dialog_id);
+        if (active_stories == nullptr) {
+          LOG(ERROR) << "Receive invalid stories";
+        } else {
+          DialogDate story_date(active_stories->private_order_, owner_dialog_id);
+          if (max_story_date < story_date) {
+            max_story_date = story_date;
           } else {
-            DialogDate story_date(active_stories->private_order_, owner_dialog_id);
-            if (max_story_date < story_date) {
-              max_story_date = story_date;
-            } else {
-              LOG(ERROR) << "Receive " << story_date << " after " << max_story_date << " for "
-                         << (is_next ? "next" : "first") << " request with state \"" << old_state << "\" in "
-                         << story_list_id << " of " << td_->contacts_manager_->get_my_id();
-            }
-            owner_dialog_ids.push_back(owner_dialog_id);
+            LOG(ERROR) << "Receive " << story_date << " after " << max_story_date << " for "
+                       << (is_next ? "next" : "first") << " request with state \"" << old_state << "\" in "
+                       << story_list_id << " of " << td_->contacts_manager_->get_my_id();
           }
+          owner_dialog_ids.push_back(owner_dialog_id);
         }
-        if (!stories->has_more_) {
-          max_story_date = MAX_DIALOG_DATE;
+      }
+      if (!stories->has_more_) {
+        max_story_date = MAX_DIALOG_DATE;
+      }
+
+      vector<DialogId> delete_dialog_ids;
+      auto min_story_date = is_next ? story_list.list_last_story_date_ : MIN_DIALOG_DATE;
+      for (auto it = story_list.ordered_stories_.upper_bound(min_story_date);
+           it != story_list.ordered_stories_.end() && *it <= max_story_date; ++it) {
+        auto dialog_id = it->get_dialog_id();
+        if (!td::contains(owner_dialog_ids, dialog_id)) {
+          delete_dialog_ids.push_back(dialog_id);
         }
-        auto min_story_date = is_next ? story_list.list_last_story_date_ : MIN_DIALOG_DATE;
-        for (auto it = story_list.ordered_stories_.upper_bound(min_story_date);
-             it != story_list.ordered_stories_.end() && *it <= max_story_date; ++it) {
-          auto dialog_id = it->get_dialog_id();
-          if (!td::contains(owner_dialog_ids, dialog_id)) {
-            delete_dialog_ids.push_back(dialog_id);
-          }
+      }
+      if (story_list.list_last_story_date_ < max_story_date) {
+        story_list.list_last_story_date_ = max_story_date;
+        for (auto owner_dialog_id : owner_dialog_ids) {
+          on_dialog_active_stories_order_updated(owner_dialog_id, "on_load_active_stories_from_server");
         }
-        if (story_list.list_last_story_date_ < max_story_date) {
-          story_list.list_last_story_date_ = max_story_date;
-          for (auto owner_dialog_id : owner_dialog_ids) {
-            on_dialog_active_stories_order_updated(owner_dialog_id, "on_load_active_stories_from_server");
-          }
-        } else if (is_next) {
-          LOG(ERROR) << "Last story date didn't increase";
-        }
+      } else if (is_next) {
+        LOG(ERROR) << "Last story date didn't increase";
       }
       if (!delete_dialog_ids.empty()) {
         LOG(INFO) << "Delete active stories in " << delete_dialog_ids;
@@ -1452,6 +1529,7 @@ void StoryManager::on_load_active_stories_from_server(
         load_dialog_expiring_stories(dialog_id, 0, "on_load_active_stories_from_server 1");
       }
       update_story_list_sent_total_count(story_list_id, story_list);
+
       lock.set_value(Unit());
       break;
     }
