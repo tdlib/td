@@ -19,6 +19,7 @@ NSURLSession *getSession() {
   static NSURLSession *urlSession = [] {
     auto configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
     configuration.networkServiceType = NSURLNetworkServiceTypeResponsiveData;
+    configuration.timeoutIntervalForResource = 90;
     configuration.waitsForConnectivity = true;
     return [NSURLSession sessionWithConfiguration:configuration];
   }();
