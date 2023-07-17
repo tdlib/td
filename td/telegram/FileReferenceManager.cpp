@@ -353,11 +353,11 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
       },
       [&](const FileSourceChatFull &source) {
         send_closure_later(G()->contacts_manager(), &ContactsManager::reload_chat_full, source.chat_id,
-                           std::move(promise));
+                           std::move(promise), "FileSourceChatFull");
       },
       [&](const FileSourceChannelFull &source) {
         send_closure_later(G()->contacts_manager(), &ContactsManager::reload_channel_full, source.channel_id,
-                           std::move(promise), "repair file reference");
+                           std::move(promise), "FileSourceChannelFull");
       },
       [&](const FileSourceAppConfig &source) {
         send_closure_later(G()->config_manager(), &ConfigManager::reget_app_config, std::move(promise));
@@ -368,7 +368,7 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
       },
       [&](const FileSourceUserFull &source) {
         send_closure_later(G()->contacts_manager(), &ContactsManager::reload_user_full, source.user_id,
-                           std::move(promise));
+                           std::move(promise), "FileSourceUserFull");
       },
       [&](const FileSourceAttachMenuBot &source) {
         send_closure_later(G()->attach_menu_manager(), &AttachMenuManager::reload_attach_menu_bot, source.user_id,

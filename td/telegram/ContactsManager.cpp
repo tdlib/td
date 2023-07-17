@@ -7625,7 +7625,7 @@ void ContactsManager::delete_profile_photo(int64 profile_photo_id, bool is_recur
           }
           send_closure(actor_id, &ContactsManager::delete_profile_photo, profile_photo_id, true, std::move(promise));
         });
-    reload_user_full(get_my_id(), std::move(reload_promise));
+    reload_user_full(get_my_id(), std::move(reload_promise), "delete_profile_photo");
     return;
   }
   if (user_full->photo.id.get() == profile_photo_id || user_full->fallback_photo.id.get() == profile_photo_id) {
@@ -11607,7 +11607,7 @@ void ContactsManager::on_load_user_full_from_database(UserId user_id, string val
   if (is_user_deleted(u)) {
     drop_user_full(user_id);
   } else if (user_full->expires_at == 0.0) {
-    reload_user_full(user_id, Auto());
+    reload_user_full(user_id, Auto(), "on_load_user_full_from_database");
   }
 }
 
@@ -11705,7 +11705,7 @@ void ContactsManager::on_load_chat_full_from_database(ChatId chat_id, string val
   if (!is_same_dialog_photo(td_->file_manager_.get(), DialogId(chat_id), chat_full->photo, c->photo, false)) {
     chat_full->photo = Photo();
     if (c->photo.small_file_id.is_valid()) {
-      reload_chat_full(chat_id, Auto());
+      reload_chat_full(chat_id, Auto(), "on_load_chat_full_from_database");
     }
   }
 
@@ -12073,7 +12073,7 @@ void ContactsManager::update_chat(Chat *c, ChatId chat_id, bool from_binlog, boo
         need_update_chat_full = true;
       }
       if (c->photo.small_file_id.is_valid()) {
-        reload_chat_full(chat_id, Auto());
+        reload_chat_full(chat_id, Auto(), "update_chat");
       }
     }
   }
@@ -13988,7 +13988,7 @@ void ContactsManager::add_set_profile_photo_to_cache(UserId user_id, Photo &&pho
       user_full->need_save_to_database = true;
     }
     update_user_full(user_full, user_id, "add_set_profile_photo_to_cache");
-    reload_user_full(user_id, Auto());
+    reload_user_full(user_id, Auto(), "add_set_profile_photo_to_cache");
   }
 }
 
@@ -14073,7 +14073,7 @@ bool ContactsManager::delete_my_profile_photo_from_cache(int64 profile_photo_id)
         user_full->expires_at = 0.0;
         user_full->need_save_to_database = true;
       }
-      reload_user_full(user_id, Auto());
+      reload_user_full(user_id, Auto(), "delete_my_profile_photo_from_cache");
       update_user_full(user_full, user_id, "delete_my_profile_photo_from_cache");
     }
   }
@@ -15778,7 +15778,7 @@ void ContactsManager::on_update_chat_photo(Chat *c, ChatId chat_id, DialogPhoto 
           chat_full->is_changed = true;
         }
         if (c->photo.small_file_id.is_valid()) {
-          reload_chat_full(chat_id, Auto());
+          reload_chat_full(chat_id, Auto(), "on_update_chat_photo");
         }
         update_chat_full(chat_full, chat_id, "on_update_chat_photo");
       }
@@ -16706,9 +16706,9 @@ void ContactsManager::load_user_full(UserId user_id, bool force, Promise<Unit> &
   promise.set_value(Unit());
 }
 
-void ContactsManager::reload_user_full(UserId user_id, Promise<Unit> &&promise) {
+void ContactsManager::reload_user_full(UserId user_id, Promise<Unit> &&promise, const char *source) {
   TRY_RESULT_PROMISE(promise, input_user, get_input_user(user_id));
-  send_get_user_full_query(user_id, std::move(input_user), std::move(promise), "reload_user_full");
+  send_get_user_full_query(user_id, std::move(input_user), std::move(promise), source);
 }
 
 void ContactsManager::send_get_user_full_query(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user,
@@ -17095,8 +17095,8 @@ void ContactsManager::load_chat_full(ChatId chat_id, bool force, Promise<Unit> &
   promise.set_value(Unit());
 }
 
-void ContactsManager::reload_chat_full(ChatId chat_id, Promise<Unit> &&promise) {
-  send_get_chat_full_query(chat_id, std::move(promise), "reload_chat_full");
+void ContactsManager::reload_chat_full(ChatId chat_id, Promise<Unit> &&promise, const char *source) {
+  send_get_chat_full_query(chat_id, std::move(promise), source);
 }
 
 void ContactsManager::send_get_chat_full_query(ChatId chat_id, Promise<Unit> &&promise, const char *source) {

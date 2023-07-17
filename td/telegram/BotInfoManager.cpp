@@ -161,7 +161,7 @@ class SetBotInfoQuery final : public Td::ResultHandler {
     if (set_info_) {
       invalidate_bot_info();
       if (!td_->auth_manager_->is_bot()) {
-        return td_->contacts_manager_->reload_user_full(bot_user_id_, std::move(promise_));
+        return td_->contacts_manager_->reload_user_full(bot_user_id_, std::move(promise_), "SetBotInfoQuery");
       }
     }
     if (set_name_) {

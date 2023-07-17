@@ -8675,7 +8675,7 @@ void MessagesManager::reget_dialog_action_bar(DialogId dialog_id, const char *so
   LOG(INFO) << "Reget action bar in " << dialog_id << " from " << source;
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      td_->contacts_manager_->reload_user_full(dialog_id.get_user_id(), Auto());
+      td_->contacts_manager_->reload_user_full(dialog_id.get_user_id(), Auto(), source);
       return;
     case DialogType::Chat:
     case DialogType::Channel:
@@ -18228,7 +18228,8 @@ void MessagesManager::on_get_message_viewers(DialogId dialog_id, MessageViewers 
 
       switch (dialog_id.get_type()) {
         case DialogType::Chat:
-          return td_->contacts_manager_->reload_chat_full(dialog_id.get_chat_id(), std::move(query_promise));
+          return td_->contacts_manager_->reload_chat_full(dialog_id.get_chat_id(), std::move(query_promise),
+                                                          "on_get_message_viewers");
         case DialogType::Channel:
           return td_->contacts_manager_->get_channel_participants(
               dialog_id.get_channel_id(), td_api::make_object<td_api::supergroupMembersFilterRecent>(), string(), 0,
@@ -18317,11 +18318,11 @@ void MessagesManager::reload_dialog_info_full(DialogId dialog_id, const char *so
   switch (dialog_id.get_type()) {
     case DialogType::User:
       send_closure_later(td_->contacts_manager_actor_, &ContactsManager::reload_user_full, dialog_id.get_user_id(),
-                         Promise<Unit>());
+                         Promise<Unit>(), source);
       return;
     case DialogType::Chat:
       send_closure_later(td_->contacts_manager_actor_, &ContactsManager::reload_chat_full, dialog_id.get_chat_id(),
-                         Promise<Unit>());
+                         Promise<Unit>(), source);
       return;
     case DialogType::Channel:
       send_closure_later(td_->contacts_manager_actor_, &ContactsManager::reload_channel_full,
@@ -20524,7 +20525,7 @@ void MessagesManager::open_dialog(Dialog *d) {
       // to repair dialog action bar
       auto user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
       if (user_id.is_valid()) {
-        td_->contacts_manager_->reload_user_full(user_id, Promise<Unit>());
+        td_->contacts_manager_->reload_user_full(user_id, Promise<Unit>(), "open_dialog");
       }
       break;
     }
@@ -35067,7 +35068,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       switch (dialog_type) {
         case DialogType::User:
           td_->contacts_manager_->invalidate_user_full(dialog_id.get_user_id());
-          td_->contacts_manager_->reload_user_full(dialog_id.get_user_id(), Promise<Unit>());
+          td_->contacts_manager_->reload_user_full(dialog_id.get_user_id(), Promise<Unit>(), "add_message_to_dialog");
           break;
         case DialogType::Chat:
         case DialogType::Channel:
@@ -35077,7 +35078,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
           auto user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
           if (user_id.is_valid()) {
             td_->contacts_manager_->invalidate_user_full(user_id);
-            td_->contacts_manager_->reload_user_full(user_id, Promise<Unit>());
+            td_->contacts_manager_->reload_user_full(user_id, Promise<Unit>(), "add_message_to_dialog");
           }
           break;
         }

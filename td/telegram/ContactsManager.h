@@ -594,7 +594,7 @@ class ContactsManager final : public Actor {
   void reload_user(UserId user_id, Promise<Unit> &&promise);
   void load_user_full(UserId user_id, bool force, Promise<Unit> &&promise, const char *source);
   FileSourceId get_user_full_file_source_id(UserId user_id);
-  void reload_user_full(UserId user_id, Promise<Unit> &&promise);
+  void reload_user_full(UserId user_id, Promise<Unit> &&promise, const char *source);
 
   void get_user_profile_photos(UserId user_id, int32 offset, int32 limit,
                                Promise<td_api::object_ptr<td_api::chatPhotos>> &&promise);
@@ -607,7 +607,7 @@ class ContactsManager final : public Actor {
   void reload_chat(ChatId chat_id, Promise<Unit> &&promise);
   void load_chat_full(ChatId chat_id, bool force, Promise<Unit> &&promise, const char *source);
   FileSourceId get_chat_full_file_source_id(ChatId chat_id);
-  void reload_chat_full(ChatId chat_id, Promise<Unit> &&promise);
+  void reload_chat_full(ChatId chat_id, Promise<Unit> &&promise, const char *source);
 
   int32 get_chat_date(ChatId chat_id) const;
   int32 get_chat_participant_count(ChatId chat_id) const;
