@@ -4494,13 +4494,13 @@ jsonValueObject members:vector<jsonObjectMember> = JsonValue;
 //@description The story can be viewed by everyone
 storyPrivacySettingsEveryone = StoryPrivacySettings;
 
-//@description The story can be viewed by all contacts except chosen users @except_user_ids User identifiers of the contacts that can't see the story
+//@description The story can be viewed by all contacts except chosen users @except_user_ids User identifiers of the contacts that can't see the story; always empty for non-owned stories
 storyPrivacySettingsContacts except_user_ids:vector<int53> = StoryPrivacySettings;
 
 //@description The story can be viewed by all close friends
 storyPrivacySettingsCloseFriends = StoryPrivacySettings;
 
-//@description The story can be viewed by certain specified users @user_ids Identifiers of the users
+//@description The story can be viewed by certain specified users @user_ids Identifiers of the users; always empty for non-owned stories
 storyPrivacySettingsSelectedContacts user_ids:vector<int53> = StoryPrivacySettings;
 
 
@@ -4968,7 +4968,7 @@ storyInteractionInfo view_count:int32 recent_viewer_user_ids:vector<int53> = Sto
 //@can_get_viewers True, if users viewed the story can be received through getStoryViewers
 //@has_expired_viewers True, if users viewed the story can't be received, because the story has expired more than getOption("story_viewers_expiration_delay") seconds ago
 //@interaction_info Information about interactions with the story; may be null if the story isn't owned or there were no interactions
-//@privacy_settings Privacy rules affecting story visibility; may be null if the story isn't owned
+//@privacy_settings Privacy rules affecting story visibility; may be approximate for non-owned stories
 //@content Content of the story
 //@caption Caption of the story
 story id:int32 sender_chat_id:int53 date:int32 is_being_edited:Bool is_edited:Bool is_pinned:Bool is_visible_only_for_self:Bool can_be_forwarded:Bool can_be_replied:Bool can_get_viewers:Bool has_expired_viewers:Bool interaction_info:storyInteractionInfo privacy_settings:StoryPrivacySettings content:StoryContent caption:formattedText = Story;

@@ -331,6 +331,9 @@ td_api::object_ptr<td_api::userPrivacySettingRules> UserPrivacySettingRules::get
 
 td_api::object_ptr<td_api::StoryPrivacySettings> UserPrivacySettingRules::get_story_privacy_settings_object(
     Td *td) const {
+  if (rules_.empty()) {
+    return nullptr;
+  }
   if (rules_.size() == 1u && rules_[0].type_ == UserPrivacySettingRule::Type::AllowAll) {
     return td_api::make_object<td_api::storyPrivacySettingsEveryone>();
   }

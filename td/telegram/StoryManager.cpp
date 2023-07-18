@@ -744,6 +744,8 @@ void StoryManager::Story::store(StorerT &storer) const {
   STORE_FLAG(has_privacy_rules);
   STORE_FLAG(has_content);
   STORE_FLAG(has_caption);
+  STORE_FLAG(is_for_contacts_);
+  STORE_FLAG(is_for_selected_contacts_);
   END_STORE_FLAGS();
   store(date_, storer);
   store(expire_date_, storer);
@@ -783,6 +785,8 @@ void StoryManager::Story::parse(ParserT &parser) {
   PARSE_FLAG(has_privacy_rules);
   PARSE_FLAG(has_content);
   PARSE_FLAG(has_caption);
+  PARSE_FLAG(is_for_contacts_);
+  PARSE_FLAG(is_for_selected_contacts_);
   END_PARSE_FLAGS();
   parse(date_, parser);
   parse(expire_date_, parser);
@@ -2278,8 +2282,15 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
     privacy_settings = td_api::make_object<td_api::storyPrivacySettingsEveryone>();
   } else if (story->is_for_close_friends_) {
     privacy_settings = td_api::make_object<td_api::storyPrivacySettingsCloseFriends>();
-  } else if (is_owned) {
+  } else {
     privacy_settings = story->privacy_rules_.get_story_privacy_settings_object(td_);
+    if (privacy_settings == nullptr) {
+      if (story->is_for_contacts_) {
+        privacy_settings = td_api::make_object<td_api::storyPrivacySettingsContacts>();
+      } else {
+        privacy_settings = td_api::make_object<td_api::storyPrivacySettingsSelectedContacts>();
+      }
+    }
   }
 
   bool is_being_edited = false;
@@ -2494,12 +2505,16 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
 
   if (story->is_edited_ != story_item->edited_ || story->is_pinned_ != story_item->pinned_ ||
       story->is_public_ != story_item->public_ || story->is_for_close_friends_ != story_item->close_friends_ ||
+      story->is_for_contacts_ != story_item->contacts_ ||
+      story->is_for_selected_contacts_ != story_item->selected_contacts_ ||
       story->noforwards_ != story_item->noforwards_ || story->date_ != story_item->date_ ||
       story->expire_date_ != story_item->expire_date_) {
     story->is_edited_ = story_item->edited_;
     story->is_pinned_ = story_item->pinned_;
     story->is_public_ = story_item->public_;
     story->is_for_close_friends_ = story_item->close_friends_;
+    story->is_for_contacts_ = story_item->contacts_;
+    story->is_for_selected_contacts_ = story_item->selected_contacts_;
     story->noforwards_ = story_item->noforwards_;
     story->date_ = story_item->date_;
     story->expire_date_ = story_item->expire_date_;
