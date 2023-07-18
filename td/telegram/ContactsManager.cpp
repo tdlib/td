@@ -3790,6 +3790,29 @@ class GetSupportUserQuery final : public Td::ResultHandler {
   }
 };
 
+class GetStoriesMaxIdsQuery final : public Td::ResultHandler {
+  vector<UserId> user_ids_;
+
+ public:
+  void send(vector<UserId> user_ids, vector<telegram_api::object_ptr<telegram_api::InputUser>> &&input_users) {
+    user_ids_ = std::move(user_ids);
+    send_query(G()->net_query_creator().create(telegram_api::users_getStoriesMaxIDs(std::move(input_users))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::users_getStoriesMaxIDs>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    td_->contacts_manager_->on_get_user_max_active_story_ids(user_ids_, result_ptr.move_as_ok());
+  }
+
+  void on_error(Status status) final {
+    td_->contacts_manager_->on_get_user_max_active_story_ids(user_ids_, Auto());
+  }
+};
+
 tl_object_ptr<td_api::dateRange> ContactsManager::convert_date_range(
     const tl_object_ptr<telegram_api::statsDateRangeDays> &obj) {
   return make_tl_object<td_api::dateRange>(obj->min_date_, obj->max_date_);
@@ -14630,6 +14653,14 @@ void ContactsManager::on_get_channel_participants(
     }
   }
 
+  vector<UserId> participant_user_ids;
+  for (const auto &participant : result) {
+    if (participant.dialog_id_.get_type() == DialogType::User) {
+      participant_user_ids.push_back(participant.dialog_id_.get_user_id());
+    }
+  }
+  on_view_user_active_stories(std::move(participant_user_ids));
+
   promise.set_value(DialogParticipants{total_count, std::move(result)});
 }
 
@@ -15388,6 +15419,66 @@ bool ContactsManager::update_permanent_invite_link(DialogInviteLink &invite_link
 void ContactsManager::invalidate_invite_link_info(const string &invite_link) {
   LOG(INFO) << "Invalidate info about invite link " << invite_link;
   invite_link_infos_.erase(invite_link);
+}
+
+void ContactsManager::on_view_user_active_stories(vector<UserId> user_ids) {
+  if (user_ids.empty()) {
+    return;
+  }
+  LOG(DEBUG) << "View active stories of " << user_ids;
+
+  const size_t MAX_SLICE_SIZE = 100;  // server side limit
+  vector<UserId> input_user_ids;
+  vector<telegram_api::object_ptr<telegram_api::InputUser>> input_users;
+  for (auto &user_id : user_ids) {
+    User *u = get_user(user_id);
+    if (u == nullptr || user_id == get_my_id() || is_user_contact(u, user_id, false) || is_user_bot(u) ||
+        is_user_support(u) || is_user_deleted(u) || u->was_online == 0 ||
+        Time::now() < u->max_active_story_id_next_reload_time || u->is_max_active_story_id_being_reloaded) {
+      continue;
+    }
+    auto r_input_user = get_input_user(user_id);
+    if (r_input_user.is_error() || td::contains(input_user_ids, user_id)) {
+      continue;
+    }
+    u->is_max_active_story_id_being_reloaded = true;
+    input_user_ids.push_back(user_id);
+    input_users.push_back(r_input_user.move_as_ok());
+    if (input_users.size() == MAX_SLICE_SIZE) {
+      td_->create_handler<GetStoriesMaxIdsQuery>()->send(std::move(input_user_ids), std::move(input_users));
+      input_user_ids.clear();
+      input_users.clear();
+    }
+  }
+  if (!input_users.empty()) {
+    td_->create_handler<GetStoriesMaxIdsQuery>()->send(std::move(input_user_ids), std::move(input_users));
+  }
+}
+
+void ContactsManager::on_get_user_max_active_story_ids(const vector<UserId> &user_ids,
+                                                       const vector<int32> &max_story_ids) {
+  for (auto &user_id : user_ids) {
+    User *u = get_user(user_id);
+    CHECK(u != nullptr);
+    CHECK(u->is_max_active_story_id_being_reloaded);
+    u->is_max_active_story_id_being_reloaded = false;
+  }
+  if (user_ids.size() != max_story_ids.size()) {
+    if (!max_story_ids.empty()) {
+      LOG(ERROR) << "Receive " << max_story_ids.size() << " max active story identifiers for users " << user_ids;
+    }
+    return;
+  }
+  for (size_t i = 0; i < user_ids.size(); i++) {
+    auto max_story_id = StoryId(max_story_ids[i]);
+    if (max_story_id == StoryId()) {
+      on_update_user_has_stories(user_ids[i], false, StoryId(), StoryId());
+    } else if (max_story_id.is_server()) {
+      on_update_user_has_stories(user_ids[i], true, max_story_id, StoryId());
+    } else {
+      LOG(ERROR) << "Receive " << max_story_id << " as maximum active story for " << user_ids[i];
+    }
+  }
 }
 
 void ContactsManager::repair_chat_participants(ChatId chat_id) {
@@ -16720,6 +16811,7 @@ void ContactsManager::load_user_full(UserId user_id, bool force, Promise<Unit> &
     send_get_user_full_query(user_id, std::move(input_user), Auto(), "load expired user_full");
   }
 
+  on_view_user_active_stories({user_id});
   promise.set_value(Unit());
 }
 
@@ -17108,6 +17200,14 @@ void ContactsManager::load_chat_full(ChatId chat_id, bool force, Promise<Unit> &
 
     send_get_chat_full_query(chat_id, Auto(), source);
   }
+
+  vector<UserId> participant_user_ids;
+  for (const auto &dialog_participant : chat_full->participants) {
+    if (dialog_participant.dialog_id_.get_type() == DialogType::User) {
+      participant_user_ids.push_back(dialog_participant.dialog_id_.get_user_id());
+    }
+  }
+  on_view_user_active_stories(std::move(participant_user_ids));
 
   promise.set_value(Unit());
 }
@@ -18022,12 +18122,18 @@ void ContactsManager::do_search_chat_participants(ChatId chat_id, const string &
     return promise.set_error(Status::Error(500, "Can't find basic group full info"));
   }
 
+  vector<UserId> participant_user_ids;
   vector<DialogId> dialog_ids;
   for (const auto &participant : chat_full->participants) {
     if (filter.is_dialog_participant_suitable(td_, participant)) {
       dialog_ids.push_back(participant.dialog_id_);
+      if (participant.dialog_id_.get_type() == DialogType::User) {
+        participant_user_ids.push_back(participant.dialog_id_.get_user_id());
+      }
     }
   }
+
+  on_view_user_active_stories(std::move(participant_user_ids));
 
   int32 total_count;
   std::tie(total_count, dialog_ids) = search_among_dialogs(dialog_ids, query, limit);
@@ -19102,8 +19208,8 @@ tl_object_ptr<td_api::basicGroupFullInfo> ContactsManager::get_basic_group_full_
   auto bot_commands = transform(chat_full->bot_commands, [td = td_](const BotCommands &commands) {
     return commands.get_bot_commands_object(td);
   });
-  auto members = transform(chat_full->participants, [this](const DialogParticipant &chat_participant) {
-    return get_chat_member_object(chat_participant);
+  auto members = transform(chat_full->participants, [this](const DialogParticipant &dialog_participant) {
+    return get_chat_member_object(dialog_participant);
   });
   return make_tl_object<td_api::basicGroupFullInfo>(
       get_chat_photo_object(td_->file_manager_.get(), chat_full->photo), chat_full->description,

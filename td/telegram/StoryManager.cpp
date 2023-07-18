@@ -2110,6 +2110,7 @@ void StoryManager::get_story_viewers(StoryId story_id, const td_api::messageView
     if (!result.is_empty()) {
       // can return the viewers
       // don't need to reget the viewers, because story->interaction_info_.get_view_count() is updated every 10 seconds
+      td_->contacts_manager_->on_view_user_active_stories(result.get_user_ids());
       return promise.set_value(result.get_message_viewers_object(td_->contacts_manager_.get()));
     }
   }
@@ -2171,6 +2172,7 @@ void StoryManager::on_get_story_viewers(
     cached_viewers->viewers_.add_sublist(offset, story_viewers);
   }
 
+  td_->contacts_manager_->on_view_user_active_stories(story_viewers.get_user_ids());
   promise.set_value(story_viewers.get_message_viewers_object(td_->contacts_manager_.get()));
 }
 

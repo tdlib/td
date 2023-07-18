@@ -19949,6 +19949,10 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
                                       (dialog_type == DialogType::User || dialog_type == DialogType::SecretChat) &&
                                       can_send_message(dialog_id).is_ok();
 
+  if (source == MessageSource::DialogList && dialog_type == DialogType::User) {
+    td_->contacts_manager_->on_view_user_active_stories({dialog_id.get_user_id()});
+  }
+
   // keep only valid message identifiers
   size_t pos = 0;
   for (auto message_id : message_ids) {
@@ -20490,6 +20494,7 @@ void MessagesManager::open_dialog(Dialog *d) {
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
+      td_->contacts_manager_->on_view_user_active_stories({dialog_id.get_user_id()});
       break;
     case DialogType::Chat:
       td_->contacts_manager_->repair_chat_participants(dialog_id.get_chat_id());
