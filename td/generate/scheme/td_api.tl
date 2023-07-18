@@ -4489,16 +4489,28 @@ jsonValueArray values:vector<JsonValue> = JsonValue;
 jsonValueObject members:vector<jsonObjectMember> = JsonValue;
 
 
-//@class UserPrivacySettingRule @description Represents a single rule for managing privacy settings
+//@class StoryPrivacySettings @description Describes privacy settings of a story
+
+//@description The story can be viewed by everyone
+storyPrivacySettingsEveryone = StoryPrivacySettings;
+
+//@description The story can be viewed by all contacts except chosen users @except_user_ids User identifiers of the contacts that can't see the story
+storyPrivacySettingsContacts except_user_ids:vector<int53> = StoryPrivacySettings;
+
+//@description The story can be viewed by all close friends
+storyPrivacySettingsCloseFriends = StoryPrivacySettings;
+
+//@description The story can be viewed by certain specified users @user_ids Identifiers of the users
+storyPrivacySettingsSelectedContacts user_ids:vector<int53> = StoryPrivacySettings;
+
+
+//@class UserPrivacySettingRule @description Represents a single rule for managing user privacy settings
 
 //@description A rule to allow all users to do something
 userPrivacySettingRuleAllowAll = UserPrivacySettingRule;
 
 //@description A rule to allow all contacts of the user to do something
 userPrivacySettingRuleAllowContacts = UserPrivacySettingRule;
-
-//@description A rule to allow all close friends of the user to do something
-userPrivacySettingRuleAllowCloseFriends = UserPrivacySettingRule;
 
 //@description A rule to allow certain specified users to do something @user_ids The user identifiers, total number of users in all rules must not exceed 1000
 userPrivacySettingRuleAllowUsers user_ids:vector<int53> = UserPrivacySettingRule;
@@ -4520,6 +4532,7 @@ userPrivacySettingRuleRestrictChatMembers chat_ids:vector<int53> = UserPrivacySe
 
 //@description A list of privacy rules. Rules are matched in the specified order. The first matched rule defines the privacy setting for a given user. If no rule matches, the action is not allowed @rules A list of rules
 userPrivacySettingRules rules:vector<UserPrivacySettingRule> = UserPrivacySettingRules;
+
 
 //@class UserPrivacySetting @description Describes available user privacy settings
 
@@ -4955,10 +4968,10 @@ storyInteractionInfo view_count:int32 recent_viewer_user_ids:vector<int53> = Sto
 //@can_get_viewers True, if users viewed the story can be received through getStoryViewers
 //@has_expired_viewers True, if users viewed the story can't be received, because the story has expired more than getOption("story_viewers_expiration_delay") seconds ago
 //@interaction_info Information about interactions with the story; may be null if the story isn't owned or there were no interactions
-//@privacy_rules Privacy rules affecting story visibility; may be null if the story isn't owned
+//@privacy_settings Privacy rules affecting story visibility; may be null if the story isn't owned
 //@content Content of the story
 //@caption Caption of the story
-story id:int32 sender_chat_id:int53 date:int32 is_being_edited:Bool is_edited:Bool is_pinned:Bool is_visible_only_for_self:Bool can_be_forwarded:Bool can_be_replied:Bool can_get_viewers:Bool has_expired_viewers:Bool interaction_info:storyInteractionInfo privacy_rules:userPrivacySettingRules content:StoryContent caption:formattedText = Story;
+story id:int32 sender_chat_id:int53 date:int32 is_being_edited:Bool is_edited:Bool is_pinned:Bool is_visible_only_for_self:Bool can_be_forwarded:Bool can_be_replied:Bool can_get_viewers:Bool has_expired_viewers:Bool interaction_info:storyInteractionInfo privacy_settings:StoryPrivacySettings content:StoryContent caption:formattedText = Story;
 
 //@description Represents a list of stories @total_count Approximate total number of stories found @stories The list of stories
 stories total_count:int32 stories:vector<story> = Stories;
@@ -7293,11 +7306,11 @@ getStory story_sender_chat_id:int53 story_id:int32 only_local:Bool = Story;
 //@description Sends a new story. Returns a temporary story with identifier 0
 //@content Content of the story
 //@caption Story caption; pass null to use an empty caption; 0-getOption("story_caption_length_max") characters
-//@privacy_rules The privacy rules for the story
+//@privacy_settings The privacy settings for the story
 //@active_period Period after which the story is moved to archive, in seconds; must be one of 6 * 3600, 12 * 3600, 86400, 2 * 86400, 3 * 86400, or 7 * 86400 for Telegram Premium users, and 86400 otherwise
 //@is_pinned Pass true to keep the story accessible after expiration
 //@protect_content Pass true if the content of the story must be protected from forwarding and screenshotting
-sendStory content:InputStoryContent caption:formattedText privacy_rules:userPrivacySettingRules active_period:int32 is_pinned:Bool protect_content:Bool = Story;
+sendStory content:InputStoryContent caption:formattedText privacy_settings:StoryPrivacySettings active_period:int32 is_pinned:Bool protect_content:Bool = Story;
 
 //@description Changes content and caption of a previously sent story
 //@story_id Identifier of the story to edit
@@ -7305,8 +7318,8 @@ sendStory content:InputStoryContent caption:formattedText privacy_rules:userPriv
 //@caption New story caption; pass null to keep the current caption
 editStory story_id:int32 content:InputStoryContent caption:formattedText = Ok;
 
-//@description Changes privacy rules of a previously sent story @story_id Identifier of the story @privacy_rules The new privacy rules for the story
-setStoryPrivacyRules story_id:int32 privacy_rules:userPrivacySettingRules = Ok;
+//@description Changes privacy settings of a previously sent story @story_id Identifier of the story @privacy_settings The new privacy settigs for the story
+setStoryPrivacySettings story_id:int32 privacy_settings:StoryPrivacySettings = Ok;
 
 //@description Toggles whether a story is accessible after expiration @story_id Identifier of the story @is_pinned Pass true to make the story accessible after expiration; pass false to make it private
 toggleStoryIsPinned story_id:int32 is_pinned:Bool = Ok;

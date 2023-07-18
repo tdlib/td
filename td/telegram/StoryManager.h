@@ -195,7 +195,7 @@ class StoryManager final : public Actor {
 
   void send_story(td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,
                   td_api::object_ptr<td_api::formattedText> &&input_caption,
-                  td_api::object_ptr<td_api::userPrivacySettingRules> &&rules, int32 active_period, bool is_pinned,
+                  td_api::object_ptr<td_api::StoryPrivacySettings> &&settings, int32 active_period, bool is_pinned,
                   bool protect_content, Promise<td_api::object_ptr<td_api::story>> &&promise);
 
   void on_send_story_file_parts_missing(unique_ptr<PendingStory> &&pending_story, vector<int> &&bad_parts);
@@ -203,8 +203,8 @@ class StoryManager final : public Actor {
   void edit_story(StoryId story_id, td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,
                   td_api::object_ptr<td_api::formattedText> &&input_caption, Promise<Unit> &&promise);
 
-  void set_story_privacy_rules(StoryId story_id, td_api::object_ptr<td_api::userPrivacySettingRules> &&rules,
-                               Promise<Unit> &&promise);
+  void set_story_privacy_settings(StoryId story_id, td_api::object_ptr<td_api::StoryPrivacySettings> &&settings,
+                                  Promise<Unit> &&promise);
 
   void toggle_story_is_pinned(StoryId story_id, bool is_pinned, Promise<Unit> &&promise);
 

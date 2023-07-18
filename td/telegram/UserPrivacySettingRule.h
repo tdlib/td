@@ -88,6 +88,8 @@ class UserPrivacySettingRule {
     RestrictChatParticipants
   } type_ = Type::RestrictAll;
 
+  friend class UserPrivacySettingRules;
+
   vector<UserId> user_ids_;
   vector<DialogId> dialog_ids_;
 
@@ -113,7 +115,12 @@ class UserPrivacySettingRules {
   static Result<UserPrivacySettingRules> get_user_privacy_setting_rules(
       Td *td, td_api::object_ptr<td_api::userPrivacySettingRules> rules);
 
+  static Result<UserPrivacySettingRules> get_user_privacy_setting_rules(
+      Td *td, td_api::object_ptr<td_api::StoryPrivacySettings> settings);
+
   td_api::object_ptr<td_api::userPrivacySettingRules> get_user_privacy_setting_rules_object(Td *td) const;
+
+  td_api::object_ptr<td_api::StoryPrivacySettings> get_story_privacy_settings_object(Td *td) const;
 
   vector<telegram_api::object_ptr<telegram_api::InputPrivacyRule>> get_input_privacy_rules(Td *td) const;
 

@@ -1127,8 +1127,6 @@ class CliClient final : public Actor {
           rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleAllowContacts>());
         } else if (rules_str[i] == 'C') {
           rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleRestrictContacts>());
-        } else if (rules_str[i] == 'f') {
-          rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleAllowCloseFriends>());
         } else if (rules_str[i] == 'u') {
           rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleAllowUsers>(std::move(arg)));
         } else if (rules_str[i] == 'U') {
@@ -1151,6 +1149,33 @@ class CliClient final : public Actor {
     if (arg.rules_str.empty()) {
       arg.rules_str = "a";
     }
+  }
+
+  struct StoryPrivacySettings {
+    string settings;
+
+    operator td_api::object_ptr<td_api::StoryPrivacySettings>() const {
+      if (settings == "a" || settings == "e") {
+        return td_api::make_object<td_api::storyPrivacySettingsEveryone>();
+      }
+      if (settings == "f" || settings == "cf") {
+        return td_api::make_object<td_api::storyPrivacySettingsCloseFriends>();
+      }
+      if (!settings.empty()) {
+        auto user_ids = to_integers<int64>(Slice(settings).substr(1));
+        if (settings[0] == 'c') {
+          return td_api::make_object<td_api::storyPrivacySettingsContacts>(std::move(user_ids));
+        }
+        if (settings[0] == 'u') {
+          return td_api::make_object<td_api::storyPrivacySettingsSelectedContacts>(std::move(user_ids));
+        }
+      }
+      return td_api::make_object<td_api::storyPrivacySettingsContacts>();
+    }
+  };
+
+  void get_args(string &args, StoryPrivacySettings &arg) const {
+    arg.settings = trim(args);
   }
 
   template <class FirstType, class SecondType, class... Types>
@@ -3990,7 +4015,7 @@ class CliClient final : public Actor {
     } else if (op == "ssp" || op == "sspp") {
       string photo;
       string caption;
-      PrivacyRules rules;
+      StoryPrivacySettings rules;
       int32 active_period;
       string sticker_file_ids;
       bool protect_content;
@@ -4002,7 +4027,7 @@ class CliClient final : public Actor {
     } else if (op == "ssv" || op == "ssvp") {
       string video;
       string caption;
-      PrivacyRules rules;
+      StoryPrivacySettings rules;
       int32 active_period;
       double duration;
       string sticker_file_ids;
@@ -4040,11 +4065,11 @@ class CliClient final : public Actor {
           td_api::make_object<td_api::inputStoryContentVideo>(as_input_file(video),
                                                               to_integers<int32>(sticker_file_ids), duration, false),
           as_caption(caption)));
-    } else if (op == "sspr") {
+    } else if (op == "ssps") {
       StoryId story_id;
-      PrivacyRules rules;
+      StoryPrivacySettings rules;
       get_args(args, story_id, rules);
-      send_request(td_api::make_object<td_api::setStoryPrivacyRules>(story_id, rules));
+      send_request(td_api::make_object<td_api::setStoryPrivacySettings>(story_id, rules));
     } else if (op == "tsip") {
       StoryId story_id;
       bool is_pinned;

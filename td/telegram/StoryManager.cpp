@@ -2273,16 +2273,13 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
     return nullptr;
   }
 
-  td_api::object_ptr<td_api::userPrivacySettingRules> privacy_rules;
-  if (story->is_public_ || story->is_for_close_friends_) {
-    privacy_rules = td_api::make_object<td_api::userPrivacySettingRules>();
-    if (story->is_public_) {
-      privacy_rules->rules_.push_back(td_api::make_object<td_api::userPrivacySettingRuleAllowAll>());
-    } else {
-      privacy_rules->rules_.push_back(td_api::make_object<td_api::userPrivacySettingRuleAllowCloseFriends>());
-    }
+  td_api::object_ptr<td_api::StoryPrivacySettings> privacy_settings;
+  if (story->is_public_) {
+    privacy_settings = td_api::make_object<td_api::storyPrivacySettingsEveryone>();
+  } else if (story->is_for_close_friends_) {
+    privacy_settings = td_api::make_object<td_api::storyPrivacySettingsCloseFriends>();
   } else if (is_owned) {
-    privacy_rules = story->privacy_rules_.get_user_privacy_setting_rules_object(td_);
+    privacy_settings = story->privacy_rules_.get_story_privacy_settings_object(td_);
   }
 
   bool is_being_edited = false;
@@ -2307,9 +2304,8 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
   auto changelog_dialog_id = get_changelog_story_dialog_id();
   bool is_visible_only_for_self =
       !story_id.is_server() || dialog_id == changelog_dialog_id || (!story->is_pinned_ && !is_active_story(story));
-  bool can_be_forwarded = !story->noforwards_ && story_id.is_server() && privacy_rules != nullptr &&
-                          privacy_rules->rules_.size() == 1u &&
-                          privacy_rules->rules_[0]->get_id() == td_api::userPrivacySettingRuleAllowAll::ID;
+  bool can_be_forwarded = !story->noforwards_ && story_id.is_server() && privacy_settings != nullptr &&
+                          privacy_settings->get_id() == td_api::storyPrivacySettingsEveryone::ID;
   bool can_be_replied = story_id.is_server() && dialog_id != changelog_dialog_id;
   bool can_get_viewers = can_get_story_viewers(story_full_id, story).is_ok();
   bool has_expired_viewers = !can_get_viewers && is_story_owned(dialog_id) && story_id.is_server();
@@ -2320,7 +2316,7 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
       story_id.get(), td_->messages_manager_->get_chat_id_object(dialog_id, "get_story_object"), story->date_,
       is_being_edited, is_edited, story->is_pinned_, is_visible_only_for_self, can_be_forwarded, can_be_replied,
       can_get_viewers, has_expired_viewers, story->interaction_info_.get_story_interaction_info_object(td_),
-      std::move(privacy_rules), get_story_content_object(td_, content),
+      std::move(privacy_settings), get_story_content_object(td_, content),
       get_formatted_text_object(*caption, true, get_story_content_duration(td_, content)));
 }
 
@@ -3286,7 +3282,7 @@ void StoryManager::do_get_story(StoryFullId story_full_id, Result<Unit> &&result
 
 void StoryManager::send_story(td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,
                               td_api::object_ptr<td_api::formattedText> &&input_caption,
-                              td_api::object_ptr<td_api::userPrivacySettingRules> &&rules, int32 active_period,
+                              td_api::object_ptr<td_api::StoryPrivacySettings> &&settings, int32 active_period,
                               bool is_pinned, bool protect_content,
                               Promise<td_api::object_ptr<td_api::story>> &&promise) {
   bool is_bot = td_->auth_manager_->is_bot();
@@ -3295,7 +3291,7 @@ void StoryManager::send_story(td_api::object_ptr<td_api::InputStoryContent> &&in
   TRY_RESULT_PROMISE(promise, caption,
                      get_formatted_text(td_, DialogId(), std::move(input_caption), is_bot, true, false, false));
   TRY_RESULT_PROMISE(promise, privacy_rules,
-                     UserPrivacySettingRules::get_user_privacy_setting_rules(td_, std::move(rules)));
+                     UserPrivacySettingRules::get_user_privacy_setting_rules(td_, std::move(settings)));
   if (active_period != 86400 && !(G()->is_test_dc() && (active_period == 60 || active_period == 300))) {
     bool is_premium = td_->option_manager_->get_option_boolean("is_premium");
     if (!is_premium ||
@@ -3659,16 +3655,16 @@ void StoryManager::delete_pending_story(FileId file_id, unique_ptr<PendingStory>
   }
 }
 
-void StoryManager::set_story_privacy_rules(StoryId story_id,
-                                           td_api::object_ptr<td_api::userPrivacySettingRules> &&rules,
-                                           Promise<Unit> &&promise) {
+void StoryManager::set_story_privacy_settings(StoryId story_id,
+                                              td_api::object_ptr<td_api::StoryPrivacySettings> &&settings,
+                                              Promise<Unit> &&promise) {
   DialogId dialog_id(td_->contacts_manager_->get_my_id());
   const Story *story = get_story({dialog_id, story_id});
   if (story == nullptr || story->content_ == nullptr) {
     return promise.set_error(Status::Error(400, "Story not found"));
   }
   TRY_RESULT_PROMISE(promise, privacy_rules,
-                     UserPrivacySettingRules::get_user_privacy_setting_rules(td_, std::move(rules)));
+                     UserPrivacySettingRules::get_user_privacy_setting_rules(td_, std::move(settings)));
   td_->create_handler<EditStoryPrivacyQuery>(std::move(promise))->send(dialog_id, story_id, std::move(privacy_rules));
 }
 

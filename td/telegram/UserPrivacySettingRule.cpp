@@ -53,9 +53,6 @@ UserPrivacySettingRule::UserPrivacySettingRule(Td *td, const td_api::UserPrivacy
     case td_api::userPrivacySettingRuleAllowContacts::ID:
       type_ = Type::AllowContacts;
       break;
-    case td_api::userPrivacySettingRuleAllowCloseFriends::ID:
-      type_ = Type::AllowCloseFriends;
-      break;
     case td_api::userPrivacySettingRuleAllowAll::ID:
       type_ = Type::AllowAll;
       break;
@@ -160,7 +157,8 @@ td_api::object_ptr<td_api::UserPrivacySettingRule> UserPrivacySettingRule::get_u
     case Type::AllowContacts:
       return make_tl_object<td_api::userPrivacySettingRuleAllowContacts>();
     case Type::AllowCloseFriends:
-      return make_tl_object<td_api::userPrivacySettingRuleAllowCloseFriends>();
+      LOG(ERROR) << "Have AllowCloseFriends rule";
+      return make_tl_object<td_api::userPrivacySettingRuleAllowUsers>();
     case Type::AllowAll:
       return make_tl_object<td_api::userPrivacySettingRuleAllowAll>();
     case Type::AllowUsers:
@@ -269,8 +267,7 @@ UserPrivacySettingRules UserPrivacySettingRules::get_user_privacy_setting_rules(
   for (auto &rule : rules) {
     result.rules_.push_back(UserPrivacySettingRule(td, std::move(rule)));
   }
-  if (!result.rules_.empty() && result.rules_.back().get_user_privacy_setting_rule_object(td)->get_id() ==
-                                    td_api::userPrivacySettingRuleRestrictAll::ID) {
+  if (!result.rules_.empty() && result.rules_.back().type_ == UserPrivacySettingRule::Type::RestrictAll) {
     result.rules_.pop_back();
   }
   return result;
@@ -291,10 +288,68 @@ Result<UserPrivacySettingRules> UserPrivacySettingRules::get_user_privacy_settin
   return result;
 }
 
+Result<UserPrivacySettingRules> UserPrivacySettingRules::get_user_privacy_setting_rules(
+    Td *td, td_api::object_ptr<td_api::StoryPrivacySettings> settings) {
+  if (settings == nullptr) {
+    return Status::Error(400, "StoryPrivacySettings must be non-empty");
+  }
+  UserPrivacySettingRules result;
+  switch (settings->get_id()) {
+    case td_api::storyPrivacySettingsEveryone::ID:
+      result.rules_.emplace_back(td, td_api::userPrivacySettingRuleAllowAll());
+      break;
+    case td_api::storyPrivacySettingsContacts::ID: {
+      auto user_ids = std::move(static_cast<td_api::storyPrivacySettingsContacts &>(*settings).except_user_ids_);
+      if (!user_ids.empty()) {
+        result.rules_.emplace_back(td, td_api::userPrivacySettingRuleRestrictUsers(std::move(user_ids)));
+      }
+      result.rules_.emplace_back(td, td_api::userPrivacySettingRuleAllowContacts());
+      break;
+    }
+    case td_api::storyPrivacySettingsCloseFriends::ID: {
+      UserPrivacySettingRule rule;
+      rule.type_ = UserPrivacySettingRule::Type::AllowCloseFriends;
+      result.rules_.push_back(std::move(rule));
+      break;
+    }
+    case td_api::storyPrivacySettingsSelectedContacts::ID: {
+      auto user_ids = std::move(static_cast<td_api::storyPrivacySettingsSelectedContacts &>(*settings).user_ids_);
+      result.rules_.emplace_back(td, td_api::userPrivacySettingRuleAllowUsers(std::move(user_ids)));
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
+  return result;
+}
+
 td_api::object_ptr<td_api::userPrivacySettingRules> UserPrivacySettingRules::get_user_privacy_setting_rules_object(
     Td *td) const {
   return make_tl_object<td_api::userPrivacySettingRules>(
       transform(rules_, [td](const auto &rule) { return rule.get_user_privacy_setting_rule_object(td); }));
+}
+
+td_api::object_ptr<td_api::StoryPrivacySettings> UserPrivacySettingRules::get_story_privacy_settings_object(
+    Td *td) const {
+  if (rules_.size() == 1u && rules_[0].type_ == UserPrivacySettingRule::Type::AllowAll) {
+    return td_api::make_object<td_api::storyPrivacySettingsEveryone>();
+  }
+  if (rules_.size() == 1u && rules_[0].type_ == UserPrivacySettingRule::Type::AllowContacts) {
+    return td_api::make_object<td_api::storyPrivacySettingsContacts>();
+  }
+  if (rules_.size() == 2u && rules_[0].type_ == UserPrivacySettingRule::Type::RestrictUsers &&
+      rules_[1].type_ == UserPrivacySettingRule::Type::AllowContacts) {
+    return td_api::make_object<td_api::storyPrivacySettingsContacts>(
+        td->contacts_manager_->get_user_ids_object(rules_[0].user_ids_, "storyPrivacySettingsContacts"));
+  }
+  if (rules_.size() == 1u && rules_[0].type_ == UserPrivacySettingRule::Type::AllowCloseFriends) {
+    return td_api::make_object<td_api::storyPrivacySettingsCloseFriends>();
+  }
+  if (rules_.size() == 1u && rules_[0].type_ == UserPrivacySettingRule::Type::AllowUsers) {
+    return td_api::make_object<td_api::storyPrivacySettingsSelectedContacts>(
+        td->contacts_manager_->get_user_ids_object(rules_[0].user_ids_, "storyPrivacySettingsSelectedContacts"));
+  }
+  return td_api::make_object<td_api::storyPrivacySettingsSelectedContacts>();
 }
 
 vector<telegram_api::object_ptr<telegram_api::InputPrivacyRule>> UserPrivacySettingRules::get_input_privacy_rules(

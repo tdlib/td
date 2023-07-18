@@ -5635,7 +5635,7 @@ void Td::on_request(uint64 id, td_api::sendStory &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   story_manager_->send_story(std::move(request.content_), std::move(request.caption_),
-                             std::move(request.privacy_rules_), request.active_period_, request.is_pinned_,
+                             std::move(request.privacy_settings_), request.active_period_, request.is_pinned_,
                              request.protect_content_, std::move(promise));
 }
 
@@ -5646,11 +5646,11 @@ void Td::on_request(uint64 id, td_api::editStory &request) {
                              std::move(promise));
 }
 
-void Td::on_request(uint64 id, td_api::setStoryPrivacyRules &request) {
+void Td::on_request(uint64 id, td_api::setStoryPrivacySettings &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  story_manager_->set_story_privacy_rules(StoryId(request.story_id_), std::move(request.privacy_rules_),
-                                          std::move(promise));
+  story_manager_->set_story_privacy_settings(StoryId(request.story_id_), std::move(request.privacy_settings_),
+                                             std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::toggleStoryIsPinned &request) {
