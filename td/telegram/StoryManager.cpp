@@ -35,6 +35,8 @@
 #include "td/db/binlog/BinlogEvent.h"
 #include "td/db/binlog/BinlogHelper.h"
 
+#include "td/actor/MultiPromise.h"
+
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/format.h"
@@ -945,7 +947,7 @@ StoryManager::~StoryManager() {
   Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), story_full_id_to_file_source_id_, stories_,
                                               stories_by_global_id_, inaccessible_story_full_ids_,
                                               deleted_story_full_ids_, failed_to_load_story_full_ids_, story_messages_,
-                                              active_stories_, max_read_story_ids_);
+                                              active_stories_, max_read_story_ids_, failed_to_load_active_stories_);
 }
 
 void StoryManager::start_up() {

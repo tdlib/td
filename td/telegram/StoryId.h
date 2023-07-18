@@ -11,7 +11,6 @@
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tl_helpers.h"
 
-#include <limits>
 #include <type_traits>
 
 namespace td {

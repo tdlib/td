@@ -12,6 +12,8 @@
 #include "td/telegram/SuggestedAction.h"
 #include "td/telegram/Td.h"
 
+#include "td/actor/actor.h"
+
 #include "td/utils/buffer.h"
 #include "td/utils/Status.h"
 

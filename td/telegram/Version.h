@@ -66,11 +66,11 @@ enum class Version : int32 {
 };
 
 enum class DbVersion : int32 {
-  DialogDbCreated = 3,
-  MessageDbMediaIndex,
-  MessageDb30MediaIndex,
-  MessageDbFts,
-  MessagesCallIndex,
+  CreateDialogDb = 3,
+  AddMessageDbMediaIndex,
+  AddMessageDb30MediaIndex,
+  AddMessageDbFts,
+  AddMessagesCallIndex,
   FixFileRemoteLocationKeyBug,
   AddNotificationsSupport,
   AddFolders,

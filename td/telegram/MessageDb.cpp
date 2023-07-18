@@ -49,7 +49,7 @@ Status init_message_db(SqliteDb &db, int32 version) {
   TRY_RESULT(has_table, db.has_table("messages"));
   if (!has_table) {
     version = 0;
-  } else if (version < static_cast<int32>(DbVersion::DialogDbCreated) || version > current_db_version()) {
+  } else if (version < static_cast<int32>(DbVersion::CreateDialogDb) || version > current_db_version()) {
     TRY_STATUS(drop_message_db(db, version));
     version = 0;
   }
@@ -142,19 +142,19 @@ Status init_message_db(SqliteDb &db, int32 version) {
 
     version = current_db_version();
   }
-  if (version < static_cast<int32>(DbVersion::MessageDbMediaIndex)) {
+  if (version < static_cast<int32>(DbVersion::AddMessageDbMediaIndex)) {
     TRY_STATUS(db.exec("ALTER TABLE messages ADD COLUMN index_mask INT4"));
     TRY_STATUS(add_media_indices(0, MESSAGE_DB_INDEX_COUNT_OLD));
   }
-  if (version < static_cast<int32>(DbVersion::MessageDb30MediaIndex)) {
+  if (version < static_cast<int32>(DbVersion::AddMessageDb30MediaIndex)) {
     TRY_STATUS(add_media_indices(MESSAGE_DB_INDEX_COUNT_OLD, MESSAGE_DB_INDEX_COUNT));
   }
-  if (version < static_cast<int32>(DbVersion::MessageDbFts)) {
+  if (version < static_cast<int32>(DbVersion::AddMessageDbFts)) {
     TRY_STATUS(db.exec("ALTER TABLE messages ADD COLUMN search_id INT8"));
     TRY_STATUS(db.exec("ALTER TABLE messages ADD COLUMN text STRING"));
     TRY_STATUS(add_fts());
   }
-  if (version < static_cast<int32>(DbVersion::MessagesCallIndex)) {
+  if (version < static_cast<int32>(DbVersion::AddMessagesCallIndex)) {
     TRY_STATUS(add_call_index());
   }
   if (version < static_cast<int32>(DbVersion::AddNotificationsSupport)) {

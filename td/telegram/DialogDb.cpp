@@ -36,7 +36,7 @@ Status init_dialog_db(SqliteDb &db, int32 version, KeyValueSyncInterface &binlog
     version = 0;
   }
 
-  if (version < static_cast<int32>(DbVersion::DialogDbCreated) || version > current_db_version()) {
+  if (version < static_cast<int32>(DbVersion::CreateDialogDb) || version > current_db_version()) {
     TRY_STATUS(drop_dialog_db(db, version));
     version = 0;
   }
@@ -104,7 +104,7 @@ Status init_dialog_db(SqliteDb &db, int32 version, KeyValueSyncInterface &binlog
 
 // NB: must happen inside a transaction
 Status drop_dialog_db(SqliteDb &db, int version) {
-  if (version < static_cast<int32>(DbVersion::DialogDbCreated)) {
+  if (version < static_cast<int32>(DbVersion::CreateDialogDb)) {
     if (version != 0) {
       LOG(WARNING) << "Drop old pmc dialog_db";
     }

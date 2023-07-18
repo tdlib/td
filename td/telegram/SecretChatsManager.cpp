@@ -15,6 +15,7 @@
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
+#include "td/telegram/SecretChatDb.h"
 #include "td/telegram/SequenceDispatcher.h"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/TdDb.h"
