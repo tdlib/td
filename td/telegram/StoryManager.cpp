@@ -1344,11 +1344,13 @@ void StoryManager::load_active_stories(StoryListId story_list_id, Promise<Unit> 
   }
 
   if (!story_list.server_has_more_) {
-    auto min_story_date = story_list.list_last_story_date_;
-    story_list.list_last_story_date_ = MAX_DIALOG_DATE;
-    for (auto it = story_list.ordered_stories_.upper_bound(min_story_date); it != story_list.ordered_stories_.end();
-         ++it) {
-      on_dialog_active_stories_order_updated(it->get_dialog_id(), "load_active_stories");
+    if (story_list.list_last_story_date_ != MAX_DIALOG_DATE) {
+      auto min_story_date = story_list.list_last_story_date_;
+      story_list.list_last_story_date_ = MAX_DIALOG_DATE;
+      for (auto it = story_list.ordered_stories_.upper_bound(min_story_date); it != story_list.ordered_stories_.end();
+           ++it) {
+        on_dialog_active_stories_order_updated(it->get_dialog_id(), "load_active_stories");
+      }
     }
     return promise.set_error(Status::Error(404, "Not found"));
   }
@@ -1392,18 +1394,20 @@ void StoryManager::on_load_active_stories_from_database(StoryListId story_list_i
     if (story_list.last_loaded_database_dialog_date_ < max_story_date) {
       story_list.last_loaded_database_dialog_date_ = max_story_date;
 
-      auto min_story_date = story_list.list_last_story_date_;
-      story_list.list_last_story_date_ = max_story_date;
-      auto &owner_dialog_ids = dependencies.get_dialog_ids();
-      for (auto it = story_list.ordered_stories_.upper_bound(min_story_date);
-           it != story_list.ordered_stories_.end() && *it <= max_story_date; ++it) {
-        auto dialog_id = it->get_dialog_id();
-        if (owner_dialog_ids.count(dialog_id) == 0) {
-          on_dialog_active_stories_order_updated(dialog_id, "on_load_active_stories_from_database 1");
+      if (story_list.list_last_story_date_ < max_story_date) {
+        auto min_story_date = story_list.list_last_story_date_;
+        story_list.list_last_story_date_ = max_story_date;
+        const auto &owner_dialog_ids = dependencies.get_dialog_ids();
+        for (auto it = story_list.ordered_stories_.upper_bound(min_story_date);
+             it != story_list.ordered_stories_.end() && *it <= max_story_date; ++it) {
+          auto dialog_id = it->get_dialog_id();
+          if (owner_dialog_ids.count(dialog_id) == 0) {
+            on_dialog_active_stories_order_updated(dialog_id, "on_load_active_stories_from_database 1");
+          }
         }
-      }
-      for (auto owner_dialog_id : owner_dialog_ids) {
-        on_dialog_active_stories_order_updated(owner_dialog_id, "on_load_active_stories_from_database 2");
+        for (auto owner_dialog_id : owner_dialog_ids) {
+          on_dialog_active_stories_order_updated(owner_dialog_id, "on_load_active_stories_from_database 2");
+        }
       }
     } else {
       LOG(ERROR) << "Last database story date didn't increase";
