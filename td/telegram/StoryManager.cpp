@@ -2900,10 +2900,6 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
   }
   failed_to_load_active_stories_.erase(owner_dialog_id);
 
-  if (owner_dialog_id == DialogId(td_->contacts_manager_->get_my_id())) {
-    max_read_story_id = StoryId::max();
-  }
-
   auto &active_stories = active_stories_[owner_dialog_id];
   if (active_stories == nullptr) {
     LOG(INFO) << "Create active stories for " << owner_dialog_id;

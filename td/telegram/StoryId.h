@@ -27,10 +27,6 @@ class StoryId {
   template <class T, typename = std::enable_if_t<std::is_convertible<T, int32>::value>>
   StoryId(T story_id) = delete;
 
-  static constexpr StoryId max() {
-    return StoryId(std::numeric_limits<int32>::max());
-  }
-
   static vector<int32> get_input_story_ids(const vector<StoryId> &story_ids) {
     vector<int32> input_story_ids;
     input_story_ids.reserve(story_ids.size());
