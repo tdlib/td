@@ -1209,7 +1209,7 @@ void Session::connection_open(ConnectionInfo *info, double now, bool ask_info) {
   // NB: rely on constant location of info
   auto promise = PromiseCreator::cancellable_lambda(
       info->cancellation_token_source_.get_cancellation_token(),
-      [actor_id = actor_id(this), info = info](Result<unique_ptr<mtproto::RawConnection>> res) {
+      [actor_id = actor_id(this), info](Result<unique_ptr<mtproto::RawConnection>> res) {
         send_closure(actor_id, &Session::connection_open_finish, info, std::move(res));
       });
 
