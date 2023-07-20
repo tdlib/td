@@ -1511,6 +1511,10 @@ void Session::auth_loop(double now) {
   }
 }
 
+void Session::timeout_expired() {
+  send_closure_later(actor_id(this), &Session::loop);
+}
+
 void Session::loop() {
   if (!was_on_network_) {
     return;

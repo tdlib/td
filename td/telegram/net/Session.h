@@ -265,6 +265,7 @@ class Session final
   void on_check_key_result(NetQueryPtr query);
 
   void start_up() final;
+  void timeout_expired() final;
   void loop() final;
   void hangup() final;
   void raw_event(const Event::Raw &event) final;
