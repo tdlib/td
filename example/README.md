@@ -118,8 +118,6 @@ See [example/csharp](https://github.com/tdlib/td/tree/master/example/csharp) for
 If you want to write a cross-platform C# application using .NET Core, see [tdsharp](https://github.com/egramtel/tdsharp). It uses our [JSON](https://github.com/tdlib/td#using-json) interface,
 provides an asynchronous interface for interaction with TDLib, automatically generated classes for TDLib API and has some examples.
 
-You can also use [TDLibCore](https://github.com/ph09nix/TDLibCore) library.
-
 Also, see [Unigram](https://github.com/UnigramDev/Unigram), which is a full-featured client rewritten from scratch in C# using TDLib SDK for Universal Windows Platform in less than 2 months,
 [egram.tel](https://github.com/egramtel/egram.tel) – a cross-platform Telegram client written in C#, .NET Core, ReactiveUI and Avalonia, or
 [telewear](https://github.com/telewear/telewear) - a Telegram client for Samsung watches.
