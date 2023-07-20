@@ -922,7 +922,7 @@ StoryManager::StoryManager(Td *td, ActorShared<> parent) : td_(td), parent_(std:
   story_can_get_viewers_timeout_.set_callback(on_story_can_get_viewers_timeout_callback);
   story_can_get_viewers_timeout_.set_callback_data(static_cast<void *>(this));
 
-  if (G()->use_message_database()) {
+  if (G()->use_message_database() && td_->auth_manager_->is_authorized() && !td_->auth_manager_->is_bot()) {
     for (auto story_list_id : {StoryListId::main(), StoryListId::archive()}) {
       auto r_value = G()->td_db()->get_story_db_sync()->get_active_story_list_state(story_list_id);
       if (r_value.is_ok() && !r_value.ok().empty()) {
@@ -951,6 +951,10 @@ StoryManager::~StoryManager() {
 }
 
 void StoryManager::start_up() {
+  if (!td_->auth_manager_->is_authorized()) {
+    return;
+  }
+
   try_synchronize_archive_all_stories();
   load_expired_database_stories();
 
@@ -1568,10 +1572,12 @@ void StoryManager::save_story_list(StoryListId story_list_id, string state, int3
 }
 
 StoryManager::StoryList &StoryManager::get_story_list(StoryListId story_list_id) {
+  CHECK(!td_->auth_manager_->is_bot());
   return story_lists_[story_list_id == StoryListId::archive()];
 }
 
 const StoryManager::StoryList &StoryManager::get_story_list(StoryListId story_list_id) const {
+  CHECK(!td_->auth_manager_->is_bot());
   return story_lists_[story_list_id == StoryListId::archive()];
 }
 
@@ -1582,11 +1588,14 @@ td_api::object_ptr<td_api::updateStoryListChatCount> StoryManager::get_update_st
 }
 
 void StoryManager::update_story_list_sent_total_count(StoryListId story_list_id) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
   update_story_list_sent_total_count(story_list_id, get_story_list(story_list_id));
 }
 
 void StoryManager::update_story_list_sent_total_count(StoryListId story_list_id, StoryList &story_list) {
-  if (story_list.server_total_count_ == -1) {
+  if (story_list.server_total_count_ == -1 || td_->auth_manager_->is_bot()) {
     return;
   }
   auto new_total_count = static_cast<int32>(story_list.ordered_stories_.size());
@@ -2412,6 +2421,9 @@ StoryId StoryManager::on_get_story(DialogId owner_dialog_id,
     LOG(ERROR) << "Receive a story in " << owner_dialog_id;
     return {};
   }
+  if (td_->auth_manager_->is_bot()) {
+    return {};
+  }
   CHECK(story_item_ptr != nullptr);
   switch (story_item_ptr->get_id()) {
     case telegram_api::storyItemDeleted::ID:
@@ -2937,6 +2949,10 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
 
 bool StoryManager::update_active_stories_order(DialogId owner_dialog_id, ActiveStories *active_stories,
                                                bool *need_save_to_database) {
+  if (td_->auth_manager_->is_bot()) {
+    return false;
+  }
+
   CHECK(active_stories != nullptr);
   CHECK(!active_stories->story_ids_.empty());
   CHECK(owner_dialog_id.is_valid());
@@ -3791,10 +3807,12 @@ void StoryManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> 
   active_stories_.foreach([&](const DialogId &dialog_id, const unique_ptr<ActiveStories> &active_stories) {
     updates.push_back(get_update_chat_active_stories(dialog_id, active_stories.get()));
   });
-  for (auto story_list_id : {StoryListId::main(), StoryListId::archive()}) {
-    const auto &story_list = get_story_list(story_list_id);
-    if (story_list.sent_total_count_ != -1) {
-      updates.push_back(get_update_story_list_chat_count_object(story_list_id, story_list));
+  if (!td_->auth_manager_->is_bot()) {
+    for (auto story_list_id : {StoryListId::main(), StoryListId::archive()}) {
+      const auto &story_list = get_story_list(story_list_id);
+      if (story_list.sent_total_count_ != -1) {
+        updates.push_back(get_update_story_list_chat_count_object(story_list_id, story_list));
+      }
     }
   }
 }
