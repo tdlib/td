@@ -23,7 +23,7 @@ void ClientActor::start_up() {
 }
 
 void ClientActor::request(uint64 id, td_api::object_ptr<td_api::Function> request) {
-  send_closure(td_, &Td::request, id, std::move(request));
+  send_closure_later(td_, &Td::request, id, std::move(request));
 }
 
 ClientActor::~ClientActor() = default;
