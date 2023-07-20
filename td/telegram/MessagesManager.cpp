@@ -32814,28 +32814,34 @@ void MessagesManager::on_get_dialog_query_finished(DialogId dialog_id, Status &&
 void MessagesManager::on_dialog_usernames_updated(DialogId dialog_id, const Usernames &old_usernames,
                                                   const Usernames &new_usernames) {
   CHECK(dialog_id.is_valid());
-  const auto *d = get_dialog(dialog_id);
-  if (d != nullptr) {
-    update_dialogs_hints(d);
-  }
-  if (old_usernames != new_usernames) {
-    message_embedding_codes_[0].erase(dialog_id);
-    message_embedding_codes_[1].erase(dialog_id);
+  LOG(INFO) << "Update usernames in " << dialog_id << " from " << old_usernames << " to " << new_usernames;
 
-    LOG(INFO) << "Update usernames in " << dialog_id << " from " << old_usernames << " to " << new_usernames;
-  }
-  if (!old_usernames.is_empty() && old_usernames != new_usernames) {
+  message_embedding_codes_[0].erase(dialog_id);
+  message_embedding_codes_[1].erase(dialog_id);
+
+  if (!old_usernames.is_empty()) {
     for (auto &username : old_usernames.get_active_usernames()) {
       auto cleaned_username = clean_username(username);
       resolved_usernames_.erase(cleaned_username);
       inaccessible_resolved_usernames_.erase(cleaned_username);
     }
   }
-  if (!new_usernames.is_empty()) {
-    for (auto &username : new_usernames.get_active_usernames()) {
+
+  on_dialog_usernames_received(dialog_id, new_usernames, false);
+}
+
+void MessagesManager::on_dialog_usernames_received(DialogId dialog_id, const Usernames &usernames, bool from_database) {
+  const auto *d = get_dialog(dialog_id);
+  if (d != nullptr) {
+    update_dialogs_hints(d);
+  }
+
+  if (!usernames.is_empty()) {
+    for (auto &username : usernames.get_active_usernames()) {
       auto cleaned_username = clean_username(username);
       if (!cleaned_username.empty()) {
-        resolved_usernames_[cleaned_username] = ResolvedUsername{dialog_id, Time::now() + USERNAME_CACHE_EXPIRE_TIME};
+        resolved_usernames_[cleaned_username] =
+            ResolvedUsername{dialog_id, Time::now() + (from_database ? 0 : USERNAME_CACHE_EXPIRE_TIME)};
       }
     }
   }
