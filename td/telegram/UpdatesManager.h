@@ -321,6 +321,8 @@ class UpdatesManager final : public Actor {
 
   void on_get_updates_state(tl_object_ptr<telegram_api::updates_state> &&state, const char *source);
 
+  void on_get_updates_impl(tl_object_ptr<telegram_api::Updates> updates_ptr, Promise<Unit> promise);
+
   void on_server_pong(tl_object_ptr<telegram_api::updates_state> &&state);
 
   void on_get_difference(tl_object_ptr<telegram_api::updates_Difference> &&difference_ptr);

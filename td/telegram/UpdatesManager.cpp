@@ -1062,6 +1062,10 @@ bool UpdatesManager::is_acceptable_update(const telegram_api::Update *update) co
 }
 
 void UpdatesManager::on_get_updates(tl_object_ptr<telegram_api::Updates> &&updates_ptr, Promise<Unit> &&promise) {
+  send_closure_later(actor_id(this), &UpdatesManager::on_get_updates_impl, std::move(updates_ptr), std::move(promise));
+}
+
+void UpdatesManager::on_get_updates_impl(tl_object_ptr<telegram_api::Updates> updates_ptr, Promise<Unit> promise) {
   CHECK(updates_ptr != nullptr);
   promise = PromiseCreator::lambda(
       [promise = std::move(promise), update_ids = get_update_ids(updates_ptr.get())](Result<Unit> result) mutable {
