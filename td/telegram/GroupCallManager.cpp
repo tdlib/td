@@ -2639,7 +2639,7 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
       if (as_dialog_id != my_dialog_id) {
         return promise.set_error(Status::Error(400, "Can't join voice chat as another user"));
       }
-      if (!td_->contacts_manager_->have_user_force(as_dialog_id.get_user_id())) {
+      if (!td_->contacts_manager_->have_user_force(as_dialog_id.get_user_id(), "join_group_call")) {
         have_as_dialog_id = false;
       }
     } else {

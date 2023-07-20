@@ -6425,7 +6425,7 @@ bool MessagesManager::have_dialog_info_force(DialogId dialog_id) const {
   switch (dialog_id.get_type()) {
     case DialogType::User: {
       UserId user_id = dialog_id.get_user_id();
-      return td_->contacts_manager_->have_user_force(user_id);
+      return td_->contacts_manager_->have_user_force(user_id, "have_dialog_info_force");
     }
     case DialogType::Chat: {
       ChatId chat_id = dialog_id.get_chat_id();
@@ -18214,7 +18214,7 @@ void MessagesManager::on_get_message_viewers(DialogId dialog_id, MessageViewers 
   if (!is_recursive) {
     bool need_participant_list = false;
     for (auto user_id : message_viewers.get_user_ids()) {
-      if (!td_->contacts_manager_->have_user_force(user_id)) {
+      if (!td_->contacts_manager_->have_user_force(user_id, "on_get_message_viewers")) {
         need_participant_list = true;
       }
     }
@@ -19527,7 +19527,8 @@ Status MessagesManager::toggle_message_sender_is_blocked(const td_api::object_pt
       break;
     case DialogType::SecretChat: {
       auto user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
-      if (!user_id.is_valid() || !td_->contacts_manager_->have_user_force(user_id)) {
+      if (!user_id.is_valid() ||
+          !td_->contacts_manager_->have_user_force(user_id, "toggle_message_sender_is_blocked")) {
         return Status::Error(400, "The secret chat can't be blocked");
       }
       dialog_id = DialogId(user_id);
@@ -32289,7 +32290,8 @@ void MessagesManager::on_update_dialog_default_join_group_call_as_dialog_id(Dial
   if (default_join_as_dialog_id.is_valid()) {
     if (default_join_as_dialog_id.get_type() != DialogType::User) {
       force_create_dialog(default_join_as_dialog_id, "on_update_dialog_default_join_group_call_as_dialog_id");
-    } else if (!td_->contacts_manager_->have_user_force(default_join_as_dialog_id.get_user_id()) ||
+    } else if (!td_->contacts_manager_->have_user_force(default_join_as_dialog_id.get_user_id(),
+                                                        "on_update_dialog_default_join_group_call_as_dialog_id") ||
                default_join_as_dialog_id != get_my_dialog_id()) {
       default_join_as_dialog_id = DialogId();
     }
@@ -32329,7 +32331,8 @@ void MessagesManager::on_update_dialog_default_send_message_as_dialog_id(DialogI
   if (default_send_as_dialog_id.is_valid()) {
     if (default_send_as_dialog_id.get_type() != DialogType::User) {
       force_create_dialog(default_send_as_dialog_id, "on_update_dialog_default_send_message_as_dialog_id");
-    } else if (!td_->contacts_manager_->have_user_force(default_send_as_dialog_id.get_user_id()) ||
+    } else if (!td_->contacts_manager_->have_user_force(default_send_as_dialog_id.get_user_id(),
+                                                        "on_update_dialog_default_send_message_as_dialog_id") ||
                default_send_as_dialog_id != get_my_dialog_id()) {
       default_send_as_dialog_id = DialogId();
     }
@@ -39352,7 +39355,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         dependencies.resolve_force(td_, "SendBotStartMessageLogEvent");
 
         auto bot_user_id = log_event.bot_user_id;
-        if (!td_->contacts_manager_->have_user_force(bot_user_id)) {
+        if (!td_->contacts_manager_->have_user_force(bot_user_id, "SendBotStartMessageLogEvent")) {
           LOG(ERROR) << "Can't find bot " << bot_user_id;
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           continue;
@@ -39886,7 +39889,8 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
         auto dialog_id = log_event.dialog_id_;
         bool have_info = dialog_id.get_type() == DialogType::User
-                             ? td_->contacts_manager_->have_user_force(dialog_id.get_user_id())
+                             ? td_->contacts_manager_->have_user_force(dialog_id.get_user_id(),
+                                                                       "ToggleDialogIsMarkedAsUnreadOnServerLogEvent")
                              : have_dialog_force(dialog_id, "ToggleDialogIsMarkedAsUnreadOnServerLogEvent");
         if (!have_info || !have_input_peer(dialog_id, AccessRights::Read)) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);

@@ -92,7 +92,7 @@ void Dependencies::add_message_sender_dependencies(DialogId dialog_id) {
 bool Dependencies::resolve_force(Td *td, const char *source) const {
   bool success = true;
   for (auto user_id : user_ids) {
-    if (!td->contacts_manager_->have_user_force(user_id)) {
+    if (!td->contacts_manager_->have_user_force(user_id, source)) {
       LOG(ERROR) << "Can't find " << user_id << " from " << source;
       success = false;
     }

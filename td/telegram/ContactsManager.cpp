@@ -6172,7 +6172,7 @@ void ContactsManager::set_my_online_status(bool is_online, bool send_update, boo
   }
 
   auto my_id = get_my_id();
-  User *u = get_user_force(my_id);
+  User *u = get_user_force(my_id, "set_my_online_status");
   if (u != nullptr) {
     int32 new_online;
     int32 now = G()->unix_time();
@@ -6232,7 +6232,7 @@ UserId ContactsManager::get_service_notifications_user_id() {
 
 UserId ContactsManager::add_service_notifications_user() {
   auto user_id = get_service_notifications_user_id();
-  if (!have_user_force(user_id)) {
+  if (!have_user_force(user_id, "add_service_notifications_user")) {
     LOG(FATAL) << "Failed to load service notification user";
   }
   return user_id;
@@ -6256,7 +6256,7 @@ UserId ContactsManager::get_anti_spam_bot_user_id() {
 
 UserId ContactsManager::add_anonymous_bot_user() {
   auto user_id = get_anonymous_bot_user_id();
-  if (!have_user_force(user_id)) {
+  if (!have_user_force(user_id, "add_anonymous_bot_user")) {
     LOG(FATAL) << "Failed to load anonymous bot user";
   }
   return user_id;
@@ -6264,7 +6264,7 @@ UserId ContactsManager::add_anonymous_bot_user() {
 
 UserId ContactsManager::add_channel_bot_user() {
   auto user_id = get_channel_bot_user_id();
-  if (!have_user_force(user_id)) {
+  if (!have_user_force(user_id, "add_channel_bot_user")) {
     LOG(FATAL) << "Failed to load channel bot user";
   }
   return user_id;
@@ -6448,7 +6448,7 @@ int64 ContactsManager::get_contacts_hash() {
   vector<int64> user_ids = contacts_hints_.search_empty(100000).second;
   CHECK(std::is_sorted(user_ids.begin(), user_ids.end()));
   auto my_id = get_my_id();
-  const User *u = get_user_force(my_id);
+  const User *u = get_user_force(my_id, "get_contacts_hash");
   if (u != nullptr && u->is_contact) {
     user_ids.insert(std::upper_bound(user_ids.begin(), user_ids.end(), my_id.get()), my_id.get());
   }
@@ -7480,7 +7480,7 @@ void ContactsManager::on_update_bot_menu_button(UserId bot_user_id,
     LOG(ERROR) << "Receive updateBotCOmmands about invalid " << bot_user_id;
     return;
   }
-  if (!have_user_force(bot_user_id) || !is_user_bot(bot_user_id)) {
+  if (!have_user_force(bot_user_id, "on_update_bot_menu_button") || !is_user_bot(bot_user_id)) {
     return;
   }
   if (td_->auth_manager_->is_bot()) {
@@ -9021,7 +9021,7 @@ void ContactsManager::transfer_dialog_ownership(DialogId dialog_id, UserId user_
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "transfer_dialog_ownership")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
-  if (!have_user_force(user_id)) {
+  if (!have_user_force(user_id, "transfer_dialog_ownership")) {
     return promise.set_error(Status::Error(400, "User not found"));
   }
   if (is_user_bot(user_id)) {
@@ -10252,7 +10252,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     }
     LOG(INFO) << "Receive empty " << user_id << " from " << source;
 
-    User *u = get_user_force(user_id);
+    User *u = get_user_force(user_id, source);
     if (u == nullptr && Slice(source) != Slice("GetUsersQuery")) {
       // userEmpty should be received only through getUsers for nonexistent users
       LOG(ERROR) << "Have no information about " << user_id << ", but received userEmpty from " << source;
@@ -10289,13 +10289,13 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     if (!is_received) {
       // we must preload received inaccessible users from database in order to not save
       // the min-user to the database and to not override access_hash and another info
-      if (!have_user_force(user_id)) {
+      if (!have_user_force(user_id, "on_get_user 2")) {
         LOG(INFO) << "Receive inaccessible " << user_id;
       }
     } else if (is_contact && !are_contacts_loaded_) {
       // preload contact users from database to know that is_contact didn't changed
       // and the list of contacts doesn't need to be saved to the database
-      if (!have_user_force(user_id)) {
+      if (!have_user_force(user_id, "on_get_user 3")) {
         LOG(INFO) << "Receive contact " << user_id << " for the first time";
       }
     }
@@ -10701,12 +10701,12 @@ void ContactsManager::on_load_user_from_database(UserId user_id, string value, b
   set_promises(promises);
 }
 
-bool ContactsManager::have_user_force(UserId user_id) {
-  return get_user_force(user_id) != nullptr;
+bool ContactsManager::have_user_force(UserId user_id, const char *source) {
+  return get_user_force(user_id, source) != nullptr;
 }
 
-ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
-  auto u = get_user_force_impl(user_id);
+ContactsManager::User *ContactsManager::get_user_force(UserId user_id, const char *source) {
+  auto u = get_user_force_impl(user_id, source);
   if ((u == nullptr || !u->is_received) &&
       (user_id == get_service_notifications_user_id() || user_id == get_replies_bot_user_id() ||
        user_id == get_anonymous_bot_user_id() || user_id == get_channel_bot_user_id() ||
@@ -10791,7 +10791,7 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
   return u;
 }
 
-ContactsManager::User *ContactsManager::get_user_force_impl(UserId user_id) {
+ContactsManager::User *ContactsManager::get_user_force_impl(UserId user_id, const char *source) {
   if (!user_id.is_valid()) {
     return nullptr;
   }
@@ -10807,7 +10807,7 @@ ContactsManager::User *ContactsManager::get_user_force_impl(UserId user_id) {
     return nullptr;
   }
 
-  LOG(INFO) << "Trying to load " << user_id << " from database";
+  LOG(INFO) << "Trying to load " << user_id << " from database from " << source;
   on_load_user_from_database(user_id, G()->td_db()->get_sqlite_sync_pmc()->get(get_user_database_key(user_id)), true);
   return get_user(user_id);
 }
@@ -11534,7 +11534,7 @@ void ContactsManager::on_load_secret_chat_from_database(SecretChatId secret_chat
   }
 
   // TODO load users asynchronously
-  if (c != nullptr && !have_user_force(c->user_id)) {
+  if (c != nullptr && !have_user_force(c->user_id, "on_load_secret_chat_from_database")) {
     LOG(ERROR) << "Can't find " << c->user_id << " from " << secret_chat_id;
   }
 
@@ -11552,7 +11552,7 @@ ContactsManager::SecretChat *ContactsManager::get_secret_chat_force(SecretChatId
 
   SecretChat *c = get_secret_chat(secret_chat_id);
   if (c != nullptr) {
-    if (!have_user_force(c->user_id)) {
+    if (!have_user_force(c->user_id, "get_secret_chat_force")) {
       LOG(ERROR) << "Can't find " << c->user_id << " from " << secret_chat_id;
     }
     return c;
@@ -11645,7 +11645,7 @@ void ContactsManager::on_load_user_full_from_database(UserId user_id, string val
 }
 
 ContactsManager::UserFull *ContactsManager::get_user_full_force(UserId user_id) {
-  if (!have_user_force(user_id)) {
+  if (!have_user_force(user_id, "get_user_full_force")) {
     return nullptr;
   }
 
@@ -12862,7 +12862,7 @@ vector<BotCommands> ContactsManager::get_bot_commands(vector<tl_object_ptr<teleg
     }
 
     auto user_id = UserId(bot_info->user_id_);
-    const User *u = get_user_force(user_id);
+    const User *u = get_user_force(user_id, "get_bot_commands");
     if (u == nullptr) {
       LOG(ERROR) << "Receive unknown " << user_id;
       continue;
@@ -13299,7 +13299,7 @@ void ContactsManager::on_update_user_name(UserId user_id, string &&first_name, s
     return;
   }
 
-  User *u = get_user_force(user_id);
+  User *u = get_user_force(user_id, "on_update_user_name");
   if (u != nullptr) {
     on_update_user_name(u, user_id, std::move(first_name), std::move(last_name));
     on_update_user_usernames(u, user_id, std::move(usernames));
@@ -13343,7 +13343,7 @@ void ContactsManager::on_update_user_phone_number(UserId user_id, string &&phone
     return;
   }
 
-  User *u = get_user_force(user_id);
+  User *u = get_user_force(user_id, "on_update_user_phone_number");
   if (u != nullptr) {
     on_update_user_phone_number(u, user_id, std::move(phone_number));
     update_user(u, user_id);
@@ -13500,7 +13500,7 @@ void ContactsManager::on_update_user_emoji_status(UserId user_id,
     return;
   }
 
-  User *u = get_user_force(user_id);
+  User *u = get_user_force(user_id, "on_update_user_emoji_status");
   if (u != nullptr) {
     on_update_user_emoji_status(u, user_id, EmojiStatus(std::move(emoji_status)));
     update_user(u, user_id);
@@ -13526,7 +13526,7 @@ void ContactsManager::on_update_user_has_stories(UserId user_id, bool has_storie
     return;
   }
 
-  User *u = get_user_force(user_id);
+  User *u = get_user_force(user_id, "on_update_user_has_stories");
   if (u != nullptr) {
     on_update_user_has_stories(u, user_id, has_stories, max_active_story_id, max_read_story_id);
     update_user(u, user_id);
@@ -13607,7 +13607,7 @@ void ContactsManager::on_update_user_stories_hidden(UserId user_id, bool stories
     return;
   }
 
-  User *u = get_user_force(user_id);
+  User *u = get_user_force(user_id, "on_update_user_stories_hidden");
   if (u != nullptr) {
     on_update_user_stories_hidden(u, user_id, stories_hidden);
     update_user(u, user_id);
@@ -13660,7 +13660,7 @@ void ContactsManager::on_update_user_online(UserId user_id, tl_object_ptr<telegr
     return;
   }
 
-  User *u = get_user_force(user_id);
+  User *u = get_user_force(user_id, "on_update_user_online");
   if (u != nullptr) {
     if (u->is_bot) {
       LOG(ERROR) << "Receive updateUserStatus about bot " << user_id;
@@ -13742,7 +13742,7 @@ void ContactsManager::on_update_user_online(User *u, UserId user_id, tl_object_p
 void ContactsManager::on_update_user_local_was_online(UserId user_id, int32 local_was_online) {
   CHECK(user_id.is_valid());
 
-  User *u = get_user_force(user_id);
+  User *u = get_user_force(user_id, "on_update_user_local_was_online");
   if (u == nullptr) {
     return;
   }
@@ -13963,7 +13963,7 @@ void ContactsManager::add_set_profile_photo_to_cache(UserId user_id, Photo &&pho
   // we have subsequence of user photos in user_photos_
   // ProfilePhoto in User and Photo in UserFull
 
-  User *u = get_user_force(user_id);
+  User *u = get_user_force(user_id, "add_set_profile_photo_to_cache");
   if (u == nullptr) {
     return;
   }
@@ -14052,7 +14052,7 @@ bool ContactsManager::delete_my_profile_photo_from_cache(int64 profile_photo_id)
   LOG(INFO) << "Delete profile photo " << profile_photo_id << " from cache";
 
   auto user_id = get_my_id();
-  User *u = get_user_force(user_id);
+  User *u = get_user_force(user_id, "delete_my_profile_photo_from_cache");
   bool is_main_photo_deleted = u != nullptr && u->photo.id == profile_photo_id;
 
   // update photo list
@@ -16386,7 +16386,7 @@ void ContactsManager::on_update_bot_stopped(UserId user_id, int32 date, bool is_
     LOG(ERROR) << "Receive updateBotStopped by non-bot";
     return;
   }
-  if (date <= 0 || !have_user_force(user_id)) {
+  if (date <= 0 || !have_user_force(user_id, "on_update_bot_stopped")) {
     LOG(ERROR) << "Receive invalid updateBotStopped by " << user_id << " at " << date;
     return;
   }
@@ -16512,7 +16512,7 @@ void ContactsManager::on_update_channel_participant(ChannelId channel_id, UserId
 
 void ContactsManager::on_update_chat_invite_requester(DialogId dialog_id, UserId user_id, string about, int32 date,
                                                       DialogInviteLink invite_link) {
-  if (!td_->auth_manager_->is_bot() || date <= 0 || !have_user_force(user_id) ||
+  if (!td_->auth_manager_->is_bot() || date <= 0 || !have_user_force(user_id, "on_update_chat_invite_requester") ||
       !td_->messages_manager_->have_dialog_info_force(dialog_id)) {
     LOG(ERROR) << "Receive invalid updateBotChatInviteRequester by " << user_id << " in " << dialog_id << " at "
                << date;
@@ -16719,7 +16719,7 @@ void ContactsManager::send_get_me_query(Td *td, Promise<Unit> &&promise) {
 
 UserId ContactsManager::get_me(Promise<Unit> &&promise) {
   auto my_id = get_my_id();
-  if (!have_user_force(my_id)) {
+  if (!have_user_force(my_id, "get_me")) {
     send_get_me_query(td_, std::move(promise));
     return UserId();
   }
@@ -16737,7 +16737,7 @@ bool ContactsManager::get_user(UserId user_id, int left_tries, Promise<Unit> &&p
   if (user_id == get_service_notifications_user_id() || user_id == get_replies_bot_user_id() ||
       user_id == get_anonymous_bot_user_id() || user_id == get_channel_bot_user_id() ||
       user_id == get_anti_spam_bot_user_id()) {
-    get_user_force(user_id);
+    get_user_force(user_id, "get_user");
   }
 
   if (td_->auth_manager_->is_bot() ? !have_user(user_id) : !have_min_user(user_id)) {
@@ -16795,7 +16795,7 @@ void ContactsManager::reload_user(UserId user_id, Promise<Unit> &&promise) {
     return promise.set_error(Status::Error(400, "Invalid user identifier"));
   }
 
-  have_user_force(user_id);
+  have_user_force(user_id, "reload_user");
 
   TRY_STATUS_PROMISE(promise, get_input_user(user_id));
 
@@ -17001,7 +17001,7 @@ void ContactsManager::on_get_user_profile_photos(UserId user_id, Result<Unit> &&
 }
 
 void ContactsManager::reload_user_profile_photo(UserId user_id, int64 photo_id, Promise<Unit> &&promise) {
-  get_user_force(user_id);
+  get_user_force(user_id, "reload_user_profile_photo");
   TRY_RESULT_PROMISE(promise, input_user, get_input_user(user_id));
 
   // this request will be needed only to download the photo,
@@ -19353,7 +19353,7 @@ tl_object_ptr<td_api::secretChat> ContactsManager::get_secret_chat_object(Secret
   if (secret_chat == nullptr) {
     return nullptr;
   }
-  get_user_force(secret_chat->user_id);
+  get_user_force(secret_chat->user_id, "get_secret_chat_object");
   return get_secret_chat_object_const(secret_chat_id, secret_chat);
 }
 

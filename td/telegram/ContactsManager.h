@@ -578,7 +578,7 @@ class ContactsManager final : public Actor {
 
   bool have_user(UserId user_id) const;
   bool have_min_user(UserId user_id) const;
-  bool have_user_force(UserId user_id);
+  bool have_user_force(UserId user_id, const char *source);
 
   bool is_dialog_info_received_from_server(DialogId dialog_id) const;
 
@@ -1329,8 +1329,8 @@ class ContactsManager final : public Actor {
 
   const User *get_user(UserId user_id) const;
   User *get_user(UserId user_id);
-  User *get_user_force(UserId user_id);
-  User *get_user_force_impl(UserId user_id);
+  User *get_user_force(UserId user_id, const char *source);
+  User *get_user_force_impl(UserId user_id, const char *source);
 
   User *add_user(UserId user_id, const char *source);
 

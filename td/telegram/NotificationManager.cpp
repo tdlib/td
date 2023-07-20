@@ -3384,7 +3384,8 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     arg = std::move(loc_args[0]);
   }
 
-  if (sender_user_id.is_valid() && !td_->contacts_manager_->have_user_force(sender_user_id)) {
+  if (sender_user_id.is_valid() &&
+      !td_->contacts_manager_->have_user_force(sender_user_id, "process_push_notification_payload")) {
     int64 sender_access_hash = -1;
     telegram_api::object_ptr<telegram_api::UserProfilePhoto> sender_photo;
     TRY_RESULT(mtpeer, get_json_object_field(custom, "mtpeer", JsonValue::Type::Object));
@@ -3761,7 +3762,8 @@ void NotificationManager::add_message_push_notification(DialogId dialog_id, Mess
     CHECK(log_event_id != 0);
   }
 
-  if (sender_user_id.is_valid() && !td_->contacts_manager_->have_user_force(sender_user_id)) {
+  if (sender_user_id.is_valid() &&
+      !td_->contacts_manager_->have_user_force(sender_user_id, "add_message_push_notification")) {
     int32 flags = USER_FLAG_IS_INACCESSIBLE;
     auto user_name = sender_user_id.get() == 136817688 ? "Channel" : sender_name;
     auto user = telegram_api::make_object<telegram_api::user>(
