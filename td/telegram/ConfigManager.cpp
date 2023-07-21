@@ -1986,6 +1986,8 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
     options.set_option_integer("chat_folder_count_max", options.get_option_integer("dialog_filters_limit_premium", 20));
     options.set_option_integer("chat_folder_chosen_chat_count_max",
                                options.get_option_integer("dialog_filters_chats_limit_premium", 200));
+    options.set_option_integer("active_story_count_max",
+                               options.get_option_integer("story_expiring_limit_premium", 100));
     options.set_option_integer("story_caption_length_max",
                                options.get_option_integer("story_caption_length_limit_premium", 2048));
     options.set_option_integer("bio_length_max", options.get_option_integer("about_length_limit_premium", 140));
@@ -2004,6 +2006,8 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
     options.set_option_integer("chat_folder_count_max", options.get_option_integer("dialog_filters_limit_default", 10));
     options.set_option_integer("chat_folder_chosen_chat_count_max",
                                options.get_option_integer("dialog_filters_chats_limit_default", 100));
+    options.set_option_integer("active_story_count_max",
+                               options.get_option_integer("story_expiring_limit_default", 30));
     options.set_option_integer("story_caption_length_max",
                                options.get_option_integer("story_caption_length_limit_default", 200));
     options.set_option_integer("bio_length_max", options.get_option_integer("about_length_limit_default", 70));
