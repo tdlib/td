@@ -1485,9 +1485,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       telegram_api::JSONValue *value = key_value->value_.get();
       if (key == "default_emoji_statuses_stickerset_id" || key == "forum_upgrade_participants_min" ||
           key == "getfile_experimental_params" || key == "message_animated_emoji_max" ||
-          key == "reactions_in_chat_max" || key == "stickers_emoji_cache_time" || key == "test" ||
-          key == "upload_max_fileparts_default" || key == "upload_max_fileparts_premium" ||
-          key == "wallet_blockchain_name" || key == "wallet_config" || key == "wallet_enabled") {
+          key == "reactions_in_chat_max" || key == "stickers_emoji_cache_time" ||
+          key == "stories_export_nopublic_link" || key == "test" || key == "upload_max_fileparts_default" ||
+          key == "upload_max_fileparts_premium" || key == "wallet_blockchain_name" || key == "wallet_config" ||
+          key == "wallet_enabled") {
         continue;
       }
       if (key == "ignore_restriction_reasons") {
