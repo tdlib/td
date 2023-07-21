@@ -14,6 +14,18 @@
 namespace td {
 
 namespace {
+
+NSURLSession *getSession() {
+  static NSURLSession *urlSession = [] {
+    auto configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
+    configuration.networkServiceType = NSURLNetworkServiceTypeResponsiveData;
+    configuration.timeoutIntervalForResource = 90;
+    configuration.waitsForConnectivity = true;
+    return [NSURLSession sessionWithConfiguration:configuration];
+  }();
+  return urlSession;
+}
+
 NSString *to_ns_string(CSlice slice) {
   return [NSString stringWithUTF8String:slice.c_str()];
 }
@@ -43,7 +55,7 @@ auto http_post(CSlice url, Slice data) {
 void http_send(NSURLRequest *request, Promise<BufferSlice> promise) {
   __block auto callback = std::move(promise);
   NSURLSessionDataTask *dataTask =
-    [NSURLSession.sharedSession
+    [getSession()
       dataTaskWithRequest:request
       completionHandler:
         ^(NSData *data, NSURLResponse *response, NSError *error) {
