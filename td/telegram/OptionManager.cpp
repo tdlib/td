@@ -262,7 +262,9 @@ bool OptionManager::is_internal_option(Slice name) {
              name == "channels_limit_default" || name == "channels_limit_premium" ||
              name == "channels_public_limit_default" || name == "channels_public_limit_premium" ||
              name == "channels_read_media_period" || name == "chat_read_mark_expire_period" ||
-             name == "chat_read_mark_size_threshold";
+             name == "chat_read_mark_size_threshold" || name == "chatlist_invites_limit_default" ||
+             name == "chatlist_invites_limit_premium" || name == "chatlists_joined_limit_default" ||
+             name == "chatlists_joined_limit_premium";
     case 'd':
       return name == "dc_txt_domain_name" || name == "default_reaction" || name == "default_reaction_needs_sync" ||
              name == "dialog_filters_chats_limit_default" || name == "dialog_filters_chats_limit_premium" ||
@@ -298,7 +300,8 @@ bool OptionManager::is_internal_option(Slice name) {
              name == "saved_gifs_limit_premium" || name == "session_count" || name == "since_last_open" ||
              name == "stickers_faved_limit_default" || name == "stickers_faved_limit_premium" ||
              name == "stickers_normal_by_emoji_per_premium_num" || name == "stickers_premium_by_emoji_num" ||
-             name == "stories_changelog_user_id";
+             name == "stories_changelog_user_id" || name == "story_expiring_limit_default" ||
+             name == "story_expiring_limit_premium";
     case 'v':
       return name == "video_note_size_max";
     case 'w':
