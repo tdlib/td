@@ -3984,6 +3984,9 @@ premiumLimitTypeShareableChatFolderCount = PremiumLimitType;
 //@description The maximum number of active stories
 premiumLimitTypeActiveStoryCount = PremiumLimitType;
 
+//@description The maximum length of captions of sent stoories
+premiumLimitTypeStoryCaptionLength = PremiumLimitType;
+
 
 //@class PremiumFeature @description Describes a feature available to Premium users
 
