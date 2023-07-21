@@ -79,7 +79,7 @@ OptionManager::OptionManager(Td *td)
     set_option_integer("message_caption_length_max", 1024);
   }
   if (!have_option("story_caption_length_max")) {
-    set_option_integer("story_caption_length_max", 1024);
+    set_option_integer("story_caption_length_max", 2048);
   }
   if (!have_option("bio_length_max")) {
     set_option_integer("bio_length_max", 70);
