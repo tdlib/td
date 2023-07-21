@@ -4312,7 +4312,15 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadStories> up
 
 // unsupported updates
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateSentStoryReaction> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStoryID> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStoriesStealthMode> update, Promise<Unit> &&promise) {
   promise.set_value(Unit());
 }
 

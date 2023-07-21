@@ -250,8 +250,9 @@ class GetStoryViewsListQuery final : public Td::ResultHandler {
   }
 
   void send(StoryId story_id, int32 offset_date, int64 offset_user_id, int32 limit) {
-    send_query(G()->net_query_creator().create(
-        telegram_api::stories_getStoryViewsList(story_id.get(), offset_date, offset_user_id, limit)));
+    int32 flags = 0;
+    send_query(G()->net_query_creator().create(telegram_api::stories_getStoryViewsList(
+        flags, false /*ignored*/, false /*ignored*/, string(), story_id.get(), string(), limit)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -408,7 +409,8 @@ class EditStoryPrivacyQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id, StoryId story_id, UserPrivacySettingRules &&privacy_rules) {
     int32 flags = telegram_api::stories_editStory::PRIVACY_RULES_MASK;
     send_query(G()->net_query_creator().create(
-        telegram_api::stories_editStory(flags, story_id.get(), nullptr, string(),
+        telegram_api::stories_editStory(flags, story_id.get(), nullptr,
+                                        vector<telegram_api::object_ptr<telegram_api::MediaArea>>(), string(),
                                         vector<telegram_api::object_ptr<telegram_api::MessageEntity>>(),
                                         privacy_rules.get_input_privacy_rules(td_)),
         {{StoryFullId{dialog_id, story_id}}}));
@@ -591,8 +593,9 @@ class StoryManager::SendStoryQuery final : public Td::ResultHandler {
 
     send_query(G()->net_query_creator().create(
         telegram_api::stories_sendStory(flags, false /*ignored*/, false /*ignored*/, std::move(input_media),
-                                        caption.text, std::move(entities), std::move(privacy_rules),
-                                        pending_story_->random_id_, period),
+                                        vector<telegram_api::object_ptr<telegram_api::MediaArea>>(), caption.text,
+                                        std::move(entities), std::move(privacy_rules), pending_story_->random_id_,
+                                        period),
         {{pending_story_->dialog_id_}}));
   }
 
@@ -656,6 +659,7 @@ class StoryManager::EditStoryQuery final : public Td::ResultHandler {
     }
     send_query(G()->net_query_creator().create(
         telegram_api::stories_editStory(flags, pending_story_->story_id_.get(), std::move(input_media),
+                                        vector<telegram_api::object_ptr<telegram_api::MediaArea>>(),
                                         edited_story->caption_.text, std::move(entities), Auto()),
         {{StoryFullId{pending_story_->dialog_id_, pending_story_->story_id_}}}));
   }
