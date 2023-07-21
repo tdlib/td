@@ -1749,6 +1749,8 @@ class ContactsManager final : public Actor {
 
   void on_dismiss_suggested_action(SuggestedAction action, Result<Unit> &&result);
 
+  bool need_poll_active_stories(const User *u, UserId user_id) const;
+
   bool get_has_unread_stories(const User *u, UserId user_id) const;
 
   td_api::object_ptr<td_api::updateUser> get_update_user_object(UserId user_id, const User *u) const;

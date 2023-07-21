@@ -10418,9 +10418,6 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     u->attach_menu_enabled = attach_menu_enabled;
     u->is_changed = true;
   }
-  if (stories_available || stories_unavailable) {
-    on_update_user_has_stories(u, user_id, stories_available, StoryId(user->stories_max_id_), StoryId());
-  }
   if (is_received) {
     on_update_user_stories_hidden(u, user_id, stories_hidden);
   }
@@ -10470,6 +10467,11 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
 
     LOG(DEBUG) << "Language code has changed for " << user_id << " to " << u->language_code;
     u->is_changed = true;
+  }
+
+  if (stories_available || stories_unavailable) {
+    // update at the end, because it calls need_poll_active_stories
+    on_update_user_has_stories(u, user_id, stories_available, StoryId(user->stories_max_id_), StoryId());
   }
 
   if (u->cache_version != User::CACHE_VERSION && u->is_received) {
@@ -13549,12 +13551,14 @@ void ContactsManager::on_update_user_has_stories(User *u, UserId user_id, bool h
     u->max_active_story_id = max_active_story_id;
     u->need_save_to_database = true;
   }
-  auto max_active_story_id_next_reload_time = Time::now() + MAX_ACTIVE_STORY_ID_RELOAD_TIME;
-  if (max_active_story_id_next_reload_time >
-      u->max_active_story_id_next_reload_time + MAX_ACTIVE_STORY_ID_RELOAD_TIME / 5) {
-    LOG(DEBUG) << "Change max_active_story_id_next_reload_time of " << user_id;
-    u->max_active_story_id_next_reload_time = max_active_story_id_next_reload_time;
-    u->need_save_to_database = true;
+  if (need_poll_active_stories(u, user_id)) {
+    auto max_active_story_id_next_reload_time = Time::now() + MAX_ACTIVE_STORY_ID_RELOAD_TIME;
+    if (max_active_story_id_next_reload_time >
+        u->max_active_story_id_next_reload_time + MAX_ACTIVE_STORY_ID_RELOAD_TIME / 5) {
+      LOG(DEBUG) << "Change max_active_story_id_next_reload_time of " << user_id;
+      u->max_active_story_id_next_reload_time = max_active_story_id_next_reload_time;
+      u->need_save_to_database = true;
+    }
   }
   if (!has_stories && !max_active_story_id.is_valid()) {
     CHECK(max_read_story_id == StoryId());
@@ -15430,6 +15434,11 @@ void ContactsManager::invalidate_invite_link_info(const string &invite_link) {
   invite_link_infos_.erase(invite_link);
 }
 
+bool ContactsManager::need_poll_active_stories(const User *u, UserId user_id) const {
+  return u != nullptr && user_id != get_my_id() && !is_user_contact(u, user_id, false) && !is_user_bot(u) &&
+         !is_user_support(u) && !is_user_deleted(u) && u->was_online != 0;
+}
+
 void ContactsManager::on_view_user_active_stories(vector<UserId> user_ids) {
   if (user_ids.empty()) {
     return;
@@ -15441,9 +15450,8 @@ void ContactsManager::on_view_user_active_stories(vector<UserId> user_ids) {
   vector<telegram_api::object_ptr<telegram_api::InputUser>> input_users;
   for (auto &user_id : user_ids) {
     User *u = get_user(user_id);
-    if (u == nullptr || user_id == get_my_id() || is_user_contact(u, user_id, false) || is_user_bot(u) ||
-        is_user_support(u) || is_user_deleted(u) || u->was_online == 0 ||
-        Time::now() < u->max_active_story_id_next_reload_time || u->is_max_active_story_id_being_reloaded) {
+    if (!need_poll_active_stories(u, user_id) || Time::now() < u->max_active_story_id_next_reload_time ||
+        u->is_max_active_story_id_being_reloaded) {
       continue;
     }
     auto r_input_user = get_input_user(user_id);
