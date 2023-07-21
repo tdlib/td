@@ -14663,6 +14663,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->reply_in_dialog_id = reply_in_dialog_id;
   message->top_thread_message_id = top_thread_message_id;
   message->is_topic_message = is_topic_message;
+  message->via_bot_user_id = via_bot_user_id;
   message->reply_to_story_full_id = reply_to_story_full_id;
   message->restriction_reasons = std::move(message_info.restriction_reasons);
   message->author_signature = std::move(message_info.author_signature);
