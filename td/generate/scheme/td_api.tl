@@ -4929,7 +4929,7 @@ storyContentUnsupported = StoryContent;
 //@class InputStoryContent @description The content of a story to send
 
 //@description A photo story
-//@photo Photo to send. The photo must be at most 10 MB in size. The photo size must be 720x1280
+//@photo Photo to send. The photo must be at most 10 MB in size. The photo size must be 1080x1920
 //@added_sticker_file_ids File identifiers of the stickers added to the photo, if applicable
 inputStoryContentPhoto photo:InputFile added_sticker_file_ids:vector<int32> = InputStoryContent;
 
