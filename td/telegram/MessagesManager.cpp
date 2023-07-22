@@ -10544,8 +10544,12 @@ void MessagesManager::on_get_scheduled_server_messages(DialogId dialog_id, uint3
   for (auto &message : messages) {
     auto message_dialog_id = DialogId::get_message_dialog_id(message);
     if (message_dialog_id != dialog_id) {
-      LOG(ERROR) << "Receive " << MessageId::get_message_id(message, true) << " in wrong " << message_dialog_id
-                 << " instead of " << dialog_id << ": " << oneline(to_string(message));
+      // server can send messageEmpty for deleted scheduled messages
+      auto message_id = MessageId::get_message_id(message, true);
+      if (message_id.is_valid() || message_dialog_id.is_valid()) {
+        LOG(ERROR) << "Receive " << message_id << " in wrong " << message_dialog_id
+                   << " instead of " << dialog_id << ": " << oneline(to_string(message));
+      }
       continue;
     }
 
