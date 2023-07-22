@@ -98,7 +98,7 @@ void FileLog::do_append(int log_level, CSlice slice) {
   auto total_time = Time::now() - start_time;
   if (total_time >= 0.1 && log_level >= 1) {
     auto thread_id = get_thread_id();
-    auto r_size = fd_.write(PSLICE() << "[ 1][t" << (0 <= thread_id && thread_id < 10 ? " " : "") << thread_id
+    auto r_size = fd_.write(PSLICE() << "[ 2][t" << (0 <= thread_id && thread_id < 10 ? " " : "") << thread_id
                                      << "] !!! Previous logging took " << total_time << " seconds !!!\n");
     r_size.ignore();
   }

@@ -1062,8 +1062,8 @@ Status SessionConnection::do_flush() {
   auto result = raw_connection_->flush(auth_data_->get_auth_key(), *this);
   auto elapsed_time = Time::now() - start_time;
   if (elapsed_time >= 0.1) {
-    LOG(ERROR) << "RawConnection::flush took " << elapsed_time << " seconds, written " << last_write_size_
-               << " bytes, read " << last_read_size_ << " bytes and returned " << result;
+    LOG(WARNING) << "RawConnection::flush took " << elapsed_time << " seconds, written " << last_write_size_
+                 << " bytes, read " << last_read_size_ << " bytes and returned " << result;
   }
   if (result.is_error()) {
     return result;

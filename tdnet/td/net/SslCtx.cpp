@@ -256,7 +256,7 @@ class SslCtxImpl {
     auto r_ssl_ctx_ptr = do_create_ssl_ctx(cert_file, verify_peer);
     auto elapsed_time = Time::now() - start_time;
     if (elapsed_time >= 0.1) {
-      LOG(ERROR) << "SSL context creation took " << elapsed_time << " seconds";
+      LOG(WARNING) << "SSL context creation took " << elapsed_time << " seconds";
     }
     if (r_ssl_ctx_ptr.is_error()) {
       return r_ssl_ctx_ptr.move_as_error();
