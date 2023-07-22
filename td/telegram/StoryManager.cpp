@@ -3015,8 +3015,12 @@ bool StoryManager::update_active_stories_order(DialogId owner_dialog_id, ActiveS
     }
     active_stories->private_order_ = new_private_order;
     if (active_stories->public_order_ != new_public_order || active_stories->story_list_id_ != story_list_id) {
+      if (active_stories->story_list_id_ != story_list_id) {
+        active_stories->public_order_ = 0;
+        send_update_chat_active_stories(owner_dialog_id, active_stories);
+        active_stories->story_list_id_ = story_list_id;
+      }
       active_stories->public_order_ = new_public_order;
-      active_stories->story_list_id_ = story_list_id;
       return true;
     }
   }
