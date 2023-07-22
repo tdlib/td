@@ -1304,11 +1304,11 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
   }
 
   if (data.size_ < 0) {
-    LOG(ERROR) << "Receive file of size " << data.size_;
+    LOG(ERROR) << "Receive file of size " << data.size_ << " from " << source;
     data.size_ = 0;
   }
   if (data.expected_size_ < 0) {
-    LOG(ERROR) << "Receive file of expected size " << data.expected_size_;
+    LOG(ERROR) << "Receive file of expected size " << data.expected_size_ << " from " << source;
     data.expected_size_ = 0;
   }
 
