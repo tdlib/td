@@ -1866,6 +1866,9 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       PARSE_FLAG(m->via_mention);
       END_PARSE_FLAGS();
       parse(m->story_full_id, parser);
+      if (!m->story_full_id.is_valid()) {
+        is_bad = true;
+      }
       content = std::move(m);
       break;
     }
@@ -5017,11 +5020,11 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       auto media = move_tl_object_as<telegram_api::messageMediaStory>(media_ptr);
       auto dialog_id = DialogId(UserId(media->user_id_));
       auto story_id = StoryId(media->id_);
-      if (!dialog_id.is_valid() || !story_id.is_valid()) {
+      auto story_full_id = StoryFullId(dialog_id, story_id);
+      if (!story_full_id.is_valid()) {
         LOG(ERROR) << "Receive " << to_string(media);
         break;
       }
-      auto story_full_id = StoryFullId(dialog_id, story_id);
       if (media->story_ != nullptr) {
         auto actual_story_id = td->story_manager_->on_get_story(dialog_id, std::move(media->story_));
         if (story_id != actual_story_id) {

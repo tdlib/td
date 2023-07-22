@@ -546,11 +546,11 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
             auto attribute = telegram_api::move_object_as<telegram_api::webPageAttributeStory>(attribute_ptr);
             auto dialog_id = DialogId(UserId(attribute->user_id_));
             auto story_id = StoryId(attribute->id_);
-            if (!dialog_id.is_valid() || !story_id.is_valid()) {
+            auto story_full_id = StoryFullId(dialog_id, story_id);
+            if (!story_full_id.is_valid()) {
               LOG(ERROR) << "Receive " << to_string(attribute);
               break;
             }
-            auto story_full_id = StoryFullId(dialog_id, story_id);
             if (attribute->story_ != nullptr) {
               auto actual_story_id = td_->story_manager_->on_get_story(dialog_id, std::move(attribute->story_));
               if (story_id != actual_story_id) {

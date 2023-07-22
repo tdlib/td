@@ -38223,6 +38223,7 @@ void MessagesManager::update_expected_channel_pts(DialogId dialog_id, int32 expe
   if (expected_pts <= 0) {
     return;
   }
+  CHECK(dialog_id.is_valid());
   auto &old_pts = expected_channel_pts_[dialog_id];
   if (old_pts < expected_pts) {
     old_pts = expected_pts;
@@ -38233,6 +38234,7 @@ void MessagesManager::update_expected_channel_max_message_id(DialogId dialog_id,
   if (expected_max_message_id == MessageId() || td_->auth_manager_->is_bot()) {
     return;
   }
+  CHECK(dialog_id.is_valid());
   auto &old_max_message_id = expected_channel_max_message_id_[dialog_id];
   if (old_max_message_id < expected_max_message_id) {
     old_max_message_id = expected_max_message_id;

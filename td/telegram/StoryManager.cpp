@@ -1038,6 +1038,7 @@ void StoryManager::on_story_expire_timeout(int64 story_global_id) {
 
   LOG(INFO) << "Have expired " << story_full_id;
   auto owner_dialog_id = story_full_id.get_dialog_id();
+  CHECK(owner_dialog_id.is_valid());
   if (!is_story_owned(owner_dialog_id) && story->content_ != nullptr && !story->is_pinned_) {
     // non-owned expired non-pinned stories are fully deleted
     on_delete_story(story_full_id);
@@ -1268,7 +1269,8 @@ StoryManager::ActiveStories *StoryManager::get_active_stories_force(DialogId own
     return active_stories;
   }
 
-  if (!G()->use_message_database() || failed_to_load_active_stories_.count(owner_dialog_id) > 0) {
+  if (!G()->use_message_database() || failed_to_load_active_stories_.count(owner_dialog_id) > 0 ||
+      !owner_dialog_id.is_valid()) {
     return nullptr;
   }
 
@@ -1575,11 +1577,13 @@ void StoryManager::save_story_list(StoryListId story_list_id, string state, int3
 
 StoryManager::StoryList &StoryManager::get_story_list(StoryListId story_list_id) {
   CHECK(!td_->auth_manager_->is_bot());
+  CHECK(story_list_id.is_valid());
   return story_lists_[story_list_id == StoryListId::archive()];
 }
 
 const StoryManager::StoryList &StoryManager::get_story_list(StoryListId story_list_id) const {
   CHECK(!td_->auth_manager_->is_bot());
+  CHECK(story_list_id.is_valid());
   return story_lists_[story_list_id == StoryListId::archive()];
 }
 
@@ -1594,7 +1598,6 @@ void StoryManager::update_story_list_sent_total_count(StoryListId story_list_id)
   if (td_->auth_manager_->is_bot()) {
     return;
   }
-  CHECK(story_list_id.is_valid());
   update_story_list_sent_total_count(story_list_id, get_story_list(story_list_id));
 }
 
@@ -2239,6 +2242,7 @@ void StoryManager::register_story(StoryFullId story_full_id, FullMessageId full_
   if (td_->auth_manager_->is_bot()) {
     return;
   }
+  CHECK(story_full_id.is_valid());
 
   LOG(INFO) << "Register " << story_full_id << " from " << full_message_id << " from " << source;
   story_messages_[story_full_id].insert(full_message_id);
@@ -2248,6 +2252,7 @@ void StoryManager::unregister_story(StoryFullId story_full_id, FullMessageId ful
   if (td_->auth_manager_->is_bot()) {
     return;
   }
+  CHECK(story_full_id.is_valid());
   LOG(INFO) << "Unregister " << story_full_id << " from " << full_message_id << " from " << source;
   auto &message_ids = story_messages_[story_full_id];
   auto is_deleted = message_ids.erase(full_message_id) > 0;
@@ -2877,6 +2882,7 @@ DialogId StoryManager::on_get_user_stories(DialogId owner_dialog_id,
 
 void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId max_read_story_id,
                                             vector<StoryId> &&story_ids, Promise<Unit> &&promise, bool from_database) {
+  CHECK(owner_dialog_id.is_valid());
   if (td::remove_if(story_ids, [&](StoryId story_id) {
         if (!story_id.is_server()) {
           return true;
@@ -3209,9 +3215,7 @@ FileSourceId StoryManager::get_story_file_source_id(StoryFullId story_full_id) {
     return FileSourceId();
   }
 
-  auto dialog_id = story_full_id.get_dialog_id();
-  auto story_id = story_full_id.get_story_id();
-  if (!dialog_id.is_valid() || !story_id.is_valid()) {
+  if (!story_full_id.is_valid()) {
     return FileSourceId();
   }
 
@@ -3774,6 +3778,7 @@ uint64 StoryManager::save_delete_story_on_server_log_event(StoryFullId story_ful
 
 void StoryManager::delete_story_on_server(StoryFullId story_full_id, uint64 log_event_id, Promise<Unit> &&promise) {
   LOG(INFO) << "Delete " << story_full_id << " from server";
+  CHECK(story_full_id.is_valid());
 
   if (log_event_id == 0) {
     log_event_id = save_delete_story_on_server_log_event(story_full_id);

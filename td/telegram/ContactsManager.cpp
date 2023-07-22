@@ -6990,6 +6990,7 @@ void ContactsManager::set_close_friends(vector<UserId> user_ids, Promise<Unit> &
 void ContactsManager::on_set_close_friends(const vector<UserId> &user_ids, Promise<Unit> &&promise) {
   FlatHashSet<UserId, UserIdHash> close_friend_user_ids;
   for (auto &user_id : user_ids) {
+    CHECK(user_id.is_valid());
     close_friend_user_ids.insert(user_id);
   }
   users_.foreach([&](const UserId &user_id, unique_ptr<User> &user) {
