@@ -10547,8 +10547,8 @@ void MessagesManager::on_get_scheduled_server_messages(DialogId dialog_id, uint3
       // server can send messageEmpty for deleted scheduled messages
       auto message_id = MessageId::get_message_id(message, true);
       if (message_id.is_valid() || message_dialog_id.is_valid()) {
-        LOG(ERROR) << "Receive " << message_id << " in wrong " << message_dialog_id
-                   << " instead of " << dialog_id << ": " << oneline(to_string(message));
+        LOG(ERROR) << "Receive " << message_id << " in wrong " << message_dialog_id << " instead of " << dialog_id
+                   << ": " << oneline(to_string(message));
       }
       continue;
     }
@@ -30465,10 +30465,12 @@ void MessagesManager::send_update_unread_message_count(DialogList &list, DialogI
   auto dialog_list_id = list.dialog_list_id;
   CHECK(list.is_message_unread_count_inited_);
   if (list.unread_message_muted_count_ < 0 || list.unread_message_muted_count_ > list.unread_message_total_count_) {
-    LOG(ERROR) << "Unread message count became invalid in " << dialog_list_id << ": "
-               << list.unread_message_total_count_ << '/'
-               << list.unread_message_total_count_ - list.unread_message_muted_count_ << " from " << source << " and "
-               << dialog_id;
+    if (!list.need_unread_count_recalc_) {
+      LOG(ERROR) << "Unread message count became invalid in " << dialog_list_id << ": "
+                 << list.unread_message_total_count_ << '/'
+                 << list.unread_message_total_count_ - list.unread_message_muted_count_ << " from " << source << " and "
+                 << dialog_id;
+    }
     if (list.unread_message_muted_count_ < 0) {
       list.unread_message_muted_count_ = 0;
     }
@@ -30510,11 +30512,13 @@ void MessagesManager::send_update_unread_chat_count(DialogList &list, DialogId d
       list.unread_dialog_muted_count_ < list.unread_dialog_muted_marked_count_ ||
       list.unread_dialog_total_count_ + list.unread_dialog_muted_marked_count_ <
           list.unread_dialog_muted_count_ + list.unread_dialog_marked_count_) {
-    LOG(ERROR) << "Unread chat count became invalid in " << dialog_list_id << ": " << list.unread_dialog_total_count_
-               << '/' << list.unread_dialog_total_count_ - list.unread_dialog_muted_count_ << '/'
-               << list.unread_dialog_marked_count_ << '/'
-               << list.unread_dialog_marked_count_ - list.unread_dialog_muted_marked_count_ << " from " << source
-               << " and " << dialog_id;
+    if (!list.need_unread_count_recalc_) {
+      LOG(ERROR) << "Unread chat count became invalid in " << dialog_list_id << ": " << list.unread_dialog_total_count_
+                 << '/' << list.unread_dialog_total_count_ - list.unread_dialog_muted_count_ << '/'
+                 << list.unread_dialog_marked_count_ << '/'
+                 << list.unread_dialog_marked_count_ - list.unread_dialog_muted_marked_count_ << " from " << source
+                 << " and " << dialog_id;
+    }
     if (list.unread_dialog_muted_marked_count_ < 0) {
       list.unread_dialog_muted_marked_count_ = 0;
     }
