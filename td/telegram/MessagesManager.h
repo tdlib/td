@@ -376,7 +376,8 @@ class MessagesManager final : public Actor {
 
   void on_read_channel_outbox(ChannelId channel_id, MessageId max_message_id);
 
-  void on_update_channel_max_unavailable_message_id(ChannelId channel_id, MessageId max_unavailable_message_id);
+  void on_update_channel_max_unavailable_message_id(ChannelId channel_id, MessageId max_unavailable_message_id,
+                                                    const char *source);
 
   void on_update_dialog_online_member_count(DialogId dialog_id, int32 online_member_count, bool is_from_server);
 

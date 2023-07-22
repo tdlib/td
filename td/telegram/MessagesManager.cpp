@@ -7484,20 +7484,20 @@ void MessagesManager::on_read_channel_outbox(ChannelId channel_id, MessageId max
 }
 
 void MessagesManager::on_update_channel_max_unavailable_message_id(ChannelId channel_id,
-                                                                   MessageId max_unavailable_message_id) {
+                                                                   MessageId max_unavailable_message_id,
+                                                                   const char *source) {
   if (!channel_id.is_valid()) {
-    LOG(ERROR) << "Receive max_unavailable_message_id in invalid " << channel_id;
+    LOG(ERROR) << "Receive max_unavailable_message_id in invalid " << channel_id << " from " << source;
     return;
   }
 
   DialogId dialog_id(channel_id);
   CHECK(!max_unavailable_message_id.is_scheduled());
   if (!max_unavailable_message_id.is_valid() && max_unavailable_message_id != MessageId()) {
-    LOG(ERROR) << "Receive wrong max_unavailable_message_id: " << max_unavailable_message_id;
+    LOG(ERROR) << "Receive wrong max_unavailable_message_id: " << max_unavailable_message_id << " from " << source;
     max_unavailable_message_id = MessageId();
   }
-  set_dialog_max_unavailable_message_id(dialog_id, max_unavailable_message_id, true,
-                                        "on_update_channel_max_unavailable_message_id");
+  set_dialog_max_unavailable_message_id(dialog_id, max_unavailable_message_id, true, source);
 }
 
 void MessagesManager::on_update_dialog_online_member_count(DialogId dialog_id, int32 online_member_count,

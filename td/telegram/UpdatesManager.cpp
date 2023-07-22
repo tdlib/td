@@ -3428,7 +3428,8 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelMessageF
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelAvailableMessages> update,
                                Promise<Unit> &&promise) {
   td_->messages_manager_->on_update_channel_max_unavailable_message_id(
-      ChannelId(update->channel_id_), MessageId(ServerMessageId(update->available_min_id_)));
+      ChannelId(update->channel_id_), MessageId(ServerMessageId(update->available_min_id_)),
+      "updateChannelAvailableMessages");
   promise.set_value(Unit());
 }
 

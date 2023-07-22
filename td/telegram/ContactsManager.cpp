@@ -13128,7 +13128,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
                                                    MessageId(ServerMessageId(channel->read_outbox_max_id_)));
     if ((channel->flags_ & CHANNEL_FULL_FLAG_HAS_AVAILABLE_MIN_MESSAGE_ID) != 0) {
       td_->messages_manager_->on_update_channel_max_unavailable_message_id(
-          channel_id, MessageId(ServerMessageId(channel->available_min_id_)));
+          channel_id, MessageId(ServerMessageId(channel->available_min_id_)), "ChannelFull");
     }
     td_->messages_manager_->on_read_channel_inbox(channel_id, MessageId(ServerMessageId(channel->read_inbox_max_id_)),
                                                   channel->unread_count_, channel->pts_, "ChannelFull");
