@@ -24630,6 +24630,9 @@ MessageInputReplyTo MessagesManager::get_message_input_reply_to(Dialog *d, Messa
     return {};
   }
   message_id = get_persistent_message_id(d, message_id);
+  if (message_id == MessageId(ServerMessageId(1)) && d->dialog_id.get_type() == DialogType::Channel) {
+    return {};
+  }
   const Message *m = get_message_force(d, message_id, "get_message_input_reply_to 2");
   if (m == nullptr || m->message_id.is_yet_unsent() ||
       (m->message_id.is_local() && d->dialog_id.get_type() != DialogType::SecretChat)) {
