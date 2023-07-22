@@ -14585,11 +14585,11 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
 
   if (message_id.is_scheduled()) {
     if (message_info.reply_info != nullptr) {
-      LOG(ERROR) << "Receive " << message_id << " in " << dialog_id << " with reply info";
+      LOG(ERROR) << "Receive " << message_id << " in " << dialog_id << " with " << to_string(message_info.reply_info);
       message_info.reply_info = nullptr;
     }
     if (message_info.reactions != nullptr) {
-      LOG(ERROR) << "Receive " << message_id << " in " << dialog_id << " with reactions";
+      LOG(ERROR) << "Receive " << message_id << " in " << dialog_id << " with " << to_string(message_info.reactions);
       message_info.reactions = nullptr;
     }
   }
