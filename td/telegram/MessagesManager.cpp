@@ -11301,11 +11301,15 @@ MessagesManager::CanDeleteDialog MessagesManager::can_delete_dialog(const Dialog
     case DialogType::Chat:
       // chats can be deleted only for self and can be deleted for everyone by their creator
       return {true, td_->contacts_manager_->get_chat_status(d->dialog_id.get_chat_id()).is_creator()};
-    case DialogType::Channel:
-      // private supergroups can be deleted for self
-      return {!is_broadcast_channel(d->dialog_id) &&
-                  !td_->contacts_manager_->is_channel_public(d->dialog_id.get_channel_id()),
-              td_->contacts_manager_->get_channel_can_be_deleted(d->dialog_id.get_channel_id())};
+    case DialogType::Channel: {
+      // private non-forum joined supergroups can be deleted for self
+      auto channel_id = d->dialog_id.get_channel_id();
+      return {!td_->contacts_manager_->is_broadcast_channel(channel_id) &&
+                  !td_->contacts_manager_->is_channel_public(channel_id) &&
+                  !td_->contacts_manager_->is_forum_channel(channel_id) &&
+                  td_->contacts_manager_->get_channel_status(channel_id).is_member(),
+              td_->contacts_manager_->get_channel_can_be_deleted(channel_id)};
+    }
     case DialogType::SecretChat:
       if (td_->contacts_manager_->get_secret_chat_state(d->dialog_id.get_secret_chat_id()) == SecretChatState::Closed) {
         // in a closed secret chats there is no way to delete messages for both users
