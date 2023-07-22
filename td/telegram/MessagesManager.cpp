@@ -6760,6 +6760,10 @@ void MessagesManager::on_update_channel_too_long(tl_object_ptr<telegram_api::upd
     LOG(ERROR) << "Receive invalid " << channel_id << " in updateChannelTooLong";
     return;
   }
+  if (!td_->contacts_manager_->have_channel_force(channel_id)) {
+    LOG(INFO) << "Skip updateChannelTooLong about unknown " << channel_id;
+    return;
+  }
 
   DialogId dialog_id = DialogId(channel_id);
   auto d = get_dialog_force(dialog_id, "on_update_channel_too_long 4");
