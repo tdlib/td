@@ -1002,6 +1002,7 @@ void StoryManager::on_story_reload_timeout(int64 story_global_id) {
   auto story_full_id = stories_by_global_id_.get(story_global_id);
   auto story = get_story(story_full_id);
   if (story == nullptr || opened_stories_.count(story_full_id) == 0) {
+    LOG(INFO) << "There is no need to reload " << story_full_id;
     return;
   }
 
@@ -2658,6 +2659,11 @@ void StoryManager::on_delete_story(StoryFullId story_full_id) {
     return;
   }
 
+  inaccessible_story_full_ids_.set(story_full_id, Time::now());
+  send_closure_later(G()->messages_manager(),
+                     &MessagesManager::update_story_max_reply_media_timestamp_in_replied_messages, story_full_id);
+
+  LOG(INFO) << "Delete " << story_full_id;
   const Story *story = get_story_force(story_full_id, "on_delete_story");
   if (story == nullptr) {
     delete_story_from_database(story_full_id);
@@ -2804,11 +2810,7 @@ std::pair<int32, vector<StoryId>> StoryManager::on_get_stories(
       }
     }
     for (auto story_id : all_story_ids) {
-      StoryFullId story_full_id{owner_dialog_id, story_id};
-      LOG(INFO) << "Mark " << story_full_id << " as inaccessible";
-      inaccessible_story_full_ids_.set(story_full_id, Time::now());
-      send_closure_later(G()->messages_manager(),
-                         &MessagesManager::update_story_max_reply_media_timestamp_in_replied_messages, story_full_id);
+      on_delete_story({owner_dialog_id, story_id});
     }
   }
   return {total_count, std::move(story_ids)};
@@ -3215,7 +3217,7 @@ void StoryManager::reload_story(StoryFullId story_full_id, Promise<Unit> &&promi
     return promise.set_value(Unit());
   }
   double last_reloaded_at = inaccessible_story_full_ids_.get(story_full_id);
-  if (last_reloaded_at >= Time::now() - OPENED_STORY_POLL_PERIOD && last_reloaded_at > 0.0) {
+  if (last_reloaded_at >= Time::now() - OPENED_STORY_POLL_PERIOD / 2 && last_reloaded_at > 0.0) {
     return promise.set_value(Unit());
   }
 
