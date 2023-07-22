@@ -4443,7 +4443,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       }
       if (call.scheduled_start_date != group_call->scheduled_start_date &&
           call.scheduled_start_date_version >= group_call->scheduled_start_date_version) {
-        LOG_IF(ERROR, group_call->scheduled_start_date == 0) << call.group_call_id << " became scheduled";
+        LOG_IF(ERROR, group_call->scheduled_start_date == 0) << input_group_call_id << " became scheduled";
         group_call->scheduled_start_date = call.scheduled_start_date;
         group_call->scheduled_start_date_version = call.scheduled_start_date_version;
         need_update = true;
