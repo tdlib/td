@@ -12552,9 +12552,12 @@ void MessagesManager::read_history_inbox(Dialog *d, MessageId max_message_id, in
       LOG(ERROR) << "Have unknown " << unread_count << " unread messages up to " << max_message_id << " in "
                  << dialog_id << " with last_new_message_id = " << d->last_new_message_id
                  << ", last_message_id = " << d->last_message_id
-                 << ", last_database_message_id = " << d->last_database_message_id << " from " << source;
+                 << ", last_database_message_id = " << d->last_database_message_id << ", and " << d->server_unread_count
+                 << " unread messages up to " << d->last_read_inbox_message_id << " from " << source;
+      unread_count = d->server_unread_count;
+    } else {
+      unread_count = 0;
     }
-    unread_count = 0;
   }
 
   LOG_IF(INFO,
