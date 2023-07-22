@@ -1381,7 +1381,8 @@ void StoryManager::on_load_active_stories_from_database(StoryListId story_list_i
 
   auto active_story_list = result.move_as_ok();
 
-  LOG(INFO) << "Load " << active_story_list.active_stories_.size() << " chats with active stories from database";
+  LOG(INFO) << "Load " << active_story_list.active_stories_.size() << " chats with active stories in " << story_list_id
+            << " from database";
 
   Dependencies dependencies;
   for (auto &active_stories_it : active_story_list.active_stories_) {
@@ -1584,6 +1585,7 @@ const StoryManager::StoryList &StoryManager::get_story_list(StoryListId story_li
 
 td_api::object_ptr<td_api::updateStoryListChatCount> StoryManager::get_update_story_list_chat_count_object(
     StoryListId story_list_id, const StoryList &story_list) const {
+  CHECK(story_list_id.is_valid());
   return td_api::make_object<td_api::updateStoryListChatCount>(story_list_id.get_story_list_object(),
                                                                story_list.sent_total_count_);
 }
@@ -1592,6 +1594,7 @@ void StoryManager::update_story_list_sent_total_count(StoryListId story_list_id)
   if (td_->auth_manager_->is_bot()) {
     return;
   }
+  CHECK(story_list_id.is_valid());
   update_story_list_sent_total_count(story_list_id, get_story_list(story_list_id));
 }
 
@@ -1599,6 +1602,7 @@ void StoryManager::update_story_list_sent_total_count(StoryListId story_list_id,
   if (story_list.server_total_count_ == -1 || td_->auth_manager_->is_bot()) {
     return;
   }
+  LOG(INFO) << "Update story list sent total chat count in " << story_list_id;
   auto new_total_count = static_cast<int32>(story_list.ordered_stories_.size());
   if (story_list.list_last_story_date_ != MAX_DIALOG_DATE) {
     new_total_count = max(new_total_count, story_list.server_total_count_);
@@ -2996,7 +3000,7 @@ bool StoryManager::update_active_stories_order(DialogId owner_dialog_id, ActiveS
       bool is_inserted = story_list.ordered_stories_.insert({new_private_order, owner_dialog_id}).second;
       CHECK(is_inserted);
 
-      if (active_stories->story_list_id_ != story_list_id) {
+      if (active_stories->story_list_id_ != story_list_id && active_stories->story_list_id_.is_valid()) {
         update_story_list_sent_total_count(active_stories->story_list_id_);
       }
       update_story_list_sent_total_count(story_list_id, story_list);
@@ -3016,8 +3020,10 @@ bool StoryManager::update_active_stories_order(DialogId owner_dialog_id, ActiveS
     active_stories->private_order_ = new_private_order;
     if (active_stories->public_order_ != new_public_order || active_stories->story_list_id_ != story_list_id) {
       if (active_stories->story_list_id_ != story_list_id) {
-        active_stories->public_order_ = 0;
-        send_update_chat_active_stories(owner_dialog_id, active_stories);
+        if (active_stories->story_list_id_.is_valid() && active_stories->public_order_ != 0) {
+          active_stories->public_order_ = 0;
+          send_update_chat_active_stories(owner_dialog_id, active_stories);
+        }
         active_stories->story_list_id_ = story_list_id;
       }
       active_stories->public_order_ = new_public_order;
