@@ -480,8 +480,8 @@ class StoryManager final : public Actor {
 
   void send_update_chat_active_stories(DialogId owner_dialog_id, const ActiveStories *active_stories) const;
 
-  void save_active_stories(DialogId owner_dialog_id, const ActiveStories *active_stories,
-                           Promise<Unit> &&promise) const;
+  void save_active_stories(DialogId owner_dialog_id, const ActiveStories *active_stories, Promise<Unit> &&promise,
+                           const char *source) const;
 
   void increment_story_views(DialogId owner_dialog_id, PendingStoryViews &story_views);
 

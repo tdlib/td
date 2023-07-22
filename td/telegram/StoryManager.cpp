@@ -1299,7 +1299,7 @@ StoryManager::ActiveStories *StoryManager::on_get_active_stories_from_database(D
   if (status.is_error()) {
     LOG(ERROR) << "Receive invalid active stories in " << owner_dialog_id << " from database: " << status << ' '
                << format::as_hex_dump<4>(value.as_slice());
-    save_active_stories(owner_dialog_id, nullptr, Promise<Unit>());
+    save_active_stories(owner_dialog_id, nullptr, Promise<Unit>(), "on_get_active_stories_from_database");
     failed_to_load_active_stories_.insert(owner_dialog_id);
     return nullptr;
   }
@@ -2913,7 +2913,7 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
       max_read_story_ids_.erase(owner_dialog_id);
     }
     if (!from_database) {
-      save_active_stories(owner_dialog_id, nullptr, std::move(promise));
+      save_active_stories(owner_dialog_id, nullptr, std::move(promise), "on_update_active_stories 1");
     }
     failed_to_load_active_stories_.insert(owner_dialog_id);
     return;
@@ -2947,7 +2947,7 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
     send_update_chat_active_stories(owner_dialog_id, active_stories.get());
   }
   if (need_save_to_database && !from_database) {
-    save_active_stories(owner_dialog_id, active_stories.get(), std::move(promise));
+    save_active_stories(owner_dialog_id, active_stories.get(), std::move(promise), "on_update_active_stories 2");
   } else {
     promise.set_value(Unit());
   }
@@ -3062,15 +3062,15 @@ void StoryManager::send_update_chat_active_stories(DialogId owner_dialog_id,
 }
 
 void StoryManager::save_active_stories(DialogId owner_dialog_id, const ActiveStories *active_stories,
-                                       Promise<Unit> &&promise) const {
+                                       Promise<Unit> &&promise, const char *source) const {
   if (!G()->use_message_database()) {
     return promise.set_value(Unit());
   }
   if (active_stories == nullptr) {
-    LOG(INFO) << "Delete active stories of " << owner_dialog_id << " from database";
+    LOG(INFO) << "Delete active stories of " << owner_dialog_id << " from database from " << source;
     G()->td_db()->get_story_db_async()->delete_active_stories(owner_dialog_id, std::move(promise));
   } else {
-    LOG(INFO) << "Add active stories of " << owner_dialog_id << " to database";
+    LOG(INFO) << "Add active stories of " << owner_dialog_id << " to database from " << source;
     auto order = active_stories->story_list_id_.is_valid() ? active_stories->private_order_ : 0;
     SavedActiveStories saved_active_stories;
     saved_active_stories.max_read_story_id_ = active_stories->max_read_story_id_;
@@ -3172,7 +3172,7 @@ void StoryManager::on_dialog_active_stories_order_updated(DialogId owner_dialog_
     send_update_chat_active_stories(owner_dialog_id, active_stories);
   }
   if (need_save_to_database) {
-    save_active_stories(owner_dialog_id, active_stories, Promise<Unit>());
+    save_active_stories(owner_dialog_id, active_stories, Promise<Unit>(), "on_dialog_active_stories_order_updated");
   }
 }
 
