@@ -79,6 +79,11 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    if (status.message() == "TOPIC_CLOSED") {
+      // when the draft is a reply to a message in a closed topic, server will not allow to save it
+      // with the error "TOPIC_CLOSED", but the draft will be kept locally
+      return promise_.set_value(Unit());
+    }
     if (!td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "SaveDraftMessageQuery")) {
       LOG(ERROR) << "Receive error for SaveDraftMessageQuery: " << status;
     }
