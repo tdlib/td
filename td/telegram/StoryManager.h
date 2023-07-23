@@ -466,7 +466,7 @@ class StoryManager final : public Actor {
   void on_toggle_story_is_pinned(StoryId story_id, bool is_pinned, Promise<Unit> &&promise);
 
   void on_update_active_stories(DialogId owner_dialog_id, StoryId max_read_story_id, vector<StoryId> &&story_ids,
-                                Promise<Unit> &&promise, bool from_database = false);
+                                Promise<Unit> &&promise, const char *source, bool from_database = false);
 
   bool update_active_stories_order(DialogId owner_dialog_id, ActiveStories *active_stories,
                                    bool *need_save_to_database);
