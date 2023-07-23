@@ -2336,7 +2336,7 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
   auto changelog_dialog_id = get_changelog_story_dialog_id();
   bool is_visible_only_for_self =
       !story_id.is_server() || dialog_id == changelog_dialog_id || (!story->is_pinned_ && !is_active_story(story));
-  bool can_be_forwarded = !story->noforwards_ && story_id.is_server() && privacy_settings != nullptr &&
+  bool can_be_forwarded = !story->noforwards_ && story_id.is_server() &&
                           privacy_settings->get_id() == td_api::storyPrivacySettingsEveryone::ID;
   bool can_be_replied = story_id.is_server() && dialog_id != changelog_dialog_id;
   bool can_get_viewers = can_get_story_viewers(story_full_id, story).is_ok();
