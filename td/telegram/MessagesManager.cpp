@@ -30915,31 +30915,28 @@ void MessagesManager::on_send_message_get_quick_ack(int64 random_id) {
                    get_chat_id_object(dialog_id, "updateMessageSendAcknowledged"), message_id.get()));
 }
 
+bool MessagesManager::is_invalid_poll_message(const telegram_api::Message *message) {
+  CHECK(message != nullptr);
+  auto constructor_id = message->get_id();
+  if (constructor_id != telegram_api::message::ID) {
+    return false;
+  }
+
+  auto media = static_cast<const telegram_api::message *>(message)->media_.get();
+  if (media == nullptr || media->get_id() != telegram_api::messageMediaPoll::ID) {
+    return false;
+  }
+
+  auto poll = static_cast<const telegram_api::messageMediaPoll *>(media)->poll_.get();
+  return !PollId(poll->id_).is_valid();
+}
+
 void MessagesManager::check_send_message_result(int64 random_id, DialogId dialog_id,
                                                 const telegram_api::Updates *updates_ptr, const char *source) {
   CHECK(updates_ptr != nullptr);
   CHECK(source != nullptr);
   auto sent_messages = UpdatesManager::get_new_messages(updates_ptr);
   auto sent_messages_random_ids = UpdatesManager::get_sent_messages_random_ids(updates_ptr);
-
-  auto is_invalid_poll_message = [](const telegram_api::Message *message) {
-    CHECK(message != nullptr);
-    auto constructor_id = message->get_id();
-    if (constructor_id == telegram_api::messageEmpty::ID) {
-      return true;
-    }
-    if (constructor_id != telegram_api::message::ID) {
-      return false;
-    }
-
-    auto media = static_cast<const telegram_api::message *>(message)->media_.get();
-    if (media == nullptr || media->get_id() != telegram_api::messageMediaPoll::ID) {
-      return false;
-    }
-
-    auto poll = static_cast<const telegram_api::messageMediaPoll *>(media)->poll_.get();
-    return !PollId(poll->id_).is_valid();
-  };
 
   if (sent_messages.size() != 1u || sent_messages_random_ids.size() != 1u ||
       *sent_messages_random_ids.begin() != random_id ||
@@ -38639,6 +38636,19 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
   }
 }
 
+void MessagesManager::retry_get_channel_difference_later(DialogId dialog_id) {
+  auto &delay = channel_get_difference_retry_timeouts_[dialog_id];
+  if (delay == 0) {
+    delay = 1;
+  }
+  schedule_get_channel_difference(dialog_id, 0, MessageId(), Random::fast(delay * 800, delay * 1200) * 1e-3,
+                                  "retry_get_channel_difference_later");
+  delay *= 2;
+  if (delay > 60) {
+    delay = Random::fast(60, 80);
+  }
+}
+
 void MessagesManager::on_get_channel_difference(
     DialogId dialog_id, int32 request_pts, int32 request_limit,
     tl_object_ptr<telegram_api::updates_ChannelDifference> &&difference_ptr) {
@@ -38662,23 +38672,12 @@ void MessagesManager::on_get_channel_difference(
           return after_get_channel_difference(dialog_id, false);
         }
       }
-      auto &delay = channel_get_difference_retry_timeouts_[dialog_id];
-      if (delay == 0) {
-        delay = 1;
-      }
-      schedule_get_channel_difference(dialog_id, 0, MessageId(), Random::fast(delay * 1000, delay * 1500) * 1e-3,
-                                      "on_get_channel_difference");
-      delay *= 2;
-      if (delay > 60) {
-        delay = Random::fast(60, 80);
-      }
+      retry_get_channel_difference_later(dialog_id);
     } else {
       after_get_channel_difference(dialog_id, false);
     }
     return;
   }
-
-  channel_get_difference_retry_timeouts_.erase(dialog_id);
 
   LOG(INFO) << "Receive result of getChannelDifference for " << dialog_id << " with PTS = " << request_pts
             << " and limit = " << request_limit << " from " << source << ": " << to_string(difference_ptr);
@@ -38688,6 +38687,7 @@ void MessagesManager::on_get_channel_difference(
     case telegram_api::updates_channelDifferenceEmpty::ID:
       if (d == nullptr) {
         // no need to create the dialog
+        channel_get_difference_retry_timeouts_.erase(dialog_id);
         after_get_channel_difference(dialog_id, true);
         return;
       }
@@ -38697,6 +38697,14 @@ void MessagesManager::on_get_channel_difference(
       have_new_messages = !difference->new_messages_.empty();
       td_->contacts_manager_->on_get_users(std::move(difference->users_), "updates.channelDifference");
       td_->contacts_manager_->on_get_chats(std::move(difference->chats_), "updates.channelDifference");
+      for (const auto &message : difference->new_messages_) {
+        if (is_invalid_poll_message(message.get())) {
+          LOG(ERROR) << "Receive invalid poll message in updates.channelDifference: " << oneline(to_string(message));
+          if (channel_get_difference_retry_timeouts_[dialog_id] <= 2) {
+            return retry_get_channel_difference_later(dialog_id);
+          }
+        }
+      }
       break;
     }
     case telegram_api::updates_channelDifferenceTooLong::ID: {
@@ -38709,6 +38717,8 @@ void MessagesManager::on_get_channel_difference(
     default:
       UNREACHABLE();
   }
+
+  channel_get_difference_retry_timeouts_.erase(dialog_id);
 
   bool need_update_dialog_pos = false;
   if (d == nullptr) {

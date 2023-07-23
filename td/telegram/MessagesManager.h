@@ -3011,6 +3011,8 @@ class MessagesManager final : public Actor {
 
   void update_list_last_dialog_date(DialogList &list);
 
+  static bool is_invalid_poll_message(const telegram_api::Message *message);
+
   static string get_channel_pts_key(DialogId dialog_id);
 
   int32 load_channel_pts(DialogId dialog_id) const;
@@ -3023,6 +3025,8 @@ class MessagesManager final : public Actor {
   void run_after_channel_difference(DialogId dialog_id, MessageId expected_max_message_id, Promise<Unit> &&promise);
 
   bool running_get_channel_difference(DialogId dialog_id) const;
+
+  void retry_get_channel_difference_later(DialogId dialog_id);
 
   void on_channel_get_difference_timeout(DialogId dialog_id);
 
