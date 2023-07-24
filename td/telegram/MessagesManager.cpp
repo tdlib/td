@@ -7188,6 +7188,7 @@ bool MessagesManager::update_message_interaction_info(Dialog *d, Message *m, int
     LOG(DEBUG) << "Update interaction info of " << full_message_id << " from " << m->view_count << '/'
                << m->forward_count << '/' << m->reply_info << '/' << m->reactions << " to " << view_count << '/'
                << forward_count << '/' << reply_info << '/' << reactions
+               << ", need_update_reply_info = " << need_update_reply_info
                << ", need_update_reactions = " << need_update_reactions
                << ", need_update_unread_reactions = " << need_update_unread_reactions
                << ", need_update_chosen_reaction_order = " << need_update_chosen_reaction_order;

@@ -101,6 +101,10 @@ bool MessageReplyInfo::need_update_to(const MessageReplyInfo &other) const {
     // ignore updates to empty reply info, because we will hide the info ourselves
     // return true;
   }
+  if (other.is_comment_ != is_comment_ && !other.was_dropped()) {
+    LOG(ERROR) << "Reply info has changed from " << *this << " to " << other;
+    return true;
+  }
   if (other.pts_ < pts_ && !other.was_dropped()) {
     return false;
   }
@@ -222,10 +226,11 @@ StringBuilder &operator<<(StringBuilder &string_builder, const MessageReplyInfo 
   if (reply_info.is_comment_) {
     return string_builder << reply_info.reply_count_ << " comments in " << reply_info.channel_id_ << " by "
                           << reply_info.recent_replier_dialog_ids_ << " read up to "
-                          << reply_info.last_read_inbox_message_id_ << "/" << reply_info.last_read_outbox_message_id_;
+                          << reply_info.last_read_inbox_message_id_ << '/' << reply_info.last_read_outbox_message_id_
+                          << " with PTS " << reply_info.pts_;
   } else {
     return string_builder << reply_info.reply_count_ << " replies read up to " << reply_info.last_read_inbox_message_id_
-                          << "/" << reply_info.last_read_outbox_message_id_;
+                          << "/" << reply_info.last_read_outbox_message_id_ << " with PTS " << reply_info.pts_;
   }
 }
 
