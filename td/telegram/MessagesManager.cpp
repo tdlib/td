@@ -5992,7 +5992,7 @@ void MessagesManager::on_pending_unload_dialog_timeout_callback(void *messages_m
 
   auto messages_manager = static_cast<MessagesManager *>(messages_manager_ptr);
   send_closure_later(messages_manager->actor_id(messages_manager), &MessagesManager::unload_dialog,
-                     DialogId(dialog_id_int));
+                     DialogId(dialog_id_int), -1);
 }
 
 void MessagesManager::on_dialog_unmute_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int) {
@@ -11853,9 +11853,12 @@ double MessagesManager::get_next_unload_dialog_delay(Dialog *d) const {
   return delay + delay * 1e-9 * d->unload_dialog_delay_seed;
 }
 
-void MessagesManager::unload_dialog(DialogId dialog_id) {
+void MessagesManager::unload_dialog(DialogId dialog_id, int32 delay) {
   if (G()->close_flag()) {
     return;
+  }
+  if (delay < 0) {
+    delay = get_unload_dialog_delay() - 2;
   }
 
   Dialog *d = get_dialog(dialog_id);
@@ -11876,7 +11879,7 @@ void MessagesManager::unload_dialog(DialogId dialog_id) {
 
   bool has_left_to_unload_messages = false;
   auto to_unload_message_ids =
-      find_unloadable_messages(d, G()->unix_time_cached() - get_unload_dialog_delay() + 2, has_left_to_unload_messages);
+      find_unloadable_messages(d, G()->unix_time_cached() - delay, has_left_to_unload_messages);
 
   vector<int64> unloaded_message_ids;
   vector<unique_ptr<Message>> unloaded_messages;
@@ -20618,6 +20621,11 @@ void MessagesManager::close_dialog(Dialog *d) {
     CHECK(!d->has_unload_timeout);
     pending_unload_dialog_timeout_.set_timeout_in(dialog_id.get(), get_next_unload_dialog_delay(d));
     d->has_unload_timeout = true;
+
+    if (d->need_unload_on_close) {
+      unload_dialog(dialog_id, 0);
+      d->need_unload_on_close = false;
+    }
   }
 
   dialog_viewed_messages_.erase(dialog_id);
@@ -38568,6 +38576,14 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
   //    searchChatMessages. The messages should still be lazily checked using getHistory, but they are still available
   //    offline. It is the best way for gaps support, but it is pretty hard to implement correctly.
   // It should be also noted that some messages like outgoing live location messages shouldn't be deleted.
+
+  if (is_message_unload_enabled()) {
+    if (d->open_count == 0) {
+      unload_dialog(dialog_id, 0);
+    } else {
+      d->need_unload_on_close = true;
+    }
+  }
 
   if (last_message_id > d->last_new_message_id && !td_->auth_manager_->is_bot()) {
     // TODO properly support last_message_id <= d->last_new_message_id

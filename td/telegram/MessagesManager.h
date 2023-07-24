@@ -1403,6 +1403,7 @@ class MessagesManager final : public Actor {
     bool has_outgoing_messages = false;
 
     bool was_opened = false;
+    bool need_unload_on_close = false;
 
     bool need_restore_reply_markup = true;
     bool need_drop_default_send_message_as_dialog_id = false;
@@ -2035,7 +2036,7 @@ class MessagesManager final : public Actor {
 
   double get_next_unload_dialog_delay(Dialog *d) const;
 
-  void unload_dialog(DialogId dialog_id);
+  void unload_dialog(DialogId dialog_id, int32 delay);
 
   void clear_dialog_message_list(Dialog *d, bool remove_from_dialog_list, int32 last_message_date);
 
