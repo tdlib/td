@@ -269,6 +269,7 @@ class UpdatesManager final : public Actor {
   int32 min_postponed_update_pts_ = 0;
   int32 min_postponed_update_qts_ = 0;
   double get_difference_start_time_ = 0;  // time from which we started to get difference without success
+  int32 get_difference_retry_count_ = 0;
 
   FlatHashMap<int64, TranscribedAudioHandler> pending_audio_transcriptions_;
   MultiTimeout pending_audio_transcription_timeout_{"PendingAudioTranscriptionTimeout"};

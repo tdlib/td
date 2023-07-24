@@ -1888,6 +1888,17 @@ void UpdatesManager::on_get_difference(tl_object_ptr<telegram_api::updates_Diffe
       td_->contacts_manager_->on_get_users(std::move(difference->users_), "updates.difference");
       td_->contacts_manager_->on_get_chats(std::move(difference->chats_), "updates.difference");
 
+      if (get_difference_retry_count_ <= 5) {
+        for (const auto &message : difference->new_messages_) {
+          if (MessagesManager::is_invalid_poll_message(message.get())) {
+            get_difference_retry_count_++;
+            LOG(ERROR) << "Receive invalid poll message in updates.difference after " << get_difference_retry_count_
+                       << " tries";
+            return run_get_difference(true, "reget difference");
+          }
+        }
+      }
+
       process_get_difference_updates(std::move(difference->new_messages_),
                                      std::move(difference->new_encrypted_messages_),
                                      std::move(difference->other_updates_));
@@ -1912,6 +1923,17 @@ void UpdatesManager::on_get_difference(tl_object_ptr<telegram_api::updates_Diffe
                            << difference->chats_.size() << " chats";
       td_->contacts_manager_->on_get_users(std::move(difference->users_), "updates.differenceSlice");
       td_->contacts_manager_->on_get_chats(std::move(difference->chats_), "updates.differenceSlice");
+
+      if (get_difference_retry_count_ <= 5) {
+        for (const auto &message : difference->new_messages_) {
+          if (MessagesManager::is_invalid_poll_message(message.get())) {
+            get_difference_retry_count_++;
+            LOG(ERROR) << "Receive invalid poll message in updates.differenceSlice after "
+                       << get_difference_retry_count_ << " tries";
+            return run_get_difference(true, "reget difference");
+          }
+        }
+      }
 
       process_get_difference_updates(std::move(difference->new_messages_),
                                      std::move(difference->new_encrypted_messages_),
@@ -1960,6 +1982,8 @@ void UpdatesManager::on_get_difference(tl_object_ptr<telegram_api::updates_Diffe
     default:
       UNREACHABLE();
   }
+
+  get_difference_retry_count_ = 0;
 
   if (!running_get_difference_) {
     after_get_difference();

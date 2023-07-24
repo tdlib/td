@@ -165,6 +165,8 @@ class MessagesManager final : public Actor {
   MessagesManager &operator=(MessagesManager &&) = delete;
   ~MessagesManager() final;
 
+  static bool is_invalid_poll_message(const telegram_api::Message *message);
+
   tl_object_ptr<telegram_api::InputPeer> get_input_peer(DialogId dialog_id, AccessRights access_rights) const;
 
   static tl_object_ptr<telegram_api::InputPeer> get_input_peer_force(DialogId dialog_id);
@@ -3011,8 +3013,6 @@ class MessagesManager final : public Actor {
   bool do_update_list_last_dialog_date(DialogList &list, const vector<FolderId> &folder_ids) const;
 
   void update_list_last_dialog_date(DialogList &list);
-
-  static bool is_invalid_poll_message(const telegram_api::Message *message);
 
   static string get_channel_pts_key(DialogId dialog_id);
 
