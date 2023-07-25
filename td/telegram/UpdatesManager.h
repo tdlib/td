@@ -150,7 +150,7 @@ class UpdatesManager final : public Actor {
  private:
   static constexpr int32 FORCED_GET_DIFFERENCE_PTS_DIFF = 100000;
   static constexpr int32 GAP_TIMEOUT_UPDATE_COUNT = 20;
-  static constexpr double MIN_UNFILLED_GAP_TIME = 0.1;
+  static constexpr double MIN_UNFILLED_GAP_TIME = 0.05;
   static constexpr double MAX_UNFILLED_GAP_TIME = 0.7;
   static constexpr double MAX_PTS_SAVE_DELAY = 0.05;
   static constexpr double UPDATE_APPLY_WARNING_TIME = 0.25;
