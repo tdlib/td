@@ -65,67 +65,121 @@ FileType PhotoSizeSource::get_file_type(const char *source) const {
 }
 
 string PhotoSizeSource::get_unique(const char *source) const {
+  auto compare_type = get_compare_type(source);
+  if (compare_type != 2 && compare_type != 3) {
+    return string(1, static_cast<char>(compare_type));
+  }
+
   auto ptr = StackAllocator::alloc(16);
   MutableSlice data = ptr.as_slice();
   TlStorerUnsafe storer(data.ubegin());
+  if (compare_type == 2) {
+    storer.store_slice(Slice("\x02"));
+  }
+  td::store(get_compare_volume_id(), storer);
+  td::store(get_compare_local_id(), storer);
+  auto size = storer.get_buf() - data.ubegin();
+  CHECK(size <= 13);
+  return string(data.begin(), size);
+}
+
+int32 PhotoSizeSource::get_compare_type(const char *source) const {
   switch (get_type(source)) {
     case Type::Legacy:
-      UNREACHABLE();
       break;
     case Type::Thumbnail: {
       auto type = thumbnail().thumbnail_type;
       CHECK(0 <= type && type <= 127);
       if (type == 'a') {
-        type = 0;
-      } else if (type == 'c') {
-        type = 1;
-      } else {
-        type += 5;
+        return 0;
       }
-      return string(1, static_cast<char>(type));
+      if (type == 'c') {
+        return 1;
+      }
+      return type + 5;
     }
     case Type::DialogPhotoSmall:
-      // it doesn't matter to which Dialog the photo belongs
-      return string(1, '\x00');
+      return 0;
     case Type::DialogPhotoBig:
-      // it doesn't matter to which Dialog the photo belongs
-      return string(1, '\x01');
+      return 1;
     case Type::StickerSetThumbnail:
-      UNREACHABLE();
       break;
-    case Type::FullLegacy: {
-      auto &legacy = full_legacy();
-      td::store(legacy.volume_id, storer);
-      td::store(legacy.local_id, storer);
-      break;
-    }
+    case Type::FullLegacy:
     case Type::DialogPhotoSmallLegacy:
-    case Type::DialogPhotoBigLegacy: {
-      auto &legacy = dialog_photo_legacy();
-      td::store(legacy.volume_id, storer);
-      td::store(legacy.local_id, storer);
-      break;
-    }
-    case Type::StickerSetThumbnailLegacy: {
-      auto &legacy = sticker_set_thumbnail_legacy();
-      td::store(legacy.volume_id, storer);
-      td::store(legacy.local_id, storer);
-      break;
-    }
-    case Type::StickerSetThumbnailVersion: {
-      auto &thumbnail = sticker_set_thumbnail_version();
-      storer.store_slice(Slice("\x02"));
-      td::store(thumbnail.sticker_set_id, storer);
-      td::store(thumbnail.version, storer);
-      break;
-    }
+    case Type::DialogPhotoBigLegacy:
+    case Type::StickerSetThumbnailLegacy:
+      return 3;
+    case Type::StickerSetThumbnailVersion:
+      return 2;
     default:
-      UNREACHABLE();
       break;
   }
-  auto size = storer.get_buf() - data.ubegin();
-  CHECK(size <= 13);
-  return string(data.begin(), size);
+  UNREACHABLE();
+  return -1;
+}
+
+int64 PhotoSizeSource::get_compare_volume_id() const {
+  switch (get_type("get_compare_volume_id")) {
+    case Type::FullLegacy:
+      return full_legacy().volume_id;
+    case Type::DialogPhotoSmallLegacy:
+    case Type::DialogPhotoBigLegacy:
+      return dialog_photo_legacy().volume_id;
+    case Type::StickerSetThumbnailLegacy:
+      return sticker_set_thumbnail_legacy().volume_id;
+    case Type::StickerSetThumbnailVersion:
+      return sticker_set_thumbnail_version().sticker_set_id;
+    default:
+      UNREACHABLE();
+      return 0;
+  }
+}
+
+int32 PhotoSizeSource::get_compare_local_id() const {
+  switch (get_type("get_compare_volume_id")) {
+    case Type::FullLegacy:
+      return full_legacy().local_id;
+    case Type::DialogPhotoSmallLegacy:
+    case Type::DialogPhotoBigLegacy:
+      return dialog_photo_legacy().local_id;
+    case Type::StickerSetThumbnailLegacy:
+      return sticker_set_thumbnail_legacy().local_id;
+    case Type::StickerSetThumbnailVersion:
+      return sticker_set_thumbnail_version().version;
+    default:
+      UNREACHABLE();
+      return 0;
+  }
+}
+
+bool PhotoSizeSource::unique_less(const PhotoSizeSource &lhs, const PhotoSizeSource &rhs) {
+  auto lhs_compare_type = lhs.get_compare_type("unique_less");
+  auto rhs_compare_type = rhs.get_compare_type("unique_less");
+  if (lhs_compare_type != rhs_compare_type) {
+    return lhs_compare_type < rhs_compare_type;
+  }
+  if (lhs_compare_type != 2 && lhs_compare_type != 3) {
+    return false;
+  }
+  auto lhs_volume_id = lhs.get_compare_volume_id();
+  auto rhs_volume_id = rhs.get_compare_volume_id();
+  if (lhs_volume_id != rhs_volume_id) {
+    return lhs_volume_id < rhs_volume_id;
+  }
+  return lhs.get_compare_local_id() < rhs.get_compare_local_id();
+}
+
+bool PhotoSizeSource::unique_equal(const PhotoSizeSource &lhs, const PhotoSizeSource &rhs) {
+  auto lhs_compare_type = lhs.get_compare_type("unique_equal");
+  auto rhs_compare_type = rhs.get_compare_type("unique_equal");
+  if (lhs_compare_type != rhs_compare_type) {
+    return false;
+  }
+  if (lhs_compare_type != 2 && lhs_compare_type != 3) {
+    return true;
+  }
+  return lhs.get_compare_volume_id() == rhs.get_compare_volume_id() &&
+         lhs.get_compare_local_id() == rhs.get_compare_local_id();
 }
 
 string PhotoSizeSource::get_unique_name(int64 photo_id, const char *source) const {
