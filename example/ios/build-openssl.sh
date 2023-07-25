@@ -5,10 +5,10 @@ git clone https://github.com/beeware/Python-Apple-support
 cd Python-Apple-support
 git checkout 6f43aba0ddd5a9f52f39775d0141bd4363614020 || exit 1
 git reset --hard || exit 1
-git apply ../Python-Apple-support.patch || exit 1
+git apply ../xros-support.patch || exit 1
 cd ..
 
-platforms="macOS iOS watchOS tvOS"
+platforms="macOS iOS watchOS tvOS xrOS"
 
 for platform in $platforms;
 do
