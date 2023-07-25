@@ -343,16 +343,26 @@ void UpdatesManager::fill_pts_gap(void *td) {
   CHECK(td != nullptr);
   auto updates_manager = static_cast<Td *>(td)->updates_manager_.get();
   auto min_pts = std::numeric_limits<int32>::max();
+  auto min_pts_count = 0;
   auto max_pts = 0;
   if (!updates_manager->pending_pts_updates_.empty()) {
-    min_pts = min(min_pts, updates_manager->pending_pts_updates_.begin()->first);
+    auto &min_update = updates_manager->pending_pts_updates_.begin()->second;
+    if (min_update.pts < min_pts) {
+      min_pts = min_update.pts;
+      min_pts_count = min_update.pts_count;
+    }
     max_pts = max(max_pts, updates_manager->pending_pts_updates_.rbegin()->first);
   }
   if (!updates_manager->postponed_pts_updates_.empty()) {
-    min_pts = min(min_pts, updates_manager->postponed_pts_updates_.begin()->first);
+    auto &min_update = updates_manager->postponed_pts_updates_.begin()->second;
+    if (min_update.pts < min_pts) {
+      min_pts = min_update.pts;
+      min_pts_count = min_update.pts_count;
+    }
     max_pts = max(max_pts, updates_manager->postponed_pts_updates_.rbegin()->first);
   }
-  string source = PSTRING() << "PTS from " << updates_manager->get_pts() << " to " << min_pts << '-' << max_pts;
+  string source = PSTRING() << "PTS from " << updates_manager->get_pts() << " to " << min_pts << "(-" << min_pts_count
+                            << ")-" << max_pts;
   updates_manager->pts_gap_++;
   fill_gap(td, source.c_str());
 }
