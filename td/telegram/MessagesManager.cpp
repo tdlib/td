@@ -4519,7 +4519,7 @@ class GetChannelDifferenceQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->messages_manager_->on_get_channel_difference(dialog_id_, pts_, limit_, result_ptr.move_as_ok());
+    td_->messages_manager_->on_get_channel_difference(dialog_id_, pts_, limit_, result_ptr.move_as_ok(), Status::OK());
   }
 
   void on_error(Status status) final {
@@ -4528,7 +4528,7 @@ class GetChannelDifferenceQuery final : public Td::ResultHandler {
       LOG(ERROR) << "Receive error for GetChannelDifferenceQuery for " << dialog_id_ << " with PTS " << pts_
                  << " and limit " << limit_ << ": " << status;
     }
-    td_->messages_manager_->on_get_channel_difference(dialog_id_, pts_, limit_, nullptr);
+    td_->messages_manager_->on_get_channel_difference(dialog_id_, pts_, limit_, nullptr, std::move(status));
   }
 };
 
@@ -38666,9 +38666,9 @@ void MessagesManager::retry_get_channel_difference_later(DialogId dialog_id) {
   }
 }
 
-void MessagesManager::on_get_channel_difference(
-    DialogId dialog_id, int32 request_pts, int32 request_limit,
-    tl_object_ptr<telegram_api::updates_ChannelDifference> &&difference_ptr) {
+void MessagesManager::on_get_channel_difference(DialogId dialog_id, int32 request_pts, int32 request_limit,
+                                                tl_object_ptr<telegram_api::updates_ChannelDifference> &&difference_ptr,
+                                                Status &&status) {
   get_channel_difference_count_--;
   CHECK(get_channel_difference_count_ >= 0);
   process_pending_get_channel_differences();
@@ -38680,7 +38680,8 @@ void MessagesManager::on_get_channel_difference(
   auto d = get_dialog_force(dialog_id, "on_get_channel_difference");
 
   if (difference_ptr == nullptr) {
-    bool have_access = have_input_peer(dialog_id, AccessRights::Read);
+    CHECK(status.is_error());
+    bool have_access = have_input_peer(dialog_id, AccessRights::Read) && status.error().message() != "CHANNEL_INVALID";
     if (have_access) {
       if (d == nullptr) {
         force_create_dialog(dialog_id, "on_get_channel_difference failed");
@@ -38695,6 +38696,7 @@ void MessagesManager::on_get_channel_difference(
     }
     return;
   }
+  CHECK(status.is_ok());
 
   LOG(INFO) << "Receive result of getChannelDifference for " << dialog_id << " with PTS = " << request_pts
             << " and limit = " << request_limit << " from " << source << ": " << to_string(difference_ptr);

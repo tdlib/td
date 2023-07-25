@@ -969,7 +969,8 @@ class MessagesManager final : public Actor {
   void on_create_new_dialog_fail(int64 random_id, Status error, Promise<Unit> &&promise);
 
   void on_get_channel_difference(DialogId dialog_id, int32 request_pts, int32 request_limit,
-                                 tl_object_ptr<telegram_api::updates_ChannelDifference> &&difference_ptr);
+                                 tl_object_ptr<telegram_api::updates_ChannelDifference> &&difference_ptr,
+                                 Status &&status);
 
   void try_update_dialog_pos(DialogId dialog_id);
 
