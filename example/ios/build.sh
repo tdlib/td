@@ -21,7 +21,7 @@ set_cmake_options () {
   options="$options -DCMAKE_BUILD_TYPE=Release"
 }
 
-platforms="macOS iOS watchOS tvOS"
+platforms="macOS iOS watchOS tvOS xrOS"
 #platforms="watchOS"
 for platform in $platforms;
 do
@@ -41,6 +41,8 @@ do
         ios_platform="WATCH"
       elif [[ $platform = "tvOS" ]]; then
         ios_platform="TV"
+      elif [[ $platform = "xrOS" ]]; then
+        ios_platform="XR"
       else
         ios_platform=""
       fi
