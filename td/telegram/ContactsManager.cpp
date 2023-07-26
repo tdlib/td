@@ -10286,23 +10286,30 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   bool is_received = (flags & USER_FLAG_IS_INACCESSIBLE) == 0;
   bool is_contact = (flags & USER_FLAG_IS_CONTACT) != 0;
 
-  if (!have_min_user(user_id)) {
+  User *u = get_user(user_id);
+  if (u == nullptr) {
     if (!is_received) {
       // we must preload received inaccessible users from database in order to not save
       // the min-user to the database and to not override access_hash and another info
-      if (!have_user_force(user_id, "on_get_user 2")) {
+      u = get_user_force(user_id, "on_get_user 2");
+      if (u == nullptr) {
         LOG(INFO) << "Receive inaccessible " << user_id;
+        u = add_user(user_id);
       }
     } else if (is_contact && !are_contacts_loaded_) {
       // preload contact users from database to know that is_contact didn't changed
       // and the list of contacts doesn't need to be saved to the database
-      if (!have_user_force(user_id, "on_get_user 3")) {
+      u = get_user_force(user_id, "on_get_user 3");
+      if (u == nullptr) {
         LOG(INFO) << "Receive contact " << user_id << " for the first time";
+        u = add_user(user_id);
       }
+    } else {
+      u = add_user(user_id);
     }
+    CHECK(u != nullptr);
   }
 
-  User *u = add_user(user_id, "on_get_user");
   if (have_access_hash) {  // access_hash must be updated before photo
     auto access_hash = user->access_hash_;
     bool is_min_access_hash = !is_received && !((flags & USER_FLAG_HAS_PHONE_NUMBER) != 0 && user->phone_.empty());
@@ -10679,7 +10686,7 @@ void ContactsManager::on_load_user_from_database(UserId user_id, string value, b
   User *u = get_user(user_id);
   if (u == nullptr) {
     if (!value.empty()) {
-      u = add_user(user_id, "on_load_user_from_database");
+      u = add_user(user_id);
 
       if (log_event_parse(*u, value).is_error()) {
         LOG(ERROR) << "Failed to load " << user_id << " from database";
@@ -16824,7 +16831,7 @@ bool ContactsManager::get_user(UserId user_id, int left_tries, Promise<Unit> &&p
   return true;
 }
 
-ContactsManager::User *ContactsManager::add_user(UserId user_id, const char *source) {
+ContactsManager::User *ContactsManager::add_user(UserId user_id) {
   CHECK(user_id.is_valid());
   auto &user_ptr = users_[user_id];
   if (user_ptr == nullptr) {
