@@ -40,10 +40,6 @@ class ArrayHashMap {
  public:
   explicit ArrayHashMap(std::size_t n) : array_(n) {
   }
-  struct Node {
-    std::atomic<KeyT> key{KeyT{}};
-    std::atomic<ValueT> value{ValueT{}};
-  };
   static td::string get_name() {
     return "ArrayHashMap";
   }
@@ -201,21 +197,23 @@ class HashMapBenchmark final : public td::Benchmark {
 
   void run(int n) final {
     n = n_;
-    td::vector<td::thread> threads;
+    for (int count = 0; count < 1000; count++) {
+      td::vector<td::thread> threads;
 
-    for (std::size_t i = 0; i < threads_n; i++) {
-      std::size_t l = n * i / threads_n;
-      std::size_t r = n * (i + 1) / threads_n;
-      threads.emplace_back([l, r, this] {
-        for (size_t i = l; i < r; i++) {
-          auto x = td::narrow_cast<int>((i + 1) * MUL % n_) + 3;
-          auto y = td::narrow_cast<int>(i + 2);
-          hash_map->insert(x, y);
-        }
-      });
-    }
-    for (auto &thread : threads) {
-      thread.join();
+      for (std::size_t i = 0; i < threads_n; i++) {
+        std::size_t l = n * i / threads_n;
+        std::size_t r = n * (i + 1) / threads_n;
+        threads.emplace_back([l, r, this] {
+          for (size_t i = l; i < r; i++) {
+            auto x = td::narrow_cast<int>((i + 1) * MUL % n_) + 3;
+            auto y = td::narrow_cast<int>(i + 2);
+            hash_map->insert(x, y);
+          }
+        });
+      }
+      for (auto &thread : threads) {
+        thread.join();
+      }
     }
   }
 
