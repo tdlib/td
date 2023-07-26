@@ -265,6 +265,45 @@ TEST(Misc, base64) {
   ASSERT_TRUE(td::base64url_encode("ab><cd") == "YWI-PGNk");
 }
 
+static void test_zero_encode(td::Slice str, td::Slice expected_zero = td::Slice(),
+                             td::Slice expected_zero_one = td::Slice()) {
+  auto encoded = td::zero_encode(str);
+  if (!expected_zero.empty()) {
+    ASSERT_EQ(encoded, expected_zero);
+  }
+  ASSERT_EQ(td::zero_decode(encoded), str);
+
+  encoded = td::zero_one_encode(str);
+  if (!expected_zero_one.empty()) {
+    ASSERT_EQ(encoded, expected_zero_one);
+  }
+  ASSERT_EQ(td::zero_one_decode(encoded), str);
+}
+
+TEST(Misc, zero_encode) {
+  td::string str;
+  for (unsigned char i = 1; i < 255; i++) {
+    str += static_cast<char>(i);
+  }
+  test_zero_encode(str, str, str);
+
+  test_zero_encode("");
+  test_zero_encode(td::Slice("\0"), td::Slice("\0\1"), td::Slice("\0\1"));
+  test_zero_encode(td::Slice("\0\xff\0\xff\0\xff\0\xff\0\xff\0\xff\0\xff"),
+                   td::Slice("\0\1\xff\0\1\xff\0\1\xff\0\1\xff\0\1\xff\0\1\xff\0\1\xff"),
+                   td::Slice("\0\1\xff\1\0\1\xff\1\0\1\xff\1\0\1\xff\1\0\1\xff\1\0\1\xff\1\0\1\xff\1"));
+  test_zero_encode(td::Slice("\0\0\xff\xff\0\0\xff\xff\0\0\xff\xff\0\0\xff\xff\0\0\xff\xff\0\0\xff\xff"),
+                   td::Slice("\0\2\xff\xff\0\2\xff\xff\0\2\xff\xff\0\2\xff\xff\0\2\xff\xff\0\2\xff\xff"),
+                   td::Slice("\0\2\xff\2\0\2\xff\2\0\2\xff\2\0\2\xff\2\0\2\xff\2\0\2\xff\2"));
+  test_zero_encode(td::Slice("\0\0\0\0\0\xff\xff\xff\xff\xff"), td::Slice("\0\5\xff\xff\xff\xff\xff"),
+                   td::Slice("\0\5\xff\5"));
+  test_zero_encode(td::Slice(
+      "\0\0\0\0\0\xff\xff\xff\xff\xff\0\0\0\0\0\xff\xff\xff\xff\xff\0\0\0\0\0\xff\xff\xff\xff\xff\0\0\0\0\0\xff\xff\xff"
+      "\xff\xff\0\0\0\0\0\xff\xff\xff\xff\xff\0\0\0\0\0\xff\xff\xff\xff\xff\0\0\0\0\0\xff\xff\xff\xff\xff"));
+  test_zero_encode(td::string(1000, '\0'));
+  test_zero_encode(str + td::string(1000, '\0') + str + td::string(1000, '\xff') + str);
+}
+
 template <class T>
 static void test_remove_if(td::vector<int> v, const T &func, const td::vector<int> &expected) {
   td::remove_if(v, func);
