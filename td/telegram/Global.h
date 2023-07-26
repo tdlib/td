@@ -418,6 +418,10 @@ class Global final : public ActorContext {
     return use_file_database();
   }
 
+  int32 get_database_scheduler_id() {
+    return database_scheduler_id_;
+  }
+
   int32 get_gc_scheduler_id() const {
     return gc_scheduler_id_;
   }
@@ -542,6 +546,7 @@ class Global final : public ActorContext {
 
   OptionManager *option_manager_ = nullptr;
 
+  int32 database_scheduler_id_ = 0;
   int32 gc_scheduler_id_ = 0;
   int32 slow_net_scheduler_id_ = 0;
 

@@ -2985,7 +2985,7 @@ void Td::run_request(uint64 id, tl_object_ptr<td_api::Function> function) {
                                                     Result<TdDb::OpenedDatabase> r_opened_database) mutable {
             send_closure(actor_id, &Td::init, std::move(parameters), std::move(r_opened_database));
           });
-          return TdDb::open(get_database_scheduler_id(), std::move(parameters.second), std::move(promise));
+          return TdDb::open(G()->get_database_scheduler_id(), std::move(parameters.second), std::move(promise));
         }
         default:
           if (is_preinitialization_request(function_id)) {
@@ -3547,12 +3547,6 @@ void Td::complete_pending_preauthentication_requests(const T &func) {
       request.second = nullptr;
     }
   }
-}
-
-int32 Td::get_database_scheduler_id() {
-  auto current_scheduler_id = Scheduler::instance()->sched_id();
-  auto scheduler_count = Scheduler::instance()->sched_count();
-  return min(current_scheduler_id + 1, scheduler_count - 1);
 }
 
 void Td::finish_set_parameters() {

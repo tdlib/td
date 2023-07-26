@@ -1692,8 +1692,6 @@ class Td final : public Actor {
 
   static DbKey as_db_key(string key);
 
-  static int32 get_database_scheduler_id();
-
   struct Parameters {
     int32 api_id_ = 0;
     string api_hash_;
