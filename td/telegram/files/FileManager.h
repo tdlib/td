@@ -206,6 +206,29 @@ class FileNode {
 
   static string get_persistent_id(const FullGenerateFileLocation &location);
   static string get_persistent_id(const FullRemoteFileLocation &location);
+
+  FileType get_type() const {
+    if (local_.type() == LocalFileLocation::Type::Full) {
+      return local_.full().file_type_;
+    }
+    if (remote_.full) {
+      return remote_.full.value().file_type_;
+    }
+    if (generate_ != nullptr) {
+      return generate_->file_type_;
+    }
+    return FileType::Temp;
+  }
+
+  int64 expected_size(bool may_guess = false) const;
+  bool is_downloading() const;
+  int64 downloaded_prefix(int64 offset) const;
+  int64 local_prefix_size() const;
+  int64 local_total_size() const;
+  bool is_uploading() const;
+  int64 remote_size() const;
+  string path() const;
+  bool can_delete() const;
 };
 
 class FileManager;
@@ -307,16 +330,7 @@ class FileView {
   bool can_delete() const;
 
   FileType get_type() const {
-    if (has_local_location()) {
-      return local_location().file_type_;
-    }
-    if (has_remote_location()) {
-      return remote_location().file_type_;
-    }
-    if (has_generate_location()) {
-      return generate_location().file_type_;
-    }
-    return FileType::Temp;
+    return node_->get_type();
   }
   bool is_encrypted_secret() const {
     return get_type() == FileType::Encrypted;
