@@ -765,53 +765,49 @@ bool FileView::can_delete() const {
   return node_->local_.type() == LocalFileLocation::Type::Partial;
 }
 
-string FileView::get_unique_id(const FullGenerateFileLocation &location) {
+string FileNode::get_unique_id(const FullGenerateFileLocation &location) {
   return base64url_encode(zero_encode('\xff' + serialize(location)));
 }
 
-string FileView::get_unique_id(const FullRemoteFileLocation &location) {
+string FileNode::get_unique_id(const FullRemoteFileLocation &location) {
   return base64url_encode(zero_encode(serialize(location.as_unique())));
 }
 
-string FileView::get_persistent_id(const FullGenerateFileLocation &location) {
+string FileNode::get_persistent_id(const FullGenerateFileLocation &location) {
   auto binary = serialize(location);
 
   binary = zero_encode(binary);
-  binary.push_back(FileNode::PERSISTENT_ID_VERSION_GENERATED);
+  binary.push_back(PERSISTENT_ID_VERSION_GENERATED);
   return base64url_encode(binary);
 }
 
-string FileView::get_persistent_id(const FullRemoteFileLocation &location) {
+string FileNode::get_persistent_id(const FullRemoteFileLocation &location) {
   auto binary = serialize(location);
 
   binary = zero_encode(binary);
   binary.push_back(static_cast<char>(narrow_cast<uint8>(Version::Next) - 1));
-  binary.push_back(FileNode::PERSISTENT_ID_VERSION);
+  binary.push_back(PERSISTENT_ID_VERSION);
   return base64url_encode(binary);
 }
 
-string FileView::get_persistent_file_id() const {
-  if (!empty()) {
-    if (has_alive_remote_location()) {
-      return get_persistent_id(remote_location());
-    } else if (has_url()) {
-      return url();
-    } else if (has_generate_location() && FileManager::is_remotely_generated_file(generate_location().conversion_)) {
-      return get_persistent_id(generate_location());
-    }
+string FileNode::get_persistent_file_id() const {
+  if (remote_.is_full_alive) {
+    return get_persistent_id(remote_.full.value());
+  } else if (!url_.empty()) {
+    return url_;
+  } else if (generate_ != nullptr && FileManager::is_remotely_generated_file(generate_->conversion_)) {
+    return get_persistent_id(*generate_);
   }
   return string();
 }
 
-string FileView::get_unique_file_id() const {
-  if (!empty()) {
-    if (has_alive_remote_location()) {
-      if (!remote_location().is_web()) {
-        return get_unique_id(remote_location());
-      }
-    } else if (has_generate_location() && FileManager::is_remotely_generated_file(generate_location().conversion_)) {
-      return get_unique_id(generate_location());
+string FileNode::get_unique_file_id() const {
+  if (remote_.is_full_alive) {
+    if (!remote_.full.value().is_web()) {
+      return get_unique_id(remote_.full.value());
     }
+  } else if (generate_ != nullptr && FileManager::is_remotely_generated_file(generate_->conversion_)) {
+    return get_unique_id(*generate_);
   }
   return string();
 }
@@ -3173,16 +3169,18 @@ FileView FileManager::get_sync_file_view(FileId file_id) {
 }
 
 td_api::object_ptr<td_api::file> FileManager::get_file_object(FileId file_id, bool with_main_file_id) {
-  auto file_view = get_sync_file_view(file_id);
-
-  if (file_view.empty()) {
+  auto file_node_ptr = get_sync_file_node(file_id);
+  if (!file_node_ptr) {
     return td_api::make_object<td_api::file>(0, 0, 0, td_api::make_object<td_api::localFile>(),
                                              td_api::make_object<td_api::remoteFile>());
   }
 
-  string persistent_file_id = file_view.get_persistent_file_id();
-  string unique_file_id = file_view.get_unique_file_id();
+  const FileNode *file_node = file_node_ptr.get();
+  string persistent_file_id = file_node->get_persistent_file_id();
+  string unique_file_id = file_node->get_unique_file_id();
   bool is_uploading_completed = !persistent_file_id.empty();
+
+  auto file_view = FileView(file_node_ptr);
   auto size = file_view.size();
   auto expected_size = file_view.expected_size();
   auto download_offset = file_view.download_offset();

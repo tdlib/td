@@ -194,7 +194,18 @@ class FileNode {
   void init_ready_size();
 
   void recalc_ready_prefix_size(int64 prefix_offset, int64 ready_prefix_size);
+
   void update_effective_download_limit(int64 old_download_limit);
+
+  string get_persistent_file_id() const;
+
+  string get_unique_file_id() const;
+
+  static string get_unique_id(const FullGenerateFileLocation &location);
+  static string get_unique_id(const FullRemoteFileLocation &location);
+
+  static string get_persistent_id(const FullGenerateFileLocation &location);
+  static string get_persistent_id(const FullRemoteFileLocation &location);
 };
 
 class FileManager;
@@ -334,18 +345,15 @@ class FileView {
            type != PhotoSizeSource::Type::Thumbnail;
   }
 
-  string get_persistent_file_id() const;
-
-  string get_unique_file_id() const;
+  string get_unique_file_id() const {
+    if (!empty()) {
+      return node_->get_unique_file_id();
+    }
+    return string();
+  }
 
  private:
   ConstFileNodePtr node_{};
-
-  static string get_unique_id(const FullGenerateFileLocation &location);
-  static string get_unique_id(const FullRemoteFileLocation &location);
-
-  static string get_persistent_id(const FullGenerateFileLocation &location);
-  static string get_persistent_id(const FullRemoteFileLocation &location);
 };
 
 class FileManager final : public FileLoadManager::Callback {
