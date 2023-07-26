@@ -321,7 +321,11 @@ void UpdatesManager::repair_pts_gap() {
     return;
   }
   auto pts = get_pts() + 1;
-  if (pending_pts_updates_.empty() || pending_pts_updates_.begin()->first != pts + 1) {
+  if (pending_pts_updates_.empty()) {
+    return;
+  }
+  auto it = pending_pts_updates_.begin();
+  if (it->second.pts != pts + it->second.pts_count) {
     return;
   }
   VLOG(get_difference) << "Fetch update with PTS = " << pts;
