@@ -7,6 +7,8 @@
 #include "td/utils/misc.h"
 
 #include "td/utils/port/thread_local.h"
+#include "td/utils/StackAllocator.h"
+#include "td/utils/StringBuilder.h"
 #include "td/utils/utf8.h"
 
 #include <algorithm>
@@ -205,21 +207,25 @@ namespace {
 
 template <class F>
 string x_decode(Slice s, F &&f) {
-  string res;
+  auto buffer = StackAllocator::alloc(1024);
+  auto res = StringBuilder(buffer.as_slice(), true);
   for (size_t n = s.size(), i = 0; i < n; i++) {
     if (i + 1 < n && f(s[i])) {
-      res.append(static_cast<unsigned char>(s[i + 1]), s[i]);
+      for (int cnt = static_cast<unsigned char>(s[i + 1]); cnt > 0; cnt--) {
+        res.push_back(s[i]);
+      }
       i++;
       continue;
     }
     res.push_back(s[i]);
   }
-  return res;
+  return res.as_cslice().str();
 }
 
 template <class F>
 string x_encode(Slice s, F &&f) {
-  string res;
+  auto buffer = StackAllocator::alloc(1024);
+  auto res = StringBuilder(buffer.as_slice(), true);
   for (size_t n = s.size(), i = 0; i < n; i++) {
     res.push_back(s[i]);
     if (f(s[i])) {
@@ -231,7 +237,7 @@ string x_encode(Slice s, F &&f) {
       i += cnt - 1;
     }
   }
-  return res;
+  return res.as_cslice().str();
 }
 
 bool is_zero(unsigned char c) {
