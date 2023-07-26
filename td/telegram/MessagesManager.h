@@ -1453,8 +1453,7 @@ class MessagesManager final : public Actor {
     int32 pending_read_channel_inbox_pts = 0;                  // for channels only
     int32 pending_read_channel_inbox_server_unread_count = 0;  // for channels only
     MessageId pending_read_channel_inbox_max_message_id;       // for channels only
-    std::unordered_map<int64, MessageId, Hash<int64>>
-        random_id_to_message_id;  // for secret chats and yet unsent messages only
+    FlatHashMap<int64, MessageId> random_id_to_message_id;     // for secret chats and yet unsent messages only
 
     MessageId last_assigned_message_id;  // identifier of the last local or yet unsent message, assigned after
                                          // application start, used to guarantee that all assigned message identifiers

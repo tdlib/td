@@ -16087,7 +16087,9 @@ void MessagesManager::add_random_id_to_message_id_correspondence(Dialog *d, int6
   auto it = d->random_id_to_message_id.find(random_id);
   if (it == d->random_id_to_message_id.end() || it->second.get() < message_id.get()) {
     LOG(INFO) << "Add correspondence from random_id " << random_id << " to " << message_id << " in " << d->dialog_id;
-    d->random_id_to_message_id[random_id] = message_id;
+    if (random_id != 0) {
+      d->random_id_to_message_id[random_id] = message_id;
+    }
   }
 }
 
@@ -36390,7 +36392,7 @@ MessageId MessagesManager::get_message_id_by_random_id(Dialog *d, int64 random_i
   }
   auto it = d->random_id_to_message_id.find(random_id);
   if (it == d->random_id_to_message_id.end()) {
-    if (G()->use_message_database() && d->dialog_id.get_type() == DialogType::SecretChat) {
+    if (G()->use_message_database() && d->dialog_id.get_type() == DialogType::SecretChat && random_id != 0) {
       auto r_value = G()->td_db()->get_message_db_sync()->get_message_by_random_id(d->dialog_id, random_id);
       if (r_value.is_ok()) {
         debug_add_message_to_dialog_fail_reason_ = "not called";
