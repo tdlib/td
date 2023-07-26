@@ -278,9 +278,9 @@ Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> 
   long_poll_connection_.connection_id_ = 1;
 
   if (is_cdn) {
-    auth_data_.set_header(G()->mtproto_header().get_anonymous_header().str());
+    auth_data_.set_header(G()->mtproto_header().get_anonymous_header());
   } else {
-    auth_data_.set_header(G()->mtproto_header().get_default_header().str());
+    auth_data_.set_header(G()->mtproto_header().get_default_header());
   }
   last_activity_timestamp_ = now;
   last_success_timestamp_ = now - 366 * 86400;
