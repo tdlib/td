@@ -24,7 +24,13 @@
 
 namespace td {
 
-Global::Global() = default;
+Global::Global() {
+  auto current_scheduler_id = Scheduler::instance()->sched_id();
+  auto max_scheduler_id = Scheduler::instance()->sched_count() - 1;
+  database_scheduler_id_ = min(current_scheduler_id + 1, max_scheduler_id);
+  gc_scheduler_id_ = min(current_scheduler_id + 2, max_scheduler_id);
+  slow_net_scheduler_id_ = min(current_scheduler_id + 3, max_scheduler_id);
+}
 
 Global::~Global() = default;
 
@@ -86,12 +92,6 @@ struct ServerTimeDiff {
 };
 
 Status Global::init(ActorId<Td> td, unique_ptr<TdDb> td_db_ptr) {
-  auto current_scheduler_id = Scheduler::instance()->sched_id();
-  auto max_scheduler_id = Scheduler::instance()->sched_count() - 1;
-  database_scheduler_id_ = min(current_scheduler_id + 1, max_scheduler_id);
-  gc_scheduler_id_ = min(current_scheduler_id + 2, max_scheduler_id);
-  slow_net_scheduler_id_ = min(current_scheduler_id + 3, max_scheduler_id);
-
   td_ = td;
   td_db_ = std::move(td_db_ptr);
 
