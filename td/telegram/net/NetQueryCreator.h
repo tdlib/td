@@ -43,6 +43,7 @@ class NetQueryCreator {
  private:
   std::shared_ptr<NetQueryStats> net_query_stats_;
   ObjectPool<NetQuery> object_pool_;
+  int32 current_scheduler_id_ = 0;
 };
 
 }  // namespace td

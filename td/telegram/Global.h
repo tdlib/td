@@ -142,7 +142,7 @@ class Global final : public ActorContext {
   string get_option_string(Slice name, string default_value = "") const;
 
   bool is_server_time_reliable() const {
-    return server_time_difference_was_updated_;
+    return server_time_difference_was_updated_.load(std::memory_order_relaxed);
   }
   double to_server_time(double now) const {
     return now + get_server_time_difference();

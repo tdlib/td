@@ -11,6 +11,8 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 
+#include "td/actor/actor.h"
+
 #include "td/utils/buffer.h"
 #include "td/utils/format.h"
 #include "td/utils/Gzip.h"
@@ -20,7 +22,7 @@
 namespace td {
 
 NetQueryCreator::NetQueryCreator(std::shared_ptr<NetQueryStats> net_query_stats)
-    : net_query_stats_(std::move(net_query_stats)) {
+    : net_query_stats_(std::move(net_query_stats)), current_scheduler_id_(Scheduler::instance()->sched_id()) {
   object_pool_.set_check_empty(true);
 }
 
@@ -42,7 +44,7 @@ NetQueryPtr NetQueryCreator::create(uint64 id, const telegram_api::Function &fun
   int32 tl_constructor = function.get_id();
   int32 total_timeout_limit = 60;
 
-  if (!G()->close_flag()) {
+  if (current_scheduler_id_ == Scheduler::instance()->sched_id() && !G()->close_flag()) {
     auto td = G()->td();
     if (!td.empty()) {
       auto auth_manager = td.get_actor_unsafe()->auth_manager_.get();
