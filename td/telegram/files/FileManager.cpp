@@ -549,10 +549,11 @@ bool FileView::has_active_download_remote_location() const {
   if (!has_remote_location()) {
     return false;
   }
-  if (remote_location().is_encrypted_any()) {
+  auto &remote = remote_location();
+  if (remote.is_encrypted_any()) {
     return true;
   }
-  return remote_location().has_file_reference();
+  return remote.has_file_reference();
 }
 
 const FullRemoteFileLocation &FileView::remote_location() const {
@@ -747,16 +748,17 @@ bool FileView::can_download_from_server() const {
   if (!has_remote_location()) {
     return false;
   }
-  if (remote_location().file_type_ == FileType::Encrypted && encryption_key().empty()) {
+  auto &remote = remote_location();
+  if (remote.file_type_ == FileType::Encrypted && encryption_key().empty()) {
     return false;
   }
-  if (remote_location().is_web()) {
+  if (remote.is_web()) {
     return true;
   }
-  if (remote_location().get_dc_id().is_empty()) {
+  if (remote.get_dc_id().is_empty()) {
     return false;
   }
-  if (!remote_location().is_encrypted_any() && !remote_location().has_file_reference() &&
+  if (!remote.is_encrypted_any() && !remote.has_file_reference() &&
       ((node_->download_id_ == 0 && node_->download_was_update_file_reference_) || !node_->remote_.is_full_alive)) {
     return false;
   }
@@ -768,10 +770,11 @@ bool FileView::can_generate() const {
 }
 
 bool FileView::can_delete() const {
-  if (has_local_location()) {
-    return begins_with(local_location().path_, get_files_dir(get_type()));
+  const FileNode *file_node = node_.get();
+  if (file_node->local_.type() == LocalFileLocation::Type::Full) {
+    return begins_with(file_node->local_.full().path_, get_files_dir(get_type()));
   }
-  return node_->local_.type() == LocalFileLocation::Type::Partial;
+  return file_node->local_.type() == LocalFileLocation::Type::Partial;
 }
 
 string FileNode::get_unique_id(const FullGenerateFileLocation &location) {
