@@ -7,6 +7,7 @@
 #include "td/utils/algorithm.h"
 #include "td/utils/as.h"
 #include "td/utils/base64.h"
+#include "td/utils/benchmark.h"
 #include "td/utils/BigNum.h"
 #include "td/utils/bits.h"
 #include "td/utils/CancellationToken.h"
@@ -302,6 +303,26 @@ TEST(Misc, zero_encode) {
       "\xff\xff\0\0\0\0\0\xff\xff\xff\xff\xff\0\0\0\0\0\xff\xff\xff\xff\xff\0\0\0\0\0\xff\xff\xff\xff\xff"));
   test_zero_encode(td::string(1000, '\0'));
   test_zero_encode(str + td::string(1000, '\0') + str + td::string(1000, '\xff') + str);
+}
+
+class ZeroEncodeBenchmark final : public td::Benchmark {
+ public:
+  td::string get_description() const final {
+    return "ZeroEncodeBenchmark";
+  }
+
+  void run(int n) final {
+    for (int i = 0; i < n; i++) {
+      zero_encode(
+          td::Slice("\x02\x00\x00\x02\x01\x00\x00\x00\x19\x01\x00\x00\x7c\xc8\x64\xc1\x04\xec\x82\xb8\x20\x9e\xa0\x8d"
+                    "\x1e\xbe\xb2\x79\xc4\x5a\x4c\x1e\x49\x1e\x00\x00\xa9\xa7\x31\x1b\x80\x9f\x11\x46\xfc\x97\xde\x6a"
+                    "\x18\x6e\xc0\x73\x01\x00\x00\x00\x02\x00\x00\x00\x6d\x00\x00\x00\x30\x04"));
+    }
+  }
+};
+
+TEST(Misc, bench_zero_encode) {
+  td::bench(ZeroEncodeBenchmark());
 }
 
 template <class T>
