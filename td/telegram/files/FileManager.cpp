@@ -595,21 +595,23 @@ int64 FileView::get_allocated_local_size() const {
 }
 
 int64 FileView::expected_size(bool may_guess) const {
-  if (node_->size_ != 0) {
-    return node_->size_;
+  const FileNode *file_node = node_.get();
+  if (file_node->size_ != 0) {
+    return file_node->size_;
   }
   int64 current_size = local_total_size();  // TODO: this is not the best approximation
-  if (node_->expected_size_ != 0) {
-    return max(current_size, node_->expected_size_);
+  if (file_node->expected_size_ != 0) {
+    return max(current_size, file_node->expected_size_);
   }
-  if (may_guess && node_->local_.type() == LocalFileLocation::Type::Partial) {
+  if (may_guess && file_node->local_.type() == LocalFileLocation::Type::Partial) {
     current_size *= 3;
   }
   return current_size;
 }
 
 bool FileView::is_downloading() const {
-  return node_->download_priority_ != 0 || node_->generate_download_priority_ != 0;
+  const FileNode *file_node = node_.get();
+  return file_node->download_priority_ != 0 || file_node->generate_download_priority_ != 0;
 }
 
 int64 FileView::download_offset() const {
@@ -617,12 +619,13 @@ int64 FileView::download_offset() const {
 }
 
 int64 FileView::downloaded_prefix(int64 offset) const {
-  switch (node_->local_.type()) {
+  const FileNode *file_node = node_.get();
+  switch (file_node->local_.type()) {
     case LocalFileLocation::Type::Empty:
       return 0;
     case LocalFileLocation::Type::Full:
-      if (offset < node_->size_) {
-        return node_->size_ - offset;
+      if (offset < file_node->size_) {
+        return file_node->size_ - offset;
       }
       return 0;
     case LocalFileLocation::Type::Partial:
@@ -630,8 +633,8 @@ int64 FileView::downloaded_prefix(int64 offset) const {
         // File is not decrypted and verified yet
         return 0;
       }
-      return Bitmask(Bitmask::Decode{}, node_->local_.partial().ready_bitmask_)
-          .get_ready_prefix_size(offset, node_->local_.partial().part_size_, node_->size_);
+      return Bitmask(Bitmask::Decode{}, file_node->local_.partial().ready_bitmask_)
+          .get_ready_prefix_size(offset, file_node->local_.partial().part_size_, file_node->size_);
     default:
       UNREACHABLE();
       return 0;
@@ -639,30 +642,32 @@ int64 FileView::downloaded_prefix(int64 offset) const {
 }
 
 int64 FileView::local_prefix_size() const {
-  switch (node_->local_.type()) {
+  const FileNode *file_node = node_.get();
+  switch (file_node->local_.type()) {
     case LocalFileLocation::Type::Full:
-      return node_->download_offset_ <= node_->size_ ? node_->size_ - node_->download_offset_ : 0;
+      return file_node->download_offset_ <= file_node->size_ ? file_node->size_ - file_node->download_offset_ : 0;
     case LocalFileLocation::Type::Partial: {
       if (is_encrypted_secure()) {
         // File is not decrypted and verified yet
         return 0;
       }
-      return node_->local_ready_prefix_size_;
+      return file_node->local_ready_prefix_size_;
     }
     default:
       return 0;
   }
 }
 int64 FileView::local_total_size() const {
-  switch (node_->local_.type()) {
+  const FileNode *file_node = node_.get();
+  switch (file_node->local_.type()) {
     case LocalFileLocation::Type::Empty:
       return 0;
     case LocalFileLocation::Type::Full:
-      return node_->size_;
+      return file_node->size_;
     case LocalFileLocation::Type::Partial:
-      VLOG(update_file) << "Have local_ready_prefix_size = " << node_->local_ready_prefix_size_
-                        << " and local_ready_size = " << node_->local_ready_size_;
-      return max(node_->local_ready_prefix_size_, node_->local_ready_size_);
+      VLOG(update_file) << "Have local_ready_prefix_size = " << file_node->local_ready_prefix_size_
+                        << " and local_ready_size = " << file_node->local_ready_size_;
+      return max(file_node->local_ready_prefix_size_, file_node->local_ready_size_);
     default:
       UNREACHABLE();
       return 0;
@@ -670,17 +675,20 @@ int64 FileView::local_total_size() const {
 }
 
 bool FileView::is_uploading() const {
-  return node_->upload_priority_ != 0 || node_->generate_upload_priority_ != 0 || node_->upload_pause_.is_valid();
+  const FileNode *file_node = node_.get();
+  return file_node->upload_priority_ != 0 || file_node->generate_upload_priority_ != 0 ||
+         file_node->upload_pause_.is_valid();
 }
 
 int64 FileView::remote_size() const {
-  if (node_->remote_.is_full_alive) {
-    return node_->size_;
+  const FileNode *file_node = node_.get();
+  if (file_node->remote_.is_full_alive) {
+    return file_node->size_;
   }
-  if (node_->remote_.partial) {
-    auto part_size = static_cast<int64>(node_->remote_.partial->part_size_);
-    auto ready_part_count = node_->remote_.partial->ready_part_count_;
-    auto remote_ready_size = node_->remote_.ready_size;
+  if (file_node->remote_.partial) {
+    auto part_size = static_cast<int64>(file_node->remote_.partial->part_size_);
+    auto ready_part_count = file_node->remote_.partial->ready_part_count_;
+    auto remote_ready_size = file_node->remote_.ready_size;
     VLOG(update_file) << "Have part_size = " << part_size << ", remote_ready_part_count = " << ready_part_count
                       << ", remote_ready_size = " << remote_ready_size << ", size = " << size();
     auto res = max(part_size * ready_part_count, remote_ready_size);
@@ -689,15 +697,16 @@ int64 FileView::remote_size() const {
     }
     return res;
   }
-  return node_->remote_.ready_size;  //???
+  return file_node->remote_.ready_size;  //???
 }
 
 string FileView::path() const {
-  switch (node_->local_.type()) {
+  const FileNode *file_node = node_.get();
+  switch (file_node->local_.type()) {
     case LocalFileLocation::Type::Full:
-      return node_->local_.full().path_;
+      return file_node->local_.full().path_;
     case LocalFileLocation::Type::Partial:
-      return node_->local_.partial().path_;
+      return file_node->local_.partial().path_;
     default:
       return string();
   }
@@ -3179,11 +3188,11 @@ td_api::object_ptr<td_api::file> FileManager::get_file_object(FileId file_id, bo
   string persistent_file_id = file_node->get_persistent_file_id();
   string unique_file_id = file_node->get_unique_file_id();
   bool is_uploading_completed = !persistent_file_id.empty();
+  auto size = file_node->size_;
+  auto download_offset = file_node->download_offset_;
 
   auto file_view = FileView(file_node_ptr);
-  auto size = file_view.size();
   auto expected_size = file_view.expected_size();
-  auto download_offset = file_view.download_offset();
   auto local_prefix_size = file_view.local_prefix_size();
   auto local_total_size = file_view.local_total_size();
   auto remote_size = file_view.remote_size();
@@ -3193,15 +3202,17 @@ td_api::object_ptr<td_api::file> FileManager::get_file_object(FileId file_id, bo
 
   auto result_file_id = file_id;
   auto *file_info = get_file_id_info(result_file_id);
+  FileId main_file_id;
   if (with_main_file_id) {
+    main_file_id = file_view.get_main_file_id();
     if (!file_info->send_updates_flag_) {
-      result_file_id = file_view.get_main_file_id();
+      result_file_id = main_file_id;
     }
-    file_info = get_file_id_info(file_view.get_main_file_id());
+    file_info = get_file_id_info(main_file_id);
   }
   file_info->send_updates_flag_ = true;
   VLOG(update_file) << "Send file " << file_id << " as " << result_file_id << " and update send_updates_flag_ for file "
-                    << (with_main_file_id ? file_view.get_main_file_id() : result_file_id);
+                    << (with_main_file_id ? main_file_id : result_file_id);
 
   return td_api::make_object<td_api::file>(
       result_file_id.get(), size, expected_size,
@@ -3218,10 +3229,11 @@ vector<int32> FileManager::get_file_ids_object(const vector<FileId> &file_ids, b
     auto result_file_id = file_id;
     auto *file_info = get_file_id_info(result_file_id);
     if (with_main_file_id) {
+      auto main_file_id = file_view.get_main_file_id();
       if (!file_info->sent_file_id_flag_ && !file_info->send_updates_flag_) {
-        result_file_id = file_view.get_main_file_id();
+        result_file_id = main_file_id;
       }
-      file_info = get_file_id_info(file_view.get_main_file_id());
+      file_info = get_file_id_info(main_file_id);
     }
     file_info->sent_file_id_flag_ = true;
 

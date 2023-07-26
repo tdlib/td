@@ -248,6 +248,10 @@ class ConstFileNodePtr {
     return file_node_ptr_.get_remote();
   }
 
+  const FileNode *get() const {
+    return file_node_ptr_.get();
+  }
+
  private:
   FileNodePtr file_node_ptr_;
 };
