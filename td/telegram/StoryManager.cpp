@@ -1970,22 +1970,23 @@ void StoryManager::close_story(DialogId owner_dialog_id, StoryId story_id, Promi
 }
 
 void StoryManager::view_story_message(StoryFullId story_full_id) {
-  const Story *story = get_story_force(story_full_id, "view_story_message");
-  if (story == nullptr || !story_full_id.get_story_id().is_server()) {
+  if (!story_full_id.get_story_id().is_server()) {
     return;
   }
 
-  if (story->receive_date_ < G()->unix_time() - VIEWED_STORY_POLL_PERIOD) {
+  const Story *story = get_story_force(story_full_id, "view_story_message");
+  if (story == nullptr || story->receive_date_ < G()->unix_time() - VIEWED_STORY_POLL_PERIOD) {
     reload_story(story_full_id, Promise<Unit>(), "view_story_message");
   }
 }
 
 void StoryManager::on_story_replied(StoryFullId story_full_id, UserId replier_user_id) {
-  if (!replier_user_id.is_valid() || replier_user_id == td_->contacts_manager_->get_my_id()) {
+  if (!replier_user_id.is_valid() || replier_user_id == td_->contacts_manager_->get_my_id() ||
+      !story_full_id.get_story_id().is_server()) {
     return;
   }
   const Story *story = get_story_force(story_full_id, "on_story_replied");
-  if (story == nullptr || !story_full_id.get_story_id().is_server() || !is_story_owned(story_full_id.get_dialog_id())) {
+  if (story == nullptr || !is_story_owned(story_full_id.get_dialog_id())) {
     return;
   }
 
