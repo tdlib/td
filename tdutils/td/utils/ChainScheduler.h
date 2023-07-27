@@ -9,6 +9,7 @@
 #include "td/utils/algorithm.h"
 #include "td/utils/common.h"
 #include "td/utils/Container.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/FlatHashSet.h"
 #include "td/utils/HashTableUtils.h"
 #include "td/utils/List.h"
@@ -142,7 +143,7 @@ class ChainScheduler final : public ChainSchedulerBase {
     ExtraT extra;
   };
   std::unordered_map<ChainId, ChainInfo, Hash<ChainId>> chains_;
-  std::unordered_map<ChainId, TaskId, Hash<ChainId>> limited_tasks_;
+  FlatHashMap<ChainId, TaskId> limited_tasks_;
   Container<Task> tasks_;
   VectorQueue<TaskId> pending_tasks_;
 
