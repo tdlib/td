@@ -16538,7 +16538,7 @@ void MessagesManager::on_message_deleted(Dialog *d, Message *m, bool is_permanen
       }
       break;
     case DialogType::Channel:
-      if (m->message_id.is_server()) {
+      if (m->message_id.is_server() && !td_->auth_manager_->is_bot()) {
         td_->contacts_manager_->unregister_message_users({d->dialog_id, m->message_id}, get_message_user_ids(m));
         td_->contacts_manager_->unregister_message_channels({d->dialog_id, m->message_id}, get_message_channel_ids(m));
       }
@@ -35158,7 +35158,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       }
       break;
     case DialogType::Channel:
-      if (m->message_id.is_server()) {
+      if (m->message_id.is_server() && !td_->auth_manager_->is_bot()) {
         td_->contacts_manager_->register_message_users({dialog_id, m->message_id}, get_message_user_ids(m));
         td_->contacts_manager_->register_message_channels({dialog_id, m->message_id}, get_message_channel_ids(m));
       }
