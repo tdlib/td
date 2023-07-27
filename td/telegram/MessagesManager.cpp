@@ -23464,12 +23464,9 @@ void MessagesManager::get_history_from_the_end_impl(const Dialog *d, bool from_d
   if (!d->first_database_message_id.is_valid() && !d->have_full_history) {
     from_database = false;
   }
-  int32 limit = MAX_GET_HISTORY;
+  // load only 10 messages when repairing the last message and can't save the result to the database
+  int32 limit = !promise && (from_database || !G()->use_message_database()) ? 10 : MAX_GET_HISTORY;
   if (from_database && G()->use_message_database()) {
-    if (!promise) {
-      // repair last database message ID
-      limit = 10;
-    }
     LOG(INFO) << "Get history from the end of " << dialog_id << " from database from " << source;
     MessageDbMessagesQuery db_query;
     db_query.dialog_id = dialog_id;
@@ -23489,10 +23486,6 @@ void MessagesManager::get_history_from_the_end_impl(const Dialog *d, bool from_d
       // if last message is known, there are no reasons to get message history from server from the end
       promise.set_value(Unit());
       return;
-    }
-    if (!promise && !G()->use_message_database()) {
-      // repair last message ID
-      limit = 10;
     }
 
     LOG(INFO) << "Get history from the end of " << dialog_id << " from server from " << source;
