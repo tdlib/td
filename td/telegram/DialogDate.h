@@ -62,7 +62,7 @@ const int64 DEFAULT_ORDER = -1;
 
 struct DialogDateHash {
   uint32 operator()(const DialogDate &dialog_date) const {
-    return Hash<int64>()(dialog_date.get_order()) * 2023654985u + DialogIdHash()(dialog_date.get_dialog_id());
+    return combine_hashes(Hash<int64>()(dialog_date.get_order()), DialogIdHash()(dialog_date.get_dialog_id()));
   }
 };
 

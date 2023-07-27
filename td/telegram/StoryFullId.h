@@ -61,7 +61,7 @@ struct StoryFullId {
 
 struct StoryFullIdHash {
   uint32 operator()(StoryFullId story_full_id) const {
-    return DialogIdHash()(story_full_id.get_dialog_id()) * 2023654985u + StoryIdHash()(story_full_id.get_story_id());
+    return combine_hashes(DialogIdHash()(story_full_id.get_dialog_id()), StoryIdHash()(story_full_id.get_story_id()));
   }
 };
 

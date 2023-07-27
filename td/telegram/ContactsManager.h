@@ -1922,7 +1922,7 @@ class ContactsManager final : public Actor {
   WaitFreeHashMap<UserId, tl_object_ptr<telegram_api::UserProfilePhoto>, UserIdHash> pending_user_photos_;
   struct UserIdPhotoIdHash {
     uint32 operator()(const std::pair<UserId, int64> &pair) const {
-      return UserIdHash()(pair.first) * 2023654985u + Hash<int64>()(pair.second);
+      return combine_hashes(UserIdHash()(pair.first), Hash<int64>()(pair.second));
     }
   };
   WaitFreeHashMap<std::pair<UserId, int64>, FileSourceId, UserIdPhotoIdHash> user_profile_photo_file_source_ids_;

@@ -69,4 +69,8 @@ inline uint32 Hash<string>::operator()(const string &value) const {
   return static_cast<uint32>(std::hash<string>()(value));
 }
 
+inline uint32 combine_hashes(uint32 first_hash, uint32 second_hash) {
+  return first_hash * 2023654985u + second_hash;
+}
+
 }  // namespace td

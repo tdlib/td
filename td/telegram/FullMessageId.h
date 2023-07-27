@@ -62,8 +62,8 @@ struct FullMessageId {
 
 struct FullMessageIdHash {
   uint32 operator()(FullMessageId full_message_id) const {
-    return DialogIdHash()(full_message_id.get_dialog_id()) * 2023654985u +
-           MessageIdHash()(full_message_id.get_message_id());
+    return combine_hashes(DialogIdHash()(full_message_id.get_dialog_id()),
+                          MessageIdHash()(full_message_id.get_message_id()));
   }
 };
 

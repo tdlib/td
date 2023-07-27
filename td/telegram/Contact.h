@@ -136,8 +136,8 @@ struct ContactEqual {
 
 struct ContactHash {
   uint32 operator()(const Contact &contact) const {
-    return (Hash<string>()(contact.phone_number_) * 2023654985u + Hash<string>()(contact.first_name_)) * 2023654985u +
-           Hash<string>()(contact.last_name_);
+    return combine_hashes(combine_hashes(Hash<string>()(contact.phone_number_), Hash<string>()(contact.first_name_)),
+                          Hash<string>()(contact.last_name_));
   }
 };
 
