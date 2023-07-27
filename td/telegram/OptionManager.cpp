@@ -60,6 +60,7 @@ OptionManager::OptionManager(Td *td)
   all_options["utc_time_offset"] = PSTRING() << 'I' << Clocks::tz_offset();
   for (const auto &name_value : all_options) {
     const string &name = name_value.first;
+    CHECK(!name.empty());
     options_->set(name, name_value.second);
     if (!is_internal_option(name)) {
       send_closure(G()->td(), &Td::send_update,
