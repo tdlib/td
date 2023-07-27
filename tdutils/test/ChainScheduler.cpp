@@ -116,7 +116,7 @@ TEST(ChainScheduler, Stress) {
   td::vector<QueryWithParents> active_queries;
 
   td::ChainScheduler<QueryPtr> scheduler;
-  td::vector<td::vector<QueryPtr>> chains(ChainsN);
+  td::vector<td::vector<QueryPtr>> chains(ChainsN + 1);
   int inflight_queries{};
   int current_query_id{};
   int sent_cnt{};
@@ -138,7 +138,7 @@ TEST(ChainScheduler, Stress) {
     query->id = query_id;
     int chain_n = rnd.fast(1, ChainsN);
     td::vector<ChainId> chain_ids(ChainsN);
-    std::iota(chain_ids.begin(), chain_ids.end(), 0);
+    std::iota(chain_ids.begin(), chain_ids.end(), 1);
     td::rand_shuffle(td::as_mutable_span(chain_ids), rnd);
     chain_ids.resize(chain_n);
     for (auto chain_id : chain_ids) {

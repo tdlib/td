@@ -20,7 +20,6 @@
 #include "td/utils/VectorQueue.h"
 
 #include <functional>
-#include <unordered_map>
 
 namespace td {
 
@@ -142,10 +141,18 @@ class ChainScheduler final : public ChainSchedulerBase {
     vector<TaskChainInfo> chains;
     ExtraT extra;
   };
-  std::unordered_map<ChainId, ChainInfo, Hash<ChainId>> chains_;
+  FlatHashMap<ChainId, unique_ptr<ChainInfo>> chains_;
   FlatHashMap<ChainId, TaskId> limited_tasks_;
   Container<Task> tasks_;
   VectorQueue<TaskId> pending_tasks_;
+
+  ChainInfo &get_chain_info(ChainId chain_id) {
+    auto &chain = chains_[chain_id];
+    if (chain == nullptr) {
+      chain = make_unique<ChainInfo>();
+    }
+    return *chain;
+  }
 
   void try_start_task(TaskId task_id) {
     auto *task = tasks_.get(task_id);
@@ -173,7 +180,7 @@ class ChainScheduler final : public ChainSchedulerBase {
 
   void do_start_task(TaskId task_id, Task *task) {
     for (TaskChainInfo &task_chain_info : task->chains) {
-      ChainInfo &chain_info = chains_[task_chain_info.chain_id];
+      ChainInfo &chain_info = get_chain_info(task_chain_info.chain_id);
       chain_info.active_tasks++;
       task_chain_info.chain_node.generation = chain_info.generation;
     }
@@ -262,8 +269,9 @@ typename ChainScheduler<ExtraT>::TaskId ChainScheduler<ExtraT>::create_task(Span
   Task &task = *tasks_.get(task_id);
   task.extra = std::move(extra);
   task.chains = transform(chains, [&](auto chain_id) {
+    CHECK(chain_id != 0);
     TaskChainInfo task_chain_info;
-    ChainInfo &chain_info = chains_[chain_id];
+    ChainInfo &chain_info = get_chain_info(chain_id);
     task_chain_info.chain_id = chain_id;
     task_chain_info.chain_info = &chain_info;
     task_chain_info.chain_node.task_id = task_id;
@@ -352,11 +360,12 @@ StringBuilder &operator<<(StringBuilder &sb, ChainScheduler<ExtraT> &scheduler) 
   // 1 print chains
   sb << '\n';
   for (auto &it : scheduler.chains_) {
+    CHECK(it.second != nullptr);
     sb << "ChainId{" << it.first << "}";
-    sb << " active_cnt = " << it.second.active_tasks;
-    sb << " g = " << it.second.generation;
+    sb << " active_cnt = " << it.second->active_tasks;
+    sb << " g = " << it.second->generation;
     sb << ':';
-    it.second.chain.foreach(
+    it.second->chain.foreach(
         [&](auto task_id, auto generation) { sb << ' ' << *scheduler.get_task_extra(task_id) << ':' << generation; });
     sb << '\n';
   }
