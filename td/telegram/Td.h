@@ -121,7 +121,7 @@ class Td final : public Actor {
 
   void reload_promo_data();
 
-  void on_update(BufferSlice &&update, uint64 auth_key_id);
+  void on_update(telegram_api::object_ptr<telegram_api::Updates> updates, uint64 auth_key_id);
 
   void on_result(NetQueryPtr query);
 

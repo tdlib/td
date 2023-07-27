@@ -3070,20 +3070,16 @@ std::shared_ptr<Td::ResultHandler> Td::extract_handler(uint64 id) {
   return result;
 }
 
-void Td::on_update(BufferSlice &&update, uint64 auth_key_id) {
+void Td::on_update(telegram_api::object_ptr<telegram_api::Updates> updates, uint64 auth_key_id) {
   if (close_flag_ > 1) {
     return;
   }
 
-  TlBufferParser parser(&update);
-  auto ptr = telegram_api::Updates::fetch(parser);
-  parser.fetch_end();
-  if (parser.get_error()) {
-    LOG(ERROR) << "Failed to fetch update: " << parser.get_error() << format::as_hex_dump<4>(update.as_slice());
-    updates_manager_->schedule_get_difference("failed to fetch update");
+  if (updates == nullptr) {
+    updates_manager_->schedule_get_difference("failed to fetch updates");
   } else {
     updates_manager_->on_update_from_auth_key_id(auth_key_id);
-    updates_manager_->on_get_updates(std::move(ptr), Promise<Unit>());
+    updates_manager_->on_get_updates(std::move(updates), Promise<Unit>());
     if (auth_manager_->is_bot() && auth_manager_->is_authorized()) {
       alarm_timeout_.set_timeout_in(PING_SERVER_ALARM_ID,
                                     PING_SERVER_TIMEOUT + Random::fast(0, PING_SERVER_TIMEOUT / 5));
