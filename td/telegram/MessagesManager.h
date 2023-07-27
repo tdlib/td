@@ -1645,6 +1645,29 @@ class MessagesManager final : public Actor {
     vector<std::pair<Promise<Unit>, std::function<bool(const Message *)>>> suffix_load_queries_;
   };
 
+  struct GetHistoryFromTheEndQuery {
+    DialogId dialog_id_;
+    MessageId old_last_message_id_;
+    int32 limit_ = 0;
+    bool from_database_ = false;
+    bool only_local_ = false;
+
+    bool operator==(const GetHistoryFromTheEndQuery &other) const {
+      return dialog_id_ == other.dialog_id_ && old_last_message_id_ == other.old_last_message_id_ &&
+             limit_ == other.limit_ && from_database_ == other.from_database_ && only_local_ == other.only_local_;
+    }
+  };
+  struct GetHistoryFromTheEndQueryHash {
+    uint32 operator()(const GetHistoryFromTheEndQuery &query) const {
+      uint32 hash = DialogIdHash()(query.dialog_id_);
+      hash = combine_hashes(hash, MessageIdHash()(query.old_last_message_id_));
+      hash = combine_hashes(hash, Hash<int32>()(query.limit_));
+      hash = combine_hashes(hash, static_cast<uint32>(query.from_database_));
+      hash = combine_hashes(hash, static_cast<uint32>(query.only_local_));
+      return hash;
+    }
+  };
+
   class BlockMessageSenderFromRepliesOnServerLogEvent;
   class DeleteAllCallMessagesOnServerLogEvent;
   class DeleteAllChannelMessagesFromSenderOnServerLogEvent;
@@ -2212,6 +2235,8 @@ class MessagesManager final : public Actor {
 
   void get_history_from_the_end_impl(const Dialog *d, bool from_database, bool only_local, Promise<Unit> &&promise,
                                      const char *source);
+
+  void on_get_history_from_the_end(const GetHistoryFromTheEndQuery &query, Result<Unit> &&result);
 
   void get_history(DialogId dialog_id, MessageId from_message_id, int32 offset, int32 limit, bool from_database,
                    bool only_local, Promise<Unit> &&promise);
@@ -3674,6 +3699,9 @@ class MessagesManager final : public Actor {
 
   vector<string> active_reactions_;
   FlatHashMap<string, size_t> active_reaction_pos_;
+
+  FlatHashMap<GetHistoryFromTheEndQuery, vector<Promise<Unit>>, GetHistoryFromTheEndQueryHash>
+      get_history_from_the_end_queries_;
 
   uint32 scheduled_messages_sync_generation_ = 1;
 
