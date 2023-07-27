@@ -541,9 +541,7 @@ std::string TD_TL_writer_cpp::gen_fetch_function_begin(const std::string &parser
       result +=
           "p);\n"
           "}\n\n" +
-          class_name + "::" + class_name + "(" + parser_name +
-          " &p)\n"
-          "#define FAIL(error) p.set_error(error)\n";
+          class_name + "::" + class_name + "(" + parser_name + " &p)\n";
     }
     return result;
   }
@@ -565,8 +563,7 @@ std::string TD_TL_writer_cpp::gen_fetch_function_end(bool has_parent, int field_
     if (field_count == 0) {
       return "}\n";
     }
-    return "#undef FAIL\n"
-           "{}\n";
+    return "{}\n";
   }
 
   if (parser_type == -1) {
