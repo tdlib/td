@@ -348,12 +348,14 @@ void UpdatesManager::fill_pts_gap(void *td) {
   auto updates_manager = static_cast<Td *>(td)->updates_manager_.get();
   auto min_pts = std::numeric_limits<int32>::max();
   auto min_pts_count = 0;
+  const telegram_api::Update *first_update = nullptr;
   auto max_pts = 0;
   if (!updates_manager->pending_pts_updates_.empty()) {
     auto &min_update = updates_manager->pending_pts_updates_.begin()->second;
     if (min_update.pts < min_pts) {
       min_pts = min_update.pts;
       min_pts_count = min_update.pts_count;
+      first_update = min_update.update.get();
     }
     max_pts = max(max_pts, updates_manager->pending_pts_updates_.rbegin()->first);
   }
@@ -362,11 +364,13 @@ void UpdatesManager::fill_pts_gap(void *td) {
     if (min_update.pts < min_pts) {
       min_pts = min_update.pts;
       min_pts_count = min_update.pts_count;
+      first_update = min_update.update.get();
     }
     max_pts = max(max_pts, updates_manager->postponed_pts_updates_.rbegin()->first);
   }
   string source = PSTRING() << "PTS from " << updates_manager->get_pts() << " to " << min_pts << "(-" << min_pts_count
-                            << ")-" << max_pts;
+                            << ")-" << max_pts << ' '
+                            << (first_update == nullptr ? string() : oneline(to_string(*first_update)));
   updates_manager->pts_gap_++;
   fill_gap(td, source.c_str());
 }
