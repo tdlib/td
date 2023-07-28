@@ -23226,9 +23226,10 @@ unique_ptr<MessagesManager::Message> MessagesManager::parse_message(Dialog *d, M
 
 void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId from_message_id,
                                                    MessageId old_last_database_message_id, int32 offset, int32 limit,
-                                                   bool from_the_end, bool only_local,
-                                                   vector<MessageDbDialogMessage> &&messages, Promise<Unit> &&promise) {
+                                                   bool only_local, vector<MessageDbDialogMessage> &&messages,
+                                                   Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
+  bool from_the_end = from_message_id == MessageId::max();
   CHECK(-limit < offset && offset <= 0);
   CHECK(offset < 0 || from_the_end);
   CHECK(!from_message_id.is_scheduled());
@@ -23452,81 +23453,7 @@ void MessagesManager::get_history_from_the_end(DialogId dialog_id, bool from_dat
 void MessagesManager::get_history_from_the_end_impl(const Dialog *d, bool from_database, bool only_local,
                                                     Promise<Unit> &&promise, const char *source) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
-  CHECK(d != nullptr);
-
-  auto dialog_id = d->dialog_id;
-  if (!have_input_peer(dialog_id, AccessRights::Read)) {
-    // can't get history in dialogs without read access
-    return promise.set_value(Unit());
-  }
-  if (!d->first_database_message_id.is_valid() && !d->have_full_history) {
-    from_database = false;
-  }
-  if (!G()->use_message_database()) {
-    from_database = false;
-  }
-  // load only 10 messages when repairing the last message and can't save the result to the database
-  int32 limit = !promise && (from_database || !G()->use_message_database()) ? 10 : MAX_GET_HISTORY;
-
-  PendingGetHistoryQuery query;
-  query.dialog_id_ = dialog_id;
-  query.limit_ = limit;
-  query.from_database_ = from_database;
-  query.only_local_ = only_local;
-
-  if (from_database) {
-    LOG(INFO) << "Get history from the end of " << dialog_id << " from database from " << source;
-
-    query.old_last_message_id_ = d->last_database_message_id;
-
-    auto &promises = get_history_queries_[query];
-    promises.push_back(std::move(promise));
-    if (promises.size() != 1) {
-      // query has already been sent, just wait for the result
-      return;
-    }
-
-    auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), query](Result<Unit> &&result) {
-      send_closure(actor_id, &MessagesManager::on_get_history_finished, query, std::move(result));
-    });
-
-    MessageDbMessagesQuery db_query;
-    db_query.dialog_id = dialog_id;
-    db_query.from_message_id = MessageId::max();
-    db_query.limit = limit;
-    G()->td_db()->get_message_db_async()->get_messages(
-        db_query,
-        PromiseCreator::lambda([actor_id = actor_id(this), dialog_id,
-                                old_last_database_message_id = d->last_database_message_id, only_local, limit,
-                                promise = std::move(query_promise)](vector<MessageDbDialogMessage> messages) mutable {
-          send_closure(actor_id, &MessagesManager::on_get_history_from_database, dialog_id, MessageId::max(),
-                       old_last_database_message_id, 0, limit, true, only_local, std::move(messages),
-                       std::move(promise));
-        }));
-  } else {
-    if (only_local || dialog_id.get_type() == DialogType::SecretChat || d->last_message_id.is_valid()) {
-      // if last message is known, there are no reasons to get message history from server from the end
-      promise.set_value(Unit());
-      return;
-    }
-
-    query.old_last_message_id_ = d->last_new_message_id;
-
-    auto &promises = get_history_queries_[query];
-    promises.push_back(std::move(promise));
-    if (promises.size() != 1) {
-      // query has already been sent, just wait for the result
-      return;
-    }
-
-    auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), query](Result<Unit> &&result) {
-      send_closure(actor_id, &MessagesManager::on_get_history_finished, query, std::move(result));
-    });
-
-    LOG(INFO) << "Get history from the end of " << dialog_id << " from server from " << source;
-    td_->create_handler<GetHistoryQuery>(std::move(query_promise))
-        ->send_get_from_the_end(dialog_id, d->last_new_message_id, limit);
-  }
+  get_history_impl(d, MessageId::max(), 0, -1, from_database, only_local, std::move(promise), source);
 }
 
 void MessagesManager::on_get_history_finished(const PendingGetHistoryQuery &query, Result<Unit> &&result) {
@@ -23550,9 +23477,13 @@ void MessagesManager::on_get_history_finished(const PendingGetHistoryQuery &quer
 void MessagesManager::get_history_impl(const Dialog *d, MessageId from_message_id, int32 offset, int32 limit,
                                        bool from_database, bool only_local, Promise<Unit> &&promise,
                                        const char *source) {
-  TRY_STATUS_PROMISE(promise, G()->close_status());
   CHECK(d != nullptr);
-  CHECK(from_message_id.is_valid());
+  bool from_the_end = from_message_id == MessageId() || from_message_id == MessageId::max();
+  if (!from_the_end) {
+    CHECK(from_message_id.is_valid());
+  } else {
+    from_message_id = MessageId::max();
+  }
 
   auto dialog_id = d->dialog_id;
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
@@ -23567,7 +23498,11 @@ void MessagesManager::get_history_impl(const Dialog *d, MessageId from_message_i
     from_database = false;
   }
 
-  if (offset >= -1) {
+  if (from_the_end) {
+    // load only 10 messages when repairing the last message and can't save the result to the database
+    limit = !promise && (from_database || !G()->use_message_database()) ? max(limit, 10) : MAX_GET_HISTORY;
+    offset = 0;
+  } else if (offset >= -1) {
     // get history before some server or local message
     limit = clamp(limit + offset + 1, MAX_GET_HISTORY / 2, MAX_GET_HISTORY);
     offset = -1;
@@ -23615,11 +23550,13 @@ void MessagesManager::get_history_impl(const Dialog *d, MessageId from_message_i
                                 old_last_database_message_id = d->last_database_message_id, offset, limit, only_local,
                                 promise = std::move(query_promise)](vector<MessageDbDialogMessage> messages) mutable {
           send_closure(actor_id, &MessagesManager::on_get_history_from_database, dialog_id, from_message_id,
-                       old_last_database_message_id, offset, limit, false, only_local, std::move(messages),
+                       old_last_database_message_id, offset, limit, only_local, std::move(messages),
                        std::move(promise));
         }));
   } else {
-    if (only_local || dialog_id.get_type() == DialogType::SecretChat) {
+    if (only_local || dialog_id.get_type() == DialogType::SecretChat ||
+        (from_the_end && d->last_message_id.is_valid())) {
+      // if the last message is known, there are no reasons to get message history from server from the end
       return promise.set_value(Unit());
     }
 
@@ -23636,10 +23573,16 @@ void MessagesManager::get_history_impl(const Dialog *d, MessageId from_message_i
       send_closure(actor_id, &MessagesManager::on_get_history_finished, query, std::move(result));
     });
 
-    LOG(INFO) << "Get history in " << dialog_id << " from " << from_message_id << " with offset " << offset
-              << " and limit " << limit << " from server from " << source;
-    td_->create_handler<GetHistoryQuery>(std::move(query_promise))
-        ->send(dialog_id, from_message_id.get_next_server_message_id(), d->last_new_message_id, offset, limit);
+    if (from_the_end) {
+      LOG(INFO) << "Get history from the end of " << dialog_id << " from server from " << source;
+      td_->create_handler<GetHistoryQuery>(std::move(query_promise))
+          ->send_get_from_the_end(dialog_id, d->last_new_message_id, limit);
+    } else {
+      LOG(INFO) << "Get history in " << dialog_id << " from " << from_message_id << " with offset " << offset
+                << " and limit " << limit << " from server from " << source;
+      td_->create_handler<GetHistoryQuery>(std::move(query_promise))
+          ->send(dialog_id, from_message_id.get_next_server_message_id(), d->last_new_message_id, offset, limit);
+    }
   }
 }
 

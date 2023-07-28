@@ -2232,9 +2232,8 @@ class MessagesManager final : public Actor {
   void preload_older_messages(const Dialog *d, MessageId min_message_id);
 
   void on_get_history_from_database(DialogId dialog_id, MessageId from_message_id,
-                                    MessageId old_last_database_message_id, int32 offset, int32 limit,
-                                    bool from_the_end, bool only_local, vector<MessageDbDialogMessage> &&messages,
-                                    Promise<Unit> &&promise);
+                                    MessageId old_last_database_message_id, int32 offset, int32 limit, bool only_local,
+                                    vector<MessageDbDialogMessage> &&messages, Promise<Unit> &&promise);
 
   void get_history_from_the_end(DialogId dialog_id, bool from_database, bool only_local, Promise<Unit> &&promise);
 
