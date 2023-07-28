@@ -3865,7 +3865,8 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateRecentEmojiStat
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePeerBlocked> update, Promise<Unit> &&promise) {
-  td_->messages_manager_->on_update_dialog_is_blocked(DialogId(update->peer_id_), update->blocked_);
+  td_->messages_manager_->on_update_dialog_is_blocked(DialogId(update->peer_id_), update->blocked_,
+                                                      update->blocked_my_stories_from_);
   promise.set_value(Unit());
 }
 

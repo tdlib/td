@@ -1661,7 +1661,7 @@ class ToggleDialogIsBlockedQuery final : public Td::ResultHandler {
       LOG(ERROR) << "Receive error for ToggleDialogIsBlockedQuery: " << status;
     }
     if (!G()->close_flag()) {
-      td_->messages_manager_->on_update_dialog_is_blocked(dialog_id_, !is_blocked_);
+      td_->messages_manager_->on_update_dialog_is_blocked(dialog_id_, !is_blocked_, false);
       td_->messages_manager_->get_dialog_info_full(dialog_id_, Auto(), "ToggleDialogIsBlockedQuery");
       td_->messages_manager_->reget_dialog_action_bar(dialog_id_, "ToggleDialogIsBlockedQuery");
     }
@@ -5356,6 +5356,8 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     STORE_FLAG(need_repair_unread_mention_count);
     STORE_FLAG(is_background_inited);
     STORE_FLAG(has_background);
+    STORE_FLAG(is_blocked_for_stories);
+    STORE_FLAG(is_is_blocked_for_stories_inited);
     END_STORE_FLAGS();
   }
 
@@ -5627,11 +5629,15 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     PARSE_FLAG(need_repair_unread_mention_count);
     PARSE_FLAG(is_background_inited);
     PARSE_FLAG(has_background);
+    PARSE_FLAG(is_blocked_for_stories);
+    PARSE_FLAG(is_is_blocked_for_stories_inited);
     END_PARSE_FLAGS();
   } else {
     need_repair_action_bar = false;
     is_available_reactions_inited = false;
     is_background_inited = false;
+    is_blocked_for_stories = false;
+    is_is_blocked_for_stories_inited = false;
   }
 
   parse(last_new_message_id, parser);
@@ -15772,9 +15778,9 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
       LOG(ERROR) << "Receive " << dialog->ttl_period_ << " as message auto-delete time in " << dialog_id;
       dialog->ttl_period_ = 0;
     }
-    if (!d->is_is_blocked_inited && !td_->auth_manager_->is_bot()) {
-      // asynchronously get is_blocked from the server
-      // TODO add is_blocked to telegram_api::dialog
+    if (!d->is_is_blocked_for_stories_inited && !td_->auth_manager_->is_bot()) {
+      // asynchronously get is_blocked_for_stories from the server
+      // TODO add is_blocked/is_blocked_for_stories to telegram_api::dialog
       reload_dialog_info_full(dialog_id, "on_get_dialogs init is_blocked");
     } else if (!d->is_has_bots_inited && !td_->auth_manager_->is_bot()) {
       // asynchronously get has_bots from the server
@@ -19577,10 +19583,11 @@ Status MessagesManager::toggle_message_sender_is_blocked(const td_api::object_pt
     if (is_blocked == d->is_blocked) {
       return Status::OK();
     }
-    set_dialog_is_blocked(d, is_blocked);
+    set_dialog_is_blocked(d, is_blocked, is_blocked ? false : d->is_blocked_for_stories);
   } else {
     CHECK(dialog_id.get_type() == DialogType::User);
-    td_->contacts_manager_->on_update_user_is_blocked(dialog_id.get_user_id(), is_blocked);
+    td_->contacts_manager_->on_update_user_is_blocked(dialog_id.get_user_id(), is_blocked,
+                                                      is_blocked ? false : d->is_blocked_for_stories);
   }
 
   toggle_dialog_is_blocked_on_server(dialog_id, is_blocked, 0);
@@ -31719,13 +31726,13 @@ void MessagesManager::set_dialog_is_translatable(Dialog *d, bool is_translatable
   }
 }
 
-void MessagesManager::on_update_dialog_is_blocked(DialogId dialog_id, bool is_blocked) {
+void MessagesManager::on_update_dialog_is_blocked(DialogId dialog_id, bool is_blocked, bool is_blocked_for_stories) {
   if (!dialog_id.is_valid()) {
     LOG(ERROR) << "Receive pinned message in invalid " << dialog_id;
     return;
   }
   if (dialog_id.get_type() == DialogType::User) {
-    td_->contacts_manager_->on_update_user_is_blocked(dialog_id.get_user_id(), is_blocked);
+    td_->contacts_manager_->on_update_user_is_blocked(dialog_id.get_user_id(), is_blocked, is_blocked_for_stories);
   }
 
   auto d = get_dialog_force(dialog_id, "on_update_dialog_is_blocked");
@@ -31734,33 +31741,36 @@ void MessagesManager::on_update_dialog_is_blocked(DialogId dialog_id, bool is_bl
     return;
   }
 
-  if (d->is_blocked == is_blocked) {
-    if (!d->is_is_blocked_inited) {
-      CHECK(is_blocked == false);
+  if (d->is_blocked == is_blocked && d->is_blocked_for_stories == is_blocked_for_stories) {
+    if (!d->is_is_blocked_for_stories_inited) {
+      CHECK(is_blocked_for_stories == false);
       d->is_is_blocked_inited = true;
+      d->is_is_blocked_for_stories_inited = true;
       on_dialog_updated(dialog_id, "on_update_dialog_is_blocked");
     }
     return;
   }
 
-  set_dialog_is_blocked(d, is_blocked);
+  set_dialog_is_blocked(d, is_blocked, is_blocked_for_stories);
 }
 
-void MessagesManager::set_dialog_is_blocked(Dialog *d, bool is_blocked) {
+void MessagesManager::set_dialog_is_blocked(Dialog *d, bool is_blocked, bool is_blocked_for_stories) {
   CHECK(d != nullptr);
-  CHECK(d->is_blocked != is_blocked);
+  CHECK(d->is_blocked != is_blocked || d->is_blocked_for_stories != is_blocked_for_stories);
   d->is_blocked = is_blocked;
+  d->is_blocked_for_stories = is_blocked_for_stories;
   d->is_is_blocked_inited = true;
+  d->is_is_blocked_for_stories_inited = true;
   on_dialog_updated(d->dialog_id, "set_dialog_is_blocked");
 
-  LOG(INFO) << "Set " << d->dialog_id << " is_blocked to " << is_blocked;
+  LOG(INFO) << "Set " << d->dialog_id << " is_blocked to " << is_blocked << '/' << is_blocked_for_stories;
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in set_dialog_is_blocked";
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateChatIsBlocked>(get_chat_id_object(d->dialog_id, "updateChatIsBlocked"),
                                                                 is_blocked));
 
   if (d->dialog_id.get_type() == DialogType::User) {
-    td_->contacts_manager_->on_update_user_is_blocked(d->dialog_id.get_user_id(), is_blocked);
+    td_->contacts_manager_->on_update_user_is_blocked(d->dialog_id.get_user_id(), is_blocked, is_blocked_for_stories);
 
     if (d->know_action_bar) {
       if (is_blocked) {
@@ -31774,11 +31784,12 @@ void MessagesManager::set_dialog_is_blocked(Dialog *d, bool is_blocked) {
     }
 
     td_->contacts_manager_->for_each_secret_chat_with_user(
-        d->dialog_id.get_user_id(), [this, is_blocked](SecretChatId secret_chat_id) {
+        d->dialog_id.get_user_id(), [this, is_blocked, is_blocked_for_stories](SecretChatId secret_chat_id) {
           DialogId dialog_id(secret_chat_id);
           auto d = get_dialog(dialog_id);  // must not create the dialog
-          if (d != nullptr && d->is_update_new_chat_sent && d->is_blocked != is_blocked) {
-            set_dialog_is_blocked(d, is_blocked);
+          if (d != nullptr && d->is_update_new_chat_sent &&
+              (d->is_blocked != is_blocked || d->is_blocked_for_stories != is_blocked_for_stories)) {
+            set_dialog_is_blocked(d, is_blocked, is_blocked_for_stories);
           }
         });
   }
@@ -36504,6 +36515,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
       break;
     case DialogType::Chat:
       d->is_is_blocked_inited = true;
+      d->is_is_blocked_for_stories_inited = true;
       d->is_background_inited = true;
       break;
     case DialogType::Channel: {
@@ -36541,6 +36553,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
       d->is_background_inited = true;
       d->is_theme_name_inited = true;
       d->is_is_blocked_inited = true;
+      d->is_is_blocked_for_stories_inited = true;
       if (!d->is_folder_id_inited && !td_->auth_manager_->is_bot()) {
         do_set_dialog_folder_id(
             d, td_->contacts_manager_->get_secret_chat_initial_folder_id(dialog_id.get_secret_chat_id()));
@@ -36683,8 +36696,9 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
       force_create_dialog(DialogId(user_id), "add chat with user to load/store action_bar and is_blocked");
 
       Dialog *user_d = get_dialog_force(DialogId(user_id), "fix_new_dialog");
-      if (user_d != nullptr && d->is_blocked != user_d->is_blocked) {
-        set_dialog_is_blocked(d, user_d->is_blocked);
+      if (user_d != nullptr &&
+          (d->is_blocked != user_d->is_blocked || d->is_blocked_for_stories != user_d->is_blocked_for_stories)) {
+        set_dialog_is_blocked(d, user_d->is_blocked, user_d->is_blocked_for_stories);
       }
     }
   }
@@ -36700,9 +36714,9 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
     send_get_dialog_query(dialog_id, Auto(), 0, "fix_new_dialog 20");
   }
 
-  if (being_added_dialog_id_ != dialog_id && !d->is_is_blocked_inited && !td_->auth_manager_->is_bot()) {
-    // asynchronously get is_blocked from the server
-    reload_dialog_info_full(dialog_id, "fix_new_dialog init is_blocked");
+  if (being_added_dialog_id_ != dialog_id && !d->is_is_blocked_for_stories_inited && !td_->auth_manager_->is_bot()) {
+    // asynchronously get is_blocked_for_stories from the server
+    reload_dialog_info_full(dialog_id, "fix_new_dialog init is_blocked_for_stories");
   } else if (being_added_dialog_id_ != dialog_id && !d->is_has_bots_inited && !td_->auth_manager_->is_bot()) {
     // asynchronously get has_bots from the server
     reload_dialog_info_full(dialog_id, "fix_new_dialog init has_bots");

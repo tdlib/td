@@ -4738,6 +4738,7 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   STORE_FLAG(has_personal_photo);
   STORE_FLAG(has_fallback_photo);
   STORE_FLAG(has_pinned_stories);
+  STORE_FLAG(is_blocked_for_stories);
   END_STORE_FLAGS();
   if (has_about) {
     store(about, storer);
@@ -4821,6 +4822,7 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   PARSE_FLAG(has_personal_photo);
   PARSE_FLAG(has_fallback_photo);
   PARSE_FLAG(has_pinned_stories);
+  PARSE_FLAG(is_blocked_for_stories);
   END_PARSE_FLAGS();
   if (has_about) {
     parse(about, parser);
@@ -12598,7 +12600,8 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
 
   td_->messages_manager_->on_update_dialog_message_ttl(DialogId(user_id), MessageTtl(user->ttl_period_));
 
-  td_->messages_manager_->on_update_dialog_is_blocked(DialogId(user_id), user->blocked_);
+  td_->messages_manager_->on_update_dialog_is_blocked(DialogId(user_id), user->blocked_,
+                                                      user->blocked_my_stories_from_);
 
   td_->messages_manager_->on_update_dialog_is_translatable(DialogId(user_id), !user->translations_disabled_);
 
@@ -12607,7 +12610,7 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   UserFull *user_full = add_user_full(user_id);
   user_full->expires_at = Time::now() + USER_FULL_EXPIRE_TIME;
 
-  on_update_user_full_is_blocked(user_full, user_id, user->blocked_);
+  on_update_user_full_is_blocked(user_full, user_id, user->blocked_, user->blocked_my_stories_from_);
   on_update_user_full_common_chat_count(user_full, user_id, user->common_chats_count_);
   on_update_user_full_need_phone_number_privacy_exception(user_full, user_id,
                                                           user->settings_->need_contacts_exception_);
@@ -13155,7 +13158,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
 
     on_update_channel_full_invite_link(channel_full, std::move(channel->exported_invite_));
 
-    td_->messages_manager_->on_update_dialog_is_blocked(DialogId(channel_id), channel->blocked_);
+    td_->messages_manager_->on_update_dialog_is_blocked(DialogId(channel_id), channel->blocked_, false);
 
     td_->messages_manager_->on_update_dialog_last_pinned_message_id(
         DialogId(channel_id), MessageId(ServerMessageId(channel->pinned_msg_id_)));
@@ -13827,25 +13830,28 @@ void ContactsManager::on_update_user_local_was_online(User *u, UserId user_id, i
   }
 }
 
-void ContactsManager::on_update_user_is_blocked(UserId user_id, bool is_blocked) {
+void ContactsManager::on_update_user_is_blocked(UserId user_id, bool is_blocked, bool is_blocked_for_stories) {
   if (!user_id.is_valid()) {
     LOG(ERROR) << "Receive invalid " << user_id;
     return;
   }
 
   UserFull *user_full = get_user_full_force(user_id);
-  if (user_full == nullptr || user_full->is_blocked == is_blocked) {
+  if (user_full == nullptr) {
     return;
   }
-  on_update_user_full_is_blocked(user_full, user_id, is_blocked);
+  on_update_user_full_is_blocked(user_full, user_id, is_blocked, is_blocked_for_stories);
   update_user_full(user_full, user_id, "on_update_user_is_blocked");
 }
 
-void ContactsManager::on_update_user_full_is_blocked(UserFull *user_full, UserId user_id, bool is_blocked) {
+void ContactsManager::on_update_user_full_is_blocked(UserFull *user_full, UserId user_id, bool is_blocked,
+                                                     bool is_blocked_for_stories) {
   CHECK(user_full != nullptr);
-  if (user_full->is_blocked != is_blocked) {
-    LOG(INFO) << "Receive update user full is blocked with " << user_id << " and is_blocked = " << is_blocked;
+  if (user_full->is_blocked != is_blocked || user_full->is_blocked_for_stories != is_blocked_for_stories) {
+    LOG(INFO) << "Receive update user full is blocked with " << user_id << " and is_blocked = " << is_blocked << '/'
+              << is_blocked_for_stories;
     user_full->is_blocked = is_blocked;
+    user_full->is_blocked_for_stories = is_blocked_for_stories;
     user_full->is_changed = true;
   }
 }
@@ -14246,7 +14252,8 @@ void ContactsManager::drop_user_full(UserId user_id) {
   user_full->photo = Photo();
   user_full->personal_photo = Photo();
   user_full->fallback_photo = Photo();
-  user_full->is_blocked = false;
+  // user_full->is_blocked = false;
+  // user_full->is_blocked_for_stories = false;
   user_full->can_be_called = false;
   user_full->supports_video_calls = false;
   user_full->has_private_calls = false;

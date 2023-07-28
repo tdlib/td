@@ -191,7 +191,7 @@ class ContactsManager final : public Actor {
   void on_update_user_stories_hidden(UserId user_id, bool stories_hidden);
   void on_update_user_online(UserId user_id, tl_object_ptr<telegram_api::UserStatus> &&status);
   void on_update_user_local_was_online(UserId user_id, int32 local_was_online);
-  void on_update_user_is_blocked(UserId user_id, bool is_blocked);
+  void on_update_user_is_blocked(UserId user_id, bool is_blocked, bool is_blocked_for_stories);
   void on_update_user_has_pinned_stories(UserId user_id, bool has_pinned_stories);
   void on_update_user_common_chat_count(UserId user_id, int32 common_chat_count);
   void on_update_user_need_phone_number_privacy_exception(UserId user_id, bool need_phone_number_privacy_exception);
@@ -858,6 +858,7 @@ class ContactsManager final : public Actor {
     int32 common_chat_count = 0;
 
     bool is_blocked = false;
+    bool is_blocked_for_stories = false;
     bool can_be_called = false;
     bool supports_video_calls = false;
     bool has_private_calls = false;
@@ -1435,7 +1436,8 @@ class ContactsManager final : public Actor {
 
   void register_user_photo(User *u, UserId user_id, const Photo &photo);
 
-  static void on_update_user_full_is_blocked(UserFull *user_full, UserId user_id, bool is_blocked);
+  static void on_update_user_full_is_blocked(UserFull *user_full, UserId user_id, bool is_blocked,
+                                             bool is_blocked_for_stories);
   static void on_update_user_full_common_chat_count(UserFull *user_full, UserId user_id, int32 common_chat_count);
   static void on_update_user_full_commands(UserFull *user_full, UserId user_id,
                                            vector<tl_object_ptr<telegram_api::botCommand>> &&bot_commands);

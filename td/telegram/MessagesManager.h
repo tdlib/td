@@ -301,7 +301,7 @@ class MessagesManager final : public Actor {
 
   void update_is_translatable(bool new_is_premium);
 
-  void on_update_dialog_is_blocked(DialogId dialog_id, bool is_blocked);
+  void on_update_dialog_is_blocked(DialogId dialog_id, bool is_blocked, bool is_blocked_for_stories);
 
   void on_update_dialog_last_pinned_message_id(DialogId dialog_id, MessageId last_pinned_message_id);
 
@@ -1425,6 +1425,8 @@ class MessagesManager final : public Actor {
     bool is_marked_as_unread = false;
     bool is_blocked = false;
     bool is_is_blocked_inited = false;
+    bool is_blocked_for_stories = false;
+    bool is_is_blocked_for_stories_inited = false;
     bool last_sent_has_scheduled_messages = false;
     bool has_scheduled_server_messages = false;
     bool has_scheduled_database_messages = false;
@@ -2598,7 +2600,7 @@ class MessagesManager final : public Actor {
 
   void set_dialog_is_translatable(Dialog *d, bool is_translatable);
 
-  void set_dialog_is_blocked(Dialog *d, bool is_blocked);
+  void set_dialog_is_blocked(Dialog *d, bool is_blocked, bool is_blocked_for_stories);
 
   void set_dialog_has_bots(Dialog *d, bool has_bots);
 
