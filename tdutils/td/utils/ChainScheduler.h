@@ -263,12 +263,11 @@ class ChainScheduler final : public ChainSchedulerBase {
 };
 
 template <class ExtraT>
-typename ChainScheduler<ExtraT>::TaskId ChainScheduler<ExtraT>::create_task(Span<ChainScheduler::ChainId> chains,
-                                                                            ExtraT extra) {
+typename ChainScheduler<ExtraT>::TaskId ChainScheduler<ExtraT>::create_task(Span<ChainId> chains, ExtraT extra) {
   auto task_id = tasks_.create();
   Task &task = *tasks_.get(task_id);
   task.extra = std::move(extra);
-  task.chains = transform(chains, [&](auto chain_id) {
+  task.chains = transform(chains, [&](ChainId chain_id) {
     CHECK(chain_id != 0);
     TaskChainInfo task_chain_info;
     ChainInfo &chain_info = get_chain_info(chain_id);
@@ -290,7 +289,7 @@ typename ChainScheduler<ExtraT>::TaskId ChainScheduler<ExtraT>::create_task(Span
 
 // TODO: return reference
 template <class ExtraT>
-ExtraT *ChainScheduler<ExtraT>::get_task_extra(ChainScheduler::TaskId task_id) {  // may return nullptr
+ExtraT *ChainScheduler<ExtraT>::get_task_extra(TaskId task_id) {  // may return nullptr
   auto *task = tasks_.get(task_id);
   if (task == nullptr) {
     return nullptr;
@@ -319,7 +318,7 @@ optional<ChainSchedulerBase::TaskWithParents> ChainScheduler<ExtraT>::start_next
 }
 
 template <class ExtraT>
-void ChainScheduler<ExtraT>::finish_task(ChainScheduler::TaskId task_id) {
+void ChainScheduler<ExtraT>::finish_task(TaskId task_id) {
   auto *task = tasks_.get(task_id);
   CHECK(task != nullptr);
   CHECK(to_start_.empty());
@@ -337,7 +336,7 @@ void ChainScheduler<ExtraT>::finish_task(ChainScheduler::TaskId task_id) {
 }
 
 template <class ExtraT>
-void ChainScheduler<ExtraT>::reset_task(ChainScheduler::TaskId task_id) {
+void ChainScheduler<ExtraT>::reset_task(TaskId task_id) {
   CHECK(to_start_.empty());
   auto *task = tasks_.get(task_id);
   CHECK(task != nullptr);
@@ -365,8 +364,9 @@ StringBuilder &operator<<(StringBuilder &sb, ChainScheduler<ExtraT> &scheduler) 
     sb << " active_cnt = " << it.second->active_tasks;
     sb << " g = " << it.second->generation;
     sb << ':';
-    it.second->chain.foreach(
-        [&](auto task_id, auto generation) { sb << ' ' << *scheduler.get_task_extra(task_id) << ':' << generation; });
+    it.second->chain.foreach([&](TaskId task_id, uint64 generation) {
+      sb << ' ' << *scheduler.get_task_extra(task_id) << ':' << generation;
+    });
     sb << '\n';
   }
   scheduler.tasks_.for_each([&](auto id, auto &task) {
