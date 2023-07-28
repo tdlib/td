@@ -23562,6 +23562,18 @@ void MessagesManager::get_history_impl(const Dialog *d, MessageId from_message_i
   CHECK(d != nullptr);
   CHECK(from_message_id.is_valid());
 
+  if (offset >= -1) {
+    // get history before some server or local message
+    limit = clamp(limit + offset + 1, MAX_GET_HISTORY / 2, MAX_GET_HISTORY);
+    offset = -1;
+  } else {
+    // get history around some server or local message
+    int32 messages_to_load = max(MAX_GET_HISTORY, limit);
+    int32 max_add = max(messages_to_load - limit - 2, 0);
+    offset -= max_add;
+    limit = MAX_GET_HISTORY;
+  }
+
   auto dialog_id = d->dialog_id;
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
     // can't get history in dialogs without read access
@@ -23661,17 +23673,6 @@ void MessagesManager::load_messages_impl(const Dialog *d, MessageId from_message
   if (from_message_id == MessageId()) {
     get_history_from_the_end_impl(d, from_database, only_local, std::move(promise), "load_messages_impl");
     return;
-  }
-  if (offset >= -1) {
-    // get history before some server or local message
-    limit = min(max(limit + offset + 1, MAX_GET_HISTORY / 2), MAX_GET_HISTORY);
-    offset = -1;
-  } else {
-    // get history around some server or local message
-    int32 messages_to_load = max(MAX_GET_HISTORY, limit);
-    int32 max_add = max(messages_to_load - limit - 2, 0);
-    offset -= max_add;
-    limit = MAX_GET_HISTORY;
   }
   get_history_impl(d, from_message_id, offset, limit, from_database, only_local, std::move(promise));
 }
@@ -40256,7 +40257,7 @@ void MessagesManager::suffix_load_loop(const Dialog *d, SuffixLoadQueries *queri
   queries->suffix_load_has_query_ = true;
   queries->suffix_load_query_message_id_ = from_message_id;
   if (from_message_id.is_valid()) {
-    get_history_impl(d, from_message_id, -1, 100, true, true, std::move(promise));
+    get_history_impl(d, from_message_id, -1, MAX_GET_HISTORY, true, true, std::move(promise));
   } else {
     CHECK(from_message_id == MessageId());
     get_history_from_the_end_impl(d, true, true, std::move(promise), "suffix_load_loop");
