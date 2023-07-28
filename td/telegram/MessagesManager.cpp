@@ -9802,7 +9802,11 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
             << dialog_id << " from " << from_message_id << " with offset " << offset << " and limit " << limit;
   CHECK(-limit < offset && offset <= 0);
   CHECK(offset < 0 || from_the_end);
-  CHECK(!from_message_id.is_scheduled());
+  if (from_the_end) {
+    CHECK(from_message_id == MessageId());
+  } else {
+    CHECK(!from_message_id.is_scheduled());
+  }
 
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
@@ -9812,11 +9816,7 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
       last_received_message_id < d->last_new_message_id) {
     // new server messages were added to the dialog since the request was sent, but weren't received
     // they should have been received, so we must repeat the request to get them
-    if (from_the_end) {
-      get_history_from_the_end_impl(d, false, false, std::move(promise), "on_get_history");
-    } else {
-      get_history_impl(d, from_message_id, offset, limit, false, false, std::move(promise), "on_get_history");
-    }
+    get_history_impl(d, from_message_id, offset, limit, false, false, std::move(promise), "on_get_history");
     return;
   }
 
@@ -23243,12 +23243,8 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
     LOG(INFO) << "Reget chat history from database in " << dialog_id
               << ", because last database message was changed from " << old_last_database_message_id << " to "
               << d->last_database_message_id;
-    if (from_the_end) {
-      get_history_from_the_end_impl(d, true, only_local, std::move(promise), "on_get_history_from_database 20");
-    } else {
-      get_history_impl(d, from_message_id, offset, limit, true, only_local, std::move(promise),
-                       "on_get_history_from_database 20");
-    }
+    get_history_impl(d, from_message_id, offset, limit, true, only_local, std::move(promise),
+                     "on_get_history_from_database 20");
     return;
   }
 
@@ -23605,10 +23601,6 @@ void MessagesManager::load_messages_impl(const Dialog *d, MessageId from_message
     only_local = true;
   }
   bool from_database = (left_tries > 2 || only_local) && G()->use_message_database();
-  if (from_message_id == MessageId() || from_message_id == MessageId::max()) {
-    get_history_from_the_end_impl(d, from_database, only_local, std::move(promise), "load_messages_impl");
-    return;
-  }
   get_history_impl(d, from_message_id, offset, limit, from_database, only_local, std::move(promise),
                    "load_messages_impl");
 }
@@ -40192,12 +40184,7 @@ void MessagesManager::suffix_load_loop(const Dialog *d, SuffixLoadQueries *queri
   });
   queries->suffix_load_has_query_ = true;
   queries->suffix_load_query_message_id_ = from_message_id;
-  if (from_message_id.is_valid()) {
-    get_history_impl(d, from_message_id, -1, MAX_GET_HISTORY, true, true, std::move(promise), "suffix_load_loop");
-  } else {
-    CHECK(from_message_id == MessageId());
-    get_history_from_the_end_impl(d, true, true, std::move(promise), "suffix_load_loop");
-  }
+  get_history_impl(d, from_message_id, -1, MAX_GET_HISTORY, true, true, std::move(promise), "suffix_load_loop");
 }
 
 void MessagesManager::suffix_load_update_first_message_id(const Dialog *d, SuffixLoadQueries *queries) {
