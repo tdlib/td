@@ -21066,11 +21066,10 @@ tl_object_ptr<td_api::messages> MessagesManager::get_dialog_history(DialogId dia
     CHECK(offset == 0);
     preload_newer_messages(d, message_ids[0]);
     preload_older_messages(d, message_ids.back());
-  } else if (message_ids.size() < static_cast<size_t>(limit) && left_tries != 0 &&
-             !(d->is_empty && d->have_full_history && left_tries < 3)) {
+  } else if (limit > 0 && left_tries != 0 && !(d->is_empty && d->have_full_history && left_tries < 3)) {
     // there can be more messages in the database or on the server, need to load them
-    send_closure_later(actor_id(this), &MessagesManager::load_messages, dialog_id, from_message_id, offset,
-                       limit - static_cast<int32>(message_ids.size()), left_tries, only_local, std::move(promise));
+    send_closure_later(actor_id(this), &MessagesManager::load_messages, dialog_id, from_message_id, offset, limit,
+                       left_tries, only_local, std::move(promise));
     return nullptr;
   }
 
@@ -23382,9 +23381,6 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
   }
 
   if (!first_added_message_id.is_valid() && !only_local && dialog_id.get_type() != DialogType::SecretChat) {
-    if (from_the_end) {
-      from_message_id = MessageId();
-    }
     load_messages_impl(d, from_message_id, offset, limit, 1, false, std::move(promise));
     return;
   }
@@ -23666,7 +23662,7 @@ void MessagesManager::load_messages_impl(const Dialog *d, MessageId from_message
     only_local = true;
   }
   bool from_database = (left_tries > 2 || only_local) && G()->use_message_database();
-  if (from_message_id == MessageId()) {
+  if (from_message_id == MessageId() || from_message_id == MessageId::max()) {
     get_history_from_the_end_impl(d, from_database, only_local, std::move(promise), "load_messages_impl");
     return;
   }
