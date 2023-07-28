@@ -6424,9 +6424,9 @@ void Td::on_request(uint64 id, const td_api::toggleChatIsMarkedAsUnread &request
                                                                            request.is_marked_as_unread_));
 }
 
-void Td::on_request(uint64 id, const td_api::toggleMessageSenderIsBlocked &request) {
+void Td::on_request(uint64 id, const td_api::setMessageSenderBlockList &request) {
   CHECK_IS_USER();
-  answer_ok_query(id, messages_manager_->toggle_message_sender_is_blocked(request.sender_id_, request.is_blocked_));
+  answer_ok_query(id, messages_manager_->set_message_sender_block_list(request.sender_id_, request.block_list_));
 }
 
 void Td::on_request(uint64 id, const td_api::toggleChatDefaultDisableNotification &request) {

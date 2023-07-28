@@ -1001,7 +1001,7 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::toggleChatIsMarkedAsUnread &request);
 
-  void on_request(uint64 id, const td_api::toggleMessageSenderIsBlocked &request);
+  void on_request(uint64 id, const td_api::setMessageSenderBlockList &request);
 
   void on_request(uint64 id, const td_api::toggleChatDefaultDisableNotification &request);
 

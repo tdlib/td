@@ -711,8 +711,8 @@ class MessagesManager final : public Actor {
 
   Status toggle_dialog_is_translatable(DialogId dialog_id, bool is_translatable) TD_WARN_UNUSED_RESULT;
 
-  Status toggle_message_sender_is_blocked(const td_api::object_ptr<td_api::MessageSender> &sender,
-                                          bool is_blocked) TD_WARN_UNUSED_RESULT;
+  Status set_message_sender_block_list(const td_api::object_ptr<td_api::MessageSender> &sender,
+                                       const td_api::object_ptr<td_api::BlockList> &block_list) TD_WARN_UNUSED_RESULT;
 
   Status toggle_dialog_silent_send_message(DialogId dialog_id, bool silent_send_message) TD_WARN_UNUSED_RESULT;
 
@@ -2636,7 +2636,8 @@ class MessagesManager final : public Actor {
 
   void toggle_dialog_is_translatable_on_server(DialogId dialog_id, bool is_translatable, uint64 log_event_id);
 
-  void toggle_dialog_is_blocked_on_server(DialogId dialog_id, bool is_blocked, uint64 log_event_id);
+  void toggle_dialog_is_blocked_on_server(DialogId dialog_id, bool is_blocked, bool is_blocked_for_stories,
+                                          uint64 log_event_id);
 
   void reorder_pinned_dialogs_on_server(FolderId folder_id, const vector<DialogId> &dialog_ids, uint64 log_event_id);
 
@@ -3241,7 +3242,8 @@ class MessagesManager final : public Actor {
 
   static uint64 save_toggle_dialog_is_translatable_on_server_log_event(DialogId dialog_id, bool is_translatable);
 
-  static uint64 save_toggle_dialog_is_blocked_on_server_log_event(DialogId dialog_id, bool is_blocked);
+  static uint64 save_toggle_dialog_is_blocked_on_server_log_event(DialogId dialog_id, bool is_blocked,
+                                                                  bool is_blocked_for_stories);
 
   static uint64 save_read_message_contents_on_server_log_event(DialogId dialog_id,
                                                                const vector<MessageId> &message_ids);

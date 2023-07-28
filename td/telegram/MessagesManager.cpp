@@ -9,6 +9,7 @@
 #include "td/telegram/Account.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/BackgroundInfo.hpp"
+#include "td/telegram/BlockListId.h"
 #include "td/telegram/ChainId.h"
 #include "td/telegram/ChannelType.h"
 #include "td/telegram/ChatId.h"
@@ -1617,28 +1618,29 @@ class ToggleDialogTranslationsQuery final : public Td::ResultHandler {
 class ToggleDialogIsBlockedQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
-  bool is_blocked_;
 
  public:
   explicit ToggleDialogIsBlockedQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, bool is_blocked) {
+  void send(DialogId dialog_id, bool is_blocked, bool is_blocked_for_stories) {
     dialog_id_ = dialog_id;
-    is_blocked_ = is_blocked;
 
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Know);
     CHECK(input_peer != nullptr && input_peer->get_id() != telegram_api::inputPeerEmpty::ID);
 
     int32 flags = 0;
-
+    if (is_blocked_for_stories) {
+      flags |= telegram_api::contacts_block::MY_STORIES_FROM_MASK;
+    }
     vector<ChainId> chain_ids{{dialog_id, MessageContentType::Photo}, {dialog_id, MessageContentType::Text}};
-    auto query = is_blocked ? G()->net_query_creator().create(
-                                  telegram_api::contacts_block(flags, false /*ignored*/, std::move(input_peer)),
-                                  std::move(chain_ids))
-                            : G()->net_query_creator().create(
-                                  telegram_api::contacts_unblock(flags, false /*ignored*/, std::move(input_peer)),
-                                  std::move(chain_ids));
+    auto query =
+        is_blocked || is_blocked_for_stories
+            ? G()->net_query_creator().create(
+                  telegram_api::contacts_block(flags, false /*ignored*/, std::move(input_peer)), std::move(chain_ids))
+            : G()->net_query_creator().create(
+                  telegram_api::contacts_unblock(flags, false /*ignored*/, std::move(input_peer)),
+                  std::move(chain_ids));
     send_query(std::move(query));
   }
 
@@ -1661,7 +1663,6 @@ class ToggleDialogIsBlockedQuery final : public Td::ResultHandler {
       LOG(ERROR) << "Receive error for ToggleDialogIsBlockedQuery: " << status;
     }
     if (!G()->close_flag()) {
-      td_->messages_manager_->on_update_dialog_is_blocked(dialog_id_, !is_blocked_, false);
       td_->messages_manager_->get_dialog_info_full(dialog_id_, Auto(), "ToggleDialogIsBlockedQuery");
       td_->messages_manager_->reget_dialog_action_bar(dialog_id_, "ToggleDialogIsBlockedQuery");
     }
@@ -19547,13 +19548,17 @@ void MessagesManager::toggle_dialog_is_translatable_on_server(DialogId dialog_id
       ->send(dialog_id, is_translatable);
 }
 
-Status MessagesManager::toggle_message_sender_is_blocked(const td_api::object_ptr<td_api::MessageSender> &sender,
-                                                         bool is_blocked) {
+Status MessagesManager::set_message_sender_block_list(const td_api::object_ptr<td_api::MessageSender> &sender,
+                                                      const td_api::object_ptr<td_api::BlockList> &block_list) {
   TRY_RESULT(dialog_id, get_message_sender_dialog_id(td_, sender, true, false));
+  BlockListId block_list_id(block_list);
+  bool is_blocked = block_list_id == BlockListId::main();
+  bool is_blocked_for_stories = block_list_id == BlockListId::stories();
   switch (dialog_id.get_type()) {
     case DialogType::User:
       if (dialog_id == get_my_dialog_id()) {
-        return Status::Error(400, is_blocked ? Slice("Can't block self") : Slice("Can't unblock self"));
+        return Status::Error(
+            400, is_blocked || is_blocked_for_stories ? Slice("Can't block self") : Slice("Can't unblock self"));
       }
       break;
     case DialogType::Chat:
@@ -19563,8 +19568,7 @@ Status MessagesManager::toggle_message_sender_is_blocked(const td_api::object_pt
       break;
     case DialogType::SecretChat: {
       auto user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
-      if (!user_id.is_valid() ||
-          !td_->contacts_manager_->have_user_force(user_id, "toggle_message_sender_is_blocked")) {
+      if (!user_id.is_valid() || !td_->contacts_manager_->have_user_force(user_id, "set_message_sender_block_list")) {
         return Status::Error(400, "The secret chat can't be blocked");
       }
       dialog_id = DialogId(user_id);
@@ -19575,22 +19579,21 @@ Status MessagesManager::toggle_message_sender_is_blocked(const td_api::object_pt
       UNREACHABLE();
   }
 
-  Dialog *d = get_dialog_force(dialog_id, "toggle_message_sender_is_blocked");
+  Dialog *d = get_dialog_force(dialog_id, "set_message_sender_block_list");
   if (!have_input_peer(dialog_id, AccessRights::Know)) {
     return Status::Error(400, "Message sender isn't accessible");
   }
   if (d != nullptr) {
-    if (is_blocked == d->is_blocked) {
+    if (is_blocked == d->is_blocked && is_blocked_for_stories == d->is_blocked_for_stories) {
       return Status::OK();
     }
-    set_dialog_is_blocked(d, is_blocked, is_blocked ? false : d->is_blocked_for_stories);
+    set_dialog_is_blocked(d, is_blocked, is_blocked_for_stories);
   } else {
     CHECK(dialog_id.get_type() == DialogType::User);
-    td_->contacts_manager_->on_update_user_is_blocked(dialog_id.get_user_id(), is_blocked,
-                                                      is_blocked ? false : d->is_blocked_for_stories);
+    td_->contacts_manager_->on_update_user_is_blocked(dialog_id.get_user_id(), is_blocked, is_blocked_for_stories);
   }
 
-  toggle_dialog_is_blocked_on_server(dialog_id, is_blocked, 0);
+  toggle_dialog_is_blocked_on_server(dialog_id, is_blocked, is_blocked_for_stories, 0);
   return Status::OK();
 }
 
@@ -19598,11 +19601,13 @@ class MessagesManager::ToggleDialogIsBlockedOnServerLogEvent {
  public:
   DialogId dialog_id_;
   bool is_blocked_;
+  bool is_blocked_for_stories_;
 
   template <class StorerT>
   void store(StorerT &storer) const {
     BEGIN_STORE_FLAGS();
     STORE_FLAG(is_blocked_);
+    STORE_FLAG(is_blocked_for_stories_);
     END_STORE_FLAGS();
 
     td::store(dialog_id_, storer);
@@ -19612,25 +19617,28 @@ class MessagesManager::ToggleDialogIsBlockedOnServerLogEvent {
   void parse(ParserT &parser) {
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(is_blocked_);
+    PARSE_FLAG(is_blocked_for_stories_);
     END_PARSE_FLAGS();
 
     td::parse(dialog_id_, parser);
   }
 };
 
-uint64 MessagesManager::save_toggle_dialog_is_blocked_on_server_log_event(DialogId dialog_id, bool is_blocked) {
-  ToggleDialogIsBlockedOnServerLogEvent log_event{dialog_id, is_blocked};
+uint64 MessagesManager::save_toggle_dialog_is_blocked_on_server_log_event(DialogId dialog_id, bool is_blocked,
+                                                                          bool is_blocked_for_stories) {
+  ToggleDialogIsBlockedOnServerLogEvent log_event{dialog_id, is_blocked, is_blocked_for_stories};
   return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ToggleDialogIsBlockedOnServer,
                     get_log_event_storer(log_event));
 }
 
-void MessagesManager::toggle_dialog_is_blocked_on_server(DialogId dialog_id, bool is_blocked, uint64 log_event_id) {
+void MessagesManager::toggle_dialog_is_blocked_on_server(DialogId dialog_id, bool is_blocked,
+                                                         bool is_blocked_for_stories, uint64 log_event_id) {
   if (log_event_id == 0 && G()->use_message_database()) {
-    log_event_id = save_toggle_dialog_is_blocked_on_server_log_event(dialog_id, is_blocked);
+    log_event_id = save_toggle_dialog_is_blocked_on_server_log_event(dialog_id, is_blocked, is_blocked_for_stories);
   }
 
   td_->create_handler<ToggleDialogIsBlockedQuery>(get_erase_log_event_promise(log_event_id))
-      ->send(dialog_id, is_blocked);
+      ->send(dialog_id, is_blocked, is_blocked_for_stories);
 }
 
 Status MessagesManager::toggle_dialog_silent_send_message(DialogId dialog_id, bool silent_send_message) {
@@ -20822,13 +20830,14 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       !need_hide_dialog_draft_message(d->dialog_id) ? get_draft_message_object(d->draft_message) : nullptr;
   auto available_reactions = get_dialog_active_reactions(d).get_chat_available_reactions_object();
   auto is_translatable = d->is_translatable && is_premium;
+  auto block_list_id = BlockListId(d->is_blocked, d->is_blocked_for_stories);
   return make_tl_object<td_api::chat>(
       d->dialog_id.get(), get_chat_type_object(d->dialog_id), get_dialog_title(d->dialog_id),
       get_chat_photo_info_object(td_->file_manager_.get(), get_dialog_photo(d->dialog_id)),
       get_dialog_default_permissions(d->dialog_id).get_chat_permissions_object(),
       get_message_object(d->dialog_id, get_message(d, d->last_message_id), "get_chat_object"),
-      get_chat_positions_object(d), get_default_message_sender_object(d),
-      get_dialog_has_protected_content(d->dialog_id), is_translatable, d->is_marked_as_unread, d->is_blocked,
+      get_chat_positions_object(d), get_default_message_sender_object(d), block_list_id.get_block_list_object(),
+      get_dialog_has_protected_content(d->dialog_id), is_translatable, d->is_marked_as_unread,
       get_dialog_has_scheduled_messages(d), can_delete.for_self_, can_delete.for_all_users_,
       can_report_dialog(d->dialog_id), d->notification_settings.silent_send_message,
       d->server_unread_count + d->local_unread_count, d->last_read_inbox_message_id.get(),
@@ -31765,9 +31774,10 @@ void MessagesManager::set_dialog_is_blocked(Dialog *d, bool is_blocked, bool is_
 
   LOG(INFO) << "Set " << d->dialog_id << " is_blocked to " << is_blocked << '/' << is_blocked_for_stories;
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in set_dialog_is_blocked";
+  auto block_list_id = BlockListId(d->is_blocked, d->is_blocked_for_stories);
   send_closure(G()->td(), &Td::send_update,
-               td_api::make_object<td_api::updateChatIsBlocked>(get_chat_id_object(d->dialog_id, "updateChatIsBlocked"),
-                                                                is_blocked));
+               td_api::make_object<td_api::updateChatBlockList>(get_chat_id_object(d->dialog_id, "updateChatBlockList"),
+                                                                block_list_id.get_block_list_object()));
 
   if (d->dialog_id.get_type() == DialogType::User) {
     td_->contacts_manager_->on_update_user_is_blocked(d->dialog_id.get_user_id(), is_blocked, is_blocked_for_stories);
@@ -39916,7 +39926,8 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
           break;
         }
 
-        toggle_dialog_is_blocked_on_server(dialog_id, log_event.is_blocked_, event.id_);
+        toggle_dialog_is_blocked_on_server(dialog_id, log_event.is_blocked_, log_event.is_blocked_for_stories_,
+                                           event.id_);
         break;
       }
       case LogEvent::HandlerType::SaveDialogDraftMessageOnServer: {

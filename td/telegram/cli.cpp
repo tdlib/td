@@ -505,13 +505,23 @@ class CliClient final : public Actor {
   }
 
   static td_api::object_ptr<td_api::StoryList> as_story_list(string story_list) {
-    if (!story_list.empty() && story_list.back() == 'a') {
-      return td_api::make_object<td_api::storyListArchive>();
-    }
-    if (!story_list.empty() && story_list.back() == 'e') {
+    if (story_list.empty() || story_list.back() == 'e') {
       return nullptr;
     }
+    if (story_list.back() == 'a') {
+      return td_api::make_object<td_api::storyListArchive>();
+    }
     return td_api::make_object<td_api::storyListMain>();
+  }
+
+  static td_api::object_ptr<td_api::BlockList> as_block_list(string block_list) {
+    if (block_list.empty()) {
+      return nullptr;
+    }
+    if (block_list.back() == 's') {
+      return td_api::make_object<td_api::blockListStories>();
+    }
+    return td_api::make_object<td_api::blockListMain>();
   }
 
   vector<int64> as_chat_ids(Slice chat_ids) const {
@@ -3996,11 +4006,12 @@ class CliClient final : public Actor {
       bool is_translatable;
       get_args(args, chat_id, is_translatable);
       send_request(td_api::make_object<td_api::toggleChatIsTranslatable>(chat_id, is_translatable));
-    } else if (op == "tmsib") {
+    } else if (op == "smsbl") {
       string sender_id;
-      bool is_blocked;
-      get_args(args, sender_id, is_blocked);
-      send_request(td_api::make_object<td_api::toggleMessageSenderIsBlocked>(as_message_sender(sender_id), is_blocked));
+      string block_list;
+      get_args(args, sender_id, block_list);
+      send_request(td_api::make_object<td_api::setMessageSenderBlockList>(as_message_sender(sender_id),
+                                                                          as_block_list(block_list)));
     } else if (op == "bmsfr") {
       MessageId message_id;
       bool delete_message;
