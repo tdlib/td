@@ -2231,19 +2231,18 @@ class MessagesManager final : public Actor {
 
   void preload_older_messages(const Dialog *d, MessageId min_message_id);
 
+  void load_last_dialog_message_later(DialogId dialog_id);
+
+  void load_last_dialog_message(const Dialog *d, const char *source);
+
   void on_get_history_from_database(DialogId dialog_id, MessageId from_message_id,
                                     MessageId old_last_database_message_id, int32 offset, int32 limit, bool only_local,
                                     vector<MessageDbDialogMessage> &&messages, Promise<Unit> &&promise);
 
-  void get_history_from_the_end(DialogId dialog_id, bool from_database, bool only_local, Promise<Unit> &&promise);
-
-  void get_history_from_the_end_impl(const Dialog *d, bool from_database, bool only_local, Promise<Unit> &&promise,
-                                     const char *source);
-
-  void on_get_history_finished(const PendingGetHistoryQuery &query, Result<Unit> &&result);
-
   void get_history_impl(const Dialog *d, MessageId from_message_id, int32 offset, int32 limit, bool from_database,
                         bool only_local, Promise<Unit> &&promise, const char *source);
+
+  void on_get_history_finished(const PendingGetHistoryQuery &query, Result<Unit> &&result);
 
   void load_messages(DialogId dialog_id, MessageId from_message_id, int32 offset, int32 limit, int left_tries,
                      bool only_local, Promise<Unit> &&promise);

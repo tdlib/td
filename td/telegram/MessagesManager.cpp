@@ -15934,7 +15934,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     update_dialog_lists(d, std::move(positions), true, false, source);
 
     if ((from_dialog_list || from_pinned_dialog_list) && d->order == DEFAULT_ORDER) {
-      get_history_from_the_end_impl(d, false, false, Auto(), "on_get_dialog");
+      load_last_dialog_message(d, "on_get_dialog");
     }
   }
 
@@ -16439,8 +16439,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
   d->being_deleted_message_id = MessageId();
 
   if (need_get_history) {
-    send_closure_later(actor_id(this), &MessagesManager::get_history_from_the_end, d->dialog_id, true, false,
-                       Promise<Unit>());
+    send_closure_later(actor_id(this), &MessagesManager::load_last_dialog_message_later, d->dialog_id);
   }
 
   on_message_deleted(d, result.get(), is_permanently_deleted, source);
@@ -23346,7 +23345,8 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
       if (first_received_message_id < d->last_database_message_id) {
         set_dialog_last_database_message_id(d, first_received_message_id, "on_get_history_from_database 12");
 
-        get_history_from_the_end_impl(d, true, only_local, std::move(promise), "on_get_history_from_database 21");
+        get_history_impl(d, MessageId::max(), 0, -1, true, only_local, std::move(promise),
+                         "on_get_history_from_database 21");
         return;
       }
 
@@ -23440,16 +23440,15 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
   promise.set_value(Unit());
 }
 
-void MessagesManager::get_history_from_the_end(DialogId dialog_id, bool from_database, bool only_local,
-                                               Promise<Unit> &&promise) {
-  get_history_from_the_end_impl(get_dialog(dialog_id), from_database, only_local, std::move(promise),
-                                "get_history_from_the_end");
+void MessagesManager::load_last_dialog_message_later(DialogId dialog_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+  load_last_dialog_message(get_dialog(dialog_id), "load_last_dialog_message");
 }
 
-void MessagesManager::get_history_from_the_end_impl(const Dialog *d, bool from_database, bool only_local,
-                                                    Promise<Unit> &&promise, const char *source) {
-  TRY_STATUS_PROMISE(promise, G()->close_status());
-  get_history_impl(d, MessageId::max(), 0, -1, from_database, only_local, std::move(promise), source);
+void MessagesManager::load_last_dialog_message(const Dialog *d, const char *source) {
+  get_history_impl(d, MessageId::max(), 0, -1, true, false, Promise<Unit>(), source);
 }
 
 void MessagesManager::on_get_history_finished(const PendingGetHistoryQuery &query, Result<Unit> &&result) {
@@ -34683,8 +34682,7 @@ void MessagesManager::add_message_to_dialog_message_list(const Message *m, Dialo
 
     on_dialog_updated(dialog_id, "do delete last message");
 
-    send_closure_later(actor_id(this), &MessagesManager::get_history_from_the_end, dialog_id, false, false,
-                       Promise<Unit>());
+    send_closure_later(actor_id(this), &MessagesManager::load_last_dialog_message_later, dialog_id);
   }
 
   d->ordered_messages.insert(message_id, from_update, old_last_message_id, source);
@@ -37143,7 +37141,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   }
   if (need_get_history && !td_->auth_manager_->is_bot() && dialog_id != being_added_dialog_id_ &&
       dialog_id != being_added_by_new_message_dialog_id_ && (d->order != DEFAULT_ORDER || is_dialog_sponsored(d))) {
-    get_history_from_the_end_impl(d, true, false, Auto(), "fix_new_dialog");
+    load_last_dialog_message(d, "fix_new_dialog");
   }
   if (d->need_repair_server_unread_count && need_unread_counter(d->order)) {
     CHECK(dialog_type != DialogType::SecretChat);
@@ -37198,7 +37196,7 @@ bool MessagesManager::add_dialog_last_database_message(Dialog *d, unique_ptr<Mes
 
     if (!td_->auth_manager_->is_bot() && dialog_id != being_added_dialog_id_ &&
         dialog_id != being_added_by_new_message_dialog_id_ && (d->order != DEFAULT_ORDER || is_dialog_sponsored(d))) {
-      get_history_from_the_end_impl(d, true, false, Auto(), "add_dialog_last_database_message 5");
+      load_last_dialog_message(d, "add_dialog_last_database_message 5");
     }
   }
 
@@ -37418,7 +37416,7 @@ void MessagesManager::update_dialog_pos(Dialog *d, const char *source, bool need
     if (new_order == DEFAULT_ORDER && !d->is_empty) {
       LOG(INFO) << "There are no known messages in the chat, just leave it where it is";
       new_order = d->order;
-      get_history_from_the_end_impl(d, true, false, Promise<Unit>(), source);
+      load_last_dialog_message(d, source);
     }
   }
 
@@ -39033,7 +39031,7 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
 
   if (d != nullptr && !td_->auth_manager_->is_bot() && have_access && !d->last_message_id.is_valid() && !d->is_empty &&
       (d->order != DEFAULT_ORDER || is_dialog_sponsored(d))) {
-    get_history_from_the_end_impl(d, true, false, Auto(), "after_get_channel_difference");
+    load_last_dialog_message(d, "after_get_channel_difference");
   }
 
   auto expected_channel_pts_it = expected_channel_pts_.find(dialog_id);
