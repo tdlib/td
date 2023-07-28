@@ -3026,10 +3026,12 @@ class CliClient final : public Actor {
     } else if (op == "tme") {
       send_request(td_api::make_object<td_api::getRecentlyVisitedTMeUrls>(args));
     } else if (op == "gbms") {
+      string block_list;
       int32 offset;
       string limit;
-      get_args(args, offset, limit);
-      send_request(td_api::make_object<td_api::getBlockedMessageSenders>(offset, as_limit(limit)));
+      get_args(args, block_list, offset, limit);
+      send_request(
+          td_api::make_object<td_api::getBlockedMessageSenders>(as_block_list(block_list), offset, as_limit(limit)));
     } else if (op == "gu") {
       UserId user_id;
       get_args(args, user_id);

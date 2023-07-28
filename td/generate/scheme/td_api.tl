@@ -7779,8 +7779,11 @@ setMessageSenderBlockList sender_id:MessageSender block_list:BlockList = Ok;
 //@report_spam Pass true to report the sender to the Telegram moderators
 blockMessageSenderFromReplies message_id:int53 delete_message:Bool delete_all_messages:Bool report_spam:Bool = Ok;
 
-//@description Returns users and chats that were blocked by the current user @offset Number of users and chats to skip in the result; must be non-negative @limit The maximum number of users and chats to return; up to 100
-getBlockedMessageSenders offset:int32 limit:int32 = MessageSenders;
+//@description Returns users and chats that were blocked by the current user
+//@block_list Block list from which to return users
+//@offset Number of users and chats to skip in the result; must be non-negative
+//@limit The maximum number of users and chats to return; up to 100
+getBlockedMessageSenders block_list:BlockList offset:int32 limit:int32 = MessageSenders;
 
 
 //@description Adds a user to the contact list or edits an existing contact by their user identifier

@@ -747,11 +747,14 @@ class GetBlockedDialogsQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(int32 offset, int32 limit) {
+  void send(BlockListId block_list_id, int32 offset, int32 limit) {
     offset_ = offset;
     limit_ = limit;
 
     int32 flags = 0;
+    if (block_list_id == BlockListId::stories()) {
+      flags |= telegram_api::contacts_getBlocked::MY_STORIES_FROM_MASK;
+    }
 
     send_query(
         G()->net_query_creator().create(telegram_api::contacts_getBlocked(flags, false /*ignored*/, offset, limit)));
@@ -17716,8 +17719,8 @@ bool MessagesManager::is_dialog_blocked(DialogId dialog_id) const {
   return d != nullptr && d->is_blocked;
 }
 
-void MessagesManager::get_blocked_dialogs(int32 offset, int32 limit,
-                                          Promise<td_api::object_ptr<td_api::messageSenders>> &&promise) {
+void MessagesManager::get_blocked_dialogs(const td_api::object_ptr<td_api::BlockList> &block_list, int32 offset,
+                                          int32 limit, Promise<td_api::object_ptr<td_api::messageSenders>> &&promise) {
   if (offset < 0) {
     return promise.set_error(Status::Error(400, "Parameter offset must be non-negative"));
   }
@@ -17726,7 +17729,12 @@ void MessagesManager::get_blocked_dialogs(int32 offset, int32 limit,
     return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
   }
 
-  td_->create_handler<GetBlockedDialogsQuery>(std::move(promise))->send(offset, limit);
+  auto block_list_id = BlockListId(block_list);
+  if (!block_list_id.is_valid()) {
+    return promise.set_error(Status::Error(400, "Block list must be non-empty"));
+  }
+
+  td_->create_handler<GetBlockedDialogsQuery>(std::move(promise))->send(block_list_id, offset, limit);
 }
 
 void MessagesManager::on_get_blocked_dialogs(int32 offset, int32 limit, int32 total_count,
