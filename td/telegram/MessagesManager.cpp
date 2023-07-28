@@ -23550,12 +23550,6 @@ void MessagesManager::on_get_history_finished(const PendingGetHistoryQuery &quer
   }
 }
 
-void MessagesManager::get_history(DialogId dialog_id, MessageId from_message_id, int32 offset, int32 limit,
-                                  bool from_database, bool only_local, Promise<Unit> &&promise) {
-  get_history_impl(get_dialog(dialog_id), from_message_id, offset, limit, from_database, only_local,
-                   std::move(promise));
-}
-
 void MessagesManager::get_history_impl(const Dialog *d, MessageId from_message_id, int32 offset, int32 limit,
                                        bool from_database, bool only_local, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
