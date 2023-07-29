@@ -50,7 +50,7 @@ class ChainScheduler final : public ChainSchedulerBase {
 
   template <class F>
   void for_each(F &&f) {
-    tasks_.for_each([&f](auto, Task &task) { f(task.extra); });
+    tasks_.for_each([&f](uint64, Task &task) { f(task.extra); });
   }
 
   template <class F>
@@ -364,12 +364,12 @@ StringBuilder &operator<<(StringBuilder &sb, ChainScheduler<ExtraT> &scheduler) 
     sb << " active_cnt = " << it.second->active_tasks;
     sb << " g = " << it.second->generation;
     sb << ':';
-    it.second->chain.foreach([&](TaskId task_id, uint64 generation) {
+    it.second->chain.foreach([&](typename ChainScheduler<ExtraT>::TaskId task_id, uint64 generation) {
       sb << ' ' << *scheduler.get_task_extra(task_id) << ':' << generation;
     });
     sb << '\n';
   }
-  scheduler.tasks_.for_each([&](auto id, auto &task) {
+  scheduler.tasks_.for_each([&](uint64, typename ChainScheduler<ExtraT>::Task &task) {
     sb << "Task: " << task.extra;
     sb << " state = " << static_cast<int>(task.state);
     for (auto &task_chain_info : task.chains) {
