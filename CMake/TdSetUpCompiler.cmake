@@ -136,7 +136,7 @@ function(td_set_up_compiler)
   #  add_cxx_compiler_flag("-Wzero-as-null-pointer-constant")
   endif()
 
-  if (GCC AND NOT (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 7.0))
+  if (GCC)
     add_cxx_compiler_flag("-Wno-maybe-uninitialized")  # too many false positives
   endif()
   if (WIN32 AND GCC AND NOT (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 8.0))
