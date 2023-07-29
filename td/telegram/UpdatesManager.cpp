@@ -2821,7 +2821,7 @@ void UpdatesManager::add_pending_pts_update(tl_object_ptr<telegram_api::Update> 
       old_pts = get_pts();
       set_pts_gap_timeout(0.001);
       return promise.set_value(Unit());
-    } else if (now > last_pts_jump_warning_time_ + 1 && (need_restore_pts || now < last_pts_jump_warning_time_ + 5) &&
+    } else if (now > last_pts_jump_warning_time_ + 1 && need_restore_pts &&
                !(old_pts == std::numeric_limits<int32>::max() && running_get_difference_)) {
       LOG(ERROR) << "Restore PTS after delete_first_messages from " << old_pts << " to " << new_pts
                  << " is disabled, pts_count = " << pts_count << ", update is from " << source << ": "
