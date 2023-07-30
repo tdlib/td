@@ -78,6 +78,9 @@ static td_api::object_ptr<td_api::PremiumFeature> get_premium_feature_object(Sli
   if (premium_feature == "translations") {
     return td_api::make_object<td_api::premiumFeatureRealTimeChatTranslation>();
   }
+  if (premium_feature == "stories") {
+    return td_api::make_object<td_api::premiumFeatureUpgradedStories>();
+  }
   return nullptr;
 }
 
@@ -389,6 +392,8 @@ static string get_premium_source(const td_api::PremiumFeature *feature) {
       return "app_icons";
     case td_api::premiumFeatureRealTimeChatTranslation::ID:
       return "translations";
+    case td_api::premiumFeatureUpgradedStories::ID:
+      return "stories";
     default:
       UNREACHABLE();
   }
@@ -489,13 +494,12 @@ void get_premium_limit(const td_api::object_ptr<td_api::PremiumLimitType> &limit
 
 void get_premium_features(Td *td, const td_api::object_ptr<td_api::PremiumSource> &source,
                           Promise<td_api::object_ptr<td_api::premiumFeatures>> &&promise) {
-  auto premium_features = full_split(
-      G()->get_option_string(
-          "premium_features",
-          "double_limits,more_upload,faster_download,voice_to_text,no_ads,infinite_reactions,premium_stickers,"
-          "animated_emoji,advanced_chat_management,profile_badge,emoji_status,animated_userpics,app_icons,"
-          "translations"),
-      ',');
+  auto premium_features =
+      full_split(G()->get_option_string("premium_features",
+                                        "double_limits,stories,more_upload,faster_download,voice_to_text,no_ads,"
+                                        "infinite_reactions,premium_stickers,animated_emoji,advanced_chat_management,"
+                                        "profile_badge,emoji_status,animated_userpics,app_icons,translations"),
+                 ',');
   vector<td_api::object_ptr<td_api::PremiumFeature>> features;
   for (const auto &premium_feature : premium_features) {
     auto feature = get_premium_feature_object(premium_feature);
