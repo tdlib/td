@@ -7099,7 +7099,7 @@ Status StickersManager::on_animated_emoji_message_clicked(string &&emoji, FullMe
     return Status::Error("Expected an object");
   }
   auto &object = value.get_object();
-  TRY_RESULT(version, get_json_object_int_field(object, "v", false));
+  TRY_RESULT(version, object.get_required_int_field("v"));
   if (version != 1) {
     return Status::OK();
   }
@@ -7116,11 +7116,11 @@ Status StickersManager::on_animated_emoji_message_clicked(string &&emoji, FullMe
       return Status::Error("Expected clicks as JSON objects");
     }
     auto &click_object = click.get_object();
-    TRY_RESULT(index, get_json_object_int_field(click_object, "i", false));
+    TRY_RESULT(index, click_object.get_required_int_field("i"));
     if (index <= 0 || index > 9) {
       return Status::Error("Wrong index");
     }
-    TRY_RESULT(start_time, get_json_object_double_field(click_object, "t", false));
+    TRY_RESULT(start_time, click_object.get_required_double_field("t"));
     if (!std::isfinite(start_time)) {
       return Status::Error("Receive invalid start time");
     }

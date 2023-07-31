@@ -132,12 +132,12 @@ Result<Address> address_from_json(Slice json) {
   }
 
   auto &object = value.get_object();
-  TRY_RESULT(country_code, get_json_object_string_field(object, "country_code"));
-  TRY_RESULT(state, get_json_object_string_field(object, "state"));
-  TRY_RESULT(city, get_json_object_string_field(object, "city"));
-  TRY_RESULT(street_line1, get_json_object_string_field(object, "street_line1"));
-  TRY_RESULT(street_line2, get_json_object_string_field(object, "street_line2"));
-  TRY_RESULT(postal_code, get_json_object_string_field(object, "post_code"));
+  TRY_RESULT(country_code, object.get_optional_string_field("country_code"));
+  TRY_RESULT(state, object.get_optional_string_field("state"));
+  TRY_RESULT(city, object.get_optional_string_field("city"));
+  TRY_RESULT(street_line1, object.get_optional_string_field("street_line1"));
+  TRY_RESULT(street_line2, object.get_optional_string_field("street_line2"));
+  TRY_RESULT(postal_code, object.get_optional_string_field("post_code"));
 
   TRY_STATUS(check_country_code(country_code));
   TRY_STATUS(check_state(state));

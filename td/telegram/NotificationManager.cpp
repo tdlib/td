@@ -3015,7 +3015,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
   auto data = std::move(json_value.get_object());
   int32 sent_date = G()->unix_time();
   if (has_json_object_field(data, "data")) {
-    TRY_RESULT(date, get_json_object_int_field(data, "date", true, sent_date));
+    TRY_RESULT(date, data.get_optional_int_field("date", sent_date));
     if (sent_date - 28 * 86400 <= date && date <= sent_date + 5) {
       sent_date = date;
     }
@@ -3056,7 +3056,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
       }
       announcement_message_text = field_value.second.get_string().str();
     } else if (field_value.first == "google.sent_time") {
-      TRY_RESULT(google_sent_time, get_json_object_long_field(data, "google.sent_time"));
+      TRY_RESULT(google_sent_time, data.get_optional_long_field("google.sent_time"));
       google_sent_time /= 1000;
       if (sent_date - 28 * 86400 <= google_sent_time && google_sent_time <= sent_date + 5) {
         sent_date = narrow_cast<int32>(google_sent_time);
@@ -3080,7 +3080,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     if (announcement_message_text.empty()) {
       return Status::Error("Receive empty announcement message text");
     }
-    TRY_RESULT(announcement_id, get_json_object_int_field(custom, "announcement"));
+    TRY_RESULT(announcement_id, custom.get_optional_int_field("announcement"));
     if (announcement_id == 0) {
       return Status::Error(200, "Receive unsupported announcement ID");
     }
@@ -3105,8 +3105,8 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
   }
 
   if (loc_key == "DC_UPDATE") {
-    TRY_RESULT(dc_id, get_json_object_int_field(custom, "dc", false));
-    TRY_RESULT(addr, get_json_object_string_field(custom, "addr", false));
+    TRY_RESULT(dc_id, custom.get_required_int_field("dc"));
+    TRY_RESULT(addr, custom.get_required_string_field("addr"));
     if (!DcId::is_valid(dc_id)) {
       return Status::Error("Invalid datacenter identifier");
     }
@@ -3144,7 +3144,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
 
   DialogId dialog_id;
   if (has_json_object_field(custom, "from_id")) {
-    TRY_RESULT(user_id_int, get_json_object_long_field(custom, "from_id"));
+    TRY_RESULT(user_id_int, custom.get_optional_long_field("from_id"));
     UserId user_id(user_id_int);
     if (!user_id.is_valid()) {
       return Status::Error("Receive invalid user identifier");
@@ -3152,7 +3152,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     dialog_id = DialogId(user_id);
   }
   if (has_json_object_field(custom, "chat_id")) {
-    TRY_RESULT(chat_id_int, get_json_object_long_field(custom, "chat_id"));
+    TRY_RESULT(chat_id_int, custom.get_optional_long_field("chat_id"));
     ChatId chat_id(chat_id_int);
     if (!chat_id.is_valid()) {
       return Status::Error("Receive invalid basic group identifier");
@@ -3160,7 +3160,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     dialog_id = DialogId(chat_id);
   }
   if (has_json_object_field(custom, "channel_id")) {
-    TRY_RESULT(channel_id_int, get_json_object_long_field(custom, "channel_id"));
+    TRY_RESULT(channel_id_int, custom.get_optional_long_field("channel_id"));
     ChannelId channel_id(channel_id_int);
     if (!channel_id.is_valid()) {
       return Status::Error("Receive invalid supergroup identifier");
@@ -3168,7 +3168,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     dialog_id = DialogId(channel_id);
   }
   if (has_json_object_field(custom, "encryption_id")) {
-    TRY_RESULT(secret_chat_id_int, get_json_object_int_field(custom, "encryption_id"));
+    TRY_RESULT(secret_chat_id_int, custom.get_optional_int_field("encryption_id"));
     SecretChatId secret_chat_id(secret_chat_id_int);
     if (!secret_chat_id.is_valid()) {
       return Status::Error("Receive invalid secret chat identifier");
@@ -3187,7 +3187,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
       return Status::Error("Receive read history in a secret chat");
     }
 
-    TRY_RESULT(max_id, get_json_object_int_field(custom, "max_id"));
+    TRY_RESULT(max_id, custom.get_optional_int_field("max_id"));
     ServerMessageId max_server_message_id(max_id);
     if (!max_server_message_id.is_valid()) {
       return Status::Error("Receive invalid max_id");
@@ -3203,7 +3203,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     if (dialog_id.get_type() == DialogType::SecretChat) {
       return Status::Error("Receive MESSAGE_DELETED in a secret chat");
     }
-    TRY_RESULT(server_message_ids_str, get_json_object_string_field(custom, "messages", false));
+    TRY_RESULT(server_message_ids_str, custom.get_required_string_field("messages"));
     auto server_message_ids = full_split(server_message_ids_str, ',');
     vector<MessageId> message_ids;
     for (const auto &server_message_id_str : server_message_ids) {
@@ -3228,7 +3228,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
       return Status::Error("Receive READ_STORIES in a secret chat");
     }
 
-    TRY_RESULT(max_id, get_json_object_int_field(custom, "max_id"));
+    TRY_RESULT(max_id, custom.get_optional_int_field("max_id"));
     StoryId max_story_id(max_id);
     if (!max_story_id.is_server()) {
       return Status::Error("Receive invalid max_id");
@@ -3243,7 +3243,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     if (dialog_id.get_type() != DialogType::SecretChat) {
       return Status::Error("Receive STORY_DELETED in a secret chat");
     }
-    TRY_RESULT(server_story_ids_str, get_json_object_string_field(custom, "story_id", false));
+    TRY_RESULT(server_story_ids_str, custom.get_required_string_field("story_id"));
     auto server_story_ids = full_split(server_story_ids_str, ',');
     vector<StoryId> story_ids;
     for (const auto &server_story_id_str : server_story_ids) {
@@ -3259,30 +3259,30 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     return Status::OK();
   }
 
-  TRY_RESULT(msg_id, get_json_object_int_field(custom, "msg_id"));
+  TRY_RESULT(msg_id, custom.get_optional_int_field("msg_id"));
   ServerMessageId server_message_id(msg_id);
   if (server_message_id != ServerMessageId() && !server_message_id.is_valid()) {
     return Status::Error("Receive invalid msg_id");
   }
 
-  TRY_RESULT(random_id, get_json_object_long_field(custom, "random_id"));
+  TRY_RESULT(random_id, custom.get_optional_long_field("random_id"));
 
   UserId sender_user_id;
   DialogId sender_dialog_id;
   if (has_json_object_field(custom, "chat_from_broadcast_id")) {
-    TRY_RESULT(sender_channel_id_int, get_json_object_long_field(custom, "chat_from_broadcast_id"));
+    TRY_RESULT(sender_channel_id_int, custom.get_optional_long_field("chat_from_broadcast_id"));
     sender_dialog_id = DialogId(ChannelId(sender_channel_id_int));
     if (!sender_dialog_id.is_valid()) {
       return Status::Error("Receive invalid chat_from_broadcast_id");
     }
   } else if (has_json_object_field(custom, "chat_from_group_id")) {
-    TRY_RESULT(sender_channel_id_int, get_json_object_long_field(custom, "chat_from_group_id"));
+    TRY_RESULT(sender_channel_id_int, custom.get_optional_long_field("chat_from_group_id"));
     sender_dialog_id = DialogId(ChannelId(sender_channel_id_int));
     if (!sender_dialog_id.is_valid()) {
       return Status::Error("Receive invalid chat_from_group_id");
     }
   } else if (has_json_object_field(custom, "chat_from_id")) {
-    TRY_RESULT(sender_user_id_int, get_json_object_long_field(custom, "chat_from_id"));
+    TRY_RESULT(sender_user_id_int, custom.get_optional_long_field("chat_from_id"));
     sender_user_id = UserId(sender_user_id_int);
     if (!sender_user_id.is_valid()) {
       return Status::Error("Receive invalid chat_from_id");
@@ -3293,7 +3293,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     sender_dialog_id = dialog_id;
   }
 
-  TRY_RESULT(contains_mention_int, get_json_object_int_field(custom, "mention"));
+  TRY_RESULT(contains_mention_int, custom.get_optional_int_field("mention"));
   bool contains_mention = contains_mention_int != 0;
 
   if (begins_with(loc_key, "CHANNEL_MESSAGE") || loc_key == "CHANNEL_ALBUM") {
@@ -3390,11 +3390,12 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     telegram_api::object_ptr<telegram_api::UserProfilePhoto> sender_photo;
     TRY_RESULT(mtpeer, get_json_object_field(custom, "mtpeer", JsonValue::Type::Object));
     if (mtpeer.type() != JsonValue::Type::Null) {
-      TRY_RESULT(ah, get_json_object_string_field(mtpeer.get_object(), "ah"));
+      auto &mtpeer_object = mtpeer.get_object();
+      TRY_RESULT(ah, mtpeer_object.get_optional_string_field("ah"));
       if (!ah.empty()) {
         TRY_RESULT_ASSIGN(sender_access_hash, to_integer_safe<int64>(ah));
       }
-      TRY_RESULT(ph, get_json_object_field(mtpeer.get_object(), "ph", JsonValue::Type::Object));
+      TRY_RESULT(ph, get_json_object_field(mtpeer_object, "ph", JsonValue::Type::Object));
       if (ph.type() != JsonValue::Type::Null) {
         // TODO parse sender photo
       }
@@ -3420,7 +3421,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
   Photo attached_photo;
   Document attached_document;
   if (has_json_object_field(custom, "attachb64")) {
-    TRY_RESULT(attachb64, get_json_object_string_field(custom, "attachb64", false));
+    TRY_RESULT(attachb64, custom.get_required_string_field("attachb64"));
     TRY_RESULT(attach, base64url_decode(attachb64));
 
     TlParser gzip_parser(attach);
@@ -3542,7 +3543,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     if (random_id != 0) {
       return Status::Error("Receive edit of secret message");
     }
-    TRY_RESULT(edit_date, get_json_object_int_field(custom, "edit_date"));
+    TRY_RESULT(edit_date, custom.get_optional_int_field("edit_date"));
     if (edit_date <= 0) {
       return Status::Error("Receive wrong edit date");
     }
@@ -3557,7 +3558,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
       disable_notification = true;
       ringtone_id = 0;
     } else if (has_json_object_field(custom, "ringtone")) {
-      TRY_RESULT_ASSIGN(ringtone_id, get_json_object_long_field(custom, "ringtone"));
+      TRY_RESULT_ASSIGN(ringtone_id, custom.get_optional_long_field("ringtone"));
     }
     add_message_push_notification(dialog_id, MessageId(server_message_id), random_id, sender_user_id, sender_dialog_id,
                                   std::move(sender_name), sent_date, is_from_scheduled, contains_mention,

@@ -270,7 +270,7 @@ static ActorOwn<> get_simple_config_dns(Slice address, Slice host, Promise<Simpl
           return Status::Error("Expected JSON object");
         }
         auto &data_object = answer_part.get_object();
-        TRY_RESULT(part, get_json_object_string_field(data_object, "data", false));
+        TRY_RESULT(part, data_object.get_required_string_field("data"));
         parts.push_back(std::move(part));
       }
       if (parts.size() != 2) {
@@ -347,7 +347,7 @@ ActorOwn<> get_simple_config_firebase_remote_config(Promise<SimpleConfigResult> 
       return Status::Error("Expected JSON object");
     }
     auto &entries_object = json.get_object();
-    TRY_RESULT(config, get_json_object_string_field(entries_object, "ipconfigv3", false));
+    TRY_RESULT(config, entries_object.get_required_string_field("ipconfigv3"));
     return std::move(config);
   };
   return get_simple_config_impl(std::move(promise), scheduler_id, std::move(url), "firebaseremoteconfig.googleapis.com",
@@ -382,8 +382,10 @@ ActorOwn<> get_simple_config_firebase_firestore(Promise<SimpleConfigResult> prom
     if (json.type() != JsonValue::Type::Object) {
       return Status::Error("Expected JSON object");
     }
-    TRY_RESULT(data, get_json_object_field(json.get_object(), "data", JsonValue::Type::Object, false));
-    TRY_RESULT(config, get_json_object_string_field(data.get_object(), "stringValue", false));
+    auto &json_object = json.get_object();
+    TRY_RESULT(data, get_json_object_field(json_object, "data", JsonValue::Type::Object, false));
+    auto &data_object = data.get_object();
+    TRY_RESULT(config, data_object.get_required_string_field("stringValue"));
     return std::move(config);
   };
   return get_simple_config_impl(std::move(promise), scheduler_id, std::move(url), "firestore.googleapis.com", {},

@@ -103,8 +103,8 @@ void gen_from_json_constructor(StringBuilder &sb, const T *constructor, bool is_
     sb << " {\n";
     for (auto &arg : constructor->args) {
       sb << "  TRY_STATUS(from_json" << (arg.type->type == tl::simple::Type::Bytes ? "_bytes" : "") << "(to."
-         << tl::simple::gen_cpp_field_name(arg.name) << ", get_json_object_field_force(from, \""
-         << tl::simple::gen_cpp_name(arg.name) << "\")));\n";
+         << tl::simple::gen_cpp_field_name(arg.name) << ", from.extract_field(\"" << tl::simple::gen_cpp_name(arg.name)
+         << "\")));\n";
     }
     sb << "  return Status::OK();\n";
     sb << "}\n\n";
