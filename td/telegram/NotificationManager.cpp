@@ -3023,59 +3023,45 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     data = std::move(data_data.get_object());
   }
 
-  string loc_key;
-  JsonObject custom;
-  string announcement_message_text;
-  vector<string> loc_args;
-  string sender_name;
-  for (auto &field_value : data.field_values_) {
-    if (field_value.first == "loc_key") {
-      if (field_value.second.type() != JsonValue::Type::String) {
-        return Status::Error("Expected loc_key as a String");
-      }
-      loc_key = field_value.second.get_string().str();
-    } else if (field_value.first == "loc_args") {
-      if (field_value.second.type() != JsonValue::Type::Array) {
-        return Status::Error("Expected loc_args as an Array");
-      }
-      loc_args.reserve(field_value.second.get_array().size());
-      for (auto &arg : field_value.second.get_array()) {
-        if (arg.type() != JsonValue::Type::String) {
-          return Status::Error("Expected loc_arg as a String");
-        }
-        loc_args.push_back(arg.get_string().str());
-      }
-    } else if (field_value.first == "custom") {
-      if (field_value.second.type() != JsonValue::Type::Object) {
-        return Status::Error("Expected custom as an Object");
-      }
-      custom = std::move(field_value.second.get_object());
-    } else if (field_value.first == "message") {
-      if (field_value.second.type() != JsonValue::Type::String) {
-        return Status::Error("Expected announcement message text as a String");
-      }
-      announcement_message_text = field_value.second.get_string().str();
-    } else if (field_value.first == "google.sent_time") {
-      TRY_RESULT(google_sent_time, data.get_optional_long_field("google.sent_time"));
-      google_sent_time /= 1000;
-      if (sent_date - 28 * 86400 <= google_sent_time && google_sent_time <= sent_date + 5) {
-        sent_date = narrow_cast<int32>(google_sent_time);
-      }
-    }
-  }
-
+  TRY_RESULT(loc_key, data.get_required_string_field("loc_key"));
   if (!clean_input_string(loc_key)) {
     return Status::Error(PSLICE() << "Receive invalid loc_key " << format::escaped(loc_key));
   }
   if (loc_key.empty()) {
     return Status::Error("Receive empty loc_key");
   }
-  for (auto &loc_arg : loc_args) {
-    if (!clean_input_string(loc_arg)) {
-      return Status::Error(PSLICE() << "Receive invalid loc_arg " << format::escaped(loc_arg));
+
+  vector<string> loc_args;
+  TRY_RESULT(loc_args_array, data.extract_optional_field("loc_args", JsonValue::Type::Array));
+  if (loc_args_array.type() == JsonValue::Type::Array) {
+    loc_args.reserve(loc_args_array.get_array().size());
+    for (auto &arg : loc_args_array.get_array()) {
+      if (arg.type() != JsonValue::Type::String) {
+        return Status::Error("Expected loc_arg as a String");
+      }
+      auto loc_arg = arg.get_string().str();
+      if (!clean_input_string(loc_arg)) {
+        return Status::Error(PSLICE() << "Receive invalid loc_arg " << format::escaped(loc_arg));
+      }
+      loc_args.push_back(std::move(loc_arg));
     }
   }
 
+  JsonObject custom;
+  TRY_RESULT(custom_value, data.extract_optional_field("custom", JsonValue::Type::Object));
+  if (custom_value.type() == JsonValue::Type::Object) {
+    custom = std::move(custom_value.get_object());
+  }
+
+  TRY_RESULT(google_sent_time, data.get_optional_long_field("google.sent_time"));
+  if (google_sent_time > 0) {
+    google_sent_time /= 1000;
+    if (sent_date - 28 * 86400 <= google_sent_time && google_sent_time <= sent_date + 5) {
+      sent_date = narrow_cast<int32>(google_sent_time);
+    }
+  }
+
+  TRY_RESULT(announcement_message_text, data.get_optional_string_field("message"));
   if (loc_key == "MESSAGE_ANNOUNCEMENT") {
     if (announcement_message_text.empty()) {
       return Status::Error("Receive empty announcement message text");
@@ -3302,6 +3288,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     }
     loc_key = loc_key.substr(8);
   }
+  string sender_name;
   if (begins_with(loc_key, "CHAT_")) {
     auto dialog_type = dialog_id.get_type();
     if (dialog_type != DialogType::Chat && dialog_type != DialogType::Channel) {
@@ -3972,38 +3959,24 @@ Result<int64> NotificationManager::get_push_receiver_id(string payload) {
     data = std::move(data_data.get_object());
   }
 
-  for (auto &field_value : data.field_values_) {
-    if (field_value.first == "p") {
-      auto encrypted_payload = std::move(field_value.second);
-      if (encrypted_payload.type() != JsonValue::Type::String) {
-        return Status::Error(400, "Expected encrypted payload as a String");
-      }
-      Slice encrypted_data = encrypted_payload.get_string();
-      if (encrypted_data.size() < 12) {
-        return Status::Error(400, "Encrypted payload is too small");
-      }
-      auto r_decoded = base64url_decode(encrypted_data.substr(0, 12));
-      if (r_decoded.is_error()) {
-        return Status::Error(400, "Failed to base64url-decode payload");
-      }
-      CHECK(r_decoded.ok().size() == 9);
-      return as<int64>(r_decoded.ok().c_str());
+  if (data.has_field("p")) {
+    TRY_RESULT(encrypted_data, data.get_required_string_field("p"));
+    if (encrypted_data.size() < 12) {
+      return Status::Error(400, "Encrypted payload is too small");
     }
-    if (field_value.first == "user_id") {
-      auto user_id = std::move(field_value.second);
-      if (user_id.type() != JsonValue::Type::String && user_id.type() != JsonValue::Type::Number) {
-        return Status::Error(400, "Expected user_id as a String or a Number");
-      }
-      Slice user_id_str = user_id.type() == JsonValue::Type::String ? user_id.get_string() : user_id.get_number();
-      auto r_user_id = to_integer_safe<int64>(user_id_str);
-      if (r_user_id.is_error()) {
-        return Status::Error(400, PSLICE() << "Failed to get user_id from " << user_id_str);
-      }
-      if (r_user_id.ok() <= 0) {
-        return Status::Error(400, PSLICE() << "Receive wrong user_id " << user_id_str);
-      }
-      return r_user_id.ok();
+    auto r_decoded = base64url_decode(encrypted_data.substr(0, 12));
+    if (r_decoded.is_error()) {
+      return Status::Error(400, "Failed to base64url-decode payload");
     }
+    CHECK(r_decoded.ok().size() == 9);
+    return as<int64>(r_decoded.ok().c_str());
+  }
+  if (data.has_field("user_id")) {
+    TRY_RESULT(user_id, data.get_required_long_field("user_id"));
+    if (user_id <= 0) {
+      return Status::Error(400, PSLICE() << "Receive wrong user_id " << user_id);
+    }
+    return user_id;
   }
 
   return static_cast<int64>(0);
@@ -4020,24 +3993,16 @@ Result<string> NotificationManager::decrypt_push(int64 encryption_key_id, string
     return Status::Error(400, "Expected JSON object");
   }
 
-  for (auto &field_value : json_value.get_object().field_values_) {
-    if (field_value.first == "p") {
-      auto encrypted_payload = std::move(field_value.second);
-      if (encrypted_payload.type() != JsonValue::Type::String) {
-        return Status::Error(400, "Expected encrypted payload as a String");
-      }
-      Slice encrypted_data = encrypted_payload.get_string();
-      if (encrypted_data.size() < 12) {
-        return Status::Error(400, "Encrypted payload is too small");
-      }
-      auto r_decoded = base64url_decode(encrypted_data);
-      if (r_decoded.is_error()) {
-        return Status::Error(400, "Failed to base64url-decode payload");
-      }
-      return decrypt_push_payload(encryption_key_id, std::move(encryption_key), r_decoded.move_as_ok());
-    }
+  const auto &object = json_value.get_object();
+  TRY_RESULT(encrypted_data, object.get_required_string_field("p"));
+  if (encrypted_data.size() < 12) {
+    return Status::Error(400, "Encrypted payload is too small");
   }
-  return Status::Error(400, "No 'p'(payload) field found in the push notification");
+  auto r_decoded = base64url_decode(encrypted_data);
+  if (r_decoded.is_error()) {
+    return Status::Error(400, "Failed to base64url-decode payload");
+  }
+  return decrypt_push_payload(encryption_key_id, std::move(encryption_key), r_decoded.move_as_ok());
 }
 
 Result<string> NotificationManager::decrypt_push_payload(int64 encryption_key_id, string encryption_key,
