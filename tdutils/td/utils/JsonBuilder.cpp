@@ -615,20 +615,28 @@ Result<JsonValue> get_json_object_field(JsonObject &object, Slice name, JsonValu
     }
   }
   if (!is_optional) {
-    return Status::Error(400, PSLICE() << "Can't find field \"" << name << "\"");
+    return Status::Error(400, PSLICE() << "Can't find field \"" << name << '"');
   }
   return JsonValue();
 }
 
-Result<bool> get_json_object_bool_field(JsonObject &object, Slice name, bool is_optional, bool default_value) {
-  TRY_RESULT(value, get_json_object_field(object, name, JsonValue::Type::Boolean, is_optional));
-  if (value.type() == JsonValue::Type::Null) {
+Result<bool> get_json_object_bool_field(const JsonObject &object, Slice name, bool is_optional, bool default_value) {
+  for (auto &field_value : object.field_values_) {
+    if (field_value.first == name) {
+      if (field_value.second.type() != JsonValue::Type::Boolean) {
+        return Status::Error(400, PSLICE() << "Field \"" << name << "\" must be of type Boolean");
+      }
+
+      return field_value.second.get_boolean();
+    }
+  }
+  if (is_optional) {
     return default_value;
   }
-  return value.get_boolean();
+  return Status::Error(400, PSLICE() << "Can't find field \"" << name << '"');
 }
 
-Result<int32> get_json_object_int_field(JsonObject &object, Slice name, bool is_optional, int32 default_value) {
+Result<int32> get_json_object_int_field(const JsonObject &object, Slice name, bool is_optional, int32 default_value) {
   for (auto &field_value : object.field_values_) {
     if (field_value.first == name) {
       if (field_value.second.type() == JsonValue::Type::String) {
@@ -644,10 +652,10 @@ Result<int32> get_json_object_int_field(JsonObject &object, Slice name, bool is_
   if (is_optional) {
     return default_value;
   }
-  return Status::Error(400, PSLICE() << "Can't find field \"" << name << "\"");
+  return Status::Error(400, PSLICE() << "Can't find field \"" << name << '"');
 }
 
-Result<int64> get_json_object_long_field(JsonObject &object, Slice name, bool is_optional, int64 default_value) {
+Result<int64> get_json_object_long_field(const JsonObject &object, Slice name, bool is_optional, int64 default_value) {
   for (auto &field_value : object.field_values_) {
     if (field_value.first == name) {
       if (field_value.second.type() == JsonValue::Type::String) {
@@ -663,18 +671,28 @@ Result<int64> get_json_object_long_field(JsonObject &object, Slice name, bool is
   if (is_optional) {
     return default_value;
   }
-  return Status::Error(400, PSLICE() << "Can't find field \"" << name << "\"");
+  return Status::Error(400, PSLICE() << "Can't find field \"" << name << '"');
 }
 
-Result<double> get_json_object_double_field(JsonObject &object, Slice name, bool is_optional, double default_value) {
-  TRY_RESULT(value, get_json_object_field(object, name, JsonValue::Type::Number, is_optional));
-  if (value.type() == JsonValue::Type::Null) {
+Result<double> get_json_object_double_field(const JsonObject &object, Slice name, bool is_optional,
+                                            double default_value) {
+  for (auto &field_value : object.field_values_) {
+    if (field_value.first == name) {
+      if (field_value.second.type() != JsonValue::Type::Number) {
+        return Status::Error(400, PSLICE() << "Field \"" << name << "\" must be of type Number");
+      }
+
+      return to_double(field_value.second.get_number());
+    }
+  }
+  if (is_optional) {
     return default_value;
   }
-  return to_double(value.get_number());
+  return Status::Error(400, PSLICE() << "Can't find field \"" << name << '"');
 }
 
-Result<string> get_json_object_string_field(JsonObject &object, Slice name, bool is_optional, string default_value) {
+Result<string> get_json_object_string_field(const JsonObject &object, Slice name, bool is_optional,
+                                            string default_value) {
   for (auto &field_value : object.field_values_) {
     if (field_value.first == name) {
       if (field_value.second.type() == JsonValue::Type::String) {
@@ -690,7 +708,7 @@ Result<string> get_json_object_string_field(JsonObject &object, Slice name, bool
   if (is_optional) {
     return default_value;
   }
-  return Status::Error(400, PSLICE() << "Can't find field \"" << name << "\"");
+  return Status::Error(400, PSLICE() << "Can't find field \"" << name << '"');
 }
 
 }  // namespace td
