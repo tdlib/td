@@ -467,6 +467,12 @@ class JsonObject {
   explicit JsonObject(vector<std::pair<Slice, JsonValue>> &&field_values) : field_values_(std::move(field_values)) {
   }
 
+  JsonObject(const JsonObject &) = delete;
+  JsonObject &operator=(const JsonObject &) = delete;
+  JsonObject(JsonObject &&) noexcept = default;
+  JsonObject &operator=(JsonObject &&) noexcept = default;
+  ~JsonObject() = default;
+
   size_t field_count() const {
     return field_values_.size();
   }
