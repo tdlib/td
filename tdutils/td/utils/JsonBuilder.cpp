@@ -394,7 +394,7 @@ Result<JsonValue> do_json_decode(Parser &parser, int32 max_depth) {
     case '{': {
       parser.skip('{');
       parser.skip_whitespaces();
-      std::vector<std::pair<MutableSlice, JsonValue>> res;
+      JsonObject res;
       if (parser.try_skip('}')) {
         return JsonValue::make_object(std::move(res));
       }
@@ -402,13 +402,13 @@ Result<JsonValue> do_json_decode(Parser &parser, int32 max_depth) {
         if (parser.empty()) {
           return Status::Error("Unexpected string end");
         }
-        TRY_RESULT(key, json_string_decode(parser));
+        TRY_RESULT(field, json_string_decode(parser));
         parser.skip_whitespaces();
         if (!parser.try_skip(':')) {
           return Status::Error("':' expected");
         }
         TRY_RESULT(value, do_json_decode(parser, max_depth - 1));
-        res.emplace_back(key, std::move(value));
+        res.field_values_.emplace_back(field, std::move(value));
 
         parser.skip_whitespaces();
         if (parser.try_skip('}')) {
@@ -586,7 +586,7 @@ Slice JsonValue::get_type_name(Type type) {
 }
 
 bool has_json_object_field(const JsonObject &object, Slice name) {
-  for (auto &field_value : object) {
+  for (auto &field_value : object.field_values_) {
     if (field_value.first == name) {
       return true;
     }
@@ -595,7 +595,7 @@ bool has_json_object_field(const JsonObject &object, Slice name) {
 }
 
 JsonValue get_json_object_field_force(JsonObject &object, Slice name) {
-  for (auto &field_value : object) {
+  for (auto &field_value : object.field_values_) {
     if (field_value.first == name) {
       return std::move(field_value.second);
     }
@@ -604,7 +604,7 @@ JsonValue get_json_object_field_force(JsonObject &object, Slice name) {
 }
 
 Result<JsonValue> get_json_object_field(JsonObject &object, Slice name, JsonValue::Type type, bool is_optional) {
-  for (auto &field_value : object) {
+  for (auto &field_value : object.field_values_) {
     if (field_value.first == name) {
       if (type != JsonValue::Type::Null && field_value.second.type() != type) {
         return Status::Error(400, PSLICE()
@@ -629,7 +629,7 @@ Result<bool> get_json_object_bool_field(JsonObject &object, Slice name, bool is_
 }
 
 Result<int32> get_json_object_int_field(JsonObject &object, Slice name, bool is_optional, int32 default_value) {
-  for (auto &field_value : object) {
+  for (auto &field_value : object.field_values_) {
     if (field_value.first == name) {
       if (field_value.second.type() == JsonValue::Type::String) {
         return to_integer_safe<int32>(field_value.second.get_string());
@@ -648,7 +648,7 @@ Result<int32> get_json_object_int_field(JsonObject &object, Slice name, bool is_
 }
 
 Result<int64> get_json_object_long_field(JsonObject &object, Slice name, bool is_optional, int64 default_value) {
-  for (auto &field_value : object) {
+  for (auto &field_value : object.field_values_) {
     if (field_value.first == name) {
       if (field_value.second.type() == JsonValue::Type::String) {
         return to_integer_safe<int64>(field_value.second.get_string());
@@ -675,7 +675,7 @@ Result<double> get_json_object_double_field(JsonObject &object, Slice name, bool
 }
 
 Result<string> get_json_object_string_field(JsonObject &object, Slice name, bool is_optional, string default_value) {
-  for (auto &field_value : object) {
+  for (auto &field_value : object.field_values_) {
     if (field_value.first == name) {
       if (field_value.second.type() == JsonValue::Type::String) {
         return field_value.second.get_string().str();

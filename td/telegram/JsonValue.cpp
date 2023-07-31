@@ -41,7 +41,7 @@ static td_api::object_ptr<td_api::JsonValue> get_json_value_object(const JsonVal
       return td_api::make_object<td_api::jsonValueArray>(transform(json_value.get_array(), get_json_value_object));
     case JsonValue::Type::Object:
       return td_api::make_object<td_api::jsonValueObject>(
-          transform(json_value.get_object(), get_json_value_member_object));
+          transform(json_value.get_object().field_values_, get_json_value_member_object));
     default:
       UNREACHABLE();
       return nullptr;

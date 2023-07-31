@@ -226,7 +226,7 @@ static tl_object_ptr<td_api::PaymentProvider> convert_payment_provider(
       LOG(ERROR) << "Unsupported JSON data \"" << native_parameters->data_ << '"';
       return nullptr;
     }
-    if (value.get_object().size() != 1) {
+    if (value.get_object().field_values_.size() != 1) {
       LOG(ERROR) << "Unsupported JSON data \"" << native_parameters->data_ << '"';
     }
 
@@ -257,7 +257,7 @@ static tl_object_ptr<td_api::PaymentProvider> convert_payment_provider(
       LOG(ERROR) << "Unsupported JSON data \"" << native_parameters->data_ << '"';
       return nullptr;
     }
-    if (value.get_object().size() != 5) {
+    if (value.get_object().field_values_.size() != 5) {
       LOG(ERROR) << "Unsupported JSON data \"" << native_parameters->data_ << '"';
     }
 

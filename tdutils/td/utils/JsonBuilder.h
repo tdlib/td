@@ -401,7 +401,7 @@ class JsonObjectScope final : public JsonScope {
     *sb_ << "}";
   }
   template <class T>
-  JsonObjectScope &operator()(Slice key, T &&value) {
+  JsonObjectScope &operator()(Slice field, T &&value) {
     CHECK(is_active());
     if (is_first_) {
       *sb_ << ",";
@@ -409,7 +409,7 @@ class JsonObjectScope final : public JsonScope {
       is_first_ = true;
     }
     jb_->print_offset();
-    jb_->enter_value() << key;
+    jb_->enter_value() << field;
     if (jb_->is_pretty()) {
       *sb_ << " : ";
     } else {
@@ -418,10 +418,10 @@ class JsonObjectScope final : public JsonScope {
     jb_->enter_value() << value;
     return *this;
   }
-  JsonObjectScope &operator<<(const JsonRaw &key_value) {
+  JsonObjectScope &operator<<(const JsonRaw &field_value) {
     CHECK(is_active());
     is_first_ = true;
-    jb_->enter_value() << key_value;
+    jb_->enter_value() << field_value;
     return *this;
   }
 
@@ -451,8 +451,12 @@ inline JsonArrayScope JsonBuilder::enter_array() {
 
 class JsonValue;
 
-using JsonObject = vector<std::pair<MutableSlice, JsonValue>>;
 using JsonArray = vector<JsonValue>;
+
+class JsonObject {
+ public:
+  vector<std::pair<MutableSlice, JsonValue>> field_values_;
+};
 
 class JsonValue final : private Jsonable {
  public:
@@ -584,8 +588,8 @@ class JsonValue final : private Jsonable {
       }
       case Type::Object: {
         auto object = scope->enter_object();
-        for (auto &key_value : get_object()) {
-          object(key_value.first, key_value.second);
+        for (auto &field_value : get_object().field_values_) {
+          object(field_value.first, field_value.second);
         }
         break;
       }
@@ -664,7 +668,7 @@ class JsonValue final : private Jsonable {
         array_.~vector<JsonValue>();
         break;
       case Type::Object:
-        object_.~vector<std::pair<MutableSlice, JsonValue>>();
+        object_.~JsonObject();
         break;
     }
     type_ = Type::Null;

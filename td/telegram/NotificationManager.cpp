@@ -3028,7 +3028,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
   string announcement_message_text;
   vector<string> loc_args;
   string sender_name;
-  for (auto &field_value : data) {
+  for (auto &field_value : data.field_values_) {
     if (field_value.first == "loc_key") {
       if (field_value.second.type() != JsonValue::Type::String) {
         return Status::Error("Expected loc_key as a String");
@@ -3971,7 +3971,7 @@ Result<int64> NotificationManager::get_push_receiver_id(string payload) {
     data = std::move(data_data.get_object());
   }
 
-  for (auto &field_value : data) {
+  for (auto &field_value : data.field_values_) {
     if (field_value.first == "p") {
       auto encrypted_payload = std::move(field_value.second);
       if (encrypted_payload.type() != JsonValue::Type::String) {
@@ -4019,7 +4019,7 @@ Result<string> NotificationManager::decrypt_push(int64 encryption_key_id, string
     return Status::Error(400, "Expected JSON object");
   }
 
-  for (auto &field_value : json_value.get_object()) {
+  for (auto &field_value : json_value.get_object().field_values_) {
     if (field_value.first == "p") {
       auto encrypted_payload = std::move(field_value.second);
       if (encrypted_payload.type() != JsonValue::Type::String) {
