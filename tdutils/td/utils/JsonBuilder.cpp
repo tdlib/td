@@ -763,6 +763,12 @@ Result<string> JsonObject::get_required_string_field(Slice name) const {
   return Status::Error(400, PSLICE() << "Can't find field \"" << name << '"');
 }
 
+void JsonObject::foreach(const std::function<void(Slice name, const JsonValue &value)> &callback) const {
+  for (auto &field_value : field_values_) {
+    callback(field_value.first, field_value.second);
+  }
+}
+
 bool has_json_object_field(const JsonObject &object, Slice name) {
   for (auto &field_value : object.field_values_) {
     if (field_value.first == name) {

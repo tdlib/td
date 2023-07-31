@@ -14,6 +14,7 @@
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 
+#include <functional>
 #include <new>
 #include <type_traits>
 #include <utility>
@@ -492,6 +493,8 @@ class JsonObject {
   Result<string> get_optional_string_field(Slice name, string default_value = string()) const;
 
   Result<string> get_required_string_field(Slice name) const;
+
+  void foreach(const std::function<void(Slice name, const JsonValue &value)> &callback) const;
 };
 
 class JsonValue final : private Jsonable {

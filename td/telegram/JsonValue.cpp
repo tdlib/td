@@ -19,14 +19,6 @@
 
 namespace td {
 
-static td_api::object_ptr<td_api::JsonValue> get_json_value_object(const JsonValue &json_value);
-
-static td_api::object_ptr<td_api::jsonObjectMember> get_json_value_member_object(
-    const std::pair<MutableSlice, JsonValue> &json_value_member) {
-  return td_api::make_object<td_api::jsonObjectMember>(json_value_member.first.str(),
-                                                       get_json_value_object(json_value_member.second));
-}
-
 static td_api::object_ptr<td_api::JsonValue> get_json_value_object(const JsonValue &json_value) {
   switch (json_value.type()) {
     case JsonValue::Type::Null:
@@ -39,9 +31,13 @@ static td_api::object_ptr<td_api::JsonValue> get_json_value_object(const JsonVal
       return td_api::make_object<td_api::jsonValueString>(json_value.get_string().str());
     case JsonValue::Type::Array:
       return td_api::make_object<td_api::jsonValueArray>(transform(json_value.get_array(), get_json_value_object));
-    case JsonValue::Type::Object:
-      return td_api::make_object<td_api::jsonValueObject>(
-          transform(json_value.get_object().field_values_, get_json_value_member_object));
+    case JsonValue::Type::Object: {
+      vector<td_api::object_ptr<td_api::jsonObjectMember>> members;
+      json_value.get_object().foreach([&members](Slice name, const JsonValue &value) {
+        members.push_back(td_api::make_object<td_api::jsonObjectMember>(name.str(), get_json_value_object(value)));
+      });
+      return td_api::make_object<td_api::jsonValueObject>(std::move(members));
+    }
     default:
       UNREACHABLE();
       return nullptr;
