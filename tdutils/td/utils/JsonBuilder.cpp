@@ -394,10 +394,10 @@ Result<JsonValue> do_json_decode(Parser &parser, int32 max_depth) {
     case '{': {
       parser.skip('{');
       parser.skip_whitespaces();
-      JsonObject res;
       if (parser.try_skip('}')) {
-        return JsonValue::make_object(std::move(res));
+        return JsonValue::make_object(JsonObject());
       }
+      vector<std::pair<Slice, JsonValue>> field_values;
       while (true) {
         if (parser.empty()) {
           return Status::Error("Unexpected string end");
@@ -408,7 +408,7 @@ Result<JsonValue> do_json_decode(Parser &parser, int32 max_depth) {
           return Status::Error("':' expected");
         }
         TRY_RESULT(value, do_json_decode(parser, max_depth - 1));
-        res.field_values_.emplace_back(field, std::move(value));
+        field_values.emplace_back(field, std::move(value));
 
         parser.skip_whitespaces();
         if (parser.try_skip('}')) {
@@ -423,7 +423,7 @@ Result<JsonValue> do_json_decode(Parser &parser, int32 max_depth) {
         }
         return Status::Error("Unexpected symbol while parsing JSON Object");
       }
-      return JsonValue::make_object(std::move(res));
+      return JsonValue::make_object(JsonObject(std::move(field_values)));
     }
     case '-':
     case '+':

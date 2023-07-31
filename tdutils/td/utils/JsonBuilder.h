@@ -460,7 +460,12 @@ class JsonObject {
   const JsonValue *get_field(Slice name) const;
 
  public:
-  vector<std::pair<MutableSlice, JsonValue>> field_values_;
+  vector<std::pair<Slice, JsonValue>> field_values_;
+
+  JsonObject() = default;
+
+  explicit JsonObject(vector<std::pair<Slice, JsonValue>> &&field_values) : field_values_(std::move(field_values)) {
+  }
 
   size_t field_count() const {
     return field_values_.size();
