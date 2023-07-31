@@ -161,7 +161,7 @@ std::enable_if_t<!std::is_constructible<T>::value, Status> from_json(tl_object_p
   }
 
   auto &object = from.get_object();
-  TRY_RESULT(constructor_value, get_json_object_field(object, "@type", JsonValue::Type::Null, false));
+  TRY_RESULT(constructor_value, object.extract_required_field("@type", JsonValue::Type::Null));
   int32 constructor = 0;
   if (constructor_value.type() == JsonValue::Type::Number) {
     constructor = to_integer<int32>(constructor_value.get_number());

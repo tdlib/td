@@ -83,7 +83,7 @@ class GoogleDnsResolver final : public Actor {
         return Status::Error("Failed to parse DNS result: not an object");
       }
       auto &object = json_value.get_object();
-      TRY_RESULT(answer, get_json_object_field(object, "Answer", JsonValue::Type::Array, false));
+      TRY_RESULT(answer, object.extract_required_field("Answer", JsonValue::Type::Array));
       return get_ip_address(answer);
     }
   }

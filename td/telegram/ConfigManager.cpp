@@ -298,7 +298,7 @@ static ActorOwn<> get_simple_config_dns(Slice address, Slice host, Promise<Simpl
         return Status::Error("Expected JSON object");
       }
       auto &answer_object = json.get_object();
-      TRY_RESULT(answer, get_json_object_field(answer_object, "Answer", JsonValue::Type::Array, false));
+      TRY_RESULT(answer, answer_object.extract_required_field("Answer", JsonValue::Type::Array));
       return get_data(answer);
     }
   };
@@ -383,7 +383,7 @@ ActorOwn<> get_simple_config_firebase_firestore(Promise<SimpleConfigResult> prom
       return Status::Error("Expected JSON object");
     }
     auto &json_object = json.get_object();
-    TRY_RESULT(data, get_json_object_field(json_object, "data", JsonValue::Type::Object, false));
+    TRY_RESULT(data, json_object.extract_required_field("data", JsonValue::Type::Object));
     auto &data_object = data.get_object();
     TRY_RESULT(config, data_object.get_required_string_field("stringValue"));
     return std::move(config);

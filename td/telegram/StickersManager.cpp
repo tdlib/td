@@ -7103,7 +7103,7 @@ Status StickersManager::on_animated_emoji_message_clicked(string &&emoji, FullMe
   if (version != 1) {
     return Status::OK();
   }
-  TRY_RESULT(array_value, get_json_object_field(object, "a", JsonValue::Type::Array, false));
+  TRY_RESULT(array_value, object.extract_required_field("a", JsonValue::Type::Array));
   auto &array = array_value.get_array();
   if (array.size() > 20) {
     return Status::Error("Click array is too big");

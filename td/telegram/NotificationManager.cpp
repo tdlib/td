@@ -3019,7 +3019,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     if (sent_date - 28 * 86400 <= date && date <= sent_date + 5) {
       sent_date = date;
     }
-    TRY_RESULT(data_data, get_json_object_field(data, "data", JsonValue::Type::Object, false));
+    TRY_RESULT(data_data, data.extract_required_field("data", JsonValue::Type::Object));
     data = std::move(data_data.get_object());
   }
 
@@ -3388,14 +3388,14 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
       !td_->contacts_manager_->have_user_force(sender_user_id, "process_push_notification_payload")) {
     int64 sender_access_hash = -1;
     telegram_api::object_ptr<telegram_api::UserProfilePhoto> sender_photo;
-    TRY_RESULT(mtpeer, get_json_object_field(custom, "mtpeer", JsonValue::Type::Object));
+    TRY_RESULT(mtpeer, custom.extract_optional_field("mtpeer", JsonValue::Type::Object));
     if (mtpeer.type() != JsonValue::Type::Null) {
       auto &mtpeer_object = mtpeer.get_object();
       TRY_RESULT(ah, mtpeer_object.get_optional_string_field("ah"));
       if (!ah.empty()) {
         TRY_RESULT_ASSIGN(sender_access_hash, to_integer_safe<int64>(ah));
       }
-      TRY_RESULT(ph, get_json_object_field(mtpeer_object, "ph", JsonValue::Type::Object));
+      TRY_RESULT(ph, mtpeer_object.extract_optional_field("ph", JsonValue::Type::Object));
       if (ph.type() != JsonValue::Type::Null) {
         // TODO parse sender photo
       }
@@ -3964,7 +3964,7 @@ Result<int64> NotificationManager::get_push_receiver_id(string payload) {
 
   auto data = std::move(json_value.get_object());
   if (data.has_field("data")) {
-    auto r_data_data = get_json_object_field(data, "data", JsonValue::Type::Object, false);
+    auto r_data_data = data.extract_required_field("data", JsonValue::Type::Object);
     if (r_data_data.is_error()) {
       return Status::Error(400, r_data_data.error().message());
     }
