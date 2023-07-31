@@ -144,7 +144,7 @@ TEST(JSON, get_json_object_field) {
 
   td::string encoded_object_copy = encoded_object;
   auto value = td::json_decode(encoded_object_copy).move_as_ok();
-  auto &object = value.get_object();
+  const auto &object = value.get_object();
   ASSERT_TRUE(td::has_json_object_field(object, "null"));
   ASSERT_TRUE(td::has_json_object_field(object, "object"));
   ASSERT_TRUE(!td::has_json_object_field(object, ""));
@@ -154,7 +154,7 @@ TEST(JSON, get_json_object_field) {
   ASSERT_TRUE(td::get_json_object_bool_field(object, "int").is_error());
   ASSERT_EQ(td::get_json_object_bool_field(object, "bool").ok(), true);
   ASSERT_EQ(td::get_json_object_bool_field(object, "bool").ok(), true);
-  ASSERT_EQ(td::get_json_object_bool_field(object, "bool", true).ok(), true);
+  ASSERT_EQ(td::get_json_object_bool_field(object, "bool", false).ok(), true);
   ASSERT_EQ(td::get_json_object_bool_field(object, "bool3").ok(), false);
   ASSERT_EQ(td::get_json_object_bool_field(object, "bool4", true, true).ok(), true);
   ASSERT_TRUE(td::get_json_object_bool_field(object, "bool5", false, true).is_error());
@@ -162,10 +162,10 @@ TEST(JSON, get_json_object_field) {
   ASSERT_TRUE(td::get_json_object_int_field(object, "null").is_error());
   ASSERT_EQ(td::get_json_object_int_field(object, "int").ok(), 1);
   ASSERT_EQ(td::get_json_object_int_field(object, "int").ok(), 1);
-  ASSERT_EQ(td::get_json_object_int_field(object, "int", true).ok(), 1);
+  ASSERT_EQ(td::get_json_object_int_field(object, "int", false).ok(), 1);
   ASSERT_EQ(td::get_json_object_int_field(object, "int2").ok(), 2);
   ASSERT_EQ(td::get_json_object_int_field(object, "int2").ok(), 2);
-  ASSERT_EQ(td::get_json_object_int_field(object, "int2", true).ok(), 2);
+  ASSERT_EQ(td::get_json_object_int_field(object, "int2", false).ok(), 2);
   ASSERT_EQ(td::get_json_object_int_field(object, "int3").ok(), 0);
   ASSERT_EQ(td::get_json_object_int_field(object, "int4", true, 5).ok(), 5);
   ASSERT_TRUE(td::get_json_object_int_field(object, "int5", false, 5).is_error());
@@ -175,10 +175,10 @@ TEST(JSON, get_json_object_field) {
   ASSERT_TRUE(td::get_json_object_long_field(object, "null").is_error());
   ASSERT_EQ(td::get_json_object_long_field(object, "long").ok(), 123456789012ll);
   ASSERT_EQ(td::get_json_object_long_field(object, "long").ok(), 123456789012ll);
-  ASSERT_EQ(td::get_json_object_long_field(object, "long", true).ok(), 123456789012ll);
+  ASSERT_EQ(td::get_json_object_long_field(object, "long", false).ok(), 123456789012ll);
   ASSERT_EQ(td::get_json_object_long_field(object, "long2").ok(), 2123456789012ll);
   ASSERT_EQ(td::get_json_object_long_field(object, "long2").ok(), 2123456789012ll);
-  ASSERT_EQ(td::get_json_object_long_field(object, "long2", true).ok(), 2123456789012ll);
+  ASSERT_EQ(td::get_json_object_long_field(object, "long2", false).ok(), 2123456789012ll);
   ASSERT_EQ(td::get_json_object_long_field(object, "long3").ok(), 0);
   ASSERT_EQ(td::get_json_object_long_field(object, "long4", true, 5).ok(), 5);
   ASSERT_TRUE(td::get_json_object_long_field(object, "long5", false, 5).is_error());
@@ -192,10 +192,10 @@ TEST(JSON, get_json_object_field) {
   ASSERT_TRUE(td::get_json_object_double_field(object, "null").is_error());
   ASSERT_TRUE(are_equal_double(td::get_json_object_double_field(object, "double").ok(), 12345678901.1));
   ASSERT_TRUE(are_equal_double(td::get_json_object_double_field(object, "double").ok(), 12345678901.1));
-  ASSERT_TRUE(are_equal_double(td::get_json_object_double_field(object, "double", true).ok(), 12345678901.1));
+  ASSERT_TRUE(are_equal_double(td::get_json_object_double_field(object, "double", false).ok(), 12345678901.1));
   ASSERT_TRUE(are_equal_double(td::get_json_object_double_field(object, "long2").ok(), 2123456789012.0));
   ASSERT_TRUE(are_equal_double(td::get_json_object_double_field(object, "long2").ok(), 2123456789012.0));
-  ASSERT_TRUE(are_equal_double(td::get_json_object_double_field(object, "long2", true).ok(), 2123456789012.0));
+  ASSERT_TRUE(are_equal_double(td::get_json_object_double_field(object, "long2", false).ok(), 2123456789012.0));
   ASSERT_TRUE(are_equal_double(td::get_json_object_double_field(object, "double3").ok(), 0.0));
   ASSERT_TRUE(are_equal_double(td::get_json_object_double_field(object, "double4", true, -5.23).ok(), -5.23));
   ASSERT_TRUE(td::get_json_object_double_field(object, "double5", false, 5).is_error());
@@ -205,13 +205,136 @@ TEST(JSON, get_json_object_field) {
   ASSERT_TRUE(td::get_json_object_string_field(object, "null").is_error());
   ASSERT_EQ(td::get_json_object_string_field(object, "string").ok(), "string");
   ASSERT_EQ(td::get_json_object_string_field(object, "string").ok(), "string");
-  ASSERT_EQ(td::get_json_object_string_field(object, "string", true).ok(), "string");
+  ASSERT_EQ(td::get_json_object_string_field(object, "string", false).ok(), "string");
   ASSERT_EQ(td::get_json_object_string_field(object, "string2").ok(), "12345e+1");
   ASSERT_EQ(td::get_json_object_string_field(object, "string2").ok(), "12345e+1");
-  ASSERT_EQ(td::get_json_object_string_field(object, "string2", true).ok(), "12345e+1");
+  ASSERT_EQ(td::get_json_object_string_field(object, "string2", false).ok(), "12345e+1");
   ASSERT_EQ(td::get_json_object_string_field(object, "string3").ok(), td::string());
   ASSERT_EQ(td::get_json_object_string_field(object, "string4", true, "abacaba").ok(), "abacaba");
   ASSERT_TRUE(td::get_json_object_string_field(object, "string5", false, "test").is_error());
   ASSERT_EQ(td::get_json_object_string_field(object, "int").ok(), "1");
   ASSERT_EQ(td::get_json_object_string_field(object, "int2").ok(), "2");
+}
+
+TEST(JSON, json_object_get_field) {
+  const td::string encoded_object =
+      "{\"null\":null,\"bool\":true,\"int\":\"1\",\"int2\":2,\"long\":\"123456789012\",\"long2\":2123456789012,"
+      "\"double\":12345678901.1,\"string\":\"string\",\"string2\":12345e+1,\"array\":[],\"object\":{}}";
+  {
+    td::string encoded_object_copy = encoded_object;
+    auto value = td::json_decode(encoded_object_copy).move_as_ok();
+    auto &object = value.get_object();
+    ASSERT_EQ(td::json_encode<td::string>(object.extract_field("null")), "null");
+    ASSERT_EQ(td::json_encode<td::string>(object.extract_field("bool")), "true");
+    ASSERT_EQ(td::json_encode<td::string>(object.extract_field("bool")), "null");
+    ASSERT_EQ(td::json_encode<td::string>(object.extract_field("int")), "\"1\"");
+    ASSERT_EQ(td::json_encode<td::string>(object.extract_field("int2")), "2");
+    ASSERT_EQ(td::json_encode<td::string>(object.extract_field("int3")), "null");
+    ASSERT_EQ(td::json_encode<td::string>(object.extract_field("long")), "\"123456789012\"");
+    ASSERT_EQ(td::json_encode<td::string>(object.extract_field("long2")), "2123456789012");
+    ASSERT_EQ(td::json_encode<td::string>(object.extract_field("double")), "12345678901.1");
+    ASSERT_EQ(td::json_encode<td::string>(object.extract_field("string")), "\"string\"");
+    ASSERT_EQ(td::json_encode<td::string>(object.extract_field("string2")), "12345e+1");
+    ASSERT_EQ(td::json_encode<td::string>(object.extract_field("array")), "[]");
+    ASSERT_EQ(td::json_encode<td::string>(object.extract_field("object")), "{}");
+    ASSERT_EQ(td::json_encode<td::string>(object.extract_field("")), "null");
+  }
+
+  {
+    td::string encoded_object_copy = encoded_object;
+    auto value = td::json_decode(encoded_object_copy).move_as_ok();
+    auto &object = value.get_object();
+    ASSERT_TRUE(object.extract_optional_field("int", td::JsonValue::Type::Number).is_error());
+    ASSERT_TRUE(object.extract_optional_field("int", td::JsonValue::Type::Number).is_error());
+    ASSERT_TRUE(object.extract_optional_field("int2", td::JsonValue::Type::Number).is_ok());
+    ASSERT_TRUE(object.extract_optional_field("int2", td::JsonValue::Type::Number).is_error());
+    ASSERT_TRUE(object.extract_optional_field("int3", td::JsonValue::Type::Number).is_ok());
+    ASSERT_TRUE(object.extract_optional_field("int3", td::JsonValue::Type::Null).is_ok());
+    ASSERT_EQ(object.extract_optional_field("int", td::JsonValue::Type::String).ok().get_string(), "1");
+    ASSERT_TRUE(object.extract_optional_field("int", td::JsonValue::Type::Number).is_error());
+    ASSERT_EQ(object.extract_optional_field("int", td::JsonValue::Type::Null).ok().type(), td::JsonValue::Type::Null);
+
+    ASSERT_TRUE(object.extract_required_field("long", td::JsonValue::Type::Number).is_error());
+    ASSERT_TRUE(object.extract_required_field("long", td::JsonValue::Type::Number).is_error());
+    ASSERT_TRUE(object.extract_required_field("long2", td::JsonValue::Type::Number).is_ok());
+    ASSERT_TRUE(object.extract_required_field("long2", td::JsonValue::Type::Number).is_error());
+    ASSERT_TRUE(object.extract_required_field("long3", td::JsonValue::Type::Number).is_error());
+    ASSERT_TRUE(object.extract_required_field("long3", td::JsonValue::Type::Null).is_error());
+    ASSERT_EQ(object.extract_required_field("long", td::JsonValue::Type::String).ok().get_string(), "123456789012");
+    ASSERT_TRUE(object.extract_required_field("long", td::JsonValue::Type::Number).is_error());
+    ASSERT_EQ(object.extract_required_field("long", td::JsonValue::Type::Null).ok().type(), td::JsonValue::Type::Null);
+  }
+
+  td::string encoded_object_copy = encoded_object;
+  auto value = td::json_decode(encoded_object_copy).move_as_ok();
+  const auto &object = value.get_object();
+  ASSERT_TRUE(object.has_field("null"));
+  ASSERT_TRUE(object.has_field("object"));
+  ASSERT_TRUE(!object.has_field(""));
+  ASSERT_TRUE(!object.has_field("objec"));
+  ASSERT_TRUE(!object.has_field("object2"));
+
+  ASSERT_TRUE(object.get_optional_bool_field("int").is_error());
+  ASSERT_EQ(object.get_optional_bool_field("bool").ok(), true);
+  ASSERT_EQ(object.get_optional_bool_field("bool", false).ok(), true);
+  ASSERT_EQ(object.get_required_bool_field("bool").ok(), true);
+  ASSERT_EQ(object.get_optional_bool_field("bool3").ok(), false);
+  ASSERT_EQ(object.get_optional_bool_field("bool4", true).ok(), true);
+  ASSERT_TRUE(object.get_required_bool_field("bool5").is_error());
+
+  ASSERT_TRUE(object.get_optional_int_field("null").is_error());
+  ASSERT_EQ(object.get_optional_int_field("int").ok(), 1);
+  ASSERT_EQ(object.get_optional_int_field("int").ok(), 1);
+  ASSERT_EQ(object.get_required_int_field("int").ok(), 1);
+  ASSERT_EQ(object.get_optional_int_field("int2").ok(), 2);
+  ASSERT_EQ(object.get_optional_int_field("int2").ok(), 2);
+  ASSERT_EQ(object.get_required_int_field("int2").ok(), 2);
+  ASSERT_EQ(object.get_optional_int_field("int3").ok(), 0);
+  ASSERT_EQ(object.get_optional_int_field("int4", 5).ok(), 5);
+  ASSERT_TRUE(object.get_required_int_field("int5").is_error());
+  ASSERT_EQ(object.get_optional_int_field("long").is_error(), true);
+  ASSERT_EQ(object.get_optional_int_field("long2").is_error(), true);
+
+  ASSERT_TRUE(object.get_optional_long_field("null").is_error());
+  ASSERT_EQ(object.get_optional_long_field("long").ok(), 123456789012ll);
+  ASSERT_EQ(object.get_optional_long_field("long").ok(), 123456789012ll);
+  ASSERT_EQ(object.get_required_long_field("long").ok(), 123456789012ll);
+  ASSERT_EQ(object.get_optional_long_field("long2").ok(), 2123456789012ll);
+  ASSERT_EQ(object.get_optional_long_field("long2").ok(), 2123456789012ll);
+  ASSERT_EQ(object.get_required_long_field("long2").ok(), 2123456789012ll);
+  ASSERT_EQ(object.get_optional_long_field("long3").ok(), 0);
+  ASSERT_EQ(object.get_optional_long_field("long4", 5).ok(), 5);
+  ASSERT_TRUE(object.get_required_long_field("long5").is_error());
+  ASSERT_EQ(object.get_optional_long_field("int").ok(), 1);
+  ASSERT_EQ(object.get_optional_long_field("int2").ok(), 2);
+
+  auto are_equal_double = [](double lhs, double rhs) {
+    return rhs - 1e-3 < lhs && lhs < rhs + 1e-3;
+  };
+
+  ASSERT_TRUE(object.get_optional_double_field("null").is_error());
+  ASSERT_TRUE(are_equal_double(object.get_optional_double_field("double").ok(), 12345678901.1));
+  ASSERT_TRUE(are_equal_double(object.get_optional_double_field("double").ok(), 12345678901.1));
+  ASSERT_TRUE(are_equal_double(object.get_required_double_field("double").ok(), 12345678901.1));
+  ASSERT_TRUE(are_equal_double(object.get_optional_double_field("long2").ok(), 2123456789012.0));
+  ASSERT_TRUE(are_equal_double(object.get_optional_double_field("long2").ok(), 2123456789012.0));
+  ASSERT_TRUE(are_equal_double(object.get_required_double_field("long2").ok(), 2123456789012.0));
+  ASSERT_TRUE(are_equal_double(object.get_optional_double_field("double3").ok(), 0.0));
+  ASSERT_TRUE(are_equal_double(object.get_optional_double_field("double4", -5.23).ok(), -5.23));
+  ASSERT_TRUE(object.get_required_double_field("double5").is_error());
+  ASSERT_TRUE(object.get_optional_double_field("int").is_error());
+  ASSERT_TRUE(are_equal_double(object.get_optional_double_field("int2").ok(), 2));
+
+  ASSERT_TRUE(object.get_optional_string_field("null").is_error());
+  ASSERT_EQ(object.get_optional_string_field("string").ok(), "string");
+  ASSERT_EQ(object.get_optional_string_field("string").ok(), "string");
+  ASSERT_EQ(object.get_required_string_field("string").ok(), "string");
+  ASSERT_EQ(object.get_optional_string_field("string2").ok(), "12345e+1");
+  ASSERT_EQ(object.get_optional_string_field("string2").ok(), "12345e+1");
+  ASSERT_EQ(object.get_required_string_field("string2").ok(), "12345e+1");
+  ASSERT_EQ(object.get_optional_string_field("string3").ok(), td::string());
+  ASSERT_EQ(object.get_optional_string_field("string4", "abacaba").ok(), "abacaba");
+  ASSERT_TRUE(object.get_required_string_field("string5").is_error());
+  ASSERT_EQ(object.get_optional_string_field("int").ok(), "1");
+  ASSERT_EQ(object.get_optional_string_field("int2").ok(), "2");
 }

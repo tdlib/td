@@ -451,20 +451,52 @@ inline JsonArrayScope JsonBuilder::enter_array() {
 
 class JsonValue;
 
+enum class JsonValueType { Null, Number, Boolean, String, Array, Object };
+
 using JsonArray = vector<JsonValue>;
 
 class JsonObject {
+  const JsonValue *get_field(Slice name) const;
+
  public:
   vector<std::pair<MutableSlice, JsonValue>> field_values_;
 
   size_t field_count() const {
     return field_values_.size();
   }
+
+  JsonValue extract_field(Slice name);
+
+  Result<JsonValue> extract_optional_field(Slice name, JsonValueType type);
+
+  Result<JsonValue> extract_required_field(Slice name, JsonValueType type);
+
+  bool has_field(Slice name) const;
+
+  Result<bool> get_optional_bool_field(Slice name, bool default_value = false) const;
+
+  Result<bool> get_required_bool_field(Slice name) const;
+
+  Result<int32> get_optional_int_field(Slice name, int32 default_value = 0) const;
+
+  Result<int32> get_required_int_field(Slice name) const;
+
+  Result<int64> get_optional_long_field(Slice name, int64 default_value = 0) const;
+
+  Result<int64> get_required_long_field(Slice name) const;
+
+  Result<double> get_optional_double_field(Slice name, double default_value = 0.0) const;
+
+  Result<double> get_required_double_field(Slice name) const;
+
+  Result<string> get_optional_string_field(Slice name, string default_value = string()) const;
+
+  Result<string> get_required_string_field(Slice name) const;
 };
 
 class JsonValue final : private Jsonable {
  public:
-  enum class Type { Null, Number, Boolean, String, Array, Object };
+  using Type = JsonValueType;
 
   static Slice get_type_name(Type type);
 

@@ -585,6 +585,184 @@ Slice JsonValue::get_type_name(Type type) {
   }
 }
 
+JsonValue JsonObject::extract_field(Slice name) {
+  for (auto &field_value : field_values_) {
+    if (field_value.first == name) {
+      return std::move(field_value.second);
+    }
+  }
+  return JsonValue();
+}
+
+Result<JsonValue> JsonObject::extract_optional_field(Slice name, JsonValueType type) {
+  for (auto &field_value : field_values_) {
+    if (field_value.first == name) {
+      if (type != JsonValue::Type::Null && field_value.second.type() != type) {
+        return Status::Error(400, PSLICE()
+                                      << "Field \"" << name << "\" must be of type " << JsonValue::get_type_name(type));
+      }
+
+      return std::move(field_value.second);
+    }
+  }
+  return JsonValue();
+}
+
+Result<JsonValue> JsonObject::extract_required_field(Slice name, JsonValueType type) {
+  for (auto &field_value : field_values_) {
+    if (field_value.first == name) {
+      if (type != JsonValue::Type::Null && field_value.second.type() != type) {
+        return Status::Error(400, PSLICE()
+                                      << "Field \"" << name << "\" must be of type " << JsonValue::get_type_name(type));
+      }
+
+      return std::move(field_value.second);
+    }
+  }
+  return Status::Error(400, PSLICE() << "Can't find field \"" << name << "\"");
+}
+
+const JsonValue *JsonObject::get_field(Slice name) const {
+  for (auto &field_value : field_values_) {
+    if (field_value.first == name) {
+      return &field_value.second;
+    }
+  }
+  return nullptr;
+}
+
+bool JsonObject::has_field(Slice name) const {
+  return get_field(name) != nullptr;
+}
+
+Result<bool> JsonObject::get_optional_bool_field(Slice name, bool default_value) const {
+  auto value = get_field(name);
+  if (value != nullptr) {
+    if (value->type() == JsonValue::Type::Boolean) {
+      return value->get_boolean();
+    }
+    return Status::Error(400, PSLICE() << "Field \"" << name << "\" must be of type Boolean");
+  }
+  return default_value;
+}
+
+Result<bool> JsonObject::get_required_bool_field(Slice name) const {
+  auto value = get_field(name);
+  if (value != nullptr) {
+    if (value->type() == JsonValue::Type::Boolean) {
+      return value->get_boolean();
+    }
+    return Status::Error(400, PSLICE() << "Field \"" << name << "\" must be of type Boolean");
+  }
+  return Status::Error(400, PSLICE() << "Can't find field \"" << name << '"');
+}
+
+Result<int32> JsonObject::get_optional_int_field(Slice name, int32 default_value) const {
+  auto value = get_field(name);
+  if (value != nullptr) {
+    if (value->type() == JsonValue::Type::String) {
+      return to_integer_safe<int32>(value->get_string());
+    }
+    if (value->type() == JsonValue::Type::Number) {
+      return to_integer_safe<int32>(value->get_number());
+    }
+    return Status::Error(400, PSLICE() << "Field \"" << name << "\" must be of type Number");
+  }
+  return default_value;
+}
+
+Result<int32> JsonObject::get_required_int_field(Slice name) const {
+  auto value = get_field(name);
+  if (value != nullptr) {
+    if (value->type() == JsonValue::Type::String) {
+      return to_integer_safe<int32>(value->get_string());
+    }
+    if (value->type() == JsonValue::Type::Number) {
+      return to_integer_safe<int32>(value->get_number());
+    }
+    return Status::Error(400, PSLICE() << "Field \"" << name << "\" must be of type Number");
+  }
+  return Status::Error(400, PSLICE() << "Can't find field \"" << name << '"');
+}
+
+Result<int64> JsonObject::get_optional_long_field(Slice name, int64 default_value) const {
+  auto value = get_field(name);
+  if (value != nullptr) {
+    if (value->type() == JsonValue::Type::String) {
+      return to_integer_safe<int64>(value->get_string());
+    }
+    if (value->type() == JsonValue::Type::Number) {
+      return to_integer_safe<int64>(value->get_number());
+    }
+    return Status::Error(400, PSLICE() << "Field \"" << name << "\" must be a Number");
+  }
+  return default_value;
+}
+
+Result<int64> JsonObject::get_required_long_field(Slice name) const {
+  auto value = get_field(name);
+  if (value != nullptr) {
+    if (value->type() == JsonValue::Type::String) {
+      return to_integer_safe<int64>(value->get_string());
+    }
+    if (value->type() == JsonValue::Type::Number) {
+      return to_integer_safe<int64>(value->get_number());
+    }
+    return Status::Error(400, PSLICE() << "Field \"" << name << "\" must be a Number");
+  }
+  return Status::Error(400, PSLICE() << "Can't find field \"" << name << '"');
+}
+
+Result<double> JsonObject::get_optional_double_field(Slice name, double default_value) const {
+  auto value = get_field(name);
+  if (value != nullptr) {
+    if (value->type() == JsonValue::Type::Number) {
+      return to_double(value->get_number());
+    }
+    return Status::Error(400, PSLICE() << "Field \"" << name << "\" must be of type Number");
+  }
+  return default_value;
+}
+
+Result<double> JsonObject::get_required_double_field(Slice name) const {
+  auto value = get_field(name);
+  if (value != nullptr) {
+    if (value->type() == JsonValue::Type::Number) {
+      return to_double(value->get_number());
+    }
+    return Status::Error(400, PSLICE() << "Field \"" << name << "\" must be of type Number");
+  }
+  return Status::Error(400, PSLICE() << "Can't find field \"" << name << '"');
+}
+
+Result<string> JsonObject::get_optional_string_field(Slice name, string default_value) const {
+  auto value = get_field(name);
+  if (value != nullptr) {
+    if (value->type() == JsonValue::Type::String) {
+      return value->get_string().str();
+    }
+    if (value->type() == JsonValue::Type::Number) {
+      return value->get_number().str();
+    }
+    return Status::Error(400, PSLICE() << "Field \"" << name << "\" must be of type String");
+  }
+  return std::move(default_value);
+}
+
+Result<string> JsonObject::get_required_string_field(Slice name) const {
+  auto value = get_field(name);
+  if (value != nullptr) {
+    if (value->type() == JsonValue::Type::String) {
+      return value->get_string().str();
+    }
+    if (value->type() == JsonValue::Type::Number) {
+      return value->get_number().str();
+    }
+    return Status::Error(400, PSLICE() << "Field \"" << name << "\" must be of type String");
+  }
+  return Status::Error(400, PSLICE() << "Can't find field \"" << name << '"');
+}
+
 bool has_json_object_field(const JsonObject &object, Slice name) {
   for (auto &field_value : object.field_values_) {
     if (field_value.first == name) {
