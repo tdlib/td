@@ -706,7 +706,7 @@ Result<string> get_json_object_string_field(const JsonObject &object, Slice name
     }
   }
   if (is_optional) {
-    return default_value;
+    return std::move(default_value);
   }
   return Status::Error(400, PSLICE() << "Can't find field \"" << name << '"');
 }
