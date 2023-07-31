@@ -3014,7 +3014,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
 
   auto data = std::move(json_value.get_object());
   int32 sent_date = G()->unix_time();
-  if (has_json_object_field(data, "data")) {
+  if (data.has_field("data")) {
     TRY_RESULT(date, data.get_optional_int_field("date", sent_date));
     if (sent_date - 28 * 86400 <= date && date <= sent_date + 5) {
       sent_date = date;
@@ -3143,7 +3143,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
   }
 
   DialogId dialog_id;
-  if (has_json_object_field(custom, "from_id")) {
+  if (custom.has_field("from_id")) {
     TRY_RESULT(user_id_int, custom.get_optional_long_field("from_id"));
     UserId user_id(user_id_int);
     if (!user_id.is_valid()) {
@@ -3151,7 +3151,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     }
     dialog_id = DialogId(user_id);
   }
-  if (has_json_object_field(custom, "chat_id")) {
+  if (custom.has_field("chat_id")) {
     TRY_RESULT(chat_id_int, custom.get_optional_long_field("chat_id"));
     ChatId chat_id(chat_id_int);
     if (!chat_id.is_valid()) {
@@ -3159,7 +3159,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     }
     dialog_id = DialogId(chat_id);
   }
-  if (has_json_object_field(custom, "channel_id")) {
+  if (custom.has_field("channel_id")) {
     TRY_RESULT(channel_id_int, custom.get_optional_long_field("channel_id"));
     ChannelId channel_id(channel_id_int);
     if (!channel_id.is_valid()) {
@@ -3167,7 +3167,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     }
     dialog_id = DialogId(channel_id);
   }
-  if (has_json_object_field(custom, "encryption_id")) {
+  if (custom.has_field("encryption_id")) {
     TRY_RESULT(secret_chat_id_int, custom.get_optional_int_field("encryption_id"));
     SecretChatId secret_chat_id(secret_chat_id_int);
     if (!secret_chat_id.is_valid()) {
@@ -3269,19 +3269,19 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
 
   UserId sender_user_id;
   DialogId sender_dialog_id;
-  if (has_json_object_field(custom, "chat_from_broadcast_id")) {
+  if (custom.has_field("chat_from_broadcast_id")) {
     TRY_RESULT(sender_channel_id_int, custom.get_optional_long_field("chat_from_broadcast_id"));
     sender_dialog_id = DialogId(ChannelId(sender_channel_id_int));
     if (!sender_dialog_id.is_valid()) {
       return Status::Error("Receive invalid chat_from_broadcast_id");
     }
-  } else if (has_json_object_field(custom, "chat_from_group_id")) {
+  } else if (custom.has_field("chat_from_group_id")) {
     TRY_RESULT(sender_channel_id_int, custom.get_optional_long_field("chat_from_group_id"));
     sender_dialog_id = DialogId(ChannelId(sender_channel_id_int));
     if (!sender_dialog_id.is_valid()) {
       return Status::Error("Receive invalid chat_from_group_id");
     }
-  } else if (has_json_object_field(custom, "chat_from_id")) {
+  } else if (custom.has_field("chat_from_id")) {
     TRY_RESULT(sender_user_id_int, custom.get_optional_long_field("chat_from_id"));
     sender_user_id = UserId(sender_user_id_int);
     if (!sender_user_id.is_valid()) {
@@ -3420,7 +3420,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
 
   Photo attached_photo;
   Document attached_document;
-  if (has_json_object_field(custom, "attachb64")) {
+  if (custom.has_field("attachb64")) {
     TRY_RESULT(attachb64, custom.get_required_string_field("attachb64"));
     TRY_RESULT(attach, base64url_decode(attachb64));
 
@@ -3539,7 +3539,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     }
   }
 
-  if (has_json_object_field(custom, "edit_date")) {
+  if (custom.has_field("edit_date")) {
     if (random_id != 0) {
       return Status::Error("Receive edit of secret message");
     }
@@ -3551,13 +3551,13 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
                                    std::move(arg), std::move(attached_photo), std::move(attached_document), 0,
                                    std::move(promise));
   } else {
-    bool is_from_scheduled = has_json_object_field(custom, "schedule");
+    bool is_from_scheduled = custom.has_field("schedule");
     bool disable_notification = false;
     int64 ringtone_id = -1;
-    if (has_json_object_field(custom, "silent")) {
+    if (custom.has_field("silent")) {
       disable_notification = true;
       ringtone_id = 0;
-    } else if (has_json_object_field(custom, "ringtone")) {
+    } else if (custom.has_field("ringtone")) {
       TRY_RESULT_ASSIGN(ringtone_id, custom.get_optional_long_field("ringtone"));
     }
     add_message_push_notification(dialog_id, MessageId(server_message_id), random_id, sender_user_id, sender_dialog_id,
@@ -3963,7 +3963,7 @@ Result<int64> NotificationManager::get_push_receiver_id(string payload) {
   }
 
   auto data = std::move(json_value.get_object());
-  if (has_json_object_field(data, "data")) {
+  if (data.has_field("data")) {
     auto r_data_data = get_json_object_field(data, "data", JsonValue::Type::Object, false);
     if (r_data_data.is_error()) {
       return Status::Error(400, r_data_data.error().message());
