@@ -456,6 +456,10 @@ using JsonArray = vector<JsonValue>;
 class JsonObject {
  public:
   vector<std::pair<MutableSlice, JsonValue>> field_values_;
+
+  size_t field_count() const {
+    return field_values_.size();
+  }
 };
 
 class JsonValue final : private Jsonable {
