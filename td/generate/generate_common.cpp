@@ -16,8 +16,8 @@
 #include <string>
 #include <vector>
 
-template <bool generate_multiple_headers = false, class WriterCpp = td::TD_TL_writer_cpp, class WriterH = td::TD_TL_writer_h,
-          class WriterHpp = td::TD_TL_writer_hpp>
+template <bool generate_multiple_headers = false, class WriterCpp = td::TD_TL_writer_cpp,
+          class WriterH = td::TD_TL_writer_h, class WriterHpp = td::TD_TL_writer_hpp>
 static void generate_cpp(const std::string &directory, const std::string &tl_name, const std::string &string_type,
                          const std::string &bytes_type, const std::vector<std::string> &ext_cpp_includes,
                          const std::vector<std::string> &ext_h_includes) {
@@ -44,8 +44,8 @@ int main() {
                  {"\"td/utils/Slice.h\"", "\"td/utils/UInt.h\""});
 
 #ifdef TD_ENABLE_JNI
-  generate_cpp<false, td::TD_TL_writer_jni_cpp, td::TD_TL_writer_jni_h>("td/telegram", "td_api", "std::string", "std::string",
-                                                                 {"\"td/tl/tl_jni_object.h\""}, {"<string>"});
+  generate_cpp<false, td::TD_TL_writer_jni_cpp, td::TD_TL_writer_jni_h>(
+      "td/telegram", "td_api", "std::string", "std::string", {"\"td/tl/tl_jni_object.h\""}, {"<string>"});
 #else
   generate_cpp<>("td/telegram", "td_api", "std::string", "std::string", {}, {"<string>"});
 #endif
