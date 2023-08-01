@@ -386,6 +386,7 @@ set(TDLIB_SOURCE
   td/telegram/Location.cpp
   td/telegram/logevent/LogEventHelper.cpp
   td/telegram/Logging.cpp
+  td/telegram/MediaAreaCoordinates.cpp
   td/telegram/MessageContent.cpp
   td/telegram/MessageContentType.cpp
   td/telegram/MessageDb.cpp
@@ -659,6 +660,7 @@ set(TDLIB_SOURCE
   td/telegram/logevent/LogEventHelper.h
   td/telegram/logevent/SecretChatEvent.h
   td/telegram/Logging.h
+  td/telegram/MediaAreaCoordinates.h
   td/telegram/MessageContent.h
   td/telegram/MessageContentType.h
   td/telegram/MessageCopyOptions.h
@@ -832,6 +834,7 @@ set(TDLIB_SOURCE
   td/telegram/Game.hpp
   td/telegram/InputInvoice.hpp
   td/telegram/InputMessageText.hpp
+  td/telegram/MediaAreaCoordinates.hpp
   td/telegram/MessageEntity.hpp
   td/telegram/MessageExtendedMedia.hpp
   td/telegram/MessageReaction.hpp
