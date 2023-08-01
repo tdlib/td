@@ -92,7 +92,9 @@ class StoryManager final : public Actor {
 
   struct BeingEditedStory {
     unique_ptr<StoryContent> content_;
+    vector<MediaArea> areas_;
     FormattedText caption_;
+    bool edit_media_areas_ = false;
     bool edit_caption_ = false;
     vector<Promise<Unit>> promises_;
     int64 log_event_id_ = 0;
@@ -207,6 +209,7 @@ class StoryManager final : public Actor {
   void on_send_story_file_parts_missing(unique_ptr<PendingStory> &&pending_story, vector<int> &&bad_parts);
 
   void edit_story(StoryId story_id, td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,
+                  td_api::object_ptr<td_api::inputStoryAreas> &&input_areas,
                   td_api::object_ptr<td_api::formattedText> &&input_caption, Promise<Unit> &&promise);
 
   void set_story_privacy_settings(StoryId story_id, td_api::object_ptr<td_api::StoryPrivacySettings> &&settings,

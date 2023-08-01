@@ -657,6 +657,14 @@ class StoryManager::EditStoryQuery final : public Td::ResultHandler {
       CHECK(input_media != nullptr);
       flags |= telegram_api::stories_editStory::MEDIA_MASK;
     }
+    vector<telegram_api::object_ptr<telegram_api::MediaArea>> media_areas;
+    if (edited_story->edit_media_areas_) {
+      flags |= telegram_api::stories_editStory::MEDIA_AREAS_MASK;
+
+      for (const auto &media_area : edited_story->areas_) {
+        media_areas.push_back(media_area.get_input_media_area());
+      }
+    }
     vector<telegram_api::object_ptr<telegram_api::MessageEntity>> entities;
     if (edited_story->edit_caption_) {
       flags |= telegram_api::stories_editStory::CAPTION_MASK;
@@ -664,10 +672,11 @@ class StoryManager::EditStoryQuery final : public Td::ResultHandler {
 
       entities = get_input_message_entities(td_->contacts_manager_.get(), &edited_story->caption_, "EditStoryQuery");
     }
+
     send_query(G()->net_query_creator().create(
         telegram_api::stories_editStory(flags, pending_story_->story_id_.get(), std::move(input_media),
-                                        vector<telegram_api::object_ptr<telegram_api::MediaArea>>(),
-                                        edited_story->caption_.text, std::move(entities), Auto()),
+                                        std::move(media_areas), edited_story->caption_.text, std::move(entities),
+                                        Auto()),
         {{StoryFullId{pending_story_->dialog_id_, pending_story_->story_id_}}}));
   }
 
@@ -2360,12 +2369,16 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
 
   auto story_id = story_full_id.get_story_id();
   auto *content = story->content_.get();
+  auto *areas = &story->areas_;
   auto *caption = &story->caption_;
   if (is_owned && story_id.is_server()) {
     auto it = being_edited_stories_.find(story_full_id);
     if (it != being_edited_stories_.end()) {
       if (it->second->content_ != nullptr) {
         content = it->second->content_.get();
+      }
+      if (it->second->edit_media_areas_) {
+        areas = &it->second->areas_;
       }
       if (it->second->edit_caption_) {
         caption = &it->second->caption_;
@@ -2382,7 +2395,7 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
   bool can_be_replied = story_id.is_server() && dialog_id != changelog_dialog_id;
   bool can_get_viewers = can_get_story_viewers(story_full_id, story).is_ok();
   bool has_expired_viewers = !can_get_viewers && is_story_owned(dialog_id) && story_id.is_server();
-  auto areas = transform(story->areas_, [](const MediaArea &media_area) { return media_area.get_story_area_object(); });
+  auto story_areas = transform(*areas, [](const MediaArea &media_area) { return media_area.get_story_area_object(); });
 
   story->is_update_sent_ = true;
 
@@ -2390,7 +2403,7 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
       story_id.get(), td_->messages_manager_->get_chat_id_object(dialog_id, "get_story_object"), story->date_,
       is_being_edited, is_edited, story->is_pinned_, is_visible_only_for_self, can_be_forwarded, can_be_replied,
       can_get_viewers, has_expired_viewers, story->interaction_info_.get_story_interaction_info_object(td_),
-      std::move(privacy_settings), get_story_content_object(td_, content), std::move(areas),
+      std::move(privacy_settings), get_story_content_object(td_, content), std::move(story_areas),
       get_formatted_text_object(*caption, true, get_story_content_duration(td_, content)));
 }
 
@@ -2616,13 +2629,11 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
   }
   if (story->areas_ != media_areas) {
     story->areas_ = std::move(media_areas);
-    /*
     if (edited_story != nullptr && edited_story->edit_media_areas_) {
       need_save_to_database = true;
     } else {
       is_changed = true;
     }
-    */
   }
 
   Dependencies dependencies;
@@ -3597,44 +3608,64 @@ class StoryManager::EditStoryLogEvent {
  public:
   const PendingStory *pending_story_in_;
   unique_ptr<PendingStory> pending_story_out_;
+  bool edit_media_areas_;
+  vector<MediaArea> areas_;
   bool edit_caption_;
   FormattedText caption_;
 
   EditStoryLogEvent() : pending_story_in_(nullptr), edit_caption_(false) {
   }
 
-  EditStoryLogEvent(const PendingStory *pending_story, bool edit_caption, const FormattedText &caption)
-      : pending_story_in_(pending_story), edit_caption_(edit_caption), caption_(caption) {
+  EditStoryLogEvent(const PendingStory *pending_story, bool edit_media_areas, vector<MediaArea> areas,
+                    bool edit_caption, const FormattedText &caption)
+      : pending_story_in_(pending_story)
+      , edit_media_areas_(edit_media_areas)
+      , areas_(std::move(areas))
+      , edit_caption_(edit_caption)
+      , caption_(caption) {
   }
 
   template <class StorerT>
   void store(StorerT &storer) const {
     bool has_caption = edit_caption_ && !caption_.text.empty();
+    bool has_media_areas = edit_media_areas_ && !areas_.empty();
     BEGIN_STORE_FLAGS();
     STORE_FLAG(edit_caption_);
     STORE_FLAG(has_caption);
+    STORE_FLAG(edit_media_areas_);
+    STORE_FLAG(has_media_areas);
     END_STORE_FLAGS();
     td::store(*pending_story_in_, storer);
     if (has_caption) {
       td::store(caption_, storer);
+    }
+    if (has_media_areas) {
+      td::store(areas_, storer);
     }
   }
 
   template <class ParserT>
   void parse(ParserT &parser) {
     bool has_caption;
+    bool has_media_areas;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(edit_caption_);
     PARSE_FLAG(has_caption);
+    PARSE_FLAG(edit_media_areas_);
+    PARSE_FLAG(has_media_areas);
     END_PARSE_FLAGS();
     td::parse(pending_story_out_, parser);
     if (has_caption) {
       td::parse(caption_, parser);
     }
+    if (has_media_areas) {
+      td::parse(areas_, parser);
+    }
   }
 };
 
 void StoryManager::edit_story(StoryId story_id, td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,
+                              td_api::object_ptr<td_api::inputStoryAreas> &&input_areas,
                               td_api::object_ptr<td_api::formattedText> &&input_caption, Promise<Unit> &&promise) {
   DialogId dialog_id(td_->contacts_manager_->get_my_id());
   StoryFullId story_full_id{dialog_id, story_id};
@@ -3648,11 +3679,29 @@ void StoryManager::edit_story(StoryId story_id, td_api::object_ptr<td_api::Input
 
   bool is_bot = td_->auth_manager_->is_bot();
   unique_ptr<StoryContent> content;
+  bool are_media_areas_edited = input_areas != nullptr;
+  vector<MediaArea> areas;
   bool is_caption_edited = input_caption != nullptr;
   FormattedText caption;
   if (input_story_content != nullptr) {
     TRY_RESULT_PROMISE_ASSIGN(promise, content,
                               get_input_story_content(td_, std::move(input_story_content), dialog_id));
+  }
+  if (are_media_areas_edited) {
+    for (auto &input_area : input_areas->areas_) {
+      MediaArea media_area(td_, std::move(input_area), story->areas_);
+      if (media_area.is_valid()) {
+        areas.push_back(std::move(media_area));
+      }
+    }
+    auto *current_areas = &story->areas_;
+    auto it = being_edited_stories_.find(story_full_id);
+    if (it != being_edited_stories_.end() && it->second->edit_media_areas_) {
+      current_areas = &it->second->areas_;
+    }
+    if (*current_areas == areas) {
+      are_media_areas_edited = false;
+    }
   }
   if (is_caption_edited) {
     TRY_RESULT_PROMISE_ASSIGN(
@@ -3666,7 +3715,7 @@ void StoryManager::edit_story(StoryId story_id, td_api::object_ptr<td_api::Input
       is_caption_edited = false;
     }
   }
-  if (content == nullptr && !is_caption_edited) {
+  if (content == nullptr && !are_media_areas_edited && !is_caption_edited) {
     return promise.set_value(Unit());
   }
 
@@ -3677,6 +3726,11 @@ void StoryManager::edit_story(StoryId story_id, td_api::object_ptr<td_api::Input
   auto &edit_generation = edit_generations_[story_full_id];
   if (content != nullptr) {
     edited_story->content_ = std::move(content);
+    edit_generation++;
+  }
+  if (are_media_areas_edited) {
+    edited_story->areas_ = std::move(areas);
+    edited_story->edit_media_areas_ = true;
     edit_generation++;
   }
   if (is_caption_edited) {
@@ -3693,7 +3747,8 @@ void StoryManager::edit_story(StoryId story_id, td_api::object_ptr<td_api::Input
       td::make_unique<PendingStory>(dialog_id, story_id, std::numeric_limits<uint32>::max() - (++send_story_count_),
                                     edit_generation, std::move(new_story));
   if (G()->use_message_database()) {
-    EditStoryLogEvent log_event(pending_story.get(), edited_story->edit_caption_, edited_story->caption_);
+    EditStoryLogEvent log_event(pending_story.get(), edited_story->edit_media_areas_, edited_story->areas_,
+                                edited_story->edit_caption_, edited_story->caption_);
     auto storer = get_log_event_storer(log_event);
     auto &cur_log_event_id = edited_story->log_event_id_;
     if (cur_log_event_id == 0) {
@@ -4044,6 +4099,10 @@ void StoryManager::on_binlog_events(vector<BinlogEvent> &&events) {
         edited_story = make_unique<BeingEditedStory>();
         if (pending_story->story_->content_ != nullptr) {
           edited_story->content_ = std::move(pending_story->story_->content_);
+        }
+        if (log_event.edit_media_areas_) {
+          edited_story->areas_ = std::move(log_event.areas_);
+          edited_story->edit_media_areas_ = true;
         }
         if (log_event.edit_caption_) {
           edited_story->caption_ = std::move(log_event.caption_);

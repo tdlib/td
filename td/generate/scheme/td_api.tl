@@ -7377,8 +7377,9 @@ sendStory content:InputStoryContent areas:inputStoryAreas caption:formattedText 
 //@description Changes content and caption of a previously sent story
 //@story_id Identifier of the story to edit
 //@content New content of the story; pass null to keep the current content
+//@areas New clickable rectangle areas to be shown on the story media; pass null to keep the current areas
 //@caption New story caption; pass null to keep the current caption
-editStory story_id:int32 content:InputStoryContent caption:formattedText = Ok;
+editStory story_id:int32 content:InputStoryContent areas:inputStoryAreas caption:formattedText = Ok;
 
 //@description Changes privacy settings of a previously sent story @story_id Identifier of the story @privacy_settings The new privacy settigs for the story
 setStoryPrivacySettings story_id:int32 privacy_settings:StoryPrivacySettings = Ok;

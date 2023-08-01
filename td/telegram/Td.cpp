@@ -5641,8 +5641,8 @@ void Td::on_request(uint64 id, td_api::sendStory &request) {
 void Td::on_request(uint64 id, td_api::editStory &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  story_manager_->edit_story(StoryId(request.story_id_), std::move(request.content_), std::move(request.caption_),
-                             std::move(promise));
+  story_manager_->edit_story(StoryId(request.story_id_), std::move(request.content_), std::move(request.areas_),
+                             std::move(request.caption_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setStoryPrivacySettings &request) {
