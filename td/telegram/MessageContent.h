@@ -44,6 +44,7 @@ class Game;
 class MultiPromiseActor;
 struct Photo;
 class Td;
+class Venue;
 
 // Do not forget to update merge_message_contents when one of the inheritors of this class changes
 class MessageContent {
@@ -156,6 +157,8 @@ int32 get_message_content_live_location_period(const MessageContent *content);
 bool get_message_content_poll_is_anonymous(const Td *td, const MessageContent *content);
 
 bool get_message_content_poll_is_closed(const Td *td, const MessageContent *content);
+
+const Venue *get_message_content_venue(const MessageContent *content);
 
 bool has_message_content_web_page(const MessageContent *content);
 

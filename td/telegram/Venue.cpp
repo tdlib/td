@@ -76,6 +76,12 @@ tl_object_ptr<telegram_api::inputBotInlineMessageMediaVenue> Venue::get_input_bo
       flags, location_.get_input_geo_point(), title_, address_, provider_, id_, type_, std::move(reply_markup));
 }
 
+telegram_api::object_ptr<telegram_api::mediaAreaVenue> Venue::get_input_media_area_venue(
+    telegram_api::object_ptr<telegram_api::mediaAreaCoordinates> &&coordinates) const {
+  return telegram_api::make_object<telegram_api::mediaAreaVenue>(std::move(coordinates), location_.get_fake_geo_point(),
+                                                                 title_, address_, provider_, id_, type_);
+}
+
 bool operator==(const Venue &lhs, const Venue &rhs) {
   return lhs.location_ == rhs.location_ && lhs.title_ == rhs.title_ && lhs.address_ == rhs.address_ &&
          lhs.provider_ == rhs.provider_ && lhs.id_ == rhs.id_ && lhs.type_ == rhs.type_;

@@ -56,6 +56,8 @@ class Location {
 
   tl_object_ptr<telegram_api::InputGeoPoint> get_input_geo_point() const;
 
+  telegram_api::object_ptr<telegram_api::GeoPoint> get_fake_geo_point() const;
+
   tl_object_ptr<telegram_api::inputMediaGeoPoint> get_input_media_geo_point() const;
 
   double get_latitude() const {

@@ -250,7 +250,7 @@ minithumbnail width:int32 height:int32 data:bytes = Minithumbnail;
 //@description The thumbnail is in JPEG format
 thumbnailFormatJpeg = ThumbnailFormat;
 
-//@description The thumbnail is in static GIF format. It will be used only for some bot inline results
+//@description The thumbnail is in static GIF format. It will be used only for some bot inline query results
 thumbnailFormatGif = ThumbnailFormat;
 
 //@description The thumbnail is in MPEG4 format. It will be used only for some animations and videos
@@ -4929,6 +4929,26 @@ storyAreaTypeVenue venue:venue = StoryAreaType;
 storyArea position:storyAreaPosition type:StoryAreaType = StoryArea;
 
 
+//@class InputStoryAreaType @description Describes type of a clickable rectangle area on a story media to be added
+
+//@description An area pointing to a location @location The location
+inputStoryAreaTypeLocation location:location = InputStoryAreaType;
+
+//@description An area pointing to a venue found by the bot GetOption("venue_search_bot_username")
+//@query_id Identifier of the inline query, used to found the venue
+//@result_id Identifier of the inline query result
+inputStoryAreaTypeFoundVenue query_id:int64 result_id:string = InputStoryAreaType;
+
+//@description An area pointing to a venue already added to the story
+//@venue_provider Provider of the venue
+//@venue_id Identifier of the venue in the provider database
+inputStoryAreaTypePreviousVenue venue_provider:string venue_id:string = InputStoryAreaType;
+
+
+//@description Describes a clickable rectangle area on a story media to be added @position Position of the area @type Type of the area
+inputStoryArea position:storyAreaPosition type:InputStoryAreaType = InputStoryArea;
+
+
 //@description Describes a video file sent in a story
 //@duration Duration of the video, in seconds
 //@width Video width
@@ -6537,7 +6557,7 @@ sendBotStartMessage bot_user_id:int53 chat_id:int53 parameter:string = Message;
 //@reply_to Identifier of the replied message or story; pass null if none
 //@options Options to be used to send the message; pass null to use default options
 //@query_id Identifier of the inline query
-//@result_id Identifier of the inline result
+//@result_id Identifier of the inline query result
 //@hide_via_bot Pass true to hide the bot, via which the message is sent. Can be used only for bots getOption("animation_search_bot_username"), getOption("photo_search_bot_username"), and getOption("venue_search_bot_username")
 sendInlineQueryResultMessage chat_id:int53 message_thread_id:int53 reply_to:MessageReplyTo options:messageSendOptions query_id:int64 result_id:string hide_via_bot:Bool = Message;
 

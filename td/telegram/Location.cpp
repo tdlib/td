@@ -100,6 +100,19 @@ tl_object_ptr<telegram_api::InputGeoPoint> Location::get_input_geo_point() const
                                                      static_cast<int32>(std::ceil(horizontal_accuracy_)));
 }
 
+telegram_api::object_ptr<telegram_api::GeoPoint> Location::get_fake_geo_point() const {
+  if (empty()) {
+    return make_tl_object<telegram_api::geoPointEmpty>();
+  }
+
+  int32 flags = 0;
+  if (horizontal_accuracy_ > 0) {
+    flags |= telegram_api::geoPoint::ACCURACY_RADIUS_MASK;
+  }
+  return telegram_api::make_object<telegram_api::geoPoint>(flags, longitude_, latitude_, 0,
+                                                           static_cast<int32>(std::ceil(horizontal_accuracy_)));
+}
+
 tl_object_ptr<telegram_api::inputMediaGeoPoint> Location::get_input_media_geo_point() const {
   return make_tl_object<telegram_api::inputMediaGeoPoint>(get_input_geo_point());
 }

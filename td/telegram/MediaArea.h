@@ -25,6 +25,8 @@ class MediaArea {
   MediaAreaCoordinates coordinates_;
   Location location_;
   Venue venue_;
+  int64 input_query_id_ = 0;
+  string input_result_id_;
 
   friend bool operator==(const MediaArea &lhs, const MediaArea &rhs);
   friend bool operator!=(const MediaArea &lhs, const MediaArea &rhs);
@@ -36,7 +38,12 @@ class MediaArea {
 
   MediaArea(Td *td, telegram_api::object_ptr<telegram_api::MediaArea> &&media_area_ptr);
 
+  MediaArea(Td *td, td_api::object_ptr<td_api::inputStoryArea> &&input_story_area,
+            const vector<MediaArea> &old_media_areas);
+
   td_api::object_ptr<td_api::storyArea> get_story_area_object() const;
+
+  telegram_api::object_ptr<telegram_api::MediaArea> get_input_media_area() const;
 
   bool is_valid() const {
     return type_ != Type::None;

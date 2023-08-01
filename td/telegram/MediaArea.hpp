@@ -16,7 +16,9 @@ namespace td {
 template <class StorerT>
 void MediaArea::store(StorerT &storer) const {
   using td::store;
+  bool has_input_query_id = input_query_id_ != 0;
   BEGIN_STORE_FLAGS();
+  STORE_FLAG(has_input_query_id);
   END_STORE_FLAGS();
   store(type_, storer);
   store(coordinates_, storer);
@@ -26,6 +28,10 @@ void MediaArea::store(StorerT &storer) const {
       break;
     case Type::Venue:
       store(venue_, storer);
+      if (has_input_query_id) {
+        store(input_query_id_, storer);
+        store(input_result_id_, storer);
+      }
       break;
     default:
       UNREACHABLE();
@@ -35,7 +41,9 @@ void MediaArea::store(StorerT &storer) const {
 template <class ParserT>
 void MediaArea::parse(ParserT &parser) {
   using td::parse;
+  bool has_input_query_id;
   BEGIN_PARSE_FLAGS();
+  PARSE_FLAG(has_input_query_id);
   END_PARSE_FLAGS();
   parse(type_, parser);
   parse(coordinates_, parser);
@@ -45,6 +53,10 @@ void MediaArea::parse(ParserT &parser) {
       break;
     case Type::Venue:
       parse(venue_, parser);
+      if (has_input_query_id) {
+        parse(input_query_id_, parser);
+        parse(input_result_id_, parser);
+      }
       break;
     default:
       parser.set_error("Load invalid area type");

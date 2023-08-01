@@ -3500,6 +3500,15 @@ bool get_message_content_poll_is_closed(const Td *td, const MessageContent *cont
   }
 }
 
+const Venue *get_message_content_venue(const MessageContent *content) {
+  switch (content->get_type()) {
+    case MessageContentType::Venue:
+      return &static_cast<const MessageVenue *>(content)->venue;
+    default:
+      return nullptr;
+  }
+}
+
 bool has_message_content_web_page(const MessageContent *content) {
   if (content->get_type() == MessageContentType::Text) {
     return static_cast<const MessageText *>(content)->web_page_id.is_valid();

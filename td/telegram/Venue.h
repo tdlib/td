@@ -45,6 +45,10 @@ class Venue {
 
   bool empty() const;
 
+  bool is_same(const string &provider, const string &id) const {
+    return provider_ == provider && id_ == id;
+  }
+
   Location &location();
 
   const Location &location() const;
@@ -57,6 +61,9 @@ class Venue {
 
   tl_object_ptr<telegram_api::inputBotInlineMessageMediaVenue> get_input_bot_inline_message_media_venue(
       tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup) const;
+
+  telegram_api::object_ptr<telegram_api::mediaAreaVenue> get_input_media_area_venue(
+      telegram_api::object_ptr<telegram_api::mediaAreaCoordinates> &&coordinates) const;
 
   template <class StorerT>
   void store(StorerT &storer) const {
