@@ -16,6 +16,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/logevent/LogEventHelper.h"
+#include "td/telegram/MediaArea.hpp"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/NotificationId.h"
@@ -739,6 +740,7 @@ void StoryManager::Story::store(StorerT &storer) const {
   bool has_privacy_rules = privacy_rules_ != UserPrivacySettingRules();
   bool has_content = content_ != nullptr;
   bool has_caption = !caption_.text.empty();
+  bool has_areas = !areas_.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_edited_);
   STORE_FLAG(is_pinned_);
@@ -752,6 +754,7 @@ void StoryManager::Story::store(StorerT &storer) const {
   STORE_FLAG(has_caption);
   STORE_FLAG(is_for_contacts_);
   STORE_FLAG(is_for_selected_contacts_);
+  STORE_FLAG(has_areas);
   END_STORE_FLAGS();
   store(date_, storer);
   store(expire_date_, storer);
@@ -770,6 +773,9 @@ void StoryManager::Story::store(StorerT &storer) const {
   if (has_caption) {
     store(caption_, storer);
   }
+  if (has_areas) {
+    store(areas_, storer);
+  }
 }
 
 template <class ParserT>
@@ -780,6 +786,7 @@ void StoryManager::Story::parse(ParserT &parser) {
   bool has_privacy_rules;
   bool has_content;
   bool has_caption;
+  bool has_areas;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_edited_);
   PARSE_FLAG(is_pinned_);
@@ -793,6 +800,7 @@ void StoryManager::Story::parse(ParserT &parser) {
   PARSE_FLAG(has_caption);
   PARSE_FLAG(is_for_contacts_);
   PARSE_FLAG(is_for_selected_contacts_);
+  PARSE_FLAG(has_areas);
   END_PARSE_FLAGS();
   parse(date_, parser);
   parse(expire_date_, parser);
@@ -810,6 +818,9 @@ void StoryManager::Story::parse(ParserT &parser) {
   }
   if (has_caption) {
     parse(caption_, parser);
+  }
+  if (has_areas) {
+    parse(areas_, parser);
   }
 }
 
@@ -2365,6 +2376,7 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
   bool can_be_replied = story_id.is_server() && dialog_id != changelog_dialog_id;
   bool can_get_viewers = can_get_story_viewers(story_full_id, story).is_ok();
   bool has_expired_viewers = !can_get_viewers && is_story_owned(dialog_id) && story_id.is_server();
+  auto areas = transform(story->areas_, [](const MediaArea &media_area) { return media_area.get_story_area_object(); });
 
   story->is_update_sent_ = true;
 
@@ -2372,7 +2384,7 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
       story_id.get(), td_->messages_manager_->get_chat_id_object(dialog_id, "get_story_object"), story->date_,
       is_being_edited, is_edited, story->is_pinned_, is_visible_only_for_self, can_be_forwarded, can_be_replied,
       can_get_viewers, has_expired_viewers, story->interaction_info_.get_story_interaction_info_object(td_),
-      std::move(privacy_settings), get_story_content_object(td_, content),
+      std::move(privacy_settings), get_story_content_object(td_, content), std::move(areas),
       get_formatted_text_object(*caption, true, get_story_content_duration(td_, content)));
 }
 
@@ -2588,6 +2600,23 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
     } else {
       is_changed = true;
     }
+  }
+  vector<MediaArea> media_areas;
+  for (auto &media_area_ptr : story_item->media_areas_) {
+    MediaArea media_area(td_, std::move(media_area_ptr));
+    if (media_area.is_valid()) {
+      media_areas.push_back(std::move(media_area));
+    }
+  }
+  if (story->areas_ != media_areas) {
+    story->areas_ = std::move(media_areas);
+    /*
+    if (edited_story != nullptr && edited_story->edit_media_areas_) {
+      need_save_to_database = true;
+    } else {
+      is_changed = true;
+    }
+    */
   }
 
   Dependencies dependencies;

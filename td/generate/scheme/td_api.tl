@@ -4998,8 +4998,9 @@ storyInteractionInfo view_count:int32 recent_viewer_user_ids:vector<int53> = Sto
 //@interaction_info Information about interactions with the story; may be null if the story isn't owned or there were no interactions
 //@privacy_settings Privacy rules affecting story visibility; may be approximate for non-owned stories
 //@content Content of the story
+//@areas Clickable areas to be shown on the story content
 //@caption Caption of the story
-story id:int32 sender_chat_id:int53 date:int32 is_being_edited:Bool is_edited:Bool is_pinned:Bool is_visible_only_for_self:Bool can_be_forwarded:Bool can_be_replied:Bool can_get_viewers:Bool has_expired_viewers:Bool interaction_info:storyInteractionInfo privacy_settings:StoryPrivacySettings content:StoryContent caption:formattedText = Story;
+story id:int32 sender_chat_id:int53 date:int32 is_being_edited:Bool is_edited:Bool is_pinned:Bool is_visible_only_for_self:Bool can_be_forwarded:Bool can_be_replied:Bool can_get_viewers:Bool has_expired_viewers:Bool interaction_info:storyInteractionInfo privacy_settings:StoryPrivacySettings content:StoryContent areas:vector<storyArea> caption:formattedText = Story;
 
 //@description Represents a list of stories @total_count Approximate total number of stories found @stories The list of stories
 stories total_count:int32 stories:vector<story> = Stories;

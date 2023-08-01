@@ -11,6 +11,7 @@
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/FullMessageId.h"
+#include "td/telegram/MediaArea.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageViewer.h"
 #include "td/telegram/StoryDb.h"
@@ -65,6 +66,7 @@ class StoryManager final : public Actor {
     StoryInteractionInfo interaction_info_;
     UserPrivacySettingRules privacy_rules_;
     unique_ptr<StoryContent> content_;
+    vector<MediaArea> areas_;
     FormattedText caption_;
     int64 global_id_ = 0;
 
