@@ -591,12 +591,18 @@ class StoryManager::SendStoryQuery final : public Td::ResultHandler {
     if (story->noforwards_) {
       flags |= telegram_api::stories_sendStory::NOFORWARDS_MASK;
     }
+    vector<telegram_api::object_ptr<telegram_api::MediaArea>> media_areas;
+    for (const auto &media_area : story->areas_) {
+      media_areas.push_back(media_area.get_input_media_area());
+    }
+    if (!media_areas.empty()) {
+      flags |= telegram_api::stories_sendStory::MEDIA_AREAS_MASK;
+    }
 
     send_query(G()->net_query_creator().create(
         telegram_api::stories_sendStory(flags, false /*ignored*/, false /*ignored*/, std::move(input_media),
-                                        vector<telegram_api::object_ptr<telegram_api::MediaArea>>(), caption.text,
-                                        std::move(entities), std::move(privacy_rules), pending_story_->random_id_,
-                                        period),
+                                        std::move(media_areas), caption.text, std::move(entities),
+                                        std::move(privacy_rules), pending_story_->random_id_, period),
         {{pending_story_->dialog_id_}}));
   }
 
@@ -3386,6 +3392,7 @@ void StoryManager::do_get_story(StoryFullId story_full_id, Result<Unit> &&result
 }
 
 void StoryManager::send_story(td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,
+                              td_api::object_ptr<td_api::inputStoryAreas> &&input_areas,
                               td_api::object_ptr<td_api::formattedText> &&input_caption,
                               td_api::object_ptr<td_api::StoryPrivacySettings> &&settings, int32 active_period,
                               bool is_pinned, bool protect_content,
@@ -3404,6 +3411,15 @@ void StoryManager::send_story(td_api::object_ptr<td_api::InputStoryContent> &&in
       return promise.set_error(Status::Error(400, "Invalid story active period specified"));
     }
   }
+  vector<MediaArea> areas;
+  if (input_areas != nullptr) {
+    for (auto &input_area : input_areas->areas_) {
+      MediaArea media_area(td_, std::move(input_area), Auto());
+      if (media_area.is_valid()) {
+        areas.push_back(std::move(media_area));
+      }
+    }
+  }
 
   td_->messages_manager_->force_create_dialog(dialog_id, "send_story");
 
@@ -3414,6 +3430,7 @@ void StoryManager::send_story(td_api::object_ptr<td_api::InputStoryContent> &&in
   story->noforwards_ = protect_content;
   story->privacy_rules_ = std::move(privacy_rules);
   story->content_ = dup_story_content(td_, content.get());
+  story->areas_ = std::move(areas);
   story->caption_ = std::move(caption);
 
   int64 random_id;

@@ -199,6 +199,7 @@ class StoryManager final : public Actor {
                  Promise<td_api::object_ptr<td_api::story>> &&promise);
 
   void send_story(td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,
+                  td_api::object_ptr<td_api::inputStoryAreas> &&input_areas,
                   td_api::object_ptr<td_api::formattedText> &&input_caption,
                   td_api::object_ptr<td_api::StoryPrivacySettings> &&settings, int32 active_period, bool is_pinned,
                   bool protect_content, Promise<td_api::object_ptr<td_api::story>> &&promise);

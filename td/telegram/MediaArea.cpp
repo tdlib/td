@@ -127,6 +127,7 @@ telegram_api::object_ptr<telegram_api::MediaArea> MediaArea::get_input_media_are
       return venue_.get_input_media_area_venue(coordinates_.get_input_media_area_coordinates());
     default:
       UNREACHABLE();
+      return nullptr;
   }
 }
 
