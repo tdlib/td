@@ -924,6 +924,18 @@ class CliClient final : public Actor {
     }
   }
 
+  struct ReportReason {
+    string report_reason;
+
+    operator td_api::object_ptr<td_api::ReportReason>() const {
+      return as_report_reason(report_reason);
+    }
+  };
+
+  void get_args(string &args, ReportReason &arg) const {
+    arg.report_reason = std::move(args);
+  }
+
   struct InputInvoice {
     int64 chat_id = 0;
     int64 message_id = 0;
@@ -1823,7 +1835,7 @@ class CliClient final : public Actor {
     return td_api::make_object<td_api::chatActionTyping>();
   }
 
-  static td_api::object_ptr<td_api::ReportReason> as_report_reason(MutableSlice reason) {
+  static td_api::object_ptr<td_api::ReportReason> as_report_reason(string reason) {
     reason = trim(reason);
     if (reason == "null") {
       return nullptr;
@@ -4123,11 +4135,10 @@ class CliClient final : public Actor {
     } else if (op == "rst") {
       ChatId story_sender_chat_id;
       StoryId story_id;
-      string reason;
+      ReportReason reason;
       string text;
       get_args(args, story_sender_chat_id, story_id, reason, text);
-      send_request(
-          td_api::make_object<td_api::reportStory>(story_sender_chat_id, story_id, as_report_reason(reason), text));
+      send_request(td_api::make_object<td_api::reportStory>(story_sender_chat_id, story_id, reason, text));
     } else if (op == "gamb") {
       UserId user_id;
       get_args(args, user_id);
@@ -5621,18 +5632,17 @@ class CliClient final : public Actor {
     } else if (op == "rc") {
       ChatId chat_id;
       string message_ids;
-      string reason;
+      ReportReason reason;
       string text;
       get_args(args, chat_id, message_ids, reason, text);
-      send_request(td_api::make_object<td_api::reportChat>(chat_id, as_message_ids(message_ids),
-                                                           as_report_reason(reason), text));
+      send_request(td_api::make_object<td_api::reportChat>(chat_id, as_message_ids(message_ids), reason, text));
     } else if (op == "rcp") {
       ChatId chat_id;
       FileId file_id;
-      string reason;
+      ReportReason reason;
       string text;
       get_args(args, chat_id, file_id, reason, text);
-      send_request(td_api::make_object<td_api::reportChatPhoto>(chat_id, file_id, as_report_reason(reason), text));
+      send_request(td_api::make_object<td_api::reportChatPhoto>(chat_id, file_id, reason, text));
     } else if (op == "reportmr") {
       ChatId chat_id;
       MessageId message_id;
