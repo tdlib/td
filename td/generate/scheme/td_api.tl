@@ -4907,13 +4907,26 @@ messageLink link:string is_public:Bool = MessageLink;
 messageLinkInfo is_public:Bool chat_id:int53 message_thread_id:int53 message:message media_timestamp:int32 for_album:Bool = MessageLinkInfo;
 
 
-//@description Describes a clickable rectangle area on a story media
+//@description Describes position of a clickable rectangle area on a story media
 //@x_percentage The abscissa of the rectangle's center, as a percentage of the media width
 //@y_percentage The ordinate of the rectangle's center, as a percentage of the media height
 //@width_percentage The width of the rectangle, as a percentage of the media width
 //@height_percentage The ordinate of the rectangle's center, as a percentage of the media height
 //@rotation_angle Clockwise rotation angle of the rectangle, in degrees; 0-360
 storyAreaPosition x_percentage:double y_percentage:double width_percentage:double height_percentage:double rotation_angle:double = StoryAreaPosition;
+
+
+//@class StoryAreaType @description Describes type of a clickable rectangle area on a story media
+
+//@description An area pointing to a location @location The location
+storyAreaTypeLocation location:location = StoryAreaType;
+
+//@description An area pointing to a venue @venue Information about the venue
+storyAreaTypeVenue venue:venue = StoryAreaType;
+
+
+//@description Describes a clickable rectangle area on a story media @position Position of the area @type Type of the area
+storyArea position:storyAreaPosition type:StoryAreaType = StoryArea;
 
 
 //@description Describes a video file sent in a story
