@@ -1380,10 +1380,12 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
   } else {
     options.set_option_string("animation_search_bot_username", config->gif_search_username_);
   }
-  if (config->venue_search_username_.empty()) {
-    options.set_option_empty("venue_search_bot_username");
-  } else {
-    options.set_option_string("venue_search_bot_username", config->venue_search_username_);
+  if (!options.have_option("venue_search_bot_username")) {
+    if (config->venue_search_username_.empty()) {
+      options.set_option_empty("venue_search_bot_username");
+    } else {
+      options.set_option_string("venue_search_bot_username", config->venue_search_username_);
+    }
   }
   if (config->img_search_username_.empty()) {
     options.set_option_empty("photo_search_bot_username");
@@ -1884,6 +1886,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       }
       if (key == "stories_changelog_user_id") {
         stories_changelog_user_id = get_json_value_long(std::move(key_value->value_), key);
+        continue;
+      }
+      if (key == "stories_venue_search_username") {
+        G()->set_option_string("venue_search_bot_username", get_json_value_string(std::move(key_value->value_), key));
         continue;
       }
 
