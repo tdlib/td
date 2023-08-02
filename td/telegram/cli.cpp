@@ -1175,21 +1175,21 @@ class CliClient final : public Actor {
 
   struct StoryPrivacySettings {
     string settings;
+    vector<int64> user_ids;
 
     operator td_api::object_ptr<td_api::StoryPrivacySettings>() const {
       if (settings == "f" || settings == "cf") {
         return td_api::make_object<td_api::storyPrivacySettingsCloseFriends>();
       }
       if (!settings.empty()) {
-        auto user_ids = to_integers<int64>(Slice(settings).substr(1));
         if (settings[0] == 'a' || settings[0] == 'e') {
-          return td_api::make_object<td_api::storyPrivacySettingsEveryone>(std::move(user_ids));
+          return td_api::make_object<td_api::storyPrivacySettingsEveryone>(vector<int64>(user_ids));
         }
         if (settings[0] == 'c') {
-          return td_api::make_object<td_api::storyPrivacySettingsContacts>(std::move(user_ids));
+          return td_api::make_object<td_api::storyPrivacySettingsContacts>(vector<int64>(user_ids));
         }
         if (settings[0] == 'u') {
-          return td_api::make_object<td_api::storyPrivacySettingsSelectedContacts>(std::move(user_ids));
+          return td_api::make_object<td_api::storyPrivacySettingsSelectedContacts>(vector<int64>(user_ids));
         }
       }
       return td_api::make_object<td_api::storyPrivacySettingsContacts>();
@@ -1198,6 +1198,9 @@ class CliClient final : public Actor {
 
   void get_args(string &args, StoryPrivacySettings &arg) const {
     arg.settings = trim(args);
+    if (!arg.settings.empty() && arg.settings != "cf") {
+      arg.user_ids = as_user_ids(Slice(arg.settings).substr(1));
+    }
   }
 
   template <class FirstType, class SecondType, class... Types>
