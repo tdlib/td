@@ -1177,14 +1177,14 @@ class CliClient final : public Actor {
     string settings;
 
     operator td_api::object_ptr<td_api::StoryPrivacySettings>() const {
-      if (settings == "a" || settings == "e") {
-        return td_api::make_object<td_api::storyPrivacySettingsEveryone>();
-      }
       if (settings == "f" || settings == "cf") {
         return td_api::make_object<td_api::storyPrivacySettingsCloseFriends>();
       }
       if (!settings.empty()) {
         auto user_ids = to_integers<int64>(Slice(settings).substr(1));
+        if (settings[0] == 'a' || settings[0] == 'e') {
+          return td_api::make_object<td_api::storyPrivacySettingsEveryone>(std::move(user_ids));
+        }
         if (settings[0] == 'c') {
           return td_api::make_object<td_api::storyPrivacySettingsContacts>(std::move(user_ids));
         }

@@ -4497,16 +4497,16 @@ jsonValueObject members:vector<jsonObjectMember> = JsonValue;
 
 //@class StoryPrivacySettings @description Describes privacy settings of a story
 
-//@description The story can be viewed by everyone
-storyPrivacySettingsEveryone = StoryPrivacySettings;
+//@description The story can be viewed by everyone @except_user_ids Identifiers of the users that can't see the story; always unknown and empty for non-owned stories
+storyPrivacySettingsEveryone except_user_ids:vector<int53> = StoryPrivacySettings;
 
-//@description The story can be viewed by all contacts except chosen users @except_user_ids User identifiers of the contacts that can't see the story; always empty for non-owned stories
+//@description The story can be viewed by all contacts except chosen users @except_user_ids User identifiers of the contacts that can't see the story; always unknown and empty for non-owned stories
 storyPrivacySettingsContacts except_user_ids:vector<int53> = StoryPrivacySettings;
 
 //@description The story can be viewed by all close friends
 storyPrivacySettingsCloseFriends = StoryPrivacySettings;
 
-//@description The story can be viewed by certain specified users @user_ids Identifiers of the users; always empty for non-owned stories
+//@description The story can be viewed by certain specified users @user_ids Identifiers of the users; always unknown and empty for non-owned stories
 storyPrivacySettingsSelectedContacts user_ids:vector<int53> = StoryPrivacySettings;
 
 
