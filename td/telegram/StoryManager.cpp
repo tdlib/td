@@ -3626,12 +3626,11 @@ void StoryManager::edit_story(StoryId story_id, td_api::object_ptr<td_api::Input
     auto &cur_log_event_id = edited_story->log_event_id_;
     if (cur_log_event_id == 0) {
       cur_log_event_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::EditStory, storer);
-      VLOG(notifications) << "Add edit message push notification log event " << cur_log_event_id;
+      LOG(INFO) << "Add edit story log event " << cur_log_event_id;
     } else {
       auto new_log_event_id =
           binlog_rewrite(G()->td_db()->get_binlog(), cur_log_event_id, LogEvent::HandlerType::EditStory, storer);
-      VLOG(notifications) << "Rewrite edit message push notification log event " << cur_log_event_id << " with "
-                          << new_log_event_id;
+      LOG(INFO) << "Rewrite edit story log event " << cur_log_event_id << " with " << new_log_event_id;
     }
   }
 
