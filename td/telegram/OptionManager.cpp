@@ -294,8 +294,9 @@ bool OptionManager::is_internal_option(Slice name) {
       return name == "premium_bot_username" || name == "premium_features" || name == "premium_invoice_slug";
     case 'r':
       return name == "rating_e_decay" || name == "reactions_uniq_max" || name == "reactions_user_max_default" ||
-             name == "reactions_user_max_premium" || name == "recent_stickers_limit" || name == "revoke_pm_inbox" ||
-             name == "revoke_time_limit" || name == "revoke_pm_time_limit";
+             name == "reactions_user_max_premium" || name == "recent_stickers_limit" ||
+             name == "restriction_add_platforms" || name == "revoke_pm_inbox" || name == "revoke_time_limit" ||
+             name == "revoke_pm_time_limit";
     case 's':
       return name == "saved_animations_limit" || name == "saved_gifs_limit_default" ||
              name == "saved_gifs_limit_premium" || name == "session_count" || name == "since_last_open" ||
