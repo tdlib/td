@@ -400,6 +400,30 @@ static string get_premium_source(const td_api::PremiumFeature *feature) {
   return string();
 }
 
+static string get_premium_source(const td_api::PremiumStoryFeature *feature) {
+  if (feature == nullptr) {
+    return string();
+  }
+
+  switch (feature->get_id()) {
+    case td_api::premiumStoryFeaturePriorityOrder::ID:
+      return "stories__priority_order";
+    case td_api::premiumStoryFeatureStealthMode::ID:
+      return "stories__stealth_mode";
+    case td_api::premiumStoryFeaturePermanentViewsHistory::ID:
+      return "stories__permanent_views_history";
+    case td_api::premiumStoryFeatureCustomExpirationDuration::ID:
+      return "stories__expiration_durations";
+    case td_api::premiumStoryFeatureSaveStories::ID:
+      return "stories__save_stories_to_gallery";
+    case td_api::premiumStoryFeatureLinksAndFormatting::ID:
+      return "stories__links_and_formatting";
+    default:
+      UNREACHABLE();
+      return string();
+  }
+}
+
 static string get_premium_source(const td_api::object_ptr<td_api::PremiumSource> &source) {
   if (source == nullptr) {
     return string();
@@ -411,6 +435,10 @@ static string get_premium_source(const td_api::object_ptr<td_api::PremiumSource>
     }
     case td_api::premiumSourceFeature::ID: {
       auto *feature = static_cast<const td_api::premiumSourceFeature *>(source.get())->feature_.get();
+      return get_premium_source(feature);
+    }
+    case td_api::premiumSourceStoryFeature::ID: {
+      auto *feature = static_cast<const td_api::premiumSourceStoryFeature *>(source.get())->feature_.get();
       return get_premium_source(feature);
     }
     case td_api::premiumSourceLink::ID: {

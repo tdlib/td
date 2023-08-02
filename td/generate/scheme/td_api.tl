@@ -3984,7 +3984,7 @@ premiumLimitTypeShareableChatFolderCount = PremiumLimitType;
 //@description The maximum number of active stories
 premiumLimitTypeActiveStoryCount = PremiumLimitType;
 
-//@description The maximum length of captions of sent stoories
+//@description The maximum length of captions of sent stories
 premiumLimitTypeStoryCaptionLength = PremiumLimitType;
 
 
@@ -4020,7 +4020,7 @@ premiumFeatureAdvancedChatManagement = PremiumFeature;
 //@description A badge in the user's profile
 premiumFeatureProfileBadge = PremiumFeature;
 
-//@description A emoji status shown along with the user's name
+//@description An emoji status shown along with the user's name
 premiumFeatureEmojiStatus = PremiumFeature;
 
 //@description Profile photo animation on message and chat screens
@@ -4037,6 +4037,27 @@ premiumFeatureRealTimeChatTranslation = PremiumFeature;
 
 //@description Allowed to use many additional features for stories
 premiumFeatureUpgradedStories = PremiumFeature;
+
+
+//@class PremiumStoryFeature @description Describes a story feature available to Premium users
+
+//@description User stories are displayed before stories of non-premium contacts
+premiumStoryFeaturePriorityOrder = PremiumStoryFeature;
+
+//@description The ability to hide the fact that the user viewed other's stories
+premiumStoryFeatureStealthMode = PremiumStoryFeature;
+
+//@description The ability to check who opened your stories after they expire
+premiumStoryFeaturePermanentViewsHistory = PremiumStoryFeature;
+
+//@description The ability to set custom expiration duration for stories
+premiumStoryFeatureCustomExpirationDuration = PremiumStoryFeature;
+
+//@description The ability to save other's unprotected stories
+premiumStoryFeatureSaveStories = PremiumStoryFeature;
+
+//@description The ability to use links and formatting in story caption
+premiumStoryFeatureLinksAndFormatting = PremiumStoryFeature;
 
 
 //@description Contains information about a limit, increased for Premium users @type The type of the limit @default_value Default value of the limit @premium_value Value of the limit for Premium users
@@ -4056,6 +4077,9 @@ premiumSourceLimitExceeded limit_type:PremiumLimitType = PremiumSource;
 
 //@description A user tried to use a Premium feature @feature The used feature
 premiumSourceFeature feature:PremiumFeature = PremiumSource;
+
+//@description A user tried to use a Premium story feature @feature The used feature
+premiumSourceStoryFeature feature:PremiumStoryFeature = PremiumSource;
 
 //@description A user opened an internal link of the type internalLinkTypePremiumFeatures @referrer The referrer from the link
 premiumSourceLink referrer:string = PremiumSource;
