@@ -1892,6 +1892,21 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         G()->set_option_string("venue_search_bot_username", get_json_value_string(std::move(key_value->value_), key));
         continue;
       }
+      if (key == "stories_stealth_past_period") {
+        G()->set_option_integer("story_stealth_mode_past_period",
+                                get_json_value_int(std::move(key_value->value_), key));
+        continue;
+      }
+      if (key == "stories_stealth_future_period") {
+        G()->set_option_integer("story_stealth_mode_future_period",
+                                get_json_value_int(std::move(key_value->value_), key));
+        continue;
+      }
+      if (key == "stories_stealth_cooldown_period") {
+        G()->set_option_integer("story_stealth_mode_cooldown_period",
+                                get_json_value_int(std::move(key_value->value_), key));
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }

@@ -118,6 +118,15 @@ OptionManager::OptionManager(Td *td)
   if (!have_option("archive_all_stories")) {
     // set_option_boolean("archive_all_stories", false);
   }
+  if (!have_option("story_stealth_mode_past_period")) {
+    set_option_integer("story_stealth_mode_past_period", 300);
+  }
+  if (!have_option("story_stealth_mode_future_period")) {
+    set_option_integer("story_stealth_mode_future_period", 1500);
+  }
+  if (!have_option("story_stealth_mode_cooldown_period")) {
+    set_option_integer("story_stealth_mode_cooldown_period", 3600);
+  }
 
   set_option_empty("archive_and_mute_new_chats_from_unknown_users");
   set_option_empty("chat_filter_count_max");
