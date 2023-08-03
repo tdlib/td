@@ -26,6 +26,7 @@
 #include "td/telegram/StoryContent.h"
 #include "td/telegram/StoryContentType.h"
 #include "td/telegram/StoryInteractionInfo.hpp"
+#include "td/telegram/StoryStealthMode.hpp"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"

@@ -479,6 +479,7 @@ set(TDLIB_SOURCE
   td/telegram/StoryDb.cpp
   td/telegram/StoryInteractionInfo.cpp
   td/telegram/StoryManager.cpp
+  td/telegram/StoryStealthMode.cpp
   td/telegram/SuggestedAction.cpp
   td/telegram/Support.cpp
   td/telegram/Td.cpp
@@ -783,6 +784,7 @@ set(TDLIB_SOURCE
   td/telegram/StoryInteractionInfo.h
   td/telegram/StoryListId.h
   td/telegram/StoryManager.h
+  td/telegram/StoryStealthMode.h
   td/telegram/SuggestedAction.h
   td/telegram/Support.h
   td/telegram/Td.h
@@ -861,6 +863,7 @@ set(TDLIB_SOURCE
   td/telegram/StickerPhotoSize.hpp
   td/telegram/StickersManager.hpp
   td/telegram/StoryInteractionInfo.hpp
+  td/telegram/StoryStealthMode.hpp
   td/telegram/TranscriptionInfo.hpp
   td/telegram/VideoNotesManager.hpp
   td/telegram/VideosManager.hpp

@@ -5850,6 +5850,11 @@ updateChatActiveStories active_stories:chatActiveStories = Update;
 //@description Number of chats in a story list has changed @story_list The story list @chat_count Approximate total number of chats with active stories in the list
 updateStoryListChatCount story_list:StoryList chat_count:int32 = Update;
 
+//@description Story stealth mode settings has changed
+//@active_until_date Point in time (Unix timestamp) until stealth mode is active; 0 if it is disabled
+//@cooldown_until_date Point in time (Unix timestamp) when stealth mode can be enabled again; 0 if there is no active cooldown
+updateStoryStealthMode active_until_date:int32 cooldown_until_date:int32 = Update;
+
 //@description An option changed its value @name The option name @value The new option value
 updateOption name:string value:OptionValue = Update;
 
