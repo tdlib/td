@@ -18591,9 +18591,6 @@ bool MessagesManager::can_report_message_reactions(DialogId dialog_id, const Mes
   if (m->message_id.is_scheduled() || !m->message_id.is_server()) {
     return false;
   }
-  if (m->message_id.is_scheduled() || !m->message_id.is_server()) {
-    return false;
-  }
   if (is_discussion_message(dialog_id, m)) {
     return false;
   }
