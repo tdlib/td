@@ -3272,6 +3272,26 @@ void StoryManager::on_update_story_stealth_mode(
   set_story_stealth_mode(StoryStealthMode(std::move(stealth_mode)));
 }
 
+void StoryManager::on_update_story_chosen_reaction_type(DialogId owner_dialog_id, StoryId story_id,
+                                                        ReactionType chosen_reaction_type) {
+  if (!owner_dialog_id.is_valid() || !story_id.is_server()) {
+    LOG(ERROR) << "Receive chosen reaction in " << story_id << " in " << owner_dialog_id;
+    return;
+  }
+  if (!td_->messages_manager_->have_dialog_info_force(owner_dialog_id)) {
+    return;
+  }
+  StoryFullId story_full_id{owner_dialog_id, story_id};
+  Story *story = get_story_force(story_full_id, "on_update_story_chosen_reaction_type");
+  if (story == nullptr) {
+    return;
+  }
+  if (story->chosen_reaction_type_ != chosen_reaction_type) {
+    story->chosen_reaction_type_ = std::move(chosen_reaction_type);
+    on_story_changed(story_full_id, story, true, true);
+  }
+}
+
 void StoryManager::set_story_stealth_mode(StoryStealthMode stealth_mode) {
   if (stealth_mode == stealth_mode_) {
     return;

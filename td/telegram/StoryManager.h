@@ -268,6 +268,9 @@ class StoryManager final : public Actor {
 
   void on_update_story_stealth_mode(telegram_api::object_ptr<telegram_api::storiesStealthMode> &&stealth_mode);
 
+  void on_update_story_chosen_reaction_type(DialogId owner_dialog_id, StoryId story_id,
+                                            ReactionType chosen_reaction_type);
+
   void on_dialog_active_stories_order_updated(DialogId owner_dialog_id, const char *source);
 
   Status can_get_story_viewers(StoryFullId story_full_id, const Story *story) const;
