@@ -19,6 +19,7 @@
 #include "td/telegram/StoryId.h"
 #include "td/telegram/StoryInteractionInfo.h"
 #include "td/telegram/StoryListId.h"
+#include "td/telegram/StoryStealthMode.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
@@ -260,6 +261,8 @@ class StoryManager final : public Actor {
                                Promise<Unit> &&promise);
 
   bool on_update_read_stories(DialogId owner_dialog_id, StoryId max_read_story_id);
+
+  void on_update_story_stealth_mode(telegram_api::object_ptr<telegram_api::storiesStealthMode> &&stealth_mode);
 
   void on_dialog_active_stories_order_updated(DialogId owner_dialog_id, const char *source);
 
@@ -506,6 +509,12 @@ class StoryManager final : public Actor {
 
   void on_synchronized_archive_all_stories(bool set_archive_all_stories, Result<Unit> result);
 
+  td_api::object_ptr<td_api::updateStoryStealthMode> get_update_story_stealth_mode() const;
+
+  void send_update_story_stealth_mode() const;
+
+  void set_story_stealth_mode(StoryStealthMode stealth_mode);
+
   void on_get_story_viewers(StoryId story_id, MessageViewer offset,
                             Result<telegram_api::object_ptr<telegram_api::stories_storyViewsList>> r_view_list,
                             Promise<td_api::object_ptr<td_api::messageViewers>> &&promise);
@@ -559,6 +568,8 @@ class StoryManager final : public Actor {
   FlatHashMap<uint32, unique_ptr<ReadyToSendStory>> ready_to_send_stories_;
 
   StoryList story_lists_[2];
+
+  StoryStealthMode stealth_mode_;
 
   uint32 send_story_count_ = 0;
 

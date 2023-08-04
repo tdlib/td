@@ -29,9 +29,7 @@ bool StoryStealthMode::update() {
   return result;
 }
 
-int32 StoryStealthMode::get_update_date() {
-  update();
-
+int32 StoryStealthMode::get_update_date() const {
   if (active_until_date_ > 0) {
     if (cooldown_until_date_ > 0) {
       return min(active_until_date_, cooldown_until_date_);

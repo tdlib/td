@@ -31,7 +31,7 @@ class StoryStealthMode {
     return active_until_date_ == 0 && cooldown_until_date_ == 0;
   }
 
-  int32 get_update_date();
+  int32 get_update_date() const;
 
   bool update();
 

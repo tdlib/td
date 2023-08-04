@@ -624,13 +624,13 @@ class UpdatesManager final : public Actor {
 
   void on_update(tl_object_ptr<telegram_api::updateReadStories> update, Promise<Unit> &&promise);
 
+  void on_update(tl_object_ptr<telegram_api::updateStoriesStealthMode> update, Promise<Unit> &&promise);
+
   // unsupported updates
 
   void on_update(tl_object_ptr<telegram_api::updateSentStoryReaction> update, Promise<Unit> &&promise);
 
   void on_update(tl_object_ptr<telegram_api::updateStoryID> update, Promise<Unit> &&promise);
-
-  void on_update(tl_object_ptr<telegram_api::updateStoriesStealthMode> update, Promise<Unit> &&promise);
 };
 
 }  // namespace td

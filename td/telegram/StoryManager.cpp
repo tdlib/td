@@ -1520,6 +1520,7 @@ void StoryManager::on_load_active_stories_from_server(
         story_list.state_ = std::move(stories->state_);
         save_story_list(story_list_id, story_list.state_, story_list.server_total_count_, story_list.server_has_more_);
       }
+      on_update_story_stealth_mode(std::move(stories->stealth_mode_));
       break;
     }
     case telegram_api::stories_allStories::ID: {
@@ -1603,6 +1604,8 @@ void StoryManager::on_load_active_stories_from_server(
       update_story_list_sent_total_count(story_list_id, story_list);
 
       lock.set_value(Unit());
+
+      on_update_story_stealth_mode(std::move(stories->stealth_mode_));
       break;
     }
     default:
@@ -3202,6 +3205,28 @@ bool StoryManager::on_update_read_stories(DialogId owner_dialog_id, StoryId max_
   return false;
 }
 
+td_api::object_ptr<td_api::updateStoryStealthMode> StoryManager::get_update_story_stealth_mode() const {
+  return stealth_mode_.get_update_story_stealth_mode_object();
+}
+
+void StoryManager::send_update_story_stealth_mode() const {
+  send_closure(G()->td(), &Td::send_update, get_update_story_stealth_mode());
+}
+
+void StoryManager::on_update_story_stealth_mode(
+    telegram_api::object_ptr<telegram_api::storiesStealthMode> &&stealth_mode) {
+  set_story_stealth_mode(StoryStealthMode(std::move(stealth_mode)));
+}
+
+void StoryManager::set_story_stealth_mode(StoryStealthMode stealth_mode) {
+  if (stealth_mode == stealth_mode_) {
+    return;
+  }
+
+  stealth_mode_ = stealth_mode;
+  send_update_story_stealth_mode();
+}
+
 DialogId StoryManager::get_changelog_story_dialog_id() const {
   return DialogId(UserId(td_->option_manager_->get_option_integer(
       "stories_changelog_user_id", ContactsManager::get_service_notifications_user_id().get())));
@@ -3963,6 +3988,8 @@ void StoryManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> 
         updates.push_back(get_update_story_list_chat_count_object(story_list_id, story_list));
       }
     }
+
+    updates.push_back(get_update_story_stealth_mode());
   }
 }
 
