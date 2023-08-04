@@ -4331,11 +4331,11 @@ void StickersManager::on_get_available_reactions(
         on_get_sticker_document(std::move(available_reaction->center_icon_), StickerFormat::Tgs).second;
 
     if (!reaction.is_valid()) {
-      LOG(ERROR) << "Receive invalid reaction " << reaction.reaction_type_;
+      LOG(ERROR) << "Receive invalid " << reaction.reaction_type_;
       continue;
     }
     if (reaction.is_premium_) {
-      LOG(ERROR) << "Receive premium reaction " << reaction.reaction_type_;
+      LOG(ERROR) << "Receive premium " << reaction.reaction_type_;
       continue;
     }
 

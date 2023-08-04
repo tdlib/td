@@ -519,12 +519,12 @@ unique_ptr<MessageReactions> MessageReactions::get_message_reactions(
     auto reaction_type = ReactionType(reaction_count->reaction_);
     if (reaction_count->count_ <= 0 || reaction_count->count_ >= MessageReaction::MAX_CHOOSE_COUNT ||
         reaction_type.is_empty()) {
-      LOG(ERROR) << "Receive reaction " << reaction_type << " with invalid count " << reaction_count->count_;
+      LOG(ERROR) << "Receive " << reaction_type << " with invalid count " << reaction_count->count_;
       continue;
     }
 
     if (!reaction_types.insert(reaction_type).second) {
-      LOG(ERROR) << "Receive duplicate reaction " << reaction_type;
+      LOG(ERROR) << "Receive duplicate " << reaction_type;
       continue;
     }
 
@@ -537,11 +537,11 @@ unique_ptr<MessageReactions> MessageReactions::get_message_reactions(
       if (peer_reaction_type == reaction_type) {
         DialogId dialog_id(peer_reaction->peer_id_);
         if (!dialog_id.is_valid()) {
-          LOG(ERROR) << "Receive invalid " << dialog_id << " as a recent chooser for reaction " << reaction_type;
+          LOG(ERROR) << "Receive invalid " << dialog_id << " as a recent chooser for " << reaction_type;
           continue;
         }
         if (!recent_choosers.insert(dialog_id).second) {
-          LOG(ERROR) << "Receive duplicate " << dialog_id << " as a recent chooser for reaction " << reaction_type;
+          LOG(ERROR) << "Receive duplicate " << dialog_id << " as a recent chooser for " << reaction_type;
           continue;
         }
         if (!td->messages_manager_->have_dialog_info(dialog_id)) {

@@ -126,7 +126,13 @@ bool operator==(const ReactionType &lhs, const ReactionType &rhs) {
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const ReactionType &reaction_type) {
-  return string_builder << reaction_type.reaction_;
+  if (reaction_type.is_empty()) {
+    return string_builder << "empty reaction";
+  }
+  if (reaction_type.is_custom_reaction()) {
+    return string_builder << "custom reaction " << get_custom_emoji_id(reaction_type.reaction_);
+  }
+  return string_builder << "reaction " << reaction_type.reaction_;
 }
 
 int64 get_reaction_types_hash(const vector<ReactionType> &reaction_types) {
