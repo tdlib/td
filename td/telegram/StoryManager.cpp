@@ -3096,9 +3096,6 @@ void StoryManager::save_active_stories(DialogId owner_dialog_id, const ActiveSto
 }
 
 bool StoryManager::on_update_read_stories(DialogId owner_dialog_id, StoryId max_read_story_id) {
-  if (owner_dialog_id == DialogId(td_->contacts_manager_->get_my_id())) {
-    return false;
-  }
   if (!td_->messages_manager_->have_dialog_info_force(owner_dialog_id)) {
     return false;
   }
