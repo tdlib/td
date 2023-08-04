@@ -14,6 +14,7 @@
 #include "td/telegram/MediaArea.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageViewer.h"
+#include "td/telegram/ReactionType.h"
 #include "td/telegram/StoryDb.h"
 #include "td/telegram/StoryFullId.h"
 #include "td/telegram/StoryId.h"
@@ -65,6 +66,7 @@ class StoryManager final : public Actor {
     bool noforwards_ = false;
     mutable bool is_update_sent_ = false;  // whether the story is known to the app
     StoryInteractionInfo interaction_info_;
+    ReactionType chosen_reaction_type_;
     UserPrivacySettingRules privacy_rules_;
     unique_ptr<StoryContent> content_;
     vector<MediaArea> areas_;

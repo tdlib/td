@@ -788,6 +788,7 @@ void StoryManager::Story::store(StorerT &storer) const {
   bool has_content = content_ != nullptr;
   bool has_caption = !caption_.text.empty();
   bool has_areas = !areas_.empty();
+  bool has_chosen_reaction_type = !chosen_reaction_type_.is_empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_edited_);
   STORE_FLAG(is_pinned_);
@@ -802,6 +803,7 @@ void StoryManager::Story::store(StorerT &storer) const {
   STORE_FLAG(is_for_contacts_);
   STORE_FLAG(is_for_selected_contacts_);
   STORE_FLAG(has_areas);
+  STORE_FLAG(has_chosen_reaction_type);
   END_STORE_FLAGS();
   store(date_, storer);
   store(expire_date_, storer);
@@ -823,6 +825,9 @@ void StoryManager::Story::store(StorerT &storer) const {
   if (has_areas) {
     store(areas_, storer);
   }
+  if (has_chosen_reaction_type) {
+    store(chosen_reaction_type_, storer);
+  }
 }
 
 template <class ParserT>
@@ -834,6 +839,7 @@ void StoryManager::Story::parse(ParserT &parser) {
   bool has_content;
   bool has_caption;
   bool has_areas;
+  bool has_chosen_reaction_type;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_edited_);
   PARSE_FLAG(is_pinned_);
@@ -848,6 +854,7 @@ void StoryManager::Story::parse(ParserT &parser) {
   PARSE_FLAG(is_for_contacts_);
   PARSE_FLAG(is_for_selected_contacts_);
   PARSE_FLAG(has_areas);
+  PARSE_FLAG(has_chosen_reaction_type);
   END_PARSE_FLAGS();
   parse(date_, parser);
   parse(expire_date_, parser);
@@ -868,6 +875,9 @@ void StoryManager::Story::parse(ParserT &parser) {
   }
   if (has_areas) {
     parse(areas_, parser);
+  }
+  if (has_chosen_reaction_type) {
+    parse(chosen_reaction_type_, parser);
   }
 }
 
@@ -2442,7 +2452,8 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
       story_id.get(), td_->messages_manager_->get_chat_id_object(dialog_id, "get_story_object"), story->date_,
       is_being_edited, is_edited, story->is_pinned_, is_visible_only_for_self, can_be_forwarded, can_be_replied,
       can_get_viewers, has_expired_viewers, story->interaction_info_.get_story_interaction_info_object(td_),
-      std::move(privacy_settings), get_story_content_object(td_, content), std::move(story_areas),
+      story->chosen_reaction_type_.get_reaction_type_object(), std::move(privacy_settings),
+      get_story_content_object(td_, content), std::move(story_areas),
       get_formatted_text_object(*caption, true, get_story_content_duration(td_, content)));
 }
 
@@ -2644,10 +2655,18 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
   if (!story_item->min_) {
     auto privacy_rules = UserPrivacySettingRules::get_user_privacy_setting_rules(td_, std::move(story_item->privacy_));
     auto interaction_info = StoryInteractionInfo(td_, std::move(story_item->views_));
+    auto chosen_reaction_type = ReactionType(std::move(story_item->sent_reaction_));
 
-    if (story->privacy_rules_ != privacy_rules || story->interaction_info_ != interaction_info) {
+    if (story->privacy_rules_ != privacy_rules) {
       story->privacy_rules_ = std::move(privacy_rules);
+      is_changed = true;
+    }
+    if (story->interaction_info_ != interaction_info) {
       story->interaction_info_ = std::move(interaction_info);
+      is_changed = true;
+    }
+    if (story->chosen_reaction_type_ != chosen_reaction_type) {
+      story->chosen_reaction_type_ = std::move(chosen_reaction_type);
       is_changed = true;
     }
   }
