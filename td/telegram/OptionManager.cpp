@@ -17,10 +17,10 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/JsonValue.h"
 #include "td/telegram/LanguagePackManager.h"
-#include "td/telegram/MessageReaction.h"
 #include "td/telegram/net/MtprotoHeader.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/NotificationManager.h"
+#include "td/telegram/ReactionType.h"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/StorageManager.h"
@@ -315,7 +315,7 @@ bool OptionManager::is_internal_option(Slice name) {
 
 td_api::object_ptr<td_api::Update> OptionManager::get_internal_option_update(Slice name) const {
   if (name == "default_reaction") {
-    return get_update_default_reaction_type(get_option_string(name));
+    return ReactionType(get_option_string(name)).get_update_default_reaction_type();
   }
   if (name == "otherwise_relogin_days") {
     auto days = narrow_cast<int32>(get_option_integer(name));

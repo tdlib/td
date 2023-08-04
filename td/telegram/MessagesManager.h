@@ -54,6 +54,7 @@
 #include "td/telegram/NotificationSettingsScope.h"
 #include "td/telegram/OrderedMessage.h"
 #include "td/telegram/Photo.h"
+#include "td/telegram/ReactionType.h"
 #include "td/telegram/RecentDialogList.h"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/RestrictionReason.h"
@@ -355,8 +356,9 @@ class MessagesManager final : public Actor {
 
   void try_reload_message_reactions(DialogId dialog_id, bool is_finished);
 
-  void on_get_message_reaction_list(FullMessageId full_message_id, const string &reaction,
-                                    FlatHashMap<string, vector<DialogId>> reactions, int32 total_count);
+  void on_get_message_reaction_list(FullMessageId full_message_id, const ReactionType &reaction_type,
+                                    FlatHashMap<ReactionType, vector<DialogId>, ReactionTypeHash> reaction_types,
+                                    int32 total_count);
 
   void on_update_message_interaction_info(FullMessageId full_message_id, int32 view_count, int32 forward_count,
                                           bool has_reply_info,
@@ -566,7 +568,7 @@ class MessagesManager final : public Actor {
 
   void set_dialog_description(DialogId dialog_id, const string &description, Promise<Unit> &&promise);
 
-  void set_active_reactions(vector<string> active_reactions);
+  void set_active_reactions(vector<ReactionType> active_reaction_types);
 
   void set_dialog_available_reactions(DialogId dialog_id,
                                       td_api::object_ptr<td_api::ChatAvailableReactions> &&available_reactions_ptr,
@@ -856,10 +858,10 @@ class MessagesManager final : public Actor {
   Result<td_api::object_ptr<td_api::availableReactions>> get_message_available_reactions(FullMessageId full_message_id,
                                                                                          int32 row_size);
 
-  void add_message_reaction(FullMessageId full_message_id, string reaction, bool is_big, bool add_to_recent,
+  void add_message_reaction(FullMessageId full_message_id, ReactionType reaction_type, bool is_big, bool add_to_recent,
                             Promise<Unit> &&promise);
 
-  void remove_message_reaction(FullMessageId full_message_id, string reaction, Promise<Unit> &&promise);
+  void remove_message_reaction(FullMessageId full_message_id, ReactionType reaction_type, Promise<Unit> &&promise);
 
   void get_message_public_forwards(FullMessageId full_message_id, string offset, int32 limit,
                                    Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
@@ -3697,8 +3699,8 @@ class MessagesManager final : public Actor {
 
   FlatHashMap<FullMessageId, int32, FullMessageIdHash> pending_read_reactions_;
 
-  vector<string> active_reactions_;
-  FlatHashMap<string, size_t> active_reaction_pos_;
+  vector<ReactionType> active_reaction_types_;
+  FlatHashMap<ReactionType, size_t, ReactionTypeHash> active_reaction_pos_;
 
   FlatHashMap<PendingGetHistoryQuery, vector<Promise<Unit>>, PendingGetHistoryQueryHash> get_history_queries_;
 

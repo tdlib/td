@@ -16,6 +16,7 @@
 #include "td/telegram/FullMessageId.h"
 #include "td/telegram/PhotoFormat.h"
 #include "td/telegram/PhotoSize.h"
+#include "td/telegram/ReactionType.h"
 #include "td/telegram/SecretInputMedia.h"
 #include "td/telegram/SpecialStickerSetType.h"
 #include "td/telegram/StickerFormat.h"
@@ -146,7 +147,7 @@ class StickersManager final : public Actor {
 
   Status on_animated_emoji_message_clicked(string &&emoji, FullMessageId full_message_id, string data);
 
-  bool is_active_reaction(const string &reaction) const;
+  bool is_active_reaction(const ReactionType &reaction_type) const;
 
   void create_sticker(FileId file_id, FileId premium_animation_file_id, string minithumbnail, PhotoSize thumbnail,
                       Dimensions dimensions, tl_object_ptr<telegram_api::documentAttributeSticker> sticker,
@@ -195,11 +196,11 @@ class StickersManager final : public Actor {
 
   void get_emoji_reaction(const string &emoji, Promise<td_api::object_ptr<td_api::emojiReaction>> &&promise);
 
-  vector<string> get_recent_reactions();
+  vector<ReactionType> get_recent_reactions();
 
-  vector<string> get_top_reactions();
+  vector<ReactionType> get_top_reactions();
 
-  void add_recent_reaction(const string &reaction);
+  void add_recent_reaction(const ReactionType &reaction_type);
 
   void clear_recent_reactions(Promise<Unit> &&promise);
 
@@ -584,7 +585,7 @@ class StickersManager final : public Actor {
   };
 
   struct Reaction {
-    string reaction_;
+    ReactionType reaction_type_;
     string title_;
     bool is_active_ = false;
     bool is_premium_ = false;
@@ -598,7 +599,7 @@ class StickersManager final : public Actor {
 
     bool is_valid() const {
       return static_icon_.is_valid() && appear_animation_.is_valid() && select_animation_.is_valid() &&
-             activate_animation_.is_valid() && effect_animation_.is_valid() && !reaction_.empty();
+             activate_animation_.is_valid() && effect_animation_.is_valid() && !reaction_type_.is_empty();
     }
 
     template <class StorerT>
@@ -623,7 +624,7 @@ class StickersManager final : public Actor {
   struct ReactionList {
     int64 hash_ = 0;
     bool is_being_reloaded_ = false;
-    vector<string> reactions_;
+    vector<ReactionType> reaction_types_;
 
     template <class StorerT>
     void store(StorerT &storer) const;
@@ -1178,7 +1179,7 @@ class StickersManager final : public Actor {
   FlatHashMap<FileId, std::pair<UserId, Promise<Unit>>, FileIdHash> being_uploaded_files_;
 
   Reactions reactions_;
-  vector<string> active_reactions_;
+  vector<ReactionType> active_reaction_types_;
 
   ReactionList recent_reactions_;
   ReactionList top_reactions_;

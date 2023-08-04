@@ -25,6 +25,7 @@
 #include "td/telegram/net/PublicRsaKeyShared.h"
 #include "td/telegram/net/Session.h"
 #include "td/telegram/Premium.h"
+#include "td/telegram/ReactionType.h"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
@@ -1402,9 +1403,9 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
   options.set_option_integer("notification_default_delay_ms", fix_timeout_ms(config->notify_default_delay_ms_));
 
   if (is_from_main_dc && !options.have_option("default_reaction_need_sync")) {
-    auto reaction_str = get_message_reaction_string(config->reactions_default_);
-    if (!reaction_str.empty()) {
-      options.set_option_string("default_reaction", reaction_str);
+    ReactionType reaction_type(config->reactions_default_);
+    if (!reaction_type.is_empty()) {
+      options.set_option_string("default_reaction", reaction_type.get_string());
     }
   }
 

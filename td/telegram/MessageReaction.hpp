@@ -8,6 +8,7 @@
 
 #include "td/telegram/MessageReaction.h"
 #include "td/telegram/MinChannel.hpp"
+#include "td/telegram/ReactionType.hpp"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/common.h"
@@ -27,7 +28,7 @@ void MessageReaction::store(StorerT &storer) const {
   STORE_FLAG(has_recent_chooser_min_channels);
   STORE_FLAG(has_my_recent_chooser_dialog_id);
   END_STORE_FLAGS();
-  td::store(reaction_, storer);
+  td::store(reaction_type_, storer);
   td::store(choose_count_, storer);
   if (has_recent_chooser_dialog_ids) {
     td::store(recent_chooser_dialog_ids_, storer);
@@ -51,7 +52,7 @@ void MessageReaction::parse(ParserT &parser) {
   PARSE_FLAG(has_recent_chooser_min_channels);
   PARSE_FLAG(has_my_recent_chooser_dialog_id);
   END_PARSE_FLAGS();
-  td::parse(reaction_, parser);
+  td::parse(reaction_type_, parser);
   td::parse(choose_count_, parser);
   if (has_recent_chooser_dialog_ids) {
     td::parse(recent_chooser_dialog_ids_, parser);
@@ -65,7 +66,7 @@ void MessageReaction::parse(ParserT &parser) {
     CHECK(td::contains(recent_chooser_dialog_ids_, my_recent_chooser_dialog_id_));
   }
   CHECK(!is_empty());
-  CHECK(!reaction_.empty());
+  CHECK(!reaction_type_.is_empty());
 }
 
 template <class StorerT>
@@ -73,7 +74,7 @@ void UnreadMessageReaction::store(StorerT &storer) const {
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_big_);
   END_STORE_FLAGS();
-  td::store(reaction_, storer);
+  td::store(reaction_type_, storer);
   td::store(sender_dialog_id_, storer);
 }
 
@@ -82,9 +83,9 @@ void UnreadMessageReaction::parse(ParserT &parser) {
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_big_);
   END_PARSE_FLAGS();
-  td::parse(reaction_, parser);
+  td::parse(reaction_type_, parser);
   td::parse(sender_dialog_id_, parser);
-  CHECK(!reaction_.empty());
+  CHECK(!reaction_type_.is_empty());
 }
 
 template <class StorerT>

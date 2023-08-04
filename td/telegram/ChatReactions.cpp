@@ -28,10 +28,9 @@ ChatReactions::ChatReactions(telegram_api::object_ptr<telegram_api::ChatReaction
     }
     case telegram_api::chatReactionsSome::ID: {
       auto chat_reactions = move_tl_object_as<telegram_api::chatReactionsSome>(chat_reactions_ptr);
-      reactions_ =
-          transform(chat_reactions->reactions_, [](const telegram_api::object_ptr<telegram_api::Reaction> &reaction) {
-            return get_message_reaction_string(reaction);
-          });
+      reaction_types_ = transform(
+          chat_reactions->reactions_,
+          [](const telegram_api::object_ptr<telegram_api::Reaction> &reaction) { return ReactionType(reaction); });
       break;
     }
     default:
@@ -51,9 +50,9 @@ ChatReactions::ChatReactions(td_api::object_ptr<td_api::ChatAvailableReactions> 
       break;
     case td_api::chatAvailableReactionsSome::ID: {
       auto chat_reactions = move_tl_object_as<td_api::chatAvailableReactionsSome>(chat_reactions_ptr);
-      reactions_ = transform(chat_reactions->reactions_, [](const td_api::object_ptr<td_api::ReactionType> &reaction) {
-        return get_message_reaction_string(reaction);
-      });
+      reaction_types_ =
+          transform(chat_reactions->reactions_,
+                    [](const td_api::object_ptr<td_api::ReactionType> &reaction) { return ReactionType(reaction); });
       break;
     }
     default:
@@ -61,30 +60,33 @@ ChatReactions::ChatReactions(td_api::object_ptr<td_api::ChatAvailableReactions> 
   }
 }
 
-ChatReactions ChatReactions::get_active_reactions(const FlatHashMap<string, size_t> &active_reaction_pos) const {
+ChatReactions ChatReactions::get_active_reactions(
+    const FlatHashMap<ReactionType, size_t, ReactionTypeHash> &active_reaction_pos) const {
   ChatReactions result = *this;
-  if (!reactions_.empty()) {
+  if (!reaction_types_.empty()) {
     CHECK(!allow_all_);
     CHECK(!allow_custom_);
-    td::remove_if(result.reactions_,
-                  [&](const string &reaction) { return !is_active_reaction(reaction, active_reaction_pos); });
+    td::remove_if(result.reaction_types_, [&](const ReactionType &reaction_type) {
+      return !reaction_type.is_active_reaction(active_reaction_pos);
+    });
   }
   return result;
 }
 
-bool ChatReactions::is_allowed_reaction(const string &reaction) const {
+bool ChatReactions::is_allowed_reaction_type(const ReactionType &reaction_type) const {
   CHECK(!allow_all_);
-  if (allow_custom_ && is_custom_reaction(reaction)) {
+  if (allow_custom_ && reaction_type.is_custom_reaction()) {
     return true;
   }
-  return td::contains(reactions_, reaction);
+  return td::contains(reaction_types_, reaction_type);
 }
 
 td_api::object_ptr<td_api::ChatAvailableReactions> ChatReactions::get_chat_available_reactions_object() const {
   if (allow_all_) {
     return td_api::make_object<td_api::chatAvailableReactionsAll>();
   }
-  return td_api::make_object<td_api::chatAvailableReactionsSome>(transform(reactions_, get_reaction_type_object));
+  return td_api::make_object<td_api::chatAvailableReactionsSome>(transform(
+      reaction_types_, [](const ReactionType &reaction_type) { return reaction_type.get_reaction_type_object(); }));
 }
 
 telegram_api::object_ptr<telegram_api::ChatReactions> ChatReactions::get_input_chat_reactions() const {
@@ -95,15 +97,16 @@ telegram_api::object_ptr<telegram_api::ChatReactions> ChatReactions::get_input_c
     }
     return telegram_api::make_object<telegram_api::chatReactionsAll>(flags, allow_custom_);
   }
-  if (!reactions_.empty()) {
-    return telegram_api::make_object<telegram_api::chatReactionsSome>(transform(reactions_, get_input_reaction));
+  if (!reaction_types_.empty()) {
+    return telegram_api::make_object<telegram_api::chatReactionsSome>(transform(
+        reaction_types_, [](const ReactionType &reaction_type) { return reaction_type.get_input_reaction(); }));
   }
   return telegram_api::make_object<telegram_api::chatReactionsNone>();
 }
 
 bool operator==(const ChatReactions &lhs, const ChatReactions &rhs) {
   // don't compare allow_custom_
-  return lhs.reactions_ == rhs.reactions_ && lhs.allow_all_ == rhs.allow_all_;
+  return lhs.reaction_types_ == rhs.reaction_types_ && lhs.allow_all_ == rhs.allow_all_;
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const ChatReactions &reactions) {
@@ -113,7 +116,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const ChatReactions &re
     }
     return string_builder << "AllRegularReactions";
   }
-  return string_builder << '[' << reactions.reactions_ << ']';
+  return string_builder << '[' << reactions.reaction_types_ << ']';
 }
 
 }  // namespace td

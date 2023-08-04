@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/ReactionType.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -17,13 +18,13 @@
 namespace td {
 
 struct ChatReactions {
-  vector<string> reactions_;
+  vector<ReactionType> reaction_types_;
   bool allow_all_ = false;     // implies empty reactions
   bool allow_custom_ = false;  // implies allow_all
 
   ChatReactions() = default;
 
-  explicit ChatReactions(vector<string> &&reactions) : reactions_(std::move(reactions)) {
+  explicit ChatReactions(vector<ReactionType> &&reactions) : reaction_types_(std::move(reactions)) {
   }
 
   explicit ChatReactions(telegram_api::object_ptr<telegram_api::ChatReactions> &&chat_reactions_ptr);
@@ -33,28 +34,29 @@ struct ChatReactions {
   ChatReactions(bool allow_all, bool allow_custom) : allow_all_(allow_all), allow_custom_(allow_custom) {
   }
 
-  ChatReactions get_active_reactions(const FlatHashMap<string, size_t> &active_reaction_pos) const;
+  ChatReactions get_active_reactions(
+      const FlatHashMap<ReactionType, size_t, ReactionTypeHash> &active_reaction_pos) const;
 
-  bool is_allowed_reaction(const string &reaction) const;
+  bool is_allowed_reaction_type(const ReactionType &reaction) const;
 
   telegram_api::object_ptr<telegram_api::ChatReactions> get_input_chat_reactions() const;
 
   td_api::object_ptr<td_api::ChatAvailableReactions> get_chat_available_reactions_object() const;
 
   bool empty() const {
-    return reactions_.empty() && !allow_all_;
+    return reaction_types_.empty() && !allow_all_;
   }
 
   template <class StorerT>
   void store(StorerT &storer) const {
-    bool has_reactions = !reactions_.empty();
+    bool has_reactions = !reaction_types_.empty();
     BEGIN_STORE_FLAGS();
     STORE_FLAG(allow_all_);
     STORE_FLAG(allow_custom_);
     STORE_FLAG(has_reactions);
     END_STORE_FLAGS();
     if (has_reactions) {
-      td::store(reactions_, storer);
+      td::store(reaction_types_, storer);
     }
   }
 
@@ -67,7 +69,7 @@ struct ChatReactions {
     PARSE_FLAG(has_reactions);
     END_PARSE_FLAGS();
     if (has_reactions) {
-      td::parse(reactions_, parser);
+      td::parse(reaction_types_, parser);
     }
   }
 };

@@ -5766,9 +5766,9 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   if (has_available_reactions) {
     parse(available_reactions, parser);
   } else if (has_legacy_available_reactions) {
-    vector<string> legacy_available_reactions;
-    parse(legacy_available_reactions, parser);
-    available_reactions = ChatReactions(std::move(legacy_available_reactions));
+    vector<ReactionType> legacy_available_reaction_types;
+    parse(legacy_available_reaction_types, parser);
+    available_reactions = ChatReactions(std::move(legacy_available_reaction_types));
   }
   if (has_available_reactions_generation) {
     parse(available_reactions_generation, parser);
@@ -6846,8 +6846,9 @@ void MessagesManager::update_message_reactions(FullMessageId full_message_id,
   update_message_interaction_info(full_message_id, -1, -1, false, nullptr, true, std::move(reactions));
 }
 
-void MessagesManager::on_get_message_reaction_list(FullMessageId full_message_id, const string &reaction,
-                                                   FlatHashMap<string, vector<DialogId>> reactions, int32 total_count) {
+void MessagesManager::on_get_message_reaction_list(
+    FullMessageId full_message_id, const ReactionType &reaction_type,
+    FlatHashMap<ReactionType, vector<DialogId>, ReactionTypeHash> reaction_types, int32 total_count) {
   const Message *m = get_message_force(full_message_id, "on_get_message_reaction_list");
   if (m == nullptr || m->reactions == nullptr) {
     return;
@@ -6855,7 +6856,7 @@ void MessagesManager::on_get_message_reaction_list(FullMessageId full_message_id
 
   // it's impossible to use received reactions to update message reactions, because there is no way to find,
   // which reactions are chosen by the current user, so just reload message reactions for consistency
-  if (m->reactions->are_consistent_with_list(reaction, std::move(reactions), total_count)) {
+  if (m->reactions->are_consistent_with_list(reaction_type, std::move(reaction_types), total_count)) {
     return;
   }
 
@@ -8454,19 +8455,19 @@ void MessagesManager::hide_dialog_message_reactions(Dialog *d) {
   }
 }
 
-void MessagesManager::set_active_reactions(vector<string> active_reactions) {
-  if (active_reactions == active_reactions_) {
+void MessagesManager::set_active_reactions(vector<ReactionType> active_reaction_types) {
+  if (active_reaction_types == active_reaction_types_) {
     return;
   }
 
-  LOG(INFO) << "Set active reactions to " << active_reactions;
-  bool is_changed = active_reactions != active_reactions_;
-  active_reactions_ = std::move(active_reactions);
+  LOG(INFO) << "Set active reactions to " << active_reaction_types;
+  bool is_changed = active_reaction_types != active_reaction_types_;
+  active_reaction_types_ = std::move(active_reaction_types);
 
   auto old_active_reaction_pos_ = std::move(active_reaction_pos_);
   active_reaction_pos_.clear();
-  for (size_t i = 0; i < active_reactions_.size(); i++) {
-    active_reaction_pos_[active_reactions_[i]] = i;
+  for (size_t i = 0; i < active_reaction_types_.size(); i++) {
+    active_reaction_pos_[active_reaction_types_[i]] = i;
   }
 
   if (td_->auth_manager_->is_bot()) {
@@ -23787,22 +23788,22 @@ Result<td_api::object_ptr<td_api::availableReactions>> MessagesManager::get_mess
   LOG(INFO) << "Have available reactions " << available_reactions << " to be sorted by top reactions " << top_reactions
             << " and recent reactions " << recent_reactions;
   if (active_reactions.allow_custom_ && active_reactions.allow_all_) {
-    for (auto &reaction : recent_reactions) {
-      if (is_custom_reaction(reaction)) {
+    for (auto &reaction_type : recent_reactions) {
+      if (reaction_type.is_custom_reaction()) {
         show_premium = true;
       }
     }
-    for (auto &reaction : top_reactions) {
-      if (is_custom_reaction(reaction)) {
+    for (auto &reaction_type : top_reactions) {
+      if (reaction_type.is_custom_reaction()) {
         show_premium = true;
       }
     }
   }
 
-  FlatHashSet<string> all_available_reactions;
-  for (const auto &reaction : available_reactions.reactions_) {
-    CHECK(!reaction.empty());
-    all_available_reactions.insert(reaction);
+  FlatHashSet<ReactionType, ReactionTypeHash> all_available_reaction_types;
+  for (const auto &reaction_type : available_reactions.reaction_types_) {
+    CHECK(!reaction_type.is_empty());
+    all_available_reaction_types.insert(reaction_type);
   }
 
   vector<td_api::object_ptr<td_api::availableReaction>> top_reaction_objects;
@@ -23810,22 +23811,22 @@ Result<td_api::object_ptr<td_api::availableReactions>> MessagesManager::get_mess
   vector<td_api::object_ptr<td_api::availableReaction>> popular_reaction_objects;
   vector<td_api::object_ptr<td_api::availableReaction>> last_reaction_objects;
 
-  FlatHashSet<string> added_custom_reactions;
+  FlatHashSet<ReactionType, ReactionTypeHash> added_custom_reaction_types;
   auto add_reactions = [&](vector<td_api::object_ptr<td_api::availableReaction>> &reaction_objects,
-                           const vector<string> &reactions) {
-    for (auto &reaction : reactions) {
-      if (all_available_reactions.erase(reaction) != 0) {
+                           const vector<ReactionType> &reaction_types) {
+    for (auto &reaction_type : reaction_types) {
+      if (all_available_reaction_types.erase(reaction_type) != 0) {
         // add available reaction
-        if (is_custom_reaction(reaction)) {
-          added_custom_reactions.insert(reaction);
+        if (reaction_type.is_custom_reaction()) {
+          added_custom_reaction_types.insert(reaction_type);
         }
         reaction_objects.push_back(
-            td_api::make_object<td_api::availableReaction>(get_reaction_type_object(reaction), false));
-      } else if (is_custom_reaction(reaction) && available_reactions.allow_custom_ &&
-                 added_custom_reactions.insert(reaction).second) {
+            td_api::make_object<td_api::availableReaction>(reaction_type.get_reaction_type_object(), false));
+      } else if (reaction_type.is_custom_reaction() && available_reactions.allow_custom_ &&
+                 added_custom_reaction_types.insert(reaction_type).second) {
         // add implicitly available custom reaction
         reaction_objects.push_back(
-            td_api::make_object<td_api::availableReaction>(get_reaction_type_object(reaction), !is_premium));
+            td_api::make_object<td_api::availableReaction>(reaction_type.get_reaction_type_object(), !is_premium));
       } else {
         // skip the reaction
       }
@@ -23843,8 +23844,8 @@ Result<td_api::object_ptr<td_api::availableReactions>> MessagesManager::get_mess
   } else {
     add_reactions(top_reaction_objects, top_reactions);
   }
-  add_reactions(last_reaction_objects, active_reactions_);
-  add_reactions(last_reaction_objects, available_reactions.reactions_);
+  add_reactions(last_reaction_objects, active_reaction_types_);
+  add_reactions(last_reaction_objects, available_reactions.reaction_types_);
 
   if (show_premium) {
     if (recent_reactions.empty()) {
@@ -23864,7 +23865,7 @@ Result<td_api::object_ptr<td_api::availableReactions>> MessagesManager::get_mess
     append(top_reaction_objects, std::move(last_reaction_objects));
   }
 
-  CHECK(all_available_reactions.empty());
+  CHECK(all_available_reaction_types.empty());
 
   return td_api::make_object<td_api::availableReactions>(
       std::move(top_reaction_objects), std::move(recent_reaction_objects), std::move(popular_reaction_objects),
@@ -23899,16 +23900,16 @@ ChatReactions MessagesManager::get_message_available_reactions(const Dialog *d, 
   }
 
   if (active_reactions.allow_all_) {
-    active_reactions.reactions_ = active_reactions_;
+    active_reactions.reaction_types_ = active_reaction_types_;
     active_reactions.allow_all_ = false;
   }
   if (m->reactions != nullptr) {
     for (const auto &reaction : m->reactions->reactions_) {
       // an already used reaction can be added if it is an active reaction
-      const string &reaction_str = reaction.get_reaction();
-      if (can_use_reactions && is_active_reaction(reaction_str, active_reaction_pos_) &&
-          !td::contains(active_reactions.reactions_, reaction_str)) {
-        active_reactions.reactions_.push_back(reaction_str);
+      const auto &reaction_type = reaction.get_reaction_type();
+      if (can_use_reactions && reaction_type.is_active_reaction(active_reaction_pos_) &&
+          !td::contains(active_reactions.reaction_types_, reaction_type)) {
+        active_reactions.reaction_types_.push_back(reaction_type);
       }
     }
   }
@@ -23918,7 +23919,7 @@ ChatReactions MessagesManager::get_message_available_reactions(const Dialog *d, 
   return active_reactions;
 }
 
-void MessagesManager::add_message_reaction(FullMessageId full_message_id, string reaction, bool is_big,
+void MessagesManager::add_message_reaction(FullMessageId full_message_id, ReactionType reaction_type, bool is_big,
                                            bool add_to_recent, Promise<Unit> &&promise) {
   auto dialog_id = full_message_id.get_dialog_id();
   Dialog *d = get_dialog_force(dialog_id, "add_message_reaction");
@@ -23931,7 +23932,7 @@ void MessagesManager::add_message_reaction(FullMessageId full_message_id, string
     return promise.set_error(Status::Error(400, "Message not found"));
   }
 
-  if (!get_message_available_reactions(d, m, true).is_allowed_reaction(reaction)) {
+  if (!get_message_available_reactions(d, m, true).is_allowed_reaction_type(reaction_type)) {
     return promise.set_error(Status::Error(400, "The reaction isn't available for the message"));
   }
 
@@ -23944,18 +23945,19 @@ void MessagesManager::add_message_reaction(FullMessageId full_message_id, string
 
   auto my_dialog_id =
       d->default_send_message_as_dialog_id.is_valid() ? d->default_send_message_as_dialog_id : get_my_dialog_id();
-  if (!m->reactions->add_reaction(reaction, is_big, my_dialog_id, have_recent_choosers)) {
+  if (!m->reactions->add_reaction(reaction_type, is_big, my_dialog_id, have_recent_choosers)) {
     return promise.set_value(Unit());
   }
 
   if (add_to_recent) {
-    add_recent_reaction(td_, reaction);
+    add_recent_reaction(td_, reaction_type);
   }
 
   set_message_reactions(d, m, is_big, add_to_recent, std::move(promise));
 }
 
-void MessagesManager::remove_message_reaction(FullMessageId full_message_id, string reaction, Promise<Unit> &&promise) {
+void MessagesManager::remove_message_reaction(FullMessageId full_message_id, ReactionType reaction_type,
+                                              Promise<Unit> &&promise) {
   auto dialog_id = full_message_id.get_dialog_id();
   Dialog *d = get_dialog_force(dialog_id, "remove_message_reaction");
   if (d == nullptr) {
@@ -23967,13 +23969,13 @@ void MessagesManager::remove_message_reaction(FullMessageId full_message_id, str
     return promise.set_error(Status::Error(400, "Message not found"));
   }
 
-  if (reaction.empty()) {
+  if (reaction_type.is_empty()) {
     return promise.set_error(Status::Error(400, "Invalid reaction specified"));
   }
 
   auto my_dialog_id =
       d->default_send_message_as_dialog_id.is_valid() ? d->default_send_message_as_dialog_id : get_my_dialog_id();
-  if (m->reactions == nullptr || !m->reactions->remove_reaction(reaction, my_dialog_id)) {
+  if (m->reactions == nullptr || !m->reactions->remove_reaction(reaction_type, my_dialog_id)) {
     return promise.set_value(Unit());
   }
 
@@ -23999,7 +24001,7 @@ void MessagesManager::set_message_reactions(Dialog *d, Message *m, bool is_big, 
         send_closure(actor_id, &MessagesManager::on_set_message_reactions, full_message_id, std::move(result),
                      std::move(promise));
       });
-  send_message_reaction(td_, full_message_id, m->reactions->get_chosen_reactions(), is_big, add_to_recent,
+  send_message_reaction(td_, full_message_id, m->reactions->get_chosen_reaction_types(), is_big, add_to_recent,
                         std::move(query_promise));
 }
 
@@ -33833,7 +33835,7 @@ void MessagesManager::set_dialog_available_reactions(
 
   ChatReactions available_reactions(std::move(available_reactions_ptr), !is_broadcast_channel(dialog_id));
   auto active_reactions = get_active_reactions(available_reactions);
-  if (active_reactions.reactions_.size() != available_reactions.reactions_.size()) {
+  if (active_reactions.reaction_types_.size() != available_reactions.reaction_types_.size()) {
     return promise.set_error(Status::Error(400, "Invalid reactions specified"));
   }
   available_reactions = std::move(active_reactions);

@@ -107,6 +107,7 @@
 #include "td/telegram/Premium.h"
 #include "td/telegram/PrivacyManager.h"
 #include "td/telegram/PublicDialogType.h"
+#include "td/telegram/ReactionType.h"
 #include "td/telegram/ReportReason.h"
 #include "td/telegram/RequestActor.h"
 #include "td/telegram/ScopeNotificationSettings.h"
@@ -5350,7 +5351,7 @@ void Td::on_request(uint64 id, td_api::addMessageReaction &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   messages_manager_->add_message_reaction({DialogId(request.chat_id_), MessageId(request.message_id_)},
-                                          get_message_reaction_string(request.reaction_type_), request.is_big_,
+                                          ReactionType(request.reaction_type_), request.is_big_,
                                           request.update_recent_reactions_, std::move(promise));
 }
 
@@ -5358,7 +5359,7 @@ void Td::on_request(uint64 id, td_api::removeMessageReaction &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   messages_manager_->remove_message_reaction({DialogId(request.chat_id_), MessageId(request.message_id_)},
-                                             get_message_reaction_string(request.reaction_type_), std::move(promise));
+                                             ReactionType(request.reaction_type_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getMessageAddedReactions &request) {
@@ -5366,14 +5367,14 @@ void Td::on_request(uint64 id, td_api::getMessageAddedReactions &request) {
   CLEAN_INPUT_STRING(request.offset_);
   CREATE_REQUEST_PROMISE();
   get_message_added_reactions(this, {DialogId(request.chat_id_), MessageId(request.message_id_)},
-                              get_message_reaction_string(request.reaction_type_), std::move(request.offset_),
-                              request.limit_, std::move(promise));
+                              ReactionType(request.reaction_type_), std::move(request.offset_), request.limit_,
+                              std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setDefaultReactionType &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  set_default_reaction(this, get_message_reaction_string(request.reaction_type_), std::move(promise));
+  set_default_reaction(this, ReactionType(request.reaction_type_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getMessagePublicForwards &request) {

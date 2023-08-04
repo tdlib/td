@@ -476,7 +476,7 @@ void StickersManager::Reaction::store(StorerT &storer) const {
   STORE_FLAG(has_center_animation);
   STORE_FLAG(is_premium_);
   END_STORE_FLAGS();
-  td::store(reaction_, storer);
+  td::store(reaction_type_, storer);
   td::store(title_, storer);
   stickers_manager->store_sticker(static_icon_, false, storer, "Reaction");
   stickers_manager->store_sticker(appear_animation_, false, storer, "Reaction");
@@ -502,7 +502,7 @@ void StickersManager::Reaction::parse(ParserT &parser) {
   PARSE_FLAG(has_center_animation);
   PARSE_FLAG(is_premium_);
   END_PARSE_FLAGS();
-  td::parse(reaction_, parser);
+  td::parse(reaction_type_, parser);
   td::parse(title_, parser);
   static_icon_ = stickers_manager->parse_sticker(false, parser);
   appear_animation_ = stickers_manager->parse_sticker(false, parser);
@@ -545,24 +545,24 @@ void StickersManager::Reactions::parse(ParserT &parser) {
 
 template <class StorerT>
 void StickersManager::ReactionList::store(StorerT &storer) const {
-  bool has_reactions = !reactions_.empty();
+  bool has_reaction_types = !reaction_types_.empty();
   BEGIN_STORE_FLAGS();
-  STORE_FLAG(has_reactions);
+  STORE_FLAG(has_reaction_types);
   END_STORE_FLAGS();
-  if (has_reactions) {
-    td::store(reactions_, storer);
+  if (has_reaction_types) {
+    td::store(reaction_types_, storer);
     td::store(hash_, storer);
   }
 }
 
 template <class ParserT>
 void StickersManager::ReactionList::parse(ParserT &parser) {
-  bool has_reactions;
+  bool has_reaction_types;
   BEGIN_PARSE_FLAGS();
-  PARSE_FLAG(has_reactions);
+  PARSE_FLAG(has_reaction_types);
   END_PARSE_FLAGS();
-  if (has_reactions) {
-    td::parse(reactions_, parser);
+  if (has_reaction_types) {
+    td::parse(reaction_types_, parser);
     td::parse(hash_, parser);
   }
 }
