@@ -556,6 +556,37 @@ class ReportStoryQuery final : public Td::ResultHandler {
   }
 };
 
+class ActivateStealthModeQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit ActivateStealthModeQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    int32 flags =
+        telegram_api::stories_activateStealthMode::PAST_MASK | telegram_api::stories_activateStealthMode::FUTURE_MASK;
+
+    send_query(G()->net_query_creator().create(
+        telegram_api::stories_activateStealthMode(flags, false /*ignored*/, false /*ignored*/)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stories_activateStealthMode>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for ActivateStealthModeQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class StoryManager::SendStoryQuery final : public Td::ResultHandler {
   FileId file_id_;
   unique_ptr<PendingStory> pending_story_;
@@ -2263,6 +2294,10 @@ void StoryManager::report_story(StoryFullId story_full_id, ReportReason &&reason
   }
 
   td_->create_handler<ReportStoryQuery>(std::move(promise))->send(story_full_id, std::move(reason));
+}
+
+void StoryManager::activate_stealth_mode(Promise<Unit> &&promise) {
+  td_->create_handler<ActivateStealthModeQuery>(std::move(promise))->send();
 }
 
 bool StoryManager::have_story(StoryFullId story_full_id) const {

@@ -6502,6 +6502,11 @@ void Td::on_request(uint64 id, td_api::reportStory &request) {
                                r_report_reason.move_as_ok(), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::activateStoryStealthMode &request) {
+  CREATE_OK_REQUEST_PROMISE();
+  story_manager_->activate_stealth_mode(std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getAttachmentMenuBot &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

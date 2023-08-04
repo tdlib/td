@@ -1025,6 +1025,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::reportStory &request);
 
+  void on_request(uint64 id, const td_api::activateStoryStealthMode &request);
+
   void on_request(uint64 id, const td_api::getAttachmentMenuBot &request);
 
   void on_request(uint64 id, const td_api::toggleBotIsAddedToAttachmentMenu &request);

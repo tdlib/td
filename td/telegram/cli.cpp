@@ -4155,6 +4155,8 @@ class CliClient final : public Actor {
       string text;
       get_args(args, story_sender_chat_id, story_id, reason, text);
       send_request(td_api::make_object<td_api::reportStory>(story_sender_chat_id, story_id, reason, text));
+    } else if (op == "assm") {
+      send_request(td_api::make_object<td_api::activateStoryStealthMode>());
     } else if (op == "gamb") {
       UserId user_id;
       get_args(args, user_id);

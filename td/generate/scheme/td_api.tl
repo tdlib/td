@@ -7473,6 +7473,10 @@ getStoryViewers story_id:int32 offset_viewer:messageViewer limit:int32 = Message
 //@text Additional report details; 0-1024 characters
 reportStory story_sender_chat_id:int53 story_id:int32 reason:ReportReason text:string = Ok;
 
+//@description Activates stealth mode for stories, which hides all views of stories from the current user in the last "story_stealth_mode_past_period" seconds
+//-and for the next "story_stealth_mode_future_period" seconds; for Telegram Premium users only
+activateStoryStealthMode = Ok;
+
 
 //@description Returns information about a bot that can be added to attachment menu @bot_user_id Bot's user identifier
 getAttachmentMenuBot bot_user_id:int53 = AttachmentMenuBot;
