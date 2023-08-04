@@ -21,6 +21,7 @@ class Td;
 class StoryInteractionInfo {
   vector<UserId> recent_viewer_user_ids_;
   int32 view_count_ = -1;
+  int32 reaction_count_ = 0;
 
   static constexpr size_t MAX_RECENT_VIEWERS = 3;
 

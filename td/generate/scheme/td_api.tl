@@ -5027,8 +5027,9 @@ storyListArchive = StoryList;
 
 //@description Contains information about interactions with a story
 //@view_count Number of times the story was viewed
+//@reaction_count Number of reactions added to the story
 //@recent_viewer_user_ids Identifiers of at most 3 recent viewers of the story
-storyInteractionInfo view_count:int32 recent_viewer_user_ids:vector<int53> = StoryInteractionInfo;
+storyInteractionInfo view_count:int32 reaction_count:int32 recent_viewer_user_ids:vector<int53> = StoryInteractionInfo;
 
 //@description Represents a story
 //@id Unique story identifier among stories of the given sender
