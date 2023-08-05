@@ -7,6 +7,7 @@
 #include "td/telegram/ChatReactions.h"
 
 #include "td/utils/algorithm.h"
+#include "td/utils/format.h"
 
 namespace td {
 

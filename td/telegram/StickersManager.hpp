@@ -11,6 +11,7 @@
 #include "td/telegram/files/FileId.hpp"
 #include "td/telegram/misc.h"
 #include "td/telegram/PhotoSize.hpp"
+#include "td/telegram/ReactionType.hpp"
 #include "td/telegram/StickerFormat.h"
 #include "td/telegram/StickerMaskPosition.hpp"
 #include "td/telegram/StickersManager.h"

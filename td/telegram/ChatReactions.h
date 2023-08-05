@@ -13,7 +13,6 @@
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/StringBuilder.h"
-#include "td/utils/tl_helpers.h"
 
 namespace td {
 
@@ -48,30 +47,10 @@ struct ChatReactions {
   }
 
   template <class StorerT>
-  void store(StorerT &storer) const {
-    bool has_reactions = !reaction_types_.empty();
-    BEGIN_STORE_FLAGS();
-    STORE_FLAG(allow_all_);
-    STORE_FLAG(allow_custom_);
-    STORE_FLAG(has_reactions);
-    END_STORE_FLAGS();
-    if (has_reactions) {
-      td::store(reaction_types_, storer);
-    }
-  }
+  void store(StorerT &storer) const;
 
   template <class ParserT>
-  void parse(ParserT &parser) {
-    bool has_reactions;
-    BEGIN_PARSE_FLAGS();
-    PARSE_FLAG(allow_all_);
-    PARSE_FLAG(allow_custom_);
-    PARSE_FLAG(has_reactions);
-    END_PARSE_FLAGS();
-    if (has_reactions) {
-      td::parse(reaction_types_, parser);
-    }
-  }
+  void parse(ParserT &parser);
 };
 
 bool operator==(const ChatReactions &lhs, const ChatReactions &rhs);

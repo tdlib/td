@@ -808,6 +808,7 @@ set(TDLIB_SOURCE
   td/telegram/AuthManager.hpp
   td/telegram/BackgroundInfo.hpp
   td/telegram/BackgroundType.hpp
+  td/telegram/ChatReactions.hpp
   td/telegram/DialogNotificationSettings.hpp
   td/telegram/DialogFilter.hpp
   td/telegram/Dimensions.hpp
