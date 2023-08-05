@@ -10,6 +10,7 @@
 #include "td/actor/impl/ActorInfo-decl.h"
 #include "td/actor/impl/Event.h"
 
+#include "td/utils/common.h"
 #include "td/utils/ObjectPool.h"
 #include "td/utils/Observer.h"
 #include "td/utils/Slice.h"

@@ -11,6 +11,7 @@
 #include "td/db/DbKey.h"
 #include "td/db/KeyValueSyncInterface.h"
 
+#include "td/utils/common.h"
 #include "td/utils/Promise.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"

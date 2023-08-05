@@ -11,6 +11,7 @@
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/FileType.h"
 
+#include "td/utils/common.h"
 #include "td/utils/port/FileFd.h"
 #include "td/utils/Status.h"
 #include "td/utils/UInt.h"

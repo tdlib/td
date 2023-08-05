@@ -11,6 +11,7 @@
 
 #include "td/actor/actor.h"
 
+#include "td/utils/common.h"
 #include "td/utils/Container.h"
 #include "td/utils/Heap.h"
 

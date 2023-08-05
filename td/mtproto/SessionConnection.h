@@ -11,6 +11,7 @@
 #include "td/mtproto/RawConnection.h"
 
 #include "td/utils/buffer.h"
+#include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"

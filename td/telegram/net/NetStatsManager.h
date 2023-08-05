@@ -14,6 +14,7 @@
 
 #include "td/actor/actor.h"
 
+#include "td/utils/common.h"
 #include "td/utils/Promise.h"
 #include "td/utils/Slice.h"
 

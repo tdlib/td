@@ -11,6 +11,7 @@
 
 #include "td/db/detail/RawSqliteDb.h"
 
+#include "td/utils/common.h"
 #include "td/utils/optional.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"

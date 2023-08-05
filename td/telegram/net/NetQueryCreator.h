@@ -12,6 +12,7 @@
 #include "td/telegram/net/NetQueryStats.h"
 #include "td/telegram/UniqueId.h"
 
+#include "td/utils/common.h"
 #include "td/utils/ObjectPool.h"
 
 #include <memory>

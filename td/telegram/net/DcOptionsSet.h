@@ -9,6 +9,7 @@
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/DcOptions.h"
 
+#include "td/utils/common.h"
 #include "td/utils/Container.h"
 #include "td/utils/port/IPAddress.h"
 #include "td/utils/Status.h"

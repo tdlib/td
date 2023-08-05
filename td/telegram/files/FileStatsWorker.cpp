@@ -18,6 +18,7 @@
 
 #include "td/db/SqliteKeyValue.h"
 
+#include "td/utils/common.h"
 #include "td/utils/format.h"
 #include "td/utils/HashTableUtils.h"
 #include "td/utils/logging.h"

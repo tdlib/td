@@ -15,6 +15,8 @@
 
 #include "td/actor/actor.h"
 
+#include "td/utils/common.h"
+
 #include <memory>
 
 namespace td {
