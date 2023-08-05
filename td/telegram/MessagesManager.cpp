@@ -38697,7 +38697,7 @@ void MessagesManager::on_get_channel_difference(DialogId dialog_id, int32 reques
 
   if (difference_ptr == nullptr) {
     CHECK(status.is_error());
-    bool have_access = have_input_peer(dialog_id, AccessRights::Read) && status.error().message() != "CHANNEL_INVALID";
+    bool have_access = have_input_peer(dialog_id, AccessRights::Read) && status.message() != "CHANNEL_INVALID";
     if (have_access) {
       if (d == nullptr) {
         force_create_dialog(dialog_id, "on_get_channel_difference failed");

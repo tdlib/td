@@ -11,10 +11,13 @@
 
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/Promise.h"
 #include "td/utils/StringBuilder.h"
 
 namespace td {
+
+struct ReactionTypeHash;
 
 class Td;
 

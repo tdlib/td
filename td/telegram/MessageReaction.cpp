@@ -12,7 +12,6 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
-#include "td/telegram/OptionManager.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"

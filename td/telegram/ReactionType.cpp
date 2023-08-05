@@ -7,16 +7,21 @@
 #include "td/telegram/ReactionType.h"
 
 #include "td/telegram/ConfigManager.h"
+#include "td/telegram/Global.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
+
+#include "td/actor/actor.h"
 
 #include "td/utils/as.h"
 #include "td/utils/base64.h"
 #include "td/utils/buffer.h"
 #include "td/utils/crypto.h"
 #include "td/utils/emoji.h"
+#include "td/utils/logging.h"
+#include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
 #include "td/utils/utf8.h"

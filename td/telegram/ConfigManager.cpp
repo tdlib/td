@@ -13,7 +13,6 @@
 #include "td/telegram/JsonValue.h"
 #include "td/telegram/LinkManager.h"
 #include "td/telegram/logevent/LogEvent.h"
-#include "td/telegram/MessageReaction.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/AuthDataShared.h"
 #include "td/telegram/net/ConnectionCreator.h"

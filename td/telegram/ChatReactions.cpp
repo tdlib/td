@@ -6,9 +6,6 @@
 //
 #include "td/telegram/ChatReactions.h"
 
-#include "td/telegram/MessageReaction.h"
-#include "td/telegram/telegram_api.h"
-
 #include "td/utils/algorithm.h"
 
 namespace td {

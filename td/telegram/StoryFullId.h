@@ -10,6 +10,7 @@
 #include "td/telegram/StoryId.h"
 
 #include "td/utils/common.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/StringBuilder.h"
 
 namespace td {

@@ -173,12 +173,12 @@ TEST(JSON, get_json_object_field) {
   ASSERT_EQ(td::get_json_object_int_field(object, "long2").is_error(), true);
 
   ASSERT_TRUE(td::get_json_object_long_field(object, "null").is_error());
-  ASSERT_EQ(td::get_json_object_long_field(object, "long").ok(), 123456789012ll);
-  ASSERT_EQ(td::get_json_object_long_field(object, "long").ok(), 123456789012ll);
-  ASSERT_EQ(td::get_json_object_long_field(object, "long", false).ok(), 123456789012ll);
-  ASSERT_EQ(td::get_json_object_long_field(object, "long2").ok(), 2123456789012ll);
-  ASSERT_EQ(td::get_json_object_long_field(object, "long2").ok(), 2123456789012ll);
-  ASSERT_EQ(td::get_json_object_long_field(object, "long2", false).ok(), 2123456789012ll);
+  ASSERT_EQ(td::get_json_object_long_field(object, "long").ok(), 123456789012);
+  ASSERT_EQ(td::get_json_object_long_field(object, "long").ok(), 123456789012);
+  ASSERT_EQ(td::get_json_object_long_field(object, "long", false).ok(), 123456789012);
+  ASSERT_EQ(td::get_json_object_long_field(object, "long2").ok(), 2123456789012);
+  ASSERT_EQ(td::get_json_object_long_field(object, "long2").ok(), 2123456789012);
+  ASSERT_EQ(td::get_json_object_long_field(object, "long2", false).ok(), 2123456789012);
   ASSERT_EQ(td::get_json_object_long_field(object, "long3").ok(), 0);
   ASSERT_EQ(td::get_json_object_long_field(object, "long4", true, 5).ok(), 5);
   ASSERT_TRUE(td::get_json_object_long_field(object, "long5", false, 5).is_error());
@@ -296,12 +296,12 @@ TEST(JSON, json_object_get_field) {
   ASSERT_EQ(object.get_optional_int_field("long2").is_error(), true);
 
   ASSERT_TRUE(object.get_optional_long_field("null").is_error());
-  ASSERT_EQ(object.get_optional_long_field("long").ok(), 123456789012ll);
-  ASSERT_EQ(object.get_optional_long_field("long").ok(), 123456789012ll);
-  ASSERT_EQ(object.get_required_long_field("long").ok(), 123456789012ll);
-  ASSERT_EQ(object.get_optional_long_field("long2").ok(), 2123456789012ll);
-  ASSERT_EQ(object.get_optional_long_field("long2").ok(), 2123456789012ll);
-  ASSERT_EQ(object.get_required_long_field("long2").ok(), 2123456789012ll);
+  ASSERT_EQ(object.get_optional_long_field("long").ok(), 123456789012);
+  ASSERT_EQ(object.get_optional_long_field("long").ok(), 123456789012);
+  ASSERT_EQ(object.get_required_long_field("long").ok(), 123456789012);
+  ASSERT_EQ(object.get_optional_long_field("long2").ok(), 2123456789012);
+  ASSERT_EQ(object.get_optional_long_field("long2").ok(), 2123456789012);
+  ASSERT_EQ(object.get_required_long_field("long2").ok(), 2123456789012);
   ASSERT_EQ(object.get_optional_long_field("long3").ok(), 0);
   ASSERT_EQ(object.get_optional_long_field("long4", 5).ok(), 5);
   ASSERT_TRUE(object.get_required_long_field("long5").is_error());

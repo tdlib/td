@@ -10,7 +10,6 @@
 
 #include "td/utils/common.h"
 #include "td/utils/port/RwMutex.h"
-#include "td/utils/Slice.h"
 
 namespace td {
 

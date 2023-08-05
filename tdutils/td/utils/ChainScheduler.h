@@ -11,7 +11,6 @@
 #include "td/utils/Container.h"
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/FlatHashSet.h"
-#include "td/utils/HashTableUtils.h"
 #include "td/utils/List.h"
 #include "td/utils/logging.h"
 #include "td/utils/optional.h"
