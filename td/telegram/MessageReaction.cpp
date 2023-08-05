@@ -7,7 +7,6 @@
 #include "td/telegram/MessageReaction.h"
 
 #include "td/telegram/AccessRights.h"
-#include "td/telegram/ConfigManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/Global.h"
@@ -15,7 +14,6 @@
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/ServerMessageId.h"
-#include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
@@ -245,45 +243,6 @@ class GetMessageReactionsListQuery final : public Td::ResultHandler {
   void on_error(Status status) final {
     td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetMessageReactionsListQuery");
     promise_.set_error(std::move(status));
-  }
-};
-
-class SetDefaultReactionQuery final : public Td::ResultHandler {
-  ReactionType reaction_type_;
-
- public:
-  void send(const ReactionType &reaction_type) {
-    reaction_type_ = reaction_type;
-    send_query(
-        G()->net_query_creator().create(telegram_api::messages_setDefaultReaction(reaction_type.get_input_reaction())));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::messages_setDefaultReaction>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    if (!result_ptr.ok()) {
-      return on_error(Status::Error(400, "Receive false"));
-    }
-
-    auto default_reaction = td_->option_manager_->get_option_string("default_reaction", "-");
-    if (default_reaction != reaction_type_.get_string()) {
-      send_set_default_reaction_query(td_);
-    } else {
-      td_->option_manager_->set_option_empty("default_reaction_needs_sync");
-    }
-  }
-
-  void on_error(Status status) final {
-    if (G()->close_flag()) {
-      return;
-    }
-
-    LOG(INFO) << "Receive error for SetDefaultReactionQuery: " << status;
-    td_->option_manager_->set_option_empty("default_reaction_needs_sync");
-    send_closure(G()->config_manager(), &ConfigManager::request_config, false);
   }
 };
 
@@ -943,29 +902,6 @@ void get_message_added_reactions(Td *td, FullMessageId full_message_id, Reaction
       ->send(full_message_id, std::move(reaction_type), std::move(offset), limit);
 }
 
-void set_default_reaction(Td *td, ReactionType reaction_type, Promise<Unit> &&promise) {
-  if (reaction_type.is_empty()) {
-    return promise.set_error(Status::Error(400, "Default reaction must be non-empty"));
-  }
-  if (!reaction_type.is_custom_reaction() && !td->stickers_manager_->is_active_reaction(reaction_type)) {
-    return promise.set_error(Status::Error(400, "Can't set incative reaction as default"));
-  }
-
-  if (td->option_manager_->get_option_string("default_reaction", "-") != reaction_type.get_string()) {
-    td->option_manager_->set_option_string("default_reaction", reaction_type.get_string());
-    if (!td->option_manager_->get_option_boolean("default_reaction_needs_sync")) {
-      td->option_manager_->set_option_boolean("default_reaction_needs_sync", true);
-      send_set_default_reaction_query(td);
-    }
-  }
-  promise.set_value(Unit());
-}
-
-void send_set_default_reaction_query(Td *td) {
-  td->create_handler<SetDefaultReactionQuery>()->send(
-      ReactionType(td->option_manager_->get_option_string("default_reaction")));
-}
-
 void report_message_reactions(Td *td, FullMessageId full_message_id, DialogId chooser_dialog_id,
                               Promise<Unit> &&promise) {
   auto dialog_id = full_message_id.get_dialog_id();
@@ -995,18 +931,6 @@ void report_message_reactions(Td *td, FullMessageId full_message_id, DialogId ch
   }
 
   td->create_handler<ReportReactionQuery>(std::move(promise))->send(dialog_id, message_id, chooser_dialog_id);
-}
-
-vector<ReactionType> get_recent_reactions(Td *td) {
-  return td->stickers_manager_->get_recent_reactions();
-}
-
-vector<ReactionType> get_top_reactions(Td *td) {
-  return td->stickers_manager_->get_top_reactions();
-}
-
-void add_recent_reaction(Td *td, const ReactionType &reaction_type) {
-  td->stickers_manager_->add_recent_reaction(reaction_type);
 }
 
 }  // namespace td

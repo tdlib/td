@@ -11,11 +11,10 @@
 
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
+#include "td/utils/Promise.h"
 #include "td/utils/StringBuilder.h"
 
 namespace td {
-
-class Dependencies;
 
 class Td;
 
@@ -79,6 +78,16 @@ inline bool operator!=(const ReactionType &lhs, const ReactionType &rhs) {
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const ReactionType &reaction_type);
+
+void set_default_reaction(Td *td, ReactionType reaction_type, Promise<Unit> &&promise);
+
+void send_set_default_reaction_query(Td *td);
+
+vector<ReactionType> get_recent_reactions(Td *td);
+
+vector<ReactionType> get_top_reactions(Td *td);
+
+void add_recent_reaction(Td *td, const ReactionType &reaction_type);
 
 int64 get_reaction_types_hash(const vector<ReactionType> &reaction_types);
 

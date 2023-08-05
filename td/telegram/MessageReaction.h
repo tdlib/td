@@ -218,17 +218,7 @@ void send_message_reaction(Td *td, FullMessageId full_message_id, vector<Reactio
 void get_message_added_reactions(Td *td, FullMessageId full_message_id, ReactionType reaction_type, string offset,
                                  int32 limit, Promise<td_api::object_ptr<td_api::addedReactions>> &&promise);
 
-void set_default_reaction(Td *td, ReactionType reaction_type, Promise<Unit> &&promise);
-
-void send_set_default_reaction_query(Td *td);
-
 void report_message_reactions(Td *td, FullMessageId full_message_id, DialogId chooser_dialog_id,
                               Promise<Unit> &&promise);
-
-vector<ReactionType> get_recent_reactions(Td *td);
-
-vector<ReactionType> get_top_reactions(Td *td);
-
-void add_recent_reaction(Td *td, const ReactionType &reaction_type);
 
 }  // namespace td
