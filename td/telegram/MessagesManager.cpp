@@ -23873,7 +23873,7 @@ Result<td_api::object_ptr<td_api::availableReactions>> MessagesManager::get_mess
 }
 
 ChatReactions MessagesManager::get_message_available_reactions(const Dialog *d, const Message *m,
-                                                               bool dissalow_custom_for_non_premium) {
+                                                               bool disallow_custom_for_non_premium) {
   CHECK(d != nullptr);
   CHECK(m != nullptr);
   auto active_reactions = get_message_active_reactions(d, m);
@@ -23913,7 +23913,7 @@ ChatReactions MessagesManager::get_message_available_reactions(const Dialog *d, 
       }
     }
   }
-  if (dissalow_custom_for_non_premium && !td_->option_manager_->get_option_boolean("is_premium")) {
+  if (disallow_custom_for_non_premium && !td_->option_manager_->get_option_boolean("is_premium")) {
     active_reactions.allow_custom_ = false;
   }
   return active_reactions;

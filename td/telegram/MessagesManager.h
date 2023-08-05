@@ -2666,7 +2666,7 @@ class MessagesManager final : public Actor {
   void set_dialog_message_ttl(Dialog *d, MessageTtl message_ttl);
 
   ChatReactions get_message_available_reactions(const Dialog *d, const Message *m,
-                                                bool dissalow_custom_for_non_premium);
+                                                bool disallow_custom_for_non_premium);
 
   void set_message_reactions(Dialog *d, Message *m, bool is_big, bool add_to_recent, Promise<Unit> &&promise);
 
