@@ -1280,10 +1280,11 @@ StoryManager::ActiveStories *StoryManager::get_active_stories_force(DialogId own
     failed_to_load_active_stories_.insert(owner_dialog_id);
     return nullptr;
   }
-  return on_get_active_stories_from_database(owner_dialog_id, r_value.ok(), source);
+  return on_get_active_stories_from_database(StoryListId(), owner_dialog_id, r_value.ok(), source);
 }
 
-StoryManager::ActiveStories *StoryManager::on_get_active_stories_from_database(DialogId owner_dialog_id,
+StoryManager::ActiveStories *StoryManager::on_get_active_stories_from_database(StoryListId story_list_id,
+                                                                               DialogId owner_dialog_id,
                                                                                const BufferSlice &value,
                                                                                const char *source) {
   auto active_stories = get_active_stories_editable(owner_dialog_id);
@@ -1314,7 +1315,21 @@ StoryManager::ActiveStories *StoryManager::on_get_active_stories_from_database(D
   on_update_active_stories(owner_dialog_id, saved_active_stories.max_read_story_id_, std::move(story_ids),
                            Promise<Unit>(), "on_get_active_stories_from_database", true);
 
-  return get_active_stories_editable(owner_dialog_id);
+  active_stories = get_active_stories_editable(owner_dialog_id);
+  if (active_stories == nullptr) {
+    if (!story_list_id.is_valid()) {
+      story_list_id = get_dialog_story_list_id(owner_dialog_id);
+    }
+    if (story_list_id.is_valid()) {
+      auto &story_list = get_story_list(story_list_id);
+      if (!story_list.is_reloaded_server_total_count_ && story_list.server_total_count_ > 0) {
+        story_list.server_total_count_--;
+        update_story_list_sent_total_count(story_list_id, story_list);
+        save_story_list(story_list_id, story_list.state_, story_list.server_total_count_, story_list.server_has_more_);
+      }
+    }
+  }
+  return active_stories;
 }
 
 void StoryManager::add_story_dependencies(Dependencies &dependencies, const Story *story) {
@@ -1402,7 +1417,7 @@ void StoryManager::on_load_active_stories_from_database(StoryListId story_list_i
     story_list.database_has_more_ = false;
   } else {
     for (auto &active_stories_it : active_story_list.active_stories_) {
-      on_get_active_stories_from_database(active_stories_it.first, active_stories_it.second,
+      on_get_active_stories_from_database(story_list_id, active_stories_it.first, active_stories_it.second,
                                           "on_load_active_stories_from_database");
     }
     DialogDate max_story_date(active_story_list.next_order_, active_story_list.next_dialog_id_);
@@ -1484,6 +1499,7 @@ void StoryManager::on_load_active_stories_from_server(
         story_list.state_ = std::move(stories->state_);
       }
       story_list.server_total_count_ = max(stories->count_, 0);
+      story_list.is_reloaded_server_total_count_ = true;
       if (!stories->has_more_ || stories->user_stories_.empty()) {
         story_list.server_has_more_ = false;
       }

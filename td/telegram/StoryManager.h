@@ -160,6 +160,7 @@ class StoryManager final : public Actor {
     int32 sent_total_count_ = -1;
     string state_;
 
+    bool is_reloaded_server_total_count_ = false;
     bool server_has_more_ = true;
     bool database_has_more_ = false;
 
@@ -359,8 +360,8 @@ class StoryManager final : public Actor {
 
   ActiveStories *get_active_stories_force(DialogId owner_dialog_id, const char *source);
 
-  ActiveStories *on_get_active_stories_from_database(DialogId owner_dialog_id, const BufferSlice &value,
-                                                     const char *source);
+  ActiveStories *on_get_active_stories_from_database(StoryListId story_list_id, DialogId owner_dialog_id,
+                                                     const BufferSlice &value, const char *source);
 
   void on_story_changed(StoryFullId story_full_id, const Story *story, bool is_changed, bool need_save_to_database,
                         bool from_database = false);
