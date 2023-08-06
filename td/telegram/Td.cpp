@@ -2985,7 +2985,8 @@ void Td::run_request(uint64 id, tl_object_ptr<td_api::Function> function) {
                                                     Result<TdDb::OpenedDatabase> r_opened_database) mutable {
             send_closure(actor_id, &Td::init, std::move(parameters), std::move(r_opened_database));
           });
-          return TdDb::open(G()->get_database_scheduler_id(), std::move(parameters.second), std::move(promise));
+          return TdDb::open(G()->use_sqlite_pmc() ? G()->get_database_scheduler_id() : G()->get_slow_net_scheduler_id(),
+                            std::move(parameters.second), std::move(promise));
         }
         default:
           if (is_preinitialization_request(function_id)) {
