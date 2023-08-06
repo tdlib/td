@@ -2932,7 +2932,13 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
       LOG(INFO) << "Delete active stories for " << owner_dialog_id;
       if (active_stories->story_list_id_.is_valid()) {
         delete_active_stories_from_story_list(owner_dialog_id, active_stories);
-        update_story_list_sent_total_count(active_stories->story_list_id_);
+        auto &story_list = get_story_list(active_stories->story_list_id_);
+        if (!from_database && story_list.is_reloaded_server_total_count_ && story_list.server_total_count_ > 0) {
+          story_list.server_total_count_--;
+          save_story_list(active_stories->story_list_id_, story_list.state_, story_list.server_total_count_,
+                          story_list.server_has_more_);
+        }
+        update_story_list_sent_total_count(active_stories->story_list_id_, story_list);
       }
       active_stories_.erase(owner_dialog_id);
       send_update_chat_active_stories(owner_dialog_id, nullptr);
