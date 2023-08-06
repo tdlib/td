@@ -168,7 +168,7 @@ static jint register_native(JavaVM *vm) {
 #undef TD_OBJECT
 
   td::jni::init_vars(env, PACKAGE_NAME);
-  td::td_api::set_package_name(PACKAGE_NAME);
+  td::td_api::get_package_name_ref() = PACKAGE_NAME;
 
   return JAVA_VERSION;
 }

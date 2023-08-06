@@ -130,7 +130,7 @@ class DoxygenTlDocumentationGenerator extends TlDocumentationGenerator
             strpos($tline, 'result += ') === 0 || strpos($tline, 'result = ') || strpos($tline, ' : values') ||
             strpos($line, 'JNIEnv') || strpos($line, 'jfieldID') || $tline === 'virtual ~Object() {' ||
             $tline === 'virtual void store(TlStorerToString &s, const char *field_name) const = 0;' ||
-            $tline === 'void set_package_name(const char *new_package_name);';
+            $tline === 'const char *&get_package_name_ref();';
     }
 
     protected function isHeaderLine($line)

@@ -13,9 +13,9 @@ namespace td {
 
 std::string TD_TL_writer_jni_cpp::gen_output_begin_once() const {
   return TD_TL_writer_cpp::gen_output_begin_once() +
-         "\nstatic const char *package_name = \"Call set_package_name\";\n\n"
-         "void set_package_name(const char *new_package_name) {\n"
-         "  package_name = new_package_name;\n"
+         "\nconst char *&get_package_name_ref() {\n"
+         "  static const char *package_name = \"Package name must be initialized first\";\n"
+         "  return package_name;\n"
          "}\n";
 }
 
@@ -538,7 +538,7 @@ std::string TD_TL_writer_jni_cpp::gen_basic_java_class_name(std::string name) co
 }
 
 std::string TD_TL_writer_jni_cpp::gen_java_class_name(std::string name) const {
-  return "(PSLICE() << package_name << \"/TdApi$" + gen_basic_java_class_name(name) + "\").c_str()";
+  return "(PSLICE() << get_package_name_ref() << \"/TdApi$" + gen_basic_java_class_name(name) + "\").c_str()";
 }
 
 std::string TD_TL_writer_jni_cpp::gen_type_signature(const tl::tl_tree_type *tree_type) const {
@@ -600,7 +600,7 @@ std::string TD_TL_writer_jni_cpp::gen_additional_function(const std::string &fun
         std::string new_type_signature = "(PSLICE()";
         std::size_t pos = type_signature.find("%PACKAGE_NAME%");
         while (pos != std::string::npos) {
-          new_type_signature += " << \"" + type_signature.substr(0, pos) + "\" << package_name";
+          new_type_signature += " << \"" + type_signature.substr(0, pos) + "\" << get_package_name_ref()";
           type_signature = type_signature.substr(pos + 14);
           pos = type_signature.find("%PACKAGE_NAME%");
         }
