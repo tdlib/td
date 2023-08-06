@@ -1364,6 +1364,7 @@ void StoryManager::load_active_stories(StoryListId story_list_id, Promise<Unit> 
            ++it) {
         on_dialog_active_stories_order_updated(it->get_dialog_id(), "load_active_stories");
       }
+      update_story_list_sent_total_count(story_list_id, story_list);
     }
     return promise.set_error(Status::Error(404, "Not found"));
   }
