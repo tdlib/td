@@ -1322,7 +1322,8 @@ StoryManager::ActiveStories *StoryManager::on_get_active_stories_from_database(S
     }
     if (story_list_id.is_valid()) {
       auto &story_list = get_story_list(story_list_id);
-      if (!story_list.is_reloaded_server_total_count_ && story_list.server_total_count_ > 0) {
+      if (!story_list.is_reloaded_server_total_count_ &&
+          story_list.server_total_count_ > static_cast<int32>(story_list.ordered_stories_.size())) {
         story_list.server_total_count_--;
         update_story_list_sent_total_count(story_list_id, story_list);
         save_story_list(story_list_id, story_list.state_, story_list.server_total_count_, story_list.server_has_more_);
@@ -2933,7 +2934,8 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
       if (active_stories->story_list_id_.is_valid()) {
         delete_active_stories_from_story_list(owner_dialog_id, active_stories);
         auto &story_list = get_story_list(active_stories->story_list_id_);
-        if (!from_database && story_list.is_reloaded_server_total_count_ && story_list.server_total_count_ > 0) {
+        if (!from_database && story_list.is_reloaded_server_total_count_ &&
+            story_list.server_total_count_ > static_cast<int32>(story_list.ordered_stories_.size())) {
           story_list.server_total_count_--;
           save_story_list(active_stories->story_list_id_, story_list.state_, story_list.server_total_count_,
                           story_list.server_has_more_);
