@@ -2985,7 +2985,9 @@ void Td::run_request(uint64 id, tl_object_ptr<td_api::Function> function) {
                                                     Result<TdDb::OpenedDatabase> r_opened_database) mutable {
             send_closure(actor_id, &Td::init, std::move(parameters), std::move(r_opened_database));
           });
-          return TdDb::open(G()->use_sqlite_pmc() ? G()->get_database_scheduler_id() : G()->get_slow_net_scheduler_id(),
+          auto use_sqlite_pmc = parameters.second.use_message_database_ || parameters.second.use_chat_info_database_ ||
+                                parameters.second.use_file_database_;
+          return TdDb::open(use_sqlite_pmc ? G()->get_database_scheduler_id() : G()->get_slow_net_scheduler_id(),
                             std::move(parameters.second), std::move(promise));
         }
         default:
