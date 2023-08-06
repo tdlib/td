@@ -7460,6 +7460,13 @@ openStory story_sender_chat_id:int53 story_id:int32 = Ok;
 //@story_id The identifier of the story
 closeStory story_sender_chat_id:int53 story_id:int32 = Ok;
 
+//@description Changes chosen reaction on a story
+//@story_sender_chat_id The identifier of the sender of the story
+//@story_id The identifier of the story
+//@reaction_type Type of the reaction to set; pass null to remove the reaction. `reactionTypeCustomEmoji` reactions can be used only by Telegram Premium users
+//@update_recent_reactions Pass true if the reaction needs to be added to recent reactions
+setStoryReaction story_sender_chat_id:int53 story_id:int32 reaction_type:ReactionType update_recent_reactions:Bool = Ok;
+
 //@description Returns viewers of a recent outgoing story. The method can be called if story.can_get_viewers == true. The views are returned in a reverse chronological order (i.e., in order of decreasing view_date)
 //-For optimal performance, the number of returned stories is chosen by TDLib
 //@story_id Story identifier

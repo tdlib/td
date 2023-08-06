@@ -6484,6 +6484,14 @@ void Td::on_request(uint64 id, const td_api::closeStory &request) {
   story_manager_->close_story(DialogId(request.story_sender_chat_id_), StoryId(request.story_id_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::setStoryReaction &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  story_manager_->set_story_reaction({DialogId(request.story_sender_chat_id_), StoryId(request.story_id_)},
+                                     ReactionType(request.reaction_type_), request.update_recent_reactions_,
+                                     std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getStoryViewers &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

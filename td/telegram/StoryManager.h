@@ -246,6 +246,9 @@ class StoryManager final : public Actor {
 
   void on_story_replied(StoryFullId story_full_id, UserId replier_user_id);
 
+  void set_story_reaction(StoryFullId story_full_id, ReactionType reaction_type, bool add_to_recent,
+                          Promise<Unit> &&promise);
+
   void get_story_viewers(StoryId story_id, const td_api::messageViewer *offset, int32 limit,
                          Promise<td_api::object_ptr<td_api::messageViewers>> &&promise);
 
@@ -508,6 +511,8 @@ class StoryManager final : public Actor {
 
   void read_stories_on_server(DialogId owner_dialog_id, StoryId story_id, uint64 log_event_id);
 
+  bool can_use_story_reaction(const ReactionType &reaction_type) const;
+
   void schedule_interaction_info_update();
 
   static void update_interaction_info_static(void *story_manager);
@@ -525,6 +530,8 @@ class StoryManager final : public Actor {
   void on_get_story_viewers(StoryId story_id, MessageViewer offset,
                             Result<telegram_api::object_ptr<telegram_api::stories_storyViewsList>> r_view_list,
                             Promise<td_api::object_ptr<td_api::messageViewers>> &&promise);
+
+  void on_set_story_reaction(StoryFullId story_full_id, Result<Unit> &&result, Promise<Unit> &&promise);
 
   void load_expired_database_stories();
 

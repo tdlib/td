@@ -4140,6 +4140,14 @@ class CliClient final : public Actor {
       StoryId story_id;
       get_args(args, story_sender_chat_id, story_id);
       send_request(td_api::make_object<td_api::closeStory>(story_sender_chat_id, story_id));
+    } else if (op == "ssr") {
+      ChatId story_sender_chat_id;
+      StoryId story_id;
+      string reaction;
+      bool update_recent_reactions;
+      get_args(args, story_sender_chat_id, story_id, reaction, update_recent_reactions);
+      send_request(td_api::make_object<td_api::setStoryReaction>(story_sender_chat_id, story_id,
+                                                                 as_reaction_type(reaction), update_recent_reactions));
     } else if (op == "gsv") {
       StoryId story_id;
       string limit;

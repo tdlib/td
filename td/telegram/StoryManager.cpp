@@ -22,7 +22,9 @@
 #include "td/telegram/NotificationId.h"
 #include "td/telegram/NotificationManager.h"
 #include "td/telegram/OptionManager.h"
+#include "td/telegram/ReactionManager.h"
 #include "td/telegram/ReportReason.h"
+#include "td/telegram/StickersManager.h"
 #include "td/telegram/StoryContent.h"
 #include "td/telegram/StoryContentType.h"
 #include "td/telegram/StoryInteractionInfo.hpp"
@@ -239,6 +241,56 @@ class ReadStoriesQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class SendStoryReactionQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit SendStoryReactionQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(StoryFullId story_full_id, const ReactionType &reaction_type, bool add_to_recent) {
+    dialog_id_ = story_full_id.get_dialog_id();
+
+    CHECK(dialog_id_.get_type() == DialogType::User);
+    auto r_input_user = td_->contacts_manager_->get_input_user(dialog_id_.get_user_id());
+    if (r_input_user.is_error()) {
+      return on_error(r_input_user.move_as_error());
+    }
+    // auto input_peer = td_->stories_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    // CHECK(input_peer != nullptr);
+
+    int32 flags = 0;
+    if (!reaction_type.is_empty() && add_to_recent) {
+      flags |= telegram_api::stories_sendReaction::ADD_TO_RECENT_MASK;
+    }
+
+    send_query(G()->net_query_creator().create(
+        telegram_api::stories_sendReaction(flags, false /*ignored*/, r_input_user.move_as_ok(),
+                                           story_full_id.get_story_id().get(), reaction_type.get_input_reaction()),
+        {{story_full_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stories_sendReaction>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SendStoryReactionQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    if (status.message() == "STORY_NOT_MODIFIED") {
+      return promise_.set_value(Unit());
+    }
+    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "SendStoryReactionQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -2087,6 +2139,73 @@ void StoryManager::on_story_replied(StoryFullId story_full_id, UserId replier_us
       story->interaction_info_.definitely_has_no_user(replier_user_id)) {
     td_->create_handler<GetStoriesViewsQuery>()->send({story_full_id.get_story_id()});
   }
+}
+
+bool StoryManager::can_use_story_reaction(const ReactionType &reaction_type) const {
+  if (reaction_type.is_empty()) {
+    return true;
+  }
+  if (reaction_type.is_custom_reaction()) {
+    return td_->option_manager_->get_option_boolean("is_premium");
+  }
+  return td_->reaction_manager_->is_active_reaction(reaction_type);
+}
+
+void StoryManager::set_story_reaction(StoryFullId story_full_id, ReactionType reaction_type, bool add_to_recent,
+                                      Promise<Unit> &&promise) {
+  auto owner_dialog_id = story_full_id.get_dialog_id();
+  if (!td_->messages_manager_->have_dialog_force(owner_dialog_id, "set_story_reaction")) {
+    return promise.set_error(Status::Error(400, "Story sender not found"));
+  }
+  if (!td_->messages_manager_->have_input_peer(owner_dialog_id, AccessRights::Read)) {
+    return promise.set_error(Status::Error(400, "Can't access the story sender"));
+  }
+  if (!story_full_id.get_story_id().is_valid()) {
+    return promise.set_error(Status::Error(400, "Invalid story identifier specified"));
+  }
+
+  Story *story = get_story_force(story_full_id, "set_story_reaction");
+  if (story == nullptr) {
+    return promise.set_error(Status::Error(400, "Story not found"));
+  }
+
+  if (!can_use_story_reaction(reaction_type)) {
+    return promise.set_error(Status::Error(400, "The reaction isn't available for stories"));
+  }
+
+  if (story->chosen_reaction_type_ == reaction_type) {
+    return promise.set_value(Unit());
+  }
+
+  if (add_to_recent) {
+    td_->reaction_manager_->add_recent_reaction(reaction_type);
+  }
+
+  story->chosen_reaction_type_ = reaction_type;
+  on_story_changed(story_full_id, story, true, true);
+
+  // TODO cancel previous queries, log event
+  auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), story_full_id,
+                                               promise = std::move(promise)](Result<Unit> &&result) mutable {
+    send_closure(actor_id, &StoryManager::on_set_story_reaction, story_full_id, std::move(result), std::move(promise));
+  });
+
+  td_->create_handler<SendStoryReactionQuery>(std::move(query_promise))
+      ->send(story_full_id, reaction_type, add_to_recent);
+}
+
+void StoryManager::on_set_story_reaction(StoryFullId story_full_id, Result<Unit> &&result, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  if (!have_story_force(story_full_id)) {
+    return promise.set_value(Unit());
+  }
+
+  if (result.is_error()) {
+    reload_story(story_full_id, Promise<Unit>(), "on_set_story_reaction");
+  }
+
+  promise.set_result(std::move(result));
 }
 
 void StoryManager::schedule_interaction_info_update() {
