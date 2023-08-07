@@ -23,8 +23,6 @@ class MessageViewer {
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const MessageViewer &viewer);
 
-  friend bool operator==(const MessageViewer &lhs, const MessageViewer &rhs);
-
  public:
   explicit MessageViewer(telegram_api::object_ptr<telegram_api::readParticipantDate> &&read_date);
 
@@ -41,10 +39,6 @@ class MessageViewer {
 
   td_api::object_ptr<td_api::messageViewer> get_message_viewer_object(ContactsManager *contacts_manager) const;
 };
-
-bool operator==(const MessageViewer &lhs, const MessageViewer &rhs);
-
-bool operator!=(const MessageViewer &lhs, const MessageViewer &rhs);
 
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageViewer &viewer);
 

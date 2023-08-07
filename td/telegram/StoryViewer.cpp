@@ -18,14 +18,6 @@ td_api::object_ptr<td_api::storyViewer> StoryViewer::get_story_viewer_object(Con
       contacts_manager->get_user_id_object(user_id_, "get_story_viewer_object"), date_);
 }
 
-bool operator==(const StoryViewer &lhs, const StoryViewer &rhs) {
-  return lhs.user_id_ == rhs.user_id_ && lhs.date_ == rhs.date_;
-}
-
-bool operator!=(const StoryViewer &lhs, const StoryViewer &rhs) {
-  return !(lhs == rhs);
-}
-
 StringBuilder &operator<<(StringBuilder &string_builder, const StoryViewer &viewer) {
   return string_builder << '[' << viewer.user_id_ << " at " << viewer.date_ << ']';
 }

@@ -23,8 +23,6 @@ class StoryViewer {
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const StoryViewer &viewer);
 
-  friend bool operator==(const StoryViewer &lhs, const StoryViewer &rhs);
-
  public:
   StoryViewer(UserId user_id, int32 date) : user_id_(user_id), date_(td::max(date, static_cast<int32>(0))) {
   }
@@ -39,10 +37,6 @@ class StoryViewer {
 
   td_api::object_ptr<td_api::storyViewer> get_story_viewer_object(ContactsManager *contacts_manager) const;
 };
-
-bool operator==(const StoryViewer &lhs, const StoryViewer &rhs);
-
-bool operator!=(const StoryViewer &lhs, const StoryViewer &rhs);
 
 StringBuilder &operator<<(StringBuilder &string_builder, const StoryViewer &viewer);
 

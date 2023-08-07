@@ -23,14 +23,6 @@ td_api::object_ptr<td_api::messageViewer> MessageViewer::get_message_viewer_obje
       contacts_manager->get_user_id_object(user_id_, "get_message_viewer_object"), date_);
 }
 
-bool operator==(const MessageViewer &lhs, const MessageViewer &rhs) {
-  return lhs.user_id_ == rhs.user_id_ && lhs.date_ == rhs.date_;
-}
-
-bool operator!=(const MessageViewer &lhs, const MessageViewer &rhs) {
-  return !(lhs == rhs);
-}
-
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageViewer &viewer) {
   return string_builder << '[' << viewer.user_id_ << " at " << viewer.date_ << ']';
 }
