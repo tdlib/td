@@ -2385,7 +2385,7 @@ void StoryManager::on_get_story_viewers(
     total_count = static_cast<int32>(view_list->views_.size());
   }
 
-  StoryViewers story_viewers(std::move(view_list->views_), std::move(view_list->next_offset_));
+  StoryViewers story_viewers(total_count, std::move(view_list->views_), std::move(view_list->next_offset_));
   if (story->content_ != nullptr) {
     bool is_changed = false;
     if (is_full && story->interaction_info_.set_counts(view_list->count_, view_list->reactions_count_)) {

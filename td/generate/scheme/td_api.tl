@@ -4938,8 +4938,11 @@ messageLinkInfo is_public:Bool chat_id:int53 message_thread_id:int53 message:mes
 //@chosen_reaction_type Type of the reaction that was chosen by the user; may be null if none
 storyViewer user_id:int53 view_date:int32 block_list:BlockList chosen_reaction_type:ReactionType = StoryViewer;
 
-//@description Represents a list of story viewers @viewers List of story viewers @next_offset The offset for the next request. If empty, there are no more results
-storyViewers viewers:vector<storyViewer> next_offset:string = StoryViewers;
+//@description Represents a list of story viewers
+//@total_count Approximate total number of story viewers found
+//@viewers List of story viewers
+//@next_offset The offset for the next request. If empty, there are no more results
+storyViewers total_count:int32 viewers:vector<storyViewer> next_offset:string = StoryViewers;
 
 
 //@description Describes position of a clickable rectangle area on a story media
