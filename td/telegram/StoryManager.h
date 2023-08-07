@@ -233,6 +233,8 @@ class StoryManager final : public Actor {
   void get_dialog_expiring_stories(DialogId owner_dialog_id,
                                    Promise<td_api::object_ptr<td_api::chatActiveStories>> &&promise);
 
+  void reload_dialog_expiring_stories(DialogId dialog_id);
+
   void open_story(DialogId owner_dialog_id, StoryId story_id, Promise<Unit> &&promise);
 
   void close_story(DialogId owner_dialog_id, StoryId story_id, Promise<Unit> &&promise);

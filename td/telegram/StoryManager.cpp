@@ -445,7 +445,8 @@ class GetUserStoriesQuery final : public Td::ResultHandler {
     if (r_input_user.is_error()) {
       return on_error(r_input_user.move_as_error());
     }
-    send_query(G()->net_query_creator().create(telegram_api::stories_getUserStories(r_input_user.move_as_ok())));
+    send_query(G()->net_query_creator().create(telegram_api::stories_getUserStories(r_input_user.move_as_ok()),
+                                               {{DialogId(user_id)}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1925,6 +1926,7 @@ void StoryManager::get_dialog_expiring_stories(DialogId owner_dialog_id,
     return promise.set_value(get_chat_active_stories_object(owner_dialog_id, nullptr));
   }
 
+  LOG(INFO) << "Get active stories in " << owner_dialog_id;
   auto active_stories = get_active_stories_force(owner_dialog_id, "get_dialog_expiring_stories");
   if (active_stories != nullptr) {
     if (!promise) {
@@ -1944,6 +1946,11 @@ void StoryManager::get_dialog_expiring_stories(DialogId owner_dialog_id,
                      std::move(promise));
       });
   td_->create_handler<GetUserStoriesQuery>(std::move(query_promise))->send(owner_dialog_id.get_user_id());
+}
+
+void StoryManager::reload_dialog_expiring_stories(DialogId dialog_id) {
+  td_->messages_manager_->force_create_dialog(dialog_id, "reload_dialog_expiring_stories", true);
+  load_dialog_expiring_stories(dialog_id, 0, "reload_dialog_expiring_stories");
 }
 
 class StoryManager::LoadDialogExpiringStoriesLogEvent {
@@ -3145,7 +3152,9 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
 
   if (story_ids.empty()) {
     if (owner_dialog_id.get_type() == DialogType::User) {
-      td_->contacts_manager_->on_update_user_story_ids(owner_dialog_id.get_user_id(), StoryId(), StoryId());
+      // use send_closure_later because story order can be updated from update_user
+      send_closure_later(td_->contacts_manager_actor_, &ContactsManager::on_update_user_story_ids,
+                         owner_dialog_id.get_user_id(), StoryId(), StoryId());
     }
     auto *active_stories = get_active_stories(owner_dialog_id);
     if (active_stories != nullptr) {
@@ -3187,8 +3196,9 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
     }
   }
   if (owner_dialog_id.get_type() == DialogType::User) {
-    td_->contacts_manager_->on_update_user_story_ids(owner_dialog_id.get_user_id(), story_ids.back(),
-                                                     max_read_story_id);
+    // use send_closure_later because story order can be updated from update_user
+    send_closure_later(td_->contacts_manager_actor_, &ContactsManager::on_update_user_story_ids,
+                       owner_dialog_id.get_user_id(), story_ids.back(), max_read_story_id);
   }
   bool need_save_to_database = false;
   if (active_stories->max_read_story_id_ != max_read_story_id || active_stories->story_ids_ != story_ids) {

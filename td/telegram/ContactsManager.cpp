@@ -178,7 +178,8 @@ class AddContactQuery final : public Td::ResultHandler {
     }
     send_query(G()->net_query_creator().create(
         telegram_api::contacts_addContact(flags, false /*ignored*/, std::move(input_user), contact.get_first_name(),
-                                          contact.get_last_name(), contact.get_phone_number())));
+                                          contact.get_last_name(), contact.get_phone_number()),
+        {{DialogId(user_id)}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -10479,7 +10480,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
 
   if (is_me_regular_user && (stories_available || stories_unavailable)) {
     // update at the end, because it calls need_poll_active_stories
-    on_update_user_story_ids(u, user_id, StoryId(user->stories_max_id_), StoryId());
+    on_update_user_story_ids_impl(u, user_id, StoryId(user->stories_max_id_), StoryId());
   }
 
   if (u->cache_version != User::CACHE_VERSION && u->is_received) {
@@ -11953,7 +11954,8 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
   }
   if (u->is_is_contact_changed) {
     td_->messages_manager_->on_dialog_user_is_contact_updated(DialogId(user_id), u->is_contact);
-    td_->story_manager_->on_dialog_active_stories_order_updated(DialogId(user_id), "is_contact");
+    send_closure_later(td_->story_manager_actor_, &StoryManager::on_dialog_active_stories_order_updated,
+                       DialogId(user_id), "is_contact");
     if (is_user_contact(u, user_id, false)) {
       auto user_full = get_user_full(user_id);
       if (user_full != nullptr && user_full->need_phone_number_privacy_exception) {
@@ -11975,7 +11977,8 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
     u->is_is_deleted_changed = false;
   }
   if (u->is_is_premium_changed) {
-    td_->story_manager_->on_dialog_active_stories_order_updated(DialogId(user_id), "is_premium");
+    send_closure_later(td_->story_manager_actor_, &StoryManager::on_dialog_active_stories_order_updated,
+                       DialogId(user_id), "is_premium");
     u->is_is_premium_changed = false;
   }
   if (u->is_name_changed) {
@@ -12012,7 +12015,8 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
     }
   }
   if (u->is_stories_hidden_changed) {
-    td_->story_manager_->on_dialog_active_stories_order_updated(DialogId(user_id), "stories_hidden");
+    send_closure_later(td_->story_manager_actor_, &StoryManager::on_dialog_active_stories_order_updated,
+                       DialogId(user_id), "stories_hidden");
     u->is_stories_hidden_changed = false;
   }
   if (!td_->auth_manager_->is_bot()) {
@@ -12606,7 +12610,8 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
 
   td_->messages_manager_->on_update_dialog_is_translatable(DialogId(user_id), !user->translations_disabled_);
 
-  td_->story_manager_->on_get_user_stories(DialogId(user_id), std::move(user->stories_), Promise<Unit>());
+  send_closure_later(td_->story_manager_actor_, &StoryManager::on_get_user_stories, DialogId(user_id),
+                     std::move(user->stories_), Promise<Unit>());
 
   UserFull *user_full = add_user_full(user_id);
   user_full->expires_at = Time::now() + USER_FULL_EXPIRE_TIME;
@@ -13557,15 +13562,15 @@ void ContactsManager::on_update_user_story_ids(UserId user_id, StoryId max_activ
 
   User *u = get_user_force(user_id, "on_update_user_story_ids");
   if (u != nullptr) {
-    on_update_user_story_ids(u, user_id, max_active_story_id, max_read_story_id);
+    on_update_user_story_ids_impl(u, user_id, max_active_story_id, max_read_story_id);
     update_user(u, user_id);
   } else {
     LOG(INFO) << "Ignore update user has stories about unknown " << user_id;
   }
 }
 
-void ContactsManager::on_update_user_story_ids(User *u, UserId user_id, StoryId max_active_story_id,
-                                               StoryId max_read_story_id) {
+void ContactsManager::on_update_user_story_ids_impl(User *u, UserId user_id, StoryId max_active_story_id,
+                                                    StoryId max_read_story_id) {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
