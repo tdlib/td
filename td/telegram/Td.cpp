@@ -6492,11 +6492,11 @@ void Td::on_request(uint64 id, const td_api::setStoryReaction &request) {
                                      std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::getStoryViewers &request) {
+void Td::on_request(uint64 id, td_api::getStoryViewers &request) {
   CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.offset_);
   CREATE_REQUEST_PROMISE();
-  story_manager_->get_story_viewers(StoryId(request.story_id_), request.offset_viewer_.get(), request.limit_,
-                                    std::move(promise));
+  story_manager_->get_story_viewers(StoryId(request.story_id_), request.offset_, request.limit_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::reportStory &request) {

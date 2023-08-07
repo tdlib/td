@@ -25,7 +25,9 @@ StringBuilder &operator<<(StringBuilder &string_builder, const StoryViewer &view
   return string_builder << '[' << viewer.user_id_ << " with " << viewer.reaction_type_ << " at " << viewer.date_ << ']';
 }
 
-StoryViewers::StoryViewers(vector<telegram_api::object_ptr<telegram_api::storyView>> &&story_views) {
+StoryViewers::StoryViewers(vector<telegram_api::object_ptr<telegram_api::storyView>> &&story_views,
+                           string &&next_offset)
+    : next_offset_(std::move(next_offset)) {
   for (auto &story_view : story_views) {
     story_viewers_.emplace_back(std::move(story_view));
     auto user_id = story_viewers_.back().get_user_id();
@@ -43,9 +45,11 @@ vector<UserId> StoryViewers::get_user_ids() const {
 td_api::object_ptr<td_api::storyViewers> StoryViewers::get_story_viewers_object(
     ContactsManager *contacts_manager) const {
   return td_api::make_object<td_api::storyViewers>(
-      transform(story_viewers_, [contacts_manager](const StoryViewer &story_viewer) {
-        return story_viewer.get_story_viewer_object(contacts_manager);
-      }));
+      transform(story_viewers_,
+                [contacts_manager](const StoryViewer &story_viewer) {
+                  return story_viewer.get_story_viewer_object(contacts_manager);
+                }),
+      next_offset_);
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const StoryViewers &viewers) {

@@ -4151,12 +4151,9 @@ class CliClient final : public Actor {
     } else if (op == "gsv") {
       StoryId story_id;
       string limit;
-      int32 offset_date;
-      UserId offset_user_id;
-      get_args(args, story_id, limit, offset_date, offset_user_id);
-      send_request(td_api::make_object<td_api::getStoryViewers>(
-          story_id, td_api::make_object<td_api::storyViewer>(offset_user_id, offset_date, nullptr, nullptr),
-          as_limit(limit)));
+      string offset;
+      get_args(args, story_id, limit, offset);
+      send_request(td_api::make_object<td_api::getStoryViewers>(story_id, offset, as_limit(limit)));
     } else if (op == "rst") {
       ChatId story_sender_chat_id;
       StoryId story_id;

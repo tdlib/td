@@ -47,17 +47,14 @@ StringBuilder &operator<<(StringBuilder &string_builder, const StoryViewer &view
 
 class StoryViewers {
   vector<StoryViewer> story_viewers_;
+  string next_offset_;
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const StoryViewers &viewers);
 
  public:
   StoryViewers() = default;
 
-  explicit StoryViewers(vector<telegram_api::object_ptr<telegram_api::storyView>> &&story_views);
-
-  bool is_empty() const {
-    return story_viewers_.empty();
-  }
+  StoryViewers(vector<telegram_api::object_ptr<telegram_api::storyView>> &&story_views, string &&next_offset);
 
   vector<UserId> get_user_ids() const;
 

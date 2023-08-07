@@ -4938,8 +4938,8 @@ messageLinkInfo is_public:Bool chat_id:int53 message_thread_id:int53 message:mes
 //@chosen_reaction_type Type of the reaction that was chosen by the user; may be null if none
 storyViewer user_id:int53 view_date:int32 block_list:BlockList chosen_reaction_type:ReactionType = StoryViewer;
 
-//@description Represents a list of story viewers @viewers List of story viewers
-storyViewers viewers:vector<storyViewer> = StoryViewers;
+//@description Represents a list of story viewers @viewers List of story viewers @next_offset The offset for the next request. If empty, there are no more results
+storyViewers viewers:vector<storyViewer> next_offset:string = StoryViewers;
 
 
 //@description Describes position of a clickable rectangle area on a story media
@@ -6928,7 +6928,7 @@ shareChatWithBot chat_id:int53 message_id:int53 button_id:int32 shared_chat_id:i
 //@chat_id Identifier of the chat where the query was sent
 //@user_location Location of the user; pass null if unknown or the bot doesn't need user's location
 //@query Text of the query
-//@offset Offset of the first entry to return
+//@offset Offset of the first entry to return; use empty string to get the first chunk of results
 getInlineQueryResults bot_user_id:int53 chat_id:int53 user_location:location query:string offset:string = InlineQueryResults;
 
 //@description Sets the result of an inline query; for bots only
@@ -7478,13 +7478,11 @@ closeStory story_sender_chat_id:int53 story_id:int32 = Ok;
 //@update_recent_reactions Pass true if the reaction needs to be added to recent reactions
 setStoryReaction story_sender_chat_id:int53 story_id:int32 reaction_type:ReactionType update_recent_reactions:Bool = Ok;
 
-//@description Returns viewers of a recent outgoing story. The method can be called if story.can_get_viewers == true. The views are returned in a reverse chronological order (i.e., in order of decreasing view_date)
-//-For optimal performance, the number of returned stories is chosen by TDLib
+//@description Returns viewers of a story. The method can be called if story.can_get_viewers == true. The views are returned in a reverse chronological order (i.e., in order of decreasing view_date)
 //@story_id Story identifier
-//@offset_viewer A viewer from which to return next viewers; pass null to get results from the beginning
+//@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of story viewers to return
-//-For optimal performance, the number of returned stories is chosen by TDLib and can be smaller than the specified limit
-getStoryViewers story_id:int32 offset_viewer:storyViewer limit:int32 = StoryViewers;
+getStoryViewers story_id:int32 offset:string limit:int32 = StoryViewers;
 
 //@description Reports a story to the Telegram moderators
 //@story_sender_chat_id The identifier of the sender of the story to report

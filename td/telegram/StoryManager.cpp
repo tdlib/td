@@ -303,10 +303,10 @@ class GetStoryViewsListQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(StoryId story_id, int32 offset_date, int64 offset_user_id, int32 limit) {
+  void send(StoryId story_id, const string &offset, int32 limit) {
     int32 flags = 0;
     send_query(G()->net_query_creator().create(telegram_api::stories_getStoryViewsList(
-        flags, false /*ignored*/, false /*ignored*/, string(), story_id.get(), string(), limit)));
+        flags, false /*ignored*/, false /*ignored*/, string(), story_id.get(), offset, limit)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -2320,7 +2320,7 @@ Status StoryManager::can_get_story_viewers(StoryFullId story_full_id, const Stor
   return Status::OK();
 }
 
-void StoryManager::get_story_viewers(StoryId story_id, const td_api::storyViewer *offset, int32 limit,
+void StoryManager::get_story_viewers(StoryId story_id, const string &offset, int32 limit,
                                      Promise<td_api::object_ptr<td_api::storyViewers>> &&promise) {
   DialogId owner_dialog_id(td_->contacts_manager_->get_my_id());
   StoryFullId story_full_id{owner_dialog_id, story_id};
@@ -2335,14 +2335,7 @@ void StoryManager::get_story_viewers(StoryId story_id, const td_api::storyViewer
     return promise.set_value(td_api::make_object<td_api::storyViewers>());
   }
 
-  int32 offset_date = 0;
-  int64 offset_user_id = 0;
-  if (offset != nullptr) {
-    offset_date = offset->view_date_;
-    offset_user_id = offset->user_id_;
-  }
-  bool is_first = offset_user_id <= 0 && offset_date <= 0;
-
+  bool is_first = offset.empty();
   auto query_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), story_id, is_first, promise = std::move(promise)](
           Result<telegram_api::object_ptr<telegram_api::stories_storyViewsList>> result) mutable {
@@ -2351,7 +2344,7 @@ void StoryManager::get_story_viewers(StoryId story_id, const td_api::storyViewer
       });
 
   td_->create_handler<GetStoryViewsListQuery>(std::move(query_promise))
-      ->send(story_full_id.get_story_id(), offset_date, offset_user_id, limit);
+      ->send(story_full_id.get_story_id(), offset, limit);
 }
 
 void StoryManager::on_get_story_viewers(
@@ -2379,7 +2372,7 @@ void StoryManager::on_get_story_viewers(
     total_count = static_cast<int32>(view_list->views_.size());
   }
 
-  StoryViewers story_viewers(std::move(view_list->views_));
+  StoryViewers story_viewers(std::move(view_list->views_), std::move(view_list->next_offset_));
   if (story->content_ != nullptr) {
     bool is_changed = false;
     if (story->interaction_info_.set_view_count(view_list->count_)) {

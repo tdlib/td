@@ -1023,7 +1023,7 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::setStoryReaction &request);
 
-  void on_request(uint64 id, const td_api::getStoryViewers &request);
+  void on_request(uint64 id, td_api::getStoryViewers &request);
 
   void on_request(uint64 id, td_api::reportStory &request);
 
