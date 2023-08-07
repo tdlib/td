@@ -197,7 +197,8 @@ class IncrementStoryViewsQuery final : public Td::ResultHandler {
       return on_error(r_input_user.move_as_error());
     }
     send_query(G()->net_query_creator().create(
-        telegram_api::stories_incrementStoryViews(r_input_user.move_as_ok(), StoryId::get_input_story_ids(story_ids))));
+        telegram_api::stories_incrementStoryViews(r_input_user.move_as_ok(), StoryId::get_input_story_ids(story_ids)),
+        {{"view_story"}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -228,7 +229,7 @@ class ReadStoriesQuery final : public Td::ResultHandler {
       return on_error(r_input_user.move_as_error());
     }
     send_query(G()->net_query_creator().create(
-        telegram_api::stories_readStories(r_input_user.move_as_ok(), max_read_story_id.get())));
+        telegram_api::stories_readStories(r_input_user.move_as_ok(), max_read_story_id.get()), {{"view_story"}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -272,7 +273,7 @@ class SendStoryReactionQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(
         telegram_api::stories_sendReaction(flags, false /*ignored*/, r_input_user.move_as_ok(),
                                            story_full_id.get_story_id().get(), reaction_type.get_input_reaction()),
-        {{story_full_id}}));
+        {{story_full_id}, {"view_story"}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -630,7 +631,7 @@ class ActivateStealthModeQuery final : public Td::ResultHandler {
         telegram_api::stories_activateStealthMode::PAST_MASK | telegram_api::stories_activateStealthMode::FUTURE_MASK;
 
     send_query(G()->net_query_creator().create(
-        telegram_api::stories_activateStealthMode(flags, false /*ignored*/, false /*ignored*/)));
+        telegram_api::stories_activateStealthMode(flags, false /*ignored*/, false /*ignored*/), {{"view_story"}}));
   }
 
   void on_result(BufferSlice packet) final {
