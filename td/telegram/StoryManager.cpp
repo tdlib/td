@@ -1209,17 +1209,16 @@ void StoryManager::on_story_can_get_viewers_timeout(int64 story_global_id) {
   }
 
   LOG(INFO) << "Have expired viewers in " << story_full_id;
-  if (can_get_story_viewers(story_full_id, story).is_ok()) {
+  if (can_get_story_viewers(story_full_id, story, true).is_ok()) {
     // timeout used monotonic time instead of wall clock time
     LOG(INFO) << "Receive timeout for " << story_full_id
               << " with available viewers: expire_date = " << story->expire_date_
               << ", current time = " << G()->unix_time();
     return on_story_changed(story_full_id, story, false, false);
   }
-  if (story->content_ != nullptr && story->is_update_sent_) {
-    // can_get_viewers flag has changed
-    send_update_story(story_full_id, story);
-  }
+
+  // can_get_viewers flag could have been changed; reload the story to repair it
+  reload_story(story_full_id, Promise<Unit>(), "on_story_can_get_viewers_timeout");
 }
 
 void StoryManager::load_expired_database_stories() {
@@ -2317,7 +2316,7 @@ void StoryManager::read_stories_on_server(DialogId owner_dialog_id, StoryId stor
   td_->create_handler<ReadStoriesQuery>(get_erase_log_event_promise(log_event_id))->send(owner_dialog_id, story_id);
 }
 
-Status StoryManager::can_get_story_viewers(StoryFullId story_full_id, const Story *story) const {
+Status StoryManager::can_get_story_viewers(StoryFullId story_full_id, const Story *story, bool ignore_premium) const {
   CHECK(story != nullptr);
   if (!is_story_owned(story_full_id.get_dialog_id())) {
     return Status::Error(400, "Story is not outgoing");
@@ -2325,7 +2324,8 @@ Status StoryManager::can_get_story_viewers(StoryFullId story_full_id, const Stor
   if (!story_full_id.get_story_id().is_server()) {
     return Status::Error(400, "Story is not sent yet");
   }
-  if (G()->unix_time() >= get_story_viewers_expire_date(story)) {
+  if (G()->unix_time() >= get_story_viewers_expire_date(story) &&
+      (ignore_premium || story->interaction_info_.is_empty())) {
     return Status::Error(400, "Story is too old");
   }
   return Status::OK();
@@ -2343,7 +2343,7 @@ void StoryManager::get_story_viewers(StoryId story_id, const string &query, bool
   if (limit <= 0) {
     return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
   }
-  if (can_get_story_viewers(story_full_id, story).is_error() || story->interaction_info_.get_view_count() == 0) {
+  if (can_get_story_viewers(story_full_id, story, false).is_error() || story->interaction_info_.get_view_count() == 0) {
     return promise.set_value(td_api::make_object<td_api::storyViewers>());
   }
 
@@ -2554,7 +2554,7 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
   bool can_be_forwarded = !story->noforwards_ && story_id.is_server() &&
                           privacy_settings->get_id() == td_api::storyPrivacySettingsEveryone::ID;
   bool can_be_replied = story_id.is_server() && dialog_id != changelog_dialog_id;
-  bool can_get_viewers = can_get_story_viewers(story_full_id, story).is_ok();
+  bool can_get_viewers = can_get_story_viewers(story_full_id, story, false).is_ok();
   bool has_expired_viewers = !can_get_viewers && is_story_owned(dialog_id) && story_id.is_server();
   auto story_areas = transform(*areas, [](const MediaArea &media_area) { return media_area.get_story_area_object(); });
 
@@ -2963,9 +2963,9 @@ void StoryManager::on_story_changed(StoryFullId story_full_id, const Story *stor
     CHECK(story->global_id_ > 0);
     story_expire_timeout_.set_timeout_in(story->global_id_, story->expire_date_ - G()->unix_time());
   }
-  if (can_get_story_viewers(story_full_id, story).is_ok()) {
+  if (can_get_story_viewers(story_full_id, story, true).is_ok()) {
     story_can_get_viewers_timeout_.set_timeout_in(story->global_id_,
-                                                  get_story_viewers_expire_date(story) - G()->unix_time());
+                                                  get_story_viewers_expire_date(story) - G()->unix_time() + 2);
   }
   if (story->content_ == nullptr || !story_full_id.get_story_id().is_valid()) {
     return;

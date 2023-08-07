@@ -272,7 +272,7 @@ class StoryManager final : public Actor {
 
   void on_dialog_active_stories_order_updated(DialogId owner_dialog_id, const char *source);
 
-  Status can_get_story_viewers(StoryFullId story_full_id, const Story *story) const;
+  Status can_get_story_viewers(StoryFullId story_full_id, const Story *story, bool ignore_premium) const;
 
   void on_get_story_views(const vector<StoryId> &story_ids,
                           telegram_api::object_ptr<telegram_api::stories_storyViews> &&story_views);
