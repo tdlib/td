@@ -1095,6 +1095,7 @@ void StoryManager::start_up() {
   if (!stealth_mode_str.empty()) {
     log_event_parse(stealth_mode_, stealth_mode_str).ensure();
     stealth_mode_.update();
+    LOG(INFO) << stealth_mode_;
     if (stealth_mode_.is_empty()) {
       G()->td_db()->get_binlog_pmc()->erase(get_story_stealth_mode_key());
     } else {
@@ -3435,7 +3436,7 @@ void StoryManager::schedule_stealth_mode_update() {
     return;
   }
 
-  auto timeout = stealth_mode_.get_update_date() - G()->unix_time() + 2;
+  auto timeout = max(static_cast<double>(stealth_mode_.get_update_date() - G()->unix_time()), 0.1);
   LOG(INFO) << "Schedule stealth mode update in " << timeout;
   stealth_mode_update_timeout_.set_callback(std::move(update_stealth_mode_static));
   stealth_mode_update_timeout_.set_callback_data(static_cast<void *>(this));
@@ -3449,6 +3450,7 @@ void StoryManager::set_story_stealth_mode(StoryStealthMode stealth_mode) {
   }
 
   stealth_mode_ = stealth_mode;
+  LOG(INFO) << stealth_mode_;
   schedule_stealth_mode_update();
   send_update_story_stealth_mode();
 
@@ -3470,6 +3472,7 @@ void StoryManager::update_stealth_mode_static(void *story_manager) {
 
 void StoryManager::update_stealth_mode() {
   if (stealth_mode_.update()) {
+    LOG(INFO) << stealth_mode_;
     send_update_story_stealth_mode();
   }
   schedule_stealth_mode_update();
