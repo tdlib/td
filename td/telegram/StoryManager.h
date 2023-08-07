@@ -522,7 +522,7 @@ class StoryManager final : public Actor {
 
   void set_story_stealth_mode(StoryStealthMode stealth_mode);
 
-  void on_get_story_viewers(StoryId story_id, StoryViewer offset,
+  void on_get_story_viewers(StoryId story_id, bool is_first,
                             Result<telegram_api::object_ptr<telegram_api::stories_storyViewsList>> r_view_list,
                             Promise<td_api::object_ptr<td_api::storyViewers>> &&promise);
 

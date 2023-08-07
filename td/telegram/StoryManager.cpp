@@ -2341,12 +2341,12 @@ void StoryManager::get_story_viewers(StoryId story_id, const td_api::storyViewer
     offset_date = offset->view_date_;
     offset_user_id = offset->user_id_;
   }
-  StoryViewer offset_viewer{UserId(offset_user_id), offset_date};
+  bool is_first = offset_user_id <= 0 && offset_date <= 0;
 
   auto query_promise = PromiseCreator::lambda(
-      [actor_id = actor_id(this), story_id, offset_viewer, promise = std::move(promise)](
+      [actor_id = actor_id(this), story_id, is_first, promise = std::move(promise)](
           Result<telegram_api::object_ptr<telegram_api::stories_storyViewsList>> result) mutable {
-        send_closure(actor_id, &StoryManager::on_get_story_viewers, story_id, offset_viewer, std::move(result),
+        send_closure(actor_id, &StoryManager::on_get_story_viewers, story_id, is_first, std::move(result),
                      std::move(promise));
       });
 
@@ -2355,8 +2355,7 @@ void StoryManager::get_story_viewers(StoryId story_id, const td_api::storyViewer
 }
 
 void StoryManager::on_get_story_viewers(
-    StoryId story_id, StoryViewer offset,
-    Result<telegram_api::object_ptr<telegram_api::stories_storyViewsList>> r_view_list,
+    StoryId story_id, bool is_first, Result<telegram_api::object_ptr<telegram_api::stories_storyViewsList>> r_view_list,
     Promise<td_api::object_ptr<td_api::storyViewers>> &&promise) {
   G()->ignore_result_if_closing(r_view_list);
   if (r_view_list.is_error()) {
@@ -2382,10 +2381,14 @@ void StoryManager::on_get_story_viewers(
 
   StoryViewers story_viewers(std::move(view_list->views_));
   if (story->content_ != nullptr) {
+    bool is_changed = false;
     if (story->interaction_info_.set_view_count(view_list->count_)) {
-      if (offset.is_empty()) {
-        story->interaction_info_.set_recent_viewer_user_ids(story_viewers.get_user_ids());
-      }
+      is_changed = true;
+    }
+    if (is_first && story->interaction_info_.set_recent_viewer_user_ids(story_viewers.get_user_ids())) {
+      is_changed = true;
+    }
+    if (is_changed) {
       on_story_changed(story_full_id, story, true, true);
     }
   }

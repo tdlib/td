@@ -4931,8 +4931,12 @@ messageLink link:string is_public:Bool = MessageLink;
 messageLinkInfo is_public:Bool chat_id:int53 message_thread_id:int53 message:message media_timestamp:int32 for_album:Bool = MessageLinkInfo;
 
 
-//@description Represents a viewer of a story @user_id User identifier of the viewer @view_date Approximate point in time (Unix timestamp) when the story was viewed
-storyViewer user_id:int53 view_date:int32 = StoryViewer;
+//@description Represents a viewer of a story
+//@user_id User identifier of the viewer
+//@view_date Approximate point in time (Unix timestamp) when the story was viewed
+//@block_list Block list to which the user is added; may be null if none
+//@chosen_reaction_type Type of the reaction that was chosen by the user; may be null if none
+storyViewer user_id:int53 view_date:int32 block_list:BlockList chosen_reaction_type:ReactionType = StoryViewer;
 
 //@description Represents a list of story viewers @viewers List of story viewers
 storyViewers viewers:vector<storyViewer> = StoryViewers;

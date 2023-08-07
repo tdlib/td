@@ -49,11 +49,15 @@ void StoryInteractionInfo::add_dependencies(Dependencies &dependencies) const {
   }
 }
 
-void StoryInteractionInfo::set_recent_viewer_user_ids(vector<UserId> &&user_ids) {
+bool StoryInteractionInfo::set_recent_viewer_user_ids(vector<UserId> &&user_ids) {
   if (user_ids.size() > MAX_RECENT_VIEWERS) {
     user_ids.resize(MAX_RECENT_VIEWERS);
   }
-  recent_viewer_user_ids_ = std::move(user_ids);
+  if (recent_viewer_user_ids_ != user_ids) {
+    recent_viewer_user_ids_ = std::move(user_ids);
+    return true;
+  }
+  return false;
 }
 
 bool StoryInteractionInfo::definitely_has_no_user(UserId user_id) const {

@@ -95,7 +95,9 @@ telegram_api::object_ptr<telegram_api::Reaction> ReactionType::get_input_reactio
 }
 
 td_api::object_ptr<td_api::ReactionType> ReactionType::get_reaction_type_object() const {
-  CHECK(!is_empty());
+  if (is_empty()) {
+    return nullptr;
+  }
   if (is_custom_reaction()) {
     return td_api::make_object<td_api::reactionTypeCustomEmoji>(get_custom_emoji_id(reaction_));
   }

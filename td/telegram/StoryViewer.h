@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/ReactionType.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
@@ -20,19 +21,23 @@ class ContactsManager;
 class StoryViewer {
   UserId user_id_;
   int32 date_ = 0;
+  bool is_blocked_ = false;
+  bool is_blocked_for_stories_ = false;
+  ReactionType reaction_type_;
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const StoryViewer &viewer);
 
  public:
-  StoryViewer(UserId user_id, int32 date) : user_id_(user_id), date_(td::max(date, static_cast<int32>(0))) {
+  StoryViewer(telegram_api::object_ptr<telegram_api::storyView> &&story_view)
+      : user_id_(story_view->user_id_)
+      , date_(td::max(story_view->date_, static_cast<int32>(0)))
+      , is_blocked_(story_view->blocked_)
+      , is_blocked_for_stories_(story_view->blocked_my_stories_from_)
+      , reaction_type_(story_view->reaction_) {
   }
 
   UserId get_user_id() const {
     return user_id_;
-  }
-
-  bool is_empty() const {
-    return user_id_ == UserId() && date_ == 0;
   }
 
   td_api::object_ptr<td_api::storyViewer> get_story_viewer_object(ContactsManager *contacts_manager) const;
