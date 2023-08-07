@@ -40,9 +40,10 @@ class StoryInteractionInfo {
 
   void add_dependencies(Dependencies &dependencies) const;
 
-  bool set_view_count(int32 view_count) {
-    if (view_count > view_count_) {
+  bool set_counts(int32 view_count, int32 reaction_count) {
+    if (view_count != view_count_ || reaction_count != reaction_count_) {
       view_count = view_count_;
+      reaction_count = reaction_count_;
       return true;
     }
     return false;

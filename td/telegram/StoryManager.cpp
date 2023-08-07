@@ -2346,11 +2346,12 @@ void StoryManager::get_story_viewers(StoryId story_id, const string &query, bool
     return promise.set_value(td_api::make_object<td_api::storyViewers>());
   }
 
-  bool is_first = offset.empty() && query.empty() && !only_contacts;
+  bool is_full = query.empty() && !only_contacts;
+  bool is_first = is_full && offset.empty();
   auto query_promise = PromiseCreator::lambda(
-      [actor_id = actor_id(this), story_id, is_first, promise = std::move(promise)](
+      [actor_id = actor_id(this), story_id, is_full, is_first, promise = std::move(promise)](
           Result<telegram_api::object_ptr<telegram_api::stories_storyViewsList>> result) mutable {
-        send_closure(actor_id, &StoryManager::on_get_story_viewers, story_id, is_first, std::move(result),
+        send_closure(actor_id, &StoryManager::on_get_story_viewers, story_id, is_full, is_first, std::move(result),
                      std::move(promise));
       });
 
@@ -2359,7 +2360,8 @@ void StoryManager::get_story_viewers(StoryId story_id, const string &query, bool
 }
 
 void StoryManager::on_get_story_viewers(
-    StoryId story_id, bool is_first, Result<telegram_api::object_ptr<telegram_api::stories_storyViewsList>> r_view_list,
+    StoryId story_id, bool is_full, bool is_first,
+    Result<telegram_api::object_ptr<telegram_api::stories_storyViewsList>> r_view_list,
     Promise<td_api::object_ptr<td_api::storyViewers>> &&promise) {
   G()->ignore_result_if_closing(r_view_list);
   if (r_view_list.is_error()) {
@@ -2386,7 +2388,7 @@ void StoryManager::on_get_story_viewers(
   StoryViewers story_viewers(std::move(view_list->views_), std::move(view_list->next_offset_));
   if (story->content_ != nullptr) {
     bool is_changed = false;
-    if (story->interaction_info_.set_view_count(view_list->count_)) {
+    if (is_full && story->interaction_info_.set_counts(view_list->count_, view_list->reactions_count_)) {
       is_changed = true;
     }
     if (is_first && story->interaction_info_.set_recent_viewer_user_ids(story_viewers.get_user_ids())) {
