@@ -15,6 +15,7 @@ namespace td {
 
 template <class StorerT>
 void StoryStealthMode::store(StorerT &storer) const {
+  using td::store;
   bool has_active_until_date = active_until_date_ != 0;
   bool has_cooldown_until_date = cooldown_until_date_ != 0;
   BEGIN_STORE_FLAGS();

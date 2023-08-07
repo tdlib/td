@@ -523,6 +523,8 @@ class StoryManager final : public Actor {
 
   void send_update_story_stealth_mode() const;
 
+  static string get_story_stealth_mode_key();
+
   void set_story_stealth_mode(StoryStealthMode stealth_mode);
 
   void on_get_story_viewers(StoryId story_id, bool is_full, bool is_first,

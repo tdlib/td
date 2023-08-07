@@ -1091,6 +1091,13 @@ void StoryManager::start_up() {
     return;
   }
 
+  auto stealth_mode_str = G()->td_db()->get_binlog_pmc()->get(get_story_stealth_mode_key());
+  if (!stealth_mode_str.empty()) {
+    log_event_parse(stealth_mode_, stealth_mode_str).ensure();
+    stealth_mode_.update();
+  }
+  send_update_story_stealth_mode();
+
   try_synchronize_archive_all_stories();
   load_expired_database_stories();
 
@@ -3413,13 +3420,24 @@ void StoryManager::on_update_story_chosen_reaction_type(DialogId owner_dialog_id
   }
 }
 
+string StoryManager::get_story_stealth_mode_key() {
+  return "stealth_mode";
+}
+
 void StoryManager::set_story_stealth_mode(StoryStealthMode stealth_mode) {
+  stealth_mode.update();
   if (stealth_mode == stealth_mode_) {
     return;
   }
 
   stealth_mode_ = stealth_mode;
   send_update_story_stealth_mode();
+
+  if (stealth_mode_.is_empty()) {
+    G()->td_db()->get_binlog_pmc()->erase(get_story_stealth_mode_key());
+  } else {
+    G()->td_db()->get_binlog_pmc()->set(get_story_stealth_mode_key(), log_event_store(stealth_mode_).as_slice().str());
+  }
 }
 
 DialogId StoryManager::get_changelog_story_dialog_id() const {
