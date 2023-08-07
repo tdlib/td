@@ -2384,11 +2384,17 @@ void StoryManager::on_get_story_viewers(
     LOG(ERROR) << "Receive total_count = " << total_count << " and " << view_list->views_.size() << " story viewers";
     total_count = static_cast<int32>(view_list->views_.size());
   }
+  auto total_reaction_count = view_list->reactions_count_;
+  if (total_reaction_count < 0 || total_reaction_count > total_count) {
+    LOG(ERROR) << "Receive total_reaction_count = " << total_reaction_count << " with " << total_count
+               << " story viewers";
+    total_reaction_count = total_count;
+  }
 
   StoryViewers story_viewers(total_count, std::move(view_list->views_), std::move(view_list->next_offset_));
   if (story->content_ != nullptr) {
     bool is_changed = false;
-    if (is_full && story->interaction_info_.set_counts(view_list->count_, view_list->reactions_count_)) {
+    if (is_full && story->interaction_info_.set_counts(total_count, total_reaction_count)) {
       is_changed = true;
     }
     if (is_first && story->interaction_info_.set_recent_viewer_user_ids(story_viewers.get_user_ids())) {
