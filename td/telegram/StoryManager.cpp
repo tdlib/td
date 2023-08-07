@@ -2321,8 +2321,8 @@ Status StoryManager::can_get_story_viewers(StoryFullId story_full_id, const Stor
   return Status::OK();
 }
 
-void StoryManager::get_story_viewers(StoryId story_id, const td_api::messageViewer *offset, int32 limit,
-                                     Promise<td_api::object_ptr<td_api::messageViewers>> &&promise) {
+void StoryManager::get_story_viewers(StoryId story_id, const td_api::storyViewer *offset, int32 limit,
+                                     Promise<td_api::object_ptr<td_api::storyViewers>> &&promise) {
   DialogId owner_dialog_id(td_->contacts_manager_->get_my_id());
   StoryFullId story_full_id{owner_dialog_id, story_id};
   const Story *story = get_story(story_full_id);
@@ -2333,7 +2333,7 @@ void StoryManager::get_story_viewers(StoryId story_id, const td_api::messageView
     return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
   }
   if (can_get_story_viewers(story_full_id, story).is_error() || story->interaction_info_.get_view_count() == 0) {
-    return promise.set_value(td_api::make_object<td_api::messageViewers>());
+    return promise.set_value(td_api::make_object<td_api::storyViewers>());
   }
 
   int32 offset_date = 0;
@@ -2342,7 +2342,7 @@ void StoryManager::get_story_viewers(StoryId story_id, const td_api::messageView
     offset_date = offset->view_date_;
     offset_user_id = offset->user_id_;
   }
-  MessageViewer offset_viewer{UserId(offset_user_id), offset_date};
+  StoryViewer offset_viewer{UserId(offset_user_id), offset_date};
 
   auto &cached_viewers = cached_story_viewers_[story_full_id];
   if (cached_viewers != nullptr && story->content_ != nullptr &&
@@ -2352,7 +2352,7 @@ void StoryManager::get_story_viewers(StoryId story_id, const td_api::messageView
       // can return the viewers
       // don't need to reget the viewers, because story->interaction_info_.get_view_count() is updated every 10 seconds
       td_->contacts_manager_->on_view_user_active_stories(result.get_user_ids());
-      return promise.set_value(result.get_message_viewers_object(td_->contacts_manager_.get()));
+      return promise.set_value(result.get_story_viewers_object(td_->contacts_manager_.get()));
     }
   }
 
@@ -2368,9 +2368,9 @@ void StoryManager::get_story_viewers(StoryId story_id, const td_api::messageView
 }
 
 void StoryManager::on_get_story_viewers(
-    StoryId story_id, MessageViewer offset,
+    StoryId story_id, StoryViewer offset,
     Result<telegram_api::object_ptr<telegram_api::stories_storyViewsList>> r_view_list,
-    Promise<td_api::object_ptr<td_api::messageViewers>> &&promise) {
+    Promise<td_api::object_ptr<td_api::storyViewers>> &&promise) {
   G()->ignore_result_if_closing(r_view_list);
   if (r_view_list.is_error()) {
     return promise.set_error(r_view_list.move_as_error());
@@ -2382,7 +2382,7 @@ void StoryManager::on_get_story_viewers(
   StoryFullId story_full_id{owner_dialog_id, story_id};
   Story *story = get_story_editable(story_full_id);
   if (story == nullptr) {
-    return promise.set_value(td_api::make_object<td_api::messageViewers>());
+    return promise.set_value(td_api::make_object<td_api::storyViewers>());
   }
 
   td_->contacts_manager_->on_get_users(std::move(view_list->users_), "on_get_story_viewers");
@@ -2393,7 +2393,7 @@ void StoryManager::on_get_story_viewers(
     total_count = static_cast<int32>(view_list->views_.size());
   }
 
-  MessageViewers story_viewers(std::move(view_list->views_));
+  StoryViewers story_viewers(std::move(view_list->views_));
   if (story->content_ != nullptr) {
     if (story->interaction_info_.set_view_count(view_list->count_)) {
       if (offset.is_empty()) {
@@ -2414,7 +2414,7 @@ void StoryManager::on_get_story_viewers(
   }
 
   td_->contacts_manager_->on_view_user_active_stories(story_viewers.get_user_ids());
-  promise.set_value(story_viewers.get_message_viewers_object(td_->contacts_manager_.get()));
+  promise.set_value(story_viewers.get_story_viewers_object(td_->contacts_manager_.get()));
 }
 
 void StoryManager::report_story(StoryFullId story_full_id, ReportReason &&reason, Promise<Unit> &&promise) {

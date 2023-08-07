@@ -13,7 +13,6 @@
 #include "td/telegram/FullMessageId.h"
 #include "td/telegram/MediaArea.h"
 #include "td/telegram/MessageEntity.h"
-#include "td/telegram/MessageViewer.h"
 #include "td/telegram/ReactionType.h"
 #include "td/telegram/StoryDb.h"
 #include "td/telegram/StoryFullId.h"
@@ -21,6 +20,7 @@
 #include "td/telegram/StoryInteractionInfo.h"
 #include "td/telegram/StoryListId.h"
 #include "td/telegram/StoryStealthMode.h"
+#include "td/telegram/StoryViewer.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
@@ -159,7 +159,7 @@ class StoryManager final : public Actor {
 
   struct CachedStoryViewers {
     int32 total_count_ = -1;
-    MessageViewers viewers_;
+    StoryViewers viewers_;
   };
 
   struct StoryList {
@@ -249,8 +249,8 @@ class StoryManager final : public Actor {
   void set_story_reaction(StoryFullId story_full_id, ReactionType reaction_type, bool add_to_recent,
                           Promise<Unit> &&promise);
 
-  void get_story_viewers(StoryId story_id, const td_api::messageViewer *offset, int32 limit,
-                         Promise<td_api::object_ptr<td_api::messageViewers>> &&promise);
+  void get_story_viewers(StoryId story_id, const td_api::storyViewer *offset, int32 limit,
+                         Promise<td_api::object_ptr<td_api::storyViewers>> &&promise);
 
   void report_story(StoryFullId story_full_id, ReportReason &&reason, Promise<Unit> &&promise);
 
@@ -527,9 +527,9 @@ class StoryManager final : public Actor {
 
   void set_story_stealth_mode(StoryStealthMode stealth_mode);
 
-  void on_get_story_viewers(StoryId story_id, MessageViewer offset,
+  void on_get_story_viewers(StoryId story_id, StoryViewer offset,
                             Result<telegram_api::object_ptr<telegram_api::stories_storyViewsList>> r_view_list,
-                            Promise<td_api::object_ptr<td_api::messageViewers>> &&promise);
+                            Promise<td_api::object_ptr<td_api::storyViewers>> &&promise);
 
   void on_set_story_reaction(StoryFullId story_full_id, Result<Unit> &&result, Promise<Unit> &&promise);
 

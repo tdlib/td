@@ -35,17 +35,6 @@ StringBuilder &operator<<(StringBuilder &string_builder, const MessageViewer &vi
   return string_builder << '[' << viewer.user_id_ << " at " << viewer.date_ << ']';
 }
 
-MessageViewers::MessageViewers(vector<telegram_api::object_ptr<telegram_api::storyView>> &&story_views) {
-  for (auto &story_view : story_views) {
-    UserId user_id(story_view->user_id_);
-    if (!user_id.is_valid()) {
-      LOG(ERROR) << "Receive " << user_id << " as story viewer";
-      continue;
-    }
-    message_viewers_.emplace_back(user_id, story_view->date_);
-  }
-}
-
 MessageViewers::MessageViewers(vector<telegram_api::object_ptr<telegram_api::readParticipantDate>> &&read_dates) {
   for (auto &read_date : read_dates) {
     message_viewers_.emplace_back(std::move(read_date));
@@ -54,41 +43,6 @@ MessageViewers::MessageViewers(vector<telegram_api::object_ptr<telegram_api::rea
       LOG(ERROR) << "Receive invalid " << user_id << " as a viewer of a message";
       message_viewers_.pop_back();
     }
-  }
-}
-
-MessageViewers MessageViewers::get_sublist(const MessageViewer &offset, int32 limit) const {
-  MessageViewers result;
-  bool found = offset.is_empty();
-  for (auto &message_viewer : message_viewers_) {
-    if (found) {
-      if (limit-- <= 0) {
-        break;
-      }
-      result.message_viewers_.push_back(message_viewer);
-    } else if (message_viewer == offset) {
-      found = true;
-    }
-  }
-  return result;
-}
-
-void MessageViewers::add_sublist(const MessageViewer &offset, const MessageViewers &sublist) {
-  if (offset.is_empty()) {
-    if (message_viewers_.empty()) {
-      message_viewers_ = sublist.message_viewers_;
-    } else {
-      auto old_viewers = std::move(message_viewers_);
-      for (auto &viewer : sublist.message_viewers_) {
-        if (viewer == old_viewers[0]) {
-          append(message_viewers_, old_viewers);
-          return;
-        }
-        message_viewers_.push_back(viewer);
-      }
-    }
-  } else if (!message_viewers_.empty() && message_viewers_.back() == offset) {
-    append(message_viewers_, sublist.message_viewers_);
   }
 }
 

@@ -4931,6 +4931,13 @@ messageLink link:string is_public:Bool = MessageLink;
 messageLinkInfo is_public:Bool chat_id:int53 message_thread_id:int53 message:message media_timestamp:int32 for_album:Bool = MessageLinkInfo;
 
 
+//@description Represents a viewer of a story @user_id User identifier of the viewer @view_date Approximate point in time (Unix timestamp) when the story was viewed
+storyViewer user_id:int53 view_date:int32 = StoryViewer;
+
+//@description Represents a list of story viewers @viewers List of story viewers
+storyViewers viewers:vector<storyViewer> = StoryViewers;
+
+
 //@description Describes position of a clickable rectangle area on a story media
 //@x_percentage The abscissa of the rectangle's center, as a percentage of the media width
 //@y_percentage The ordinate of the rectangle's center, as a percentage of the media height
@@ -7473,7 +7480,7 @@ setStoryReaction story_sender_chat_id:int53 story_id:int32 reaction_type:Reactio
 //@offset_viewer A viewer from which to return next viewers; pass null to get results from the beginning
 //@limit The maximum number of story viewers to return
 //-For optimal performance, the number of returned stories is chosen by TDLib and can be smaller than the specified limit
-getStoryViewers story_id:int32 offset_viewer:messageViewer limit:int32 = MessageViewers;
+getStoryViewers story_id:int32 offset_viewer:storyViewer limit:int32 = StoryViewers;
 
 //@description Reports a story to the Telegram moderators
 //@story_sender_chat_id The identifier of the sender of the story to report
