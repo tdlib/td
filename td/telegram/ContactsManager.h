@@ -809,6 +809,7 @@ class ContactsManager final : public Actor {
     bool is_phone_number_changed = true;
     bool is_emoji_status_changed = true;
     bool is_is_contact_changed = true;
+    bool is_is_mutual_contact_changed = true;
     bool is_is_deleted_changed = true;
     bool is_is_premium_changed = true;
     bool is_stories_hidden_changed = true;
