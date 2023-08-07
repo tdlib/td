@@ -86,6 +86,8 @@ MediaArea::MediaArea(Td *td, td_api::object_ptr<td_api::inputStoryArea> &&input_
         if (old_media_area.type_ == Type::Venue && !old_media_area.venue_.empty() &&
             old_media_area.venue_.is_same(type->venue_provider_, type->venue_id_)) {
           venue_ = old_media_area.venue_;
+          input_query_id_ = old_media_area.input_query_id_;
+          input_result_id_ = old_media_area.input_result_id_;
           type_ = Type::Venue;
           break;
         }
