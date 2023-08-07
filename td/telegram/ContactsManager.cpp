@@ -11940,6 +11940,15 @@ void ContactsManager::for_each_secret_chat_with_user(UserId user_id, const std::
 
 void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, bool from_database) {
   CHECK(u != nullptr);
+
+  if (u->is_being_updated) {
+    LOG(ERROR) << "Detected recursive update of " << user_id;
+  }
+  u->is_being_updated = true;
+  SCOPE_EXIT {
+    u->is_being_updated = false;
+  };
+
   if (user_id == get_my_id()) {
     if (td_->option_manager_->get_option_boolean("is_premium") != u->is_premium) {
       td_->option_manager_->set_option_boolean("is_premium", u->is_premium);
@@ -12114,6 +12123,15 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
 
 void ContactsManager::update_chat(Chat *c, ChatId chat_id, bool from_binlog, bool from_database) {
   CHECK(c != nullptr);
+
+  if (c->is_being_updated) {
+    LOG(ERROR) << "Detected recursive update of " << chat_id;
+  }
+  c->is_being_updated = true;
+  SCOPE_EXIT {
+    c->is_being_updated = false;
+  };
+
   bool need_update_chat_full = false;
   if (c->is_photo_changed) {
     td_->messages_manager_->on_dialog_photo_updated(DialogId(chat_id));
@@ -12201,6 +12219,15 @@ void ContactsManager::update_chat(Chat *c, ChatId chat_id, bool from_binlog, boo
 
 void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from_binlog, bool from_database) {
   CHECK(c != nullptr);
+
+  if (c->is_being_updated) {
+    LOG(ERROR) << "Detected recursive update of " << channel_id;
+  }
+  c->is_being_updated = true;
+  SCOPE_EXIT {
+    c->is_being_updated = false;
+  };
+
   bool need_update_channel_full = false;
   if (c->is_photo_changed) {
     td_->messages_manager_->on_dialog_photo_updated(DialogId(channel_id));
@@ -12355,6 +12382,15 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
 void ContactsManager::update_secret_chat(SecretChat *c, SecretChatId secret_chat_id, bool from_binlog,
                                          bool from_database) {
   CHECK(c != nullptr);
+
+  if (c->is_being_updated) {
+    LOG(ERROR) << "Detected recursive update of " << secret_chat_id;
+  }
+  c->is_being_updated = true;
+  SCOPE_EXIT {
+    c->is_being_updated = false;
+  };
+
   LOG(DEBUG) << "Update " << secret_chat_id << ": need_save_to_database = " << c->need_save_to_database
              << ", is_changed = " << c->is_changed;
   c->need_save_to_database |= c->is_changed;
@@ -12390,6 +12426,15 @@ void ContactsManager::update_secret_chat(SecretChat *c, SecretChatId secret_chat
 
 void ContactsManager::update_user_full(UserFull *user_full, UserId user_id, const char *source, bool from_database) {
   CHECK(user_full != nullptr);
+
+  if (user_full->is_being_updated) {
+    LOG(ERROR) << "Detected recursive update of full " << user_id << " from " << source;
+  }
+  user_full->is_being_updated = true;
+  SCOPE_EXIT {
+    user_full->is_being_updated = false;
+  };
+
   unavailable_user_fulls_.erase(user_id);  // don't needed anymore
   if (user_full->is_common_chat_count_changed) {
     td_->messages_manager_->drop_common_dialogs_cache(user_id);
@@ -12457,6 +12502,15 @@ void ContactsManager::update_user_full(UserFull *user_full, UserId user_id, cons
 
 void ContactsManager::update_chat_full(ChatFull *chat_full, ChatId chat_id, const char *source, bool from_database) {
   CHECK(chat_full != nullptr);
+
+  if (chat_full->is_being_updated) {
+    LOG(ERROR) << "Detected recursive update of full " << chat_id << " from " << source;
+  }
+  chat_full->is_being_updated = true;
+  SCOPE_EXIT {
+    chat_full->is_being_updated = false;
+  };
+
   unavailable_chat_fulls_.erase(chat_id);  // don't needed anymore
 
   chat_full->need_send_update |= chat_full->is_changed;
@@ -12514,6 +12568,15 @@ void ContactsManager::update_chat_full(ChatFull *chat_full, ChatId chat_id, cons
 void ContactsManager::update_channel_full(ChannelFull *channel_full, ChannelId channel_id, const char *source,
                                           bool from_database) {
   CHECK(channel_full != nullptr);
+
+  if (channel_full->is_being_updated) {
+    LOG(ERROR) << "Detected recursive update of full " << channel_id << " from " << source;
+  }
+  channel_full->is_being_updated = true;
+  SCOPE_EXIT {
+    channel_full->is_being_updated = false;
+  };
+
   unavailable_channel_fulls_.erase(channel_id);  // don't needed anymore
 
   CHECK(channel_full->participant_count >= channel_full->administrator_count);

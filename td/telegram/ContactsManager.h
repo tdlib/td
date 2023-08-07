@@ -814,6 +814,7 @@ class ContactsManager final : public Actor {
     bool is_is_premium_changed = true;
     bool is_stories_hidden_changed = true;
     bool is_full_info_changed = false;
+    bool is_being_updated = false;
     bool is_changed = true;             // have new changes that need to be sent to the client and database
     bool need_save_to_database = true;  // have new changes that need only to be saved to the database
     bool is_status_changed = true;
@@ -869,6 +870,7 @@ class ContactsManager final : public Actor {
     bool has_pinned_stories = false;
 
     bool is_common_chat_count_changed = true;
+    bool is_being_updated = false;
     bool is_changed = true;             // have new changes that need to be sent to the client and database
     bool need_send_update = true;       // have new changes that need only to be sent to the client
     bool need_save_to_database = true;  // have new changes that need only to be saved to the database
@@ -913,6 +915,7 @@ class ContactsManager final : public Actor {
     bool is_status_changed = true;
     bool is_is_active_changed = true;
     bool is_noforwards_changed = true;
+    bool is_being_updated = false;
     bool is_changed = true;             // have new changes that need to be sent to the client and database
     bool need_save_to_database = true;  // have new changes that need only to be saved to the database
     bool is_update_basic_group_sent = false;
@@ -951,6 +954,7 @@ class ContactsManager final : public Actor {
 
     bool can_set_username = false;
 
+    bool is_being_updated = false;
     bool is_changed = true;             // have new changes that need to be sent to the client and database
     bool need_send_update = true;       // have new changes that need only to be sent to the client
     bool need_save_to_database = true;  // have new changes that need only to be saved to the database
@@ -1004,6 +1008,7 @@ class ContactsManager final : public Actor {
     bool is_creator_changed = true;
     bool had_read_access = true;
     bool was_member = false;
+    bool is_being_updated = false;
     bool is_changed = true;             // have new changes that need to be sent to the client and database
     bool need_save_to_database = true;  // have new changes that need only to be saved to the database
     bool is_update_supergroup_sent = false;
@@ -1071,6 +1076,7 @@ class ContactsManager final : public Actor {
     bool can_be_deleted = false;
 
     bool is_slow_mode_next_send_date_changed = true;
+    bool is_being_updated = false;
     bool is_changed = true;             // have new changes that need to be sent to the client and database
     bool need_send_update = true;       // have new changes that need only to be sent to the client
     bool need_save_to_database = true;  // have new changes that need only to be saved to the database
@@ -1103,6 +1109,7 @@ class ContactsManager final : public Actor {
 
     bool is_ttl_changed = true;
     bool is_state_changed = true;
+    bool is_being_updated = false;
     bool is_changed = true;             // have new changes that need to be sent to the client and database
     bool need_save_to_database = true;  // have new changes that need only to be saved to the database
 
