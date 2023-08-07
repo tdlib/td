@@ -13684,8 +13684,8 @@ void ContactsManager::on_update_user_is_contact(User *u, UserId user_id, bool is
   if (u->is_contact != is_contact || u->is_mutual_contact != is_mutual_contact ||
       u->is_close_friend != is_close_friend) {
     LOG(DEBUG) << "Update " << user_id << " is_contact from (" << u->is_contact << ", " << u->is_mutual_contact << ", "
-               << u->is_close_friend << ") to (" << is_contact << ", " << is_mutual_contact << ", "
-               << u->is_close_friend << ")";
+               << u->is_close_friend << ") to (" << is_contact << ", " << is_mutual_contact << ", " << is_close_friend
+               << ")";
     if (u->is_contact != is_contact) {
       u->is_is_contact_changed = true;
     }
