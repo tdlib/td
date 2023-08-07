@@ -523,6 +523,12 @@ class StoryManager final : public Actor {
 
   void send_update_story_stealth_mode() const;
 
+  void schedule_stealth_mode_update();
+
+  static void update_stealth_mode_static(void *story_manager);
+
+  void update_stealth_mode();
+
   static string get_story_stealth_mode_key();
 
   void set_story_stealth_mode(StoryStealthMode stealth_mode);
@@ -588,6 +594,8 @@ class StoryManager final : public Actor {
   int64 max_story_global_id_ = 0;
 
   bool has_active_synchronize_archive_all_stories_query_ = false;
+
+  Timeout stealth_mode_update_timeout_;
 
   Timeout interaction_info_update_timeout_;
 

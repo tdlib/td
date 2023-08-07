@@ -1095,6 +1095,11 @@ void StoryManager::start_up() {
   if (!stealth_mode_str.empty()) {
     log_event_parse(stealth_mode_, stealth_mode_str).ensure();
     stealth_mode_.update();
+    if (stealth_mode_.is_empty()) {
+      G()->td_db()->get_binlog_pmc()->erase(get_story_stealth_mode_key());
+    } else {
+      schedule_stealth_mode_update();
+    }
   }
   send_update_story_stealth_mode();
 
@@ -3424,6 +3429,19 @@ string StoryManager::get_story_stealth_mode_key() {
   return "stealth_mode";
 }
 
+void StoryManager::schedule_stealth_mode_update() {
+  if (stealth_mode_.is_empty()) {
+    stealth_mode_update_timeout_.cancel_timeout();
+    return;
+  }
+
+  auto timeout = stealth_mode_.get_update_date() - G()->unix_time() + 2;
+  LOG(INFO) << "Schedule stealth mode update in " << timeout;
+  stealth_mode_update_timeout_.set_callback(std::move(update_stealth_mode_static));
+  stealth_mode_update_timeout_.set_callback_data(static_cast<void *>(this));
+  stealth_mode_update_timeout_.set_timeout_in(timeout);
+}
+
 void StoryManager::set_story_stealth_mode(StoryStealthMode stealth_mode) {
   stealth_mode.update();
   if (stealth_mode == stealth_mode_) {
@@ -3431,6 +3449,7 @@ void StoryManager::set_story_stealth_mode(StoryStealthMode stealth_mode) {
   }
 
   stealth_mode_ = stealth_mode;
+  schedule_stealth_mode_update();
   send_update_story_stealth_mode();
 
   if (stealth_mode_.is_empty()) {
@@ -3438,6 +3457,22 @@ void StoryManager::set_story_stealth_mode(StoryStealthMode stealth_mode) {
   } else {
     G()->td_db()->get_binlog_pmc()->set(get_story_stealth_mode_key(), log_event_store(stealth_mode_).as_slice().str());
   }
+}
+
+void StoryManager::update_stealth_mode_static(void *story_manager) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  CHECK(story_manager != nullptr);
+  static_cast<StoryManager *>(story_manager)->update_stealth_mode();
+}
+
+void StoryManager::update_stealth_mode() {
+  if (stealth_mode_.update()) {
+    send_update_story_stealth_mode();
+  }
+  schedule_stealth_mode_update();
 }
 
 DialogId StoryManager::get_changelog_story_dialog_id() const {
