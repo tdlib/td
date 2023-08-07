@@ -1209,7 +1209,6 @@ void StoryManager::on_story_can_get_viewers_timeout(int64 story_global_id) {
     // can_get_viewers flag has changed
     send_update_story(story_full_id, story);
   }
-  cached_story_viewers_.erase(story_full_id);
 }
 
 void StoryManager::load_expired_database_stories() {
@@ -2344,18 +2343,6 @@ void StoryManager::get_story_viewers(StoryId story_id, const td_api::storyViewer
   }
   StoryViewer offset_viewer{UserId(offset_user_id), offset_date};
 
-  auto &cached_viewers = cached_story_viewers_[story_full_id];
-  if (cached_viewers != nullptr && story->content_ != nullptr &&
-      (cached_viewers->total_count_ == story->interaction_info_.get_view_count() || !offset_viewer.is_empty())) {
-    auto result = cached_viewers->viewers_.get_sublist(offset_viewer, limit);
-    if (!result.is_empty()) {
-      // can return the viewers
-      // don't need to reget the viewers, because story->interaction_info_.get_view_count() is updated every 10 seconds
-      td_->contacts_manager_->on_view_user_active_stories(result.get_user_ids());
-      return promise.set_value(result.get_story_viewers_object(td_->contacts_manager_.get()));
-    }
-  }
-
   auto query_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), story_id, offset_viewer, promise = std::move(promise)](
           Result<telegram_api::object_ptr<telegram_api::stories_storyViewsList>> result) mutable {
@@ -2401,16 +2388,6 @@ void StoryManager::on_get_story_viewers(
       }
       on_story_changed(story_full_id, story, true, true);
     }
-    auto &cached_viewers = cached_story_viewers_[story_full_id];
-    if (cached_viewers == nullptr) {
-      cached_viewers = make_unique<CachedStoryViewers>();
-    }
-    if (total_count < cached_viewers->total_count_) {
-      LOG(ERROR) << "Total viewer count decreased from " << cached_viewers->total_count_ << " to " << total_count;
-    } else {
-      cached_viewers->total_count_ = total_count;
-    }
-    cached_viewers->viewers_.add_sublist(offset, story_viewers);
   }
 
   td_->contacts_manager_->on_view_user_active_stories(story_viewers.get_user_ids());
@@ -2945,7 +2922,6 @@ void StoryManager::on_delete_story(StoryFullId story_full_id) {
     being_edited_stories_.erase(edited_stories_it);
   }
   edit_generations_.erase(story_full_id);
-  cached_story_viewers_.erase(story_full_id);
 
   auto active_stories = get_active_stories_force(owner_dialog_id, "on_get_deleted_story");
   if (active_stories != nullptr && contains(active_stories->story_ids_, story_id)) {

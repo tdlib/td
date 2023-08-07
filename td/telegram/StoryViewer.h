@@ -60,10 +60,6 @@ class StoryViewers {
     return story_viewers_.empty();
   }
 
-  StoryViewers get_sublist(const StoryViewer &offset, int32 limit) const;
-
-  void add_sublist(const StoryViewer &offset, const StoryViewers &sublist);
-
   vector<UserId> get_user_ids() const;
 
   td_api::object_ptr<td_api::storyViewers> get_story_viewers_object(ContactsManager *contacts_manager) const;

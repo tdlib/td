@@ -41,41 +41,6 @@ StoryViewers::StoryViewers(vector<telegram_api::object_ptr<telegram_api::storyVi
   }
 }
 
-StoryViewers StoryViewers::get_sublist(const StoryViewer &offset, int32 limit) const {
-  StoryViewers result;
-  bool found = offset.is_empty();
-  for (auto &story_viewer : story_viewers_) {
-    if (found) {
-      if (limit-- <= 0) {
-        break;
-      }
-      result.story_viewers_.push_back(story_viewer);
-    } else if (story_viewer == offset) {
-      found = true;
-    }
-  }
-  return result;
-}
-
-void StoryViewers::add_sublist(const StoryViewer &offset, const StoryViewers &sublist) {
-  if (offset.is_empty()) {
-    if (story_viewers_.empty()) {
-      story_viewers_ = sublist.story_viewers_;
-    } else {
-      auto old_viewers = std::move(story_viewers_);
-      for (auto &viewer : sublist.story_viewers_) {
-        if (viewer == old_viewers[0]) {
-          append(story_viewers_, old_viewers);
-          return;
-        }
-        story_viewers_.push_back(viewer);
-      }
-    }
-  } else if (!story_viewers_.empty() && story_viewers_.back() == offset) {
-    append(story_viewers_, sublist.story_viewers_);
-  }
-}
-
 vector<UserId> StoryViewers::get_user_ids() const {
   return transform(story_viewers_, [](auto &viewer) { return viewer.get_user_id(); });
 }

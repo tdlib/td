@@ -157,11 +157,6 @@ class StoryManager final : public Actor {
     void parse(ParserT &parser);
   };
 
-  struct CachedStoryViewers {
-    int32 total_count_ = -1;
-    StoryViewers viewers_;
-  };
-
   struct StoryList {
     int32 server_total_count_ = -1;
     int32 sent_total_count_ = -1;
@@ -570,8 +565,6 @@ class StoryManager final : public Actor {
   FlatHashMap<StoryFullId, uint32, StoryFullIdHash> opened_owned_stories_;
 
   FlatHashMap<StoryFullId, uint32, StoryFullIdHash> opened_stories_;
-
-  FlatHashMap<StoryFullId, unique_ptr<CachedStoryViewers>, StoryFullIdHash> cached_story_viewers_;
 
   FlatHashMap<StoryFullId, vector<Promise<Unit>>, StoryFullIdHash> reload_story_queries_;
 
