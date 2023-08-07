@@ -4152,8 +4152,12 @@ class CliClient final : public Actor {
       StoryId story_id;
       string limit;
       string offset;
-      get_args(args, story_id, limit, offset);
-      send_request(td_api::make_object<td_api::getStoryViewers>(story_id, offset, as_limit(limit)));
+      string query;
+      bool only_contacts;
+      bool prefer_with_reaction;
+      get_args(args, story_id, limit, offset, query, only_contacts, prefer_with_reaction);
+      send_request(td_api::make_object<td_api::getStoryViewers>(story_id, query, only_contacts, prefer_with_reaction,
+                                                                offset, as_limit(limit)));
     } else if (op == "rst") {
       ChatId story_sender_chat_id;
       StoryId story_id;

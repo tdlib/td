@@ -303,10 +303,20 @@ class GetStoryViewsListQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(StoryId story_id, const string &offset, int32 limit) {
+  void send(StoryId story_id, const string &query, bool only_contacts, bool prefer_with_reaction, const string &offset,
+            int32 limit) {
     int32 flags = 0;
+    if (!query.empty()) {
+      flags |= telegram_api::stories_getStoryViewsList::Q_MASK;
+    }
+    if (only_contacts) {
+      flags |= telegram_api::stories_getStoryViewsList::JUST_CONTACTS_MASK;
+    }
+    if (prefer_with_reaction) {
+      flags |= telegram_api::stories_getStoryViewsList::REACTIONS_FIRST_MASK;
+    }
     send_query(G()->net_query_creator().create(telegram_api::stories_getStoryViewsList(
-        flags, false /*ignored*/, false /*ignored*/, string(), story_id.get(), offset, limit)));
+        flags, false /*ignored*/, false /*ignored*/, query, story_id.get(), offset, limit)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -2320,7 +2330,8 @@ Status StoryManager::can_get_story_viewers(StoryFullId story_full_id, const Stor
   return Status::OK();
 }
 
-void StoryManager::get_story_viewers(StoryId story_id, const string &offset, int32 limit,
+void StoryManager::get_story_viewers(StoryId story_id, const string &query, bool only_contacts,
+                                     bool prefer_with_reaction, const string &offset, int32 limit,
                                      Promise<td_api::object_ptr<td_api::storyViewers>> &&promise) {
   DialogId owner_dialog_id(td_->contacts_manager_->get_my_id());
   StoryFullId story_full_id{owner_dialog_id, story_id};
@@ -2335,7 +2346,7 @@ void StoryManager::get_story_viewers(StoryId story_id, const string &offset, int
     return promise.set_value(td_api::make_object<td_api::storyViewers>());
   }
 
-  bool is_first = offset.empty();
+  bool is_first = offset.empty() && query.empty() && !only_contacts;
   auto query_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), story_id, is_first, promise = std::move(promise)](
           Result<telegram_api::object_ptr<telegram_api::stories_storyViewsList>> result) mutable {
@@ -2344,7 +2355,7 @@ void StoryManager::get_story_viewers(StoryId story_id, const string &offset, int
       });
 
   td_->create_handler<GetStoryViewsListQuery>(std::move(query_promise))
-      ->send(story_full_id.get_story_id(), offset, limit);
+      ->send(story_full_id.get_story_id(), query, only_contacts, prefer_with_reaction, offset, limit);
 }
 
 void StoryManager::on_get_story_viewers(

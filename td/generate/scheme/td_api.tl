@@ -7478,11 +7478,14 @@ closeStory story_sender_chat_id:int53 story_id:int32 = Ok;
 //@update_recent_reactions Pass true if the reaction needs to be added to recent reactions
 setStoryReaction story_sender_chat_id:int53 story_id:int32 reaction_type:ReactionType update_recent_reactions:Bool = Ok;
 
-//@description Returns viewers of a story. The method can be called if story.can_get_viewers == true. The views are returned in a reverse chronological order (i.e., in order of decreasing view_date)
+//@description Returns viewers of a story. The method can be called if story.can_get_viewers == true
 //@story_id Story identifier
+//@query Query to search for in names and usernames of the viewers; may be empty to get all relevant viewers
+//@only_contacts Pass true to get only contacts; pass false to get all relevant viewers
+//@prefer_with_reaction Pass true to get viewers with reaction first; pass false to get viewers sorted just by view_date
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of story viewers to return
-getStoryViewers story_id:int32 offset:string limit:int32 = StoryViewers;
+getStoryViewers story_id:int32 query:string only_contacts:Bool prefer_with_reaction:Bool offset:string limit:int32 = StoryViewers;
 
 //@description Reports a story to the Telegram moderators
 //@story_sender_chat_id The identifier of the sender of the story to report

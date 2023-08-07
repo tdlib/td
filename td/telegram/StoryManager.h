@@ -244,7 +244,8 @@ class StoryManager final : public Actor {
   void set_story_reaction(StoryFullId story_full_id, ReactionType reaction_type, bool add_to_recent,
                           Promise<Unit> &&promise);
 
-  void get_story_viewers(StoryId story_id, const string &offset, int32 limit,
+  void get_story_viewers(StoryId story_id, const string &query, bool only_contacts, bool prefer_with_reaction,
+                         const string &offset, int32 limit,
                          Promise<td_api::object_ptr<td_api::storyViewers>> &&promise);
 
   void report_story(StoryFullId story_full_id, ReportReason &&reason, Promise<Unit> &&promise);
