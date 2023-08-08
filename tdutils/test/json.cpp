@@ -349,7 +349,7 @@ class JsonStringDecodeBenchmark final : public td::Benchmark {
   }
 
   td::string get_description() const final {
-    return td::string("JsonStringDecodeBenchmark") + str_.substr(1, 5);
+    return td::string("JsonStringDecodeBenchmark") + str_.substr(1, 6);
   }
 
   void run(int n) final {
@@ -364,6 +364,12 @@ class JsonStringDecodeBenchmark final : public td::Benchmark {
 TEST(JSON, bench_json_string_decode) {
   td::bench(JsonStringDecodeBenchmark(td::string(1000, 'a')));
   td::bench(JsonStringDecodeBenchmark(td::string(1000, '\\')));
+  td::string str;
+  for (int i = 32; i < 128; i++) {
+    str += "a\\";
+    str += static_cast<char>(i);
+  }
+  td::bench(JsonStringDecodeBenchmark(str));
 }
 
 static void test_string_decode(td::string str, const td::string &result) {
