@@ -373,6 +373,12 @@ TEST(JSON, bench_json_string_decode) {
 }
 
 static void test_string_decode(td::string str, const td::string &result) {
+  auto str_copy = str;
+  td::Parser skip_parser(str_copy);
+  auto status = td::json_string_skip(skip_parser);
+  ASSERT_TRUE(status.is_ok());
+  ASSERT_TRUE(skip_parser.empty());
+
   td::Parser parser(str);
   auto r_value = td::json_string_decode(parser);
   ASSERT_TRUE(r_value.is_ok());
@@ -381,6 +387,11 @@ static void test_string_decode(td::string str, const td::string &result) {
 }
 
 static void test_string_decode_error(td::string str) {
+  auto str_copy = str;
+  td::Parser skip_parser(str_copy);
+  auto status = td::json_string_skip(skip_parser);
+  ASSERT_TRUE(status.is_error());
+
   td::Parser parser(str);
   auto r_value = td::json_string_decode(parser);
   ASSERT_TRUE(r_value.is_error());

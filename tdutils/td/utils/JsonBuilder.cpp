@@ -245,48 +245,27 @@ Status json_string_skip(Parser &parser) {
   if (!parser.try_skip('"')) {
     return Status::Error("Opening '\"' expected");
   }
-  auto *begin_src = parser.data().data();
-  auto *cur_src = begin_src;
-  auto *end_src = parser.data().end();
-  auto *end = cur_src;
-  while (end < end_src && *end != '"') {
-    if (*end == '\\') {
-      end++;
-    }
-    end++;
-  }
-  if (end >= end_src) {
-    return Status::Error("Closing '\"' not found");
-  }
-  parser.advance(end + 1 - cur_src);
-  end_src = end;
+  auto data = parser.data();
+  auto *cur_src = data.ubegin();
+  auto *end = data.uend();
 
-  while (cur_src != end_src) {
-    auto *slash = static_cast<char *>(std::memchr(cur_src, '\\', end_src - cur_src));
-    if (slash == nullptr) {
-      slash = end_src;
+  while (true) {
+    if (cur_src == end) {
+      return Status::Error("Closing '\"' not found");
     }
-    cur_src = slash;
-    if (cur_src != end_src) {
+    if (*cur_src == '"') {
+      parser.advance(cur_src + 1 - data.ubegin());
+      return Status::OK();
+    }
+    if (*cur_src == '\\') {
       cur_src++;
-      if (cur_src == end_src) {
-        // TODO UNREACHABLE();
-        return Status::Error("Unexpected end of string");
+      if (cur_src == end) {
+        return Status::Error("Closing '\"' not found");
       }
       switch (*cur_src) {
-        case '"':
-        case '\\':
-        case '/':
-        case 'b':
-        case 'f':
-        case 'n':
-        case 'r':
-        case 't':
-          cur_src++;
-          break;
         case 'u': {
           cur_src++;
-          if (cur_src + 4 > end_src) {
+          if (cur_src + 4 > end) {
             return Status::Error("\\u has less than 4 symbols");
           }
           int num = 0;
@@ -298,7 +277,7 @@ Status json_string_skip(Parser &parser) {
             num = num * 16 + d;
           }
           if (0xD7FF < num && num < 0xE000) {
-            if (cur_src + 6 <= end_src && cur_src[0] == '\\' && cur_src[1] == 'u') {
+            if (cur_src + 6 <= end && cur_src[0] == '\\' && cur_src[1] == 'u') {
               cur_src += 2;
               int new_num = 0;
               for (int i = 0; i < 4; i++, cur_src++) {
@@ -317,9 +296,15 @@ Status json_string_skip(Parser &parser) {
           }
           break;
         }
+        default:
+          cur_src++;
+          break;
       }
+    } else {
+      cur_src++;
     }
   }
+  UNREACHABLE();
   return Status::OK();
 }
 
