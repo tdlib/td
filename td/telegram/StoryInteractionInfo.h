@@ -38,6 +38,10 @@ class StoryInteractionInfo {
     return view_count_ < 0;
   }
 
+  bool has_hidden_viewers() const {
+    return view_count_ < 0 || (recent_viewer_user_ids_.empty() && view_count_ > 0);
+  }
+
   void add_dependencies(Dependencies &dependencies) const;
 
   bool set_counts(int32 view_count, int32 reaction_count) {

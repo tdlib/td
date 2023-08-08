@@ -2345,7 +2345,7 @@ Status StoryManager::can_get_story_viewers(StoryFullId story_full_id, const Stor
     return Status::Error(400, "Story is not sent yet");
   }
   if (G()->unix_time() >= get_story_viewers_expire_date(story) &&
-      (ignore_premium || story->interaction_info_.is_empty())) {
+      (ignore_premium || story->interaction_info_.has_hidden_viewers())) {
     return Status::Error(400, "Story is too old");
   }
   return Status::OK();
