@@ -365,3 +365,42 @@ TEST(JSON, bench_json_string_decode) {
   td::bench(JsonStringDecodeBenchmark(td::string(1000, 'a')));
   td::bench(JsonStringDecodeBenchmark(td::string(1000, '\\')));
 }
+
+static void test_string_decode(td::string str, const td::string &result) {
+  td::Parser parser(str);
+  auto r_value = td::json_string_decode(parser);
+  ASSERT_TRUE(r_value.is_ok());
+  ASSERT_TRUE(parser.empty());
+  ASSERT_EQ(result, r_value.ok());
+}
+
+static void test_string_decode_error(td::string str) {
+  td::Parser parser(str);
+  auto r_value = td::json_string_decode(parser);
+  ASSERT_TRUE(r_value.is_error());
+}
+
+TEST(JSON, string_decode) {
+  test_string_decode("\"\"", "");
+  test_string_decode("\"abacaba\"", "abacaba");
+  test_string_decode(
+      "\"\\1\\a\\b\\c\\d\\e\\f\\g\\h\\i\\j\\k\\l\\m\\n\\o\\p\\q\\r\\s\\t\\u00201\\v\\w\\x\\y\\z\\U\\\"\\\\\\/\\+\\-\"",
+      "1a\bcde\fghijklm\nopq\rs\t 1vwxyzU\"\\/+-");
+  test_string_decode("\"\\u0373\\ud7FB\\uD840\\uDC04\\uD840a\\uD840\\u0373\"",
+                     "\xCD\xB3\xED\x9F\xBB\xF0\xA0\x80\x84\xed\xa1\x80\x61\xed\xa1\x80\xCD\xB3");
+
+  test_string_decode_error(" \"\"");
+  test_string_decode_error("\"");
+  test_string_decode_error("\"\\");
+  test_string_decode_error("\"\\b'");
+  test_string_decode_error("\"\\u\"");
+  test_string_decode_error("\"\\u123\"");
+  test_string_decode_error("\"\\u123g\"");
+  test_string_decode_error("\"\\u123G\"");
+  test_string_decode_error("\"\\u123 \"");
+  test_string_decode_error("\"\\ug123\"");
+  test_string_decode_error("\"\\uG123\"");
+  test_string_decode_error("\"\\u 123\"");
+  test_string_decode_error("\"\\uD800\\ug123\"");
+  test_string_decode_error("\"\\uD800\\u123\"");
+}
