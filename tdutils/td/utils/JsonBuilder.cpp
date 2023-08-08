@@ -9,8 +9,7 @@
 #include "td/utils/misc.h"
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/SliceBuilder.h"
-
-#include <cstring>
+#include "td/utils/utf8.h"
 
 namespace td {
 
@@ -185,7 +184,7 @@ Result<MutableSlice> json_string_decode(Parser &parser) {
           if (cur_src + 4 > end) {
             return Status::Error("\\u has less than 4 symbols");
           }
-          int num = 0;
+          uint32 num = 0;
           for (int i = 0; i < 4; i++, cur_src++) {
             int d = hex_to_int(*cur_src);
             if (d == 16) {
@@ -212,21 +211,7 @@ Result<MutableSlice> json_string_decode(Parser &parser) {
             }
           }
 
-          if (num < 128) {
-            *cur_dest++ = static_cast<char>(num);
-          } else if (num < 0x800) {
-            *cur_dest++ = static_cast<char>(0xc0 + (num >> 6));
-            *cur_dest++ = static_cast<char>(0x80 + (num & 63));
-          } else if (num <= 0xffff) {
-            *cur_dest++ = static_cast<char>(0xe0 + (num >> 12));
-            *cur_dest++ = static_cast<char>(0x80 + ((num >> 6) & 63));
-            *cur_dest++ = static_cast<char>(0x80 + (num & 63));
-          } else {
-            *cur_dest++ = static_cast<char>(0xf0 + (num >> 18));
-            *cur_dest++ = static_cast<char>(0x80 + ((num >> 12) & 63));
-            *cur_dest++ = static_cast<char>(0x80 + ((num >> 6) & 63));
-            *cur_dest++ = static_cast<char>(0x80 + (num & 63));
-          }
+          cur_dest = append_utf8_character_unsafe(cur_dest, num);
           break;
         }
         default:
@@ -337,7 +322,7 @@ Result<JsonValue> do_json_decode(Parser &parser, int32 max_depth) {
     case '[': {
       parser.skip('[');
       parser.skip_whitespaces();
-      std::vector<JsonValue> res;
+      vector<JsonValue> res;
       if (parser.try_skip(']')) {
         return JsonValue::create_array(std::move(res));
       }
