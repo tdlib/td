@@ -140,44 +140,26 @@ Result<MutableSlice> json_string_decode(Parser &parser) {
   if (!parser.try_skip('"')) {
     return Status::Error("Opening '\"' expected");
   }
-  auto *cur_src = parser.data().data();
-  auto *end_src = parser.data().end();
-  auto *end = cur_src;
-  while (end < end_src && end[0] != '"') {
-    if (end[0] == '\\') {
-      end++;
-    }
-    end++;
-  }
-  if (end >= end_src) {
-    return Status::Error("Closing '\"' not found");
-  }
-  parser.advance(end + 1 - cur_src);
-  end_src = end;
+  auto data = parser.data();
+  auto *result_start = data.ubegin();
+  auto *cur_src = result_start;
+  auto *cur_dest = result_start;
+  auto *end = data.uend();
 
-  auto *cur_dest = cur_src;
-  auto *begin_dest = cur_src;
-
-  while (cur_src != end_src) {
-    auto *slash = static_cast<char *>(std::memchr(cur_src, '\\', end_src - cur_src));
-    if (slash == nullptr) {
-      slash = end_src;
+  while (true) {
+    if (cur_src == end) {
+      return Status::Error("Closing '\"' not found");
     }
-    std::memmove(cur_dest, cur_src, slash - cur_src);
-    cur_dest += slash - cur_src;
-    cur_src = slash;
-    if (cur_src != end_src) {
+    if (*cur_src == '"') {
+      parser.advance(cur_src + 1 - result_start);
+      return data.substr(0, cur_dest - result_start);
+    }
+    if (*cur_src == '\\') {
       cur_src++;
-      if (cur_src == end_src) {
-        // TODO UNREACHABLE();
-        return Status::Error("Unexpected end of string");
+      if (cur_src == end) {
+        return Status::Error("Closing '\"' not found");
       }
       switch (*cur_src) {
-        case '"':
-        case '\\':
-        case '/':
-          *cur_dest++ = *cur_src++;
-          break;
         case 'b':
           *cur_dest++ = '\b';
           cur_src++;
@@ -200,7 +182,7 @@ Result<MutableSlice> json_string_decode(Parser &parser) {
           break;
         case 'u': {
           cur_src++;
-          if (cur_src + 4 > end_src) {
+          if (cur_src + 4 > end) {
             return Status::Error("\\u has less than 4 symbols");
           }
           int num = 0;
@@ -212,7 +194,7 @@ Result<MutableSlice> json_string_decode(Parser &parser) {
             num = num * 16 + d;
           }
           if (0xD7FF < num && num < 0xE000) {
-            if (cur_src + 6 <= end_src && cur_src[0] == '\\' && cur_src[1] == 'u') {
+            if (cur_src + 6 <= end && cur_src[0] == '\\' && cur_src[1] == 'u') {
               cur_src += 2;
               int new_num = 0;
               for (int i = 0; i < 4; i++, cur_src++) {
@@ -247,11 +229,16 @@ Result<MutableSlice> json_string_decode(Parser &parser) {
           }
           break;
         }
+        default:
+          *cur_dest++ = *cur_src++;
+          break;
       }
+    } else {
+      *cur_dest++ = *cur_src++;
     }
   }
-  CHECK(cur_dest <= end_src);
-  return MutableSlice(begin_dest, cur_dest);
+  UNREACHABLE();
+  return {};
 }
 
 Status json_string_skip(Parser &parser) {
