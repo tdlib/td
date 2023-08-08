@@ -4,9 +4,11 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
+#include "td/utils/benchmark.h"
 #include "td/utils/common.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
+#include "td/utils/Parser.h"
 #include "td/utils/Slice.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tests.h"
@@ -337,4 +339,29 @@ TEST(JSON, json_object_get_field) {
   ASSERT_TRUE(object.get_required_string_field("string5").is_error());
   ASSERT_EQ(object.get_optional_string_field("int").ok(), "1");
   ASSERT_EQ(object.get_optional_string_field("int2").ok(), "2");
+}
+
+class JsonStringDecodeBenchmark final : public td::Benchmark {
+  td::string str_;
+
+ public:
+  explicit JsonStringDecodeBenchmark(td::string str) : str_('"' + str + '"') {
+  }
+
+  td::string get_description() const final {
+    return td::string("JsonStringDecodeBenchmark") + str_.substr(1, 5);
+  }
+
+  void run(int n) final {
+    for (int i = 0; i < n; i++) {
+      auto str = str_;
+      td::Parser parser(str);
+      td::json_string_decode(parser);
+    }
+  }
+};
+
+TEST(JSON, bench_json_string_decode) {
+  td::bench(JsonStringDecodeBenchmark(td::string(1000, 'a')));
+  td::bench(JsonStringDecodeBenchmark(td::string(1000, '\\')));
 }
