@@ -216,7 +216,7 @@ struct Array {
 template <class ArrayT>
 StringBuilder &operator<<(StringBuilder &stream, const Array<ArrayT> &array) {
   bool first = true;
-  stream << Slice("{");
+  stream << '{';
   for (auto &x : array.ref) {
     if (!first) {
       stream << Slice(", ");
@@ -224,12 +224,12 @@ StringBuilder &operator<<(StringBuilder &stream, const Array<ArrayT> &array) {
     stream << x;
     first = false;
   }
-  return stream << Slice("}");
+  return stream << '}';
 }
 
 inline StringBuilder &operator<<(StringBuilder &stream, const Array<vector<bool>> &array) {
   bool first = true;
-  stream << Slice("{");
+  stream << '{';
   for (bool x : array.ref) {
     if (!first) {
       stream << Slice(", ");
@@ -237,7 +237,7 @@ inline StringBuilder &operator<<(StringBuilder &stream, const Array<vector<bool>
     stream << x;
     first = false;
   }
-  return stream << Slice("}");
+  return stream << '}';
 }
 
 template <class ArrayT>
@@ -254,7 +254,7 @@ struct Tagged {
 
 template <class ValueT>
 StringBuilder &operator<<(StringBuilder &stream, const Tagged<ValueT> &tagged) {
-  return stream << "[" << tagged.tag << ":" << tagged.ref << "]";
+  return stream << '[' << tagged.tag << ':' << tagged.ref << ']';
 }
 
 template <class ValueT>
@@ -327,7 +327,7 @@ using format::tag;
 
 template <class A, class B>
 StringBuilder &operator<<(StringBuilder &sb, const std::pair<A, B> &p) {
-  return sb << "[" << p.first << ";" << p.second << "]";
+  return sb << '[' << p.first << ';' << p.second << ']';
 }
 
 template <class T>
