@@ -6,7 +6,6 @@
 //
 #pragma once
 
-#include "td/telegram/ChatReactions.h"
 #include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/Dimensions.h"

@@ -8,8 +8,6 @@
 
 #include "td/telegram/misc.h"
 
-#include "td/actor/actor.h"
-
 #include "td/utils/as.h"
 #include "td/utils/base64.h"
 #include "td/utils/crypto.h"
