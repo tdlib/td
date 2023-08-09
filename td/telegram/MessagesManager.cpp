@@ -23843,11 +23843,11 @@ ChatReactions MessagesManager::get_message_available_reactions(const Dialog *d, 
     active_reactions.reaction_types_ = active_reaction_types_;
     active_reactions.allow_all_ = false;
   }
-  if (m->reactions != nullptr) {
+  if (can_use_reactions && m->reactions != nullptr) {
     for (const auto &reaction : m->reactions->reactions_) {
       // an already used reaction can be added if it is an active reaction
       const auto &reaction_type = reaction.get_reaction_type();
-      if (can_use_reactions && reaction_type.is_active_reaction(active_reaction_pos_) &&
+      if (reaction_type.is_active_reaction(active_reaction_pos_) &&
           !td::contains(active_reactions.reaction_types_, reaction_type)) {
         active_reactions.reaction_types_.push_back(reaction_type);
       }
