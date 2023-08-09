@@ -56,6 +56,10 @@ class ReactionManager final : public Actor {
 
   void on_get_top_reactions(tl_object_ptr<telegram_api::messages_Reactions> &&reactions_ptr);
 
+  void set_default_reaction(ReactionType reaction_type, Promise<Unit> &&promise);
+
+  void send_set_default_reaction_query();
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:

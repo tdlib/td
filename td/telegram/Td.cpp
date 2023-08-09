@@ -3692,10 +3692,6 @@ void Td::init(Parameters parameters, Result<TdDb::OpenedDatabase> r_opened_datab
     on_save_app_log_binlog_event(this, std::move(event));
   }
 
-  if (option_manager_->get_option_boolean("default_reaction_needs_sync")) {
-    send_set_default_reaction_query(this);
-  }
-
   if (is_online_) {
     on_online_updated(true, true);
   }
@@ -5386,7 +5382,7 @@ void Td::on_request(uint64 id, td_api::getMessageAddedReactions &request) {
 void Td::on_request(uint64 id, td_api::setDefaultReactionType &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  set_default_reaction(this, ReactionType(request.reaction_type_), std::move(promise));
+  reaction_manager_->set_default_reaction(ReactionType(request.reaction_type_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getMessagePublicForwards &request) {

@@ -7,6 +7,7 @@
 #include "td/telegram/ReactionManager.h"
 
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/ConfigManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessagesManager.h"
@@ -22,6 +23,7 @@
 #include "td/utils/FlatHashSet.h"
 #include "td/utils/logging.h"
 #include "td/utils/ScopeGuard.h"
+#include "td/utils/Status.h"
 
 #include <algorithm>
 
@@ -126,6 +128,45 @@ class ClearRecentReactionsQuery final : public Td::ResultHandler {
   }
 };
 
+class SetDefaultReactionQuery final : public Td::ResultHandler {
+  ReactionType reaction_type_;
+
+ public:
+  void send(const ReactionType &reaction_type) {
+    reaction_type_ = reaction_type;
+    send_query(
+        G()->net_query_creator().create(telegram_api::messages_setDefaultReaction(reaction_type.get_input_reaction())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_setDefaultReaction>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    if (!result_ptr.ok()) {
+      return on_error(Status::Error(400, "Receive false"));
+    }
+
+    auto default_reaction = td_->option_manager_->get_option_string("default_reaction", "-");
+    if (default_reaction != reaction_type_.get_string()) {
+      td_->reaction_manager_->send_set_default_reaction_query();
+    } else {
+      td_->option_manager_->set_option_empty("default_reaction_needs_sync");
+    }
+  }
+
+  void on_error(Status status) final {
+    if (G()->close_flag()) {
+      return;
+    }
+
+    LOG(INFO) << "Receive error for SetDefaultReactionQuery: " << status;
+    td_->option_manager_->set_option_empty("default_reaction_needs_sync");
+    send_closure(G()->config_manager(), &ConfigManager::request_config, false);
+  }
+};
+
 ReactionManager::ReactionManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 
@@ -148,6 +189,10 @@ void ReactionManager::init() {
   td_->stickers_manager_->init();
 
   load_active_reactions();
+
+  if (td_->option_manager_->get_option_boolean("default_reaction_needs_sync")) {
+    send_set_default_reaction_query();
+  }
 }
 
 td_api::object_ptr<td_api::emojiReaction> ReactionManager::get_emoji_reaction_object(const string &emoji) const {
@@ -639,6 +684,29 @@ bool ReactionManager::is_active_reaction(const ReactionType &reaction_type) cons
     }
   }
   return false;
+}
+
+void ReactionManager::set_default_reaction(ReactionType reaction_type, Promise<Unit> &&promise) {
+  if (reaction_type.is_empty()) {
+    return promise.set_error(Status::Error(400, "Default reaction must be non-empty"));
+  }
+  if (!reaction_type.is_custom_reaction() && !is_active_reaction(reaction_type)) {
+    return promise.set_error(Status::Error(400, "Can't set incative reaction as default"));
+  }
+
+  if (td_->option_manager_->get_option_string("default_reaction", "-") != reaction_type.get_string()) {
+    td_->option_manager_->set_option_string("default_reaction", reaction_type.get_string());
+    if (!td_->option_manager_->get_option_boolean("default_reaction_needs_sync")) {
+      td_->option_manager_->set_option_boolean("default_reaction_needs_sync", true);
+      send_set_default_reaction_query();
+    }
+  }
+  promise.set_value(Unit());
+}
+
+void ReactionManager::send_set_default_reaction_query() {
+  td_->create_handler<SetDefaultReactionQuery>()->send(
+      ReactionType(td_->option_manager_->get_option_string("default_reaction")));
 }
 
 void ReactionManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {

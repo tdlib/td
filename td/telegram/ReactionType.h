@@ -19,8 +19,6 @@ namespace td {
 
 struct ReactionTypeHash;
 
-class Td;
-
 class ReactionType {
   string reaction_;
 
@@ -81,10 +79,6 @@ inline bool operator!=(const ReactionType &lhs, const ReactionType &rhs) {
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const ReactionType &reaction_type);
-
-void set_default_reaction(Td *td, ReactionType reaction_type, Promise<Unit> &&promise);
-
-void send_set_default_reaction_query(Td *td);
 
 int64 get_reaction_types_hash(const vector<ReactionType> &reaction_types);
 
