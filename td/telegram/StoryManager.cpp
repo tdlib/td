@@ -23,6 +23,7 @@
 #include "td/telegram/NotificationManager.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/ReactionManager.h"
+#include "td/telegram/ReactionType.hpp"
 #include "td/telegram/ReportReason.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/StoryContent.h"
