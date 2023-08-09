@@ -17,7 +17,6 @@
 #include "td/telegram/FullMessageId.h"
 #include "td/telegram/PhotoFormat.h"
 #include "td/telegram/PhotoSize.h"
-#include "td/telegram/ReactionType.h"
 #include "td/telegram/SecretInputMedia.h"
 #include "td/telegram/SpecialStickerSetType.h"
 #include "td/telegram/StickerFormat.h"
@@ -148,8 +147,6 @@ class StickersManager final : public Actor {
 
   Status on_animated_emoji_message_clicked(string &&emoji, FullMessageId full_message_id, string data);
 
-  bool is_active_reaction(const ReactionType &reaction_type) const;
-
   void create_sticker(FileId file_id, FileId premium_animation_file_id, string minithumbnail, PhotoSize thumbnail,
                       Dimensions dimensions, tl_object_ptr<telegram_api::documentAttributeSticker> sticker,
                       tl_object_ptr<telegram_api::documentAttributeCustomEmoji> custom_emoji,
@@ -195,33 +192,10 @@ class StickersManager final : public Actor {
 
   void view_featured_sticker_sets(const vector<StickerSetId> &sticker_set_ids);
 
-  void get_emoji_reaction(const string &emoji, Promise<td_api::object_ptr<td_api::emojiReaction>> &&promise);
-
-  td_api::object_ptr<td_api::availableReactions> get_sorted_available_reactions(ChatReactions available_reactions,
-                                                                                ChatReactions active_reactions,
-                                                                                int32 row_size);
-
-  vector<ReactionType> get_recent_reactions();
-
-  vector<ReactionType> get_top_reactions();
-
-  void add_recent_reaction(const ReactionType &reaction_type);
-
-  void clear_recent_reactions(Promise<Unit> &&promise);
-
-  void reload_reactions();
-
-  void reload_recent_reactions();
-
-  void reload_top_reactions();
-
   void reload_special_sticker_set_by_type(SpecialStickerSetType type, bool is_recursive = false);
 
-  void on_get_available_reactions(tl_object_ptr<telegram_api::messages_AvailableReactions> &&available_reactions_ptr);
-
-  void on_get_recent_reactions(tl_object_ptr<telegram_api::messages_Reactions> &&reactions_ptr);
-
-  void on_get_top_reactions(tl_object_ptr<telegram_api::messages_Reactions> &&reactions_ptr);
+  std::pair<int64, FileId> on_get_sticker_document(tl_object_ptr<telegram_api::Document> &&document_ptr,
+                                                   StickerFormat expected_format);
 
   void on_get_installed_sticker_sets(StickerType sticker_type,
                                      tl_object_ptr<telegram_api::messages_AllStickers> &&stickers_ptr);
@@ -463,8 +437,6 @@ class StickersManager final : public Actor {
   static constexpr int32 EMOJI_KEYWORDS_UPDATE_DELAY = 3600;
   static constexpr double MIN_ANIMATED_EMOJI_CLICK_DELAY = 0.2;
 
-  static constexpr int32 MAX_RECENT_REACTIONS = 100;  // some reasonable value
-
   class Sticker {
    public:
     StickerSetId set_id_;
@@ -589,55 +561,6 @@ class StickersManager final : public Actor {
     void parse(ParserT &parser);
   };
 
-  struct Reaction {
-    ReactionType reaction_type_;
-    string title_;
-    bool is_active_ = false;
-    bool is_premium_ = false;
-    FileId static_icon_;
-    FileId appear_animation_;
-    FileId select_animation_;
-    FileId activate_animation_;
-    FileId effect_animation_;
-    FileId around_animation_;
-    FileId center_animation_;
-
-    bool is_valid() const {
-      return static_icon_.is_valid() && appear_animation_.is_valid() && select_animation_.is_valid() &&
-             activate_animation_.is_valid() && effect_animation_.is_valid() && !reaction_type_.is_empty();
-    }
-
-    template <class StorerT>
-    void store(StorerT &storer) const;
-
-    template <class ParserT>
-    void parse(ParserT &parser);
-  };
-
-  struct Reactions {
-    int32 hash_ = 0;
-    bool are_being_reloaded_ = false;
-    vector<Reaction> reactions_;
-
-    template <class StorerT>
-    void store(StorerT &storer) const;
-
-    template <class ParserT>
-    void parse(ParserT &parser);
-  };
-
-  struct ReactionList {
-    int64 hash_ = 0;
-    bool is_being_reloaded_ = false;
-    vector<ReactionType> reaction_types_;
-
-    template <class StorerT>
-    void store(StorerT &storer) const;
-
-    template <class ParserT>
-    void parse(ParserT &parser);
-  };
-
   class CustomEmojiLogEvent;
   class CustomEmojiIdsLogEvent;
   class StickerListLogEvent;
@@ -659,8 +582,6 @@ class StickersManager final : public Actor {
 
   tl_object_ptr<td_api::stickerSetInfo> get_sticker_set_info_object(StickerSetId sticker_set_id, size_t covers_limit,
                                                                     bool prefer_premium) const;
-
-  td_api::object_ptr<td_api::emojiReaction> get_emoji_reaction_object(const string &emoji) const;
 
   Sticker *get_sticker(FileId file_id);
   const Sticker *get_sticker(FileId file_id) const;
@@ -713,9 +634,6 @@ class StickersManager final : public Actor {
   StickerSet *add_sticker_set(StickerSetId sticker_set_id, int64 access_hash);
 
   static PhotoFormat get_sticker_set_thumbnail_format(StickerFormat sticker_format);
-
-  std::pair<int64, FileId> on_get_sticker_document(tl_object_ptr<telegram_api::Document> &&document_ptr,
-                                                   StickerFormat expected_format);
 
   static tl_object_ptr<telegram_api::InputStickerSet> get_input_sticker_set(const StickerSet *set);
 
@@ -952,26 +870,6 @@ class StickersManager final : public Actor {
 
   void tear_down() final;
 
-  void save_active_reactions();
-
-  void save_reactions();
-
-  void save_recent_reactions();
-
-  void save_top_reactions();
-
-  void load_active_reactions();
-
-  void load_reactions();
-
-  void load_recent_reactions();
-
-  void load_top_reactions();
-
-  void update_active_reactions();
-
-  td_api::object_ptr<td_api::updateActiveEmojiReactions> get_update_active_emoji_reactions_object() const;
-
   SpecialStickerSet &add_special_sticker_set(const SpecialStickerSetType &type);
 
   static void init_special_sticker_set(SpecialStickerSet &sticker_set, int64 sticker_set_id, int64 access_hash,
@@ -1161,8 +1059,6 @@ class StickersManager final : public Actor {
   vector<Promise<Unit>> pending_get_default_statuses_queries_;
   vector<Promise<Unit>> pending_get_default_topic_icons_queries_;
 
-  vector<std::pair<string, Promise<td_api::object_ptr<td_api::emojiReaction>>>> pending_get_emoji_reaction_queries_;
-
   double next_click_animated_emoji_message_time_ = 0;
   double next_update_animated_emoji_clicked_time_ = 0;
   vector<PendingGetAnimatedEmojiClickSticker> pending_get_animated_emoji_click_stickers_;
@@ -1182,16 +1078,6 @@ class StickersManager final : public Actor {
   std::shared_ptr<UploadStickerFileCallback> upload_sticker_file_callback_;
 
   FlatHashMap<FileId, std::pair<UserId, Promise<Unit>>, FileIdHash> being_uploaded_files_;
-
-  Reactions reactions_;
-  vector<ReactionType> active_reaction_types_;
-
-  ReactionList recent_reactions_;
-  ReactionList top_reactions_;
-
-  bool are_reactions_loaded_from_database_ = false;
-  bool are_recent_reactions_loaded_from_database_ = false;
-  bool are_top_reactions_loaded_from_database_ = false;
 
   FlatHashMap<string, vector<string>> emoji_language_codes_;
   FlatHashMap<string, int32> emoji_language_code_versions_;

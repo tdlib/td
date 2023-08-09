@@ -56,6 +56,7 @@
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/PollId.h"
 #include "td/telegram/PublicDialogType.h"
+#include "td/telegram/ReactionManager.h"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/ReplyMarkup.hpp"
 #include "td/telegram/ReportReason.h"
@@ -13575,7 +13576,7 @@ void MessagesManager::init() {
   is_inited_ = true;
 
   td_->notification_settings_manager_->init();  // load scope notification settings
-  init_stickers_manager(td_);                   // load available reactions
+  td_->reaction_manager_->init();               // load available reactions
 
   start_time_ = Time::now();
   last_channel_pts_jump_warning_time_ = start_time_ - 3600;
@@ -23775,8 +23776,8 @@ Result<td_api::object_ptr<td_api::availableReactions>> MessagesManager::get_mess
     return Status::Error(400, "Message not found");
   }
 
-  return get_sorted_available_reactions(td_, get_message_available_reactions(d, m, false),
-                                        get_message_active_reactions(d, m), row_size);
+  return td_->reaction_manager_->get_sorted_available_reactions(get_message_available_reactions(d, m, false),
+                                                                get_message_active_reactions(d, m), row_size);
 }
 
 ChatReactions MessagesManager::get_message_available_reactions(const Dialog *d, const Message *m,

@@ -71,6 +71,7 @@ class PasswordManager;
 class PhoneNumberManager;
 class PollManager;
 class PrivacyManager;
+class ReactionManager;
 class SecureManager;
 class SecretChatsManager;
 class SponsoredMessageManager;
@@ -191,6 +192,8 @@ class Td final : public Actor {
   ActorOwn<PollManager> poll_manager_actor_;
   unique_ptr<PrivacyManager> privacy_manager_;
   ActorOwn<PrivacyManager> privacy_manager_actor_;
+  unique_ptr<ReactionManager> reaction_manager_;
+  ActorOwn<ReactionManager> reaction_manager_actor_;
   unique_ptr<SponsoredMessageManager> sponsored_message_manager_;
   ActorOwn<SponsoredMessageManager> sponsored_message_manager_actor_;
   unique_ptr<StickersManager> stickers_manager_;

@@ -308,6 +308,7 @@ function split_file($file, $chunks, $undo) {
                 'poll_manager[_(-][^.]|PollManager' => "PollManager",
                 'privacy_manager[_(-][^.]|PrivacyManager' => "PrivacyManager",
                 'PublicDialogType|get_public_dialog_type' => 'PublicDialogType',
+                'reaction_manager[_(-][^.]|ReactionManager' => 'ReactionManager',
                 'SecretChatActor' => 'SecretChatActor',
                 'secret_chats_manager[_(-]|SecretChatsManager' => 'SecretChatsManager',
                 'sponsored_message_manager[_(-][^.]|SponsoredMessageManager' => 'SponsoredMessageManager',

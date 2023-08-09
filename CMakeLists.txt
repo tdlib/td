@@ -444,6 +444,7 @@ set(TDLIB_SOURCE
   td/telegram/PremiumGiftOption.cpp
   td/telegram/QueryCombiner.cpp
   td/telegram/QueryMerger.cpp
+  td/telegram/ReactionManager.cpp
   td/telegram/ReactionType.cpp
   td/telegram/RecentDialogList.cpp
   td/telegram/ReplyMarkup.cpp
@@ -735,6 +736,7 @@ set(TDLIB_SOURCE
   td/telegram/PublicDialogType.h
   td/telegram/QueryCombiner.h
   td/telegram/QueryMerger.h
+  td/telegram/ReactionManager.h
   td/telegram/ReactionType.h
   td/telegram/RecentDialogList.h
   td/telegram/ReplyMarkup.h
@@ -841,6 +843,7 @@ set(TDLIB_SOURCE
   td/telegram/PollId.hpp
   td/telegram/PollManager.hpp
   td/telegram/PremiumGiftOption.hpp
+  td/telegram/ReactionManager.hpp
   td/telegram/ReactionType.hpp
   td/telegram/ReplyMarkup.hpp
   td/telegram/RequestedDialogType.hpp

@@ -62,6 +62,7 @@
 #include "td/telegram/PollId.h"
 #include "td/telegram/PollId.hpp"
 #include "td/telegram/PollManager.h"
+#include "td/telegram/ReactionManager.h"
 #include "td/telegram/secret_api.hpp"
 #include "td/telegram/SecureValue.h"
 #include "td/telegram/SecureValue.hpp"
@@ -6881,13 +6882,6 @@ void rate_message_content_speech_recognition(Td *td, const MessageContent *conte
     default:
       return promise.set_error(Status::Error(400, "Invalid message specified"));
   }
-}
-
-td_api::object_ptr<td_api::availableReactions> get_sorted_available_reactions(Td *td, ChatReactions available_reactions,
-                                                                              ChatReactions active_reactions,
-                                                                              int32 row_size) {
-  return td->stickers_manager_->get_sorted_available_reactions(std::move(available_reactions),
-                                                               std::move(active_reactions), row_size);
 }
 
 }  // namespace td

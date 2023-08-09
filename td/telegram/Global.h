@@ -54,6 +54,7 @@ class NotificationManager;
 class NotificationSettingsManager;
 class OptionManager;
 class PasswordManager;
+class ReactionManager;
 class SecretChatsManager;
 class SponsoredMessageManager;
 class StateManager;
@@ -331,6 +332,13 @@ class Global final : public ActorContext {
     password_manager_ = password_manager;
   }
 
+  ActorId<ReactionManager> reaction_manager() const {
+    return reaction_manager_;
+  }
+  void set_reaction_manager(ActorId<ReactionManager> reaction_manager) {
+    reaction_manager_ = reaction_manager;
+  }
+
   ActorId<SecretChatsManager> secret_chats_manager() const {
     return secret_chats_manager_;
   }
@@ -530,6 +538,7 @@ class Global final : public ActorContext {
   ActorId<NotificationManager> notification_manager_;
   ActorId<NotificationSettingsManager> notification_settings_manager_;
   ActorId<PasswordManager> password_manager_;
+  ActorId<ReactionManager> reaction_manager_;
   ActorId<SecretChatsManager> secret_chats_manager_;
   ActorId<SponsoredMessageManager> sponsored_message_manager_;
   ActorId<StickersManager> stickers_manager_;

@@ -10,7 +10,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/OptionManager.h"
-#include "td/telegram/StickersManager.h"
+#include "td/telegram/ReactionManager.h"
 #include "td/telegram/Td.h"
 
 #include "td/actor/actor.h"
@@ -189,7 +189,7 @@ void set_default_reaction(Td *td, ReactionType reaction_type, Promise<Unit> &&pr
   if (reaction_type.is_empty()) {
     return promise.set_error(Status::Error(400, "Default reaction must be non-empty"));
   }
-  if (!reaction_type.is_custom_reaction() && !td->stickers_manager_->is_active_reaction(reaction_type)) {
+  if (!reaction_type.is_custom_reaction() && !td->reaction_manager_->is_active_reaction(reaction_type)) {
     return promise.set_error(Status::Error(400, "Can't set incative reaction as default"));
   }
 
@@ -209,15 +209,15 @@ void send_set_default_reaction_query(Td *td) {
 }
 
 vector<ReactionType> get_recent_reactions(Td *td) {
-  return td->stickers_manager_->get_recent_reactions();
+  return td->reaction_manager_->get_recent_reactions();
 }
 
 vector<ReactionType> get_top_reactions(Td *td) {
-  return td->stickers_manager_->get_top_reactions();
+  return td->reaction_manager_->get_top_reactions();
 }
 
 void add_recent_reaction(Td *td, const ReactionType &reaction_type) {
-  td->stickers_manager_->add_recent_reaction(reaction_type);
+  td->reaction_manager_->add_recent_reaction(reaction_type);
 }
 
 int64 get_reaction_types_hash(const vector<ReactionType> &reaction_types) {

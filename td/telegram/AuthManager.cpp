@@ -22,6 +22,7 @@
 #include "td/telegram/NotificationManager.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/PasswordManager.h"
+#include "td/telegram/ReactionManager.h"
 #include "td/telegram/SendCodeHelper.hpp"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/StickersManager.h"
@@ -1288,6 +1289,7 @@ void AuthManager::on_get_authorization(tl_object_ptr<telegram_api::auth_Authoriz
   td_->dialog_filter_manager_->on_authorization_success();  // must be after MessagesManager::on_authorization_success()
                                                             // to have folders created
   td_->notification_manager_->init();
+  td_->reaction_manager_->init();
   td_->stickers_manager_->init();
   td_->theme_manager_->init();
   td_->top_dialog_manager_->init();

@@ -107,6 +107,7 @@
 #include "td/telegram/Premium.h"
 #include "td/telegram/PrivacyManager.h"
 #include "td/telegram/PublicDialogType.h"
+#include "td/telegram/ReactionManager.h"
 #include "td/telegram/ReactionType.h"
 #include "td/telegram/ReportReason.h"
 #include "td/telegram/RequestActor.h"
@@ -3243,6 +3244,8 @@ void Td::dec_actor_refcnt() {
       LOG(DEBUG) << "PollManager was cleared" << timer;
       privacy_manager_.reset();
       LOG(DEBUG) << "PrivacyManager was cleared" << timer;
+      reaction_manager_.reset();
+      LOG(DEBUG) << "ReactionManager was cleared" << timer;
       sponsored_message_manager_.reset();
       LOG(DEBUG) << "SponsoredMessageManager was cleared" << timer;
       stickers_manager_.reset();
@@ -3445,6 +3448,8 @@ void Td::clear() {
   LOG(DEBUG) << "PollManager actor was cleared" << timer;
   privacy_manager_actor_.reset();
   LOG(DEBUG) << "PrivacyManager actor was cleared" << timer;
+  reaction_manager_actor_.reset();
+  LOG(DEBUG) << "ReactionManager actor was cleared" << timer;
   sponsored_message_manager_actor_.reset();
   LOG(DEBUG) << "SponsoredMessageManager actor was cleared" << timer;
   stickers_manager_actor_.reset();
@@ -3932,6 +3937,9 @@ void Td::init_managers() {
   poll_manager_actor_ = register_actor("PollManager", poll_manager_.get());
   privacy_manager_ = make_unique<PrivacyManager>(this, create_reference());
   privacy_manager_actor_ = register_actor("PrivacyManager", privacy_manager_.get());
+  reaction_manager_ = make_unique<ReactionManager>(this, create_reference());
+  reaction_manager_actor_ = register_actor("ReactionManager", reaction_manager_.get());
+  G()->set_reaction_manager(reaction_manager_actor_.get());
   sponsored_message_manager_ = make_unique<SponsoredMessageManager>(this, create_reference());
   sponsored_message_manager_actor_ = register_actor("SponsoredMessageManager", sponsored_message_manager_.get());
   G()->set_sponsored_message_manager(sponsored_message_manager_actor_.get());
@@ -4305,6 +4313,8 @@ void Td::on_request(uint64 id, const td_api::getCurrentState &request) {
     attach_menu_manager_->get_current_state(updates);
 
     stickers_manager_->get_current_state(updates);
+
+    reaction_manager_->get_current_state(updates);
 
     notification_settings_manager_->get_current_state(updates);
 
@@ -5323,7 +5333,7 @@ void Td::on_request(uint64 id, const td_api::getChatScheduledMessages &request) 
 void Td::on_request(uint64 id, const td_api::getEmojiReaction &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  stickers_manager_->get_emoji_reaction(request.emoji_, std::move(promise));
+  reaction_manager_->get_emoji_reaction(request.emoji_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getCustomEmojiReactionAnimations &request) {
@@ -5346,7 +5356,7 @@ void Td::on_request(uint64 id, const td_api::getMessageAvailableReactions &reque
 void Td::on_request(uint64 id, const td_api::clearRecentReactions &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  stickers_manager_->clear_recent_reactions(std::move(promise));
+  reaction_manager_->clear_recent_reactions(std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::addMessageReaction &request) {
