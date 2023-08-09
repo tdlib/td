@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/BackgroundInfo.h"
+#include "td/telegram/ChatReactions.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/EncryptedFile.h"
 #include "td/telegram/files/FileId.h"
@@ -284,5 +285,9 @@ void recognize_message_content_speech(Td *td, const MessageContent *content, Ful
 
 void rate_message_content_speech_recognition(Td *td, const MessageContent *content, FullMessageId full_message_id,
                                              bool is_good, Promise<Unit> &&promise);
+
+td_api::object_ptr<td_api::availableReactions> get_sorted_available_reactions(Td *td, ChatReactions available_reactions,
+                                                                              ChatReactions active_reactions,
+                                                                              int32 row_size);
 
 }  // namespace td

@@ -18,8 +18,8 @@ namespace td {
 
 struct ChatReactions {
   vector<ReactionType> reaction_types_;
-  bool allow_all_ = false;     // implies empty reactions
-  bool allow_custom_ = false;  // implies allow_all
+  bool allow_all_ = false;     // implies empty reaction_types_
+  bool allow_custom_ = false;  // implies allow_all_
 
   ChatReactions() = default;
 

@@ -1834,6 +1834,104 @@ void StickersManager::get_emoji_reaction(const string &emoji,
   promise.set_value(get_emoji_reaction_object(emoji));
 }
 
+td_api::object_ptr<td_api::availableReactions> StickersManager::get_sorted_available_reactions(
+    ChatReactions available_reactions, ChatReactions active_reactions, int32 row_size) {
+  if (row_size < 5 || row_size > 25) {
+    row_size = 8;
+  }
+
+  bool is_premium = td_->option_manager_->get_option_boolean("is_premium");
+  bool show_premium = is_premium;
+
+  auto recent_reactions = get_recent_reactions();
+  auto top_reactions = get_top_reactions();
+  LOG(INFO) << "Have available reactions " << available_reactions << " to be sorted by top reactions " << top_reactions
+            << " and recent reactions " << recent_reactions;
+  if (active_reactions.allow_custom_ && active_reactions.allow_all_) {
+    for (auto &reaction_type : recent_reactions) {
+      if (reaction_type.is_custom_reaction()) {
+        show_premium = true;
+      }
+    }
+    for (auto &reaction_type : top_reactions) {
+      if (reaction_type.is_custom_reaction()) {
+        show_premium = true;
+      }
+    }
+  }
+
+  FlatHashSet<ReactionType, ReactionTypeHash> all_available_reaction_types;
+  for (const auto &reaction_type : available_reactions.reaction_types_) {
+    CHECK(!reaction_type.is_empty());
+    all_available_reaction_types.insert(reaction_type);
+  }
+
+  vector<td_api::object_ptr<td_api::availableReaction>> top_reaction_objects;
+  vector<td_api::object_ptr<td_api::availableReaction>> recent_reaction_objects;
+  vector<td_api::object_ptr<td_api::availableReaction>> popular_reaction_objects;
+  vector<td_api::object_ptr<td_api::availableReaction>> last_reaction_objects;
+
+  FlatHashSet<ReactionType, ReactionTypeHash> added_custom_reaction_types;
+  auto add_reactions = [&](vector<td_api::object_ptr<td_api::availableReaction>> &reaction_objects,
+                           const vector<ReactionType> &reaction_types) {
+    for (auto &reaction_type : reaction_types) {
+      if (all_available_reaction_types.erase(reaction_type) != 0) {
+        // add available reaction
+        if (reaction_type.is_custom_reaction()) {
+          added_custom_reaction_types.insert(reaction_type);
+        }
+        reaction_objects.push_back(
+            td_api::make_object<td_api::availableReaction>(reaction_type.get_reaction_type_object(), false));
+      } else if (reaction_type.is_custom_reaction() && available_reactions.allow_custom_ &&
+                 added_custom_reaction_types.insert(reaction_type).second) {
+        // add implicitly available custom reaction
+        reaction_objects.push_back(
+            td_api::make_object<td_api::availableReaction>(reaction_type.get_reaction_type_object(), !is_premium));
+      } else {
+        // skip the reaction
+      }
+    }
+  };
+  if (show_premium) {
+    if (top_reactions.size() > 2 * static_cast<size_t>(row_size)) {
+      top_reactions.resize(2 * static_cast<size_t>(row_size));
+    }
+    add_reactions(top_reaction_objects, top_reactions);
+
+    if (!recent_reactions.empty()) {
+      add_reactions(recent_reaction_objects, recent_reactions);
+    }
+  } else {
+    add_reactions(top_reaction_objects, top_reactions);
+  }
+  add_reactions(last_reaction_objects, active_reaction_types_);
+  add_reactions(last_reaction_objects, available_reactions.reaction_types_);
+
+  if (show_premium) {
+    if (recent_reactions.empty()) {
+      popular_reaction_objects = std::move(last_reaction_objects);
+    } else {
+      auto max_objects = 10 * static_cast<size_t>(row_size);
+      if (recent_reaction_objects.size() + last_reaction_objects.size() > max_objects) {
+        if (last_reaction_objects.size() < max_objects) {
+          recent_reaction_objects.resize(max_objects - last_reaction_objects.size());
+        } else {
+          recent_reaction_objects.clear();
+        }
+      }
+      append(recent_reaction_objects, std::move(last_reaction_objects));
+    }
+  } else {
+    append(top_reaction_objects, std::move(last_reaction_objects));
+  }
+
+  CHECK(all_available_reaction_types.empty());
+
+  return td_api::make_object<td_api::availableReactions>(
+      std::move(top_reaction_objects), std::move(recent_reaction_objects), std::move(popular_reaction_objects),
+      available_reactions.allow_custom_);
+}
+
 vector<ReactionType> StickersManager::get_recent_reactions() {
   load_recent_reactions();
   return recent_reactions_.reaction_types_;

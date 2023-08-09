@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/ChatReactions.h"
 #include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/Dimensions.h"
@@ -195,6 +196,10 @@ class StickersManager final : public Actor {
   void view_featured_sticker_sets(const vector<StickerSetId> &sticker_set_ids);
 
   void get_emoji_reaction(const string &emoji, Promise<td_api::object_ptr<td_api::emojiReaction>> &&promise);
+
+  td_api::object_ptr<td_api::availableReactions> get_sorted_available_reactions(ChatReactions available_reactions,
+                                                                                ChatReactions active_reactions,
+                                                                                int32 row_size);
 
   vector<ReactionType> get_recent_reactions();
 

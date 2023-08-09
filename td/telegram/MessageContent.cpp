@@ -6883,4 +6883,11 @@ void rate_message_content_speech_recognition(Td *td, const MessageContent *conte
   }
 }
 
+td_api::object_ptr<td_api::availableReactions> get_sorted_available_reactions(Td *td, ChatReactions available_reactions,
+                                                                              ChatReactions active_reactions,
+                                                                              int32 row_size) {
+  return td->stickers_manager_->get_sorted_available_reactions(std::move(available_reactions),
+                                                               std::move(active_reactions), row_size);
+}
+
 }  // namespace td
