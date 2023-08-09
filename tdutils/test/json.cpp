@@ -356,7 +356,7 @@ class JsonStringDecodeBenchmark final : public td::Benchmark {
     for (int i = 0; i < n; i++) {
       auto str = str_;
       td::Parser parser(str);
-      td::json_string_decode(parser);
+      td::json_string_decode(parser).ensure();
     }
   }
 };
@@ -366,6 +366,9 @@ TEST(JSON, bench_json_string_decode) {
   td::bench(JsonStringDecodeBenchmark(td::string(1000, '\\')));
   td::string str;
   for (int i = 32; i < 128; i++) {
+    if (i == 'u') {
+      continue;
+    }
     str += "a\\";
     str += static_cast<char>(i);
   }
