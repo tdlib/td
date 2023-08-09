@@ -322,6 +322,14 @@ td_api::object_ptr<td_api::availableReactions> ReactionManager::get_sorted_avail
       available_reactions.allow_custom_);
 }
 
+td_api::object_ptr<td_api::availableReactions> ReactionManager::get_available_reactions(int32 row_size) {
+  ChatReactions available_reactions;
+  available_reactions.reaction_types_ = active_reaction_types_;
+  available_reactions.allow_custom_ = true;
+  return td_->reaction_manager_->get_sorted_available_reactions(std::move(available_reactions),
+                                                                ChatReactions(true, true), row_size);
+}
+
 void ReactionManager::add_recent_reaction(const ReactionType &reaction_type) {
   load_recent_reactions();
 

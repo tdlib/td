@@ -42,6 +42,8 @@ class ReactionManager final : public Actor {
                                                                                 ChatReactions active_reactions,
                                                                                 int32 row_size);
 
+  td_api::object_ptr<td_api::availableReactions> get_available_reactions(int32 row_size);
+
   void add_recent_reaction(const ReactionType &reaction_type);
 
   void clear_recent_reactions(Promise<Unit> &&promise);

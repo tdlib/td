@@ -4140,6 +4140,10 @@ class CliClient final : public Actor {
       StoryId story_id;
       get_args(args, story_sender_chat_id, story_id);
       send_request(td_api::make_object<td_api::closeStory>(story_sender_chat_id, story_id));
+    } else if (op == "gsar") {
+      int32 row_size;
+      get_args(args, row_size);
+      send_request(td_api::make_object<td_api::getStoryAvailableReactions>(row_size));
     } else if (op == "ssr") {
       ChatId story_sender_chat_id;
       StoryId story_id;

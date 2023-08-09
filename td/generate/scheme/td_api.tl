@@ -7474,6 +7474,9 @@ openStory story_sender_chat_id:int53 story_id:int32 = Ok;
 //@story_id The identifier of the story
 closeStory story_sender_chat_id:int53 story_id:int32 = Ok;
 
+//@description Returns reactions, which can be chosen for a story @row_size Number of reaction per row, 5-25
+getStoryAvailableReactions row_size:int32 = AvailableReactions;
+
 //@description Changes chosen reaction on a story
 //@story_sender_chat_id The identifier of the sender of the story
 //@story_id The identifier of the story
