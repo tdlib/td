@@ -23858,7 +23858,7 @@ void MessagesManager::add_message_reaction(FullMessageId full_message_id, Reacti
   }
 
   if (add_to_recent) {
-    add_recent_reaction(td_, reaction_type);
+    td_->reaction_manager_->add_recent_reaction(reaction_type);
   }
 
   set_message_reactions(d, m, is_big, add_to_recent, std::move(promise));

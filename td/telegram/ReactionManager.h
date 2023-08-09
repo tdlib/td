@@ -40,10 +40,6 @@ class ReactionManager final : public Actor {
                                                                                 ChatReactions active_reactions,
                                                                                 int32 row_size);
 
-  vector<ReactionType> get_recent_reactions();
-
-  vector<ReactionType> get_top_reactions();
-
   void add_recent_reaction(const ReactionType &reaction_type);
 
   void clear_recent_reactions(Promise<Unit> &&promise);

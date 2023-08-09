@@ -86,12 +86,6 @@ void set_default_reaction(Td *td, ReactionType reaction_type, Promise<Unit> &&pr
 
 void send_set_default_reaction_query(Td *td);
 
-vector<ReactionType> get_recent_reactions(Td *td);
-
-vector<ReactionType> get_top_reactions(Td *td);
-
-void add_recent_reaction(Td *td, const ReactionType &reaction_type);
-
 int64 get_reaction_types_hash(const vector<ReactionType> &reaction_types);
 
 }  // namespace td

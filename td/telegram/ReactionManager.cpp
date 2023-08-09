@@ -179,15 +179,17 @@ void ReactionManager::get_emoji_reaction(const string &emoji,
 
 td_api::object_ptr<td_api::availableReactions> ReactionManager::get_sorted_available_reactions(
     ChatReactions available_reactions, ChatReactions active_reactions, int32 row_size) {
+  load_recent_reactions();
+  load_top_reactions();
+
   if (row_size < 5 || row_size > 25) {
     row_size = 8;
   }
 
   bool is_premium = td_->option_manager_->get_option_boolean("is_premium");
   bool show_premium = is_premium;
-
-  auto recent_reactions = get_recent_reactions();
-  auto top_reactions = get_top_reactions();
+  const auto &recent_reactions = recent_reactions_.reaction_types_;
+  auto top_reactions = top_reactions_.reaction_types_;
   LOG(INFO) << "Have available reactions " << available_reactions << " to be sorted by top reactions " << top_reactions
             << " and recent reactions " << recent_reactions;
   if (active_reactions.allow_custom_ && active_reactions.allow_all_) {
@@ -273,16 +275,6 @@ td_api::object_ptr<td_api::availableReactions> ReactionManager::get_sorted_avail
   return td_api::make_object<td_api::availableReactions>(
       std::move(top_reaction_objects), std::move(recent_reaction_objects), std::move(popular_reaction_objects),
       available_reactions.allow_custom_);
-}
-
-vector<ReactionType> ReactionManager::get_recent_reactions() {
-  load_recent_reactions();
-  return recent_reactions_.reaction_types_;
-}
-
-vector<ReactionType> ReactionManager::get_top_reactions() {
-  load_top_reactions();
-  return top_reactions_.reaction_types_;
 }
 
 void ReactionManager::add_recent_reaction(const ReactionType &reaction_type) {

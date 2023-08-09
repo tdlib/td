@@ -208,18 +208,6 @@ void send_set_default_reaction_query(Td *td) {
       ReactionType(td->option_manager_->get_option_string("default_reaction")));
 }
 
-vector<ReactionType> get_recent_reactions(Td *td) {
-  return td->reaction_manager_->get_recent_reactions();
-}
-
-vector<ReactionType> get_top_reactions(Td *td) {
-  return td->reaction_manager_->get_top_reactions();
-}
-
-void add_recent_reaction(Td *td, const ReactionType &reaction_type) {
-  td->reaction_manager_->add_recent_reaction(reaction_type);
-}
-
 int64 get_reaction_types_hash(const vector<ReactionType> &reaction_types) {
   vector<uint64> numbers;
   for (auto &reaction_type : reaction_types) {
