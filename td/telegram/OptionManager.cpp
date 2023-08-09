@@ -295,8 +295,8 @@ bool OptionManager::is_internal_option(Slice name) {
     case 'm':
       return name == "my_phone_number";
     case 'n':
-      return name == "need_synchronize_archive_all_stories" || name == "notification_cloud_delay_ms" ||
-             name == "notification_default_delay_ms";
+      return name == "need_premium_for_story_caption_entities" || name == "need_synchronize_archive_all_stories" ||
+             name == "notification_cloud_delay_ms" || name == "notification_default_delay_ms";
     case 'o':
       return name == "online_cloud_timeout_ms" || name == "online_update_period_ms" || name == "otherwise_relogin_days";
     case 'p':
@@ -411,6 +411,11 @@ void OptionManager::on_option_updated(Slice name) {
           G()->net_query_dispatcher().update_mtproto_header();
         }
       }
+      if (name == "is_premium") {
+        set_option_boolean(
+            "can_use_text_entities_in_story_caption",
+            !get_option_boolean("need_premium_for_story_caption_entities") || get_option_boolean("is_premium"));
+      }
       break;
     case 'l':
       if (name == "language_pack_id") {
@@ -431,6 +436,11 @@ void OptionManager::on_option_updated(Slice name) {
       }
       break;
     case 'n':
+      if (name == "need_premium_for_story_caption_entities") {
+        set_option_boolean(
+            "can_use_text_entities_in_story_caption",
+            !get_option_boolean("need_premium_for_story_caption_entities") || get_option_boolean("is_premium"));
+      }
       if (name == "need_synchronize_archive_all_stories") {
         send_closure(td_->story_manager_actor_, &StoryManager::try_synchronize_archive_all_stories);
       }

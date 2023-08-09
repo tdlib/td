@@ -1907,6 +1907,11 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
                                 get_json_value_int(std::move(key_value->value_), key));
         continue;
       }
+      if (key == "stories_entities") {
+        G()->set_option_boolean("need_premium_for_story_caption_entities",
+                                get_json_value_string(std::move(key_value->value_), key) == "premium");
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
