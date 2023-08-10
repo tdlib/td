@@ -2422,6 +2422,10 @@ void StoryManager::on_get_story_viewers(
                << " story viewers";
     total_reaction_count = total_count;
   }
+  for (auto &view : view_list->views_) {
+    td_->contacts_manager_->on_update_user_is_blocked(UserId(view->user_id_), view->blocked_,
+                                                      view->blocked_my_stories_from_);
+  }
 
   StoryViewers story_viewers(total_count, std::move(view_list->views_), std::move(view_list->next_offset_));
   if (story->content_ != nullptr) {
