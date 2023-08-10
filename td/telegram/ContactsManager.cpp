@@ -11965,9 +11965,6 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
     td_->messages_manager_->on_dialog_user_is_contact_updated(DialogId(user_id), u->is_contact);
     send_closure_later(td_->story_manager_actor_, &StoryManager::on_dialog_active_stories_order_updated,
                        DialogId(user_id), "is_contact");
-    if (!from_database && u->is_is_mutual_contact_changed) {
-      send_closure_later(td_->story_manager_actor_, &StoryManager::reload_dialog_expiring_stories, DialogId(user_id));
-    }
     if (is_user_contact(u, user_id, false)) {
       auto user_full = get_user_full(user_id);
       if (user_full != nullptr && user_full->need_phone_number_privacy_exception) {
@@ -11976,6 +11973,11 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
       }
     }
     u->is_is_contact_changed = false;
+  }
+  if (u->is_is_mutual_contact_changed) {
+    if (!from_database) {
+      send_closure_later(td_->story_manager_actor_, &StoryManager::reload_dialog_expiring_stories, DialogId(user_id));
+    }
     u->is_is_mutual_contact_changed = false;
   }
   if (u->is_is_deleted_changed) {
@@ -13759,13 +13761,13 @@ void ContactsManager::on_update_user_is_contact(User *u, UserId user_id, bool is
                << u->is_close_friend << ") to (" << is_contact << ", " << is_mutual_contact << ", " << is_close_friend
                << ")";
     if (u->is_contact != is_contact) {
+      u->is_contact = is_contact;
       u->is_is_contact_changed = true;
-      if (u->is_mutual_contact != is_mutual_contact) {
-        u->is_is_mutual_contact_changed = true;
-      }
     }
-    u->is_contact = is_contact;
-    u->is_mutual_contact = is_mutual_contact;
+    if (u->is_mutual_contact != is_mutual_contact) {
+      u->is_mutual_contact = is_mutual_contact;
+      u->is_is_mutual_contact_changed = true;
+    }
     u->is_close_friend = is_close_friend;
     u->is_changed = true;
   }
