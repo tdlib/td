@@ -13643,6 +13643,14 @@ void ContactsManager::on_update_user_story_ids_impl(User *u, UserId user_id, Sto
   if (td_->auth_manager_->is_bot()) {
     return;
   }
+  if (max_active_story_id != StoryId() && !max_active_story_id.is_server()) {
+    LOG(ERROR) << "Receive max active " << max_active_story_id << " for " << user_id;
+    return;
+  }
+  if (max_read_story_id != StoryId() && !max_read_story_id.is_server()) {
+    LOG(ERROR) << "Receive max read " << max_read_story_id << " for " << user_id;
+    return;
+  }
 
   auto has_unread_stories = get_has_unread_stories(u, user_id);
   if (u->max_active_story_id != max_active_story_id) {

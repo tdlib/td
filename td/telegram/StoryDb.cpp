@@ -127,10 +127,9 @@ class StoryDbImpl final : public StoryDbSyncInterface {
 
   void add_story(StoryFullId story_full_id, int32 expires_at, NotificationId notification_id, BufferSlice data) final {
     LOG(INFO) << "Add " << story_full_id << " to database";
+    CHECK(story_full_id.is_server());
     auto dialog_id = story_full_id.get_dialog_id();
     auto story_id = story_full_id.get_story_id();
-    LOG_CHECK(dialog_id.is_valid()) << dialog_id << ' ' << story_id << ' ' << story_full_id;
-    CHECK(story_id.is_valid());
     SCOPE_EXIT {
       add_story_stmt_.reset();
     };
@@ -154,10 +153,9 @@ class StoryDbImpl final : public StoryDbSyncInterface {
 
   void delete_story(StoryFullId story_full_id) final {
     LOG(INFO) << "Delete " << story_full_id << " from database";
+    CHECK(story_full_id.is_valid());
     auto dialog_id = story_full_id.get_dialog_id();
     auto story_id = story_full_id.get_story_id();
-    CHECK(dialog_id.is_valid());
-    CHECK(story_id.is_valid());
     SCOPE_EXIT {
       delete_story_stmt_.reset();
     };
@@ -167,10 +165,9 @@ class StoryDbImpl final : public StoryDbSyncInterface {
   }
 
   Result<BufferSlice> get_story(StoryFullId story_full_id) final {
+    CHECK(story_full_id.is_server());
     auto dialog_id = story_full_id.get_dialog_id();
     auto story_id = story_full_id.get_story_id();
-    CHECK(dialog_id.is_valid());
-    CHECK(story_id.is_valid());
     SCOPE_EXIT {
       get_story_stmt_.reset();
     };

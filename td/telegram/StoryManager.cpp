@@ -1004,7 +1004,7 @@ template <class StorerT>
 void StoryManager::SavedActiveStories::store(StorerT &storer) const {
   using td::store;
   CHECK(!story_infos_.empty());
-  bool has_max_read_story_id = max_read_story_id_ != StoryId();
+  bool has_max_read_story_id = max_read_story_id_.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_max_read_story_id);
   END_STORE_FLAGS();
@@ -1311,7 +1311,8 @@ StoryManager::Story *StoryManager::get_story_force(StoryFullId story_full_id, co
   }
 
   if (!G()->use_message_database() || failed_to_load_story_full_ids_.count(story_full_id) > 0 ||
-      is_inaccessible_story(story_full_id) || deleted_story_full_ids_.count(story_full_id) > 0) {
+      is_inaccessible_story(story_full_id) || deleted_story_full_ids_.count(story_full_id) > 0 ||
+      !story_full_id.get_story_id().is_server()) {
     return nullptr;
   }
 
@@ -1337,6 +1338,11 @@ unique_ptr<StoryManager::Story> StoryManager::parse_story(StoryFullId story_full
   }
   if (story->content_ == nullptr) {
     LOG(ERROR) << "Receive " << story_full_id << " without content from database";
+    delete_story_from_database(story_full_id);
+    return nullptr;
+  }
+  if (!story_full_id.get_story_id().is_server()) {
+    LOG(ERROR) << "Receive " << story_full_id << " from database";
     delete_story_from_database(story_full_id);
     return nullptr;
   }
@@ -2193,6 +2199,9 @@ void StoryManager::set_story_reaction(StoryFullId story_full_id, ReactionType re
   if (!story_full_id.get_story_id().is_valid()) {
     return promise.set_error(Status::Error(400, "Invalid story identifier specified"));
   }
+  if (!story_full_id.get_story_id().is_server()) {
+    return promise.set_error(Status::Error(400, "Can't react to the story"));
+  }
 
   Story *story = get_story_force(story_full_id, "set_story_reaction");
   if (story == nullptr) {
@@ -2330,6 +2339,7 @@ uint64 StoryManager::save_read_stories_on_server_log_event(DialogId dialog_id, S
 }
 
 void StoryManager::read_stories_on_server(DialogId owner_dialog_id, StoryId story_id, uint64 log_event_id) {
+  CHECK(story_id.is_server());
   if (log_event_id == 0 && G()->use_message_database()) {
     log_event_id = save_read_stories_on_server_log_event(owner_dialog_id, story_id);
   }
@@ -2435,6 +2445,9 @@ void StoryManager::report_story(StoryFullId story_full_id, ReportReason &&reason
   if (!have_story_force(story_full_id)) {
     return promise.set_error(Status::Error(400, "Story not found"));
   }
+  if (!story_full_id.is_server()) {
+    return promise.set_error(Status::Error(400, "Story can't be reported"));
+  }
 
   td_->create_handler<ReportStoryQuery>(std::move(promise))->send(story_full_id, std::move(reason));
 }
@@ -2474,7 +2487,7 @@ void StoryManager::register_story(StoryFullId story_full_id, FullMessageId full_
   if (td_->auth_manager_->is_bot()) {
     return;
   }
-  CHECK(story_full_id.is_valid());
+  CHECK(story_full_id.is_server());
 
   LOG(INFO) << "Register " << story_full_id << " from " << full_message_id << " from " << source;
   story_messages_[story_full_id].insert(full_message_id);
@@ -2484,7 +2497,7 @@ void StoryManager::unregister_story(StoryFullId story_full_id, FullMessageId ful
   if (td_->auth_manager_->is_bot()) {
     return;
   }
-  CHECK(story_full_id.is_valid());
+  CHECK(story_full_id.is_server());
   LOG(INFO) << "Unregister " << story_full_id << " from " << full_message_id << " from " << source;
   auto &message_ids = story_messages_[story_full_id];
   auto is_deleted = message_ids.erase(full_message_id) > 0;
@@ -2496,11 +2509,12 @@ void StoryManager::unregister_story(StoryFullId story_full_id, FullMessageId ful
 
 StoryManager::StoryInfo StoryManager::get_story_info(StoryFullId story_full_id) const {
   const auto *story = get_story(story_full_id);
-  if (story == nullptr || !is_active_story(story)) {
+  auto story_id = story_full_id.get_story_id();
+  if (story == nullptr || (story_id.is_server() && !is_active_story(story))) {
     return {};
   }
   StoryInfo story_info;
-  story_info.story_id_ = story_full_id.get_story_id();
+  story_info.story_id_ = story_id;
   story_info.date_ = story->date_;
   story_info.expire_date_ = story->expire_date_;
   story_info.is_for_close_friends_ = story->is_for_close_friends_;
@@ -2980,15 +2994,19 @@ void StoryManager::delete_story_from_database(StoryFullId story_full_id) {
 
 void StoryManager::on_story_changed(StoryFullId story_full_id, const Story *story, bool is_changed,
                                     bool need_save_to_database, bool from_database) {
+  if (!story_full_id.get_story_id().is_server()) {
+    return;
+  }
   if (is_active_story(story)) {
     CHECK(story->global_id_ > 0);
     story_expire_timeout_.set_timeout_in(story->global_id_, story->expire_date_ - G()->unix_time());
   }
   if (can_get_story_viewers(story_full_id, story, true).is_ok()) {
+    CHECK(story->global_id_ > 0);
     story_can_get_viewers_timeout_.set_timeout_in(story->global_id_,
                                                   get_story_viewers_expire_date(story) - G()->unix_time() + 2);
   }
-  if (story->content_ == nullptr || !story_full_id.get_story_id().is_valid()) {
+  if (story->content_ == nullptr) {
     return;
   }
   if (is_changed || need_save_to_database) {
@@ -3026,6 +3044,7 @@ void StoryManager::on_story_changed(StoryFullId story_full_id, const Story *stor
 }
 
 void StoryManager::register_story_global_id(StoryFullId story_full_id, Story *story) {
+  CHECK(story_full_id.is_server());
   CHECK(story->global_id_ == 0);
   story->global_id_ = ++max_story_global_id_;
   stories_by_global_id_[story->global_id_] = story_full_id;
@@ -3159,6 +3178,8 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
   }
   if (story_ids.empty() || max_read_story_id.get() < story_ids[0].get()) {
     max_read_story_id = StoryId();
+  } else if (max_read_story_id != StoryId()) {
+    CHECK(max_read_story_id.is_server());
   }
 
   LOG(INFO) << "Update active stories in " << owner_dialog_id << " to " << story_ids << " with max read "
@@ -3367,6 +3388,10 @@ bool StoryManager::on_update_read_stories(DialogId owner_dialog_id, StoryId max_
   if (!td_->messages_manager_->have_dialog_info_force(owner_dialog_id)) {
     return false;
   }
+  if (max_read_story_id != StoryId() && !max_read_story_id.is_server()) {
+    LOG(ERROR) << "Receive max read " << max_read_story_id;
+    return false;
+  }
   auto active_stories = get_active_stories_force(owner_dialog_id, "on_update_read_stories");
   if (active_stories == nullptr) {
     LOG(INFO) << "Can't find active stories in " << owner_dialog_id;
@@ -3570,7 +3595,7 @@ FileSourceId StoryManager::get_story_file_source_id(StoryFullId story_full_id) {
     return FileSourceId();
   }
 
-  if (!story_full_id.is_valid()) {
+  if (!story_full_id.is_server()) {
     return FileSourceId();
   }
 
@@ -3641,11 +3666,8 @@ void StoryManager::get_story(DialogId owner_dialog_id, StoryId story_id, bool on
   if (!td_->messages_manager_->have_input_peer(owner_dialog_id, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access the story sender"));
   }
-  if (!story_id.is_server()) {
+  if (!story_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Invalid story identifier specified"));
-  }
-  if (owner_dialog_id.get_type() != DialogType::User) {
-    return promise.set_value(nullptr);
   }
 
   StoryFullId story_full_id{owner_dialog_id, story_id};
@@ -3656,7 +3678,7 @@ void StoryManager::get_story(DialogId owner_dialog_id, StoryId story_id, bool on
     }
     return promise.set_value(get_story_object(story_full_id, story));
   }
-  if (only_local) {
+  if (only_local || owner_dialog_id.get_type() != DialogType::User || !story_id.is_server()) {
     return promise.set_value(nullptr);
   }
 
@@ -4117,6 +4139,9 @@ void StoryManager::set_story_privacy_settings(StoryId story_id,
   if (story == nullptr || story->content_ == nullptr) {
     return promise.set_error(Status::Error(400, "Story not found"));
   }
+  if (!story_id.is_server()) {
+    return promise.set_error(Status::Error(400, "Story privacy settings can't be edited"));
+  }
   TRY_RESULT_PROMISE(promise, privacy_rules,
                      UserPrivacySettingRules::get_user_privacy_setting_rules(td_, std::move(settings)));
   td_->create_handler<EditStoryPrivacyQuery>(std::move(promise))->send(dialog_id, story_id, std::move(privacy_rules));
@@ -4127,6 +4152,9 @@ void StoryManager::toggle_story_is_pinned(StoryId story_id, bool is_pinned, Prom
   const Story *story = get_story({dialog_id, story_id});
   if (story == nullptr || story->content_ == nullptr) {
     return promise.set_error(Status::Error(400, "Story not found"));
+  }
+  if (!story_id.is_server()) {
+    return promise.set_error(Status::Error(400, "Story can't be pinned/unpinned"));
   }
   auto query_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), story_id, is_pinned, promise = std::move(promise)](Result<Unit> &&result) mutable {
@@ -4157,8 +4185,12 @@ void StoryManager::delete_story(StoryId story_id, Promise<Unit> &&promise) {
   if (story == nullptr) {
     return promise.set_error(Status::Error(400, "Story not found"));
   }
-  if (!story_id.is_server()) {
+  if (!story_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Invalid story identifier"));
+  }
+  if (!story_id.is_server()) {
+    // TODO
+    return promise.set_error(Status::Error(400, "Story deletion isn't supported"));
   }
 
   delete_story_on_server(story_full_id, 0, std::move(promise));
@@ -4187,7 +4219,7 @@ uint64 StoryManager::save_delete_story_on_server_log_event(StoryFullId story_ful
 
 void StoryManager::delete_story_on_server(StoryFullId story_full_id, uint64 log_event_id, Promise<Unit> &&promise) {
   LOG(INFO) << "Delete " << story_full_id << " from server";
-  CHECK(story_full_id.is_valid());
+  CHECK(story_full_id.is_server());
 
   if (log_event_id == 0) {
     log_event_id = save_delete_story_on_server_log_event(story_full_id);
@@ -4217,6 +4249,10 @@ telegram_api::object_ptr<telegram_api::InputMedia> StoryManager::get_input_media
 void StoryManager::remove_story_notifications_by_story_ids(DialogId dialog_id, const vector<StoryId> &story_ids) {
   VLOG(notifications) << "Trying to remove notification about " << story_ids << " in " << dialog_id;
   for (auto story_id : story_ids) {
+    if (!story_id.is_server()) {
+      LOG(ERROR) << "Tried to delete " << story_id << " in " << dialog_id;
+      continue;
+    }
     StoryFullId story_full_id{dialog_id, story_id};
     if (!have_story_force(story_full_id)) {
       LOG(INFO) << "Can't delete " << story_full_id << " because it is not found";

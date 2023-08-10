@@ -1867,7 +1867,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       PARSE_FLAG(m->via_mention);
       END_PARSE_FLAGS();
       parse(m->story_full_id, parser);
-      if (!m->story_full_id.is_valid()) {
+      if (!m->story_full_id.is_server()) {
         is_bad = true;
       }
       content = std::move(m);
@@ -2294,6 +2294,9 @@ static Result<InputMessageContent> create_input_message_content(
       if (!td->story_manager_->have_story_force(story_full_id) ||
           story_sender_dialog_id.get_type() != DialogType::User) {
         return Status::Error(400, "Story not found");
+      }
+      if (!story_id.is_server()) {
+        return Status::Error(400, "Story can't be forwarded");
       }
       if (td->contacts_manager_->get_input_user(story_sender_dialog_id.get_user_id()).is_error()) {
         return Status::Error(400, "Can't access the user");
@@ -5031,7 +5034,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       auto dialog_id = DialogId(UserId(media->user_id_));
       auto story_id = StoryId(media->id_);
       auto story_full_id = StoryFullId(dialog_id, story_id);
-      if (!story_full_id.is_valid()) {
+      if (!story_full_id.is_server()) {
         LOG(ERROR) << "Receive " << to_string(media);
         break;
       }

@@ -47,6 +47,10 @@ struct StoryFullId {
     return dialog_id.is_valid() && story_id.is_valid();
   }
 
+  bool is_server() const {
+    return dialog_id.is_valid() && story_id.is_server();
+  }
+
   template <class StorerT>
   void store(StorerT &storer) const {
     dialog_id.store(storer);

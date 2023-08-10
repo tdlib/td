@@ -24216,7 +24216,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
                              "messageReplyToMessage"),
           m->reply_to_message_id.get());
     }
-    if (m->reply_to_story_full_id.get_story_id() != StoryId()) {
+    if (m->reply_to_story_full_id.is_valid()) {
       return td_api::make_object<td_api::messageReplyToStory>(
           get_chat_id_object(m->reply_to_story_full_id.get_dialog_id(), "messageReplyToStory"),
           m->reply_to_story_full_id.get_story_id().get());

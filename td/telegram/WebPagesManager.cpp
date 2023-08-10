@@ -396,7 +396,7 @@ class WebPagesManager::WebPage {
     }
     if (has_story_full_ids) {
       parse(story_full_ids, parser);
-      td::remove_if(story_full_ids, [](StoryFullId story_full_id) { return !story_full_id.is_valid(); });
+      td::remove_if(story_full_ids, [](StoryFullId story_full_id) { return !story_full_id.is_server(); });
     }
 
     if (has_instant_view) {
@@ -547,7 +547,7 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
             auto dialog_id = DialogId(UserId(attribute->user_id_));
             auto story_id = StoryId(attribute->id_);
             auto story_full_id = StoryFullId(dialog_id, story_id);
-            if (!story_full_id.is_valid()) {
+            if (!story_full_id.is_server()) {
               LOG(ERROR) << "Receive " << to_string(attribute);
               break;
             }
