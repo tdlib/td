@@ -325,14 +325,4 @@ Lambda<LambdaT> lambda(const LambdaT &lambda) {
 
 using format::tag;
 
-template <class A, class B>
-StringBuilder &operator<<(StringBuilder &sb, const std::pair<A, B> &p) {
-  return sb << '[' << p.first << ';' << p.second << ']';
-}
-
-template <class T>
-StringBuilder &operator<<(StringBuilder &stream, const vector<T> &vec) {
-  return stream << format::as_array(vec);
-}
-
 }  // namespace td
