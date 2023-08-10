@@ -3758,7 +3758,7 @@ void StoryManager::send_story(td_api::object_ptr<td_api::InputStoryContent> &&in
       td::make_unique<PendingStory>(dialog_id, StoryId(), ++send_story_count_, random_id, std::move(story));
   pending_story->log_event_id_ = save_send_story_log_event(pending_story.get());
 
-  yet_unsent_stories_.insert(pending_story->send_story_num_);
+  yet_unsent_stories_[dialog_id].insert(pending_story->send_story_num_);
 
   do_send_story(std::move(pending_story), {});
 
@@ -3855,11 +3855,12 @@ void StoryManager::on_upload_story(FileId file_id, telegram_api::object_ptr<tele
   if (is_edit) {
     do_edit_story(file_id, std::move(pending_story), std::move(input_file));
   } else {
+    auto dialog_id = pending_story->dialog_id_;
     auto send_story_num = pending_story->send_story_num_;
     LOG(INFO) << "Story " << send_story_num << " is ready to be sent";
     ready_to_send_stories_.emplace(
         send_story_num, td::make_unique<ReadyToSendStory>(file_id, std::move(pending_story), std::move(input_file)));
-    try_send_story();
+    try_send_story(dialog_id);
   }
 }
 
@@ -3884,12 +3885,14 @@ void StoryManager::on_upload_story_error(FileId file_id, Status status) {
   delete_pending_story(file_id, std::move(pending_story), std::move(status));
 }
 
-void StoryManager::try_send_story() {
-  if (yet_unsent_stories_.empty()) {
-    LOG(INFO) << "There is no more stories to send";
+void StoryManager::try_send_story(DialogId dialog_id) {
+  auto yet_unsent_story_it = yet_unsent_stories_.find(dialog_id);
+  if (yet_unsent_story_it == yet_unsent_stories_.end()) {
+    LOG(INFO) << "There is no more stories to send in " << dialog_id;
     return;
   }
-  auto send_story_num = *yet_unsent_stories_.begin();
+  CHECK(!yet_unsent_story_it->second.empty());
+  auto send_story_num = *yet_unsent_story_it->second.begin();
   auto it = ready_to_send_stories_.find(send_story_num);
   if (it == ready_to_send_stories_.end()) {
     LOG(INFO) << "Story " << send_story_num << " isn't ready to be sent or is being sent";
@@ -4125,8 +4128,14 @@ void StoryManager::delete_pending_story(FileId file_id, unique_ptr<PendingStory>
     CHECK(pending_story->log_event_id_ == 0);
   } else {
     LOG(INFO) << "Finish sending of story " << pending_story->send_story_num_;
-    yet_unsent_stories_.erase(pending_story->send_story_num_);
-    try_send_story();
+    auto it = yet_unsent_stories_.find(pending_story->dialog_id_);
+    CHECK(it != yet_unsent_stories_.end());
+    bool is_deleted = it->second.erase(pending_story->send_story_num_) > 0;
+    CHECK(is_deleted);
+    if (it->second.empty()) {
+      yet_unsent_stories_.erase(it);
+    }
+    try_send_story(pending_story->dialog_id_);
 
     if (pending_story->log_event_id_ != 0) {
       binlog_erase(G()->td_db()->get_binlog(), pending_story->log_event_id_);
@@ -4372,7 +4381,7 @@ void StoryManager::on_binlog_events(vector<BinlogEvent> &&events) {
         CHECK(!pending_story->story_id_.is_server());
         pending_story->send_story_num_ = send_story_count_;
         pending_story->story_->content_ = dup_story_content(td_, pending_story->story_->content_.get());
-        yet_unsent_stories_.insert(pending_story->send_story_num_);
+        yet_unsent_stories_[pending_story->dialog_id_].insert(pending_story->send_story_num_);
         do_send_story(std::move(pending_story), {});
         break;
       }

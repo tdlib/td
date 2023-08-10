@@ -476,7 +476,7 @@ class StoryManager final : public Actor {
 
   void on_upload_story_error(FileId file_id, Status status);
 
-  void try_send_story();
+  void try_send_story(DialogId dialog_id);
 
   void do_edit_story(FileId file_id, unique_ptr<PendingStory> &&pending_story,
                      telegram_api::object_ptr<telegram_api::InputFile> input_file);
@@ -581,7 +581,7 @@ class StoryManager final : public Actor {
 
   FlatHashMap<FileId, unique_ptr<PendingStory>, FileIdHash> being_uploaded_files_;
 
-  std::set<uint32> yet_unsent_stories_;
+  FlatHashMap<DialogId, std::set<uint32>, DialogIdHash> yet_unsent_stories_;
 
   FlatHashMap<uint32, unique_ptr<ReadyToSendStory>> ready_to_send_stories_;
 
