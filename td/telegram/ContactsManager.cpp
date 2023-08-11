@@ -4491,7 +4491,7 @@ void ContactsManager::User::store(StorerT &storer) const {
     BEGIN_STORE_FLAGS();
     STORE_FLAG(is_close_friend);
     STORE_FLAG(stories_hidden);
-    STORE_FLAG(has_stories);
+    STORE_FLAG(false);
     STORE_FLAG(has_max_active_story_id);
     STORE_FLAG(has_max_read_story_id);
     STORE_FLAG(has_max_active_story_id_next_reload_time);
@@ -4556,6 +4556,7 @@ void ContactsManager::User::parse(ParserT &parser) {
   bool has_emoji_status;
   bool has_usernames;
   bool has_flags2 = parser.version() >= static_cast<int32>(Version::AddUserFlags2);
+  bool legacy_has_stories = false;
   bool has_max_active_story_id = false;
   bool has_max_read_story_id = false;
   bool has_max_active_story_id_next_reload_time = false;
@@ -4595,7 +4596,7 @@ void ContactsManager::User::parse(ParserT &parser) {
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(is_close_friend);
     PARSE_FLAG(stories_hidden);
-    PARSE_FLAG(has_stories);
+    PARSE_FLAG(legacy_has_stories);
     PARSE_FLAG(has_max_active_story_id);
     PARSE_FLAG(has_max_read_story_id);
     PARSE_FLAG(has_max_active_story_id_next_reload_time);
@@ -10475,7 +10476,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
 
   if (is_me_regular_user && (stories_available || stories_unavailable)) {
     // update at the end, because it calls need_poll_active_stories
-    on_update_user_has_stories(u, user_id, stories_available, StoryId(user->stories_max_id_), StoryId());
+    on_update_user_story_ids(u, user_id, StoryId(user->stories_max_id_), StoryId());
   }
 
   if (u->cache_version != User::CACHE_VERSION && u->is_received) {
@@ -13544,34 +13545,28 @@ void ContactsManager::on_update_user_emoji_status(User *u, UserId user_id, Emoji
   }
 }
 
-void ContactsManager::on_update_user_has_stories(UserId user_id, bool has_stories, StoryId max_active_story_id,
-                                                 StoryId max_read_story_id) {
+void ContactsManager::on_update_user_story_ids(UserId user_id, StoryId max_active_story_id, StoryId max_read_story_id) {
   if (!user_id.is_valid()) {
     LOG(ERROR) << "Receive invalid " << user_id;
     return;
   }
 
-  User *u = get_user_force(user_id, "on_update_user_has_stories");
+  User *u = get_user_force(user_id, "on_update_user_story_ids");
   if (u != nullptr) {
-    on_update_user_has_stories(u, user_id, has_stories, max_active_story_id, max_read_story_id);
+    on_update_user_story_ids(u, user_id, max_active_story_id, max_read_story_id);
     update_user(u, user_id);
   } else {
     LOG(INFO) << "Ignore update user has stories about unknown " << user_id;
   }
 }
 
-void ContactsManager::on_update_user_has_stories(User *u, UserId user_id, bool has_stories, StoryId max_active_story_id,
-                                                 StoryId max_read_story_id) {
+void ContactsManager::on_update_user_story_ids(User *u, UserId user_id, StoryId max_active_story_id,
+                                               StoryId max_read_story_id) {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
 
   auto has_unread_stories = get_has_unread_stories(u, user_id);
-  if (u->has_stories != has_stories) {
-    LOG(DEBUG) << "Change has stories of " << user_id << " to " << has_stories;
-    u->has_stories = has_stories;
-    u->is_changed = true;
-  }
   if (u->max_active_story_id != max_active_story_id) {
     LOG(DEBUG) << "Change last active story of " << user_id << " from " << u->max_active_story_id << " to "
                << max_active_story_id;
@@ -13587,7 +13582,7 @@ void ContactsManager::on_update_user_has_stories(User *u, UserId user_id, bool h
       u->need_save_to_database = true;
     }
   }
-  if (!has_stories && !max_active_story_id.is_valid()) {
+  if (!max_active_story_id.is_valid()) {
     CHECK(max_read_story_id == StoryId());
     if (u->max_read_story_id != StoryId()) {
       LOG(DEBUG) << "Drop last read " << u->max_read_story_id << " of " << user_id;
@@ -15543,9 +15538,9 @@ void ContactsManager::on_get_user_max_active_story_ids(const vector<UserId> &use
   for (size_t i = 0; i < user_ids.size(); i++) {
     auto max_story_id = StoryId(max_story_ids[i]);
     if (max_story_id == StoryId()) {
-      on_update_user_has_stories(user_ids[i], false, StoryId(), StoryId());
+      on_update_user_story_ids(user_ids[i], StoryId(), StoryId());
     } else if (max_story_id.is_server()) {
-      on_update_user_has_stories(user_ids[i], true, max_story_id, StoryId());
+      on_update_user_story_ids(user_ids[i], max_story_id, StoryId());
     } else {
       LOG(ERROR) << "Receive " << max_story_id << " as maximum active story for " << user_ids[i];
     }
@@ -19092,10 +19087,7 @@ td_api::object_ptr<td_api::UserStatus> ContactsManager::get_user_status_object(U
 }
 
 bool ContactsManager::get_has_unread_stories(const User *u, UserId user_id) const {
-  if (user_id == get_my_id()) {
-    return false;
-  }
-  return u->has_stories && u->max_active_story_id.get() > u->max_read_story_id.get();
+  return u->max_active_story_id.get() > u->max_read_story_id.get();
 }
 
 td_api::object_ptr<td_api::updateUser> ContactsManager::get_update_user_object(UserId user_id, const User *u) const {
@@ -19148,8 +19140,9 @@ tl_object_ptr<td_api::user> ContactsManager::get_user_object(UserId user_id, con
       user_id.get(), u->first_name, u->last_name, u->usernames.get_usernames_object(), u->phone_number,
       get_user_status_object(user_id, u), get_profile_photo_object(td_->file_manager_.get(), u->photo),
       std::move(emoji_status), u->is_contact, u->is_mutual_contact, u->is_close_friend, u->is_verified, u->is_premium,
-      u->is_support, get_restriction_reason_description(u->restriction_reasons), u->is_scam, u->is_fake, u->has_stories,
-      get_has_unread_stories(u, user_id), have_access, std::move(type), u->language_code, u->attach_menu_enabled);
+      u->is_support, get_restriction_reason_description(u->restriction_reasons), u->is_scam, u->is_fake,
+      u->max_active_story_id.is_valid(), get_has_unread_stories(u, user_id), have_access, std::move(type),
+      u->language_code, u->attach_menu_enabled);
 }
 
 vector<int64> ContactsManager::get_user_ids_object(const vector<UserId> &user_ids, const char *source) const {

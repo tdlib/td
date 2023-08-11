@@ -2926,7 +2926,7 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
 
   if (story_ids.empty()) {
     if (owner_dialog_id.get_type() == DialogType::User) {
-      td_->contacts_manager_->on_update_user_has_stories(owner_dialog_id.get_user_id(), false, StoryId(), StoryId());
+      td_->contacts_manager_->on_update_user_story_ids(owner_dialog_id.get_user_id(), StoryId(), StoryId());
     }
     auto *active_stories = get_active_stories(owner_dialog_id);
     if (active_stories != nullptr) {
@@ -2968,8 +2968,8 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
     }
   }
   if (owner_dialog_id.get_type() == DialogType::User) {
-    td_->contacts_manager_->on_update_user_has_stories(owner_dialog_id.get_user_id(), true, story_ids.back(),
-                                                       max_read_story_id);
+    td_->contacts_manager_->on_update_user_story_ids(owner_dialog_id.get_user_id(), story_ids.back(),
+                                                     max_read_story_id);
   }
   bool need_save_to_database = false;
   if (active_stories->max_read_story_id_ != max_read_story_id || active_stories->story_ids_ != story_ids) {

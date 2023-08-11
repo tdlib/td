@@ -186,8 +186,7 @@ class ContactsManager final : public Actor {
   void on_update_user_name(UserId user_id, string &&first_name, string &&last_name, Usernames &&usernames);
   void on_update_user_phone_number(UserId user_id, string &&phone_number);
   void on_update_user_emoji_status(UserId user_id, tl_object_ptr<telegram_api::EmojiStatus> &&emoji_status);
-  void on_update_user_has_stories(UserId user_id, bool has_stories, StoryId max_active_story_id,
-                                  StoryId max_read_story_id);
+  void on_update_user_story_ids(UserId user_id, StoryId max_active_story_id, StoryId max_read_story_id);
   void on_update_user_max_read_story_id(UserId user_id, StoryId max_read_story_id);
   void on_update_user_stories_hidden(UserId user_id, bool stories_hidden);
   void on_update_user_online(UserId user_id, tl_object_ptr<telegram_api::UserStatus> &&status);
@@ -796,7 +795,6 @@ class ContactsManager final : public Actor {
     bool need_apply_min_photo = false;
     bool can_be_added_to_attach_menu = false;
     bool attach_menu_enabled = false;
-    bool has_stories = false;
     bool stories_hidden = false;
 
     bool is_photo_inited = false;
@@ -1411,8 +1409,7 @@ class ContactsManager final : public Actor {
   void on_update_user_photo(User *u, UserId user_id, tl_object_ptr<telegram_api::UserProfilePhoto> &&photo,
                             const char *source);
   void on_update_user_emoji_status(User *u, UserId user_id, EmojiStatus emoji_status);
-  void on_update_user_has_stories(User *u, UserId user_id, bool has_stories, StoryId max_active_story_id,
-                                  StoryId max_read_story_id);
+  void on_update_user_story_ids(User *u, UserId user_id, StoryId max_active_story_id, StoryId max_read_story_id);
   void on_update_user_max_read_story_id(User *u, UserId user_id, StoryId max_read_story_id);
   void on_update_user_stories_hidden(User *u, UserId user_id, bool stories_hidden);
   void on_update_user_is_contact(User *u, UserId user_id, bool is_contact, bool is_mutual_contact,
