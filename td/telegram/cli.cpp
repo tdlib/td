@@ -4040,6 +4040,8 @@ class CliClient final : public Actor {
       StoryId story_id;
       get_args(args, story_sender_chat_id, story_id);
       send_request(td_api::make_object<td_api::getStory>(story_sender_chat_id, story_id, op == "gstl"));
+    } else if (op == "csst") {
+      send_request(td_api::make_object<td_api::canSendStory>());
     } else if (op == "ssp" || op == "sspp") {
       string photo;
       string caption;

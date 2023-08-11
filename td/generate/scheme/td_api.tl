@@ -4226,6 +4226,24 @@ chatTheme name:string light_settings:themeSettings dark_settings:themeSettings =
 hashtags hashtags:vector<string> = Hashtags;
 
 
+//@class CanSendStoryResult @description Represents result of checking whether the current user can send a story
+
+//@description A story can be sent
+canSendStoryResultOk = CanSendStoryResult;
+
+//@description The user must subscribe to Telegram Premium to be able to post stories
+canSendStoryResultPremiumNeeded = CanSendStoryResult;
+
+//@description The limit for the number of active stories exceeded. The user can buy Telegram Premium, delete an active story, or wait for the oldest story to expire
+canSendStoryResultActiveStoryLimitExceeded = CanSendStoryResult;
+
+//@description The weekly limit for the number of posted stories exceeded. The user needs to buy Telegram Premium or wait specified time @retry_after Time left before the user can send the next story
+canSendStoryResultWeeklyLimitExceeded retry_after:int32 = CanSendStoryResult;
+
+//@description The monthly limit for the number of posted stories exceeded. The user needs to buy Telegram Premium or wait specified time @retry_after Time left before the user can send the next story
+canSendStoryResultMonthlyLimitExceeded retry_after:int32 = CanSendStoryResult;
+
+
 //@class CanTransferOwnershipResult @description Represents result of checking whether the current session can be used to transfer a chat ownership to another user
 
 //@description The session can be used
@@ -7424,6 +7442,9 @@ readChatList chat_list:ChatList = Ok;
 //@story_id Story identifier
 //@only_local Pass true to get only locally available information without sending network requests
 getStory story_sender_chat_id:int53 story_id:int32 only_local:Bool = Story;
+
+//@description Checks whether the current user can send a story
+canSendStory = CanSendStoryResult;
 
 //@description Sends a new story. Returns a temporary story
 //@content Content of the story

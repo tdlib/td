@@ -198,6 +198,8 @@ class StoryManager final : public Actor {
   void get_story(DialogId owner_dialog_id, StoryId story_id, bool only_local,
                  Promise<td_api::object_ptr<td_api::story>> &&promise);
 
+  void can_send_story(Promise<td_api::object_ptr<td_api::CanSendStoryResult>> &&promise);
+
   void send_story(td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,
                   td_api::object_ptr<td_api::inputStoryAreas> &&input_areas,
                   td_api::object_ptr<td_api::formattedText> &&input_caption,

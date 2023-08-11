@@ -64,17 +64,16 @@ void NetQueryDispatcher::dispatch(NetQueryPtr net_query) {
     return;
   }
 
-  if (net_query->is_ready()) {
-    if (net_query->is_error()) {
-      auto code = net_query->error().code();
-      if (code == 303) {
-        try_fix_migrate(net_query);
-      } else if (code == NetQuery::Resend) {
-        net_query->resend();
-      } else if (code < 0 || code == 500 || code == 420) {
-        net_query->debug("sent to NetQueryDelayer");
-        return send_closure_later(delayer_, &NetQueryDelayer::delay, std::move(net_query));
-      }
+  if (net_query->is_ready() && net_query->is_error()) {
+    auto code = net_query->error().code();
+    if (code == 303) {
+      try_fix_migrate(net_query);
+    } else if (code == NetQuery::Resend) {
+      net_query->resend();
+    } else if (code < 0 || code == 500 ||
+               (code == 420 && !begins_with(net_query->error().message(), "STORY_SEND_FLOOD_"))) {
+      net_query->debug("sent to NetQueryDelayer");
+      return send_closure_later(delayer_, &NetQueryDelayer::delay, std::move(net_query));
     }
   }
 

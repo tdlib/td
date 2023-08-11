@@ -56,6 +56,39 @@
 
 namespace td {
 
+static td_api::object_ptr<td_api::CanSendStoryResult> get_can_send_story_result_object(const Status &error) {
+  CHECK(error.is_error());
+  if (error.message() == "PREMIUM_ACCOUNT_REQUIRED") {
+    return td_api::make_object<td_api::canSendStoryResultPremiumNeeded>();
+  }
+  if (error.message() == "STORIES_TOO_MUCH") {
+    return td_api::make_object<td_api::canSendStoryResultActiveStoryLimitExceeded>();
+  }
+  if (begins_with(error.message(), "STORY_SEND_FLOOD_WEEKLY_")) {
+    auto r_next_date = to_integer_safe<int32>(error.message().substr(Slice("STORY_SEND_FLOOD_WEEKLY_").size()));
+    if (r_next_date.is_ok() && r_next_date.ok() > 0) {
+      auto retry_after = r_next_date.ok() - G()->unix_time();
+      if (retry_after > 0) {
+        return td_api::make_object<td_api::canSendStoryResultWeeklyLimitExceeded>(retry_after);
+      } else {
+        return td_api::make_object<td_api::canSendStoryResultOk>();
+      }
+    }
+  }
+  if (begins_with(error.message(), "STORY_SEND_FLOOD_MONTHLY_")) {
+    auto r_next_date = to_integer_safe<int32>(error.message().substr(Slice("STORY_SEND_FLOOD_MONTHLY_").size()));
+    if (r_next_date.is_ok() && r_next_date.ok() > 0) {
+      auto retry_after = r_next_date.ok() - G()->unix_time();
+      if (retry_after > 0) {
+        return td_api::make_object<td_api::canSendStoryResultMonthlyLimitExceeded>(retry_after);
+      } else {
+        return td_api::make_object<td_api::canSendStoryResultOk>();
+      }
+    }
+  }
+  return nullptr;
+}
+
 class GetAllStoriesQuery final : public Td::ResultHandler {
   Promise<telegram_api::object_ptr<telegram_api::stories_AllStories>> promise_;
 
@@ -649,6 +682,36 @@ class ActivateStealthModeQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     promise_.set_error(std::move(status));
+  }
+};
+
+class CanSendStoryQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::CanSendStoryResult>> promise_;
+
+ public:
+  explicit CanSendStoryQuery(Promise<td_api::object_ptr<td_api::CanSendStoryResult>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::stories_canSendStory()));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stories_canSendStory>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(td_api::make_object<td_api::canSendStoryResultOk>());
+  }
+
+  void on_error(Status status) final {
+    auto result = get_can_send_story_result_object(status);
+    if (result != nullptr) {
+      return promise_.set_value(std::move(result));
+    }
+    return promise_.set_error(std::move(status));
   }
 };
 
@@ -3776,6 +3839,10 @@ Result<StoryId> StoryManager::get_next_yet_unsent_story_id(DialogId dialog_id) {
     return Status::Error(400, "Tried to send too many stories above daily limit");
   }
   return StoryId(++story_id);
+}
+
+void StoryManager::can_send_story(Promise<td_api::object_ptr<td_api::CanSendStoryResult>> &&promise) {
+  td_->create_handler<CanSendStoryQuery>(std::move(promise))->send();
 }
 
 void StoryManager::send_story(td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,

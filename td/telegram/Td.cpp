@@ -5630,6 +5630,12 @@ void Td::on_request(uint64 id, const td_api::getStory &request) {
                             std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::canSendStory &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  story_manager_->can_send_story(std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::sendStory &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
