@@ -2551,19 +2551,17 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
     return nullptr;
   }
 
-  td_api::object_ptr<td_api::StoryPrivacySettings> privacy_settings;
-  if (story->is_public_) {
-    privacy_settings = td_api::make_object<td_api::storyPrivacySettingsEveryone>();
-  } else if (story->is_for_close_friends_) {
-    privacy_settings = td_api::make_object<td_api::storyPrivacySettingsCloseFriends>();
-  } else {
-    privacy_settings = story->privacy_rules_.get_story_privacy_settings_object(td_);
-    if (privacy_settings == nullptr) {
-      if (story->is_for_contacts_) {
-        privacy_settings = td_api::make_object<td_api::storyPrivacySettingsContacts>();
-      } else {
-        privacy_settings = td_api::make_object<td_api::storyPrivacySettingsSelectedContacts>();
-      }
+  td_api::object_ptr<td_api::StoryPrivacySettings> privacy_settings =
+      story->privacy_rules_.get_story_privacy_settings_object(td_);
+  if (privacy_settings == nullptr) {
+    if (story->is_public_) {
+      privacy_settings = td_api::make_object<td_api::storyPrivacySettingsEveryone>();
+    } else if (story->is_for_contacts_) {
+      privacy_settings = td_api::make_object<td_api::storyPrivacySettingsContacts>();
+    } else if (story->is_for_close_friends_) {
+      privacy_settings = td_api::make_object<td_api::storyPrivacySettingsCloseFriends>();
+    } else {
+      privacy_settings = td_api::make_object<td_api::storyPrivacySettingsSelectedContacts>();
     }
   }
 
