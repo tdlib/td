@@ -2726,9 +2726,10 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
 
   td_->messages_manager_->force_create_dialog(owner_dialog_id, "on_get_new_story");
 
+  StoryId old_story_id;
   auto updates_story_ids_it = update_story_ids_.find(story_full_id);
   if (updates_story_ids_it != update_story_ids_.end()) {
-    auto old_story_id = updates_story_ids_it->second;
+    old_story_id = updates_story_ids_it->second;
     update_story_ids_.erase(updates_story_ids_it);
 
     LOG(INFO) << "Receive sent " << old_story_id << " as " << story_full_id;
@@ -2736,12 +2737,10 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
     auto old_story_full_id = StoryFullId(owner_dialog_id, old_story_id);
     const Story *old_story = get_story_force(old_story_full_id, "on_get_new_story");
     if (old_story != nullptr) {
-      send_closure(
-          G()->td(), &Td::send_update,
-          td_api::make_object<td_api::updateStoryDeleted>(
-              td_->messages_manager_->get_chat_id_object(owner_dialog_id, "updateStoryDeleted"), old_story_id.get()));
       delete_story_files(old_story);
       stories_.erase(old_story_full_id);
+    } else {
+      old_story_id = StoryId();
     }
   }
 
@@ -2896,6 +2895,12 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
       on_update_active_stories(owner_dialog_id, active_stories->max_read_story_id_, std::move(story_ids),
                                Promise<Unit>(), "on_get_new_story");
     }
+  }
+
+  if (old_story_id.is_valid()) {
+    send_closure(G()->td(), &Td::send_update,
+                 td_api::make_object<td_api::updateStorySendSucceeded>(get_story_object(story_full_id, story),
+                                                                       old_story_id.get()));
   }
 
   return story_id;
