@@ -5869,6 +5869,12 @@ updateStoryDeleted story_sender_chat_id:int53 story_id:int32 = Update;
 //@description A story has been successfully sent @story The sent story @old_story_id The previous temporary story identifier
 updateStorySendSucceeded story:story old_story_id:int32 = Update;
 
+//@description A story failed to send. If the story sending is cancelled, then updateStoryDeleted will be received instead of this update
+//@story The failed to send story
+//@error_code An error code
+//@error_message Error message
+updateStorySendFailed story:story error_code:int32 error_message:string = Update;
+
 //@description The list of active stories posted by a specific chat has changed
 //@active_stories The new list of active stories
 updateChatActiveStories active_stories:chatActiveStories = Update;

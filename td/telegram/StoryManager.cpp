@@ -4188,15 +4188,18 @@ void StoryManager::do_edit_story(FileId file_id, unique_ptr<PendingStory> &&pend
 }
 
 void StoryManager::delete_pending_story(FileId file_id, unique_ptr<PendingStory> &&pending_story, Status status) {
+  if (G()->close_flag() && G()->use_message_database()) {
+    return;
+  }
   if (file_id.is_valid()) {
     td_->file_manager_->delete_partial_remote_location(file_id);
   }
 
   CHECK(pending_story != nullptr);
+  StoryFullId story_full_id{pending_story->dialog_id_, pending_story->story_id_};
+  const Story *story = get_story(story_full_id);
   bool is_edit = pending_story->story_id_.is_server();
   if (is_edit) {
-    StoryFullId story_full_id{pending_story->dialog_id_, pending_story->story_id_};
-    const Story *story = get_story(story_full_id);
     auto it = being_edited_stories_.find(story_full_id);
     if (story == nullptr || it == being_edited_stories_.end() ||
         edit_generations_[story_full_id] != pending_story->random_id_) {
@@ -4221,6 +4224,17 @@ void StoryManager::delete_pending_story(FileId file_id, unique_ptr<PendingStory>
     CHECK(pending_story->log_event_id_ == 0);
   } else {
     LOG(INFO) << "Finish sending of story " << pending_story->send_story_num_;
+    if (story != nullptr) {
+      if (status.is_ok()) {
+        LOG(ERROR) << "Failed to receive sent " << story_full_id;
+        status = Status::Error(500, "Failed to receive a sent story");
+      }
+      send_closure(G()->td(), &Td::send_update,
+                   td_api::make_object<td_api::updateStorySendFailed>(get_story_object(story_full_id, story),
+                                                                      status.code(), status.message().str()));
+      delete_story_files(story);
+      stories_.erase(story_full_id);
+    }
     auto it = yet_unsent_stories_.find(pending_story->dialog_id_);
     CHECK(it != yet_unsent_stories_.end());
     bool is_deleted = it->second.erase(pending_story->send_story_num_) > 0;
