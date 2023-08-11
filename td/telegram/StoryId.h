@@ -19,6 +19,8 @@ class StoryId {
   int32 id = 0;
 
  public:
+  static constexpr int32 MAX_SERVER_STORY_ID = 1999999999;
+
   StoryId() = default;
 
   explicit constexpr StoryId(int32 story_id) : id(story_id) {
@@ -48,11 +50,11 @@ class StoryId {
   }
 
   bool is_valid() const {
-    return id != 0;
+    return id > 0;
   }
 
   bool is_server() const {
-    return id > 0;
+    return id > 0 && id <= MAX_SERVER_STORY_ID;
   }
 
   template <class StorerT>

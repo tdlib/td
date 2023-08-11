@@ -472,6 +472,8 @@ class StoryManager final : public Actor {
 
   void delete_pending_story(FileId file_id, unique_ptr<PendingStory> &&pending_story, Status status);
 
+  Result<StoryId> get_next_yet_unsent_story_id(DialogId dialog_id);
+
   void do_send_story(unique_ptr<PendingStory> &&pending_story, vector<int> bad_parts);
 
   void on_upload_story(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);
@@ -598,6 +600,8 @@ class StoryManager final : public Actor {
   uint32 send_story_count_ = 0;
 
   int64 max_story_global_id_ = 0;
+
+  FlatHashMap<DialogId, int32, DialogIdHash> current_yet_unsent_story_ids_;
 
   bool has_active_synchronize_archive_all_stories_query_ = false;
 

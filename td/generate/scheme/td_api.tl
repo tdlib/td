@@ -7409,7 +7409,7 @@ readChatList chat_list:ChatList = Ok;
 //@only_local Pass true to get only locally available information without sending network requests
 getStory story_sender_chat_id:int53 story_id:int32 only_local:Bool = Story;
 
-//@description Sends a new story. Returns a temporary story with identifier 0
+//@description Sends a new story. Returns a temporary story
 //@content Content of the story
 //@areas Clickable rectangle areas to be shown on the story media; pass null if none
 //@caption Story caption; pass null to use an empty caption; 0-getOption("story_caption_length_max") characters
