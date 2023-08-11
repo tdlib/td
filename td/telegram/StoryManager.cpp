@@ -711,9 +711,12 @@ class StoryManager::SendStoryQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for SendStoryQuery: " << to_string(ptr);
-    td_->updates_manager_->on_get_updates(std::move(ptr), Promise<Unit>());
-
-    td_->story_manager_->delete_pending_story(file_id_, std::move(pending_story_), Status::OK());
+    td_->updates_manager_->on_get_updates(
+        std::move(ptr), PromiseCreator::lambda([file_id = file_id_, pending_story = std::move(pending_story_)](
+                                                   Result<Unit> &&result) mutable {
+          send_closure(G()->story_manager(), &StoryManager::delete_pending_story, file_id, std::move(pending_story),
+                       result.is_ok() ? Status::OK() : result.move_as_error());
+        }));
   }
 
   void on_error(Status status) final {
@@ -2722,6 +2725,14 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
 
   td_->messages_manager_->force_create_dialog(owner_dialog_id, "on_get_new_story");
 
+  auto updates_story_ids_it = update_story_ids_.find(story_full_id);
+  if (updates_story_ids_it != update_story_ids_.end()) {
+    auto old_story_id = updates_story_ids_it->second;
+    update_story_ids_.erase(updates_story_ids_it);
+
+    LOG(INFO) << "Receive sent " << old_story_id << " as " << story_full_id;
+  }
+
   bool is_bot = td_->auth_manager_->is_bot();
   auto caption =
       get_message_text(td_->contacts_manager_.get(), std::move(story_item->caption_), std::move(story_item->entities_),
@@ -2946,6 +2957,8 @@ void StoryManager::on_delete_story(StoryFullId story_full_id) {
     LOG(ERROR) << "Receive deleted " << story_full_id;
     return;
   }
+
+  update_story_ids_.erase(story_full_id);
 
   inaccessible_story_full_ids_.set(story_full_id, Time::now());
   send_closure_later(G()->messages_manager(),
@@ -3388,6 +3401,35 @@ void StoryManager::save_active_stories(DialogId owner_dialog_id, const ActiveSto
   }
 }
 
+void StoryManager::on_update_story_id(int64 random_id, StoryId new_story_id, const char *source) {
+  if (!new_story_id.is_server()) {
+    LOG(ERROR) << "Receive " << new_story_id << " with random_id " << random_id << " from " << source;
+    return;
+  }
+
+  auto it = being_sent_stories_.find(random_id);
+  if (it == being_sent_stories_.end()) {
+    // update about a new story sent from another device
+    LOG(INFO) << "Receive not sent outgoing " << new_story_id << " with random_id = " << random_id;
+    return;
+  }
+  auto old_story_full_id = it->second;
+  being_sent_stories_.erase(it);
+
+  if (!have_story_force(old_story_full_id)) {
+    LOG(INFO) << "Can't find sent story " << old_story_full_id;
+    // delete_sent_story_on_server(old_story_full_id, new_story_id);
+    return;
+  }
+
+  auto old_story_id = old_story_full_id.get_story_id();
+  auto new_story_full_id = StoryFullId(old_story_full_id.get_dialog_id(), new_story_id);
+
+  LOG(INFO) << "Save correspondence from " << new_story_full_id << " to " << old_story_id;
+  CHECK(!old_story_id.is_server());
+  update_story_ids_[new_story_full_id] = old_story_id;
+}
+
 bool StoryManager::on_update_read_stories(DialogId owner_dialog_id, StoryId max_read_story_id) {
   if (!td_->messages_manager_->have_dialog_info_force(owner_dialog_id)) {
     return false;
@@ -3750,15 +3792,13 @@ void StoryManager::send_story(td_api::object_ptr<td_api::InputStoryContent> &&in
   int64 random_id;
   do {
     random_id = Random::secure_int64();
-  } while (random_id == 0);
+  } while (random_id == 0 || being_sent_stories_.count(random_id) > 0);
 
   auto story_ptr = story.get();
 
   auto pending_story =
       td::make_unique<PendingStory>(dialog_id, StoryId(), ++send_story_count_, random_id, std::move(story));
   pending_story->log_event_id_ = save_send_story_log_event(pending_story.get());
-
-  yet_unsent_stories_[dialog_id].insert(pending_story->send_story_num_);
 
   do_send_story(std::move(pending_story), {});
 
@@ -3799,6 +3839,12 @@ int64 StoryManager::save_send_story_log_event(const PendingStory *pending_story)
 void StoryManager::do_send_story(unique_ptr<PendingStory> &&pending_story, vector<int> bad_parts) {
   CHECK(pending_story != nullptr);
   CHECK(pending_story->story_ != nullptr);
+
+  if (bad_parts.empty() && !pending_story->story_id_.is_server()) {
+    yet_unsent_stories_[pending_story->dialog_id_].insert(pending_story->send_story_num_);
+    being_sent_stories_[pending_story->random_id_] = StoryFullId(pending_story->dialog_id_, pending_story->story_id_);
+  }
+
   auto content = pending_story->story_->content_.get();
   CHECK(content != nullptr);
   auto upload_order = pending_story->send_story_num_;
@@ -4135,6 +4181,7 @@ void StoryManager::delete_pending_story(FileId file_id, unique_ptr<PendingStory>
     if (it->second.empty()) {
       yet_unsent_stories_.erase(it);
     }
+    being_sent_stories_.erase(pending_story->random_id_);
     try_send_story(pending_story->dialog_id_);
 
     if (pending_story->log_event_id_ != 0) {
@@ -4381,7 +4428,6 @@ void StoryManager::on_binlog_events(vector<BinlogEvent> &&events) {
         CHECK(!pending_story->story_id_.is_server());
         pending_story->send_story_num_ = send_story_count_;
         pending_story->story_->content_ = dup_story_content(td_, pending_story->story_->content_.get());
-        yet_unsent_stories_[pending_story->dialog_id_].insert(pending_story->send_story_num_);
         do_send_story(std::move(pending_story), {});
         break;
       }

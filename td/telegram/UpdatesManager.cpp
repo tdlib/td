@@ -1807,6 +1807,14 @@ void UpdatesManager::process_get_difference_updates(
       CHECK(!running_get_difference_);
     }
 
+    if (constructor_id == telegram_api::updateStoryID::ID) {
+      LOG(INFO) << "Receive update about sent story " << to_string(update);
+      auto update_story_id = move_tl_object_as<telegram_api::updateStoryID>(update);
+      td_->story_manager_->on_update_story_id(update_story_id->random_id_, StoryId(update_story_id->id_),
+                                              "getDifference");
+      CHECK(!running_get_difference_);
+    }
+
     if (constructor_id == telegram_api::updateEncryption::ID) {
       on_update(move_tl_object_as<telegram_api::updateEncryption>(update), Promise<Unit>());
       CHECK(!running_get_difference_);
@@ -2468,7 +2476,6 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
       LOG(INFO) << "Receive from " << source << " pending " << to_string(update);
       int32 id = update->get_id();
       if (id == telegram_api::updateMessageID::ID) {
-        LOG(INFO) << "Receive from " << source << " " << to_string(update);
         auto sent_message_update = move_tl_object_as<telegram_api::updateMessageID>(update);
         MessageId message_id;
         if (ordinary_new_message_count != 0) {
@@ -2481,6 +2488,11 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
             LOG(ERROR) << "Update: " << oneline(to_string(debug_update));
           }
         }
+        update = nullptr;
+      }
+      if (id == telegram_api::updateStoryID::ID) {
+        auto update_story_id = move_tl_object_as<telegram_api::updateStoryID>(update);
+        td_->story_manager_->on_update_story_id(update_story_id->random_id_, StoryId(update_story_id->id_), source);
         update = nullptr;
       }
       if (id == telegram_api::updateFolderPeers::ID) {
@@ -3347,6 +3359,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewChannelMessa
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMessageID> update, Promise<Unit> &&promise) {
   LOG(ERROR) << "Receive not in getDifference and not in on_pending_updates " << to_string(update);
+  promise.set_value(Unit());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadMessagesContents> update,
@@ -4322,10 +4335,11 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateSentStoryReacti
   promise.set_value(Unit());
 }
 
-// unsupported updates
-
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStoryID> update, Promise<Unit> &&promise) {
+  LOG(ERROR) << "Receive not in getDifference and not in on_pending_updates " << to_string(update);
   promise.set_value(Unit());
 }
+
+// unsupported updates
 
 }  // namespace td

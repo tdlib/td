@@ -265,6 +265,8 @@ class StoryManager final : public Actor {
                                telegram_api::object_ptr<telegram_api::userStories> &&user_stories,
                                Promise<Unit> &&promise);
 
+  void on_update_story_id(int64 random_id, StoryId new_story_id, const char *source);
+
   bool on_update_read_stories(DialogId owner_dialog_id, StoryId max_read_story_id);
 
   void on_update_story_stealth_mode(telegram_api::object_ptr<telegram_api::storiesStealthMode> &&stealth_mode);
@@ -582,6 +584,10 @@ class StoryManager final : public Actor {
   FlatHashMap<FileId, unique_ptr<PendingStory>, FileIdHash> being_uploaded_files_;
 
   FlatHashMap<DialogId, std::set<uint32>, DialogIdHash> yet_unsent_stories_;
+
+  FlatHashMap<int64, StoryFullId> being_sent_stories_;
+
+  FlatHashMap<StoryFullId, StoryId, StoryFullIdHash> update_story_ids_;
 
   FlatHashMap<uint32, unique_ptr<ReadyToSendStory>> ready_to_send_stories_;
 
