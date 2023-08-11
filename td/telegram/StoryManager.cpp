@@ -1788,6 +1788,9 @@ void StoryManager::update_story_list_sent_total_count(StoryListId story_list_id,
   auto new_total_count = static_cast<int32>(story_list.ordered_stories_.size());
   if (story_list.list_last_story_date_ != MAX_DIALOG_DATE) {
     new_total_count = max(new_total_count, story_list.server_total_count_);
+  } else if (story_list.server_total_count_ != new_total_count) {
+    story_list.server_total_count_ = new_total_count;
+    save_story_list(story_list_id, story_list.state_, story_list.server_total_count_, story_list.server_has_more_);
   }
   if (story_list.sent_total_count_ != new_total_count) {
     story_list.sent_total_count_ = new_total_count;
