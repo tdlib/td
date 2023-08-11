@@ -307,7 +307,9 @@ const vector<Slice> &get_premium_limit_keys() {
                                         "chatlist_invites",
                                         "chatlists_joined",
                                         "story_expiring",
-                                        "story_caption_length"};
+                                        "story_caption_length",
+                                        "stories_sent_weekly",
+                                        "stories_sent_monthly"};
   return limit_keys;
 }
 
@@ -342,6 +344,10 @@ static Slice get_limit_type_key(const td_api::PremiumLimitType *limit_type) {
       return Slice("story_expiring");
     case td_api::premiumLimitTypeStoryCaptionLength::ID:
       return Slice("story_caption_length");
+    case td_api::premiumLimitTypeWeeklySentStoryCount::ID:
+      return Slice("stories_sent_weekly");
+    case td_api::premiumLimitTypeMonthlySentStoryCount::ID:
+      return Slice("stories_sent_monthly");
     default:
       UNREACHABLE();
       return Slice();
@@ -504,6 +510,12 @@ static td_api::object_ptr<td_api::premiumLimit> get_premium_limit_object(Slice k
     }
     if (key == "story_caption_length") {
       return td_api::make_object<td_api::premiumLimitTypeStoryCaptionLength>();
+    }
+    if (key == "stories_sent_weekly") {
+      return td_api::make_object<td_api::premiumLimitTypeWeeklySentStoryCount>();
+    }
+    if (key == "stories_sent_monthly") {
+      return td_api::make_object<td_api::premiumLimitTypeMonthlySentStoryCount>();
     }
     UNREACHABLE();
     return nullptr;

@@ -3984,6 +3984,12 @@ premiumLimitTypeShareableChatFolderCount = PremiumLimitType;
 //@description The maximum number of active stories
 premiumLimitTypeActiveStoryCount = PremiumLimitType;
 
+//@description The maximum number of stories sent per week
+premiumLimitTypeWeeklySentStoryCount = PremiumLimitType;
+
+//@description The maximum number of stories sent per month
+premiumLimitTypeMonthlySentStoryCount = PremiumLimitType;
+
 //@description The maximum length of captions of sent stories
 premiumLimitTypeStoryCaptionLength = PremiumLimitType;
 
