@@ -2569,6 +2569,7 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
   bool is_edited = story->is_edited_;
 
   auto story_id = story_full_id.get_story_id();
+  CHECK(story_id.is_valid());
   auto *content = story->content_.get();
   auto *areas = &story->areas_;
   auto *caption = &story->caption_;
@@ -2588,6 +2589,7 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
     }
   }
 
+  bool is_being_sent = !story_id.is_server();
   auto changelog_dialog_id = get_changelog_story_dialog_id();
   bool is_visible_only_for_self =
       !story_id.is_server() || dialog_id == changelog_dialog_id || (!story->is_pinned_ && !is_active_story(story));
@@ -2602,8 +2604,9 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
 
   return td_api::make_object<td_api::story>(
       story_id.get(), td_->messages_manager_->get_chat_id_object(dialog_id, "get_story_object"), story->date_,
-      is_being_edited, is_edited, story->is_pinned_, is_visible_only_for_self, can_be_forwarded, can_be_replied,
-      can_get_viewers, has_expired_viewers, story->interaction_info_.get_story_interaction_info_object(td_),
+      is_being_sent, is_being_edited, is_edited, story->is_pinned_, is_visible_only_for_self, can_be_forwarded,
+      can_be_replied, can_get_viewers, has_expired_viewers,
+      story->interaction_info_.get_story_interaction_info_object(td_),
       story->chosen_reaction_type_.get_reaction_type_object(), std::move(privacy_settings),
       get_story_content_object(td_, content), std::move(story_areas),
       get_formatted_text_object(*caption, true, get_story_content_duration(td_, content)));
