@@ -3783,7 +3783,7 @@ void StoryManager::send_story(td_api::object_ptr<td_api::InputStoryContent> &&in
   story->is_pinned_ = is_pinned;
   story->noforwards_ = protect_content;
   story->privacy_rules_ = std::move(privacy_rules);
-  story->content_ = dup_story_content(td_, content.get());
+  story->content_ = std::move(content);
   story->areas_ = std::move(areas);
   story->caption_ = std::move(caption);
 
@@ -3837,14 +3837,18 @@ int64 StoryManager::save_send_story_log_event(const PendingStory *pending_story)
 void StoryManager::do_send_story(unique_ptr<PendingStory> &&pending_story, vector<int> bad_parts) {
   CHECK(pending_story != nullptr);
   CHECK(pending_story->story_ != nullptr);
+  CHECK(pending_story->story_->content_ != nullptr);
 
-  if (bad_parts.empty() && !pending_story->story_id_.is_server()) {
-    yet_unsent_stories_[pending_story->dialog_id_].insert(pending_story->send_story_num_);
-    being_sent_stories_[pending_story->random_id_] = StoryFullId(pending_story->dialog_id_, pending_story->story_id_);
+  if (bad_parts.empty()) {
+    pending_story->story_->content_ = dup_story_content(td_, pending_story->story_->content_.get());
+
+    if (!pending_story->story_id_.is_server()) {
+      yet_unsent_stories_[pending_story->dialog_id_].insert(pending_story->send_story_num_);
+      being_sent_stories_[pending_story->random_id_] = StoryFullId(pending_story->dialog_id_, pending_story->story_id_);
+    }
   }
 
   auto content = pending_story->story_->content_.get();
-  CHECK(content != nullptr);
   auto upload_order = pending_story->send_story_num_;
 
   FileId file_id = get_story_content_any_file_id(td_, content);
@@ -4091,7 +4095,7 @@ void StoryManager::edit_story(StoryId story_id, td_api::object_ptr<td_api::Input
   edited_story->promises_.push_back(std::move(promise));
 
   auto new_story = make_unique<Story>();
-  new_story->content_ = dup_story_content(td_, edited_story->content_.get());
+  new_story->content_ = copy_story_content(edited_story->content_.get());
 
   auto pending_story =
       td::make_unique<PendingStory>(dialog_id, story_id, std::numeric_limits<uint32>::max() - (++send_story_count_),
@@ -4425,7 +4429,6 @@ void StoryManager::on_binlog_events(vector<BinlogEvent> &&events) {
         ++send_story_count_;
         CHECK(!pending_story->story_id_.is_server());
         pending_story->send_story_num_ = send_story_count_;
-        pending_story->story_->content_ = dup_story_content(td_, pending_story->story_->content_.get());
         do_send_story(std::move(pending_story), {});
         break;
       }
@@ -4489,7 +4492,7 @@ void StoryManager::on_binlog_events(vector<BinlogEvent> &&events) {
         if (edited_story->content_ == nullptr) {
           do_edit_story(FileId(), std::move(pending_story), nullptr);
         } else {
-          pending_story->story_->content_ = dup_story_content(td_, edited_story->content_.get());
+          pending_story->story_->content_ = copy_story_content(edited_story->content_.get());
           do_send_story(std::move(pending_story), {});
         }
         break;
