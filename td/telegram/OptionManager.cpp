@@ -116,7 +116,7 @@ OptionManager::OptionManager(Td *td)
     set_option_integer("pinned_forum_topic_count_max", G()->is_test_dc() ? 3 : 5);
   }
   if (!have_option("archive_all_stories")) {
-    set_option_boolean("archive_all_stories", false);
+    // set_option_boolean("archive_all_stories", false);
   }
 
   set_option_empty("archive_and_mute_new_chats_from_unknown_users");
@@ -631,10 +631,12 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
       if (set_boolean_option("always_parse_markdown")) {
         return;
       }
+      /*
       if (!is_bot && set_boolean_option("archive_all_stories")) {
         set_option_boolean("need_synchronize_archive_all_stories", true);
         return;
       }
+      */
       break;
     case 'c':
       if (!is_bot && set_string_option("connection_parameters", [](Slice value) {
