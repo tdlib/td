@@ -58,6 +58,10 @@ class StoryInteractionInfo {
     return view_count_;
   }
 
+  int32 get_reaction_count() const {
+    return reaction_count_;
+  }
+
   bool definitely_has_no_user(UserId user_id) const;
 
   bool set_recent_viewer_user_ids(vector<UserId> &&user_ids);

@@ -1292,6 +1292,7 @@ void StoryManager::on_story_can_get_viewers_timeout(int64 story_global_id) {
   LOG(INFO) << "Have expired viewers in " << story_full_id;
   if (can_get_story_viewers(story_full_id, story, true).is_ok()) {
     // timeout used monotonic time instead of wall clock time
+    // also a reaction could have been added on the story
     LOG(INFO) << "Receive timeout for " << story_full_id
               << " with available viewers: expire_date = " << story->expire_date_
               << ", current time = " << G()->unix_time();
@@ -2424,6 +2425,9 @@ Status StoryManager::can_get_story_viewers(StoryFullId story_full_id, const Stor
   if (!story_full_id.get_story_id().is_server()) {
     return Status::Error(400, "Story is not sent yet");
   }
+  if (story->interaction_info_.get_reaction_count() > 0) {
+    return Status::OK();
+  }
   if (G()->unix_time() >= get_story_viewers_expire_date(story) &&
       (ignore_premium || story->interaction_info_.has_hidden_viewers())) {
     return Status::Error(400, "Story is too old");
@@ -3103,7 +3107,7 @@ void StoryManager::on_story_changed(StoryFullId story_full_id, const Story *stor
     CHECK(story->global_id_ > 0);
     story_expire_timeout_.set_timeout_in(story->global_id_, story->expire_date_ - G()->unix_time());
   }
-  if (can_get_story_viewers(story_full_id, story, true).is_ok()) {
+  if (can_get_story_viewers(story_full_id, story, true).is_ok() && story->interaction_info_.get_reaction_count() == 0) {
     CHECK(story->global_id_ > 0);
     story_can_get_viewers_timeout_.set_timeout_in(story->global_id_,
                                                   get_story_viewers_expire_date(story) - G()->unix_time() + 2);
