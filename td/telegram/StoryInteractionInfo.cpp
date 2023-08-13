@@ -51,6 +51,10 @@ void StoryInteractionInfo::add_dependencies(Dependencies &dependencies) const {
 }
 
 bool StoryInteractionInfo::set_recent_viewer_user_ids(vector<UserId> &&user_ids) {
+  if (recent_viewer_user_ids_.empty() && view_count_ > 0) {
+    // don't update recent viewers for stories with expired viewers
+    return false;
+  }
   if (user_ids.size() > MAX_RECENT_VIEWERS) {
     user_ids.resize(MAX_RECENT_VIEWERS);
   }
