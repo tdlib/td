@@ -22,6 +22,7 @@ class StoryInteractionInfo {
   vector<UserId> recent_viewer_user_ids_;
   int32 view_count_ = -1;
   int32 reaction_count_ = 0;
+  bool has_viewers_ = false;
 
   static constexpr size_t MAX_RECENT_VIEWERS = 3;
 
@@ -39,7 +40,7 @@ class StoryInteractionInfo {
   }
 
   bool has_hidden_viewers() const {
-    return view_count_ < 0 || (recent_viewer_user_ids_.empty() && view_count_ > 0);
+    return view_count_ < 0 || !has_viewers_;
   }
 
   void add_dependencies(Dependencies &dependencies) const;

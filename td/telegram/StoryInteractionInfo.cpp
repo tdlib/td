@@ -41,6 +41,7 @@ StoryInteractionInfo::StoryInteractionInfo(Td *td, telegram_api::object_ptr<tele
     LOG(ERROR) << "Receive " << reaction_count_ << " story reactions";
     reaction_count_ = 0;
   }
+  has_viewers_ = story_views->has_viewers_;
 }
 
 void StoryInteractionInfo::add_dependencies(Dependencies &dependencies) const {
@@ -61,7 +62,7 @@ bool StoryInteractionInfo::set_recent_viewer_user_ids(vector<UserId> &&user_ids)
 }
 
 bool StoryInteractionInfo::definitely_has_no_user(UserId user_id) const {
-  return !is_empty() && view_count_ <= static_cast<int32>(MAX_RECENT_VIEWERS) &&
+  return !is_empty() && view_count_ == static_cast<int32>(recent_viewer_user_ids_.size()) &&
          !contains(recent_viewer_user_ids_, user_id);
 }
 
@@ -76,7 +77,7 @@ td_api::object_ptr<td_api::storyInteractionInfo> StoryInteractionInfo::get_story
 
 bool operator==(const StoryInteractionInfo &lhs, const StoryInteractionInfo &rhs) {
   return lhs.recent_viewer_user_ids_ == rhs.recent_viewer_user_ids_ && lhs.view_count_ == rhs.view_count_ &&
-         lhs.reaction_count_ == rhs.reaction_count_;
+         lhs.reaction_count_ == rhs.reaction_count_ && lhs.has_viewers_ == rhs.has_viewers_;
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const StoryInteractionInfo &info) {
