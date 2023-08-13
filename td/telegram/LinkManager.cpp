@@ -45,7 +45,7 @@
 namespace td {
 
 static bool is_valid_start_parameter(Slice start_parameter) {
-  return start_parameter.size() <= 64 && is_base64url_characters(start_parameter);
+  return is_base64url_characters(start_parameter);
 }
 
 static bool is_valid_phone_number(Slice phone_number) {
