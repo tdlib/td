@@ -2668,7 +2668,8 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
   bool can_be_replied = story_id.is_server() && dialog_id != changelog_dialog_id;
   bool can_get_viewers = can_get_story_viewers(story_full_id, story, false).is_ok();
   auto interaction_info = story->interaction_info_.get_story_interaction_info_object(td_);
-  bool has_expired_viewers = !can_get_viewers && is_story_owned(dialog_id) && story_id.is_server() &&
+  bool has_expired_viewers = is_story_owned(dialog_id) && story_id.is_server() &&
+                             G()->unix_time_cached() >= get_story_viewers_expire_date(story) &&
                              interaction_info != nullptr &&
                              interaction_info->view_count_ > interaction_info->reaction_count_;
   auto story_areas = transform(*areas, [](const MediaArea &media_area) { return media_area.get_story_area_object(); });
