@@ -733,6 +733,9 @@ class StoryManager::SendStoryQuery final : public Td::ResultHandler {
 
     const FormattedText &caption = story->caption_;
     auto entities = get_input_message_entities(td_->contacts_manager_.get(), &caption, "SendStoryQuery");
+    if (!td_->option_manager_->get_option_boolean("can_use_text_entities_in_story_caption")) {
+      entities.clear();
+    }
     auto privacy_rules = story->privacy_rules_.get_input_privacy_rules(td_);
     auto period = story->expire_date_ - story->date_;
     int32 flags = 0;
@@ -831,9 +834,10 @@ class StoryManager::EditStoryQuery final : public Td::ResultHandler {
     vector<telegram_api::object_ptr<telegram_api::MessageEntity>> entities;
     if (edited_story->edit_caption_) {
       flags |= telegram_api::stories_editStory::CAPTION_MASK;
-      flags |= telegram_api::stories_editStory::ENTITIES_MASK;
-
-      entities = get_input_message_entities(td_->contacts_manager_.get(), &edited_story->caption_, "EditStoryQuery");
+      if (td_->option_manager_->get_option_boolean("can_use_text_entities_in_story_caption")) {
+        flags |= telegram_api::stories_editStory::ENTITIES_MASK;
+        entities = get_input_message_entities(td_->contacts_manager_.get(), &edited_story->caption_, "EditStoryQuery");
+      }
     }
 
     send_query(G()->net_query_creator().create(
@@ -3881,6 +3885,9 @@ void StoryManager::send_story(td_api::object_ptr<td_api::InputStoryContent> &&in
       }
     }
   }
+  if (!td_->option_manager_->get_option_boolean("can_use_text_entities_in_story_caption")) {
+    caption.entities.clear();
+  }
 
   td_->messages_manager_->force_create_dialog(dialog_id, "send_story");
 
@@ -4182,6 +4189,9 @@ void StoryManager::edit_story(StoryId story_id, td_api::object_ptr<td_api::Input
   if (is_caption_edited) {
     TRY_RESULT_PROMISE_ASSIGN(
         promise, caption, get_formatted_text(td_, DialogId(), std::move(input_caption), is_bot, true, false, false));
+    if (!td_->option_manager_->get_option_boolean("can_use_text_entities_in_story_caption")) {
+      caption.entities.clear();
+    }
     auto *current_caption = &story->caption_;
     auto it = being_edited_stories_.find(story_full_id);
     if (it != being_edited_stories_.end() && it->second->edit_caption_) {
