@@ -2044,7 +2044,10 @@ void StoryManager::get_dialog_expiring_stories(DialogId owner_dialog_id,
 }
 
 void StoryManager::reload_dialog_expiring_stories(DialogId dialog_id) {
-  td_->messages_manager_->force_create_dialog(dialog_id, "reload_dialog_expiring_stories", true);
+  if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+    return;
+  }
+  td_->messages_manager_->force_create_dialog(dialog_id, "reload_dialog_expiring_stories");
   load_dialog_expiring_stories(dialog_id, 0, "reload_dialog_expiring_stories");
 }
 

@@ -11975,7 +11975,7 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
     u->is_is_contact_changed = false;
   }
   if (u->is_is_mutual_contact_changed) {
-    if (!from_database) {
+    if (!from_database && u->is_update_user_sent) {
       send_closure_later(td_->story_manager_actor_, &StoryManager::reload_dialog_expiring_stories, DialogId(user_id));
     }
     u->is_is_mutual_contact_changed = false;
