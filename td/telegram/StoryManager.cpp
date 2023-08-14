@@ -56,7 +56,8 @@
 
 namespace td {
 
-static td_api::object_ptr<td_api::CanSendStoryResult> get_can_send_story_result_object(const Status &error) {
+static td_api::object_ptr<td_api::CanSendStoryResult> get_can_send_story_result_object(const Status &error,
+                                                                                       bool force = false) {
   CHECK(error.is_error());
   if (error.message() == "PREMIUM_ACCOUNT_REQUIRED") {
     return td_api::make_object<td_api::canSendStoryResultPremiumNeeded>();
@@ -68,8 +69,8 @@ static td_api::object_ptr<td_api::CanSendStoryResult> get_can_send_story_result_
     auto r_next_date = to_integer_safe<int32>(error.message().substr(Slice("STORY_SEND_FLOOD_WEEKLY_").size()));
     if (r_next_date.is_ok() && r_next_date.ok() > 0) {
       auto retry_after = r_next_date.ok() - G()->unix_time();
-      if (retry_after > 0) {
-        return td_api::make_object<td_api::canSendStoryResultWeeklyLimitExceeded>(retry_after);
+      if (retry_after > 0 || force) {
+        return td_api::make_object<td_api::canSendStoryResultWeeklyLimitExceeded>(max(retry_after, 0));
       } else {
         return td_api::make_object<td_api::canSendStoryResultOk>();
       }
@@ -79,8 +80,8 @@ static td_api::object_ptr<td_api::CanSendStoryResult> get_can_send_story_result_
     auto r_next_date = to_integer_safe<int32>(error.message().substr(Slice("STORY_SEND_FLOOD_MONTHLY_").size()));
     if (r_next_date.is_ok() && r_next_date.ok() > 0) {
       auto retry_after = r_next_date.ok() - G()->unix_time();
-      if (retry_after > 0) {
-        return td_api::make_object<td_api::canSendStoryResultMonthlyLimitExceeded>(retry_after);
+      if (retry_after > 0 || force) {
+        return td_api::make_object<td_api::canSendStoryResultMonthlyLimitExceeded>(max(retry_after, 0));
       } else {
         return td_api::make_object<td_api::canSendStoryResultOk>();
       }
@@ -4318,6 +4319,7 @@ void StoryManager::delete_pending_story(FileId file_id, unique_ptr<PendingStory>
       }
       send_closure(G()->td(), &Td::send_update,
                    td_api::make_object<td_api::updateStorySendFailed>(get_story_object(story_full_id, story),
+                                                                      get_can_send_story_result_object(status, true),
                                                                       status.code(), status.message().str()));
       delete_story_files(story);
       stories_.erase(story_full_id);
