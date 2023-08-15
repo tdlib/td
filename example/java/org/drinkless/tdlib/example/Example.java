@@ -429,6 +429,14 @@ public final class Example {
                     }
                     break;
                 }
+                case TdApi.UpdateChatPermissions.CONSTRUCTOR: {
+                    TdApi.UpdateChatPermissions update = (TdApi.UpdateChatPermissions) object;
+                    TdApi.Chat chat = chats.get(update.chatId);
+                    synchronized (chat) {
+                        chat.permissions = update.permissions;
+                    }
+                    break;
+                }
                 case TdApi.UpdateChatLastMessage.CONSTRUCTOR: {
                     TdApi.UpdateChatLastMessage updateChat = (TdApi.UpdateChatLastMessage) object;
                     TdApi.Chat chat = chats.get(updateChat.chatId);
@@ -485,27 +493,19 @@ public final class Example {
                     }
                     break;
                 }
-                case TdApi.UpdateChatUnreadMentionCount.CONSTRUCTOR: {
-                    TdApi.UpdateChatUnreadMentionCount updateChat = (TdApi.UpdateChatUnreadMentionCount) object;
+                case TdApi.UpdateChatActionBar.CONSTRUCTOR: {
+                    TdApi.UpdateChatActionBar updateChat = (TdApi.UpdateChatActionBar) object;
                     TdApi.Chat chat = chats.get(updateChat.chatId);
                     synchronized (chat) {
-                        chat.unreadMentionCount = updateChat.unreadMentionCount;
+                        chat.actionBar = updateChat.actionBar;
                     }
                     break;
                 }
-                case TdApi.UpdateMessageMentionRead.CONSTRUCTOR: {
-                    TdApi.UpdateMessageMentionRead updateChat = (TdApi.UpdateMessageMentionRead) object;
+                case TdApi.UpdateChatAvailableReactions.CONSTRUCTOR: {
+                    TdApi.UpdateChatAvailableReactions updateChat = (TdApi.UpdateChatAvailableReactions) object;
                     TdApi.Chat chat = chats.get(updateChat.chatId);
                     synchronized (chat) {
-                        chat.unreadMentionCount = updateChat.unreadMentionCount;
-                    }
-                    break;
-                }
-                case TdApi.UpdateChatReplyMarkup.CONSTRUCTOR: {
-                    TdApi.UpdateChatReplyMarkup updateChat = (TdApi.UpdateChatReplyMarkup) object;
-                    TdApi.Chat chat = chats.get(updateChat.chatId);
-                    synchronized (chat) {
-                        chat.replyMarkupMessageId = updateChat.replyMarkupMessageId;
+                        chat.availableReactions = updateChat.availableReactions;
                     }
                     break;
                 }
@@ -518,11 +518,19 @@ public final class Example {
                     }
                     break;
                 }
-                case TdApi.UpdateChatPermissions.CONSTRUCTOR: {
-                    TdApi.UpdateChatPermissions update = (TdApi.UpdateChatPermissions) object;
-                    TdApi.Chat chat = chats.get(update.chatId);
+                case TdApi.UpdateChatMessageSender.CONSTRUCTOR: {
+                    TdApi.UpdateChatMessageSender updateChat = (TdApi.UpdateChatMessageSender) object;
+                    TdApi.Chat chat = chats.get(updateChat.chatId);
                     synchronized (chat) {
-                        chat.permissions = update.permissions;
+                        chat.messageSenderId = updateChat.messageSenderId;
+                    }
+                    break;
+                }
+                case TdApi.UpdateChatMessageAutoDeleteTime.CONSTRUCTOR: {
+                    TdApi.UpdateChatMessageAutoDeleteTime updateChat = (TdApi.UpdateChatMessageAutoDeleteTime) object;
+                    TdApi.Chat chat = chats.get(updateChat.chatId);
+                    synchronized (chat) {
+                        chat.messageAutoDeleteTime = updateChat.messageAutoDeleteTime;
                     }
                     break;
                 }
@@ -534,11 +542,83 @@ public final class Example {
                     }
                     break;
                 }
+                case TdApi.UpdateChatPendingJoinRequests.CONSTRUCTOR: {
+                    TdApi.UpdateChatPendingJoinRequests update = (TdApi.UpdateChatPendingJoinRequests) object;
+                    TdApi.Chat chat = chats.get(update.chatId);
+                    synchronized (chat) {
+                        chat.pendingJoinRequests = update.pendingJoinRequests;
+                    }
+                    break;
+                }
+                case TdApi.UpdateChatReplyMarkup.CONSTRUCTOR: {
+                    TdApi.UpdateChatReplyMarkup updateChat = (TdApi.UpdateChatReplyMarkup) object;
+                    TdApi.Chat chat = chats.get(updateChat.chatId);
+                    synchronized (chat) {
+                        chat.replyMarkupMessageId = updateChat.replyMarkupMessageId;
+                    }
+                    break;
+                }
+                case TdApi.UpdateChatBackground.CONSTRUCTOR: {
+                    TdApi.UpdateChatBackground updateChat = (TdApi.UpdateChatBackground) object;
+                    TdApi.Chat chat = chats.get(updateChat.chatId);
+                    synchronized (chat) {
+                        chat.background = updateChat.background;
+                    }
+                    break;
+                }
+                case TdApi.UpdateChatTheme.CONSTRUCTOR: {
+                    TdApi.UpdateChatTheme updateChat = (TdApi.UpdateChatTheme) object;
+                    TdApi.Chat chat = chats.get(updateChat.chatId);
+                    synchronized (chat) {
+                        chat.themeName = updateChat.themeName;
+                    }
+                    break;
+                }
+                case TdApi.UpdateChatUnreadMentionCount.CONSTRUCTOR: {
+                    TdApi.UpdateChatUnreadMentionCount updateChat = (TdApi.UpdateChatUnreadMentionCount) object;
+                    TdApi.Chat chat = chats.get(updateChat.chatId);
+                    synchronized (chat) {
+                        chat.unreadMentionCount = updateChat.unreadMentionCount;
+                    }
+                    break;
+                }
+                case TdApi.UpdateChatUnreadReactionCount.CONSTRUCTOR: {
+                    TdApi.UpdateChatUnreadReactionCount updateChat = (TdApi.UpdateChatUnreadReactionCount) object;
+                    TdApi.Chat chat = chats.get(updateChat.chatId);
+                    synchronized (chat) {
+                        chat.unreadReactionCount = updateChat.unreadReactionCount;
+                    }
+                    break;
+                }
+                case TdApi.UpdateChatVideoChat.CONSTRUCTOR: {
+                    TdApi.UpdateChatVideoChat updateChat = (TdApi.UpdateChatVideoChat) object;
+                    TdApi.Chat chat = chats.get(updateChat.chatId);
+                    synchronized (chat) {
+                        chat.videoChat = updateChat.videoChat;
+                    }
+                    break;
+                }
                 case TdApi.UpdateChatDefaultDisableNotification.CONSTRUCTOR: {
                     TdApi.UpdateChatDefaultDisableNotification update = (TdApi.UpdateChatDefaultDisableNotification) object;
                     TdApi.Chat chat = chats.get(update.chatId);
                     synchronized (chat) {
                         chat.defaultDisableNotification = update.defaultDisableNotification;
+                    }
+                    break;
+                }
+                case TdApi.UpdateChatHasProtectedContent.CONSTRUCTOR: {
+                    TdApi.UpdateChatHasProtectedContent updateChat = (TdApi.UpdateChatHasProtectedContent) object;
+                    TdApi.Chat chat = chats.get(updateChat.chatId);
+                    synchronized (chat) {
+                        chat.hasProtectedContent = updateChat.hasProtectedContent;
+                    }
+                    break;
+                }
+                case TdApi.UpdateChatIsTranslatable.CONSTRUCTOR: {
+                    TdApi.UpdateChatIsTranslatable update = (TdApi.UpdateChatIsTranslatable) object;
+                    TdApi.Chat chat = chats.get(update.chatId);
+                    synchronized (chat) {
+                        chat.isTranslatable = update.isTranslatable;
                     }
                     break;
                 }
@@ -550,11 +630,11 @@ public final class Example {
                     }
                     break;
                 }
-                case TdApi.UpdateChatIsBlocked.CONSTRUCTOR: {
-                    TdApi.UpdateChatIsBlocked update = (TdApi.UpdateChatIsBlocked) object;
+                case TdApi.UpdateChatBlockList.CONSTRUCTOR: {
+                    TdApi.UpdateChatBlockList update = (TdApi.UpdateChatBlockList) object;
                     TdApi.Chat chat = chats.get(update.chatId);
                     synchronized (chat) {
-                        chat.isBlocked = update.isBlocked;
+                        chat.blockList = update.blockList;
                     }
                     break;
                 }
@@ -563,6 +643,23 @@ public final class Example {
                     TdApi.Chat chat = chats.get(update.chatId);
                     synchronized (chat) {
                         chat.hasScheduledMessages = update.hasScheduledMessages;
+                    }
+                    break;
+                }
+
+                case TdApi.UpdateMessageMentionRead.CONSTRUCTOR: {
+                    TdApi.UpdateMessageMentionRead updateChat = (TdApi.UpdateMessageMentionRead) object;
+                    TdApi.Chat chat = chats.get(updateChat.chatId);
+                    synchronized (chat) {
+                        chat.unreadMentionCount = updateChat.unreadMentionCount;
+                    }
+                    break;
+                }
+                case TdApi.UpdateMessageUnreadReactions.CONSTRUCTOR: {
+                    TdApi.UpdateMessageUnreadReactions updateChat = (TdApi.UpdateMessageUnreadReactions) object;
+                    TdApi.Chat chat = chats.get(updateChat.chatId);
+                    synchronized (chat) {
+                        chat.unreadReactionCount = updateChat.unreadReactionCount;
                     }
                     break;
                 }
