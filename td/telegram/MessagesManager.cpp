@@ -8475,6 +8475,7 @@ void MessagesManager::set_active_reactions(vector<ReactionType> active_reaction_
   auto old_active_reaction_pos_ = std::move(active_reaction_pos_);
   active_reaction_pos_.clear();
   for (size_t i = 0; i < active_reaction_types_.size(); i++) {
+    CHECK(!active_reaction_types_[i].is_empty());
     active_reaction_pos_[active_reaction_types_[i]] = i;
   }
 

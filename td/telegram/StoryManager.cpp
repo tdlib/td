@@ -3975,6 +3975,8 @@ void StoryManager::do_send_story(unique_ptr<PendingStory> &&pending_story, vecto
       send_update_story(story_full_id, story.get());
       stories_.set(story_full_id, std::move(story));
 
+      CHECK(pending_story->dialog_id_.is_valid());
+      CHECK(pending_story->random_id_ != 0);
       yet_unsent_stories_[pending_story->dialog_id_].insert(pending_story->send_story_num_);
       being_sent_stories_[pending_story->random_id_] = story_full_id;
     } else {
