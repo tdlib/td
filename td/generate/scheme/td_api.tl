@@ -5010,7 +5010,7 @@ inputStoryAreaTypePreviousVenue venue_provider:string venue_id:string = InputSto
 //@description Describes a clickable rectangle area on a story media to be added @position Position of the area @type Type of the area
 inputStoryArea position:storyAreaPosition type:InputStoryAreaType = InputStoryArea;
 
-//@description Contains a list of story areas to be added @areas List of input story areas
+//@description Contains a list of story areas to be added @areas List of 0-10 input story areas
 inputStoryAreas areas:vector<inputStoryArea> = InputStoryAreas;
 
 
