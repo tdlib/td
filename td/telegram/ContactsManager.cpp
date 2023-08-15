@@ -3797,13 +3797,13 @@ class GetStoriesMaxIdsQuery final : public Td::ResultHandler {
   vector<UserId> user_ids_;
 
  public:
-  void send(vector<UserId> user_ids, vector<telegram_api::object_ptr<telegram_api::InputUser>> &&input_users) {
+  void send(vector<UserId> user_ids, vector<telegram_api::object_ptr<telegram_api::InputPeer>> &&input_peers) {
     user_ids_ = std::move(user_ids);
-    send_query(G()->net_query_creator().create(telegram_api::users_getStoriesMaxIDs(std::move(input_users))));
+    send_query(G()->net_query_creator().create(telegram_api::stories_getPeerMaxIDs(std::move(input_peers))));
   }
 
   void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::users_getStoriesMaxIDs>(packet);
+    auto result_ptr = fetch_result<telegram_api::stories_getPeerMaxIDs>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
     }
@@ -12683,7 +12683,7 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
 
   td_->messages_manager_->on_update_dialog_is_translatable(DialogId(user_id), !user->translations_disabled_);
 
-  send_closure_later(td_->story_manager_actor_, &StoryManager::on_get_user_stories, DialogId(user_id),
+  send_closure_later(td_->story_manager_actor_, &StoryManager::on_get_dialog_stories, DialogId(user_id),
                      std::move(user->stories_), Promise<Unit>());
 
   UserFull *user_full = add_user_full(user_id);
@@ -15594,28 +15594,31 @@ void ContactsManager::on_view_user_active_stories(vector<UserId> user_ids) {
 
   const size_t MAX_SLICE_SIZE = 100;  // server side limit
   vector<UserId> input_user_ids;
-  vector<telegram_api::object_ptr<telegram_api::InputUser>> input_users;
+  vector<telegram_api::object_ptr<telegram_api::InputPeer>> input_peers;
   for (auto &user_id : user_ids) {
+    if (td::contains(input_user_ids, user_id)) {
+      continue;
+    }
     User *u = get_user(user_id);
     if (!need_poll_active_stories(u, user_id) || Time::now() < u->max_active_story_id_next_reload_time ||
         u->is_max_active_story_id_being_reloaded) {
       continue;
     }
-    auto r_input_user = get_input_user(user_id);
-    if (r_input_user.is_error() || td::contains(input_user_ids, user_id)) {
+    auto input_peer = td_->messages_manager_->get_input_peer(DialogId(user_id), AccessRights::Read);
+    if (input_peer == nullptr) {
       continue;
     }
     u->is_max_active_story_id_being_reloaded = true;
     input_user_ids.push_back(user_id);
-    input_users.push_back(r_input_user.move_as_ok());
-    if (input_users.size() == MAX_SLICE_SIZE) {
-      td_->create_handler<GetStoriesMaxIdsQuery>()->send(std::move(input_user_ids), std::move(input_users));
+    input_peers.push_back(std::move(input_peer));
+    if (input_peers.size() == MAX_SLICE_SIZE) {
+      td_->create_handler<GetStoriesMaxIdsQuery>()->send(std::move(input_user_ids), std::move(input_peers));
       input_user_ids.clear();
-      input_users.clear();
+      input_peers.clear();
     }
   }
-  if (!input_users.empty()) {
-    td_->create_handler<GetStoriesMaxIdsQuery>()->send(std::move(input_user_ids), std::move(input_users));
+  if (!input_peers.empty()) {
+    td_->create_handler<GetStoriesMaxIdsQuery>()->send(std::move(input_user_ids), std::move(input_peers));
   }
 }
 

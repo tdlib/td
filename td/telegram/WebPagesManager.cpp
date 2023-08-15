@@ -546,7 +546,7 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
           }
           case telegram_api::webPageAttributeStory::ID: {
             auto attribute = telegram_api::move_object_as<telegram_api::webPageAttributeStory>(attribute_ptr);
-            auto dialog_id = DialogId(UserId(attribute->user_id_));
+            auto dialog_id = DialogId(attribute->peer_);
             auto story_id = StoryId(attribute->id_);
             auto story_full_id = StoryFullId(dialog_id, story_id);
             if (!story_full_id.is_server()) {

@@ -851,8 +851,7 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
         }
         if (media_id == telegram_api::messageMediaStory::ID) {
           auto message_media = static_cast<const telegram_api::messageMediaStory *>(message->media_.get());
-          UserId user_id(message_media->user_id_);
-          if (!is_acceptable_user(user_id)) {
+          if (!is_acceptable_peer(message_media->peer_)) {
             return false;
           }
         }
@@ -4320,12 +4319,12 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateAutoSaveSetting
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStory> update, Promise<Unit> &&promise) {
-  td_->story_manager_->on_get_story(DialogId(UserId(update->user_id_)), std::move(update->story_));
+  td_->story_manager_->on_get_story(DialogId(update->peer_), std::move(update->story_));
   promise.set_value(Unit());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadStories> update, Promise<Unit> &&promise) {
-  td_->story_manager_->on_update_read_stories(DialogId(UserId(update->user_id_)), StoryId(update->max_id_));
+  td_->story_manager_->on_update_read_stories(DialogId(update->peer_), StoryId(update->max_id_));
   promise.set_value(Unit());
 }
 
@@ -4335,8 +4334,8 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStoriesStealthM
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateSentStoryReaction> update, Promise<Unit> &&promise) {
-  td_->story_manager_->on_update_story_chosen_reaction_type(
-      DialogId(UserId(update->user_id_)), StoryId(update->story_id_), ReactionType(update->reaction_));
+  td_->story_manager_->on_update_story_chosen_reaction_type(DialogId(update->peer_), StoryId(update->story_id_),
+                                                            ReactionType(update->reaction_));
   promise.set_value(Unit());
 }
 

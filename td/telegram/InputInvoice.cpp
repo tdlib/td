@@ -268,7 +268,8 @@ tl_object_ptr<telegram_api::invoice> InputInvoice::Invoice::get_input_invoice() 
     flags |= telegram_api::invoice::MAX_TIP_AMOUNT_MASK;
   }
   if (!recurring_payment_terms_of_service_url_.empty()) {
-    flags |= telegram_api::invoice::RECURRING_TERMS_URL_MASK;
+    flags |= telegram_api::invoice::RECURRING_MASK;
+    flags |= telegram_api::invoice::TERMS_URL_MASK;
   }
 
   auto prices = transform(price_parts_, [](const LabeledPricePart &price) {

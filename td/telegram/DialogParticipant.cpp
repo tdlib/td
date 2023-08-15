@@ -127,7 +127,7 @@ telegram_api::object_ptr<telegram_api::chatAdminRights> AdministratorRights::get
   return telegram_api::make_object<telegram_api::chatAdminRights>(
       flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
       false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-      false /*ignored*/);
+      false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/);
 }
 
 td_api::object_ptr<td_api::chatAdministratorRights> AdministratorRights::get_chat_administrator_rights_object() const {

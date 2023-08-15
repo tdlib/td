@@ -2302,15 +2302,14 @@ static Result<InputMessageContent> create_input_message_content(
       DialogId story_sender_dialog_id(input_story->story_sender_chat_id_);
       StoryId story_id(input_story->story_id_);
       StoryFullId story_full_id(story_sender_dialog_id, story_id);
-      if (!td->story_manager_->have_story_force(story_full_id) ||
-          story_sender_dialog_id.get_type() != DialogType::User) {
+      if (!td->story_manager_->have_story_force(story_full_id)) {
         return Status::Error(400, "Story not found");
       }
       if (!story_id.is_server()) {
         return Status::Error(400, "Story can't be forwarded");
       }
-      if (td->contacts_manager_->get_input_user(story_sender_dialog_id.get_user_id()).is_error()) {
-        return Status::Error(400, "Can't access the user");
+      if (td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read) == nullptr) {
+        return Status::Error(400, "Can't access the story");
       }
       content = make_unique<MessageStory>(story_full_id, false);
       break;
@@ -5077,7 +5076,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
     }
     case telegram_api::messageMediaStory::ID: {
       auto media = move_tl_object_as<telegram_api::messageMediaStory>(media_ptr);
-      auto dialog_id = DialogId(UserId(media->user_id_));
+      auto dialog_id = DialogId(media->peer_);
       auto story_id = StoryId(media->id_);
       auto story_full_id = StoryFullId(dialog_id, story_id);
       if (!story_full_id.is_server()) {

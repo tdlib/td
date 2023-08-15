@@ -262,9 +262,9 @@ class StoryManager final : public Actor {
   std::pair<int32, vector<StoryId>> on_get_stories(DialogId owner_dialog_id, vector<StoryId> &&expected_story_ids,
                                                    telegram_api::object_ptr<telegram_api::stories_stories> &&stories);
 
-  DialogId on_get_user_stories(DialogId owner_dialog_id,
-                               telegram_api::object_ptr<telegram_api::userStories> &&user_stories,
-                               Promise<Unit> &&promise);
+  DialogId on_get_dialog_stories(DialogId owner_dialog_id,
+                                 telegram_api::object_ptr<telegram_api::peerStories> &&peer_stories,
+                                 Promise<Unit> &&promise);
 
   void on_update_story_id(int64 random_id, StoryId new_story_id, const char *source);
 
@@ -417,11 +417,11 @@ class StoryManager final : public Actor {
                                     telegram_api::object_ptr<telegram_api::stories_stories> &&stories,
                                     Promise<td_api::object_ptr<td_api::stories>> &&promise);
 
-  void on_get_story_archive(telegram_api::object_ptr<telegram_api::stories_stories> &&stories,
+  void on_get_story_archive(DialogId owner_dialog_id, telegram_api::object_ptr<telegram_api::stories_stories> &&stories,
                             Promise<td_api::object_ptr<td_api::stories>> &&promise);
 
   void on_get_dialog_expiring_stories(DialogId owner_dialog_id,
-                                      telegram_api::object_ptr<telegram_api::stories_userStories> &&stories,
+                                      telegram_api::object_ptr<telegram_api::stories_peerStories> &&stories,
                                       Promise<td_api::object_ptr<td_api::chatActiveStories>> &&promise);
 
   static uint64 save_load_dialog_expiring_stories_log_event(DialogId owner_dialog_id);

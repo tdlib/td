@@ -39,6 +39,9 @@ MediaArea::MediaArea(Td *td, telegram_api::object_ptr<telegram_api::MediaArea> &
       }
       break;
     }
+    case telegram_api::mediaAreaSuggestedReaction::ID:
+      // TODO
+      break;
     case telegram_api::inputMediaAreaVenue::ID:
       LOG(ERROR) << "Receive " << to_string(media_area_ptr);
       break;
