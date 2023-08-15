@@ -20,7 +20,6 @@
 #include "td/telegram/StoryInteractionInfo.h"
 #include "td/telegram/StoryListId.h"
 #include "td/telegram/StoryStealthMode.h"
-#include "td/telegram/StoryViewer.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"

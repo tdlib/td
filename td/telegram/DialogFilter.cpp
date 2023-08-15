@@ -16,7 +16,6 @@
 #include "td/utils/algorithm.h"
 #include "td/utils/emoji.h"
 #include "td/utils/FlatHashSet.h"
-#include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 

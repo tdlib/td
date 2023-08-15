@@ -46,6 +46,7 @@
 #include "td/telegram/PrivacyManager.h"
 #include "td/telegram/PublicDialogType.h"
 #include "td/telegram/ReactionManager.h"
+#include "td/telegram/ReactionType.h"
 #include "td/telegram/ScheduledServerMessageId.h"
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/SecretChatsManager.h"

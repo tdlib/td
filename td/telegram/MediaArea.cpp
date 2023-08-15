@@ -9,6 +9,8 @@
 #include "td/telegram/InlineQueriesManager.h"
 #include "td/telegram/Td.h"
 
+#include "td/utils/logging.h"
+
 namespace td {
 
 MediaArea::MediaArea(Td *td, telegram_api::object_ptr<telegram_api::MediaArea> &&media_area_ptr) {

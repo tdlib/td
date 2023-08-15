@@ -4053,7 +4053,7 @@ premiumStoryFeaturePriorityOrder = PremiumStoryFeature;
 //@description The ability to hide the fact that the user viewed other's stories
 premiumStoryFeatureStealthMode = PremiumStoryFeature;
 
-//@description The ability to check who opened your stories after they expire
+//@description The ability to check who opened the current user's stories after they expire
 premiumStoryFeaturePermanentViewsHistory = PremiumStoryFeature;
 
 //@description The ability to set custom expiration duration for stories
@@ -4996,7 +4996,7 @@ storyArea position:storyAreaPosition type:StoryAreaType = StoryArea;
 //@description An area pointing to a location @location The location
 inputStoryAreaTypeLocation location:location = InputStoryAreaType;
 
-//@description An area pointing to a venue found by the bot GetOption("venue_search_bot_username")
+//@description An area pointing to a venue found by the bot getOption("venue_search_bot_username")
 //@query_id Identifier of the inline query, used to found the venue
 //@result_id Identifier of the inline query result
 inputStoryAreaTypeFoundVenue query_id:int64 result_id:string = InputStoryAreaType;
@@ -5887,7 +5887,7 @@ updateStoryDeleted story_sender_chat_id:int53 story_id:int32 = Update;
 //@description A story has been successfully sent @story The sent story @old_story_id The previous temporary story identifier
 updateStorySendSucceeded story:story old_story_id:int32 = Update;
 
-//@description A story failed to send. If the story sending is cancelled, then updateStoryDeleted will be received instead of this update
+//@description A story failed to send. If the story sending is canceled, then updateStoryDeleted will be received instead of this update
 //@story The failed to send story
 //@error The cause of the failure; may be null if unknown
 //@error_code An error code
@@ -5901,7 +5901,7 @@ updateChatActiveStories active_stories:chatActiveStories = Update;
 //@description Number of chats in a story list has changed @story_list The story list @chat_count Approximate total number of chats with active stories in the list
 updateStoryListChatCount story_list:StoryList chat_count:int32 = Update;
 
-//@description Story stealth mode settings has changed
+//@description Story stealth mode settings have changed
 //@active_until_date Point in time (Unix timestamp) until stealth mode is active; 0 if it is disabled
 //@cooldown_until_date Point in time (Unix timestamp) when stealth mode can be enabled again; 0 if there is no active cooldown
 updateStoryStealthMode active_until_date:int32 cooldown_until_date:int32 = Update;
