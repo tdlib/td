@@ -810,7 +810,7 @@ class StoryManager::EditStoryQuery final : public Td::ResultHandler {
   unique_ptr<PendingStory> pending_story_;
 
  public:
-  void send(FileId file_id, unique_ptr<PendingStory> pending_story,
+  void send(FileId file_id, const Story *story, unique_ptr<PendingStory> pending_story,
             telegram_api::object_ptr<telegram_api::InputFile> input_file, const BeingEditedStory *edited_story) {
     file_id_ = file_id;
     pending_story_ = std::move(pending_story);
@@ -828,11 +828,16 @@ class StoryManager::EditStoryQuery final : public Td::ResultHandler {
     }
     vector<telegram_api::object_ptr<telegram_api::MediaArea>> media_areas;
     if (edited_story->edit_media_areas_) {
-      flags |= telegram_api::stories_editStory::MEDIA_AREAS_MASK;
-
       for (const auto &media_area : edited_story->areas_) {
         media_areas.push_back(media_area.get_input_media_area());
       }
+    } else if (content != nullptr) {
+      for (const auto &media_area : story->areas_) {
+        media_areas.push_back(media_area.get_input_media_area());
+      }
+    }
+    if (!media_areas.empty()) {
+      flags |= telegram_api::stories_editStory::MEDIA_AREAS_MASK;
     }
     vector<telegram_api::object_ptr<telegram_api::MessageEntity>> entities;
     if (edited_story->edit_caption_) {
@@ -4280,7 +4285,7 @@ void StoryManager::do_edit_story(FileId file_id, unique_ptr<PendingStory> &&pend
     return;
   }
   CHECK(story->content_ != nullptr);
-  td_->create_handler<EditStoryQuery>()->send(file_id, std::move(pending_story), std::move(input_file),
+  td_->create_handler<EditStoryQuery>()->send(file_id, story, std::move(pending_story), std::move(input_file),
                                               it->second.get());
 }
 
