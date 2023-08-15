@@ -1480,7 +1480,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   bool premium_gift_attach_menu_icon = false;
   bool premium_gift_text_field_icon = false;
   int32 dialog_filter_update_period = 300;
-  bool archive_all_stories = false;
+  // bool archive_all_stories = false;
   int32 story_viewers_expire_period = 86400;
   int64 stories_changelog_user_id = ContactsManager::get_service_notifications_user_id().get();
   if (config->get_id() == telegram_api::jsonObject::ID) {
@@ -1877,7 +1877,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         continue;
       }
       if (key == "stories_all_hidden") {
-        archive_all_stories = get_json_value_bool(std::move(key_value->value_), key);
+        // archive_all_stories = get_json_value_bool(std::move(key_value->value_), key);
         continue;
       }
       if (key == "story_viewers_expire_period") {
@@ -2104,8 +2104,8 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
 
   if (!options.get_option_boolean("need_synchronize_archive_all_stories")) {
     // options.set_option_boolean("archive_all_stories", archive_all_stories);
-    options.set_option_empty("archive_all_stories");
   }
+  options.set_option_empty("archive_all_stories");
 
   options.set_option_integer("stickers_premium_by_emoji_num", stickers_premium_by_emoji_num);
   options.set_option_integer("stickers_normal_by_emoji_per_premium_num", stickers_normal_by_emoji_per_premium_num);
