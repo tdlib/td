@@ -7897,7 +7897,10 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
       return;
     }
 
-    if (old_pts != new_pts - pts_count) {
+    if (old_pts == 0) {
+      old_pts = new_pts - pts_count;
+      LOG(INFO) << "Receive first update in " << dialog_id << " with PTS = " << new_pts << " from " << source;
+    } else if (old_pts != new_pts - pts_count) {
       LOG(INFO) << "Found a gap in the " << dialog_id << " with PTS = " << old_pts << ". new_pts = " << new_pts
                 << ", pts_count = " << pts_count << " in update from " << source;
       if (d->was_opened || td_->contacts_manager_->get_channel_status(channel_id).is_member() ||
