@@ -3770,7 +3770,7 @@ class EditMessageQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    LOG(INFO) << "Receive error for EditMessage: " << status;
+    LOG(INFO) << "Receive error for EditMessageQuery: " << status;
     if (!td_->auth_manager_->is_bot() && status.message() == "MESSAGE_NOT_MODIFIED") {
       return promise_.set_value(0);
     }

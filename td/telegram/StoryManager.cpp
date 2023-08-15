@@ -730,6 +730,7 @@ class StoryManager::SendStoryQuery final : public Td::ResultHandler {
 
     const auto *story = pending_story_->story_.get();
     const StoryContent *content = story->content_.get();
+    CHECK(input_file != nullptr);
     auto input_media = get_story_content_input_media(td_, content, std::move(input_file));
     CHECK(input_media != nullptr);
 
@@ -4191,6 +4192,8 @@ void StoryManager::edit_story(StoryId story_id, td_api::object_ptr<td_api::Input
     }
     if (*current_areas == areas) {
       are_media_areas_edited = false;
+    } else if (content == nullptr) {
+      return promise.set_error(Status::Error(400, "Can't edit story areas without content"));
     }
   }
   if (is_caption_edited) {

@@ -7460,7 +7460,7 @@ sendStory content:InputStoryContent areas:inputStoryAreas caption:formattedText 
 //@description Changes content and caption of a previously sent story
 //@story_id Identifier of the story to edit
 //@content New content of the story; pass null to keep the current content
-//@areas New clickable rectangle areas to be shown on the story media; pass null to keep the current areas
+//@areas New clickable rectangle areas to be shown on the story media; pass null to keep the current areas. Areas can't be edited if story content isn't changed
 //@caption New story caption; pass null to keep the current caption
 editStory story_id:int32 content:InputStoryContent areas:inputStoryAreas caption:formattedText = Ok;
 

@@ -1207,6 +1207,9 @@ class CliClient final : public Actor {
     string areas;
 
     operator td_api::object_ptr<td_api::inputStoryAreas>() const {
+      if (areas.empty()) {
+        return nullptr;
+      }
       auto result = td_api::make_object<td_api::inputStoryAreas>();
       for (const auto &area : full_split(areas, ';')) {
         if (area.empty()) {
