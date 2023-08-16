@@ -2533,7 +2533,8 @@ void StoryManager::on_get_story_viewers(
                                                       view->blocked_my_stories_from_);
   }
 
-  StoryViewers story_viewers(total_count, std::move(view_list->views_), std::move(view_list->next_offset_));
+  StoryViewers story_viewers(total_count, total_reaction_count, std::move(view_list->views_),
+                             std::move(view_list->next_offset_));
   if (story->content_ != nullptr) {
     bool is_changed = false;
     if (is_full && story->interaction_info_.set_counts(total_count, total_reaction_count)) {
