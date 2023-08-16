@@ -3084,32 +3084,32 @@ void StoryManager::on_delete_story(StoryFullId story_full_id) {
   send_closure_later(G()->messages_manager(),
                      &MessagesManager::update_story_max_reply_media_timestamp_in_replied_messages, story_full_id);
 
-  LOG(INFO) << "Delete " << story_full_id;
   const Story *story = get_story_force(story_full_id, "on_delete_story");
-  if (story == nullptr) {
-    delete_story_from_database(story_full_id);
-    return;
-  }
   auto owner_dialog_id = story_full_id.get_dialog_id();
-  if (story->is_update_sent_) {
-    send_closure(
-        G()->td(), &Td::send_update,
-        td_api::make_object<td_api::updateStoryDeleted>(
-            td_->messages_manager_->get_chat_id_object(owner_dialog_id, "updateStoryDeleted"), story_id.get()));
-  }
-  delete_story_files(story);
-  unregister_story_global_id(story);
-  stories_.erase(story_full_id);
-  auto edited_stories_it = being_edited_stories_.find(story_full_id);
-  if (edited_stories_it != being_edited_stories_.end()) {
-    CHECK(edited_stories_it->second != nullptr);
-    auto log_event_id = edited_stories_it->second->log_event_id_;
-    if (log_event_id != 0) {
-      binlog_erase(G()->td_db()->get_binlog(), log_event_id);
+  if (story != nullptr) {
+    LOG(INFO) << "Delete " << story_full_id;
+    if (story->is_update_sent_) {
+      send_closure(
+          G()->td(), &Td::send_update,
+          td_api::make_object<td_api::updateStoryDeleted>(
+              td_->messages_manager_->get_chat_id_object(owner_dialog_id, "updateStoryDeleted"), story_id.get()));
     }
-    being_edited_stories_.erase(edited_stories_it);
+    delete_story_files(story);
+    unregister_story_global_id(story);
+    stories_.erase(story_full_id);
+    auto edited_stories_it = being_edited_stories_.find(story_full_id);
+    if (edited_stories_it != being_edited_stories_.end()) {
+      CHECK(edited_stories_it->second != nullptr);
+      auto log_event_id = edited_stories_it->second->log_event_id_;
+      if (log_event_id != 0) {
+        binlog_erase(G()->td_db()->get_binlog(), log_event_id);
+      }
+      being_edited_stories_.erase(edited_stories_it);
+    }
+    edit_generations_.erase(story_full_id);
+  } else {
+    LOG(INFO) << "Delete not found " << story_full_id;
   }
-  edit_generations_.erase(story_full_id);
 
   auto active_stories = get_active_stories_force(owner_dialog_id, "on_get_deleted_story");
   if (active_stories != nullptr && contains(active_stories->story_ids_, story_id)) {
