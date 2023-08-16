@@ -56,15 +56,16 @@ class WaitFreeHashSet {
   }
 
  public:
-  void insert(const KeyT &key) {
+  bool insert(const KeyT &key) {
     if (wait_free_storage_ != nullptr) {
       return get_wait_free_storage(key).insert(key);
     }
 
-    default_set_.insert(key);
+    auto result = default_set_.insert(key).second;
     if (default_set_.size() == max_storage_size_) {
       split_storage();
     }
+    return result;
   }
 
   size_t count(const KeyT &key) const {

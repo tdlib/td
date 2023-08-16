@@ -1159,10 +1159,10 @@ StoryManager::StoryManager(Td *td, ActorShared<> parent) : td_(td), parent_(std:
 }
 
 StoryManager::~StoryManager() {
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), story_full_id_to_file_source_id_, stories_,
-                                              stories_by_global_id_, inaccessible_story_full_ids_,
-                                              deleted_story_full_ids_, failed_to_load_story_full_ids_, story_messages_,
-                                              active_stories_, max_read_story_ids_, failed_to_load_active_stories_);
+  Scheduler::instance()->destroy_on_scheduler(
+      G()->get_gc_scheduler_id(), story_full_id_to_file_source_id_, stories_, stories_by_global_id_,
+      inaccessible_story_full_ids_, deleted_story_full_ids_, failed_to_load_story_full_ids_, story_messages_,
+      active_stories_, updated_active_stories_, max_read_story_ids_, failed_to_load_active_stories_);
 }
 
 void StoryManager::start_up() {
@@ -2026,6 +2026,9 @@ void StoryManager::get_dialog_expiring_stories(DialogId owner_dialog_id,
     return promise.set_error(Status::Error(400, "Can't access the story sender"));
   }
   if (owner_dialog_id.get_type() != DialogType::User) {
+    if (updated_active_stories_.insert(owner_dialog_id)) {
+      send_update_chat_active_stories(owner_dialog_id, nullptr);
+    }
     return promise.set_value(get_chat_active_stories_object(owner_dialog_id, nullptr));
   }
 
@@ -2034,6 +2037,9 @@ void StoryManager::get_dialog_expiring_stories(DialogId owner_dialog_id,
   if (active_stories != nullptr) {
     if (!promise) {
       return promise.set_value(nullptr);
+    }
+    if (updated_active_stories_.insert(owner_dialog_id)) {
+      send_update_chat_active_stories(owner_dialog_id, active_stories);
     }
     promise.set_value(get_chat_active_stories_object(owner_dialog_id, active_stories));
     promise = {};
@@ -2126,7 +2132,11 @@ void StoryManager::on_get_dialog_expiring_stories(DialogId owner_dialog_id,
   td_->contacts_manager_->on_get_users(std::move(stories->users_), "on_get_dialog_expiring_stories");
   owner_dialog_id = on_get_user_stories(owner_dialog_id, std::move(stories->stories_), Promise<Unit>());
   if (promise) {
-    promise.set_value(get_chat_active_stories_object(owner_dialog_id));
+    auto active_stories = get_active_stories(owner_dialog_id);
+    if (updated_active_stories_.insert(owner_dialog_id)) {
+      send_update_chat_active_stories(owner_dialog_id, active_stories);
+    }
+    promise.set_value(get_chat_active_stories_object(owner_dialog_id, active_stories));
   } else {
     promise.set_value(nullptr);
   }
@@ -2709,11 +2719,6 @@ td_api::object_ptr<td_api::stories> StoryManager::get_stories_object(int32 total
   return td_api::make_object<td_api::stories>(total_count, transform(story_full_ids, [this](StoryFullId story_full_id) {
                                                 return get_story_object(story_full_id);
                                               }));
-}
-
-td_api::object_ptr<td_api::chatActiveStories> StoryManager::get_chat_active_stories_object(
-    DialogId owner_dialog_id) const {
-  return get_chat_active_stories_object(owner_dialog_id, get_active_stories(owner_dialog_id));
 }
 
 td_api::object_ptr<td_api::chatActiveStories> StoryManager::get_chat_active_stories_object(
@@ -3486,15 +3491,21 @@ void StoryManager::send_update_story(StoryFullId story_full_id, const Story *sto
   send_closure(G()->td(), &Td::send_update, td_api::make_object<td_api::updateStory>(std::move(story_object)));
 }
 
-td_api::object_ptr<td_api::updateChatActiveStories> StoryManager::get_update_chat_active_stories(
+td_api::object_ptr<td_api::updateChatActiveStories> StoryManager::get_update_chat_active_stories_object(
     DialogId owner_dialog_id, const ActiveStories *active_stories) const {
   return td_api::make_object<td_api::updateChatActiveStories>(
       get_chat_active_stories_object(owner_dialog_id, active_stories));
 }
 
-void StoryManager::send_update_chat_active_stories(DialogId owner_dialog_id,
-                                                   const ActiveStories *active_stories) const {
-  send_closure(G()->td(), &Td::send_update, get_update_chat_active_stories(owner_dialog_id, active_stories));
+void StoryManager::send_update_chat_active_stories(DialogId owner_dialog_id, const ActiveStories *active_stories) {
+  if (updated_active_stories_.count(owner_dialog_id) == 0) {
+    if (active_stories == nullptr || active_stories->public_order_ == 0) {
+      LOG(INFO) << "Skip update about active stories in " << owner_dialog_id;
+      return;
+    }
+    updated_active_stories_.insert(owner_dialog_id);
+  }
+  send_closure(G()->td(), &Td::send_update, get_update_chat_active_stories_object(owner_dialog_id, active_stories));
 }
 
 void StoryManager::save_active_stories(DialogId owner_dialog_id, const ActiveStories *active_stories,
@@ -4011,6 +4022,7 @@ void StoryManager::do_send_story(unique_ptr<PendingStory> &&pending_story, vecto
       being_sent_stories_[pending_story->random_id_] = story_full_id;
       being_sent_story_random_ids_[story_full_id] = pending_story->random_id_;
 
+      updated_active_stories_.insert(pending_story->dialog_id_);
       send_update_chat_active_stories(pending_story->dialog_id_, active_stories);
     } else {
       pending_story->story_->content_ = dup_story_content(td_, pending_story->story_->content_.get());
@@ -4569,7 +4581,9 @@ void StoryManager::remove_story_notifications_by_story_ids(DialogId dialog_id, c
 
 void StoryManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
   active_stories_.foreach([&](const DialogId &dialog_id, const unique_ptr<ActiveStories> &active_stories) {
-    updates.push_back(get_update_chat_active_stories(dialog_id, active_stories.get()));
+    if (updated_active_stories_.count(dialog_id) > 0) {
+      updates.push_back(get_update_chat_active_stories_object(dialog_id, active_stories.get()));
+    }
   });
   if (!td_->auth_manager_->is_bot()) {
     for (auto story_list_id : {StoryListId::main(), StoryListId::archive()}) {

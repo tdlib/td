@@ -398,8 +398,6 @@ class StoryManager final : public Actor {
 
   td_api::object_ptr<td_api::story> get_story_object(StoryFullId story_full_id, const Story *story) const;
 
-  td_api::object_ptr<td_api::chatActiveStories> get_chat_active_stories_object(DialogId owner_dialog_id) const;
-
   td_api::object_ptr<td_api::chatActiveStories> get_chat_active_stories_object(
       DialogId owner_dialog_id, const ActiveStories *active_stories) const;
 
@@ -498,10 +496,10 @@ class StoryManager final : public Actor {
 
   void send_update_story(StoryFullId story_full_id, const Story *story);
 
-  td_api::object_ptr<td_api::updateChatActiveStories> get_update_chat_active_stories(
+  td_api::object_ptr<td_api::updateChatActiveStories> get_update_chat_active_stories_object(
       DialogId owner_dialog_id, const ActiveStories *active_stories) const;
 
-  void send_update_chat_active_stories(DialogId owner_dialog_id, const ActiveStories *active_stories) const;
+  void send_update_chat_active_stories(DialogId owner_dialog_id, const ActiveStories *active_stories);
 
   void save_active_stories(DialogId owner_dialog_id, const ActiveStories *active_stories, Promise<Unit> &&promise,
                            const char *source) const;
@@ -565,6 +563,8 @@ class StoryManager final : public Actor {
   WaitFreeHashMap<StoryFullId, WaitFreeHashSet<FullMessageId, FullMessageIdHash>, StoryFullIdHash> story_messages_;
 
   WaitFreeHashMap<DialogId, unique_ptr<ActiveStories>, DialogIdHash> active_stories_;
+
+  WaitFreeHashSet<DialogId, DialogIdHash> updated_active_stories_;
 
   WaitFreeHashMap<DialogId, StoryId, DialogIdHash> max_read_story_ids_;
 
