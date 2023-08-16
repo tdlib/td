@@ -319,7 +319,7 @@ void UpdatesManager::check_pts_gap(void *td) {
 }
 
 void UpdatesManager::repair_pts_gap() {
-  if (running_get_difference_ || !postponed_pts_updates_.empty()) {
+  if (!td_->auth_manager_->is_authorized() || running_get_difference_ || !postponed_pts_updates_.empty()) {
     return;
   }
   auto pts = get_pts() + 1;
@@ -1771,10 +1771,10 @@ void UpdatesManager::on_server_pong(tl_object_ptr<telegram_api::updates_state> &
 }
 
 void UpdatesManager::init_sessions(bool is_first) {
-  if (G()->close_flag()) {
+  if (G()->close_flag() || !td_->auth_manager_->is_authorized()) {
     return;
   }
-  if (are_sessions_inited_ == is_first || !td_->auth_manager_->is_authorized()) {
+  if (are_sessions_inited_ == is_first) {
     return;
   }
   are_sessions_inited_ = true;
@@ -1870,7 +1870,7 @@ void UpdatesManager::process_get_difference_updates(
 }
 
 void UpdatesManager::on_get_difference(tl_object_ptr<telegram_api::updates_Difference> &&difference_ptr) {
-  if (G()->close_flag()) {
+  if (G()->close_flag() || !td_->auth_manager_->is_authorized()) {
     return;
   }
 
@@ -2020,7 +2020,7 @@ void UpdatesManager::on_get_difference(tl_object_ptr<telegram_api::updates_Diffe
 
 void UpdatesManager::on_get_pts_update(int32 pts,
                                        telegram_api::object_ptr<telegram_api::updates_Difference> difference_ptr) {
-  if (G()->close_flag()) {
+  if (G()->close_flag() || !td_->auth_manager_->is_authorized()) {
     return;
   }
   if (get_pts() != pts - 1 || running_get_difference_ || !postponed_pts_updates_.empty() ||
