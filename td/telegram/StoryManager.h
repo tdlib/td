@@ -588,6 +588,8 @@ class StoryManager final : public Actor {
 
   FlatHashMap<DialogId, std::set<uint32>, DialogIdHash> yet_unsent_stories_;
 
+  FlatHashMap<DialogId, vector<StoryId>, DialogIdHash> yet_unsent_story_ids_;
+
   FlatHashMap<int64, StoryFullId> being_sent_stories_;
 
   FlatHashMap<StoryFullId, int64, StoryFullIdHash> being_sent_story_random_ids_;
