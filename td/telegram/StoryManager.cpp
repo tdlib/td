@@ -2992,9 +2992,15 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
     if (active_stories == nullptr) {
       if (is_subscribed_to_dialog_stories(owner_dialog_id)) {
         load_dialog_expiring_stories(owner_dialog_id, 0, "on_get_new_story");
-      }
-      if (old_story_id.is_valid()) {
-        send_update_chat_active_stories(owner_dialog_id, active_stories, "on_get_new_story 1");
+
+        if (updated_active_stories_.count(owner_dialog_id)) {
+          on_update_active_stories(owner_dialog_id, StoryId(), vector<StoryId>{story_id}, Promise<Unit>(),
+                                   "on_get_new_story 1");
+        } else if (old_story_id.is_valid()) {
+          send_update_chat_active_stories(owner_dialog_id, active_stories, "on_get_new_story 2");
+        }
+      } else if (old_story_id.is_valid()) {
+        send_update_chat_active_stories(owner_dialog_id, active_stories, "on_get_new_story 3");
       }
     } else if (!contains(active_stories->story_ids_, story_id)) {
       auto story_ids = active_stories->story_ids_;
@@ -3008,7 +3014,7 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
       on_update_active_stories(owner_dialog_id, active_stories->max_read_story_id_, std::move(story_ids),
                                Promise<Unit>(), "on_get_new_story");
     } else if (old_story_id.is_valid()) {
-      send_update_chat_active_stories(owner_dialog_id, active_stories, "on_get_new_story 2");
+      send_update_chat_active_stories(owner_dialog_id, active_stories, "on_get_new_story 4");
     }
   }
 
