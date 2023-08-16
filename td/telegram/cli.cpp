@@ -3944,6 +3944,14 @@ class CliClient final : public Actor {
           td_api::make_object<td_api::parseTextEntities>(args, td_api::make_object<td_api::textParseModeMarkdown>(2)));
     } else if (op == "ptehs") {
       execute(td_api::make_object<td_api::parseTextEntities>(args, td_api::make_object<td_api::textParseModeHTML>()));
+    } else if (op == "ssbp") {
+      string strings;
+      string query;
+      string limit;
+      bool return_none_for_empty_query;
+      get_args(args, strings, query, limit, return_none_for_empty_query);
+      execute(td_api::make_object<td_api::searchStringsByPrefix>(autosplit_str(strings), query, as_limit(limit),
+                                                                 return_none_for_empty_query));
     } else if (op == "gfmt") {
       execute(td_api::make_object<td_api::getFileMimeType>(trim(args)));
     } else if (op == "gfe") {

@@ -5346,6 +5346,10 @@ topChatCategoryCalls = TopChatCategory;
 topChatCategoryForwardChats = TopChatCategory;
 
 
+//@description Contains 0-based positions of matched objects @total_count Total number of matched objects @positions The positions of the matched objects
+foundPositions total_count:int32 positions:vector<int32> = FoundPositions;
+
+
 //@class TMeUrlType @description Describes the type of a URL linking to an internal Telegram entity
 
 //@description A URL linking to a user @user_id Identifier of the user
@@ -8798,6 +8802,14 @@ assignGooglePlayTransaction package_name:string store_product_id:string purchase
 
 //@description Accepts Telegram terms of services @terms_of_service_id Terms of service identifier
 acceptTermsOfService terms_of_service_id:string = Ok;
+
+
+//@description Searches specified query by word prefixes in the provided strings. Returns 0-based positions of strings that matched. Can be called synchronously
+//@strings The strings to search in for the query
+//@query Query to search for
+//@limit The maximum number of objects to return
+//@return_none_for_empty_query Pass true to receive no results for an empty query
+searchStringsByPrefix strings:vector<string> query:string limit:int32 return_none_for_empty_query:Bool = FoundPositions;
 
 
 //@description Sends a custom request; for bots only @method The method name @parameters JSON-serialized method parameters

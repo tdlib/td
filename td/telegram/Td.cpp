@@ -2794,6 +2794,7 @@ bool Td::is_synchronous_request(const td_api::Function *function) {
     case td_api::parseTextEntities::ID:
     case td_api::parseMarkdown::ID:
     case td_api::getMarkdownText::ID:
+    case td_api::searchStringsByPrefix::ID:
     case td_api::getFileMimeType::ID:
     case td_api::getFileExtension::ID:
     case td_api::cleanFileName::ID:
@@ -3033,6 +3034,7 @@ td_api::object_ptr<td_api::Object> Td::static_request(td_api::object_ptr<td_api:
       case td_api::parseTextEntities::ID:
       case td_api::parseMarkdown::ID:
       case td_api::getMarkdownText::ID:
+      case td_api::searchStringsByPrefix::ID:
       case td_api::getFileMimeType::ID:
       case td_api::getFileExtension::ID:
       case td_api::cleanFileName::ID:
@@ -8829,6 +8831,10 @@ void Td::on_request(uint64 id, const td_api::getMarkdownText &request) {
   UNREACHABLE();
 }
 
+void Td::on_request(uint64 id, const td_api::searchStringsByPrefix &request) {
+  UNREACHABLE();
+}
+
 void Td::on_request(uint64 id, const td_api::getFileMimeType &request) {
   UNREACHABLE();
 }
@@ -8992,6 +8998,21 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::getMarkdownText
 
   return get_formatted_text_object(get_markdown_v3({std::move(request.text_->text_), std::move(entities)}), false,
                                    std::numeric_limits<int32>::max());
+}
+
+td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::searchStringsByPrefix &request) {
+  if (!check_utf8(request.query_)) {
+    return make_error(400, "Strings must be encoded in UTF-8");
+  }
+  for (auto &str : request.strings_) {
+    if (!check_utf8(str)) {
+      return make_error(400, "Strings must be encoded in UTF-8");
+    }
+  }
+  int32 total_count = 0;
+  auto result = search_strings_by_prefix(std::move(request.strings_), std::move(request.query_), request.limit_,
+                                         !request.return_none_for_empty_query_, total_count);
+  return td_api::make_object<td_api::foundPositions>(total_count, std::move(result));
 }
 
 td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getFileMimeType &request) {

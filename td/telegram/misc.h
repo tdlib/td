@@ -48,4 +48,8 @@ bool check_currency_amount(int64 amount);
 // checks whether language code is valid for bot settings
 Status validate_bot_language_code(const string &language_code);
 
+// returns 0-based indexes of strings matching the query by prefixes
+vector<int32> search_strings_by_prefix(const vector<string> &strings, const string &query, int32 limit,
+                                       bool return_all_for_empty_query, int32 &total_count);
+
 }  // namespace td

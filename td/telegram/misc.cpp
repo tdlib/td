@@ -8,6 +8,7 @@
 
 #include "td/utils/algorithm.h"
 #include "td/utils/common.h"
+#include "td/utils/Hints.h"
 #include "td/utils/misc.h"
 #include "td/utils/Slice.h"
 #include "td/utils/utf8.h"
@@ -349,6 +350,19 @@ Status validate_bot_language_code(const string &language_code) {
     return Status::OK();
   }
   return Status::Error(400, "Invalid language code specified");
+}
+
+vector<int32> search_strings_by_prefix(const vector<string> &strings, const string &query, int32 limit,
+                                       bool return_all_for_empty_query, int32 &total_count) {
+  Hints hints;
+  for (size_t i = 0; i < strings.size(); i++) {
+    const auto &str = strings[i];
+    hints.add(i, str.empty() ? Slice(" ") : Slice(str));
+    hints.set_rating(i, i);
+  }
+  auto result = hints.search(query, limit, return_all_for_empty_query);
+  total_count = result.first;
+  return transform(result.second, [](int64 key) { return narrow_cast<int32>(key); });
 }
 
 }  // namespace td
