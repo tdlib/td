@@ -499,7 +499,8 @@ class StoryManager final : public Actor {
   td_api::object_ptr<td_api::updateChatActiveStories> get_update_chat_active_stories_object(
       DialogId owner_dialog_id, const ActiveStories *active_stories) const;
 
-  void send_update_chat_active_stories(DialogId owner_dialog_id, const ActiveStories *active_stories);
+  void send_update_chat_active_stories(DialogId owner_dialog_id, const ActiveStories *active_stories,
+                                       const char *source);
 
   void save_active_stories(DialogId owner_dialog_id, const ActiveStories *active_stories, Promise<Unit> &&promise,
                            const char *source) const;
