@@ -590,7 +590,13 @@ class StoryManager final : public Actor {
 
   FlatHashMap<int64, StoryFullId> being_sent_stories_;
 
+  FlatHashMap<StoryFullId, int64, StoryFullIdHash> being_sent_story_random_ids_;
+
+  FlatHashMap<StoryFullId, FileId, StoryFullIdHash> being_uploaded_file_ids_;
+
   FlatHashMap<StoryFullId, StoryId, StoryFullIdHash> update_story_ids_;
+
+  FlatHashMap<int64, vector<Promise<Unit>>> delete_yet_unsent_story_queries_;
 
   FlatHashMap<uint32, unique_ptr<ReadyToSendStory>> ready_to_send_stories_;
 
