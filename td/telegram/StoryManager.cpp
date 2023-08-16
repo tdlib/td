@@ -1863,8 +1863,15 @@ void StoryManager::update_story_list_sent_total_count(StoryListId story_list_id,
   }
   LOG(INFO) << "Update story list sent total chat count in " << story_list_id;
   auto new_total_count = static_cast<int32>(story_list.ordered_stories_.size());
+  auto yet_unsent_total_count = 0;
+  for (const auto &it : yet_unsent_story_ids_) {
+    if (active_stories_.count(it.first) == 0) {
+      yet_unsent_total_count++;
+    }
+  }
+  new_total_count += yet_unsent_total_count;
   if (story_list.list_last_story_date_ != MAX_DIALOG_DATE) {
-    new_total_count = max(new_total_count, story_list.server_total_count_);
+    new_total_count = max(new_total_count, story_list.server_total_count_ + yet_unsent_total_count);
   } else if (story_list.server_total_count_ != new_total_count) {
     story_list.server_total_count_ = new_total_count;
     save_story_list(story_list_id, story_list.state_, story_list.server_total_count_, story_list.server_has_more_);
@@ -4024,6 +4031,7 @@ void StoryManager::do_send_story(unique_ptr<PendingStory> &&pending_story, vecto
 
       updated_active_stories_.insert(pending_story->dialog_id_);
       send_update_chat_active_stories(pending_story->dialog_id_, active_stories);
+      update_story_list_sent_total_count(StoryListId::main());
     } else {
       pending_story->story_->content_ = dup_story_content(td_, pending_story->story_->content_.get());
     }
@@ -4413,6 +4421,7 @@ void StoryManager::delete_pending_story(FileId file_id, unique_ptr<PendingStory>
     if (it->second.empty()) {
       yet_unsent_stories_.erase(it);
       yet_unsent_story_ids_.erase(pending_story->dialog_id_);
+      update_story_list_sent_total_count(StoryListId::main());
     } else {
       auto story_id_it = yet_unsent_story_ids_.find(pending_story->dialog_id_);
       CHECK(story_id_it != yet_unsent_story_ids_.end());
