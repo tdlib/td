@@ -895,26 +895,4 @@ auto json_array(const A &a, F &&f) {
   });
 }
 
-bool has_json_object_field(const JsonObject &object, Slice name);
-
-JsonValue get_json_object_field_force(JsonObject &object, Slice name) TD_WARN_UNUSED_RESULT;
-
-Result<JsonValue> get_json_object_field(JsonObject &object, Slice name, JsonValue::Type type,
-                                        bool is_optional = true) TD_WARN_UNUSED_RESULT;
-
-Result<bool> get_json_object_bool_field(const JsonObject &object, Slice name, bool is_optional = true,
-                                        bool default_value = false) TD_WARN_UNUSED_RESULT;
-
-Result<int32> get_json_object_int_field(const JsonObject &object, Slice name, bool is_optional = true,
-                                        int32 default_value = 0) TD_WARN_UNUSED_RESULT;
-
-Result<int64> get_json_object_long_field(const JsonObject &object, Slice name, bool is_optional = true,
-                                         int64 default_value = 0) TD_WARN_UNUSED_RESULT;
-
-Result<double> get_json_object_double_field(const JsonObject &object, Slice name, bool is_optional = true,
-                                            double default_value = 0.0) TD_WARN_UNUSED_RESULT;
-
-Result<string> get_json_object_string_field(const JsonObject &object, Slice name, bool is_optional = true,
-                                            string default_value = "") TD_WARN_UNUSED_RESULT;
-
 }  // namespace td
