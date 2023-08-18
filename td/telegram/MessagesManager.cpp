@@ -6120,8 +6120,8 @@ void MessagesManager::save_dialog_to_database(DialogId dialog_id) {
   }
   auto fixed_folder_id = d->folder_id == FolderId::archive() ? FolderId::archive() : FolderId::main();
   G()->td_db()->get_dialog_db_async()->add_dialog(
-      dialog_id, fixed_folder_id, d->is_folder_id_inited ? d->order : 0, get_dialog_database_value(d),
-      std::move(changed_group_keys), PromiseCreator::lambda([dialog_id, can_reuse_notification_group](Result<> result) {
+      dialog_id, fixed_folder_id, d->order, get_dialog_database_value(d), std::move(changed_group_keys),
+      PromiseCreator::lambda([dialog_id, can_reuse_notification_group](Result<> result) {
         send_closure(G()->messages_manager(), &MessagesManager::on_save_dialog_to_database, dialog_id,
                      can_reuse_notification_group, result.is_ok());
       }));
