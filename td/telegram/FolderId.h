@@ -21,6 +21,9 @@ class FolderId {
   FolderId() = default;
 
   explicit constexpr FolderId(int32 folder_id) : id(folder_id) {
+    if (id != 1) {
+      id = 0;
+    }
   }
   template <class T, typename = std::enable_if_t<std::is_convertible<T, int32>::value>>
   FolderId(T folder_id) = delete;
@@ -45,6 +48,9 @@ class FolderId {
   template <class ParserT>
   void parse(ParserT &parser) {
     id = parser.fetch_int();
+    if (id != 1) {
+      id = 0;
+    }
   }
 
   static FolderId main() {

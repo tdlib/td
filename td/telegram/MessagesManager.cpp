@@ -6118,9 +6118,8 @@ void MessagesManager::save_dialog_to_database(DialogId dialog_id) {
     add_group_key(d->notification_info->message_notification_group_);
     add_group_key(d->notification_info->mention_notification_group_);
   }
-  auto fixed_folder_id = d->folder_id == FolderId::archive() ? FolderId::archive() : FolderId::main();
   G()->td_db()->get_dialog_db_async()->add_dialog(
-      dialog_id, fixed_folder_id, d->order, get_dialog_database_value(d), std::move(changed_group_keys),
+      dialog_id, d->folder_id, d->order, get_dialog_database_value(d), std::move(changed_group_keys),
       PromiseCreator::lambda([dialog_id, can_reuse_notification_group](Result<> result) {
         send_closure(G()->messages_manager(), &MessagesManager::on_save_dialog_to_database, dialog_id,
                      can_reuse_notification_group, result.is_ok());
@@ -6698,12 +6697,7 @@ void MessagesManager::on_update_read_channel_inbox(tl_object_ptr<telegram_api::u
     LOG(ERROR) << "Receive invalid " << channel_id << " in updateReadChannelInbox";
     return;
   }
-
-  FolderId folder_id;
-  if ((update->flags_ & telegram_api::updateReadChannelInbox::FOLDER_ID_MASK) != 0) {
-    folder_id = FolderId(update->folder_id_);
-  }
-  on_update_dialog_folder_id(DialogId(channel_id), folder_id);
+  on_update_dialog_folder_id(DialogId(channel_id), FolderId(update->folder_id_));
   on_read_channel_inbox(channel_id, MessageId(ServerMessageId(update->max_id_)), update->still_unread_count_,
                         update->pts_, "updateReadChannelInbox");
 }
@@ -7985,11 +7979,7 @@ void MessagesManager::process_pts_update(tl_object_ptr<telegram_api::Update> &&u
       auto update = move_tl_object_as<telegram_api::updateReadHistoryInbox>(update_ptr);
       LOG(INFO) << "Process updateReadHistoryInbox";
       DialogId dialog_id(update->peer_);
-      FolderId folder_id;
-      if ((update->flags_ & telegram_api::updateReadHistoryInbox::FOLDER_ID_MASK) != 0) {
-        folder_id = FolderId(update->folder_id_);
-      }
-      on_update_dialog_folder_id(dialog_id, folder_id);
+      on_update_dialog_folder_id(dialog_id, FolderId(update->folder_id_));
       read_history_inbox(dialog_id, MessageId(ServerMessageId(update->max_id_)), -1 /*update->still_unread_count*/,
                          "updateReadHistoryInbox");
       break;
@@ -16998,7 +16988,7 @@ void MessagesManager::load_folder_dialog_list(FolderId folder_id, int32 limit, b
       is_query_sent = true;
     }
     if (folder_id == FolderId::main() && folder.last_server_dialog_date_ == MIN_DIALOG_DATE) {
-      // do not pass promise to not wait for drafts before showing chat list
+      // do not pass promise to not wait for drafts before showing the chat list
       load_all_draft_messages(td_);
     }
     lock.set_value(Unit());
@@ -17087,8 +17077,8 @@ void MessagesManager::on_get_dialogs_from_database(FolderId folder_id, int32 lim
       continue;
     }
     if (d->folder_id != folder_id) {
-      LOG(WARNING) << "Skip " << d->dialog_id << " received from database, because it is in " << d->folder_id
-                   << " instead of " << folder_id;
+      LOG(INFO) << "Skip " << d->dialog_id << " received from database, because it is in " << d->folder_id
+                << " instead of " << folder_id;
       dialogs_skipped++;
       continue;
     }
@@ -37982,9 +37972,6 @@ MessagesManager::DialogListView MessagesManager::get_dialog_lists(const Dialog *
 
 MessagesManager::DialogList &MessagesManager::add_dialog_list(DialogListId dialog_list_id) {
   CHECK(!td_->auth_manager_->is_bot());
-  if (dialog_list_id.is_folder() && dialog_list_id.get_folder_id() != FolderId::archive()) {
-    dialog_list_id = DialogListId(FolderId::main());
-  }
   if (dialog_lists_.count(dialog_list_id) == 0) {
     LOG(INFO) << "Create " << dialog_list_id;
   }
@@ -37995,9 +37982,6 @@ MessagesManager::DialogList &MessagesManager::add_dialog_list(DialogListId dialo
 
 MessagesManager::DialogList *MessagesManager::get_dialog_list(DialogListId dialog_list_id) {
   CHECK(!td_->auth_manager_->is_bot());
-  if (dialog_list_id.is_folder() && dialog_list_id.get_folder_id() != FolderId::archive()) {
-    dialog_list_id = DialogListId(FolderId::main());
-  }
   auto it = dialog_lists_.find(dialog_list_id);
   if (it == dialog_lists_.end()) {
     return nullptr;
@@ -38007,9 +37991,6 @@ MessagesManager::DialogList *MessagesManager::get_dialog_list(DialogListId dialo
 
 const MessagesManager::DialogList *MessagesManager::get_dialog_list(DialogListId dialog_list_id) const {
   CHECK(!td_->auth_manager_->is_bot());
-  if (dialog_list_id.is_folder() && dialog_list_id.get_folder_id() != FolderId::archive()) {
-    dialog_list_id = DialogListId(FolderId::main());
-  }
   auto it = dialog_lists_.find(dialog_list_id);
   if (it == dialog_lists_.end()) {
     return nullptr;
@@ -38019,9 +38000,6 @@ const MessagesManager::DialogList *MessagesManager::get_dialog_list(DialogListId
 
 MessagesManager::DialogFolder *MessagesManager::get_dialog_folder(FolderId folder_id) {
   CHECK(!td_->auth_manager_->is_bot());
-  if (folder_id != FolderId::archive()) {
-    folder_id = FolderId::main();
-  }
   auto it = dialog_folders_.find(folder_id);
   if (it == dialog_folders_.end()) {
     return nullptr;
@@ -38031,9 +38009,6 @@ MessagesManager::DialogFolder *MessagesManager::get_dialog_folder(FolderId folde
 
 const MessagesManager::DialogFolder *MessagesManager::get_dialog_folder(FolderId folder_id) const {
   CHECK(!td_->auth_manager_->is_bot());
-  if (folder_id != FolderId::archive()) {
-    folder_id = FolderId::main();
-  }
   auto it = dialog_folders_.find(folder_id);
   if (it == dialog_folders_.end()) {
     return nullptr;
