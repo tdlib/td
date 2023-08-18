@@ -32157,26 +32157,28 @@ void MessagesManager::set_dialog_folder_id(Dialog *d, FolderId folder_id) {
 
 void MessagesManager::do_set_dialog_folder_id(Dialog *d, FolderId folder_id) {
   CHECK(!td_->auth_manager_->is_bot());
-  if (d->folder_id == folder_id && d->is_folder_id_inited) {
+  bool is_changed = d->folder_id != folder_id;
+  if (!is_changed && d->is_folder_id_inited) {
     return;
   }
-
-  d->folder_id = folder_id;
   d->is_folder_id_inited = true;
 
-  if (d->dialog_id.get_type() == DialogType::SecretChat) {
-    // need to change action bar only for the secret chat and keep unarchive for the main chat
-    auto user_id = td_->contacts_manager_->get_secret_chat_user_id(d->dialog_id.get_secret_chat_id());
-    if (d->is_update_new_chat_sent && user_id.is_valid()) {
-      const Dialog *user_d = get_dialog(DialogId(user_id));
-      if (user_d != nullptr && user_d->action_bar != nullptr && user_d->action_bar->can_unarchive()) {
-        send_closure(G()->td(), &Td::send_update,
-                     td_api::make_object<td_api::updateChatActionBar>(
-                         get_chat_id_object(d->dialog_id, "updateChatActionBar"), get_chat_action_bar_object(d)));
+  if (is_changed) {
+    d->folder_id = folder_id;
+    if (d->dialog_id.get_type() == DialogType::SecretChat) {
+      // need to change action bar only for the secret chat and keep unarchive for the main chat
+      auto user_id = td_->contacts_manager_->get_secret_chat_user_id(d->dialog_id.get_secret_chat_id());
+      if (d->is_update_new_chat_sent && user_id.is_valid()) {
+        const Dialog *user_d = get_dialog(DialogId(user_id));
+        if (user_d != nullptr && user_d->action_bar != nullptr && user_d->action_bar->can_unarchive()) {
+          send_closure(G()->td(), &Td::send_update,
+                       td_api::make_object<td_api::updateChatActionBar>(
+                           get_chat_id_object(d->dialog_id, "updateChatActionBar"), get_chat_action_bar_object(d)));
+        }
       }
+    } else if (folder_id != FolderId::archive() && d->action_bar != nullptr && d->action_bar->on_dialog_unarchived()) {
+      send_update_chat_action_bar(d);
     }
-  } else if (folder_id != FolderId::archive() && d->action_bar != nullptr && d->action_bar->on_dialog_unarchived()) {
-    send_update_chat_action_bar(d);
   }
 
   on_dialog_updated(d->dialog_id, "do_set_dialog_folder_id");
