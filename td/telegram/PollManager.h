@@ -204,7 +204,7 @@ class PollManager final : public Actor {
 
   void on_set_poll_answer(PollId poll_id, uint64 generation, Result<tl_object_ptr<telegram_api::Updates>> &&result);
 
-  void on_set_poll_answer_finished(PollId poll_id, Result<Unit> &&result, vector<Promise<Unit>> &&promises);
+  void on_set_poll_answer_finished(PollId poll_id, Result<Unit> &&result, uint64 generation);
 
   void invalidate_poll_voters(const Poll *poll, PollId poll_id);
 
@@ -241,6 +241,7 @@ class PollManager final : public Actor {
     uint64 generation_ = 0;
     uint64 log_event_id_ = 0;
     NetQueryRef query_ref_;
+    bool is_finished_ = false;
   };
   FlatHashMap<PollId, PendingPollAnswer, PollIdHash> pending_answers_;
 

@@ -547,10 +547,11 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
   vector<td_api::object_ptr<td_api::pollOption>> poll_options;
   auto it = pending_answers_.find(poll_id);
   int32 voter_count_diff = 0;
-  if (it == pending_answers_.end()) {
+  if (it == pending_answers_.end() || (it->second.is_finished_ && poll->was_saved_)) {
     poll_options = transform(poll->options_, get_poll_option_object);
   } else {
-    auto &chosen_options = it->second.options_;
+    const auto &chosen_options = it->second.options_;
+    LOG(INFO) << "Have pending chosen options " << chosen_options << " in " << poll_id;
     for (auto &poll_option : poll->options_) {
       auto is_being_chosen = td::contains(chosen_options, poll_option.data_);
       if (poll_option.is_chosen_) {
@@ -915,6 +916,7 @@ void PollManager::do_set_poll_answer(PollId poll_id, FullMessageId full_message_
   pending_answer.promises_.push_back(std::move(promise));
   pending_answer.generation_ = generation;
   pending_answer.log_event_id_ = log_event_id;
+  pending_answer.is_finished_ = false;
 
   notify_on_poll_update(poll_id);
 
@@ -947,10 +949,10 @@ void PollManager::on_set_poll_answer(PollId poll_id, uint64 generation,
   if (pending_answer.log_event_id_ != 0) {
     LOG(INFO) << "Delete set poll answer log event " << pending_answer.log_event_id_;
     binlog_erase(G()->td_db()->get_binlog(), pending_answer.log_event_id_);
+    pending_answer.log_event_id_ = 0;
   }
 
-  auto promises = std::move(pending_answer.promises_);
-  pending_answers_.erase(it);
+  pending_answer.is_finished_ = true;
 
   auto poll = get_poll(poll_id);
   if (poll != nullptr) {
@@ -958,16 +960,31 @@ void PollManager::on_set_poll_answer(PollId poll_id, uint64 generation,
   }
   if (result.is_ok()) {
     td_->updates_manager_->on_get_updates(
-        result.move_as_ok(), PromiseCreator::lambda([actor_id = actor_id(this), poll_id,
-                                                     promises = std::move(promises)](Result<Unit> &&result) mutable {
-          send_closure(actor_id, &PollManager::on_set_poll_answer_finished, poll_id, Unit(), std::move(promises));
+        result.move_as_ok(),
+        PromiseCreator::lambda([actor_id = actor_id(this), poll_id, generation](Result<Unit> &&result) mutable {
+          send_closure(actor_id, &PollManager::on_set_poll_answer_finished, poll_id, Unit(), generation);
         }));
   } else {
-    on_set_poll_answer_finished(poll_id, result.move_as_error(), std::move(promises));
+    on_set_poll_answer_finished(poll_id, result.move_as_error(), generation);
   }
 }
 
-void PollManager::on_set_poll_answer_finished(PollId poll_id, Result<Unit> &&result, vector<Promise<Unit>> &&promises) {
+void PollManager::on_set_poll_answer_finished(PollId poll_id, Result<Unit> &&result, uint64 generation) {
+  auto it = pending_answers_.find(poll_id);
+  if (it == pending_answers_.end()) {
+    return;
+  }
+
+  auto &pending_answer = it->second;
+  CHECK(!pending_answer.promises_.empty());
+  if (pending_answer.generation_ != generation) {
+    return;
+  }
+  CHECK(pending_answer.is_finished_);
+
+  auto promises = std::move(pending_answer.promises_);
+  pending_answers_.erase(it);
+
   if (!G()->close_flag()) {
     auto poll = get_poll(poll_id);
     if (poll != nullptr && !poll->was_saved_) {
@@ -982,6 +999,8 @@ void PollManager::on_set_poll_answer_finished(PollId poll_id, Result<Unit> &&res
       poll->was_saved_ = true;
     }
   }
+
+  LOG(INFO) << "Finish to set answer for " << poll_id;
 
   if (result.is_ok()) {
     set_promises(promises);
@@ -1222,8 +1241,8 @@ void PollManager::stop_poll(PollId poll_id, FullMessageId full_message_id, uniqu
   ++current_generation_;
 
   poll->is_closed_ = true;
-  notify_on_poll_update(poll_id);
   save_poll(poll, poll_id);
+  notify_on_poll_update(poll_id);
 
   do_stop_poll(poll_id, full_message_id, std::move(reply_markup), 0, std::move(promise));
 }
@@ -1348,8 +1367,8 @@ void PollManager::on_close_poll_timeout(PollId poll_id) {
   LOG(INFO) << "Trying to close " << poll_id << " by timer";
   if (poll->close_date_ <= G()->server_time()) {
     poll->is_closed_ = true;
-    notify_on_poll_update(poll_id);
     save_poll(poll, poll_id);
+    notify_on_poll_update(poll_id);
 
     // don't send updatePoll for bots, because there is no way to guarantee it
 
@@ -1573,7 +1592,11 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
     auto p = make_unique<Poll>();
     poll = p.get();
     polls_.set(poll_id, std::move(p));
+  } else if (poll_results != nullptr && poll_results->min_ && pending_answers_.count(poll_id) != 0) {
+    LOG(INFO) << "Ignore being answered min-" << poll_id;
+    return poll_id;
   }
+
   CHECK(poll != nullptr);
 
   bool poll_server_is_closed = false;
@@ -1730,7 +1753,8 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
         poll_result->voters_ = 0;
       }
       if (option.is_chosen_ && poll_result->voters_ == 0) {
-        LOG(ERROR) << "Receive 0 voters for the chosen option in " << poll_id << " from " << source;
+        LOG(ERROR) << "Receive 0 voters for the chosen option " << option_index << " in " << poll_id << " from "
+                   << source;
         poll_result->voters_ = 1;
       }
       if (poll_result->voters_ > poll->total_voter_count_) {
@@ -1828,11 +1852,11 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
     LOG(INFO) << "Schedule updating of " << poll_id << " in " << timeout;
     update_poll_timeout_.set_timeout_in(poll_id.get(), timeout);
   }
-  if (is_changed) {
-    notify_on_poll_update(poll_id);
-  }
   if (is_changed || need_save_to_database) {
     save_poll(poll, poll_id);
+  }
+  if (is_changed) {
+    notify_on_poll_update(poll_id);
   }
   if (need_update_poll && (is_changed || (poll->is_closed_ && being_closed_polls_.erase(poll_id) != 0))) {
     send_closure(G()->td(), &Td::send_update, td_api::make_object<td_api::updatePoll>(get_poll_object(poll_id, poll)));
