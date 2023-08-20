@@ -518,10 +518,11 @@ Status SessionConnection::on_slice_packet(const MsgInfo &info, Slice packet) {
   }
 
   auto get_update_description = [&] {
-    return PSTRING() << "update from " << get_name() << " active for " << (Time::now() - created_at_)
-                     << " seconds in container " << container_id_ << " from session " << auth_data_->get_session_id()
-                     << " with message_id " << info.message_id << ", main_message_id = " << main_message_id_
-                     << ", seq_no = " << info.seq_no << " and original size = " << info.size;
+    return PSTRING() << "update from " << get_name() << " with auth key " << auth_data_->get_auth_key().id()
+                     << " active for " << (Time::now() - created_at_) << " seconds in container " << container_id_
+                     << " from session " << auth_data_->get_session_id() << " with message_id " << info.message_id
+                     << ", main_message_id = " << main_message_id_ << ", seq_no = " << info.seq_no
+                     << " and original size = " << info.size;
   };
 
   // It is an update... I hope.

@@ -574,7 +574,8 @@ Status Session::on_pong() {
       Timestamp::at(current_info_->created_at_ + MIN_CONNECTION_ACTIVE).is_in_past()) {
     Status status;
     if (!unknown_queries_.empty()) {
-      status = Status::Error(PSLICE() << "No state info for " << unknown_queries_.size() << " queries for "
+      status = Status::Error(PSLICE() << "No state info for " << unknown_queries_.size() << " queries from auth key "
+                                      << auth_data_.get_auth_key().id() << " for "
                                       << format::as_time(Time::now() - current_info_->created_at_));
     }
     if (!sent_queries_list_.empty()) {
@@ -582,8 +583,9 @@ Status Session::on_pong() {
         auto query = Query::from_list_node(it);
         if (Timestamp::at(query->sent_at_ + MAX_QUERY_TIMEOUT).is_in_past()) {
           if (status.is_ok()) {
-            status = Status::Error(PSLICE() << "No answer for " << query->query << " for "
-                                            << format::as_time(Time::now() - query->sent_at_));
+            status =
+                Status::Error(PSLICE() << "No answer from auth key " << auth_data_.get_auth_key().id() << " for "
+                                       << query->query << " for " << format::as_time(Time::now() - query->sent_at_));
           }
           query->ack = false;
         } else {
