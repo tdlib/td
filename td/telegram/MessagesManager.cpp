@@ -16092,8 +16092,8 @@ bool MessagesManager::is_notification_info_group_id(const NotificationInfo *noti
   if (!group_id.is_valid() || notification_info == nullptr) {
     return false;
   }
-  return notification_info->message_notification_group_.get_group_id() == group_id ||
-         notification_info->mention_notification_group_.get_group_id() == group_id;
+  return notification_info->message_notification_group_.has_group_id(group_id) ||
+         notification_info->mention_notification_group_.has_group_id(group_id);
 }
 
 bool MessagesManager::is_dialog_notification_group_id(const Dialog *d, NotificationGroupId group_id) {
@@ -29106,7 +29106,7 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
     CHECK(is_dialog_notification_group_id(d, group_id));
   }
 
-  bool from_mentions = d->notification_info->mention_notification_group_.get_group_id() == group_id;
+  bool from_mentions = d->notification_info->mention_notification_group_.has_group_id(group_id);
   auto &group_info = get_notification_group_info(d, from_mentions);
 
   MessageNotificationGroup result;
@@ -29444,7 +29444,7 @@ void MessagesManager::get_message_notifications_from_database(DialogId dialog_id
 
   VLOG(notifications) << "Get " << limit << " message notifications from database in " << group_id << " from "
                       << dialog_id << " from " << from_notification_id << "/" << from_message_id;
-  bool from_mentions = d->notification_info->mention_notification_group_.get_group_id() == group_id;
+  bool from_mentions = d->notification_info->mention_notification_group_.has_group_id(group_id);
   if (d->notification_info->new_secret_chat_notification_id_.is_valid()) {
     CHECK(dialog_id.get_type() == DialogType::SecretChat);
     vector<Notification> notifications;
@@ -29631,7 +29631,7 @@ void MessagesManager::remove_message_notification(DialogId dialog_id, Notificati
     return;  // there can be no notification with this ID
   }
 
-  bool from_mentions = d->notification_info->mention_notification_group_.get_group_id() == group_id;
+  bool from_mentions = d->notification_info->mention_notification_group_.has_group_id(group_id);
   if (d->notification_info->new_secret_chat_notification_id_.is_valid()) {
     if (!from_mentions && d->notification_info->new_secret_chat_notification_id_ == notification_id) {
       return remove_new_secret_chat_notification(d, false);
@@ -29728,7 +29728,7 @@ void MessagesManager::remove_message_notifications(DialogId dialog_id, Notificat
   }
   CHECK(!max_message_id.is_scheduled());
 
-  bool from_mentions = d->notification_info->mention_notification_group_.get_group_id() == group_id;
+  bool from_mentions = d->notification_info->mention_notification_group_.has_group_id(group_id);
   if (d->notification_info->new_secret_chat_notification_id_.is_valid()) {
     if (!from_mentions && d->notification_info->new_secret_chat_notification_id_.get() <= max_notification_id.get()) {
       return remove_new_secret_chat_notification(d, false);

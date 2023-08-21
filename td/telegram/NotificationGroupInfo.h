@@ -43,6 +43,10 @@ class NotificationGroupInfo {
     return group_id_;
   }
 
+  bool has_group_id(NotificationGroupId group_id) const {
+    return group_id_ == group_id;
+  }
+
   NotificationId get_last_notification_id() const {
     return last_notification_id_;
   }
