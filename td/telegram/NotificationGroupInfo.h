@@ -15,7 +15,9 @@
 namespace td {
 
 class NotificationGroupInfo {
+  NotificationGroupId group_id_;
   int32 last_notification_date_ = 0;            // date of the last notification in the group
+  NotificationId last_notification_id_;         // identifier of the last notification in the group
   NotificationId max_removed_notification_id_;  // notification identifier, up to which all notifications are removed
   MessageId max_removed_message_id_;            // message identifier, up to which all notifications are removed
   bool is_key_changed_ = false;                 // true, if the group needs to be saved to database
@@ -24,9 +26,6 @@ class NotificationGroupInfo {
   friend StringBuilder &operator<<(StringBuilder &string_builder, const NotificationGroupInfo &group_info);
 
  public:
-  NotificationGroupId group_id_;
-  NotificationId last_notification_id_;  // identifier of the last notification in the group
-
   NotificationGroupInfo() = default;
 
   explicit NotificationGroupInfo(NotificationGroupId group_id) : group_id_(group_id), is_key_changed_(true) {
@@ -38,6 +37,14 @@ class NotificationGroupInfo {
 
   bool is_active() const {
     return is_valid() && !try_reuse_;
+  }
+
+  NotificationGroupId get_group_id() const {
+    return group_id_;
+  }
+
+  NotificationId get_last_notification_id() const {
+    return last_notification_id_;
   }
 
   bool set_last_notification(int32 last_notification_date, NotificationId last_notification_id, const char *source);
