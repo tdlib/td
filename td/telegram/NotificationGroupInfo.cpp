@@ -14,6 +14,10 @@ namespace td {
 
 bool NotificationGroupInfo::set_last_notification(int32 last_notification_date, NotificationId last_notification_id,
                                                   const char *source) {
+  if (is_removed_notification_id(last_notification_id)) {
+    last_notification_id = NotificationId();
+    last_notification_date = 0;
+  }
   if (last_notification_date_ != last_notification_date || last_notification_id_ != last_notification_id) {
     VLOG(notifications) << "Set " << group_id_ << " last notification to " << last_notification_id << " sent at "
                         << last_notification_date << " from " << source;

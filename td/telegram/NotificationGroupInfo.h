@@ -15,6 +15,7 @@
 namespace td {
 
 class NotificationGroupInfo {
+  NotificationId max_removed_notification_id_;  // notification identifier, up to which all notifications are removed
   MessageId max_removed_message_id_;  // message identifier, up to which all notifications are removed
   bool is_changed_ = false;           // true, if the group needs to be saved to database
   bool try_reuse_ = false;            // true, if the group needs to be deleted from database and tried to be reused
@@ -25,7 +26,6 @@ class NotificationGroupInfo {
   NotificationGroupId group_id_;
   int32 last_notification_date_ = 0;            // date of last notification in the group
   NotificationId last_notification_id_;         // identifier of last notification in the group
-  NotificationId max_removed_notification_id_;  // notification identifier, up to which all notifications are removed
 
   NotificationGroupInfo() = default;
 
