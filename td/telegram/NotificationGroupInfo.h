@@ -15,15 +15,17 @@
 namespace td {
 
 class NotificationGroupInfo {
-  bool is_changed_ = false;  // true, if the group needs to be saved to database
-  bool try_reuse_ = false;   // true, if the group needs to be deleted from database and tried to be reused
+  MessageId max_removed_message_id_;  // message identifier, up to which all notifications are removed
+  bool is_changed_ = false;           // true, if the group needs to be saved to database
+  bool try_reuse_ = false;            // true, if the group needs to be deleted from database and tried to be reused
+
+  friend StringBuilder &operator<<(StringBuilder &string_builder, const NotificationGroupInfo &group_info);
 
  public:
   NotificationGroupId group_id_;
   int32 last_notification_date_ = 0;            // date of last notification in the group
   NotificationId last_notification_id_;         // identifier of last notification in the group
   NotificationId max_removed_notification_id_;  // notification identifier, up to which all notifications are removed
-  MessageId max_removed_message_id_;            // message identifier, up to which all notifications are removed
 
   NotificationGroupInfo() = default;
 
@@ -42,6 +44,10 @@ class NotificationGroupInfo {
   void drop_max_removed_notification_id();
 
   bool is_removed_notification(NotificationId notification_id, MessageId message_id) const;
+
+  bool is_removed_notification_id(NotificationId notification_id) const;
+
+  bool is_removed_message_id(MessageId message_id) const;
 
   bool is_used_notification_id(NotificationId notification_id) const;
 

@@ -29906,7 +29906,7 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
       from_mentions ? m->contains_unread_mention || is_pinned : m->message_id > d->last_read_inbox_message_id;
   if (is_active) {
     auto &group_info = get_notification_group_info(d, from_mentions);
-    if (group_info.max_removed_message_id_ >= m->message_id) {
+    if (group_info.is_removed_message_id(m->message_id)) {
       is_active = false;
     }
   }
@@ -36697,7 +36697,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
       on_dialog_updated(dialog_id, "fix pinned message notification");
     } else if (is_dialog_pinned_message_notifications_disabled(d) ||
                pinned_message_id <= d->last_read_inbox_message_id ||
-               pinned_message_id <= d->notification_info->mention_notification_group_.max_removed_message_id_) {
+               d->notification_info->mention_notification_group_.is_removed_message_id(pinned_message_id)) {
       VLOG(notifications) << "Remove disabled pinned message notification in " << pinned_message_id << " in "
                           << dialog_id;
       send_closure_later(G()->notification_manager(), &NotificationManager::remove_temporary_notification_by_message_id,
@@ -36709,7 +36709,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   }
   if (d->notification_info != nullptr && d->notification_info->new_secret_chat_notification_id_.is_valid()) {
     auto &group_info = d->notification_info->message_notification_group_;
-    if (d->notification_info->new_secret_chat_notification_id_.get() <= group_info.max_removed_notification_id_.get() ||
+    if (group_info.is_removed_notification_id(d->notification_info->new_secret_chat_notification_id_) ||
         (group_info.last_notification_date_ == 0 && group_info.max_removed_notification_id_.get() == 0)) {
       VLOG(notifications) << "Fix removing new secret chat " << d->notification_info->new_secret_chat_notification_id_
                           << " in " << dialog_id;

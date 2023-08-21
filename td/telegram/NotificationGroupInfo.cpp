@@ -56,7 +56,15 @@ void NotificationGroupInfo::drop_max_removed_notification_id() {
 }
 
 bool NotificationGroupInfo::is_removed_notification(NotificationId notification_id, MessageId message_id) const {
-  return notification_id.get() <= max_removed_notification_id_.get() || message_id <= max_removed_message_id_;
+  return is_removed_notification_id(notification_id) || is_removed_message_id(message_id);
+}
+
+bool NotificationGroupInfo::is_removed_notification_id(NotificationId notification_id) const {
+  return notification_id.get() <= max_removed_notification_id_.get();
+}
+
+bool NotificationGroupInfo::is_removed_message_id(MessageId message_id) const {
+  return message_id <= max_removed_message_id_;
 }
 
 bool NotificationGroupInfo::is_used_notification_id(NotificationId notification_id) const {
