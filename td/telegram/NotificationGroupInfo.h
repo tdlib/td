@@ -41,6 +41,10 @@ class NotificationGroupInfo {
 
   void drop_max_removed_notification_id();
 
+  bool is_removed_notification(NotificationId notification_id, MessageId message_id) const;
+
+  bool is_used_notification_id(NotificationId notification_id) const;
+
   void try_reuse();
 
   void add_group_key_if_changed(vector<NotificationGroupKey> &group_keys, DialogId dialog_id);
