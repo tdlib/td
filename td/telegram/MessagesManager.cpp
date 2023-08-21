@@ -29130,15 +29130,8 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
     last_notification_date = result.notifications[0].date;
     last_notification_id = result.notifications[0].notification_id;
   }
-  if (last_notification_date != group_info.last_notification_date_ ||
-      last_notification_id != group_info.last_notification_id_) {
-    LOG(ERROR) << "Fix last notification date in " << d->dialog_id << " from " << group_info.last_notification_date_
-               << " to " << last_notification_date << " and last notification identifier from "
-               << group_info.last_notification_id_ << " to " << last_notification_id << " in " << group_id
-               << " of type " << result.type;
-    set_dialog_last_notification(d->dialog_id, group_info, last_notification_date, last_notification_id,
-                                 "get_message_notification_group_force");
-  }
+  set_dialog_last_notification(d->dialog_id, group_info, last_notification_date, last_notification_id,
+                               "get_message_notification_group_force");
 
   std::reverse(result.notifications.begin(), result.notifications.end());
 
