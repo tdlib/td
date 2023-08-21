@@ -32,8 +32,12 @@ class NotificationGroupInfo {
   explicit NotificationGroupInfo(NotificationGroupId group_id) : group_id_(group_id), is_key_changed_(true) {
   }
 
+  bool is_valid() const {
+    return group_id_.is_valid();
+  }
+
   bool is_active() const {
-    return group_id_.is_valid() && !try_reuse_;
+    return is_valid() && !try_reuse_;
   }
 
   bool set_last_notification(int32 last_notification_date, NotificationId last_notification_id, const char *source);

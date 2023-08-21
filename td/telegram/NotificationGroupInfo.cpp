@@ -83,7 +83,7 @@ bool NotificationGroupInfo::is_used_notification_id(NotificationId notification_
 }
 
 void NotificationGroupInfo::try_reuse() {
-  CHECK(group_id_.is_valid());
+  CHECK(is_valid());
   CHECK(last_notification_date_ == 0);
   if (!try_reuse_) {
     try_reuse_ = true;
@@ -109,7 +109,7 @@ NotificationGroupId NotificationGroupInfo::get_reused_group_id() {
     return {};
   }
   try_reuse_ = false;
-  if (!group_id_.is_valid()) {
+  if (!is_valid()) {
     LOG(ERROR) << "Failed to reuse invalid " << group_id_;
     return {};
   }
