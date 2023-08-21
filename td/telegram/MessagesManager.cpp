@@ -15420,13 +15420,7 @@ void MessagesManager::remove_dialog_mention_notifications(Dialog *d) {
 bool MessagesManager::set_dialog_last_notification(DialogId dialog_id, NotificationGroupInfo &group_info,
                                                    int32 last_notification_date, NotificationId last_notification_id,
                                                    const char *source) {
-  if (group_info.last_notification_date_ != last_notification_date ||
-      group_info.last_notification_id_ != last_notification_id) {
-    VLOG(notifications) << "Set " << group_info.group_id_ << '/' << dialog_id << " last notification to "
-                        << last_notification_id << " sent at " << last_notification_date << " from " << source;
-    group_info.last_notification_date_ = last_notification_date;
-    group_info.last_notification_id_ = last_notification_id;
-    group_info.is_changed_ = true;
+  if (group_info.set_last_notification(last_notification_date, last_notification_id, source)) {
     on_dialog_updated(dialog_id, "set_dialog_last_notification");
     return true;
   }

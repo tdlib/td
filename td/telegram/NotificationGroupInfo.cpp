@@ -6,9 +6,24 @@
 //
 #include "td/telegram/NotificationGroupInfo.h"
 
+#include "td/telegram/NotificationManager.h"
+
 #include "td/utils/logging.h"
 
 namespace td {
+
+bool NotificationGroupInfo::set_last_notification(int32 last_notification_date, NotificationId last_notification_id,
+                                                  const char *source) {
+  if (last_notification_date_ != last_notification_date || last_notification_id_ != last_notification_id) {
+    VLOG(notifications) << "Set " << group_id_ << " last notification to " << last_notification_id << " sent at "
+                        << last_notification_date << " from " << source;
+    last_notification_date_ = last_notification_date;
+    last_notification_id_ = last_notification_id;
+    is_changed_ = true;
+    return true;
+  }
+  return false;
+}
 
 void NotificationGroupInfo::try_reuse() {
   CHECK(group_id_.is_valid());

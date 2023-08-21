@@ -29,6 +29,8 @@ class NotificationGroupInfo {
     return group_id_.is_valid() && !try_reuse_;
   }
 
+  bool set_last_notification(int32 last_notification_date, NotificationId last_notification_id, const char *source);
+
   void try_reuse();
 
   void add_group_key_if_changed(vector<NotificationGroupKey> &group_keys, DialogId dialog_id);
