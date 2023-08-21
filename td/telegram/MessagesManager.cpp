@@ -16087,6 +16087,22 @@ void MessagesManager::delete_notification_id_to_message_id_correspondence(Notifi
   }
 }
 
+bool MessagesManager::is_notification_info_group_id(const NotificationInfo *notification_info,
+                                                    NotificationGroupId group_id) {
+  if (!group_id.is_valid() || notification_info == nullptr) {
+    return false;
+  }
+  return notification_info->message_notification_group_.get_group_id() == group_id ||
+         notification_info->mention_notification_group_.get_group_id() == group_id;
+}
+
+bool MessagesManager::is_dialog_notification_group_id(const Dialog *d, NotificationGroupId group_id) {
+  if (d == nullptr) {
+    return false;
+  }
+  return is_notification_info_group_id(d->notification_info.get(), group_id);
+}
+
 void MessagesManager::remove_message_notification_id(Dialog *d, Message *m, bool is_permanent, bool force_update,
                                                      bool ignore_pinned_message_notification_removal) {
   CHECK(d != nullptr);
@@ -29076,8 +29092,7 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
   if (d == nullptr || d->notification_info == nullptr) {
     return MessageNotificationGroup();
   }
-  if (d->notification_info->message_notification_group_.get_group_id() != group_id &&
-      d->notification_info->mention_notification_group_.get_group_id() != group_id) {
+  if (!is_dialog_notification_group_id(d, group_id)) {
     if (d->dialog_id.get_type() == DialogType::SecretChat &&
         !d->notification_info->message_notification_group_.is_valid() &&
         !d->notification_info->mention_notification_group_.is_valid()) {
@@ -29088,10 +29103,8 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
       save_dialog_to_database(d->dialog_id);
       group_info = NotificationGroupInfo();
     }
+    CHECK(is_dialog_notification_group_id(d, group_id));
   }
-
-  CHECK(d->notification_info->message_notification_group_.get_group_id() == group_id ||
-        d->notification_info->mention_notification_group_.get_group_id() == group_id);
 
   bool from_mentions = d->notification_info->mention_notification_group_.get_group_id() == group_id;
   auto &group_info = get_notification_group_info(d, from_mentions);
@@ -29393,9 +29406,7 @@ vector<NotificationGroupKey> MessagesManager::get_message_notification_group_key
     CHECK(group_key.group_id.is_valid());
     CHECK(group_key.dialog_id.is_valid());
     const Dialog *d = get_dialog_force(group_key.dialog_id, "get_message_notification_group_keys_from_database");
-    if (d == nullptr || d->notification_info == nullptr ||
-        (d->notification_info->message_notification_group_.get_group_id() != group_key.group_id &&
-         d->notification_info->mention_notification_group_.get_group_id() != group_key.group_id)) {
+    if (!is_dialog_notification_group_id(d, group_key.group_id)) {
       continue;
     }
 
@@ -29427,9 +29438,7 @@ void MessagesManager::get_message_notifications_from_database(DialogId dialog_id
 
   auto d = get_dialog(dialog_id);
   CHECK(d != nullptr);
-  if (d->notification_info == nullptr ||
-      (d->notification_info->message_notification_group_.get_group_id() != group_id &&
-       d->notification_info->mention_notification_group_.get_group_id() != group_id)) {
+  if (!is_dialog_notification_group_id(d, group_id)) {
     return promise.set_value(vector<Notification>());
   }
 
@@ -29614,13 +29623,7 @@ void MessagesManager::on_get_message_notifications_from_database(DialogId dialog
 void MessagesManager::remove_message_notification(DialogId dialog_id, NotificationGroupId group_id,
                                                   NotificationId notification_id) {
   Dialog *d = get_dialog_force(dialog_id, "remove_message_notification");
-  if (d == nullptr) {
-    LOG(ERROR) << "Can't find " << dialog_id;
-    return;
-  }
-  if (d->notification_info == nullptr ||
-      (d->notification_info->message_notification_group_.get_group_id() != group_id &&
-       d->notification_info->mention_notification_group_.get_group_id() != group_id)) {
+  if (!is_dialog_notification_group_id(d, group_id)) {
     LOG(ERROR) << "There is no " << group_id << " in " << dialog_id;
     return;
   }
@@ -29716,13 +29719,7 @@ void MessagesManager::do_remove_message_notification(DialogId dialog_id, bool fr
 void MessagesManager::remove_message_notifications(DialogId dialog_id, NotificationGroupId group_id,
                                                    NotificationId max_notification_id, MessageId max_message_id) {
   Dialog *d = get_dialog_force(dialog_id, "remove_message_notifications");
-  if (d == nullptr) {
-    LOG(ERROR) << "Can't find " << dialog_id;
-    return;
-  }
-  if (d->notification_info == nullptr ||
-      (d->notification_info->message_notification_group_.get_group_id() != group_id &&
-       d->notification_info->mention_notification_group_.get_group_id() != group_id)) {
+  if (!is_dialog_notification_group_id(d, group_id)) {
     LOG(ERROR) << "There is no " << group_id << " in " << dialog_id;
     return;
   }

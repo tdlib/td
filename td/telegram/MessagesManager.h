@@ -2339,6 +2339,10 @@ class MessagesManager final : public Actor {
   static void delete_notification_id_to_message_id_correspondence(NotificationInfo *notification_info,
                                                                   NotificationId notification_id, MessageId message_id);
 
+  static bool is_notification_info_group_id(const NotificationInfo *notification_info, NotificationGroupId group_id);
+
+  static bool is_dialog_notification_group_id(const Dialog *d, NotificationGroupId group_id);
+
   void remove_message_notification_id(Dialog *d, Message *m, bool is_permanent, bool force_update,
                                       bool ignore_pinned_message_notification_removal = false);
 
