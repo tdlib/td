@@ -25,6 +25,11 @@ class NotificationGroupInfo {
   MessageId max_removed_message_id_;            // message identifier, up to which all notifications are removed
   bool is_changed_ = false;                     // true, if the group needs to be saved to database
 
+  NotificationGroupInfo() = default;
+
+  explicit NotificationGroupInfo(NotificationGroupId group_id) : group_id_(group_id), is_changed_(true) {
+  }
+
   bool is_active() const {
     return group_id_.is_valid() && !try_reuse_;
   }

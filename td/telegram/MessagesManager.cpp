@@ -28893,8 +28893,7 @@ NotificationGroupId MessagesManager::get_dialog_notification_group_id(DialogId d
         return NotificationGroupId();
       }
     } while (get_message_notification_group_force(next_notification_group_id).dialog_id.is_valid());
-    group_info.group_id_ = next_notification_group_id;
-    group_info.is_changed_ = true;
+    group_info = NotificationGroupInfo(next_notification_group_id);
     VLOG(notifications) << "Assign " << next_notification_group_id << " to " << dialog_id;
     on_dialog_updated(dialog_id, "get_dialog_notification_group_id");
 
@@ -29091,7 +29090,7 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
         !d->notification_info->mention_notification_group_.group_id_.is_valid()) {
       // the group was reused, but wasn't deleted from the database, trying to resave it
       auto &group_info = d->notification_info->message_notification_group_;
-      group_info.group_id_ = group_id;
+      group_info = NotificationGroupInfo(group_id);
       group_info.try_reuse();
       save_dialog_to_database(d->dialog_id);
       group_info = NotificationGroupInfo();
