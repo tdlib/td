@@ -5219,12 +5219,10 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   bool has_deleted_last_message = delete_last_message_date > 0;
   bool has_last_clear_history_message_id = last_clear_history_message_id.is_valid();
   bool has_last_database_message_id = !has_last_database_message && last_database_message_id.is_valid();
-  bool has_message_notification_group = notification_info != nullptr &&
-                                        notification_info->message_notification_group_.group_id.is_valid() &&
-                                        !notification_info->message_notification_group_.try_reuse;
-  bool has_mention_notification_group = notification_info != nullptr &&
-                                        notification_info->mention_notification_group_.group_id.is_valid() &&
-                                        !notification_info->mention_notification_group_.try_reuse;
+  bool has_message_notification_group =
+      notification_info != nullptr && notification_info->message_notification_group_.is_active();
+  bool has_mention_notification_group =
+      notification_info != nullptr && notification_info->mention_notification_group_.is_active();
   bool has_new_secret_chat_notification_id =
       notification_info != nullptr && notification_info->new_secret_chat_notification_id_.is_valid();
   bool has_pinned_message_notification =
@@ -6084,18 +6082,15 @@ void MessagesManager::save_dialog_to_database(DialogId dialog_id) {
   CHECK(d != nullptr);
   LOG(INFO) << "Save " << dialog_id << " to database";
   vector<NotificationGroupKey> changed_group_keys;
-  bool can_reuse_notification_group = false;
   if (d->notification_info != nullptr) {
-    auto add_group_key = [&](auto &group_info) {
-      if (group_info.is_changed) {
-        can_reuse_notification_group |= group_info.try_reuse;
-        changed_group_keys.emplace_back(group_info.group_id, group_info.try_reuse ? DialogId() : dialog_id,
-                                        group_info.last_notification_date);
-        group_info.is_changed = false;
-      }
-    };
-    add_group_key(d->notification_info->message_notification_group_);
-    add_group_key(d->notification_info->mention_notification_group_);
+    d->notification_info->message_notification_group_.add_group_key_if_changed(changed_group_keys, dialog_id);
+    d->notification_info->mention_notification_group_.add_group_key_if_changed(changed_group_keys, dialog_id);
+  }
+  bool can_reuse_notification_group = false;
+  for (auto &group_key : changed_group_keys) {
+    if (group_key.dialog_id == DialogId()) {
+      can_reuse_notification_group = true;
+    }
   }
   G()->td_db()->get_dialog_db_async()->add_dialog(
       dialog_id, d->folder_id, d->order, get_dialog_database_value(d), std::move(changed_group_keys),
@@ -6121,26 +6116,11 @@ void MessagesManager::on_save_dialog_to_database(DialogId dialog_id, bool can_re
 }
 
 void MessagesManager::try_reuse_notification_group(NotificationGroupInfo &group_info) {
-  if (!group_info.try_reuse) {
-    return;
+  auto group_id = group_info.get_reused_group_id();
+  if (group_id.is_valid()) {
+    send_closure_later(G()->notification_manager(), &NotificationManager::try_reuse_notification_group_id, group_id);
+    notification_group_id_to_dialog_id_.erase(group_id);
   }
-  if (group_info.is_changed) {
-    LOG(ERROR) << "Failed to reuse changed " << group_info.group_id;
-    return;
-  }
-  group_info.try_reuse = false;
-  if (!group_info.group_id.is_valid()) {
-    LOG(ERROR) << "Failed to reuse invalid " << group_info.group_id;
-    return;
-  }
-  CHECK(group_info.last_notification_id == NotificationId());
-  CHECK(group_info.last_notification_date == 0);
-  send_closure_later(G()->notification_manager(), &NotificationManager::try_reuse_notification_group_id,
-                     group_info.group_id);
-  notification_group_id_to_dialog_id_.erase(group_info.group_id);
-  group_info.group_id = NotificationGroupId();
-  group_info.max_removed_notification_id = NotificationId();
-  group_info.max_removed_message_id = MessageId();
 }
 
 void MessagesManager::invalidate_message_indexes(Dialog *d) {
@@ -14051,9 +14031,7 @@ void MessagesManager::on_update_secret_chat_state(SecretChatId secret_chat_id, S
       if (d->notification_info->message_notification_group_.group_id.is_valid() &&
           get_dialog_pending_notification_count(d, false) == 0 &&
           !d->notification_info->message_notification_group_.last_notification_id.is_valid()) {
-        CHECK(d->notification_info->message_notification_group_.last_notification_date == 0);
-        d->notification_info->message_notification_group_.try_reuse = true;
-        d->notification_info->message_notification_group_.is_changed = true;
+        d->notification_info->message_notification_group_.try_reuse();
         on_dialog_updated(d->dialog_id, "on_update_secret_chat_state");
       }
       CHECK(!d->notification_info->mention_notification_group_.group_id
@@ -29115,12 +29093,9 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
       // the group was reused, but wasn't deleted from the database, trying to resave it
       auto &group_info = d->notification_info->message_notification_group_;
       group_info.group_id = group_id;
-      group_info.is_changed = true;
-      group_info.try_reuse = true;
+      group_info.try_reuse();
       save_dialog_to_database(d->dialog_id);
-      group_info.group_id = NotificationGroupId();
-      group_info.is_changed = false;
-      group_info.try_reuse = false;
+      group_info = NotificationGroupInfo();
     }
   }
 
