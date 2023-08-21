@@ -30,6 +30,8 @@ class DialogListId {
   explicit constexpr DialogListId(int64 dialog_list_id) : id(dialog_list_id) {
     if (is_folder() && get_folder_id() != FolderId::archive()) {
       id = FolderId::main().get();
+    } else if (is_filter()) {
+      CHECK(get_filter_id().is_valid());
     }
   }
   template <class T, typename = std::enable_if_t<std::is_convertible<T, int32>::value>>
@@ -70,9 +72,6 @@ class DialogListId {
       auto folder_id = get_folder_id();
       if (folder_id == FolderId::archive()) {
         return td_api::make_object<td_api::chatListArchive>();
-      }
-      if (folder_id == FolderId::main()) {
-        return td_api::make_object<td_api::chatListMain>();
       }
       return td_api::make_object<td_api::chatListMain>();
     }
