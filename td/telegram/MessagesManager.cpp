@@ -49,6 +49,7 @@
 #include "td/telegram/misc.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetQuery.h"
+#include "td/telegram/NotificationGroupInfo.hpp"
 #include "td/telegram/NotificationGroupType.h"
 #include "td/telegram/NotificationManager.h"
 #include "td/telegram/NotificationSettingsManager.h"
@@ -5194,28 +5195,6 @@ void MessagesManager::Message::parse(ParserT &parser) {
       is_secret_message_content(ttl, content->get_type());  // repair is_content_secret for old messages
   if (hide_edit_date && content->get_type() == MessageContentType::LiveLocation) {
     hide_edit_date = false;
-  }
-}
-
-template <class StorerT>
-void MessagesManager::NotificationGroupInfo::store(StorerT &storer) const {
-  using td::store;
-  store(group_id, storer);
-  store(last_notification_date, storer);
-  store(last_notification_id, storer);
-  store(max_removed_notification_id, storer);
-  store(max_removed_message_id, storer);
-}
-
-template <class ParserT>
-void MessagesManager::NotificationGroupInfo::parse(ParserT &parser) {
-  using td::parse;
-  parse(group_id, parser);
-  parse(last_notification_date, parser);
-  parse(last_notification_id, parser);
-  parse(max_removed_notification_id, parser);
-  if (parser.version() >= static_cast<int32>(Version::AddNotificationGroupInfoMaxRemovedMessageId)) {
-    parse(max_removed_message_id, parser);
   }
 }
 
@@ -28912,14 +28891,14 @@ void MessagesManager::send_update_new_message(const Dialog *d, const Message *m)
       td_api::make_object<td_api::updateNewMessage>(get_message_object(d->dialog_id, m, "send_update_new_message")));
 }
 
-MessagesManager::NotificationGroupInfo &MessagesManager::get_notification_group_info(Dialog *d, bool from_mentions) {
+NotificationGroupInfo &MessagesManager::get_notification_group_info(Dialog *d, bool from_mentions) {
   CHECK(d != nullptr);
   auto notification_info = add_dialog_notification_info(d);
   return from_mentions ? notification_info->mention_notification_group_
                        : notification_info->message_notification_group_;
 }
 
-MessagesManager::NotificationGroupInfo &MessagesManager::get_notification_group_info(Dialog *d, const Message *m) {
+NotificationGroupInfo &MessagesManager::get_notification_group_info(Dialog *d, const Message *m) {
   return get_notification_group_info(d, is_from_mention_notification_group(m));
 }
 
@@ -37020,20 +36999,10 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
             << d->first_database_message_id << ", last database " << d->last_database_message_id << ", last "
             << d->last_message_id << " with order " << d->order;
   if (d->notification_info != nullptr) {
-    VLOG(notifications) << "Have " << dialog_id << " with message "
-                        << d->notification_info->message_notification_group_.group_id << " with last "
-                        << d->notification_info->message_notification_group_.last_notification_id << " sent at "
-                        << d->notification_info->message_notification_group_.last_notification_date << ", max removed "
-                        << d->notification_info->message_notification_group_.max_removed_notification_id << "/"
-                        << d->notification_info->message_notification_group_.max_removed_message_id
+    VLOG(notifications) << "Have " << dialog_id << " with message " << d->notification_info->message_notification_group_
                         << " and new secret chat " << d->notification_info->new_secret_chat_notification_id_;
-    VLOG(notifications) << "Have " << dialog_id << " with mention "
-                        << d->notification_info->mention_notification_group_.group_id << " with last "
-                        << d->notification_info->mention_notification_group_.last_notification_id << " sent at "
-                        << d->notification_info->mention_notification_group_.last_notification_date << ", max removed "
-                        << d->notification_info->mention_notification_group_.max_removed_notification_id << "/"
-                        << d->notification_info->mention_notification_group_.max_removed_message_id << " and pinned "
-                        << d->notification_info->pinned_message_notification_message_id_;
+    VLOG(notifications) << "Have " << dialog_id << " with mention " << d->notification_info->mention_notification_group_
+                        << " and pinned " << d->notification_info->pinned_message_notification_message_id_;
     VLOG(notifications) << "In " << dialog_id << " have last_read_inbox_message_id = " << d->last_read_inbox_message_id
                         << ", last_new_message_id = " << d->last_new_message_id
                         << ", max_notification_message_id = " << d->notification_info->max_notification_message_id_;

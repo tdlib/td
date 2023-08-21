@@ -426,6 +426,7 @@ set(TDLIB_SOURCE
   td/telegram/net/SessionProxy.cpp
   td/telegram/net/SessionMultiProxy.cpp
   td/telegram/NewPasswordState.cpp
+  td/telegram/NotificationGroupInfo.cpp
   td/telegram/NotificationManager.cpp
   td/telegram/NotificationSettingsScope.cpp
   td/telegram/NotificationSettingsManager.cpp
@@ -715,6 +716,7 @@ set(TDLIB_SOURCE
   td/telegram/NewPasswordState.h
   td/telegram/Notification.h
   td/telegram/NotificationGroupId.h
+  td/telegram/NotificationGroupInfo.h
   td/telegram/NotificationGroupKey.h
   td/telegram/NotificationGroupType.h
   td/telegram/NotificationId.h
@@ -847,6 +849,7 @@ set(TDLIB_SOURCE
   td/telegram/MessageReaction.hpp
   td/telegram/MessageReplyInfo.hpp
   td/telegram/MinChannel.hpp
+  td/telegram/NotificationGroupInfo.hpp
   td/telegram/OrderInfo.hpp
   td/telegram/Photo.hpp
   td/telegram/PhotoSize.hpp

@@ -48,6 +48,7 @@
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/Notification.h"
 #include "td/telegram/NotificationGroupId.h"
+#include "td/telegram/NotificationGroupInfo.h"
 #include "td/telegram/NotificationGroupKey.h"
 #include "td/telegram/NotificationGroupType.h"
 #include "td/telegram/NotificationId.h"
@@ -1284,22 +1285,6 @@ class MessagesManager final : public Actor {
     Message(Message &&) = delete;
     Message &operator=(Message &&) = delete;
     ~Message() = default;
-  };
-
-  struct NotificationGroupInfo {
-    NotificationGroupId group_id;
-    int32 last_notification_date = 0;            // date of last notification in the group
-    NotificationId last_notification_id;         // identifier of last notification in the group
-    NotificationId max_removed_notification_id;  // notification identifier, up to which all notifications are removed
-    MessageId max_removed_message_id;            // message identifier, up to which all notifications are removed
-    bool is_changed = false;                     // true, if the group needs to be saved to database
-    bool try_reuse = false;  // true, if the group needs to be deleted from database and tried to be reused
-
-    template <class StorerT>
-    void store(StorerT &storer) const;
-
-    template <class ParserT>
-    void parse(ParserT &parser);
   };
 
   struct DialogScheduledMessages {
