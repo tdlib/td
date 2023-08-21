@@ -25,6 +25,36 @@ bool NotificationGroupInfo::set_last_notification(int32 last_notification_date, 
   return false;
 }
 
+bool NotificationGroupInfo::set_max_removed_notification_id(NotificationId max_removed_notification_id,
+                                                            MessageId max_removed_message_id, const char *source) {
+  if (max_removed_notification_id.get() <= max_removed_notification_id_.get()) {
+    return false;
+  }
+  if (max_removed_message_id > max_removed_message_id_) {
+    VLOG(notifications) << "Set max_removed_message_id in " << group_id_ << " to " << max_removed_message_id << " from "
+                        << source;
+    max_removed_message_id_ = max_removed_message_id.get_prev_server_message_id();
+  }
+
+  VLOG(notifications) << "Set max_removed_notification_id in " << group_id_ << " to " << max_removed_notification_id
+                      << " from " << source;
+  max_removed_notification_id_ = max_removed_notification_id;
+  is_changed_ = true;
+
+  return true;
+}
+
+void NotificationGroupInfo::drop_max_removed_notification_id() {
+  if (!max_removed_notification_id_.is_valid()) {
+    return;
+  }
+
+  VLOG(notifications) << "Drop max_removed_notification_id in " << group_id_;
+  max_removed_message_id_ = MessageId();
+  max_removed_notification_id_ = NotificationId();
+  is_changed_ = true;
+}
+
 void NotificationGroupInfo::try_reuse() {
   CHECK(group_id_.is_valid());
   CHECK(last_notification_date_ == 0);

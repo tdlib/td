@@ -11970,14 +11970,9 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
   delete_all_dialog_messages_from_database(d, MessageId::max(), "delete_all_dialog_messages 3");
 
   if (d->notification_info != nullptr) {
-    d->notification_info->message_notification_group_.max_removed_notification_id_ =
-        NotificationId();  // it is not needed anymore
-    d->notification_info->message_notification_group_.max_removed_message_id_ =
-        MessageId();  // it is not needed anymore
-    d->notification_info->mention_notification_group_.max_removed_notification_id_ =
-        NotificationId();  // it is not needed anymore
-    d->notification_info->mention_notification_group_.max_removed_message_id_ =
-        MessageId();  // it is not needed anymore
+    // they aren't needed anymore
+    d->notification_info->message_notification_group_.drop_max_removed_notification_id();
+    d->notification_info->mention_notification_group_.drop_max_removed_notification_id();
     d->notification_info->notification_id_to_message_id_.clear();
   }
 
@@ -29757,23 +29752,12 @@ void MessagesManager::remove_message_notifications(DialogId dialog_id, Notificat
     return;
   }
   auto &group_info = get_notification_group_info(d, from_mentions);
-  if (max_notification_id.get() <= group_info.max_removed_notification_id_.get()) {
-    return;
-  }
-  if (max_message_id > group_info.max_removed_message_id_) {
-    VLOG(notifications) << "Set max_removed_message_id in " << group_info.group_id_ << '/' << dialog_id << " to "
-                        << max_message_id;
-    group_info.max_removed_message_id_ = max_message_id.get_prev_server_message_id();
-  }
-
-  VLOG(notifications) << "Set max_removed_notification_id in " << group_info.group_id_ << '/' << dialog_id << " to "
-                      << max_notification_id;
-  group_info.max_removed_notification_id_ = max_notification_id;
-  on_dialog_updated(dialog_id, "remove_message_notifications");
-
-  if (group_info.last_notification_id_.is_valid() &&
-      max_notification_id.get() >= group_info.last_notification_id_.get()) {
-    set_dialog_last_notification_checked(dialog_id, group_info, 0, NotificationId(), "remove_message_notifications");
+  if (group_info.set_max_removed_notification_id(max_notification_id, max_message_id, "remove_message_notifications")) {
+    on_dialog_updated(dialog_id, "remove_message_notifications");
+    if (group_info.last_notification_id_.is_valid() &&
+        max_notification_id.get() >= group_info.last_notification_id_.get()) {
+      set_dialog_last_notification_checked(dialog_id, group_info, 0, NotificationId(), "remove_message_notifications");
+    }
   }
 }
 
@@ -30123,13 +30107,11 @@ void MessagesManager::remove_all_dialog_notifications(Dialog *d, bool from_menti
   NotificationGroupInfo &group_info = get_notification_group_info(d, from_mentions);
   if (group_info.group_id_.is_valid() && group_info.last_notification_id_.is_valid() &&
       group_info.max_removed_notification_id_ != group_info.last_notification_id_) {
-    VLOG(notifications) << "Set max_removed_notification_id in " << group_info.group_id_ << '/' << d->dialog_id
-                        << " to " << group_info.last_notification_id_ << " from " << source;
-    group_info.max_removed_notification_id_ = group_info.last_notification_id_;
-    if (d->notification_info->max_notification_message_id_ > group_info.max_removed_message_id_) {
-      group_info.max_removed_message_id_ =
-          d->notification_info->max_notification_message_id_.get_prev_server_message_id();
+    if (group_info.set_max_removed_notification_id(group_info.last_notification_id_,
+                                                   d->notification_info->max_notification_message_id_, source)) {
+      on_dialog_updated(d->dialog_id, source);
     }
+
     if (!d->notification_info->pending_new_message_notifications_.empty()) {
       for (auto &it : d->notification_info->pending_new_message_notifications_) {
         it.first = DialogId();

@@ -36,6 +36,11 @@ class NotificationGroupInfo {
 
   bool set_last_notification(int32 last_notification_date, NotificationId last_notification_id, const char *source);
 
+  bool set_max_removed_notification_id(NotificationId max_removed_notification_id, MessageId max_removed_message_id,
+                                       const char *source);
+
+  void drop_max_removed_notification_id();
+
   void try_reuse();
 
   void add_group_key_if_changed(vector<NotificationGroupKey> &group_keys, DialogId dialog_id);
