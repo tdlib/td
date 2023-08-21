@@ -21,9 +21,11 @@ bool NotificationGroupInfo::set_last_notification(int32 last_notification_date, 
   if (last_notification_date_ != last_notification_date || last_notification_id_ != last_notification_id) {
     VLOG(notifications) << "Set " << group_id_ << " last notification to " << last_notification_id << " sent at "
                         << last_notification_date << " from " << source;
-    last_notification_date_ = last_notification_date;
+    if (last_notification_date_ != last_notification_date) {
+      last_notification_date_ = last_notification_date;
+      is_key_changed_ = true;
+    }
     last_notification_id_ = last_notification_id;
-    is_changed_ = true;
     return true;
   }
   return false;
@@ -43,7 +45,6 @@ bool NotificationGroupInfo::set_max_removed_notification_id(NotificationId max_r
   VLOG(notifications) << "Set max_removed_notification_id in " << group_id_ << " to " << max_removed_notification_id
                       << " from " << source;
   max_removed_notification_id_ = max_removed_notification_id;
-  is_changed_ = true;
 
   return true;
 }
@@ -56,7 +57,6 @@ void NotificationGroupInfo::drop_max_removed_notification_id() {
   VLOG(notifications) << "Drop max_removed_notification_id in " << group_id_;
   max_removed_message_id_ = MessageId();
   max_removed_notification_id_ = NotificationId();
-  is_changed_ = true;
 }
 
 bool NotificationGroupInfo::is_removed_notification(NotificationId notification_id, MessageId message_id) const {
@@ -81,15 +81,15 @@ void NotificationGroupInfo::try_reuse() {
   CHECK(last_notification_date_ == 0);
   if (!try_reuse_) {
     try_reuse_ = true;
-    is_changed_ = true;
+    is_key_changed_ = true;
   }
 }
 
 void NotificationGroupInfo::add_group_key_if_changed(vector<NotificationGroupKey> &group_keys, DialogId dialog_id) {
-  if (!is_changed_) {
+  if (!is_key_changed_) {
     return;
   }
-  is_changed_ = false;
+  is_key_changed_ = false;
 
   group_keys.emplace_back(group_id_, try_reuse_ ? DialogId() : dialog_id, last_notification_date_);
 }
@@ -98,7 +98,7 @@ NotificationGroupId NotificationGroupInfo::get_reused_group_id() {
   if (!try_reuse_) {
     return {};
   }
-  if (is_changed_) {
+  if (is_key_changed_) {
     LOG(ERROR) << "Failed to reuse changed " << group_id_;
     return {};
   }
