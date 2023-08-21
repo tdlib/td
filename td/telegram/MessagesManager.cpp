@@ -15417,14 +15417,20 @@ void MessagesManager::remove_dialog_mention_notifications(Dialog *d) {
   }
 }
 
-bool MessagesManager::set_dialog_last_notification(DialogId dialog_id, NotificationGroupInfo &group_info,
+void MessagesManager::set_dialog_last_notification(DialogId dialog_id, NotificationGroupInfo &group_info,
                                                    int32 last_notification_date, NotificationId last_notification_id,
                                                    const char *source) {
   if (group_info.set_last_notification(last_notification_date, last_notification_id, source)) {
     on_dialog_updated(dialog_id, "set_dialog_last_notification");
-    return true;
   }
-  return false;
+}
+
+void MessagesManager::set_dialog_last_notification_checked(DialogId dialog_id, NotificationGroupInfo &group_info,
+                                                           int32 last_notification_date,
+                                                           NotificationId last_notification_id, const char *source) {
+  bool is_changed = group_info.set_last_notification(last_notification_date, last_notification_id, source);
+  CHECK(is_changed);
+  on_dialog_updated(dialog_id, "set_dialog_last_notification_checked");
 }
 
 void MessagesManager::on_update_sent_text_message(int64 random_id,
@@ -16146,9 +16152,8 @@ void MessagesManager::remove_new_secret_chat_notification(Dialog *d, bool is_per
   VLOG(notifications) << "Remove " << notification_id << " about new secret " << d->dialog_id << " from "
                       << d->notification_info->message_notification_group_.group_id_;
   d->notification_info->new_secret_chat_notification_id_ = NotificationId();
-  bool is_fixed = set_dialog_last_notification(d->dialog_id, d->notification_info->message_notification_group_, 0,
-                                               NotificationId(), "remove_new_secret_chat_notification");
-  CHECK(is_fixed);
+  set_dialog_last_notification_checked(d->dialog_id, d->notification_info->message_notification_group_, 0,
+                                       NotificationId(), "remove_new_secret_chat_notification");
   if (is_permanent) {
     CHECK(d->notification_info->message_notification_group_.group_id_.is_valid());
     send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification,
@@ -16173,9 +16178,8 @@ void MessagesManager::fix_dialog_last_notification_id(Dialog *d, bool from_menti
       const Message *m = get_message(d, (*it)->get_message_id());
       if (is_from_mention_notification_group(m) == from_mentions && m->notification_id.is_valid() &&
           is_message_notification_active(d, m) && m->message_id != message_id) {
-        bool is_fixed = set_dialog_last_notification(d->dialog_id, group_info, m->date, m->notification_id,
-                                                     "fix_dialog_last_notification_id");
-        CHECK(is_fixed);
+        set_dialog_last_notification_checked(d->dialog_id, group_info, m->date, m->notification_id,
+                                             "fix_dialog_last_notification_id");
         return;
       }
       --it;
@@ -16223,9 +16227,8 @@ void MessagesManager::do_fix_dialog_last_notification_id(DialogId dialog_id, boo
     last_notification_id = notifications[0].notification_id;
   }
 
-  bool is_fixed = set_dialog_last_notification(dialog_id, group_info, last_notification_date, last_notification_id,
-                                               "do_fix_dialog_last_notification_id");
-  CHECK(is_fixed);
+  set_dialog_last_notification_checked(dialog_id, group_info, last_notification_date, last_notification_id,
+                                       "do_fix_dialog_last_notification_id");
 }
 
 // DO NOT FORGET TO ADD ALL CHANGES OF THIS FUNCTION AS WELL TO delete_all_dialog_messages
@@ -29771,9 +29774,7 @@ void MessagesManager::remove_message_notifications(DialogId dialog_id, Notificat
 
   if (group_info.last_notification_id_.is_valid() &&
       max_notification_id.get() >= group_info.last_notification_id_.get()) {
-    bool is_changed =
-        set_dialog_last_notification(dialog_id, group_info, 0, NotificationId(), "remove_message_notifications");
-    CHECK(is_changed);
+    set_dialog_last_notification_checked(dialog_id, group_info, 0, NotificationId(), "remove_message_notifications");
   }
 }
 
@@ -30045,9 +30046,8 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   if (!m->notification_id.is_valid()) {
     return false;
   }
-  bool is_changed = set_dialog_last_notification(d->dialog_id, group_info, m->date, m->notification_id,
-                                                 "add_new_message_notification 3");
-  CHECK(is_changed);
+  set_dialog_last_notification_checked(d->dialog_id, group_info, m->date, m->notification_id,
+                                       "add_new_message_notification 3");
   if (is_pinned) {
     set_dialog_pinned_message_notification(d, from_mentions ? m->message_id : MessageId(),
                                            "add_new_message_notification");
@@ -30144,8 +30144,7 @@ void MessagesManager::remove_all_dialog_notifications(Dialog *d, bool from_menti
         &group_info == &d->notification_info->message_notification_group_) {
       remove_new_secret_chat_notification(d, false);
     } else {
-      bool is_changed = set_dialog_last_notification(d->dialog_id, group_info, 0, NotificationId(), source);
-      CHECK(is_changed);
+      set_dialog_last_notification_checked(d->dialog_id, group_info, 0, NotificationId(), source);
     }
   }
 }
@@ -36378,10 +36377,9 @@ void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source
                 get_next_notification_id(notification_info, notification_group_id, MessageId());
             if (notification_info->new_secret_chat_notification_id_.is_valid()) {
               auto date = td_->contacts_manager_->get_secret_chat_date(secret_chat_id);
-              bool is_changed = set_dialog_last_notification(dialog_id, notification_info->message_notification_group_,
-                                                             date, notification_info->new_secret_chat_notification_id_,
-                                                             "add_new_secret_chat");
-              CHECK(is_changed);
+              set_dialog_last_notification_checked(dialog_id, notification_info->message_notification_group_, date,
+                                                   notification_info->new_secret_chat_notification_id_,
+                                                   "add_new_secret_chat");
               VLOG(notifications) << "Create " << notification_info->new_secret_chat_notification_id_ << " with "
                                   << secret_chat_id;
               auto ringtone_id = get_dialog_notification_ringtone_id(dialog_id, d);

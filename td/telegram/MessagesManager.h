@@ -2637,8 +2637,12 @@ class MessagesManager final : public Actor {
 
   void remove_dialog_mention_notifications(Dialog *d);
 
-  bool set_dialog_last_notification(DialogId dialog_id, NotificationGroupInfo &group_info, int32 last_notification_date,
+  void set_dialog_last_notification(DialogId dialog_id, NotificationGroupInfo &group_info, int32 last_notification_date,
                                     NotificationId last_notification_id, const char *source);
+
+  void set_dialog_last_notification_checked(DialogId dialog_id, NotificationGroupInfo &group_info,
+                                            int32 last_notification_date, NotificationId last_notification_id,
+                                            const char *source);
 
   bool update_dialog_notification_settings(DialogId dialog_id, DialogNotificationSettings *current_settings,
                                            DialogNotificationSettings &&new_settings);
