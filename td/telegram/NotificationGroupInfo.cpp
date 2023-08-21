@@ -46,6 +46,12 @@ bool NotificationGroupInfo::set_max_removed_notification_id(NotificationId max_r
                       << " from " << source;
   max_removed_notification_id_ = max_removed_notification_id;
 
+  if (last_notification_id_.is_valid() && is_removed_notification_id(last_notification_id_)) {
+    last_notification_id_ = NotificationId();
+    last_notification_date_ = 0;
+    is_key_changed_ = true;
+  }
+
   return true;
 }
 

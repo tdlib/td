@@ -29737,10 +29737,6 @@ void MessagesManager::remove_message_notifications(DialogId dialog_id, Notificat
   auto &group_info = get_notification_group_info(d, from_mentions);
   if (group_info.set_max_removed_notification_id(max_notification_id, max_message_id, "remove_message_notifications")) {
     on_dialog_updated(dialog_id, "remove_message_notifications");
-    if (group_info.last_notification_id_.is_valid() &&
-        max_notification_id.get() >= group_info.last_notification_id_.get()) {
-      set_dialog_last_notification_checked(dialog_id, group_info, 0, NotificationId(), "remove_message_notifications");
-    }
   }
 }
 
@@ -30089,8 +30085,9 @@ void MessagesManager::remove_all_dialog_notifications(Dialog *d, bool from_menti
   }
   NotificationGroupInfo &group_info = get_notification_group_info(d, from_mentions);
   if (group_info.group_id_.is_valid() && group_info.last_notification_id_.is_valid()) {
-    group_info.set_max_removed_notification_id(group_info.last_notification_id_,
-                                               d->notification_info->max_notification_message_id_, source);
+    auto last_notification_id = group_info.last_notification_id_;
+    group_info.set_max_removed_notification_id(last_notification_id, d->notification_info->max_notification_message_id_,
+                                               source);
     on_dialog_updated(d->dialog_id, source);
 
     if (!d->notification_info->pending_new_message_notifications_.empty()) {
@@ -30101,13 +30098,9 @@ void MessagesManager::remove_all_dialog_notifications(Dialog *d, bool from_menti
     }
     // remove_message_notifications will be called by NotificationManager
     send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification_group,
-                       group_info.group_id_, group_info.last_notification_id_, MessageId(), 0, true, Promise<Unit>());
-    if (d->notification_info->new_secret_chat_notification_id_.is_valid() &&
-        &group_info == &d->notification_info->message_notification_group_) {
-      remove_new_secret_chat_notification(d, false);
-    } else {
-      set_dialog_last_notification_checked(d->dialog_id, group_info, 0, NotificationId(), source);
-    }
+                       group_info.group_id_, last_notification_id, MessageId(), 0, true, Promise<Unit>());
+    d->notification_info->new_secret_chat_notification_id_ = NotificationId();
+    set_dialog_last_notification(d->dialog_id, group_info, 0, NotificationId(), source);  // just in case
   }
 }
 
