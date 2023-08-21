@@ -16,22 +16,22 @@ namespace td {
 template <class StorerT>
 void NotificationGroupInfo::store(StorerT &storer) const {
   using td::store;
-  store(group_id, storer);
-  store(last_notification_date, storer);
-  store(last_notification_id, storer);
-  store(max_removed_notification_id, storer);
-  store(max_removed_message_id, storer);
+  store(group_id_, storer);
+  store(last_notification_date_, storer);
+  store(last_notification_id_, storer);
+  store(max_removed_notification_id_, storer);
+  store(max_removed_message_id_, storer);
 }
 
 template <class ParserT>
 void NotificationGroupInfo::parse(ParserT &parser) {
   using td::parse;
-  parse(group_id, parser);
-  parse(last_notification_date, parser);
-  parse(last_notification_id, parser);
-  parse(max_removed_notification_id, parser);
+  parse(group_id_, parser);
+  parse(last_notification_date_, parser);
+  parse(last_notification_id_, parser);
+  parse(max_removed_notification_id_, parser);
   if (parser.version() >= static_cast<int32>(Version::AddNotificationGroupInfoMaxRemovedMessageId)) {
-    parse(max_removed_message_id, parser);
+    parse(max_removed_message_id_, parser);
   }
 }
 
