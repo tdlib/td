@@ -3146,6 +3146,159 @@ emojiCategoryTypeEmojiStatus = EmojiCategoryType;
 emojiCategoryTypeChatPhoto = EmojiCategoryType;
 
 
+//@description Represents a viewer of a story
+//@user_id User identifier of the viewer
+//@view_date Approximate point in time (Unix timestamp) when the story was viewed
+//@block_list Block list to which the user is added; may be null if none
+//@chosen_reaction_type Type of the reaction that was chosen by the user; may be null if none
+storyViewer user_id:int53 view_date:int32 block_list:BlockList chosen_reaction_type:ReactionType = StoryViewer;
+
+//@description Represents a list of story viewers
+//@total_count Approximate total number of story viewers found
+//@viewers List of story viewers
+//@next_offset The offset for the next request. If empty, there are no more results
+storyViewers total_count:int32 viewers:vector<storyViewer> next_offset:string = StoryViewers;
+
+
+//@description Describes position of a clickable rectangle area on a story media
+//@x_percentage The abscissa of the rectangle's center, as a percentage of the media width
+//@y_percentage The ordinate of the rectangle's center, as a percentage of the media height
+//@width_percentage The width of the rectangle, as a percentage of the media width
+//@height_percentage The ordinate of the rectangle's center, as a percentage of the media height
+//@rotation_angle Clockwise rotation angle of the rectangle, in degrees; 0-360
+storyAreaPosition x_percentage:double y_percentage:double width_percentage:double height_percentage:double rotation_angle:double = StoryAreaPosition;
+
+
+//@class StoryAreaType @description Describes type of a clickable rectangle area on a story media
+
+//@description An area pointing to a location @location The location
+storyAreaTypeLocation location:location = StoryAreaType;
+
+//@description An area pointing to a venue @venue Information about the venue
+storyAreaTypeVenue venue:venue = StoryAreaType;
+
+
+//@description Describes a clickable rectangle area on a story media @position Position of the area @type Type of the area
+storyArea position:storyAreaPosition type:StoryAreaType = StoryArea;
+
+
+//@class InputStoryAreaType @description Describes type of a clickable rectangle area on a story media to be added
+
+//@description An area pointing to a location @location The location
+inputStoryAreaTypeLocation location:location = InputStoryAreaType;
+
+//@description An area pointing to a venue found by the bot getOption("venue_search_bot_username")
+//@query_id Identifier of the inline query, used to found the venue
+//@result_id Identifier of the inline query result
+inputStoryAreaTypeFoundVenue query_id:int64 result_id:string = InputStoryAreaType;
+
+//@description An area pointing to a venue already added to the story
+//@venue_provider Provider of the venue
+//@venue_id Identifier of the venue in the provider database
+inputStoryAreaTypePreviousVenue venue_provider:string venue_id:string = InputStoryAreaType;
+
+
+//@description Describes a clickable rectangle area on a story media to be added @position Position of the area @type Type of the area
+inputStoryArea position:storyAreaPosition type:InputStoryAreaType = InputStoryArea;
+
+//@description Contains a list of story areas to be added @areas List of 0-10 input story areas
+inputStoryAreas areas:vector<inputStoryArea> = InputStoryAreas;
+
+
+//@description Describes a video file sent in a story
+//@duration Duration of the video, in seconds
+//@width Video width
+//@height Video height
+//@has_stickers True, if stickers were added to the video. The list of corresponding sticker sets can be received using getAttachedStickerSets
+//@is_animation True, if the video has no sound
+//@minithumbnail Video minithumbnail; may be null
+//@thumbnail Video thumbnail in JPEG or MPEG4 format; may be null
+//@preload_prefix_size Size of file prefix, which is supposed to be preloaded, in bytes
+//@video File containing the video
+storyVideo duration:double width:int32 height:int32 has_stickers:Bool is_animation:Bool minithumbnail:minithumbnail thumbnail:thumbnail preload_prefix_size:int32 video:file = StoryVideo;
+
+
+//@class StoryContent @description Contains the content of a story
+
+//@description A photo story @photo The photo
+storyContentPhoto photo:photo = StoryContent;
+
+//@description A video story @video The video in MPEG4 format @alternative_video Alternative version of the video in MPEG4 format, encoded by x264 codec; may be null
+storyContentVideo video:storyVideo alternative_video:storyVideo = StoryContent;
+
+//@description A story content that is not supported in the current TDLib version
+storyContentUnsupported = StoryContent;
+
+
+//@class InputStoryContent @description The content of a story to send
+
+//@description A photo story
+//@photo Photo to send. The photo must be at most 10 MB in size. The photo size must be 1080x1920
+//@added_sticker_file_ids File identifiers of the stickers added to the photo, if applicable
+inputStoryContentPhoto photo:InputFile added_sticker_file_ids:vector<int32> = InputStoryContent;
+
+//@description A video story
+//@video Video to be sent. The video size must be 720x1280. The video must be streamable and stored in MPEG4 format, after encoding with x265 codec and key frames added each second
+//@added_sticker_file_ids File identifiers of the stickers added to the video, if applicable
+//@duration Precise duration of the video, in seconds; 0-60
+//@is_animation True, if the video has no sound
+inputStoryContentVideo video:InputFile added_sticker_file_ids:vector<int32> duration:double is_animation:Bool = InputStoryContent;
+
+
+//@class StoryList @description Describes a list of stories
+
+//@description The list of stories, shown in the main chat list and folder chat lists
+storyListMain = StoryList;
+
+//@description The list of stories, shown in the Arvhive chat list
+storyListArchive = StoryList;
+
+
+//@description Contains information about interactions with a story
+//@view_count Number of times the story was viewed
+//@reaction_count Number of reactions added to the story
+//@recent_viewer_user_ids Identifiers of at most 3 recent viewers of the story
+storyInteractionInfo view_count:int32 reaction_count:int32 recent_viewer_user_ids:vector<int53> = StoryInteractionInfo;
+
+//@description Represents a story
+//@id Unique story identifier among stories of the given sender
+//@sender_chat_id Identifier of the chat that posted the story
+//@date Point in time (Unix timestamp) when the story was published
+//@is_being_sent True, if the story is being sent by the current user
+//@is_being_edited True, if the story is being edited by the current user
+//@is_edited True, if the story was edited
+//@is_pinned True, if the story is saved in the sender's profile and will be available there after expiration
+//@is_visible_only_for_self True, if the story is visible only for the current user
+//@can_be_forwarded True, if the story can be forwarded as a message. Otherwise, screenshots and saving of the story content must be also forbidden
+//@can_be_replied True, if the story can be replied in the chat with the story sender
+//@can_get_viewers True, if users viewed the story can be received through getStoryViewers
+//@has_expired_viewers True, if users viewed the story can't be received, because the story has expired more than getOption("story_viewers_expiration_delay") seconds ago
+//@interaction_info Information about interactions with the story; may be null if the story isn't owned or there were no interactions
+//@chosen_reaction_type Type of the chosen reaction; may be null if none
+//@privacy_settings Privacy rules affecting story visibility; may be approximate for non-owned stories
+//@content Content of the story
+//@areas Clickable areas to be shown on the story content
+//@caption Caption of the story
+story id:int32 sender_chat_id:int53 date:int32 is_being_sent:Bool is_being_edited:Bool is_edited:Bool is_pinned:Bool is_visible_only_for_self:Bool can_be_forwarded:Bool can_be_replied:Bool can_get_viewers:Bool has_expired_viewers:Bool interaction_info:storyInteractionInfo chosen_reaction_type:ReactionType privacy_settings:StoryPrivacySettings content:StoryContent areas:vector<storyArea> caption:formattedText = Story;
+
+//@description Represents a list of stories @total_count Approximate total number of stories found @stories The list of stories
+stories total_count:int32 stories:vector<story> = Stories;
+
+//@description Contains basic information about a story
+//@story_id Unique story identifier among stories of the given sender
+//@date Point in time (Unix timestamp) when the story was published
+//@is_for_close_friends True, if the story is available only to close friends
+storyInfo story_id:int32 date:int32 is_for_close_friends:Bool = StoryInfo;
+
+//@description Describes active stories posted by a chat
+//@chat_id Identifier of the chat that posted the stories
+//@list Identifier of the story list in which the stories are shown; may be null if the stories aren't shown in a story list
+//@order A parameter used to determine order of the stories in the story list; 0 if the stories doesn't need to be shown in the story list. Stories must be sorted by the pair (order, story_sender_chat_id) in descending order
+//@max_read_story_id Identifier of the last read active story
+//@stories Basic information about the stories; use getStory to get full information about the stories. The stories are in a chronological order (i.e., in order of increasing story identifiers)
+chatActiveStories chat_id:int53 list:StoryList order:int53 max_read_story_id:int32 stories:vector<storyInfo> = ChatActiveStories;
+
+
 //@class CallDiscardReason @description Describes the reason why a call was discarded
 
 //@description The call wasn't discarded, or the reason is unknown
@@ -4953,159 +5106,6 @@ messageLink link:string is_public:Bool = MessageLink;
 //@media_timestamp Timestamp from which the video/audio/video note/voice note playing must start, in seconds; 0 if not specified. The media can be in the message content or in its web page preview
 //@for_album True, if the whole media album to which the message belongs is linked
 messageLinkInfo is_public:Bool chat_id:int53 message_thread_id:int53 message:message media_timestamp:int32 for_album:Bool = MessageLinkInfo;
-
-
-//@description Represents a viewer of a story
-//@user_id User identifier of the viewer
-//@view_date Approximate point in time (Unix timestamp) when the story was viewed
-//@block_list Block list to which the user is added; may be null if none
-//@chosen_reaction_type Type of the reaction that was chosen by the user; may be null if none
-storyViewer user_id:int53 view_date:int32 block_list:BlockList chosen_reaction_type:ReactionType = StoryViewer;
-
-//@description Represents a list of story viewers
-//@total_count Approximate total number of story viewers found
-//@viewers List of story viewers
-//@next_offset The offset for the next request. If empty, there are no more results
-storyViewers total_count:int32 viewers:vector<storyViewer> next_offset:string = StoryViewers;
-
-
-//@description Describes position of a clickable rectangle area on a story media
-//@x_percentage The abscissa of the rectangle's center, as a percentage of the media width
-//@y_percentage The ordinate of the rectangle's center, as a percentage of the media height
-//@width_percentage The width of the rectangle, as a percentage of the media width
-//@height_percentage The ordinate of the rectangle's center, as a percentage of the media height
-//@rotation_angle Clockwise rotation angle of the rectangle, in degrees; 0-360
-storyAreaPosition x_percentage:double y_percentage:double width_percentage:double height_percentage:double rotation_angle:double = StoryAreaPosition;
-
-
-//@class StoryAreaType @description Describes type of a clickable rectangle area on a story media
-
-//@description An area pointing to a location @location The location
-storyAreaTypeLocation location:location = StoryAreaType;
-
-//@description An area pointing to a venue @venue Information about the venue
-storyAreaTypeVenue venue:venue = StoryAreaType;
-
-
-//@description Describes a clickable rectangle area on a story media @position Position of the area @type Type of the area
-storyArea position:storyAreaPosition type:StoryAreaType = StoryArea;
-
-
-//@class InputStoryAreaType @description Describes type of a clickable rectangle area on a story media to be added
-
-//@description An area pointing to a location @location The location
-inputStoryAreaTypeLocation location:location = InputStoryAreaType;
-
-//@description An area pointing to a venue found by the bot getOption("venue_search_bot_username")
-//@query_id Identifier of the inline query, used to found the venue
-//@result_id Identifier of the inline query result
-inputStoryAreaTypeFoundVenue query_id:int64 result_id:string = InputStoryAreaType;
-
-//@description An area pointing to a venue already added to the story
-//@venue_provider Provider of the venue
-//@venue_id Identifier of the venue in the provider database
-inputStoryAreaTypePreviousVenue venue_provider:string venue_id:string = InputStoryAreaType;
-
-
-//@description Describes a clickable rectangle area on a story media to be added @position Position of the area @type Type of the area
-inputStoryArea position:storyAreaPosition type:InputStoryAreaType = InputStoryArea;
-
-//@description Contains a list of story areas to be added @areas List of 0-10 input story areas
-inputStoryAreas areas:vector<inputStoryArea> = InputStoryAreas;
-
-
-//@description Describes a video file sent in a story
-//@duration Duration of the video, in seconds
-//@width Video width
-//@height Video height
-//@has_stickers True, if stickers were added to the video. The list of corresponding sticker sets can be received using getAttachedStickerSets
-//@is_animation True, if the video has no sound
-//@minithumbnail Video minithumbnail; may be null
-//@thumbnail Video thumbnail in JPEG or MPEG4 format; may be null
-//@preload_prefix_size Size of file prefix, which is supposed to be preloaded, in bytes
-//@video File containing the video
-storyVideo duration:double width:int32 height:int32 has_stickers:Bool is_animation:Bool minithumbnail:minithumbnail thumbnail:thumbnail preload_prefix_size:int32 video:file = StoryVideo;
-
-
-//@class StoryContent @description Contains the content of a story
-
-//@description A photo story @photo The photo
-storyContentPhoto photo:photo = StoryContent;
-
-//@description A video story @video The video in MPEG4 format @alternative_video Alternative version of the video in MPEG4 format, encoded by x264 codec; may be null
-storyContentVideo video:storyVideo alternative_video:storyVideo = StoryContent;
-
-//@description A story content that is not supported in the current TDLib version
-storyContentUnsupported = StoryContent;
-
-
-//@class InputStoryContent @description The content of a story to send
-
-//@description A photo story
-//@photo Photo to send. The photo must be at most 10 MB in size. The photo size must be 1080x1920
-//@added_sticker_file_ids File identifiers of the stickers added to the photo, if applicable
-inputStoryContentPhoto photo:InputFile added_sticker_file_ids:vector<int32> = InputStoryContent;
-
-//@description A video story
-//@video Video to be sent. The video size must be 720x1280. The video must be streamable and stored in MPEG4 format, after encoding with x265 codec and key frames added each second
-//@added_sticker_file_ids File identifiers of the stickers added to the video, if applicable
-//@duration Precise duration of the video, in seconds; 0-60
-//@is_animation True, if the video has no sound
-inputStoryContentVideo video:InputFile added_sticker_file_ids:vector<int32> duration:double is_animation:Bool = InputStoryContent;
-
-
-//@class StoryList @description Describes a list of stories
-
-//@description The list of stories, shown in the main chat list and folder chat lists
-storyListMain = StoryList;
-
-//@description The list of stories, shown in the Arvhive chat list
-storyListArchive = StoryList;
-
-
-//@description Contains information about interactions with a story
-//@view_count Number of times the story was viewed
-//@reaction_count Number of reactions added to the story
-//@recent_viewer_user_ids Identifiers of at most 3 recent viewers of the story
-storyInteractionInfo view_count:int32 reaction_count:int32 recent_viewer_user_ids:vector<int53> = StoryInteractionInfo;
-
-//@description Represents a story
-//@id Unique story identifier among stories of the given sender
-//@sender_chat_id Identifier of the chat that posted the story
-//@date Point in time (Unix timestamp) when the story was published
-//@is_being_sent True, if the story is being sent by the current user
-//@is_being_edited True, if the story is being edited by the current user
-//@is_edited True, if the story was edited
-//@is_pinned True, if the story is saved in the sender's profile and will be available there after expiration
-//@is_visible_only_for_self True, if the story is visible only for the current user
-//@can_be_forwarded True, if the story can be forwarded as a message. Otherwise, screenshots and saving of the story content must be also forbidden
-//@can_be_replied True, if the story can be replied in the chat with the story sender
-//@can_get_viewers True, if users viewed the story can be received through getStoryViewers
-//@has_expired_viewers True, if users viewed the story can't be received, because the story has expired more than getOption("story_viewers_expiration_delay") seconds ago
-//@interaction_info Information about interactions with the story; may be null if the story isn't owned or there were no interactions
-//@chosen_reaction_type Type of the chosen reaction; may be null if none
-//@privacy_settings Privacy rules affecting story visibility; may be approximate for non-owned stories
-//@content Content of the story
-//@areas Clickable areas to be shown on the story content
-//@caption Caption of the story
-story id:int32 sender_chat_id:int53 date:int32 is_being_sent:Bool is_being_edited:Bool is_edited:Bool is_pinned:Bool is_visible_only_for_self:Bool can_be_forwarded:Bool can_be_replied:Bool can_get_viewers:Bool has_expired_viewers:Bool interaction_info:storyInteractionInfo chosen_reaction_type:ReactionType privacy_settings:StoryPrivacySettings content:StoryContent areas:vector<storyArea> caption:formattedText = Story;
-
-//@description Represents a list of stories @total_count Approximate total number of stories found @stories The list of stories
-stories total_count:int32 stories:vector<story> = Stories;
-
-//@description Contains basic information about a story
-//@story_id Unique story identifier among stories of the given sender
-//@date Point in time (Unix timestamp) when the story was published
-//@is_for_close_friends True, if the story is available only to close friends
-storyInfo story_id:int32 date:int32 is_for_close_friends:Bool = StoryInfo;
-
-//@description Describes active stories posted by a chat
-//@chat_id Identifier of the chat that posted the stories
-//@list Identifier of the story list in which the stories are shown; may be null if the stories aren't shown in a story list
-//@order A parameter used to determine order of the stories in the story list; 0 if the stories doesn't need to be shown in the story list. Stories must be sorted by the pair (order, story_sender_chat_id) in descending order
-//@max_read_story_id Identifier of the last read active story
-//@stories Basic information about the stories; use getStory to get full information about the stories. The stories are in a chronological order (i.e., in order of increasing story identifiers)
-chatActiveStories chat_id:int53 list:StoryList order:int53 max_read_story_id:int32 stories:vector<storyInfo> = ChatActiveStories;
 
 
 //@class BlockList @description Describes a type of a block list
