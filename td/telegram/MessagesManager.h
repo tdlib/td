@@ -65,6 +65,7 @@
 #include "td/telegram/SecretInputMedia.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StoryFullId.h"
+#include "td/telegram/StoryNotificationSettings.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
@@ -752,6 +753,8 @@ class MessagesManager final : public Actor {
 
   void click_animated_emoji_message(FullMessageId full_message_id,
                                     Promise<td_api::object_ptr<td_api::sticker>> &&promise);
+
+  StoryNotificationSettings get_story_notification_settings(DialogId dialog_id);
 
   vector<DialogId> get_dialog_notification_settings_exceptions(NotificationSettingsScope scope, bool filter_scope,
                                                                bool compare_sound, bool force, Promise<Unit> &&promise);

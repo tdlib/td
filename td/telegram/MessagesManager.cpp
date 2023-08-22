@@ -72,6 +72,7 @@
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/TopDialogCategory.h"
+#include "td/telegram/TopDialogManager.h"
 #include "td/telegram/TranslationManager.h"
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/Version.h"
@@ -20836,7 +20837,8 @@ std::pair<bool, int32> MessagesManager::get_dialog_mute_until(DialogId dialog_id
 
 int64 MessagesManager::get_dialog_notification_ringtone_id(DialogId dialog_id, const Dialog *d) const {
   CHECK(!td_->auth_manager_->is_bot());
-  if (d == nullptr || !d->notification_settings.is_synchronized || d->notification_settings.use_default_mute_until) {
+  if (d == nullptr || !d->notification_settings.is_synchronized ||
+      is_notification_sound_default(d->notification_settings.sound)) {
     auto scope = get_dialog_notification_setting_scope(dialog_id);
     return get_notification_sound_ringtone_id(td_->notification_settings_manager_->get_scope_notification_sound(scope));
   }
@@ -20858,6 +20860,47 @@ NotificationSettingsScope MessagesManager::get_dialog_notification_setting_scope
       UNREACHABLE();
       return NotificationSettingsScope::Private;
   }
+}
+
+StoryNotificationSettings MessagesManager::get_story_notification_settings(DialogId dialog_id) {
+  bool need_dialog_settings = false;
+  bool need_top_dialogs = false;
+  bool are_muted = false;
+  bool hide_sender = false;
+  int64 ringtone_id = 0;
+
+  const Dialog *d = get_dialog_force(dialog_id, "get_story_notification_settings");
+  if (d == nullptr || !d->notification_settings.is_synchronized) {
+    need_dialog_settings = true;
+  }
+  auto scope = get_dialog_notification_setting_scope(dialog_id);
+  if (need_dialog_settings || d->notification_settings.use_default_mute_stories) {
+    bool use_default;
+    std::tie(use_default, are_muted) = td_->notification_settings_manager_->get_scope_mute_stories(scope);
+    if (use_default) {
+      auto is_top_dialog = td_->top_dialog_manager_->is_top_dialog(TopDialogCategory::Correspondent, 5, dialog_id);
+      if (is_top_dialog == -1) {
+        need_top_dialogs = true;
+      } else {
+        are_muted = is_top_dialog != 0;
+      }
+    }
+  } else {
+    are_muted = d->notification_settings.mute_stories;
+  }
+  if (need_dialog_settings || d->notification_settings.use_default_hide_story_sender) {
+    hide_sender = td_->notification_settings_manager_->get_scope_hide_story_sender(scope);
+  } else {
+    hide_sender = d->notification_settings.hide_story_sender;
+  }
+  if (need_dialog_settings || is_notification_sound_default(d->notification_settings.story_sound)) {
+    ringtone_id = get_notification_sound_ringtone_id(
+        td_->notification_settings_manager_->get_scope_story_notification_sound(scope));
+  } else {
+    ringtone_id = get_notification_sound_ringtone_id(d->notification_settings.story_sound);
+  }
+
+  return {need_dialog_settings, need_top_dialogs, are_muted, hide_sender, ringtone_id};
 }
 
 vector<DialogId> MessagesManager::get_dialog_notification_settings_exceptions(NotificationSettingsScope scope,

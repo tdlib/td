@@ -1313,7 +1313,7 @@ notificationSettingsScopeChannelChats = NotificationSettingsScope;
 //@use_default_show_preview If true, show_preview is ignored and the value for the relevant type of chat or the forum chat is used instead
 //@show_preview True, if message content must be displayed in notifications
 //@use_default_mute_stories If true, mute_stories is ignored and the value for the relevant type of chat is used instead
-//@mute_stories True, if story notifications are received without sound
+//@mute_stories True, if story notifications are disabled for the chat
 //@use_default_story_sound If true, the value for the relevant type of chat is used instead of story_sound_id
 //@story_sound_id Identifier of the notification sound to be played for stories; 0 if sound is disabled
 //@use_default_show_story_sender If true, show_story_sender is ignored and the value for the relevant type of chat is used instead
@@ -1328,8 +1328,8 @@ chatNotificationSettings use_default_mute_for:Bool mute_for:int32 use_default_so
 //@mute_for Time left before notifications will be unmuted, in seconds
 //@sound_id Identifier of the notification sound to be played; 0 if sound is disabled
 //@show_preview True, if message content must be displayed in notifications
-//@use_default_mute_stories If true, mute_stories is ignored and stories are unmuted only for the first 5 chats from topChatCategoryUsers
-//@mute_stories True, if story notifications are received without sound
+//@use_default_mute_stories If true, mute_stories is ignored and story notifications are received only for the first 5 chats from topChatCategoryUsers
+//@mute_stories True, if story notifications are disabled for the chat
 //@story_sound_id Identifier of the notification sound to be played for stories; 0 if sound is disabled
 //@show_story_sender True, if the sender of stories must be displayed in notifications
 //@disable_pinned_message_notifications True, if notifications for incoming pinned messages will be created as for an ordinary unread message

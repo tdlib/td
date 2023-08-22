@@ -628,13 +628,27 @@ int32 NotificationSettingsManager::get_scope_mute_until(NotificationSettingsScop
   return get_scope_notification_settings(scope)->mute_until;
 }
 
+std::pair<bool, bool> NotificationSettingsManager::get_scope_mute_stories(NotificationSettingsScope scope) const {
+  auto *settings = get_scope_notification_settings(scope);
+  return {settings->use_default_mute_stories, settings->mute_stories};
+}
+
 const unique_ptr<NotificationSound> &NotificationSettingsManager::get_scope_notification_sound(
     NotificationSettingsScope scope) const {
   return get_scope_notification_settings(scope)->sound;
 }
 
+const unique_ptr<NotificationSound> &NotificationSettingsManager::get_scope_story_notification_sound(
+    NotificationSettingsScope scope) const {
+  return get_scope_notification_settings(scope)->story_sound;
+}
+
 bool NotificationSettingsManager::get_scope_show_preview(NotificationSettingsScope scope) const {
   return get_scope_notification_settings(scope)->show_preview;
+}
+
+bool NotificationSettingsManager::get_scope_hide_story_sender(NotificationSettingsScope scope) const {
+  return get_scope_notification_settings(scope)->hide_story_sender;
 }
 
 bool NotificationSettingsManager::get_scope_disable_pinned_message_notifications(

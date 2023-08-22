@@ -26,6 +26,7 @@
 #include "td/utils/Status.h"
 
 #include <memory>
+#include <utility>
 
 namespace td {
 
@@ -46,9 +47,15 @@ class NotificationSettingsManager final : public Actor {
 
   int32 get_scope_mute_until(NotificationSettingsScope scope) const;
 
+  std::pair<bool, bool> get_scope_mute_stories(NotificationSettingsScope scope) const;
+
   const unique_ptr<NotificationSound> &get_scope_notification_sound(NotificationSettingsScope scope) const;
 
+  const unique_ptr<NotificationSound> &get_scope_story_notification_sound(NotificationSettingsScope scope) const;
+
   bool get_scope_show_preview(NotificationSettingsScope scope) const;
+
+  bool get_scope_hide_story_sender(NotificationSettingsScope scope) const;
 
   bool get_scope_disable_pinned_message_notifications(NotificationSettingsScope scope) const;
 

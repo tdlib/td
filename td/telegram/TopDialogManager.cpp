@@ -292,6 +292,29 @@ void TopDialogManager::get_top_dialogs(TopDialogCategory category, int32 limit,
   loop();
 }
 
+int TopDialogManager::is_top_dialog(TopDialogCategory category, size_t limit, DialogId dialog_id) const {
+  CHECK(category != TopDialogCategory::Size);
+  CHECK(category != TopDialogCategory::ForwardUsers);
+  CHECK(limit > 0);
+  if (!is_active_) {
+    return -1;
+  }
+  if (!is_enabled_) {
+    return 0;
+  }
+
+  vector<DialogId> dialog_ids;
+  auto pos = static_cast<size_t>(category);
+  CHECK(pos < by_category_.size());
+  const auto &dialogs = by_category_[pos].dialogs;
+  for (size_t i = 0; i < limit && i < dialogs.size(); i++) {
+    if (dialogs[i].dialog_id == dialog_id) {
+      return 1;
+    }
+  }
+  return is_synchronized_ ? 0 : -1;
+}
+
 void TopDialogManager::update_rating_e_decay() {
   if (!is_active_) {
     return;
@@ -456,6 +479,7 @@ void TopDialogManager::on_get_top_peers(Result<telegram_api::object_ptr<telegram
 
   last_server_sync_ = Timestamp::now();
   server_sync_state_ = SyncState::Ok;
+  is_synchronized_ = true;
 
   auto top_peers_parent = result.move_as_ok();
   LOG(DEBUG) << "Receive contacts_getTopPeers result: " << to_string(top_peers_parent);
@@ -563,6 +587,7 @@ void TopDialogManager::try_start() {
     if (last_server_sync_.is_in_past()) {
       server_sync_state_ = SyncState::Ok;
     }
+    is_synchronized_ = true;
   }
 
   if (is_enabled_) {
