@@ -20,7 +20,7 @@ void NotificationGroupInfo::store(StorerT &storer) const {
   store(last_notification_date_, storer);
   store(last_notification_id_, storer);
   store(max_removed_notification_id_, storer);
-  store(max_removed_message_id_, storer);
+  store(max_removed_object_id_, storer);
 }
 
 template <class ParserT>
@@ -31,7 +31,7 @@ void NotificationGroupInfo::parse(ParserT &parser) {
   parse(last_notification_id_, parser);
   parse(max_removed_notification_id_, parser);
   if (parser.version() >= static_cast<int32>(Version::AddNotificationGroupInfoMaxRemovedMessageId)) {
-    parse(max_removed_message_id_, parser);
+    parse(max_removed_object_id_, parser);
   }
 }
 
