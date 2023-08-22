@@ -11,6 +11,9 @@
 #include "td/telegram/NotificationGroupKey.h"
 #include "td/telegram/NotificationId.h"
 
+#include "td/utils/common.h"
+#include "td/utils/StringBuilder.h"
+
 namespace td {
 
 class NotificationGroupInfo {

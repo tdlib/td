@@ -787,6 +787,7 @@ set(TDLIB_SOURCE
   td/telegram/StoryInteractionInfo.h
   td/telegram/StoryListId.h
   td/telegram/StoryManager.h
+  td/telegram/StoryNotificationSettings.h
   td/telegram/StoryStealthMode.h
   td/telegram/StoryViewer.h
   td/telegram/SuggestedAction.h

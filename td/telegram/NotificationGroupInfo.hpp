@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/NotificationGroupInfo.h"
+#include "td/telegram/Version.h"
 
 #include "td/utils/common.h"
 #include "td/utils/tl_helpers.h"
