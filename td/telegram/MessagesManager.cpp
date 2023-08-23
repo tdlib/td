@@ -28944,7 +28944,7 @@ NotificationGroupId MessagesManager::get_dialog_notification_group_id(DialogId d
       if (!next_notification_group_id.is_valid()) {
         return NotificationGroupId();
       }
-    } while (get_message_notification_group_force(next_notification_group_id).dialog_id.is_valid());
+    } while (td_->notification_manager_->have_group_force(next_notification_group_id));
     group_info = NotificationGroupInfo(next_notification_group_id);
     VLOG(notifications) << "Assign " << next_notification_group_id << " to " << dialog_id;
     on_dialog_updated(dialog_id, "get_dialog_notification_group_id");

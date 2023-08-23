@@ -67,6 +67,8 @@ class NotificationManager final : public Actor {
 
   void load_group_force(NotificationGroupId group_id);
 
+  bool have_group_force(NotificationGroupId group_id);
+
   void add_notification(NotificationGroupId group_id, NotificationGroupType group_type, DialogId dialog_id, int32 date,
                         DialogId notification_settings_dialog_id, bool disable_notification, int64 ringtone_id,
                         int32 min_delay_ms, NotificationId notification_id, unique_ptr<NotificationType> type,

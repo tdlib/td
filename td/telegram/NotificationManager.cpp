@@ -392,8 +392,16 @@ void NotificationManager::load_group_force(NotificationGroupId group_id) {
     return;
   }
 
-  auto group_it = get_group_force(group_id, true);
+  auto group_it = get_group_force(group_id);
   CHECK(group_it != groups_.end());
+}
+
+bool NotificationManager::have_group_force(NotificationGroupId group_id) {
+  if (is_disabled()) {
+    return false;
+  }
+
+  return td::contains(call_notification_group_ids_, group_id) || get_group_force(group_id) != groups_.end();
 }
 
 NotificationManager::NotificationGroups::iterator NotificationManager::get_group_force(NotificationGroupId group_id,
