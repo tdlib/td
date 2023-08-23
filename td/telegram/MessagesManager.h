@@ -47,6 +47,7 @@
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/Notification.h"
+#include "td/telegram/NotificationGroupFromDatabase.h"
 #include "td/telegram/NotificationGroupId.h"
 #include "td/telegram/NotificationGroupInfo.h"
 #include "td/telegram/NotificationGroupKey.h"
@@ -1005,13 +1006,7 @@ class MessagesManager final : public Actor {
                                                                          bool is_from_scheduled, bool contains_mention,
                                                                          bool is_pinned, bool is_from_binlog);
 
-  struct MessageNotificationGroup {
-    DialogId dialog_id;
-    NotificationGroupType type = NotificationGroupType::Calls;
-    int32 total_count = 0;
-    vector<Notification> notifications;
-  };
-  MessageNotificationGroup get_message_notification_group_force(NotificationGroupId group_id);
+  NotificationGroupFromDatabase get_message_notification_group_force(NotificationGroupId group_id);
 
   vector<NotificationGroupKey> get_message_notification_group_keys_from_database(NotificationGroupKey from_group_key,
                                                                                  int32 limit);

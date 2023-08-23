@@ -715,6 +715,7 @@ set(TDLIB_SOURCE
   td/telegram/net/TempAuthKeyWatchdog.h
   td/telegram/NewPasswordState.h
   td/telegram/Notification.h
+  td/telegram/NotificationGroupFromDatabase.h
   td/telegram/NotificationGroupId.h
   td/telegram/NotificationGroupInfo.h
   td/telegram/NotificationGroupKey.h

@@ -29105,8 +29105,7 @@ NotificationId MessagesManager::get_next_notification_id(NotificationInfo *notif
   return notification_id;
 }
 
-MessagesManager::MessageNotificationGroup MessagesManager::get_message_notification_group_force(
-    NotificationGroupId group_id) {
+NotificationGroupFromDatabase MessagesManager::get_message_notification_group_force(NotificationGroupId group_id) {
   CHECK(!td_->auth_manager_->is_bot());
   CHECK(group_id.is_valid());
   Dialog *d = nullptr;
@@ -29129,7 +29128,7 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
   }
 
   if (d == nullptr || d->notification_info == nullptr) {
-    return MessageNotificationGroup();
+    return NotificationGroupFromDatabase();
   }
   if (!is_dialog_notification_group_id(d, group_id)) {
     if (d->dialog_id.get_type() == DialogType::SecretChat &&
@@ -29148,7 +29147,7 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
   bool from_mentions = d->notification_info->mention_notification_group_.has_group_id(group_id);
   auto &group_info = get_notification_group_info(d, from_mentions);
 
-  MessageNotificationGroup result;
+  NotificationGroupFromDatabase result;
   VLOG(notifications) << "Found " << (from_mentions ? "Mentions " : "Messages ") << group_info.get_group_id() << '/'
                       << d->dialog_id << " by " << group_id << " with " << d->unread_mention_count
                       << " unread mentions, " << d->unread_reaction_count << " unread reactions, pinned "
