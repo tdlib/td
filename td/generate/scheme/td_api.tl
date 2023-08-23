@@ -6371,7 +6371,7 @@ searchChatsOnServer query:string limit:int32 = Chats;
 //@location Current user location
 searchChatsNearby location:location = ChatsNearby;
 
-//@description Returns a list of frequently used chats. Supported only if the chat info database is enabled @category Category of chats to be returned @limit The maximum number of chats to be returned; up to 30
+//@description Returns a list of frequently used chats @category Category of chats to be returned @limit The maximum number of chats to be returned; up to 30
 getTopChats category:TopChatCategory limit:int32 = Chats;
 
 //@description Removes a chat from the list of frequently used chats. Supported only if the chat info database is enabled @category Category of frequently used chats @chat_id Chat identifier

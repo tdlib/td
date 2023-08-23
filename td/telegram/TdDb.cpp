@@ -421,7 +421,7 @@ Status TdDb::init_sqlite(const Parameters &parameters, const DbKey &key, const D
     binlog_pmc.erase_by_prefix("unread_message_count");
     binlog_pmc.erase_by_prefix("unread_dialog_count");
     binlog_pmc.erase("sponsored_dialog_id");
-    binlog_pmc.erase_by_prefix("top_dialogs");
+    binlog_pmc.erase_by_prefix("top_dialogs#");
     binlog_pmc.erase("dlds_counter");
     binlog_pmc.erase_by_prefix("dlds#");
     binlog_pmc.erase("fetched_marks_as_unread");
