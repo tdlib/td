@@ -28936,10 +28936,7 @@ NotificationGroupInfo &MessagesManager::get_notification_group_info(Dialog *d, c
 
 NotificationGroupId MessagesManager::get_dialog_notification_group_id(DialogId dialog_id,
                                                                       NotificationGroupInfo &group_info) {
-  if (td_->auth_manager_->is_bot()) {
-    // just in case
-    return NotificationGroupId();
-  }
+  CHECK(!td_->auth_manager_->is_bot());
   if (!group_info.is_valid()) {
     NotificationGroupId next_notification_group_id;
     do {
@@ -28959,7 +28956,6 @@ NotificationGroupId MessagesManager::get_dialog_notification_group_id(DialogId d
                          next_notification_group_id);
     }
   }
-
   CHECK(group_info.is_valid());
 
   // notification group must be preloaded to guarantee that there is no race between
