@@ -601,6 +601,8 @@ class MessagesManager final : public Actor {
 
   void reload_dialog_info_full(DialogId dialog_id, const char *source);
 
+  void reload_dialog_notification_settings(DialogId dialog_id, Promise<Unit> &&promise, const char *source);
+
   void on_dialog_info_full_invalidated(DialogId dialog_id);
 
   bool load_dialog(DialogId dialog_id, int left_tries, Promise<Unit> &&promise);

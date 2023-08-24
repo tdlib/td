@@ -18333,6 +18333,18 @@ void MessagesManager::reload_dialog_info_full(DialogId dialog_id, const char *so
   }
 }
 
+void MessagesManager::reload_dialog_notification_settings(DialogId dialog_id, Promise<Unit> &&promise,
+                                                          const char *source) {
+  LOG(INFO) << "Reload notification settings for " << dialog_id << " from " << source;
+  const Dialog *d = get_dialog(dialog_id);
+  if (d != nullptr) {
+    td_->notification_settings_manager_->send_get_dialog_notification_settings_query(dialog_id, MessageId(),
+                                                                                     std::move(promise));
+  } else {
+    send_get_dialog_query(dialog_id, std::move(promise), 0, source);
+  }
+}
+
 void MessagesManager::on_dialog_info_full_invalidated(DialogId dialog_id) {
   Dialog *d = get_dialog(dialog_id);
   if (d != nullptr && d->open_count > 0) {
@@ -30013,16 +30025,7 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
         send_closure(actor_id, &MessagesManager::flush_pending_new_message_notifications, dialog_id, from_mentions,
                      settings_dialog_id);
       });
-      if (settings_dialog == nullptr && have_input_peer(settings_dialog_id, AccessRights::Read)) {
-        force_create_dialog(settings_dialog_id, "add_new_message_notification 2");
-        settings_dialog = get_dialog(settings_dialog_id);
-      }
-      if (settings_dialog != nullptr) {
-        td_->notification_settings_manager_->send_get_dialog_notification_settings_query(
-            settings_dialog_id, MessageId() /* TODO */, std::move(promise));
-      } else {
-        send_get_dialog_query(settings_dialog_id, std::move(promise), 0, "add_new_message_notification");
-      }
+      reload_dialog_notification_settings(settings_dialog_id, std::move(promise), "add_new_message_notification");
     }
     if (missing_pinned_message_id.is_valid()) {
       VLOG(notifications) << "Fetch pinned " << missing_pinned_message_id;
