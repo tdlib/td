@@ -512,49 +512,49 @@ NotificationId NotificationManager::get_last_notification_id(const NotificationG
   return NotificationId();
 }
 
-MessageId NotificationManager::get_first_message_id(const NotificationGroup &group) {
-  // it's fine to return MessageId() if first notification has no message_id, because
-  // non-message notification can't be mixed with message notifications
+NotificationObjectId NotificationManager::get_first_object_id(const NotificationGroup &group) {
+  // it's fine to return NotificationObjectId() if first notification has no object_id, because
+  // object_id is from the same scope within a notification group
   if (!group.notifications.empty()) {
-    return group.notifications[0].type->get_message_id();
+    return group.notifications[0].type->get_object_id();
   }
   if (!group.pending_notifications.empty()) {
-    return group.pending_notifications[0].type->get_message_id();
+    return group.pending_notifications[0].type->get_object_id();
   }
-  return MessageId();
+  return NotificationObjectId();
 }
 
-MessageId NotificationManager::get_last_message_id(const NotificationGroup &group) {
-  // it's fine to return MessageId() if last notification has no message_id, because
-  // non-message notification can't be mixed with message notifications
+NotificationObjectId NotificationManager::get_last_object_id(const NotificationGroup &group) {
+  // it's fine to return NotificationObjectId() if last notification has no object_id, because
+  // object_id is from the same scope within a notification group
   if (!group.pending_notifications.empty()) {
-    return group.pending_notifications.back().type->get_message_id();
+    return group.pending_notifications.back().type->get_object_id();
   }
   if (!group.notifications.empty()) {
-    return group.notifications.back().type->get_message_id();
+    return group.notifications.back().type->get_object_id();
   }
-  return MessageId();
+  return NotificationObjectId();
 }
 
-MessageId NotificationManager::get_last_message_id_by_notification_id(const NotificationGroup &group,
-                                                                      NotificationId max_notification_id) {
+NotificationObjectId NotificationManager::get_last_object_id_by_notification_id(const NotificationGroup &group,
+                                                                                NotificationId max_notification_id) {
   for (auto &notification : reversed(group.pending_notifications)) {
     if (notification.notification_id.get() <= max_notification_id.get()) {
-      auto message_id = notification.type->get_message_id();
-      if (message_id.is_valid()) {
-        return message_id;
+      auto object_id = notification.type->get_object_id();
+      if (object_id.is_valid()) {
+        return object_id;
       }
     }
   }
   for (auto &notification : reversed(group.notifications)) {
     if (notification.notification_id.get() <= max_notification_id.get()) {
-      auto message_id = notification.type->get_message_id();
-      if (message_id.is_valid()) {
-        return message_id;
+      auto object_id = notification.type->get_object_id();
+      if (object_id.is_valid()) {
+        return object_id;
       }
     }
   }
-  return MessageId();
+  return NotificationObjectId();
 }
 
 void NotificationManager::load_message_notifications_from_database(const NotificationGroupKey &group_key,
@@ -573,13 +573,13 @@ void NotificationManager::load_message_notifications_from_database(const Notific
   size_t limit = desired_size - group.notifications.size();
   auto first_notification_id = get_first_notification_id(group);
   auto from_notification_id = first_notification_id.is_valid() ? first_notification_id : NotificationId::max();
+  auto first_object_id = get_first_object_id(group);
 
   switch (group.type) {
     case NotificationGroupType::SecretChat:
     case NotificationGroupType::Messages:
     case NotificationGroupType::Mentions: {
-      auto first_message_id = get_first_message_id(group);
-      auto from_message_id = first_message_id.is_valid() ? first_message_id : MessageId::max();
+      auto from_message_id = first_object_id.is_valid() ? MessageId(first_object_id.get()) : MessageId::max();
       send_closure(G()->messages_manager(), &MessagesManager::get_message_notifications_from_database,
                    group_key.dialog_id, group_key.group_id, from_notification_id, from_message_id,
                    static_cast<int32>(limit),
@@ -623,9 +623,9 @@ void NotificationManager::on_get_message_notifications_from_database(Notificatio
       notifications.pop_back();
     }
   }
-  auto first_message_id = get_first_message_id(group);
-  if (first_message_id.is_valid()) {
-    while (!notifications.empty() && notifications.back().type->get_message_id() >= first_message_id) {
+  auto first_object_id = get_first_object_id(group);
+  if (first_object_id.is_valid()) {
+    while (!notifications.empty() && notifications.back().type->get_object_id() >= first_object_id) {
       // possible if notifications was added after the database request was sent
       notifications.pop_back();
     }
@@ -912,11 +912,11 @@ void NotificationManager::add_notification(NotificationGroupId group_id, Notific
     on_notification_removed(notification_id);
     return;
   }
-  auto message_id = type->get_message_id();
-  if (message_id.is_valid() && message_id <= get_last_message_id(group)) {
+  auto object_id = type->get_object_id();
+  if (object_id.is_valid() && object_id <= get_last_object_id(group)) {
     LOG(ERROR) << "Failed to add " << notification_id << " of type " << *type << " to " << group_id << " of type "
                << group_type << " in " << dialog_id << ", because have already added notification about "
-               << get_last_message_id(group);
+               << get_last_object_id(group);
     on_notification_removed(notification_id);
     return;
   }
@@ -1665,7 +1665,7 @@ void NotificationManager::edit_notification(NotificationGroupId group_id, Notifi
   for (size_t i = 0; i < group.notifications.size(); i++) {
     auto &notification = group.notifications[i];
     if (notification.notification_id == notification_id) {
-      if (notification.type->get_message_id() != type->get_message_id() ||
+      if (notification.type->get_object_id() != type->get_object_id() ||
           notification.type->is_temporary() != type->is_temporary()) {
         LOG(ERROR) << "Ignore edit of " << notification_id << " with " << *type << ", because previous type is "
                    << *notification.type;
@@ -1683,7 +1683,7 @@ void NotificationManager::edit_notification(NotificationGroupId group_id, Notifi
   }
   for (auto &notification : group.pending_notifications) {
     if (notification.notification_id == notification_id) {
-      if (notification.type->get_message_id() != type->get_message_id() ||
+      if (notification.type->get_object_id() != type->get_object_id() ||
           notification.type->is_temporary() != type->is_temporary()) {
         LOG(ERROR) << "Ignore edit of " << notification_id << " with " << *type << ", because previous type is "
                    << *notification.type;
@@ -1972,44 +1972,44 @@ void NotificationManager::remove_notification(NotificationGroupId group_id, Noti
   promise.set_value(Unit());
 }
 
-void NotificationManager::remove_temporary_notification_by_message_id(NotificationGroupId group_id,
-                                                                      MessageId message_id, bool force_update,
-                                                                      const char *source) {
+void NotificationManager::remove_temporary_notification_by_object_id(NotificationGroupId group_id,
+                                                                     NotificationObjectId object_id, bool force_update,
+                                                                     const char *source) {
   if (!group_id.is_valid()) {
     return;
   }
 
-  VLOG(notifications) << "Remove notification for " << message_id << " in " << group_id << " from " << source;
-  CHECK(message_id.is_valid());
+  VLOG(notifications) << "Remove notification for " << object_id << " in " << group_id << " from " << source;
+  CHECK(object_id.is_valid());
 
   auto group_it = get_group(group_id);
   if (group_it == groups_.end()) {
     return;
   }
 
-  auto remove_notification_by_message_id = [&](auto &notifications) {
+  auto remove_notification_by_object_id = [&](auto &notifications) {
     for (auto &notification : notifications) {
-      if (notification.type->get_message_id() == message_id) {
+      if (notification.type->get_object_id() == object_id) {
         for (auto file_id : notification.type->get_file_ids(td_)) {
-          this->td_->file_manager_->delete_file(file_id, Promise<>(), "remove_temporary_notification_by_message_id");
+          this->td_->file_manager_->delete_file(file_id, Promise<>(), "remove_temporary_notification_by_object_id");
         }
         return this->remove_notification(group_id, notification.notification_id, true, force_update, Auto(),
-                                         "remove_temporary_notification_by_message_id");
+                                         "remove_temporary_notification_by_object_id");
       }
     }
   };
 
-  remove_notification_by_message_id(group_it->second.pending_notifications);
-  remove_notification_by_message_id(group_it->second.notifications);
+  remove_notification_by_object_id(group_it->second.pending_notifications);
+  remove_notification_by_object_id(group_it->second.notifications);
 }
 
 void NotificationManager::remove_notification_group(NotificationGroupId group_id, NotificationId max_notification_id,
-                                                    MessageId max_message_id, int32 new_total_count, bool force_update,
-                                                    Promise<Unit> &&promise) {
+                                                    NotificationObjectId max_object_id, int32 new_total_count,
+                                                    bool force_update, Promise<Unit> &&promise) {
   if (!group_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Group identifier is invalid"));
   }
-  if (!max_notification_id.is_valid() && !max_message_id.is_valid()) {
+  if (!max_notification_id.is_valid() && !max_object_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Notification identifier is invalid"));
   }
 
@@ -2021,7 +2021,7 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
     remove_temporary_notifications(group_id, "remove_notification_group");
   }
 
-  VLOG(notifications) << "Remove " << group_id << " up to " << max_notification_id << " or " << max_message_id
+  VLOG(notifications) << "Remove " << group_id << " up to " << max_notification_id << " or " << max_object_id
                       << " with new_total_count = " << new_total_count << " and force_update = " << force_update;
 
   auto group_it = get_group_force(group_id);
@@ -2040,7 +2040,7 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
       case NotificationGroupType::SecretChat:
         td_->messages_manager_->remove_message_notifications(
             group_it->first.dialog_id, group_id, max_notification_id,
-            get_last_message_id_by_notification_id(group_it->second, max_notification_id));
+            MessageId(get_last_object_id_by_notification_id(group_it->second, max_notification_id).get()));
         break;
       case NotificationGroupType::Calls:
         // nothing to do
@@ -2055,7 +2055,7 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
   for (auto it = group_it->second.pending_notifications.begin(); it != group_it->second.pending_notifications.end();
        ++it) {
     if (it->notification_id.get() <= max_notification_id.get() ||
-        (max_message_id.is_valid() && it->type->get_message_id() <= max_message_id)) {
+        (max_object_id.is_valid() && it->type->get_object_id() <= max_object_id)) {
       pending_delete_end = it + 1;
       on_notification_removed(it->notification_id);
     }
@@ -2084,7 +2084,7 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
   for (size_t pos = 0; pos < notification_delete_end; pos++) {
     auto &notification = group_it->second.notifications[pos];
     if (notification.notification_id.get() > max_notification_id.get() &&
-        (!max_message_id.is_valid() || notification.type->get_message_id() > max_message_id)) {
+        (!max_object_id.is_valid() || notification.type->get_object_id() > max_object_id)) {
       notification_delete_end = pos;
     } else {
       on_notification_removed(notification.notification_id);
@@ -2135,10 +2135,10 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
         });
   } else {
     remove_added_notifications_from_pending_updates(
-        group_id, [max_message_id](const td_api::object_ptr<td_api::notification> &notification) {
+        group_id, [max_object_id](const td_api::object_ptr<td_api::notification> &notification) {
           return notification->type_->get_id() == td_api::notificationTypeNewMessage::ID &&
                  static_cast<const td_api::notificationTypeNewMessage *>(notification->type_.get())->message_->id_ <=
-                     max_message_id.get();
+                     max_object_id.get();
         });
   }
 
@@ -2308,17 +2308,22 @@ vector<MessageId> NotificationManager::get_notification_group_message_ids(Notifi
     return {};
   }
 
+  if (group_it->second.type != NotificationGroupType::Mentions &&
+      group_it->second.type != NotificationGroupType::Messages) {
+    return {};
+  }
+
   vector<MessageId> message_ids;
   for (auto &notification : group_it->second.notifications) {
-    auto message_id = notification.type->get_message_id();
-    if (message_id.is_valid()) {
-      message_ids.push_back(message_id);
+    auto object_id = notification.type->get_object_id();
+    if (object_id.is_valid()) {
+      message_ids.push_back(MessageId(object_id.get()));
     }
   }
   for (auto &notification : group_it->second.pending_notifications) {
-    auto message_id = notification.type->get_message_id();
-    if (message_id.is_valid()) {
-      message_ids.push_back(message_id);
+    auto object_id = notification.type->get_object_id();
+    if (object_id.is_valid()) {
+      message_ids.push_back(MessageId(object_id.get()));
     }
   }
 

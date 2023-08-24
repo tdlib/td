@@ -34,7 +34,7 @@ class NotificationTypeMessage final : public NotificationType {
     return false;
   }
 
-  MessageId get_message_id() const final {
+  NotificationObjectId get_object_id() const final {
     return message_id_;
   }
 
@@ -73,8 +73,8 @@ class NotificationTypeSecretChat final : public NotificationType {
     return false;
   }
 
-  MessageId get_message_id() const final {
-    return MessageId();
+  NotificationObjectId get_object_id() const final {
+    return NotificationObjectId();
   }
 
   vector<FileId> get_file_ids(const Td *td) const final {
@@ -103,8 +103,8 @@ class NotificationTypeCall final : public NotificationType {
     return false;
   }
 
-  MessageId get_message_id() const final {
-    return MessageId::max();
+  NotificationObjectId get_object_id() const final {
+    return NotificationObjectId::max();
   }
 
   vector<FileId> get_file_ids(const Td *td) const final {
@@ -135,7 +135,7 @@ class NotificationTypePushMessage final : public NotificationType {
     return true;
   }
 
-  MessageId get_message_id() const final {
+  NotificationObjectId get_object_id() const final {
     return message_id_;
   }
 

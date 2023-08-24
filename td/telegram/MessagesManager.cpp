@@ -52,6 +52,7 @@
 #include "td/telegram/NotificationGroupInfo.hpp"
 #include "td/telegram/NotificationGroupType.h"
 #include "td/telegram/NotificationManager.h"
+#include "td/telegram/NotificationObjectId.h"
 #include "td/telegram/NotificationSettingsManager.h"
 #include "td/telegram/NotificationSound.h"
 #include "td/telegram/NotificationType.h"
@@ -15320,7 +15321,7 @@ void MessagesManager::set_dialog_pinned_message_notification(Dialog *d, MessageI
       remove_message_notification_id(d, m, true, false, true);
       on_message_changed(d, m, false, source);
     } else {
-      send_closure_later(G()->notification_manager(), &NotificationManager::remove_temporary_notification_by_message_id,
+      send_closure_later(G()->notification_manager(), &NotificationManager::remove_temporary_notification_by_object_id,
                          notification_info->mention_notification_group_.get_group_id(), old_message_id, false, source);
     }
   }
@@ -29285,11 +29286,12 @@ void MessagesManager::try_add_pinned_message_notification(Dialog *d, vector<Noti
       auto pos = res.size();
       res.emplace_back(m->notification_id, m->date, m->disable_notification,
                        create_new_message_notification(message_id, is_message_preview_enabled(d, m, true)));
-      while (pos > 0 && res[pos - 1].type->get_message_id() < message_id) {
+      NotificationObjectId object_id(message_id);
+      while (pos > 0 && res[pos - 1].type->get_object_id() < object_id) {
         std::swap(res[pos - 1], res[pos]);
         pos--;
       }
-      if (pos > 0 && res[pos - 1].type->get_message_id() == message_id) {
+      if (pos > 0 && res[pos - 1].type->get_object_id() == object_id) {
         res.erase(res.begin() + pos);  // notification was already there
       }
       if (res.size() > static_cast<size_t>(limit)) {
@@ -29732,10 +29734,10 @@ void MessagesManager::remove_message_notifications_by_message_ids(DialogId dialo
     if (message == nullptr) {
       LOG(INFO) << "Can't delete " << message_id << " because it is not found";
       // call synchronously to remove them before ProcessPush returns
-      td_->notification_manager_->remove_temporary_notification_by_message_id(
+      td_->notification_manager_->remove_temporary_notification_by_object_id(
           d->notification_info->message_notification_group_.get_group_id(), message_id, true,
           "remove_message_notifications_by_message_ids");
-      td_->notification_manager_->remove_temporary_notification_by_message_id(
+      td_->notification_manager_->remove_temporary_notification_by_object_id(
           d->notification_info->mention_notification_group_.get_group_id(), message_id, true,
           "remove_message_notifications_by_message_ids");
       continue;
@@ -35561,10 +35563,10 @@ void MessagesManager::delete_message_from_database(Dialog *d, MessageId message_
       }
     }
   } else if (!message_id.is_scheduled() && message_id > d->last_new_message_id && d->notification_info != nullptr) {
-    send_closure_later(G()->notification_manager(), &NotificationManager::remove_temporary_notification_by_message_id,
+    send_closure_later(G()->notification_manager(), &NotificationManager::remove_temporary_notification_by_object_id,
                        d->notification_info->message_notification_group_.get_group_id(), message_id, false,
                        "delete_message_from_database");
-    send_closure_later(G()->notification_manager(), &NotificationManager::remove_temporary_notification_by_message_id,
+    send_closure_later(G()->notification_manager(), &NotificationManager::remove_temporary_notification_by_object_id,
                        d->notification_info->mention_notification_group_.get_group_id(), message_id, false,
                        "delete_message_from_database");
   }
@@ -36733,7 +36735,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
                d->notification_info->mention_notification_group_.is_removed_object_id(pinned_message_id.get())) {
       VLOG(notifications) << "Remove disabled pinned message notification in " << pinned_message_id << " in "
                           << dialog_id;
-      send_closure_later(G()->notification_manager(), &NotificationManager::remove_temporary_notification_by_message_id,
+      send_closure_later(G()->notification_manager(), &NotificationManager::remove_temporary_notification_by_object_id,
                          d->notification_info->mention_notification_group_.get_group_id(), pinned_message_id, true,
                          "fix pinned message notification");
       d->notification_info->pinned_message_notification_message_id_ = MessageId();

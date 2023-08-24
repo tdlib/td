@@ -16,6 +16,7 @@
 #include "td/telegram/NotificationGroupKey.h"
 #include "td/telegram/NotificationGroupType.h"
 #include "td/telegram/NotificationId.h"
+#include "td/telegram/NotificationObjectId.h"
 #include "td/telegram/NotificationType.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/td_api.h"
@@ -82,11 +83,11 @@ class NotificationManager final : public Actor {
 
   void remove_temporary_notifications(NotificationGroupId group_id, const char *source);
 
-  void remove_temporary_notification_by_message_id(NotificationGroupId group_id, MessageId message_id,
-                                                   bool force_update, const char *source);
+  void remove_temporary_notification_by_object_id(NotificationGroupId group_id, NotificationObjectId object_id,
+                                                  bool force_update, const char *source);
 
   void remove_notification_group(NotificationGroupId group_id, NotificationId max_notification_id,
-                                 MessageId max_message_id, int32 new_total_count, bool force_update,
+                                 NotificationObjectId max_object_id, int32 new_total_count, bool force_update,
                                  Promise<Unit> &&promise);
 
   void set_notification_total_count(NotificationGroupId group_id, int32 new_total_count);
@@ -238,12 +239,12 @@ class NotificationManager final : public Actor {
 
   static NotificationId get_last_notification_id(const NotificationGroup &group);
 
-  static MessageId get_first_message_id(const NotificationGroup &group);
+  static NotificationObjectId get_first_object_id(const NotificationGroup &group);
 
-  static MessageId get_last_message_id(const NotificationGroup &group);
+  static NotificationObjectId get_last_object_id(const NotificationGroup &group);
 
-  static MessageId get_last_message_id_by_notification_id(const NotificationGroup &group,
-                                                          NotificationId max_notification_id);
+  static NotificationObjectId get_last_object_id_by_notification_id(const NotificationGroup &group,
+                                                                    NotificationId max_notification_id);
 
   static int32 get_temporary_notification_total_count(const NotificationGroup &group);
 

@@ -96,6 +96,7 @@
 #include "td/telegram/NotificationGroupId.h"
 #include "td/telegram/NotificationId.h"
 #include "td/telegram/NotificationManager.h"
+#include "td/telegram/NotificationObjectId.h"
 #include "td/telegram/NotificationSettingsManager.h"
 #include "td/telegram/NotificationSettingsScope.h"
 #include "td/telegram/OptionManager.h"
@@ -5406,7 +5407,7 @@ void Td::on_request(uint64 id, const td_api::removeNotificationGroup &request) {
   CREATE_OK_REQUEST_PROMISE();
   send_closure(notification_manager_actor_, &NotificationManager::remove_notification_group,
                NotificationGroupId(request.notification_group_id_), NotificationId(request.max_notification_id_),
-               MessageId(), -1, true, std::move(promise));
+               NotificationObjectId(), -1, true, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::deleteMessages &request) {
