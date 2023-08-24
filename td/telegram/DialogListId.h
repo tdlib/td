@@ -27,7 +27,7 @@ class DialogListId {
  public:
   DialogListId() = default;
 
-  explicit constexpr DialogListId(int64 dialog_list_id) : id(dialog_list_id) {
+  explicit DialogListId(int64 dialog_list_id) : id(dialog_list_id) {
     if (is_folder() && get_folder_id() != FolderId::archive()) {
       id = FolderId::main().get();
     } else if (is_filter()) {
@@ -94,7 +94,7 @@ class DialogListId {
     return id != other.id;
   }
 
-  constexpr bool is_folder() const {
+  bool is_folder() const {
     return std::numeric_limits<int32>::min() <= id && id <= std::numeric_limits<int32>::max();
   }
 
