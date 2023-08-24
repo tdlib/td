@@ -195,7 +195,7 @@ localFile path:string can_be_downloaded:Bool can_be_deleted:Bool is_downloading_
 
 //@description Represents a remote file
 //@id Remote file identifier; may be empty. Can be used by the current user across application restarts or even from other devices. Uniquely identifies a file, but a file can have a lot of different valid identifiers.
-//-If the ID starts with "http://" or "https://", it represents the HTTP URL of the file. TDLib is currently unable to download files if only their URL is known.
+//-If the identifier starts with "http://" or "https://", it represents the HTTP URL of the file. TDLib is currently unable to download files if only their URL is known.
 //-If downloadFile/addFileToDownloads is called on such a file or if it is sent to a secret chat, TDLib starts a file generation process by sending updateFileGenerationStart to the application with the HTTP URL in the original_path and "#url#" as the conversion string.
 //-Application must generate the file by downloading it to the specified location
 //@unique_id Unique file identifier; may be empty if unknown. The unique file identifier which is the same for the same file even for different users and is persistent over time
@@ -215,10 +215,10 @@ file id:int32 size:int53 expected_size:int53 local:localFile remote:remoteFile =
 
 //@class InputFile @description Points to a file
 
-//@description A file defined by its unique ID @id Unique file identifier
+//@description A file defined by its unique identifier @id Unique file identifier
 inputFileId id:int32 = InputFile;
 
-//@description A file defined by its remote ID. The remote ID is guaranteed to be usable only if the corresponding file is still accessible to the user and known to TDLib.
+//@description A file defined by its remote identifier. The remote identifier is guaranteed to be usable only if the corresponding file is still accessible to the user and known to TDLib.
 //-For example, if the file is from a message, then the message must be not deleted and accessible to the user. If the file database is disabled, then the corresponding object with the file must be preloaded by the application
 //@id Remote file identifier
 inputFileRemote id:string = InputFile;
@@ -4605,7 +4605,7 @@ notificationTypeNewSecretChat = NotificationType;
 notificationTypeNewCall call_id:int32 = NotificationType;
 
 //@description New message was received through a push notification
-//@message_id The message identifier. The message will not be available in the chat history, but the ID can be used in viewMessages, or as a message to reply
+//@message_id The message identifier. The message will not be available in the chat history, but the identifier can be used in viewMessages, or as a message to reply
 //@sender_id Identifier of the sender of the message. Corresponding user or chat may be inaccessible
 //@sender_name Name of the sender
 //@is_outgoing True, if the message is outgoing
@@ -5759,8 +5759,8 @@ updateNotification notification_group_id:int32 notification:notification = Updat
 //@notification_settings_chat_id Chat identifier, which notification settings must be applied to the added notifications
 //@notification_sound_id Identifier of the notification sound to be played; 0 if sound is disabled
 //@total_count Total number of unread notifications in the group, can be bigger than number of active notifications
-//@added_notifications List of added group notifications, sorted by notification ID
-//@removed_notification_ids Identifiers of removed group notifications, sorted by notification ID
+//@added_notifications List of added group notifications, sorted by notification identifier
+//@removed_notification_ids Identifiers of removed group notifications, sorted by notification identifier
 updateNotificationGroup notification_group_id:int32 type:NotificationGroupType chat_id:int53 notification_settings_chat_id:int53 notification_sound_id:int64 total_count:int32 added_notifications:vector<notification> removed_notification_ids:vector<int32> = Update;
 
 //@description Contains active notifications that was shown on previous application launches. This update is sent only if the message database is used. In that case it comes once before any updateNotification and updateNotificationGroup update @groups Lists of active notification groups
@@ -6334,7 +6334,7 @@ getMessageViewers chat_id:int53 message_id:int53 = MessageViewers;
 //@description Returns information about a file; this is an offline request @file_id Identifier of the file to get
 getFile file_id:int32 = File;
 
-//@description Returns information about a file by its remote ID; this is an offline request. Can be used to register a URL as a file for further uploading, or sending as a message. Even the request succeeds, the file can be used only if it is still accessible to the user.
+//@description Returns information about a file by its remote identifier; this is an offline request. Can be used to register a URL as a file for further uploading, or sending as a message. Even the request succeeds, the file can be used only if it is still accessible to the user.
 //-For example, if the file is from a message, then the message must be not deleted and accessible to the user. If the file database is disabled, then the corresponding object with the file must be preloaded by the application
 //@remote_file_id Remote identifier of the file to get
 //@file_type File type; pass null if unknown
@@ -8444,7 +8444,7 @@ synchronizeLanguagePack language_pack_id:string = Ok;
 addCustomServerLanguagePack language_pack_id:string = Ok;
 
 //@description Adds or changes a custom local language pack to the current localization target
-//@info Information about the language pack. Language pack ID must start with 'X', consist only of English letters, digits and hyphens, and must not exceed 64 characters. Can be called before authorization
+//@info Information about the language pack. Language pack identifier must start with 'X', consist only of English letters, digits and hyphens, and must not exceed 64 characters. Can be called before authorization
 //@strings Strings of the new language pack
 setCustomLanguagePack info:languagePackInfo strings:vector<languagePackString> = Ok;
 
