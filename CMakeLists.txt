@@ -427,6 +427,7 @@ set(TDLIB_SOURCE
   td/telegram/net/SessionMultiProxy.cpp
   td/telegram/NewPasswordState.cpp
   td/telegram/NotificationGroupInfo.cpp
+  td/telegram/NotificationGroupType.cpp
   td/telegram/NotificationManager.cpp
   td/telegram/NotificationSettingsScope.cpp
   td/telegram/NotificationSettingsManager.cpp
