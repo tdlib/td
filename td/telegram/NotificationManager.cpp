@@ -913,6 +913,9 @@ void NotificationManager::add_notification(NotificationGroupId group_id, Notific
     on_notification_removed(notification_id);
     return;
   }
+  if (notification_settings_dialog_id != dialog_id) {
+    td_->messages_manager_->force_create_dialog(notification_settings_dialog_id, "add_notification", true);
+  }
 
   PendingNotification notification;
   notification.date = date;
@@ -2350,7 +2353,7 @@ void NotificationManager::add_call_notification(DialogId dialog_id, CallId call_
     return;
   }
 
-  G()->td().get_actor_unsafe()->messages_manager_->force_create_dialog(dialog_id, "add_call_notification");
+  td_->messages_manager_->force_create_dialog(dialog_id, "add_call_notification");
 
   auto &active_notifications = active_call_notifications_[dialog_id];
   if (active_notifications.size() >= MAX_CALL_NOTIFICATIONS) {
