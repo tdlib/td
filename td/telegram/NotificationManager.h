@@ -250,11 +250,11 @@ class NotificationManager final : public Actor {
 
   int32 load_message_notification_groups_from_database(int32 limit, bool send_update);
 
-  void load_message_notifications_from_database(const NotificationGroupKey &group_key, NotificationGroup &group,
-                                                size_t desired_size);
+  void load_notifications_from_database(const NotificationGroupKey &group_key, NotificationGroup &group,
+                                        size_t desired_size);
 
-  void on_get_message_notifications_from_database(NotificationGroupId group_id, size_t limit,
-                                                  Result<vector<Notification>> r_notifications);
+  void on_get_notifications_from_database(NotificationGroupId group_id, size_t limit,
+                                          Result<vector<Notification>> r_notifications);
 
   void add_notifications_to_group_begin(NotificationGroups::iterator group_it, vector<Notification> notifications);
 

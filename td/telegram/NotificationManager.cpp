@@ -557,8 +557,8 @@ NotificationObjectId NotificationManager::get_last_object_id_by_notification_id(
   return NotificationObjectId();
 }
 
-void NotificationManager::load_message_notifications_from_database(const NotificationGroupKey &group_key,
-                                                                   NotificationGroup &group, size_t desired_size) {
+void NotificationManager::load_notifications_from_database(const NotificationGroupKey &group_key,
+                                                           NotificationGroup &group, size_t desired_size) {
   if (!G()->use_message_database() || group.is_loaded_from_database || group.is_being_loaded_from_database ||
       group.total_count == 0 || !is_database_notification_group_type(group.type)) {
     return;
@@ -574,6 +574,11 @@ void NotificationManager::load_message_notifications_from_database(const Notific
   auto first_notification_id = get_first_notification_id(group);
   auto from_notification_id = first_notification_id.is_valid() ? first_notification_id : NotificationId::max();
   auto first_object_id = get_first_object_id(group);
+  auto promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), group_id = group_key.group_id, limit](Result<vector<Notification>> r_notifications) {
+        send_closure_later(actor_id, &NotificationManager::on_get_notifications_from_database, group_id, limit,
+                           std::move(r_notifications));
+      });
 
   switch (group.type) {
     case NotificationGroupType::SecretChat:
@@ -582,12 +587,7 @@ void NotificationManager::load_message_notifications_from_database(const Notific
       auto from_message_id = first_object_id.is_valid() ? MessageId(first_object_id.get()) : MessageId::max();
       send_closure(G()->messages_manager(), &MessagesManager::get_message_notifications_from_database,
                    group_key.dialog_id, group_key.group_id, from_notification_id, from_message_id,
-                   static_cast<int32>(limit),
-                   PromiseCreator::lambda([actor_id = actor_id(this), group_id = group_key.group_id,
-                                           limit](Result<vector<Notification>> r_notifications) {
-                     send_closure_later(actor_id, &NotificationManager::on_get_message_notifications_from_database,
-                                        group_id, limit, std::move(r_notifications));
-                   }));
+                   static_cast<int32>(limit), std::move(promise));
       break;
     }
     case NotificationGroupType::Calls:
@@ -597,8 +597,8 @@ void NotificationManager::load_message_notifications_from_database(const Notific
   }
 }
 
-void NotificationManager::on_get_message_notifications_from_database(NotificationGroupId group_id, size_t limit,
-                                                                     Result<vector<Notification>> r_notifications) {
+void NotificationManager::on_get_notifications_from_database(NotificationGroupId group_id, size_t limit,
+                                                             Result<vector<Notification>> r_notifications) {
   auto group_it = get_group(group_id);
   CHECK(group_it != groups_.end());
   auto &group = group_it->second;
@@ -636,7 +636,7 @@ void NotificationManager::on_get_message_notifications_from_database(Notificatio
   group_it = get_group(group_id);
   CHECK(group_it != groups_.end());
   if (max_notification_group_size_ > group_it->second.notifications.size()) {
-    load_message_notifications_from_database(group_it->first, group_it->second, keep_notification_group_size_);
+    load_notifications_from_database(group_it->first, group_it->second, keep_notification_group_size_);
   }
 }
 
@@ -1955,7 +1955,7 @@ void NotificationManager::remove_notification(NotificationGroupId group_id, Noti
       }
     }
     if (added_notifications.empty() && max_notification_group_size_ > group_it->second.notifications.size()) {
-      load_message_notifications_from_database(group_it->first, group_it->second, keep_notification_group_size_);
+      load_notifications_from_database(group_it->first, group_it->second, keep_notification_group_size_);
     }
   }
 
@@ -2226,7 +2226,7 @@ void NotificationManager::remove_temporary_notifications(NotificationGroupId gro
     }
     if (added_notification_count < removed_notification_ids.size() &&
         max_notification_group_size_ > group.notifications.size()) {
-      load_message_notifications_from_database(group_it->first, group, keep_notification_group_size_);
+      load_notifications_from_database(group_it->first, group, keep_notification_group_size_);
     }
     std::reverse(added_notifications.begin(), added_notifications.end());
   }
@@ -2569,7 +2569,7 @@ void NotificationManager::on_notification_group_size_max_changed() {
         CHECK(!removed_notification_ids.empty());
       } else {
         if (new_max_notification_group_size_size_t > notification_count) {
-          load_message_notifications_from_database(group_key, group, new_keep_notification_group_size);
+          load_notifications_from_database(group_key, group, new_keep_notification_group_size);
         }
         if (notification_count <= max_notification_group_size_) {
           VLOG(notifications) << "There is no need to update " << group_key.group_id;
