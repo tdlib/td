@@ -15,6 +15,34 @@ namespace td {
 
 enum class NotificationGroupType : int8 { Messages, Mentions, SecretChat, Calls };
 
+inline bool is_database_notification_group_type(NotificationGroupType type) {
+  switch (type) {
+    case NotificationGroupType::Messages:
+    case NotificationGroupType::Mentions:
+    case NotificationGroupType::SecretChat:
+      return true;
+    case NotificationGroupType::Calls:
+      return false;
+    default:
+      UNREACHABLE();
+      return false;
+  }
+}
+
+inline bool is_partial_notification_group_type(NotificationGroupType type) {
+  switch (type) {
+    case NotificationGroupType::Messages:
+    case NotificationGroupType::Mentions:
+      return true;
+    case NotificationGroupType::SecretChat:
+    case NotificationGroupType::Calls:
+      return false;
+    default:
+      UNREACHABLE();
+      return false;
+  }
+}
+
 inline td_api::object_ptr<td_api::NotificationGroupType> get_notification_group_type_object(
     NotificationGroupType type) {
   switch (type) {
