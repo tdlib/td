@@ -3208,6 +3208,12 @@ storyAreaTypeLocation location:location = StoryAreaType;
 //@description An area pointing to a venue @venue Information about the venue
 storyAreaTypeVenue venue:venue = StoryAreaType;
 
+//@description An area pointing to a suggested reaction
+//@reaction_type Type of the reaction
+//@is_dark True, if reaction has a dark background
+//@is_flipped True, if reaction corner is flipped
+storyAreaTypeSuggestedReaction reaction_type:ReactionType is_dark:Bool is_flipped:Bool = StoryAreaType;
+
 
 //@description Describes a clickable rectangle area on a story media @position Position of the area @type Type of the area
 storyArea position:storyAreaPosition type:StoryAreaType = StoryArea;
@@ -3227,6 +3233,12 @@ inputStoryAreaTypeFoundVenue query_id:int64 result_id:string = InputStoryAreaTyp
 //@venue_provider Provider of the venue
 //@venue_id Identifier of the venue in the provider database
 inputStoryAreaTypePreviousVenue venue_provider:string venue_id:string = InputStoryAreaType;
+
+//@description An area pointing to a suggested reaction
+//@reaction_type Type of the reaction
+//@is_dark True, if reaction has a dark background
+//@is_flipped True, if reaction corner is flipped
+inputStoryAreaTypeSuggestedReaction reaction_type:ReactionType is_dark:Bool is_flipped:Bool = InputStoryAreaType;
 
 
 //@description Describes a clickable rectangle area on a story media to be added @position Position of the area @type Type of the area

@@ -39,9 +39,19 @@ MediaArea::MediaArea(Td *td, telegram_api::object_ptr<telegram_api::MediaArea> &
       }
       break;
     }
-    case telegram_api::mediaAreaSuggestedReaction::ID:
-      // TODO
+    case telegram_api::mediaAreaSuggestedReaction::ID: {
+      auto area = telegram_api::move_object_as<telegram_api::mediaAreaSuggestedReaction>(media_area_ptr);
+      coordinates_ = MediaAreaCoordinates(area->coordinates_);
+      reaction_type_ = ReactionType(area->reaction_);
+      is_dark_ = area->dark_;
+      is_flipped_ = area->flipped_;
+      if (coordinates_.is_valid() && !reaction_type_.is_empty()) {
+        type_ = Type::Reaction;
+      } else {
+        LOG(ERROR) << "Receive " << to_string(area);
+      }
       break;
+    }
     case telegram_api::inputMediaAreaVenue::ID:
       LOG(ERROR) << "Receive " << to_string(media_area_ptr);
       break;
@@ -99,6 +109,16 @@ MediaArea::MediaArea(Td *td, td_api::object_ptr<td_api::inputStoryArea> &&input_
       }
       break;
     }
+    case td_api::inputStoryAreaTypeSuggestedReaction::ID: {
+      auto type = td_api::move_object_as<td_api::inputStoryAreaTypeSuggestedReaction>(input_story_area->type_);
+      reaction_type_ = ReactionType(type->reaction_type_);
+      is_dark_ = type->is_dark_;
+      is_flipped_ = type->is_flipped_;
+      if (!reaction_type_.is_empty()) {
+        type_ = Type::Reaction;
+      }
+      break;
+    }
     default:
       UNREACHABLE();
   }
@@ -113,6 +133,10 @@ td_api::object_ptr<td_api::storyArea> MediaArea::get_story_area_object() const {
       break;
     case Type::Venue:
       type = td_api::make_object<td_api::storyAreaTypeVenue>(venue_.get_venue_object());
+      break;
+    case Type::Reaction:
+      type = td_api::make_object<td_api::storyAreaTypeSuggestedReaction>(reaction_type_.get_reaction_type_object(),
+                                                                         is_dark_, is_flipped_);
       break;
     default:
       UNREACHABLE();
@@ -132,6 +156,18 @@ telegram_api::object_ptr<telegram_api::MediaArea> MediaArea::get_input_media_are
             coordinates_.get_input_media_area_coordinates(), input_query_id_, input_result_id_);
       }
       return venue_.get_input_media_area_venue(coordinates_.get_input_media_area_coordinates());
+    case Type::Reaction: {
+      int32 flags = 0;
+      if (is_dark_) {
+        flags |= telegram_api::mediaAreaSuggestedReaction::DARK_MASK;
+      }
+      if (is_flipped_) {
+        flags |= telegram_api::mediaAreaSuggestedReaction::FLIPPED_MASK;
+      }
+      return telegram_api::make_object<telegram_api::mediaAreaSuggestedReaction>(
+          flags, false /*ignored*/, false /*ignored*/, coordinates_.get_input_media_area_coordinates(),
+          reaction_type_.get_input_reaction());
+    }
     default:
       UNREACHABLE();
       return nullptr;
@@ -141,7 +177,8 @@ telegram_api::object_ptr<telegram_api::MediaArea> MediaArea::get_input_media_are
 bool operator==(const MediaArea &lhs, const MediaArea &rhs) {
   return lhs.type_ == rhs.type_ && lhs.coordinates_ == rhs.coordinates_ && lhs.location_ == rhs.location_ &&
          lhs.venue_ == rhs.venue_ && lhs.input_query_id_ == rhs.input_query_id_ &&
-         lhs.input_result_id_ == rhs.input_result_id_;
+         lhs.input_result_id_ == rhs.input_result_id_ && lhs.reaction_type_ == rhs.reaction_type_ &&
+         lhs.is_dark_ == rhs.is_dark_ && lhs.is_flipped_ == rhs.is_flipped_;
 }
 
 bool operator!=(const MediaArea &lhs, const MediaArea &rhs) {
@@ -150,7 +187,7 @@ bool operator!=(const MediaArea &lhs, const MediaArea &rhs) {
 
 StringBuilder &operator<<(StringBuilder &string_builder, const MediaArea &media_area) {
   return string_builder << "StoryArea[" << media_area.coordinates_ << ": " << media_area.location_ << '/'
-                        << media_area.venue_ << ']';
+                        << media_area.venue_ << '/' << media_area.reaction_type_ << ']';
 }
 
 }  // namespace td

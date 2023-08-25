@@ -19,6 +19,8 @@ void MediaArea::store(StorerT &storer) const {
   bool has_input_query_id = input_query_id_ != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_input_query_id);
+  STORE_FLAG(is_dark_);
+  STORE_FLAG(is_flipped_);
   END_STORE_FLAGS();
   store(type_, storer);
   store(coordinates_, storer);
@@ -33,6 +35,9 @@ void MediaArea::store(StorerT &storer) const {
         store(input_result_id_, storer);
       }
       break;
+    case Type::Reaction:
+      store(reaction_type_, storer);
+      break;
     default:
       UNREACHABLE();
   }
@@ -44,6 +49,8 @@ void MediaArea::parse(ParserT &parser) {
   bool has_input_query_id;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_input_query_id);
+  PARSE_FLAG(is_dark_);
+  PARSE_FLAG(is_flipped_);
   END_PARSE_FLAGS();
   parse(type_, parser);
   parse(coordinates_, parser);
@@ -57,6 +64,9 @@ void MediaArea::parse(ParserT &parser) {
         parse(input_query_id_, parser);
         parse(input_result_id_, parser);
       }
+      break;
+    case Type::Reaction:
+      parse(reaction_type_, parser);
       break;
     default:
       parser.set_error("Load invalid area type");

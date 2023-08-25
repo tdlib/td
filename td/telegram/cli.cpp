@@ -1232,6 +1232,9 @@ class CliClient final : public Actor {
           string venue_id;
           std::tie(venue_provider, venue_id) = split(area.substr(1), ':');
           type = td_api::make_object<td_api::inputStoryAreaTypePreviousVenue>(venue_provider, venue_id);
+        } else if (area[0] == 'r') {
+          type = td_api::make_object<td_api::inputStoryAreaTypeSuggestedReaction>(as_reaction_type(area.substr(1)),
+                                                                                  rand_bool(), rand_bool());
         }
         result->areas_.push_back(td_api::make_object<td_api::inputStoryArea>(std::move(position), std::move(type)));
       }
