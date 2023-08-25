@@ -124,6 +124,10 @@ MediaArea::MediaArea(Td *td, td_api::object_ptr<td_api::inputStoryArea> &&input_
   }
 }
 
+bool MediaArea::has_reaction_type(const ReactionType &reaction_type) const {
+  return reaction_type_ == reaction_type;
+}
+
 td_api::object_ptr<td_api::storyArea> MediaArea::get_story_area_object() const {
   CHECK(is_valid());
   td_api::object_ptr<td_api::StoryAreaType> type;

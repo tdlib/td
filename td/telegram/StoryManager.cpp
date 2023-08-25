@@ -2346,12 +2346,20 @@ void StoryManager::on_story_replied(StoryFullId story_full_id, UserId replier_us
   }
 }
 
-bool StoryManager::can_use_story_reaction(const ReactionType &reaction_type) const {
+bool StoryManager::can_use_story_reaction(const Story *story, const ReactionType &reaction_type) const {
   if (reaction_type.is_empty()) {
     return true;
   }
   if (reaction_type.is_custom_reaction()) {
-    return td_->option_manager_->get_option_boolean("is_premium");
+    if (td_->option_manager_->get_option_boolean("is_premium")) {
+      return true;
+    }
+    for (auto &area : story->areas_) {
+      if (area.has_reaction_type(reaction_type)) {
+        return true;
+      }
+    }
+    return false;
   }
   return td_->reaction_manager_->is_active_reaction(reaction_type);
 }
@@ -2377,7 +2385,7 @@ void StoryManager::set_story_reaction(StoryFullId story_full_id, ReactionType re
     return promise.set_error(Status::Error(400, "Story not found"));
   }
 
-  if (!can_use_story_reaction(reaction_type)) {
+  if (!can_use_story_reaction(story, reaction_type)) {
     return promise.set_error(Status::Error(400, "The reaction isn't available for stories"));
   }
 

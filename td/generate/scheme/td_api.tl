@@ -3208,7 +3208,7 @@ storyAreaTypeLocation location:location = StoryAreaType;
 //@description An area pointing to a venue @venue Information about the venue
 storyAreaTypeVenue venue:venue = StoryAreaType;
 
-//@description An area pointing to a suggested reaction
+//@description An area pointing to a suggested reaction. App needs to show a clickable reaction on the area and call setStoryReaction when the are is clicked
 //@reaction_type Type of the reaction
 //@is_dark True, if reaction has a dark background
 //@is_flipped True, if reaction corner is flipped
