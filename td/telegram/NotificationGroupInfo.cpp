@@ -32,7 +32,8 @@ bool NotificationGroupInfo::set_last_notification(int32 last_notification_date, 
 }
 
 bool NotificationGroupInfo::set_max_removed_notification_id(NotificationId max_removed_notification_id,
-                                                            int64 max_removed_object_id, const char *source) {
+                                                            NotificationObjectId max_removed_object_id,
+                                                            const char *source) {
   if (max_removed_notification_id.get() <= max_removed_notification_id_.get()) {
     return false;
   }
@@ -61,11 +62,12 @@ void NotificationGroupInfo::drop_max_removed_notification_id() {
   }
 
   VLOG(notifications) << "Drop max_removed_notification_id in " << group_id_;
-  max_removed_object_id_ = 0;
+  max_removed_object_id_ = {};
   max_removed_notification_id_ = NotificationId();
 }
 
-bool NotificationGroupInfo::is_removed_notification(NotificationId notification_id, int64 object_id) const {
+bool NotificationGroupInfo::is_removed_notification(NotificationId notification_id,
+                                                    NotificationObjectId object_id) const {
   return is_removed_notification_id(notification_id) || is_removed_object_id(object_id);
 }
 
@@ -73,7 +75,7 @@ bool NotificationGroupInfo::is_removed_notification_id(NotificationId notificati
   return notification_id.get() <= max_removed_notification_id_.get();
 }
 
-bool NotificationGroupInfo::is_removed_object_id(int64 object_id) const {
+bool NotificationGroupInfo::is_removed_object_id(NotificationObjectId object_id) const {
   return object_id <= max_removed_object_id_;
 }
 
@@ -118,7 +120,7 @@ NotificationGroupId NotificationGroupInfo::get_reused_group_id() {
   auto result = group_id_;
   group_id_ = NotificationGroupId();
   max_removed_notification_id_ = NotificationId();
-  max_removed_object_id_ = 0;
+  max_removed_object_id_ = {};
   return result;
 }
 

@@ -56,6 +56,16 @@ class NotificationObjectId {
   friend bool operator>=(const NotificationObjectId &lhs, const NotificationObjectId &rhs) {
     return lhs.id >= rhs.id;
   }
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    storer.store_long(id);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    id = parser.fetch_long();
+  }
 };
 
 struct NotificationObjectIdHash {

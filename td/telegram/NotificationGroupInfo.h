@@ -10,6 +10,7 @@
 #include "td/telegram/NotificationGroupId.h"
 #include "td/telegram/NotificationGroupKey.h"
 #include "td/telegram/NotificationId.h"
+#include "td/telegram/NotificationObjectId.h"
 
 #include "td/utils/common.h"
 #include "td/utils/StringBuilder.h"
@@ -21,7 +22,7 @@ class NotificationGroupInfo {
   int32 last_notification_date_ = 0;            // date of the last notification in the group
   NotificationId last_notification_id_;         // identifier of the last notification in the group
   NotificationId max_removed_notification_id_;  // notification identifier, up to which all notifications are removed
-  int64 max_removed_object_id_;                 // object identifier, up to which all notifications are removed
+  NotificationObjectId max_removed_object_id_;  // object identifier, up to which all notifications are removed
   bool is_key_changed_ = false;                 // true, if the group needs to be saved to database
   bool try_reuse_ = false;  // true, if the group needs to be deleted from database and tried to be reused
 
@@ -55,16 +56,16 @@ class NotificationGroupInfo {
 
   bool set_last_notification(int32 last_notification_date, NotificationId last_notification_id, const char *source);
 
-  bool set_max_removed_notification_id(NotificationId max_removed_notification_id, int64 max_removed_object_id,
-                                       const char *source);
+  bool set_max_removed_notification_id(NotificationId max_removed_notification_id,
+                                       NotificationObjectId max_removed_object_id, const char *source);
 
   void drop_max_removed_notification_id();
 
-  bool is_removed_notification(NotificationId notification_id, int64 object_id) const;
+  bool is_removed_notification(NotificationId notification_id, NotificationObjectId object_id) const;
 
   bool is_removed_notification_id(NotificationId notification_id) const;
 
-  bool is_removed_object_id(int64 object_id) const;
+  bool is_removed_object_id(NotificationObjectId object_id) const;
 
   bool is_used_notification_id(NotificationId notification_id) const;
 
