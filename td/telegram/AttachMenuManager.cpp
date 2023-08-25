@@ -265,6 +265,38 @@ class ProlongWebViewQuery final : public Td::ResultHandler {
   }
 };
 
+class InvokeWebViewCustomMethodQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::customRequestResult>> promise_;
+
+ public:
+  explicit InvokeWebViewCustomMethodQuery(Promise<td_api::object_ptr<td_api::customRequestResult>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(UserId bot_user_id, const string &method, const string &parameters) {
+    auto r_input_user = td_->contacts_manager_->get_input_user(bot_user_id);
+    if (r_input_user.is_error()) {
+      return on_error(r_input_user.move_as_error());
+    }
+    send_query(G()->net_query_creator().create(telegram_api::bots_invokeWebViewCustomMethod(
+        r_input_user.move_as_ok(), method, make_tl_object<telegram_api::dataJSON>(parameters))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::bots_invokeWebViewCustomMethod>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    promise_.set_value(td_api::make_object<td_api::customRequestResult>(result->data_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetAttachMenuBotsQuery final : public Td::ResultHandler {
   Promise<telegram_api::object_ptr<telegram_api::AttachMenuBots>> promise_;
 
@@ -824,6 +856,12 @@ void AttachMenuManager::close_web_view(int64 query_id, Promise<Unit> &&promise) 
     ping_web_view_timeout_.cancel_timeout();
   }
   promise.set_value(Unit());
+}
+
+void AttachMenuManager::invoke_web_view_custom_method(
+    UserId bot_user_id, const string &method, const string &parameters,
+    Promise<td_api::object_ptr<td_api::customRequestResult>> &&promise) {
+  td_->create_handler<InvokeWebViewCustomMethodQuery>(std::move(promise))->send(bot_user_id, method, parameters);
 }
 
 Result<AttachMenuManager::AttachMenuBot> AttachMenuManager::get_attach_menu_bot(

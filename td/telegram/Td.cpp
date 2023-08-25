@@ -7308,13 +7308,24 @@ void Td::on_request(uint64 id, const td_api::setDefaultChannelAdministratorRight
 }
 
 void Td::on_request(uint64 id, const td_api::canBotSendMessages &request) {
+  CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   bot_info_manager_->can_bot_send_messages(UserId(request.bot_user_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::allowBotToSendMessages &request) {
+  CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   bot_info_manager_->allow_bot_to_send_messages(UserId(request.bot_user_id_), std::move(promise));
+}
+
+void Td::on_request(uint64 id, td_api::sendWebAppCustomRequest &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.method_);
+  CLEAN_INPUT_STRING(request.parameters_);
+  CREATE_REQUEST_PROMISE();
+  attach_menu_manager_->invoke_web_view_custom_method(UserId(request.bot_user_id_), request.method_,
+                                                      request.parameters_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setBotName &request) {

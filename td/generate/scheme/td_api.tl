@@ -8220,6 +8220,12 @@ canBotSendMessages bot_user_id:int53 = Ok;
 //@description Allows the specified bot to send messages to the user @bot_user_id Identifier of the target bot
 allowBotToSendMessages bot_user_id:int53 = Ok;
 
+//@description Sends a custom request from a Web App
+//@bot_user_id Identifier of the bot
+//@method The method name
+//@parameters JSON-serialized method parameters
+sendWebAppCustomRequest bot_user_id:int53 method:string parameters:string = CustomRequestResult;
+
 
 //@description Sets the name of a bot. Can be called only if userTypeBot.can_be_edited == true
 //@bot_user_id Identifier of the target bot

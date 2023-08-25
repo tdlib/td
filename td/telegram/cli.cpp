@@ -5518,6 +5518,12 @@ class CliClient final : public Actor {
       UserId bot_user_id;
       get_args(args, bot_user_id);
       send_request(td_api::make_object<td_api::allowBotToSendMessages>(bot_user_id));
+    } else if (op == "swacr") {
+      UserId bot_user_id;
+      string method;
+      string parameters;
+      get_args(args, bot_user_id, method, parameters);
+      send_request(td_api::make_object<td_api::sendWebAppCustomRequest>(bot_user_id, method, parameters));
     } else if (op == "gbi") {
       UserId bot_user_id;
       string language_code;
