@@ -2136,9 +2136,17 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
   } else {
     remove_added_notifications_from_pending_updates(
         group_id, [max_object_id](const td_api::object_ptr<td_api::notification> &notification) {
-          return notification->type_->get_id() == td_api::notificationTypeNewMessage::ID &&
-                 static_cast<const td_api::notificationTypeNewMessage *>(notification->type_.get())->message_->id_ <=
+          const auto *type = notification->type_.get();
+          switch (type->get_id()) {
+            case td_api::notificationTypeNewMessage::ID:
+              return static_cast<const td_api::notificationTypeNewMessage *>(type)->message_->id_ <=
                      max_object_id.get();
+            case td_api::notificationTypeNewPushMessage::ID:
+              return static_cast<const td_api::notificationTypeNewPushMessage *>(type)->message_id_ <=
+                     max_object_id.get();
+            default:
+              return false;
+          }
         });
   }
 
@@ -2235,10 +2243,16 @@ void NotificationManager::remove_temporary_notifications(NotificationGroupId gro
   on_notifications_removed(std::move(group_it), std::move(added_notifications), std::move(removed_notification_ids),
                            false);
 
-  remove_added_notifications_from_pending_updates(
-      group_id, [](const td_api::object_ptr<td_api::notification> &notification) {
-        return notification->get_id() == td_api::notificationTypeNewPushMessage::ID;
-      });
+  remove_added_notifications_from_pending_updates(group_id,
+                                                  [](const td_api::object_ptr<td_api::notification> &notification) {
+                                                    const auto *type = notification->type_.get();
+                                                    switch (type->get_id()) {
+                                                      case td_api::notificationTypeNewPushMessage::ID:
+                                                        return true;
+                                                      default:
+                                                        return false;
+                                                    }
+                                                  });
 }
 
 int32 NotificationManager::get_temporary_notification_total_count(const NotificationGroup &group) {
