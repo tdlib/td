@@ -412,6 +412,7 @@ bool DialogAction::is_canceled_by_message_of_type(MessageContentType message_con
     case MessageContentType::WebViewWriteAccessAllowed:
     case MessageContentType::SetBackground:
     case MessageContentType::Story:
+    case MessageContentType::WriteAccessAllowedByRequest:
       return false;
     default:
       UNREACHABLE();

@@ -929,6 +929,13 @@ class MessageStory final : public MessageContent {
   }
 };
 
+class MessageWriteAccessAllowedByRequest final : public MessageContent {
+ public:
+  MessageContentType get_type() const final {
+    return MessageContentType::WriteAccessAllowedByRequest;
+  }
+};
+
 template <class StorerT>
 static void store(const MessageContent *content, StorerT &storer) {
   CHECK(content != nullptr);
@@ -1329,6 +1336,8 @@ static void store(const MessageContent *content, StorerT &storer) {
       store(m->story_full_id, storer);
       break;
     }
+    case MessageContentType::WriteAccessAllowedByRequest:
+      break;
     default:
       UNREACHABLE();
   }
@@ -1872,6 +1881,9 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       content = std::move(m);
       break;
     }
+    case MessageContentType::WriteAccessAllowedByRequest:
+      content = make_unique<MessageWriteAccessAllowedByRequest>();
+      break;
     default:
       is_bad = true;
   }
@@ -2475,6 +2487,7 @@ bool can_have_input_media(const Td *td, const MessageContent *content, bool is_s
     case MessageContentType::RequestedDialog:
     case MessageContentType::WebViewWriteAccessAllowed:
     case MessageContentType::SetBackground:
+    case MessageContentType::WriteAccessAllowedByRequest:
       return false;
     case MessageContentType::Animation:
     case MessageContentType::Audio:
@@ -2604,6 +2617,7 @@ SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
     case MessageContentType::RequestedDialog:
     case MessageContentType::WebViewWriteAccessAllowed:
     case MessageContentType::SetBackground:
+    case MessageContentType::WriteAccessAllowedByRequest:
       break;
     default:
       UNREACHABLE();
@@ -2736,6 +2750,7 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
     case MessageContentType::RequestedDialog:
     case MessageContentType::WebViewWriteAccessAllowed:
     case MessageContentType::SetBackground:
+    case MessageContentType::WriteAccessAllowedByRequest:
       break;
     default:
       UNREACHABLE();
@@ -2908,6 +2923,7 @@ void delete_message_content_thumbnail(MessageContent *content, Td *td) {
     case MessageContentType::RequestedDialog:
     case MessageContentType::WebViewWriteAccessAllowed:
     case MessageContentType::SetBackground:
+    case MessageContentType::WriteAccessAllowedByRequest:
       break;
     default:
       UNREACHABLE();
@@ -3102,6 +3118,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
     case MessageContentType::RequestedDialog:
     case MessageContentType::WebViewWriteAccessAllowed:
     case MessageContentType::SetBackground:
+    case MessageContentType::WriteAccessAllowedByRequest:
       UNREACHABLE();
   }
   return Status::OK();
@@ -3239,6 +3256,7 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
     case MessageContentType::RequestedDialog:
     case MessageContentType::WebViewWriteAccessAllowed:
     case MessageContentType::SetBackground:
+    case MessageContentType::WriteAccessAllowedByRequest:
       return 0;
     default:
       UNREACHABLE();
@@ -3463,6 +3481,8 @@ vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageConte
       }
       break;
     }
+    case MessageContentType::WriteAccessAllowedByRequest:
+      break;
     default:
       UNREACHABLE();
       break;
@@ -4166,6 +4186,8 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       }
       break;
     }
+    case MessageContentType::WriteAccessAllowedByRequest:
+      break;
     default:
       UNREACHABLE();
       break;
@@ -4306,6 +4328,7 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
     case MessageContentType::RequestedDialog:
     case MessageContentType::WebViewWriteAccessAllowed:
     case MessageContentType::SetBackground:
+    case MessageContentType::WriteAccessAllowedByRequest:
       LOG(ERROR) << "Receive new file " << new_file_id << " in a sent message of the type " << content_type;
       break;
     default:
@@ -5328,6 +5351,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     case MessageContentType::RequestedDialog:
     case MessageContentType::WebViewWriteAccessAllowed:
     case MessageContentType::SetBackground:
+    case MessageContentType::WriteAccessAllowedByRequest:
       return nullptr;
     default:
       UNREACHABLE();
@@ -5529,6 +5553,9 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       if (action->app_ != nullptr && action->app_->get_id() == telegram_api::botApp::ID) {
         return td::make_unique<MessageWebViewWriteAccessAllowed>(
             WebApp(td, telegram_api::move_object_as<telegram_api::botApp>(action->app_), owner_dialog_id));
+      }
+      if (action->from_request_) {
+        return td::make_unique<MessageWriteAccessAllowedByRequest>();
       }
       return td::make_unique<MessageUnsupported>();
     }
@@ -6010,7 +6037,7 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       return make_tl_object<td_api::messageSuggestProfilePhoto>(std::move(photo));
     }
     case MessageContentType::WriteAccessAllowed:
-      return make_tl_object<td_api::messageBotWriteAccessAllowed>(nullptr);
+      return make_tl_object<td_api::messageBotWriteAccessAllowed>(nullptr, false);
     case MessageContentType::RequestedDialog: {
       const auto *m = static_cast<const MessageRequestedDialog *>(content);
       if (m->dialog_id.get_type() == DialogType::User) {
@@ -6032,7 +6059,7 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     }
     case MessageContentType::WebViewWriteAccessAllowed: {
       const auto *m = static_cast<const MessageWebViewWriteAccessAllowed *>(content);
-      return td_api::make_object<td_api::messageBotWriteAccessAllowed>(m->web_app.get_web_app_object(td));
+      return td_api::make_object<td_api::messageBotWriteAccessAllowed>(m->web_app.get_web_app_object(td), false);
     }
     case MessageContentType::SetBackground: {
       const auto *m = static_cast<const MessageSetBackground *>(content);
@@ -6045,6 +6072,8 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
           td->messages_manager_->get_chat_id_object(m->story_full_id.get_dialog_id(), "messageStory"),
           m->story_full_id.get_story_id().get(), m->via_mention);
     }
+    case MessageContentType::WriteAccessAllowedByRequest:
+      return make_tl_object<td_api::messageBotWriteAccessAllowed>(nullptr, true);
     default:
       UNREACHABLE();
       return nullptr;
@@ -6470,6 +6499,7 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
     case MessageContentType::RequestedDialog:
     case MessageContentType::WebViewWriteAccessAllowed:
     case MessageContentType::SetBackground:
+    case MessageContentType::WriteAccessAllowedByRequest:
       return string();
     default:
       UNREACHABLE();
@@ -6775,6 +6805,8 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
       dependencies.add(content->story_full_id);
       break;
     }
+    case MessageContentType::WriteAccessAllowedByRequest:
+      break;
     default:
       UNREACHABLE();
       break;

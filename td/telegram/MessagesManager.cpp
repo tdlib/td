@@ -26445,6 +26445,7 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
     case MessageContentType::RequestedDialog:
     case MessageContentType::WebViewWriteAccessAllowed:
     case MessageContentType::SetBackground:
+    case MessageContentType::WriteAccessAllowedByRequest:
       return false;
     default:
       UNREACHABLE();
