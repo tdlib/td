@@ -13,6 +13,7 @@
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UpdatesManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
@@ -116,6 +117,38 @@ class CanBotSendMessageQuery final : public Td::ResultHandler {
     } else {
       promise_.set_error(Status::Error(404, "Not Found"));
     }
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class AllowBotSendMessageQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit AllowBotSendMessageQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(UserId bot_user_id) {
+    auto r_input_user = td_->contacts_manager_->get_input_user(bot_user_id);
+    if (r_input_user.is_error()) {
+      return on_error(r_input_user.move_as_error());
+    }
+    send_query(G()->net_query_creator().create(telegram_api::bots_allowSendMessage(r_input_user.move_as_ok()),
+                                               {{bot_user_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::bots_allowSendMessage>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for AllowBotSendMessageQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -353,6 +386,10 @@ void BotInfoManager::set_default_channel_administrator_rights(AdministratorRight
 
 void BotInfoManager::can_bot_send_messages(UserId bot_user_id, Promise<Unit> &&promise) {
   td_->create_handler<CanBotSendMessageQuery>(std::move(promise))->send(bot_user_id);
+}
+
+void BotInfoManager::allow_bot_to_send_messages(UserId bot_user_id, Promise<Unit> &&promise) {
+  td_->create_handler<AllowBotSendMessageQuery>(std::move(promise))->send(bot_user_id);
 }
 
 void BotInfoManager::add_pending_set_query(UserId bot_user_id, const string &language_code, int type,

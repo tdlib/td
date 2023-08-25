@@ -5514,6 +5514,10 @@ class CliClient final : public Actor {
       UserId bot_user_id;
       get_args(args, bot_user_id);
       send_request(td_api::make_object<td_api::canBotSendMessages>(bot_user_id));
+    } else if (op == "abtsm") {
+      UserId bot_user_id;
+      get_args(args, bot_user_id);
+      send_request(td_api::make_object<td_api::allowBotToSendMessages>(bot_user_id));
     } else if (op == "gbi") {
       UserId bot_user_id;
       string language_code;

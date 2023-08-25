@@ -28,6 +28,8 @@ class BotInfoManager final : public Actor {
 
   void can_bot_send_messages(UserId bot_user_id, Promise<Unit> &&promise);
 
+  void allow_bot_to_send_messages(UserId bot_user_id, Promise<Unit> &&promise);
+
   void set_bot_name(UserId bot_user_id, const string &language_code, const string &name, Promise<Unit> &&promise);
 
   void get_bot_name(UserId bot_user_id, const string &language_code, Promise<string> &&promise);

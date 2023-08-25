@@ -7312,6 +7312,11 @@ void Td::on_request(uint64 id, const td_api::canBotSendMessages &request) {
   bot_info_manager_->can_bot_send_messages(UserId(request.bot_user_id_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::allowBotToSendMessages &request) {
+  CREATE_OK_REQUEST_PROMISE();
+  bot_info_manager_->allow_bot_to_send_messages(UserId(request.bot_user_id_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::setBotName &request) {
   CLEAN_INPUT_STRING(request.name_);
   CREATE_OK_REQUEST_PROMISE();

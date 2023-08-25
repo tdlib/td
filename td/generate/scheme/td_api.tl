@@ -8217,6 +8217,9 @@ setDefaultChannelAdministratorRights default_channel_administrator_rights:chatAd
 //@description Checks whether the specified bot can send messages to the user. Returns a 404 error if can't and the access can be granted by call to allowBotToSendMessages @bot_user_id Identifier of the target bot
 canBotSendMessages bot_user_id:int53 = Ok;
 
+//@description Allows the specified bot to send messages to the user @bot_user_id Identifier of the target bot
+allowBotToSendMessages bot_user_id:int53 = Ok;
+
 
 //@description Sets the name of a bot. Can be called only if userTypeBot.can_be_edited == true
 //@bot_user_id Identifier of the target bot
