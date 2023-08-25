@@ -89,6 +89,40 @@ class SetBotBroadcastDefaultAdminRightsQuery final : public Td::ResultHandler {
   }
 };
 
+class CanBotSendMessageQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit CanBotSendMessageQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(UserId bot_user_id) {
+    auto r_input_user = td_->contacts_manager_->get_input_user(bot_user_id);
+    if (r_input_user.is_error()) {
+      return on_error(r_input_user.move_as_error());
+    }
+    send_query(
+        G()->net_query_creator().create(telegram_api::bots_canSendMessage(r_input_user.move_as_ok()), {{bot_user_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::bots_canSendMessage>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    if (result_ptr.ok()) {
+      promise_.set_value(Unit());
+    } else {
+      promise_.set_error(Status::Error(404, "Not Found"));
+    }
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 static Result<telegram_api::object_ptr<telegram_api::InputUser>> get_bot_input_user(const Td *td, UserId bot_user_id) {
   if (td->auth_manager_->is_bot()) {
     if (bot_user_id != UserId() && bot_user_id != td->contacts_manager_->get_my_id()) {
@@ -315,6 +349,10 @@ void BotInfoManager::set_default_channel_administrator_rights(AdministratorRight
                                                               Promise<Unit> &&promise) {
   td_->contacts_manager_->invalidate_user_full(td_->contacts_manager_->get_my_id());
   td_->create_handler<SetBotBroadcastDefaultAdminRightsQuery>(std::move(promise))->send(administrator_rights);
+}
+
+void BotInfoManager::can_bot_send_messages(UserId bot_user_id, Promise<Unit> &&promise) {
+  td_->create_handler<CanBotSendMessageQuery>(std::move(promise))->send(bot_user_id);
 }
 
 void BotInfoManager::add_pending_set_query(UserId bot_user_id, const string &language_code, int type,

@@ -1221,6 +1221,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::setDefaultChannelAdministratorRights &request);
 
+  void on_request(uint64 id, const td_api::canBotSendMessages &request);
+
   void on_request(uint64 id, td_api::setBotName &request);
 
   void on_request(uint64 id, const td_api::getBotName &request);
