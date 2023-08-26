@@ -6399,11 +6399,11 @@ bool MessagesManager::have_dialog_info(DialogId dialog_id) const {
   }
 }
 
-bool MessagesManager::have_dialog_info_force(DialogId dialog_id) const {
+bool MessagesManager::have_dialog_info_force(DialogId dialog_id, const char *source) const {
   switch (dialog_id.get_type()) {
     case DialogType::User: {
       UserId user_id = dialog_id.get_user_id();
-      return td_->contacts_manager_->have_user_force(user_id, "have_dialog_info_force");
+      return td_->contacts_manager_->have_user_force(user_id, source);
     }
     case DialogType::Chat: {
       ChatId chat_id = dialog_id.get_chat_id();
@@ -7630,7 +7630,7 @@ void MessagesManager::on_dialog_action(DialogId dialog_id, MessageId top_thread_
       return;
     }
   } else {
-    if (!have_dialog_info_force(typing_dialog_id)) {
+    if (!have_dialog_info_force(typing_dialog_id, "on_dialog_action")) {
       LOG(DEBUG) << "Ignore " << action << " of unknown " << typing_dialog_id;
       return;
     }
@@ -14065,7 +14065,7 @@ void MessagesManager::on_get_secret_message(SecretChatId secret_chat_id, UserId 
   message_info.ttl = message->ttl_;
 
   Dialog *d = get_dialog_force(message_info.dialog_id, "on_get_secret_message");
-  if (d == nullptr && have_dialog_info_force(message_info.dialog_id)) {
+  if (d == nullptr && have_dialog_info_force(message_info.dialog_id, "on_get_secret_message")) {
     force_create_dialog(message_info.dialog_id, "on_get_secret_message", true, true);
     d = get_dialog(message_info.dialog_id);
   }
@@ -14161,7 +14161,7 @@ void MessagesManager::on_secret_chat_screenshot_taken(SecretChatId secret_chat_i
   message_info.content = create_screenshot_taken_message_content();
 
   Dialog *d = get_dialog_force(message_info.dialog_id, "on_secret_chat_screenshot_taken");
-  if (d == nullptr && have_dialog_info_force(message_info.dialog_id)) {
+  if (d == nullptr && have_dialog_info_force(message_info.dialog_id, "on_secret_chat_screenshot_taken")) {
     force_create_dialog(message_info.dialog_id, "on_get_secret_message", true, true);
     d = get_dialog(message_info.dialog_id);
   }
@@ -14199,7 +14199,7 @@ void MessagesManager::on_secret_chat_ttl_changed(SecretChatId secret_chat_id, Us
   message_info.content = create_chat_set_ttl_message_content(ttl, UserId());
 
   Dialog *d = get_dialog_force(message_info.dialog_id, "on_secret_chat_ttl_changed");
-  if (d == nullptr && have_dialog_info_force(message_info.dialog_id)) {
+  if (d == nullptr && have_dialog_info_force(message_info.dialog_id, "on_secret_chat_ttl_changed")) {
     force_create_dialog(message_info.dialog_id, "on_get_secret_message", true, true);
     d = get_dialog(message_info.dialog_id);
   }
@@ -14599,7 +14599,8 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
 
   bool has_forward_info = message_info.forward_header != nullptr;
 
-  if (sender_dialog_id.is_valid() && sender_dialog_id != dialog_id && have_dialog_info_force(sender_dialog_id)) {
+  if (sender_dialog_id.is_valid() && sender_dialog_id != dialog_id &&
+      have_dialog_info_force(sender_dialog_id, "create_message")) {
     CHECK(sender_dialog_id.get_type() != DialogType::User);
     force_create_dialog(sender_dialog_id, "create_message", true);
   }
@@ -16766,7 +16767,7 @@ vector<DialogId> MessagesManager::get_dialogs(DialogListId dialog_list_id, Dialo
       auto dialog_id = input_dialog_id.get_dialog_id();
       if (!have_dialog_force(dialog_id, "get_dialogs")) {
         if (dialog_id.get_type() == DialogType::SecretChat) {
-          if (have_dialog_info_force(dialog_id)) {
+          if (have_dialog_info_force(dialog_id, "get_dialogs")) {
             force_create_dialog(dialog_id, "get_dialogs");
           }
         } else {
@@ -17822,7 +17823,7 @@ FullMessageId MessagesManager::get_replied_message(DialogId dialog_id, MessageId
   auto replied_message_id = get_replied_message_id(dialog_id, m);
   if (replied_message_id.get_dialog_id() != dialog_id) {
     dialog_id = replied_message_id.get_dialog_id();
-    if (!have_dialog_info_force(dialog_id)) {
+    if (!have_dialog_info_force(dialog_id, "get_replied_message")) {
       promise.set_value(Unit());
       return {};
     }
@@ -19747,7 +19748,7 @@ bool MessagesManager::is_dialog_mention_notifications_disabled(const Dialog *d) 
 
 void MessagesManager::create_dialog(DialogId dialog_id, bool force, Promise<Unit> &&promise) {
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
-    if (!have_dialog_info_force(dialog_id)) {
+    if (!have_dialog_info_force(dialog_id, "create dialog")) {
       return promise.set_error(Status::Error(400, "Chat info not found"));
     }
     if (!have_input_peer(dialog_id, AccessRights::Read)) {
@@ -37685,7 +37686,7 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
     invalidate_message_indexes(d);
 
     // and try to reget it from the server if possible
-    have_dialog_info_force(dialog_id);
+    have_dialog_info_force(dialog_id, "parse_dialog");
     if (have_input_peer(dialog_id, AccessRights::Read)) {
       if (dialog_id.get_type() != DialogType::SecretChat) {
         send_get_dialog_query(dialog_id, Auto(), 0, source);
@@ -39584,7 +39585,8 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         }
 
         auto sender_dialog_id = log_event.sender_dialog_id_;
-        if (!have_dialog_info_force(sender_dialog_id) || !have_input_peer(sender_dialog_id, AccessRights::Know)) {
+        if (!have_dialog_info_force(sender_dialog_id, "DeleteAllChannelMessagesFromSenderOnServer") ||
+            !have_input_peer(sender_dialog_id, AccessRights::Know)) {
           LOG(ERROR) << "Can't find " << sender_dialog_id;
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
@@ -39824,7 +39826,8 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         log_event_parse(log_event, event.get_data()).ensure();
 
         auto dialog_id = log_event.dialog_id_;
-        if (dialog_id.get_type() == DialogType::SecretChat || !have_dialog_info_force(dialog_id) ||
+        if (dialog_id.get_type() == DialogType::SecretChat ||
+            !have_dialog_info_force(dialog_id, "ToggleDialogIsBlockedOnServerLogEvent") ||
             !have_input_peer(dialog_id, AccessRights::Know)) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;

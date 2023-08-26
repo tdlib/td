@@ -597,7 +597,7 @@ class MessagesManager final : public Actor {
   bool have_dialog_force(DialogId dialog_id, const char *source);
 
   bool have_dialog_info(DialogId dialog_id) const;
-  bool have_dialog_info_force(DialogId dialog_id) const;
+  bool have_dialog_info_force(DialogId dialog_id, const char *source) const;
 
   void reload_dialog_info_full(DialogId dialog_id, const char *source);
 

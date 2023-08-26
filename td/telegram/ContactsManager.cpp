@@ -16664,7 +16664,7 @@ void ContactsManager::on_update_channel_participant(ChannelId channel_id, UserId
 void ContactsManager::on_update_chat_invite_requester(DialogId dialog_id, UserId user_id, string about, int32 date,
                                                       DialogInviteLink invite_link) {
   if (!td_->auth_manager_->is_bot() || date <= 0 || !have_user_force(user_id, "on_update_chat_invite_requester") ||
-      !td_->messages_manager_->have_dialog_info_force(dialog_id)) {
+      !td_->messages_manager_->have_dialog_info_force(dialog_id, "on_update_chat_invite_requester")) {
     LOG(ERROR) << "Receive invalid updateBotChatInviteRequester by " << user_id << " in " << dialog_id << " at "
                << date;
     return;

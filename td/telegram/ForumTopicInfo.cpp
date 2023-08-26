@@ -29,7 +29,7 @@ ForumTopicInfo::ForumTopicInfo(Td *td, const tl_object_ptr<telegram_api::ForumTo
   creation_date_ = forum_topic->date_;
   creator_dialog_id_ = DialogId(forum_topic->from_id_);
   if (creator_dialog_id_.is_valid() && creator_dialog_id_.get_type() != DialogType::User &&
-      td->messages_manager_->have_dialog_info_force(creator_dialog_id_)) {
+      td->messages_manager_->have_dialog_info_force(creator_dialog_id_, "ForumTopicInfo")) {
     td->messages_manager_->force_create_dialog(creator_dialog_id_, "ForumTopicInfo", true);
   }
   is_outgoing_ = forum_topic->my_;

@@ -944,7 +944,7 @@ void DialogFilterManager::load_dialog_filter(const DialogFilter *dialog_filter, 
     // TODO load dialogs asynchronously
     if (!td_->messages_manager_->have_dialog_force(dialog_id, "load_dialog_filter")) {
       if (dialog_id.get_type() == DialogType::SecretChat) {
-        if (td_->messages_manager_->have_dialog_info_force(dialog_id)) {
+        if (td_->messages_manager_->have_dialog_info_force(dialog_id, "load_dialog_filter")) {
           td_->messages_manager_->force_create_dialog(dialog_id, "load_dialog_filter");
         }
       } else {

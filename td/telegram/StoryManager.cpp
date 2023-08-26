@@ -3579,7 +3579,7 @@ void StoryManager::on_update_story_id(int64 random_id, StoryId new_story_id, con
 }
 
 bool StoryManager::on_update_read_stories(DialogId owner_dialog_id, StoryId max_read_story_id) {
-  if (!td_->messages_manager_->have_dialog_info_force(owner_dialog_id)) {
+  if (!td_->messages_manager_->have_dialog_info_force(owner_dialog_id, "on_update_read_stories")) {
     LOG(INFO) << "Can't read stories in unknown " << owner_dialog_id;
     return false;
   }
@@ -3636,7 +3636,7 @@ void StoryManager::on_update_story_chosen_reaction_type(DialogId owner_dialog_id
     LOG(ERROR) << "Receive chosen reaction in " << story_id << " in " << owner_dialog_id;
     return;
   }
-  if (!td_->messages_manager_->have_dialog_info_force(owner_dialog_id)) {
+  if (!td_->messages_manager_->have_dialog_info_force(owner_dialog_id, "on_update_story_chosen_reaction_type")) {
     return;
   }
   StoryFullId story_full_id{owner_dialog_id, story_id};

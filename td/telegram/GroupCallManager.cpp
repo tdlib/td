@@ -4546,7 +4546,7 @@ void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id,
     return;
   }
 
-  if (!td_->messages_manager_->have_dialog_info_force(dialog_id) ||
+  if (!td_->messages_manager_->have_dialog_info_force(dialog_id, "on_user_speaking_in_group_call") ||
       (!is_recursive && need_group_call_participants(input_group_call_id, group_call) &&
        get_group_call_participant(input_group_call_id, dialog_id) == nullptr)) {
     if (is_recursive) {
