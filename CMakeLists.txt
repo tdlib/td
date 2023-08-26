@@ -723,6 +723,7 @@ set(TDLIB_SOURCE
   td/telegram/NotificationGroupType.h
   td/telegram/NotificationId.h
   td/telegram/NotificationManager.h
+  td/telegram/NotificationObjectFullId.h
   td/telegram/NotificationObjectId.h
   td/telegram/NotificationSettingsScope.h
   td/telegram/NotificationSettingsManager.h

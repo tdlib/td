@@ -1729,8 +1729,8 @@ void NotificationManager::on_notification_removed(NotificationId notification_id
   }
   temporary_notification_log_event_ids_.erase(add_it);
 
-  auto erased_notification_count = temporary_notifications_.erase(temporary_notification_message_ids_[notification_id]);
-  auto erased_message_id_count = temporary_notification_message_ids_.erase(notification_id);
+  auto erased_notification_count = temporary_notifications_.erase(temporary_notification_object_ids_[notification_id]);
+  auto erased_message_id_count = temporary_notification_object_ids_.erase(notification_id);
   CHECK(erased_notification_count > 0);
   CHECK(erased_message_id_count > 0);
 
@@ -3849,10 +3849,11 @@ void NotificationManager::add_message_push_notification(DialogId dialog_id, Mess
       sender_user_id.is_valid() ? td_->contacts_manager_->get_my_id() == sender_user_id : is_from_scheduled;
   if (log_event_id != 0) {
     VLOG(notifications) << "Register temporary " << notification_id << " with log event " << log_event_id;
+    NotificationObjectFullId object_full_id(dialog_id, message_id);
     temporary_notification_log_event_ids_[notification_id] = log_event_id;
-    temporary_notifications_[FullMessageId(dialog_id, message_id)] = {group_id,         notification_id, sender_user_id,
-                                                                      sender_dialog_id, sender_name,     is_outgoing};
-    temporary_notification_message_ids_[notification_id] = FullMessageId(dialog_id, message_id);
+    temporary_notifications_[object_full_id] = {group_id,         notification_id, sender_user_id,
+                                                sender_dialog_id, sender_name,     is_outgoing};
+    temporary_notification_object_ids_[notification_id] = object_full_id;
   }
   push_notification_promises_[notification_id].push_back(std::move(promise));
 
@@ -3948,7 +3949,7 @@ void NotificationManager::edit_message_push_notification(DialogId dialog_id, Mes
     return promise.set_error(Status::Error(200, "Immediate success"));
   }
 
-  auto it = temporary_notifications_.find(FullMessageId(dialog_id, message_id));
+  auto it = temporary_notifications_.find({dialog_id, message_id});
   if (it == temporary_notifications_.end()) {
     VLOG(notifications) << "Ignore edit of message push notification for " << message_id << " in " << dialog_id
                         << " edited at " << edit_date;

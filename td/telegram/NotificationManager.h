@@ -9,13 +9,13 @@
 #include "td/telegram/CallId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/Document.h"
-#include "td/telegram/FullMessageId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/Notification.h"
 #include "td/telegram/NotificationGroupId.h"
 #include "td/telegram/NotificationGroupKey.h"
 #include "td/telegram/NotificationGroupType.h"
 #include "td/telegram/NotificationId.h"
+#include "td/telegram/NotificationObjectFullId.h"
 #include "td/telegram/NotificationObjectId.h"
 #include "td/telegram/NotificationType.h"
 #include "td/telegram/Photo.h"
@@ -401,8 +401,8 @@ class NotificationManager final : public Actor {
     string sender_name;
     bool is_outgoing;
   };
-  FlatHashMap<FullMessageId, TemporaryNotification, FullMessageIdHash> temporary_notifications_;
-  FlatHashMap<NotificationId, FullMessageId, NotificationIdHash> temporary_notification_message_ids_;
+  FlatHashMap<NotificationObjectFullId, TemporaryNotification, NotificationObjectFullIdHash> temporary_notifications_;
+  FlatHashMap<NotificationId, NotificationObjectFullId, NotificationIdHash> temporary_notification_object_ids_;
   FlatHashMap<NotificationId, vector<Promise<Unit>>, NotificationIdHash> push_notification_promises_;
 
   struct ActiveCallNotification {
