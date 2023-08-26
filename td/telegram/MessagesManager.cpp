@@ -1783,7 +1783,6 @@ class ReadMessagesContentsQuery final : public Td::ResultHandler {
     }
 
     auto affected_messages = result_ptr.move_as_ok();
-    CHECK(affected_messages->get_id() == telegram_api::messages_affectedMessages::ID);
     LOG(INFO) << "Receive result for ReadMessagesContentsQuery: " << to_string(affected_messages);
 
     if (affected_messages->pts_count_ > 0) {
@@ -2004,7 +2003,6 @@ class ReadHistoryQuery final : public Td::ResultHandler {
     }
 
     auto affected_messages = result_ptr.move_as_ok();
-    CHECK(affected_messages->get_id() == telegram_api::messages_affectedMessages::ID);
     LOG(INFO) << "Receive result for ReadHistoryQuery: " << to_string(affected_messages);
 
     if (affected_messages->pts_count_ > 0) {
