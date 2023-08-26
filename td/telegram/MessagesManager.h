@@ -1302,7 +1302,7 @@ class MessagesManager final : public Actor {
     NotificationGroupInfo mention_notification_group_;
     NotificationId new_secret_chat_notification_id_;  // secret chats only
     MessageId pinned_message_notification_message_id_;
-    MessageId max_notification_message_id_;
+    MessageId max_push_notification_message_id_;
 
     vector<std::pair<DialogId, MessageId>> pending_new_message_notifications_;
     vector<std::pair<DialogId, MessageId>> pending_new_mention_notifications_;
