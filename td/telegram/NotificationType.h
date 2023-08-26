@@ -10,6 +10,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/Document.h"
 #include "td/telegram/files/FileId.h"
+#include "td/telegram/MessageId.h"
 #include "td/telegram/NotificationObjectId.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/td_api.h"
