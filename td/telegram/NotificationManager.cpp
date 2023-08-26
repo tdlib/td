@@ -2135,15 +2135,13 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
         });
   } else {
     remove_added_notifications_from_pending_updates(
-        group_id, [max_object_id](const td_api::object_ptr<td_api::notification> &notification) {
+        group_id, [max_id = max_object_id.get()](const td_api::object_ptr<td_api::notification> &notification) {
           const auto *type = notification->type_.get();
           switch (type->get_id()) {
             case td_api::notificationTypeNewMessage::ID:
-              return static_cast<const td_api::notificationTypeNewMessage *>(type)->message_->id_ <=
-                     max_object_id.get();
+              return static_cast<const td_api::notificationTypeNewMessage *>(type)->message_->id_ <= max_id;
             case td_api::notificationTypeNewPushMessage::ID:
-              return static_cast<const td_api::notificationTypeNewPushMessage *>(type)->message_id_ <=
-                     max_object_id.get();
+              return static_cast<const td_api::notificationTypeNewPushMessage *>(type)->message_id_ <= max_id;
             default:
               return false;
           }
