@@ -46,7 +46,7 @@ class F {
 
   template <class T>
   void operator()(const T &x) const {
-    sum += static_cast<td::uint32>(x.get_id());
+    sum += static_cast<td::uint32>(reinterpret_cast<std::uintptr_t>(&x));
   }
 };
 
