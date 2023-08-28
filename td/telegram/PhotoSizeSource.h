@@ -152,10 +152,6 @@ struct PhotoSizeSource {
     }
   }
 
-  static PhotoSizeSource sticker_set_thumbnail(int64 sticker_set_id, int64 sticker_set_access_hash) {
-    return PhotoSizeSource(StickerSetThumbnail(sticker_set_id, sticker_set_access_hash));
-  }
-
   static PhotoSizeSource full_legacy(int64 volume_id, int32 local_id, int64 secret) {
     return PhotoSizeSource(FullLegacy(volume_id, local_id, secret));
   }
