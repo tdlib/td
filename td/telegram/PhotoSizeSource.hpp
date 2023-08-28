@@ -186,6 +186,17 @@ void PhotoSizeSource::store(StorerT &storer) const {
 template <class ParserT>
 void PhotoSizeSource::parse(ParserT &parser) {
   td::parse(variant_, parser);
+  if (parser.get_error() == nullptr && parser.version() >= static_cast<int32>(Version::RemovePhotoVolumeAndLocalId)) {
+    switch (get_type("PhotoSizeSource::parse")) {
+      case Type::Legacy:
+      case Type::FullLegacy:
+        parser.set_error("Invalid photo size source stored");
+        break;
+      default:
+        // ok
+        break;
+    }
+  }
 }
 
 }  // namespace td
