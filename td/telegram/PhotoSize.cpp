@@ -429,7 +429,7 @@ Result<PhotoSize> get_input_photo_size(FileManager *file_manager, FileId file_id
   int32 type = 'i';
   if (file_view.has_remote_location() && !file_view.remote_location().is_web()) {
     auto photo_size_source = file_view.remote_location().get_source();
-    if (photo_size_source.get_type("create_input_message_content") == PhotoSizeSource::Type::Thumbnail) {
+    if (photo_size_source.get_type("get_input_photo_size") == PhotoSizeSource::Type::Thumbnail) {
       auto old_type = photo_size_source.thumbnail().thumbnail_type;
       if (old_type != 't') {
         type = old_type;

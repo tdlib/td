@@ -2306,6 +2306,15 @@ static Result<InputMessageContent> create_input_message_content(
     default:
       UNREACHABLE();
   }
+
+  static constexpr int32 MAX_PRIVATE_MESSAGE_TTL = 60;  // server side limit
+  if (ttl < 0 || ttl > MAX_PRIVATE_MESSAGE_TTL) {
+    return Status::Error(400, "Invalid message content self-destruct time specified");
+  }
+  if (ttl > 0 && dialog_id.get_type() != DialogType::User) {
+    return Status::Error(400, "Message content self-destruct time can be specified only in private chats");
+  }
+
   return InputMessageContent{std::move(content), disable_web_page_preview, clear_draft, ttl,
                              via_bot_user_id,    std::move(emoji)};
 }

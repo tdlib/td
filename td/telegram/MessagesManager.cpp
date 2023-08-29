@@ -25093,13 +25093,6 @@ Result<InputMessageContent> MessagesManager::process_input_message_content(
   bool is_premium = td_->option_manager_->get_option_boolean("is_premium");
   TRY_RESULT(content, get_input_message_content(dialog_id, std::move(input_message_content), td_, is_premium));
 
-  if (content.ttl < 0 || content.ttl > MAX_PRIVATE_MESSAGE_TTL) {
-    return Status::Error(400, "Invalid message content self-destruct time specified");
-  }
-  if (content.ttl > 0 && dialog_id.get_type() != DialogType::User) {
-    return Status::Error(400, "Message content self-destruct time can be specified only in private chats");
-  }
-
   if (dialog_id != DialogId()) {
     TRY_STATUS(can_send_message_content(dialog_id, content.content.get(), false, td_));
   }
