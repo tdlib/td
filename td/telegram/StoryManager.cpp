@@ -3500,7 +3500,12 @@ void StoryManager::delete_active_stories_from_story_list(DialogId owner_dialog_i
 
 void StoryManager::send_update_story(StoryFullId story_full_id, const Story *story) {
   auto story_object = get_story_object(story_full_id, story);
-  CHECK(story_object != nullptr);
+  if (story_object == nullptr) {
+    CHECK(story != nullptr);
+    CHECK(story->content_ != nullptr);
+    // the story can be just expired
+    return;
+  }
   send_closure(G()->td(), &Td::send_update, td_api::make_object<td_api::updateStory>(std::move(story_object)));
 }
 
