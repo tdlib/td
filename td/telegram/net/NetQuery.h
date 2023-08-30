@@ -352,16 +352,16 @@ inline StringBuilder &operator<<(StringBuilder &stream, const NetQuery &net_quer
   stream << "[Query:";
   stream << tag("id", net_query.id());
   stream << tag("tl", format::as_hex(net_query.tl_constructor()));
-  if (!net_query.is_ready()) {
-    stream << tag("state", "Query");
-  } else if (net_query.is_error()) {
-    stream << tag("state", "Error");
+  auto message_id = net_query.message_id();
+  if (message_id != 0) {
+    stream << tag("msg_id", format::as_hex(message_id));
+  }
+  if (net_query.is_error()) {
     stream << net_query.error();
   } else if (net_query.is_ok()) {
-    stream << tag("state", "Result");
-    stream << tag("tl", format::as_hex(net_query.ok_tl_constructor()));
+    stream << tag("result_tl", format::as_hex(net_query.ok_tl_constructor()));
   }
-  stream << "]";
+  stream << ']';
   return stream;
 }
 

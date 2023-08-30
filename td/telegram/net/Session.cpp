@@ -545,12 +545,12 @@ void Session::raw_event(const Event::Raw &event) {
   mark_as_known(it->first, &it->second);
 
   auto query = std::move(it->second.query);
+  LOG(DEBUG) << "Drop answer for " << query;
   query->set_message_id(0);
   query->cancel_slot_.clear_event();
   sent_queries_.erase(it);
   return_query(std::move(query));
 
-  LOG(DEBUG) << "Drop answer " << tag("message_id", format::as_hex(message_id));
   if (main_connection_.state_ == ConnectionInfo::State::Ready) {
     main_connection_.connection_->cancel_answer(message_id);
   } else {
@@ -786,7 +786,7 @@ void Session::on_message_ack_impl_inner(uint64 message_id, int32 type, bool in_c
   if (it == sent_queries_.end()) {
     return;
   }
-  VLOG(net_query) << "Ack " << tag("message_id", message_id) << it->second.query;
+  VLOG(net_query) << "Ack " << it->second.query;
   it->second.ack = true;
   {
     auto lock = it->second.query->lock();
@@ -834,7 +834,7 @@ void Session::mark_as_known(uint64 message_id, Query *query) {
   if (!query->unknown) {
     return;
   }
-  VLOG(net_query) << "Mark as known " << tag("message_id", message_id) << query->query;
+  VLOG(net_query) << "Mark as known " << query->query;
   query->unknown = false;
   unknown_queries_.erase(message_id);
   if (unknown_queries_.empty()) {
@@ -850,7 +850,7 @@ void Session::mark_as_unknown(uint64 message_id, Query *query) {
   if (query->unknown) {
     return;
   }
-  VLOG(net_query) << "Mark as unknown " << tag("message_id", message_id) << query->query;
+  VLOG(net_query) << "Mark as unknown " << query->query;
   query->unknown = true;
   CHECK(message_id != 0);
   unknown_queries_.insert(message_id);
@@ -1089,9 +1089,8 @@ void Session::on_message_info(uint64 message_id, int32 state, uint64 answer_mess
   // ok, we are waiting for result of message_id. let's ask to resend it
   if (answer_message_id != 0) {
     if (it != sent_queries_.end()) {
-      VLOG_IF(net_query, message_id != 0)
-          << "Resend answer " << tag("message_id", message_id) << tag("answer_message_id", answer_message_id)
-          << tag("answer_size", answer_size) << it->second.query;
+      VLOG_IF(net_query, message_id != 0) << "Resend answer " << tag("answer_message_id", answer_message_id)
+                                          << tag("answer_size", answer_size) << it->second.query;
       it->second.query->debug(PSTRING() << get_name() << ": resend answer");
     }
     current_info_->connection_->resend_answer(answer_message_id);
@@ -1169,11 +1168,11 @@ void Session::connection_send_query(ConnectionInfo *info, NetQueryPtr &&net_quer
       message_id = auth_data_.next_message_id(now);
     }
   }
-  VLOG(net_query) << "Send query to connection " << net_query << " [message_id:" << format::as_hex(message_id) << "]"
+  net_query->set_message_id(message_id);
+  VLOG(net_query) << "Send query to connection " << net_query
                   << tag("invoke_after", transform(invoke_after_ids, [](auto message_id) {
                            return PSTRING() << format::as_hex(message_id);
                          }));
-  net_query->set_message_id(message_id);
   net_query->cancel_slot_.clear_event();
   {
     auto lock = net_query->lock();
