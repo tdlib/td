@@ -244,7 +244,7 @@ void PhoneNumberManager::on_result(NetQueryPtr result) {
     net_query_type_ = NetQueryType::None;
     if (result->is_error()) {
       if (query_id_ != 0) {
-        on_query_error(std::move(result->error()));
+        on_query_error(result->move_as_error());
       }
       return;
     }

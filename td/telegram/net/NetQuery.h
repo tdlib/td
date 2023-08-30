@@ -95,23 +95,13 @@ class NetQuery final : public TsListNode<NetQueryDebug> {
     resend(dc_id_);
   }
 
-  BufferSlice &query() {
+  const BufferSlice &query() const {
     return query_;
-  }
-
-  BufferSlice &ok() {
-    CHECK(state_ == State::OK);
-    return answer_;
   }
 
   const BufferSlice &ok() const {
     CHECK(state_ == State::OK);
     return answer_;
-  }
-
-  Status &error() {
-    CHECK(state_ == State::Error);
-    return status_;
   }
 
   const Status &error() const {
@@ -124,6 +114,7 @@ class NetQuery final : public TsListNode<NetQueryDebug> {
     clear();
     return ok;
   }
+
   Status move_as_error() TD_WARN_UNUSED_RESULT {
     auto status = std::move(status_);
     clear();

@@ -58,7 +58,7 @@ void NetQueryDelayer::delay(NetQueryPtr query) {
   query->last_timeout_ = timeout;
   LOG(INFO) << "Set total_timeout to " << query->total_timeout_ << " for " << query->id();
 
-  auto error = query->error().move_as_error();
+  auto error = query->error().clone();
   query->resend();
 
   // Fix for infinity flood control

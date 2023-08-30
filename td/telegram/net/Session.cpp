@@ -391,7 +391,7 @@ void Session::on_bind_result(NetQueryPtr query) {
 
   Status status;
   if (query->is_error()) {
-    status = std::move(query->error());
+    status = query->move_as_error();
     if (status.code() == 400 && status.message() == "ENCRYPTED_MESSAGE_INVALID") {
       auto server_time = G()->server_time();
       auto auth_key_creation_date = auth_data_.get_main_auth_key().created_at();
@@ -424,7 +424,8 @@ void Session::on_bind_result(NetQueryPtr query) {
       }
     }
   } else {
-    auto r_flag = fetch_result<telegram_api::auth_bindTempAuthKey>(query->ok());
+    auto answer = query->move_as_ok();
+    auto r_flag = fetch_result<telegram_api::auth_bindTempAuthKey>(answer);
     if (r_flag.is_error()) {
       status = r_flag.move_as_error();
     } else if (!r_flag.ok()) {
@@ -444,7 +445,6 @@ void Session::on_bind_result(NetQueryPtr query) {
     connection_close(&long_poll_connection_);
   }
 
-  query->clear();
   yield();
 }
 
@@ -455,9 +455,10 @@ void Session::on_check_key_result(NetQueryPtr query) {
 
   Status status;
   if (query->is_error()) {
-    status = std::move(query->error());
+    status = query->move_as_error();
   } else {
-    auto r_flag = fetch_result<telegram_api::help_getNearestDc>(query->ok());
+    auto answer = query->move_as_ok();
+    auto r_flag = fetch_result<telegram_api::help_getNearestDc>(answer);
     if (r_flag.is_error()) {
       status = r_flag.move_as_error();
     }
@@ -472,7 +473,6 @@ void Session::on_check_key_result(NetQueryPtr query) {
     connection_close(&long_poll_connection_);
   }
 
-  query->clear();
   yield();
 }
 

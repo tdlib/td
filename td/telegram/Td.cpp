@@ -3104,14 +3104,16 @@ void Td::on_result(NetQueryPtr query) {
   if (handler != nullptr) {
     CHECK(query->is_ready());
     if (query->is_ok()) {
-      handler->on_result(std::move(query->ok()));
+      handler->on_result(query->move_as_ok());
     } else {
-      handler->on_error(std::move(query->error()));
+      handler->on_error(query->move_as_error());
     }
-  } else if (!query->is_ok() || query->ok_tl_constructor() != telegram_api::upload_file::ID) {
-    LOG(WARNING) << query << " is ignored: no handlers found";
+  } else {
+    if (!query->is_ok() || query->ok_tl_constructor() != telegram_api::upload_file::ID) {
+      LOG(WARNING) << query << " is ignored: no handlers found";
+    }
+    query->clear();
   }
-  query->clear();
 }
 
 void Td::on_connection_state_changed(ConnectionState new_state) {
