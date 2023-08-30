@@ -81,9 +81,8 @@ NetQueryPtr NetQueryCreator::create(uint64 id, const telegram_api::Function &fun
     }
   }
 
-  auto query =
-      object_pool_.create(NetQuery::State::Query, id, std::move(slice), BufferSlice(), dc_id, type, auth_flag,
-                          gzip_flag, tl_constructor, total_timeout_limit, net_query_stats_.get(), std::move(chain_ids));
+  auto query = object_pool_.create(id, std::move(slice), dc_id, type, auth_flag, gzip_flag, tl_constructor,
+                                   total_timeout_limit, net_query_stats_.get(), std::move(chain_ids));
   query->set_cancellation_token(query.generation());
   return query;
 }

@@ -46,10 +46,11 @@ class NetQueryCallback : public Actor {
 };
 
 class NetQuery final : public TsListNode<NetQueryDebug> {
+  enum class State : int8 { Empty, Query, OK, Error };
+
  public:
   NetQuery() = default;
 
-  enum class State : int8 { Empty, Query, OK, Error };
   enum class Type : int8 { Common, Upload, Download, DownloadSmall };
   enum class AuthFlag : int8 { Off, On };
   enum class GzipFlag : int8 { Off, On };
@@ -343,9 +344,8 @@ class NetQuery final : public TsListNode<NetQueryDebug> {
   Promise<> quick_ack_promise_;     // for Session and to be set by caller
   bool need_resend_on_503_ = true;  // for NetQueryDispatcher and to be set by caller
 
-  NetQuery(State state, uint64 id, BufferSlice &&query, BufferSlice &&answer, DcId dc_id, Type type, AuthFlag auth_flag,
-           GzipFlag gzip_flag, int32 tl_constructor, int32 total_timeout_limit, NetQueryStats *stats,
-           vector<ChainId> chain_ids);
+  NetQuery(uint64 id, BufferSlice &&query, DcId dc_id, Type type, AuthFlag auth_flag, GzipFlag gzip_flag,
+           int32 tl_constructor, int32 total_timeout_limit, NetQueryStats *stats, vector<ChainId> chain_ids);
 };
 
 inline StringBuilder &operator<<(StringBuilder &stream, const NetQuery &net_query) {
