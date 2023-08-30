@@ -78,16 +78,20 @@ class Session final
 
  private:
   struct Query final : private ListNode {
-    uint64 container_message_id;
-    NetQueryPtr query;
+    uint64 container_message_id_;
+    NetQueryPtr net_query_;
 
-    bool ack = false;
-    bool unknown = false;
+    bool is_acknowledged_ = false;
+    bool is_unknown_ = false;
 
-    int8 connection_id;
+    const int8 connection_id_;
     double sent_at_;
-    Query(uint64 message_id, NetQueryPtr &&q, int8 connection_id, double sent_at)
-        : container_message_id(message_id), query(std::move(q)), connection_id(connection_id), sent_at_(sent_at) {
+
+    Query(uint64 message_id, NetQueryPtr &&net_query, int8 connection_id, double sent_at)
+        : container_message_id_(message_id)
+        , net_query_(std::move(net_query))
+        , connection_id_(connection_id)
+        , sent_at_(sent_at) {
     }
 
     ListNode *get_list_node() {
