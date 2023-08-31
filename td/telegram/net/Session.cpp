@@ -1079,7 +1079,7 @@ void Session::on_message_info(uint64 message_id, int32 state, uint64 answer_mess
         }
       // fallthrough
       case 4:
-        on_message_ack_impl(message_id, 2);
+        on_message_ack_impl(message_id, answer_message_id == 0 ? 4 : 2);
         break;
       default:
         LOG(ERROR) << "Invalid message info " << tag("state", state);
