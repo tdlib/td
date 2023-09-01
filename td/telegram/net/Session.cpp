@@ -700,8 +700,7 @@ void Session::on_closed(Status status) {
   current_info_->state_ = ConnectionInfo::State::Empty;
 }
 
-void Session::on_session_created(uint64 unique_id, uint64 first_message_id) {
-  // TODO: use unique_id
+void Session::on_new_session_created(uint64 unique_id, uint64 first_message_id) {
   LOG(INFO) << "New session " << unique_id << " created with first message_id " << first_message_id;
   if (!use_pfs_ && !auth_data_.use_pfs()) {
     last_success_timestamp_ = Time::now();
@@ -713,16 +712,22 @@ void Session::on_session_created(uint64 unique_id, uint64 first_message_id) {
     last_activity_timestamp_ = Time::now();
     callback_->on_update(std::move(packet), auth_data_.get_auth_key().id());
   }
-
+  auto first_query_it = sent_queries_.find(first_message_id);
+  if (first_query_it != sent_queries_.end()) {
+    first_message_id = first_query_it->second.container_message_id_;
+    LOG(INFO) << "Update first_message_id to container's " << first_message_id;
+  } else {
+    LOG(ERROR) << "Failed to find query " << first_message_id << " from the new session";
+  }
   for (auto it = sent_queries_.begin(); it != sent_queries_.end();) {
     Query *query_ptr = &it->second;
     if (query_ptr->container_message_id_ < first_message_id) {
       // container vector leak otherwise
-      cleanup_container(it->first, &it->second);
-      mark_as_known(it->first, &it->second);
+      cleanup_container(it->first, query_ptr);
+      mark_as_known(it->first, query_ptr);
 
-      auto &query = it->second.net_query_;
-      VLOG(net_query) << "Resend query (on_session_created) " << query;
+      auto &query = query_ptr->net_query_;
+      VLOG(net_query) << "Resend from on_new_session_created " << query;
       query->set_message_id(0);
       query->cancel_slot_.clear_event();
       resend_query(std::move(query));

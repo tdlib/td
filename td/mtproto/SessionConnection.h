@@ -107,7 +107,7 @@ class SessionConnection final
     virtual void on_server_salt_updated() = 0;
     virtual void on_server_time_difference_updated(bool force) = 0;
 
-    virtual void on_session_created(uint64 unique_id, uint64 first_id) = 0;
+    virtual void on_new_session_created(uint64 unique_id, uint64 first_id) = 0;
     virtual void on_session_failed(Status status) = 0;
 
     virtual void on_container_sent(uint64 container_id, vector<uint64> msgs_id) = 0;

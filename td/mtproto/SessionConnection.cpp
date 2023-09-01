@@ -306,7 +306,7 @@ Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::new_
   VLOG(mtproto) << "NEW_SESSION_CREATED: [first_msg_id:" << format::as_hex(new_session_created.first_msg_id_)
                 << "] [unique_id:" << format::as_hex(new_session_created.unique_id_)
                 << "] [server_salt:" << format::as_hex(new_session_created.server_salt_) << "]";
-  callback_->on_session_created(new_session_created.unique_id_, new_session_created.first_msg_id_);
+  callback_->on_new_session_created(new_session_created.unique_id_, new_session_created.first_msg_id_);
   return Status::OK();
 }
 

@@ -214,7 +214,7 @@ class Session final
   void on_server_salt_updated() final;
   void on_server_time_difference_updated(bool force) final;
 
-  void on_session_created(uint64 unique_id, uint64 first_message_id) final;
+  void on_new_session_created(uint64 unique_id, uint64 first_message_id) final;
   void on_session_failed(Status status) final;
 
   void on_container_sent(uint64 container_message_id, vector<uint64> message_ids) final;
