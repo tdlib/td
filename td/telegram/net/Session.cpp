@@ -725,12 +725,7 @@ void Session::on_new_session_created(uint64 unique_id, uint64 first_message_id) 
       // container vector leak otherwise
       cleanup_container(it->first, query_ptr);
       mark_as_known(it->first, query_ptr);
-
-      auto &query = query_ptr->net_query_;
-      VLOG(net_query) << "Resend from on_new_session_created " << query;
-      query->set_message_id(0);
-      query->cancel_slot_.clear_event();
-      resend_query(std::move(query));
+      resend_query(std::move(query_ptr->net_query_));
       it = sent_queries_.erase(it);
     } else {
       ++it;
@@ -1026,8 +1021,6 @@ void Session::on_message_failed_inner(uint64 message_id, bool in_container) {
   }
   mark_as_known(message_id, query_ptr);
 
-  query_ptr->net_query_->set_message_id(0);
-  query_ptr->net_query_->cancel_slot_.clear_event();
   query_ptr->net_query_->debug_send_failed();
   resend_query(std::move(query_ptr->net_query_));
   sent_queries_.erase(it);
@@ -1115,6 +1108,10 @@ bool Session::has_queries() const {
 }
 
 void Session::resend_query(NetQueryPtr query) {
+  VLOG(net_query) << "Resend " << query;
+  query->set_message_id(0);
+  query->cancel_slot_.clear_event();
+
   if (UniqueId::extract_type(query->id()) == UniqueId::BindKey) {
     query->set_error_resend();
     return_query(std::move(query));
@@ -1124,9 +1121,8 @@ void Session::resend_query(NetQueryPtr query) {
 }
 
 void Session::add_query(NetQueryPtr &&net_query) {
+  CHECK(UniqueId::extract_type(net_query->id()) != UniqueId::BindKey);
   net_query->debug(PSTRING() << get_name() << ": pending");
-  LOG_IF(FATAL, UniqueId::extract_type(net_query->id()) == UniqueId::BindKey)
-      << "Add BindKey query inpo pending_queries_";
   pending_queries_.push(std::move(net_query));
 }
 
@@ -1139,7 +1135,7 @@ void Session::connection_send_query(ConnectionInfo *info, NetQueryPtr &&net_quer
   }
 
   Span<NetQueryRef> invoke_after = net_query->invoke_after();
-  std::vector<uint64> invoke_after_ids;
+  vector<uint64> invoke_after_ids;
   for (auto &ref : invoke_after) {
     auto invoke_after_id = ref->message_id();
     if (ref->session_id() != auth_data_.get_session_id() || invoke_after_id == 0) {
