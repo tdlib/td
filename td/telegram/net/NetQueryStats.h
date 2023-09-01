@@ -23,7 +23,7 @@ struct NetQueryDebug {
   double state_timestamp_ = 0;
   int32 state_change_count_ = 0;
   int32 send_failed_count_ = 0;
-  int ack_state_ = 0;
+  int32 ack_state_ = 0;
   bool unknown_state_ = false;
 };
 

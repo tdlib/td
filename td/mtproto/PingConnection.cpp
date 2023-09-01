@@ -153,7 +153,7 @@ class PingConnectionPingPong final
   }
   void on_message_failed(uint64 id, Status status) final {
   }
-  void on_message_info(uint64 id, int32 state, uint64 answer_id, int32 answer_size) final {
+  void on_message_info(uint64 id, int32 state, uint64 answer_id, int32 answer_size, int32 source) final {
   }
 
   Status on_destroy_auth_key() final {

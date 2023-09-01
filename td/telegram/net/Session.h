@@ -226,7 +226,7 @@ class Session final
   void on_message_result_error(uint64 message_id, int error_code, string message) final;
   void on_message_failed(uint64 message_id, Status status) final;
 
-  void on_message_info(uint64 message_id, int32 state, uint64 answer_message_id, int32 answer_size) final;
+  void on_message_info(uint64 message_id, int32 state, uint64 answer_message_id, int32 answer_size, int32 source) final;
 
   Status on_destroy_auth_key() final;
 

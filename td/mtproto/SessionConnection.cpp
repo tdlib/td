@@ -446,7 +446,7 @@ Status SessionConnection::on_msgs_state_info(const vector<int64> &message_ids, S
   }
   size_t i = 0;
   for (auto message_id : message_ids) {
-    callback_->on_message_info(static_cast<uint64>(message_id), info[i], 0, 0);
+    callback_->on_message_info(static_cast<uint64>(message_id), info[i], 0, 0, 1);
     i++;
   }
   return Status::OK();
@@ -472,13 +472,13 @@ Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::msgs
 
 Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::msg_detailed_info &msg_detailed_info) {
   callback_->on_message_info(msg_detailed_info.msg_id_, msg_detailed_info.status_, msg_detailed_info.answer_msg_id_,
-                             msg_detailed_info.bytes_);
+                             msg_detailed_info.bytes_, 2);
   return Status::OK();
 }
 
 Status SessionConnection::on_packet(const MsgInfo &info,
                                     const mtproto_api::msg_new_detailed_info &msg_new_detailed_info) {
-  callback_->on_message_info(0, 0, msg_new_detailed_info.answer_msg_id_, msg_new_detailed_info.bytes_);
+  callback_->on_message_info(0, 0, msg_new_detailed_info.answer_msg_id_, msg_new_detailed_info.bytes_, 0);
   return Status::OK();
 }
 

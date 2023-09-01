@@ -1046,7 +1046,8 @@ void Session::on_message_failed(uint64 message_id, Status status) {
   on_message_failed_inner(message_id, false);
 }
 
-void Session::on_message_info(uint64 message_id, int32 state, uint64 answer_message_id, int32 answer_size) {
+void Session::on_message_info(uint64 message_id, int32 state, uint64 answer_message_id, int32 answer_size,
+                              int32 source) {
   auto it = sent_queries_.find(message_id);
   if (it != sent_queries_.end()) {
     if (it->second.net_query_->update_is_ready()) {
@@ -1079,7 +1080,8 @@ void Session::on_message_info(uint64 message_id, int32 state, uint64 answer_mess
         }
       // fallthrough
       case 4:
-        on_message_ack_impl(message_id, answer_message_id == 0 ? 4 : 2);
+        CHECK(0 <= source && source <= 3);
+        on_message_ack_impl(message_id, (answer_message_id ? 2 : 0) | (((state | source) & ((1 << 28) - 1)) << 2));
         break;
       default:
         LOG(ERROR) << "Invalid message info " << tag("state", state);
