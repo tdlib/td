@@ -1140,6 +1140,9 @@ class ContactsManager final : public Actor {
     bool is_channel = false;
     bool is_public = false;
     bool is_megagroup = false;
+    bool is_verified = false;
+    bool is_scam = false;
+    bool is_fake = false;
   };
 
   struct PendingGetPhotoRequest {

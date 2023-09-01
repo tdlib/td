@@ -15535,6 +15535,9 @@ void ContactsManager::on_get_dialog_invite_link_info(const string &invite_link,
 
       invite_link_info->is_public = is_public;
       invite_link_info->is_megagroup = is_megagroup;
+      invite_link_info->is_verified = chat_invite->verified_;
+      invite_link_info->is_scam = chat_invite->scam_;
+      invite_link_info->is_fake = chat_invite->fake_;
       break;
     }
     default:
@@ -19537,6 +19540,9 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
   bool is_public = false;
   bool is_member = false;
   td_api::object_ptr<td_api::ChatType> chat_type;
+  bool is_verified = false;
+  bool is_scam = false;
+  bool is_fake = false;
 
   if (dialog_id.is_valid()) {
     switch (dialog_id.get_type()) {
@@ -19568,6 +19574,9 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
           is_megagroup = c->is_megagroup;
           participant_count = c->participant_count;
           is_member = c->status.is_member();
+          is_verified = c->is_verified;
+          is_scam = c->is_scam;
+          is_fake = c->is_fake;
         } else {
           LOG(ERROR) << "Have no information about " << channel_id;
         }
@@ -19588,6 +19597,9 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
     member_user_ids = get_user_ids_object(invite_link_info->participant_user_ids, "get_chat_invite_link_info_object");
     creates_join_request = invite_link_info->creates_join_request;
     is_public = invite_link_info->is_public;
+    is_verified = invite_link_info->is_verified;
+    is_scam = invite_link_info->is_scam;
+    is_fake = invite_link_info->is_fake;
 
     if (invite_link_info->is_chat) {
       chat_type = td_api::make_object<td_api::chatTypeBasicGroup>(0);
@@ -19607,10 +19619,10 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
     }
   }
 
-  return make_tl_object<td_api::chatInviteLinkInfo>(
+  return td_api::make_object<td_api::chatInviteLinkInfo>(
       td_->messages_manager_->get_chat_id_object(dialog_id, "chatInviteLinkInfo"), accessible_for, std::move(chat_type),
       title, get_chat_photo_info_object(td_->file_manager_.get(), photo), description, participant_count,
-      std::move(member_user_ids), creates_join_request, is_public);
+      std::move(member_user_ids), creates_join_request, is_public, is_verified, is_scam, is_fake);
 }
 
 void ContactsManager::get_support_user(Promise<td_api::object_ptr<td_api::user>> &&promise) {
