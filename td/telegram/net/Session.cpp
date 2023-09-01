@@ -511,7 +511,6 @@ void Session::close() {
   for (auto &it : sent_queries_) {
     auto &query = it.second.net_query_;
     query->set_message_id(0);
-    query->cancel_slot_.clear_event();
     pending_queries_.push(std::move(query));
   }
   sent_queries_.clear();
@@ -547,7 +546,6 @@ void Session::raw_event(const Event::Raw &event) {
   auto query = std::move(it->second.net_query_);
   LOG(DEBUG) << "Drop answer for " << query;
   query->set_message_id(0);
-  query->cancel_slot_.clear_event();
   sent_queries_.erase(it);
   return_query(std::move(query));
 
@@ -682,7 +680,6 @@ void Session::on_closed(Status status) {
         auto &query = it->second.net_query_;
         VLOG(net_query) << "Resend query (on_disconnected, no ack) " << query;
         query->set_message_id(0);
-        query->cancel_slot_.clear_event();
         query->set_error(Status::Error(500, PSLICE() << "Session failed: " << status.message()),
                          current_info_->connection_->get_name().str());
         return_query(std::move(query));
@@ -915,7 +912,6 @@ Status Session::on_message_result_ok(uint64 message_id, BufferSlice packet, size
   query_ptr->net_query_->on_net_read(original_size);
   query_ptr->net_query_->set_ok(std::move(packet));
   query_ptr->net_query_->set_message_id(0);
-  query_ptr->net_query_->cancel_slot_.clear_event();
   return_query(std::move(query_ptr->net_query_));
 
   sent_queries_.erase(it);
@@ -1002,7 +998,6 @@ void Session::on_message_result_error(uint64 message_id, int error_code, string 
   mark_as_known(message_id, query_ptr);
   query_ptr->net_query_->set_error(Status::Error(error_code, message), current_info_->connection_->get_name().str());
   query_ptr->net_query_->set_message_id(0);
-  query_ptr->net_query_->cancel_slot_.clear_event();
   return_query(std::move(query_ptr->net_query_));
 
   sent_queries_.erase(it);
@@ -1054,7 +1049,6 @@ void Session::on_message_info(uint64 message_id, int32 state, uint64 answer_mess
 
       auto query = std::move(it->second.net_query_);
       query->set_message_id(0);
-      query->cancel_slot_.clear_event();
       sent_queries_.erase(it);
       return_query(std::move(query));
       return;
@@ -1110,7 +1104,6 @@ bool Session::has_queries() const {
 void Session::resend_query(NetQueryPtr query) {
   VLOG(net_query) << "Resend " << query;
   query->set_message_id(0);
-  query->cancel_slot_.clear_event();
 
   if (UniqueId::extract_type(query->id()) == UniqueId::BindKey) {
     query->set_error_resend();
@@ -1176,7 +1169,6 @@ void Session::connection_send_query(ConnectionInfo *info, NetQueryPtr &&net_quer
                   << tag("invoke_after", transform(invoke_after_ids, [](auto message_id) {
                            return PSTRING() << format::as_hex(message_id);
                          }));
-  net_query->cancel_slot_.clear_event();
   {
     auto lock = net_query->lock();
     net_query->get_data_unsafe().unknown_state_ = false;

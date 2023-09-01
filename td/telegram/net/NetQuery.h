@@ -186,8 +186,10 @@ class NetQuery final : public TsListNode<NetQueryDebug> {
   uint64 message_id() const {
     return message_id_;
   }
+
   void set_message_id(uint64 message_id) {
     message_id_ = message_id;
+    cancel_slot_.clear_event();
   }
 
   Span<NetQueryRef> invoke_after() const {
