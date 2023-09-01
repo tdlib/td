@@ -296,7 +296,7 @@ Result<std::pair<NetQueryPtr, bool>> FileUploader::start_part(Part part, int32 p
 
 Result<size_t> FileUploader::process_part(Part part, NetQueryPtr net_query) {
   if (net_query->is_error()) {
-    return std::move(net_query->error());
+    return net_query->move_as_error();
   }
   Result<bool> result = [&] {
     if (big_flag_) {

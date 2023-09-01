@@ -876,7 +876,7 @@ void AuthManager::on_sent_code(telegram_api::object_ptr<telegram_api::auth_SentC
 }
 
 void AuthManager::on_send_code_result(NetQueryPtr &result) {
-  auto r_sent_code = fetch_result<telegram_api::auth_sendCode>(result->ok());
+  auto r_sent_code = fetch_result<telegram_api::auth_sendCode>(std::move(result));
   if (r_sent_code.is_error()) {
     return on_query_error(r_sent_code.move_as_error());
   }
@@ -884,7 +884,7 @@ void AuthManager::on_send_code_result(NetQueryPtr &result) {
 }
 
 void AuthManager::on_send_email_code_result(NetQueryPtr &result) {
-  auto r_sent_code = fetch_result<telegram_api::account_sendVerifyEmailCode>(result->ok());
+  auto r_sent_code = fetch_result<telegram_api::account_sendVerifyEmailCode>(std::move(result));
   if (r_sent_code.is_error()) {
     return on_query_error(r_sent_code.move_as_error());
   }
@@ -902,7 +902,7 @@ void AuthManager::on_send_email_code_result(NetQueryPtr &result) {
 }
 
 void AuthManager::on_verify_email_address_result(NetQueryPtr &result) {
-  auto r_email_verified = fetch_result<telegram_api::account_verifyEmail>(result->ok());
+  auto r_email_verified = fetch_result<telegram_api::account_verifyEmail>(std::move(result));
   if (r_email_verified.is_error()) {
     return on_query_error(r_email_verified.move_as_error());
   }
@@ -920,7 +920,7 @@ void AuthManager::on_verify_email_address_result(NetQueryPtr &result) {
 }
 
 void AuthManager::on_reset_email_address_result(NetQueryPtr &result) {
-  auto r_sent_code = fetch_result<telegram_api::auth_resetLoginEmail>(result->ok());
+  auto r_sent_code = fetch_result<telegram_api::auth_resetLoginEmail>(std::move(result));
   if (r_sent_code.is_error()) {
     if (reset_available_period_ > 0 && reset_pending_date_ == -1 &&
         r_sent_code.error().message() == "TASK_ALREADY_EXISTS") {
@@ -934,27 +934,20 @@ void AuthManager::on_reset_email_address_result(NetQueryPtr &result) {
 }
 
 void AuthManager::on_request_qr_code_result(NetQueryPtr &result, bool is_import) {
-  Status status;
-  if (result->is_ok()) {
-    auto r_login_token = fetch_result<telegram_api::auth_exportLoginToken>(result->ok());
-    if (r_login_token.is_ok()) {
-      auto login_token = r_login_token.move_as_ok();
+  auto r_login_token = fetch_result<telegram_api::auth_exportLoginToken>(std::move(result));
+  if (r_login_token.is_ok()) {
+    auto login_token = r_login_token.move_as_ok();
 
-      if (is_import) {
-        CHECK(DcId::is_valid(imported_dc_id_));
-        G()->net_query_dispatcher().set_main_dc_id(imported_dc_id_);
-        imported_dc_id_ = -1;
-      }
-
-      on_get_login_token(std::move(login_token));
-      return;
+    if (is_import) {
+      CHECK(DcId::is_valid(imported_dc_id_));
+      G()->net_query_dispatcher().set_main_dc_id(imported_dc_id_);
+      imported_dc_id_ = -1;
     }
 
-    status = r_login_token.move_as_error();
-  } else {
-    status = std::move(result->error());
+    on_get_login_token(std::move(login_token));
+    return;
   }
-  CHECK(status.is_error());
+  auto status = r_login_token.move_as_error();
 
   LOG(INFO) << "Receive " << status << " for login token " << (is_import ? "import" : "export");
   if (is_import) {
@@ -1012,12 +1005,7 @@ void AuthManager::on_get_login_token(tl_object_ptr<telegram_api::auth_LoginToken
 }
 
 void AuthManager::on_get_password_result(NetQueryPtr &result) {
-  Result<telegram_api::object_ptr<telegram_api::account_password>> r_password;
-  if (result->is_error()) {
-    r_password = std::move(result->error());
-  } else {
-    r_password = fetch_result<telegram_api::account_getPassword>(result->ok());
-  }
+  auto r_password = fetch_result<telegram_api::account_getPassword>(std::move(result));
   if (r_password.is_error() && query_id_ != 0) {
     return on_query_error(r_password.move_as_error());
   }
@@ -1100,7 +1088,7 @@ void AuthManager::on_get_password_result(NetQueryPtr &result) {
 }
 
 void AuthManager::on_request_password_recovery_result(NetQueryPtr &result) {
-  auto r_email_address_pattern = fetch_result<telegram_api::auth_requestPasswordRecovery>(result->ok());
+  auto r_email_address_pattern = fetch_result<telegram_api::auth_requestPasswordRecovery>(std::move(result));
   if (r_email_address_pattern.is_error()) {
     return on_query_error(r_email_address_pattern.move_as_error());
   }
@@ -1112,7 +1100,7 @@ void AuthManager::on_request_password_recovery_result(NetQueryPtr &result) {
 }
 
 void AuthManager::on_check_password_recovery_code_result(NetQueryPtr &result) {
-  auto r_success = fetch_result<telegram_api::auth_checkRecoveryPassword>(result->ok());
+  auto r_success = fetch_result<telegram_api::auth_checkRecoveryPassword>(std::move(result));
   if (r_success.is_error()) {
     return on_query_error(r_success.move_as_error());
   }
@@ -1123,7 +1111,7 @@ void AuthManager::on_check_password_recovery_code_result(NetQueryPtr &result) {
 }
 
 void AuthManager::on_request_firebase_sms_result(NetQueryPtr &result) {
-  auto r_bool = fetch_result<telegram_api::auth_requestFirebaseSms>(result->ok());
+  auto r_bool = fetch_result<telegram_api::auth_requestFirebaseSms>(std::move(result));
   if (r_bool.is_error()) {
     return on_query_error(r_bool.move_as_error());
   }
@@ -1131,7 +1119,7 @@ void AuthManager::on_request_firebase_sms_result(NetQueryPtr &result) {
 }
 
 void AuthManager::on_authentication_result(NetQueryPtr &result, bool is_from_current_query) {
-  auto r_sign_in = fetch_result<telegram_api::auth_signIn>(result->ok());
+  auto r_sign_in = fetch_result<telegram_api::auth_signIn>(std::move(result));
   if (r_sign_in.is_error()) {
     if (is_from_current_query && query_id_ != 0) {
       return on_query_error(r_sign_in.move_as_error());
@@ -1142,22 +1130,16 @@ void AuthManager::on_authentication_result(NetQueryPtr &result, bool is_from_cur
 }
 
 void AuthManager::on_log_out_result(NetQueryPtr &result) {
-  Status status;
-  if (result->is_ok()) {
-    auto r_log_out = fetch_result<telegram_api::auth_logOut>(result->ok());
-    if (r_log_out.is_ok()) {
-      auto logged_out = r_log_out.move_as_ok();
-      if (!logged_out->future_auth_token_.empty()) {
-        td_->option_manager_->set_option_string("authentication_token",
-                                                base64url_encode(logged_out->future_auth_token_.as_slice()));
-      }
-    } else {
-      status = r_log_out.move_as_error();
+  auto r_log_out = fetch_result<telegram_api::auth_logOut>(std::move(result));
+  if (r_log_out.is_ok()) {
+    auto logged_out = r_log_out.move_as_ok();
+    if (!logged_out->future_auth_token_.empty()) {
+      td_->option_manager_->set_option_string("authentication_token",
+                                              base64url_encode(logged_out->future_auth_token_.as_slice()));
     }
-  } else {
-    status = std::move(result->error());
+  } else if (r_log_out.error().code() != 401) {
+    LOG(ERROR) << "Receive error for auth.logOut: " << r_log_out.error();
   }
-  LOG_IF(ERROR, status.is_error() && status.code() != 401) << "Receive error for auth.logOut: " << status;
   // state_ will stay LoggingOut, so no queries will work.
   destroy_auth_keys();
   if (query_id_ != 0) {
@@ -1196,30 +1178,26 @@ void AuthManager::destroy_auth_keys() {
 }
 
 void AuthManager::on_delete_account_result(NetQueryPtr &result) {
-  Status status;
-  if (result->is_ok()) {
-    auto r_delete_account = fetch_result<telegram_api::account_deleteAccount>(result->ok());
-    if (r_delete_account.is_ok()) {
-      if (!r_delete_account.ok()) {
-        // status = Status::Error(500, "Receive false as result of the request");
+  auto r_delete_account = fetch_result<telegram_api::account_deleteAccount>(std::move(result));
+  if (r_delete_account.is_ok()) {
+    if (!r_delete_account.ok()) {
+      // status = Status::Error(500, "Receive false as result of the request");
+    }
+  } else {
+    auto status = r_delete_account.move_as_error();
+    if (status.message() != "USER_DEACTIVATED") {
+      LOG(WARNING) << "Request account.deleteAccount failed: " << status;
+      // TODO handle some errors
+      if (query_id_ != 0) {
+        on_query_error(std::move(status));
       }
-    } else {
-      status = r_delete_account.move_as_error();
+      return;
     }
-  } else {
-    status = std::move(result->error());
   }
-  if (status.is_error() && status.message() != "USER_DEACTIVATED") {
-    LOG(WARNING) << "Request account.deleteAccount failed: " << status;
-    // TODO handle some errors
-    if (query_id_ != 0) {
-      on_query_error(std::move(status));
-    }
-  } else {
-    destroy_auth_keys();
-    if (query_id_ != 0) {
-      on_query_ok();
-    }
+
+  destroy_auth_keys();
+  if (query_id_ != 0) {
+    on_query_ok();
   }
 }
 
@@ -1347,7 +1325,7 @@ void AuthManager::on_result(NetQueryPtr result) {
             was_qr_code_request_ = false;
             was_check_bot_token_ = false;
           }
-          on_query_error(std::move(result->error()));
+          on_query_error(result->move_as_error());
           return;
         }
         if (type != NetQueryType::RequestQrCode && type != NetQueryType::ImportQrCode &&
