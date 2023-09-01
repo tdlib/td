@@ -85,7 +85,7 @@ class Session final
     bool is_unknown_ = false;
 
     const int8 connection_id_;
-    double sent_at_;
+    const double sent_at_;
 
     Query(uint64 message_id, NetQueryPtr &&net_query, int8 connection_id, double sent_at)
         : container_message_id_(message_id)
