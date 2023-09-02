@@ -698,7 +698,7 @@ void Session::on_closed(Status status) {
 }
 
 void Session::on_new_session_created(uint64 unique_id, uint64 first_message_id) {
-  LOG(INFO) << "New session " << unique_id << " created with first message_id " << first_message_id;
+  LOG(INFO) << "New session " << unique_id << " created with first message_id " << format::as_hex(first_message_id);
   if (!use_pfs_ && !auth_data_.use_pfs()) {
     last_success_timestamp_ = Time::now();
   }
@@ -712,9 +712,9 @@ void Session::on_new_session_created(uint64 unique_id, uint64 first_message_id) 
   auto first_query_it = sent_queries_.find(first_message_id);
   if (first_query_it != sent_queries_.end()) {
     first_message_id = first_query_it->second.container_message_id_;
-    LOG(INFO) << "Update first_message_id to container's " << first_message_id;
+    LOG(INFO) << "Update first_message_id to container's " << format::as_hex(first_message_id);
   } else {
-    LOG(ERROR) << "Failed to find query " << first_message_id << " from the new session";
+    LOG(INFO) << "Failed to find query " << format::as_hex(first_message_id) << " from the new session";
   }
   for (auto it = sent_queries_.begin(); it != sent_queries_.end();) {
     Query *query_ptr = &it->second;

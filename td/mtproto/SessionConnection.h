@@ -170,6 +170,7 @@ class SessionConnection final
 
   struct ServiceQuery {
     enum Type { GetStateInfo, ResendAnswer } type;
+    uint64 container_message_id;
     vector<int64> message_ids;
   };
   vector<int64> to_resend_answer_;

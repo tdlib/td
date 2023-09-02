@@ -303,10 +303,18 @@ Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::rpc_
 }
 
 Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::new_session_created &new_session_created) {
-  VLOG(mtproto) << "NEW_SESSION_CREATED: [first_msg_id:" << format::as_hex(new_session_created.first_msg_id_)
+  auto first_message_id = new_session_created.first_msg_id_;
+  VLOG(mtproto) << "NEW_SESSION_CREATED: [first_msg_id:" << format::as_hex(first_message_id)
                 << "] [unique_id:" << format::as_hex(new_session_created.unique_id_)
                 << "] [server_salt:" << format::as_hex(new_session_created.server_salt_) << "]";
-  callback_->on_new_session_created(new_session_created.unique_id_, new_session_created.first_msg_id_);
+
+  auto it = service_queries_.find(first_message_id);
+  if (it != service_queries_.end()) {
+    first_message_id = it->second.container_message_id;
+    LOG(INFO) << "Update first_message_id to container's " << format::as_hex(first_message_id);
+  }
+
+  callback_->on_new_session_created(new_session_created.unique_id_, first_message_id);
   return Status::OK();
 }
 
@@ -609,18 +617,16 @@ void SessionConnection::on_message_failed_inner(uint64 id) {
   service_queries_.erase(it);
 
   switch (query.type) {
-    case ServiceQuery::ResendAnswer: {
+    case ServiceQuery::ResendAnswer:
       for (auto message_id : query.message_ids) {
         resend_answer(message_id);
       }
       break;
-    }
-    case ServiceQuery::GetStateInfo: {
+    case ServiceQuery::GetStateInfo:
       for (auto message_id : query.message_ids) {
         get_state_info(message_id);
       }
       break;
-    }
     default:
       UNREACHABLE();
   }
@@ -1005,11 +1011,11 @@ void SessionConnection::flush_packet() {
 
   if (resend_answer_message_id) {
     service_queries_.emplace(resend_answer_message_id,
-                             ServiceQuery{ServiceQuery::ResendAnswer, std::move(to_resend_answer)});
+                             ServiceQuery{ServiceQuery::ResendAnswer, container_id, std::move(to_resend_answer)});
   }
   if (get_state_info_message_id) {
     service_queries_.emplace(get_state_info_message_id,
-                             ServiceQuery{ServiceQuery::GetStateInfo, std::move(to_get_state_info)});
+                             ServiceQuery{ServiceQuery::GetStateInfo, container_id, std::move(to_get_state_info)});
   }
   if (ping_id != 0) {
     last_ping_container_id_ = container_id;
