@@ -275,6 +275,8 @@ class StoryManager final : public Actor {
   void on_update_story_chosen_reaction_type(DialogId owner_dialog_id, StoryId story_id,
                                             ReactionType chosen_reaction_type);
 
+  void on_update_dialog_stories_hidden(DialogId owner_dialog_id, bool stories_hidden);
+
   void on_dialog_active_stories_order_updated(DialogId owner_dialog_id, const char *source);
 
   Status can_get_story_viewers(StoryFullId story_full_id, const Story *story, bool ignore_premium) const;
@@ -489,6 +491,8 @@ class StoryManager final : public Actor {
   void on_update_dialog_max_story_ids(DialogId owner_dialog_id, StoryId max_story_id, StoryId max_read_story_id);
 
   void on_update_dialog_max_read_story_id(DialogId owner_dialog_id, StoryId max_read_story_id);
+
+  void on_update_dialog_has_pinned_stories(DialogId owner_dialog_id, bool has_pinned_stories);
 
   void on_update_active_stories(DialogId owner_dialog_id, StoryId max_read_story_id, vector<StoryId> &&story_ids,
                                 Promise<Unit> &&promise, const char *source, bool from_database = false);

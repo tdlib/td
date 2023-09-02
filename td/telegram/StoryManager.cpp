@@ -159,7 +159,7 @@ class ToggleStoriesHiddenQuery final : public Td::ResultHandler {
     auto result = result_ptr.move_as_ok();
     LOG(DEBUG) << "Receive result for ToggleStoriesHiddenQuery: " << result;
     if (result) {
-      td_->contacts_manager_->on_update_user_stories_hidden(user_id_, are_hidden_);
+      td_->story_manager_->on_update_dialog_stories_hidden(DialogId(user_id_), are_hidden_);
     }
     promise_.set_value(Unit());
   }
@@ -1984,9 +1984,7 @@ void StoryManager::on_get_dialog_pinned_stories(DialogId owner_dialog_id,
                                                 Promise<td_api::object_ptr<td_api::stories>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   auto result = on_get_stories(owner_dialog_id, {}, std::move(stories));
-  if (owner_dialog_id.get_type() == DialogType::User) {
-    td_->contacts_manager_->on_update_user_has_pinned_stories(owner_dialog_id.get_user_id(), result.first > 0);
-  }
+  on_update_dialog_has_pinned_stories(owner_dialog_id, result.first > 0);
   promise.set_value(get_stories_object(result.first, transform(result.second, [owner_dialog_id](StoryId story_id) {
                                          return StoryFullId(owner_dialog_id, story_id);
                                        })));
@@ -3336,6 +3334,34 @@ void StoryManager::on_update_dialog_max_read_story_id(DialogId owner_dialog_id, 
   switch (owner_dialog_id.get_type()) {
     case DialogType::User:
       td_->contacts_manager_->on_update_user_max_read_story_id(owner_dialog_id.get_user_id(), max_read_story_id);
+      break;
+    case DialogType::Chat:
+    case DialogType::Channel:
+    case DialogType::SecretChat:
+    case DialogType::None:
+    default:
+      break;
+  }
+}
+
+void StoryManager::on_update_dialog_has_pinned_stories(DialogId owner_dialog_id, bool has_pinned_stories) {
+  switch (owner_dialog_id.get_type()) {
+    case DialogType::User:
+      td_->contacts_manager_->on_update_user_has_pinned_stories(owner_dialog_id.get_user_id(), has_pinned_stories);
+      break;
+    case DialogType::Chat:
+    case DialogType::Channel:
+    case DialogType::SecretChat:
+    case DialogType::None:
+    default:
+      break;
+  }
+}
+
+void StoryManager::on_update_dialog_stories_hidden(DialogId owner_dialog_id, bool stories_hidden) {
+  switch (owner_dialog_id.get_type()) {
+    case DialogType::User:
+      td_->contacts_manager_->on_update_user_stories_hidden(owner_dialog_id.get_user_id(), stories_hidden);
       break;
     case DialogType::Chat:
     case DialogType::Channel:
