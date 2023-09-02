@@ -979,11 +979,11 @@ void SessionConnection::flush_packet() {
 
   // no more than 8192 message identifiers per container..
   auto to_resend_answer = cut_tail(to_resend_answer_, 8192, "resend_answer");
-  uint64 resend_answer_id = 0;
+  uint64 resend_answer_message_id = 0;
   CHECK(queries.size() <= 1020);
   auto to_cancel_answer = cut_tail(to_cancel_answer_, 1020 - queries.size(), "cancel_answer");
   auto to_get_state_info = cut_tail(to_get_state_info_, 8192, "get_state_info");
-  uint64 get_state_info_id = 0;
+  uint64 get_state_info_message_id = 0;
   auto to_ack = cut_tail(to_ack_, 8192, "ack");
   uint64 ping_message_id = 0;
 
@@ -993,21 +993,23 @@ void SessionConnection::flush_packet() {
   {
     // LOG(ERROR) << (auth_data_->get_header().empty() ? '-' : '+');
     uint64 parent_message_id = 0;
-    auto storer = PacketStorer<CryptoImpl>(queries, auth_data_->get_header(), std::move(to_ack), ping_id,
-                                           static_cast<int>(ping_disconnect_delay() + 2.0), max_delay, max_after,
-                                           max_wait, future_salt_n, to_get_state_info, to_resend_answer,
-                                           to_cancel_answer, destroy_auth_key, auth_data_, &container_id,
-                                           &get_state_info_id, &resend_answer_id, &ping_message_id, &parent_message_id);
+    auto storer = PacketStorer<CryptoImpl>(
+        queries, auth_data_->get_header(), std::move(to_ack), ping_id, static_cast<int>(ping_disconnect_delay() + 2.0),
+        max_delay, max_after, max_wait, future_salt_n, to_get_state_info, to_resend_answer, to_cancel_answer,
+        destroy_auth_key, auth_data_, &container_id, &get_state_info_message_id, &resend_answer_message_id,
+        &ping_message_id, &parent_message_id);
 
     auto quick_ack_token = use_quick_ack ? parent_message_id : 0;
     send_crypto(storer, quick_ack_token);
   }
 
-  if (resend_answer_id) {
-    service_queries_.emplace(resend_answer_id, ServiceQuery{ServiceQuery::ResendAnswer, std::move(to_resend_answer)});
+  if (resend_answer_message_id) {
+    service_queries_.emplace(resend_answer_message_id,
+                             ServiceQuery{ServiceQuery::ResendAnswer, std::move(to_resend_answer)});
   }
-  if (get_state_info_id) {
-    service_queries_.emplace(get_state_info_id, ServiceQuery{ServiceQuery::GetStateInfo, std::move(to_get_state_info)});
+  if (get_state_info_message_id) {
+    service_queries_.emplace(get_state_info_message_id,
+                             ServiceQuery{ServiceQuery::GetStateInfo, std::move(to_get_state_info)});
   }
   if (ping_id != 0) {
     last_ping_container_id_ = container_id;
@@ -1024,11 +1026,11 @@ void SessionConnection::flush_packet() {
     // So I will re-ask salt if have no answer in 60 second.
     callback_->on_container_sent(container_id, std::move(message_ids));
 
-    if (resend_answer_id) {
-      container_to_service_msg_[container_id].push_back(resend_answer_id);
+    if (resend_answer_message_id) {
+      container_to_service_msg_[container_id].push_back(resend_answer_message_id);
     }
-    if (get_state_info_id) {
-      container_to_service_msg_[container_id].push_back(get_state_info_id);
+    if (get_state_info_message_id) {
+      container_to_service_msg_[container_id].push_back(get_state_info_message_id);
     }
   }
 

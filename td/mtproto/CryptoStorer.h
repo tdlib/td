@@ -206,12 +206,11 @@ class CryptoImpl {
   CryptoImpl(const vector<MtprotoQuery> &to_send, Slice header, vector<int64> &&to_ack, int64 ping_id, int ping_timeout,
              int max_delay, int max_after, int max_wait, int future_salt_n, vector<int64> get_info,
              vector<int64> resend, const vector<int64> &cancel, bool destroy_key, AuthData *auth_data,
-             uint64 *container_id, uint64 *get_info_id, uint64 *resend_id, uint64 *ping_message_id,
+             uint64 *container_id, uint64 *get_info_message_id, uint64 *resend_message_id, uint64 *ping_message_id,
              uint64 *parent_message_id)
       : query_storer_(to_send, header)
       , ack_empty_(to_ack.empty())
       , ack_storer_(!ack_empty_, mtproto_api::msgs_ack(std::move(to_ack)), auth_data)
-      , ping_storer_(ping_id != 0, mtproto_api::ping_delay_disconnect(ping_id, ping_timeout), auth_data)
       , http_wait_storer_(max_delay >= 0, mtproto_api::http_wait(max_delay, max_after, max_wait), auth_data)
       , get_future_salts_storer_(future_salt_n > 0, mtproto_api::get_future_salts(future_salt_n), auth_data)
       , get_info_not_empty_(!get_info.empty())
@@ -222,6 +221,7 @@ class CryptoImpl {
       , cancel_cnt_(static_cast<int32>(cancel.size()))
       , cancel_storer_(cancel_not_empty_, cancel, auth_data, true)
       , destroy_key_storer_(destroy_key, mtproto_api::destroy_auth_key(), auth_data, true)
+      , ping_storer_(ping_id != 0, mtproto_api::ping_delay_disconnect(ping_id, ping_timeout), auth_data)
       , tmp_storer_(query_storer_, ack_storer_)
       , tmp2_storer_(tmp_storer_, http_wait_storer_)
       , tmp3_storer_(tmp2_storer_, get_future_salts_storer_)
@@ -235,11 +235,11 @@ class CryptoImpl {
              resend_storer_.not_empty() + cancel_cnt_ + destroy_key_storer_.not_empty())
       , container_storer_(cnt_, concat_storer_) {
     CHECK(cnt_ != 0);
-    if (get_info_storer_.not_empty() && get_info_id) {
-      *get_info_id = get_info_storer_.get_message_id();
+    if (get_info_storer_.not_empty() && get_info_message_id) {
+      *get_info_message_id = get_info_storer_.get_message_id();
     }
-    if (resend_storer_.not_empty() && resend_id) {
-      *resend_id = resend_storer_.get_message_id();
+    if (resend_storer_.not_empty() && resend_message_id) {
+      *resend_message_id = resend_storer_.get_message_id();
     }
     if (ping_storer_.not_empty() && ping_message_id) {
       *ping_message_id = ping_storer_.get_message_id();
@@ -328,7 +328,6 @@ class CryptoImpl {
   PacketStorer<QueryVectorImpl> query_storer_;
   bool ack_empty_;
   PacketStorer<AckImpl> ack_storer_;
-  PacketStorer<PingImpl> ping_storer_;
   PacketStorer<HttpWaitImpl> http_wait_storer_;
   PacketStorer<GetFutureSaltsImpl> get_future_salts_storer_;
   bool get_info_not_empty_;
@@ -339,6 +338,7 @@ class CryptoImpl {
   int32 cancel_cnt_;
   PacketStorer<CancelVectorImpl> cancel_storer_;
   PacketStorer<DestroyAuthKeyImpl> destroy_key_storer_;
+  PacketStorer<PingImpl> ping_storer_;
   ConcatStorer tmp_storer_;
   ConcatStorer tmp2_storer_;
   ConcatStorer tmp3_storer_;
