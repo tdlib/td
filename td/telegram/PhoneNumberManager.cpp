@@ -83,7 +83,7 @@ void PhoneNumberManager::set_phone_number_and_hash(uint64 query_id, string hash,
 
 void PhoneNumberManager::resend_authentication_code(uint64 query_id) {
   if (state_ != State::WaitCode) {
-    return on_query_error(query_id, Status::Error(400, "resendAuthenticationCode unexpected"));
+    return on_query_error(query_id, Status::Error(400, "Can't resend code"));
   }
 
   auto r_resend_code = send_code_helper_.resend_code();
@@ -102,7 +102,7 @@ void PhoneNumberManager::send_new_check_code_query(const telegram_api::Function 
 
 void PhoneNumberManager::check_code(uint64 query_id, string code) {
   if (state_ != State::WaitCode) {
-    return on_query_error(query_id, Status::Error(400, "checkAuthenticationCode unexpected"));
+    return on_query_error(query_id, Status::Error(400, "Can't check code"));
   }
 
   on_new_query(query_id);
@@ -124,7 +124,7 @@ void PhoneNumberManager::check_code(uint64 query_id, string code) {
 
 void PhoneNumberManager::on_new_query(uint64 query_id) {
   if (query_id_ != 0) {
-    on_query_error(Status::Error(400, "Another authorization query has started"));
+    on_query_error(Status::Error(400, "Another query has started"));
   }
   net_query_id_ = 0;
   net_query_type_ = NetQueryType::None;

@@ -181,7 +181,7 @@ class AuthManager final : public NetActor {
   vector<uint64> pending_get_authorization_state_requests_;
 
   void on_new_query(uint64 query_id);
-  void on_query_error(Status status);
+  void on_current_query_error(Status status);
   void on_query_ok();
   void start_net_query(NetQueryType net_query_type, NetQueryPtr net_query);
 
