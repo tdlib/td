@@ -13695,13 +13695,11 @@ void ContactsManager::on_update_user_max_read_story_id(UserId user_id, StoryId m
   if (u != nullptr) {
     on_update_user_max_read_story_id(u, user_id, max_read_story_id);
     update_user(u, user_id);
-  } else {
-    LOG(ERROR) << "Ignore update user max_read_story_id about unknown " << user_id;
   }
 }
 
 void ContactsManager::on_update_user_max_read_story_id(User *u, UserId user_id, StoryId max_read_story_id) {
-  if (td_->auth_manager_->is_bot()) {
+  if (td_->auth_manager_->is_bot() || !u->is_received) {
     return;
   }
 

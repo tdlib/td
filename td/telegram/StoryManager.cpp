@@ -3332,6 +3332,20 @@ void StoryManager::on_update_dialog_max_story_ids(DialogId owner_dialog_id, Stor
   }
 }
 
+void StoryManager::on_update_dialog_max_read_story_id(DialogId owner_dialog_id, StoryId max_read_story_id) {
+  switch (owner_dialog_id.get_type()) {
+    case DialogType::User:
+      td_->contacts_manager_->on_update_user_max_read_story_id(owner_dialog_id.get_user_id(), max_read_story_id);
+      break;
+    case DialogType::Chat:
+    case DialogType::Channel:
+    case DialogType::SecretChat:
+    case DialogType::None:
+    default:
+      break;
+  }
+}
+
 void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId max_read_story_id,
                                             vector<StoryId> &&story_ids, Promise<Unit> &&promise, const char *source,
                                             bool from_database) {
@@ -3608,12 +3622,7 @@ bool StoryManager::on_update_read_stories(DialogId owner_dialog_id, StoryId max_
     if (max_read_story_id.get() > old_max_read_story_id.get()) {
       LOG(INFO) << "Set max read story identifier in " << owner_dialog_id << " to " << max_read_story_id;
       max_read_story_ids_.set(owner_dialog_id, max_read_story_id);
-      if (owner_dialog_id.get_type() == DialogType::User) {
-        auto user_id = owner_dialog_id.get_user_id();
-        if (td_->contacts_manager_->have_user(user_id)) {
-          td_->contacts_manager_->on_update_user_max_read_story_id(user_id, max_read_story_id);
-        }
-      }
+      on_update_dialog_max_read_story_id(owner_dialog_id, max_read_story_id);
       return true;
     }
   } else if (max_read_story_id.get() > active_stories->max_read_story_id_.get()) {
@@ -4641,13 +4650,13 @@ void StoryManager::on_binlog_events(vector<BinlogEvent> &&events) {
         DeleteStoryOnServerLogEvent log_event;
         log_event_parse(log_event, event.get_data()).ensure();
 
-        auto dialog_id = log_event.story_full_id_.get_dialog_id();
-        if (dialog_id != DialogId(td_->contacts_manager_->get_my_id())) {
+        auto owner_dialog_id = log_event.story_full_id_.get_dialog_id();
+        if (owner_dialog_id != DialogId(td_->contacts_manager_->get_my_id())) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
 
-        td_->messages_manager_->have_dialog_force(dialog_id, "DeleteStoryOnServerLogEvent");
+        td_->messages_manager_->have_dialog_force(owner_dialog_id, "DeleteStoryOnServerLogEvent");
         delete_story_on_server(log_event.story_full_id_, event.id_, Auto());
         break;
       }
@@ -4655,36 +4664,34 @@ void StoryManager::on_binlog_events(vector<BinlogEvent> &&events) {
         ReadStoriesOnServerLogEvent log_event;
         log_event_parse(log_event, event.get_data()).ensure();
 
-        auto dialog_id = log_event.dialog_id_;
-        if (!td_->messages_manager_->have_dialog_force(dialog_id, "ReadStoriesOnServerLogEvent")) {
+        auto owner_dialog_id = log_event.dialog_id_;
+        if (!td_->messages_manager_->have_dialog_force(owner_dialog_id, "ReadStoriesOnServerLogEvent")) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
         auto max_read_story_id = log_event.max_story_id_;
-        auto active_stories = get_active_stories_force(dialog_id, "ReadStoriesOnServerLogEvent");
+        auto active_stories = get_active_stories_force(owner_dialog_id, "ReadStoriesOnServerLogEvent");
         if (active_stories == nullptr) {
-          max_read_story_ids_[dialog_id] = max_read_story_id;
-          if (dialog_id.get_type() == DialogType::User) {
-            td_->contacts_manager_->on_update_user_max_read_story_id(dialog_id.get_user_id(), max_read_story_id);
-          }
+          max_read_story_ids_[owner_dialog_id] = max_read_story_id;
+          on_update_dialog_max_read_story_id(owner_dialog_id, max_read_story_id);
         } else {
           auto story_ids = active_stories->story_ids_;
-          on_update_active_stories(dialog_id, max_read_story_id, std::move(story_ids), Promise<Unit>(),
+          on_update_active_stories(owner_dialog_id, max_read_story_id, std::move(story_ids), Promise<Unit>(),
                                    "ReadStoriesOnServerLogEvent");
         }
-        read_stories_on_server(dialog_id, max_read_story_id, event.id_);
+        read_stories_on_server(owner_dialog_id, max_read_story_id, event.id_);
         break;
       }
       case LogEvent::HandlerType::LoadDialogExpiringStories: {
         LoadDialogExpiringStoriesLogEvent log_event;
         log_event_parse(log_event, event.get_data()).ensure();
 
-        auto dialog_id = log_event.dialog_id_;
-        if (!td_->messages_manager_->have_dialog_force(dialog_id, "LoadDialogExpiringStoriesLogEvent")) {
+        auto owner_dialog_id = log_event.dialog_id_;
+        if (!td_->messages_manager_->have_dialog_force(owner_dialog_id, "LoadDialogExpiringStoriesLogEvent")) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
-        load_dialog_expiring_stories(dialog_id, event.id_, "LoadDialogExpiringStoriesLogEvent");
+        load_dialog_expiring_stories(owner_dialog_id, event.id_, "LoadDialogExpiringStoriesLogEvent");
         break;
       }
       case LogEvent::HandlerType::SendStory: {

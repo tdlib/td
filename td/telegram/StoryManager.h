@@ -488,6 +488,8 @@ class StoryManager final : public Actor {
 
   void on_update_dialog_max_story_ids(DialogId owner_dialog_id, StoryId max_story_id, StoryId max_read_story_id);
 
+  void on_update_dialog_max_read_story_id(DialogId owner_dialog_id, StoryId max_read_story_id);
+
   void on_update_active_stories(DialogId owner_dialog_id, StoryId max_read_story_id, vector<StoryId> &&story_ids,
                                 Promise<Unit> &&promise, const char *source, bool from_database = false);
 
