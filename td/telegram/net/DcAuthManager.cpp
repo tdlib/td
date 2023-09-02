@@ -109,14 +109,9 @@ void DcAuthManager::on_result(NetQueryPtr net_query) {
   dc.wait_id = std::numeric_limits<decltype(dc.wait_id)>::max();
   switch (dc.state) {
     case DcInfo::State::Import: {
-      if (net_query->is_error()) {
-        LOG(WARNING) << "DC auth_exportAuthorization error: " << net_query->error();
-        dc.state = DcInfo::State::Export;
-        break;
-      }
-      auto r_result_auth_exported = fetch_result<telegram_api::auth_exportAuthorization>(net_query->ok());
+      auto r_result_auth_exported = fetch_result<telegram_api::auth_exportAuthorization>(std::move(net_query));
       if (r_result_auth_exported.is_error()) {
-        LOG(WARNING) << "Failed to parse result to auth_exportAuthorization: " << r_result_auth_exported.error();
+        LOG(WARNING) << "Receive error for auth.exportAuthorization: " << r_result_auth_exported.error();
         dc.state = DcInfo::State::Export;
         break;
       }
@@ -126,14 +121,9 @@ void DcAuthManager::on_result(NetQueryPtr net_query) {
       break;
     }
     case DcInfo::State::BeforeOk: {
-      if (net_query->is_error()) {
-        LOG(WARNING) << "DC authImport error: " << net_query->error();
-        dc.state = DcInfo::State::Export;
-        break;
-      }
-      auto result_auth = fetch_result<telegram_api::auth_importAuthorization>(net_query->ok());
+      auto result_auth = fetch_result<telegram_api::auth_importAuthorization>(std::move(net_query));
       if (result_auth.is_error()) {
-        LOG(WARNING) << "Failed to parse result to auth_importAuthorization: " << result_auth.error();
+        LOG(WARNING) << "Receive error for auth.importAuthorization: " << result_auth.error();
         dc.state = DcInfo::State::Export;
         break;
       }
@@ -143,7 +133,6 @@ void DcAuthManager::on_result(NetQueryPtr net_query) {
     default:
       UNREACHABLE();
   }
-  net_query->clear();
   loop();
 }
 

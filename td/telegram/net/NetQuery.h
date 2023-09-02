@@ -172,10 +172,6 @@ class NetQuery final : public TsListNode<NetQueryDebug> {
     return tl_magic(answer_);
   }
 
-  void ignore() const {
-    status_.ignore();
-  }
-
   uint64 session_id() const {
     return session_id_.load(std::memory_order_relaxed);
   }

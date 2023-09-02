@@ -48,9 +48,9 @@ class PhoneNumberManager final : public NetActor {
 
   void on_new_query(uint64 query_id);
 
-  void on_query_ok();
+  void on_current_query_ok();
 
-  void on_query_error(Status status);
+  void on_current_query_error(Status status);
 
   static void on_query_error(uint64 id, Status status);
 
