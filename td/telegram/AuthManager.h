@@ -198,22 +198,22 @@ class AuthManager final : public NetActor {
 
   void on_sent_code(telegram_api::object_ptr<telegram_api::auth_SentCode> &&sent_code_ptr);
 
-  void on_send_code_result(NetQueryPtr &result);
-  void on_send_email_code_result(NetQueryPtr &result);
-  void on_verify_email_address_result(NetQueryPtr &result);
-  void on_reset_email_address_result(NetQueryPtr &result);
-  void on_request_qr_code_result(NetQueryPtr &result, bool is_import);
-  void on_get_password_result(NetQueryPtr &result);
-  void on_request_password_recovery_result(NetQueryPtr &result);
-  void on_check_password_recovery_code_result(NetQueryPtr &result);
-  void on_request_firebase_sms_result(NetQueryPtr &result);
-  void on_authentication_result(NetQueryPtr &result, bool is_from_current_query);
-  void on_log_out_result(NetQueryPtr &result);
-  void on_delete_account_result(NetQueryPtr &result);
+  void on_send_code_result(NetQueryPtr &&net_query);
+  void on_send_email_code_result(NetQueryPtr &&net_query);
+  void on_verify_email_address_result(NetQueryPtr &&net_query);
+  void on_reset_email_address_result(NetQueryPtr &&net_query);
+  void on_request_qr_code_result(NetQueryPtr &&net_query, bool is_import);
+  void on_get_password_result(NetQueryPtr &&net_query);
+  void on_request_password_recovery_result(NetQueryPtr &&net_query);
+  void on_check_password_recovery_code_result(NetQueryPtr &&net_query);
+  void on_request_firebase_sms_result(NetQueryPtr &&net_query);
+  void on_authentication_result(NetQueryPtr &&net_query, bool is_from_current_query);
+  void on_log_out_result(NetQueryPtr &&net_query);
+  void on_delete_account_result(NetQueryPtr &&net_query);
   void on_get_login_token(tl_object_ptr<telegram_api::auth_LoginToken> login_token);
   void on_get_authorization(tl_object_ptr<telegram_api::auth_Authorization> auth_ptr);
 
-  void on_result(NetQueryPtr result) final;
+  void on_result(NetQueryPtr net_query) final;
 
   void update_state(State new_state, bool force = false, bool should_save_state = true);
   tl_object_ptr<td_api::AuthorizationState> get_authorization_state_object(State authorization_state) const;

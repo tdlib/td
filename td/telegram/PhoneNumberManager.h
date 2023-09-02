@@ -64,11 +64,11 @@ class PhoneNumberManager final : public NetActor {
 
   void process_check_code_result(Result<bool> &&result);
 
-  void on_result(NetQueryPtr result) final;
+  void on_result(NetQueryPtr net_query) final;
 
-  void on_send_code_result(NetQueryPtr &result);
+  void on_send_code_result(NetQueryPtr &&net_query);
 
-  void on_check_code_result(NetQueryPtr &result);
+  void on_check_code_result(NetQueryPtr &&net_query);
 
   void tear_down() final;
 };

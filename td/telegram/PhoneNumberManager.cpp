@@ -179,31 +179,31 @@ void PhoneNumberManager::process_check_code_result(Result<bool> &&result) {
   on_query_ok();
 }
 
-void PhoneNumberManager::on_check_code_result(NetQueryPtr &result) {
+void PhoneNumberManager::on_check_code_result(NetQueryPtr &&net_query) {
   switch (type_) {
     case Type::ChangePhone:
-      return process_check_code_result(fetch_result<telegram_api::account_changePhone>(result->ok()));
+      return process_check_code_result(fetch_result<telegram_api::account_changePhone>(net_query->ok()));
     case Type::VerifyPhone:
-      return process_check_code_result(fetch_result<telegram_api::account_verifyPhone>(result->ok()));
+      return process_check_code_result(fetch_result<telegram_api::account_verifyPhone>(net_query->ok()));
     case Type::ConfirmPhone:
-      return process_check_code_result(fetch_result<telegram_api::account_confirmPhone>(result->ok()));
+      return process_check_code_result(fetch_result<telegram_api::account_confirmPhone>(net_query->ok()));
     default:
       UNREACHABLE();
   }
 }
 
-void PhoneNumberManager::on_send_code_result(NetQueryPtr &result) {
+void PhoneNumberManager::on_send_code_result(NetQueryPtr &&net_query) {
   auto r_sent_code = [&] {
     switch (type_) {
       case Type::ChangePhone:
-        return fetch_result<telegram_api::account_sendChangePhoneCode>(result->ok());
+        return fetch_result<telegram_api::account_sendChangePhoneCode>(net_query->ok());
       case Type::VerifyPhone:
-        return fetch_result<telegram_api::account_sendVerifyPhoneCode>(result->ok());
+        return fetch_result<telegram_api::account_sendVerifyPhoneCode>(net_query->ok());
       case Type::ConfirmPhone:
-        return fetch_result<telegram_api::account_sendConfirmPhoneCode>(result->ok());
+        return fetch_result<telegram_api::account_sendConfirmPhoneCode>(net_query->ok());
       default:
         UNREACHABLE();
-        return fetch_result<telegram_api::account_sendChangePhoneCode>(result->ok());
+        return fetch_result<telegram_api::account_sendChangePhoneCode>(net_query->ok());
     }
   }();
   if (r_sent_code.is_error()) {
@@ -233,32 +233,34 @@ void PhoneNumberManager::on_send_code_result(NetQueryPtr &result) {
   on_query_ok();
 }
 
-void PhoneNumberManager::on_result(NetQueryPtr result) {
+void PhoneNumberManager::on_result(NetQueryPtr net_query) {
   SCOPE_EXIT {
-    result->clear();
+    net_query->clear();
   };
   NetQueryType type = NetQueryType::None;
-  if (result->id() == net_query_id_) {
+  if (net_query->id() == net_query_id_) {
     net_query_id_ = 0;
     type = net_query_type_;
     net_query_type_ = NetQueryType::None;
-    if (result->is_error()) {
+    if (net_query->is_error()) {
       if (query_id_ != 0) {
-        on_query_error(result->move_as_error());
+        on_query_error(net_query->move_as_error());
       }
       return;
     }
   }
   switch (type) {
     case NetQueryType::None:
-      result->ignore();
+      net_query->ignore();
       break;
     case NetQueryType::SendCode:
-      on_send_code_result(result);
+      on_send_code_result(std::move(net_query));
       break;
     case NetQueryType::CheckCode:
-      on_check_code_result(result);
+      on_check_code_result(std::move(net_query));
       break;
+    default:
+      UNREACHABLE();
   }
 }
 

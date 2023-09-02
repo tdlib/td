@@ -1138,7 +1138,7 @@ void ConfigManager::dismiss_suggested_action(SuggestedAction suggested_action, P
   }
 }
 
-void ConfigManager::on_result(NetQueryPtr res) {
+void ConfigManager::on_result(NetQueryPtr net_query) {
   auto token = get_link_token();
   if (token >= 100 && token <= 200) {
     auto type = static_cast<int32>(token - 100);
@@ -1149,7 +1149,7 @@ void ConfigManager::on_result(NetQueryPtr res) {
     CHECK(dismiss_suggested_action_request_count_ >= promises.size());
     dismiss_suggested_action_request_count_ -= promises.size();
 
-    auto result_ptr = fetch_result<telegram_api::help_dismissSuggestion>(std::move(res));
+    auto result_ptr = fetch_result<telegram_api::help_dismissSuggestion>(std::move(net_query));
     if (result_ptr.is_error()) {
       fail_promises(promises, result_ptr.move_as_error());
       return;
@@ -1163,7 +1163,7 @@ void ConfigManager::on_result(NetQueryPtr res) {
   if (token == 3 || token == 4) {
     is_set_content_settings_request_sent_ = false;
     bool ignore_sensitive_content_restrictions = (token == 4);
-    auto result_ptr = fetch_result<telegram_api::account_setContentSettings>(std::move(res));
+    auto result_ptr = fetch_result<telegram_api::account_setContentSettings>(std::move(net_query));
     if (result_ptr.is_error()) {
       fail_promises(set_content_settings_queries_[ignore_sensitive_content_restrictions], result_ptr.move_as_error());
     } else {
@@ -1185,7 +1185,7 @@ void ConfigManager::on_result(NetQueryPtr res) {
     return;
   }
   if (token == 2) {
-    auto result_ptr = fetch_result<telegram_api::account_getContentSettings>(std::move(res));
+    auto result_ptr = fetch_result<telegram_api::account_getContentSettings>(std::move(net_query));
     if (result_ptr.is_error()) {
       fail_promises(get_content_settings_queries_, result_ptr.move_as_error());
       return;
@@ -1204,7 +1204,7 @@ void ConfigManager::on_result(NetQueryPtr res) {
     auto unit_promises = std::move(reget_app_config_queries_);
     reget_app_config_queries_.clear();
     CHECK(!promises.empty() || !unit_promises.empty());
-    auto result_ptr = fetch_result<telegram_api::help_getAppConfig>(std::move(res));
+    auto result_ptr = fetch_result<telegram_api::help_getAppConfig>(std::move(net_query));
     if (result_ptr.is_error()) {
       fail_promises(promises, result_ptr.error().clone());
       fail_promises(unit_promises, result_ptr.move_as_error());
@@ -1240,7 +1240,7 @@ void ConfigManager::on_result(NetQueryPtr res) {
   CHECK(token == 8 || token == 9);
   CHECK(config_sent_cnt_ > 0);
   config_sent_cnt_--;
-  auto r_config = fetch_result<telegram_api::help_getConfig>(std::move(res));
+  auto r_config = fetch_result<telegram_api::help_getConfig>(std::move(net_query));
   if (r_config.is_error()) {
     if (!G()->close_flag()) {
       LOG(WARNING) << "Failed to get config: " << r_config.error();

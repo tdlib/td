@@ -147,7 +147,7 @@ class ConfigManager final : public NetQueryCallback {
   void loop() final;
   void try_stop();
 
-  void on_result(NetQueryPtr res) final;
+  void on_result(NetQueryPtr net_query) final;
 
   void request_config_from_dc_impl(DcId dc_id, bool reopen_sessions);
   void process_config(tl_object_ptr<telegram_api::config> config);
