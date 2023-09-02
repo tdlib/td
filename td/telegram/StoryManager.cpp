@@ -3315,6 +3315,23 @@ DialogId StoryManager::on_get_user_stories(DialogId owner_dialog_id,
   return story_dialog_id;
 }
 
+void StoryManager::on_update_dialog_max_story_ids(DialogId owner_dialog_id, StoryId max_story_id,
+                                                  StoryId max_read_story_id) {
+  switch (owner_dialog_id.get_type()) {
+    case DialogType::User:
+      // use send_closure_later because story order can be updated from update_user
+      send_closure_later(td_->contacts_manager_actor_, &ContactsManager::on_update_user_story_ids,
+                         owner_dialog_id.get_user_id(), max_story_id, max_read_story_id);
+      break;
+    case DialogType::Chat:
+    case DialogType::Channel:
+    case DialogType::SecretChat:
+    case DialogType::None:
+    default:
+      break;
+  }
+}
+
 void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId max_read_story_id,
                                             vector<StoryId> &&story_ids, Promise<Unit> &&promise, const char *source,
                                             bool from_database) {
@@ -3341,11 +3358,7 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
             << max_read_story_id << " from " << source;
 
   if (story_ids.empty()) {
-    if (owner_dialog_id.get_type() == DialogType::User) {
-      // use send_closure_later because story order can be updated from update_user
-      send_closure_later(td_->contacts_manager_actor_, &ContactsManager::on_update_user_story_ids,
-                         owner_dialog_id.get_user_id(), StoryId(), StoryId());
-    }
+    on_update_dialog_max_story_ids(owner_dialog_id, StoryId(), StoryId());
     auto *active_stories = get_active_stories(owner_dialog_id);
     if (active_stories != nullptr) {
       LOG(INFO) << "Delete active stories for " << owner_dialog_id;
@@ -3385,11 +3398,7 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
       }
     }
   }
-  if (owner_dialog_id.get_type() == DialogType::User) {
-    // use send_closure_later because story order can be updated from update_user
-    send_closure_later(td_->contacts_manager_actor_, &ContactsManager::on_update_user_story_ids,
-                       owner_dialog_id.get_user_id(), story_ids.back(), max_read_story_id);
-  }
+  on_update_dialog_max_story_ids(owner_dialog_id, story_ids.back(), max_read_story_id);
   bool need_save_to_database = false;
   if (active_stories->max_read_story_id_ != max_read_story_id || active_stories->story_ids_ != story_ids) {
     need_save_to_database = true;
