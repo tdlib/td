@@ -1345,8 +1345,8 @@ void StoryManager::on_story_expire_timeout(int64 story_global_id) {
   LOG(INFO) << "Have expired " << story_full_id;
   auto owner_dialog_id = story_full_id.get_dialog_id();
   CHECK(owner_dialog_id.is_valid());
-  if (!is_story_owned(owner_dialog_id) && story->content_ != nullptr && !story->is_pinned_) {
-    // non-owned expired non-pinned stories are fully deleted
+  if (!can_edit_stories(owner_dialog_id) && story->content_ != nullptr && !story->is_pinned_) {
+    // non-editable expired non-pinned stories are fully deleted
     on_delete_story(story_full_id);
   }
 
@@ -1440,6 +1440,48 @@ bool StoryManager::is_my_story(DialogId owner_dialog_id) const {
   return owner_dialog_id == DialogId(td_->contacts_manager_->get_my_id());
 }
 
+bool StoryManager::can_post_stories(DialogId owner_dialog_id) const {
+  switch (owner_dialog_id.get_type()) {
+    case DialogType::User:
+      return is_my_story(owner_dialog_id);
+    case DialogType::Channel:
+      return td_->contacts_manager_->get_channel_status(owner_dialog_id.get_channel_id()).can_post_stories();
+    case DialogType::Chat:
+    case DialogType::SecretChat:
+    case DialogType::None:
+    default:
+      return false;
+  }
+}
+
+bool StoryManager::can_edit_stories(DialogId owner_dialog_id) const {
+  switch (owner_dialog_id.get_type()) {
+    case DialogType::User:
+      return is_my_story(owner_dialog_id);
+    case DialogType::Channel:
+      return td_->contacts_manager_->get_channel_status(owner_dialog_id.get_channel_id()).can_edit_stories();
+    case DialogType::Chat:
+    case DialogType::SecretChat:
+    case DialogType::None:
+    default:
+      return false;
+  }
+}
+
+bool StoryManager::can_delete_stories(DialogId owner_dialog_id) const {
+  switch (owner_dialog_id.get_type()) {
+    case DialogType::User:
+      return is_my_story(owner_dialog_id);
+    case DialogType::Channel:
+      return td_->contacts_manager_->get_channel_status(owner_dialog_id.get_channel_id()).can_delete_stories();
+    case DialogType::Chat:
+    case DialogType::SecretChat:
+    case DialogType::None:
+    default:
+      return false;
+  }
+}
+
 bool StoryManager::is_story_owned(DialogId owner_dialog_id) const {
   return owner_dialog_id == DialogId(td_->contacts_manager_->get_my_id());
 }
@@ -1518,8 +1560,8 @@ unique_ptr<StoryManager::Story> StoryManager::parse_story(StoryFullId story_full
       return nullptr;
     }
   } else {
-    if (!is_story_owned(owner_dialog_id) && !story->is_pinned_) {
-      // non-owned expired non-pinned stories are fully deleted
+    if (!can_edit_stories(owner_dialog_id) && !story->is_pinned_) {
+      // non-editable expired non-pinned stories are fully deleted
       LOG(INFO) << "Delete expired " << story_full_id;
       delete_story_files(story.get());
       delete_story_from_database(story_full_id);
@@ -2729,7 +2771,7 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
     return nullptr;
   }
   auto dialog_id = story_full_id.get_dialog_id();
-  if (!is_story_owned(dialog_id) && !story->is_pinned_ && !is_active_story(story)) {
+  if (!can_edit_stories(dialog_id) && !story->is_pinned_ && !is_active_story(story)) {
     return nullptr;
   }
 
@@ -3248,8 +3290,8 @@ void StoryManager::on_story_changed(StoryFullId story_full_id, const Story *stor
       LOG(INFO) << "Add " << story_full_id << " to database";
 
       int32 expires_at = 0;
-      if (is_active_story(story) && !is_story_owned(story_full_id.get_dialog_id()) && !story->is_pinned_) {
-        // non-owned expired non-pinned stories must be deleted
+      if (is_active_story(story) && !can_edit_stories(story_full_id.get_dialog_id()) && !story->is_pinned_) {
+        // non-editable expired non-pinned stories must be deleted
         expires_at = story->expire_date_;
       }
 

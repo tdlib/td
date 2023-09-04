@@ -352,6 +352,12 @@ class StoryManager final : public Actor {
 
   bool is_my_story(DialogId owner_dialog_id) const;
 
+  bool can_post_stories(DialogId owner_dialog_id) const;
+
+  bool can_edit_stories(DialogId owner_dialog_id) const;
+
+  bool can_delete_stories(DialogId owner_dialog_id) const;
+
   bool is_story_owned(DialogId owner_dialog_id) const;
 
   int32 get_story_viewers_expire_date(const Story *story) const;
