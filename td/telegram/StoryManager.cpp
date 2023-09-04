@@ -664,7 +664,7 @@ class GetStoriesViewsQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(DEBUG) << "Receive result for GetStoriesViewsQuery: " << to_string(ptr);
-    td_->story_manager_->on_get_story_views(story_ids_, std::move(ptr));
+    td_->story_manager_->on_get_story_views(dialog_id_, story_ids_, std::move(ptr));
   }
 
   void on_error(Status status) final {
@@ -1502,6 +1502,27 @@ bool StoryManager::can_delete_stories(DialogId owner_dialog_id) const {
   }
 }
 
+bool StoryManager::can_edit_story(StoryFullId story_full_id, const Story *story) {
+  if (!story_full_id.get_story_id().is_server()) {
+    return false;
+  }
+  return can_edit_stories(story_full_id.get_dialog_id());
+}
+
+bool StoryManager::can_toggle_story_is_pinned(StoryFullId story_full_id, const Story *story) {
+  if (!story_full_id.get_story_id().is_server()) {
+    return false;
+  }
+  return can_edit_stories(story_full_id.get_dialog_id());
+}
+
+bool StoryManager::can_delete_story(StoryFullId story_full_id, const Story *story) {
+  if (!story_full_id.get_story_id().is_server()) {
+    return true;
+  }
+  return can_delete_stories(story_full_id.get_dialog_id());
+}
+
 bool StoryManager::is_active_story(const Story *story) {
   return story != nullptr && G()->unix_time() < story->expire_date_;
 }
@@ -2122,17 +2143,18 @@ void StoryManager::on_get_dialog_pinned_stories(DialogId owner_dialog_id,
                                        })));
 }
 
-void StoryManager::get_story_archive(StoryId from_story_id, int32 limit,
+void StoryManager::get_story_archive(DialogId owner_dialog_id, StoryId from_story_id, int32 limit,
                                      Promise<td_api::object_ptr<td_api::stories>> &&promise) {
   if (limit <= 0) {
     return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
   }
-
   if (from_story_id != StoryId() && !from_story_id.is_server()) {
     return promise.set_error(Status::Error(400, "Invalid value of parameter from_story_id specified"));
   }
+  if (!can_edit_stories(owner_dialog_id)) {
+    return promise.set_error(Status::Error(400, "Can't get story archive in the chat"));
+  }
 
-  DialogId owner_dialog_id(td_->contacts_manager_->get_my_id());
   auto query_promise =
       PromiseCreator::lambda([actor_id = actor_id(this), owner_dialog_id, promise = std::move(promise)](
                                  Result<telegram_api::object_ptr<telegram_api::stories_stories>> &&result) mutable {
@@ -3900,7 +3922,7 @@ bool StoryManager::is_subscribed_to_dialog_stories(DialogId owner_dialog_id) con
   }
   switch (owner_dialog_id.get_type()) {
     case DialogType::User:
-      if (owner_dialog_id == DialogId(td_->contacts_manager_->get_my_id())) {
+      if (is_my_story(owner_dialog_id)) {
         return true;
       }
       return td_->contacts_manager_->is_user_contact(owner_dialog_id.get_user_id());
@@ -3919,7 +3941,7 @@ StoryListId StoryManager::get_dialog_story_list_id(DialogId owner_dialog_id) con
   }
   switch (owner_dialog_id.get_type()) {
     case DialogType::User:
-      if (owner_dialog_id != DialogId(td_->contacts_manager_->get_my_id()) &&
+      if (!is_my_story(owner_dialog_id) &&
           td_->contacts_manager_->get_user_stories_hidden(owner_dialog_id.get_user_id())) {
         return StoryListId::archive();
       }
@@ -3947,7 +3969,7 @@ void StoryManager::on_dialog_active_stories_order_updated(DialogId owner_dialog_
   }
 }
 
-void StoryManager::on_get_story_views(const vector<StoryId> &story_ids,
+void StoryManager::on_get_story_views(DialogId owner_dialog_id, const vector<StoryId> &story_ids,
                                       telegram_api::object_ptr<telegram_api::stories_storyViews> &&story_views) {
   schedule_interaction_info_update();
   td_->contacts_manager_->on_get_users(std::move(story_views->users_), "on_get_story_views");
@@ -3955,7 +3977,6 @@ void StoryManager::on_get_story_views(const vector<StoryId> &story_ids,
     LOG(ERROR) << "Receive invalid views for " << story_ids << ": " << to_string(story_views);
     return;
   }
-  DialogId owner_dialog_id(td_->contacts_manager_->get_my_id());
   for (size_t i = 0; i < story_ids.size(); i++) {
     auto story_id = story_ids[i];
     CHECK(story_id.is_server());
@@ -4094,19 +4115,25 @@ Result<StoryId> StoryManager::get_next_yet_unsent_story_id(DialogId dialog_id) {
   return StoryId(++story_id);
 }
 
-void StoryManager::can_send_story(Promise<td_api::object_ptr<td_api::CanSendStoryResult>> &&promise) {
-  DialogId dialog_id(td_->contacts_manager_->get_my_id());
+void StoryManager::can_send_story(DialogId dialog_id,
+                                  Promise<td_api::object_ptr<td_api::CanSendStoryResult>> &&promise) {
+  if (!can_post_stories(dialog_id)) {
+    return promise.set_error(Status::Error(400, "Not enough rights to post stories in the chat"));
+  }
   td_->create_handler<CanSendStoryQuery>(std::move(promise))->send(dialog_id);
 }
 
-void StoryManager::send_story(td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,
+void StoryManager::send_story(DialogId dialog_id, td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,
                               td_api::object_ptr<td_api::inputStoryAreas> &&input_areas,
                               td_api::object_ptr<td_api::formattedText> &&input_caption,
                               td_api::object_ptr<td_api::StoryPrivacySettings> &&settings, int32 active_period,
                               bool is_pinned, bool protect_content,
                               Promise<td_api::object_ptr<td_api::story>> &&promise) {
+  if (!can_post_stories(dialog_id)) {
+    return promise.set_error(Status::Error(400, "Not enough rights to post stories in the chat"));
+  }
+
   bool is_bot = td_->auth_manager_->is_bot();
-  DialogId dialog_id(td_->contacts_manager_->get_my_id());
   TRY_RESULT_PROMISE(promise, content, get_input_story_content(td_, std::move(input_story_content), dialog_id));
   TRY_RESULT_PROMISE(promise, caption,
                      get_formatted_text(td_, DialogId(), std::move(input_caption), is_bot, true, false, false));
@@ -4427,16 +4454,16 @@ class StoryManager::EditStoryLogEvent {
   }
 };
 
-void StoryManager::edit_story(StoryId story_id, td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,
+void StoryManager::edit_story(DialogId owner_dialog_id, StoryId story_id,
+                              td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,
                               td_api::object_ptr<td_api::inputStoryAreas> &&input_areas,
                               td_api::object_ptr<td_api::formattedText> &&input_caption, Promise<Unit> &&promise) {
-  DialogId dialog_id(td_->contacts_manager_->get_my_id());
-  StoryFullId story_full_id{dialog_id, story_id};
+  StoryFullId story_full_id{owner_dialog_id, story_id};
   const Story *story = get_story(story_full_id);
   if (story == nullptr || story->content_ == nullptr) {
     return promise.set_error(Status::Error(400, "Story not found"));
   }
-  if (!story_id.is_server()) {
+  if (!can_edit_story(story_full_id, story)) {
     return promise.set_error(Status::Error(400, "Story can't be edited"));
   }
 
@@ -4448,7 +4475,7 @@ void StoryManager::edit_story(StoryId story_id, td_api::object_ptr<td_api::Input
   FormattedText caption;
   if (input_story_content != nullptr) {
     TRY_RESULT_PROMISE_ASSIGN(promise, content,
-                              get_input_story_content(td_, std::move(input_story_content), dialog_id));
+                              get_input_story_content(td_, std::move(input_story_content), owner_dialog_id));
   }
   if (are_media_areas_edited) {
     for (auto &input_area : input_areas->areas_) {
@@ -4511,9 +4538,9 @@ void StoryManager::edit_story(StoryId story_id, td_api::object_ptr<td_api::Input
   auto new_story = make_unique<Story>();
   new_story->content_ = copy_story_content(edited_story->content_.get());
 
-  auto pending_story =
-      td::make_unique<PendingStory>(dialog_id, story_id, std::numeric_limits<uint32>::max() - (++send_story_count_),
-                                    edit_generation, std::move(new_story));
+  auto pending_story = td::make_unique<PendingStory>(owner_dialog_id, story_id,
+                                                     std::numeric_limits<uint32>::max() - (++send_story_count_),
+                                                     edit_generation, std::move(new_story));
   if (G()->use_message_database()) {
     EditStoryLogEvent log_event(pending_story.get(), edited_story->edit_media_areas_, edited_story->areas_,
                                 edited_story->edit_caption_, edited_story->caption_);
@@ -4633,62 +4660,62 @@ void StoryManager::delete_pending_story(FileId file_id, unique_ptr<PendingStory>
   }
 }
 
-void StoryManager::set_story_privacy_settings(StoryId story_id,
+void StoryManager::set_story_privacy_settings(DialogId owner_dialog_id, StoryId story_id,
                                               td_api::object_ptr<td_api::StoryPrivacySettings> &&settings,
                                               Promise<Unit> &&promise) {
-  DialogId dialog_id(td_->contacts_manager_->get_my_id());
-  const Story *story = get_story({dialog_id, story_id});
+  StoryFullId story_full_id{owner_dialog_id, story_id};
+  const Story *story = get_story(story_full_id);
   if (story == nullptr || story->content_ == nullptr) {
     return promise.set_error(Status::Error(400, "Story not found"));
   }
-  if (!story_id.is_server()) {
+  if (!can_edit_story(story_full_id, story)) {
     return promise.set_error(Status::Error(400, "Story privacy settings can't be edited"));
   }
   TRY_RESULT_PROMISE(promise, privacy_rules,
                      UserPrivacySettingRules::get_user_privacy_setting_rules(td_, std::move(settings)));
-  td_->create_handler<EditStoryPrivacyQuery>(std::move(promise))->send(dialog_id, story_id, std::move(privacy_rules));
+  td_->create_handler<EditStoryPrivacyQuery>(std::move(promise))
+      ->send(owner_dialog_id, story_id, std::move(privacy_rules));
 }
 
-void StoryManager::toggle_story_is_pinned(StoryId story_id, bool is_pinned, Promise<Unit> &&promise) {
-  DialogId dialog_id(td_->contacts_manager_->get_my_id());
-  const Story *story = get_story({dialog_id, story_id});
+void StoryManager::toggle_story_is_pinned(DialogId owner_dialog_id, StoryId story_id, bool is_pinned,
+                                          Promise<Unit> &&promise) {
+  StoryFullId story_full_id{owner_dialog_id, story_id};
+  const Story *story = get_story(story_full_id);
   if (story == nullptr || story->content_ == nullptr) {
     return promise.set_error(Status::Error(400, "Story not found"));
   }
-  if (!story_id.is_server()) {
+  if (!can_toggle_story_is_pinned(story_full_id, story)) {
     return promise.set_error(Status::Error(400, "Story can't be pinned/unpinned"));
   }
-  auto query_promise = PromiseCreator::lambda(
-      [actor_id = actor_id(this), story_id, is_pinned, promise = std::move(promise)](Result<Unit> &&result) mutable {
-        if (result.is_error()) {
-          return promise.set_error(result.move_as_error());
-        }
-        send_closure(actor_id, &StoryManager::on_toggle_story_is_pinned, story_id, is_pinned, std::move(promise));
-      });
-  td_->create_handler<ToggleStoryPinnedQuery>(std::move(query_promise))->send(dialog_id, story_id, is_pinned);
+  auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), story_full_id, is_pinned,
+                                               promise = std::move(promise)](Result<Unit> &&result) mutable {
+    if (result.is_error()) {
+      return promise.set_error(result.move_as_error());
+    }
+    send_closure(actor_id, &StoryManager::on_toggle_story_is_pinned, story_full_id, is_pinned, std::move(promise));
+  });
+  td_->create_handler<ToggleStoryPinnedQuery>(std::move(query_promise))->send(owner_dialog_id, story_id, is_pinned);
 }
 
-void StoryManager::on_toggle_story_is_pinned(StoryId story_id, bool is_pinned, Promise<Unit> &&promise) {
+void StoryManager::on_toggle_story_is_pinned(StoryFullId story_full_id, bool is_pinned, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
-  DialogId dialog_id(td_->contacts_manager_->get_my_id());
-  Story *story = get_story_editable({dialog_id, story_id});
+  Story *story = get_story_editable(story_full_id);
   if (story != nullptr) {
     CHECK(story->content_ != nullptr);
     story->is_pinned_ = is_pinned;
-    on_story_changed({dialog_id, story_id}, story, true, true);
+    on_story_changed(story_full_id, story, true, true);
   }
   promise.set_value(Unit());
 }
 
-void StoryManager::delete_story(StoryId story_id, Promise<Unit> &&promise) {
-  DialogId owner_dialog_id(td_->contacts_manager_->get_my_id());
+void StoryManager::delete_story(DialogId owner_dialog_id, StoryId story_id, Promise<Unit> &&promise) {
   StoryFullId story_full_id{owner_dialog_id, story_id};
   const Story *story = get_story(story_full_id);
   if (story == nullptr) {
     return promise.set_error(Status::Error(400, "Story not found"));
   }
-  if (!story_id.is_valid()) {
-    return promise.set_error(Status::Error(400, "Invalid story identifier"));
+  if (!can_delete_story(story_full_id, story)) {
+    return promise.set_error(Status::Error(400, "Story can't be deleted"));
   }
   if (!story_id.is_server()) {
     auto file_id_it = being_uploaded_file_ids_.find(story_full_id);
@@ -4813,11 +4840,6 @@ void StoryManager::on_binlog_events(vector<BinlogEvent> &&events) {
         log_event_parse(log_event, event.get_data()).ensure();
 
         auto owner_dialog_id = log_event.story_full_id_.get_dialog_id();
-        if (owner_dialog_id != DialogId(td_->contacts_manager_->get_my_id())) {
-          binlog_erase(G()->td_db()->get_binlog(), event.id_);
-          break;
-        }
-
         td_->messages_manager_->have_dialog_force(owner_dialog_id, "DeleteStoryOnServerLogEvent");
         delete_story_on_server(log_event.story_full_id_, event.id_, Auto());
         break;

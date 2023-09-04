@@ -5682,41 +5682,43 @@ void Td::on_request(uint64 id, const td_api::getStory &request) {
 void Td::on_request(uint64 id, const td_api::canSendStory &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  story_manager_->can_send_story(std::move(promise));
+  story_manager_->can_send_story(DialogId(request.chat_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::sendStory &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  story_manager_->send_story(std::move(request.content_), std::move(request.areas_), std::move(request.caption_),
-                             std::move(request.privacy_settings_), request.active_period_, request.is_pinned_,
-                             request.protect_content_, std::move(promise));
+  story_manager_->send_story(DialogId(request.chat_id_), std::move(request.content_), std::move(request.areas_),
+                             std::move(request.caption_), std::move(request.privacy_settings_), request.active_period_,
+                             request.is_pinned_, request.protect_content_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::editStory &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  story_manager_->edit_story(StoryId(request.story_id_), std::move(request.content_), std::move(request.areas_),
-                             std::move(request.caption_), std::move(promise));
+  story_manager_->edit_story(DialogId(request.story_sender_chat_id_), StoryId(request.story_id_),
+                             std::move(request.content_), std::move(request.areas_), std::move(request.caption_),
+                             std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setStoryPrivacySettings &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  story_manager_->set_story_privacy_settings(StoryId(request.story_id_), std::move(request.privacy_settings_),
-                                             std::move(promise));
+  story_manager_->set_story_privacy_settings(DialogId(request.story_sender_chat_id_), StoryId(request.story_id_),
+                                             std::move(request.privacy_settings_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::toggleStoryIsPinned &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  story_manager_->toggle_story_is_pinned(StoryId(request.story_id_), request.is_pinned_, std::move(promise));
+  story_manager_->toggle_story_is_pinned(DialogId(request.story_sender_chat_id_), StoryId(request.story_id_),
+                                         request.is_pinned_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::deleteStory &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  story_manager_->delete_story(StoryId(request.story_id_), std::move(promise));
+  story_manager_->delete_story(DialogId(request.story_sender_chat_id_), StoryId(request.story_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::loadActiveStories &request) {
@@ -6521,10 +6523,11 @@ void Td::on_request(uint64 id, const td_api::getChatPinnedStories &request) {
                                             std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::getArchivedStories &request) {
+void Td::on_request(uint64 id, const td_api::getChatArchivedStories &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  story_manager_->get_story_archive(StoryId(request.from_story_id_), request.limit_, std::move(promise));
+  story_manager_->get_story_archive(DialogId(request.chat_id_), StoryId(request.from_story_id_), request.limit_,
+                                    std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::openStory &request) {

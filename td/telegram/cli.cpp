@@ -4113,8 +4113,11 @@ class CliClient final : public Actor {
       get_args(args, story_sender_chat_id, story_id);
       send_request(td_api::make_object<td_api::getStory>(story_sender_chat_id, story_id, op == "gstl"));
     } else if (op == "csst") {
-      send_request(td_api::make_object<td_api::canSendStory>());
+      ChatId chat_id;
+      get_args(args, chat_id);
+      send_request(td_api::make_object<td_api::canSendStory>(chat_id));
     } else if (op == "ssp" || op == "sspp") {
+      ChatId chat_id;
       string photo;
       string caption;
       StoryPrivacySettings rules;
@@ -4122,12 +4125,14 @@ class CliClient final : public Actor {
       int32 active_period;
       string sticker_file_ids;
       bool protect_content;
-      get_args(args, photo, caption, rules, areas, active_period, sticker_file_ids, protect_content);
+      get_args(args, chat_id, photo, caption, rules, areas, active_period, sticker_file_ids, protect_content);
       send_request(td_api::make_object<td_api::sendStory>(
+          chat_id,
           td_api::make_object<td_api::inputStoryContentPhoto>(as_input_file(photo),
                                                               to_integers<int32>(sticker_file_ids)),
           areas, as_caption(caption), rules, active_period ? active_period : 86400, op == "sspp", protect_content));
     } else if (op == "ssv" || op == "ssvp") {
+      ChatId chat_id;
       string video;
       string caption;
       StoryPrivacySettings rules;
@@ -4136,56 +4141,64 @@ class CliClient final : public Actor {
       double duration;
       string sticker_file_ids;
       bool protect_content;
-      get_args(args, video, caption, areas, rules, active_period, duration, sticker_file_ids, protect_content);
+      get_args(args, chat_id, video, caption, areas, rules, active_period, duration, sticker_file_ids, protect_content);
       send_request(td_api::make_object<td_api::sendStory>(
+          chat_id,
           td_api::make_object<td_api::inputStoryContentVideo>(as_input_file(video),
                                                               to_integers<int32>(sticker_file_ids), duration, true),
           areas, as_caption(caption), rules, active_period ? active_period : 86400, op == "ssvp", protect_content));
     } else if (op == "esc") {
+      ChatId story_sender_chat_id;
       StoryId story_id;
       string caption;
       InputStoryAreas areas;
-      get_args(args, story_id, caption, areas);
-      send_request(td_api::make_object<td_api::editStory>(story_id, nullptr, areas, as_caption(caption)));
+      get_args(args, story_sender_chat_id, story_id, caption, areas);
+      send_request(
+          td_api::make_object<td_api::editStory>(story_sender_chat_id, story_id, nullptr, areas, as_caption(caption)));
     } else if (op == "esp") {
+      ChatId story_sender_chat_id;
       StoryId story_id;
       string photo;
       string caption;
       InputStoryAreas areas;
       string sticker_file_ids;
-      get_args(args, story_id, photo, caption, areas, sticker_file_ids);
+      get_args(args, story_sender_chat_id, story_id, photo, caption, areas, sticker_file_ids);
       send_request(
-          td_api::make_object<td_api::editStory>(story_id,
+          td_api::make_object<td_api::editStory>(story_sender_chat_id, story_id,
                                                  td_api::make_object<td_api::inputStoryContentPhoto>(
                                                      as_input_file(photo), to_integers<int32>(sticker_file_ids)),
                                                  areas, as_caption(caption)));
     } else if (op == "esv") {
+      ChatId story_sender_chat_id;
       StoryId story_id;
       string video;
       InputStoryAreas areas;
       string caption;
       int32 duration;
       string sticker_file_ids;
-      get_args(args, story_id, video, caption, duration, sticker_file_ids);
+      get_args(args, story_sender_chat_id, story_id, video, caption, duration, sticker_file_ids);
       send_request(td_api::make_object<td_api::editStory>(
-          story_id,
+          story_sender_chat_id, story_id,
           td_api::make_object<td_api::inputStoryContentVideo>(as_input_file(video),
                                                               to_integers<int32>(sticker_file_ids), duration, false),
           areas, as_caption(caption)));
     } else if (op == "ssps") {
+      ChatId story_sender_chat_id;
       StoryId story_id;
       StoryPrivacySettings rules;
-      get_args(args, story_id, rules);
-      send_request(td_api::make_object<td_api::setStoryPrivacySettings>(story_id, rules));
+      get_args(args, story_sender_chat_id, story_id, rules);
+      send_request(td_api::make_object<td_api::setStoryPrivacySettings>(story_sender_chat_id, story_id, rules));
     } else if (op == "tsip") {
+      ChatId story_sender_chat_id;
       StoryId story_id;
       bool is_pinned;
-      get_args(args, story_id, is_pinned);
-      send_request(td_api::make_object<td_api::toggleStoryIsPinned>(story_id, is_pinned));
+      get_args(args, story_sender_chat_id, story_id, is_pinned);
+      send_request(td_api::make_object<td_api::toggleStoryIsPinned>(story_sender_chat_id, story_id, is_pinned));
     } else if (op == "ds") {
+      ChatId story_sender_chat_id;
       StoryId story_id;
-      get_args(args, story_id);
-      send_request(td_api::make_object<td_api::deleteStory>(story_id));
+      get_args(args, story_sender_chat_id, story_id);
+      send_request(td_api::make_object<td_api::deleteStory>(story_sender_chat_id, story_id));
     } else if (op == "las" || op == "lasa" || op == "lase") {
       send_request(td_api::make_object<td_api::loadActiveStories>(as_story_list(op)));
     } else if (op == "scasl" || op == "scasla" || op == "scasle") {
@@ -4198,11 +4211,12 @@ class CliClient final : public Actor {
       string limit;
       get_args(args, chat_id, from_story_id, limit);
       send_request(td_api::make_object<td_api::getChatPinnedStories>(chat_id, from_story_id, as_limit(limit)));
-    } else if (op == "gast") {
+    } else if (op == "gcast") {
+      ChatId chat_id;
       StoryId from_story_id;
       string limit;
-      get_args(args, from_story_id, limit);
-      send_request(td_api::make_object<td_api::getArchivedStories>(from_story_id, as_limit(limit)));
+      get_args(args, chat_id, from_story_id, limit);
+      send_request(td_api::make_object<td_api::getChatArchivedStories>(chat_id, from_story_id, as_limit(limit)));
     } else if (op == "gsnse") {
       send_request(td_api::make_object<td_api::getStoryNotificationSettingsExceptions>());
     } else if (op == "gcas") {

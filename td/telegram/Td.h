@@ -1022,7 +1022,7 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::getChatPinnedStories &request);
 
-  void on_request(uint64 id, const td_api::getArchivedStories &request);
+  void on_request(uint64 id, const td_api::getChatArchivedStories &request);
 
   void on_request(uint64 id, const td_api::openStory &request);
 

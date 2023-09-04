@@ -6994,7 +6994,7 @@ setPollAnswer chat_id:int53 message_id:int53 option_ids:vector<int32> = Ok;
 //@limit The maximum number of voters to be returned; must be positive and can't be greater than 50. For optimal performance, the number of returned voters is chosen by TDLib and can be smaller than the specified limit, even if the end of the voter list has not been reached
 getPollVoters chat_id:int53 message_id:int53 option_id:int32 offset:int32 limit:int32 = MessageSenders;
 
-//@description Stops a poll. A poll in a message can be stopped when the message has can_be_edited flag set
+//@description Stops a poll. A poll in a message can be stopped when the message has can_be_edited flag is set
 //@chat_id Identifier of the chat to which the poll belongs
 //@message_id Identifier of the message containing the poll
 //@reply_markup The new message reply markup; pass null if none; for bots only
@@ -7522,10 +7522,11 @@ readChatList chat_list:ChatList = Ok;
 //@only_local Pass true to get only locally available information without sending network requests
 getStory story_sender_chat_id:int53 story_id:int32 only_local:Bool = Story;
 
-//@description Checks whether the current user can send a story
-canSendStory = CanSendStoryResult;
+//@description Checks whether the current user can send a story on behalf of a chat; requires can_post_stories rights for channel chats @chat_id Chat identifier
+canSendStory chat_id:int53 = CanSendStoryResult;
 
-//@description Sends a new story. Returns a temporary story
+//@description Sends a new story to a chat; requires can_post_stories rights for channel chats. Returns a temporary story
+//@chat_id Identifier of the chat that will post the story
 //@content Content of the story
 //@areas Clickable rectangle areas to be shown on the story media; pass null if none
 //@caption Story caption; pass null to use an empty caption; 0-getOption("story_caption_length_max") characters
@@ -7533,23 +7534,32 @@ canSendStory = CanSendStoryResult;
 //@active_period Period after which the story is moved to archive, in seconds; must be one of 6 * 3600, 12 * 3600, 86400, or 2 * 86400 for Telegram Premium users, and 86400 otherwise
 //@is_pinned Pass true to keep the story accessible after expiration
 //@protect_content Pass true if the content of the story must be protected from forwarding and screenshotting
-sendStory content:InputStoryContent areas:inputStoryAreas caption:formattedText privacy_settings:StoryPrivacySettings active_period:int32 is_pinned:Bool protect_content:Bool = Story;
+sendStory chat_id:int53 content:InputStoryContent areas:inputStoryAreas caption:formattedText privacy_settings:StoryPrivacySettings active_period:int32 is_pinned:Bool protect_content:Bool = Story;
 
-//@description Changes content and caption of a previously sent story
+//@description Changes content and caption of a story. Can be called only if story.can_be_edited == true
+//@story_sender_chat_id Identifier of the chat that posted the story
 //@story_id Identifier of the story to edit
 //@content New content of the story; pass null to keep the current content
 //@areas New clickable rectangle areas to be shown on the story media; pass null to keep the current areas. Areas can't be edited if story content isn't changed
 //@caption New story caption; pass null to keep the current caption
-editStory story_id:int32 content:InputStoryContent areas:inputStoryAreas caption:formattedText = Ok;
+editStory story_sender_chat_id:int53 story_id:int32 content:InputStoryContent areas:inputStoryAreas caption:formattedText = Ok;
 
-//@description Changes privacy settings of a previously sent story @story_id Identifier of the story @privacy_settings The new privacy settigs for the story
-setStoryPrivacySettings story_id:int32 privacy_settings:StoryPrivacySettings = Ok;
+//@description Changes privacy settings of a story. Can be called only if story.can_be_edited == true
+//@story_sender_chat_id Identifier of the chat that posted the story
+//@story_id Identifier of the story
+//@privacy_settings The new privacy settigs for the story
+setStoryPrivacySettings story_sender_chat_id:int53 story_id:int32 privacy_settings:StoryPrivacySettings = Ok;
 
-//@description Toggles whether a story is accessible after expiration @story_id Identifier of the story @is_pinned Pass true to make the story accessible after expiration; pass false to make it private
-toggleStoryIsPinned story_id:int32 is_pinned:Bool = Ok;
+//@description Toggles whether a story is accessible after expiration. Can be called only if story.can_toggle_is_pinned == true
+//@story_sender_chat_id Identifier of the chat that posted the story
+//@story_id Identifier of the story
+//@is_pinned Pass true to make the story accessible after expiration; pass false to make it private
+toggleStoryIsPinned story_sender_chat_id:int53 story_id:int32 is_pinned:Bool = Ok;
 
-//@description Deletes a previously sent story @story_id Identifier of the story to delete
-deleteStory story_id:int32 = Ok;
+//@description Deletes a previously sent story. Can be called only if story.can_be_deleted == true
+//@story_sender_chat_id Identifier of the chat that posted the story
+//@story_id Identifier of the story to delete
+deleteStory story_sender_chat_id:int53 story_id:int32 = Ok;
 
 //@description Returns list of chats with non-default notification settings for stories
 getStoryNotificationSettingsExceptions = Chats;
@@ -7573,12 +7583,13 @@ getChatActiveStories chat_id:int53 = ChatActiveStories;
 //-For optimal performance, the number of returned stories is chosen by TDLib and can be smaller than the specified limit
 getChatPinnedStories chat_id:int53 from_story_id:int32 limit:int32 = Stories;
 
-//@description Returns the list of all stories of the current user. The stories are returned in a reverse chronological order (i.e., in order of decreasing story_id).
-//-For optimal performance, the number of returned stories is chosen by TDLib
+//@description Returns the list of all stories posted by the given chat; requires can_edit_stories rights for channel chats.
+//-The stories are returned in a reverse chronological order (i.e., in order of decreasing story_id). For optimal performance, the number of returned stories is chosen by TDLib
+//@chat_id Chat identifier
 //@from_story_id Identifier of the story starting from which stories must be returned; use 0 to get results from the last story
 //@limit The maximum number of stories to be returned
 //-For optimal performance, the number of returned stories is chosen by TDLib and can be smaller than the specified limit
-getArchivedStories from_story_id:int32 limit:int32 = Stories;
+getChatArchivedStories chat_id:int53 from_story_id:int32 limit:int32 = Stories;
 
 //@description Informs TDLib that a story is opened and is being viewed by the user
 //@story_sender_chat_id The identifier of the sender of the opened story
@@ -7600,7 +7611,7 @@ getStoryAvailableReactions row_size:int32 = AvailableReactions;
 //@update_recent_reactions Pass true if the reaction needs to be added to recent reactions
 setStoryReaction story_sender_chat_id:int53 story_id:int32 reaction_type:ReactionType update_recent_reactions:Bool = Ok;
 
-//@description Returns viewers of a story. The method can be called if story.can_get_viewers == true
+//@description Returns viewers of a story. The method can be called only for stories posted on behalf of the current user
 //@story_id Story identifier
 //@query Query to search for in names and usernames of the viewers; may be empty to get all relevant viewers
 //@only_contacts Pass true to get only contacts; pass false to get all relevant viewers

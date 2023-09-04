@@ -197,9 +197,9 @@ class StoryManager final : public Actor {
   void get_story(DialogId owner_dialog_id, StoryId story_id, bool only_local,
                  Promise<td_api::object_ptr<td_api::story>> &&promise);
 
-  void can_send_story(Promise<td_api::object_ptr<td_api::CanSendStoryResult>> &&promise);
+  void can_send_story(DialogId dialog_id, Promise<td_api::object_ptr<td_api::CanSendStoryResult>> &&promise);
 
-  void send_story(td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,
+  void send_story(DialogId dialog_id, td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,
                   td_api::object_ptr<td_api::inputStoryAreas> &&input_areas,
                   td_api::object_ptr<td_api::formattedText> &&input_caption,
                   td_api::object_ptr<td_api::StoryPrivacySettings> &&settings, int32 active_period, bool is_pinned,
@@ -207,16 +207,17 @@ class StoryManager final : public Actor {
 
   void on_send_story_file_parts_missing(unique_ptr<PendingStory> &&pending_story, vector<int> &&bad_parts);
 
-  void edit_story(StoryId story_id, td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,
+  void edit_story(DialogId owner_dialog_id, StoryId story_id,
+                  td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,
                   td_api::object_ptr<td_api::inputStoryAreas> &&input_areas,
                   td_api::object_ptr<td_api::formattedText> &&input_caption, Promise<Unit> &&promise);
 
-  void set_story_privacy_settings(StoryId story_id, td_api::object_ptr<td_api::StoryPrivacySettings> &&settings,
-                                  Promise<Unit> &&promise);
+  void set_story_privacy_settings(DialogId owner_dialog_id, StoryId story_id,
+                                  td_api::object_ptr<td_api::StoryPrivacySettings> &&settings, Promise<Unit> &&promise);
 
-  void toggle_story_is_pinned(StoryId story_id, bool is_pinned, Promise<Unit> &&promise);
+  void toggle_story_is_pinned(DialogId owner_dialog_id, StoryId story_id, bool is_pinned, Promise<Unit> &&promise);
 
-  void delete_story(StoryId story_id, Promise<Unit> &&promise);
+  void delete_story(DialogId owner_dialog_id, StoryId story_id, Promise<Unit> &&promise);
 
   void load_active_stories(StoryListId story_list_id, Promise<Unit> &&promise);
 
@@ -229,7 +230,8 @@ class StoryManager final : public Actor {
   void get_dialog_pinned_stories(DialogId owner_dialog_id, StoryId from_story_id, int32 limit,
                                  Promise<td_api::object_ptr<td_api::stories>> &&promise);
 
-  void get_story_archive(StoryId from_story_id, int32 limit, Promise<td_api::object_ptr<td_api::stories>> &&promise);
+  void get_story_archive(DialogId owner_dialog_id, StoryId from_story_id, int32 limit,
+                         Promise<td_api::object_ptr<td_api::stories>> &&promise);
 
   void get_dialog_expiring_stories(DialogId owner_dialog_id,
                                    Promise<td_api::object_ptr<td_api::chatActiveStories>> &&promise);
@@ -281,7 +283,7 @@ class StoryManager final : public Actor {
 
   Status can_get_story_viewers(StoryFullId story_full_id, const Story *story, bool ignore_premium) const;
 
-  void on_get_story_views(const vector<StoryId> &story_ids,
+  void on_get_story_views(DialogId owner_dialog_id, const vector<StoryId> &story_ids,
                           telegram_api::object_ptr<telegram_api::stories_storyViews> &&story_views);
 
   bool have_story(StoryFullId story_full_id) const;
@@ -361,6 +363,12 @@ class StoryManager final : public Actor {
   bool can_edit_stories(DialogId owner_dialog_id) const;
 
   bool can_delete_stories(DialogId owner_dialog_id) const;
+
+  bool can_edit_story(StoryFullId story_full_id, const Story *story);
+
+  bool can_toggle_story_is_pinned(StoryFullId story_full_id, const Story *story);
+
+  bool can_delete_story(StoryFullId story_full_id, const Story *story);
 
   int32 get_story_viewers_expire_date(const Story *story) const;
 
@@ -496,7 +504,7 @@ class StoryManager final : public Actor {
   void do_edit_story(FileId file_id, unique_ptr<PendingStory> &&pending_story,
                      telegram_api::object_ptr<telegram_api::InputFile> input_file);
 
-  void on_toggle_story_is_pinned(StoryId story_id, bool is_pinned, Promise<Unit> &&promise);
+  void on_toggle_story_is_pinned(StoryFullId story_full_id, bool is_pinned, Promise<Unit> &&promise);
 
   void on_update_dialog_max_story_ids(DialogId owner_dialog_id, StoryId max_story_id, StoryId max_read_story_id);
 
