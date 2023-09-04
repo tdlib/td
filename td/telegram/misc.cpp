@@ -361,7 +361,7 @@ vector<int32> search_strings_by_prefix(const vector<string> &strings, const stri
     hints.set_rating(i, i);
   }
   auto result = hints.search(query, limit, return_all_for_empty_query);
-  total_count = result.first;
+  total_count = narrow_cast<int32>(result.first);
   return transform(result.second, [](int64 key) { return narrow_cast<int32>(key); });
 }
 
