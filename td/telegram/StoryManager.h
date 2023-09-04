@@ -354,6 +354,8 @@ class StoryManager final : public Actor {
 
   bool can_access_expired_story(DialogId owner_dialog_id, const Story *story) const;
 
+  bool can_get_story_view_count(DialogId owner_dialog_id);
+
   bool can_post_stories(DialogId owner_dialog_id) const;
 
   bool can_edit_stories(DialogId owner_dialog_id) const;
@@ -597,7 +599,7 @@ class StoryManager final : public Actor {
 
   FlatHashMap<DialogId, PendingStoryViews, DialogIdHash> pending_story_views_;
 
-  FlatHashMap<StoryFullId, uint32, StoryFullIdHash> opened_owned_stories_;
+  FlatHashMap<StoryFullId, uint32, StoryFullIdHash> opened_stories_with_view_count_;
 
   FlatHashMap<StoryFullId, uint32, StoryFullIdHash> opened_stories_;
 

@@ -1446,6 +1446,20 @@ bool StoryManager::can_access_expired_story(DialogId owner_dialog_id, const Stor
   return story->is_pinned_ || can_edit_stories(owner_dialog_id);
 }
 
+bool StoryManager::can_get_story_view_count(DialogId owner_dialog_id) {
+  // result must be stable over time
+  switch (owner_dialog_id.get_type()) {
+    case DialogType::User:
+      return is_my_story(owner_dialog_id);
+    case DialogType::Chat:
+    case DialogType::Channel:
+    case DialogType::SecretChat:
+    case DialogType::None:
+    default:
+      return true;
+  }
+}
+
 bool StoryManager::can_post_stories(DialogId owner_dialog_id) const {
   switch (owner_dialog_id.get_type()) {
     case DialogType::User:
@@ -2283,11 +2297,11 @@ void StoryManager::open_story(DialogId owner_dialog_id, StoryId story_id, Promis
     return promise.set_value(Unit());
   }
 
-  if (is_story_owned(owner_dialog_id) && story_id.is_server()) {
-    if (opened_owned_stories_.empty()) {
+  if (can_get_story_view_count(owner_dialog_id) && story_id.is_server()) {
+    if (opened_stories_with_view_count_.empty()) {
       schedule_interaction_info_update();
     }
-    auto &open_count = opened_owned_stories_[story_full_id];
+    auto &open_count = opened_stories_with_view_count_[story_full_id];
     if (++open_count == 1) {
       td_->create_handler<GetStoriesViewsQuery>()->send(owner_dialog_id, {story_id});
     }
@@ -2341,14 +2355,14 @@ void StoryManager::close_story(DialogId owner_dialog_id, StoryId story_id, Promi
   }
 
   StoryFullId story_full_id{owner_dialog_id, story_id};
-  if (is_story_owned(owner_dialog_id) && story_id.is_server()) {
-    auto &open_count = opened_owned_stories_[story_full_id];
+  if (can_get_story_view_count(owner_dialog_id) && story_id.is_server()) {
+    auto &open_count = opened_stories_with_view_count_[story_full_id];
     if (open_count == 0) {
       return promise.set_error(Status::Error(400, "The story wasn't opened"));
     }
     if (--open_count == 0) {
-      opened_owned_stories_.erase(story_full_id);
-      if (opened_owned_stories_.empty()) {
+      opened_stories_with_view_count_.erase(story_full_id);
+      if (opened_stories_with_view_count_.empty()) {
         interaction_info_update_timeout_.cancel_timeout();
       }
     }
@@ -2495,11 +2509,11 @@ void StoryManager::update_interaction_info_static(void *story_manager) {
 }
 
 void StoryManager::update_interaction_info() {
-  if (opened_owned_stories_.empty()) {
+  if (opened_stories_with_view_count_.empty()) {
     return;
   }
   FlatHashMap<DialogId, vector<StoryId>, DialogIdHash> split_story_ids;
-  for (auto &it : opened_owned_stories_) {
+  for (auto &it : opened_stories_with_view_count_) {
     auto story_full_id = it.first;
     auto &story_ids = split_story_ids[story_full_id.get_dialog_id()];
     if (story_ids.size() < 100) {
