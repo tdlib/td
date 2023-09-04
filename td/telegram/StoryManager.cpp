@@ -1436,6 +1436,10 @@ void StoryManager::on_load_expired_database_stories(vector<StoryDbStory> stories
   }
 }
 
+bool StoryManager::is_my_story(DialogId owner_dialog_id) const {
+  return owner_dialog_id == DialogId(td_->contacts_manager_->get_my_id());
+}
+
 bool StoryManager::is_story_owned(DialogId owner_dialog_id) const {
   return owner_dialog_id == DialogId(td_->contacts_manager_->get_my_id());
 }
@@ -2336,7 +2340,7 @@ void StoryManager::on_story_replied(StoryFullId story_full_id, UserId replier_us
     return;
   }
   const Story *story = get_story_force(story_full_id, "on_story_replied");
-  if (story == nullptr || !is_story_owned(story_full_id.get_dialog_id())) {
+  if (story == nullptr || !is_my_story(story_full_id.get_dialog_id())) {
     return;
   }
 
@@ -2527,8 +2531,8 @@ void StoryManager::read_stories_on_server(DialogId owner_dialog_id, StoryId stor
 
 Status StoryManager::can_get_story_viewers(StoryFullId story_full_id, const Story *story, bool ignore_premium) const {
   CHECK(story != nullptr);
-  if (!is_story_owned(story_full_id.get_dialog_id())) {
-    return Status::Error(400, "Story is not outgoing");
+  if (!is_my_story(story_full_id.get_dialog_id())) {
+    return Status::Error(400, "Story must be outgoing");
   }
   if (!story_full_id.get_story_id().is_server()) {
     return Status::Error(400, "Story is not sent yet");
@@ -2725,8 +2729,7 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
     return nullptr;
   }
   auto dialog_id = story_full_id.get_dialog_id();
-  bool is_owned = is_story_owned(dialog_id);
-  if (!is_owned && !story->is_pinned_ && !is_active_story(story)) {
+  if (!is_story_owned(dialog_id) && !story->is_pinned_ && !is_active_story(story)) {
     return nullptr;
   }
 
@@ -2752,7 +2755,7 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
   auto *content = story->content_.get();
   auto *areas = &story->areas_;
   auto *caption = &story->caption_;
-  if (is_owned && story_id.is_server()) {
+  if (story_id.is_server()) {
     auto it = being_edited_stories_.find(story_full_id);
     if (it != being_edited_stories_.end()) {
       if (it->second->content_ != nullptr) {
@@ -2777,7 +2780,7 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
   bool can_be_replied = story_id.is_server() && dialog_id != changelog_dialog_id;
   bool can_get_viewers = can_get_story_viewers(story_full_id, story, false).is_ok();
   auto interaction_info = story->interaction_info_.get_story_interaction_info_object(td_);
-  bool has_expired_viewers = is_story_owned(dialog_id) && story_id.is_server() &&
+  bool has_expired_viewers = is_my_story(dialog_id) && story_id.is_server() &&
                              G()->unix_time_cached() >= get_story_viewers_expire_date(story) &&
                              interaction_info != nullptr &&
                              interaction_info->view_count_ > interaction_info->reaction_count_;

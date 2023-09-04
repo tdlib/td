@@ -350,6 +350,8 @@ class StoryManager final : public Actor {
 
   void on_story_can_get_viewers_timeout(int64 story_global_id);
 
+  bool is_my_story(DialogId owner_dialog_id) const;
+
   bool is_story_owned(DialogId owner_dialog_id) const;
 
   int32 get_story_viewers_expire_date(const Story *story) const;
