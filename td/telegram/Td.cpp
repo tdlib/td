@@ -2004,6 +2004,35 @@ class GetStickersRequest final : public RequestActor<> {
   }
 };
 
+class GetAllStickerEmojisRequest final : public RequestActor<> {
+  StickerType sticker_type_;
+  string query_;
+  DialogId dialog_id_;
+  bool return_only_main_emoji_;
+
+  vector<FileId> sticker_ids_;
+
+  void do_run(Promise<Unit> &&promise) final {
+    sticker_ids_ = td_->stickers_manager_->get_stickers(sticker_type_, query_, 1000000, dialog_id_, get_tries() < 2,
+                                                        std::move(promise));
+  }
+
+  void do_send_result() final {
+    send_result(td_->stickers_manager_->get_sticker_emojis_object(sticker_ids_, return_only_main_emoji_));
+  }
+
+ public:
+  GetAllStickerEmojisRequest(ActorShared<Td> td, uint64 request_id, StickerType sticker_type, string &&query,
+                             int64 dialog_id, bool return_only_main_emoji)
+      : RequestActor(std::move(td), request_id)
+      , sticker_type_(sticker_type)
+      , query_(std::move(query))
+      , dialog_id_(dialog_id)
+      , return_only_main_emoji_(return_only_main_emoji) {
+    set_tries(4);
+  }
+};
+
 class GetInstalledStickerSetsRequest final : public RequestActor<> {
   StickerType sticker_type_;
 
@@ -7563,6 +7592,13 @@ void Td::on_request(uint64 id, td_api::getStickers &request) {
   CLEAN_INPUT_STRING(request.query_);
   CREATE_REQUEST(GetStickersRequest, get_sticker_type(request.sticker_type_), std::move(request.query_), request.limit_,
                  request.chat_id_);
+}
+
+void Td::on_request(uint64 id, td_api::getAllStickerEmojis &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.query_);
+  CREATE_REQUEST(GetAllStickerEmojisRequest, get_sticker_type(request.sticker_type_), std::move(request.query_),
+                 request.chat_id_, request.return_only_main_emoji_);
 }
 
 void Td::on_request(uint64 id, td_api::searchStickers &request) {

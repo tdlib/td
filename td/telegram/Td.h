@@ -1289,6 +1289,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::getStickers &request);
 
+  void on_request(uint64 id, td_api::getAllStickerEmojis &request);
+
   void on_request(uint64 id, td_api::searchStickers &request);
 
   void on_request(uint64 id, const td_api::getPremiumStickers &request);

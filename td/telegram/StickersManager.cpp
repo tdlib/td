@@ -2299,6 +2299,34 @@ tl_object_ptr<td_api::stickers> StickersManager::get_stickers_object(const vecto
       transform(sticker_ids, [&](FileId sticker_id) { return get_sticker_object(sticker_id); }));
 }
 
+td_api::object_ptr<td_api::emojis> StickersManager::get_sticker_emojis_object(const vector<FileId> &sticker_ids,
+                                                                              bool return_only_main_emoji) {
+  auto emojis = td_api::make_object<td_api::emojis>();
+  FlatHashSet<string> added_emojis;
+  auto add_emoji = [&](const string &emoji) {
+    if (!emoji.empty() && added_emojis.insert(emoji).second) {
+      emojis->emojis_.push_back(emoji);
+    }
+  };
+  for (auto sticker_id : sticker_ids) {
+    auto sticker = get_sticker(sticker_id);
+    CHECK(sticker != nullptr);
+    add_emoji(sticker->alt_);
+    if (!return_only_main_emoji && sticker->set_id_.is_valid()) {
+      const StickerSet *sticker_set = get_sticker_set(sticker->set_id_);
+      if (sticker_set != nullptr) {
+        auto it = sticker_set->sticker_emojis_map_.find(sticker_id);
+        if (it != sticker_set->sticker_emojis_map_.end()) {
+          for (auto emoji : it->second) {
+            add_emoji(emoji);
+          }
+        }
+      }
+    }
+  }
+  return emojis;
+}
+
 tl_object_ptr<td_api::DiceStickers> StickersManager::get_dice_stickers_object(const string &emoji, int32 value) const {
   if (td_->auth_manager_->is_bot()) {
     return nullptr;

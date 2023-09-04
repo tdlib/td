@@ -81,6 +81,9 @@ class StickersManager final : public Actor {
 
   tl_object_ptr<td_api::stickers> get_stickers_object(const vector<FileId> &sticker_ids) const;
 
+  td_api::object_ptr<td_api::emojis> get_sticker_emojis_object(const vector<FileId> &sticker_ids,
+                                                               bool return_only_main_emoji);
+
   td_api::object_ptr<td_api::sticker> get_custom_emoji_sticker_object(CustomEmojiId custom_emoji_id);
 
   tl_object_ptr<td_api::DiceStickers> get_dice_stickers_object(const string &emoji, int32 value) const;

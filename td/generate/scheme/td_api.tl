@@ -8007,6 +8007,13 @@ getUserProfilePhotos user_id:int53 offset:int32 limit:int32 = ChatPhotos;
 //@chat_id Chat identifier for which to return stickers. Available custom emoji stickers may be different for different chats
 getStickers sticker_type:StickerType query:string limit:int32 chat_id:int53 = Stickers;
 
+//@description Returns unique emoji that correspond to stickers to be found by the getStickers(sticker_type, query, 1000000, chat_id)
+//@sticker_type Type of the stickers to search for
+//@query Search query
+//@chat_id Chat identifier for which to find stickers
+//@return_only_main_emoji Pass true if only main emoji for each found sticker must be included in the result
+getAllStickerEmojis sticker_type:StickerType query:string chat_id:int53 return_only_main_emoji:Bool = Emojis;
+
 //@description Searches for stickers from public sticker sets that correspond to any of the given emoji
 //@sticker_type Type of the stickers to return
 //@emojis Space-separated list of emoji to search for; must be non-empty

@@ -3086,6 +3086,12 @@ class CliClient final : public Actor {
       get_args(args, query);
       send_request(td_api::make_object<td_api::getStickers>(as_sticker_type(op), query.query, query.limit,
                                                             op == "gseeme" ? my_id_ : 0));
+    } else if (op == "gaser" || op == "gasem" || op == "gase" || op == "gaseme") {
+      string query;
+      bool return_only_main_emoji;
+      get_args(args, query, return_only_main_emoji);
+      send_request(td_api::make_object<td_api::getAllStickerEmojis>(
+          as_sticker_type(op), query, op == "gaseme" ? my_id_ : 0, return_only_main_emoji));
     } else if (op == "sst" || op == "sstm" || op == "sste") {
       SearchQuery query;
       get_args(args, query);
