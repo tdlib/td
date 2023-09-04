@@ -352,6 +352,8 @@ class StoryManager final : public Actor {
 
   bool is_my_story(DialogId owner_dialog_id) const;
 
+  bool can_access_expired_story(DialogId owner_dialog_id, const Story *story) const;
+
   bool can_post_stories(DialogId owner_dialog_id) const;
 
   bool can_edit_stories(DialogId owner_dialog_id) const;

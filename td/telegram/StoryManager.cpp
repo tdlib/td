@@ -1345,8 +1345,7 @@ void StoryManager::on_story_expire_timeout(int64 story_global_id) {
   LOG(INFO) << "Have expired " << story_full_id;
   auto owner_dialog_id = story_full_id.get_dialog_id();
   CHECK(owner_dialog_id.is_valid());
-  if (!can_edit_stories(owner_dialog_id) && story->content_ != nullptr && !story->is_pinned_) {
-    // non-editable expired non-pinned stories are fully deleted
+  if (story->content_ != nullptr && !can_access_expired_story(owner_dialog_id, story)) {
     on_delete_story(story_full_id);
   }
 
@@ -1438,6 +1437,13 @@ void StoryManager::on_load_expired_database_stories(vector<StoryDbStory> stories
 
 bool StoryManager::is_my_story(DialogId owner_dialog_id) const {
   return owner_dialog_id == DialogId(td_->contacts_manager_->get_my_id());
+}
+
+bool StoryManager::can_access_expired_story(DialogId owner_dialog_id, const Story *story) const {
+  CHECK(story != nullptr);
+  CHECK(story->content_ != nullptr);
+  // non-pinned non-editable stories can't be accessed after they expire
+  return story->is_pinned_ || can_edit_stories(owner_dialog_id);
 }
 
 bool StoryManager::can_post_stories(DialogId owner_dialog_id) const {
@@ -1560,8 +1566,7 @@ unique_ptr<StoryManager::Story> StoryManager::parse_story(StoryFullId story_full
       return nullptr;
     }
   } else {
-    if (!can_edit_stories(owner_dialog_id) && !story->is_pinned_) {
-      // non-editable expired non-pinned stories are fully deleted
+    if (!can_access_expired_story(owner_dialog_id, story.get())) {
       LOG(INFO) << "Delete expired " << story_full_id;
       delete_story_files(story.get());
       delete_story_from_database(story_full_id);
@@ -2770,8 +2775,8 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
   if (story == nullptr || story->content_ == nullptr) {
     return nullptr;
   }
-  auto dialog_id = story_full_id.get_dialog_id();
-  if (!can_edit_stories(dialog_id) && !story->is_pinned_ && !is_active_story(story)) {
+  auto owner_dialog_id = story_full_id.get_dialog_id();
+  if (!can_access_expired_story(owner_dialog_id, story) && !is_active_story(story)) {
     return nullptr;
   }
 
@@ -2815,14 +2820,14 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
 
   bool is_being_sent = !story_id.is_server();
   auto changelog_dialog_id = get_changelog_story_dialog_id();
-  bool is_visible_only_for_self =
-      !story_id.is_server() || dialog_id == changelog_dialog_id || (!story->is_pinned_ && !is_active_story(story));
+  bool is_visible_only_for_self = !story_id.is_server() || owner_dialog_id == changelog_dialog_id ||
+                                  (!story->is_pinned_ && !is_active_story(story));
   bool can_be_forwarded = !story->noforwards_ && story_id.is_server() &&
                           privacy_settings->get_id() == td_api::storyPrivacySettingsEveryone::ID;
-  bool can_be_replied = story_id.is_server() && dialog_id != changelog_dialog_id;
+  bool can_be_replied = story_id.is_server() && owner_dialog_id != changelog_dialog_id;
   bool can_get_viewers = can_get_story_viewers(story_full_id, story, false).is_ok();
   auto interaction_info = story->interaction_info_.get_story_interaction_info_object(td_);
-  bool has_expired_viewers = is_my_story(dialog_id) && story_id.is_server() &&
+  bool has_expired_viewers = is_my_story(owner_dialog_id) && story_id.is_server() &&
                              G()->unix_time_cached() >= get_story_viewers_expire_date(story) &&
                              interaction_info != nullptr &&
                              interaction_info->view_count_ > interaction_info->reaction_count_;
@@ -2831,7 +2836,7 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
   story->is_update_sent_ = true;
 
   return td_api::make_object<td_api::story>(
-      story_id.get(), td_->messages_manager_->get_chat_id_object(dialog_id, "get_story_object"), story->date_,
+      story_id.get(), td_->messages_manager_->get_chat_id_object(owner_dialog_id, "get_story_object"), story->date_,
       is_being_sent, is_being_edited, is_edited, story->is_pinned_, is_visible_only_for_self, can_be_forwarded,
       can_be_replied, can_get_viewers, has_expired_viewers, std::move(interaction_info),
       story->chosen_reaction_type_.get_reaction_type_object(), std::move(privacy_settings),
@@ -3290,8 +3295,7 @@ void StoryManager::on_story_changed(StoryFullId story_full_id, const Story *stor
       LOG(INFO) << "Add " << story_full_id << " to database";
 
       int32 expires_at = 0;
-      if (is_active_story(story) && !can_edit_stories(story_full_id.get_dialog_id()) && !story->is_pinned_) {
-        // non-editable expired non-pinned stories must be deleted
+      if (is_active_story(story) && !can_access_expired_story(story_full_id.get_dialog_id(), story)) {
         expires_at = story->expire_date_;
       }
 
