@@ -933,8 +933,11 @@ function onOptionsChanged() {
       commands.push('su -');
     }
     commands.push('export PKG_PATH=http://cdn.netbsd.org/pub/pkgsrc/packages/NetBSD/$(uname -p)/$(uname -r)/All');
-    var packages = 'git gperf pcre2 php-8* cmake openssl gcc12-libs mozilla-rootcerts-openssl';
+    var packages = 'git gperf pcre2 cmake openssl gcc12-libs mozilla-rootcerts-openssl';
     commands.push('pkg_add ' + packages);
+    if (low_memory) {
+      packages += ' php-8*';
+    }
     if (!use_root) {
       commands.push('exit');
     }
