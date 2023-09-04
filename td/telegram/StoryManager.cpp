@@ -1502,10 +1502,6 @@ bool StoryManager::can_delete_stories(DialogId owner_dialog_id) const {
   }
 }
 
-bool StoryManager::is_story_owned(DialogId owner_dialog_id) const {
-  return owner_dialog_id == DialogId(td_->contacts_manager_->get_my_id());
-}
-
 bool StoryManager::is_active_story(const Story *story) {
   return story != nullptr && G()->unix_time() < story->expire_date_;
 }
@@ -3072,7 +3068,7 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
     story->expire_date_ = story_item->expire_date_;
     is_changed = true;
   }
-  if (!is_story_owned(owner_dialog_id)) {
+  if (owner_dialog_id.get_type() == DialogType::User && !is_my_story(owner_dialog_id)) {
     story_item->min_ = false;
   }
   if (!story_item->min_) {

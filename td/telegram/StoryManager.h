@@ -362,8 +362,6 @@ class StoryManager final : public Actor {
 
   bool can_delete_stories(DialogId owner_dialog_id) const;
 
-  bool is_story_owned(DialogId owner_dialog_id) const;
-
   int32 get_story_viewers_expire_date(const Story *story) const;
 
   static bool is_active_story(const Story *story);
