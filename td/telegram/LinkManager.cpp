@@ -121,6 +121,9 @@ static AdministratorRights get_administrator_rights(Slice rights, bool for_chann
   bool can_manage_topics = false;
   bool can_promote_members = false;
   bool can_manage_calls = false;
+  bool can_post_stories = false;
+  bool can_edit_stories = false;
+  bool can_delete_stories = false;
   bool is_anonymous = false;
   for (auto right : full_split(rights, ' ')) {
     if (right == "change_info") {
@@ -143,6 +146,12 @@ static AdministratorRights get_administrator_rights(Slice rights, bool for_chann
       can_promote_members = true;
     } else if (right == "manage_video_chats") {
       can_manage_calls = true;
+    } else if (right == "post_stories") {
+      can_post_stories = true;
+    } else if (right == "edit_stories") {
+      can_edit_stories = true;
+    } else if (right == "delete_stories") {
+      can_delete_stories = true;
     } else if (right == "anonymous") {
       is_anonymous = true;
     } else if (right == "manage_chat") {
@@ -151,7 +160,8 @@ static AdministratorRights get_administrator_rights(Slice rights, bool for_chann
   }
   return AdministratorRights(is_anonymous, can_manage_dialog, can_change_info, can_post_messages, can_edit_messages,
                              can_delete_messages, can_invite_users, can_restrict_members, can_pin_messages,
-                             can_manage_topics, can_promote_members, can_manage_calls,
+                             can_manage_topics, can_promote_members, can_manage_calls, can_post_stories,
+                             can_edit_stories, can_delete_stories,
                              for_channel ? ChannelType::Broadcast : ChannelType::Megagroup);
 }
 
@@ -186,6 +196,15 @@ static string get_admin_string(AdministratorRights rights) {
   }
   if (rights.can_manage_calls()) {
     admin_rights.emplace_back("manage_video_chats");
+  }
+  if (rights.can_post_stories()) {
+    admin_rights.emplace_back("post_stories");
+  }
+  if (rights.can_edit_stories()) {
+    admin_rights.emplace_back("edit_stories");
+  }
+  if (rights.can_delete_stories()) {
+    admin_rights.emplace_back("delete_stories");
   }
   if (rights.is_anonymous()) {
     admin_rights.emplace_back("anonymous");
