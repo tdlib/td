@@ -20268,7 +20268,11 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
     return Status::OK();
   }
   if (source == MessageSource::ForumTopicHistory) {
-    // TODO read forum topic history
+    if (!forum_topic_id.is_valid() || !max_message_id.is_valid()) {
+      return Status::OK();
+    }
+
+    td_->forum_topic_manager_->read_forum_topic_messages(dialog_id, forum_topic_id, max_message_id);
     return Status::OK();
   }
 
