@@ -733,8 +733,9 @@ function onOptionsChanged() {
   }
   if (os_linux && linux_distro === 'Other') {
     var jdk = target === 'JNI' ? ', JDK ' : '';
+    var php = low_memory ? ', PHP ' : '';
     var compiler = use_clang ? 'clang >= 3.4, libc++' : 'g++ >= 4.9.2';
-    pre_text.push('Install Git, ' + compiler + ', make, CMake >= 3.0.2, OpenSSL-dev, zlib-dev, gperf, PHP' + jdk + ' using your package manager.');
+    pre_text.push('Install Git, ' + compiler + ', make, CMake >= 3.0.2, OpenSSL-dev, zlib-dev, gperf' + php + jdk + ' using your package manager.');
   }
   if (os_linux && os.includes('Node.js')) {
     pre_text.push('Note that for Node.js &ge; 17 you must build TDLib with OpenSSL 3.0.*, for Node.js &ge; 10 with OpenSSL 1.1.*, and for Node.js &lt; 10 with OpenSSL 1.0.*, so you may need to modify the following commands to install a proper OpenSSL version.');
@@ -823,7 +824,10 @@ function onOptionsChanged() {
       case 'Alpine':
         commands.push(sudo + 'apk update');
         commands.push(sudo + 'apk upgrade');
-        var packages = 'alpine-sdk linux-headers git zlib-dev openssl-dev gperf php cmake';
+        var packages = 'alpine-sdk linux-headers git zlib-dev openssl-dev gperf cmake';
+        if (low_memory) {
+          packages += ' php';
+        }
         if (target === 'JNI') {
           packages += ' openjdk8';
         }
@@ -832,7 +836,10 @@ function onOptionsChanged() {
       case 'CentOS 7':
       case 'CentOS 8':
         commands.push(sudo + 'yum update -y');
-        var packages = 'gcc-c++ make git zlib-devel openssl-devel php';
+        var packages = 'gcc-c++ make git zlib-devel openssl-devel';
+        if (low_memory) {
+          packages += ' php';
+        }
         if (linux_distro === 'CentOS 7') {
           commands.push(sudo + 'yum install -y centos-release-scl-rh epel-release');
           commands.push(sudo + 'yum install -y devtoolset-9-gcc devtoolset-9-gcc-c++');
@@ -864,9 +871,9 @@ function onOptionsChanged() {
         commands.push(sudo + 'apt-get update');
         commands.push(sudo + 'apt-get upgrade');
         var packages = 'make git zlib1g-dev libssl-dev gperf';
-        if (linux_distro === 'Ubuntu 14' || linux_distro === 'Debian 8') {
+        if (low_memory && (linux_distro === 'Ubuntu 14' || linux_distro === 'Debian 8')) {
           packages += ' php5-cli';
-        } else {
+        } else if (low_memory) {
           packages += ' php-cli';
         }
         if (linux_distro === 'Ubuntu 14') {
@@ -896,18 +903,24 @@ function onOptionsChanged() {
     }
   } else if (os_freebsd) {
     commands.push(sudo + 'pkg upgrade');
-    var packages = 'git gperf php72 cmake';
+    var packages = 'git gperf cmake';
     if (target === 'JNI') {
       packages += ' openjdk';
+    }
+    if (low_memory) {
+      packages += ' php72'
     }
     commands.push(sudo + 'pkg install ' + packages);
   } else if (os_openbsd) {
     if (!use_root) {
       commands.push('su -');
     }
-    var packages = 'git gperf php-7.2.10 cmake';
+    var packages = 'git gperf cmake';
     if (target === 'JNI') {
       packages += ' jdk';
+    }
+    if (low_memory) {
+      packages += ' php-7.2.10'
     }
     commands.push('pkg_add -z ' + packages);
     if (!use_root) {
