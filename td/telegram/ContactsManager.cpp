@@ -13191,6 +13191,9 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
 
     td_->messages_manager_->on_update_dialog_is_translatable(DialogId(channel_id), !channel->translations_disabled_);
 
+    send_closure_later(td_->story_manager_actor_, &StoryManager::on_get_dialog_stories, DialogId(channel_id),
+                       std::move(channel->stories_), Promise<Unit>());
+
     ChannelFull *channel_full = add_channel_full(channel_id);
 
     bool have_participant_count = (channel->flags_ & CHANNEL_FULL_FLAG_HAS_PARTICIPANT_COUNT) != 0;
