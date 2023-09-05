@@ -5080,6 +5080,9 @@ void ContactsManager::Channel::store(StorerT &storer) const {
   bool legacy_has_active_group_call = false;
   bool has_usernames = !usernames.is_empty();
   bool has_flags2 = true;
+  bool has_max_active_story_id = max_active_story_id.is_valid();
+  bool has_max_read_story_id = max_read_story_id.is_valid();
+  bool has_max_active_story_id_next_reload_time = max_active_story_id_next_reload_time > Time::now();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(false);
   STORE_FLAG(false);
@@ -5115,6 +5118,9 @@ void ContactsManager::Channel::store(StorerT &storer) const {
   if (has_flags2) {
     BEGIN_STORE_FLAGS();
     STORE_FLAG(is_forum);
+    STORE_FLAG(has_max_active_story_id);
+    STORE_FLAG(has_max_read_story_id);
+    STORE_FLAG(has_max_active_story_id_next_reload_time);
     END_STORE_FLAGS();
   }
 
@@ -5140,6 +5146,15 @@ void ContactsManager::Channel::store(StorerT &storer) const {
   if (has_usernames) {
     store(usernames, storer);
   }
+  if (has_max_active_story_id) {
+    store(max_active_story_id, storer);
+  }
+  if (has_max_read_story_id) {
+    store(max_read_story_id, storer);
+  }
+  if (has_max_active_story_id_next_reload_time) {
+    store_time(max_active_story_id_next_reload_time, storer);
+  }
 }
 
 template <class ParserT>
@@ -5162,6 +5177,9 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   bool legacy_has_active_group_call;
   bool has_usernames;
   bool has_flags2;
+  bool has_max_active_story_id = false;
+  bool has_max_read_story_id = false;
+  bool has_max_active_story_id_next_reload_time = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(left);
   PARSE_FLAG(kicked);
@@ -5197,6 +5215,9 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   if (has_flags2) {
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(is_forum);
+    PARSE_FLAG(has_max_active_story_id);
+    PARSE_FLAG(has_max_read_story_id);
+    PARSE_FLAG(has_max_active_story_id_next_reload_time);
     END_PARSE_FLAGS();
   }
 
@@ -5251,6 +5272,15 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   if (has_usernames) {
     CHECK(!legacy_has_username);
     parse(usernames, parser);
+  }
+  if (has_max_active_story_id) {
+    parse(max_active_story_id, parser);
+  }
+  if (has_max_read_story_id) {
+    parse(max_read_story_id, parser);
+  }
+  if (has_max_active_story_id_next_reload_time) {
+    parse_time(max_active_story_id_next_reload_time, parser);
   }
 
   if (!check_utf8(title)) {
@@ -10483,7 +10513,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   }
 
   if (is_me_regular_user && (stories_available || stories_unavailable)) {
-    // update at the end, because it calls need_poll_active_stories
+    // update at the end, because it calls need_poll_user_active_stories
     on_update_user_story_ids_impl(u, user_id, StoryId(user->stories_max_id_), StoryId());
   }
 
@@ -13638,7 +13668,7 @@ void ContactsManager::on_update_user_story_ids(UserId user_id, StoryId max_activ
     on_update_user_story_ids_impl(u, user_id, max_active_story_id, max_read_story_id);
     update_user(u, user_id);
   } else {
-    LOG(INFO) << "Ignore update user has stories about unknown " << user_id;
+    LOG(INFO) << "Ignore update user story identifiers about unknown " << user_id;
   }
 }
 
@@ -13663,7 +13693,7 @@ void ContactsManager::on_update_user_story_ids_impl(User *u, UserId user_id, Sto
     u->max_active_story_id = max_active_story_id;
     u->need_save_to_database = true;
   }
-  if (need_poll_active_stories(u, user_id)) {
+  if (need_poll_user_active_stories(u, user_id)) {
     auto max_active_story_id_next_reload_time = Time::now() + MAX_ACTIVE_STORY_ID_RELOAD_TIME;
     if (max_active_story_id_next_reload_time >
         u->max_active_story_id_next_reload_time + MAX_ACTIVE_STORY_ID_RELOAD_TIME / 5) {
@@ -15581,7 +15611,7 @@ void ContactsManager::invalidate_invite_link_info(const string &invite_link) {
   invite_link_infos_.erase(invite_link);
 }
 
-bool ContactsManager::need_poll_active_stories(const User *u, UserId user_id) const {
+bool ContactsManager::need_poll_user_active_stories(const User *u, UserId user_id) const {
   return u != nullptr && user_id != get_my_id() && !is_user_contact(u, user_id, false) && !is_user_bot(u) &&
          !is_user_support(u) && !is_user_deleted(u) && u->was_online != 0;
 }
@@ -15600,7 +15630,7 @@ void ContactsManager::on_view_user_active_stories(vector<UserId> user_ids) {
       continue;
     }
     User *u = get_user(user_id);
-    if (!need_poll_active_stories(u, user_id) || Time::now() < u->max_active_story_id_next_reload_time ||
+    if (!need_poll_user_active_stories(u, user_id) || Time::now() < u->max_active_story_id_next_reload_time ||
         u->is_max_active_story_id_being_reloaded) {
       continue;
     }
@@ -16317,6 +16347,99 @@ void ContactsManager::on_update_channel_noforwards(Channel *c, ChannelId channel
     c->noforwards = noforwards;
     c->is_noforwards_changed = true;
     c->need_save_to_database = true;
+  }
+}
+
+void ContactsManager::on_update_channel_story_ids(ChannelId channel_id, StoryId max_active_story_id,
+                                                  StoryId max_read_story_id) {
+  if (!channel_id.is_valid()) {
+    LOG(ERROR) << "Receive invalid " << channel_id;
+    return;
+  }
+
+  Channel *c = get_channel_force(channel_id);
+  if (c != nullptr) {
+    on_update_channel_story_ids_impl(c, channel_id, max_active_story_id, max_read_story_id);
+    update_channel(c, channel_id);
+  } else {
+    LOG(INFO) << "Ignore update channel story identifiers about unknown " << channel_id;
+  }
+}
+
+void ContactsManager::on_update_channel_story_ids_impl(Channel *c, ChannelId channel_id, StoryId max_active_story_id,
+                                                       StoryId max_read_story_id) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+  if (max_active_story_id != StoryId() && !max_active_story_id.is_server()) {
+    LOG(ERROR) << "Receive max active " << max_active_story_id << " for " << channel_id;
+    return;
+  }
+  if (max_read_story_id != StoryId() && !max_read_story_id.is_server()) {
+    LOG(ERROR) << "Receive max read " << max_read_story_id << " for " << channel_id;
+    return;
+  }
+
+  auto has_unread_stories = get_channel_has_unread_stories(c);
+  if (c->max_active_story_id != max_active_story_id) {
+    LOG(DEBUG) << "Change last active story of " << channel_id << " from " << c->max_active_story_id << " to "
+               << max_active_story_id;
+    c->max_active_story_id = max_active_story_id;
+    c->need_save_to_database = true;
+  }
+  if (need_poll_channel_active_stories(c, channel_id)) {
+    auto max_active_story_id_next_reload_time = Time::now() + MAX_ACTIVE_STORY_ID_RELOAD_TIME;
+    if (max_active_story_id_next_reload_time >
+        c->max_active_story_id_next_reload_time + MAX_ACTIVE_STORY_ID_RELOAD_TIME / 5) {
+      LOG(DEBUG) << "Change max_active_story_id_next_reload_time of " << channel_id;
+      c->max_active_story_id_next_reload_time = max_active_story_id_next_reload_time;
+      c->need_save_to_database = true;
+    }
+  }
+  if (!max_active_story_id.is_valid()) {
+    CHECK(max_read_story_id == StoryId());
+    if (c->max_read_story_id != StoryId()) {
+      LOG(DEBUG) << "Drop last read " << c->max_read_story_id << " of " << channel_id;
+      c->max_read_story_id = StoryId();
+      c->need_save_to_database = true;
+    }
+  } else if (max_read_story_id.get() > c->max_read_story_id.get()) {
+    LOG(DEBUG) << "Change last read story of " << channel_id << " from " << c->max_read_story_id << " to "
+               << max_read_story_id;
+    c->max_read_story_id = max_read_story_id;
+    c->need_save_to_database = true;
+  }
+  if (has_unread_stories != get_channel_has_unread_stories(c)) {
+    LOG(DEBUG) << "Change has_unread_stories of " << channel_id;
+    c->is_changed = true;
+  }
+}
+
+void ContactsManager::on_update_channel_max_read_story_id(ChannelId channel_id, StoryId max_read_story_id) {
+  CHECK(channel_id.is_valid());
+
+  Channel *c = get_channel(channel_id);
+  if (c != nullptr) {
+    on_update_channel_max_read_story_id(c, channel_id, max_read_story_id);
+    update_channel(c, channel_id);
+  }
+}
+
+void ContactsManager::on_update_channel_max_read_story_id(Channel *c, ChannelId channel_id, StoryId max_read_story_id) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  auto has_unread_stories = get_channel_has_unread_stories(c);
+  if (max_read_story_id.get() > c->max_read_story_id.get()) {
+    LOG(DEBUG) << "Change last read story of " << channel_id << " from " << c->max_read_story_id << " to "
+               << max_read_story_id;
+    c->max_read_story_id = max_read_story_id;
+    c->need_save_to_database = true;
+  }
+  if (has_unread_stories != get_channel_has_unread_stories(c)) {
+    LOG(DEBUG) << "Change has_unread_stories of " << channel_id;
+    c->is_changed = true;
   }
 }
 
@@ -18747,6 +18870,8 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   bool is_forum = (channel.flags_ & CHANNEL_FLAG_IS_FORUM) != 0;
   bool have_participant_count = (channel.flags_ & CHANNEL_FLAG_HAS_PARTICIPANT_COUNT) != 0;
   int32 participant_count = have_participant_count ? channel.participants_count_ : 0;
+  bool stories_available = channel.stories_max_id_ > 0;
+  bool stories_unavailable = channel.stories_unavailable_;
 
   if (have_participant_count) {
     auto channel_full = get_channel_full_const(channel_id);
@@ -18930,6 +19055,10 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   }
   if (old_join_to_send != get_channel_join_to_send(c) || old_join_request != get_channel_join_request(c)) {
     c->is_changed = true;
+  }
+  if (!td_->auth_manager_->is_bot() && (stories_available || stories_unavailable)) {
+    // update at the end, because it calls need_poll_channel_active_stories
+    on_update_channel_story_ids_impl(c, channel_id, StoryId(channel.stories_max_id_), StoryId());
   }
 
   if (c->cache_version != Channel::CACHE_VERSION) {
@@ -19163,6 +19292,7 @@ td_api::object_ptr<td_api::UserStatus> ContactsManager::get_user_status_object(U
 }
 
 bool ContactsManager::get_user_has_unread_stories(const User *u) {
+  CHECK(u != nullptr);
   return u->max_active_story_id.get() > u->max_read_story_id.get();
 }
 
@@ -19379,7 +19509,7 @@ td_api::object_ptr<td_api::updateSupergroup> ContactsManager::get_update_unknown
   bool is_megagroup = min_channel == nullptr ? false : min_channel->is_megagroup_;
   return td_api::make_object<td_api::updateSupergroup>(td_api::make_object<td_api::supergroup>(
       channel_id.get(), nullptr, 0, DialogParticipantStatus::Banned(0).get_chat_member_status_object(), 0, false, false,
-      false, !is_megagroup, false, false, !is_megagroup, false, false, false, string(), false, false));
+      false, !is_megagroup, false, false, !is_megagroup, false, false, false, string(), false, false, false, false));
 }
 
 int64 ContactsManager::get_supergroup_id_object(ChannelId channel_id, const char *source) const {
@@ -19395,6 +19525,16 @@ int64 ContactsManager::get_supergroup_id_object(ChannelId channel_id, const char
   return channel_id.get();
 }
 
+bool ContactsManager::need_poll_channel_active_stories(const Channel *c, ChannelId channel_id) const {
+  return c != nullptr && !get_channel_status(c).is_member() &&
+         have_input_peer_channel(c, channel_id, AccessRights::Read);
+}
+
+bool ContactsManager::get_channel_has_unread_stories(const Channel *c) {
+  CHECK(c != nullptr);
+  return c->max_active_story_id.get() > c->max_read_story_id.get();
+}
+
 tl_object_ptr<td_api::supergroup> ContactsManager::get_supergroup_object(ChannelId channel_id) const {
   return get_supergroup_object(channel_id, get_channel(channel_id));
 }
@@ -19408,7 +19548,8 @@ tl_object_ptr<td_api::supergroup> ContactsManager::get_supergroup_object(Channel
       get_channel_status(c).get_chat_member_status_object(), c->participant_count, c->has_linked_channel,
       c->has_location, c->sign_messages, get_channel_join_to_send(c), get_channel_join_request(c),
       c->is_slow_mode_enabled, !c->is_megagroup, c->is_gigagroup, c->is_forum, c->is_verified,
-      get_restriction_reason_description(c->restriction_reasons), c->is_scam, c->is_fake);
+      get_restriction_reason_description(c->restriction_reasons), c->is_scam, c->is_fake,
+      c->max_active_story_id.is_valid(), get_channel_has_unread_stories(c));
 }
 
 tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_info_object(ChannelId channel_id) const {

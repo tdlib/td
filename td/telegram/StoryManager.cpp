@@ -3501,8 +3501,12 @@ void StoryManager::on_update_dialog_max_story_ids(DialogId owner_dialog_id, Stor
       send_closure_later(td_->contacts_manager_actor_, &ContactsManager::on_update_user_story_ids,
                          owner_dialog_id.get_user_id(), max_story_id, max_read_story_id);
       break;
-    case DialogType::Chat:
     case DialogType::Channel:
+      // use send_closure_later because story order can be updated from update_channel
+      send_closure_later(td_->contacts_manager_actor_, &ContactsManager::on_update_channel_story_ids,
+                         owner_dialog_id.get_channel_id(), max_story_id, max_read_story_id);
+      break;
+    case DialogType::Chat:
     case DialogType::SecretChat:
     case DialogType::None:
     default:
@@ -3515,8 +3519,10 @@ void StoryManager::on_update_dialog_max_read_story_id(DialogId owner_dialog_id, 
     case DialogType::User:
       td_->contacts_manager_->on_update_user_max_read_story_id(owner_dialog_id.get_user_id(), max_read_story_id);
       break;
-    case DialogType::Chat:
     case DialogType::Channel:
+      td_->contacts_manager_->on_update_channel_max_read_story_id(owner_dialog_id.get_channel_id(), max_read_story_id);
+      break;
+    case DialogType::Chat:
     case DialogType::SecretChat:
     case DialogType::None:
     default:

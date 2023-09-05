@@ -213,6 +213,8 @@ class ContactsManager final : public Actor {
 
   void on_update_channel_editable_username(ChannelId channel_id, string &&username);
   void on_update_channel_usernames(ChannelId channel_id, Usernames &&usernames);
+  void on_update_channel_story_ids(ChannelId channel_id, StoryId max_active_story_id, StoryId max_read_story_id);
+  void on_update_channel_max_read_story_id(ChannelId channel_id, StoryId max_read_story_id);
   void on_update_channel_description(ChannelId channel_id, string &&description);
   void on_update_channel_sticker_set(ChannelId channel_id, StickerSetId sticker_set_id);
   void on_update_channel_linked_channel_id(ChannelId channel_id, ChannelId group_channel_id);
@@ -977,6 +979,10 @@ class ContactsManager final : public Actor {
     int32 date = 0;
     int32 participant_count = 0;
 
+    double max_active_story_id_next_reload_time = 0.0;
+    StoryId max_active_story_id;
+    StoryId max_read_story_id;
+
     static constexpr uint32 CACHE_VERSION = 10;
     uint32 cache_version = 0;
 
@@ -1492,6 +1498,9 @@ class ContactsManager final : public Actor {
                                                     RestrictedRights default_permissions);
   static void on_update_channel_has_location(Channel *c, ChannelId channel_id, bool has_location);
   static void on_update_channel_noforwards(Channel *c, ChannelId channel_id, bool noforwards);
+  void on_update_channel_story_ids_impl(Channel *c, ChannelId channel_id, StoryId max_active_story_id,
+                                        StoryId max_read_story_id);
+  void on_update_channel_max_read_story_id(Channel *c, ChannelId channel_id, StoryId max_read_story_id);
 
   void on_update_channel_bot_user_ids(ChannelId channel_id, vector<UserId> &&bot_user_ids);
 
@@ -1755,7 +1764,7 @@ class ContactsManager final : public Actor {
 
   void on_dismiss_suggested_action(SuggestedAction action, Result<Unit> &&result);
 
-  bool need_poll_active_stories(const User *u, UserId user_id) const;
+  bool need_poll_user_active_stories(const User *u, UserId user_id) const;
 
   static bool get_user_has_unread_stories(const User *u);
 
@@ -1779,6 +1788,10 @@ class ContactsManager final : public Actor {
 
   tl_object_ptr<td_api::basicGroupFullInfo> get_basic_group_full_info_object(ChatId chat_id,
                                                                              const ChatFull *chat_full) const;
+
+  bool need_poll_channel_active_stories(const Channel *c, ChannelId channel_id) const;
+
+  static bool get_channel_has_unread_stories(const Channel *c);
 
   td_api::object_ptr<td_api::updateSupergroup> get_update_supergroup_object(ChannelId channel_id,
                                                                             const Channel *c) const;
