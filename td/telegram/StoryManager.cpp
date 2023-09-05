@@ -3550,8 +3550,10 @@ void StoryManager::on_update_dialog_stories_hidden(DialogId owner_dialog_id, boo
     case DialogType::User:
       td_->contacts_manager_->on_update_user_stories_hidden(owner_dialog_id.get_user_id(), stories_hidden);
       break;
-    case DialogType::Chat:
     case DialogType::Channel:
+      td_->contacts_manager_->on_update_channel_stories_hidden(owner_dialog_id.get_channel_id(), stories_hidden);
+      break;
+    case DialogType::Chat:
     case DialogType::SecretChat:
     case DialogType::None:
     default:
@@ -3973,8 +3975,12 @@ StoryListId StoryManager::get_dialog_story_list_id(DialogId owner_dialog_id) con
         return StoryListId::archive();
       }
       return StoryListId::main();
-    case DialogType::Chat:
     case DialogType::Channel:
+      if (td_->contacts_manager_->get_channel_stories_hidden(owner_dialog_id.get_channel_id())) {
+        return StoryListId::archive();
+      }
+      return StoryListId::main();
+    case DialogType::Chat:
     case DialogType::SecretChat:
     case DialogType::None:
     default:

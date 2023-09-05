@@ -128,6 +128,7 @@ class ContactsManager final : public Actor {
   bool get_channel_has_protected_content(ChannelId channel_id) const;
 
   bool get_user_stories_hidden(UserId user_id) const;
+  bool get_channel_stories_hidden(ChannelId channel_id) const;
 
   string get_user_private_forward_name(UserId user_id);
   bool get_user_voice_messages_forbidden(UserId user_id) const;
@@ -215,6 +216,7 @@ class ContactsManager final : public Actor {
   void on_update_channel_usernames(ChannelId channel_id, Usernames &&usernames);
   void on_update_channel_story_ids(ChannelId channel_id, StoryId max_active_story_id, StoryId max_read_story_id);
   void on_update_channel_max_read_story_id(ChannelId channel_id, StoryId max_read_story_id);
+  void on_update_channel_stories_hidden(ChannelId channel_id, bool stories_hidden);
   void on_update_channel_description(ChannelId channel_id, string &&description);
   void on_update_channel_sticker_set(ChannelId channel_id, StickerSetId sticker_set_id);
   void on_update_channel_linked_channel_id(ChannelId channel_id, ChannelId group_channel_id);
@@ -994,6 +996,7 @@ class ContactsManager final : public Actor {
     bool can_be_deleted = false;
     bool join_to_send = false;
     bool join_request = false;
+    bool stories_hidden = false;
 
     bool is_megagroup = false;
     bool is_gigagroup = false;
@@ -1009,6 +1012,7 @@ class ContactsManager final : public Actor {
     bool is_photo_changed = true;
     bool is_default_permissions_changed = true;
     bool is_status_changed = true;
+    bool is_stories_hidden_changed = true;
     bool is_has_location_changed = true;
     bool is_noforwards_changed = true;
     bool is_creator_changed = true;
@@ -1500,6 +1504,7 @@ class ContactsManager final : public Actor {
                                                     RestrictedRights default_permissions);
   static void on_update_channel_has_location(Channel *c, ChannelId channel_id, bool has_location);
   static void on_update_channel_noforwards(Channel *c, ChannelId channel_id, bool noforwards);
+  void on_update_channel_stories_hidden(Channel *c, ChannelId channel_id, bool stories_hidden);
   void on_update_channel_story_ids_impl(Channel *c, ChannelId channel_id, StoryId max_active_story_id,
                                         StoryId max_read_story_id);
   void on_update_channel_max_read_story_id(Channel *c, ChannelId channel_id, StoryId max_read_story_id);

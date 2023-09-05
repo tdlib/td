@@ -5121,6 +5121,7 @@ void ContactsManager::Channel::store(StorerT &storer) const {
     STORE_FLAG(has_max_active_story_id);
     STORE_FLAG(has_max_read_story_id);
     STORE_FLAG(has_max_active_story_id_next_reload_time);
+    STORE_FLAG(stories_hidden);
     END_STORE_FLAGS();
   }
 
@@ -5218,6 +5219,7 @@ void ContactsManager::Channel::parse(ParserT &parser) {
     PARSE_FLAG(has_max_active_story_id);
     PARSE_FLAG(has_max_read_story_id);
     PARSE_FLAG(has_max_active_story_id_next_reload_time);
+    PARSE_FLAG(stories_hidden);
     END_PARSE_FLAGS();
   }
 
@@ -6003,6 +6005,14 @@ bool ContactsManager::get_user_stories_hidden(UserId user_id) const {
     return false;
   }
   return u->stories_hidden;
+}
+
+bool ContactsManager::get_channel_stories_hidden(ChannelId channel_id) const {
+  auto c = get_channel(channel_id);
+  if (c == nullptr) {
+    return false;
+  }
+  return c->stories_hidden;
 }
 
 string ContactsManager::get_user_private_forward_name(UserId user_id) {
@@ -12350,6 +12360,11 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
     td_->messages_manager_->on_dialog_has_protected_content_updated(DialogId(channel_id));
     c->is_noforwards_changed = false;
   }
+  if (c->is_stories_hidden_changed) {
+    send_closure_later(td_->story_manager_actor_, &StoryManager::on_dialog_active_stories_order_updated,
+                       DialogId(channel_id), "stories_hidden");
+    c->is_stories_hidden_changed = false;
+  }
 
   if (!td_->auth_manager_->is_bot()) {
     if (c->restriction_reasons.empty()) {
@@ -16487,6 +16502,34 @@ void ContactsManager::on_update_channel_max_read_story_id(Channel *c, ChannelId 
   }
 }
 
+void ContactsManager::on_update_channel_stories_hidden(ChannelId channel_id, bool stories_hidden) {
+  if (!channel_id.is_valid()) {
+    LOG(ERROR) << "Receive invalid " << channel_id;
+    return;
+  }
+
+  Channel *c = get_channel_force(channel_id);
+  if (c != nullptr) {
+    on_update_channel_stories_hidden(c, channel_id, stories_hidden);
+    update_channel(c, channel_id);
+  } else {
+    LOG(INFO) << "Ignore update channel stories are archived about unknown " << channel_id;
+  }
+}
+
+void ContactsManager::on_update_channel_stories_hidden(Channel *c, ChannelId channel_id, bool stories_hidden) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  if (c->stories_hidden != stories_hidden) {
+    LOG(DEBUG) << "Change stories are archived of " << channel_id << " to " << stories_hidden;
+    c->stories_hidden = stories_hidden;
+    c->is_stories_hidden_changed = true;
+    c->need_save_to_database = true;
+  }
+}
+
 void ContactsManager::on_update_channel_editable_username(ChannelId channel_id, string &&username) {
   Channel *c = get_channel(channel_id);
   CHECK(c != nullptr);
@@ -19053,6 +19096,9 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   on_update_channel_default_permissions(c, channel_id, RestrictedRights(channel.default_banned_rights_));
   on_update_channel_has_location(c, channel_id, channel.has_geo_);
   on_update_channel_noforwards(c, channel_id, channel.noforwards_);
+  if (!td_->auth_manager_->is_bot()) {
+    on_update_channel_stories_hidden(c, channel_id, channel.stories_hidden_);
+  }
 
   bool need_update_participant_count = have_participant_count && participant_count != c->participant_count;
   if (need_update_participant_count) {
