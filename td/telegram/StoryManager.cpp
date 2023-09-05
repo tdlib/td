@@ -3958,8 +3958,9 @@ bool StoryManager::is_subscribed_to_dialog_stories(DialogId owner_dialog_id) con
         return true;
       }
       return td_->contacts_manager_->is_user_contact(owner_dialog_id.get_user_id());
-    case DialogType::Chat:
     case DialogType::Channel:
+      return td_->contacts_manager_->get_channel_status(owner_dialog_id.get_channel_id()).is_member();
+    case DialogType::Chat:
     case DialogType::SecretChat:
     case DialogType::None:
     default:
