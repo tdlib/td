@@ -3536,8 +3536,11 @@ void StoryManager::on_update_dialog_has_pinned_stories(DialogId owner_dialog_id,
     case DialogType::User:
       td_->contacts_manager_->on_update_user_has_pinned_stories(owner_dialog_id.get_user_id(), has_pinned_stories);
       break;
-    case DialogType::Chat:
     case DialogType::Channel:
+      td_->contacts_manager_->on_update_channel_has_pinned_stories(owner_dialog_id.get_channel_id(),
+                                                                   has_pinned_stories);
+      break;
+    case DialogType::Chat:
     case DialogType::SecretChat:
     case DialogType::None:
     default:

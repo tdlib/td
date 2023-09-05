@@ -229,6 +229,7 @@ class ContactsManager final : public Actor {
                                                  Promise<Unit> &&promise);
   void on_update_channel_has_aggressive_anti_spam_enabled(ChannelId channel_id, bool has_aggressive_anti_spam_enabled,
                                                           Promise<Unit> &&promise);
+  void on_update_channel_has_pinned_stories(ChannelId channel_id, bool has_pinned_stories);
   void on_update_channel_default_permissions(ChannelId channel_id, RestrictedRights default_permissions);
   void on_update_channel_administrator_count(ChannelId channel_id, int32 administrator_count);
 
@@ -1084,6 +1085,7 @@ class ContactsManager final : public Actor {
     bool is_all_history_available = true;
     bool has_aggressive_anti_spam_enabled = false;
     bool can_be_deleted = false;
+    bool has_pinned_stories = false;
 
     bool is_slow_mode_next_send_date_changed = true;
     bool is_being_updated = false;

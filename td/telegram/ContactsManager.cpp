@@ -5316,6 +5316,7 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   bool legacy_has_active_group_call_id = false;
   bool has_invite_link = invite_link.is_valid();
   bool has_bot_commands = !bot_commands.empty();
+  bool has_flags2 = true;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_description);
   STORE_FLAG(has_administrator_count);
@@ -5346,7 +5347,13 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   STORE_FLAG(can_be_deleted);
   STORE_FLAG(has_aggressive_anti_spam_enabled);
   STORE_FLAG(has_hidden_participants);
+  STORE_FLAG(has_flags2);
   END_STORE_FLAGS();
+  if (has_flags2) {
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(has_pinned_stories);
+    END_STORE_FLAGS();
+  }
   if (has_description) {
     store(description, storer);
   }
@@ -5421,6 +5428,7 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   bool legacy_has_active_group_call_id;
   bool has_invite_link;
   bool has_bot_commands;
+  bool has_flags2;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_description);
   PARSE_FLAG(has_administrator_count);
@@ -5451,7 +5459,13 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   PARSE_FLAG(can_be_deleted);
   PARSE_FLAG(has_aggressive_anti_spam_enabled);
   PARSE_FLAG(has_hidden_participants);
+  PARSE_FLAG(has_flags2);
   END_PARSE_FLAGS();
+  if (has_flags2) {
+    BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(has_pinned_stories);
+    END_PARSE_FLAGS();
+  }
   if (has_description) {
     parse(description, parser);
   }
@@ -13201,6 +13215,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     auto is_all_history_available = !channel->hidden_prehistory_;
     auto has_aggressive_anti_spam_enabled = channel->antispam_;
     auto can_view_statistics = channel->can_view_stats_;
+    bool has_pinned_stories = channel->stories_pinned_available_;
     StickerSetId sticker_set_id;
     if (channel->stickerset_ != nullptr) {
       sticker_set_id =
@@ -13227,7 +13242,8 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
         channel_full->sticker_set_id != sticker_set_id ||
         channel_full->is_all_history_available != is_all_history_available ||
         channel_full->has_aggressive_anti_spam_enabled != has_aggressive_anti_spam_enabled ||
-        channel_full->has_hidden_participants != has_hidden_participants) {
+        channel_full->has_hidden_participants != has_hidden_participants ||
+        channel_full->has_pinned_stories != has_pinned_stories) {
       channel_full->participant_count = participant_count;
       channel_full->administrator_count = administrator_count;
       channel_full->restricted_count = restricted_count;
@@ -13241,6 +13257,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       channel_full->sticker_set_id = sticker_set_id;
       channel_full->is_all_history_available = is_all_history_available;
       channel_full->has_aggressive_anti_spam_enabled = has_aggressive_anti_spam_enabled;
+      channel_full->has_pinned_stories = has_pinned_stories;
 
       channel_full->is_changed = true;
     }
@@ -16719,6 +16736,25 @@ void ContactsManager::on_update_channel_has_aggressive_anti_spam_enabled(Channel
   promise.set_value(Unit());
 }
 
+void ContactsManager::on_update_channel_has_pinned_stories(ChannelId channel_id, bool has_pinned_stories) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  if (!channel_id.is_valid()) {
+    LOG(ERROR) << "Receive invalid " << channel_id;
+    return;
+  }
+
+  ChannelFull *channel_full = get_channel_full_force(channel_id, true, "on_update_channel_has_pinned_stories");
+  if (channel_full == nullptr || channel_full->has_pinned_stories == has_pinned_stories) {
+    return;
+  }
+  channel_full->has_pinned_stories = has_pinned_stories;
+  channel_full->is_changed = true;
+  update_channel_full(channel_full, channel_id, "on_update_channel_has_pinned_stories");
+}
+
 void ContactsManager::on_update_channel_default_permissions(ChannelId channel_id,
                                                             RestrictedRights default_permissions) {
   if (!channel_id.is_valid()) {
@@ -19658,9 +19694,9 @@ tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_i
       can_hide_channel_participants(channel_id, channel_full).is_ok(), channel_full->can_set_sticker_set,
       channel_full->can_set_location, channel_full->can_view_statistics,
       can_toggle_channel_aggressive_anti_spam(channel_id, channel_full).is_ok(), channel_full->is_all_history_available,
-      channel_full->has_aggressive_anti_spam_enabled, channel_full->sticker_set_id.get(),
-      channel_full->location.get_chat_location_object(), channel_full->invite_link.get_chat_invite_link_object(this),
-      std::move(bot_commands),
+      channel_full->has_aggressive_anti_spam_enabled, channel_full->has_pinned_stories,
+      channel_full->sticker_set_id.get(), channel_full->location.get_chat_location_object(),
+      channel_full->invite_link.get_chat_invite_link_object(this), std::move(bot_commands),
       get_basic_group_id_object(channel_full->migrated_from_chat_id, "get_supergroup_full_info_object"),
       channel_full->migrated_from_max_message_id.get());
 }
