@@ -1504,25 +1504,27 @@ bool StoryManager::can_delete_stories(DialogId owner_dialog_id) const {
   }
 }
 
-bool StoryManager::can_edit_story(StoryFullId story_full_id, const Story *story) {
+bool StoryManager::can_edit_story(StoryFullId story_full_id, const Story *story) const {
+  if (!story_full_id.get_story_id().is_server()) {
+    return false;
+  }
+  auto owner_dialog_id = story_full_id.get_dialog_id();
+  return can_edit_stories(owner_dialog_id) || (story->is_outgoing_ && can_post_stories(owner_dialog_id));
+}
+
+bool StoryManager::can_toggle_story_is_pinned(StoryFullId story_full_id, const Story *story) const {
   if (!story_full_id.get_story_id().is_server()) {
     return false;
   }
   return can_edit_stories(story_full_id.get_dialog_id());
 }
 
-bool StoryManager::can_toggle_story_is_pinned(StoryFullId story_full_id, const Story *story) {
-  if (!story_full_id.get_story_id().is_server()) {
-    return false;
-  }
-  return can_edit_stories(story_full_id.get_dialog_id());
-}
-
-bool StoryManager::can_delete_story(StoryFullId story_full_id, const Story *story) {
+bool StoryManager::can_delete_story(StoryFullId story_full_id, const Story *story) const {
   if (!story_full_id.get_story_id().is_server()) {
     return true;
   }
-  return can_delete_stories(story_full_id.get_dialog_id());
+  auto owner_dialog_id = story_full_id.get_dialog_id();
+  return can_delete_stories(owner_dialog_id) || (story->is_outgoing_ && can_post_stories(owner_dialog_id));
 }
 
 bool StoryManager::is_active_story(const Story *story) {
@@ -2859,9 +2861,13 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
   auto changelog_dialog_id = get_changelog_story_dialog_id();
   bool is_visible_only_for_self = !story_id.is_server() || owner_dialog_id == changelog_dialog_id ||
                                   (!story->is_pinned_ && !is_active_story(story));
+  bool can_be_deleted = can_delete_story(story_full_id, story);
+  bool can_be_edited = can_edit_story(story_full_id, story);
   bool can_be_forwarded = !story->noforwards_ && story_id.is_server() &&
                           privacy_settings->get_id() == td_api::storyPrivacySettingsEveryone::ID;
-  bool can_be_replied = story_id.is_server() && owner_dialog_id != changelog_dialog_id;
+  bool can_be_replied =
+      story_id.is_server() && owner_dialog_id != changelog_dialog_id && owner_dialog_id.get_type() == DialogType::User;
+  bool can_toggle_is_pinned = can_toggle_story_is_pinned(story_full_id, story);
   bool can_get_viewers = can_get_story_viewers(story_full_id, story, false).is_ok();
   auto interaction_info = story->interaction_info_.get_story_interaction_info_object(td_);
   bool has_expired_viewers = is_my_story(owner_dialog_id) && story_id.is_server() &&
@@ -2874,9 +2880,9 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
 
   return td_api::make_object<td_api::story>(
       story_id.get(), td_->messages_manager_->get_chat_id_object(owner_dialog_id, "get_story_object"), story->date_,
-      is_being_sent, is_being_edited, is_edited, story->is_pinned_, is_visible_only_for_self, can_be_forwarded,
-      can_be_replied, can_get_viewers, has_expired_viewers, std::move(interaction_info),
-      story->chosen_reaction_type_.get_reaction_type_object(), std::move(privacy_settings),
+      is_being_sent, is_being_edited, is_edited, story->is_pinned_, is_visible_only_for_self, can_be_deleted,
+      can_be_edited, can_be_forwarded, can_be_replied, can_toggle_is_pinned, can_get_viewers, has_expired_viewers,
+      std::move(interaction_info), story->chosen_reaction_type_.get_reaction_type_object(), std::move(privacy_settings),
       get_story_content_object(td_, content), std::move(story_areas),
       get_formatted_text_object(*caption, true, get_story_content_duration(td_, content)));
 }

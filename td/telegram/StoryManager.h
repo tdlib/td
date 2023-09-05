@@ -365,11 +365,11 @@ class StoryManager final : public Actor {
 
   bool can_delete_stories(DialogId owner_dialog_id) const;
 
-  bool can_edit_story(StoryFullId story_full_id, const Story *story);
+  bool can_edit_story(StoryFullId story_full_id, const Story *story) const;
 
-  bool can_toggle_story_is_pinned(StoryFullId story_full_id, const Story *story);
+  bool can_toggle_story_is_pinned(StoryFullId story_full_id, const Story *story) const;
 
-  bool can_delete_story(StoryFullId story_full_id, const Story *story);
+  bool can_delete_story(StoryFullId story_full_id, const Story *story) const;
 
   int32 get_story_viewers_expire_date(const Story *story) const;
 
