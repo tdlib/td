@@ -24585,7 +24585,7 @@ MessageInputReplyTo MessagesManager::get_message_input_reply_to(Dialog *d, Messa
     auto reply_to_story = td_api::move_object_as<td_api::messageReplyToStory>(reply_to);
     auto story_id = StoryId(reply_to_story->story_id_);
     auto sender_dialog_id = DialogId(reply_to_story->story_sender_chat_id_);
-    if (d->dialog_id != sender_dialog_id) {
+    if (d->dialog_id != sender_dialog_id || sender_dialog_id.get_type() != DialogType::User) {
       LOG(INFO) << "Ignore reply to story from " << sender_dialog_id << " in a wrong " << d->dialog_id;
       return {};
     }

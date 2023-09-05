@@ -34,7 +34,7 @@ struct MessageInputReplyTo {
     CHECK(!story_full_id_.is_valid() || !message_id_.is_valid());
   }
 
-  explicit MessageInputReplyTo(const td_api::object_ptr<td_api::MessageReplyTo> &reply_to_ptr);
+  //explicit MessageInputReplyTo(const td_api::object_ptr<td_api::MessageReplyTo> &reply_to_ptr);
 
   telegram_api::object_ptr<telegram_api::InputReplyTo> get_input_reply_to(Td *td,
                                                                           MessageId top_thread_message_id) const;

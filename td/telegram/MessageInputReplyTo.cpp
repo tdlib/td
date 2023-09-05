@@ -14,7 +14,7 @@
 #include "td/utils/logging.h"
 
 namespace td {
-
+/*
 MessageInputReplyTo::MessageInputReplyTo(const td_api::object_ptr<td_api::MessageReplyTo> &reply_to_ptr) {
   if (reply_to_ptr == nullptr) {
     return;
@@ -34,7 +34,7 @@ MessageInputReplyTo::MessageInputReplyTo(const td_api::object_ptr<td_api::Messag
       UNREACHABLE();
   }
 }
-
+*/
 telegram_api::object_ptr<telegram_api::InputReplyTo> MessageInputReplyTo::get_input_reply_to(
     Td *td, MessageId top_thread_message_id) const {
   if (story_full_id_.is_valid()) {
