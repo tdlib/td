@@ -1024,6 +1024,7 @@ void StoryManager::Story::store(StorerT &storer) const {
   STORE_FLAG(is_for_selected_contacts_);
   STORE_FLAG(has_areas);
   STORE_FLAG(has_chosen_reaction_type);
+  STORE_FLAG(is_outgoing_);
   END_STORE_FLAGS();
   store(date_, storer);
   store(expire_date_, storer);
@@ -1075,6 +1076,7 @@ void StoryManager::Story::parse(ParserT &parser) {
   PARSE_FLAG(is_for_selected_contacts_);
   PARSE_FLAG(has_areas);
   PARSE_FLAG(has_chosen_reaction_type);
+  PARSE_FLAG(is_outgoing_);
   END_PARSE_FLAGS();
   parse(date_, parser);
   parse(expire_date_, parser);
@@ -1603,6 +1605,9 @@ unique_ptr<StoryManager::Story> StoryManager::parse_story(StoryFullId story_full
       delete_story_from_database(story_full_id);
       return nullptr;
     }
+  }
+  if (is_my_story(owner_dialog_id)) {
+    story->is_outgoing_ = true;
   }
 
   return story;
@@ -3110,6 +3115,14 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
       story->chosen_reaction_type_ = std::move(chosen_reaction_type);
       is_changed = true;
     }
+
+    if (is_my_story(owner_dialog_id)) {
+      story_item->out_ = true;
+    }
+    if (story->is_outgoing_ != story_item->out_) {
+      story->is_outgoing_ = story_item->out_;
+      need_save_to_database = true;
+    }
   }
   if (story->caption_ != caption) {
     story->caption_ = std::move(caption);
@@ -3215,6 +3228,7 @@ StoryId StoryManager::on_get_story_info(DialogId owner_dialog_id, StoryInfo &&st
     story = s.get();
     stories_.set(story_full_id, std::move(s));
     register_story_global_id(story_full_id, story);
+    story->is_outgoing_ = is_my_story(owner_dialog_id);
 
     inaccessible_story_full_ids_.erase(story_full_id);
   }
@@ -4165,6 +4179,7 @@ void StoryManager::send_story(DialogId dialog_id, td_api::object_ptr<td_api::Inp
   story->date_ = G()->unix_time();
   story->expire_date_ = story->date_ + active_period;
   story->is_pinned_ = is_pinned;
+  story->is_outgoing_ = true;
   story->noforwards_ = protect_content;
   story->privacy_rules_ = std::move(privacy_rules);
   story->content_ = std::move(content);
@@ -4231,6 +4246,7 @@ void StoryManager::do_send_story(unique_ptr<PendingStory> &&pending_story, vecto
       story->date_ = pending_story->story_->date_;
       story->expire_date_ = pending_story->story_->expire_date_;
       story->is_pinned_ = pending_story->story_->is_pinned_;
+      story->is_outgoing_ = true;
       story->noforwards_ = pending_story->story_->noforwards_;
       story->privacy_rules_ = pending_story->story_->privacy_rules_;
       story->content_ = std::move(pending_story->story_->content_);
