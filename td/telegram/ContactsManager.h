@@ -716,9 +716,9 @@ class ContactsManager final : public Actor {
 
   void get_support_user(Promise<td_api::object_ptr<td_api::user>> &&promise);
 
-  void on_view_user_active_stories(vector<UserId> user_ids);
+  void on_view_dialog_active_stories(vector<DialogId> dialog_ids);
 
-  void on_get_user_max_active_story_ids(const vector<UserId> &user_ids, const vector<int32> &max_story_ids);
+  void on_get_dialog_max_active_story_ids(const vector<DialogId> &dialog_ids, const vector<int32> &max_story_ids);
 
   void repair_chat_participants(ChatId chat_id);
 
@@ -1001,6 +1001,8 @@ class ContactsManager final : public Actor {
     bool is_verified = false;
     bool is_scam = false;
     bool is_fake = false;
+
+    bool is_max_active_story_id_being_reloaded = false;
 
     bool is_title_changed = true;
     bool is_username_changed = true;

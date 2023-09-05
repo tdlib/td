@@ -3794,11 +3794,11 @@ class GetSupportUserQuery final : public Td::ResultHandler {
 };
 
 class GetStoriesMaxIdsQuery final : public Td::ResultHandler {
-  vector<UserId> user_ids_;
+  vector<DialogId> dialog_ids_;
 
  public:
-  void send(vector<UserId> user_ids, vector<telegram_api::object_ptr<telegram_api::InputPeer>> &&input_peers) {
-    user_ids_ = std::move(user_ids);
+  void send(vector<DialogId> dialog_ids, vector<telegram_api::object_ptr<telegram_api::InputPeer>> &&input_peers) {
+    dialog_ids_ = std::move(dialog_ids);
     send_query(G()->net_query_creator().create(telegram_api::stories_getPeerMaxIDs(std::move(input_peers))));
   }
 
@@ -3808,11 +3808,11 @@ class GetStoriesMaxIdsQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->contacts_manager_->on_get_user_max_active_story_ids(user_ids_, result_ptr.move_as_ok());
+    td_->contacts_manager_->on_get_dialog_max_active_story_ids(dialog_ids_, result_ptr.move_as_ok());
   }
 
   void on_error(Status status) final {
-    td_->contacts_manager_->on_get_user_max_active_story_ids(user_ids_, Auto());
+    td_->contacts_manager_->on_get_dialog_max_active_story_ids(dialog_ids_, Auto());
   }
 };
 
@@ -14840,13 +14840,11 @@ void ContactsManager::on_get_channel_participants(
     }
   }
 
-  vector<UserId> participant_user_ids;
+  vector<DialogId> participant_dialog_ids;
   for (const auto &participant : result) {
-    if (participant.dialog_id_.get_type() == DialogType::User) {
-      participant_user_ids.push_back(participant.dialog_id_.get_user_id());
-    }
+    participant_dialog_ids.push_back(participant.dialog_id_);
   }
-  on_view_user_active_stories(std::move(participant_user_ids));
+  on_view_dialog_active_stories(std::move(participant_dialog_ids));
 
   promise.set_value(DialogParticipants{total_count, std::move(result)});
 }
@@ -15616,64 +15614,110 @@ bool ContactsManager::need_poll_user_active_stories(const User *u, UserId user_i
          !is_user_support(u) && !is_user_deleted(u) && u->was_online != 0;
 }
 
-void ContactsManager::on_view_user_active_stories(vector<UserId> user_ids) {
-  if (user_ids.empty() || td_->auth_manager_->is_bot()) {
+void ContactsManager::on_view_dialog_active_stories(vector<DialogId> dialog_ids) {
+  if (dialog_ids.empty() || td_->auth_manager_->is_bot()) {
     return;
   }
-  LOG(DEBUG) << "View active stories of " << user_ids;
+  LOG(DEBUG) << "View active stories of " << dialog_ids;
 
   const size_t MAX_SLICE_SIZE = 100;  // server side limit
-  vector<UserId> input_user_ids;
+  vector<DialogId> input_dialog_ids;
   vector<telegram_api::object_ptr<telegram_api::InputPeer>> input_peers;
-  for (auto &user_id : user_ids) {
-    if (td::contains(input_user_ids, user_id)) {
+  for (auto &dialog_id : dialog_ids) {
+    if (td::contains(input_dialog_ids, dialog_id)) {
       continue;
     }
-    User *u = get_user(user_id);
-    if (!need_poll_user_active_stories(u, user_id) || Time::now() < u->max_active_story_id_next_reload_time ||
-        u->is_max_active_story_id_being_reloaded) {
-      continue;
-    }
-    auto input_peer = td_->messages_manager_->get_input_peer(DialogId(user_id), AccessRights::Read);
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
       continue;
     }
-    u->is_max_active_story_id_being_reloaded = true;
-    input_user_ids.push_back(user_id);
+
+    bool need_poll = false;
+    switch (dialog_id.get_type()) {
+      case DialogType::User: {
+        auto user_id = dialog_id.get_user_id();
+        User *u = get_user(user_id);
+        if (need_poll_user_active_stories(u, user_id) && Time::now() >= u->max_active_story_id_next_reload_time &&
+            !u->is_max_active_story_id_being_reloaded) {
+          u->is_max_active_story_id_being_reloaded = true;
+          need_poll = true;
+        }
+        break;
+      }
+      case DialogType::Channel: {
+        auto channel_id = dialog_id.get_channel_id();
+        Channel *c = get_channel(channel_id);
+        if (need_poll_channel_active_stories(c, channel_id) && Time::now() >= c->max_active_story_id_next_reload_time &&
+            !c->is_max_active_story_id_being_reloaded) {
+          c->is_max_active_story_id_being_reloaded = true;
+          need_poll = true;
+        }
+        break;
+      }
+      case DialogType::Chat:
+      case DialogType::SecretChat:
+      case DialogType::None:
+      default:
+        break;
+    }
+    if (!need_poll) {
+      continue;
+    }
+    input_dialog_ids.push_back(dialog_id);
     input_peers.push_back(std::move(input_peer));
     if (input_peers.size() == MAX_SLICE_SIZE) {
-      td_->create_handler<GetStoriesMaxIdsQuery>()->send(std::move(input_user_ids), std::move(input_peers));
-      input_user_ids.clear();
+      td_->create_handler<GetStoriesMaxIdsQuery>()->send(std::move(input_dialog_ids), std::move(input_peers));
+      input_dialog_ids.clear();
       input_peers.clear();
     }
   }
   if (!input_peers.empty()) {
-    td_->create_handler<GetStoriesMaxIdsQuery>()->send(std::move(input_user_ids), std::move(input_peers));
+    td_->create_handler<GetStoriesMaxIdsQuery>()->send(std::move(input_dialog_ids), std::move(input_peers));
   }
 }
 
-void ContactsManager::on_get_user_max_active_story_ids(const vector<UserId> &user_ids,
-                                                       const vector<int32> &max_story_ids) {
-  for (auto &user_id : user_ids) {
-    User *u = get_user(user_id);
-    CHECK(u != nullptr);
-    CHECK(u->is_max_active_story_id_being_reloaded);
-    u->is_max_active_story_id_being_reloaded = false;
+void ContactsManager::on_get_dialog_max_active_story_ids(const vector<DialogId> &dialog_ids,
+                                                         const vector<int32> &max_story_ids) {
+  for (auto &dialog_id : dialog_ids) {
+    switch (dialog_id.get_type()) {
+      case DialogType::User: {
+        User *u = get_user(dialog_id.get_user_id());
+        CHECK(u != nullptr);
+        CHECK(u->is_max_active_story_id_being_reloaded);
+        u->is_max_active_story_id_being_reloaded = false;
+        break;
+      }
+      case DialogType::Channel: {
+        Channel *c = get_channel(dialog_id.get_channel_id());
+        CHECK(c != nullptr);
+        CHECK(c->is_max_active_story_id_being_reloaded);
+        c->is_max_active_story_id_being_reloaded = false;
+        break;
+      }
+      case DialogType::Chat:
+      case DialogType::SecretChat:
+      case DialogType::None:
+      default:
+        UNREACHABLE();
+    }
   }
-  if (user_ids.size() != max_story_ids.size()) {
+  if (dialog_ids.size() != max_story_ids.size()) {
     if (!max_story_ids.empty()) {
-      LOG(ERROR) << "Receive " << max_story_ids.size() << " max active story identifiers for users " << user_ids;
+      LOG(ERROR) << "Receive " << max_story_ids.size() << " max active story identifiers for " << dialog_ids;
     }
     return;
   }
-  for (size_t i = 0; i < user_ids.size(); i++) {
+  for (size_t i = 0; i < dialog_ids.size(); i++) {
     auto max_story_id = StoryId(max_story_ids[i]);
-    if (max_story_id == StoryId()) {
-      on_update_user_story_ids(user_ids[i], StoryId(), StoryId());
-    } else if (max_story_id.is_server()) {
-      on_update_user_story_ids(user_ids[i], max_story_id, StoryId());
+    auto dialog_id = dialog_ids[i];
+    if (max_story_id == StoryId() || max_story_id.is_server()) {
+      if (dialog_id.get_type() == DialogType::User) {
+        on_update_user_story_ids(dialog_id.get_user_id(), max_story_id, StoryId());
+      } else {
+        on_update_channel_story_ids(dialog_id.get_channel_id(), max_story_id, StoryId());
+      }
     } else {
-      LOG(ERROR) << "Receive " << max_story_id << " as maximum active story for " << user_ids[i];
+      LOG(ERROR) << "Receive " << max_story_id << " as maximum active story for " << dialog_id;
     }
   }
 }
@@ -17078,7 +17122,7 @@ void ContactsManager::load_user_full(UserId user_id, bool force, Promise<Unit> &
     send_get_user_full_query(user_id, std::move(input_user), Auto(), "load expired user_full");
   }
 
-  on_view_user_active_stories({user_id});
+  on_view_dialog_active_stories({DialogId(user_id)});
   promise.set_value(Unit());
 }
 
@@ -17470,13 +17514,11 @@ void ContactsManager::load_chat_full(ChatId chat_id, bool force, Promise<Unit> &
     send_get_chat_full_query(chat_id, Auto(), source);
   }
 
-  vector<UserId> participant_user_ids;
+  vector<DialogId> participant_dialog_ids;
   for (const auto &dialog_participant : chat_full->participants) {
-    if (dialog_participant.dialog_id_.get_type() == DialogType::User) {
-      participant_user_ids.push_back(dialog_participant.dialog_id_.get_user_id());
-    }
+    participant_dialog_ids.push_back(dialog_participant.dialog_id_);
   }
-  on_view_user_active_stories(std::move(participant_user_ids));
+  on_view_dialog_active_stories(std::move(participant_dialog_ids));
 
   promise.set_value(Unit());
 }
@@ -18393,21 +18435,16 @@ void ContactsManager::do_search_chat_participants(ChatId chat_id, const string &
     return promise.set_error(Status::Error(500, "Can't find basic group full info"));
   }
 
-  vector<UserId> participant_user_ids;
   vector<DialogId> dialog_ids;
   for (const auto &participant : chat_full->participants) {
     if (filter.is_dialog_participant_suitable(td_, participant)) {
       dialog_ids.push_back(participant.dialog_id_);
-      if (participant.dialog_id_.get_type() == DialogType::User) {
-        participant_user_ids.push_back(participant.dialog_id_.get_user_id());
-      }
     }
   }
 
-  on_view_user_active_stories(std::move(participant_user_ids));
-
   int32 total_count;
   std::tie(total_count, dialog_ids) = search_among_dialogs(dialog_ids, query, limit);
+  on_view_dialog_active_stories(dialog_ids);
   promise.set_value(DialogParticipants{total_count, transform(dialog_ids, [chat_full](DialogId dialog_id) {
                                          return *ContactsManager::get_chat_full_participant(chat_full, dialog_id);
                                        })});
@@ -19526,7 +19563,7 @@ int64 ContactsManager::get_supergroup_id_object(ChannelId channel_id, const char
 }
 
 bool ContactsManager::need_poll_channel_active_stories(const Channel *c, ChannelId channel_id) const {
-  return c != nullptr && !get_channel_status(c).is_member() &&
+  return c != nullptr && !c->is_megagroup && !get_channel_status(c).is_member() &&
          have_input_peer_channel(c, channel_id, AccessRights::Read);
 }
 

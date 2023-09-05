@@ -2713,7 +2713,8 @@ void StoryManager::on_get_story_viewers(
     }
   }
 
-  td_->contacts_manager_->on_view_user_active_stories(story_viewers.get_user_ids());
+  td_->contacts_manager_->on_view_dialog_active_stories(
+      transform(story_viewers.get_user_ids(), [](UserId user_id) { return DialogId(user_id); }));
   promise.set_value(story_viewers.get_story_viewers_object(td_->contacts_manager_.get()));
 }
 
