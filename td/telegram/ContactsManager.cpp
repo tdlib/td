@@ -16387,13 +16387,22 @@ void ContactsManager::on_channel_status_changed(Channel *c, ChannelId channel_id
     send_closure_later(G()->messages_manager(), &MessagesManager::on_update_dialog_group_call_rights,
                        DialogId(channel_id));
   }
-  if (td_->auth_manager_->is_bot() && old_status.is_administrator() && !new_status.is_administrator()) {
+  bool is_bot = td_->auth_manager_->is_bot();
+  if (is_bot && old_status.is_administrator() && !new_status.is_administrator()) {
     channel_participants_.erase(channel_id);
   }
-  if (td_->auth_manager_->is_bot() && old_status.is_member() && !new_status.is_member() &&
-      !G()->use_message_database()) {
+  if (is_bot && old_status.is_member() && !new_status.is_member() && !G()->use_message_database()) {
     send_closure_later(G()->messages_manager(), &MessagesManager::on_dialog_deleted, DialogId(channel_id),
                        Promise<Unit>());
+  }
+  if (!is_bot && old_status.is_member() != new_status.is_member()) {
+    if (new_status.is_member()) {
+      send_closure_later(td_->story_manager_actor_, &StoryManager::reload_dialog_expiring_stories,
+                         DialogId(channel_id));
+    } else {
+      send_closure_later(td_->story_manager_actor_, &StoryManager::on_dialog_active_stories_order_updated,
+                         DialogId(channel_id), "on_channel_status_changed");
+    }
   }
 
   // must not load ChannelFull, because must not change the Channel
