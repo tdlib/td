@@ -2371,15 +2371,15 @@ void StoryManager::update_interaction_info() {
   if (opened_owned_stories_.empty()) {
     return;
   }
-  FlatHashMap<DialogId, vector<StoryId>, DialogIdHash> splitted_story_ids;
+  FlatHashMap<DialogId, vector<StoryId>, DialogIdHash> split_story_ids;
   for (auto &it : opened_owned_stories_) {
     auto story_full_id = it.first;
-    auto &story_ids = splitted_story_ids[story_full_id.get_dialog_id()];
+    auto &story_ids = split_story_ids[story_full_id.get_dialog_id()];
     if (story_ids.size() < 100) {
       story_ids.push_back(story_full_id.get_story_id());
     }
   }
-  for (auto &story_ids : splitted_story_ids) {
+  for (auto &story_ids : split_story_ids) {
     CHECK(story_ids.first == DialogId(td_->contacts_manager_->get_my_id()));
     td_->create_handler<GetStoriesViewsQuery>()->send(std::move(story_ids.second));
   }
