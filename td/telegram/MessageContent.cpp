@@ -2049,7 +2049,7 @@ static Result<InputMessageContent> create_input_message_content(
   bool clear_draft = false;
   unique_ptr<MessageContent> content;
   UserId via_bot_user_id;
-  int32 ttl = 0;
+  td_api::object_ptr<td_api::MessageSelfDestructType> self_destruct_type;
   string emoji;
   bool is_bot = td->auth_manager_->is_bot();
   bool is_secret = dialog_id.get_type() == DialogType::SecretChat;
@@ -2122,7 +2122,7 @@ static Result<InputMessageContent> create_input_message_content(
     case td_api::inputMessagePhoto::ID: {
       auto input_photo = static_cast<td_api::inputMessagePhoto *>(input_message_content.get());
 
-      ttl = input_photo->self_destruct_time_;
+      self_destruct_type = std::move(input_photo->self_destruct_type_);
 
       TRY_RESULT(photo, create_photo(td->file_manager_.get(), file_id, std::move(thumbnail), input_photo->width_,
                                      input_photo->height_, std::move(sticker_file_ids)));
@@ -2146,7 +2146,7 @@ static Result<InputMessageContent> create_input_message_content(
     case td_api::inputMessageVideo::ID: {
       auto input_video = static_cast<td_api::inputMessageVideo *>(input_message_content.get());
 
-      ttl = input_video->self_destruct_time_;
+      self_destruct_type = std::move(input_video->self_destruct_type_);
 
       bool has_stickers = !sticker_file_ids.empty();
       td->videos_manager_->create_video(file_id, string(), thumbnail, AnimationSize(), has_stickers,
@@ -2319,12 +2319,27 @@ static Result<InputMessageContent> create_input_message_content(
       UNREACHABLE();
   }
 
-  static constexpr int32 MAX_PRIVATE_MESSAGE_TTL = 60;  // server side limit
-  if (ttl < 0 || (ttl > MAX_PRIVATE_MESSAGE_TTL && ttl != 0x7FFFFFFF)) {
-    return Status::Error(400, "Invalid message content self-destruct time specified");
+  if (self_destruct_type != nullptr && dialog_id.get_type() != DialogType::User) {
+    return Status::Error(400, "Messages can self-destruct only in  can be specified only in private chats");
   }
-  if (ttl > 0 && dialog_id.get_type() != DialogType::User) {
-    return Status::Error(400, "Message content self-destruct time can be specified only in private chats");
+  int32 ttl = 0;
+  if (self_destruct_type != nullptr) {
+    switch (self_destruct_type->get_id()) {
+      case td_api::messageSelfDestructTypeTimer::ID: {
+        ttl = static_cast<const td_api::messageSelfDestructTypeTimer *>(self_destruct_type.get())->self_destruct_time_;
+
+        static constexpr int32 MAX_PRIVATE_MESSAGE_TTL = 60;  // server side limit
+        if (ttl <= 0 || ttl > MAX_PRIVATE_MESSAGE_TTL) {
+          return Status::Error(400, "Invalid message content self-destruct time specified");
+        }
+        break;
+      }
+      case td_api::messageSelfDestructTypeImmediately::ID:
+        ttl = 0x7FFFFFFF;
+        break;
+      default:
+        UNREACHABLE();
+    }
   }
 
   return InputMessageContent{std::move(content), disable_web_page_preview, clear_draft, ttl,

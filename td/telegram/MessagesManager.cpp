@@ -24144,7 +24144,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_messag
       m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_dialog_event_log_message_object"),
       nullptr, nullptr, m->is_outgoing, false, false, false, can_be_saved, false, false, false, false, false, false,
       false, false, true, m->is_channel_post, m->is_topic_message, false, m->date, edit_date, std::move(forward_info),
-      std::move(interaction_info), Auto(), nullptr, 0, 0, 0.0, 0.0, via_bot_user_id, m->author_signature, 0,
+      std::move(interaction_info), Auto(), nullptr, 0, nullptr, 0.0, 0.0, via_bot_user_id, m->author_signature, 0,
       get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
 }
 
@@ -24199,7 +24199,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
                   (!forward_info->from_dialog_id.is_valid() && !is_forward_info_sender_hidden(forward_info));
   }
 
-  double ttl_expires_in = m->ttl_expires_at != 0 ? clamp(m->ttl_expires_at - Time::now(), 1e-3, m->ttl - 1e-3) : m->ttl;
+  double ttl_expires_in = m->ttl_expires_at != 0 ? clamp(m->ttl_expires_at - Time::now(), 1e-3, m->ttl - 1e-3) : 0.0;
   double auto_delete_in =
       m->ttl_period == 0 ? 0.0 : clamp(m->date + m->ttl_period - G()->server_time(), 1e-3, m->ttl_period - 1e-3);
   auto sender = get_message_sender_object_const(td_, m->sender_user_id, m->sender_dialog_id, source);
@@ -24245,6 +24245,15 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto max_media_timestamp = get_message_max_media_timestamp(m);
   auto content = get_message_content_object(m->content.get(), td_, dialog_id, live_location_date, m->is_content_secret,
                                             skip_bot_commands, max_media_timestamp);
+  auto self_destruct_type = [&]() -> td_api::object_ptr<td_api::MessageSelfDestructType> {
+    if (m->ttl == 0x7FFFFFFF) {
+      return td_api::make_object<td_api::messageSelfDestructTypeImmediately>();
+    }
+    if (m->ttl > 0) {
+      return td_api::make_object<td_api::messageSelfDestructTypeTimer>(m->ttl);
+    }
+    return nullptr;
+  }();
 
   return td_api::make_object<td_api::message>(
       m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_message_object"),
@@ -24253,9 +24262,9 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
       can_get_message_thread, can_get_viewers, can_get_media_timestamp_links, can_report_reactions,
       has_timestamped_media, m->is_channel_post, m->is_topic_message, m->contains_unread_mention, date, edit_date,
       std::move(forward_info), std::move(interaction_info), std::move(unread_reactions), std::move(reply_to),
-      top_thread_message_id, m->ttl, ttl_expires_in, auto_delete_in, via_bot_user_id, m->author_signature,
-      m->media_album_id, get_restriction_reason_description(m->restriction_reasons), std::move(content),
-      std::move(reply_markup));
+      top_thread_message_id, std::move(self_destruct_type), ttl_expires_in, auto_delete_in, via_bot_user_id,
+      m->author_signature, m->media_album_id, get_restriction_reason_description(m->restriction_reasons),
+      std::move(content), std::move(reply_markup));
 }
 
 tl_object_ptr<td_api::messages> MessagesManager::get_messages_object(int32 total_count, DialogId dialog_id,
