@@ -24,7 +24,7 @@ endif()
 find_package(Td REQUIRED)
 
 if (NOT JNI_FOUND)
-  find_package(JNI REQUIRED)
+  find_package(JNI REQUIRED COMPONENTS JVM)
 endif()
 message(STATUS "Found JNI: ${JNI_INCLUDE_DIRS} ${JNI_LIBRARIES}")
 
