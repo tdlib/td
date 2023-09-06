@@ -13262,7 +13262,7 @@ void MessagesManager::ttl_on_view(const Dialog *d, Message *m, double view_date,
 bool MessagesManager::ttl_on_open(Dialog *d, Message *m, double now, bool is_local_read) {
   CHECK(!m->message_id.is_scheduled());
   if (m->ttl > 0 && m->ttl_expires_at == 0) {
-    if (!is_local_read && d->dialog_id.get_type() != DialogType::SecretChat) {
+    if ((m->ttl == 0x7FFFFFFF || !is_local_read) && d->dialog_id.get_type() != DialogType::SecretChat) {
       on_message_ttl_expired(d, m);
     } else {
       m->ttl_expires_at = m->ttl + now;
@@ -14063,7 +14063,7 @@ void MessagesManager::on_get_secret_message(SecretChatId secret_chat_id, UserId 
   message_info.sender_user_id = user_id;
   message_info.date = date;
   message_info.random_id = message->random_id_;
-  message_info.ttl = message->ttl_;
+  message_info.ttl = min(message->ttl_, 0x7FFFFFFE);
 
   Dialog *d = get_dialog_force(message_info.dialog_id, "on_get_secret_message");
   if (d == nullptr && have_dialog_info_force(message_info.dialog_id, "on_get_secret_message")) {
@@ -14550,6 +14550,9 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   }
 
   int32 ttl = message_info.ttl;
+  if (dialog_type == DialogType::SecretChat && ttl == 0x7FFFFFFF) {
+    ttl = 0x7FFFFFFE;
+  }
   bool is_content_secret = is_secret_message_content(ttl, content_type);  // must be calculated before TTL is adjusted
   if (ttl < 0 || (message_id.is_scheduled() && ttl != 0)) {
     LOG(ERROR) << "Wrong self-destruct time " << ttl << " received in " << message_id << " in " << dialog_id;
@@ -24479,7 +24482,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
 
   if (dialog_type == DialogType::SecretChat) {
     CHECK(!is_scheduled);
-    m->ttl = td_->contacts_manager_->get_secret_chat_ttl(dialog_id.get_secret_chat_id());
+    m->ttl = min(td_->contacts_manager_->get_secret_chat_ttl(dialog_id.get_secret_chat_id()), 0x7FFFFFFE);
     if (is_service_message_content(m->content->get_type())) {
       m->ttl = 0;
     }
@@ -27057,7 +27060,6 @@ void MessagesManager::edit_inline_message_media(const string &inline_message_id,
   }
   InputMessageContent content = r_input_message_content.move_as_ok();
   if (content.ttl > 0) {
-    LOG(ERROR) << "Have message content with self-destruct time " << content.ttl;
     return promise.set_error(Status::Error(400, "Can't enable self-destruction for media"));
   }
 
@@ -28661,7 +28663,7 @@ Result<MessageId> MessagesManager::add_local_message(
   m->disable_web_page_preview = message_content.disable_web_page_preview;
   m->clear_draft = message_content.clear_draft;
   if (dialog_type == DialogType::SecretChat) {
-    m->ttl = td_->contacts_manager_->get_secret_chat_ttl(dialog_id.get_secret_chat_id());
+    m->ttl = min(td_->contacts_manager_->get_secret_chat_ttl(dialog_id.get_secret_chat_id()), 0x7FFFFFFE);
     if (is_service_message_content(m->content->get_type())) {
       m->ttl = 0;
     }

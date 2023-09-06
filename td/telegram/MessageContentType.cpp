@@ -207,7 +207,7 @@ bool is_homogenous_media_group_content(MessageContentType content_type) {
 
 bool is_secret_message_content(int32 ttl, MessageContentType content_type) {
   if (ttl <= 0 || ttl > 60) {
-    return false;
+    return ttl == 0x7FFFFFFF;
   }
   switch (content_type) {
     case MessageContentType::Animation:

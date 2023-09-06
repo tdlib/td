@@ -2320,7 +2320,7 @@ static Result<InputMessageContent> create_input_message_content(
   }
 
   static constexpr int32 MAX_PRIVATE_MESSAGE_TTL = 60;  // server side limit
-  if (ttl < 0 || ttl > MAX_PRIVATE_MESSAGE_TTL) {
+  if (ttl < 0 || (ttl > MAX_PRIVATE_MESSAGE_TTL && ttl != 0x7FFFFFFF)) {
     return Status::Error(400, "Invalid message content self-destruct time specified");
   }
   if (ttl > 0 && dialog_id.get_type() != DialogType::User) {
