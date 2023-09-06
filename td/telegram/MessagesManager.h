@@ -2147,11 +2147,11 @@ class MessagesManager final : public Actor {
 
   bool remove_message_unread_reactions(Dialog *d, Message *m, const char *source);
 
-  void read_message_content_from_updates(MessageId message_id);
+  void read_message_content_from_updates(MessageId message_id, int32 read_date);
 
   void read_channel_message_content_from_updates(Dialog *d, MessageId message_id);
 
-  bool read_message_content(Dialog *d, Message *m, bool is_local_read, const char *source);
+  bool read_message_content(Dialog *d, Message *m, bool is_local_read, int32 read_date, const char *source);
 
   void read_message_contents_on_server(DialogId dialog_id, vector<MessageId> message_ids, uint64 log_event_id,
                                        Promise<Unit> &&promise, bool skip_log_event = false);
@@ -2869,7 +2869,7 @@ class MessagesManager final : public Actor {
   void ttl_read_history_impl(DialogId dialog_id, bool is_outgoing, MessageId from_message_id, MessageId till_message_id,
                              double view_date);
   void ttl_on_view(const Dialog *d, Message *m, double view_date, double now);
-  bool ttl_on_open(Dialog *d, Message *m, double now, bool is_local_read);
+  bool ttl_on_open(Dialog *d, Message *m, double now, bool is_local_read, int32 read_date);
   void ttl_register_message(DialogId dialog_id, const Message *m, double now);
   void ttl_unregister_message(DialogId dialog_id, const Message *m, const char *source);
   void ttl_period_register_message(DialogId dialog_id, const Message *m, double server_time);

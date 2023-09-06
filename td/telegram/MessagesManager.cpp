@@ -7905,13 +7905,10 @@ void MessagesManager::process_pts_update(tl_object_ptr<telegram_api::Update> &&u
       break;
     }
     case telegram_api::updateReadMessagesContents::ID: {
-      if (td_->auth_manager_->is_bot()) {
-        break;
-      }
       auto update = move_tl_object_as<telegram_api::updateReadMessagesContents>(update_ptr);
       LOG(INFO) << "Process updateReadMessageContents";
       for (auto &message_id : update->messages_) {
-        read_message_content_from_updates(MessageId(ServerMessageId(message_id)));
+        read_message_content_from_updates(MessageId(ServerMessageId(message_id)), update->date_);
       }
       break;
     }
@@ -12222,7 +12219,7 @@ void MessagesManager::read_all_dialog_reactions_on_server(DialogId dialog_id, ui
                                             get_erase_log_event_promise(log_event_id, std::move(promise)));
 }
 
-void MessagesManager::read_message_content_from_updates(MessageId message_id) {
+void MessagesManager::read_message_content_from_updates(MessageId message_id, int32 read_date) {
   if (!message_id.is_valid() || !message_id.is_server()) {
     LOG(ERROR) << "Incoming update tries to read content of " << message_id;
     return;
@@ -12232,7 +12229,7 @@ void MessagesManager::read_message_content_from_updates(MessageId message_id) {
   if (d != nullptr) {
     Message *m = get_message(d, message_id);
     CHECK(m != nullptr);
-    read_message_content(d, m, false, "read_message_content_from_updates");
+    read_message_content(d, m, false, read_date, "read_message_content_from_updates");
   }
 }
 
@@ -12248,7 +12245,7 @@ void MessagesManager::read_channel_message_content_from_updates(Dialog *d, Messa
 
   Message *m = get_message_force(d, message_id, "read_channel_message_content_from_updates");
   if (m != nullptr) {
-    read_message_content(d, m, false, "read_channel_message_content_from_updates");
+    read_message_content(d, m, false, 0, "read_channel_message_content_from_updates");
   } else {
     if (!have_input_peer(d->dialog_id, AccessRights::Read)) {
       LOG(INFO) << "Ignore updateChannelReadMessagesContents in inaccessible " << d->dialog_id;
@@ -12269,12 +12266,13 @@ void MessagesManager::read_channel_message_content_from_updates(Dialog *d, Messa
   }
 }
 
-bool MessagesManager::read_message_content(Dialog *d, Message *m, bool is_local_read, const char *source) {
+bool MessagesManager::read_message_content(Dialog *d, Message *m, bool is_local_read, int32 read_date,
+                                           const char *source) {
   LOG_CHECK(m != nullptr) << source;
   CHECK(!m->message_id.is_scheduled());
   bool is_mention_read = update_message_contains_unread_mention(d, m, false, "read_message_content");
   bool is_content_read = update_opened_message_content(m->content.get());
-  if (ttl_on_open(d, m, Time::now(), is_local_read)) {
+  if (ttl_on_open(d, m, Time::now(), is_local_read, read_date)) {
     is_content_read = true;
   }
 
@@ -13259,13 +13257,30 @@ void MessagesManager::ttl_on_view(const Dialog *d, Message *m, double view_date,
   }
 }
 
-bool MessagesManager::ttl_on_open(Dialog *d, Message *m, double now, bool is_local_read) {
+bool MessagesManager::ttl_on_open(Dialog *d, Message *m, double now, bool is_local_read, int32 read_date) {
   CHECK(!m->message_id.is_scheduled());
   if (m->ttl > 0 && m->ttl_expires_at == 0) {
-    if ((m->ttl == 0x7FFFFFFF || !is_local_read) && d->dialog_id.get_type() != DialogType::SecretChat) {
+    int32 passed_after_read_time = 0;
+    auto can_destroy_immediately = [&] {
+      if (m->ttl == 0x7FFFFFFF) {
+        return true;
+      }
+      if (is_local_read) {
+        return false;
+      }
+      if (read_date <= 0) {
+        return d->dialog_id.get_type() != DialogType::SecretChat;
+      }
+      passed_after_read_time = max(G()->unix_time() - read_date, 0);
+      if (m->ttl <= passed_after_read_time) {
+        return true;
+      }
+      return false;
+    }();
+    if (can_destroy_immediately) {
       on_message_ttl_expired(d, m);
     } else {
-      m->ttl_expires_at = m->ttl + now;
+      m->ttl_expires_at = m->ttl + now - passed_after_read_time;
       ttl_register_message(d->dialog_id, m, now);
     }
     return true;
@@ -14015,7 +14030,7 @@ void MessagesManager::open_secret_message(SecretChatId secret_chat_id, int64 ran
     return;
   }
 
-  read_message_content(d, m, false, "open_secret_message");
+  read_message_content(d, m, false, 0, "open_secret_message");
 }
 
 void MessagesManager::on_update_secret_chat_state(SecretChatId secret_chat_id, SecretChatState state) {
@@ -20365,7 +20380,7 @@ Status MessagesManager::open_message_content(FullMessageId full_message_id) {
     return Status::OK();
   }
 
-  if (read_message_content(d, m, true, "open_message_content") &&
+  if (read_message_content(d, m, true, 0, "open_message_content") &&
       (m->message_id.is_server() || dialog_id.get_type() == DialogType::SecretChat)) {
     read_message_contents_on_server(dialog_id, {m->message_id}, 0, Auto());
   }
