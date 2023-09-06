@@ -4343,4 +4343,8 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStoryID> update
 
 // unsupported updates
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewAuthorization> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
 }  // namespace td

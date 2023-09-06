@@ -179,7 +179,7 @@ class RequestSimpleWebViewQuery final : public Td::ResultHandler {
   void send(tl_object_ptr<telegram_api::InputUser> &&input_user, const string &url,
             const td_api::object_ptr<td_api::themeParameters> &theme, string &&platform) {
     tl_object_ptr<telegram_api::dataJSON> theme_parameters;
-    int32 flags = 0;
+    int32 flags = telegram_api::messages_requestSimpleWebView::URL_MASK;
     if (theme != nullptr) {
       flags |= telegram_api::messages_requestSimpleWebView::THEME_PARAMS_MASK;
 
@@ -195,8 +195,8 @@ class RequestSimpleWebViewQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Invalid URL specified"));
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_requestSimpleWebView(
-        flags, false /*ignored*/, std::move(input_user), url.substr(0, url.size() - 3), std::move(theme_parameters),
-        platform)));
+        flags, false /*ignored*/, false /*ignored*/, std::move(input_user), url.substr(0, url.size() - 3), string(),
+        std::move(theme_parameters), platform)));
   }
 
   void on_result(BufferSlice packet) final {
