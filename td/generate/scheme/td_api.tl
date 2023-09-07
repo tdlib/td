@@ -7026,9 +7026,9 @@ searchWebApp bot_user_id:int53 web_app_short_name:string = FoundWebApp;
 //@allow_write_access Pass true if the current user allowed the bot to send them messages
 getWebAppLinkUrl chat_id:int53 bot_user_id:int53 web_app_short_name:string start_parameter:string theme:themeParameters application_name:string allow_write_access:Bool = HttpUrl;
 
-//@description Returns an HTTPS URL of a Web App to open after keyboardButtonTypeWebApp or inlineQueryResultsButtonTypeWebApp button is pressed
+//@description Returns an HTTPS URL of a Web App to open from the side menu, a keyboardButtonTypeWebApp button, an inlineQueryResultsButtonTypeWebApp button, or an internalLinkTypeSideMenuBot link
 //@bot_user_id Identifier of the target bot
-//@url The URL from the keyboardButtonTypeWebApp or inlineQueryResultsButtonTypeWebApp button
+//@url The URL from a keyboardButtonTypeWebApp button, inlineQueryResultsButtonTypeWebApp button, an internalLinkTypeSideMenuBot link, or an empty when the bot is opened from the side menu
 //@theme Preferred Web App theme; pass null to use the default theme
 //@application_name Short name of the application; 0-64 English letters, digits, and underscores
 getWebAppUrl bot_user_id:int53 url:string theme:themeParameters application_name:string = HttpUrl;
@@ -7043,7 +7043,7 @@ sendWebAppData bot_user_id:int53 button_text:string data:string = Ok;
 //-For each bot, a confirmation alert about data sent to the bot must be shown once
 //@chat_id Identifier of the chat in which the Web App is opened. The Web App can't be opened in secret chats
 //@bot_user_id Identifier of the bot, providing the Web App
-//@url The URL from an inlineKeyboardButtonTypeWebApp button, a botMenuButton button, or an internalLinkTypeAttachmentMenuBot link, or an empty string otherwise
+//@url The URL from an inlineKeyboardButtonTypeWebApp button, a botMenuButton button, an internalLinkTypeAttachmentMenuBot link, or an empty string otherwise
 //@theme Preferred Web App theme; pass null to use the default theme
 //@application_name Short name of the application; 0-64 English letters, digits, and underscores
 //@message_thread_id If not 0, a message thread identifier in which the message will be sent
