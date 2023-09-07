@@ -3613,25 +3613,28 @@ speechRecognitionResultError error:error = SpeechRecognitionResult;
 //@description Describes a color to highlight a bot added to attachment menu @light_color Color in the RGB24 format for light themes @dark_color Color in the RGB24 format for dark themes
 attachmentMenuBotColor light_color:int32 dark_color:int32 = AttachmentMenuBotColor;
 
-//@description Represents a bot, which can be added to attachment menu
-//@bot_user_id User identifier of the bot added to attachment menu
+//@description Represents a bot, which can be added to attachment or side menu
+//@bot_user_id User identifier of the bot
 //@supports_self_chat True, if the bot supports opening from attachment menu in the chat with the bot
 //@supports_user_chats True, if the bot supports opening from attachment menu in private chats with ordinary users
 //@supports_bot_chats True, if the bot supports opening from attachment menu in private chats with other bots
 //@supports_group_chats True, if the bot supports opening from attachment menu in basic group and supergroup chats
 //@supports_channel_chats True, if the bot supports opening from attachment menu in channel chats
 //@supports_settings True, if the bot supports "settings_button_pressed" event
-//@request_write_access True, if the user must be asked for the permission to the bot to send them messages
+//@request_write_access True, if the user must be asked for the permission to send messages to the bot
+//@show_in_attachment_menu True, if the bot must be shown in the attachment menu
+//@show_in_side_menu True, if the bot must be shown in the side menu menu
+//@show_disclaimer_in_side_menu True, if a disclaimer, why the bot is shown in the side menu, is needed
 //@name Name for the bot in attachment menu
 //@name_color Color to highlight selected name of the bot if appropriate; may be null
-//@default_icon Default attachment menu icon for the bot in SVG format; may be null
-//@ios_static_icon Attachment menu icon for the bot in SVG format for the official iOS app; may be null
-//@ios_animated_icon Attachment menu icon for the bot in TGS format for the official iOS app; may be null
-//@android_icon Attachment menu icon for the bot in TGS format for the official Android app; may be null
-//@macos_icon Attachment menu icon for the bot in TGS format for the official native macOS app; may be null
+//@default_icon Default icon for the bot in SVG format; may be null
+//@ios_static_icon Icon for the bot in SVG format for the official iOS app; may be null
+//@ios_animated_icon Icon for the bot in TGS format for the official iOS app; may be null
+//@android_icon Icon for the bot in TGS format for the official Android app; may be null
+//@macos_icon Icon for the bot in TGS format for the official native macOS app; may be null
 //@icon_color Color to highlight selected icon of the bot if appropriate; may be null
 //@web_app_placeholder Default placeholder for opened Web Apps in SVG format; may be null
-attachmentMenuBot bot_user_id:int53 supports_self_chat:Bool supports_user_chats:Bool supports_bot_chats:Bool supports_group_chats:Bool supports_channel_chats:Bool supports_settings:Bool request_write_access:Bool name:string name_color:attachmentMenuBotColor default_icon:file ios_static_icon:file ios_animated_icon:file android_icon:file macos_icon:file icon_color:attachmentMenuBotColor web_app_placeholder:file = AttachmentMenuBot;
+attachmentMenuBot bot_user_id:int53 supports_self_chat:Bool supports_user_chats:Bool supports_bot_chats:Bool supports_group_chats:Bool supports_channel_chats:Bool supports_settings:Bool request_write_access:Bool show_in_attachment_menu:Bool show_in_side_menu:Bool show_disclaimer_in_side_menu:Bool name:string name_color:attachmentMenuBotColor default_icon:file ios_static_icon:file ios_animated_icon:file android_icon:file macos_icon:file icon_color:attachmentMenuBotColor web_app_placeholder:file = AttachmentMenuBot;
 
 //@description Information about the message sent by answerWebAppQuery @inline_message_id Identifier of the sent inline message, if known
 sentWebAppMessage inline_message_id:string = SentWebAppMessage;
@@ -5969,7 +5972,7 @@ updateTermsOfService terms_of_service_id:string terms_of_service:termsOfService 
 //@description The list of users nearby has changed. The update is guaranteed to be sent only 60 seconds after a successful searchChatsNearby request @users_nearby The new list of users nearby
 updateUsersNearby users_nearby:vector<chatNearby> = Update;
 
-//@description The list of bots added to attachment menu has changed @bots The new list of bots added to attachment menu. The bots must not be shown on scheduled messages screen
+//@description The list of bots added to attachment or side menu has changed @bots The new list of bots. The bots must not be shown on scheduled messages screen
 updateAttachmentMenuBots bots:vector<attachmentMenuBot> = Update;
 
 //@description A message was sent by an opened Web App, so the Web App needs to be closed @web_app_launch_id Identifier of Web App launch
@@ -7564,10 +7567,10 @@ reportStory story_sender_chat_id:int53 story_id:int32 reason:ReportReason text:s
 activateStoryStealthMode = Ok;
 
 
-//@description Returns information about a bot that can be added to attachment menu @bot_user_id Bot's user identifier
+//@description Returns information about a bot that can be added to attachment or side menu @bot_user_id Bot's user identifier
 getAttachmentMenuBot bot_user_id:int53 = AttachmentMenuBot;
 
-//@description Adds or removes a bot to attachment menu. Bot can be added to attachment menu, only if userTypeBot.can_be_added_to_attachment_menu == true
+//@description Adds or removes a bot to attachment and side menu. Bot can be added to the menu, only if userTypeBot.can_be_added_to_attachment_menu == true
 //@bot_user_id Bot's user identifier
 //@is_added Pass true to add the bot to attachment menu; pass false to remove the bot from attachment menu
 //@allow_write_access Pass true if the current user allowed the bot to send them messages. Ignored if is_added is false
