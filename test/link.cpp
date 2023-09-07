@@ -313,6 +313,11 @@ static auto settings() {
   return td::td_api::make_object<td::td_api::internalLinkTypeSettings>();
 }
 
+static auto side_menu_bot(const td::string &bot_username, const td::string &start_parameter) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeSideMenuBot>(
+      bot_username, start_parameter.empty() ? td::string() : "start://" + start_parameter);
+}
+
 static auto sticker_set(const td::string &sticker_set_name, bool expect_custom_emoji) {
   return td::td_api::make_object<td::td_api::internalLinkTypeStickerSet>(sticker_set_name, expect_custom_emoji);
 }
@@ -1103,6 +1108,23 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("t.me/username/asd", web_app("username", "asd", ""));
   parse_internal_link("t.me/username/", public_chat("username"));
   parse_internal_link("https://telegram.dog/tele%63ram/t%63st", web_app("telecram", "tcst", ""));
+
+  parse_internal_link("tg:resolve?domain=username&startapp=aasdasd", side_menu_bot("username", "aasdasd"));
+  parse_internal_link("TG://resolve?domain=username&startapp=&startapp=123asd", side_menu_bot("username", ""));
+  parse_internal_link("TG://test@resolve?domain=username&startapp=asd", nullptr);
+  parse_internal_link("tg:resolve:80?domain=username&startapp=asd", nullptr);
+  parse_internal_link("tg:http://resolve?domain=username&startapp=asd", nullptr);
+  parse_internal_link("tg:https://resolve?domain=username&startapp=asd", nullptr);
+  parse_internal_link("tg:resolve?domain=&startapp=asd", unknown_deep_link("tg://resolve?domain=&startapp=asd"));
+  parse_internal_link("tg:resolve?domain=telegram&&&&&&&startapp=%41", side_menu_bot("telegram", "A"));
+  parse_internal_link("tg:resolve?domain=telegram&&&&&&&startapp=%41b", side_menu_bot("telegram", "Ab"));
+  parse_internal_link("tg:resolve?domain=telegram&&&&&&&startapp=%41bc", side_menu_bot("telegram", "Abc"));
+
+  parse_internal_link("t.me/username?startapp=qwe", side_menu_bot("username", "qwe"));
+  parse_internal_link("t.me/username?12312&startapp=qwe", side_menu_bot("username", "qwe"));
+  parse_internal_link("t.me/username?startapp=0", side_menu_bot("username", "0"));
+  parse_internal_link("https://telegram.dog/tele%63ram?startapp=t%63st", side_menu_bot("telecram", "tcst"));
+  parse_internal_link("https://telegram.dog?startapp=t%63st", nullptr);
 
   parse_internal_link("tg:resolve?domain=username&Game=asd", public_chat("username"));
   parse_internal_link("TG://test@resolve?domain=username", nullptr);
