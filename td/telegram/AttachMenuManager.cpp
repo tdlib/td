@@ -1062,11 +1062,6 @@ void AttachMenuManager::on_reload_attach_menu_bots(
       new_hash = 0;
       continue;
     }
-    if (!r_attach_menu_bot.ok().is_added_) {
-      LOG(ERROR) << "Receive non-added attachment menu bot " << r_attach_menu_bot.ok().user_id_;
-      new_hash = 0;
-      continue;
-    }
 
     new_attach_menu_bots.push_back(r_attach_menu_bot.move_as_ok());
   }
@@ -1162,19 +1157,26 @@ void AttachMenuManager::on_get_attach_menu_bot(
     for (auto &old_bot : attach_menu_bots_) {
       if (old_bot.user_id_ == user_id) {
         is_found = true;
+        if (old_bot != attach_menu_bot) {
+          LOG(INFO) << "Update attachment menu bot " << user_id;
+
+          old_bot = attach_menu_bot;
+
+          send_update_attach_menu_bots();
+          save_attach_menu_bots();
+        }
         break;
       }
     }
     if (!is_found) {
       LOG(INFO) << "Add missing attachment menu bot " << user_id;
-    }
-    hash_ = 0;
-    attach_menu_bots_.insert(attach_menu_bots_.begin(), attach_menu_bot);
 
-    send_update_attach_menu_bots();
-    save_attach_menu_bots();
-  } else {
-    remove_bot_from_attach_menu(user_id);
+      hash_ = 0;
+      attach_menu_bots_.insert(attach_menu_bots_.begin(), attach_menu_bot);
+
+      send_update_attach_menu_bots();
+      save_attach_menu_bots();
+    }
   }
   promise.set_value(get_attachment_menu_bot_object(attach_menu_bot));
 }
@@ -1210,17 +1212,6 @@ void AttachMenuManager::toggle_bot_is_added_to_attach_menu(UserId user_id, bool 
   CHECK(is_active());
 
   TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
-
-  bool is_found = false;
-  for (auto &bot : attach_menu_bots_) {
-    if (bot.user_id_ == user_id) {
-      is_found = true;
-      break;
-    }
-  }
-  if (is_added == is_found) {
-    return promise.set_value(Unit());
-  }
 
   if (is_added) {
     TRY_RESULT_PROMISE(promise, bot_data, td_->contacts_manager_->get_bot_data(user_id));
@@ -1263,8 +1254,8 @@ td_api::object_ptr<td_api::attachmentMenuBot> AttachMenuManager::get_attachment_
   return td_api::make_object<td_api::attachmentMenuBot>(
       td_->contacts_manager_->get_user_id_object(bot.user_id_, "get_attachment_menu_bot_object"),
       bot.supports_self_dialog_, bot.supports_user_dialogs_, bot.supports_bot_dialogs_, bot.supports_group_dialogs_,
-      bot.supports_broadcast_dialogs_, bot.supports_settings_, bot.request_write_access_, bot.show_in_attach_menu_,
-      bot.show_in_side_menu_, bot.side_menu_disclaimer_needed_, bot.name_,
+      bot.supports_broadcast_dialogs_, bot.supports_settings_, bot.request_write_access_, bot.is_added_,
+      bot.show_in_attach_menu_, bot.show_in_side_menu_, bot.side_menu_disclaimer_needed_, bot.name_,
       get_attach_menu_bot_color_object(bot.name_color_), get_file(bot.default_icon_file_id_),
       get_file(bot.ios_static_icon_file_id_), get_file(bot.ios_animated_icon_file_id_),
       get_file(bot.android_icon_file_id_), get_file(bot.macos_icon_file_id_),
