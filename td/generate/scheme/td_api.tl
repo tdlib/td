@@ -1671,9 +1671,10 @@ loginUrlInfoRequestConfirmation url:string domain:string bot_user_id:int53 reque
 
 //@description Contains information about a Web App found by its short name
 //@web_app The Web App
+//@supports_settings True, if the app supports "settings_button_pressed" event
 //@request_write_access True, if the user must be asked for the permission to the bot to send them messages
 //@skip_confirmation True, if there is no need to show an ordinary open URL confirmation before opening the Web App. The field must be ignored and confirmation must be shown anyway if the Web App link was hidden
-foundWebApp web_app:webApp request_write_access:Bool skip_confirmation:Bool = FoundWebApp;
+foundWebApp web_app:webApp supports_settings:Bool request_write_access:Bool skip_confirmation:Bool = FoundWebApp;
 
 //@description Contains information about a Web App @launch_id Unique identifier for the Web App launch @url A Web App URL to open in a web view
 webAppInfo launch_id:int64 url:string = WebAppInfo;

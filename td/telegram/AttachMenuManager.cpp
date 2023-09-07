@@ -753,7 +753,7 @@ void AttachMenuManager::on_get_web_app(UserId bot_user_id, string web_app_short_
       td_->file_manager_->add_file_source(file_id, file_source_id);
     }
   }
-  promise.set_value(td_api::make_object<td_api::foundWebApp>(web_app.get_web_app_object(td_),
+  promise.set_value(td_api::make_object<td_api::foundWebApp>(web_app.get_web_app_object(td_), bot_app->has_settings_,
                                                              bot_app->request_write_access_, !bot_app->inactive_));
 }
 
