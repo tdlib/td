@@ -149,7 +149,7 @@ void FileDownloader::on_error(Status status) {
   callback_->on_error(std::move(status));
 }
 
-Result<bool> FileDownloader::should_restart_part(Part part, NetQueryPtr &net_query) {
+Result<bool> FileDownloader::should_restart_part(Part part, const NetQueryPtr &net_query) {
   // Check if we should use CDN or reupload file to CDN
 
   if (net_query->is_error()) {
@@ -166,7 +166,7 @@ Result<bool> FileDownloader::should_restart_part(Part part, NetQueryPtr &net_que
   switch (narrow_cast<QueryType>(UniqueId::extract_key(net_query->id()))) {
     case QueryType::Default: {
       if (net_query->ok_tl_constructor() == telegram_api::upload_fileCdnRedirect::ID) {
-        TRY_RESULT(file_base, fetch_result<telegram_api::upload_getFile>(std::move(net_query)));
+        TRY_RESULT(file_base, fetch_result<telegram_api::upload_getFile>(net_query->ok()));
         CHECK(file_base->get_id() == telegram_api::upload_fileCdnRedirect::ID);
         auto file = move_tl_object_as<telegram_api::upload_fileCdnRedirect>(file_base);
         LOG(DEBUG) << "Downloading of part " << part.id << " was redirected to " << oneline(to_string(file));
@@ -193,14 +193,14 @@ Result<bool> FileDownloader::should_restart_part(Part part, NetQueryPtr &net_que
       return false;
     }
     case QueryType::ReuploadCDN: {
-      TRY_RESULT(file_hashes, fetch_result<telegram_api::upload_reuploadCdnFile>(std::move(net_query)));
+      TRY_RESULT(file_hashes, fetch_result<telegram_api::upload_reuploadCdnFile>(net_query->ok()));
       add_hash_info(file_hashes);
       LOG(DEBUG) << "Part " << part.id << " was reuplaoded to CDN";
       return true;
     }
     case QueryType::CDN: {
       if (net_query->ok_tl_constructor() == telegram_api::upload_cdnFileReuploadNeeded::ID) {
-        TRY_RESULT(file_base, fetch_result<telegram_api::upload_getCdnFile>(std::move(net_query)));
+        TRY_RESULT(file_base, fetch_result<telegram_api::upload_getCdnFile>(net_query->ok()));
         CHECK(file_base->get_id() == telegram_api::upload_cdnFileReuploadNeeded::ID);
         auto file = move_tl_object_as<telegram_api::upload_cdnFileReuploadNeeded>(file_base);
         LOG(DEBUG) << "Part " << part.id << " must be reuplaoded to " << oneline(to_string(file));
