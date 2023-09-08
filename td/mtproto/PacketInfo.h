@@ -13,7 +13,6 @@ namespace mtproto {
 
 struct PacketInfo {
   enum { Common, EndToEnd } type = Common;
-  uint64 auth_key_id{0};
   uint32 message_ack{0};
 
   uint64 salt{0};

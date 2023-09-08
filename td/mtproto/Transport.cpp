@@ -443,8 +443,7 @@ Result<Transport::ReadResult> Transport::read(MutableSlice message, const AuthKe
     }
   }
 
-  info->auth_key_id = as<int64>(message.begin());
-  info->no_crypto_flag = info->auth_key_id == 0;
+  info->no_crypto_flag = as<int64>(message.begin()) == 0;
   MutableSlice data;
   if (info->type == PacketInfo::EndToEnd) {
     TRY_STATUS(read_e2e_crypto(message, auth_key, info, &data));
