@@ -60,8 +60,7 @@ struct MsgInfo {
 };
 
 inline StringBuilder &operator<<(StringBuilder &string_builder, const MsgInfo &info) {
-  return string_builder << "[msg_id:" << format::as_hex(info.message_id) << "] [seq_no:" << format::as_hex(info.seq_no)
-                        << "]";
+  return string_builder << "[msg_id:" << format::as_hex(info.message_id) << "][seq_no:" << info.seq_no << ']';
 }
 
 class SessionConnection final
