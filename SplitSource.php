@@ -276,6 +276,7 @@ function split_file($file, $chunks, $undo) {
 
         if (!preg_match('/Td::~?Td/', $new_content)) {  // destructor Td::~Td needs to see definitions of all forward-declared classes
             $td_methods = array(
+                'account_manager[_(-][^.]|AccountManager[^;>]' => "AccountManager",
                 'animations_manager[_(-][^.]|AnimationsManager[^;>]' => "AnimationsManager",
                 'attach_menu_manager[_(-][^.]|AttachMenuManager[^;>]' => "AttachMenuManager",
                 'audios_manager[_(-][^.]|AudiosManager' => "AudiosManager",

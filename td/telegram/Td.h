@@ -37,6 +37,7 @@
 
 namespace td {
 
+class AccountManager;
 class AnimationsManager;
 class AttachMenuManager;
 class AudiosManager;
@@ -148,6 +149,8 @@ class Td final : public Actor {
   unique_ptr<OptionManager> option_manager_;
   unique_ptr<VideosManager> videos_manager_;
 
+  unique_ptr<AccountManager> account_manager_;
+  ActorOwn<AccountManager> account_manager_actor_;
   unique_ptr<AnimationsManager> animations_manager_;
   ActorOwn<AnimationsManager> animations_manager_actor_;
   unique_ptr<AttachMenuManager> attach_menu_manager_;

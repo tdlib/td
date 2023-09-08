@@ -30,6 +30,7 @@
 
 namespace td {
 
+class AccountManager;
 class AnimationsManager;
 class AttachMenuManager;
 class AuthManager;
@@ -182,6 +183,13 @@ class Global final : public ActorContext {
 
   ActorId<Td> td() const {
     return td_;
+  }
+
+  ActorId<AccountManager> account_manager() const {
+    return account_manager_;
+  }
+  void set_account_manager(ActorId<AccountManager> account_manager) {
+    account_manager_ = account_manager;
   }
 
   ActorId<AnimationsManager> animations_manager() const {
@@ -517,6 +525,7 @@ class Global final : public ActorContext {
   unique_ptr<TdDb> td_db_;
 
   ActorId<Td> td_;
+  ActorId<AccountManager> account_manager_;
   ActorId<AnimationsManager> animations_manager_;
   ActorId<AttachMenuManager> attach_menu_manager_;
   ActorId<AuthManager> auth_manager_;

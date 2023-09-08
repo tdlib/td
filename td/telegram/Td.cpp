@@ -7,6 +7,7 @@
 #include "td/telegram/Td.h"
 
 #include "td/telegram/Account.h"
+#include "td/telegram/AccountManager.h"
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/Application.h"
 #include "td/telegram/AttachMenuManager.h"
@@ -3228,6 +3229,8 @@ void Td::dec_actor_refcnt() {
     } else if (close_flag_ == 3) {
       LOG(INFO) << "All actors were closed";
       Timer timer;
+      account_manager_.reset();
+      LOG(DEBUG) << "AccountManager was cleared" << timer;
       animations_manager_.reset();
       LOG(DEBUG) << "AnimationsManager was cleared" << timer;
       attach_menu_manager_.reset();
@@ -3438,6 +3441,8 @@ void Td::clear() {
   LOG(DEBUG) << "TempAuthKeyWatchdog was cleared" << timer;
 
   // clear actors which are unique pointers
+  account_manager_actor_.reset();
+  LOG(DEBUG) << "AccountManager actor was cleared" << timer;
   animations_manager_actor_.reset();
   LOG(DEBUG) << "AnimationsManager actor was cleared" << timer;
   attach_menu_manager_actor_.reset();
@@ -3914,6 +3919,9 @@ void Td::init_managers() {
   documents_manager_ = make_unique<DocumentsManager>(this);
   videos_manager_ = make_unique<VideosManager>(this);
 
+  account_manager_ = make_unique<AccountManager>(this, create_reference());
+  account_manager_actor_ = register_actor("AccountManager", account_manager_.get());
+  G()->set_account_manager(account_manager_actor_.get());
   animations_manager_ = make_unique<AnimationsManager>(this, create_reference());
   animations_manager_actor_ = register_actor("AnimationsManager", animations_manager_.get());
   G()->set_animations_manager(animations_manager_actor_.get());
@@ -4359,6 +4367,8 @@ void Td::on_request(uint64 id, const td_api::getCurrentState &request) {
     config_manager_.get_actor_unsafe()->get_current_state(updates);
 
     autosave_manager_->get_current_state(updates);
+
+    account_manager_->get_current_state(updates);
 
     // TODO updateFileGenerationStart generation_id:int64 original_path:string destination_path:string conversion:string = Update;
     // TODO updateCall call:call = Update;
