@@ -421,7 +421,10 @@ bool operator==(const AttachMenuManager::AttachMenuBot &lhs, const AttachMenuMan
          lhs.ios_static_icon_file_id_ == rhs.ios_static_icon_file_id_ &&
          lhs.ios_animated_icon_file_id_ == rhs.ios_animated_icon_file_id_ &&
          lhs.android_icon_file_id_ == rhs.android_icon_file_id_ && lhs.macos_icon_file_id_ == rhs.macos_icon_file_id_ &&
-         lhs.is_added_ == rhs.is_added_ && lhs.name_color_ == rhs.name_color_ && lhs.icon_color_ == rhs.icon_color_ &&
+         lhs.android_side_menu_icon_file_id_ == rhs.android_side_menu_icon_file_id_ &&
+         lhs.ios_side_menu_icon_file_id_ == rhs.ios_side_menu_icon_file_id_ &&
+         lhs.macos_side_menu_icon_file_id_ == rhs.macos_side_menu_icon_file_id_ && lhs.is_added_ == rhs.is_added_ &&
+         lhs.name_color_ == rhs.name_color_ && lhs.icon_color_ == rhs.icon_color_ &&
          lhs.placeholder_file_id_ == rhs.placeholder_file_id_;
 }
 
@@ -440,6 +443,9 @@ void AttachMenuManager::AttachMenuBot::store(StorerT &storer) const {
   bool has_support_flags = true;
   bool has_placeholder_file_id = placeholder_file_id_.is_valid();
   bool has_cache_version = cache_version_ != 0;
+  bool has_android_side_menu_icon_file_id = android_side_menu_icon_file_id_.is_valid();
+  bool has_ios_side_menu_icon_file_id = ios_side_menu_icon_file_id_.is_valid();
+  bool has_macos_side_menu_icon_file_id = macos_side_menu_icon_file_id_.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_ios_static_icon_file_id);
   STORE_FLAG(has_ios_animated_icon_file_id);
@@ -461,6 +467,9 @@ void AttachMenuManager::AttachMenuBot::store(StorerT &storer) const {
   STORE_FLAG(show_in_attach_menu_);
   STORE_FLAG(show_in_side_menu_);
   STORE_FLAG(side_menu_disclaimer_needed_);
+  STORE_FLAG(has_android_side_menu_icon_file_id);
+  STORE_FLAG(has_ios_side_menu_icon_file_id);
+  STORE_FLAG(has_macos_side_menu_icon_file_id);
   END_STORE_FLAGS();
   td::store(user_id_, storer);
   td::store(name_, storer);
@@ -489,6 +498,15 @@ void AttachMenuManager::AttachMenuBot::store(StorerT &storer) const {
   if (has_cache_version) {
     td::store(cache_version_, storer);
   }
+  if (has_android_side_menu_icon_file_id) {
+    td::store(android_side_menu_icon_file_id_, storer);
+  }
+  if (has_ios_side_menu_icon_file_id) {
+    td::store(ios_side_menu_icon_file_id_, storer);
+  }
+  if (has_macos_side_menu_icon_file_id) {
+    td::store(macos_side_menu_icon_file_id_, storer);
+  }
 }
 
 template <class ParserT>
@@ -502,6 +520,9 @@ void AttachMenuManager::AttachMenuBot::parse(ParserT &parser) {
   bool has_support_flags;
   bool has_placeholder_file_id;
   bool has_cache_version;
+  bool has_android_side_menu_icon_file_id;
+  bool has_ios_side_menu_icon_file_id;
+  bool has_macos_side_menu_icon_file_id;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_ios_static_icon_file_id);
   PARSE_FLAG(has_ios_animated_icon_file_id);
@@ -523,6 +544,9 @@ void AttachMenuManager::AttachMenuBot::parse(ParserT &parser) {
   PARSE_FLAG(show_in_attach_menu_);
   PARSE_FLAG(show_in_side_menu_);
   PARSE_FLAG(side_menu_disclaimer_needed_);
+  PARSE_FLAG(has_android_side_menu_icon_file_id);
+  PARSE_FLAG(has_ios_side_menu_icon_file_id);
+  PARSE_FLAG(has_macos_side_menu_icon_file_id);
   END_PARSE_FLAGS();
   td::parse(user_id_, parser);
   td::parse(name_, parser);
@@ -550,6 +574,15 @@ void AttachMenuManager::AttachMenuBot::parse(ParserT &parser) {
   }
   if (has_cache_version) {
     td::parse(cache_version_, parser);
+  }
+  if (has_android_side_menu_icon_file_id) {
+    td::parse(android_side_menu_icon_file_id_, parser);
+  }
+  if (has_ios_side_menu_icon_file_id) {
+    td::parse(ios_side_menu_icon_file_id_, parser);
+  }
+  if (has_macos_side_menu_icon_file_id) {
+    td::parse(macos_side_menu_icon_file_id_, parser);
   }
 
   if (!has_support_flags) {
@@ -646,6 +679,9 @@ void AttachMenuManager::init() {
           register_file_source(attach_menu_bot.android_icon_file_id_);
           register_file_source(attach_menu_bot.macos_icon_file_id_);
           register_file_source(attach_menu_bot.placeholder_file_id_);
+          register_file_source(attach_menu_bot.android_side_menu_icon_file_id_);
+          register_file_source(attach_menu_bot.ios_side_menu_icon_file_id_);
+          register_file_source(attach_menu_bot.macos_side_menu_icon_file_id_);
         }
       } else {
         LOG(ERROR) << "Ignore invalid attachment menu bots log event";
@@ -894,7 +930,8 @@ Result<AttachMenuManager::AttachMenuBot> AttachMenuManager::get_attach_menu_bot(
     CHECK(document_id == telegram_api::document::ID);
 
     if (name != "default_static" && name != "ios_static" && name != "ios_animated" && name != "android_animated" &&
-        name != "macos_animated" && name != "placeholder_static") {
+        name != "macos_animated" && name != "placeholder_static" && name != "ios_side_menu_static" &&
+        name != "android_side_menu_static" && name != "macos_side_menu_static") {
       LOG(ERROR) << "Have icon for " << user_id << " with name " << name;
       continue;
     }
@@ -918,11 +955,21 @@ Result<AttachMenuManager::AttachMenuBot> AttachMenuManager::get_attach_menu_bot(
         attach_menu_bot.ios_animated_icon_file_id_ = parsed_document.file_id;
         break;
       case 'i':
-        attach_menu_bot.android_icon_file_id_ = parsed_document.file_id;
-        expect_colors = true;
+        if (name[8] == 's') {
+          attach_menu_bot.android_side_menu_icon_file_id_ = parsed_document.file_id;
+        } else if (name[8] == '_') {
+          attach_menu_bot.ios_side_menu_icon_file_id_ = parsed_document.file_id;
+        } else {
+          attach_menu_bot.android_icon_file_id_ = parsed_document.file_id;
+          expect_colors = true;
+        }
         break;
       case '_':
-        attach_menu_bot.macos_icon_file_id_ = parsed_document.file_id;
+        if (name[6] == 's') {
+          attach_menu_bot.macos_side_menu_icon_file_id_ = parsed_document.file_id;
+        } else {
+          attach_menu_bot.macos_icon_file_id_ = parsed_document.file_id;
+        }
         break;
       case 'h':
         attach_menu_bot.placeholder_file_id_ = parsed_document.file_id;
@@ -1258,8 +1305,10 @@ td_api::object_ptr<td_api::attachmentMenuBot> AttachMenuManager::get_attachment_
       bot.show_in_attach_menu_, bot.show_in_side_menu_, bot.side_menu_disclaimer_needed_, bot.name_,
       get_attach_menu_bot_color_object(bot.name_color_), get_file(bot.default_icon_file_id_),
       get_file(bot.ios_static_icon_file_id_), get_file(bot.ios_animated_icon_file_id_),
-      get_file(bot.android_icon_file_id_), get_file(bot.macos_icon_file_id_),
-      get_attach_menu_bot_color_object(bot.icon_color_), get_file(bot.placeholder_file_id_));
+      get_file(bot.ios_side_menu_icon_file_id_), get_file(bot.android_icon_file_id_),
+      get_file(bot.android_side_menu_icon_file_id_), get_file(bot.macos_icon_file_id_),
+      get_file(bot.macos_side_menu_icon_file_id_), get_attach_menu_bot_color_object(bot.icon_color_),
+      get_file(bot.placeholder_file_id_));
 }
 
 td_api::object_ptr<td_api::updateAttachmentMenuBots> AttachMenuManager::get_update_attachment_menu_bots_object() const {

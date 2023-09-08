@@ -116,6 +116,9 @@ class AttachMenuManager final : public Actor {
     FileId ios_animated_icon_file_id_;
     FileId android_icon_file_id_;
     FileId macos_icon_file_id_;
+    FileId android_side_menu_icon_file_id_;
+    FileId ios_side_menu_icon_file_id_;
+    FileId macos_side_menu_icon_file_id_;
     AttachMenuBotColor icon_color_;
     FileId placeholder_file_id_;
 
