@@ -233,7 +233,6 @@ class SessionConnection final
   template <class T>
   Status on_packet(const MsgInfo &info, const T &packet) TD_WARN_UNUSED_RESULT;
 
-  Status on_packet(const MsgInfo &info, const mtproto_api::rpc_error &rpc_error) TD_WARN_UNUSED_RESULT;
   Status on_packet(const MsgInfo &info,
                    const mtproto_api::new_session_created &new_session_created) TD_WARN_UNUSED_RESULT;
   Status on_packet(const MsgInfo &info,

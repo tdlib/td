@@ -297,11 +297,6 @@ Status SessionConnection::on_destroy_auth_key(const mtproto_api::DestroyAuthKeyR
   return callback_->on_destroy_auth_key();
 }
 
-Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::rpc_error &rpc_error) {
-  LOG(ERROR) << "Receive rpc_error as update: [" << rpc_error.error_code_ << "][" << rpc_error.error_message_ << "]";
-  return Status::OK();
-}
-
 Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::new_session_created &new_session_created) {
   auto first_message_id = new_session_created.first_msg_id_;
   VLOG(mtproto) << "NEW_SESSION_CREATED: [first_msg_id:" << format::as_hex(first_message_id)
