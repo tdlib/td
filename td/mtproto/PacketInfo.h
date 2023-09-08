@@ -7,7 +7,6 @@
 #pragma once
 
 #include "td/utils/common.h"
-#include "td/utils/UInt.h"
 
 namespace td {
 namespace mtproto {
@@ -16,7 +15,6 @@ struct PacketInfo {
   enum { Common, EndToEnd } type = Common;
   uint64 auth_key_id{0};
   uint32 message_ack{0};
-  UInt128 message_key;
 
   uint64 salt{0};
   uint64 session_id{0};

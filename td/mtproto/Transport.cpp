@@ -362,19 +362,13 @@ void Transport::write_crypto_impl(int X, const Storer &storer, const AuthKey &au
   Random::secure_bytes(pad.ubegin(), pad.size());
   MutableSlice to_encrypt = MutableSlice(header->encrypt_begin(), pad.uend());
 
-  if (info->version == 1) {
-    std::tie(info->message_ack, info->message_key) = calc_message_ack_and_key(*header, data_size);
-  } else {
-    std::tie(info->message_ack, info->message_key) = calc_message_key2(auth_key, X, to_encrypt);
-  }
-
-  header->message_key = info->message_key;
-
   UInt256 aes_key;
   UInt256 aes_iv;
   if (info->version == 1) {
+    std::tie(info->message_ack, header->message_key) = calc_message_ack_and_key(*header, data_size);
     KDF(auth_key.key(), header->message_key, X, &aes_key, &aes_iv);
   } else {
+    std::tie(info->message_ack, header->message_key) = calc_message_key2(auth_key, X, to_encrypt);
     KDF2(auth_key.key(), header->message_key, X, &aes_key, &aes_iv);
   }
 
