@@ -101,7 +101,7 @@ static td_api::object_ptr<td_api::session> convert_authorization_object(
     tl_object_ptr<telegram_api::authorization> &&authorization) {
   CHECK(authorization != nullptr);
   return td_api::make_object<td_api::session>(
-      authorization->hash_, authorization->current_, authorization->password_pending_,
+      authorization->hash_, authorization->current_, authorization->password_pending_, authorization->unconfirmed_,
       !authorization->encrypted_requests_disabled_, !authorization->call_requests_disabled_,
       get_session_type_object(authorization), authorization->api_id_, authorization->app_name_,
       authorization->app_version_, authorization->official_app_, authorization->device_model_, authorization->platform_,
