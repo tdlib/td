@@ -6,7 +6,6 @@
 //
 #include "td/telegram/Td.h"
 
-#include "td/telegram/Account.h"
 #include "td/telegram/AccountManager.h"
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/Application.h"
@@ -4326,7 +4325,7 @@ void Td::on_request(uint64 id, td_api::checkAuthenticationBotToken &request) {
 void Td::on_request(uint64 id, td_api::confirmQrCodeAuthentication &request) {
   CLEAN_INPUT_STRING(request.link_);
   CREATE_REQUEST_PROMISE();
-  confirm_qr_code_authentication(this, request.link_, std::move(promise));
+  account_manager_->confirm_qr_code_authentication(request.link_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getCurrentState &request) {
@@ -4565,7 +4564,7 @@ void Td::on_request(uint64 id, const td_api::getDefaultMessageAutoDeleteTime &re
       promise.set_value(td_api::make_object<td_api::messageAutoDeleteTime>(result.ok()));
     }
   });
-  get_default_message_ttl(this, std::move(query_promise));
+  account_manager_->get_default_message_ttl(std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, const td_api::setDefaultMessageAutoDeleteTime &request) {
@@ -4574,7 +4573,7 @@ void Td::on_request(uint64 id, const td_api::setDefaultMessageAutoDeleteTime &re
     return send_error_raw(id, 400, "New default message auto-delete time must be non-empty");
   }
   CREATE_OK_REQUEST_PROMISE();
-  set_default_message_ttl(this, request.message_auto_delete_time_->time_, std::move(promise));
+  account_manager_->set_default_message_ttl(request.message_auto_delete_time_->time_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getAccountTtl &request) {
@@ -4587,7 +4586,7 @@ void Td::on_request(uint64 id, const td_api::getAccountTtl &request) {
       promise.set_value(td_api::make_object<td_api::accountTtl>(result.ok()));
     }
   });
-  get_account_ttl(this, std::move(query_promise));
+  account_manager_->get_account_ttl(std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, const td_api::setAccountTtl &request) {
@@ -4596,7 +4595,7 @@ void Td::on_request(uint64 id, const td_api::setAccountTtl &request) {
     return send_error_raw(id, 400, "New account TTL must be non-empty");
   }
   CREATE_OK_REQUEST_PROMISE();
-  set_account_ttl(this, request.ttl_->days_, std::move(promise));
+  account_manager_->set_account_ttl(request.ttl_->days_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::deleteAccount &request) {
@@ -4633,62 +4632,62 @@ void Td::on_request(uint64 id, td_api::searchUserByToken &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.token_);
   CREATE_REQUEST_PROMISE();
-  contacts_manager_->search_user_by_token(std::move(request.token_), std::move(promise));
+  account_manager_->import_contact_token(std::move(request.token_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getActiveSessions &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  get_active_sessions(this, std::move(promise));
+  account_manager_->get_active_sessions(std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::terminateSession &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  terminate_session(this, request.session_id_, std::move(promise));
+  account_manager_->terminate_session(request.session_id_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::terminateAllOtherSessions &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  terminate_all_other_sessions(this, std::move(promise));
+  account_manager_->terminate_all_other_sessions(std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::toggleSessionCanAcceptCalls &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  toggle_session_can_accept_calls(this, request.session_id_, request.can_accept_calls_, std::move(promise));
+  account_manager_->toggle_session_can_accept_calls(request.session_id_, request.can_accept_calls_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::toggleSessionCanAcceptSecretChats &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  toggle_session_can_accept_secret_chats(this, request.session_id_, request.can_accept_secret_chats_,
-                                         std::move(promise));
+  account_manager_->toggle_session_can_accept_secret_chats(request.session_id_, request.can_accept_secret_chats_,
+                                                           std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::setInactiveSessionTtl &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  set_inactive_session_ttl_days(this, request.inactive_session_ttl_days_, std::move(promise));
+  account_manager_->set_inactive_session_ttl_days(request.inactive_session_ttl_days_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getConnectedWebsites &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  get_connected_websites(this, std::move(promise));
+  account_manager_->get_connected_websites(std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::disconnectWebsite &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  disconnect_website(this, request.website_id_, std::move(promise));
+  account_manager_->disconnect_website(request.website_id_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::disconnectAllWebsites &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  disconnect_all_websites(this, std::move(promise));
+  account_manager_->disconnect_all_websites(std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getMe &request) {

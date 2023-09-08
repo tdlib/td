@@ -6,7 +6,7 @@
 //
 #include "td/telegram/ContactsManager.h"
 
-#include "td/telegram/Account.h"
+#include "td/telegram/AccountManager.h"
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/BlockListId.h"
@@ -16856,11 +16856,7 @@ void ContactsManager::get_user_link_impl(Promise<td_api::object_ptr<td_api::user
     return promise.set_value(td_api::make_object<td_api::userLink>(
         LinkManager::get_public_dialog_link(u->usernames.get_first_username(), true), 0));
   }
-  export_contact_token(td_, std::move(promise));
-}
-
-void ContactsManager::search_user_by_token(string token, Promise<td_api::object_ptr<td_api::user>> &&promise) {
-  import_contact_token(td_, token, std::move(promise));
+  td_->account_manager_->export_contact_token(std::move(promise));
 }
 
 void ContactsManager::send_get_me_query(Td *td, Promise<Unit> &&promise) {

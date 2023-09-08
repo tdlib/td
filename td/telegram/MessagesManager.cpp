@@ -6,7 +6,7 @@
 //
 #include "td/telegram/MessagesManager.h"
 
-#include "td/telegram/Account.h"
+#include "td/telegram/AccountManager.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/BackgroundInfo.hpp"
 #include "td/telegram/BlockListId.h"
@@ -20233,7 +20233,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
     update_viewed_messages_timeout_.add_timeout_in(dialog_id.get(), UPDATE_VIEWED_MESSAGES_PERIOD);
   }
   if (!authentication_codes.empty()) {
-    invalidate_authentication_codes(td_, std::move(authentication_codes));
+    td_->account_manager_->invalidate_authentication_codes(std::move(authentication_codes));
   }
   if (!screenshotted_secret_message_ids.empty()) {
     send_screenshot_taken_notification_message(d);
@@ -28353,7 +28353,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
   }
 
   if (!authentication_codes.empty()) {
-    invalidate_authentication_codes(td_, std::move(authentication_codes));
+    td_->account_manager_->invalidate_authentication_codes(std::move(authentication_codes));
   }
 
   return get_messages_object(-1, std::move(result), false);
