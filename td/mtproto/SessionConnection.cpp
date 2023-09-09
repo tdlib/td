@@ -171,6 +171,10 @@ namespace mtproto {
  *
  */
 
+inline StringBuilder &operator<<(StringBuilder &string_builder, const SessionConnection::MsgInfo &info) {
+  return string_builder << "[msg_id:" << format::as_hex(info.message_id) << "][seq_no:" << info.seq_no << ']';
+}
+
 unique_ptr<RawConnection> SessionConnection::move_as_raw_connection() {
   was_moved_ = true;
   return std::move(raw_connection_);

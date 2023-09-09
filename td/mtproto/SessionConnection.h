@@ -53,16 +53,6 @@ namespace mtproto {
 
 class AuthData;
 
-struct MsgInfo {
-  uint64 message_id;
-  int32 seq_no;
-  size_t size;
-};
-
-inline StringBuilder &operator<<(StringBuilder &string_builder, const MsgInfo &info) {
-  return string_builder << "[msg_id:" << format::as_hex(info.message_id) << "][seq_no:" << info.seq_no << ']';
-}
-
 class SessionConnection final
     : public Named
     , private RawConnection::Callback {
@@ -132,6 +122,14 @@ class SessionConnection final
   static constexpr int ACK_DELAY = 30;                  // 30s
   static constexpr double QUERY_DELAY = 0.001;          // 0.001s
   static constexpr double RESEND_ANSWER_DELAY = 0.001;  // 0.001s
+
+  struct MsgInfo {
+    uint64 message_id;
+    int32 seq_no;
+    size_t size;
+  };
+
+  friend StringBuilder &operator<<(StringBuilder &string_builder, const MsgInfo &info);
 
   bool online_flag_ = false;
   bool is_main_ = false;
