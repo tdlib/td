@@ -87,10 +87,11 @@ class Transport {
   // Returns size of MTProto packet.
   // If dest.size() >= size, the packet is also written into [dest].
   // If auth_key is nonempty, encryption will be used.
-  static Result<ReadResult> read(MutableSlice message, const AuthKey &auth_key, PacketInfo *info) TD_WARN_UNUSED_RESULT;
+  static Result<ReadResult> read(MutableSlice message, const AuthKey &auth_key,
+                                 PacketInfo *packet_info) TD_WARN_UNUSED_RESULT;
 
-  static BufferWriter write(const Storer &storer, const AuthKey &auth_key, PacketInfo *info, size_t prepend_size = 0,
-                            size_t append_size = 0);
+  static BufferWriter write(const Storer &storer, const AuthKey &auth_key, PacketInfo *packet_info,
+                            size_t prepend_size = 0, size_t append_size = 0);
 
   // public for testing purposes
   static std::pair<uint32, UInt128> calc_message_key2(const AuthKey &auth_key, int X, Slice to_encrypt);
@@ -103,33 +104,35 @@ class Transport {
   static size_t calc_crypto_size(size_t data_size);
 
   template <class HeaderT>
-  static size_t calc_crypto_size2(size_t data_size, PacketInfo *info);
+  static size_t calc_crypto_size2(size_t data_size, PacketInfo *packet_info);
 
   static size_t calc_no_crypto_size(size_t data_size);
 
-  static Status read_no_crypto(MutableSlice message, PacketInfo *info, MutableSlice *data) TD_WARN_UNUSED_RESULT;
+  static Status read_no_crypto(MutableSlice message, PacketInfo *packet_info, MutableSlice *data) TD_WARN_UNUSED_RESULT;
 
-  static Status read_crypto(MutableSlice message, const AuthKey &auth_key, PacketInfo *info,
+  static Status read_crypto(MutableSlice message, const AuthKey &auth_key, PacketInfo *packet_info,
                             MutableSlice *data) TD_WARN_UNUSED_RESULT;
 
-  static Status read_e2e_crypto(MutableSlice message, const AuthKey &auth_key, PacketInfo *info,
+  static Status read_e2e_crypto(MutableSlice message, const AuthKey &auth_key, PacketInfo *packet_info,
                                 MutableSlice *data) TD_WARN_UNUSED_RESULT;
 
   template <class HeaderT, class PrefixT>
   static Status read_crypto_impl(int X, MutableSlice message, const AuthKey &auth_key, HeaderT **header_ptr,
-                                 PrefixT **prefix_ptr, MutableSlice *data, PacketInfo *info) TD_WARN_UNUSED_RESULT;
+                                 PrefixT **prefix_ptr, MutableSlice *data,
+                                 PacketInfo *packet_info) TD_WARN_UNUSED_RESULT;
 
-  static BufferWriter write_no_crypto(const Storer &storer, PacketInfo *info, size_t prepend_size, size_t append_size);
+  static BufferWriter write_no_crypto(const Storer &storer, PacketInfo *packet_info, size_t prepend_size,
+                                      size_t append_size);
 
-  static BufferWriter write_crypto(const Storer &storer, const AuthKey &auth_key, PacketInfo *info, size_t prepend_size,
-                                   size_t append_size);
+  static BufferWriter write_crypto(const Storer &storer, const AuthKey &auth_key, PacketInfo *packet_info,
+                                   size_t prepend_size, size_t append_size);
 
-  static BufferWriter write_e2e_crypto(const Storer &storer, const AuthKey &auth_key, PacketInfo *info,
+  static BufferWriter write_e2e_crypto(const Storer &storer, const AuthKey &auth_key, PacketInfo *packet_info,
                                        size_t prepend_size, size_t append_size);
 
   template <class HeaderT>
-  static void write_crypto_impl(int X, const Storer &storer, const AuthKey &auth_key, PacketInfo *info, HeaderT *header,
-                                size_t data_size, size_t padded_size);
+  static void write_crypto_impl(int X, const Storer &storer, const AuthKey &auth_key, PacketInfo *packet_info,
+                                HeaderT *header, size_t data_size, size_t padded_size);
 };
 
 }  // namespace mtproto

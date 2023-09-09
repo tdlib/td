@@ -223,11 +223,11 @@ Result<BufferSlice> SecretChatActor::create_encrypted_message(int32 my_in_seq_no
   LOG(INFO) << "Create message " << to_string(message_with_layer);
   auto storer = create_storer(*message_with_layer);
   auto new_storer = mtproto::PacketStorer<SecretImpl>(storer);
-  mtproto::PacketInfo info;
-  info.type = mtproto::PacketInfo::EndToEnd;
-  info.version = 2;
-  info.is_creator = auth_state_.x == 0;
-  auto packet_writer = mtproto::Transport::write(new_storer, *auth_key, &info);
+  mtproto::PacketInfo packet_info;
+  packet_info.type = mtproto::PacketInfo::EndToEnd;
+  packet_info.version = 2;
+  packet_info.is_creator = auth_state_.x == 0;
+  auto packet_writer = mtproto::Transport::write(new_storer, *auth_key, &packet_info);
   message = std::move(message_with_layer->message_);
   return packet_writer.as_buffer_slice();
 }
@@ -792,12 +792,12 @@ Result<std::tuple<uint64, BufferSlice, int32>> SecretChatActor::decrypt(BufferSl
     data = encrypted_message_copy.as_mutable_slice();
     CHECK(is_aligned_pointer<4>(data.data()));
 
-    mtproto::PacketInfo info;
-    info.type = mtproto::PacketInfo::EndToEnd;
+    mtproto::PacketInfo packet_info;
+    packet_info.type = mtproto::PacketInfo::EndToEnd;
     mtproto_version = versions[i];
-    info.version = mtproto_version;
-    info.is_creator = auth_state_.x == 0;
-    r_read_result = mtproto::Transport::read(data, *auth_key, &info);
+    packet_info.version = mtproto_version;
+    packet_info.is_creator = auth_state_.x == 0;
+    r_read_result = mtproto::Transport::read(data, *auth_key, &packet_info);
     if (i + 1 != versions.size() && r_read_result.is_error()) {
       if (config_state_.his_layer >= static_cast<int32>(SecretChatLayer::Mtproto2)) {
         LOG(WARNING) << tag("mtproto", mtproto_version) << " decryption failed " << r_read_result.error();

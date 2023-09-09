@@ -256,7 +256,7 @@ class SessionConnection final
   Status on_destroy_auth_key(const mtproto_api::DestroyAuthKeyRes &destroy_auth_key);
 
   Status on_slice_packet(const MsgInfo &info, Slice packet) TD_WARN_UNUSED_RESULT;
-  Status on_main_packet(const PacketInfo &info, Slice packet) TD_WARN_UNUSED_RESULT;
+  Status on_main_packet(const PacketInfo &packet_info, Slice packet) TD_WARN_UNUSED_RESULT;
   void on_message_failed(uint64 id, Status status);
   void on_message_failed_inner(uint64 id);
 
@@ -274,7 +274,7 @@ class SessionConnection final
   Status do_flush() TD_WARN_UNUSED_RESULT;
 
   Status before_write() final TD_WARN_UNUSED_RESULT;
-  Status on_raw_packet(const PacketInfo &info, BufferSlice packet) final;
+  Status on_raw_packet(const PacketInfo &packet_info, BufferSlice packet) final;
   Status on_quick_ack(uint64 quick_ack_token) final;
   void on_read(size_t size) final;
 };

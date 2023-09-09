@@ -544,7 +544,7 @@ Status SessionConnection::parse_packet(TlParser &parser) {
   return on_slice_packet(info, packet);
 }
 
-Status SessionConnection::on_main_packet(const PacketInfo &info, Slice packet) {
+Status SessionConnection::on_main_packet(const PacketInfo &packet_info, Slice packet) {
   // Update pong here too. Real pong can be delayed by many big packets
   last_pong_at_ = Time::now_cached();
   real_last_pong_at_ = last_pong_at_;
@@ -555,10 +555,10 @@ Status SessionConnection::on_main_packet(const PacketInfo &info, Slice packet) {
   }
 
   VLOG(raw_mtproto) << "Receive packet of size " << packet.size() << ':' << format::as_hex_dump<4>(packet);
-  VLOG(mtproto) << "Receive packet with seq_no " << info.seq_no << " and msg_id " << format::as_hex(info.message_id)
-                << " of size " << packet.size();
+  VLOG(mtproto) << "Receive packet with seq_no " << packet_info.seq_no << " and msg_id "
+                << format::as_hex(packet_info.message_id) << " of size " << packet.size();
 
-  if (info.no_crypto_flag) {
+  if (packet_info.no_crypto_flag) {
     return Status::Error("Unencrypted packet");
   }
 
@@ -684,27 +684,27 @@ Status SessionConnection::before_write() {
   return Status::OK();
 }
 
-Status SessionConnection::on_raw_packet(const PacketInfo &info, BufferSlice packet) {
+Status SessionConnection::on_raw_packet(const PacketInfo &packet_info, BufferSlice packet) {
   auto old_main_message_id = main_message_id_;
-  main_message_id_ = info.message_id;
+  main_message_id_ = packet_info.message_id;
   SCOPE_EXIT {
     main_message_id_ = old_main_message_id;
   };
 
-  if (info.no_crypto_flag) {
+  if (packet_info.no_crypto_flag) {
     return Status::Error("Unexpected unencrypted packet");
   }
 
   bool time_difference_was_updated = false;
-  auto status =
-      auth_data_->check_packet(info.session_id, info.message_id, Time::now_cached(), time_difference_was_updated);
+  auto status = auth_data_->check_packet(packet_info.session_id, packet_info.message_id, Time::now_cached(),
+                                         time_difference_was_updated);
   if (time_difference_was_updated) {
     callback_->on_server_time_difference_updated(false);
   }
   if (status.is_error()) {
     if (status.code() == 1) {
       LOG(INFO) << "Packet is ignored: " << status;
-      send_ack(info.message_id);
+      send_ack(packet_info.message_id);
       return Status::OK();
     } else if (status.code() == 2) {
       LOG(WARNING) << "Receive too old packet: " << status;
@@ -716,7 +716,7 @@ Status SessionConnection::on_raw_packet(const PacketInfo &info, BufferSlice pack
   }
 
   auto guard = set_buffer_slice(&packet);
-  TRY_STATUS(on_main_packet(info, packet.as_slice()));
+  TRY_STATUS(on_main_packet(packet_info, packet.as_slice()));
   return Status::OK();
 }
 
@@ -844,12 +844,12 @@ std::pair<uint64, BufferSlice> SessionConnection::encrypted_bind(int64 perm_key,
   PacketStorer<QueryImpl> query_storer(query, Slice());
 
   const AuthKey &main_auth_key = auth_data_->get_main_auth_key();
-  PacketInfo info;
-  info.version = 1;
-  info.no_crypto_flag = false;
-  info.salt = Random::secure_int64();
-  info.session_id = Random::secure_int64();
-  auto packet = Transport::write(query_storer, main_auth_key, &info);
+  PacketInfo packet_info;
+  packet_info.version = 1;
+  packet_info.no_crypto_flag = false;
+  packet_info.salt = Random::secure_int64();
+  packet_info.session_id = Random::secure_int64();
+  auto packet = Transport::write(query_storer, main_auth_key, &packet_info);
   return std::make_pair(query.message_id, packet.as_buffer_slice());
 }
 

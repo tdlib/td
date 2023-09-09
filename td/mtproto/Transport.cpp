@@ -186,10 +186,10 @@ size_t do_calc_crypto_size2_rand(size_t data_size, size_t enc_size, size_t raw_s
 }  // namespace
 
 template <class HeaderT>
-size_t Transport::calc_crypto_size2(size_t data_size, PacketInfo *info) {
+size_t Transport::calc_crypto_size2(size_t data_size, PacketInfo *packet_info) {
   size_t enc_size = HeaderT::encrypted_header_size();
   size_t raw_size = sizeof(HeaderT) - enc_size;
-  if (info->use_random_padding) {
+  if (packet_info->use_random_padding) {
     return do_calc_crypto_size2_rand(data_size, enc_size, raw_size);
   } else {
     return do_calc_crypto_size2_basic(data_size, enc_size, raw_size);
@@ -200,7 +200,7 @@ size_t Transport::calc_no_crypto_size(size_t data_size) {
   return sizeof(NoCryptoHeader) + data_size;
 }
 
-Status Transport::read_no_crypto(MutableSlice message, PacketInfo *info, MutableSlice *data) {
+Status Transport::read_no_crypto(MutableSlice message, PacketInfo *packet_info, MutableSlice *data) {
   if (message.size() < sizeof(NoCryptoHeader)) {
     return Status::Error(PSLICE() << "Invalid MTProto message: too small [message.size() = " << message.size()
                                   << "] < [sizeof(NoCryptoHeader) = " << sizeof(NoCryptoHeader) << "]");
@@ -213,7 +213,7 @@ Status Transport::read_no_crypto(MutableSlice message, PacketInfo *info, Mutable
 
 template <class HeaderT, class PrefixT>
 Status Transport::read_crypto_impl(int X, MutableSlice message, const AuthKey &auth_key, HeaderT **header_ptr,
-                                   PrefixT **prefix_ptr, MutableSlice *data, PacketInfo *info) {
+                                   PrefixT **prefix_ptr, MutableSlice *data, PacketInfo *packet_info) {
   if (message.size() < sizeof(HeaderT)) {
     return Status::Error(PSLICE() << "Invalid MTProto message: too small [message.size() = " << message.size()
                                   << "] < [sizeof(HeaderT) = " << sizeof(HeaderT) << "]");
@@ -232,7 +232,7 @@ Status Transport::read_crypto_impl(int X, MutableSlice message, const AuthKey &a
 
   UInt256 aes_key;
   UInt256 aes_iv;
-  if (info->version == 1) {
+  if (packet_info->version == 1) {
     KDF(auth_key.key(), header->message_key, X, &aes_key, &aes_iv);
   } else {
     KDF2(auth_key.key(), header->message_key, X, &aes_key, &aes_iv);
@@ -251,14 +251,14 @@ Status Transport::read_crypto_impl(int X, MutableSlice message, const AuthKey &a
   bool is_length_bad = false;
   UInt128 real_message_key;
 
-  if (info->version == 1) {
-    is_length_bad |= info->check_mod4 && prefix->message_data_length % 4 != 0;
+  if (packet_info->version == 1) {
+    is_length_bad |= packet_info->check_mod4 && prefix->message_data_length % 4 != 0;
     auto expected_size = calc_crypto_size<HeaderT>(data_size);
     is_length_bad |= expected_size != message.size();
     auto check_size = data_size * (1 - is_length_bad) + tail_size * is_length_bad;
-    std::tie(info->message_ack, real_message_key) = calc_message_ack_and_key(*header, check_size);
+    std::tie(packet_info->message_ack, real_message_key) = calc_message_ack_and_key(*header, check_size);
   } else {
-    std::tie(info->message_ack, real_message_key) = calc_message_key2(auth_key, X, to_decrypt);
+    std::tie(packet_info->message_ack, real_message_key) = calc_message_key2(auth_key, X, to_decrypt);
   }
 
   int is_key_bad = false;
@@ -271,8 +271,8 @@ Status Transport::read_crypto_impl(int X, MutableSlice message, const AuthKey &a
                                   << "] [expected = " << format::as_hex_dump(real_message_key) << "]");
   }
 
-  if (info->version == 2) {
-    if (info->check_mod4 && prefix->message_data_length % 4 != 0) {
+  if (packet_info->version == 2) {
+    if (packet_info->check_mod4 && prefix->message_data_length % 4 != 0) {
       return Status::Error(PSLICE() << "Invalid MTProto message: invalid length (not divisible by four)"
                                     << tag("total_size", message.size())
                                     << tag("message_data_length", prefix->message_data_length));
@@ -299,33 +299,35 @@ Status Transport::read_crypto_impl(int X, MutableSlice message, const AuthKey &a
   return Status::OK();
 }
 
-Status Transport::read_crypto(MutableSlice message, const AuthKey &auth_key, PacketInfo *info, MutableSlice *data) {
+Status Transport::read_crypto(MutableSlice message, const AuthKey &auth_key, PacketInfo *packet_info,
+                              MutableSlice *data) {
   CryptoHeader *header = nullptr;
   CryptoPrefix *prefix = nullptr;
-  TRY_STATUS(read_crypto_impl(8, message, auth_key, &header, &prefix, data, info));
+  TRY_STATUS(read_crypto_impl(8, message, auth_key, &header, &prefix, data, packet_info));
   CHECK(header != nullptr);
   CHECK(prefix != nullptr);
-  CHECK(info != nullptr);
-  info->type = PacketInfo::Common;
-  info->salt = header->salt;
-  info->session_id = header->session_id;
-  info->message_id = prefix->message_id;
-  info->seq_no = prefix->seq_no;
+  CHECK(packet_info != nullptr);
+  packet_info->type = PacketInfo::Common;
+  packet_info->salt = header->salt;
+  packet_info->session_id = header->session_id;
+  packet_info->message_id = prefix->message_id;
+  packet_info->seq_no = prefix->seq_no;
   return Status::OK();
 }
-Status Transport::read_e2e_crypto(MutableSlice message, const AuthKey &auth_key, PacketInfo *info, MutableSlice *data) {
+Status Transport::read_e2e_crypto(MutableSlice message, const AuthKey &auth_key, PacketInfo *packet_info,
+                                  MutableSlice *data) {
   EndToEndHeader *header = nullptr;
   EndToEndPrefix *prefix = nullptr;
-  TRY_STATUS(read_crypto_impl(info->is_creator && info->version != 1 ? 8 : 0, message, auth_key, &header, &prefix, data,
-                              info));
+  TRY_STATUS(read_crypto_impl(packet_info->is_creator && packet_info->version != 1 ? 8 : 0, message, auth_key, &header,
+                              &prefix, data, packet_info));
   CHECK(header != nullptr);
   CHECK(prefix != nullptr);
-  CHECK(info != nullptr);
-  info->type = PacketInfo::EndToEnd;
+  CHECK(packet_info != nullptr);
+  packet_info->type = PacketInfo::EndToEnd;
   return Status::OK();
 }
 
-BufferWriter Transport::write_no_crypto(const Storer &storer, PacketInfo *info, size_t prepend_size,
+BufferWriter Transport::write_no_crypto(const Storer &storer, PacketInfo *packet_info, size_t prepend_size,
                                         size_t append_size) {
   size_t size = calc_no_crypto_size(storer.size());
   auto packet = BufferWriter{size, prepend_size, append_size};
@@ -339,7 +341,7 @@ BufferWriter Transport::write_no_crypto(const Storer &storer, PacketInfo *info, 
 }
 
 template <class HeaderT>
-void Transport::write_crypto_impl(int X, const Storer &storer, const AuthKey &auth_key, PacketInfo *info,
+void Transport::write_crypto_impl(int X, const Storer &storer, const AuthKey &auth_key, PacketInfo *packet_info,
                                   HeaderT *header, size_t data_size, size_t padded_size) {
   auto real_data_size = storer.store(header->data);
   CHECK(real_data_size == data_size);
@@ -352,47 +354,47 @@ void Transport::write_crypto_impl(int X, const Storer &storer, const AuthKey &au
 
   UInt256 aes_key;
   UInt256 aes_iv;
-  if (info->version == 1) {
-    std::tie(info->message_ack, header->message_key) = calc_message_ack_and_key(*header, data_size);
+  if (packet_info->version == 1) {
+    std::tie(packet_info->message_ack, header->message_key) = calc_message_ack_and_key(*header, data_size);
     KDF(auth_key.key(), header->message_key, X, &aes_key, &aes_iv);
   } else {
-    std::tie(info->message_ack, header->message_key) = calc_message_key2(auth_key, X, to_encrypt);
+    std::tie(packet_info->message_ack, header->message_key) = calc_message_key2(auth_key, X, to_encrypt);
     KDF2(auth_key.key(), header->message_key, X, &aes_key, &aes_iv);
   }
 
   aes_ige_encrypt(as_slice(aes_key), as_mutable_slice(aes_iv), to_encrypt, to_encrypt);
 }
 
-BufferWriter Transport::write_crypto(const Storer &storer, const AuthKey &auth_key, PacketInfo *info,
+BufferWriter Transport::write_crypto(const Storer &storer, const AuthKey &auth_key, PacketInfo *packet_info,
                                      size_t prepend_size, size_t append_size) {
   size_t data_size = storer.size();
   size_t padded_size;
-  if (info->version == 1) {
+  if (packet_info->version == 1) {
     padded_size = calc_crypto_size<CryptoHeader>(data_size);
   } else {
-    padded_size = calc_crypto_size2<CryptoHeader>(data_size, info);
+    padded_size = calc_crypto_size2<CryptoHeader>(data_size, packet_info);
   }
   auto packet = BufferWriter{padded_size, prepend_size, append_size};
 
   //FIXME: rewrite without reinterpret cast
   auto &header = *reinterpret_cast<CryptoHeader *>(packet.as_mutable_slice().begin());
   header.auth_key_id = auth_key.id();
-  header.salt = info->salt;
-  header.session_id = info->session_id;
+  header.salt = packet_info->salt;
+  header.session_id = packet_info->session_id;
 
-  write_crypto_impl(0, storer, auth_key, info, &header, data_size, padded_size);
+  write_crypto_impl(0, storer, auth_key, packet_info, &header, data_size, padded_size);
 
   return packet;
 }
 
-BufferWriter Transport::write_e2e_crypto(const Storer &storer, const AuthKey &auth_key, PacketInfo *info,
+BufferWriter Transport::write_e2e_crypto(const Storer &storer, const AuthKey &auth_key, PacketInfo *packet_info,
                                          size_t prepend_size, size_t append_size) {
   size_t data_size = storer.size();
   size_t padded_size;
-  if (info->version == 1) {
+  if (packet_info->version == 1) {
     padded_size = calc_crypto_size<EndToEndHeader>(data_size);
   } else {
-    padded_size = calc_crypto_size2<EndToEndHeader>(data_size, info);
+    padded_size = calc_crypto_size2<EndToEndHeader>(data_size, packet_info);
   }
   auto packet = BufferWriter{padded_size, prepend_size, append_size};
 
@@ -400,8 +402,8 @@ BufferWriter Transport::write_e2e_crypto(const Storer &storer, const AuthKey &au
   auto &header = *reinterpret_cast<EndToEndHeader *>(packet.as_mutable_slice().begin());
   header.auth_key_id = auth_key.id();
 
-  write_crypto_impl(info->is_creator || info->version == 1 ? 0 : 8, storer, auth_key, info, &header, data_size,
-                    padded_size);
+  write_crypto_impl(packet_info->is_creator || packet_info->version == 1 ? 0 : 8, storer, auth_key, packet_info,
+                    &header, data_size, padded_size);
 
   return packet;
 }
@@ -413,7 +415,7 @@ Result<uint64> Transport::read_auth_key_id(Slice message) {
   return as<uint64>(message.begin());
 }
 
-Result<Transport::ReadResult> Transport::read(MutableSlice message, const AuthKey &auth_key, PacketInfo *info) {
+Result<Transport::ReadResult> Transport::read(MutableSlice message, const AuthKey &auth_key, PacketInfo *packet_info) {
   if (message.size() < 12) {
     if (message.size() < 4) {
       return Status::Error(PSLICE() << "Invalid MTProto message: smaller than 4 bytes [size = " << message.size()
@@ -430,31 +432,31 @@ Result<Transport::ReadResult> Transport::read(MutableSlice message, const AuthKe
     }
   }
 
-  info->no_crypto_flag = as<int64>(message.begin()) == 0;
+  packet_info->no_crypto_flag = as<int64>(message.begin()) == 0;
   MutableSlice data;
-  if (info->type == PacketInfo::EndToEnd) {
-    TRY_STATUS(read_e2e_crypto(message, auth_key, info, &data));
-  } else if (info->no_crypto_flag) {
-    TRY_STATUS(read_no_crypto(message, info, &data));
+  if (packet_info->type == PacketInfo::EndToEnd) {
+    TRY_STATUS(read_e2e_crypto(message, auth_key, packet_info, &data));
+  } else if (packet_info->no_crypto_flag) {
+    TRY_STATUS(read_no_crypto(message, packet_info, &data));
   } else {
     if (auth_key.empty()) {
       return Status::Error("Failed to decrypt MTProto message: auth key is empty");
     }
-    TRY_STATUS(read_crypto(message, auth_key, info, &data));
+    TRY_STATUS(read_crypto(message, auth_key, packet_info, &data));
   }
   return ReadResult::make_packet(data);
 }
 
-BufferWriter Transport::write(const Storer &storer, const AuthKey &auth_key, PacketInfo *info, size_t prepend_size,
-                              size_t append_size) {
-  if (info->type == PacketInfo::EndToEnd) {
-    return write_e2e_crypto(storer, auth_key, info, prepend_size, append_size);
+BufferWriter Transport::write(const Storer &storer, const AuthKey &auth_key, PacketInfo *packet_info,
+                              size_t prepend_size, size_t append_size) {
+  if (packet_info->type == PacketInfo::EndToEnd) {
+    return write_e2e_crypto(storer, auth_key, packet_info, prepend_size, append_size);
   }
-  if (info->no_crypto_flag) {
-    return write_no_crypto(storer, info, prepend_size, append_size);
+  if (packet_info->no_crypto_flag) {
+    return write_no_crypto(storer, packet_info, prepend_size, append_size);
   } else {
     CHECK(!auth_key.empty());
-    return write_crypto(storer, auth_key, info, prepend_size, append_size);
+    return write_crypto(storer, auth_key, packet_info, prepend_size, append_size);
   }
 }
 

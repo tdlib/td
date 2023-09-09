@@ -61,7 +61,7 @@ class RawConnection {
     Callback(const Callback &) = delete;
     Callback &operator=(const Callback &) = delete;
     virtual ~Callback() = default;
-    virtual Status on_raw_packet(const PacketInfo &info, BufferSlice packet) = 0;
+    virtual Status on_raw_packet(const PacketInfo &packet_info, BufferSlice packet) = 0;
     virtual Status on_quick_ack(uint64 quick_ack_token) {
       return Status::Error("Quick acknowledgements are unsupported by the callback");
     }
