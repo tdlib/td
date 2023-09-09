@@ -344,20 +344,12 @@ size_t Transport::write_no_crypto(const Storer &storer, PacketInfo *info, Mutabl
 
 template <class HeaderT>
 void Transport::write_crypto_impl(int X, const Storer &storer, const AuthKey &auth_key, PacketInfo *info,
-                                  HeaderT *header, size_t data_size) {
+                                  HeaderT *header, size_t data_size, size_t padded_size) {
   auto real_data_size = storer.store(header->data);
   CHECK(real_data_size == data_size);
-  VLOG(raw_mtproto) << "Send packet of size " << data_size << " to session " << format::as_hex(info->session_id) << ":"
+  VLOG(raw_mtproto) << "Send packet of size " << data_size << ':'
                     << format::as_hex_dump<4>(Slice(header->data, data_size));
-
-  size_t size = 0;
-  if (info->version == 1) {
-    size = calc_crypto_size<HeaderT>(data_size);
-  } else {
-    size = calc_crypto_size2<HeaderT>(data_size, info);
-  }
-
-  size_t pad_size = size - (sizeof(HeaderT) + data_size);
+  size_t pad_size = padded_size - (sizeof(HeaderT) + data_size);
   MutableSlice pad(header->data + data_size, pad_size);
   Random::secure_bytes(pad.ubegin(), pad.size());
   MutableSlice to_encrypt = MutableSlice(header->encrypt_begin(), pad.uend());
@@ -377,14 +369,14 @@ void Transport::write_crypto_impl(int X, const Storer &storer, const AuthKey &au
 
 size_t Transport::write_crypto(const Storer &storer, const AuthKey &auth_key, PacketInfo *info, MutableSlice dest) {
   size_t data_size = storer.size();
-  size_t size;
+  size_t padded_size;
   if (info->version == 1) {
-    size = calc_crypto_size<CryptoHeader>(data_size);
+    padded_size = calc_crypto_size<CryptoHeader>(data_size);
   } else {
-    size = calc_crypto_size2<CryptoHeader>(data_size, info);
+    padded_size = calc_crypto_size2<CryptoHeader>(data_size, info);
   }
-  if (size > dest.size()) {
-    return size;
+  if (padded_size > dest.size()) {
+    return padded_size;
   }
 
   //FIXME: rewrite without reinterpret cast
@@ -393,30 +385,31 @@ size_t Transport::write_crypto(const Storer &storer, const AuthKey &auth_key, Pa
   header.salt = info->salt;
   header.session_id = info->session_id;
 
-  write_crypto_impl(0, storer, auth_key, info, &header, data_size);
+  write_crypto_impl(0, storer, auth_key, info, &header, data_size, padded_size);
 
-  return size;
+  return padded_size;
 }
 
 size_t Transport::write_e2e_crypto(const Storer &storer, const AuthKey &auth_key, PacketInfo *info, MutableSlice dest) {
   size_t data_size = storer.size();
-  size_t size;
+  size_t padded_size;
   if (info->version == 1) {
-    size = calc_crypto_size<EndToEndHeader>(data_size);
+    padded_size = calc_crypto_size<EndToEndHeader>(data_size);
   } else {
-    size = calc_crypto_size2<EndToEndHeader>(data_size, info);
+    padded_size = calc_crypto_size2<EndToEndHeader>(data_size, info);
   }
-  if (size > dest.size()) {
-    return size;
+  if (padded_size > dest.size()) {
+    return padded_size;
   }
 
   //FIXME: rewrite without reinterpret cast
   auto &header = *reinterpret_cast<EndToEndHeader *>(dest.begin());
   header.auth_key_id = auth_key.id();
 
-  write_crypto_impl(info->is_creator || info->version == 1 ? 0 : 8, storer, auth_key, info, &header, data_size);
+  write_crypto_impl(info->is_creator || info->version == 1 ? 0 : 8, storer, auth_key, info, &header, data_size,
+                    padded_size);
 
-  return size;
+  return padded_size;
 }
 
 Result<uint64> Transport::read_auth_key_id(Slice message) {
