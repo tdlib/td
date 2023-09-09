@@ -330,16 +330,17 @@ Status Transport::read_e2e_crypto(MutableSlice message, const AuthKey &auth_key,
   return Status::OK();
 }
 
-size_t Transport::write_no_crypto(const Storer &storer, PacketInfo *info, MutableSlice dest) {
+BufferWriter Transport::write_no_crypto(const Storer &storer, PacketInfo *info, size_t prepend_size,
+                                        size_t append_size) {
   size_t size = calc_no_crypto_size(storer.size());
-  if (size > dest.size()) {
-    return size;
-  }
+  auto packet = BufferWriter{size, prepend_size, append_size};
+
   // NoCryptoHeader
-  as<uint64>(dest.begin()) = 0;
-  auto real_size = storer.store(dest.ubegin() + sizeof(uint64));
+  auto *begin = packet.as_mutable_slice().ubegin();
+  as<uint64>(begin) = 0;
+  auto real_size = storer.store(begin + sizeof(uint64));
   CHECK(real_size == storer.size());
-  return size;
+  return packet;
 }
 
 template <class HeaderT>
@@ -367,7 +368,8 @@ void Transport::write_crypto_impl(int X, const Storer &storer, const AuthKey &au
   aes_ige_encrypt(as_slice(aes_key), as_mutable_slice(aes_iv), to_encrypt, to_encrypt);
 }
 
-size_t Transport::write_crypto(const Storer &storer, const AuthKey &auth_key, PacketInfo *info, MutableSlice dest) {
+BufferWriter Transport::write_crypto(const Storer &storer, const AuthKey &auth_key, PacketInfo *info,
+                                     size_t prepend_size, size_t append_size) {
   size_t data_size = storer.size();
   size_t padded_size;
   if (info->version == 1) {
@@ -375,22 +377,21 @@ size_t Transport::write_crypto(const Storer &storer, const AuthKey &auth_key, Pa
   } else {
     padded_size = calc_crypto_size2<CryptoHeader>(data_size, info);
   }
-  if (padded_size > dest.size()) {
-    return padded_size;
-  }
+  auto packet = BufferWriter{padded_size, prepend_size, append_size};
 
   //FIXME: rewrite without reinterpret cast
-  auto &header = *reinterpret_cast<CryptoHeader *>(dest.begin());
+  auto &header = *reinterpret_cast<CryptoHeader *>(packet.as_mutable_slice().begin());
   header.auth_key_id = auth_key.id();
   header.salt = info->salt;
   header.session_id = info->session_id;
 
   write_crypto_impl(0, storer, auth_key, info, &header, data_size, padded_size);
 
-  return padded_size;
+  return packet;
 }
 
-size_t Transport::write_e2e_crypto(const Storer &storer, const AuthKey &auth_key, PacketInfo *info, MutableSlice dest) {
+BufferWriter Transport::write_e2e_crypto(const Storer &storer, const AuthKey &auth_key, PacketInfo *info,
+                                         size_t prepend_size, size_t append_size) {
   size_t data_size = storer.size();
   size_t padded_size;
   if (info->version == 1) {
@@ -398,18 +399,16 @@ size_t Transport::write_e2e_crypto(const Storer &storer, const AuthKey &auth_key
   } else {
     padded_size = calc_crypto_size2<EndToEndHeader>(data_size, info);
   }
-  if (padded_size > dest.size()) {
-    return padded_size;
-  }
+  auto packet = BufferWriter{padded_size, prepend_size, append_size};
 
   //FIXME: rewrite without reinterpret cast
-  auto &header = *reinterpret_cast<EndToEndHeader *>(dest.begin());
+  auto &header = *reinterpret_cast<EndToEndHeader *>(packet.as_mutable_slice().begin());
   header.auth_key_id = auth_key.id();
 
   write_crypto_impl(info->is_creator || info->version == 1 ? 0 : 8, storer, auth_key, info, &header, data_size,
                     padded_size);
 
-  return padded_size;
+  return packet;
 }
 
 Result<uint64> Transport::read_auth_key_id(Slice message) {
@@ -451,23 +450,17 @@ Result<Transport::ReadResult> Transport::read(MutableSlice message, const AuthKe
   return ReadResult::make_packet(data);
 }
 
-size_t Transport::do_write(const Storer &storer, const AuthKey &auth_key, PacketInfo *info, MutableSlice dest) {
-  if (info->type == PacketInfo::EndToEnd) {
-    return write_e2e_crypto(storer, auth_key, info, dest);
-  }
-  if (info->no_crypto_flag) {
-    return write_no_crypto(storer, info, dest);
-  } else {
-    CHECK(!auth_key.empty());
-    return write_crypto(storer, auth_key, info, dest);
-  }
-}
-
 BufferWriter Transport::write(const Storer &storer, const AuthKey &auth_key, PacketInfo *info, size_t prepend_size,
                               size_t append_size) {
-  auto packet = BufferWriter{do_write(storer, auth_key, info, MutableSlice()), prepend_size, append_size};
-  do_write(storer, auth_key, info, packet.as_mutable_slice());
-  return packet;
+  if (info->type == PacketInfo::EndToEnd) {
+    return write_e2e_crypto(storer, auth_key, info, prepend_size, append_size);
+  }
+  if (info->no_crypto_flag) {
+    return write_no_crypto(storer, info, prepend_size, append_size);
+  } else {
+    CHECK(!auth_key.empty());
+    return write_crypto(storer, auth_key, info, prepend_size, append_size);
+  }
 }
 
 }  // namespace mtproto

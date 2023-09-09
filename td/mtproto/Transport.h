@@ -119,17 +119,17 @@ class Transport {
   static Status read_crypto_impl(int X, MutableSlice message, const AuthKey &auth_key, HeaderT **header_ptr,
                                  PrefixT **prefix_ptr, MutableSlice *data, PacketInfo *info) TD_WARN_UNUSED_RESULT;
 
-  static size_t write_no_crypto(const Storer &storer, PacketInfo *info, MutableSlice dest);
+  static BufferWriter write_no_crypto(const Storer &storer, PacketInfo *info, size_t prepend_size, size_t append_size);
 
-  static size_t write_crypto(const Storer &storer, const AuthKey &auth_key, PacketInfo *info, MutableSlice dest);
+  static BufferWriter write_crypto(const Storer &storer, const AuthKey &auth_key, PacketInfo *info, size_t prepend_size,
+                                   size_t append_size);
 
-  static size_t write_e2e_crypto(const Storer &storer, const AuthKey &auth_key, PacketInfo *info, MutableSlice dest);
+  static BufferWriter write_e2e_crypto(const Storer &storer, const AuthKey &auth_key, PacketInfo *info,
+                                       size_t prepend_size, size_t append_size);
 
   template <class HeaderT>
   static void write_crypto_impl(int X, const Storer &storer, const AuthKey &auth_key, PacketInfo *info, HeaderT *header,
                                 size_t data_size, size_t padded_size);
-
-  static size_t do_write(const Storer &storer, const AuthKey &auth_key, PacketInfo *info, MutableSlice dest);
 };
 
 }  // namespace mtproto
