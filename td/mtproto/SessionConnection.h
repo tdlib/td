@@ -13,7 +13,6 @@
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
-#include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/Named.h"
 #include "td/utils/port/detail/PollableFd.h"
@@ -31,7 +30,6 @@ namespace td {
 extern int VERBOSITY_NAME(mtproto);
 
 namespace mtproto_api {
-class rpc_error;
 class new_session_created;
 class bad_msg_notification;
 class bad_server_salt;
@@ -96,7 +94,7 @@ class SessionConnection final
     virtual void on_server_salt_updated() = 0;
     virtual void on_server_time_difference_updated(bool force) = 0;
 
-    virtual void on_new_session_created(uint64 unique_id, uint64 first_id) = 0;
+    virtual void on_new_session_created(uint64 unique_id, uint64 first_message_id) = 0;
     virtual void on_session_failed(Status status) = 0;
 
     virtual void on_container_sent(uint64 container_id, vector<uint64> msgs_id) = 0;

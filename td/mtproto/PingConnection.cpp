@@ -122,7 +122,7 @@ class PingConnectionPingPong final
   void on_server_time_difference_updated(bool force) final {
   }
 
-  void on_new_session_created(uint64 unique_id, uint64 first_id) final {
+  void on_new_session_created(uint64 unique_id, uint64 first_message_id) final {
   }
   void on_session_failed(Status status) final {
   }
