@@ -25,7 +25,6 @@ struct PacketInfo {
   bool is_creator{false};
   bool check_mod4{true};
   bool use_random_padding{false};
-  uint32 size{0};
 };
 
 }  // namespace mtproto

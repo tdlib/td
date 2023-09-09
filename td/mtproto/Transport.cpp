@@ -187,18 +187,13 @@ size_t do_calc_crypto_size2_rand(size_t data_size, size_t enc_size, size_t raw_s
 
 template <class HeaderT>
 size_t Transport::calc_crypto_size2(size_t data_size, PacketInfo *info) {
-  if (info->size != 0) {
-    return info->size;
-  }
-
   size_t enc_size = HeaderT::encrypted_header_size();
   size_t raw_size = sizeof(HeaderT) - enc_size;
   if (info->use_random_padding) {
-    info->size = narrow_cast<uint32>(do_calc_crypto_size2_rand(data_size, enc_size, raw_size));
+    return do_calc_crypto_size2_rand(data_size, enc_size, raw_size);
   } else {
-    info->size = narrow_cast<uint32>(do_calc_crypto_size2_basic(data_size, enc_size, raw_size));
+    return do_calc_crypto_size2_basic(data_size, enc_size, raw_size);
   }
-  return info->size;
 }
 
 size_t Transport::calc_no_crypto_size(size_t data_size) {
