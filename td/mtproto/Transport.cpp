@@ -451,7 +451,7 @@ Result<Transport::ReadResult> Transport::read(MutableSlice message, const AuthKe
   return ReadResult::make_packet(data);
 }
 
-size_t Transport::write(const Storer &storer, const AuthKey &auth_key, PacketInfo *info, MutableSlice dest) {
+size_t Transport::do_write(const Storer &storer, const AuthKey &auth_key, PacketInfo *info, MutableSlice dest) {
   if (info->type == PacketInfo::EndToEnd) {
     return write_e2e_crypto(storer, auth_key, info, dest);
   }
@@ -461,6 +461,13 @@ size_t Transport::write(const Storer &storer, const AuthKey &auth_key, PacketInf
     CHECK(!auth_key.empty());
     return write_crypto(storer, auth_key, info, dest);
   }
+}
+
+BufferWriter Transport::write(const Storer &storer, const AuthKey &auth_key, PacketInfo *info, size_t prepend_size,
+                              size_t append_size) {
+  auto packet = BufferWriter{do_write(storer, auth_key, info, MutableSlice()), prepend_size, append_size};
+  do_write(storer, auth_key, info, packet.as_mutable_slice());
+  return packet;
 }
 
 }  // namespace mtproto

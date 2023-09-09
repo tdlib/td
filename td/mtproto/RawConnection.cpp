@@ -67,10 +67,8 @@ class RawConnectionDefault final : public RawConnection {
     info.salt = salt;
     info.session_id = session_id;
     info.use_random_padding = transport_->use_random_padding();
-
-    auto packet = BufferWriter{Transport::write(storer, auth_key, &info), transport_->max_prepend_size(),
-                               transport_->max_append_size()};
-    Transport::write(storer, auth_key, &info, packet.as_mutable_slice());
+    auto packet =
+        Transport::write(storer, auth_key, &info, transport_->max_prepend_size(), transport_->max_append_size());
 
     bool use_quick_ack = false;
     if (quick_ack_token != 0 && transport_->support_quick_ack()) {
@@ -90,11 +88,10 @@ class RawConnectionDefault final : public RawConnection {
 
   uint64 send_no_crypto(const Storer &storer) final {
     PacketInfo info;
-
     info.no_crypto_flag = true;
-    auto packet = BufferWriter{Transport::write(storer, AuthKey(), &info), transport_->max_prepend_size(),
-                               transport_->max_append_size()};
-    Transport::write(storer, AuthKey(), &info, packet.as_mutable_slice());
+    auto packet =
+        Transport::write(storer, AuthKey(), &info, transport_->max_prepend_size(), transport_->max_append_size());
+
     LOG(INFO) << "Send handshake packet: " << format::as_hex_dump<4>(packet.as_slice());
     transport_->write(std::move(packet), false);
     return info.message_id;
@@ -311,9 +308,7 @@ class RawConnectionHttp final : public RawConnection {
     info.salt = salt;
     info.session_id = session_id;
     info.use_random_padding = false;
-
-    auto packet = BufferWriter{Transport::write(storer, auth_key, &info), 0, 0};
-    Transport::write(storer, auth_key, &info, packet.as_mutable_slice());
+    auto packet = Transport::write(storer, auth_key, &info);
 
     auto packet_size = packet.size();
     send_packet(packet.as_buffer_slice());
@@ -322,10 +317,9 @@ class RawConnectionHttp final : public RawConnection {
 
   uint64 send_no_crypto(const Storer &storer) final {
     PacketInfo info;
-
     info.no_crypto_flag = true;
-    auto packet = BufferWriter{Transport::write(storer, AuthKey(), &info), 0, 0};
-    Transport::write(storer, AuthKey(), &info, packet.as_mutable_slice());
+    auto packet = Transport::write(storer, AuthKey(), &info);
+
     LOG(INFO) << "Send handshake packet: " << format::as_hex_dump<4>(packet.as_slice());
     send_packet(packet.as_buffer_slice());
     return info.message_id;

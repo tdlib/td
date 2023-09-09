@@ -843,15 +843,13 @@ std::pair<uint64, BufferSlice> SessionConnection::encrypted_bind(int64 perm_key,
       auth_data_->next_message_id(Time::now_cached()), 0, object_packet.as_buffer_slice(), false, {}, false};
   PacketStorer<QueryImpl> query_storer(query, Slice());
 
+  const AuthKey &main_auth_key = auth_data_->get_main_auth_key();
   PacketInfo info;
   info.version = 1;
   info.no_crypto_flag = false;
   info.salt = Random::secure_int64();
   info.session_id = Random::secure_int64();
-
-  const AuthKey &main_auth_key = auth_data_->get_main_auth_key();
-  auto packet = BufferWriter{Transport::write(query_storer, main_auth_key, &info), 0, 0};
-  Transport::write(query_storer, main_auth_key, &info, packet.as_mutable_slice());
+  auto packet = Transport::write(query_storer, main_auth_key, &info);
   return std::make_pair(query.message_id, packet.as_buffer_slice());
 }
 

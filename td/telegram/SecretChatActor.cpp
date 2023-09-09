@@ -227,8 +227,7 @@ Result<BufferSlice> SecretChatActor::create_encrypted_message(int32 my_in_seq_no
   info.type = mtproto::PacketInfo::EndToEnd;
   info.version = 2;
   info.is_creator = auth_state_.x == 0;
-  auto packet_writer = BufferWriter{mtproto::Transport::write(new_storer, *auth_key, &info), 0, 0};
-  mtproto::Transport::write(new_storer, *auth_key, &info, packet_writer.as_mutable_slice());
+  auto packet_writer = mtproto::Transport::write(new_storer, *auth_key, &info);
   message = std::move(message_with_layer->message_);
   return packet_writer.as_buffer_slice();
 }

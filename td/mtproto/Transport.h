@@ -8,6 +8,7 @@
 
 #include "td/mtproto/PacketInfo.h"
 
+#include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
 #include "td/utils/Slice.h"
@@ -88,9 +89,10 @@ class Transport {
   // If auth_key is nonempty, encryption will be used.
   static Result<ReadResult> read(MutableSlice message, const AuthKey &auth_key, PacketInfo *info) TD_WARN_UNUSED_RESULT;
 
-  static size_t write(const Storer &storer, const AuthKey &auth_key, PacketInfo *info,
-                      MutableSlice dest = MutableSlice());
+  static BufferWriter write(const Storer &storer, const AuthKey &auth_key, PacketInfo *info, size_t prepend_size = 0,
+                            size_t append_size = 0);
 
+  // public for testing purposes
   static std::pair<uint32, UInt128> calc_message_key2(const AuthKey &auth_key, int X, Slice to_encrypt);
 
  private:
@@ -126,6 +128,8 @@ class Transport {
   template <class HeaderT>
   static void write_crypto_impl(int X, const Storer &storer, const AuthKey &auth_key, PacketInfo *info, HeaderT *header,
                                 size_t data_size, size_t padded_size);
+
+  static size_t do_write(const Storer &storer, const AuthKey &auth_key, PacketInfo *info, MutableSlice dest);
 };
 
 }  // namespace mtproto
