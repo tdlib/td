@@ -34815,7 +34815,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     d->max_added_message_id = message->message_id;
   }
 
-  if (d->open_count == 0 && !d->has_unload_timeout && !d->messages.empty() && is_message_unload_enabled()) {
+  if (d->open_count == 0 && !d->has_unload_timeout && is_message_unload_enabled() &&
+      (!d->messages.empty() || !from_database)) {
     LOG(INFO) << "Schedule unload of " << dialog_id;
     pending_unload_dialog_timeout_.add_timeout_in(dialog_id.get(), get_next_unload_dialog_delay(d));
     d->has_unload_timeout = true;
