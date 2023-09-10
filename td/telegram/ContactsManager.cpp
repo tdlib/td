@@ -19548,7 +19548,7 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
     switch (dialog_id.get_type()) {
       case DialogType::Chat: {
         auto chat_id = dialog_id.get_chat_id();
-        const Chat *c = get_chat(chat_id);
+        const Chat *c = get_chat_force(chat_id);
 
         if (c != nullptr) {
           title = c->title;
@@ -19564,7 +19564,7 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
       }
       case DialogType::Channel: {
         auto channel_id = dialog_id.get_channel_id();
-        const Channel *c = get_channel(channel_id);
+        const Channel *c = get_channel_force(channel_id);
 
         bool is_megagroup = false;
         if (c != nullptr) {

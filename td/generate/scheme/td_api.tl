@@ -905,7 +905,7 @@ chatInviteLinkMembers total_count:int32 members:vector<chatInviteLinkMember> = C
 //@description Contains information about a chat invite link
 //@chat_id Chat identifier of the invite link; 0 if the user has no access to the chat before joining
 //@accessible_for If non-zero, the amount of time for which read access to the chat will remain available, in seconds
-//@type Type of the chat
+//@type Type of the chat; basic_group_id or supergroup_id can be 0 if the user has no access to the chat before joining
 //@title Title of the chat
 //@photo Chat photo; may be null
 //@param_description Chat description
@@ -6404,7 +6404,7 @@ clearRecentlyFoundChats = Ok;
 //@description Returns recently opened chats; this is an offline request. Returns chats in the order of last opening @limit The maximum number of chats to be returned
 getRecentlyOpenedChats limit:int32 = Chats;
 
-//@description Checks whether a username can be set for a chat @chat_id Chat identifier; must be identifier of a supergroup chat, or a channel chat, or a private chat with self, or zero if the chat is being created @username Username to be checked
+//@description Checks whether a username can be set for a chat @chat_id Chat identifier; must be identifier of a supergroup chat, or a channel chat, or a private chat with self, or 0 if the chat is being created @username Username to be checked
 checkChatUsername chat_id:int53 username:string = CheckChatUsernameResult;
 
 //@description Returns a list of public chats of the specified type, owned by the user @type Type of the public chats to return
