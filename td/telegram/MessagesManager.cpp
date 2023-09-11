@@ -662,7 +662,8 @@ class SearchPublicDialogsQuery final : public Td::ResultHandler {
  public:
   void send(const string &query) {
     query_ = query;
-    send_query(G()->net_query_creator().create(telegram_api::contacts_search(query, 3 /* ignored server-side */)));
+    send_query(
+        G()->net_query_creator().create(telegram_api::contacts_search(query, 20 /* mostly ignored server-side */)));
   }
 
   void on_result(BufferSlice packet) final {
