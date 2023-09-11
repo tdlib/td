@@ -49,7 +49,7 @@ class AccountManager final : public Actor {
 
   void disconnect_all_websites(Promise<Unit> &&promise);
 
-  void export_contact_token(Promise<td_api::object_ptr<td_api::userLink>> &&promise);
+  void get_user_link(Promise<td_api::object_ptr<td_api::userLink>> &&promise);
 
   void import_contact_token(const string &token, Promise<td_api::object_ptr<td_api::user>> &&promise);
 
@@ -59,6 +59,8 @@ class AccountManager final : public Actor {
 
  private:
   void tear_down() final;
+
+  void get_user_link_impl(Promise<td_api::object_ptr<td_api::userLink>> &&promise);
 
   Td *td_;
   ActorShared<> parent_;

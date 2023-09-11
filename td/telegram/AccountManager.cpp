@@ -9,6 +9,7 @@
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DeviceTokenManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/LinkManager.h"
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
@@ -676,7 +677,24 @@ void AccountManager::disconnect_all_websites(Promise<Unit> &&promise) {
   td_->create_handler<ResetWebAuthorizationsQuery>(std::move(promise))->send();
 }
 
-void AccountManager::export_contact_token(Promise<td_api::object_ptr<td_api::userLink>> &&promise) {
+void AccountManager::get_user_link(Promise<td_api::object_ptr<td_api::userLink>> &&promise) {
+  td_->contacts_manager_->get_me(
+      PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](Result<Unit> &&result) mutable {
+        if (result.is_error()) {
+          promise.set_error(result.move_as_error());
+        } else {
+          send_closure(actor_id, &AccountManager::get_user_link_impl, std::move(promise));
+        }
+      }));
+}
+
+void AccountManager::get_user_link_impl(Promise<td_api::object_ptr<td_api::userLink>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  auto username = td_->contacts_manager_->get_user_first_username(td_->contacts_manager_->get_my_id());
+  if (!username.empty()) {
+    return promise.set_value(
+        td_api::make_object<td_api::userLink>(LinkManager::get_public_dialog_link(username, true), 0));
+  }
   td_->create_handler<ExportContactTokenQuery>(std::move(promise))->send();
 }
 

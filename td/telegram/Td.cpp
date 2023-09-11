@@ -4625,7 +4625,7 @@ void Td::on_request(uint64 id, td_api::resendChangePhoneNumberCode &request) {
 void Td::on_request(uint64 id, const td_api::getUserLink &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  contacts_manager_->get_user_link(std::move(promise));
+  account_manager_->get_user_link(std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::searchUserByToken &request) {
