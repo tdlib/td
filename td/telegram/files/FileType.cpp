@@ -320,6 +320,9 @@ bool can_reuse_remote_file(FileType file_type) {
 
 FileType guess_file_type_by_path(Slice file_path, FileType default_file_type) {
   if (default_file_type != FileType::None) {
+    if (default_file_type == FileType::PhotoStory && ends_with(file_path, ".mp4")) {
+      return FileType::VideoStory;
+    }
     return default_file_type;
   }
 

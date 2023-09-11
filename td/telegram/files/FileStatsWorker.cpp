@@ -129,7 +129,7 @@ void scan_fs(CancellationToken &token, CallbackT &&callback) {
       FsFileInfo info;
       info.path = path.str();
       info.size = stat.real_size_;
-      info.file_type = file_type;
+      info.file_type = guess_file_type_by_path(path, file_type);
       info.atime_nsec = stat.atime_nsec_;
       info.mtime_nsec = stat.mtime_nsec_;
       callback(info);
@@ -152,9 +152,6 @@ void FileStatsWorker::get_stats(bool need_all_files, bool split_by_owner_dialog_
     scan_fs(token_, [&](FsFileInfo &fs_info) {
       FullFileInfo info;
       info.file_type = fs_info.file_type;
-      if (info.file_type == FileType::PhotoStory && ends_with(fs_info.path, ".mp4")) {
-        info.file_type = FileType::VideoStory;
-      }
       info.path = std::move(fs_info.path);
       info.size = fs_info.size;
       info.atime_nsec = fs_info.atime_nsec;
