@@ -4891,10 +4891,10 @@ sessionTypeXbox = SessionType;
 //@system_version Version of the operating system the application has been run or is running on, as provided by the application
 //@log_in_date Point in time (Unix timestamp) when the user has logged in
 //@last_active_date Point in time (Unix timestamp) when the session was last used
-//@ip IP address from which the session was created, in human-readable format
+//@ip_address IP address from which the session was created, in human-readable format
 //@country A two-letter country code for the country from which the session was created, based on the IP address
 //@region Region code from which the session was created, based on the IP address
-session id:int64 is_current:Bool is_password_pending:Bool is_unconfirmed:Bool can_accept_secret_chats:Bool can_accept_calls:Bool type:SessionType api_id:int32 application_name:string application_version:string is_official_application:Bool device_model:string platform:string system_version:string log_in_date:int32 last_active_date:int32 ip:string country:string region:string = Session;
+session id:int64 is_current:Bool is_password_pending:Bool is_unconfirmed:Bool can_accept_secret_chats:Bool can_accept_calls:Bool type:SessionType api_id:int32 application_name:string application_version:string is_official_application:Bool device_model:string platform:string system_version:string log_in_date:int32 last_active_date:int32 ip_address:string country:string region:string = Session;
 
 //@description Contains a list of sessions @sessions List of sessions @inactive_session_ttl_days Number of days of inactivity before sessions will automatically be terminated; 1-366 days
 sessions sessions:vector<session> inactive_session_ttl_days:int32 = Sessions;
@@ -4915,9 +4915,9 @@ unconfirmedSession id:int64 log_in_date:int32 device_model:string location:strin
 //@platform Operating system the browser is running on
 //@log_in_date Point in time (Unix timestamp) when the user was logged in
 //@last_active_date Point in time (Unix timestamp) when obtained authorization was last used
-//@ip IP address from which the user was logged in, in human-readable format
+//@ip_address IP address from which the user was logged in, in human-readable format
 //@location Human-readable description of a country and a region from which the user was logged in, based on the IP address
-connectedWebsite id:int64 domain_name:string bot_user_id:int53 browser:string platform:string log_in_date:int32 last_active_date:int32 ip:string location:string = ConnectedWebsite;
+connectedWebsite id:int64 domain_name:string bot_user_id:int53 browser:string platform:string log_in_date:int32 last_active_date:int32 ip_address:string location:string = ConnectedWebsite;
 
 //@description Contains a list of websites the current user is logged in with Telegram @websites List of connected websites
 connectedWebsites websites:vector<connectedWebsite> = ConnectedWebsites;
