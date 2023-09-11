@@ -6,6 +6,7 @@
 //
 #include "td/telegram/UpdatesManager.h"
 
+#include "td/telegram/AccountManager.h"
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/AttachMenuManager.h"
 #include "td/telegram/AuthManager.h"
@@ -4341,10 +4342,16 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStoryID> update
   promise.set_value(Unit());
 }
 
-// unsupported updates
-
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewAuthorization> update, Promise<Unit> &&promise) {
+  if (update->unconfirmed_) {
+    td_->account_manager_->on_new_unconfirmed_authorization(update->hash_, update->date_, std::move(update->device_),
+                                                            std::move(update->location_));
+  } else {
+    td_->account_manager_->on_confirm_authorization(update->hash_);
+  }
   promise.set_value(Unit());
 }
+
+// unsupported updates
 
 }  // namespace td

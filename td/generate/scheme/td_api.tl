@@ -4899,6 +4899,13 @@ session id:int64 is_current:Bool is_password_pending:Bool is_unconfirmed:Bool ca
 //@description Contains a list of sessions @sessions List of sessions @inactive_session_ttl_days Number of days of inactivity before sessions will automatically be terminated; 1-366 days
 sessions sessions:vector<session> inactive_session_ttl_days:int32 = Sessions;
 
+//@description Contains information about an unconfirmed session
+//@id Session identifier
+//@log_in_date Point in time (Unix timestamp) when the user has logged in
+//@device_model Model of the device that was used for the session creation, as provided by the application
+//@location Description of the location used for the session creation
+unconfirmedSession id:int64 log_in_date:int32 device_model:string location:string = UnconfirmedSession;
+
 
 //@description Contains information about one website the current user is logged in with Telegram
 //@id Website identifier
@@ -5997,6 +6004,9 @@ updateTermsOfService terms_of_service_id:string terms_of_service:termsOfService 
 
 //@description The list of users nearby has changed. The update is guaranteed to be sent only 60 seconds after a successful searchChatsNearby request @users_nearby The new list of users nearby
 updateUsersNearby users_nearby:vector<chatNearby> = Update;
+
+//@description The first unconfirmed session has changed @session The unconfirmed session; may be null if none
+updateUnconfirmedSession session:unconfirmedSession = Update;
 
 //@description The list of bots added to attachment or side menu has changed @bots The new list of bots. The bots must not be shown on scheduled messages screen
 updateAttachmentMenuBots bots:vector<attachmentMenuBot> = Update;

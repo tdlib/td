@@ -20,6 +20,11 @@ class Td;
 class AccountManager final : public Actor {
  public:
   AccountManager(Td *td, ActorShared<> parent);
+  AccountManager(const AccountManager &) = delete;
+  AccountManager &operator=(const AccountManager &) = delete;
+  AccountManager(AccountManager &&) = delete;
+  AccountManager &operator=(AccountManager &&) = delete;
+  ~AccountManager() final;
 
   void set_default_message_ttl(int32 message_ttl, Promise<Unit> &&promise);
 
@@ -55,15 +60,28 @@ class AccountManager final : public Actor {
 
   void invalidate_authentication_codes(vector<string> &&authentication_codes);
 
+  void on_new_unconfirmed_authorization(int64 hash, int32 date, string &&device, string &&location);
+
+  void on_confirm_authorization(int64 hash);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
+  class UnconfirmedAuthorization;
+  class UnconfirmedAuthorizations;
+
   void tear_down() final;
 
   void get_user_link_impl(Promise<td_api::object_ptr<td_api::userLink>> &&promise);
 
+  td_api::object_ptr<td_api::updateUnconfirmedSession> get_update_unconfirmed_session() const;
+
+  void send_update_unconfirmed_session() const;
+
   Td *td_;
   ActorShared<> parent_;
+
+  unique_ptr<UnconfirmedAuthorizations> unconfirmed_authorizations_;
 };
 
 }  // namespace td

@@ -6,6 +6,7 @@
 //
 #include "td/telegram/AccountManager.h"
 
+#include "td/telegram/AuthManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DeviceTokenManager.h"
 #include "td/telegram/Global.h"
@@ -602,8 +603,80 @@ class InvalidateSignInCodesQuery final : public Td::ResultHandler {
   }
 };
 
+class AccountManager::UnconfirmedAuthorization {
+  int64 hash_;
+  int32 date_;
+  string device_;
+  string location_;
+
+ public:
+  UnconfirmedAuthorization(int64 hash, int32 date, string &&device, string &&location)
+      : hash_(hash), date_(date), device_(std::move(device)), location_(std::move(location)) {
+  }
+
+  int64 get_hash() const {
+    return hash_;
+  }
+
+  int32 get_date() const {
+    return date_;
+  }
+
+  td_api::object_ptr<td_api::unconfirmedSession> get_unconfirmed_session_object() const {
+    return td_api::make_object<td_api::unconfirmedSession>(hash_, date_, device_, location_);
+  }
+};
+
+class AccountManager::UnconfirmedAuthorizations {
+  vector<UnconfirmedAuthorization> authorizations_;
+
+ public:
+  bool is_empty() const {
+    return authorizations_.empty();
+  }
+
+  bool add_authorization(UnconfirmedAuthorization &&unconfirmed_authorization, bool &is_first_changed) {
+    if (unconfirmed_authorization.get_hash() == 0) {
+      LOG(ERROR) << "Receive empty unconfirmed authorization";
+      return false;
+    }
+    for (const auto &authorization : authorizations_) {
+      if (authorization.get_hash() == unconfirmed_authorization.get_hash()) {
+        return false;
+      }
+    }
+    auto it = authorizations_.begin();
+    while (it != authorizations_.end() && it->get_date() <= unconfirmed_authorization.get_date()) {
+      ++it;
+    }
+    is_first_changed = it == authorizations_.begin();
+    authorizations_.insert(it, std::move(unconfirmed_authorization));
+    return true;
+  }
+
+  bool delete_authorization(int64 hash, bool &is_first_changed) {
+    auto it = authorizations_.begin();
+    while (it != authorizations_.end() && it->get_hash() != hash) {
+      ++it;
+    }
+    if (it == authorizations_.end()) {
+      return false;
+    }
+    is_first_changed = it == authorizations_.begin();
+    authorizations_.erase(it);
+    return true;
+  }
+
+  td_api::object_ptr<td_api::unconfirmedSession> get_first_unconfirmed_session_object() const {
+    CHECK(!authorizations_.empty());
+    return authorizations_[0].get_unconfirmed_session_object();
+  }
+};
+
 AccountManager::AccountManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
+
+AccountManager::~AccountManager() = default;
 
 void AccountManager::tear_down() {
   parent_.reset();
@@ -706,7 +779,53 @@ void AccountManager::invalidate_authentication_codes(vector<string> &&authentica
   td_->create_handler<InvalidateSignInCodesQuery>()->send(std::move(authentication_codes));
 }
 
+void AccountManager::on_new_unconfirmed_authorization(int64 hash, int32 date, string &&device, string &&location) {
+  if (td_->auth_manager_->is_bot()) {
+    LOG(ERROR) << "Receive unconfirmed authorization by a bot";
+    return;
+  }
+  if (unconfirmed_authorizations_ == nullptr) {
+    unconfirmed_authorizations_ = make_unique<UnconfirmedAuthorizations>();
+  }
+  bool is_first_changed = false;
+  if (unconfirmed_authorizations_->add_authorization({hash, date, std::move(device), std::move(location)},
+                                                     is_first_changed)) {
+    CHECK(!unconfirmed_authorizations_->is_empty());
+    if (is_first_changed) {
+      send_update_unconfirmed_session();
+    }
+  }
+}
+
+void AccountManager::on_confirm_authorization(int64 hash) {
+  bool is_first_changed = false;
+  if (unconfirmed_authorizations_ != nullptr &&
+      unconfirmed_authorizations_->delete_authorization(hash, is_first_changed)) {
+    if (unconfirmed_authorizations_->is_empty()) {
+      unconfirmed_authorizations_ = nullptr;
+    }
+    if (is_first_changed) {
+      send_update_unconfirmed_session();
+    }
+  }
+}
+
+td_api::object_ptr<td_api::updateUnconfirmedSession> AccountManager::get_update_unconfirmed_session() const {
+  if (unconfirmed_authorizations_ == nullptr) {
+    return td_api::object_ptr<td_api::updateUnconfirmedSession>(nullptr);
+  }
+  return td_api::make_object<td_api::updateUnconfirmedSession>(
+      unconfirmed_authorizations_->get_first_unconfirmed_session_object());
+}
+
+void AccountManager::send_update_unconfirmed_session() const {
+  send_closure(G()->td(), &Td::send_update, get_update_unconfirmed_session());
+}
+
 void AccountManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
+  if (unconfirmed_authorizations_ != nullptr) {
+    updates.push_back(get_update_unconfirmed_session());
+  }
 }
 
 }  // namespace td
