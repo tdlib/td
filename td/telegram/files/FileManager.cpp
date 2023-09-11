@@ -3504,34 +3504,6 @@ FileType FileManager::guess_file_type(const tl_object_ptr<td_api::InputFile> &fi
     return FileType::Temp;
   }
 
-  auto guess_file_type_by_path = [](const string &file_path) {
-    PathView path_view(file_path);
-    auto file_name = path_view.file_name();
-    auto extension = path_view.extension();
-    if (extension == "jpg" || extension == "jpeg") {
-      return FileType::Photo;
-    }
-    if (extension == "ogg" || extension == "oga" || extension == "opus") {
-      return FileType::VoiceNote;
-    }
-    if (extension == "3gp" || extension == "mov") {
-      return FileType::Video;
-    }
-    if (extension == "mp3" || extension == "mpeg3" || extension == "m4a") {
-      return FileType::Audio;
-    }
-    if (extension == "webp" || extension == "tgs" || extension == "webm") {
-      return FileType::Sticker;
-    }
-    if (extension == "gif") {
-      return FileType::Animation;
-    }
-    if (extension == "mp4" || extension == "mpeg4") {
-      return to_lower(file_name).find("-gif-") != string::npos ? FileType::Animation : FileType::Video;
-    }
-    return FileType::Document;
-  };
-
   switch (file->get_id()) {
     case td_api::inputFileLocal::ID:
       return guess_file_type_by_path(static_cast<const td_api::inputFileLocal *>(file.get())->path_);

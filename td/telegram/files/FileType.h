@@ -67,4 +67,6 @@ bool is_file_big(FileType file_type, int64 expected_size);
 
 bool can_reuse_remote_file(FileType file_type);
 
+FileType guess_file_type_by_path(Slice file_path, FileType default_file_type = FileType::None);
+
 }  // namespace td
