@@ -290,8 +290,16 @@ class GetAuthorizationsQuery final : public Td::ResultHandler {
                 if (lhs->is_password_pending_ != rhs->is_password_pending_) {
                   return lhs->is_password_pending_;
                 }
+                if (lhs->is_unconfirmed_ != rhs->is_unconfirmed_) {
+                  return lhs->is_unconfirmed_;
+                }
                 return lhs->last_active_date_ > rhs->last_active_date_;
               });
+    for (auto &session : results->sessions_) {
+      if (!session->is_current_ && !session->is_unconfirmed_) {
+        td_->account_manager_->on_confirm_authorization(session->id_);
+      }
+    }
 
     promise_.set_value(std::move(results));
   }
@@ -716,10 +724,15 @@ void AccountManager::get_active_sessions(Promise<td_api::object_ptr<td_api::sess
 }
 
 void AccountManager::terminate_session(int64 session_id, Promise<Unit> &&promise) {
+  on_confirm_authorization(session_id);
   td_->create_handler<ResetAuthorizationQuery>(std::move(promise))->send(session_id);
 }
 
 void AccountManager::terminate_all_other_sessions(Promise<Unit> &&promise) {
+  if (unconfirmed_authorizations_ != nullptr) {
+    unconfirmed_authorizations_ = nullptr;
+    send_update_unconfirmed_session();
+  }
   td_->create_handler<ResetAuthorizationsQuery>(std::move(promise))->send();
 }
 
