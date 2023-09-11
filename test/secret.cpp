@@ -67,7 +67,7 @@ class messages_getDhConfig {
 
   messages_getDhConfig() = default;
 
-  messages_getDhConfig(int32 version_, int32 random_length_);
+  messages_getDhConfig(int32 version, int32 random_length);
 
   static const int32 ID = 651135312;
 
@@ -226,8 +226,8 @@ class messages_dhConfig final {
 
   messages_dhConfig() = default;
 
-  messages_dhConfig(int32 g_, BufferSlice &&p_, int32 version_, BufferSlice &&random_)
-      : g_(g_), p_(std::move(p_)), version_(version_), random_(std::move(random_)) {
+  messages_dhConfig(int32 g, BufferSlice &&p, int32 version, BufferSlice &&random)
+      : g_(g), p_(std::move(p)), version_(version), random_(std::move(random)) {
   }
 
   static const int32 ID = 740433629;
@@ -263,15 +263,15 @@ class encryptedChat final {
 
   encryptedChat() = default;
 
-  encryptedChat(int32 id_, int64 access_hash_, int32 date_, int64 admin_id_, int64 participant_id_,
-                BufferSlice &&g_a_or_b_, int64 key_fingerprint_)
-      : id_(id_)
-      , access_hash_(access_hash_)
-      , date_(date_)
-      , admin_id_(admin_id_)
-      , participant_id_(participant_id_)
-      , g_a_or_b_(std::move(g_a_or_b_))
-      , key_fingerprint_(key_fingerprint_) {
+  encryptedChat(int32 id, int64 access_hash, int32 date, int64 admin_id, int64 participant_id, BufferSlice &&g_a_or_b,
+                int64 key_fingerprint)
+      : id_(id)
+      , access_hash_(access_hash)
+      , date_(date)
+      , admin_id_(admin_id)
+      , participant_id_(participant_id)
+      , g_a_or_b_(std::move(g_a_or_b))
+      , key_fingerprint_(key_fingerprint) {
   }
 
   static const int32 ID = -94974410;
@@ -308,7 +308,7 @@ class messages_sentEncryptedMessage final {
 
   messages_sentEncryptedMessage() = default;
 
-  explicit messages_sentEncryptedMessage(int32 date_) : date_(date_) {
+  explicit messages_sentEncryptedMessage(int32 date) : date_(date_) {
   }
 
   static const int32 ID = 1443858741;

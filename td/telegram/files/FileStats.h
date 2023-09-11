@@ -83,7 +83,7 @@ class FileStats {
   static FileTypeStat get_nontemp_stat(const StatByType &by_type);
 
   static td_api::object_ptr<td_api::storageStatisticsByChat> get_storage_statistics_by_chat_object(
-      DialogId dialog_id, const StatByType &stat_by_type_);
+      DialogId dialog_id, const StatByType &stat_by_type);
 
   friend StringBuilder &operator<<(StringBuilder &sb, const FileStats &file_stats);
 
