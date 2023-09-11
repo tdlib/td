@@ -19526,6 +19526,8 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
   CHECK(invite_link_info != nullptr);
 
   DialogId dialog_id = invite_link_info->dialog_id;
+  bool is_chat = false;
+  bool is_megagroup = false;
   string title;
   const DialogPhoto *photo = nullptr;
   DialogPhoto invite_link_photo;
@@ -19535,7 +19537,6 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
   bool creates_join_request = false;
   bool is_public = false;
   bool is_member = false;
-  td_api::object_ptr<td_api::ChatType> chat_type;
   bool is_verified = false;
   bool is_scam = false;
   bool is_fake = false;
@@ -19545,6 +19546,7 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
       case DialogType::Chat: {
         auto chat_id = dialog_id.get_chat_id();
         const Chat *c = get_chat_force(chat_id);
+        is_chat = true;
 
         if (c != nullptr) {
           title = c->title;
@@ -19554,15 +19556,12 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
         } else {
           LOG(ERROR) << "Have no information about " << chat_id;
         }
-        chat_type = td_api::make_object<td_api::chatTypeBasicGroup>(
-            get_basic_group_id_object(chat_id, "get_chat_invite_link_info_object"));
         break;
       }
       case DialogType::Channel: {
         auto channel_id = dialog_id.get_channel_id();
         const Channel *c = get_channel_force(channel_id);
 
-        bool is_megagroup = false;
         if (c != nullptr) {
           title = c->title;
           photo = &c->photo;
@@ -19576,8 +19575,6 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
         } else {
           LOG(ERROR) << "Have no information about " << channel_id;
         }
-        chat_type = td_api::make_object<td_api::chatTypeSupergroup>(
-            get_supergroup_id_object(channel_id, "get_chat_invite_link_info_object"), !is_megagroup);
         break;
       }
       default:
@@ -19585,6 +19582,8 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
     }
     description = get_dialog_about(dialog_id);
   } else {
+    is_chat = invite_link_info->is_chat;
+    is_megagroup = invite_link_info->is_megagroup;
     title = invite_link_info->title;
     invite_link_photo = as_fake_dialog_photo(invite_link_info->photo, dialog_id, false);
     photo = &invite_link_photo;
@@ -19596,12 +19595,15 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
     is_verified = invite_link_info->is_verified;
     is_scam = invite_link_info->is_scam;
     is_fake = invite_link_info->is_fake;
+  }
 
-    if (invite_link_info->is_chat) {
-      chat_type = td_api::make_object<td_api::chatTypeBasicGroup>(0);
-    } else {
-      chat_type = td_api::make_object<td_api::chatTypeSupergroup>(0, !invite_link_info->is_megagroup);
-    }
+  td_api::object_ptr<td_api::InviteLinkChatType> chat_type;
+  if (is_chat) {
+    chat_type = td_api::make_object<td_api::inviteLinkChatTypeBasicGroup>();
+  } else if (is_megagroup) {
+    chat_type = td_api::make_object<td_api::inviteLinkChatTypeSupergroup>();
+  } else {
+    chat_type = td_api::make_object<td_api::inviteLinkChatTypeChannel>();
   }
 
   if (dialog_id.is_valid()) {

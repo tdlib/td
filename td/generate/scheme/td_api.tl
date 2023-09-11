@@ -902,10 +902,23 @@ chatInviteLinkMember user_id:int53 joined_chat_date:int32 via_chat_folder_invite
 //@description Contains a list of chat members joined a chat via an invite link @total_count Approximate total number of chat members found @members List of chat members, joined a chat via an invite link
 chatInviteLinkMembers total_count:int32 members:vector<chatInviteLinkMember> = ChatInviteLinkMembers;
 
+
+//@class InviteLinkChatType @description Describes the type of a chat to which points an invite link
+
+//@description The link is an invite link for a basic group
+inviteLinkChatTypeBasicGroup = InviteLinkChatType;
+
+//@description The link is an invite link for a supergroup
+inviteLinkChatTypeSupergroup = InviteLinkChatType;
+
+//@description The link is an invite link for a channel
+inviteLinkChatTypeChannel = InviteLinkChatType;
+
+
 //@description Contains information about a chat invite link
 //@chat_id Chat identifier of the invite link; 0 if the user has no access to the chat before joining
 //@accessible_for If non-zero, the amount of time for which read access to the chat will remain available, in seconds
-//@type Type of the chat; basic_group_id or supergroup_id can be 0 if the user has no access to the chat before joining
+//@type Type of the chat
 //@title Title of the chat
 //@photo Chat photo; may be null
 //@param_description Chat description
@@ -916,7 +929,8 @@ chatInviteLinkMembers total_count:int32 members:vector<chatInviteLinkMember> = C
 //@is_verified True, if the chat is verified
 //@is_scam True, if many users reported this chat as a scam
 //@is_fake True, if many users reported this chat as a fake account
-chatInviteLinkInfo chat_id:int53 accessible_for:int32 type:ChatType title:string photo:chatPhotoInfo description:string member_count:int32 member_user_ids:vector<int53> creates_join_request:Bool is_public:Bool is_verified:Bool is_scam:Bool is_fake:Bool = ChatInviteLinkInfo;
+chatInviteLinkInfo chat_id:int53 accessible_for:int32 type:InviteLinkChatType title:string photo:chatPhotoInfo description:string member_count:int32 member_user_ids:vector<int53> creates_join_request:Bool is_public:Bool is_verified:Bool is_scam:Bool is_fake:Bool = ChatInviteLinkInfo;
+
 
 //@description Describes a user that sent a join request and waits for administrator approval @user_id User identifier @date Point in time (Unix timestamp) when the user sent the join request @bio A short bio of the user
 chatJoinRequest user_id:int53 date:int32 bio:string = ChatJoinRequest;
