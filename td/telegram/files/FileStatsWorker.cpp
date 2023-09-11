@@ -104,10 +104,10 @@ template <class CallbackT>
 void scan_fs(CancellationToken &token, CallbackT &&callback) {
   std::unordered_set<string, Hash<string>> scanned_file_dirs;
   auto scan_dir = [&](FileType file_type, const string &file_dir) {
-    LOG(INFO) << "Trying to scan directory " << file_dir;
     if (!scanned_file_dirs.insert(file_dir).second) {
       return;
     }
+    LOG(INFO) << "Scanning directory " << file_dir;
     walk_path(file_dir, [&](CSlice path, WalkPath::Type type) {
       if (token) {
         return WalkPath::Action::Abort;
@@ -146,15 +146,15 @@ void scan_fs(CancellationToken &token, CallbackT &&callback) {
 }  // namespace
 
 void FileStatsWorker::get_stats(bool need_all_files, bool split_by_owner_dialog_id, Promise<FileStats> promise) {
-  if (!G()->use_chat_info_database()) {
-    split_by_owner_dialog_id = false;
-  }
-  if (!split_by_owner_dialog_id) {
+  if (!G()->use_file_database()) {
     FileStats file_stats(need_all_files, false);
     auto start = Time::now();
     scan_fs(token_, [&](FsFileInfo &fs_info) {
       FullFileInfo info;
       info.file_type = fs_info.file_type;
+      if (info.file_type == FileType::PhotoStory && ends_with(fs_info.path, ".mp4")) {
+        info.file_type = FileType::VideoStory;
+      }
       info.path = std::move(fs_info.path);
       info.size = fs_info.size;
       info.atime_nsec = fs_info.atime_nsec;
@@ -170,7 +170,7 @@ void FileStatsWorker::get_stats(bool need_all_files, bool split_by_owner_dialog_
   } else {
     auto start = Time::now();
 
-    std::vector<FullFileInfo> full_infos;
+    vector<FullFileInfo> full_infos;
     scan_fs(token_, [&](FsFileInfo &fs_info) {
       FullFileInfo info;
       info.file_type = fs_info.file_type;
@@ -203,7 +203,9 @@ void FileStatsWorker::get_stats(bool need_all_files, bool split_by_owner_dialog_
         return;
       }
       // LOG(INFO) << "Match! " << db_info.path << " from " << db_info.owner_dialog_id;
-      full_infos[it->second].owner_dialog_id = db_info.owner_dialog_id;
+      auto &full_info = full_infos[it->second];
+      full_info.owner_dialog_id = db_info.owner_dialog_id;
+      full_info.file_type = db_info.file_type;  // database file_type is the correct one
     });
     if (token_) {
       return promise.set_error(Global::request_aborted_error());
