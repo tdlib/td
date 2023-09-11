@@ -171,6 +171,13 @@ CSlice get_file_type_name(FileType file_type) {
   }
 }
 
+CSlice get_file_type_unique_name(FileType file_type) {
+  if (file_type == FileType::VideoStory) {
+    return CSlice("video_stories");
+  }
+  return get_file_type_name(file_type);
+}
+
 FileTypeClass get_file_type_class(FileType file_type) {
   switch (file_type) {
     case FileType::Photo:

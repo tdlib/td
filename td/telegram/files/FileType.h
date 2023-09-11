@@ -53,6 +53,8 @@ FileType get_main_file_type(FileType file_type);
 
 CSlice get_file_type_name(FileType file_type);
 
+CSlice get_file_type_unique_name(FileType file_type);
+
 enum class FileTypeClass : int32 { Photo, Document, Secure, Encrypted, Temp };
 
 FileTypeClass get_file_type_class(FileType file_type);

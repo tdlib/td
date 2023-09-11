@@ -146,7 +146,7 @@ void NetStatsManager::reset_network_stats() {
     for (size_t net_type_i = 0; net_type_i < net_type_size(); net_type_i++) {
       auto net_type = NetType(net_type_i);
       info.stats_by_type[net_type_i] = NetStatsInfo::TypeStats{};
-      auto key = PSTRING() << info.key << "#" << net_type_string(net_type);
+      auto key = PSTRING() << info.key << '#' << net_type_string(net_type);
       G()->td_db()->get_binlog_pmc()->erase(key);
     }
   };
@@ -197,7 +197,7 @@ void NetStatsManager::start_up() {
 
     for (size_t net_type_i = 0; net_type_i < net_type_size(); net_type_i++) {
       auto net_type = NetType(net_type_i);
-      auto key = PSTRING() << info.key << "#" << net_type_string(net_type);
+      auto key = PSTRING() << info.key << '#' << net_type_string(net_type);
 
       auto value = G()->td_db()->get_binlog_pmc()->get(key);
       if (value.empty()) {
@@ -296,9 +296,9 @@ void NetStatsManager::save_stats(NetStatsInfo &info, NetType net_type) {
   auto net_type_i = static_cast<size_t>(net_type);
   auto &type_stats = info.stats_by_type[net_type_i];
 
-  auto key = PSTRING() << info.key << "#" << net_type_string(info.net_type);
+  auto key = PSTRING() << info.key << '#' << net_type_string(info.net_type);
   auto stats = type_stats.mem_stats + type_stats.db_stats;
-  // LOG(ERROR) << "SAVE " << key << " " << stats;
+  // LOG(ERROR) << "SAVE " << key << ' ' << stats;
 
   G()->td_db()->get_binlog_pmc()->set(key, log_event_store(stats).as_slice().str());
 }
