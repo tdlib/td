@@ -216,9 +216,11 @@ StringBuilder &operator<<(StringBuilder &sb, const FileStats &file_stats) {
 
     sb << "[FileStat " << tag("total", total_stat);
     for (int32 i = 0; i < MAX_FILE_TYPE; i++) {
-      sb << tag(get_file_type_name(FileType(i)), file_stats.stat_by_type_[i]);
+      if (file_stats.stat_by_type_[i].size != 0) {
+        sb << '[' << FileType(i) << ':' << file_stats.stat_by_type_[i] << ']';
+      }
     }
-    sb << "]";
+    sb << ']';
   } else {
     {
       FileTypeStat total_stat;
@@ -239,11 +241,13 @@ StringBuilder &operator<<(StringBuilder &sb, const FileStats &file_stats) {
 
       sb << "[FileStat " << tag("owner_dialog_id", by_type.first) << tag("total", dialog_stat);
       for (int32 i = 0; i < MAX_FILE_TYPE; i++) {
-        sb << tag(get_file_type_name(FileType(i)), by_type.second[i]);
+        if (by_type.second[i].size != 0) {
+          sb << '[' << FileType(i) << ':' << by_type.second[i] << ']';
+        }
       }
-      sb << "]";
+      sb << ']';
     }
-    sb << "]";
+    sb << ']';
   }
 
   return sb;
