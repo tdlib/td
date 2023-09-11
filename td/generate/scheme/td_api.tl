@@ -5041,7 +5041,7 @@ internalLinkTypePremiumFeatures referrer:string = InternalLinkType;
 internalLinkTypePrivacyAndSecuritySettings = InternalLinkType;
 
 //@description The link is a link to a proxy. Call addProxy with the given parameters to process the link and add the proxy
-//@server Proxy server IP address
+//@server Proxy server domain or IP address
 //@port Proxy server port
 //@type Type of the proxy
 internalLinkTypeProxy server:string port:int32 type:ProxyType = InternalLinkType;
@@ -5449,7 +5449,7 @@ proxyTypeMtproto secret:string = ProxyType;
 
 //@description Contains information about a proxy server
 //@id Unique identifier of the proxy
-//@server Proxy server IP address
+//@server Proxy server domain or IP address
 //@port Proxy server port
 //@last_used_date Point in time (Unix timestamp) when the proxy was last used; 0 if never
 //@is_enabled True, if the proxy is enabled now
@@ -8882,7 +8882,7 @@ getApplicationDownloadLink = HttpUrl;
 
 
 //@description Adds a proxy server for network requests. Can be called before authorization
-//@server Proxy server IP address
+//@server Proxy server domain or IP address
 //@port Proxy server port
 //@enable Pass true to immediately enable the proxy
 //@type Proxy type
@@ -8890,7 +8890,7 @@ addProxy server:string port:int32 enable:Bool type:ProxyType = Proxy;
 
 //@description Edits an existing proxy server for network requests. Can be called before authorization
 //@proxy_id Proxy identifier
-//@server Proxy server IP address
+//@server Proxy server domain or IP address
 //@port Proxy server port
 //@enable Pass true to immediately enable the proxy
 //@type Proxy type
@@ -8984,7 +8984,7 @@ testSquareInt x:int32 = TestInt;
 testNetwork = Ok;
 
 //@description Sends a simple network request to the Telegram servers via proxy; for testing only. Can be called before authorization
-//@server Proxy server IP address
+//@server Proxy server domain or IP address
 //@port Proxy server port
 //@type Proxy type
 //@dc_id Identifier of a datacenter with which to test connection
