@@ -14978,6 +14978,8 @@ void MessagesManager::remove_dialog_newer_messages(Dialog *d, MessageId from_mes
   CHECK(!d->last_new_message_id.is_valid());
   CHECK(!td_->auth_manager_->is_bot());
 
+  // the function is called to handle channel gaps, and hence must always delete all database messages,
+  // even first_database_message_id and last_database_message_id are empty
   delete_all_dialog_messages_from_database(d, MessageId::max(), "remove_dialog_newer_messages");
   set_dialog_first_database_message_id(d, MessageId(), "remove_dialog_newer_messages");
   set_dialog_last_database_message_id(d, MessageId(), source);
@@ -30109,7 +30111,9 @@ void MessagesManager::flush_pending_new_message_notifications(DialogId dialog_id
   auto it = pending_notifications.begin();
   while (it != pending_notifications.end() && it->first == DialogId()) {
     auto m = get_message(d, it->second);
-    if (m != nullptr && add_new_message_notification(d, m, true)) {
+    if (m == nullptr) {
+      VLOG(notifications) << "Can't find " << it->second << " in " << dialog_id << " with pending notification";
+    } else if (add_new_message_notification(d, m, true)) {
       on_message_changed(d, m, false, "flush_pending_new_message_notifications");
     }
     ++it;
@@ -35402,8 +35406,7 @@ void MessagesManager::delete_all_dialog_messages_from_database(Dialog *d, Messag
     }
   }
   */
-  G()->td_db()->get_message_db_async()->delete_all_dialog_messages(dialog_id, max_message_id,
-                                                                   Auto());  // TODO Promise
+  G()->td_db()->get_message_db_async()->delete_all_dialog_messages(dialog_id, max_message_id, Auto());  // TODO Promise
 }
 
 class MessagesManager::DeleteMessageLogEvent {
