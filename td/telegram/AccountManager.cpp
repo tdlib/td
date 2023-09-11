@@ -13,6 +13,7 @@
 #include "td/telegram/LinkManager.h"
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
 
@@ -23,6 +24,7 @@
 #include "td/utils/misc.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
+#include "td/utils/tl_helpers.h"
 
 #include <algorithm>
 
@@ -612,12 +614,13 @@ class InvalidateSignInCodesQuery final : public Td::ResultHandler {
 };
 
 class AccountManager::UnconfirmedAuthorization {
-  int64 hash_;
-  int32 date_;
+  int64 hash_ = 0;
+  int32 date_ = 0;
   string device_;
   string location_;
 
  public:
+  UnconfirmedAuthorization() = default;
   UnconfirmedAuthorization(int64 hash, int32 date, string &&device, string &&location)
       : hash_(hash), date_(date), device_(std::move(device)), location_(std::move(location)) {
   }
@@ -632,6 +635,26 @@ class AccountManager::UnconfirmedAuthorization {
 
   td_api::object_ptr<td_api::unconfirmedSession> get_unconfirmed_session_object() const {
     return td_api::make_object<td_api::unconfirmedSession>(hash_, date_, device_, location_);
+  }
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    BEGIN_STORE_FLAGS();
+    END_STORE_FLAGS();
+    td::store(hash_, storer);
+    td::store(date_, storer);
+    td::store(device_, storer);
+    td::store(location_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    BEGIN_PARSE_FLAGS();
+    END_PARSE_FLAGS();
+    td::parse(hash_, parser);
+    td::parse(date_, parser);
+    td::parse(device_, parser);
+    td::parse(location_, parser);
   }
 };
 
@@ -679,12 +702,34 @@ class AccountManager::UnconfirmedAuthorizations {
     CHECK(!authorizations_.empty());
     return authorizations_[0].get_unconfirmed_session_object();
   }
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    CHECK(!authorizations_.empty());
+    td::store(authorizations_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    td::parse(authorizations_, parser);
+  }
 };
 
 AccountManager::AccountManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 
 AccountManager::~AccountManager() = default;
+
+void AccountManager::start_up() {
+  auto unconfirmed_authorizations_log_event_string =
+      G()->td_db()->get_binlog_pmc()->get(get_unconfirmed_authorizations_key());
+  if (!unconfirmed_authorizations_log_event_string.empty()) {
+    log_event_parse(unconfirmed_authorizations_, unconfirmed_authorizations_log_event_string).ensure();
+    if (unconfirmed_authorizations_ != nullptr) {
+      send_update_unconfirmed_session();
+    }
+  }
+}
 
 void AccountManager::tear_down() {
   parent_.reset();
@@ -731,6 +776,7 @@ void AccountManager::terminate_session(int64 session_id, Promise<Unit> &&promise
 void AccountManager::terminate_all_other_sessions(Promise<Unit> &&promise) {
   if (unconfirmed_authorizations_ != nullptr) {
     unconfirmed_authorizations_ = nullptr;
+    save_unconfirmed_authorizations();
     send_update_unconfirmed_session();
   }
   td_->create_handler<ResetAuthorizationsQuery>(std::move(promise))->send();
@@ -794,8 +840,13 @@ void AccountManager::invalidate_authentication_codes(vector<string> &&authentica
 
 void AccountManager::on_new_unconfirmed_authorization(int64 hash, int32 date, string &&device, string &&location) {
   if (td_->auth_manager_->is_bot()) {
-    LOG(ERROR) << "Receive unconfirmed authorization by a bot";
+    LOG(ERROR) << "Receive unconfirmed session by a bot";
     return;
+  }
+  auto unix_time = G()->unix_time();
+  if (date > unix_time + 1) {
+    LOG(ERROR) << "Receive new session at " << date << ", but the current time is " << unix_time;
+    date = unix_time + 1;
   }
   if (unconfirmed_authorizations_ == nullptr) {
     unconfirmed_authorizations_ = make_unique<UnconfirmedAuthorizations>();
@@ -804,6 +855,7 @@ void AccountManager::on_new_unconfirmed_authorization(int64 hash, int32 date, st
   if (unconfirmed_authorizations_->add_authorization({hash, date, std::move(device), std::move(location)},
                                                      is_first_changed)) {
     CHECK(!unconfirmed_authorizations_->is_empty());
+    save_unconfirmed_authorizations();
     if (is_first_changed) {
       send_update_unconfirmed_session();
     }
@@ -817,9 +869,23 @@ void AccountManager::on_confirm_authorization(int64 hash) {
     if (unconfirmed_authorizations_->is_empty()) {
       unconfirmed_authorizations_ = nullptr;
     }
+    save_unconfirmed_authorizations();
     if (is_first_changed) {
       send_update_unconfirmed_session();
     }
+  }
+}
+
+string AccountManager::get_unconfirmed_authorizations_key() {
+  return "new_authorizations";
+}
+
+void AccountManager::save_unconfirmed_authorizations() const {
+  if (unconfirmed_authorizations_ == nullptr) {
+    G()->td_db()->get_binlog_pmc()->erase(get_unconfirmed_authorizations_key());
+  } else {
+    G()->td_db()->get_binlog_pmc()->set(get_unconfirmed_authorizations_key(),
+                                        log_event_store(unconfirmed_authorizations_).as_slice().str());
   }
 }
 

@@ -70,9 +70,15 @@ class AccountManager final : public Actor {
   class UnconfirmedAuthorization;
   class UnconfirmedAuthorizations;
 
+  void start_up() final;
+
   void tear_down() final;
 
   void get_user_link_impl(Promise<td_api::object_ptr<td_api::userLink>> &&promise);
+
+  static string get_unconfirmed_authorizations_key();
+
+  void save_unconfirmed_authorizations() const;
 
   td_api::object_ptr<td_api::updateUnconfirmedSession> get_update_unconfirmed_session() const;
 
