@@ -664,6 +664,10 @@ class AccountManager::UnconfirmedAuthorization {
 class AccountManager::UnconfirmedAuthorizations {
   vector<UnconfirmedAuthorization> authorizations_;
 
+  static int32 get_authorization_autoconfirm_period() {
+    return narrow_cast<int32>(G()->get_option_integer("authorization_autoconfirm_period", 604800));
+  }
+
  public:
   bool is_empty() const {
     return authorizations_.empty();
@@ -701,6 +705,19 @@ class AccountManager::UnconfirmedAuthorizations {
     return true;
   }
 
+  bool delete_expired_authorizations() {
+    auto up_to_date = G()->unix_time() - get_authorization_autoconfirm_period();
+    auto it = authorizations_.begin();
+    while (it != authorizations_.end() && it->get_date() <= up_to_date) {
+      ++it;
+    }
+    if (it == authorizations_.begin()) {
+      return false;
+    }
+    authorizations_.erase(authorizations_.begin(), it);
+    return true;
+  }
+
   td_api::object_ptr<td_api::unconfirmedSession> get_first_unconfirmed_session_object() const {
     CHECK(!authorizations_.empty());
     return authorizations_[0].get_unconfirmed_session_object();
@@ -728,6 +745,13 @@ void AccountManager::start_up() {
       G()->td_db()->get_binlog_pmc()->get(get_unconfirmed_authorizations_key());
   if (!unconfirmed_authorizations_log_event_string.empty()) {
     log_event_parse(unconfirmed_authorizations_, unconfirmed_authorizations_log_event_string).ensure();
+    CHECK(unconfirmed_authorizations_ != nullptr);
+    if (unconfirmed_authorizations_->delete_expired_authorizations()) {
+      save_unconfirmed_authorizations();
+      if (unconfirmed_authorizations_->is_empty()) {
+        unconfirmed_authorizations_ = nullptr;
+      }
+    }
     if (unconfirmed_authorizations_ != nullptr) {
       send_update_unconfirmed_session();
     }
