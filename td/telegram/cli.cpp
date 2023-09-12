@@ -294,6 +294,27 @@ class CliClient final : public Actor {
     }
   }
 
+  int64 get_log_chat_id_ = 0;
+  void on_get_chat_events(const td_api::chatEvents &events) {
+    if (get_log_chat_id_ != 0) {
+      int64 last_event_id = 0;
+      for (auto &event : events.events_) {
+        if (event->member_id_->get_id() == td_api::messageSenderUser::ID) {
+          LOG(PLAIN) << event->date_ << ' '
+                     << static_cast<const td_api::messageSenderUser &>(*event->member_id_).user_id_;
+        }
+        last_event_id = event->id_;
+      }
+
+      if (last_event_id > 0) {
+        send_request(
+            td_api::make_object<td_api::getChatEventLog>(get_log_chat_id_, "", last_event_id, 100, nullptr, Auto()));
+      } else {
+        get_log_chat_id_ = 0;
+      }
+    }
+  }
+
   int64 get_history_chat_id_ = 0;
   int64 search_chat_id_ = 0;
   void on_get_messages(const td_api::messages &messages) {
@@ -1364,6 +1385,9 @@ class CliClient final : public Actor {
         break;
       case td_api::messages::ID:
         on_get_messages(*static_cast<const td_api::messages *>(result.get()));
+        break;
+      case td_api::chatEvents::ID:
+        on_get_chat_events(*static_cast<const td_api::chatEvents *>(result.get()));
         break;
       case td_api::updateFileGenerationStart::ID:
         on_file_generation_start(*static_cast<const td_api::updateFileGenerationStart *>(result.get()));
@@ -5306,6 +5330,9 @@ class CliClient final : public Actor {
       get_args(args, chat_id, limit, user_ids);
       send_request(td_api::make_object<td_api::getChatEventLog>(chat_id, "", 0, as_limit(limit), nullptr,
                                                                 as_user_ids(user_ids)));
+    } else if (op == "logf") {
+      get_log_chat_id_ = as_chat_id(args);
+      send_request(td_api::make_object<td_api::getChatEventLog>(get_log_chat_id_, "", 0, 100, nullptr, Auto()));
     } else if (op == "join") {
       ChatId chat_id;
       get_args(args, chat_id);
