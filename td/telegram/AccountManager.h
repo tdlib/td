@@ -42,6 +42,8 @@ class AccountManager final : public Actor {
 
   void terminate_all_other_sessions(Promise<Unit> &&promise);
 
+  void confirm_session(int64 session_id, Promise<Unit> &&promise);
+
   void toggle_session_can_accept_calls(int64 session_id, bool can_accept_calls, Promise<Unit> &&promise);
 
   void toggle_session_can_accept_secret_chats(int64 session_id, bool can_accept_secret_chats, Promise<Unit> &&promise);
@@ -62,7 +64,7 @@ class AccountManager final : public Actor {
 
   void on_new_unconfirmed_authorization(int64 hash, int32 date, string &&device, string &&location);
 
-  void on_confirm_authorization(int64 hash);
+  bool on_confirm_authorization(int64 hash);
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 

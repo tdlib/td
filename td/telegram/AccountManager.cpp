@@ -374,13 +374,16 @@ class ChangeAuthorizationSettingsQuery final : public Td::ResultHandler {
   }
 
   void send(int64 hash, bool set_encrypted_requests_disabled, bool encrypted_requests_disabled,
-            bool set_call_requests_disabled, bool call_requests_disabled) {
+            bool set_call_requests_disabled, bool call_requests_disabled, bool confirm) {
     int32 flags = 0;
     if (set_encrypted_requests_disabled) {
       flags |= telegram_api::account_changeAuthorizationSettings::ENCRYPTED_REQUESTS_DISABLED_MASK;
     }
     if (set_call_requests_disabled) {
       flags |= telegram_api::account_changeAuthorizationSettings::CALL_REQUESTS_DISABLED_MASK;
+    }
+    if (confirm) {
+      flags |= telegram_api::account_changeAuthorizationSettings::CONFIRMED_MASK;
     }
     send_query(G()->net_query_creator().create(
         telegram_api::account_changeAuthorizationSettings(flags, false /*ignored*/, hash, encrypted_requests_disabled,
@@ -782,15 +785,23 @@ void AccountManager::terminate_all_other_sessions(Promise<Unit> &&promise) {
   td_->create_handler<ResetAuthorizationsQuery>(std::move(promise))->send();
 }
 
+void AccountManager::confirm_session(int64 session_id, Promise<Unit> &&promise) {
+  if (!on_confirm_authorization(session_id)) {
+    return promise.set_value(Unit());
+  }
+  td_->create_handler<ChangeAuthorizationSettingsQuery>(std::move(promise))
+      ->send(session_id, false, false, false, false, true);
+}
+
 void AccountManager::toggle_session_can_accept_calls(int64 session_id, bool can_accept_calls, Promise<Unit> &&promise) {
   td_->create_handler<ChangeAuthorizationSettingsQuery>(std::move(promise))
-      ->send(session_id, false, false, true, !can_accept_calls);
+      ->send(session_id, false, false, true, !can_accept_calls, false);
 }
 
 void AccountManager::toggle_session_can_accept_secret_chats(int64 session_id, bool can_accept_secret_chats,
                                                             Promise<Unit> &&promise) {
   td_->create_handler<ChangeAuthorizationSettingsQuery>(std::move(promise))
-      ->send(session_id, true, !can_accept_secret_chats, false, false);
+      ->send(session_id, true, !can_accept_secret_chats, false, false, false);
 }
 
 void AccountManager::set_inactive_session_ttl_days(int32 authorization_ttl_days, Promise<Unit> &&promise) {
@@ -862,7 +873,7 @@ void AccountManager::on_new_unconfirmed_authorization(int64 hash, int32 date, st
   }
 }
 
-void AccountManager::on_confirm_authorization(int64 hash) {
+bool AccountManager::on_confirm_authorization(int64 hash) {
   bool is_first_changed = false;
   if (unconfirmed_authorizations_ != nullptr &&
       unconfirmed_authorizations_->delete_authorization(hash, is_first_changed)) {
@@ -873,7 +884,9 @@ void AccountManager::on_confirm_authorization(int64 hash) {
     if (is_first_changed) {
       send_update_unconfirmed_session();
     }
+    return true;
   }
+  return false;
 }
 
 string AccountManager::get_unconfirmed_authorizations_key() {

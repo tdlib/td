@@ -4653,6 +4653,12 @@ void Td::on_request(uint64 id, const td_api::terminateAllOtherSessions &request)
   account_manager_->terminate_all_other_sessions(std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::confirmSession &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  account_manager_->confirm_session(request.session_id_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::toggleSessionCanAcceptCalls &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

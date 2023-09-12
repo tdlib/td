@@ -2954,6 +2954,10 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::terminateSession>(session_id));
     } else if (op == "TerminateAllOtherSessions") {
       send_request(td_api::make_object<td_api::terminateAllOtherSessions>());
+    } else if (op == "cse") {
+      int64 session_id;
+      get_args(args, session_id);
+      send_request(td_api::make_object<td_api::confirmSession>(session_id));
     } else if (op == "tscac") {
       int64 session_id;
       bool can_accept_calls;
