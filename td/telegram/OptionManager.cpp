@@ -6,6 +6,7 @@
 //
 #include "td/telegram/OptionManager.h"
 
+#include "td/telegram/AccountManager.h"
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/AttachMenuManager.h"
 #include "td/telegram/AuthManager.h"
@@ -360,6 +361,9 @@ void OptionManager::on_option_updated(Slice name) {
       }
       if (name == "animation_search_provider") {
         td_->animations_manager_->on_update_animation_search_provider();
+      }
+      if (name == "authorization_autoconfirm_period") {
+        td_->account_manager_->update_unconfirmed_authorization_timeout(true);
       }
       break;
     case 'b':

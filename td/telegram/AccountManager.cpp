@@ -718,6 +718,11 @@ class AccountManager::UnconfirmedAuthorizations {
     return true;
   }
 
+  int32 get_next_authorization_expire_date() const {
+    CHECK(!authorizations_.empty());
+    return authorizations_[0].get_date() + get_authorization_autoconfirm_period();
+  }
+
   td_api::object_ptr<td_api::unconfirmedSession> get_first_unconfirmed_session_object() const {
     CHECK(!authorizations_.empty());
     return authorizations_[0].get_unconfirmed_session_object();
@@ -746,16 +751,18 @@ void AccountManager::start_up() {
   if (!unconfirmed_authorizations_log_event_string.empty()) {
     log_event_parse(unconfirmed_authorizations_, unconfirmed_authorizations_log_event_string).ensure();
     CHECK(unconfirmed_authorizations_ != nullptr);
-    if (unconfirmed_authorizations_->delete_expired_authorizations()) {
+    if (delete_expired_unconfirmed_authorizations()) {
       save_unconfirmed_authorizations();
-      if (unconfirmed_authorizations_->is_empty()) {
-        unconfirmed_authorizations_ = nullptr;
-      }
     }
     if (unconfirmed_authorizations_ != nullptr) {
+      update_unconfirmed_authorization_timeout(false);
       send_update_unconfirmed_session();
     }
   }
+}
+
+void AccountManager::timeout_expired() {
+  update_unconfirmed_authorization_timeout(true);
 }
 
 void AccountManager::tear_down() {
@@ -803,8 +810,9 @@ void AccountManager::terminate_session(int64 session_id, Promise<Unit> &&promise
 void AccountManager::terminate_all_other_sessions(Promise<Unit> &&promise) {
   if (unconfirmed_authorizations_ != nullptr) {
     unconfirmed_authorizations_ = nullptr;
-    save_unconfirmed_authorizations();
+    update_unconfirmed_authorization_timeout(false);
     send_update_unconfirmed_session();
+    save_unconfirmed_authorizations();
   }
   td_->create_handler<ResetAuthorizationsQuery>(std::move(promise))->send();
 }
@@ -890,10 +898,11 @@ void AccountManager::on_new_unconfirmed_authorization(int64 hash, int32 date, st
   if (unconfirmed_authorizations_->add_authorization({hash, date, std::move(device), std::move(location)},
                                                      is_first_changed)) {
     CHECK(!unconfirmed_authorizations_->is_empty());
-    save_unconfirmed_authorizations();
     if (is_first_changed) {
+      update_unconfirmed_authorization_timeout(false);
       send_update_unconfirmed_session();
     }
+    save_unconfirmed_authorizations();
   }
 }
 
@@ -904,10 +913,11 @@ bool AccountManager::on_confirm_authorization(int64 hash) {
     if (unconfirmed_authorizations_->is_empty()) {
       unconfirmed_authorizations_ = nullptr;
     }
-    save_unconfirmed_authorizations();
     if (is_first_changed) {
+      update_unconfirmed_authorization_timeout(false);
       send_update_unconfirmed_session();
     }
+    save_unconfirmed_authorizations();
     return true;
   }
   return false;
@@ -923,6 +933,28 @@ void AccountManager::save_unconfirmed_authorizations() const {
   } else {
     G()->td_db()->get_binlog_pmc()->set(get_unconfirmed_authorizations_key(),
                                         log_event_store(unconfirmed_authorizations_).as_slice().str());
+  }
+}
+
+bool AccountManager::delete_expired_unconfirmed_authorizations() {
+  if (unconfirmed_authorizations_ != nullptr && unconfirmed_authorizations_->delete_expired_authorizations()) {
+    if (unconfirmed_authorizations_->is_empty()) {
+      unconfirmed_authorizations_ = nullptr;
+    }
+    return true;
+  }
+  return false;
+}
+
+void AccountManager::update_unconfirmed_authorization_timeout(bool is_external) {
+  if (delete_expired_unconfirmed_authorizations() && is_external) {
+    send_update_unconfirmed_session();
+    save_unconfirmed_authorizations();
+  }
+  if (unconfirmed_authorizations_ == nullptr) {
+    cancel_timeout();
+  } else {
+    set_timeout_in(unconfirmed_authorizations_->get_next_authorization_expire_date() - G()->unix_time() + 1);
   }
 }
 

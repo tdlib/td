@@ -62,6 +62,8 @@ class AccountManager final : public Actor {
 
   void invalidate_authentication_codes(vector<string> &&authentication_codes);
 
+  void update_unconfirmed_authorization_timeout(bool is_external);
+
   void on_new_unconfirmed_authorization(int64 hash, int32 date, string &&device, string &&location);
 
   bool on_confirm_authorization(int64 hash);
@@ -74,6 +76,8 @@ class AccountManager final : public Actor {
 
   void start_up() final;
 
+  void timeout_expired() final;
+
   void tear_down() final;
 
   void get_user_link_impl(Promise<td_api::object_ptr<td_api::userLink>> &&promise);
@@ -81,6 +85,8 @@ class AccountManager final : public Actor {
   static string get_unconfirmed_authorizations_key();
 
   void save_unconfirmed_authorizations() const;
+
+  bool delete_expired_unconfirmed_authorizations();
 
   td_api::object_ptr<td_api::updateUnconfirmedSession> get_update_unconfirmed_session() const;
 
