@@ -3352,6 +3352,17 @@ storyInfo story_id:int32 date:int32 is_for_close_friends:Bool = StoryInfo;
 chatActiveStories chat_id:int53 list:StoryList order:int53 max_read_story_id:int32 stories:vector<storyInfo> = ChatActiveStories;
 
 
+//@description Describes current boost status of a chat
+//@is_boosted True, if the current user has already boosted the chat
+//@level Current boost level of the chat
+//@boost_count The number of times the chat was boosted
+//@current_level_boost_count The number of boosts added to reach the current level
+//@next_level_boost_count The number of boosts needed to reach the next level; 0 if the next level isn't available
+//@premium_member_count Approximate number of Telegram Premium subscribers joined the chat; always 0 if the current user isn't an administrator in the chat
+//@premium_member_percentage A percentage of Telegram Premium subscribers joined the chat; always 0 if the current user isn't an administrator in the chat
+chatBoostStatus is_boosted:Bool level:int32 boost_count:int32 current_level_boost_count:int32 next_level_boost_count:int32 premium_member_count:int32 premium_member_percentage:double = ChatBoostStatus;
+
+
 //@class CallDiscardReason @description Describes the reason why a call was discarded
 
 //@description The call wasn't discarded, or the reason is unknown
@@ -7637,6 +7648,10 @@ reportStory story_sender_chat_id:int53 story_id:int32 reason:ReportReason text:s
 //@description Activates stealth mode for stories, which hides all views of stories from the current user in the last "story_stealth_mode_past_period" seconds
 //-and for the next "story_stealth_mode_future_period" seconds; for Telegram Premium users only
 activateStoryStealthMode = Ok;
+
+
+//@description Returns the current boost status for a channel chat @chat_id The identifier of the channel chat
+getChatBoostStatus chat_id:int53 = ChatBoostStatus;
 
 
 //@description Returns information about a bot that can be added to attachment or side menu @bot_user_id Bot's user identifier

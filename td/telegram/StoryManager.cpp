@@ -739,6 +739,68 @@ class ActivateStealthModeQuery final : public Td::ResultHandler {
   }
 };
 
+class GetBoostsStatusQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::chatBoostStatus>> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit GetBoostsStatusQuery(Promise<td_api::object_ptr<td_api::chatBoostStatus>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+    send_query(
+        G()->net_query_creator().create(telegram_api::stories_getBoostsStatus(std::move(input_peer)), {{dialog_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stories_getBoostsStatus>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for GetBoostsStatusQuery: " << to_string(result);
+    if (result->level_ < 0 || result->current_level_boosts_ < 0 || result->boosts_ < result->current_level_boosts_ ||
+        (result->next_level_boosts_ != 0 && result->boosts_ >= result->next_level_boosts_)) {
+      LOG(ERROR) << "Receive invalid " << to_string(result);
+      if (result->level_ < 0) {
+        result->level_ = 0;
+      }
+      if (result->current_level_boosts_ < 0) {
+        result->current_level_boosts_ = 0;
+      }
+      if (result->boosts_ < result->current_level_boosts_) {
+        result->boosts_ = result->current_level_boosts_;
+      }
+      if (result->next_level_boosts_ != 0 && result->boosts_ >= result->next_level_boosts_) {
+        result->next_level_boosts_ = result->boosts_ + 1;
+      }
+    }
+    int32 premium_member_count = 0;
+    double premium_member_percentage = 0.0;
+    if (result->premium_audience_ != nullptr) {
+      auto part = static_cast<int32>(result->premium_audience_->part_);
+      auto total = static_cast<int32>(result->premium_audience_->total_);
+      premium_member_count = max(0, part);
+      if (result->premium_audience_->total_ > 0) {
+        premium_member_percentage = 100.0 * premium_member_count / max(total, premium_member_count);
+      }
+    }
+    promise_.set_value(td_api::make_object<td_api::chatBoostStatus>(
+        result->my_boost_, result->level_, result->boosts_, result->current_level_boosts_, result->next_level_boosts_,
+        premium_member_count, premium_member_percentage));
+  }
+
+  void on_error(Status status) final {
+    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetBoostsStatusQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class CanSendStoryQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::CanSendStoryResult>> promise_;
   DialogId dialog_id_;
@@ -2731,6 +2793,18 @@ void StoryManager::report_story(StoryFullId story_full_id, ReportReason &&reason
 
 void StoryManager::activate_stealth_mode(Promise<Unit> &&promise) {
   td_->create_handler<ActivateStealthModeQuery>(std::move(promise))->send();
+}
+
+void StoryManager::get_dialog_boost_status(DialogId dialog_id,
+                                           Promise<td_api::object_ptr<td_api::chatBoostStatus>> &&promise) {
+  if (!td_->messages_manager_->have_dialog_force(dialog_id, "get_dialog_boost_status")) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+  if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+    return promise.set_error(Status::Error(400, "Can't access the chat"));
+  }
+
+  td_->create_handler<GetBoostsStatusQuery>(std::move(promise))->send(dialog_id);
 }
 
 bool StoryManager::have_story(StoryFullId story_full_id) const {

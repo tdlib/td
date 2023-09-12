@@ -6580,6 +6580,12 @@ void Td::on_request(uint64 id, const td_api::activateStoryStealthMode &request) 
   story_manager_->activate_stealth_mode(std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getChatBoostStatus &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  story_manager_->get_dialog_boost_status(DialogId(request.chat_id_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getAttachmentMenuBot &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
