@@ -35,7 +35,8 @@ bool operator==(const InputInvoice &lhs, const InputInvoice &rhs) {
            lhs.is_flexible_ == rhs.is_flexible_ && lhs.currency_ == rhs.currency_ &&
            lhs.price_parts_ == rhs.price_parts_ && lhs.max_tip_amount_ == rhs.max_tip_amount_ &&
            lhs.suggested_tip_amounts_ == rhs.suggested_tip_amounts_ &&
-           lhs.recurring_payment_terms_of_service_url_ == rhs.recurring_payment_terms_of_service_url_;
+           lhs.recurring_payment_terms_of_service_url_ == rhs.recurring_payment_terms_of_service_url_ &&
+           lhs.terms_of_service_url_ == rhs.terms_of_service_url_;
   };
 
   return lhs.title_ == rhs.title_ && lhs.description_ == rhs.description_ && lhs.photo_ == rhs.photo_ &&
@@ -129,6 +130,12 @@ Result<InputInvoice> InputInvoice::process_input_message_invoice(
   if (!clean_input_string(input_invoice->invoice_->currency_)) {
     return Status::Error(400, "Invoice currency must be encoded in UTF-8");
   }
+  if (!clean_input_string(input_invoice->invoice_->recurring_payment_terms_of_service_url_)) {
+    return Status::Error(400, "Invoice terms of service URL must be encoded in UTF-8");
+  }
+  if (!clean_input_string(input_invoice->invoice_->terms_of_service_url_)) {
+    return Status::Error(400, "Invoice terms of service URL must be encoded in UTF-8");
+  }
 
   InputInvoice result;
   result.title_ = std::move(input_invoice->title_);
@@ -200,6 +207,7 @@ Result<InputInvoice> InputInvoice::process_input_message_invoice(
   result.invoice_.suggested_tip_amounts_ = std::move(input_invoice->invoice_->suggested_tip_amounts_);
   result.invoice_.recurring_payment_terms_of_service_url_ =
       std::move(input_invoice->invoice_->recurring_payment_terms_of_service_url_);
+  result.invoice_.terms_of_service_url_ = std::move(input_invoice->invoice_->terms_of_service_url_);
   result.invoice_.is_test_ = input_invoice->invoice_->is_test_;
   result.invoice_.need_name_ = input_invoice->invoice_->need_name_;
   result.invoice_.need_phone_number_ = input_invoice->invoice_->need_phone_number_;
@@ -267,9 +275,14 @@ tl_object_ptr<telegram_api::invoice> InputInvoice::Invoice::get_input_invoice() 
   if (max_tip_amount_ != 0) {
     flags |= telegram_api::invoice::MAX_TIP_AMOUNT_MASK;
   }
+  string terms_of_service_url;
   if (!recurring_payment_terms_of_service_url_.empty()) {
     flags |= telegram_api::invoice::RECURRING_MASK;
     flags |= telegram_api::invoice::TERMS_URL_MASK;
+    terms_of_service_url = recurring_payment_terms_of_service_url_;
+  } else if (!terms_of_service_url_.empty()) {
+    flags |= telegram_api::invoice::TERMS_URL_MASK;
+    terms_of_service_url = terms_of_service_url_;
   }
 
   auto prices = transform(price_parts_, [](const LabeledPricePart &price) {
@@ -278,7 +291,7 @@ tl_object_ptr<telegram_api::invoice> InputInvoice::Invoice::get_input_invoice() 
   return make_tl_object<telegram_api::invoice>(
       flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
       false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, currency_, std::move(prices),
-      max_tip_amount_, vector<int64>(suggested_tip_amounts_), recurring_payment_terms_of_service_url_);
+      max_tip_amount_, vector<int64>(suggested_tip_amounts_), terms_of_service_url);
 }
 
 static tl_object_ptr<telegram_api::inputWebDocument> get_input_web_document(const FileManager *file_manager,

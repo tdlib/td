@@ -194,13 +194,16 @@ static tl_object_ptr<td_api::invoice> convert_invoice(tl_object_ptr<telegram_api
   }
 
   string recurring_terms_url;
+  string terms_url;
   if (invoice->recurring_) {
     recurring_terms_url = std::move(invoice->terms_url_);
+  } else {
+    terms_url = std::move(invoice->terms_url_);
   }
   return make_tl_object<td_api::invoice>(std::move(invoice->currency_), std::move(labeled_prices),
                                          invoice->max_tip_amount_, std::move(invoice->suggested_tip_amounts_),
-                                         recurring_terms_url, is_test, need_name, need_phone_number, need_email_address,
-                                         need_shipping_address, send_phone_number_to_provider,
+                                         recurring_terms_url, terms_url, is_test, need_name, need_phone_number,
+                                         need_email_address, need_shipping_address, send_phone_number_to_provider,
                                          send_email_address_to_provider, is_flexible);
 }
 
