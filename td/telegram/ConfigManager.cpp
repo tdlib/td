@@ -1912,6 +1912,11 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
                                 get_json_value_string(std::move(key_value->value_), key) == "premium");
         continue;
       }
+      if (key == "authorization_autoconfirm_period") {
+        G()->set_option_integer("authorization_autoconfirm_period",
+                                get_json_value_int(std::move(key_value->value_), key));
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }

@@ -263,7 +263,8 @@ bool OptionManager::is_internal_option(Slice name) {
     case 'a':
       return name == "about_length_limit_default" || name == "about_length_limit_premium" ||
              name == "aggressive_anti_spam_supergroup_member_count_min" || name == "animated_emoji_zoom" ||
-             name == "animation_search_emojis" || name == "animation_search_provider";
+             name == "animation_search_emojis" || name == "animation_search_provider" ||
+             name == "authorization_autoconfirm_period";
     case 'b':
       return name == "base_language_pack_version";
     case 'c':
