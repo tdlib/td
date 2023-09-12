@@ -819,7 +819,8 @@ void AccountManager::terminate_all_other_sessions(Promise<Unit> &&promise) {
 
 void AccountManager::confirm_session(int64 session_id, Promise<Unit> &&promise) {
   if (!on_confirm_authorization(session_id)) {
-    return promise.set_value(Unit());
+    // the authorization can be from the list of active authorizations, but the update could have been lost
+    // return promise.set_value(Unit());
   }
   td_->create_handler<ChangeAuthorizationSettingsQuery>(std::move(promise))
       ->send(session_id, false, false, false, false, true);
@@ -960,7 +961,7 @@ void AccountManager::update_unconfirmed_authorization_timeout(bool is_external) 
 
 td_api::object_ptr<td_api::updateUnconfirmedSession> AccountManager::get_update_unconfirmed_session() const {
   if (unconfirmed_authorizations_ == nullptr) {
-    return td_api::object_ptr<td_api::updateUnconfirmedSession>(nullptr);
+    return td_api::make_object<td_api::updateUnconfirmedSession>(nullptr);
   }
   return td_api::make_object<td_api::updateUnconfirmedSession>(
       unconfirmed_authorizations_->get_first_unconfirmed_session_object());
