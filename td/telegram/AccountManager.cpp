@@ -757,12 +757,16 @@ void AccountManager::start_up() {
     if (unconfirmed_authorizations_ != nullptr) {
       update_unconfirmed_authorization_timeout(false);
       send_update_unconfirmed_session();
+      get_active_sessions(Auto());
     }
   }
 }
 
 void AccountManager::timeout_expired() {
   update_unconfirmed_authorization_timeout(true);
+  if (unconfirmed_authorizations_ != nullptr) {
+    get_active_sessions(Auto());
+  }
 }
 
 void AccountManager::tear_down() {
@@ -955,7 +959,7 @@ void AccountManager::update_unconfirmed_authorization_timeout(bool is_external) 
   if (unconfirmed_authorizations_ == nullptr) {
     cancel_timeout();
   } else {
-    set_timeout_in(unconfirmed_authorizations_->get_next_authorization_expire_date() - G()->unix_time() + 1);
+    set_timeout_in(min(unconfirmed_authorizations_->get_next_authorization_expire_date() - G()->unix_time() + 1, 3600));
   }
 }
 
