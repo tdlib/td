@@ -15039,7 +15039,6 @@ void MessagesManager::set_dialog_last_new_message_id(Dialog *d, MessageId last_n
       << last_new_message_id << " " << d->last_new_message_id << " " << source;
   CHECK(d->dialog_id.get_type() == DialogType::SecretChat || last_new_message_id.is_server());
   if (!d->last_new_message_id.is_valid()) {
-    delete_all_dialog_notifications(d, last_new_message_id, source);
     remove_dialog_newer_messages(d, last_new_message_id, source);
 
     auto last_new_message = get_message(d, last_new_message_id);
