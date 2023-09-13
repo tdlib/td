@@ -11969,6 +11969,8 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
 
   if (d->notification_info != nullptr) {
     // they aren't needed anymore
+    delete_all_dialog_notifications(d, MessageId::max(), "delete_all_dialog_messages 4");
+
     d->notification_info->message_notification_group_.drop_max_removed_notification_id();
     d->notification_info->mention_notification_group_.drop_max_removed_notification_id();
     d->notification_info->notification_id_to_message_id_.clear();
@@ -15037,6 +15039,7 @@ void MessagesManager::set_dialog_last_new_message_id(Dialog *d, MessageId last_n
       << last_new_message_id << " " << d->last_new_message_id << " " << source;
   CHECK(d->dialog_id.get_type() == DialogType::SecretChat || last_new_message_id.is_server());
   if (!d->last_new_message_id.is_valid()) {
+    delete_all_dialog_notifications(d, last_new_message_id, source);
     remove_dialog_newer_messages(d, last_new_message_id, source);
 
     auto last_new_message = get_message(d, last_new_message_id);
@@ -35393,22 +35396,26 @@ void MessagesManager::add_message_to_database(const Dialog *d, const Message *m,
                                                     Auto());  // TODO Promise
 }
 
+void MessagesManager::delete_all_dialog_notifications(Dialog *d, MessageId max_message_id, const char *source) {
+  CHECK(d != nullptr);
+  if (d->notification_info == nullptr) {
+    return;
+  }
+  if (d->notification_info->new_secret_chat_notification_id_.is_valid()) {
+    remove_new_secret_chat_notification(d, true);
+  }
+  if (d->notification_info->pinned_message_notification_message_id_.is_valid() &&
+      d->notification_info->pinned_message_notification_message_id_ <= max_message_id) {
+    remove_dialog_pinned_message_notification(d, source);
+  }
+  remove_message_dialog_notifications(d, max_message_id, false, source);
+  remove_message_dialog_notifications(d, max_message_id, true, source);
+}
+
 void MessagesManager::delete_all_dialog_messages_from_database(Dialog *d, MessageId max_message_id,
                                                                const char *source) {
   CHECK(d != nullptr);
   CHECK(max_message_id.is_valid());
-  if (d->notification_info != nullptr) {
-    if (d->notification_info->new_secret_chat_notification_id_.is_valid()) {
-      remove_new_secret_chat_notification(d, true);
-    }
-    if (d->notification_info->pinned_message_notification_message_id_.is_valid() &&
-        d->notification_info->pinned_message_notification_message_id_ <= max_message_id) {
-      remove_dialog_pinned_message_notification(d, source);
-    }
-    remove_message_dialog_notifications(d, max_message_id, false, source);
-    remove_message_dialog_notifications(d, max_message_id, true, source);
-  }
-
   if (!G()->use_message_database()) {
     return;
   }
@@ -38496,6 +38503,7 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
       !td_->auth_manager_->is_bot()) {  // if last message is really a new message
     if (!d->last_new_message_id.is_valid() && last_message_id <= d->max_added_message_id) {
       auto prev_message_id = MessageId(ServerMessageId(last_message_id.get_server_message_id().get() - 1));
+      delete_all_dialog_notifications(d, prev_message_id, "on_get_channel_dialog 14");
       remove_dialog_newer_messages(d, prev_message_id, "on_get_channel_dialog 15");
     }
     d->last_new_message_id = MessageId();

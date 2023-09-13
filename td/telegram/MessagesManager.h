@@ -2318,6 +2318,8 @@ class MessagesManager final : public Actor {
 
   void add_message_to_database(const Dialog *d, const Message *m, const char *source);
 
+  void delete_all_dialog_notifications(Dialog *d, MessageId max_message_id, const char *source);
+
   void delete_all_dialog_messages_from_database(Dialog *d, MessageId max_message_id, const char *source);
 
   void delete_message_from_database(Dialog *d, MessageId message_id, const Message *m, bool is_permanently_deleted,
