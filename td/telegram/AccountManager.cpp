@@ -108,7 +108,7 @@ static td_api::object_ptr<td_api::session> convert_authorization_object(
       get_session_type_object(authorization), authorization->api_id_, authorization->app_name_,
       authorization->app_version_, authorization->official_app_, authorization->device_model_, authorization->platform_,
       authorization->system_version_, authorization->date_created_, authorization->date_active_, authorization->ip_,
-      authorization->country_, authorization->region_);
+      authorization->country_);
 }
 
 class SetDefaultHistoryTtlQuery final : public Td::ResultHandler {

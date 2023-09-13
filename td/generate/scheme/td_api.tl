@@ -4892,9 +4892,8 @@ sessionTypeXbox = SessionType;
 //@log_in_date Point in time (Unix timestamp) when the user has logged in
 //@last_active_date Point in time (Unix timestamp) when the session was last used
 //@ip_address IP address from which the session was created, in human-readable format
-//@country A two-letter country code for the country from which the session was created, based on the IP address
-//@region Region code from which the session was created, based on the IP address
-session id:int64 is_current:Bool is_password_pending:Bool is_unconfirmed:Bool can_accept_secret_chats:Bool can_accept_calls:Bool type:SessionType api_id:int32 application_name:string application_version:string is_official_application:Bool device_model:string platform:string system_version:string log_in_date:int32 last_active_date:int32 ip_address:string country:string region:string = Session;
+//@location A human-readable description of the location from which the session was created, based on the IP address
+session id:int64 is_current:Bool is_password_pending:Bool is_unconfirmed:Bool can_accept_secret_chats:Bool can_accept_calls:Bool type:SessionType api_id:int32 application_name:string application_version:string is_official_application:Bool device_model:string platform:string system_version:string log_in_date:int32 last_active_date:int32 ip_address:string location:string = Session;
 
 //@description Contains a list of sessions @sessions List of sessions @inactive_session_ttl_days Number of days of inactivity before sessions will automatically be terminated; 1-366 days
 sessions sessions:vector<session> inactive_session_ttl_days:int32 = Sessions;
@@ -4903,7 +4902,7 @@ sessions sessions:vector<session> inactive_session_ttl_days:int32 = Sessions;
 //@id Session identifier
 //@log_in_date Point in time (Unix timestamp) when the user has logged in
 //@device_model Model of the device that was used for the session creation, as provided by the application
-//@location Description of the location used for the session creation
+//@location A human-readable description of the location from which the session was created, based on the IP address
 unconfirmedSession id:int64 log_in_date:int32 device_model:string location:string = UnconfirmedSession;
 
 
