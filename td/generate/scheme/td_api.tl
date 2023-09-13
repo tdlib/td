@@ -4746,7 +4746,7 @@ storyPrivacySettingsContacts except_user_ids:vector<int53> = StoryPrivacySetting
 storyPrivacySettingsCloseFriends = StoryPrivacySettings;
 
 //@description The story can be viewed by certain specified users @user_ids Identifiers of the users; always unknown and empty for non-owned stories
-storyPrivacySettingsSelectedContacts user_ids:vector<int53> = StoryPrivacySettings;
+storyPrivacySettingsSelectedUsers user_ids:vector<int53> = StoryPrivacySettings;
 
 
 //@class UserPrivacySettingRule @description Represents a single rule for managing user privacy settings

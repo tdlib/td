@@ -2665,7 +2665,7 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
     } else if (story->is_for_close_friends_) {
       privacy_settings = td_api::make_object<td_api::storyPrivacySettingsCloseFriends>();
     } else {
-      privacy_settings = td_api::make_object<td_api::storyPrivacySettingsSelectedContacts>();
+      privacy_settings = td_api::make_object<td_api::storyPrivacySettingsSelectedUsers>();
     }
   }
 

@@ -1189,7 +1189,7 @@ class CliClient final : public Actor {
           return td_api::make_object<td_api::storyPrivacySettingsContacts>(vector<int64>(user_ids));
         }
         if (settings[0] == 'u') {
-          return td_api::make_object<td_api::storyPrivacySettingsSelectedContacts>(vector<int64>(user_ids));
+          return td_api::make_object<td_api::storyPrivacySettingsSelectedUsers>(vector<int64>(user_ids));
         }
       }
       return td_api::make_object<td_api::storyPrivacySettingsContacts>();
