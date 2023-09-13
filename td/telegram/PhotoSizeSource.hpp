@@ -190,7 +190,7 @@ void PhotoSizeSource::parse(ParserT &parser) {
   if (parser.get_error() == nullptr && parser.version() >= static_cast<int32>(Version::RemovePhotoVolumeAndLocalId)) {
     switch (get_type("PhotoSizeSource::parse")) {
       case Type::Legacy:
-      case Type::FullLegacy:
+      case Type::StickerSetThumbnail:
         parser.set_error("Invalid photo size source stored");
         break;
       default:
