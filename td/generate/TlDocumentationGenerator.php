@@ -42,6 +42,15 @@ abstract class TlDocumentationGenerator
             return '';
         }
 
+        $brackets = preg_replace("/[^[\\](){}'\"]/", '', preg_replace("/[a-z]'/", '', $str));
+        while (strlen($brackets)) {
+            $brackets = preg_replace(array('/[[]]/', '/[(][)]/', '/[{][}]/', "/''/", '/""/'), '', $brackets, -1, $replaced_bracket_count);
+            if ($replaced_bracket_count == 0) {
+                $this->printError('Unmatched bracket in '.$str);
+                break;
+            }
+        }
+
         $len = strlen($str);
         if ($str[$len - 1] === '.') {
             return $str;
@@ -66,7 +75,7 @@ abstract class TlDocumentationGenerator
                     return substr($str, 0, -1).'.)';
                 }
             } else {
-                $this->printError("Unmatched bracket");
+                $this->printError('Unmatched bracket');
             }
         }
         return $str.'.';
