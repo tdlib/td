@@ -3636,9 +3636,9 @@ attachmentMenuBotColor light_color:int32 dark_color:int32 = AttachmentMenuBotCol
 //@supports_channel_chats True, if the bot supports opening from attachment menu in channel chats
 //@supports_settings True, if the bot supports "settings_button_pressed" event
 //@request_write_access True, if the user must be asked for the permission to send messages to the bot
-//@is_added True, if the bot was explicitly added by the user. If the bot isn't added then on the first bot launch toggleBotIsAddedToAttachmentMenu must be called and the bot must be added or removed
+//@is_added True, if the bot was explicitly added by the user. If the bot isn't added, then on the first bot launch toggleBotIsAddedToAttachmentMenu must be called and the bot must be added or removed
 //@show_in_attachment_menu True, if the bot must be shown in the attachment menu
-//@show_in_side_menu True, if the bot must be shown in the side menu menu
+//@show_in_side_menu True, if the bot must be shown in the side menu
 //@show_disclaimer_in_side_menu True, if a disclaimer, why the bot is shown in the side menu, is needed
 //@name Name for the bot in attachment menu
 //@name_color Color to highlight selected name of the bot if appropriate; may be null

@@ -308,7 +308,7 @@ class messages_sentEncryptedMessage final {
 
   messages_sentEncryptedMessage() = default;
 
-  explicit messages_sentEncryptedMessage(int32 date) : date_(date_) {
+  explicit messages_sentEncryptedMessage(int32 date) : date_(date) {
   }
 
   static const int32 ID = 1443858741;
