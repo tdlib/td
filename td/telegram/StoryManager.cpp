@@ -62,6 +62,9 @@ static td_api::object_ptr<td_api::CanSendStoryResult> get_can_send_story_result_
   if (error.message() == "PREMIUM_ACCOUNT_REQUIRED") {
     return td_api::make_object<td_api::canSendStoryResultPremiumNeeded>();
   }
+  if (error.message() == "BOOSTS_REQUIRED") {
+    return td_api::make_object<td_api::canSendStoryResultBoostNeeded>();
+  }
   if (error.message() == "STORIES_TOO_MUCH") {
     return td_api::make_object<td_api::canSendStoryResultActiveStoryLimitExceeded>();
   }

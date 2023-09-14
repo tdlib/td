@@ -4458,6 +4458,9 @@ canSendStoryResultOk = CanSendStoryResult;
 //@description The user must subscribe to Telegram Premium to be able to post stories
 canSendStoryResultPremiumNeeded = CanSendStoryResult;
 
+//@description The channel chat must be boosted first by Telegram Premium subscribers to post more stories. Call getChatBoostStatus to get current boost status of the chat
+canSendStoryResultBoostNeeded = CanSendStoryResult;
+
 //@description The limit for the number of active stories exceeded. The user can buy Telegram Premium, delete an active story, or wait for the oldest story to expire
 canSendStoryResultActiveStoryLimitExceeded = CanSendStoryResult;
 
