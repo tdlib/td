@@ -4978,7 +4978,8 @@ internalLinkTypeActiveSessions = InternalLinkType;
 
 //@description The link is a link to an attachment menu bot to be opened in the specified or a chosen chat. Process given target_chat to open the chat.
 //-Then, call searchPublicChat with the given bot username, check that the user is a bot and can be added to attachment menu. Then, use getAttachmentMenuBot to receive information about the bot.
-//-If the bot isn't added to attachment menu, then user needs to confirm adding the bot to attachment menu. If user confirms adding, then use toggleBotIsAddedToAttachmentMenu to add it.
+//-If the bot isn't added to attachment menu, then show a disclaimer about Mini Apps being a third-party apps, ask the user to accept their Terms of service and confirm adding the bot to side and attachment menu.
+//-If the user accept the terms and confirms adding, then use toggleBotIsAddedToAttachmentMenu to add the bot.
 //-If the attachment menu bot can't be used in the opened chat, show an error to the user. If the bot is added to attachment menu and can be used in the chat, then use openWebApp with the given URL
 //@target_chat Target chat to be opened
 //@bot_username Username of the bot
@@ -5099,8 +5100,9 @@ internalLinkTypeRestorePurchases = InternalLinkType;
 internalLinkTypeSettings = InternalLinkType;
 
 //@description The link is a link to a bot, which can be installed to the side menu. Call searchPublicChat with the given bot username, check that the user is a bot and can be added to attachment menu.
-//-Then, use getAttachmentMenuBot to receive information about the bot. If the bot isn't added to side menu, then user needs to confirm adding the bot to side and attachment menu.
-//-If user confirms adding, then use toggleBotIsAddedToAttachmentMenu to add the bot. If the bot is added to attachment menu, then use getWebAppUrl with the given URL
+//-Then, use getAttachmentMenuBot to receive information about the bot. If the bot isn't added to side menu, then show a disclaimer about Mini Apps being a third-party apps,
+//-ask the user to accept their Terms of service and confirm adding the bot to side and attachment menu. If the user accept the terms and confirms adding, then use toggleBotIsAddedToAttachmentMenu to add the bot.
+//-If the bot is added to side menu, then use getWebAppUrl with the given URL
 //@bot_username Username of the bot
 //@url URL to be passed to getWebAppUrl
 internalLinkTypeSideMenuBot bot_username:string url:string = InternalLinkType;
@@ -5140,8 +5142,9 @@ internalLinkTypeUserToken token:string = InternalLinkType;
 internalLinkTypeVideoChat chat_username:string invite_hash:string is_live_stream:Bool = InternalLinkType;
 
 //@description The link is a link to a Web App. Call searchPublicChat with the given bot username, check that the user is a bot, then call searchWebApp with the received bot and the given web_app_short_name.
-//-Process received foundWebApp by showing a confirmation dialog if needed. If the bot can be added to attachment or side menu, but isn't added yet, then show a mini-apps disclaimer instead of the dialog, and
-//-call toggleBotIsAddedToAttachmentMenu to add the bot to the menu before opening the Web App. If the user confirms, then call getWebAppLinkUrl and open the returned URL as a Web App
+//-Process received foundWebApp by showing a confirmation dialog if needed. If the bot can be added to attachment or side menu, but isn't added yet, then show a disclaimer about Mini Apps being a third-party apps
+//-instead of the dialog and ask the user to accept their Terms of service. If the user accept the terms and confirms adding, then use toggleBotIsAddedToAttachmentMenu to add the bot.
+//-Then call getWebAppLinkUrl and open the returned URL as a Web App
 //@bot_username Username of the bot that owns the Web App
 //@web_app_short_name Short name of the Web App
 //@start_parameter Start parameter to be passed to getWebAppLinkUrl
