@@ -5679,6 +5679,12 @@ void Td::on_request(uint64 id, const td_api::getStory &request) {
                             std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getChatsToSendStories &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  story_manager_->get_dialogs_to_send_stories(std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::canSendStory &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

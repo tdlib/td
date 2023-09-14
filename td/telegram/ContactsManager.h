@@ -88,6 +88,8 @@ class ContactsManager final : public Actor {
   static ChannelId get_channel_id(const tl_object_ptr<telegram_api::Chat> &chat);
   static DialogId get_dialog_id(const tl_object_ptr<telegram_api::Chat> &chat);
 
+  vector<ChannelId> get_channel_ids(vector<tl_object_ptr<telegram_api::Chat>> &&chats, const char *source);
+
   Result<tl_object_ptr<telegram_api::InputUser>> get_input_user(UserId user_id) const;
 
   tl_object_ptr<telegram_api::InputUser> get_input_user_force(UserId user_id) const;
@@ -1832,8 +1834,6 @@ class ContactsManager final : public Actor {
 
   tl_object_ptr<td_api::secretChat> get_secret_chat_object_const(SecretChatId secret_chat_id,
                                                                  const SecretChat *secret_chat) const;
-
-  vector<ChannelId> get_channel_ids(vector<tl_object_ptr<telegram_api::Chat>> &&chats, const char *source);
 
   vector<DialogId> get_dialog_ids(vector<tl_object_ptr<telegram_api::Chat>> &&chats, const char *source);
 

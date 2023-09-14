@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/ChannelId.h"
 #include "td/telegram/DialogDate.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileId.h"
@@ -197,6 +198,12 @@ class StoryManager final : public Actor {
 
   void get_story(DialogId owner_dialog_id, StoryId story_id, bool only_local,
                  Promise<td_api::object_ptr<td_api::story>> &&promise);
+
+  void get_dialogs_to_send_stories(Promise<td_api::object_ptr<td_api::chats>> &&promise);
+
+  void reload_dialogs_to_send_stories(Promise<td_api::object_ptr<td_api::chats>> &&promise);
+
+  void on_get_dialogs_to_send_stories(vector<tl_object_ptr<telegram_api::Chat>> &&chats);
 
   void can_send_story(DialogId dialog_id, Promise<td_api::object_ptr<td_api::CanSendStoryResult>> &&promise);
 
@@ -434,6 +441,11 @@ class StoryManager final : public Actor {
 
   void on_delete_story(StoryFullId story_full_id);
 
+  void return_dialogs_to_send_stories(Promise<td_api::object_ptr<td_api::chats>> &&promise,
+                                      const vector<ChannelId> &channel_ids);
+
+  void finish_get_dialogs_to_send_stories(Result<Unit> &&result);
+
   void on_get_dialog_pinned_stories(DialogId owner_dialog_id,
                                     telegram_api::object_ptr<telegram_api::stories_stories> &&stories,
                                     Promise<td_api::object_ptr<td_api::stories>> &&promise);
@@ -631,6 +643,10 @@ class StoryManager final : public Actor {
   FlatHashMap<int64, vector<Promise<Unit>>> delete_yet_unsent_story_queries_;
 
   FlatHashMap<uint32, unique_ptr<ReadyToSendStory>> ready_to_send_stories_;
+
+  bool channels_to_send_stories_inited_ = false;
+  vector<ChannelId> channels_to_send_stories_;
+  vector<Promise<td_api::object_ptr<td_api::chats>>> get_dialogs_to_send_stories_queries_;
 
   StoryList story_lists_[2];
 

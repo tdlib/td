@@ -801,6 +801,50 @@ class GetBoostsStatusQuery final : public Td::ResultHandler {
   }
 };
 
+class GetChatsToSendStoriesQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit GetChatsToSendStoriesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::stories_getChatsToSend()));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stories_getChatsToSend>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto chats_ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetChatsToSendStoriesQuery: " << to_string(chats_ptr);
+    int32 constructor_id = chats_ptr->get_id();
+    switch (constructor_id) {
+      case telegram_api::messages_chats::ID: {
+        auto chats = move_tl_object_as<telegram_api::messages_chats>(chats_ptr);
+        td_->story_manager_->on_get_dialogs_to_send_stories(std::move(chats->chats_));
+        break;
+      }
+      case telegram_api::messages_chatsSlice::ID: {
+        auto chats = move_tl_object_as<telegram_api::messages_chatsSlice>(chats_ptr);
+        LOG(ERROR) << "Receive chatsSlice in result of GetCreatedPublicChannelsQuery";
+        td_->story_manager_->on_get_dialogs_to_send_stories(std::move(chats->chats_));
+        break;
+      }
+      default:
+        UNREACHABLE();
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class CanSendStoryQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::CanSendStoryResult>> promise_;
   DialogId dialog_id_;
@@ -4224,6 +4268,63 @@ Result<StoryId> StoryManager::get_next_yet_unsent_story_id(DialogId dialog_id) {
     return Status::Error(400, "Tried to send too many stories above daily limit");
   }
   return StoryId(++story_id);
+}
+
+void StoryManager::return_dialogs_to_send_stories(Promise<td_api::object_ptr<td_api::chats>> &&promise,
+                                                  const vector<ChannelId> &channel_ids) {
+  if (!promise) {
+    return;
+  }
+
+  auto total_count = narrow_cast<int32>(channel_ids.size());
+  promise.set_value(td_api::make_object<td_api::chats>(
+      total_count, transform(channel_ids, [](ChannelId channel_id) { return DialogId(channel_id).get(); })));
+}
+
+void StoryManager::get_dialogs_to_send_stories(Promise<td_api::object_ptr<td_api::chats>> &&promise) {
+  if (channels_to_send_stories_inited_) {
+    return_dialogs_to_send_stories(std::move(promise), channels_to_send_stories_);
+    promise = {};
+  }
+  reload_dialogs_to_send_stories(std::move(promise));
+}
+
+void StoryManager::reload_dialogs_to_send_stories(Promise<td_api::object_ptr<td_api::chats>> &&promise) {
+  get_dialogs_to_send_stories_queries_.push_back(std::move(promise));
+  if (get_dialogs_to_send_stories_queries_.size() == 1) {
+    auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this)](Result<Unit> &&result) {
+      send_closure(actor_id, &StoryManager::finish_get_dialogs_to_send_stories, std::move(result));
+    });
+    td_->create_handler<GetChatsToSendStoriesQuery>(std::move(query_promise))->send();
+  }
+}
+
+void StoryManager::finish_get_dialogs_to_send_stories(Result<Unit> &&result) {
+  G()->ignore_result_if_closing(result);
+
+  auto promises = std::move(get_dialogs_to_send_stories_queries_);
+  reset_to_empty(get_dialogs_to_send_stories_queries_);
+  if (result.is_error()) {
+    fail_promises(promises, result.move_as_error());
+    return;
+  }
+
+  CHECK(channels_to_send_stories_inited_);
+  for (auto &promise : promises) {
+    return_dialogs_to_send_stories(std::move(promise), channels_to_send_stories_);
+  }
+}
+
+void StoryManager::on_get_dialogs_to_send_stories(vector<tl_object_ptr<telegram_api::Chat>> &&chats) {
+  auto channel_ids = td_->contacts_manager_->get_channel_ids(std::move(chats), "on_get_dialogs_to_send_stories");
+  if (channels_to_send_stories_inited_ && channels_to_send_stories_ == channel_ids) {
+    return;
+  }
+  for (auto channel_id : channel_ids) {
+    td_->messages_manager_->force_create_dialog(DialogId(channel_id), "on_get_dialogs_to_send_stories");
+  }
+  channels_to_send_stories_ = std::move(channel_ids);
+  channels_to_send_stories_inited_ = true;
 }
 
 void StoryManager::can_send_story(DialogId dialog_id,

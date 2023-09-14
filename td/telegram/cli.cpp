@@ -4136,6 +4136,8 @@ class CliClient final : public Actor {
       StoryId story_id;
       get_args(args, story_sender_chat_id, story_id);
       send_request(td_api::make_object<td_api::getStory>(story_sender_chat_id, story_id, op == "gstl"));
+    } else if (op == "gctss") {
+      send_request(td_api::make_object<td_api::getChatsToSendStories>());
     } else if (op == "csst") {
       ChatId chat_id;
       get_args(args, chat_id);
