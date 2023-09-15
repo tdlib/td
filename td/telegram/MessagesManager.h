@@ -2009,6 +2009,8 @@ class MessagesManager final : public Actor {
 
   bool is_message_unload_enabled() const;
 
+  void send_resolve_dialog_username_query(const string &username, Promise<Unit> &&promise);
+
   int64 generate_new_media_album_id();
 
   static bool can_forward_message(DialogId from_dialog_id, const Message *m);

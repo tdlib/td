@@ -17310,12 +17310,12 @@ vector<DialogId> MessagesManager::search_public_dialogs(const string &query, Pro
         username = short_username.str();
         auto resolved_username = resolved_usernames_.get(username);
         if (!resolved_username.dialog_id.is_valid()) {
-          td_->create_handler<ResolveUsernameQuery>(std::move(promise))->send(username);
+          send_resolve_dialog_username_query(username, std::move(promise));
           return {};
         }
 
         if (resolved_username.expires_at < Time::now()) {
-          td_->create_handler<ResolveUsernameQuery>(Promise<Unit>())->send(username);
+          send_resolve_dialog_username_query(username, Promise<Unit>());
         }
 
         auto dialog_id = resolved_username.dialog_id;
@@ -18814,7 +18814,7 @@ void MessagesManager::get_message_link_info(Slice url, Promise<MessageLinkInfo> 
     if (info.username.empty()) {
       td_->contacts_manager_->reload_channel(info.channel_id, std::move(query_promise));
     } else {
-      td_->create_handler<ResolveUsernameQuery>(std::move(query_promise))->send(info.username);
+      send_resolve_dialog_username_query(info.username, std::move(query_promise));
     }
     return;
   }
@@ -32599,6 +32599,10 @@ void MessagesManager::on_dialog_linked_channel_updated(DialogId dialog_id, Chann
   }
 }
 
+void MessagesManager::send_resolve_dialog_username_query(const string &username, Promise<Unit> &&promise) {
+  td_->create_handler<ResolveUsernameQuery>(std::move(promise))->send(username);
+}
+
 DialogId MessagesManager::resolve_dialog_username(const string &username) const {
   auto cleaned_username = clean_username(username);
   auto resolved_username = resolved_usernames_.get(cleaned_username);
@@ -32623,7 +32627,7 @@ DialogId MessagesManager::search_public_dialog(const string &username_to_search,
   auto resolved_username = resolved_usernames_.get(username);
   if (resolved_username.dialog_id.is_valid()) {
     if (resolved_username.expires_at < Time::now()) {
-      td_->create_handler<ResolveUsernameQuery>(Promise<Unit>())->send(username);
+      send_resolve_dialog_username_query(username, Promise<Unit>());
     }
     dialog_id = resolved_username.dialog_id;
   } else {
@@ -32663,7 +32667,7 @@ DialogId MessagesManager::search_public_dialog(const string &username_to_search,
     }
   }
 
-  td_->create_handler<ResolveUsernameQuery>(std::move(promise))->send(username);
+  send_resolve_dialog_username_query(username, std::move(promise));
   return DialogId();
 }
 
