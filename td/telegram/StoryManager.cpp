@@ -804,6 +804,44 @@ class GetBoostsStatusQuery final : public Td::ResultHandler {
   }
 };
 
+class CanApplyBoostQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::CanBoostChatResult>> promise_;
+
+ public:
+  explicit CanApplyBoostQuery(Promise<td_api::object_ptr<td_api::CanBoostChatResult>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id) {
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+    auto query =
+        G()->net_query_creator().create(telegram_api::stories_canApplyBoost(std::move(input_peer)), {{dialog_id}});
+    query->total_timeout_limit_ = 4;
+    send_query(std::move(query));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stories_canApplyBoost>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for CanApplyBoostQuery: " << to_string(result);
+    promise_.set_value(td_->story_manager_->get_can_boost_chat_result_object(std::move(result)));
+  }
+
+  void on_error(Status status) final {
+    auto result = td_->story_manager_->get_can_boost_chat_result_object(status);
+    if (result != nullptr) {
+      promise_.set_value(std::move(result));
+    } else {
+      promise_.set_error(std::move(status));
+    }
+  }
+};
+
 class GetChatsToSendStoriesQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -2852,6 +2890,60 @@ void StoryManager::get_dialog_boost_status(DialogId dialog_id,
   }
 
   td_->create_handler<GetBoostsStatusQuery>(std::move(promise))->send(dialog_id);
+}
+
+void StoryManager::can_boost_dialog(DialogId dialog_id,
+                                    Promise<td_api::object_ptr<td_api::CanBoostChatResult>> &&promise) {
+  if (!td_->messages_manager_->have_dialog_force(dialog_id, "get_dialog_boost_status")) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+  if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+    return promise.set_error(Status::Error(400, "Can't access the chat"));
+  }
+
+  td_->create_handler<CanApplyBoostQuery>(std::move(promise))->send(dialog_id);
+}
+
+td_api::object_ptr<td_api::CanBoostChatResult> StoryManager::get_can_boost_chat_result_object(
+    telegram_api::object_ptr<telegram_api::stories_CanApplyBoostResult> &&result) const {
+  CHECK(result != nullptr);
+  switch (result->get_id()) {
+    case telegram_api::stories_canApplyBoostOk::ID:
+      return td_api::make_object<td_api::canBoostChatResultOk>(0);
+    case telegram_api::stories_canApplyBoostReplace::ID: {
+      auto replace = telegram_api::move_object_as<telegram_api::stories_canApplyBoostReplace>(result);
+      td_->contacts_manager_->on_get_chats(std::move(replace->chats_), "get_can_boost_chat_result_object");
+      DialogId currently_boosted_dialog_id(replace->current_boost_);
+      td_->messages_manager_->force_create_dialog(currently_boosted_dialog_id, "get_can_boost_chat_result_object");
+      return td_api::make_object<td_api::canBoostChatResultOk>(
+          td_->messages_manager_->get_chat_id_object(currently_boosted_dialog_id, "get_can_boost_chat_result_object"));
+    }
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
+}
+
+td_api::object_ptr<td_api::CanBoostChatResult> StoryManager::get_can_boost_chat_result_object(
+    const Status &error) const {
+  CHECK(error.is_error());
+  if (error.message() == "PREMIUM_ACCOUNT_REQUIRED") {
+    return td_api::make_object<td_api::canBoostChatResultPremiumNeeded>();
+  }
+  if (error.message() == "PREMIUM_GIFTED_NOT_ALLOWED") {
+    return td_api::make_object<td_api::canBoostChatResultPremiumSubscriptionNeeded>();
+  }
+  if (error.message() == "BOOST_NOT_MODIFIED") {
+    return td_api::make_object<td_api::canBoostChatResultAlreadyBoosted>();
+  }
+  if (error.message() == "PEER_ID_INVALID") {
+    return td_api::make_object<td_api::canBoostChatResultInvalidChat>();
+  }
+  auto retry_after = Global::get_retry_after(error.code(), error.message());
+  if (retry_after > 0) {
+    return td_api::make_object<td_api::canBoostChatResultWaitNeeded>(retry_after);
+  }
+  return nullptr;
 }
 
 bool StoryManager::have_story(StoryFullId story_full_id) const {

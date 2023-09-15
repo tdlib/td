@@ -267,6 +267,13 @@ class StoryManager final : public Actor {
 
   void get_dialog_boost_status(DialogId dialog_id, Promise<td_api::object_ptr<td_api::chatBoostStatus>> &&promise);
 
+  void can_boost_dialog(DialogId dialog_id, Promise<td_api::object_ptr<td_api::CanBoostChatResult>> &&promise);
+
+  td_api::object_ptr<td_api::CanBoostChatResult> get_can_boost_chat_result_object(
+      telegram_api::object_ptr<telegram_api::stories_CanApplyBoostResult> &&result) const;
+
+  td_api::object_ptr<td_api::CanBoostChatResult> get_can_boost_chat_result_object(const Status &error) const;
+
   void remove_story_notifications_by_story_ids(DialogId dialog_id, const vector<StoryId> &story_ids);
 
   StoryId on_get_story(DialogId owner_dialog_id, telegram_api::object_ptr<telegram_api::StoryItem> &&story_item_ptr);

@@ -4450,7 +4450,7 @@ chatTheme name:string light_settings:themeSettings dark_settings:themeSettings =
 hashtags hashtags:vector<string> = Hashtags;
 
 
-//@class CanSendStoryResult @description Represents result of checking whether the current user can send a story
+//@class CanSendStoryResult @description Represents result of checking whether the current user can send a story in the specific chat
 
 //@description A story can be sent
 canSendStoryResultOk = CanSendStoryResult;
@@ -4469,6 +4469,27 @@ canSendStoryResultWeeklyLimitExceeded retry_after:int32 = CanSendStoryResult;
 
 //@description The monthly limit for the number of posted stories exceeded. The user needs to buy Telegram Premium or wait specified time @retry_after Time left before the user can send the next story
 canSendStoryResultMonthlyLimitExceeded retry_after:int32 = CanSendStoryResult;
+
+
+//@class CanBoostChatResult @description Represents result of checking whether the current user can boost the specific chat
+
+//@description The chat can be boosted @currently_boosted_chat_id Identifier of the currently boosted chat, from which boost will be removed; 0 if none
+canBoostChatResultOk currently_boosted_chat_id:int53 = CanBoostChatResult;
+
+//@description The chat can't be boosted
+canBoostChatResultInvalidChat = CanBoostChatResult;
+
+//@description The chat is already boosted by the user
+canBoostChatResultAlreadyBoosted = CanBoostChatResult;
+
+//@description The user must subscribe to Telegram Premium to be able to boost chats
+canBoostChatResultPremiumNeeded = CanBoostChatResult;
+
+//@description The user must have Telegram Premium subscription instead of a gifted Telegram Premium
+canBoostChatResultPremiumSubscriptionNeeded = CanBoostChatResult;
+
+//@description The user must wait the specified time before the boost can be moved to another chat @retry_after Time left before the user can boost another chat
+canBoostChatResultWaitNeeded retry_after:int32 = CanBoostChatResult;
 
 
 //@class CanTransferOwnershipResult @description Represents result of checking whether the current session can be used to transfer a chat ownership to another user
@@ -7656,8 +7677,11 @@ reportStory story_sender_chat_id:int53 story_id:int32 reason:ReportReason text:s
 activateStoryStealthMode = Ok;
 
 
-//@description Returns the current boost status for a channel chat @chat_id The identifier of the channel chat
+//@description Returns the current boost status for a channel chat @chat_id Identifier of the channel chat
 getChatBoostStatus chat_id:int53 = ChatBoostStatus;
+
+//@description Checks whether the current user can boost a chat @chat_id Identifier of the chat
+canBoostChat chat_id:int53 = CanBoostChatResult;
 
 
 //@description Returns information about a bot that can be added to attachment or side menu @bot_user_id Bot's user identifier
