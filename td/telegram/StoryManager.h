@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/ChannelId.h"
+#include "td/telegram/DialogBoostLinkInfo.h"
 #include "td/telegram/DialogDate.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileId.h"
@@ -277,6 +278,10 @@ class StoryManager final : public Actor {
   void boost_dialog(DialogId dialog_id, Promise<Unit> &&promise);
 
   Result<std::pair<string, bool>> get_dialog_boost_link(DialogId dialog_id);
+
+  void get_dialog_boost_link_info(Slice url, Promise<DialogBoostLinkInfo> &&promise);
+
+  td_api::object_ptr<td_api::chatBoostLinkInfo> get_chat_boost_link_info_object(const DialogBoostLinkInfo &info) const;
 
   void remove_story_notifications_by_story_ids(DialogId dialog_id, const vector<StoryId> &story_ids);
 

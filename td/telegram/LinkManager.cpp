@@ -2686,6 +2686,105 @@ Result<CustomEmojiId> LinkManager::get_link_custom_emoji_id(Slice url) {
   return Status::Error(400, "Custom emoji URL must have an emoji identifier");
 }
 
+Result<DialogBoostLinkInfo> LinkManager::get_dialog_boost_link_info(Slice url) {
+  if (url.empty()) {
+    return Status::Error("URL must be non-empty");
+  }
+  auto link_info = get_link_info(url);
+  if (link_info.type_ != LinkType::Tg && link_info.type_ != LinkType::TMe) {
+    return Status::Error("Invalid chat boost link URL");
+  }
+  url = link_info.query_;
+
+  Slice username;
+  Slice channel_id_slice;
+  if (link_info.type_ == LinkType::Tg) {
+    // boost?domain=username
+    // boost?channel=123456789
+
+    if (!begins_with(url, "boost")) {
+      return Status::Error("Wrong chat boost link URL");
+    }
+    url = url.substr(5);
+
+    if (begins_with(url, "/")) {
+      url = url.substr(1);
+    }
+    if (!begins_with(url, "?")) {
+      return Status::Error("Wrong chat boost link URL");
+    }
+    url = url.substr(1);
+
+    auto args = full_split(url, '&');
+    for (auto arg : args) {
+      auto key_value = split(arg, '=');
+      if (key_value.first == "domain") {
+        username = key_value.second;
+      } else if (key_value.first == "channel") {
+        channel_id_slice = key_value.second;
+      }
+    }
+  } else {
+    // /username?boost
+    // /c/123456789?boost
+
+    CHECK(!url.empty() && url[0] == '/');
+    url.remove_prefix(1);
+
+    size_t username_end_pos = 0;
+    while (username_end_pos < url.size() && url[username_end_pos] != '/' && url[username_end_pos] != '?' &&
+           url[username_end_pos] != '#') {
+      username_end_pos++;
+    }
+    username = url.substr(0, username_end_pos);
+    url = url.substr(username_end_pos);
+    if (!url.empty() && url[0] == '/') {
+      url = url.substr(1);
+    }
+    if (username == "c") {
+      username = Slice();
+      size_t channel_id_end_pos = 0;
+      while (channel_id_end_pos < url.size() && url[channel_id_end_pos] != '/' && url[channel_id_end_pos] != '?' &&
+             url[channel_id_end_pos] != '#') {
+        channel_id_end_pos++;
+      }
+      channel_id_slice = url.substr(0, channel_id_end_pos);
+      url = url.substr(channel_id_end_pos);
+    }
+
+    bool is_boost = false;
+    auto query_pos = url.find('?');
+    if (query_pos != Slice::npos) {
+      auto args = full_split(url.substr(query_pos + 1), '&');
+      for (auto arg : args) {
+        auto key_value = split(arg, '=');
+        if (key_value.first == "boost") {
+          is_boost = true;
+        }
+      }
+    }
+
+    if (!is_boost) {
+      return Status::Error("Wrong chat boost link URL");
+    }
+  }
+
+  ChannelId channel_id;
+  if (username.empty()) {
+    auto r_channel_id = to_integer_safe<int64>(channel_id_slice);
+    if (r_channel_id.is_error() || !ChannelId(r_channel_id.ok()).is_valid()) {
+      return Status::Error("Wrong channel ID");
+    }
+    channel_id = ChannelId(r_channel_id.ok());
+  }
+
+  DialogBoostLinkInfo info;
+  info.username = username.str();
+  info.channel_id = channel_id;
+  LOG(INFO) << "Have link to boost chat @" << info.username << '/' << channel_id.get();
+  return std::move(info);
+}
+
 Result<MessageLinkInfo> LinkManager::get_message_link_info(Slice url) {
   if (url.empty()) {
     return Status::Error("URL must be non-empty");
@@ -2885,7 +2984,7 @@ Result<MessageLinkInfo> LinkManager::get_message_link_info(Slice url) {
   info.media_timestamp = is_media_timestamp_invalid ? 0 : media_timestamp;
   info.is_single = is_single;
   info.for_comment = for_comment;
-  LOG(INFO) << "Have link to " << info.message_id << " in chat @" << info.username << "/" << channel_id.get();
+  LOG(INFO) << "Have link to " << info.message_id << " in chat @" << info.username << '/' << channel_id.get();
   return std::move(info);
 }
 

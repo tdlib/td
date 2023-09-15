@@ -3016,6 +3016,29 @@ Result<std::pair<string, bool>> StoryManager::get_dialog_boost_link(DialogId dia
   return std::make_pair(sb.as_cslice().str(), is_public);
 }
 
+void StoryManager::get_dialog_boost_link_info(Slice url, Promise<DialogBoostLinkInfo> &&promise) {
+  auto r_dialog_boost_link_info = LinkManager::get_dialog_boost_link_info(url);
+  if (r_dialog_boost_link_info.is_error()) {
+    return promise.set_error(Status::Error(400, r_dialog_boost_link_info.error().message()));
+  }
+
+  auto info = r_dialog_boost_link_info.move_as_ok();
+  auto query_promise = PromiseCreator::lambda(
+      [info, promise = std::move(promise)](Result<DialogId> &&result) mutable { promise.set_value(std::move(info)); });
+  td_->messages_manager_->resolve_dialog(info.username, info.channel_id, std::move(query_promise));
+}
+
+td_api::object_ptr<td_api::chatBoostLinkInfo> StoryManager::get_chat_boost_link_info_object(
+    const DialogBoostLinkInfo &info) const {
+  CHECK(info.username.empty() == info.channel_id.is_valid());
+
+  bool is_public = !info.username.empty();
+  DialogId dialog_id =
+      is_public ? td_->messages_manager_->resolve_dialog_username(info.username) : DialogId(info.channel_id);
+  return td_api::make_object<td_api::chatBoostLinkInfo>(
+      is_public, td_->messages_manager_->get_chat_id_object(dialog_id, "chatBoostLinkInfo"));
+}
+
 bool StoryManager::have_story(StoryFullId story_full_id) const {
   return get_story(story_full_id) != nullptr;
 }

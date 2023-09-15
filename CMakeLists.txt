@@ -579,6 +579,7 @@ set(TDLIB_SOURCE
   td/telegram/DialogAction.h
   td/telegram/DialogActionBar.h
   td/telegram/DialogAdministrator.h
+  td/telegram/DialogBoostLinkInfo.h
   td/telegram/DialogDate.h
   td/telegram/DialogDb.h
   td/telegram/DialogEventLog.h

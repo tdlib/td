@@ -32,6 +32,7 @@
 #include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/DeviceTokenManager.h"
 #include "td/telegram/DialogAction.h"
+#include "td/telegram/DialogBoostLinkInfo.h"
 #include "td/telegram/DialogEventLog.h"
 #include "td/telegram/DialogFilter.h"
 #include "td/telegram/DialogFilterId.h"
@@ -1124,6 +1125,33 @@ class GetMessageLinkInfoRequest final : public RequestActor<MessageLinkInfo> {
 
  public:
   GetMessageLinkInfoRequest(ActorShared<Td> td, uint64 request_id, string url)
+      : RequestActor(std::move(td), request_id), url_(std::move(url)) {
+  }
+};
+
+class GetDialogBoostLinkInfoRequest final : public RequestActor<DialogBoostLinkInfo> {
+  string url_;
+
+  DialogBoostLinkInfo dialog_boost_link_info_;
+
+  void do_run(Promise<DialogBoostLinkInfo> &&promise) final {
+    if (get_tries() < 2) {
+      promise.set_value(std::move(dialog_boost_link_info_));
+      return;
+    }
+    td_->story_manager_->get_dialog_boost_link_info(url_, std::move(promise));
+  }
+
+  void do_set_result(DialogBoostLinkInfo &&result) final {
+    dialog_boost_link_info_ = std::move(result);
+  }
+
+  void do_send_result() final {
+    send_result(td_->story_manager_->get_chat_boost_link_info_object(dialog_boost_link_info_));
+  }
+
+ public:
+  GetDialogBoostLinkInfoRequest(ActorShared<Td> td, uint64 request_id, string url)
       : RequestActor(std::move(td), request_id), url_(std::move(url)) {
   }
 };
@@ -6612,6 +6640,11 @@ void Td::on_request(uint64 id, const td_api::getChatBoostLink &request) {
     send_closure(actor_id(this), &Td::send_result, id,
                  td_api::make_object<td_api::chatBoostLink>(r_boost_link.ok().first, r_boost_link.ok().second));
   }
+}
+
+void Td::on_request(uint64 id, td_api::getChatBoostLinkInfo &request) {
+  CLEAN_INPUT_STRING(request.url_);
+  CREATE_REQUEST(GetDialogBoostLinkInfoRequest, std::move(request.url_));
 }
 
 void Td::on_request(uint64 id, const td_api::getAttachmentMenuBot &request) {

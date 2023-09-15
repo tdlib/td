@@ -4306,6 +4306,8 @@ class CliClient final : public Actor {
       ChatId chat_id;
       get_args(args, chat_id);
       send_request(td_api::make_object<td_api::getChatBoostLink>(chat_id));
+    } else if (op == "gcbli") {
+      send_request(td_api::make_object<td_api::getChatBoostLinkInfo>(args));
     } else if (op == "gamb") {
       UserId user_id;
       get_args(args, user_id);

@@ -5227,6 +5227,11 @@ messageLinkInfo is_public:Bool chat_id:int53 message_thread_id:int53 message:mes
 //@description Contains an HTTPS link to boost a chat @link The link @is_public True, if the link will work for non-members of the chat
 chatBoostLink link:string is_public:Bool = ChatBoostLink;
 
+//@description Contains information about a link to boost a a chat
+//@is_public True, if the link will work for non-members of the chat
+//@chat_id Identifier of the chat to which the link points; 0 if the chat isn't found
+chatBoostLinkInfo is_public:Bool chat_id:int53 = ChatBoostLinkInfo;
+
 
 //@class BlockList @description Describes a type of a block list
 
@@ -7695,6 +7700,9 @@ boostChat chat_id:int53 = Ok;
 
 //@description Returns an HTTPS link to boost the specified channel chat @chat_id Identifier of the chat
 getChatBoostLink chat_id:int53 = ChatBoostLink;
+
+//@description Returns information about a link to boost a chat. Can be called for any internal link of the type internalLinkTypeChatBoost @url The link to boost a chat
+getChatBoostLinkInfo url:string = ChatBoostLinkInfo;
 
 
 //@description Returns information about a bot that can be added to attachment or side menu @bot_user_id Bot's user identifier
