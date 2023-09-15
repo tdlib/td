@@ -434,6 +434,8 @@ class MessagesManager final : public Actor {
 
   std::pair<int32, vector<DialogId>> get_recently_opened_dialogs(int32 limit, Promise<Unit> &&promise);
 
+  void resolve_dialog(const string &username, ChannelId channel_id, Promise<DialogId> promise);
+
   DialogId resolve_dialog_username(const string &username) const;
 
   DialogId search_public_dialog(const string &username_to_search, bool force, Promise<Unit> &&promise);
@@ -2011,6 +2013,8 @@ class MessagesManager final : public Actor {
 
   void send_resolve_dialog_username_query(const string &username, Promise<Unit> &&promise);
 
+  void on_resolve_dialog(const string &username, ChannelId channel_id, Promise<DialogId> &&promise);
+
   int64 generate_new_media_album_id();
 
   static bool can_forward_message(DialogId from_dialog_id, const Message *m);
@@ -2904,7 +2908,7 @@ class MessagesManager final : public Actor {
   void on_restore_missing_message_after_get_difference(FullMessageId full_message_id, MessageId old_message_id,
                                                        Result<Unit> result);
 
-  void on_get_message_link_dialog(MessageLinkInfo &&info, Promise<MessageLinkInfo> &&promise);
+  void on_get_message_link_dialog(MessageLinkInfo &&info, DialogId dialog_id, Promise<MessageLinkInfo> &&promise);
 
   void on_get_message_link_message(MessageLinkInfo &&info, DialogId dialog_id, Promise<MessageLinkInfo> &&promise);
 

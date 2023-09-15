@@ -18799,53 +18799,24 @@ void MessagesManager::get_message_link_info(Slice url, Promise<MessageLinkInfo> 
   }
 
   auto info = r_message_link_info.move_as_ok();
-  CHECK(info.username.empty() == info.channel_id.is_valid());
-
-  bool have_dialog = info.username.empty() ? td_->contacts_manager_->have_channel_force(info.channel_id)
-                                           : resolve_dialog_username(info.username).is_valid();
-  if (!have_dialog) {
-    auto query_promise = PromiseCreator::lambda(
-        [actor_id = actor_id(this), info, promise = std::move(promise)](Result<Unit> &&result) mutable {
-          if (result.is_error()) {
-            return promise.set_value(std::move(info));
-          }
-          send_closure(actor_id, &MessagesManager::on_get_message_link_dialog, std::move(info), std::move(promise));
-        });
-    if (info.username.empty()) {
-      td_->contacts_manager_->reload_channel(info.channel_id, std::move(query_promise));
-    } else {
-      send_resolve_dialog_username_query(info.username, std::move(query_promise));
-    }
-    return;
-  }
-
-  return on_get_message_link_dialog(std::move(info), std::move(promise));
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), info, promise = std::move(promise)](Result<DialogId> &&result) mutable {
+        if (result.is_error()) {
+          return promise.set_value(std::move(info));
+        }
+        send_closure(actor_id, &MessagesManager::on_get_message_link_dialog, std::move(info), result.ok(),
+                     std::move(promise));
+      });
+  resolve_dialog(info.username, info.channel_id, std::move(query_promise));
 }
 
-void MessagesManager::on_get_message_link_dialog(MessageLinkInfo &&info, Promise<MessageLinkInfo> &&promise) {
+void MessagesManager::on_get_message_link_dialog(MessageLinkInfo &&info, DialogId dialog_id,
+                                                 Promise<MessageLinkInfo> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
-  DialogId dialog_id;
-  if (info.username.empty()) {
-    if (!td_->contacts_manager_->have_channel(info.channel_id)) {
-      return promise.set_error(Status::Error(500, "Chat info not found"));
-    }
-
-    dialog_id = DialogId(info.channel_id);
-    force_create_dialog(dialog_id, "on_get_message_link_dialog");
-  } else {
-    dialog_id = resolve_dialog_username(info.username);
-    if (dialog_id.is_valid()) {
-      force_create_dialog(dialog_id, "on_get_message_link_dialog", true);
-    }
-  }
   Dialog *d = get_dialog_force(dialog_id, "on_get_message_link_dialog");
-  if (d == nullptr) {
-    return promise.set_error(Status::Error(500, "Chat not found"));
-  }
-
-  auto message_id = info.message_id;
-  get_message_force_from_server(d, message_id,
+  CHECK(d != nullptr);
+  get_message_force_from_server(d, info.message_id,
                                 PromiseCreator::lambda([actor_id = actor_id(this), info = std::move(info), dialog_id,
                                                         promise = std::move(promise)](Result<Unit> &&result) mutable {
                                   if (result.is_error()) {
@@ -32601,6 +32572,54 @@ void MessagesManager::on_dialog_linked_channel_updated(DialogId dialog_id, Chann
 
 void MessagesManager::send_resolve_dialog_username_query(const string &username, Promise<Unit> &&promise) {
   td_->create_handler<ResolveUsernameQuery>(std::move(promise))->send(username);
+}
+
+void MessagesManager::resolve_dialog(const string &username, ChannelId channel_id, Promise<DialogId> promise) {
+  CHECK(username.empty() == channel_id.is_valid());
+
+  bool have_dialog = username.empty() ? td_->contacts_manager_->have_channel_force(channel_id)
+                                      : resolve_dialog_username(username).is_valid();
+  if (!have_dialog) {
+    auto query_promise = PromiseCreator::lambda(
+        [actor_id = actor_id(this), username, channel_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
+          if (result.is_error()) {
+            return promise.set_error(result.move_as_error());
+          }
+          send_closure(actor_id, &MessagesManager::on_resolve_dialog, username, channel_id, std::move(promise));
+        });
+    if (username.empty()) {
+      td_->contacts_manager_->reload_channel(channel_id, std::move(query_promise));
+    } else {
+      send_resolve_dialog_username_query(username, std::move(query_promise));
+    }
+    return;
+  }
+
+  return on_resolve_dialog(username, channel_id, std::move(promise));
+}
+
+void MessagesManager::on_resolve_dialog(const string &username, ChannelId channel_id, Promise<DialogId> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  DialogId dialog_id;
+  if (username.empty()) {
+    if (!td_->contacts_manager_->have_channel(channel_id)) {
+      return promise.set_error(Status::Error(500, "Chat info not found"));
+    }
+
+    dialog_id = DialogId(channel_id);
+    force_create_dialog(dialog_id, "on_resolve_dialog");
+  } else {
+    dialog_id = resolve_dialog_username(username);
+    if (dialog_id.is_valid()) {
+      force_create_dialog(dialog_id, "on_resolve_dialog", true);
+    }
+  }
+  Dialog *d = get_dialog_force(dialog_id, "on_get_message_link_dialog");
+  if (d == nullptr) {
+    return promise.set_error(Status::Error(500, "Chat not found"));
+  }
+  promise.set_value(std::move(dialog_id));
 }
 
 DialogId MessagesManager::resolve_dialog_username(const string &username) const {
