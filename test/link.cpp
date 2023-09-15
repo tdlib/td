@@ -97,6 +97,10 @@ static void parse_internal_link(const td::string &url, td::td_api::object_ptr<td
     ASSERT_STREQ(url + ' ' + to_string(expected), url + ' ' + to_string(object));
 
     for (auto is_internal : {true, false}) {
+      if (!is_internal && expected->get_id() == td::td_api::internalLinkTypeChatBoost::ID) {
+        // external chat boost links must be generated with getChatBoostLink
+        continue;
+      }
       if (!is_internal && expected->get_id() == td::td_api::internalLinkTypeMessage::ID) {
         // external message links must be generated with getMessageLink
         continue;
@@ -217,6 +221,10 @@ static auto bot_start_in_group(const td::string &bot_username, const td::string 
 
 static auto change_phone_number() {
   return td::td_api::make_object<td::td_api::internalLinkTypeChangePhoneNumber>();
+}
+
+static auto chat_boost(const td::string &url) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeChatBoost>(url);
 }
 
 static auto chat_folder_invite(const td::string &slug) {
@@ -381,6 +389,21 @@ TEST(Link, parse_internal_link_part1) {
   parse_internal_link("t.dog/levlam/1", nullptr);
   parse_internal_link("t.m/levlam/1", nullptr);
   parse_internal_link("t.men/levlam/1", nullptr);
+
+  parse_internal_link("t.me/levlam?boos", public_chat("levlam"));
+  parse_internal_link("telegram.me/levlam?booster", public_chat("levlam"));
+  parse_internal_link("telegram.dog/levlam?boost", chat_boost("tg://boost?domain=levlam"));
+  parse_internal_link("www.t.me/levlam?boost", chat_boost("tg://boost?domain=levlam"));
+  parse_internal_link("t.me/c/l12345?boost", nullptr);
+  parse_internal_link("t.me/c/12345l5431?boost", chat_boost("tg://boost?channel=12345"));
+  parse_internal_link("t.me/c/12345?boost", chat_boost("tg://boost?channel=12345"));
+  parse_internal_link("t.me/c/123456789012?boost", chat_boost("tg://boost?channel=123456789012"));
+  parse_internal_link("t.me/c/123456789012?boost=12312&domain=123", chat_boost("tg://boost?channel=123456789012"));
+
+  parse_internal_link("tg:boost?domain=username/12345&single", chat_boost("tg://boost?domain=username%2F12345"));
+  parse_internal_link("tg:boost?domain=username&channel=12345", chat_boost("tg://boost?domain=username"));
+  parse_internal_link("tg:boost?channel=12345&domain=username", chat_boost("tg://boost?domain=username"));
+  parse_internal_link("tg:boost?channel=12345", chat_boost("tg://boost?channel=12345"));
 
   parse_internal_link("tg:resolve?domain=username&post=12345&single",
                       message("tg://resolve?domain=username&post=12345&single"));

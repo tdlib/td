@@ -392,6 +392,18 @@ class LinkManager::InternalLinkDefaultMessageAutoDeleteTimerSettings final : pub
   }
 };
 
+class LinkManager::InternalLinkDialogBoost final : public InternalLink {
+  string url_;
+
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeChatBoost>(url_);
+  }
+
+ public:
+  explicit InternalLinkDialogBoost(string url) : url_(std::move(url)) {
+  }
+};
+
 class LinkManager::InternalLinkDialogFolderInvite final : public InternalLink {
   string url_;
 
@@ -1417,6 +1429,15 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
           PSTRING() << "tg://privatepost" << copy_arg("channel") << copy_arg("post") << copy_arg("single")
                     << copy_arg("thread") << copy_arg("comment") << copy_arg("t"));
     }
+  } else if (path.size() == 1 && path[0] == "boost") {
+    // boost?domain=channel_username
+    // boost?channel=123456
+    if (has_arg("domain")) {
+      return td::make_unique<InternalLinkDialogBoost>(PSTRING() << "tg://boost" << copy_arg("domain"));
+    }
+    if (has_arg("channel")) {
+      return td::make_unique<InternalLinkDialogBoost>(PSTRING() << "tg://boost" << copy_arg("channel"));
+    }
   } else if (path.size() == 1 && path[0] == "bg") {
     // bg?color=<color>
     // bg?gradient=<hex_color>-<hex_color>&rotation=...
@@ -1484,6 +1505,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
       return td::make_unique<InternalLinkMessage>(PSTRING() << "tg://privatepost?channel=" << to_integer<int64>(path[1])
                                                             << "&post=" << post << copy_arg("single") << thread
                                                             << copy_arg("comment") << copy_arg("t"));
+    } else if (path.size() >= 2 && to_integer<int64>(path[1]) > 0 && url_query.has_arg("boost")) {
+      // /c/123456789?boost
+      return td::make_unique<InternalLinkDialogBoost>(PSTRING() << "tg://boost?channel=" << to_integer<int64>(path[1]));
     }
   } else if (path[0] == "login") {
     if (path.size() >= 2 && !path[1].empty()) {
@@ -1636,6 +1660,10 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
           send_closure(G()->messages_manager(), &MessagesManager::reload_voice_chat_on_search, username);
         }
         return td::make_unique<InternalLinkVoiceChat>(std::move(username), arg.second, arg.first == "livestream");
+      }
+      if (arg.first == "boost") {
+        // /<username>?boost
+        return td::make_unique<InternalLinkDialogBoost>(PSTRING() << "tg://boost?domain=" << url_encode(username));
       }
       if (arg.first == "start" && is_valid_start_parameter(arg.second)) {
         // /<bot_username>?start=<parameter>
@@ -1945,6 +1973,21 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         return Status::Error("HTTP link is unavailable for the link type");
       }
       return "tg://settings/change_number";
+    case td_api::internalLinkTypeChatBoost::ID: {
+      auto link = static_cast<const td_api::internalLinkTypeChatBoost *>(type_ptr);
+      auto parsed_link = parse_internal_link(link->url_);
+      if (parsed_link == nullptr) {
+        return Status::Error(400, "Invalid chat boost URL specified");
+      }
+      auto parsed_object = parsed_link->get_internal_link_type_object();
+      if (parsed_object->get_id() != td_api::internalLinkTypeChatBoost::ID) {
+        return Status::Error(400, "Invalid chat boost URL specified");
+      }
+      if (!is_internal) {
+        return Status::Error(400, "Use getChatBoostLink to get an HTTPS link to boost a chat");
+      }
+      return std::move(static_cast<td_api::internalLinkTypeChatBoost &>(*parsed_object).url_);
+    }
     case td_api::internalLinkTypeChatFolderInvite::ID: {
       auto link = static_cast<const td_api::internalLinkTypeChatFolderInvite *>(type_ptr);
       auto slug = get_dialog_filter_invite_link_slug(link->invite_link_);
@@ -2069,7 +2112,7 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         return Status::Error(400, "Invalid message URL specified");
       }
       if (!is_internal) {
-        return Status::Error(400, "Use getMessageLink to get HTTPS link to a message");
+        return Status::Error(400, "Use getMessageLink to get an HTTPS link to a message");
       }
       return std::move(static_cast<td_api::internalLinkTypeMessage &>(*parsed_object).url_);
     }

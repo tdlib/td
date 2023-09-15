@@ -5077,6 +5077,9 @@ internalLinkTypeBotStartInGroup bot_username:string start_parameter:string admin
 //@description The link is a link to the change phone number section of the app
 internalLinkTypeChangePhoneNumber = InternalLinkType;
 
+//@description The link is a link to boost a Telegram chat. Call getChatBoostLinkInfo with the given URL to process the link @url URL to be passed to getChatBoostLinkInfo
+internalLinkTypeChatBoost url:string = InternalLinkType;
+
 //@description The link is an invite link to a chat folder. Call checkChatFolderInviteLink with the given invite link to process the link @invite_link Internal representation of the invite link
 internalLinkTypeChatFolderInvite invite_link:string = InternalLinkType;
 
