@@ -590,6 +590,10 @@ void AttachMenuManager::AttachMenuBot::parse(ParserT &parser) {
     supports_user_dialogs_ = true;
     supports_bot_dialogs_ = true;
   }
+  if (is_added_ && !show_in_attach_menu_ && !show_in_side_menu_ && !has_android_side_menu_icon_file_id &&
+      !has_ios_side_menu_icon_file_id && !has_macos_side_menu_icon_file_id) {
+    show_in_attach_menu_ = true;
+  }
 }
 
 class AttachMenuManager::AttachMenuBotsLogEvent {
