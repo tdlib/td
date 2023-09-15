@@ -14,6 +14,7 @@
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/LinkManager.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/MediaArea.hpp"
@@ -48,6 +49,7 @@
 #include "td/utils/misc.h"
 #include "td/utils/Random.h"
 #include "td/utils/Slice.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
 #include "td/utils/Time.h"
 #include "td/utils/tl_helpers.h"
@@ -2985,6 +2987,33 @@ void StoryManager::boost_dialog(DialogId dialog_id, Promise<Unit> &&promise) {
   }
 
   td_->create_handler<ApplyBoostQuery>(std::move(promise))->send(dialog_id);
+}
+
+Result<std::pair<string, bool>> StoryManager::get_dialog_boost_link(DialogId dialog_id) {
+  if (!td_->messages_manager_->have_dialog_force(dialog_id, "get_dialog_boost_status")) {
+    return Status::Error(400, "Chat not found");
+  }
+  if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+    return Status::Error(400, "Can't access the chat");
+  }
+  if (dialog_id.get_type() != DialogType::Channel ||
+      !td_->contacts_manager_->is_broadcast_channel(dialog_id.get_channel_id())) {
+    return Status::Error(400, "Can't boost the chat");
+  }
+
+  SliceBuilder sb;
+  sb << LinkManager::get_t_me_url();
+
+  auto username = td_->contacts_manager_->get_channel_first_username(dialog_id.get_channel_id());
+  bool is_public = !username.empty();
+  if (is_public) {
+    sb << username;
+  } else {
+    sb << "c/" << dialog_id.get_channel_id().get();
+  }
+  sb << "?boost";
+
+  return std::make_pair(sb.as_cslice().str(), is_public);
 }
 
 bool StoryManager::have_story(StoryFullId story_full_id) const {

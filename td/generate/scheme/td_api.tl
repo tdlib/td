@@ -5224,6 +5224,10 @@ messageLink link:string is_public:Bool = MessageLink;
 messageLinkInfo is_public:Bool chat_id:int53 message_thread_id:int53 message:message media_timestamp:int32 for_album:Bool = MessageLinkInfo;
 
 
+//@description Contains an HTTPS link to boost a chat @link The link @is_public True, if the link will work for non-members of the chat
+chatBoostLink link:string is_public:Bool = ChatBoostLink;
+
+
 //@class BlockList @description Describes a type of a block list
 
 //@description The main block list that disallows writing messages to the current user, receiving their status and photo, viewing of stories, and some other actions
@@ -7688,6 +7692,9 @@ canBoostChat chat_id:int53 = CanBoostChatResult;
 
 //@description Boosts a chat @chat_id Identifier of the chat
 boostChat chat_id:int53 = Ok;
+
+//@description Returns an HTTPS link to boost the specified channel chat @chat_id Identifier of the chat
+getChatBoostLink chat_id:int53 = ChatBoostLink;
 
 
 //@description Returns information about a bot that can be added to attachment or side menu @bot_user_id Bot's user identifier

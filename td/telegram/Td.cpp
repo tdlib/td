@@ -6604,6 +6604,16 @@ void Td::on_request(uint64 id, const td_api::boostChat &request) {
   story_manager_->boost_dialog(DialogId(request.chat_id_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getChatBoostLink &request) {
+  auto r_boost_link = story_manager_->get_dialog_boost_link(DialogId(request.chat_id_));
+  if (r_boost_link.is_error()) {
+    send_closure(actor_id(this), &Td::send_error, id, r_boost_link.move_as_error());
+  } else {
+    send_closure(actor_id(this), &Td::send_result, id,
+                 td_api::make_object<td_api::chatBoostLink>(r_boost_link.ok().first, r_boost_link.ok().second));
+  }
+}
+
 void Td::on_request(uint64 id, const td_api::getAttachmentMenuBot &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
