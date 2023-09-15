@@ -842,6 +842,36 @@ class CanApplyBoostQuery final : public Td::ResultHandler {
   }
 };
 
+class ApplyBoostQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit ApplyBoostQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+    send_query(G()->net_query_creator().create(telegram_api::stories_applyBoost(std::move(input_peer)), {{dialog_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stories_applyBoost>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "ApplyBoostQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetChatsToSendStoriesQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -2944,6 +2974,17 @@ td_api::object_ptr<td_api::CanBoostChatResult> StoryManager::get_can_boost_chat_
     return td_api::make_object<td_api::canBoostChatResultWaitNeeded>(retry_after);
   }
   return nullptr;
+}
+
+void StoryManager::boost_dialog(DialogId dialog_id, Promise<Unit> &&promise) {
+  if (!td_->messages_manager_->have_dialog_force(dialog_id, "get_dialog_boost_status")) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+  if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+    return promise.set_error(Status::Error(400, "Can't access the chat"));
+  }
+
+  td_->create_handler<ApplyBoostQuery>(std::move(promise))->send(dialog_id);
 }
 
 bool StoryManager::have_story(StoryFullId story_full_id) const {

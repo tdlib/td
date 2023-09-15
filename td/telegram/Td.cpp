@@ -6598,6 +6598,12 @@ void Td::on_request(uint64 id, const td_api::canBoostChat &request) {
   story_manager_->can_boost_dialog(DialogId(request.chat_id_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::boostChat &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  story_manager_->boost_dialog(DialogId(request.chat_id_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getAttachmentMenuBot &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

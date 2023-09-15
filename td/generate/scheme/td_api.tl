@@ -7683,6 +7683,9 @@ getChatBoostStatus chat_id:int53 = ChatBoostStatus;
 //@description Checks whether the current user can boost a chat @chat_id Identifier of the chat
 canBoostChat chat_id:int53 = CanBoostChatResult;
 
+//@description Boosts a chat @chat_id Identifier of the chat
+boostChat chat_id:int53 = Ok;
+
 
 //@description Returns information about a bot that can be added to attachment or side menu @bot_user_id Bot's user identifier
 getAttachmentMenuBot bot_user_id:int53 = AttachmentMenuBot;
