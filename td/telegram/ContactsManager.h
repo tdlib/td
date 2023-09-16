@@ -311,6 +311,8 @@ class ContactsManager final : public Actor {
 
   UserId add_channel_bot_user();
 
+  static ChatId get_unsupported_chat_id();
+
   void on_update_username_is_active(UserId user_id, string &&username, bool is_active, Promise<Unit> &&promise);
 
   void on_update_active_usernames_order(UserId user_id, vector<string> &&usernames, Promise<Unit> &&promise);

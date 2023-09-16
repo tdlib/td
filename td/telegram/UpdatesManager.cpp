@@ -1613,6 +1613,9 @@ vector<DialogId> UpdatesManager::get_chat_dialog_ids(const telegram_api::Updates
       LOG(ERROR) << "Can't find identifier of " << oneline(to_string(chat));
     }
   }
+  if (dialog_ids.size() > 1) {
+    td::remove(dialog_ids, DialogId(ContactsManager::get_unsupported_chat_id()));
+  }
   return dialog_ids;
 }
 

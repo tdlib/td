@@ -6276,6 +6276,10 @@ UserId ContactsManager::add_channel_bot_user() {
   return user_id;
 }
 
+ChatId ContactsManager::get_unsupported_chat_id() {
+  return ChatId(static_cast<int64>(G()->is_test_dc() ? 10304875 : 1535424647));
+}
+
 void ContactsManager::check_dialog_username(DialogId dialog_id, const string &username,
                                             Promise<CheckDialogUsernameResult> &&promise) {
   if (dialog_id != DialogId() && !dialog_id.is_valid()) {
