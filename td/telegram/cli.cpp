@@ -4308,6 +4308,12 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getChatBoostLink>(chat_id));
     } else if (op == "gcbli") {
       send_request(td_api::make_object<td_api::getChatBoostLinkInfo>(args));
+    } else if (op == "gcb") {
+      ChatId chat_id;
+      string offset;
+      string limit;
+      get_args(args, chat_id);
+      send_request(td_api::make_object<td_api::getChatBoosts>(chat_id, offset, as_limit(limit)));
     } else if (op == "gamb") {
       UserId user_id;
       get_args(args, user_id);

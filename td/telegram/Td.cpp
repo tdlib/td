@@ -6647,6 +6647,13 @@ void Td::on_request(uint64 id, td_api::getChatBoostLinkInfo &request) {
   CREATE_REQUEST(GetDialogBoostLinkInfoRequest, std::move(request.url_));
 }
 
+void Td::on_request(uint64 id, td_api::getChatBoosts &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.offset_);
+  CREATE_REQUEST_PROMISE();
+  story_manager_->get_dialog_boosts(DialogId(request.chat_id_), request.offset_, request.limit_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getAttachmentMenuBot &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

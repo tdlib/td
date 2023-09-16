@@ -283,6 +283,9 @@ class StoryManager final : public Actor {
 
   td_api::object_ptr<td_api::chatBoostLinkInfo> get_chat_boost_link_info_object(const DialogBoostLinkInfo &info) const;
 
+  void get_dialog_boosts(DialogId dialog_id, const string &offset, int32 limit,
+                         Promise<td_api::object_ptr<td_api::foundChatBoosts>> &&promise);
+
   void remove_story_notifications_by_story_ids(DialogId dialog_id, const vector<StoryId> &story_ids);
 
   StoryId on_get_story(DialogId owner_dialog_id, telegram_api::object_ptr<telegram_api::StoryItem> &&story_item_ptr);

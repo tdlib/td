@@ -874,6 +874,58 @@ class ApplyBoostQuery final : public Td::ResultHandler {
   }
 };
 
+class GetBoostersListQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::foundChatBoosts>> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit GetBoostersListQuery(Promise<td_api::object_ptr<td_api::foundChatBoosts>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, const string &offset, int32 limit) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+    send_query(
+        G()->net_query_creator().create(telegram_api::stories_getBoostersList(std::move(input_peer), offset, limit)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stories_getBoostersList>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for GetBoostersListQuery: " << to_string(result);
+    td_->contacts_manager_->on_get_users(std::move(result->users_), "GetBoostersListQuery");
+
+    auto total_count = result->count_;
+    vector<td_api::object_ptr<td_api::chatBoost>> boosts;
+    for (auto &booster : result->boosters_) {
+      UserId user_id(booster->user_id_);
+      if (!user_id.is_valid()) {
+        LOG(ERROR) << "Receive " << to_string(booster);
+        continue;
+      }
+      auto expire_date = booster->expires_;
+      if (expire_date <= G()->unix_time()) {
+        continue;
+      }
+      boosts.push_back(td_api::make_object<td_api::chatBoost>(
+          td_->contacts_manager_->get_user_id_object(user_id, "chatBoost"), expire_date));
+    }
+    promise_.set_value(
+        td_api::make_object<td_api::foundChatBoosts>(total_count, std::move(boosts), result->next_offset_));
+  }
+
+  void on_error(Status status) final {
+    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetBoostersListQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetChatsToSendStoriesQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -3037,6 +3089,21 @@ td_api::object_ptr<td_api::chatBoostLinkInfo> StoryManager::get_chat_boost_link_
       is_public ? td_->messages_manager_->resolve_dialog_username(info.username) : DialogId(info.channel_id);
   return td_api::make_object<td_api::chatBoostLinkInfo>(
       is_public, td_->messages_manager_->get_chat_id_object(dialog_id, "chatBoostLinkInfo"));
+}
+
+void StoryManager::get_dialog_boosts(DialogId dialog_id, const string &offset, int32 limit,
+                                     Promise<td_api::object_ptr<td_api::foundChatBoosts>> &&promise) {
+  if (!td_->messages_manager_->have_dialog_force(dialog_id, "get_dialog_boost_status")) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+  if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+    return promise.set_error(Status::Error(400, "Can't access the chat"));
+  }
+  if (limit <= 0) {
+    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+  }
+
+  td_->create_handler<GetBoostersListQuery>(std::move(promise))->send(dialog_id, offset, limit);
 }
 
 bool StoryManager::have_story(StoryFullId story_full_id) const {
