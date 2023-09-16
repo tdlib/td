@@ -200,8 +200,14 @@ if (NOT DEFINED IOS_ARCH)
         set (IOS_ARCH "x86_64;arm64")
     elseif (IOS_PLATFORM STREQUAL "WATCHOS")
         set (IOS_ARCH "armv7k;arm64_32;arm64")
+
+        # Include C++ Standard Library for Xcode 15 builds.
+        include_directories(SYSTEM "${CMAKE_IOS_SDK_ROOT}/usr/include/c++/v1")
     elseif (IOS_PLATFORM STREQUAL "WATCHSIMULATOR")
         set (IOS_ARCH "x86_64;arm64")
+
+        # Include C++ Standard Library for Xcode 15 builds.
+        include_directories(SYSTEM "${CMAKE_IOS_SDK_ROOT}/usr/include/c++/v1")
     elseif (IOS_PLATFORM STREQUAL "TVOS")
         set (IOS_ARCH "arm64")
     elseif (IOS_PLATFORM STREQUAL "TVSIMULATOR")
