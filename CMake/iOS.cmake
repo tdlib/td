@@ -189,9 +189,6 @@ if (NOT DEFINED CMAKE_IOS_SDK_ROOT)
 endif (NOT DEFINED CMAKE_IOS_SDK_ROOT)
 set (CMAKE_IOS_SDK_ROOT ${CMAKE_IOS_SDK_ROOT} CACHE PATH "Location of the selected iOS SDK")
 
-# Include C++ Standard Library for Xcode 15 builds.
-include_directories(SYSTEM "${CMAKE_IOS_SDK_ROOT}/usr/include/c++/v1")
-
 # Set the sysroot default to the most recent SDK
 set (CMAKE_OSX_SYSROOT ${CMAKE_IOS_SDK_ROOT} CACHE PATH "Sysroot used for iOS support")
 
@@ -203,8 +200,14 @@ if (NOT DEFINED IOS_ARCH)
         set (IOS_ARCH "x86_64;arm64")
     elseif (IOS_PLATFORM STREQUAL "WATCHOS")
         set (IOS_ARCH "armv7k;arm64_32;arm64")
+
+        # Include C++ Standard Library for Xcode 15 builds.
+        include_directories(SYSTEM "${CMAKE_IOS_SDK_ROOT}/usr/include/c++/v1")
     elseif (IOS_PLATFORM STREQUAL "WATCHSIMULATOR")
         set (IOS_ARCH "x86_64;arm64")
+
+        # Include C++ Standard Library for Xcode 15 builds.
+        include_directories(SYSTEM "${CMAKE_IOS_SDK_ROOT}/usr/include/c++/v1")
     elseif (IOS_PLATFORM STREQUAL "TVOS")
         set (IOS_ARCH "arm64")
     elseif (IOS_PLATFORM STREQUAL "TVSIMULATOR")
