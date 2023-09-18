@@ -5144,7 +5144,7 @@ internalLinkTypeVideoChat chat_username:string invite_hash:string is_live_stream
 //@description The link is a link to a Web App. Call searchPublicChat with the given bot username, check that the user is a bot, then call searchWebApp with the received bot and the given web_app_short_name.
 //-Process received foundWebApp by showing a confirmation dialog if needed. If the bot can be added to attachment or side menu, but isn't added yet, then show a disclaimer about Mini Apps being a third-party apps
 //-instead of the dialog and ask the user to accept their Terms of service. If the user accept the terms and confirms adding, then use toggleBotIsAddedToAttachmentMenu to add the bot.
-//-Then call getWebAppLinkUrl and open the returned URL as a Web App
+//-Then, call getWebAppLinkUrl and open the returned URL as a Web App
 //@bot_username Username of the bot that owns the Web App
 //@web_app_short_name Short name of the Web App
 //@start_parameter Start parameter to be passed to getWebAppLinkUrl
@@ -7222,7 +7222,7 @@ createNewBasicGroupChat user_ids:vector<int53> title:string message_auto_delete_
 //@param_description Chat description; 0-255 characters
 //@location Chat location if a location-based supergroup is being created; pass null to create an ordinary supergroup chat
 //@message_auto_delete_time Message auto-delete time value, in seconds; must be from 0 up to 365 * 86400 and be divisible by 86400. If 0, then messages aren't deleted automatically
-//@for_import Pass true to create a supergroup for importing messages using importMessage
+//@for_import Pass true to create a supergroup for importing messages using importMessages
 createNewSupergroupChat title:string is_forum:Bool is_channel:Bool description:string location:chatLocation message_auto_delete_time:int32 for_import:Bool = Chat;
 
 //@description Creates a new secret chat. Returns the newly created chat @user_id Identifier of the target user
@@ -7903,7 +7903,7 @@ setGroupCallTitle group_call_id:int32 title:string = Ok;
 //@mute_new_participants New value of the mute_new_participants setting
 toggleGroupCallMuteNewParticipants group_call_id:int32 mute_new_participants:Bool = Ok;
 
-//@description Invites users to an active group call. Sends a service message of type messageInviteToGroupCall for video chats
+//@description Invites users to an active group call. Sends a service message of type messageInviteVideoChatParticipants for video chats
 //@group_call_id Group call identifier
 //@user_ids User identifiers. At most 10 users can be invited simultaneously
 inviteGroupCallParticipants group_call_id:int32 user_ids:vector<int53> = Ok;
@@ -8447,7 +8447,7 @@ closeSecretChat secret_chat_id:int32 = Ok;
 getChatEventLog chat_id:int53 query:string from_event_id:int64 limit:int32 filters:chatEventLogFilters user_ids:vector<int53> = ChatEvents;
 
 
-//@description Returns an invoice payment form. This method must be called when the user presses inlineKeyboardButtonBuy
+//@description Returns an invoice payment form. This method must be called when the user presses inline button of the type inlineKeyboardButtonTypeBuy
 //@input_invoice The invoice
 //@theme Preferred payment form theme; pass null to use the default theme
 getPaymentForm input_invoice:InputInvoice theme:themeParameters = PaymentForm;
