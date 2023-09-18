@@ -4223,6 +4223,9 @@ premiumLimitTypeMonthlySentStoryCount = PremiumLimitType;
 //@description The maximum length of captions of sent stories
 premiumLimitTypeStoryCaptionLength = PremiumLimitType;
 
+//@description The maximum number of suggested reaction areas on a story
+premiumLimitTypeStorySuggestedReactionAreaCount = PremiumLimitType;
+
 
 //@class PremiumFeature @description Describes a feature available to Premium users
 

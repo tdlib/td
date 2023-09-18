@@ -2025,6 +2025,8 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
                                options.get_option_integer("stories_sent_monthly_limit_premium", 3000));
     options.set_option_integer("story_caption_length_max",
                                options.get_option_integer("story_caption_length_limit_premium", 2048));
+    options.set_option_integer("story_suggested_reaction_area_count_max",
+                               options.get_option_integer("stories_suggested_reactions_limit_premium", 5));
     options.set_option_integer("bio_length_max", options.get_option_integer("about_length_limit_premium", 140));
     options.set_option_integer("saved_animations_limit", options.get_option_integer("saved_gifs_limit_premium", 400));
     options.set_option_integer("favorite_stickers_limit",
@@ -2048,6 +2050,8 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
                                options.get_option_integer("stories_sent_monthly_limit_default", 30));
     options.set_option_integer("story_caption_length_max",
                                options.get_option_integer("story_caption_length_limit_default", 200));
+    options.set_option_integer("story_suggested_reaction_area_count_max",
+                               options.get_option_integer("stories_suggested_reactions_limit_default", 1));
     options.set_option_integer("bio_length_max", options.get_option_integer("about_length_limit_default", 70));
     options.set_option_integer("saved_animations_limit", options.get_option_integer("saved_gifs_limit_default", 200));
     options.set_option_integer("favorite_stickers_limit",

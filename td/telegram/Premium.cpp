@@ -309,7 +309,8 @@ const vector<Slice> &get_premium_limit_keys() {
                                         "story_expiring",
                                         "story_caption_length",
                                         "stories_sent_weekly",
-                                        "stories_sent_monthly"};
+                                        "stories_sent_monthly",
+                                        "stories_suggested_reactions"};
   return limit_keys;
 }
 
@@ -348,6 +349,8 @@ static Slice get_limit_type_key(const td_api::PremiumLimitType *limit_type) {
       return Slice("stories_sent_weekly");
     case td_api::premiumLimitTypeMonthlySentStoryCount::ID:
       return Slice("stories_sent_monthly");
+    case td_api::premiumLimitTypeStorySuggestedReactionAreaCount::ID:
+      return Slice("stories_suggested_reactions");
     default:
       UNREACHABLE();
       return Slice();
@@ -516,6 +519,9 @@ static td_api::object_ptr<td_api::premiumLimit> get_premium_limit_object(Slice k
     }
     if (key == "stories_sent_monthly") {
       return td_api::make_object<td_api::premiumLimitTypeMonthlySentStoryCount>();
+    }
+    if (key == "stories_suggested_reactions") {
+      return td_api::make_object<td_api::premiumLimitTypeStorySuggestedReactionAreaCount>();
     }
     UNREACHABLE();
     return nullptr;
