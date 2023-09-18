@@ -545,12 +545,12 @@ void get_premium_limit(const td_api::object_ptr<td_api::PremiumLimitType> &limit
 
 void get_premium_features(Td *td, const td_api::object_ptr<td_api::PremiumSource> &source,
                           Promise<td_api::object_ptr<td_api::premiumFeatures>> &&promise) {
-  auto premium_features =
-      full_split(G()->get_option_string("premium_features",
-                                        "double_limits,stories,more_upload,faster_download,voice_to_text,no_ads,"
-                                        "infinite_reactions,premium_stickers,animated_emoji,advanced_chat_management,"
-                                        "profile_badge,emoji_status,animated_userpics,app_icons,translations"),
-                 ',');
+  auto premium_features = full_split(
+      G()->get_option_string(
+          "premium_features",
+          "stories,double_limits,animated_emoji,translations,more_upload,faster_download,voice_to_text,no_ads,infinite_"
+          "reactions,premium_stickers,advanced_chat_management,profile_badge,animated_userpics,app_icons,emoji_status"),
+      ',');
   vector<td_api::object_ptr<td_api::PremiumFeature>> features;
   for (const auto &premium_feature : premium_features) {
     auto feature = get_premium_feature_object(premium_feature);
