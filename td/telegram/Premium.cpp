@@ -81,6 +81,9 @@ static td_api::object_ptr<td_api::PremiumFeature> get_premium_feature_object(Sli
   if (premium_feature == "stories") {
     return td_api::make_object<td_api::premiumFeatureUpgradedStories>();
   }
+  if (premium_feature == "channel_boost") {
+    return td_api::make_object<td_api::premiumFeatureChatBoost>();
+  }
   return nullptr;
 }
 
@@ -403,6 +406,8 @@ static string get_premium_source(const td_api::PremiumFeature *feature) {
       return "translations";
     case td_api::premiumFeatureUpgradedStories::ID:
       return "stories";
+    case td_api::premiumFeatureChatBoost::ID:
+      return "channel_boost";
     default:
       UNREACHABLE();
   }

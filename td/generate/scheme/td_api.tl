@@ -4277,6 +4277,9 @@ premiumFeatureRealTimeChatTranslation = PremiumFeature;
 //@description Allowed to use many additional features for stories
 premiumFeatureUpgradedStories = PremiumFeature;
 
+//@description The ability to boost chats
+premiumFeatureChatBoost = PremiumFeature;
+
 
 //@class PremiumStoryFeature @description Describes a story feature available to Premium users
 
