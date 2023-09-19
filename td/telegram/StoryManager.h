@@ -573,6 +573,8 @@ class StoryManager final : public Actor {
 
   void read_stories_on_server(DialogId owner_dialog_id, StoryId story_id, uint64 log_event_id);
 
+  static bool has_suggested_reaction(const Story *story, const ReactionType &reaction_type);
+
   bool can_use_story_reaction(const Story *story, const ReactionType &reaction_type) const;
 
   void schedule_interaction_info_update();

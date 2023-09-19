@@ -2667,6 +2667,15 @@ void StoryManager::on_story_replied(StoryFullId story_full_id, UserId replier_us
   }
 }
 
+bool StoryManager::has_suggested_reaction(const Story *story, const ReactionType &reaction_type) {
+  if (reaction_type.is_empty()) {
+    return false;
+  }
+  CHECK(story != nullptr);
+  return std::any_of(story->areas_.begin(), story->areas_.end(),
+                     [&reaction_type](const MediaArea &area) { return area.has_reaction_type(reaction_type); });
+}
+
 bool StoryManager::can_use_story_reaction(const Story *story, const ReactionType &reaction_type) const {
   if (reaction_type.is_empty()) {
     return true;
@@ -2675,10 +2684,8 @@ bool StoryManager::can_use_story_reaction(const Story *story, const ReactionType
     if (td_->option_manager_->get_option_boolean("is_premium")) {
       return true;
     }
-    for (auto &area : story->areas_) {
-      if (area.has_reaction_type(reaction_type)) {
-        return true;
-      }
+    if (has_suggested_reaction(story, reaction_type)) {
+      return true;
     }
     return false;
   }
@@ -2718,6 +2725,14 @@ void StoryManager::set_story_reaction(StoryFullId story_full_id, ReactionType re
     td_->reaction_manager_->add_recent_reaction(reaction_type);
   }
 
+  if (owner_dialog_id.get_type() != DialogType::User) {
+    bool need_add = has_suggested_reaction(story, reaction_type);
+    bool need_remove = has_suggested_reaction(story, story->chosen_reaction_type_);
+    if (need_add || need_remove) {
+      story->interaction_info_.set_chosen_reaction_type(need_add ? reaction_type : ReactionType(),
+                                                        story->chosen_reaction_type_);
+    }
+  }
   story->chosen_reaction_type_ = reaction_type;
   on_story_changed(story_full_id, story, true, true);
 

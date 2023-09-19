@@ -57,6 +57,8 @@ class StoryInteractionInfo {
     return false;
   }
 
+  void set_chosen_reaction_type(const ReactionType &new_reaction_type, const ReactionType &old_reaction_type);
+
   int32 get_view_count() const {
     return view_count_;
   }

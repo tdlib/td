@@ -65,12 +65,40 @@ StoryInteractionInfo::StoryInteractionInfo(Td *td, telegram_api::object_ptr<tele
     }
     reaction_counts_.emplace_back(std::move(reaction_type), reaction->count_);
   }
+  std::sort(reaction_counts_.begin(), reaction_counts_.end());
 }
 
 void StoryInteractionInfo::add_dependencies(Dependencies &dependencies) const {
   for (auto user_id : recent_viewer_user_ids_) {
     dependencies.add(user_id);
   }
+}
+
+void StoryInteractionInfo::set_chosen_reaction_type(const ReactionType &new_reaction_type,
+                                                    const ReactionType &old_reaction_type) {
+  if (!old_reaction_type.is_empty()) {
+    for (auto it = reaction_counts_.begin(); it != reaction_counts_.end(); ++it) {
+      if (it->first == old_reaction_type) {
+        it->second--;
+        if (it->second == 0) {
+          reaction_counts_.erase(it);
+        }
+      }
+    }
+  }
+  if (!new_reaction_type.is_empty()) {
+    bool is_found = false;
+    for (auto it = reaction_counts_.begin(); it != reaction_counts_.end(); ++it) {
+      if (it->first == old_reaction_type) {
+        it->second++;
+        is_found = true;
+      }
+    }
+    if (!is_found) {
+      reaction_counts_.emplace_back(new_reaction_type, 1);
+    }
+  }
+  std::sort(reaction_counts_.begin(), reaction_counts_.end());
 }
 
 bool StoryInteractionInfo::set_recent_viewer_user_ids(vector<UserId> &&user_ids) {
