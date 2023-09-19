@@ -128,7 +128,8 @@ bool MediaArea::has_reaction_type(const ReactionType &reaction_type) const {
   return reaction_type_ == reaction_type;
 }
 
-td_api::object_ptr<td_api::storyArea> MediaArea::get_story_area_object() const {
+td_api::object_ptr<td_api::storyArea> MediaArea::get_story_area_object(
+    const vector<std::pair<ReactionType, int32>> &reaction_counts) const {
   CHECK(is_valid());
   td_api::object_ptr<td_api::StoryAreaType> type;
   switch (type_) {
@@ -138,10 +139,17 @@ td_api::object_ptr<td_api::storyArea> MediaArea::get_story_area_object() const {
     case Type::Venue:
       type = td_api::make_object<td_api::storyAreaTypeVenue>(venue_.get_venue_object());
       break;
-    case Type::Reaction:
+    case Type::Reaction: {
+      int32 total_count = 0;
+      for (const auto &reaction_count : reaction_counts) {
+        if (reaction_count.first == reaction_type_) {
+          total_count = reaction_count.second;
+        }
+      }
       type = td_api::make_object<td_api::storyAreaTypeSuggestedReaction>(reaction_type_.get_reaction_type_object(),
-                                                                         is_dark_, is_flipped_);
+                                                                         total_count, is_dark_, is_flipped_);
       break;
+    }
     default:
       UNREACHABLE();
   }

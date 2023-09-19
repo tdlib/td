@@ -47,6 +47,24 @@ StoryInteractionInfo::StoryInteractionInfo(Td *td, telegram_api::object_ptr<tele
     reaction_count_ = 0;
   }
   has_viewers_ = story_views->has_viewers_;
+
+  FlatHashSet<ReactionType, ReactionTypeHash> added_reaction_types;
+  for (auto &reaction : story_views->reactions_) {
+    ReactionType reaction_type(reaction->reaction_);
+    if (reaction_type.is_empty()) {
+      LOG(ERROR) << "Receive empty " << to_string(reaction);
+      continue;
+    }
+    if (!added_reaction_types.insert(reaction_type).second) {
+      LOG(ERROR) << "Receive again " << to_string(reaction);
+      continue;
+    }
+    if (reaction->count_ == 0) {
+      LOG(ERROR) << "Receive " << to_string(reaction);
+      continue;
+    }
+    reaction_counts_.emplace_back(std::move(reaction_type), reaction->count_);
+  }
 }
 
 void StoryInteractionInfo::add_dependencies(Dependencies &dependencies) const {
@@ -85,9 +103,9 @@ td_api::object_ptr<td_api::storyInteractionInfo> StoryInteractionInfo::get_story
 }
 
 bool operator==(const StoryInteractionInfo &lhs, const StoryInteractionInfo &rhs) {
-  return lhs.recent_viewer_user_ids_ == rhs.recent_viewer_user_ids_ && lhs.view_count_ == rhs.view_count_ &&
-         lhs.forward_count_ == rhs.forward_count_ && lhs.reaction_count_ == rhs.reaction_count_ &&
-         lhs.has_viewers_ == rhs.has_viewers_;
+  return lhs.recent_viewer_user_ids_ == rhs.recent_viewer_user_ids_ && lhs.reaction_counts_ == rhs.reaction_counts_ &&
+         lhs.view_count_ == rhs.view_count_ && lhs.forward_count_ == rhs.forward_count_ &&
+         lhs.reaction_count_ == rhs.reaction_count_ && lhs.has_viewers_ == rhs.has_viewers_;
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const StoryInteractionInfo &info) {

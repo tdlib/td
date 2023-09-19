@@ -47,7 +47,8 @@ class MediaArea {
 
   bool has_reaction_type(const ReactionType &reaction_type) const;
 
-  td_api::object_ptr<td_api::storyArea> get_story_area_object() const;
+  td_api::object_ptr<td_api::storyArea> get_story_area_object(
+      const vector<std::pair<ReactionType, int32>> &reaction_counts) const;
 
   telegram_api::object_ptr<telegram_api::MediaArea> get_input_media_area() const;
 

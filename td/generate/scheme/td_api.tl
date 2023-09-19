@@ -3217,9 +3217,10 @@ storyAreaTypeVenue venue:venue = StoryAreaType;
 
 //@description An area pointing to a suggested reaction. App needs to show a clickable reaction on the area and call setStoryReaction when the are is clicked
 //@reaction_type Type of the reaction
+//@total_count Number of times the reaction was added
 //@is_dark True, if reaction has a dark background
 //@is_flipped True, if reaction corner is flipped
-storyAreaTypeSuggestedReaction reaction_type:ReactionType is_dark:Bool is_flipped:Bool = StoryAreaType;
+storyAreaTypeSuggestedReaction reaction_type:ReactionType total_count:int32 is_dark:Bool is_flipped:Bool = StoryAreaType;
 
 
 //@description Describes a clickable rectangle area on a story media @position Position of the area @type Type of the area

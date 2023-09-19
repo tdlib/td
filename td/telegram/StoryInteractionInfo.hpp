@@ -20,12 +20,14 @@ void StoryInteractionInfo::store(StorerT &storer) const {
   bool has_reaction_count = reaction_count_ > 0;
   bool know_has_viewers = true;
   bool has_forward_count = forward_count_ > 0;
+  bool has_reaction_counts = !reaction_counts_.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_recent_viewer_user_ids);
   STORE_FLAG(has_reaction_count);
   STORE_FLAG(know_has_viewers);
   STORE_FLAG(has_viewers_);
   STORE_FLAG(has_forward_count);
+  STORE_FLAG(has_reaction_counts);
   END_STORE_FLAGS();
   store(view_count_, storer);
   if (has_recent_viewer_user_ids) {
@@ -37,6 +39,9 @@ void StoryInteractionInfo::store(StorerT &storer) const {
   if (has_forward_count) {
     store(forward_count_, storer);
   }
+  if (has_reaction_counts) {
+    store(reaction_counts_, storer);
+  }
 }
 
 template <class ParserT>
@@ -46,12 +51,14 @@ void StoryInteractionInfo::parse(ParserT &parser) {
   bool has_reaction_count;
   bool know_has_viewers;
   bool has_forward_count;
+  bool has_reaction_counts;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_recent_viewer_user_ids);
   PARSE_FLAG(has_reaction_count);
   PARSE_FLAG(know_has_viewers);
   PARSE_FLAG(has_viewers_);
   PARSE_FLAG(has_forward_count);
+  PARSE_FLAG(has_reaction_counts);
   END_PARSE_FLAGS();
   parse(view_count_, parser);
   if (has_recent_viewer_user_ids) {
@@ -62,6 +69,9 @@ void StoryInteractionInfo::parse(ParserT &parser) {
   }
   if (has_forward_count) {
     parse(forward_count_, parser);
+  }
+  if (has_reaction_counts) {
+    parse(reaction_counts_, parser);
   }
 
   if (!know_has_viewers) {

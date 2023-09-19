@@ -3248,7 +3248,10 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
                              G()->unix_time_cached() >= get_story_viewers_expire_date(story) &&
                              interaction_info != nullptr &&
                              interaction_info->view_count_ > interaction_info->reaction_count_;
-  auto story_areas = transform(*areas, [](const MediaArea &media_area) { return media_area.get_story_area_object(); });
+  const auto &reaction_counts = story->interaction_info_.get_reaction_counts();
+  auto story_areas = transform(*areas, [&reaction_counts](const MediaArea &media_area) {
+    return media_area.get_story_area_object(reaction_counts);
+  });
 
   story->is_update_sent_ = true;
 
