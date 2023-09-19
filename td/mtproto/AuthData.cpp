@@ -32,12 +32,13 @@ Status check_message_id_duplicates(uint64 *saved_message_ids, size_t max_size, s
     return Status::OK();
   }
   if (end_pos >= max_size && message_id < saved_message_ids[0]) {
-    return Status::Error(2, PSLICE() << "Ignore very old message " << message_id
-                                     << " older than the oldest known message " << saved_message_ids[0]);
+    return Status::Error(2, PSLICE() << "Ignore very old message " << format::as_hex(message_id)
+                                     << " older than the oldest known message "
+                                     << format::as_hex(saved_message_ids[0]));
   }
   auto it = std::lower_bound(&saved_message_ids[0], &saved_message_ids[end_pos], message_id);
   if (*it == message_id) {
-    return Status::Error(1, PSLICE() << "Ignore already processed message " << message_id);
+    return Status::Error(1, PSLICE() << "Ignore already processed message " << format::as_hex(message_id));
   }
   std::copy_backward(it, &saved_message_ids[end_pos], &saved_message_ids[end_pos + 1]);
   *it = message_id;
@@ -147,7 +148,7 @@ Status AuthData::check_packet(uint64 session_id, uint64 message_id, double now, 
   // Client must check that msg_id has even parity for messages from client to server, and odd parity for messages
   // from server to client.
   if ((message_id & 1) == 0) {
-    return Status::Error(PSLICE() << "Receive invalid message identifier " << message_id);
+    return Status::Error(PSLICE() << "Receive invalid message identifier " << format::as_hex(message_id));
   }
 
   TRY_STATUS(duplicate_checker_.check(message_id));
@@ -161,7 +162,7 @@ Status AuthData::check_packet(uint64 session_id, uint64 message_id, double now, 
   // The client would also find this useful (to protect from a replay attack), but only if it is certain of its time
   // (for example, if its time has been synchronized with that of the server).
   if (server_time_difference_was_updated_ && !is_valid_inbound_msg_id(message_id, now)) {
-    return Status::Error(PSLICE() << "Ignore too old or too new message " << message_id);
+    return Status::Error(PSLICE() << "Ignore too old or too new message " << format::as_hex(message_id));
   }
 
   return Status::OK();

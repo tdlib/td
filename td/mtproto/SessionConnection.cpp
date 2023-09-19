@@ -518,7 +518,8 @@ Status SessionConnection::on_slice_packet(const MsgInfo &info, Slice packet) {
     return PSTRING() << "update from " << get_name() << " with auth key " << auth_data_->get_auth_key().id()
                      << " active for " << (Time::now() - created_at_) << " seconds in container " << container_id_
                      << " from session " << auth_data_->get_session_id() << " with " << info
-                     << ", main_message_id = " << main_message_id_ << " and original size = " << info.size;
+                     << ", main_message_id = " << format::as_hex(main_message_id_)
+                     << " and original size = " << info.size;
   };
 
   // It is an update... I hope.
