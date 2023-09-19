@@ -5149,10 +5149,11 @@ void StoryManager::delete_pending_story(FileId file_id, unique_ptr<PendingStory>
       stories_.erase(story_full_id);
       send_update_chat_active_stories(pending_story->dialog_id_, get_active_stories(pending_story->dialog_id_),
                                       "delete_pending_story");
-      send_closure(G()->td(), &Td::send_update,
-                   td_api::make_object<td_api::updateStorySendFailed>(std::move(story_object),
-                                                                      get_can_send_story_result_object(status, true),
-                                                                      status.code(), status.message().str()));
+      send_closure(
+          G()->td(), &Td::send_update,
+          td_api::make_object<td_api::updateStorySendFailed>(
+              std::move(story_object), td_api::make_object<td_api::error>(status.code(), status.message().str()),
+              get_can_send_story_result_object(status, true)));
     }
     auto it = yet_unsent_stories_.find(pending_story->dialog_id_);
     CHECK(it != yet_unsent_stories_.end());

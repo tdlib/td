@@ -6033,10 +6033,9 @@ updateStorySendSucceeded story:story old_story_id:int32 = Update;
 
 //@description A story failed to send. If the story sending is canceled, then updateStoryDeleted will be received instead of this update
 //@story The failed to send story
-//@error The cause of the story sending failure; may be null if unknown
-//@error_code An error code
-//@error_message Error message
-updateStorySendFailed story:story error:CanSendStoryResult error_code:int32 error_message:string = Update;
+//@error The cause of the story sending failure
+//@error_type Type of the error; may be null if unknown
+updateStorySendFailed story:story error:error error_type:CanSendStoryResult = Update;
 
 //@description The list of active stories posted by a specific chat has changed
 //@active_stories The new list of active stories
