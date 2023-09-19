@@ -688,12 +688,7 @@ void ReactionManager::on_get_top_reactions(tl_object_ptr<telegram_api::messages_
 }
 
 bool ReactionManager::is_active_reaction(const ReactionType &reaction_type) const {
-  for (auto &supported_reaction : reactions_.reactions_) {
-    if (supported_reaction.reaction_type_ == reaction_type) {
-      return supported_reaction.is_active_;
-    }
-  }
-  return false;
+  return td::contains(active_reaction_types_, reaction_type);
 }
 
 void ReactionManager::set_default_reaction(ReactionType reaction_type, Promise<Unit> &&promise) {
