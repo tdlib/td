@@ -313,6 +313,7 @@ function split_file($file, $chunks, $undo) {
                 'SecretChatActor' => 'SecretChatActor',
                 'secret_chats_manager[_(-]|SecretChatsManager' => 'SecretChatsManager',
                 'sponsored_message_manager[_(-][^.]|SponsoredMessageManager' => 'SponsoredMessageManager',
+                'statistics_manager[_(-][^.]|StatisticsManager' => 'StatisticsManager',
                 'stickers_manager[_(-][^.]|StickersManager' => 'StickersManager',
                 'story_manager[_(-][^.]|StoryManager' => 'StoryManager',
                 '[>](td_db[(][)]|get_td_db_impl[(])|TdDb[^A-Za-z]' => 'TdDb',

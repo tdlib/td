@@ -77,6 +77,7 @@ class SecureManager;
 class SecretChatsManager;
 class SponsoredMessageManager;
 class StateManager;
+class StatisticsManager;
 class StickersManager;
 class StorageManager;
 class StoryManager;
@@ -199,6 +200,8 @@ class Td final : public Actor {
   ActorOwn<ReactionManager> reaction_manager_actor_;
   unique_ptr<SponsoredMessageManager> sponsored_message_manager_;
   ActorOwn<SponsoredMessageManager> sponsored_message_manager_actor_;
+  unique_ptr<StatisticsManager> statistics_manager_;
+  ActorOwn<StatisticsManager> statistics_manager_actor_;
   unique_ptr<StickersManager> stickers_manager_;
   ActorOwn<StickersManager> stickers_manager_actor_;
   unique_ptr<StoryManager> story_manager_;

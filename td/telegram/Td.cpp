@@ -121,6 +121,7 @@
 #include "td/telegram/SentEmailCode.h"
 #include "td/telegram/SponsoredMessageManager.h"
 #include "td/telegram/StateManager.h"
+#include "td/telegram/StatisticsManager.h"
 #include "td/telegram/StickerFormat.h"
 #include "td/telegram/StickerSetId.h"
 #include "td/telegram/StickersManager.h"
@@ -3312,6 +3313,8 @@ void Td::dec_actor_refcnt() {
       LOG(DEBUG) << "ReactionManager was cleared" << timer;
       sponsored_message_manager_.reset();
       LOG(DEBUG) << "SponsoredMessageManager was cleared" << timer;
+      statistics_manager_.reset();
+      LOG(DEBUG) << "StatisticsManager was cleared" << timer;
       stickers_manager_.reset();
       LOG(DEBUG) << "StickersManager was cleared" << timer;
       story_manager_.reset();
@@ -3518,6 +3521,8 @@ void Td::clear() {
   LOG(DEBUG) << "ReactionManager actor was cleared" << timer;
   sponsored_message_manager_actor_.reset();
   LOG(DEBUG) << "SponsoredMessageManager actor was cleared" << timer;
+  statistics_manager_actor_.reset();
+  LOG(DEBUG) << "StatisticsManager actor was cleared" << timer;
   stickers_manager_actor_.reset();
   LOG(DEBUG) << "StickersManager actor was cleared" << timer;
   story_manager_actor_.reset();
@@ -4008,6 +4013,8 @@ void Td::init_managers() {
   sponsored_message_manager_ = make_unique<SponsoredMessageManager>(this, create_reference());
   sponsored_message_manager_actor_ = register_actor("SponsoredMessageManager", sponsored_message_manager_.get());
   G()->set_sponsored_message_manager(sponsored_message_manager_actor_.get());
+  statistics_manager_ = make_unique<StatisticsManager>(this, create_reference());
+  statistics_manager_actor_ = register_actor("StatisticsManager", statistics_manager_.get());
   stickers_manager_ = make_unique<StickersManager>(this, create_reference());
   stickers_manager_actor_ = register_actor("StickersManager", stickers_manager_.get());
   G()->set_stickers_manager(stickers_manager_actor_.get());
