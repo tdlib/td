@@ -11,7 +11,10 @@
 #include "td/telegram/Td.h"
 
 #include "td/utils/algorithm.h"
+#include "td/utils/FlatHashSet.h"
 #include "td/utils/logging.h"
+
+#include <algorithm>
 
 namespace td {
 

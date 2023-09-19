@@ -7,12 +7,18 @@
 #include "td/telegram/StatisticsManager.h"
 
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/Global.h"
+#include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/telegram_api.h"
+#include "td/telegram/UserId.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/misc.h"
+#include "td/utils/Status.h"
 
 namespace td {
 

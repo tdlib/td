@@ -14,6 +14,8 @@
 #include "td/utils/common.h"
 #include "td/utils/StringBuilder.h"
 
+#include <utility>
+
 namespace td {
 
 class Dependencies;

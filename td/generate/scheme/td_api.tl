@@ -649,7 +649,8 @@ inputChatPhotoSticker sticker:chatPhotoSticker = InputChatPhoto;
 chatPermissions can_send_basic_messages:Bool can_send_audios:Bool can_send_documents:Bool can_send_photos:Bool can_send_videos:Bool can_send_video_notes:Bool can_send_voice_notes:Bool can_send_polls:Bool can_send_other_messages:Bool can_add_web_page_previews:Bool can_change_info:Bool can_invite_users:Bool can_pin_messages:Bool can_manage_topics:Bool = ChatPermissions;
 
 //@description Describes rights of the administrator
-//@can_manage_chat True, if the administrator can get chat event log, get chat statistics, get chat boosts in channels, get message statistics in channels, get channel members, see anonymous administrators in supergroups and ignore slow mode. Implied by any other privilege; applicable to supergroups and channels only
+//@can_manage_chat True, if the administrator can get chat event log, get chat statistics, get chat boosts in channels, get message statistics in channels, get channel members,
+//-see anonymous administrators in supergroups and ignore slow mode. Implied by any other privilege; applicable to supergroups and channels only
 //@can_change_info True, if the administrator can change the chat title, photo, and other settings
 //@can_post_messages True, if the administrator can create channel posts; applicable to channels only
 //@can_edit_messages True, if the administrator can edit messages of other users and pin messages; applicable to channels only
@@ -3363,8 +3364,8 @@ chatActiveStories chat_id:int53 list:StoryList order:int53 max_read_story_id:int
 //@premium_member_percentage A percentage of Telegram Premium subscribers joined the chat; always 0 if the current user isn't an administrator in the chat
 chatBoostStatus is_boosted:Bool level:int32 boost_count:int32 current_level_boost_count:int32 next_level_boost_count:int32 premium_member_count:int32 premium_member_percentage:double = ChatBoostStatus;
 
-//@description Describes a boost of a chat @user_id Identifier of a user that boosted the chat @expire_date Date when the boost will automatically expire if the user will not prolongate their Telegram Premium subscription
-chatBoost user_id:int53 expire_date:int32 = ChatBoost;
+//@description Describes a boost of a chat @user_id Identifier of a user that boosted the chat @expiration_date Point in time (Unix timestamp) when the boost will automatically expire if the user will not prolongate their Telegram Premium subscription
+chatBoost user_id:int53 expiration_date:int32 = ChatBoost;
 
 //@description Contains a list of boosts applied to a chat @total_count Total number of boosts applied to the chat @boosts List of boosts @next_offset The offset for the next request. If empty, there are no more results
 foundChatBoosts total_count:int32 boosts:vector<chatBoost> next_offset:string = FoundChatBoosts;
@@ -4486,7 +4487,7 @@ canSendStoryResultMonthlyLimitExceeded retry_after:int32 = CanSendStoryResult;
 
 //@class CanBoostChatResult @description Represents result of checking whether the current user can boost the specific chat
 
-//@description The chat can be boosted @currently_boosted_chat_id Identifier of the currently boosted chat, from which boost will be removed; 0 if none
+//@description The chat can be boosted @currently_boosted_chat_id Identifier of the currently boosted chat from which boost will be removed; 0 if none
 canBoostChatResultOk currently_boosted_chat_id:int53 = CanBoostChatResult;
 
 //@description The chat can't be boosted
