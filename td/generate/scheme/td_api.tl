@@ -1147,12 +1147,11 @@ unreadReaction type:ReactionType sender_id:MessageSender is_big:Bool = UnreadRea
 messageSendingStatePending sending_id:int32 = MessageSendingState;
 
 //@description The message failed to be sent
-//@error_code An error code; 0 if unknown
-//@error_message Error message
+//@error The cause of the message sending failure
 //@can_retry True, if the message can be re-sent
 //@need_another_sender True, if the message can be re-sent only on behalf of a different sender
 //@retry_after Time left before the message can be re-sent, in seconds. No update is sent when this field changes
-messageSendingStateFailed error_code:int32 error_message:string can_retry:Bool need_another_sender:Bool retry_after:double = MessageSendingState;
+messageSendingStateFailed error:error can_retry:Bool need_another_sender:Bool retry_after:double = MessageSendingState;
 
 
 //@class MessageReplyTo @description Contains information about the message or the story a message is replying to
@@ -5751,9 +5750,8 @@ updateMessageSendSucceeded message:message old_message_id:int53 = Update;
 //@description A message failed to send. Be aware that some messages being sent can be irrecoverably deleted, in which case updateDeleteMessages will be received instead of this update
 //@message The failed to send message
 //@old_message_id The previous temporary message identifier
-//@error_code An error code
-//@error_message Error message
-updateMessageSendFailed message:message old_message_id:int53 error_code:int32 error_message:string = Update;
+//@error The cause of the message sending failure
+updateMessageSendFailed message:message old_message_id:int53 error:error = Update;
 
 //@description The message content has changed @chat_id Chat identifier @message_id Message identifier @new_content New message content
 updateMessageContent chat_id:int53 message_id:int53 new_content:MessageContent = Update;
@@ -6035,7 +6033,7 @@ updateStorySendSucceeded story:story old_story_id:int32 = Update;
 
 //@description A story failed to send. If the story sending is canceled, then updateStoryDeleted will be received instead of this update
 //@story The failed to send story
-//@error The cause of the failure; may be null if unknown
+//@error The cause of the story sending failure; may be null if unknown
 //@error_code An error code
 //@error_message Error message
 updateStorySendFailed story:story error:CanSendStoryResult error_code:int32 error_message:string = Update;

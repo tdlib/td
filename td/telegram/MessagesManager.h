@@ -2255,7 +2255,7 @@ class MessagesManager final : public Actor {
 
   bool is_message_auto_read(DialogId dialog_id, bool is_outgoing) const;
 
-  void fail_send_message(FullMessageId full_message_id, int error_code, const string &error_message);
+  void fail_send_message(FullMessageId full_message_id, int32 error_code, const string &error_message);
 
   void fail_send_message(FullMessageId full_message_id, Status error);
 

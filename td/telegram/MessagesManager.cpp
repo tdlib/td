@@ -24094,11 +24094,12 @@ tl_object_ptr<td_api::MessageSendingState> MessagesManager::get_message_sending_
   }
   if (m->is_failed_to_send) {
     auto can_retry = can_resend_message(m);
+    auto error_code = m->send_error_code > 0 ? m->send_error_code : 400;
     auto need_another_sender =
-        can_retry && m->send_error_code == 400 && m->send_error_message == CSlice("SEND_AS_PEER_INVALID");
-    return td_api::make_object<td_api::messageSendingStateFailed>(m->send_error_code, m->send_error_message, can_retry,
-                                                                  need_another_sender,
-                                                                  max(m->try_resend_at - Time::now(), 0.0));
+        can_retry && error_code == 400 && m->send_error_message == CSlice("SEND_AS_PEER_INVALID");
+    return td_api::make_object<td_api::messageSendingStateFailed>(
+        td_api::make_object<td_api::error>(error_code, m->send_error_message), can_retry, need_another_sender,
+        max(m->try_resend_at - Time::now(), 0.0));
   }
   return nullptr;
 }
@@ -31299,9 +31300,6 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
   if (error_code != 403 && !(error_code == 500 && G()->close_flag())) {
     LOG(WARNING) << "Failed to send " << full_message_id << " with the error " << error;
   }
-  if (error_code <= 0) {
-    error_code = 500;
-  }
   fail_send_message(full_message_id, error_code, error_message);
 }
 
@@ -31363,7 +31361,11 @@ MessageId MessagesManager::get_next_yet_unsent_scheduled_message_id(Dialog *d, i
   return last_assigned_message_id;
 }
 
-void MessagesManager::fail_send_message(FullMessageId full_message_id, int error_code, const string &error_message) {
+void MessagesManager::fail_send_message(FullMessageId full_message_id, int32 error_code, const string &error_message) {
+  if (error_code <= 0) {
+    error_code = 500;
+  }
+
   auto dialog_id = full_message_id.get_dialog_id();
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
@@ -31434,10 +31436,10 @@ void MessagesManager::fail_send_message(FullMessageId full_message_id, int error
   if (!td_->auth_manager_->is_bot()) {
     yet_unsent_full_message_id_to_persistent_message_id_.emplace({dialog_id, old_message_id}, m->message_id);
   }
-  send_closure(
-      G()->td(), &Td::send_update,
-      td_api::make_object<td_api::updateMessageSendFailed>(get_message_object(dialog_id, m, "fail_send_message"),
-                                                           old_message_id.get(), error_code, error_message));
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateMessageSendFailed>(
+                   get_message_object(dialog_id, m, "fail_send_message"), old_message_id.get(),
+                   td_api::make_object<td_api::error>(error_code, error_message)));
   if (need_update_dialog_pos) {
     send_update_chat_last_message(d, "fail_send_message");
   }
