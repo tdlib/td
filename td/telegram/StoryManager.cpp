@@ -2692,6 +2692,24 @@ bool StoryManager::can_use_story_reaction(const Story *story, const ReactionType
   return td_->reaction_manager_->is_active_reaction(reaction_type);
 }
 
+void StoryManager::on_story_chosen_reaction_changed(StoryFullId story_full_id, Story *story,
+                                                    const ReactionType &reaction_type) {
+  if (story == nullptr || story->chosen_reaction_type_ == reaction_type) {
+    return;
+  }
+
+  if (story_full_id.get_dialog_id().get_type() != DialogType::User) {
+    bool need_add = has_suggested_reaction(story, reaction_type);
+    bool need_remove = has_suggested_reaction(story, story->chosen_reaction_type_);
+    if (need_add || need_remove) {
+      story->interaction_info_.set_chosen_reaction_type(need_add ? reaction_type : ReactionType(),
+                                                        story->chosen_reaction_type_);
+    }
+  }
+  story->chosen_reaction_type_ = reaction_type;
+  on_story_changed(story_full_id, story, true, true);
+}
+
 void StoryManager::set_story_reaction(StoryFullId story_full_id, ReactionType reaction_type, bool add_to_recent,
                                       Promise<Unit> &&promise) {
   auto owner_dialog_id = story_full_id.get_dialog_id();
@@ -2714,7 +2732,7 @@ void StoryManager::set_story_reaction(StoryFullId story_full_id, ReactionType re
   }
 
   if (!can_use_story_reaction(story, reaction_type)) {
-    return promise.set_error(Status::Error(400, "The reaction isn't available for stories"));
+    return promise.set_error(Status::Error(400, "The reaction isn't available for the story"));
   }
 
   if (story->chosen_reaction_type_ == reaction_type) {
@@ -2725,16 +2743,7 @@ void StoryManager::set_story_reaction(StoryFullId story_full_id, ReactionType re
     td_->reaction_manager_->add_recent_reaction(reaction_type);
   }
 
-  if (owner_dialog_id.get_type() != DialogType::User) {
-    bool need_add = has_suggested_reaction(story, reaction_type);
-    bool need_remove = has_suggested_reaction(story, story->chosen_reaction_type_);
-    if (need_add || need_remove) {
-      story->interaction_info_.set_chosen_reaction_type(need_add ? reaction_type : ReactionType(),
-                                                        story->chosen_reaction_type_);
-    }
-  }
-  story->chosen_reaction_type_ = reaction_type;
-  on_story_changed(story_full_id, story, true, true);
+  on_story_chosen_reaction_changed(story_full_id, story, reaction_type);
 
   // TODO cancel previous queries, log event
   auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), story_full_id,
@@ -4273,13 +4282,7 @@ void StoryManager::on_update_story_chosen_reaction_type(DialogId owner_dialog_id
   }
   StoryFullId story_full_id{owner_dialog_id, story_id};
   Story *story = get_story_force(story_full_id, "on_update_story_chosen_reaction_type");
-  if (story == nullptr) {
-    return;
-  }
-  if (story->chosen_reaction_type_ != chosen_reaction_type) {
-    story->chosen_reaction_type_ = std::move(chosen_reaction_type);
-    on_story_changed(story_full_id, story, true, true);
-  }
+  on_story_chosen_reaction_changed(story_full_id, story, chosen_reaction_type);
 }
 
 string StoryManager::get_story_stealth_mode_key() {

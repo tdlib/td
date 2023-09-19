@@ -83,6 +83,7 @@ void StoryInteractionInfo::set_chosen_reaction_type(const ReactionType &new_reac
         if (it->second == 0) {
           reaction_counts_.erase(it);
         }
+        break;
       }
     }
   }

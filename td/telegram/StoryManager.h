@@ -577,6 +577,8 @@ class StoryManager final : public Actor {
 
   bool can_use_story_reaction(const Story *story, const ReactionType &reaction_type) const;
 
+  void on_story_chosen_reaction_changed(StoryFullId story_full_id, Story *story, const ReactionType &reaction_type);
+
   void schedule_interaction_info_update();
 
   static void update_interaction_info_static(void *story_manager);
