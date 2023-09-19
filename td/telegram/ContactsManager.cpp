@@ -3855,7 +3855,7 @@ double ContactsManager::get_percentage_value(double part, double total) {
   if (part > 1e20) {
     return 100.0;
   }
-  return part / total * 100;
+  return clamp(0.0, part / total * 100, 100.0);
 }
 
 tl_object_ptr<td_api::statisticalValue> ContactsManager::convert_stats_absolute_value(
