@@ -671,6 +671,8 @@ class StoryManager final : public Actor {
   vector<ChannelId> channels_to_send_stories_;
   vector<Promise<td_api::object_ptr<td_api::chats>>> get_dialogs_to_send_stories_queries_;
 
+  FlatHashMap<StoryFullId, int32, StoryFullIdHash> being_set_story_reactions_;
+
   StoryList story_lists_[2];
 
   StoryStealthMode stealth_mode_;

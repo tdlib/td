@@ -2745,6 +2745,8 @@ void StoryManager::set_story_reaction(StoryFullId story_full_id, ReactionType re
 
   on_story_chosen_reaction_changed(story_full_id, story, reaction_type);
 
+  being_set_story_reactions_[story_full_id] += 2;
+
   // TODO cancel previous queries, log event
   auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), story_full_id,
                                                promise = std::move(promise)](Result<Unit> &&result) mutable {
@@ -2758,11 +2760,23 @@ void StoryManager::set_story_reaction(StoryFullId story_full_id, ReactionType re
 void StoryManager::on_set_story_reaction(StoryFullId story_full_id, Result<Unit> &&result, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
+  auto need_reload_story = result.is_error();
+
+  auto it = being_set_story_reactions_.find(story_full_id);
+  CHECK(it != being_set_story_reactions_.end());
+  it->second -= 2;
+  if (it->second <= 1) {
+    if (it->second == 1) {
+      need_reload_story = true;
+    }
+    being_set_story_reactions_.erase(it);
+  }
+
   if (!have_story_force(story_full_id)) {
     return promise.set_value(Unit());
   }
 
-  if (result.is_error()) {
+  if (need_reload_story) {
     reload_story(story_full_id, Promise<Unit>(), "on_set_story_reaction");
   }
 
@@ -3514,13 +3528,16 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
       story->privacy_rules_ = std::move(privacy_rules);
       is_changed = true;
     }
-    if (story->interaction_info_ != interaction_info) {
-      story->interaction_info_ = std::move(interaction_info);
-      is_changed = true;
-    }
-    if (story->chosen_reaction_type_ != chosen_reaction_type) {
-      story->chosen_reaction_type_ = std::move(chosen_reaction_type);
-      is_changed = true;
+    if (story->interaction_info_ != interaction_info || story->chosen_reaction_type_ != chosen_reaction_type) {
+      auto pending_reaction_it = being_set_story_reactions_.find(story_full_id);
+      if (pending_reaction_it != being_set_story_reactions_.end()) {
+        LOG(INFO) << "Postpone " << story_full_id << " interaction info update, because there is a pending reaction";
+        pending_reaction_it->second |= 1;
+      } else {
+        story->interaction_info_ = std::move(interaction_info);
+        story->chosen_reaction_type_ = std::move(chosen_reaction_type);
+        is_changed = true;
+      }
     }
 
     if (is_my_story(owner_dialog_id)) {
@@ -4281,6 +4298,12 @@ void StoryManager::on_update_story_chosen_reaction_type(DialogId owner_dialog_id
     return;
   }
   StoryFullId story_full_id{owner_dialog_id, story_id};
+  auto pending_reaction_it = being_set_story_reactions_.find(story_full_id);
+  if (pending_reaction_it != being_set_story_reactions_.end()) {
+    LOG(INFO) << "Postpone " << story_full_id << " chosen reaction update, because there is a pending reaction";
+    pending_reaction_it->second |= 1;
+    return;
+  }
   Story *story = get_story_force(story_full_id, "on_update_story_chosen_reaction_type");
   on_story_chosen_reaction_changed(story_full_id, story, chosen_reaction_type);
 }
@@ -4421,8 +4444,14 @@ void StoryManager::on_get_story_views(DialogId owner_dialog_id, const vector<Sto
     StoryInteractionInfo interaction_info(td_, std::move(story_views->views_[i]));
     CHECK(!interaction_info.is_empty());
     if (story->interaction_info_ != interaction_info) {
-      story->interaction_info_ = std::move(interaction_info);
-      on_story_changed(story_full_id, story, true, true);
+      auto pending_reaction_it = being_set_story_reactions_.find(story_full_id);
+      if (pending_reaction_it != being_set_story_reactions_.end()) {
+        LOG(INFO) << "Postpone " << story_full_id << " interaction info update, because there is a pending reaction";
+        pending_reaction_it->second |= 1;
+      } else {
+        story->interaction_info_ = std::move(interaction_info);
+        on_story_changed(story_full_id, story, true, true);
+      }
     }
   }
 }
