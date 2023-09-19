@@ -16,12 +16,12 @@
 
 namespace td {
 
-td_api::object_ptr<td_api::dateRange> StatisticsManager::convert_date_range(
+static td_api::object_ptr<td_api::dateRange> convert_date_range(
     const telegram_api::object_ptr<telegram_api::statsDateRangeDays> &obj) {
   return td_api::make_object<td_api::dateRange>(obj->min_date_, obj->max_date_);
 }
 
-td_api::object_ptr<td_api::StatisticalGraph> StatisticsManager::convert_stats_graph(
+static td_api::object_ptr<td_api::StatisticalGraph> convert_stats_graph(
     telegram_api::object_ptr<telegram_api::StatsGraph> obj) {
   CHECK(obj != nullptr);
 
@@ -45,7 +45,7 @@ td_api::object_ptr<td_api::StatisticalGraph> StatisticsManager::convert_stats_gr
   }
 }
 
-double StatisticsManager::get_percentage_value(double part, double total) {
+static double get_percentage_value(double part, double total) {
   if (total < 1e-6 && total > -1e-6) {
     if (part < 1e-6 && part > -1e-6) {
       return 0.0;
@@ -58,17 +58,17 @@ double StatisticsManager::get_percentage_value(double part, double total) {
   return clamp(0.0, part / total * 100, 100.0);
 }
 
-td_api::object_ptr<td_api::statisticalValue> StatisticsManager::convert_stats_absolute_value(
+static td_api::object_ptr<td_api::statisticalValue> convert_stats_absolute_value(
     const telegram_api::object_ptr<telegram_api::statsAbsValueAndPrev> &obj) {
   return td_api::make_object<td_api::statisticalValue>(
       obj->current_, obj->previous_, get_percentage_value(obj->current_ - obj->previous_, obj->previous_));
 }
 
-td_api::object_ptr<td_api::chatStatisticsSupergroup> StatisticsManager::convert_megagroup_stats(
-    telegram_api::object_ptr<telegram_api::stats_megagroupStats> obj) {
+static td_api::object_ptr<td_api::chatStatisticsSupergroup> convert_megagroup_stats(
+    Td *td, telegram_api::object_ptr<telegram_api::stats_megagroupStats> obj) {
   CHECK(obj != nullptr);
 
-  td_->contacts_manager_->on_get_users(std::move(obj->users_), "convert_megagroup_stats");
+  td->contacts_manager_->on_get_users(std::move(obj->users_), "convert_megagroup_stats");
 
   // just in case
   td::remove_if(obj->top_posters_, [](auto &obj) {
@@ -81,24 +81,23 @@ td_api::object_ptr<td_api::chatStatisticsSupergroup> StatisticsManager::convert_
                 [](auto &obj) { return !UserId(obj->user_id_).is_valid() || obj->invitations_ < 0; });
 
   auto top_senders = transform(
-      std::move(obj->top_posters_), [this](telegram_api::object_ptr<telegram_api::statsGroupTopPoster> &&top_poster) {
+      std::move(obj->top_posters_), [td](telegram_api::object_ptr<telegram_api::statsGroupTopPoster> &&top_poster) {
         return td_api::make_object<td_api::chatStatisticsMessageSenderInfo>(
-            td_->contacts_manager_->get_user_id_object(UserId(top_poster->user_id_), "get_top_senders"),
+            td->contacts_manager_->get_user_id_object(UserId(top_poster->user_id_), "get_top_senders"),
             top_poster->messages_, top_poster->avg_chars_);
       });
   auto top_administrators = transform(
-      std::move(obj->top_admins_), [this](telegram_api::object_ptr<telegram_api::statsGroupTopAdmin> &&top_admin) {
+      std::move(obj->top_admins_), [td](telegram_api::object_ptr<telegram_api::statsGroupTopAdmin> &&top_admin) {
         return td_api::make_object<td_api::chatStatisticsAdministratorActionsInfo>(
-            td_->contacts_manager_->get_user_id_object(UserId(top_admin->user_id_), "get_top_administrators"),
+            td->contacts_manager_->get_user_id_object(UserId(top_admin->user_id_), "get_top_administrators"),
             top_admin->deleted_, top_admin->kicked_, top_admin->banned_);
       });
-  auto top_inviters =
-      transform(std::move(obj->top_inviters_),
-                [this](telegram_api::object_ptr<telegram_api::statsGroupTopInviter> &&top_inviter) {
-                  return td_api::make_object<td_api::chatStatisticsInviterInfo>(
-                      td_->contacts_manager_->get_user_id_object(UserId(top_inviter->user_id_), "get_top_inviters"),
-                      top_inviter->invitations_);
-                });
+  auto top_inviters = transform(
+      std::move(obj->top_inviters_), [td](telegram_api::object_ptr<telegram_api::statsGroupTopInviter> &&top_inviter) {
+        return td_api::make_object<td_api::chatStatisticsInviterInfo>(
+            td->contacts_manager_->get_user_id_object(UserId(top_inviter->user_id_), "get_top_inviters"),
+            top_inviter->invitations_);
+      });
 
   return td_api::make_object<td_api::chatStatisticsSupergroup>(
       convert_date_range(obj->period_), convert_stats_absolute_value(obj->members_),
@@ -112,7 +111,7 @@ td_api::object_ptr<td_api::chatStatisticsSupergroup> StatisticsManager::convert_
       std::move(top_inviters));
 }
 
-td_api::object_ptr<td_api::chatStatisticsChannel> StatisticsManager::convert_broadcast_stats(
+static td_api::object_ptr<td_api::chatStatisticsChannel> convert_broadcast_stats(
     telegram_api::object_ptr<telegram_api::stats_broadcastStats> obj) {
   CHECK(obj != nullptr);
 
@@ -162,7 +161,7 @@ class GetMegagroupStatsQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    promise_.set_value(td_->statistics_manager_->convert_megagroup_stats(result_ptr.move_as_ok()));
+    promise_.set_value(convert_megagroup_stats(td_, result_ptr.move_as_ok()));
   }
 
   void on_error(Status status) final {
@@ -200,7 +199,7 @@ class GetBroadcastStatsQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    auto result = StatisticsManager::convert_broadcast_stats(result_ptr.move_as_ok());
+    auto result = convert_broadcast_stats(result_ptr.move_as_ok());
     for (auto &info : result->recent_message_interactions_) {
       td_->messages_manager_->on_update_message_interaction_info({DialogId(channel_id_), MessageId(info->message_id_)},
                                                                  info->view_count_, info->forward_count_, false,
@@ -215,7 +214,7 @@ class GetBroadcastStatsQuery final : public Td::ResultHandler {
   }
 };
 
-td_api::object_ptr<td_api::messageStatistics> StatisticsManager::convert_message_stats(
+static td_api::object_ptr<td_api::messageStatistics> convert_message_stats(
     telegram_api::object_ptr<telegram_api::stats_messageStats> obj) {
   return td_api::make_object<td_api::messageStatistics>(convert_stats_graph(std::move(obj->views_graph_)));
 }
@@ -253,7 +252,7 @@ class GetMessageStatsQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    promise_.set_value(td_->statistics_manager_->convert_message_stats(result_ptr.move_as_ok()));
+    promise_.set_value(convert_message_stats(result_ptr.move_as_ok()));
   }
 
   void on_error(Status status) final {
@@ -285,7 +284,7 @@ class LoadAsyncGraphQuery final : public Td::ResultHandler {
     }
 
     auto result = result_ptr.move_as_ok();
-    promise_.set_value(StatisticsManager::convert_stats_graph(std::move(result)));
+    promise_.set_value(convert_stats_graph(std::move(result)));
   }
 
   void on_error(Status status) final {

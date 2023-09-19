@@ -35,26 +35,6 @@ class StatisticsManager final : public Actor {
   void load_statistics_graph(DialogId dialog_id, string token, int64 x,
                              Promise<td_api::object_ptr<td_api::StatisticalGraph>> &&promise);
 
-  static td_api::object_ptr<td_api::dateRange> convert_date_range(
-      const telegram_api::object_ptr<telegram_api::statsDateRangeDays> &obj);
-
-  static td_api::object_ptr<td_api::StatisticalGraph> convert_stats_graph(
-      telegram_api::object_ptr<telegram_api::StatsGraph> obj);
-
-  static double get_percentage_value(double part, double total);
-
-  static td_api::object_ptr<td_api::statisticalValue> convert_stats_absolute_value(
-      const telegram_api::object_ptr<telegram_api::statsAbsValueAndPrev> &obj);
-
-  td_api::object_ptr<td_api::chatStatisticsSupergroup> convert_megagroup_stats(
-      telegram_api::object_ptr<telegram_api::stats_megagroupStats> obj);
-
-  static td_api::object_ptr<td_api::chatStatisticsChannel> convert_broadcast_stats(
-      telegram_api::object_ptr<telegram_api::stats_broadcastStats> obj);
-
-  static td_api::object_ptr<td_api::messageStatistics> convert_message_stats(
-      telegram_api::object_ptr<telegram_api::stats_messageStats> obj);
-
  private:
   void tear_down() final;
 
