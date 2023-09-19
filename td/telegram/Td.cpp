@@ -8078,22 +8078,22 @@ void Td::on_request(uint64 id, const td_api::reportMessageReactions &request) {
 void Td::on_request(uint64 id, const td_api::getChatStatistics &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  contacts_manager_->get_channel_statistics(DialogId(request.chat_id_), request.is_dark_, std::move(promise));
+  statistics_manager_->get_channel_statistics(DialogId(request.chat_id_), request.is_dark_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getMessageStatistics &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  contacts_manager_->get_channel_message_statistics({DialogId(request.chat_id_), MessageId(request.message_id_)},
-                                                    request.is_dark_, std::move(promise));
+  statistics_manager_->get_channel_message_statistics({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                                      request.is_dark_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getStatisticalGraph &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.token_);
   CREATE_REQUEST_PROMISE();
-  contacts_manager_->load_statistics_graph(DialogId(request.chat_id_), std::move(request.token_), request.x_,
-                                           std::move(promise));
+  statistics_manager_->load_statistics_graph(DialogId(request.chat_id_), std::move(request.token_), request.x_,
+                                             std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setChatNotificationSettings &request) {

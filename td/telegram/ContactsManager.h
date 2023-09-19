@@ -477,16 +477,7 @@ class ContactsManager final : public Actor {
 
   void get_channel_statistics_dc_id(DialogId dialog_id, bool for_full_statistics, Promise<DcId> &&promise);
 
-  void get_channel_statistics(DialogId dialog_id, bool is_dark,
-                              Promise<td_api::object_ptr<td_api::ChatStatistics>> &&promise);
-
   bool can_get_channel_message_statistics(DialogId dialog_id) const;
-
-  void get_channel_message_statistics(FullMessageId full_message_id, bool is_dark,
-                                      Promise<td_api::object_ptr<td_api::messageStatistics>> &&promise);
-
-  void load_statistics_graph(DialogId dialog_id, string token, int64 x,
-                             Promise<td_api::object_ptr<td_api::StatisticalGraph>> &&promise);
 
   struct CanTransferOwnershipResult {
     enum class Type : uint8 { Ok, PasswordNeeded, PasswordTooFresh, SessionTooFresh };
@@ -728,25 +719,6 @@ class ContactsManager final : public Actor {
   void repair_chat_participants(ChatId chat_id);
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
-
-  static tl_object_ptr<td_api::dateRange> convert_date_range(
-      const tl_object_ptr<telegram_api::statsDateRangeDays> &obj);
-
-  static tl_object_ptr<td_api::StatisticalGraph> convert_stats_graph(tl_object_ptr<telegram_api::StatsGraph> obj);
-
-  static double get_percentage_value(double part, double total);
-
-  static tl_object_ptr<td_api::statisticalValue> convert_stats_absolute_value(
-      const tl_object_ptr<telegram_api::statsAbsValueAndPrev> &obj);
-
-  tl_object_ptr<td_api::chatStatisticsSupergroup> convert_megagroup_stats(
-      tl_object_ptr<telegram_api::stats_megagroupStats> obj);
-
-  static tl_object_ptr<td_api::chatStatisticsChannel> convert_broadcast_stats(
-      tl_object_ptr<telegram_api::stats_broadcastStats> obj);
-
-  static tl_object_ptr<td_api::messageStatistics> convert_message_stats(
-      tl_object_ptr<telegram_api::stats_messageStats> obj);
 
  private:
   struct User {
@@ -1893,15 +1865,6 @@ class ContactsManager final : public Actor {
   void delete_channel(ChannelId channel_id, Promise<Unit> &&promise);
 
   void get_channel_statistics_dc_id_impl(ChannelId channel_id, bool for_full_statistics, Promise<DcId> &&promise);
-
-  void send_get_channel_stats_query(DcId dc_id, ChannelId channel_id, bool is_dark,
-                                    Promise<td_api::object_ptr<td_api::ChatStatistics>> &&promise);
-
-  void send_get_channel_message_stats_query(DcId dc_id, FullMessageId full_message_id, bool is_dark,
-                                            Promise<td_api::object_ptr<td_api::messageStatistics>> &&promise);
-
-  void send_load_async_graph_query(DcId dc_id, string token, int64 x,
-                                   Promise<td_api::object_ptr<td_api::StatisticalGraph>> &&promise);
 
   void on_get_support_user(UserId user_id, Promise<td_api::object_ptr<td_api::user>> &&promise);
 
