@@ -4682,10 +4682,13 @@ void StoryManager::on_get_dialogs_to_send_stories(vector<tl_object_ptr<telegram_
   if (channels_to_send_stories_inited_ && channels_to_send_stories_ == channel_ids) {
     return;
   }
+  channels_to_send_stories_.clear();
   for (auto channel_id : channel_ids) {
     td_->messages_manager_->force_create_dialog(DialogId(channel_id), "on_get_dialogs_to_send_stories");
+    if (td_->contacts_manager_->get_channel_status(channel_id).can_post_stories()) {
+      channels_to_send_stories_.push_back(channel_id);
+    }
   }
-  channels_to_send_stories_ = std::move(channel_ids);
   channels_to_send_stories_inited_ = true;
 
   save_channels_to_send_stories();

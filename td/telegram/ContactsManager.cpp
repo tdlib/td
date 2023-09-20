@@ -9409,10 +9409,13 @@ void ContactsManager::on_get_created_public_channels(PublicDialogType type,
   if (created_public_channels_inited_[index] && created_public_channels_[index] == channel_ids) {
     return;
   }
+  created_public_channels_[index].clear();
   for (auto channel_id : channel_ids) {
     td_->messages_manager_->force_create_dialog(DialogId(channel_id), "on_get_created_public_channels");
+    if (is_suitable_created_public_channel(type, get_channel(channel_id))) {
+      created_public_channels_[index].push_back(channel_id);
+    }
   }
-  created_public_channels_[index] = std::move(channel_ids);
   created_public_channels_inited_[index] = true;
 
   if (type == PublicDialogType::HasUsername) {
