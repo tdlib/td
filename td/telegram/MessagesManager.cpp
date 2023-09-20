@@ -16649,7 +16649,7 @@ void MessagesManager::load_dialogs(vector<DialogId> dialog_ids, Promise<vector<D
       dependencies.add_dialog_dependencies(dialog_id);
     }
   }
-  dependencies.resolve_force(td_, "load_dialogs");
+  dependencies.resolve_force(td_, "load_dialogs", true);
 
   td::remove_if(dialog_ids, [this](DialogId dialog_id) { return !have_dialog_info(dialog_id); });
 

@@ -48,7 +48,7 @@ class Dependencies {
 
   void add_message_sender_dependencies(DialogId dialog_id);
 
-  bool resolve_force(Td *td, const char *source) const;
+  bool resolve_force(Td *td, const char *source, bool ignore_errors = false) const;
 
   const FlatHashSet<DialogId, DialogIdHash> &get_dialog_ids() const {
     return dialog_ids;

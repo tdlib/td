@@ -89,17 +89,21 @@ void Dependencies::add_message_sender_dependencies(DialogId dialog_id) {
   }
 }
 
-bool Dependencies::resolve_force(Td *td, const char *source) const {
+bool Dependencies::resolve_force(Td *td, const char *source, bool ignore_errors) const {
   bool success = true;
   for (auto user_id : user_ids) {
     if (!td->contacts_manager_->have_user_force(user_id, source)) {
-      LOG(ERROR) << "Can't find " << user_id << " from " << source;
+      if (!ignore_errors) {
+        LOG(ERROR) << "Can't find " << user_id << " from " << source;
+      }
       success = false;
     }
   }
   for (auto chat_id : chat_ids) {
     if (!td->contacts_manager_->have_chat_force(chat_id)) {
-      LOG(ERROR) << "Can't find " << chat_id << " from " << source;
+      if (!ignore_errors) {
+        LOG(ERROR) << "Can't find " << chat_id << " from " << source;
+      }
       success = false;
     }
   }
@@ -109,19 +113,25 @@ bool Dependencies::resolve_force(Td *td, const char *source) const {
         LOG(INFO) << "Can't find " << channel_id << " from " << source << ", but have it as a min-channel";
         continue;
       }
-      LOG(ERROR) << "Can't find " << channel_id << " from " << source;
+      if (!ignore_errors) {
+        LOG(ERROR) << "Can't find " << channel_id << " from " << source;
+      }
       success = false;
     }
   }
   for (auto secret_chat_id : secret_chat_ids) {
     if (!td->contacts_manager_->have_secret_chat_force(secret_chat_id)) {
-      LOG(ERROR) << "Can't find " << secret_chat_id << " from " << source;
+      if (!ignore_errors) {
+        LOG(ERROR) << "Can't find " << secret_chat_id << " from " << source;
+      }
       success = false;
     }
   }
   for (auto dialog_id : dialog_ids) {
     if (!td->messages_manager_->have_dialog_force(dialog_id, source)) {
-      LOG(ERROR) << "Can't find " << dialog_id << " from " << source;
+      if (!ignore_errors) {
+        LOG(ERROR) << "Can't find " << dialog_id << " from " << source;
+      }
       td->messages_manager_->force_create_dialog(dialog_id, source, true);
       success = false;
     }
