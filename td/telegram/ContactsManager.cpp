@@ -9376,40 +9376,28 @@ void ContactsManager::finish_get_created_public_dialogs(PublicDialogType type, R
 }
 
 void ContactsManager::update_created_public_channels(Channel *c, ChannelId channel_id) {
-  if (created_public_channels_inited_[0]) {
+  for (auto type : {PublicDialogType::HasUsername, PublicDialogType::IsLocationBased}) {
+    auto index = static_cast<int32>(type);
+    if (!created_public_channels_inited_[index]) {
+      continue;
+    }
     bool was_changed = false;
-    if (!is_suitable_created_public_channel(PublicDialogType::HasUsername, c)) {
-      was_changed = td::remove(created_public_channels_[0], channel_id);
+    if (!is_suitable_created_public_channel(type, c)) {
+      was_changed = td::remove(created_public_channels_[index], channel_id);
     } else {
-      if (!td::contains(created_public_channels_[0], channel_id)) {
-        created_public_channels_[0].push_back(channel_id);
+      if (!td::contains(created_public_channels_[index], channel_id)) {
+        created_public_channels_[index].push_back(channel_id);
         was_changed = true;
       }
     }
     if (was_changed) {
-      if (!c->is_megagroup) {
+      if (!c->is_megagroup && type == PublicDialogType::HasUsername) {
         update_created_public_broadcasts();
       }
 
-      save_created_public_channels(PublicDialogType::HasUsername);
+      save_created_public_channels(type);
 
-      reload_created_public_dialogs(PublicDialogType::HasUsername, Promise<td_api::object_ptr<td_api::chats>>());
-    }
-  }
-  if (created_public_channels_inited_[1]) {
-    bool was_changed = false;
-    if (!is_suitable_created_public_channel(PublicDialogType::IsLocationBased, c)) {
-      was_changed = td::remove(created_public_channels_[1], channel_id);
-    } else {
-      if (!td::contains(created_public_channels_[1], channel_id)) {
-        created_public_channels_[1].push_back(channel_id);
-        was_changed = true;
-      }
-    }
-    if (was_changed) {
-      save_created_public_channels(PublicDialogType::IsLocationBased);
-
-      reload_created_public_dialogs(PublicDialogType::IsLocationBased, Promise<td_api::object_ptr<td_api::chats>>());
+      reload_created_public_dialogs(type, Promise<td_api::object_ptr<td_api::chats>>());
     }
   }
 }
