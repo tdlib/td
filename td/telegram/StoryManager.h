@@ -207,6 +207,8 @@ class StoryManager final : public Actor {
 
   void on_get_dialogs_to_send_stories(vector<tl_object_ptr<telegram_api::Chat>> &&chats);
 
+  void update_dialogs_to_send_stories(ChannelId channel_id, bool can_send_stories);
+
   void can_send_story(DialogId dialog_id, Promise<td_api::object_ptr<td_api::CanSendStoryResult>> &&promise);
 
   void send_story(DialogId dialog_id, td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,
@@ -465,6 +467,8 @@ class StoryManager final : public Actor {
                                       const vector<ChannelId> &channel_ids);
 
   void finish_get_dialogs_to_send_stories(Result<Unit> &&result);
+
+  void save_channels_to_send_stories();
 
   void on_get_dialog_pinned_stories(DialogId owner_dialog_id,
                                     telegram_api::object_ptr<telegram_api::stories_stories> &&stories,

@@ -4588,9 +4588,46 @@ void StoryManager::return_dialogs_to_send_stories(Promise<td_api::object_ptr<td_
 
 void StoryManager::get_dialogs_to_send_stories(Promise<td_api::object_ptr<td_api::chats>> &&promise) {
   if (channels_to_send_stories_inited_) {
-    return_dialogs_to_send_stories(std::move(promise), channels_to_send_stories_);
-    promise = {};
+    return return_dialogs_to_send_stories(std::move(promise), channels_to_send_stories_);
   }
+
+  if (get_dialogs_to_send_stories_queries_.empty() && G()->use_message_database()) {
+    auto pmc_key = "channels_to_send_stories";
+    auto str = G()->td_db()->get_binlog_pmc()->get(pmc_key);
+    if (!str.empty()) {
+      auto r_channel_ids = transform(full_split(Slice(str), ','), [](Slice str) -> Result<ChannelId> {
+        TRY_RESULT(channel_id_int, to_integer_safe<int64>(str));
+        ChannelId channel_id(channel_id_int);
+        if (!channel_id.is_valid()) {
+          return Status::Error("Have invalid channel ID");
+        }
+        return channel_id;
+      });
+      if (std::any_of(r_channel_ids.begin(), r_channel_ids.end(),
+                      [](auto &r_channel_id) { return r_channel_id.is_error(); })) {
+        LOG(ERROR) << "Can't parse " << str;
+        G()->td_db()->get_binlog_pmc()->erase(pmc_key);
+      } else {
+        Dependencies dependencies;
+        vector<ChannelId> channel_ids;
+        for (auto &r_channel_id : r_channel_ids) {
+          auto channel_id = r_channel_id.move_as_ok();
+          dependencies.add_dialog_and_dependencies(DialogId(channel_id));
+          channel_ids.push_back(channel_id);
+        }
+        if (!dependencies.resolve_force(td_, "get_dialogs_to_send_stories")) {
+          G()->td_db()->get_binlog_pmc()->erase(pmc_key);
+        } else {
+          channels_to_send_stories_ = std::move(channel_ids);
+          channels_to_send_stories_inited_ = true;
+
+          return_dialogs_to_send_stories(std::move(promise), channels_to_send_stories_);
+          promise = {};
+        }
+      }
+    }
+  }
+
   reload_dialogs_to_send_stories(std::move(promise));
 }
 
@@ -4610,13 +4647,29 @@ void StoryManager::finish_get_dialogs_to_send_stories(Result<Unit> &&result) {
   auto promises = std::move(get_dialogs_to_send_stories_queries_);
   reset_to_empty(get_dialogs_to_send_stories_queries_);
   if (result.is_error()) {
-    fail_promises(promises, result.move_as_error());
-    return;
+    return fail_promises(promises, result.move_as_error());
   }
 
   CHECK(channels_to_send_stories_inited_);
   for (auto &promise : promises) {
     return_dialogs_to_send_stories(std::move(promise), channels_to_send_stories_);
+  }
+}
+
+void StoryManager::update_dialogs_to_send_stories(ChannelId channel_id, bool can_send_stories) {
+  if (channels_to_send_stories_inited_) {
+    bool was_changed = false;
+    if (!can_send_stories) {
+      was_changed = td::remove(channels_to_send_stories_, channel_id);
+    } else {
+      if (!td::contains(channels_to_send_stories_, channel_id)) {
+        channels_to_send_stories_.push_back(channel_id);
+        was_changed = true;
+      }
+    }
+    if (was_changed) {
+      save_channels_to_send_stories();
+    }
   }
 }
 
@@ -4630,6 +4683,18 @@ void StoryManager::on_get_dialogs_to_send_stories(vector<tl_object_ptr<telegram_
   }
   channels_to_send_stories_ = std::move(channel_ids);
   channels_to_send_stories_inited_ = true;
+
+  save_channels_to_send_stories();
+}
+
+void StoryManager::save_channels_to_send_stories() {
+  CHECK(channels_to_send_stories_inited_);
+  if (G()->use_message_database()) {
+    G()->td_db()->get_binlog_pmc()->set(
+        "channels_to_send_stories",
+        implode(transform(channels_to_send_stories_, [](auto channel_id) { return PSTRING() << channel_id.get(); }),
+                ','));
+  }
 }
 
 void StoryManager::can_send_story(DialogId dialog_id,

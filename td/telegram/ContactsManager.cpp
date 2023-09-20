@@ -9281,7 +9281,7 @@ void ContactsManager::get_created_public_dialogs(PublicDialogType type,
     return return_created_public_dialogs(std::move(promise), created_public_channels_[index]);
   }
 
-  if (get_created_public_channels_queries_[index].empty() && G()->use_chat_info_database()) {
+  if (get_created_public_channels_queries_[index].empty() && G()->use_message_database()) {
     auto pmc_key = PSTRING() << "public_channels" << index;
     auto str = G()->td_db()->get_binlog_pmc()->get(pmc_key);
     if (!str.empty()) {
@@ -9316,7 +9316,8 @@ void ContactsManager::get_created_public_dialogs(PublicDialogType type,
           }
 
           if (from_binlog) {
-            return return_created_public_dialogs(std::move(promise), created_public_channels_[index]);
+            return_created_public_dialogs(std::move(promise), created_public_channels_[index]);
+            promise = {};
           }
         }
       }
@@ -9345,8 +9346,7 @@ void ContactsManager::finish_get_created_public_dialogs(PublicDialogType type, R
   auto promises = std::move(get_created_public_channels_queries_[index]);
   reset_to_empty(get_created_public_channels_queries_[index]);
   if (result.is_error()) {
-    fail_promises(promises, result.move_as_error());
-    return;
+    return fail_promises(promises, result.move_as_error());
   }
 
   CHECK(created_public_channels_inited_[index]);
@@ -9417,7 +9417,7 @@ void ContactsManager::on_get_created_public_channels(PublicDialogType type,
 void ContactsManager::save_created_public_channels(PublicDialogType type) {
   auto index = static_cast<int32>(type);
   CHECK(created_public_channels_inited_[index]);
-  if (G()->use_chat_info_database()) {
+  if (G()->use_message_database()) {
     G()->td_db()->get_binlog_pmc()->set(
         PSTRING() << "public_channels" << index,
         implode(
@@ -16002,6 +16002,10 @@ void ContactsManager::on_channel_status_changed(Channel *c, ChannelId channel_id
                                                 const DialogParticipantStatus &new_status) {
   CHECK(c->is_update_supergroup_sent);
   bool have_channel_full = get_channel_full(channel_id) != nullptr;
+
+  if (old_status.can_post_stories() != new_status.can_post_stories()) {
+    td_->story_manager_->update_dialogs_to_send_stories(channel_id, new_status.can_post_stories());
+  }
 
   bool need_reload_group_call = old_status.can_manage_calls() != new_status.can_manage_calls();
   if (old_status.can_manage_invite_links() && !new_status.can_manage_invite_links()) {
