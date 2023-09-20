@@ -6,18 +6,17 @@
 //
 #include "td/telegram/MediaAreaCoordinates.h"
 
+#include "td/utils/misc.h"
+
 #include <cmath>
 
 namespace td {
 
-static double fix_double(double &value, double max_value = 100.0) {
-  if (!std::isfinite(value) || value < 0.0) {
+static double fix_double(double &value, double min_value = 0.0, double max_value = 100.0) {
+  if (!std::isfinite(value)) {
     return 0.0;
   }
-  if (value > max_value) {
-    return max_value;
-  }
-  return value;
+  return clamp(value, min_value, max_value);
 }
 
 void MediaAreaCoordinates::init(double x, double y, double width, double height, double rotation_angle) {
@@ -25,7 +24,10 @@ void MediaAreaCoordinates::init(double x, double y, double width, double height,
   y_ = fix_double(y);
   width_ = fix_double(width);
   height_ = fix_double(height);
-  rotation_angle_ = fix_double(rotation_angle, 360.0);
+  rotation_angle_ = fix_double(rotation_angle, -360.0, 360.0);
+  if (rotation_angle_ < 0) {
+    rotation_angle_ += 360.0;
+  }
 }
 
 MediaAreaCoordinates::MediaAreaCoordinates(
