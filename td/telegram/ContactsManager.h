@@ -1668,6 +1668,8 @@ class ContactsManager final : public Actor {
 
   static bool is_channel_public(const Channel *c);
 
+  static bool is_suitable_created_public_channel(PublicDialogType type, const Channel *c);
+
   static void return_created_public_dialogs(Promise<td_api::object_ptr<td_api::chats>> &&promise,
                                             const vector<ChannelId> &channel_ids);
 

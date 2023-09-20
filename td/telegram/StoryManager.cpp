@@ -4618,7 +4618,11 @@ void StoryManager::get_dialogs_to_send_stories(Promise<td_api::object_ptr<td_api
         if (!dependencies.resolve_force(td_, "get_dialogs_to_send_stories")) {
           G()->td_db()->get_binlog_pmc()->erase(pmc_key);
         } else {
-          channels_to_send_stories_ = std::move(channel_ids);
+          for (auto channel_id : channel_ids) {
+            if (td_->contacts_manager_->get_channel_status(channel_id).can_post_stories()) {
+              channels_to_send_stories_.push_back(channel_id);
+            }
+          }
           channels_to_send_stories_inited_ = true;
 
           return_dialogs_to_send_stories(std::move(promise), channels_to_send_stories_);

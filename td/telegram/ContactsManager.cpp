@@ -9273,6 +9273,22 @@ void ContactsManager::return_created_public_dialogs(Promise<td_api::object_ptr<t
       total_count, transform(channel_ids, [](ChannelId channel_id) { return DialogId(channel_id).get(); })));
 }
 
+bool ContactsManager::is_suitable_created_public_channel(PublicDialogType type, const Channel *c) {
+  if (c == nullptr || !c->status.is_creator()) {
+    return false;
+  }
+
+  switch (type) {
+    case PublicDialogType::HasUsername:
+      return c->usernames.has_editable_username();
+    case PublicDialogType::IsLocationBased:
+      return c->has_location;
+    default:
+      UNREACHABLE();
+      return false;
+  }
+}
+
 void ContactsManager::get_created_public_dialogs(PublicDialogType type,
                                                  Promise<td_api::object_ptr<td_api::chats>> &&promise,
                                                  bool from_binlog) {
@@ -9308,7 +9324,11 @@ void ContactsManager::get_created_public_dialogs(PublicDialogType type,
         if (!dependencies.resolve_force(td_, "get_created_public_dialogs")) {
           G()->td_db()->get_binlog_pmc()->erase(pmc_key);
         } else {
-          created_public_channels_[index] = std::move(channel_ids);
+          for (auto channel_id : channel_ids) {
+            if (is_suitable_created_public_channel(type, get_channel(channel_id))) {
+              created_public_channels_[index].push_back(channel_id);
+            }
+          }
           created_public_channels_inited_[index] = true;
 
           if (type == PublicDialogType::HasUsername) {
@@ -9358,7 +9378,7 @@ void ContactsManager::finish_get_created_public_dialogs(PublicDialogType type, R
 void ContactsManager::update_created_public_channels(Channel *c, ChannelId channel_id) {
   if (created_public_channels_inited_[0]) {
     bool was_changed = false;
-    if (!c->usernames.has_editable_username() || !c->status.is_creator()) {
+    if (!is_suitable_created_public_channel(PublicDialogType::HasUsername, c)) {
       was_changed = td::remove(created_public_channels_[0], channel_id);
     } else {
       if (!td::contains(created_public_channels_[0], channel_id)) {
@@ -9378,7 +9398,7 @@ void ContactsManager::update_created_public_channels(Channel *c, ChannelId chann
   }
   if (created_public_channels_inited_[1]) {
     bool was_changed = false;
-    if (!c->has_location || !c->status.is_creator()) {
+    if (!is_suitable_created_public_channel(PublicDialogType::IsLocationBased, c)) {
       was_changed = td::remove(created_public_channels_[1], channel_id);
     } else {
       if (!td::contains(created_public_channels_[1], channel_id)) {
