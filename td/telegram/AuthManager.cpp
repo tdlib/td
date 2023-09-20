@@ -1141,6 +1141,16 @@ void AuthManager::on_log_out_result(NetQueryPtr &&net_query) {
   destroy_auth_keys();
   on_current_query_ok();
 }
+
+void AuthManager::on_account_banned() const {
+  if (is_bot()) {
+    return;
+  }
+  LOG(ERROR) << "Your account was banned for suspicious activity. If you think that this is a mistake, please try to "
+                "log in from an official mobile app and send a email to recover the account by following instructions "
+                "provided by the app";
+}
+
 void AuthManager::on_authorization_lost(string source) {
   if (state_ == State::LoggingOut && net_query_type_ == NetQueryType::LogOut) {
     LOG(INFO) << "Ignore authorization loss because of " << source << ", while logging out";
@@ -1151,6 +1161,9 @@ void AuthManager::on_authorization_lost(string source) {
     return;
   }
   LOG(WARNING) << "Lost authorization because of " << source;
+  if (source == "USER_DEACTIVATED_BAN") {
+    on_account_banned();
+  }
   destroy_auth_keys();
 }
 
@@ -1290,9 +1303,7 @@ void AuthManager::on_result(NetQueryPtr net_query) {
         return;
       }
       if (net_query->error().message() == CSlice("PHONE_NUMBER_BANNED")) {
-        LOG(ERROR) << "Your phone number was banned for suspicious activity. If you think that this is a mistake, "
-                      "please try to log in from an official mobile app and send a email to recover the account by "
-                      "following instructions provided by the app.";
+        on_account_banned();
       }
       if (type != NetQueryType::LogOut && type != NetQueryType::DeleteAccount) {
         if (query_id_ != 0) {
