@@ -12637,19 +12637,19 @@ void ContactsManager::on_get_chat(tl_object_ptr<telegram_api::Chat> &&chat, cons
   LOG(DEBUG) << "Receive from " << source << ' ' << to_string(chat);
   switch (chat->get_id()) {
     case telegram_api::chatEmpty::ID:
-      on_chat_update(static_cast<telegram_api::chatEmpty &>(*chat), source);
+      on_get_chat_empty(static_cast<telegram_api::chatEmpty &>(*chat), source);
       break;
     case telegram_api::chat::ID:
-      on_chat_update(static_cast<telegram_api::chat &>(*chat), source);
+      on_get_chat(static_cast<telegram_api::chat &>(*chat), source);
       break;
     case telegram_api::chatForbidden::ID:
-      on_chat_update(static_cast<telegram_api::chatForbidden &>(*chat), source);
+      on_get_chat_forbidden(static_cast<telegram_api::chatForbidden &>(*chat), source);
       break;
     case telegram_api::channel::ID:
-      on_chat_update(static_cast<telegram_api::channel &>(*chat), source);
+      on_get_channel(static_cast<telegram_api::channel &>(*chat), source);
       break;
     case telegram_api::channelForbidden::ID:
-      on_chat_update(static_cast<telegram_api::channelForbidden &>(*chat), source);
+      on_get_channel_forbidden(static_cast<telegram_api::channelForbidden &>(*chat), source);
       break;
     default:
       UNREACHABLE();
@@ -14334,9 +14334,9 @@ bool ContactsManager::on_get_channel_error(ChannelId channel_id, const Status &s
       } else {
         flags |= CHANNEL_FLAG_IS_BROADCAST;
       }
-      telegram_api::channelForbidden update(flags, false /*ignored*/, false /*ignored*/, channel_id.get(),
-                                            c->access_hash, c->title, 0);
-      on_chat_update(update, "CHANNEL_PRIVATE");
+      telegram_api::channelForbidden channel_forbidden(flags, false /*ignored*/, false /*ignored*/, channel_id.get(),
+                                                       c->access_hash, c->title, 0);
+      on_get_channel_forbidden(channel_forbidden, "CHANNEL_PRIVATE");
     } else if (!c->status.is_banned()) {
       if (!c->usernames.is_empty()) {
         LOG(INFO) << "Drop usernames of " << channel_id;
@@ -15678,7 +15678,7 @@ void ContactsManager::on_update_chat_default_permissions(ChatId chat_id, Restric
 
   if (version > c->version) {
     // this should be unreachable, because version and default permissions must be already updated from
-    // the chat object in on_chat_update
+    // the chat object in on_get_chat
     if (version != c->version + 1) {
       LOG(INFO) << "Default permissions of " << chat_id << " with version " << c->version
                 << " has changed, but new version is " << version;
@@ -18510,7 +18510,7 @@ void ContactsManager::on_reload_dialog_administrators(
   promise.set_error(Status::Error(500, "Failed to find chat administrators"));
 }
 
-void ContactsManager::on_chat_update(telegram_api::chatEmpty &chat, const char *source) {
+void ContactsManager::on_get_chat_empty(telegram_api::chatEmpty &chat, const char *source) {
   ChatId chat_id(chat.id_);
   if (!chat_id.is_valid()) {
     LOG(ERROR) << "Receive invalid " << chat_id << " from " << source;
@@ -18522,7 +18522,7 @@ void ContactsManager::on_chat_update(telegram_api::chatEmpty &chat, const char *
   }
 }
 
-void ContactsManager::on_chat_update(telegram_api::chat &chat, const char *source) {
+void ContactsManager::on_get_chat(telegram_api::chat &chat, const char *source) {
   auto debug_str = PSTRING() << " from " << source << " in " << oneline(to_string(chat));
   ChatId chat_id(chat.id_);
   if (!chat_id.is_valid()) {
@@ -18561,7 +18561,7 @@ void ContactsManager::on_chat_update(telegram_api::chat &chat, const char *sourc
             LOG(ERROR) << "Receive invalid " << migrated_to_channel_id << debug_str;
           } else {
             // temporarily create the channel
-            Channel *c = add_channel(migrated_to_channel_id, "on_chat_update");
+            Channel *c = add_channel(migrated_to_channel_id, "on_get_chat");
             c->access_hash = input_channel->access_hash_;
             c->title = chat.title_;
             c->status = DialogParticipantStatus::Left();
@@ -18617,7 +18617,7 @@ void ContactsManager::on_chat_update(telegram_api::chat &chat, const char *sourc
                                                       "receive chat");
 }
 
-void ContactsManager::on_chat_update(telegram_api::chatForbidden &chat, const char *source) {
+void ContactsManager::on_get_chat_forbidden(telegram_api::chatForbidden &chat, const char *source) {
   ChatId chat_id(chat.id_);
   if (!chat_id.is_valid()) {
     LOG(ERROR) << "Receive invalid " << chat_id << " from " << source;
@@ -18648,7 +18648,7 @@ void ContactsManager::on_chat_update(telegram_api::chatForbidden &chat, const ch
   update_chat(c, chat_id);
 }
 
-void ContactsManager::on_chat_update(telegram_api::channel &channel, const char *source) {
+void ContactsManager::on_get_channel(telegram_api::channel &channel, const char *source) {
   ChannelId channel_id(channel.id_);
   if (!channel_id.is_valid()) {
     LOG(ERROR) << "Receive invalid " << channel_id << " from " << source << ": " << to_string(channel);
@@ -18765,7 +18765,7 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
         c->is_forum = is_forum;
 
         c->is_changed = true;
-        invalidate_channel_full(channel_id, !c->is_slow_mode_enabled, "on_min_channel");
+        invalidate_channel_full(channel_id, !c->is_slow_mode_enabled, "on_get_min_channel");
       }
       if (c->join_to_send != join_to_send || c->join_request != join_request) {
         c->join_to_send = join_to_send;
@@ -18808,7 +18808,7 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
     get_channel_force(channel_id);
   }
 
-  Channel *c = add_channel(channel_id, "on_channel");
+  Channel *c = add_channel(channel_id, "on_get_channel");
   auto old_join_to_send = get_channel_join_to_send(c);
   auto old_join_request = get_channel_join_request(c);
   if (c->access_hash != access_hash) {
@@ -18885,16 +18885,16 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   update_channel(c, channel_id);
 
   if (need_update_participant_count) {
-    auto channel_full = get_channel_full(channel_id, true, "on_chat_update");
+    auto channel_full = get_channel_full(channel_id, true, "on_get_channel");
     if (channel_full != nullptr && channel_full->participant_count != participant_count) {
       channel_full->participant_count = participant_count;
       channel_full->is_changed = true;
-      update_channel_full(channel_full, channel_id, "on_chat_update");
+      update_channel_full(channel_full, channel_id, "on_get_channel");
     }
   }
 
   if (need_invalidate_channel_full) {
-    invalidate_channel_full(channel_id, !c->is_slow_mode_enabled, "on_chat_update");
+    invalidate_channel_full(channel_id, !c->is_slow_mode_enabled, "on_get_channel");
   }
 
   bool has_active_group_call = (channel.flags_ & CHANNEL_FLAG_HAS_ACTIVE_GROUP_CALL) != 0;
@@ -18903,7 +18903,7 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
                                                       "receive channel");
 }
 
-void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, const char *source) {
+void ContactsManager::on_get_channel_forbidden(telegram_api::channelForbidden &channel, const char *source) {
   ChannelId channel_id(channel.id_);
   if (!channel_id.is_valid()) {
     LOG(ERROR) << "Receive invalid " << channel_id << " from " << source << ": " << to_string(channel);
@@ -18920,7 +18920,7 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
     return;
   }
 
-  Channel *c = add_channel(channel_id, "on_channel_forbidden");
+  Channel *c = add_channel(channel_id, "on_get_channel_forbidden");
   auto old_join_to_send = get_channel_join_to_send(c);
   auto old_join_request = get_channel_join_request(c);
   if (c->access_hash != channel.access_hash_) {
@@ -18939,7 +18939,7 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
   on_update_channel_default_permissions(c, channel_id, RestrictedRights(banned_rights));
   // on_update_channel_has_location(c, channel_id, false);
   on_update_channel_noforwards(c, channel_id, false);
-  td_->messages_manager_->on_update_dialog_group_call(DialogId(channel_id), false, false, "receive channelForbidden");
+  td_->messages_manager_->on_update_dialog_group_call(DialogId(channel_id), false, false, "on_get_channel_forbidden");
 
   bool sign_messages = false;
   bool join_to_send = false;
@@ -19007,16 +19007,16 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
   update_channel(c, channel_id);
 
   if (need_drop_participant_count) {
-    auto channel_full = get_channel_full(channel_id, true, "on_channel_forbidden");
+    auto channel_full = get_channel_full(channel_id, true, "on_get_channel_forbidden");
     if (channel_full != nullptr && channel_full->participant_count != 0) {
       channel_full->participant_count = 0;
       channel_full->administrator_count = 0;
       channel_full->is_changed = true;
-      update_channel_full(channel_full, channel_id, "on_channel_forbidden 2");
+      update_channel_full(channel_full, channel_id, "on_get_channel_forbidden 2");
     }
   }
   if (need_invalidate_channel_full) {
-    invalidate_channel_full(channel_id, !c->is_slow_mode_enabled, "on_channel_forbidden 3");
+    invalidate_channel_full(channel_id, !c->is_slow_mode_enabled, "on_get_channel_forbidden 3");
   }
 }
 

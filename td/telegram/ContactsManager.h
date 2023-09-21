@@ -1530,11 +1530,11 @@ class ContactsManager final : public Actor {
   void update_dialog_online_member_count(const vector<DialogParticipant> &participants, DialogId dialog_id,
                                          bool is_from_server);
 
-  void on_chat_update(telegram_api::chatEmpty &chat, const char *source);
-  void on_chat_update(telegram_api::chat &chat, const char *source);
-  void on_chat_update(telegram_api::chatForbidden &chat, const char *source);
-  void on_chat_update(telegram_api::channel &channel, const char *source);
-  void on_chat_update(telegram_api::channelForbidden &channel, const char *source);
+  void on_get_chat_empty(telegram_api::chatEmpty &chat, const char *source);
+  void on_get_chat(telegram_api::chat &chat, const char *source);
+  void on_get_chat_forbidden(telegram_api::chatForbidden &chat, const char *source);
+  void on_get_channel(telegram_api::channel &channel, const char *source);
+  void on_get_channel_forbidden(telegram_api::channelForbidden &channel, const char *source);
 
   void save_user(User *u, UserId user_id, bool from_binlog);
   static string get_user_database_key(UserId user_id);
