@@ -304,13 +304,13 @@ Status SessionConnection::on_destroy_auth_key(const mtproto_api::DestroyAuthKeyR
 }
 
 Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::new_session_created &new_session_created) {
-  auto first_message_id = new_session_created.first_msg_id_;
+  auto first_message_id = static_cast<uint64>(new_session_created.first_msg_id_);
   VLOG(mtproto) << "Receive new_session_created with " << info << ": [first_msg_id:" << format::as_hex(first_message_id)
                 << "] [unique_id:" << format::as_hex(new_session_created.unique_id_) << ']';
 
   auto it = service_queries_.find(first_message_id);
   if (it != service_queries_.end()) {
-    first_message_id = it->second.container_message_id;
+    first_message_id = it->second.container_message_id_;
     LOG(INFO) << "Update first_message_id to container's " << format::as_hex(first_message_id);
   }
 
@@ -432,32 +432,32 @@ Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::futu
   return Status::OK();
 }
 
-Status SessionConnection::on_msgs_state_info(const vector<int64> &message_ids, Slice info) {
-  if (message_ids.size() != info.size()) {
-    return Status::Error(PSLICE() << tag("message count", message_ids.size())
-                                  << " != " << tag("info.size()", info.size()));
+Status SessionConnection::on_msgs_state_info(const vector<int64> &msg_ids, Slice info) {
+  if (msg_ids.size() != info.size()) {
+    return Status::Error(PSLICE() << tag("message count", msg_ids.size()) << " != " << tag("info.size()", info.size()));
   }
   size_t i = 0;
-  for (auto message_id : message_ids) {
-    callback_->on_message_info(static_cast<uint64>(message_id), info[i], 0, 0, 1);
+  for (auto msg_id : msg_ids) {
+    callback_->on_message_info(static_cast<uint64>(msg_id), info[i], 0, 0, 1);
     i++;
   }
   return Status::OK();
 }
 
 Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::msgs_state_info &msgs_state_info) {
-  auto it = service_queries_.find(msgs_state_info.req_msg_id_);
+  auto message_id = static_cast<uint64>(msgs_state_info.req_msg_id_);
+  auto it = service_queries_.find(message_id);
   if (it == service_queries_.end()) {
     return Status::Error("Unknown msgs_state_info");
   }
   auto query = std::move(it->second);
   service_queries_.erase(it);
 
-  if (query.type != ServiceQuery::GetStateInfo) {
+  if (query.type_ != ServiceQuery::GetStateInfo) {
     return Status::Error("Receive msgs_state_info in response not to GetStateInfo");
   }
   VLOG(mtproto) << "Receive msgs_state_info with " << info;
-  return on_msgs_state_info(query.message_ids, msgs_state_info.info_);
+  return on_msgs_state_info(query.msg_ids_, msgs_state_info.info_);
 }
 
 Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::msgs_all_info &msgs_all_info) {
@@ -588,8 +588,8 @@ void SessionConnection::on_message_failed(uint64 message_id, Status status) {
     last_ping_container_message_id_ = 0;
   }
 
-  auto cit = container_to_service_msg_.find(message_id);
-  if (cit != container_to_service_msg_.end()) {
+  auto cit = container_to_service_message_id_.find(message_id);
+  if (cit != container_to_service_message_id_.end()) {
     auto message_ids = cit->second;
     for (auto inner_message_id : message_ids) {
       on_message_failed_inner(inner_message_id);
@@ -607,15 +607,15 @@ void SessionConnection::on_message_failed_inner(uint64 message_id) {
   auto query = std::move(it->second);
   service_queries_.erase(it);
 
-  switch (query.type) {
+  switch (query.type_) {
     case ServiceQuery::ResendAnswer:
-      for (auto query_message_id : query.message_ids) {
-        resend_answer(query_message_id);
+      for (auto msg_id : query.msg_ids_) {
+        resend_answer(static_cast<uint64>(msg_id));
       }
       break;
     case ServiceQuery::GetStateInfo:
-      for (auto query_message_id : query.message_ids) {
-        get_state_info(query_message_id);
+      for (auto msg_id : query.msg_ids_) {
+        get_state_info(static_cast<uint64>(msg_id));
       }
       break;
     default:
@@ -822,6 +822,7 @@ void SessionConnection::resend_answer(uint64 message_id) {
   }
   to_resend_answer_message_ids_.push_back(message_id);
 }
+
 void SessionConnection::cancel_answer(uint64 message_id) {
   if (to_cancel_answer_message_ids_.empty()) {
     send_before(Time::now_cached() + RESEND_ANSWER_DELAY);
@@ -1028,10 +1029,10 @@ void SessionConnection::flush_packet() {
     callback_->on_container_sent(container_message_id, std::move(message_ids));
 
     if (resend_answer_message_id) {
-      container_to_service_msg_[container_message_id].push_back(resend_answer_message_id);
+      container_to_service_message_id_[container_message_id].push_back(resend_answer_message_id);
     }
     if (get_state_info_message_id) {
-      container_to_service_msg_[container_message_id].push_back(get_state_info_message_id);
+      container_to_service_message_id_[container_message_id].push_back(get_state_info_message_id);
     }
   }
 
