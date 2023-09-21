@@ -2137,7 +2137,7 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
           return nullptr;
         }
 
-        if (td->contacts_manager_->have_channel_force(channel_id)) {
+        if (td->contacts_manager_->have_channel_force(channel_id, "pageBlockChannel")) {
           td->contacts_manager_->on_get_chat(std::move(page_block->channel_), "pageBlockChannel");
           LOG(INFO) << "Receive known min " << channel_id;
           return td::make_unique<WebPageBlockChatLink>(td->contacts_manager_->get_channel_title(channel_id),

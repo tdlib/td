@@ -694,11 +694,11 @@ bool UpdatesManager::is_acceptable_user(UserId user_id) const {
 }
 
 bool UpdatesManager::is_acceptable_chat(ChatId chat_id) const {
-  return td_->contacts_manager_->have_chat_force(chat_id);
+  return td_->contacts_manager_->have_chat_force(chat_id, "is_acceptable_chat");
 }
 
 bool UpdatesManager::is_acceptable_channel(ChannelId channel_id) const {
-  return td_->contacts_manager_->have_channel_force(channel_id);
+  return td_->contacts_manager_->have_channel_force(channel_id, "is_acceptable_channel");
 }
 
 bool UpdatesManager::is_acceptable_peer(const tl_object_ptr<telegram_api::Peer> &peer) const {
@@ -2381,7 +2381,7 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
           auto dialog_id = DialogId::get_message_dialog_id(*message_ptr);
           if (dialog_id.get_type() == DialogType::Channel) {
             auto channel_id = dialog_id.get_channel_id();
-            if (td_->contacts_manager_->have_channel_force(channel_id)) {
+            if (td_->contacts_manager_->have_channel_force(channel_id, source)) {
               if (td_->messages_manager_->is_old_channel_update(dialog_id, pts)) {
                 // the update will be ignored anyway, so there is no reason to replace it or force get_difference
                 LOG(INFO) << "Allow an outdated unacceptable update from " << source;

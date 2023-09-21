@@ -6408,15 +6408,15 @@ bool MessagesManager::have_dialog_info_force(DialogId dialog_id, const char *sou
     }
     case DialogType::Chat: {
       ChatId chat_id = dialog_id.get_chat_id();
-      return td_->contacts_manager_->have_chat_force(chat_id);
+      return td_->contacts_manager_->have_chat_force(chat_id, source);
     }
     case DialogType::Channel: {
       ChannelId channel_id = dialog_id.get_channel_id();
-      return td_->contacts_manager_->have_channel_force(channel_id);
+      return td_->contacts_manager_->have_channel_force(channel_id, source);
     }
     case DialogType::SecretChat: {
       SecretChatId secret_chat_id = dialog_id.get_secret_chat_id();
-      return td_->contacts_manager_->have_secret_chat_force(secret_chat_id);
+      return td_->contacts_manager_->have_secret_chat_force(secret_chat_id, source);
     }
     case DialogType::None:
     default:
@@ -6734,7 +6734,7 @@ void MessagesManager::on_update_channel_too_long(tl_object_ptr<telegram_api::upd
     LOG(ERROR) << "Receive invalid " << channel_id << " in updateChannelTooLong";
     return;
   }
-  if (!td_->contacts_manager_->have_channel_force(channel_id)) {
+  if (!td_->contacts_manager_->have_channel_force(channel_id, "on_update_channel_too_long")) {
     LOG(INFO) << "Skip updateChannelTooLong about unknown " << channel_id;
     return;
   }
@@ -7009,7 +7009,7 @@ bool MessagesManager::is_visible_message_reply_info(DialogId dialog_id, const Me
     return false;
   }
   if (m->reply_info.is_comment_ && is_broadcast &&
-      td_->contacts_manager_->have_channel_force(m->reply_info.channel_id_) &&
+      td_->contacts_manager_->have_channel_force(m->reply_info.channel_id_, "is_visible_message_reply_info") &&
       !td_->contacts_manager_->have_input_peer_channel(m->reply_info.channel_id_, AccessRights::Read)) {
     // keep the comment button while have no information about the linked channel
     return false;
@@ -18532,7 +18532,7 @@ void MessagesManager::get_messages_from_server(vector<FullMessageId> &&message_i
   }
 
   for (auto &it : channel_message_ids) {
-    td_->contacts_manager_->have_channel_force(it.first);
+    td_->contacts_manager_->have_channel_force(it.first, "get_messages_from_server");
     auto input_channel = td_->contacts_manager_->get_input_channel(it.first);
     if (input_channel == nullptr) {
       LOG(ERROR) << "Can't find info about " << it.first << " to get a message from it from " << source;
@@ -18838,7 +18838,7 @@ void MessagesManager::on_get_message_link_message(MessageLinkInfo &&info, Dialog
     return promise.set_value(std::move(info));
   }
 
-  if (td_->contacts_manager_->have_channel_force(m->reply_info.channel_id_)) {
+  if (td_->contacts_manager_->have_channel_force(m->reply_info.channel_id_, "on_get_message_link_message")) {
     force_create_dialog(DialogId(m->reply_info.channel_id_), "on_get_message_link_message");
     on_get_message_link_discussion_message(std::move(info), DialogId(m->reply_info.channel_id_), std::move(promise));
     return;
@@ -32581,7 +32581,7 @@ void MessagesManager::send_resolve_dialog_username_query(const string &username,
 void MessagesManager::resolve_dialog(const string &username, ChannelId channel_id, Promise<DialogId> promise) {
   CHECK(username.empty() == channel_id.is_valid());
 
-  bool have_dialog = username.empty() ? td_->contacts_manager_->have_channel_force(channel_id)
+  bool have_dialog = username.empty() ? td_->contacts_manager_->have_channel_force(channel_id, "resolve_dialog")
                                       : resolve_dialog_username(username).is_valid();
   if (!have_dialog) {
     auto query_promise = PromiseCreator::lambda(
@@ -39643,7 +39643,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         log_event_parse(log_event, event.get_data()).ensure();
 
         auto channel_id = log_event.channel_id_;
-        if (!td_->contacts_manager_->have_channel_force(channel_id)) {
+        if (!td_->contacts_manager_->have_channel_force(channel_id, "DeleteAllChannelMessagesFromSenderOnServer")) {
           LOG(ERROR) << "Can't find " << channel_id;
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
@@ -39711,7 +39711,8 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
         auto dialog_id = log_event.dialog_id_;
         CHECK(dialog_id.get_type() == DialogType::SecretChat);
-        if (!td_->contacts_manager_->have_secret_chat_force(dialog_id.get_secret_chat_id())) {
+        if (!td_->contacts_manager_->have_secret_chat_force(dialog_id.get_secret_chat_id(),
+                                                            "ReadHistoryInSecretChat")) {
           LOG(ERROR) << "Can't read history in unknown " << dialog_id;
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;

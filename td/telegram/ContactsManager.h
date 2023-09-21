@@ -598,7 +598,7 @@ class ContactsManager final : public Actor {
   FileSourceId get_user_profile_photo_file_source_id(UserId user_id, int64 photo_id);
 
   bool have_chat(ChatId chat_id) const;
-  bool have_chat_force(ChatId chat_id);
+  bool have_chat_force(ChatId chat_id, const char *source);
   bool get_chat(ChatId chat_id, int left_tries, Promise<Unit> &&promise);
   void reload_chat(ChatId chat_id, Promise<Unit> &&promise);
   void load_chat_full(ChatId chat_id, bool force, Promise<Unit> &&promise, const char *source);
@@ -618,7 +618,7 @@ class ContactsManager final : public Actor {
   void add_min_channel(ChannelId channel_id, const MinChannel &min_channel);
 
   bool have_channel(ChannelId channel_id) const;
-  bool have_channel_force(ChannelId channel_id);
+  bool have_channel_force(ChannelId channel_id, const char *source);
   bool get_channel(ChannelId channel_id, int left_tries, Promise<Unit> &&promise);
   void reload_channel(ChannelId channel_id, Promise<Unit> &&promise);
   void load_channel_full(ChannelId channel_id, bool force, Promise<Unit> &&promise, const char *source);
@@ -628,7 +628,7 @@ class ContactsManager final : public Actor {
   bool is_channel_public(ChannelId channel_id) const;
 
   bool have_secret_chat(SecretChatId secret_chat_id) const;
-  bool have_secret_chat_force(SecretChatId secret_chat_id);
+  bool have_secret_chat_force(SecretChatId secret_chat_id, const char *source);
   bool get_secret_chat(SecretChatId secret_chat_id, bool force, Promise<Unit> &&promise);
   bool get_secret_chat_full(SecretChatId secret_chat_id, Promise<Unit> &&promise);
 
@@ -1342,7 +1342,7 @@ class ContactsManager final : public Actor {
 
   const Chat *get_chat(ChatId chat_id) const;
   Chat *get_chat(ChatId chat_id);
-  Chat *get_chat_force(ChatId chat_id);
+  Chat *get_chat_force(ChatId chat_id, const char *source);
 
   Chat *add_chat(ChatId chat_id);
 
@@ -1356,7 +1356,7 @@ class ContactsManager final : public Actor {
 
   const Channel *get_channel(ChannelId channel_id) const;
   Channel *get_channel(ChannelId channel_id);
-  Channel *get_channel_force(ChannelId channel_id);
+  Channel *get_channel_force(ChannelId channel_id, const char *source);
 
   Channel *add_channel(ChannelId channel_id, const char *source);
 
@@ -1372,7 +1372,7 @@ class ContactsManager final : public Actor {
 
   const SecretChat *get_secret_chat(SecretChatId secret_chat_id) const;
   SecretChat *get_secret_chat(SecretChatId secret_chat_id);
-  SecretChat *get_secret_chat_force(SecretChatId secret_chat_id);
+  SecretChat *get_secret_chat_force(SecretChatId secret_chat_id, const char *source);
 
   SecretChat *add_secret_chat(SecretChatId secret_chat_id);
 

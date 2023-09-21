@@ -10751,26 +10751,27 @@ void ContactsManager::on_load_chat_from_database(ChatId chat_id, string value, b
     }
   }
 
-  if (c != nullptr && c->migrated_to_channel_id.is_valid() && !have_channel_force(c->migrated_to_channel_id)) {
+  if (c != nullptr && c->migrated_to_channel_id.is_valid() &&
+      !have_channel_force(c->migrated_to_channel_id, "on_load_chat_from_database")) {
     LOG(ERROR) << "Can't find " << c->migrated_to_channel_id << " from " << chat_id;
   }
 
   set_promises(promises);
 }
 
-bool ContactsManager::have_chat_force(ChatId chat_id) {
-  return get_chat_force(chat_id) != nullptr;
+bool ContactsManager::have_chat_force(ChatId chat_id, const char *source) {
+  return get_chat_force(chat_id, source) != nullptr;
 }
 
-ContactsManager::Chat *ContactsManager::get_chat_force(ChatId chat_id) {
+ContactsManager::Chat *ContactsManager::get_chat_force(ChatId chat_id, const char *source) {
   if (!chat_id.is_valid()) {
     return nullptr;
   }
 
   Chat *c = get_chat(chat_id);
   if (c != nullptr) {
-    if (c->migrated_to_channel_id.is_valid() && !have_channel_force(c->migrated_to_channel_id)) {
-      LOG(ERROR) << "Can't find " << c->migrated_to_channel_id << " from " << chat_id;
+    if (c->migrated_to_channel_id.is_valid() && !have_channel_force(c->migrated_to_channel_id, source)) {
+      LOG(ERROR) << "Can't find " << c->migrated_to_channel_id << " from " << chat_id << " from " << source;
     }
 
     return c;
@@ -10782,7 +10783,7 @@ ContactsManager::Chat *ContactsManager::get_chat_force(ChatId chat_id) {
     return nullptr;
   }
 
-  LOG(INFO) << "Trying to load " << chat_id << " from database";
+  LOG(INFO) << "Trying to load " << chat_id << " from database from " << source;
   on_load_chat_from_database(chat_id, G()->td_db()->get_sqlite_sync_pmc()->get(get_chat_database_key(chat_id)), true);
   return get_chat(chat_id);
 }
@@ -11023,11 +11024,11 @@ void ContactsManager::on_load_channel_from_database(ChannelId channel_id, string
   set_promises(promises);
 }
 
-bool ContactsManager::have_channel_force(ChannelId channel_id) {
-  return get_channel_force(channel_id) != nullptr;
+bool ContactsManager::have_channel_force(ChannelId channel_id, const char *source) {
+  return get_channel_force(channel_id, source) != nullptr;
 }
 
-ContactsManager::Channel *ContactsManager::get_channel_force(ChannelId channel_id) {
+ContactsManager::Channel *ContactsManager::get_channel_force(ChannelId channel_id, const char *source) {
   if (!channel_id.is_valid()) {
     return nullptr;
   }
@@ -11043,7 +11044,7 @@ ContactsManager::Channel *ContactsManager::get_channel_force(ChannelId channel_i
     return nullptr;
   }
 
-  LOG(INFO) << "Trying to load " << channel_id << " from database";
+  LOG(INFO) << "Trying to load " << channel_id << " from database from " << source;
   on_load_channel_from_database(channel_id,
                                 G()->td_db()->get_sqlite_sync_pmc()->get(get_channel_database_key(channel_id)), true);
   return get_channel(channel_id);
@@ -11270,19 +11271,19 @@ void ContactsManager::on_load_secret_chat_from_database(SecretChatId secret_chat
   set_promises(promises);
 }
 
-bool ContactsManager::have_secret_chat_force(SecretChatId secret_chat_id) {
-  return get_secret_chat_force(secret_chat_id) != nullptr;
+bool ContactsManager::have_secret_chat_force(SecretChatId secret_chat_id, const char *source) {
+  return get_secret_chat_force(secret_chat_id, source) != nullptr;
 }
 
-ContactsManager::SecretChat *ContactsManager::get_secret_chat_force(SecretChatId secret_chat_id) {
+ContactsManager::SecretChat *ContactsManager::get_secret_chat_force(SecretChatId secret_chat_id, const char *source) {
   if (!secret_chat_id.is_valid()) {
     return nullptr;
   }
 
   SecretChat *c = get_secret_chat(secret_chat_id);
   if (c != nullptr) {
-    if (!have_user_force(c->user_id, "get_secret_chat_force")) {
-      LOG(ERROR) << "Can't find " << c->user_id << " from " << secret_chat_id;
+    if (!have_user_force(c->user_id, source)) {
+      LOG(ERROR) << "Can't find " << c->user_id << " from " << secret_chat_id << " from " << source;
     }
     return c;
   }
@@ -11293,7 +11294,7 @@ ContactsManager::SecretChat *ContactsManager::get_secret_chat_force(SecretChatId
     return nullptr;
   }
 
-  LOG(INFO) << "Trying to load " << secret_chat_id << " from database";
+  LOG(INFO) << "Trying to load " << secret_chat_id << " from database from " << source;
   on_load_secret_chat_from_database(
       secret_chat_id, G()->td_db()->get_sqlite_sync_pmc()->get(get_secret_chat_database_key(secret_chat_id)), true);
   return get_secret_chat(secret_chat_id);
@@ -11482,7 +11483,7 @@ void ContactsManager::on_load_chat_full_from_database(ChatId chat_id, string val
 }
 
 ContactsManager::ChatFull *ContactsManager::get_chat_full_force(ChatId chat_id, const char *source) {
-  if (!have_chat_force(chat_id)) {
+  if (!have_chat_force(chat_id, source)) {
     return nullptr;
   }
 
@@ -11626,7 +11627,7 @@ void ContactsManager::on_load_channel_full_from_database(ChannelId channel_id, s
 
 ContactsManager::ChannelFull *ContactsManager::get_channel_full_force(ChannelId channel_id, bool only_local,
                                                                       const char *source) {
-  if (!have_channel_force(channel_id)) {
+  if (!have_channel_force(channel_id, source)) {
     return nullptr;
   }
 
@@ -13022,7 +13023,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     ChannelId linked_channel_id;
     if ((channel->flags_ & CHANNEL_FULL_FLAG_HAS_LINKED_CHANNEL_ID) != 0) {
       linked_channel_id = ChannelId(channel->linked_chat_id_);
-      auto linked_channel = get_channel_force(linked_channel_id);
+      auto linked_channel = get_channel_force(linked_channel_id, "ChannelFull");
       if (linked_channel == nullptr || c->is_megagroup == linked_channel->is_megagroup ||
           channel_id == linked_channel_id) {
         LOG(ERROR) << "Failed to add a link between " << channel_id << " and " << linked_channel_id;
@@ -14188,7 +14189,7 @@ void ContactsManager::on_get_chat_participants(tl_object_ptr<telegram_api::ChatP
         return;
       }
 
-      if (!have_chat_force(chat_id)) {
+      if (!have_chat_force(chat_id, "on_get_chat_participants")) {
         LOG(ERROR) << chat_id << " not found";
         return;
       }
@@ -14206,7 +14207,7 @@ void ContactsManager::on_get_chat_participants(tl_object_ptr<telegram_api::ChatP
         return;
       }
 
-      const Chat *c = get_chat_force(chat_id);
+      const Chat *c = get_chat_force(chat_id, "chatParticipants");
       if (c == nullptr) {
         LOG(ERROR) << chat_id << " not found";
         return;
@@ -14716,7 +14717,7 @@ void ContactsManager::speculative_add_channel_participant_count(ChannelId channe
   auto channel_full = get_channel_full_force(channel_id, true, "speculative_add_channel_participant_count");
   auto min_count = channel_full == nullptr ? 0 : channel_full->administrator_count;
 
-  auto c = get_channel_force(channel_id);
+  auto c = get_channel_force(channel_id, "speculative_add_channel_participant_count");
   if (c != nullptr && c->participant_count != 0 &&
       speculative_add_count(c->participant_count, delta_participant_count, min_count)) {
     c->is_changed = true;
@@ -14740,7 +14741,7 @@ void ContactsManager::speculative_add_channel_participant_count(ChannelId channe
 void ContactsManager::speculative_add_channel_user(ChannelId channel_id, UserId user_id,
                                                    const DialogParticipantStatus &new_status,
                                                    const DialogParticipantStatus &old_status) {
-  auto c = get_channel_force(channel_id);
+  auto c = get_channel_force(channel_id, "speculative_add_channel_user");
   // channel full must be loaded before c->participant_count is updated, because on_load_channel_full_from_database
   // must copy the initial c->participant_count before it is speculatibely updated
   auto channel_full = get_channel_full_force(channel_id, true, "speculative_add_channel_user");
@@ -15014,7 +15015,7 @@ void ContactsManager::on_update_channel_full_linked_channel_id(ChannelFull *chan
 
   if (channel_full != nullptr && channel_full->linked_channel_id != linked_channel_id &&
       channel_full->linked_channel_id.is_valid()) {
-    get_channel_force(channel_full->linked_channel_id);
+    get_channel_force(channel_full->linked_channel_id, "on_update_channel_full_linked_channel_id 10");
     get_channel_full_force(channel_full->linked_channel_id, true, "on_update_channel_full_linked_channel_id 0");
   }
   auto old_linked_linked_channel_id = get_linked_channel_id(linked_channel_id);
@@ -15029,7 +15030,8 @@ void ContactsManager::on_update_channel_full_linked_channel_id(ChannelFull *chan
   if (channel_full != nullptr && channel_full->linked_channel_id != linked_channel_id) {
     if (channel_full->linked_channel_id.is_valid()) {
       // remove link from a previously linked channel_full
-      auto linked_channel = get_channel_force(channel_full->linked_channel_id);
+      auto linked_channel =
+          get_channel_force(channel_full->linked_channel_id, "on_update_channel_full_linked_channel_id 11");
       if (linked_channel != nullptr && linked_channel->has_linked_channel) {
         linked_channel->has_linked_channel = false;
         linked_channel->is_changed = true;
@@ -15051,7 +15053,8 @@ void ContactsManager::on_update_channel_full_linked_channel_id(ChannelFull *chan
 
     if (channel_full->linked_channel_id.is_valid()) {
       // add link from a newly linked channel_full
-      auto linked_channel = get_channel_force(channel_full->linked_channel_id);
+      auto linked_channel =
+          get_channel_force(channel_full->linked_channel_id, "on_update_channel_full_linked_channel_id 12");
       if (linked_channel != nullptr && !linked_channel->has_linked_channel) {
         linked_channel->has_linked_channel = true;
         linked_channel->is_changed = true;
@@ -15504,7 +15507,7 @@ void ContactsManager::on_update_chat_edit_administrator(ChatId chat_id, UserId u
   LOG(INFO) << "Receive updateChatParticipantAdmin in " << chat_id << " with " << user_id << ", administrator rights "
             << (is_administrator ? "enabled" : "disabled") << " with version " << version;
 
-  auto c = get_chat_force(chat_id);
+  auto c = get_chat_force(chat_id, "on_update_chat_edit_administrator");
   if (c == nullptr) {
     LOG(INFO) << "Ignoring update about members of unknown " << chat_id;
     return;
@@ -15578,7 +15581,7 @@ void ContactsManager::on_update_chat_delete_user(ChatId chat_id, UserId user_id,
     LOG(INFO) << "Ignoring update about members of " << chat_id;
     return;
   }
-  const Chat *c = get_chat_force(chat_id);
+  const Chat *c = get_chat_force(chat_id, "on_update_chat_delete_user");
   if (c == nullptr) {
     LOG(ERROR) << "Receive updateChatParticipantDelete for unknown " << chat_id;
     repair_chat_participants(chat_id);
@@ -15654,7 +15657,7 @@ void ContactsManager::on_update_chat_default_permissions(ChatId chat_id, Restric
     LOG(ERROR) << "Receive invalid " << chat_id;
     return;
   }
-  auto c = get_chat_force(chat_id);
+  auto c = get_chat_force(chat_id, "on_update_chat_default_permissions");
   if (c == nullptr) {
     LOG(INFO) << "Ignoring update about unknown " << chat_id;
     return;
@@ -15723,7 +15726,7 @@ void ContactsManager::on_update_chat_pinned_message(ChatId chat_id, MessageId pi
     LOG(ERROR) << "Receive invalid " << chat_id;
     return;
   }
-  auto c = get_chat_force(chat_id);
+  auto c = get_chat_force(chat_id, "on_update_chat_pinned_message");
   if (c == nullptr) {
     LOG(INFO) << "Ignoring update about unknown " << chat_id;
     return;
@@ -16109,7 +16112,7 @@ void ContactsManager::on_update_channel_story_ids(ChannelId channel_id, StoryId 
     return;
   }
 
-  Channel *c = get_channel_force(channel_id);
+  Channel *c = get_channel_force(channel_id, "on_update_channel_story_ids");
   if (c != nullptr) {
     on_update_channel_story_ids_impl(c, channel_id, max_active_story_id, max_read_story_id);
     update_channel(c, channel_id);
@@ -16201,7 +16204,7 @@ void ContactsManager::on_update_channel_stories_hidden(ChannelId channel_id, boo
     return;
   }
 
-  Channel *c = get_channel_force(channel_id);
+  Channel *c = get_channel_force(channel_id, "on_update_channel_stories_hidden");
   if (c != nullptr) {
     on_update_channel_stories_hidden(c, channel_id, stories_hidden);
     update_channel(c, channel_id);
@@ -16257,7 +16260,7 @@ void ContactsManager::on_update_channel_usernames(ChannelId channel_id, Username
     return;
   }
 
-  Channel *c = get_channel_force(channel_id);
+  Channel *c = get_channel_force(channel_id, "on_update_channel_usernames");
   if (c != nullptr) {
     on_update_channel_usernames(c, channel_id, std::move(usernames));
     update_channel(c, channel_id);
@@ -16459,7 +16462,7 @@ void ContactsManager::on_update_channel_default_permissions(ChannelId channel_id
     return;
   }
 
-  Channel *c = get_channel_force(channel_id);
+  Channel *c = get_channel_force(channel_id, "on_update_channel_default_permissions");
   if (c != nullptr) {
     on_update_channel_default_permissions(c, channel_id, std::move(default_permissions));
     update_channel(c, channel_id);
@@ -17559,7 +17562,7 @@ int32 ContactsManager::get_channel_slow_mode_delay(ChannelId channel_id, const c
 }
 
 bool ContactsManager::get_channel_effective_has_hidden_participants(ChannelId channel_id, const char *source) {
-  auto c = get_channel_force(channel_id);
+  auto c = get_channel_force(channel_id, "get_channel_effective_has_hidden_participants");
   if (c == nullptr) {
     return true;
   }
@@ -17647,7 +17650,7 @@ void ContactsManager::reload_channel(ChannelId channel_id, Promise<Unit> &&promi
     return promise.set_error(Status::Error(400, "Invalid supergroup identifier"));
   }
 
-  have_channel_force(channel_id);
+  have_channel_force(channel_id, "reload_channel");
   auto input_channel = get_input_channel(channel_id);
   if (input_channel == nullptr) {
     // requests with 0 access_hash must not be merged
@@ -18556,7 +18559,7 @@ void ContactsManager::on_get_chat(telegram_api::chat &chat, const char *source) 
       case telegram_api::inputChannel::ID: {
         auto input_channel = move_tl_object_as<telegram_api::inputChannel>(chat.migrated_to_);
         migrated_to_channel_id = ChannelId(input_channel->channel_id_);
-        if (!have_channel_force(migrated_to_channel_id)) {
+        if (!have_channel_force(migrated_to_channel_id, source)) {
           if (!migrated_to_channel_id.is_valid()) {
             LOG(ERROR) << "Receive invalid " << migrated_to_channel_id << debug_str;
           } else {
@@ -18581,7 +18584,7 @@ void ContactsManager::on_get_chat(telegram_api::chat &chat, const char *source) 
     }
   }
 
-  Chat *c = get_chat_force(chat_id);  // to load versions
+  Chat *c = get_chat_force(chat_id, source);  // to load versions
   if (c == nullptr) {
     c = add_chat(chat_id);
   }
@@ -18624,7 +18627,7 @@ void ContactsManager::on_get_chat_forbidden(telegram_api::chatForbidden &chat, c
     return;
   }
 
-  bool is_uninited = get_chat_force(chat_id) == nullptr;
+  bool is_uninited = get_chat_force(chat_id, source) == nullptr;
   Chat *c = add_chat(chat_id);
   on_update_chat_title(c, chat_id, std::move(chat.title_));
   // chat participant count will be updated in on_update_chat_status
@@ -18656,7 +18659,7 @@ void ContactsManager::on_get_channel(telegram_api::channel &channel, const char 
   }
 
   if (channel.flags_ == 0 && channel.access_hash_ == 0 && channel.title_.empty()) {
-    Channel *c = get_channel_force(channel_id);
+    Channel *c = get_channel_force(channel_id, source);
     LOG(ERROR) << "Receive empty " << to_string(channel) << " from " << source << ", have "
                << to_string(get_supergroup_object(channel_id, c));
     if (c == nullptr && !have_min_channel(channel_id)) {
@@ -18736,7 +18739,7 @@ void ContactsManager::on_get_channel(telegram_api::channel &channel, const char 
   }();
 
   if (is_min) {
-    Channel *c = get_channel_force(channel_id);
+    Channel *c = get_channel_force(channel_id, source);
     if (c != nullptr) {
       LOG(DEBUG) << "Receive known min " << channel_id;
 
@@ -18805,7 +18808,7 @@ void ContactsManager::on_get_channel(telegram_api::channel &channel, const char 
 
   if (status.is_creator()) {
     // to correctly calculate is_ownership_transferred in on_update_channel_status
-    get_channel_force(channel_id);
+    get_channel_force(channel_id, source);
   }
 
   Channel *c = add_channel(channel_id, "on_get_channel");
@@ -18911,7 +18914,7 @@ void ContactsManager::on_get_channel_forbidden(telegram_api::channelForbidden &c
   }
 
   if (channel.flags_ == 0 && channel.access_hash_ == 0 && channel.title_.empty()) {
-    Channel *c = get_channel_force(channel_id);
+    Channel *c = get_channel_force(channel_id, source);
     LOG(ERROR) << "Receive empty " << to_string(channel) << " from " << source << ", have "
                << to_string(get_supergroup_object(channel_id, c));
     if (c == nullptr && !have_min_channel(channel_id)) {
@@ -19280,7 +19283,7 @@ tl_object_ptr<td_api::basicGroup> ContactsManager::get_basic_group_object(ChatId
     return nullptr;
   }
   if (c->migrated_to_channel_id.is_valid()) {
-    get_channel_force(c->migrated_to_channel_id);
+    get_channel_force(c->migrated_to_channel_id, "get_basic_group_object");
   }
   return get_basic_group_object_const(chat_id, c);
 }
@@ -19487,7 +19490,7 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
     switch (dialog_id.get_type()) {
       case DialogType::Chat: {
         auto chat_id = dialog_id.get_chat_id();
-        const Chat *c = get_chat_force(chat_id);
+        const Chat *c = get_chat_force(chat_id, "get_chat_invite_link_info_object");
         is_chat = true;
 
         if (c != nullptr) {
@@ -19502,7 +19505,7 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
       }
       case DialogType::Channel: {
         auto channel_id = dialog_id.get_channel_id();
-        const Channel *c = get_channel_force(channel_id);
+        const Channel *c = get_channel_force(channel_id, "get_chat_invite_link_info_object");
 
         if (c != nullptr) {
           title = c->title;

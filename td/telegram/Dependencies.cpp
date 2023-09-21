@@ -100,7 +100,7 @@ bool Dependencies::resolve_force(Td *td, const char *source, bool ignore_errors)
     }
   }
   for (auto chat_id : chat_ids) {
-    if (!td->contacts_manager_->have_chat_force(chat_id)) {
+    if (!td->contacts_manager_->have_chat_force(chat_id, source)) {
       if (!ignore_errors) {
         LOG(ERROR) << "Can't find " << chat_id << " from " << source;
       }
@@ -108,7 +108,7 @@ bool Dependencies::resolve_force(Td *td, const char *source, bool ignore_errors)
     }
   }
   for (auto channel_id : channel_ids) {
-    if (!td->contacts_manager_->have_channel_force(channel_id)) {
+    if (!td->contacts_manager_->have_channel_force(channel_id, source)) {
       if (td->contacts_manager_->have_min_channel(channel_id)) {
         LOG(INFO) << "Can't find " << channel_id << " from " << source << ", but have it as a min-channel";
         continue;
@@ -120,7 +120,7 @@ bool Dependencies::resolve_force(Td *td, const char *source, bool ignore_errors)
     }
   }
   for (auto secret_chat_id : secret_chat_ids) {
-    if (!td->contacts_manager_->have_secret_chat_force(secret_chat_id)) {
+    if (!td->contacts_manager_->have_secret_chat_force(secret_chat_id, source)) {
       if (!ignore_errors) {
         LOG(ERROR) << "Can't find " << secret_chat_id << " from " << source;
       }
