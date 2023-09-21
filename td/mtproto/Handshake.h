@@ -95,7 +95,8 @@ class AuthKeyHandshake {
 
   string last_query_;
 
-  static string store_object(const mtproto_api::Object &object);
+  template <class T>
+  static string store_object(const T &object);
 
   void send(Callback *connection, const Storer &storer);
   static void do_send(Callback *connection, const Storer &storer);

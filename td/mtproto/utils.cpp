@@ -15,9 +15,5 @@ TLStorer<mtproto_api::Function> create_function_storer(const mtproto_api::Functi
   return TLStorer<mtproto_api::Function>(function);
 }
 
-TLObjectStorer<mtproto_api::Object> create_object_storer(const mtproto_api::Object &object) {
-  return TLObjectStorer<mtproto_api::Object>(object);
-}
-
 }  // namespace mtproto
 }  // namespace td

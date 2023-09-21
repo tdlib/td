@@ -29,7 +29,7 @@ class TLObjectStorer final : public Storer {
   size_t size() const final {
     if (size_ == std::numeric_limits<size_t>::max()) {
       TlStorerCalcLength storer;
-      storer.store_binary(object_.get_id());
+      storer.store_binary(T::ID);
       object_.store(storer);
       size_ = storer.get_length();
     }
@@ -37,22 +37,19 @@ class TLObjectStorer final : public Storer {
   }
   size_t store(uint8 *ptr) const final {
     TlStorerUnsafe storer(ptr);
-    storer.store_binary(object_.get_id());
+    storer.store_binary(T::ID);
     object_.store(storer);
     return static_cast<size_t>(storer.get_buf() - ptr);
   }
 };
 
 namespace mtproto_api {
-class Object;
 class Function;
 }  // namespace mtproto_api
 
 namespace mtproto {
 
 TLStorer<mtproto_api::Function> create_function_storer(const mtproto_api::Function &function);
-
-TLObjectStorer<mtproto_api::Object> create_object_storer(const mtproto_api::Object &object);
 
 }  // namespace mtproto
 }  // namespace td

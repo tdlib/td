@@ -73,8 +73,9 @@ void AuthKeyHandshake::on_finish() {
   clear();
 }
 
-string AuthKeyHandshake::store_object(const mtproto_api::Object &object) {
-  auto storer = create_object_storer(object);
+template <class T>
+string AuthKeyHandshake::store_object(const T &object) {
+  auto storer = TLObjectStorer<T>(object);
   size_t size = storer.size();
   string result(size, '\0');
   auto real_size = storer.store(MutableSlice(result).ubegin());

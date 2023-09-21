@@ -842,7 +842,7 @@ std::pair<MessageId, BufferSlice> SessionConnection::encrypted_bind(int64 perm_k
   int64 temp_key = auth_data_->get_tmp_auth_key().id();
 
   mtproto_api::bind_auth_key_inner object(nonce, temp_key, perm_key, auth_data_->get_session_id(), expires_at);
-  auto object_storer = create_object_storer(object);
+  auto object_storer = TLObjectStorer<mtproto_api::bind_auth_key_inner>(object);
   auto size = object_storer.size();
   auto object_packet = BufferWriter{size, 0, 0};
   auto real_size = object_storer.store(object_packet.as_mutable_slice().ubegin());
