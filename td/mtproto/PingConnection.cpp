@@ -153,21 +153,21 @@ class PingConnectionPingPong final
     return Status::OK();
   }
 
-  void on_message_ack(uint64 id) final {
+  void on_message_ack(uint64 message_id) final {
   }
 
-  Status on_message_result_ok(uint64 id, BufferSlice packet, size_t original_size) final {
+  Status on_message_result_ok(uint64 message_id, BufferSlice packet, size_t original_size) final {
     LOG(ERROR) << "Unexpected message";
     return Status::OK();
   }
 
-  void on_message_result_error(uint64 id, int code, string message) final {
+  void on_message_result_error(uint64 message_id, int code, string message) final {
   }
 
-  void on_message_failed(uint64 id, Status status) final {
+  void on_message_failed(uint64 message_id, Status status) final {
   }
 
-  void on_message_info(uint64 id, int32 state, uint64 answer_id, int32 answer_size, int32 source) final {
+  void on_message_info(uint64 message_id, int32 state, uint64 answer_id, int32 answer_size, int32 source) final {
   }
 
   Status on_destroy_auth_key() final {

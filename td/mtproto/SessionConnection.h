@@ -103,11 +103,11 @@ class SessionConnection final
 
     virtual Status on_update(BufferSlice packet) = 0;
 
-    virtual void on_message_ack(uint64 id) = 0;
-    virtual Status on_message_result_ok(uint64 id, BufferSlice packet, size_t original_size) = 0;
-    virtual void on_message_result_error(uint64 id, int code, string message) = 0;
-    virtual void on_message_failed(uint64 id, Status status) = 0;
-    virtual void on_message_info(uint64 id, int32 state, uint64 answer_id, int32 answer_size, int32 source) = 0;
+    virtual void on_message_ack(uint64 message_id) = 0;
+    virtual Status on_message_result_ok(uint64 message_id, BufferSlice packet, size_t original_size) = 0;
+    virtual void on_message_result_error(uint64 message_id, int code, string message) = 0;
+    virtual void on_message_failed(uint64 message_id, Status status) = 0;
+    virtual void on_message_info(uint64 message_id, int32 state, uint64 answer_id, int32 answer_size, int32 source) = 0;
 
     virtual Status on_destroy_auth_key() = 0;
   };
@@ -254,8 +254,8 @@ class SessionConnection final
 
   Status on_slice_packet(const MsgInfo &info, Slice packet) TD_WARN_UNUSED_RESULT;
   Status on_main_packet(const PacketInfo &packet_info, Slice packet) TD_WARN_UNUSED_RESULT;
-  void on_message_failed(uint64 id, Status status);
-  void on_message_failed_inner(uint64 id);
+  void on_message_failed(uint64 message_id, Status status);
+  void on_message_failed_inner(uint64 message_id);
 
   void do_close(Status status);
 

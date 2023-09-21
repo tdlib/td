@@ -394,8 +394,8 @@ Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::bad_
 
 Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::msgs_ack &msgs_ack) {
   VLOG(mtproto) << "Receive msgs_ack with " << info << ": " << msgs_ack.msg_ids_;
-  for (auto id : msgs_ack.msg_ids_) {
-    callback_->on_message_ack(id);
+  for (auto message_id : msgs_ack.msg_ids_) {
+    callback_->on_message_ack(message_id);
   }
   return Status::OK();
 }
@@ -576,31 +576,31 @@ Status SessionConnection::on_main_packet(const PacketInfo &packet_info, Slice pa
   return Status::OK();
 }
 
-void SessionConnection::on_message_failed(uint64 id, Status status) {
-  callback_->on_message_failed(id, std::move(status));
+void SessionConnection::on_message_failed(uint64 message_id, Status status) {
+  callback_->on_message_failed(message_id, std::move(status));
 
   sent_destroy_auth_key_ = false;
 
-  if (id == last_ping_message_id_ || id == last_ping_container_message_id_) {
+  if (message_id == last_ping_message_id_ || message_id == last_ping_container_message_id_) {
     // restart ping immediately
     last_ping_at_ = 0;
     last_ping_message_id_ = 0;
     last_ping_container_message_id_ = 0;
   }
 
-  auto cit = container_to_service_msg_.find(id);
+  auto cit = container_to_service_msg_.find(message_id);
   if (cit != container_to_service_msg_.end()) {
     auto message_ids = cit->second;
-    for (auto message_id : message_ids) {
-      on_message_failed_inner(message_id);
+    for (auto inner_message_id : message_ids) {
+      on_message_failed_inner(inner_message_id);
     }
   } else {
-    on_message_failed_inner(id);
+    on_message_failed_inner(message_id);
   }
 }
 
-void SessionConnection::on_message_failed_inner(uint64 id) {
-  auto it = service_queries_.find(id);
+void SessionConnection::on_message_failed_inner(uint64 message_id) {
+  auto it = service_queries_.find(message_id);
   if (it == service_queries_.end()) {
     return;
   }
@@ -609,13 +609,13 @@ void SessionConnection::on_message_failed_inner(uint64 id) {
 
   switch (query.type) {
     case ServiceQuery::ResendAnswer:
-      for (auto message_id : query.message_ids) {
-        resend_answer(message_id);
+      for (auto query_message_id : query.message_ids) {
+        resend_answer(query_message_id);
       }
       break;
     case ServiceQuery::GetStateInfo:
-      for (auto message_id : query.message_ids) {
-        get_state_info(message_id);
+      for (auto query_message_id : query.message_ids) {
+        get_state_info(query_message_id);
       }
       break;
     default:
