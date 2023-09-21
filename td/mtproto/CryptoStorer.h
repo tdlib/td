@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/mtproto/AuthData.h"
+#include "td/mtproto/MessageId.h"
 #include "td/mtproto/MtprotoQuery.h"
 #include "td/mtproto/PacketStorer.h"
 #include "td/mtproto/utils.h"
@@ -57,7 +58,7 @@ class ObjectImpl {
   bool empty() const {
     return !not_empty_;
   }
-  uint64 get_message_id() const {
+  MessageId get_message_id() const {
     return message_id_;
   }
 
@@ -65,7 +66,7 @@ class ObjectImpl {
   bool not_empty_;
   Object object_;
   ObjectStorer object_storer_;
-  uint64 message_id_;
+  MessageId message_id_;
   int32 seq_no_;
 };
 
@@ -96,7 +97,7 @@ class CancelVectorImpl {
   bool not_empty() const {
     return !storers_.empty();
   }
-  uint64 get_message_id() const {
+  MessageId get_message_id() const {
     CHECK(storers_.size() == 1);
     return storers_[0].get_message_id();
   }
@@ -107,7 +108,7 @@ class CancelVectorImpl {
 
 class InvokeAfter {
  public:
-  explicit InvokeAfter(Span<uint64> message_ids) : message_ids_(message_ids) {
+  explicit InvokeAfter(Span<MessageId> message_ids) : message_ids_(message_ids) {
   }
   template <class StorerT>
   void store(StorerT &storer) const {
@@ -116,7 +117,7 @@ class InvokeAfter {
     }
     if (message_ids_.size() == 1) {
       storer.store_int(static_cast<int32>(0xcb9f372d));
-      storer.store_binary(message_ids_[0]);
+      storer.store_binary(message_ids_[0].get());
       return;
     }
     //  invokeAfterMsgs#3dc4b4f0 {X:Type} msg_ids:Vector<long> query:!X = X;
@@ -124,12 +125,12 @@ class InvokeAfter {
     storer.store_int(static_cast<int32>(0x1cb5c415));
     storer.store_int(narrow_cast<int32>(message_ids_.size()));
     for (auto message_id : message_ids_) {
-      storer.store_binary(message_id);
+      storer.store_binary(message_id.get());
     }
   }
 
  private:
-  Span<uint64> message_ids_;
+  Span<MessageId> message_ids_;
 };
 
 class QueryImpl {
@@ -206,8 +207,8 @@ class CryptoImpl {
   CryptoImpl(const vector<MtprotoQuery> &to_send, Slice header, vector<int64> &&to_ack, int64 ping_id, int ping_timeout,
              int max_delay, int max_after, int max_wait, int future_salt_n, vector<int64> get_info,
              vector<int64> resend, const vector<int64> &cancel, bool destroy_key, AuthData *auth_data,
-             uint64 *container_message_id, uint64 *get_info_message_id, uint64 *resend_message_id,
-             uint64 *ping_message_id, uint64 *parent_message_id)
+             MessageId *container_message_id, MessageId *get_info_message_id, MessageId *resend_message_id,
+             MessageId *ping_message_id, MessageId *parent_message_id)
       : query_storer_(to_send, header)
       , ack_empty_(to_ack.empty())
       , ack_storer_(!ack_empty_, mtproto_api::msgs_ack(std::move(to_ack)), auth_data)
@@ -362,7 +363,7 @@ class CryptoImpl {
     Mixed
   };
   Type type_;
-  uint64 message_id_;
+  MessageId message_id_;
   int32 seq_no_;
 };
 

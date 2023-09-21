@@ -416,7 +416,7 @@ class IdDuplicateCheckerOld {
   static td::string get_description() {
     return "Old";
   }
-  td::Status check(td::int64 message_id) {
+  td::Status check(td::uint64 message_id) {
     if (saved_message_ids_.size() == MAX_SAVED_MESSAGE_IDS) {
       auto oldest_message_id = *saved_message_ids_.begin();
       if (message_id < oldest_message_id) {
@@ -437,7 +437,7 @@ class IdDuplicateCheckerOld {
 
  private:
   static constexpr size_t MAX_SAVED_MESSAGE_IDS = 1000;
-  std::set<td::int64> saved_message_ids_;
+  std::set<td::uint64> saved_message_ids_;
 };
 
 template <size_t MAX_SAVED_MESSAGE_IDS>
@@ -446,7 +446,7 @@ class IdDuplicateCheckerNew {
   static td::string get_description() {
     return PSTRING() << "New" << MAX_SAVED_MESSAGE_IDS;
   }
-  td::Status check(td::int64 message_id) {
+  td::Status check(td::uint64 message_id) {
     auto insert_result = saved_message_ids_.insert(message_id);
     if (!insert_result.second) {
       return td::Status::Error(1, PSLICE() << "Ignore already processed message " << message_id);
@@ -464,7 +464,7 @@ class IdDuplicateCheckerNew {
   }
 
  private:
-  std::set<td::int64> saved_message_ids_;
+  std::set<td::uint64> saved_message_ids_;
 };
 
 class IdDuplicateCheckerNewOther {
@@ -472,7 +472,7 @@ class IdDuplicateCheckerNewOther {
   static td::string get_description() {
     return "NewOther";
   }
-  td::Status check(td::int64 message_id) {
+  td::Status check(td::uint64 message_id) {
     if (!saved_message_ids_.insert(message_id).second) {
       return td::Status::Error(1, PSLICE() << "Ignore already processed message " << message_id);
     }
@@ -490,7 +490,7 @@ class IdDuplicateCheckerNewOther {
 
  private:
   static constexpr size_t MAX_SAVED_MESSAGE_IDS = 1000;
-  std::set<td::int64> saved_message_ids_;
+  std::set<td::uint64> saved_message_ids_;
 };
 
 class IdDuplicateCheckerNewSimple {
@@ -498,7 +498,7 @@ class IdDuplicateCheckerNewSimple {
   static td::string get_description() {
     return "NewSimple";
   }
-  td::Status check(td::int64 message_id) {
+  td::Status check(td::uint64 message_id) {
     auto insert_result = saved_message_ids_.insert(message_id);
     if (!insert_result.second) {
       return td::Status::Error(1, "Ignore already processed message");
@@ -516,7 +516,7 @@ class IdDuplicateCheckerNewSimple {
 
  private:
   static constexpr size_t MAX_SAVED_MESSAGE_IDS = 1000;
-  std::set<td::int64> saved_message_ids_;
+  std::set<td::uint64> saved_message_ids_;
 };
 
 template <size_t max_size>
@@ -525,7 +525,7 @@ class IdDuplicateCheckerArray {
   static td::string get_description() {
     return PSTRING() << "Array" << max_size;
   }
-  td::Status check(td::int64 message_id) {
+  td::Status check(td::uint64 message_id) {
     if (end_pos_ == 2 * max_size) {
       std::copy_n(&saved_message_ids_[max_size], max_size, &saved_message_ids_[0]);
       end_pos_ = max_size;
@@ -550,7 +550,7 @@ class IdDuplicateCheckerArray {
   }
 
  private:
-  std::array<td::int64, 2 * max_size> saved_message_ids_;
+  std::array<td::uint64, 2 * max_size> saved_message_ids_;
   std::size_t end_pos_ = 0;
 };
 

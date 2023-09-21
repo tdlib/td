@@ -86,7 +86,7 @@ class RawConnectionDefault final : public RawConnection {
     return packet_size;
   }
 
-  uint64 send_no_crypto(const Storer &storer) final {
+  MessageId send_no_crypto(const Storer &storer) final {
     PacketInfo packet_info;
     packet_info.no_crypto_flag = true;
     auto packet = Transport::write(storer, AuthKey(), &packet_info, transport_->max_prepend_size(),
@@ -315,7 +315,7 @@ class RawConnectionHttp final : public RawConnection {
     return packet_size;
   }
 
-  uint64 send_no_crypto(const Storer &storer) final {
+  MessageId send_no_crypto(const Storer &storer) final {
     PacketInfo packet_info;
     packet_info.no_crypto_flag = true;
     auto packet = Transport::write(storer, AuthKey(), &packet_info);

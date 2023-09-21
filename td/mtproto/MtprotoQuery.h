@@ -6,6 +6,8 @@
 //
 #pragma once
 
+#include "td/mtproto/MessageId.h"
+
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 
@@ -13,11 +15,11 @@ namespace td {
 namespace mtproto {
 
 struct MtprotoQuery {
-  uint64 message_id;
+  MessageId message_id;
   int32 seq_no;
   BufferSlice packet;
   bool gzip_flag;
-  vector<uint64> invoke_after_message_ids;
+  vector<MessageId> invoke_after_message_ids;
   bool use_quick_ack;
 };
 

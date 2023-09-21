@@ -8,6 +8,7 @@
 
 #include "td/mtproto/AuthKey.h"
 #include "td/mtproto/KDF.h"
+#include "td/mtproto/MessageId.h"
 
 #include "td/utils/as.h"
 #include "td/utils/crypto.h"
@@ -42,7 +43,7 @@ struct CryptoHeader {
 
   // It is weird to generate message_id and seq_no while writing a packet.
   //
-  // uint64 message_id;
+  // uint64 msg_id;
   // uint32 seq_no;
   // uint32 message_data_length;
   uint8 data[0];  // use compiler extension
@@ -68,7 +69,7 @@ struct CryptoHeader {
 };
 
 struct CryptoPrefix {
-  uint64 message_id;
+  uint64 msg_id;
   uint32 seq_no;
   uint32 message_data_length;
 };
@@ -108,9 +109,9 @@ struct EndToEndPrefix {
 struct NoCryptoHeader {
   uint64 auth_key_id;
 
-  // message_id is removed from CryptoHeader. Should be removed from here too.
+  // msg_id is removed from CryptoHeader. Should be removed from here too.
   //
-  // uint64 message_id;
+  // uint64 msg_id;
   // uint32 message_data_length;
   uint8 data[0];  // use compiler extension
 
@@ -309,7 +310,7 @@ Status Transport::read_crypto(MutableSlice message, const AuthKey &auth_key, Pac
   packet_info->type = PacketInfo::Common;
   packet_info->salt = header->salt;
   packet_info->session_id = header->session_id;
-  packet_info->message_id = prefix->message_id;
+  packet_info->message_id = MessageId(prefix->msg_id);
   packet_info->seq_no = prefix->seq_no;
   return Status::OK();
 }

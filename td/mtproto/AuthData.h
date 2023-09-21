@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/mtproto/AuthKey.h"
+#include "td/mtproto/MessageId.h"
 
 #include "td/utils/common.h"
 #include "td/utils/Slice.h"
@@ -37,17 +38,18 @@ void parse(ServerSalt &salt, ParserT &parser) {
   salt.valid_until = parser.fetch_double();
 }
 
-Status check_message_id_duplicates(uint64 *saved_message_ids, size_t max_size, size_t &end_pos, uint64 message_id);
+Status check_message_id_duplicates(MessageId *saved_message_ids, size_t max_size, size_t &end_pos,
+                                   MessageId message_id);
 
 template <size_t max_size>
 class MessageIdDuplicateChecker {
  public:
-  Status check(uint64 message_id) {
+  Status check(MessageId message_id) {
     return check_message_id_duplicates(&saved_message_ids_[0], max_size, end_pos_, message_id);
   }
 
  private:
-  std::array<uint64, 2 * max_size> saved_message_ids_;
+  std::array<MessageId, 2 * max_size> saved_message_ids_;
   size_t end_pos_ = 0;
 };
 
@@ -232,19 +234,19 @@ class AuthData {
 
   std::vector<ServerSalt> get_future_salts() const;
 
-  uint64 next_message_id(double now);
+  MessageId next_message_id(double now);
 
-  bool is_valid_outbound_msg_id(uint64 message_id, double now) const;
+  bool is_valid_outbound_msg_id(MessageId message_id, double now) const;
 
-  bool is_valid_inbound_msg_id(uint64 message_id, double now) const;
+  bool is_valid_inbound_msg_id(MessageId message_id, double now) const;
 
-  Status check_packet(uint64 session_id, uint64 message_id, double now, bool &time_difference_was_updated);
+  Status check_packet(uint64 session_id, MessageId message_id, double now, bool &time_difference_was_updated);
 
-  Status check_update(uint64 message_id) {
+  Status check_update(MessageId message_id) {
     return updates_duplicate_checker_.check(message_id);
   }
 
-  Status recheck_update(uint64 message_id) {
+  Status recheck_update(MessageId message_id) {
     return updates_duplicate_rechecker_.check(message_id);
   }
 
@@ -275,7 +277,7 @@ class AuthData {
   bool server_time_difference_was_updated_ = false;
   double server_time_difference_ = 0;
   ServerSalt server_salt_;
-  uint64 last_message_id_ = 0;
+  MessageId last_message_id_;
   int32 seq_no_ = 0;
   string header_;
   uint64 session_id_ = 0;

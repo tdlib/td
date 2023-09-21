@@ -8,6 +8,7 @@
 
 #include "td/mtproto/AuthKey.h"
 #include "td/mtproto/Handshake.h"
+#include "td/mtproto/MessageId.h"
 #include "td/mtproto/NoCryptoStorer.h"
 #include "td/mtproto/PacketInfo.h"
 #include "td/mtproto/PacketStorer.h"
@@ -61,7 +62,7 @@ class HandshakeConnection final
   unique_ptr<AuthKeyHandshakeContext> context_;
 
   void send_no_crypto(const Storer &storer) final {
-    raw_connection_->send_no_crypto(PacketStorer<NoCryptoImpl>(0, storer));
+    raw_connection_->send_no_crypto(PacketStorer<NoCryptoImpl>(MessageId(), storer));
   }
 
   Status on_raw_packet(const PacketInfo &packet_info, BufferSlice packet) final {

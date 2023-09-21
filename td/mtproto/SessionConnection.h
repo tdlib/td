@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/mtproto/MessageId.h"
 #include "td/mtproto/MtprotoQuery.h"
 #include "td/mtproto/PacketInfo.h"
 #include "td/mtproto/RawConnection.h"
@@ -67,14 +68,14 @@ class SessionConnection final
   unique_ptr<RawConnection> move_as_raw_connection();
 
   // Interface
-  Result<uint64> TD_WARN_UNUSED_RESULT send_query(BufferSlice buffer, bool gzip_flag, uint64 message_id = 0,
-                                                  vector<uint64> invoke_after_message_ids = {},
-                                                  bool use_quick_ack = false);
-  std::pair<uint64, BufferSlice> encrypted_bind(int64 perm_key, int64 nonce, int32 expires_at);
+  Result<MessageId> TD_WARN_UNUSED_RESULT send_query(BufferSlice buffer, bool gzip_flag, MessageId message_id = {},
+                                                     vector<MessageId> invoke_after_message_ids = {},
+                                                     bool use_quick_ack = false);
+  std::pair<MessageId, BufferSlice> encrypted_bind(int64 perm_key, int64 nonce, int32 expires_at);
 
-  void get_state_info(uint64 message_id);
-  void resend_answer(uint64 message_id);
-  void cancel_answer(uint64 message_id);
+  void get_state_info(MessageId message_id);
+  void resend_answer(MessageId message_id);
+  void cancel_answer(MessageId message_id);
   void destroy_key();
 
   void set_online(bool online_flag, bool is_main);
@@ -95,19 +96,20 @@ class SessionConnection final
     virtual void on_server_salt_updated() = 0;
     virtual void on_server_time_difference_updated(bool force) = 0;
 
-    virtual void on_new_session_created(uint64 unique_id, uint64 first_message_id) = 0;
+    virtual void on_new_session_created(uint64 unique_id, MessageId first_message_id) = 0;
     virtual void on_session_failed(Status status) = 0;
 
-    virtual void on_container_sent(uint64 container_message_id, vector<uint64> message_ids) = 0;
+    virtual void on_container_sent(MessageId container_message_id, vector<MessageId> message_ids) = 0;
     virtual Status on_pong() = 0;
 
     virtual Status on_update(BufferSlice packet) = 0;
 
-    virtual void on_message_ack(uint64 message_id) = 0;
-    virtual Status on_message_result_ok(uint64 message_id, BufferSlice packet, size_t original_size) = 0;
-    virtual void on_message_result_error(uint64 message_id, int code, string message) = 0;
-    virtual void on_message_failed(uint64 message_id, Status status) = 0;
-    virtual void on_message_info(uint64 message_id, int32 state, uint64 answer_id, int32 answer_size, int32 source) = 0;
+    virtual void on_message_ack(MessageId message_id) = 0;
+    virtual Status on_message_result_ok(MessageId message_id, BufferSlice packet, size_t original_size) = 0;
+    virtual void on_message_result_error(MessageId message_id, int code, string message) = 0;
+    virtual void on_message_failed(MessageId message_id, Status status) = 0;
+    virtual void on_message_info(MessageId message_id, int32 state, MessageId answer_message_id, int32 answer_size,
+                                 int32 source) = 0;
 
     virtual Status on_destroy_auth_key() = 0;
   };
@@ -123,7 +125,7 @@ class SessionConnection final
   static constexpr double RESEND_ANSWER_DELAY = 0.001;  // 0.001s
 
   struct MsgInfo {
-    uint64 message_id;
+    MessageId message_id;
     int32 seq_no;
     size_t size;
   };
@@ -161,21 +163,21 @@ class SessionConnection final
   static constexpr int HTTP_MAX_DELAY = 30;  // 0.03s
 
   vector<MtprotoQuery> to_send_;
-  vector<uint64> to_ack_message_ids_;
+  vector<MessageId> to_ack_message_ids_;
   double force_send_at_ = 0;
 
   struct ServiceQuery {
     enum Type { GetStateInfo, ResendAnswer } type_;
-    uint64 container_message_id_;
+    MessageId container_message_id_;
     vector<int64> msg_ids_;
   };
-  vector<uint64> to_resend_answer_message_ids_;
-  vector<uint64> to_cancel_answer_message_ids_;
-  vector<uint64> to_get_state_info_message_ids_;
-  FlatHashMap<uint64, ServiceQuery> service_queries_;
+  vector<MessageId> to_resend_answer_message_ids_;
+  vector<MessageId> to_cancel_answer_message_ids_;
+  vector<MessageId> to_get_state_info_message_ids_;
+  FlatHashMap<MessageId, ServiceQuery, MessageIdHash> service_queries_;
 
   // nobody cleans up this map. But it should be really small.
-  FlatHashMap<uint64, vector<uint64>> container_to_service_message_id_;
+  FlatHashMap<MessageId, vector<MessageId>, MessageIdHash> container_to_service_message_id_;
 
   double random_delay_ = 0;
   double last_read_at_ = 0;
@@ -183,9 +185,9 @@ class SessionConnection final
   double last_pong_at_ = 0;
   double real_last_read_at_ = 0;
   double real_last_pong_at_ = 0;
-  uint64 cur_ping_id_ = 0;
-  uint64 last_ping_message_id_ = 0;
-  uint64 last_ping_container_message_id_ = 0;
+  int64 cur_ping_id_ = 0;
+  MessageId last_ping_message_id_;
+  MessageId last_ping_container_message_id_;
 
   uint64 last_read_size_ = 0;
   uint64 last_write_size_ = 0;
@@ -200,8 +202,8 @@ class SessionConnection final
   Mode mode_;
   bool connected_flag_ = false;
 
-  uint64 container_message_id_ = 0;
-  uint64 main_message_id_ = 0;
+  MessageId container_message_id_;
+  MessageId main_message_id_;
   double created_at_ = 0;
 
   unique_ptr<RawConnection> raw_connection_;
@@ -218,7 +220,7 @@ class SessionConnection final
     };
   }
 
-  void reset_server_time_difference(uint64 message_id);
+  void reset_server_time_difference(MessageId message_id);
 
   static Status parse_message(TlParser &parser, MsgInfo *info, Slice *packet,
                               bool crypto_flag = true) TD_WARN_UNUSED_RESULT;
@@ -254,12 +256,12 @@ class SessionConnection final
 
   Status on_slice_packet(const MsgInfo &info, Slice packet) TD_WARN_UNUSED_RESULT;
   Status on_main_packet(const PacketInfo &packet_info, Slice packet) TD_WARN_UNUSED_RESULT;
-  void on_message_failed(uint64 message_id, Status status);
-  void on_message_failed_inner(uint64 message_id);
+  void on_message_failed(MessageId message_id, Status status);
+  void on_message_failed_inner(MessageId message_id);
 
   void do_close(Status status);
 
-  void send_ack(uint64 message_id);
+  void send_ack(MessageId message_id);
   void send_crypto(const Storer &storer, uint64 quick_ack_token);
   void send_before(double tm);
   bool may_ping() const;
