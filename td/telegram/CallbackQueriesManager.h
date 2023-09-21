@@ -7,7 +7,7 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
-#include "td/telegram/FullMessageId.h"
+#include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -35,7 +35,7 @@ class CallbackQueriesManager {
                            tl_object_ptr<telegram_api::InputBotInlineMessageID> &&inline_message_id, BufferSlice &&data,
                            int64 chat_instance, string &&game_short_name);
 
-  void send_callback_query(FullMessageId full_message_id, tl_object_ptr<td_api::CallbackQueryPayload> &&payload,
+  void send_callback_query(MessageFullId message_full_id, tl_object_ptr<td_api::CallbackQueryPayload> &&payload,
                            Promise<td_api::object_ptr<td_api::callbackQueryAnswer>> &&promise);
 
  private:
@@ -46,7 +46,7 @@ class CallbackQueriesManager {
   static tl_object_ptr<td_api::CallbackQueryPayload> get_query_payload(int32 flags, BufferSlice &&data,
                                                                        string &&game_short_name);
 
-  void send_get_callback_answer_query(FullMessageId full_message_id,
+  void send_get_callback_answer_query(MessageFullId message_full_id,
                                       tl_object_ptr<td_api::CallbackQueryPayload> &&payload,
                                       tl_object_ptr<telegram_api::InputCheckPasswordSRP> &&password,
                                       Promise<td_api::object_ptr<td_api::callbackQueryAnswer>> &&promise);

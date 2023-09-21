@@ -10,12 +10,12 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/EncryptedFile.h"
 #include "td/telegram/files/FileId.h"
-#include "td/telegram/FullMessageId.h"
 #include "td/telegram/InputGroupCallId.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageCopyOptions.h"
 #include "td/telegram/MessageEntity.h"
+#include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/ReplyMarkup.h"
@@ -142,7 +142,7 @@ BackgroundInfo get_message_content_background_info(const MessageContent *content
 
 string get_message_content_theme_name(const MessageContent *content);
 
-FullMessageId get_message_content_replied_message_id(DialogId dialog_id, const MessageContent *content);
+MessageFullId get_message_content_replied_message_id(DialogId dialog_id, const MessageContent *content);
 
 std::pair<InputGroupCallId, bool> get_message_content_group_call_info(const MessageContent *content);
 
@@ -166,14 +166,14 @@ void remove_message_content_web_page(MessageContent *content);
 
 bool can_message_content_have_media_timestamp(const MessageContent *content);
 
-void set_message_content_poll_answer(Td *td, const MessageContent *content, FullMessageId full_message_id,
+void set_message_content_poll_answer(Td *td, const MessageContent *content, MessageFullId message_full_id,
                                      vector<int32> &&option_ids, Promise<Unit> &&promise);
 
-void get_message_content_poll_voters(Td *td, const MessageContent *content, FullMessageId full_message_id,
+void get_message_content_poll_voters(Td *td, const MessageContent *content, MessageFullId message_full_id,
                                      int32 option_id, int32 offset, int32 limit,
                                      Promise<td_api::object_ptr<td_api::messageSenders>> &&promise);
 
-void stop_message_content_poll(Td *td, const MessageContent *content, FullMessageId full_message_id,
+void stop_message_content_poll(Td *td, const MessageContent *content, MessageFullId message_full_id,
                                unique_ptr<ReplyMarkup> &&reply_markup, Promise<Unit> &&promise);
 
 void merge_message_contents(Td *td, const MessageContent *old_content, MessageContent *new_content,
@@ -182,12 +182,12 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
 
 bool merge_message_content_file_id(Td *td, MessageContent *message_content, FileId new_file_id);
 
-void register_message_content(Td *td, const MessageContent *content, FullMessageId full_message_id, const char *source);
+void register_message_content(Td *td, const MessageContent *content, MessageFullId message_full_id, const char *source);
 
 void reregister_message_content(Td *td, const MessageContent *old_content, const MessageContent *new_content,
-                                FullMessageId full_message_id, const char *source);
+                                MessageFullId message_full_id, const char *source);
 
-void unregister_message_content(Td *td, const MessageContent *content, FullMessageId full_message_id,
+void unregister_message_content(Td *td, const MessageContent *content, MessageFullId message_full_id,
                                 const char *source);
 
 unique_ptr<MessageContent> get_secret_message_content(
@@ -251,10 +251,10 @@ bool update_message_content_extended_media(MessageContent *content,
 
 bool need_poll_message_content_extended_media(const MessageContent *content);
 
-void get_message_content_animated_emoji_click_sticker(const MessageContent *content, FullMessageId full_message_id,
+void get_message_content_animated_emoji_click_sticker(const MessageContent *content, MessageFullId message_full_id,
                                                       Td *td, Promise<td_api::object_ptr<td_api::sticker>> &&promise);
 
-void on_message_content_animated_emoji_clicked(const MessageContent *content, FullMessageId full_message_id, Td *td,
+void on_message_content_animated_emoji_clicked(const MessageContent *content, MessageFullId message_full_id, Td *td,
                                                string &&emoji, string &&data);
 
 bool need_reget_message_content(const MessageContent *content);
@@ -282,10 +282,10 @@ void on_dialog_used(TopDialogCategory category, DialogId dialog_id, int32 date);
 
 void update_used_hashtags(Td *td, const MessageContent *content);
 
-void recognize_message_content_speech(Td *td, const MessageContent *content, FullMessageId full_message_id,
+void recognize_message_content_speech(Td *td, const MessageContent *content, MessageFullId message_full_id,
                                       Promise<Unit> &&promise);
 
-void rate_message_content_speech_recognition(Td *td, const MessageContent *content, FullMessageId full_message_id,
+void rate_message_content_speech_recognition(Td *td, const MessageContent *content, MessageFullId message_full_id,
                                              bool is_good, Promise<Unit> &&promise);
 
 }  // namespace td

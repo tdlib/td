@@ -9,7 +9,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
-#include "td/telegram/FullMessageId.h"
+#include "td/telegram/MessageFullId.h"
 #include "td/telegram/SecretInputMedia.h"
 #include "td/telegram/StoryFullId.h"
 #include "td/telegram/td_api.h"
@@ -52,9 +52,9 @@ class WebPagesManager final : public Actor {
 
   void on_get_web_page_instant_view_view_count(WebPageId web_page_id, int32 view_count);
 
-  void register_web_page(WebPageId web_page_id, FullMessageId full_message_id, const char *source);
+  void register_web_page(WebPageId web_page_id, MessageFullId message_full_id, const char *source);
 
-  void unregister_web_page(WebPageId web_page_id, FullMessageId full_message_id, const char *source);
+  void unregister_web_page(WebPageId web_page_id, MessageFullId message_full_id, const char *source);
 
   bool have_web_page(WebPageId web_page_id) const;
 
@@ -183,7 +183,7 @@ class WebPagesManager final : public Actor {
   };
   FlatHashMap<WebPageId, PendingWebPageInstantViewQueries, WebPageIdHash> load_web_page_instant_view_queries_;
 
-  FlatHashMap<WebPageId, FlatHashSet<FullMessageId, FullMessageIdHash>, WebPageIdHash> web_page_messages_;
+  FlatHashMap<WebPageId, FlatHashSet<MessageFullId, MessageFullIdHash>, WebPageIdHash> web_page_messages_;
 
   FlatHashMap<WebPageId, vector<std::pair<string, Promise<td_api::object_ptr<td_api::webPage>>>>, WebPageIdHash>
       pending_get_web_pages_;

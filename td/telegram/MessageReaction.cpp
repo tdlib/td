@@ -101,8 +101,8 @@ class SendReactionQuery final : public Td::ResultHandler {
   explicit SendReactionQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(FullMessageId full_message_id, vector<ReactionType> reaction_types, bool is_big, bool add_to_recent) {
-    dialog_id_ = full_message_id.get_dialog_id();
+  void send(MessageFullId message_full_id, vector<ReactionType> reaction_types, bool is_big, bool add_to_recent) {
+    dialog_id_ = message_full_id.get_dialog_id();
 
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     if (input_peer == nullptr) {
@@ -125,10 +125,10 @@ class SendReactionQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(
         telegram_api::messages_sendReaction(
             flags, false /*ignored*/, false /*ignored*/, std::move(input_peer),
-            full_message_id.get_message_id().get_server_message_id().get(),
+            message_full_id.get_message_id().get_server_message_id().get(),
             transform(reaction_types,
                       [](const ReactionType &reaction_type) { return reaction_type.get_input_reaction(); })),
-        {{dialog_id_}, {full_message_id}}));
+        {{dialog_id_}, {message_full_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -163,9 +163,9 @@ class GetMessageReactionsListQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(FullMessageId full_message_id, ReactionType reaction_type, string offset, int32 limit) {
-    dialog_id_ = full_message_id.get_dialog_id();
-    message_id_ = full_message_id.get_message_id();
+  void send(MessageFullId message_full_id, ReactionType reaction_type, string offset, int32 limit) {
+    dialog_id_ = message_full_id.get_dialog_id();
+    message_id_ = message_full_id.get_message_id();
     reaction_type_ = std::move(reaction_type);
     offset_ = std::move(offset);
 
@@ -186,7 +186,7 @@ class GetMessageReactionsListQuery final : public Td::ResultHandler {
         telegram_api::messages_getMessageReactionsList(flags, std::move(input_peer),
                                                        message_id_.get_server_message_id().get(),
                                                        reaction_type_.get_input_reaction(), offset_, limit),
-        {{full_message_id}}));
+        {{message_full_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -871,20 +871,20 @@ void reload_message_reactions(Td *td, DialogId dialog_id, vector<MessageId> &&me
   td->create_handler<GetMessagesReactionsQuery>()->send(dialog_id, std::move(message_ids));
 }
 
-void send_message_reaction(Td *td, FullMessageId full_message_id, vector<ReactionType> reaction_types, bool is_big,
+void send_message_reaction(Td *td, MessageFullId message_full_id, vector<ReactionType> reaction_types, bool is_big,
                            bool add_to_recent, Promise<Unit> &&promise) {
   td->create_handler<SendReactionQuery>(std::move(promise))
-      ->send(full_message_id, std::move(reaction_types), is_big, add_to_recent);
+      ->send(message_full_id, std::move(reaction_types), is_big, add_to_recent);
 }
 
-void get_message_added_reactions(Td *td, FullMessageId full_message_id, ReactionType reaction_type, string offset,
+void get_message_added_reactions(Td *td, MessageFullId message_full_id, ReactionType reaction_type, string offset,
                                  int32 limit, Promise<td_api::object_ptr<td_api::addedReactions>> &&promise) {
-  if (!td->messages_manager_->have_message_force(full_message_id, "get_message_added_reactions")) {
+  if (!td->messages_manager_->have_message_force(message_full_id, "get_message_added_reactions")) {
     return promise.set_error(Status::Error(400, "Message not found"));
   }
 
-  auto message_id = full_message_id.get_message_id();
-  if (full_message_id.get_dialog_id().get_type() == DialogType::SecretChat || !message_id.is_valid() ||
+  auto message_id = message_full_id.get_message_id();
+  if (message_full_id.get_dialog_id().get_type() == DialogType::SecretChat || !message_id.is_valid() ||
       !message_id.is_server()) {
     return promise.set_value(td_api::make_object<td_api::addedReactions>(0, Auto(), string()));
   }
@@ -898,12 +898,12 @@ void get_message_added_reactions(Td *td, FullMessageId full_message_id, Reaction
   }
 
   td->create_handler<GetMessageReactionsListQuery>(std::move(promise))
-      ->send(full_message_id, std::move(reaction_type), std::move(offset), limit);
+      ->send(message_full_id, std::move(reaction_type), std::move(offset), limit);
 }
 
-void report_message_reactions(Td *td, FullMessageId full_message_id, DialogId chooser_dialog_id,
+void report_message_reactions(Td *td, MessageFullId message_full_id, DialogId chooser_dialog_id,
                               Promise<Unit> &&promise) {
-  auto dialog_id = full_message_id.get_dialog_id();
+  auto dialog_id = message_full_id.get_dialog_id();
   if (!td->messages_manager_->have_dialog_force(dialog_id, "send_callback_query")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
@@ -914,10 +914,10 @@ void report_message_reactions(Td *td, FullMessageId full_message_id, DialogId ch
     return promise.set_error(Status::Error(400, "Reactions can't be reported in the chat"));
   }
 
-  if (!td->messages_manager_->have_message_force(full_message_id, "report_user_reactions")) {
+  if (!td->messages_manager_->have_message_force(message_full_id, "report_user_reactions")) {
     return promise.set_error(Status::Error(400, "Message not found"));
   }
-  auto message_id = full_message_id.get_message_id();
+  auto message_id = message_full_id.get_message_id();
   if (message_id.is_valid_scheduled()) {
     return promise.set_error(Status::Error(400, "Can't report reactions on scheduled messages"));
   }

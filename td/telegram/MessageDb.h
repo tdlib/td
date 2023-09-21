@@ -7,7 +7,7 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
-#include "td/telegram/FullMessageId.h"
+#include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageSearchFilter.h"
 #include "td/telegram/NotificationId.h"
@@ -104,16 +104,16 @@ class MessageDbSyncInterface {
   MessageDbSyncInterface &operator=(const MessageDbSyncInterface &) = delete;
   virtual ~MessageDbSyncInterface() = default;
 
-  virtual void add_message(FullMessageId full_message_id, ServerMessageId unique_message_id, DialogId sender_dialog_id,
+  virtual void add_message(MessageFullId message_full_id, ServerMessageId unique_message_id, DialogId sender_dialog_id,
                            int64 random_id, int32 ttl_expires_at, int32 index_mask, int64 search_id, string text,
                            NotificationId notification_id, MessageId top_thread_message_id, BufferSlice data) = 0;
-  virtual void add_scheduled_message(FullMessageId full_message_id, BufferSlice data) = 0;
+  virtual void add_scheduled_message(MessageFullId message_full_id, BufferSlice data) = 0;
 
-  virtual void delete_message(FullMessageId full_message_id) = 0;
+  virtual void delete_message(MessageFullId message_full_id) = 0;
   virtual void delete_all_dialog_messages(DialogId dialog_id, MessageId from_message_id) = 0;
   virtual void delete_dialog_messages_by_sender(DialogId dialog_id, DialogId sender_dialog_id) = 0;
 
-  virtual Result<MessageDbDialogMessage> get_message(FullMessageId full_message_id) = 0;
+  virtual Result<MessageDbDialogMessage> get_message(MessageFullId message_full_id) = 0;
   virtual Result<MessageDbMessage> get_message_by_unique_message_id(ServerMessageId unique_message_id) = 0;
   virtual Result<MessageDbDialogMessage> get_message_by_random_id(DialogId dialog_id, int64 random_id) = 0;
   virtual Result<MessageDbDialogMessage> get_dialog_message_by_date(DialogId dialog_id, MessageId first_message_id,
@@ -155,17 +155,17 @@ class MessageDbAsyncInterface {
   MessageDbAsyncInterface &operator=(const MessageDbAsyncInterface &) = delete;
   virtual ~MessageDbAsyncInterface() = default;
 
-  virtual void add_message(FullMessageId full_message_id, ServerMessageId unique_message_id, DialogId sender_dialog_id,
+  virtual void add_message(MessageFullId message_full_id, ServerMessageId unique_message_id, DialogId sender_dialog_id,
                            int64 random_id, int32 ttl_expires_at, int32 index_mask, int64 search_id, string text,
                            NotificationId notification_id, MessageId top_thread_message_id, BufferSlice data,
                            Promise<> promise) = 0;
-  virtual void add_scheduled_message(FullMessageId full_message_id, BufferSlice data, Promise<> promise) = 0;
+  virtual void add_scheduled_message(MessageFullId message_full_id, BufferSlice data, Promise<> promise) = 0;
 
-  virtual void delete_message(FullMessageId full_message_id, Promise<> promise) = 0;
+  virtual void delete_message(MessageFullId message_full_id, Promise<> promise) = 0;
   virtual void delete_all_dialog_messages(DialogId dialog_id, MessageId from_message_id, Promise<> promise) = 0;
   virtual void delete_dialog_messages_by_sender(DialogId dialog_id, DialogId sender_dialog_id, Promise<> promise) = 0;
 
-  virtual void get_message(FullMessageId full_message_id, Promise<MessageDbDialogMessage> promise) = 0;
+  virtual void get_message(MessageFullId message_full_id, Promise<MessageDbDialogMessage> promise) = 0;
   virtual void get_message_by_unique_message_id(ServerMessageId unique_message_id,
                                                 Promise<MessageDbMessage> promise) = 0;
   virtual void get_message_by_random_id(DialogId dialog_id, int64 random_id,

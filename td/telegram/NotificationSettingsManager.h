@@ -10,7 +10,7 @@
 #include "td/telegram/DialogNotificationSettings.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
-#include "td/telegram/FullMessageId.h"
+#include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/NotificationSettingsScope.h"
 #include "td/telegram/ScopeNotificationSettings.h"
@@ -225,7 +225,7 @@ class NotificationSettingsManager final : public Actor {
   vector<Promise<Unit>> reload_saved_ringtones_queries_;
   vector<Promise<Unit>> repair_saved_ringtones_queries_;
 
-  FlatHashMap<FullMessageId, vector<Promise<Unit>>, FullMessageIdHash> get_dialog_notification_settings_queries_;
+  FlatHashMap<MessageFullId, vector<Promise<Unit>>, MessageFullIdHash> get_dialog_notification_settings_queries_;
 };
 
 }  // namespace td

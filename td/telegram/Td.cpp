@@ -58,7 +58,6 @@
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/FolderId.h"
 #include "td/telegram/ForumTopicManager.h"
-#include "td/telegram/FullMessageId.h"
 #include "td/telegram/GameManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/GlobalPrivacySettings.h"
@@ -73,6 +72,7 @@
 #include "td/telegram/Logging.h"
 #include "td/telegram/MessageCopyOptions.h"
 #include "td/telegram/MessageEntity.h"
+#include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageLinkInfo.h"
 #include "td/telegram/MessageReaction.h"
@@ -949,19 +949,19 @@ class GetRecentlyOpenedChatsRequest final : public RequestActor<> {
 };
 
 class GetMessageRequest final : public RequestOnceActor {
-  FullMessageId full_message_id_;
+  MessageFullId message_full_id_;
 
   void do_run(Promise<Unit> &&promise) final {
-    td_->messages_manager_->get_message(full_message_id_, std::move(promise));
+    td_->messages_manager_->get_message(message_full_id_, std::move(promise));
   }
 
   void do_send_result() final {
-    send_result(td_->messages_manager_->get_message_object(full_message_id_, "GetMessageRequest"));
+    send_result(td_->messages_manager_->get_message_object(message_full_id_, "GetMessageRequest"));
   }
 
  public:
   GetMessageRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int64 message_id)
-      : RequestOnceActor(std::move(td), request_id), full_message_id_(DialogId(dialog_id), MessageId(message_id)) {
+      : RequestOnceActor(std::move(td), request_id), message_full_id_(DialogId(dialog_id), MessageId(message_id)) {
   }
 };
 
@@ -969,7 +969,7 @@ class GetRepliedMessageRequest final : public RequestOnceActor {
   DialogId dialog_id_;
   MessageId message_id_;
 
-  FullMessageId replied_message_id_;
+  MessageFullId replied_message_id_;
 
   void do_run(Promise<Unit> &&promise) final {
     replied_message_id_ =
@@ -1081,13 +1081,13 @@ class GetMessagesRequest final : public RequestOnceActor {
 };
 
 class GetMessageEmbeddingCodeRequest final : public RequestActor<> {
-  FullMessageId full_message_id_;
+  MessageFullId message_full_id_;
   bool for_group_;
 
   string html_;
 
   void do_run(Promise<Unit> &&promise) final {
-    html_ = td_->messages_manager_->get_message_embedding_code(full_message_id_, for_group_, std::move(promise));
+    html_ = td_->messages_manager_->get_message_embedding_code(message_full_id_, for_group_, std::move(promise));
   }
 
   void do_send_result() final {
@@ -1098,7 +1098,7 @@ class GetMessageEmbeddingCodeRequest final : public RequestActor<> {
   GetMessageEmbeddingCodeRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int64 message_id,
                                  bool for_group)
       : RequestActor(std::move(td), request_id)
-      , full_message_id_(DialogId(dialog_id), MessageId(message_id))
+      , message_full_id_(DialogId(dialog_id), MessageId(message_id))
       , for_group_(for_group) {
   }
 };
@@ -1158,17 +1158,17 @@ class GetDialogBoostLinkInfoRequest final : public RequestActor<DialogBoostLinkI
 };
 
 class EditMessageTextRequest final : public RequestOnceActor {
-  FullMessageId full_message_id_;
+  MessageFullId message_full_id_;
   tl_object_ptr<td_api::ReplyMarkup> reply_markup_;
   tl_object_ptr<td_api::InputMessageContent> input_message_content_;
 
   void do_run(Promise<Unit> &&promise) final {
-    td_->messages_manager_->edit_message_text(full_message_id_, std::move(reply_markup_),
+    td_->messages_manager_->edit_message_text(message_full_id_, std::move(reply_markup_),
                                               std::move(input_message_content_), std::move(promise));
   }
 
   void do_send_result() final {
-    send_result(td_->messages_manager_->get_message_object(full_message_id_, "EditMessageTextRequest"));
+    send_result(td_->messages_manager_->get_message_object(message_full_id_, "EditMessageTextRequest"));
   }
 
  public:
@@ -1176,26 +1176,26 @@ class EditMessageTextRequest final : public RequestOnceActor {
                          tl_object_ptr<td_api::ReplyMarkup> reply_markup,
                          tl_object_ptr<td_api::InputMessageContent> input_message_content)
       : RequestOnceActor(std::move(td), request_id)
-      , full_message_id_(DialogId(dialog_id), MessageId(message_id))
+      , message_full_id_(DialogId(dialog_id), MessageId(message_id))
       , reply_markup_(std::move(reply_markup))
       , input_message_content_(std::move(input_message_content)) {
   }
 };
 
 class EditMessageLiveLocationRequest final : public RequestOnceActor {
-  FullMessageId full_message_id_;
+  MessageFullId message_full_id_;
   tl_object_ptr<td_api::ReplyMarkup> reply_markup_;
   tl_object_ptr<td_api::location> location_;
   int32 heading_;
   int32 proximity_alert_radius_;
 
   void do_run(Promise<Unit> &&promise) final {
-    td_->messages_manager_->edit_message_live_location(full_message_id_, std::move(reply_markup_), std::move(location_),
+    td_->messages_manager_->edit_message_live_location(message_full_id_, std::move(reply_markup_), std::move(location_),
                                                        heading_, proximity_alert_radius_, std::move(promise));
   }
 
   void do_send_result() final {
-    send_result(td_->messages_manager_->get_message_object(full_message_id_, "EditMessageLiveLocationRequest"));
+    send_result(td_->messages_manager_->get_message_object(message_full_id_, "EditMessageLiveLocationRequest"));
   }
 
  public:
@@ -1203,7 +1203,7 @@ class EditMessageLiveLocationRequest final : public RequestOnceActor {
                                  tl_object_ptr<td_api::ReplyMarkup> reply_markup,
                                  tl_object_ptr<td_api::location> location, int32 heading, int32 proximity_alert_radius)
       : RequestOnceActor(std::move(td), request_id)
-      , full_message_id_(DialogId(dialog_id), MessageId(message_id))
+      , message_full_id_(DialogId(dialog_id), MessageId(message_id))
       , reply_markup_(std::move(reply_markup))
       , location_(std::move(location))
       , heading_(heading)
@@ -1212,17 +1212,17 @@ class EditMessageLiveLocationRequest final : public RequestOnceActor {
 };
 
 class EditMessageMediaRequest final : public RequestOnceActor {
-  FullMessageId full_message_id_;
+  MessageFullId message_full_id_;
   tl_object_ptr<td_api::ReplyMarkup> reply_markup_;
   tl_object_ptr<td_api::InputMessageContent> input_message_content_;
 
   void do_run(Promise<Unit> &&promise) final {
-    td_->messages_manager_->edit_message_media(full_message_id_, std::move(reply_markup_),
+    td_->messages_manager_->edit_message_media(message_full_id_, std::move(reply_markup_),
                                                std::move(input_message_content_), std::move(promise));
   }
 
   void do_send_result() final {
-    send_result(td_->messages_manager_->get_message_object(full_message_id_, "EditMessageMediaRequest"));
+    send_result(td_->messages_manager_->get_message_object(message_full_id_, "EditMessageMediaRequest"));
   }
 
  public:
@@ -1230,24 +1230,24 @@ class EditMessageMediaRequest final : public RequestOnceActor {
                           tl_object_ptr<td_api::ReplyMarkup> reply_markup,
                           tl_object_ptr<td_api::InputMessageContent> input_message_content)
       : RequestOnceActor(std::move(td), request_id)
-      , full_message_id_(DialogId(dialog_id), MessageId(message_id))
+      , message_full_id_(DialogId(dialog_id), MessageId(message_id))
       , reply_markup_(std::move(reply_markup))
       , input_message_content_(std::move(input_message_content)) {
   }
 };
 
 class EditMessageCaptionRequest final : public RequestOnceActor {
-  FullMessageId full_message_id_;
+  MessageFullId message_full_id_;
   tl_object_ptr<td_api::ReplyMarkup> reply_markup_;
   tl_object_ptr<td_api::formattedText> caption_;
 
   void do_run(Promise<Unit> &&promise) final {
-    td_->messages_manager_->edit_message_caption(full_message_id_, std::move(reply_markup_), std::move(caption_),
+    td_->messages_manager_->edit_message_caption(message_full_id_, std::move(reply_markup_), std::move(caption_),
                                                  std::move(promise));
   }
 
   void do_send_result() final {
-    send_result(td_->messages_manager_->get_message_object(full_message_id_, "EditMessageCaptionRequest"));
+    send_result(td_->messages_manager_->get_message_object(message_full_id_, "EditMessageCaptionRequest"));
   }
 
  public:
@@ -1255,29 +1255,29 @@ class EditMessageCaptionRequest final : public RequestOnceActor {
                             tl_object_ptr<td_api::ReplyMarkup> reply_markup,
                             tl_object_ptr<td_api::formattedText> caption)
       : RequestOnceActor(std::move(td), request_id)
-      , full_message_id_(DialogId(dialog_id), MessageId(message_id))
+      , message_full_id_(DialogId(dialog_id), MessageId(message_id))
       , reply_markup_(std::move(reply_markup))
       , caption_(std::move(caption)) {
   }
 };
 
 class EditMessageReplyMarkupRequest final : public RequestOnceActor {
-  FullMessageId full_message_id_;
+  MessageFullId message_full_id_;
   tl_object_ptr<td_api::ReplyMarkup> reply_markup_;
 
   void do_run(Promise<Unit> &&promise) final {
-    td_->messages_manager_->edit_message_reply_markup(full_message_id_, std::move(reply_markup_), std::move(promise));
+    td_->messages_manager_->edit_message_reply_markup(message_full_id_, std::move(reply_markup_), std::move(promise));
   }
 
   void do_send_result() final {
-    send_result(td_->messages_manager_->get_message_object(full_message_id_, "EditMessageReplyMarkupRequest"));
+    send_result(td_->messages_manager_->get_message_object(message_full_id_, "EditMessageReplyMarkupRequest"));
   }
 
  public:
   EditMessageReplyMarkupRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int64 message_id,
                                 tl_object_ptr<td_api::ReplyMarkup> reply_markup)
       : RequestOnceActor(std::move(td), request_id)
-      , full_message_id_(DialogId(dialog_id), MessageId(message_id))
+      , message_full_id_(DialogId(dialog_id), MessageId(message_id))
       , reply_markup_(std::move(reply_markup)) {
   }
 };
@@ -1536,14 +1536,14 @@ class SearchCallMessagesRequest final : public RequestActor<> {
 };
 
 class GetActiveLiveLocationMessagesRequest final : public RequestActor<> {
-  vector<FullMessageId> full_message_ids_;
+  vector<MessageFullId> message_full_ids_;
 
   void do_run(Promise<Unit> &&promise) final {
-    full_message_ids_ = td_->messages_manager_->get_active_live_location_messages(std::move(promise));
+    message_full_ids_ = td_->messages_manager_->get_active_live_location_messages(std::move(promise));
   }
 
   void do_send_result() final {
-    send_result(td_->messages_manager_->get_messages_object(-1, full_message_ids_, true,
+    send_result(td_->messages_manager_->get_messages_object(-1, message_full_ids_, true,
                                                             "GetActiveLiveLocationMessagesRequest"));
   }
 
@@ -4772,9 +4772,9 @@ void Td::on_request(uint64 id, const td_api::getMessage &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::getMessageLocally &request) {
-  FullMessageId full_message_id(DialogId(request.chat_id_), MessageId(request.message_id_));
+  MessageFullId message_full_id(DialogId(request.chat_id_), MessageId(request.message_id_));
   send_closure(actor_id(this), &Td::send_result, id,
-               messages_manager_->get_message_object(full_message_id, "getMessageLocally"));
+               messages_manager_->get_message_object(message_full_id, "getMessageLocally"));
 }
 
 void Td::on_request(uint64 id, const td_api::getRepliedMessage &request) {
@@ -7140,7 +7140,7 @@ void Td::on_request(uint64 id, const td_api::addFileToDownloads &request) {
   }
   CREATE_REQUEST_PROMISE();
   messages_manager_->add_message_file_to_downloads(
-      FullMessageId(DialogId(request.chat_id_), MessageId(request.message_id_)), FileId(request.file_id_, 0),
+      MessageFullId(DialogId(request.chat_id_), MessageId(request.message_id_)), FileId(request.file_id_, 0),
       request.priority_, std::move(promise));
 }
 

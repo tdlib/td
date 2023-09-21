@@ -330,34 +330,34 @@ void StatisticsManager::send_get_channel_stats_query(DcId dc_id, ChannelId chann
 }
 
 void StatisticsManager::get_channel_message_statistics(
-    FullMessageId full_message_id, bool is_dark, Promise<td_api::object_ptr<td_api::messageStatistics>> &&promise) {
-  auto dc_id_promise = PromiseCreator::lambda([actor_id = actor_id(this), full_message_id, is_dark,
+    MessageFullId message_full_id, bool is_dark, Promise<td_api::object_ptr<td_api::messageStatistics>> &&promise) {
+  auto dc_id_promise = PromiseCreator::lambda([actor_id = actor_id(this), message_full_id, is_dark,
                                                promise = std::move(promise)](Result<DcId> r_dc_id) mutable {
     if (r_dc_id.is_error()) {
       return promise.set_error(r_dc_id.move_as_error());
     }
     send_closure(actor_id, &StatisticsManager::send_get_channel_message_stats_query, r_dc_id.move_as_ok(),
-                 full_message_id, is_dark, std::move(promise));
+                 message_full_id, is_dark, std::move(promise));
   });
-  td_->contacts_manager_->get_channel_statistics_dc_id(full_message_id.get_dialog_id(), false,
+  td_->contacts_manager_->get_channel_statistics_dc_id(message_full_id.get_dialog_id(), false,
                                                        std::move(dc_id_promise));
 }
 
 void StatisticsManager::send_get_channel_message_stats_query(
-    DcId dc_id, FullMessageId full_message_id, bool is_dark,
+    DcId dc_id, MessageFullId message_full_id, bool is_dark,
     Promise<td_api::object_ptr<td_api::messageStatistics>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
-  auto dialog_id = full_message_id.get_dialog_id();
-  if (!td_->messages_manager_->have_message_force(full_message_id, "send_get_channel_message_stats_query")) {
+  auto dialog_id = message_full_id.get_dialog_id();
+  if (!td_->messages_manager_->have_message_force(message_full_id, "send_get_channel_message_stats_query")) {
     return promise.set_error(Status::Error(400, "Message not found"));
   }
-  if (!td_->messages_manager_->can_get_message_statistics(full_message_id)) {
+  if (!td_->messages_manager_->can_get_message_statistics(message_full_id)) {
     return promise.set_error(Status::Error(400, "Message statistics is inaccessible"));
   }
   CHECK(dialog_id.get_type() == DialogType::Channel);
   td_->create_handler<GetMessageStatsQuery>(std::move(promise))
-      ->send(dialog_id.get_channel_id(), full_message_id.get_message_id(), is_dark, dc_id);
+      ->send(dialog_id.get_channel_id(), message_full_id.get_message_id(), is_dark, dc_id);
 }
 
 void StatisticsManager::load_statistics_graph(DialogId dialog_id, string token, int64 x,

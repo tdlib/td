@@ -14,7 +14,7 @@
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileSourceId.h"
-#include "td/telegram/FullMessageId.h"
+#include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/NotificationSettingsManager.h"
 #include "td/telegram/StickersManager.h"
@@ -36,7 +36,7 @@ void FileReferenceManager::store_file_source(FileSourceId file_source_id, Storer
   CHECK(index < file_sources_.size());
   auto &source = file_sources_[index];
   td::store(source.get_offset(), storer);
-  source.visit(overloaded([&](const FileSourceMessage &source) { td::store(source.full_message_id, storer); },
+  source.visit(overloaded([&](const FileSourceMessage &source) { td::store(source.message_full_id, storer); },
                           [&](const FileSourceUserPhoto &source) {
                             td::store(source.user_id, storer);
                             td::store(source.photo_id, storer);
@@ -69,9 +69,9 @@ FileSourceId FileReferenceManager::parse_file_source(Td *td, ParserT &parser) {
   auto type = parser.fetch_int();
   switch (type) {
     case 0: {
-      FullMessageId full_message_id;
-      td::parse(full_message_id, parser);
-      return td->messages_manager_->get_message_file_source_id(full_message_id);
+      MessageFullId message_full_id;
+      td::parse(message_full_id, parser);
+      return td->messages_manager_->get_message_file_source_id(message_full_id);
     }
     case 1: {
       UserId user_id;

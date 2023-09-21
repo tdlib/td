@@ -7,7 +7,7 @@
 #pragma once
 
 #include "td/telegram/files/FileId.h"
-#include "td/telegram/FullMessageId.h"
+#include "td/telegram/MessageFullId.h"
 #include "td/telegram/SecretInputMedia.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -41,13 +41,13 @@ class VoiceNotesManager final : public Actor {
 
   void create_voice_note(FileId file_id, string mime_type, int32 duration, string waveform, bool replace);
 
-  void register_voice_note(FileId voice_note_file_id, FullMessageId full_message_id, const char *source);
+  void register_voice_note(FileId voice_note_file_id, MessageFullId message_full_id, const char *source);
 
-  void unregister_voice_note(FileId voice_note_file_id, FullMessageId full_message_id, const char *source);
+  void unregister_voice_note(FileId voice_note_file_id, MessageFullId message_full_id, const char *source);
 
-  void recognize_speech(FullMessageId full_message_id, Promise<Unit> &&promise);
+  void recognize_speech(MessageFullId message_full_id, Promise<Unit> &&promise);
 
-  void rate_speech_recognition(FullMessageId full_message_id, bool is_good, Promise<Unit> &&promise);
+  void rate_speech_recognition(MessageFullId message_full_id, bool is_good, Promise<Unit> &&promise);
 
   tl_object_ptr<telegram_api::InputMedia> get_input_media(FileId file_id,
                                                           tl_object_ptr<telegram_api::InputFile> input_file) const;
@@ -97,8 +97,8 @@ class VoiceNotesManager final : public Actor {
 
   WaitFreeHashMap<FileId, unique_ptr<VoiceNote>, FileIdHash> voice_notes_;
 
-  FlatHashMap<FileId, FlatHashSet<FullMessageId, FullMessageIdHash>, FileIdHash> voice_note_messages_;
-  FlatHashMap<FullMessageId, FileId, FullMessageIdHash> message_voice_notes_;
+  FlatHashMap<FileId, FlatHashSet<MessageFullId, MessageFullIdHash>, FileIdHash> voice_note_messages_;
+  FlatHashMap<MessageFullId, FileId, MessageFullIdHash> message_voice_notes_;
 };
 
 }  // namespace td

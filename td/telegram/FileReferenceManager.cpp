@@ -92,9 +92,9 @@ FileSourceId FileReferenceManager::add_file_source_id(T &source, Slice source_st
   return get_current_file_source_id();
 }
 
-FileSourceId FileReferenceManager::create_message_file_source(FullMessageId full_message_id) {
-  FileSourceMessage source{full_message_id};
-  return add_file_source_id(source, PSLICE() << full_message_id);
+FileSourceId FileReferenceManager::create_message_file_source(MessageFullId message_full_id) {
+  FileSourceMessage source{message_full_id};
+  return add_file_source_id(source, PSLICE() << message_full_id);
 }
 
 FileSourceId FileReferenceManager::create_user_photo_file_source(UserId user_id, int64 photo_id) {
@@ -204,16 +204,16 @@ vector<FileSourceId> FileReferenceManager::get_some_file_sources(NodeId node_id)
   return node->file_source_ids.get_some_elements();
 }
 
-vector<FullMessageId> FileReferenceManager::get_some_message_file_sources(NodeId node_id) {
+vector<MessageFullId> FileReferenceManager::get_some_message_file_sources(NodeId node_id) {
   auto file_source_ids = get_some_file_sources(node_id);
 
-  vector<FullMessageId> result;
+  vector<MessageFullId> result;
   for (auto file_source_id : file_source_ids) {
     auto index = static_cast<size_t>(file_source_id.get()) - 1;
     CHECK(index < file_sources_.size());
     const auto &file_source = file_sources_[index];
     if (file_source.get_offset() == 0) {
-      result.push_back(file_source.get<FileSourceMessage>().full_message_id);
+      result.push_back(file_source.get<FileSourceMessage>().message_full_id);
     }
   }
   return result;
@@ -312,7 +312,7 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
   CHECK(index < file_sources_.size());
   file_sources_[index].visit(overloaded(
       [&](const FileSourceMessage &source) {
-        send_closure_later(G()->messages_manager(), &MessagesManager::get_message_from_server, source.full_message_id,
+        send_closure_later(G()->messages_manager(), &MessagesManager::get_message_from_server, source.message_full_id,
                            std::move(promise), "FileSourceMessage", nullptr);
       },
       [&](const FileSourceUserPhoto &source) {
@@ -475,7 +475,7 @@ void FileReferenceManager::get_file_search_text(FileSourceId file_source_id, str
   file_sources_[index].visit(overloaded(
       [&](const FileSourceMessage &source) {
         send_closure_later(G()->messages_manager(), &MessagesManager::get_message_file_search_text,
-                           source.full_message_id, std::move(unique_file_id), std::move(promise));
+                           source.message_full_id, std::move(unique_file_id), std::move(promise));
       },
       [&](const auto &source) { promise.set_error(Status::Error(500, "Unsupported file source")); }));
 }
@@ -486,7 +486,7 @@ td_api::object_ptr<td_api::message> FileReferenceManager::get_message_object(Fil
   td_api::object_ptr<td_api::message> result;
   file_sources_[index].visit(overloaded(
       [&](const FileSourceMessage &source) {
-        result = G()->td().get_actor_unsafe()->messages_manager_->get_message_object(source.full_message_id,
+        result = G()->td().get_actor_unsafe()->messages_manager_->get_message_object(source.message_full_id,
                                                                                      "FileReferenceManager");
       },
       [&](const auto &source) { LOG(ERROR) << "Unsupported file source"; }));

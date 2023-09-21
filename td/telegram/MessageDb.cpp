@@ -287,13 +287,13 @@ class MessageDbImpl final : public MessageDbSyncInterface {
     return Status::OK();
   }
 
-  void add_message(FullMessageId full_message_id, ServerMessageId unique_message_id, DialogId sender_dialog_id,
+  void add_message(MessageFullId message_full_id, ServerMessageId unique_message_id, DialogId sender_dialog_id,
                    int64 random_id, int32 ttl_expires_at, int32 index_mask, int64 search_id, string text,
                    NotificationId notification_id, MessageId top_thread_message_id, BufferSlice data) final {
-    LOG(INFO) << "Add " << full_message_id << " to database";
-    auto dialog_id = full_message_id.get_dialog_id();
-    auto message_id = full_message_id.get_message_id();
-    LOG_CHECK(dialog_id.is_valid()) << dialog_id << ' ' << message_id << ' ' << full_message_id;
+    LOG(INFO) << "Add " << message_full_id << " to database";
+    auto dialog_id = message_full_id.get_dialog_id();
+    auto message_id = message_full_id.get_message_id();
+    LOG_CHECK(dialog_id.is_valid()) << dialog_id << ' ' << message_id << ' ' << message_full_id;
     CHECK(message_id.is_valid());
     SCOPE_EXIT {
       add_message_stmt_.reset();
@@ -366,10 +366,10 @@ class MessageDbImpl final : public MessageDbSyncInterface {
     add_message_stmt_.step().ensure();
   }
 
-  void add_scheduled_message(FullMessageId full_message_id, BufferSlice data) final {
-    LOG(INFO) << "Add " << full_message_id << " to database";
-    auto dialog_id = full_message_id.get_dialog_id();
-    auto message_id = full_message_id.get_message_id();
+  void add_scheduled_message(MessageFullId message_full_id, BufferSlice data) final {
+    LOG(INFO) << "Add " << message_full_id << " to database";
+    auto dialog_id = message_full_id.get_dialog_id();
+    auto message_id = message_full_id.get_message_id();
     CHECK(dialog_id.is_valid());
     CHECK(message_id.is_valid_scheduled());
     SCOPE_EXIT {
@@ -389,10 +389,10 @@ class MessageDbImpl final : public MessageDbSyncInterface {
     add_scheduled_message_stmt_.step().ensure();
   }
 
-  void delete_message(FullMessageId full_message_id) final {
-    LOG(INFO) << "Delete " << full_message_id << " from database";
-    auto dialog_id = full_message_id.get_dialog_id();
-    auto message_id = full_message_id.get_message_id();
+  void delete_message(MessageFullId message_full_id) final {
+    LOG(INFO) << "Delete " << message_full_id << " from database";
+    auto dialog_id = message_full_id.get_dialog_id();
+    auto message_id = message_full_id.get_message_id();
     CHECK(dialog_id.is_valid());
     CHECK(message_id.is_valid() || message_id.is_valid_scheduled());
     bool is_scheduled = message_id.is_scheduled();
@@ -439,9 +439,9 @@ class MessageDbImpl final : public MessageDbSyncInterface {
     delete_dialog_messages_by_sender_stmt_.step().ensure();
   }
 
-  Result<MessageDbDialogMessage> get_message(FullMessageId full_message_id) final {
-    auto dialog_id = full_message_id.get_dialog_id();
-    auto message_id = full_message_id.get_message_id();
+  Result<MessageDbDialogMessage> get_message(MessageFullId message_full_id) final {
+    auto dialog_id = message_full_id.get_dialog_id();
+    auto message_id = message_full_id.get_message_id();
     CHECK(dialog_id.is_valid());
     CHECK(message_id.is_valid() || message_id.is_valid_scheduled());
     bool is_scheduled = message_id.is_scheduled();
@@ -988,20 +988,20 @@ class MessageDbAsync final : public MessageDbAsyncInterface {
     impl_ = create_actor_on_scheduler<Impl>("MessageDbActor", scheduler_id, std::move(sync_db));
   }
 
-  void add_message(FullMessageId full_message_id, ServerMessageId unique_message_id, DialogId sender_dialog_id,
+  void add_message(MessageFullId message_full_id, ServerMessageId unique_message_id, DialogId sender_dialog_id,
                    int64 random_id, int32 ttl_expires_at, int32 index_mask, int64 search_id, string text,
                    NotificationId notification_id, MessageId top_thread_message_id, BufferSlice data,
                    Promise<> promise) final {
-    send_closure_later(impl_, &Impl::add_message, full_message_id, unique_message_id, sender_dialog_id, random_id,
+    send_closure_later(impl_, &Impl::add_message, message_full_id, unique_message_id, sender_dialog_id, random_id,
                        ttl_expires_at, index_mask, search_id, std::move(text), notification_id, top_thread_message_id,
                        std::move(data), std::move(promise));
   }
-  void add_scheduled_message(FullMessageId full_message_id, BufferSlice data, Promise<> promise) final {
-    send_closure_later(impl_, &Impl::add_scheduled_message, full_message_id, std::move(data), std::move(promise));
+  void add_scheduled_message(MessageFullId message_full_id, BufferSlice data, Promise<> promise) final {
+    send_closure_later(impl_, &Impl::add_scheduled_message, message_full_id, std::move(data), std::move(promise));
   }
 
-  void delete_message(FullMessageId full_message_id, Promise<> promise) final {
-    send_closure_later(impl_, &Impl::delete_message, full_message_id, std::move(promise));
+  void delete_message(MessageFullId message_full_id, Promise<> promise) final {
+    send_closure_later(impl_, &Impl::delete_message, message_full_id, std::move(promise));
   }
   void delete_all_dialog_messages(DialogId dialog_id, MessageId from_message_id, Promise<> promise) final {
     send_closure_later(impl_, &Impl::delete_all_dialog_messages, dialog_id, from_message_id, std::move(promise));
@@ -1010,8 +1010,8 @@ class MessageDbAsync final : public MessageDbAsyncInterface {
     send_closure_later(impl_, &Impl::delete_dialog_messages_by_sender, dialog_id, sender_dialog_id, std::move(promise));
   }
 
-  void get_message(FullMessageId full_message_id, Promise<MessageDbDialogMessage> promise) final {
-    send_closure_later(impl_, &Impl::get_message, full_message_id, std::move(promise));
+  void get_message(MessageFullId message_full_id, Promise<MessageDbDialogMessage> promise) final {
+    send_closure_later(impl_, &Impl::get_message, message_full_id, std::move(promise));
   }
   void get_message_by_unique_message_id(ServerMessageId unique_message_id, Promise<MessageDbMessage> promise) final {
     send_closure_later(impl_, &Impl::get_message_by_unique_message_id, unique_message_id, std::move(promise));
@@ -1068,29 +1068,29 @@ class MessageDbAsync final : public MessageDbAsyncInterface {
    public:
     explicit Impl(std::shared_ptr<MessageDbSyncSafeInterface> sync_db_safe) : sync_db_safe_(std::move(sync_db_safe)) {
     }
-    void add_message(FullMessageId full_message_id, ServerMessageId unique_message_id, DialogId sender_dialog_id,
+    void add_message(MessageFullId message_full_id, ServerMessageId unique_message_id, DialogId sender_dialog_id,
                      int64 random_id, int32 ttl_expires_at, int32 index_mask, int64 search_id, string text,
                      NotificationId notification_id, MessageId top_thread_message_id, BufferSlice data,
                      Promise<> promise) {
-      add_write_query([this, full_message_id, unique_message_id, sender_dialog_id, random_id, ttl_expires_at,
+      add_write_query([this, message_full_id, unique_message_id, sender_dialog_id, random_id, ttl_expires_at,
                        index_mask, search_id, text = std::move(text), notification_id, top_thread_message_id,
                        data = std::move(data), promise = std::move(promise)](Unit) mutable {
-        sync_db_->add_message(full_message_id, unique_message_id, sender_dialog_id, random_id, ttl_expires_at,
+        sync_db_->add_message(message_full_id, unique_message_id, sender_dialog_id, random_id, ttl_expires_at,
                               index_mask, search_id, std::move(text), notification_id, top_thread_message_id,
                               std::move(data));
         on_write_result(std::move(promise));
       });
     }
-    void add_scheduled_message(FullMessageId full_message_id, BufferSlice data, Promise<> promise) {
-      add_write_query([this, full_message_id, promise = std::move(promise), data = std::move(data)](Unit) mutable {
-        sync_db_->add_scheduled_message(full_message_id, std::move(data));
+    void add_scheduled_message(MessageFullId message_full_id, BufferSlice data, Promise<> promise) {
+      add_write_query([this, message_full_id, promise = std::move(promise), data = std::move(data)](Unit) mutable {
+        sync_db_->add_scheduled_message(message_full_id, std::move(data));
         on_write_result(std::move(promise));
       });
     }
 
-    void delete_message(FullMessageId full_message_id, Promise<> promise) {
-      add_write_query([this, full_message_id, promise = std::move(promise)](Unit) mutable {
-        sync_db_->delete_message(full_message_id);
+    void delete_message(MessageFullId message_full_id, Promise<> promise) {
+      add_write_query([this, message_full_id, promise = std::move(promise)](Unit) mutable {
+        sync_db_->delete_message(message_full_id);
         on_write_result(std::move(promise));
       });
     }
@@ -1112,9 +1112,9 @@ class MessageDbAsync final : public MessageDbAsyncInterface {
       promise.set_value(Unit());
     }
 
-    void get_message(FullMessageId full_message_id, Promise<MessageDbDialogMessage> promise) {
+    void get_message(MessageFullId message_full_id, Promise<MessageDbDialogMessage> promise) {
       add_read_query();
-      promise.set_result(sync_db_->get_message(full_message_id));
+      promise.set_result(sync_db_->get_message(message_full_id));
     }
     void get_message_by_unique_message_id(ServerMessageId unique_message_id, Promise<MessageDbMessage> promise) {
       add_read_query();

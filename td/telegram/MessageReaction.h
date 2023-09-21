@@ -8,7 +8,7 @@
 
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/DialogId.h"
-#include "td/telegram/FullMessageId.h"
+#include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MinChannel.h"
 #include "td/telegram/ReactionType.h"
@@ -212,13 +212,13 @@ StringBuilder &operator<<(StringBuilder &string_builder, const unique_ptr<Messag
 
 void reload_message_reactions(Td *td, DialogId dialog_id, vector<MessageId> &&message_ids);
 
-void send_message_reaction(Td *td, FullMessageId full_message_id, vector<ReactionType> reaction_types, bool is_big,
+void send_message_reaction(Td *td, MessageFullId message_full_id, vector<ReactionType> reaction_types, bool is_big,
                            bool add_to_recent, Promise<Unit> &&promise);
 
-void get_message_added_reactions(Td *td, FullMessageId full_message_id, ReactionType reaction_type, string offset,
+void get_message_added_reactions(Td *td, MessageFullId message_full_id, ReactionType reaction_type, string offset,
                                  int32 limit, Promise<td_api::object_ptr<td_api::addedReactions>> &&promise);
 
-void report_message_reactions(Td *td, FullMessageId full_message_id, DialogId chooser_dialog_id,
+void report_message_reactions(Td *td, MessageFullId message_full_id, DialogId chooser_dialog_id,
                               Promise<Unit> &&promise);
 
 }  // namespace td

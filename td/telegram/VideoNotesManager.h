@@ -8,7 +8,7 @@
 
 #include "td/telegram/Dimensions.h"
 #include "td/telegram/files/FileId.h"
-#include "td/telegram/FullMessageId.h"
+#include "td/telegram/MessageFullId.h"
 #include "td/telegram/PhotoSize.h"
 #include "td/telegram/SecretInputMedia.h"
 #include "td/telegram/td_api.h"
@@ -45,13 +45,13 @@ class VideoNotesManager final : public Actor {
   void create_video_note(FileId file_id, string minithumbnail, PhotoSize thumbnail, int32 duration,
                          Dimensions dimensions, string waveform, bool replace);
 
-  void register_video_note(FileId video_note_file_id, FullMessageId full_message_id, const char *source);
+  void register_video_note(FileId video_note_file_id, MessageFullId message_full_id, const char *source);
 
-  void unregister_video_note(FileId video_note_file_id, FullMessageId full_message_id, const char *source);
+  void unregister_video_note(FileId video_note_file_id, MessageFullId message_full_id, const char *source);
 
-  void recognize_speech(FullMessageId full_message_id, Promise<Unit> &&promise);
+  void recognize_speech(MessageFullId message_full_id, Promise<Unit> &&promise);
 
-  void rate_speech_recognition(FullMessageId full_message_id, bool is_good, Promise<Unit> &&promise);
+  void rate_speech_recognition(MessageFullId message_full_id, bool is_good, Promise<Unit> &&promise);
 
   tl_object_ptr<telegram_api::InputMedia> get_input_media(FileId file_id,
                                                           tl_object_ptr<telegram_api::InputFile> input_file,
@@ -108,8 +108,8 @@ class VideoNotesManager final : public Actor {
 
   WaitFreeHashMap<FileId, unique_ptr<VideoNote>, FileIdHash> video_notes_;
 
-  FlatHashMap<FileId, FlatHashSet<FullMessageId, FullMessageIdHash>, FileIdHash> video_note_messages_;
-  FlatHashMap<FullMessageId, FileId, FullMessageIdHash> message_video_notes_;
+  FlatHashMap<FileId, FlatHashSet<MessageFullId, MessageFullIdHash>, FileIdHash> video_note_messages_;
+  FlatHashMap<MessageFullId, FileId, MessageFullIdHash> message_video_notes_;
 };
 
 }  // namespace td

@@ -11,7 +11,7 @@
 #include "td/telegram/ChatId.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
-#include "td/telegram/FullMessageId.h"
+#include "td/telegram/MessageFullId.h"
 #include "td/telegram/PhotoSizeSource.h"
 #include "td/telegram/SetWithPosition.h"
 #include "td/telegram/StoryFullId.h"
@@ -47,7 +47,7 @@ class FileReferenceManager final : public Actor {
   static bool is_file_reference_error(const Status &error);
   static size_t get_file_reference_error_pos(const Status &error);
 
-  FileSourceId create_message_file_source(FullMessageId full_message_id);
+  FileSourceId create_message_file_source(MessageFullId message_full_id);
   FileSourceId create_user_photo_file_source(UserId user_id, int64 photo_id);
   // file reference aren't used for chat/channel photo download and the photos can't be reused
   // FileSourceId create_chat_photo_file_source(ChatId chat_id);
@@ -80,7 +80,7 @@ class FileReferenceManager final : public Actor {
 
   vector<FileSourceId> get_some_file_sources(NodeId node_id);
 
-  vector<FullMessageId> get_some_message_file_sources(NodeId node_id);
+  vector<MessageFullId> get_some_message_file_sources(NodeId node_id);
 
   bool remove_file_source(NodeId node_id, FileSourceId file_source_id);
 
@@ -118,7 +118,7 @@ class FileReferenceManager final : public Actor {
   };
 
   struct FileSourceMessage {
-    FullMessageId full_message_id;
+    MessageFullId message_full_id;
   };
   struct FileSourceUserPhoto {
     int64 photo_id;

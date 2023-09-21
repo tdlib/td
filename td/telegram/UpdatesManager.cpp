@@ -1429,7 +1429,7 @@ const telegram_api::Message *UpdatesManager::get_message_by_random_id(const tele
   }
 
   const telegram_api::Message *result = nullptr;
-  FullMessageId full_message_id(dialog_id, MessageId(ServerMessageId(message_id)));
+  MessageFullId message_full_id(dialog_id, MessageId(ServerMessageId(message_id)));
   for (auto &update : *updates) {
     auto constructor_id = update->get_id();
     const tl_object_ptr<telegram_api::Message> *message = nullptr;
@@ -1438,7 +1438,7 @@ const telegram_api::Message *UpdatesManager::get_message_by_random_id(const tele
     } else if (constructor_id == telegram_api::updateNewChannelMessage::ID) {
       message = &static_cast<const telegram_api::updateNewChannelMessage *>(update.get())->message_;
     }
-    if (message != nullptr && FullMessageId::get_full_message_id(*message, false) == full_message_id) {
+    if (message != nullptr && MessageFullId::get_message_full_id(*message, false) == message_full_id) {
       if (result != nullptr) {
         return nullptr;
       }
@@ -1619,7 +1619,7 @@ vector<DialogId> UpdatesManager::get_chat_dialog_ids(const telegram_api::Updates
 }
 
 int32 UpdatesManager::get_update_edit_message_pts(const telegram_api::Updates *updates_ptr,
-                                                  FullMessageId full_message_id) {
+                                                  MessageFullId message_full_id) {
   int32 pts = 0;
   auto updates = get_updates(updates_ptr);
   if (updates != nullptr) {
@@ -1628,24 +1628,24 @@ int32 UpdatesManager::get_update_edit_message_pts(const telegram_api::Updates *u
         switch (update_ptr->get_id()) {
           case telegram_api::updateEditMessage::ID: {
             auto update = static_cast<const telegram_api::updateEditMessage *>(update_ptr.get());
-            if (FullMessageId::get_full_message_id(update->message_, false) == full_message_id) {
+            if (MessageFullId::get_message_full_id(update->message_, false) == message_full_id) {
               return update->pts_;
             }
             return 0;
           }
           case telegram_api::updateEditChannelMessage::ID: {
             auto update = static_cast<const telegram_api::updateEditChannelMessage *>(update_ptr.get());
-            if (FullMessageId::get_full_message_id(update->message_, false) == full_message_id) {
+            if (MessageFullId::get_message_full_id(update->message_, false) == message_full_id) {
               return update->pts_;
             }
             return 0;
           }
           case telegram_api::updateNewScheduledMessage::ID: {
             auto update = static_cast<const telegram_api::updateNewScheduledMessage *>(update_ptr.get());
-            auto new_full_message_id = FullMessageId::get_full_message_id(update->message_, true);
-            if (new_full_message_id.get_dialog_id() == full_message_id.get_dialog_id()) {
-              auto new_message_id = new_full_message_id.get_message_id();
-              auto old_message_id = full_message_id.get_message_id();
+            auto new_message_full_id = MessageFullId::get_message_full_id(update->message_, true);
+            if (new_message_full_id.get_dialog_id() == message_full_id.get_dialog_id()) {
+              auto new_message_id = new_message_full_id.get_message_id();
+              auto old_message_id = message_full_id.get_message_id();
               if (new_message_id.is_valid_scheduled() && new_message_id.is_scheduled_server() &&
                   old_message_id.is_valid_scheduled() && old_message_id.is_scheduled_server() &&
                   old_message_id.get_scheduled_server_message_id() ==
@@ -1672,7 +1672,7 @@ int32 UpdatesManager::get_update_edit_message_pts(const telegram_api::Updates *u
     LOG(ERROR) << "Receive multiple edit message updates in " << to_string(*updates_ptr);
     pts = 0;
   } else if (pts == 0) {
-    LOG(ERROR) << "Receive no edit message updates for " << full_message_id << " in " << to_string(*updates_ptr);
+    LOG(ERROR) << "Receive no edit message updates for " << message_full_id << " in " << to_string(*updates_ptr);
   }
   return pts;
 }

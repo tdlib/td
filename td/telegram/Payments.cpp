@@ -863,12 +863,12 @@ void send_payment_form(Td *td, td_api::object_ptr<td_api::InputInvoice> &&input_
              std::move(input_credentials), tip_amount);
 }
 
-void get_payment_receipt(Td *td, FullMessageId full_message_id,
+void get_payment_receipt(Td *td, MessageFullId message_full_id,
                          Promise<tl_object_ptr<td_api::paymentReceipt>> &&promise) {
   TRY_RESULT_PROMISE(promise, server_message_id,
-                     td->messages_manager_->get_payment_successful_message_id(full_message_id));
+                     td->messages_manager_->get_payment_successful_message_id(message_full_id));
   td->create_handler<GetPaymentReceiptQuery>(std::move(promise))
-      ->send(full_message_id.get_dialog_id(), server_message_id);
+      ->send(message_full_id.get_dialog_id(), server_message_id);
 }
 
 void get_saved_order_info(Td *td, Promise<tl_object_ptr<td_api::orderInfo>> &&promise) {

@@ -23,8 +23,8 @@
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/FolderId.h"
-#include "td/telegram/FullMessageId.h"
 #include "td/telegram/Location.h"
+#include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/Photo.h"
@@ -282,13 +282,13 @@ class ContactsManager final : public Actor {
 
   void remove_inactive_channel(ChannelId channel_id);
 
-  void register_message_users(FullMessageId full_message_id, vector<UserId> user_ids);
+  void register_message_users(MessageFullId message_full_id, vector<UserId> user_ids);
 
-  void register_message_channels(FullMessageId full_message_id, vector<ChannelId> channel_ids);
+  void register_message_channels(MessageFullId message_full_id, vector<ChannelId> channel_ids);
 
-  void unregister_message_users(FullMessageId full_message_id, vector<UserId> user_ids);
+  void unregister_message_users(MessageFullId message_full_id, vector<UserId> user_ids);
 
-  void unregister_message_channels(FullMessageId full_message_id, vector<ChannelId> channel_ids);
+  void unregister_message_channels(MessageFullId message_full_id, vector<ChannelId> channel_ids);
 
   UserId get_my_id() const;
 
@@ -2023,8 +2023,8 @@ class ContactsManager final : public Actor {
 
   FlatHashMap<string, UserId> resolved_phone_numbers_;
 
-  FlatHashMap<UserId, FlatHashSet<FullMessageId, FullMessageIdHash>, UserIdHash> user_messages_;
-  FlatHashMap<ChannelId, FlatHashSet<FullMessageId, FullMessageIdHash>, ChannelIdHash> channel_messages_;
+  FlatHashMap<UserId, FlatHashSet<MessageFullId, MessageFullIdHash>, UserIdHash> user_messages_;
+  FlatHashMap<ChannelId, FlatHashSet<MessageFullId, MessageFullIdHash>, ChannelIdHash> channel_messages_;
 
   // bot-administrators only
   struct ChannelParticipantInfo {

@@ -10,8 +10,8 @@
 #include "td/telegram/ChatId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/FolderId.h"
-#include "td/telegram/FullMessageId.h"
 #include "td/telegram/MessageContentType.h"
+#include "td/telegram/MessageFullId.h"
 #include "td/telegram/PollId.h"
 #include "td/telegram/StoryFullId.h"
 #include "td/telegram/UserId.h"
@@ -38,8 +38,8 @@ class ChainId {
   ChainId(DialogId dialog_id) : id((static_cast<uint64>(dialog_id.get()) << 10) + 10) {
   }
 
-  ChainId(FullMessageId full_message_id) : ChainId(full_message_id.get_dialog_id()) {
-    id += static_cast<uint64>(full_message_id.get_message_id().get()) << 10;
+  ChainId(MessageFullId message_full_id) : ChainId(message_full_id.get_dialog_id()) {
+    id += static_cast<uint64>(message_full_id.get_message_id().get()) << 10;
   }
 
   ChainId(FolderId folder_id) : id((static_cast<uint64>(folder_id.get() + (1 << 30)) << 10)) {

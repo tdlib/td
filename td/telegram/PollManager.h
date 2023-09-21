@@ -8,8 +8,8 @@
 
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/DialogId.h"
-#include "td/telegram/FullMessageId.h"
 #include "td/telegram/MessageEntity.h"
+#include "td/telegram/MessageFullId.h"
 #include "td/telegram/MinChannel.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/PollId.h"
@@ -53,9 +53,9 @@ class PollManager final : public Actor {
                      bool is_quiz, int32 correct_option_id, FormattedText &&explanation, int32 open_period,
                      int32 close_date, bool is_closed);
 
-  void register_poll(PollId poll_id, FullMessageId full_message_id, const char *source);
+  void register_poll(PollId poll_id, MessageFullId message_full_id, const char *source);
 
-  void unregister_poll(PollId poll_id, FullMessageId full_message_id, const char *source);
+  void unregister_poll(PollId poll_id, MessageFullId message_full_id, const char *source);
 
   bool get_poll_is_closed(PollId poll_id) const;
 
@@ -63,13 +63,13 @@ class PollManager final : public Actor {
 
   string get_poll_search_text(PollId poll_id) const;
 
-  void set_poll_answer(PollId poll_id, FullMessageId full_message_id, vector<int32> &&option_ids,
+  void set_poll_answer(PollId poll_id, MessageFullId message_full_id, vector<int32> &&option_ids,
                        Promise<Unit> &&promise);
 
-  void get_poll_voters(PollId poll_id, FullMessageId full_message_id, int32 option_id, int32 offset, int32 limit,
+  void get_poll_voters(PollId poll_id, MessageFullId message_full_id, int32 option_id, int32 offset, int32 limit,
                        Promise<td_api::object_ptr<td_api::messageSenders>> &&promise);
 
-  void stop_poll(PollId poll_id, FullMessageId full_message_id, unique_ptr<ReplyMarkup> &&reply_markup,
+  void stop_poll(PollId poll_id, MessageFullId message_full_id, unique_ptr<ReplyMarkup> &&reply_markup,
                  Promise<Unit> &&promise);
 
   void stop_local_poll(PollId poll_id);
@@ -199,7 +199,7 @@ class PollManager final : public Actor {
 
   void on_get_poll_results(PollId poll_id, uint64 generation, Result<tl_object_ptr<telegram_api::Updates>> result);
 
-  void do_set_poll_answer(PollId poll_id, FullMessageId full_message_id, vector<string> &&options, uint64 log_event_id,
+  void do_set_poll_answer(PollId poll_id, MessageFullId message_full_id, vector<string> &&options, uint64 log_event_id,
                           Promise<Unit> &&promise);
 
   void on_set_poll_answer(PollId poll_id, uint64 generation, Result<tl_object_ptr<telegram_api::Updates>> &&result);
@@ -218,10 +218,10 @@ class PollManager final : public Actor {
   void on_get_poll_voters(PollId poll_id, int32 option_id, string offset, int32 limit,
                           Result<tl_object_ptr<telegram_api::messages_votesList>> &&result);
 
-  void do_stop_poll(PollId poll_id, FullMessageId full_message_id, unique_ptr<ReplyMarkup> &&reply_markup,
+  void do_stop_poll(PollId poll_id, MessageFullId message_full_id, unique_ptr<ReplyMarkup> &&reply_markup,
                     uint64 log_event_id, Promise<Unit> &&promise);
 
-  void on_stop_poll_finished(PollId poll_id, FullMessageId full_message_id, uint64 log_event_id, Result<Unit> &&result,
+  void on_stop_poll_finished(PollId poll_id, MessageFullId message_full_id, uint64 log_event_id, Result<Unit> &&result,
                              Promise<Unit> &&promise);
 
   void forget_local_poll(PollId poll_id);
@@ -232,8 +232,8 @@ class PollManager final : public Actor {
 
   WaitFreeHashMap<PollId, unique_ptr<Poll>, PollIdHash> polls_;
 
-  WaitFreeHashMap<PollId, WaitFreeHashSet<FullMessageId, FullMessageIdHash>, PollIdHash> server_poll_messages_;
-  WaitFreeHashMap<PollId, WaitFreeHashSet<FullMessageId, FullMessageIdHash>, PollIdHash> other_poll_messages_;
+  WaitFreeHashMap<PollId, WaitFreeHashSet<MessageFullId, MessageFullIdHash>, PollIdHash> server_poll_messages_;
+  WaitFreeHashMap<PollId, WaitFreeHashSet<MessageFullId, MessageFullIdHash>, PollIdHash> other_poll_messages_;
 
   struct PendingPollAnswer {
     vector<string> options_;

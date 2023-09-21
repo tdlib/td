@@ -228,7 +228,7 @@ void CallbackQueriesManager::on_new_inline_query(
           std::move(payload)));
 }
 
-void CallbackQueriesManager::send_callback_query(FullMessageId full_message_id,
+void CallbackQueriesManager::send_callback_query(MessageFullId message_full_id,
                                                  tl_object_ptr<td_api::CallbackQueryPayload> &&payload,
                                                  Promise<td_api::object_ptr<td_api::callbackQueryAnswer>> &&promise) {
   if (td_->auth_manager_->is_bot()) {
@@ -239,19 +239,19 @@ void CallbackQueriesManager::send_callback_query(FullMessageId full_message_id,
     return promise.set_error(Status::Error(400, "Payload must be non-empty"));
   }
 
-  auto dialog_id = full_message_id.get_dialog_id();
+  auto dialog_id = message_full_id.get_dialog_id();
   td_->messages_manager_->have_dialog_force(dialog_id, "send_callback_query");
   if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access the chat"));
   }
 
-  if (!td_->messages_manager_->have_message_force(full_message_id, "send_callback_query")) {
+  if (!td_->messages_manager_->have_message_force(message_full_id, "send_callback_query")) {
     return promise.set_error(Status::Error(400, "Message not found"));
   }
-  if (full_message_id.get_message_id().is_valid_scheduled()) {
+  if (message_full_id.get_message_id().is_valid_scheduled()) {
     return promise.set_error(Status::Error(400, "Can't send callback queries from scheduled messages"));
   }
-  if (!full_message_id.get_message_id().is_server()) {
+  if (!message_full_id.get_message_id().is_server()) {
     return promise.set_error(Status::Error(400, "Bad message identifier"));
   }
   if (dialog_id.get_type() == DialogType::SecretChat) {
@@ -262,34 +262,34 @@ void CallbackQueriesManager::send_callback_query(FullMessageId full_message_id,
     auto password = static_cast<const td_api::callbackQueryPayloadDataWithPassword *>(payload.get())->password_;
     send_closure(
         td_->password_manager_, &PasswordManager::get_input_check_password_srp, std::move(password),
-        PromiseCreator::lambda([this, full_message_id, payload = std::move(payload), promise = std::move(promise)](
+        PromiseCreator::lambda([this, message_full_id, payload = std::move(payload), promise = std::move(promise)](
                                    Result<tl_object_ptr<telegram_api::InputCheckPasswordSRP>> result) mutable {
           if (result.is_error()) {
             return promise.set_error(result.move_as_error());
           }
-          send_get_callback_answer_query(full_message_id, std::move(payload), result.move_as_ok(), std::move(promise));
+          send_get_callback_answer_query(message_full_id, std::move(payload), result.move_as_ok(), std::move(promise));
         }));
   } else {
-    send_get_callback_answer_query(full_message_id, std::move(payload), nullptr, std::move(promise));
+    send_get_callback_answer_query(message_full_id, std::move(payload), nullptr, std::move(promise));
   }
 }
 
 void CallbackQueriesManager::send_get_callback_answer_query(
-    FullMessageId full_message_id, tl_object_ptr<td_api::CallbackQueryPayload> &&payload,
+    MessageFullId message_full_id, tl_object_ptr<td_api::CallbackQueryPayload> &&payload,
     tl_object_ptr<telegram_api::InputCheckPasswordSRP> &&password,
     Promise<td_api::object_ptr<td_api::callbackQueryAnswer>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
-  auto dialog_id = full_message_id.get_dialog_id();
+  auto dialog_id = message_full_id.get_dialog_id();
   if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access the chat"));
   }
-  if (!td_->messages_manager_->have_message_force(full_message_id, "send_callback_query")) {
+  if (!td_->messages_manager_->have_message_force(message_full_id, "send_callback_query")) {
     return promise.set_error(Status::Error(400, "Message not found"));
   }
 
   td_->create_handler<GetBotCallbackAnswerQuery>(std::move(promise))
-      ->send(dialog_id, full_message_id.get_message_id(), payload, std::move(password));
+      ->send(dialog_id, message_full_id.get_message_id(), payload, std::move(password));
 }
 
 }  // namespace td

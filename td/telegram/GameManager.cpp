@@ -198,39 +198,39 @@ void GameManager::tear_down() {
   parent_.reset();
 }
 
-void GameManager::set_game_score(FullMessageId full_message_id, bool edit_message, UserId user_id, int32 score,
+void GameManager::set_game_score(MessageFullId message_full_id, bool edit_message, UserId user_id, int32 score,
                                  bool force, Promise<td_api::object_ptr<td_api::message>> &&promise) {
   CHECK(td_->auth_manager_->is_bot());
 
-  if (!td_->messages_manager_->have_message_force(full_message_id, "set_game_score")) {
+  if (!td_->messages_manager_->have_message_force(message_full_id, "set_game_score")) {
     return promise.set_error(Status::Error(400, "Message not found"));
   }
 
-  auto dialog_id = full_message_id.get_dialog_id();
+  auto dialog_id = message_full_id.get_dialog_id();
   if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Edit)) {
     return promise.set_error(Status::Error(400, "Can't access the chat"));
   }
 
   TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
 
-  if (!td_->messages_manager_->can_set_game_score(full_message_id)) {
+  if (!td_->messages_manager_->can_set_game_score(message_full_id)) {
     return promise.set_error(Status::Error(400, "Game score can't be set"));
   }
 
   auto query_promise = PromiseCreator::lambda(
-      [actor_id = actor_id(this), full_message_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
+      [actor_id = actor_id(this), message_full_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
         if (result.is_error()) {
           return promise.set_error(result.move_as_error());
         }
-        send_closure(actor_id, &GameManager::on_set_game_score, full_message_id, std::move(promise));
+        send_closure(actor_id, &GameManager::on_set_game_score, message_full_id, std::move(promise));
       });
   td_->create_handler<SetGameScoreQuery>(std::move(query_promise))
-      ->send(dialog_id, full_message_id.get_message_id(), edit_message, std::move(input_user), score, force);
+      ->send(dialog_id, message_full_id.get_message_id(), edit_message, std::move(input_user), score, force);
 }
 
-void GameManager::on_set_game_score(FullMessageId full_message_id,
+void GameManager::on_set_game_score(MessageFullId message_full_id,
                                     Promise<td_api::object_ptr<td_api::message>> &&promise) {
-  promise.set_value(td_->messages_manager_->get_message_object(full_message_id, "on_set_game_score"));
+  promise.set_value(td_->messages_manager_->get_message_object(message_full_id, "on_set_game_score"));
 }
 
 void GameManager::set_inline_game_score(const string &inline_message_id, bool edit_message, UserId user_id, int32 score,
@@ -248,19 +248,19 @@ void GameManager::set_inline_game_score(const string &inline_message_id, bool ed
       ->send(std::move(input_bot_inline_message_id), edit_message, std::move(input_user), score, force);
 }
 
-void GameManager::get_game_high_scores(FullMessageId full_message_id, UserId user_id,
+void GameManager::get_game_high_scores(MessageFullId message_full_id, UserId user_id,
                                        Promise<td_api::object_ptr<td_api::gameHighScores>> &&promise) {
   CHECK(td_->auth_manager_->is_bot());
 
-  if (!td_->messages_manager_->have_message_force(full_message_id, "get_game_high_scores")) {
+  if (!td_->messages_manager_->have_message_force(message_full_id, "get_game_high_scores")) {
     return promise.set_error(Status::Error(400, "Message not found"));
   }
 
-  auto dialog_id = full_message_id.get_dialog_id();
+  auto dialog_id = message_full_id.get_dialog_id();
   if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access the chat"));
   }
-  auto message_id = full_message_id.get_message_id();
+  auto message_id = message_full_id.get_message_id();
   if (message_id.is_scheduled() || !message_id.is_server() || dialog_id.get_type() == DialogType::SecretChat) {
     return promise.set_error(Status::Error(400, "Wrong message identifier specified"));
   }

@@ -1904,13 +1904,13 @@ void StickersManager::on_load_special_sticker_set(const SpecialStickerSetType &t
     reset_to_empty(pending_get_animated_emoji_click_stickers_);
     for (auto &pending_request : pending_get_requests) {
       choose_animated_emoji_click_sticker(sticker_set, std::move(pending_request.message_text_),
-                                          pending_request.full_message_id_, pending_request.start_time_,
+                                          pending_request.message_full_id_, pending_request.start_time_,
                                           std::move(pending_request.promise_));
     }
     auto pending_click_requests = std::move(pending_on_animated_emoji_message_clicked_);
     reset_to_empty(pending_on_animated_emoji_message_clicked_);
     for (auto &pending_request : pending_click_requests) {
-      schedule_update_animated_emoji_clicked(sticker_set, pending_request.emoji_, pending_request.full_message_id_,
+      schedule_update_animated_emoji_clicked(sticker_set, pending_request.emoji_, pending_request.message_full_id_,
                                              std::move(pending_request.clicks_));
     }
     return;
@@ -1924,11 +1924,11 @@ void StickersManager::on_load_special_sticker_set(const SpecialStickerSetType &t
     return;
   }
 
-  vector<FullMessageId> full_message_ids;
-  it->second.foreach([&](const FullMessageId &full_message_id) { full_message_ids.push_back(full_message_id); });
-  CHECK(!full_message_ids.empty());
-  for (const auto &full_message_id : full_message_ids) {
-    td_->messages_manager_->on_external_update_message_content(full_message_id);
+  vector<MessageFullId> message_full_ids;
+  it->second.foreach([&](const MessageFullId &message_full_id) { message_full_ids.push_back(message_full_id); });
+  CHECK(!message_full_ids.empty());
+  for (const auto &message_full_id : message_full_ids) {
+    td_->messages_manager_->on_external_update_message_content(message_full_id);
   }
 }
 
@@ -5602,7 +5602,7 @@ void StickersManager::on_update_sticker_sets(StickerType sticker_type) {
 
 void StickersManager::try_update_animated_emoji_messages() {
   auto sticker_set = get_animated_emoji_sticker_set();
-  vector<FullMessageId> full_message_ids;
+  vector<MessageFullId> message_full_ids;
   for (auto &it : emoji_messages_) {
     auto new_animated_sticker = get_animated_emoji_sticker(sticker_set, it.first);
     auto new_sound_file_id = get_animated_emoji_sound_file_id(it.first);
@@ -5610,12 +5610,12 @@ void StickersManager::try_update_animated_emoji_messages() {
         (new_animated_sticker.first.is_valid() && new_sound_file_id != it.second->sound_file_id_)) {
       it.second->animated_emoji_sticker_ = new_animated_sticker;
       it.second->sound_file_id_ = new_sound_file_id;
-      it.second->full_message_ids_.foreach(
-          [&](const FullMessageId &full_message_id) { full_message_ids.push_back(full_message_id); });
+      it.second->message_full_ids_.foreach(
+          [&](const MessageFullId &message_full_id) { message_full_ids.push_back(message_full_id); });
     }
   }
-  for (const auto &full_message_id : full_message_ids) {
-    td_->messages_manager_->on_external_update_message_content(full_message_id);
+  for (const auto &message_full_id : message_full_ids) {
+    td_->messages_manager_->on_external_update_message_content(message_full_id);
   }
 }
 
@@ -5625,86 +5625,86 @@ void StickersManager::try_update_custom_emoji_messages(CustomEmojiId custom_emoj
     return;
   }
 
-  vector<FullMessageId> full_message_ids;
+  vector<MessageFullId> message_full_ids;
   auto new_sticker_id = get_custom_animated_emoji_sticker_id(custom_emoji_id);
   if (new_sticker_id != it->second->sticker_id_) {
     it->second->sticker_id_ = new_sticker_id;
-    it->second->full_message_ids_.foreach(
-        [&](const FullMessageId &full_message_id) { full_message_ids.push_back(full_message_id); });
+    it->second->message_full_ids_.foreach(
+        [&](const MessageFullId &message_full_id) { message_full_ids.push_back(message_full_id); });
   }
-  for (const auto &full_message_id : full_message_ids) {
-    td_->messages_manager_->on_external_update_message_content(full_message_id);
+  for (const auto &message_full_id : message_full_ids) {
+    td_->messages_manager_->on_external_update_message_content(message_full_id);
   }
 }
 
 void StickersManager::try_update_premium_gift_messages() {
   auto sticker_set = get_premium_gift_sticker_set();
-  vector<FullMessageId> full_message_ids;
+  vector<MessageFullId> message_full_ids;
   for (auto &it : premium_gift_messages_) {
     auto new_sticker_id = get_premium_gift_option_sticker_id(sticker_set, it.first);
     if (new_sticker_id != it.second->sticker_id_) {
       it.second->sticker_id_ = new_sticker_id;
-      for (const auto &full_message_id : it.second->full_message_ids_) {
-        full_message_ids.push_back(full_message_id);
+      for (const auto &message_full_id : it.second->message_full_ids_) {
+        message_full_ids.push_back(message_full_id);
       }
     }
   }
-  for (const auto &full_message_id : full_message_ids) {
-    td_->messages_manager_->on_external_update_message_content(full_message_id);
+  for (const auto &message_full_id : message_full_ids) {
+    td_->messages_manager_->on_external_update_message_content(message_full_id);
   }
 }
 
-void StickersManager::register_premium_gift(int32 months, FullMessageId full_message_id, const char *source) {
+void StickersManager::register_premium_gift(int32 months, MessageFullId message_full_id, const char *source) {
   if (td_->auth_manager_->is_bot() || months == 0) {
     return;
   }
 
-  LOG(INFO) << "Register premium gift for " << months << " months from " << full_message_id << " from " << source;
+  LOG(INFO) << "Register premium gift for " << months << " months from " << message_full_id << " from " << source;
   auto &premium_gift_messages_ptr = premium_gift_messages_[months];
   if (premium_gift_messages_ptr == nullptr) {
     premium_gift_messages_ptr = make_unique<GiftPremiumMessages>();
   }
   auto &premium_gift_messages = *premium_gift_messages_ptr;
 
-  if (premium_gift_messages.full_message_ids_.empty()) {
+  if (premium_gift_messages.message_full_ids_.empty()) {
     premium_gift_messages.sticker_id_ = get_premium_gift_option_sticker_id(months);
   }
 
-  bool is_inserted = premium_gift_messages.full_message_ids_.insert(full_message_id).second;
-  LOG_CHECK(is_inserted) << source << " " << months << " " << full_message_id;
+  bool is_inserted = premium_gift_messages.message_full_ids_.insert(message_full_id).second;
+  LOG_CHECK(is_inserted) << source << " " << months << " " << message_full_id;
 }
 
-void StickersManager::unregister_premium_gift(int32 months, FullMessageId full_message_id, const char *source) {
+void StickersManager::unregister_premium_gift(int32 months, MessageFullId message_full_id, const char *source) {
   if (td_->auth_manager_->is_bot() || months == 0) {
     return;
   }
 
-  LOG(INFO) << "Unregister premium gift for " << months << " months from " << full_message_id << " from " << source;
+  LOG(INFO) << "Unregister premium gift for " << months << " months from " << message_full_id << " from " << source;
   auto it = premium_gift_messages_.find(months);
   CHECK(it != premium_gift_messages_.end());
-  auto &message_ids = it->second->full_message_ids_;
-  auto is_deleted = message_ids.erase(full_message_id) > 0;
-  LOG_CHECK(is_deleted) << source << " " << months << " " << full_message_id;
+  auto &message_ids = it->second->message_full_ids_;
+  auto is_deleted = message_ids.erase(message_full_id) > 0;
+  LOG_CHECK(is_deleted) << source << " " << months << " " << message_full_id;
 
   if (message_ids.empty()) {
     premium_gift_messages_.erase(it);
   }
 }
 
-void StickersManager::register_dice(const string &emoji, int32 value, FullMessageId full_message_id,
+void StickersManager::register_dice(const string &emoji, int32 value, MessageFullId message_full_id,
                                     const char *source) {
   CHECK(!emoji.empty());
   if (td_->auth_manager_->is_bot()) {
     return;
   }
 
-  LOG(INFO) << "Register dice " << emoji << " with value " << value << " from " << full_message_id << " from "
+  LOG(INFO) << "Register dice " << emoji << " with value " << value << " from " << message_full_id << " from "
             << source;
-  dice_messages_[emoji].insert(full_message_id);
+  dice_messages_[emoji].insert(message_full_id);
 
   if (!td::contains(dice_emojis_, emoji)) {
-    if (full_message_id.get_message_id().is_any_server() &&
-        full_message_id.get_dialog_id().get_type() != DialogType::SecretChat) {
+    if (message_full_id.get_message_id().is_any_server() &&
+        message_full_id.get_dialog_id().get_type() != DialogType::SecretChat) {
       send_closure(G()->config_manager(), &ConfigManager::reget_app_config, Promise<Unit>());
     }
     return;
@@ -5722,7 +5722,7 @@ void StickersManager::register_dice(const string &emoji, int32 value, FullMessag
   }
 
   if (need_load) {
-    LOG(INFO) << "Waiting for a dice sticker set needed in " << full_message_id;
+    LOG(INFO) << "Waiting for a dice sticker set needed in " << message_full_id;
     load_special_sticker_set(special_sticker_set);
   } else {
     // TODO reload once in a while
@@ -5730,32 +5730,32 @@ void StickersManager::register_dice(const string &emoji, int32 value, FullMessag
   }
 }
 
-void StickersManager::unregister_dice(const string &emoji, int32 value, FullMessageId full_message_id,
+void StickersManager::unregister_dice(const string &emoji, int32 value, MessageFullId message_full_id,
                                       const char *source) {
   CHECK(!emoji.empty());
   if (td_->auth_manager_->is_bot()) {
     return;
   }
 
-  LOG(INFO) << "Unregister dice " << emoji << " with value " << value << " from " << full_message_id << " from "
+  LOG(INFO) << "Unregister dice " << emoji << " with value " << value << " from " << message_full_id << " from "
             << source;
   auto &message_ids = dice_messages_[emoji];
-  auto is_deleted = message_ids.erase(full_message_id) > 0;
-  LOG_CHECK(is_deleted) << source << " " << emoji << " " << value << " " << full_message_id;
+  auto is_deleted = message_ids.erase(message_full_id) > 0;
+  LOG_CHECK(is_deleted) << source << " " << emoji << " " << value << " " << message_full_id;
 
   if (message_ids.empty()) {
     dice_messages_.erase(emoji);
   }
 }
 
-void StickersManager::register_emoji(const string &emoji, CustomEmojiId custom_emoji_id, FullMessageId full_message_id,
+void StickersManager::register_emoji(const string &emoji, CustomEmojiId custom_emoji_id, MessageFullId message_full_id,
                                      const char *source) {
   CHECK(!emoji.empty());
   if (td_->auth_manager_->is_bot()) {
     return;
   }
 
-  LOG(INFO) << "Register emoji " << emoji << " with " << custom_emoji_id << " from " << full_message_id << " from "
+  LOG(INFO) << "Register emoji " << emoji << " with " << custom_emoji_id << " from " << message_full_id << " from "
             << source;
   if (custom_emoji_id.is_valid()) {
     auto &emoji_messages_ptr = custom_emoji_messages_[custom_emoji_id];
@@ -5763,7 +5763,7 @@ void StickersManager::register_emoji(const string &emoji, CustomEmojiId custom_e
       emoji_messages_ptr = make_unique<CustomEmojiMessages>();
     }
     auto &emoji_messages = *emoji_messages_ptr;
-    if (emoji_messages.full_message_ids_.empty()) {
+    if (emoji_messages.message_full_ids_.empty()) {
       if (!disable_animated_emojis_ && custom_emoji_to_sticker_id_.count(custom_emoji_id) == 0) {
         load_custom_emoji_sticker_from_database_force(custom_emoji_id);
         if (custom_emoji_to_sticker_id_.count(custom_emoji_id) == 0) {
@@ -5772,7 +5772,7 @@ void StickersManager::register_emoji(const string &emoji, CustomEmojiId custom_e
       }
       emoji_messages.sticker_id_ = get_custom_animated_emoji_sticker_id(custom_emoji_id);
     }
-    emoji_messages.full_message_ids_.insert(full_message_id);
+    emoji_messages.message_full_ids_.insert(message_full_id);
     return;
   }
 
@@ -5781,30 +5781,30 @@ void StickersManager::register_emoji(const string &emoji, CustomEmojiId custom_e
     emoji_messages_ptr = make_unique<EmojiMessages>();
   }
   auto &emoji_messages = *emoji_messages_ptr;
-  if (emoji_messages.full_message_ids_.empty()) {
+  if (emoji_messages.message_full_ids_.empty()) {
     emoji_messages.animated_emoji_sticker_ = get_animated_emoji_sticker(emoji);
     emoji_messages.sound_file_id_ = get_animated_emoji_sound_file_id(emoji);
   }
-  emoji_messages.full_message_ids_.insert(full_message_id);
+  emoji_messages.message_full_ids_.insert(message_full_id);
 }
 
 void StickersManager::unregister_emoji(const string &emoji, CustomEmojiId custom_emoji_id,
-                                       FullMessageId full_message_id, const char *source) {
+                                       MessageFullId message_full_id, const char *source) {
   CHECK(!emoji.empty());
   if (td_->auth_manager_->is_bot()) {
     return;
   }
 
-  LOG(INFO) << "Unregister emoji " << emoji << " with " << custom_emoji_id << " from " << full_message_id << " from "
+  LOG(INFO) << "Unregister emoji " << emoji << " with " << custom_emoji_id << " from " << message_full_id << " from "
             << source;
   if (custom_emoji_id.is_valid()) {
     auto it = custom_emoji_messages_.find(custom_emoji_id);
     CHECK(it != custom_emoji_messages_.end());
-    auto &full_message_ids = it->second->full_message_ids_;
-    auto is_deleted = full_message_ids.erase(full_message_id) > 0;
-    LOG_CHECK(is_deleted) << source << ' ' << custom_emoji_id << ' ' << full_message_id;
+    auto &message_full_ids = it->second->message_full_ids_;
+    auto is_deleted = message_full_ids.erase(message_full_id) > 0;
+    LOG_CHECK(is_deleted) << source << ' ' << custom_emoji_id << ' ' << message_full_id;
 
-    if (full_message_ids.empty()) {
+    if (message_full_ids.empty()) {
       custom_emoji_messages_.erase(it);
     }
     return;
@@ -5812,11 +5812,11 @@ void StickersManager::unregister_emoji(const string &emoji, CustomEmojiId custom
 
   auto it = emoji_messages_.find(emoji);
   CHECK(it != emoji_messages_.end());
-  auto &full_message_ids = it->second->full_message_ids_;
-  auto is_deleted = full_message_ids.erase(full_message_id) > 0;
-  LOG_CHECK(is_deleted) << source << ' ' << emoji << ' ' << full_message_id;
+  auto &message_full_ids = it->second->message_full_ids_;
+  auto is_deleted = message_full_ids.erase(message_full_id) > 0;
+  LOG_CHECK(is_deleted) << source << ' ' << emoji << ' ' << message_full_id;
 
-  if (full_message_ids.empty()) {
+  if (message_full_ids.empty()) {
     emoji_messages_.erase(it);
   }
 }
@@ -6411,7 +6411,7 @@ void StickersManager::get_premium_gift_option_sticker(int32 month_count, bool is
   promise.set_value(get_sticker_object(get_premium_gift_option_sticker_id(sticker_set, month_count)));
 }
 
-void StickersManager::get_animated_emoji_click_sticker(const string &message_text, FullMessageId full_message_id,
+void StickersManager::get_animated_emoji_click_sticker(const string &message_text, MessageFullId message_full_id,
                                                        Promise<td_api::object_ptr<td_api::sticker>> &&promise) {
   if (disable_animated_emojis_ || td_->auth_manager_->is_bot()) {
     return promise.set_value(nullptr);
@@ -6427,16 +6427,16 @@ void StickersManager::get_animated_emoji_click_sticker(const string &message_tex
   auto sticker_set = get_sticker_set(special_sticker_set.id_);
   CHECK(sticker_set != nullptr);
   if (sticker_set->was_loaded_) {
-    return choose_animated_emoji_click_sticker(sticker_set, message_text, full_message_id, Time::now(),
+    return choose_animated_emoji_click_sticker(sticker_set, message_text, message_full_id, Time::now(),
                                                std::move(promise));
   }
 
-  LOG(INFO) << "Waiting for an emoji click sticker set needed in " << full_message_id;
+  LOG(INFO) << "Waiting for an emoji click sticker set needed in " << message_full_id;
   load_special_sticker_set(special_sticker_set);
 
   PendingGetAnimatedEmojiClickSticker pending_request;
   pending_request.message_text_ = message_text;
-  pending_request.full_message_id_ = full_message_id;
+  pending_request.message_full_id_ = message_full_id;
   pending_request.start_time_ = Time::now();
   pending_request.promise_ = std::move(promise);
   pending_get_animated_emoji_click_stickers_.push_back(std::move(pending_request));
@@ -6470,7 +6470,7 @@ vector<FileId> StickersManager::get_animated_emoji_click_stickers(const StickerS
 }
 
 void StickersManager::choose_animated_emoji_click_sticker(const StickerSet *sticker_set, string message_text,
-                                                          FullMessageId full_message_id, double start_time,
+                                                          MessageFullId message_full_id, double start_time,
                                                           Promise<td_api::object_ptr<td_api::sticker>> &&promise) {
   CHECK(sticker_set->was_loaded_);
   remove_emoji_modifiers_in_place(message_text);
@@ -6483,7 +6483,7 @@ void StickersManager::choose_animated_emoji_click_sticker(const StickerSet *stic
   }
 
   auto now = Time::now();
-  if (last_clicked_animated_emoji_ == message_text && last_clicked_animated_emoji_full_message_id_ == full_message_id &&
+  if (last_clicked_animated_emoji_ == message_text && last_clicked_animated_emoji_message_full_id_ == message_full_id &&
       next_click_animated_emoji_message_time_ >= now + 2 * MIN_ANIMATED_EMOJI_CLICK_DELAY) {
     return promise.set_value(nullptr);
   }
@@ -6502,13 +6502,13 @@ void StickersManager::choose_animated_emoji_click_sticker(const StickerSet *stic
     }
   }
   if (found_stickers.empty()) {
-    LOG(INFO) << "There is no click effect for " << message_text << " from " << full_message_id;
+    LOG(INFO) << "There is no click effect for " << message_text << " from " << message_full_id;
     return promise.set_value(nullptr);
   }
 
-  if (last_clicked_animated_emoji_full_message_id_ != full_message_id) {
+  if (last_clicked_animated_emoji_message_full_id_ != message_full_id) {
     flush_pending_animated_emoji_clicks();
-    last_clicked_animated_emoji_full_message_id_ = full_message_id;
+    last_clicked_animated_emoji_message_full_id_ = message_full_id;
   }
   if (last_clicked_animated_emoji_ != message_text) {
     pending_animated_emoji_clicks_.clear();
@@ -6567,16 +6567,16 @@ void StickersManager::flush_pending_animated_emoji_clicks() {
   }
   auto clicks = std::move(pending_animated_emoji_clicks_);
   pending_animated_emoji_clicks_.clear();
-  auto full_message_id = last_clicked_animated_emoji_full_message_id_;
-  last_clicked_animated_emoji_full_message_id_ = FullMessageId();
+  auto message_full_id = last_clicked_animated_emoji_message_full_id_;
+  last_clicked_animated_emoji_message_full_id_ = MessageFullId();
   auto emoji = std::move(last_clicked_animated_emoji_);
   last_clicked_animated_emoji_.clear();
 
-  if (td_->messages_manager_->is_message_edited_recently(full_message_id, 1)) {
-    // includes deleted full_message_id
+  if (td_->messages_manager_->is_message_edited_recently(message_full_id, 1)) {
+    // includes deleted message_full_id
     return;
   }
-  auto dialog_id = full_message_id.get_dialog_id();
+  auto dialog_id = message_full_id.get_dialog_id();
   auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
   if (input_peer == nullptr) {
     return;
@@ -6597,7 +6597,7 @@ void StickersManager::flush_pending_animated_emoji_clicks() {
   td_->create_handler<SendAnimatedEmojiClicksQuery>()->send(
       dialog_id, std::move(input_peer),
       make_tl_object<telegram_api::sendMessageEmojiInteraction>(
-          emoji, full_message_id.get_message_id().get_server_message_id().get(),
+          emoji, message_full_id.get_message_id().get_server_message_id().get(),
           make_tl_object<telegram_api::dataJSON>(data)));
 
   on_send_animated_emoji_clicks(dialog_id, emoji);
@@ -6641,7 +6641,7 @@ bool StickersManager::is_sent_animated_emoji_click(DialogId dialog_id, const str
   return false;
 }
 
-Status StickersManager::on_animated_emoji_message_clicked(string &&emoji, FullMessageId full_message_id, string data) {
+Status StickersManager::on_animated_emoji_message_clicked(string &&emoji, MessageFullId message_full_id, string data) {
   if (td_->auth_manager_->is_bot() || disable_animated_emojis_) {
     return Status::OK();
   }
@@ -6695,33 +6695,33 @@ Status StickersManager::on_animated_emoji_message_clicked(string &&emoji, FullMe
     auto sticker_set = get_sticker_set(special_sticker_set.id_);
     CHECK(sticker_set != nullptr);
     if (sticker_set->was_loaded_) {
-      schedule_update_animated_emoji_clicked(sticker_set, emoji, full_message_id, std::move(clicks));
+      schedule_update_animated_emoji_clicked(sticker_set, emoji, message_full_id, std::move(clicks));
       return Status::OK();
     }
   }
 
-  LOG(INFO) << "Waiting for an emoji click sticker set needed in " << full_message_id;
+  LOG(INFO) << "Waiting for an emoji click sticker set needed in " << message_full_id;
   load_special_sticker_set(special_sticker_set);
 
   PendingOnAnimatedEmojiClicked pending_request;
   pending_request.emoji_ = std::move(emoji);
-  pending_request.full_message_id_ = full_message_id;
+  pending_request.message_full_id_ = message_full_id;
   pending_request.clicks_ = std::move(clicks);
   pending_on_animated_emoji_message_clicked_.push_back(std::move(pending_request));
   return Status::OK();
 }
 
 void StickersManager::schedule_update_animated_emoji_clicked(const StickerSet *sticker_set, Slice emoji,
-                                                             FullMessageId full_message_id,
+                                                             MessageFullId message_full_id,
                                                              vector<std::pair<int, double>> clicks) {
   if (clicks.empty()) {
     return;
   }
-  if (td_->messages_manager_->is_message_edited_recently(full_message_id, 2)) {
-    // includes deleted full_message_id
+  if (td_->messages_manager_->is_message_edited_recently(message_full_id, 2)) {
+    // includes deleted message_full_id
     return;
   }
-  auto dialog_id = full_message_id.get_dialog_id();
+  auto dialog_id = message_full_id.get_dialog_id();
   if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Write)) {
     return;
   }
@@ -6754,23 +6754,23 @@ void StickersManager::schedule_update_animated_emoji_clicked(const StickerSet *s
     }
     create_actor<SleepActor>(
         "SendUpdateAnimatedEmojiClicked", start_time + click.second - now,
-        PromiseCreator::lambda([actor_id = actor_id(this), full_message_id, sticker_id](Result<Unit> result) {
-          send_closure(actor_id, &StickersManager::send_update_animated_emoji_clicked, full_message_id, sticker_id);
+        PromiseCreator::lambda([actor_id = actor_id(this), message_full_id, sticker_id](Result<Unit> result) {
+          send_closure(actor_id, &StickersManager::send_update_animated_emoji_clicked, message_full_id, sticker_id);
         }))
         .release();
   }
   next_update_animated_emoji_clicked_time_ = start_time + clicks.back().second + MIN_ANIMATED_EMOJI_CLICK_DELAY;
 }
 
-void StickersManager::send_update_animated_emoji_clicked(FullMessageId full_message_id, FileId sticker_id) {
+void StickersManager::send_update_animated_emoji_clicked(MessageFullId message_full_id, FileId sticker_id) {
   if (G()->close_flag() || disable_animated_emojis_ || td_->auth_manager_->is_bot()) {
     return;
   }
-  if (td_->messages_manager_->is_message_edited_recently(full_message_id, 2)) {
-    // includes deleted full_message_id
+  if (td_->messages_manager_->is_message_edited_recently(message_full_id, 2)) {
+    // includes deleted message_full_id
     return;
   }
-  auto dialog_id = full_message_id.get_dialog_id();
+  auto dialog_id = message_full_id.get_dialog_id();
   if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Write)) {
     return;
   }
@@ -6778,7 +6778,7 @@ void StickersManager::send_update_animated_emoji_clicked(FullMessageId full_mess
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateAnimatedEmojiMessageClicked>(
                    td_->messages_manager_->get_chat_id_object(dialog_id, "updateAnimatedEmojiMessageClicked"),
-                   full_message_id.get_message_id().get(), get_sticker_object(sticker_id, false, true)));
+                   message_full_id.get_message_id().get(), get_sticker_object(sticker_id, false, true)));
 }
 
 void StickersManager::view_featured_sticker_sets(const vector<StickerSetId> &sticker_set_ids) {

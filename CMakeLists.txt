@@ -642,7 +642,6 @@ set(TDLIB_SOURCE
   td/telegram/ForumTopicIcon.h
   td/telegram/ForumTopicInfo.h
   td/telegram/ForumTopicManager.h
-  td/telegram/FullMessageId.h
   td/telegram/Game.h
   td/telegram/GameManager.h
   td/telegram/GitCommitHash.h
@@ -676,6 +675,7 @@ set(TDLIB_SOURCE
   td/telegram/MessageDb.h
   td/telegram/MessageEntity.h
   td/telegram/MessageExtendedMedia.h
+  td/telegram/MessageFullId.h
   td/telegram/MessageId.h
   td/telegram/MessageInputReplyTo.h
   td/telegram/MessageLinkInfo.h

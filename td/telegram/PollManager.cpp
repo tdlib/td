@@ -57,10 +57,10 @@ class GetPollResultsQuery final : public Td::ResultHandler {
   explicit GetPollResultsQuery(Promise<tl_object_ptr<telegram_api::Updates>> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(PollId poll_id, FullMessageId full_message_id) {
+  void send(PollId poll_id, MessageFullId message_full_id) {
     poll_id_ = poll_id;
-    dialog_id_ = full_message_id.get_dialog_id();
-    message_id_ = full_message_id.get_message_id();
+    dialog_id_ = message_full_id.get_dialog_id();
+    message_id_ = message_full_id.get_message_id();
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     if (input_peer == nullptr) {
       LOG(INFO) << "Can't reget poll, because have no read access to " << dialog_id_;
@@ -105,9 +105,9 @@ class GetPollVotersQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(PollId poll_id, FullMessageId full_message_id, BufferSlice &&option, const string &offset, int32 limit) {
+  void send(PollId poll_id, MessageFullId message_full_id, BufferSlice &&option, const string &offset, int32 limit) {
     poll_id_ = poll_id;
-    dialog_id_ = full_message_id.get_dialog_id();
+    dialog_id_ = message_full_id.get_dialog_id();
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     if (input_peer == nullptr) {
       LOG(INFO) << "Can't get poll, because have no read access to " << dialog_id_;
@@ -120,7 +120,7 @@ class GetPollVotersQuery final : public Td::ResultHandler {
       flags |= telegram_api::messages_getPollVotes::OFFSET_MASK;
     }
 
-    auto message_id = full_message_id.get_message_id().get_server_message_id().get();
+    auto message_id = message_full_id.get_message_id().get_server_message_id().get();
     send_query(G()->net_query_creator().create(telegram_api::messages_getPollVotes(
         flags, std::move(input_peer), message_id, std::move(option), offset, limit)));
   }
@@ -151,16 +151,16 @@ class SendVoteQuery final : public Td::ResultHandler {
   explicit SendVoteQuery(Promise<tl_object_ptr<telegram_api::Updates>> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(FullMessageId full_message_id, vector<BufferSlice> &&options, PollId poll_id, uint64 generation,
+  void send(MessageFullId message_full_id, vector<BufferSlice> &&options, PollId poll_id, uint64 generation,
             NetQueryRef *query_ref) {
-    dialog_id_ = full_message_id.get_dialog_id();
+    dialog_id_ = message_full_id.get_dialog_id();
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     if (input_peer == nullptr) {
       LOG(INFO) << "Can't set poll answer, because have no read access to " << dialog_id_;
       return on_error(Status::Error(400, "Can't access the chat"));
     }
 
-    auto message_id = full_message_id.get_message_id().get_server_message_id().get();
+    auto message_id = message_full_id.get_message_id().get_server_message_id().get();
     auto query = G()->net_query_creator().create(
         telegram_api::messages_sendVote(std::move(input_peer), message_id, std::move(options)),
         {{poll_id}, {dialog_id_}});
@@ -193,8 +193,8 @@ class StopPollQuery final : public Td::ResultHandler {
   explicit StopPollQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(FullMessageId full_message_id, unique_ptr<ReplyMarkup> &&reply_markup, PollId poll_id) {
-    dialog_id_ = full_message_id.get_dialog_id();
+  void send(MessageFullId message_full_id, unique_ptr<ReplyMarkup> &&reply_markup, PollId poll_id) {
+    dialog_id_ = message_full_id.get_dialog_id();
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Edit);
     if (input_peer == nullptr) {
       LOG(INFO) << "Can't close poll, because have no edit access to " << dialog_id_;
@@ -207,7 +207,7 @@ class StopPollQuery final : public Td::ResultHandler {
       flags |= telegram_api::messages_editMessage::REPLY_MARKUP_MASK;
     }
 
-    auto message_id = full_message_id.get_message_id().get_server_message_id().get();
+    auto message_id = message_full_id.get_message_id().get_server_message_id().get();
     auto poll = telegram_api::make_object<telegram_api::poll>();
     poll->flags_ |= telegram_api::poll::CLOSED_MASK;
     auto input_media = telegram_api::make_object<telegram_api::inputMediaPoll>(0, std::move(poll),
@@ -338,14 +338,14 @@ void PollManager::notify_on_poll_update(PollId poll_id) {
   }
 
   if (server_poll_messages_.count(poll_id) > 0) {
-    server_poll_messages_[poll_id].foreach([&](const FullMessageId &full_message_id) {
-      td_->messages_manager_->on_external_update_message_content(full_message_id);
+    server_poll_messages_[poll_id].foreach([&](const MessageFullId &message_full_id) {
+      td_->messages_manager_->on_external_update_message_content(message_full_id);
     });
   }
 
   if (other_poll_messages_.count(poll_id) > 0) {
-    other_poll_messages_[poll_id].foreach([&](const FullMessageId &full_message_id) {
-      td_->messages_manager_->on_external_update_message_content(full_message_id);
+    other_poll_messages_[poll_id].foreach([&](const MessageFullId &message_full_id) {
+      td_->messages_manager_->on_external_update_message_content(message_full_id);
     });
   }
 }
@@ -668,17 +668,17 @@ PollId PollManager::create_poll(string &&question, vector<string> &&options, boo
   return poll_id;
 }
 
-void PollManager::register_poll(PollId poll_id, FullMessageId full_message_id, const char *source) {
+void PollManager::register_poll(PollId poll_id, MessageFullId message_full_id, const char *source) {
   CHECK(have_poll(poll_id));
-  if (full_message_id.get_message_id().is_scheduled() || !full_message_id.get_message_id().is_server()) {
-    other_poll_messages_[poll_id].insert(full_message_id);
+  if (message_full_id.get_message_id().is_scheduled() || !message_full_id.get_message_id().is_server()) {
+    other_poll_messages_[poll_id].insert(message_full_id);
     if (!G()->close_flag()) {
       unload_poll_timeout_.cancel_timeout(poll_id.get());
     }
     return;
   }
-  LOG(INFO) << "Register " << poll_id << " from " << full_message_id << " from " << source;
-  server_poll_messages_[poll_id].insert(full_message_id);
+  LOG(INFO) << "Register " << poll_id << " from " << message_full_id << " from " << source;
+  server_poll_messages_[poll_id].insert(message_full_id);
   auto poll = get_poll(poll_id);
   CHECK(poll != nullptr);
   if (!td_->auth_manager_->is_bot() && !is_local_poll_id(poll_id) &&
@@ -690,12 +690,12 @@ void PollManager::register_poll(PollId poll_id, FullMessageId full_message_id, c
   }
 }
 
-void PollManager::unregister_poll(PollId poll_id, FullMessageId full_message_id, const char *source) {
+void PollManager::unregister_poll(PollId poll_id, MessageFullId message_full_id, const char *source) {
   CHECK(have_poll(poll_id));
-  if (full_message_id.get_message_id().is_scheduled() || !full_message_id.get_message_id().is_server()) {
+  if (message_full_id.get_message_id().is_scheduled() || !message_full_id.get_message_id().is_server()) {
     auto &message_ids = other_poll_messages_[poll_id];
-    auto is_deleted = message_ids.erase(full_message_id) > 0;
-    LOG_CHECK(is_deleted) << source << ' ' << poll_id << ' ' << full_message_id;
+    auto is_deleted = message_ids.erase(message_full_id) > 0;
+    LOG_CHECK(is_deleted) << source << ' ' << poll_id << ' ' << message_full_id;
     if (is_local_poll_id(poll_id)) {
       CHECK(message_ids.empty());
       forget_local_poll(poll_id);
@@ -707,10 +707,10 @@ void PollManager::unregister_poll(PollId poll_id, FullMessageId full_message_id,
     }
     return;
   }
-  LOG(INFO) << "Unregister " << poll_id << " from " << full_message_id << " from " << source;
+  LOG(INFO) << "Unregister " << poll_id << " from " << message_full_id << " from " << source;
   auto &message_ids = server_poll_messages_[poll_id];
-  auto is_deleted = message_ids.erase(full_message_id) > 0;
-  LOG_CHECK(is_deleted) << source << ' ' << poll_id << ' ' << full_message_id;
+  auto is_deleted = message_ids.erase(message_full_id) > 0;
+  LOG_CHECK(is_deleted) << source << ' ' << poll_id << ' ' << message_full_id;
   if (is_local_poll_id(poll_id)) {
     CHECK(message_ids.empty());
     forget_local_poll(poll_id);
@@ -777,7 +777,7 @@ string PollManager::get_poll_search_text(PollId poll_id) const {
   return result;
 }
 
-void PollManager::set_poll_answer(PollId poll_id, FullMessageId full_message_id, vector<int32> &&option_ids,
+void PollManager::set_poll_answer(PollId poll_id, MessageFullId message_full_id, vector<int32> &&option_ids,
                                   Promise<Unit> &&promise) {
   td::unique(option_ids);
 
@@ -825,35 +825,35 @@ void PollManager::set_poll_answer(PollId poll_id, FullMessageId full_message_id,
     }
   }
 
-  do_set_poll_answer(poll_id, full_message_id, std::move(options), 0, std::move(promise));
+  do_set_poll_answer(poll_id, message_full_id, std::move(options), 0, std::move(promise));
 }
 
 class PollManager::SetPollAnswerLogEvent {
  public:
   PollId poll_id_;
-  FullMessageId full_message_id_;
+  MessageFullId message_full_id_;
   vector<string> options_;
 
   template <class StorerT>
   void store(StorerT &storer) const {
     td::store(poll_id_, storer);
-    td::store(full_message_id_, storer);
+    td::store(message_full_id_, storer);
     td::store(options_, storer);
   }
 
   template <class ParserT>
   void parse(ParserT &parser) {
     td::parse(poll_id_, parser);
-    td::parse(full_message_id_, parser);
+    td::parse(message_full_id_, parser);
     td::parse(options_, parser);
   }
 };
 
-void PollManager::do_set_poll_answer(PollId poll_id, FullMessageId full_message_id, vector<string> &&options,
+void PollManager::do_set_poll_answer(PollId poll_id, MessageFullId message_full_id, vector<string> &&options,
                                      uint64 log_event_id, Promise<Unit> &&promise) {
-  LOG(INFO) << "Set answer in " << poll_id << " from " << full_message_id;
-  if (!poll_id.is_valid() || !full_message_id.get_dialog_id().is_valid() ||
-      !full_message_id.get_message_id().is_valid()) {
+  LOG(INFO) << "Set answer in " << poll_id << " from " << message_full_id;
+  if (!poll_id.is_valid() || !message_full_id.get_dialog_id().is_valid() ||
+      !message_full_id.get_message_id().is_valid()) {
     CHECK(log_event_id != 0);
     LOG(ERROR) << "Invalid SetPollAnswer log event";
     binlog_erase(G()->td_db()->get_binlog(), log_event_id);
@@ -877,7 +877,7 @@ void PollManager::do_set_poll_answer(PollId poll_id, FullMessageId full_message_
   if (log_event_id == 0 && G()->use_message_database()) {
     SetPollAnswerLogEvent log_event;
     log_event.poll_id_ = poll_id;
-    log_event.full_message_id_ = full_message_id;
+    log_event.message_full_id_ = message_full_id;
     log_event.options_ = options;
     auto storer = get_log_event_storer(log_event);
     if (pending_answer.generation_ == 0) {
@@ -925,7 +925,7 @@ void PollManager::do_set_poll_answer(PollId poll_id, FullMessageId full_message_
         send_closure(actor_id, &PollManager::on_set_poll_answer, poll_id, generation, std::move(result));
       });
   td_->create_handler<SendVoteQuery>(std::move(query_promise))
-      ->send(full_message_id, std::move(sent_options), poll_id, generation, &pending_answer.query_ref_);
+      ->send(message_full_id, std::move(sent_options), poll_id, generation, &pending_answer.query_ref_);
 }
 
 void PollManager::on_set_poll_answer(PollId poll_id, uint64 generation,
@@ -1063,7 +1063,7 @@ td_api::object_ptr<td_api::messageSenders> PollManager::get_poll_voters_object(
   return result;
 }
 
-void PollManager::get_poll_voters(PollId poll_id, FullMessageId full_message_id, int32 option_id, int32 offset,
+void PollManager::get_poll_voters(PollId poll_id, MessageFullId message_full_id, int32 option_id, int32 offset,
                                   int32 limit, Promise<td_api::object_ptr<td_api::messageSenders>> &&promise) {
   if (is_local_poll_id(poll_id)) {
     return promise.set_error(Status::Error(400, "Poll results can't be received"));
@@ -1126,7 +1126,7 @@ void PollManager::get_poll_voters(PollId poll_id, FullMessageId full_message_id,
                      std::move(result));
       });
   td_->create_handler<GetPollVotersQuery>(std::move(query_promise))
-      ->send(poll_id, full_message_id, BufferSlice(poll->options_[option_id].data_), voters.next_offset_,
+      ->send(poll_id, message_full_id, BufferSlice(poll->options_[option_id].data_), voters.next_offset_,
              max(limit, 10));
 }
 
@@ -1223,10 +1223,10 @@ void PollManager::on_get_poll_voters(PollId poll_id, int32 option_id, string off
   }
 }
 
-void PollManager::stop_poll(PollId poll_id, FullMessageId full_message_id, unique_ptr<ReplyMarkup> &&reply_markup,
+void PollManager::stop_poll(PollId poll_id, MessageFullId message_full_id, unique_ptr<ReplyMarkup> &&reply_markup,
                             Promise<Unit> &&promise) {
   if (is_local_poll_id(poll_id)) {
-    LOG(ERROR) << "Receive local " << poll_id << " from " << full_message_id << " in stop_poll";
+    LOG(ERROR) << "Receive local " << poll_id << " from " << message_full_id << " in stop_poll";
     stop_local_poll(poll_id);
     promise.set_value(Unit());
     return;
@@ -1244,34 +1244,34 @@ void PollManager::stop_poll(PollId poll_id, FullMessageId full_message_id, uniqu
   save_poll(poll, poll_id);
   notify_on_poll_update(poll_id);
 
-  do_stop_poll(poll_id, full_message_id, std::move(reply_markup), 0, std::move(promise));
+  do_stop_poll(poll_id, message_full_id, std::move(reply_markup), 0, std::move(promise));
 }
 
 class PollManager::StopPollLogEvent {
  public:
   PollId poll_id_;
-  FullMessageId full_message_id_;
+  MessageFullId message_full_id_;
 
   template <class StorerT>
   void store(StorerT &storer) const {
     td::store(poll_id_, storer);
-    td::store(full_message_id_, storer);
+    td::store(message_full_id_, storer);
   }
 
   template <class ParserT>
   void parse(ParserT &parser) {
     td::parse(poll_id_, parser);
-    td::parse(full_message_id_, parser);
+    td::parse(message_full_id_, parser);
   }
 };
 
-void PollManager::do_stop_poll(PollId poll_id, FullMessageId full_message_id, unique_ptr<ReplyMarkup> &&reply_markup,
+void PollManager::do_stop_poll(PollId poll_id, MessageFullId message_full_id, unique_ptr<ReplyMarkup> &&reply_markup,
                                uint64 log_event_id, Promise<Unit> &&promise) {
-  LOG(INFO) << "Stop " << poll_id << " from " << full_message_id;
+  LOG(INFO) << "Stop " << poll_id << " from " << message_full_id;
   CHECK(poll_id.is_valid());
 
   if (log_event_id == 0 && G()->use_message_database() && reply_markup == nullptr) {
-    StopPollLogEvent log_event{poll_id, full_message_id};
+    StopPollLogEvent log_event{poll_id, message_full_id};
     log_event_id =
         binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::StopPoll, get_log_event_storer(log_event));
   }
@@ -1280,16 +1280,16 @@ void PollManager::do_stop_poll(PollId poll_id, FullMessageId full_message_id, un
 
   bool is_inserted = being_closed_polls_.insert(poll_id).second;
   CHECK(is_inserted);
-  auto new_promise = PromiseCreator::lambda([actor_id = actor_id(this), poll_id, full_message_id, log_event_id,
+  auto new_promise = PromiseCreator::lambda([actor_id = actor_id(this), poll_id, message_full_id, log_event_id,
                                              promise = std::move(promise)](Result<Unit> result) mutable {
-    send_closure(actor_id, &PollManager::on_stop_poll_finished, poll_id, full_message_id, log_event_id,
+    send_closure(actor_id, &PollManager::on_stop_poll_finished, poll_id, message_full_id, log_event_id,
                  std::move(result), std::move(promise));
   });
 
-  td_->create_handler<StopPollQuery>(std::move(new_promise))->send(full_message_id, std::move(reply_markup), poll_id);
+  td_->create_handler<StopPollQuery>(std::move(new_promise))->send(message_full_id, std::move(reply_markup), poll_id);
 }
 
-void PollManager::on_stop_poll_finished(PollId poll_id, FullMessageId full_message_id, uint64 log_event_id,
+void PollManager::on_stop_poll_finished(PollId poll_id, MessageFullId message_full_id, uint64 log_event_id,
                                         Result<Unit> &&result, Promise<Unit> &&promise) {
   being_closed_polls_.erase(poll_id);
 
@@ -1298,9 +1298,9 @@ void PollManager::on_stop_poll_finished(PollId poll_id, FullMessageId full_messa
   }
 
   if (td_->auth_manager_->is_bot()) {
-    if ((server_poll_messages_.count(poll_id) > 0 && server_poll_messages_[poll_id].count(full_message_id) > 0) ||
-        (other_poll_messages_.count(poll_id) > 0 && other_poll_messages_[poll_id].count(full_message_id) > 0)) {
-      td_->messages_manager_->on_external_update_message_content(full_message_id);
+    if ((server_poll_messages_.count(poll_id) > 0 && server_poll_messages_[poll_id].count(message_full_id) > 0) ||
+        (other_poll_messages_.count(poll_id) > 0 && other_poll_messages_[poll_id].count(message_full_id) > 0)) {
+      td_->messages_manager_->on_external_update_message_content(message_full_id);
     }
   }
 
@@ -1344,13 +1344,13 @@ void PollManager::on_update_poll_timeout(PollId poll_id) {
     return;
   }
 
-  auto full_message_id = server_poll_messages_[poll_id].get_random();
-  LOG(INFO) << "Fetching results of " << poll_id << " from " << full_message_id;
+  auto message_full_id = server_poll_messages_[poll_id].get_random();
+  LOG(INFO) << "Fetching results of " << poll_id << " from " << message_full_id;
   auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), poll_id, generation = current_generation_](
                                                   Result<tl_object_ptr<telegram_api::Updates>> &&result) {
     send_closure(actor_id, &PollManager::on_get_poll_results, poll_id, generation, std::move(result));
   });
-  td_->create_handler<GetPollResultsQuery>(std::move(query_promise))->send(poll_id, full_message_id);
+  td_->create_handler<GetPollResultsQuery>(std::move(query_promise))->send(poll_id, message_full_id);
 }
 
 void PollManager::on_close_poll_timeout(PollId poll_id) {
@@ -1458,7 +1458,7 @@ void PollManager::on_online() {
     return;
   }
 
-  server_poll_messages_.foreach([&](const PollId &poll_id, WaitFreeHashSet<FullMessageId, FullMessageIdHash> &) {
+  server_poll_messages_.foreach([&](const PollId &poll_id, WaitFreeHashSet<MessageFullId, MessageFullIdHash> &) {
     if (update_poll_timeout_.has_timeout(poll_id.get())) {
       auto timeout = Random::fast(3, 30);
       LOG(INFO) << "Schedule updating of " << poll_id << " in " << timeout;
@@ -1911,13 +1911,13 @@ void PollManager::on_binlog_events(vector<BinlogEvent> &&events) {
         SetPollAnswerLogEvent log_event;
         log_event_parse(log_event, event.get_data()).ensure();
 
-        auto dialog_id = log_event.full_message_id_.get_dialog_id();
+        auto dialog_id = log_event.message_full_id_.get_dialog_id();
 
         Dependencies dependencies;
         dependencies.add_dialog_dependencies(dialog_id);  // do not load the dialog itself
         dependencies.resolve_force(td_, "SetPollAnswerLogEvent");
 
-        do_set_poll_answer(log_event.poll_id_, log_event.full_message_id_, std::move(log_event.options_), event.id_,
+        do_set_poll_answer(log_event.poll_id_, log_event.message_full_id_, std::move(log_event.options_), event.id_,
                            Auto());
         break;
       }
@@ -1930,13 +1930,13 @@ void PollManager::on_binlog_events(vector<BinlogEvent> &&events) {
         StopPollLogEvent log_event;
         log_event_parse(log_event, event.get_data()).ensure();
 
-        auto dialog_id = log_event.full_message_id_.get_dialog_id();
+        auto dialog_id = log_event.message_full_id_.get_dialog_id();
 
         Dependencies dependencies;
         dependencies.add_dialog_dependencies(dialog_id);  // do not load the dialog itself
         dependencies.resolve_force(td_, "StopPollLogEvent");
 
-        do_stop_poll(log_event.poll_id_, log_event.full_message_id_, nullptr, event.id_, Auto());
+        do_stop_poll(log_event.poll_id_, log_event.message_full_id_, nullptr, event.id_, Auto());
         break;
       }
       default:

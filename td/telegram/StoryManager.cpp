@@ -3174,25 +3174,25 @@ int32 StoryManager::get_story_duration(StoryFullId story_full_id) const {
   return get_story_content_duration(td_, content);
 }
 
-void StoryManager::register_story(StoryFullId story_full_id, FullMessageId full_message_id, const char *source) {
+void StoryManager::register_story(StoryFullId story_full_id, MessageFullId message_full_id, const char *source) {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
   CHECK(story_full_id.is_server());
 
-  LOG(INFO) << "Register " << story_full_id << " from " << full_message_id << " from " << source;
-  story_messages_[story_full_id].insert(full_message_id);
+  LOG(INFO) << "Register " << story_full_id << " from " << message_full_id << " from " << source;
+  story_messages_[story_full_id].insert(message_full_id);
 }
 
-void StoryManager::unregister_story(StoryFullId story_full_id, FullMessageId full_message_id, const char *source) {
+void StoryManager::unregister_story(StoryFullId story_full_id, MessageFullId message_full_id, const char *source) {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
   CHECK(story_full_id.is_server());
-  LOG(INFO) << "Unregister " << story_full_id << " from " << full_message_id << " from " << source;
+  LOG(INFO) << "Unregister " << story_full_id << " from " << message_full_id << " from " << source;
   auto &message_ids = story_messages_[story_full_id];
-  auto is_deleted = message_ids.erase(full_message_id) > 0;
-  LOG_CHECK(is_deleted) << source << ' ' << story_full_id << ' ' << full_message_id;
+  auto is_deleted = message_ids.erase(message_full_id) > 0;
+  LOG_CHECK(is_deleted) << source << ' ' << story_full_id << ' ' << message_full_id;
   if (message_ids.empty()) {
     story_messages_.erase(story_full_id);
   }
@@ -3785,12 +3785,12 @@ void StoryManager::on_story_changed(StoryFullId story_full_id, const Story *stor
     send_closure_later(G()->web_pages_manager(), &WebPagesManager::on_story_changed, story_full_id);
 
     if (story_messages_.count(story_full_id) != 0) {
-      vector<FullMessageId> full_message_ids;
+      vector<MessageFullId> message_full_ids;
       story_messages_[story_full_id].foreach(
-          [&full_message_ids](const FullMessageId &full_message_id) { full_message_ids.push_back(full_message_id); });
-      CHECK(!full_message_ids.empty());
-      for (const auto &full_message_id : full_message_ids) {
-        td_->messages_manager_->on_external_update_message_content(full_message_id);
+          [&message_full_ids](const MessageFullId &message_full_id) { message_full_ids.push_back(message_full_id); });
+      CHECK(!message_full_ids.empty());
+      for (const auto &message_full_id : message_full_ids) {
+        td_->messages_manager_->on_external_update_message_content(message_full_id);
       }
     }
   }

@@ -16,23 +16,23 @@
 
 namespace td {
 
-struct FullMessageId {
+struct MessageFullId {
  private:
   DialogId dialog_id;
   MessageId message_id;
 
  public:
-  FullMessageId() : dialog_id(), message_id() {
+  MessageFullId() : dialog_id(), message_id() {
   }
 
-  FullMessageId(DialogId dialog_id, MessageId message_id) : dialog_id(dialog_id), message_id(message_id) {
+  MessageFullId(DialogId dialog_id, MessageId message_id) : dialog_id(dialog_id), message_id(message_id) {
   }
 
-  bool operator==(const FullMessageId &other) const {
+  bool operator==(const MessageFullId &other) const {
     return dialog_id == other.dialog_id && message_id == other.message_id;
   }
 
-  bool operator!=(const FullMessageId &other) const {
+  bool operator!=(const MessageFullId &other) const {
     return !(*this == other);
   }
 
@@ -44,7 +44,7 @@ struct FullMessageId {
     return message_id;
   }
 
-  static FullMessageId get_full_message_id(const tl_object_ptr<telegram_api::Message> &message_ptr, bool is_scheduled) {
+  static MessageFullId get_message_full_id(const tl_object_ptr<telegram_api::Message> &message_ptr, bool is_scheduled) {
     return {DialogId::get_message_dialog_id(message_ptr), MessageId::get_message_id(message_ptr, is_scheduled)};
   }
 
@@ -61,15 +61,15 @@ struct FullMessageId {
   }
 };
 
-struct FullMessageIdHash {
-  uint32 operator()(FullMessageId full_message_id) const {
-    return combine_hashes(DialogIdHash()(full_message_id.get_dialog_id()),
-                          MessageIdHash()(full_message_id.get_message_id()));
+struct MessageFullIdHash {
+  uint32 operator()(MessageFullId message_full_id) const {
+    return combine_hashes(DialogIdHash()(message_full_id.get_dialog_id()),
+                          MessageIdHash()(message_full_id.get_message_id()));
   }
 };
 
-inline StringBuilder &operator<<(StringBuilder &string_builder, FullMessageId full_message_id) {
-  return string_builder << full_message_id.get_message_id() << " in " << full_message_id.get_dialog_id();
+inline StringBuilder &operator<<(StringBuilder &string_builder, MessageFullId message_full_id) {
+  return string_builder << message_full_id.get_message_id() << " in " << message_full_id.get_dialog_id();
 }
 
 }  // namespace td

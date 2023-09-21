@@ -5327,10 +5327,10 @@ Result<tl_object_ptr<telegram_api::InputUser>> ContactsManager::get_input_user(U
     auto it = user_messages_.find(user_id);
     if (it != user_messages_.end()) {
       CHECK(!it->second.empty());
-      auto full_message_id = *it->second.begin();
+      auto message_full_id = *it->second.begin();
       return make_tl_object<telegram_api::inputUserFromMessage>(
-          get_simple_input_peer(full_message_id.get_dialog_id()),
-          full_message_id.get_message_id().get_server_message_id().get(), user_id.get());
+          get_simple_input_peer(message_full_id.get_dialog_id()),
+          message_full_id.get_message_id().get_server_message_id().get(), user_id.get());
     }
     if (u == nullptr) {
       return Status::Error(400, "User not found");
@@ -5360,10 +5360,10 @@ tl_object_ptr<telegram_api::InputChannel> ContactsManager::get_input_channel(Cha
     auto it = channel_messages_.find(channel_id);
     if (it != channel_messages_.end()) {
       CHECK(!it->second.empty());
-      auto full_message_id = *it->second.begin();
+      auto message_full_id = *it->second.begin();
       return make_tl_object<telegram_api::inputChannelFromMessage>(
-          get_simple_input_peer(full_message_id.get_dialog_id()),
-          full_message_id.get_message_id().get_server_message_id().get(), channel_id.get());
+          get_simple_input_peer(message_full_id.get_dialog_id()),
+          message_full_id.get_message_id().get_server_message_id().get(), channel_id.get());
     }
     return nullptr;
   }
@@ -5422,10 +5422,10 @@ tl_object_ptr<telegram_api::InputPeer> ContactsManager::get_input_peer_user(User
     auto it = user_messages_.find(user_id);
     CHECK(it != user_messages_.end());
     CHECK(!it->second.empty());
-    auto full_message_id = *it->second.begin();
+    auto message_full_id = *it->second.begin();
     return make_tl_object<telegram_api::inputPeerUserFromMessage>(
-        get_simple_input_peer(full_message_id.get_dialog_id()),
-        full_message_id.get_message_id().get_server_message_id().get(), user_id.get());
+        get_simple_input_peer(message_full_id.get_dialog_id()),
+        message_full_id.get_message_id().get_server_message_id().get(), user_id.get());
   }
 
   return make_tl_object<telegram_api::inputPeerUser>(user_id.get(), u->access_hash);
@@ -5485,10 +5485,10 @@ tl_object_ptr<telegram_api::InputPeer> ContactsManager::get_input_peer_channel(C
     auto it = channel_messages_.find(channel_id);
     CHECK(it != channel_messages_.end());
     CHECK(!it->second.empty());
-    auto full_message_id = *it->second.begin();
+    auto message_full_id = *it->second.begin();
     return make_tl_object<telegram_api::inputPeerChannelFromMessage>(
-        get_simple_input_peer(full_message_id.get_dialog_id()),
-        full_message_id.get_message_id().get_server_message_id().get(), channel_id.get());
+        get_simple_input_peer(message_full_id.get_dialog_id()),
+        message_full_id.get_message_id().get_server_message_id().get(), channel_id.get());
   }
 
   return make_tl_object<telegram_api::inputPeerChannel>(channel_id.get(), c->access_hash);
@@ -9530,14 +9530,14 @@ void ContactsManager::remove_inactive_channel(ChannelId channel_id) {
   }
 }
 
-void ContactsManager::register_message_users(FullMessageId full_message_id, vector<UserId> user_ids) {
+void ContactsManager::register_message_users(MessageFullId message_full_id, vector<UserId> user_ids) {
   for (auto user_id : user_ids) {
     CHECK(user_id.is_valid());
     const User *u = get_user(user_id);
     if (u == nullptr || u->access_hash == -1 || u->is_min_access_hash) {
       auto &user_messages = user_messages_[user_id];
       auto need_update = user_messages.empty();
-      user_messages.insert(full_message_id);
+      user_messages.insert(message_full_id);
       if (need_update) {
         send_closure(G()->td(), &Td::send_update, get_update_user_object(user_id, u));
       }
@@ -9545,12 +9545,12 @@ void ContactsManager::register_message_users(FullMessageId full_message_id, vect
   }
 }
 
-void ContactsManager::register_message_channels(FullMessageId full_message_id, vector<ChannelId> channel_ids) {
+void ContactsManager::register_message_channels(MessageFullId message_full_id, vector<ChannelId> channel_ids) {
   for (auto channel_id : channel_ids) {
     CHECK(channel_id.is_valid());
     const Channel *c = get_channel(channel_id);
     if (c == nullptr) {
-      channel_messages_[channel_id].insert(full_message_id);
+      channel_messages_[channel_id].insert(message_full_id);
 
       // get info about the channel
       get_channel_queries_.add_query(channel_id.get(), Promise<Unit>());
@@ -9558,7 +9558,7 @@ void ContactsManager::register_message_channels(FullMessageId full_message_id, v
   }
 }
 
-void ContactsManager::unregister_message_users(FullMessageId full_message_id, vector<UserId> user_ids) {
+void ContactsManager::unregister_message_users(MessageFullId message_full_id, vector<UserId> user_ids) {
   if (user_messages_.empty()) {
     // fast path
     return;
@@ -9566,7 +9566,7 @@ void ContactsManager::unregister_message_users(FullMessageId full_message_id, ve
   for (auto user_id : user_ids) {
     auto it = user_messages_.find(user_id);
     if (it != user_messages_.end()) {
-      it->second.erase(full_message_id);
+      it->second.erase(message_full_id);
       if (it->second.empty()) {
         user_messages_.erase(it);
 
@@ -9579,7 +9579,7 @@ void ContactsManager::unregister_message_users(FullMessageId full_message_id, ve
   }
 }
 
-void ContactsManager::unregister_message_channels(FullMessageId full_message_id, vector<ChannelId> channel_ids) {
+void ContactsManager::unregister_message_channels(MessageFullId message_full_id, vector<ChannelId> channel_ids) {
   if (channel_messages_.empty()) {
     // fast path
     return;
@@ -9587,7 +9587,7 @@ void ContactsManager::unregister_message_channels(FullMessageId full_message_id,
   for (auto channel_id : channel_ids) {
     auto it = channel_messages_.find(channel_id);
     if (it != channel_messages_.end()) {
-      it->second.erase(full_message_id);
+      it->second.erase(message_full_id);
       if (it->second.empty()) {
         channel_messages_.erase(it);
       }

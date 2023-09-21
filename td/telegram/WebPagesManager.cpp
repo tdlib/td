@@ -769,30 +769,30 @@ void WebPagesManager::on_get_web_page_by_url(const string &url, WebPageId web_pa
   cached_web_page_id = web_page_id;
 }
 
-void WebPagesManager::register_web_page(WebPageId web_page_id, FullMessageId full_message_id, const char *source) {
+void WebPagesManager::register_web_page(WebPageId web_page_id, MessageFullId message_full_id, const char *source) {
   if (!web_page_id.is_valid()) {
     return;
   }
 
-  LOG(INFO) << "Register " << web_page_id << " from " << full_message_id << " from " << source;
-  bool is_inserted = web_page_messages_[web_page_id].insert(full_message_id).second;
-  LOG_CHECK(is_inserted) << source << " " << web_page_id << " " << full_message_id;
+  LOG(INFO) << "Register " << web_page_id << " from " << message_full_id << " from " << source;
+  bool is_inserted = web_page_messages_[web_page_id].insert(message_full_id).second;
+  LOG_CHECK(is_inserted) << source << " " << web_page_id << " " << message_full_id;
 
   if (!td_->auth_manager_->is_bot() && !have_web_page_force(web_page_id)) {
-    LOG(INFO) << "Waiting for " << web_page_id << " needed in " << full_message_id;
+    LOG(INFO) << "Waiting for " << web_page_id << " needed in " << message_full_id;
     pending_web_pages_timeout_.add_timeout_in(web_page_id.get(), 1.0);
   }
 }
 
-void WebPagesManager::unregister_web_page(WebPageId web_page_id, FullMessageId full_message_id, const char *source) {
+void WebPagesManager::unregister_web_page(WebPageId web_page_id, MessageFullId message_full_id, const char *source) {
   if (!web_page_id.is_valid()) {
     return;
   }
 
-  LOG(INFO) << "Unregister " << web_page_id << " from " << full_message_id << " from " << source;
+  LOG(INFO) << "Unregister " << web_page_id << " from " << message_full_id << " from " << source;
   auto &message_ids = web_page_messages_[web_page_id];
-  auto is_deleted = message_ids.erase(full_message_id) > 0;
-  LOG_CHECK(is_deleted) << source << " " << web_page_id << " " << full_message_id;
+  auto is_deleted = message_ids.erase(message_full_id) > 0;
+  LOG_CHECK(is_deleted) << source << " " << web_page_id << " " << message_full_id;
 
   if (message_ids.empty()) {
     web_page_messages_.erase(web_page_id);
@@ -1357,27 +1357,27 @@ void WebPagesManager::on_web_page_changed(WebPageId web_page_id, bool have_web_p
   LOG(INFO) << "Updated " << web_page_id;
   auto it = web_page_messages_.find(web_page_id);
   if (it != web_page_messages_.end()) {
-    vector<FullMessageId> full_message_ids;
-    for (const auto &full_message_id : it->second) {
-      full_message_ids.push_back(full_message_id);
+    vector<MessageFullId> message_full_ids;
+    for (const auto &message_full_id : it->second) {
+      message_full_ids.push_back(message_full_id);
     }
-    CHECK(!full_message_ids.empty());
-    for (const auto &full_message_id : full_message_ids) {
+    CHECK(!message_full_ids.empty());
+    for (const auto &message_full_id : message_full_ids) {
       if (!have_web_page) {
-        td_->messages_manager_->delete_pending_message_web_page(full_message_id);
+        td_->messages_manager_->delete_pending_message_web_page(message_full_id);
       } else {
-        td_->messages_manager_->on_external_update_message_content(full_message_id);
+        td_->messages_manager_->on_external_update_message_content(message_full_id);
       }
     }
 
-    bool is_ok = (have_web_page ? web_page_messages_[web_page_id].size() == full_message_ids.size()
+    bool is_ok = (have_web_page ? web_page_messages_[web_page_id].size() == message_full_ids.size()
                                 : web_page_messages_.count(web_page_id) == 0);
     if (!is_ok) {
-      vector<FullMessageId> new_full_message_ids;
-      for (const auto &full_message_id : web_page_messages_[web_page_id]) {
-        new_full_message_ids.push_back(full_message_id);
+      vector<MessageFullId> new_message_full_ids;
+      for (const auto &message_full_id : web_page_messages_[web_page_id]) {
+        new_message_full_ids.push_back(message_full_id);
       }
-      LOG_CHECK(is_ok) << have_web_page << ' ' << full_message_ids << ' ' << new_full_message_ids;
+      LOG_CHECK(is_ok) << have_web_page << ' ' << message_full_ids << ' ' << new_message_full_ids;
     }
   }
   auto get_it = pending_get_web_pages_.find(web_page_id);
@@ -1436,16 +1436,16 @@ void WebPagesManager::on_pending_web_page_timeout(WebPageId web_page_id) {
   int32 count = 0;
   auto it = web_page_messages_.find(web_page_id);
   if (it != web_page_messages_.end()) {
-    vector<FullMessageId> full_message_ids;
-    for (const auto &full_message_id : it->second) {
-      if (full_message_id.get_dialog_id().get_type() != DialogType::SecretChat) {
-        full_message_ids.push_back(full_message_id);
+    vector<MessageFullId> message_full_ids;
+    for (const auto &message_full_id : it->second) {
+      if (message_full_id.get_dialog_id().get_type() != DialogType::SecretChat) {
+        message_full_ids.push_back(message_full_id);
       }
       count++;
     }
-    if (!full_message_ids.empty()) {
+    if (!message_full_ids.empty()) {
       send_closure_later(G()->messages_manager(), &MessagesManager::get_messages_from_server,
-                         std::move(full_message_ids), Promise<Unit>(), "on_pending_web_page_timeout", nullptr);
+                         std::move(message_full_ids), Promise<Unit>(), "on_pending_web_page_timeout", nullptr);
     }
   }
   auto get_it = pending_get_web_pages_.find(web_page_id);

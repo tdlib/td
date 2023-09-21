@@ -6,7 +6,7 @@
 //
 #include "td/telegram/MessageReplyHeader.h"
 
-#include "td/telegram/FullMessageId.h"
+#include "td/telegram/MessageFullId.h"
 #include "td/telegram/ScheduledServerMessageId.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StoryId.h"
@@ -40,13 +40,13 @@ MessageReplyHeader::MessageReplyHeader(tl_object_ptr<telegram_api::MessageReplyH
       auto reply_to_peer_id = std::move(reply_header->reply_to_peer_id_);
       if (reply_to_peer_id != nullptr) {
         reply_in_dialog_id_ = DialogId(reply_to_peer_id);
-        LOG(ERROR) << "Receive reply to " << FullMessageId{reply_in_dialog_id_, reply_to_message_id_} << " in "
-                   << FullMessageId{dialog_id, message_id};
+        LOG(ERROR) << "Receive reply to " << MessageFullId{reply_in_dialog_id_, reply_to_message_id_} << " in "
+                   << MessageFullId{dialog_id, message_id};
         reply_to_message_id_ = MessageId();
         reply_in_dialog_id_ = DialogId();
       }
     } else {
-      LOG(ERROR) << "Receive reply to " << reply_to_message_id_ << " in " << FullMessageId{dialog_id, message_id};
+      LOG(ERROR) << "Receive reply to " << reply_to_message_id_ << " in " << MessageFullId{dialog_id, message_id};
       reply_to_message_id_ = MessageId();
     }
   } else {
