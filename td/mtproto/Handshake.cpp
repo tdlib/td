@@ -290,11 +290,11 @@ void AuthKeyHandshake::send(Callback *connection, const Storer &storer) {
   last_query_.resize(size);
   auto real_size = storer.store(MutableSlice(last_query_).ubegin());
   CHECK(real_size == size);
-  return do_send(connection, create_storer(Slice(last_query_)));
+  do_send(connection, create_storer(Slice(last_query_)));
 }
 
 void AuthKeyHandshake::do_send(Callback *connection, const Storer &storer) {
-  return connection->send_no_crypto(storer);
+  connection->send_no_crypto(storer);
 }
 
 void AuthKeyHandshake::resume(Callback *connection) {

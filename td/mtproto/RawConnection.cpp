@@ -86,7 +86,7 @@ class RawConnectionDefault final : public RawConnection {
     return packet_size;
   }
 
-  MessageId send_no_crypto(const Storer &storer) final {
+  void send_no_crypto(const Storer &storer) final {
     PacketInfo packet_info;
     packet_info.no_crypto_flag = true;
     auto packet = Transport::write(storer, AuthKey(), &packet_info, transport_->max_prepend_size(),
@@ -94,7 +94,6 @@ class RawConnectionDefault final : public RawConnection {
 
     LOG(INFO) << "Send handshake packet: " << format::as_hex_dump<4>(packet.as_slice());
     transport_->write(std::move(packet), false);
-    return packet_info.message_id;
   }
 
   PollableFdInfo &get_poll_info() final {
@@ -315,14 +314,13 @@ class RawConnectionHttp final : public RawConnection {
     return packet_size;
   }
 
-  MessageId send_no_crypto(const Storer &storer) final {
+  void send_no_crypto(const Storer &storer) final {
     PacketInfo packet_info;
     packet_info.no_crypto_flag = true;
     auto packet = Transport::write(storer, AuthKey(), &packet_info);
 
     LOG(INFO) << "Send handshake packet: " << format::as_hex_dump<4>(packet.as_slice());
     send_packet(packet.as_buffer_slice());
-    return packet_info.message_id;
   }
 
   PollableFdInfo &get_poll_info() final {
