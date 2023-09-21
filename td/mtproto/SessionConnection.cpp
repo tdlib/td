@@ -238,7 +238,7 @@ void SessionConnection::reset_server_time_difference(MessageId message_id) {
 
 Status SessionConnection::on_packet_rpc_result(const MsgInfo &info, Slice packet) {
   TlParser parser(packet);
-  uint64 req_msg_id = static_cast<uint64>(parser.fetch_long());
+  auto req_msg_id = static_cast<uint64>(parser.fetch_long());
   if (parser.get_error()) {
     return Status::Error(PSLICE() << "Failed to parse mtproto_api::rpc_result: " << parser.get_error());
   }
