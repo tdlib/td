@@ -161,7 +161,7 @@ class SessionConnection final
   static constexpr int HTTP_MAX_DELAY = 30;  // 0.03s
 
   vector<MtprotoQuery> to_send_;
-  vector<int64> to_ack_;
+  vector<uint64> to_ack_message_ids_;
   double force_send_at_ = 0;
 
   struct ServiceQuery {
@@ -169,9 +169,9 @@ class SessionConnection final
     uint64 container_message_id;
     vector<int64> message_ids;
   };
-  vector<int64> to_resend_answer_;
-  vector<int64> to_cancel_answer_;
-  vector<int64> to_get_state_info_;
+  vector<uint64> to_resend_answer_message_ids_;
+  vector<uint64> to_cancel_answer_message_ids_;
+  vector<uint64> to_get_state_info_message_ids_;
   FlatHashMap<uint64, ServiceQuery> service_queries_;
 
   // nobody cleans up this map. But it should be really small.

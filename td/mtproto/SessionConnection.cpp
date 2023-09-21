@@ -810,23 +810,23 @@ Result<uint64> SessionConnection::send_query(BufferSlice buffer, bool gzip_flag,
 }
 
 void SessionConnection::get_state_info(uint64 message_id) {
-  if (to_get_state_info_.empty()) {
+  if (to_get_state_info_message_ids_.empty()) {
     send_before(Time::now_cached());
   }
-  to_get_state_info_.push_back(static_cast<int64>(message_id));
+  to_get_state_info_message_ids_.push_back(message_id);
 }
 
 void SessionConnection::resend_answer(uint64 message_id) {
-  if (to_resend_answer_.empty()) {
+  if (to_resend_answer_message_ids_.empty()) {
     send_before(Time::now_cached() + RESEND_ANSWER_DELAY);
   }
-  to_resend_answer_.push_back(static_cast<int64>(message_id));
+  to_resend_answer_message_ids_.push_back(message_id);
 }
 void SessionConnection::cancel_answer(uint64 message_id) {
-  if (to_cancel_answer_.empty()) {
+  if (to_cancel_answer_message_ids_.empty()) {
     send_before(Time::now_cached() + RESEND_ANSWER_DELAY);
   }
-  to_cancel_answer_.push_back(static_cast<int64>(message_id));
+  to_cancel_answer_message_ids_.push_back(message_id);
 }
 
 void SessionConnection::destroy_key() {
@@ -859,23 +859,22 @@ std::pair<uint64, BufferSlice> SessionConnection::encrypted_bind(int64 perm_key,
 }
 
 void SessionConnection::force_ack() {
-  if (!to_ack_.empty()) {
+  if (!to_ack_message_ids_.empty()) {
     send_before(Time::now_cached());
   }
 }
 
 void SessionConnection::send_ack(uint64 message_id) {
   VLOG(mtproto) << "Send ack: [msg_id:" << format::as_hex(message_id) << "]";
-  if (to_ack_.empty()) {
+  if (to_ack_message_ids_.empty()) {
     send_before(Time::now_cached() + ACK_DELAY);
   }
-  auto ack = static_cast<int64>(message_id);
   // an easiest way to eliminate duplicated acknowledgements for gzipped packets
-  if (to_ack_.empty() || to_ack_.back() != ack) {
-    to_ack_.push_back(ack);
+  if (to_ack_message_ids_.empty() || to_ack_message_ids_.back() != message_id) {
+    to_ack_message_ids_.push_back(message_id);
 
     constexpr size_t MAX_UNACKED_PACKETS = 100;
-    if (to_ack_.size() >= MAX_UNACKED_PACKETS) {
+    if (to_ack_message_ids_.size() >= MAX_UNACKED_PACKETS) {
       send_before(Time::now_cached());
     }
   }
@@ -947,40 +946,46 @@ void SessionConnection::flush_packet() {
 
   bool destroy_auth_key = need_destroy_auth_key_ && !sent_destroy_auth_key_;
 
-  if (queries.empty() && to_ack_.empty() && ping_id == 0 && max_delay < 0 && future_salt_n == 0 &&
-      to_resend_answer_.empty() && to_cancel_answer_.empty() && to_get_state_info_.empty() && !destroy_auth_key) {
+  if (queries.empty() && to_ack_message_ids_.empty() && ping_id == 0 && max_delay < 0 && future_salt_n == 0 &&
+      to_resend_answer_message_ids_.empty() && to_cancel_answer_message_ids_.empty() &&
+      to_get_state_info_message_ids_.empty() && !destroy_auth_key) {
     force_send_at_ = 0;
     return;
   }
 
   sent_destroy_auth_key_ |= destroy_auth_key;
 
-  VLOG(mtproto) << "Sent packet: " << tag("query_count", queries.size()) << tag("ack_count", to_ack_.size())
+  VLOG(mtproto) << "Sent packet: " << tag("query_count", queries.size()) << tag("ack_count", to_ack_message_ids_.size())
                 << tag("ping", ping_id != 0) << tag("http_wait", max_delay >= 0)
-                << tag("future_salt", future_salt_n > 0) << tag("get_info", to_get_state_info_.size())
-                << tag("resend", to_resend_answer_.size()) << tag("cancel", to_cancel_answer_.size())
-                << tag("destroy_key", destroy_auth_key) << tag("auth_key_id", auth_data_->get_auth_key().id());
+                << tag("future_salt", future_salt_n > 0) << tag("get_info", to_get_state_info_message_ids_.size())
+                << tag("resend", to_resend_answer_message_ids_.size())
+                << tag("cancel", to_cancel_answer_message_ids_.size()) << tag("destroy_key", destroy_auth_key)
+                << tag("auth_key_id", auth_data_->get_auth_key().id());
 
-  auto cut_tail = [](vector<int64> &v, size_t size, Slice name) {
+  auto cut_tail = [](vector<uint64> &v, size_t size, Slice name) {
     if (size >= v.size()) {
-      auto result = std::move(v);
+      auto result = transform(v, [](uint64 x) { return static_cast<int64>(x); });
       v.clear();
       return result;
     }
     LOG(WARNING) << "Too many message identifiers in container " << name << ": " << v.size() << " instead of " << size;
-    vector<int64> result(v.end() - size, v.end());
-    v.resize(v.size() - size);
+    auto new_size = v.size() - size;
+    vector<int64> result(size);
+    for (size_t i = 0; i < size; i++) {
+      result[i] = static_cast<int64>(v[i + new_size]);
+    }
+    v.resize(new_size);
     return result;
   };
 
   // no more than 8192 message identifiers per container..
-  auto to_resend_answer = cut_tail(to_resend_answer_, 8192, "resend_answer");
+  auto to_resend_answer = cut_tail(to_resend_answer_message_ids_, 8192, "resend_answer");
   uint64 resend_answer_message_id = 0;
   CHECK(queries.size() <= 1020);
-  auto to_cancel_answer = cut_tail(to_cancel_answer_, 1020 - queries.size(), "cancel_answer");
-  auto to_get_state_info = cut_tail(to_get_state_info_, 8192, "get_state_info");
+  auto to_cancel_answer = cut_tail(to_cancel_answer_message_ids_, 1020 - queries.size(), "cancel_answer");
+  auto to_get_state_info = cut_tail(to_get_state_info_message_ids_, 8192, "get_state_info");
   uint64 get_state_info_message_id = 0;
-  auto to_ack = cut_tail(to_ack_, 8192, "ack");
+  auto to_ack = cut_tail(to_ack_message_ids_, 8192, "ack");
   uint64 ping_message_id = 0;
 
   bool use_quick_ack =
@@ -1030,8 +1035,8 @@ void SessionConnection::flush_packet() {
     }
   }
 
-  if (to_send_.empty() && to_ack_.empty() && to_get_state_info_.empty() && to_resend_answer_.empty() &&
-      to_cancel_answer_.empty()) {
+  if (to_send_.empty() && to_ack_message_ids_.empty() && to_get_state_info_message_ids_.empty() &&
+      to_resend_answer_message_ids_.empty() && to_cancel_answer_message_ids_.empty()) {
     force_send_at_ = 0;
   }
 }
