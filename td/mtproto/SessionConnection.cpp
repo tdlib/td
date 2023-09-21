@@ -929,12 +929,12 @@ void SessionConnection::flush_packet() {
     }
   }
 
+  static constexpr size_t MAX_QUERY_COUNT = 1000;
   size_t send_till = 0;
   size_t send_size = 0;
-  // send at most 1020 queries, of total size 2^15
-  // don't send anything if have no salt
   if (has_salt) {
-    while (send_till < to_send_.size() && send_till < 1020 && send_size < (1 << 15)) {
+    // send at most MAX_QUERY_COUNT queries, of total size up to 2^15
+    while (send_till < to_send_.size() && send_till < MAX_QUERY_COUNT && send_size < (1 << 15)) {
       send_size += to_send_[send_till].packet.size();
       send_till++;
     }
@@ -986,8 +986,8 @@ void SessionConnection::flush_packet() {
   // no more than 8192 message identifiers per container..
   auto to_resend_answer = cut_tail(to_resend_answer_message_ids_, 8192, "resend_answer");
   MessageId resend_answer_message_id;
-  CHECK(queries.size() <= 1020);
-  auto to_cancel_answer = cut_tail(to_cancel_answer_message_ids_, 1020 - queries.size(), "cancel_answer");
+  CHECK(queries.size() <= MAX_QUERY_COUNT);
+  auto to_cancel_answer = cut_tail(to_cancel_answer_message_ids_, MAX_QUERY_COUNT - queries.size(), "cancel_answer");
   auto to_get_state_info = cut_tail(to_get_state_info_message_ids_, 8192, "get_state_info");
   MessageId get_state_info_message_id;
   auto to_ack = cut_tail(to_ack_message_ids_, 8192, "ack");
