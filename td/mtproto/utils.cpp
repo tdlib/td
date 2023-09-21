@@ -11,11 +11,11 @@
 namespace td {
 namespace mtproto {
 
-TLStorer<mtproto_api::Function> create_storer(const mtproto_api::Function &function) {
+TLStorer<mtproto_api::Function> create_function_storer(const mtproto_api::Function &function) {
   return TLStorer<mtproto_api::Function>(function);
 }
 
-TLObjectStorer<mtproto_api::Object> create_storer(const mtproto_api::Object &object) {
+TLObjectStorer<mtproto_api::Object> create_object_storer(const mtproto_api::Object &object) {
   return TLObjectStorer<mtproto_api::Object>(object);
 }
 

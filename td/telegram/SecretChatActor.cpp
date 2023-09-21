@@ -45,7 +45,7 @@
 
 namespace td {
 
-inline TLObjectStorer<secret_api::Object> create_storer(const secret_api::Object &object) {
+inline TLObjectStorer<secret_api::Object> create_object_storer(const secret_api::Object &object) {
   return TLObjectStorer<secret_api::Object>(object);
 }
 
@@ -221,7 +221,7 @@ Result<BufferSlice> SecretChatActor::create_encrypted_message(int32 my_in_seq_no
   auto message_with_layer = secret_api::make_object<secret_api::decryptedMessageLayer>(
       std::move(random_bytes), layer, in_seq_no, out_seq_no, std::move(message));
   LOG(INFO) << "Create message " << to_string(message_with_layer);
-  auto storer = create_storer(*message_with_layer);
+  auto storer = create_object_storer(*message_with_layer);
   auto new_storer = mtproto::PacketStorer<SecretImpl>(storer);
   mtproto::PacketInfo packet_info;
   packet_info.type = mtproto::PacketInfo::EndToEnd;

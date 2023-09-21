@@ -149,7 +149,7 @@ class QueryImpl {
     Slice data = query_.packet.as_slice();
     mtproto_api::gzip_packed packed(data);
     auto plain_storer = create_storer(data);
-    auto gzip_storer = create_storer(packed);
+    auto gzip_storer = create_object_storer(packed);
     const Storer &data_storer =
         query_.gzip_flag ? static_cast<const Storer &>(gzip_storer) : static_cast<const Storer &>(plain_storer);
     auto header_storer = create_storer(header_);

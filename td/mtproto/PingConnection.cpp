@@ -48,8 +48,8 @@ class PingConnectionReqPQ final
     if (!was_ping_) {
       UInt128 nonce;
       Random::secure_bytes(nonce.raw, sizeof(nonce));
-      raw_connection_->send_no_crypto(PacketStorer<NoCryptoImpl>(MessageId(static_cast<uint64>(1)),
-                                                                 create_storer(mtproto_api::req_pq_multi(nonce))));
+      raw_connection_->send_no_crypto(PacketStorer<NoCryptoImpl>(
+          MessageId(static_cast<uint64>(1)), create_function_storer(mtproto_api::req_pq_multi(nonce))));
       was_ping_ = true;
       if (ping_count_ == 1) {
         start_time_ = Time::now();

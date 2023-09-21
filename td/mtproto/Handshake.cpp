@@ -74,7 +74,7 @@ void AuthKeyHandshake::on_finish() {
 }
 
 string AuthKeyHandshake::store_object(const mtproto_api::Object &object) {
-  auto storer = create_storer(object);
+  auto storer = create_object_storer(object);
   size_t size = storer.size();
   string result(size, '\0');
   auto real_size = storer.store(MutableSlice(result).ubegin());
@@ -154,8 +154,7 @@ Status AuthKeyHandshake::on_res_pq(Slice message, Callback *connection, PublicRs
   }
 
   mtproto_api::req_DH_params req_dh_params(nonce_, server_nonce_, p, q, rsa_key.fingerprint, encrypted_data);
-
-  send(connection, create_storer(req_dh_params));
+  send(connection, create_function_storer(req_dh_params));
   state_ = ServerDHParams;
   return Status::OK();
 }
@@ -240,7 +239,7 @@ Status AuthKeyHandshake::on_server_dh_params(Slice message, Callback *connection
   aes_ige_encrypt(as_slice(tmp_aes_key), as_mutable_slice(tmp_aes_iv), encrypted_data, encrypted_data);
 
   mtproto_api::set_client_DH_params set_client_dh_params(nonce_, server_nonce_, encrypted_data);
-  send(connection, create_storer(set_client_dh_params));
+  send(connection, create_function_storer(set_client_dh_params));
 
   auth_key_ = AuthKey(auth_key_params.first, std::move(auth_key_params.second));
   if (mode_ == Mode::Temp) {
@@ -319,7 +318,7 @@ Status AuthKeyHandshake::on_start(Callback *connection) {
     return Status::Error(PSLICE() << "on_start called after start " << tag("state", state_));
   }
   Random::secure_bytes(nonce_.raw, sizeof(nonce_));
-  send(connection, create_storer(mtproto_api::req_pq_multi(nonce_)));
+  send(connection, create_function_storer(mtproto_api::req_pq_multi(nonce_)));
   state_ = ResPQ;
 
   return Status::OK();
