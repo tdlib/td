@@ -791,7 +791,7 @@ void SessionConnection::send_crypto(const Storer &storer, uint64 quick_ack_token
 }
 
 Result<uint64> SessionConnection::send_query(BufferSlice buffer, bool gzip_flag, uint64 message_id,
-                                             vector<uint64> invoke_after_ids, bool use_quick_ack) {
+                                             vector<uint64> invoke_after_message_ids, bool use_quick_ack) {
   CHECK(mode_ != Mode::HttpLongPoll);  // "LongPoll connection is only for http_wait"
   if (message_id == 0) {
     message_id = auth_data_->next_message_id(Time::now_cached());
@@ -800,10 +800,10 @@ Result<uint64> SessionConnection::send_query(BufferSlice buffer, bool gzip_flag,
   if (to_send_.empty()) {
     send_before(Time::now_cached() + QUERY_DELAY);
   }
-  to_send_.push_back(
-      MtprotoQuery{message_id, seq_no, std::move(buffer), gzip_flag, std::move(invoke_after_ids), use_quick_ack});
+  to_send_.push_back(MtprotoQuery{message_id, seq_no, std::move(buffer), gzip_flag, std::move(invoke_after_message_ids),
+                                  use_quick_ack});
   VLOG(mtproto) << "Invoke query with msg_id " << format::as_hex(message_id) << " and seq_no " << seq_no << " of size "
-                << to_send_.back().packet.size() << " after " << invoke_after_ids
+                << to_send_.back().packet.size() << " after " << invoke_after_message_ids
                 << (use_quick_ack ? " with quick ack" : "");
 
   return message_id;

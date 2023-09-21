@@ -142,7 +142,7 @@ class QueryImpl {
     storer.store_binary(query_.message_id);
     storer.store_binary(query_.seq_no);
 
-    InvokeAfter invoke_after(query_.invoke_after_ids);
+    InvokeAfter invoke_after(query_.invoke_after_message_ids);
     auto invoke_after_storer = create_default_storer(invoke_after);
 
     Slice data = query_.packet.as_slice();

@@ -17,7 +17,7 @@ struct MtprotoQuery {
   int32 seq_no;
   BufferSlice packet;
   bool gzip_flag;
-  vector<uint64> invoke_after_ids;
+  vector<uint64> invoke_after_message_ids;
   bool use_quick_ack;
 };
 

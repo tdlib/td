@@ -1123,14 +1123,14 @@ void Session::connection_send_query(ConnectionInfo *info, NetQueryPtr &&net_quer
   }
 
   Span<NetQueryRef> invoke_after = net_query->invoke_after();
-  vector<uint64> invoke_after_ids;
+  vector<uint64> invoke_after_message_ids;
   for (auto &ref : invoke_after) {
-    auto invoke_after_id = ref->message_id();
-    if (ref->session_id() != auth_data_.get_session_id() || invoke_after_id == 0) {
+    auto invoke_after_message_id = ref->message_id();
+    if (ref->session_id() != auth_data_.get_session_id() || invoke_after_message_id == 0) {
       net_query->set_error_resend_invoke_after();
       return return_query(std::move(net_query));
     }
-    invoke_after_ids.push_back(invoke_after_id);
+    invoke_after_message_ids.push_back(invoke_after_message_id);
   }
   if (!invoke_after.empty()) {
     if (!unknown_queries_.empty()) {
@@ -1144,9 +1144,9 @@ void Session::connection_send_query(ConnectionInfo *info, NetQueryPtr &&net_quer
   bool immediately_fail_query = false;
   if (!immediately_fail_query) {
     net_query->debug(PSTRING() << get_name() << ": send to an MTProto connection");
-    auto r_message_id =
-        info->connection_->send_query(net_query->query().clone(), net_query->gzip_flag() == NetQuery::GzipFlag::On,
-                                      message_id, invoke_after_ids, static_cast<bool>(net_query->quick_ack_promise_));
+    auto r_message_id = info->connection_->send_query(
+        net_query->query().clone(), net_query->gzip_flag() == NetQuery::GzipFlag::On, message_id,
+        invoke_after_message_ids, static_cast<bool>(net_query->quick_ack_promise_));
 
     net_query->on_net_write(net_query->query().size());
 
@@ -1161,7 +1161,7 @@ void Session::connection_send_query(ConnectionInfo *info, NetQueryPtr &&net_quer
   }
   net_query->set_message_id(message_id);
   VLOG(net_query) << "Send query to connection " << net_query
-                  << tag("invoke_after", transform(invoke_after_ids, [](auto message_id) {
+                  << tag("invoke_after", transform(invoke_after_message_ids, [](auto message_id) {
                            return PSTRING() << format::as_hex(message_id);
                          }));
   {
