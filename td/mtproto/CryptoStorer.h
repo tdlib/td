@@ -206,8 +206,8 @@ class CryptoImpl {
   CryptoImpl(const vector<MtprotoQuery> &to_send, Slice header, vector<int64> &&to_ack, int64 ping_id, int ping_timeout,
              int max_delay, int max_after, int max_wait, int future_salt_n, vector<int64> get_info,
              vector<int64> resend, const vector<int64> &cancel, bool destroy_key, AuthData *auth_data,
-             uint64 *container_id, uint64 *get_info_message_id, uint64 *resend_message_id, uint64 *ping_message_id,
-             uint64 *parent_message_id)
+             uint64 *container_message_id, uint64 *get_info_message_id, uint64 *resend_message_id,
+             uint64 *ping_message_id, uint64 *parent_message_id)
       : query_storer_(to_send, header)
       , ack_empty_(to_ack.empty())
       , ack_storer_(!ack_empty_, mtproto_api::msgs_ack(std::move(to_ack)), auth_data)
@@ -251,7 +251,7 @@ class CryptoImpl {
       message_id_ = auth_data->next_message_id(Time::now_cached());
       seq_no_ = auth_data->next_seq_no(false);
 
-      *container_id = message_id_;
+      *container_message_id = message_id_;
       *parent_message_id = message_id_;
     } else if (!to_send.empty()) {
       CHECK(to_send.size() == 1u);

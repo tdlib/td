@@ -98,7 +98,7 @@ class SessionConnection final
     virtual void on_new_session_created(uint64 unique_id, uint64 first_message_id) = 0;
     virtual void on_session_failed(Status status) = 0;
 
-    virtual void on_container_sent(uint64 container_id, vector<uint64> msgs_id) = 0;
+    virtual void on_container_sent(uint64 container_message_id, vector<uint64> message_ids) = 0;
     virtual Status on_pong() = 0;
 
     virtual Status on_update(BufferSlice packet) = 0;
@@ -185,7 +185,7 @@ class SessionConnection final
   double real_last_pong_at_ = 0;
   uint64 cur_ping_id_ = 0;
   uint64 last_ping_message_id_ = 0;
-  uint64 last_ping_container_id_ = 0;
+  uint64 last_ping_container_message_id_ = 0;
 
   uint64 last_read_size_ = 0;
   uint64 last_write_size_ = 0;
@@ -200,7 +200,7 @@ class SessionConnection final
   Mode mode_;
   bool connected_flag_ = false;
 
-  uint64 container_id_ = 0;
+  uint64 container_message_id_ = 0;
   uint64 main_message_id_ = 0;
   double created_at_ = 0;
 

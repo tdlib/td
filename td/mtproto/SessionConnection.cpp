@@ -212,10 +212,10 @@ Status SessionConnection::parse_message(TlParser &parser, MsgInfo *info, Slice *
 }
 
 Status SessionConnection::on_packet_container(const MsgInfo &info, Slice packet) {
-  auto old_container_id = container_id_;
-  container_id_ = info.message_id;
+  auto old_container_message_id = container_message_id_;
+  container_message_id_ = info.message_id;
   SCOPE_EXIT {
-    container_id_ = old_container_id;
+    container_message_id_ = old_container_message_id;
   };
 
   TlParser parser(packet);
@@ -223,7 +223,7 @@ Status SessionConnection::on_packet_container(const MsgInfo &info, Slice packet)
   if (parser.get_error()) {
     return Status::Error(PSLICE() << "Failed to parse mtproto_api::rpc_container: " << parser.get_error());
   }
-  VLOG(mtproto) << "Receive container " << format::as_hex(container_id_) << " of size " << size;
+  VLOG(mtproto) << "Receive container " << format::as_hex(container_message_id_) << " of size " << size;
   for (int i = 0; i < size; i++) {
     TRY_STATUS(parse_packet(parser));
   }
@@ -516,8 +516,8 @@ Status SessionConnection::on_slice_packet(const MsgInfo &info, Slice packet) {
 
   auto get_update_description = [&] {
     return PSTRING() << "update from " << get_name() << " with auth key " << auth_data_->get_auth_key().id()
-                     << " active for " << (Time::now() - created_at_) << " seconds in container " << container_id_
-                     << " from session " << auth_data_->get_session_id() << " with " << info
+                     << " active for " << (Time::now() - created_at_) << " seconds in container "
+                     << container_message_id_ << " from session " << auth_data_->get_session_id() << " with " << info
                      << ", main_message_id = " << format::as_hex(main_message_id_)
                      << " and original size = " << info.size;
   };
@@ -581,11 +581,11 @@ void SessionConnection::on_message_failed(uint64 id, Status status) {
 
   sent_destroy_auth_key_ = false;
 
-  if (id == last_ping_message_id_ || id == last_ping_container_id_) {
+  if (id == last_ping_message_id_ || id == last_ping_container_message_id_) {
     // restart ping immediately
     last_ping_at_ = 0;
     last_ping_message_id_ = 0;
-    last_ping_container_id_ = 0;
+    last_ping_container_message_id_ = 0;
   }
 
   auto cit = container_to_service_msg_.find(id);
@@ -774,7 +774,7 @@ void SessionConnection::set_online(bool online_flag, bool is_main) {
   }
   last_ping_at_ = 0;
   last_ping_message_id_ = 0;
-  last_ping_container_id_ = 0;
+  last_ping_container_message_id_ = 0;
 }
 
 void SessionConnection::do_close(Status status) {
@@ -893,7 +893,7 @@ bool SessionConnection::must_ping() const {
 void SessionConnection::flush_packet() {
   bool has_salt = auth_data_->has_salt(Time::now_cached());
   // ping
-  uint64 container_id = 0;
+  uint64 container_message_id = 0;
   int64 ping_id = 0;
   if (has_salt && may_ping()) {
     ping_id = ++cur_ping_id_;
@@ -992,7 +992,7 @@ void SessionConnection::flush_packet() {
     auto storer = PacketStorer<CryptoImpl>(
         queries, auth_data_->get_header(), std::move(to_ack), ping_id, static_cast<int>(ping_disconnect_delay() + 2.0),
         max_delay, max_after, max_wait, future_salt_n, to_get_state_info, to_resend_answer, to_cancel_answer,
-        destroy_auth_key, auth_data_, &container_id, &get_state_info_message_id, &resend_answer_message_id,
+        destroy_auth_key, auth_data_, &container_message_id, &get_state_info_message_id, &resend_answer_message_id,
         &ping_message_id, &parent_message_id);
 
     auto quick_ack_token = use_quick_ack ? parent_message_id : 0;
@@ -1000,19 +1000,19 @@ void SessionConnection::flush_packet() {
   }
 
   if (resend_answer_message_id) {
-    service_queries_.emplace(resend_answer_message_id,
-                             ServiceQuery{ServiceQuery::ResendAnswer, container_id, std::move(to_resend_answer)});
+    service_queries_.emplace(resend_answer_message_id, ServiceQuery{ServiceQuery::ResendAnswer, container_message_id,
+                                                                    std::move(to_resend_answer)});
   }
   if (get_state_info_message_id) {
-    service_queries_.emplace(get_state_info_message_id,
-                             ServiceQuery{ServiceQuery::GetStateInfo, container_id, std::move(to_get_state_info)});
+    service_queries_.emplace(get_state_info_message_id, ServiceQuery{ServiceQuery::GetStateInfo, container_message_id,
+                                                                     std::move(to_get_state_info)});
   }
   if (ping_id != 0) {
-    last_ping_container_id_ = container_id;
+    last_ping_container_message_id_ = container_message_id;
     last_ping_message_id_ = ping_message_id;
   }
 
-  if (container_id != 0) {
+  if (container_message_id != 0) {
     auto message_ids = transform(queries, [](const MtprotoQuery &x) { return static_cast<uint64>(x.message_id); });
 
     // some acks may be lost here. Nobody will resend them if something goes wrong with query.
@@ -1020,13 +1020,13 @@ void SessionConnection::flush_packet() {
     //
     // get future salt too.
     // So I will re-ask salt if have no answer in 60 second.
-    callback_->on_container_sent(container_id, std::move(message_ids));
+    callback_->on_container_sent(container_message_id, std::move(message_ids));
 
     if (resend_answer_message_id) {
-      container_to_service_msg_[container_id].push_back(resend_answer_message_id);
+      container_to_service_msg_[container_message_id].push_back(resend_answer_message_id);
     }
     if (get_state_info_message_id) {
-      container_to_service_msg_[container_id].push_back(get_state_info_message_id);
+      container_to_service_msg_[container_message_id].push_back(get_state_info_message_id);
     }
   }
 
