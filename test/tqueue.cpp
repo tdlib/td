@@ -31,7 +31,7 @@ TEST(TQueue, hands) {
   auto qid = 12;
   ASSERT_EQ(true, tqueue->get_head(qid).empty());
   ASSERT_EQ(true, tqueue->get_tail(qid).empty());
-  tqueue->push(qid, "hello", 1, 0, td::TQueue::EventId());
+  tqueue->push(qid, "hello", 1, 0, td::TQueue::EventId()).ignore();
   auto head = tqueue->get_head(qid);
   auto tail = tqueue->get_tail(qid);
   ASSERT_EQ(head.next().ok(), tail);

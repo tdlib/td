@@ -90,18 +90,19 @@ Result<FileLoader::FileInfo> FileDownloader::init() {
     }
   }
   if (need_search_file_ && fd_.empty() && size_ > 0 && encryption_key_.empty() && !remote_.is_web()) {
-    [&] {
-      TRY_RESULT(path, search_file(remote_.file_type_, name_, size_));
-      TRY_RESULT(fd, FileFd::open(path, FileFd::Read));
-      LOG(INFO) << "Check hash of local file " << path;
-      path_ = std::move(path);
-      fd_ = std::move(fd);
-      need_check_ = true;
-      only_check_ = true;
-      part_size = 128 * (1 << 10);
-      bitmask = Bitmask{Bitmask::Ones{}, (size_ + part_size - 1) / part_size};
-      return Status::OK();
-    }();
+    auto r_path = search_file(remote_.file_type_, name_, size_);
+    if (r_path.is_ok()) {
+      auto r_fd = FileFd::open(r_path.ok(), FileFd::Read);
+      if (r_fd.is_ok()) {
+        path_ = r_path.move_as_ok();
+        fd_ = r_fd.move_as_ok();
+        need_check_ = true;
+        only_check_ = true;
+        part_size = 128 * (1 << 10);
+        bitmask = Bitmask{Bitmask::Ones{}, (size_ + part_size - 1) / part_size};
+        LOG(INFO) << "Check hash of local file " << path_;
+      }
+    }
   }
 
   FileInfo res;
