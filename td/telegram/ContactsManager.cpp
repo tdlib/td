@@ -16223,6 +16223,27 @@ void ContactsManager::on_update_channel_stories_hidden(Channel *c, ChannelId cha
   }
 }
 
+void ContactsManager::on_update_channel_participant_count(ChannelId channel_id, int32 participant_count) {
+  Channel *c = get_channel(channel_id);
+  if (c == nullptr || c->participant_count == participant_count) {
+    return;
+  }
+
+  c->participant_count = participant_count;
+  c->is_changed = true;
+  update_channel(c, channel_id);
+
+  auto channel_full = get_channel_full(channel_id, true, "on_update_channel_participant_count");
+  if (channel_full != nullptr && channel_full->participant_count != participant_count) {
+    if (channel_full->administrator_count > participant_count) {
+      channel_full->administrator_count = participant_count;
+    }
+    channel_full->participant_count = participant_count;
+    channel_full->is_changed = true;
+    update_channel_full(channel_full, channel_id, "on_update_channel_participant_count");
+  }
+}
+
 void ContactsManager::on_update_channel_editable_username(ChannelId channel_id, string &&username) {
   Channel *c = get_channel(channel_id);
   CHECK(c != nullptr);

@@ -788,11 +788,13 @@ class GetBoostsStatusQuery final : public Td::ResultHandler {
     int32 premium_member_count = 0;
     double premium_member_percentage = 0.0;
     if (result->premium_audience_ != nullptr) {
-      auto part = static_cast<int32>(result->premium_audience_->part_);
-      auto total = static_cast<int32>(result->premium_audience_->total_);
-      premium_member_count = max(0, part);
-      if (result->premium_audience_->total_ > 0) {
-        premium_member_percentage = 100.0 * premium_member_count / max(total, premium_member_count);
+      premium_member_count = max(0, static_cast<int32>(result->premium_audience_->part_));
+      auto participant_count = max(static_cast<int32>(result->premium_audience_->total_), premium_member_count);
+      if (dialog_id_.get_type() == DialogType::Channel) {
+        td_->contacts_manager_->on_update_channel_participant_count(dialog_id_.get_channel_id(), participant_count);
+      }
+      if (participant_count > 0) {
+        premium_member_percentage = 100.0 * premium_member_count / participant_count;
       }
     }
     promise_.set_value(td_api::make_object<td_api::chatBoostStatus>(

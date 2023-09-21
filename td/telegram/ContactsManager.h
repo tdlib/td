@@ -214,6 +214,7 @@ class ContactsManager final : public Actor {
   void on_update_chat_default_permissions(ChatId chat_id, RestrictedRights default_permissions, int32 version);
   void on_update_chat_pinned_message(ChatId chat_id, MessageId pinned_message_id, int32 version);
 
+  void on_update_channel_participant_count(ChannelId channel_id, int32 participant_count);
   void on_update_channel_editable_username(ChannelId channel_id, string &&username);
   void on_update_channel_usernames(ChannelId channel_id, Usernames &&usernames);
   void on_update_channel_story_ids(ChannelId channel_id, StoryId max_active_story_id, StoryId max_read_story_id);
