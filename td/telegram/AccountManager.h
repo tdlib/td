@@ -82,6 +82,7 @@ class AccountManager final : public Actor {
   class ResetAuthorizationOnServerLogEvent;
   class ResetAuthorizationsOnServerLogEvent;
   class ResetWebAuthorizationOnServerLogEvent;
+  class ResetWebAuthorizationsOnServerLogEvent;
   class SetAccountTtlOnServerLogEvent;
   class SetAuthorizationTtlOnServerLogEvent;
   class SetDefaultHistoryTtlOnServerLogEvent;
@@ -114,6 +115,8 @@ class AccountManager final : public Actor {
   void reset_authorizations_on_server(uint64 log_event_id, Promise<Unit> &&promise);
 
   void reset_web_authorization_on_server(int64 hash, uint64 log_event_id, Promise<Unit> &&promise);
+
+  void reset_web_authorizations_on_server(uint64 log_event_id, Promise<Unit> &&promise);
 
   void set_account_ttl_on_server(int32 account_ttl, uint64 log_event_id, Promise<Unit> &&promise);
 
