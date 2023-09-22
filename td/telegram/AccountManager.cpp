@@ -1049,8 +1049,36 @@ void AccountManager::get_connected_websites(Promise<td_api::object_ptr<td_api::c
   td_->create_handler<GetWebAuthorizationsQuery>(std::move(promise))->send();
 }
 
+class AccountManager::ResetWebAuthorizationOnServerLogEvent {
+ public:
+  int64 hash_;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    td::store(hash_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    td::parse(hash_, parser);
+  }
+};
+
+void AccountManager::reset_web_authorization_on_server(int64 hash, uint64 log_event_id, Promise<Unit> &&promise) {
+  if (log_event_id == 0) {
+    ResetWebAuthorizationOnServerLogEvent log_event{hash};
+    log_event_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ResetWebAuthorizationOnServer,
+                              get_log_event_storer(log_event));
+  }
+
+  auto new_promise = get_erase_log_event_promise(log_event_id, std::move(promise));
+  promise = std::move(new_promise);  // to prevent self-move
+
+  td_->create_handler<ResetWebAuthorizationQuery>(std::move(promise))->send(hash);
+}
+
 void AccountManager::disconnect_website(int64 website_id, Promise<Unit> &&promise) {
-  td_->create_handler<ResetWebAuthorizationQuery>(std::move(promise))->send(website_id);
+  reset_web_authorization_on_server(website_id, 0, std::move(promise));
 }
 
 void AccountManager::disconnect_all_websites(Promise<Unit> &&promise) {
@@ -1203,6 +1231,13 @@ void AccountManager::on_binlog_events(vector<BinlogEvent> &&events) {
         log_event_parse(log_event, event.get_data()).ensure();
 
         reset_authorizations_on_server(event.id_, Auto());
+        break;
+      }
+      case LogEvent::HandlerType::ResetWebAuthorizationOnServer: {
+        ResetWebAuthorizationOnServerLogEvent log_event;
+        log_event_parse(log_event, event.get_data()).ensure();
+
+        reset_web_authorization_on_server(log_event.hash_, event.id_, Auto());
         break;
       }
       case LogEvent::HandlerType::SetAccountTtlOnServer: {
