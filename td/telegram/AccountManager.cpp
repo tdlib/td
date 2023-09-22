@@ -778,8 +778,37 @@ void AccountManager::tear_down() {
   parent_.reset();
 }
 
-void AccountManager::set_default_message_ttl(int32 message_ttl, Promise<Unit> &&promise) {
+class AccountManager::SetDefaultHistoryTtlOnServerLogEvent {
+ public:
+  int32 message_ttl_;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    td::store(message_ttl_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    td::parse(message_ttl_, parser);
+  }
+};
+
+void AccountManager::set_default_history_ttl_on_server(int32 message_ttl, uint64 log_event_id,
+                                                       Promise<Unit> &&promise) {
+  if (log_event_id == 0) {
+    SetDefaultHistoryTtlOnServerLogEvent log_event{message_ttl};
+    log_event_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::SetDefaultHistoryTtlOnServer,
+                              get_log_event_storer(log_event));
+  }
+
+  auto new_promise = get_erase_log_event_promise(log_event_id, std::move(promise));
+  promise = std::move(new_promise);  // to prevent self-move
+
   td_->create_handler<SetDefaultHistoryTtlQuery>(std::move(promise))->send(message_ttl);
+}
+
+void AccountManager::set_default_message_ttl(int32 message_ttl, Promise<Unit> &&promise) {
+  set_default_history_ttl_on_server(message_ttl, 0, std::move(promise));
 }
 
 void AccountManager::get_default_message_ttl(Promise<int32> &&promise) {
@@ -1117,6 +1146,13 @@ void AccountManager::on_binlog_events(vector<BinlogEvent> &&events) {
         log_event_parse(log_event, event.get_data()).ensure();
 
         reset_authorizations_on_server(event.id_, Auto());
+        break;
+      }
+      case LogEvent::HandlerType::SetDefaultHistoryTtlOnServer: {
+        SetDefaultHistoryTtlOnServerLogEvent log_event;
+        log_event_parse(log_event, event.get_data()).ensure();
+
+        set_default_history_ttl_on_server(log_event.message_ttl_, event.id_, Auto());
         break;
       }
       default:

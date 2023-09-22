@@ -115,6 +115,7 @@ class LogEvent {
     ChangeAuthorizationSettingsOnServer = 0x500,
     ResetAuthorizationOnServer = 0x501,
     ResetAuthorizationsOnServer = 0x502,
+    SetDefaultHistoryTtlOnServer = 0x503,
     ConfigPmcMagic = 0x1f18,
     BinlogPmcMagic = 0x4327
   };
