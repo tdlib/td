@@ -1012,8 +1012,37 @@ void AccountManager::toggle_session_can_accept_secret_chats(int64 session_id, bo
                                           std::move(promise));
 }
 
-void AccountManager::set_inactive_session_ttl_days(int32 authorization_ttl_days, Promise<Unit> &&promise) {
+class AccountManager::SetAuthorizationTtlOnServerLogEvent {
+ public:
+  int32 authorization_ttl_days_;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    td::store(authorization_ttl_days_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    td::parse(authorization_ttl_days_, parser);
+  }
+};
+
+void AccountManager::set_authorization_ttl_on_server(int32 authorization_ttl_days, uint64 log_event_id,
+                                                     Promise<Unit> &&promise) {
+  if (log_event_id == 0) {
+    SetAuthorizationTtlOnServerLogEvent log_event{authorization_ttl_days};
+    log_event_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::SetAuthorizationTtlOnServer,
+                              get_log_event_storer(log_event));
+  }
+
+  auto new_promise = get_erase_log_event_promise(log_event_id, std::move(promise));
+  promise = std::move(new_promise);  // to prevent self-move
+
   td_->create_handler<SetAuthorizationTtlQuery>(std::move(promise))->send(authorization_ttl_days);
+}
+
+void AccountManager::set_inactive_session_ttl_days(int32 authorization_ttl_days, Promise<Unit> &&promise) {
+  set_authorization_ttl_on_server(authorization_ttl_days, 0, std::move(promise));
 }
 
 void AccountManager::get_connected_websites(Promise<td_api::object_ptr<td_api::connectedWebsites>> &&promise) {
@@ -1181,6 +1210,13 @@ void AccountManager::on_binlog_events(vector<BinlogEvent> &&events) {
         log_event_parse(log_event, event.get_data()).ensure();
 
         set_account_ttl_on_server(log_event.account_ttl_, event.id_, Auto());
+        break;
+      }
+      case LogEvent::HandlerType::SetAuthorizationTtlOnServer: {
+        SetAuthorizationTtlOnServerLogEvent log_event;
+        log_event_parse(log_event, event.get_data()).ensure();
+
+        set_authorization_ttl_on_server(log_event.authorization_ttl_days_, event.id_, Auto());
         break;
       }
       case LogEvent::HandlerType::SetDefaultHistoryTtlOnServer: {
