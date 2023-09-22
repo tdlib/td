@@ -120,6 +120,7 @@ class LogEvent {
     SetAuthorizationTtlOnServer = 0x505,
     ResetWebAuthorizationOnServer = 0x506,
     ResetWebAuthorizationsOnServer = 0x507,
+    InvalidateSignInCodesOnServer = 0x508,
     ConfigPmcMagic = 0x1f18,
     BinlogPmcMagic = 0x4327
   };

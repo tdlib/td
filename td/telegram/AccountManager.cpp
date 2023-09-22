@@ -602,7 +602,12 @@ class ImportContactTokenQuery final : public Td::ResultHandler {
 };
 
 class InvalidateSignInCodesQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
  public:
+  explicit InvalidateSignInCodesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
   void send(vector<string> &&codes) {
     send_query(G()->net_query_creator().create(telegram_api::account_invalidateSignInCodes(std::move(codes))));
   }
@@ -614,10 +619,12 @@ class InvalidateSignInCodesQuery final : public Td::ResultHandler {
     }
 
     LOG(DEBUG) << "Receive result for InvalidateSignInCodesQuery: " << result_ptr.ok();
+    promise_.set_value(Unit());
   }
 
   void on_error(Status status) final {
     LOG(DEBUG) << "Receive error for InvalidateSignInCodesQuery: " << status;
+    promise_.set_error(std::move(status));
   }
 };
 
@@ -1134,8 +1141,34 @@ void AccountManager::import_contact_token(const string &token, Promise<td_api::o
   td_->create_handler<ImportContactTokenQuery>(std::move(promise))->send(token);
 }
 
+class AccountManager::InvalidateSignInCodesOnServerLogEvent {
+ public:
+  vector<string> authentication_codes_;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    td::store(authentication_codes_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    td::parse(authentication_codes_, parser);
+  }
+};
+
+void AccountManager::invalidate_sign_in_codes_on_server(vector<string> authentication_codes, uint64 log_event_id) {
+  if (log_event_id == 0) {
+    InvalidateSignInCodesOnServerLogEvent log_event{authentication_codes};
+    log_event_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::InvalidateSignInCodesOnServer,
+                              get_log_event_storer(log_event));
+  }
+
+  td_->create_handler<InvalidateSignInCodesQuery>(get_erase_log_event_promise(log_event_id))
+      ->send(std::move(authentication_codes));
+}
+
 void AccountManager::invalidate_authentication_codes(vector<string> &&authentication_codes) {
-  td_->create_handler<InvalidateSignInCodesQuery>()->send(std::move(authentication_codes));
+  invalidate_sign_in_codes_on_server(std::move(authentication_codes), 0);
 }
 
 void AccountManager::on_new_unconfirmed_authorization(int64 hash, int32 date, string &&device, string &&location) {
@@ -1241,6 +1274,13 @@ void AccountManager::on_binlog_events(vector<BinlogEvent> &&events) {
             log_event.hash_, log_event.set_encrypted_requests_disabled_, log_event.encrypted_requests_disabled_,
             log_event.set_call_requests_disabled_, log_event.call_requests_disabled_, log_event.confirm_, event.id_,
             Auto());
+        break;
+      }
+      case LogEvent::HandlerType::InvalidateSignInCodesOnServer: {
+        InvalidateSignInCodesOnServerLogEvent log_event;
+        log_event_parse(log_event, event.get_data()).ensure();
+
+        invalidate_sign_in_codes_on_server(std::move(log_event.authentication_codes_), event.id_);
         break;
       }
       case LogEvent::HandlerType::ResetAuthorizationOnServer: {

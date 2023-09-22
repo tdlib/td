@@ -145,13 +145,14 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
         events.save_app_log_events.push_back(event.clone());
         break;
       case LogEvent::HandlerType::ChangeAuthorizationSettingsOnServer:
+      case LogEvent::HandlerType::InvalidateSignInCodesOnServer:
       case LogEvent::HandlerType::ResetAuthorizationOnServer:
       case LogEvent::HandlerType::ResetAuthorizationsOnServer:
-      case LogEvent::HandlerType::SetDefaultHistoryTtlOnServer:
-      case LogEvent::HandlerType::SetAccountTtlOnServer:
-      case LogEvent::HandlerType::SetAuthorizationTtlOnServer:
       case LogEvent::HandlerType::ResetWebAuthorizationOnServer:
       case LogEvent::HandlerType::ResetWebAuthorizationsOnServer:
+      case LogEvent::HandlerType::SetAccountTtlOnServer:
+      case LogEvent::HandlerType::SetAuthorizationTtlOnServer:
+      case LogEvent::HandlerType::SetDefaultHistoryTtlOnServer:
         events.to_account_manager.push_back(event.clone());
         break;
       case LogEvent::HandlerType::BinlogPmcMagic:
