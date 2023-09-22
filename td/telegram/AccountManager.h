@@ -79,6 +79,7 @@ class AccountManager final : public Actor {
   class UnconfirmedAuthorizations;
 
   class ChangeAuthorizationSettingsOnServerLogEvent;
+  class ResetAuthorizationOnServerLogEvent;
 
   void start_up() final;
 
@@ -98,15 +99,12 @@ class AccountManager final : public Actor {
 
   void send_update_unconfirmed_session() const;
 
-  uint64 save_change_authorization_settings_on_server_log_event(int64 hash, bool set_encrypted_requests_disabled,
-                                                                bool encrypted_requests_disabled,
-                                                                bool set_call_requests_disabled,
-                                                                bool call_requests_disabled, bool confirm);
-
   void change_authorization_settings_on_server(int64 hash, bool set_encrypted_requests_disabled,
                                                bool encrypted_requests_disabled, bool set_call_requests_disabled,
                                                bool call_requests_disabled, bool confirm, uint64 log_event_id,
                                                Promise<Unit> &&promise);
+
+  void reset_authorization_on_server(int64 hash, uint64 log_event_id, Promise<Unit> &&promise);
 
   Td *td_;
   ActorShared<> parent_;

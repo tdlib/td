@@ -811,9 +811,37 @@ void AccountManager::get_active_sessions(Promise<td_api::object_ptr<td_api::sess
   td_->create_handler<GetAuthorizationsQuery>(std::move(promise))->send();
 }
 
+class AccountManager::ResetAuthorizationOnServerLogEvent {
+ public:
+  int64 hash_;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    td::store(hash_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    td::parse(hash_, parser);
+  }
+};
+
+void AccountManager::reset_authorization_on_server(int64 hash, uint64 log_event_id, Promise<Unit> &&promise) {
+  if (log_event_id == 0) {
+    ResetAuthorizationOnServerLogEvent log_event{hash};
+    log_event_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ResetAuthorizationOnServer,
+                              get_log_event_storer(log_event));
+  }
+
+  auto new_promise = get_erase_log_event_promise(log_event_id, std::move(promise));
+  promise = std::move(new_promise);  // to prevent self-move
+
+  td_->create_handler<ResetAuthorizationQuery>(std::move(promise))->send(hash);
+}
+
 void AccountManager::terminate_session(int64 session_id, Promise<Unit> &&promise) {
   on_confirm_authorization(session_id);
-  td_->create_handler<ResetAuthorizationQuery>(std::move(promise))->send(session_id);
+  reset_authorization_on_server(session_id, 0, std::move(promise));
 }
 
 void AccountManager::terminate_all_other_sessions(Promise<Unit> &&promise) {
@@ -860,28 +888,20 @@ class AccountManager::ChangeAuthorizationSettingsOnServerLogEvent {
   }
 };
 
-uint64 AccountManager::save_change_authorization_settings_on_server_log_event(
-    int64 hash, bool set_encrypted_requests_disabled, bool encrypted_requests_disabled, bool set_call_requests_disabled,
-    bool call_requests_disabled, bool confirm) {
-  ChangeAuthorizationSettingsOnServerLogEvent log_event{hash,
-                                                        set_encrypted_requests_disabled,
-                                                        encrypted_requests_disabled,
-                                                        set_call_requests_disabled,
-                                                        call_requests_disabled,
-                                                        confirm};
-  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ChangeAuthorizationSettingsOnServer,
-                    get_log_event_storer(log_event));
-}
-
 void AccountManager::change_authorization_settings_on_server(int64 hash, bool set_encrypted_requests_disabled,
                                                              bool encrypted_requests_disabled,
                                                              bool set_call_requests_disabled,
                                                              bool call_requests_disabled, bool confirm,
                                                              uint64 log_event_id, Promise<Unit> &&promise) {
   if (log_event_id == 0) {
-    log_event_id = save_change_authorization_settings_on_server_log_event(
-        hash, set_encrypted_requests_disabled, encrypted_requests_disabled, set_call_requests_disabled,
-        call_requests_disabled, confirm);
+    ChangeAuthorizationSettingsOnServerLogEvent log_event{hash,
+                                                          set_encrypted_requests_disabled,
+                                                          encrypted_requests_disabled,
+                                                          set_call_requests_disabled,
+                                                          call_requests_disabled,
+                                                          confirm};
+    log_event_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ChangeAuthorizationSettingsOnServer,
+                              get_log_event_storer(log_event));
   }
 
   auto new_promise = get_erase_log_event_promise(log_event_id, std::move(promise));
@@ -1059,6 +1079,13 @@ void AccountManager::on_binlog_events(vector<BinlogEvent> &&events) {
             log_event.hash_, log_event.set_encrypted_requests_disabled_, log_event.encrypted_requests_disabled_,
             log_event.set_call_requests_disabled_, log_event.call_requests_disabled_, log_event.confirm_, event.id_,
             Auto());
+        break;
+      }
+      case LogEvent::HandlerType::ResetAuthorizationOnServer: {
+        ResetAuthorizationOnServerLogEvent log_event;
+        log_event_parse(log_event, event.get_data()).ensure();
+
+        reset_authorization_on_server(log_event.hash_, event.id_, Auto());
         break;
       }
       default:

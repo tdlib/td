@@ -113,6 +113,7 @@ class LogEvent {
     SendStory = 0x403,
     EditStory = 0x404,
     ChangeAuthorizationSettingsOnServer = 0x500,
+    ResetAuthorizationOnServer = 0x501,
     ConfigPmcMagic = 0x1f18,
     BinlogPmcMagic = 0x4327
   };
