@@ -12,11 +12,15 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/LinkManager.h"
 #include "td/telegram/logevent/LogEvent.h"
+#include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
+
+#include "td/db/binlog/BinlogEvent.h"
+#include "td/db/binlog/BinlogHelper.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/base64.h"
@@ -822,24 +826,89 @@ void AccountManager::terminate_all_other_sessions(Promise<Unit> &&promise) {
   td_->create_handler<ResetAuthorizationsQuery>(std::move(promise))->send();
 }
 
+class AccountManager::ChangeAuthorizationSettingsOnServerLogEvent {
+ public:
+  int64 hash_;
+  bool set_encrypted_requests_disabled_;
+  bool encrypted_requests_disabled_;
+  bool set_call_requests_disabled_;
+  bool call_requests_disabled_;
+  bool confirm_;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(set_encrypted_requests_disabled_);
+    STORE_FLAG(encrypted_requests_disabled_);
+    STORE_FLAG(set_call_requests_disabled_);
+    STORE_FLAG(call_requests_disabled_);
+    STORE_FLAG(confirm_);
+    END_STORE_FLAGS();
+    td::store(hash_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(set_encrypted_requests_disabled_);
+    PARSE_FLAG(encrypted_requests_disabled_);
+    PARSE_FLAG(set_call_requests_disabled_);
+    PARSE_FLAG(call_requests_disabled_);
+    PARSE_FLAG(confirm_);
+    END_PARSE_FLAGS();
+    td::parse(hash_, parser);
+  }
+};
+
+uint64 AccountManager::save_change_authorization_settings_on_server_log_event(
+    int64 hash, bool set_encrypted_requests_disabled, bool encrypted_requests_disabled, bool set_call_requests_disabled,
+    bool call_requests_disabled, bool confirm) {
+  ChangeAuthorizationSettingsOnServerLogEvent log_event{hash,
+                                                        set_encrypted_requests_disabled,
+                                                        encrypted_requests_disabled,
+                                                        set_call_requests_disabled,
+                                                        call_requests_disabled,
+                                                        confirm};
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ChangeAuthorizationSettingsOnServer,
+                    get_log_event_storer(log_event));
+}
+
+void AccountManager::change_authorization_settings_on_server(int64 hash, bool set_encrypted_requests_disabled,
+                                                             bool encrypted_requests_disabled,
+                                                             bool set_call_requests_disabled,
+                                                             bool call_requests_disabled, bool confirm,
+                                                             uint64 log_event_id, Promise<Unit> &&promise) {
+  if (log_event_id == 0) {
+    log_event_id = save_change_authorization_settings_on_server_log_event(
+        hash, set_encrypted_requests_disabled, encrypted_requests_disabled, set_call_requests_disabled,
+        call_requests_disabled, confirm);
+  }
+
+  auto new_promise = get_erase_log_event_promise(log_event_id, std::move(promise));
+  promise = std::move(new_promise);  // to prevent self-move
+
+  td_->create_handler<ChangeAuthorizationSettingsQuery>(std::move(promise))
+      ->send(hash, set_encrypted_requests_disabled, encrypted_requests_disabled, set_call_requests_disabled,
+             call_requests_disabled, confirm);
+}
+
 void AccountManager::confirm_session(int64 session_id, Promise<Unit> &&promise) {
   if (!on_confirm_authorization(session_id)) {
     // the authorization can be from the list of active authorizations, but the update could have been lost
     // return promise.set_value(Unit());
   }
-  td_->create_handler<ChangeAuthorizationSettingsQuery>(std::move(promise))
-      ->send(session_id, false, false, false, false, true);
+  change_authorization_settings_on_server(session_id, false, false, false, false, true, 0, std::move(promise));
 }
 
 void AccountManager::toggle_session_can_accept_calls(int64 session_id, bool can_accept_calls, Promise<Unit> &&promise) {
-  td_->create_handler<ChangeAuthorizationSettingsQuery>(std::move(promise))
-      ->send(session_id, false, false, true, !can_accept_calls, false);
+  change_authorization_settings_on_server(session_id, false, false, true, !can_accept_calls, false, 0,
+                                          std::move(promise));
 }
 
 void AccountManager::toggle_session_can_accept_secret_chats(int64 session_id, bool can_accept_secret_chats,
                                                             Promise<Unit> &&promise) {
-  td_->create_handler<ChangeAuthorizationSettingsQuery>(std::move(promise))
-      ->send(session_id, true, !can_accept_secret_chats, false, false, false);
+  change_authorization_settings_on_server(session_id, true, !can_accept_secret_chats, false, false, false, 0,
+                                          std::move(promise));
 }
 
 void AccountManager::set_inactive_session_ttl_days(int32 authorization_ttl_days, Promise<Unit> &&promise) {
@@ -974,6 +1043,28 @@ td_api::object_ptr<td_api::updateUnconfirmedSession> AccountManager::get_update_
 
 void AccountManager::send_update_unconfirmed_session() const {
   send_closure(G()->td(), &Td::send_update, get_update_unconfirmed_session());
+}
+
+void AccountManager::on_binlog_events(vector<BinlogEvent> &&events) {
+  if (G()->close_flag()) {
+    return;
+  }
+  for (auto &event : events) {
+    switch (event.type_) {
+      case LogEvent::HandlerType::ChangeAuthorizationSettingsOnServer: {
+        ChangeAuthorizationSettingsOnServerLogEvent log_event;
+        log_event_parse(log_event, event.get_data()).ensure();
+
+        change_authorization_settings_on_server(
+            log_event.hash_, log_event.set_encrypted_requests_disabled_, log_event.encrypted_requests_disabled_,
+            log_event.set_call_requests_disabled_, log_event.call_requests_disabled_, log_event.confirm_, event.id_,
+            Auto());
+        break;
+      }
+      default:
+        LOG(FATAL) << "Unsupported log event type " << event.type_;
+    }
+  }
 }
 
 void AccountManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {

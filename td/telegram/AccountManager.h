@@ -15,6 +15,8 @@
 
 namespace td {
 
+struct BinlogEvent;
+
 class Td;
 
 class AccountManager final : public Actor {
@@ -68,11 +70,15 @@ class AccountManager final : public Actor {
 
   bool on_confirm_authorization(int64 hash);
 
+  void on_binlog_events(vector<BinlogEvent> &&events);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
   class UnconfirmedAuthorization;
   class UnconfirmedAuthorizations;
+
+  class ChangeAuthorizationSettingsOnServerLogEvent;
 
   void start_up() final;
 
@@ -91,6 +97,16 @@ class AccountManager final : public Actor {
   td_api::object_ptr<td_api::updateUnconfirmedSession> get_update_unconfirmed_session() const;
 
   void send_update_unconfirmed_session() const;
+
+  uint64 save_change_authorization_settings_on_server_log_event(int64 hash, bool set_encrypted_requests_disabled,
+                                                                bool encrypted_requests_disabled,
+                                                                bool set_call_requests_disabled,
+                                                                bool call_requests_disabled, bool confirm);
+
+  void change_authorization_settings_on_server(int64 hash, bool set_encrypted_requests_disabled,
+                                               bool encrypted_requests_disabled, bool set_call_requests_disabled,
+                                               bool call_requests_disabled, bool confirm, uint64 log_event_id,
+                                               Promise<Unit> &&promise);
 
   Td *td_;
   ActorShared<> parent_;

@@ -3791,6 +3791,8 @@ void Td::init(Parameters parameters, Result<TdDb::OpenedDatabase> r_opened_datab
     send_closure_later(secret_chats_manager_, &SecretChatsManager::replay_binlog_event, std::move(event));
   }
 
+  send_closure_later(account_manager_actor_, &AccountManager::on_binlog_events, std::move(events.to_account_manager));
+
   send_closure_later(poll_manager_actor_, &PollManager::on_binlog_events, std::move(events.to_poll_manager));
 
   send_closure_later(messages_manager_actor_, &MessagesManager::on_binlog_events,
