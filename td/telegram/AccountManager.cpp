@@ -844,6 +844,30 @@ void AccountManager::terminate_session(int64 session_id, Promise<Unit> &&promise
   reset_authorization_on_server(session_id, 0, std::move(promise));
 }
 
+class AccountManager::ResetAuthorizationsOnServerLogEvent {
+ public:
+  template <class StorerT>
+  void store(StorerT &storer) const {
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+  }
+};
+
+void AccountManager::reset_authorizations_on_server(uint64 log_event_id, Promise<Unit> &&promise) {
+  if (log_event_id == 0) {
+    ResetAuthorizationsOnServerLogEvent log_event;
+    log_event_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ResetAuthorizationsOnServer,
+                              get_log_event_storer(log_event));
+  }
+
+  auto new_promise = get_erase_log_event_promise(log_event_id, std::move(promise));
+  promise = std::move(new_promise);  // to prevent self-move
+
+  td_->create_handler<ResetAuthorizationsQuery>(std::move(promise))->send();
+}
+
 void AccountManager::terminate_all_other_sessions(Promise<Unit> &&promise) {
   if (unconfirmed_authorizations_ != nullptr) {
     unconfirmed_authorizations_ = nullptr;
@@ -851,7 +875,7 @@ void AccountManager::terminate_all_other_sessions(Promise<Unit> &&promise) {
     send_update_unconfirmed_session();
     save_unconfirmed_authorizations();
   }
-  td_->create_handler<ResetAuthorizationsQuery>(std::move(promise))->send();
+  reset_authorizations_on_server(0, std::move(promise));
 }
 
 class AccountManager::ChangeAuthorizationSettingsOnServerLogEvent {
@@ -1086,6 +1110,13 @@ void AccountManager::on_binlog_events(vector<BinlogEvent> &&events) {
         log_event_parse(log_event, event.get_data()).ensure();
 
         reset_authorization_on_server(log_event.hash_, event.id_, Auto());
+        break;
+      }
+      case LogEvent::HandlerType::ResetAuthorizationsOnServer: {
+        ResetAuthorizationsOnServerLogEvent log_event;
+        log_event_parse(log_event, event.get_data()).ensure();
+
+        reset_authorizations_on_server(event.id_, Auto());
         break;
       }
       default:

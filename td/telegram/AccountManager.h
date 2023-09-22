@@ -80,6 +80,7 @@ class AccountManager final : public Actor {
 
   class ChangeAuthorizationSettingsOnServerLogEvent;
   class ResetAuthorizationOnServerLogEvent;
+  class ResetAuthorizationsOnServerLogEvent;
 
   void start_up() final;
 
@@ -105,6 +106,8 @@ class AccountManager final : public Actor {
                                                Promise<Unit> &&promise);
 
   void reset_authorization_on_server(int64 hash, uint64 log_event_id, Promise<Unit> &&promise);
+
+  void reset_authorizations_on_server(uint64 log_event_id, Promise<Unit> &&promise);
 
   Td *td_;
   ActorShared<> parent_;
