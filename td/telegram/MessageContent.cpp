@@ -2460,8 +2460,7 @@ bool can_have_input_media(const Td *td, const MessageContent *content, bool is_s
     case MessageContentType::Story: {
       auto story_full_id = static_cast<const MessageStory *>(content)->story_full_id;
       auto dialog_id = story_full_id.get_dialog_id();
-      CHECK(dialog_id.get_type() == DialogType::User);
-      return td->contacts_manager_->get_input_user(dialog_id.get_user_id()).is_ok();
+      return td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read) != nullptr;
     }
     case MessageContentType::Unsupported:
     case MessageContentType::ChatCreate:
