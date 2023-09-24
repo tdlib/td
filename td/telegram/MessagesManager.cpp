@@ -19974,6 +19974,8 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
         if (is_dialog_history) {
           td_->sponsored_message_manager_->view_sponsored_message(dialog_id, message_id);
           continue;
+        } else if (source == MessageSource::HistoryPreview || source == MessageSource::Other) {
+          continue;
         } else {
           return Status::Error(400, "Can't view the message from the specified source");
         }
