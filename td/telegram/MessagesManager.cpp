@@ -13980,6 +13980,9 @@ void MessagesManager::on_get_secret_message(SecretChatId secret_chat_id, UserId 
   message_info.date = date;
   message_info.random_id = message->random_id_;
   message_info.ttl = min(message->ttl_, 0x7FFFFFFE);
+  message_info.has_unread_content = true;
+  message_info.is_silent = message->silent_;
+  message_info.media_album_id = message->grouped_id_;
 
   Dialog *d = get_dialog_force(message_info.dialog_id, "on_get_secret_message");
   if (d == nullptr && have_dialog_info_force(message_info.dialog_id, "on_get_secret_message")) {
@@ -13997,7 +14000,6 @@ void MessagesManager::on_get_secret_message(SecretChatId secret_chat_id, UserId 
   pending_secret_message->load_data_multipromise.add_promise(Auto());
   auto lock_promise = pending_secret_message->load_data_multipromise.get_promise();
 
-  int32 flags = MESSAGE_FLAG_HAS_UNREAD_CONTENT;
   if ((message->flags_ & secret_api::decryptedMessage::REPLY_TO_RANDOM_ID_MASK) != 0) {
     message_info.reply_header.reply_to_message_id_ =
         get_message_id_by_random_id(d, message->reply_to_random_id_, "on_get_secret_message");
@@ -14010,9 +14012,6 @@ void MessagesManager::on_get_secret_message(SecretChatId secret_chat_id, UserId 
         }
       }
     }
-  }
-  if ((message->flags_ & secret_api::decryptedMessage::SILENT_MASK) != 0) {
-    flags |= MESSAGE_FLAG_IS_SILENT;
   }
 
   if (!clean_input_string(message->via_bot_name_)) {
@@ -14028,11 +14027,7 @@ void MessagesManager::on_get_secret_message(SecretChatId secret_chat_id, UserId 
         });
     search_public_dialog(message->via_bot_name_, false, std::move(request_promise));
   }
-  if ((message->flags_ & secret_api::decryptedMessage::GROUPED_ID_MASK) != 0 && message->grouped_id_ != 0) {
-    message_info.media_album_id = message->grouped_id_;
-  }
 
-  message_info.flags = flags;
   message_info.content = get_secret_message_content(
       td_, std::move(message->message_), std::move(file), std::move(message->media_), std::move(message->entities_),
       message_info.dialog_id, pending_secret_message->load_data_multipromise,
@@ -14050,7 +14045,6 @@ void MessagesManager::on_resolve_secret_chat_message_via_bot_username(const stri
       auto user_id = dialog_id.get_user_id();
       auto r_bot_data = td_->contacts_manager_->get_bot_data(user_id);
       if (r_bot_data.is_ok() && r_bot_data.ok().is_inline) {
-        message_info_ptr->flags |= telegram_api::message::VIA_BOT_ID_MASK;
         message_info_ptr->via_bot_user_id = user_id;
       }
     }
@@ -14245,9 +14239,19 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       message_info.edit_date = message->edit_date_;
       message_info.media_album_id = message->grouped_id_;
       message_info.ttl_period = message->ttl_period_;
-      message_info.flags = message->flags_;
-      bool is_content_read = !message->media_unread_;
-      if (is_message_auto_read(message_info.dialog_id, message->out_)) {
+      message_info.is_outgoing = message->out_;
+      message_info.is_silent = message->silent_;
+      message_info.is_channel_post = message->post_;
+      message_info.is_legacy = message->legacy_;
+      message_info.hide_edit_date = message->edit_hide_;
+      message_info.is_from_scheduled = message->from_scheduled_;
+      message_info.is_pinned = message->pinned_;
+      message_info.noforwards = message->noforwards_;
+      message_info.has_mention = message->mentioned_;
+      message_info.has_unread_content = message->media_unread_;
+
+      bool is_content_read = !message_info.has_unread_content;
+      if (is_message_auto_read(message_info.dialog_id, message_info.is_outgoing)) {
         is_content_read = true;
       }
       if (is_scheduled) {
@@ -14279,7 +14283,12 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       }
       message_info.date = message->date_;
       message_info.ttl_period = message->ttl_period_;
-      message_info.flags = message->flags_;
+      message_info.is_outgoing = message->out_;
+      message_info.is_silent = message->silent_;
+      message_info.is_channel_post = message->post_;
+      message_info.is_legacy = message->legacy_;
+      message_info.has_mention = message->mentioned_;
+      message_info.has_unread_content = message->media_unread_;
       bool can_have_thread =
           message_info.dialog_id.get_type() == DialogType::Channel && !is_broadcast_channel(message_info.dialog_id);
       message_info.reply_header = MessageReplyHeader(std::move(message->reply_to_), message_info.dialog_id,
@@ -14350,15 +14359,14 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     is_channel_message = (dialog_type == DialogType::Channel);
   }
 
-  int32 flags = message_info.flags;
-  bool is_outgoing = (flags & MESSAGE_FLAG_IS_OUT) != 0;
-  bool is_silent = (flags & MESSAGE_FLAG_IS_SILENT) != 0;
-  bool is_channel_post = (flags & MESSAGE_FLAG_IS_POST) != 0;
-  bool is_legacy = (flags & MESSAGE_FLAG_IS_LEGACY) != 0;
-  bool hide_edit_date = (flags & MESSAGE_FLAG_HIDE_EDIT_DATE) != 0;
-  bool is_from_scheduled = (flags & MESSAGE_FLAG_IS_FROM_SCHEDULED) != 0;
-  bool is_pinned = (flags & MESSAGE_FLAG_IS_PINNED) != 0;
-  bool noforwards = (flags & MESSAGE_FLAG_NOFORWARDS) != 0;
+  bool is_outgoing = message_info.is_outgoing;
+  bool is_silent = message_info.is_silent;
+  bool is_channel_post = message_info.is_channel_post;
+  bool is_legacy = message_info.is_legacy;
+  bool hide_edit_date = message_info.hide_edit_date;
+  bool is_from_scheduled = message_info.is_from_scheduled;
+  bool is_pinned = message_info.is_pinned;
+  bool noforwards = message_info.noforwards;
 
   LOG_IF(ERROR, is_channel_message != (dialog_type == DialogType::Channel))
       << "Receive wrong is_channel_message for " << message_id << " in " << dialog_id;
@@ -14378,8 +14386,8 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
 
   bool supposed_to_be_outgoing = sender_user_id == my_id && !(dialog_id == my_dialog_id && !message_id.is_scheduled());
   if (sender_user_id.is_valid() && supposed_to_be_outgoing != is_outgoing) {
-    LOG(ERROR) << "Receive wrong message out flag: me is " << my_id << ", message is from " << sender_user_id
-               << ", flags = " << flags << " for " << message_id << " in " << dialog_id;
+    LOG(ERROR) << "Receive wrong out flag for " << message_id << " in " << dialog_id << ": me is " << my_id
+               << ", but message is from " << sender_user_id;
     is_outgoing = supposed_to_be_outgoing;
 
     /*
@@ -14548,13 +14556,12 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->author_signature = std::move(message_info.author_signature);
   message->is_outgoing = is_outgoing;
   message->is_channel_post = is_channel_post;
-  message->contains_mention =
-      !is_outgoing && dialog_type != DialogType::User && !is_expired &&
-      ((flags & MESSAGE_FLAG_HAS_MENTION) != 0 || content_type == MessageContentType::PinMessage) &&
-      !td_->auth_manager_->is_bot();
+  message->contains_mention = !is_outgoing && dialog_type != DialogType::User && !is_expired &&
+                              (message_info.has_mention || content_type == MessageContentType::PinMessage) &&
+                              !td_->auth_manager_->is_bot();
   message->contains_unread_mention =
       !message_id.is_scheduled() && message_id.is_server() && message->contains_mention &&
-      (flags & MESSAGE_FLAG_HAS_UNREAD_CONTENT) != 0 &&
+      message_info.has_unread_content &&
       (dialog_type == DialogType::Chat || (dialog_type == DialogType::Channel && !is_broadcast_channel(dialog_id)));
   message->disable_notification = is_silent;
   message->is_content_secret = is_content_secret;

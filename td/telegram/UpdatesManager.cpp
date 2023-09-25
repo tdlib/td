@@ -1092,7 +1092,7 @@ int32 UpdatesManager::fix_short_message_flags(int32 flags) {
     LOG(ERROR) << "Receive short message with flags " << flags;
     flags = flags & ~disallowed_flags;
   }
-  return flags | MessagesManager::MESSAGE_FLAG_HAS_FROM_ID;
+  return flags;
 }
 
 void UpdatesManager::on_get_updates(tl_object_ptr<telegram_api::Updates> &&updates_ptr, Promise<Unit> &&promise) {

@@ -118,17 +118,6 @@ class Td;
 
 class MessagesManager final : public Actor {
  public:
-  static constexpr int32 MESSAGE_FLAG_IS_OUT = 1 << 1;
-  static constexpr int32 MESSAGE_FLAG_HAS_MENTION = 1 << 4;
-  static constexpr int32 MESSAGE_FLAG_HAS_UNREAD_CONTENT = 1 << 5;
-  static constexpr int32 MESSAGE_FLAG_IS_SILENT = 1 << 13;
-  static constexpr int32 MESSAGE_FLAG_IS_POST = 1 << 14;
-  static constexpr int32 MESSAGE_FLAG_IS_FROM_SCHEDULED = 1 << 18;
-  static constexpr int32 MESSAGE_FLAG_IS_LEGACY = 1 << 19;
-  static constexpr int32 MESSAGE_FLAG_HIDE_EDIT_DATE = 1 << 21;
-  static constexpr int32 MESSAGE_FLAG_IS_PINNED = 1 << 24;
-  static constexpr int32 MESSAGE_FLAG_NOFORWARDS = 1 << 26;
-
   static constexpr int32 SEND_MESSAGE_FLAG_DISABLE_WEB_PAGE_PREVIEW = 1 << 1;
   static constexpr int32 SEND_MESSAGE_FLAG_HAS_REPLY_MARKUP = 1 << 2;
   static constexpr int32 SEND_MESSAGE_FLAG_HAS_ENTITIES = 1 << 3;
@@ -1068,11 +1057,20 @@ class MessagesManager final : public Actor {
     int32 forward_count = 0;
     tl_object_ptr<telegram_api::messageReplies> reply_info;
     tl_object_ptr<telegram_api::messageReactions> reactions;
-    int32 flags = 0;
     int32 edit_date = 0;
     vector<RestrictionReason> restriction_reasons;
     string author_signature;
     int64 media_album_id = 0;
+    bool is_outgoing = false;
+    bool is_silent = false;
+    bool is_channel_post = false;
+    bool is_legacy = false;
+    bool hide_edit_date = false;
+    bool is_from_scheduled = false;
+    bool is_pinned = false;
+    bool noforwards = false;
+    bool has_mention = false;
+    bool has_unread_content = false;
 
     unique_ptr<MessageContent> content;
     tl_object_ptr<telegram_api::ReplyMarkup> reply_markup;
