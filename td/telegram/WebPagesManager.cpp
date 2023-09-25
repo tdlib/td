@@ -9,6 +9,7 @@
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/AudiosManager.h"
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/Dimensions.h"
 #include "td/telegram/Document.h"
@@ -123,9 +124,12 @@ class GetWebPageQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetWebPageQuery: " << to_string(ptr);
-    if (ptr->get_id() == telegram_api::webPageNotModified::ID) {
+    td_->contacts_manager_->on_get_users(std::move(ptr->users_), "GetWebPageQuery");
+    td_->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetWebPageQuery");
+    auto page = std::move(ptr->webpage_);
+    if (page->get_id() == telegram_api::webPageNotModified::ID) {
       if (web_page_id_.is_valid()) {
-        auto web_page = move_tl_object_as<telegram_api::webPageNotModified>(ptr);
+        auto web_page = move_tl_object_as<telegram_api::webPageNotModified>(page);
         int32 view_count = web_page->cached_page_views_;
         td_->web_pages_manager_->on_get_web_page_instant_view_view_count(web_page_id_, view_count);
         return promise_.set_value(std::move(web_page_id_));
@@ -134,7 +138,7 @@ class GetWebPageQuery final : public Td::ResultHandler {
         return on_error(Status::Error(500, "Receive webPageNotModified"));
       }
     }
-    auto web_page_id = td_->web_pages_manager_->on_get_web_page(std::move(ptr), DialogId());
+    auto web_page_id = td_->web_pages_manager_->on_get_web_page(std::move(page), DialogId());
     td_->web_pages_manager_->on_get_web_page_by_url(url_, web_page_id, false);
     promise_.set_value(std::move(web_page_id));
   }
