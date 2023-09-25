@@ -571,7 +571,6 @@ void TopDialogManager::try_start() {
   first_unsync_change_ = Timestamp();
   server_sync_state_ = SyncState::None;
   last_server_sync_ = Timestamp();
-  CHECK(pending_get_top_dialogs_.empty());
 
   LOG(DEBUG) << "Init is enabled: " << is_enabled_;
   if (!is_active_) {
