@@ -461,6 +461,8 @@ class UpdatesManager final : public Actor {
 
   bool is_acceptable_update(const telegram_api::Update *update) const;
 
+  static int32 fix_short_message_flags(int32 flags);
+
   void on_update(tl_object_ptr<telegram_api::updateNewMessage> update, Promise<Unit> &&promise);
   void on_update(tl_object_ptr<telegram_api::updateMessageID> update, Promise<Unit> &&promise);
   void on_update(tl_object_ptr<telegram_api::updateReadMessagesContents> update, Promise<Unit> &&promise);
