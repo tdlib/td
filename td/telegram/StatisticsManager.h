@@ -11,6 +11,7 @@
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/td_api.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/actor/actor.h"
 
@@ -34,6 +35,13 @@ class StatisticsManager final : public Actor {
   void load_statistics_graph(DialogId dialog_id, string token, int64 x,
                              Promise<td_api::object_ptr<td_api::StatisticalGraph>> &&promise);
 
+  void get_message_public_forwards(MessageFullId message_full_id, string offset, int32 limit,
+                                   Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
+
+  void on_get_message_public_forwards(int32 total_count,
+                                      vector<telegram_api::object_ptr<telegram_api::Message>> &&messages,
+                                      int32 next_rate, Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
+
  private:
   void tear_down() final;
 
@@ -45,6 +53,9 @@ class StatisticsManager final : public Actor {
 
   void send_load_async_graph_query(DcId dc_id, string token, int64 x,
                                    Promise<td_api::object_ptr<td_api::StatisticalGraph>> &&promise);
+
+  void send_get_message_public_forwards_query(DcId dc_id, MessageFullId message_full_id, string offset, int32 limit,
+                                              Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
 
   Td *td_;
   ActorShared<> parent_;

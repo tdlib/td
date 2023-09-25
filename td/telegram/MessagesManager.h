@@ -171,6 +171,8 @@ class MessagesManager final : public Actor {
 
   static bool is_invalid_poll_message(const telegram_api::Message *message);
 
+  static int32 get_message_date(const tl_object_ptr<telegram_api::Message> &message_ptr);
+
   tl_object_ptr<telegram_api::InputPeer> get_input_peer(DialogId dialog_id, AccessRights access_rights) const;
 
   static tl_object_ptr<telegram_api::InputPeer> get_input_peer_force(DialogId dialog_id);
@@ -244,9 +246,6 @@ class MessagesManager final : public Actor {
   void on_get_recent_locations(DialogId dialog_id, int32 limit, int32 total_count,
                                vector<tl_object_ptr<telegram_api::Message>> &&messages,
                                Promise<td_api::object_ptr<td_api::messages>> &&promise);
-
-  void on_get_message_public_forwards(int32 total_count, vector<tl_object_ptr<telegram_api::Message>> &&messages,
-                                      int32 next_rate, Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
 
   // if message is from_update, flags have_previous and have_next are ignored and must be both true
   MessageFullId on_get_message(tl_object_ptr<telegram_api::Message> message_ptr, bool from_update,
@@ -872,9 +871,6 @@ class MessagesManager final : public Actor {
                             Promise<Unit> &&promise);
 
   void remove_message_reaction(MessageFullId message_full_id, ReactionType reaction_type, Promise<Unit> &&promise);
-
-  void get_message_public_forwards(MessageFullId message_full_id, string offset, int32 limit,
-                                   Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
 
   tl_object_ptr<td_api::message> get_dialog_message_by_date_object(int64 random_id);
 
@@ -1751,8 +1747,6 @@ class MessagesManager final : public Actor {
   static constexpr const char *DELETE_MESSAGE_USER_REQUEST_SOURCE = "user request";
 
   static constexpr bool DROP_SEND_MESSAGE_UPDATES = false;
-
-  static int32 get_message_date(const tl_object_ptr<telegram_api::Message> &message_ptr);
 
   vector<UserId> get_message_user_ids(const Message *m) const;
 
@@ -3148,9 +3142,6 @@ class MessagesManager final : public Actor {
   void on_imported_message_attachments_uploaded(int64 random_id, Result<Unit> &&result);
 
   Status can_import_messages(DialogId dialog_id);
-
-  void send_get_message_public_forwards_query(DcId dc_id, MessageFullId message_full_id, string offset, int32 limit,
-                                              Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
 
   void add_sponsored_dialog(const Dialog *d, DialogSource source);
 
