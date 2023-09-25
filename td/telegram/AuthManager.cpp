@@ -778,10 +778,9 @@ void AuthManager::do_delete_account(uint64 query_id, string reason,
 }
 
 void AuthManager::on_closing(bool destroy_flag) {
-  if (destroy_flag) {
-    update_state(State::LoggingOut);
-  } else {
-    update_state(State::Closing);
+  auto new_state = destroy_flag ? State::LoggingOut : State::Closing;
+  if (new_state != state_) {
+    update_state(new_state);
   }
 }
 
@@ -849,7 +848,7 @@ void AuthManager::on_sent_code(telegram_api::object_ptr<telegram_api::auth_SentC
     send_code_helper_.on_phone_code_hash(std::move(sent_code->phone_code_hash_));
     allow_apple_id_ = code_type->apple_signin_allowed_;
     allow_google_id_ = code_type->google_signin_allowed_;
-    update_state(State::WaitEmailAddress, true);
+    update_state(State::WaitEmailAddress);
   } else if (code_type_id == telegram_api::auth_sentCodeTypeEmailCode::ID) {
     auto code_type = move_tl_object_as<telegram_api::auth_sentCodeTypeEmailCode>(std::move(sent_code->type_));
     send_code_helper_.on_phone_code_hash(std::move(sent_code->phone_code_hash_));
@@ -870,10 +869,10 @@ void AuthManager::on_sent_code(telegram_api::object_ptr<telegram_api::auth_SentC
       email_code_info_ = SentEmailCode("<unknown>", code_type->length_);
       CHECK(!email_code_info_.is_empty());
     }
-    update_state(State::WaitEmailCode, true);
+    update_state(State::WaitEmailCode);
   } else {
     send_code_helper_.on_sent_code(std::move(sent_code));
-    update_state(State::WaitCode, true);
+    update_state(State::WaitCode);
   }
   on_current_query_ok();
 }
@@ -900,7 +899,7 @@ void AuthManager::on_send_email_code_result(NetQueryPtr &&net_query) {
     return on_current_query_error(Status::Error(500, "Receive invalid response"));
   }
 
-  update_state(State::WaitEmailCode, true);
+  update_state(State::WaitEmailCode);
   on_current_query_ok();
 }
 
@@ -929,7 +928,7 @@ void AuthManager::on_reset_email_address_result(NetQueryPtr &&net_query) {
         r_sent_code.error().message() == "TASK_ALREADY_EXISTS") {
       reset_pending_date_ = G()->unix_time() + reset_available_period_;
       reset_available_period_ = -1;
-      update_state(State::WaitEmailCode, true);
+      update_state(State::WaitEmailCode);
     }
     return on_current_query_error(r_sent_code.move_as_error());
   }
@@ -975,7 +974,7 @@ void AuthManager::on_get_login_token(tl_object_ptr<telegram_api::auth_LoginToken
       auto token = move_tl_object_as<telegram_api::auth_loginToken>(login_token);
       login_token_ = token->token_.as_slice().str();
       set_login_token_expires_at(Time::now() + td::max(token->expires_ - G()->server_time(), 1.0));
-      update_state(State::WaitQrCodeConfirmation, true);
+      update_state(State::WaitQrCodeConfirmation);
       on_current_query_ok();
       break;
     }
@@ -1091,7 +1090,7 @@ void AuthManager::on_request_password_recovery_result(NetQueryPtr &&net_query) {
   }
   auto email_address_pattern = r_email_address_pattern.move_as_ok();
   wait_password_state_.email_address_pattern_ = std::move(email_address_pattern->email_pattern_);
-  update_state(State::WaitPassword, true);
+  update_state(State::WaitPassword);
   on_current_query_ok();
 }
 
@@ -1239,7 +1238,7 @@ void AuthManager::on_get_authorization(tl_object_ptr<telegram_api::auth_Authoriz
     }
   }
   td_->contacts_manager_->on_get_user(std::move(auth->user_), "on_get_authorization");
-  update_state(State::Ok, true);
+  update_state(State::Ok);
   if (!td_->contacts_manager_->get_my_id().is_valid()) {
     LOG(ERROR) << "Server didsn't send proper authorization";
     on_current_query_error(Status::Error(500, "Server didn't send proper authorization"));
@@ -1381,10 +1380,7 @@ void AuthManager::on_result(NetQueryPtr net_query) {
   }
 }
 
-void AuthManager::update_state(State new_state, bool force, bool should_save_state) {
-  if (state_ == new_state && !force) {
-    return;
-  }
+void AuthManager::update_state(State new_state, bool should_save_state) {
   bool skip_update = (state_ == State::LoggingOut || state_ == State::DestroyingKeys) &&
                      (new_state == State::LoggingOut || new_state == State::DestroyingKeys);
   state_ = new_state;
@@ -1455,7 +1451,7 @@ bool AuthManager::load_state() {
   } else {
     UNREACHABLE();
   }
-  update_state(db_state.state_, false, false);
+  update_state(db_state.state_, false);
   return true;
 }
 

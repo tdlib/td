@@ -217,7 +217,7 @@ class AuthManager final : public NetActor {
 
   void on_result(NetQueryPtr net_query) final;
 
-  void update_state(State new_state, bool force = false, bool should_save_state = true);
+  void update_state(State new_state, bool should_save_state = true);
   tl_object_ptr<td_api::AuthorizationState> get_authorization_state_object(State authorization_state) const;
 
   static void send_ok(uint64 query_id);
