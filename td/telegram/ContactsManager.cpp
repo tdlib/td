@@ -8220,7 +8220,7 @@ bool ContactsManager::can_get_channel_message_statistics(DialogId dialog_id) con
     return channel_full->stats_dc_id.is_exact();
   }
 
-  return c->status.is_administrator();
+  return c->status.can_post_messages();
 }
 
 void ContactsManager::report_channel_spam(ChannelId channel_id, const vector<MessageId> &message_ids,
