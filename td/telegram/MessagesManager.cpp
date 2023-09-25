@@ -14359,17 +14359,10 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     is_channel_message = (dialog_type == DialogType::Channel);
   }
 
-  bool is_outgoing = message_info.is_outgoing;
-  bool is_silent = message_info.is_silent;
-  bool is_channel_post = message_info.is_channel_post;
-  bool is_legacy = message_info.is_legacy;
-  bool hide_edit_date = message_info.hide_edit_date;
-  bool is_from_scheduled = message_info.is_from_scheduled;
-  bool is_pinned = message_info.is_pinned;
-  bool noforwards = message_info.noforwards;
-
   LOG_IF(ERROR, is_channel_message != (dialog_type == DialogType::Channel))
       << "Receive wrong is_channel_message for " << message_id << " in " << dialog_id;
+
+  bool is_channel_post = message_info.is_channel_post;
   if (is_channel_post && !is_broadcast_channel(dialog_id)) {
     LOG(ERROR) << "Receive is_channel_post for " << message_id << " in " << dialog_id;
     is_channel_post = false;
@@ -14384,6 +14377,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     sender_dialog_id = DialogId();
   }
 
+  bool is_outgoing = message_info.is_outgoing;
   bool supposed_to_be_outgoing = sender_user_id == my_id && !(dialog_id == my_dialog_id && !message_id.is_scheduled());
   if (sender_user_id.is_valid() && supposed_to_be_outgoing != is_outgoing) {
     LOG(ERROR) << "Receive wrong out flag for " << message_id << " in " << dialog_id << ": me is " << my_id
@@ -14444,6 +14438,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     content_type = message_info.content->get_type();
   }
 
+  bool hide_edit_date = message_info.hide_edit_date;
   if (hide_edit_date && td_->auth_manager_->is_bot()) {
     hide_edit_date = false;
   }
@@ -14517,6 +14512,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     force_create_dialog(sender_dialog_id, "create_message", true);
   }
 
+  bool noforwards = message_info.noforwards;
   bool is_expired =
       content_type == MessageContentType::ExpiredPhoto || content_type == MessageContentType::ExpiredVideo;
   if (is_expired) {
@@ -14528,6 +14524,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     is_content_secret = false;
   }
 
+  bool is_pinned = message_info.is_pinned;
   if (is_pinned && message_id.is_scheduled()) {
     LOG(ERROR) << "Receive pinned " << message_id << " in " << dialog_id;
     is_pinned = false;
@@ -14563,10 +14560,10 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
       !message_id.is_scheduled() && message_id.is_server() && message->contains_mention &&
       message_info.has_unread_content &&
       (dialog_type == DialogType::Chat || (dialog_type == DialogType::Channel && !is_broadcast_channel(dialog_id)));
-  message->disable_notification = is_silent;
+  message->disable_notification = message_info.is_silent;
   message->is_content_secret = is_content_secret;
   message->hide_edit_date = hide_edit_date;
-  message->is_from_scheduled = is_from_scheduled;
+  message->is_from_scheduled = message_info.is_from_scheduled;
   message->is_pinned = is_pinned;
   message->noforwards = noforwards;
   message->interaction_info_update_date = G()->unix_time();
@@ -14574,7 +14571,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->forward_count = forward_count;
   message->reply_info = std::move(reply_info);
   message->reactions = std::move(reactions);
-  message->legacy_layer = (is_legacy ? MTPROTO_LAYER : 0);
+  message->legacy_layer = (message_info.is_legacy ? MTPROTO_LAYER : 0);
   message->content = std::move(message_info.content);
   message->reply_markup = get_reply_markup(std::move(message_info.reply_markup), td_->auth_manager_->is_bot(), false,
                                            message->contains_mention || dialog_type == DialogType::User);
