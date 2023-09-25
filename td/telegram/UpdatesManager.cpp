@@ -831,7 +831,7 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
         return false;
       }
 
-      if ((message->flags_ & MessagesManager::MESSAGE_FLAG_IS_SENT_VIA_BOT) &&
+      if ((message->flags_ & telegram_api::message::VIA_BOT_ID_MASK) &&
           !is_acceptable_user(UserId(message->via_bot_id_))) {
         return false;
       }
@@ -1082,8 +1082,12 @@ bool UpdatesManager::is_acceptable_update(const telegram_api::Update *update) co
 }
 
 int32 UpdatesManager::fix_short_message_flags(int32 flags) {
-  auto disallowed_flags = MessagesManager::MESSAGE_FLAG_HAS_REPLY_MARKUP | MessagesManager::MESSAGE_FLAG_HAS_MEDIA |
-                          MessagesManager::MESSAGE_FLAG_HAS_REACTIONS | MessagesManager::MESSAGE_FLAG_HAS_REPLY_INFO;
+  static constexpr int32 MESSAGE_FLAG_HAS_REPLY_MARKUP = 1 << 6;
+  static constexpr int32 MESSAGE_FLAG_HAS_MEDIA = 1 << 9;
+  static constexpr int32 MESSAGE_FLAG_HAS_REACTIONS = 1 << 20;
+  static constexpr int32 MESSAGE_FLAG_HAS_REPLY_INFO = 1 << 23;
+  auto disallowed_flags =
+      MESSAGE_FLAG_HAS_REPLY_MARKUP | MESSAGE_FLAG_HAS_MEDIA | MESSAGE_FLAG_HAS_REACTIONS | MESSAGE_FLAG_HAS_REPLY_INFO;
   if ((flags & disallowed_flags) != 0) {
     LOG(ERROR) << "Receive short message with flags " << flags;
     flags = flags & ~disallowed_flags;

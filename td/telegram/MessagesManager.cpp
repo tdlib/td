@@ -13997,7 +13997,7 @@ void MessagesManager::on_get_secret_message(SecretChatId secret_chat_id, UserId 
   pending_secret_message->load_data_multipromise.add_promise(Auto());
   auto lock_promise = pending_secret_message->load_data_multipromise.get_promise();
 
-  int32 flags = MESSAGE_FLAG_HAS_UNREAD_CONTENT | MESSAGE_FLAG_HAS_FROM_ID;
+  int32 flags = MESSAGE_FLAG_HAS_UNREAD_CONTENT;
   if ((message->flags_ & secret_api::decryptedMessage::REPLY_TO_RANDOM_ID_MASK) != 0) {
     message_info.reply_header.reply_to_message_id_ =
         get_message_id_by_random_id(d, message->reply_to_random_id_, "on_get_secret_message");
@@ -14050,7 +14050,7 @@ void MessagesManager::on_resolve_secret_chat_message_via_bot_username(const stri
       auto user_id = dialog_id.get_user_id();
       auto r_bot_data = td_->contacts_manager_->get_bot_data(user_id);
       if (r_bot_data.is_ok() && r_bot_data.ok().is_inline) {
-        message_info_ptr->flags |= MESSAGE_FLAG_IS_SENT_VIA_BOT;
+        message_info_ptr->flags |= telegram_api::message::VIA_BOT_ID_MASK;
         message_info_ptr->via_bot_user_id = user_id;
       }
     }
@@ -14074,7 +14074,6 @@ void MessagesManager::on_secret_chat_screenshot_taken(SecretChatId secret_chat_i
   message_info.sender_user_id = user_id;
   message_info.date = date;
   message_info.random_id = random_id;
-  message_info.flags = MESSAGE_FLAG_HAS_FROM_ID;
   message_info.content = create_screenshot_taken_message_content();
 
   Dialog *d = get_dialog_force(message_info.dialog_id, "on_secret_chat_screenshot_taken");
@@ -14112,7 +14111,6 @@ void MessagesManager::on_secret_chat_ttl_changed(SecretChatId secret_chat_id, Us
   message_info.sender_user_id = user_id;
   message_info.date = date;
   message_info.random_id = random_id;
-  message_info.flags = MESSAGE_FLAG_HAS_FROM_ID;
   message_info.content = create_chat_set_ttl_message_content(ttl, UserId());
 
   Dialog *d = get_dialog_force(message_info.dialog_id, "on_secret_chat_ttl_changed");
@@ -14233,35 +14231,23 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
           message_info.dialog_id.get_type() == DialogType::Channel && !is_broadcast_channel(message_info.dialog_id);
       message_info.reply_header = MessageReplyHeader(std::move(message->reply_to_), message_info.dialog_id,
                                                      message_info.message_id, message_info.date, can_have_thread);
-      if (message->flags_ & MESSAGE_FLAG_IS_SENT_VIA_BOT) {
+      if (message->flags_ & telegram_api::message::VIA_BOT_ID_MASK) {
         message_info.via_bot_user_id = UserId(message->via_bot_id_);
         if (!message_info.via_bot_user_id.is_valid()) {
           LOG(ERROR) << "Receive invalid " << message_info.via_bot_user_id << " from " << source;
           message_info.via_bot_user_id = UserId();
         }
       }
-      if (message->flags_ & MESSAGE_FLAG_HAS_INTERACTION_INFO) {
-        message_info.view_count = message->views_;
-        message_info.forward_count = message->forwards_;
-      }
-      if (message->flags_ & MESSAGE_FLAG_HAS_REPLY_INFO) {
-        message_info.reply_info = std::move(message->replies_);
-      }
-      if (message->flags_ & MESSAGE_FLAG_HAS_REACTIONS) {
-        message_info.reactions = std::move(message->reactions_);
-      }
-      if (message->flags_ & MESSAGE_FLAG_HAS_EDIT_DATE) {
-        message_info.edit_date = message->edit_date_;
-      }
-      if (message->flags_ & MESSAGE_FLAG_HAS_MEDIA_ALBUM_ID) {
-        message_info.media_album_id = message->grouped_id_;
-      }
-      if (message->flags_ & MESSAGE_FLAG_HAS_TTL_PERIOD) {
-        message_info.ttl_period = message->ttl_period_;
-      }
+      message_info.view_count = message->views_;
+      message_info.forward_count = message->forwards_;
+      message_info.reply_info = std::move(message->replies_);
+      message_info.reactions = std::move(message->reactions_);
+      message_info.edit_date = message->edit_date_;
+      message_info.media_album_id = message->grouped_id_;
+      message_info.ttl_period = message->ttl_period_;
       message_info.flags = message->flags_;
-      bool is_content_read = (message->flags_ & MESSAGE_FLAG_HAS_UNREAD_CONTENT) == 0;
-      if (is_message_auto_read(message_info.dialog_id, (message->flags_ & MESSAGE_FLAG_IS_OUT) != 0)) {
+      bool is_content_read = !message->media_unread_;
+      if (is_message_auto_read(message_info.dialog_id, message->out_)) {
         is_content_read = true;
       }
       if (is_scheduled) {
@@ -14292,9 +14278,7 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
         message_info.sender_dialog_id = message_info.dialog_id;
       }
       message_info.date = message->date_;
-      if (message->flags_ & MESSAGE_FLAG_HAS_TTL_PERIOD) {
-        message_info.ttl_period = message->ttl_period_;
-      }
+      message_info.ttl_period = message->ttl_period_;
       message_info.flags = message->flags_;
       bool can_have_thread =
           message_info.dialog_id.get_type() == DialogType::Channel && !is_broadcast_channel(message_info.dialog_id);

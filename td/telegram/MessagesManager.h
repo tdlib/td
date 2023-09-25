@@ -118,31 +118,15 @@ class Td;
 
 class MessagesManager final : public Actor {
  public:
-  //  static constexpr int32 MESSAGE_FLAG_IS_UNREAD = 1 << 0;
   static constexpr int32 MESSAGE_FLAG_IS_OUT = 1 << 1;
-  static constexpr int32 MESSAGE_FLAG_IS_FORWARDED = 1 << 2;
-  static constexpr int32 MESSAGE_FLAG_IS_REPLY = 1 << 3;
   static constexpr int32 MESSAGE_FLAG_HAS_MENTION = 1 << 4;
   static constexpr int32 MESSAGE_FLAG_HAS_UNREAD_CONTENT = 1 << 5;
-  static constexpr int32 MESSAGE_FLAG_HAS_REPLY_MARKUP = 1 << 6;
-  static constexpr int32 MESSAGE_FLAG_HAS_ENTITIES = 1 << 7;
-  static constexpr int32 MESSAGE_FLAG_HAS_FROM_ID = 1 << 8;
-  static constexpr int32 MESSAGE_FLAG_HAS_MEDIA = 1 << 9;
-  static constexpr int32 MESSAGE_FLAG_HAS_INTERACTION_INFO = 1 << 10;
-  static constexpr int32 MESSAGE_FLAG_IS_SENT_VIA_BOT = 1 << 11;
   static constexpr int32 MESSAGE_FLAG_IS_SILENT = 1 << 13;
   static constexpr int32 MESSAGE_FLAG_IS_POST = 1 << 14;
-  static constexpr int32 MESSAGE_FLAG_HAS_EDIT_DATE = 1 << 15;
-  static constexpr int32 MESSAGE_FLAG_HAS_AUTHOR_SIGNATURE = 1 << 16;
-  static constexpr int32 MESSAGE_FLAG_HAS_MEDIA_ALBUM_ID = 1 << 17;
   static constexpr int32 MESSAGE_FLAG_IS_FROM_SCHEDULED = 1 << 18;
   static constexpr int32 MESSAGE_FLAG_IS_LEGACY = 1 << 19;
-  static constexpr int32 MESSAGE_FLAG_HAS_REACTIONS = 1 << 20;
   static constexpr int32 MESSAGE_FLAG_HIDE_EDIT_DATE = 1 << 21;
-  static constexpr int32 MESSAGE_FLAG_IS_RESTRICTED = 1 << 22;
-  static constexpr int32 MESSAGE_FLAG_HAS_REPLY_INFO = 1 << 23;
   static constexpr int32 MESSAGE_FLAG_IS_PINNED = 1 << 24;
-  static constexpr int32 MESSAGE_FLAG_HAS_TTL_PERIOD = 1 << 25;
   static constexpr int32 MESSAGE_FLAG_NOFORWARDS = 1 << 26;
 
   static constexpr int32 SEND_MESSAGE_FLAG_DISABLE_WEB_PAGE_PREVIEW = 1 << 1;
