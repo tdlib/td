@@ -3354,6 +3354,7 @@ chatActiveStories chat_id:int53 list:StoryList order:int53 max_read_story_id:int
 
 
 //@description Describes current boost status of a chat
+//@boost_url An HTTP URL, which can be used to boost the chat
 //@is_boosted True, if the current user has already boosted the chat
 //@level Current boost level of the chat
 //@boost_count The number of times the chat was boosted
@@ -3361,7 +3362,7 @@ chatActiveStories chat_id:int53 list:StoryList order:int53 max_read_story_id:int
 //@next_level_boost_count The number of boosts needed to reach the next level; 0 if the next level isn't available
 //@premium_member_count Approximate number of Telegram Premium subscribers joined the chat; always 0 if the current user isn't an administrator in the chat
 //@premium_member_percentage A percentage of Telegram Premium subscribers joined the chat; always 0 if the current user isn't an administrator in the chat
-chatBoostStatus is_boosted:Bool level:int32 boost_count:int32 current_level_boost_count:int32 next_level_boost_count:int32 premium_member_count:int32 premium_member_percentage:double = ChatBoostStatus;
+chatBoostStatus boost_url:string is_boosted:Bool level:int32 boost_count:int32 current_level_boost_count:int32 next_level_boost_count:int32 premium_member_count:int32 premium_member_percentage:double = ChatBoostStatus;
 
 //@description Describes a boost of a chat @user_id Identifier of a user that boosted the chat @expiration_date Point in time (Unix timestamp) when the boost will automatically expire if the user will not prolongate their Telegram Premium subscription
 chatBoost user_id:int53 expiration_date:int32 = ChatBoost;

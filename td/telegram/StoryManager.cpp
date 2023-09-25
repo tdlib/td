@@ -799,8 +799,8 @@ class GetBoostsStatusQuery final : public Td::ResultHandler {
       }
     }
     promise_.set_value(td_api::make_object<td_api::chatBoostStatus>(
-        result->my_boost_, result->level_, result->boosts_, result->current_level_boosts_, result->next_level_boosts_,
-        premium_member_count, premium_member_percentage));
+        result->boost_url_, result->my_boost_, result->level_, result->boosts_, result->current_level_boosts_,
+        result->next_level_boosts_, premium_member_count, premium_member_percentage));
   }
 
   void on_error(Status status) final {
