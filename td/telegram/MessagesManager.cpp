@@ -24010,19 +24010,7 @@ void MessagesManager::get_message_public_forwards(MessageFullId message_full_id,
 void MessagesManager::send_get_message_public_forwards_query(
     DcId dc_id, MessageFullId message_full_id, string offset, int32 limit,
     Promise<td_api::object_ptr<td_api::foundMessages>> &&promise) {
-  auto dialog_id = message_full_id.get_dialog_id();
-  Dialog *d = get_dialog_force(dialog_id, "send_get_message_public_forwards_query");
-  if (d == nullptr) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
-
-  const Message *m = get_message_force(d, message_full_id.get_message_id(), "send_get_message_public_forwards_query");
-  if (m == nullptr) {
-    return promise.set_error(Status::Error(400, "Message not found"));
-  }
-
-  if (m->view_count == 0 || m->forward_info != nullptr || m->had_forward_info || m->message_id.is_scheduled() ||
-      !m->message_id.is_server()) {
+  if (!can_get_message_statistics(message_full_id)) {
     return promise.set_error(Status::Error(400, "Message forwards are inaccessible"));
   }
 
