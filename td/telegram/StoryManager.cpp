@@ -2037,11 +2037,19 @@ void StoryManager::on_load_active_stories_from_database(StoryListId story_list_i
   LOG(INFO) << "Load " << active_story_list.active_stories_.size() << " chats with active stories in " << story_list_id
             << " from database";
 
+  bool is_bad = false;
+  FlatHashSet<DialogId, DialogIdHash> owner_dialog_ids;
   Dependencies dependencies;
   for (auto &active_stories_it : active_story_list.active_stories_) {
-    dependencies.add_dialog_and_dependencies(active_stories_it.first);
+    auto owner_dialog_id = active_stories_it.first;
+    if (owner_dialog_id.is_valid()) {
+      dependencies.add_dialog_and_dependencies(owner_dialog_id);
+      owner_dialog_ids.insert(owner_dialog_id);
+    } else {
+      is_bad = true;
+    }
   }
-  if (!dependencies.resolve_force(td_, "on_load_active_stories_from_database")) {
+  if (is_bad || !dependencies.resolve_force(td_, "on_load_active_stories_from_database")) {
     active_story_list.active_stories_.clear();
     story_list.state_.clear();
     story_list.server_has_more_ = true;
@@ -2062,13 +2070,11 @@ void StoryManager::on_load_active_stories_from_database(StoryListId story_list_i
       if (story_list.list_last_story_date_ < max_story_date) {
         auto min_story_date = story_list.list_last_story_date_;
         story_list.list_last_story_date_ = max_story_date;
-        const auto &owner_dialog_ids = dependencies.get_dialog_ids();
         for (auto it = story_list.ordered_stories_.upper_bound(min_story_date);
              it != story_list.ordered_stories_.end() && *it <= max_story_date; ++it) {
           auto dialog_id = it->get_dialog_id();
-          if (owner_dialog_ids.count(dialog_id) == 0) {
-            on_dialog_active_stories_order_updated(dialog_id, "on_load_active_stories_from_database 1");
-          }
+          owner_dialog_ids.erase(dialog_id);
+          on_dialog_active_stories_order_updated(dialog_id, "on_load_active_stories_from_database 1");
         }
         for (auto owner_dialog_id : owner_dialog_ids) {
           on_dialog_active_stories_order_updated(owner_dialog_id, "on_load_active_stories_from_database 2");
