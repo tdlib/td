@@ -1500,7 +1500,7 @@ void StoryManager::start_up() {
   load_expired_database_stories();
 
   for (auto story_list_id : {StoryListId::main(), StoryListId::archive()}) {
-    update_story_list_sent_total_count(story_list_id);
+    update_story_list_sent_total_count(story_list_id, "start_up");
   }
 }
 
@@ -1959,7 +1959,7 @@ StoryManager::ActiveStories *StoryManager::on_get_active_stories_from_database(S
       if (!story_list.is_reloaded_server_total_count_ &&
           story_list.server_total_count_ > static_cast<int32>(story_list.ordered_stories_.size())) {
         story_list.server_total_count_--;
-        update_story_list_sent_total_count(story_list_id, story_list);
+        update_story_list_sent_total_count(story_list_id, story_list, "on_get_active_stories_from_database");
         save_story_list(story_list_id, story_list.state_, story_list.server_total_count_, story_list.server_has_more_);
       }
     }
@@ -2014,7 +2014,7 @@ void StoryManager::load_active_stories(StoryListId story_list_id, Promise<Unit> 
            ++it) {
         on_dialog_active_stories_order_updated(it->get_dialog_id(), "load_active_stories");
       }
-      update_story_list_sent_total_count(story_list_id, story_list);
+      update_story_list_sent_total_count(story_list_id, story_list, "load_active_stories");
     }
     return promise.set_error(Status::Error(404, "Not found"));
   }
@@ -2083,7 +2083,7 @@ void StoryManager::on_load_active_stories_from_database(StoryListId story_list_i
     } else {
       LOG(ERROR) << "Last database story date didn't increase";
     }
-    update_story_list_sent_total_count(story_list_id, story_list);
+    update_story_list_sent_total_count(story_list_id, story_list, "on_load_active_stories_from_database");
   }
 
   set_promises(promises);
@@ -2211,7 +2211,7 @@ void StoryManager::on_load_active_stories_from_server(
                                  "on_load_active_stories_from_server");
         load_dialog_expiring_stories(dialog_id, 0, "on_load_active_stories_from_server 1");
       }
-      update_story_list_sent_total_count(story_list_id, story_list);
+      update_story_list_sent_total_count(story_list_id, story_list, "on_load_active_stories_from_server");
 
       lock.set_value(Unit());
 
@@ -2257,18 +2257,19 @@ td_api::object_ptr<td_api::updateStoryListChatCount> StoryManager::get_update_st
                                                                story_list.sent_total_count_);
 }
 
-void StoryManager::update_story_list_sent_total_count(StoryListId story_list_id) {
+void StoryManager::update_story_list_sent_total_count(StoryListId story_list_id, const char *source) {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
-  update_story_list_sent_total_count(story_list_id, get_story_list(story_list_id));
+  update_story_list_sent_total_count(story_list_id, get_story_list(story_list_id), source);
 }
 
-void StoryManager::update_story_list_sent_total_count(StoryListId story_list_id, StoryList &story_list) {
+void StoryManager::update_story_list_sent_total_count(StoryListId story_list_id, StoryList &story_list,
+                                                      const char *source) {
   if (story_list.server_total_count_ == -1 || td_->auth_manager_->is_bot()) {
     return;
   }
-  LOG(INFO) << "Update story list sent total chat count in " << story_list_id;
+  LOG(INFO) << "Update story list sent total chat count in " << story_list_id << " from " << source;
   auto new_total_count = static_cast<int32>(story_list.ordered_stories_.size());
   auto yet_unsent_total_count = 0;
   for (const auto &it : yet_unsent_story_ids_) {
@@ -4030,7 +4031,7 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
           save_story_list(active_stories->story_list_id_, story_list.state_, story_list.server_total_count_,
                           story_list.server_has_more_);
         }
-        update_story_list_sent_total_count(active_stories->story_list_id_, story_list);
+        update_story_list_sent_total_count(active_stories->story_list_id_, story_list, "on_update_active_stories");
       }
       active_stories_.erase(owner_dialog_id);
       send_update_chat_active_stories(owner_dialog_id, nullptr, "on_update_active_stories 1");
@@ -4123,13 +4124,13 @@ bool StoryManager::update_active_stories_order(DialogId owner_dialog_id, ActiveS
       CHECK(is_inserted);
 
       if (active_stories->story_list_id_ != story_list_id && active_stories->story_list_id_.is_valid()) {
-        update_story_list_sent_total_count(active_stories->story_list_id_);
+        update_story_list_sent_total_count(active_stories->story_list_id_, "update_active_stories_order 1");
       }
-      update_story_list_sent_total_count(story_list_id, story_list);
+      update_story_list_sent_total_count(story_list_id, story_list, "update_active_stories_order 2");
     }
   } else if (active_stories->story_list_id_.is_valid()) {
     delete_active_stories_from_story_list(owner_dialog_id, active_stories);
-    update_story_list_sent_total_count(active_stories->story_list_id_);
+    update_story_list_sent_total_count(active_stories->story_list_id_, "update_active_stories_order 3");
   }
 
   if (active_stories->private_order_ != new_private_order || active_stories->public_order_ != new_public_order ||
@@ -4854,7 +4855,7 @@ void StoryManager::do_send_story(unique_ptr<PendingStory> &&pending_story, vecto
 
       updated_active_stories_.insert(pending_story->dialog_id_);
       send_update_chat_active_stories(pending_story->dialog_id_, active_stories, "do_send_story");
-      update_story_list_sent_total_count(StoryListId::main());
+      update_story_list_sent_total_count(StoryListId::main(), "do_send_story");
     } else {
       pending_story->story_->content_ = dup_story_content(td_, pending_story->story_->content_.get());
     }
@@ -5246,7 +5247,7 @@ void StoryManager::delete_pending_story(FileId file_id, unique_ptr<PendingStory>
     if (it->second.empty()) {
       yet_unsent_stories_.erase(it);
       yet_unsent_story_ids_.erase(pending_story->dialog_id_);
-      update_story_list_sent_total_count(StoryListId::main());
+      update_story_list_sent_total_count(StoryListId::main(), "delete_pending_story");
     } else {
       auto story_id_it = yet_unsent_story_ids_.find(pending_story->dialog_id_);
       CHECK(story_id_it != yet_unsent_story_ids_.end());
