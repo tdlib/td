@@ -9531,6 +9531,7 @@ void ContactsManager::remove_inactive_channel(ChannelId channel_id) {
 }
 
 void ContactsManager::register_message_users(MessageFullId message_full_id, vector<UserId> user_ids) {
+  CHECK(message_full_id.get_dialog_id().is_valid());
   for (auto user_id : user_ids) {
     CHECK(user_id.is_valid());
     const User *u = get_user(user_id);

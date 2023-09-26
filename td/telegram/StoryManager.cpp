@@ -2529,6 +2529,7 @@ void StoryManager::on_get_dialog_expiring_stories(DialogId owner_dialog_id,
   td_->contacts_manager_->on_get_chats(std::move(stories->chats_), "on_get_dialog_expiring_stories");
   owner_dialog_id = on_get_dialog_stories(owner_dialog_id, std::move(stories->stories_), Promise<Unit>());
   if (promise) {
+    CHECK(owner_dialog_id.is_valid());
     auto active_stories = get_active_stories(owner_dialog_id);
     if (updated_active_stories_.insert(owner_dialog_id)) {
       send_update_chat_active_stories(owner_dialog_id, active_stories, "on_get_dialog_expiring_stories");
@@ -4183,6 +4184,7 @@ void StoryManager::send_update_chat_active_stories(DialogId owner_dialog_id, con
       LOG(INFO) << "Skip update about active stories in " << owner_dialog_id << " from " << source;
       return;
     }
+    CHECK(owner_dialog_id.is_valid());
     updated_active_stories_.insert(owner_dialog_id);
   }
   LOG(INFO) << "Send update about active stories in " << owner_dialog_id << " from " << source;
@@ -4816,6 +4818,7 @@ void StoryManager::do_send_story(unique_ptr<PendingStory> &&pending_story, vecto
   CHECK(pending_story->story_id_.is_valid());
   CHECK(pending_story->story_ != nullptr);
   CHECK(pending_story->story_->content_ != nullptr);
+  CHECK(pending_story->story_id_.is_valid());
 
   auto story_full_id = StoryFullId(pending_story->dialog_id_, pending_story->story_id_);
   if (bad_parts.empty()) {
@@ -5323,6 +5326,7 @@ void StoryManager::delete_story(DialogId owner_dialog_id, StoryId story_id, Prom
       return promise.set_error(Status::Error(400, "Story not found"));
     }
     int64 random_id = random_id_it->second;
+    CHECK(random_id != 0);
 
     LOG(INFO) << "Cancel uploading of " << story_full_id;
 

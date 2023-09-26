@@ -13259,6 +13259,7 @@ void MessagesManager::ttl_loop(double now) {
     TtlNode *ttl_node = TtlNode::from_heap_node(ttl_heap_.pop());
     auto message_full_id = ttl_node->message_full_id_;
     auto dialog_id = message_full_id.get_dialog_id();
+    CHECK(dialog_id.is_valid());
     if (dialog_id.get_type() == DialogType::SecretChat || ttl_node->by_ttl_period_) {
       to_delete[dialog_id].push_back(message_full_id.get_message_id());
     } else {
@@ -22032,6 +22033,7 @@ void MessagesManager::add_active_live_location(MessageFullId message_full_id) {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
+  CHECK(message_full_id.get_message_id().is_valid());
   if (!active_live_location_message_full_ids_.insert(message_full_id).second) {
     return;
   }
