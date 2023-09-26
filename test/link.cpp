@@ -400,6 +400,14 @@ TEST(Link, parse_internal_link_part1) {
   parse_internal_link("t.me/c/123456789012?boost", chat_boost("tg://boost?channel=123456789012"));
   parse_internal_link("t.me/c/123456789012?boost=12312&domain=123", chat_boost("tg://boost?channel=123456789012"));
 
+  parse_internal_link("t.me/boost/s/12345", story("boost", 12345));
+  parse_internal_link("t.me/boost/s", chat_boost("tg://boost?domain=s"));
+  parse_internal_link("t.me/boost/12", message("tg://resolve?domain=boost&post=12"));
+  parse_internal_link("t.me/boost?cc=1#c=1", public_chat("boost"));
+  parse_internal_link("t.me/boost?c=-1", public_chat("boost"));
+  parse_internal_link("t.me/boost?c=12telegram", chat_boost("tg://boost?channel=12"));
+  parse_internal_link("t.me/bOoSt?c=12telegram", chat_boost("tg://boost?channel=12"));
+
   parse_internal_link("tg:boost?domain=username/12345&single", chat_boost("tg://boost?domain=username%2F12345"));
   parse_internal_link("tg:boost?domain=username&channel=12345", chat_boost("tg://boost?domain=username"));
   parse_internal_link("tg:boost?channel=12345&domain=username", chat_boost("tg://boost?domain=username"));

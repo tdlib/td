@@ -1643,6 +1643,18 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
                                                             << copy_arg("comment") << copy_arg("t"));
     }
     auto username = path[0];
+    if (to_lower(username) == "boost") {
+      if (path.size() == 2 && is_valid_username(path[1])) {
+        // /boost/<username>
+        return td::make_unique<InternalLinkDialogBoost>(PSTRING() << "tg://boost?domain=" << url_encode(path[1]));
+      }
+      auto channel_id = url_query.get_arg("c");
+      if (path.size() == 1 && to_integer<int64>(channel_id) > 0) {
+        // /boost?c=<channel_id>
+        return td::make_unique<InternalLinkDialogBoost>(PSTRING()
+                                                        << "tg://boost?channel=" << to_integer<int64>(channel_id));
+      }
+    }
     if (path.size() == 3 && path[1] == "s" && is_valid_story_id(path[2])) {
       // /<username>/s/<story_id>
       return td::make_unique<InternalLinkStory>(std::move(username), StoryId(to_integer<int32>(path[2])));
