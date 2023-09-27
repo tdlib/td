@@ -635,8 +635,8 @@ inputChatPhotoSticker sticker:chatPhotoSticker = InputChatPhoto;
 //@can_send_basic_messages True, if the user can send text messages, contacts, invoices, locations, and venues
 //@can_send_audios True, if the user can send music files
 //@can_send_documents True, if the user can send documents
-//@can_send_photos True, if the user can send audio photos
-//@can_send_videos True, if the user can send audio videos
+//@can_send_photos True, if the user can send photos
+//@can_send_videos True, if the user can send videos
 //@can_send_video_notes True, if the user can send video notes
 //@can_send_voice_notes True, if the user can send voice notes
 //@can_send_polls True, if the user can send polls
