@@ -435,6 +435,10 @@ class StoryManager final : public Actor {
   ActiveStories *on_get_active_stories_from_database(StoryListId story_list_id, DialogId owner_dialog_id,
                                                      const BufferSlice &value, const char *source);
 
+  void set_story_expire_timeout(const Story *story);
+
+  void set_story_can_get_viewers_timeout(const Story *story);
+
   void on_story_changed(StoryFullId story_full_id, const Story *story, bool is_changed, bool need_save_to_database,
                         bool from_database = false);
 

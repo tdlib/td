@@ -1580,7 +1580,7 @@ void StoryManager::on_story_expire_timeout(int64 story_global_id) {
     // timeout used monotonic time instead of wall clock time
     LOG(INFO) << "Receive timeout for non-expired " << story_full_id << ": expire_date = " << story->expire_date_
               << ", current time = " << G()->unix_time();
-    return on_story_changed(story_full_id, story, false, false);
+    return set_story_expire_timeout(story);
   }
 
   LOG(INFO) << "Have expired " << story_full_id;
@@ -1626,7 +1626,7 @@ void StoryManager::on_story_can_get_viewers_timeout(int64 story_global_id) {
     LOG(INFO) << "Receive timeout for " << story_full_id
               << " with available viewers: expire_date = " << story->expire_date_
               << ", current time = " << G()->unix_time();
-    return on_story_changed(story_full_id, story, false, false);
+    return set_story_can_get_viewers_timeout(story);
   }
 
   // can_get_viewers flag could have been changed; reload the story to repair it
@@ -3762,19 +3762,27 @@ void StoryManager::delete_story_from_database(StoryFullId story_full_id) {
   }
 }
 
+void StoryManager::set_story_expire_timeout(const Story *story) {
+  CHECK(story->global_id_ > 0);
+  story_expire_timeout_.set_timeout_in(story->global_id_, story->expire_date_ - G()->unix_time());
+}
+
+void StoryManager::set_story_can_get_viewers_timeout(const Story *story) {
+  CHECK(story->global_id_ > 0);
+  story_can_get_viewers_timeout_.set_timeout_in(story->global_id_,
+                                                get_story_viewers_expire_date(story) - G()->unix_time() + 2);
+}
+
 void StoryManager::on_story_changed(StoryFullId story_full_id, const Story *story, bool is_changed,
                                     bool need_save_to_database, bool from_database) {
   if (!story_full_id.get_story_id().is_server()) {
     return;
   }
   if (is_active_story(story)) {
-    CHECK(story->global_id_ > 0);
-    story_expire_timeout_.set_timeout_in(story->global_id_, story->expire_date_ - G()->unix_time());
+    set_story_expire_timeout(story);
   }
-  if (can_get_story_viewers(story_full_id, story, true).is_ok() && story->interaction_info_.get_reaction_count() == 0) {
-    CHECK(story->global_id_ > 0);
-    story_can_get_viewers_timeout_.set_timeout_in(story->global_id_,
-                                                  get_story_viewers_expire_date(story) - G()->unix_time() + 2);
+  if (can_get_story_viewers(story_full_id, story, true).is_ok()) {
+    set_story_can_get_viewers_timeout(story);
   }
   if (story->content_ == nullptr) {
     return;
