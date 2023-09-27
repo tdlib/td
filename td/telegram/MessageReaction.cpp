@@ -297,13 +297,13 @@ MessageReaction::MessageReaction(ReactionType reaction_type, int32 choose_count,
   }
 }
 
-void MessageReaction::add_recent_chooser_dialog_id(DialogId dialog_id) {
+void MessageReaction::add_my_recent_chooser_dialog_id(DialogId dialog_id) {
   CHECK(!my_recent_chooser_dialog_id_.is_valid());
   my_recent_chooser_dialog_id_ = dialog_id;
   add_to_top(recent_chooser_dialog_ids_, MAX_RECENT_CHOOSERS + 1, dialog_id);
 }
 
-bool MessageReaction::remove_recent_chooser_dialog_id() {
+bool MessageReaction::remove_my_recent_chooser_dialog_id() {
   if (my_recent_chooser_dialog_id_.is_valid()) {
     bool is_removed = td::remove(recent_chooser_dialog_ids_, my_recent_chooser_dialog_id_);
     CHECK(is_removed);
@@ -346,8 +346,8 @@ void MessageReaction::set_as_chosen(DialogId my_dialog_id, bool have_recent_choo
   is_chosen_ = true;
   choose_count_++;
   if (have_recent_choosers) {
-    remove_recent_chooser_dialog_id();
-    add_recent_chooser_dialog_id(my_dialog_id);
+    remove_my_recent_chooser_dialog_id();
+    add_my_recent_chooser_dialog_id(my_dialog_id);
   }
 }
 
@@ -356,7 +356,7 @@ void MessageReaction::unset_as_chosen() {
 
   is_chosen_ = false;
   choose_count_--;
-  remove_recent_chooser_dialog_id();
+  remove_my_recent_chooser_dialog_id();
 }
 
 void MessageReaction::set_my_recent_chooser_dialog_id(DialogId my_dialog_id) {
@@ -559,7 +559,7 @@ MessageReaction *MessageReactions::get_reaction(const ReactionType &reaction_typ
 }
 
 const MessageReaction *MessageReactions::get_reaction(const ReactionType &reaction_type) const {
-  for (auto &added_reaction : reactions_) {
+  for (const auto &added_reaction : reactions_) {
     if (added_reaction.get_reaction_type() == reaction_type) {
       return &added_reaction;
     }
@@ -598,8 +598,8 @@ void MessageReactions::update_from(const MessageReactions &old_reactions) {
   }
 }
 
-bool MessageReactions::add_reaction(const ReactionType &reaction_type, bool is_big, DialogId my_dialog_id,
-                                    bool have_recent_choosers) {
+bool MessageReactions::add_my_reaction(const ReactionType &reaction_type, bool is_big, DialogId my_dialog_id,
+                                       bool have_recent_choosers) {
   vector<ReactionType> new_chosen_reaction_order = get_chosen_reaction_types();
 
   auto added_reaction = get_reaction(reaction_type);
@@ -624,7 +624,7 @@ bool MessageReactions::add_reaction(const ReactionType &reaction_type, bool is_b
   while (new_chosen_reaction_order.size() > max_reaction_count) {
     auto index = new_chosen_reaction_order[0] == reaction_type ? 1 : 0;
     CHECK(static_cast<size_t>(index) < new_chosen_reaction_order.size());
-    bool is_removed = do_remove_reaction(new_chosen_reaction_order[index]);
+    bool is_removed = do_remove_my_reaction(new_chosen_reaction_order[index]);
     CHECK(is_removed);
     new_chosen_reaction_order.erase(new_chosen_reaction_order.begin() + index);
   }
@@ -641,8 +641,8 @@ bool MessageReactions::add_reaction(const ReactionType &reaction_type, bool is_b
   return true;
 }
 
-bool MessageReactions::remove_reaction(const ReactionType &reaction_type, DialogId my_dialog_id) {
-  if (do_remove_reaction(reaction_type)) {
+bool MessageReactions::remove_my_reaction(const ReactionType &reaction_type, DialogId my_dialog_id) {
+  if (do_remove_my_reaction(reaction_type)) {
     if (!chosen_reaction_order_.empty()) {
       bool is_removed = td::remove(chosen_reaction_order_, reaction_type);
       CHECK(is_removed);
@@ -650,7 +650,7 @@ bool MessageReactions::remove_reaction(const ReactionType &reaction_type, Dialog
       // if the user isn't a Premium user, then max_reaction_count could be reduced from 3 to 1
       auto max_reaction_count = get_max_reaction_count();
       while (chosen_reaction_order_.size() > max_reaction_count) {
-        is_removed = do_remove_reaction(chosen_reaction_order_[0]);
+        is_removed = do_remove_my_reaction(chosen_reaction_order_[0]);
         CHECK(is_removed);
         chosen_reaction_order_.erase(chosen_reaction_order_.begin());
       }
@@ -669,7 +669,7 @@ bool MessageReactions::remove_reaction(const ReactionType &reaction_type, Dialog
   return false;
 }
 
-bool MessageReactions::do_remove_reaction(const ReactionType &reaction_type) {
+bool MessageReactions::do_remove_my_reaction(const ReactionType &reaction_type) {
   for (auto it = reactions_.begin(); it != reactions_.end(); ++it) {
     auto &message_reaction = *it;
     if (message_reaction.get_reaction_type() == reaction_type) {
@@ -710,7 +710,7 @@ void MessageReactions::fix_chosen_reaction() {
     if (!reaction.is_chosen() && reaction.get_my_recent_chooser_dialog_id().is_valid()) {
       my_dialog_id = reaction.get_my_recent_chooser_dialog_id();
       LOG(WARNING) << "Fix recent chosen reaction in " << *this;
-      reaction.remove_recent_chooser_dialog_id();
+      reaction.remove_my_recent_chooser_dialog_id();
     }
   }
   if (!my_dialog_id.is_valid()) {
@@ -718,7 +718,7 @@ void MessageReactions::fix_chosen_reaction() {
   }
   for (auto &reaction : reactions_) {
     if (reaction.is_chosen() && !reaction.get_my_recent_chooser_dialog_id().is_valid()) {
-      reaction.add_recent_chooser_dialog_id(my_dialog_id);
+      reaction.add_my_recent_chooser_dialog_id(my_dialog_id);
     }
   }
 }
@@ -738,7 +738,7 @@ vector<ReactionType> MessageReactions::get_chosen_reaction_types() const {
   }
 
   vector<ReactionType> reaction_order;
-  for (auto &reaction : reactions_) {
+  for (const auto &reaction : reactions_) {
     if (reaction.is_chosen()) {
       reaction_order.push_back(reaction.get_reaction_type());
     }
