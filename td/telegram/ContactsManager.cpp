@@ -13413,7 +13413,7 @@ void ContactsManager::on_update_user_story_ids_impl(User *u, UserId user_id, Sto
     u->need_save_to_database = true;
   }
   if (has_unread_stories != get_user_has_unread_stories(u)) {
-    LOG(DEBUG) << "Change has_unread_stories of " << user_id;
+    LOG(DEBUG) << "Change has_unread_stories of " << user_id << " to " << !has_unread_stories;
     u->is_changed = true;
   }
 }
@@ -13441,7 +13441,7 @@ void ContactsManager::on_update_user_max_read_story_id(User *u, UserId user_id, 
     u->need_save_to_database = true;
   }
   if (has_unread_stories != get_user_has_unread_stories(u)) {
-    LOG(DEBUG) << "Change has_unread_stories of " << user_id;
+    LOG(DEBUG) << "Change has_unread_stories of " << user_id << " to " << !has_unread_stories;
     u->is_changed = true;
   }
 }
@@ -16166,7 +16166,7 @@ void ContactsManager::on_update_channel_story_ids_impl(Channel *c, ChannelId cha
     c->need_save_to_database = true;
   }
   if (has_unread_stories != get_channel_has_unread_stories(c)) {
-    LOG(DEBUG) << "Change has_unread_stories of " << channel_id;
+    LOG(DEBUG) << "Change has_unread_stories of " << channel_id << " to " << !has_unread_stories;
     c->is_changed = true;
   }
 }
@@ -16194,7 +16194,7 @@ void ContactsManager::on_update_channel_max_read_story_id(Channel *c, ChannelId 
     c->need_save_to_database = true;
   }
   if (has_unread_stories != get_channel_has_unread_stories(c)) {
-    LOG(DEBUG) << "Change has_unread_stories of " << channel_id;
+    LOG(DEBUG) << "Change has_unread_stories of " << channel_id << " to " << !has_unread_stories;
     c->is_changed = true;
   }
 }
