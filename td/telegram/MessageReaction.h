@@ -63,9 +63,9 @@ class MessageReaction {
 
   void unset_as_chosen();
 
-  void add_recent_chooser_dialog_id(DialogId dialog_id);
+  void add_my_recent_chooser_dialog_id(DialogId dialog_id);
 
-  bool remove_recent_chooser_dialog_id();
+  bool remove_my_recent_chooser_dialog_id();
 
   void update_from(const MessageReaction &old_reaction);
 
@@ -167,9 +167,10 @@ struct MessageReactions {
 
   void update_from(const MessageReactions &old_reactions);
 
-  bool add_reaction(const ReactionType &reaction_type, bool is_big, DialogId my_dialog_id, bool have_recent_choosers);
+  bool add_my_reaction(const ReactionType &reaction_type, bool is_big, DialogId my_dialog_id,
+                       bool have_recent_choosers);
 
-  bool remove_reaction(const ReactionType &reaction_type, DialogId my_dialog_id);
+  bool remove_my_reaction(const ReactionType &reaction_type, DialogId my_dialog_id);
 
   void sort_reactions(const FlatHashMap<ReactionType, size_t, ReactionTypeHash> &active_reaction_pos);
 
@@ -203,7 +204,7 @@ struct MessageReactions {
   void parse(ParserT &parser);
 
  private:
-  bool do_remove_reaction(const ReactionType &reaction_type);
+  bool do_remove_my_reaction(const ReactionType &reaction_type);
 };
 
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageReactions &reactions);

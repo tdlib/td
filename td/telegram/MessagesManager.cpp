@@ -23776,7 +23776,7 @@ void MessagesManager::add_message_reaction(MessageFullId message_full_id, Reacti
   LOG(INFO) << "Have message with " << *m->reactions;
   auto my_dialog_id =
       d->default_send_message_as_dialog_id.is_valid() ? d->default_send_message_as_dialog_id : get_my_dialog_id();
-  if (!m->reactions->add_reaction(reaction_type, is_big, my_dialog_id, have_recent_choosers)) {
+  if (!m->reactions->add_my_reaction(reaction_type, is_big, my_dialog_id, have_recent_choosers)) {
     return promise.set_value(Unit());
   }
 
@@ -23811,7 +23811,7 @@ void MessagesManager::remove_message_reaction(MessageFullId message_full_id, Rea
   LOG(INFO) << "Have message with " << *m->reactions;
   auto my_dialog_id =
       d->default_send_message_as_dialog_id.is_valid() ? d->default_send_message_as_dialog_id : get_my_dialog_id();
-  if (!m->reactions->remove_reaction(reaction_type, my_dialog_id)) {
+  if (!m->reactions->remove_my_reaction(reaction_type, my_dialog_id)) {
     return promise.set_value(Unit());
   }
 
