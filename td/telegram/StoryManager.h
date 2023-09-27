@@ -675,6 +675,7 @@ class StoryManager final : public Actor {
   bool channels_to_send_stories_inited_ = false;
   vector<ChannelId> channels_to_send_stories_;
   vector<Promise<td_api::object_ptr<td_api::chats>>> get_dialogs_to_send_stories_queries_;
+  double next_reload_channels_to_send_stories_time_ = 0.0;
 
   FlatHashMap<StoryFullId, int32, StoryFullIdHash> being_set_story_reactions_;
 

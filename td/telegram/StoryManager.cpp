@@ -1506,6 +1506,11 @@ void StoryManager::start_up() {
 
 void StoryManager::timeout_expired() {
   load_expired_database_stories();
+
+  if (channels_to_send_stories_inited_ && get_dialogs_to_send_stories_queries_.empty() &&
+      Time::now() > next_reload_channels_to_send_stories_time_ && !td_->auth_manager_->is_bot()) {
+    reload_dialogs_to_send_stories(Auto());
+  }
 }
 
 void StoryManager::hangup() {
@@ -1630,6 +1635,9 @@ void StoryManager::on_story_can_get_viewers_timeout(int64 story_global_id) {
 
 void StoryManager::load_expired_database_stories() {
   if (!G()->use_message_database()) {
+    if (!td_->auth_manager_->is_bot()) {
+      set_timeout_in(Random::fast(300, 420));
+    }
     return;
   }
 
@@ -4665,6 +4673,8 @@ void StoryManager::finish_get_dialogs_to_send_stories(Result<Unit> &&result) {
   if (result.is_error()) {
     return fail_promises(promises, result.move_as_error());
   }
+
+  next_reload_channels_to_send_stories_time_ = Time::now() + 86400;
 
   CHECK(channels_to_send_stories_inited_);
   for (auto &promise : promises) {
