@@ -3217,7 +3217,12 @@ void StoryManager::unregister_story(StoryFullId story_full_id, MessageFullId mes
 StoryManager::StoryInfo StoryManager::get_story_info(StoryFullId story_full_id) const {
   const auto *story = get_story(story_full_id);
   auto story_id = story_full_id.get_story_id();
-  if (story == nullptr || (story_id.is_server() && !is_active_story(story))) {
+  if (story == nullptr) {
+    LOG(INFO) << "Tried to get info about deleted " << story_full_id;
+    return {};
+  }
+  if (story_id.is_server() && !is_active_story(story)) {
+    LOG(INFO) << "Tried to get info about expired " << story_full_id;
     return {};
   }
   StoryInfo story_info;
@@ -3345,6 +3350,9 @@ td_api::object_ptr<td_api::chatActiveStories> StoryManager::get_chat_active_stor
       if (story_info != nullptr) {
         stories.push_back(std::move(story_info));
       }
+    }
+    if (stories.size() != active_stories->story_ids_.size()) {
+      send_closure_later(G()->story_manager(), &StoryManager::update_active_stories, owner_dialog_id);
     }
     if (story_list_id.is_valid()) {
       order = active_stories->public_order_;
@@ -4008,6 +4016,15 @@ void StoryManager::on_update_dialog_stories_hidden(DialogId owner_dialog_id, boo
   }
 }
 
+void StoryManager::update_active_stories(DialogId owner_dialog_id) {
+  auto active_stories = get_active_stories(owner_dialog_id);
+  if (active_stories != nullptr) {
+    auto story_ids = active_stories->story_ids_;
+    on_update_active_stories(owner_dialog_id, active_stories->max_read_story_id_, std::move(story_ids), Promise<Unit>(),
+                             "update_active_stories");
+  }
+}
+
 void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId max_read_story_id,
                                             vector<StoryId> &&story_ids, Promise<Unit> &&promise, const char *source,
                                             bool from_database) {
@@ -4234,6 +4251,9 @@ void StoryManager::save_active_stories(DialogId owner_dialog_id, const ActiveSto
       if (story_info.story_id_.is_valid()) {
         saved_active_stories.story_infos_.push_back(std::move(story_info));
       }
+    }
+    if (saved_active_stories.story_infos_.size() != active_stories->story_ids_.size()) {
+      send_closure_later(G()->story_manager(), &StoryManager::update_active_stories, owner_dialog_id);
     }
     if (saved_active_stories.story_infos_.empty()) {
       LOG(INFO) << "Have no active stories to save";
