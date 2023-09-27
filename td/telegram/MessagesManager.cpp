@@ -35896,7 +35896,9 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
   if (old_message->legacy_layer != new_message->legacy_layer) {
     old_message->legacy_layer = new_message->legacy_layer;
   }
-  if ((old_message->media_album_id == 0 || td_->auth_manager_->is_bot()) && new_message->media_album_id != 0) {
+  if (old_message->media_album_id != new_message->media_album_id &&
+      (old_message->media_album_id == 0 || (new_message->media_album_id == 0 && message_id.is_yet_unsent()) ||
+       td_->auth_manager_->is_bot())) {
     old_message->media_album_id = new_message->media_album_id;
     LOG(DEBUG) << "Update message media_album_id";
     need_send_update = true;
