@@ -335,6 +335,33 @@ class CheckGiftCodeQuery final : public Td::ResultHandler {
   }
 };
 
+class ApplyGiftCodeQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit ApplyGiftCodeQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(const string &code) {
+    send_query(G()->net_query_creator().create(telegram_api::payments_applyGiftCode(code)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_applyGiftCode>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for ApplyGiftCodeQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class CanPurchasePremiumQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -769,6 +796,10 @@ void get_premium_gift_code_options(Td *td, DialogId boosted_dialog_id,
 void check_premium_gift_code(Td *td, const string &code,
                              Promise<td_api::object_ptr<td_api::premiumGiftCodeInfo>> &&promise) {
   td->create_handler<CheckGiftCodeQuery>(std::move(promise))->send(code);
+}
+
+void apply_premium_gift_code(Td *td, const string &code, Promise<Unit> &&promise) {
+  td->create_handler<ApplyGiftCodeQuery>(std::move(promise))->send(code);
 }
 
 void can_purchase_premium(Td *td, td_api::object_ptr<td_api::StorePaymentPurpose> &&purpose, Promise<Unit> &&promise) {

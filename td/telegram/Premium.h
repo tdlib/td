@@ -37,6 +37,8 @@ void get_premium_gift_code_options(Td *td, DialogId boosted_dialog_id,
 void check_premium_gift_code(Td *td, const string &code,
                              Promise<td_api::object_ptr<td_api::premiumGiftCodeInfo>> &&promise);
 
+void apply_premium_gift_code(Td *td, const string &code, Promise<Unit> &&promise);
+
 void can_purchase_premium(Td *td, td_api::object_ptr<td_api::StorePaymentPurpose> &&purpose, Promise<Unit> &&promise);
 
 void assign_app_store_transaction(Td *td, const string &receipt,

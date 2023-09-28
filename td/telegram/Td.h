@@ -1601,6 +1601,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::checkPremiumGiftCode &request);
 
+  void on_request(uint64 id, td_api::applyPremiumGiftCode &request);
+
   void on_request(uint64 id, td_api::canPurchasePremium &request);
 
   void on_request(uint64 id, td_api::assignAppStoreTransaction &request);

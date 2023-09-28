@@ -9040,8 +9040,11 @@ getPremiumState = PremiumState;
 //@boosted_chat_id Identifier of the channel chat, which will be automatically boosted by receivers of the gift codes and which is administered by the user; 0 if none
 getPremiumGiftCodePaymentOptions boosted_chat_id:int53 = PremiumGiftCodePaymentOptions;
 
-//@description Return information about a premium gift code @code The code to check
+//@description Return information about a Telegram Premium gift code @code The code to check
 checkPremiumGiftCode code:string = PremiumGiftCodeInfo;
+
+//@description Applies a Telegram Premium gift code @code The code to apply
+applyPremiumGiftCode code:string = Ok;
 
 //@description Checks whether Telegram Premium purchase is possible. Must be called before in-store Premium purchase @purpose Transaction purpose
 canPurchasePremium purpose:StorePaymentPurpose = Ok;
