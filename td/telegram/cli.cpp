@@ -3096,6 +3096,8 @@ class CliClient final : public Actor {
       ChatId boosted_chat_id;
       get_args(args, boosted_chat_id);
       send_request(td_api::make_object<td_api::getPremiumGiftCodePaymentOptions>(boosted_chat_id));
+    } else if (op == "cpgc") {
+      send_request(td_api::make_object<td_api::checkPremiumGiftCode>(args));
     } else if (op == "cppr" || op == "cpprb") {
       UserId user_id;
       string currency;

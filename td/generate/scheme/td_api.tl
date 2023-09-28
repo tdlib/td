@@ -695,6 +695,16 @@ premiumGiftCodePaymentOption currency:string amount:int53 user_count:int32 month
 //@description Contains a list of options for creating Telegram Premium gift codes @options The list of options
 premiumGiftCodePaymentOptions options:vector<premiumGiftCodePaymentOption> = PremiumGiftCodePaymentOptions;
 
+//@description Contains information about a Telegram Premium gift code
+//@creator_id Identifier of a chat or a user that created the gift code
+//@creation_date Point in time (Unix timestamp) when the code was created
+//@is_from_giveaway True, if the gift code was created for a giveaway
+//@giveaway_message_id Identifier of the corresponding giveaway message; can be 0 or an identifier of a deleted message
+//@month_count Number of month the Telegram Premium subscription will be active after code activation
+//@user_id Identifier of a user, which can activate the code; 0 if none
+//@use_date Point in time (Unix timestamp) when the code was activated; 0 if none
+premiumGiftCodeInfo creator_id:MessageSender creation_date:int32 is_from_giveaway:Bool giveaway_message_id:int53 month_count:int32 user_id:int53 use_date:int32 = PremiumGiftCodeInfo;
+
 
 //@description Describes a custom emoji to be shown instead of the Telegram Premium badge
 //@custom_emoji_id Identifier of the custom emoji in stickerFormatTgs format
@@ -9029,6 +9039,9 @@ getPremiumState = PremiumState;
 //@description Returns available options for Telegram Premium gift code creation
 //@boosted_chat_id Identifier of the channel chat, which will be automatically boosted by receivers of the gift codes and which is administered by the user; 0 if none
 getPremiumGiftCodePaymentOptions boosted_chat_id:int53 = PremiumGiftCodePaymentOptions;
+
+//@description Return information about a premium gift code @code The code to check
+checkPremiumGiftCode code:string = PremiumGiftCodeInfo;
 
 //@description Checks whether Telegram Premium purchase is possible. Must be called before in-store Premium purchase @purpose Transaction purpose
 canPurchasePremium purpose:StorePaymentPurpose = Ok;

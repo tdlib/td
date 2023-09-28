@@ -14,6 +14,7 @@
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageEntity.h"
+#include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/PremiumGiftOption.h"
@@ -272,6 +273,61 @@ class GetPremiumGiftCodeOptionsQuery final : public Td::ResultHandler {
     }
 
     promise_.set_value(td_api::make_object<td_api::premiumGiftCodePaymentOptions>(std::move(options)));
+  }
+
+  void on_error(Status status) final {
+    td_->messages_manager_->on_get_dialog_error(boosted_dialog_id_, status, "GetPremiumGiftCodeOptionsQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
+class CheckGiftCodeQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::premiumGiftCodeInfo>> promise_;
+
+ public:
+  explicit CheckGiftCodeQuery(Promise<td_api::object_ptr<td_api::premiumGiftCodeInfo>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(const string &code) {
+    send_query(G()->net_query_creator().create(telegram_api::payments_checkGiftCode(code)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_checkGiftCode>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for CheckGiftCodeQuery: " << to_string(result);
+    td_->contacts_manager_->on_get_users(std::move(result->users_), "CheckGiftCodeQuery");
+    td_->contacts_manager_->on_get_chats(std::move(result->chats_), "CheckGiftCodeQuery");
+
+    DialogId creator_dialog_id(result->from_id_);
+    if (!creator_dialog_id.is_valid() ||
+        !td_->messages_manager_->have_dialog_info_force(creator_dialog_id, "CheckGiftCodeQuery") ||
+        result->date_ <= 0 || result->months_ <= 0 || result->used_date_ < 0) {
+      LOG(ERROR) << "Receive " << to_string(result);
+      return on_error(Status::Error(500, "Receive invalid response"));
+    }
+    if (creator_dialog_id.get_type() != DialogType::User) {
+      td_->messages_manager_->force_create_dialog(creator_dialog_id, "CheckGiftCodeQuery", true);
+    }
+    UserId user_id(result->to_id_);
+    if (!user_id.is_valid() && user_id != UserId()) {
+      LOG(ERROR) << "Receive " << to_string(result);
+      user_id = UserId();
+    }
+    MessageId message_id(ServerMessageId(result->giveaway_msg_id_));
+    if (!message_id.is_valid() && message_id != MessageId()) {
+      LOG(ERROR) << "Receive " << to_string(result);
+      message_id = MessageId();
+    }
+    promise_.set_value(td_api::make_object<td_api::premiumGiftCodeInfo>(
+        get_message_sender_object(td_, creator_dialog_id, "premiumGiftCodeInfo"), result->date_, result->via_giveaway_,
+        message_id.get(), result->months_, td_->contacts_manager_->get_user_id_object(user_id, "premiumGiftCodeInfo"),
+        result->used_date_));
   }
 
   void on_error(Status status) final {
@@ -708,6 +764,11 @@ void get_premium_state(Td *td, Promise<td_api::object_ptr<td_api::premiumState>>
 void get_premium_gift_code_options(Td *td, DialogId boosted_dialog_id,
                                    Promise<td_api::object_ptr<td_api::premiumGiftCodePaymentOptions>> &&promise) {
   td->create_handler<GetPremiumGiftCodeOptionsQuery>(std::move(promise))->send(boosted_dialog_id);
+}
+
+void check_premium_gift_code(Td *td, const string &code,
+                             Promise<td_api::object_ptr<td_api::premiumGiftCodeInfo>> &&promise) {
+  td->create_handler<CheckGiftCodeQuery>(std::move(promise))->send(code);
 }
 
 void can_purchase_premium(Td *td, td_api::object_ptr<td_api::StorePaymentPurpose> &&purpose, Promise<Unit> &&promise) {
