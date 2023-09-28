@@ -88,6 +88,26 @@ static td_api::object_ptr<td_api::PremiumFeature> get_premium_feature_object(Sli
   return nullptr;
 }
 
+static Result<telegram_api::object_ptr<telegram_api::InputPeer>> get_boost_input_peer(Td *td, DialogId dialog_id) {
+  if (dialog_id == DialogId()) {
+    return nullptr;
+  }
+
+  if (!td->messages_manager_->have_dialog_force(dialog_id, "storePaymentPurposePremiumGiftCodes")) {
+    return Status::Error(400, "Chat to boost not found");
+  }
+  if (dialog_id.get_type() != DialogType::Channel ||
+      !td->contacts_manager_->is_broadcast_channel(dialog_id.get_channel_id())) {
+    return Status::Error(400, "Unallowed chat to boost specified");
+  }
+  if (!td->contacts_manager_->get_channel_status(dialog_id.get_channel_id()).is_administrator()) {
+    return Status::Error(400, "Not enough rights in the chat");
+  }
+  auto boost_input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+  CHECK(boost_input_peer != nullptr);
+  return std::move(boost_input_peer);
+}
+
 static Result<tl_object_ptr<telegram_api::InputStorePaymentPurpose>> get_input_store_payment_purpose(
     Td *td, const td_api::object_ptr<td_api::StorePaymentPurpose> &purpose) {
   if (purpose == nullptr) {
@@ -127,17 +147,7 @@ static Result<tl_object_ptr<telegram_api::InputStorePaymentPurpose>> get_input_s
       if (p->amount_ <= 0 || !check_currency_amount(p->amount_)) {
         return Status::Error(400, "Invalid amount of the currency specified");
       }
-      telegram_api::object_ptr<telegram_api::InputPeer> boost_input_peer;
-      if (p->boosted_chat_id_ != 0) {
-        DialogId dialog_id(p->boosted_chat_id_);
-        if (!td->messages_manager_->have_dialog_force(dialog_id, "storePaymentPurposePremiumGiftCodes")) {
-          return Status::Error(400, "Chat to boost not found");
-        }
-        boost_input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
-        if (boost_input_peer == nullptr) {
-          return Status::Error(400, "Can't access the chat");
-        }
-      }
+      TRY_RESULT(boost_input_peer, get_boost_input_peer(td, DialogId(p->boosted_chat_id_)));
       int32 flags = 0;
       if (boost_input_peer != nullptr) {
         flags |= telegram_api::inputStorePaymentPremiumGiftCode::BOOST_PEER_MASK;
