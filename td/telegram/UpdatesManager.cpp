@@ -777,17 +777,14 @@ bool UpdatesManager::is_acceptable_message_reply_header(
   switch (header->get_id()) {
     case telegram_api::messageReplyHeader::ID: {
       auto reply_header = static_cast<const telegram_api::messageReplyHeader *>(header.get());
-      if (!is_acceptable_peer(reply_header->reply_to_peer_id_)) {
-        return false;
-      }
-      return true;
+      return is_acceptable_peer(reply_header->reply_to_peer_id_) &&
+             is_acceptable_message_forward_header(reply_header->reply_from_) &&
+             is_acceptable_message_entities(reply_header->quote_entities_) &&
+             is_acceptable_message_media(reply_header->reply_media_);
     }
     case telegram_api::messageReplyStoryHeader::ID: {
       auto reply_header = static_cast<const telegram_api::messageReplyStoryHeader *>(header.get());
-      if (!is_acceptable_user(UserId(reply_header->user_id_))) {
-        return false;
-      }
-      return true;
+      return is_acceptable_user(UserId(reply_header->user_id_));
     }
     default:
       UNREACHABLE();
@@ -824,6 +821,15 @@ bool UpdatesManager::is_acceptable_message_media(
     case telegram_api::messageMediaStory::ID: {
       auto message_media = static_cast<const telegram_api::messageMediaStory *>(media_ptr.get());
       return is_acceptable_peer(message_media->peer_);
+    }
+    case telegram_api::messageMediaGiveaway::ID: {
+      auto message_media = static_cast<const telegram_api::messageMediaGiveaway *>(media_ptr.get());
+      for (auto channel_id : message_media->channels_) {
+        if (!is_acceptable_channel(ChannelId(channel_id))) {
+          return false;
+        }
+      }
+      return true;
     }
     case telegram_api::messageMediaPoll::ID:
       /*
@@ -961,6 +967,7 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
         case telegram_api::messageActionSuggestProfilePhoto::ID:
         case telegram_api::messageActionSetChatWallPaper::ID:
         case telegram_api::messageActionSetSameChatWallPaper::ID:
+        case telegram_api::messageActionGiveawayLaunch::ID:
           break;
         case telegram_api::messageActionChatCreate::ID: {
           auto chat_create = static_cast<const telegram_api::messageActionChatCreate *>(action);
@@ -1038,6 +1045,13 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
           }
           break;
         }
+        case telegram_api::messageActionGiftCode::ID: {
+          auto gift_code = static_cast<const telegram_api::messageActionGiftCode *>(action);
+          if (!is_acceptable_peer(gift_code->boost_peer_)) {
+            return false;
+          }
+          break;
+        }
         default:
           UNREACHABLE();
           return false;
@@ -1075,15 +1089,6 @@ bool UpdatesManager::is_acceptable_update(const telegram_api::Update *update) co
   }
   if (message != nullptr) {
     return is_acceptable_message(message);
-  }
-
-  if (id == telegram_api::updateDraftMessage::ID) {
-    auto update_draft_message = static_cast<const telegram_api::updateDraftMessage *>(update);
-    CHECK(update_draft_message->draft_ != nullptr);
-    if (update_draft_message->draft_->get_id() == telegram_api::draftMessage::ID) {
-      auto draft_message = static_cast<const telegram_api::draftMessage *>(update_draft_message->draft_.get());
-      return is_acceptable_message_entities(draft_message->entities_);
-    }
   }
 
   return true;
@@ -1157,7 +1162,7 @@ void UpdatesManager::on_get_updates_impl(tl_object_ptr<telegram_api::Updates> up
       auto from_id = update->out_ ? td_->contacts_manager_->get_my_id().get() : update->user_id_;
       auto message = make_tl_object<telegram_api::message>(
           fix_short_message_flags(update->flags_), update->out_, update->mentioned_, update->media_unread_,
-          update->silent_, false, false, false, false, false, false, update->id_,
+          update->silent_, false, false, false, false, false, false, false, update->id_,
           make_tl_object<telegram_api::peerUser>(from_id), make_tl_object<telegram_api::peerUser>(update->user_id_),
           std::move(update->fwd_from_), update->via_bot_id_, std::move(update->reply_to_), update->date_,
           update->message_, nullptr, nullptr, std::move(update->entities_), 0, 0, nullptr, 0, string(), 0, nullptr,
@@ -1171,7 +1176,7 @@ void UpdatesManager::on_get_updates_impl(tl_object_ptr<telegram_api::Updates> up
       auto update = move_tl_object_as<telegram_api::updateShortChatMessage>(updates_ptr);
       auto message = make_tl_object<telegram_api::message>(
           fix_short_message_flags(update->flags_), update->out_, update->mentioned_, update->media_unread_,
-          update->silent_, false, false, false, false, false, false, update->id_,
+          update->silent_, false, false, false, false, false, false, false, update->id_,
           make_tl_object<telegram_api::peerUser>(update->from_id_),
           make_tl_object<telegram_api::peerChat>(update->chat_id_), std::move(update->fwd_from_), update->via_bot_id_,
           std::move(update->reply_to_), update->date_, update->message_, nullptr, nullptr, std::move(update->entities_),

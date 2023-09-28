@@ -49,7 +49,7 @@ MessageReplyHeader::MessageReplyHeader(tl_object_ptr<telegram_api::MessageReplyH
       LOG(ERROR) << "Receive reply to " << reply_to_message_id_ << " in " << MessageFullId{dialog_id, message_id};
       reply_to_message_id_ = MessageId();
     }
-  } else {
+  } else if (reply_header->reply_to_msg_id_ > 0 && reply_header->reply_from_ == nullptr) {
     reply_to_message_id_ = MessageId(ServerMessageId(reply_header->reply_to_msg_id_));
     auto reply_to_peer_id = std::move(reply_header->reply_to_peer_id_);
     if (reply_to_peer_id != nullptr) {

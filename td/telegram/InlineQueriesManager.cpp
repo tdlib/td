@@ -389,7 +389,7 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
       flags |= telegram_api::inputBotInlineMessageText::ENTITIES_MASK;
     }
     return make_tl_object<telegram_api::inputBotInlineMessageText>(
-        flags, false /*ignored*/, std::move(input_message_text.text.text),
+        flags, false /*ignored*/, false /*ignored*/, std::move(input_message_text.text.text),
         get_input_message_entities(td_->contacts_manager_.get(), input_message_text.text.entities,
                                    "get_inline_message"),
         std::move(input_reply_markup));
@@ -435,8 +435,8 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
     if (!entities.empty()) {
       flags |= telegram_api::inputBotInlineMessageMediaAuto::ENTITIES_MASK;
     }
-    return make_tl_object<telegram_api::inputBotInlineMessageMediaAuto>(flags, caption.text, std::move(entities),
-                                                                        std::move(input_reply_markup));
+    return make_tl_object<telegram_api::inputBotInlineMessageMediaAuto>(
+        flags, false /*ignored*/, caption.text, std::move(entities), std::move(input_reply_markup));
   }
   return Status::Error(400, "Unallowed inline message content type");
 }

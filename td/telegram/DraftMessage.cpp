@@ -43,10 +43,12 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
     ServerMessageId reply_to_message_id;
     vector<telegram_api::object_ptr<telegram_api::MessageEntity>> input_message_entities;
     if (draft_message != nullptr) {
+      /*
       if (draft_message->reply_to_message_id_.is_valid() && draft_message->reply_to_message_id_.is_server()) {
         reply_to_message_id = draft_message->reply_to_message_id_.get_server_message_id();
         flags |= telegram_api::messages_saveDraft::REPLY_TO_MSG_ID_MASK;
       }
+      */
       if (draft_message->input_message_text_.disable_web_page_preview) {
         flags |= telegram_api::messages_saveDraft::NO_WEBPAGE_MASK;
       }
@@ -58,9 +60,9 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
     }
     send_query(G()->net_query_creator().create(
         telegram_api::messages_saveDraft(
-            flags, false /*ignored*/, reply_to_message_id.get(), 0, std::move(input_peer),
+            flags, false /*ignored*/, false /*ignored*/, nullptr, std::move(input_peer),
             draft_message == nullptr ? string() : draft_message->input_message_text_.text.text,
-            std::move(input_message_entities)),
+            std::move(input_message_entities), nullptr),
         {{dialog_id}}));
   }
 
@@ -165,8 +167,9 @@ td_api::object_ptr<td_api::draftMessage> DraftMessage::get_draft_message_object(
 DraftMessage::DraftMessage(ContactsManager *contacts_manager,
                            telegram_api::object_ptr<telegram_api::draftMessage> &&draft_message) {
   CHECK(draft_message != nullptr);
-  auto flags = draft_message->flags_;
   date_ = draft_message->date_;
+  /*
+  auto flags = draft_message->flags_;
   if ((flags & telegram_api::draftMessage::REPLY_TO_MSG_ID_MASK) != 0) {
     reply_to_message_id_ = MessageId(ServerMessageId(draft_message->reply_to_msg_id_));
     if (!reply_to_message_id_.is_valid()) {
@@ -174,6 +177,7 @@ DraftMessage::DraftMessage(ContactsManager *contacts_manager,
       reply_to_message_id_ = MessageId();
     }
   }
+  */
 
   auto entities = get_message_entities(contacts_manager, std::move(draft_message->entities_), "draftMessage");
   auto status = fix_formatted_text(draft_message->message_, entities, true, true, true, true, true);

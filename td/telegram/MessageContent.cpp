@@ -1940,6 +1940,8 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
       reply_markup = std::move(inline_message->reply_markup_);
       break;
     }
+    case telegram_api::botInlineMessageMediaWebPage::ID:
+      break;
     case telegram_api::botInlineMessageMediaInvoice::ID: {
       auto inline_message = move_tl_object_as<telegram_api::botInlineMessageMediaInvoice>(bot_inline_message);
       reply_markup = std::move(inline_message->reply_markup_);
@@ -5095,6 +5097,8 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       td->messages_manager_->force_create_dialog(dialog_id, "messageMediaStory");
       return make_unique<MessageStory>(story_full_id, media->via_mention_);
     }
+    case telegram_api::messageMediaGiveaway::ID:
+      return make_unique<MessageUnsupported>();
     case telegram_api::messageMediaUnsupported::ID:
       return make_unique<MessageUnsupported>();
     default:
@@ -5744,6 +5748,10 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       }
       return make_unique<MessageSetBackground>(reply_to_message_id, std::move(background_info));
     }
+    case telegram_api::messageActionGiveawayLaunch::ID:
+      return make_unique<MessageUnsupported>();
+    case telegram_api::messageActionGiftCode::ID:
+      return make_unique<MessageUnsupported>();
     default:
       UNREACHABLE();
   }

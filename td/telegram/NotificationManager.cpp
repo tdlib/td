@@ -3134,7 +3134,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     date = now;
 
     auto update = telegram_api::make_object<telegram_api::updateServiceNotification>(
-        telegram_api::updateServiceNotification::INBOX_DATE_MASK, false, G()->unix_time(), string(),
+        telegram_api::updateServiceNotification::INBOX_DATE_MASK, false, false, G()->unix_time(), string(),
         announcement_message_text, nullptr, vector<telegram_api::object_ptr<telegram_api::MessageEntity>>());
     send_closure(G()->messages_manager(), &MessagesManager::on_update_service_notification, std::move(update), false,
                  std::move(promise));
@@ -3456,7 +3456,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
         false /*ignored*/, false /*ignored*/, false /*ignored*/, 0, false /*ignored*/, false /*ignored*/,
         false /*ignored*/, false /*ignored*/, sender_user_id.get(), sender_access_hash, user_name, string(), string(),
         string(), std::move(sender_photo), nullptr, 0, Auto(), string(), string(), nullptr,
-        vector<telegram_api::object_ptr<telegram_api::username>>(), 0);
+        vector<telegram_api::object_ptr<telegram_api::username>>(), 0, 0, 0);
     td_->contacts_manager_->on_get_user(std::move(user), "process_push_notification_payload");
   }
 
@@ -3815,7 +3815,8 @@ void NotificationManager::add_message_push_notification(DialogId dialog_id, Mess
         false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
         false /*ignored*/, false /*ignored*/, false /*ignored*/, 0, false /*ignored*/, false /*ignored*/,
         false /*ignored*/, false /*ignored*/, sender_user_id.get(), 0, user_name, string(), string(), string(), nullptr,
-        nullptr, 0, Auto(), string(), string(), nullptr, vector<telegram_api::object_ptr<telegram_api::username>>(), 0);
+        nullptr, 0, Auto(), string(), string(), nullptr, vector<telegram_api::object_ptr<telegram_api::username>>(), 0,
+        0, 0);
     td_->contacts_manager_->on_get_user(std::move(user), "add_message_push_notification");
   }
 

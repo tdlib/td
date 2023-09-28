@@ -758,11 +758,11 @@ class GetBoostsStatusQuery final : public Td::ResultHandler {
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     CHECK(input_peer != nullptr);
     send_query(
-        G()->net_query_creator().create(telegram_api::stories_getBoostsStatus(std::move(input_peer)), {{dialog_id}}));
+        G()->net_query_creator().create(telegram_api::premium_getBoostsStatus(std::move(input_peer)), {{dialog_id}}));
   }
 
   void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::stories_getBoostsStatus>(packet);
+    auto result_ptr = fetch_result<telegram_api::premium_getBoostsStatus>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
     }
@@ -817,32 +817,14 @@ class CanApplyBoostQuery final : public Td::ResultHandler {
   }
 
   void send(DialogId dialog_id) {
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
-    CHECK(input_peer != nullptr);
-    auto query =
-        G()->net_query_creator().create(telegram_api::stories_canApplyBoost(std::move(input_peer)), {{dialog_id}});
-    query->total_timeout_limit_ = 4;
-    send_query(std::move(query));
+    return on_error(Status::Error(400, "Unsupported"));
   }
 
   void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::stories_canApplyBoost>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto result = result_ptr.move_as_ok();
-    LOG(DEBUG) << "Receive result for CanApplyBoostQuery: " << to_string(result);
-    promise_.set_value(td_->story_manager_->get_can_boost_chat_result_object(std::move(result)));
   }
 
   void on_error(Status status) final {
-    auto result = td_->story_manager_->get_can_boost_chat_result_object(status);
-    if (result != nullptr) {
-      promise_.set_value(std::move(result));
-    } else {
-      promise_.set_error(std::move(status));
-    }
+    promise_.set_error(std::move(status));
   }
 };
 
@@ -858,11 +840,12 @@ class ApplyBoostQuery final : public Td::ResultHandler {
     dialog_id_ = dialog_id;
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     CHECK(input_peer != nullptr);
-    send_query(G()->net_query_creator().create(telegram_api::stories_applyBoost(std::move(input_peer)), {{dialog_id}}));
+    send_query(G()->net_query_creator().create(
+        telegram_api::premium_applyBoost(0, vector<int>(), std::move(input_peer)), {{dialog_id}}));
   }
 
   void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::stories_applyBoost>(packet);
+    auto result_ptr = fetch_result<telegram_api::premium_applyBoost>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
     }
@@ -876,12 +859,12 @@ class ApplyBoostQuery final : public Td::ResultHandler {
   }
 };
 
-class GetBoostersListQuery final : public Td::ResultHandler {
+class GetBoostsListQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::foundChatBoosts>> promise_;
   DialogId dialog_id_;
 
  public:
-  explicit GetBoostersListQuery(Promise<td_api::object_ptr<td_api::foundChatBoosts>> &&promise)
+  explicit GetBoostsListQuery(Promise<td_api::object_ptr<td_api::foundChatBoosts>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -889,26 +872,25 @@ class GetBoostersListQuery final : public Td::ResultHandler {
     dialog_id_ = dialog_id;
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     CHECK(input_peer != nullptr);
-    send_query(
-        G()->net_query_creator().create(telegram_api::stories_getBoostersList(std::move(input_peer), offset, limit)));
+    send_query(G()->net_query_creator().create(
+        telegram_api::premium_getBoostsList(0, false /*ignored*/, std::move(input_peer), offset, limit)));
   }
 
   void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::stories_getBoostersList>(packet);
+    auto result_ptr = fetch_result<telegram_api::premium_getBoostsList>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
     }
 
     auto result = result_ptr.move_as_ok();
-    LOG(DEBUG) << "Receive result for GetBoostersListQuery: " << to_string(result);
-    td_->contacts_manager_->on_get_users(std::move(result->users_), "GetBoostersListQuery");
+    LOG(DEBUG) << "Receive result for GetBoostsListQuery: " << to_string(result);
+    td_->contacts_manager_->on_get_users(std::move(result->users_), "GetBoostsListQuery");
 
     auto total_count = result->count_;
     vector<td_api::object_ptr<td_api::chatBoost>> boosts;
-    for (auto &booster : result->boosters_) {
+    for (auto &booster : result->boosts_) {
       UserId user_id(booster->user_id_);
       if (!user_id.is_valid()) {
-        LOG(ERROR) << "Receive " << to_string(booster);
         continue;
       }
       auto expire_date = booster->expires_;
@@ -923,7 +905,7 @@ class GetBoostersListQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetBoostersListQuery");
+    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetBoostsListQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -3050,26 +3032,6 @@ void StoryManager::can_boost_dialog(DialogId dialog_id,
 }
 
 td_api::object_ptr<td_api::CanBoostChatResult> StoryManager::get_can_boost_chat_result_object(
-    telegram_api::object_ptr<telegram_api::stories_CanApplyBoostResult> &&result) const {
-  CHECK(result != nullptr);
-  switch (result->get_id()) {
-    case telegram_api::stories_canApplyBoostOk::ID:
-      return td_api::make_object<td_api::canBoostChatResultOk>(0);
-    case telegram_api::stories_canApplyBoostReplace::ID: {
-      auto replace = telegram_api::move_object_as<telegram_api::stories_canApplyBoostReplace>(result);
-      td_->contacts_manager_->on_get_chats(std::move(replace->chats_), "get_can_boost_chat_result_object");
-      DialogId currently_boosted_dialog_id(replace->current_boost_);
-      td_->messages_manager_->force_create_dialog(currently_boosted_dialog_id, "get_can_boost_chat_result_object");
-      return td_api::make_object<td_api::canBoostChatResultOk>(
-          td_->messages_manager_->get_chat_id_object(currently_boosted_dialog_id, "get_can_boost_chat_result_object"));
-    }
-    default:
-      UNREACHABLE();
-      return nullptr;
-  }
-}
-
-td_api::object_ptr<td_api::CanBoostChatResult> StoryManager::get_can_boost_chat_result_object(
     const Status &error) const {
   CHECK(error.is_error());
   if (error.message() == "PREMIUM_ACCOUNT_REQUIRED") {
@@ -3164,7 +3126,7 @@ void StoryManager::get_dialog_boosts(DialogId dialog_id, const string &offset, i
     return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
   }
 
-  td_->create_handler<GetBoostersListQuery>(std::move(promise))->send(dialog_id, offset, limit);
+  td_->create_handler<GetBoostsListQuery>(std::move(promise))->send(dialog_id, offset, limit);
 }
 
 bool StoryManager::have_story(StoryFullId story_full_id) const {

@@ -62,7 +62,8 @@ telegram_api::object_ptr<telegram_api::InputReplyTo> MessageInputReplyTo::get_in
     flags |= telegram_api::inputReplyToMessage::TOP_MSG_ID_MASK;
   }
   return telegram_api::make_object<telegram_api::inputReplyToMessage>(
-      flags, reply_to_message_id.get_server_message_id().get(), top_thread_message_id.get_server_message_id().get());
+      flags, reply_to_message_id.get_server_message_id().get(), top_thread_message_id.get_server_message_id().get(),
+      nullptr, string(), Auto());
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageInputReplyTo &input_reply_to) {

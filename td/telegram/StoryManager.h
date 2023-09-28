@@ -273,9 +273,6 @@ class StoryManager final : public Actor {
 
   void can_boost_dialog(DialogId dialog_id, Promise<td_api::object_ptr<td_api::CanBoostChatResult>> &&promise);
 
-  td_api::object_ptr<td_api::CanBoostChatResult> get_can_boost_chat_result_object(
-      telegram_api::object_ptr<telegram_api::stories_CanApplyBoostResult> &&result) const;
-
   td_api::object_ptr<td_api::CanBoostChatResult> get_can_boost_chat_result_object(const Status &error) const;
 
   void boost_dialog(DialogId dialog_id, Promise<Unit> &&promise);

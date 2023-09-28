@@ -213,8 +213,8 @@ class StopPollQuery final : public Td::ResultHandler {
     auto input_media = telegram_api::make_object<telegram_api::inputMediaPoll>(0, std::move(poll),
                                                                                vector<BufferSlice>(), string(), Auto());
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_editMessage(flags, false /*ignored*/, std::move(input_peer), message_id, string(),
-                                           std::move(input_media), std::move(input_reply_markup),
+        telegram_api::messages_editMessage(flags, false /*ignored*/, false /*ignored*/, std::move(input_peer),
+                                           message_id, string(), std::move(input_media), std::move(input_reply_markup),
                                            vector<tl_object_ptr<telegram_api::MessageEntity>>(), 0),
         {{poll_id}, {dialog_id_}}));
   }
