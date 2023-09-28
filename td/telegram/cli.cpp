@@ -3092,17 +3092,22 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::clickPremiumSubscriptionButton>());
     } else if (op == "gprs") {
       send_request(td_api::make_object<td_api::getPremiumState>());
-    } else if (op == "cppr") {
+    } else if (op == "cppr" || op == "cpprb") {
       UserId user_id;
       string currency;
       int64 amount;
-      get_args(args, user_id, currency, amount);
+      ChatId boosted_chat_id;
+      get_args(args, user_id, currency, amount, boosted_chat_id);
       if (currency.empty()) {
         send_request(td_api::make_object<td_api::canPurchasePremium>(
             td_api::make_object<td_api::storePaymentPurposePremiumSubscription>(false, false)));
-      } else {
+      } else if (op == "cppr") {
         send_request(td_api::make_object<td_api::canPurchasePremium>(
             td_api::make_object<td_api::storePaymentPurposeGiftedPremium>(user_id, currency, amount)));
+      } else {
+        send_request(td_api::make_object<td_api::canPurchasePremium>(
+            td_api::make_object<td_api::storePaymentPurposePremiumGiftCodes>(vector<int64>{user_id}, boosted_chat_id,
+                                                                             currency, amount)));
       }
     } else if (op == "atos") {
       send_request(td_api::make_object<td_api::acceptTermsOfService>(args));

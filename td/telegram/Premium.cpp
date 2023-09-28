@@ -14,6 +14,7 @@
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageEntity.h"
+#include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/PremiumGiftOption.h"
 #include "td/telegram/SuggestedAction.h"
@@ -115,6 +116,34 @@ static Result<tl_object_ptr<telegram_api::InputStorePaymentPurpose>> get_input_s
       }
       return make_tl_object<telegram_api::inputStorePaymentGiftPremium>(std::move(input_user), p->currency_,
                                                                         p->amount_);
+    }
+    case td_api::storePaymentPurposePremiumGiftCodes::ID: {
+      auto p = static_cast<const td_api::storePaymentPurposePremiumGiftCodes *>(purpose.get());
+      vector<telegram_api::object_ptr<telegram_api::InputUser>> input_users;
+      for (auto user_id : p->user_ids_) {
+        TRY_RESULT(input_user, td->contacts_manager_->get_input_user(UserId(user_id)));
+        input_users.push_back(std::move(input_user));
+      }
+      if (p->amount_ <= 0 || !check_currency_amount(p->amount_)) {
+        return Status::Error(400, "Invalid amount of the currency specified");
+      }
+      telegram_api::object_ptr<telegram_api::InputPeer> boost_input_peer;
+      if (p->boosted_chat_id_ != 0) {
+        DialogId dialog_id(p->boosted_chat_id_);
+        if (!td->messages_manager_->have_dialog_force(dialog_id, "storePaymentPurposePremiumGiftCodes")) {
+          return Status::Error(400, "Chat to boost not found");
+        }
+        boost_input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+        if (boost_input_peer == nullptr) {
+          return Status::Error(400, "Can't access the chat");
+        }
+      }
+      int32 flags = 0;
+      if (boost_input_peer != nullptr) {
+        flags |= telegram_api::inputStorePaymentPremiumGiftCode::BOOST_PEER_MASK;
+      }
+      return telegram_api::make_object<telegram_api::inputStorePaymentPremiumGiftCode>(
+          flags, std::move(input_users), std::move(boost_input_peer), p->currency_, p->amount_);
     }
     default:
       UNREACHABLE();
