@@ -98,7 +98,7 @@ static Result<telegram_api::object_ptr<telegram_api::InputPeer>> get_boost_input
   }
   if (dialog_id.get_type() != DialogType::Channel ||
       !td->contacts_manager_->is_broadcast_channel(dialog_id.get_channel_id())) {
-    return Status::Error(400, "Unallowed chat to boost specified");
+    return Status::Error(400, "Can't boost the chat");
   }
   if (!td->contacts_manager_->get_channel_status(dialog_id.get_channel_id()).is_administrator()) {
     return Status::Error(400, "Not enough rights in the chat");
@@ -221,6 +221,57 @@ class GetPremiumPromoQuery final : public Td::ResultHandler {
     promise_.set_value(td_api::make_object<td_api::premiumState>(
         get_formatted_text_object(state, true, 0), get_premium_state_payment_options_object(period_options),
         std::move(animations)));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class GetPremiumGiftCodeOptionsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::premiumGiftCodePaymentOptions>> promise_;
+  DialogId boosted_dialog_id_;
+
+ public:
+  explicit GetPremiumGiftCodeOptionsQuery(Promise<td_api::object_ptr<td_api::premiumGiftCodePaymentOptions>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId boosted_dialog_id) {
+    auto r_boost_input_peer = get_boost_input_peer(td_, boosted_dialog_id);
+    if (r_boost_input_peer.is_error()) {
+      return on_error(r_boost_input_peer.move_as_error());
+    }
+    auto boost_input_peer = r_boost_input_peer.move_as_ok();
+
+    int32 flags = 0;
+    if (boost_input_peer != nullptr) {
+      flags |= telegram_api::payments_getPremiumGiftCodeOptions::BOOST_PEER_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_getPremiumGiftCodeOptions(flags, std::move(boost_input_peer))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_getPremiumGiftCodeOptions>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto results = result_ptr.move_as_ok();
+    vector<td_api::object_ptr<td_api::premiumGiftCodePaymentOption>> options;
+    for (auto &result : results) {
+      if (result->store_product_.empty()) {
+        result->store_quantity_ = 0;
+      } else if (result->store_quantity_ <= 0) {
+        result->store_quantity_ = 1;
+      }
+      options.push_back(td_api::make_object<td_api::premiumGiftCodePaymentOption>(
+          result->currency_, result->amount_, result->users_, result->months_, result->store_product_,
+          result->store_quantity_));
+    }
+
+    promise_.set_value(td_api::make_object<td_api::premiumGiftCodePaymentOptions>(std::move(options)));
   }
 
   void on_error(Status status) final {
@@ -652,6 +703,11 @@ void click_premium_subscription_button(Td *td, Promise<Unit> &&promise) {
 
 void get_premium_state(Td *td, Promise<td_api::object_ptr<td_api::premiumState>> &&promise) {
   td->create_handler<GetPremiumPromoQuery>(std::move(promise))->send();
+}
+
+void get_premium_gift_code_options(Td *td, DialogId boosted_dialog_id,
+                                   Promise<td_api::object_ptr<td_api::premiumGiftCodePaymentOptions>> &&promise) {
+  td->create_handler<GetPremiumGiftCodeOptionsQuery>(std::move(promise))->send(boosted_dialog_id);
 }
 
 void can_purchase_premium(Td *td, td_api::object_ptr<td_api::StorePaymentPurpose> &&purpose, Promise<Unit> &&promise) {

@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/DialogId.h"
 #include "td/telegram/td_api.h"
 
 #include "td/utils/common.h"
@@ -29,6 +30,9 @@ void view_premium_feature(Td *td, const td_api::object_ptr<td_api::PremiumFeatur
 void click_premium_subscription_button(Td *td, Promise<Unit> &&promise);
 
 void get_premium_state(Td *td, Promise<td_api::object_ptr<td_api::premiumState>> &&promise);
+
+void get_premium_gift_code_options(Td *td, DialogId boosted_dialog_id,
+                                   Promise<td_api::object_ptr<td_api::premiumGiftCodePaymentOptions>> &&promise);
 
 void can_purchase_premium(Td *td, td_api::object_ptr<td_api::StorePaymentPurpose> &&purpose, Promise<Unit> &&promise);
 

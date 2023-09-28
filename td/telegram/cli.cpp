@@ -3092,6 +3092,10 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::clickPremiumSubscriptionButton>());
     } else if (op == "gprs") {
       send_request(td_api::make_object<td_api::getPremiumState>());
+    } else if (op == "gpgcpo") {
+      ChatId boosted_chat_id;
+      get_args(args, boosted_chat_id);
+      send_request(td_api::make_object<td_api::getPremiumGiftCodePaymentOptions>(boosted_chat_id));
     } else if (op == "cppr" || op == "cpprb") {
       UserId user_id;
       string currency;
