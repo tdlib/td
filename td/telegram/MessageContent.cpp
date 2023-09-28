@@ -5956,7 +5956,8 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     }
     case MessageContentType::WebsiteConnected: {
       const auto *m = static_cast<const MessageWebsiteConnected *>(content);
-      return make_tl_object<td_api::messageWebsiteConnected>(m->domain_name);
+      return td_api::make_object<td_api::messageBotWriteAccessAllowed>(
+          td_api::make_object<td_api::botWriteAccessAllowReasonConnectedWebsite>(m->domain_name));
     }
     case MessageContentType::PassportDataSent: {
       const auto *m = static_cast<const MessagePassportDataSent *>(content);
@@ -6051,7 +6052,8 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       return make_tl_object<td_api::messageSuggestProfilePhoto>(std::move(photo));
     }
     case MessageContentType::WriteAccessAllowed:
-      return make_tl_object<td_api::messageBotWriteAccessAllowed>(nullptr, false);
+      return td_api::make_object<td_api::messageBotWriteAccessAllowed>(
+          td_api::make_object<td_api::botWriteAccessAllowReasonAddedToAttachmentMenu>());
     case MessageContentType::RequestedDialog: {
       const auto *m = static_cast<const MessageRequestedDialog *>(content);
       if (m->dialog_id.get_type() == DialogType::User) {
@@ -6073,7 +6075,8 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     }
     case MessageContentType::WebViewWriteAccessAllowed: {
       const auto *m = static_cast<const MessageWebViewWriteAccessAllowed *>(content);
-      return td_api::make_object<td_api::messageBotWriteAccessAllowed>(m->web_app.get_web_app_object(td), false);
+      return td_api::make_object<td_api::messageBotWriteAccessAllowed>(
+          td_api::make_object<td_api::botWriteAccessAllowReasonLaunchedWebApp>(m->web_app.get_web_app_object(td)));
     }
     case MessageContentType::SetBackground: {
       const auto *m = static_cast<const MessageSetBackground *>(content);
@@ -6087,7 +6090,8 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
           m->story_full_id.get_story_id().get(), m->via_mention);
     }
     case MessageContentType::WriteAccessAllowedByRequest:
-      return make_tl_object<td_api::messageBotWriteAccessAllowed>(nullptr, true);
+      return td_api::make_object<td_api::messageBotWriteAccessAllowed>(
+          td_api::make_object<td_api::botWriteAccessAllowReasonAcceptedRequest>());
     default:
       UNREACHABLE();
       return nullptr;

@@ -2724,13 +2724,8 @@ messageUserShared user_id:int53 button_id:int32 = MessageContent;
 //@description The current user shared a chat, which was requested by the bot @chat_id Identifier of the shared chat @button_id Identifier of the keyboard button with the request
 messageChatShared chat_id:int53 button_id:int32 = MessageContent;
 
-//@description The current user has connected a website by logging in using Telegram Login Widget on it @domain_name Domain name of the connected website
-messageWebsiteConnected domain_name:string = MessageContent;
-
-//@description The user allowed the bot to send messages
-//@web_app Information about the Web App, which requested the access; may be null if none or the Web App was opened from the attachment menu
-//@by_request True, if user allowed the bot to send messages by an explicit call to allowBotToSendMessages
-messageBotWriteAccessAllowed web_app:webApp by_request:Bool = MessageContent;
+//@description The user allowed the bot to send messages @reason The reason why the bot was allowed to write messages
+messageBotWriteAccessAllowed reason:BotWriteAccessAllowReason = MessageContent;
 
 //@description Data from a Web App has been sent to a bot @button_text Text of the keyboardButtonTypeWebApp button, which opened the Web App
 messageWebAppDataSent button_text:string = MessageContent;
@@ -3450,7 +3445,7 @@ callStateReady protocol:callProtocol servers:vector<callServer> config:string en
 callStateHangingUp = CallState;
 
 //@description The call has ended successfully
-//@reason The reason, why the call has ended
+//@reason The reason why the call has ended
 //@need_rating True, if the call rating must be sent to the server
 //@need_debug_information True, if the call debug information must be sent to the server
 //@need_log True, if the call log must be sent to the server
@@ -3703,6 +3698,21 @@ attachmentMenuBot bot_user_id:int53 supports_self_chat:Bool supports_user_chats:
 
 //@description Information about the message sent by answerWebAppQuery @inline_message_id Identifier of the sent inline message, if known
 sentWebAppMessage inline_message_id:string = SentWebAppMessage;
+
+
+//@class BotWriteAccessAllowReason @description Describes a reason why a bot was allowed to write messages to the current user
+
+//@description The user connected a website by logging in using Telegram Login Widget on it @domain_name Domain name of the connected website
+botWriteAccessAllowReasonConnectedWebsite domain_name:string = BotWriteAccessAllowReason;
+
+//@description The user added the bot to attachment or side menu using toggleBotIsAddedToAttachmentMenu
+botWriteAccessAllowReasonAddedToAttachmentMenu = BotWriteAccessAllowReason;
+
+//@description The user launched a Web App using getWebAppLinkUrl @web_app Information about the Web App
+botWriteAccessAllowReasonLaunchedWebApp web_app:webApp = BotWriteAccessAllowReason;
+
+//@description The user accepted bot's request to send messages with allowBotToSendMessages
+botWriteAccessAllowReasonAcceptedRequest = BotWriteAccessAllowReason;
 
 
 //@description Contains an HTTP URL @url The URL
