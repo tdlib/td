@@ -1620,7 +1620,7 @@ void StoryManager::on_story_can_get_viewers_timeout(int64 story_global_id) {
   }
 
   LOG(INFO) << "Have expired viewers in " << story_full_id;
-  if (can_get_story_viewers(story_full_id, story, true).is_ok()) {
+  if (has_unexpired_viewers(story_full_id, story)) {
     // timeout used monotonic time instead of wall clock time
     // also a reaction could have been added on the story
     LOG(INFO) << "Receive timeout for " << story_full_id
@@ -2903,7 +2903,7 @@ void StoryManager::read_stories_on_server(DialogId owner_dialog_id, StoryId stor
   td_->create_handler<ReadStoriesQuery>(get_erase_log_event_promise(log_event_id))->send(owner_dialog_id, story_id);
 }
 
-Status StoryManager::can_get_story_viewers(StoryFullId story_full_id, const Story *story, bool ignore_premium) const {
+Status StoryManager::can_get_story_viewers(StoryFullId story_full_id, const Story *story) const {
   CHECK(story != nullptr);
   if (!is_my_story(story_full_id.get_dialog_id())) {
     return Status::Error(400, "Story must be outgoing");
@@ -2914,11 +2914,16 @@ Status StoryManager::can_get_story_viewers(StoryFullId story_full_id, const Stor
   if (story->interaction_info_.get_reaction_count() > 0) {
     return Status::OK();
   }
-  if (G()->unix_time() >= get_story_viewers_expire_date(story) &&
-      (ignore_premium || story->interaction_info_.has_hidden_viewers())) {
+  if (story->interaction_info_.has_hidden_viewers() && G()->unix_time() >= get_story_viewers_expire_date(story)) {
     return Status::Error(400, "Story is too old");
   }
   return Status::OK();
+}
+
+bool StoryManager::has_unexpired_viewers(StoryFullId story_full_id, const Story *story) const {
+  CHECK(story != nullptr);
+  return is_my_story(story_full_id.get_dialog_id()) && story_full_id.get_story_id().is_server() &&
+         G()->unix_time() < get_story_viewers_expire_date(story);
 }
 
 void StoryManager::get_story_viewers(StoryId story_id, const string &query, bool only_contacts,
@@ -2933,7 +2938,7 @@ void StoryManager::get_story_viewers(StoryId story_id, const string &query, bool
   if (limit <= 0) {
     return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
   }
-  if (can_get_story_viewers(story_full_id, story, false).is_error() || story->interaction_info_.get_view_count() == 0) {
+  if (can_get_story_viewers(story_full_id, story).is_error() || story->interaction_info_.get_view_count() == 0) {
     return promise.set_value(td_api::make_object<td_api::storyViewers>());
   }
 
@@ -3304,7 +3309,7 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
   bool can_be_replied =
       story_id.is_server() && owner_dialog_id != changelog_dialog_id && owner_dialog_id.get_type() == DialogType::User;
   bool can_toggle_is_pinned = can_toggle_story_is_pinned(story_full_id, story);
-  bool can_get_viewers = can_get_story_viewers(story_full_id, story, false).is_ok();
+  bool can_get_viewers = can_get_story_viewers(story_full_id, story).is_ok();
   auto interaction_info = story->interaction_info_.get_story_interaction_info_object(td_);
   bool has_expired_viewers = is_my_story(owner_dialog_id) && story_id.is_server() &&
                              G()->unix_time_cached() >= get_story_viewers_expire_date(story) &&
@@ -3789,7 +3794,7 @@ void StoryManager::on_story_changed(StoryFullId story_full_id, const Story *stor
   if (is_active_story(story)) {
     set_story_expire_timeout(story);
   }
-  if (can_get_story_viewers(story_full_id, story, true).is_ok()) {
+  if (has_unexpired_viewers(story_full_id, story)) {
     set_story_can_get_viewers_timeout(story);
   }
   if (story->content_ == nullptr) {
