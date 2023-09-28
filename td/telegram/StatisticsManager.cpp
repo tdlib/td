@@ -52,7 +52,7 @@ static td_api::object_ptr<td_api::StatisticalGraph> convert_stats_graph(
   }
 }
 
-static double get_percentage_value(double part, double total) {
+static double get_percentage_value(double part, double total, bool is_percentage) {
   if (total < 1e-6 && total > -1e-6) {
     if (part < 1e-6 && part > -1e-6) {
       return 0.0;
@@ -62,13 +62,18 @@ static double get_percentage_value(double part, double total) {
   if (part > 1e20) {
     return 100.0;
   }
-  return clamp(0.0, part / total * 100, 100.0);
+  auto value = part / total * 100;
+  if (is_percentage) {
+    return clamp(value, 0.0, 100.0);
+  } else {
+    return max(value, -100.0);
+  }
 }
 
 static td_api::object_ptr<td_api::statisticalValue> convert_stats_absolute_value(
     const telegram_api::object_ptr<telegram_api::statsAbsValueAndPrev> &obj) {
   return td_api::make_object<td_api::statisticalValue>(
-      obj->current_, obj->previous_, get_percentage_value(obj->current_ - obj->previous_, obj->previous_));
+      obj->current_, obj->previous_, get_percentage_value(obj->current_ - obj->previous_, obj->previous_, false));
 }
 
 static td_api::object_ptr<td_api::chatStatisticsSupergroup> convert_megagroup_stats(
@@ -130,7 +135,7 @@ static td_api::object_ptr<td_api::chatStatisticsChannel> convert_broadcast_stats
   return td_api::make_object<td_api::chatStatisticsChannel>(
       convert_date_range(obj->period_), convert_stats_absolute_value(obj->followers_),
       convert_stats_absolute_value(obj->views_per_post_), convert_stats_absolute_value(obj->shares_per_post_),
-      get_percentage_value(obj->enabled_notifications_->part_, obj->enabled_notifications_->total_),
+      get_percentage_value(obj->enabled_notifications_->part_, obj->enabled_notifications_->total_, true),
       convert_stats_graph(std::move(obj->growth_graph_)), convert_stats_graph(std::move(obj->followers_graph_)),
       convert_stats_graph(std::move(obj->mute_graph_)), convert_stats_graph(std::move(obj->top_hours_graph_)),
       convert_stats_graph(std::move(obj->views_by_source_graph_)),
