@@ -476,7 +476,7 @@ class MessageChatSetTtl final : public MessageContent {
 
 class MessageUnsupported final : public MessageContent {
  public:
-  static constexpr int32 CURRENT_VERSION = 20;
+  static constexpr int32 CURRENT_VERSION = 21;
   int32 version = CURRENT_VERSION;
 
   MessageUnsupported() = default;
@@ -937,6 +937,23 @@ class MessageWriteAccessAllowedByRequest final : public MessageContent {
   }
 };
 
+class MessageGiftCode final : public MessageContent {
+ public:
+  DialogId creator_dialog_id;
+  int32 months = 0;
+  bool via_giveaway = false;
+  string code;
+
+  MessageGiftCode() = default;
+  MessageGiftCode(DialogId creator_dialog_id, int32 months, bool via_giveaway, string &&code)
+      : creator_dialog_id(creator_dialog_id), months(months), via_giveaway(via_giveaway), code(std::move(code)) {
+  }
+
+  MessageContentType get_type() const final {
+    return MessageContentType::GiftCode;
+  }
+};
+
 template <class StorerT>
 static void store(const MessageContent *content, StorerT &storer) {
   CHECK(content != nullptr);
@@ -1339,6 +1356,20 @@ static void store(const MessageContent *content, StorerT &storer) {
     }
     case MessageContentType::WriteAccessAllowedByRequest:
       break;
+    case MessageContentType::GiftCode: {
+      const auto *m = static_cast<const MessageGiftCode *>(content);
+      bool has_creator_dialog_id = m->creator_dialog_id.is_valid();
+      BEGIN_STORE_FLAGS();
+      STORE_FLAG(m->via_giveaway);
+      STORE_FLAG(has_creator_dialog_id);
+      END_STORE_FLAGS();
+      if (has_creator_dialog_id) {
+        store(m->creator_dialog_id, storer);
+      }
+      store(m->months, storer);
+      store(m->code, storer);
+      break;
+    }
     default:
       UNREACHABLE();
   }
@@ -1885,6 +1916,22 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     case MessageContentType::WriteAccessAllowedByRequest:
       content = make_unique<MessageWriteAccessAllowedByRequest>();
       break;
+    case MessageContentType::GiftCode: {
+      auto m = make_unique<MessageGiftCode>();
+      bool has_creator_dialog_id;
+      BEGIN_PARSE_FLAGS();
+      PARSE_FLAG(m->via_giveaway);
+      PARSE_FLAG(has_creator_dialog_id);
+      END_PARSE_FLAGS();
+      if (has_creator_dialog_id) {
+        parse(m->creator_dialog_id, parser);
+      }
+      parse(m->months, parser);
+      parse(m->code, parser);
+      content = std::move(m);
+      break;
+    }
+
     default:
       is_bad = true;
   }
@@ -2504,6 +2551,7 @@ bool can_have_input_media(const Td *td, const MessageContent *content, bool is_s
     case MessageContentType::WebViewWriteAccessAllowed:
     case MessageContentType::SetBackground:
     case MessageContentType::WriteAccessAllowedByRequest:
+    case MessageContentType::GiftCode:
       return false;
     case MessageContentType::Animation:
     case MessageContentType::Audio:
@@ -2634,6 +2682,7 @@ SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
     case MessageContentType::WebViewWriteAccessAllowed:
     case MessageContentType::SetBackground:
     case MessageContentType::WriteAccessAllowedByRequest:
+    case MessageContentType::GiftCode:
       break;
     default:
       UNREACHABLE();
@@ -2767,6 +2816,7 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
     case MessageContentType::WebViewWriteAccessAllowed:
     case MessageContentType::SetBackground:
     case MessageContentType::WriteAccessAllowedByRequest:
+    case MessageContentType::GiftCode:
       break;
     default:
       UNREACHABLE();
@@ -2940,6 +2990,7 @@ void delete_message_content_thumbnail(MessageContent *content, Td *td) {
     case MessageContentType::WebViewWriteAccessAllowed:
     case MessageContentType::SetBackground:
     case MessageContentType::WriteAccessAllowedByRequest:
+    case MessageContentType::GiftCode:
       break;
     default:
       UNREACHABLE();
@@ -3138,6 +3189,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
     case MessageContentType::WebViewWriteAccessAllowed:
     case MessageContentType::SetBackground:
     case MessageContentType::WriteAccessAllowedByRequest:
+    case MessageContentType::GiftCode:
       UNREACHABLE();
   }
   return Status::OK();
@@ -3276,6 +3328,7 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
     case MessageContentType::WebViewWriteAccessAllowed:
     case MessageContentType::SetBackground:
     case MessageContentType::WriteAccessAllowedByRequest:
+    case MessageContentType::GiftCode:
       return 0;
     default:
       UNREACHABLE();
@@ -3501,6 +3554,8 @@ vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageConte
       break;
     }
     case MessageContentType::WriteAccessAllowedByRequest:
+      break;
+    case MessageContentType::GiftCode:
       break;
     default:
       UNREACHABLE();
@@ -4207,6 +4262,15 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     }
     case MessageContentType::WriteAccessAllowedByRequest:
       break;
+    case MessageContentType::GiftCode: {
+      const auto *old_ = static_cast<const MessageGiftCode *>(old_content);
+      const auto *new_ = static_cast<const MessageGiftCode *>(new_content);
+      if (old_->creator_dialog_id != new_->creator_dialog_id || old_->months != new_->months ||
+          old_->via_giveaway != new_->via_giveaway || old_->code != new_->code) {
+        need_update = true;
+      }
+      break;
+    }
     default:
       UNREACHABLE();
       break;
@@ -4348,6 +4412,7 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
     case MessageContentType::WebViewWriteAccessAllowed:
     case MessageContentType::SetBackground:
     case MessageContentType::WriteAccessAllowedByRequest:
+    case MessageContentType::GiftCode:
       LOG(ERROR) << "Receive new file " << new_file_id << " in a sent message of the type " << content_type;
       break;
     default:
@@ -5373,6 +5438,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     case MessageContentType::WebViewWriteAccessAllowed:
     case MessageContentType::SetBackground:
     case MessageContentType::WriteAccessAllowedByRequest:
+    case MessageContentType::GiftCode:
       return nullptr;
     default:
       UNREACHABLE();
@@ -5750,8 +5816,22 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     }
     case telegram_api::messageActionGiveawayLaunch::ID:
       return make_unique<MessageUnsupported>();
-    case telegram_api::messageActionGiftCode::ID:
-      return make_unique<MessageUnsupported>();
+    case telegram_api::messageActionGiftCode::ID: {
+      auto action = move_tl_object_as<telegram_api::messageActionGiftCode>(action_ptr);
+      DialogId dialog_id;
+      if (action->boost_peer_ != nullptr) {
+        dialog_id = DialogId(action->boost_peer_);
+        if (!dialog_id.is_valid()) {
+          LOG(ERROR) << "Receive invalid " << oneline(to_string(action));
+          break;
+        }
+      }
+      if (dialog_id.get_type() != DialogType::User) {
+        td->messages_manager_->force_create_dialog(dialog_id, "messageActionGiftCode", true);
+      }
+      return td::make_unique<MessageGiftCode>(dialog_id, action->months_, action->via_giveaway_,
+                                              std::move(action->slug_));
+    }
     default:
       UNREACHABLE();
   }
@@ -6103,6 +6183,12 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     case MessageContentType::WriteAccessAllowedByRequest:
       return td_api::make_object<td_api::messageBotWriteAccessAllowed>(
           td_api::make_object<td_api::botWriteAccessAllowReasonAcceptedRequest>());
+    case MessageContentType::GiftCode: {
+      const auto *m = static_cast<const MessageGiftCode *>(content);
+      return td_api::make_object<td_api::messagePremiumGiftCode>(
+          get_message_sender_object(td, m->creator_dialog_id, "messagePremiumGiftCode"), m->via_giveaway, m->months,
+          m->code);
+    }
     default:
       UNREACHABLE();
       return nullptr;
@@ -6529,6 +6615,7 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
     case MessageContentType::WebViewWriteAccessAllowed:
     case MessageContentType::SetBackground:
     case MessageContentType::WriteAccessAllowedByRequest:
+    case MessageContentType::GiftCode:
       return string();
     default:
       UNREACHABLE();
@@ -6836,6 +6923,11 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
     }
     case MessageContentType::WriteAccessAllowedByRequest:
       break;
+    case MessageContentType::GiftCode: {
+      const auto *content = static_cast<const MessageGiftCode *>(message_content);
+      dependencies.add_message_sender_dependencies(content->creator_dialog_id);
+      break;
+    }
     default:
       UNREACHABLE();
       break;

@@ -2740,6 +2740,13 @@ messagePaymentSuccessfulBot currency:string total_amount:int53 is_recurring:Bool
 //@sticker A sticker to be shown in the message; may be null if unknown
 messageGiftedPremium gifter_user_id:int53 currency:string amount:int53 cryptocurrency:string cryptocurrency_amount:int64 month_count:int32 sticker:sticker = MessageContent;
 
+//@description A Telegram Premium gift code was created for the user
+//@creator_id Identifier of a chat or a user that created the gift code
+//@is_from_giveaway True, if the gift code was created for a giveaway
+//@month_count Number of month the Telegram Premium subscription will be active after code activation
+//@code The gift code
+messagePremiumGiftCode creator_id:MessageSender is_from_giveaway:Bool month_count:int32 code:string = MessageContent;
+
 //@description A contact has registered with Telegram
 messageContactRegistered = MessageContent;
 

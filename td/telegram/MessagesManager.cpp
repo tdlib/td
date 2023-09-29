@@ -26313,6 +26313,7 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
     case MessageContentType::WebViewWriteAccessAllowed:
     case MessageContentType::SetBackground:
     case MessageContentType::WriteAccessAllowedByRequest:
+    case MessageContentType::GiftCode:
       return false;
     default:
       UNREACHABLE();
