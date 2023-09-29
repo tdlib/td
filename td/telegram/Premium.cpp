@@ -29,6 +29,7 @@
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/Random.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
 
@@ -94,7 +95,7 @@ static Result<telegram_api::object_ptr<telegram_api::InputPeer>> get_boost_input
     return nullptr;
   }
 
-  if (!td->messages_manager_->have_dialog_force(dialog_id, "storePaymentPurposePremiumGiftCodes")) {
+  if (!td->messages_manager_->have_dialog_force(dialog_id, "get_boost_input_peer")) {
     return Status::Error(400, "Chat to boost not found");
   }
   if (dialog_id.get_type() != DialogType::Channel ||
@@ -148,13 +149,48 @@ static Result<tl_object_ptr<telegram_api::InputStorePaymentPurpose>> get_input_s
       if (p->amount_ <= 0 || !check_currency_amount(p->amount_)) {
         return Status::Error(400, "Invalid amount of the currency specified");
       }
-      TRY_RESULT(boost_input_peer, get_boost_input_peer(td, DialogId(p->boosted_chat_id_)));
+      DialogId boosted_dialog_id(p->boosted_chat_id_);
+      TRY_RESULT(boost_input_peer, get_boost_input_peer(td, boosted_dialog_id));
       int32 flags = 0;
       if (boost_input_peer != nullptr) {
         flags |= telegram_api::inputStorePaymentPremiumGiftCode::BOOST_PEER_MASK;
       }
       return telegram_api::make_object<telegram_api::inputStorePaymentPremiumGiftCode>(
           flags, std::move(input_users), std::move(boost_input_peer), p->currency_, p->amount_);
+    }
+    case td_api::storePaymentPurposePremiumGiveaway::ID: {
+      auto p = static_cast<const td_api::storePaymentPurposePremiumGiveaway *>(purpose.get());
+      if (p->amount_ <= 0 || !check_currency_amount(p->amount_)) {
+        return Status::Error(400, "Invalid amount of the currency specified");
+      }
+      DialogId boosted_dialog_id(p->boosted_chat_id_);
+      TRY_RESULT(boost_input_peer, get_boost_input_peer(td, boosted_dialog_id));
+      if (boost_input_peer == nullptr) {
+        return Status::Error(400, "Boosted chat can't be empty");
+      }
+      vector<telegram_api::object_ptr<telegram_api::InputPeer>> additional_input_peers;
+      for (auto additional_chat_id : p->additional_chat_ids_) {
+        TRY_RESULT(input_peer, get_boost_input_peer(td, DialogId(additional_chat_id)));
+        if (input_peer == nullptr) {
+          return Status::Error(400, "Additional chat can't be empty");
+        }
+        additional_input_peers.push_back(std::move(input_peer));
+      }
+      int64 random_id;
+      do {
+        random_id = Random::secure_int64();
+      } while (random_id == 0);
+
+      int32 flags = 0;
+      if (p->only_new_subscribers_) {
+        flags |= telegram_api::inputStorePaymentPremiumGiveaway::ONLY_NEW_SUBSCRIBERS_MASK;
+      }
+      if (!additional_input_peers.empty()) {
+        flags |= telegram_api::inputStorePaymentPremiumGiveaway::ADDITIONAL_PEERS_MASK;
+      }
+      return telegram_api::make_object<telegram_api::inputStorePaymentPremiumGiveaway>(
+          flags, false /*ignored*/, std::move(boost_input_peer), std::move(additional_input_peers), vector<string>(),
+          random_id, p->date_, p->currency_, p->amount_);
     }
     default:
       UNREACHABLE();

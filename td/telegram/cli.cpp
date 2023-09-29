@@ -3100,7 +3100,7 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::checkPremiumGiftCode>(args));
     } else if (op == "apgc") {
       send_request(td_api::make_object<td_api::applyPremiumGiftCode>(args));
-    } else if (op == "cppr" || op == "cpprb") {
+    } else if (op == "cppr" || op == "cpprb" || op == "cpprg") {
       UserId user_id;
       string currency;
       int64 amount;
@@ -3112,6 +3112,10 @@ class CliClient final : public Actor {
       } else if (op == "cppr") {
         send_request(td_api::make_object<td_api::canPurchasePremium>(
             td_api::make_object<td_api::storePaymentPurposeGiftedPremium>(user_id, currency, amount)));
+      } else if (op == "cpprg") {
+        send_request(td_api::make_object<td_api::canPurchasePremium>(
+            td_api::make_object<td_api::storePaymentPurposePremiumGiveaway>(
+                boosted_chat_id, Auto(), static_cast<int32>(user_id) /*date*/, rand_bool(), currency, amount)));
       } else {
         send_request(td_api::make_object<td_api::canPurchasePremium>(
             td_api::make_object<td_api::storePaymentPurposePremiumGiftCodes>(vector<int64>{user_id}, boosted_chat_id,
