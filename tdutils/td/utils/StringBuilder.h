@@ -44,6 +44,8 @@ class StringBuilder {
     *current_ptr_++ = c;
   }
 
+  void append_char(size_t count, char c);
+
   MutableCSlice as_cslice() {
     if (current_ptr_ >= end_ptr_ + RESERVED_SIZE) {
       std::abort();  // shouldn't happen
