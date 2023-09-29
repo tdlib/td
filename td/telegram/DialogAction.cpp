@@ -414,6 +414,7 @@ bool DialogAction::is_canceled_by_message_of_type(MessageContentType message_con
     case MessageContentType::Story:
     case MessageContentType::WriteAccessAllowedByRequest:
     case MessageContentType::GiftCode:
+    case MessageContentType::Giveaway:
       return false;
     default:
       UNREACHABLE();

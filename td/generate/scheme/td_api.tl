@@ -2747,6 +2747,14 @@ messageGiftedPremium gifter_user_id:int53 currency:string amount:int53 cryptocur
 //@code The gift code
 messagePremiumGiftCode creator_id:MessageSender is_from_giveaway:Bool month_count:int32 code:string = MessageContent;
 
+//@description A Telegram Premium giveaway is scheduled by channel chats
+//@chat_ids Identifiers of chats that started the giveaway
+//@only_new_subscribers True, if only new subscribers of the chats will be eligible for the giveaway
+//@quantity Number of users which will receive Telegram Premium subscription gift codes
+//@month_count Number of month the Telegram Premium subscription will be active after code activation
+//@date Point in time (Unix timestamp) when the giveaway starts
+messagePremiumGiveaway chat_ids:vector<int53> only_new_subscribers:Bool quantity:int32 month_count:int32 date:int32 = MessageContent;
+
 //@description A contact has registered with Telegram
 messageContactRegistered = MessageContent;
 
@@ -4409,7 +4417,7 @@ storePaymentPurposePremiumGiftCodes user_ids:vector<int53> boosted_chat_id:int53
 //@boosted_chat_id Identifier of the channel chat, which will be automatically boosted by the users for duration of the Premium subscription and which is administered by the user
 //@additional_chat_ids Identifiers of other channel chats that must be subscribed by the users to be eligible
 //@date Point in time (Unix timestamp) when the giveaway will be performed; must be from 1 minute to 365 days in the future
-//@only_new_subscribers Pass true, if only new subscribers of the chats will be eligible for the giveaway
+//@only_new_subscribers Pass true if only new subscribers of the chats will be eligible for the giveaway
 //@currency ISO 4217 currency code of the payment currency
 //@amount Paid amount, in the smallest units of the currency
 storePaymentPurposePremiumGiveaway boosted_chat_id:int53 additional_chat_ids:vector<int53> date:int32 only_new_subscribers:Bool currency:string amount:int53 = StorePaymentPurpose;
