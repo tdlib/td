@@ -561,6 +561,18 @@ class LinkManager::InternalLinkPremiumFeatures final : public InternalLink {
   }
 };
 
+class LinkManager::InternalLinkPremiumGiftCode final : public InternalLink {
+  string code_;
+
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypePremiumGiftCode>(code_);
+  }
+
+ public:
+  explicit InternalLinkPremiumGiftCode(string code) : code_(std::move(code)) {
+  }
+};
+
 class LinkManager::InternalLinkPrivacyAndSecuritySettings final : public InternalLink {
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypePrivacyAndSecuritySettings>();
@@ -1085,8 +1097,9 @@ LinkManager::LinkInfo LinkManager::get_link_info(Slice link) {
     if (ends_with(host, ".t.me") && host.size() >= 9 && host.find('.') == host.size() - 5) {
       Slice subdomain(&host[0], host.size() - 5);
       static const FlatHashSet<Slice, SliceHash> disallowed_subdomains(
-          {"addemoji", "addlist", "addstickers", "addtheme", "auth", "boost", "confirmphone", "contact", "invoice",
-           "joinchat", "login", "proxy", "setlanguage", "share", "socks", "web", "a", "k", "z"});
+          {"addemoji", "addlist",  "addstickers", "addtheme", "auth",  "boost", "confirmphone",
+           "contact",  "giftcode", "invoice",     "joinchat", "login", "proxy", "setlanguage",
+           "share",    "socks",    "web",         "a",        "k",     "z"});
       if (is_valid_username(subdomain) && disallowed_subdomains.count(subdomain) == 0) {
         result.type_ = LinkType::TMe;
         result.query_ = PSTRING() << '/' << subdomain << http_url.query_;
@@ -1460,6 +1473,11 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     if (has_arg("slug")) {
       return td::make_unique<InternalLinkInvoice>(url_query.get_arg("slug").str());
     }
+  } else if (path.size() == 1 && path[0] == "giftcode") {
+    // giftcode?slug=<code>
+    if (has_arg("slug")) {
+      return td::make_unique<InternalLinkPremiumGiftCode>(url_query.get_arg("slug").str());
+    }
   } else if (path.size() == 1 && (path[0] == "share" || path[0] == "msg" || path[0] == "msg_url")) {
     // msg_url?url=<url>
     // msg_url?url=<url>&text=<text>
@@ -1609,6 +1627,11 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
     if (path.size() >= 2 && !path[1].empty()) {
       // /invoice/<name>
       return td::make_unique<InternalLinkInvoice>(path[1]);
+    }
+  } else if (path[0] == "giftcode") {
+    if (path.size() >= 2 && !path[1].empty()) {
+      // /giftcode/<code>
+      return td::make_unique<InternalLinkPremiumGiftCode>(path[1]);
     }
   } else if (path[0][0] == '$') {
     if (path[0].size() >= 2) {
@@ -2178,6 +2201,14 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         return Status::Error("HTTP link is unavailable for the link type");
       }
       return PSTRING() << "tg://premium_offer?ref=" << url_encode(link->referrer_);
+    }
+    case td_api::internalLinkTypePremiumGiftCode::ID: {
+      auto link = static_cast<const td_api::internalLinkTypePremiumGiftCode *>(type_ptr);
+      if (is_internal) {
+        return PSTRING() << "tg://giftcode?slug=" << url_encode(link->code_);
+      } else {
+        return PSTRING() << get_t_me_url() << "giftcode/" << url_encode(link->code_);
+      }
     }
     case td_api::internalLinkTypePrivacyAndSecuritySettings::ID:
       if (!is_internal) {

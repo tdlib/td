@@ -291,6 +291,10 @@ static auto premium_features(const td::string &referrer) {
   return td::td_api::make_object<td::td_api::internalLinkTypePremiumFeatures>(referrer);
 }
 
+static auto premium_gift_code(const td::string &code) {
+  return td::td_api::make_object<td::td_api::internalLinkTypePremiumGiftCode>(code);
+}
+
 static auto privacy_and_security_settings() {
   return td::td_api::make_object<td::td_api::internalLinkTypePrivacyAndSecuritySettings>();
 }
@@ -639,6 +643,24 @@ TEST(Link, parse_internal_link_part2) {
   parse_internal_link("tg:invoice?slug=abcdef", invoice("abcdef"));
   parse_internal_link("tg:invoice?slug=abc%30ef", invoice("abc0ef"));
   parse_internal_link("tg://invoice?slug=", unknown_deep_link("tg://invoice?slug="));
+
+  parse_internal_link("t.me/giftcode?slug=abcdef", nullptr);
+  parse_internal_link("t.me/giftcode", nullptr);
+  parse_internal_link("t.me/giftcode/", nullptr);
+  parse_internal_link("t.me/giftcode//abcdef", nullptr);
+  parse_internal_link("t.me/giftcode?/abcdef", nullptr);
+  parse_internal_link("t.me/giftcode/?abcdef", nullptr);
+  parse_internal_link("t.me/giftcode/#abcdef", nullptr);
+  parse_internal_link("t.me/giftcode/abacaba", premium_gift_code("abacaba"));
+  parse_internal_link("t.me/giftcode/aba%20aba", premium_gift_code("aba aba"));
+  parse_internal_link("t.me/giftcode/123456a", premium_gift_code("123456a"));
+  parse_internal_link("t.me/giftcode/12345678901", premium_gift_code("12345678901"));
+  parse_internal_link("t.me/giftcode/123456", premium_gift_code("123456"));
+  parse_internal_link("t.me/giftcode/123456/123123/12/31/a/s//21w/?asdas#test", premium_gift_code("123456"));
+
+  parse_internal_link("tg:giftcode?slug=abcdef", premium_gift_code("abcdef"));
+  parse_internal_link("tg:giftcode?slug=abc%30ef", premium_gift_code("abc0ef"));
+  parse_internal_link("tg://giftcode?slug=", unknown_deep_link("tg://giftcode?slug="));
 
   parse_internal_link("tg:share?url=google.com&text=text#asdasd", message_draft("google.com\ntext", true));
   parse_internal_link("tg:share?url=google.com&text=", message_draft("google.com", false));
@@ -1261,6 +1283,7 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("boost.t.me", nullptr);
   parse_internal_link("confirmphone.t.me", nullptr);
   parse_internal_link("contact.t.me", nullptr);
+  parse_internal_link("giftcode.t.me", nullptr);
   parse_internal_link("invoice.t.me", nullptr);
   parse_internal_link("joinchat.t.me", nullptr);
   parse_internal_link("login.t.me", nullptr);
