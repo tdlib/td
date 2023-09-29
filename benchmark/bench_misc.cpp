@@ -4,6 +4,7 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
+#include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/telegram_api.hpp"
 
@@ -50,12 +51,55 @@ class F {
   }
 };
 
-BENCH(Call, "TL Call") {
+BENCH(TlCall, "TL Call") {
   td::tl_object_ptr<td::telegram_api::Function> x = td::make_tl_object<td::telegram_api::account_getWallPapers>(0);
   td::uint32 res = 0;
   F f(res);
   for (int i = 0; i < n; i++) {
     downcast_call(*x, f);
+  }
+  td::do_not_optimize_away(res);
+}
+
+static td::td_api::object_ptr<td::td_api::file> get_file_object() {
+  return td::td_api::make_object<td::td_api::file>(
+      12345, 123456, 123456,
+      td::td_api::make_object<td::td_api::localFile>(
+          "/android/data/0/data/org.telegram.data/files/photos/12345678901234567890_123.jpg", true, true, false, true,
+          0, 123456, 123456),
+      td::td_api::make_object<td::td_api::remoteFile>("abacabadabacabaeabacabadabacabafabacabadabacabaeabacabadabacaba",
+                                                      "abacabadabacabaeabacabadabacaba", false, true, 123456));
+}
+
+BENCH(TlToStringUpdateFile, "TL to_string updateFile") {
+  auto x = td::td_api::make_object<td::td_api::updateFile>(get_file_object());
+
+  td::uint32 res = 0;
+  for (int i = 0; i < n; i++) {
+    res += to_string(x).size();
+  }
+  td::do_not_optimize_away(res);
+}
+
+BENCH(TlToStringMessage, "TL to_string message") {
+  auto x = td::td_api::make_object<td::td_api::message>();
+  x->id_ = 123456000111;
+  x->sender_id_ = td::td_api::make_object<td::td_api::messageSenderUser>(123456000112);
+  x->chat_id_ = 123456000112;
+  x->sending_state_ = td::td_api::make_object<td::td_api::messageSendingStatePending>(0);
+  x->date_ = 1699999999;
+  auto photo = td::td_api::make_object<td::td_api::photo>();
+  for (int i = 0; i < 4; i++) {
+    photo->sizes_.push_back(td::td_api::make_object<td::td_api::photoSize>(
+        "a", get_file_object(), 160, 160,
+        td::vector<td::int32>{10000, 20000, 30000, 50000, 70000, 90000, 120000, 150000, 180000, 220000}));
+  }
+  x->content_ = td::td_api::make_object<td::td_api::messagePhoto>(
+      std::move(photo), td::td_api::make_object<td::td_api::formattedText>(), false, false);
+
+  td::uint32 res = 0;
+  for (int i = 0; i < n; i++) {
+    res += to_string(x).size();
   }
   td::do_not_optimize_away(res);
 }
@@ -635,6 +679,9 @@ class DuplicateCheckerBenchEvenOdd final : public td::Benchmark {
 int main() {
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG));
 
+  td::bench(TlToStringUpdateFileBench());
+  td::bench(TlToStringMessageBench());
+
   td::bench(DuplicateCheckerBenchEvenOdd<IdDuplicateCheckerNew<1000>>());
   td::bench(DuplicateCheckerBenchEvenOdd<IdDuplicateCheckerNew<300>>());
   td::bench(DuplicateCheckerBenchEvenOdd<IdDuplicateCheckerArray<1000>>());
@@ -691,7 +738,7 @@ int main() {
   td::bench(CreateFileBench());
   td::bench(PwriteBench());
 
-  td::bench(CallBench());
+  td::bench(TlCallBench());
 #if !TD_THREAD_UNSUPPORTED
   td::bench(ThreadNewBench());
 #endif
