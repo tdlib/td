@@ -5243,7 +5243,7 @@ messageLinkInfo is_public:Bool chat_id:int53 message_thread_id:int53 message:mes
 //@description Contains an HTTPS link to boost a chat @link The link @is_public True, if the link will work for non-members of the chat
 chatBoostLink link:string is_public:Bool = ChatBoostLink;
 
-//@description Contains information about a link to boost a a chat
+//@description Contains information about a link to boost a chat
 //@is_public True, if the link will work for non-members of the chat
 //@chat_id Identifier of the chat to which the link points; 0 if the chat isn't found
 chatBoostLinkInfo is_public:Bool chat_id:int53 = ChatBoostLinkInfo;
