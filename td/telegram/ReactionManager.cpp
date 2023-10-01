@@ -25,8 +25,6 @@
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/Status.h"
 
-#include <algorithm>
-
 namespace td {
 
 class GetAvailableReactionsQuery final : public Td::ResultHandler {
@@ -340,16 +338,7 @@ void ReactionManager::add_recent_reaction(const ReactionType &reaction_type) {
     return;
   }
 
-  auto it = std::find(reactions.begin(), reactions.end(), reaction_type);
-  if (it == reactions.end()) {
-    if (static_cast<int32>(reactions.size()) == MAX_RECENT_REACTIONS) {
-      reactions.back() = reaction_type;
-    } else {
-      reactions.push_back(reaction_type);
-    }
-    it = reactions.end() - 1;
-  }
-  std::rotate(reactions.begin(), it, it + 1);
+  add_to_top(reactions, MAX_RECENT_REACTIONS, reaction_type);
 
   recent_reactions_.hash_ = get_reaction_types_hash(reactions);
 }

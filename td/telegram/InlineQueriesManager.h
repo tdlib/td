@@ -87,8 +87,8 @@ class InlineQueriesManager final : public Actor {
       tl_object_ptr<telegram_api::InputBotInlineMessageID> &&input_bot_inline_message_id);
 
  private:
-  static constexpr int32 MAX_RECENT_INLINE_BOTS = 20;  // some reasonable value
-  static constexpr int32 INLINE_QUERY_DELAY_MS = 400;  // server side limit
+  static constexpr size_t MAX_RECENT_INLINE_BOTS = 20;  // some reasonable value
+  static constexpr int32 INLINE_QUERY_DELAY_MS = 400;   // server side limit
 
   static constexpr int32 BOT_INLINE_MEDIA_RESULT_FLAG_HAS_PHOTO = 1 << 0;
   static constexpr int32 BOT_INLINE_MEDIA_RESULT_FLAG_HAS_DOCUMENT = 1 << 1;
