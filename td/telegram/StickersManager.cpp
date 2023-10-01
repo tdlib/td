@@ -7480,16 +7480,13 @@ int StickersManager::move_installed_sticker_set_to_top(StickerType sticker_type,
   }
 
   vector<StickerSetId> &current_sticker_set_ids = installed_sticker_set_ids_[type];
-  auto it = std::find(current_sticker_set_ids.begin(), current_sticker_set_ids.end(), sticker_set_id);
-  if (it == current_sticker_set_ids.end()) {
-    return -1;
-  }
-  if (sticker_set_id == current_sticker_set_ids[0]) {
-    CHECK(it == current_sticker_set_ids.begin());
+  if (!current_sticker_set_ids.empty() && sticker_set_id == current_sticker_set_ids[0]) {
     return 0;
   }
-
-  std::rotate(current_sticker_set_ids.begin(), it, it + 1);
+  if (!td::contains(current_sticker_set_ids, sticker_set_id)) {
+    return -1;
+  }
+  add_to_top(current_sticker_set_ids, current_sticker_set_ids.size(), sticker_set_id);
 
   need_update_installed_sticker_sets_[type] = true;
   return 1;
@@ -8778,16 +8775,8 @@ void StickersManager::add_recent_sticker_impl(bool is_attached, FileId sticker_i
     return promise.set_error(Status::Error(400, "Can't save encrypted stickers"));
   }
 
-  auto it = std::find_if(sticker_ids.begin(), sticker_ids.end(), is_equal);
-  if (it == sticker_ids.end()) {
-    if (static_cast<int32>(sticker_ids.size()) == recent_stickers_limit_) {
-      sticker_ids.back() = sticker_id;
-    } else {
-      sticker_ids.push_back(sticker_id);
-    }
-    it = sticker_ids.end() - 1;
-  }
-  std::rotate(sticker_ids.begin(), it, it + 1);
+  add_to_top_if(sticker_ids, static_cast<size_t>(recent_stickers_limit_), sticker_id, is_equal);
+
   if (sticker_ids[0].get_remote() == 0 && sticker_id.get_remote() != 0) {
     sticker_ids[0] = sticker_id;
   }
@@ -9167,16 +9156,8 @@ void StickersManager::add_favorite_sticker_impl(FileId sticker_id, bool add_on_s
     return promise.set_error(Status::Error(400, "Can't add to favorites encrypted stickers"));
   }
 
-  auto it = std::find_if(favorite_sticker_ids_.begin(), favorite_sticker_ids_.end(), is_equal);
-  if (it == favorite_sticker_ids_.end()) {
-    if (static_cast<int32>(favorite_sticker_ids_.size()) == favorite_stickers_limit_) {
-      favorite_sticker_ids_.back() = sticker_id;
-    } else {
-      favorite_sticker_ids_.push_back(sticker_id);
-    }
-    it = favorite_sticker_ids_.end() - 1;
-  }
-  std::rotate(favorite_sticker_ids_.begin(), it, it + 1);
+  add_to_top_if(favorite_sticker_ids_, static_cast<size_t>(favorite_stickers_limit_), sticker_id, is_equal);
+
   if (favorite_sticker_ids_[0].get_remote() == 0 && sticker_id.get_remote() != 0) {
     favorite_sticker_ids_[0] = sticker_id;
   }

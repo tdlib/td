@@ -57,8 +57,6 @@
 #include "td/utils/tl_helpers.h"
 #include "td/utils/tl_parsers.h"
 
-#include <algorithm>
-
 namespace td {
 
 class GetInlineBotResultsQuery final : public Td::ResultHandler {
@@ -2183,17 +2181,8 @@ bool InlineQueriesManager::update_bot_usage(UserId bot_user_id) {
     return false;
   }
 
-  auto it = std::find(recently_used_bot_user_ids_.begin(), recently_used_bot_user_ids_.end(), bot_user_id);
-  if (it == recently_used_bot_user_ids_.end()) {
-    if (static_cast<int32>(recently_used_bot_user_ids_.size()) == MAX_RECENT_INLINE_BOTS) {
-      CHECK(!recently_used_bot_user_ids_.empty());
-      recently_used_bot_user_ids_.back() = bot_user_id;
-    } else {
-      recently_used_bot_user_ids_.push_back(bot_user_id);
-    }
-    it = recently_used_bot_user_ids_.end() - 1;
-  }
-  std::rotate(recently_used_bot_user_ids_.begin(), it, it + 1);
+  add_to_top(recently_used_bot_user_ids_, MAX_RECENT_INLINE_BOTS, bot_user_id);
+
   return true;
 }
 

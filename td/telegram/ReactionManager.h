@@ -67,7 +67,7 @@ class ReactionManager final : public Actor {
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
-  static constexpr int32 MAX_RECENT_REACTIONS = 100;  // some reasonable value
+  static constexpr size_t MAX_RECENT_REACTIONS = 100;  // some reasonable value
 
   struct Reaction {
     ReactionType reaction_type_;

@@ -23,8 +23,6 @@
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
 
-#include <algorithm>
-
 namespace td {
 
 RecentDialogList::RecentDialogList(Td *td, const char *name, size_t max_size)
@@ -175,18 +173,8 @@ bool RecentDialogList::do_add_dialog(DialogId dialog_id) {
     return false;
   }
 
-  // TODO create function
-  auto it = std::find(dialog_ids_.begin(), dialog_ids_.end(), dialog_id);
-  if (it == dialog_ids_.end()) {
-    if (dialog_ids_.size() == max_size_) {
-      CHECK(!dialog_ids_.empty());
-      dialog_ids_.back() = dialog_id;
-    } else {
-      dialog_ids_.push_back(dialog_id);
-    }
-    it = dialog_ids_.end() - 1;
-  }
-  std::rotate(dialog_ids_.begin(), it, it + 1);
+  add_to_top(dialog_ids_, max_size_, dialog_id);
+
   removed_dialog_ids_.erase(dialog_id);
   return true;
 }
