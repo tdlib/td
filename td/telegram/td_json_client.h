@@ -182,6 +182,9 @@ TDJSON_EXPORT const char *td_json_client_execute(void *client, const char *reque
  */
 TDJSON_EXPORT void td_json_client_destroy(void *client);
 
+TDJSON_EXPORT const char *td_object_to_json(const void *object);
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif
+

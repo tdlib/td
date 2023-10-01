@@ -12,3 +12,4 @@ _td_send
 _td_receive
 _td_execute
 _td_set_log_message_callback
+_td_object_to_json
