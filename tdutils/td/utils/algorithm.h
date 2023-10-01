@@ -98,7 +98,7 @@ void add_to_top(V &v, size_t max_size, T value) {
   }
   if (i == size) {
     if (size < max_size || i == 0) {
-      v.emplace_back();
+      v.emplace_back(value);
     } else {
       i--;
     }
@@ -122,7 +122,7 @@ void add_to_top_if(V &v, size_t max_size, T value, const F &is_equal_to_value) {
   }
   if (i == size) {
     if (size < max_size || i == 0) {
-      v.emplace_back();
+      v.emplace_back(value);
     } else {
       i--;
     }

@@ -15119,35 +15119,31 @@ bool MessagesManager::set_dialog_is_pinned(DialogListId dialog_list_id, Dialog *
   if (!list->are_pinned_dialogs_inited_) {
     return false;
   }
-  bool was_pinned = false;
-  for (size_t pos = 0; pos < list->pinned_dialogs_.size(); pos++) {
-    auto &pinned_dialog = list->pinned_dialogs_[pos];
-    if (pinned_dialog.get_dialog_id() == d->dialog_id) {
-      // the dialog was already pinned
-      if (is_pinned) {
-        if (pos == 0) {
-          return false;
-        }
-        auto order = get_next_pinned_dialog_order();
-        pinned_dialog = DialogDate(order, d->dialog_id);
-        std::rotate(list->pinned_dialogs_.begin(), list->pinned_dialogs_.begin() + pos,
-                    list->pinned_dialogs_.begin() + pos + 1);
-        list->pinned_dialog_id_orders_[d->dialog_id] = order;
-      } else {
-        list->pinned_dialogs_.erase(list->pinned_dialogs_.begin() + pos);
-        list->pinned_dialog_id_orders_.erase(d->dialog_id);
-      }
-      was_pinned = true;
-      break;
-    }
-  }
-  if (!was_pinned) {
-    if (!is_pinned) {
+  auto dialog_id = d->dialog_id;
+  auto is_changed_dialog = [dialog_id](const DialogDate &dialog_date) {
+    return dialog_date.get_dialog_id() == dialog_id;
+  };
+  if (is_pinned) {
+    if (!list->pinned_dialogs_.empty() && is_changed_dialog(list->pinned_dialogs_[0])) {
       return false;
     }
     auto order = get_next_pinned_dialog_order();
-    list->pinned_dialogs_.insert(list->pinned_dialogs_.begin(), {order, d->dialog_id});
-    list->pinned_dialog_id_orders_.emplace(d->dialog_id, order);
+    DialogDate dialog_date(order, dialog_id);
+    add_to_top_if(list->pinned_dialogs_, list->pinned_dialogs_.size() + 1, dialog_date, is_changed_dialog);
+    auto it = list->pinned_dialog_id_orders_.find(dialog_id);
+    if (it != list->pinned_dialog_id_orders_.end()) {
+      CHECK(list->pinned_dialogs_[0] != dialog_date);
+      list->pinned_dialogs_[0] = dialog_date;
+      it->second = order;
+    } else {
+      CHECK(list->pinned_dialogs_[0] == dialog_date);
+      list->pinned_dialog_id_orders_.emplace(dialog_id, order);
+    }
+  } else {
+    if (!td::remove_if(list->pinned_dialogs_, is_changed_dialog)) {
+      return false;
+    }
+    list->pinned_dialog_id_orders_.erase(dialog_id);
   }
 
   LOG(INFO) << "Set " << d->dialog_id << " is pinned in " << dialog_list_id << " to " << is_pinned;
