@@ -86,6 +86,54 @@ bool remove(V &v, const T &value) {
   return true;
 }
 
+template <class V, class T>
+void add_to_top(V &v, size_t max_size, T value) {
+  size_t size = v.size();
+  size_t i;
+  for (i = 0; i < size; i++) {
+    if (v[i] == value) {
+      value = std::move(v[i]);
+      break;
+    }
+  }
+  if (i == size) {
+    if (size < max_size || i == 0) {
+      v.emplace_back();
+    } else {
+      i--;
+    }
+  }
+  while (i > 0) {
+    v[i] = std::move(v[i - 1]);
+    i--;
+  }
+  v[0] = std::move(value);
+}
+
+template <class V, class T, class F>
+void add_to_top_if(V &v, size_t max_size, T value, const F &is_equal_to_value) {
+  size_t size = v.size();
+  size_t i;
+  for (i = 0; i < size; i++) {
+    if (is_equal_to_value(v[i])) {
+      value = std::move(v[i]);
+      break;
+    }
+  }
+  if (i == size) {
+    if (size < max_size || i == 0) {
+      v.emplace_back();
+    } else {
+      i--;
+    }
+  }
+  while (i > 0) {
+    v[i] = std::move(v[i - 1]);
+    i--;
+  }
+  v[0] = std::move(value);
+}
+
 template <class V>
 void unique(V &v) {
   if (v.empty()) {
