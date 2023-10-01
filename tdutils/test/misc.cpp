@@ -409,6 +409,49 @@ TEST(Misc, remove) {
   test_remove(v, 1, v);
 }
 
+static void test_add_to_top(td::vector<int> v, size_t max_size, int new_value, const td::vector<int> &expected) {
+  auto u = v;
+  td::add_to_top(v, max_size, new_value);
+  ASSERT_EQ(expected, v);
+
+  td::add_to_top_if(u, max_size, new_value, [new_value](int value) { return value == new_value; });
+  ASSERT_EQ(expected, u);
+}
+
+static void test_add_to_top_if(td::vector<int> v, int max_size, int new_value, const td::vector<int> &expected) {
+  td::add_to_top_if(v, max_size, new_value, [new_value](int value) { return value % 10 == new_value % 10; });
+  ASSERT_EQ(expected, v);
+}
+
+TEST(Misc, add_to_top) {
+  test_add_to_top({}, 0, 1, {1});
+  test_add_to_top({}, 1, 1, {1});
+  test_add_to_top({}, 6, 1, {1});
+
+  test_add_to_top({1, 2, 3, 4, 5, 6}, 3, 2, {2, 1, 3, 4, 5, 6});
+  test_add_to_top({1, 2, 3, 4, 5, 6}, 6, 1, {1, 2, 3, 4, 5, 6});
+  test_add_to_top({1, 2, 3, 4, 5, 6}, 7, 1, {1, 2, 3, 4, 5, 6});
+  test_add_to_top({1, 2, 3, 4, 5, 6}, 6, 2, {2, 1, 3, 4, 5, 6});
+  test_add_to_top({1, 2, 3, 4, 5, 6}, 7, 2, {2, 1, 3, 4, 5, 6});
+  test_add_to_top({1, 2, 3, 4, 5, 6}, 6, 4, {4, 1, 2, 3, 5, 6});
+  test_add_to_top({1, 2, 3, 4, 5, 6}, 7, 4, {4, 1, 2, 3, 5, 6});
+  test_add_to_top({1, 2, 3, 4, 5, 6}, 6, 6, {6, 1, 2, 3, 4, 5});
+  test_add_to_top({1, 2, 3, 4, 5, 6}, 7, 6, {6, 1, 2, 3, 4, 5});
+  test_add_to_top({1, 2, 3, 4, 5, 6}, 6, 7, {7, 1, 2, 3, 4, 5});
+  test_add_to_top({1, 2, 3, 4, 5, 6}, 7, 7, {7, 1, 2, 3, 4, 5, 6});
+
+  test_add_to_top_if({1, 2, 3, 4, 5, 6}, 6, 11, {1, 2, 3, 4, 5, 6});
+  test_add_to_top_if({1, 2, 3, 4, 5, 6}, 7, 21, {1, 2, 3, 4, 5, 6});
+  test_add_to_top_if({1, 2, 3, 4, 5, 6}, 6, 32, {2, 1, 3, 4, 5, 6});
+  test_add_to_top_if({1, 2, 3, 4, 5, 6}, 7, 42, {2, 1, 3, 4, 5, 6});
+  test_add_to_top_if({1, 2, 3, 4, 5, 6}, 6, 54, {4, 1, 2, 3, 5, 6});
+  test_add_to_top_if({1, 2, 3, 4, 5, 6}, 7, 64, {4, 1, 2, 3, 5, 6});
+  test_add_to_top_if({1, 2, 3, 4, 5, 6}, 6, 76, {6, 1, 2, 3, 4, 5});
+  test_add_to_top_if({1, 2, 3, 4, 5, 6}, 7, 86, {6, 1, 2, 3, 4, 5});
+  test_add_to_top_if({1, 2, 3, 4, 5, 6}, 6, 97, {97, 1, 2, 3, 4, 5});
+  test_add_to_top_if({1, 2, 3, 4, 5, 6}, 7, 87, {87, 1, 2, 3, 4, 5, 6});
+}
+
 static void test_unique(td::vector<int> v, const td::vector<int> &expected) {
   auto v_str = td::transform(v, &td::to_string<int>);
   auto expected_str = td::transform(expected, &td::to_string<int>);
