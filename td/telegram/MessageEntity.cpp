@@ -151,7 +151,7 @@ tl_object_ptr<td_api::TextEntityType> MessageEntity::get_text_entity_type_object
     case MessageEntity::Type::Strikethrough:
       return make_tl_object<td_api::textEntityTypeStrikethrough>();
     case MessageEntity::Type::BlockQuote:
-      return nullptr;
+      return make_tl_object<td_api::textEntityTypeBlockQuote>();
     case MessageEntity::Type::Code:
       return make_tl_object<td_api::textEntityTypeCode>();
     case MessageEntity::Type::Pre:
@@ -3358,6 +3358,9 @@ Result<vector<MessageEntity>> get_message_entities(const ContactsManager *contac
         break;
       case td_api::textEntityTypeStrikethrough::ID:
         entities.emplace_back(MessageEntity::Type::Strikethrough, offset, length);
+        break;
+      case td_api::textEntityTypeBlockQuote::ID:
+        entities.emplace_back(MessageEntity::Type::BlockQuote, offset, length);
         break;
       case td_api::textEntityTypeCode::ID:
         entities.emplace_back(MessageEntity::Type::Code, offset, length);
