@@ -8,6 +8,7 @@
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/telegram_api.hpp"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/benchmark.h"
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
@@ -18,6 +19,7 @@
 #include "td/utils/port/RwMutex.h"
 #include "td/utils/port/Stat.h"
 #include "td/utils/port/thread.h"
+#include "td/utils/Random.h"
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
@@ -676,8 +678,39 @@ class DuplicateCheckerBenchEvenOdd final : public td::Benchmark {
   }
 };
 
+BENCH(AddToTopStd, "add_to_top std") {
+  td::vector<int> v;
+  for (int i = 0; i < n; i++) {
+    for (size_t j = 0; j < 10; j++) {
+      auto value = td::Random::fast(0, 9);
+      auto it = std::find(v.begin(), v.end(), value);
+      if (it == v.end()) {
+        if (v.size() == 8) {
+          v.back() = value;
+        } else {
+          v.push_back(value);
+        }
+        it = v.end() - 1;
+      }
+      std::rotate(v.begin(), it, it + 1);
+    }
+  }
+}
+
+BENCH(AddToTopTd, "add_to_top td") {
+  td::vector<int> v;
+  for (int i = 0; i < n; i++) {
+    for (size_t j = 0; j < 10; j++) {
+      td::add_to_top(v, 8, td::Random::fast(0, 9));
+    }
+  }
+}
+
 int main() {
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG));
+
+  td::bench(AddToTopStdBench());
+  td::bench(AddToTopTdBench());
 
   td::bench(TlToStringUpdateFileBench());
   td::bench(TlToStringMessageBench());
