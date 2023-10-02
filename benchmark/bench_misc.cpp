@@ -22,7 +22,9 @@
 #include "td/utils/Random.h"
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
+#include "td/utils/StackAllocator.h"
 #include "td/utils/Status.h"
+#include "td/utils/StringBuilder.h"
 #include "td/utils/ThreadSafeCounter.h"
 
 #if !TD_WINDOWS
@@ -71,6 +73,24 @@ static td::td_api::object_ptr<td::td_api::file> get_file_object() {
           0, 123456, 123456),
       td::td_api::make_object<td::td_api::remoteFile>("abacabadabacabaeabacabadabacabafabacabadabacabaeabacabadabacaba",
                                                       "abacabadabacabaeabacabadabacaba", false, true, 123456));
+}
+
+BENCH(ToStringIntSmall, "to_string<int> small") {
+  auto buf = td::StackAllocator::alloc(1000);
+  td::StringBuilder sb(buf.as_slice());
+  for (int i = 0; i < n; i++) {
+    sb << td::Random::fast(0, 100);
+    sb.clear();
+  }
+}
+
+BENCH(ToStringIntBig, "to_string<int> big") {
+  auto buf = td::StackAllocator::alloc(1000);
+  td::StringBuilder sb(buf.as_slice());
+  for (int i = 0; i < n; i++) {
+    sb << 1234567890;
+    sb.clear();
+  }
 }
 
 BENCH(TlToStringUpdateFile, "TL to_string updateFile") {
@@ -708,6 +728,9 @@ BENCH(AddToTopTd, "add_to_top td") {
 
 int main() {
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG));
+
+  td::bench(ToStringIntSmallBench());
+  td::bench(ToStringIntBigBench());
 
   td::bench(AddToTopStdBench());
   td::bench(AddToTopTdBench());
