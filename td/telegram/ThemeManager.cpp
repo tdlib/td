@@ -274,6 +274,12 @@ string get_theme_parameters_json_string_impl(const td_api::object_ptr<td_api::th
     o("link_color", get_color(theme->link_color_));
     o("button_color", get_color(theme->button_color_));
     o("button_text_color", get_color(theme->button_text_color_));
+    o("header_bg_color", get_color(theme->header_background_color_));
+    o("section_bg_color", get_color(theme->section_background_color_));
+    o("accent_text_color", get_color(theme->accent_text_color_));
+    o("section_header_text_color", get_color(theme->section_header_text_color_));
+    o("subtitle_text_color", get_color(theme->subtitle_text_color_));
+    o("destructive_text_color", get_color(theme->destructive_text_color_));
   }));
 }
 }  // namespace
