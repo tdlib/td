@@ -2228,6 +2228,9 @@ inputInvoiceMessage chat_id:int53 message_id:int53 = InputInvoice;
 //@description An invoice from a link of the type internalLinkTypeInvoice @name Name of the invoice
 inputInvoiceName name:string = InputInvoice;
 
+//@description An invoice for a payment toward Telegram; must not be used in the in-store apps @purpose Transaction purpose
+inputInvoiceTelegram purpose:TelegramPaymentPurpose = InputInvoice;
+
 
 //@class MessageExtendedMedia @description Describes a media, which is attached to an invoice
 
@@ -4409,27 +4412,49 @@ premiumState state:formattedText payment_options:vector<premiumStatePaymentOptio
 
 //@class StorePaymentPurpose @description Describes a purpose of an in-store payment
 
-//@description The user subscribed to Telegram Premium @is_restore Pass true if this is a restore of a Telegram Premium purchase; only for App Store @is_upgrade Pass true if this is an upgrade from a monthly subscription to early subscription; only for App Store
+//@description The user subscribing to Telegram Premium @is_restore Pass true if this is a restore of a Telegram Premium purchase; only for App Store @is_upgrade Pass true if this is an upgrade from a monthly subscription to early subscription; only for App Store
 storePaymentPurposePremiumSubscription is_restore:Bool is_upgrade:Bool = StorePaymentPurpose;
 
-//@description The user gifted Telegram Premium to another user @user_id Identifier of the user to which Premium was gifted @currency ISO 4217 currency code of the payment currency @amount Paid amount, in the smallest units of the currency
+//@description The user gifting Telegram Premium to another user @user_id Identifier of the user to which Premium was gifted @currency ISO 4217 currency code of the payment currency @amount Paid amount, in the smallest units of the currency
 storePaymentPurposeGiftedPremium user_id:int53 currency:string amount:int53 = StorePaymentPurpose;
 
-//@description The user created Telegram Premium gift codes for other users
-//@user_ids Identifiers of the users which can activate the gift codes
+//@description The user creating Telegram Premium gift codes for other users
 //@boosted_chat_id Identifier of the channel chat, which will be automatically boosted by the users for duration of the Premium subscription and which is administered by the user; 0 if none
 //@currency ISO 4217 currency code of the payment currency
 //@amount Paid amount, in the smallest units of the currency
-storePaymentPurposePremiumGiftCodes user_ids:vector<int53> boosted_chat_id:int53 currency:string amount:int53 = StorePaymentPurpose;
+//@user_ids Identifiers of the users which can activate the gift codes
+storePaymentPurposePremiumGiftCodes boosted_chat_id:int53 currency:string amount:int53 user_ids:vector<int53> = StorePaymentPurpose;
 
-//@description The user created a Telegram Premium giveaway for subscribers of a channel chat
+//@description The user creating a Telegram Premium giveaway for subscribers of a channel chat
 //@boosted_chat_id Identifier of the channel chat, which will be automatically boosted by the users for duration of the Premium subscription and which is administered by the user
-//@additional_chat_ids Identifiers of other channel chats that must be subscribed by the users to be eligible
+//@additional_chat_ids Identifiers of other channel chats that must be subscribed by the users to be eligible for the giveaway
 //@date Point in time (Unix timestamp) when the giveaway will be performed; must be from 1 minute to 365 days in the future
 //@only_new_subscribers Pass true if only new subscribers of the chats will be eligible for the giveaway
 //@currency ISO 4217 currency code of the payment currency
 //@amount Paid amount, in the smallest units of the currency
 storePaymentPurposePremiumGiveaway boosted_chat_id:int53 additional_chat_ids:vector<int53> date:int32 only_new_subscribers:Bool currency:string amount:int53 = StorePaymentPurpose;
+
+
+//@class TelegramPaymentPurpose @description Describes a purpose of a payment toward Telegram
+
+//@description The user creating Telegram Premium gift codes for other users
+//@boosted_chat_id Identifier of the channel chat, which will be automatically boosted by the users for duration of the Premium subscription and which is administered by the user; 0 if none
+//@currency ISO 4217 currency code of the payment currency
+//@amount Paid amount, in the smallest units of the currency
+//@user_ids Identifiers of the users which can activate the gift codes
+//@month_count Number of month the Telegram Premium subscription will be active for the users
+telegramPaymentPurposePremiumGiftCodes boosted_chat_id:int53 currency:string amount:int53 user_ids:vector<int53> month_count:int32 = TelegramPaymentPurpose;
+
+//@description The user creating a Telegram Premium giveaway for subscribers of a channel chat
+//@boosted_chat_id Identifier of the channel chat, which will be automatically boosted by the users for duration of the Premium subscription and which is administered by the user
+//@additional_chat_ids Identifiers of other channel chats that must be subscribed by the users to be eligible for the giveaway
+//@date Point in time (Unix timestamp) when the giveaway will be performed; must be from 1 minute to 365 days in the future
+//@only_new_subscribers Pass true, if only new subscribers of the chats will be eligible for the giveaway
+//@currency ISO 4217 currency code of the payment currency
+//@amount Paid amount, in the smallest units of the currency
+//@user_count Number of users which will be able to activate the gift codes
+//@month_count Number of month the Telegram Premium subscription will be active for the users
+telegramPaymentPurposePremiumGiveaway boosted_chat_id:int53 additional_chat_ids:vector<int53> date:int32 only_new_subscribers:Bool currency:string amount:int53 user_count:int32 month_count:int32 = TelegramPaymentPurpose;
 
 
 //@class DeviceToken @description Represents a data needed to subscribe for push notifications through registerDevice method.

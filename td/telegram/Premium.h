@@ -8,14 +8,18 @@
 
 #include "td/telegram/DialogId.h"
 #include "td/telegram/td_api.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
 #include "td/utils/Promise.h"
 #include "td/utils/Slice.h"
+#include "td/utils/Status.h"
 
 namespace td {
 
 class Td;
+
+Result<telegram_api::object_ptr<telegram_api::InputPeer>> get_boost_input_peer(Td *td, DialogId dialog_id);
 
 const vector<Slice> &get_premium_limit_keys();
 

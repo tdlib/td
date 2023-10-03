@@ -90,7 +90,7 @@ static td_api::object_ptr<td_api::PremiumFeature> get_premium_feature_object(Sli
   return nullptr;
 }
 
-static Result<telegram_api::object_ptr<telegram_api::InputPeer>> get_boost_input_peer(Td *td, DialogId dialog_id) {
+Result<telegram_api::object_ptr<telegram_api::InputPeer>> get_boost_input_peer(Td *td, DialogId dialog_id) {
   if (dialog_id == DialogId()) {
     return nullptr;
   }

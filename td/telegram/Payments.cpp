@@ -17,6 +17,7 @@
 #include "td/telegram/misc.h"
 #include "td/telegram/PasswordManager.h"
 #include "td/telegram/Photo.h"
+#include "td/telegram/Premium.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
@@ -29,6 +30,7 @@
 #include "td/utils/common.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
+#include "td/utils/Random.h"
 #include "td/utils/Status.h"
 
 namespace td {
@@ -66,6 +68,83 @@ Result<InputInvoiceInfo> get_input_invoice_info(Td *td, td_api::object_ptr<td_ap
     case td_api::inputInvoiceName::ID: {
       auto invoice = td_api::move_object_as<td_api::inputInvoiceName>(input_invoice);
       result.input_invoice_ = make_tl_object<telegram_api::inputInvoiceSlug>(invoice->name_);
+      break;
+    }
+    case td_api::inputInvoiceTelegram::ID: {
+      auto invoice = td_api::move_object_as<td_api::inputInvoiceTelegram>(input_invoice);
+      if (invoice->purpose_ == nullptr) {
+        return Status::Error(400, "Purpose must not be empty");
+      }
+      switch (invoice->purpose_->get_id()) {
+        case td_api::telegramPaymentPurposePremiumGiftCodes::ID: {
+          auto p = static_cast<const td_api::telegramPaymentPurposePremiumGiftCodes *>(invoice->purpose_.get());
+          vector<telegram_api::object_ptr<telegram_api::InputUser>> input_users;
+          for (auto user_id : p->user_ids_) {
+            TRY_RESULT(input_user, td->contacts_manager_->get_input_user(UserId(user_id)));
+            input_users.push_back(std::move(input_user));
+          }
+          if (p->amount_ <= 0 || !check_currency_amount(p->amount_)) {
+            return Status::Error(400, "Invalid amount of the currency specified");
+          }
+          DialogId boosted_dialog_id(p->boosted_chat_id_);
+          TRY_RESULT(boost_input_peer, get_boost_input_peer(td, boosted_dialog_id));
+          int32 flags = 0;
+          if (boost_input_peer != nullptr) {
+            flags |= telegram_api::inputStorePaymentPremiumGiftCode::BOOST_PEER_MASK;
+          }
+          auto option = telegram_api::make_object<telegram_api::premiumGiftCodeOption>(
+              0, input_users.size(), p->month_count_, string(), 0, p->currency_, p->amount_);
+          auto purpose = telegram_api::make_object<telegram_api::inputStorePaymentPremiumGiftCode>(
+              flags, std::move(input_users), std::move(boost_input_peer), p->currency_, p->amount_);
+
+          result.dialog_id_ = boosted_dialog_id;
+          result.input_invoice_ = telegram_api::make_object<telegram_api::inputInvoicePremiumGiftCode>(
+              std::move(purpose), std::move(option));
+          break;
+        }
+        case td_api::telegramPaymentPurposePremiumGiveaway::ID: {
+          auto p = static_cast<const td_api::telegramPaymentPurposePremiumGiveaway *>(invoice->purpose_.get());
+          if (p->amount_ <= 0 || !check_currency_amount(p->amount_)) {
+            return Status::Error(400, "Invalid amount of the currency specified");
+          }
+          DialogId boosted_dialog_id(p->boosted_chat_id_);
+          TRY_RESULT(boost_input_peer, get_boost_input_peer(td, boosted_dialog_id));
+          if (boost_input_peer == nullptr) {
+            return Status::Error(400, "Boosted chat can't be empty");
+          }
+          vector<telegram_api::object_ptr<telegram_api::InputPeer>> additional_input_peers;
+          for (auto additional_chat_id : p->additional_chat_ids_) {
+            TRY_RESULT(input_peer, get_boost_input_peer(td, DialogId(additional_chat_id)));
+            if (input_peer == nullptr) {
+              return Status::Error(400, "Additional chat can't be empty");
+            }
+            additional_input_peers.push_back(std::move(input_peer));
+          }
+          int64 random_id;
+          do {
+            random_id = Random::secure_int64();
+          } while (random_id == 0);
+
+          int32 flags = 0;
+          if (p->only_new_subscribers_) {
+            flags |= telegram_api::inputStorePaymentPremiumGiveaway::ONLY_NEW_SUBSCRIBERS_MASK;
+          }
+          if (!additional_input_peers.empty()) {
+            flags |= telegram_api::inputStorePaymentPremiumGiveaway::ADDITIONAL_PEERS_MASK;
+          }
+          auto option = telegram_api::make_object<telegram_api::premiumGiftCodeOption>(
+              0, p->user_count_, p->month_count_, string(), 0, p->currency_, p->amount_);
+          auto purpose = telegram_api::make_object<telegram_api::inputStorePaymentPremiumGiveaway>(
+              flags, false /*ignored*/, std::move(boost_input_peer), std::move(additional_input_peers),
+              vector<string>(), random_id, p->date_, p->currency_, p->amount_);
+
+          result.input_invoice_ = telegram_api::make_object<telegram_api::inputInvoicePremiumGiftCode>(
+              std::move(purpose), std::move(option));
+          break;
+        }
+        default:
+          UNREACHABLE();
+      }
       break;
     }
     default:

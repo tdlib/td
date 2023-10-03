@@ -3119,8 +3119,8 @@ class CliClient final : public Actor {
                 boosted_chat_id, Auto(), static_cast<int32>(user_id) /*date*/, rand_bool(), currency, amount)));
       } else {
         send_request(td_api::make_object<td_api::canPurchasePremium>(
-            td_api::make_object<td_api::storePaymentPurposePremiumGiftCodes>(vector<int64>{user_id}, boosted_chat_id,
-                                                                             currency, amount)));
+            td_api::make_object<td_api::storePaymentPurposePremiumGiftCodes>(boosted_chat_id, currency, amount,
+                                                                             vector<int64>{user_id})));
       }
     } else if (op == "atos") {
       send_request(td_api::make_object<td_api::acceptTermsOfService>(args));
