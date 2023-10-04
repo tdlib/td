@@ -1717,10 +1717,9 @@ loginUrlInfoRequestConfirmation url:string domain:string bot_user_id:int53 reque
 
 //@description Contains information about a Web App found by its short name
 //@web_app The Web App
-//@supports_settings True, if the app supports "settings_button_pressed" event
 //@request_write_access True, if the user must be asked for the permission to the bot to send them messages
 //@skip_confirmation True, if there is no need to show an ordinary open URL confirmation before opening the Web App. The field must be ignored and confirmation must be shown anyway if the Web App link was hidden
-foundWebApp web_app:webApp supports_settings:Bool request_write_access:Bool skip_confirmation:Bool = FoundWebApp;
+foundWebApp web_app:webApp request_write_access:Bool skip_confirmation:Bool = FoundWebApp;
 
 //@description Contains information about a Web App @launch_id Unique identifier for the Web App launch @url A Web App URL to open in a web view
 webAppInfo launch_id:int64 url:string = WebAppInfo;
@@ -3728,7 +3727,6 @@ attachmentMenuBotColor light_color:int32 dark_color:int32 = AttachmentMenuBotCol
 //@supports_bot_chats True, if the bot supports opening from attachment menu in private chats with other bots
 //@supports_group_chats True, if the bot supports opening from attachment menu in basic group and supergroup chats
 //@supports_channel_chats True, if the bot supports opening from attachment menu in channel chats
-//@supports_settings True, if the bot supports "settings_button_pressed" event
 //@request_write_access True, if the user must be asked for the permission to send messages to the bot
 //@is_added True, if the bot was explicitly added by the user. If the bot isn't added, then on the first bot launch toggleBotIsAddedToAttachmentMenu must be called and the bot must be added or removed
 //@show_in_attachment_menu True, if the bot must be shown in the attachment menu
@@ -3746,7 +3744,7 @@ attachmentMenuBotColor light_color:int32 dark_color:int32 = AttachmentMenuBotCol
 //@macos_side_menu_icon Icon for the bot in PNG format for the official macOS app side menu; may be null
 //@icon_color Color to highlight selected icon of the bot if appropriate; may be null
 //@web_app_placeholder Default placeholder for opened Web Apps in SVG format; may be null
-attachmentMenuBot bot_user_id:int53 supports_self_chat:Bool supports_user_chats:Bool supports_bot_chats:Bool supports_group_chats:Bool supports_channel_chats:Bool supports_settings:Bool request_write_access:Bool is_added:Bool show_in_attachment_menu:Bool show_in_side_menu:Bool show_disclaimer_in_side_menu:Bool name:string name_color:attachmentMenuBotColor default_icon:file ios_static_icon:file ios_animated_icon:file ios_side_menu_icon:file android_icon:file android_side_menu_icon:file macos_icon:file macos_side_menu_icon:file icon_color:attachmentMenuBotColor web_app_placeholder:file = AttachmentMenuBot;
+attachmentMenuBot bot_user_id:int53 supports_self_chat:Bool supports_user_chats:Bool supports_bot_chats:Bool supports_group_chats:Bool supports_channel_chats:Bool request_write_access:Bool is_added:Bool show_in_attachment_menu:Bool show_in_side_menu:Bool show_disclaimer_in_side_menu:Bool name:string name_color:attachmentMenuBotColor default_icon:file ios_static_icon:file ios_animated_icon:file ios_side_menu_icon:file android_icon:file android_side_menu_icon:file macos_icon:file macos_side_menu_icon:file icon_color:attachmentMenuBotColor web_app_placeholder:file = AttachmentMenuBot;
 
 //@description Information about the message sent by answerWebAppQuery @inline_message_id Identifier of the sent inline message, if known
 sentWebAppMessage inline_message_id:string = SentWebAppMessage;

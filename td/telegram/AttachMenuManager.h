@@ -104,7 +104,6 @@ class AttachMenuManager final : public Actor {
     bool supports_bot_dialogs_ = false;
     bool supports_group_dialogs_ = false;
     bool supports_broadcast_dialogs_ = false;
-    bool supports_settings_ = false;
     bool request_write_access_ = false;
     bool show_in_attach_menu_ = false;
     bool show_in_side_menu_ = false;
