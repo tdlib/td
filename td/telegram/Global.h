@@ -146,20 +146,11 @@ class Global final : public ActorContext {
   bool is_server_time_reliable() const {
     return server_time_difference_was_updated_.load(std::memory_order_relaxed);
   }
-  double to_server_time(double now) const {
-    return now + get_server_time_difference();
-  }
   double server_time() const {
-    return to_server_time(Time::now());
-  }
-  double server_time_cached() const {
-    return to_server_time(Time::now_cached());
+    return Time::now() + get_server_time_difference();
   }
   int32 unix_time() const {
     return to_unix_time(server_time());
-  }
-  int32 unix_time_cached() const {
-    return to_unix_time(server_time_cached());
   }
 
   void update_server_time_difference(double diff, bool force);

@@ -32,10 +32,11 @@
 namespace td {
 
 tl_object_ptr<td_api::temporaryPasswordState> TempPasswordState::get_temporary_password_state_object() const {
-  if (!has_temp_password || valid_until <= G()->unix_time()) {
+  auto unix_time = G()->unix_time();
+  if (!has_temp_password || valid_until <= unix_time) {
     return make_tl_object<td_api::temporaryPasswordState>(false, 0);
   }
-  return make_tl_object<td_api::temporaryPasswordState>(true, valid_until - G()->unix_time_cached());
+  return make_tl_object<td_api::temporaryPasswordState>(true, valid_until - unix_time);
 }
 
 static void hash_sha256(Slice data, Slice salt, MutableSlice dest) {

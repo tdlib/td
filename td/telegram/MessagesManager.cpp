@@ -7632,7 +7632,7 @@ void MessagesManager::on_dialog_action(DialogId dialog_id, MessageId top_thread_
       active_dialog_action_timeout_.cancel_timeout(dialog_id.get());
     }
   } else {
-    if (date < G()->unix_time_cached() - DIALOG_ACTION_TIMEOUT - 60) {
+    if (date < G()->unix_time() - DIALOG_ACTION_TIMEOUT - 60) {
       LOG(DEBUG) << "Ignore too old action of " << typing_dialog_id << " in " << dialog_id << " sent at " << date;
       return;
     }
@@ -8060,10 +8060,9 @@ bool MessagesManager::update_dialog_notification_settings(DialogId dialog_id,
   return need_update.need_update_server;
 }
 
-void MessagesManager::schedule_dialog_unmute(DialogId dialog_id, bool use_default, int32 mute_until) {
-  auto now = G()->unix_time_cached();
-  if (!use_default && mute_until >= now && mute_until < now + 366 * 86400) {
-    dialog_unmute_timeout_.set_timeout_in(dialog_id.get(), mute_until - now + 1);
+void MessagesManager::schedule_dialog_unmute(DialogId dialog_id, bool use_default, int32 mute_until, int32 unix_time) {
+  if (!use_default && mute_until >= unix_time && mute_until < unix_time + 366 * 86400) {
+    dialog_unmute_timeout_.set_timeout_in(dialog_id.get(), mute_until - unix_time + 1);
   } else {
     dialog_unmute_timeout_.cancel_timeout(dialog_id.get());
   }
@@ -8082,7 +8081,7 @@ void MessagesManager::update_dialog_unmute_timeout(Dialog *d, bool &old_use_defa
   CHECK(d != nullptr);
   CHECK(old_mute_until >= 0);
 
-  schedule_dialog_unmute(d->dialog_id, new_use_default, new_mute_until);
+  schedule_dialog_unmute(d->dialog_id, new_use_default, new_mute_until, G()->unix_time());
 
   auto scope = get_dialog_notification_setting_scope(d->dialog_id);
   auto scope_mute_until = td_->notification_settings_manager_->get_scope_mute_until(scope);
@@ -8208,11 +8207,11 @@ void MessagesManager::on_dialog_unmute(DialogId dialog_id) {
     return;
   }
 
-  auto now = G()->unix_time();
-  if (d->notification_settings.mute_until > now) {
-    LOG(ERROR) << "Failed to unmute " << dialog_id << " in " << now << ", will be unmuted in "
-               << d->notification_settings.mute_until;
-    schedule_dialog_unmute(dialog_id, false, d->notification_settings.mute_until);
+  auto unix_time = G()->unix_time();
+  if (d->notification_settings.mute_until > unix_time) {
+    LOG(INFO) << "Failed to unmute " << dialog_id << " in " << unix_time << ", will be unmuted in "
+              << d->notification_settings.mute_until;
+    schedule_dialog_unmute(dialog_id, false, d->notification_settings.mute_until, unix_time);
     return;
   }
 
@@ -10737,7 +10736,7 @@ bool MessagesManager::can_delete_channel_message(const DialogParticipantStatus &
     return true;
   }
 
-  if (is_bot && G()->unix_time_cached() >= m->date + 2 * 86400) {
+  if (is_bot && G()->unix_time() >= m->date + 2 * 86400) {
     // bots can't delete messages older than 2 days
     return false;
   }
@@ -10818,12 +10817,12 @@ bool MessagesManager::can_revoke_message(DialogId dialog_id, const Message *m) c
       int64 revoke_time_limit =
           td_->option_manager_->get_option_integer("revoke_pm_time_limit", DEFAULT_REVOKE_TIME_LIMIT);
 
-      if (G()->unix_time_cached() - m->date < 86400 && content_type == MessageContentType::Dice) {
+      if (G()->unix_time() - m->date < 86400 && content_type == MessageContentType::Dice) {
         return false;
       }
       return ((m->is_outgoing && !is_service_message_content(content_type)) ||
               (can_revoke_incoming && content_type != MessageContentType::ScreenshotTaken)) &&
-             G()->unix_time_cached() - m->date <= revoke_time_limit;
+             G()->unix_time() - m->date <= revoke_time_limit;
     }
     case DialogType::Chat: {
       bool is_appointed_administrator =
@@ -10832,7 +10831,7 @@ bool MessagesManager::can_revoke_message(DialogId dialog_id, const Message *m) c
           td_->option_manager_->get_option_integer("revoke_time_limit", DEFAULT_REVOKE_TIME_LIMIT);
 
       return ((m->is_outgoing && !is_service_message_content(content_type)) || is_appointed_administrator) &&
-             G()->unix_time_cached() - m->date <= revoke_time_limit;
+             G()->unix_time() - m->date <= revoke_time_limit;
     }
     case DialogType::Channel:
       return true;  // any server message that can be deleted will be deleted for all participants
@@ -11734,8 +11733,7 @@ void MessagesManager::unload_dialog(DialogId dialog_id, int32 delay) {
   }
 
   bool has_left_to_unload_messages = false;
-  auto to_unload_message_ids =
-      find_unloadable_messages(d, G()->unix_time_cached() - delay, has_left_to_unload_messages);
+  auto to_unload_message_ids = find_unloadable_messages(d, G()->unix_time() - delay, has_left_to_unload_messages);
 
   vector<int64> unloaded_message_ids;
   vector<unique_ptr<Message>> unloaded_messages;
@@ -26191,7 +26189,7 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
   if (has_edit_time_limit) {
     const int32 DEFAULT_EDIT_TIME_LIMIT = 2 * 86400;
     int64 edit_time_limit = td_->option_manager_->get_option_integer("edit_time_limit", DEFAULT_EDIT_TIME_LIMIT);
-    if (G()->unix_time_cached() - m->date - (is_editing ? 300 : 0) >= edit_time_limit) {
+    if (G()->unix_time() - m->date - (is_editing ? 300 : 0) >= edit_time_limit) {
       return false;
     }
   }
@@ -26211,7 +26209,7 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
         // there is no caption to edit, but bot can edit inline reply_markup
         return true;
       }
-      return G()->unix_time_cached() - m->date < get_message_content_live_location_period(m->content.get());
+      return G()->unix_time() - m->date < get_message_content_live_location_period(m->content.get());
     }
     case MessageContentType::Poll: {
       if (is_bot && only_reply_markup) {
@@ -34026,7 +34024,7 @@ const MessagesManager::Message *MessagesManager::get_message(const Dialog *d, Me
   } else {
     result = d->messages.get_pointer(message_id);
     if (result != nullptr) {
-      auto unix_time = G()->unix_time_cached();
+      auto unix_time = G()->unix_time();
       if (unix_time > result->last_access_date + 5) {
         result->last_access_date = unix_time;
         auto list_node = const_cast<ListNode *>(static_cast<const ListNode *>(result));
@@ -34263,7 +34261,7 @@ void MessagesManager::fix_new_message(const Dialog *d, Message *m, bool from_dat
     }
   }
 
-  m->last_access_date = G()->unix_time_cached();
+  m->last_access_date = G()->unix_time();
 
   if (m->contains_mention) {
     CHECK(!td_->auth_manager_->is_bot());
@@ -34287,7 +34285,7 @@ void MessagesManager::fix_new_message(const Dialog *d, Message *m, bool from_dat
   if (dialog_type == DialogType::Channel && !m->contains_unread_mention) {
     auto channel_read_media_period =
         td_->option_manager_->get_option_integer("channels_read_media_period", (G()->is_test_dc() ? 300 : 7 * 86400));
-    if (m->date < G()->unix_time_cached() - channel_read_media_period) {
+    if (m->date < G()->unix_time() - channel_read_media_period) {
       update_opened_message_content(m->content.get());
     }
   }
@@ -34815,7 +34813,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   if (from_update && !m->is_failed_to_send && dialog_type == DialogType::Channel) {
-    auto now = max(G()->unix_time_cached(), m->date);
+    auto now = max(G()->unix_time(), m->date);
     if (m->date < now - 2 * 86400 && Slice(source) == Slice("updateNewChannelMessage")) {
       // if the message is pretty old, we might have missed the update that the message has already been read
       repair_channel_server_unread_count(d);
@@ -36604,7 +36602,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
       d->notification_settings.mute_until <= G()->unix_time()) {
     d->notification_settings.mute_until = 0;
   } else {
-    schedule_dialog_unmute(dialog_id, false, d->notification_settings.mute_until);
+    schedule_dialog_unmute(dialog_id, false, d->notification_settings.mute_until, G()->unix_time());
   }
   if (d->notification_info != nullptr && d->notification_info->pinned_message_notification_message_id_.is_valid()) {
     auto pinned_message_id = d->notification_info->pinned_message_notification_message_id_;

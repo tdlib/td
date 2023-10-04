@@ -351,14 +351,15 @@ double TopDialogManager::rating_add(double now, double rating_timestamp) const {
   return std::exp((now - rating_timestamp) / rating_e_decay_);
 }
 
-double TopDialogManager::current_rating_add(double rating_timestamp) const {
-  return rating_add(G()->server_time_cached(), rating_timestamp);
+double TopDialogManager::current_rating_add(double server_time, double rating_timestamp) const {
+  return rating_add(server_time, rating_timestamp);
 }
 
 void TopDialogManager::normalize_rating() {
+  auto server_time = G()->server_time();
   for (auto &top_dialogs : by_category_) {
-    auto div_by = current_rating_add(top_dialogs.rating_timestamp);
-    top_dialogs.rating_timestamp = G()->server_time_cached();
+    auto div_by = current_rating_add(server_time, top_dialogs.rating_timestamp);
+    top_dialogs.rating_timestamp = server_time;
     for (auto &dialog : top_dialogs.dialogs) {
       dialog.rating /= div_by;
     }

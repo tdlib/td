@@ -2634,7 +2634,7 @@ class MessagesManager final : public Actor {
   bool update_dialog_notification_settings(DialogId dialog_id, DialogNotificationSettings *current_settings,
                                            DialogNotificationSettings &&new_settings);
 
-  void schedule_dialog_unmute(DialogId dialog_id, bool use_default, int32 mute_until);
+  void schedule_dialog_unmute(DialogId dialog_id, bool use_default, int32 mute_until, int32 unix_time);
 
   void update_dialog_unmute_timeout(Dialog *d, bool &old_use_default, int32 &old_mute_until, bool new_use_default,
                                     int32 new_mute_until);

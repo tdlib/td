@@ -1095,8 +1095,8 @@ void InlineQueriesManager::loop() {
     pending_inline_query_ = nullptr;
   } else {
     if (!has_timeout()) {
-      LOG(INFO) << "Schedule send inline query " << pending_inline_query_->query_hash << " at "
-                << G()->to_server_time(next_inline_query_time_);
+      LOG(INFO) << "Schedule send inline query " << pending_inline_query_->query_hash << " in "
+                << next_inline_query_time_ - now;
       set_timeout_at(next_inline_query_time_);
     }
   }

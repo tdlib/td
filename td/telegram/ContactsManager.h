@@ -1614,7 +1614,7 @@ class ContactsManager final : public Actor {
 
   static bool is_user_bot(const User *u);
 
-  int32 get_user_was_online(const User *u, UserId user_id) const;
+  int32 get_user_was_online(const User *u, UserId user_id, int32 unix_time) const;
 
   int64 get_contacts_hash();
 
@@ -1758,7 +1758,7 @@ class ContactsManager final : public Actor {
 
   td_api::object_ptr<td_api::updateUser> get_update_unknown_user_object(UserId user_id) const;
 
-  td_api::object_ptr<td_api::UserStatus> get_user_status_object(UserId user_id, const User *u) const;
+  td_api::object_ptr<td_api::UserStatus> get_user_status_object(UserId user_id, const User *u, int32 unix_time) const;
 
   tl_object_ptr<td_api::user> get_user_object(UserId user_id, const User *u) const;
 
