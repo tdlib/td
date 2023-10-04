@@ -7097,6 +7097,7 @@ bool MessagesManager::update_message_interaction_info(Dialog *d, Message *m, int
     }
     reactions->sort_reactions(active_reaction_pos_);
     reactions->fix_chosen_reaction();
+    reactions->fix_my_recent_chooser_dialog_id(get_my_dialog_id());
   }
   bool need_update_reactions =
       has_reactions && MessageReactions::need_update_message_reactions(m->reactions.get(), reactions.get());
@@ -14501,6 +14502,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   if (reactions != nullptr) {
     reactions->sort_reactions(active_reaction_pos_);
     reactions->fix_chosen_reaction();
+    reactions->fix_my_recent_chooser_dialog_id(get_my_dialog_id());
   }
 
   bool has_forward_info = message_info.forward_header != nullptr;
@@ -23771,6 +23773,7 @@ void MessagesManager::add_message_reaction(MessageFullId message_full_id, Reacti
     m->available_reactions_generation = d->available_reactions_generation;
   }
 
+  LOG(INFO) << "Have message with " << *m->reactions;
   auto my_dialog_id =
       d->default_send_message_as_dialog_id.is_valid() ? d->default_send_message_as_dialog_id : get_my_dialog_id();
   if (!m->reactions->add_reaction(reaction_type, is_big, my_dialog_id, have_recent_choosers)) {
@@ -23801,9 +23804,14 @@ void MessagesManager::remove_message_reaction(MessageFullId message_full_id, Rea
     return promise.set_error(Status::Error(400, "Invalid reaction specified"));
   }
 
+  if (m->reactions == nullptr) {
+    return promise.set_value(Unit());
+  }
+
+  LOG(INFO) << "Have message with " << *m->reactions;
   auto my_dialog_id =
       d->default_send_message_as_dialog_id.is_valid() ? d->default_send_message_as_dialog_id : get_my_dialog_id();
-  if (m->reactions == nullptr || !m->reactions->remove_reaction(reaction_type, my_dialog_id)) {
+  if (!m->reactions->remove_reaction(reaction_type, my_dialog_id)) {
     return promise.set_value(Unit());
   }
 
