@@ -188,7 +188,7 @@ class NotificationSettingsManager final : public Actor {
 
   void update_scope_notification_settings_on_server(NotificationSettingsScope scope, uint64 log_event_id);
 
-  void schedule_scope_unmute(NotificationSettingsScope scope, int32 mute_until);
+  void schedule_scope_unmute(NotificationSettingsScope scope, int32 mute_until, int32 unix_time);
 
   void update_scope_unmute_timeout(NotificationSettingsScope scope, int32 &old_mute_until, int32 new_mute_until);
 

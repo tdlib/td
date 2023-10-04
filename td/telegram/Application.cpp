@@ -150,7 +150,7 @@ static void save_app_log_impl(Td *td, telegram_api::object_ptr<telegram_api::inp
 void save_app_log(Td *td, const string &type, DialogId dialog_id, tl_object_ptr<telegram_api::JSONValue> &&data,
                   Promise<Unit> &&promise) {
   CHECK(data != nullptr);
-  auto input_app_event = telegram_api::make_object<telegram_api::inputAppEvent>(G()->server_time_cached(), type,
+  auto input_app_event = telegram_api::make_object<telegram_api::inputAppEvent>(G()->server_time(), type,
                                                                                 dialog_id.get(), std::move(data));
   save_app_log_impl(td, std::move(input_app_event), 0, std::move(promise));
 }

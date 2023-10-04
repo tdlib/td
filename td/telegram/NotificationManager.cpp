@@ -843,6 +843,7 @@ int32 NotificationManager::get_notification_delay_ms(DialogId dialog_id, const P
     return MIN_NOTIFICATION_DELAY_MS;
   }
 
+  auto server_time = G()->server_time();
   auto delay_ms = [&] {
     auto online_info = td_->contacts_manager_->get_my_online_status();
     if (!online_info.is_online_local && online_info.is_online_remote) {
@@ -852,8 +853,8 @@ int32 NotificationManager::get_notification_delay_ms(DialogId dialog_id, const P
     }
 
     if (!online_info.is_online_local &&
-        online_info.was_online_remote > max(static_cast<double>(online_info.was_online_local),
-                                            G()->server_time_cached() - online_cloud_timeout_ms_ * 1e-3)) {
+        online_info.was_online_remote >
+            max(static_cast<double>(online_info.was_online_local), server_time - online_cloud_timeout_ms_ * 1e-3)) {
       // If we are offline, but was online from some other client in last 'online_cloud_timeout' seconds
       // after we had gone offline, then delay notification for 'notification_cloud_delay' seconds.
       return notification_cloud_delay_ms_;
@@ -868,8 +869,7 @@ int32 NotificationManager::get_notification_delay_ms(DialogId dialog_id, const P
     return 0;
   }();
 
-  auto passed_time_ms =
-      static_cast<int32>(clamp(G()->server_time_cached() - notification.date - 1, 0.0, 1000000.0) * 1000);
+  auto passed_time_ms = static_cast<int32>(clamp(server_time - notification.date - 1, 0.0, 1000000.0) * 1000);
   return max(max(min_delay_ms, delay_ms) - passed_time_ms, MIN_NOTIFICATION_DELAY_MS);
 }
 
