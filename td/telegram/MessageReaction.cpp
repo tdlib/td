@@ -300,11 +300,7 @@ MessageReaction::MessageReaction(ReactionType reaction_type, int32 choose_count,
 void MessageReaction::add_recent_chooser_dialog_id(DialogId dialog_id) {
   CHECK(!my_recent_chooser_dialog_id_.is_valid());
   my_recent_chooser_dialog_id_ = dialog_id;
-  recent_chooser_dialog_ids_.insert(recent_chooser_dialog_ids_.begin(), dialog_id);
-  if (recent_chooser_dialog_ids_.size() > MAX_RECENT_CHOOSERS + 1) {
-    LOG(ERROR) << "Have " << recent_chooser_dialog_ids_.size() << " recent reaction choosers";
-    recent_chooser_dialog_ids_.resize(MAX_RECENT_CHOOSERS + 1);
-  }
+  add_to_top(recent_chooser_dialog_ids_, MAX_RECENT_CHOOSERS + 1, dialog_id);
 }
 
 bool MessageReaction::remove_recent_chooser_dialog_id() {

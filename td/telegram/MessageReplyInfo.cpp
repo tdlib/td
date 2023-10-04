@@ -166,13 +166,10 @@ bool MessageReplyInfo::add_reply(DialogId replier_dialog_id, MessageId reply_mes
       }
     }
 
-    td::remove(recent_replier_dialog_ids_, replier_dialog_id);
     if (diff > 0) {
-      recent_replier_dialog_ids_.insert(recent_replier_dialog_ids_.begin(), replier_dialog_id);
-      if (recent_replier_dialog_ids_.size() > MAX_RECENT_REPLIERS) {
-        recent_replier_dialog_ids_.pop_back();
-      }
+      add_to_top(recent_replier_dialog_ids_, MAX_RECENT_REPLIERS, replier_dialog_id);
     } else {
+      td::remove(recent_replier_dialog_ids_, replier_dialog_id);
       auto max_repliers = static_cast<size_t>(reply_count_);
       if (recent_replier_dialog_ids_.size() > max_repliers) {
         recent_replier_dialog_ids_.resize(max_repliers);
