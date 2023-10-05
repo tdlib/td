@@ -3340,12 +3340,9 @@ void Td::dec_actor_refcnt() {
       option_manager_.reset();
       LOG(DEBUG) << "OptionManager was cleared" << timer;
 
-      Promise<> promise = PromiseCreator::lambda([actor_id = create_reference()](Unit) mutable { actor_id.reset(); });
-      if (destroy_flag_) {
-        G()->close_and_destroy_all(std::move(promise));
-      } else {
-        G()->close_all(std::move(promise));
-      }
+      G()->close_all(destroy_flag_,
+                     PromiseCreator::lambda([actor_id = create_reference()](Unit) mutable { actor_id.reset(); }));
+
       // NetQueryDispatcher will be closed automatically
       close_flag_ = 4;
     } else if (close_flag_ == 4) {

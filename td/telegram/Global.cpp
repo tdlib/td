@@ -38,13 +38,9 @@ void Global::log_out(Slice reason) {
   send_closure(auth_manager_, &AuthManager::on_authorization_lost, reason.str());
 }
 
-void Global::close_all(Promise<> on_finished) {
-  td_db_->close_all(std::move(on_finished));
-  state_manager_.clear();
-}
-
-void Global::close_and_destroy_all(Promise<> on_finished) {
-  td_db_->close_and_destroy_all(std::move(on_finished));
+void Global::close_all(bool destroy_flag, Promise<Unit> on_finished) {
+  td_db_->close(use_sqlite_pmc() ? get_database_scheduler_id() : get_slow_net_scheduler_id(), destroy_flag,
+                std::move(on_finished));
   state_manager_.clear();
 }
 

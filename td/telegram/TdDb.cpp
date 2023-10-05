@@ -270,17 +270,19 @@ void TdDb::flush_all() {
   binlog_->force_flush();
 }
 
-void TdDb::close_all(Promise<> on_finished) {
-  LOG(INFO) << "Close all databases";
-  do_close(std::move(on_finished), false /*destroy_flag*/);
+void TdDb::close(int32 scheduler_id, bool destroy_flag, Promise<Unit> on_finished) {
+  Scheduler::instance()->run_on_scheduler(scheduler_id,
+                                          [this, destroy_flag, on_finished = std::move(on_finished)](Unit) mutable {
+                                            do_close(destroy_flag, std::move(on_finished));
+                                          });
 }
 
-void TdDb::close_and_destroy_all(Promise<> on_finished) {
-  LOG(INFO) << "Destroy all databases";
-  do_close(std::move(on_finished), true /*destroy_flag*/);
-}
-
-void TdDb::do_close(Promise<> on_finished, bool destroy_flag) {
+void TdDb::do_close(bool destroy_flag, Promise<Unit> on_finished) {
+  if (destroy_flag) {
+    LOG(INFO) << "Destroy all databases";
+  } else {
+    LOG(INFO) << "Close all databases";
+  }
   MultiPromiseActorSafe mpas{"TdDbCloseMultiPromiseActor"};
   mpas.add_promise(PromiseCreator::lambda(
       [promise = std::move(on_finished), sql_connection = std::move(sql_connection_), destroy_flag](Unit) mutable {
