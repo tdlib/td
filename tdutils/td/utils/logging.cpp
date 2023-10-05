@@ -191,8 +191,7 @@ class DefaultLog final : public LogInterface {
 #elif TD_EMSCRIPTEN
     switch (log_level) {
       case VERBOSITY_NAME(FATAL):
-        emscripten_log(EM_LOG_ERROR | EM_LOG_CONSOLE | EM_LOG_C_STACK | EM_LOG_JS_STACK | EM_LOG_FUNC_PARAMS, "%s",
-                       slice.c_str());
+        emscripten_log(EM_LOG_ERROR | EM_LOG_CONSOLE | EM_LOG_C_STACK | EM_LOG_JS_STACK, "%s", slice.c_str());
         EM_ASM(throw(UTF8ToString($0)), slice.c_str());
         break;
       case VERBOSITY_NAME(ERROR):
