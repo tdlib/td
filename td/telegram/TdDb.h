@@ -134,8 +134,7 @@ class TdDb {
 
   void flush_all();
 
-  void close_all(Promise<> on_finished);
-  void close_and_destroy_all(Promise<> on_finished);
+  void close(int32 scheduler_id, bool destroy_flag, Promise<Unit> on_finished);
 
   MessageDbSyncInterface *get_message_db_sync();
   MessageDbAsyncInterface *get_message_db_async();
@@ -190,7 +189,7 @@ class TdDb {
   Status init_sqlite(const Parameters &parameters, const DbKey &key, const DbKey &old_key,
                      BinlogKeyValue<Binlog> &binlog_pmc);
 
-  void do_close(Promise<> on_finished, bool destroy_flag);
+  void do_close(bool destroy_flag, Promise<Unit> on_finished);
 };
 
 }  // namespace td

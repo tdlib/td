@@ -92,8 +92,7 @@ class Global final : public ActorContext {
 
   void log_out(Slice reason);
 
-  void close_all(Promise<> on_finished);
-  void close_and_destroy_all(Promise<> on_finished);
+  void close_all(bool destroy_flag, Promise<> on_finished);
 
   Status init(ActorId<Td> td, unique_ptr<TdDb> td_db_ptr) TD_WARN_UNUSED_RESULT;
 

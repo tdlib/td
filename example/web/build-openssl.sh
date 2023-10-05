@@ -6,7 +6,7 @@ emconfigure true 2> /dev/null || { echo 'emconfigure not found. Install emsdk an
 OPENSSL=OpenSSL_1_1_0l
 if [ ! -f $OPENSSL.tar.gz ]; then
   echo "Downloading OpenSSL sources..."
-  wget https://github.com/openssl/openssl/archive/$OPENSSL.tar.gz
+  curl -sfLO https://github.com/openssl/openssl/archive/$OPENSSL.tar.gz
 fi
 rm -rf ./openssl-$OPENSSL
 echo "Unpacking OpenSSL sources..."
