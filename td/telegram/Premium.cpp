@@ -18,6 +18,7 @@
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/PremiumGiftOption.h"
+#include "td/telegram/ServerMessageId.h"
 #include "td/telegram/SuggestedAction.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
@@ -394,6 +395,94 @@ class ApplyGiftCodeQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class GetGiveawayInfoQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::PremiumGiveawayInfo>> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit GetGiveawayInfoQuery(Promise<td_api::object_ptr<td_api::PremiumGiveawayInfo>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, ServerMessageId server_message_id) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_getGiveawayInfo(std::move(input_peer), server_message_id.get())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_getGiveawayInfo>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetGiveawayInfoQuery: " << to_string(ptr);
+    switch (ptr->get_id()) {
+      case telegram_api::payments_giveawayInfo::ID: {
+        auto info = telegram_api::move_object_as<telegram_api::payments_giveawayInfo>(ptr);
+        auto status = [&]() -> td_api::object_ptr<td_api::PremiumGiveawayParticipantStatus> {
+          if (info->joined_too_early_date_ > 0) {
+            return td_api::make_object<td_api::premiumGiveawayParticipantStatusAlreadyWasMember>(
+                info->joined_too_early_date_);
+          }
+          if (info->admin_disallowed_chat_id_ > 0) {
+            ChannelId channel_id(info->admin_disallowed_chat_id_);
+            if (!channel_id.is_valid() ||
+                !td_->contacts_manager_->have_channel_force(channel_id, "GetGiveawayInfoQuery")) {
+              LOG(ERROR) << "Receive " << to_string(info);
+            } else {
+              DialogId dialog_id(channel_id);
+              td_->messages_manager_->force_create_dialog(dialog_id, "GetGiveawayInfoQuery");
+              return td_api::make_object<td_api::premiumGiveawayParticipantStatusAdministrator>(
+                  td_->messages_manager_->get_chat_id_object(dialog_id,
+                                                             "premiumGiveawayParticipantStatusAdministrator"));
+            }
+          }
+          if (info->participating_) {
+            return td_api::make_object<td_api::premiumGiveawayParticipantStatusParticipating>();
+          }
+          return td_api::make_object<td_api::premiumGiveawayParticipantStatusEligible>();
+        }();
+        promise_.set_value(
+            td_api::make_object<td_api::premiumGiveawayInfoOngoing>(std::move(status), info->preparing_results_));
+        break;
+      }
+      case telegram_api::payments_giveawayInfoResults::ID: {
+        auto info = telegram_api::move_object_as<telegram_api::payments_giveawayInfoResults>(ptr);
+        auto winner_count = info->winners_count_;
+        auto activated_count = info->activated_count_;
+        if (activated_count < 0 || activated_count > winner_count) {
+          LOG(ERROR) << "Receive " << to_string(info);
+          if (activated_count < 0) {
+            activated_count = 0;
+          }
+          if (winner_count < 0) {
+            winner_count = 0;
+          }
+          if (activated_count > winner_count) {
+            activated_count = winner_count;
+          }
+        }
+        promise_.set_value(td_api::make_object<td_api::premiumGiveawayInfoCompleted>(
+            max(0, info->finish_date_), info->refunded_, winner_count, activated_count, info->gift_code_slug_));
+        break;
+      }
+      default:
+        UNREACHABLE();
+    }
+  }
+
+  void on_error(Status status) final {
+    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetGiveawayInfoQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -836,6 +925,13 @@ void check_premium_gift_code(Td *td, const string &code,
 
 void apply_premium_gift_code(Td *td, const string &code, Promise<Unit> &&promise) {
   td->create_handler<ApplyGiftCodeQuery>(std::move(promise))->send(code);
+}
+
+void get_premium_giveaway_info(Td *td, MessageFullId message_full_id,
+                               Promise<td_api::object_ptr<td_api::PremiumGiveawayInfo>> &&promise) {
+  TRY_RESULT_PROMISE(promise, server_message_id, td->messages_manager_->get_giveaway_message_id(message_full_id));
+  td->create_handler<GetGiveawayInfoQuery>(std::move(promise))
+      ->send(message_full_id.get_dialog_id(), server_message_id);
 }
 
 void can_purchase_premium(Td *td, td_api::object_ptr<td_api::StorePaymentPurpose> &&purpose, Promise<Unit> &&promise) {

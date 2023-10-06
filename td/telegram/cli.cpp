@@ -3101,6 +3101,11 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::checkPremiumGiftCode>(args));
     } else if (op == "apgc") {
       send_request(td_api::make_object<td_api::applyPremiumGiftCode>(args));
+    } else if (op == "gpgi") {
+      ChatId chat_id;
+      MessageId message_id;
+      get_args(args, chat_id, message_id);
+      send_request(td_api::make_object<td_api::getPremiumGiveawayInfo>(chat_id, message_id));
     } else if (op == "cppr" || op == "cpprb" || op == "cpprg") {
       UserId user_id;
       string currency;

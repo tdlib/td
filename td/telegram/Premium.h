@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/MessageFullId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -42,6 +43,9 @@ void check_premium_gift_code(Td *td, const string &code,
                              Promise<td_api::object_ptr<td_api::premiumGiftCodeInfo>> &&promise);
 
 void apply_premium_gift_code(Td *td, const string &code, Promise<Unit> &&promise);
+
+void get_premium_giveaway_info(Td *td, MessageFullId message_full_id,
+                               Promise<td_api::object_ptr<td_api::PremiumGiveawayInfo>> &&promise);
 
 void can_purchase_premium(Td *td, td_api::object_ptr<td_api::StorePaymentPurpose> &&purpose, Promise<Unit> &&promise);
 

@@ -28219,10 +28219,10 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
     MessageSendOptions options(message->disable_notification, message->from_background,
                                message->update_stickersets_order, message->noforwards,
                                get_message_schedule_date(message.get()), message->sending_id);
-    Message *m = get_message_to_send(
-        d, message->top_thread_message_id, get_message_input_reply_to(message.get()), options,
-        std::move(new_contents[i]), &need_update_dialog_pos, false, nullptr, message->is_copy,
-        need_another_sender ? DialogId() : get_message_sender(message.get()));
+    Message *m =
+        get_message_to_send(d, message->top_thread_message_id, get_message_input_reply_to(message.get()), options,
+                            std::move(new_contents[i]), &need_update_dialog_pos, false, nullptr, message->is_copy,
+                            need_another_sender ? DialogId() : get_message_sender(message.get()));
     m->reply_markup = std::move(message->reply_markup);
     // m->via_bot_user_id = message->via_bot_user_id;
     m->disable_web_page_preview = message->disable_web_page_preview;
@@ -40065,6 +40065,24 @@ Result<ServerMessageId> MessagesManager::get_payment_successful_message_id(Messa
     return Status::Error(400, "Message not found");
   }
   if (m->content->get_type() != MessageContentType::PaymentSuccessful) {
+    return Status::Error(400, "Message has wrong type");
+  }
+  if (m->message_id.is_scheduled()) {
+    return Status::Error(400, "Wrong scheduled message identifier");
+  }
+  if (!m->message_id.is_server()) {
+    return Status::Error(400, "Wrong message identifier");
+  }
+
+  return m->message_id.get_server_message_id();
+}
+
+Result<ServerMessageId> MessagesManager::get_giveaway_message_id(MessageFullId message_full_id) {
+  auto m = get_message_force(message_full_id, "get_giveaway_message_id");
+  if (m == nullptr) {
+    return Status::Error(400, "Message not found");
+  }
+  if (m->content->get_type() != MessageContentType::Giveaway) {
     return Status::Error(400, "Message has wrong type");
   }
   if (m->message_id.is_scheduled()) {

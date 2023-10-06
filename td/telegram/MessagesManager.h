@@ -1019,6 +1019,8 @@ class MessagesManager final : public Actor {
 
   Result<ServerMessageId> get_payment_successful_message_id(MessageFullId message_full_id);
 
+  Result<ServerMessageId> get_giveaway_message_id(MessageFullId message_full_id);
+
   bool can_set_game_score(MessageFullId message_full_id) const;
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;

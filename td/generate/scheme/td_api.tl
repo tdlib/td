@@ -706,6 +706,38 @@ premiumGiftCodePaymentOptions options:vector<premiumGiftCodePaymentOption> = Pre
 premiumGiftCodeInfo creator_id:MessageSender creation_date:int32 is_from_giveaway:Bool giveaway_message_id:int53 month_count:int32 user_id:int53 use_date:int32 = PremiumGiftCodeInfo;
 
 
+//@class PremiumGiveawayParticipantStatus @description Contains information about status of a user in a Telegram Premium giveaway
+
+//@description The user is eligible for the giveaway
+premiumGiveawayParticipantStatusEligible = PremiumGiveawayParticipantStatus;
+
+//@description The user participates in the giveaway
+premiumGiveawayParticipantStatusParticipating = PremiumGiveawayParticipantStatus;
+
+//@description The user can't participate in the giveaway, because it has already been member of the chat
+//@joined_chat_date Point in time (Unix timestamp) when the user joined the chat
+premiumGiveawayParticipantStatusAlreadyWasMember joined_chat_date:int32 = PremiumGiveawayParticipantStatus;
+
+//@description The user is an administrator in one of the chats that created the giveaway @chat_id Identifier of the chat administered by the user
+premiumGiveawayParticipantStatusAdministrator chat_id:int53 = PremiumGiveawayParticipantStatus;
+
+
+//@class PremiumGiveawayInfo @description Contains information about Telegram Premium giveaway
+
+//@description Describes an ongoing giveaway
+//@status Status of the current user in the giveaway
+//@is_ended True, if the giveaway has ended and results are being prepared
+premiumGiveawayInfoOngoing status:PremiumGiveawayParticipantStatus is_ended:Bool = PremiumGiveawayInfo;
+
+//@description Describes a completed giveaway
+//@winners_selection_date Point in time (Unix timestamp) when the winners were selected
+//@was_refunded True, if the giveaway was canceled and was fully refunded
+//@winner_count Number of winners in the giveaway
+//@activation_count Number of winners, which activated their gift codes
+//@gift_code Telegram Premium gift code that was received by the current user; empty if the user isn't a winner in the giveaway
+premiumGiveawayInfoCompleted winners_selection_date:int32 was_refunded:Bool winner_count:int32 activation_count:int32 gift_code:string = PremiumGiveawayInfo;
+
+
 //@description Describes a custom emoji to be shown instead of the Telegram Premium badge
 //@custom_emoji_id Identifier of the custom emoji in stickerFormatTgs format
 //@expiration_date Point in time (Unix timestamp) when the status will expire; 0 if never
@@ -9115,6 +9147,11 @@ checkPremiumGiftCode code:string = PremiumGiftCodeInfo;
 
 //@description Applies a Telegram Premium gift code @code The code to apply
 applyPremiumGiftCode code:string = Ok;
+
+//@description Returns information about a Telegram Premium giveaway
+//@chat_id Identifier of the channel chat which started the giveaway
+//@message_id Identifier of the giveaway message in the chat
+getPremiumGiveawayInfo chat_id:int53 message_id:int53 = PremiumGiveawayInfo;
 
 //@description Checks whether Telegram Premium purchase is possible. Must be called before in-store Premium purchase @purpose Transaction purpose
 canPurchasePremium purpose:StorePaymentPurpose = Ok;

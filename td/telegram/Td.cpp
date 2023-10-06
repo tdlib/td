@@ -8809,6 +8809,12 @@ void Td::on_request(uint64 id, td_api::applyPremiumGiftCode &request) {
   apply_premium_gift_code(this, request.code_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getPremiumGiveawayInfo &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  get_premium_giveaway_info(this, {DialogId(request.chat_id_), MessageId(request.message_id_)}, std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::canPurchasePremium &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
