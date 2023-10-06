@@ -919,29 +919,29 @@ class CliClient final : public Actor {
     arg.file_id = as_file_id(args);
   }
 
-  struct MessageReplyTo {
+  struct InputMessageReplyTo {
     int64 message_id = 0;
     // or
     int64 user_id = 0;
     int32 story_id = 0;
 
-    static MessageReplyTo get_default() {
+    static InputMessageReplyTo get_default() {
       return {};
     }
 
-    operator td_api::object_ptr<td_api::MessageReplyTo>() const {
+    operator td_api::object_ptr<td_api::InputMessageReplyTo>() const {
       if (message_id == 0 && user_id == 0 && story_id == 0) {
         return nullptr;
       }
       if (message_id != 0) {
-        return td_api::make_object<td_api::messageReplyToMessage>(-1, message_id);
+        return td_api::make_object<td_api::inputMessageReplyToMessage>(message_id);
       } else {
-        return td_api::make_object<td_api::messageReplyToStory>(user_id, story_id);
+        return td_api::make_object<td_api::inputMessageReplyToStory>(user_id, story_id);
       }
     }
   };
 
-  void get_args(string &args, MessageReplyTo &arg) const {
+  void get_args(string &args, InputMessageReplyTo &arg) const {
     if (!args.empty() && args != "0") {
       if (args.find('_') == string::npos) {
         arg.message_id = as_message_id(args);
@@ -2235,9 +2235,9 @@ class CliClient final : public Actor {
 
   void send_message(int64 chat_id, td_api::object_ptr<td_api::InputMessageContent> &&input_message_content,
                     bool disable_notification = false, bool from_background = false,
-                    MessageReplyTo message_reply_to = MessageReplyTo::get_default()) {
+                    InputMessageReplyTo reply_to = InputMessageReplyTo::get_default()) {
     auto id = send_request(td_api::make_object<td_api::sendMessage>(
-        chat_id, message_thread_id_, message_reply_to,
+        chat_id, message_thread_id_, reply_to,
         td_api::make_object<td_api::messageSendOptions>(disable_notification, from_background, true, true,
                                                         as_message_scheduling_state(schedule_date_),
                                                         Random::fast(1, 1000)),
@@ -4371,11 +4371,11 @@ class CliClient final : public Actor {
       ChatId chat_id;
       UserId bot_user_id;
       string url;
-      MessageReplyTo message_reply_to;
+      InputMessageReplyTo reply_to;
       MessageThreadId message_thread_id;
-      get_args(args, chat_id, bot_user_id, url, message_reply_to, message_thread_id);
+      get_args(args, chat_id, bot_user_id, url, reply_to, message_thread_id);
       send_request(td_api::make_object<td_api::openWebApp>(chat_id, bot_user_id, url, as_theme_parameters(), "android",
-                                                           message_thread_id, message_reply_to));
+                                                           message_thread_id, reply_to));
     } else if (op == "cwa") {
       int64 launch_id;
       get_args(args, launch_id);
@@ -4429,17 +4429,17 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::setChatMessageSender>(chat_id, as_message_sender(sender_id)));
     } else if (op == "sm" || op == "sms" || op == "smr" || op == "smf") {
       ChatId chat_id;
-      MessageReplyTo message_reply_to;
+      InputMessageReplyTo reply_to;
       string message;
       get_args(args, chat_id, message);
       if (op == "smr") {
-        get_args(message, message_reply_to, message);
+        get_args(message, reply_to, message);
       }
       if (op == "smf") {
         message = string(5097, 'a');
       }
       send_message(chat_id, td_api::make_object<td_api::inputMessageText>(as_formatted_text(message), false, true),
-                   op == "sms", false, message_reply_to);
+                   op == "sms", false, reply_to);
     } else if (op == "smce") {
       ChatId chat_id;
       get_args(args, chat_id);
@@ -4455,21 +4455,21 @@ class CliClient final : public Actor {
     } else if (op == "alm" || op == "almr") {
       ChatId chat_id;
       string sender_id;
-      MessageReplyTo message_reply_to;
+      InputMessageReplyTo reply_to;
       string message;
       get_args(args, chat_id, sender_id, message);
       if (op == "almr") {
-        get_args(message, message_reply_to, message);
+        get_args(message, reply_to, message);
       }
       send_request(td_api::make_object<td_api::addLocalMessage>(
-          chat_id, as_message_sender(sender_id), message_reply_to, false,
+          chat_id, as_message_sender(sender_id), reply_to, false,
           td_api::make_object<td_api::inputMessageText>(as_formatted_text(message), false, true)));
     } else if (op == "smap" || op == "smapr" || op == "smapp" || op == "smaprp") {
       ChatId chat_id;
-      MessageReplyTo message_reply_to;
+      InputMessageReplyTo reply_to;
       get_args(args, chat_id, args);
       if (op == "smapr" || op == "smaprp") {
-        get_args(args, message_reply_to, args);
+        get_args(args, reply_to, args);
       }
       auto input_message_contents = transform(full_split(args), [this](const string &photo) {
         td_api::object_ptr<td_api::InputMessageContent> content = td_api::make_object<td_api::inputMessagePhoto>(
@@ -4478,8 +4478,8 @@ class CliClient final : public Actor {
         return content;
       });
       send_request(td_api::make_object<td_api::sendMessageAlbum>(
-          chat_id, message_thread_id_, message_reply_to, default_message_send_options(),
-          std::move(input_message_contents), op == "smapp" || op == "smaprp"));
+          chat_id, message_thread_id_, reply_to, default_message_send_options(), std::move(input_message_contents),
+          op == "smapp" || op == "smaprp"));
     } else if (op == "smad" || op == "smadp") {
       ChatId chat_id;
       get_args(args, chat_id, args);

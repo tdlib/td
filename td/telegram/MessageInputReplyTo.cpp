@@ -15,18 +15,18 @@
 
 namespace td {
 /*
-MessageInputReplyTo::MessageInputReplyTo(const td_api::object_ptr<td_api::MessageReplyTo> &reply_to_ptr) {
+MessageInputReplyTo::MessageInputReplyTo(const td_api::object_ptr<td_api::InputMessageReplyTo> &reply_to_ptr) {
   if (reply_to_ptr == nullptr) {
     return;
   }
   switch (reply_to_ptr->get_id()) {
-    case td_api::messageReplyToMessage::ID: {
-      auto reply_to = static_cast<const td_api::messageReplyToMessage *>(reply_to_ptr.get());
+    case td_api::inputMessageReplyToMessage::ID: {
+      auto reply_to = static_cast<const td_api::inputMessageReplyToMessage *>(reply_to_ptr.get());
       message_id_ = MessageId(reply_to->message_id_);
       break;
     }
-    case td_api::messageReplyToStory::ID: {
-      auto reply_to = static_cast<const td_api::messageReplyToStory *>(reply_to_ptr.get());
+    case td_api::inputMessageReplyToStory::ID: {
+      auto reply_to = static_cast<const td_api::inputMessageReplyToStory *>(reply_to_ptr.get());
       story_full_id_ = {DialogId(reply_to->story_sender_chat_id_), StoryId(reply_to->story_id_)};
       break;
     }

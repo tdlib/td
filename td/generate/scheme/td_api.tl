@@ -1182,13 +1182,23 @@ messageSendingStateFailed error:error can_retry:Bool need_another_sender:Bool re
 
 //@class MessageReplyTo @description Contains information about the message or the story a message is replying to
 
-//@description Describes a replied message
-//@chat_id The identifier of the chat to which the replied message belongs; ignored for outgoing replies. For example, messages in the Replies chat are replies to messages in different chats
-//@message_id The identifier of the replied message
+//@description Describes a message replied by a given message
+//@chat_id The identifier of the chat to which the message belongs
+//@message_id The identifier of the message
 messageReplyToMessage chat_id:int53 message_id:int53 = MessageReplyTo;
 
-//@description Describes a replied story @story_sender_chat_id The identifier of the sender of the replied story. Currently, stories can be replied only in the sender's chat @story_id The identifier of the replied story
+//@description Describes a story replied by a given message @story_sender_chat_id The identifier of the sender of the story @story_id The identifier of the story
 messageReplyToStory story_sender_chat_id:int53 story_id:int32 = MessageReplyTo;
+
+
+//@class InputMessageReplyTo @description Contains information about the message or the story to be replied
+
+//@description Describes a message to be replied
+//@message_id The identifier of the message to be replied in the same chat
+inputMessageReplyToMessage message_id:int53 = InputMessageReplyTo;
+
+//@description Describes a story to be replied @story_sender_chat_id The identifier of the sender of the story. Currently, stories can be replied only in the sender's chat @story_id The identifier of the story
+inputMessageReplyToStory story_sender_chat_id:int53 story_id:int32 = InputMessageReplyTo;
 
 
 //@description Describes a message
@@ -6865,7 +6875,7 @@ setChatMessageSender chat_id:int53 message_sender_id:MessageSender = Ok;
 //@options Options to be used to send the message; pass null to use default options
 //@reply_markup Markup for replying to the message; pass null if none; for bots only
 //@input_message_content The content of the message to be sent
-sendMessage chat_id:int53 message_thread_id:int53 reply_to:MessageReplyTo options:messageSendOptions reply_markup:ReplyMarkup input_message_content:InputMessageContent = Message;
+sendMessage chat_id:int53 message_thread_id:int53 reply_to:InputMessageReplyTo options:messageSendOptions reply_markup:ReplyMarkup input_message_content:InputMessageContent = Message;
 
 //@description Sends 2-10 messages grouped together into an album. Currently, only audio, document, photo and video messages can be grouped into an album. Documents and audio files can be only grouped in an album with messages of the same type. Returns sent messages
 //@chat_id Target chat
@@ -6874,7 +6884,7 @@ sendMessage chat_id:int53 message_thread_id:int53 reply_to:MessageReplyTo option
 //@options Options to be used to send the messages; pass null to use default options
 //@input_message_contents Contents of messages to be sent. At most 10 messages can be added to an album
 //@only_preview Pass true to get fake messages instead of actually sending them
-sendMessageAlbum chat_id:int53 message_thread_id:int53 reply_to:MessageReplyTo options:messageSendOptions input_message_contents:vector<InputMessageContent> only_preview:Bool = Messages;
+sendMessageAlbum chat_id:int53 message_thread_id:int53 reply_to:InputMessageReplyTo options:messageSendOptions input_message_contents:vector<InputMessageContent> only_preview:Bool = Messages;
 
 //@description Invites a bot to a chat (if it is not yet a member) and sends it the /start command. Bots can't be invited to a private chat other than the chat with the bot. Bots can't be invited to channels (although they can be added as admins) and secret chats. Returns the sent message
 //@bot_user_id Identifier of the bot
@@ -6890,7 +6900,7 @@ sendBotStartMessage bot_user_id:int53 chat_id:int53 parameter:string = Message;
 //@query_id Identifier of the inline query
 //@result_id Identifier of the inline query result
 //@hide_via_bot Pass true to hide the bot, via which the message is sent. Can be used only for bots getOption("animation_search_bot_username"), getOption("photo_search_bot_username"), and getOption("venue_search_bot_username")
-sendInlineQueryResultMessage chat_id:int53 message_thread_id:int53 reply_to:MessageReplyTo options:messageSendOptions query_id:int64 result_id:string hide_via_bot:Bool = Message;
+sendInlineQueryResultMessage chat_id:int53 message_thread_id:int53 reply_to:InputMessageReplyTo options:messageSendOptions query_id:int64 result_id:string hide_via_bot:Bool = Message;
 
 //@description Forwards previously sent messages. Returns the forwarded messages in the same order as the message identifiers passed in message_ids. If a message can't be forwarded, null will be returned instead of the message
 //@chat_id Identifier of the chat to which to forward messages
@@ -6915,7 +6925,7 @@ resendMessages chat_id:int53 message_ids:vector<int53> = Messages;
 //@reply_to Identifier of the replied message or story; pass null if none
 //@disable_notification Pass true to disable notification for the message
 //@input_message_content The content of the message to be added
-addLocalMessage chat_id:int53 sender_id:MessageSender reply_to:MessageReplyTo disable_notification:Bool input_message_content:InputMessageContent = Message;
+addLocalMessage chat_id:int53 sender_id:MessageSender reply_to:InputMessageReplyTo disable_notification:Bool input_message_content:InputMessageContent = Message;
 
 //@description Deletes messages @chat_id Chat identifier @message_ids Identifiers of the messages to be deleted @revoke Pass true to delete messages for all chat members. Always true for supergroups, channels and secret chats
 deleteMessages chat_id:int53 message_ids:vector<int53> revoke:Bool = Ok;
@@ -7264,7 +7274,7 @@ sendWebAppData bot_user_id:int53 button_text:string data:string = Ok;
 //@application_name Short name of the application; 0-64 English letters, digits, and underscores
 //@message_thread_id If not 0, a message thread identifier in which the message will be sent
 //@reply_to Identifier of the replied message or story for the message sent by the Web App; pass null if none
-openWebApp chat_id:int53 bot_user_id:int53 url:string theme:themeParameters application_name:string message_thread_id:int53 reply_to:MessageReplyTo = WebAppInfo;
+openWebApp chat_id:int53 bot_user_id:int53 url:string theme:themeParameters application_name:string message_thread_id:int53 reply_to:InputMessageReplyTo = WebAppInfo;
 
 //@description Informs TDLib that a previously opened Web App was closed @web_app_launch_id Identifier of Web App launch, received from openWebApp
 closeWebApp web_app_launch_id:int64 = Ok;

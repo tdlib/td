@@ -209,7 +209,7 @@ Result<unique_ptr<DraftMessage>> DraftMessage::get_draft_message(
       td->messages_manager_
           ->get_message_input_reply_to(
               dialog_id, top_thread_message_id,
-              td_api::make_object<td_api::messageReplyToMessage>(0, result->reply_to_message_id_.get()), true)
+              td_api::make_object<td_api::inputMessageReplyToMessage>(result->reply_to_message_id_.get()), true)
           .message_id_;
 
   auto input_message_content = std::move(draft_message->input_message_text_);

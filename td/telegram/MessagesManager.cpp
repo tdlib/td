@@ -24199,9 +24199,9 @@ DialogId MessagesManager::get_dialog_default_send_message_as_dialog_id(DialogId 
   return d->default_send_message_as_dialog_id;
 }
 
-MessageInputReplyTo MessagesManager::get_message_input_reply_to(DialogId dialog_id, MessageId top_thread_message_id,
-                                                                td_api::object_ptr<td_api::MessageReplyTo> &&reply_to,
-                                                                bool for_draft) {
+MessageInputReplyTo MessagesManager::get_message_input_reply_to(
+    DialogId dialog_id, MessageId top_thread_message_id, td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
+    bool for_draft) {
   return get_message_input_reply_to(get_dialog(dialog_id), top_thread_message_id, std::move(reply_to), for_draft);
 }
 
@@ -24434,17 +24434,17 @@ MessageId MessagesManager::get_persistent_message_id(const Dialog *d, MessageId 
   return message_id;
 }
 
-MessageInputReplyTo MessagesManager::get_message_input_reply_to(Dialog *d, MessageId top_thread_message_id,
-                                                                td_api::object_ptr<td_api::MessageReplyTo> &&reply_to,
-                                                                bool for_draft) {
+MessageInputReplyTo MessagesManager::get_message_input_reply_to(
+    Dialog *d, MessageId top_thread_message_id, td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
+    bool for_draft) {
   CHECK(d != nullptr);
   if (top_thread_message_id.is_valid() &&
       !have_message_force(d, top_thread_message_id, "get_message_input_reply_to 1")) {
     LOG(INFO) << "Have reply in the thread of unknown " << top_thread_message_id;
   }
-  if (reply_to != nullptr && reply_to->get_id() == td_api::messageReplyToStory::ID) {
+  if (reply_to != nullptr && reply_to->get_id() == td_api::inputMessageReplyToStory::ID) {
     CHECK(!for_draft);
-    auto reply_to_story = td_api::move_object_as<td_api::messageReplyToStory>(reply_to);
+    auto reply_to_story = td_api::move_object_as<td_api::inputMessageReplyToStory>(reply_to);
     auto story_id = StoryId(reply_to_story->story_id_);
     auto sender_dialog_id = DialogId(reply_to_story->story_sender_chat_id_);
     if (d->dialog_id != sender_dialog_id || sender_dialog_id.get_type() != DialogType::User) {
@@ -24458,8 +24458,8 @@ MessageInputReplyTo MessagesManager::get_message_input_reply_to(Dialog *d, Messa
     return {MessageId(), StoryFullId(sender_dialog_id, story_id)};
   }
   MessageId message_id;
-  if (reply_to != nullptr && reply_to->get_id() == td_api::messageReplyToMessage::ID) {
-    auto reply_to_message = td_api::move_object_as<td_api::messageReplyToMessage>(reply_to);
+  if (reply_to != nullptr && reply_to->get_id() == td_api::inputMessageReplyToMessage::ID) {
+    auto reply_to_message = td_api::move_object_as<td_api::inputMessageReplyToMessage>(reply_to);
     message_id = MessageId(reply_to_message->message_id_);
   }
   if (!message_id.is_valid()) {
@@ -24848,7 +24848,7 @@ class MessagesManager::SendMessageLogEvent {
 };
 
 Result<td_api::object_ptr<td_api::message>> MessagesManager::send_message(
-    DialogId dialog_id, MessageId top_thread_message_id, td_api::object_ptr<td_api::MessageReplyTo> &&reply_to,
+    DialogId dialog_id, MessageId top_thread_message_id, td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
     tl_object_ptr<td_api::messageSendOptions> &&options, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
     tl_object_ptr<td_api::InputMessageContent> &&input_message_content) {
   if (input_message_content == nullptr) {
@@ -25088,7 +25088,7 @@ int64 MessagesManager::generate_new_media_album_id() {
 }
 
 Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_message_group(
-    DialogId dialog_id, MessageId top_thread_message_id, td_api::object_ptr<td_api::MessageReplyTo> &&reply_to,
+    DialogId dialog_id, MessageId top_thread_message_id, td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
     tl_object_ptr<td_api::messageSendOptions> &&options,
     vector<tl_object_ptr<td_api::InputMessageContent>> &&input_message_contents, bool only_preview) {
   if (input_message_contents.size() > MAX_GROUPED_MESSAGES) {
@@ -25980,7 +25980,7 @@ void MessagesManager::do_send_bot_start_message(UserId bot_user_id, DialogId dia
 }
 
 Result<MessageId> MessagesManager::send_inline_query_result_message(
-    DialogId dialog_id, MessageId top_thread_message_id, td_api::object_ptr<td_api::MessageReplyTo> &&reply_to,
+    DialogId dialog_id, MessageId top_thread_message_id, td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
     tl_object_ptr<td_api::messageSendOptions> &&options, int64 query_id, const string &result_id, bool hide_via_bot) {
   Dialog *d = get_dialog_force(dialog_id, "send_inline_query_result_message");
   if (d == nullptr) {
@@ -28342,7 +28342,7 @@ void MessagesManager::share_dialog_with_bot(MessageFullId message_full_id, int32
 
 Result<MessageId> MessagesManager::add_local_message(
     DialogId dialog_id, td_api::object_ptr<td_api::MessageSender> &&sender,
-    td_api::object_ptr<td_api::MessageReplyTo> &&reply_to, bool disable_notification,
+    td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to, bool disable_notification,
     tl_object_ptr<td_api::InputMessageContent> &&input_message_content) {
   if (input_message_content == nullptr) {
     return Status::Error(400, "Can't add local message without content");

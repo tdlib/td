@@ -428,15 +428,16 @@ class MessagesManager final : public Actor {
   DialogId get_dialog_default_send_message_as_dialog_id(DialogId dialog_id) const;
 
   MessageInputReplyTo get_message_input_reply_to(DialogId dialog_id, MessageId top_thread_message_id,
-                                                 td_api::object_ptr<td_api::MessageReplyTo> &&reply_to, bool for_draft);
+                                                 td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
+                                                 bool for_draft);
 
   Result<td_api::object_ptr<td_api::message>> send_message(
-      DialogId dialog_id, MessageId top_thread_message_id, td_api::object_ptr<td_api::MessageReplyTo> &&reply_to,
+      DialogId dialog_id, MessageId top_thread_message_id, td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
       tl_object_ptr<td_api::messageSendOptions> &&options, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
       tl_object_ptr<td_api::InputMessageContent> &&input_message_content) TD_WARN_UNUSED_RESULT;
 
   Result<td_api::object_ptr<td_api::messages>> send_message_group(
-      DialogId dialog_id, MessageId top_thread_message_id, td_api::object_ptr<td_api::MessageReplyTo> &&reply_to,
+      DialogId dialog_id, MessageId top_thread_message_id, td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
       tl_object_ptr<td_api::messageSendOptions> &&options,
       vector<tl_object_ptr<td_api::InputMessageContent>> &&input_message_contents,
       bool only_preview) TD_WARN_UNUSED_RESULT;
@@ -445,7 +446,7 @@ class MessagesManager final : public Actor {
                                            const string &parameter) TD_WARN_UNUSED_RESULT;
 
   Result<MessageId> send_inline_query_result_message(DialogId dialog_id, MessageId top_thread_message_id,
-                                                     td_api::object_ptr<td_api::MessageReplyTo> &&reply_to,
+                                                     td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
                                                      tl_object_ptr<td_api::messageSendOptions> &&options,
                                                      int64 query_id, const string &result_id,
                                                      bool hide_via_bot) TD_WARN_UNUSED_RESULT;
@@ -464,10 +465,10 @@ class MessagesManager final : public Actor {
   void share_dialog_with_bot(MessageFullId message_full_id, int32 button_id, DialogId shared_dialog_id,
                              bool expect_user, bool only_check, Promise<Unit> &&promise);
 
-  Result<MessageId> add_local_message(DialogId dialog_id, td_api::object_ptr<td_api::MessageSender> &&sender,
-                                      td_api::object_ptr<td_api::MessageReplyTo> &&reply_to, bool disable_notification,
-                                      tl_object_ptr<td_api::InputMessageContent> &&input_message_content)
-      TD_WARN_UNUSED_RESULT;
+  Result<MessageId> add_local_message(
+      DialogId dialog_id, td_api::object_ptr<td_api::MessageSender> &&sender,
+      td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to, bool disable_notification,
+      tl_object_ptr<td_api::InputMessageContent> &&input_message_content) TD_WARN_UNUSED_RESULT;
 
   void get_message_file_type(const string &message_file_head,
                              Promise<td_api::object_ptr<td_api::MessageFileType>> &&promise);
@@ -1828,7 +1829,8 @@ class MessagesManager final : public Actor {
   static MessageFullId get_replied_message_id(DialogId dialog_id, const Message *m);
 
   MessageInputReplyTo get_message_input_reply_to(Dialog *d, MessageId top_thread_message_id,
-                                                 td_api::object_ptr<td_api::MessageReplyTo> &&reply_to, bool for_draft);
+                                                 td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
+                                                 bool for_draft);
 
   void fix_server_reply_to_message_id(DialogId dialog_id, MessageId message_id, DialogId reply_in_dialog_id,
                                       MessageId &reply_to_message_id) const;
