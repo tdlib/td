@@ -1832,6 +1832,8 @@ class MessagesManager final : public Actor {
                                                  td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
                                                  bool for_draft);
 
+  static MessageInputReplyTo get_message_input_reply_to(const Message *m);
+
   void fix_server_reply_to_message_id(DialogId dialog_id, MessageId message_id, DialogId reply_in_dialog_id,
                                       MessageId &reply_to_message_id) const;
 

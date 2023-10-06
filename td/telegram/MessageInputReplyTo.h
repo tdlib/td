@@ -29,12 +29,11 @@ struct MessageInputReplyTo {
 
   MessageInputReplyTo() = default;
 
-  MessageInputReplyTo(MessageId message_id, StoryFullId story_full_id)
-      : message_id_(message_id), story_full_id_(story_full_id) {
-    CHECK(!story_full_id_.is_valid() || !message_id_.is_valid());
+  explicit MessageInputReplyTo(MessageId message_id) : message_id_(message_id) {
   }
 
-  //explicit MessageInputReplyTo(const td_api::object_ptr<td_api::InputMessageReplyTo> &reply_to_ptr);
+  explicit MessageInputReplyTo(StoryFullId story_full_id) : story_full_id_(story_full_id) {
+  }
 
   telegram_api::object_ptr<telegram_api::InputReplyTo> get_input_reply_to(Td *td,
                                                                           MessageId top_thread_message_id) const;

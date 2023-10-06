@@ -24455,7 +24455,7 @@ MessageInputReplyTo MessagesManager::get_message_input_reply_to(
       LOG(INFO) << "Ignore reply to invalid " << story_id;
       return {};
     }
-    return {MessageId(), StoryFullId(sender_dialog_id, story_id)};
+    return MessageInputReplyTo{StoryFullId(sender_dialog_id, story_id)};
   }
   MessageId message_id;
   if (reply_to != nullptr && reply_to->get_id() == td_api::inputMessageReplyToMessage::ID) {
@@ -24465,7 +24465,7 @@ MessageInputReplyTo MessagesManager::get_message_input_reply_to(
   if (!message_id.is_valid()) {
     if (!for_draft && message_id == MessageId() && top_thread_message_id.is_valid() &&
         top_thread_message_id.is_server()) {
-      return {top_thread_message_id, StoryFullId()};
+      return MessageInputReplyTo{top_thread_message_id};
     }
     return {};
   }
@@ -24480,17 +24480,27 @@ MessageInputReplyTo MessagesManager::get_message_input_reply_to(
         message_id > d->last_new_message_id &&
         (d->notification_info != nullptr && message_id <= d->notification_info->max_push_notification_message_id_)) {
       // allow to reply yet unreceived server message
-      return {message_id, StoryFullId()};
+      return MessageInputReplyTo{message_id};
     }
     if (!for_draft && top_thread_message_id.is_valid() && top_thread_message_id.is_server()) {
-      return {top_thread_message_id, StoryFullId()};
+      return MessageInputReplyTo{top_thread_message_id};
     }
 
     // TODO local replies to local messages can be allowed
     // TODO replies to yet unsent messages can be allowed with special handling of them on application restart
     return {};
   }
-  return {m->message_id, StoryFullId()};
+  return MessageInputReplyTo{m->message_id};
+}
+
+MessageInputReplyTo MessagesManager::get_message_input_reply_to(const Message *m) {
+  if (m->reply_to_message_id.is_valid()) {
+    return MessageInputReplyTo{m->reply_to_message_id};
+  }
+  if (m->reply_to_story_full_id.is_valid()) {
+    return MessageInputReplyTo{m->reply_to_story_full_id};
+  }
+  return {};
 }
 
 void MessagesManager::fix_server_reply_to_message_id(DialogId dialog_id, MessageId message_id,
@@ -25322,8 +25332,8 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
           int64 random_id = begin_send_message(dialog_id, m);
           td_->create_handler<SendMediaQuery>()->send(
               file_id, thumbnail_file_id, get_message_flags(m), dialog_id, get_send_message_as_input_peer(m),
-              {m->reply_to_message_id, m->reply_to_story_full_id}, m->top_thread_message_id,
-              get_message_schedule_date(m), get_input_reply_markup(td_->contacts_manager_.get(), m->reply_markup),
+              get_message_input_reply_to(m), m->top_thread_message_id, get_message_schedule_date(m),
+              get_input_reply_markup(td_->contacts_manager_.get(), m->reply_markup),
               get_input_message_entities(td_->contacts_manager_.get(), caption, "on_message_media_uploaded"),
               caption == nullptr ? "" : caption->text, std::move(input_media), m->content->get_type(), m->is_copy,
               random_id, &m->send_query_ref);
@@ -25636,7 +25646,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
       continue;
     }
 
-    input_reply_to = {m->reply_to_message_id, m->reply_to_story_full_id};
+    input_reply_to = get_message_input_reply_to(m);
     top_thread_message_id = m->top_thread_message_id;
     flags = get_message_flags(m);
     schedule_date = get_message_schedule_date(m);
@@ -25735,8 +25745,8 @@ void MessagesManager::on_text_message_ready_to_send(DialogId dialog_id, MessageI
 
     int64 random_id = begin_send_message(dialog_id, m);
     td_->create_handler<SendMessageQuery>()->send(
-        get_message_flags(m), dialog_id, get_send_message_as_input_peer(m),
-        {m->reply_to_message_id, m->reply_to_story_full_id}, m->top_thread_message_id, get_message_schedule_date(m),
+        get_message_flags(m), dialog_id, get_send_message_as_input_peer(m), get_message_input_reply_to(m),
+        m->top_thread_message_id, get_message_schedule_date(m),
         get_input_reply_markup(td_->contacts_manager_.get(), m->reply_markup),
         get_input_message_entities(td_->contacts_manager_.get(), message_text->entities, "do_send_message"),
         message_text->text, m->is_copy, random_id, &m->send_query_ref);
@@ -26123,8 +26133,8 @@ void MessagesManager::do_send_inline_query_result_message(DialogId dialog_id, Me
     flags |= telegram_api::messages_sendInlineBotResult::HIDE_VIA_MASK;
   }
   m->send_query_ref = td_->create_handler<SendInlineBotResultQuery>()->send(
-      flags, dialog_id, get_send_message_as_input_peer(m), {m->reply_to_message_id, m->reply_to_story_full_id},
-      m->top_thread_message_id, get_message_schedule_date(m), random_id, query_id, result_id);
+      flags, dialog_id, get_send_message_as_input_peer(m), get_message_input_reply_to(m), m->top_thread_message_id,
+      get_message_schedule_date(m), random_id, query_id, result_id);
 }
 
 bool MessagesManager::has_qts_messages(DialogId dialog_id) const {
@@ -28010,7 +28020,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
     Message *m;
     if (only_preview) {
       message = create_message_to_send(
-          to_dialog, top_thread_message_id, {reply_to_message_id, StoryFullId()}, message_send_options,
+          to_dialog, top_thread_message_id, MessageInputReplyTo{reply_to_message_id}, message_send_options,
           std::move(content), j + 1 != forwarded_message_contents.size(), std::move(forward_info), false, DialogId());
       MessageId new_message_id =
           message_send_options.schedule_date != 0
@@ -28019,7 +28029,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
       message->message_id = new_message_id;
       m = message.get();
     } else {
-      m = get_message_to_send(to_dialog, top_thread_message_id, {reply_to_message_id, StoryFullId()},
+      m = get_message_to_send(to_dialog, top_thread_message_id, MessageInputReplyTo{reply_to_message_id},
                               message_send_options, std::move(content), &need_update_dialog_pos,
                               j + 1 != forwarded_message_contents.size(), std::move(forward_info));
     }
@@ -28210,7 +28220,7 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
                                message->update_stickersets_order, message->noforwards,
                                get_message_schedule_date(message.get()), message->sending_id);
     Message *m = get_message_to_send(
-        d, message->top_thread_message_id, {message->reply_to_message_id, message->reply_to_story_full_id}, options,
+        d, message->top_thread_message_id, get_message_input_reply_to(message.get()), options,
         std::move(new_contents[i]), &need_update_dialog_pos, false, nullptr, message->is_copy,
         need_another_sender ? DialogId() : get_message_sender(message.get()));
     m->reply_markup = std::move(message->reply_markup);
