@@ -1083,11 +1083,10 @@ LinkManager::LinkInfo LinkManager::get_link_info(Slice link) {
     to_lower_inplace(host);
     if (ends_with(host, ".t.me") && host.size() >= 9 && host.find('.') == host.size() - 5) {
       Slice subdomain(&host[0], host.size() - 5);
-      if (is_valid_username(subdomain) && subdomain != "addemoji" && subdomain != "addlist" &&
-          subdomain != "addstickers" && subdomain != "addtheme" && subdomain != "auth" && subdomain != "boost" &&
-          subdomain != "confirmphone" && subdomain != "contact" && subdomain != "invoice" && subdomain != "joinchat" &&
-          subdomain != "login" && subdomain != "proxy" && subdomain != "setlanguage" && subdomain != "share" &&
-          subdomain != "socks" && subdomain != "web" && subdomain != "a" && subdomain != "k" && subdomain != "z") {
+      static const FlatHashSet<Slice, SliceHash> disallowed_subdomains(
+          {"addemoji", "addlist", "addstickers", "addtheme", "auth", "boost", "confirmphone", "contact", "invoice",
+           "joinchat", "login", "proxy", "setlanguage", "share", "socks", "web", "a", "k", "z"});
+      if (is_valid_username(subdomain) && disallowed_subdomains.count(subdomain) == 0) {
         result.type_ = LinkType::TMe;
         result.query_ = PSTRING() << '/' << subdomain << http_url.query_;
         return result;
