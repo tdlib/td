@@ -39158,14 +39158,12 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
         CHECK(message->content->get_type() == MessageContentType::Text);
 
-        Dependencies dependencies;
-        dependencies.add_dialog_dependencies(dialog_id);
-        add_message_dependencies(dependencies, message.get());
-        dependencies.resolve_force(td_, "SendBotStartMessageLogEvent");
-
         auto bot_user_id = log_event.bot_user_id;
-        if (!td_->contacts_manager_->have_user_force(bot_user_id, "SendBotStartMessageLogEvent")) {
-          LOG(ERROR) << "Can't find bot " << bot_user_id;
+        Dependencies dependencies;
+        dependencies.add(bot_user_id);
+        dependencies.add_dialog_and_dependencies(dialog_id);
+        add_message_dependencies(dependencies, message.get());
+        if (!dependencies.resolve_force(td_, "SendBotStartMessageLogEvent")) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           continue;
         }
@@ -39270,26 +39268,18 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         auto messages = std::move(log_event.messages_out);
 
         Dependencies dependencies;
-        dependencies.add_dialog_dependencies(to_dialog_id);
-        dependencies.add_dialog_dependencies(from_dialog_id);
+        dependencies.add_dialog_and_dependencies(to_dialog_id);
+        dependencies.add_dialog_and_dependencies(from_dialog_id);
         for (auto &message : messages) {
           add_message_dependencies(dependencies, message.get());
         }
-        dependencies.resolve_force(td_, "ForwardMessagesLogEvent");
-
-        Dialog *to_dialog = get_dialog_force(to_dialog_id, "ForwardMessagesLogEvent to");
-        if (to_dialog == nullptr) {
-          LOG(ERROR) << "Can't find " << to_dialog_id << " to forward messages to";
-          binlog_erase(G()->td_db()->get_binlog(), event.id_);
-          continue;
-        }
-        Dialog *from_dialog = get_dialog_force(from_dialog_id, "ForwardMessagesLogEvent from");
-        if (from_dialog == nullptr) {
-          LOG(ERROR) << "Can't find " << from_dialog_id << " to forward messages from";
+        if (!dependencies.resolve_force(td_, "ForwardMessagesLogEvent")) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           continue;
         }
 
+        Dialog *to_dialog = get_dialog(to_dialog_id);
+        CHECK(to_dialog != nullptr);
         to_dialog->was_opened = true;
 
         auto now = G()->unix_time();
@@ -39472,18 +39462,14 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         log_event_parse(log_event, event.get_data()).ensure();
 
         auto channel_id = log_event.channel_id_;
-        if (!td_->contacts_manager_->have_channel_force(channel_id, "DeleteAllChannelMessagesFromSenderOnServer")) {
-          LOG(ERROR) << "Can't find " << channel_id;
-          binlog_erase(G()->td_db()->get_binlog(), event.id_);
-          break;
-        }
-
         auto sender_dialog_id = log_event.sender_dialog_id_;
-        if (!have_dialog_info_force(sender_dialog_id, "DeleteAllChannelMessagesFromSenderOnServer") ||
+        Dependencies dependencies;
+        dependencies.add(channel_id);
+        dependencies.add_dialog_dependencies(sender_dialog_id);
+        if (!dependencies.resolve_force(td_, "DeleteAllChannelMessagesFromSenderOnServer") ||
             !have_input_peer(sender_dialog_id, AccessRights::Know)) {
-          LOG(ERROR) << "Can't find " << sender_dialog_id;
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
-          break;
+          continue;
         }
 
         delete_all_channel_messages_by_sender_on_server(channel_id, sender_dialog_id, event.id_, Auto());
@@ -39540,24 +39526,23 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
         auto dialog_id = log_event.dialog_id_;
         CHECK(dialog_id.get_type() == DialogType::SecretChat);
-        if (!td_->contacts_manager_->have_secret_chat_force(dialog_id.get_secret_chat_id(),
-                                                            "ReadHistoryInSecretChat")) {
-          LOG(ERROR) << "Can't read history in unknown " << dialog_id;
+        Dependencies dependencies;
+        dependencies.add_dialog_and_dependencies(dialog_id);
+        if (!dependencies.resolve_force(td_, "ReadHistoryInSecretChat") ||
+            !have_input_peer(dialog_id, AccessRights::Read)) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
-        force_create_dialog(dialog_id, "ReadHistoryInSecretChatLogEvent");
-        Dialog *d = get_dialog(dialog_id);
-        if (d == nullptr || !have_input_peer(dialog_id, AccessRights::Read)) {
-          binlog_erase(G()->td_db()->get_binlog(), event.id_);
-          break;
-        }
+
         auto &log_event_id = read_history_log_event_ids_[dialog_id][0];
         if (log_event_id.log_event_id != 0) {
           // we need only the latest read history event
           binlog_erase(G()->td_db()->get_binlog(), log_event_id.log_event_id);
         }
         log_event_id.log_event_id = event.id_;
+
+        Dialog *d = get_dialog(dialog_id);
+        CHECK(d != nullptr);
         d->last_read_inbox_message_date = log_event.max_date_;
 
         read_history_on_server_impl(d, MessageId());
@@ -39699,11 +39684,8 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         log_event_parse(log_event, event.get_data()).ensure();
 
         auto dialog_id = log_event.dialog_id_;
-        bool have_info = dialog_id.get_type() == DialogType::User
-                             ? td_->contacts_manager_->have_user_force(dialog_id.get_user_id(),
-                                                                       "ToggleDialogIsMarkedAsUnreadOnServerLogEvent")
-                             : have_dialog_force(dialog_id, "ToggleDialogIsMarkedAsUnreadOnServerLogEvent");
-        if (!have_info || !have_input_peer(dialog_id, AccessRights::Read)) {
+        if (!have_dialog_force(dialog_id, "ToggleDialogIsMarkedAsUnreadOnServerLogEvent") ||
+            !have_input_peer(dialog_id, AccessRights::Read)) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
@@ -39831,10 +39813,8 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
         auto dialog_id = log_event.dialog_id_;
         Dependencies dependencies;
-        dependencies.add_dialog_dependencies(dialog_id);  // dialog itself may not exist
-        dependencies.resolve_force(td_, "RegetDialogLogEvent");
-
-        get_dialog_force(dialog_id, "RegetDialogLogEvent");  // load it if exists
+        dependencies.add_dialog_and_dependencies(dialog_id);
+        dependencies.resolve_force(td_, "RegetDialogLogEvent", true);  // dialog itself may not exist
 
         if (!have_input_peer(dialog_id, AccessRights::Read)) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
