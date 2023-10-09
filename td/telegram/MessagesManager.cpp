@@ -27454,7 +27454,7 @@ td_api::object_ptr<td_api::messageImportInfo> MessagesManager::get_message_impor
   if (forward_info == nullptr || !forward_info->is_imported) {
     return nullptr;
   }
-  return td_api::make_object<td_api::messageImportInfo>(forward_info->origin.sender_name_, forward_info->date);
+  return td_api::make_object<td_api::messageImportInfo>(forward_info->origin.get_sender_name(), forward_info->date);
 }
 
 Result<unique_ptr<ReplyMarkup>> MessagesManager::get_dialog_reply_markup(
@@ -35593,7 +35593,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
           if (old_message->forward_info->is_imported || new_message->forward_info->is_imported) {
             return true;
           }
-          if (!is_scheduled && !message_id.is_yet_unsent() && !old_message->forward_info->is_imported) {
+          if (!is_scheduled && !message_id.is_yet_unsent()) {
             return true;
           }
           return !is_forward_info_sender_hidden(new_message->forward_info.get()) &&
