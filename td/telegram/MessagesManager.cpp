@@ -35580,11 +35580,6 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     }
   } else {
     if (new_message->forward_info != nullptr) {
-      if (old_message->forward_info->origin.author_signature_ != new_message->forward_info->origin.author_signature_) {
-        old_message->forward_info->origin.author_signature_ = new_message->forward_info->origin.author_signature_;
-        LOG(DEBUG) << "Change message signature";
-        need_send_update = true;
-      }
       if (*old_message->forward_info != *new_message->forward_info) {
         bool need_warning = [&] {
           if (replace_legacy) {
@@ -35596,8 +35591,9 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
           if (!is_scheduled && !message_id.is_yet_unsent()) {
             return true;
           }
-          return !is_forward_info_sender_hidden(new_message->forward_info.get()) &&
-                 !is_forward_info_sender_hidden(old_message->forward_info.get());
+          // yet unsent or scheduled messages can change sender name or author signature when being sent
+          return !old_message->forward_info->origin.has_sender_signature() &&
+                 !new_message->forward_info->origin.has_sender_signature();
         }();
         if (need_warning) {
           LOG(ERROR) << message_id << " in " << dialog_id << " has changed forward info from "

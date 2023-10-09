@@ -59,6 +59,10 @@ struct MessageOrigin {
     return message_id_.is_valid();
   }
 
+  bool has_sender_signature() const {
+    return !author_signature_.empty() || !sender_name_.empty();
+  }
+
   DialogId get_sender() const;
 
   void add_dependencies(Dependencies &dependencies) const;
