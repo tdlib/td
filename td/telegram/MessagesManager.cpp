@@ -17503,14 +17503,14 @@ void MessagesManager::block_message_sender_from_replies(MessageId message_id, bo
     return promise.set_error(Status::Error(400, "Wrong message specified"));
   }
 
-  UserId sender_user_id;
+  DialogId sender_dialog_id;
   if (m->forward_info != nullptr) {
-    sender_user_id = m->forward_info->origin.sender_user_id_;
+    sender_dialog_id = m->forward_info->origin.get_sender();
   }
   vector<MessageId> message_ids;
-  if (need_delete_all_messages && sender_user_id.is_valid()) {
-    message_ids = find_dialog_messages(d, [sender_user_id](const Message *m) {
-      return !m->is_outgoing && m->forward_info != nullptr && m->forward_info->origin.sender_user_id_ == sender_user_id;
+  if (need_delete_all_messages && sender_dialog_id.is_valid()) {
+    message_ids = find_dialog_messages(d, [sender_dialog_id](const Message *m) {
+      return !m->is_outgoing && m->forward_info != nullptr && m->forward_info->origin.get_sender() == sender_dialog_id;
     });
     CHECK(td::contains(message_ids, message_id));
   } else if (need_delete_message) {
@@ -26388,13 +26388,10 @@ DialogId MessagesManager::get_message_original_sender(const Message *m) {
   CHECK(m != nullptr);
   if (m->forward_info != nullptr) {
     auto forward_info = m->forward_info.get();
-    if (forward_info->is_imported || is_forward_info_sender_hidden(forward_info)) {
+    if (forward_info->is_imported) {
       return DialogId();
     }
-    if (forward_info->origin.message_id_.is_valid() || forward_info->origin.sender_dialog_id_.is_valid()) {
-      return forward_info->origin.sender_dialog_id_;
-    }
-    return DialogId(forward_info->origin.sender_user_id_);
+    return forward_info->origin.get_sender();
   }
   return get_message_sender(m);
 }
