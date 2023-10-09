@@ -24648,8 +24648,7 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, const
   dependencies.add_dialog_and_dependencies(m->real_forward_from_dialog_id);
   dependencies.add(m->via_bot_user_id);
   if (m->forward_info != nullptr) {
-    dependencies.add(m->forward_info->origin.sender_user_id_);
-    dependencies.add_dialog_and_dependencies(m->forward_info->origin.sender_dialog_id_);
+    m->forward_info->origin.add_dependencies(dependencies);
     dependencies.add_dialog_and_dependencies(m->forward_info->from_dialog_id);
   }
   for (const auto &replier_min_channel : m->reply_info.replier_min_channels_) {
