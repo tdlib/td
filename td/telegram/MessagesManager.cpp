@@ -23952,6 +23952,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_messag
   auto sender = get_message_sender_object_const(td_, m->sender_user_id, m->sender_dialog_id,
                                                 "get_dialog_event_log_message_object");
   auto forward_info = get_message_forward_info_object(m->forward_info);
+  auto import_info = get_message_import_info_object(m->forward_info);
   auto interaction_info = get_message_interaction_info_object(dialog_id, m);
   auto can_be_saved = can_save_message(dialog_id, m);
   auto via_bot_user_id = td_->contacts_manager_->get_user_id_object(m->via_bot_user_id, "via_bot_user_id");
@@ -23963,8 +23964,9 @@ td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_messag
       m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_dialog_event_log_message_object"),
       nullptr, nullptr, m->is_outgoing, false, false, false, can_be_saved, false, false, false, false, false, false,
       false, false, true, m->is_channel_post, m->is_topic_message, false, m->date, edit_date, std::move(forward_info),
-      std::move(interaction_info), Auto(), nullptr, 0, nullptr, 0.0, 0.0, via_bot_user_id, m->author_signature, 0,
-      get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
+      std::move(import_info), std::move(interaction_info), Auto(), nullptr, 0, nullptr, 0.0, 0.0, via_bot_user_id,
+      m->author_signature, 0, get_restriction_reason_description(m->restriction_reasons), std::move(content),
+      std::move(reply_markup));
 }
 
 tl_object_ptr<td_api::message> MessagesManager::get_message_object(MessageFullId message_full_id, const char *source) {
@@ -24024,6 +24026,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto sender = get_message_sender_object_const(td_, m->sender_user_id, m->sender_dialog_id, source);
   auto scheduling_state = is_scheduled ? get_message_scheduling_state_object(m->date) : nullptr;
   auto forward_info = get_message_forward_info_object(m->forward_info);
+  auto import_info = get_message_import_info_object(m->forward_info);
   auto interaction_info = get_message_interaction_info_object(dialog_id, m);
   auto unread_reactions = get_unread_reactions_object(dialog_id, m);
   auto can_be_saved = can_save_message(dialog_id, m);
@@ -24080,10 +24083,10 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
       can_be_saved, can_delete_for_self, can_delete_for_all_users, can_get_added_reactions, can_get_statistics,
       can_get_message_thread, can_get_viewers, can_get_media_timestamp_links, can_report_reactions,
       has_timestamped_media, m->is_channel_post, m->is_topic_message, m->contains_unread_mention, date, edit_date,
-      std::move(forward_info), std::move(interaction_info), std::move(unread_reactions), std::move(reply_to),
-      top_thread_message_id, std::move(self_destruct_type), ttl_expires_in, auto_delete_in, via_bot_user_id,
-      m->author_signature, m->media_album_id, get_restriction_reason_description(m->restriction_reasons),
-      std::move(content), std::move(reply_markup));
+      std::move(forward_info), std::move(import_info), std::move(interaction_info), std::move(unread_reactions),
+      std::move(reply_to), top_thread_message_id, std::move(self_destruct_type), ttl_expires_in, auto_delete_in,
+      via_bot_user_id, m->author_signature, m->media_album_id,
+      get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
 }
 
 tl_object_ptr<td_api::messages> MessagesManager::get_messages_object(int32 total_count, DialogId dialog_id,
@@ -27487,14 +27490,11 @@ unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::get_message_for
 
 td_api::object_ptr<td_api::messageForwardInfo> MessagesManager::get_message_forward_info_object(
     const unique_ptr<MessageForwardInfo> &forward_info) const {
-  if (forward_info == nullptr) {
+  if (forward_info == nullptr || forward_info->is_imported) {
     return nullptr;
   }
 
   auto origin = [&]() -> td_api::object_ptr<td_api::MessageForwardOrigin> {
-    if (forward_info->is_imported) {
-      return td_api::make_object<td_api::messageForwardOriginMessageImport>(forward_info->sender_name);
-    }
     if (is_forward_info_sender_hidden(forward_info.get())) {
       return td_api::make_object<td_api::messageForwardOriginHiddenUser>(
           forward_info->sender_name.empty() ? forward_info->author_signature : forward_info->sender_name);
@@ -27516,6 +27516,14 @@ td_api::object_ptr<td_api::messageForwardInfo> MessagesManager::get_message_forw
   return td_api::make_object<td_api::messageForwardInfo>(
       std::move(origin), forward_info->date, forward_info->psa_type,
       get_chat_id_object(forward_info->from_dialog_id, "messageForwardInfo"), forward_info->from_message_id.get());
+}
+
+td_api::object_ptr<td_api::messageImportInfo> MessagesManager::get_message_import_info_object(
+    const unique_ptr<MessageForwardInfo> &forward_info) const {
+  if (forward_info == nullptr || !forward_info->is_imported) {
+    return nullptr;
+  }
+  return td_api::make_object<td_api::messageImportInfo>(forward_info->sender_name, forward_info->date);
 }
 
 Result<unique_ptr<ReplyMarkup>> MessagesManager::get_dialog_reply_markup(
