@@ -51,6 +51,10 @@ struct MessageOrigin {
 
   MessageFullId get_message_full_id() const;
 
+  const string &get_sender_name() const {
+    return sender_name_;
+  }
+
   bool is_channel_post() const {
     return message_id_.is_valid();
   }
