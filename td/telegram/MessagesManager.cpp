@@ -27394,9 +27394,6 @@ bool MessagesManager::can_set_game_score(DialogId dialog_id, const Message *m) c
 
 bool MessagesManager::is_forward_info_sender_hidden(const MessageForwardInfo *forward_info) {
   CHECK(forward_info != nullptr);
-  if (forward_info->is_imported) {
-    return false;
-  }
   if (!forward_info->sender_name.empty()) {
     return true;
   }
@@ -35656,7 +35653,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
           if (replace_legacy) {
             return false;
           }
-          if (old_message->forward_info->is_imported != new_message->forward_info->is_imported) {
+          if (old_message->forward_info->is_imported || new_message->forward_info->is_imported) {
             return true;
           }
           if (!is_scheduled && !message_id.is_yet_unsent() && !old_message->forward_info->is_imported) {
