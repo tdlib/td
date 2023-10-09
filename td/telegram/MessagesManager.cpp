@@ -24027,7 +24027,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
     // i.e. a message is incoming only if it's a forwarded message with known from_dialog_id or with a hidden sender
     auto forward_info = m->forward_info.get();
     is_outgoing = is_scheduled || forward_info == nullptr ||
-                  (!forward_info->from_dialog_id.is_valid() && !is_forward_info_sender_hidden(forward_info));
+                  (!forward_info->from_dialog_id.is_valid() && !forward_info->origin.is_sender_hidden());
   }
 
   double ttl_expires_in = m->ttl_expires_at != 0 ? clamp(m->ttl_expires_at - Time::now(), 1e-3, m->ttl - 1e-3) : 0.0;
@@ -27395,11 +27395,6 @@ bool MessagesManager::can_set_game_score(DialogId dialog_id, const Message *m) c
   }
 
   return true;
-}
-
-bool MessagesManager::is_forward_info_sender_hidden(const MessageForwardInfo *forward_info) {
-  CHECK(forward_info != nullptr);
-  return forward_info->origin.is_sender_hidden();
 }
 
 unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::get_message_forward_info(
