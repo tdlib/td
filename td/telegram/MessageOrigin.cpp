@@ -8,6 +8,7 @@
 
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/Dependencies.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
@@ -100,6 +101,11 @@ bool MessageOrigin::is_sender_hidden() const {
   }
   DialogId hidden_sender_dialog_id(ChannelId(static_cast<int64>(G()->is_test_dc() ? 10460537 : 1228946795)));
   return sender_dialog_id_ == hidden_sender_dialog_id && !author_signature_.empty() && !message_id_.is_valid();
+}
+
+void MessageOrigin::add_dependencies(Dependencies &dependencies) const {
+  dependencies.add(sender_user_id_);
+  dependencies.add_dialog_and_dependencies(sender_dialog_id_);
 }
 
 bool operator==(const MessageOrigin &lhs, const MessageOrigin &rhs) {

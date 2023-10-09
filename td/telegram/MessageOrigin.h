@@ -18,6 +18,8 @@
 
 namespace td {
 
+class Dependencies;
+
 class Td;
 
 struct MessageOrigin {
@@ -48,6 +50,8 @@ struct MessageOrigin {
   bool is_channel_post() const {
     return message_id_.is_valid();
   }
+
+  void add_dependencies(Dependencies &dependencies) const;
 
   friend bool operator==(const MessageOrigin &lhs, const MessageOrigin &rhs);
 
