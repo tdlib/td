@@ -3140,7 +3140,7 @@ class MessagesManager final : public Actor {
 
   void update_forward_count(DialogId dialog_id, const Message *m);
 
-  void update_forward_count(DialogId dialog_id, MessageId message_id, int32 update_date);
+  void update_forward_count(MessageFullId message_full_id, int32 update_date);
 
   void update_has_outgoing_messages(DialogId dialog_id, const Message *m);
 

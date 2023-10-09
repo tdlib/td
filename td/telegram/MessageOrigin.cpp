@@ -103,6 +103,13 @@ bool MessageOrigin::is_sender_hidden() const {
   return sender_dialog_id_ == hidden_sender_dialog_id && !author_signature_.empty() && !message_id_.is_valid();
 }
 
+MessageFullId MessageOrigin::get_message_full_id() const {
+  if (!message_id_.is_valid() || !sender_dialog_id_.is_valid() || is_sender_hidden()) {
+    return MessageFullId();
+  }
+  return {sender_dialog_id_, message_id_};
+}
+
 DialogId MessageOrigin::get_sender() const {
   if (is_sender_hidden()) {
     return DialogId();
