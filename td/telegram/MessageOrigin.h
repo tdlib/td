@@ -8,6 +8,7 @@
 
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -47,6 +48,8 @@ struct MessageOrigin {
   td_api::object_ptr<td_api::MessageForwardOrigin> get_message_forward_origin_object(const Td *td) const;
 
   bool is_sender_hidden() const;
+
+  MessageFullId get_message_full_id() const;
 
   bool is_channel_post() const {
     return message_id_.is_valid();

@@ -63,6 +63,7 @@ void MessageOrigin::parse(ParserT &parser) {
   }
   if (has_sender_dialog_id) {
     td::parse(sender_dialog_id_, parser);
+    CHECK(sender_dialog_id_.get_type() == DialogType::Channel);
   }
   if (has_message_id) {
     td::parse(message_id_, parser);

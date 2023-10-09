@@ -18460,10 +18460,12 @@ Status MessagesManager::can_get_media_timestamp_link(DialogId dialog_id, const M
   if (dialog_id.get_type() != DialogType::Channel) {
     auto forward_info = m->forward_info.get();
     if (!can_message_content_have_media_timestamp(m->content.get()) || forward_info == nullptr ||
-        forward_info->is_imported || is_forward_info_sender_hidden(forward_info) ||
-        !forward_info->origin.message_id_.is_valid() || !m->forward_info->origin.message_id_.is_server() ||
-        !forward_info->origin.sender_dialog_id_.is_valid() ||
-        forward_info->origin.sender_dialog_id_.get_type() != DialogType::Channel) {
+        forward_info->is_imported) {
+      return Status::Error(400, "Message links are available only for messages in supergroups and channel chats");
+    }
+    auto origin_message_full_id = forward_info->origin.get_message_full_id();
+    auto origin_message_id = origin_message_full_id.get_message_id();
+    if (!origin_message_id.is_valid() || !origin_message_id.is_server()) {
       return Status::Error(400, "Message links are available only for messages in supergroups and channel chats");
     }
     return Status::OK();
@@ -18525,13 +18527,14 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(MessageFullId 
   auto message_id = m->message_id;
   if (dialog_id.get_type() != DialogType::Channel) {
     CHECK(m->forward_info != nullptr);
-    CHECK(m->forward_info->origin.sender_dialog_id_.get_type() == DialogType::Channel);
 
-    dialog_id = m->forward_info->origin.sender_dialog_id_;
-    message_id = m->forward_info->origin.message_id_;
+    auto origin_message_full_id = m->forward_info->origin.get_message_full_id();
+    dialog_id = origin_message_full_id.get_dialog_id();
+    message_id = origin_message_full_id.get_message_id();
+    CHECK(dialog_id.get_type() == DialogType::Channel);
     for_group = false;
     in_message_thread = false;
-    auto channel_message = get_message({dialog_id, message_id});
+    auto channel_message = get_message(origin_message_full_id);
     if (channel_message != nullptr && channel_message->media_album_id == 0) {
       for_group = true;  // default is true
     }
@@ -38876,20 +38879,26 @@ void MessagesManager::update_top_dialogs(DialogId dialog_id, const Message *m) {
 }
 
 void MessagesManager::update_forward_count(DialogId dialog_id, const Message *m) {
-  if (!td_->auth_manager_->is_bot() && m->forward_info != nullptr &&
-      m->forward_info->origin.sender_dialog_id_.is_valid() && m->forward_info->origin.message_id_.is_valid() &&
-      (!is_discussion_message(dialog_id, m) ||
-       m->forward_info->origin.sender_dialog_id_ != m->forward_info->from_dialog_id ||
-       m->forward_info->origin.message_id_ != m->forward_info->from_message_id)) {
-    update_forward_count(m->forward_info->origin.sender_dialog_id_, m->forward_info->origin.message_id_, m->date);
+  if (td_->auth_manager_->is_bot() || m->forward_info == nullptr) {
+    return;
   }
+  auto origin_message_full_id = m->forward_info->origin.get_message_full_id();
+  if (!origin_message_full_id.get_message_id().is_valid()) {
+    return;
+  }
+  if (is_discussion_message(dialog_id, m) &&
+      origin_message_full_id == MessageFullId(m->forward_info->from_dialog_id, m->forward_info->from_message_id)) {
+    return;
+  }
+  update_forward_count(origin_message_full_id, m->date);
 }
 
-void MessagesManager::update_forward_count(DialogId dialog_id, MessageId message_id, int32 update_date) {
+void MessagesManager::update_forward_count(MessageFullId message_full_id, int32 update_date) {
   CHECK(!td_->auth_manager_->is_bot());
+  auto dialog_id = message_full_id.get_dialog_id();
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
-  Message *m = get_message_force(d, message_id, "update_forward_count");
+  Message *m = get_message_force(d, message_full_id.get_message_id(), "update_forward_count");
   if (m != nullptr && !m->message_id.is_scheduled() && m->message_id.is_server() && m->view_count > 0 &&
       m->interaction_info_update_date < update_date) {
     if (m->forward_count == 0) {
