@@ -27976,15 +27976,8 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
     auto content = std::move(forwarded_message_contents[j].content);
     auto forward_info =
         drop_author ? nullptr : create_message_forward_info(from_dialog_id, to_dialog_id, forwarded_message);
-    if (forward_info != nullptr && !forward_info->is_imported && !is_forward_info_sender_hidden(forward_info.get()) &&
-        !forward_info->origin.message_id_.is_valid() && !forward_info->origin.sender_dialog_id_.is_valid() &&
-        forward_info->origin.sender_user_id_.is_valid()) {
-      auto private_forward_name =
-          td_->contacts_manager_->get_user_private_forward_name(forward_info->origin.sender_user_id_);
-      if (!private_forward_name.empty()) {
-        forward_info->origin.sender_user_id_ = UserId();
-        forward_info->origin.sender_name_ = std::move(private_forward_name);
-      }
+    if (forward_info != nullptr && !forward_info->is_imported) {
+      forward_info->origin.hide_sender_if_needed(td_);
     }
     MessageId reply_to_message_id;
     if (forwarded_message->reply_to_message_id.is_valid() && forwarded_message->reply_in_dialog_id == DialogId()) {

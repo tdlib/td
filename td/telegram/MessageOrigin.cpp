@@ -117,6 +117,16 @@ DialogId MessageOrigin::get_sender() const {
   return message_id_.is_valid() || sender_dialog_id_.is_valid() ? sender_dialog_id_ : DialogId(sender_user_id_);
 }
 
+void MessageOrigin::hide_sender_if_needed(Td *td) {
+  if (!is_sender_hidden() && !message_id_.is_valid() && !sender_dialog_id_.is_valid()) {
+    auto private_forward_name = td->contacts_manager_->get_user_private_forward_name(sender_user_id_);
+    if (!private_forward_name.empty()) {
+      sender_user_id_ = UserId();
+      sender_name_ = std::move(private_forward_name);
+    }
+  }
+}
+
 void MessageOrigin::add_dependencies(Dependencies &dependencies) const {
   dependencies.add(sender_user_id_);
   dependencies.add_dialog_and_dependencies(sender_dialog_id_);
