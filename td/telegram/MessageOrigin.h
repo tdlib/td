@@ -52,6 +52,8 @@ struct MessageOrigin {
     return message_id_.is_valid();
   }
 
+  DialogId get_sender() const;
+
   void add_dependencies(Dependencies &dependencies) const;
 
   void add_user_ids(vector<UserId> &user_ids) const;
