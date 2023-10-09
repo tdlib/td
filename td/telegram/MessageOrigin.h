@@ -24,13 +24,14 @@ class Dependencies;
 
 class Td;
 
-struct MessageOrigin {
+class MessageOrigin {
   UserId sender_user_id_;
   DialogId sender_dialog_id_;
   MessageId message_id_;
   string author_signature_;
   string sender_name_;
 
+ public:
   MessageOrigin() = default;
 
   MessageOrigin(UserId sender_user_id, DialogId sender_dialog_id, MessageId message_id, string &&author_signature,
