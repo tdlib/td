@@ -13100,8 +13100,8 @@ vector<UserId> MessagesManager::get_message_user_ids(const Message *m) const {
   if (m->via_bot_user_id.is_valid()) {
     user_ids.push_back(m->via_bot_user_id);
   }
-  if (m->forward_info != nullptr && m->forward_info->origin.sender_user_id_.is_valid()) {
-    user_ids.push_back(m->forward_info->origin.sender_user_id_);
+  if (m->forward_info != nullptr) {
+    m->forward_info->origin.add_user_ids(user_ids);
   }
   append(user_ids, get_message_content_min_user_ids(td_, m->content.get()));
   return user_ids;
@@ -13112,9 +13112,8 @@ vector<ChannelId> MessagesManager::get_message_channel_ids(const Message *m) {
   if (m->sender_dialog_id.is_valid() && m->sender_dialog_id.get_type() == DialogType::Channel) {
     channel_ids.push_back(m->sender_dialog_id.get_channel_id());
   }
-  if (m->forward_info != nullptr && m->forward_info->origin.sender_dialog_id_.is_valid() &&
-      m->forward_info->origin.sender_dialog_id_.get_type() == DialogType::Channel) {
-    channel_ids.push_back(m->forward_info->origin.sender_dialog_id_.get_channel_id());
+  if (m->forward_info != nullptr) {
+    m->forward_info->origin.add_channel_ids(channel_ids);
   }
   if (m->forward_info != nullptr && m->forward_info->from_dialog_id.is_valid() &&
       m->forward_info->from_dialog_id.get_type() == DialogType::Channel) {

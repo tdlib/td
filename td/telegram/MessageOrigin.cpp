@@ -108,6 +108,18 @@ void MessageOrigin::add_dependencies(Dependencies &dependencies) const {
   dependencies.add_dialog_and_dependencies(sender_dialog_id_);
 }
 
+void MessageOrigin::add_user_ids(vector<UserId> &user_ids) const {
+  if (sender_user_id_.is_valid()) {
+    user_ids.push_back(sender_user_id_);
+  }
+}
+
+void MessageOrigin::add_channel_ids(vector<ChannelId> &channel_ids) const {
+  if (sender_dialog_id_.get_type() == DialogType::Channel) {
+    channel_ids.push_back(sender_dialog_id_.get_channel_id());
+  }
+}
+
 bool operator==(const MessageOrigin &lhs, const MessageOrigin &rhs) {
   return lhs.sender_user_id_ == rhs.sender_user_id_ && lhs.sender_dialog_id_ == rhs.sender_dialog_id_ &&
          lhs.message_id_ == rhs.message_id_ && lhs.author_signature_ == rhs.author_signature_ &&

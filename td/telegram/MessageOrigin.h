@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/ChannelId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/td_api.h"
@@ -52,6 +53,10 @@ struct MessageOrigin {
   }
 
   void add_dependencies(Dependencies &dependencies) const;
+
+  void add_user_ids(vector<UserId> &user_ids) const;
+
+  void add_channel_ids(vector<ChannelId> &channel_ids) const;
 
   friend bool operator==(const MessageOrigin &lhs, const MessageOrigin &rhs);
 
