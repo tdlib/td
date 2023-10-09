@@ -65,6 +65,8 @@ struct MessageOrigin {
 
   DialogId get_sender() const;
 
+  void hide_sender_if_needed(Td *td);
+
   void add_dependencies(Dependencies &dependencies) const;
 
   void add_user_ids(vector<UserId> &user_ids) const;
