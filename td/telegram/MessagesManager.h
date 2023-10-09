@@ -36,6 +36,7 @@
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageInputReplyTo.h"
 #include "td/telegram/MessageLinkInfo.h"
+#include "td/telegram/MessageOrigin.h"
 #include "td/telegram/MessageReplyHeader.h"
 #include "td/telegram/MessageReplyInfo.h"
 #include "td/telegram/MessageSearchFilter.h"
@@ -1077,12 +1078,8 @@ class MessagesManager final : public Actor {
   };
 
   struct MessageForwardInfo {
-    UserId sender_user_id;
+    MessageOrigin origin;
     int32 date = 0;
-    DialogId sender_dialog_id;
-    MessageId message_id;
-    string author_signature;
-    string sender_name;
     DialogId from_dialog_id;
     MessageId from_message_id;
     string psa_type;
@@ -1090,15 +1087,10 @@ class MessagesManager final : public Actor {
 
     MessageForwardInfo() = default;
 
-    MessageForwardInfo(UserId sender_user_id, int32 date, DialogId sender_dialog_id, MessageId message_id,
-                       string author_signature, string sender_name, DialogId from_dialog_id, MessageId from_message_id,
-                       string psa_type, bool is_imported)
-        : sender_user_id(sender_user_id)
+    MessageForwardInfo(MessageOrigin &&origin, int32 date, DialogId from_dialog_id, MessageId from_message_id,
+                       string &&psa_type, bool is_imported)
+        : origin(std::move(origin))
         , date(date)
-        , sender_dialog_id(sender_dialog_id)
-        , message_id(message_id)
-        , author_signature(std::move(author_signature))
-        , sender_name(std::move(sender_name))
         , from_dialog_id(from_dialog_id)
         , from_message_id(from_message_id)
         , psa_type(std::move(psa_type))
@@ -1106,9 +1098,7 @@ class MessagesManager final : public Actor {
     }
 
     bool operator==(const MessageForwardInfo &rhs) const {
-      return sender_user_id == rhs.sender_user_id && date == rhs.date && sender_dialog_id == rhs.sender_dialog_id &&
-             message_id == rhs.message_id && author_signature == rhs.author_signature &&
-             sender_name == rhs.sender_name && from_dialog_id == rhs.from_dialog_id &&
+      return origin == rhs.origin && date == rhs.date && from_dialog_id == rhs.from_dialog_id &&
              from_message_id == rhs.from_message_id && psa_type == rhs.psa_type && is_imported == rhs.is_imported;
     }
 
@@ -1117,21 +1107,9 @@ class MessagesManager final : public Actor {
     }
 
     friend StringBuilder &operator<<(StringBuilder &string_builder, const MessageForwardInfo &forward_info) {
-      string_builder << "MessageForwardInfo[" << (forward_info.is_imported ? "imported " : "") << "sender "
-                     << forward_info.sender_user_id;
-      if (!forward_info.author_signature.empty() || !forward_info.sender_name.empty()) {
-        string_builder << '(' << forward_info.author_signature << '/' << forward_info.sender_name << ')';
-      }
+      string_builder << "MessageForwardInfo[" << (forward_info.is_imported ? "imported " : "") << forward_info.origin;
       if (!forward_info.psa_type.empty()) {
         string_builder << ", psa_type " << forward_info.psa_type;
-      }
-      if (forward_info.sender_dialog_id.is_valid()) {
-        string_builder << ", source ";
-        if (forward_info.message_id.is_valid()) {
-          string_builder << MessageFullId(forward_info.sender_dialog_id, forward_info.message_id);
-        } else {
-          string_builder << forward_info.sender_dialog_id;
-        }
       }
       if (forward_info.from_dialog_id.is_valid() || forward_info.from_message_id.is_valid()) {
         string_builder << ", from " << MessageFullId(forward_info.from_dialog_id, forward_info.from_message_id);
@@ -2843,7 +2821,7 @@ class MessagesManager final : public Actor {
   static bool is_forward_info_sender_hidden(const MessageForwardInfo *forward_info);
 
   unique_ptr<MessageForwardInfo> get_message_forward_info(
-      tl_object_ptr<telegram_api::messageFwdHeader> &&forward_header, MessageFullId message_full_id);
+      tl_object_ptr<telegram_api::messageFwdHeader> &&forward_header);
 
   td_api::object_ptr<td_api::messageForwardInfo> get_message_forward_info_object(
       const unique_ptr<MessageForwardInfo> &forward_info) const;
