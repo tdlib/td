@@ -2848,6 +2848,9 @@ class MessagesManager final : public Actor {
   td_api::object_ptr<td_api::messageForwardInfo> get_message_forward_info_object(
       const unique_ptr<MessageForwardInfo> &forward_info) const;
 
+  td_api::object_ptr<td_api::messageImportInfo> get_message_import_info_object(
+      const unique_ptr<MessageForwardInfo> &forward_info) const;
+
   void ttl_read_history(Dialog *d, bool is_outgoing, MessageId from_message_id, MessageId till_message_id,
                         double view_date);
   void ttl_read_history_impl(DialogId dialog_id, bool is_outgoing, MessageId from_message_id, MessageId till_message_id,

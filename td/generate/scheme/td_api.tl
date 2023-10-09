@@ -1091,9 +1091,6 @@ messageForwardOriginHiddenUser sender_name:string = MessageForwardOrigin;
 //@author_signature Original post author signature
 messageForwardOriginChannel chat_id:int53 message_id:int53 author_signature:string = MessageForwardOrigin;
 
-//@description The message was imported from an exported message history @sender_name Name of the sender
-messageForwardOriginMessageImport sender_name:string = MessageForwardOrigin;
-
 
 //@class ReactionType @description Describes type of message reaction
 
@@ -1111,6 +1108,11 @@ reactionTypeCustomEmoji custom_emoji_id:int64 = ReactionType;
 //@from_chat_id For messages forwarded to the chat with the current user (Saved Messages), to the Replies bot chat, or to the channel's discussion group, the identifier of the chat from which the message was forwarded last time; 0 if unknown
 //@from_message_id For messages forwarded to the chat with the current user (Saved Messages), to the Replies bot chat, or to the channel's discussion group, the identifier of the original message from which the new message was forwarded last time; 0 if unknown
 messageForwardInfo origin:MessageForwardOrigin date:int32 public_service_announcement_type:string from_chat_id:int53 from_message_id:int53 = MessageForwardInfo;
+
+//@description Contains information about a message created with importMessages
+//@sender_name Name of the original sender
+//@date Point in time (Unix timestamp) when the message was originally sent
+messageImportInfo sender_name:string date:int32 = MessageImportInfo;
 
 //@description Contains information about replies to a message
 //@reply_count Number of times the message was directly or indirectly replied
@@ -1193,6 +1195,7 @@ messageReplyToStory story_sender_chat_id:int53 story_id:int32 = MessageReplyTo;
 //@date Point in time (Unix timestamp) when the message was sent
 //@edit_date Point in time (Unix timestamp) when the message was last edited
 //@forward_info Information about the initial message sender; may be null if none or unknown
+//@import_info Information about the initial message for messages created with importMessages; may be null if the message isn't imported
 //@interaction_info Information about interactions with the message; may be null if none
 //@unread_reactions Information about unread reactions added to the message
 //@reply_to Information about the message or the story this message is replying to; may be null if none
@@ -1206,7 +1209,7 @@ messageReplyToStory story_sender_chat_id:int53 story_id:int32 = MessageReplyTo;
 //@restriction_reason If non-empty, contains a human-readable description of the reason why access to this message must be restricted
 //@content Content of the message
 //@reply_markup Reply markup for the message; may be null if none
-message id:int53 sender_id:MessageSender chat_id:int53 sending_state:MessageSendingState scheduling_state:MessageSchedulingState is_outgoing:Bool is_pinned:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_saved:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_get_added_reactions:Bool can_get_statistics:Bool can_get_message_thread:Bool can_get_viewers:Bool can_get_media_timestamp_links:Bool can_report_reactions:Bool has_timestamped_media:Bool is_channel_post:Bool is_topic_message:Bool contains_unread_mention:Bool date:int32 edit_date:int32 forward_info:messageForwardInfo interaction_info:messageInteractionInfo unread_reactions:vector<unreadReaction> reply_to:MessageReplyTo message_thread_id:int53 self_destruct_type:MessageSelfDestructType self_destruct_in:double auto_delete_in:double via_bot_user_id:int53 author_signature:string media_album_id:int64 restriction_reason:string content:MessageContent reply_markup:ReplyMarkup = Message;
+message id:int53 sender_id:MessageSender chat_id:int53 sending_state:MessageSendingState scheduling_state:MessageSchedulingState is_outgoing:Bool is_pinned:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_saved:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_get_added_reactions:Bool can_get_statistics:Bool can_get_message_thread:Bool can_get_viewers:Bool can_get_media_timestamp_links:Bool can_report_reactions:Bool has_timestamped_media:Bool is_channel_post:Bool is_topic_message:Bool contains_unread_mention:Bool date:int32 edit_date:int32 forward_info:messageForwardInfo import_info:messageImportInfo interaction_info:messageInteractionInfo unread_reactions:vector<unreadReaction> reply_to:MessageReplyTo message_thread_id:int53 self_destruct_type:MessageSelfDestructType self_destruct_in:double auto_delete_in:double via_bot_user_id:int53 author_signature:string media_album_id:int64 restriction_reason:string content:MessageContent reply_markup:ReplyMarkup = Message;
 
 //@description Contains a list of messages @total_count Approximate total number of messages found @messages List of messages; messages may be null
 messages total_count:int32 messages:vector<message> = Messages;
