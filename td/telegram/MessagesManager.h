@@ -262,7 +262,7 @@ class MessagesManager final : public Actor {
   void on_get_common_dialogs(UserId user_id, int64 offset_chat_id, vector<tl_object_ptr<telegram_api::Chat>> &&chats,
                              int32 total_count);
 
-  bool on_update_message_id(int64 random_id, MessageId new_message_id, const string &source);
+  bool on_update_message_id(int64 random_id, MessageId new_message_id, const char *source);
 
   void on_update_dialog_draft_message(DialogId dialog_id, MessageId top_thread_message_id,
                                       tl_object_ptr<telegram_api::DraftMessage> &&draft_message);
