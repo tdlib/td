@@ -3443,6 +3443,13 @@ storyInfo story_id:int32 date:int32 is_for_close_friends:Bool = StoryInfo;
 chatActiveStories chat_id:int53 list:StoryList order:int53 max_read_story_id:int32 stories:vector<storyInfo> = ChatActiveStories;
 
 
+//@description Describes a prepaid Telegram Premium giveaway
+//@id Unique identifier of the prepaid giveaway
+//@quantity Number of users which will receive Telegram Premium subscription gift codes
+//@month_count Number of month the Telegram Premium subscription will be active after code activation
+//@payment_date Point in time (Unix timestamp) when the giveaway was paid
+prepaidPremiumGiveaway id:int64 quantity:int32 month_count:int32 payment_date:int32 = PrepaidPremiumGiveaway;
+
 //@description Describes current boost status of a chat
 //@boost_url An HTTP URL, which can be used to boost the chat
 //@is_boosted True, if the current user has already boosted the chat
@@ -3452,7 +3459,8 @@ chatActiveStories chat_id:int53 list:StoryList order:int53 max_read_story_id:int
 //@next_level_boost_count The number of boosts needed to reach the next level; 0 if the next level isn't available
 //@premium_member_count Approximate number of Telegram Premium subscribers joined the chat; always 0 if the current user isn't an administrator in the chat
 //@premium_member_percentage A percentage of Telegram Premium subscribers joined the chat; always 0 if the current user isn't an administrator in the chat
-chatBoostStatus boost_url:string is_boosted:Bool level:int32 boost_count:int32 current_level_boost_count:int32 next_level_boost_count:int32 premium_member_count:int32 premium_member_percentage:double = ChatBoostStatus;
+//@prepaid_giveaways The list of prepaid giveaways available for the chat; only for chat administrators
+chatBoostStatus boost_url:string is_boosted:Bool level:int32 boost_count:int32 current_level_boost_count:int32 next_level_boost_count:int32 premium_member_count:int32 premium_member_percentage:double prepaid_giveaways:vector<prepaidPremiumGiveaway> = ChatBoostStatus;
 
 //@description Describes a boost of a chat @user_id Identifier of a user that boosted the chat @expiration_date Point in time (Unix timestamp) when the boost will automatically expire if the user will not prolongate their Telegram Premium subscription
 chatBoost user_id:int53 expiration_date:int32 = ChatBoost;

@@ -797,9 +797,14 @@ class GetBoostsStatusQuery final : public Td::ResultHandler {
         premium_member_percentage = 100.0 * premium_member_count / participant_count;
       }
     }
+    auto giveaways = transform(std::move(result->prepaid_giveaways_),
+                               [](telegram_api::object_ptr<telegram_api::prepaidGiveaway> giveaway) {
+                                 return td_api::make_object<td_api::prepaidPremiumGiveaway>(
+                                     giveaway->id_, giveaway->quantity_, giveaway->months_, giveaway->date_);
+                               });
     promise_.set_value(td_api::make_object<td_api::chatBoostStatus>(
         result->boost_url_, result->my_boost_, result->level_, result->boosts_, result->current_level_boosts_,
-        result->next_level_boosts_, premium_member_count, premium_member_percentage));
+        result->next_level_boosts_, premium_member_count, premium_member_percentage, std::move(giveaways)));
   }
 
   void on_error(Status status) final {
