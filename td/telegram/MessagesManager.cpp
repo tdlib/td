@@ -40202,7 +40202,7 @@ void MessagesManager::get_current_state(vector<td_api::object_ptr<td_api::Update
   dialogs_.foreach([&](const DialogId &dialog_id, const unique_ptr<Dialog> &dialog) {
     const Dialog *d = dialog.get();
     auto update = td_api::make_object<td_api::updateNewChat>(get_chat_object(d));
-    if (update->chat_->last_message_ != nullptr && update->chat_->last_message_->forward_info_ != nullptr) {
+    if (update->chat_->last_message_ != nullptr) {
       last_message_updates.push_back(td_api::make_object<td_api::updateChatLastMessage>(
           get_chat_id_object(dialog_id, "updateChatLastMessage"), std::move(update->chat_->last_message_),
           get_chat_positions_object(d)));
