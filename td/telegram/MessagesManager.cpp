@@ -28616,7 +28616,7 @@ void MessagesManager::on_imported_message_attachments_uploaded(int64 random_id, 
   td_->create_handler<StartImportHistoryQuery>(std::move(promise))->send(dialog_id, pending_message_import->import_id);
 }
 
-bool MessagesManager::on_update_message_id(int64 random_id, MessageId new_message_id, const string &source) {
+bool MessagesManager::on_update_message_id(int64 random_id, MessageId new_message_id, const char *source) {
   if (!new_message_id.is_valid() && !new_message_id.is_valid_scheduled()) {
     LOG(ERROR) << "Receive " << new_message_id << " in updateMessageId with random_id " << random_id << " from "
                << source;
