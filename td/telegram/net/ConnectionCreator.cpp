@@ -1130,6 +1130,8 @@ void ConnectionCreator::init_proxies() {
       log_event_parse(proxies_[proxy_id], info.second).ensure();
       if (proxies_[proxy_id].type() == Proxy::Type::None) {
         LOG_IF(ERROR, proxy_id != 1) << "Have empty proxy " << proxy_id;
+        G()->td_db()->get_binlog_pmc()->erase(get_proxy_database_key(proxy_id));
+        G()->td_db()->get_binlog_pmc()->erase(get_proxy_used_database_key(proxy_id));
         proxies_.erase(proxy_id);
         if (active_proxy_id_ == proxy_id) {
           set_active_proxy_id(0);
