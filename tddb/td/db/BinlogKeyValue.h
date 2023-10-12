@@ -232,6 +232,7 @@ class BinlogKeyValue final : public KeyValueSyncInterface {
   FlatHashMap<string, string> get_all() final {
     auto lock = rw_mutex_.lock_write().move_as_ok();
     FlatHashMap<string, string> res;
+    res.reserve(map_.size());
     for (const auto &kv : map_) {
       res.emplace(kv.first, kv.second.first);
     }
