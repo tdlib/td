@@ -205,6 +205,7 @@ class ConnectionCreator final : public NetQueryCallback {
   void hangup() final;
   void loop() final;
 
+  void init_proxies();
   void save_dc_options();
   Result<SocketFd> do_request_connection(DcId dc_id, bool allow_media_only);
   Result<std::pair<unique_ptr<mtproto::RawConnection>, bool>> do_request_raw_connection(DcId dc_id,

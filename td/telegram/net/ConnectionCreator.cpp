@@ -1090,6 +1090,19 @@ void ConnectionCreator::start_up() {
     on_dc_options(std::move(dc_options));
   }
 
+  if (G()->td_db()->get_binlog_pmc()->get("proxy_max_id") != "2" ||
+      !G()->td_db()->get_binlog_pmc()->get(get_proxy_database_key(1)).empty()) {
+    // don't need to init proxies if they have never been added
+    init_proxies();
+  }
+
+  ref_cnt_guard_ = create_reference(-1);
+
+  is_inited_ = true;
+  loop();
+}
+
+void ConnectionCreator::init_proxies() {
   auto proxy_info = G()->td_db()->get_binlog_pmc()->prefix_get("proxy");
   auto it = proxy_info.find("_max_id");
   if (it != proxy_info.end()) {
@@ -1145,11 +1158,6 @@ void ConnectionCreator::start_up() {
 
     on_proxy_changed(true);
   }
-
-  ref_cnt_guard_ = create_reference(-1);
-
-  is_inited_ = true;
-  loop();
 }
 
 void ConnectionCreator::hangup_shared() {
