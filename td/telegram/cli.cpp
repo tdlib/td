@@ -993,6 +993,32 @@ class CliClient final : public Actor {
     }
   }
 
+  struct PremiumGiveawayParameters {
+    int64 chat_id = 0;
+    vector<int64> additional_chat_ids;
+    int32 date;
+
+    operator td_api::object_ptr<td_api::premiumGiveawayParameters>() const {
+      if (chat_id == 0) {
+        return nullptr;
+      }
+      return td_api::make_object<td_api::premiumGiveawayParameters>(chat_id, vector<int64>(additional_chat_ids), date,
+                                                                    rand_bool());
+    }
+  };
+
+  void get_args(string &args, PremiumGiveawayParameters &arg) const {
+    auto parts = autosplit(args);
+    if (args.size() < 2) {
+      return;
+    }
+    arg.chat_id = as_chat_id(parts[0]);
+    arg.date = to_integer<int32>(parts.back());
+    for (size_t i = 1; i + 1 < parts.size(); i++) {
+      arg.additional_chat_ids.push_back(as_chat_id(parts[i]));
+    }
+  }
+
   struct ChatPhotoSticker {
     int64 sticker_set_id = 0;
     int64 sticker_id = 0;
@@ -3106,7 +3132,7 @@ class CliClient final : public Actor {
       MessageId message_id;
       get_args(args, chat_id, message_id);
       send_request(td_api::make_object<td_api::getPremiumGiveawayInfo>(chat_id, message_id));
-    } else if (op == "cppr" || op == "cpprb" || op == "cpprg") {
+    } else if (op == "cppr" || op == "cpprb") {
       UserId user_id;
       string currency;
       int64 amount;
@@ -3118,17 +3144,18 @@ class CliClient final : public Actor {
       } else if (op == "cppr") {
         send_request(td_api::make_object<td_api::canPurchasePremium>(
             td_api::make_object<td_api::storePaymentPurposeGiftedPremium>(user_id, currency, amount)));
-      } else if (op == "cpprg") {
-        send_request(td_api::make_object<td_api::canPurchasePremium>(
-            td_api::make_object<td_api::storePaymentPurposePremiumGiveaway>(
-                td_api::make_object<td_api::premiumGiveawayParameters>(
-                    boosted_chat_id, Auto(), static_cast<int32>(user_id) /*date*/, rand_bool()),
-                currency, amount)));
       } else {
         send_request(td_api::make_object<td_api::canPurchasePremium>(
             td_api::make_object<td_api::storePaymentPurposePremiumGiftCodes>(boosted_chat_id, currency, amount,
                                                                              vector<int64>{user_id})));
       }
+    } else if (op == "cpprg") {
+      PremiumGiveawayParameters parameters;
+      string currency;
+      int64 amount;
+      get_args(args, parameters, currency, amount);
+      send_request(td_api::make_object<td_api::canPurchasePremium>(
+          td_api::make_object<td_api::storePaymentPurposePremiumGiveaway>(parameters, currency, amount)));
     } else if (op == "atos") {
       send_request(td_api::make_object<td_api::acceptTermsOfService>(args));
     } else if (op == "gdli") {
