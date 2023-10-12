@@ -424,7 +424,7 @@ class DownloadManagerImpl final : public DownloadManager {
           sent_counters_ = Counters();
         }
       }
-    } else {
+    } else if (!G()->td_db()->get_binlog_pmc()->get("dlds_counter").empty()) {
       G()->td_db()->get_binlog_pmc()->erase("dlds_counter");
       G()->td_db()->get_binlog_pmc()->erase_by_prefix("dlds#");
     }
