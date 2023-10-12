@@ -257,7 +257,7 @@ UpdatesManager::UpdatesManager(Td *td, ActorShared<> parent) : td_(td), parent_(
   pending_audio_transcription_timeout_.set_callback(on_pending_audio_transcription_timeout_callback);
   pending_audio_transcription_timeout_.set_callback_data(static_cast<void *>(td_));
 
-  if (td_->option_manager_->get_option_integer("since_last_open") < 3600) {
+  if (td_->option_manager_->get_option_integer("since_last_open") < 3600 && !td_->auth_manager_->is_bot()) {
     finished_first_get_difference_ = true;
   }
 }
