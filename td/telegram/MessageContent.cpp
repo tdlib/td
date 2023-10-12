@@ -5236,9 +5236,10 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       }
       auto boosted_channel_id = channel_ids[0];
       channel_ids.erase(channel_ids.begin());
-      return td::make_unique<MessageGiveaway>(GiveawayParameters{boosted_channel_id, std::move(channel_ids),
-                                                                 media->only_new_subscribers_, media->until_date_},
-                                              media->quantity_, media->months_);
+      return td::make_unique<MessageGiveaway>(
+          GiveawayParameters{boosted_channel_id, std::move(channel_ids), media->only_new_subscribers_,
+                             media->until_date_, std::move(media->countries_iso2_)},
+          media->quantity_, media->months_);
     }
     case telegram_api::messageMediaUnsupported::ID:
       return make_unique<MessageUnsupported>();

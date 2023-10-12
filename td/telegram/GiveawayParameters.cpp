@@ -47,8 +47,13 @@ Result<GiveawayParameters> GiveawayParameters::get_giveaway_parameters(
   if (parameters->date_ < G()->unix_time()) {
     return Status::Error(400, "Giveaway date is in the past");
   }
+  for (auto &country_code : parameters->country_codes_) {
+    if (country_code.size() != 2 || country_code[0] < 'A' || country_code[0] > 'Z') {
+      return Status::Error(400, "Invalid country code specified");
+    }
+  }
   return GiveawayParameters(boosted_channel_id, std::move(additional_channel_ids), parameters->only_new_subscribers_,
-                            parameters->date_);
+                            parameters->date_, vector<string>(parameters->country_codes_));
 }
 
 void GiveawayParameters::add_dependencies(Dependencies &dependencies) const {
@@ -82,9 +87,12 @@ GiveawayParameters::get_input_store_payment_premium_giveaway(Td *td, const strin
   if (!additional_input_peers.empty()) {
     flags |= telegram_api::inputStorePaymentPremiumGiveaway::ADDITIONAL_PEERS_MASK;
   }
+  if (!country_codes_.empty()) {
+    flags |= telegram_api::inputStorePaymentPremiumGiveaway::COUNTRIES_ISO2_MASK;
+  }
   return telegram_api::make_object<telegram_api::inputStorePaymentPremiumGiveaway>(
-      flags, false /*ignored*/, std::move(boost_input_peer), std::move(additional_input_peers), vector<string>(),
-      random_id, date_, currency, amount);
+      flags, false /*ignored*/, std::move(boost_input_peer), std::move(additional_input_peers),
+      vector<string>(country_codes_), random_id, date_, currency, amount);
 }
 
 td_api::object_ptr<td_api::premiumGiveawayParameters> GiveawayParameters::get_premium_giveaway_parameters_object(
@@ -100,13 +108,14 @@ td_api::object_ptr<td_api::premiumGiveawayParameters> GiveawayParameters::get_pr
   td->messages_manager_->force_create_dialog(dialog_id, "premiumGiveawayParameters", true);
   return td_api::make_object<td_api::premiumGiveawayParameters>(
       td->messages_manager_->get_chat_id_object(dialog_id, "premiumGiveawayParameters"), std::move(chat_ids), date_,
-      only_new_subscribers_);
+      only_new_subscribers_, vector<string>(country_codes_));
 }
 
 bool operator==(const GiveawayParameters &lhs, const GiveawayParameters &rhs) {
   return lhs.boosted_channel_id_ == rhs.boosted_channel_id_ &&
          lhs.additional_channel_ids_ == rhs.additional_channel_ids_ &&
-         lhs.only_new_subscribers_ == rhs.only_new_subscribers_ && lhs.date_ == rhs.date_;
+         lhs.only_new_subscribers_ == rhs.only_new_subscribers_ && lhs.date_ == rhs.date_ &&
+         lhs.country_codes_ == rhs.country_codes_;
 }
 
 bool operator!=(const GiveawayParameters &lhs, const GiveawayParameters &rhs) {
@@ -116,7 +125,8 @@ bool operator!=(const GiveawayParameters &lhs, const GiveawayParameters &rhs) {
 StringBuilder &operator<<(StringBuilder &string_builder, const GiveawayParameters &giveaway_parameters) {
   return string_builder << "Giveaway[" << giveaway_parameters.boosted_channel_id_ << " + "
                         << giveaway_parameters.additional_channel_ids_
-                        << (giveaway_parameters.only_new_subscribers_ ? " only for new subscribes" : "") << " at "
+                        << (giveaway_parameters.only_new_subscribers_ ? " only for new subscribes" : "")
+                        << " for countries " << giveaway_parameters.country_codes_ << " at "
                         << giveaway_parameters.date_ << ']';
 }
 

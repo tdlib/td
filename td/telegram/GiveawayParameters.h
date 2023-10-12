@@ -26,6 +26,7 @@ class GiveawayParameters {
   vector<ChannelId> additional_channel_ids_;
   bool only_new_subscribers_ = false;
   int32 date_ = 0;
+  vector<string> country_codes_;
 
   static Result<ChannelId> get_boosted_channel_id(Td *td, DialogId dialog_id);
 
@@ -38,11 +39,12 @@ class GiveawayParameters {
   GiveawayParameters() = default;
 
   GiveawayParameters(ChannelId boosted_channel_id, vector<ChannelId> &&additional_channel_ids,
-                     bool only_new_subscribers, int32 date)
+                     bool only_new_subscribers, int32 date, vector<string> &&country_codes)
       : boosted_channel_id_(boosted_channel_id)
       , additional_channel_ids_(std::move(additional_channel_ids))
       , only_new_subscribers_(only_new_subscribers)
-      , date_(date) {
+      , date_(date)
+      , country_codes_(std::move(country_codes)) {
   }
 
   static Result<GiveawayParameters> get_giveaway_parameters(Td *td,

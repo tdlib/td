@@ -997,24 +997,26 @@ class CliClient final : public Actor {
     int64 chat_id = 0;
     vector<int64> additional_chat_ids;
     int32 date;
+    vector<string> country_codes;
 
     operator td_api::object_ptr<td_api::premiumGiveawayParameters>() const {
       if (chat_id == 0) {
         return nullptr;
       }
       return td_api::make_object<td_api::premiumGiveawayParameters>(chat_id, vector<int64>(additional_chat_ids), date,
-                                                                    rand_bool());
+                                                                    rand_bool(), vector<string>(country_codes));
     }
   };
 
   void get_args(string &args, PremiumGiveawayParameters &arg) const {
     auto parts = autosplit(args);
-    if (args.size() < 2) {
+    if (args.size() < 3) {
       return;
     }
     arg.chat_id = as_chat_id(parts[0]);
-    arg.date = to_integer<int32>(parts.back());
-    for (size_t i = 1; i + 1 < parts.size(); i++) {
+    arg.date = to_integer<int32>(parts[parts.size() - 2]);
+    arg.country_codes.push_back(parts[parts.size() - 1].str());
+    for (size_t i = 1; i + 2 < parts.size(); i++) {
       arg.additional_chat_ids.push_back(as_chat_id(parts[i]));
     }
   }

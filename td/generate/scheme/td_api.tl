@@ -2298,7 +2298,8 @@ messageExtendedMediaUnsupported caption:formattedText = MessageExtendedMedia;
 //@additional_chat_ids Identifiers of other channel chats that must be subscribed by the users to be eligible for the giveaway
 //@date Point in time (Unix timestamp) when the giveaway will be performed; must be from 1 minute to 365 days in the future in scheduled giveaways
 //@only_new_subscribers True, if only new subscribers of the chats will be eligible for the giveaway
-premiumGiveawayParameters boosted_chat_id:int53 additional_chat_ids:vector<int53> date:int32 only_new_subscribers:Bool = PremiumGiveawayParameters;
+//@country_codes The list of two-letter ISO 3166-1 alpha-2 codes of countries, only users from which will be eligible for the giveaway
+premiumGiveawayParameters boosted_chat_id:int53 additional_chat_ids:vector<int53> date:int32 only_new_subscribers:Bool country_codes:vector<string> = PremiumGiveawayParameters;
 
 
 //@description File with the date it was uploaded @file The file @date Point in time (Unix timestamp) when the file was uploaded
