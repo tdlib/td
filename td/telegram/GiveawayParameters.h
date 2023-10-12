@@ -57,6 +57,10 @@ class GiveawayParameters {
     return boosted_channel_id_.is_valid() && date_ > 0;
   }
 
+  DialogId get_boosted_dialog_id() const {
+    return DialogId(boosted_channel_id_);
+  }
+
   void add_dependencies(Dependencies &dependencies) const;
 
   telegram_api::object_ptr<telegram_api::inputStorePaymentPremiumGiveaway> get_input_store_payment_premium_giveaway(

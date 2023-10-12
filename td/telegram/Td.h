@@ -1603,6 +1603,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::applyPremiumGiftCode &request);
 
+  void on_request(uint64 id, td_api::launchPrepaidPremiumGiveaway &request);
+
   void on_request(uint64 id, const td_api::getPremiumGiveawayInfo &request);
 
   void on_request(uint64 id, td_api::canPurchasePremium &request);

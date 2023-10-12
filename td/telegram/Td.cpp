@@ -8809,6 +8809,12 @@ void Td::on_request(uint64 id, td_api::applyPremiumGiftCode &request) {
   apply_premium_gift_code(this, request.code_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::launchPrepaidPremiumGiveaway &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  launch_prepaid_premium_giveaway(this, request.giveaway_id_, std::move(request.parameters_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getPremiumGiveawayInfo &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

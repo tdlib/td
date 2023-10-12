@@ -373,6 +373,37 @@ class ApplyGiftCodeQuery final : public Td::ResultHandler {
   }
 };
 
+class LaunchPrepaidGiveawayQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit LaunchPrepaidGiveawayQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(int64 giveaway_id, const GiveawayParameters &parameters) {
+    auto dialog_id = parameters.get_boosted_dialog_id();
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    CHECK(input_peer != nullptr);
+    send_query(G()->net_query_creator().create(telegram_api::payments_launchPrepaidGiveaway(
+        std::move(input_peer), giveaway_id, parameters.get_input_store_payment_premium_giveaway(td_, string(), 0))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_launchPrepaidGiveaway>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for LaunchPrepaidGiveawayQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetGiveawayInfoQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::PremiumGiveawayInfo>> promise_;
   DialogId dialog_id_;
@@ -899,6 +930,13 @@ void check_premium_gift_code(Td *td, const string &code,
 
 void apply_premium_gift_code(Td *td, const string &code, Promise<Unit> &&promise) {
   td->create_handler<ApplyGiftCodeQuery>(std::move(promise))->send(code);
+}
+
+void launch_prepaid_premium_giveaway(Td *td, int64 giveaway_id,
+                                     td_api::object_ptr<td_api::premiumGiveawayParameters> &&parameters,
+                                     Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, giveaway_parameters, GiveawayParameters::get_giveaway_parameters(td, parameters.get()));
+  td->create_handler<LaunchPrepaidGiveawayQuery>(std::move(promise))->send(giveaway_id, giveaway_parameters);
 }
 
 void get_premium_giveaway_info(Td *td, MessageFullId message_full_id,
