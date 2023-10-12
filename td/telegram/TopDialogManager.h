@@ -52,7 +52,6 @@ class TopDialogManager final : public Actor {
   Td *td_;
   ActorShared<> parent_;
 
-  bool is_active_ = false;
   bool is_enabled_ = true;
   bool is_synchronized_ = false;
   int32 rating_e_decay_ = 241920;
