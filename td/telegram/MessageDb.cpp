@@ -49,7 +49,7 @@ Status init_message_db(SqliteDb &db, int32 version) {
   TRY_RESULT(has_table, db.has_table("messages"));
   if (!has_table) {
     version = 0;
-  } else if (version < static_cast<int32>(DbVersion::CreateDialogDb) || version > current_db_version()) {
+  } else if (version > current_db_version()) {
     TRY_STATUS(drop_message_db(db, version));
     version = 0;
   }
