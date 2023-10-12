@@ -368,6 +368,7 @@ set(TDLIB_SOURCE
   td/telegram/ForumTopicManager.cpp
   td/telegram/Game.cpp
   td/telegram/GameManager.cpp
+  td/telegram/GiveawayParameters.cpp
   td/telegram/Global.cpp
   td/telegram/GlobalPrivacySettings.cpp
   td/telegram/GroupCallManager.cpp
@@ -647,6 +648,7 @@ set(TDLIB_SOURCE
   td/telegram/Game.h
   td/telegram/GameManager.h
   td/telegram/GitCommitHash.h
+  td/telegram/GiveawayParameters.h
   td/telegram/Global.h
   td/telegram/GlobalPrivacySettings.h
   td/telegram/GroupCallId.h
@@ -853,6 +855,7 @@ set(TDLIB_SOURCE
   td/telegram/ForumTopicIcon.hpp
   td/telegram/ForumTopicInfo.hpp
   td/telegram/Game.hpp
+  td/telegram/GiveawayParameters.hpp
   td/telegram/InputInvoice.hpp
   td/telegram/InputMessageText.hpp
   td/telegram/MediaArea.hpp

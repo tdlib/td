@@ -2293,6 +2293,13 @@ messageExtendedMediaVideo video:video caption:formattedText = MessageExtendedMed
 messageExtendedMediaUnsupported caption:formattedText = MessageExtendedMedia;
 
 
+//@description Describes parameters of a Telegram Premium giveaway
+//@boosted_chat_id Identifier of the channel chat, which will be automatically boosted by the winners of the giveaway for duration of the Premium subscription
+//@additional_chat_ids Identifiers of other channel chats that must be subscribed by the users to be eligible for the giveaway
+//@date Point in time (Unix timestamp) when the giveaway will be performed; must be from 1 minute to 365 days in the future
+//@only_new_subscribers Pass true if only new subscribers of the chats will be eligible for the giveaway
+premiumGiveawayParameters boosted_chat_id:int53 additional_chat_ids:vector<int53> date:int32 only_new_subscribers:Bool = PremiumGiveawayParameters;
+
 
 //@description File with the date it was uploaded @file The file @date Point in time (Unix timestamp) when the file was uploaded
 datedFile file:file date:int32 = DatedFile;
@@ -2798,12 +2805,10 @@ messageGiftedPremium gifter_user_id:int53 currency:string amount:int53 cryptocur
 messagePremiumGiftCode creator_id:MessageSender is_from_giveaway:Bool month_count:int32 code:string = MessageContent;
 
 //@description A Telegram Premium giveaway is scheduled by channel chats
-//@chat_ids Identifiers of chats that started the giveaway
-//@only_new_subscribers True, if only new subscribers of the chats will be eligible for the giveaway
-//@quantity Number of users which will receive Telegram Premium subscription gift codes
+//@parameters Giveaway parameters
+//@user_count Number of users which will receive Telegram Premium subscription gift codes
 //@month_count Number of month the Telegram Premium subscription will be active after code activation
-//@date Point in time (Unix timestamp) when the giveaway starts
-messagePremiumGiveaway chat_ids:vector<int53> only_new_subscribers:Bool quantity:int32 month_count:int32 date:int32 = MessageContent;
+messagePremiumGiveaway parameters:premiumGiveawayParameters user_count:int32 month_count:int32 = MessageContent;
 
 //@description A contact has registered with Telegram
 messageContactRegistered = MessageContent;
@@ -3445,10 +3450,10 @@ chatActiveStories chat_id:int53 list:StoryList order:int53 max_read_story_id:int
 
 //@description Describes a prepaid Telegram Premium giveaway
 //@id Unique identifier of the prepaid giveaway
-//@quantity Number of users which will receive Telegram Premium subscription gift codes
+//@user_count Number of users which will receive Telegram Premium subscription gift codes
 //@month_count Number of month the Telegram Premium subscription will be active after code activation
 //@payment_date Point in time (Unix timestamp) when the giveaway was paid
-prepaidPremiumGiveaway id:int64 quantity:int32 month_count:int32 payment_date:int32 = PrepaidPremiumGiveaway;
+prepaidPremiumGiveaway id:int64 user_count:int32 month_count:int32 payment_date:int32 = PrepaidPremiumGiveaway;
 
 //@description Describes current boost status of a chat
 //@boost_url An HTTP URL, which can be used to boost the chat
@@ -4474,13 +4479,10 @@ storePaymentPurposeGiftedPremium user_id:int53 currency:string amount:int53 = St
 storePaymentPurposePremiumGiftCodes boosted_chat_id:int53 currency:string amount:int53 user_ids:vector<int53> = StorePaymentPurpose;
 
 //@description The user creating a Telegram Premium giveaway for subscribers of a channel chat
-//@boosted_chat_id Identifier of the channel chat, which will be automatically boosted by the users for duration of the Premium subscription and which is administered by the user
-//@additional_chat_ids Identifiers of other channel chats that must be subscribed by the users to be eligible for the giveaway
-//@date Point in time (Unix timestamp) when the giveaway will be performed; must be from 1 minute to 365 days in the future
-//@only_new_subscribers Pass true if only new subscribers of the chats will be eligible for the giveaway
+//@parameters Giveaway parameters
 //@currency ISO 4217 currency code of the payment currency
 //@amount Paid amount, in the smallest units of the currency
-storePaymentPurposePremiumGiveaway boosted_chat_id:int53 additional_chat_ids:vector<int53> date:int32 only_new_subscribers:Bool currency:string amount:int53 = StorePaymentPurpose;
+storePaymentPurposePremiumGiveaway parameters:premiumGiveawayParameters currency:string amount:int53 = StorePaymentPurpose;
 
 
 //@class TelegramPaymentPurpose @description Describes a purpose of a payment toward Telegram
@@ -4494,15 +4496,12 @@ storePaymentPurposePremiumGiveaway boosted_chat_id:int53 additional_chat_ids:vec
 telegramPaymentPurposePremiumGiftCodes boosted_chat_id:int53 currency:string amount:int53 user_ids:vector<int53> month_count:int32 = TelegramPaymentPurpose;
 
 //@description The user creating a Telegram Premium giveaway for subscribers of a channel chat
-//@boosted_chat_id Identifier of the channel chat, which will be automatically boosted by the users for duration of the Premium subscription and which is administered by the user
-//@additional_chat_ids Identifiers of other channel chats that must be subscribed by the users to be eligible for the giveaway
-//@date Point in time (Unix timestamp) when the giveaway will be performed; must be from 1 minute to 365 days in the future
-//@only_new_subscribers Pass true, if only new subscribers of the chats will be eligible for the giveaway
+//@parameters Giveaway parameters
 //@currency ISO 4217 currency code of the payment currency
 //@amount Paid amount, in the smallest units of the currency
 //@user_count Number of users which will be able to activate the gift codes
 //@month_count Number of month the Telegram Premium subscription will be active for the users
-telegramPaymentPurposePremiumGiveaway boosted_chat_id:int53 additional_chat_ids:vector<int53> date:int32 only_new_subscribers:Bool currency:string amount:int53 user_count:int32 month_count:int32 = TelegramPaymentPurpose;
+telegramPaymentPurposePremiumGiveaway parameters:premiumGiveawayParameters currency:string amount:int53 user_count:int32 month_count:int32 = TelegramPaymentPurpose;
 
 
 //@class DeviceToken @description Represents a data needed to subscribe for push notifications through registerDevice method.

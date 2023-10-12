@@ -38,6 +38,8 @@
 #include "td/telegram/ForumTopicManager.h"
 #include "td/telegram/Game.h"
 #include "td/telegram/Game.hpp"
+#include "td/telegram/GiveawayParameters.h"
+#include "td/telegram/GiveawayParameters.hpp"
 #include "td/telegram/Global.h"
 #include "td/telegram/GroupCallManager.h"
 #include "td/telegram/HashtagHints.h"
@@ -956,20 +958,13 @@ class MessageGiftCode final : public MessageContent {
 
 class MessageGiveaway final : public MessageContent {
  public:
-  vector<ChannelId> channel_ids;
-  bool only_new_subscribers = false;
+  GiveawayParameters giveaway_parameters;
   int32 quantity = 0;
   int32 months = 0;
-  int32 until_date = 0;
 
   MessageGiveaway() = default;
-  MessageGiveaway(vector<ChannelId> channel_ids, bool only_new_subscribers, int32 quantity, int32 months,
-                  int32 until_date)
-      : channel_ids(std::move(channel_ids))
-      , only_new_subscribers(only_new_subscribers)
-      , quantity(quantity)
-      , months(months)
-      , until_date(until_date) {
+  MessageGiveaway(GiveawayParameters giveaway_parameters, int32 quantity, int32 months)
+      : giveaway_parameters(std::move(giveaway_parameters)), quantity(quantity), months(months) {
   }
 
   MessageContentType get_type() const final {
@@ -1396,12 +1391,10 @@ static void store(const MessageContent *content, StorerT &storer) {
     case MessageContentType::Giveaway: {
       const auto *m = static_cast<const MessageGiveaway *>(content);
       BEGIN_STORE_FLAGS();
-      STORE_FLAG(m->only_new_subscribers);
       END_STORE_FLAGS();
-      store(m->channel_ids, storer);
+      store(m->giveaway_parameters, storer);
       store(m->quantity, storer);
       store(m->months, storer);
-      store(m->until_date, storer);
       break;
     }
     default:
@@ -1968,16 +1961,12 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     case MessageContentType::Giveaway: {
       auto m = make_unique<MessageGiveaway>();
       BEGIN_PARSE_FLAGS();
-      PARSE_FLAG(m->only_new_subscribers);
       END_PARSE_FLAGS();
-      parse(m->channel_ids, parser);
+      parse(m->giveaway_parameters, parser);
       parse(m->quantity, parser);
       parse(m->months, parser);
-      parse(m->until_date, parser);
-      for (auto channel_id : m->channel_ids) {
-        if (!channel_id.is_valid()) {
-          is_bad = true;
-        }
+      if (!m->giveaway_parameters.is_valid()) {
+        is_bad = true;
       }
       content = std::move(m);
       break;
@@ -4333,8 +4322,8 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     case MessageContentType::Giveaway: {
       const auto *old_ = static_cast<const MessageGiveaway *>(old_content);
       const auto *new_ = static_cast<const MessageGiveaway *>(new_content);
-      if (old_->channel_ids != new_->channel_ids || old_->only_new_subscribers != new_->only_new_subscribers ||
-          old_->quantity != new_->quantity || old_->months != new_->months || old_->until_date != new_->until_date) {
+      if (old_->giveaway_parameters != new_->giveaway_parameters || old_->quantity != new_->quantity ||
+          old_->months != new_->months) {
         need_update = true;
       }
       break;
@@ -5245,8 +5234,11 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
         LOG(ERROR) << "Receive " << to_string(media);
         break;
       }
-      return td::make_unique<MessageGiveaway>(std::move(channel_ids), media->only_new_subscribers_, media->quantity_,
-                                              media->months_, media->until_date_);
+      auto boosted_channel_id = channel_ids[0];
+      channel_ids.erase(channel_ids.begin());
+      return td::make_unique<MessageGiveaway>(GiveawayParameters{boosted_channel_id, std::move(channel_ids),
+                                                                 media->only_new_subscribers_, media->until_date_},
+                                              media->quantity_, media->months_);
     }
     case telegram_api::messageMediaUnsupported::ID:
       return make_unique<MessageUnsupported>();
@@ -6276,14 +6268,8 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     }
     case MessageContentType::Giveaway: {
       const auto *m = static_cast<const MessageGiveaway *>(content);
-      vector<int64> chat_ids;
-      for (auto channel_id : m->channel_ids) {
-        DialogId boosted_dialog_id(channel_id);
-        td->messages_manager_->force_create_dialog(boosted_dialog_id, "messageGiveaway", true);
-        chat_ids.push_back(td->messages_manager_->get_chat_id_object(boosted_dialog_id, "messageGiveaway"));
-      }
-      return td_api::make_object<td_api::messagePremiumGiveaway>(std::move(chat_ids), m->only_new_subscribers,
-                                                                 m->quantity, m->months, m->until_date);
+      return td_api::make_object<td_api::messagePremiumGiveaway>(
+          m->giveaway_parameters.get_premium_giveaway_parameters_object(td), m->quantity, m->months);
     }
     default:
       UNREACHABLE();
@@ -7027,9 +7013,7 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
     }
     case MessageContentType::Giveaway: {
       const auto *content = static_cast<const MessageGiveaway *>(message_content);
-      for (auto channel_id : content->channel_ids) {
-        dependencies.add_dialog_and_dependencies(DialogId(channel_id));
-      }
+      content->giveaway_parameters.add_dependencies(dependencies);
       break;
     }
     default:

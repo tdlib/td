@@ -3121,7 +3121,9 @@ class CliClient final : public Actor {
       } else if (op == "cpprg") {
         send_request(td_api::make_object<td_api::canPurchasePremium>(
             td_api::make_object<td_api::storePaymentPurposePremiumGiveaway>(
-                boosted_chat_id, Auto(), static_cast<int32>(user_id) /*date*/, rand_bool(), currency, amount)));
+                td_api::make_object<td_api::premiumGiveawayParameters>(
+                    boosted_chat_id, Auto(), static_cast<int32>(user_id) /*date*/, rand_bool()),
+                currency, amount)));
       } else {
         send_request(td_api::make_object<td_api::canPurchasePremium>(
             td_api::make_object<td_api::storePaymentPurposePremiumGiftCodes>(boosted_chat_id, currency, amount,

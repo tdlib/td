@@ -9,6 +9,7 @@
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/GiveawayParameters.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/InputInvoice.h"
 #include "td/telegram/MessageEntity.h"
@@ -107,39 +108,11 @@ Result<InputInvoiceInfo> get_input_invoice_info(Td *td, td_api::object_ptr<td_ap
           if (p->amount_ <= 0 || !check_currency_amount(p->amount_)) {
             return Status::Error(400, "Invalid amount of the currency specified");
           }
-          DialogId boosted_dialog_id(p->boosted_chat_id_);
-          TRY_RESULT(boost_input_peer, get_boost_input_peer(td, boosted_dialog_id));
-          if (boost_input_peer == nullptr) {
-            return Status::Error(400, "Boosted chat can't be empty");
-          }
-          vector<telegram_api::object_ptr<telegram_api::InputPeer>> additional_input_peers;
-          for (auto additional_chat_id : p->additional_chat_ids_) {
-            TRY_RESULT(input_peer, get_boost_input_peer(td, DialogId(additional_chat_id)));
-            if (input_peer == nullptr) {
-              return Status::Error(400, "Additional chat can't be empty");
-            }
-            additional_input_peers.push_back(std::move(input_peer));
-          }
-          int64 random_id;
-          do {
-            random_id = Random::secure_int64();
-          } while (random_id == 0);
-
-          int32 flags = 0;
-          if (p->only_new_subscribers_) {
-            flags |= telegram_api::inputStorePaymentPremiumGiveaway::ONLY_NEW_SUBSCRIBERS_MASK;
-          }
-          if (!additional_input_peers.empty()) {
-            flags |= telegram_api::inputStorePaymentPremiumGiveaway::ADDITIONAL_PEERS_MASK;
-          }
+          TRY_RESULT(parameters, GiveawayParameters::get_giveaway_parameters(td, p->parameters_.get()));
           auto option = telegram_api::make_object<telegram_api::premiumGiftCodeOption>(
               0, p->user_count_, p->month_count_, string(), 0, p->currency_, p->amount_);
-          auto purpose = telegram_api::make_object<telegram_api::inputStorePaymentPremiumGiveaway>(
-              flags, false /*ignored*/, std::move(boost_input_peer), std::move(additional_input_peers),
-              vector<string>(), random_id, p->date_, p->currency_, p->amount_);
-
           result.input_invoice_ = telegram_api::make_object<telegram_api::inputInvoicePremiumGiftCode>(
-              std::move(purpose), std::move(option));
+              parameters.get_input_store_payment_premium_giveaway(td, p->currency_, p->amount_), std::move(option));
           break;
         }
         default:
