@@ -44,7 +44,7 @@ Result<GiveawayParameters> GiveawayParameters::get_giveaway_parameters(
     TRY_RESULT(channel_id, get_boosted_channel_id(td, DialogId(additional_chat_id)));
     additional_channel_ids.push_back(channel_id);
   }
-  if (parameters->date_ < G()->unix_time()) {
+  if (parameters->winners_selection_date_ < G()->unix_time()) {
     return Status::Error(400, "Giveaway date is in the past");
   }
   for (auto &country_code : parameters->country_codes_) {
@@ -53,7 +53,7 @@ Result<GiveawayParameters> GiveawayParameters::get_giveaway_parameters(
     }
   }
   return GiveawayParameters(boosted_channel_id, std::move(additional_channel_ids), parameters->only_new_subscribers_,
-                            parameters->date_, vector<string>(parameters->country_codes_));
+                            parameters->winners_selection_date_, vector<string>(parameters->country_codes_));
 }
 
 void GiveawayParameters::add_dependencies(Dependencies &dependencies) const {

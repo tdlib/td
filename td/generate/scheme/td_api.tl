@@ -730,12 +730,12 @@ premiumGiveawayParticipantStatusAdministrator chat_id:int53 = PremiumGiveawayPar
 premiumGiveawayInfoOngoing status:PremiumGiveawayParticipantStatus is_ended:Bool = PremiumGiveawayInfo;
 
 //@description Describes a completed giveaway
-//@winners_selection_date Point in time (Unix timestamp) when the winners were selected
+//@actual_winners_selection_date Point in time (Unix timestamp) when the winners were selected. May be bigger than winners selection date specified in parameters of the giveaway
 //@was_refunded True, if the giveaway was canceled and was fully refunded
 //@winner_count Number of winners in the giveaway
 //@activation_count Number of winners, which activated their gift codes
 //@gift_code Telegram Premium gift code that was received by the current user; empty if the user isn't a winner in the giveaway
-premiumGiveawayInfoCompleted winners_selection_date:int32 was_refunded:Bool winner_count:int32 activation_count:int32 gift_code:string = PremiumGiveawayInfo;
+premiumGiveawayInfoCompleted actual_winners_selection_date:int32 was_refunded:Bool winner_count:int32 activation_count:int32 gift_code:string = PremiumGiveawayInfo;
 
 
 //@description Describes a custom emoji to be shown instead of the Telegram Premium badge
@@ -2296,10 +2296,10 @@ messageExtendedMediaUnsupported caption:formattedText = MessageExtendedMedia;
 //@description Describes parameters of a Telegram Premium giveaway
 //@boosted_chat_id Identifier of the channel chat, which will be automatically boosted by the winners of the giveaway for duration of the Premium subscription
 //@additional_chat_ids Identifiers of other channel chats that must be subscribed by the users to be eligible for the giveaway
-//@date Point in time (Unix timestamp) when the giveaway will be performed; must be from 1 minute to 365 days in the future in scheduled giveaways
+//@winners_selection_date Point in time (Unix timestamp) when the giveaway is expected to be performed; must be from 1 minute to 365 days in the future in scheduled giveaways
 //@only_new_subscribers True, if only new subscribers of the chats will be eligible for the giveaway
 //@country_codes The list of two-letter ISO 3166-1 alpha-2 codes of countries, only users from which will be eligible for the giveaway
-premiumGiveawayParameters boosted_chat_id:int53 additional_chat_ids:vector<int53> date:int32 only_new_subscribers:Bool country_codes:vector<string> = PremiumGiveawayParameters;
+premiumGiveawayParameters boosted_chat_id:int53 additional_chat_ids:vector<int53> winners_selection_date:int32 only_new_subscribers:Bool country_codes:vector<string> = PremiumGiveawayParameters;
 
 
 //@description File with the date it was uploaded @file The file @date Point in time (Unix timestamp) when the file was uploaded
