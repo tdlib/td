@@ -452,6 +452,10 @@ class GetGiveawayInfoQuery final : public Td::ResultHandler {
                                                              "premiumGiveawayParticipantStatusAdministrator"));
             }
           }
+          if (!info->disallowed_country_.empty()) {
+            return td_api::make_object<td_api::premiumGiveawayParticipantStatusDisallowedCountry>(
+                info->disallowed_country_);
+          }
           if (info->participating_) {
             return td_api::make_object<td_api::premiumGiveawayParticipantStatusParticipating>();
           }

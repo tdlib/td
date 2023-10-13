@@ -714,12 +714,15 @@ premiumGiveawayParticipantStatusEligible = PremiumGiveawayParticipantStatus;
 //@description The user participates in the giveaway
 premiumGiveawayParticipantStatusParticipating = PremiumGiveawayParticipantStatus;
 
-//@description The user can't participate in the giveaway, because it has already been member of the chat
+//@description The user can't participate in the giveaway, because they have already been member of the chat
 //@joined_chat_date Point in time (Unix timestamp) when the user joined the chat
 premiumGiveawayParticipantStatusAlreadyWasMember joined_chat_date:int32 = PremiumGiveawayParticipantStatus;
 
-//@description The user is an administrator in one of the chats that created the giveaway @chat_id Identifier of the chat administered by the user
+//@description The user can't participate in the giveaway, because they are an administrator in one of the chats that created the giveaway @chat_id Identifier of the chat administered by the user
 premiumGiveawayParticipantStatusAdministrator chat_id:int53 = PremiumGiveawayParticipantStatus;
+
+//@description The user can't participate in the giveaway, because they phone number is from a disallowed country @user_country_code A two-letter ISO 3166-1 alpha-2 country code of the user's country
+premiumGiveawayParticipantStatusDisallowedCountry user_country_code:string = PremiumGiveawayParticipantStatus;
 
 
 //@class PremiumGiveawayInfo @description Contains information about Telegram Premium giveaway
