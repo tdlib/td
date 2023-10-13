@@ -3058,6 +3058,9 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
       if (!permissions.can_send_photos() || !permissions.can_send_videos()) {
         return Status::Error(400, "Not enough rights to send stories to the chat");
       }
+      if (dialog_type == DialogType::SecretChat) {
+        return Status::Error(400, "Story messages can't be sent to secret chats");
+      }
       break;
     case MessageContentType::Text:
       if (!permissions.can_send_messages()) {
