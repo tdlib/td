@@ -2551,6 +2551,8 @@ bool can_have_input_media(const Td *td, const MessageContent *content, bool is_s
       auto dialog_id = story_full_id.get_dialog_id();
       return td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read) != nullptr;
     }
+    case MessageContentType::Giveaway:
+      return is_server;
     case MessageContentType::Unsupported:
     case MessageContentType::ChatCreate:
     case MessageContentType::ChatChangeTitle:
@@ -2592,7 +2594,6 @@ bool can_have_input_media(const Td *td, const MessageContent *content, bool is_s
     case MessageContentType::SetBackground:
     case MessageContentType::WriteAccessAllowedByRequest:
     case MessageContentType::GiftCode:
-    case MessageContentType::Giveaway:
       return false;
     case MessageContentType::Animation:
     case MessageContentType::Audio:
@@ -3103,6 +3104,14 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
         return Status::Error(400, "Not enough rights to send games to the chat");
       }
       break;
+    case MessageContentType::Giveaway:
+      if (!permissions.can_send_messages()) {
+        return Status::Error(400, "Not enough rights to send giveaways to the chat");
+      }
+      if (dialog_type == DialogType::SecretChat) {
+        return Status::Error(400, "Giveaways can't be sent to secret chats");
+      }
+      break;
     case MessageContentType::Invoice:
       if (!permissions.can_send_messages()) {
         return Status::Error(400, "Not enough rights to send invoice messages to the chat");
@@ -3234,7 +3243,6 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
     case MessageContentType::SetBackground:
     case MessageContentType::WriteAccessAllowedByRequest:
     case MessageContentType::GiftCode:
-    case MessageContentType::Giveaway:
       UNREACHABLE();
   }
   return Status::OK();
@@ -5328,6 +5336,11 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     }
     case MessageContentType::Game:
       return make_unique<MessageGame>(*static_cast<const MessageGame *>(content));
+    case MessageContentType::Giveaway:
+      if (type != MessageContentDupType::Forward && type != MessageContentDupType::ServerCopy) {
+        return nullptr;
+      }
+      return make_unique<MessageGiveaway>(*static_cast<const MessageGiveaway *>(content));
     case MessageContentType::Invoice:
       if (type == MessageContentDupType::Copy) {
         return nullptr;
@@ -5516,7 +5529,6 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     case MessageContentType::SetBackground:
     case MessageContentType::WriteAccessAllowedByRequest:
     case MessageContentType::GiftCode:
-    case MessageContentType::Giveaway:
       return nullptr;
     default:
       UNREACHABLE();

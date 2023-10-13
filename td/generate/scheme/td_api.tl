@@ -632,7 +632,7 @@ inputChatPhotoSticker sticker:chatPhotoSticker = InputChatPhoto;
 
 
 //@description Describes actions that a user is allowed to take in a chat
-//@can_send_basic_messages True, if the user can send text messages, contacts, invoices, locations, and venues
+//@can_send_basic_messages True, if the user can send text messages, contacts, giveaways, invoices, locations, and venues
 //@can_send_audios True, if the user can send music files
 //@can_send_documents True, if the user can send documents
 //@can_send_photos True, if the user can send photos

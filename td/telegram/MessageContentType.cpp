@@ -289,13 +289,17 @@ bool is_service_message_content(MessageContentType content_type) {
     case MessageContentType::Animation:
     case MessageContentType::Audio:
     case MessageContentType::Contact:
+    case MessageContentType::Dice:
     case MessageContentType::Document:
     case MessageContentType::Game:
+    case MessageContentType::Giveaway:
     case MessageContentType::Invoice:
     case MessageContentType::LiveLocation:
     case MessageContentType::Location:
     case MessageContentType::Photo:
+    case MessageContentType::Poll:
     case MessageContentType::Sticker:
+    case MessageContentType::Story:
     case MessageContentType::Text:
     case MessageContentType::Unsupported:
     case MessageContentType::Venue:
@@ -304,10 +308,6 @@ bool is_service_message_content(MessageContentType content_type) {
     case MessageContentType::VoiceNote:
     case MessageContentType::ExpiredPhoto:
     case MessageContentType::ExpiredVideo:
-    case MessageContentType::Poll:
-    case MessageContentType::Dice:
-    case MessageContentType::Story:
-    case MessageContentType::Giveaway:
       return false;
     case MessageContentType::ChatCreate:
     case MessageContentType::ChatChangeTitle:

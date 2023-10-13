@@ -26276,6 +26276,7 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
     case MessageContentType::Story:
     case MessageContentType::Contact:
     case MessageContentType::Dice:
+    case MessageContentType::Giveaway:
     case MessageContentType::Location:
     case MessageContentType::Sticker:
     case MessageContentType::Venue:
