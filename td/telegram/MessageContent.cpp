@@ -4536,6 +4536,9 @@ void register_message_content(Td *td, const MessageContent *content, MessageFull
     case MessageContentType::GiftPremium:
       return td->stickers_manager_->register_premium_gift(static_cast<const MessageGiftPremium *>(content)->months,
                                                           message_full_id, source);
+    case MessageContentType::GiftCode:
+      return td->stickers_manager_->register_premium_gift(static_cast<const MessageGiftCode *>(content)->months,
+                                                          message_full_id, source);
     case MessageContentType::SuggestProfilePhoto:
       return td->contacts_manager_->register_suggested_profile_photo(
           static_cast<const MessageSuggestProfilePhoto *>(content)->photo);
@@ -4595,6 +4598,12 @@ void reregister_message_content(Td *td, const MessageContent *old_content, const
           return;
         }
         break;
+      case MessageContentType::GiftCode:
+        if (static_cast<const MessageGiftCode *>(old_content)->months ==
+            static_cast<const MessageGiftCode *>(new_content)->months) {
+          return;
+        }
+        break;
       case MessageContentType::Story:
         if (static_cast<const MessageStory *>(old_content)->story_full_id ==
             static_cast<const MessageStory *>(new_content)->story_full_id) {
@@ -4637,6 +4646,9 @@ void unregister_message_content(Td *td, const MessageContent *content, MessageFu
     }
     case MessageContentType::GiftPremium:
       return td->stickers_manager_->unregister_premium_gift(static_cast<const MessageGiftPremium *>(content)->months,
+                                                            message_full_id, source);
+    case MessageContentType::GiftCode:
+      return td->stickers_manager_->unregister_premium_gift(static_cast<const MessageGiftCode *>(content)->months,
                                                             message_full_id, source);
     case MessageContentType::Story:
       return td->story_manager_->unregister_story(static_cast<const MessageStory *>(content)->story_full_id,
@@ -6277,7 +6289,7 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       const auto *m = static_cast<const MessageGiftCode *>(content);
       return td_api::make_object<td_api::messagePremiumGiftCode>(
           get_message_sender_object(td, m->creator_dialog_id, "messagePremiumGiftCode"), m->via_giveaway, m->months,
-          m->code);
+          td->stickers_manager_->get_premium_gift_sticker_object(m->months), m->code);
     }
     case MessageContentType::Giveaway: {
       const auto *m = static_cast<const MessageGiveaway *>(content);

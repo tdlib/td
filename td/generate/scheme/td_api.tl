@@ -2301,7 +2301,7 @@ messageExtendedMediaUnsupported caption:formattedText = MessageExtendedMedia;
 //@description Describes parameters of a Telegram Premium giveaway
 //@boosted_chat_id Identifier of the channel chat, which will be automatically boosted by the winners of the giveaway for duration of the Premium subscription
 //@additional_chat_ids Identifiers of other channel chats that must be subscribed by the users to be eligible for the giveaway. There can be up to getOption("giveaway_additional_chat_count_max") additional chats
-//@winners_selection_date Point in time (Unix timestamp) when the giveaway is expected to be performed; must be from 1 minute to 365 days in the future in scheduled giveaways
+//@winners_selection_date Point in time (Unix timestamp) when the giveaway is expected to be performed; must be from 1 minute to 7 days in the future in scheduled giveaways
 //@only_new_subscribers True, if only new subscribers of the chats will be eligible for the giveaway
 //@country_codes The list of two-letter ISO 3166-1 alpha-2 codes of countries, only users from which will be eligible for the giveaway. If empty, then all users can participate in the giveaway. There can be up to getOption("giveaway_country_count_max") chosen countries
 premiumGiveawayParameters boosted_chat_id:int53 additional_chat_ids:vector<int53> winners_selection_date:int32 only_new_subscribers:Bool country_codes:vector<string> = PremiumGiveawayParameters;
@@ -2807,8 +2807,9 @@ messageGiftedPremium gifter_user_id:int53 currency:string amount:int53 cryptocur
 //@creator_id Identifier of a chat or a user that created the gift code
 //@is_from_giveaway True, if the gift code was created for a giveaway
 //@month_count Number of month the Telegram Premium subscription will be active after code activation
+//@sticker A sticker to be shown in the message; may be null if unknown
 //@code The gift code
-messagePremiumGiftCode creator_id:MessageSender is_from_giveaway:Bool month_count:int32 code:string = MessageContent;
+messagePremiumGiftCode creator_id:MessageSender is_from_giveaway:Bool month_count:int32 sticker:sticker code:string = MessageContent;
 
 //@description A Telegram Premium giveaway was created
 //@parameters Giveaway parameters
