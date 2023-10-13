@@ -2300,7 +2300,7 @@ messageExtendedMediaUnsupported caption:formattedText = MessageExtendedMedia;
 
 //@description Describes parameters of a Telegram Premium giveaway
 //@boosted_chat_id Identifier of the channel chat, which will be automatically boosted by the winners of the giveaway for duration of the Premium subscription
-//@additional_chat_ids Identifiers of other channel chats that must be subscribed by the users to be eligible for the giveaway
+//@additional_chat_ids Identifiers of other channel chats that must be subscribed by the users to be eligible for the giveaway. There can be up to getOption("giveaway_additional_chat_count_max") additional chats
 //@winners_selection_date Point in time (Unix timestamp) when the giveaway is expected to be performed; must be from 1 minute to 365 days in the future in scheduled giveaways
 //@only_new_subscribers True, if only new subscribers of the chats will be eligible for the giveaway
 //@country_codes The list of two-letter ISO 3166-1 alpha-2 codes of countries, only users from which will be eligible for the giveaway

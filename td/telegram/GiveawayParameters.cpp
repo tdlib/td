@@ -10,6 +10,7 @@
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/OptionManager.h"
 #include "td/telegram/Td.h"
 
 #include "td/utils/Random.h"
@@ -43,6 +44,9 @@ Result<GiveawayParameters> GiveawayParameters::get_giveaway_parameters(
   for (auto additional_chat_id : parameters->additional_chat_ids_) {
     TRY_RESULT(channel_id, get_boosted_channel_id(td, DialogId(additional_chat_id)));
     additional_channel_ids.push_back(channel_id);
+  }
+  if (additional_channel_ids.size() > td->option_manager_->get_option_integer("giveaway_additional_chat_count_max")) {
+    return Status::Error(400, "Too many additional chats specified");
   }
   if (parameters->winners_selection_date_ < G()->unix_time()) {
     return Status::Error(400, "Giveaway date is in the past");
