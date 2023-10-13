@@ -131,6 +131,9 @@ OptionManager::OptionManager(Td *td)
   if (!have_option("giveaway_additional_chat_count_max")) {
     set_option_integer("giveaway_additional_chat_count_max", G()->is_test_dc() ? 3 : 10);
   }
+  if (!have_option("giveaway_country_count_max")) {
+    set_option_integer("giveaway_country_count_max", G()->is_test_dc() ? 3 : 10);
+  }
 
   set_option_empty("archive_and_mute_new_chats_from_unknown_users");
   set_option_empty("chat_filter_count_max");

@@ -56,6 +56,9 @@ Result<GiveawayParameters> GiveawayParameters::get_giveaway_parameters(
       return Status::Error(400, "Invalid country code specified");
     }
   }
+  if (parameters->country_codes_.size() > td->option_manager_->get_option_integer("giveaway_country_count_max")) {
+    return Status::Error(400, "Too many countries specified");
+  }
   return GiveawayParameters(boosted_channel_id, std::move(additional_channel_ids), parameters->only_new_subscribers_,
                             parameters->winners_selection_date_, vector<string>(parameters->country_codes_));
 }
