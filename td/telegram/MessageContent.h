@@ -201,7 +201,13 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message_tex
                                                DialogId owner_dialog_id, bool is_content_read, UserId via_bot_user_id,
                                                int32 *ttl, bool *disable_web_page_preview, const char *source);
 
-enum class MessageContentDupType : int32 { Send, SendViaBot, Forward, Copy, ServerCopy };
+enum class MessageContentDupType : int32 {
+  Send,        // normal message sending
+  SendViaBot,  // message sending via bot
+  Forward,     // server-side message forward
+  Copy,        // local message copy
+  ServerCopy   // server-side message copy
+};
 
 unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const MessageContent *content,
                                                MessageContentDupType type, MessageCopyOptions &&copy_options);
