@@ -4782,6 +4782,9 @@ pushMessageContentPhoto photo:photo caption:string is_secret:Bool is_pinned:Bool
 //@is_pinned True, if the message is a pinned message with the specified content
 pushMessageContentPoll question:string is_regular:Bool is_pinned:Bool = PushMessageContent;
 
+//@description A message with a Telegram Premium gift code created for the user @month_count Number of month the Telegram Premium subscription will be active after code activation
+pushMessageContentPremiumGiftCode month_count:int32 = PushMessageContent;
+
 //@description A screenshot of a message in the chat has been taken
 pushMessageContentScreenshotTaken = PushMessageContent;
 

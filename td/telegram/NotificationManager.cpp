@@ -2887,6 +2887,9 @@ string NotificationManager::convert_loc_key(const string &loc_key) {
       if (loc_key == "MESSAGE_GIF") {
         return "MESSAGE_ANIMATION";
       }
+      if (loc_key == "MESSAGE_GIFTCODE") {
+        return "MESSAGE_GIFTCODE";
+      }
       break;
     case 'H':
       if (loc_key == "PINNED_PHOTO") {
