@@ -728,17 +728,19 @@ premiumGiveawayParticipantStatusDisallowedCountry user_country_code:string = Pre
 //@class PremiumGiveawayInfo @description Contains information about Telegram Premium giveaway
 
 //@description Describes an ongoing giveaway
+//@creation_date Point in time (Unix timestamp) when the giveaway was created
 //@status Status of the current user in the giveaway
 //@is_ended True, if the giveaway has ended and results are being prepared
-premiumGiveawayInfoOngoing status:PremiumGiveawayParticipantStatus is_ended:Bool = PremiumGiveawayInfo;
+premiumGiveawayInfoOngoing creation_date:int32 status:PremiumGiveawayParticipantStatus is_ended:Bool = PremiumGiveawayInfo;
 
 //@description Describes a completed giveaway
+//@creation_date Point in time (Unix timestamp) when the giveaway was created
 //@actual_winners_selection_date Point in time (Unix timestamp) when the winners were selected. May be bigger than winners selection date specified in parameters of the giveaway
 //@was_refunded True, if the giveaway was canceled and was fully refunded
 //@winner_count Number of winners in the giveaway
 //@activation_count Number of winners, which activated their gift codes
 //@gift_code Telegram Premium gift code that was received by the current user; empty if the user isn't a winner in the giveaway
-premiumGiveawayInfoCompleted actual_winners_selection_date:int32 was_refunded:Bool winner_count:int32 activation_count:int32 gift_code:string = PremiumGiveawayInfo;
+premiumGiveawayInfoCompleted creation_date:int32 actual_winners_selection_date:int32 was_refunded:Bool winner_count:int32 activation_count:int32 gift_code:string = PremiumGiveawayInfo;
 
 
 //@description Describes a custom emoji to be shown instead of the Telegram Premium badge

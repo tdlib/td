@@ -461,8 +461,8 @@ class GetGiveawayInfoQuery final : public Td::ResultHandler {
           }
           return td_api::make_object<td_api::premiumGiveawayParticipantStatusEligible>();
         }();
-        promise_.set_value(
-            td_api::make_object<td_api::premiumGiveawayInfoOngoing>(std::move(status), info->preparing_results_));
+        promise_.set_value(td_api::make_object<td_api::premiumGiveawayInfoOngoing>(
+            max(0, info->start_date_), std::move(status), info->preparing_results_));
         break;
       }
       case telegram_api::payments_giveawayInfoResults::ID: {
@@ -482,7 +482,8 @@ class GetGiveawayInfoQuery final : public Td::ResultHandler {
           }
         }
         promise_.set_value(td_api::make_object<td_api::premiumGiveawayInfoCompleted>(
-            max(0, info->finish_date_), info->refunded_, winner_count, activated_count, info->gift_code_slug_));
+            max(0, info->start_date_), max(0, info->finish_date_), info->refunded_, winner_count, activated_count,
+            info->gift_code_slug_));
         break;
       }
       default:
