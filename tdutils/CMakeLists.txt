@@ -25,7 +25,7 @@ if (ZLIB_FOUND)
 endif()
 
 if (NOT CRC32C_FOUND)
-  find_package(Crc32c)
+  find_package(Crc32c QUIET)
 endif()
 if (CRC32C_FOUND)
   set(TD_HAVE_CRC32C 1)
