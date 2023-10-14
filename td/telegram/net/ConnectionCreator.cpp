@@ -1094,6 +1094,8 @@ void ConnectionCreator::start_up() {
       !G()->td_db()->get_binlog_pmc()->get(get_proxy_database_key(1)).empty()) {
     // don't need to init proxies if they have never been added
     init_proxies();
+  } else {
+    max_proxy_id_ = 2;
   }
 
   ref_cnt_guard_ = create_reference(-1);
