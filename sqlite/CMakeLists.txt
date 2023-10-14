@@ -70,7 +70,7 @@ elseif (MSVC)
   target_compile_options(tdsqlite PRIVATE /wd4996)
 endif()
 
-install(TARGETS tdsqlite EXPORT TdTargets
+install(TARGETS tdsqlite EXPORT TdStaticTargets
   LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
   ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
 )
