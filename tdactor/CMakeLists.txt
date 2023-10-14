@@ -56,7 +56,7 @@ if (NOT CMAKE_CROSSCOMPILING)
   target_link_libraries(example PRIVATE tdactor)
 endif()
 
-install(TARGETS tdactor EXPORT TdTargets
+install(TARGETS tdactor EXPORT TdStaticTargets
   LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
   ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
 )

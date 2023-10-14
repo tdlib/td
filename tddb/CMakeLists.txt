@@ -56,7 +56,7 @@ if (NOT CMAKE_CROSSCOMPILING)
   target_link_libraries(binlog_dump PRIVATE tddb)
 endif()
 
-install(TARGETS tddb EXPORT TdTargets
+install(TARGETS tddb EXPORT TdStaticTargets
   LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
   ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
 )

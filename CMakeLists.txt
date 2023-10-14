@@ -1127,6 +1127,11 @@ install(EXPORT TdTargets
   NAMESPACE Td::
   DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/Td"
 )
+install(EXPORT TdStaticTargets
+  FILE TdStaticTargets.cmake
+  NAMESPACE Td::
+  DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/Td"
+)
 
 # Install tdjson/tdjson_static:
 install(FILES ${TD_JSON_HEADERS} "${CMAKE_CURRENT_BINARY_DIR}/td/telegram/tdjson_export.h" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/td/telegram")
