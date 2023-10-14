@@ -5349,7 +5349,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     case MessageContentType::Game:
       return make_unique<MessageGame>(*static_cast<const MessageGame *>(content));
     case MessageContentType::Giveaway:
-      if (type != MessageContentDupType::Forward && type != MessageContentDupType::ServerCopy) {
+      if (type != MessageContentDupType::Forward) {
         return nullptr;
       }
       return make_unique<MessageGiveaway>(*static_cast<const MessageGiveaway *>(content));
