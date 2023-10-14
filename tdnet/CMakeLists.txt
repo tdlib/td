@@ -84,7 +84,7 @@ if (APPLE_WATCH)
   target_link_libraries(tdnet PRIVATE ${FOUNDATION_LIBRARY})
 endif()
 
-install(TARGETS tdnet EXPORT TdTargets
+install(TARGETS tdnet EXPORT TdStaticTargets
   LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
   ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
 )
