@@ -257,8 +257,8 @@ UpdatesManager::UpdatesManager(Td *td, ActorShared<> parent) : td_(td), parent_(
   pending_audio_transcription_timeout_.set_callback(on_pending_audio_transcription_timeout_callback);
   pending_audio_transcription_timeout_.set_callback_data(static_cast<void *>(td_));
 
-  if (td_->option_manager_->get_option_integer("since_last_open") < 3600 && !td_->auth_manager_->is_bot()) {
-    finished_first_get_difference_ = true;
+  if (!td_->auth_manager_->is_authorized() || !td_->auth_manager_->is_bot()) {
+    skipped_postponed_updates_after_start_ = 0;
   }
 }
 
@@ -2106,7 +2106,7 @@ void UpdatesManager::after_get_difference() {
   retry_timeout_.cancel_timeout();
   retry_time_ = 1;
 
-  finished_first_get_difference_ = true;
+  skipped_postponed_updates_after_start_ = 0;
   td_->option_manager_->set_option_empty("since_last_open");
 
   // cancels qts_gap_timeout_ if needed, can apply some updates received during getDifference,

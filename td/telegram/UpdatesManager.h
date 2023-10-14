@@ -263,7 +263,7 @@ class UpdatesManager final : public Actor {
   bool are_sessions_inited_ = false;
 
   bool running_get_difference_ = false;
-  bool finished_first_get_difference_ = false;
+  int32 skipped_postponed_updates_after_start_ = 50000;
   int32 last_confirmed_pts_ = 0;
   int32 last_confirmed_qts_ = 0;
   int32 min_postponed_update_pts_ = 0;
@@ -310,8 +310,12 @@ class UpdatesManager final : public Actor {
   void on_qts_ack(PtsManager::PtsId ack_token);
   void save_qts(int32 qts);
 
-  bool can_postpone_updates() const {
-    return finished_first_get_difference_;
+  bool can_postpone_updates() {
+    if (skipped_postponed_updates_after_start_ == 0) {
+      return true;
+    }
+    skipped_postponed_updates_after_start_--;
+    return false;
   }
 
   void set_date(int32 date, bool from_update, string date_source);
