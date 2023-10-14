@@ -1091,10 +1091,24 @@ add_library(Td::TdStatic ALIAS TdStatic)
 add_library(Td::TdJson ALIAS TdJson)
 add_library(Td::TdJsonStatic ALIAS TdJsonStatic)
 
-install(TARGETS tdjson TdJson tdjson_static TdJsonStatic tdjson_private tdclient tdcore tdapi TdStatic EXPORT TdTargets
+set(INSTALL_TARGETS tdjson TdJson)
+set(INSTALL_STATIC_TARGETS tdjson_static TdJsonStatic tdjson_private tdcore)
+if (BUILD_SHARED_LIBS)
+  set(INSTALL_TARGETS ${INSTALL_TARGETS} tdclient TdStatic tdapi)
+else()
+  set(INSTALL_STATIC_TARGETS ${INSTALL_STATIC_TARGETS} tdclient TdStatic tdapi)
+endif()
+
+install(TARGETS ${INSTALL_TARGETS} EXPORT TdTargets
   LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
   ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
   RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+  INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+)
+
+install(TARGETS ${INSTALL_STATIC_TARGETS} EXPORT TdStaticTargets
+  LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+  ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
   INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
 )
 
