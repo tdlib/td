@@ -46,11 +46,11 @@ void MessageOrigin::store(StorerT &storer) const {
 
 template <class ParserT>
 void MessageOrigin::parse(ParserT &parser) {
-  bool has_sender_user_id = sender_user_id_.is_valid();
-  bool has_sender_dialog_id = sender_dialog_id_.is_valid();
-  bool has_message_id = message_id_.is_valid();
-  bool has_author_signature = !author_signature_.empty();
-  bool has_sender_name = !sender_name_.empty();
+  bool has_sender_user_id;
+  bool has_sender_dialog_id;
+  bool has_message_id;
+  bool has_author_signature;
+  bool has_sender_name;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_sender_user_id);
   PARSE_FLAG(has_sender_dialog_id);

@@ -16,11 +16,6 @@
 #include "td/utils/UInt.h"
 
 namespace td {
-
-namespace mtproto_api {
-class Object;
-}  // namespace mtproto_api
-
 namespace mtproto {
 
 class DhCallback;
