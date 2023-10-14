@@ -461,6 +461,8 @@ class UpdatesManager final : public Actor {
   bool is_acceptable_message_forward_header(
       const telegram_api::object_ptr<telegram_api::messageFwdHeader> &header) const;
 
+  bool is_acceptable_message_media(const telegram_api::object_ptr<telegram_api::MessageMedia> &media_ptr) const;
+
   bool is_acceptable_message(const telegram_api::Message *message_ptr) const;
 
   bool is_acceptable_update(const telegram_api::Update *update) const;
