@@ -299,7 +299,10 @@ Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::dest
 }
 
 Status SessionConnection::on_destroy_auth_key(const mtproto_api::DestroyAuthKeyRes &destroy_auth_key) {
-  LOG_CHECK(need_destroy_auth_key_) << static_cast<int32>(mode_);
+  if (!need_destroy_auth_key_) {
+    LOG(ERROR) << "Receive unexpected " << oneline(to_string(destroy_auth_key));
+    return Status::OK();
+  }
   return callback_->on_destroy_auth_key();
 }
 
