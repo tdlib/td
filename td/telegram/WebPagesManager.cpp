@@ -777,22 +777,31 @@ void WebPagesManager::on_get_web_page_instant_view_view_count(WebPageId web_page
 }
 
 void WebPagesManager::on_get_web_page_by_url(const string &url, WebPageId web_page_id, bool from_database) {
-  auto &cached_web_page_id = url_to_web_page_id_[url];
-  if (!from_database && G()->use_message_database()) {
+  auto emplace_result = url_to_web_page_id_.emplace(url, std::make_pair(web_page_id, from_database));
+  auto &it = emplace_result.first;
+  bool is_inserted = emplace_result.second;
+  if (from_database && !it->second.second) {
+    // database data can't replace non-database data
+    CHECK(!is_inserted);
+    return;
+  }
+  auto &cached_web_page_id = it->second.first;
+  if (!from_database && G()->use_message_database() && (cached_web_page_id != web_page_id || is_inserted)) {
     if (web_page_id.is_valid()) {
-      if (cached_web_page_id != web_page_id) {  // not already saved
-        G()->td_db()->get_sqlite_pmc()->set(get_web_page_url_database_key(url), to_string(web_page_id.get()), Auto());
-      }
+      G()->td_db()->get_sqlite_pmc()->set(get_web_page_url_database_key(url), to_string(web_page_id.get()), Auto());
     } else {
       G()->td_db()->get_sqlite_pmc()->erase(get_web_page_url_database_key(url), Auto());
     }
   }
 
-  if (cached_web_page_id.is_valid() && web_page_id.is_valid() && web_page_id != cached_web_page_id) {
-    LOG(ERROR) << "URL \"" << url << "\" preview is changed from " << cached_web_page_id << " to " << web_page_id;
+  if (!is_inserted) {
+    if (cached_web_page_id.is_valid() && !it->second.second && web_page_id.is_valid() &&
+        web_page_id != cached_web_page_id) {
+      LOG(ERROR) << "URL \"" << url << "\" preview is changed from " << cached_web_page_id << " to " << web_page_id;
+    }
+    cached_web_page_id = web_page_id;
+    it->second.second = from_database;
   }
-
-  cached_web_page_id = web_page_id;
 }
 
 void WebPagesManager::register_web_page(WebPageId web_page_id, MessageFullId message_full_id, const char *source) {
@@ -895,11 +904,12 @@ void WebPagesManager::get_web_page_instant_view(const string &url, bool force_fu
   }
   auto it = url_to_web_page_id_.find(url);
   if (it != url_to_web_page_id_.end()) {
-    if (it->second == WebPageId()) {
+    auto web_page_id = it->second.first;
+    if (web_page_id == WebPageId()) {
       // ignore negative caching
       return reload_web_page_by_url(url, std::move(promise));
     }
-    return get_web_page_instant_view_impl(it->second, force_full, std::move(promise));
+    return get_web_page_instant_view_impl(web_page_id, force_full, std::move(promise));
   }
 
   auto new_promise = PromiseCreator::lambda(
@@ -1113,7 +1123,7 @@ WebPageId WebPagesManager::get_web_page_by_url(const string &url) const {
   auto it = url_to_web_page_id_.find(url);
   if (it != url_to_web_page_id_.end()) {
     LOG(INFO) << "Return " << it->second << " for the URL \"" << url << '"';
-    return it->second;
+    return it->second.first;
   }
 
   LOG(INFO) << "Can't find web page identifier for the URL \"" << url << '"';
@@ -1128,7 +1138,7 @@ void WebPagesManager::get_web_page_by_url(const string &url, Promise<WebPageId> 
 
   auto it = url_to_web_page_id_.find(url);
   if (it != url_to_web_page_id_.end()) {
-    return promise.set_value(WebPageId(it->second));
+    return promise.set_value(WebPageId(it->second.first));
   }
 
   load_web_page_by_url(url, std::move(promise));
@@ -1162,7 +1172,7 @@ void WebPagesManager::on_load_web_page_id_by_url_from_database(string url, strin
   auto it = url_to_web_page_id_.find(url);
   if (it != url_to_web_page_id_.end()) {
     // URL web page has already been loaded
-    return promise.set_value(WebPageId(it->second));
+    return promise.set_value(WebPageId(it->second.first));
   }
   if (!value.empty()) {
     auto web_page_id = WebPageId(to_integer<int64>(value));

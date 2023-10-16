@@ -195,7 +195,7 @@ class WebPagesManager final : public Actor {
 
   FlatHashMap<StoryFullId, FlatHashSet<WebPageId, WebPageIdHash>, StoryFullIdHash> story_web_pages_;
 
-  FlatHashMap<string, WebPageId> url_to_web_page_id_;
+  FlatHashMap<string, std::pair<WebPageId, bool>> url_to_web_page_id_;  // url -> [WebPageId, from_database]
 
   FlatHashMap<string, FileSourceId> url_to_file_source_id_;
 
