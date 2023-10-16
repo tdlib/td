@@ -2719,12 +2719,10 @@ SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
       CHECK(input_file == nullptr);
       CHECK(thumbnail.empty());
       const auto *m = static_cast<const MessageText *>(content);
-      auto web_page_url =
-          !m->web_page_url.empty() ? m->web_page_url : td->web_pages_manager_->get_web_page_url(m->web_page_id);
-      if (web_page_url.empty()) {
+      if (m->web_page_url.empty()) {
         return SecretInputMedia{};
       }
-      return SecretInputMedia{nullptr, make_tl_object<secret_api::decryptedMessageMediaWebPage>(web_page_url)};
+      return SecretInputMedia{nullptr, make_tl_object<secret_api::decryptedMessageMediaWebPage>(m->web_page_url)};
     }
     case MessageContentType::Venue: {
       const auto *m = static_cast<const MessageVenue *>(content);
