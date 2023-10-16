@@ -1223,18 +1223,6 @@ void WebPagesManager::reload_web_page_by_url(const string &url, Promise<WebPageI
   td_->create_handler<GetWebPageQuery>(std::move(promise))->send(WebPageId(), url, 0);
 }
 
-SecretInputMedia WebPagesManager::get_secret_input_media(WebPageId web_page_id) const {
-  if (!web_page_id.is_valid()) {
-    return SecretInputMedia{};
-  }
-
-  const WebPage *web_page = get_web_page(web_page_id);
-  if (web_page == nullptr) {
-    return SecretInputMedia{};
-  }
-  return SecretInputMedia{nullptr, make_tl_object<secret_api::decryptedMessageMediaWebPage>(web_page->url_)};
-}
-
 bool WebPagesManager::have_web_page(WebPageId web_page_id) const {
   if (!web_page_id.is_valid()) {
     return false;

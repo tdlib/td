@@ -83,8 +83,6 @@ class WebPagesManager final : public Actor {
   void on_get_web_page_preview(const string &first_url, tl_object_ptr<telegram_api::MessageMedia> &&message_media_ptr,
                                Promise<td_api::object_ptr<td_api::webPage>> &&promise);
 
-  SecretInputMedia get_secret_input_media(WebPageId web_page_id) const;
-
   void on_binlog_web_page_event(BinlogEvent &&event);
 
   FileSourceId get_url_file_source_id(const string &url);
