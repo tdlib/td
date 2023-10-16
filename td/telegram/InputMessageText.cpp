@@ -44,13 +44,17 @@ Result<InputMessageText> process_input_message_text(const Td *td, DialogId dialo
     if (!clean_input_string(web_page_url)) {
       return Status::Error(400, "Link preview URL must be encoded in UTF-8");
     }
+    if (web_page_url.empty()) {
+      force_small_media = false;
+      force_large_media = false;
+    }
   }
   return InputMessageText{std::move(text),   std::move(web_page_url), disable_web_page_preview,
                           force_small_media, force_large_media,       input_message_text->clear_draft_};
 }
 
 telegram_api::object_ptr<telegram_api::InputMedia> InputMessageText::get_input_media_web_page() const {
-  if (web_page_url.empty() && !force_small_media && !force_large_media) {
+  if (web_page_url.empty()) {
     return nullptr;
   }
   int32 flags = 0;
@@ -70,14 +74,12 @@ telegram_api::object_ptr<telegram_api::InputMedia> InputMessageText::get_input_m
 // used only for draft
 td_api::object_ptr<td_api::inputMessageText> InputMessageText::get_input_message_text_object() const {
   td_api::object_ptr<td_api::linkPreviewOptions> options;
-  if (!web_page_url.empty() || disable_web_page_preview ||
-      force_small_media || force_large_media) {
-    options = td_api::make_object<td_api::linkPreviewOptions>(
-        disable_web_page_preview, web_page_url,
-        force_small_media, force_large_media);
+  if (!web_page_url.empty() || disable_web_page_preview || force_small_media || force_large_media) {
+    options = td_api::make_object<td_api::linkPreviewOptions>(disable_web_page_preview, web_page_url, force_small_media,
+                                                              force_large_media);
   }
-  return td_api::make_object<td_api::inputMessageText>(get_formatted_text_object(text, false, -1),
-                                                       std::move(options), clear_draft);
+  return td_api::make_object<td_api::inputMessageText>(get_formatted_text_object(text, false, -1), std::move(options),
+                                                       clear_draft);
 }
 
 }  // namespace td

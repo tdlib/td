@@ -3017,7 +3017,7 @@ tl_object_ptr<telegram_api::InputMedia> get_message_content_input_media_web_page
     return nullptr;
   }
   auto *text = static_cast<const MessageText *>(content);
-  if (text->web_page_url.empty() && !text->force_small_media && !text->force_large_media) {
+  if (text->web_page_url.empty()) {
     return nullptr;
   }
   int32 flags = 0;
@@ -3030,9 +3030,8 @@ tl_object_ptr<telegram_api::InputMedia> get_message_content_input_media_web_page
   if (!text->text.text.empty()) {
     flags |= telegram_api::inputMediaWebPage::OPTIONAL_MASK;
   }
-  return telegram_api::make_object<telegram_api::inputMediaWebPage>(
-      flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-      text->web_page_url.empty() ? td->web_pages_manager_->get_web_page_url(text->web_page_id) : text->web_page_url);
+  return telegram_api::make_object<telegram_api::inputMediaWebPage>(flags, false /*ignored*/, false /*ignored*/,
+                                                                    false /*ignored*/, text->web_page_url);
 }
 
 void delete_message_content_thumbnail(MessageContent *content, Td *td) {

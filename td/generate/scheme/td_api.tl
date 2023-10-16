@@ -2966,8 +2966,8 @@ messageCopyOptions send_copy:Bool replace_caption:Bool new_caption:formattedText
 //@description Options to be used for generation of a link preview
 //@is_disabled True, if link preview must be disabled
 //@url URL to use for link preview. If empty, then the first URL found in the message text will be used
-//@force_small_media True, if shown media preview must be small; ignored in secret chats
-//@force_large_media True, if shown media preview must be large; ignored in secret chats
+//@force_small_media True, if shown media preview must be small; ignored in secret chats or if the URL isn't explicitly specified
+//@force_large_media True, if shown media preview must be large; ignored in secret chats or if the URL isn't explicitly specified
 linkPreviewOptions is_disabled:Bool url:string force_small_media:Bool force_large_media:Bool = LinkPreviewOptions;
 
 
