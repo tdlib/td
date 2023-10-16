@@ -8442,11 +8442,18 @@ ChatReactions MessagesManager::get_message_active_reactions(const Dialog *d, con
   if (is_service_message_content(m->content->get_type()) || m->ttl > 0) {
     return ChatReactions();
   }
-  if (is_discussion_message(d->dialog_id, m)) {
+  auto dialog_id = d->dialog_id;
+  if (is_discussion_message(dialog_id, m)) {
     d = get_dialog(m->forward_info->from_dialog_id);
     if (d == nullptr) {
       LOG(ERROR) << "Failed to find linked " << m->forward_info->from_dialog_id
                  << " to determine correct active reactions";
+      return ChatReactions();
+    }
+  } else if (is_anonymous_administrator(dialog_id, nullptr) && !is_broadcast_channel(dialog_id)) {
+    CHECK(dialog_id.get_type() == DialogType::Channel);
+    if (!td_->contacts_manager_->get_channel_status(dialog_id.get_channel_id()).is_creator()) {
+      // only creator can react as the chat
       return ChatReactions();
     }
   }
