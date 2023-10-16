@@ -80,7 +80,7 @@ class WebPagesManager final : public Actor {
 
   void reload_web_page_by_url(const string &url, Promise<WebPageId> &&promise);
 
-  void on_get_web_page_preview(const string &url, tl_object_ptr<telegram_api::MessageMedia> &&message_media_ptr,
+  void on_get_web_page_preview(const string &first_url, tl_object_ptr<telegram_api::MessageMedia> &&message_media_ptr,
                                Promise<td_api::object_ptr<td_api::webPage>> &&promise);
 
   SecretInputMedia get_secret_input_media(WebPageId web_page_id) const;
@@ -129,7 +129,7 @@ class WebPagesManager final : public Actor {
 
   void on_pending_web_page_timeout(WebPageId web_page_id);
 
-  void on_get_web_page_preview_success(const string &url, WebPageId web_page_id,
+  void on_get_web_page_preview_success(const string &first_url, WebPageId web_page_id,
                                        Promise<td_api::object_ptr<td_api::webPage>> &&promise);
 
   void on_get_web_page_instant_view(WebPage *web_page, tl_object_ptr<telegram_api::page> &&page, int32 hash,
