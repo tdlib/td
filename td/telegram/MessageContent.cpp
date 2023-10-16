@@ -3850,8 +3850,8 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       const auto *old_ = static_cast<const MessageText *>(old_content);
       const auto *new_ = static_cast<const MessageText *>(new_content);
       auto get_content_object = [td, dialog_id](const MessageContent *content) {
-        return to_string(
-            get_message_content_object(content, td, dialog_id, -1, false, false, std::numeric_limits<int32>::max()));
+        return to_string(get_message_content_object(content, td, dialog_id, -1, false, false,
+                                                    std::numeric_limits<int32>::max(), false));
       };
       if (old_->text.text != new_->text.text) {
         if (need_message_changed_warning && need_message_text_changed_warning(old_, new_)) {
@@ -6008,7 +6008,8 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
 tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageContent *content, Td *td,
                                                                  DialogId dialog_id, int32 message_date,
                                                                  bool is_content_secret, bool skip_bot_commands,
-                                                                 int32 max_media_timestamp) {
+                                                                 int32 max_media_timestamp,
+                                                                 bool disable_web_page_preview) {
   CHECK(content != nullptr);
   switch (content->get_type()) {
     case MessageContentType::Animation: {
@@ -6086,7 +6087,7 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       }
       return make_tl_object<td_api::messageText>(
           get_formatted_text_object(m->text, skip_bot_commands, max_media_timestamp),
-          td->web_pages_manager_->get_web_page_object(m->web_page_id));
+          td->web_pages_manager_->get_web_page_object(m->web_page_id), disable_web_page_preview || m->is_manual);
     }
     case MessageContentType::Unsupported:
       return make_tl_object<td_api::messageUnsupported>();

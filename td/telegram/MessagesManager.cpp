@@ -6562,7 +6562,7 @@ void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api:
     send_closure(G()->td(), &Td::send_update,
                  td_api::make_object<td_api::updateServiceNotification>(
                      update->type_, get_message_content_object(content.get(), td_, owner_dialog_id, date,
-                                                               is_content_secret, true, -1)));
+                                                               is_content_secret, true, -1, disable_web_page_preview)));
   }
   if (has_date && is_user) {
     Dialog *d = get_service_notifications_dialog();
@@ -14603,7 +14603,8 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
         LOG(ERROR) << "Receive media group identifier " << message_info.media_album_id << " in " << message_id
                    << " from " << dialog_id << " with content "
                    << oneline(to_string(get_message_content_object(message->content.get(), td_, dialog_id,
-                                                                   message->date, is_content_secret, false, -1)));
+                                                                   message->date, is_content_secret, false, -1,
+                                                                   message->disable_web_page_preview)));
       }
     } else {
       message->media_album_id = message_info.media_album_id;
@@ -23990,7 +23991,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_messag
   auto edit_date = m->hide_edit_date ? 0 : m->edit_date;
   auto reply_markup = get_reply_markup_object(td_->contacts_manager_.get(), m->reply_markup);
   auto content = get_message_content_object(m->content.get(), td_, dialog_id, 0, false, true,
-                                            get_message_own_max_media_timestamp(m));
+                                            get_message_own_max_media_timestamp(m), m->disable_web_page_preview);
   return td_api::make_object<td_api::message>(
       m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_dialog_event_log_message_object"),
       nullptr, nullptr, m->is_outgoing, false, false, false, can_be_saved, false, false, false, false, false, false,
@@ -24097,7 +24098,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto skip_bot_commands = need_skip_bot_commands(dialog_id, m);
   auto max_media_timestamp = get_message_max_media_timestamp(m);
   auto content = get_message_content_object(m->content.get(), td_, dialog_id, live_location_date, m->is_content_secret,
-                                            skip_bot_commands, max_media_timestamp);
+                                            skip_bot_commands, max_media_timestamp, m->disable_web_page_preview);
   auto self_destruct_type = [&]() -> td_api::object_ptr<td_api::MessageSelfDestructType> {
     if (m->ttl == 0x7FFFFFFF) {
       return td_api::make_object<td_api::messageSelfDestructTypeImmediately>();
@@ -25678,7 +25679,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
                  << file_view.has_active_download_remote_location() << " " << file_view.is_encrypted() << " " << is_web
                  << " " << file_view.has_url() << " "
                  << to_string(get_message_content_object(m->content.get(), td_, dialog_id, m->date,
-                                                         m->is_content_secret, false, -1));
+                                                         m->is_content_secret, false, -1, m->disable_web_page_preview));
     }
     auto entities = get_input_message_entities(td_->contacts_manager_.get(), caption, "do_send_message_group");
     int32 input_single_media_flags = 0;
@@ -30027,7 +30028,7 @@ void MessagesManager::send_update_message_content_impl(DialogId dialog_id, const
   LOG(INFO) << "Send updateMessageContent for " << m->message_id << " in " << dialog_id << " from " << source;
   auto content_object = get_message_content_object(m->content.get(), td_, dialog_id, m->is_failed_to_send ? 0 : m->date,
                                                    m->is_content_secret, need_skip_bot_commands(dialog_id, m),
-                                                   get_message_max_media_timestamp(m));
+                                                   get_message_max_media_timestamp(m), m->disable_web_page_preview);
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateMessageContent>(get_chat_id_object(dialog_id, "updateMessageContent"),
                                                                  m->message_id.get(), std::move(content_object)));
@@ -32898,7 +32899,7 @@ void MessagesManager::on_send_dialog_action_timeout(DialogId dialog_id) {
   if (!file_id.is_valid()) {
     LOG(ERROR) << "Have no file in "
                << to_string(get_message_content_object(m->content.get(), td_, dialog_id, m->date, m->is_content_secret,
-                                                       false, -1));
+                                                       false, -1, m->disable_web_page_preview));
     return;
   }
   auto file_view = td_->file_manager_->get_file_view(file_id);

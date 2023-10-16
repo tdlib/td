@@ -2590,8 +2590,11 @@ inputPassportElementError type:PassportElementType message:string source:InputPa
 
 //@class MessageContent @description Contains the content of a message
 
-//@description A text message @text Text of the message @web_page A preview of the web page that's mentioned in the text; may be null
-messageText text:formattedText web_page:webPage = MessageContent;
+//@description A text message
+//@text Text of the message
+//@web_page A preview of the web page that's mentioned in the text; may be null
+//@is_web_page_preview_manually_chosen True, if the web preview was manually chosen
+messageText text:formattedText web_page:webPage is_web_page_preview_manually_chosen:Bool = MessageContent;
 
 //@description An animation message (GIF-style).
 //@animation The animation description
