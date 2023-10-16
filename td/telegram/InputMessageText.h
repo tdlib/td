@@ -19,12 +19,28 @@ class Td;
 class InputMessageText {
  public:
   FormattedText text;
+  string web_page_url;
   bool disable_web_page_preview = false;
+  bool force_small_media = false;
+  bool force_large_media = false;
   bool clear_draft = false;
+
   InputMessageText() = default;
-  InputMessageText(FormattedText text, bool disable_web_page_preview, bool clear_draft)
-      : text(std::move(text)), disable_web_page_preview(disable_web_page_preview), clear_draft(clear_draft) {
+  InputMessageText(FormattedText text, string &&web_page_url, bool disable_web_page_preview, bool force_small_media,
+                   bool force_large_media, bool clear_draft)
+      : text(std::move(text))
+      , web_page_url(std::move(web_page_url))
+      , disable_web_page_preview(disable_web_page_preview)
+      , force_small_media(force_small_media)
+      , force_large_media(force_large_media)
+      , clear_draft(clear_draft) {
   }
+
+  bool is_empty() const {
+    return text.text.empty() && web_page_url.empty();
+  }
+
+  telegram_api::object_ptr<telegram_api::InputMedia> get_input_media_web_page() const;
 };
 
 bool operator==(const InputMessageText &lhs, const InputMessageText &rhs);

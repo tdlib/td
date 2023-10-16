@@ -16,20 +16,34 @@ namespace td {
 
 template <class StorerT>
 void store(const InputMessageText &input_message_text, StorerT &storer) {
+  bool has_web_page_url = !input_message_text.web_page_url.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(input_message_text.disable_web_page_preview);
   STORE_FLAG(input_message_text.clear_draft);
+  STORE_FLAG(input_message_text.force_small_media);
+  STORE_FLAG(input_message_text.force_large_media);
+  STORE_FLAG(has_web_page_url);
   END_STORE_FLAGS();
   store(input_message_text.text, storer);
+  if (has_web_page_url) {
+    store(input_message_text.web_page_url, storer);
+  }
 }
 
 template <class ParserT>
 void parse(InputMessageText &input_message_text, ParserT &parser) {
+  bool has_web_page_url;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(input_message_text.disable_web_page_preview);
   PARSE_FLAG(input_message_text.clear_draft);
+  PARSE_FLAG(input_message_text.force_small_media);
+  PARSE_FLAG(input_message_text.force_large_media);
+  PARSE_FLAG(has_web_page_url);
   END_PARSE_FLAGS();
   parse(input_message_text.text, parser);
+  if (has_web_page_url) {
+    parse(input_message_text.web_page_url, parser);
+  }
 }
 
 }  // namespace td

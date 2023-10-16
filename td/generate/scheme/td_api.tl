@@ -2092,8 +2092,8 @@ webPageInstantView page_blocks:vector<PageBlock> view_count:int32 version:int32 
 //@duration Duration of the content, in seconds
 //@author Author of the content
 //@has_large_media True, if the preview has large media and its appearance can be changed
-//@force_small_media True, if shown media preview should be small
-//@force_large_media True, if shown media preview should be large
+//@force_small_media True, if shown media preview must be small
+//@force_large_media True, if shown media preview must be large
 //@animation Preview of the content as an animation, if available; may be null
 //@audio Preview of the content as an audio file, if available; may be null
 //@document Preview of the content as a document, if available; may be null
@@ -2963,14 +2963,21 @@ messageSendOptions disable_notification:Bool from_background:Bool protect_conten
 //@new_caption New message caption; pass null to copy message without caption. Ignored if replace_caption is false
 messageCopyOptions send_copy:Bool replace_caption:Bool new_caption:formattedText = MessageCopyOptions;
 
+//@description Options to be used for generation of a link preview
+//@is_disabled True, if link preview must be disabled
+//@url URL to use for link preview; ignored in secret chats. If empty, then the first URL found in the message text will be used
+//@force_small_media True, if shown media preview must be small; ignored in secret chats
+//@force_large_media True, if shown media preview must be large; ignored in secret chats
+linkPreviewOptions is_disabled:Bool url:string force_small_media:Bool force_large_media:Bool = LinkPreviewOptions;
+
 
 //@class InputMessageContent @description The content of a message to send
 
 //@description A text message
 //@text Formatted text to be sent; 1-getOption("message_text_length_max") characters. Only Bold, Italic, Underline, Strikethrough, Spoiler, CustomEmoji, Code, Pre, PreCode, TextUrl and MentionName entities are allowed to be specified manually
-//@disable_web_page_preview True, if rich web page previews for URLs in the message text must be disabled
+//@link_preview_options Options to be used for generation of a link preview; pass null to use default link preview options
 //@clear_draft True, if a chat message draft must be deleted
-inputMessageText text:formattedText disable_web_page_preview:Bool clear_draft:Bool = InputMessageContent;
+inputMessageText text:formattedText link_preview_options:linkPreviewOptions clear_draft:Bool = InputMessageContent;
 
 //@description An animation message (GIF-style).
 //@animation Animation file to be sent

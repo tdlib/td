@@ -15659,8 +15659,8 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
       reload_dialog_info_full(dialog_id, "on_get_dialogs init available_reactions");
     }
 
-    need_update_dialog_pos |= update_dialog_draft_message(
-        d, get_draft_message(td_->contacts_manager_.get(), std::move(dialog->draft_)), true, false);
+    need_update_dialog_pos |=
+        update_dialog_draft_message(d, get_draft_message(td_, std::move(dialog->draft_)), true, false);
     if (is_new) {
       bool has_pts = (dialog->flags_ & DIALOG_FLAG_HAS_PTS) != 0;
       if (last_message_id.is_valid() && !td_->auth_manager_->is_bot()) {
@@ -26483,7 +26483,7 @@ void MessagesManager::edit_message_text(MessageFullId message_full_id,
   if (r_input_message_text.is_error()) {
     return promise.set_error(r_input_message_text.move_as_error());
   }
-  InputMessageText input_message_text = r_input_message_text.move_as_ok();
+  const InputMessageText input_message_text = r_input_message_text.move_as_ok();
 
   auto r_new_reply_markup = get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false,
                                              has_message_sender_user_id(dialog_id, m));
@@ -26500,7 +26500,8 @@ void MessagesManager::edit_message_text(MessageFullId message_full_id,
       ->send(flags, dialog_id, m->message_id, input_message_text.text.text,
              get_input_message_entities(td_->contacts_manager_.get(), input_message_text.text.entities,
                                         "edit_message_text"),
-             nullptr, std::move(input_reply_markup), get_message_schedule_date(m));
+             input_message_text.get_input_media_web_page(), std::move(input_reply_markup),
+             get_message_schedule_date(m));
 }
 
 void MessagesManager::edit_message_live_location(MessageFullId message_full_id,
@@ -26851,7 +26852,7 @@ void MessagesManager::edit_inline_message_text(const string &inline_message_id,
   if (r_input_message_text.is_error()) {
     return promise.set_error(r_input_message_text.move_as_error());
   }
-  InputMessageText input_message_text = r_input_message_text.move_as_ok();
+  const InputMessageText input_message_text = r_input_message_text.move_as_ok();
 
   auto r_new_reply_markup = get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true);
   if (r_new_reply_markup.is_error()) {
@@ -26871,7 +26872,8 @@ void MessagesManager::edit_inline_message_text(const string &inline_message_id,
       ->send(flags, std::move(input_bot_inline_message_id), input_message_text.text.text,
              get_input_message_entities(td_->contacts_manager_.get(), input_message_text.text.entities,
                                         "edit_inline_message_text"),
-             nullptr, get_input_reply_markup(td_->contacts_manager_.get(), r_new_reply_markup.ok()));
+             input_message_text.get_input_media_web_page(),
+             get_input_reply_markup(td_->contacts_manager_.get(), r_new_reply_markup.ok()));
 }
 
 void MessagesManager::edit_inline_message_live_location(const string &inline_message_id,
@@ -31267,7 +31269,7 @@ void MessagesManager::on_update_dialog_draft_message(DialogId dialog_id, Message
     LOG(ERROR) << "Receive update chat draft in invalid " << dialog_id;
     return;
   }
-  auto draft = get_draft_message(td_->contacts_manager_.get(), std::move(draft_message));
+  auto draft = get_draft_message(td_, std::move(draft_message));
   auto d = get_dialog_force(dialog_id, "on_update_dialog_draft_message");
   if (d == nullptr) {
     LOG(INFO) << "Ignore update chat draft in unknown " << dialog_id;
@@ -38588,8 +38590,7 @@ void MessagesManager::on_get_channel_difference(DialogId dialog_id, int32 reques
         set_dialog_is_marked_as_unread(d, is_marked_as_unread);
       }
 
-      update_dialog_draft_message(d, get_draft_message(td_->contacts_manager_.get(), std::move(dialog->draft_)), true,
-                                  false);
+      update_dialog_draft_message(d, get_draft_message(td_, std::move(dialog->draft_)), true, false);
 
       on_get_channel_dialog(dialog_id, MessageId(ServerMessageId(dialog->top_message_)),
                             MessageId(ServerMessageId(dialog->read_inbox_max_id_)), dialog->unread_count_,

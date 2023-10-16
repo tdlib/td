@@ -191,7 +191,7 @@ using tl_object_ptr = tl::unique_ptr<Type>;
  * auto message_text = td::make_tl_object<td::td_api::formattedText>("Hello, world!!!",
  *                     td::td_api::array<td::tl_object_ptr<td::td_api::textEntity>>());
  * auto send_message_request = td::make_tl_object<td::td_api::sendMessage>(chat_id, 0, nullptr, nullptr, nullptr,
- *      td::make_tl_object<td::td_api::inputMessageText>(std::move(message_text), false, true));
+ *      td::make_tl_object<td::td_api::inputMessageText>(std::move(message_text), nullptr, true));
  * \endcode
  *
  * \tparam Type Type of the TL-object to construct.

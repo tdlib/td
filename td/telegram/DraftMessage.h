@@ -31,7 +31,7 @@ class DraftMessage {
 
  public:
   DraftMessage() = default;
-  DraftMessage(ContactsManager *contacts_manager, telegram_api::object_ptr<telegram_api::draftMessage> &&draft_message);
+  DraftMessage(Td *td, telegram_api::object_ptr<telegram_api::draftMessage> &&draft_message);
 
   int32 get_date() const {
     return date_;
@@ -60,7 +60,7 @@ void add_draft_message_dependencies(Dependencies &dependencies, const unique_ptr
 
 td_api::object_ptr<td_api::draftMessage> get_draft_message_object(const unique_ptr<DraftMessage> &draft_message);
 
-unique_ptr<DraftMessage> get_draft_message(ContactsManager *contacts_manager,
+unique_ptr<DraftMessage> get_draft_message(Td *td,
                                            telegram_api::object_ptr<telegram_api::DraftMessage> &&draft_message_ptr);
 
 void save_draft_message(Td *td, DialogId dialog_id, const unique_ptr<DraftMessage> &draft_message,

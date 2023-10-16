@@ -2179,6 +2179,7 @@ static Result<InputMessageContent> create_input_message_content(
     mime_type = MimeType::from_extension(path_view.extension());
   }
 
+  string web_page_url;
   bool disable_web_page_preview = false;
   bool clear_draft = false;
   unique_ptr<MessageContent> content;
@@ -2191,6 +2192,7 @@ static Result<InputMessageContent> create_input_message_content(
     case td_api::inputMessageText::ID: {
       TRY_RESULT(input_message_text,
                  process_input_message_text(td, dialog_id, std::move(input_message_content), is_bot));
+      web_page_url = std::move(input_message_text.web_page_url);
       disable_web_page_preview = input_message_text.disable_web_page_preview;
       clear_draft = input_message_text.clear_draft;
 
@@ -2206,7 +2208,9 @@ static Result<InputMessageContent> create_input_message_content(
       if (!is_bot && !disable_web_page_preview && can_add_web_page_previews) {
         web_page_id = td->web_pages_manager_->get_web_page_by_url(get_first_url(input_message_text.text));
       }
-      content = make_unique<MessageText>(std::move(input_message_text.text), web_page_id, false, false, false);
+      content = make_unique<MessageText>(std::move(input_message_text.text), web_page_id,
+                                         input_message_text.force_small_media, input_message_text.force_large_media,
+                                         !web_page_url.empty());
       break;
     }
     case td_api::inputMessageAnimation::ID: {

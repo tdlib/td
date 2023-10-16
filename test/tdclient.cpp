@@ -314,7 +314,7 @@ class SetUsername final : public TestClinetTask {
                            chat->id_, 0, nullptr, nullptr, nullptr,
                            td::make_tl_object<td::td_api::inputMessageText>(
                                td::make_tl_object<td::td_api::formattedText>(PSTRING() << tag_ << " INIT", td::Auto()),
-                               false, false)),
+                               nullptr, false)),
                        [](auto res) {});
     });
   }
@@ -385,7 +385,7 @@ class TestA final : public TestClinetTask {
                 chat->id_, 0, nullptr, nullptr, nullptr,
                 td::make_tl_object<td::td_api::inputMessageText>(
                     td::make_tl_object<td::td_api::formattedText>(PSTRING() << tag_ << " " << (1000 + i), td::Auto()),
-                    false, false)),
+                    nullptr, false)),
             [&](auto res) { this->stop(); });
       }
     });
@@ -434,7 +434,7 @@ class TestSecretChat final : public TestClinetTask {
                 chat_id_, 0, nullptr, nullptr, nullptr,
                 td::make_tl_object<td::td_api::inputMessageText>(
                     td::make_tl_object<td::td_api::formattedText>(PSTRING() << tag_ << " " << (1000 + i), td::Auto()),
-                    false, false)),
+                    nullptr, false)),
             [](auto res) {});
       }
     }
@@ -615,7 +615,7 @@ class CheckTestC final : public TestClinetTask {
                    chat_id_, 0, nullptr, nullptr, nullptr,
                    td::make_tl_object<td::td_api::inputMessageText>(
                        td::make_tl_object<td::td_api::formattedText>(PSTRING() << tag_ << " ONE_FILE", td::Auto()),
-                       false, false)),
+                       nullptr, false)),
                [](auto res) { check_td_error(res); });
   }
 

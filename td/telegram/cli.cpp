@@ -4139,7 +4139,7 @@ class CliClient final : public Actor {
             td_api::make_object<td_api::textEntity>(0, 1, td_api::make_object<td_api::textEntityTypePre>()));
         draft_message = td_api::make_object<td_api::draftMessage>(
             as_message_id(reply_to_message_id), 0,
-            td_api::make_object<td_api::inputMessageText>(as_formatted_text(message, std::move(entities)), true,
+            td_api::make_object<td_api::inputMessageText>(as_formatted_text(message, std::move(entities)), nullptr,
                                                           false));
       }
       send_request(
@@ -4440,7 +4440,8 @@ class CliClient final : public Actor {
                                     as_local_file("rgb.jpg"), nullptr, Auto(), 0, 0, as_caption(message),
                                     get_message_self_destruct_type(), has_spoiler_));
         } else {
-          send_message(chat_id, td_api::make_object<td_api::inputMessageText>(as_formatted_text(message), false, true));
+          send_message(chat_id,
+                       td_api::make_object<td_api::inputMessageText>(as_formatted_text(message), nullptr, true));
         }
       }
     } else if (op == "ssm") {
@@ -4479,7 +4480,7 @@ class CliClient final : public Actor {
       if (op == "smf") {
         message = string(5097, 'a');
       }
-      send_message(chat_id, td_api::make_object<td_api::inputMessageText>(as_formatted_text(message), false, true),
+      send_message(chat_id, td_api::make_object<td_api::inputMessageText>(as_formatted_text(message), nullptr, true),
                    op == "sms", false, reply_to);
     } else if (op == "smce") {
       ChatId chat_id;
@@ -4492,7 +4493,7 @@ class CliClient final : public Actor {
       entities.push_back(td_api::make_object<td_api::textEntity>(
           6, 5, td_api::make_object<td_api::textEntityTypeCustomEmoji>(5368324170671202286)));
       auto text = as_formatted_text("👍 😉 🧑‍🚒", std::move(entities));
-      send_message(chat_id, td_api::make_object<td_api::inputMessageText>(std::move(text), false, true));
+      send_message(chat_id, td_api::make_object<td_api::inputMessageText>(std::move(text), nullptr, true));
     } else if (op == "alm" || op == "almr") {
       ChatId chat_id;
       string sender_id;
@@ -4504,7 +4505,7 @@ class CliClient final : public Actor {
       }
       send_request(td_api::make_object<td_api::addLocalMessage>(
           chat_id, as_message_sender(sender_id), reply_to, false,
-          td_api::make_object<td_api::inputMessageText>(as_formatted_text(message), false, true)));
+          td_api::make_object<td_api::inputMessageText>(as_formatted_text(message), nullptr, true)));
     } else if (op == "smap" || op == "smapr" || op == "smapp" || op == "smaprp") {
       ChatId chat_id;
       InputMessageReplyTo reply_to;
@@ -4562,7 +4563,7 @@ class CliClient final : public Actor {
       get_args(args, chat_id, message_id, message);
       send_request(td_api::make_object<td_api::editMessageText>(
           chat_id, message_id, nullptr,
-          td_api::make_object<td_api::inputMessageText>(as_formatted_text(message), true, true)));
+          td_api::make_object<td_api::inputMessageText>(as_formatted_text(message), nullptr, true)));
     } else if (op == "eman") {
       ChatId chat_id;
       MessageId message_id;
