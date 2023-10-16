@@ -203,6 +203,9 @@ DraftMessage::DraftMessage(Td *td, telegram_api::object_ptr<telegram_api::draftM
     } else {
       auto media = telegram_api::move_object_as<telegram_api::inputMediaWebPage>(draft_message->media_);
       web_page_url = std::move(media->url_);
+      if (web_page_url.empty()) {
+        LOG(ERROR) << "Have no URL in a draft with manual link preview";
+      }
       force_small_media = media->force_small_media_;
       force_large_media = media->force_large_media_;
     }
