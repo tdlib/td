@@ -23765,6 +23765,18 @@ ChatReactions MessagesManager::get_message_available_reactions(const Dialog *d, 
   return active_reactions;
 }
 
+DialogId MessagesManager::get_my_reaction_dialog_id(const Dialog *d) const {
+  auto my_dialog_id = get_my_dialog_id();
+  auto reaction_dialog_id =
+      d->default_send_message_as_dialog_id.is_valid() ? d->default_send_message_as_dialog_id : my_dialog_id;
+  if (reaction_dialog_id == my_dialog_id && is_anonymous_administrator(d->dialog_id, nullptr) &&
+      !is_broadcast_channel(d->dialog_id)) {
+    // react as the supergroup
+    return d->dialog_id;
+  }
+  return reaction_dialog_id;
+}
+
 void MessagesManager::add_message_reaction(MessageFullId message_full_id, ReactionType reaction_type, bool is_big,
                                            bool add_to_recent, Promise<Unit> &&promise) {
   auto dialog_id = message_full_id.get_dialog_id();
@@ -23790,9 +23802,7 @@ void MessagesManager::add_message_reaction(MessageFullId message_full_id, Reacti
   }
 
   LOG(INFO) << "Have message with " << *m->reactions;
-  auto my_dialog_id =
-      d->default_send_message_as_dialog_id.is_valid() ? d->default_send_message_as_dialog_id : get_my_dialog_id();
-  if (!m->reactions->add_my_reaction(reaction_type, is_big, my_dialog_id, have_recent_choosers)) {
+  if (!m->reactions->add_my_reaction(reaction_type, is_big, get_my_reaction_dialog_id(d), have_recent_choosers)) {
     return promise.set_value(Unit());
   }
 
@@ -23825,9 +23835,7 @@ void MessagesManager::remove_message_reaction(MessageFullId message_full_id, Rea
   }
 
   LOG(INFO) << "Have message with " << *m->reactions;
-  auto my_dialog_id =
-      d->default_send_message_as_dialog_id.is_valid() ? d->default_send_message_as_dialog_id : get_my_dialog_id();
-  if (!m->reactions->remove_my_reaction(reaction_type, my_dialog_id)) {
+  if (!m->reactions->remove_my_reaction(reaction_type, get_my_reaction_dialog_id(d))) {
     return promise.set_value(Unit());
   }
 
