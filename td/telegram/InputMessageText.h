@@ -41,6 +41,8 @@ class InputMessageText {
   }
 
   telegram_api::object_ptr<telegram_api::InputMedia> get_input_media_web_page() const;
+
+  td_api::object_ptr<td_api::inputMessageText> get_input_message_text_object() const;
 };
 
 bool operator==(const InputMessageText &lhs, const InputMessageText &rhs);
@@ -49,7 +51,5 @@ bool operator!=(const InputMessageText &lhs, const InputMessageText &rhs);
 Result<InputMessageText> process_input_message_text(const Td *td, DialogId dialog_id,
                                                     tl_object_ptr<td_api::InputMessageContent> &&input_message_content,
                                                     bool is_bot, bool for_draft = false) TD_WARN_UNUSED_RESULT;
-
-td_api::object_ptr<td_api::inputMessageText> get_input_message_text_object(const InputMessageText &input_message_text);
 
 }  // namespace td

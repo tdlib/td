@@ -167,7 +167,7 @@ void DraftMessage::add_dependencies(Dependencies &dependencies) const {
 
 td_api::object_ptr<td_api::draftMessage> DraftMessage::get_draft_message_object() const {
   return td_api::make_object<td_api::draftMessage>(reply_to_message_id_.get(), date_,
-                                                   get_input_message_text_object(input_message_text_));
+                                                   input_message_text_.get_input_message_text_object());
 }
 
 DraftMessage::DraftMessage(Td *td, telegram_api::object_ptr<telegram_api::draftMessage> &&draft_message) {
