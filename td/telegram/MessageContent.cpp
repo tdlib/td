@@ -3872,11 +3872,14 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
         need_update = true;
       }
       if (old_->web_page_id != new_->web_page_id || old_->force_small_media != new_->force_small_media ||
-          old_->force_large_media != new_->force_large_media || old_->is_manual != new_->is_manual) {
+          old_->force_large_media != new_->force_large_media) {
         LOG(INFO) << "Old: " << old_->web_page_id << ", new: " << new_->web_page_id;
         is_content_changed = true;
         need_update |= td->web_pages_manager_->have_web_page(old_->web_page_id) ||
                        td->web_pages_manager_->have_web_page(new_->web_page_id);
+      }
+      if (old_->is_manual != new_->is_manual) {
+        need_update = true;
       }
       break;
     }
@@ -6087,7 +6090,8 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       }
       return make_tl_object<td_api::messageText>(
           get_formatted_text_object(m->text, skip_bot_commands, max_media_timestamp),
-          td->web_pages_manager_->get_web_page_object(m->web_page_id), disable_web_page_preview || m->is_manual);
+          td->web_pages_manager_->get_web_page_object(m->web_page_id, m->force_small_media, m->force_large_media),
+          disable_web_page_preview || m->is_manual);
     }
     case MessageContentType::Unsupported:
       return make_tl_object<td_api::messageUnsupported>();
