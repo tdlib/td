@@ -877,8 +877,9 @@ void WebPagesManager::on_get_web_page_preview_success(const string &first_url, W
 
 void WebPagesManager::get_web_page_preview(td_api::object_ptr<td_api::formattedText> &&text,
                                            Promise<td_api::object_ptr<td_api::webPage>> &&promise) {
-  TRY_RESULT_PROMISE(promise, formatted_text,
-                     get_formatted_text(td_, DialogId(), std::move(text), false, true, true, true));
+  TRY_RESULT_PROMISE(
+      promise, formatted_text,
+      get_formatted_text(td_, DialogId(), std::move(text), td_->auth_manager_->is_bot(), true, true, true));
 
   auto first_url = get_first_url(formatted_text);
   if (first_url.empty()) {

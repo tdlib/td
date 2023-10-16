@@ -30,8 +30,6 @@ Result<InputMessageText> process_input_message_text(const Td *td, DialogId dialo
   CHECK(input_message_content != nullptr);
   CHECK(input_message_content->get_id() == td_api::inputMessageText::ID);
   auto input_message_text = static_cast<td_api::inputMessageText *>(input_message_content.get());
-  TRY_RESULT(text, get_formatted_text(td, dialog_id, std::move(input_message_text->text_), is_bot, for_draft, for_draft,
-                                      for_draft));
   string web_page_url;
   bool disable_web_page_preview = false;
   bool force_small_media = false;
@@ -57,6 +55,8 @@ Result<InputMessageText> process_input_message_text(const Td *td, DialogId dialo
       force_large_media = false;
     }
   }
+  TRY_RESULT(text, get_formatted_text(td, dialog_id, std::move(input_message_text->text_), is_bot,
+                                      for_draft || !web_page_url.empty(), for_draft, for_draft));
   if (!disable_web_page_preview && web_page_url.empty() && dialog_id.get_type() == DialogType::SecretChat) {
     web_page_url = get_first_url(text);
   }
