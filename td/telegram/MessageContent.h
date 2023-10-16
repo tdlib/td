@@ -95,7 +95,8 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
                                                    int32 allowed_media_content_id, Photo *photo, Game *game);
 
 unique_ptr<MessageContent> create_text_message_content(string text, vector<MessageEntity> entities,
-                                                       WebPageId web_page_id);
+                                                       WebPageId web_page_id, bool force_small_media,
+                                                       bool force_large_media, bool is_manual);
 
 unique_ptr<MessageContent> create_contact_registered_message_content();
 

@@ -62,6 +62,7 @@ enum class Version : int32 {
   MakeParticipantFlags64Bit,
   AddDocumentFlags,
   AddUserFlags2,
+  AddMessageTextFlags,
   Next
 };
 
