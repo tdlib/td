@@ -26,6 +26,7 @@
 #include "td/utils/tl_storers.h"
 
 #include <memory>
+#include <unordered_map>
 #include <utility>
 
 namespace td {
@@ -218,9 +219,9 @@ class BinlogKeyValue final : public KeyValueSyncInterface {
     binlog_->lazy_sync(std::move(promise));
   }
 
-  FlatHashMap<string, string> prefix_get(Slice prefix) final {
+  std::unordered_map<string, string> prefix_get(Slice prefix) final {
     auto lock = rw_mutex_.lock_write().move_as_ok();
-    FlatHashMap<string, string> res;
+    std::unordered_map<string, string> res;
     for (const auto &kv : map_) {
       if (begins_with(kv.first, prefix)) {
         res.emplace(kv.first.substr(prefix.size()), kv.second.first);
