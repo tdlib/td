@@ -5931,6 +5931,17 @@ FolderId ContactsManager::get_secret_chat_initial_folder_id(SecretChatId secret_
   return c->initial_folder_id;
 }
 
+bool ContactsManager::can_use_premium_custom_emoji() const {
+  if (td_->option_manager_->get_option_boolean("is_premium")) {
+    return true;
+  }
+  if (!td_->auth_manager_->is_bot()) {
+    return false;
+  }
+  const User *u = get_user(get_my_id());
+  return u == nullptr || u->usernames.get_active_usernames().size() > (u->usernames.has_editable_username() ? 1u : 0u);
+}
+
 UserId ContactsManager::get_my_id() const {
   LOG_IF(ERROR, !my_id_.is_valid()) << "Wrong or unknown my ID returned";
   return my_id_;

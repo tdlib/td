@@ -290,6 +290,8 @@ class ContactsManager final : public Actor {
 
   void unregister_message_channels(MessageFullId message_full_id, vector<ChannelId> channel_ids);
 
+  bool can_use_premium_custom_emoji() const;
+
   UserId get_my_id() const;
 
   void set_my_online_status(bool is_online, bool send_update, bool is_local);
