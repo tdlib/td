@@ -2091,6 +2091,7 @@ webPageInstantView page_blocks:vector<PageBlock> view_count:int32 version:int32 
 //@embed_height Height of the embedded preview
 //@duration Duration of the content, in seconds
 //@author Author of the content
+//@has_large_media True, if the preview has large media and its appearance can be changed
 //@animation Preview of the content as an animation, if available; may be null
 //@audio Preview of the content as an audio file, if available; may be null
 //@document Preview of the content as a document, if available; may be null
@@ -2101,7 +2102,7 @@ webPageInstantView page_blocks:vector<PageBlock> view_count:int32 version:int32 
 //@story_sender_chat_id The identifier of the sender of the previewed story; 0 if none
 //@story_id The identifier of the previewed story; 0 if none
 //@instant_view_version Version of web page instant view (currently, can be 1 or 2); 0 if none
-webPage url:string display_url:string type:string site_name:string title:string description:formattedText photo:photo embed_url:string embed_type:string embed_width:int32 embed_height:int32 duration:int32 author:string animation:animation audio:audio document:document sticker:sticker video:video video_note:videoNote voice_note:voiceNote story_sender_chat_id:int53 story_id:int32 instant_view_version:int32 = WebPage;
+webPage url:string display_url:string type:string site_name:string title:string description:formattedText photo:photo embed_url:string embed_type:string embed_width:int32 embed_height:int32 duration:int32 author:string has_large_media:Bool animation:animation audio:audio document:document sticker:sticker video:video video_note:videoNote voice_note:voiceNote story_sender_chat_id:int53 story_id:int32 instant_view_version:int32 = WebPage;
 
 
 //@description Contains information about a country

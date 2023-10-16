@@ -237,6 +237,7 @@ class WebPagesManager::WebPage {
   Dimensions embed_dimensions_;
   int32 duration_ = 0;
   string author_;
+  bool has_large_media_ = false;
   Document document_;
   vector<Document> documents_;
   vector<StoryFullId> story_full_ids_;
@@ -280,6 +281,7 @@ class WebPagesManager::WebPage {
     STORE_FLAG(is_instant_view_v2);
     STORE_FLAG(has_documents);
     STORE_FLAG(has_story_full_ids);
+    STORE_FLAG(has_large_media_);
     END_STORE_FLAGS();
 
     store(url_, storer);
@@ -357,6 +359,7 @@ class WebPagesManager::WebPage {
     PARSE_FLAG(is_instant_view_v2);
     PARSE_FLAG(has_documents);
     PARSE_FLAG(has_story_full_ids);
+    PARSE_FLAG(has_large_media_);
     END_PARSE_FLAGS();
 
     parse(url_, parser);
@@ -417,7 +420,8 @@ class WebPagesManager::WebPage {
            lhs.site_name_ == rhs.site_name_ && lhs.title_ == rhs.title_ && lhs.description_ == rhs.description_ &&
            lhs.photo_ == rhs.photo_ && lhs.type_ == rhs.type_ && lhs.embed_url_ == rhs.embed_url_ &&
            lhs.embed_type_ == rhs.embed_type_ && lhs.embed_dimensions_ == rhs.embed_dimensions_ &&
-           lhs.duration_ == rhs.duration_ && lhs.author_ == rhs.author_ && lhs.document_ == rhs.document_ &&
+           lhs.duration_ == rhs.duration_ && lhs.author_ == rhs.author_ &&
+           lhs.has_large_media_ == rhs.has_large_media_ && lhs.document_ == rhs.document_ &&
            lhs.documents_ == rhs.documents_ && lhs.story_full_ids_ == rhs.story_full_ids_ &&
            lhs.instant_view_.is_empty_ == rhs.instant_view_.is_empty_ &&
            lhs.instant_view_.is_v2_ == rhs.instant_view_.is_v2_;
@@ -522,6 +526,7 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
         page->duration_ = 0;
       }
       page->author_ = std::move(web_page->author_);
+      page->has_large_media_ = web_page->has_large_media_;
       if (web_page->document_ != nullptr) {
         int32 document_id = web_page->document_->get_id();
         if (document_id == telegram_api::document::ID) {
@@ -1306,6 +1311,7 @@ tl_object_ptr<td_api::webPage> WebPagesManager::get_web_page_object(WebPageId we
       get_formatted_text_object(description, true, duration == 0 ? std::numeric_limits<int32>::max() : duration),
       get_photo_object(td_->file_manager_.get(), web_page->photo_), web_page->embed_url_, web_page->embed_type_,
       web_page->embed_dimensions_.width, web_page->embed_dimensions_.height, web_page->duration_, web_page->author_,
+      web_page->has_large_media_,
       web_page->document_.type == Document::Type::Animation
           ? td_->animations_manager_->get_animation_object(web_page->document_.file_id)
           : nullptr,
