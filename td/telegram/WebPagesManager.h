@@ -46,6 +46,8 @@ class WebPagesManager final : public Actor {
   WebPagesManager &operator=(WebPagesManager &&) = delete;
   ~WebPagesManager() final;
 
+  static string get_web_page_url(const tl_object_ptr<telegram_api::WebPage> &web_page_ptr);
+
   WebPageId on_get_web_page(tl_object_ptr<telegram_api::WebPage> &&web_page_ptr, DialogId owner_dialog_id);
 
   void on_get_web_page_by_url(const string &url, WebPageId web_page_id, bool from_database);

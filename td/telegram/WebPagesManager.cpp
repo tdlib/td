@@ -444,6 +444,24 @@ WebPagesManager::~WebPagesManager() {
                                               url_to_web_page_id_, url_to_file_source_id_);
 }
 
+string WebPagesManager::get_web_page_url(const tl_object_ptr<telegram_api::WebPage> &web_page_ptr) {
+  CHECK(web_page_ptr != nullptr);
+  switch (web_page_ptr->get_id()) {
+    case telegram_api::webPageEmpty::ID:
+      return static_cast<const telegram_api::webPageEmpty *>(web_page_ptr.get())->url_;
+    case telegram_api::webPagePending::ID:
+      return static_cast<const telegram_api::webPagePending *>(web_page_ptr.get())->url_;
+    case telegram_api::webPage::ID:
+      return static_cast<const telegram_api::webPage *>(web_page_ptr.get())->url_;
+    case telegram_api::webPageNotModified::ID:
+      LOG(ERROR) << "Receive webPageNotModified";
+      return string();
+    default:
+      UNREACHABLE();
+      return string();
+  }
+}
+
 WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> &&web_page_ptr,
                                            DialogId owner_dialog_id) {
   CHECK(web_page_ptr != nullptr);
@@ -581,10 +599,9 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
       update_web_page(std::move(page), web_page_id, false, false);
       return web_page_id;
     }
-    case telegram_api::webPageNotModified::ID: {
+    case telegram_api::webPageNotModified::ID:
       LOG(ERROR) << "Receive webPageNotModified";
       return WebPageId();
-    }
     default:
       UNREACHABLE();
       return WebPageId();
