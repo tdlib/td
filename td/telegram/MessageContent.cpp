@@ -2082,8 +2082,30 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
       reply_markup = std::move(inline_message->reply_markup_);
       break;
     }
-    case telegram_api::botInlineMessageMediaWebPage::ID:
+    case telegram_api::botInlineMessageMediaWebPage::ID: {
+      auto inline_message = move_tl_object_as<telegram_api::botInlineMessageMediaWebPage>(bot_inline_message);
+      auto entities = get_message_entities(td->contacts_manager_.get(), std::move(inline_message->entities_),
+                                           "botInlineMessageMediaWebPage");
+      auto status = fix_formatted_text(inline_message->message_, entities, true, true, true, false, false);
+      if (status.is_error()) {
+        LOG(ERROR) << "Receive error " << status << " while parsing botInlineMessageMediaWebPage "
+                   << inline_message->message_;
+        break;
+      }
+
+      string web_page_url;
+      if (inline_message->manual_) {
+        web_page_url = std::move(inline_message->url_);
+      }
+      FormattedText text{std::move(inline_message->message_), std::move(entities)};
+      WebPageId web_page_id =
+          td->web_pages_manager_->get_web_page_by_url(web_page_url.empty() ? get_first_url(text) : web_page_url);
+      result.message_content =
+          td::make_unique<MessageText>(std::move(text), web_page_id, inline_message->force_small_media_,
+                                       inline_message->force_large_media_, std::move(web_page_url));
+      reply_markup = std::move(inline_message->reply_markup_);
       break;
+    }
     case telegram_api::botInlineMessageMediaInvoice::ID: {
       auto inline_message = move_tl_object_as<telegram_api::botInlineMessageMediaInvoice>(bot_inline_message);
       reply_markup = std::move(inline_message->reply_markup_);
