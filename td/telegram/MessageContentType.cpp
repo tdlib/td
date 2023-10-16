@@ -132,6 +132,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, MessageContentType cont
       return string_builder << "GiftCode";
     case MessageContentType::Giveaway:
       return string_builder << "Giveaway";
+    case MessageContentType::GiveawayLaunch:
+      return string_builder << "GiveawayLaunch";
     default:
       return string_builder << "Invalid type " << static_cast<int32>(content_type);
   }
@@ -200,6 +202,7 @@ bool is_allowed_media_group_content(MessageContentType content_type) {
     case MessageContentType::WriteAccessAllowedByRequest:
     case MessageContentType::GiftCode:
     case MessageContentType::Giveaway:
+    case MessageContentType::GiveawayLaunch:
       return false;
     default:
       UNREACHABLE();
@@ -277,6 +280,7 @@ bool is_secret_message_content(int32 ttl, MessageContentType content_type) {
     case MessageContentType::WriteAccessAllowedByRequest:
     case MessageContentType::GiftCode:
     case MessageContentType::Giveaway:
+    case MessageContentType::GiveawayLaunch:
       return false;
     default:
       UNREACHABLE();
@@ -347,6 +351,7 @@ bool is_service_message_content(MessageContentType content_type) {
     case MessageContentType::SetBackground:
     case MessageContentType::WriteAccessAllowedByRequest:
     case MessageContentType::GiftCode:
+    case MessageContentType::GiveawayLaunch:
       return true;
     default:
       UNREACHABLE();
@@ -417,6 +422,7 @@ bool can_have_message_content_caption(MessageContentType content_type) {
     case MessageContentType::WriteAccessAllowedByRequest:
     case MessageContentType::GiftCode:
     case MessageContentType::Giveaway:
+    case MessageContentType::GiveawayLaunch:
       return false;
     default:
       UNREACHABLE();

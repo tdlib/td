@@ -26325,6 +26325,7 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
     case MessageContentType::SetBackground:
     case MessageContentType::WriteAccessAllowedByRequest:
     case MessageContentType::GiftCode:
+    case MessageContentType::GiveawayLaunch:
       return false;
     default:
       UNREACHABLE();

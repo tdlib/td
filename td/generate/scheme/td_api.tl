@@ -2811,7 +2811,10 @@ messageGiftedPremium gifter_user_id:int53 currency:string amount:int53 cryptocur
 //@code The gift code
 messagePremiumGiftCode creator_id:MessageSender is_from_giveaway:Bool month_count:int32 sticker:sticker code:string = MessageContent;
 
-//@description A Telegram Premium giveaway was created
+//@description A Telegram Premium giveaway was created for the chat
+messagePremiumGiveawayCreated = MessageContent;
+
+//@description A Telegram Premium giveaway
 //@parameters Giveaway parameters
 //@user_count Number of users which will receive Telegram Premium subscription gift codes
 //@month_count Number of month the Telegram Premium subscription will be active after code activation
