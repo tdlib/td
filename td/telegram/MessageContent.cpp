@@ -3001,6 +3001,31 @@ tl_object_ptr<telegram_api::InputMedia> get_fake_input_media(Td *td, tl_object_p
   }
 }
 
+tl_object_ptr<telegram_api::InputMedia> get_message_content_input_media_web_page(const Td *td,
+                                                                                 const MessageContent *content) {
+  CHECK(content != nullptr);
+  if (content->get_type() != MessageContentType::Text) {
+    return nullptr;
+  }
+  auto *text = static_cast<const MessageText *>(content);
+  if (!text->is_manual && !text->force_small_media && !text->force_large_media) {
+    return nullptr;
+  }
+  int32 flags = 0;
+  if (text->force_small_media) {
+    flags |= telegram_api::inputMediaWebPage::FORCE_SMALL_MEDIA_MASK;
+  }
+  if (text->force_large_media) {
+    flags |= telegram_api::inputMediaWebPage::FORCE_LARGE_MEDIA_MASK;
+  }
+  if (!text->text.text.empty()) {
+    flags |= telegram_api::inputMediaWebPage::OPTIONAL_MASK;
+  }
+  return telegram_api::make_object<telegram_api::inputMediaWebPage>(
+      flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+      td->web_pages_manager_->get_web_page_url(text->web_page_id));
+}
+
 void delete_message_content_thumbnail(MessageContent *content, Td *td) {
   switch (content->get_type()) {
     case MessageContentType::Animation: {

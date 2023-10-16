@@ -1097,6 +1097,14 @@ void WebPagesManager::update_web_page_instant_view_load_requests(WebPageId web_p
   }
 }
 
+string WebPagesManager::get_web_page_url(WebPageId web_page_id) const {
+  const WebPage *web_page = get_web_page(web_page_id);
+  if (web_page != nullptr) {
+    return web_page->url_;
+  }
+  return string();
+}
+
 WebPageId WebPagesManager::get_web_page_by_url(const string &url) const {
   if (url.empty()) {
     return WebPageId();

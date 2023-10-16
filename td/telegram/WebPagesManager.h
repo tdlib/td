@@ -72,6 +72,8 @@ class WebPagesManager final : public Actor {
 
   void get_web_page_instant_view(const string &url, bool force_full, Promise<WebPageId> &&promise);
 
+  string get_web_page_url(WebPageId web_page_id) const;
+
   WebPageId get_web_page_by_url(const string &url) const;
 
   void get_web_page_by_url(const string &url, Promise<WebPageId> &&promise);

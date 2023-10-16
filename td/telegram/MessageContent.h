@@ -125,6 +125,9 @@ tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *co
 tl_object_ptr<telegram_api::InputMedia> get_fake_input_media(Td *td, tl_object_ptr<telegram_api::InputFile> input_file,
                                                              FileId file_id);
 
+tl_object_ptr<telegram_api::InputMedia> get_message_content_input_media_web_page(const Td *td,
+                                                                                 const MessageContent *content);
+
 void delete_message_content_thumbnail(MessageContent *content, Td *td);
 
 Status can_send_message_content(DialogId dialog_id, const MessageContent *content, bool is_forward, const Td *td);

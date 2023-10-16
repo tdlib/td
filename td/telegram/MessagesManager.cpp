@@ -25743,14 +25743,23 @@ void MessagesManager::on_text_message_ready_to_send(DialogId dialog_id, MessageI
   } else {
     const FormattedText *message_text = get_message_content_text(content);
     CHECK(message_text != nullptr);
-
     int64 random_id = begin_send_message(dialog_id, m);
-    td_->create_handler<SendMessageQuery>()->send(
-        get_message_flags(m), dialog_id, get_send_message_as_input_peer(m), get_message_input_reply_to(m),
-        m->top_thread_message_id, get_message_schedule_date(m),
-        get_input_reply_markup(td_->contacts_manager_.get(), m->reply_markup),
-        get_input_message_entities(td_->contacts_manager_.get(), message_text->entities, "do_send_message"),
-        message_text->text, m->is_copy, random_id, &m->send_query_ref);
+    auto input_media = get_message_content_input_media_web_page(td_, m->content.get());
+    if (input_media == nullptr) {
+      td_->create_handler<SendMessageQuery>()->send(
+          get_message_flags(m), dialog_id, get_send_message_as_input_peer(m), get_message_input_reply_to(m),
+          m->top_thread_message_id, get_message_schedule_date(m),
+          get_input_reply_markup(td_->contacts_manager_.get(), m->reply_markup),
+          get_input_message_entities(td_->contacts_manager_.get(), message_text, "do_send_message"), message_text->text,
+          m->is_copy, random_id, &m->send_query_ref);
+    } else {
+      td_->create_handler<SendMediaQuery>()->send(
+          FileId(), FileId(), get_message_flags(m), dialog_id, get_send_message_as_input_peer(m),
+          get_message_input_reply_to(m), m->top_thread_message_id, get_message_schedule_date(m),
+          get_input_reply_markup(td_->contacts_manager_.get(), m->reply_markup),
+          get_input_message_entities(td_->contacts_manager_.get(), message_text, "do_send_message"), message_text->text,
+          std::move(input_media), MessageContentType::Text, m->is_copy, random_id, &m->send_query_ref);
+    }
   }
 }
 
