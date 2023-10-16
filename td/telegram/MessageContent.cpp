@@ -119,15 +119,16 @@ class MessageText final : public MessageContent {
   WebPageId web_page_id;
   bool force_small_media = false;
   bool force_large_media = false;
-  bool is_manual = false;
+  string web_page_url;
 
   MessageText() = default;
-  MessageText(FormattedText text, WebPageId web_page_id, bool force_small_media, bool force_large_media, bool is_manual)
+  MessageText(FormattedText text, WebPageId web_page_id, bool force_small_media, bool force_large_media,
+              string web_page_url)
       : text(std::move(text))
       , web_page_id(web_page_id)
       , force_small_media(force_small_media)
       , force_large_media(force_large_media)
-      , is_manual(is_manual) {
+      , web_page_url(std::move(web_page_url)) {
   }
 
   MessageContentType get_type() const final {
@@ -1070,15 +1071,19 @@ static void store(const MessageContent *content, StorerT &storer) {
     case MessageContentType::Text: {
       const auto *m = static_cast<const MessageText *>(content);
       bool has_web_page_id = m->web_page_id.is_valid();
+      bool has_web_page_url = !m->web_page_url.empty();
       BEGIN_STORE_FLAGS();
       STORE_FLAG(has_web_page_id);
       STORE_FLAG(m->force_small_media);
       STORE_FLAG(m->force_large_media);
-      STORE_FLAG(m->is_manual);
+      STORE_FLAG(has_web_page_url);
       END_STORE_FLAGS();
       store(m->text, storer);
       if (has_web_page_id) {
         store(m->web_page_id, storer);
+      }
+      if (has_web_page_url) {
+        store(m->web_page_url, storer);
       }
       break;
     }
@@ -1554,17 +1559,21 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     case MessageContentType::Text: {
       auto m = make_unique<MessageText>();
       bool has_web_page_id = true;
+      bool has_web_page_url = false;
       if (parser.version() >= static_cast<int32>(Version::AddMessageTextFlags)) {
         BEGIN_PARSE_FLAGS();
         PARSE_FLAG(has_web_page_id);
         PARSE_FLAG(m->force_small_media);
         PARSE_FLAG(m->force_large_media);
-        PARSE_FLAG(m->is_manual);
+        PARSE_FLAG(has_web_page_url);
         END_PARSE_FLAGS();
       }
       parse(m->text, parser);
       if (has_web_page_id) {
         parse(m->web_page_id, parser);
+      }
+      if (has_web_page_url) {
+        parse(m->web_page_url, parser);
       }
       content = std::move(m);
       break;
@@ -2065,7 +2074,7 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
       if (!result.disable_web_page_preview) {
         web_page_id = td->web_pages_manager_->get_web_page_by_url(get_first_url(text));
       }
-      result.message_content = make_unique<MessageText>(std::move(text), web_page_id, false, false, false);
+      result.message_content = td::make_unique<MessageText>(std::move(text), web_page_id, false, false, string());
       reply_markup = std::move(inline_message->reply_markup_);
       break;
     }
@@ -2145,9 +2154,9 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
 
 unique_ptr<MessageContent> create_text_message_content(string text, vector<MessageEntity> entities,
                                                        WebPageId web_page_id, bool force_small_media,
-                                                       bool force_large_media, bool is_manual) {
-  return make_unique<MessageText>(FormattedText{std::move(text), std::move(entities)}, web_page_id, force_small_media,
-                                  force_large_media, is_manual);
+                                                       bool force_large_media, string &&web_page_url) {
+  return td::make_unique<MessageText>(FormattedText{std::move(text), std::move(entities)}, web_page_id,
+                                      force_small_media, force_large_media, std::move(web_page_url));
 }
 
 unique_ptr<MessageContent> create_contact_registered_message_content() {
@@ -2179,7 +2188,6 @@ static Result<InputMessageContent> create_input_message_content(
     mime_type = MimeType::from_extension(path_view.extension());
   }
 
-  string web_page_url;
   bool disable_web_page_preview = false;
   bool clear_draft = false;
   unique_ptr<MessageContent> content;
@@ -2192,7 +2200,7 @@ static Result<InputMessageContent> create_input_message_content(
     case td_api::inputMessageText::ID: {
       TRY_RESULT(input_message_text,
                  process_input_message_text(td, dialog_id, std::move(input_message_content), is_bot));
-      web_page_url = std::move(input_message_text.web_page_url);
+      auto web_page_url = std::move(input_message_text.web_page_url);
       disable_web_page_preview = input_message_text.disable_web_page_preview;
       clear_draft = input_message_text.clear_draft;
 
@@ -2206,11 +2214,12 @@ static Result<InputMessageContent> create_input_message_content(
           dialog_id.get_type() != DialogType::Channel ||
           td->contacts_manager_->get_channel_permissions(dialog_id.get_channel_id()).can_add_web_page_previews();
       if (!is_bot && !disable_web_page_preview && can_add_web_page_previews) {
-        web_page_id = td->web_pages_manager_->get_web_page_by_url(get_first_url(input_message_text.text));
+        web_page_id = td->web_pages_manager_->get_web_page_by_url(
+            web_page_url.empty() ? get_first_url(input_message_text.text) : web_page_url);
       }
-      content = make_unique<MessageText>(std::move(input_message_text.text), web_page_id,
-                                         input_message_text.force_small_media, input_message_text.force_large_media,
-                                         !web_page_url.empty());
+      content = td::make_unique<MessageText>(std::move(input_message_text.text), web_page_id,
+                                             input_message_text.force_small_media, input_message_text.force_large_media,
+                                             std::move(web_page_url));
       break;
     }
     case td_api::inputMessageAnimation::ID: {
@@ -3008,7 +3017,7 @@ tl_object_ptr<telegram_api::InputMedia> get_message_content_input_media_web_page
     return nullptr;
   }
   auto *text = static_cast<const MessageText *>(content);
-  if (!text->is_manual && !text->force_small_media && !text->force_large_media) {
+  if (text->web_page_url.empty() && !text->force_small_media && !text->force_large_media) {
     return nullptr;
   }
   int32 flags = 0;
@@ -3023,7 +3032,7 @@ tl_object_ptr<telegram_api::InputMedia> get_message_content_input_media_web_page
   }
   return telegram_api::make_object<telegram_api::inputMediaWebPage>(
       flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-      td->web_pages_manager_->get_web_page_url(text->web_page_id));
+      text->web_page_url.empty() ? td->web_pages_manager_->get_web_page_url(text->web_page_id) : text->web_page_url);
 }
 
 void delete_message_content_thumbnail(MessageContent *content, Td *td) {
@@ -3331,7 +3340,7 @@ bool can_forward_message_content(const MessageContent *content) {
   if (content_type == MessageContentType::Text) {
     auto *text = static_cast<const MessageText *>(content);
     // text must be non-empty if there is no link preview
-    return !is_empty_string(text->text.text) || text->web_page_id.is_valid();
+    return !is_empty_string(text->text.text) || text->web_page_id.is_valid() || !text->web_page_url.empty();
   }
   if (content_type == MessageContentType::Poll) {
     auto *poll = static_cast<const MessagePoll *>(content);
@@ -3765,7 +3774,7 @@ void remove_message_content_web_page(MessageContent *content) {
   message_text->web_page_id = WebPageId();
   message_text->force_small_media = false;
   message_text->force_large_media = false;
-  message_text->is_manual = false;
+  message_text->web_page_url = string();
 }
 
 bool can_message_content_have_media_timestamp(const MessageContent *content) {
@@ -3907,7 +3916,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
         need_update |= td->web_pages_manager_->have_web_page(old_->web_page_id) ||
                        td->web_pages_manager_->have_web_page(new_->web_page_id);
       }
-      if (old_->is_manual != new_->is_manual) {
+      if (old_->web_page_url != new_->web_page_url) {
         need_update = true;
       }
       break;
@@ -5094,8 +5103,8 @@ unique_ptr<MessageContent> get_secret_message_content(
       }
       auto url = r_http_url.ok().get_url();
 
-      auto result = make_unique<MessageText>(FormattedText{std::move(message_text), std::move(entities)}, WebPageId(),
-                                             false, false, false);
+      auto result = td::make_unique<MessageText>(FormattedText{std::move(message_text), std::move(entities)},
+                                                 WebPageId(), false, false, url);
       td->web_pages_manager_->get_web_page_by_url(
           url,
           PromiseCreator::lambda([&web_page_id = result->web_page_id, promise = load_data_multipromise.get_promise()](
@@ -5121,7 +5130,8 @@ unique_ptr<MessageContent> get_secret_message_content(
     is_media_empty = true;
   }
   if (is_media_empty) {
-    return create_text_message_content(std::move(message_text), std::move(entities), WebPageId(), false, false, false);
+    return create_text_message_content(std::move(message_text), std::move(entities), WebPageId(), false, false,
+                                       string());
   }
   switch (constructor_id) {
     case secret_api::decryptedMessageMediaPhoto::ID: {
@@ -5181,7 +5191,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       if (disable_web_page_preview != nullptr) {
         *disable_web_page_preview = true;
       }
-      return make_unique<MessageText>(std::move(message), WebPageId(), false, false, false);
+      return td::make_unique<MessageText>(std::move(message), WebPageId(), false, false, string());
     case telegram_api::messageMediaPhoto::ID: {
       auto media = move_tl_object_as<telegram_api::messageMediaPhoto>(media_ptr);
       if (media->photo_ == nullptr) {
@@ -5304,9 +5314,13 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       if (disable_web_page_preview != nullptr) {
         *disable_web_page_preview = (media->webpage_ == nullptr);
       }
+      string web_page_url;
+      if (media->manual_) {
+        web_page_url = WebPagesManager::get_web_page_url(media->webpage_);
+      }
       auto web_page_id = td->web_pages_manager_->on_get_web_page(std::move(media->webpage_), owner_dialog_id);
-      return make_unique<MessageText>(std::move(message), web_page_id, media->force_small_media_,
-                                      media->force_large_media_, media->manual_);
+      return td::make_unique<MessageText>(std::move(message), web_page_id, media->force_small_media_,
+                                          media->force_large_media_, std::move(web_page_url));
     }
     case telegram_api::messageMediaPoll::ID: {
       auto media = move_tl_object_as<telegram_api::messageMediaPoll>(media_ptr);
@@ -5366,7 +5380,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
   if (disable_web_page_preview != nullptr) {
     *disable_web_page_preview = true;
   }
-  return make_unique<MessageText>(std::move(message), WebPageId(), false, false, false);
+  return td::make_unique<MessageText>(std::move(message), WebPageId(), false, false, string());
 }
 
 unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const MessageContent *content,
@@ -5552,7 +5566,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     case MessageContentType::Story:
       return make_unique<MessageStory>(static_cast<const MessageStory *>(content)->story_full_id, false);
     case MessageContentType::Text: {
-      auto result = make_unique<MessageText>(*static_cast<const MessageText *>(content));
+      auto result = td::make_unique<MessageText>(*static_cast<const MessageText *>(content));
       if (type == MessageContentDupType::Copy || type == MessageContentDupType::ServerCopy) {
         remove_unallowed_entities(td, result->text, dialog_id);
       }
@@ -6034,7 +6048,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       UNREACHABLE();
   }
   // explicit empty or wrong action
-  return make_unique<MessageText>(FormattedText(), WebPageId(), false, false, false);
+  return td::make_unique<MessageText>(FormattedText(), WebPageId(), false, false, string());
 }
 
 tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageContent *content, Td *td,
@@ -6120,7 +6134,7 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       return make_tl_object<td_api::messageText>(
           get_formatted_text_object(m->text, skip_bot_commands, max_media_timestamp),
           td->web_pages_manager_->get_web_page_object(m->web_page_id, m->force_small_media, m->force_large_media),
-          disable_web_page_preview || m->is_manual);
+          disable_web_page_preview ? string() : m->web_page_url);
     }
     case MessageContentType::Unsupported:
       return make_tl_object<td_api::messageUnsupported>();

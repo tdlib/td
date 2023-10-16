@@ -2595,8 +2595,8 @@ inputPassportElementError type:PassportElementType message:string source:InputPa
 //@description A text message
 //@text Text of the message
 //@web_page A preview of the web page that's mentioned in the text; may be null
-//@is_web_page_preview_manually_chosen True, if the web preview was manually chosen
-messageText text:formattedText web_page:webPage is_web_page_preview_manually_chosen:Bool = MessageContent;
+//@web_page_url URL manually chosen for link preview in the message
+messageText text:formattedText web_page:webPage web_page_url:string = MessageContent;
 
 //@description An animation message (GIF-style).
 //@animation The animation description
@@ -2965,7 +2965,7 @@ messageCopyOptions send_copy:Bool replace_caption:Bool new_caption:formattedText
 
 //@description Options to be used for generation of a link preview
 //@is_disabled True, if link preview must be disabled
-//@url URL to use for link preview; ignored in secret chats. If empty, then the first URL found in the message text will be used
+//@url URL to use for link preview. If empty, then the first URL found in the message text will be used
 //@force_small_media True, if shown media preview must be small; ignored in secret chats
 //@force_large_media True, if shown media preview must be large; ignored in secret chats
 linkPreviewOptions is_disabled:Bool url:string force_small_media:Bool force_large_media:Bool = LinkPreviewOptions;
