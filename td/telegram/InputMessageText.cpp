@@ -6,8 +6,10 @@
 //
 #include "td/telegram/InputMessageText.h"
 
+#include "td/telegram/ContactsManager.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/misc.h"
+#include "td/telegram/Td.h"
 
 #include "td/utils/common.h"
 
@@ -43,6 +45,12 @@ Result<InputMessageText> process_input_message_text(const Td *td, DialogId dialo
 
     if (!clean_input_string(web_page_url)) {
       return Status::Error(400, "Link preview URL must be encoded in UTF-8");
+    }
+
+    if (disable_web_page_preview ||
+        (dialog_id.get_type() == DialogType::Channel &&
+         !td->contacts_manager_->get_channel_permissions(dialog_id.get_channel_id()).can_add_web_page_previews())) {
+      web_page_url.clear();
     }
     if (web_page_url.empty()) {
       force_small_media = false;

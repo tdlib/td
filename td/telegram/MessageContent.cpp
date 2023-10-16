@@ -129,6 +129,10 @@ class MessageText final : public MessageContent {
       , force_small_media(force_small_media)
       , force_large_media(force_large_media)
       , web_page_url(std::move(web_page_url)) {
+    if (web_page_url.empty()) {
+      force_small_media = false;
+      force_large_media = false;
+    }
   }
 
   MessageContentType get_type() const final {
