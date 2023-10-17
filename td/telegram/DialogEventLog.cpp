@@ -432,8 +432,11 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
       auto new_accent_color_id = clamp(action->new_value_, 0, 256);
       return td_api::make_object<td_api::chatEventAccentColorChanged>(old_accent_color_id, new_accent_color_id);
     }
-    case telegram_api::channelAdminLogEventActionChangeBackgroundEmoji::ID:
-      return nullptr;
+    case telegram_api::channelAdminLogEventActionChangeBackgroundEmoji::ID: {
+      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeBackgroundEmoji>(action_ptr);
+      return td_api::make_object<td_api::chatEventReplyBackgroundCustomEmojiChanged>(action->prev_value_,
+                                                                                     action->new_value_);
+    }
     default:
       UNREACHABLE();
       return nullptr;
