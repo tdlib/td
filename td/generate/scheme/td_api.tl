@@ -743,6 +743,10 @@ premiumGiveawayInfoOngoing creation_date:int32 status:PremiumGiveawayParticipant
 premiumGiveawayInfoCompleted creation_date:int32 actual_winners_selection_date:int32 was_refunded:Bool winner_count:int32 activation_count:int32 gift_code:string = PremiumGiveawayInfo;
 
 
+//@description Contains accent color identifier for user/chat name, and backgrounds of chat photo, replies and link previews
+//@id Accent color identifier; 0 - red, 1 - orange, 2 - purple/violet, 3 - green, 4 - cyan, 5 - blue, 6 - pink
+accentColorId id:int32 = AccentColorId;
+
 //@description Describes a custom emoji to be shown instead of the Telegram Premium badge
 //@custom_emoji_id Identifier of the custom emoji in stickerFormatTgs format
 //@expiration_date Point in time (Unix timestamp) when the status will expire; 0 if never
@@ -767,6 +771,7 @@ usernames active_usernames:vector<string> disabled_usernames:vector<string> edit
 //@phone_number Phone number of the user
 //@status Current online status of the user
 //@profile_photo Profile photo of the user; may be null
+//@accent_color_id Identifier of the accent color for name, and backgrounds of profile photo, reply and link preview
 //@emoji_status Emoji status to be shown instead of the default Telegram Premium badge; may be null. For Telegram Premium users only
 //@is_contact The user is a contact of the current user
 //@is_mutual_contact The user is a contact of the current user and the current user is a contact of the user
@@ -783,7 +788,7 @@ usernames active_usernames:vector<string> disabled_usernames:vector<string> edit
 //@type Type of the user
 //@language_code IETF language tag of the user's language; only available to bots
 //@added_to_attachment_menu True, if the user added the current bot to attachment menu; only available to bots
-user id:int53 first_name:string last_name:string usernames:usernames phone_number:string status:UserStatus profile_photo:profilePhoto emoji_status:emojiStatus is_contact:Bool is_mutual_contact:Bool is_close_friend:Bool is_verified:Bool is_premium:Bool is_support:Bool restriction_reason:string is_scam:Bool is_fake:Bool has_active_stories:Bool has_unread_active_stories:Bool have_access:Bool type:UserType language_code:string added_to_attachment_menu:Bool = User;
+user id:int53 first_name:string last_name:string usernames:usernames phone_number:string status:UserStatus profile_photo:profilePhoto accent_color_id:accentColorId emoji_status:emojiStatus is_contact:Bool is_mutual_contact:Bool is_close_friend:Bool is_verified:Bool is_premium:Bool is_support:Bool restriction_reason:string is_scam:Bool is_fake:Bool has_active_stories:Bool has_unread_active_stories:Bool have_access:Bool type:UserType language_code:string added_to_attachment_menu:Bool = User;
 
 
 //@description Contains information about a bot
@@ -4189,7 +4194,7 @@ chatEventUsernameChanged old_username:string new_username:string = ChatEventActi
 chatEventActiveUsernamesChanged old_usernames:vector<string> new_usernames:vector<string> = ChatEventAction;
 
 //@description The chat accent color was changed @old_accent_color_id Previous identifier of chat accent color @new_accent_color_id New identifier of chat accent color
-chatEventAccentColorChanged old_accent_color_id:int32 new_accent_color_id:int32 = ChatEventAction;
+chatEventAccentColorChanged old_accent_color_id:accentColorId new_accent_color_id:accentColorId = ChatEventAction;
 
 //@description The chat's custom emoji for reply background was changed @old_reply_background_custom_emoji_id Previous identifier of the custom emoji @new_reply_background_custom_emoji_id New identifier of the custom emoji
 chatEventReplyBackgroundCustomEmojiChanged old_reply_background_custom_emoji_id:int64 new_reply_background_custom_emoji_id:int64 = ChatEventAction;

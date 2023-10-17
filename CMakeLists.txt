@@ -539,6 +539,7 @@ set(TDLIB_SOURCE
   td/mtproto/TransportType.h
   td/mtproto/utils.h
 
+  td/telegram/AccentColorId.h
   td/telegram/AccessRights.h
   td/telegram/AccountManager.h
   td/telegram/AffectedHistory.h
