@@ -4820,6 +4820,7 @@ void ContactsManager::Channel::store(StorerT &storer) const {
   bool has_max_active_story_id = max_active_story_id.is_valid();
   bool has_max_read_story_id = max_read_story_id.is_valid();
   bool has_max_active_story_id_next_reload_time = max_active_story_id_next_reload_time > Time::now();
+  bool has_accent_color_id = accent_color_id.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(false);
   STORE_FLAG(false);
@@ -4859,6 +4860,7 @@ void ContactsManager::Channel::store(StorerT &storer) const {
     STORE_FLAG(has_max_read_story_id);
     STORE_FLAG(has_max_active_story_id_next_reload_time);
     STORE_FLAG(stories_hidden);
+    STORE_FLAG(has_accent_color_id);
     END_STORE_FLAGS();
   }
 
@@ -4893,6 +4895,9 @@ void ContactsManager::Channel::store(StorerT &storer) const {
   if (has_max_active_story_id_next_reload_time) {
     store_time(max_active_story_id_next_reload_time, storer);
   }
+  if (has_accent_color_id) {
+    store(accent_color_id, storer);
+  }
 }
 
 template <class ParserT>
@@ -4918,6 +4923,7 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   bool has_max_active_story_id = false;
   bool has_max_read_story_id = false;
   bool has_max_active_story_id_next_reload_time = false;
+  bool has_accent_color_id = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(left);
   PARSE_FLAG(kicked);
@@ -4957,6 +4963,7 @@ void ContactsManager::Channel::parse(ParserT &parser) {
     PARSE_FLAG(has_max_read_story_id);
     PARSE_FLAG(has_max_active_story_id_next_reload_time);
     PARSE_FLAG(stories_hidden);
+    PARSE_FLAG(has_accent_color_id);
     END_PARSE_FLAGS();
   }
 
@@ -5020,6 +5027,9 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   }
   if (has_max_active_story_id_next_reload_time) {
     parse_time(max_active_story_id_next_reload_time, parser);
+  }
+  if (has_accent_color_id) {
+    parse(accent_color_id, parser);
   }
 
   if (!check_utf8(title)) {
@@ -5668,7 +5678,12 @@ AccentColorId ContactsManager::get_chat_accent_color_id(ChatId chat_id) const {
 }
 
 AccentColorId ContactsManager::get_channel_accent_color_id(ChannelId channel_id) const {
-  return AccentColorId(channel_id);
+  auto c = get_channel(channel_id);
+  if (c == nullptr || !c->accent_color_id.is_valid()) {
+    return AccentColorId(channel_id);
+  }
+
+  return c->accent_color_id;
 }
 
 AccentColorId ContactsManager::get_secret_chat_accent_color_id(SecretChatId secret_chat_id) const {
@@ -12028,6 +12043,10 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
       }
     }
   }
+  if (c->is_accent_color_id_changed) {
+    td_->messages_manager_->on_dialog_accent_color_id_updated(DialogId(channel_id));
+    c->is_accent_color_id_changed = false;
+  }
   if (c->is_title_changed) {
     td_->messages_manager_->on_dialog_title_updated(DialogId(channel_id));
     c->is_title_changed = false;
@@ -16062,6 +16081,18 @@ void ContactsManager::on_update_channel_photo(Channel *c, ChannelId channel_id, 
   }
 }
 
+void ContactsManager::on_update_channel_accent_color_id(Channel *c, ChannelId channel_id,
+                                                        AccentColorId accent_color_id) {
+  if (accent_color_id == AccentColorId(channel_id)) {
+    accent_color_id = AccentColorId();
+  }
+  if (c->accent_color_id != accent_color_id) {
+    c->accent_color_id = accent_color_id;
+    c->is_accent_color_id_changed = true;
+    c->need_save_to_database = true;
+  }
+}
+
 void ContactsManager::on_update_channel_title(Channel *c, ChannelId channel_id, string &&title) {
   if (c->title != title) {
     c->title = std::move(title);
@@ -18898,6 +18929,7 @@ void ContactsManager::on_get_channel(telegram_api::channel &channel, const char 
     c->is_changed = true;
   }
   on_update_channel_photo(c, channel_id, std::move(channel.photo_));
+  on_update_channel_accent_color_id(c, channel_id, AccentColorId(channel.color_));
   on_update_channel_status(c, channel_id, std::move(status));
   on_update_channel_usernames(
       c, channel_id,

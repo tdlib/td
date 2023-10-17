@@ -961,6 +961,7 @@ class ContactsManager final : public Actor {
     int64 access_hash = 0;
     string title;
     DialogPhoto photo;
+    AccentColorId accent_color_id;
     Usernames usernames;
     vector<RestrictionReason> restriction_reasons;
     DialogParticipantStatus status = DialogParticipantStatus::Banned(0);
@@ -998,6 +999,7 @@ class ContactsManager final : public Actor {
     bool is_title_changed = true;
     bool is_username_changed = true;
     bool is_photo_changed = true;
+    bool is_accent_color_id_changed = true;
     bool is_default_permissions_changed = true;
     bool is_status_changed = true;
     bool is_stories_hidden_changed = true;
@@ -1487,6 +1489,7 @@ class ContactsManager final : public Actor {
   void on_update_channel_photo(Channel *c, ChannelId channel_id,
                                tl_object_ptr<telegram_api::ChatPhoto> &&chat_photo_ptr);
   void on_update_channel_photo(Channel *c, ChannelId channel_id, DialogPhoto &&photo, bool invalidate_photo_cache);
+  void on_update_channel_accent_color_id(Channel *c, ChannelId channel_id, AccentColorId accent_color_id);
   static void on_update_channel_title(Channel *c, ChannelId channel_id, string &&title);
   void on_update_channel_usernames(Channel *c, ChannelId channel_id, Usernames &&usernames);
   void on_update_channel_status(Channel *c, ChannelId channel_id, DialogParticipantStatus &&status);
