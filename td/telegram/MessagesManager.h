@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/AccentColorId.h"
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AffectedHistory.h"
 #include "td/telegram/BackgroundInfo.h"
@@ -875,6 +876,7 @@ class MessagesManager final : public Actor {
   void on_dialog_bots_updated(DialogId dialog_id, vector<UserId> bot_user_ids, bool from_database);
 
   void on_dialog_photo_updated(DialogId dialog_id);
+  void on_dialog_accent_color_id_updated(DialogId dialog_id);
   void on_dialog_title_updated(DialogId dialog_id);
   void on_dialog_usernames_updated(DialogId dialog_id, const Usernames &old_usernames, const Usernames &new_usernames);
   void on_dialog_usernames_received(DialogId dialog_id, const Usernames &usernames, bool from_database);
@@ -2941,6 +2943,8 @@ class MessagesManager final : public Actor {
       DialogId dialog_id, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup_ptr) const TD_WARN_UNUSED_RESULT;
 
   const DialogPhoto *get_dialog_photo(DialogId dialog_id) const;
+
+  AccentColorId get_dialog_accent_color_id(DialogId dialog_id) const;
 
   RestrictedRights get_dialog_default_permissions(DialogId dialog_id) const;
 

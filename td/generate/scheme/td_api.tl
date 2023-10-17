@@ -771,7 +771,7 @@ usernames active_usernames:vector<string> disabled_usernames:vector<string> edit
 //@phone_number Phone number of the user
 //@status Current online status of the user
 //@profile_photo Profile photo of the user; may be null
-//@accent_color_id Identifier of the accent color for name, and backgrounds of profile photo, reply and link preview
+//@accent_color_id Identifier of the accent color for name, and backgrounds of profile photo, reply header, and link preview
 //@emoji_status Emoji status to be shown instead of the default Telegram Premium badge; may be null. For Telegram Premium users only
 //@is_contact The user is a contact of the current user
 //@is_mutual_contact The user is a contact of the current user and the current user is a contact of the user
@@ -1570,6 +1570,7 @@ videoChat group_call_id:int32 has_participants:Bool default_participant_id:Messa
 //@type Type of the chat
 //@title Chat title
 //@photo Chat photo; may be null
+//@accent_color_id Identifier of the accent color for message sender name, and backgrounds of chat photo, reply header, and link preview
 //@permissions Actions that non-administrator chat members are allowed to take in the chat
 //@last_message Last message in the chat; may be null if none or unknown
 //@positions Positions of the chat in chat lists
@@ -1599,7 +1600,7 @@ videoChat group_call_id:int32 has_participants:Bool default_participant_id:Messa
 //@reply_markup_message_id Identifier of the message from which reply markup needs to be used; 0 if there is no default custom reply markup in the chat
 //@draft_message A draft of a message in the chat; may be null if none
 //@client_data Application-specific data associated with the chat. (For example, the chat scroll position or local chat notification settings can be stored here.) Persistent if the message database is used
-chat id:int53 type:ChatType title:string photo:chatPhotoInfo permissions:chatPermissions last_message:message positions:vector<chatPosition> message_sender_id:MessageSender block_list:BlockList has_protected_content:Bool is_translatable:Bool is_marked_as_unread:Bool has_scheduled_messages:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 unread_reaction_count:int32 notification_settings:chatNotificationSettings available_reactions:ChatAvailableReactions message_auto_delete_time:int32 background:chatBackground theme_name:string action_bar:ChatActionBar video_chat:videoChat pending_join_requests:chatJoinRequestsInfo reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
+chat id:int53 type:ChatType title:string photo:chatPhotoInfo accent_color_id:accentColorId permissions:chatPermissions last_message:message positions:vector<chatPosition> message_sender_id:MessageSender block_list:BlockList has_protected_content:Bool is_translatable:Bool is_marked_as_unread:Bool has_scheduled_messages:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 unread_reaction_count:int32 notification_settings:chatNotificationSettings available_reactions:ChatAvailableReactions message_auto_delete_time:int32 background:chatBackground theme_name:string action_bar:ChatActionBar video_chat:videoChat pending_join_requests:chatJoinRequestsInfo reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
 
 //@description Represents a list of chats @total_count Approximate total number of chats found @chat_ids List of chat identifiers
 chats total_count:int32 chat_ids:vector<int53> = Chats;
@@ -5996,6 +5997,9 @@ updateChatTitle chat_id:int53 title:string = Update;
 
 //@description A chat photo was changed @chat_id Chat identifier @photo The new chat photo; may be null
 updateChatPhoto chat_id:int53 photo:chatPhotoInfo = Update;
+
+//@description A chat accent color has changed @chat_id Chat identifier @accent_color_id The new chat accent color identifier
+updateChatAccentColorId chat_id:int53 accent_color_id:accentColorId = Update;
 
 //@description Chat permissions was changed @chat_id Chat identifier @permissions The new chat permissions
 updateChatPermissions chat_id:int53 permissions:chatPermissions = Update;

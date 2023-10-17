@@ -117,6 +117,11 @@ class ContactsManager final : public Actor {
   const DialogPhoto *get_channel_dialog_photo(ChannelId channel_id) const;
   const DialogPhoto *get_secret_chat_dialog_photo(SecretChatId secret_chat_id);
 
+  AccentColorId get_user_accent_color_id(UserId user_id) const;
+  AccentColorId get_chat_accent_color_id(ChatId chat_id) const;
+  AccentColorId get_channel_accent_color_id(ChannelId channel_id) const;
+  AccentColorId get_secret_chat_accent_color_id(SecretChatId secret_chat_id) const;
+
   string get_user_title(UserId user_id) const;
   string get_chat_title(ChatId chat_id) const;
   string get_channel_title(ChannelId channel_id) const;
@@ -790,6 +795,7 @@ class ContactsManager final : public Actor {
     bool is_name_changed = true;
     bool is_username_changed = true;
     bool is_photo_changed = true;
+    bool is_accent_color_id_changed = true;
     bool is_phone_number_changed = true;
     bool is_emoji_status_changed = true;
     bool is_is_contact_changed = true;
@@ -1411,6 +1417,7 @@ class ContactsManager final : public Actor {
   void on_update_user_phone_number(User *u, UserId user_id, string &&phone_number);
   void on_update_user_photo(User *u, UserId user_id, tl_object_ptr<telegram_api::UserProfilePhoto> &&photo,
                             const char *source);
+  void on_update_user_accent_color_id(User *u, UserId user_id, AccentColorId accent_color_id);
   void on_update_user_emoji_status(User *u, UserId user_id, EmojiStatus emoji_status);
   void on_update_user_story_ids_impl(User *u, UserId user_id, StoryId max_active_story_id, StoryId max_read_story_id);
   void on_update_user_max_read_story_id(User *u, UserId user_id, StoryId max_read_story_id);

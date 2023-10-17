@@ -5654,6 +5654,31 @@ const DialogPhoto *ContactsManager::get_secret_chat_dialog_photo(SecretChatId se
   return get_user_dialog_photo(c->user_id);
 }
 
+AccentColorId ContactsManager::get_user_accent_color_id(UserId user_id) const {
+  auto u = get_user(user_id);
+  if (u == nullptr || !u->accent_color_id.is_valid()) {
+    return AccentColorId(user_id);
+  }
+
+  return u->accent_color_id;
+}
+
+AccentColorId ContactsManager::get_chat_accent_color_id(ChatId chat_id) const {
+  return AccentColorId(chat_id);
+}
+
+AccentColorId ContactsManager::get_channel_accent_color_id(ChannelId channel_id) const {
+  return AccentColorId(channel_id);
+}
+
+AccentColorId ContactsManager::get_secret_chat_accent_color_id(SecretChatId secret_chat_id) const {
+  auto c = get_secret_chat(secret_chat_id);
+  if (c == nullptr) {
+    return AccentColorId(0);
+  }
+  return get_user_accent_color_id(c->user_id);
+}
+
 string ContactsManager::get_user_title(UserId user_id) const {
   auto u = get_user(user_id);
   if (u == nullptr) {
@@ -10082,6 +10107,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     on_update_user_usernames(u, user_id, Usernames{std::move(user->username_), std::move(user->usernames_)});
   }
   on_update_user_emoji_status(u, user_id, EmojiStatus(std::move(user->emoji_status_)));
+  on_update_user_accent_color_id(u, user_id, AccentColorId(user->color_));
 
   bool is_verified = (flags & USER_FLAG_IS_VERIFIED) != 0;
   bool is_premium = (flags & USER_FLAG_IS_PREMIUM) != 0;
@@ -10103,10 +10129,6 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   bool stories_available = user->stories_max_id_ > 0;
   bool stories_unavailable = user->stories_unavailable_;
   bool stories_hidden = user->stories_hidden_;
-  AccentColorId accent_color_id;
-  if (AccentColorId(user->color_) != AccentColorId(user_id)) {
-    accent_color_id = AccentColorId(user->color_);
-  }
 
   LOG_IF(ERROR, !can_join_groups && !is_bot)
       << "Receive not bot " << user_id << " which can't join groups from " << source;
@@ -10145,8 +10167,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
       can_join_groups != u->can_join_groups || can_read_all_group_messages != u->can_read_all_group_messages ||
       restriction_reasons != u->restriction_reasons || is_scam != u->is_scam || is_fake != u->is_fake ||
       is_inline_bot != u->is_inline_bot || inline_query_placeholder != u->inline_query_placeholder ||
-      need_location_bot != u->need_location_bot || can_be_added_to_attach_menu != u->can_be_added_to_attach_menu ||
-      accent_color_id != u->accent_color_id) {
+      need_location_bot != u->need_location_bot || can_be_added_to_attach_menu != u->can_be_added_to_attach_menu) {
     if (is_bot != u->is_bot) {
       LOG_IF(ERROR, !is_deleted && !u->is_deleted && u->is_received)
           << "User.is_bot has changed for " << user_id << "/" << u->usernames << " from " << source << " from "
@@ -10165,7 +10186,6 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     u->inline_query_placeholder = std::move(inline_query_placeholder);
     u->need_location_bot = need_location_bot;
     u->can_be_added_to_attach_menu = can_be_added_to_attach_menu;
-    u->accent_color_id = accent_color_id;
 
     LOG(DEBUG) << "Info has changed for " << user_id;
     u->is_changed = true;
@@ -11759,6 +11779,14 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
       messages_manager->on_dialog_photo_updated(DialogId(secret_chat_id));
     });
     u->is_photo_changed = false;
+  }
+  if (u->is_accent_color_id_changed) {
+    auto messages_manager = td_->messages_manager_.get();
+    messages_manager->on_dialog_accent_color_id_updated(DialogId(user_id));
+    for_each_secret_chat_with_user(user_id, [messages_manager](SecretChatId secret_chat_id) {
+      messages_manager->on_dialog_accent_color_id_updated(DialogId(secret_chat_id));
+    });
+    u->is_accent_color_id_changed = false;
   }
   if (u->is_phone_number_changed) {
     if (!u->phone_number.empty() && !td_->auth_manager_->is_bot()) {
@@ -13354,6 +13382,17 @@ void ContactsManager::register_user_photo(User *u, UserId user_id, const Photo &
     for (auto &file_id : photo_file_ids) {
       td_->file_manager_->add_file_source(file_id, file_source_id);
     }
+  }
+}
+
+void ContactsManager::on_update_user_accent_color_id(User *u, UserId user_id, AccentColorId accent_color_id) {
+  if (accent_color_id == AccentColorId(user_id)) {
+    accent_color_id = AccentColorId();
+  }
+  if (u->accent_color_id != accent_color_id) {
+    u->accent_color_id = accent_color_id;
+    u->is_accent_color_id_changed = true;
+    u->is_changed = true;
   }
 }
 
