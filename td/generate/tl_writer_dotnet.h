@@ -26,7 +26,7 @@ class TlWriterDotNet final : public TL_writer {
       : TL_writer(name), is_header_(is_header), prefix_(prefix) {
   }
 
-  int get_max_arity(void) const final {
+  int get_max_arity() const final {
     return 0;
   }
 
@@ -42,7 +42,7 @@ class TlWriterDotNet final : public TL_writer {
            is_built_in_complex_type(t->name);
   }
 
-  std::vector<std::string> get_parsers(void) const final {
+  std::vector<std::string> get_parsers() const final {
     return {"FromUnmanaged"};
   }
   int get_parser_type(const tl_combinator *t, const std::string &name) const final {
@@ -51,10 +51,10 @@ class TlWriterDotNet final : public TL_writer {
   Mode get_parser_mode(int type) const final {
     return All;  // Server;
   }
-  std::vector<std::string> get_storers(void) const final {
+  std::vector<std::string> get_storers() const final {
     return {"ToUnmanaged", "ToString"};
   }
-  std::vector<std::string> get_additional_functions(void) const final {
+  std::vector<std::string> get_additional_functions() const final {
     return {"ToUnmanaged", "FromUnmanaged"};
   }
   int get_storer_type(const tl_combinator *t, const std::string &name) const final {
@@ -64,14 +64,14 @@ class TlWriterDotNet final : public TL_writer {
     return type <= 1 ? All : Server;
   }
 
-  std::string gen_base_tl_class_name(void) const final {
+  std::string gen_base_tl_class_name() const final {
     return "BaseObject";
   }
   std::string gen_base_type_class_name(int arity) const final {
     assert(arity == 0);
     return "Object";
   }
-  std::string gen_base_function_class_name(void) const final {
+  std::string gen_base_function_class_name() const final {
     return "Function";
   }
 
@@ -188,7 +188,7 @@ class TlWriterDotNet final : public TL_writer {
            "namespace Api {\n";
   }
 
-  std::string gen_output_begin_once(void) const final {
+  std::string gen_output_begin_once() const final {
     return std::string();
   }
 
@@ -231,7 +231,7 @@ class TlWriterDotNet final : public TL_writer {
        << " public:\n";
     return ss.str();
   }
-  std::string gen_class_end(void) const final {
+  std::string gen_class_end() const final {
     return "";
   }
 
@@ -413,7 +413,7 @@ class TlWriterDotNet final : public TL_writer {
     assert(0);
     return std::string();
   }
-  std::string gen_var_type_name(void) const final {
+  std::string gen_var_type_name() const final {
     assert(0);
     return std::string();
   }
@@ -504,7 +504,7 @@ class TlWriterDotNet final : public TL_writer {
                                               const tl_tree *result) const final {
     return "";
   }
-  std::string gen_fetch_function_result_end(void) const final {
+  std::string gen_fetch_function_result_end() const final {
     return "";
   }
   std::string gen_fetch_function_result_any_begin(const std::string &parser_name, const std::string &class_name,
@@ -515,13 +515,13 @@ class TlWriterDotNet final : public TL_writer {
     return "";
   }
 
-  std::string gen_fetch_switch_begin(void) const final {
+  std::string gen_fetch_switch_begin() const final {
     return "";
   }
   std::string gen_fetch_switch_case(const tl_combinator *t, int arity) const final {
     return "";
   }
-  std::string gen_fetch_switch_end(void) const final {
+  std::string gen_fetch_switch_end() const final {
     return "";
   }
 
