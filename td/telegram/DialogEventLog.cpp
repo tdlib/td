@@ -426,8 +426,12 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionToggleAntiSpam>(action_ptr);
       return td_api::make_object<td_api::chatEventHasAggressiveAntiSpamEnabledToggled>(action->new_value_);
     }
-    case telegram_api::channelAdminLogEventActionChangeColor::ID:
-      return nullptr;
+    case telegram_api::channelAdminLogEventActionChangeColor::ID: {
+      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeColor>(action_ptr);
+      auto old_accent_color_id = clamp(action->prev_value_, 0, 256);
+      auto new_accent_color_id = clamp(action->new_value_, 0, 256);
+      return td_api::make_object<td_api::chatEventAccentColorChanged>(old_accent_color_id, new_accent_color_id);
+    }
     case telegram_api::channelAdminLogEventActionChangeBackgroundEmoji::ID:
       return nullptr;
     default:
