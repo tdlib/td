@@ -485,7 +485,7 @@ class SecretChatActor final : public NetQueryCallback {
   // 3. Then, we are able to ERASE EVENT just AFTER the CHANGE is SAVED to the binlog.
   //
   // Actually the change will be saved to binlog too.
-  // So we can do it immediatelly after EVENT is SENT to the binlog, because SEND CHANGE and ERASE EVENT will be
+  // So we can do it immediately after EVENT is SENT to the binlog, because SEND CHANGE and ERASE EVENT will be
   // ordered automatically.
   //
   // We will use common ChangesProcessor for all changes (inside one SecretChatActor).

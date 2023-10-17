@@ -15,7 +15,7 @@
 #include <utility>
 
 namespace td {
-// A simple wrapper for absl::flat_hash_map, std::unordered_map and probably some our implementaion of hash map in
+// A simple wrapper for absl::flat_hash_map, std::unordered_map and probably some our implementation of hash map in
 // the future
 
 // We will introduce out own Hashing utility like an absl one.

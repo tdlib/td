@@ -512,7 +512,7 @@ void AutosaveManager::set_autosave_settings(td_api::object_ptr<td_api::AutosaveS
       ->send(users, chats, broadcasts, dialog_id, new_settings.get_input_auto_save_settings());
 }
 
-void AutosaveManager::clear_autosave_settings_excpetions(Promise<Unit> &&promise) {
+void AutosaveManager::clear_autosave_settings_exceptions(Promise<Unit> &&promise) {
   if (!settings_.are_inited_) {
     return promise.set_error(Status::Error(400, "Autosave settings must be loaded first"));
   }
