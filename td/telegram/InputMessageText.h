@@ -14,6 +14,8 @@
 
 namespace td {
 
+class Dependencies;
+
 class Td;
 
 class InputMessageText {
@@ -39,6 +41,8 @@ class InputMessageText {
   bool is_empty() const {
     return text.text.empty() && web_page_url.empty();
   }
+
+  void add_dependencies(Dependencies &dependencies) const;
 
   telegram_api::object_ptr<telegram_api::InputMedia> get_input_media_web_page() const;
 

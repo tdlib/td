@@ -64,6 +64,10 @@ Result<InputMessageText> process_input_message_text(const Td *td, DialogId dialo
                           force_small_media, force_large_media,       input_message_text->clear_draft_};
 }
 
+void InputMessageText::add_dependencies(Dependencies &dependencies) const {
+  add_formatted_text_dependencies(dependencies, &text);
+}
+
 telegram_api::object_ptr<telegram_api::InputMedia> InputMessageText::get_input_media_web_page() const {
   if (web_page_url.empty()) {
     return nullptr;

@@ -162,7 +162,7 @@ bool DraftMessage::need_update_to(const DraftMessage &other, bool from_update) c
 }
 
 void DraftMessage::add_dependencies(Dependencies &dependencies) const {
-  add_formatted_text_dependencies(dependencies, &input_message_text_.text);
+  input_message_text_.add_dependencies(dependencies);
 }
 
 td_api::object_ptr<td_api::draftMessage> DraftMessage::get_draft_message_object() const {
