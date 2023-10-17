@@ -4184,6 +4184,7 @@ void ContactsManager::User::store(StorerT &storer) const {
   bool has_max_active_story_id = max_active_story_id.is_valid();
   bool has_max_read_story_id = max_read_story_id.is_valid();
   bool has_max_active_story_id_next_reload_time = max_active_story_id_next_reload_time > Time::now();
+  bool has_accent_color_id = accent_color_id.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_received);
   STORE_FLAG(is_verified);
@@ -4224,6 +4225,7 @@ void ContactsManager::User::store(StorerT &storer) const {
     STORE_FLAG(has_max_active_story_id);
     STORE_FLAG(has_max_read_story_id);
     STORE_FLAG(has_max_active_story_id_next_reload_time);
+    STORE_FLAG(has_accent_color_id);
     END_STORE_FLAGS();
   }
   store(first_name, storer);
@@ -4268,6 +4270,9 @@ void ContactsManager::User::store(StorerT &storer) const {
   if (has_max_active_story_id_next_reload_time) {
     store_time(max_active_story_id_next_reload_time, storer);
   }
+  if (has_accent_color_id) {
+    store(accent_color_id, storer);
+  }
 }
 
 template <class ParserT>
@@ -4289,6 +4294,7 @@ void ContactsManager::User::parse(ParserT &parser) {
   bool has_max_active_story_id = false;
   bool has_max_read_story_id = false;
   bool has_max_active_story_id_next_reload_time = false;
+  bool has_accent_color_id = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_received);
   PARSE_FLAG(is_verified);
@@ -4329,6 +4335,7 @@ void ContactsManager::User::parse(ParserT &parser) {
     PARSE_FLAG(has_max_active_story_id);
     PARSE_FLAG(has_max_read_story_id);
     PARSE_FLAG(has_max_active_story_id_next_reload_time);
+    PARSE_FLAG(has_accent_color_id);
     END_PARSE_FLAGS();
   }
   parse(first_name, parser);
@@ -4400,6 +4407,9 @@ void ContactsManager::User::parse(ParserT &parser) {
   }
   if (has_max_active_story_id_next_reload_time) {
     parse_time(max_active_story_id_next_reload_time, parser);
+  }
+  if (has_accent_color_id) {
+    parse(accent_color_id, parser);
   }
 
   if (!check_utf8(first_name)) {
@@ -10093,6 +10103,10 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   bool stories_available = user->stories_max_id_ > 0;
   bool stories_unavailable = user->stories_unavailable_;
   bool stories_hidden = user->stories_hidden_;
+  AccentColorId accent_color_id;
+  if (AccentColorId(user->color_) != AccentColorId(user_id)) {
+    accent_color_id = AccentColorId(user->color_);
+  }
 
   LOG_IF(ERROR, !can_join_groups && !is_bot)
       << "Receive not bot " << user_id << " which can't join groups from " << source;
@@ -10131,7 +10145,8 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
       can_join_groups != u->can_join_groups || can_read_all_group_messages != u->can_read_all_group_messages ||
       restriction_reasons != u->restriction_reasons || is_scam != u->is_scam || is_fake != u->is_fake ||
       is_inline_bot != u->is_inline_bot || inline_query_placeholder != u->inline_query_placeholder ||
-      need_location_bot != u->need_location_bot || can_be_added_to_attach_menu != u->can_be_added_to_attach_menu) {
+      need_location_bot != u->need_location_bot || can_be_added_to_attach_menu != u->can_be_added_to_attach_menu ||
+      accent_color_id != u->accent_color_id) {
     if (is_bot != u->is_bot) {
       LOG_IF(ERROR, !is_deleted && !u->is_deleted && u->is_received)
           << "User.is_bot has changed for " << user_id << "/" << u->usernames << " from " << source << " from "
@@ -10150,6 +10165,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     u->inline_query_placeholder = std::move(inline_query_placeholder);
     u->need_location_bot = need_location_bot;
     u->can_be_added_to_attach_menu = can_be_added_to_attach_menu;
+    u->accent_color_id = accent_color_id;
 
     LOG(DEBUG) << "Info has changed for " << user_id;
     u->is_changed = true;
@@ -19145,9 +19161,9 @@ td_api::object_ptr<td_api::updateUser> ContactsManager::get_update_user_object(U
 td_api::object_ptr<td_api::updateUser> ContactsManager::get_update_unknown_user_object(UserId user_id) const {
   auto have_access = user_id == get_my_id() || user_messages_.count(user_id) != 0;
   return td_api::make_object<td_api::updateUser>(td_api::make_object<td_api::user>(
-      user_id.get(), "", "", nullptr, "", td_api::make_object<td_api::userStatusEmpty>(), nullptr, nullptr, nullptr,
-      false, false, false, false, false, false, "", false, false, false, false, have_access,
-      td_api::make_object<td_api::userTypeUnknown>(), "", false));
+      user_id.get(), "", "", nullptr, "", td_api::make_object<td_api::userStatusEmpty>(), nullptr,
+      AccentColorId(user_id).get_accent_color_id_object(), nullptr, false, false, false, false, false, false, "", false,
+      false, false, false, have_access, td_api::make_object<td_api::userTypeUnknown>(), "", false));
 }
 
 int64 ContactsManager::get_user_id_object(UserId user_id, const char *source) const {
@@ -19181,12 +19197,13 @@ tl_object_ptr<td_api::user> ContactsManager::get_user_object(UserId user_id, con
   auto emoji_status =
       !u->last_sent_emoji_status.is_empty() ? u->last_sent_emoji_status.get_emoji_status_object() : nullptr;
   auto have_access = user_id == get_my_id() || have_input_peer_user(u, user_id, AccessRights::Know);
+  auto accent_color_id = u->accent_color_id.is_valid() ? u->accent_color_id : AccentColorId(user_id);
   return td_api::make_object<td_api::user>(
       user_id.get(), u->first_name, u->last_name, u->usernames.get_usernames_object(), u->phone_number,
       get_user_status_object(user_id, u, G()->unix_time()),
-      get_profile_photo_object(td_->file_manager_.get(), u->photo), nullptr, std::move(emoji_status), u->is_contact,
-      u->is_mutual_contact, u->is_close_friend, u->is_verified, u->is_premium, u->is_support,
-      get_restriction_reason_description(u->restriction_reasons), u->is_scam, u->is_fake,
+      get_profile_photo_object(td_->file_manager_.get(), u->photo), accent_color_id.get_accent_color_id_object(),
+      std::move(emoji_status), u->is_contact, u->is_mutual_contact, u->is_close_friend, u->is_verified, u->is_premium,
+      u->is_support, get_restriction_reason_description(u->restriction_reasons), u->is_scam, u->is_fake,
       u->max_active_story_id.is_valid(), get_user_has_unread_stories(u), have_access, std::move(type), u->language_code,
       u->attach_menu_enabled);
 }

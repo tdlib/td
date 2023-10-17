@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/AccentColorId.h"
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/BotCommand.h"
 #include "td/telegram/BotMenuButton.h"
@@ -739,6 +740,8 @@ class ContactsManager final : public Actor {
     vector<RestrictionReason> restriction_reasons;
     string inline_query_placeholder;
     int32 bot_info_version = -1;
+
+    AccentColorId accent_color_id;
 
     int32 was_online = 0;
     int32 local_was_online = 0;
