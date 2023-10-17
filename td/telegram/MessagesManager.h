@@ -132,6 +132,7 @@ class MessagesManager final : public Actor {
   static constexpr int32 SEND_MESSAGE_FLAG_HAS_SEND_AS = 1 << 13;
   static constexpr int32 SEND_MESSAGE_FLAG_NOFORWARDS = 1 << 14;
   static constexpr int32 SEND_MESSAGE_FLAG_UPDATE_STICKER_SETS_ORDER = 1 << 15;
+  static constexpr int32 SEND_MESSAGE_FLAG_INVERT_MEDIA = 1 << 16;
 
   static constexpr int32 ONLINE_MEMBER_COUNT_CACHE_EXPIRE_TIME = 30 * 60;
 
@@ -1074,6 +1075,7 @@ class MessagesManager final : public Actor {
     bool noforwards = false;
     bool has_mention = false;
     bool has_unread_content = false;
+    bool invert_media = false;
 
     unique_ptr<MessageContent> content;
     tl_object_ptr<telegram_api::ReplyMarkup> reply_markup;
@@ -1164,6 +1166,7 @@ class MessagesManager final : public Actor {
     bool is_pinned = false;
     bool are_media_timestamp_entities_found = false;
     bool noforwards = false;
+    bool invert_media = false;
 
     bool has_explicit_sender = false;       // for send_message
     bool is_copy = false;                   // for send_message

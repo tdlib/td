@@ -4744,6 +4744,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(has_history_generation);
     STORE_FLAG(is_reply_to_story);
     STORE_FLAG(has_forward_origin);
+    STORE_FLAG(invert_media);
     END_STORE_FLAGS();
   }
 
@@ -4993,6 +4994,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(has_history_generation);
     PARSE_FLAG(is_reply_to_story);
     PARSE_FLAG(has_forward_origin);
+    PARSE_FLAG(invert_media);
     END_PARSE_FLAGS();
   }
 
@@ -13344,6 +13346,7 @@ void MessagesManager::on_message_ttl_expired_impl(Dialog *d, Message *m, bool is
   m->contains_mention = false;
   m->linked_top_thread_message_id = MessageId();
   m->is_content_secret = false;
+  m->invert_media = false;
 }
 
 void MessagesManager::loop() {
@@ -14262,6 +14265,7 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       message_info.noforwards = message->noforwards_;
       message_info.has_mention = message->mentioned_;
       message_info.has_unread_content = message->media_unread_;
+      message_info.invert_media = message->invert_media_;
 
       bool is_content_read = !message_info.has_unread_content;
       if (is_message_auto_read(message_info.dialog_id, message_info.is_outgoing)) {
@@ -14536,6 +14540,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     reply_to_story_full_id = StoryFullId();
     noforwards = false;
     is_content_secret = false;
+    message_info.invert_media = false;
   }
 
   bool is_pinned = message_info.is_pinned;
@@ -14586,6 +14591,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->reply_info = std::move(reply_info);
   message->reactions = std::move(reactions);
   message->legacy_layer = (message_info.is_legacy ? MTPROTO_LAYER : 0);
+  message->invert_media = message_info.invert_media;
   message->content = std::move(message_info.content);
   message->reply_markup = get_reply_markup(std::move(message_info.reply_markup), td_->auth_manager_->is_bot(), false,
                                            message->contains_mention || dialog_type == DialogType::User);
@@ -27363,6 +27369,9 @@ int32 MessagesManager::get_message_flags(const Message *m) {
   if (m->update_stickersets_order) {
     flags |= SEND_MESSAGE_FLAG_UPDATE_STICKER_SETS_ORDER;
   }
+  if (m->invert_media) {
+    flags |= SEND_MESSAGE_FLAG_INVERT_MEDIA;
+  }
   return flags;
 }
 
@@ -35984,7 +35993,9 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
   bool is_content_changed = false;
   if (update_message_content(dialog_id, old_message, std::move(new_message->content),
                              message_id.is_yet_unsent() && new_message->edit_date == 0, is_message_in_dialog,
-                             is_content_changed)) {
+                             is_content_changed) ||
+      old_message->invert_media != new_message->invert_media) {
+    old_message->invert_media = new_message->invert_media;
     send_update_message_content(d, old_message, is_message_in_dialog, "update_message");
     need_send_update = true;
   }
