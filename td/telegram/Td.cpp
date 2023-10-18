@@ -6465,6 +6465,13 @@ void Td::on_request(uint64 id, const td_api::setChatPhoto &request) {
   messages_manager_->set_dialog_photo(DialogId(request.chat_id_), request.photo_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::setChatAccentColor &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->set_dialog_accent_color(DialogId(request.chat_id_), AccentColorId(request.accent_color_id_),
+                                             CustomEmojiId(request.background_custom_emoji_id_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::setChatMessageAutoDeleteTime &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

@@ -457,6 +457,9 @@ class ContactsManager final : public Actor {
 
   void reorder_channel_usernames(ChannelId channel_id, vector<string> &&usernames, Promise<Unit> &&promise);
 
+  void set_channel_accent_color(ChannelId channel_id, AccentColorId accent_color_id,
+                                CustomEmojiId background_custom_emoji_id, Promise<Unit> &&promise);
+
   void set_channel_sticker_set(ChannelId channel_id, StickerSetId sticker_set_id, Promise<Unit> &&promise);
 
   void toggle_channel_sign_messages(ChannelId channel_id, bool sign_messages, Promise<Unit> &&promise);

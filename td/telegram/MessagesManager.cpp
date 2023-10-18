@@ -33585,6 +33585,33 @@ void MessagesManager::upload_dialog_photo(DialogId dialog_id, FileId file_id, bo
   td_->file_manager_->resume_upload(file_id, std::move(bad_parts), upload_dialog_photo_callback_, 32, 0);
 }
 
+void MessagesManager::set_dialog_accent_color(DialogId dialog_id, AccentColorId accent_color_id,
+                                              CustomEmojiId background_custom_emoji_id, Promise<Unit> &&promise) {
+  if (!have_dialog_force(dialog_id, "set_dialog_accent_color")) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      if (dialog_id == get_my_dialog_id()) {
+        return td_->contacts_manager_->set_accent_color(accent_color_id, background_custom_emoji_id,
+                                                        std::move(promise));
+      }
+      break;
+    case DialogType::Chat:
+      break;
+    case DialogType::Channel:
+      return td_->contacts_manager_->set_channel_accent_color(dialog_id.get_channel_id(), accent_color_id,
+                                                              background_custom_emoji_id, std::move(promise));
+    case DialogType::SecretChat:
+      break;
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+  }
+  promise.set_error(Status::Error(400, "Can't change accent color in the chat"));
+}
+
 void MessagesManager::set_dialog_title(DialogId dialog_id, const string &title, Promise<Unit> &&promise) {
   if (!have_dialog_force(dialog_id, "set_dialog_title")) {
     return promise.set_error(Status::Error(400, "Chat not found"));

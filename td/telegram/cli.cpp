@@ -5261,6 +5261,13 @@ class CliClient final : public Actor {
       InputChatPhoto input_chat_photo;
       get_args(args, chat_id, input_chat_photo);
       send_request(td_api::make_object<td_api::setChatPhoto>(chat_id, input_chat_photo));
+    } else if (op == "scac") {
+      ChatId chat_id;
+      int32 accent_color_id;
+      CustomEmojiId background_custom_emoji_id;
+      get_args(args, chat_id, accent_color_id, background_custom_emoji_id);
+      send_request(
+          td_api::make_object<td_api::setChatAccentColor>(chat_id, accent_color_id, background_custom_emoji_id));
     } else if (op == "scmt") {
       ChatId chat_id;
       int32 auto_delete_time;

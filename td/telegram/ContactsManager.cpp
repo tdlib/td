@@ -1314,6 +1314,52 @@ class ReorderChannelUsernamesQuery final : public Td::ResultHandler {
   }
 };
 
+class UpdateChannelColorQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  ChannelId channel_id_;
+
+ public:
+  explicit UpdateChannelColorQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(ChannelId channel_id, AccentColorId accent_color_id, CustomEmojiId background_custom_emoji_id) {
+    channel_id_ = channel_id;
+    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+    CHECK(input_channel != nullptr);
+    int32 flags = 0;
+    if (background_custom_emoji_id.is_valid()) {
+      flags |= telegram_api::channels_updateColor::BACKGROUND_EMOJI_ID_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::channels_updateColor(flags, std::move(input_channel), accent_color_id.get(),
+                                           background_custom_emoji_id.get()),
+        {{channel_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::channels_updateColor>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for UpdateChannelColorQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    if (status.message() == "CHAT_NOT_MODIFIED") {
+      if (!td_->auth_manager_->is_bot()) {
+        promise_.set_value(Unit());
+        return;
+      }
+    } else {
+      td_->contacts_manager_->on_get_channel_error(channel_id_, status, "UpdateChannelColorQuery");
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 class SetChannelStickerSetQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
@@ -7940,6 +7986,27 @@ void ContactsManager::on_update_channel_active_usernames_order(ChannelId channel
   on_update_channel_usernames(c, channel_id, c->usernames.reorder_to(std::move(usernames)));
   update_channel(c, channel_id);
   promise.set_value(Unit());
+}
+
+void ContactsManager::set_channel_accent_color(ChannelId channel_id, AccentColorId accent_color_id,
+                                               CustomEmojiId background_custom_emoji_id, Promise<Unit> &&promise) {
+  if (!accent_color_id.is_valid()) {
+    return promise.set_error(Status::Error(400, "Invalid accent color identifier specified"));
+  }
+
+  const auto *c = get_channel(channel_id);
+  if (c == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+  if (c->is_megagroup) {
+    return promise.set_error(Status::Error(400, "Accent color can be changed only in channel chats"));
+  }
+  if (!get_channel_status(c).can_change_info_and_settings()) {
+    return promise.set_error(Status::Error(400, "Not enough rights in the channel"));
+  }
+
+  td_->create_handler<UpdateChannelColorQuery>(std::move(promise))
+      ->send(channel_id, accent_color_id, background_custom_emoji_id);
 }
 
 void ContactsManager::set_channel_sticker_set(ChannelId channel_id, StickerSetId sticker_set_id,
