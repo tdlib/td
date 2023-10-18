@@ -10172,7 +10172,8 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     on_update_user_usernames(u, user_id, Usernames{std::move(user->username_), std::move(user->usernames_)});
   }
   on_update_user_emoji_status(u, user_id, EmojiStatus(std::move(user->emoji_status_)));
-  on_update_user_accent_color_id(u, user_id, AccentColorId(user->color_));
+  on_update_user_accent_color_id(
+      u, user_id, ((flags2 & telegram_api::user::COLOR_MASK) != 0 ? AccentColorId(user->color_) : AccentColorId()));
   on_update_user_background_custom_emoji_id(u, user_id, CustomEmojiId(user->background_emoji_id_));
 
   bool is_verified = (flags & USER_FLAG_IS_VERIFIED) != 0;
@@ -19010,7 +19011,9 @@ void ContactsManager::on_get_channel(telegram_api::channel &channel, const char 
     c->is_changed = true;
   }
   on_update_channel_photo(c, channel_id, std::move(channel.photo_));
-  on_update_channel_accent_color_id(c, channel_id, AccentColorId(channel.color_));
+  on_update_channel_accent_color_id(
+      c, channel_id,
+      ((channel.flags2_ & telegram_api::channel::COLOR_MASK) != 0 ? AccentColorId(channel.color_) : AccentColorId()));
   on_update_channel_background_custom_emoji_id(c, channel_id, CustomEmojiId(channel.background_emoji_id_));
   on_update_channel_status(c, channel_id, std::move(status));
   on_update_channel_usernames(
