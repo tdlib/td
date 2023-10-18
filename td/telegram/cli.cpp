@@ -765,6 +765,10 @@ class CliClient final : public Actor {
     return to_integer<int32>(trim(std::move(str)));
   }
 
+  static int64 as_custom_emoji_id(Slice str) {
+    return to_integer<int64>(trim(str));
+  }
+
   static td_api::object_ptr<td_api::location> as_location(const string &latitude, const string &longitude,
                                                           const string &accuracy) {
     if (trim(latitude).empty() && trim(longitude).empty()) {
@@ -1099,6 +1103,18 @@ class CliClient final : public Actor {
     } else {
       LOG(ERROR) << "Invalid InputChatPhoto = " << args;
     }
+  }
+
+  struct CustomEmojiId {
+    int64 custom_emoji_id = 0;
+
+    operator int64() const {
+      return custom_emoji_id;
+    }
+  };
+
+  void get_args(string &args, CustomEmojiId &arg) const {
+    arg.custom_emoji_id = as_custom_emoji_id(args);
   }
 
   struct InputBackground {
@@ -4640,7 +4656,7 @@ class CliClient final : public Actor {
       MessageThreadId message_thread_id;
       string name;
       bool edit_icon_custom_emoji;
-      int64 icon_custom_emoji_id;
+      CustomEmojiId icon_custom_emoji_id;
       get_args(args, chat_id, message_thread_id, name, edit_icon_custom_emoji, icon_custom_emoji_id);
       send_request(td_api::make_object<td_api::editForumTopic>(chat_id, message_thread_id, name, edit_icon_custom_emoji,
                                                                icon_custom_emoji_id));
@@ -5456,7 +5472,7 @@ class CliClient final : public Actor {
     } else if (op == "sese") {
       send_request(td_api::make_object<td_api::setEmojiStatus>(nullptr));
     } else if (op == "ses") {
-      int64 custom_emoji_id;
+      CustomEmojiId custom_emoji_id;
       int32 expiration_date;
       get_args(args, custom_emoji_id, expiration_date);
       send_request(td_api::make_object<td_api::setEmojiStatus>(
