@@ -12,6 +12,7 @@
 #include "td/telegram/BackgroundInfo.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatReactions.h"
+#include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/DialogAction.h"
 #include "td/telegram/DialogDate.h"
 #include "td/telegram/DialogDb.h"
@@ -877,6 +878,7 @@ class MessagesManager final : public Actor {
 
   void on_dialog_photo_updated(DialogId dialog_id);
   void on_dialog_accent_color_id_updated(DialogId dialog_id);
+  void on_dialog_background_custom_emoji_id_updated(DialogId dialog_id);
   void on_dialog_title_updated(DialogId dialog_id);
   void on_dialog_usernames_updated(DialogId dialog_id, const Usernames &old_usernames, const Usernames &new_usernames);
   void on_dialog_usernames_received(DialogId dialog_id, const Usernames &usernames, bool from_database);
@@ -2945,6 +2947,8 @@ class MessagesManager final : public Actor {
   const DialogPhoto *get_dialog_photo(DialogId dialog_id) const;
 
   AccentColorId get_dialog_accent_color_id(DialogId dialog_id) const;
+
+  CustomEmojiId get_dialog_background_custom_emoji_id(DialogId dialog_id) const;
 
   RestrictedRights get_dialog_default_permissions(DialogId dialog_id) const;
 

@@ -14,6 +14,7 @@
 #include "td/telegram/ChannelType.h"
 #include "td/telegram/ChatId.h"
 #include "td/telegram/Contact.h"
+#include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/DialogAdministrator.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogInviteLink.h"
@@ -121,6 +122,11 @@ class ContactsManager final : public Actor {
   AccentColorId get_chat_accent_color_id(ChatId chat_id) const;
   AccentColorId get_channel_accent_color_id(ChannelId channel_id) const;
   AccentColorId get_secret_chat_accent_color_id(SecretChatId secret_chat_id) const;
+
+  CustomEmojiId get_user_background_custom_emoji_id(UserId user_id) const;
+  CustomEmojiId get_chat_background_custom_emoji_id(ChatId chat_id) const;
+  CustomEmojiId get_channel_background_custom_emoji_id(ChannelId channel_id) const;
+  CustomEmojiId get_secret_chat_background_custom_emoji_id(SecretChatId secret_chat_id) const;
 
   string get_user_title(UserId user_id) const;
   string get_chat_title(ChatId chat_id) const;
@@ -747,6 +753,7 @@ class ContactsManager final : public Actor {
     int32 bot_info_version = -1;
 
     AccentColorId accent_color_id;
+    CustomEmojiId background_custom_emoji_id;
 
     int32 was_online = 0;
     int32 local_was_online = 0;
@@ -796,6 +803,7 @@ class ContactsManager final : public Actor {
     bool is_username_changed = true;
     bool is_photo_changed = true;
     bool is_accent_color_id_changed = true;
+    bool is_background_custom_emoji_id_changed = true;
     bool is_phone_number_changed = true;
     bool is_emoji_status_changed = true;
     bool is_is_contact_changed = true;
@@ -962,6 +970,7 @@ class ContactsManager final : public Actor {
     string title;
     DialogPhoto photo;
     AccentColorId accent_color_id;
+    CustomEmojiId background_custom_emoji_id;
     Usernames usernames;
     vector<RestrictionReason> restriction_reasons;
     DialogParticipantStatus status = DialogParticipantStatus::Banned(0);
@@ -1000,6 +1009,7 @@ class ContactsManager final : public Actor {
     bool is_username_changed = true;
     bool is_photo_changed = true;
     bool is_accent_color_id_changed = true;
+    bool is_background_custom_emoji_id_changed = true;
     bool is_default_permissions_changed = true;
     bool is_status_changed = true;
     bool is_stories_hidden_changed = true;
@@ -1420,6 +1430,7 @@ class ContactsManager final : public Actor {
   void on_update_user_photo(User *u, UserId user_id, tl_object_ptr<telegram_api::UserProfilePhoto> &&photo,
                             const char *source);
   void on_update_user_accent_color_id(User *u, UserId user_id, AccentColorId accent_color_id);
+  void on_update_user_background_custom_emoji_id(User *u, UserId user_id, CustomEmojiId background_custom_emoji_id);
   void on_update_user_emoji_status(User *u, UserId user_id, EmojiStatus emoji_status);
   void on_update_user_story_ids_impl(User *u, UserId user_id, StoryId max_active_story_id, StoryId max_read_story_id);
   void on_update_user_max_read_story_id(User *u, UserId user_id, StoryId max_read_story_id);
@@ -1490,6 +1501,8 @@ class ContactsManager final : public Actor {
                                tl_object_ptr<telegram_api::ChatPhoto> &&chat_photo_ptr);
   void on_update_channel_photo(Channel *c, ChannelId channel_id, DialogPhoto &&photo, bool invalidate_photo_cache);
   void on_update_channel_accent_color_id(Channel *c, ChannelId channel_id, AccentColorId accent_color_id);
+  void on_update_channel_background_custom_emoji_id(Channel *c, ChannelId channel_id,
+                                                    CustomEmojiId background_custom_emoji_id);
   static void on_update_channel_title(Channel *c, ChannelId channel_id, string &&title);
   void on_update_channel_usernames(Channel *c, ChannelId channel_id, Usernames &&usernames);
   void on_update_channel_status(Channel *c, ChannelId channel_id, DialogParticipantStatus &&status);

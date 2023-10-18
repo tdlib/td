@@ -436,8 +436,8 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
     }
     case telegram_api::channelAdminLogEventActionChangeBackgroundEmoji::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeBackgroundEmoji>(action_ptr);
-      return td_api::make_object<td_api::chatEventReplyBackgroundCustomEmojiChanged>(action->prev_value_,
-                                                                                     action->new_value_);
+      return td_api::make_object<td_api::chatEventBackgroundCustomEmojiChanged>(action->prev_value_,
+                                                                                action->new_value_);
     }
     default:
       UNREACHABLE();

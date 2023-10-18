@@ -4185,6 +4185,7 @@ void ContactsManager::User::store(StorerT &storer) const {
   bool has_max_read_story_id = max_read_story_id.is_valid();
   bool has_max_active_story_id_next_reload_time = max_active_story_id_next_reload_time > Time::now();
   bool has_accent_color_id = accent_color_id.is_valid();
+  bool has_background_custom_emoji_id = background_custom_emoji_id.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_received);
   STORE_FLAG(is_verified);
@@ -4226,6 +4227,7 @@ void ContactsManager::User::store(StorerT &storer) const {
     STORE_FLAG(has_max_read_story_id);
     STORE_FLAG(has_max_active_story_id_next_reload_time);
     STORE_FLAG(has_accent_color_id);
+    STORE_FLAG(has_background_custom_emoji_id);
     END_STORE_FLAGS();
   }
   store(first_name, storer);
@@ -4273,6 +4275,9 @@ void ContactsManager::User::store(StorerT &storer) const {
   if (has_accent_color_id) {
     store(accent_color_id, storer);
   }
+  if (has_background_custom_emoji_id) {
+    store(background_custom_emoji_id, storer);
+  }
 }
 
 template <class ParserT>
@@ -4295,6 +4300,7 @@ void ContactsManager::User::parse(ParserT &parser) {
   bool has_max_read_story_id = false;
   bool has_max_active_story_id_next_reload_time = false;
   bool has_accent_color_id = false;
+  bool has_background_custom_emoji_id = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_received);
   PARSE_FLAG(is_verified);
@@ -4336,6 +4342,7 @@ void ContactsManager::User::parse(ParserT &parser) {
     PARSE_FLAG(has_max_read_story_id);
     PARSE_FLAG(has_max_active_story_id_next_reload_time);
     PARSE_FLAG(has_accent_color_id);
+    PARSE_FLAG(has_background_custom_emoji_id);
     END_PARSE_FLAGS();
   }
   parse(first_name, parser);
@@ -4410,6 +4417,9 @@ void ContactsManager::User::parse(ParserT &parser) {
   }
   if (has_accent_color_id) {
     parse(accent_color_id, parser);
+  }
+  if (has_background_custom_emoji_id) {
+    parse(background_custom_emoji_id, parser);
   }
 
   if (!check_utf8(first_name)) {
@@ -4821,6 +4831,7 @@ void ContactsManager::Channel::store(StorerT &storer) const {
   bool has_max_read_story_id = max_read_story_id.is_valid();
   bool has_max_active_story_id_next_reload_time = max_active_story_id_next_reload_time > Time::now();
   bool has_accent_color_id = accent_color_id.is_valid();
+  bool has_background_custom_emoji_id = background_custom_emoji_id.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(false);
   STORE_FLAG(false);
@@ -4861,6 +4872,7 @@ void ContactsManager::Channel::store(StorerT &storer) const {
     STORE_FLAG(has_max_active_story_id_next_reload_time);
     STORE_FLAG(stories_hidden);
     STORE_FLAG(has_accent_color_id);
+    STORE_FLAG(has_background_custom_emoji_id);
     END_STORE_FLAGS();
   }
 
@@ -4898,6 +4910,9 @@ void ContactsManager::Channel::store(StorerT &storer) const {
   if (has_accent_color_id) {
     store(accent_color_id, storer);
   }
+  if (has_background_custom_emoji_id) {
+    store(background_custom_emoji_id, storer);
+  }
 }
 
 template <class ParserT>
@@ -4924,6 +4939,7 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   bool has_max_read_story_id = false;
   bool has_max_active_story_id_next_reload_time = false;
   bool has_accent_color_id = false;
+  bool has_background_custom_emoji_id = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(left);
   PARSE_FLAG(kicked);
@@ -4964,6 +4980,7 @@ void ContactsManager::Channel::parse(ParserT &parser) {
     PARSE_FLAG(has_max_active_story_id_next_reload_time);
     PARSE_FLAG(stories_hidden);
     PARSE_FLAG(has_accent_color_id);
+    PARSE_FLAG(has_background_custom_emoji_id);
     END_PARSE_FLAGS();
   }
 
@@ -5030,6 +5047,9 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   }
   if (has_accent_color_id) {
     parse(accent_color_id, parser);
+  }
+  if (has_background_custom_emoji_id) {
+    parse(background_custom_emoji_id, parser);
   }
 
   if (!check_utf8(title)) {
@@ -5692,6 +5712,36 @@ AccentColorId ContactsManager::get_secret_chat_accent_color_id(SecretChatId secr
     return AccentColorId(0);
   }
   return get_user_accent_color_id(c->user_id);
+}
+
+CustomEmojiId ContactsManager::get_user_background_custom_emoji_id(UserId user_id) const {
+  auto u = get_user(user_id);
+  if (u == nullptr) {
+    return CustomEmojiId();
+  }
+
+  return u->background_custom_emoji_id;
+}
+
+CustomEmojiId ContactsManager::get_chat_background_custom_emoji_id(ChatId chat_id) const {
+  return CustomEmojiId();
+}
+
+CustomEmojiId ContactsManager::get_channel_background_custom_emoji_id(ChannelId channel_id) const {
+  auto c = get_channel(channel_id);
+  if (c == nullptr) {
+    return CustomEmojiId();
+  }
+
+  return c->background_custom_emoji_id;
+}
+
+CustomEmojiId ContactsManager::get_secret_chat_background_custom_emoji_id(SecretChatId secret_chat_id) const {
+  auto c = get_secret_chat(secret_chat_id);
+  if (c == nullptr) {
+    return CustomEmojiId();
+  }
+  return get_user_background_custom_emoji_id(c->user_id);
 }
 
 string ContactsManager::get_user_title(UserId user_id) const {
@@ -10123,6 +10173,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   }
   on_update_user_emoji_status(u, user_id, EmojiStatus(std::move(user->emoji_status_)));
   on_update_user_accent_color_id(u, user_id, AccentColorId(user->color_));
+  on_update_user_background_custom_emoji_id(u, user_id, CustomEmojiId(user->background_emoji_id_));
 
   bool is_verified = (flags & USER_FLAG_IS_VERIFIED) != 0;
   bool is_premium = (flags & USER_FLAG_IS_PREMIUM) != 0;
@@ -11803,6 +11854,14 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
     });
     u->is_accent_color_id_changed = false;
   }
+  if (u->is_background_custom_emoji_id_changed) {
+    auto messages_manager = td_->messages_manager_.get();
+    messages_manager->on_dialog_background_custom_emoji_id_updated(DialogId(user_id));
+    for_each_secret_chat_with_user(user_id, [messages_manager](SecretChatId secret_chat_id) {
+      messages_manager->on_dialog_background_custom_emoji_id_updated(DialogId(secret_chat_id));
+    });
+    u->is_background_custom_emoji_id_changed = false;
+  }
   if (u->is_phone_number_changed) {
     if (!u->phone_number.empty() && !td_->auth_manager_->is_bot()) {
       resolved_phone_numbers_[u->phone_number] = user_id;
@@ -12046,6 +12105,10 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
   if (c->is_accent_color_id_changed) {
     td_->messages_manager_->on_dialog_accent_color_id_updated(DialogId(channel_id));
     c->is_accent_color_id_changed = false;
+  }
+  if (c->is_background_custom_emoji_id_changed) {
+    td_->messages_manager_->on_dialog_background_custom_emoji_id_updated(DialogId(channel_id));
+    c->is_background_custom_emoji_id_changed = false;
   }
   if (c->is_title_changed) {
     td_->messages_manager_->on_dialog_title_updated(DialogId(channel_id));
@@ -13411,6 +13474,15 @@ void ContactsManager::on_update_user_accent_color_id(User *u, UserId user_id, Ac
   if (u->accent_color_id != accent_color_id) {
     u->accent_color_id = accent_color_id;
     u->is_accent_color_id_changed = true;
+    u->is_changed = true;
+  }
+}
+
+void ContactsManager::on_update_user_background_custom_emoji_id(User *u, UserId user_id,
+                                                                CustomEmojiId background_custom_emoji_id) {
+  if (u->background_custom_emoji_id != background_custom_emoji_id) {
+    u->background_custom_emoji_id = background_custom_emoji_id;
+    u->is_background_custom_emoji_id_changed = true;
     u->is_changed = true;
   }
 }
@@ -16089,6 +16161,15 @@ void ContactsManager::on_update_channel_accent_color_id(Channel *c, ChannelId ch
   if (c->accent_color_id != accent_color_id) {
     c->accent_color_id = accent_color_id;
     c->is_accent_color_id_changed = true;
+    c->need_save_to_database = true;
+  }
+}
+
+void ContactsManager::on_update_channel_background_custom_emoji_id(Channel *c, ChannelId channel_id,
+                                                                   CustomEmojiId background_custom_emoji_id) {
+  if (c->background_custom_emoji_id != background_custom_emoji_id) {
+    c->background_custom_emoji_id = background_custom_emoji_id;
+    c->is_background_custom_emoji_id_changed = true;
     c->need_save_to_database = true;
   }
 }
@@ -18930,6 +19011,7 @@ void ContactsManager::on_get_channel(telegram_api::channel &channel, const char 
   }
   on_update_channel_photo(c, channel_id, std::move(channel.photo_));
   on_update_channel_accent_color_id(c, channel_id, AccentColorId(channel.color_));
+  on_update_channel_background_custom_emoji_id(c, channel_id, CustomEmojiId(channel.background_emoji_id_));
   on_update_channel_status(c, channel_id, std::move(status));
   on_update_channel_usernames(
       c, channel_id,
@@ -19233,8 +19315,8 @@ td_api::object_ptr<td_api::updateUser> ContactsManager::get_update_unknown_user_
   auto have_access = user_id == get_my_id() || user_messages_.count(user_id) != 0;
   return td_api::make_object<td_api::updateUser>(td_api::make_object<td_api::user>(
       user_id.get(), "", "", nullptr, "", td_api::make_object<td_api::userStatusEmpty>(), nullptr,
-      AccentColorId(user_id).get_accent_color_id_object(), nullptr, false, false, false, false, false, false, "", false,
-      false, false, false, have_access, td_api::make_object<td_api::userTypeUnknown>(), "", false));
+      AccentColorId(user_id).get_accent_color_id_object(), 0, nullptr, false, false, false, false, false, false, "",
+      false, false, false, false, have_access, td_api::make_object<td_api::userTypeUnknown>(), "", false));
 }
 
 int64 ContactsManager::get_user_id_object(UserId user_id, const char *source) const {
@@ -19273,8 +19355,9 @@ tl_object_ptr<td_api::user> ContactsManager::get_user_object(UserId user_id, con
       user_id.get(), u->first_name, u->last_name, u->usernames.get_usernames_object(), u->phone_number,
       get_user_status_object(user_id, u, G()->unix_time()),
       get_profile_photo_object(td_->file_manager_.get(), u->photo), accent_color_id.get_accent_color_id_object(),
-      std::move(emoji_status), u->is_contact, u->is_mutual_contact, u->is_close_friend, u->is_verified, u->is_premium,
-      u->is_support, get_restriction_reason_description(u->restriction_reasons), u->is_scam, u->is_fake,
+      u->background_custom_emoji_id.get(), std::move(emoji_status), u->is_contact, u->is_mutual_contact,
+      u->is_close_friend, u->is_verified, u->is_premium, u->is_support,
+      get_restriction_reason_description(u->restriction_reasons), u->is_scam, u->is_fake,
       u->max_active_story_id.is_valid(), get_user_has_unread_stories(u), have_access, std::move(type), u->language_code,
       u->attach_menu_enabled);
 }

@@ -772,6 +772,7 @@ usernames active_usernames:vector<string> disabled_usernames:vector<string> edit
 //@status Current online status of the user
 //@profile_photo Profile photo of the user; may be null
 //@accent_color_id Identifier of the accent color for name, and backgrounds of profile photo, reply header, and link preview
+//@background_custom_emoji_id Identifier of a custom emoji to be shown on the reply header background. For Telegram Premium users only
 //@emoji_status Emoji status to be shown instead of the default Telegram Premium badge; may be null. For Telegram Premium users only
 //@is_contact The user is a contact of the current user
 //@is_mutual_contact The user is a contact of the current user and the current user is a contact of the user
@@ -788,7 +789,7 @@ usernames active_usernames:vector<string> disabled_usernames:vector<string> edit
 //@type Type of the user
 //@language_code IETF language tag of the user's language; only available to bots
 //@added_to_attachment_menu True, if the user added the current bot to attachment menu; only available to bots
-user id:int53 first_name:string last_name:string usernames:usernames phone_number:string status:UserStatus profile_photo:profilePhoto accent_color_id:accentColorId emoji_status:emojiStatus is_contact:Bool is_mutual_contact:Bool is_close_friend:Bool is_verified:Bool is_premium:Bool is_support:Bool restriction_reason:string is_scam:Bool is_fake:Bool has_active_stories:Bool has_unread_active_stories:Bool have_access:Bool type:UserType language_code:string added_to_attachment_menu:Bool = User;
+user id:int53 first_name:string last_name:string usernames:usernames phone_number:string status:UserStatus profile_photo:profilePhoto accent_color_id:accentColorId background_custom_emoji_id:int64 emoji_status:emojiStatus is_contact:Bool is_mutual_contact:Bool is_close_friend:Bool is_verified:Bool is_premium:Bool is_support:Bool restriction_reason:string is_scam:Bool is_fake:Bool has_active_stories:Bool has_unread_active_stories:Bool have_access:Bool type:UserType language_code:string added_to_attachment_menu:Bool = User;
 
 
 //@description Contains information about a bot
@@ -1571,6 +1572,7 @@ videoChat group_call_id:int32 has_participants:Bool default_participant_id:Messa
 //@title Chat title
 //@photo Chat photo; may be null
 //@accent_color_id Identifier of the accent color for message sender name, and backgrounds of chat photo, reply header, and link preview
+//@background_custom_emoji_id Identifier of a custom emoji to be shown on the reply header background in replies to messages sent by the chat
 //@permissions Actions that non-administrator chat members are allowed to take in the chat
 //@last_message Last message in the chat; may be null if none or unknown
 //@positions Positions of the chat in chat lists
@@ -1600,7 +1602,7 @@ videoChat group_call_id:int32 has_participants:Bool default_participant_id:Messa
 //@reply_markup_message_id Identifier of the message from which reply markup needs to be used; 0 if there is no default custom reply markup in the chat
 //@draft_message A draft of a message in the chat; may be null if none
 //@client_data Application-specific data associated with the chat. (For example, the chat scroll position or local chat notification settings can be stored here.) Persistent if the message database is used
-chat id:int53 type:ChatType title:string photo:chatPhotoInfo accent_color_id:accentColorId permissions:chatPermissions last_message:message positions:vector<chatPosition> message_sender_id:MessageSender block_list:BlockList has_protected_content:Bool is_translatable:Bool is_marked_as_unread:Bool has_scheduled_messages:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 unread_reaction_count:int32 notification_settings:chatNotificationSettings available_reactions:ChatAvailableReactions message_auto_delete_time:int32 background:chatBackground theme_name:string action_bar:ChatActionBar video_chat:videoChat pending_join_requests:chatJoinRequestsInfo reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
+chat id:int53 type:ChatType title:string photo:chatPhotoInfo accent_color_id:accentColorId background_custom_emoji_id:int64 permissions:chatPermissions last_message:message positions:vector<chatPosition> message_sender_id:MessageSender block_list:BlockList has_protected_content:Bool is_translatable:Bool is_marked_as_unread:Bool has_scheduled_messages:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 unread_reaction_count:int32 notification_settings:chatNotificationSettings available_reactions:ChatAvailableReactions message_auto_delete_time:int32 background:chatBackground theme_name:string action_bar:ChatActionBar video_chat:videoChat pending_join_requests:chatJoinRequestsInfo reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
 
 //@description Represents a list of chats @total_count Approximate total number of chats found @chat_ids List of chat identifiers
 chats total_count:int32 chat_ids:vector<int53> = Chats;
@@ -4197,8 +4199,8 @@ chatEventActiveUsernamesChanged old_usernames:vector<string> new_usernames:vecto
 //@description The chat accent color was changed @old_accent_color_id Previous identifier of chat accent color @new_accent_color_id New identifier of chat accent color
 chatEventAccentColorChanged old_accent_color_id:accentColorId new_accent_color_id:accentColorId = ChatEventAction;
 
-//@description The chat's custom emoji for reply background was changed @old_reply_background_custom_emoji_id Previous identifier of the custom emoji @new_reply_background_custom_emoji_id New identifier of the custom emoji
-chatEventReplyBackgroundCustomEmojiChanged old_reply_background_custom_emoji_id:int64 new_reply_background_custom_emoji_id:int64 = ChatEventAction;
+//@description The chat's custom emoji for reply background was changed @old_background_custom_emoji_id Previous identifier of the custom emoji @new_background_custom_emoji_id New identifier of the custom emoji
+chatEventBackgroundCustomEmojiChanged old_background_custom_emoji_id:int64 new_background_custom_emoji_id:int64 = ChatEventAction;
 
 //@description The has_protected_content setting of a channel was toggled @has_protected_content New value of has_protected_content
 chatEventHasProtectedContentToggled has_protected_content:Bool = ChatEventAction;
@@ -5999,7 +6001,10 @@ updateChatTitle chat_id:int53 title:string = Update;
 updateChatPhoto chat_id:int53 photo:chatPhotoInfo = Update;
 
 //@description A chat accent color has changed @chat_id Chat identifier @accent_color_id The new chat accent color identifier
-updateChatAccentColorId chat_id:int53 accent_color_id:accentColorId = Update;
+updateChatAccentColor chat_id:int53 accent_color_id:accentColorId = Update;
+
+//@description A chat's custom emoji for reply background has changed @chat_id Chat identifier @background_custom_emoji_id The new tdentifier of a custom emoji to be shown on the reply header background
+updateChatBackgroundCustomEmoji chat_id:int53 background_custom_emoji_id:int64 = Update;
 
 //@description Chat permissions was changed @chat_id Chat identifier @permissions The new chat permissions
 updateChatPermissions chat_id:int53 permissions:chatPermissions = Update;
