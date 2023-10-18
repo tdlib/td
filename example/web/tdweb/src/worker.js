@@ -83,8 +83,7 @@ async function loadTdlibWasm(onFS, wasmUrl) {
       };
       instantiateAny(tdlibVersion, td_wasm, imports).then(next);
       return {};
-    },
-    ENVIROMENT: 'WORKER'
+    }
   });
   log.info('Wait module');
   module = await module;
@@ -110,8 +109,7 @@ async function loadTdlibAsmjs(onFS) {
         return toFile;
       }
       return name;
-    },
-    ENVIROMENT: 'WORKER'
+    }
   });
   log.info('Wait module');
   module = await module;
