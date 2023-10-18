@@ -772,7 +772,7 @@ usernames active_usernames:vector<string> disabled_usernames:vector<string> edit
 //@status Current online status of the user
 //@profile_photo Profile photo of the user; may be null
 //@accent_color_id Identifier of the accent color for name, and backgrounds of profile photo, reply header, and link preview
-//@background_custom_emoji_id Identifier of a custom emoji to be shown on the reply header background. For Telegram Premium users only
+//@background_custom_emoji_id Identifier of a custom emoji to be shown on the reply header background; 0 if none. For Telegram Premium users only
 //@emoji_status Emoji status to be shown instead of the default Telegram Premium badge; may be null. For Telegram Premium users only
 //@is_contact The user is a contact of the current user
 //@is_mutual_contact The user is a contact of the current user and the current user is a contact of the user
@@ -1572,7 +1572,7 @@ videoChat group_call_id:int32 has_participants:Bool default_participant_id:Messa
 //@title Chat title
 //@photo Chat photo; may be null
 //@accent_color_id Identifier of the accent color for message sender name, and backgrounds of chat photo, reply header, and link preview
-//@background_custom_emoji_id Identifier of a custom emoji to be shown on the reply header background in replies to messages sent by the chat
+//@background_custom_emoji_id Identifier of a custom emoji to be shown on the reply header background in replies to messages sent by the chat; 0 if none
 //@permissions Actions that non-administrator chat members are allowed to take in the chat
 //@last_message Last message in the chat; may be null if none or unknown
 //@positions Positions of the chat in chat lists
@@ -4199,7 +4199,7 @@ chatEventActiveUsernamesChanged old_usernames:vector<string> new_usernames:vecto
 //@description The chat accent color was changed @old_accent_color_id Previous identifier of chat accent color @new_accent_color_id New identifier of chat accent color
 chatEventAccentColorChanged old_accent_color_id:accentColorId new_accent_color_id:accentColorId = ChatEventAction;
 
-//@description The chat's custom emoji for reply background was changed @old_background_custom_emoji_id Previous identifier of the custom emoji @new_background_custom_emoji_id New identifier of the custom emoji
+//@description The chat's custom emoji for reply background was changed @old_background_custom_emoji_id Previous identifier of the custom emoji; 0 if none @new_background_custom_emoji_id New identifier of the custom emoji; 0 if none
 chatEventBackgroundCustomEmojiChanged old_background_custom_emoji_id:int64 new_background_custom_emoji_id:int64 = ChatEventAction;
 
 //@description The has_protected_content setting of a channel was toggled @has_protected_content New value of has_protected_content
@@ -8524,6 +8524,11 @@ setProfilePhoto photo:InputChatPhoto is_public:Bool = Ok;
 
 //@description Deletes a profile photo @profile_photo_id Identifier of the profile photo to delete
 deleteProfilePhoto profile_photo_id:int64 = Ok;
+
+//@description Changes accent color and background custom emoji for the current user; for Telegram Premium users only
+//@accent_color_id Identifier of the accent color to use
+//@background_custom_emoji_id Identifier of a custom emoji to be shown on the reply header background; 0 if none
+setAccentColor accent_color_id:int32 background_custom_emoji_id:int64 = Ok;
 
 //@description Changes the first and last name of the current user @first_name The new value of the first name for the current user; 1-64 characters @last_name The new value of the optional last name for the current user; 0-64 characters
 setName first_name:string last_name:string = Ok;

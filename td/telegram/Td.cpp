@@ -7562,6 +7562,13 @@ void Td::on_request(uint64 id, const td_api::getUserProfilePhotos &request) {
                                              std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::setAccentColor &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->set_accent_color(AccentColorId(request.accent_color_id_),
+                                      CustomEmojiId(request.background_custom_emoji_id_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::setSupergroupUsername &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.username_);

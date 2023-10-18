@@ -5827,6 +5827,11 @@ class CliClient final : public Actor {
       int64 profile_photo_id;
       get_args(args, profile_photo_id);
       send_request(td_api::make_object<td_api::deleteProfilePhoto>(profile_photo_id));
+    } else if (op == "sac") {
+      int32 accent_color_id;
+      CustomEmojiId background_custom_emoji_id;
+      get_args(args, accent_color_id, background_custom_emoji_id);
+      send_request(td_api::make_object<td_api::setAccentColor>(accent_color_id, background_custom_emoji_id));
     } else if (op == "gns") {
       int64 notification_sound_id;
       get_args(args, notification_sound_id);
