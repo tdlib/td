@@ -137,6 +137,9 @@ OptionManager::OptionManager(Td *td)
   if (!have_option("giveaway_boost_count_per_premium")) {
     set_option_integer("giveaway_boost_count_per_premium", 4);
   }
+  if (!have_option("giveaway_duration_max")) {
+    set_option_integer("giveaway_duration_max", 7 * 86400);
+  }
   if (!have_option("channel_custom_accent_color_boost_level_min")) {
     set_option_integer("channel_custom_accent_color_boost_level_min", 1);
   }

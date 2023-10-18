@@ -1931,6 +1931,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
                                 get_json_value_int(std::move(key_value->value_), key));
         continue;
       }
+      if (key == "giveaway_period_max") {
+        G()->set_option_integer("giveaway_duration_max", get_json_value_int(std::move(key_value->value_), key));
+        continue;
+      }
       if (key == "channel_color_level_min") {
         G()->set_option_integer("channel_custom_accent_color_boost_level_min",
                                 get_json_value_int(std::move(key_value->value_), key));
