@@ -166,7 +166,7 @@ TEST(Actors, simple_pass_event_arguments) {
 
   // Var-->LvalueRef
   // Var-->LvalueRef (Delayed)
-  // CE or stange behaviour
+  // CE or strange behaviour
 
   // Var-->Value
   sb.clear();

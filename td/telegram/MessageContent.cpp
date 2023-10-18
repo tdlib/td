@@ -5520,7 +5520,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       auto action = move_tl_object_as<telegram_api::messageActionPaymentSent>(action_ptr);
       if (!reply_to_message_id.is_valid()) {
         if (reply_to_message_id != MessageId()) {
-          LOG(ERROR) << "Receive succesful payment message with " << reply_to_message_id << " in " << owner_dialog_id;
+          LOG(ERROR) << "Receive successful payment message with " << reply_to_message_id << " in " << owner_dialog_id;
         }
         reply_in_dialog_id = DialogId();
         reply_to_message_id = MessageId();

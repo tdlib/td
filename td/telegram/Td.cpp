@@ -3780,7 +3780,7 @@ void Td::init(Parameters parameters, Result<TdDb::OpenedDatabase> r_opened_datab
   //
   // 3. During replay of binlog some queries may be sent to other actors. They shouldn't process such events before all
   // their binlog events are processed. So actor may receive some old queries. It must be in its actual state in
-  // orded to handle them properly.
+  // order to handle them properly.
   //
   // -- Use send_closure_later, so actors don't even start process binlog events, before all binlog events are sent
 
@@ -5070,7 +5070,7 @@ void Td::on_request(uint64 id, td_api::setAutosaveSettings &request) {
 void Td::on_request(uint64 id, const td_api::clearAutosaveSettingsExceptions &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  autosave_manager_->clear_autosave_settings_excpetions(std::move(promise));
+  autosave_manager_->clear_autosave_settings_exceptions(std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getTopChats &request) {
