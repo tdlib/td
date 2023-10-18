@@ -13405,7 +13405,7 @@ void ContactsManager::register_user_photo(User *u, UserId user_id, const Photo &
 }
 
 void ContactsManager::on_update_user_accent_color_id(User *u, UserId user_id, AccentColorId accent_color_id) {
-  if (accent_color_id == AccentColorId(user_id)) {
+  if (accent_color_id == AccentColorId(user_id) || !accent_color_id.is_valid()) {
     accent_color_id = AccentColorId();
   }
   if (u->accent_color_id != accent_color_id) {
@@ -16083,7 +16083,7 @@ void ContactsManager::on_update_channel_photo(Channel *c, ChannelId channel_id, 
 
 void ContactsManager::on_update_channel_accent_color_id(Channel *c, ChannelId channel_id,
                                                         AccentColorId accent_color_id) {
-  if (accent_color_id == AccentColorId(channel_id)) {
+  if (accent_color_id == AccentColorId(channel_id) || !accent_color_id.is_valid()) {
     accent_color_id = AccentColorId();
   }
   if (c->accent_color_id != accent_color_id) {
