@@ -172,7 +172,7 @@ string strip_empty_characters(string str, size_t max_length, bool strip_rtlo) {
   }();
   CHECK(can_be_first_inited);
 
-  // replace all occurences of space characters with a space
+  // replace all occurrences of space characters with a space
   size_t i = 0;
   while (i < str.size() && !can_be_first[static_cast<unsigned char>(str[i])]) {
     i++;

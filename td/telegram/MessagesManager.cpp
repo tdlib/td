@@ -28595,7 +28595,7 @@ void MessagesManager::upload_imported_message_attachment(DialogId dialog_id, int
                                                          bool is_reupload, Promise<Unit> &&promise,
                                                          vector<int> bad_parts) {
   CHECK(file_id.is_valid());
-  LOG(INFO) << "Ask to upload improted message attached file " << file_id;
+  LOG(INFO) << "Ask to upload imported message attached file " << file_id;
   auto info =
       td::make_unique<UploadedImportedMessageAttachmentInfo>(dialog_id, import_id, is_reupload, std::move(promise));
   bool is_inserted = being_uploaded_imported_message_attachments_.emplace(file_id, std::move(info)).second;
@@ -31608,7 +31608,7 @@ void MessagesManager::set_dialog_background(Dialog *d, BackgroundInfo &&backgrou
   d->is_background_inited = true;
 
   if (is_changed) {
-    LOG(INFO) << "Set " << d->dialog_id << " backgroud to " << d->background_info;
+    LOG(INFO) << "Set " << d->dialog_id << " background to " << d->background_info;
     send_update_chat_background(d);
   } else {
     on_dialog_updated(d->dialog_id, "set_dialog_background");

@@ -578,7 +578,7 @@ Status get_socket_pending_error(const NativeFd &fd, WSAOVERLAPPED *overlapped, S
   DWORD flags = 0;
   BOOL success = WSAGetOverlappedResult(fd.socket(), overlapped, &num_bytes, false, &flags);
   if (success) {
-    LOG(ERROR) << "WSAGetOverlappedResult succeded after " << iocp_error;
+    LOG(ERROR) << "WSAGetOverlappedResult succeeded after " << iocp_error;
     return iocp_error;
   }
   return OS_SOCKET_ERROR(PSLICE() << "Error on " << fd);
