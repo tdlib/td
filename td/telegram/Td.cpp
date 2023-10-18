@@ -6465,6 +6465,7 @@ void Td::on_request(uint64 id, const td_api::setChatPhoto &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::setChatMessageAutoDeleteTime &request) {
+  CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   messages_manager_->set_dialog_message_ttl(DialogId(request.chat_id_), request.message_auto_delete_time_,
                                             std::move(promise));
