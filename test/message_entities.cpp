@@ -1134,7 +1134,7 @@ TEST(MessageEntities, fix_formatted_text) {
     auto n = td::Random::fast(1, 20);
     td::vector<td::MessageEntity> entities;
     for (int j = 0; j < n; j++) {
-      td::int32 type = td::Random::fast(4, 16);
+      td::int32 type = td::Random::fast(4, static_cast<int>(td::MessageEntity::Type::Size) - 1);
       td::int32 offset = td::Random::fast(0, static_cast<int>(str.size()) - 1);
       auto max_length = static_cast<int>(str.size() - offset);
       if ((test_n & 1) != 0 && max_length > 4) {
@@ -1156,7 +1156,7 @@ TEST(MessageEntities, fix_formatted_text) {
     auto old_type_mask = get_type_mask(str.size(), entities);
     ASSERT_TRUE(td::fix_formatted_text(str, entities, false, false, true, true, false).is_ok());
     auto new_type_mask = get_type_mask(str.size(), entities);
-    auto splittable_mask = (1 << 5) | (1 << 6) | (1 << 14) | (1 << 15);
+    auto splittable_mask = (1 << 5) | (1 << 6) | (1 << 14) | (1 << 15) | (1 << 19);
     auto pre_mask = (1 << 7) | (1 << 8) | (1 << 9);
     for (std::size_t pos = 0; pos < str.size(); pos++) {
       if ((new_type_mask[pos] & pre_mask) != 0) {
