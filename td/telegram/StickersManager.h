@@ -492,6 +492,7 @@ class StickersManager final : public Actor {
     bool is_installed_ = false;
     bool is_archived_ = false;
     bool is_official_ = false;
+    bool has_text_color_ = false;
     bool is_viewed_ = true;
     bool is_thumbnail_reloaded_ = false;                   // stored in telegram_api::stickerSet
     bool are_legacy_sticker_thumbnails_reloaded_ = false;  // stored in telegram_api::stickerSet

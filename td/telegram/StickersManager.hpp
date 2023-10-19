@@ -201,6 +201,7 @@ void StickersManager::store_sticker_set(const StickerSet *sticker_set, bool with
   STORE_FLAG(has_thumbnail_document_id);
   STORE_FLAG(sticker_set->are_keywords_loaded_);
   STORE_FLAG(sticker_set->is_sticker_has_text_color_loaded_);
+  STORE_FLAG(sticker_set->has_text_color_);
   END_STORE_FLAGS();
   store(sticker_set->id_.get(), storer);
   store(sticker_set->access_hash_, storer);
@@ -264,6 +265,7 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
   bool is_webm;
   bool is_emojis;
   bool has_thumbnail_document_id;
+  bool has_text_color;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(sticker_set->is_inited_);
   PARSE_FLAG(sticker_set->was_loaded_);
@@ -284,6 +286,7 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
   PARSE_FLAG(has_thumbnail_document_id);
   PARSE_FLAG(sticker_set->are_keywords_loaded_);
   PARSE_FLAG(sticker_set->is_sticker_has_text_color_loaded_);
+  PARSE_FLAG(has_text_color);
   END_PARSE_FLAGS();
   int64 sticker_set_id;
   int64 access_hash;
@@ -345,6 +348,7 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
       sticker_set->is_official_ = is_official;
       sticker_set->sticker_type_ = sticker_type;
       sticker_set->sticker_format_ = sticker_format;
+      sticker_set->has_text_color_ = has_text_color;
 
       auto cleaned_username = clean_username(sticker_set->short_name_);
       if (!cleaned_username.empty()) {
@@ -354,7 +358,7 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
     } else {
       if (sticker_set->title_ != title || sticker_set->minithumbnail_ != minithumbnail ||
           sticker_set->thumbnail_ != thumbnail || sticker_set->thumbnail_document_id_ != thumbnail_document_id ||
-          sticker_set->is_official_ != is_official) {
+          sticker_set->is_official_ != is_official || sticker_set->has_text_color_ != has_text_color) {
         sticker_set->is_changed_ = true;
       }
       if (sticker_set->short_name_ != short_name) {
@@ -401,6 +405,9 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
       if (sticker->set_id_ != sticker_set->id_) {
         LOG_IF(ERROR, sticker->set_id_.is_valid()) << "Sticker " << sticker_id << " set_id has changed";
         sticker->set_id_ = sticker_set->id_;
+        if (sticker->has_text_color_) {
+          sticker_set->has_text_color_ = true;
+        }
       }
       if (sticker->is_premium_) {
         sticker_set->premium_sticker_positions_.push_back(static_cast<int32>(sticker_set->sticker_ids_.size() - 1));

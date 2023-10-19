@@ -2480,7 +2480,7 @@ tl_object_ptr<td_api::stickerSet> StickersManager::get_sticker_set_object(Sticke
                                 get_sticker_set_minithumbnail_zoom(sticker_set)),
       sticker_set->is_installed_ && !sticker_set->is_archived_, sticker_set->is_archived_, sticker_set->is_official_,
       get_sticker_format_object(sticker_set->sticker_format_), get_sticker_type_object(sticker_set->sticker_type_),
-      sticker_set->is_viewed_, std::move(stickers), std::move(emojis));
+      sticker_set->has_text_color_, sticker_set->is_viewed_, std::move(stickers), std::move(emojis));
 }
 
 tl_object_ptr<td_api::stickerSets> StickersManager::get_sticker_sets_object(int32 total_count,
@@ -2556,8 +2556,8 @@ tl_object_ptr<td_api::stickerSetInfo> StickersManager::get_sticker_set_info_obje
                                 get_sticker_set_minithumbnail_zoom(sticker_set)),
       sticker_set->is_installed_ && !sticker_set->is_archived_, sticker_set->is_archived_, sticker_set->is_official_,
       get_sticker_format_object(sticker_set->sticker_format_), get_sticker_type_object(sticker_set->sticker_type_),
-      sticker_set->is_viewed_, sticker_set->was_loaded_ ? actual_count : max(actual_count, sticker_set->sticker_count_),
-      std::move(stickers));
+      sticker_set->has_text_color_, sticker_set->is_viewed_,
+      sticker_set->was_loaded_ ? actual_count : max(actual_count, sticker_set->sticker_count_), std::move(stickers));
 }
 
 td_api::object_ptr<td_api::sticker> StickersManager::get_premium_gift_sticker_object(int32 month_count) {
@@ -3557,6 +3557,7 @@ StickerSetId StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::sti
   bool is_installed = (set->flags_ & telegram_api::stickerSet::INSTALLED_DATE_MASK) != 0;
   bool is_archived = set->archived_;
   bool is_official = set->official_;
+  bool has_text_color = set->text_color_;
   StickerFormat sticker_format =
       set->videos_ ? StickerFormat::Webm : (set->animated_ ? StickerFormat::Tgs : StickerFormat::Webp);
   StickerType sticker_type =
@@ -3595,6 +3596,7 @@ StickerSetId StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::sti
     s->is_official_ = is_official;
     s->sticker_format_ = sticker_format;
     s->sticker_type_ = sticker_type;
+    s->has_text_color_ = has_text_color;
     s->is_changed_ = true;
   } else {
     CHECK(s->id_ == set_id);
@@ -3663,6 +3665,11 @@ StickerSetId StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::sti
     if (s->is_official_ != is_official) {
       LOG(INFO) << "Official flag of " << set_id << " changed to " << is_official;
       s->is_official_ = is_official;
+      s->is_changed_ = true;
+    }
+    if (s->has_text_color_ != has_text_color) {
+      LOG(INFO) << "Needs repainting flag of " << set_id << " changed to " << has_text_color;
+      s->has_text_color_ = has_text_color;
       s->is_changed_ = true;
     }
     if (s->sticker_format_ != sticker_format) {
