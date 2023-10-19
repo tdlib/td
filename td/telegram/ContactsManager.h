@@ -1150,9 +1150,10 @@ class ContactsManager final : public Actor {
     // unknown dialog
     string title;
     Photo photo;
-    string description;
+    AccentColorId accent_color_id;
     int32 participant_count = 0;
     vector<UserId> participant_user_ids;
+    string description;
     bool creates_join_request = false;
     bool is_chat = false;
     bool is_channel = false;

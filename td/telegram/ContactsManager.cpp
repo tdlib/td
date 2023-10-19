@@ -15529,6 +15529,7 @@ void ContactsManager::on_get_dialog_invite_link_info(const string &invite_link,
       invite_link_info->dialog_id = DialogId();
       invite_link_info->title = chat_invite->title_;
       invite_link_info->photo = get_photo(td_, std::move(chat_invite->photo_), DialogId());
+      invite_link_info->accent_color_id = AccentColorId(chat_invite->color_);
       invite_link_info->description = std::move(chat_invite->about_);
       invite_link_info->participant_count = chat_invite->participants_count_;
       invite_link_info->participant_user_ids = std::move(participant_user_ids);
@@ -19795,6 +19796,7 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
   string title;
   const DialogPhoto *photo = nullptr;
   DialogPhoto invite_link_photo;
+  AccentColorId accent_color_id;
   string description;
   int32 participant_count = 0;
   vector<int64> member_user_ids;
@@ -19820,6 +19822,7 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
         } else {
           LOG(ERROR) << "Have no information about " << chat_id;
         }
+        accent_color_id = get_chat_accent_color_id(chat_id);
         break;
       }
       case DialogType::Channel: {
@@ -19839,6 +19842,7 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
         } else {
           LOG(ERROR) << "Have no information about " << channel_id;
         }
+        accent_color_id = get_channel_accent_color_id(channel_id);
         break;
       }
       default:
@@ -19851,6 +19855,7 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
     title = invite_link_info->title;
     invite_link_photo = as_fake_dialog_photo(invite_link_info->photo, dialog_id, false);
     photo = &invite_link_photo;
+    accent_color_id = invite_link_info->accent_color_id;
     description = invite_link_info->description;
     participant_count = invite_link_info->participant_count;
     member_user_ids = get_user_ids_object(invite_link_info->participant_user_ids, "get_chat_invite_link_info_object");
@@ -19883,8 +19888,9 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
 
   return td_api::make_object<td_api::chatInviteLinkInfo>(
       td_->messages_manager_->get_chat_id_object(dialog_id, "chatInviteLinkInfo"), accessible_for, std::move(chat_type),
-      title, get_chat_photo_info_object(td_->file_manager_.get(), photo), description, participant_count,
-      std::move(member_user_ids), creates_join_request, is_public, is_verified, is_scam, is_fake);
+      title, get_chat_photo_info_object(td_->file_manager_.get(), photo), accent_color_id.get_accent_color_id_object(),
+      description, participant_count, std::move(member_user_ids), creates_join_request, is_public, is_verified, is_scam,
+      is_fake);
 }
 
 void ContactsManager::get_support_user(Promise<td_api::object_ptr<td_api::user>> &&promise) {
