@@ -1218,9 +1218,10 @@ TEST(MessageEntities, fix_formatted_text) {
 }
 
 TEST(MessageEntities, is_visible_url) {
-  td::string str = "a telegram.org telegran.org telegrao.org telegram.orc telegrap.org";
+  td::string str = "a telegram.org telegran.org telegrao.org telegram.orc telegrap.org c";
   td::vector<td::MessageEntity> entities;
   entities.emplace_back(td::MessageEntity::Type::TextUrl, 0, 1, "telegrab.org");
+  entities.emplace_back(td::MessageEntity::Type::TextUrl, str.size() - 1, 1, "telegrax.org");
   td::fix_formatted_text(str, entities, false, false, false, false, true).ensure();
   td::FormattedText text{std::move(str), std::move(entities)};
   ASSERT_EQ(td::get_first_url(text), "telegrab.org");
@@ -1231,6 +1232,7 @@ TEST(MessageEntities, is_visible_url) {
   ASSERT_TRUE(!td::is_visible_url(text, "telegram.orc"));
   ASSERT_TRUE(td::is_visible_url(text, "telegrap.org"));
   ASSERT_TRUE(!td::is_visible_url(text, "telegraf.org"));
+  ASSERT_TRUE(!td::is_visible_url(text, "telegrax.org"));
 }
 
 static void check_parse_html(td::string text, const td::string &result, const td::vector<td::MessageEntity> &entities) {

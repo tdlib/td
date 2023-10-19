@@ -1840,6 +1840,7 @@ bool is_visible_url(const FormattedText &text, const string &url) {
   Slice left_text = text.text;
   for (auto &entity : text.entities) {
     if (entity.type == MessageEntity::Type::Url && url_size == entity.length) {
+      CHECK(entity.offset >= cur_offset);
       left_text = utf8_utf16_substr(left_text, entity.offset - cur_offset);
       cur_offset = entity.offset;
       if (begins_with(left_text, url)) {
