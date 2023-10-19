@@ -4801,9 +4801,9 @@ void ContactsManager::Chat::parse(ParserT &parser) {
     } else {
       status = DialogParticipantStatus::Member();
     }
-    default_permissions =
-        RestrictedRights(true, true, true, true, true, true, true, true, true, true, true, true, true,
-                         everyone_is_administrator, everyone_is_administrator, everyone_is_administrator, false);
+    default_permissions = RestrictedRights(true, true, true, true, true, true, true, true, true, true, true, true, true,
+                                           everyone_is_administrator, everyone_is_administrator,
+                                           everyone_is_administrator, false, ChannelType::Unknown);
   }
   if (has_default_permissions_version) {
     parse(default_permissions_version, parser);
@@ -5108,7 +5108,7 @@ void ContactsManager::Channel::parse(ParserT &parser) {
       parse(default_permissions, parser);
     } else {
       default_permissions = RestrictedRights(true, true, true, true, true, true, true, true, true, true, true, true,
-                                             true, false, anyone_can_invite, false, false);
+                                             true, false, anyone_can_invite, false, false, ChannelType::Megagroup);
     }
   }
   if (has_cache_version) {
@@ -5141,6 +5141,13 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   }
   if (legacy_has_active_group_call) {
     cache_version = 0;
+  }
+  if (!is_megagroup && status.is_restricted()) {
+    if (status.is_member()) {
+      status = DialogParticipantStatus::Member();
+    } else {
+      status = DialogParticipantStatus::Left();
+    }
   }
 }
 
@@ -5872,17 +5879,17 @@ RestrictedRights ContactsManager::get_user_default_permissions(UserId user_id) c
   auto u = get_user(user_id);
   if (u == nullptr || user_id == get_replies_bot_user_id()) {
     return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false, false, false,
-                            false, false, u != nullptr, false);
+                            false, false, u != nullptr, false, ChannelType::Unknown);
   }
   return RestrictedRights(true, true, true, true, true, true, true, true, true, true, true, true, true, false, false,
-                          true, false);
+                          true, false, ChannelType::Unknown);
 }
 
 RestrictedRights ContactsManager::get_chat_default_permissions(ChatId chat_id) const {
   auto c = get_chat(chat_id);
   if (c == nullptr) {
     return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false, false, false,
-                            false, false, false, false);
+                            false, false, false, false, ChannelType::Unknown);
   }
   return c->default_permissions;
 }
@@ -5891,7 +5898,7 @@ RestrictedRights ContactsManager::get_channel_default_permissions(ChannelId chan
   auto c = get_channel(channel_id);
   if (c == nullptr) {
     return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false, false, false,
-                            false, false, false, false);
+                            false, false, false, false, ChannelType::Unknown);
   }
   return c->default_permissions;
 }
@@ -5900,10 +5907,10 @@ RestrictedRights ContactsManager::get_secret_chat_default_permissions(SecretChat
   auto c = get_secret_chat(secret_chat_id);
   if (c == nullptr) {
     return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false, false, false,
-                            false, false, false, false);
+                            false, false, false, false, ChannelType::Unknown);
   }
   return RestrictedRights(true, true, true, true, true, true, true, true, true, true, true, true, true, false, false,
-                          false, false);
+                          false, false, ChannelType::Unknown);
 }
 
 bool ContactsManager::get_chat_has_protected_content(ChatId chat_id) const {
@@ -12281,7 +12288,8 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
   if (c->is_default_permissions_changed) {
     td_->messages_manager_->on_dialog_default_permissions_updated(DialogId(channel_id));
     if (c->default_permissions != RestrictedRights(false, false, false, false, false, false, false, false, false, false,
-                                                   false, false, false, false, false, false, false)) {
+                                                   false, false, false, false, false, false, false,
+                                                   ChannelType::Unknown)) {
       remove_dialog_suggested_action(SuggestedAction{SuggestedAction::Type::ConvertToGigagroup, DialogId(channel_id)});
     }
     c->is_default_permissions_changed = false;
@@ -13345,9 +13353,10 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
           SuggestedAction suggested_action(action_str, DialogId(channel_id));
           if (!suggested_action.is_empty()) {
             if (suggested_action == SuggestedAction{SuggestedAction::Type::ConvertToGigagroup, DialogId(channel_id)} &&
-                (c->is_gigagroup || c->default_permissions != RestrictedRights(false, false, false, false, false, false,
-                                                                               false, false, false, false, false, false,
-                                                                               false, false, false, false, false))) {
+                (c->is_gigagroup ||
+                 c->default_permissions != RestrictedRights(false, false, false, false, false, false, false, false,
+                                                            false, false, false, false, false, false, false, false,
+                                                            false, ChannelType::Unknown))) {
               LOG(INFO) << "Skip ConvertToGigagroup suggested action";
             } else {
               suggested_actions.push_back(suggested_action);
@@ -16387,7 +16396,7 @@ void ContactsManager::on_channel_status_changed(Channel *c, ChannelId channel_id
 
 void ContactsManager::on_update_channel_default_permissions(Channel *c, ChannelId channel_id,
                                                             RestrictedRights default_permissions) {
-  if (c->default_permissions != default_permissions) {
+  if (c->is_megagroup && c->default_permissions != default_permissions) {
     LOG(INFO) << "Update " << channel_id << " default permissions from " << c->default_permissions << " to "
               << default_permissions;
     c->default_permissions = default_permissions;
@@ -18913,7 +18922,8 @@ void ContactsManager::on_get_chat(telegram_api::chat &chat, const char *source) 
     c->need_save_to_database = true;
   }
   on_update_chat_status(c, chat_id, std::move(status));
-  on_update_chat_default_permissions(c, chat_id, RestrictedRights(chat.default_banned_rights_), chat.version_);
+  on_update_chat_default_permissions(c, chat_id, RestrictedRights(chat.default_banned_rights_, ChannelType::Unknown),
+                                     chat.version_);
   on_update_chat_photo(c, chat_id, std::move(chat.photo_));
   on_update_chat_active(c, chat_id, is_active);
   on_update_chat_noforwards(c, chat_id, chat.noforwards_);
@@ -19042,7 +19052,8 @@ void ContactsManager::on_get_channel(telegram_api::channel &channel, const char 
       return DialogParticipantStatus(false, std::move(channel.admin_rights_), string(),
                                      is_megagroup ? ChannelType::Megagroup : ChannelType::Broadcast);
     } else if (channel.banned_rights_ != nullptr) {
-      return DialogParticipantStatus(!has_left, std::move(channel.banned_rights_));
+      return DialogParticipantStatus(!has_left, std::move(channel.banned_rights_),
+                                     is_megagroup ? ChannelType::Megagroup : ChannelType::Broadcast);
     } else if (has_left) {
       return DialogParticipantStatus::Left();
     } else {
@@ -19063,7 +19074,8 @@ void ContactsManager::on_get_channel(telegram_api::channel &channel, const char 
       if (!c->status.is_banned()) {
         on_update_channel_photo(c, channel_id, std::move(channel.photo_));
       }
-      on_update_channel_default_permissions(c, channel_id, RestrictedRights(channel.default_banned_rights_));
+      on_update_channel_default_permissions(c, channel_id,
+                                            RestrictedRights(channel.default_banned_rights_, ChannelType::Megagroup));
       on_update_channel_has_location(c, channel_id, channel.has_geo_);
       on_update_channel_noforwards(c, channel_id, channel.noforwards_);
 
@@ -19145,7 +19157,8 @@ void ContactsManager::on_get_channel(telegram_api::channel &channel, const char 
       c, channel_id,
       Usernames(std::move(channel.username_),
                 std::move(channel.usernames_)));  // uses status, must be called after on_update_channel_status
-  on_update_channel_default_permissions(c, channel_id, RestrictedRights(channel.default_banned_rights_));
+  on_update_channel_default_permissions(c, channel_id,
+                                        RestrictedRights(channel.default_banned_rights_, ChannelType::Megagroup));
   on_update_channel_has_location(c, channel_id, channel.has_geo_);
   on_update_channel_noforwards(c, channel_id, channel.noforwards_);
   if (!td_->auth_manager_->is_bot() && !channel.stories_hidden_min_) {
@@ -19255,7 +19268,7 @@ void ContactsManager::on_get_channel_forbidden(telegram_api::channelForbidden &c
   on_update_channel_status(c, channel_id, DialogParticipantStatus::Banned(channel.until_date_));
   // on_update_channel_usernames(c, channel_id, Usernames());  // don't know if channel usernames are empty, so don't update it
   tl_object_ptr<telegram_api::chatBannedRights> banned_rights;  // == nullptr
-  on_update_channel_default_permissions(c, channel_id, RestrictedRights(banned_rights));
+  on_update_channel_default_permissions(c, channel_id, RestrictedRights(banned_rights, ChannelType::Megagroup));
   // on_update_channel_has_location(c, channel_id, false);
   on_update_channel_noforwards(c, channel_id, false);
   td_->messages_manager_->on_update_dialog_group_call(DialogId(channel_id), false, false, "on_get_channel_forbidden");

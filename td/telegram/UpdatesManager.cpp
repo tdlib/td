@@ -3934,15 +3934,16 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatParticipant
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatDefaultBannedRights> update,
                                Promise<Unit> &&promise) {
   DialogId dialog_id(update->peer_);
-  RestrictedRights permissions(update->default_banned_rights_);
   auto version = update->version_;
   switch (dialog_id.get_type()) {
     case DialogType::Chat:
-      td_->contacts_manager_->on_update_chat_default_permissions(dialog_id.get_chat_id(), permissions, version);
+      td_->contacts_manager_->on_update_chat_default_permissions(
+          dialog_id.get_chat_id(), RestrictedRights(update->default_banned_rights_, ChannelType::Unknown), version);
       break;
     case DialogType::Channel:
       LOG_IF(ERROR, version != 0) << "Receive version " << version << " in " << dialog_id;
-      td_->contacts_manager_->on_update_channel_default_permissions(dialog_id.get_channel_id(), permissions);
+      td_->contacts_manager_->on_update_channel_default_permissions(
+          dialog_id.get_channel_id(), RestrictedRights(update->default_banned_rights_, ChannelType::Megagroup));
       break;
     case DialogType::None:
     case DialogType::User:

@@ -214,8 +214,9 @@ StringBuilder &operator<<(StringBuilder &string_builder, const AdministratorRigh
   return string_builder;
 }
 
-RestrictedRights::RestrictedRights(const tl_object_ptr<telegram_api::chatBannedRights> &rights) {
-  if (rights == nullptr) {
+RestrictedRights::RestrictedRights(const tl_object_ptr<telegram_api::chatBannedRights> &rights,
+                                   ChannelType channel_type) {
+  if (rights == nullptr || channel_type == ChannelType::Broadcast) {
     flags_ = 0;
     return;
   }
@@ -229,21 +230,23 @@ RestrictedRights::RestrictedRights(const tl_object_ptr<telegram_api::chatBannedR
                            !rights->send_videos_, !rights->send_roundvideos_, !rights->send_voices_,
                            !rights->send_stickers_, !rights->send_gifs_, !rights->send_games_, !rights->send_inline_,
                            !rights->embed_links_, !rights->send_polls_, !rights->change_info_, !rights->invite_users_,
-                           !rights->pin_messages_, !rights->manage_topics_);
+                           !rights->pin_messages_, !rights->manage_topics_, channel_type);
 }
 
-RestrictedRights::RestrictedRights(const td_api::object_ptr<td_api::chatPermissions> &rights) {
-  if (rights == nullptr) {
+RestrictedRights::RestrictedRights(const td_api::object_ptr<td_api::chatPermissions> &rights,
+                                   ChannelType channel_type) {
+  if (rights == nullptr || channel_type == ChannelType::Broadcast) {
     flags_ = 0;
     return;
   }
 
-  *this = RestrictedRights(
-      rights->can_send_basic_messages_, rights->can_send_audios_, rights->can_send_documents_, rights->can_send_photos_,
-      rights->can_send_videos_, rights->can_send_video_notes_, rights->can_send_voice_notes_,
-      rights->can_send_other_messages_, rights->can_send_other_messages_, rights->can_send_other_messages_,
-      rights->can_send_other_messages_, rights->can_add_web_page_previews_, rights->can_send_polls_,
-      rights->can_change_info_, rights->can_invite_users_, rights->can_pin_messages_, rights->can_manage_topics_);
+  *this = RestrictedRights(rights->can_send_basic_messages_, rights->can_send_audios_, rights->can_send_documents_,
+                           rights->can_send_photos_, rights->can_send_videos_, rights->can_send_video_notes_,
+                           rights->can_send_voice_notes_, rights->can_send_other_messages_,
+                           rights->can_send_other_messages_, rights->can_send_other_messages_,
+                           rights->can_send_other_messages_, rights->can_add_web_page_previews_,
+                           rights->can_send_polls_, rights->can_change_info_, rights->can_invite_users_,
+                           rights->can_pin_messages_, rights->can_manage_topics_, channel_type);
 }
 
 RestrictedRights::RestrictedRights(bool can_send_messages, bool can_send_audios, bool can_send_documents,
@@ -251,7 +254,11 @@ RestrictedRights::RestrictedRights(bool can_send_messages, bool can_send_audios,
                                    bool can_send_voice_notes, bool can_send_stickers, bool can_send_animations,
                                    bool can_send_games, bool can_use_inline_bots, bool can_add_web_page_previews,
                                    bool can_send_polls, bool can_change_info_and_settings, bool can_invite_users,
-                                   bool can_pin_messages, bool can_manage_topics) {
+                                   bool can_pin_messages, bool can_manage_topics, ChannelType channel_type) {
+  if (channel_type == ChannelType::Broadcast) {
+    flags_ = 0;
+    return;
+  }
   flags_ = (static_cast<uint64>(can_send_messages) * CAN_SEND_MESSAGES) |
            (static_cast<uint64>(can_send_audios) * CAN_SEND_AUDIOS) |
            (static_cast<uint64>(can_send_documents) * CAN_SEND_DOCUMENTS) |
@@ -443,9 +450,9 @@ DialogParticipantStatus DialogParticipantStatus::Member() {
 }
 
 DialogParticipantStatus DialogParticipantStatus::Restricted(RestrictedRights restricted_rights, bool is_member,
-                                                            int32 restricted_until_date) {
+                                                            int32 restricted_until_date, ChannelType channel_type) {
   uint64 flags = restricted_rights.flags_;
-  if (flags == RestrictedRights::ALL_RESTRICTED_RIGHTS) {
+  if (flags == RestrictedRights::ALL_RESTRICTED_RIGHTS || channel_type == ChannelType::Broadcast) {
     return is_member ? Member() : Left();
   }
   flags |= (static_cast<uint64>(is_member) * IS_MEMBER);
@@ -482,10 +489,15 @@ DialogParticipantStatus::DialogParticipantStatus(bool can_be_edited,
 }
 
 DialogParticipantStatus::DialogParticipantStatus(bool is_member,
-                                                 tl_object_ptr<telegram_api::chatBannedRights> &&banned_rights) {
+                                                 tl_object_ptr<telegram_api::chatBannedRights> &&banned_rights,
+                                                 ChannelType channel_type) {
   CHECK(banned_rights != nullptr);
   if (banned_rights->view_messages_) {
     *this = Banned(banned_rights->until_date_);
+    return;
+  }
+  if (channel_type == ChannelType::Broadcast) {
+    *this = is_member ? Member() : Left();
     return;
   }
 
@@ -493,16 +505,16 @@ DialogParticipantStatus::DialogParticipantStatus(bool is_member,
   banned_rights->until_date_ = std::numeric_limits<int32>::max();
 
   // manually create Restricted status, because the user can be restricted, but with yet unknown restrictions
-  uint64 flags = RestrictedRights(banned_rights).flags_ | (static_cast<uint64>(is_member) * IS_MEMBER);
+  uint64 flags = RestrictedRights(banned_rights, channel_type).flags_ | (static_cast<uint64>(is_member) * IS_MEMBER);
   *this = DialogParticipantStatus(Type::Restricted, flags, until_date, string());
 }
 
-RestrictedRights DialogParticipantStatus::get_effective_restricted_rights() const {
+RestrictedRights DialogParticipantStatus::get_effective_restricted_rights(ChannelType channel_type) const {
   return RestrictedRights(can_send_messages(), can_send_audios(), can_send_documents(), can_send_photos(),
                           can_send_videos(), can_send_video_notes(), can_send_voice_notes(), can_send_stickers(),
                           can_send_animations(), can_send_games(), can_use_inline_bots(), can_add_web_page_previews(),
                           can_send_polls(), can_change_info_and_settings(), can_invite_users(), can_pin_messages(),
-                          can_create_topics());
+                          can_create_topics(), channel_type);
 }
 
 tl_object_ptr<td_api::ChatMemberStatus> DialogParticipantStatus::get_chat_member_status_object() const {
@@ -693,8 +705,8 @@ DialogParticipantStatus get_dialog_participant_status(const td_api::object_ptr<t
       return DialogParticipantStatus::Member();
     case td_api::chatMemberStatusRestricted::ID: {
       auto st = static_cast<const td_api::chatMemberStatusRestricted *>(status.get());
-      return DialogParticipantStatus::Restricted(RestrictedRights(st->permissions_), st->is_member_,
-                                                 fix_until_date(st->restricted_until_date_));
+      return DialogParticipantStatus::Restricted(RestrictedRights(st->permissions_, channel_type), st->is_member_,
+                                                 fix_until_date(st->restricted_until_date_), channel_type);
     }
     case td_api::chatMemberStatusLeft::ID:
       return DialogParticipantStatus::Left();
@@ -786,7 +798,7 @@ DialogParticipant::DialogParticipant(tl_object_ptr<telegram_api::ChannelParticip
     case telegram_api::channelParticipantBanned::ID: {
       auto participant = move_tl_object_as<telegram_api::channelParticipantBanned>(participant_ptr);
       *this = {DialogId(participant->peer_), UserId(participant->kicked_by_), participant->date_,
-               DialogParticipantStatus(!participant->left_, std::move(participant->banned_rights_))};
+               DialogParticipantStatus(!participant->left_, std::move(participant->banned_rights_), channel_type)};
       break;
     }
     default:

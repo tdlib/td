@@ -906,7 +906,7 @@ class ContactsManager final : public Actor {
 
     DialogParticipantStatus status = DialogParticipantStatus::Banned(0);
     RestrictedRights default_permissions{false, false, false, false, false, false, false, false, false,
-                                         false, false, false, false, false, false, false, false};
+                                         false, false, false, false, false, false, false, false, ChannelType::Unknown};
 
     static constexpr uint32 CACHE_VERSION = 4;
     uint32 cache_version = 0;
@@ -982,7 +982,7 @@ class ContactsManager final : public Actor {
     vector<RestrictionReason> restriction_reasons;
     DialogParticipantStatus status = DialogParticipantStatus::Banned(0);
     RestrictedRights default_permissions{false, false, false, false, false, false, false, false, false,
-                                         false, false, false, false, false, false, false, false};
+                                         false, false, false, false, false, false, false, false, ChannelType::Unknown};
     int32 date = 0;
     int32 participant_count = 0;
 

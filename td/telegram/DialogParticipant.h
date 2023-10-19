@@ -194,15 +194,15 @@ class RestrictedRights {
   }
 
  public:
-  explicit RestrictedRights(const tl_object_ptr<telegram_api::chatBannedRights> &rights);
+  RestrictedRights(const tl_object_ptr<telegram_api::chatBannedRights> &rights, ChannelType channel_type);
 
-  explicit RestrictedRights(const td_api::object_ptr<td_api::chatPermissions> &rights);
+  RestrictedRights(const td_api::object_ptr<td_api::chatPermissions> &rights, ChannelType channel_type);
 
   RestrictedRights(bool can_send_messages, bool can_send_audios, bool can_send_documents, bool can_send_photos,
                    bool can_send_videos, bool can_send_video_notes, bool can_send_voice_notes, bool can_send_stickers,
                    bool can_send_animations, bool can_send_games, bool can_use_inline_bots,
                    bool can_add_web_page_previews, bool can_send_polls, bool can_change_info_and_settings,
-                   bool can_invite_users, bool can_pin_messages, bool can_manage_topics);
+                   bool can_invite_users, bool can_pin_messages, bool can_manage_topics, ChannelType channel_type);
 
   td_api::object_ptr<td_api::chatPermissions> get_chat_permissions_object() const;
 
@@ -346,7 +346,7 @@ class DialogParticipantStatus {
   static DialogParticipantStatus Member();
 
   static DialogParticipantStatus Restricted(RestrictedRights restricted_rights, bool is_member,
-                                            int32 restricted_until_date);
+                                            int32 restricted_until_date, ChannelType channel_type);
 
   static DialogParticipantStatus Left();
 
@@ -363,7 +363,8 @@ class DialogParticipantStatus {
                           ChannelType channel_type);
 
   // forcely returns a restricted or banned
-  DialogParticipantStatus(bool is_member, tl_object_ptr<telegram_api::chatBannedRights> &&banned_rights);
+  DialogParticipantStatus(bool is_member, tl_object_ptr<telegram_api::chatBannedRights> &&banned_rights,
+                          ChannelType channel_type);
 
   bool has_all_administrator_rights(AdministratorRights administrator_rights) const {
     auto flags = administrator_rights.flags_ &
@@ -371,7 +372,7 @@ class DialogParticipantStatus {
     return (get_administrator_rights().flags_ & flags) == flags;
   }
 
-  RestrictedRights get_effective_restricted_rights() const;
+  RestrictedRights get_effective_restricted_rights(ChannelType channel_type) const;
 
   DialogParticipantStatus apply_restrictions(RestrictedRights default_restrictions, bool is_bot) const;
 

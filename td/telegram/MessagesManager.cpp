@@ -32790,7 +32790,7 @@ RestrictedRights MessagesManager::get_dialog_default_permissions(DialogId dialog
     default:
       UNREACHABLE();
       return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false, false, false,
-                              false, false, false, false);
+                              false, false, false, false, ChannelType::Unknown);
   }
 }
 
@@ -33786,6 +33786,7 @@ void MessagesManager::set_dialog_permissions(DialogId dialog_id,
     return promise.set_error(Status::Error(400, "New permissions must be non-empty"));
   }
 
+  ChannelType channel_type = ChannelType::Unknown;
   switch (dialog_id.get_type()) {
     case DialogType::User:
       return promise.set_error(Status::Error(400, "Can't change private chat permissions"));
@@ -33805,6 +33806,7 @@ void MessagesManager::set_dialog_permissions(DialogId dialog_id,
       if (!status.can_restrict_members()) {
         return promise.set_error(Status::Error(400, "Not enough rights to change chat permissions"));
       }
+      channel_type = ChannelType::Megagroup;
       break;
     }
     case DialogType::SecretChat:
@@ -33814,7 +33816,7 @@ void MessagesManager::set_dialog_permissions(DialogId dialog_id,
       UNREACHABLE();
   }
 
-  RestrictedRights new_permissions(permissions);
+  RestrictedRights new_permissions(permissions, channel_type);
 
   // TODO this can be wrong if there were previous change permissions requests
   if (get_dialog_default_permissions(dialog_id) == new_permissions) {
