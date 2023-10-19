@@ -185,6 +185,8 @@ void remove_empty_entities(vector<MessageEntity> &entities);
 
 string get_first_url(const FormattedText &text);
 
+bool is_visible_url(const FormattedText &text, const string &url);
+
 Result<vector<MessageEntity>> parse_markdown(string &text);
 
 Result<vector<MessageEntity>> parse_markdown_v2(string &text);

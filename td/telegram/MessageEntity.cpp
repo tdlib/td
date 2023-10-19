@@ -1834,6 +1834,23 @@ string get_first_url(const FormattedText &text) {
   return string();
 }
 
+bool is_visible_url(const FormattedText &text, const string &url) {
+  auto url_size = static_cast<int32>(utf8_utf16_length(url));
+  auto cur_offset = 0;
+  Slice left_text = text.text;
+  for (auto &entity : text.entities) {
+    if (entity.type == MessageEntity::Type::Url && url_size == entity.length) {
+      left_text = utf8_utf16_substr(left_text, entity.offset - cur_offset);
+      cur_offset = entity.offset;
+      if (begins_with(left_text, url)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 Result<vector<MessageEntity>> parse_markdown(string &text) {
   size_t result_size = 0;
   vector<MessageEntity> entities;
