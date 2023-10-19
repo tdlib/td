@@ -478,24 +478,21 @@ DialogParticipantStatus::DialogParticipantStatus(bool can_be_edited,
                                                  tl_object_ptr<telegram_api::chatAdminRights> &&admin_rights,
                                                  string rank, ChannelType channel_type) {
   CHECK(admin_rights != nullptr);
-  uint64 flags = AdministratorRights(admin_rights, channel_type).flags_ | AdministratorRights::CAN_MANAGE_DIALOG;
-  if (can_be_edited) {
-    flags |= CAN_BE_EDITED;
-  }
-  flags |= (RestrictedRights::ALL_RESTRICTED_RIGHTS & ~RestrictedRights::ALL_ADMIN_PERMISSION_RIGHTS) | IS_MEMBER;
-  *this = DialogParticipantStatus(Type::Administrator, flags, 0, std::move(rank));
+  *this = Administrator(AdministratorRights(admin_rights, channel_type), std::move(rank), can_be_edited);
 }
 
 DialogParticipantStatus::DialogParticipantStatus(bool is_member,
                                                  tl_object_ptr<telegram_api::chatBannedRights> &&banned_rights) {
   CHECK(banned_rights != nullptr);
   if (banned_rights->view_messages_) {
-    *this = DialogParticipantStatus::Banned(banned_rights->until_date_);
+    *this = Banned(banned_rights->until_date_);
     return;
   }
 
   auto until_date = fix_until_date(banned_rights->until_date_);
   banned_rights->until_date_ = std::numeric_limits<int32>::max();
+
+  // manually create Restricted status, because the user can be restricted, but with yet unknown restrictions
   uint64 flags = RestrictedRights(banned_rights).flags_ | (static_cast<uint64>(is_member) * IS_MEMBER);
   *this = DialogParticipantStatus(Type::Restricted, flags, until_date, string());
 }
