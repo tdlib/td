@@ -123,6 +123,7 @@
 #include "td/telegram/StateManager.h"
 #include "td/telegram/StatisticsManager.h"
 #include "td/telegram/StickerFormat.h"
+#include "td/telegram/StickerListType.h"
 #include "td/telegram/StickerSetId.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/StickerType.h"
@@ -7977,13 +7978,13 @@ void Td::on_request(uint64 id, const td_api::getCustomEmojiStickers &request) {
 void Td::on_request(uint64 id, const td_api::getDefaultChatPhotoCustomEmojiStickers &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  stickers_manager_->get_default_dialog_photo_custom_emoji_stickers(false, false, std::move(promise));
+  stickers_manager_->get_default_custom_emoji_stickers(StickerListType::DialogPhoto, false, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getDefaultProfilePhotoCustomEmojiStickers &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  stickers_manager_->get_default_dialog_photo_custom_emoji_stickers(true, false, std::move(promise));
+  stickers_manager_->get_default_custom_emoji_stickers(StickerListType::UserProfilePhoto, false, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getSavedAnimations &request) {
