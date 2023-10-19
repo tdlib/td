@@ -14451,7 +14451,8 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   if (content_type == MessageContentType::Sticker &&
       get_message_content_sticker_type(td_, message_info.content.get()) == StickerType::CustomEmoji) {
     LOG(INFO) << "Replace emoji sticker with an empty message";
-    message_info.content = create_text_message_content("Invalid sticker", {}, WebPageId(), false, false, string());
+    message_info.content =
+        create_text_message_content("Invalid sticker", {}, WebPageId(), false, false, false, string());
     content_type = message_info.content->get_type();
   }
 
@@ -25915,7 +25916,7 @@ Result<MessageId> MessagesManager::send_bot_start_message(UserId bot_user_id, Di
   bool need_update_dialog_pos = false;
   Message *m = get_message_to_send(
       d, MessageId(), MessageInputReplyTo(), MessageSendOptions(),
-      create_text_message_content(text, std::move(text_entities), WebPageId(), false, false, string()),
+      create_text_message_content(text, std::move(text_entities), WebPageId(), false, false, false, string()),
       &need_update_dialog_pos);
   m->is_bot_start_message = true;
 

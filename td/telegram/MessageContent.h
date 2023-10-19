@@ -96,7 +96,8 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
 
 unique_ptr<MessageContent> create_text_message_content(string text, vector<MessageEntity> entities,
                                                        WebPageId web_page_id, bool force_small_media,
-                                                       bool force_large_media, string &&web_page_url);
+                                                       bool force_large_media, bool skip_confitmation,
+                                                       string &&web_page_url);
 
 unique_ptr<MessageContent> create_contact_registered_message_content();
 

@@ -872,7 +872,7 @@ void WebPagesManager::on_get_web_page_preview_success(const string &first_url, W
     on_get_web_page_by_url(first_url, web_page_id, true);
   }
 
-  promise.set_value(get_web_page_object(web_page_id, false, false));
+  promise.set_value(get_web_page_object(web_page_id, false, false, false));
 }
 
 void WebPagesManager::get_web_page_preview(td_api::object_ptr<td_api::formattedText> &&text,
@@ -890,7 +890,7 @@ void WebPagesManager::get_web_page_preview(td_api::object_ptr<td_api::formattedT
 
   auto web_page_id = get_web_page_by_url(first_url);
   if (web_page_id.is_valid()) {
-    return promise.set_value(get_web_page_object(web_page_id, false, false));
+    return promise.set_value(get_web_page_object(web_page_id, false, false, false));
   }
   td_->create_handler<GetWebPagePreviewQuery>(std::move(promise))
       ->send(formatted_text.text,
@@ -1232,7 +1232,8 @@ bool WebPagesManager::have_web_page(WebPageId web_page_id) const {
 }
 
 tl_object_ptr<td_api::webPage> WebPagesManager::get_web_page_object(WebPageId web_page_id, bool force_small_media,
-                                                                    bool force_large_media) const {
+                                                                    bool force_large_media,
+                                                                    bool skip_confirmation) const {
   if (!web_page_id.is_valid()) {
     return nullptr;
   }
@@ -1336,7 +1337,7 @@ tl_object_ptr<td_api::webPage> WebPagesManager::get_web_page_object(WebPageId we
       get_formatted_text_object(description, true, duration == 0 ? std::numeric_limits<int32>::max() : duration),
       get_photo_object(td_->file_manager_.get(), web_page->photo_), web_page->embed_url_, web_page->embed_type_,
       web_page->embed_dimensions_.width, web_page->embed_dimensions_.height, web_page->duration_, web_page->author_,
-      web_page->has_large_media_, force_small_media, web_page->has_large_media_ && force_large_media,
+      web_page->has_large_media_, force_small_media, web_page->has_large_media_ && force_large_media, skip_confirmation,
       web_page->document_.type == Document::Type::Animation
           ? td_->animations_manager_->get_animation_object(web_page->document_.file_id)
           : nullptr,
