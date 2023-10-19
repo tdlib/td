@@ -1123,10 +1123,10 @@ class StickersManager final : public Actor {
   vector<Promise<td_api::object_ptr<td_api::emojiCategories>>> emoji_group_load_queries_[MAX_EMOJI_GROUP_TYPE];
 
   vector<CustomEmojiId> default_custom_emoji_ids_[MAX_STICKER_LIST_TYPE];
-  int64 default_custom_emoji_ids_hash_[MAX_STICKER_LIST_TYPE] = {0, 0};
+  int64 default_custom_emoji_ids_hash_[MAX_STICKER_LIST_TYPE] = {0, 0, 0};
   vector<Promise<td_api::object_ptr<td_api::stickers>>> default_custom_emoji_ids_load_queries_[MAX_STICKER_LIST_TYPE];
-  bool are_default_custom_emoji_ids_loaded_[MAX_STICKER_LIST_TYPE] = {false, false};
-  bool are_default_custom_emoji_ids_being_loaded_[MAX_STICKER_LIST_TYPE] = {false, false};
+  bool are_default_custom_emoji_ids_loaded_[MAX_STICKER_LIST_TYPE] = {false, false, false};
+  bool are_default_custom_emoji_ids_being_loaded_[MAX_STICKER_LIST_TYPE] = {false, false, false};
 
   WaitFreeHashMap<CustomEmojiId, FileId, CustomEmojiIdHash> custom_emoji_to_sticker_id_;
 

@@ -11,9 +11,9 @@
 
 namespace td {
 
-enum class StickerListType : int32 { DialogPhoto, UserProfilePhoto };
+enum class StickerListType : int32 { DialogPhoto, UserProfilePhoto, Background };
 
-static constexpr int32 MAX_STICKER_LIST_TYPE = 2;
+static constexpr int32 MAX_STICKER_LIST_TYPE = 3;
 
 string get_sticker_list_type_database_key(StickerListType sticker_list_type);
 

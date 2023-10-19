@@ -3434,6 +3434,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getDefaultChatPhotoCustomEmojiStickers>());
     } else if (op == "gdppces") {
       send_request(td_api::make_object<td_api::getDefaultProfilePhotoCustomEmojiStickers>());
+    } else if (op == "gdbces") {
+      send_request(td_api::make_object<td_api::getDefaultBackgroundCustomEmojiStickers>());
     } else if (op == "gsan") {
       send_request(td_api::make_object<td_api::getSavedAnimations>());
     } else if (op == "asan") {

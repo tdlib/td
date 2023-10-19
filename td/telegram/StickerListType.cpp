@@ -14,6 +14,8 @@ string get_sticker_list_type_database_key(StickerListType sticker_list_type) {
       return "default_dialog_photo_custom_emoji_ids";
     case StickerListType::UserProfilePhoto:
       return "default_profile_photo_custom_emoji_ids";
+    case StickerListType::Background:
+      return "default_background_custom_emoji_ids";
     default:
       UNREACHABLE();
       return string();
@@ -26,6 +28,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, StickerListType sticker
       return string_builder << "default chat photo custom emoji identifiers";
     case StickerListType::UserProfilePhoto:
       return string_builder << "default user profile photo custom emoji identifiers";
+    case StickerListType::Background:
+      return string_builder << "default background custom emoji identifiers";
     default:
       UNREACHABLE();
       return string_builder;

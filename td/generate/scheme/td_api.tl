@@ -8494,6 +8494,9 @@ getDefaultChatPhotoCustomEmojiStickers = Stickers;
 //@description Returns default list of custom emoji stickers for placing on a profile photo
 getDefaultProfilePhotoCustomEmojiStickers = Stickers;
 
+//@description Returns default list of custom emoji stickers for reply background
+getDefaultBackgroundCustomEmojiStickers = Stickers;
+
 
 //@description Returns saved animations
 getSavedAnimations = Animations;

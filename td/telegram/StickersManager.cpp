@@ -1454,6 +1454,9 @@ class GetDefaultDialogPhotoEmojisQuery final : public Td::ResultHandler {
       case StickerListType::UserProfilePhoto:
         send_query(G()->net_query_creator().create(telegram_api::account_getDefaultProfilePhotoEmojis(hash)));
         break;
+      case StickerListType::Background:
+        send_query(G()->net_query_creator().create(telegram_api::account_getDefaultBackgroundEmojis(hash)));
+        break;
       default:
         UNREACHABLE();
         break;
@@ -1462,6 +1465,9 @@ class GetDefaultDialogPhotoEmojisQuery final : public Td::ResultHandler {
 
   void on_result(BufferSlice packet) final {
     static_assert(std::is_same<telegram_api::account_getDefaultProfilePhotoEmojis::ReturnType,
+                               telegram_api::account_getDefaultGroupPhotoEmojis::ReturnType>::value,
+                  "");
+    static_assert(std::is_same<telegram_api::account_getDefaultBackgroundEmojis::ReturnType,
                                telegram_api::account_getDefaultGroupPhotoEmojis::ReturnType>::value,
                   "");
     auto result_ptr = fetch_result<telegram_api::account_getDefaultGroupPhotoEmojis>(packet);

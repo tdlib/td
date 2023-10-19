@@ -8001,6 +8001,12 @@ void Td::on_request(uint64 id, const td_api::getDefaultProfilePhotoCustomEmojiSt
   stickers_manager_->get_default_custom_emoji_stickers(StickerListType::UserProfilePhoto, false, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getDefaultBackgroundCustomEmojiStickers &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  stickers_manager_->get_default_custom_emoji_stickers(StickerListType::Background, false, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getSavedAnimations &request) {
   CHECK_IS_USER();
   CREATE_NO_ARGS_REQUEST(GetSavedAnimationsRequest);
