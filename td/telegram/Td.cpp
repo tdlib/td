@@ -1142,7 +1142,7 @@ class GetDialogBoostLinkInfoRequest final : public RequestActor<DialogBoostLinkI
       promise.set_value(std::move(dialog_boost_link_info_));
       return;
     }
-    td_->story_manager_->get_dialog_boost_link_info(url_, std::move(promise));
+    td_->boost_manager_->get_dialog_boost_link_info(url_, std::move(promise));
   }
 
   void do_set_result(DialogBoostLinkInfo &&result) final {
@@ -1150,7 +1150,7 @@ class GetDialogBoostLinkInfoRequest final : public RequestActor<DialogBoostLinkI
   }
 
   void do_send_result() final {
-    send_result(td_->story_manager_->get_chat_boost_link_info_object(dialog_boost_link_info_));
+    send_result(td_->boost_manager_->get_chat_boost_link_info_object(dialog_boost_link_info_));
   }
 
  public:
@@ -6640,17 +6640,17 @@ void Td::on_request(uint64 id, const td_api::activateStoryStealthMode &request) 
 void Td::on_request(uint64 id, const td_api::getChatBoostStatus &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  story_manager_->get_dialog_boost_status(DialogId(request.chat_id_), std::move(promise));
+  boost_manager_->get_dialog_boost_status(DialogId(request.chat_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::boostChat &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  story_manager_->boost_dialog(DialogId(request.chat_id_), std::move(promise));
+  boost_manager_->boost_dialog(DialogId(request.chat_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getChatBoostLink &request) {
-  auto r_boost_link = story_manager_->get_dialog_boost_link(DialogId(request.chat_id_));
+  auto r_boost_link = boost_manager_->get_dialog_boost_link(DialogId(request.chat_id_));
   if (r_boost_link.is_error()) {
     send_closure(actor_id(this), &Td::send_error, id, r_boost_link.move_as_error());
   } else {
@@ -6668,7 +6668,7 @@ void Td::on_request(uint64 id, td_api::getChatBoosts &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.offset_);
   CREATE_REQUEST_PROMISE();
-  story_manager_->get_dialog_boosts(DialogId(request.chat_id_), request.offset_, request.limit_, std::move(promise));
+  boost_manager_->get_dialog_boosts(DialogId(request.chat_id_), request.offset_, request.limit_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getAttachmentMenuBot &request) {

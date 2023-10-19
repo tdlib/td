@@ -7,7 +7,6 @@
 #pragma once
 
 #include "td/telegram/ChannelId.h"
-#include "td/telegram/DialogBoostLinkInfo.h"
 #include "td/telegram/DialogDate.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileId.h"
@@ -36,7 +35,6 @@
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/FlatHashSet.h"
 #include "td/utils/Promise.h"
-#include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/WaitFreeHashMap.h"
 #include "td/utils/WaitFreeHashSet.h"
@@ -268,19 +266,6 @@ class StoryManager final : public Actor {
   void report_story(StoryFullId story_full_id, ReportReason &&reason, Promise<Unit> &&promise);
 
   void activate_stealth_mode(Promise<Unit> &&promise);
-
-  void get_dialog_boost_status(DialogId dialog_id, Promise<td_api::object_ptr<td_api::chatBoostStatus>> &&promise);
-
-  void boost_dialog(DialogId dialog_id, Promise<Unit> &&promise);
-
-  Result<std::pair<string, bool>> get_dialog_boost_link(DialogId dialog_id);
-
-  void get_dialog_boost_link_info(Slice url, Promise<DialogBoostLinkInfo> &&promise);
-
-  td_api::object_ptr<td_api::chatBoostLinkInfo> get_chat_boost_link_info_object(const DialogBoostLinkInfo &info) const;
-
-  void get_dialog_boosts(DialogId dialog_id, const string &offset, int32 limit,
-                         Promise<td_api::object_ptr<td_api::foundChatBoosts>> &&promise);
 
   void remove_story_notifications_by_story_ids(DialogId dialog_id, const vector<StoryId> &story_ids);
 
