@@ -2046,8 +2046,9 @@ pageBlockSlideshow page_blocks:vector<PageBlock> caption:pageBlockCaption = Page
 //@description A link to a chat
 //@title Chat title
 //@photo Chat photo; may be null
+//@accent_color_id Identifier of the accent color for chat title and background of chat photo
 //@username Chat username by which all other information about the chat can be resolved
-pageBlockChatLink title:string photo:chatPhotoInfo username:string = PageBlock;
+pageBlockChatLink title:string photo:chatPhotoInfo accent_color_id:accentColorId username:string = PageBlock;
 
 //@description A table
 //@caption Table caption

@@ -63,6 +63,7 @@ enum class Version : int32 {
   AddDocumentFlags,
   AddUserFlags2,
   AddMessageTextFlags,
+  AddPageBlockChatLinkFlags,  // 50
   Next
 };
 
