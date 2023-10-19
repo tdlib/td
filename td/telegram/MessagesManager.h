@@ -2499,6 +2499,9 @@ class MessagesManager final : public Actor {
 
   static tl_object_ptr<td_api::MessageSchedulingState> get_message_scheduling_state_object(int32 send_date);
 
+  td_api::object_ptr<td_api::MessageContent> get_message_message_content_object(DialogId dialog_id,
+                                                                                const Message *m) const;
+
   tl_object_ptr<td_api::message> get_message_object(DialogId dialog_id, const Message *m, const char *source) const;
 
   static tl_object_ptr<td_api::messages> get_messages_object(int32 total_count,
