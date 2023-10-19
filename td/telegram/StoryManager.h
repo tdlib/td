@@ -271,10 +271,6 @@ class StoryManager final : public Actor {
 
   void get_dialog_boost_status(DialogId dialog_id, Promise<td_api::object_ptr<td_api::chatBoostStatus>> &&promise);
 
-  void can_boost_dialog(DialogId dialog_id, Promise<td_api::object_ptr<td_api::CanBoostChatResult>> &&promise);
-
-  td_api::object_ptr<td_api::CanBoostChatResult> get_can_boost_chat_result_object(const Status &error) const;
-
   void boost_dialog(DialogId dialog_id, Promise<Unit> &&promise);
 
   Result<std::pair<string, bool>> get_dialog_boost_link(DialogId dialog_id);

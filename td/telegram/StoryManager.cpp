@@ -813,26 +813,6 @@ class GetBoostsStatusQuery final : public Td::ResultHandler {
   }
 };
 
-class CanApplyBoostQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::CanBoostChatResult>> promise_;
-
- public:
-  explicit CanApplyBoostQuery(Promise<td_api::object_ptr<td_api::CanBoostChatResult>> &&promise)
-      : promise_(std::move(promise)) {
-  }
-
-  void send(DialogId dialog_id) {
-    return on_error(Status::Error(400, "Unsupported"));
-  }
-
-  void on_result(BufferSlice packet) final {
-  }
-
-  void on_error(Status status) final {
-    promise_.set_error(std::move(status));
-  }
-};
-
 class ApplyBoostQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
@@ -3022,40 +3002,6 @@ void StoryManager::get_dialog_boost_status(DialogId dialog_id,
   }
 
   td_->create_handler<GetBoostsStatusQuery>(std::move(promise))->send(dialog_id);
-}
-
-void StoryManager::can_boost_dialog(DialogId dialog_id,
-                                    Promise<td_api::object_ptr<td_api::CanBoostChatResult>> &&promise) {
-  if (!td_->messages_manager_->have_dialog_force(dialog_id, "get_dialog_boost_status")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
-  if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
-    return promise.set_error(Status::Error(400, "Can't access the chat"));
-  }
-
-  td_->create_handler<CanApplyBoostQuery>(std::move(promise))->send(dialog_id);
-}
-
-td_api::object_ptr<td_api::CanBoostChatResult> StoryManager::get_can_boost_chat_result_object(
-    const Status &error) const {
-  CHECK(error.is_error());
-  if (error.message() == "PREMIUM_ACCOUNT_REQUIRED") {
-    return td_api::make_object<td_api::canBoostChatResultPremiumNeeded>();
-  }
-  if (error.message() == "PREMIUM_GIFTED_NOT_ALLOWED") {
-    return td_api::make_object<td_api::canBoostChatResultPremiumSubscriptionNeeded>();
-  }
-  if (error.message() == "BOOST_NOT_MODIFIED") {
-    return td_api::make_object<td_api::canBoostChatResultAlreadyBoosted>();
-  }
-  if (error.message() == "PEER_ID_INVALID") {
-    return td_api::make_object<td_api::canBoostChatResultInvalidChat>();
-  }
-  auto retry_after = Global::get_retry_after(error.code(), error.message());
-  if (retry_after > 0) {
-    return td_api::make_object<td_api::canBoostChatResultWaitNeeded>(retry_after);
-  }
-  return nullptr;
 }
 
 void StoryManager::boost_dialog(DialogId dialog_id, Promise<Unit> &&promise) {
