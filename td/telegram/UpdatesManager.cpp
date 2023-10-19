@@ -54,6 +54,7 @@
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/SpecialStickerSetType.h"
 #include "td/telegram/StateManager.h"
+#include "td/telegram/StickerListType.h"
 #include "td/telegram/StickerSetId.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/StickerType.h"
@@ -2265,8 +2266,8 @@ void UpdatesManager::try_reload_data() {
   td_->stickers_manager_->reload_special_sticker_set_by_type(SpecialStickerSetType::generic_animations());
   td_->stickers_manager_->reload_special_sticker_set_by_type(SpecialStickerSetType::default_statuses());
   td_->stickers_manager_->reload_special_sticker_set_by_type(SpecialStickerSetType::default_topic_icons());
-  td_->stickers_manager_->get_default_dialog_photo_custom_emoji_stickers(false, true, Auto());
-  td_->stickers_manager_->get_default_dialog_photo_custom_emoji_stickers(true, true, Auto());
+  td_->stickers_manager_->get_default_custom_emoji_stickers(StickerListType::DialogPhoto, true, Auto());
+  td_->stickers_manager_->get_default_custom_emoji_stickers(StickerListType::UserProfilePhoto, true, Auto());
   td_->story_manager_->reload_active_stories();
   td_->story_manager_->reload_all_read_stories();
 

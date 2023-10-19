@@ -19,6 +19,7 @@
 #include "td/telegram/SecretInputMedia.h"
 #include "td/telegram/SpecialStickerSetType.h"
 #include "td/telegram/StickerFormat.h"
+#include "td/telegram/StickerListType.h"
 #include "td/telegram/StickerMaskPosition.h"
 #include "td/telegram/StickerSetId.h"
 #include "td/telegram/StickerType.h"
@@ -134,8 +135,8 @@ class StickersManager final : public Actor {
   void get_custom_emoji_stickers(vector<CustomEmojiId> custom_emoji_ids, bool use_database,
                                  Promise<td_api::object_ptr<td_api::stickers>> &&promise);
 
-  void get_default_dialog_photo_custom_emoji_stickers(bool for_user, bool force_reload,
-                                                      Promise<td_api::object_ptr<td_api::stickers>> &&promise);
+  void get_default_custom_emoji_stickers(StickerListType sticker_list_type, bool force_reload,
+                                         Promise<td_api::object_ptr<td_api::stickers>> &&promise);
 
   void get_premium_gift_option_sticker(int32 month_count, bool is_recursive,
                                        Promise<td_api::object_ptr<td_api::sticker>> &&promise);
@@ -617,15 +618,16 @@ class StickersManager final : public Actor {
 
   void on_load_custom_emoji_from_database(CustomEmojiId custom_emoji_id, string value);
 
-  void on_load_default_dialog_photo_custom_emoji_ids_from_database(bool for_user, bool force_reload, string value);
+  void on_load_default_custom_emoji_ids_from_database(StickerListType sticker_list_type, bool force_reload,
+                                                      string value);
 
-  void reload_default_dialog_photo_custom_emoji_ids(bool for_user);
+  void reload_default_custom_emoji_ids(StickerListType sticker_list_type);
 
-  void on_get_default_dialog_photo_custom_emoji_ids(
-      bool for_user, Result<telegram_api::object_ptr<telegram_api::EmojiList>> r_emoji_list);
+  void on_get_default_custom_emoji_ids(StickerListType sticker_list_type,
+                                       Result<telegram_api::object_ptr<telegram_api::EmojiList>> r_emoji_list);
 
-  void on_get_default_dialog_photo_custom_emoji_ids_success(bool for_user, vector<CustomEmojiId> custom_emoji_ids,
-                                                            int64 hash);
+  void on_get_default_custom_emoji_ids_success(StickerListType sticker_list_type,
+                                               vector<CustomEmojiId> custom_emoji_ids, int64 hash);
 
   FileId on_get_sticker(unique_ptr<Sticker> new_sticker, bool replace);
 
@@ -908,8 +910,6 @@ class StickersManager final : public Actor {
 
   static string get_emoji_language_codes_database_key(const vector<string> &language_codes);
 
-  static string get_default_dialog_photo_custom_emoji_ids_database_key(bool for_user);
-
   static string get_emoji_groups_database_key(EmojiGroupType group_type);
 
   int32 get_emoji_language_code_version(const string &language_code);
@@ -1122,11 +1122,11 @@ class StickersManager final : public Actor {
   EmojiGroupList emoji_group_list_[MAX_EMOJI_GROUP_TYPE];
   vector<Promise<td_api::object_ptr<td_api::emojiCategories>>> emoji_group_load_queries_[MAX_EMOJI_GROUP_TYPE];
 
-  vector<CustomEmojiId> default_dialog_photo_custom_emoji_ids_[2];
-  int64 default_dialog_photo_custom_emoji_ids_hash_[2] = {0, 0};
-  vector<Promise<td_api::object_ptr<td_api::stickers>>> default_dialog_photo_custom_emoji_ids_load_queries_[2];
-  bool are_default_dialog_photo_custom_emoji_ids_loaded_[2] = {false, false};
-  bool are_default_dialog_photo_custom_emoji_ids_being_loaded_[2] = {false, false};
+  vector<CustomEmojiId> default_custom_emoji_ids_[MAX_STICKER_LIST_TYPE];
+  int64 default_custom_emoji_ids_hash_[MAX_STICKER_LIST_TYPE] = {0, 0};
+  vector<Promise<td_api::object_ptr<td_api::stickers>>> default_custom_emoji_ids_load_queries_[MAX_STICKER_LIST_TYPE];
+  bool are_default_custom_emoji_ids_loaded_[MAX_STICKER_LIST_TYPE] = {false, false};
+  bool are_default_custom_emoji_ids_being_loaded_[MAX_STICKER_LIST_TYPE] = {false, false};
 
   WaitFreeHashMap<CustomEmojiId, FileId, CustomEmojiIdHash> custom_emoji_to_sticker_id_;
 

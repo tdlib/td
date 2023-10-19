@@ -472,6 +472,7 @@ set(TDLIB_SOURCE
   td/telegram/StateManager.cpp
   td/telegram/StatisticsManager.cpp
   td/telegram/StickerFormat.cpp
+  td/telegram/StickerListType.cpp
   td/telegram/StickerMaskPosition.cpp
   td/telegram/StickerPhotoSize.cpp
   td/telegram/StickerSetId.cpp
@@ -783,6 +784,7 @@ set(TDLIB_SOURCE
   td/telegram/StateManager.h
   td/telegram/StatisticsManager.h
   td/telegram/StickerFormat.h
+  td/telegram/StickerListType.h
   td/telegram/StickerMaskPosition.h
   td/telegram/StickerPhotoSize.h
   td/telegram/StickerSetId.h
