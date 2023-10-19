@@ -630,14 +630,16 @@ Promise<> UpdatesManager::set_pts(int32 pts, const char *source) {
       LOG(WARNING) << "PTS decreases from " << old_pts << " to " << pts << " from " << source;
     } else {
       LOG(INFO) << "Update PTS from " << old_pts << " to " << pts << " from " << source;
-      pts_diff_ += pts - old_pts;
-      if (pts_diff_ >= 1000000) {
-        LOG(WARNING) << "Fixed " << pts_gap_ << " PTS gaps and " << pts_fixed_short_gap_ << " short gaps by sending "
-                     << pts_short_gap_ << " requests";
-        pts_short_gap_ = 0;
-        pts_fixed_short_gap_ = 0;
-        pts_gap_ = 0;
-        pts_diff_ = 0;
+      if (old_pts > 0) {
+        pts_diff_ += pts - old_pts;
+        if (pts_diff_ >= 1000000) {
+          LOG(WARNING) << "Fixed " << pts_gap_ << " PTS gaps and " << pts_fixed_short_gap_ << " short gaps by sending "
+                       << pts_short_gap_ << " requests";
+          pts_short_gap_ = 0;
+          pts_fixed_short_gap_ = 0;
+          pts_gap_ = 0;
+          pts_diff_ = 0;
+        }
       }
     }
 
