@@ -17,6 +17,7 @@
 #include "td/telegram/BackgroundId.h"
 #include "td/telegram/BackgroundManager.h"
 #include "td/telegram/BackgroundType.h"
+#include "td/telegram/BoostManager.h"
 #include "td/telegram/BotCommand.h"
 #include "td/telegram/BotInfoManager.h"
 #include "td/telegram/BotMenuButton.h"
@@ -3272,6 +3273,8 @@ void Td::dec_actor_refcnt() {
       LOG(DEBUG) << "AutosaveManager was cleared" << timer;
       background_manager_.reset();
       LOG(DEBUG) << "BackgroundManager was cleared" << timer;
+      boost_manager_.reset();
+      LOG(DEBUG) << "BoostManager was cleared" << timer;
       bot_info_manager_.reset();
       LOG(DEBUG) << "BotInfoManager was cleared" << timer;
       callback_queries_manager_.reset();
@@ -3481,6 +3484,8 @@ void Td::clear() {
   LOG(DEBUG) << "AutosaveManager actor was cleared" << timer;
   background_manager_actor_.reset();
   LOG(DEBUG) << "BackgroundManager actor was cleared" << timer;
+  boost_manager_actor_.reset();
+  LOG(DEBUG) << "BoostManager actor was cleared" << timer;
   bot_info_manager_actor_.reset();
   LOG(DEBUG) << "BotInfoManager actor was cleared" << timer;
   contacts_manager_actor_.reset();
@@ -3966,6 +3971,9 @@ void Td::init_managers() {
   background_manager_ = make_unique<BackgroundManager>(this, create_reference());
   background_manager_actor_ = register_actor("BackgroundManager", background_manager_.get());
   G()->set_background_manager(background_manager_actor_.get());
+  boost_manager_ = make_unique<BoostManager>(this, create_reference());
+  boost_manager_actor_ = register_actor("BoostManager", boost_manager_.get());
+  G()->set_boost_manager(boost_manager_actor_.get());
   bot_info_manager_ = make_unique<BotInfoManager>(this, create_reference());
   bot_info_manager_actor_ = register_actor("BotInfoManager", bot_info_manager_.get());
   contacts_manager_ = make_unique<ContactsManager>(this, create_reference());
