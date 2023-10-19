@@ -7975,11 +7975,13 @@ void Td::on_request(uint64 id, const td_api::getCustomEmojiStickers &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::getDefaultChatPhotoCustomEmojiStickers &request) {
+  CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   stickers_manager_->get_default_dialog_photo_custom_emoji_stickers(false, false, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getDefaultProfilePhotoCustomEmojiStickers &request) {
+  CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   stickers_manager_->get_default_dialog_photo_custom_emoji_stickers(true, false, std::move(promise));
 }
