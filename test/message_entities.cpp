@@ -1223,6 +1223,7 @@ TEST(MessageEntities, is_visible_url) {
   entities.emplace_back(td::MessageEntity::Type::TextUrl, 0, 1, "telegrab.org");
   td::fix_formatted_text(str, entities, false, false, false, false, true).ensure();
   td::FormattedText text{std::move(str), std::move(entities)};
+  ASSERT_EQ(td::get_first_url(text), "telegrab.org");
   ASSERT_TRUE(!td::is_visible_url(text, "telegrab.org"));
   ASSERT_TRUE(td::is_visible_url(text, "telegram.org"));
   ASSERT_TRUE(td::is_visible_url(text, "telegran.org"));
