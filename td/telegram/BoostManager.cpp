@@ -160,7 +160,7 @@ class GetBoostsListQuery final : public Td::ResultHandler {
           }
           auto giveaway_message_id = MessageId(ServerMessageId(boost->giveaway_msg_id_));
           if (!giveaway_message_id.is_valid()) {
-            return nullptr;
+            giveaway_message_id = MessageId::min();
           }
           return td_api::make_object<td_api::chatBoostSourceGiveaway>(
               td_->contacts_manager_->get_user_id_object(user_id, "chatBoostSourceGiveaway"), boost->used_gift_slug_,
