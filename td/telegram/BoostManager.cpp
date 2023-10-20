@@ -77,8 +77,9 @@ class GetBoostsStatusQuery final : public Td::ResultHandler {
                                      giveaway->id_, giveaway->quantity_, giveaway->months_, giveaway->date_);
                                });
     promise_.set_value(td_api::make_object<td_api::chatBoostStatus>(
-        result->boost_url_, result->my_boost_, result->level_, result->boosts_, result->current_level_boosts_,
-        result->next_level_boosts_, premium_member_count, premium_member_percentage, std::move(giveaways)));
+        result->boost_url_, std::move(result->my_boost_slots_), result->level_, result->boosts_,
+        result->current_level_boosts_, result->next_level_boosts_, premium_member_count, premium_member_percentage,
+        std::move(giveaways)));
   }
 
   void on_error(Status status) final {
