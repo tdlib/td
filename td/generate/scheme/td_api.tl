@@ -3514,13 +3514,14 @@ prepaidPremiumGiveaway id:int64 user_count:int32 month_count:int32 payment_date:
 //@boost_url An HTTP URL, which can be used to boost the chat
 //@applied_slots Identifiers of boost slots of the current user applied to the chat
 //@level Current boost level of the chat
-//@boost_count The number of times the chat was boosted
+//@gift_code_boost_count The number of boosts received by the chat from created Telegram Premium gift codes and giveaways
+//@boost_count The number of boosts received by the chat
 //@current_level_boost_count The number of boosts added to reach the current level
 //@next_level_boost_count The number of boosts needed to reach the next level; 0 if the next level isn't available
 //@premium_member_count Approximate number of Telegram Premium subscribers joined the chat; always 0 if the current user isn't an administrator in the chat
 //@premium_member_percentage A percentage of Telegram Premium subscribers joined the chat; always 0 if the current user isn't an administrator in the chat
 //@prepaid_giveaways The list of prepaid giveaways available for the chat; only for chat administrators
-chatBoostStatus boost_url:string applied_slots:vector<int32> level:int32 boost_count:int32 current_level_boost_count:int32 next_level_boost_count:int32 premium_member_count:int32 premium_member_percentage:double prepaid_giveaways:vector<prepaidPremiumGiveaway> = ChatBoostStatus;
+chatBoostStatus boost_url:string applied_slots:vector<int32> level:int32 gift_code_boost_count:int32 boost_count:int32 current_level_boost_count:int32 next_level_boost_count:int32 premium_member_count:int32 premium_member_percentage:double prepaid_giveaways:vector<prepaidPremiumGiveaway> = ChatBoostStatus;
 
 //@description Describes a boost of a chat
 //@count The number of boosts applied

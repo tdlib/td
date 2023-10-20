@@ -14,6 +14,7 @@
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
+#include "td/utils/misc.h"
 #include "td/utils/SliceBuilder.h"
 
 namespace td {
@@ -76,8 +77,10 @@ class GetBoostsStatusQuery final : public Td::ResultHandler {
                                  return td_api::make_object<td_api::prepaidPremiumGiveaway>(
                                      giveaway->id_, giveaway->quantity_, giveaway->months_, giveaway->date_);
                                });
+    auto boost_count = max(0, result->boosts_);
+    auto gift_code_boost_count = clamp(result->gift_boosts_, 0, boost_count);
     promise_.set_value(td_api::make_object<td_api::chatBoostStatus>(
-        result->boost_url_, std::move(result->my_boost_slots_), result->level_, result->boosts_,
+        result->boost_url_, std::move(result->my_boost_slots_), result->level_, gift_code_boost_count, boost_count,
         result->current_level_boosts_, result->next_level_boosts_, premium_member_count, premium_member_percentage,
         std::move(giveaways)));
   }
