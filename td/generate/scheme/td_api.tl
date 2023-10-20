@@ -3484,6 +3484,25 @@ storyInfo story_id:int32 date:int32 is_for_close_friends:Bool = StoryInfo;
 chatActiveStories chat_id:int53 list:StoryList order:int53 max_read_story_id:int32 stories:vector<storyInfo> = ChatActiveStories;
 
 
+//@class ChatBoostSource @description Describes source of a chat boost
+
+//@description The chat created a Telegram Premium gift code for a user
+//@user_id Identifier of a user, for which the gift code was created
+//@gift_code The created Telegram Premium gift code, which is known only if this is a gift code for the current user, or it has already been claimed
+chatBoostSourceGiftCode user_id:int53 gift_code:string = ChatBoostSource;
+
+//@description The chat created a Telegram Premium giveaway
+//@user_id Identifier of a user that won in the giveaway; 0 if none
+//@gift_code The created Telegram Premium gift code used by the user; or an empty string if none
+//@giveaway_message_id Identifier of the corresponding giveaway message; can be an identifier of a deleted message
+//@is_unclaimed True, if the winner for the corresponding Premium subscription wasn't chosen
+chatBoostSourceGiveaway user_id:int53 gift_code:string giveaway_message_id:int53 is_unclaimed:Bool = ChatBoostSource;
+
+//@description A user with Telegram Premium subscription or gifted Telegram Premium boosted the chat
+//@user_id Identifier of the user
+chatBoostSourcePremium user_id:int53 = ChatBoostSource;
+
+
 //@description Describes a prepaid Telegram Premium giveaway
 //@id Unique identifier of the prepaid giveaway
 //@user_count Number of users which will receive Telegram Premium subscription gift codes
@@ -3503,8 +3522,12 @@ prepaidPremiumGiveaway id:int64 user_count:int32 month_count:int32 payment_date:
 //@prepaid_giveaways The list of prepaid giveaways available for the chat; only for chat administrators
 chatBoostStatus boost_url:string is_boosted:Bool level:int32 boost_count:int32 current_level_boost_count:int32 next_level_boost_count:int32 premium_member_count:int32 premium_member_percentage:double prepaid_giveaways:vector<prepaidPremiumGiveaway> = ChatBoostStatus;
 
-//@description Describes a boost of a chat @user_id Identifier of a user that boosted the chat @expiration_date Point in time (Unix timestamp) when the boost will automatically expire if the user will not prolongate their Telegram Premium subscription
-chatBoost user_id:int53 expiration_date:int32 = ChatBoost;
+//@description Describes a boost of a chat
+//@count The number of boosts applied
+//@source Source of the boost
+//@start_date Point in time (Unix timestamp) when the boost was added
+//@expiration_date Point in time (Unix timestamp) when the boost will expire
+chatBoost count:int32 source:ChatBoostSource start_date:int32 expiration_date:int32 = ChatBoost;
 
 //@description Contains a list of boosts applied to a chat @total_count Total number of boosts applied to the chat @boosts List of boosts @next_offset The offset for the next request. If empty, there are no more results
 foundChatBoosts total_count:int32 boosts:vector<chatBoost> next_offset:string = FoundChatBoosts;
