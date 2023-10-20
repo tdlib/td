@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/AccentColorId.h"
 #include "td/telegram/Photo.h"
 
 #include "td/utils/common.h"
@@ -15,6 +16,7 @@ namespace td {
 struct MinChannel {
   string title_;
   DialogPhoto photo_;
+  AccentColorId accent_color_id_;
   bool is_megagroup_ = false;
 };
 

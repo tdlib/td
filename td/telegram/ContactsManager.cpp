@@ -5788,7 +5788,14 @@ AccentColorId ContactsManager::get_chat_accent_color_id(ChatId chat_id) const {
 
 AccentColorId ContactsManager::get_channel_accent_color_id(ChannelId channel_id) const {
   auto c = get_channel(channel_id);
-  if (c == nullptr || !c->accent_color_id.is_valid()) {
+  if (c == nullptr) {
+    auto min_channel = get_min_channel(channel_id);
+    if (min_channel != nullptr && min_channel->accent_color_id_.is_valid()) {
+      return min_channel->accent_color_id_;
+    }
+    return AccentColorId(channel_id);
+  }
+  if (!c->accent_color_id.is_valid()) {
     return AccentColorId(channel_id);
   }
 
@@ -19117,6 +19124,9 @@ void ContactsManager::on_get_channel(telegram_api::channel &channel, const char 
           get_dialog_photo(td_->file_manager_.get(), DialogId(channel_id), access_hash, std::move(channel.photo_));
       if (td_->auth_manager_->is_bot()) {
         min_channel->photo_.minithumbnail.clear();
+      }
+      if ((channel.flags2_ & telegram_api::channel::COLOR_MASK) != 0) {
+        min_channel->accent_color_id_ = AccentColorId(channel.color_);
       }
       min_channel->title_ = std::move(channel.title_);
       min_channel->is_megagroup_ = is_megagroup;
