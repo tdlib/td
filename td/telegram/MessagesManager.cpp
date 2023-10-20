@@ -13040,6 +13040,7 @@ void MessagesManager::on_update_viewed_messages_timeout(DialogId dialog_id) {
   vector<MessageId> reaction_message_ids;
   vector<MessageId> views_message_ids;
   vector<MessageId> extended_media_message_ids;
+  int32 newest_message_date = 0;
   for (auto &message_it : info->message_id_to_view_id) {
     Message *m = get_message_force(d, message_it.first, "on_update_viewed_messages_timeout");
     CHECK(m != nullptr);
@@ -13056,6 +13057,9 @@ void MessagesManager::on_update_viewed_messages_timeout(DialogId dialog_id) {
       m->has_get_extended_media_query = true;
       extended_media_message_ids.push_back(m->message_id);
     }
+    if (m->date > newest_message_date) {
+      newest_message_date = m->date;
+    }
   }
 
   if (!reaction_message_ids.empty()) {
@@ -13068,7 +13072,8 @@ void MessagesManager::on_update_viewed_messages_timeout(DialogId dialog_id) {
     td_->create_handler<GetExtendedMediaQuery>()->send(dialog_id, std::move(extended_media_message_ids));
   }
 
-  update_viewed_messages_timeout_.add_timeout_in(dialog_id.get(), UPDATE_VIEWED_MESSAGES_PERIOD);
+  int divisor = 5 - min(max(G()->unix_time() - newest_message_date, 0) / UPDATE_VIEWED_MESSAGES_PERIOD, 4);
+  update_viewed_messages_timeout_.add_timeout_in(dialog_id.get(), UPDATE_VIEWED_MESSAGES_PERIOD / divisor);
 }
 
 void MessagesManager::on_send_update_chat_read_inbox_timeout(DialogId dialog_id) {
