@@ -3512,7 +3512,7 @@ prepaidPremiumGiveaway id:int64 user_count:int32 month_count:int32 payment_date:
 
 //@description Describes current boost status of a chat
 //@boost_url An HTTP URL, which can be used to boost the chat
-//@applied_slots Identifiers of boost slots of the current user applied to the chat
+//@applied_slot_ids Identifiers of boost slots of the current user applied to the chat
 //@level Current boost level of the chat
 //@gift_code_boost_count The number of boosts received by the chat from created Telegram Premium gift codes and giveaways
 //@boost_count The number of boosts received by the chat
@@ -3521,7 +3521,7 @@ prepaidPremiumGiveaway id:int64 user_count:int32 month_count:int32 payment_date:
 //@premium_member_count Approximate number of Telegram Premium subscribers joined the chat; always 0 if the current user isn't an administrator in the chat
 //@premium_member_percentage A percentage of Telegram Premium subscribers joined the chat; always 0 if the current user isn't an administrator in the chat
 //@prepaid_giveaways The list of prepaid giveaways available for the chat; only for chat administrators
-chatBoostStatus boost_url:string applied_slots:vector<int32> level:int32 gift_code_boost_count:int32 boost_count:int32 current_level_boost_count:int32 next_level_boost_count:int32 premium_member_count:int32 premium_member_percentage:double prepaid_giveaways:vector<prepaidPremiumGiveaway> = ChatBoostStatus;
+chatBoostStatus boost_url:string applied_slot_ids:vector<int32> level:int32 gift_code_boost_count:int32 boost_count:int32 current_level_boost_count:int32 next_level_boost_count:int32 premium_member_count:int32 premium_member_percentage:double prepaid_giveaways:vector<prepaidPremiumGiveaway> = ChatBoostStatus;
 
 //@description Describes a boost of a chat
 //@count The number of boosts applied
@@ -7923,8 +7923,8 @@ activateStoryStealthMode = Ok;
 //@description Returns the current boost status for a channel chat @chat_id Identifier of the channel chat
 getChatBoostStatus chat_id:int53 = ChatBoostStatus;
 
-//@description Boosts a chat @chat_id Identifier of the chat
-boostChat chat_id:int53 = Ok;
+//@description Boosts a chat @chat_id Identifier of the chat @slot_ids Identifiers of boost slots of the current user from which to apply boosts to the chat
+boostChat chat_id:int53 slot_ids:vector<int32> = Ok;
 
 //@description Returns an HTTPS link to boost the specified channel chat @chat_id Identifier of the chat
 getChatBoostLink chat_id:int53 = ChatBoostLink;

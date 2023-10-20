@@ -4373,8 +4373,9 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getChatBoostStatus>(chat_id));
     } else if (op == "bc") {
       ChatId chat_id;
-      get_args(args, chat_id);
-      send_request(td_api::make_object<td_api::boostChat>(chat_id));
+      string slot_ids;
+      get_args(args, chat_id, slot_ids);
+      send_request(td_api::make_object<td_api::boostChat>(chat_id, to_integers<int32>(slot_ids)));
     } else if (op == "gcbl") {
       ChatId chat_id;
       get_args(args, chat_id);

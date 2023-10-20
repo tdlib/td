@@ -99,12 +99,14 @@ class ApplyBoostQuery final : public Td::ResultHandler {
   explicit ApplyBoostQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id) {
+  void send(DialogId dialog_id, vector<int32> slot_ids) {
     dialog_id_ = dialog_id;
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     CHECK(input_peer != nullptr);
-    send_query(G()->net_query_creator().create(
-        telegram_api::premium_applyBoost(0, vector<int>(), std::move(input_peer)), {{dialog_id}}));
+    send_query(
+        G()->net_query_creator().create(telegram_api::premium_applyBoost(telegram_api::premium_applyBoost::SLOTS_MASK,
+                                                                         std::move(slot_ids), std::move(input_peer)),
+                                        {{dialog_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -226,15 +228,18 @@ void BoostManager::get_dialog_boost_status(DialogId dialog_id,
   td_->create_handler<GetBoostsStatusQuery>(std::move(promise))->send(dialog_id);
 }
 
-void BoostManager::boost_dialog(DialogId dialog_id, Promise<Unit> &&promise) {
+void BoostManager::boost_dialog(DialogId dialog_id, vector<int32> slot_ids, Promise<Unit> &&promise) {
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "get_dialog_boost_status")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
   if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access the chat"));
   }
+  if (slot_ids.empty()) {
+    return promise.set_value(Unit());
+  }
 
-  td_->create_handler<ApplyBoostQuery>(std::move(promise))->send(dialog_id);
+  td_->create_handler<ApplyBoostQuery>(std::move(promise))->send(dialog_id, slot_ids);
 }
 
 Result<std::pair<string, bool>> BoostManager::get_dialog_boost_link(DialogId dialog_id) {
