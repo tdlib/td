@@ -6651,7 +6651,7 @@ void Td::on_request(uint64 id, const td_api::getChatBoostStatus &request) {
 
 void Td::on_request(uint64 id, const td_api::boostChat &request) {
   CHECK_IS_USER();
-  CREATE_OK_REQUEST_PROMISE();
+  CREATE_REQUEST_PROMISE();
   boost_manager_->boost_dialog(DialogId(request.chat_id_), std::move(request.slot_ids_), std::move(promise));
 }
 

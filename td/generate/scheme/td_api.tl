@@ -7937,8 +7937,8 @@ getAvailableChatBoostSlots = ChatBoostSlots;
 //@description Returns the current boost status for a channel chat @chat_id Identifier of the channel chat
 getChatBoostStatus chat_id:int53 = ChatBoostStatus;
 
-//@description Boosts a chat @chat_id Identifier of the chat @slot_ids Identifiers of boost slots of the current user from which to apply boosts to the chat
-boostChat chat_id:int53 slot_ids:vector<int32> = Ok;
+//@description Boosts a chat and returns the list of available chat boost slots for the current user after the boost @chat_id Identifier of the chat @slot_ids Identifiers of boost slots of the current user from which to apply boosts to the chat
+boostChat chat_id:int53 slot_ids:vector<int32> = ChatBoostSlots;
 
 //@description Returns an HTTPS link to boost the specified channel chat @chat_id Identifier of the chat
 getChatBoostLink chat_id:int53 = ChatBoostLink;

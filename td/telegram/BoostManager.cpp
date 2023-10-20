@@ -155,11 +155,12 @@ class GetBoostsStatusQuery final : public Td::ResultHandler {
 };
 
 class ApplyBoostQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
+  Promise<td_api::object_ptr<td_api::chatBoostSlots>> promise_;
   DialogId dialog_id_;
 
  public:
-  explicit ApplyBoostQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit ApplyBoostQuery(Promise<td_api::object_ptr<td_api::chatBoostSlots>> &&promise)
+      : promise_(std::move(promise)) {
   }
 
   void send(DialogId dialog_id, vector<int32> slot_ids) {
@@ -178,7 +179,9 @@ class ApplyBoostQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    promise_.set_value(Unit());
+    auto result = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for ApplyBoostQuery: " << to_string(result);
+    promise_.set_value(get_chat_boost_slots_object(td_, std::move(result)));
   }
 
   void on_error(Status status) final {
@@ -295,7 +298,8 @@ void BoostManager::get_dialog_boost_status(DialogId dialog_id,
   td_->create_handler<GetBoostsStatusQuery>(std::move(promise))->send(dialog_id);
 }
 
-void BoostManager::boost_dialog(DialogId dialog_id, vector<int32> slot_ids, Promise<Unit> &&promise) {
+void BoostManager::boost_dialog(DialogId dialog_id, vector<int32> slot_ids,
+                                Promise<td_api::object_ptr<td_api::chatBoostSlots>> &&promise) {
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "get_dialog_boost_status")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
@@ -303,7 +307,7 @@ void BoostManager::boost_dialog(DialogId dialog_id, vector<int32> slot_ids, Prom
     return promise.set_error(Status::Error(400, "Can't access the chat"));
   }
   if (slot_ids.empty()) {
-    return promise.set_value(Unit());
+    return get_boost_slots(std::move(promise));
   }
 
   td_->create_handler<ApplyBoostQuery>(std::move(promise))->send(dialog_id, slot_ids);

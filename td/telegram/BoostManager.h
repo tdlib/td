@@ -28,7 +28,8 @@ class BoostManager final : public Actor {
 
   void get_dialog_boost_status(DialogId dialog_id, Promise<td_api::object_ptr<td_api::chatBoostStatus>> &&promise);
 
-  void boost_dialog(DialogId dialog_id, vector<int32> slot_ids, Promise<Unit> &&promise);
+  void boost_dialog(DialogId dialog_id, vector<int32> slot_ids,
+                    Promise<td_api::object_ptr<td_api::chatBoostSlots>> &&promise);
 
   Result<std::pair<string, bool>> get_dialog_boost_link(DialogId dialog_id);
 
