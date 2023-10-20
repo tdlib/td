@@ -34,7 +34,7 @@ class BoostManager final : public Actor {
 
   td_api::object_ptr<td_api::chatBoostLinkInfo> get_chat_boost_link_info_object(const DialogBoostLinkInfo &info) const;
 
-  void get_dialog_boosts(DialogId dialog_id, const string &offset, int32 limit,
+  void get_dialog_boosts(DialogId dialog_id, bool only_gift_codes, const string &offset, int32 limit,
                          Promise<td_api::object_ptr<td_api::foundChatBoosts>> &&promise);
 
  private:

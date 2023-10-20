@@ -7933,9 +7933,10 @@ getChatBoostLinkInfo url:string = ChatBoostLinkInfo;
 
 //@description Returns list of boosts applied to a chat. The user must be an administrator in the channel chat to get the list of boosts
 //@chat_id Identifier of the chat
+//@only_gift_codes Pass true to receive only boosts received from gift codes and giveaways created by the chat
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of boosts to be returned; up to 100. For optimal performance, the number of returned boosts can be smaller than the specified limit
-getChatBoosts chat_id:int53 offset:string limit:int32 = FoundChatBoosts;
+getChatBoosts chat_id:int53 only_gift_codes:Bool offset:string limit:int32 = FoundChatBoosts;
 
 
 //@description Returns information about a bot that can be added to attachment or side menu @bot_user_id Bot's user identifier

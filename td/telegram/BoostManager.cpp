@@ -127,10 +127,14 @@ class GetBoostsListQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, const string &offset, int32 limit) {
+  void send(DialogId dialog_id, bool only_gift_codes, const string &offset, int32 limit) {
     dialog_id_ = dialog_id;
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     CHECK(input_peer != nullptr);
+    int32 flags = 0;
+    if (only_gift_codes) {
+      flags |= telegram_api::premium_getBoostsList::GIFTS_MASK;
+    }
     send_query(G()->net_query_creator().create(
         telegram_api::premium_getBoostsList(0, false /*ignored*/, std::move(input_peer), offset, limit)));
   }
@@ -279,7 +283,7 @@ td_api::object_ptr<td_api::chatBoostLinkInfo> BoostManager::get_chat_boost_link_
       is_public, td_->messages_manager_->get_chat_id_object(dialog_id, "chatBoostLinkInfo"));
 }
 
-void BoostManager::get_dialog_boosts(DialogId dialog_id, const string &offset, int32 limit,
+void BoostManager::get_dialog_boosts(DialogId dialog_id, bool only_gift_codes, const string &offset, int32 limit,
                                      Promise<td_api::object_ptr<td_api::foundChatBoosts>> &&promise) {
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "get_dialog_boost_status")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
@@ -291,7 +295,7 @@ void BoostManager::get_dialog_boosts(DialogId dialog_id, const string &offset, i
     return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
   }
 
-  td_->create_handler<GetBoostsListQuery>(std::move(promise))->send(dialog_id, offset, limit);
+  td_->create_handler<GetBoostsListQuery>(std::move(promise))->send(dialog_id, only_gift_codes, offset, limit);
 }
 
 }  // namespace td
