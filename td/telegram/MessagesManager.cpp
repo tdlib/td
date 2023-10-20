@@ -20094,7 +20094,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
     auto &info = dialog_viewed_messages_[dialog_id];
     CHECK(info != nullptr);
     CHECK(info->message_id_to_view_id.size() == info->recently_viewed_messages.size());
-    constexpr size_t MAX_RECENTLY_VIEWED_MESSAGES = 50;
+    constexpr size_t MAX_RECENTLY_VIEWED_MESSAGES = 25;
     while (info->recently_viewed_messages.size() > MAX_RECENTLY_VIEWED_MESSAGES) {
       auto it = info->recently_viewed_messages.begin();
       info->message_id_to_view_id.erase(it->second);
