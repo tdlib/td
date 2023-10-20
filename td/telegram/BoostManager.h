@@ -24,6 +24,8 @@ class BoostManager final : public Actor {
  public:
   BoostManager(Td *td, ActorShared<> parent);
 
+  void get_boost_slots(Promise<td_api::object_ptr<td_api::chatBoostSlots>> &&promise);
+
   void get_dialog_boost_status(DialogId dialog_id, Promise<td_api::object_ptr<td_api::chatBoostStatus>> &&promise);
 
   void boost_dialog(DialogId dialog_id, vector<int32> slot_ids, Promise<Unit> &&promise);

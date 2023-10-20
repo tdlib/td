@@ -3523,15 +3523,26 @@ prepaidPremiumGiveaway id:int64 user_count:int32 month_count:int32 payment_date:
 //@prepaid_giveaways The list of prepaid giveaways available for the chat; only for chat administrators
 chatBoostStatus boost_url:string applied_slot_ids:vector<int32> level:int32 gift_code_boost_count:int32 boost_count:int32 current_level_boost_count:int32 next_level_boost_count:int32 premium_member_count:int32 premium_member_percentage:double prepaid_giveaways:vector<prepaidPremiumGiveaway> = ChatBoostStatus;
 
-//@description Describes a boost of a chat
-//@count The number of boosts applied
+//@description Describes a boost applied to a chat
+//@count The number of identical boosts applied
 //@source Source of the boost
-//@start_date Point in time (Unix timestamp) when the boost was added
+//@start_date Point in time (Unix timestamp) when the chat was boosted
 //@expiration_date Point in time (Unix timestamp) when the boost will expire
 chatBoost count:int32 source:ChatBoostSource start_date:int32 expiration_date:int32 = ChatBoost;
 
 //@description Contains a list of boosts applied to a chat @total_count Total number of boosts applied to the chat @boosts List of boosts @next_offset The offset for the next request. If empty, there are no more results
 foundChatBoosts total_count:int32 boosts:vector<chatBoost> next_offset:string = FoundChatBoosts;
+
+//@description Describes a slot for chat boost
+//@slot_id Unique identifier of the slot
+//@currently_boosted_chat_id Identifier of the currently boosted chat; 0 if none
+//@start_date Point in time (Unix timestamp) when the chat was boosted; 0 if none
+//@expiration_date Point in time (Unix timestamp) when the boost will expire
+//@cooldown_until_date Point in time (Unix timestamp) after which the boost can be used for another chat
+chatBoostSlot slot_id:int32 currently_boosted_chat_id:int53 start_date:int32 expiration_date:int32 cooldown_until_date:int32 = ChatBoostSlot;
+
+//@description Contains a list of chat boost slots @slots List of boost slots
+chatBoostSlots slots:vector<chatBoostSlot> = ChatBoostSlots;
 
 
 //@class CallDiscardReason @description Describes the reason why a call was discarded
@@ -7919,6 +7930,9 @@ reportStory story_sender_chat_id:int53 story_id:int32 reason:ReportReason text:s
 //-and for the next "story_stealth_mode_future_period" seconds; for Telegram Premium users only
 activateStoryStealthMode = Ok;
 
+
+//@description Returns the list of available chat boost slots for the current user
+getAvailableChatBoostSlots = ChatBoostSlots;
 
 //@description Returns the current boost status for a channel chat @chat_id Identifier of the channel chat
 getChatBoostStatus chat_id:int53 = ChatBoostStatus;

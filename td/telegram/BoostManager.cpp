@@ -19,6 +19,69 @@
 
 namespace td {
 
+static td_api::object_ptr<td_api::chatBoostSlots> get_chat_boost_slots_object(
+    Td *td, telegram_api::object_ptr<telegram_api::premium_myBoosts> &&my_boosts) {
+  td->contacts_manager_->on_get_users(std::move(my_boosts->users_), "GetMyBoostsQuery");
+  td->contacts_manager_->on_get_chats(std::move(my_boosts->chats_), "GetMyBoostsQuery");
+  vector<td_api::object_ptr<td_api::chatBoostSlot>> slots;
+  for (auto &my_boost : my_boosts->my_boosts_) {
+    auto expiration_date = my_boost->expires_;
+    if (expiration_date <= G()->unix_time()) {
+      continue;
+    }
+
+    auto start_date = max(0, my_boost->date_);
+    auto cooldown_until_date = max(0, my_boost->cooldown_until_date_);
+    DialogId dialog_id;
+    if (my_boost->peer_ != nullptr) {
+      dialog_id = DialogId(my_boost->peer_);
+      if (!dialog_id.is_valid()) {
+        LOG(ERROR) << "Receive " << to_string(my_boost);
+        continue;
+      }
+    }
+    if (dialog_id.is_valid()) {
+      td->messages_manager_->force_create_dialog(dialog_id, "GetMyBoostsQuery", true);
+    } else {
+      start_date = 0;
+      cooldown_until_date = 0;
+    }
+    slots.push_back(td_api::make_object<td_api::chatBoostSlot>(
+        my_boost->slot_, td->messages_manager_->get_chat_id_object(dialog_id, "GetMyBoostsQuery"), start_date,
+        expiration_date, cooldown_until_date));
+  }
+  return td_api::make_object<td_api::chatBoostSlots>(std::move(slots));
+}
+
+class GetMyBoostsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::chatBoostSlots>> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit GetMyBoostsQuery(Promise<td_api::object_ptr<td_api::chatBoostSlots>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::premium_getMyBoosts(), {{"me"}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::premium_getMyBoosts>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for GetMyBoostsQuery: " << to_string(result);
+    promise_.set_value(get_chat_boost_slots_object(td_, std::move(result)));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetBoostsStatusQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::chatBoostStatus>> promise_;
   DialogId dialog_id_;
@@ -106,7 +169,7 @@ class ApplyBoostQuery final : public Td::ResultHandler {
     send_query(
         G()->net_query_creator().create(telegram_api::premium_applyBoost(telegram_api::premium_applyBoost::SLOTS_MASK,
                                                                          std::move(slot_ids), std::move(input_peer)),
-                                        {{dialog_id}}));
+                                        {{dialog_id}, {"me"}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -214,6 +277,10 @@ BoostManager::BoostManager(Td *td, ActorShared<> parent) : td_(td), parent_(std:
 
 void BoostManager::tear_down() {
   parent_.reset();
+}
+
+void BoostManager::get_boost_slots(Promise<td_api::object_ptr<td_api::chatBoostSlots>> &&promise) {
+  td_->create_handler<GetMyBoostsQuery>(std::move(promise))->send();
 }
 
 void BoostManager::get_dialog_boost_status(DialogId dialog_id,

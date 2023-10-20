@@ -6637,6 +6637,12 @@ void Td::on_request(uint64 id, const td_api::activateStoryStealthMode &request) 
   story_manager_->activate_stealth_mode(std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getAvailableChatBoostSlots &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  boost_manager_->get_boost_slots(std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getChatBoostStatus &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
