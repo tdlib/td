@@ -13553,8 +13553,7 @@ void MessagesManager::init() {
         }
         return dialog_id;
       });
-      if (std::any_of(r_dialog_ids.begin(), r_dialog_ids.end(),
-                      [](auto &r_dialog_id) { return r_dialog_id.is_error(); })) {
+      if (any_of(r_dialog_ids, [](const auto &r_dialog_id) { return r_dialog_id.is_error(); })) {
         LOG(ERROR) << "Can't parse " << it.second;
         reload_pinned_dialogs(DialogListId(folder_id), Auto());
       } else {
@@ -13617,8 +13616,7 @@ void MessagesManager::init() {
       }
 
       auto counts = transform(full_split(Slice(it.second)), [](Slice str) { return to_integer_safe<int32>(str); });
-      if ((counts.size() != 4 && counts.size() != 6) ||
-          std::any_of(counts.begin(), counts.end(), [](auto &c) { return c.is_error(); })) {
+      if ((counts.size() != 4 && counts.size() != 6) || any_of(counts, [](const auto &c) { return c.is_error(); })) {
         LOG(ERROR) << "Can't parse " << it.second;
       } else {
         DialogListId dialog_list_id(r_dialog_list_id.ok());

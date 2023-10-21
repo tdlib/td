@@ -54,7 +54,6 @@
 #include "td/utils/Time.h"
 #include "td/utils/tl_helpers.h"
 
-#include <algorithm>
 #include <limits>
 
 namespace td {
@@ -2691,8 +2690,7 @@ bool StoryManager::has_suggested_reaction(const Story *story, const ReactionType
     return false;
   }
   CHECK(story != nullptr);
-  return std::any_of(story->areas_.begin(), story->areas_.end(),
-                     [&reaction_type](const MediaArea &area) { return area.has_reaction_type(reaction_type); });
+  return any_of(story->areas_, [&reaction_type](const auto &area) { return area.has_reaction_type(reaction_type); });
 }
 
 bool StoryManager::can_use_story_reaction(const Story *story, const ReactionType &reaction_type) const {
@@ -4664,8 +4662,7 @@ void StoryManager::get_dialogs_to_send_stories(Promise<td_api::object_ptr<td_api
         }
         return channel_id;
       });
-      if (std::any_of(r_channel_ids.begin(), r_channel_ids.end(),
-                      [](auto &r_channel_id) { return r_channel_id.is_error(); })) {
+      if (any_of(r_channel_ids, [](const auto &r_channel_id) { return r_channel_id.is_error(); })) {
         LOG(ERROR) << "Can't parse " << str;
         G()->td_db()->get_binlog_pmc()->erase(pmc_key);
       } else {
