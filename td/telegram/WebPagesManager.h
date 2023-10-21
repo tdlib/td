@@ -63,7 +63,8 @@ class WebPagesManager final : public Actor {
   bool have_web_page_force(WebPageId web_page_id);
 
   tl_object_ptr<td_api::webPage> get_web_page_object(WebPageId web_page_id, bool force_small_media,
-                                                     bool force_large_media, bool skip_confirmation) const;
+                                                     bool force_large_media, bool skip_confirmation,
+                                                     bool invert_media) const;
 
   tl_object_ptr<td_api::webPageInstantView> get_web_page_instant_view_object(WebPageId web_page_id) const;
 

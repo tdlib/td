@@ -6564,7 +6564,7 @@ void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api:
     send_closure(G()->td(), &Td::send_update,
                  td_api::make_object<td_api::updateServiceNotification>(
                      update->type_, get_message_content_object(content.get(), td_, owner_dialog_id, date,
-                                                               is_content_secret, true, -1)));
+                                                               is_content_secret, true, -1, false)));
   }
   if (has_date && is_user) {
     Dialog *d = get_service_notifications_dialog();
@@ -23981,7 +23981,8 @@ td_api::object_ptr<td_api::MessageContent> MessagesManager::get_message_message_
                                                                                                const Message *m) const {
   auto live_location_date = m->is_failed_to_send ? 0 : m->date;
   return get_message_content_object(m->content.get(), td_, dialog_id, live_location_date, m->is_content_secret,
-                                    need_skip_bot_commands(dialog_id, m), get_message_max_media_timestamp(m));
+                                    need_skip_bot_commands(dialog_id, m), get_message_max_media_timestamp(m),
+                                    m->invert_media);
 }
 
 td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_message_object(
@@ -24005,7 +24006,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_messag
   auto edit_date = m->hide_edit_date ? 0 : m->edit_date;
   auto reply_markup = get_reply_markup_object(td_->contacts_manager_.get(), m->reply_markup);
   auto content = get_message_content_object(m->content.get(), td_, dialog_id, 0, false, true,
-                                            get_message_own_max_media_timestamp(m));
+                                            get_message_own_max_media_timestamp(m), m->invert_media);
   return td_api::make_object<td_api::message>(
       m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_dialog_event_log_message_object"),
       nullptr, nullptr, m->is_outgoing, false, false, false, can_be_saved, false, false, false, false, false, false,

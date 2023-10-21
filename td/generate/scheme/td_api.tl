@@ -2087,7 +2087,7 @@ pageBlockMap location:location zoom:int32 width:int32 height:int32 caption:pageB
 webPageInstantView page_blocks:vector<PageBlock> view_count:int32 version:int32 is_rtl:Bool is_full:Bool feedback_link:InternalLinkType = WebPageInstantView;
 
 
-//@description Describes a web page preview
+//@description Describes a link preview
 //@url Original URL of the link
 //@display_url URL to display
 //@type Type of the web page. Can be: article, photo, audio, video, document, profile, app, or something else
@@ -2105,6 +2105,7 @@ webPageInstantView page_blocks:vector<PageBlock> view_count:int32 version:int32 
 //@force_small_media True, if shown media preview must be small
 //@force_large_media True, if shown media preview must be large
 //@skip_confirmation True, if there is no need to show an ordinary open URL confirmation, when opening the URL from the preview, because the URL is shown in the message text in clear
+//@show_above_text True, if the link preview must be shown above message text; otherwise, the link preview must be shown below the message text
 //@animation Preview of the content as an animation, if available; may be null
 //@audio Preview of the content as an audio file, if available; may be null
 //@document Preview of the content as a document, if available; may be null
@@ -2115,7 +2116,7 @@ webPageInstantView page_blocks:vector<PageBlock> view_count:int32 version:int32 
 //@story_sender_chat_id The identifier of the sender of the previewed story; 0 if none
 //@story_id The identifier of the previewed story; 0 if none
 //@instant_view_version Version of web page instant view (currently, can be 1 or 2); 0 if none
-webPage url:string display_url:string type:string site_name:string title:string description:formattedText photo:photo embed_url:string embed_type:string embed_width:int32 embed_height:int32 duration:int32 author:string has_large_media:Bool force_small_media:Bool force_large_media:Bool skip_confirmation:Bool animation:animation audio:audio document:document sticker:sticker video:video video_note:videoNote voice_note:voiceNote story_sender_chat_id:int53 story_id:int32 instant_view_version:int32 = WebPage;
+webPage url:string display_url:string type:string site_name:string title:string description:formattedText photo:photo embed_url:string embed_type:string embed_width:int32 embed_height:int32 duration:int32 author:string has_large_media:Bool force_small_media:Bool force_large_media:Bool skip_confirmation:Bool show_above_text:Bool animation:animation audio:audio document:document sticker:sticker video:video video_note:videoNote voice_note:voiceNote story_sender_chat_id:int53 story_id:int32 instant_view_version:int32 = WebPage;
 
 
 //@description Contains information about a country
