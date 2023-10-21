@@ -9311,8 +9311,7 @@ void ContactsManager::get_created_public_dialogs(PublicDialogType type,
         }
         return channel_id;
       });
-      if (std::any_of(r_channel_ids.begin(), r_channel_ids.end(),
-                      [](auto &r_channel_id) { return r_channel_id.is_error(); })) {
+      if (any_of(r_channel_ids, [](const auto &r_channel_id) { return r_channel_id.is_error(); })) {
         LOG(ERROR) << "Can't parse " << str;
         G()->td_db()->get_binlog_pmc()->erase(pmc_key);
       } else {

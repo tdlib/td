@@ -167,6 +167,16 @@ bool contains(const V &v, const T &value) {
 }
 
 template <class V, class F>
+bool any_of(const V &v, F &&f) {
+  for (const auto &x : v) {
+    if (f(x)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+template <class V, class F>
 bool all_of(const V &v, F &&f) {
   for (const auto &x : v) {
     if (!f(x)) {

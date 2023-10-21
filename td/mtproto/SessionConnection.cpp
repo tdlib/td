@@ -996,8 +996,7 @@ void SessionConnection::flush_packet() {
   auto to_ack = cut_tail(to_ack_message_ids_, 8192, "ack");
   MessageId ping_message_id;
 
-  bool use_quick_ack =
-      std::any_of(queries.begin(), queries.end(), [](const auto &query) { return query.use_quick_ack; });
+  bool use_quick_ack = any_of(queries, [](const auto &query) { return query.use_quick_ack; });
 
   {
     // LOG(ERROR) << (auth_data_->get_header().empty() ? '-' : '+');
