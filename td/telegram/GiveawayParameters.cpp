@@ -45,7 +45,8 @@ Result<GiveawayParameters> GiveawayParameters::get_giveaway_parameters(
     TRY_RESULT(channel_id, get_boosted_channel_id(td, DialogId(additional_chat_id)));
     additional_channel_ids.push_back(channel_id);
   }
-  if (additional_channel_ids.size() > td->option_manager_->get_option_integer("giveaway_additional_chat_count_max")) {
+  if (static_cast<int64>(additional_channel_ids.size()) >
+      td->option_manager_->get_option_integer("giveaway_additional_chat_count_max")) {
     return Status::Error(400, "Too many additional chats specified");
   }
   if (parameters->winners_selection_date_ < G()->unix_time()) {
@@ -56,7 +57,8 @@ Result<GiveawayParameters> GiveawayParameters::get_giveaway_parameters(
       return Status::Error(400, "Invalid country code specified");
     }
   }
-  if (parameters->country_codes_.size() > td->option_manager_->get_option_integer("giveaway_country_count_max")) {
+  if (static_cast<int64>(parameters->country_codes_.size()) >
+      td->option_manager_->get_option_integer("giveaway_country_count_max")) {
     return Status::Error(400, "Too many countries specified");
   }
   return GiveawayParameters(boosted_channel_id, std::move(additional_channel_ids), parameters->only_new_subscribers_,
