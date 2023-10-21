@@ -726,8 +726,37 @@ BENCH(AddToTopTd, "add_to_top td") {
   }
 }
 
+BENCH(AnyOfStd, "any_of std") {
+  td::vector<int> v;
+  for (int i = 0; i < 100; i++) {
+    v.push_back(i);
+  }
+  int res = 0;
+  for (int i = 0; i < n; i++) {
+    int rem = td::Random::fast(0, 127);
+    res += static_cast<int>(std::any_of(v.begin(), v.end(), [rem](int x) { return (x & 127) == rem; }));
+  }
+  td::do_not_optimize_away(res);
+}
+
+BENCH(AnyOfTd, "any_of td") {
+  td::vector<int> v;
+  for (int i = 0; i < 100; i++) {
+    v.push_back(i);
+  }
+  int res = 0;
+  for (int i = 0; i < n; i++) {
+    int rem = td::Random::fast(0, 127);
+    res += static_cast<int>(td::any_of(v, [rem](int x) { return (x & 127) == rem; }));
+  }
+  td::do_not_optimize_away(res);
+}
+
 int main() {
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG));
+
+  td::bench(AnyOfStdBench());
+  td::bench(AnyOfTdBench());
 
   td::bench(ToStringIntSmallBench());
   td::bench(ToStringIntBigBench());
