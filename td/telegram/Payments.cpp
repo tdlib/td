@@ -94,7 +94,7 @@ Result<InputInvoiceInfo> get_input_invoice_info(Td *td, td_api::object_ptr<td_ap
             flags |= telegram_api::inputStorePaymentPremiumGiftCode::BOOST_PEER_MASK;
           }
           auto option = telegram_api::make_object<telegram_api::premiumGiftCodeOption>(
-              0, input_users.size(), p->month_count_, string(), 0, p->currency_, p->amount_);
+              0, static_cast<int32>(input_users.size()), p->month_count_, string(), 0, p->currency_, p->amount_);
           auto purpose = telegram_api::make_object<telegram_api::inputStorePaymentPremiumGiftCode>(
               flags, std::move(input_users), std::move(boost_input_peer), p->currency_, p->amount_);
 
