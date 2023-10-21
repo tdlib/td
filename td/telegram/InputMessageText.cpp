@@ -34,12 +34,14 @@ Result<InputMessageText> process_input_message_text(const Td *td, DialogId dialo
   bool disable_web_page_preview = false;
   bool force_small_media = false;
   bool force_large_media = false;
+  bool show_above_text = false;
   if (input_message_text->link_preview_options_ != nullptr) {
     auto options = std::move(input_message_text->link_preview_options_);
     web_page_url = std::move(options->url_);
     disable_web_page_preview = options->is_disabled_;
     force_small_media = options->force_small_media_;
     force_large_media = options->force_large_media_;
+    show_above_text = options->show_above_text_;
 
     if (!clean_input_string(web_page_url)) {
       return Status::Error(400, "Link preview URL must be encoded in UTF-8");
@@ -60,8 +62,9 @@ Result<InputMessageText> process_input_message_text(const Td *td, DialogId dialo
   if (!disable_web_page_preview && web_page_url.empty() && dialog_id.get_type() == DialogType::SecretChat) {
     web_page_url = get_first_url(text);
   }
-  return InputMessageText{std::move(text),   std::move(web_page_url), disable_web_page_preview,
-                          force_small_media, force_large_media,       input_message_text->clear_draft_};
+  return InputMessageText{
+      std::move(text),   std::move(web_page_url), disable_web_page_preview,        force_small_media,
+      force_large_media, show_above_text,         input_message_text->clear_draft_};
 }
 
 void InputMessageText::add_dependencies(Dependencies &dependencies) const {
@@ -89,9 +92,9 @@ telegram_api::object_ptr<telegram_api::InputMedia> InputMessageText::get_input_m
 // used only for draft
 td_api::object_ptr<td_api::inputMessageText> InputMessageText::get_input_message_text_object() const {
   td_api::object_ptr<td_api::linkPreviewOptions> options;
-  if (!web_page_url.empty() || disable_web_page_preview || force_small_media || force_large_media) {
+  if (!web_page_url.empty() || disable_web_page_preview || force_small_media || force_large_media || show_above_text) {
     options = td_api::make_object<td_api::linkPreviewOptions>(disable_web_page_preview, web_page_url, force_small_media,
-                                                              force_large_media);
+                                                              force_large_media, show_above_text);
   }
   return td_api::make_object<td_api::inputMessageText>(get_formatted_text_object(text, false, -1), std::move(options),
                                                        clear_draft);

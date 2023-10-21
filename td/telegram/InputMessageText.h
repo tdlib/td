@@ -25,16 +25,18 @@ class InputMessageText {
   bool disable_web_page_preview = false;
   bool force_small_media = false;
   bool force_large_media = false;
+  bool show_above_text = false;
   bool clear_draft = false;
 
   InputMessageText() = default;
   InputMessageText(FormattedText text, string &&web_page_url, bool disable_web_page_preview, bool force_small_media,
-                   bool force_large_media, bool clear_draft)
+                   bool force_large_media, bool show_above_text, bool clear_draft)
       : text(std::move(text))
       , web_page_url(std::move(web_page_url))
       , disable_web_page_preview(disable_web_page_preview)
       , force_small_media(force_small_media)
       , force_large_media(force_large_media)
+      , show_above_text(show_above_text)
       , clear_draft(clear_draft) {
   }
 

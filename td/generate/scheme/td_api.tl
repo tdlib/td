@@ -2980,7 +2980,8 @@ messageCopyOptions send_copy:Bool replace_caption:Bool new_caption:formattedText
 //@url URL to use for link preview. If empty, then the first URL found in the message text will be used
 //@force_small_media True, if shown media preview must be small; ignored in secret chats or if the URL isn't explicitly specified
 //@force_large_media True, if shown media preview must be large; ignored in secret chats or if the URL isn't explicitly specified
-linkPreviewOptions is_disabled:Bool url:string force_small_media:Bool force_large_media:Bool = LinkPreviewOptions;
+//@show_above_text True, if link preview must be shown above message text; otherwise, the link preview will be shown below the message text; ignored in secret chats
+linkPreviewOptions is_disabled:Bool url:string force_small_media:Bool force_large_media:Bool show_above_text:Bool = LinkPreviewOptions;
 
 
 //@class InputMessageContent @description The content of a message to send

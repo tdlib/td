@@ -2066,6 +2066,7 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
   InlineMessageContent result;
   tl_object_ptr<telegram_api::ReplyMarkup> reply_markup;
   result.disable_web_page_preview = false;
+  result.invert_media = false;
   switch (bot_inline_message->get_id()) {
     case telegram_api::botInlineMessageText::ID: {
       auto inline_message = move_tl_object_as<telegram_api::botInlineMessageText>(bot_inline_message);
@@ -2078,6 +2079,7 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
       }
 
       result.disable_web_page_preview = inline_message->no_webpage_;
+      result.invert_media = inline_message->invert_media_;
       FormattedText text{std::move(inline_message->message_), std::move(entities)};
       WebPageId web_page_id;
       if (!result.disable_web_page_preview) {
@@ -2111,6 +2113,7 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
           std::move(text), web_page_id, inline_message->force_small_media_, inline_message->force_large_media_,
           inline_message->safe_, std::move(web_page_url));
       reply_markup = std::move(inline_message->reply_markup_);
+      result.invert_media = inline_message->invert_media_;
       break;
     }
     case telegram_api::botInlineMessageMediaInvoice::ID: {
@@ -2175,6 +2178,7 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
         LOG(WARNING) << "Unallowed bot inline message " << to_string(inline_message);
       }
 
+      result.invert_media = inline_message->invert_media_;
       reply_markup = std::move(inline_message->reply_markup_);
       break;
     }
@@ -2223,6 +2227,7 @@ static Result<InputMessageContent> create_input_message_content(
   }
 
   bool disable_web_page_preview = false;
+  bool invert_media = false;
   bool clear_draft = false;
   unique_ptr<MessageContent> content;
   UserId via_bot_user_id;
@@ -2236,6 +2241,7 @@ static Result<InputMessageContent> create_input_message_content(
                  process_input_message_text(td, dialog_id, std::move(input_message_content), is_bot));
       auto web_page_url = std::move(input_message_text.web_page_url);
       disable_web_page_preview = input_message_text.disable_web_page_preview;
+      invert_media = input_message_text.show_above_text;
       clear_draft = input_message_text.clear_draft;
 
       if (is_bot && static_cast<int64>(utf8_length(input_message_text.text.text)) >
@@ -2522,7 +2528,7 @@ static Result<InputMessageContent> create_input_message_content(
     }
   }
 
-  return InputMessageContent{std::move(content), disable_web_page_preview, clear_draft, ttl,
+  return InputMessageContent{std::move(content), disable_web_page_preview, invert_media, clear_draft, ttl,
                              via_bot_user_id,    std::move(emoji)};
 }
 

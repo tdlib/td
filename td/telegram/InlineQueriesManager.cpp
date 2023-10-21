@@ -394,6 +394,9 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
       if (input_message_text.force_large_media) {
         flags |= telegram_api::inputBotInlineMessageMediaWebPage::FORCE_LARGE_MEDIA_MASK;
       }
+      if (input_message_text.show_above_text) {
+        flags |= telegram_api::inputBotInlineMessageMediaWebPage::INVERT_MEDIA_MASK;
+      }
       if (!input_message_text.text.text.empty()) {
         flags |= telegram_api::inputBotInlineMessageMediaWebPage::OPTIONAL_MASK;
       }
@@ -408,6 +411,8 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
     }
     if (input_message_text.disable_web_page_preview) {
       flags |= telegram_api::inputBotInlineMessageText::NO_WEBPAGE_MASK;
+    } else if (input_message_text.show_above_text) {
+      flags |= telegram_api::inputBotInlineMessageText::INVERT_MEDIA_MASK;
     }
     if (!entities.empty()) {
       flags |= telegram_api::inputBotInlineMessageText::ENTITIES_MASK;

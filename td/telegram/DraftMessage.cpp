@@ -53,6 +53,10 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
       */
       if (draft_message->input_message_text_.disable_web_page_preview) {
         flags |= telegram_api::messages_saveDraft::NO_WEBPAGE_MASK;
+      } else {
+        if (draft_message->input_message_text_.show_above_text) {
+          flags |= telegram_api::messages_saveDraft::INVERT_MEDIA_MASK;
+        }
       }
       input_message_entities = get_input_message_entities(
           td_->contacts_manager_.get(), draft_message->input_message_text_.text.entities, "SaveDraftMessageQuery");
@@ -210,9 +214,9 @@ DraftMessage::DraftMessage(Td *td, telegram_api::object_ptr<telegram_api::draftM
       force_large_media = media->force_large_media_;
     }
   }
-  input_message_text_ =
-      InputMessageText(FormattedText{std::move(draft_message->message_), std::move(entities)}, std::move(web_page_url),
-                       draft_message->no_webpage_, force_small_media, force_large_media, false);
+  input_message_text_ = InputMessageText(FormattedText{std::move(draft_message->message_), std::move(entities)},
+                                         std::move(web_page_url), draft_message->no_webpage_, force_small_media,
+                                         force_large_media, draft_message->invert_media_, false);
 }
 
 Result<unique_ptr<DraftMessage>> DraftMessage::get_draft_message(

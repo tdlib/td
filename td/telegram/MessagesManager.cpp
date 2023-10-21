@@ -3665,7 +3665,7 @@ class EditMessageQuery final : public Td::ResultHandler {
 
   void send(int32 flags, DialogId dialog_id, MessageId message_id, const string &text,
             vector<tl_object_ptr<telegram_api::MessageEntity>> &&entities,
-            tl_object_ptr<telegram_api::InputMedia> &&input_media,
+            tl_object_ptr<telegram_api::InputMedia> &&input_media, bool invert_media,
             tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup, int32 schedule_date) {
     dialog_id_ = dialog_id;
     message_id_ = message_id;
@@ -3690,6 +3690,9 @@ class EditMessageQuery final : public Td::ResultHandler {
     }
     if (input_media != nullptr) {
       flags |= telegram_api::messages_editMessage::MEDIA_MASK;
+    }
+    if (invert_media) {
+      flags |= telegram_api::messages_editMessage::INVERT_MEDIA_MASK;
     }
     if (schedule_date != 0) {
       flags |= telegram_api::messages_editMessage::SCHEDULE_DATE_MASK;
@@ -3737,7 +3740,7 @@ class EditInlineMessageQuery final : public Td::ResultHandler {
 
   void send(int32 flags, tl_object_ptr<telegram_api::InputBotInlineMessageID> input_bot_inline_message_id,
             const string &text, vector<tl_object_ptr<telegram_api::MessageEntity>> &&entities,
-            tl_object_ptr<telegram_api::InputMedia> &&input_media,
+            tl_object_ptr<telegram_api::InputMedia> &&input_media, bool invert_media,
             tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup) {
     CHECK(input_bot_inline_message_id != nullptr);
 
@@ -3756,6 +3759,9 @@ class EditInlineMessageQuery final : public Td::ResultHandler {
     }
     if (input_media != nullptr) {
       flags |= telegram_api::messages_editInlineBotMessage::MEDIA_MASK;
+    }
+    if (invert_media) {
+      flags |= telegram_api::messages_editInlineBotMessage::INVERT_MEDIA_MASK;
     }
 
     auto dc_id = DcId::internal(InlineQueriesManager::get_inline_message_dc_id(input_bot_inline_message_id));
@@ -6564,7 +6570,7 @@ void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api:
     send_closure(G()->td(), &Td::send_update,
                  td_api::make_object<td_api::updateServiceNotification>(
                      update->type_, get_message_content_object(content.get(), td_, owner_dialog_id, date,
-                                                               is_content_secret, true, -1, false)));
+                                                               is_content_secret, true, -1, update->invert_media_)));
   }
   if (has_date && is_user) {
     Dialog *d = get_service_notifications_dialog();
@@ -6579,6 +6585,7 @@ void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api:
     new_message->ttl = ttl;
     new_message->disable_web_page_preview = disable_web_page_preview;
     new_message->is_content_secret = is_content_secret;
+    new_message->invert_media = update->invert_media_;
     new_message->content = std::move(content);
 
     bool need_update = true;
@@ -14453,6 +14460,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     LOG(INFO) << "Replace emoji sticker with an empty message";
     message_info.content =
         create_text_message_content("Invalid sticker", {}, WebPageId(), false, false, false, string());
+    message_info.invert_media = false;
     content_type = message_info.content->get_type();
   }
 
@@ -24228,8 +24236,8 @@ int64 MessagesManager::generate_new_random_id(const Dialog *d) {
 
 unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
     Dialog *d, MessageId top_thread_message_id, MessageInputReplyTo input_reply_to, const MessageSendOptions &options,
-    unique_ptr<MessageContent> &&content, bool suppress_reply_info, unique_ptr<MessageForwardInfo> forward_info,
-    bool is_copy, DialogId send_as_dialog_id) const {
+    unique_ptr<MessageContent> &&content, bool invert_media, bool suppress_reply_info,
+    unique_ptr<MessageForwardInfo> forward_info, bool is_copy, DialogId send_as_dialog_id) const {
   CHECK(d != nullptr);
   CHECK(content != nullptr);
 
@@ -24343,6 +24351,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
     }
   }
   m->content = std::move(content);
+  m->invert_media = invert_media;
   m->forward_info = std::move(forward_info);
   m->is_copy = is_copy || m->forward_info != nullptr;
   m->sending_id = options.sending_id;
@@ -24368,12 +24377,13 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
 
 MessagesManager::Message *MessagesManager::get_message_to_send(
     Dialog *d, MessageId top_thread_message_id, MessageInputReplyTo input_reply_to, const MessageSendOptions &options,
-    unique_ptr<MessageContent> &&content, bool *need_update_dialog_pos, bool suppress_reply_info,
+    unique_ptr<MessageContent> &&content, bool invert_media, bool *need_update_dialog_pos, bool suppress_reply_info,
     unique_ptr<MessageForwardInfo> forward_info, bool is_copy, DialogId send_as_dialog_id) {
   d->was_opened = true;
 
-  auto message = create_message_to_send(d, top_thread_message_id, input_reply_to, options, std::move(content),
-                                        suppress_reply_info, std::move(forward_info), is_copy, send_as_dialog_id);
+  auto message =
+      create_message_to_send(d, top_thread_message_id, input_reply_to, options, std::move(content), invert_media,
+                             suppress_reply_info, std::move(forward_info), is_copy, send_as_dialog_id);
 
   MessageId message_id = options.schedule_date != 0 ? get_next_yet_unsent_scheduled_message_id(d, options.schedule_date)
                                                     : get_next_yet_unsent_message_id(d);
@@ -24907,7 +24917,8 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_message(
   Message *m = get_message_to_send(d, top_thread_message_id, input_reply_to, message_send_options,
                                    dup_message_content(td_, dialog_id, message_content.content.get(),
                                                        MessageContentDupType::Send, MessageCopyOptions()),
-                                   &need_update_dialog_pos, false, nullptr, message_content.via_bot_user_id.is_valid());
+                                   message_content.invert_media, &need_update_dialog_pos, false, nullptr,
+                                   message_content.via_bot_user_id.is_valid());
   m->reply_markup = std::move(message_reply_markup);
   m->via_bot_user_id = message_content.via_bot_user_id;
   m->disable_web_page_preview = message_content.disable_web_page_preview;
@@ -24979,8 +24990,8 @@ Result<InputMessageContent> MessagesManager::process_input_message_content(
       return Status::Error(400, "Can't copy message content");
     }
 
-    return InputMessageContent(std::move(content), get_message_disable_web_page_preview(copied_message), false, 0,
-                               UserId(), copied_message->send_emoji);
+    return InputMessageContent(std::move(content), get_message_disable_web_page_preview(copied_message),
+                               copied_message->invert_media, false, 0, UserId(), copied_message->send_emoji);
   }
 
   bool is_premium = td_->option_manager_->get_option_boolean("is_premium");
@@ -25128,7 +25139,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_message_group
   TRY_STATUS(can_send_message(dialog_id));
   TRY_RESULT(message_send_options, process_message_send_options(dialog_id, std::move(options), true));
 
-  vector<std::pair<unique_ptr<MessageContent>, int32>> message_contents;
+  vector<InputMessageContent> message_contents;
   std::unordered_set<MessageContentType, MessageContentTypeHash> message_content_types;
   for (auto &input_message_content : input_message_contents) {
     TRY_RESULT(message_content, process_input_message_content(dialog_id, std::move(input_message_content)));
@@ -25139,7 +25150,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_message_group
     }
     message_content_types.insert(message_content_type);
 
-    message_contents.emplace_back(std::move(message_content.content), message_content.ttl);
+    message_contents.push_back(std::move(message_content));
   }
   if (message_content_types.size() > 1) {
     for (auto message_content_type : message_content_types) {
@@ -25167,7 +25178,8 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_message_group
     Message *m;
     if (only_preview) {
       message = create_message_to_send(d, top_thread_message_id, input_reply_to, message_send_options,
-                                       std::move(message_content.first), i != 0, nullptr, false, DialogId());
+                                       std::move(message_content.content), message_content.invert_media, i != 0,
+                                       nullptr, false, DialogId());
       MessageId new_message_id = message_send_options.schedule_date != 0
                                      ? get_next_yet_unsent_scheduled_message_id(d, message_send_options.schedule_date)
                                      : get_next_yet_unsent_message_id(d);
@@ -25175,12 +25187,12 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_message_group
       m = message.get();
     } else {
       m = get_message_to_send(d, top_thread_message_id, input_reply_to, message_send_options,
-                              dup_message_content(td_, dialog_id, message_content.first.get(),
+                              dup_message_content(td_, dialog_id, message_content.content.get(),
                                                   MessageContentDupType::Send, MessageCopyOptions()),
-                              &need_update_dialog_pos, i != 0);
+                              message_content.invert_media, &need_update_dialog_pos, i != 0);
     }
 
-    auto ttl = message_content.second;
+    auto ttl = message_content.ttl;
     if (ttl > 0) {
       m->ttl = ttl;
       m->is_content_secret = is_secret_message_content(m->ttl, m->content->get_type());
@@ -25322,7 +25334,7 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
     td_->create_handler<EditMessageQuery>(std::move(promise))
         ->send(1 << 11, dialog_id, message_id, caption == nullptr ? "" : caption->text,
                get_input_message_entities(td_->contacts_manager_.get(), caption, "edit_message_media"),
-               std::move(input_media), std::move(input_reply_markup), schedule_date);
+               std::move(input_media), m->edited_invert_media, std::move(input_reply_markup), schedule_date);
     return;
   }
 
@@ -25917,7 +25929,7 @@ Result<MessageId> MessagesManager::send_bot_start_message(UserId bot_user_id, Di
   bool need_update_dialog_pos = false;
   Message *m = get_message_to_send(
       d, MessageId(), MessageInputReplyTo(), MessageSendOptions(),
-      create_text_message_content(text, std::move(text_entities), WebPageId(), false, false, false, string()),
+      create_text_message_content(text, std::move(text_entities), WebPageId(), false, false, false, string()), false,
       &need_update_dialog_pos);
   m->is_bot_start_message = true;
 
@@ -26055,7 +26067,7 @@ Result<MessageId> MessagesManager::send_inline_query_result_message(
   Message *m = get_message_to_send(d, top_thread_message_id, input_reply_to, message_send_options,
                                    dup_message_content(td_, dialog_id, content->message_content.get(),
                                                        MessageContentDupType::SendViaBot, MessageCopyOptions()),
-                                   &need_update_dialog_pos, false, nullptr, true);
+                                   content->invert_media, &need_update_dialog_pos, false, nullptr, true);
   m->hide_via_bot = hide_via_bot;
   if (!hide_via_bot) {
     m->via_bot_user_id = td_->inline_queries_manager_->get_inline_bot_user_id(query_id);
@@ -26518,8 +26530,8 @@ void MessagesManager::edit_message_text(MessageFullId message_full_id,
       ->send(flags, dialog_id, m->message_id, input_message_text.text.text,
              get_input_message_entities(td_->contacts_manager_.get(), input_message_text.text.entities,
                                         "edit_message_text"),
-             input_message_text.get_input_media_web_page(), std::move(input_reply_markup),
-             get_message_schedule_date(m));
+             input_message_text.get_input_media_web_page(), input_message_text.show_above_text,
+             std::move(input_reply_markup), get_message_schedule_date(m));
 }
 
 void MessagesManager::edit_message_live_location(MessageFullId message_full_id,
@@ -26578,7 +26590,7 @@ void MessagesManager::edit_message_live_location(MessageFullId message_full_id,
       flags, false /*ignored*/, location.get_input_geo_point(), heading, 0, proximity_alert_radius);
   td_->create_handler<EditMessageQuery>(std::move(promise))
       ->send(0, dialog_id, m->message_id, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(),
-             std::move(input_media), std::move(input_reply_markup), get_message_schedule_date(m));
+             std::move(input_media), false, std::move(input_reply_markup), get_message_schedule_date(m));
 }
 
 void MessagesManager::cancel_edit_message_media(DialogId dialog_id, Message *m, Slice error_message) {
@@ -26589,6 +26601,7 @@ void MessagesManager::cancel_edit_message_media(DialogId dialog_id, Message *m, 
   cancel_upload_message_content_files(m->edited_content.get());
 
   m->edited_content = nullptr;
+  m->edited_invert_media = false;
   m->edited_reply_markup = nullptr;
   m->edit_generation = 0;
   m->edit_promise.set_error(Status::Error(400, error_message));
@@ -26673,6 +26686,7 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
     m->edited_schedule_date = 0;
   }
   m->edited_content = nullptr;
+  m->edited_invert_media = false;
   m->edited_reply_markup = nullptr;
   m->edit_generation = 0;
   if (result.is_ok()) {
@@ -26762,6 +26776,7 @@ void MessagesManager::edit_message_media(MessageFullId message_full_id,
   m->edited_content =
       dup_message_content(td_, dialog_id, content.content.get(), MessageContentDupType::Send, MessageCopyOptions());
   CHECK(m->edited_content != nullptr);
+  m->edited_invert_media = content.invert_media;
   m->edited_reply_markup = r_new_reply_markup.move_as_ok();
   m->edit_generation = ++current_message_edit_generation_;
   m->edit_promise = std::move(promise);
@@ -26813,7 +26828,7 @@ void MessagesManager::edit_message_caption(MessageFullId message_full_id,
   td_->create_handler<EditMessageQuery>(std::move(promise))
       ->send(1 << 11, dialog_id, m->message_id, caption.text,
              get_input_message_entities(td_->contacts_manager_.get(), caption.entities, "edit_message_caption"),
-             nullptr, std::move(input_reply_markup), get_message_schedule_date(m));
+             nullptr, m->invert_media, std::move(input_reply_markup), get_message_schedule_date(m));
 }
 
 void MessagesManager::edit_message_reply_markup(MessageFullId message_full_id,
@@ -26848,7 +26863,7 @@ void MessagesManager::edit_message_reply_markup(MessageFullId message_full_id,
   auto input_reply_markup = get_input_reply_markup(td_->contacts_manager_.get(), r_new_reply_markup.ok());
   td_->create_handler<EditMessageQuery>(std::move(promise))
       ->send(0, dialog_id, m->message_id, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(), nullptr,
-             std::move(input_reply_markup), get_message_schedule_date(m));
+             false, std::move(input_reply_markup), get_message_schedule_date(m));
 }
 
 void MessagesManager::edit_inline_message_text(const string &inline_message_id,
@@ -26890,7 +26905,7 @@ void MessagesManager::edit_inline_message_text(const string &inline_message_id,
       ->send(flags, std::move(input_bot_inline_message_id), input_message_text.text.text,
              get_input_message_entities(td_->contacts_manager_.get(), input_message_text.text.entities,
                                         "edit_inline_message_text"),
-             input_message_text.get_input_media_web_page(),
+             input_message_text.get_input_media_web_page(), input_message_text.show_above_text,
              get_input_reply_markup(td_->contacts_manager_.get(), r_new_reply_markup.ok()));
 }
 
@@ -26927,7 +26942,8 @@ void MessagesManager::edit_inline_message_live_location(const string &inline_mes
       flags, false /*ignored*/, location.get_input_geo_point(), heading, 0, proximity_alert_radius);
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
       ->send(0, std::move(input_bot_inline_message_id), "", vector<tl_object_ptr<telegram_api::MessageEntity>>(),
-             std::move(input_media), get_input_reply_markup(td_->contacts_manager_.get(), r_new_reply_markup.ok()));
+             std::move(input_media), false,
+             get_input_reply_markup(td_->contacts_manager_.get(), r_new_reply_markup.ok()));
 }
 
 void MessagesManager::edit_inline_message_media(const string &inline_message_id,
@@ -26976,7 +26992,8 @@ void MessagesManager::edit_inline_message_media(const string &inline_message_id,
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
       ->send(1 << 11, std::move(input_bot_inline_message_id), caption == nullptr ? "" : caption->text,
              get_input_message_entities(td_->contacts_manager_.get(), caption, "edit_inline_message_media"),
-             std::move(input_media), get_input_reply_markup(td_->contacts_manager_.get(), r_new_reply_markup.ok()));
+             std::move(input_media), content.invert_media,
+             get_input_reply_markup(td_->contacts_manager_.get(), r_new_reply_markup.ok()));
 }
 
 void MessagesManager::edit_inline_message_caption(const string &inline_message_id,
@@ -27005,7 +27022,7 @@ void MessagesManager::edit_inline_message_caption(const string &inline_message_i
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
       ->send(1 << 11, std::move(input_bot_inline_message_id), caption.text,
              get_input_message_entities(td_->contacts_manager_.get(), caption.entities, "edit_inline_message_caption"),
-             nullptr, get_input_reply_markup(td_->contacts_manager_.get(), r_new_reply_markup.ok()));
+             nullptr, false, get_input_reply_markup(td_->contacts_manager_.get(), r_new_reply_markup.ok()));
 }
 
 void MessagesManager::edit_inline_message_reply_markup(const string &inline_message_id,
@@ -27025,7 +27042,7 @@ void MessagesManager::edit_inline_message_reply_markup(const string &inline_mess
 
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
       ->send(0, std::move(input_bot_inline_message_id), string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(),
-             nullptr, get_input_reply_markup(td_->contacts_manager_.get(), r_new_reply_markup.ok()));
+             nullptr, false, get_input_reply_markup(td_->contacts_manager_.get(), r_new_reply_markup.ok()));
 }
 
 void MessagesManager::edit_message_scheduling_state(
@@ -27067,7 +27084,7 @@ void MessagesManager::edit_message_scheduling_state(
   if (schedule_date > 0) {
     td_->create_handler<EditMessageQuery>(std::move(promise))
         ->send(0, dialog_id, m->message_id, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(), nullptr,
-               nullptr, schedule_date);
+               false, nullptr, schedule_date);
   } else {
     td_->create_handler<SendScheduledMessageQuery>(std::move(promise))->send(dialog_id, m->message_id);
   }
@@ -27954,12 +27971,13 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
     if (is_local_copy) {
       auto original_reply_to_message_id =
           forwarded_message->reply_in_dialog_id == DialogId() ? forwarded_message->reply_to_message_id : MessageId();
-      copied_messages.push_back({std::move(content), input_reply_to, forwarded_message->message_id,
-                                 original_reply_to_message_id, std::move(reply_markup),
-                                 forwarded_message->media_album_id,
-                                 get_message_disable_web_page_preview(forwarded_message), i});
+      copied_messages.push_back(
+          {std::move(content), input_reply_to, forwarded_message->message_id, original_reply_to_message_id,
+           std::move(reply_markup), forwarded_message->media_album_id,
+           get_message_disable_web_page_preview(forwarded_message), forwarded_message->invert_media, i});
     } else {
-      forwarded_message_contents.push_back({std::move(content), forwarded_message->media_album_id, i});
+      forwarded_message_contents.push_back(
+          {std::move(content), forwarded_message->invert_media, forwarded_message->media_album_id, i});
     }
   }
   result.top_thread_message_id = top_thread_message_id;
@@ -28048,7 +28066,8 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
     if (only_preview) {
       message = create_message_to_send(
           to_dialog, top_thread_message_id, MessageInputReplyTo{reply_to_message_id}, message_send_options,
-          std::move(content), j + 1 != forwarded_message_contents.size(), std::move(forward_info), false, DialogId());
+          std::move(content), forwarded_message_contents[j].invert_media, j + 1 != forwarded_message_contents.size(),
+          std::move(forward_info), false, DialogId());
       MessageId new_message_id =
           message_send_options.schedule_date != 0
               ? get_next_yet_unsent_scheduled_message_id(to_dialog, message_send_options.schedule_date)
@@ -28057,8 +28076,9 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
       m = message.get();
     } else {
       m = get_message_to_send(to_dialog, top_thread_message_id, MessageInputReplyTo{reply_to_message_id},
-                              message_send_options, std::move(content), &need_update_dialog_pos,
-                              j + 1 != forwarded_message_contents.size(), std::move(forward_info));
+                              message_send_options, std::move(content), forwarded_message_contents[j].invert_media,
+                              &need_update_dialog_pos, j + 1 != forwarded_message_contents.size(),
+                              std::move(forward_info));
     }
     fix_forwarded_message(m, to_dialog_id, forwarded_message, forwarded_message_contents[j].media_album_id,
                           drop_author);
@@ -28109,7 +28129,8 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
     Message *m;
     if (only_preview) {
       message = create_message_to_send(to_dialog, top_thread_message_id, input_reply_to, message_send_options,
-                                       std::move(copied_message.content), false, nullptr, is_copy, DialogId());
+                                       std::move(copied_message.content), copied_message.invert_media, false, nullptr,
+                                       is_copy, DialogId());
       MessageId new_message_id =
           message_send_options.schedule_date != 0
               ? get_next_yet_unsent_scheduled_message_id(to_dialog, message_send_options.schedule_date)
@@ -28124,7 +28145,8 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
       }
 
       m = get_message_to_send(to_dialog, top_thread_message_id, input_reply_to, message_send_options,
-                              std::move(copied_message.content), &need_update_dialog_pos, false, nullptr, is_copy);
+                              std::move(copied_message.content), copied_message.invert_media, &need_update_dialog_pos,
+                              false, nullptr, is_copy);
     }
     m->disable_web_page_preview = copied_message.disable_web_page_preview;
     m->media_album_id = copied_message.media_album_id;
@@ -28248,8 +28270,8 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
                                get_message_schedule_date(message.get()), message->sending_id);
     Message *m =
         get_message_to_send(d, message->top_thread_message_id, get_message_input_reply_to(message.get()), options,
-                            std::move(new_contents[i]), &need_update_dialog_pos, false, nullptr, message->is_copy,
-                            need_another_sender ? DialogId() : get_message_sender(message.get()));
+                            std::move(new_contents[i]), message->invert_media, &need_update_dialog_pos, false, nullptr,
+                            message->is_copy, need_another_sender ? DialogId() : get_message_sender(message.get()));
     m->reply_markup = std::move(message->reply_markup);
     // m->via_bot_user_id = message->via_bot_user_id;
     m->disable_web_page_preview = message->disable_web_page_preview;
@@ -28282,7 +28304,7 @@ void MessagesManager::send_screenshot_taken_notification_message(Dialog *d) {
   if (dialog_type == DialogType::User) {
     bool need_update_dialog_pos = false;
     const Message *m = get_message_to_send(d, MessageId(), MessageInputReplyTo(), MessageSendOptions(),
-                                           create_screenshot_taken_message_content(), &need_update_dialog_pos);
+                                           create_screenshot_taken_message_content(), false, &need_update_dialog_pos);
 
     do_send_screenshot_taken_notification_message(d->dialog_id, m, 0);
 
@@ -28479,6 +28501,7 @@ Result<MessageId> MessagesManager::add_local_message(
   m->view_count = 0;
   m->forward_count = 0;
   m->content = std::move(message_content.content);
+  m->invert_media = message_content.invert_media;
   m->disable_web_page_preview = message_content.disable_web_page_preview;
   m->clear_draft = message_content.clear_draft;
   if (dialog_type == DialogType::SecretChat) {
@@ -33758,8 +33781,9 @@ void MessagesManager::set_dialog_message_ttl(DialogId dialog_id, int32 ttl, Prom
     td_->create_handler<SetHistoryTtlQuery>(std::move(promise))->send(dialog_id, ttl);
   } else {
     bool need_update_dialog_pos = false;
-    Message *m = get_message_to_send(d, MessageId(), MessageInputReplyTo(), MessageSendOptions(),
-                                     create_chat_set_ttl_message_content(ttl, UserId()), &need_update_dialog_pos);
+    Message *m =
+        get_message_to_send(d, MessageId(), MessageInputReplyTo(), MessageSendOptions(),
+                            create_chat_set_ttl_message_content(ttl, UserId()), false, &need_update_dialog_pos);
 
     send_update_new_message(d, m);
     if (need_update_dialog_pos) {

@@ -62,15 +62,17 @@ class MessageContent {
 struct InputMessageContent {
   unique_ptr<MessageContent> content;
   bool disable_web_page_preview = false;
+  bool invert_media = false;
   bool clear_draft = false;
   int32 ttl = 0;
   UserId via_bot_user_id;
   string emoji;
 
-  InputMessageContent(unique_ptr<MessageContent> &&content, bool disable_web_page_preview, bool clear_draft, int32 ttl,
-                      UserId via_bot_user_id, string emoji)
+  InputMessageContent(unique_ptr<MessageContent> &&content, bool disable_web_page_preview, bool invert_media,
+                      bool clear_draft, int32 ttl, UserId via_bot_user_id, string emoji)
       : content(std::move(content))
       , disable_web_page_preview(disable_web_page_preview)
+      , invert_media(invert_media)
       , clear_draft(clear_draft)
       , ttl(ttl)
       , via_bot_user_id(via_bot_user_id)
@@ -82,6 +84,7 @@ struct InlineMessageContent {
   unique_ptr<MessageContent> message_content;
   unique_ptr<ReplyMarkup> message_reply_markup;
   bool disable_web_page_preview;
+  bool invert_media;
 };
 
 void store_message_content(const MessageContent *content, LogEventStorerCalcLength &storer);

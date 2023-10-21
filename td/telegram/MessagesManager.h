@@ -1227,6 +1227,7 @@ class MessagesManager final : public Actor {
     unique_ptr<ReplyMarkup> reply_markup;
 
     int32 edited_schedule_date = 0;
+    bool edited_invert_media = false;
     unique_ptr<MessageContent> edited_content;
     unique_ptr<ReplyMarkup> edited_reply_markup;
     uint64 edit_generation = 0;
@@ -1798,13 +1799,13 @@ class MessagesManager final : public Actor {
 
   unique_ptr<Message> create_message_to_send(Dialog *d, MessageId top_thread_message_id,
                                              MessageInputReplyTo input_reply_to, const MessageSendOptions &options,
-                                             unique_ptr<MessageContent> &&content, bool suppress_reply_info,
-                                             unique_ptr<MessageForwardInfo> forward_info, bool is_copy,
-                                             DialogId send_as_dialog_id) const;
+                                             unique_ptr<MessageContent> &&content, bool invert_media,
+                                             bool suppress_reply_info, unique_ptr<MessageForwardInfo> forward_info,
+                                             bool is_copy, DialogId send_as_dialog_id) const;
 
   Message *get_message_to_send(Dialog *d, MessageId top_thread_message_id, MessageInputReplyTo input_reply_to,
                                const MessageSendOptions &options, unique_ptr<MessageContent> &&content,
-                               bool *need_update_dialog_pos, bool suppress_reply_info = false,
+                               bool invert_media, bool *need_update_dialog_pos, bool suppress_reply_info = false,
                                unique_ptr<MessageForwardInfo> forward_info = nullptr, bool is_copy = false,
                                DialogId sender_dialog_id = DialogId());
 
@@ -1901,12 +1902,14 @@ class MessagesManager final : public Actor {
       unique_ptr<ReplyMarkup> reply_markup;
       int64 media_album_id;
       bool disable_web_page_preview;
+      bool invert_media;
       size_t index;
     };
     vector<CopiedMessage> copied_messages;
 
     struct ForwardedMessageContent {
       unique_ptr<MessageContent> content;
+      bool invert_media;
       int64 media_album_id;
       size_t index;
     };
