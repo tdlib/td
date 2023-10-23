@@ -416,6 +416,13 @@ Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::pong
   if (info.message_id.get() < static_cast<uint64>(pong.msg_id_) - (static_cast<uint64>(15) << 32)) {
     reset_server_time_difference(info.message_id);
   }
+
+  if (sent_destroy_auth_key_ && destroy_auth_key_send_time_ < Time::now() - 60) {
+    return Status::Error(PSLICE() << "No response for destroy_auth_key for "
+                                  << (Time::now() - destroy_auth_key_send_time_) << " seconds from auth key "
+                                  << auth_data_->get_auth_key().id());
+  }
+
   last_pong_at_ = Time::now_cached();
   real_last_pong_at_ = last_pong_at_;
   return callback_->on_pong();
@@ -586,6 +593,7 @@ void SessionConnection::on_message_failed(MessageId message_id, Status status) {
   callback_->on_message_failed(message_id, std::move(status));
 
   sent_destroy_auth_key_ = false;
+  destroy_auth_key_send_time_ = 0.0;
 
   if (message_id == last_ping_message_id_ || message_id == last_ping_container_message_id_) {
     // restart ping immediately
@@ -750,6 +758,7 @@ SessionConnection::SessionConnection(Mode mode, unique_ptr<RawConnection> raw_co
     , raw_connection_(std::move(raw_connection))
     , auth_data_(auth_data) {
   CHECK(raw_connection_);
+  CHECK(auth_data_ != nullptr);
 }
 
 PollableFdInfo &SessionConnection::get_poll_info() {
@@ -960,7 +969,10 @@ void SessionConnection::flush_packet() {
     return;
   }
 
-  sent_destroy_auth_key_ |= destroy_auth_key;
+  if (destroy_auth_key && !sent_destroy_auth_key_) {
+    sent_destroy_auth_key_ = true;
+    destroy_auth_key_send_time_ = Time::now();
+  }
 
   VLOG(mtproto) << "Sent packet: " << tag("query_count", queries.size()) << tag("ack_count", to_ack_message_ids_.size())
                 << tag("ping", ping_id != 0) << tag("http_wait", max_delay >= 0)

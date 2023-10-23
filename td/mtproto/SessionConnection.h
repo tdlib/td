@@ -194,6 +194,7 @@ class SessionConnection final
 
   bool need_destroy_auth_key_ = false;
   bool sent_destroy_auth_key_ = false;
+  double destroy_auth_key_send_time_ = 0.0;
 
   double flush_packet_at_ = 0;
 
@@ -207,7 +208,7 @@ class SessionConnection final
   double created_at_ = 0;
 
   unique_ptr<RawConnection> raw_connection_;
-  AuthData *auth_data_;
+  AuthData *const auth_data_;
   SessionConnection::Callback *callback_ = nullptr;
   BufferSlice *current_buffer_slice_ = nullptr;
 
