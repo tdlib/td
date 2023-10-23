@@ -24913,12 +24913,25 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_message(
 
   // there must be no errors after get_message_to_send call
 
+  auto content = dup_message_content(td_, dialog_id, message_content.content.get(), MessageContentDupType::Send,
+                                     MessageCopyOptions());
   bool need_update_dialog_pos = false;
-  Message *m = get_message_to_send(d, top_thread_message_id, input_reply_to, message_send_options,
-                                   dup_message_content(td_, dialog_id, message_content.content.get(),
-                                                       MessageContentDupType::Send, MessageCopyOptions()),
-                                   message_content.invert_media, &need_update_dialog_pos, false, nullptr,
-                                   message_content.via_bot_user_id.is_valid());
+  unique_ptr<Message> message;
+  Message *m;
+  if (message_send_options.only_preview) {
+    message = create_message_to_send(d, top_thread_message_id, input_reply_to, message_send_options, std::move(content),
+                                     message_content.invert_media, false, nullptr,
+                                     message_content.via_bot_user_id.is_valid(), DialogId());
+    MessageId new_message_id = message_send_options.schedule_date != 0
+                                   ? get_next_yet_unsent_scheduled_message_id(d, message_send_options.schedule_date)
+                                   : get_next_yet_unsent_message_id(d);
+    message->message_id = new_message_id;
+    m = message.get();
+  } else {
+    m = get_message_to_send(d, top_thread_message_id, input_reply_to, message_send_options, std::move(content),
+                            message_content.invert_media, &need_update_dialog_pos, false, nullptr,
+                            message_content.via_bot_user_id.is_valid());
+  }
   m->reply_markup = std::move(message_reply_markup);
   m->via_bot_user_id = message_content.via_bot_user_id;
   m->disable_web_page_preview = message_content.disable_web_page_preview;
@@ -24928,6 +24941,10 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_message(
     m->is_content_secret = is_secret_message_content(m->ttl, m->content->get_type());
   }
   m->send_emoji = std::move(message_content.emoji);
+
+  if (message_send_options.only_preview) {
+    return get_message_object(dialog_id, m, "send_message");
+  }
 
   if (m->clear_draft) {
     if (top_thread_message_id.is_valid()) {
