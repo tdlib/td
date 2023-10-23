@@ -42,8 +42,6 @@ class SessionProxy final : public Actor {
 
   void update_mtproto_header();
 
-  void destroy_auth_key();
-
  private:
   unique_ptr<Callback> callback_;
   std::shared_ptr<AuthDataShared> auth_data_;

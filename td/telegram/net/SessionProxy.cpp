@@ -172,16 +172,6 @@ void SessionProxy::update_main_flag(bool is_main) {
   open_session();
 }
 
-void SessionProxy::destroy_auth_key() {
-  if (need_destroy_auth_key_) {
-    LOG(INFO) << "Ignore reduntant destroy_auth_key";
-    return;
-  }
-  need_destroy_auth_key_ = true;
-  close_session();
-  open_session();
-}
-
 void SessionProxy::on_failed() {
   if (session_generation_ != get_link_token()) {
     return;
