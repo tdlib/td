@@ -74,8 +74,7 @@ class NetQueryDispatcher {
     ActorOwn<SessionMultiProxy> download_small_session_;
     ActorOwn<SessionMultiProxy> upload_session_;
   };
-  static constexpr size_t MAX_DC_COUNT = 1000;
-  std::array<Dc, MAX_DC_COUNT> dcs_;
+  std::array<Dc, DcId::MAX_RAW_DC_ID> dcs_;
 #if TD_EMSCRIPTEN  // FIXME
   std::atomic<int32> main_dc_id_{2};
 #else
