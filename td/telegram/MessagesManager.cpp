@@ -14246,7 +14246,7 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       message_info.forward_header = std::move(message->fwd_from_);
       bool can_have_thread =
           message_info.dialog_id.get_type() == DialogType::Channel && !is_broadcast_channel(message_info.dialog_id);
-      message_info.reply_header = MessageReplyHeader(std::move(message->reply_to_), message_info.dialog_id,
+      message_info.reply_header = MessageReplyHeader(td_, std::move(message->reply_to_), message_info.dialog_id,
                                                      message_info.message_id, message_info.date, can_have_thread);
       if (message->flags_ & telegram_api::message::VIA_BOT_ID_MASK) {
         message_info.via_bot_user_id = UserId(message->via_bot_id_);
@@ -14315,7 +14315,7 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       message_info.has_unread_content = message->media_unread_;
       bool can_have_thread =
           message_info.dialog_id.get_type() == DialogType::Channel && !is_broadcast_channel(message_info.dialog_id);
-      message_info.reply_header = MessageReplyHeader(std::move(message->reply_to_), message_info.dialog_id,
+      message_info.reply_header = MessageReplyHeader(td_, std::move(message->reply_to_), message_info.dialog_id,
                                                      message_info.message_id, message_info.date, can_have_thread);
       message_info.content = get_action_message_content(td_, std::move(message->action_), message_info.dialog_id,
                                                         message_info.reply_header.reply_in_dialog_id_,
