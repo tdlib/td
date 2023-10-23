@@ -93,7 +93,7 @@ class SessionCallback final : public Session::Callback {
 
 SessionProxy::SessionProxy(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> shared_auth_data,
                            bool is_primary, bool is_main, bool allow_media_only, bool is_media, bool use_pfs,
-                           bool persist_tmp_auth_key, bool is_cdn, bool need_destroy)
+                           bool persist_tmp_auth_key, bool is_cdn, bool need_destroy_auth_key)
     : callback_(std::move(callback))
     , auth_data_(std::move(shared_auth_data))
     , is_primary_(is_primary)
@@ -103,7 +103,7 @@ SessionProxy::SessionProxy(unique_ptr<Callback> callback, std::shared_ptr<AuthDa
     , use_pfs_(use_pfs)
     , persist_tmp_auth_key_(use_pfs && persist_tmp_auth_key)
     , is_cdn_(is_cdn)
-    , need_destroy_(need_destroy) {
+    , need_destroy_auth_key_(need_destroy_auth_key) {
 }
 
 void SessionProxy::start_up() {
@@ -173,11 +173,11 @@ void SessionProxy::update_main_flag(bool is_main) {
 }
 
 void SessionProxy::destroy_auth_key() {
-  if (need_destroy_) {
+  if (need_destroy_auth_key_) {
     LOG(INFO) << "Ignore reduntant destroy_auth_key";
     return;
   }
-  need_destroy_ = true;
+  need_destroy_auth_key_ = true;
   close_session();
   open_session();
 }
@@ -215,7 +215,7 @@ void SessionProxy::open_session(bool force) {
     if (force) {
       return true;
     }
-    if (need_destroy_) {
+    if (need_destroy_auth_key_) {
       return auth_key_state_ != AuthKeyState::Empty;
     }
     if (is_main_) {
@@ -246,8 +246,8 @@ void SessionProxy::open_session(bool force) {
   session_ = create_actor<Session>(
       name,
       make_unique<SessionCallback>(actor_shared(this, session_generation_), dc_id, allow_media_only_, is_media_, hash),
-      auth_data_, raw_dc_id, int_dc_id, is_primary_, is_main_, use_pfs_, persist_tmp_auth_key_, is_cdn_, need_destroy_,
-      tmp_auth_key_, server_salts_);
+      auth_data_, raw_dc_id, int_dc_id, is_primary_, is_main_, use_pfs_, persist_tmp_auth_key_, is_cdn_,
+      need_destroy_auth_key_, tmp_auth_key_, server_salts_);
 }
 
 void SessionProxy::update_auth_key_state() {
