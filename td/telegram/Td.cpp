@@ -5582,7 +5582,7 @@ void Td::on_request(uint64 id, td_api::sendMessage &request) {
 void Td::on_request(uint64 id, td_api::sendMessageAlbum &request) {
   auto r_messages = messages_manager_->send_message_group(
       DialogId(request.chat_id_), MessageId(request.message_thread_id_), std::move(request.reply_to_),
-      std::move(request.options_), std::move(request.input_message_contents_), request.only_preview_);
+      std::move(request.options_), std::move(request.input_message_contents_));
   if (r_messages.is_error()) {
     send_closure(actor_id(this), &Td::send_error, id, r_messages.move_as_error());
   } else {
@@ -5905,8 +5905,7 @@ void Td::on_request(uint64 id, td_api::forwardMessages &request) {
                                        MessageId) { return MessageCopyOptions(send_copy, remove_caption); });
   auto r_messages = messages_manager_->forward_messages(
       DialogId(request.chat_id_), MessageId(request.message_thread_id_), DialogId(request.from_chat_id_),
-      std::move(input_message_ids), std::move(request.options_), false, std::move(message_copy_options),
-      request.only_preview_);
+      std::move(input_message_ids), std::move(request.options_), false, std::move(message_copy_options));
   if (r_messages.is_error()) {
     send_closure(actor_id(this), &Td::send_error, id, r_messages.move_as_error());
   } else {

@@ -442,8 +442,7 @@ class MessagesManager final : public Actor {
   Result<td_api::object_ptr<td_api::messages>> send_message_group(
       DialogId dialog_id, MessageId top_thread_message_id, td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
       tl_object_ptr<td_api::messageSendOptions> &&options,
-      vector<tl_object_ptr<td_api::InputMessageContent>> &&input_message_contents,
-      bool only_preview) TD_WARN_UNUSED_RESULT;
+      vector<tl_object_ptr<td_api::InputMessageContent>> &&input_message_contents) TD_WARN_UNUSED_RESULT;
 
   Result<MessageId> send_bot_start_message(UserId bot_user_id, DialogId dialog_id,
                                            const string &parameter) TD_WARN_UNUSED_RESULT;
@@ -454,12 +453,10 @@ class MessagesManager final : public Actor {
                                                      int64 query_id, const string &result_id,
                                                      bool hide_via_bot) TD_WARN_UNUSED_RESULT;
 
-  Result<td_api::object_ptr<td_api::messages>> forward_messages(DialogId to_dialog_id, MessageId top_thread_message_id,
-                                                                DialogId from_dialog_id, vector<MessageId> message_ids,
-                                                                tl_object_ptr<td_api::messageSendOptions> &&options,
-                                                                bool in_game_share,
-                                                                vector<MessageCopyOptions> &&copy_options,
-                                                                bool only_preview) TD_WARN_UNUSED_RESULT;
+  Result<td_api::object_ptr<td_api::messages>> forward_messages(
+      DialogId to_dialog_id, MessageId top_thread_message_id, DialogId from_dialog_id, vector<MessageId> message_ids,
+      tl_object_ptr<td_api::messageSendOptions> &&options, bool in_game_share,
+      vector<MessageCopyOptions> &&copy_options) TD_WARN_UNUSED_RESULT;
 
   Result<vector<MessageId>> resend_messages(DialogId dialog_id, vector<MessageId> message_ids) TD_WARN_UNUSED_RESULT;
 
@@ -1581,16 +1578,18 @@ class MessagesManager final : public Actor {
     bool from_background = false;
     bool update_stickersets_order = false;
     bool protect_content = false;
+    bool only_preview = false;
     int32 schedule_date = 0;
     int32 sending_id = 0;
 
     MessageSendOptions() = default;
     MessageSendOptions(bool disable_notification, bool from_background, bool update_stickersets_order,
-                       bool protect_content, int32 schedule_date, int32 sending_id)
+                       bool protect_content, bool only_preview, int32 schedule_date, int32 sending_id)
         : disable_notification(disable_notification)
         , from_background(from_background)
         , update_stickersets_order(update_stickersets_order)
         , protect_content(protect_content)
+        , only_preview(only_preview)
         , schedule_date(schedule_date)
         , sending_id(sending_id) {
     }

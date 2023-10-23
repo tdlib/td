@@ -2284,7 +2284,7 @@ class CliClient final : public Actor {
         chat_id, message_thread_id_, reply_to,
         td_api::make_object<td_api::messageSendOptions>(disable_notification, from_background, true, true,
                                                         as_message_scheduling_state(schedule_date_),
-                                                        Random::fast(1, 1000)),
+                                                        Random::fast(1, 1000), only_preview_),
         nullptr, std::move(input_message_content)));
     if (id != 0) {
       query_id_to_send_message_info_[id].start_time = Time::now();
@@ -2293,7 +2293,7 @@ class CliClient final : public Actor {
 
   td_api::object_ptr<td_api::messageSendOptions> default_message_send_options() const {
     return td_api::make_object<td_api::messageSendOptions>(
-        false, false, false, true, as_message_scheduling_state(schedule_date_), Random::fast(1, 1000));
+        false, false, false, true, as_message_scheduling_state(schedule_date_), Random::fast(1, 1000), only_preview_);
   }
 
   void send_get_background_url(td_api::object_ptr<td_api::BackgroundType> &&background_type) {
@@ -3711,7 +3711,7 @@ class CliClient final : public Actor {
       string message_ids;
       get_args(args, chat_id, message_ids);
       send_request(td_api::make_object<td_api::deleteMessages>(chat_id, as_message_ids(message_ids), op == "dmr"));
-    } else if (op == "fm" || op == "cm" || op == "fmp" || op == "cmp") {
+    } else if (op == "fm" || op == "cm") {
       ChatId chat_id;
       ChatId from_chat_id;
       string message_ids;
@@ -3719,7 +3719,7 @@ class CliClient final : public Actor {
       get_args(args, chat_id, from_chat_id, message_ids, message_thread_id);
       send_request(td_api::make_object<td_api::forwardMessages>(
           chat_id, message_thread_id, from_chat_id, as_message_ids(message_ids), default_message_send_options(),
-          op[0] == 'c', rand_bool(), op.back() == 'p'));
+          op[0] == 'c', rand_bool()));
     } else if (op == "resend") {
       ChatId chat_id;
       string message_ids;
@@ -4472,6 +4472,8 @@ class CliClient final : public Actor {
                                                                      as_search_messages_filter(filter)));
     } else if (op == "ssd") {
       schedule_date_ = std::move(args);
+    } else if (op == "sop") {
+      only_preview_ = as_bool(args);
     } else if (op == "smti") {
       get_args(args, message_thread_id_);
     } else if (op == "shs") {
@@ -4524,7 +4526,7 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::addLocalMessage>(
           chat_id, as_message_sender(sender_id), reply_to, false,
           td_api::make_object<td_api::inputMessageText>(as_formatted_text(message), nullptr, true)));
-    } else if (op == "smap" || op == "smapr" || op == "smapp" || op == "smaprp") {
+    } else if (op == "smap" || op == "smapr") {
       ChatId chat_id;
       InputMessageReplyTo reply_to;
       get_args(args, chat_id, args);
@@ -4538,9 +4540,8 @@ class CliClient final : public Actor {
         return content;
       });
       send_request(td_api::make_object<td_api::sendMessageAlbum>(
-          chat_id, message_thread_id_, reply_to, default_message_send_options(), std::move(input_message_contents),
-          op == "smapp" || op == "smaprp"));
-    } else if (op == "smad" || op == "smadp") {
+          chat_id, message_thread_id_, reply_to, default_message_send_options(), std::move(input_message_contents)));
+    } else if (op == "smad") {
       ChatId chat_id;
       get_args(args, chat_id, args);
       auto input_message_contents = transform(full_split(args), [](const string &document) {
@@ -4548,9 +4549,8 @@ class CliClient final : public Actor {
             td_api::make_object<td_api::inputMessageDocument>(as_input_file(document), nullptr, true, as_caption(""));
         return content;
       });
-      send_request(td_api::make_object<td_api::sendMessageAlbum>(chat_id, message_thread_id_, nullptr,
-                                                                 default_message_send_options(),
-                                                                 std::move(input_message_contents), op.back() == 'p'));
+      send_request(td_api::make_object<td_api::sendMessageAlbum>(
+          chat_id, message_thread_id_, nullptr, default_message_send_options(), std::move(input_message_contents)));
     } else if (op == "gmft") {
       auto r_message_file_head = read_file_str(args, 2 << 10);
       if (r_message_file_head.is_error()) {
@@ -6274,6 +6274,7 @@ class CliClient final : public Actor {
   int64 my_id_ = 0;
   td_api::object_ptr<td_api::AuthorizationState> authorization_state_;
   string schedule_date_;
+  bool only_preview_ = false;
   MessageThreadId message_thread_id_;
   bool has_spoiler_ = false;
   int32 message_self_destruct_time_ = 0;

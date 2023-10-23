@@ -25030,6 +25030,7 @@ Result<MessagesManager::MessageSendOptions> MessagesManager::process_message_sen
       result.update_stickersets_order = options->update_order_of_installed_sticker_sets_;
     }
     result.protect_content = options->protect_content_;
+    result.only_preview = options->only_preview_;
     TRY_RESULT_ASSIGN(result.schedule_date, get_message_schedule_date(std::move(options->scheduling_state_)));
     result.sending_id = options->sending_id_;
   }
@@ -25123,7 +25124,7 @@ int64 MessagesManager::generate_new_media_album_id() {
 Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_message_group(
     DialogId dialog_id, MessageId top_thread_message_id, td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
     tl_object_ptr<td_api::messageSendOptions> &&options,
-    vector<tl_object_ptr<td_api::InputMessageContent>> &&input_message_contents, bool only_preview) {
+    vector<tl_object_ptr<td_api::InputMessageContent>> &&input_message_contents) {
   if (input_message_contents.size() > MAX_GROUPED_MESSAGES) {
     return Status::Error(400, "Too many messages to send as an album");
   }
@@ -25176,7 +25177,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_message_group
     auto &message_content = message_contents[i];
     unique_ptr<Message> message;
     Message *m;
-    if (only_preview) {
+    if (message_send_options.only_preview) {
       message = create_message_to_send(d, top_thread_message_id, input_reply_to, message_send_options,
                                        std::move(message_content.content), message_content.invert_media, i != 0,
                                        nullptr, false, DialogId());
@@ -25201,7 +25202,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_message_group
 
     result.push_back(get_message_object(dialog_id, m, "send_message_group"));
 
-    if (!only_preview) {
+    if (!message_send_options.only_preview) {
       save_send_message_log_event(dialog_id, m);
       do_send_message(dialog_id, m);
 
@@ -25212,7 +25213,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_message_group
   }
 
   if (need_update_dialog_pos) {
-    CHECK(!only_preview);
+    CHECK(!message_send_options.only_preview);
     send_update_chat_last_message(d, "send_message_group");
   }
 
@@ -27688,7 +27689,7 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::forward_message(
   vector<MessageCopyOptions> all_copy_options;
   all_copy_options.push_back(std::move(copy_options));
   TRY_RESULT(result, forward_messages(to_dialog_id, top_thread_message_id, from_dialog_id, {message_id},
-                                      std::move(options), in_game_share, std::move(all_copy_options), false));
+                                      std::move(options), in_game_share, std::move(all_copy_options)));
   CHECK(result->messages_.size() == 1);
   if (result->messages_[0] == nullptr) {
     return Status::Error(400,
@@ -28023,14 +28024,14 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
 
 Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
     DialogId to_dialog_id, MessageId top_thread_message_id, DialogId from_dialog_id, vector<MessageId> message_ids,
-    tl_object_ptr<td_api::messageSendOptions> &&options, bool in_game_share, vector<MessageCopyOptions> &&copy_options,
-    bool only_preview) {
+    tl_object_ptr<td_api::messageSendOptions> &&options, bool in_game_share,
+    vector<MessageCopyOptions> &&copy_options) {
   TRY_RESULT(forwarded_messages_info,
              get_forwarded_messages(to_dialog_id, top_thread_message_id, from_dialog_id, message_ids,
                                     std::move(options), in_game_share, std::move(copy_options)));
   auto from_dialog = forwarded_messages_info.from_dialog;
   auto to_dialog = forwarded_messages_info.to_dialog;
-  auto message_send_options = forwarded_messages_info.message_send_options;
+  const auto message_send_options = forwarded_messages_info.message_send_options;
   auto &copied_messages = forwarded_messages_info.copied_messages;
   auto &forwarded_message_contents = forwarded_messages_info.forwarded_message_contents;
   auto drop_author = forwarded_messages_info.drop_author;
@@ -28063,7 +28064,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
 
     unique_ptr<Message> message;
     Message *m;
-    if (only_preview) {
+    if (message_send_options.only_preview) {
       message = create_message_to_send(
           to_dialog, top_thread_message_id, MessageInputReplyTo{reply_to_message_id}, message_send_options,
           std::move(content), forwarded_message_contents[j].invert_media, j + 1 != forwarded_message_contents.size(),
@@ -28087,7 +28088,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
     m->real_forward_from_message_id = message_id;
     forwarded_message_id_to_new_message_id.emplace(message_id, m->message_id);
 
-    if (!only_preview) {
+    if (!message_send_options.only_preview) {
       if (!td_->auth_manager_->is_bot()) {
         send_update_new_message(to_dialog, m);
       }
@@ -28099,7 +28100,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
   }
 
   if (!forwarded_messages.empty()) {
-    CHECK(!only_preview);
+    CHECK(!message_send_options.only_preview);
     do_forward_messages(to_dialog_id, from_dialog_id, forwarded_messages, forwarded_message_ids, drop_author,
                         drop_media_captions, 0);
   }
@@ -28127,7 +28128,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
 
     unique_ptr<Message> message;
     Message *m;
-    if (only_preview) {
+    if (message_send_options.only_preview) {
       message = create_message_to_send(to_dialog, top_thread_message_id, input_reply_to, message_send_options,
                                        std::move(copied_message.content), copied_message.invert_media, false, nullptr,
                                        is_copy, DialogId());
@@ -28153,7 +28154,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
     m->reply_markup = std::move(copied_message.reply_markup);
     forwarded_message_id_to_new_message_id[copied_message.original_message_id] = m->message_id;
 
-    if (!only_preview) {
+    if (!message_send_options.only_preview) {
       save_send_message_log_event(to_dialog_id, m);
       do_send_message(to_dialog_id, m);
       if (!td_->auth_manager_->is_bot()) {
@@ -28165,7 +28166,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
   }
 
   if (need_update_dialog_pos) {
-    CHECK(!only_preview);
+    CHECK(!message_send_options.only_preview);
     send_update_chat_last_message(to_dialog, "forward_messages");
   }
 
@@ -28266,7 +28267,7 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
     auto need_another_sender =
         message->send_error_code == 400 && message->send_error_message == CSlice("SEND_AS_PEER_INVALID");
     MessageSendOptions options(message->disable_notification, message->from_background,
-                               message->update_stickersets_order, message->noforwards,
+                               message->update_stickersets_order, message->noforwards, false,
                                get_message_schedule_date(message.get()), message->sending_id);
     Message *m =
         get_message_to_send(d, message->top_thread_message_id, get_message_input_reply_to(message.get()), options,
