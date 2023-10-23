@@ -166,7 +166,7 @@ void SessionProxy::update_main_flag(bool is_main) {
   if (is_main_ == is_main) {
     return;
   }
-  LOG(INFO) << "Update " << get_name() << " is_main to " << is_main;
+  LOG(INFO) << "Update is_main to " << is_main;
   is_main_ = is_main;
   close_session();
   open_session();
