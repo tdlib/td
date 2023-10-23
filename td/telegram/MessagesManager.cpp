@@ -8436,6 +8436,7 @@ ChatReactions MessagesManager::get_dialog_active_reactions(const Dialog *d) cons
   }
 }
 
+// affects all users
 ChatReactions MessagesManager::get_message_active_reactions(const Dialog *d, const Message *m) const {
   CHECK(d != nullptr);
   CHECK(m != nullptr);
@@ -8448,12 +8449,6 @@ ChatReactions MessagesManager::get_message_active_reactions(const Dialog *d, con
     if (d == nullptr) {
       LOG(ERROR) << "Failed to find linked " << m->forward_info->from_dialog_id
                  << " to determine correct active reactions";
-      return ChatReactions();
-    }
-  } else if (is_anonymous_administrator(dialog_id, nullptr) && !is_broadcast_channel(dialog_id)) {
-    CHECK(dialog_id.get_type() == DialogType::Channel);
-    if (!td_->contacts_manager_->get_channel_status(dialog_id.get_channel_id()).is_creator()) {
-      // only creator can react as the chat
       return ChatReactions();
     }
   }
@@ -23735,6 +23730,11 @@ ChatReactions MessagesManager::get_message_available_reactions(const Dialog *d, 
     if (td_->contacts_manager_->is_megagroup_channel(channel_id) &&
         !td_->contacts_manager_->get_channel_status(channel_id).is_member() &&
         can_send_message(d->dialog_id).is_error()) {
+      // can't use reactions if can't send messages to the group without joining
+      can_use_reactions = false;
+    } else if (is_anonymous_administrator(d->dialog_id, nullptr) && !is_broadcast_channel(d->dialog_id) &&
+               !!td_->contacts_manager_->get_channel_status(channel_id).is_creator()) {
+      // only creator can react as the chat
       can_use_reactions = false;
     }
   }
