@@ -20,8 +20,7 @@ class SessionProxy;
 class SessionMultiProxy final : public Actor {
  public:
   SessionMultiProxy(int32 session_count, std::shared_ptr<AuthDataShared> shared_auth_data, bool is_primary,
-                    bool is_main, bool use_pfs, bool allow_media_only, bool is_media, bool is_cdn,
-                    bool need_destroy_auth_key);
+                    bool is_main, bool use_pfs, bool allow_media_only, bool is_media, bool is_cdn);
   SessionMultiProxy(const SessionMultiProxy &) = delete;
   SessionMultiProxy &operator=(const SessionMultiProxy &) = delete;
   ~SessionMultiProxy() final;
