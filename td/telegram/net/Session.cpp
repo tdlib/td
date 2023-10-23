@@ -233,7 +233,7 @@ bool Session::PriorityQueue::empty() const {
 
 Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> shared_auth_data, int32 raw_dc_id,
                  int32 dc_id, bool is_primary, bool is_main, bool use_pfs, bool persist_tmp_auth_key, bool is_cdn,
-                 bool need_destroy, const mtproto::AuthKey &tmp_auth_key,
+                 bool need_destroy_auth_key, const mtproto::AuthKey &tmp_auth_key,
                  const vector<mtproto::ServerSalt> &server_salts)
     : raw_dc_id_(raw_dc_id)
     , dc_id_(dc_id)
@@ -241,9 +241,9 @@ Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> 
     , is_main_(is_main)
     , persist_tmp_auth_key_(use_pfs && persist_tmp_auth_key)
     , is_cdn_(is_cdn)
-    , need_destroy_(need_destroy) {
-  VLOG(dc) << "Start connection " << tag("need_destroy", need_destroy_);
-  if (need_destroy_) {
+    , need_destroy_auth_key_(need_destroy_auth_key) {
+  VLOG(dc) << "Start connection " << tag("need_destroy_auth_key", need_destroy_auth_key_);
+  if (need_destroy_auth_key_) {
     use_pfs = false;
     CHECK(!is_cdn);
   }
@@ -292,7 +292,7 @@ bool Session::is_high_loaded() {
 }
 
 bool Session::can_destroy_auth_key() const {
-  return need_destroy_;
+  return need_destroy_auth_key_;
 }
 
 void Session::start_up() {
@@ -635,7 +635,7 @@ void Session::on_closed(Status status) {
       auth_data_.drop_main_auth_key();
       on_auth_key_updated();
       on_session_failed(status.clone());
-    } else if (need_destroy_) {
+    } else if (need_destroy_auth_key_) {
       LOG(WARNING) << "Session connection was closed, because main auth_key has been successfully destroyed";
       auth_data_.drop_main_auth_key();
       on_auth_key_updated();
@@ -1511,7 +1511,7 @@ void Session::loop() {
   if (cached_connection_timestamp_ < now - 10) {
     cached_connection_.reset();
   }
-  if (!is_main_ && !has_queries() && !need_destroy_ && last_activity_timestamp_ < now - ACTIVITY_TIMEOUT) {
+  if (!is_main_ && !has_queries() && !need_destroy_auth_key_ && last_activity_timestamp_ < now - ACTIVITY_TIMEOUT) {
     on_session_failed(Status::OK());
   }
 
