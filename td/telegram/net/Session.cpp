@@ -590,10 +590,8 @@ Status Session::on_pong() {
           break;
         }
       }
-      if (status.is_error()) {
-        return status;
-      }
     }
+    return status;
   }
   return Status::OK();
 }
