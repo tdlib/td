@@ -240,8 +240,7 @@ void NetQueryDispatcher::destroy_auth_keys(Promise<> promise) {
   need_destroy_auth_key_ = true;
   for (size_t i = 1; i < MAX_DC_COUNT; i++) {
     if (is_dc_inited(narrow_cast<int32>(i)) && dcs_[i - 1].id_.is_internal()) {
-      send_closure_later(dcs_[i - 1].main_session_, &SessionMultiProxy::update_destroy_auth_key,
-                         need_destroy_auth_key_);
+      send_closure_later(dcs_[i - 1].main_session_, &SessionMultiProxy::destroy_auth_key);
     }
   }
   send_closure_later(dc_auth_manager_, &DcAuthManager::destroy, std::move(promise));

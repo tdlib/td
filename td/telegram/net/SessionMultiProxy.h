@@ -34,7 +34,7 @@ class SessionMultiProxy final : public Actor {
   void update_options(int32 session_count, bool use_pfs);
   void update_mtproto_header();
 
-  void update_destroy_auth_key(bool need_destroy_auth_key);
+  void destroy_auth_key();
 
  private:
   int32 session_count_ = 0;

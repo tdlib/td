@@ -37,9 +37,12 @@ class SessionProxy final : public Actor {
                bool need_destroy);
 
   void send(NetQueryPtr query);
+
   void update_main_flag(bool is_main);
+
   void update_mtproto_header();
-  void update_destroy(bool need_destroy);
+
+  void destroy_auth_key();
 
  private:
   unique_ptr<Callback> callback_;

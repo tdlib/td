@@ -61,9 +61,9 @@ void SessionMultiProxy::update_main_flag(bool is_main) {
   }
 }
 
-void SessionMultiProxy::update_destroy_auth_key(bool need_destroy_auth_key) {
-  need_destroy_auth_key_ = need_destroy_auth_key;
-  send_closure(sessions_[0].proxy, &SessionProxy::update_destroy, need_destroy_auth_key_);
+void SessionMultiProxy::destroy_auth_key() {
+  need_destroy_auth_key_ = true;
+  send_closure(sessions_[0].proxy, &SessionProxy::destroy_auth_key);
 }
 
 void SessionMultiProxy::update_session_count(int32 session_count) {
