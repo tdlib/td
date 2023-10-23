@@ -187,13 +187,14 @@ void DcAuthManager::dc_loop(DcInfo &dc) {
   }
 }
 
-void DcAuthManager::destroy(Promise<> promise) {
+void DcAuthManager::destroy(Promise<Unit> promise) {
+  need_destroy_auth_key_ = true;
   destroy_promise_ = std::move(promise);
   loop();
 }
 
 void DcAuthManager::destroy_loop() {
-  if (!destroy_promise_) {
+  if (!need_destroy_auth_key_) {
     return;
   }
   bool is_ready{true};
@@ -204,6 +205,7 @@ void DcAuthManager::destroy_loop() {
   if (is_ready) {
     VLOG(dc) << "Destroy auth keys loop is ready, all keys are destroyed";
     destroy_promise_.set_value(Unit());
+    need_destroy_auth_key_ = false;
   } else {
     VLOG(dc) << "DC is not ready for destroying auth key";
   }

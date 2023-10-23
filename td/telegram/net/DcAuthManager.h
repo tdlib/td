@@ -53,7 +53,8 @@ class DcAuthManager final : public NetQueryCallback {
   DcId main_dc_id_;
   bool need_check_authorization_is_ok_{false};
   bool close_flag_{false};
-  Promise<> destroy_promise_;
+  bool need_destroy_auth_key_{false};
+  Promise<Unit> destroy_promise_;
 
   DcInfo &get_dc(int32 dc_id);
   DcInfo *find_dc(int32 dc_id);
