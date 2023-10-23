@@ -17,8 +17,10 @@ class DcId {
  public:
   DcId() = default;
 
+  static constexpr int32 MAX_RAW_DC_ID = 1000;
+
   static bool is_valid(int32 dc_id) {
-    return 1 <= dc_id && dc_id <= 1000;
+    return 1 <= dc_id && dc_id <= MAX_RAW_DC_ID;
   }
   static DcId main() {
     return DcId{MainDc, false};

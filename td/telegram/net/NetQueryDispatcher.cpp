@@ -224,8 +224,8 @@ void NetQueryDispatcher::update_session_count() {
   std::lock_guard<std::mutex> guard(main_dc_id_mutex_);
   int32 session_count = get_session_count();
   bool use_pfs = get_use_pfs();
-  for (size_t i = 1; i < MAX_DC_COUNT; i++) {
-    if (is_dc_inited(narrow_cast<int32>(i))) {
+  for (int32 i = 1; i < DcId::MAX_RAW_DC_ID; i++) {
+    if (is_dc_inited(i)) {
       send_closure_later(dcs_[i - 1].main_session_, &SessionMultiProxy::update_options, session_count, use_pfs,
                          need_destroy_auth_key_);
       send_closure_later(dcs_[i - 1].upload_session_, &SessionMultiProxy::update_use_pfs, use_pfs);
@@ -238,8 +238,8 @@ void NetQueryDispatcher::destroy_auth_keys(Promise<> promise) {
   std::lock_guard<std::mutex> guard(main_dc_id_mutex_);
   LOG(INFO) << "Destroy auth keys";
   need_destroy_auth_key_ = true;
-  for (size_t i = 1; i < MAX_DC_COUNT; i++) {
-    if (is_dc_inited(narrow_cast<int32>(i)) && dcs_[i - 1].id_.is_internal()) {
+  for (int32 i = 1; i < DcId::MAX_RAW_DC_ID; i++) {
+    if (is_dc_inited(i) && dcs_[i - 1].id_.is_internal()) {
       send_closure_later(dcs_[i - 1].main_session_, &SessionMultiProxy::destroy_auth_key);
     }
   }
@@ -249,8 +249,8 @@ void NetQueryDispatcher::destroy_auth_keys(Promise<> promise) {
 void NetQueryDispatcher::update_use_pfs() {
   std::lock_guard<std::mutex> guard(main_dc_id_mutex_);
   bool use_pfs = get_use_pfs();
-  for (size_t i = 1; i < MAX_DC_COUNT; i++) {
-    if (is_dc_inited(narrow_cast<int32>(i))) {
+  for (int32 i = 1; i < DcId::MAX_RAW_DC_ID; i++) {
+    if (is_dc_inited(i)) {
       send_closure_later(dcs_[i - 1].main_session_, &SessionMultiProxy::update_use_pfs, use_pfs);
       send_closure_later(dcs_[i - 1].upload_session_, &SessionMultiProxy::update_use_pfs, use_pfs);
       send_closure_later(dcs_[i - 1].download_session_, &SessionMultiProxy::update_use_pfs, use_pfs);
@@ -261,8 +261,8 @@ void NetQueryDispatcher::update_use_pfs() {
 
 void NetQueryDispatcher::update_mtproto_header() {
   std::lock_guard<std::mutex> guard(main_dc_id_mutex_);
-  for (size_t i = 1; i < MAX_DC_COUNT; i++) {
-    if (is_dc_inited(narrow_cast<int32>(i))) {
+  for (int32 i = 1; i < DcId::MAX_RAW_DC_ID; i++) {
+    if (is_dc_inited(i)) {
       send_closure_later(dcs_[i - 1].main_session_, &SessionMultiProxy::update_mtproto_header);
       send_closure_later(dcs_[i - 1].upload_session_, &SessionMultiProxy::update_mtproto_header);
       send_closure_later(dcs_[i - 1].download_session_, &SessionMultiProxy::update_mtproto_header);
