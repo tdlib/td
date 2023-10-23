@@ -172,12 +172,12 @@ void SessionProxy::update_main_flag(bool is_main) {
   open_session();
 }
 
-void SessionProxy::update_destroy(bool need_destroy) {
-  if (need_destroy_ == need_destroy) {
-    LOG(INFO) << "Ignore reduntant update_destroy(" << need_destroy << ")";
+void SessionProxy::destroy_auth_key() {
+  if (need_destroy_) {
+    LOG(INFO) << "Ignore reduntant destroy_auth_key";
     return;
   }
-  need_destroy_ = need_destroy;
+  need_destroy_ = true;
   close_session();
   open_session();
 }
