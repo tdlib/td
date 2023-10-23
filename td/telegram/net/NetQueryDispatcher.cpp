@@ -235,6 +235,13 @@ void NetQueryDispatcher::update_session_count() {
   }
 }
 void NetQueryDispatcher::destroy_auth_keys(Promise<> promise) {
+  for (size_t i = 1; i < DcId::MAX_RAW_DC_ID && i <= 5; i++) {
+    auto dc_id = DcId::internal(i);
+    if (!is_dc_inited(i) && !AuthDataShared::get_auth_key_for_dc(dc_id).empty()) {
+      wait_dc_init(dc_id, true).ignore();
+    }
+  }
+
   std::lock_guard<std::mutex> guard(main_dc_id_mutex_);
   LOG(INFO) << "Destroy auth keys";
   need_destroy_auth_key_ = true;
