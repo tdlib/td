@@ -26039,7 +26039,7 @@ void MessagesManager::do_send_bot_start_message(UserId bot_user_id, DialogId dia
                                                                  std::move(input_peer), parameter, random_id);
 }
 
-Result<MessageId> MessagesManager::send_inline_query_result_message(
+Result<td_api::object_ptr<td_api::message>> MessagesManager::send_inline_query_result_message(
     DialogId dialog_id, MessageId top_thread_message_id, td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
     tl_object_ptr<td_api::messageSendOptions> &&options, int64 query_id, const string &result_id, bool hide_via_bot) {
   Dialog *d = get_dialog_force(dialog_id, "send_inline_query_result_message");
@@ -26081,11 +26081,25 @@ Result<MessageId> MessagesManager::send_inline_query_result_message(
   TRY_STATUS(can_send_message_content(dialog_id, content->message_content.get(), false, td_));
   TRY_STATUS(can_use_top_thread_message_id(d, top_thread_message_id, input_reply_to));
 
+  auto message_content = dup_message_content(td_, dialog_id, content->message_content.get(),
+                                             MessageContentDupType::SendViaBot, MessageCopyOptions());
   bool need_update_dialog_pos = false;
-  Message *m = get_message_to_send(d, top_thread_message_id, input_reply_to, message_send_options,
-                                   dup_message_content(td_, dialog_id, content->message_content.get(),
-                                                       MessageContentDupType::SendViaBot, MessageCopyOptions()),
-                                   content->invert_media, &need_update_dialog_pos, false, nullptr, true);
+  unique_ptr<Message> message;
+  Message *m;
+  if (message_send_options.only_preview) {
+    message =
+        create_message_to_send(d, top_thread_message_id, input_reply_to, message_send_options,
+                               std::move(message_content), content->invert_media, false, nullptr, true, DialogId());
+    MessageId new_message_id = message_send_options.schedule_date != 0
+                                   ? get_next_yet_unsent_scheduled_message_id(d, message_send_options.schedule_date)
+                                   : get_next_yet_unsent_message_id(d);
+    message->message_id = new_message_id;
+    m = message.get();
+  } else {
+    m = get_message_to_send(d, top_thread_message_id, input_reply_to, message_send_options, std::move(message_content),
+                            content->invert_media, &need_update_dialog_pos, false, nullptr, true);
+  }
+
   m->hide_via_bot = hide_via_bot;
   if (!hide_via_bot) {
     m->via_bot_user_id = td_->inline_queries_manager_->get_inline_bot_user_id(query_id);
@@ -26095,6 +26109,10 @@ Result<MessageId> MessagesManager::send_inline_query_result_message(
   }
   m->disable_web_page_preview = content->disable_web_page_preview;
   m->clear_draft = !hide_via_bot;
+
+  if (message_send_options.only_preview) {
+    return get_message_object(dialog_id, m, "send_inline_query_result_message");
+  }
 
   if (m->clear_draft) {
     if (top_thread_message_id.is_valid()) {
@@ -26112,13 +26130,12 @@ Result<MessageId> MessagesManager::send_inline_query_result_message(
   if (to_secret) {
     save_send_message_log_event(dialog_id, m);
     do_send_message(dialog_id, m);
-    return m->message_id;
+  } else {
+    save_send_inline_query_result_message_log_event(dialog_id, m, query_id, result_id);
+    send_closure_later(actor_id(this), &MessagesManager::do_send_inline_query_result_message, dialog_id, m->message_id,
+                       query_id, result_id);
   }
-
-  save_send_inline_query_result_message_log_event(dialog_id, m, query_id, result_id);
-  send_closure_later(actor_id(this), &MessagesManager::do_send_inline_query_result_message, dialog_id, m->message_id,
-                     query_id, result_id);
-  return m->message_id;
+  return get_message_object(dialog_id, m, "send_inline_query_result_message");
 }
 
 class MessagesManager::SendInlineQueryResultMessageLogEvent {

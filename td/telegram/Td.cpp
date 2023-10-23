@@ -5610,18 +5610,14 @@ void Td::on_request(uint64 id, td_api::sendInlineQueryResultMessage &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.result_id_);
 
-  DialogId dialog_id(request.chat_id_);
-  auto r_new_message_id = messages_manager_->send_inline_query_result_message(
-      dialog_id, MessageId(request.message_thread_id_), std::move(request.reply_to_), std::move(request.options_),
-      request.query_id_, request.result_id_, request.hide_via_bot_);
-  if (r_new_message_id.is_error()) {
-    return send_closure(actor_id(this), &Td::send_error, id, r_new_message_id.move_as_error());
+  auto r_sent_message = messages_manager_->send_inline_query_result_message(
+      DialogId(request.chat_id_), MessageId(request.message_thread_id_), std::move(request.reply_to_),
+      std::move(request.options_), request.query_id_, request.result_id_, request.hide_via_bot_);
+  if (r_sent_message.is_error()) {
+    send_closure(actor_id(this), &Td::send_error, id, r_sent_message.move_as_error());
+  } else {
+    send_closure(actor_id(this), &Td::send_result, id, r_sent_message.move_as_ok());
   }
-
-  CHECK(r_new_message_id.ok().is_valid() || r_new_message_id.ok().is_valid_scheduled());
-  send_closure(
-      actor_id(this), &Td::send_result, id,
-      messages_manager_->get_message_object({dialog_id, r_new_message_id.ok()}, "sendInlineQueryResultMessage"));
 }
 
 void Td::on_request(uint64 id, td_api::addLocalMessage &request) {

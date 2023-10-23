@@ -447,11 +447,10 @@ class MessagesManager final : public Actor {
   Result<MessageId> send_bot_start_message(UserId bot_user_id, DialogId dialog_id,
                                            const string &parameter) TD_WARN_UNUSED_RESULT;
 
-  Result<MessageId> send_inline_query_result_message(DialogId dialog_id, MessageId top_thread_message_id,
-                                                     td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
-                                                     tl_object_ptr<td_api::messageSendOptions> &&options,
-                                                     int64 query_id, const string &result_id,
-                                                     bool hide_via_bot) TD_WARN_UNUSED_RESULT;
+  Result<td_api::object_ptr<td_api::message>> send_inline_query_result_message(
+      DialogId dialog_id, MessageId top_thread_message_id, td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
+      tl_object_ptr<td_api::messageSendOptions> &&options, int64 query_id, const string &result_id,
+      bool hide_via_bot) TD_WARN_UNUSED_RESULT;
 
   Result<td_api::object_ptr<td_api::messages>> forward_messages(
       DialogId to_dialog_id, MessageId top_thread_message_id, DialogId from_dialog_id, vector<MessageId> message_ids,
