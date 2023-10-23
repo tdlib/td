@@ -2824,10 +2824,11 @@ messageGiftedPremium gifter_user_id:int53 currency:string amount:int53 cryptocur
 //@description A Telegram Premium gift code was created for the user
 //@creator_id Identifier of a chat or a user that created the gift code
 //@is_from_giveaway True, if the gift code was created for a giveaway
+//@is_unclaimed True, if the winner for the corresponding Telegram Premium subscription wasn't chosen
 //@month_count Number of month the Telegram Premium subscription will be active after code activation
 //@sticker A sticker to be shown in the message; may be null if unknown
 //@code The gift code
-messagePremiumGiftCode creator_id:MessageSender is_from_giveaway:Bool month_count:int32 sticker:sticker code:string = MessageContent;
+messagePremiumGiftCode creator_id:MessageSender is_from_giveaway:Bool is_unclaimed:Bool month_count:int32 sticker:sticker code:string = MessageContent;
 
 //@description A Telegram Premium giveaway was created for the chat
 messagePremiumGiveawayCreated = MessageContent;
@@ -3497,7 +3498,7 @@ chatBoostSourceGiftCode user_id:int53 gift_code:string = ChatBoostSource;
 //@user_id Identifier of a user that won in the giveaway; 0 if none
 //@gift_code The created Telegram Premium gift code used by the user; or an empty string if none
 //@giveaway_message_id Identifier of the corresponding giveaway message; can be an identifier of a deleted message
-//@is_unclaimed True, if the winner for the corresponding Premium subscription wasn't chosen
+//@is_unclaimed True, if the winner for the corresponding Telegram Premium subscription wasn't chosen
 chatBoostSourceGiveaway user_id:int53 gift_code:string giveaway_message_id:int53 is_unclaimed:Bool = ChatBoostSource;
 
 //@description A user with Telegram Premium subscription or gifted Telegram Premium boosted the chat

@@ -960,11 +960,16 @@ class MessageGiftCode final : public MessageContent {
   DialogId creator_dialog_id;
   int32 months = 0;
   bool via_giveaway = false;
+  bool is_unclaimed = false;
   string code;
 
   MessageGiftCode() = default;
-  MessageGiftCode(DialogId creator_dialog_id, int32 months, bool via_giveaway, string &&code)
-      : creator_dialog_id(creator_dialog_id), months(months), via_giveaway(via_giveaway), code(std::move(code)) {
+  MessageGiftCode(DialogId creator_dialog_id, int32 months, bool via_giveaway, bool is_unclaimed, string &&code)
+      : creator_dialog_id(creator_dialog_id)
+      , months(months)
+      , via_giveaway(via_giveaway || is_unclaimed)
+      , is_unclaimed(is_unclaimed)
+      , code(std::move(code)) {
   }
 
   MessageContentType get_type() const final {
@@ -1419,6 +1424,7 @@ static void store(const MessageContent *content, StorerT &storer) {
       BEGIN_STORE_FLAGS();
       STORE_FLAG(m->via_giveaway);
       STORE_FLAG(has_creator_dialog_id);
+      STORE_FLAG(m->is_unclaimed);
       END_STORE_FLAGS();
       if (has_creator_dialog_id) {
         store(m->creator_dialog_id, storer);
@@ -2006,6 +2012,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       BEGIN_PARSE_FLAGS();
       PARSE_FLAG(m->via_giveaway);
       PARSE_FLAG(has_creator_dialog_id);
+      PARSE_FLAG(m->is_unclaimed);
       END_PARSE_FLAGS();
       if (has_creator_dialog_id) {
         parse(m->creator_dialog_id, parser);
@@ -4466,7 +4473,8 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       const auto *old_ = static_cast<const MessageGiftCode *>(old_content);
       const auto *new_ = static_cast<const MessageGiftCode *>(new_content);
       if (old_->creator_dialog_id != new_->creator_dialog_id || old_->months != new_->months ||
-          old_->via_giveaway != new_->via_giveaway || old_->code != new_->code) {
+          old_->via_giveaway != new_->via_giveaway || old_->is_unclaimed != new_->is_unclaimed ||
+          old_->code != new_->code) {
         need_update = true;
       }
       break;
@@ -6089,7 +6097,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       if (dialog_id.get_type() != DialogType::User) {
         td->messages_manager_->force_create_dialog(dialog_id, "messageActionGiftCode", true);
       }
-      return td::make_unique<MessageGiftCode>(dialog_id, action->months_, action->via_giveaway_,
+      return td::make_unique<MessageGiftCode>(dialog_id, action->months_, action->via_giveaway_, action->unclaimed_,
                                               std::move(action->slug_));
     }
     default:
@@ -6451,8 +6459,8 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     case MessageContentType::GiftCode: {
       const auto *m = static_cast<const MessageGiftCode *>(content);
       return td_api::make_object<td_api::messagePremiumGiftCode>(
-          get_message_sender_object(td, m->creator_dialog_id, "messagePremiumGiftCode"), m->via_giveaway, m->months,
-          td->stickers_manager_->get_premium_gift_sticker_object(m->months), m->code);
+          get_message_sender_object(td, m->creator_dialog_id, "messagePremiumGiftCode"), m->via_giveaway,
+          m->is_unclaimed, m->months, td->stickers_manager_->get_premium_gift_sticker_object(m->months), m->code);
     }
     case MessageContentType::Giveaway: {
       const auto *m = static_cast<const MessageGiveaway *>(content);
