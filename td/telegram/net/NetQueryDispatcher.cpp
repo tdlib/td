@@ -151,7 +151,6 @@ Status NetQueryDispatcher::wait_dc_init(DcId dc_id, bool force) {
     dc.id_ = dc_id;
     decltype(common_public_rsa_key_) public_rsa_key;
     bool is_cdn = false;
-    bool need_destroy_key = false;
     if (dc_id.is_internal()) {
       public_rsa_key = common_public_rsa_key_;
     } else {
@@ -173,16 +172,16 @@ Status NetQueryDispatcher::wait_dc_init(DcId dc_id, bool force) {
     int32 main_session_scheduler_id = G()->use_sqlite_pmc() ? -1 : G()->get_database_scheduler_id();
     dc.main_session_ = create_actor_on_scheduler<SessionMultiProxy>(
         PSLICE() << "SessionMultiProxy:" << raw_dc_id << ":main", main_session_scheduler_id, session_count, auth_data,
-        true, raw_dc_id == main_dc_id_, use_pfs, false, false, is_cdn, need_destroy_key);
+        true, raw_dc_id == main_dc_id_, use_pfs, false, false, is_cdn);
     dc.upload_session_ = create_actor_on_scheduler<SessionMultiProxy>(
         PSLICE() << "SessionMultiProxy:" << raw_dc_id << ":upload", slow_net_scheduler_id, upload_session_count,
-        auth_data, false, false, use_pfs, false, true, is_cdn, need_destroy_key);
+        auth_data, false, false, use_pfs, false, true, is_cdn);
     dc.download_session_ = create_actor_on_scheduler<SessionMultiProxy>(
         PSLICE() << "SessionMultiProxy:" << raw_dc_id << ":download", slow_net_scheduler_id, download_session_count,
-        auth_data, false, false, use_pfs, true, true, is_cdn, need_destroy_key);
+        auth_data, false, false, use_pfs, true, true, is_cdn);
     dc.download_small_session_ = create_actor_on_scheduler<SessionMultiProxy>(
         PSLICE() << "SessionMultiProxy:" << raw_dc_id << ":download_small", slow_net_scheduler_id,
-        download_small_session_count, auth_data, false, false, use_pfs, true, true, is_cdn, need_destroy_key);
+        download_small_session_count, auth_data, false, false, use_pfs, true, true, is_cdn);
     dc.is_inited_ = true;
     if (dc_id.is_internal()) {
       send_closure_later(dc_auth_manager_, &DcAuthManager::add_dc, std::move(auth_data));

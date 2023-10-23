@@ -22,7 +22,7 @@ SessionMultiProxy::~SessionMultiProxy() = default;
 
 SessionMultiProxy::SessionMultiProxy(int32 session_count, std::shared_ptr<AuthDataShared> shared_auth_data,
                                      bool is_primary, bool is_main, bool use_pfs, bool allow_media_only, bool is_media,
-                                     bool is_cdn, bool need_destroy_auth_key)
+                                     bool is_cdn)
     : session_count_(session_count)
     , auth_data_(std::move(shared_auth_data))
     , is_primary_(is_primary)
@@ -30,8 +30,7 @@ SessionMultiProxy::SessionMultiProxy(int32 session_count, std::shared_ptr<AuthDa
     , use_pfs_(use_pfs)
     , allow_media_only_(allow_media_only)
     , is_media_(is_media)
-    , is_cdn_(is_cdn)
-    , need_destroy_auth_key_(need_destroy_auth_key) {
+    , is_cdn_(is_cdn) {
   if (allow_media_only_) {
     CHECK(is_media_);
   }
