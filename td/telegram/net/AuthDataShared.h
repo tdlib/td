@@ -43,6 +43,8 @@ class AuthDataShared {
   virtual void set_future_salts(const std::vector<mtproto::ServerSalt> &future_salts) = 0;
   virtual std::vector<mtproto::ServerSalt> get_future_salts() = 0;
 
+  static mtproto::AuthKey get_auth_key_for_dc(DcId dc_id);
+
   static std::shared_ptr<AuthDataShared> create(DcId dc_id, std::shared_ptr<PublicRsaKeyShared> public_rsa_key,
                                                 std::shared_ptr<Guard> guard);
 };
