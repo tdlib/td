@@ -15309,9 +15309,11 @@ void MessagesManager::remove_dialog_mention_notifications(Dialog *d) {
     CHECK(!message_id.is_scheduled());
     if (message_id != d->notification_info->pinned_message_notification_message_id_) {
       auto m = get_message_force(d, message_id, "remove_dialog_mention_notifications");
-      if (m != nullptr && m->notification_id.is_valid() && is_message_notification_active(d, m)) {
+      if (m != nullptr && m->notification_id.is_valid()) {
         CHECK(is_from_mention_notification_group(m));
-        removed_notification_ids_set.insert(m->notification_id);
+        if (is_message_notification_active(d, m)) {
+          removed_notification_ids_set.insert(m->notification_id);
+        }
       }
     }
   }
@@ -34219,7 +34221,7 @@ void MessagesManager::fix_new_message(const Dialog *d, Message *m, bool from_dat
 
   m->last_access_date = G()->unix_time();
 
-  if (m->contains_mention) {
+  if (!from_database && m->contains_mention) {
     CHECK(!td_->auth_manager_->is_bot());
     auto message_content_type = m->content->get_type();
     if (message_content_type == MessageContentType::PinMessage) {
@@ -35644,7 +35646,9 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     }
   }
   if (new_message->is_mention_notification_disabled) {
-    old_message->is_mention_notification_disabled = true;
+    // is_mention_notification_disabled must not be changed, because the message notification will not
+    // be moved to the other group
+    // old_message->is_mention_notification_disabled = true;
   }
 
   if (old_message->ttl_period != new_message->ttl_period) {
