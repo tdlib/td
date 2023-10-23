@@ -53,7 +53,7 @@ void SessionMultiProxy::send(NetQueryPtr query) {
 }
 
 void SessionMultiProxy::update_main_flag(bool is_main) {
-  LOG(INFO) << "Update " << get_name() << " is_main to " << is_main;
+  LOG(INFO) << "Update is_main to " << is_main;
   is_main_ = is_main;
   for (auto &session : sessions_) {
     send_closure(session.proxy, &SessionProxy::update_main_flag, is_main);
@@ -88,7 +88,7 @@ void SessionMultiProxy::update_options(int32 session_count, bool use_pfs, bool n
     if (session_count_ > 100) {
       session_count_ = 100;
     }
-    LOG(INFO) << "Update " << get_name() << " session_count to " << session_count_;
+    LOG(INFO) << "Update session_count to " << session_count_;
     changed = true;
   }
 
@@ -96,14 +96,14 @@ void SessionMultiProxy::update_options(int32 session_count, bool use_pfs, bool n
     bool old_pfs_flag = get_pfs_flag();
     use_pfs_ = use_pfs;
     if (old_pfs_flag != get_pfs_flag()) {
-      LOG(INFO) << "Update " << get_name() << " use_pfs to " << use_pfs_;
+      LOG(INFO) << "Update use_pfs to " << use_pfs_;
       changed = true;
     }
   }
 
   if (need_destroy_auth_key) {
     need_destroy_auth_key_ = need_destroy_auth_key;
-    LOG(WARNING) << "Destroy auth key in " << get_name();
+    LOG(WARNING) << "Destroy auth key";
   }
 
   if (changed) {
