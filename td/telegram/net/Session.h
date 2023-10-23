@@ -210,8 +210,9 @@ class Session final
   void on_online(bool online_flag);
   void on_logging_out(bool logging_out_flag);
 
-  void on_auth_key_updated() final;
-  void on_tmp_auth_key_updated() final;
+  void on_auth_key_updated();
+  void on_tmp_auth_key_updated();
+
   void on_server_salt_updated() final;
   void on_server_time_difference_updated(bool force) final;
 

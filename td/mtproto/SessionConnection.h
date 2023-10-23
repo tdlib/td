@@ -91,8 +91,6 @@ class SessionConnection final
     virtual void on_connected() = 0;
     virtual void on_closed(Status status) = 0;
 
-    virtual void on_auth_key_updated() = 0;
-    virtual void on_tmp_auth_key_updated() = 0;
     virtual void on_server_salt_updated() = 0;
     virtual void on_server_time_difference_updated(bool force) = 0;
 

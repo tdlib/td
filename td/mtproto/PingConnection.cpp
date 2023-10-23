@@ -119,12 +119,6 @@ class PingConnectionPingPong final
     status_ = std::move(status);
   }
 
-  void on_auth_key_updated() final {
-  }
-
-  void on_tmp_auth_key_updated() final {
-  }
-
   void on_server_salt_updated() final {
   }
 
