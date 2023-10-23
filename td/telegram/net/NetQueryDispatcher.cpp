@@ -226,7 +226,8 @@ void NetQueryDispatcher::update_session_count() {
   bool use_pfs = get_use_pfs();
   for (size_t i = 1; i < MAX_DC_COUNT; i++) {
     if (is_dc_inited(narrow_cast<int32>(i))) {
-      send_closure_later(dcs_[i - 1].main_session_, &SessionMultiProxy::update_options, session_count, use_pfs);
+      send_closure_later(dcs_[i - 1].main_session_, &SessionMultiProxy::update_options, session_count, use_pfs,
+                         need_destroy_auth_key_);
       send_closure_later(dcs_[i - 1].upload_session_, &SessionMultiProxy::update_use_pfs, use_pfs);
       send_closure_later(dcs_[i - 1].download_session_, &SessionMultiProxy::update_use_pfs, use_pfs);
       send_closure_later(dcs_[i - 1].download_small_session_, &SessionMultiProxy::update_use_pfs, use_pfs);

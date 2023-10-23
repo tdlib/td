@@ -61,19 +61,23 @@ void SessionMultiProxy::update_main_flag(bool is_main) {
 }
 
 void SessionMultiProxy::destroy_auth_key() {
-  need_destroy_auth_key_ = true;
-  send_closure(sessions_[0].proxy, &SessionProxy::destroy_auth_key);
+  update_options(1, false, true);
 }
 
 void SessionMultiProxy::update_session_count(int32 session_count) {
-  update_options(session_count, use_pfs_);
+  update_options(session_count, use_pfs_, need_destroy_auth_key_);
 }
 
 void SessionMultiProxy::update_use_pfs(bool use_pfs) {
-  update_options(session_count_, use_pfs);
+  update_options(session_count_, use_pfs, need_destroy_auth_key_);
 }
 
-void SessionMultiProxy::update_options(int32 session_count, bool use_pfs) {
+void SessionMultiProxy::update_options(int32 session_count, bool use_pfs, bool need_destroy_auth_key) {
+  if (need_destroy_auth_key_) {
+    LOG(INFO) << "Ignore session option changes while destroying auth key";
+    return;
+  }
+
   bool changed = false;
 
   if (session_count != session_count_) {
@@ -96,6 +100,12 @@ void SessionMultiProxy::update_options(int32 session_count, bool use_pfs) {
       changed = true;
     }
   }
+
+  if (need_destroy_auth_key) {
+    need_destroy_auth_key_ = need_destroy_auth_key;
+    LOG(WARNING) << "Destroy auth key in " << get_name();
+  }
+
   if (changed) {
     init();
   }
