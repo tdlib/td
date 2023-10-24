@@ -18,29 +18,28 @@ namespace td {
 class Td;
 
 class RepliedMessageInfo {
-  MessageId reply_to_message_id_;
-  DialogId reply_in_dialog_id_;  // DialogId() if reply is to a message in the same chat
-  int32 reply_date_ = 0;         // for replies in other chats
-  MessageOrigin reply_origin_;   // for replies in other chats
+  MessageId message_id_;
+  DialogId dialog_id_;     // DialogId() if reply is to a message in the same chat
+  int32 origin_date_ = 0;  // for replies in other chats
+  MessageOrigin origin_;   // for replies in other chats
 
   friend bool operator==(const RepliedMessageInfo &lhs, const RepliedMessageInfo &rhs);
 
  public:
   RepliedMessageInfo() = default;
 
-  explicit RepliedMessageInfo(MessageId reply_to_message_id) : reply_to_message_id_(reply_to_message_id) {
+  explicit RepliedMessageInfo(MessageId reply_to_message_id) : message_id_(reply_to_message_id) {
   }
 
   RepliedMessageInfo(Td *td, tl_object_ptr<telegram_api::messageReplyHeader> &&reply_header, DialogId dialog_id,
                      MessageId message_id, int32 date);
 
   bool is_same_chat_reply() const {
-    return reply_in_dialog_id_ == DialogId() && reply_date_ == 0;
+    return dialog_id_ == DialogId() && origin_date_ == 0;
   }
 
   bool is_empty() const {
-    return reply_to_message_id_ == MessageId() && reply_in_dialog_id_ == DialogId() && reply_date_ == 0 &&
-           reply_origin_.is_empty();
+    return message_id_ == MessageId() && dialog_id_ == DialogId() && origin_date_ == 0 && origin_.is_empty();
   }
 
   MessageId get_same_chat_reply_to_message_id() const;

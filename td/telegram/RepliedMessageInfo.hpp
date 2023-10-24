@@ -16,53 +16,53 @@ namespace td {
 
 template <class StorerT>
 void RepliedMessageInfo::store(StorerT &storer) const {
-  bool has_reply_to_message_id = reply_to_message_id_.is_valid() || reply_to_message_id_.is_valid_scheduled();
-  bool has_reply_in_dialog_id = reply_in_dialog_id_.is_valid();
-  bool has_reply_date = reply_date_ != 0;
-  bool has_reply_origin = !reply_origin_.is_empty();
+  bool has_message_id = message_id_.is_valid() || message_id_.is_valid_scheduled();
+  bool has_dialog_id = dialog_id_.is_valid();
+  bool has_origin_date = origin_date_ != 0;
+  bool has_origin = !origin_.is_empty();
   BEGIN_STORE_FLAGS();
-  STORE_FLAG(has_reply_to_message_id);
-  STORE_FLAG(has_reply_in_dialog_id);
-  STORE_FLAG(has_reply_date);
-  STORE_FLAG(has_reply_origin);
+  STORE_FLAG(has_message_id);
+  STORE_FLAG(has_dialog_id);
+  STORE_FLAG(has_origin_date);
+  STORE_FLAG(has_origin);
   END_STORE_FLAGS();
-  if (has_reply_to_message_id) {
-    td::store(reply_to_message_id_, storer);
+  if (has_message_id) {
+    td::store(message_id_, storer);
   }
-  if (has_reply_in_dialog_id) {
-    td::store(reply_in_dialog_id_, storer);
+  if (has_dialog_id) {
+    td::store(dialog_id_, storer);
   }
-  if (has_reply_date) {
-    td::store(reply_date_, storer);
+  if (has_origin_date) {
+    td::store(origin_date_, storer);
   }
-  if (has_reply_origin) {
-    td::store(reply_origin_, storer);
+  if (has_origin) {
+    td::store(origin_, storer);
   }
 }
 
 template <class ParserT>
 void RepliedMessageInfo::parse(ParserT &parser) {
-  bool has_reply_to_message_id;
-  bool has_reply_in_dialog_id;
-  bool has_reply_date;
-  bool has_reply_origin;
+  bool has_message_id;
+  bool has_dialog_id;
+  bool has_origin_date;
+  bool has_origin;
   BEGIN_PARSE_FLAGS();
-  PARSE_FLAG(has_reply_to_message_id);
-  PARSE_FLAG(has_reply_in_dialog_id);
-  PARSE_FLAG(has_reply_date);
-  PARSE_FLAG(has_reply_origin);
+  PARSE_FLAG(has_message_id);
+  PARSE_FLAG(has_dialog_id);
+  PARSE_FLAG(has_origin_date);
+  PARSE_FLAG(has_origin);
   END_PARSE_FLAGS();
-  if (has_reply_to_message_id) {
-    td::parse(reply_to_message_id_, parser);
+  if (has_message_id) {
+    td::parse(message_id_, parser);
   }
-  if (has_reply_in_dialog_id) {
-    td::parse(reply_in_dialog_id_, parser);
+  if (has_dialog_id) {
+    td::parse(dialog_id_, parser);
   }
-  if (has_reply_date) {
-    td::parse(reply_date_, parser);
+  if (has_origin_date) {
+    td::parse(origin_date_, parser);
   }
-  if (has_reply_origin) {
-    td::parse(reply_origin_, parser);
+  if (has_origin) {
+    td::parse(origin_, parser);
   }
 }
 
