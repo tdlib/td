@@ -14427,7 +14427,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     date = 1;
   }
 
-  auto reply_message_full_id = message_info.reply_header.replied_message_info_.get_reply_message_full_id();
+  auto reply_message_full_id = message_info.reply_header.replied_message_info_.get_reply_message_full_id(DialogId());
   MessageId reply_to_message_id = reply_message_full_id.get_message_id();
   DialogId reply_in_dialog_id = reply_message_full_id.get_dialog_id();
   MessageId top_thread_message_id = message_info.reply_header.top_thread_message_id_;
