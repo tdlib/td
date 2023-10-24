@@ -41,22 +41,18 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
     }
 
     int32 flags = 0;
-    ServerMessageId reply_to_message_id;
+    telegram_api::object_ptr<telegram_api::InputReplyTo> input_reply_to;
     vector<telegram_api::object_ptr<telegram_api::MessageEntity>> input_message_entities;
     telegram_api::object_ptr<telegram_api::InputMedia> media;
     if (draft_message != nullptr) {
-      /*
-      if (draft_message->reply_to_message_id_.is_valid() && draft_message->reply_to_message_id_.is_server()) {
-        reply_to_message_id = draft_message->reply_to_message_id_.get_server_message_id();
-        flags |= telegram_api::messages_saveDraft::REPLY_TO_MSG_ID_MASK;
+      input_reply_to = draft_message->message_input_reply_to_.get_input_reply_to(td_, MessageId() /*TODO*/);
+      if (input_reply_to != nullptr) {
+        flags |= telegram_api::messages_saveDraft::REPLY_TO_MASK;
       }
-      */
       if (draft_message->input_message_text_.disable_web_page_preview) {
         flags |= telegram_api::messages_saveDraft::NO_WEBPAGE_MASK;
-      } else {
-        if (draft_message->input_message_text_.show_above_text) {
-          flags |= telegram_api::messages_saveDraft::INVERT_MEDIA_MASK;
-        }
+      } else if (draft_message->input_message_text_.show_above_text) {
+        flags |= telegram_api::messages_saveDraft::INVERT_MEDIA_MASK;
       }
       input_message_entities = get_input_message_entities(
           td_->contacts_manager_.get(), draft_message->input_message_text_.text.entities, "SaveDraftMessageQuery");
@@ -70,7 +66,7 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
     }
     send_query(G()->net_query_creator().create(
         telegram_api::messages_saveDraft(
-            flags, false /*ignored*/, false /*ignored*/, nullptr, std::move(input_peer),
+            flags, false /*ignored*/, false /*ignored*/, std::move(input_reply_to), std::move(input_peer),
             draft_message == nullptr ? string() : draft_message->input_message_text_.text.text,
             std::move(input_message_entities), std::move(media)),
         {{dialog_id}}));
@@ -158,7 +154,7 @@ class ClearAllDraftsQuery final : public Td::ResultHandler {
 };
 
 bool DraftMessage::need_update_to(const DraftMessage &other, bool from_update) const {
-  if (reply_to_message_id_ == other.reply_to_message_id_ && input_message_text_ == other.input_message_text_) {
+  if (message_input_reply_to_ == other.message_input_reply_to_ && input_message_text_ == other.input_message_text_) {
     return date_ < other.date_;
   } else {
     return !from_update || date_ <= other.date_;
@@ -169,25 +165,16 @@ void DraftMessage::add_dependencies(Dependencies &dependencies) const {
   input_message_text_.add_dependencies(dependencies);
 }
 
-td_api::object_ptr<td_api::draftMessage> DraftMessage::get_draft_message_object() const {
-  return td_api::make_object<td_api::draftMessage>(reply_to_message_id_.get(), date_,
-                                                   input_message_text_.get_input_message_text_object());
+td_api::object_ptr<td_api::draftMessage> DraftMessage::get_draft_message_object(Td *td, DialogId dialog_id) const {
+  return td_api::make_object<td_api::draftMessage>(
+      message_input_reply_to_.get_input_message_reply_to_object(td, dialog_id), date_,
+      input_message_text_.get_input_message_text_object());
 }
 
 DraftMessage::DraftMessage(Td *td, telegram_api::object_ptr<telegram_api::draftMessage> &&draft_message) {
   CHECK(draft_message != nullptr);
   date_ = draft_message->date_;
-  /*
-  auto flags = draft_message->flags_;
-  if ((flags & telegram_api::draftMessage::REPLY_TO_MSG_ID_MASK) != 0) {
-    reply_to_message_id_ = MessageId(ServerMessageId(draft_message->reply_to_msg_id_));
-    if (!reply_to_message_id_.is_valid()) {
-      LOG(ERROR) << "Receive " << reply_to_message_id_ << " as reply_to_message_id in the draft message";
-      reply_to_message_id_ = MessageId();
-    }
-  }
-  */
-
+  message_input_reply_to_ = MessageInputReplyTo(td, std::move(draft_message->reply_to_));
   auto entities =
       get_message_entities(td->contacts_manager_.get(), std::move(draft_message->entities_), "draftMessage");
   auto status = fix_formatted_text(draft_message->message_, entities, true, true, true, true, true);
@@ -227,16 +214,8 @@ Result<unique_ptr<DraftMessage>> DraftMessage::get_draft_message(
   }
 
   auto result = make_unique<DraftMessage>();
-  result->reply_to_message_id_ = MessageId(draft_message->reply_to_message_id_);
-  if (result->reply_to_message_id_ != MessageId() && !result->reply_to_message_id_.is_valid()) {
-    return Status::Error(400, "Invalid reply_to_message_id specified");
-  }
-  result->reply_to_message_id_ =
-      td->messages_manager_
-          ->get_message_input_reply_to(
-              dialog_id, top_thread_message_id,
-              td_api::make_object<td_api::inputMessageReplyToMessage>(result->reply_to_message_id_.get()), true)
-          .message_id_;
+  result->message_input_reply_to_ = td->messages_manager_->get_message_input_reply_to(
+      dialog_id, top_thread_message_id, std::move(draft_message->reply_to_), true);
 
   auto input_message_content = std::move(draft_message->input_message_text_);
   if (input_message_content != nullptr) {
@@ -248,7 +227,7 @@ Result<unique_ptr<DraftMessage>> DraftMessage::get_draft_message(
     result->input_message_text_ = std::move(input_message_text);
   }
 
-  if (!result->reply_to_message_id_.is_valid() && result->input_message_text_.is_empty()) {
+  if (!result->message_input_reply_to_.is_valid() && result->input_message_text_.is_empty()) {
     return nullptr;
   }
 
@@ -274,11 +253,12 @@ void add_draft_message_dependencies(Dependencies &dependencies, const unique_ptr
   draft_message->add_dependencies(dependencies);
 }
 
-td_api::object_ptr<td_api::draftMessage> get_draft_message_object(const unique_ptr<DraftMessage> &draft_message) {
+td_api::object_ptr<td_api::draftMessage> get_draft_message_object(Td *td, DialogId dialog_id,
+                                                                  const unique_ptr<DraftMessage> &draft_message) {
   if (draft_message == nullptr) {
     return nullptr;
   }
-  return draft_message->get_draft_message_object();
+  return draft_message->get_draft_message_object(td, dialog_id);
 }
 
 unique_ptr<DraftMessage> get_draft_message(Td *td,

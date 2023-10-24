@@ -18031,7 +18031,7 @@ td_api::object_ptr<td_api::messageThreadInfo> MessagesManager::get_message_threa
     if (can_send_message(d->dialog_id).is_ok()) {
       const Message *m = get_message_force(d, top_thread_message_id, "get_message_thread_info_object 2");
       if (m != nullptr && !m->reply_info.is_comment_ && is_active_message_reply_info(d->dialog_id, m->reply_info)) {
-        draft_message = get_draft_message_object(m->thread_draft_message);
+        draft_message = get_draft_message_object(td_, d->dialog_id, m->thread_draft_message);
       }
     }
   }
@@ -20712,8 +20712,9 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
   auto chat_source = is_dialog_sponsored(d) ? sponsored_dialog_source_.get_chat_source_object() : nullptr;
   auto can_delete = can_delete_dialog(d);
   // TODO hide/show draft message when need_hide_dialog_draft_message changes
-  auto draft_message =
-      !need_hide_dialog_draft_message(d->dialog_id) ? get_draft_message_object(d->draft_message) : nullptr;
+  auto draft_message = !need_hide_dialog_draft_message(d->dialog_id)
+                           ? get_draft_message_object(td_, d->dialog_id, d->draft_message)
+                           : nullptr;
   auto available_reactions = get_dialog_active_reactions(d).get_chat_available_reactions_object();
   auto is_translatable = d->is_translatable && is_premium;
   auto block_list_id = BlockListId(d->is_blocked, d->is_blocked_for_stories);
@@ -24465,7 +24466,9 @@ MessageInputReplyTo MessagesManager::get_message_input_reply_to(
     LOG(INFO) << "Have reply in the thread of unknown " << top_thread_message_id;
   }
   if (reply_to != nullptr && reply_to->get_id() == td_api::inputMessageReplyToStory::ID) {
-    CHECK(!for_draft);
+    if (for_draft) {
+      return {};
+    }
     auto reply_to_story = td_api::move_object_as<td_api::inputMessageReplyToStory>(reply_to);
     auto story_id = StoryId(reply_to_story->story_id_);
     auto sender_dialog_id = DialogId(reply_to_story->story_sender_chat_id_);
@@ -30219,7 +30222,7 @@ void MessagesManager::send_update_chat_draft_message(const Dialog *d) {
     send_closure(G()->td(), &Td::send_update,
                  td_api::make_object<td_api::updateChatDraftMessage>(
                      get_chat_id_object(d->dialog_id, "updateChatDraftMessage"),
-                     get_draft_message_object(d->draft_message), get_chat_positions_object(d)));
+                     get_draft_message_object(td_, d->dialog_id, d->draft_message), get_chat_positions_object(d)));
   }
 }
 

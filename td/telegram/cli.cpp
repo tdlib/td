@@ -933,6 +933,10 @@ class CliClient final : public Actor {
       return {};
     }
 
+    bool is_empty() const {
+      return message_id == 0 && story_id == 0;
+    }
+
     operator td_api::object_ptr<td_api::InputMessageReplyTo>() const {
       if (message_id == 0 && user_id == 0 && story_id == 0) {
         return nullptr;
@@ -4144,19 +4148,19 @@ class CliClient final : public Actor {
     if (op == "scdm" || op == "scdmt") {
       ChatId chat_id;
       MessageThreadId message_thread_id;
-      string reply_to_message_id;
+      InputMessageReplyTo reply_to;
       string message;
       if (op == "scdmt") {
         get_args(args, message_thread_id, args);
       }
-      get_args(args, chat_id, reply_to_message_id, message);
+      get_args(args, chat_id, reply_to, message);
       td_api::object_ptr<td_api::draftMessage> draft_message;
-      if (!reply_to_message_id.empty() || !message.empty()) {
+      if (!reply_to.is_empty() || !message.empty()) {
         vector<td_api::object_ptr<td_api::textEntity>> entities;
         entities.push_back(
             td_api::make_object<td_api::textEntity>(0, 1, td_api::make_object<td_api::textEntityTypePre>()));
         draft_message = td_api::make_object<td_api::draftMessage>(
-            as_message_id(reply_to_message_id), 0,
+            reply_to, 0,
             td_api::make_object<td_api::inputMessageText>(as_formatted_text(message, std::move(entities)), nullptr,
                                                           false));
       }

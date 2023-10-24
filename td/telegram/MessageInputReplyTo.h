@@ -35,6 +35,8 @@ struct MessageInputReplyTo {
   explicit MessageInputReplyTo(StoryFullId story_full_id) : story_full_id_(story_full_id) {
   }
 
+  MessageInputReplyTo(Td *td, telegram_api::object_ptr<telegram_api::InputReplyTo> &&input_reply_to);
+
   bool is_empty() const {
     return !message_id_.is_valid() && !story_full_id_.is_valid();
   }

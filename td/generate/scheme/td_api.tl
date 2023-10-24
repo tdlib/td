@@ -1441,10 +1441,10 @@ scopeNotificationSettings mute_for:int32 sound_id:int64 show_preview:Bool use_de
 
 
 //@description Contains information about a message draft
-//@reply_to_message_id Identifier of the replied message; 0 if none
+//@reply_to Information about the replied message; must be of the type inputMessageReplyToMessage; may be null if none
 //@date Point in time (Unix timestamp) when the draft was created
 //@input_message_text Content of the message draft; must be of the type inputMessageText
-draftMessage reply_to_message_id:int53 date:int32 input_message_text:InputMessageContent = DraftMessage;
+draftMessage reply_to:InputMessageReplyTo date:int32 input_message_text:InputMessageContent = DraftMessage;
 
 
 //@class ChatType @description Describes the type of a chat

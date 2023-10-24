@@ -8,6 +8,7 @@
 
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/InputDialogId.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/StoryId.h"
 #include "td/telegram/Td.h"
@@ -36,6 +37,49 @@ MessageInputReplyTo::MessageInputReplyTo(const td_api::object_ptr<td_api::InputM
   }
 }
 */
+
+MessageInputReplyTo::MessageInputReplyTo(Td *td,
+                                         telegram_api::object_ptr<telegram_api::InputReplyTo> &&input_reply_to) {
+  if (input_reply_to == nullptr) {
+    return;
+  }
+  switch (input_reply_to->get_id()) {
+    case telegram_api::inputReplyToStory::ID: {
+      auto reply_to = telegram_api::move_object_as<telegram_api::inputReplyToStory>(input_reply_to);
+      if (reply_to->user_id_->get_id() != telegram_api::inputUser::ID) {
+        return;
+      }
+      auto user_id = UserId(static_cast<telegram_api::inputUser *>(reply_to->user_id_.get())->user_id_);
+      auto story_id = StoryId(reply_to->story_id_);
+      if (user_id.is_valid() && story_id.is_valid()) {
+        DialogId dialog_id(user_id);
+        td->messages_manager_->force_create_dialog(dialog_id, "MessageInputReplyTo", true);
+        story_full_id_ = {dialog_id, story_id};
+      }
+      break;
+    }
+    case telegram_api::inputReplyToMessage::ID: {
+      auto reply_to = telegram_api::move_object_as<telegram_api::inputReplyToMessage>(input_reply_to);
+      MessageId message_id(ServerMessageId(reply_to->reply_to_msg_id_));
+      if (!message_id.is_valid()) {
+        return;
+      }
+      DialogId dialog_id;
+      if (reply_to->reply_to_peer_id_ != nullptr) {
+        dialog_id = InputDialogId(reply_to->reply_to_peer_id_).get_dialog_id();
+        if (!dialog_id.is_valid()) {
+          return;
+        }
+      }
+      // TODO quote_text:flags.2?string quote_entities:flags.3?Vector<MessageEntity>
+      message_id_ = message_id;
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
+}
+
 telegram_api::object_ptr<telegram_api::InputReplyTo> MessageInputReplyTo::get_input_reply_to(
     Td *td, MessageId top_thread_message_id) const {
   if (story_full_id_.is_valid()) {
