@@ -23,9 +23,7 @@ struct MessageInputReplyTo {
   // or
   StoryFullId story_full_id_;
 
-  bool is_valid() const {
-    return message_id_.is_valid() || story_full_id_.is_valid();
-  }
+  friend bool operator==(const MessageInputReplyTo &lhs, const MessageInputReplyTo &rhs);
 
   MessageInputReplyTo() = default;
 
@@ -35,9 +33,29 @@ struct MessageInputReplyTo {
   explicit MessageInputReplyTo(StoryFullId story_full_id) : story_full_id_(story_full_id) {
   }
 
+  bool is_empty() const {
+    return !message_id_.is_valid() && !story_full_id_.is_valid();
+  }
+
+  bool is_valid() const {
+    return !is_empty();
+  }
+
   telegram_api::object_ptr<telegram_api::InputReplyTo> get_input_reply_to(Td *td,
                                                                           MessageId top_thread_message_id) const;
+
+  td_api::object_ptr<td_api::InputMessageReplyTo> get_input_message_reply_to_object(Td *td, DialogId dialog_id) const;
+
+  template <class StorerT>
+  void store(StorerT &storer) const;
+
+  template <class ParserT>
+  void parse(ParserT &parser);
 };
+
+bool operator==(const MessageInputReplyTo &lhs, const MessageInputReplyTo &rhs);
+
+bool operator!=(const MessageInputReplyTo &lhs, const MessageInputReplyTo &rhs);
 
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageInputReplyTo &input_reply_to);
 

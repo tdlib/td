@@ -867,6 +867,7 @@ set(TDLIB_SOURCE
   td/telegram/MediaAreaCoordinates.hpp
   td/telegram/MessageEntity.hpp
   td/telegram/MessageExtendedMedia.hpp
+  td/telegram/MessageInputReplyTo.hpp
   td/telegram/MessageOrigin.hpp
   td/telegram/MessageReaction.hpp
   td/telegram/MessageReplyInfo.hpp

@@ -46,6 +46,11 @@ class MessageOrigin {
   static Result<MessageOrigin> get_message_origin(
       Td *td, telegram_api::object_ptr<telegram_api::messageFwdHeader> &&forward_header);
 
+  bool is_empty() const {
+    return !sender_user_id_.is_valid() && !sender_dialog_id_.is_valid() && !message_id_.is_valid() &&
+           author_signature_.empty() && sender_name_.empty();
+  }
+
   td_api::object_ptr<td_api::MessageForwardOrigin> get_message_forward_origin_object(const Td *td) const;
 
   bool is_sender_hidden() const;

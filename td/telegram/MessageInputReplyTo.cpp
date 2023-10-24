@@ -8,6 +8,7 @@
 
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/MessagesManager.h"
 #include "td/telegram/StoryId.h"
 #include "td/telegram/Td.h"
 
@@ -64,6 +65,28 @@ telegram_api::object_ptr<telegram_api::InputReplyTo> MessageInputReplyTo::get_in
   return telegram_api::make_object<telegram_api::inputReplyToMessage>(
       flags, reply_to_message_id.get_server_message_id().get(), top_thread_message_id.get_server_message_id().get(),
       nullptr, string(), Auto());
+}
+
+td_api::object_ptr<td_api::InputMessageReplyTo> MessageInputReplyTo::get_input_message_reply_to_object(
+    Td *td, DialogId dialog_id) const {
+  CHECK(dialog_id.is_valid());
+  if (story_full_id_.is_valid()) {
+    return td_api::make_object<td_api::inputMessageReplyToStory>(
+        td->messages_manager_->get_chat_id_object(story_full_id_.get_dialog_id(), "inputMessageReplyToStory"),
+        story_full_id_.get_story_id().get());
+  }
+  if (!message_id_.is_valid()) {
+    return nullptr;
+  }
+  return td_api::make_object<td_api::inputMessageReplyToMessage>(message_id_.get());
+}
+
+bool operator==(const MessageInputReplyTo &lhs, const MessageInputReplyTo &rhs) {
+  return lhs.message_id_ == rhs.message_id_ && lhs.story_full_id_ == rhs.story_full_id_;
+}
+
+bool operator!=(const MessageInputReplyTo &lhs, const MessageInputReplyTo &rhs) {
+  return !(lhs == rhs);
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageInputReplyTo &input_reply_to) {
