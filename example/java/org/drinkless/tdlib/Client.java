@@ -63,6 +63,24 @@ public final class Client {
     }
 
     /**
+     * Exception class thrown when TDLib error occurred while performing {@link #execute(TdApi.Function)}.
+     */
+    public static class ExecutionError extends Throwable {
+        /**
+         * Original TDLib error occurred when performing one of the synchronous functions.
+         */
+        public final TdApi.Error error;
+
+        /**
+         * @param error TDLib error occurred while performing {@link #execute(TdApi.Function)}.
+         */
+        ExecutionError (TdApi.Error error) {
+            super(error.code + ": " + error.message);
+            this.error = error;
+        }
+    }
+
+    /**
      * Sends a request to the TDLib.
      *
      * @param query            Object representing a query to the TDLib.
@@ -102,8 +120,17 @@ public final class Client {
      * @return request result.
      * @throws NullPointerException if query is null.
      */
-    public static TdApi.Object execute(TdApi.Function query) {
-        return nativeClientExecute(query);
+    public static <T extends TdApi.Object> T execute(TdApi.Function<T> query) throws ExecutionError {
+        TdApi.Object object = nativeClientExecute(query);
+        if (object instanceof TdApi.Error) {
+            throw new ExecutionError((TdApi.Error) object);
+        }
+        if (object == null) {
+            // unreachable
+            throw new NullPointerException();
+        }
+        //noinspection unchecked
+        return (T) object;
     }
 
     /**
