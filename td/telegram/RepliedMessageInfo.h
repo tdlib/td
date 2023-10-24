@@ -18,7 +18,6 @@ namespace td {
 class Td;
 
 class RepliedMessageInfo {
- public:
   MessageId reply_to_message_id_;
   DialogId reply_in_dialog_id_;  // DialogId() if reply is to a message in the same chat
   int32 reply_date_ = 0;         // for replies in other chats
@@ -26,6 +25,7 @@ class RepliedMessageInfo {
 
   friend bool operator==(const RepliedMessageInfo &lhs, const RepliedMessageInfo &rhs);
 
+ public:
   RepliedMessageInfo() = default;
 
   explicit RepliedMessageInfo(MessageId reply_to_message_id) : reply_to_message_id_(reply_to_message_id) {
