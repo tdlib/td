@@ -143,6 +143,9 @@ OptionManager::OptionManager(Td *td)
   if (!have_option("channel_custom_accent_color_boost_level_min")) {
     set_option_integer("channel_custom_accent_color_boost_level_min", 1);
   }
+  if (!have_option("premium_gift_boost_count")) {
+    set_option_integer("premium_gift_boost_count", 3);
+  }
 
   set_option_empty("archive_and_mute_new_chats_from_unknown_users");
   set_option_empty("chat_filter_count_max");

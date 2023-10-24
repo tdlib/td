@@ -1940,6 +1940,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
                                 get_json_value_int(std::move(key_value->value_), key));
         continue;
       }
+      if (key == "boosts_per_sent_gift") {
+        G()->set_option_integer("premium_gift_boost_count", get_json_value_int(std::move(key_value->value_), key));
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
