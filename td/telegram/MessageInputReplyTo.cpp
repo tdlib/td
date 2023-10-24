@@ -81,6 +81,13 @@ td_api::object_ptr<td_api::InputMessageReplyTo> MessageInputReplyTo::get_input_m
   return td_api::make_object<td_api::inputMessageReplyToMessage>(message_id_.get());
 }
 
+MessageFullId MessageInputReplyTo::get_reply_message_full_id(DialogId owner_dialog_id) const {
+  if (!message_id_.is_valid()) {
+    return {};
+  }
+  return {owner_dialog_id, message_id_};
+}
+
 bool operator==(const MessageInputReplyTo &lhs, const MessageInputReplyTo &rhs) {
   return lhs.message_id_ == rhs.message_id_ && lhs.story_full_id_ == rhs.story_full_id_;
 }

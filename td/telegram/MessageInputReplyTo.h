@@ -6,6 +6,8 @@
 //
 #pragma once
 
+#include "td/telegram/DialogId.h"
+#include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/StoryFullId.h"
 #include "td/telegram/td_api.h"
@@ -45,6 +47,8 @@ struct MessageInputReplyTo {
                                                                           MessageId top_thread_message_id) const;
 
   td_api::object_ptr<td_api::InputMessageReplyTo> get_input_message_reply_to_object(Td *td, DialogId dialog_id) const;
+
+  MessageFullId get_reply_message_full_id(DialogId owner_dialog_id) const;
 
   template <class StorerT>
   void store(StorerT &storer) const;
