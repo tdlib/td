@@ -84,4 +84,13 @@ MessageFullId RepliedMessageInfo::get_reply_message_full_id() const {
   return {reply_in_dialog_id_, reply_to_message_id_};
 }
 
+bool operator==(const RepliedMessageInfo &lhs, const RepliedMessageInfo &rhs) {
+  return lhs.reply_to_message_id_ == rhs.reply_to_message_id_ && lhs.reply_in_dialog_id_ == rhs.reply_in_dialog_id_ &&
+         lhs.reply_date_ == rhs.reply_date_ && lhs.reply_origin_ == rhs.reply_origin_;
+}
+
+bool operator!=(const RepliedMessageInfo &lhs, const RepliedMessageInfo &rhs) {
+  return !(lhs == rhs);
+}
+
 }  // namespace td

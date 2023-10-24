@@ -24,6 +24,8 @@ class RepliedMessageInfo {
   int32 reply_date_ = 0;         // for replies in other chats
   MessageOrigin reply_origin_;   // for replies in other chats
 
+  friend bool operator==(const RepliedMessageInfo &lhs, const RepliedMessageInfo &rhs);
+
   RepliedMessageInfo() = default;
 
   explicit RepliedMessageInfo(MessageId reply_to_message_id) : reply_to_message_id_(reply_to_message_id) {
@@ -36,9 +38,24 @@ class RepliedMessageInfo {
     return reply_in_dialog_id_ == DialogId() && reply_date_ == 0;
   }
 
+  bool is_empty() const {
+    return reply_to_message_id_ == MessageId() && reply_in_dialog_id_ == DialogId() && reply_date_ == 0 &&
+           reply_origin_.is_empty();
+  }
+
   MessageId get_same_chat_reply_to_message_id() const;
 
   MessageFullId get_reply_message_full_id() const;
+
+  template <class StorerT>
+  void store(StorerT &storer) const;
+
+  template <class ParserT>
+  void parse(ParserT &parser);
 };
+
+bool operator==(const RepliedMessageInfo &lhs, const RepliedMessageInfo &rhs);
+
+bool operator!=(const RepliedMessageInfo &lhs, const RepliedMessageInfo &rhs);
 
 }  // namespace td

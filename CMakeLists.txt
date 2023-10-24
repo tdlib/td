@@ -881,6 +881,7 @@ set(TDLIB_SOURCE
   td/telegram/PremiumGiftOption.hpp
   td/telegram/ReactionManager.hpp
   td/telegram/ReactionType.hpp
+  td/telegram/RepliedMessageInfo.hpp
   td/telegram/ReplyMarkup.hpp
   td/telegram/RequestedDialogType.hpp
   td/telegram/ScopeNotificationSettings.hpp
