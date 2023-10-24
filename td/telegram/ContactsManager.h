@@ -707,7 +707,8 @@ class ContactsManager final : public Actor {
                              bool is_outbound, int32 ttl, int32 date, string key_hash, int32 layer,
                              FolderId initial_folder_id);
 
-  tl_object_ptr<td_api::chatMember> get_chat_member_object(const DialogParticipant &dialog_participant) const;
+  tl_object_ptr<td_api::chatMember> get_chat_member_object(const DialogParticipant &dialog_participant,
+                                                           const char *source) const;
 
   tl_object_ptr<td_api::chatInviteLinkInfo> get_chat_invite_link_info_object(const string &invite_link);
 

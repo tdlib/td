@@ -6833,7 +6833,7 @@ void Td::on_request(uint64 id, td_api::searchChatMembers &request) {
         if (result.is_error()) {
           promise.set_error(result.move_as_error());
         } else {
-          promise.set_value(result.ok().get_chat_members_object(td));
+          promise.set_value(result.ok().get_chat_members_object(td, "searchChatMembers"));
         }
       });
   contacts_manager_->search_dialog_participants(DialogId(request.chat_id_), request.query_, request.limit_,
@@ -7674,7 +7674,7 @@ void Td::on_request(uint64 id, td_api::getSupergroupMembers &request) {
         if (result.is_error()) {
           promise.set_error(result.move_as_error());
         } else {
-          promise.set_value(result.ok().get_chat_members_object(td));
+          promise.set_value(result.ok().get_chat_members_object(td, "getSupergroupMembers"));
         }
       });
   contacts_manager_->get_channel_participants(ChannelId(request.supergroup_id_), std::move(request.filter_), string(),

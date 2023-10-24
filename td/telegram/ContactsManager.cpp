@@ -14289,17 +14289,17 @@ const DialogParticipant *ContactsManager::get_chat_full_participant(const ChatFu
   return nullptr;
 }
 
-tl_object_ptr<td_api::chatMember> ContactsManager::get_chat_member_object(
-    const DialogParticipant &dialog_participant) const {
+tl_object_ptr<td_api::chatMember> ContactsManager::get_chat_member_object(const DialogParticipant &dialog_participant,
+                                                                          const char *source) const {
   DialogId dialog_id = dialog_participant.dialog_id_;
   UserId participant_user_id;
   if (dialog_id.get_type() == DialogType::User) {
     participant_user_id = dialog_id.get_user_id();
   } else {
-    td_->messages_manager_->force_create_dialog(dialog_id, "get_chat_member_object", true);
+    td_->messages_manager_->force_create_dialog(dialog_id, source, true);
   }
   return td_api::make_object<td_api::chatMember>(
-      get_message_sender_object_const(td_, dialog_id, "get_chat_member_object"),
+      get_message_sender_object_const(td_, dialog_id, source),
       get_user_id_object(dialog_participant.inviter_user_id_, "chatMember.inviter_user_id"),
       dialog_participant.joined_date_, dialog_participant.status_.get_chat_member_status_object());
 }
@@ -16487,7 +16487,8 @@ void ContactsManager::send_update_chat_member(DialogId dialog_id, UserId agent_u
                    td_->messages_manager_->get_chat_id_object(dialog_id, "updateChatMember"),
                    get_user_id_object(agent_user_id, "send_update_chat_member"), date,
                    invite_link.get_chat_invite_link_object(this), via_dialog_filter_invite_link,
-                   get_chat_member_object(old_dialog_participant), get_chat_member_object(new_dialog_participant)));
+                   get_chat_member_object(old_dialog_participant, "send_update_chat_member old"),
+                   get_chat_member_object(new_dialog_participant, "send_update_chat_member new")));
 }
 
 void ContactsManager::on_update_bot_stopped(UserId user_id, int32 date, bool is_stopped) {
@@ -18047,7 +18048,7 @@ void ContactsManager::finish_get_dialog_participant(DialogParticipant &&dialog_p
     return promise.set_error(Status::Error(400, "Member not found"));
   }
 
-  promise.set_value(get_chat_member_object(dialog_participant));
+  promise.set_value(get_chat_member_object(dialog_participant, "finish_get_dialog_participant"));
 }
 
 void ContactsManager::do_get_dialog_participant(DialogId dialog_id, DialogId participant_dialog_id,
@@ -19314,7 +19315,7 @@ tl_object_ptr<td_api::basicGroupFullInfo> ContactsManager::get_basic_group_full_
     return commands.get_bot_commands_object(td);
   });
   auto members = transform(chat_full->participants, [this](const DialogParticipant &dialog_participant) {
-    return get_chat_member_object(dialog_participant);
+    return get_chat_member_object(dialog_participant, "get_basic_group_full_info_object");
   });
   return make_tl_object<td_api::basicGroupFullInfo>(
       get_chat_photo_object(td_->file_manager_.get(), chat_full->photo), chat_full->description,

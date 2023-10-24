@@ -685,7 +685,7 @@ struct DialogParticipants {
       : total_count_(total_count), participants_(std::move(participants)) {
   }
 
-  td_api::object_ptr<td_api::chatMembers> get_chat_members_object(Td *td) const;
+  td_api::object_ptr<td_api::chatMembers> get_chat_members_object(Td *td, const char *source) const;
 };
 
 DialogParticipantStatus get_dialog_participant_status(const td_api::object_ptr<td_api::ChatMemberStatus> &status,
