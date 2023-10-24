@@ -5716,8 +5716,8 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
 }
 
 unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<telegram_api::MessageAction> &&action_ptr,
-                                                      DialogId owner_dialog_id, DialogId reply_in_dialog_id,
-                                                      MessageId reply_to_message_id) {
+                                                      DialogId owner_dialog_id,
+                                                      const RepliedMessageInfo &replied_message_info) {
   CHECK(action_ptr != nullptr);
 
   switch (action_ptr->get_id()) {
@@ -5812,12 +5812,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       return td::make_unique<MessageChannelMigrateFrom>(std::move(action->title_), chat_id);
     }
     case telegram_api::messageActionPinMessage::ID: {
-      if (reply_in_dialog_id.is_valid() && reply_in_dialog_id != owner_dialog_id) {
-        LOG(ERROR) << "Receive pinned message with " << reply_to_message_id << " in " << owner_dialog_id
-                   << " in another " << reply_in_dialog_id;
-        reply_to_message_id = MessageId();
-        reply_in_dialog_id = DialogId();
-      }
+      auto reply_to_message_id = replied_message_info.get_same_chat_reply_to_message_id();
       if (!reply_to_message_id.is_valid()) {
         // possible in basic groups
         LOG(INFO) << "Receive pinned message with " << reply_to_message_id << " in " << owner_dialog_id;
@@ -5826,12 +5821,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       return make_unique<MessagePinMessage>(reply_to_message_id);
     }
     case telegram_api::messageActionGameScore::ID: {
-      if (reply_in_dialog_id.is_valid() && reply_in_dialog_id != owner_dialog_id) {
-        LOG(ERROR) << "Receive game score with " << reply_to_message_id << " in " << owner_dialog_id << " in another "
-                   << reply_in_dialog_id;
-        reply_to_message_id = MessageId();
-        reply_in_dialog_id = DialogId();
-      }
+      auto reply_to_message_id = replied_message_info.get_same_chat_reply_to_message_id();
       if (!reply_to_message_id.is_valid()) {
         // possible in basic groups
         LOG(INFO) << "Receive game score with " << reply_to_message_id << " in " << owner_dialog_id;
@@ -5856,20 +5846,20 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
         break;
       }
       auto action = move_tl_object_as<telegram_api::messageActionPaymentSent>(action_ptr);
-      if (!reply_to_message_id.is_valid()) {
-        if (reply_to_message_id != MessageId()) {
-          LOG(ERROR) << "Receive successful payment message with " << reply_to_message_id << " in " << owner_dialog_id;
+      auto message_full_id = replied_message_info.get_reply_message_full_id();
+      if (!message_full_id.get_message_id().is_valid()) {
+        if (message_full_id.get_message_id() != MessageId()) {
+          LOG(ERROR) << "Receive successful payment message with " << message_full_id << " in " << owner_dialog_id;
         }
-        reply_in_dialog_id = DialogId();
-        reply_to_message_id = MessageId();
+        message_full_id = {};
       }
       if (action->total_amount_ <= 0 || !check_currency_amount(action->total_amount_)) {
         LOG(ERROR) << "Receive invalid total amount " << action->total_amount_;
         action->total_amount_ = 0;
       }
       return td::make_unique<MessagePaymentSuccessful>(
-          reply_in_dialog_id, reply_to_message_id, std::move(action->currency_), action->total_amount_,
-          std::move(action->invoice_slug_), action->recurring_used_, action->recurring_init_);
+          message_full_id.get_dialog_id(), message_full_id.get_message_id(), std::move(action->currency_),
+          action->total_amount_, std::move(action->invoice_slug_), action->recurring_used_, action->recurring_init_);
     }
     case telegram_api::messageActionPaymentSentMe::ID: {
       if (!td->auth_manager_->is_bot()) {
@@ -6069,16 +6059,14 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       return make_unique<MessageSetBackground>(MessageId(), std::move(background_info));
     }
     case telegram_api::messageActionSetSameChatWallPaper::ID: {
-      if (reply_in_dialog_id.is_valid() && reply_in_dialog_id != owner_dialog_id) {
-        LOG(ERROR) << "Receive old background message with " << reply_to_message_id << " in " << owner_dialog_id
-                   << " in another " << reply_in_dialog_id;
-        reply_to_message_id = MessageId();
-        reply_in_dialog_id = DialogId();
-      }
       auto action = move_tl_object_as<telegram_api::messageActionSetSameChatWallPaper>(action_ptr);
       BackgroundInfo background_info(td, std::move(action->wallpaper_));
       if (!background_info.is_valid()) {
         break;
+      }
+      auto reply_to_message_id = replied_message_info.get_same_chat_reply_to_message_id();
+      if (!reply_to_message_id.is_valid()) {
+        reply_to_message_id = MessageId();
       }
       return make_unique<MessageSetBackground>(reply_to_message_id, std::move(background_info));
     }

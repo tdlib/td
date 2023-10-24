@@ -18,6 +18,7 @@
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/Photo.h"
+#include "td/telegram/RepliedMessageInfo.h"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/secret_api.h"
 #include "td/telegram/SecretInputMedia.h"
@@ -221,8 +222,8 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
                                                MessageContentDupType type, MessageCopyOptions &&copy_options);
 
 unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<telegram_api::MessageAction> &&action_ptr,
-                                                      DialogId owner_dialog_id, DialogId reply_in_dialog_id,
-                                                      MessageId reply_to_message_id);
+                                                      DialogId owner_dialog_id,
+                                                      const RepliedMessageInfo &replied_message_info);
 
 tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageContent *content, Td *td,
                                                                  DialogId dialog_id, int32 message_date,

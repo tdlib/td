@@ -454,6 +454,7 @@ set(TDLIB_SOURCE
   td/telegram/ReactionManager.cpp
   td/telegram/ReactionType.cpp
   td/telegram/RecentDialogList.cpp
+  td/telegram/RepliedMessageInfo.cpp
   td/telegram/ReplyMarkup.cpp
   td/telegram/ReportReason.cpp
   td/telegram/RequestedDialogType.cpp
@@ -763,6 +764,7 @@ set(TDLIB_SOURCE
   td/telegram/ReactionManager.h
   td/telegram/ReactionType.h
   td/telegram/RecentDialogList.h
+  td/telegram/RepliedMessageInfo.h
   td/telegram/ReplyMarkup.h
   td/telegram/ReportReason.h
   td/telegram/RequestActor.h

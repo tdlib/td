@@ -61,6 +61,7 @@
 #include "td/telegram/PollId.h"
 #include "td/telegram/PublicDialogType.h"
 #include "td/telegram/ReactionManager.h"
+#include "td/telegram/RepliedMessageInfo.h"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/ReplyMarkup.hpp"
 #include "td/telegram/ReportReason.h"
@@ -14024,17 +14025,17 @@ void MessagesManager::on_get_secret_message(SecretChatId secret_chat_id, UserId 
   auto lock_promise = pending_secret_message->load_data_multipromise.get_promise();
 
   if ((message->flags_ & secret_api::decryptedMessage::REPLY_TO_RANDOM_ID_MASK) != 0) {
-    message_info.reply_header.reply_to_message_id_ =
-        get_message_id_by_random_id(d, message->reply_to_random_id_, "on_get_secret_message");
-    if (!message_info.reply_header.reply_to_message_id_.is_valid()) {
+    auto reply_to_message_id = get_message_id_by_random_id(d, message->reply_to_random_id_, "on_get_secret_message");
+    if (!reply_to_message_id.is_valid()) {
       auto dialog_it = pending_secret_message_ids_.find(message_info.dialog_id);
       if (dialog_it != pending_secret_message_ids_.end()) {
         auto message_it = dialog_it->second.find(message->reply_to_random_id_);
         if (message_it != dialog_it->second.end()) {
-          message_info.reply_header.reply_to_message_id_ = message_it->second;
+          reply_to_message_id = message_it->second;
         }
       }
     }
+    message_info.reply_header.replied_message_info_ = RepliedMessageInfo(reply_to_message_id);
   }
 
   if (!clean_input_string(message->via_bot_name_)) {
@@ -14318,10 +14319,8 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       message_info.reply_header = MessageReplyHeader(td_, std::move(message->reply_to_), message_info.dialog_id,
                                                      message_info.message_id, message_info.date, can_have_thread);
       message_info.content = get_action_message_content(td_, std::move(message->action_), message_info.dialog_id,
-                                                        message_info.reply_header.reply_in_dialog_id_,
-                                                        message_info.reply_header.reply_to_message_id_);
-      message_info.reply_header.reply_in_dialog_id_ = DialogId();
-      message_info.reply_header.reply_to_message_id_ = MessageId();
+                                                        message_info.reply_header.replied_message_info_);
+      message_info.reply_header.replied_message_info_ = RepliedMessageInfo();
       message_info.reply_header.story_full_id_ = StoryFullId();
       break;
     }
@@ -14428,8 +14427,9 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     date = 1;
   }
 
-  MessageId reply_to_message_id = message_info.reply_header.reply_to_message_id_;
-  DialogId reply_in_dialog_id = message_info.reply_header.reply_in_dialog_id_;
+  auto reply_message_full_id = message_info.reply_header.replied_message_info_.get_reply_message_full_id();
+  MessageId reply_to_message_id = reply_message_full_id.get_message_id();
+  DialogId reply_in_dialog_id = reply_message_full_id.get_dialog_id();
   MessageId top_thread_message_id = message_info.reply_header.top_thread_message_id_;
   bool is_topic_message = message_info.reply_header.is_topic_message_;
   fix_server_reply_to_message_id(dialog_id, message_id, reply_in_dialog_id, reply_to_message_id);

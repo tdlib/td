@@ -34,68 +34,24 @@ MessageReplyHeader::MessageReplyHeader(Td *td, tl_object_ptr<telegram_api::Messa
   }
   CHECK(reply_header_ptr->get_id() == telegram_api::messageReplyHeader::ID);
   auto reply_header = telegram_api::move_object_as<telegram_api::messageReplyHeader>(reply_header_ptr);
-  if (reply_header->reply_to_scheduled_) {
-    reply_to_message_id_ = MessageId(ScheduledServerMessageId(reply_header->reply_to_msg_id_), date);
-    if (message_id.is_scheduled()) {
-      auto reply_to_peer_id = std::move(reply_header->reply_to_peer_id_);
-      if (reply_to_peer_id != nullptr) {
-        reply_in_dialog_id_ = DialogId(reply_to_peer_id);
-        LOG(ERROR) << "Receive reply to " << MessageFullId{reply_in_dialog_id_, reply_to_message_id_} << " in "
-                   << MessageFullId{dialog_id, message_id};
-        reply_to_message_id_ = MessageId();
-        reply_in_dialog_id_ = DialogId();
-      }
-    } else {
-      LOG(ERROR) << "Receive reply to " << reply_to_message_id_ << " in " << MessageFullId{dialog_id, message_id};
-      reply_to_message_id_ = MessageId();
-    }
-    if (reply_header->reply_from_ != nullptr || reply_header->reply_media_ != nullptr ||
-        !reply_header->quote_text_.empty() || !reply_header->quote_entities_.empty()) {
-      LOG(ERROR) << "Receive reply from other chat " << to_string(reply_header) << " in "
-                 << MessageFullId{dialog_id, message_id};
-    }
-  } else {
-    if (reply_header->reply_to_msg_id_ != 0) {
-      reply_to_message_id_ = MessageId(ServerMessageId(reply_header->reply_to_msg_id_));
-      auto reply_to_peer_id = std::move(reply_header->reply_to_peer_id_);
-      if (reply_to_peer_id != nullptr) {
-        reply_in_dialog_id_ = DialogId(reply_to_peer_id);
-        if (!reply_in_dialog_id_.is_valid()) {
-          LOG(ERROR) << "Receive reply in invalid " << to_string(reply_to_peer_id);
-          reply_to_message_id_ = MessageId();
-          reply_in_dialog_id_ = DialogId();
-        }
-        if (reply_in_dialog_id_ == dialog_id) {
-          reply_in_dialog_id_ = DialogId();  // just in case
-        }
-      }
-      if (!reply_to_message_id_.is_valid()) {
-        LOG(ERROR) << "Receive " << to_string(reply_header) << " in " << MessageFullId{dialog_id, message_id};
-        reply_to_message_id_ = MessageId();
-        reply_in_dialog_id_ = DialogId();
-      }
-    } else if (reply_header->reply_to_peer_id_ != nullptr) {
-      LOG(ERROR) << "Receive " << to_string(reply_header) << " in " << MessageFullId{dialog_id, message_id};
-    }
-    if (reply_header->reply_from_ != nullptr) {
-      reply_date_ = reply_header->reply_from_->date_;
-      if (reply_header->reply_from_->channel_post_ != 0) {
-        LOG(ERROR) << "Receive " << to_string(reply_header) << " in " << MessageFullId{dialog_id, message_id};
-      } else {
-        auto r_reply_origin = MessageOrigin::get_message_origin(td, std::move(reply_header->reply_from_));
-        if (r_reply_origin.is_error()) {
-          reply_date_ = 0;
-        }
-      }
-    }
-  }
+
   if (!message_id.is_scheduled() && can_have_thread) {
     if ((reply_header->flags_ & telegram_api::messageReplyHeader::REPLY_TO_TOP_ID_MASK) != 0) {
       top_thread_message_id_ = MessageId(ServerMessageId(reply_header->reply_to_top_id_));
-    } else if (reply_to_message_id_.is_valid() && !reply_in_dialog_id_.is_valid() && reply_date_ == 0) {
-      top_thread_message_id_ = reply_to_message_id_;
     }
-    is_topic_message_ = top_thread_message_id_.is_valid() && reply_header->forum_topic_;
+    is_topic_message_ = reply_header->forum_topic_;
+  }
+
+  replied_message_info_ = RepliedMessageInfo(td, std::move(reply_header), dialog_id, message_id, date);
+
+  if (!message_id.is_scheduled() && can_have_thread && !top_thread_message_id_.is_valid()) {
+    auto same_chat_reply_to_message_id = replied_message_info_.get_same_chat_reply_to_message_id();
+    if (same_chat_reply_to_message_id.is_valid()) {
+      CHECK(same_chat_reply_to_message_id.is_server());
+      top_thread_message_id_ = same_chat_reply_to_message_id;
+    } else {
+      is_topic_message_ = false;
+    }
   }
 }
 

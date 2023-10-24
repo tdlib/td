@@ -6,9 +6,8 @@
 //
 #pragma once
 
-#include "td/telegram/DialogId.h"
 #include "td/telegram/MessageId.h"
-#include "td/telegram/MessageOrigin.h"
+#include "td/telegram/RepliedMessageInfo.h"
 #include "td/telegram/StoryFullId.h"
 #include "td/telegram/telegram_api.h"
 
@@ -19,10 +18,8 @@ namespace td {
 class Td;
 
 struct MessageReplyHeader {
-  MessageId reply_to_message_id_;
-  DialogId reply_in_dialog_id_;
-  int32 reply_date_ = 0;        // for replies in other chats
-  MessageOrigin reply_origin_;  // for replies in other chats
+  RepliedMessageInfo replied_message_info_;
+
   MessageId top_thread_message_id_;
   bool is_topic_message_ = false;
 
