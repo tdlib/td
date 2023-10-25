@@ -110,6 +110,59 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, const MessageInputReplyTo &input_
   message_id_ = input_reply_to.message_id_;
 }
 
+bool RepliedMessageInfo::need_reply_changed_warning(
+    const RepliedMessageInfo &old_info, const RepliedMessageInfo &new_info, MessageId old_top_thread_message_id,
+    bool is_yet_unsent, std::function<bool(const RepliedMessageInfo &info)> is_reply_to_deleted_message) {
+  if (old_info.origin_date_ != new_info.origin_date_ && old_info.origin_date_ != 0 && new_info.origin_date_ != 0) {
+    // date of the original message can't change
+    return true;
+  }
+  if (old_info.origin_ != new_info.origin_ && !old_info.origin_.has_sender_signature() &&
+      !new_info.origin_.has_sender_signature() && !old_info.origin_.is_empty() && !new_info.origin_.is_empty()) {
+    // only signature can change in the message origin
+    return true;
+  }
+  if (old_info.dialog_id_ != new_info.dialog_id_ && old_info.dialog_id_ != DialogId() &&
+      new_info.dialog_id_ != DialogId()) {
+    // reply chat can't change
+    return true;
+  }
+  if (old_info.message_id_ == new_info.message_id_ && old_info.dialog_id_ == new_info.dialog_id_) {
+    if (old_info.message_id_ != MessageId()) {
+      if (old_info.origin_date_ != new_info.origin_date_) {
+        // date of the original message can't change
+        return true;
+      }
+      if (old_info.origin_ != new_info.origin_ && !old_info.origin_.has_sender_signature() &&
+          !new_info.origin_.has_sender_signature()) {
+        // only signature can change in the message origin
+        return true;
+      }
+    }
+    return false;
+  }
+  if (is_yet_unsent && is_reply_to_deleted_message(old_info) && new_info.message_id_ == MessageId()) {
+    // reply to a deleted message, which was available locally
+    return false;
+  }
+  if (is_yet_unsent && is_reply_to_deleted_message(new_info) && old_info.message_id_ == MessageId()) {
+    // reply to a locally deleted yet unsent message, which was available server-side
+    return false;
+  }
+  if (old_info.message_id_.is_valid_scheduled() && old_info.message_id_.is_scheduled_server() &&
+      new_info.message_id_.is_valid_scheduled() && new_info.message_id_.is_scheduled_server() &&
+      old_info.message_id_.get_scheduled_server_message_id() ==
+          new_info.message_id_.get_scheduled_server_message_id()) {
+    // schedule date change
+    return false;
+  }
+  if (is_yet_unsent && old_top_thread_message_id == new_info.message_id_ && new_info.dialog_id_ == DialogId()) {
+    // move of reply to the top thread message after deletion of the replied message
+    return false;
+  }
+  return true;
+}
+
 void RepliedMessageInfo::add_dependencies(Dependencies &dependencies) const {
   dependencies.add_dialog_and_dependencies(dialog_id_);
   origin_.add_dependencies(dependencies);

@@ -15,6 +15,8 @@
 
 #include "td/utils/common.h"
 
+#include <functional>
+
 namespace td {
 
 class Dependencies;
@@ -55,6 +57,10 @@ class RepliedMessageInfo {
   bool is_yet_unsent_message() const {
     return message_id_ != MessageId() && message_id_.is_yet_unsent();
   }
+
+  static bool need_reply_changed_warning(
+      const RepliedMessageInfo &old_info, const RepliedMessageInfo &new_info, MessageId old_top_thread_message_id,
+      bool is_yet_unsent, std::function<bool(const RepliedMessageInfo &info)> is_reply_to_deleted_message);
 
   void add_dependencies(Dependencies &dependencies) const;
 
