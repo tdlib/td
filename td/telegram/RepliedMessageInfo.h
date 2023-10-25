@@ -17,6 +17,8 @@
 
 namespace td {
 
+class Dependencies;
+
 class Td;
 
 class RepliedMessageInfo {
@@ -53,6 +55,8 @@ class RepliedMessageInfo {
   bool is_yet_unsent_message() const {
     return message_id_ != MessageId() && message_id_.is_yet_unsent();
   }
+
+  void add_dependencies(Dependencies &dependencies) const;
 
   td_api::object_ptr<td_api::messageReplyToMessage> get_message_reply_to_message_object(Td *td,
                                                                                         DialogId dialog_id) const;

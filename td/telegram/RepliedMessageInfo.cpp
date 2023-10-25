@@ -6,6 +6,7 @@
 //
 #include "td/telegram/RepliedMessageInfo.h"
 
+#include "td/telegram/Dependencies.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/OptionManager.h"
@@ -107,6 +108,11 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, const MessageInputReplyTo &input_
     return;
   }
   message_id_ = input_reply_to.message_id_;
+}
+
+void RepliedMessageInfo::add_dependencies(Dependencies &dependencies) const {
+  dependencies.add_dialog_and_dependencies(dialog_id_);
+  origin_.add_dependencies(dependencies);
 }
 
 td_api::object_ptr<td_api::messageReplyToMessage> RepliedMessageInfo::get_message_reply_to_message_object(
