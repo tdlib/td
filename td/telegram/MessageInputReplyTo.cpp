@@ -61,7 +61,7 @@ MessageInputReplyTo::MessageInputReplyTo(Td *td,
     case telegram_api::inputReplyToMessage::ID: {
       auto reply_to = telegram_api::move_object_as<telegram_api::inputReplyToMessage>(input_reply_to);
       MessageId message_id(ServerMessageId(reply_to->reply_to_msg_id_));
-      if (!message_id.is_valid()) {
+      if (!message_id.is_valid() && !message_id_.is_valid_scheduled()) {
         return;
       }
       DialogId dialog_id;
@@ -119,14 +119,14 @@ td_api::object_ptr<td_api::InputMessageReplyTo> MessageInputReplyTo::get_input_m
         td->messages_manager_->get_chat_id_object(story_full_id_.get_dialog_id(), "inputMessageReplyToStory"),
         story_full_id_.get_story_id().get());
   }
-  if (!message_id_.is_valid()) {
+  if (!message_id_.is_valid() && !message_id_.is_valid_scheduled()) {
     return nullptr;
   }
   return td_api::make_object<td_api::inputMessageReplyToMessage>(message_id_.get());
 }
 
 MessageFullId MessageInputReplyTo::get_reply_message_full_id(DialogId owner_dialog_id) const {
-  if (!message_id_.is_valid()) {
+  if (!message_id_.is_valid() && !message_id_.is_valid_scheduled()) {
     return {};
   }
   return {owner_dialog_id, message_id_};
@@ -141,7 +141,7 @@ bool operator!=(const MessageInputReplyTo &lhs, const MessageInputReplyTo &rhs) 
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageInputReplyTo &input_reply_to) {
-  if (input_reply_to.message_id_.is_valid()) {
+  if (input_reply_to.message_id_.is_valid() || input_reply_to.message_id_.is_valid_scheduled()) {
     return string_builder << input_reply_to.message_id_;
   }
   if (input_reply_to.story_full_id_.is_valid()) {

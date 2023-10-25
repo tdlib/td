@@ -38,7 +38,7 @@ struct MessageInputReplyTo {
   MessageInputReplyTo(Td *td, telegram_api::object_ptr<telegram_api::InputReplyTo> &&input_reply_to);
 
   bool is_empty() const {
-    return !message_id_.is_valid() && !story_full_id_.is_valid();
+    return !message_id_.is_valid() && !message_id_.is_valid_scheduled() && !story_full_id_.is_valid();
   }
 
   bool is_valid() const {

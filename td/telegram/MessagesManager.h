@@ -1140,12 +1140,15 @@ class MessagesManager final : public Actor {
     unique_ptr<MessageForwardInfo> forward_info;
 
     MessageId reply_to_message_id;
-    int64 reply_to_random_id = 0;  // for send_message
     DialogId reply_in_dialog_id;
-    MessageId top_thread_message_id;
     StoryFullId reply_to_story_full_id;
+    MessageId top_thread_message_id;
     MessageId linked_top_thread_message_id;
     vector<MessageId> local_thread_message_ids;
+
+    MessageInputReplyTo input_reply_to;  // for send_message
+    int64 reply_to_random_id = 0;        // for send_message
+    string send_emoji;                   // for send_message
 
     UserId via_bot_user_id;
 
@@ -1188,8 +1191,6 @@ class MessagesManager final : public Actor {
 
     DialogId real_forward_from_dialog_id;    // for resend_message
     MessageId real_forward_from_message_id;  // for resend_message
-
-    string send_emoji;  // for send_message
 
     NotificationId notification_id;
     NotificationId removed_notification_id;

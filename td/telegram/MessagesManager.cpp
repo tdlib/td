@@ -4674,6 +4674,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_history_generation = history_generation != 0;
   bool is_reply_to_story = reply_to_story_full_id != StoryFullId();
   bool has_forward_origin = is_forwarded;
+  bool has_input_reply_to = !message_id.is_any_server() && input_reply_to.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
   STORE_FLAG(is_outgoing);
@@ -4752,6 +4753,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(is_reply_to_story);
     STORE_FLAG(has_forward_origin);
     STORE_FLAG(invert_media);
+    STORE_FLAG(has_input_reply_to);
     END_STORE_FLAGS();
   }
 
@@ -4874,6 +4876,9 @@ void MessagesManager::Message::store(StorerT &storer) const {
   if (is_reply_to_story) {
     store(reply_to_story_full_id, storer);
   }
+  if (has_input_reply_to) {
+    store(input_reply_to, storer);
+  }
 }
 
 // do not forget to resolve message dependencies
@@ -4924,6 +4929,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool has_history_generation = false;
   bool is_reply_to_story = false;
   bool has_forward_origin = false;
+  bool has_input_reply_to = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_channel_post);
   PARSE_FLAG(is_outgoing);
@@ -5002,6 +5008,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(is_reply_to_story);
     PARSE_FLAG(has_forward_origin);
     PARSE_FLAG(invert_media);
+    PARSE_FLAG(has_input_reply_to);
     END_PARSE_FLAGS();
   }
 
@@ -5153,6 +5160,15 @@ void MessagesManager::Message::parse(ParserT &parser) {
   }
   if (is_reply_to_story) {
     parse(reply_to_story_full_id, parser);
+  }
+  if (has_input_reply_to) {
+    parse(input_reply_to, parser);
+  } else if (!message_id.is_any_server()) {
+    if (reply_to_story_full_id.is_valid()) {
+      input_reply_to = MessageInputReplyTo(reply_to_story_full_id);
+    } else if (reply_to_message_id.is_valid()) {
+      input_reply_to = MessageInputReplyTo(reply_to_message_id);
+    }
   }
 
   CHECK(content != nullptr);
@@ -24312,8 +24328,9 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
   m->send_date = G()->unix_time();
   m->date = is_scheduled ? options.schedule_date : m->send_date;
   m->reply_to_message_id = input_reply_to.message_id_;
-  m->reply_to_random_id = reply_to_random_id;
   m->reply_to_story_full_id = input_reply_to.story_full_id_;
+  m->input_reply_to = input_reply_to;
+  m->reply_to_random_id = reply_to_random_id;
   m->top_thread_message_id = top_thread_message_id;
   m->is_topic_message = is_topic_message;
   m->is_channel_post = is_channel_post;
@@ -24519,13 +24536,9 @@ MessageInputReplyTo MessagesManager::get_message_input_reply_to(
 }
 
 MessageInputReplyTo MessagesManager::get_message_input_reply_to(const Message *m) {
-  if (m->reply_to_message_id.is_valid()) {
-    return MessageInputReplyTo{m->reply_to_message_id};
-  }
-  if (m->reply_to_story_full_id.is_valid()) {
-    return MessageInputReplyTo{m->reply_to_story_full_id};
-  }
-  return {};
+  CHECK(m != nullptr);
+  CHECK(!m->message_id.is_server());
+  return m->input_reply_to;
 }
 
 void MessagesManager::fix_server_reply_to_message_id(DialogId dialog_id, MessageId message_id,
@@ -24602,25 +24615,28 @@ void MessagesManager::cancel_send_message_query(DialogId dialog_id, Message *m) 
     m->send_message_log_event_id = 0;
   }
 
-  if (m->reply_to_message_id.is_valid() && !m->reply_to_message_id.is_yet_unsent()) {
-    CHECK(m->reply_in_dialog_id == DialogId());
-    auto it = replied_by_yet_unsent_messages_.find({dialog_id, m->reply_to_message_id});
-    CHECK(it != replied_by_yet_unsent_messages_.end());
-    it->second--;
-    CHECK(it->second >= 0);
-    if (it->second == 0) {
-      replied_by_yet_unsent_messages_.erase(it);
-    }
-  }
-  if ((m->reply_to_message_id.is_valid() || m->reply_to_message_id.is_valid_scheduled()) &&
-      m->reply_to_message_id.is_yet_unsent()) {
-    CHECK(m->reply_in_dialog_id == DialogId());
-    auto it = replied_yet_unsent_messages_.find({dialog_id, m->reply_to_message_id});
-    CHECK(it != replied_yet_unsent_messages_.end());
-    size_t erased_count = it->second.erase({dialog_id, m->message_id});
-    CHECK(erased_count > 0);
-    if (it->second.empty()) {
-      replied_yet_unsent_messages_.erase(it);
+  const auto input_reply_to = get_message_input_reply_to(m);
+  if (!input_reply_to.is_empty()) {
+    auto replied_message_full_id = input_reply_to.get_reply_message_full_id(dialog_id);
+    auto replied_message_id = replied_message_full_id.get_message_id();
+    if (replied_message_id.is_valid() || replied_message_id.is_valid_scheduled()) {
+      if (!replied_message_id.is_yet_unsent()) {
+        auto it = replied_by_yet_unsent_messages_.find(replied_message_full_id);
+        CHECK(it != replied_by_yet_unsent_messages_.end());
+        it->second--;
+        CHECK(it->second >= 0);
+        if (it->second == 0) {
+          replied_by_yet_unsent_messages_.erase(it);
+        }
+      } else {
+        auto it = replied_yet_unsent_messages_.find(replied_message_full_id);
+        CHECK(it != replied_yet_unsent_messages_.end());
+        size_t erased_count = it->second.erase({dialog_id, m->message_id});
+        CHECK(erased_count > 0);
+        if (it->second.empty()) {
+          replied_yet_unsent_messages_.erase(it);
+        }
+      }
     }
   }
   {
@@ -24631,7 +24647,8 @@ void MessagesManager::cancel_send_message_query(DialogId dialog_id, Message *m) 
         CHECK(reply_d != nullptr);
         auto replied_m = get_message(reply_d, message_full_id.get_message_id());
         CHECK(replied_m != nullptr);
-        CHECK(replied_m->reply_to_message_id == m->message_id);
+        CHECK(get_message_input_reply_to(replied_m).get_reply_message_full_id(reply_d->dialog_id) ==
+              MessageFullId(dialog_id, m->message_id));
         set_message_reply(reply_d, replied_m, replied_m->top_thread_message_id, true);
       }
       replied_yet_unsent_messages_.erase(it);
@@ -30749,8 +30766,8 @@ void MessagesManager::update_reply_to_message_id(DialogId dialog_id, MessageId o
     CHECK(reply_d != nullptr);
     auto replied_m = get_message(reply_d, message_full_id.get_message_id());
     CHECK(replied_m != nullptr);
-    CHECK(replied_m->reply_to_message_id == old_message_id);
-    CHECK(replied_m->reply_in_dialog_id == DialogId());
+    CHECK(get_message_input_reply_to(replied_m).get_reply_message_full_id(reply_d->dialog_id) ==
+          MessageFullId(dialog_id, old_message_id));
     set_message_reply(reply_d, replied_m, new_message_id, true);
     // TODO rewrite send message log event
   }
@@ -30838,11 +30855,13 @@ MessageFullId MessagesManager::on_send_message_success(int64 random_id, MessageI
     LOG(ERROR) << "Sent " << old_message_id << " to " << dialog_id << " as " << new_message_id;
   }
 
-  sent_message->message_id = new_message_id;
-
-  if (sent_message->reply_to_message_id != MessageId() && sent_message->reply_to_message_id.is_yet_unsent()) {
+  const auto input_reply_to = get_message_input_reply_to(sent_message.get());
+  if (input_reply_to.is_valid() &&
+      input_reply_to.get_reply_message_full_id(dialog_id).get_message_id().is_yet_unsent()) {
     set_message_reply(d, sent_message.get(), MessageId(), false);
   }
+
+  sent_message->message_id = new_message_id;
 
   send_update_message_send_succeeded(d, old_message_id, sent_message.get());
 
@@ -34936,14 +34955,20 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     add_message_to_dialog_message_list(m, d, from_database, from_update, *need_update, need_update_dialog_pos, source);
   }
 
-  if (m->message_id.is_yet_unsent() && m->reply_to_message_id != MessageId()) {
-    CHECK(m->reply_in_dialog_id == DialogId());
-    if (!m->reply_to_message_id.is_yet_unsent()) {
-      if (!m->reply_to_message_id.is_scheduled()) {
-        replied_by_yet_unsent_messages_[MessageFullId{dialog_id, m->reply_to_message_id}]++;
+  if (m->message_id.is_yet_unsent()) {
+    const auto input_reply_to = get_message_input_reply_to(m);
+    if (!input_reply_to.is_empty()) {
+      auto replied_message_full_id = input_reply_to.get_reply_message_full_id(dialog_id);
+      auto replied_message_id = replied_message_full_id.get_message_id();
+      if (replied_message_id.is_valid() || replied_message_id.is_valid_scheduled()) {
+        if (!replied_message_id.is_yet_unsent()) {
+          if (!replied_message_id.is_scheduled()) {
+            replied_by_yet_unsent_messages_[replied_message_full_id]++;
+          }
+        } else {
+          replied_yet_unsent_messages_[replied_message_full_id].insert({dialog_id, m->message_id});
+        }
       }
-    } else {
-      replied_yet_unsent_messages_[MessageFullId{dialog_id, m->reply_to_message_id}].insert({dialog_id, m->message_id});
     }
   }
 
@@ -35190,14 +35215,20 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
   LOG(INFO) << "Adding not found " << message_id << " to " << dialog_id << " from " << source;
 
   const Message *m = message.get();
-  if (m->message_id.is_yet_unsent() && m->reply_to_message_id != MessageId()) {
-    CHECK(m->reply_in_dialog_id == DialogId());
-    if (!m->reply_to_message_id.is_yet_unsent()) {
-      if (!m->reply_to_message_id.is_scheduled()) {
-        replied_by_yet_unsent_messages_[MessageFullId{dialog_id, m->reply_to_message_id}]++;
+  if (m->message_id.is_yet_unsent()) {
+    const auto input_reply_to = get_message_input_reply_to(m);
+    if (!input_reply_to.is_empty()) {
+      auto replied_message_full_id = input_reply_to.get_reply_message_full_id(dialog_id);
+      auto replied_message_id = replied_message_full_id.get_message_id();
+      if (replied_message_id.is_valid() || replied_message_id.is_valid_scheduled()) {
+        if (!replied_message_id.is_yet_unsent()) {
+          if (!replied_message_id.is_scheduled()) {
+            replied_by_yet_unsent_messages_[replied_message_full_id]++;
+          }
+        } else {
+          replied_yet_unsent_messages_[replied_message_full_id].insert({dialog_id, m->message_id});
+        }
       }
-    } else {
-      replied_yet_unsent_messages_[MessageFullId{dialog_id, m->reply_to_message_id}].insert({dialog_id, m->message_id});
     }
   }
 
@@ -39153,6 +39184,9 @@ void MessagesManager::set_message_reply(const Dialog *d, Message *m, MessageId r
       m->reply_to_random_id = replied_m->random_id;
     }
   }
+  if (!m->message_id.is_server()) {
+    m->input_reply_to = MessageInputReplyTo(reply_to_message_id);
+  }
   if (is_message_in_dialog) {
     register_message_reply(d->dialog_id, m);
   }
@@ -39160,7 +39194,13 @@ void MessagesManager::set_message_reply(const Dialog *d, Message *m, MessageId r
 }
 
 void MessagesManager::restore_message_reply_to_message_id(Dialog *d, Message *m) {
-  if (m->reply_to_message_id == MessageId() || !m->reply_to_message_id.is_yet_unsent()) {
+  const auto input_reply_to = get_message_input_reply_to(m);
+  if (input_reply_to.is_empty()) {
+    return;
+  }
+  auto replied_message_full_id = input_reply_to.get_reply_message_full_id(d->dialog_id);
+  auto replied_message_id = replied_message_full_id.get_message_id();
+  if (replied_message_id == MessageId() || !replied_message_id.is_yet_unsent()) {
     return;
   }
 
