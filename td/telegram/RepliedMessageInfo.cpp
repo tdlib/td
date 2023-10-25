@@ -7,21 +7,38 @@
 #include "td/telegram/RepliedMessageInfo.h"
 
 #include "td/telegram/MessageFullId.h"
+#include "td/telegram/OptionManager.h"
 #include "td/telegram/ScheduledServerMessageId.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StoryId.h"
+#include "td/telegram/Td.h"
 #include "td/telegram/UserId.h"
 
 #include "td/utils/logging.h"
 
 namespace td {
 
+static bool has_qts_messages(const Td *td, DialogId dialog_id) {
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+    case DialogType::Chat:
+      return td->option_manager_->get_option_integer("session_count") > 1;
+    case DialogType::Channel:
+    case DialogType::SecretChat:
+      return false;
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+      return false;
+  }
+}
+
 RepliedMessageInfo::RepliedMessageInfo(Td *td, tl_object_ptr<telegram_api::messageReplyHeader> &&reply_header,
                                        DialogId dialog_id, MessageId message_id, int32 date) {
   CHECK(reply_header != nullptr);
   if (reply_header->reply_to_scheduled_) {
     message_id_ = MessageId(ScheduledServerMessageId(reply_header->reply_to_msg_id_), date);
-    if (message_id.is_scheduled()) {
+    if (message_id.is_valid_scheduled()) {
       auto reply_to_peer_id = std::move(reply_header->reply_to_peer_id_);
       if (reply_to_peer_id != nullptr) {
         dialog_id_ = DialogId(reply_to_peer_id);
@@ -29,6 +46,10 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, tl_object_ptr<telegram_api::messa
                    << MessageFullId{dialog_id, message_id};
         message_id_ = MessageId();
         dialog_id_ = DialogId();
+      }
+      if (message_id == message_id_) {
+        LOG(ERROR) << "Receive reply to " << message_id_ << " in " << MessageFullId{dialog_id, message_id};
+        message_id_ = MessageId();
       }
     } else {
       LOG(ERROR) << "Receive reply to " << message_id_ << " in " << MessageFullId{dialog_id, message_id};
@@ -58,6 +79,10 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, tl_object_ptr<telegram_api::messa
         LOG(ERROR) << "Receive " << to_string(reply_header) << " in " << MessageFullId{dialog_id, message_id};
         message_id_ = MessageId();
         dialog_id_ = DialogId();
+      } else if (!message_id.is_scheduled() && !dialog_id_.is_valid() &&
+                 ((message_id_ > message_id && !has_qts_messages(td, dialog_id)) || message_id_ == message_id)) {
+        LOG(ERROR) << "Receive reply to " << message_id_ << " in " << MessageFullId{dialog_id, message_id};
+        message_id_ = MessageId();
       }
     } else if (reply_header->reply_to_peer_id_ != nullptr) {
       LOG(ERROR) << "Receive " << to_string(reply_header) << " in " << MessageFullId{dialog_id, message_id};

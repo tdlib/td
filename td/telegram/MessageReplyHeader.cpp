@@ -48,13 +48,19 @@ MessageReplyHeader::MessageReplyHeader(Td *td, tl_object_ptr<telegram_api::Messa
 
   replied_message_info_ = RepliedMessageInfo(td, std::move(reply_header), dialog_id, message_id, date);
 
-  if (!message_id.is_scheduled() && can_have_thread && !top_thread_message_id_.is_valid()) {
-    auto same_chat_reply_to_message_id = replied_message_info_.get_same_chat_reply_to_message_id();
-    if (same_chat_reply_to_message_id.is_valid()) {
-      CHECK(same_chat_reply_to_message_id.is_server());
-      top_thread_message_id_ = same_chat_reply_to_message_id;
-    } else {
-      is_topic_message_ = false;
+  if (!message_id.is_scheduled() && can_have_thread) {
+    if (!top_thread_message_id_.is_valid()) {
+      auto same_chat_reply_to_message_id = replied_message_info_.get_same_chat_reply_to_message_id();
+      if (same_chat_reply_to_message_id.is_valid()) {
+        CHECK(same_chat_reply_to_message_id.is_server());
+        top_thread_message_id_ = same_chat_reply_to_message_id;
+      } else {
+        is_topic_message_ = false;
+      }
+    }
+    if (top_thread_message_id_ >= message_id) {
+      LOG(ERROR) << "Receive top thread " << top_thread_message_id_ << " in " << message_id << " in " << dialog_id;
+      top_thread_message_id_ = MessageId();
     }
   }
 }

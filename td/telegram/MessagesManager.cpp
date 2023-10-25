@@ -14448,9 +14448,6 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   DialogId reply_in_dialog_id = reply_message_full_id.get_dialog_id();
   MessageId top_thread_message_id = message_info.reply_header.top_thread_message_id_;
   bool is_topic_message = message_info.reply_header.is_topic_message_;
-  fix_server_reply_to_message_id(dialog_id, message_id, reply_in_dialog_id, reply_to_message_id);
-  fix_server_reply_to_message_id(dialog_id, message_id, reply_in_dialog_id, top_thread_message_id);
-
   auto reply_to_story_full_id = message_info.reply_header.story_full_id_;
   if (reply_to_story_full_id != StoryFullId() &&
       (dialog_type != DialogType::User || (reply_to_story_full_id.get_dialog_id() != my_dialog_id &&
@@ -24541,30 +24538,6 @@ MessageInputReplyTo MessagesManager::get_message_input_reply_to(const Message *m
   return m->input_reply_to;
 }
 
-void MessagesManager::fix_server_reply_to_message_id(DialogId dialog_id, MessageId message_id,
-                                                     DialogId reply_in_dialog_id,
-                                                     MessageId &reply_to_message_id) const {
-  if (!reply_to_message_id.is_valid()) {
-    if (reply_to_message_id.is_valid_scheduled()) {
-      CHECK(message_id.is_scheduled());
-      CHECK(reply_in_dialog_id == DialogId());
-      if (message_id == reply_to_message_id) {
-        LOG(ERROR) << "Receive reply to " << reply_to_message_id << " for " << message_id << " in " << dialog_id;
-        reply_to_message_id = MessageId();
-      }
-      return;
-    }
-    CHECK(reply_to_message_id == MessageId());
-    return;
-  }
-
-  if (!message_id.is_scheduled() && !reply_in_dialog_id.is_valid() &&
-      ((reply_to_message_id > message_id && !has_qts_messages(dialog_id)) || reply_to_message_id == message_id)) {
-    LOG(ERROR) << "Receive reply to wrong " << reply_to_message_id << " in " << message_id << " in " << dialog_id;
-    reply_to_message_id = MessageId();
-  }
-}
-
 vector<FileId> MessagesManager::get_message_file_ids(const Message *m) const {
   CHECK(m != nullptr);
   return get_message_content_file_ids(m->content.get(), td_);
@@ -26219,21 +26192,6 @@ void MessagesManager::do_send_inline_query_result_message(DialogId dialog_id, Me
   m->send_query_ref = td_->create_handler<SendInlineBotResultQuery>()->send(
       flags, dialog_id, get_send_message_as_input_peer(m), get_message_input_reply_to(m), m->top_thread_message_id,
       get_message_schedule_date(m), random_id, query_id, result_id);
-}
-
-bool MessagesManager::has_qts_messages(DialogId dialog_id) const {
-  switch (dialog_id.get_type()) {
-    case DialogType::User:
-    case DialogType::Chat:
-      return td_->option_manager_->get_option_integer("session_count") > 1;
-    case DialogType::Channel:
-    case DialogType::SecretChat:
-      return false;
-    case DialogType::None:
-    default:
-      UNREACHABLE();
-      return false;
-  }
 }
 
 bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, bool is_editing,

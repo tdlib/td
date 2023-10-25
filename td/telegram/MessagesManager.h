@@ -1816,8 +1816,6 @@ class MessagesManager final : public Actor {
 
   bool can_edit_message(DialogId dialog_id, const Message *m, bool is_editing, bool only_reply_markup = false) const;
 
-  bool has_qts_messages(DialogId dialog_id) const;
-
   bool can_report_dialog(DialogId dialog_id) const;
 
   Status can_pin_messages(DialogId dialog_id) const;
@@ -1845,9 +1843,6 @@ class MessagesManager final : public Actor {
                                                  bool for_draft);
 
   static MessageInputReplyTo get_message_input_reply_to(const Message *m);
-
-  void fix_server_reply_to_message_id(DialogId dialog_id, MessageId message_id, DialogId reply_in_dialog_id,
-                                      MessageId &reply_to_message_id) const;
 
   bool can_set_game_score(DialogId dialog_id, const Message *m) const;
 
