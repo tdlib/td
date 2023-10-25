@@ -24554,10 +24554,7 @@ void MessagesManager::fix_server_reply_to_message_id(DialogId dialog_id, Message
       }
       return;
     }
-    if (reply_to_message_id != MessageId()) {
-      LOG(ERROR) << "Receive reply to " << reply_to_message_id << " for " << message_id << " in " << dialog_id;
-      reply_to_message_id = MessageId();
-    }
+    CHECK(reply_to_message_id == MessageId());
     return;
   }
 
