@@ -24581,7 +24581,7 @@ void MessagesManager::cancel_send_message_query(DialogId dialog_id, Message *m) 
     CHECK(m->reply_in_dialog_id == DialogId());
     auto it = replied_yet_unsent_messages_.find({dialog_id, m->reply_to_message_id});
     CHECK(it != replied_yet_unsent_messages_.end());
-    size_t erased_count = it->second.erase(m->message_id);
+    size_t erased_count = it->second.erase({dialog_id, m->message_id});
     CHECK(erased_count > 0);
     if (it->second.empty()) {
       replied_yet_unsent_messages_.erase(it);
@@ -24590,12 +24590,13 @@ void MessagesManager::cancel_send_message_query(DialogId dialog_id, Message *m) 
   {
     auto it = replied_yet_unsent_messages_.find({dialog_id, m->message_id});
     if (it != replied_yet_unsent_messages_.end()) {
-      Dialog *d = get_dialog(dialog_id);
-      for (auto message_id : it->second) {
-        auto replied_m = get_message(d, message_id);
+      for (auto message_full_id : it->second) {
+        auto reply_d = get_dialog(message_full_id.get_dialog_id());
+        CHECK(reply_d != nullptr);
+        auto replied_m = get_message(reply_d, message_full_id.get_message_id());
         CHECK(replied_m != nullptr);
         CHECK(replied_m->reply_to_message_id == m->message_id);
-        set_message_reply(d, replied_m, replied_m->top_thread_message_id, true);
+        set_message_reply(reply_d, replied_m, replied_m->top_thread_message_id, true);
       }
       replied_yet_unsent_messages_.erase(it);
     }
@@ -30645,15 +30646,14 @@ void MessagesManager::update_reply_to_message_id(DialogId dialog_id, MessageId o
   }
   CHECK(old_message_id.is_yet_unsent());
 
-  Dialog *d = get_dialog(dialog_id);
-  for (auto message_id : it->second) {
-    CHECK(message_id.is_yet_unsent());
-    MessageFullId message_full_id{dialog_id, message_id};
-    auto replied_m = get_message(d, message_id);
+  for (auto message_full_id : it->second) {
+    auto reply_d = get_dialog(message_full_id.get_dialog_id());
+    CHECK(reply_d != nullptr);
+    auto replied_m = get_message(reply_d, message_full_id.get_message_id());
     CHECK(replied_m != nullptr);
     CHECK(replied_m->reply_to_message_id == old_message_id);
     CHECK(replied_m->reply_in_dialog_id == DialogId());
-    set_message_reply(d, replied_m, new_message_id, true);
+    set_message_reply(reply_d, replied_m, new_message_id, true);
     // TODO rewrite send message log event
   }
   if (have_new_message) {
@@ -34763,7 +34763,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         replied_by_yet_unsent_messages_[MessageFullId{dialog_id, m->reply_to_message_id}]++;
       }
     } else {
-      replied_yet_unsent_messages_[MessageFullId{dialog_id, m->reply_to_message_id}].insert(m->message_id);
+      replied_yet_unsent_messages_[MessageFullId{dialog_id, m->reply_to_message_id}].insert({dialog_id, m->message_id});
     }
   }
 
@@ -35017,7 +35017,7 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
         replied_by_yet_unsent_messages_[MessageFullId{dialog_id, m->reply_to_message_id}]++;
       }
     } else {
-      replied_yet_unsent_messages_[MessageFullId{dialog_id, m->reply_to_message_id}].insert(m->message_id);
+      replied_yet_unsent_messages_[MessageFullId{dialog_id, m->reply_to_message_id}].insert({dialog_id, m->message_id});
     }
   }
 

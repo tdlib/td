@@ -3426,7 +3426,8 @@ class MessagesManager final : public Actor {
   FlatHashMap<DialogId, uint64, DialogIdHash> get_dialog_query_log_event_id_;
 
   FlatHashMap<MessageFullId, int32, MessageFullIdHash> replied_by_yet_unsent_messages_;
-  FlatHashMap<MessageFullId, FlatHashSet<MessageId, MessageIdHash>, MessageFullIdHash> replied_yet_unsent_messages_;
+  FlatHashMap<MessageFullId, FlatHashSet<MessageFullId, MessageFullIdHash>, MessageFullIdHash>
+      replied_yet_unsent_messages_;
 
   // message_full_id -> replies with media timestamps
   FlatHashMap<MessageFullId, FlatHashSet<MessageFullId, MessageFullIdHash>, MessageFullIdHash>
