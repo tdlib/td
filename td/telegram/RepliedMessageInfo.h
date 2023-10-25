@@ -8,6 +8,7 @@
 
 #include "td/telegram/DialogId.h"
 #include "td/telegram/MessageId.h"
+#include "td/telegram/MessageInputReplyTo.h"
 #include "td/telegram/MessageOrigin.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -38,6 +39,8 @@ class RepliedMessageInfo {
 
   RepliedMessageInfo(Td *td, tl_object_ptr<telegram_api::messageReplyHeader> &&reply_header, DialogId dialog_id,
                      MessageId message_id, int32 date);
+
+  RepliedMessageInfo(Td *td, const MessageInputReplyTo &input_reply_to);
 
   bool is_same_chat_reply() const {
     return dialog_id_ == DialogId() && origin_date_ == 0;

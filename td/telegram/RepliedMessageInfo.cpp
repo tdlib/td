@@ -102,6 +102,13 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, tl_object_ptr<telegram_api::messa
   }
 }
 
+RepliedMessageInfo::RepliedMessageInfo(Td *td, const MessageInputReplyTo &input_reply_to) {
+  if (!input_reply_to.message_id_.is_valid()) {
+    return;
+  }
+  message_id_ = input_reply_to.message_id_;
+}
+
 td_api::object_ptr<td_api::messageReplyToMessage> RepliedMessageInfo::get_message_reply_to_message_object(
     Td *td, DialogId dialog_id) const {
   if (dialog_id_.is_valid()) {
