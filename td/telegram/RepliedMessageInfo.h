@@ -31,6 +31,8 @@ class RepliedMessageInfo {
 
   friend bool operator==(const RepliedMessageInfo &lhs, const RepliedMessageInfo &rhs);
 
+  friend StringBuilder &operator<<(StringBuilder &string_builder, const RepliedMessageInfo &info);
+
  public:
   RepliedMessageInfo() = default;
 
@@ -81,5 +83,7 @@ class RepliedMessageInfo {
 bool operator==(const RepliedMessageInfo &lhs, const RepliedMessageInfo &rhs);
 
 bool operator!=(const RepliedMessageInfo &lhs, const RepliedMessageInfo &rhs);
+
+StringBuilder &operator<<(StringBuilder &string_builder, const RepliedMessageInfo &info);
 
 }  // namespace td

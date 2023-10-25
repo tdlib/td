@@ -199,4 +199,15 @@ bool operator!=(const RepliedMessageInfo &lhs, const RepliedMessageInfo &rhs) {
   return !(lhs == rhs);
 }
 
+StringBuilder &operator<<(StringBuilder &string_builder, const RepliedMessageInfo &info) {
+  string_builder << "reply to " << info.message_id_;
+  if (info.dialog_id_ != DialogId()) {
+    string_builder << " in " << info.dialog_id_;
+  }
+  if (info.origin_date_ != 0) {
+    string_builder << " sent at " << info.origin_date_ << " by " << info.origin_;
+  }
+  return string_builder;
+}
+
 }  // namespace td
