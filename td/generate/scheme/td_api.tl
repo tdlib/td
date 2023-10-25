@@ -3518,7 +3518,7 @@ prepaidPremiumGiveaway id:int64 user_count:int32 month_count:int32 payment_date:
 //@boost_url An HTTP URL, which can be used to boost the chat
 //@applied_slot_ids Identifiers of boost slots of the current user applied to the chat
 //@level Current boost level of the chat
-//@gift_code_boost_count The number of boosts received by the chat from created Telegram Premium gift codes and giveaways
+//@gift_code_boost_count The number of boosts received by the chat from created Telegram Premium gift codes and giveaways; always 0 if the current user isn't an administrator in the chat
 //@boost_count The number of boosts received by the chat
 //@current_level_boost_count The number of boosts added to reach the current level
 //@next_level_boost_count The number of boosts needed to reach the next level; 0 if the next level isn't available
