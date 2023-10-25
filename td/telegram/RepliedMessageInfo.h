@@ -9,6 +9,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageOrigin.h"
+#include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
@@ -31,6 +32,10 @@ class RepliedMessageInfo {
   explicit RepliedMessageInfo(MessageId reply_to_message_id) : message_id_(reply_to_message_id) {
   }
 
+  RepliedMessageInfo(MessageId reply_to_message_id, DialogId reply_in_dialog_id)
+      : message_id_(reply_to_message_id), dialog_id_(reply_in_dialog_id) {
+  }
+
   RepliedMessageInfo(Td *td, tl_object_ptr<telegram_api::messageReplyHeader> &&reply_header, DialogId dialog_id,
                      MessageId message_id, int32 date);
 
@@ -41,6 +46,13 @@ class RepliedMessageInfo {
   bool is_empty() const {
     return message_id_ == MessageId() && dialog_id_ == DialogId() && origin_date_ == 0 && origin_.is_empty();
   }
+
+  bool is_yet_unsent_message() const {
+    return message_id_ != MessageId() && message_id_.is_yet_unsent();
+  }
+
+  td_api::object_ptr<td_api::messageReplyToMessage> get_message_reply_to_message_object(Td *td,
+                                                                                        DialogId dialog_id) const;
 
   MessageId get_same_chat_reply_to_message_id() const;
 

@@ -7,6 +7,7 @@
 #include "td/telegram/RepliedMessageInfo.h"
 
 #include "td/telegram/MessageFullId.h"
+#include "td/telegram/MessagesManager.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/ScheduledServerMessageId.h"
 #include "td/telegram/ServerMessageId.h"
@@ -99,6 +100,17 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, tl_object_ptr<telegram_api::messa
       }
     }
   }
+}
+
+td_api::object_ptr<td_api::messageReplyToMessage> RepliedMessageInfo::get_message_reply_to_message_object(
+    Td *td, DialogId dialog_id) const {
+  if (dialog_id_.is_valid()) {
+    dialog_id = dialog_id_;
+  } else {
+    CHECK(dialog_id.is_valid());
+  }
+  return td_api::make_object<td_api::messageReplyToMessage>(
+      td->messages_manager_->get_chat_id_object(dialog_id, "messageReplyToMessage"), message_id_.get());
 }
 
 MessageId RepliedMessageInfo::get_same_chat_reply_to_message_id() const {
