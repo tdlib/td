@@ -145,8 +145,7 @@ public final class Client {
      *
      * @param query         Object representing a query to the TDLib.
      * @param resultHandler Result handler with onResult method which will be called with result
-     *                      of the query or with TdApi.Error as parameter. If it is null, then
-     *                      defaultExceptionHandler will be called.
+     *                      of the query or with TdApi.Error as parameter.
      * @throws NullPointerException if query is null.
      */
     public void send(TdApi.Function<?> query, ResultHandler resultHandler) {
