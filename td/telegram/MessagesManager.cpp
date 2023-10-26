@@ -61,7 +61,7 @@
 #include "td/telegram/PollId.h"
 #include "td/telegram/PublicDialogType.h"
 #include "td/telegram/ReactionManager.h"
-#include "td/telegram/RepliedMessageInfo.h"
+#include "td/telegram/RepliedMessageInfo.hpp"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/ReplyMarkup.hpp"
 #include "td/telegram/ReportReason.h"
@@ -4636,7 +4636,6 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_edit_date = edit_date > 0;
   bool has_random_id = random_id != 0;
   bool is_forwarded = forward_info != nullptr;
-  bool is_reply = reply_to_message_id.is_valid() || reply_to_message_id.is_valid_scheduled();
   bool is_reply_to_random_id = reply_to_random_id != 0;
   bool is_via_bot = via_bot_user_id.is_valid();
   bool has_view_count = view_count > 0;
@@ -4657,7 +4656,6 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_forward_count = forward_count > 0;
   bool has_reply_info = !reply_info.is_empty();
   bool has_sender_dialog_id = sender_dialog_id.is_valid();
-  bool has_reply_in_dialog_id = is_reply && reply_in_dialog_id.is_valid();
   bool has_top_thread_message_id = top_thread_message_id.is_valid();
   bool has_thread_draft_message = thread_draft_message != nullptr;
   bool has_local_thread_message_ids = !local_thread_message_ids.empty();
@@ -4675,6 +4673,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool is_reply_to_story = reply_to_story_full_id != StoryFullId();
   bool has_forward_origin = is_forwarded;
   bool has_input_reply_to = !message_id.is_any_server() && input_reply_to.is_valid();
+  bool has_replied_message_info = !replied_message_info.is_empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
   STORE_FLAG(is_outgoing);
@@ -4690,7 +4689,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   STORE_FLAG(has_edit_date);
   STORE_FLAG(has_random_id);
   STORE_FLAG(is_forwarded);
-  STORE_FLAG(is_reply);
+  STORE_FLAG(false);
   STORE_FLAG(is_reply_to_random_id);
   STORE_FLAG(is_via_bot);
   STORE_FLAG(has_view_count);
@@ -4726,7 +4725,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(has_forward_count);
     STORE_FLAG(has_reply_info);
     STORE_FLAG(has_sender_dialog_id);
-    STORE_FLAG(has_reply_in_dialog_id);
+    STORE_FLAG(false);
     STORE_FLAG(has_top_thread_message_id);
     STORE_FLAG(has_thread_draft_message);
     STORE_FLAG(has_local_thread_message_ids);
@@ -4754,6 +4753,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(has_forward_origin);
     STORE_FLAG(invert_media);
     STORE_FLAG(has_input_reply_to);
+    STORE_FLAG(has_replied_message_info);
     END_STORE_FLAGS();
   }
 
@@ -4785,9 +4785,6 @@ void MessagesManager::Message::store(StorerT &storer) const {
   if (has_real_forward_from) {
     store(real_forward_from_dialog_id, storer);
     store(real_forward_from_message_id, storer);
-  }
-  if (is_reply) {
-    store(reply_to_message_id, storer);
   }
   if (is_reply_to_random_id) {
     store(reply_to_random_id, storer);
@@ -4833,9 +4830,6 @@ void MessagesManager::Message::store(StorerT &storer) const {
   if (has_sender_dialog_id) {
     store(sender_dialog_id, storer);
   }
-  if (has_reply_in_dialog_id) {
-    store(reply_in_dialog_id, storer);
-  }
   if (has_top_thread_message_id) {
     store(top_thread_message_id, storer);
   }
@@ -4879,6 +4873,9 @@ void MessagesManager::Message::store(StorerT &storer) const {
   if (has_input_reply_to) {
     store(input_reply_to, storer);
   }
+  if (has_replied_message_info) {
+    store(replied_message_info, storer);
+  }
 }
 
 // do not forget to resolve message dependencies
@@ -4891,7 +4888,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool has_edit_date;
   bool has_random_id;
   bool is_forwarded;
-  bool is_reply;
+  bool legacy_is_reply;
   bool is_reply_to_random_id;
   bool is_via_bot;
   bool has_view_count;
@@ -4913,7 +4910,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool has_forward_count = false;
   bool has_reply_info = false;
   bool has_sender_dialog_id = false;
-  bool has_reply_in_dialog_id = false;
+  bool legacy_has_reply_in_dialog_id = false;
   bool has_top_thread_message_id = false;
   bool has_thread_draft_message = false;
   bool has_local_thread_message_ids = false;
@@ -4930,6 +4927,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool is_reply_to_story = false;
   bool has_forward_origin = false;
   bool has_input_reply_to = false;
+  bool has_replied_message_info = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_channel_post);
   PARSE_FLAG(is_outgoing);
@@ -4945,7 +4943,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   PARSE_FLAG(has_edit_date);
   PARSE_FLAG(has_random_id);
   PARSE_FLAG(is_forwarded);
-  PARSE_FLAG(is_reply);
+  PARSE_FLAG(legacy_is_reply);
   PARSE_FLAG(is_reply_to_random_id);
   PARSE_FLAG(is_via_bot);
   PARSE_FLAG(has_view_count);
@@ -4981,7 +4979,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(has_forward_count);
     PARSE_FLAG(has_reply_info);
     PARSE_FLAG(has_sender_dialog_id);
-    PARSE_FLAG(has_reply_in_dialog_id);
+    PARSE_FLAG(legacy_has_reply_in_dialog_id);
     PARSE_FLAG(has_top_thread_message_id);
     PARSE_FLAG(has_thread_draft_message);
     PARSE_FLAG(has_local_thread_message_ids);
@@ -5009,6 +5007,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(has_forward_origin);
     PARSE_FLAG(invert_media);
     PARSE_FLAG(has_input_reply_to);
+    PARSE_FLAG(has_replied_message_info);
     END_PARSE_FLAGS();
   }
 
@@ -5071,8 +5070,9 @@ void MessagesManager::Message::parse(ParserT &parser) {
     parse(real_forward_from_dialog_id, parser);
     parse(real_forward_from_message_id, parser);
   }
-  if (is_reply) {
-    parse(reply_to_message_id, parser);
+  MessageId legacy_reply_to_message_id;
+  if (legacy_is_reply) {
+    parse(legacy_reply_to_message_id, parser);
   }
   if (is_reply_to_random_id) {
     parse(reply_to_random_id, parser);
@@ -5118,8 +5118,9 @@ void MessagesManager::Message::parse(ParserT &parser) {
   if (has_sender_dialog_id) {
     parse(sender_dialog_id, parser);
   }
-  if (has_reply_in_dialog_id) {
-    parse(reply_in_dialog_id, parser);
+  DialogId legacy_reply_in_dialog_id;
+  if (legacy_has_reply_in_dialog_id) {
+    parse(legacy_reply_in_dialog_id, parser);
   }
   if (has_top_thread_message_id) {
     parse(top_thread_message_id, parser);
@@ -5166,9 +5167,14 @@ void MessagesManager::Message::parse(ParserT &parser) {
   } else if (!message_id.is_any_server()) {
     if (reply_to_story_full_id.is_valid()) {
       input_reply_to = MessageInputReplyTo(reply_to_story_full_id);
-    } else if (reply_to_message_id.is_valid()) {
-      input_reply_to = MessageInputReplyTo(reply_to_message_id);
+    } else if (legacy_reply_to_message_id.is_valid()) {
+      input_reply_to = MessageInputReplyTo(legacy_reply_to_message_id);
     }
+  }
+  if (has_replied_message_info) {
+    parse(replied_message_info, parser);
+  } else {
+    replied_message_info = RepliedMessageInfo(legacy_reply_to_message_id, legacy_reply_in_dialog_id);
   }
 
   CHECK(content != nullptr);
@@ -14443,9 +14449,6 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     date = 1;
   }
 
-  auto reply_message_full_id = message_info.reply_header.replied_message_info_.get_reply_message_full_id(DialogId());
-  MessageId reply_to_message_id = reply_message_full_id.get_message_id();
-  DialogId reply_in_dialog_id = reply_message_full_id.get_dialog_id();
   MessageId top_thread_message_id = message_info.reply_header.top_thread_message_id_;
   bool is_topic_message = message_info.reply_header.is_topic_message_;
   auto reply_to_story_full_id = message_info.reply_header.story_full_id_;
@@ -14557,8 +14560,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
       content_type == MessageContentType::ExpiredPhoto || content_type == MessageContentType::ExpiredVideo;
   if (is_expired) {
     CHECK(ttl == 0);  // self-destruct time is ignored/set to 0 if the message has already been expired
-    reply_to_message_id = MessageId();
-    reply_in_dialog_id = DialogId();
+    message_info.reply_header.replied_message_info_ = {};
     reply_to_story_full_id = StoryFullId();
     noforwards = false;
     is_content_secret = false;
@@ -14584,8 +14586,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->edit_date = edit_date;
   message->random_id = message_info.random_id;
   message->forward_info = get_message_forward_info(std::move(message_info.forward_header));
-  message->reply_to_message_id = reply_to_message_id;
-  message->reply_in_dialog_id = reply_in_dialog_id;
+  message->replied_message_info = std::move(message_info.reply_header.replied_message_info_);
   message->top_thread_message_id = top_thread_message_id;
   message->is_topic_message = is_topic_message;
   message->via_bot_user_id = via_bot_user_id;
@@ -14764,7 +14765,9 @@ MessageFullId MessagesManager::on_get_message(MessageInfo &&message_info, const 
     update_message(d, old_message.get(), std::move(new_message), false);
     new_message = std::move(old_message);
 
-    if (new_message->reply_to_message_id != MessageId() && new_message->reply_to_message_id.is_yet_unsent()) {
+    auto reply_message_full_id = new_message->replied_message_info.get_reply_message_full_id(dialog_id);
+    auto reply_message_id = reply_message_full_id.get_message_id();
+    if (reply_message_id.is_valid() && reply_message_id.is_yet_unsent()) {
       set_message_reply(d, new_message.get(), MessageId(), false);
     }
 
@@ -17703,16 +17706,17 @@ MessageFullId MessagesManager::get_replied_message_id(DialogId dialog_id, const 
   }
   auto message_full_id = get_message_content_replied_message_id(dialog_id, m->content.get());
   if (message_full_id.get_message_id().is_valid()) {
-    CHECK(m->reply_to_message_id == MessageId());
+    CHECK(m->replied_message_info.is_empty());
     return message_full_id;
   }
-  if (m->reply_to_message_id == MessageId()) {
-    if (m->top_thread_message_id.is_valid() && is_service_message_content(m->content->get_type())) {
-      return {dialog_id, m->top_thread_message_id};
-    }
-    return {};
+  auto reply_message_full_id = m->replied_message_info.get_reply_message_full_id(dialog_id);
+  if (reply_message_full_id.get_message_id() != MessageId()) {
+    return reply_message_full_id;
   }
-  return {m->reply_in_dialog_id.is_valid() ? m->reply_in_dialog_id : dialog_id, m->reply_to_message_id};
+  if (m->top_thread_message_id.is_valid() && is_service_message_content(m->content->get_type())) {
+    return {dialog_id, m->top_thread_message_id};
+  }
+  return {};
 }
 
 void MessagesManager::get_message_force_from_server(Dialog *d, MessageId message_id, Promise<Unit> &&promise,
@@ -24109,15 +24113,13 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto can_report_reactions = can_report_message_reactions(dialog_id, m);
   auto via_bot_user_id = td_->contacts_manager_->get_user_id_object(m->via_bot_user_id, "via_bot_user_id");
   auto reply_to = [&]() -> td_api::object_ptr<td_api::MessageReplyTo> {
-    if (m->reply_to_message_id != MessageId()) {
-      if (m->is_topic_message && m->reply_in_dialog_id == DialogId() &&
-          m->reply_to_message_id == m->top_thread_message_id && !td_->auth_manager_->is_bot()) {
+    if (!m->replied_message_info.is_empty()) {
+      if (m->is_topic_message &&
+          m->replied_message_info.get_same_chat_reply_to_message_id() == m->top_thread_message_id &&
+          !td_->auth_manager_->is_bot()) {
         return nullptr;
       }
-      return td_api::make_object<td_api::messageReplyToMessage>(
-          get_chat_id_object(m->reply_in_dialog_id.is_valid() ? m->reply_in_dialog_id : dialog_id,
-                             "messageReplyToMessage"),
-          m->reply_to_message_id.get());
+      return m->replied_message_info.get_message_reply_to_message_object(td_, dialog_id);
     }
     if (m->reply_to_story_full_id.is_valid()) {
       return td_api::make_object<td_api::messageReplyToStory>(
@@ -24324,8 +24326,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
   }
   m->send_date = G()->unix_time();
   m->date = is_scheduled ? options.schedule_date : m->send_date;
-  m->reply_to_message_id = input_reply_to.message_id_;
-  m->reply_to_story_full_id = input_reply_to.story_full_id_;
+  m->replied_message_info = RepliedMessageInfo(td_, input_reply_to);
   m->input_reply_to = input_reply_to;
   m->reply_to_random_id = reply_to_random_id;
   m->top_thread_message_id = top_thread_message_id;
@@ -24690,7 +24691,7 @@ bool MessagesManager::is_message_auto_read(DialogId dialog_id, bool is_outgoing)
 void MessagesManager::add_message_dependencies(Dependencies &dependencies, const Message *m) {
   dependencies.add(m->sender_user_id);
   dependencies.add_dialog_and_dependencies(m->sender_dialog_id);
-  dependencies.add_dialog_and_dependencies(m->reply_in_dialog_id);
+  m->replied_message_info.add_dependencies(dependencies);
   dependencies.add_dialog_and_dependencies(m->reply_to_story_full_id.get_dialog_id());
   dependencies.add_dialog_and_dependencies(m->real_forward_from_dialog_id);
   dependencies.add(m->via_bot_user_id);
@@ -27150,18 +27151,21 @@ void MessagesManager::update_message_max_reply_media_timestamp(const Dialog *d, 
   }
 
   auto new_max_reply_media_timestamp = -1;
-  if (m->reply_to_message_id.is_valid() && !m->reply_to_message_id.is_yet_unsent()) {
-    const auto *reply_d = m->reply_in_dialog_id != DialogId() ? get_dialog(m->reply_in_dialog_id) : d;
+  auto reply_message_full_id = m->replied_message_info.get_reply_message_full_id(d->dialog_id);
+  auto reply_message_id = reply_message_full_id.get_message_id();
+  if (reply_message_id.is_valid() && !reply_message_id.is_yet_unsent()) {
+    const auto *reply_d =
+        reply_message_full_id.get_dialog_id() != d->dialog_id ? get_dialog(reply_message_full_id.get_dialog_id()) : d;
     if (reply_d == nullptr) {
       // replied message isn't loaded yet
       return;
     }
-    auto replied_m = get_message(reply_d, m->reply_to_message_id);
+    auto replied_m = get_message(reply_d, reply_message_id);
     if (replied_m != nullptr) {
       new_max_reply_media_timestamp = get_message_own_max_media_timestamp(replied_m);
-    } else if (!is_deleted_message(reply_d, m->reply_to_message_id) &&
-               m->reply_to_message_id > reply_d->last_clear_history_message_id &&
-               m->reply_to_message_id > reply_d->max_unavailable_message_id) {
+    } else if (!is_deleted_message(reply_d, reply_message_id) &&
+               reply_message_id > reply_d->last_clear_history_message_id &&
+               reply_message_id > reply_d->max_unavailable_message_id) {
       // replied message isn't deleted and isn't loaded yet
       return;
     }
@@ -27237,8 +27241,7 @@ void MessagesManager::update_message_max_reply_media_timestamp_in_replied_messag
     Dialog *d = get_dialog(replied_dialog_id);
     auto m = get_message(d, replied_message_full_id.get_message_id());
     CHECK(m != nullptr);
-    CHECK((m->reply_in_dialog_id.is_valid() ? m->reply_in_dialog_id : replied_dialog_id) == dialog_id);
-    CHECK(m->reply_to_message_id == reply_to_message_id);
+    CHECK(m->replied_message_info.get_reply_message_full_id(replied_dialog_id) == message_full_id);
     update_message_max_reply_media_timestamp(d, m, true);
   }
 }
@@ -27265,7 +27268,9 @@ bool MessagesManager::can_register_message_reply(const Message *m) const {
   if (td_->auth_manager_->is_bot()) {
     return false;
   }
-  if (m->reply_to_message_id.is_valid() && !m->reply_to_message_id.is_yet_unsent()) {
+  auto reply_message_full_id = m->replied_message_info.get_reply_message_full_id(DialogId());
+  auto reply_message_id = reply_message_full_id.get_message_id();
+  if (reply_message_id.is_valid() && !reply_message_id.is_yet_unsent()) {
     return true;
   }
   if (m->reply_to_story_full_id.is_valid()) {
@@ -27287,8 +27292,7 @@ void MessagesManager::register_message_reply(DialogId dialog_id, const Message *
                              .second;
       CHECK(is_inserted);
     } else {
-      MessageFullId message_full_id{m->reply_in_dialog_id.is_valid() ? m->reply_in_dialog_id : dialog_id,
-                                    m->reply_to_message_id};
+      auto message_full_id = m->replied_message_info.get_reply_message_full_id(dialog_id);
       LOG(INFO) << "Register " << m->message_id << " in " << dialog_id << " as reply to " << message_full_id;
       bool is_inserted =
           message_to_replied_media_timestamp_messages_[message_full_id].insert({dialog_id, m->message_id}).second;
@@ -27308,8 +27312,7 @@ void MessagesManager::reregister_message_reply(DialogId dialog_id, const Message
     was_registered =
         it != story_to_replied_media_timestamp_messages_.end() && it->second.count({dialog_id, m->message_id}) > 0;
   } else {
-    MessageFullId message_full_id{m->reply_in_dialog_id.is_valid() ? m->reply_in_dialog_id : dialog_id,
-                                  m->reply_to_message_id};
+    auto message_full_id = m->replied_message_info.get_reply_message_full_id(dialog_id);
     auto it = message_to_replied_media_timestamp_messages_.find(message_full_id);
     was_registered =
         it != message_to_replied_media_timestamp_messages_.end() && it->second.count({dialog_id, m->message_id}) > 0;
@@ -27346,8 +27349,7 @@ void MessagesManager::unregister_message_reply(DialogId dialog_id, const Message
       }
     }
   } else {
-    MessageFullId message_full_id{m->reply_in_dialog_id.is_valid() ? m->reply_in_dialog_id : dialog_id,
-                                  m->reply_to_message_id};
+    auto message_full_id = m->replied_message_info.get_reply_message_full_id(dialog_id);
     auto it = message_to_replied_media_timestamp_messages_.find(message_full_id);
     if (it == message_to_replied_media_timestamp_messages_.end()) {
       return;
@@ -27979,8 +27981,7 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
     }
 
     if (is_local_copy) {
-      auto original_reply_to_message_id =
-          forwarded_message->reply_in_dialog_id == DialogId() ? forwarded_message->reply_to_message_id : MessageId();
+      auto original_reply_to_message_id = forwarded_message->replied_message_info.get_same_chat_reply_to_message_id();
       copied_messages.push_back(
           {std::move(content), input_reply_to, forwarded_message->message_id, original_reply_to_message_id,
            std::move(reply_markup), forwarded_message->media_album_id,
@@ -28064,8 +28065,9 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
       forward_info->origin.hide_sender_if_needed(td_);
     }
     MessageId reply_to_message_id;
-    if (forwarded_message->reply_to_message_id.is_valid() && forwarded_message->reply_in_dialog_id == DialogId()) {
-      auto it = forwarded_message_id_to_new_message_id.find(forwarded_message->reply_to_message_id);
+    auto original_reply_to_message_id = forwarded_message->replied_message_info.get_same_chat_reply_to_message_id();
+    if (original_reply_to_message_id.is_valid()) {
+      auto it = forwarded_message_id_to_new_message_id.find(original_reply_to_message_id);
       if (it != forwarded_message_id_to_new_message_id.end()) {
         reply_to_message_id = it->second;
       }
@@ -28492,10 +28494,11 @@ Result<MessageId> MessagesManager::add_local_message(
     m->sender_dialog_id = sender_dialog_id;
   }
   m->date = G()->unix_time();
-  m->reply_to_message_id = input_reply_to.message_id_;
+  m->replied_message_info = RepliedMessageInfo(td_, input_reply_to);
   m->reply_to_story_full_id = input_reply_to.story_full_id_;
-  if (m->reply_to_message_id.is_valid() && !message_id.is_scheduled()) {
-    const Message *reply_m = get_message(d, m->reply_to_message_id);
+  if (!message_id.is_scheduled()) {
+    auto reply_to_message_id = m->replied_message_info.get_same_chat_reply_to_message_id();
+    const Message *reply_m = get_message(d, reply_to_message_id);
     if (reply_m != nullptr) {
       m->top_thread_message_id = reply_m->top_thread_message_id;
       if (m->top_thread_message_id.is_valid()) {
@@ -35829,46 +35832,32 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     }
   }
 
+  const bool is_replied_message_info_changed = old_message->replied_message_info != new_message->replied_message_info;
   const bool is_top_thread_message_id_changed =
       old_message->top_thread_message_id != new_message->top_thread_message_id;
   const bool is_is_topic_message_changed = old_message->is_topic_message != new_message->is_topic_message;
-  if (old_message->reply_to_message_id != new_message->reply_to_message_id ||
-      old_message->reply_in_dialog_id != new_message->reply_in_dialog_id || is_top_thread_message_id_changed ||
-      is_is_topic_message_changed || old_message->reply_to_story_full_id != new_message->reply_to_story_full_id) {
+  if (is_replied_message_info_changed || is_top_thread_message_id_changed || is_is_topic_message_changed ||
+      old_message->reply_to_story_full_id != new_message->reply_to_story_full_id) {
     if (!replace_legacy && is_new_available) {
-      if (old_message->reply_to_message_id != new_message->reply_to_message_id) {
+      if (is_replied_message_info_changed) {
         LOG(INFO) << "Update replied message of " << MessageFullId{dialog_id, message_id} << " from "
-                  << old_message->reply_to_message_id << " to " << new_message->reply_to_message_id;
-        if (message_id.is_yet_unsent() && new_message->reply_to_message_id == MessageId() &&
-            old_message->reply_in_dialog_id == DialogId() && is_deleted_message(d, old_message->reply_to_message_id) &&
-            !is_message_in_dialog) {
-          // reply to a deleted message, which was available locally
-        } else if (message_id.is_yet_unsent() && old_message->reply_to_message_id == MessageId() &&
-                   new_message->reply_in_dialog_id == DialogId() &&
-                   is_deleted_message(d, new_message->reply_to_message_id) && !is_message_in_dialog) {
-          // reply to a locally deleted yet unsent message, which was available server-side
-        } else if (old_message->reply_to_message_id.is_valid_scheduled() &&
-                   old_message->reply_to_message_id.is_scheduled_server() &&
-                   new_message->reply_to_message_id.is_valid_scheduled() &&
-                   new_message->reply_to_message_id.is_scheduled_server() &&
-                   old_message->reply_to_message_id.get_scheduled_server_message_id() ==
-                       new_message->reply_to_message_id.get_scheduled_server_message_id() &&
-                   new_message->reply_in_dialog_id == DialogId()) {
-          // schedule date change
-        } else if (message_id.is_yet_unsent() &&
-                   old_message->top_thread_message_id == new_message->reply_to_message_id &&
-                   new_message->reply_in_dialog_id == DialogId()) {
-          // move of reply to the top thread message after deletion of the replied message
-        } else {
+                  << old_message->replied_message_info << " to " << new_message->replied_message_info;
+        auto is_reply_to_deleted_message = [&](const RepliedMessageInfo &replied_message_info) {
+          auto reply_message_full_id = replied_message_info.get_reply_message_full_id(dialog_id);
+          auto *d = get_dialog(reply_message_full_id.get_dialog_id());
+          if (d == nullptr) {
+            return false;
+          }
+          return is_deleted_message(d, reply_message_full_id.get_message_id());
+        };
+        if (RepliedMessageInfo::need_reply_changed_warning(
+                old_message->replied_message_info, new_message->replied_message_info,
+                old_message->top_thread_message_id, message_id.is_yet_unsent() && !is_message_in_dialog,
+                is_reply_to_deleted_message)) {
           LOG(ERROR) << message_id << " in " << dialog_id << " has changed replied message from "
-                     << old_message->reply_to_message_id << " to " << new_message->reply_to_message_id
+                     << old_message->replied_message_info << " to " << new_message->replied_message_info
                      << ", message content type is " << old_content_type << '/' << new_content_type;
         }
-      }
-      if (old_message->reply_in_dialog_id != new_message->reply_in_dialog_id) {
-        LOG(ERROR) << message_id << " in " << dialog_id << " has changed replied message chat from "
-                   << old_message->reply_in_dialog_id << " to " << new_message->reply_in_dialog_id
-                   << ", message content type is " << old_content_type << '/' << new_content_type;
       }
       if (is_top_thread_message_id_changed) {
         if ((new_message->top_thread_message_id != MessageId() && old_message->top_thread_message_id != MessageId()) ||
@@ -35910,15 +35899,15 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     if (is_message_in_dialog) {
       unregister_message_reply(d->dialog_id, old_message);
     }
-    old_message->reply_in_dialog_id = new_message->reply_in_dialog_id;
-    old_message->reply_to_message_id = new_message->reply_to_message_id;
+    old_message->replied_message_info = std::move(new_message->replied_message_info);
     old_message->reply_to_story_full_id = new_message->reply_to_story_full_id;
     old_message->top_thread_message_id = new_message->top_thread_message_id;
     old_message->reply_to_random_id = 0;
-    if (old_message->reply_in_dialog_id == DialogId() && old_message->reply_to_message_id != MessageId() &&
-        message_id.is_yet_unsent() &&
-        (dialog_id.get_type() == DialogType::SecretChat || old_message->reply_to_message_id.is_yet_unsent())) {
-      auto *replied_m = get_message(d, old_message->reply_to_message_id);
+
+    auto same_chat_reply_to_message_id = old_message->replied_message_info.get_same_chat_reply_to_message_id();
+    if (same_chat_reply_to_message_id != MessageId() && message_id.is_yet_unsent() &&
+        (dialog_id.get_type() == DialogType::SecretChat || same_chat_reply_to_message_id.is_yet_unsent())) {
+      auto *replied_m = get_message(d, same_chat_reply_to_message_id);
       if (replied_m != nullptr) {
         old_message->reply_to_random_id = replied_m->random_id;
       }
@@ -39124,12 +39113,11 @@ void MessagesManager::update_has_outgoing_messages(DialogId dialog_id, const Mes
 void MessagesManager::set_message_reply(const Dialog *d, Message *m, MessageId reply_to_message_id,
                                         bool is_message_in_dialog) {
   LOG(INFO) << "Update replied message of " << MessageFullId{d->dialog_id, m->message_id} << " from "
-            << m->reply_to_message_id << " to " << reply_to_message_id;
+            << m->replied_message_info << " to " << reply_to_message_id;
   if (is_message_in_dialog) {
     unregister_message_reply(d->dialog_id, m);
   }
-  m->reply_in_dialog_id = DialogId();
-  m->reply_to_message_id = reply_to_message_id;
+  m->replied_message_info = RepliedMessageInfo(reply_to_message_id);
   m->reply_to_story_full_id = StoryFullId();
   m->reply_to_random_id = 0;
   if (reply_to_message_id != MessageId() && m->message_id.is_yet_unsent() &&

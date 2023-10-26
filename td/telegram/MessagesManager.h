@@ -60,6 +60,7 @@
 #include "td/telegram/Photo.h"
 #include "td/telegram/ReactionType.h"
 #include "td/telegram/RecentDialogList.h"
+#include "td/telegram/RepliedMessageInfo.h"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/RestrictionReason.h"
 #include "td/telegram/ScheduledServerMessageId.h"
@@ -1139,9 +1140,9 @@ class MessagesManager final : public Actor {
 
     unique_ptr<MessageForwardInfo> forward_info;
 
-    MessageId reply_to_message_id;
-    DialogId reply_in_dialog_id;
+    RepliedMessageInfo replied_message_info;
     StoryFullId reply_to_story_full_id;
+
     MessageId top_thread_message_id;
     MessageId linked_top_thread_message_id;
     vector<MessageId> local_thread_message_ids;
