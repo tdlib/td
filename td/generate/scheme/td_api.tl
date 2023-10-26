@@ -1227,9 +1227,11 @@ messageSendingStateFailed error:error can_retry:Bool need_another_sender:Bool re
 //@class MessageReplyTo @description Contains information about the message or the story a message is replying to
 
 //@description Describes a message replied by a given message
-//@chat_id The identifier of the chat to which the message belongs
-//@message_id The identifier of the message
-messageReplyToMessage chat_id:int53 message_id:int53 = MessageReplyTo;
+//@chat_id The identifier of the chat to which the message belongs; may be 0 if the replied message is in another chat and isn't accessible
+//@message_id The identifier of the message; may be 0 if the replied message is in another chat and isn't accessible
+//@quote Manually or automatically chosen quote from the replied message; may be null if none
+//@is_quote_manual True, if the quote was manually chosen by the message sender
+messageReplyToMessage chat_id:int53 message_id:int53 quote:formattedText is_quote_manual:Bool = MessageReplyTo;
 
 //@description Describes a story replied by a given message @story_sender_chat_id The identifier of the sender of the story @story_id The identifier of the story
 messageReplyToStory story_sender_chat_id:int53 story_id:int32 = MessageReplyTo;

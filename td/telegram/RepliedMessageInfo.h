@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageInputReplyTo.h"
 #include "td/telegram/MessageOrigin.h"
@@ -28,6 +29,8 @@ class RepliedMessageInfo {
   DialogId dialog_id_;     // DialogId() if reply is to a message in the same chat
   int32 origin_date_ = 0;  // for replies in other chats
   MessageOrigin origin_;   // for replies in other chats
+  FormattedText quote_;
+  bool is_quote_manual_ = false;
 
   friend bool operator==(const RepliedMessageInfo &lhs, const RepliedMessageInfo &rhs);
 
@@ -53,7 +56,8 @@ class RepliedMessageInfo {
   }
 
   bool is_empty() const {
-    return message_id_ == MessageId() && dialog_id_ == DialogId() && origin_date_ == 0 && origin_.is_empty();
+    return message_id_ == MessageId() && dialog_id_ == DialogId() && origin_date_ == 0 && origin_.is_empty() &&
+           quote_.text.empty();
   }
 
   static bool need_reply_changed_warning(

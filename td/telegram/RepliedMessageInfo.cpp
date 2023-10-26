@@ -9,6 +9,7 @@
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/misc.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/ScheduledServerMessageId.h"
 #include "td/telegram/ServerMessageId.h"
@@ -57,8 +58,7 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, tl_object_ptr<telegram_api::messa
       LOG(ERROR) << "Receive reply to " << message_id_ << " in " << MessageFullId{dialog_id, message_id};
       message_id_ = MessageId();
     }
-    if (reply_header->reply_from_ != nullptr || reply_header->reply_media_ != nullptr ||
-        !reply_header->quote_text_.empty() || !reply_header->quote_entities_.empty()) {
+    if (reply_header->reply_from_ != nullptr || reply_header->reply_media_ != nullptr) {
       LOG(ERROR) << "Receive reply from other chat " << to_string(reply_header) << " in "
                  << MessageFullId{dialog_id, message_id};
     }
@@ -100,6 +100,19 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, tl_object_ptr<telegram_api::messa
         }
       }
     }
+  }
+  if (!reply_header->quote_text_.empty()) {
+    is_quote_manual_ = reply_header->quote_;
+    auto entities = get_message_entities(td->contacts_manager_.get(), std::move(reply_header->quote_entities_),
+                                         "RepliedMessageInfo");
+    auto status = fix_formatted_text(reply_header->quote_text_, entities, true, true, true, true, false);
+    if (status.is_error()) {
+      if (!clean_input_string(reply_header->quote_text_)) {
+        reply_header->quote_text_.clear();
+      }
+      entities.clear();
+    }
+    quote_ = FormattedText{std::move(reply_header->quote_text_), std::move(entities)};
   }
 }
 
@@ -166,6 +179,7 @@ bool RepliedMessageInfo::need_reply_changed_warning(
 void RepliedMessageInfo::add_dependencies(Dependencies &dependencies) const {
   dependencies.add_dialog_and_dependencies(dialog_id_);
   origin_.add_dependencies(dependencies);
+  add_formatted_text_dependencies(dependencies, &quote_);
 }
 
 td_api::object_ptr<td_api::messageReplyToMessage> RepliedMessageInfo::get_message_reply_to_message_object(
@@ -175,8 +189,13 @@ td_api::object_ptr<td_api::messageReplyToMessage> RepliedMessageInfo::get_messag
   } else {
     CHECK(dialog_id.is_valid());
   }
+  td_api::object_ptr<td_api::formattedText> quote;
+  if (!quote_.text.empty()) {
+    quote = get_formatted_text_object(quote_, true, -1);
+  }
   return td_api::make_object<td_api::messageReplyToMessage>(
-      td->messages_manager_->get_chat_id_object(dialog_id, "messageReplyToMessage"), message_id_.get());
+      td->messages_manager_->get_chat_id_object(dialog_id, "messageReplyToMessage"), message_id_.get(),
+      std::move(quote), is_quote_manual_);
 }
 
 MessageId RepliedMessageInfo::get_same_chat_reply_to_message_id() const {
@@ -192,7 +211,8 @@ MessageFullId RepliedMessageInfo::get_reply_message_full_id(DialogId owner_dialo
 
 bool operator==(const RepliedMessageInfo &lhs, const RepliedMessageInfo &rhs) {
   return lhs.message_id_ == rhs.message_id_ && lhs.dialog_id_ == rhs.dialog_id_ &&
-         lhs.origin_date_ == rhs.origin_date_ && lhs.origin_ == rhs.origin_;
+         lhs.origin_date_ == rhs.origin_date_ && lhs.origin_ == rhs.origin_ && lhs.quote_ == rhs.quote_ &&
+         lhs.is_quote_manual_ == rhs.is_quote_manual_;
 }
 
 bool operator!=(const RepliedMessageInfo &lhs, const RepliedMessageInfo &rhs) {
@@ -206,6 +226,10 @@ StringBuilder &operator<<(StringBuilder &string_builder, const RepliedMessageInf
   }
   if (info.origin_date_ != 0) {
     string_builder << " sent at " << info.origin_date_ << " by " << info.origin_;
+  }
+  if (!info.quote_.text.empty()) {
+    string_builder << " with " << info.quote_.text.size() << (info.is_quote_manual_ ? " manually" : "")
+                   << " quoted bytes";
   }
   return string_builder;
 }
