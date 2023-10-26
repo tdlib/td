@@ -6,14 +6,17 @@
 //
 #pragma once
 
+#include "td/telegram/ChannelId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageEntity.h"
+#include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageInputReplyTo.h"
 #include "td/telegram/MessageOrigin.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserId.h"
 
 #include "td/utils/common.h"
 
@@ -72,6 +75,10 @@ class RepliedMessageInfo {
   static bool need_reply_changed_warning(
       const RepliedMessageInfo &old_info, const RepliedMessageInfo &new_info, MessageId old_top_thread_message_id,
       bool is_yet_unsent, std::function<bool(const RepliedMessageInfo &info)> is_reply_to_deleted_message);
+
+  vector<UserId> get_min_user_ids(Td *td) const;
+
+  vector<ChannelId> get_min_channel_ids(Td *td) const;
 
   void add_dependencies(Dependencies &dependencies, bool is_bot) const;
 

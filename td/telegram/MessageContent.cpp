@@ -3602,6 +3602,7 @@ std::pair<InputGroupCallId, bool> get_message_content_group_call_info(const Mess
 }
 
 vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageContent *message_content) {
+  CHECK(message_content != nullptr);
   switch (message_content->get_type()) {
     case MessageContentType::Text: {
       const auto *content = static_cast<const MessageText *>(message_content);
@@ -3710,6 +3711,7 @@ vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageConte
     case MessageContentType::Dice:
       break;
     case MessageContentType::ProximityAlertTriggered:
+      // not supported server-side
       break;
     case MessageContentType::GroupCall:
       break;
@@ -3765,7 +3767,11 @@ vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageConte
 }
 
 vector<ChannelId> get_message_content_min_channel_ids(const Td *td, const MessageContent *message_content) {
+  CHECK(message_content != nullptr);
   switch (message_content->get_type()) {
+    case MessageContentType::ProximityAlertTriggered:
+      // not supported server-side
+      break;
     case MessageContentType::Giveaway: {
       const auto *content = static_cast<const MessageGiveaway *>(message_content);
       return content->giveaway_parameters.get_channel_ids();

@@ -13145,6 +13145,9 @@ vector<UserId> MessagesManager::get_message_user_ids(const Message *m) const {
     m->forward_info->origin.add_user_ids(user_ids);
   }
   append(user_ids, get_message_content_min_user_ids(td_, m->content.get()));
+  if (!m->replied_message_info.is_empty()) {
+    append(user_ids, m->replied_message_info.get_min_user_ids(td_));
+  }
   return user_ids;
 }
 
@@ -13161,6 +13164,9 @@ vector<ChannelId> MessagesManager::get_message_channel_ids(const Message *m) con
     channel_ids.push_back(m->forward_info->from_dialog_id.get_channel_id());
   }
   append(channel_ids, get_message_content_min_channel_ids(td_, m->content.get()));
+  if (!m->replied_message_info.is_empty()) {
+    append(channel_ids, m->replied_message_info.get_min_channel_ids(td_));
+  }
   return channel_ids;
 }
 

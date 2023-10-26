@@ -17,8 +17,8 @@
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StoryId.h"
 #include "td/telegram/Td.h"
-#include "td/telegram/UserId.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/logging.h"
 
 namespace td {
@@ -216,6 +216,31 @@ bool RepliedMessageInfo::need_reply_changed_warning(
     return false;
   }
   return true;
+}
+
+vector<UserId> RepliedMessageInfo::get_min_user_ids(Td *td) const {
+  vector<UserId> user_ids;
+  if (dialog_id_.get_type() == DialogType::User) {
+    user_ids.push_back(dialog_id_.get_user_id());
+  }
+  origin_.add_user_ids(user_ids);
+  // not supported server-side: add_formatted_text_user_ids(user_ids, &quote_);
+  if (content_ != nullptr) {
+    append(user_ids, get_message_content_min_user_ids(td, content_.get()));
+  }
+  return user_ids;
+}
+
+vector<ChannelId> RepliedMessageInfo::get_min_channel_ids(Td *td) const {
+  vector<ChannelId> channel_ids;
+  if (dialog_id_.get_type() == DialogType::Channel) {
+    channel_ids.push_back(dialog_id_.get_channel_id());
+  }
+  origin_.add_channel_ids(channel_ids);
+  if (content_ != nullptr) {
+    append(channel_ids, get_message_content_min_channel_ids(td, content_.get()));
+  }
+  return channel_ids;
 }
 
 void RepliedMessageInfo::add_dependencies(Dependencies &dependencies, bool is_bot) const {
