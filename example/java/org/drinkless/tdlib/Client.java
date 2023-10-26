@@ -52,6 +52,9 @@ public final class Client {
          * @return Handler converted to {@link ResultHandler}
          */
         static <T extends TdApi.Object> ResultHandler toResultHandler(TypedResultHandler<T> handler) {
+            if (handler == null) {
+                return null;
+            }
             return result -> {
                 if (result.getConstructor() == TdApi.Error.CONSTRUCTOR) {
                     handler.onResult(null, (TdApi.Error) result);
