@@ -23736,7 +23736,7 @@ ChatReactions MessagesManager::get_message_available_reactions(const Dialog *d, 
       // can't use reactions if can't send messages to the group without joining
       can_use_reactions = false;
     } else if (is_anonymous_administrator(d->dialog_id, nullptr) && !is_broadcast_channel(d->dialog_id) &&
-               !!td_->contacts_manager_->get_channel_status(channel_id).is_creator()) {
+               !td_->contacts_manager_->get_channel_status(channel_id).is_creator()) {
       // only creator can react as the chat
       can_use_reactions = false;
     }
