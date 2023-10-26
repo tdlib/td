@@ -218,6 +218,13 @@ bool RepliedMessageInfo::need_reply_changed_warning(
   return true;
 }
 
+vector<FileId> RepliedMessageInfo::get_file_ids(Td *td) const {
+  if (content_ != nullptr) {
+    return get_message_content_file_ids(content_.get(), td);
+  }
+  return {};
+}
+
 vector<UserId> RepliedMessageInfo::get_min_user_ids(Td *td) const {
   vector<UserId> user_ids;
   if (dialog_id_.get_type() == DialogType::User) {

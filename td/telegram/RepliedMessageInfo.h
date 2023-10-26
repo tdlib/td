@@ -76,6 +76,8 @@ class RepliedMessageInfo {
       const RepliedMessageInfo &old_info, const RepliedMessageInfo &new_info, MessageId old_top_thread_message_id,
       bool is_yet_unsent, std::function<bool(const RepliedMessageInfo &info)> is_reply_to_deleted_message);
 
+  vector<FileId> get_file_ids(Td *td) const;
+
   vector<UserId> get_min_user_ids(Td *td) const;
 
   vector<ChannelId> get_min_channel_ids(Td *td) const;

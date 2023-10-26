@@ -6845,6 +6845,7 @@ FileId get_message_content_thumbnail_file_id(const MessageContent *content, cons
 }
 
 vector<FileId> get_message_content_file_ids(const MessageContent *content, const Td *td) {
+  CHECK(content != nullptr);
   switch (content->get_type()) {
     case MessageContentType::Photo:
       return photo_get_file_ids(static_cast<const MessagePhoto *>(content)->photo);

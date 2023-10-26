@@ -24549,7 +24549,11 @@ MessageInputReplyTo MessagesManager::get_message_input_reply_to(const Message *m
 
 vector<FileId> MessagesManager::get_message_file_ids(const Message *m) const {
   CHECK(m != nullptr);
-  return get_message_content_file_ids(m->content.get(), td_);
+  auto file_ids = get_message_content_file_ids(m->content.get(), td_);
+  if (!m->replied_message_info.is_empty()) {
+    append(file_ids, m->replied_message_info.get_file_ids(td_));
+  }
+  return file_ids;
 }
 
 void MessagesManager::cancel_upload_message_content_files(const MessageContent *content) {
