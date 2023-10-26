@@ -34,6 +34,39 @@ public final class Client {
     }
 
     /**
+     * Strongly typed interface for handler for results of queries to TDLib and incoming updates from TDLib.
+     */
+    public interface TypedResultHandler<T extends TdApi.Object> {
+        /**
+         * Callback called on result of query to TDLib or incoming update from TDLib.
+         *
+         * @param object Typed result of query or null if an error has occurred.
+         * @param error Error received as a result of query or null if query successfully performed.
+         */
+        void onResult(T object, TdApi.Error error);
+
+        /**
+         * Converts strongly typed {@link TypedResultHandler} to weakly typed {@link ResultHandler}.
+         *
+         * @param handler Handler to be converted to {@link ResultHandler}
+         * @return Handler converted to {@link ResultHandler}
+         */
+        static <T extends TdApi.Object> ResultHandler toResultHandler(TypedResultHandler<T> handler) {
+            if (handler == null) {
+                return null;
+            }
+            return result -> {
+                if (result.getConstructor() == TdApi.Error.CONSTRUCTOR) {
+                    handler.onResult(null, (TdApi.Error) result);
+                } else {
+                    //noinspection unchecked
+                    handler.onResult((T) result, null);
+                }
+            };
+        }
+    }
+
+    /**
      * Interface for handler of exceptions thrown while invoking ResultHandler.
      * By default, all such exceptions are ignored.
      * All exceptions thrown from ExceptionHandler are ignored.
@@ -92,7 +125,7 @@ public final class Client {
      *                         defaultExceptionHandler will be called.
      * @throws NullPointerException if query is null.
      */
-    public void send(TdApi.Function query, ResultHandler resultHandler, ExceptionHandler exceptionHandler) {
+    public void send(TdApi.Function<?> query, ResultHandler resultHandler, ExceptionHandler exceptionHandler) {
         long queryId = currentQueryId.incrementAndGet();
         if (resultHandler != null) {
             handlers.put(queryId, new Handler(resultHandler, exceptionHandler));
@@ -101,16 +134,52 @@ public final class Client {
     }
 
     /**
+     * Sends a request to the TDLib with an empty ResultHandler and ExceptionHandler.
+     *
+     * @param query Object representing a query to the TDLib.
+     * @throws NullPointerException if query is null.
+     */
+    public void send(TdApi.Function<?> query) {
+        send(query, (ResultHandler) null, null);
+    }
+
+    /**
      * Sends a request to the TDLib with an empty ExceptionHandler.
      *
      * @param query         Object representing a query to the TDLib.
      * @param resultHandler Result handler with onResult method which will be called with result
-     *                      of the query or with TdApi.Error as parameter. If it is null, then
-     *                      defaultExceptionHandler will be called.
+     *                      of the query or with TdApi.Error as parameter.
      * @throws NullPointerException if query is null.
      */
-    public void send(TdApi.Function query, ResultHandler resultHandler) {
+    public void send(TdApi.Function<?> query, ResultHandler resultHandler) {
         send(query, resultHandler, null);
+    }
+
+    /**
+     * Sends a request to the TDLib.
+     *
+     * @param query            Object representing a query to the TDLib.
+     * @param resultHandler    Result handler with onResult method which will be called with result
+     *                         of the query or with TdApi.Error as parameter.
+     * @param exceptionHandler Exception handler with onException method which will be called on
+     *                         exception thrown from resultHandler. If it is null, then
+     *                         defaultExceptionHandler will be called.
+     * @throws NullPointerException if query is null.
+     */
+    public <T extends TdApi.Object> void send(TdApi.Function<T> query, TypedResultHandler<T> resultHandler, ExceptionHandler exceptionHandler) {
+        send(query, TypedResultHandler.toResultHandler(resultHandler), exceptionHandler);
+    }
+
+    /**
+     * Sends a request to the TDLib with an empty ExceptionHandler.
+     *
+     * @param query         Object representing a query to the TDLib.
+     * @param resultHandler Result handler with onResult method which will be called with result
+     *                      of the query or with TdApi.Error as parameter.
+     * @throws NullPointerException if query is null.
+     */
+    public <T extends TdApi.Object> void send(TdApi.Function<T> query, TypedResultHandler<T> resultHandler) {
+        send(query, TypedResultHandler.toResultHandler(resultHandler), null);
     }
 
     /**
@@ -249,16 +318,20 @@ public final class Client {
         if (defaultExceptionHandler != null) {
             defaultExceptionHandlers.put(nativeClientId, defaultExceptionHandler);
         }
-        send(new TdApi.GetOption("version"), null, null);
+        send(new TdApi.GetOption("version"), (version, error) -> {
+            if (error != null) {
+                // Throw an error?
+            }
+        }, null);
     }
 
     private static native int createNativeClient();
 
-    private static native void nativeClientSend(int nativeClientId, long eventId, TdApi.Function function);
+    private static native void nativeClientSend(int nativeClientId, long eventId, TdApi.Function<?> function);
 
     private static native int nativeClientReceive(int[] clientIds, long[] eventIds, TdApi.Object[] events, double timeout);
 
-    private static native TdApi.Object nativeClientExecute(TdApi.Function function);
+    private static native TdApi.Object nativeClientExecute(TdApi.Function<?> function);
 
     private static native void nativeClientSetLogMessageHandler(int maxVerbosityLevel, LogMessageHandler logMessageHandler);
 }
