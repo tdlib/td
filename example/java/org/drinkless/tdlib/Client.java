@@ -131,6 +131,16 @@ public final class Client {
     }
 
     /**
+     * Sends a request to the TDLib with an empty ResultHandler and ExceptionHandler.
+     *
+     * @param query Object representing a query to the TDLib.
+     * @throws NullPointerException if query is null.
+     */
+    public void send(TdApi.Function<?> query) {
+        send(query, (ResultHandler) null, null);
+    }
+
+    /**
      * Sends a request to the TDLib with an empty ExceptionHandler.
      *
      * @param query         Object representing a query to the TDLib.
