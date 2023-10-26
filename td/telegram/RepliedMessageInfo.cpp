@@ -161,6 +161,10 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, const MessageInputReplyTo &input_
   message_id_ = input_reply_to.message_id_;
 }
 
+bool RepliedMessageInfo::need_reget() const {
+  return content_ != nullptr && need_reget_message_content(content_.get());
+}
+
 bool RepliedMessageInfo::need_reply_changed_warning(
     const RepliedMessageInfo &old_info, const RepliedMessageInfo &new_info, MessageId old_top_thread_message_id,
     bool is_yet_unsent, std::function<bool(const RepliedMessageInfo &info)> is_reply_to_deleted_message) {

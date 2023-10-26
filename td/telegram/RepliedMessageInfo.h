@@ -67,6 +67,8 @@ class RepliedMessageInfo {
            quote_.text.empty() && content_ == nullptr;
   }
 
+  bool need_reget() const;
+
   static bool need_reply_changed_warning(
       const RepliedMessageInfo &old_info, const RepliedMessageInfo &new_info, MessageId old_top_thread_message_id,
       bool is_yet_unsent, std::function<bool(const RepliedMessageInfo &info)> is_reply_to_deleted_message);

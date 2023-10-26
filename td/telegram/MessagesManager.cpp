@@ -25776,7 +25776,7 @@ void MessagesManager::on_text_message_ready_to_send(DialogId dialog_id, MessageI
     const FormattedText *message_text = get_message_content_text(content);
     CHECK(message_text != nullptr);
     int64 random_id = begin_send_message(dialog_id, m);
-    auto input_media = get_message_content_input_media_web_page(td_, m->content.get());
+    auto input_media = get_message_content_input_media_web_page(td_, content);
     if (input_media == nullptr) {
       td_->create_handler<SendMessageQuery>()->send(
           get_message_flags(m), dialog_id, get_send_message_as_input_peer(m), get_message_input_reply_to(m),
@@ -38903,7 +38903,7 @@ void MessagesManager::reget_message_from_server_if_needed(DialogId dialog_id, co
   }
 
   if (need_reget_message_content(m->content.get()) || (m->legacy_layer != 0 && m->legacy_layer < MTPROTO_LAYER) ||
-      m->reply_info.need_reget(td_)) {
+      m->reply_info.need_reget(td_) || m->replied_message_info.need_reget()) {
     MessageFullId message_full_id{dialog_id, m->message_id};
     LOG(INFO) << "Reget from server " << message_full_id;
     get_message_from_server(message_full_id, Auto(), "reget_message_from_server_if_needed");
