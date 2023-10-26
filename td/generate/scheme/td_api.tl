@@ -1231,7 +1231,8 @@ messageSendingStateFailed error:error can_retry:Bool need_another_sender:Bool re
 //@message_id The identifier of the message; may be 0 if the replied message is in another chat and isn't accessible
 //@quote Manually or automatically chosen quote from the replied message; may be null if none
 //@is_quote_manual True, if the quote was manually chosen by the message sender
-messageReplyToMessage chat_id:int53 message_id:int53 quote:formattedText is_quote_manual:Bool = MessageReplyTo;
+//@send_date Point in time (Unix timestamp) when the message was sent if the message is from another chat; 0 for messages from the same chat
+messageReplyToMessage chat_id:int53 message_id:int53 quote:formattedText is_quote_manual:Bool send_date:int32 = MessageReplyTo;
 
 //@description Describes a story replied by a given message @story_sender_chat_id The identifier of the sender of the story @story_id The identifier of the story
 messageReplyToStory story_sender_chat_id:int53 story_id:int32 = MessageReplyTo;
