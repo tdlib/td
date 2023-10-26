@@ -3947,7 +3947,6 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
           LOG(ERROR) << "Message text has changed in " << get_content_object(old_content) << ". New content is "
                      << get_content_object(new_content);
         }
-        need_update = true;
       }
       if (old_->text.entities != new_->text.entities) {
         const int32 MAX_CUSTOM_ENTITIES_COUNT = 100;  // server-side limit
@@ -3958,76 +3957,30 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
           LOG(WARNING) << "Entities have changed in " << get_content_object(old_content) << ". New content is "
                        << get_content_object(new_content);
         }
-        need_update = true;
-      }
-      if (old_->web_page_id != new_->web_page_id || old_->force_small_media != new_->force_small_media ||
-          old_->force_large_media != new_->force_large_media ||
-          old_->skip_web_page_confirmation != new_->skip_web_page_confirmation) {
-        LOG(INFO) << "Old: " << old_->web_page_id << ", new: " << new_->web_page_id;
-        is_content_changed = true;
-        need_update |= td->web_pages_manager_->have_web_page(old_->web_page_id) ||
-                       td->web_pages_manager_->have_web_page(new_->web_page_id);
-      }
-      if (old_->web_page_url != new_->web_page_url) {
-        need_update = true;
       }
       break;
     }
     case MessageContentType::Animation: {
       const auto *old_ = static_cast<const MessageAnimation *>(old_content);
       const auto *new_ = static_cast<const MessageAnimation *>(new_content);
-      if (old_->file_id != new_->file_id) {
-        if (need_merge_files) {
-          td->animations_manager_->merge_animations(new_->file_id, old_->file_id);
-        }
-        need_update = true;
-      }
-      if (old_->caption != new_->caption || old_->has_spoiler != new_->has_spoiler) {
-        need_update = true;
+      if (old_->file_id != new_->file_id && need_merge_files) {
+        td->animations_manager_->merge_animations(new_->file_id, old_->file_id);
       }
       break;
     }
     case MessageContentType::Audio: {
       const auto *old_ = static_cast<const MessageAudio *>(old_content);
       const auto *new_ = static_cast<const MessageAudio *>(new_content);
-      if (old_->file_id != new_->file_id) {
-        if (need_merge_files) {
-          td->audios_manager_->merge_audios(new_->file_id, old_->file_id);
-        }
-        need_update = true;
-      }
-      if (old_->caption != new_->caption) {
-        need_update = true;
-      }
-      break;
-    }
-    case MessageContentType::Contact: {
-      const auto *old_ = static_cast<const MessageContact *>(old_content);
-      const auto *new_ = static_cast<const MessageContact *>(new_content);
-      if (old_->contact != new_->contact) {
-        need_update = true;
+      if (old_->file_id != new_->file_id && need_merge_files) {
+        td->audios_manager_->merge_audios(new_->file_id, old_->file_id);
       }
       break;
     }
     case MessageContentType::Document: {
       const auto *old_ = static_cast<const MessageDocument *>(old_content);
       const auto *new_ = static_cast<const MessageDocument *>(new_content);
-      if (old_->file_id != new_->file_id) {
-        if (need_merge_files) {
-          td->documents_manager_->merge_documents(new_->file_id, old_->file_id);
-        }
-        need_update = true;
-      }
-      if (old_->caption != new_->caption) {
-        need_update = true;
-      }
-      break;
-    }
-    case MessageContentType::Game: {
-      const auto *old_ = static_cast<const MessageGame *>(old_content);
-      const auto *new_ = static_cast<const MessageGame *>(new_content);
-      if (old_->game != new_->game) {
-        need_update = true;
+      if (old_->file_id != new_->file_id && need_merge_files) {
+        td->documents_manager_->merge_documents(new_->file_id, old_->file_id);
       }
       break;
     }
@@ -4035,25 +3988,12 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       const auto *old_ = static_cast<const MessageInvoice *>(old_content);
       auto *new_ = static_cast<MessageInvoice *>(new_content);
       new_->input_invoice.update_from(old_->input_invoice);
-      if (old_->input_invoice != new_->input_invoice) {
-        need_update = true;
-      } else if (old_->input_invoice.is_equal_but_different(new_->input_invoice)) {
-        is_content_changed = true;
-      }
       break;
     }
     case MessageContentType::LiveLocation: {
       const auto *old_ = static_cast<const MessageLiveLocation *>(old_content);
       const auto *new_ = static_cast<const MessageLiveLocation *>(new_content);
-      if (old_->location != new_->location) {
-        need_update = true;
-      }
-      if (old_->period != new_->period || old_->heading != new_->heading ||
-          old_->proximity_alert_radius != new_->proximity_alert_radius) {
-        need_update = true;
-      }
       if (old_->location.get_access_hash() != new_->location.get_access_hash()) {
-        is_content_changed = true;
         merge_location_access_hash(old_->location, new_->location);
       }
       break;
@@ -4061,11 +4001,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     case MessageContentType::Location: {
       const auto *old_ = static_cast<const MessageLocation *>(old_content);
       const auto *new_ = static_cast<const MessageLocation *>(new_content);
-      if (old_->location != new_->location) {
-        need_update = true;
-      }
       if (old_->location.get_access_hash() != new_->location.get_access_hash()) {
-        is_content_changed = true;
         merge_location_access_hash(old_->location, new_->location);
       }
       break;
@@ -4074,33 +4010,20 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       const auto *old_ = static_cast<const MessagePhoto *>(old_content);
       auto *new_ = static_cast<MessagePhoto *>(new_content);
       merge_photos(td, &old_->photo, &new_->photo, dialog_id, need_merge_files, is_content_changed, need_update);
-      if (old_->caption != new_->caption || old_->has_spoiler != new_->has_spoiler) {
-        need_update = true;
-      }
       break;
     }
     case MessageContentType::Sticker: {
       const auto *old_ = static_cast<const MessageSticker *>(old_content);
       const auto *new_ = static_cast<const MessageSticker *>(new_content);
-      if (old_->file_id != new_->file_id) {
-        if (need_merge_files) {
-          td->stickers_manager_->merge_stickers(new_->file_id, old_->file_id);
-        }
-        need_update = true;
-      }
-      if (old_->is_premium != new_->is_premium) {
-        need_update = true;
+      if (old_->file_id != new_->file_id && need_merge_files) {
+        td->stickers_manager_->merge_stickers(new_->file_id, old_->file_id);
       }
       break;
     }
     case MessageContentType::Venue: {
       const auto *old_ = static_cast<const MessageVenue *>(old_content);
       const auto *new_ = static_cast<const MessageVenue *>(new_content);
-      if (old_->venue != new_->venue) {
-        need_update = true;
-      }
       if (old_->venue.location().get_access_hash() != new_->venue.location().get_access_hash()) {
-        is_content_changed = true;
         merge_location_access_hash(old_->venue.location(), new_->venue.location());
       }
       break;
@@ -4108,386 +4031,74 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     case MessageContentType::Video: {
       const auto *old_ = static_cast<const MessageVideo *>(old_content);
       const auto *new_ = static_cast<const MessageVideo *>(new_content);
-      if (old_->file_id != new_->file_id) {
-        if (need_merge_files) {
-          td->videos_manager_->merge_videos(new_->file_id, old_->file_id);
-        }
-        need_update = true;
-      }
-      if (old_->caption != new_->caption || old_->has_spoiler != new_->has_spoiler) {
-        need_update = true;
+      if (old_->file_id != new_->file_id && need_merge_files) {
+        td->videos_manager_->merge_videos(new_->file_id, old_->file_id);
       }
       break;
     }
     case MessageContentType::VideoNote: {
       const auto *old_ = static_cast<const MessageVideoNote *>(old_content);
       const auto *new_ = static_cast<const MessageVideoNote *>(new_content);
-      if (old_->file_id != new_->file_id) {
-        if (need_merge_files) {
-          td->video_notes_manager_->merge_video_notes(new_->file_id, old_->file_id);
-        }
-        need_update = true;
-      }
-      if (old_->is_viewed != new_->is_viewed) {
-        need_update = true;
+      if (old_->file_id != new_->file_id && need_merge_files) {
+        td->video_notes_manager_->merge_video_notes(new_->file_id, old_->file_id);
       }
       break;
     }
     case MessageContentType::VoiceNote: {
       const auto *old_ = static_cast<const MessageVoiceNote *>(old_content);
       const auto *new_ = static_cast<const MessageVoiceNote *>(new_content);
-      if (old_->file_id != new_->file_id) {
-        if (need_merge_files) {
-          td->voice_notes_manager_->merge_voice_notes(new_->file_id, old_->file_id);
-        }
-        need_update = true;
-      }
-      if (old_->caption != new_->caption || old_->is_listened != new_->is_listened) {
-        need_update = true;
+      if (old_->file_id != new_->file_id && need_merge_files) {
+        td->voice_notes_manager_->merge_voice_notes(new_->file_id, old_->file_id);
       }
       break;
     }
-    case MessageContentType::ChatCreate: {
-      const auto *old_ = static_cast<const MessageChatCreate *>(old_content);
-      const auto *new_ = static_cast<const MessageChatCreate *>(new_content);
-      if (old_->title != new_->title || old_->participant_user_ids != new_->participant_user_ids) {
-        need_update = true;
-      }
-      break;
-    }
-    case MessageContentType::ChatChangeTitle: {
-      const auto *old_ = static_cast<const MessageChatChangeTitle *>(old_content);
-      const auto *new_ = static_cast<const MessageChatChangeTitle *>(new_content);
-      if (old_->title != new_->title) {
-        need_update = true;
-      }
-      break;
-    }
-    case MessageContentType::ChatChangePhoto: {
-      const auto *old_ = static_cast<const MessageChatChangePhoto *>(old_content);
-      const auto *new_ = static_cast<const MessageChatChangePhoto *>(new_content);
-      if (old_->photo != new_->photo) {
-        need_update = true;
-      }
-      break;
-    }
+    case MessageContentType::Contact:
+    case MessageContentType::Game:
+    case MessageContentType::ChatCreate:
+    case MessageContentType::ChatChangeTitle:
+    case MessageContentType::ChatChangePhoto:
     case MessageContentType::ChatDeletePhoto:
-      break;
     case MessageContentType::ChatDeleteHistory:
-      break;
-    case MessageContentType::ChatAddUsers: {
-      const auto *old_ = static_cast<const MessageChatAddUsers *>(old_content);
-      const auto *new_ = static_cast<const MessageChatAddUsers *>(new_content);
-      if (old_->user_ids != new_->user_ids) {
-        need_update = true;
-      }
-      break;
-    }
-    case MessageContentType::ChatJoinedByLink: {
-      auto old_ = static_cast<const MessageChatJoinedByLink *>(old_content);
-      auto new_ = static_cast<const MessageChatJoinedByLink *>(new_content);
-      if (old_->is_approved != new_->is_approved) {
-        need_update = true;
-      }
-      break;
-    }
-    case MessageContentType::ChatDeleteUser: {
-      const auto *old_ = static_cast<const MessageChatDeleteUser *>(old_content);
-      const auto *new_ = static_cast<const MessageChatDeleteUser *>(new_content);
-      if (old_->user_id != new_->user_id) {
-        need_update = true;
-      }
-      break;
-    }
-    case MessageContentType::ChatMigrateTo: {
-      const auto *old_ = static_cast<const MessageChatMigrateTo *>(old_content);
-      const auto *new_ = static_cast<const MessageChatMigrateTo *>(new_content);
-      if (old_->migrated_to_channel_id != new_->migrated_to_channel_id) {
-        need_update = true;
-      }
-      break;
-    }
-    case MessageContentType::ChannelCreate: {
-      const auto *old_ = static_cast<const MessageChannelCreate *>(old_content);
-      const auto *new_ = static_cast<const MessageChannelCreate *>(new_content);
-      if (old_->title != new_->title) {
-        need_update = true;
-      }
-      break;
-    }
-    case MessageContentType::ChannelMigrateFrom: {
-      const auto *old_ = static_cast<const MessageChannelMigrateFrom *>(old_content);
-      const auto *new_ = static_cast<const MessageChannelMigrateFrom *>(new_content);
-      if (old_->title != new_->title || old_->migrated_from_chat_id != new_->migrated_from_chat_id) {
-        need_update = true;
-      }
-      break;
-    }
-    case MessageContentType::PinMessage: {
-      const auto *old_ = static_cast<const MessagePinMessage *>(old_content);
-      const auto *new_ = static_cast<const MessagePinMessage *>(new_content);
-      if (old_->message_id != new_->message_id) {
-        need_update = true;
-      }
-      break;
-    }
-    case MessageContentType::GameScore: {
-      const auto *old_ = static_cast<const MessageGameScore *>(old_content);
-      const auto *new_ = static_cast<const MessageGameScore *>(new_content);
-      if (old_->game_message_id != new_->game_message_id || old_->game_id != new_->game_id ||
-          old_->score != new_->score) {
-        need_update = true;
-      }
-      break;
-    }
+    case MessageContentType::ChatAddUsers:
+    case MessageContentType::ChatJoinedByLink:
+    case MessageContentType::ChatDeleteUser:
+    case MessageContentType::ChatMigrateTo:
+    case MessageContentType::ChannelCreate:
+    case MessageContentType::ChannelMigrateFrom:
+    case MessageContentType::PinMessage:
+    case MessageContentType::GameScore:
     case MessageContentType::ScreenshotTaken:
-      break;
-    case MessageContentType::ChatSetTtl: {
-      const auto *old_ = static_cast<const MessageChatSetTtl *>(old_content);
-      const auto *new_ = static_cast<const MessageChatSetTtl *>(new_content);
-      if (old_->ttl != new_->ttl) {
-        LOG(ERROR) << "Message auto-delete time has changed from " << old_->ttl << " to " << new_->ttl;
-        need_update = true;
-      }
-      if (old_->from_user_id != new_->from_user_id) {
-        need_update = true;
-      }
-      break;
-    }
-    case MessageContentType::Call: {
-      const auto *old_ = static_cast<const MessageCall *>(old_content);
-      const auto *new_ = static_cast<const MessageCall *>(new_content);
-      if (old_->call_id != new_->call_id) {
-        is_content_changed = true;
-      }
-      if (old_->duration != new_->duration || old_->discard_reason != new_->discard_reason ||
-          old_->is_video != new_->is_video) {
-        need_update = true;
-      }
-      break;
-    }
-    case MessageContentType::PaymentSuccessful: {
-      const auto *old_ = static_cast<const MessagePaymentSuccessful *>(old_content);
-      const auto *new_ = static_cast<const MessagePaymentSuccessful *>(new_content);
-      if (old_->invoice_dialog_id != new_->invoice_dialog_id || old_->invoice_message_id != new_->invoice_message_id ||
-          old_->currency != new_->currency || old_->total_amount != new_->total_amount ||
-          old_->invoice_payload != new_->invoice_payload || old_->shipping_option_id != new_->shipping_option_id ||
-          old_->telegram_payment_charge_id != new_->telegram_payment_charge_id ||
-          old_->provider_payment_charge_id != new_->provider_payment_charge_id ||
-          ((old_->order_info != nullptr || new_->order_info != nullptr) &&
-           (old_->order_info == nullptr || new_->order_info == nullptr || *old_->order_info != *new_->order_info)) ||
-          old_->is_recurring != new_->is_recurring || old_->is_first_recurring != new_->is_first_recurring) {
-        need_update = true;
-      }
-      break;
-    }
+    case MessageContentType::ChatSetTtl:
+    case MessageContentType::Call:
+    case MessageContentType::PaymentSuccessful:
     case MessageContentType::ContactRegistered:
-      break;
     case MessageContentType::ExpiredPhoto:
-      break;
     case MessageContentType::ExpiredVideo:
-      break;
-    case MessageContentType::CustomServiceAction: {
-      const auto *old_ = static_cast<const MessageCustomServiceAction *>(old_content);
-      const auto *new_ = static_cast<const MessageCustomServiceAction *>(new_content);
-      if (old_->message != new_->message) {
-        need_update = true;
-      }
-      break;
-    }
-    case MessageContentType::WebsiteConnected: {
-      const auto *old_ = static_cast<const MessageWebsiteConnected *>(old_content);
-      const auto *new_ = static_cast<const MessageWebsiteConnected *>(new_content);
-      if (old_->domain_name != new_->domain_name) {
-        need_update = true;
-      }
-      break;
-    }
-    case MessageContentType::PassportDataSent: {
-      const auto *old_ = static_cast<const MessagePassportDataSent *>(old_content);
-      const auto *new_ = static_cast<const MessagePassportDataSent *>(new_content);
-      if (old_->types != new_->types) {
-        need_update = true;
-      }
-      break;
-    }
-    case MessageContentType::PassportDataReceived: {
-      const auto *old_ = static_cast<const MessagePassportDataReceived *>(old_content);
-      const auto *new_ = static_cast<const MessagePassportDataReceived *>(new_content);
-      if (old_->values != new_->values || old_->credentials != new_->credentials) {
-        need_update = true;
-      }
-      break;
-    }
-    case MessageContentType::Poll: {
-      const auto *old_ = static_cast<const MessagePoll *>(old_content);
-      const auto *new_ = static_cast<const MessagePoll *>(new_content);
-      if (old_->poll_id != new_->poll_id) {
-        need_update = true;
-      }
-      break;
-    }
-    case MessageContentType::Dice: {
-      const auto *old_ = static_cast<const MessageDice *>(old_content);
-      const auto *new_ = static_cast<const MessageDice *>(new_content);
-      if (old_->emoji != new_->emoji || old_->dice_value != new_->dice_value) {
-        need_update = true;
-      }
-      break;
-    }
-    case MessageContentType::ProximityAlertTriggered: {
-      const auto *old_ = static_cast<const MessageProximityAlertTriggered *>(old_content);
-      const auto *new_ = static_cast<const MessageProximityAlertTriggered *>(new_content);
-      if (old_->traveler_dialog_id != new_->traveler_dialog_id || old_->watcher_dialog_id != new_->watcher_dialog_id ||
-          old_->distance != new_->distance) {
-        need_update = true;
-      }
-      break;
-    }
-    case MessageContentType::GroupCall: {
-      const auto *old_ = static_cast<const MessageGroupCall *>(old_content);
-      const auto *new_ = static_cast<const MessageGroupCall *>(new_content);
-      if (old_->input_group_call_id != new_->input_group_call_id || old_->duration != new_->duration ||
-          old_->schedule_date != new_->schedule_date) {
-        need_update = true;
-      }
-      if (!old_->input_group_call_id.is_identical(new_->input_group_call_id)) {
-        is_content_changed = true;
-      }
-      break;
-    }
-    case MessageContentType::InviteToGroupCall: {
-      const auto *old_ = static_cast<const MessageInviteToGroupCall *>(old_content);
-      const auto *new_ = static_cast<const MessageInviteToGroupCall *>(new_content);
-      if (old_->input_group_call_id != new_->input_group_call_id || old_->user_ids != new_->user_ids) {
-        need_update = true;
-      }
-      if (!old_->input_group_call_id.is_identical(new_->input_group_call_id)) {
-        is_content_changed = true;
-      }
-      break;
-    }
-    case MessageContentType::ChatSetTheme: {
-      const auto *old_ = static_cast<const MessageChatSetTheme *>(old_content);
-      const auto *new_ = static_cast<const MessageChatSetTheme *>(new_content);
-      if (old_->emoji != new_->emoji) {
-        need_update = true;
-      }
-      break;
-    }
-    case MessageContentType::WebViewDataSent: {
-      const auto *old_ = static_cast<const MessageWebViewDataSent *>(old_content);
-      const auto *new_ = static_cast<const MessageWebViewDataSent *>(new_content);
-      if (old_->button_text != new_->button_text) {
-        need_update = true;
-      }
-      break;
-    }
-    case MessageContentType::WebViewDataReceived: {
-      const auto *old_ = static_cast<const MessageWebViewDataReceived *>(old_content);
-      const auto *new_ = static_cast<const MessageWebViewDataReceived *>(new_content);
-      if (old_->button_text != new_->button_text || old_->data != new_->data) {
-        need_update = true;
-      }
-      break;
-    }
-    case MessageContentType::GiftPremium: {
-      const auto *old_ = static_cast<const MessageGiftPremium *>(old_content);
-      const auto *new_ = static_cast<const MessageGiftPremium *>(new_content);
-      if (old_->currency != new_->currency || old_->amount != new_->amount ||
-          old_->crypto_currency != new_->crypto_currency || old_->crypto_amount != new_->crypto_amount ||
-          old_->months != new_->months) {
-        need_update = true;
-      }
-      break;
-    }
-    case MessageContentType::TopicCreate: {
-      const auto *old_ = static_cast<const MessageTopicCreate *>(old_content);
-      const auto *new_ = static_cast<const MessageTopicCreate *>(new_content);
-      if (old_->title != new_->title || old_->icon != new_->icon) {
-        need_update = true;
-      }
-      break;
-    }
-    case MessageContentType::TopicEdit: {
-      const auto *old_ = static_cast<const MessageTopicEdit *>(old_content);
-      const auto *new_ = static_cast<const MessageTopicEdit *>(new_content);
-      if (old_->edited_data != new_->edited_data) {
-        need_update = true;
-      }
-      break;
-    }
-    case MessageContentType::Unsupported: {
-      const auto *old_ = static_cast<const MessageUnsupported *>(old_content);
-      const auto *new_ = static_cast<const MessageUnsupported *>(new_content);
-      if (old_->version != new_->version) {
-        is_content_changed = true;
-      }
-      break;
-    }
-    case MessageContentType::SuggestProfilePhoto: {
-      const auto *old_ = static_cast<const MessageSuggestProfilePhoto *>(old_content);
-      const auto *new_ = static_cast<const MessageSuggestProfilePhoto *>(new_content);
-      if (old_->photo != new_->photo) {
-        need_update = true;
-      }
-      break;
-    }
+    case MessageContentType::CustomServiceAction:
+    case MessageContentType::WebsiteConnected:
+    case MessageContentType::PassportDataSent:
+    case MessageContentType::PassportDataReceived:
+    case MessageContentType::Poll:
+    case MessageContentType::Dice:
+    case MessageContentType::ProximityAlertTriggered:
+    case MessageContentType::GroupCall:
+    case MessageContentType::InviteToGroupCall:
+    case MessageContentType::ChatSetTheme:
+    case MessageContentType::WebViewDataSent:
+    case MessageContentType::WebViewDataReceived:
+    case MessageContentType::GiftPremium:
+    case MessageContentType::TopicCreate:
+    case MessageContentType::TopicEdit:
+    case MessageContentType::Unsupported:
+    case MessageContentType::SuggestProfilePhoto:
     case MessageContentType::WriteAccessAllowed:
-      break;
-    case MessageContentType::RequestedDialog: {
-      const auto *old_ = static_cast<const MessageRequestedDialog *>(old_content);
-      const auto *new_ = static_cast<const MessageRequestedDialog *>(new_content);
-      if (old_->dialog_id != new_->dialog_id || old_->button_id != new_->button_id) {
-        need_update = true;
-      }
-      break;
-    }
-    case MessageContentType::WebViewWriteAccessAllowed: {
-      const auto *old_ = static_cast<const MessageWebViewWriteAccessAllowed *>(old_content);
-      const auto *new_ = static_cast<const MessageWebViewWriteAccessAllowed *>(new_content);
-      if (old_->web_app != new_->web_app) {
-        need_update = true;
-      }
-      break;
-    }
-    case MessageContentType::SetBackground: {
-      const auto *old_ = static_cast<const MessageSetBackground *>(old_content);
-      const auto *new_ = static_cast<const MessageSetBackground *>(new_content);
-      if (old_->old_message_id != new_->old_message_id || old_->background_info != new_->background_info) {
-        need_update = true;
-      }
-      break;
-    }
-    case MessageContentType::Story: {
-      const auto *old_ = static_cast<const MessageStory *>(old_content);
-      const auto *new_ = static_cast<const MessageStory *>(new_content);
-      if (old_->story_full_id != new_->story_full_id || old_->via_mention != new_->via_mention) {
-        need_update = true;
-      }
-      break;
-    }
+    case MessageContentType::RequestedDialog:
+    case MessageContentType::WebViewWriteAccessAllowed:
+    case MessageContentType::SetBackground:
+    case MessageContentType::Story:
     case MessageContentType::WriteAccessAllowedByRequest:
-      break;
-    case MessageContentType::GiftCode: {
-      const auto *old_ = static_cast<const MessageGiftCode *>(old_content);
-      const auto *new_ = static_cast<const MessageGiftCode *>(new_content);
-      if (old_->creator_dialog_id != new_->creator_dialog_id || old_->months != new_->months ||
-          old_->via_giveaway != new_->via_giveaway || old_->is_unclaimed != new_->is_unclaimed ||
-          old_->code != new_->code) {
-        need_update = true;
-      }
-      break;
-    }
-    case MessageContentType::Giveaway: {
-      const auto *old_ = static_cast<const MessageGiveaway *>(old_content);
-      const auto *new_ = static_cast<const MessageGiveaway *>(new_content);
-      if (old_->giveaway_parameters != new_->giveaway_parameters || old_->quantity != new_->quantity ||
-          old_->months != new_->months) {
-        need_update = true;
-      }
-      break;
-    }
+    case MessageContentType::GiftCode:
+    case MessageContentType::Giveaway:
     case MessageContentType::GiveawayLaunch:
       break;
     default:
@@ -4641,6 +4252,491 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
       break;
   }
   return false;
+}
+
+void compare_message_contents(Td *td, const MessageContent *old_content, const MessageContent *new_content,
+                              bool &is_content_changed, bool &need_update) {
+  MessageContentType content_type = old_content->get_type();
+  if (new_content->get_type() != content_type) {
+    need_update = true;
+    return;
+  }
+
+  switch (content_type) {
+    case MessageContentType::Text: {
+      const auto *lhs = static_cast<const MessageText *>(old_content);
+      const auto *rhs = static_cast<const MessageText *>(new_content);
+      if (lhs->text.text != rhs->text.text || lhs->text.entities != rhs->text.entities ||
+          lhs->web_page_url != rhs->web_page_url) {
+        need_update = true;
+      } else if (lhs->web_page_id != rhs->web_page_id || lhs->force_small_media != rhs->force_small_media ||
+                 lhs->force_large_media != rhs->force_large_media ||
+                 lhs->skip_web_page_confirmation != rhs->skip_web_page_confirmation) {
+        is_content_changed = true;
+        need_update |= td->web_pages_manager_->have_web_page(lhs->web_page_id) ||
+                       td->web_pages_manager_->have_web_page(rhs->web_page_id);
+      }
+      break;
+    }
+    case MessageContentType::Animation: {
+      const auto *lhs = static_cast<const MessageAnimation *>(old_content);
+      const auto *rhs = static_cast<const MessageAnimation *>(new_content);
+      if (lhs->file_id != rhs->file_id || lhs->caption != rhs->caption || lhs->has_spoiler != rhs->has_spoiler) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::Audio: {
+      const auto *lhs = static_cast<const MessageAudio *>(old_content);
+      const auto *rhs = static_cast<const MessageAudio *>(new_content);
+      if (lhs->file_id != rhs->file_id || lhs->caption != rhs->caption) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::Contact: {
+      const auto *lhs = static_cast<const MessageContact *>(old_content);
+      const auto *rhs = static_cast<const MessageContact *>(new_content);
+      if (lhs->contact != rhs->contact) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::Document: {
+      const auto *lhs = static_cast<const MessageDocument *>(old_content);
+      const auto *rhs = static_cast<const MessageDocument *>(new_content);
+      if (lhs->file_id != rhs->file_id || lhs->caption != rhs->caption) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::Game: {
+      const auto *lhs = static_cast<const MessageGame *>(old_content);
+      const auto *rhs = static_cast<const MessageGame *>(new_content);
+      if (lhs->game != rhs->game) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::Invoice: {
+      const auto *lhs = static_cast<const MessageInvoice *>(old_content);
+      const auto *rhs = static_cast<const MessageInvoice *>(new_content);
+      if (lhs->input_invoice != rhs->input_invoice) {
+        need_update = true;
+      } else if (lhs->input_invoice.is_equal_but_different(rhs->input_invoice)) {
+        is_content_changed = true;
+      }
+      break;
+    }
+    case MessageContentType::LiveLocation: {
+      const auto *lhs = static_cast<const MessageLiveLocation *>(old_content);
+      const auto *rhs = static_cast<const MessageLiveLocation *>(new_content);
+      if (lhs->location != rhs->location || lhs->period != rhs->period || lhs->heading != rhs->heading ||
+          lhs->proximity_alert_radius != rhs->proximity_alert_radius) {
+        need_update = true;
+      } else if (lhs->location.get_access_hash() != rhs->location.get_access_hash()) {
+        is_content_changed = true;
+      }
+      break;
+    }
+    case MessageContentType::Location: {
+      const auto *lhs = static_cast<const MessageLocation *>(old_content);
+      const auto *rhs = static_cast<const MessageLocation *>(new_content);
+      if (lhs->location != rhs->location) {
+        need_update = true;
+      } else if (lhs->location.get_access_hash() != rhs->location.get_access_hash()) {
+        is_content_changed = true;
+      }
+      break;
+    }
+    case MessageContentType::Photo: {
+      const auto *lhs = static_cast<const MessagePhoto *>(old_content);
+      const auto *rhs = static_cast<const MessagePhoto *>(new_content);
+      if (lhs->caption != rhs->caption || lhs->has_spoiler != rhs->has_spoiler) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::Sticker: {
+      const auto *lhs = static_cast<const MessageSticker *>(old_content);
+      const auto *rhs = static_cast<const MessageSticker *>(new_content);
+      if (lhs->file_id != rhs->file_id || lhs->is_premium != rhs->is_premium) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::Venue: {
+      const auto *lhs = static_cast<const MessageVenue *>(old_content);
+      const auto *rhs = static_cast<const MessageVenue *>(new_content);
+      if (lhs->venue != rhs->venue) {
+        need_update = true;
+      } else if (lhs->venue.location().get_access_hash() != rhs->venue.location().get_access_hash()) {
+        is_content_changed = true;
+      }
+      break;
+    }
+    case MessageContentType::Video: {
+      const auto *lhs = static_cast<const MessageVideo *>(old_content);
+      const auto *rhs = static_cast<const MessageVideo *>(new_content);
+      if (lhs->file_id != rhs->file_id || lhs->caption != rhs->caption || lhs->has_spoiler != rhs->has_spoiler) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::VideoNote: {
+      const auto *lhs = static_cast<const MessageVideoNote *>(old_content);
+      const auto *rhs = static_cast<const MessageVideoNote *>(new_content);
+      if (lhs->file_id != rhs->file_id || lhs->is_viewed != rhs->is_viewed) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::VoiceNote: {
+      const auto *lhs = static_cast<const MessageVoiceNote *>(old_content);
+      const auto *rhs = static_cast<const MessageVoiceNote *>(new_content);
+      if (lhs->file_id != rhs->file_id || lhs->caption != rhs->caption || lhs->is_listened != rhs->is_listened) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::ChatCreate: {
+      const auto *lhs = static_cast<const MessageChatCreate *>(old_content);
+      const auto *rhs = static_cast<const MessageChatCreate *>(new_content);
+      if (lhs->title != rhs->title || lhs->participant_user_ids != rhs->participant_user_ids) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::ChatChangeTitle: {
+      const auto *lhs = static_cast<const MessageChatChangeTitle *>(old_content);
+      const auto *rhs = static_cast<const MessageChatChangeTitle *>(new_content);
+      if (lhs->title != rhs->title) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::ChatChangePhoto: {
+      const auto *lhs = static_cast<const MessageChatChangePhoto *>(old_content);
+      const auto *rhs = static_cast<const MessageChatChangePhoto *>(new_content);
+      if (lhs->photo != rhs->photo) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::ChatDeletePhoto:
+      break;
+    case MessageContentType::ChatDeleteHistory:
+      break;
+    case MessageContentType::ChatAddUsers: {
+      const auto *lhs = static_cast<const MessageChatAddUsers *>(old_content);
+      const auto *rhs = static_cast<const MessageChatAddUsers *>(new_content);
+      if (lhs->user_ids != rhs->user_ids) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::ChatJoinedByLink: {
+      auto lhs = static_cast<const MessageChatJoinedByLink *>(old_content);
+      auto rhs = static_cast<const MessageChatJoinedByLink *>(new_content);
+      if (lhs->is_approved != rhs->is_approved) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::ChatDeleteUser: {
+      const auto *lhs = static_cast<const MessageChatDeleteUser *>(old_content);
+      const auto *rhs = static_cast<const MessageChatDeleteUser *>(new_content);
+      if (lhs->user_id != rhs->user_id) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::ChatMigrateTo: {
+      const auto *lhs = static_cast<const MessageChatMigrateTo *>(old_content);
+      const auto *rhs = static_cast<const MessageChatMigrateTo *>(new_content);
+      if (lhs->migrated_to_channel_id != rhs->migrated_to_channel_id) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::ChannelCreate: {
+      const auto *lhs = static_cast<const MessageChannelCreate *>(old_content);
+      const auto *rhs = static_cast<const MessageChannelCreate *>(new_content);
+      if (lhs->title != rhs->title) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::ChannelMigrateFrom: {
+      const auto *lhs = static_cast<const MessageChannelMigrateFrom *>(old_content);
+      const auto *rhs = static_cast<const MessageChannelMigrateFrom *>(new_content);
+      if (lhs->title != rhs->title || lhs->migrated_from_chat_id != rhs->migrated_from_chat_id) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::PinMessage: {
+      const auto *lhs = static_cast<const MessagePinMessage *>(old_content);
+      const auto *rhs = static_cast<const MessagePinMessage *>(new_content);
+      if (lhs->message_id != rhs->message_id) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::GameScore: {
+      const auto *lhs = static_cast<const MessageGameScore *>(old_content);
+      const auto *rhs = static_cast<const MessageGameScore *>(new_content);
+      if (lhs->game_message_id != rhs->game_message_id || lhs->game_id != rhs->game_id || lhs->score != rhs->score) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::ScreenshotTaken:
+      break;
+    case MessageContentType::ChatSetTtl: {
+      const auto *lhs = static_cast<const MessageChatSetTtl *>(old_content);
+      const auto *rhs = static_cast<const MessageChatSetTtl *>(new_content);
+      if (lhs->ttl != rhs->ttl || lhs->from_user_id != rhs->from_user_id) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::Call: {
+      const auto *lhs = static_cast<const MessageCall *>(old_content);
+      const auto *rhs = static_cast<const MessageCall *>(new_content);
+      if (lhs->duration != rhs->duration || lhs->discard_reason != rhs->discard_reason ||
+          lhs->is_video != rhs->is_video) {
+        need_update = true;
+      } else if (lhs->call_id != rhs->call_id) {
+        is_content_changed = true;
+      }
+      break;
+    }
+    case MessageContentType::PaymentSuccessful: {
+      const auto *lhs = static_cast<const MessagePaymentSuccessful *>(old_content);
+      const auto *rhs = static_cast<const MessagePaymentSuccessful *>(new_content);
+      if (lhs->invoice_dialog_id != rhs->invoice_dialog_id || lhs->invoice_message_id != rhs->invoice_message_id ||
+          lhs->currency != rhs->currency || lhs->total_amount != rhs->total_amount ||
+          lhs->invoice_payload != rhs->invoice_payload || lhs->shipping_option_id != rhs->shipping_option_id ||
+          lhs->telegram_payment_charge_id != rhs->telegram_payment_charge_id ||
+          lhs->provider_payment_charge_id != rhs->provider_payment_charge_id ||
+          ((lhs->order_info != nullptr || rhs->order_info != nullptr) &&
+           (lhs->order_info == nullptr || rhs->order_info == nullptr || *lhs->order_info != *rhs->order_info)) ||
+          lhs->is_recurring != rhs->is_recurring || lhs->is_first_recurring != rhs->is_first_recurring) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::ContactRegistered:
+      break;
+    case MessageContentType::ExpiredPhoto:
+      break;
+    case MessageContentType::ExpiredVideo:
+      break;
+    case MessageContentType::CustomServiceAction: {
+      const auto *lhs = static_cast<const MessageCustomServiceAction *>(old_content);
+      const auto *rhs = static_cast<const MessageCustomServiceAction *>(new_content);
+      if (lhs->message != rhs->message) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::WebsiteConnected: {
+      const auto *lhs = static_cast<const MessageWebsiteConnected *>(old_content);
+      const auto *rhs = static_cast<const MessageWebsiteConnected *>(new_content);
+      if (lhs->domain_name != rhs->domain_name) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::PassportDataSent: {
+      const auto *lhs = static_cast<const MessagePassportDataSent *>(old_content);
+      const auto *rhs = static_cast<const MessagePassportDataSent *>(new_content);
+      if (lhs->types != rhs->types) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::PassportDataReceived: {
+      const auto *lhs = static_cast<const MessagePassportDataReceived *>(old_content);
+      const auto *rhs = static_cast<const MessagePassportDataReceived *>(new_content);
+      if (lhs->values != rhs->values || lhs->credentials != rhs->credentials) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::Poll: {
+      const auto *lhs = static_cast<const MessagePoll *>(old_content);
+      const auto *rhs = static_cast<const MessagePoll *>(new_content);
+      if (lhs->poll_id != rhs->poll_id) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::Dice: {
+      const auto *lhs = static_cast<const MessageDice *>(old_content);
+      const auto *rhs = static_cast<const MessageDice *>(new_content);
+      if (lhs->emoji != rhs->emoji || lhs->dice_value != rhs->dice_value) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::ProximityAlertTriggered: {
+      const auto *lhs = static_cast<const MessageProximityAlertTriggered *>(old_content);
+      const auto *rhs = static_cast<const MessageProximityAlertTriggered *>(new_content);
+      if (lhs->traveler_dialog_id != rhs->traveler_dialog_id || lhs->watcher_dialog_id != rhs->watcher_dialog_id ||
+          lhs->distance != rhs->distance) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::GroupCall: {
+      const auto *lhs = static_cast<const MessageGroupCall *>(old_content);
+      const auto *rhs = static_cast<const MessageGroupCall *>(new_content);
+      if (lhs->input_group_call_id != rhs->input_group_call_id || lhs->duration != rhs->duration ||
+          lhs->schedule_date != rhs->schedule_date) {
+        need_update = true;
+      } else if (!lhs->input_group_call_id.is_identical(rhs->input_group_call_id)) {
+        is_content_changed = true;
+      }
+      break;
+    }
+    case MessageContentType::InviteToGroupCall: {
+      const auto *lhs = static_cast<const MessageInviteToGroupCall *>(old_content);
+      const auto *rhs = static_cast<const MessageInviteToGroupCall *>(new_content);
+      if (lhs->input_group_call_id != rhs->input_group_call_id || lhs->user_ids != rhs->user_ids) {
+        need_update = true;
+      } else if (!lhs->input_group_call_id.is_identical(rhs->input_group_call_id)) {
+        is_content_changed = true;
+      }
+      break;
+    }
+    case MessageContentType::ChatSetTheme: {
+      const auto *lhs = static_cast<const MessageChatSetTheme *>(old_content);
+      const auto *rhs = static_cast<const MessageChatSetTheme *>(new_content);
+      if (lhs->emoji != rhs->emoji) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::WebViewDataSent: {
+      const auto *lhs = static_cast<const MessageWebViewDataSent *>(old_content);
+      const auto *rhs = static_cast<const MessageWebViewDataSent *>(new_content);
+      if (lhs->button_text != rhs->button_text) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::WebViewDataReceived: {
+      const auto *lhs = static_cast<const MessageWebViewDataReceived *>(old_content);
+      const auto *rhs = static_cast<const MessageWebViewDataReceived *>(new_content);
+      if (lhs->button_text != rhs->button_text || lhs->data != rhs->data) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::GiftPremium: {
+      const auto *lhs = static_cast<const MessageGiftPremium *>(old_content);
+      const auto *rhs = static_cast<const MessageGiftPremium *>(new_content);
+      if (lhs->currency != rhs->currency || lhs->amount != rhs->amount ||
+          lhs->crypto_currency != rhs->crypto_currency || lhs->crypto_amount != rhs->crypto_amount ||
+          lhs->months != rhs->months) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::TopicCreate: {
+      const auto *lhs = static_cast<const MessageTopicCreate *>(old_content);
+      const auto *rhs = static_cast<const MessageTopicCreate *>(new_content);
+      if (lhs->title != rhs->title || lhs->icon != rhs->icon) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::TopicEdit: {
+      const auto *lhs = static_cast<const MessageTopicEdit *>(old_content);
+      const auto *rhs = static_cast<const MessageTopicEdit *>(new_content);
+      if (lhs->edited_data != rhs->edited_data) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::Unsupported: {
+      const auto *lhs = static_cast<const MessageUnsupported *>(old_content);
+      const auto *rhs = static_cast<const MessageUnsupported *>(new_content);
+      if (lhs->version != rhs->version) {
+        is_content_changed = true;
+      }
+      break;
+    }
+    case MessageContentType::SuggestProfilePhoto: {
+      const auto *lhs = static_cast<const MessageSuggestProfilePhoto *>(old_content);
+      const auto *rhs = static_cast<const MessageSuggestProfilePhoto *>(new_content);
+      if (lhs->photo != rhs->photo) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::WriteAccessAllowed:
+      break;
+    case MessageContentType::RequestedDialog: {
+      const auto *lhs = static_cast<const MessageRequestedDialog *>(old_content);
+      const auto *rhs = static_cast<const MessageRequestedDialog *>(new_content);
+      if (lhs->dialog_id != rhs->dialog_id || lhs->button_id != rhs->button_id) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::WebViewWriteAccessAllowed: {
+      const auto *lhs = static_cast<const MessageWebViewWriteAccessAllowed *>(old_content);
+      const auto *rhs = static_cast<const MessageWebViewWriteAccessAllowed *>(new_content);
+      if (lhs->web_app != rhs->web_app) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::SetBackground: {
+      const auto *lhs = static_cast<const MessageSetBackground *>(old_content);
+      const auto *rhs = static_cast<const MessageSetBackground *>(new_content);
+      if (lhs->old_message_id != rhs->old_message_id || lhs->background_info != rhs->background_info) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::Story: {
+      const auto *lhs = static_cast<const MessageStory *>(old_content);
+      const auto *rhs = static_cast<const MessageStory *>(new_content);
+      if (lhs->story_full_id != rhs->story_full_id || lhs->via_mention != rhs->via_mention) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::WriteAccessAllowedByRequest:
+      break;
+    case MessageContentType::GiftCode: {
+      const auto *lhs = static_cast<const MessageGiftCode *>(old_content);
+      const auto *rhs = static_cast<const MessageGiftCode *>(new_content);
+      if (lhs->creator_dialog_id != rhs->creator_dialog_id || lhs->months != rhs->months ||
+          lhs->via_giveaway != rhs->via_giveaway || lhs->is_unclaimed != rhs->is_unclaimed || lhs->code != rhs->code) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::Giveaway: {
+      const auto *lhs = static_cast<const MessageGiveaway *>(old_content);
+      const auto *rhs = static_cast<const MessageGiveaway *>(new_content);
+      if (lhs->giveaway_parameters != rhs->giveaway_parameters || lhs->quantity != rhs->quantity ||
+          lhs->months != rhs->months) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::GiveawayLaunch:
+      break;
+    default:
+      UNREACHABLE();
+      break;
+  }
 }
 
 static bool can_be_animated_emoji(const FormattedText &text) {

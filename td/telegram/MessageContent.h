@@ -47,7 +47,7 @@ struct Photo;
 class Td;
 class Venue;
 
-// Do not forget to update merge_message_contents when one of the inheritors of this class changes
+// Do not forget to update merge_message_contents and compare_message_contents when one of the inheritors of this class changes
 class MessageContent {
  public:
   MessageContent() = default;
@@ -190,6 +190,9 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
                             bool &is_content_changed, bool &need_update);
 
 bool merge_message_content_file_id(Td *td, MessageContent *message_content, FileId new_file_id);
+
+void compare_message_contents(Td *td, const MessageContent *lhs_content, const MessageContent *rhs_content,
+                              bool &is_content_changed, bool &need_update);
 
 void register_message_content(Td *td, const MessageContent *content, MessageFullId message_full_id, const char *source);
 

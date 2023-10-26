@@ -15424,6 +15424,7 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
   bool is_content_changed = false;
   merge_message_contents(td_, m->content.get(), new_content.get(), need_message_changed_warning(m), dialog_id, false,
                          is_content_changed, need_update);
+  compare_message_contents(td_, m->content.get(), new_content.get(), is_content_changed, need_update);
 
   if (is_content_changed || need_update) {
     reregister_message_content(td_, m->content.get(), new_content.get(), message_full_id,
@@ -36207,6 +36208,7 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
   } else {
     merge_message_contents(td_, old_content.get(), new_content.get(), need_message_changed_warning(old_message),
                            dialog_id, need_merge_files, is_content_changed, need_update);
+    compare_message_contents(td_, old_content.get(), new_content.get(), is_content_changed, need_update);
   }
   if (need_finish_upload) {
     // the file is likely to be already merged with a server file, but if not we need to
