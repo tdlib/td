@@ -51,7 +51,7 @@ class MessageOrigin {
            author_signature_.empty() && sender_name_.empty();
   }
 
-  td_api::object_ptr<td_api::MessageForwardOrigin> get_message_forward_origin_object(const Td *td) const;
+  td_api::object_ptr<td_api::MessageOrigin> get_message_origin_object(const Td *td) const;
 
   bool is_sender_hidden() const;
 

@@ -27529,7 +27529,7 @@ td_api::object_ptr<td_api::messageForwardInfo> MessagesManager::get_message_forw
   }
 
   return td_api::make_object<td_api::messageForwardInfo>(
-      forward_info->origin.get_message_forward_origin_object(td_), forward_info->date, forward_info->psa_type,
+      forward_info->origin.get_message_origin_object(td_), forward_info->date, forward_info->psa_type,
       get_chat_id_object(forward_info->from_dialog_id, "messageForwardInfo"), forward_info->from_message_id.get());
 }
 

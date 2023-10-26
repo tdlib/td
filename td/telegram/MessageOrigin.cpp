@@ -78,23 +78,23 @@ Result<MessageOrigin> MessageOrigin::get_message_origin(
                        std::move(sender_name)};
 }
 
-td_api::object_ptr<td_api::MessageForwardOrigin> MessageOrigin::get_message_forward_origin_object(const Td *td) const {
+td_api::object_ptr<td_api::MessageOrigin> MessageOrigin::get_message_origin_object(const Td *td) const {
   if (is_sender_hidden()) {
-    return td_api::make_object<td_api::messageForwardOriginHiddenUser>(sender_name_.empty() ? author_signature_
-                                                                                            : sender_name_);
+    return td_api::make_object<td_api::messageOriginHiddenUser>(sender_name_.empty() ? author_signature_
+                                                                                     : sender_name_);
   }
   if (message_id_.is_valid()) {
-    return td_api::make_object<td_api::messageForwardOriginChannel>(
-        td->messages_manager_->get_chat_id_object(sender_dialog_id_, "messageForwardOriginChannel"), message_id_.get(),
+    return td_api::make_object<td_api::messageOriginChannel>(
+        td->messages_manager_->get_chat_id_object(sender_dialog_id_, "messageOriginChannel"), message_id_.get(),
         author_signature_);
   }
   if (sender_dialog_id_.is_valid()) {
-    return td_api::make_object<td_api::messageForwardOriginChat>(
-        td->messages_manager_->get_chat_id_object(sender_dialog_id_, "messageForwardOriginChat"),
+    return td_api::make_object<td_api::messageOriginChat>(
+        td->messages_manager_->get_chat_id_object(sender_dialog_id_, "messageOriginChat"),
         sender_name_.empty() ? author_signature_ : sender_name_);
   }
-  return td_api::make_object<td_api::messageForwardOriginUser>(
-      td->contacts_manager_->get_user_id_object(sender_user_id_, "messageForwardOriginUser"));
+  return td_api::make_object<td_api::messageOriginUser>(
+      td->contacts_manager_->get_user_id_object(sender_user_id_, "messageOriginUser"));
 }
 
 bool MessageOrigin::is_sender_hidden() const {

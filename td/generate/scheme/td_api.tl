@@ -1138,24 +1138,24 @@ messageViewer user_id:int53 view_date:int32 = MessageViewer;
 messageViewers viewers:vector<messageViewer> = MessageViewers;
 
 
-//@class MessageForwardOrigin @description Contains information about the origin of a forwarded message
+//@class MessageOrigin @description Contains information about the origin of a message
 
 //@description The message was originally sent by a known user @sender_user_id Identifier of the user that originally sent the message
-messageForwardOriginUser sender_user_id:int53 = MessageForwardOrigin;
+messageOriginUser sender_user_id:int53 = MessageOrigin;
+
+//@description The message was originally sent by a user, which is hidden by their privacy settings @sender_name Name of the sender
+messageOriginHiddenUser sender_name:string = MessageOrigin;
 
 //@description The message was originally sent on behalf of a chat
 //@sender_chat_id Identifier of the chat that originally sent the message
 //@author_signature For messages originally sent by an anonymous chat administrator, original message author signature
-messageForwardOriginChat sender_chat_id:int53 author_signature:string = MessageForwardOrigin;
-
-//@description The message was originally sent by a user, which is hidden by their privacy settings @sender_name Name of the sender
-messageForwardOriginHiddenUser sender_name:string = MessageForwardOrigin;
+messageOriginChat sender_chat_id:int53 author_signature:string = MessageOrigin;
 
 //@description The message was originally a post in a channel
-//@chat_id Identifier of the chat from which the message was originally forwarded
+//@chat_id Identifier of the channel chat to which the message was originally sent
 //@message_id Message identifier of the original message
 //@author_signature Original post author signature
-messageForwardOriginChannel chat_id:int53 message_id:int53 author_signature:string = MessageForwardOrigin;
+messageOriginChannel chat_id:int53 message_id:int53 author_signature:string = MessageOrigin;
 
 
 //@class ReactionType @description Describes type of message reaction
@@ -1168,12 +1168,12 @@ reactionTypeCustomEmoji custom_emoji_id:int64 = ReactionType;
 
 
 //@description Contains information about a forwarded message
-//@origin Origin of a forwarded message
+//@origin Origin of the forwarded message
 //@date Point in time (Unix timestamp) when the message was originally sent
 //@public_service_announcement_type The type of a public service announcement for the forwarded message
 //@from_chat_id For messages forwarded to the chat with the current user (Saved Messages), to the Replies bot chat, or to the channel's discussion group, the identifier of the chat from which the message was forwarded last time; 0 if unknown
 //@from_message_id For messages forwarded to the chat with the current user (Saved Messages), to the Replies bot chat, or to the channel's discussion group, the identifier of the original message from which the new message was forwarded last time; 0 if unknown
-messageForwardInfo origin:MessageForwardOrigin date:int32 public_service_announcement_type:string from_chat_id:int53 from_message_id:int53 = MessageForwardInfo;
+messageForwardInfo origin:MessageOrigin date:int32 public_service_announcement_type:string from_chat_id:int53 from_message_id:int53 = MessageForwardInfo;
 
 //@description Contains information about a message created with importMessages
 //@sender_name Name of the original sender
