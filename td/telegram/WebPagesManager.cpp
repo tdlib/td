@@ -1866,6 +1866,20 @@ vector<UserId> WebPagesManager::get_web_page_user_ids(WebPageId web_page_id) con
   return user_ids;
 }
 
+vector<ChannelId> WebPagesManager::get_web_page_channel_ids(WebPageId web_page_id) const {
+  const WebPage *web_page = get_web_page(web_page_id);
+  vector<ChannelId> channel_ids;
+  if (web_page != nullptr && !web_page->story_full_ids_.empty()) {
+    for (auto story_full_id : web_page->story_full_ids_) {
+      auto dialog_id = story_full_id.get_dialog_id();
+      if (dialog_id.get_type() == DialogType::Channel) {
+        channel_ids.push_back(dialog_id.get_channel_id());
+      }
+    }
+  }
+  return channel_ids;
+}
+
 vector<FileId> WebPagesManager::get_web_page_file_ids(const WebPage *web_page) const {
   if (web_page == nullptr) {
     return vector<FileId>();

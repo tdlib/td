@@ -3769,6 +3769,13 @@ vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageConte
 vector<ChannelId> get_message_content_min_channel_ids(const Td *td, const MessageContent *message_content) {
   CHECK(message_content != nullptr);
   switch (message_content->get_type()) {
+    case MessageContentType::Text: {
+      const auto *content = static_cast<const MessageText *>(message_content);
+      if (content->web_page_id.is_valid()) {
+        return td->web_pages_manager_->get_web_page_channel_ids(content->web_page_id);
+      }
+      break;
+    }
     case MessageContentType::ProximityAlertTriggered:
       // not supported server-side
       break;
