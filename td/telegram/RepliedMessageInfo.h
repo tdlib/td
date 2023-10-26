@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageInputReplyTo.h"
@@ -26,9 +27,10 @@ class Td;
 
 class RepliedMessageInfo {
   MessageId message_id_;
-  DialogId dialog_id_;     // DialogId() if reply is to a message in the same chat
-  int32 origin_date_ = 0;  // for replies in other chats
-  MessageOrigin origin_;   // for replies in other chats
+  DialogId dialog_id_;                  // DialogId() if reply is to a message in the same chat
+  int32 origin_date_ = 0;               // for replies in other chats
+  MessageOrigin origin_;                // for replies in other chats
+  unique_ptr<MessageContent> content_;  // for replies in other chats
   FormattedText quote_;
   bool is_quote_manual_ = false;
 
@@ -38,6 +40,11 @@ class RepliedMessageInfo {
 
  public:
   RepliedMessageInfo() = default;
+  RepliedMessageInfo(const RepliedMessageInfo &) = delete;
+  RepliedMessageInfo &operator=(const RepliedMessageInfo &) = delete;
+  RepliedMessageInfo(RepliedMessageInfo &&) = default;
+  RepliedMessageInfo &operator=(RepliedMessageInfo &&) = default;
+  ~RepliedMessageInfo();
 
   explicit RepliedMessageInfo(MessageId reply_to_message_id) : message_id_(reply_to_message_id) {
   }
@@ -57,14 +64,14 @@ class RepliedMessageInfo {
 
   bool is_empty() const {
     return message_id_ == MessageId() && dialog_id_ == DialogId() && origin_date_ == 0 && origin_.is_empty() &&
-           quote_.text.empty();
+           quote_.text.empty() && content_ == nullptr;
   }
 
   static bool need_reply_changed_warning(
       const RepliedMessageInfo &old_info, const RepliedMessageInfo &new_info, MessageId old_top_thread_message_id,
       bool is_yet_unsent, std::function<bool(const RepliedMessageInfo &info)> is_reply_to_deleted_message);
 
-  void add_dependencies(Dependencies &dependencies) const;
+  void add_dependencies(Dependencies &dependencies, bool is_bot) const;
 
   td_api::object_ptr<td_api::messageReplyToMessage> get_message_reply_to_message_object(Td *td,
                                                                                         DialogId dialog_id) const;

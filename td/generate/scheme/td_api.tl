@@ -1233,7 +1233,10 @@ messageSendingStateFailed error:error can_retry:Bool need_another_sender:Bool re
 //@is_quote_manual True, if the quote was manually chosen by the message sender
 //@origin Information about origin of the message if the message was replied from another chat; may be null for messages from the same chat
 //@origin_send_date Point in time (Unix timestamp) when the message was sent if the message was replied from another chat; 0 for messages from the same chat
-messageReplyToMessage chat_id:int53 message_id:int53 quote:formattedText is_quote_manual:Bool origin:MessageOrigin origin_send_date:int32 = MessageReplyTo;
+//@content Media content of the message if the message was replied from another chat; may be null for messages from the same chat and non-media messages.
+//-Can be only one of the following types: messageAnimation, messageAudio, messageContact, messageDice, messageDocument, messageGame, messageGiveaway, messageInvoice,
+//-messageLocation, messagePhoto, messagePoll, messageSticker, messageStory, messageVenue, messageVideo, messageVideoNote, or messageVoiceNote
+messageReplyToMessage chat_id:int53 message_id:int53 quote:formattedText is_quote_manual:Bool origin:MessageOrigin origin_send_date:int32 content:MessageContent = MessageReplyTo;
 
 //@description Describes a story replied by a given message @story_sender_chat_id The identifier of the sender of the story @story_id The identifier of the story
 messageReplyToStory story_sender_chat_id:int53 story_id:int32 = MessageReplyTo;

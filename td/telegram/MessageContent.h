@@ -18,7 +18,6 @@
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/Photo.h"
-#include "td/telegram/RepliedMessageInfo.h"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/secret_api.h"
 #include "td/telegram/SecretInputMedia.h"
@@ -44,6 +43,7 @@ class DialogAction;
 class Game;
 class MultiPromiseActor;
 struct Photo;
+class RepliedMessageInfo;
 class Td;
 class Venue;
 

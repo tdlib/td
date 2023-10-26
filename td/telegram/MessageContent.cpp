@@ -66,6 +66,7 @@
 #include "td/telegram/PollId.h"
 #include "td/telegram/PollId.hpp"
 #include "td/telegram/PollManager.h"
+#include "td/telegram/RepliedMessageInfo.h"
 #include "td/telegram/secret_api.hpp"
 #include "td/telegram/SecureValue.h"
 #include "td/telegram/SecureValue.hpp"
@@ -4256,8 +4257,14 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
 
 void compare_message_contents(Td *td, const MessageContent *old_content, const MessageContent *new_content,
                               bool &is_content_changed, bool &need_update) {
+  if (old_content == nullptr) {
+    if (new_content != nullptr) {
+      need_update = true;
+    }
+    return;
+  }
   MessageContentType content_type = old_content->get_type();
-  if (new_content->get_type() != content_type) {
+  if (new_content == nullptr || new_content->get_type() != content_type) {
     need_update = true;
     return;
   }
@@ -4273,8 +4280,10 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
                  lhs->force_large_media != rhs->force_large_media ||
                  lhs->skip_web_page_confirmation != rhs->skip_web_page_confirmation) {
         is_content_changed = true;
-        need_update |= td->web_pages_manager_->have_web_page(lhs->web_page_id) ||
-                       td->web_pages_manager_->have_web_page(rhs->web_page_id);
+        if (td == nullptr || td->web_pages_manager_->have_web_page(lhs->web_page_id) ||
+            td->web_pages_manager_->have_web_page(rhs->web_page_id)) {
+          need_update = true;
+        }
       }
       break;
     }
@@ -7116,6 +7125,7 @@ void update_failed_to_send_message_content(Td *td, unique_ptr<MessageContent> &c
 }
 
 void add_message_content_dependencies(Dependencies &dependencies, const MessageContent *message_content, bool is_bot) {
+  CHECK(message_content != nullptr);
   switch (message_content->get_type()) {
     case MessageContentType::Text: {
       const auto *content = static_cast<const MessageText *>(message_content);
