@@ -157,6 +157,8 @@ std::pair<InputGroupCallId, bool> get_message_content_group_call_info(const Mess
 
 vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageContent *message_content);
 
+vector<ChannelId> get_message_content_min_channel_ids(const Td *td, const MessageContent *message_content);
+
 vector<UserId> get_message_content_added_user_ids(const MessageContent *content);
 
 UserId get_message_content_deleted_user_id(const MessageContent *content);

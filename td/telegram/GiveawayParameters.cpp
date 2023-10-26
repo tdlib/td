@@ -65,6 +65,12 @@ Result<GiveawayParameters> GiveawayParameters::get_giveaway_parameters(
                             parameters->winners_selection_date_, vector<string>(parameters->country_codes_));
 }
 
+vector<ChannelId> GiveawayParameters::get_channel_ids() const {
+  auto result = additional_channel_ids_;
+  result.push_back(boosted_channel_id_);
+  return result;
+}
+
 void GiveawayParameters::add_dependencies(Dependencies &dependencies) const {
   dependencies.add_dialog_and_dependencies(DialogId(boosted_channel_id_));
   for (auto channel_id : additional_channel_ids_) {

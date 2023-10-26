@@ -13148,7 +13148,7 @@ vector<UserId> MessagesManager::get_message_user_ids(const Message *m) const {
   return user_ids;
 }
 
-vector<ChannelId> MessagesManager::get_message_channel_ids(const Message *m) {
+vector<ChannelId> MessagesManager::get_message_channel_ids(const Message *m) const {
   vector<ChannelId> channel_ids;
   if (m->sender_dialog_id.is_valid() && m->sender_dialog_id.get_type() == DialogType::Channel) {
     channel_ids.push_back(m->sender_dialog_id.get_channel_id());
@@ -13160,6 +13160,7 @@ vector<ChannelId> MessagesManager::get_message_channel_ids(const Message *m) {
       m->forward_info->from_dialog_id.get_type() == DialogType::Channel) {
     channel_ids.push_back(m->forward_info->from_dialog_id.get_channel_id());
   }
+  append(channel_ids, get_message_content_min_channel_ids(td_, m->content.get()));
   return channel_ids;
 }
 

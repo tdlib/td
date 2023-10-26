@@ -1723,7 +1723,7 @@ class MessagesManager final : public Actor {
 
   vector<UserId> get_message_user_ids(const Message *m) const;
 
-  static vector<ChannelId> get_message_channel_ids(const Message *m);
+  vector<ChannelId> get_message_channel_ids(const Message *m) const;
 
   static bool is_dialog_inited(const Dialog *d);
 

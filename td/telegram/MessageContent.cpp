@@ -3759,6 +3759,18 @@ vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageConte
       UNREACHABLE();
       break;
   }
+  // not supported server-side
+  // return get_user_ids(get_message_content_text(message_content));
+  return {};
+}
+
+vector<ChannelId> get_message_content_min_channel_ids(const Td *td, const MessageContent *message_content) {
+  switch (message_content->get_type()) {
+    case MessageContentType::Giveaway: {
+      const auto *content = static_cast<const MessageGiveaway *>(message_content);
+      return content->giveaway_parameters.get_channel_ids();
+    }
+  }
   return {};
 }
 
