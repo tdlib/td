@@ -2844,7 +2844,8 @@ messagePremiumGiveawayCreated = MessageContent;
 //@parameters Giveaway parameters
 //@user_count Number of users which will receive Telegram Premium subscription gift codes
 //@month_count Number of month the Telegram Premium subscription will be active after code activation
-messagePremiumGiveaway parameters:premiumGiveawayParameters user_count:int32 month_count:int32 = MessageContent;
+//@sticker A sticker to be shown in the message; may be null if unknown
+messagePremiumGiveaway parameters:premiumGiveawayParameters user_count:int32 month_count:int32 sticker:sticker = MessageContent;
 
 //@description A contact has registered with Telegram
 messageContactRegistered = MessageContent;

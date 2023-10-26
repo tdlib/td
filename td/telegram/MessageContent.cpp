@@ -4799,6 +4799,9 @@ void register_message_content(Td *td, const MessageContent *content, MessageFull
     case MessageContentType::GiftCode:
       return td->stickers_manager_->register_premium_gift(static_cast<const MessageGiftCode *>(content)->months,
                                                           message_full_id, source);
+    case MessageContentType::Giveaway:
+      return td->stickers_manager_->register_premium_gift(static_cast<const MessageGiveaway *>(content)->months,
+                                                          message_full_id, source);
     case MessageContentType::SuggestProfilePhoto:
       return td->contacts_manager_->register_suggested_profile_photo(
           static_cast<const MessageSuggestProfilePhoto *>(content)->photo);
@@ -4864,6 +4867,12 @@ void reregister_message_content(Td *td, const MessageContent *old_content, const
           return;
         }
         break;
+      case MessageContentType::Giveaway:
+        if (static_cast<const MessageGiveaway *>(old_content)->months ==
+            static_cast<const MessageGiveaway *>(new_content)->months) {
+          return;
+        }
+        break;
       case MessageContentType::Story:
         if (static_cast<const MessageStory *>(old_content)->story_full_id ==
             static_cast<const MessageStory *>(new_content)->story_full_id) {
@@ -4909,6 +4918,9 @@ void unregister_message_content(Td *td, const MessageContent *content, MessageFu
                                                             message_full_id, source);
     case MessageContentType::GiftCode:
       return td->stickers_manager_->unregister_premium_gift(static_cast<const MessageGiftCode *>(content)->months,
+                                                            message_full_id, source);
+    case MessageContentType::Giveaway:
+      return td->stickers_manager_->unregister_premium_gift(static_cast<const MessageGiveaway *>(content)->months,
                                                             message_full_id, source);
     case MessageContentType::Story:
       return td->story_manager_->unregister_story(static_cast<const MessageStory *>(content)->story_full_id,
@@ -6558,7 +6570,8 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     case MessageContentType::Giveaway: {
       const auto *m = static_cast<const MessageGiveaway *>(content);
       return td_api::make_object<td_api::messagePremiumGiveaway>(
-          m->giveaway_parameters.get_premium_giveaway_parameters_object(td), m->quantity, m->months);
+          m->giveaway_parameters.get_premium_giveaway_parameters_object(td), m->quantity, m->months,
+          td->stickers_manager_->get_premium_gift_sticker_object(m->months));
     }
     case MessageContentType::GiveawayLaunch:
       return td_api::make_object<td_api::messagePremiumGiveawayCreated>();
