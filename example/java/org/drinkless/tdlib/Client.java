@@ -122,7 +122,7 @@ public final class Client {
      *                         defaultExceptionHandler will be called.
      * @throws NullPointerException if query is null.
      */
-    public void send(TdApi.Function query, ResultHandler resultHandler, ExceptionHandler exceptionHandler) {
+    public void send(TdApi.Function<?> query, ResultHandler resultHandler, ExceptionHandler exceptionHandler) {
         long queryId = currentQueryId.incrementAndGet();
         if (resultHandler != null) {
             handlers.put(queryId, new Handler(resultHandler, exceptionHandler));
@@ -139,7 +139,7 @@ public final class Client {
      *                      defaultExceptionHandler will be called.
      * @throws NullPointerException if query is null.
      */
-    public void send(TdApi.Function query, ResultHandler resultHandler) {
+    public void send(TdApi.Function<?> query, ResultHandler resultHandler) {
         send(query, resultHandler, null);
     }
 
@@ -315,11 +315,11 @@ public final class Client {
 
     private static native int createNativeClient();
 
-    private static native void nativeClientSend(int nativeClientId, long eventId, TdApi.Function function);
+    private static native void nativeClientSend(int nativeClientId, long eventId, TdApi.Function<?> function);
 
     private static native int nativeClientReceive(int[] clientIds, long[] eventIds, TdApi.Object[] events, double timeout);
 
-    private static native TdApi.Object nativeClientExecute(TdApi.Function function);
+    private static native TdApi.Object nativeClientExecute(TdApi.Function<?> function);
 
     private static native void nativeClientSetLogMessageHandler(int maxVerbosityLevel, LogMessageHandler logMessageHandler);
 }
