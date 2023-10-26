@@ -1944,6 +1944,11 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         G()->set_option_integer("premium_gift_boost_count", get_json_value_int(std::move(key_value->value_), key));
         continue;
       }
+      if (key == "quote_length_max") {
+        G()->set_option_integer("message_reply_quote_length_max",
+                                get_json_value_int(std::move(key_value->value_), key));
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
