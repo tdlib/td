@@ -1148,7 +1148,7 @@ messageOriginHiddenUser sender_name:string = MessageOrigin;
 
 //@description The message was originally sent on behalf of a chat
 //@sender_chat_id Identifier of the chat that originally sent the message
-//@author_signature For messages originally sent by an anonymous chat administrator, original message author signature
+//@author_signature For messages originally sent by an anonymous chat administrator or a channel administrator, original message author signature
 messageOriginChat sender_chat_id:int53 author_signature:string = MessageOrigin;
 
 //@description The message was originally a post in a channel
@@ -1231,8 +1231,9 @@ messageSendingStateFailed error:error can_retry:Bool need_another_sender:Bool re
 //@message_id The identifier of the message; may be 0 if the replied message is in another chat and isn't accessible
 //@quote Manually or automatically chosen quote from the replied message; may be null if none
 //@is_quote_manual True, if the quote was manually chosen by the message sender
-//@send_date Point in time (Unix timestamp) when the message was sent if the message is from another chat; 0 for messages from the same chat
-messageReplyToMessage chat_id:int53 message_id:int53 quote:formattedText is_quote_manual:Bool send_date:int32 = MessageReplyTo;
+//@origin Information about origin of the message if the message was replied from another chat; may be null for messages from the same chat
+//@origin_send_date Point in time (Unix timestamp) when the message was sent if the message was replied from another chat; 0 for messages from the same chat
+messageReplyToMessage chat_id:int53 message_id:int53 quote:formattedText is_quote_manual:Bool origin:MessageOrigin origin_send_date:int32 = MessageReplyTo;
 
 //@description Describes a story replied by a given message @story_sender_chat_id The identifier of the sender of the story @story_id The identifier of the story
 messageReplyToStory story_sender_chat_id:int53 story_id:int32 = MessageReplyTo;

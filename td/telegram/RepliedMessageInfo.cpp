@@ -6,6 +6,7 @@
 //
 #include "td/telegram/RepliedMessageInfo.h"
 
+#include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessagesManager.h"
@@ -189,13 +190,22 @@ td_api::object_ptr<td_api::messageReplyToMessage> RepliedMessageInfo::get_messag
   } else {
     CHECK(dialog_id.is_valid());
   }
+  auto chat_id = td->messages_manager_->get_chat_id_object(dialog_id, "messageReplyToMessage");
+
   td_api::object_ptr<td_api::formattedText> quote;
   if (!quote_.text.empty()) {
     quote = get_formatted_text_object(quote_, true, -1);
   }
-  return td_api::make_object<td_api::messageReplyToMessage>(
-      td->messages_manager_->get_chat_id_object(dialog_id, "messageReplyToMessage"), message_id_.get(),
-      std::move(quote), is_quote_manual_, origin_date_);
+
+  td_api::object_ptr<td_api::MessageOrigin> origin;
+  if (!origin_.is_empty()) {
+    origin = origin_.get_message_origin_object(td);
+    CHECK(origin != nullptr);
+    CHECK(origin->get_id() != td_api::messageOriginChannel::ID);
+  }
+
+  return td_api::make_object<td_api::messageReplyToMessage>(chat_id, message_id_.get(), std::move(quote),
+                                                            is_quote_manual_, std::move(origin), origin_date_);
 }
 
 MessageId RepliedMessageInfo::get_same_chat_reply_to_message_id() const {
