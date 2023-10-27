@@ -87,6 +87,11 @@ class RepliedMessageInfo {
   td_api::object_ptr<td_api::messageReplyToMessage> get_message_reply_to_message_object(Td *td,
                                                                                         DialogId dialog_id) const;
 
+  void set_message_id(MessageId new_message_id) {
+    CHECK(message_id_.is_valid() || message_id_.is_valid_scheduled());
+    message_id_ = new_message_id;
+  }
+
   MessageId get_same_chat_reply_to_message_id() const;
 
   MessageFullId get_reply_message_full_id(DialogId owner_dialog_id) const;

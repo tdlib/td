@@ -13378,7 +13378,7 @@ void MessagesManager::on_message_ttl_expired_impl(Dialog *d, Message *m, bool is
   remove_message_notification_id(d, m, true, true);
   update_message_contains_unread_mention(d, m, false, "on_message_ttl_expired_impl");
   remove_message_unread_reactions(d, m, "on_message_ttl_expired_impl");
-  set_message_reply(d, m, MessageId(), is_message_in_dialog);
+  set_message_reply(d, m, MessageInputReplyTo(), is_message_in_dialog);
   m->noforwards = false;
   m->contains_mention = false;
   m->linked_top_thread_message_id = MessageId();
@@ -14775,7 +14775,7 @@ MessageFullId MessagesManager::on_get_message(MessageInfo &&message_info, const 
     auto reply_message_full_id = new_message->replied_message_info.get_reply_message_full_id(dialog_id);
     auto reply_message_id = reply_message_full_id.get_message_id();
     if (reply_message_id.is_valid() && reply_message_id.is_yet_unsent()) {
-      set_message_reply(d, new_message.get(), MessageId(), false);
+      set_message_reply(d, new_message.get(), MessageInputReplyTo(), false);
     }
 
     new_message->message_id = message_id;
@@ -24653,7 +24653,8 @@ void MessagesManager::cancel_send_message_query(DialogId dialog_id, Message *m) 
         const auto *input_reply_to = get_message_input_reply_to(replied_m);
         CHECK(input_reply_to != nullptr);
         CHECK(input_reply_to->get_reply_message_full_id(reply_d->dialog_id) == MessageFullId(dialog_id, m->message_id));
-        set_message_reply(reply_d, replied_m, replied_m->top_thread_message_id, true);
+        set_message_reply(reply_d, replied_m, MessageInputReplyTo{replied_m->top_thread_message_id, FormattedText()},
+                          true);
       }
       replied_yet_unsent_messages_.erase(it);
     }
@@ -30764,8 +30765,7 @@ void MessagesManager::update_reply_to_message_id(DialogId dialog_id, MessageId o
     const auto *input_reply_to = get_message_input_reply_to(replied_m);
     CHECK(input_reply_to != nullptr);
     CHECK(input_reply_to->get_reply_message_full_id(reply_d->dialog_id) == MessageFullId(dialog_id, old_message_id));
-    set_message_reply(reply_d, replied_m, new_message_id, true);
-    // TODO rewrite send message log event
+    update_message_reply_to_message_id(reply_d, replied_m, new_message_id, true);
   }
   if (have_new_message) {
     CHECK(!new_message_id.is_yet_unsent());
@@ -30854,7 +30854,7 @@ MessageFullId MessagesManager::on_send_message_success(int64 random_id, MessageI
   const auto *input_reply_to = get_message_input_reply_to(sent_message.get());
   if (input_reply_to != nullptr && input_reply_to->is_valid() &&
       input_reply_to->get_reply_message_full_id(dialog_id).get_message_id().is_yet_unsent()) {
-    set_message_reply(d, sent_message.get(), MessageId(), false);
+    set_message_reply(d, sent_message.get(), MessageInputReplyTo(), false);
   }
 
   sent_message->message_id = new_message_id;
@@ -39151,30 +39151,47 @@ void MessagesManager::update_has_outgoing_messages(DialogId dialog_id, const Mes
   }
 }
 
-void MessagesManager::set_message_reply(const Dialog *d, Message *m, MessageId reply_to_message_id,
+void MessagesManager::set_message_reply(const Dialog *d, Message *m, MessageInputReplyTo input_reply_to,
                                         bool is_message_in_dialog) {
   LOG(INFO) << "Update replied message of " << MessageFullId{d->dialog_id, m->message_id} << " from "
-            << m->replied_message_info << " to " << reply_to_message_id;
+            << m->replied_message_info << " to " << input_reply_to;
   if (is_message_in_dialog) {
     unregister_message_reply(d->dialog_id, m);
   }
-  m->replied_message_info = RepliedMessageInfo(reply_to_message_id);
+  m->replied_message_info = RepliedMessageInfo(td_, input_reply_to);
   m->reply_to_story_full_id = StoryFullId();
   m->reply_to_random_id = 0;
-  if (reply_to_message_id != MessageId() && m->message_id.is_yet_unsent() &&
-      (d->dialog_id.get_type() == DialogType::SecretChat || reply_to_message_id.is_yet_unsent())) {
-    auto *replied_m = get_message(d, reply_to_message_id);
+  auto same_chat_reply_to_message_id = input_reply_to.get_same_chat_reply_to_message_id();
+  if (same_chat_reply_to_message_id != MessageId() && m->message_id.is_yet_unsent() &&
+      (d->dialog_id.get_type() == DialogType::SecretChat || same_chat_reply_to_message_id.is_yet_unsent())) {
+    auto *replied_m = get_message(d, same_chat_reply_to_message_id);
     if (replied_m != nullptr) {
       m->reply_to_random_id = replied_m->random_id;
     }
   }
   if (!m->message_id.is_server()) {
-    m->input_reply_to = MessageInputReplyTo{reply_to_message_id, FormattedText()};
+    m->input_reply_to = std::move(input_reply_to);
   }
   if (is_message_in_dialog) {
     register_message_reply(d->dialog_id, m);
   }
   update_message_max_reply_media_timestamp(d, m, is_message_in_dialog);
+}
+
+void MessagesManager::update_message_reply_to_message_id(const Dialog *d, Message *m, MessageId reply_to_message_id,
+                                                         bool is_message_in_dialog) {
+  LOG(INFO) << "Update identifier of replied message of " << MessageFullId{d->dialog_id, m->message_id} << " from "
+            << m->replied_message_info << " to " << reply_to_message_id;
+  if (is_message_in_dialog) {
+    unregister_message_reply(d->dialog_id, m);
+  }
+  m->replied_message_info.set_message_id(reply_to_message_id);
+  if (!m->message_id.is_server()) {
+    m->input_reply_to.set_message_id(reply_to_message_id);
+  }
+  if (is_message_in_dialog) {
+    register_message_reply(d->dialog_id, m);
+  }
 }
 
 void MessagesManager::restore_message_reply_to_message_id(Dialog *d, Message *m) {
@@ -39188,11 +39205,14 @@ void MessagesManager::restore_message_reply_to_message_id(Dialog *d, Message *m)
   if (replied_message_id == MessageId() || !replied_message_id.is_yet_unsent()) {
     return;
   }
+  CHECK(replied_message_full_id.get_dialog_id() == d->dialog_id);
 
   auto message_id = get_message_id_by_random_id(d, m->reply_to_random_id, "restore_message_reply_to_message_id");
-  auto new_reply_to_message_id =
-      message_id.is_valid() || message_id.is_valid_scheduled() ? message_id : m->top_thread_message_id;
-  set_message_reply(d, m, new_reply_to_message_id, false);
+  if (message_id.is_valid() || message_id.is_valid_scheduled()) {
+    update_message_reply_to_message_id(d, m, message_id, false);
+  } else {
+    set_message_reply(d, m, MessageInputReplyTo(m->top_thread_message_id, FormattedText()), false);
+  }
 }
 
 MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog_id, unique_ptr<Message> &&message,
