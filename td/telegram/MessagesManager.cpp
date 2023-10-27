@@ -24273,28 +24273,28 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
 
   int64 reply_to_random_id = 0;
   bool is_topic_message = false;
-  if (input_reply_to.message_id_.is_valid()) {
+  auto same_chat_reply_to_message_id = input_reply_to.get_same_chat_reply_to_message_id();
+  if (same_chat_reply_to_message_id.is_valid()) {
     // the message was forcely preloaded in get_message_input_reply_to
     // it can be missing, only if it is unknown message from a push notification, or an unknown top thread message
-    const Message *reply_m = get_message(d, input_reply_to.message_id_);
+    const Message *reply_m = get_message(d, same_chat_reply_to_message_id);
     if (reply_m != nullptr) {
       if (reply_m->top_thread_message_id.is_valid()) {
         top_thread_message_id = reply_m->top_thread_message_id;
       }
       is_topic_message = reply_m->is_topic_message;
     }
-    if (dialog_type == DialogType::SecretChat || input_reply_to.message_id_.is_yet_unsent()) {
+    if (dialog_type == DialogType::SecretChat || same_chat_reply_to_message_id.is_yet_unsent()) {
       if (reply_m != nullptr) {
         reply_to_random_id = reply_m->random_id;
       } else {
         CHECK(dialog_type == DialogType::SecretChat);
         CHECK(top_thread_message_id == MessageId());
-        input_reply_to.message_id_ = MessageId();
+        input_reply_to = MessageInputReplyTo();
       }
     }
-  } else if (top_thread_message_id.is_valid()) {
-    LOG(ERROR) << "Creating a message in thread of " << top_thread_message_id << " in " << d->dialog_id
-               << " without reply";
+  }
+  if (top_thread_message_id.is_valid()) {
     const Message *top_m = get_message(d, top_thread_message_id);
     if (top_m != nullptr) {
       is_topic_message = top_m->is_topic_message;
@@ -24335,7 +24335,8 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
   m->send_date = G()->unix_time();
   m->date = is_scheduled ? options.schedule_date : m->send_date;
   m->replied_message_info = RepliedMessageInfo(td_, input_reply_to);
-  m->input_reply_to = input_reply_to;
+  m->reply_to_story_full_id = input_reply_to.get_story_full_id();
+  m->input_reply_to = std::move(input_reply_to);
   m->reply_to_random_id = reply_to_random_id;
   m->top_thread_message_id = top_thread_message_id;
   m->is_topic_message = is_topic_message;
@@ -24362,7 +24363,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
         if (is_channel_post) {
           return td_->contacts_manager_->get_channel_has_linked_channel(dialog_id.get_channel_id());
         }
-        return !input_reply_to.is_valid();
+        return !m->input_reply_to.is_valid();
       }()) {
     m->reply_info.reply_count_ = 0;
     if (is_channel_post) {
@@ -25112,11 +25113,12 @@ Status MessagesManager::can_use_top_thread_message_id(Dialog *d, MessageId top_t
   if (d->dialog_id.get_type() != DialogType::Channel || is_broadcast_channel(d->dialog_id)) {
     return Status::Error(400, "Chat doesn't have threads");
   }
-  if (input_reply_to.story_full_id_.is_valid()) {
+  if (input_reply_to.get_story_full_id().is_valid()) {
     return Status::Error(400, "Can't send story replies to the thread");
   }
-  if (input_reply_to.message_id_.is_valid()) {
-    const Message *reply_m = get_message_force(d, input_reply_to.message_id_, "can_use_top_thread_message_id 1");
+  auto same_chat_reply_to_message_id = input_reply_to.get_same_chat_reply_to_message_id();
+  if (same_chat_reply_to_message_id.is_valid()) {
+    const Message *reply_m = get_message_force(d, same_chat_reply_to_message_id, "can_use_top_thread_message_id 1");
     if (reply_m != nullptr && top_thread_message_id != reply_m->top_thread_message_id) {
       if (reply_m->top_thread_message_id.is_valid() || reply_m->media_album_id == 0) {
         return Status::Error(400, "The message to reply is not in the specified message thread");
@@ -28146,7 +28148,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
     if (!input_reply_to.is_valid() && copied_message.original_reply_to_message_id.is_valid() && is_secret) {
       auto it = forwarded_message_id_to_new_message_id.find(copied_message.original_reply_to_message_id);
       if (it != forwarded_message_id_to_new_message_id.end()) {
-        input_reply_to.message_id_ = it->second;
+        input_reply_to = MessageInputReplyTo{it->second};
       }
     }
 
@@ -28508,7 +28510,7 @@ Result<MessageId> MessagesManager::add_local_message(
   }
   m->date = G()->unix_time();
   m->replied_message_info = RepliedMessageInfo(td_, input_reply_to);
-  m->reply_to_story_full_id = input_reply_to.story_full_id_;
+  m->reply_to_story_full_id = input_reply_to.get_story_full_id();
   if (!message_id.is_scheduled()) {
     auto reply_to_message_id = m->replied_message_info.get_same_chat_reply_to_message_id();
     const Message *reply_m = get_message(d, reply_to_message_id);

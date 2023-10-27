@@ -135,7 +135,7 @@ class RequestWebViewQuery final : public Td::ResultHandler {
     dialog_id_ = dialog_id;
     bot_user_id_ = bot_user_id;
     top_thread_message_id_ = top_thread_message_id;
-    input_reply_to_ = input_reply_to;
+    input_reply_to_ = std::move(input_reply_to);
     as_dialog_id_ = as_dialog_id;
 
     int32 flags = 0;

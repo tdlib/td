@@ -20,13 +20,18 @@ namespace td {
 
 class Td;
 
-struct MessageInputReplyTo {
+class MessageInputReplyTo {
   MessageId message_id_;
   // or
   StoryFullId story_full_id_;
 
   friend bool operator==(const MessageInputReplyTo &lhs, const MessageInputReplyTo &rhs);
 
+  friend StringBuilder &operator<<(StringBuilder &string_builder, const MessageInputReplyTo &input_reply_to);
+
+  friend class RepliedMessageInfo;
+
+ public:
   MessageInputReplyTo() = default;
 
   explicit MessageInputReplyTo(MessageId message_id) : message_id_(message_id) {
@@ -45,10 +50,20 @@ struct MessageInputReplyTo {
     return !is_empty();
   }
 
+  bool is_same_chat_reply() const {
+    return message_id_.is_valid();
+  }
+
+  StoryFullId get_story_full_id() const {
+    return story_full_id_;
+  }
+
   telegram_api::object_ptr<telegram_api::InputReplyTo> get_input_reply_to(Td *td,
                                                                           MessageId top_thread_message_id) const;
 
   td_api::object_ptr<td_api::InputMessageReplyTo> get_input_message_reply_to_object(Td *td, DialogId dialog_id) const;
+
+  MessageId get_same_chat_reply_to_message_id() const;
 
   MessageFullId get_reply_message_full_id(DialogId owner_dialog_id) const;
 
