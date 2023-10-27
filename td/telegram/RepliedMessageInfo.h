@@ -87,6 +87,8 @@ class RepliedMessageInfo {
   td_api::object_ptr<td_api::messageReplyToMessage> get_message_reply_to_message_object(Td *td,
                                                                                         DialogId dialog_id) const;
 
+  MessageInputReplyTo get_input_reply_to() const;
+
   void set_message_id(MessageId new_message_id) {
     CHECK(message_id_.is_valid() || message_id_.is_valid_scheduled());
     message_id_ = new_message_id;

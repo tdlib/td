@@ -28102,12 +28102,13 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
     if (forward_info != nullptr && !forward_info->is_imported) {
       forward_info->origin.hide_sender_if_needed(td_);
     }
-    MessageId reply_to_message_id;
+    MessageInputReplyTo input_reply_to;
     auto original_reply_to_message_id = forwarded_message->replied_message_info.get_same_chat_reply_to_message_id();
     if (original_reply_to_message_id.is_valid()) {
       auto it = forwarded_message_id_to_new_message_id.find(original_reply_to_message_id);
       if (it != forwarded_message_id_to_new_message_id.end()) {
-        reply_to_message_id = it->second;
+        input_reply_to = forwarded_message->replied_message_info.get_input_reply_to();
+        input_reply_to.set_message_id(it->second);
       }
     }
 
@@ -28115,9 +28116,9 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
     Message *m;
     if (message_send_options.only_preview) {
       message = create_message_to_send(
-          to_dialog, top_thread_message_id, MessageInputReplyTo{reply_to_message_id, FormattedText()},
-          message_send_options, std::move(content), forwarded_message_contents[j].invert_media,
-          j + 1 != forwarded_message_contents.size(), std::move(forward_info), false, DialogId());
+          to_dialog, top_thread_message_id, std::move(input_reply_to), message_send_options, std::move(content),
+          forwarded_message_contents[j].invert_media, j + 1 != forwarded_message_contents.size(),
+          std::move(forward_info), false, DialogId());
       MessageId new_message_id =
           message_send_options.schedule_date != 0
               ? get_next_yet_unsent_scheduled_message_id(to_dialog, message_send_options.schedule_date)
@@ -28125,8 +28126,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
       message->message_id = new_message_id;
       m = message.get();
     } else {
-      m = get_message_to_send(to_dialog, top_thread_message_id,
-                              MessageInputReplyTo{reply_to_message_id, FormattedText()}, message_send_options,
+      m = get_message_to_send(to_dialog, top_thread_message_id, std::move(input_reply_to), message_send_options,
                               std::move(content), forwarded_message_contents[j].invert_media, &need_update_dialog_pos,
                               j + 1 != forwarded_message_contents.size(), std::move(forward_info));
     }

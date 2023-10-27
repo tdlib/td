@@ -292,6 +292,13 @@ td_api::object_ptr<td_api::messageReplyToMessage> RepliedMessageInfo::get_messag
                                                             std::move(content));
 }
 
+MessageInputReplyTo RepliedMessageInfo::get_input_reply_to() const {
+  if (message_id_.is_valid() && dialog_id_ == DialogId()) {
+    return MessageInputReplyTo{message_id_, FormattedText{quote_}};
+  }
+  return {};
+}
+
 MessageId RepliedMessageInfo::get_same_chat_reply_to_message_id() const {
   return is_same_chat_reply() ? message_id_ : MessageId();
 }
