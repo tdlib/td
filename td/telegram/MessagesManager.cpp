@@ -5168,7 +5168,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     if (reply_to_story_full_id.is_valid()) {
       input_reply_to = MessageInputReplyTo(reply_to_story_full_id);
     } else if (legacy_reply_to_message_id.is_valid()) {
-      input_reply_to = MessageInputReplyTo(legacy_reply_to_message_id);
+      input_reply_to = MessageInputReplyTo{legacy_reply_to_message_id, FormattedText()};
     }
   }
   if (has_replied_message_info) {
@@ -24489,57 +24489,74 @@ MessageInputReplyTo MessagesManager::get_message_input_reply_to(
       !have_message_force(d, top_thread_message_id, "get_message_input_reply_to 1")) {
     LOG(INFO) << "Have reply in the thread of unknown " << top_thread_message_id;
   }
-  if (reply_to != nullptr && reply_to->get_id() == td_api::inputMessageReplyToStory::ID) {
-    if (for_draft) {
-      return {};
-    }
-    auto reply_to_story = td_api::move_object_as<td_api::inputMessageReplyToStory>(reply_to);
-    auto story_id = StoryId(reply_to_story->story_id_);
-    auto sender_dialog_id = DialogId(reply_to_story->story_sender_chat_id_);
-    if (d->dialog_id != sender_dialog_id || sender_dialog_id.get_type() != DialogType::User) {
-      LOG(INFO) << "Ignore reply to story from " << sender_dialog_id << " in a wrong " << d->dialog_id;
-      return {};
-    }
-    if (!story_id.is_server()) {
-      LOG(INFO) << "Ignore reply to invalid " << story_id;
-      return {};
-    }
-    return MessageInputReplyTo{StoryFullId(sender_dialog_id, story_id)};
-  }
-  MessageId message_id;
-  if (reply_to != nullptr && reply_to->get_id() == td_api::inputMessageReplyToMessage::ID) {
-    auto reply_to_message = td_api::move_object_as<td_api::inputMessageReplyToMessage>(reply_to);
-    message_id = MessageId(reply_to_message->message_id_);
-  }
-  if (!message_id.is_valid()) {
-    if (!for_draft && message_id == MessageId() && top_thread_message_id.is_valid() &&
-        top_thread_message_id.is_server()) {
-      return MessageInputReplyTo{top_thread_message_id};
-    }
-    return {};
-  }
-  message_id = get_persistent_message_id(d, message_id);
-  if (message_id == MessageId(ServerMessageId(1)) && d->dialog_id.get_type() == DialogType::Channel) {
-    return {};
-  }
-  const Message *m = get_message_force(d, message_id, "get_message_input_reply_to 2");
-  if (m == nullptr || m->message_id.is_yet_unsent() ||
-      (m->message_id.is_local() && d->dialog_id.get_type() != DialogType::SecretChat)) {
-    if (message_id.is_server() && d->dialog_id.get_type() != DialogType::SecretChat &&
-        message_id > d->last_new_message_id &&
-        (d->notification_info != nullptr && message_id <= d->notification_info->max_push_notification_message_id_)) {
-      // allow to reply yet unreceived server message
-      return MessageInputReplyTo{message_id};
-    }
+  if (reply_to == nullptr) {
     if (!for_draft && top_thread_message_id.is_valid() && top_thread_message_id.is_server()) {
-      return MessageInputReplyTo{top_thread_message_id};
+      return MessageInputReplyTo{top_thread_message_id, FormattedText()};
     }
-
-    // TODO local replies to local messages can be allowed
-    // TODO replies to yet unsent messages can be allowed with special handling of them on application restart
     return {};
   }
-  return MessageInputReplyTo{m->message_id};
+  switch (reply_to->get_id()) {
+    case td_api::inputMessageReplyToStory::ID: {
+      if (for_draft) {
+        return {};
+      }
+      auto reply_to_story = td_api::move_object_as<td_api::inputMessageReplyToStory>(reply_to);
+      auto story_id = StoryId(reply_to_story->story_id_);
+      auto sender_dialog_id = DialogId(reply_to_story->story_sender_chat_id_);
+      if (d->dialog_id != sender_dialog_id || sender_dialog_id.get_type() != DialogType::User) {
+        LOG(INFO) << "Ignore reply to story from " << sender_dialog_id << " in a wrong " << d->dialog_id;
+        return {};
+      }
+      if (!story_id.is_server()) {
+        LOG(INFO) << "Ignore reply to invalid " << story_id;
+        return {};
+      }
+      return MessageInputReplyTo{StoryFullId(sender_dialog_id, story_id)};
+    }
+    case td_api::inputMessageReplyToMessage::ID: {
+      auto reply_to_message = td_api::move_object_as<td_api::inputMessageReplyToMessage>(reply_to);
+      auto message_id = MessageId(reply_to_message->message_id_);
+      if (!message_id.is_valid()) {
+        if (!for_draft && message_id == MessageId() && top_thread_message_id.is_valid() &&
+            top_thread_message_id.is_server()) {
+          return MessageInputReplyTo{top_thread_message_id, FormattedText()};
+        }
+        return {};
+      }
+      message_id = get_persistent_message_id(d, message_id);
+      if (message_id == MessageId(ServerMessageId(1)) && d->dialog_id.get_type() == DialogType::Channel) {
+        return {};
+      }
+      FormattedText quote;
+      auto r_quote = get_formatted_text(td_, get_my_dialog_id(), std::move(reply_to_message->quote_),
+                                        td_->auth_manager_->is_bot(), true, true, true);
+      if (r_quote.is_ok()) {
+        quote = r_quote.move_as_ok();
+      }
+      const Message *m = get_message_force(d, message_id, "get_message_input_reply_to 2");
+      if (m == nullptr || m->message_id.is_yet_unsent() ||
+          (m->message_id.is_local() && d->dialog_id.get_type() != DialogType::SecretChat)) {
+        if (message_id.is_server() && d->dialog_id.get_type() != DialogType::SecretChat &&
+            message_id > d->last_new_message_id &&
+            (d->notification_info != nullptr &&
+             message_id <= d->notification_info->max_push_notification_message_id_)) {
+          // allow to reply yet unreceived server message
+          return MessageInputReplyTo{message_id, std::move(quote)};
+        }
+        if (!for_draft && top_thread_message_id.is_valid() && top_thread_message_id.is_server()) {
+          return MessageInputReplyTo{top_thread_message_id, FormattedText()};
+        }
+
+        // TODO local replies to local messages can be allowed
+        // TODO replies to yet unsent messages can be allowed with special handling of them on application restart
+        return {};
+      }
+      return MessageInputReplyTo{m->message_id, std::move(quote)};
+    }
+    default:
+      UNREACHABLE();
+      return {};
+  }
 }
 
 const MessageInputReplyTo *MessagesManager::get_message_input_reply_to(const Message *m) {
@@ -28097,9 +28114,9 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
     Message *m;
     if (message_send_options.only_preview) {
       message = create_message_to_send(
-          to_dialog, top_thread_message_id, MessageInputReplyTo{reply_to_message_id}, message_send_options,
-          std::move(content), forwarded_message_contents[j].invert_media, j + 1 != forwarded_message_contents.size(),
-          std::move(forward_info), false, DialogId());
+          to_dialog, top_thread_message_id, MessageInputReplyTo{reply_to_message_id, FormattedText()},
+          message_send_options, std::move(content), forwarded_message_contents[j].invert_media,
+          j + 1 != forwarded_message_contents.size(), std::move(forward_info), false, DialogId());
       MessageId new_message_id =
           message_send_options.schedule_date != 0
               ? get_next_yet_unsent_scheduled_message_id(to_dialog, message_send_options.schedule_date)
@@ -28107,10 +28124,10 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
       message->message_id = new_message_id;
       m = message.get();
     } else {
-      m = get_message_to_send(to_dialog, top_thread_message_id, MessageInputReplyTo{reply_to_message_id},
-                              message_send_options, std::move(content), forwarded_message_contents[j].invert_media,
-                              &need_update_dialog_pos, j + 1 != forwarded_message_contents.size(),
-                              std::move(forward_info));
+      m = get_message_to_send(to_dialog, top_thread_message_id,
+                              MessageInputReplyTo{reply_to_message_id, FormattedText()}, message_send_options,
+                              std::move(content), forwarded_message_contents[j].invert_media, &need_update_dialog_pos,
+                              j + 1 != forwarded_message_contents.size(), std::move(forward_info));
     }
     fix_forwarded_message(m, to_dialog_id, forwarded_message, forwarded_message_contents[j].media_album_id,
                           drop_author);
@@ -28153,7 +28170,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
     if (!input_reply_to.is_valid() && copied_message.original_reply_to_message_id.is_valid() && is_secret) {
       auto it = forwarded_message_id_to_new_message_id.find(copied_message.original_reply_to_message_id);
       if (it != forwarded_message_id_to_new_message_id.end()) {
-        input_reply_to = MessageInputReplyTo{it->second};
+        input_reply_to = MessageInputReplyTo{it->second, FormattedText()};
       }
     }
 
@@ -39152,7 +39169,7 @@ void MessagesManager::set_message_reply(const Dialog *d, Message *m, MessageId r
     }
   }
   if (!m->message_id.is_server()) {
-    m->input_reply_to = MessageInputReplyTo(reply_to_message_id);
+    m->input_reply_to = MessageInputReplyTo{reply_to_message_id, FormattedText()};
   }
   if (is_message_in_dialog) {
     register_message_reply(d->dialog_id, m);

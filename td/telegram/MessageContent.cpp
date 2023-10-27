@@ -2468,12 +2468,8 @@ static Result<InputMessageContent> create_input_message_content(
           if (correct_option_id < 0 || correct_option_id >= static_cast<int32>(input_poll->options_.size())) {
             return Status::Error(400, "Wrong correct option ID specified");
           }
-          auto r_explanation =
-              get_formatted_text(td, dialog_id, std::move(type->explanation_), is_bot, true, true, false);
-          if (r_explanation.is_error()) {
-            return r_explanation.move_as_error();
-          }
-          explanation = r_explanation.move_as_ok();
+          TRY_RESULT_ASSIGN(
+              explanation, get_formatted_text(td, dialog_id, std::move(type->explanation_), is_bot, true, true, false));
           break;
         }
         default:

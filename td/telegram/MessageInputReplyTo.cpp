@@ -10,6 +10,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/InputDialogId.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/misc.h"
 #include "td/telegram/StoryId.h"
 #include "td/telegram/Td.h"
 
@@ -52,8 +53,20 @@ MessageInputReplyTo::MessageInputReplyTo(Td *td,
           return;
         }
       }
-      // TODO quote_text:flags.2?string quote_entities:flags.3?Vector<MessageEntity>
       message_id_ = message_id;
+
+      if (!reply_to->quote_text_.empty()) {
+        auto entities = get_message_entities(td->contacts_manager_.get(), std::move(reply_to->quote_entities_),
+                                             "inputReplyToMessage");
+        auto status = fix_formatted_text(reply_to->quote_text_, entities, true, true, true, true, false);
+        if (status.is_error()) {
+          if (!clean_input_string(reply_to->quote_text_)) {
+            reply_to->quote_text_.clear();
+          }
+          entities.clear();
+        }
+        quote_ = FormattedText{std::move(reply_to->quote_text_), std::move(entities)};
+      }
       break;
     }
     default:
@@ -87,9 +100,16 @@ telegram_api::object_ptr<telegram_api::InputReplyTo> MessageInputReplyTo::get_in
     CHECK(top_thread_message_id.is_server());
     flags |= telegram_api::inputReplyToMessage::TOP_MSG_ID_MASK;
   }
+  if (!quote_.text.empty()) {
+    flags |= telegram_api::inputReplyToMessage::QUOTE_TEXT_MASK;
+  }
+  auto quote_entities = get_input_message_entities(td->contacts_manager_.get(), quote_.entities, "get_input_reply_to");
+  if (!quote_entities.empty()) {
+    flags |= telegram_api::inputReplyToMessage::QUOTE_ENTITIES_MASK;
+  }
   return telegram_api::make_object<telegram_api::inputReplyToMessage>(
       flags, reply_to_message_id.get_server_message_id().get(), top_thread_message_id.get_server_message_id().get(),
-      nullptr, string(), Auto());
+      nullptr, quote_.text, std::move(quote_entities));
 }
 
 td_api::object_ptr<td_api::InputMessageReplyTo> MessageInputReplyTo::get_input_message_reply_to_object(
@@ -103,7 +123,11 @@ td_api::object_ptr<td_api::InputMessageReplyTo> MessageInputReplyTo::get_input_m
   if (!message_id_.is_valid() && !message_id_.is_valid_scheduled()) {
     return nullptr;
   }
-  return td_api::make_object<td_api::inputMessageReplyToMessage>(message_id_.get());
+  td_api::object_ptr<td_api::formattedText> quote;
+  if (!quote_.text.empty()) {
+    quote = get_formatted_text_object(quote_, true, -1);
+  }
+  return td_api::make_object<td_api::inputMessageReplyToMessage>(message_id_.get(), std::move(quote));
 }
 
 MessageId MessageInputReplyTo::get_same_chat_reply_to_message_id() const {
@@ -118,7 +142,7 @@ MessageFullId MessageInputReplyTo::get_reply_message_full_id(DialogId owner_dial
 }
 
 bool operator==(const MessageInputReplyTo &lhs, const MessageInputReplyTo &rhs) {
-  return lhs.message_id_ == rhs.message_id_ && lhs.story_full_id_ == rhs.story_full_id_;
+  return lhs.message_id_ == rhs.message_id_ && lhs.story_full_id_ == rhs.story_full_id_ && lhs.quote_ == rhs.quote_;
 }
 
 bool operator!=(const MessageInputReplyTo &lhs, const MessageInputReplyTo &rhs) {
@@ -127,7 +151,11 @@ bool operator!=(const MessageInputReplyTo &lhs, const MessageInputReplyTo &rhs) 
 
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageInputReplyTo &input_reply_to) {
   if (input_reply_to.message_id_.is_valid() || input_reply_to.message_id_.is_valid_scheduled()) {
-    return string_builder << input_reply_to.message_id_;
+    string_builder << input_reply_to.message_id_;
+    if (!input_reply_to.quote_.text.empty()) {
+      string_builder << " with " << input_reply_to.quote_.text.size() << " quoted bytes";
+    }
+    return string_builder;
   }
   if (input_reply_to.story_full_id_.is_valid()) {
     return string_builder << input_reply_to.story_full_id_;

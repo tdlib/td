@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/StoryFullId.h"
@@ -22,6 +23,7 @@ class Td;
 
 class MessageInputReplyTo {
   MessageId message_id_;
+  FormattedText quote_;
   // or
   StoryFullId story_full_id_;
 
@@ -39,7 +41,7 @@ class MessageInputReplyTo {
   MessageInputReplyTo &operator=(MessageInputReplyTo &&) = default;
   ~MessageInputReplyTo();
 
-  explicit MessageInputReplyTo(MessageId message_id) : message_id_(message_id) {
+  MessageInputReplyTo(MessageId message_id, FormattedText &&quote) : message_id_(message_id), quote_(std::move(quote)) {
   }
 
   explicit MessageInputReplyTo(StoryFullId story_full_id) : story_full_id_(story_full_id) {
@@ -56,7 +58,7 @@ class MessageInputReplyTo {
   }
 
   bool is_same_chat_reply() const {
-    return message_id_.is_valid();
+    return message_id_.is_valid() || message_id_.is_valid_scheduled();
   }
 
   StoryFullId get_story_full_id() const {

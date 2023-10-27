@@ -155,6 +155,10 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, const MessageInputReplyTo &input_
     return;
   }
   message_id_ = input_reply_to.message_id_;
+  if (!input_reply_to.quote_.text.empty()) {
+    quote_ = input_reply_to.quote_;
+    is_quote_manual_ = true;
+  }
 }
 
 bool RepliedMessageInfo::need_reget() const {
