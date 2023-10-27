@@ -3775,6 +3775,14 @@ vector<ChannelId> get_message_content_min_channel_ids(const Td *td, const Messag
     case MessageContentType::ProximityAlertTriggered:
       // not supported server-side
       break;
+    case MessageContentType::Story: {
+      const auto *content = static_cast<const MessageStory *>(message_content);
+      auto dialog_id = content->story_full_id.get_dialog_id();
+      if (dialog_id.get_type() == DialogType::Channel) {
+        return {dialog_id.get_channel_id()};
+      }
+      break;
+    }
     case MessageContentType::Giveaway: {
       const auto *content = static_cast<const MessageGiveaway *>(message_content);
       return content->giveaway_parameters.get_channel_ids();
