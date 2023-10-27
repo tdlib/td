@@ -110,7 +110,7 @@ vector<DcOptionsSet::ConnectionInfo> DcOptionsSet::find_all_connections(DcId dc_
     if (!static_options.empty()) {
       options = std::move(static_options);
     } else {
-      bool have_ipv4 = td::any_of(options, [](const auto &v) { return !v.option->is_ipv6(); });
+      bool have_ipv4 = any_of(options, [](const auto &v) { return !v.option->is_ipv6(); });
       if (have_ipv4) {
         td::remove_if(options, [](auto &v) { return v.option->is_ipv6(); });
       }
@@ -122,13 +122,13 @@ vector<DcOptionsSet::ConnectionInfo> DcOptionsSet::find_all_connections(DcId dc_
   }
 
   if (prefer_ipv6) {
-    bool have_ipv6 = td::any_of(options, [](const auto &v) { return v.option->is_ipv6(); });
+    bool have_ipv6 = any_of(options, [](const auto &v) { return v.option->is_ipv6(); });
     if (have_ipv6) {
       td::remove_if(options, [](auto &v) { return !v.option->is_ipv6(); });
     }
   }
 
-  bool have_media_only = td::any_of(options, [](const auto &v) { return v.option->is_media_only(); });
+  bool have_media_only = any_of(options, [](const auto &v) { return v.option->is_media_only(); });
   if (have_media_only) {
     td::remove_if(options, [](auto &v) { return !v.option->is_media_only(); });
   }

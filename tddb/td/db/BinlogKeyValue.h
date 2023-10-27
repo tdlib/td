@@ -15,6 +15,7 @@
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/RwMutex.h"
@@ -219,9 +220,9 @@ class BinlogKeyValue final : public KeyValueSyncInterface {
     binlog_->lazy_sync(std::move(promise));
   }
 
-  std::unordered_map<string, string> prefix_get(Slice prefix) final {
+  std::unordered_map<string, string, Hash<string>> prefix_get(Slice prefix) final {
     auto lock = rw_mutex_.lock_write().move_as_ok();
-    std::unordered_map<string, string> res;
+    std::unordered_map<string, string, Hash<string>> res;
     for (const auto &kv : map_) {
       if (begins_with(kv.first, prefix)) {
         res.emplace(kv.first.substr(prefix.size()), kv.second.first);

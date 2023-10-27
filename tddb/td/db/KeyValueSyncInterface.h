@@ -8,6 +8,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/Promise.h"
 #include "td/utils/Slice.h"
 
@@ -34,7 +35,7 @@ class KeyValueSyncInterface {
 
   virtual string get(const string &key) = 0;
 
-  virtual std::unordered_map<string, string> prefix_get(Slice prefix) = 0;
+  virtual std::unordered_map<string, string, Hash<string>> prefix_get(Slice prefix) = 0;
 
   virtual FlatHashMap<string, string> get_all() = 0;
 

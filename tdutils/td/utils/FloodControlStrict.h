@@ -12,7 +12,7 @@
 
 namespace td {
 
-// More strict implementaions of flood control than FloodControlFast.
+// More strict implementations of flood control than FloodControlFast.
 // Should be just fine for small counters.
 class FloodControlStrict {
  public:
