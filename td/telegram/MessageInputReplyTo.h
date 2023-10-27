@@ -33,6 +33,11 @@ class MessageInputReplyTo {
 
  public:
   MessageInputReplyTo() = default;
+  MessageInputReplyTo(const MessageInputReplyTo &) = delete;
+  MessageInputReplyTo &operator=(const MessageInputReplyTo &) = delete;
+  MessageInputReplyTo(MessageInputReplyTo &&) = default;
+  MessageInputReplyTo &operator=(MessageInputReplyTo &&) = default;
+  ~MessageInputReplyTo();
 
   explicit MessageInputReplyTo(MessageId message_id) : message_id_(message_id) {
   }

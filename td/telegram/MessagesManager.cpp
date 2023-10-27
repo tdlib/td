@@ -24259,7 +24259,7 @@ int64 MessagesManager::generate_new_random_id(const Dialog *d) {
 }
 
 unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
-    Dialog *d, MessageId top_thread_message_id, MessageInputReplyTo input_reply_to, const MessageSendOptions &options,
+    Dialog *d, MessageId top_thread_message_id, MessageInputReplyTo &&input_reply_to, const MessageSendOptions &options,
     unique_ptr<MessageContent> &&content, bool invert_media, bool suppress_reply_info,
     unique_ptr<MessageForwardInfo> forward_info, bool is_copy, DialogId send_as_dialog_id) const {
   CHECK(d != nullptr);
@@ -24401,14 +24401,14 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
 }
 
 MessagesManager::Message *MessagesManager::get_message_to_send(
-    Dialog *d, MessageId top_thread_message_id, MessageInputReplyTo input_reply_to, const MessageSendOptions &options,
+    Dialog *d, MessageId top_thread_message_id, MessageInputReplyTo &&input_reply_to, const MessageSendOptions &options,
     unique_ptr<MessageContent> &&content, bool invert_media, bool *need_update_dialog_pos, bool suppress_reply_info,
     unique_ptr<MessageForwardInfo> forward_info, bool is_copy, DialogId send_as_dialog_id) {
   d->was_opened = true;
 
   auto message =
-      create_message_to_send(d, top_thread_message_id, input_reply_to, options, std::move(content), invert_media,
-                             suppress_reply_info, std::move(forward_info), is_copy, send_as_dialog_id);
+      create_message_to_send(d, top_thread_message_id, std::move(input_reply_to), options, std::move(content),
+                             invert_media, suppress_reply_info, std::move(forward_info), is_copy, send_as_dialog_id);
 
   MessageId message_id = options.schedule_date != 0 ? get_next_yet_unsent_scheduled_message_id(d, options.schedule_date)
                                                     : get_next_yet_unsent_message_id(d);
@@ -24927,8 +24927,8 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_message(
   unique_ptr<Message> message;
   Message *m;
   if (message_send_options.only_preview) {
-    message = create_message_to_send(d, top_thread_message_id, input_reply_to, message_send_options, std::move(content),
-                                     message_content.invert_media, false, nullptr,
+    message = create_message_to_send(d, top_thread_message_id, std::move(input_reply_to), message_send_options,
+                                     std::move(content), message_content.invert_media, false, nullptr,
                                      message_content.via_bot_user_id.is_valid(), DialogId());
     MessageId new_message_id = message_send_options.schedule_date != 0
                                    ? get_next_yet_unsent_scheduled_message_id(d, message_send_options.schedule_date)
@@ -24936,8 +24936,8 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_message(
     message->message_id = new_message_id;
     m = message.get();
   } else {
-    m = get_message_to_send(d, top_thread_message_id, input_reply_to, message_send_options, std::move(content),
-                            message_content.invert_media, &need_update_dialog_pos, false, nullptr,
+    m = get_message_to_send(d, top_thread_message_id, std::move(input_reply_to), message_send_options,
+                            std::move(content), message_content.invert_media, &need_update_dialog_pos, false, nullptr,
                             message_content.via_bot_user_id.is_valid());
   }
   m->reply_markup = std::move(message_reply_markup);
@@ -25204,7 +25204,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_message_group
     unique_ptr<Message> message;
     Message *m;
     if (message_send_options.only_preview) {
-      message = create_message_to_send(d, top_thread_message_id, input_reply_to, message_send_options,
+      message = create_message_to_send(d, top_thread_message_id, std::move(input_reply_to), message_send_options,
                                        std::move(message_content.content), message_content.invert_media, i != 0,
                                        nullptr, false, DialogId());
       MessageId new_message_id = message_send_options.schedule_date != 0
@@ -25213,7 +25213,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_message_group
       message->message_id = new_message_id;
       m = message.get();
     } else {
-      m = get_message_to_send(d, top_thread_message_id, input_reply_to, message_send_options,
+      m = get_message_to_send(d, top_thread_message_id, std::move(input_reply_to), message_send_options,
                               dup_message_content(td_, dialog_id, message_content.content.get(),
                                                   MessageContentDupType::Send, MessageCopyOptions()),
                               message_content.invert_media, &need_update_dialog_pos, i != 0);
@@ -26098,7 +26098,7 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_inline_query_r
   Message *m;
   if (message_send_options.only_preview) {
     message =
-        create_message_to_send(d, top_thread_message_id, input_reply_to, message_send_options,
+        create_message_to_send(d, top_thread_message_id, std::move(input_reply_to), message_send_options,
                                std::move(message_content), content->invert_media, false, nullptr, true, DialogId());
     MessageId new_message_id = message_send_options.schedule_date != 0
                                    ? get_next_yet_unsent_scheduled_message_id(d, message_send_options.schedule_date)
@@ -26106,8 +26106,9 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_inline_query_r
     message->message_id = new_message_id;
     m = message.get();
   } else {
-    m = get_message_to_send(d, top_thread_message_id, input_reply_to, message_send_options, std::move(message_content),
-                            content->invert_media, &need_update_dialog_pos, false, nullptr, true);
+    m = get_message_to_send(d, top_thread_message_id, std::move(input_reply_to), message_send_options,
+                            std::move(message_content), content->invert_media, &need_update_dialog_pos, false, nullptr,
+                            true);
   }
 
   m->hide_via_bot = hide_via_bot;
@@ -28002,7 +28003,7 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
     if (is_local_copy) {
       auto original_reply_to_message_id = forwarded_message->replied_message_info.get_same_chat_reply_to_message_id();
       copied_messages.push_back(
-          {std::move(content), input_reply_to, forwarded_message->message_id, original_reply_to_message_id,
+          {std::move(content), std::move(input_reply_to), forwarded_message->message_id, original_reply_to_message_id,
            std::move(reply_markup), forwarded_message->media_album_id,
            get_message_disable_web_page_preview(forwarded_message), forwarded_message->invert_media, i});
     } else {
@@ -28148,7 +28149,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
     forwarded_message_id_to_new_message_id.emplace(copied_message.original_message_id, MessageId());
   }
   for (auto &copied_message : copied_messages) {
-    auto input_reply_to = copied_message.input_reply_to;
+    auto input_reply_to = std::move(copied_message.input_reply_to);
     if (!input_reply_to.is_valid() && copied_message.original_reply_to_message_id.is_valid() && is_secret) {
       auto it = forwarded_message_id_to_new_message_id.find(copied_message.original_reply_to_message_id);
       if (it != forwarded_message_id_to_new_message_id.end()) {
@@ -28159,9 +28160,9 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
     unique_ptr<Message> message;
     Message *m;
     if (message_send_options.only_preview) {
-      message = create_message_to_send(to_dialog, top_thread_message_id, input_reply_to, message_send_options,
-                                       std::move(copied_message.content), copied_message.invert_media, false, nullptr,
-                                       is_copy, DialogId());
+      message = create_message_to_send(to_dialog, top_thread_message_id, std::move(input_reply_to),
+                                       message_send_options, std::move(copied_message.content),
+                                       copied_message.invert_media, false, nullptr, is_copy, DialogId());
       MessageId new_message_id =
           message_send_options.schedule_date != 0
               ? get_next_yet_unsent_scheduled_message_id(to_dialog, message_send_options.schedule_date)
@@ -28175,7 +28176,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
         extract_authentication_codes(from_dialog_id, forwarded_message, authentication_codes);
       }
 
-      m = get_message_to_send(to_dialog, top_thread_message_id, input_reply_to, message_send_options,
+      m = get_message_to_send(to_dialog, top_thread_message_id, std::move(input_reply_to), message_send_options,
                               std::move(copied_message.content), copied_message.invert_media, &need_update_dialog_pos,
                               false, nullptr, is_copy);
     }
@@ -28300,7 +28301,7 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
                                message->update_stickersets_order, message->noforwards, false,
                                get_message_schedule_date(message.get()), message->sending_id);
     Message *m =
-        get_message_to_send(d, message->top_thread_message_id, *get_message_input_reply_to(message.get()), options,
+        get_message_to_send(d, message->top_thread_message_id, std::move(message->input_reply_to), options,
                             std::move(new_contents[i]), message->invert_media, &need_update_dialog_pos, false, nullptr,
                             message->is_copy, need_another_sender ? DialogId() : get_message_sender(message.get()));
     m->reply_markup = std::move(message->reply_markup);
@@ -30834,7 +30835,7 @@ MessageFullId MessagesManager::on_send_message_success(int64 random_id, MessageI
   }
 
   const auto *input_reply_to = get_message_input_reply_to(sent_message.get());
-  if (input_reply_to->is_valid() &&
+  if (input_reply_to != nullptr && input_reply_to->is_valid() &&
       input_reply_to->get_reply_message_full_id(dialog_id).get_message_id().is_yet_unsent()) {
     set_message_reply(d, sent_message.get(), MessageId(), false);
   }

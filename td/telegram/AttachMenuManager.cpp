@@ -198,7 +198,7 @@ class RequestWebViewQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     td_->attach_menu_manager_->open_web_view(ptr->query_id_, dialog_id_, bot_user_id_, top_thread_message_id_,
-                                             input_reply_to_, as_dialog_id_);
+                                             std::move(input_reply_to_), as_dialog_id_);
     promise_.set_value(td_api::make_object<td_api::webAppInfo>(ptr->query_id_, ptr->url_));
   }
 
@@ -217,7 +217,7 @@ class ProlongWebViewQuery final : public Td::ResultHandler {
 
  public:
   void send(DialogId dialog_id, UserId bot_user_id, int64 query_id, MessageId top_thread_message_id,
-            MessageInputReplyTo input_reply_to, bool silent, DialogId as_dialog_id) {
+            const MessageInputReplyTo &input_reply_to, bool silent, DialogId as_dialog_id) {
     dialog_id_ = dialog_id;
 
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
@@ -876,11 +876,11 @@ void AttachMenuManager::request_web_view(DialogId dialog_id, UserId bot_user_id,
 
   td_->create_handler<RequestWebViewQuery>(std::move(promise))
       ->send(dialog_id, bot_user_id, std::move(input_user), std::move(url), std::move(theme), std::move(platform),
-             top_thread_message_id, input_reply_to, silent, as_dialog_id);
+             top_thread_message_id, std::move(input_reply_to), silent, as_dialog_id);
 }
 
 void AttachMenuManager::open_web_view(int64 query_id, DialogId dialog_id, UserId bot_user_id,
-                                      MessageId top_thread_message_id, MessageInputReplyTo input_reply_to,
+                                      MessageId top_thread_message_id, MessageInputReplyTo &&input_reply_to,
                                       DialogId as_dialog_id) {
   if (query_id == 0) {
     LOG(ERROR) << "Receive Web App query identifier == 0";

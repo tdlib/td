@@ -1798,12 +1798,12 @@ class MessagesManager final : public Actor {
   int64 generate_new_random_id(const Dialog *d);
 
   unique_ptr<Message> create_message_to_send(Dialog *d, MessageId top_thread_message_id,
-                                             MessageInputReplyTo input_reply_to, const MessageSendOptions &options,
+                                             MessageInputReplyTo &&input_reply_to, const MessageSendOptions &options,
                                              unique_ptr<MessageContent> &&content, bool invert_media,
                                              bool suppress_reply_info, unique_ptr<MessageForwardInfo> forward_info,
                                              bool is_copy, DialogId send_as_dialog_id) const;
 
-  Message *get_message_to_send(Dialog *d, MessageId top_thread_message_id, MessageInputReplyTo input_reply_to,
+  Message *get_message_to_send(Dialog *d, MessageId top_thread_message_id, MessageInputReplyTo &&input_reply_to,
                                const MessageSendOptions &options, unique_ptr<MessageContent> &&content,
                                bool invert_media, bool *need_update_dialog_pos, bool suppress_reply_info = false,
                                unique_ptr<MessageForwardInfo> forward_info = nullptr, bool is_copy = false,
