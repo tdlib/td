@@ -3102,7 +3102,7 @@ class SendMessageQuery final : public Td::ResultHandler {
 
  public:
   void send(int32 flags, DialogId dialog_id, tl_object_ptr<telegram_api::InputPeer> as_input_peer,
-            MessageInputReplyTo input_reply_to, MessageId top_thread_message_id, int32 schedule_date,
+            const MessageInputReplyTo &input_reply_to, MessageId top_thread_message_id, int32 schedule_date,
             tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup,
             vector<tl_object_ptr<telegram_api::MessageEntity>> &&entities, const string &text, bool is_copy,
             int64 random_id, NetQueryRef *send_query_ref) {
@@ -3244,7 +3244,7 @@ class SendInlineBotResultQuery final : public Td::ResultHandler {
 
  public:
   NetQueryRef send(int32 flags, DialogId dialog_id, tl_object_ptr<telegram_api::InputPeer> as_input_peer,
-                   MessageInputReplyTo input_reply_to, MessageId top_thread_message_id, int32 schedule_date,
+                   const MessageInputReplyTo &input_reply_to, MessageId top_thread_message_id, int32 schedule_date,
                    int64 random_id, int64 query_id, const string &result_id) {
     random_id_ = random_id;
     dialog_id_ = dialog_id;
@@ -3302,7 +3302,7 @@ class SendMultiMediaQuery final : public Td::ResultHandler {
 
  public:
   void send(int32 flags, DialogId dialog_id, tl_object_ptr<telegram_api::InputPeer> as_input_peer,
-            MessageInputReplyTo input_reply_to, MessageId top_thread_message_id, int32 schedule_date,
+            const MessageInputReplyTo &input_reply_to, MessageId top_thread_message_id, int32 schedule_date,
             vector<FileId> &&file_ids, vector<tl_object_ptr<telegram_api::inputSingleMedia>> &&input_single_media,
             bool is_copy) {
     for (auto &single_media : input_single_media) {
@@ -3420,7 +3420,7 @@ class SendMediaQuery final : public Td::ResultHandler {
 
  public:
   void send(FileId file_id, FileId thumbnail_file_id, int32 flags, DialogId dialog_id,
-            tl_object_ptr<telegram_api::InputPeer> as_input_peer, MessageInputReplyTo input_reply_to,
+            tl_object_ptr<telegram_api::InputPeer> as_input_peer, const MessageInputReplyTo &input_reply_to,
             MessageId top_thread_message_id, int32 schedule_date,
             tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup,
             vector<tl_object_ptr<telegram_api::MessageEntity>> &&entities, const string &text,
@@ -24542,10 +24542,10 @@ MessageInputReplyTo MessagesManager::get_message_input_reply_to(
   return MessageInputReplyTo{m->message_id};
 }
 
-MessageInputReplyTo MessagesManager::get_message_input_reply_to(const Message *m) {
+const MessageInputReplyTo *MessagesManager::get_message_input_reply_to(const Message *m) {
   CHECK(m != nullptr);
   CHECK(!m->message_id.is_server());
-  return m->input_reply_to;
+  return &m->input_reply_to;
 }
 
 vector<FileId> MessagesManager::get_message_file_ids(const Message *m) const {
@@ -24599,26 +24599,28 @@ void MessagesManager::cancel_send_message_query(DialogId dialog_id, Message *m) 
     m->send_message_log_event_id = 0;
   }
 
-  const auto input_reply_to = get_message_input_reply_to(m);
-  if (!input_reply_to.is_empty()) {
-    auto replied_message_full_id = input_reply_to.get_reply_message_full_id(dialog_id);
-    auto replied_message_id = replied_message_full_id.get_message_id();
-    if (replied_message_id.is_valid() || replied_message_id.is_valid_scheduled()) {
-      if (!replied_message_id.is_yet_unsent()) {
-        auto it = replied_by_yet_unsent_messages_.find(replied_message_full_id);
-        CHECK(it != replied_by_yet_unsent_messages_.end());
-        it->second--;
-        CHECK(it->second >= 0);
-        if (it->second == 0) {
-          replied_by_yet_unsent_messages_.erase(it);
-        }
-      } else {
-        auto it = replied_yet_unsent_messages_.find(replied_message_full_id);
-        CHECK(it != replied_yet_unsent_messages_.end());
-        size_t erased_count = it->second.erase({dialog_id, m->message_id});
-        CHECK(erased_count > 0);
-        if (it->second.empty()) {
-          replied_yet_unsent_messages_.erase(it);
+  {
+    const auto *input_reply_to = get_message_input_reply_to(m);
+    if (input_reply_to != nullptr && !input_reply_to->is_empty()) {
+      auto replied_message_full_id = input_reply_to->get_reply_message_full_id(dialog_id);
+      auto replied_message_id = replied_message_full_id.get_message_id();
+      if (replied_message_id.is_valid() || replied_message_id.is_valid_scheduled()) {
+        if (!replied_message_id.is_yet_unsent()) {
+          auto it = replied_by_yet_unsent_messages_.find(replied_message_full_id);
+          CHECK(it != replied_by_yet_unsent_messages_.end());
+          it->second--;
+          CHECK(it->second >= 0);
+          if (it->second == 0) {
+            replied_by_yet_unsent_messages_.erase(it);
+          }
+        } else {
+          auto it = replied_yet_unsent_messages_.find(replied_message_full_id);
+          CHECK(it != replied_yet_unsent_messages_.end());
+          size_t erased_count = it->second.erase({dialog_id, m->message_id});
+          CHECK(erased_count > 0);
+          if (it->second.empty()) {
+            replied_yet_unsent_messages_.erase(it);
+          }
         }
       }
     }
@@ -24631,8 +24633,9 @@ void MessagesManager::cancel_send_message_query(DialogId dialog_id, Message *m) 
         CHECK(reply_d != nullptr);
         auto replied_m = get_message(reply_d, message_full_id.get_message_id());
         CHECK(replied_m != nullptr);
-        CHECK(get_message_input_reply_to(replied_m).get_reply_message_full_id(reply_d->dialog_id) ==
-              MessageFullId(dialog_id, m->message_id));
+        const auto *input_reply_to = get_message_input_reply_to(replied_m);
+        CHECK(input_reply_to != nullptr);
+        CHECK(input_reply_to->get_reply_message_full_id(reply_d->dialog_id) == MessageFullId(dialog_id, m->message_id));
         set_message_reply(reply_d, replied_m, replied_m->top_thread_message_id, true);
       }
       replied_yet_unsent_messages_.erase(it);
@@ -25380,7 +25383,7 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
           int64 random_id = begin_send_message(dialog_id, m);
           td_->create_handler<SendMediaQuery>()->send(
               file_id, thumbnail_file_id, get_message_flags(m), dialog_id, get_send_message_as_input_peer(m),
-              get_message_input_reply_to(m), m->top_thread_message_id, get_message_schedule_date(m),
+              *get_message_input_reply_to(m), m->top_thread_message_id, get_message_schedule_date(m),
               get_input_reply_markup(td_->contacts_manager_.get(), m->reply_markup),
               get_input_message_entities(td_->contacts_manager_.get(), caption, "on_message_media_uploaded"),
               caption == nullptr ? "" : caption->text, std::move(input_media), m->content->get_type(), m->is_copy,
@@ -25681,7 +25684,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
   vector<int64> random_ids;
   vector<tl_object_ptr<telegram_api::inputSingleMedia>> input_single_media;
   tl_object_ptr<telegram_api::InputPeer> as_input_peer;
-  MessageInputReplyTo input_reply_to;
+  const MessageInputReplyTo *input_reply_to = nullptr;
   MessageId top_thread_message_id;
   int32 flags = 0;
   int32 schedule_date = 0;
@@ -25759,7 +25762,8 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
   if (input_single_media.empty()) {
     LOG(INFO) << "Media group " << media_album_id << " from " << dialog_id << " is empty";
   }
-  td_->create_handler<SendMultiMediaQuery>()->send(flags, dialog_id, std::move(as_input_peer), input_reply_to,
+  CHECK(input_reply_to != nullptr);
+  td_->create_handler<SendMultiMediaQuery>()->send(flags, dialog_id, std::move(as_input_peer), *input_reply_to,
                                                    top_thread_message_id, schedule_date, std::move(file_ids),
                                                    std::move(input_single_media), is_copy);
 }
@@ -25792,7 +25796,7 @@ void MessagesManager::on_text_message_ready_to_send(DialogId dialog_id, MessageI
     auto input_media = get_message_content_input_media_web_page(td_, content);
     if (input_media == nullptr) {
       td_->create_handler<SendMessageQuery>()->send(
-          get_message_flags(m), dialog_id, get_send_message_as_input_peer(m), get_message_input_reply_to(m),
+          get_message_flags(m), dialog_id, get_send_message_as_input_peer(m), *get_message_input_reply_to(m),
           m->top_thread_message_id, get_message_schedule_date(m),
           get_input_reply_markup(td_->contacts_manager_.get(), m->reply_markup),
           get_input_message_entities(td_->contacts_manager_.get(), message_text, "do_send_message"), message_text->text,
@@ -25800,7 +25804,7 @@ void MessagesManager::on_text_message_ready_to_send(DialogId dialog_id, MessageI
     } else {
       td_->create_handler<SendMediaQuery>()->send(
           FileId(), FileId(), get_message_flags(m), dialog_id, get_send_message_as_input_peer(m),
-          get_message_input_reply_to(m), m->top_thread_message_id, get_message_schedule_date(m),
+          *get_message_input_reply_to(m), m->top_thread_message_id, get_message_schedule_date(m),
           get_input_reply_markup(td_->contacts_manager_.get(), m->reply_markup),
           get_input_message_entities(td_->contacts_manager_.get(), message_text, "do_send_message"), message_text->text,
           std::move(input_media), MessageContentType::Text, m->is_copy, random_id, &m->send_query_ref);
@@ -26206,7 +26210,7 @@ void MessagesManager::do_send_inline_query_result_message(DialogId dialog_id, Me
     flags |= telegram_api::messages_sendInlineBotResult::HIDE_VIA_MASK;
   }
   m->send_query_ref = td_->create_handler<SendInlineBotResultQuery>()->send(
-      flags, dialog_id, get_send_message_as_input_peer(m), get_message_input_reply_to(m), m->top_thread_message_id,
+      flags, dialog_id, get_send_message_as_input_peer(m), *get_message_input_reply_to(m), m->top_thread_message_id,
       get_message_schedule_date(m), random_id, query_id, result_id);
 }
 
@@ -28296,7 +28300,7 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
                                message->update_stickersets_order, message->noforwards, false,
                                get_message_schedule_date(message.get()), message->sending_id);
     Message *m =
-        get_message_to_send(d, message->top_thread_message_id, get_message_input_reply_to(message.get()), options,
+        get_message_to_send(d, message->top_thread_message_id, *get_message_input_reply_to(message.get()), options,
                             std::move(new_contents[i]), message->invert_media, &need_update_dialog_pos, false, nullptr,
                             message->is_copy, need_another_sender ? DialogId() : get_message_sender(message.get()));
     m->reply_markup = std::move(message->reply_markup);
@@ -30739,8 +30743,9 @@ void MessagesManager::update_reply_to_message_id(DialogId dialog_id, MessageId o
     CHECK(reply_d != nullptr);
     auto replied_m = get_message(reply_d, message_full_id.get_message_id());
     CHECK(replied_m != nullptr);
-    CHECK(get_message_input_reply_to(replied_m).get_reply_message_full_id(reply_d->dialog_id) ==
-          MessageFullId(dialog_id, old_message_id));
+    const auto *input_reply_to = get_message_input_reply_to(replied_m);
+    CHECK(input_reply_to != nullptr);
+    CHECK(input_reply_to->get_reply_message_full_id(reply_d->dialog_id) == MessageFullId(dialog_id, old_message_id));
     set_message_reply(reply_d, replied_m, new_message_id, true);
     // TODO rewrite send message log event
   }
@@ -30828,9 +30833,9 @@ MessageFullId MessagesManager::on_send_message_success(int64 random_id, MessageI
     LOG(ERROR) << "Sent " << old_message_id << " to " << dialog_id << " as " << new_message_id;
   }
 
-  const auto input_reply_to = get_message_input_reply_to(sent_message.get());
-  if (input_reply_to.is_valid() &&
-      input_reply_to.get_reply_message_full_id(dialog_id).get_message_id().is_yet_unsent()) {
+  const auto *input_reply_to = get_message_input_reply_to(sent_message.get());
+  if (input_reply_to->is_valid() &&
+      input_reply_to->get_reply_message_full_id(dialog_id).get_message_id().is_yet_unsent()) {
     set_message_reply(d, sent_message.get(), MessageId(), false);
   }
 
@@ -34929,9 +34934,10 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   if (m->message_id.is_yet_unsent()) {
-    const auto input_reply_to = get_message_input_reply_to(m);
-    if (!input_reply_to.is_empty()) {
-      auto replied_message_full_id = input_reply_to.get_reply_message_full_id(dialog_id);
+    const auto *input_reply_to = get_message_input_reply_to(m);
+    CHECK(input_reply_to != nullptr);
+    if (!input_reply_to->is_empty()) {
+      auto replied_message_full_id = input_reply_to->get_reply_message_full_id(dialog_id);
       auto replied_message_id = replied_message_full_id.get_message_id();
       if (replied_message_id.is_valid() || replied_message_id.is_valid_scheduled()) {
         if (!replied_message_id.is_yet_unsent()) {
@@ -35189,9 +35195,10 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
 
   const Message *m = message.get();
   if (m->message_id.is_yet_unsent()) {
-    const auto input_reply_to = get_message_input_reply_to(m);
-    if (!input_reply_to.is_empty()) {
-      auto replied_message_full_id = input_reply_to.get_reply_message_full_id(dialog_id);
+    const auto *input_reply_to = get_message_input_reply_to(m);
+    CHECK(input_reply_to != nullptr);
+    if (!input_reply_to->is_empty()) {
+      auto replied_message_full_id = input_reply_to->get_reply_message_full_id(dialog_id);
       auto replied_message_id = replied_message_full_id.get_message_id();
       if (replied_message_id.is_valid() || replied_message_id.is_valid_scheduled()) {
         if (!replied_message_id.is_yet_unsent()) {
@@ -39153,11 +39160,12 @@ void MessagesManager::set_message_reply(const Dialog *d, Message *m, MessageId r
 }
 
 void MessagesManager::restore_message_reply_to_message_id(Dialog *d, Message *m) {
-  const auto input_reply_to = get_message_input_reply_to(m);
-  if (input_reply_to.is_empty()) {
+  const auto *input_reply_to = get_message_input_reply_to(m);
+  CHECK(input_reply_to != nullptr);
+  if (input_reply_to->is_empty()) {
     return;
   }
-  auto replied_message_full_id = input_reply_to.get_reply_message_full_id(d->dialog_id);
+  auto replied_message_full_id = input_reply_to->get_reply_message_full_id(d->dialog_id);
   auto replied_message_id = replied_message_full_id.get_message_id();
   if (replied_message_id == MessageId() || !replied_message_id.is_yet_unsent()) {
     return;

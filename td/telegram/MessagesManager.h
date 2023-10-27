@@ -1843,7 +1843,7 @@ class MessagesManager final : public Actor {
                                                  td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
                                                  bool for_draft);
 
-  static MessageInputReplyTo get_message_input_reply_to(const Message *m);
+  static const MessageInputReplyTo *get_message_input_reply_to(const Message *m);
 
   bool can_set_game_score(DialogId dialog_id, const Message *m) const;
 
