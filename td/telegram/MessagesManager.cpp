@@ -24274,11 +24274,11 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
   int64 reply_to_random_id = 0;
   bool is_topic_message = false;
   auto same_chat_reply_to_message_id = input_reply_to.get_same_chat_reply_to_message_id();
-  if (same_chat_reply_to_message_id.is_valid()) {
+  if (same_chat_reply_to_message_id.is_valid() || same_chat_reply_to_message_id.is_valid_scheduled()) {
     // the message was forcely preloaded in get_message_input_reply_to
     // it can be missing, only if it is unknown message from a push notification, or an unknown top thread message
     const Message *reply_m = get_message(d, same_chat_reply_to_message_id);
-    if (reply_m != nullptr) {
+    if (reply_m != nullptr && !same_chat_reply_to_message_id.is_scheduled()) {
       if (reply_m->top_thread_message_id.is_valid()) {
         top_thread_message_id = reply_m->top_thread_message_id;
       }
