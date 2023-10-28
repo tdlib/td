@@ -44,6 +44,7 @@ class MessageInputReplyTo {
 
   MessageInputReplyTo(MessageId message_id, DialogId dialog_id, FormattedText &&quote)
       : message_id_(message_id), dialog_id_(dialog_id), quote_(std::move(quote)) {
+    remove_unallowed_quote_entities(quote_);
   }
 
   explicit MessageInputReplyTo(StoryFullId story_full_id) : story_full_id_(story_full_id) {

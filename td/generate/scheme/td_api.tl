@@ -1229,7 +1229,7 @@ messageSendingStateFailed error:error can_retry:Bool need_another_sender:Bool re
 //@description Describes a message replied by a given message
 //@chat_id The identifier of the chat to which the message belongs; may be 0 if the replied message is in another chat and isn't accessible
 //@message_id The identifier of the message; may be 0 if the replied message is in another chat and isn't accessible
-//@quote Manually or automatically chosen quote from the replied message; may be null if none
+//@quote Manually or automatically chosen quote from the replied message; may be null if none. Only Bold, Italic, Underline, Strikethrough, Spoiler, and CustomEmoji entities can be present in the quote
 //@is_quote_manual True, if the quote was manually chosen by the message sender
 //@origin Information about origin of the message if the message was replied from another chat; may be null for messages from the same chat
 //@origin_send_date Point in time (Unix timestamp) when the message was sent if the message was replied from another chat; 0 for messages from the same chat
@@ -1247,7 +1247,8 @@ messageReplyToStory story_sender_chat_id:int53 story_id:int32 = MessageReplyTo;
 //@description Describes a message to be replied
 //@chat_id The identifier of the chat to which the message to be replied belongs; pass 0 if the replied message is in the same chat. A message can be replied in another chat only if message.can_be_forwarded
 //@message_id The identifier of the message to be replied in the same chat
-//@quote Manually chosen quote from the replied message; pass null if none; 0-getOption("message_reply_quote_length_max") characters
+//@quote Manually chosen quote from the replied message; pass null if none; 0-getOption("message_reply_quote_length_max") characters.
+//-Only Bold, Italic, Underline, Strikethrough, Spoiler, and CustomEmoji entities are allowed to be kept and must be kept in the quote
 inputMessageReplyToMessage chat_id:int53 message_id:int53 quote:formattedText = InputMessageReplyTo;
 
 //@description Describes a story to be replied @story_sender_chat_id The identifier of the sender of the story. Currently, stories can be replied only in the sender's chat @story_id The identifier of the story

@@ -68,6 +68,7 @@ MessageInputReplyTo::MessageInputReplyTo(Td *td,
           entities.clear();
         }
         quote_ = FormattedText{std::move(reply_to->quote_text_), std::move(entities)};
+        remove_unallowed_quote_entities(quote_);
       }
       break;
     }

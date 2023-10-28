@@ -144,6 +144,7 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, tl_object_ptr<telegram_api::messa
       entities.clear();
     }
     quote_ = FormattedText{std::move(reply_header->quote_text_), std::move(entities)};
+    remove_unallowed_quote_entities(quote_);
   }
 }
 

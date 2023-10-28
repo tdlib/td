@@ -1415,6 +1415,24 @@ void remove_empty_entities(vector<MessageEntity> &entities) {
   });
 }
 
+static bool is_allowed_quote_entity(const MessageEntity &entity) {
+  switch (entity.type) {
+    case MessageEntity::Type::Bold:
+    case MessageEntity::Type::Italic:
+    case MessageEntity::Type::Underline:
+    case MessageEntity::Type::Strikethrough:
+    case MessageEntity::Type::Spoiler:
+    case MessageEntity::Type::CustomEmoji:
+      return true;
+    default:
+      return false;
+  }
+}
+
+void remove_unallowed_quote_entities(FormattedText &text) {
+  td::remove_if(text.entities, [](const auto &entity) { return !is_allowed_quote_entity(entity); });
+}
+
 static int32 text_length(Slice text) {
   return narrow_cast<int32>(utf8_utf16_length(text));
 }

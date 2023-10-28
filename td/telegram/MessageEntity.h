@@ -183,6 +183,8 @@ vector<std::pair<Slice, int32>> find_media_timestamps(Slice str);  // slice + me
 
 void remove_empty_entities(vector<MessageEntity> &entities);
 
+void remove_unallowed_quote_entities(FormattedText &text);
+
 string get_first_url(const FormattedText &text);
 
 bool is_visible_url(const FormattedText &text, const string &url);

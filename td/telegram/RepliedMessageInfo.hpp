@@ -84,6 +84,7 @@ void RepliedMessageInfo::parse(ParserT &parser) {
   }
   if (has_quote) {
     td::parse(quote_, parser);
+    remove_unallowed_quote_entities(quote_);
   }
   if (has_content) {
     parse_message_content(content_, parser);
