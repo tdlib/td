@@ -24544,10 +24544,10 @@ MessageInputReplyTo MessagesManager::get_message_input_reply_to(
       if (m == nullptr || m->message_id.is_yet_unsent() ||
           (m->message_id.is_local() && reply_d->dialog_id.get_type() != DialogType::SecretChat)) {
         if (message_id.is_server() && reply_d->dialog_id.get_type() != DialogType::SecretChat &&
-            message_id > reply_d->last_new_message_id &&
+            reply_dialog_id == DialogId() && message_id > reply_d->last_new_message_id &&
             (reply_d->notification_info != nullptr &&
              message_id <= reply_d->notification_info->max_push_notification_message_id_)) {
-          // allow to reply yet unreceived server message
+          // allow to reply yet unreceived server message in the same chat
           return MessageInputReplyTo{message_id, reply_dialog_id, std::move(quote)};
         }
         if (!for_draft && top_thread_message_id.is_valid() && top_thread_message_id.is_server()) {
