@@ -119,7 +119,7 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, tl_object_ptr<telegram_api::messa
         case MessageContentType::Poll:
         case MessageContentType::Sticker:
         case MessageContentType::Story:
-        // case MessageContentType::Text:
+        case MessageContentType::Text:
         case MessageContentType::Unsupported:
         case MessageContentType::Venue:
         case MessageContentType::Video:
@@ -282,7 +282,9 @@ td_api::object_ptr<td_api::messageReplyToMessage> RepliedMessageInfo::get_messag
   td_api::object_ptr<td_api::MessageContent> content;
   if (content_ != nullptr) {
     content = get_message_content_object(content_.get(), td, dialog_id, 0, false, true, -1, false);
-    if (content->get_id() == td_api::messageUnsupported::ID) {
+    if (content->get_id() == td_api::messageUnsupported::ID ||
+        (content->get_id() == td_api::messageText::ID &&
+         static_cast<const td_api::messageText *>(content.get())->web_page_ == nullptr)) {
       content = nullptr;
     }
   }
