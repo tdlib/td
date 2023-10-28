@@ -942,7 +942,7 @@ class CliClient final : public Actor {
         return nullptr;
       }
       if (message_id != 0) {
-        return td_api::make_object<td_api::inputMessageReplyToMessage>(message_id, nullptr);
+        return td_api::make_object<td_api::inputMessageReplyToMessage>(0, message_id, nullptr);
       } else {
         return td_api::make_object<td_api::inputMessageReplyToStory>(user_id, story_id);
       }

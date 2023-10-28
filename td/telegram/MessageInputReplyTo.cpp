@@ -49,11 +49,13 @@ MessageInputReplyTo::MessageInputReplyTo(Td *td,
       DialogId dialog_id;
       if (reply_to->reply_to_peer_id_ != nullptr) {
         dialog_id = InputDialogId(reply_to->reply_to_peer_id_).get_dialog_id();
-        if (!dialog_id.is_valid()) {
+        if (!dialog_id.is_valid() || !td->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
           return;
         }
+        td->messages_manager_->force_create_dialog(dialog_id, "inputReplyToMessage");
       }
       message_id_ = message_id;
+      dialog_id_ = dialog_id;
 
       if (!reply_to->quote_text_.empty()) {
         auto entities = get_message_entities(td->contacts_manager_.get(), std::move(reply_to->quote_entities_),
@@ -100,6 +102,15 @@ telegram_api::object_ptr<telegram_api::InputReplyTo> MessageInputReplyTo::get_in
     CHECK(top_thread_message_id.is_server());
     flags |= telegram_api::inputReplyToMessage::TOP_MSG_ID_MASK;
   }
+  telegram_api::object_ptr<telegram_api::InputPeer> input_peer;
+  if (dialog_id_ != DialogId()) {
+    input_peer = td->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    if (input_peer == nullptr) {
+      LOG(INFO) << "Failed to get input peer for " << dialog_id_;
+      return nullptr;
+    }
+    flags |= telegram_api::inputReplyToMessage::REPLY_TO_PEER_ID_MASK;
+  }
   if (!quote_.text.empty()) {
     flags |= telegram_api::inputReplyToMessage::QUOTE_TEXT_MASK;
   }
@@ -109,12 +120,11 @@ telegram_api::object_ptr<telegram_api::InputReplyTo> MessageInputReplyTo::get_in
   }
   return telegram_api::make_object<telegram_api::inputReplyToMessage>(
       flags, reply_to_message_id.get_server_message_id().get(), top_thread_message_id.get_server_message_id().get(),
-      nullptr, quote_.text, std::move(quote_entities));
+      std::move(input_peer), quote_.text, std::move(quote_entities));
 }
 
-td_api::object_ptr<td_api::InputMessageReplyTo> MessageInputReplyTo::get_input_message_reply_to_object(
-    Td *td, DialogId dialog_id) const {
-  CHECK(dialog_id.is_valid());
+// only for draft messages
+td_api::object_ptr<td_api::InputMessageReplyTo> MessageInputReplyTo::get_input_message_reply_to_object(Td *td) const {
   if (story_full_id_.is_valid()) {
     return td_api::make_object<td_api::inputMessageReplyToStory>(
         td->messages_manager_->get_chat_id_object(story_full_id_.get_dialog_id(), "inputMessageReplyToStory"),
@@ -127,22 +137,26 @@ td_api::object_ptr<td_api::InputMessageReplyTo> MessageInputReplyTo::get_input_m
   if (!quote_.text.empty()) {
     quote = get_formatted_text_object(quote_, true, -1);
   }
-  return td_api::make_object<td_api::inputMessageReplyToMessage>(message_id_.get(), std::move(quote));
+  return td_api::make_object<td_api::inputMessageReplyToMessage>(
+      message_id_.get(), td->messages_manager_->get_chat_id_object(dialog_id_, "inputMessageReplyToMessage"),
+      std::move(quote));
 }
 
 MessageId MessageInputReplyTo::get_same_chat_reply_to_message_id() const {
-  return message_id_.is_valid() || message_id_.is_valid_scheduled() ? message_id_ : MessageId();
+  return dialog_id_ == DialogId() && (message_id_.is_valid() || message_id_.is_valid_scheduled()) ? message_id_
+                                                                                                  : MessageId();
 }
 
 MessageFullId MessageInputReplyTo::get_reply_message_full_id(DialogId owner_dialog_id) const {
   if (!message_id_.is_valid() && !message_id_.is_valid_scheduled()) {
     return {};
   }
-  return {owner_dialog_id, message_id_};
+  return {dialog_id_ != DialogId() ? dialog_id_ : owner_dialog_id, message_id_};
 }
 
 bool operator==(const MessageInputReplyTo &lhs, const MessageInputReplyTo &rhs) {
-  return lhs.message_id_ == rhs.message_id_ && lhs.story_full_id_ == rhs.story_full_id_ && lhs.quote_ == rhs.quote_;
+  return lhs.message_id_ == rhs.message_id_ && lhs.dialog_id_ == rhs.dialog_id_ &&
+         lhs.story_full_id_ == rhs.story_full_id_ && lhs.quote_ == rhs.quote_;
 }
 
 bool operator!=(const MessageInputReplyTo &lhs, const MessageInputReplyTo &rhs) {
@@ -152,6 +166,9 @@ bool operator!=(const MessageInputReplyTo &lhs, const MessageInputReplyTo &rhs) 
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageInputReplyTo &input_reply_to) {
   if (input_reply_to.message_id_.is_valid() || input_reply_to.message_id_.is_valid_scheduled()) {
     string_builder << input_reply_to.message_id_;
+    if (input_reply_to.dialog_id_ != DialogId()) {
+      string_builder << " in " << input_reply_to.dialog_id_;
+    }
     if (!input_reply_to.quote_.text.empty()) {
       string_builder << " with " << input_reply_to.quote_.text.size() << " quoted bytes";
     }

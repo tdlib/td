@@ -23,6 +23,7 @@ class Td;
 
 class MessageInputReplyTo {
   MessageId message_id_;
+  DialogId dialog_id_;
   FormattedText quote_;
   // or
   StoryFullId story_full_id_;
@@ -41,7 +42,8 @@ class MessageInputReplyTo {
   MessageInputReplyTo &operator=(MessageInputReplyTo &&) = default;
   ~MessageInputReplyTo();
 
-  MessageInputReplyTo(MessageId message_id, FormattedText &&quote) : message_id_(message_id), quote_(std::move(quote)) {
+  MessageInputReplyTo(MessageId message_id, DialogId dialog_id, FormattedText &&quote)
+      : message_id_(message_id), dialog_id_(dialog_id), quote_(std::move(quote)) {
   }
 
   explicit MessageInputReplyTo(StoryFullId story_full_id) : story_full_id_(story_full_id) {
@@ -64,7 +66,7 @@ class MessageInputReplyTo {
   telegram_api::object_ptr<telegram_api::InputReplyTo> get_input_reply_to(Td *td,
                                                                           MessageId top_thread_message_id) const;
 
-  td_api::object_ptr<td_api::InputMessageReplyTo> get_input_message_reply_to_object(Td *td, DialogId dialog_id) const;
+  td_api::object_ptr<td_api::InputMessageReplyTo> get_input_message_reply_to_object(Td *td) const;
 
   void set_message_id(MessageId new_message_id) {
     CHECK(message_id_.is_valid() || message_id_.is_valid_scheduled());

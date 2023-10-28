@@ -156,6 +156,9 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, const MessageInputReplyTo &input_
     quote_ = input_reply_to.quote_;
     is_quote_manual_ = true;
   }
+  if (input_reply_to.dialog_id_ != DialogId()) {
+    dialog_id_ = input_reply_to.dialog_id_;
+  }
 }
 
 bool RepliedMessageInfo::need_reget() const {
@@ -290,8 +293,8 @@ td_api::object_ptr<td_api::messageReplyToMessage> RepliedMessageInfo::get_messag
 }
 
 MessageInputReplyTo RepliedMessageInfo::get_input_reply_to() const {
-  if (message_id_.is_valid() && dialog_id_ == DialogId()) {
-    return MessageInputReplyTo{message_id_, FormattedText{quote_}};
+  if (message_id_.is_valid()) {
+    return MessageInputReplyTo{message_id_, dialog_id_, FormattedText{quote_}};
   }
   return {};
 }

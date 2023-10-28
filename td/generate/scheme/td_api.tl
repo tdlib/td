@@ -1245,9 +1245,10 @@ messageReplyToStory story_sender_chat_id:int53 story_id:int32 = MessageReplyTo;
 //@class InputMessageReplyTo @description Contains information about the message or the story to be replied
 
 //@description Describes a message to be replied
+//@chat_id The identifier of the chat to which the message to be replied belongs; pass 0 if the replied message is in the same chat
 //@message_id The identifier of the message to be replied in the same chat
 //@quote Manually chosen quote from the replied message; pass null if none; 0-getOption("message_reply_quote_length_max") characters
-inputMessageReplyToMessage message_id:int53 quote:formattedText = InputMessageReplyTo;
+inputMessageReplyToMessage chat_id:int53 message_id:int53 quote:formattedText = InputMessageReplyTo;
 
 //@description Describes a story to be replied @story_sender_chat_id The identifier of the sender of the story. Currently, stories can be replied only in the sender's chat @story_id The identifier of the story
 inputMessageReplyToStory story_sender_chat_id:int53 story_id:int32 = InputMessageReplyTo;

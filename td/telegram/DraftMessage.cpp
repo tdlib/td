@@ -165,10 +165,9 @@ void DraftMessage::add_dependencies(Dependencies &dependencies) const {
   input_message_text_.add_dependencies(dependencies);
 }
 
-td_api::object_ptr<td_api::draftMessage> DraftMessage::get_draft_message_object(Td *td, DialogId dialog_id) const {
-  return td_api::make_object<td_api::draftMessage>(
-      message_input_reply_to_.get_input_message_reply_to_object(td, dialog_id), date_,
-      input_message_text_.get_input_message_text_object());
+td_api::object_ptr<td_api::draftMessage> DraftMessage::get_draft_message_object(Td *td) const {
+  return td_api::make_object<td_api::draftMessage>(message_input_reply_to_.get_input_message_reply_to_object(td), date_,
+                                                   input_message_text_.get_input_message_text_object());
 }
 
 DraftMessage::DraftMessage(Td *td, telegram_api::object_ptr<telegram_api::draftMessage> &&draft_message) {
@@ -253,12 +252,12 @@ void add_draft_message_dependencies(Dependencies &dependencies, const unique_ptr
   draft_message->add_dependencies(dependencies);
 }
 
-td_api::object_ptr<td_api::draftMessage> get_draft_message_object(Td *td, DialogId dialog_id,
+td_api::object_ptr<td_api::draftMessage> get_draft_message_object(Td *td,
                                                                   const unique_ptr<DraftMessage> &draft_message) {
   if (draft_message == nullptr) {
     return nullptr;
   }
-  return draft_message->get_draft_message_object(td, dialog_id);
+  return draft_message->get_draft_message_object(td);
 }
 
 unique_ptr<DraftMessage> get_draft_message(Td *td,

@@ -5168,7 +5168,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     if (reply_to_story_full_id.is_valid()) {
       input_reply_to = MessageInputReplyTo(reply_to_story_full_id);
     } else if (legacy_reply_to_message_id.is_valid()) {
-      input_reply_to = MessageInputReplyTo{legacy_reply_to_message_id, FormattedText()};
+      input_reply_to = MessageInputReplyTo{legacy_reply_to_message_id, DialogId(), FormattedText()};
     }
   }
   if (has_replied_message_info) {
@@ -18056,7 +18056,7 @@ td_api::object_ptr<td_api::messageThreadInfo> MessagesManager::get_message_threa
     if (can_send_message(d->dialog_id).is_ok()) {
       const Message *m = get_message_force(d, top_thread_message_id, "get_message_thread_info_object 2");
       if (m != nullptr && !m->reply_info.is_comment_ && is_active_message_reply_info(d->dialog_id, m->reply_info)) {
-        draft_message = get_draft_message_object(td_, d->dialog_id, m->thread_draft_message);
+        draft_message = get_draft_message_object(td_, m->thread_draft_message);
       }
     }
   }
@@ -20737,9 +20737,8 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
   auto chat_source = is_dialog_sponsored(d) ? sponsored_dialog_source_.get_chat_source_object() : nullptr;
   auto can_delete = can_delete_dialog(d);
   // TODO hide/show draft message when need_hide_dialog_draft_message changes
-  auto draft_message = !need_hide_dialog_draft_message(d->dialog_id)
-                           ? get_draft_message_object(td_, d->dialog_id, d->draft_message)
-                           : nullptr;
+  auto draft_message =
+      !need_hide_dialog_draft_message(d->dialog_id) ? get_draft_message_object(td_, d->draft_message) : nullptr;
   auto available_reactions = get_dialog_active_reactions(d).get_chat_available_reactions_object();
   auto is_translatable = d->is_translatable && is_premium;
   auto block_list_id = BlockListId(d->is_blocked, d->is_blocked_for_stories);
@@ -24491,7 +24490,7 @@ MessageInputReplyTo MessagesManager::get_message_input_reply_to(
   }
   if (reply_to == nullptr) {
     if (!for_draft && top_thread_message_id.is_valid() && top_thread_message_id.is_server()) {
-      return MessageInputReplyTo{top_thread_message_id, FormattedText()};
+      return MessageInputReplyTo{top_thread_message_id, DialogId(), FormattedText()};
     }
     return {};
   }
@@ -24519,12 +24518,20 @@ MessageInputReplyTo MessagesManager::get_message_input_reply_to(
       if (!message_id.is_valid()) {
         if (!for_draft && message_id == MessageId() && top_thread_message_id.is_valid() &&
             top_thread_message_id.is_server()) {
-          return MessageInputReplyTo{top_thread_message_id, FormattedText()};
+          return MessageInputReplyTo{top_thread_message_id, DialogId(), FormattedText()};
         }
         return {};
       }
-      message_id = get_persistent_message_id(d, message_id);
-      if (message_id == MessageId(ServerMessageId(1)) && d->dialog_id.get_type() == DialogType::Channel) {
+      auto *reply_d = d;
+      auto reply_dialog_id = DialogId(reply_to_message->chat_id_);
+      if (reply_dialog_id != DialogId()) {
+        reply_d = get_dialog_force(reply_dialog_id, "get_message_input_reply_to");
+        if (reply_d == nullptr) {
+          return {};
+        }
+      }
+      message_id = get_persistent_message_id(reply_d, message_id);
+      if (message_id == MessageId(ServerMessageId(1)) && reply_d->dialog_id.get_type() == DialogType::Channel) {
         return {};
       }
       FormattedText quote;
@@ -24533,25 +24540,25 @@ MessageInputReplyTo MessagesManager::get_message_input_reply_to(
       if (r_quote.is_ok()) {
         quote = r_quote.move_as_ok();
       }
-      const Message *m = get_message_force(d, message_id, "get_message_input_reply_to 2");
+      const Message *m = get_message_force(reply_d, message_id, "get_message_input_reply_to 2");
       if (m == nullptr || m->message_id.is_yet_unsent() ||
-          (m->message_id.is_local() && d->dialog_id.get_type() != DialogType::SecretChat)) {
-        if (message_id.is_server() && d->dialog_id.get_type() != DialogType::SecretChat &&
-            message_id > d->last_new_message_id &&
-            (d->notification_info != nullptr &&
-             message_id <= d->notification_info->max_push_notification_message_id_)) {
+          (m->message_id.is_local() && reply_d->dialog_id.get_type() != DialogType::SecretChat)) {
+        if (message_id.is_server() && reply_d->dialog_id.get_type() != DialogType::SecretChat &&
+            message_id > reply_d->last_new_message_id &&
+            (reply_d->notification_info != nullptr &&
+             message_id <= reply_d->notification_info->max_push_notification_message_id_)) {
           // allow to reply yet unreceived server message
-          return MessageInputReplyTo{message_id, std::move(quote)};
+          return MessageInputReplyTo{message_id, reply_dialog_id, std::move(quote)};
         }
         if (!for_draft && top_thread_message_id.is_valid() && top_thread_message_id.is_server()) {
-          return MessageInputReplyTo{top_thread_message_id, FormattedText()};
+          return MessageInputReplyTo{top_thread_message_id, DialogId(), FormattedText()};
         }
 
         // TODO local replies to local messages can be allowed
         // TODO replies to yet unsent messages can be allowed with special handling of them on application restart
         return {};
       }
-      return MessageInputReplyTo{m->message_id, std::move(quote)};
+      return MessageInputReplyTo{m->message_id, reply_dialog_id, std::move(quote)};
     }
     default:
       UNREACHABLE();
@@ -24653,8 +24660,8 @@ void MessagesManager::cancel_send_message_query(DialogId dialog_id, Message *m) 
         const auto *input_reply_to = get_message_input_reply_to(replied_m);
         CHECK(input_reply_to != nullptr);
         CHECK(input_reply_to->get_reply_message_full_id(reply_d->dialog_id) == MessageFullId(dialog_id, m->message_id));
-        set_message_reply(reply_d, replied_m, MessageInputReplyTo{replied_m->top_thread_message_id, FormattedText()},
-                          true);
+        set_message_reply(reply_d, replied_m,
+                          MessageInputReplyTo{replied_m->top_thread_message_id, DialogId(), FormattedText()}, true);
       }
       replied_yet_unsent_messages_.erase(it);
     }
@@ -28171,7 +28178,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
     if (!input_reply_to.is_valid() && copied_message.original_reply_to_message_id.is_valid() && is_secret) {
       auto it = forwarded_message_id_to_new_message_id.find(copied_message.original_reply_to_message_id);
       if (it != forwarded_message_id_to_new_message_id.end()) {
-        input_reply_to = MessageInputReplyTo{it->second, FormattedText()};
+        input_reply_to = MessageInputReplyTo{it->second, DialogId(), FormattedText()};
       }
     }
 
@@ -30236,7 +30243,7 @@ void MessagesManager::send_update_chat_draft_message(const Dialog *d) {
     send_closure(G()->td(), &Td::send_update,
                  td_api::make_object<td_api::updateChatDraftMessage>(
                      get_chat_id_object(d->dialog_id, "updateChatDraftMessage"),
-                     get_draft_message_object(td_, d->dialog_id, d->draft_message), get_chat_positions_object(d)));
+                     get_draft_message_object(td_, d->draft_message), get_chat_positions_object(d)));
   }
 }
 
@@ -39212,7 +39219,7 @@ void MessagesManager::restore_message_reply_to_message_id(Dialog *d, Message *m)
   if (message_id.is_valid() || message_id.is_valid_scheduled()) {
     update_message_reply_to_message_id(d, m, message_id, false);
   } else {
-    set_message_reply(d, m, MessageInputReplyTo(m->top_thread_message_id, FormattedText()), false);
+    set_message_reply(d, m, MessageInputReplyTo{m->top_thread_message_id, DialogId(), FormattedText()}, false);
   }
 }
 
