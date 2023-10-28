@@ -29752,6 +29752,7 @@ bool MessagesManager::is_message_notification_disabled(const Dialog *d, const Me
     case MessageContentType::PassportDataReceived:
     case MessageContentType::WebViewDataSent:
     case MessageContentType::WebViewDataReceived:
+    case MessageContentType::GiveawayLaunch:
       VLOG(notifications) << "Disable notification for " << m->message_id << " in " << d->dialog_id
                           << " with content of type " << m->content->get_type();
       return true;
