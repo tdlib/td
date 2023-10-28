@@ -75,9 +75,6 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, tl_object_ptr<telegram_api::messa
           message_id_ = MessageId();
           dialog_id_ = DialogId();
         }
-        if (dialog_id_ == dialog_id) {
-          dialog_id_ = DialogId();  // just in case
-        }
       }
       if (!message_id_.is_valid()) {
         LOG(ERROR) << "Receive " << to_string(reply_header) << " in " << MessageFullId{dialog_id, message_id};
@@ -300,7 +297,7 @@ MessageInputReplyTo RepliedMessageInfo::get_input_reply_to() const {
 }
 
 MessageId RepliedMessageInfo::get_same_chat_reply_to_message_id() const {
-  return is_same_chat_reply() ? message_id_ : MessageId();
+  return dialog_id_ == DialogId() && origin_date_ == 0 ? message_id_ : MessageId();
 }
 
 MessageFullId RepliedMessageInfo::get_reply_message_full_id(DialogId owner_dialog_id) const {

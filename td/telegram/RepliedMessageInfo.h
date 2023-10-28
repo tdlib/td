@@ -61,10 +61,6 @@ class RepliedMessageInfo {
 
   RepliedMessageInfo(Td *td, const MessageInputReplyTo &input_reply_to);
 
-  bool is_same_chat_reply() const {
-    return dialog_id_ == DialogId() && origin_date_ == 0;
-  }
-
   bool is_empty() const {
     return message_id_ == MessageId() && dialog_id_ == DialogId() && origin_date_ == 0 && origin_.is_empty() &&
            quote_.text.empty() && content_ == nullptr;

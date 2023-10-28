@@ -131,7 +131,7 @@ td_api::object_ptr<td_api::InputMessageReplyTo> MessageInputReplyTo::get_input_m
 }
 
 MessageId MessageInputReplyTo::get_same_chat_reply_to_message_id() const {
-  return is_same_chat_reply() ? message_id_ : MessageId();
+  return message_id_.is_valid() || message_id_.is_valid_scheduled() ? message_id_ : MessageId();
 }
 
 MessageFullId MessageInputReplyTo::get_reply_message_full_id(DialogId owner_dialog_id) const {

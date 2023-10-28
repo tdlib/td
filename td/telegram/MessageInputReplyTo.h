@@ -57,10 +57,6 @@ class MessageInputReplyTo {
     return !is_empty();
   }
 
-  bool is_same_chat_reply() const {
-    return message_id_.is_valid() || message_id_.is_valid_scheduled();
-  }
-
   StoryFullId get_story_full_id() const {
     return story_full_id_;
   }
