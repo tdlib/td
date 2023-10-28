@@ -1245,7 +1245,7 @@ messageReplyToStory story_sender_chat_id:int53 story_id:int32 = MessageReplyTo;
 //@class InputMessageReplyTo @description Contains information about the message or the story to be replied
 
 //@description Describes a message to be replied
-//@chat_id The identifier of the chat to which the message to be replied belongs; pass 0 if the replied message is in the same chat
+//@chat_id The identifier of the chat to which the message to be replied belongs; pass 0 if the replied message is in the same chat. A message can be replied in another chat only if message.can_be_forwarded
 //@message_id The identifier of the message to be replied in the same chat
 //@quote Manually chosen quote from the replied message; pass null if none; 0-getOption("message_reply_quote_length_max") characters
 inputMessageReplyToMessage chat_id:int53 message_id:int53 quote:formattedText = InputMessageReplyTo;
@@ -1263,7 +1263,7 @@ inputMessageReplyToStory story_sender_chat_id:int53 story_id:int32 = InputMessag
 //@is_outgoing True, if the message is outgoing
 //@is_pinned True, if the message is pinned
 //@can_be_edited True, if the message can be edited. For live location and poll messages this fields shows whether editMessageLiveLocation or stopPoll can be used with this message by the application
-//@can_be_forwarded True, if the message can be forwarded
+//@can_be_forwarded True, if the message can be forwarded or replied in another chat
 //@can_be_saved True, if content of the message can be saved locally or copied
 //@can_be_deleted_only_for_self True, if the message can be deleted only for the current user while other users will continue to see it
 //@can_be_deleted_for_all_users True, if the message can be deleted for all users

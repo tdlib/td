@@ -24553,9 +24553,14 @@ MessageInputReplyTo MessagesManager::get_message_input_reply_to(
         if (!for_draft && top_thread_message_id.is_valid() && top_thread_message_id.is_server()) {
           return MessageInputReplyTo{top_thread_message_id, DialogId(), FormattedText()};
         }
+        LOG(INFO) << "Can't find " << message_id << " in " << reply_d->dialog_id;
 
         // TODO local replies to local messages can be allowed
         // TODO replies to yet unsent messages can be allowed with special handling of them on application restart
+        return {};
+      }
+      if (reply_dialog_id != DialogId() && !can_forward_message(reply_dialog_id, m)) {
+        LOG(INFO) << "Can't reply in another chat " << m->message_id << " in " << reply_d->dialog_id;
         return {};
       }
       return MessageInputReplyTo{m->message_id, reply_dialog_id, std::move(quote)};
