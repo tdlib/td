@@ -88,6 +88,9 @@ static td_api::object_ptr<td_api::PremiumFeature> get_premium_feature_object(Sli
   if (premium_feature == "channel_boost") {
     return td_api::make_object<td_api::premiumFeatureChatBoost>();
   }
+  if (premium_feature == "name_color") {
+    return td_api::make_object<td_api::premiumFeatureAccentColor>();
+  }
   return nullptr;
 }
 
@@ -716,6 +719,8 @@ static string get_premium_source(const td_api::PremiumFeature *feature) {
       return "stories";
     case td_api::premiumFeatureChatBoost::ID:
       return "channel_boost";
+    case td_api::premiumFeatureAccentColor::ID:
+      return "name_color";
     default:
       UNREACHABLE();
   }
