@@ -1882,10 +1882,10 @@ class MessagesManager final : public Actor {
                                                               bool in_game_share,
                                                               MessageCopyOptions &&copy_options) TD_WARN_UNUSED_RESULT;
 
-  MessageOrigin get_message_forward_origin(DialogId from_dialog_id, const Message *forwarded_message) const;
+  MessageOrigin get_forwarded_message_origin(DialogId dialog_id, const Message *m) const;
 
   unique_ptr<MessageForwardInfo> create_message_forward_info(DialogId from_dialog_id, DialogId to_dialog_id,
-                                                             const Message *forwarded_message) const;
+                                                             const Message *m) const;
 
   void fix_forwarded_message(Message *m, DialogId to_dialog_id, const Message *forwarded_message, int64 media_album_id,
                              bool drop_author) const;

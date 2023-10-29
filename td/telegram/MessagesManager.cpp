@@ -27762,61 +27762,57 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::forward_message(
   return std::move(result->messages_[0]);
 }
 
-MessageOrigin MessagesManager::get_message_forward_origin(DialogId from_dialog_id,
-                                                          const Message *forwarded_message) const {
-  if (forwarded_message->forward_info != nullptr) {
-    return forwarded_message->forward_info->origin;
+MessageOrigin MessagesManager::get_forwarded_message_origin(DialogId dialog_id, const Message *m) const {
+  if (m->forward_info != nullptr) {
+    return m->forward_info->origin;
   }
 
-  if (forwarded_message->is_channel_post) {
-    if (is_broadcast_channel(from_dialog_id)) {
-      auto author_signature = forwarded_message->sender_user_id.is_valid()
-                                  ? td_->contacts_manager_->get_user_title(forwarded_message->sender_user_id)
-                                  : forwarded_message->author_signature;
-      return MessageOrigin{UserId(), from_dialog_id, forwarded_message->message_id, std::move(author_signature),
-                           string()};
+  if (m->is_channel_post) {
+    if (is_broadcast_channel(dialog_id)) {
+      auto author_signature = m->sender_user_id.is_valid() ? td_->contacts_manager_->get_user_title(m->sender_user_id)
+                                                           : m->author_signature;
+      return MessageOrigin{UserId(), dialog_id, m->message_id, std::move(author_signature), string()};
     } else {
       LOG(ERROR) << "Don't know how to forward a channel post not from a channel";
     }
-  } else if (forwarded_message->sender_user_id.is_valid() || forwarded_message->sender_dialog_id.is_valid()) {
-    auto author_signature = forwarded_message->author_signature;
-    return MessageOrigin{forwarded_message->sender_user_id, forwarded_message->sender_dialog_id, MessageId(), string(),
-                         std::move(author_signature)};
+  } else if (m->sender_user_id.is_valid() || m->sender_dialog_id.is_valid()) {
+    auto author_signature = m->author_signature;
+    return MessageOrigin{m->sender_user_id, m->sender_dialog_id, MessageId(), string(), std::move(author_signature)};
   } else {
     LOG(ERROR) << "Don't know how to forward a non-channel post message without forward info and sender";
   }
   return {};
 }
 
-unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::create_message_forward_info(
-    DialogId from_dialog_id, DialogId to_dialog_id, const Message *forwarded_message) const {
-  auto content_type = forwarded_message->content->get_type();
+unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::create_message_forward_info(DialogId from_dialog_id,
+                                                                                             DialogId to_dialog_id,
+                                                                                             const Message *m) const {
+  auto content_type = m->content->get_type();
   if (content_type == MessageContentType::Game || content_type == MessageContentType::Audio ||
       content_type == MessageContentType::Story) {
     return nullptr;
   }
 
-  auto my_id = td_->contacts_manager_->get_my_id();
-  auto message_id = forwarded_message->message_id;
+  auto my_dialog_id = get_my_dialog_id();
 
   DialogId saved_from_dialog_id;
   MessageId saved_from_message_id;
-  if (to_dialog_id == DialogId(my_id)) {
+  if (to_dialog_id == my_dialog_id) {
     saved_from_dialog_id = from_dialog_id;
-    saved_from_message_id = message_id;
+    saved_from_message_id = m->message_id;
   }
 
-  if (forwarded_message->forward_info != nullptr) {
-    auto forward_info = make_unique<MessageForwardInfo>(*forwarded_message->forward_info);
+  if (m->forward_info != nullptr) {
+    auto forward_info = make_unique<MessageForwardInfo>(*m->forward_info);
     forward_info->from_dialog_id = saved_from_dialog_id;
     forward_info->from_message_id = saved_from_message_id;
     return forward_info;
   }
 
-  if (from_dialog_id != DialogId(my_id) || content_type == MessageContentType::Dice) {
-    auto origin = get_message_forward_origin(from_dialog_id, forwarded_message);
+  if (from_dialog_id != my_dialog_id || content_type == MessageContentType::Dice) {
+    auto origin = get_forwarded_message_origin(from_dialog_id, m);
     if (!origin.is_empty()) {
-      return td::make_unique<MessageForwardInfo>(std::move(origin), forwarded_message->date, saved_from_dialog_id,
+      return td::make_unique<MessageForwardInfo>(std::move(origin), m->date, saved_from_dialog_id,
                                                  saved_from_message_id, "", false);
     }
   }
