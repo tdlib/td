@@ -9132,7 +9132,7 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getTextEn
 }
 
 td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::parseTextEntities &request) {
-  if (!check_utf8(request.text_)) {
+  if (!clean_input_string(request.text_)) {
     return make_error(400, "Text must be encoded in UTF-8");
   }
   if (request.parse_mode_ == nullptr) {
@@ -9216,11 +9216,11 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::getMarkdownText
 }
 
 td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::searchStringsByPrefix &request) {
-  if (!check_utf8(request.query_)) {
+  if (!clean_input_string(request.query_)) {
     return make_error(400, "Strings must be encoded in UTF-8");
   }
   for (auto &str : request.strings_) {
-    if (!check_utf8(str)) {
+    if (!clean_input_string(str)) {
       return make_error(400, "Strings must be encoded in UTF-8");
     }
   }
