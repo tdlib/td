@@ -158,6 +158,26 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, const MessageInputReplyTo &input_
     is_quote_manual_ = true;
   }
   if (input_reply_to.dialog_id_ != DialogId()) {
+    auto info =
+        td->messages_manager_->get_forwarded_message_info({input_reply_to.dialog_id_, input_reply_to.message_id_});
+    if (info.origin_date_ == 0 || info.origin_.is_empty() || info.content_ == nullptr) {
+      *this = {};
+      return;
+    }
+    origin_date_ = info.origin_date_;
+    origin_ = std::move(info.origin_);
+    content_ = std::move(info.content_);
+    auto content_text = get_message_content_text_mutable(content_.get());
+    if (content_text != nullptr) {
+      if (!is_quote_manual_) {
+        quote_ = std::move(*content_text);
+        remove_unallowed_quote_entities(quote_);
+        truncate_formatted_text(
+            quote_, static_cast<size_t>(td->option_manager_->get_option_integer("message_reply_quote_length_max")));
+      }
+      *content_text = {};
+    }
+
     if (input_reply_to.dialog_id_.get_type() == DialogType::Channel) {
       dialog_id_ = input_reply_to.dialog_id_;
     } else {

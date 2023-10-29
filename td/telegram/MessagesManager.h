@@ -431,6 +431,13 @@ class MessagesManager final : public Actor {
 
   DialogId get_dialog_default_send_message_as_dialog_id(DialogId dialog_id) const;
 
+  struct ForwardedMessageInfo {
+    int32 origin_date_ = 0;
+    MessageOrigin origin_;
+    unique_ptr<MessageContent> content_;
+  };
+  ForwardedMessageInfo get_forwarded_message_info(MessageFullId message_full_id);
+
   MessageInputReplyTo get_message_input_reply_to(DialogId dialog_id, MessageId top_thread_message_id,
                                                  td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
                                                  bool for_draft);

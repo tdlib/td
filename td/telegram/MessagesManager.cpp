@@ -24574,6 +24574,20 @@ MessageInputReplyTo MessagesManager::get_message_input_reply_to(
   }
 }
 
+MessagesManager::ForwardedMessageInfo MessagesManager::get_forwarded_message_info(MessageFullId message_full_id) {
+  ForwardedMessageInfo result;
+  auto *m = get_message_force(message_full_id, "get_forwarded_message_info");
+  if (m == nullptr || m->message_id.is_scheduled()) {
+    return result;
+  }
+  auto dialog_id = message_full_id.get_dialog_id();
+  result.origin_date_ = m->forward_info != nullptr ? m->forward_info->date : m->date;
+  result.origin_ = get_forwarded_message_origin(dialog_id, m);
+  result.content_ =
+      dup_message_content(td_, dialog_id, m->content.get(), MessageContentDupType::Forward, MessageCopyOptions());
+  return result;
+}
+
 const MessageInputReplyTo *MessagesManager::get_message_input_reply_to(const Message *m) {
   CHECK(m != nullptr);
   CHECK(!m->message_id.is_server());
@@ -27763,6 +27777,7 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::forward_message(
 }
 
 MessageOrigin MessagesManager::get_forwarded_message_origin(DialogId dialog_id, const Message *m) const {
+  CHECK(m != nullptr);
   if (m->forward_info != nullptr) {
     return m->forward_info->origin;
   }
