@@ -27762,6 +27762,32 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::forward_message(
   return std::move(result->messages_[0]);
 }
 
+MessageOrigin MessagesManager::get_message_forward_origin(DialogId from_dialog_id,
+                                                          const Message *forwarded_message) const {
+  if (forwarded_message->forward_info != nullptr) {
+    return forwarded_message->forward_info->origin;
+  }
+
+  if (forwarded_message->is_channel_post) {
+    if (is_broadcast_channel(from_dialog_id)) {
+      auto author_signature = forwarded_message->sender_user_id.is_valid()
+                                  ? td_->contacts_manager_->get_user_title(forwarded_message->sender_user_id)
+                                  : forwarded_message->author_signature;
+      return MessageOrigin{UserId(), from_dialog_id, forwarded_message->message_id, std::move(author_signature),
+                           string()};
+    } else {
+      LOG(ERROR) << "Don't know how to forward a channel post not from a channel";
+    }
+  } else if (forwarded_message->sender_user_id.is_valid() || forwarded_message->sender_dialog_id.is_valid()) {
+    auto author_signature = forwarded_message->author_signature;
+    return MessageOrigin{forwarded_message->sender_user_id, forwarded_message->sender_dialog_id, MessageId(), string(),
+                         std::move(author_signature)};
+  } else {
+    LOG(ERROR) << "Don't know how to forward a non-channel post message without forward info and sender";
+  }
+  return {};
+}
+
 unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::create_message_forward_info(
     DialogId from_dialog_id, DialogId to_dialog_id, const Message *forwarded_message) const {
   auto content_type = forwarded_message->content->get_type();
@@ -27788,26 +27814,10 @@ unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::create_message_
   }
 
   if (from_dialog_id != DialogId(my_id) || content_type == MessageContentType::Dice) {
-    if (forwarded_message->is_channel_post) {
-      if (is_broadcast_channel(from_dialog_id)) {
-        auto author_signature = forwarded_message->sender_user_id.is_valid()
-                                    ? td_->contacts_manager_->get_user_title(forwarded_message->sender_user_id)
-                                    : forwarded_message->author_signature;
-        return td::make_unique<MessageForwardInfo>(
-            MessageOrigin{UserId(), from_dialog_id, forwarded_message->message_id, std::move(author_signature),
-                          string()},
-            forwarded_message->date, saved_from_dialog_id, saved_from_message_id, "", false);
-      } else {
-        LOG(ERROR) << "Don't know how to forward a channel post not from a channel";
-      }
-    } else if (forwarded_message->sender_user_id.is_valid() || forwarded_message->sender_dialog_id.is_valid()) {
-      auto author_signature = forwarded_message->author_signature;
-      return td::make_unique<MessageForwardInfo>(
-          MessageOrigin{forwarded_message->sender_user_id, forwarded_message->sender_dialog_id, MessageId(), string(),
-                        std::move(author_signature)},
-          forwarded_message->date, saved_from_dialog_id, saved_from_message_id, "", false);
-    } else {
-      LOG(ERROR) << "Don't know how to forward a non-channel post message without forward info and sender";
+    auto origin = get_message_forward_origin(from_dialog_id, forwarded_message);
+    if (!origin.is_empty()) {
+      return td::make_unique<MessageForwardInfo>(std::move(origin), forwarded_message->date, saved_from_dialog_id,
+                                                 saved_from_message_id, "", false);
     }
   }
   return nullptr;

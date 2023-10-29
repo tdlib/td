@@ -1882,6 +1882,8 @@ class MessagesManager final : public Actor {
                                                               bool in_game_share,
                                                               MessageCopyOptions &&copy_options) TD_WARN_UNUSED_RESULT;
 
+  MessageOrigin get_message_forward_origin(DialogId from_dialog_id, const Message *forwarded_message) const;
+
   unique_ptr<MessageForwardInfo> create_message_forward_info(DialogId from_dialog_id, DialogId to_dialog_id,
                                                              const Message *forwarded_message) const;
 
