@@ -3067,7 +3067,7 @@ Result<vector<MessageEntity>> parse_html(string &str) {
       if (tag_name != "a" && tag_name != "b" && tag_name != "strong" && tag_name != "i" && tag_name != "em" &&
           tag_name != "s" && tag_name != "strike" && tag_name != "del" && tag_name != "u" && tag_name != "ins" &&
           tag_name != "tg-spoiler" && tag_name != "tg-emoji" && tag_name != "span" && tag_name != "pre" &&
-          tag_name != "code") {
+          tag_name != "code" && tag_name != "blockquote") {
         return Status::Error(400, PSLICE()
                                       << "Unsupported start tag \"" << tag_name << "\" at byte offset " << begin_pos);
       }
@@ -3235,6 +3235,8 @@ Result<vector<MessageEntity>> parse_html(string &str) {
             entities.emplace_back(MessageEntity::Type::Code, entity_offset, entity_length,
                                   nested_entities.back().argument);
           }
+        } else if (tag_name == "blockquote") {
+          entities.emplace_back(MessageEntity::Type::BlockQuote, entity_offset, entity_length);
         } else {
           UNREACHABLE();
         }

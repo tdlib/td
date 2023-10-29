@@ -1283,6 +1283,7 @@ TEST(MessageEntities, parse_html) {
   check_parse_html("➡️ ➡️<s>➡️ ➡️</s>", "➡️ ➡️➡️ ➡️", {{td::MessageEntity::Type::Strikethrough, 5, 5}});
   check_parse_html("➡️ ➡️<strike>➡️ ➡️</strike>", "➡️ ➡️➡️ ➡️", {{td::MessageEntity::Type::Strikethrough, 5, 5}});
   check_parse_html("➡️ ➡️<del>➡️ ➡️</del>", "➡️ ➡️➡️ ➡️", {{td::MessageEntity::Type::Strikethrough, 5, 5}});
+  check_parse_html("➡️ ➡️<blockquote>➡️ ➡️</blockquote>", "➡️ ➡️➡️ ➡️", {{td::MessageEntity::Type::BlockQuote, 5, 5}});
   check_parse_html("➡️ ➡️<i>➡️ ➡️</i><b>➡️ ➡️</b>", "➡️ ➡️➡️ ➡️➡️ ➡️",
                    {{td::MessageEntity::Type::Italic, 5, 5}, {td::MessageEntity::Type::Bold, 10, 5}});
   check_parse_html("🏟 🏟<i>🏟 &lt🏟</i>", "🏟 🏟🏟 <🏟", {{td::MessageEntity::Type::Italic, 5, 6}});
@@ -1367,6 +1368,8 @@ TEST(MessageEntities, parse_html) {
   check_parse_html("🏟 🏟<b aba   =   caba><tg-emoji emoji-id=\"1\">🏟</tg-emoji>1</b>", "🏟 🏟🏟1",
                    {{td::MessageEntity::Type::Bold, 5, 3},
                     {td::MessageEntity::Type::CustomEmoji, 5, 2, td::CustomEmojiId(static_cast<td::int64>(1))}});
+  check_parse_html("<blockquote   cite=\"\">a&lt;<pre  >b;</></>", "a<b;",
+                   {{td::MessageEntity::Type::BlockQuote, 0, 4}, {td::MessageEntity::Type::Pre, 2, 2}});
 }
 
 static void check_parse_markdown(td::string text, const td::string &result,
