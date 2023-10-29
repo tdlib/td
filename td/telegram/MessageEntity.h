@@ -234,6 +234,8 @@ FormattedText get_message_text(const ContactsManager *contacts_manager, string m
                                bool skip_new_entities, bool skip_media_timestamps, int32 send_date, bool from_album,
                                const char *source);
 
+void truncate_formatted_text(FormattedText &text, size_t length);
+
 td_api::object_ptr<td_api::formattedText> extract_input_caption(
     tl_object_ptr<td_api::InputMessageContent> &input_message_content);
 

@@ -4319,6 +4319,25 @@ FormattedText get_message_text(const ContactsManager *contacts_manager, string m
   return FormattedText{std::move(message_text), std::move(entities)};
 }
 
+void truncate_formatted_text(FormattedText &text, size_t length) {
+  auto result_size = utf8_truncate(Slice(text.text), length).size();
+  if (result_size == text.text.size()) {
+    return;
+  }
+  text.text.resize(result_size);
+  auto utf16_length = narrow_cast<int32>(utf8_utf16_length(text.text));
+  for (auto &entity : text.entities) {
+    if (entity.offset + entity.length > utf16_length) {
+      if (entity.offset >= utf16_length || is_continuous_entity(entity.type)) {
+        entity.length = 0;
+        continue;
+      }
+      entity.length = utf16_length - entity.offset;  // truncate the entity
+    }
+  }
+  remove_empty_entities(text.entities);
+}
+
 td_api::object_ptr<td_api::formattedText> extract_input_caption(
     tl_object_ptr<td_api::InputMessageContent> &input_message_content) {
   switch (input_message_content->get_id()) {
