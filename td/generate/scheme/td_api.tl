@@ -1245,9 +1245,9 @@ messageReplyToStory story_sender_chat_id:int53 story_id:int32 = MessageReplyTo;
 //@class InputMessageReplyTo @description Contains information about the message or the story to be replied
 
 //@description Describes a message to be replied
-//@chat_id The identifier of the chat to which the message to be replied belongs; pass 0 if the replied message is in the same chat. A message can be replied in another chat only if message.can_be_forwarded
-//@message_id The identifier of the message to be replied in the same chat
-//@quote Manually chosen quote from the replied message; pass null if none; 0-getOption("message_reply_quote_length_max") characters.
+//@chat_id The identifier of the chat to which the message to be replied belongs; pass 0 if the replied message is in the same chat. Must be always 0 for replies in secret chats. A message can be replied in another chat only if message.can_be_forwarded
+//@message_id The identifier of the message to be replied in the same or the specified chat
+//@quote Manually chosen quote from the replied message; pass null if none; 0-getOption("message_reply_quote_length_max") characters. Must be always null for replies in secret chats.
 //-Only Bold, Italic, Underline, Strikethrough, Spoiler, and CustomEmoji entities are allowed to be kept and must be kept in the quote
 inputMessageReplyToMessage chat_id:int53 message_id:int53 quote:formattedText = InputMessageReplyTo;
 

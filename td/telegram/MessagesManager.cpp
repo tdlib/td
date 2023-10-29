@@ -24529,6 +24529,9 @@ MessageInputReplyTo MessagesManager::get_message_input_reply_to(
         if (reply_d == nullptr) {
           return {};
         }
+        if (d->dialog_id.get_type() == DialogType::SecretChat) {
+          return {};
+        }
       }
       message_id = get_persistent_message_id(reply_d, message_id);
       if (message_id == MessageId(ServerMessageId(1)) && reply_d->dialog_id.get_type() == DialogType::Channel) {
@@ -24537,7 +24540,7 @@ MessageInputReplyTo MessagesManager::get_message_input_reply_to(
       FormattedText quote;
       auto r_quote = get_formatted_text(td_, get_my_dialog_id(), std::move(reply_to_message->quote_),
                                         td_->auth_manager_->is_bot(), true, true, true);
-      if (r_quote.is_ok()) {
+      if (r_quote.is_ok() && d->dialog_id.get_type() != DialogType::SecretChat) {
         quote = r_quote.move_as_ok();
       }
       const Message *m = get_message_force(reply_d, message_id, "get_message_input_reply_to 2");
