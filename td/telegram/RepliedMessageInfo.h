@@ -30,7 +30,7 @@ class Td;
 
 class RepliedMessageInfo {
   MessageId message_id_;
-  DialogId dialog_id_;                  // DialogId() if reply is to a message in the same chat
+  DialogId dialog_id_;                  // for replies from another known chats
   int32 origin_date_ = 0;               // for replies in other chats
   MessageOrigin origin_;                // for replies in other chats
   unique_ptr<MessageContent> content_;  // for replies in other chats

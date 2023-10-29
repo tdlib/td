@@ -158,7 +158,11 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, const MessageInputReplyTo &input_
     is_quote_manual_ = true;
   }
   if (input_reply_to.dialog_id_ != DialogId()) {
-    dialog_id_ = input_reply_to.dialog_id_;
+    if (input_reply_to.dialog_id_.get_type() == DialogType::Channel) {
+      dialog_id_ = input_reply_to.dialog_id_;
+    } else {
+      message_id_ = MessageId();
+    }
   }
 }
 
