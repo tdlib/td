@@ -7,6 +7,7 @@
 #include "td/telegram/MessageInputReplyTo.h"
 
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/InputDialogId.h"
 #include "td/telegram/MessagesManager.h"
@@ -75,6 +76,12 @@ MessageInputReplyTo::MessageInputReplyTo(Td *td,
     default:
       UNREACHABLE();
   }
+}
+
+void MessageInputReplyTo::add_dependencies(Dependencies &dependencies) const {
+  dependencies.add_dialog_and_dependencies(dialog_id_);
+  add_formatted_text_dependencies(dependencies, &quote_);                    // just in case
+  dependencies.add_dialog_and_dependencies(story_full_id_.get_dialog_id());  // just in case
 }
 
 telegram_api::object_ptr<telegram_api::InputReplyTo> MessageInputReplyTo::get_input_reply_to(

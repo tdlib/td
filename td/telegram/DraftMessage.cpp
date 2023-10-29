@@ -162,6 +162,7 @@ bool DraftMessage::need_update_to(const DraftMessage &other, bool from_update) c
 }
 
 void DraftMessage::add_dependencies(Dependencies &dependencies) const {
+  message_input_reply_to_.add_dependencies(dependencies);
   input_message_text_.add_dependencies(dependencies);
 }
 
