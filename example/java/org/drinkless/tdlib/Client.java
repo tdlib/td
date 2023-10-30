@@ -90,7 +90,6 @@ public final class Client {
      * @param exceptionHandler Exception handler with onException method which will be called on
      *                         exception thrown from resultHandler. If it is null, then
      *                         defaultExceptionHandler will be called.
-     * @throws NullPointerException if query is null.
      */
     public void send(TdApi.Function query, ResultHandler resultHandler, ExceptionHandler exceptionHandler) {
         long queryId = currentQueryId.incrementAndGet();
@@ -107,7 +106,6 @@ public final class Client {
      * @param resultHandler Result handler with onResult method which will be called with result
      *                      of the query or with TdApi.Error as parameter. If it is null, then
      *                      defaultExceptionHandler will be called.
-     * @throws NullPointerException if query is null.
      */
     public void send(TdApi.Function query, ResultHandler resultHandler) {
         send(query, resultHandler, null);
@@ -119,17 +117,12 @@ public final class Client {
      * @param query Object representing a query to the TDLib.
      * @param <T> Automatically deduced return type of the query.
      * @return request result.
-     * @throws NullPointerException if query is null.
      * @throws ExecutionException if query execution fails.
      */
     public static <T extends TdApi.Object> T execute(TdApi.Function<T> query) throws ExecutionException {
         TdApi.Object object = nativeClientExecute(query);
         if (object instanceof TdApi.Error) {
             throw new ExecutionException((TdApi.Error) object);
-        }
-        if (object == null) {
-            // unreachable
-            throw new NullPointerException();
         }
         //noinspection unchecked
         return (T) object;
