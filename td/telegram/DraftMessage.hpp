@@ -10,6 +10,7 @@
 
 #include "td/telegram/InputMessageText.hpp"
 #include "td/telegram/MessageInputReplyTo.hpp"
+#include "td/telegram/Version.h"
 
 #include "td/utils/tl_helpers.h"
 
@@ -34,16 +35,19 @@ void DraftMessage::store(StorerT &storer) const {
 
 template <class ParserT>
 void DraftMessage::parse(ParserT &parser) {
-  bool has_legacy_reply_to_message_id = false;
-  bool has_message_input_reply_to = false;
-  bool has_input_message_text = false;
+  bool has_legacy_reply_to_message_id;
+  bool has_input_message_text;
+  bool has_message_input_reply_to;
   if (parser.version() >= static_cast<int32>(Version::SupportRepliesInOtherChats)) {
+    has_legacy_reply_to_message_id = false;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_input_message_text);
     PARSE_FLAG(has_message_input_reply_to);
     END_PARSE_FLAGS();
   } else {
     has_legacy_reply_to_message_id = true;
+    has_input_message_text = true;
+    has_message_input_reply_to = false;
   }
   td::parse(date_, parser);
   if (has_legacy_reply_to_message_id) {
