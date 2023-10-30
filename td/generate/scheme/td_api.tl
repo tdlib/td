@@ -1245,9 +1245,9 @@ messageReplyToStory story_sender_chat_id:int53 story_id:int32 = MessageReplyTo;
 //@class InputMessageReplyTo @description Contains information about the message or the story to be replied
 
 //@description Describes a message to be replied
-//@chat_id The identifier of the chat to which the message to be replied belongs; pass 0 if the replied message is in the same chat. Must be always 0 for replies in secret chats. A message can be replied in another chat only if message.can_be_forwarded
+//@chat_id The identifier of the chat to which the message to be replied belongs; pass 0 if the replied message is in the same chat. Must always be 0 for replies in secret chats. A message can be replied in another chat only if message.can_be_forwarded
 //@message_id The identifier of the message to be replied in the same or the specified chat
-//@quote Manually chosen quote from the replied message; pass null if none; 0-getOption("message_reply_quote_length_max") characters. Must be always null for replies in secret chats.
+//@quote Manually chosen quote from the replied message; pass null if none; 0-getOption("message_reply_quote_length_max") characters. Must always be null for replies in secret chats.
 //-Only Bold, Italic, Underline, Strikethrough, Spoiler, and CustomEmoji entities are allowed to be kept and must be kept in the quote
 inputMessageReplyToMessage chat_id:int53 message_id:int53 quote:formattedText = InputMessageReplyTo;
 
@@ -5328,7 +5328,7 @@ internalLinkTypeBotStartInGroup bot_username:string start_parameter:string admin
 internalLinkTypeChangePhoneNumber = InternalLinkType;
 
 //@description The link is a link to boost a Telegram chat. Call getChatBoostLinkInfo with the given URL to process the link.
-//-If the chat is found, then call getChatBoostStatus and canBoostChat to get the current boost status and check whether the chat can be boosted.
+//-If the chat is found, then call getChatBoostStatus and getAvailableChatBoostSlots to get the current boost status and check whether the chat can be boosted.
 //-If the user wants to boost the chat and the chat can be boosted, then call boostChat
 //@url URL to be passed to getChatBoostLinkInfo
 internalLinkTypeChatBoost url:string = InternalLinkType;
