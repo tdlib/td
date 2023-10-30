@@ -1221,7 +1221,7 @@ TEST(MessageEntities, is_visible_url) {
   td::string str = "a telegram.org telegran.org telegrao.org telegram.orc telegrap.org c";
   td::vector<td::MessageEntity> entities;
   entities.emplace_back(td::MessageEntity::Type::TextUrl, 0, 1, "telegrab.org");
-  entities.emplace_back(td::MessageEntity::Type::TextUrl, str.size() - 1, 1, "telegrax.org");
+  entities.emplace_back(td::MessageEntity::Type::TextUrl, static_cast<td::int32>(str.size()) - 1, 1, "telegrax.org");
   td::fix_formatted_text(str, entities, false, false, false, false, true).ensure();
   td::FormattedText text{std::move(str), std::move(entities)};
   ASSERT_EQ(td::get_first_url(text), "telegrab.org");

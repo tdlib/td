@@ -96,7 +96,7 @@ BENCH(ToStringIntBig, "to_string<int> big") {
 BENCH(TlToStringUpdateFile, "TL to_string updateFile") {
   auto x = td::td_api::make_object<td::td_api::updateFile>(get_file_object());
 
-  td::uint32 res = 0;
+  std::size_t res = 0;
   for (int i = 0; i < n; i++) {
     res += to_string(x).size();
   }
@@ -119,7 +119,7 @@ BENCH(TlToStringMessage, "TL to_string message") {
   x->content_ = td::td_api::make_object<td::td_api::messagePhoto>(
       std::move(photo), td::td_api::make_object<td::td_api::formattedText>(), false, false);
 
-  td::uint32 res = 0;
+  std::size_t res = 0;
   for (int i = 0; i < n; i++) {
     res += to_string(x).size();
   }
