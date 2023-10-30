@@ -61,7 +61,7 @@ static td_api::object_ptr<td_api::chatBoost> get_chat_boost_object(
     LOG(ERROR) << "Receive " << to_string(boost);
     return nullptr;
   }
-  return td_api::make_object<td_api::chatBoost>(max(boost->multiplier_, 1), std::move(source), boost->date_,
+  return td_api::make_object<td_api::chatBoost>(boost->id_, max(boost->multiplier_, 1), std::move(source), boost->date_,
                                                 max(boost->expires_, 0));
 }
 

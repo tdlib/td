@@ -3539,11 +3539,12 @@ prepaidPremiumGiveaway id:int64 user_count:int32 month_count:int32 payment_date:
 chatBoostStatus boost_url:string applied_slot_ids:vector<int32> level:int32 gift_code_boost_count:int32 boost_count:int32 current_level_boost_count:int32 next_level_boost_count:int32 premium_member_count:int32 premium_member_percentage:double prepaid_giveaways:vector<prepaidPremiumGiveaway> = ChatBoostStatus;
 
 //@description Describes a boost applied to a chat
+//@id Unique identifier of the boost
 //@count The number of identical boosts applied
 //@source Source of the boost
 //@start_date Point in time (Unix timestamp) when the chat was boosted
 //@expiration_date Point in time (Unix timestamp) when the boost will expire
-chatBoost count:int32 source:ChatBoostSource start_date:int32 expiration_date:int32 = ChatBoost;
+chatBoost id:string count:int32 source:ChatBoostSource start_date:int32 expiration_date:int32 = ChatBoost;
 
 //@description Contains a list of boosts applied to a chat @total_count Total number of boosts applied to the chat @boosts List of boosts @next_offset The offset for the next request. If empty, there are no more results
 foundChatBoosts total_count:int32 boosts:vector<chatBoost> next_offset:string = FoundChatBoosts;
