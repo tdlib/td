@@ -3787,6 +3787,8 @@ vector<ChannelId> get_message_content_min_channel_ids(const Td *td, const Messag
       const auto *content = static_cast<const MessageGiveaway *>(message_content);
       return content->giveaway_parameters.get_channel_ids();
     }
+    default:
+      break;
   }
   return {};
 }
