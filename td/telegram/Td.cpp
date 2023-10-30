@@ -9132,7 +9132,7 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getTextEn
 }
 
 td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::parseTextEntities &request) {
-  if (!clean_input_string(request.text_)) {
+  if (!check_utf8(request.text_)) {  // must not use clean_input_string, because \r may be used as a separator
     return make_error(400, "Text must be encoded in UTF-8");
   }
   if (request.parse_mode_ == nullptr) {
