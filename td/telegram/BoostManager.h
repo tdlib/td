@@ -43,6 +43,8 @@ class BoostManager final : public Actor {
   void get_dialog_boosts(DialogId dialog_id, bool only_gift_codes, const string &offset, int32 limit,
                          Promise<td_api::object_ptr<td_api::foundChatBoosts>> &&promise);
 
+  void on_update_dialog_boost(DialogId dialog_id, telegram_api::object_ptr<telegram_api::boost> &&boost);
+
  private:
   void tear_down() final;
 

@@ -6457,6 +6457,11 @@ updateChatMember chat_id:int53 actor_user_id:int53 date:int32 invite_link:chatIn
 //@invite_link The invite link, which was used to send join request; may be null
 updateNewChatJoinRequest chat_id:int53 request:chatJoinRequest user_chat_id:int53 invite_link:chatInviteLink = Update;
 
+//@description A chat boost has changed; for bots only
+//@chat_id Chat identifier
+//@boost New information about the boost
+updateChatBoost chat_id:int53 boost:chatBoost = Update;
+
 
 //@description Contains a list of updates @updates List of updates
 updates updates:vector<Update> = Updates;

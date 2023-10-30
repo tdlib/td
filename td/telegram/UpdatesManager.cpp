@@ -11,6 +11,7 @@
 #include "td/telegram/AttachMenuManager.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/AutosaveManager.h"
+#include "td/telegram/BoostManager.h"
 #include "td/telegram/CallbackQueriesManager.h"
 #include "td/telegram/CallManager.h"
 #include "td/telegram/ChannelId.h"
@@ -3029,6 +3030,12 @@ void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&up
       add_qts(qts).set_value(Unit());
       break;
     }
+    case telegram_api::updateBotChatBoost::ID: {
+      auto update = move_tl_object_as<telegram_api::updateBotChatBoost>(update_ptr);
+      td_->boost_manager_->on_update_dialog_boost(DialogId(update->peer_), std::move(update->boost_));
+      add_qts(qts).set_value(Unit());
+      break;
+    }
     default:
       UNREACHABLE();
       break;
@@ -3793,6 +3800,7 @@ bool UpdatesManager::is_qts_update(const telegram_api::Update *update) {
     case telegram_api::updateChatParticipant::ID:
     case telegram_api::updateChannelParticipant::ID:
     case telegram_api::updateBotChatInviteRequester::ID:
+    case telegram_api::updateBotChatBoost::ID:
       return true;
     default:
       return false;
@@ -3813,6 +3821,8 @@ int32 UpdatesManager::get_update_qts(const telegram_api::Update *update) {
       return static_cast<const telegram_api::updateChannelParticipant *>(update)->qts_;
     case telegram_api::updateBotChatInviteRequester::ID:
       return static_cast<const telegram_api::updateBotChatInviteRequester *>(update)->qts_;
+    case telegram_api::updateBotChatBoost::ID:
+      return static_cast<const telegram_api::updateBotChatBoost *>(update)->qts_;
     default:
       return 0;
   }
@@ -4286,6 +4296,11 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotChatInviteRe
   add_pending_qts_update(std::move(update), qts, std::move(promise));
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotChatBoost> update, Promise<Unit> &&promise) {
+  auto qts = update->qts_;
+  add_pending_qts_update(std::move(update), qts, std::move(promise));
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTheme> update, Promise<Unit> &&promise) {
   td_->theme_manager_->on_update_theme(std::move(update->theme_), std::move(promise));
 }
@@ -4365,9 +4380,5 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewAuthorizatio
 }
 
 // unsupported updates
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotChatBoost> update, Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
 
 }  // namespace td

@@ -7,6 +7,7 @@
 #include "td/telegram/BoostManager.h"
 
 #include "td/telegram/AccessRights.h"
+#include "td/telegram/AuthManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/LinkManager.h"
@@ -25,7 +26,7 @@
 namespace td {
 
 static td_api::object_ptr<td_api::chatBoost> get_chat_boost_object(
-    Td *td, telegram_api::object_ptr<telegram_api::boost> &&boost) {
+    Td *td, const telegram_api::object_ptr<telegram_api::boost> &boost) {
   auto source = [&]() -> td_api::object_ptr<td_api::ChatBoostSource> {
     if (boost->giveaway_) {
       UserId user_id(boost->user_id_);
@@ -269,7 +270,7 @@ class GetBoostsListQuery final : public Td::ResultHandler {
     auto total_count = result->count_;
     vector<td_api::object_ptr<td_api::chatBoost>> boosts;
     for (auto &boost : result->boosts_) {
-      auto chat_boost_object = get_chat_boost_object(td_, std::move(boost));
+      auto chat_boost_object = get_chat_boost_object(td_, boost);
       if (chat_boost_object == nullptr || chat_boost_object->expiration_date_ <= G()->unix_time()) {
         continue;
       }
@@ -386,6 +387,27 @@ void BoostManager::get_dialog_boosts(DialogId dialog_id, bool only_gift_codes, c
   }
 
   td_->create_handler<GetBoostsListQuery>(std::move(promise))->send(dialog_id, only_gift_codes, offset, limit);
+}
+
+void BoostManager::on_update_dialog_boost(DialogId dialog_id, telegram_api::object_ptr<telegram_api::boost> &&boost) {
+  if (!td_->auth_manager_->is_bot()) {
+    LOG(ERROR) << "Receive updateBotChatBoost by a non-bot";
+    return;
+  }
+  if (!dialog_id.is_valid() || !td_->messages_manager_->have_dialog_info_force(dialog_id, "on_update_dialog_boost")) {
+    LOG(ERROR) << "Receive updateBotChatBoost in " << dialog_id;
+    return;
+  }
+  auto chat_boost_object = get_chat_boost_object(td_, boost);
+  if (chat_boost_object == nullptr) {
+    LOG(ERROR) << "Receive wrong updateBotChatBoost in " << dialog_id << ": " << to_string(boost);
+    return;
+  }
+  td_->messages_manager_->force_create_dialog(dialog_id, "on_update_dialog_boost", true);
+  send_closure(
+      G()->td(), &Td::send_update,
+      td_api::make_object<td_api::updateChatBoost>(
+          td_->messages_manager_->get_chat_id_object(dialog_id, "updateChatBoost"), std::move(chat_boost_object)));
 }
 
 }  // namespace td
