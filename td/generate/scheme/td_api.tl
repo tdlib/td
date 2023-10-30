@@ -3508,9 +3508,9 @@ chatBoostSourceGiftCode user_id:int53 gift_code:string = ChatBoostSource;
 
 //@description The chat created a Telegram Premium giveaway
 //@user_id Identifier of a user that won in the giveaway; 0 if none
-//@gift_code The created Telegram Premium gift code used by the user; or an empty string if none
+//@gift_code The created Telegram Premium gift code if it was used by the user or can be claimed by the current user; an empty string otherwise
 //@giveaway_message_id Identifier of the corresponding giveaway message; can be an identifier of a deleted message
-//@is_unclaimed True, if the winner for the corresponding Telegram Premium subscription wasn't chosen
+//@is_unclaimed True, if the winner for the corresponding Telegram Premium subscription wasn't chosen, because there were not enough participants
 chatBoostSourceGiveaway user_id:int53 gift_code:string giveaway_message_id:int53 is_unclaimed:Bool = ChatBoostSource;
 
 //@description A user with Telegram Premium subscription or gifted Telegram Premium boosted the chat
