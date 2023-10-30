@@ -117,8 +117,10 @@ public final class Client {
      * Synchronously executes a TDLib request. Only a few marked accordingly requests can be executed synchronously.
      *
      * @param query Object representing a query to the TDLib.
+     * @param <T> Automatically deduced return type of the query.
      * @return request result.
      * @throws NullPointerException if query is null.
+     * @throws ExecutionError if query execution fails.
      */
     public static <T extends TdApi.Object> T execute(TdApi.Function<T> query) throws ExecutionError {
         TdApi.Object object = nativeClientExecute(query);
