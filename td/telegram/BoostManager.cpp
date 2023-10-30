@@ -24,6 +24,46 @@
 
 namespace td {
 
+static td_api::object_ptr<td_api::chatBoost> get_chat_boost_object(
+    Td *td, telegram_api::object_ptr<telegram_api::boost> &&boost) {
+  auto source = [&]() -> td_api::object_ptr<td_api::ChatBoostSource> {
+    if (boost->giveaway_) {
+      UserId user_id(boost->user_id_);
+      if (!user_id.is_valid()) {
+        user_id = UserId();
+      }
+      auto giveaway_message_id = MessageId(ServerMessageId(boost->giveaway_msg_id_));
+      if (!giveaway_message_id.is_valid()) {
+        giveaway_message_id = MessageId::min();
+      }
+      return td_api::make_object<td_api::chatBoostSourceGiveaway>(
+          td->contacts_manager_->get_user_id_object(user_id, "chatBoostSourceGiveaway"), boost->used_gift_slug_,
+          giveaway_message_id.get(), boost->unclaimed_);
+    }
+    if (boost->gift_) {
+      UserId user_id(boost->user_id_);
+      if (!user_id.is_valid()) {
+        return nullptr;
+      }
+      return td_api::make_object<td_api::chatBoostSourceGiftCode>(
+          td->contacts_manager_->get_user_id_object(user_id, "chatBoostSourceGiftCode"), boost->used_gift_slug_);
+    }
+
+    UserId user_id(boost->user_id_);
+    if (!user_id.is_valid()) {
+      return nullptr;
+    }
+    return td_api::make_object<td_api::chatBoostSourcePremium>(
+        td->contacts_manager_->get_user_id_object(user_id, "chatBoostSourcePremium"));
+  }();
+  if (source == nullptr) {
+    LOG(ERROR) << "Receive " << to_string(boost);
+    return nullptr;
+  }
+  return td_api::make_object<td_api::chatBoost>(max(boost->multiplier_, 1), std::move(source), boost->date_,
+                                                max(boost->expires_, 0));
+}
+
 static td_api::object_ptr<td_api::chatBoostSlots> get_chat_boost_slots_object(
     Td *td, telegram_api::object_ptr<telegram_api::premium_myBoosts> &&my_boosts) {
   td->contacts_manager_->on_get_users(std::move(my_boosts->users_), "GetMyBoostsQuery");
@@ -229,46 +269,11 @@ class GetBoostsListQuery final : public Td::ResultHandler {
     auto total_count = result->count_;
     vector<td_api::object_ptr<td_api::chatBoost>> boosts;
     for (auto &boost : result->boosts_) {
-      auto source = [&]() -> td_api::object_ptr<td_api::ChatBoostSource> {
-        if (boost->giveaway_) {
-          UserId user_id(boost->user_id_);
-          if (!user_id.is_valid()) {
-            user_id = UserId();
-          }
-          auto giveaway_message_id = MessageId(ServerMessageId(boost->giveaway_msg_id_));
-          if (!giveaway_message_id.is_valid()) {
-            giveaway_message_id = MessageId::min();
-          }
-          return td_api::make_object<td_api::chatBoostSourceGiveaway>(
-              td_->contacts_manager_->get_user_id_object(user_id, "chatBoostSourceGiveaway"), boost->used_gift_slug_,
-              giveaway_message_id.get(), boost->unclaimed_);
-        }
-        if (boost->gift_) {
-          UserId user_id(boost->user_id_);
-          if (!user_id.is_valid()) {
-            return nullptr;
-          }
-          return td_api::make_object<td_api::chatBoostSourceGiftCode>(
-              td_->contacts_manager_->get_user_id_object(user_id, "chatBoostSourceGiftCode"), boost->used_gift_slug_);
-        }
-
-        UserId user_id(boost->user_id_);
-        if (!user_id.is_valid()) {
-          return nullptr;
-        }
-        return td_api::make_object<td_api::chatBoostSourcePremium>(
-            td_->contacts_manager_->get_user_id_object(user_id, "chatBoostSourcePremium"));
-      }();
-      if (source == nullptr) {
-        LOG(ERROR) << "Receive " << to_string(boost);
+      auto chat_boost_object = get_chat_boost_object(td_, std::move(boost));
+      if (chat_boost_object == nullptr || chat_boost_object->expiration_date_ <= G()->unix_time()) {
         continue;
       }
-      auto expiration_date = boost->expires_;
-      if (expiration_date <= G()->unix_time()) {
-        continue;
-      }
-      boosts.push_back(td_api::make_object<td_api::chatBoost>(max(boost->multiplier_, 1), std::move(source),
-                                                              boost->date_, expiration_date));
+      boosts.push_back(std::move(chat_boost_object));
     }
     promise_.set_value(
         td_api::make_object<td_api::foundChatBoosts>(total_count, std::move(boosts), result->next_offset_));
