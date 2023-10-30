@@ -4366,4 +4366,8 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewAuthorizatio
 
 // unsupported updates
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotChatBoost> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
 }  // namespace td
