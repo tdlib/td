@@ -2010,8 +2010,9 @@ Result<vector<MessageEntity>> parse_markdown_v2(string &text) {
         , entity_begin_pos(entity_begin_pos) {
     }
   };
-  std::vector<EntityInfo> nested_entities;
+  vector<EntityInfo> nested_entities;
 
+  bool have_blockquote = false;
   for (size_t i = 0; i < text.size(); i++) {
     auto c = static_cast<unsigned char>(text[i]);
     if (c == '\\' && text[i + 1] > 0 && text[i + 1] <= 126) {
@@ -2021,7 +2022,7 @@ Result<vector<MessageEntity>> parse_markdown_v2(string &text) {
       continue;
     }
 
-    Slice reserved_characters("_*[]()~`>#+-=|{}.!");
+    Slice reserved_characters("_*[]()~`>#+-=|{}.!\n");
     if (!nested_entities.empty()) {
       switch (nested_entities.back().type) {
         case MessageEntity::Type::Code:
@@ -2045,6 +2046,9 @@ Result<vector<MessageEntity>> parse_markdown_v2(string &text) {
     bool is_end_of_an_entity = false;
     if (!nested_entities.empty()) {
       is_end_of_an_entity = [&] {
+        if (have_blockquote && c == '\n' && (i + 1 == text.size() || text[i + 1] != '>')) {
+          return true;
+        }
         switch (nested_entities.back().type) {
           case MessageEntity::Type::Bold:
             return c == '*';
@@ -2065,6 +2069,8 @@ Result<vector<MessageEntity>> parse_markdown_v2(string &text) {
             return c == '|' && text[i + 1] == '|';
           case MessageEntity::Type::CustomEmoji:
             return c == ']';
+          case MessageEntity::Type::BlockQuote:
+            return false;
           default:
             UNREACHABLE();
             return false;
@@ -2140,14 +2146,42 @@ Result<vector<MessageEntity>> parse_markdown_v2(string &text) {
                                                << "' is reserved and must be escaped with the preceding '\\'");
           }
           break;
+        case '\n':
+          utf16_offset += 1;
+          text[result_size++] = '\n';
+          type = MessageEntity::Type::Size;
+          if (i + 1 < text.size() && text[i + 1] == '>') {
+            i++;
+            if (!have_blockquote) {
+              type = MessageEntity::Type::BlockQuote;
+              have_blockquote = true;
+            }
+          }
+          break;
+        case '>':
+          if (i == 0) {
+            type = MessageEntity::Type::BlockQuote;
+            have_blockquote = true;
+          } else {
+            return Status::Error(400, PSLICE() << "Character '" << text[i]
+                                               << "' is reserved and must be escaped with the preceding '\\'");
+          }
+          break;
         default:
           return Status::Error(
               400, PSLICE() << "Character '" << text[i] << "' is reserved and must be escaped with the preceding '\\'");
+      }
+      if (type == MessageEntity::Type::Size) {
+        continue;
       }
       nested_entities.emplace_back(type, std::move(argument), utf16_offset, entity_byte_offset, result_size);
     } else {
       // end of an entity
       auto type = nested_entities.back().type;
+      if (c == '\n' && type != MessageEntity::Type::BlockQuote) {
+        return Status::Error(400, PSLICE() << "Can't find end of " << nested_entities.back().type
+                                           << " entity at byte offset " << nested_entities.back().entity_byte_offset);
+      }
       auto argument = std::move(nested_entities.back().argument);
       UserId user_id;
       CustomEmojiId custom_emoji_id;
@@ -2220,6 +2254,12 @@ Result<vector<MessageEntity>> parse_markdown_v2(string &text) {
           TRY_RESULT_ASSIGN(custom_emoji_id, LinkManager::get_link_custom_emoji_id(url));
           break;
         }
+        case MessageEntity::Type::BlockQuote:
+          CHECK(have_blockquote);
+          have_blockquote = false;
+          text[result_size++] = text[i];
+          utf16_offset += 1;
+          break;
         default:
           UNREACHABLE();
           return false;
@@ -2235,6 +2275,18 @@ Result<vector<MessageEntity>> parse_markdown_v2(string &text) {
         } else {
           entities.emplace_back(type, entity_offset, entity_length, std::move(argument));
         }
+      }
+      nested_entities.pop_back();
+    }
+  }
+  if (have_blockquote) {
+    CHECK(!nested_entities.empty());
+    if (nested_entities.back().type == MessageEntity::Type::BlockQuote) {
+      have_blockquote = false;
+      auto entity_offset = nested_entities.back().entity_offset;
+      auto entity_length = utf16_offset - entity_offset;
+      if (entity_length != 0) {
+        entities.emplace_back(MessageEntity::Type::BlockQuote, entity_offset, entity_length);
       }
       nested_entities.pop_back();
     }

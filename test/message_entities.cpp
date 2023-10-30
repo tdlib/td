@@ -1375,6 +1375,9 @@ TEST(MessageEntities, parse_html) {
 static void check_parse_markdown(td::string text, const td::string &result,
                                  const td::vector<td::MessageEntity> &entities) {
   auto r_entities = td::parse_markdown_v2(text);
+  if (r_entities.is_error()) {
+    LOG(ERROR) << r_entities.error();
+  }
   ASSERT_TRUE(r_entities.is_ok());
   ASSERT_EQ(entities, r_entities.ok());
   ASSERT_STREQ(result, text);
@@ -1389,7 +1392,7 @@ static void check_parse_markdown(td::string text, td::Slice error_message) {
 
 TEST(MessageEntities, parse_markdown) {
   td::Slice reserved_characters("]()>#+-=|{}.!");
-  td::Slice begin_characters("_*[~`");
+  td::Slice begin_characters("_*[~`>");
   for (char c = 1; c < 126; c++) {
     if (begin_characters.find(c) != td::Slice::npos) {
       continue;
@@ -1426,6 +1429,7 @@ TEST(MessageEntities, parse_markdown) {
   check_parse_markdown("🏟 🏟__", "Can't find end of Underline entity at byte offset 9");
   check_parse_markdown("🏟 🏟||test\\|", "Can't find end of Spoiler entity at byte offset 9");
   check_parse_markdown("🏟 🏟!", "Character '!' is reserved and must be escaped with the preceding '\\'");
+  check_parse_markdown("🏟 🏟>", "Character '>' is reserved and must be escaped with the preceding '\\'");
   check_parse_markdown("🏟 🏟![", "Can't find end of CustomEmoji entity at byte offset 9");
   check_parse_markdown("🏟 🏟![👍", "Can't find end of CustomEmoji entity at byte offset 9");
   check_parse_markdown("🏟 🏟![👍]", "Custom emoji entity must contain a tg://emoji URL");
@@ -1435,6 +1439,7 @@ TEST(MessageEntities, parse_markdown) {
   check_parse_markdown("🏟 🏟![👍](tg://emoji#test)", "Custom emoji URL must have an emoji identifier");
   check_parse_markdown("🏟 🏟![👍](tg://emoji?test=1#&id=25)", "Custom emoji URL must have an emoji identifier");
   check_parse_markdown("🏟 🏟![👍](tg://emoji?test=1231&id=025)", "Invalid custom emoji identifier specified");
+  check_parse_markdown(">*b\n>ld \n>bo\nld*\nasd\ndef", "Can't find end of Bold entity at byte offset 1");
 
   check_parse_markdown("", "", {});
   check_parse_markdown("\\\\", "\\", {});
@@ -1499,6 +1504,29 @@ TEST(MessageEntities, parse_markdown) {
                        {{0, 12, td::UserId(static_cast<td::int64>(123456))}});
   check_parse_markdown("🏟 🏟![👍](TG://EMoJI/?test=1231&id=25#id=32)a", "🏟 🏟👍a",
                        {{td::MessageEntity::Type::CustomEmoji, 5, 2, td::CustomEmojiId(static_cast<td::int64>(25))}});
+  check_parse_markdown("> \n> \n>", " \n \n", {{td::MessageEntity::Type::BlockQuote, 0, 4}});
+  check_parse_markdown("> \\>\n \\> \n>", " >\n > \n", {{td::MessageEntity::Type::BlockQuote, 0, 3}});
+  check_parse_markdown("abc\n> \n> \n>\ndef", "abc\n \n \n\ndef", {{td::MessageEntity::Type::BlockQuote, 4, 5}});
+  check_parse_markdown(">", "", {});
+  check_parse_markdown(">a", "a", {{td::MessageEntity::Type::BlockQuote, 0, 1}});
+  check_parse_markdown(
+      ">*bold _italic bold ~italic bold strikethrough ||italic bold strikethrough spoiler||~ __underline italic "
+      "bold___ bold*",
+      "bold italic bold italic bold strikethrough italic bold strikethrough spoiler underline italic bold bold",
+      {{td::MessageEntity::Type::BlockQuote, 0, 103},
+       {td::MessageEntity::Type::Bold, 0, 103},
+       {td::MessageEntity::Type::Italic, 5, 93},
+       {td::MessageEntity::Type::Strikethrough, 17, 59},
+       {td::MessageEntity::Type::Spoiler, 43, 33},
+       {td::MessageEntity::Type::Underline, 77, 21}});
+  check_parse_markdown(">*b\n>ld \n>bo\n>ld*\nasd\ndef", "b\nld \nbo\nld\nasd\ndef",
+                       {{td::MessageEntity::Type::BlockQuote, 0, 12}, {td::MessageEntity::Type::Bold, 0, 11}});
+  check_parse_markdown("*a\n>b\n>ld \n>bo\n>ld\nasd*\ndef", "a\nb\nld \nbo\nld\nasd\ndef",
+                       {{td::MessageEntity::Type::Bold, 0, 17}, {td::MessageEntity::Type::BlockQuote, 2, 12}});
+  check_parse_markdown(">`b\n>ld \n>bo\nld`\n>asd\ndef", "b\n>ld \n>bo\nld\nasd\ndef",
+                       {{td::MessageEntity::Type::BlockQuote, 0, 18}, {td::MessageEntity::Type::Code, 0, 13}});
+  check_parse_markdown("`>b\n>ld \n>bo\nld`\n>asd\ndef", ">b\n>ld \n>bo\nld\nasd\ndef",
+                       {{td::MessageEntity::Type::Code, 0, 14}, {td::MessageEntity::Type::BlockQuote, 15, 4}});
 }
 
 static void check_parse_markdown_v3(td::string text, td::vector<td::MessageEntity> entities,
