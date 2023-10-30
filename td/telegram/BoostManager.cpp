@@ -286,6 +286,54 @@ class GetBoostsListQuery final : public Td::ResultHandler {
   }
 };
 
+class GetUserBoostsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::foundChatBoosts>> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit GetUserBoostsQuery(Promise<td_api::object_ptr<td_api::foundChatBoosts>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, UserId user_id) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+    auto r_input_user = td_->contacts_manager_->get_input_user(user_id);
+    CHECK(r_input_user.is_ok());
+    send_query(G()->net_query_creator().create(
+        telegram_api::premium_getUserBoosts(std::move(input_peer), r_input_user.move_as_ok())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::premium_getUserBoosts>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for GetUserBoostsQuery: " << to_string(result);
+    td_->contacts_manager_->on_get_users(std::move(result->users_), "GetUserBoostsQuery");
+
+    auto total_count = result->count_;
+    vector<td_api::object_ptr<td_api::chatBoost>> boosts;
+    for (auto &boost : result->boosts_) {
+      auto chat_boost_object = get_chat_boost_object(td_, boost);
+      if (chat_boost_object == nullptr || chat_boost_object->expiration_date_ <= G()->unix_time()) {
+        continue;
+      }
+      boosts.push_back(std::move(chat_boost_object));
+    }
+    promise_.set_value(
+        td_api::make_object<td_api::foundChatBoosts>(total_count, std::move(boosts), result->next_offset_));
+  }
+
+  void on_error(Status status) final {
+    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetUserBoostsQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 BoostManager::BoostManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 
@@ -376,7 +424,7 @@ td_api::object_ptr<td_api::chatBoostLinkInfo> BoostManager::get_chat_boost_link_
 
 void BoostManager::get_dialog_boosts(DialogId dialog_id, bool only_gift_codes, const string &offset, int32 limit,
                                      Promise<td_api::object_ptr<td_api::foundChatBoosts>> &&promise) {
-  if (!td_->messages_manager_->have_dialog_force(dialog_id, "get_dialog_boost_status")) {
+  if (!td_->messages_manager_->have_dialog_force(dialog_id, "get_dialog_boosts")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
   if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
@@ -387,6 +435,21 @@ void BoostManager::get_dialog_boosts(DialogId dialog_id, bool only_gift_codes, c
   }
 
   td_->create_handler<GetBoostsListQuery>(std::move(promise))->send(dialog_id, only_gift_codes, offset, limit);
+}
+
+void BoostManager::get_user_dialog_boosts(DialogId dialog_id, UserId user_id,
+                                          Promise<td_api::object_ptr<td_api::foundChatBoosts>> &&promise) {
+  if (!td_->messages_manager_->have_dialog_force(dialog_id, "get_user_dialog_boosts")) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+  if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+    return promise.set_error(Status::Error(400, "Can't access the chat"));
+  }
+  if (!user_id.is_valid()) {
+    return promise.set_error(Status::Error(400, "User not found"));
+  }
+
+  td_->create_handler<GetUserBoostsQuery>(std::move(promise))->send(dialog_id, user_id);
 }
 
 void BoostManager::on_update_dialog_boost(DialogId dialog_id, telegram_api::object_ptr<telegram_api::boost> &&boost) {

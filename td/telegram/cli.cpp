@@ -4365,6 +4365,11 @@ class CliClient final : public Actor {
       string limit;
       get_args(args, chat_id, only_gift_codes, offset, limit);
       send_request(td_api::make_object<td_api::getChatBoosts>(chat_id, only_gift_codes, offset, as_limit(limit)));
+    } else if (op == "gucb") {
+      ChatId chat_id;
+      UserId user_id;
+      get_args(args, chat_id, user_id);
+      send_request(td_api::make_object<td_api::getUserChatBoosts>(chat_id, user_id));
     } else if (op == "gamb") {
       UserId user_id;
       get_args(args, user_id);

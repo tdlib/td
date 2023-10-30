@@ -6674,6 +6674,12 @@ void Td::on_request(uint64 id, td_api::getChatBoosts &request) {
                                     request.limit_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getUserChatBoosts &request) {
+  CHECK_IS_BOT();
+  CREATE_REQUEST_PROMISE();
+  boost_manager_->get_user_dialog_boosts(DialogId(request.chat_id_), UserId(request.user_id_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getAttachmentMenuBot &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

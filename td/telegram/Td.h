@@ -1060,6 +1060,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::getChatBoosts &request);
 
+  void on_request(uint64 id, const td_api::getUserChatBoosts &request);
+
   void on_request(uint64 id, const td_api::getAttachmentMenuBot &request);
 
   void on_request(uint64 id, const td_api::toggleBotIsAddedToAttachmentMenu &request);
