@@ -1227,8 +1227,8 @@ messageSendingStateFailed error:error can_retry:Bool need_another_sender:Bool re
 //@class MessageReplyTo @description Contains information about the message or the story a message is replying to
 
 //@description Describes a message replied by a given message
-//@chat_id The identifier of the chat to which the message belongs; may be 0 if the replied message is in another chat and isn't accessible
-//@message_id The identifier of the message; may be 0 if the replied message is in another chat and isn't accessible
+//@chat_id The identifier of the chat to which the message belongs; may be 0 if the replied message is in unknown chat
+//@message_id The identifier of the message; may be 0 if the replied message is in unknown chat
 //@quote Manually or automatically chosen quote from the replied message; may be null if none. Only Bold, Italic, Underline, Strikethrough, Spoiler, and CustomEmoji entities can be present in the quote
 //@is_quote_manual True, if the quote was manually chosen by the message sender
 //@origin Information about origin of the message if the message was replied from another chat; may be null for messages from the same chat
