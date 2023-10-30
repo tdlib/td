@@ -9,7 +9,9 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/td_api.h"
+#include "td/telegram/telegram_api.h"
 
+#include "td/utils/common.h"
 #include "td/utils/Status.h"
 
 namespace td {

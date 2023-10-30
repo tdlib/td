@@ -11,7 +11,6 @@
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/MessageFullId.h"
-#include "td/telegram/SecretInputMedia.h"
 #include "td/telegram/StoryFullId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -197,7 +196,7 @@ class WebPagesManager final : public Actor {
 
   FlatHashMap<StoryFullId, FlatHashSet<WebPageId, WebPageIdHash>, StoryFullIdHash> story_web_pages_;
 
-  FlatHashMap<string, std::pair<WebPageId, bool>> url_to_web_page_id_;  // url -> [WebPageId, from_database]
+  FlatHashMap<string, std::pair<WebPageId, bool>> url_to_web_page_id_;  // URL -> [WebPageId, from_database]
 
   FlatHashMap<string, FileSourceId> url_to_file_source_id_;
 

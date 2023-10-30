@@ -6,8 +6,6 @@
 //
 #include "td/telegram/MessageReplyHeader.h"
 
-#include "td/telegram/MessageFullId.h"
-#include "td/telegram/ScheduledServerMessageId.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StoryId.h"
 #include "td/telegram/UserId.h"

@@ -6,16 +6,15 @@
 //
 #include "td/telegram/RepliedMessageInfo.h"
 
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/MessageContent.h"
+#include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/ScheduledServerMessageId.h"
 #include "td/telegram/ServerMessageId.h"
-#include "td/telegram/StoryId.h"
 #include "td/telegram/Td.h"
 
 #include "td/utils/algorithm.h"

@@ -1471,9 +1471,9 @@ class WebPageBlockChatLink final : public WebPageBlock {
   template <class ParserT>
   void parse(ParserT &parser) {
     using ::td::parse;
-    bool has_title = true;
-    bool has_photo = true;
-    bool has_username = true;
+    bool has_title;
+    bool has_photo;
+    bool has_username;
     bool has_accent_color_id = false;
     if (parser.version() >= static_cast<int32>(Version::AddPageBlockChatLinkFlags)) {
       BEGIN_PARSE_FLAGS();
@@ -1482,6 +1482,10 @@ class WebPageBlockChatLink final : public WebPageBlock {
       PARSE_FLAG(has_username);
       PARSE_FLAG(has_accent_color_id);
       END_PARSE_FLAGS();
+    } else {
+      has_title = true;
+      has_photo = true;
+      has_username = true;
     }
     if (has_title) {
       parse(title, parser);

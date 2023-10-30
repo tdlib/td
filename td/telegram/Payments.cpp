@@ -31,7 +31,6 @@
 #include "td/utils/common.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
-#include "td/utils/Random.h"
 #include "td/utils/Status.h"
 
 namespace td {
@@ -74,7 +73,7 @@ Result<InputInvoiceInfo> get_input_invoice_info(Td *td, td_api::object_ptr<td_ap
     case td_api::inputInvoiceTelegram::ID: {
       auto invoice = td_api::move_object_as<td_api::inputInvoiceTelegram>(input_invoice);
       if (invoice->purpose_ == nullptr) {
-        return Status::Error(400, "Purpose must not be empty");
+        return Status::Error(400, "Purpose must be non-empty");
       }
       switch (invoice->purpose_->get_id()) {
         case td_api::telegramPaymentPurposePremiumGiftCodes::ID: {

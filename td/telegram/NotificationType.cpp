@@ -255,7 +255,7 @@ class NotificationTypePushMessage final : public NotificationType {
           return td_api::make_object<td_api::pushMessageContentGameScore>(title, score, is_pinned);
         }
         if (key == "MESSAGE_GIFTCODE") {
-          int32 month_count = to_integer<int32>(arg);
+          auto month_count = to_integer<int32>(arg);
           return td_api::make_object<td_api::pushMessageContentPremiumGiftCode>(month_count);
         }
         if (key == "MESSAGE_GIVEAWAY") {

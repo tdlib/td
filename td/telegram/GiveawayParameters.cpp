@@ -6,9 +6,11 @@
 //
 #include "td/telegram/GiveawayParameters.h"
 
+#include "td/telegram/AccessRights.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/Td.h"

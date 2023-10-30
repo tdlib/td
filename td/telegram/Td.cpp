@@ -6,6 +6,7 @@
 //
 #include "td/telegram/Td.h"
 
+#include "td/telegram/AccentColorId.h"
 #include "td/telegram/AccountManager.h"
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/Application.h"

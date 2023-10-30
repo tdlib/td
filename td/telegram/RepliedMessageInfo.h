@@ -8,6 +8,7 @@
 
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/files/FileId.h"
 #include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageFullId.h"
@@ -19,6 +20,7 @@
 #include "td/telegram/UserId.h"
 
 #include "td/utils/common.h"
+#include "td/utils/StringBuilder.h"
 
 #include <functional>
 

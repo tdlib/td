@@ -7,6 +7,7 @@
 #include "td/telegram/InputMessageText.h"
 
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/Dependencies.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/Td.h"

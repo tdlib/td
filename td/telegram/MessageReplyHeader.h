@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/DialogId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/RepliedMessageInfo.h"
 #include "td/telegram/StoryFullId.h"

@@ -6,8 +6,10 @@
 //
 #include "td/telegram/Premium.h"
 
+#include "td/telegram/AccessRights.h"
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/Application.h"
+#include "td/telegram/ChannelId.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/Document.h"
@@ -15,6 +17,7 @@
 #include "td/telegram/GiveawayParameters.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageEntity.h"
+#include "td/telegram/MessageId.h"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"

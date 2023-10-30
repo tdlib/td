@@ -14,6 +14,7 @@
 #include "td/telegram/CallbackQueriesManager.h"
 #include "td/telegram/CallManager.h"
 #include "td/telegram/ChannelId.h"
+#include "td/telegram/ChannelType.h"
 #include "td/telegram/ChatId.h"
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/ContactsManager.h"

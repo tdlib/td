@@ -19,7 +19,6 @@
 
 namespace td {
 
-class ContactsManager;
 class Dependencies;
 class Td;
 
