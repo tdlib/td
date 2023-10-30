@@ -925,7 +925,7 @@ class CliClient final : public Actor {
 
   td_api::object_ptr<td_api::InputMessageReplyTo> get_input_message_reply_to() const {
     if (reply_message_id_ != 0) {
-      return td_api::make_object<td_api::inputMessageReplyToMessage>(0, reply_message_id_, nullptr);
+      return td_api::make_object<td_api::inputMessageReplyToMessage>(reply_chat_id_, reply_message_id_, nullptr);
     }
     if (reply_user_id_ != 0 || reply_story_id_ != 0) {
       return td_api::make_object<td_api::inputMessageReplyToStory>(reply_user_id_, reply_story_id_);
@@ -4462,7 +4462,7 @@ class CliClient final : public Actor {
       get_args(args, chat_id, sender_id);
       send_request(td_api::make_object<td_api::setChatMessageSender>(chat_id, as_message_sender(sender_id)));
     } else if (op == "smr") {
-      get_args(args, reply_message_id_);
+      get_args(args, reply_message_id_, reply_chat_id_);
     } else if (op == "smrs") {
       get_args(args, reply_user_id_, reply_story_id_);
     } else if (op == "sm" || op == "sms" || op == "smf") {
@@ -6245,6 +6245,7 @@ class CliClient final : public Actor {
   int32 message_self_destruct_time_ = 0;
   int64 opened_chat_id_ = 0;
 
+  ChatId reply_chat_id_;
   MessageId reply_message_id_;
   UserId reply_user_id_;
   StoryId reply_story_id_;
