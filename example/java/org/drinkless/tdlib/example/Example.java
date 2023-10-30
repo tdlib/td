@@ -302,16 +302,15 @@ public final class Example {
         Client.setLogMessageHandler(0, new LogMessageHandler());
 
         // disable TDLib log and redirect fatal errors and plain log messages to a file
-        Client.execute(new TdApi.SetLogVerbosityLevel(0));
-        if (Client.execute(new TdApi.SetLogStream(new TdApi.LogStreamFile("tdlib.log", 1 << 27, false))) instanceof TdApi.Error) {
+        try {
+            Client.execute(new TdApi.SetLogVerbosityLevel(0));
+            Client.execute(new TdApi.SetLogStream(new TdApi.LogStreamFile("tdlib.log", 1 << 27, false)));
+        } catch (Client.ExecutionException error) {
             throw new IOError(new IOException("Write access to the current directory is required"));
         }
 
         // create client
         client = Client.create(new UpdateHandler(), null, null);
-
-        // test Client.execute
-        defaultHandler.onResult(Client.execute(new TdApi.GetTextEntities("@telegram /test_command https://telegram.org telegram.me @gif @test")));
 
         // main loop
         while (!needQuit) {
