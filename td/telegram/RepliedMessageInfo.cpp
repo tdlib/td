@@ -176,8 +176,11 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, const MessageInputReplyTo &input_
       }
       *content_text = {};
     }
-
-    if (input_reply_to.dialog_id_.get_type() == DialogType::Channel) {
+    auto origin_message_full_id = origin_.get_message_full_id();
+    if (origin_message_full_id.get_message_id().is_valid()) {
+      message_id_ = origin_message_full_id.get_message_id();
+      dialog_id_ = origin_message_full_id.get_dialog_id();
+    } else if (input_reply_to.dialog_id_.get_type() == DialogType::Channel) {
       dialog_id_ = input_reply_to.dialog_id_;
     } else {
       message_id_ = MessageId();
