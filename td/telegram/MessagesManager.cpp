@@ -30271,7 +30271,6 @@ void MessagesManager::send_update_chat_draft_message(const Dialog *d) {
 
   CHECK(d != nullptr);
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_draft_message";
-  on_dialog_updated(d->dialog_id, "send_update_chat_draft_message");
   if (d->draft_message == nullptr || !need_hide_dialog_draft_message(d->dialog_id)) {
     send_closure(G()->td(), &Td::send_update,
                  td_api::make_object<td_api::updateChatDraftMessage>(
@@ -31428,11 +31427,12 @@ void MessagesManager::on_update_dialog_draft_message(DialogId dialog_id, Message
 bool MessagesManager::update_dialog_draft_message(Dialog *d, unique_ptr<DraftMessage> &&draft_message, bool from_update,
                                                   bool need_update_dialog_pos) {
   CHECK(d != nullptr);
-  if (need_update_draft_message(d->draft_message, draft_message, from_update)) {
+  if (!td_->auth_manager_->is_bot() && need_update_draft_message(d->draft_message, draft_message, from_update)) {
     d->draft_message = std::move(draft_message);
     if (need_update_dialog_pos) {
       update_dialog_pos(d, "update_dialog_draft_message", false);
     }
+    on_dialog_updated(d->dialog_id, "update_dialog_draft_message");
     send_update_chat_draft_message(d);
     return true;
   }
