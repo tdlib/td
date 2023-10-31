@@ -30,13 +30,13 @@ class AccentColorId {
   template <class T, typename = std::enable_if_t<std::is_convertible<T, int32>::value>>
   AccentColorId(T accent_color_id) = delete;
 
-  explicit AccentColorId(UserId user_id) : id(user_id.get() % 7) {
+  explicit AccentColorId(UserId user_id) : id(static_cast<int32>(user_id.get() % 7)) {
   }
 
-  explicit AccentColorId(ChatId chat_id) : id(chat_id.get() % 7) {
+  explicit AccentColorId(ChatId chat_id) : id(static_cast<int32>(chat_id.get() % 7)) {
   }
 
-  explicit AccentColorId(ChannelId channel_id) : id(channel_id.get() % 7) {
+  explicit AccentColorId(ChannelId channel_id) : id(static_cast<int32>(channel_id.get() % 7)) {
   }
 
   bool is_valid() const {
