@@ -3595,9 +3595,15 @@ class MessagesManager final : public Actor {
   FlatHashMap<DialogId, FlatHashMap<int64, MessageId>, DialogIdHash>
       pending_secret_message_ids_;  // random_id -> message_id
 
-  FlatHashMap<DialogId, vector<DialogId>, DialogIdHash> pending_add_dialog_last_database_message_dependent_dialogs_;
-  FlatHashMap<DialogId, std::pair<int32, unique_ptr<Message>>, DialogIdHash>
-      pending_add_dialog_last_database_message_;  // dialog -> dependency counter + message
+  struct AddDialogData {
+    int32 dependent_dialog_count_ = 0;
+    unique_ptr<Message> last_message_;
+
+    AddDialogData() = default;
+    AddDialogData(int32 dependent_dialog_count, unique_ptr<Message> &&last_message);
+  };
+  FlatHashMap<DialogId, vector<DialogId>, DialogIdHash> pending_add_dialog_dependent_dialogs_;
+  FlatHashMap<DialogId, AddDialogData, DialogIdHash> pending_add_dialog_data_;
 
   FlatHashMap<DialogId, vector<DialogId>, DialogIdHash>
       pending_add_default_join_group_call_as_dialog_id_;  // dialog_id -> dependent dialogs

@@ -5908,6 +5908,10 @@ MessagesManager::~MessagesManager() {
       previous_repaired_read_inbox_max_message_id_, failed_to_load_dialogs_);
 }
 
+MessagesManager::AddDialogData::AddDialogData(int32 dependent_dialog_count, unique_ptr<Message> &&last_message)
+    : dependent_dialog_count_(dependent_dialog_count), last_message_(std::move(last_message)) {
+}
+
 void MessagesManager::on_channel_get_difference_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int) {
   if (G()->close_flag()) {
     return;
@@ -36817,19 +36821,20 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   }
 
   {
-    auto it = pending_add_dialog_last_database_message_dependent_dialogs_.find(dialog_id);
-    if (it != pending_add_dialog_last_database_message_dependent_dialogs_.end()) {
+    auto it = pending_add_dialog_dependent_dialogs_.find(dialog_id);
+    if (it != pending_add_dialog_dependent_dialogs_.end()) {
       auto pending_dialog_ids = std::move(it->second);
-      pending_add_dialog_last_database_message_dependent_dialogs_.erase(it);
+      pending_add_dialog_dependent_dialogs_.erase(it);
 
       for (auto &pending_dialog_id : pending_dialog_ids) {
-        auto &counter_message = pending_add_dialog_last_database_message_[pending_dialog_id];
-        CHECK(counter_message.first > 0);
-        counter_message.first--;
-        if (counter_message.first == 0) {
+        auto &add_dialog_data = pending_add_dialog_data_[pending_dialog_id];
+        CHECK(add_dialog_data.dependent_dialog_count_ > 0);
+        add_dialog_data.dependent_dialog_count_--;
+        if (add_dialog_data.dependent_dialog_count_ == 0) {
           LOG(INFO) << "Add postponed last database message in " << pending_dialog_id;
-          add_dialog_last_database_message(get_dialog(pending_dialog_id), std::move(counter_message.second));
-          pending_add_dialog_last_database_message_.erase(pending_dialog_id);
+          auto *pending_d = get_dialog(pending_dialog_id);
+          add_dialog_last_database_message(pending_d, std::move(add_dialog_data.last_message_));
+          pending_add_dialog_data_.erase(pending_dialog_id);
         }
       }
     }
@@ -36930,7 +36935,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
       if (other_dialog_id.is_valid() && !have_dialog(other_dialog_id)) {
         LOG(INFO) << "Postpone adding of last message in " << dialog_id << " because of cyclic dependency with "
                   << other_dialog_id;
-        pending_add_dialog_last_database_message_dependent_dialogs_[other_dialog_id].push_back(dialog_id);
+        pending_add_dialog_dependent_dialogs_[other_dialog_id].push_back(dialog_id);
         dependent_dialog_count++;
       }
     };
@@ -36946,7 +36951,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
       // can't add message immediately, because need to notify first about adding of dependent dialogs
       d->pending_last_message_date = last_message_date;
       d->pending_last_message_id = last_message_id;
-      pending_add_dialog_last_database_message_[dialog_id] = {dependent_dialog_count, std::move(last_database_message)};
+      pending_add_dialog_data_[dialog_id] = {dependent_dialog_count, std::move(last_database_message)};
     }
   } else if (last_database_message_id.is_valid()) {
     auto date = DialogDate(order, dialog_id).get_date();
