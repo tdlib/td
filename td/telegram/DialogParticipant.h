@@ -372,7 +372,7 @@ class DialogParticipantStatus {
     return (get_administrator_rights().flags_ & flags) == flags;
   }
 
-  RestrictedRights get_effective_restricted_rights(ChannelType channel_type) const;
+  RestrictedRights get_effective_restricted_rights() const;
 
   DialogParticipantStatus apply_restrictions(RestrictedRights default_restrictions, bool is_bot) const;
 

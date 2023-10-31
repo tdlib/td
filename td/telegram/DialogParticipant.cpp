@@ -509,12 +509,12 @@ DialogParticipantStatus::DialogParticipantStatus(bool is_member,
   *this = DialogParticipantStatus(Type::Restricted, flags, until_date, string());
 }
 
-RestrictedRights DialogParticipantStatus::get_effective_restricted_rights(ChannelType channel_type) const {
+RestrictedRights DialogParticipantStatus::get_effective_restricted_rights() const {
   return RestrictedRights(can_send_messages(), can_send_audios(), can_send_documents(), can_send_photos(),
                           can_send_videos(), can_send_video_notes(), can_send_voice_notes(), can_send_stickers(),
                           can_send_animations(), can_send_games(), can_use_inline_bots(), can_add_web_page_previews(),
                           can_send_polls(), can_change_info_and_settings(), can_invite_users(), can_pin_messages(),
-                          can_create_topics(), channel_type);
+                          can_create_topics(), ChannelType::Unknown);
 }
 
 tl_object_ptr<td_api::ChatMemberStatus> DialogParticipantStatus::get_chat_member_status_object() const {
