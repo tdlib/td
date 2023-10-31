@@ -35928,7 +35928,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
           return is_deleted_message(d, reply_message_full_id.get_message_id());
         };
         if (RepliedMessageInfo::need_reply_changed_warning(
-                old_message->replied_message_info, new_message->replied_message_info,
+                td_, old_message->replied_message_info, new_message->replied_message_info,
                 old_message->top_thread_message_id, message_id.is_yet_unsent() && !is_message_in_dialog,
                 is_reply_to_deleted_message)) {
           LOG(ERROR) << message_id << " in " << dialog_id << " has changed replied message from "

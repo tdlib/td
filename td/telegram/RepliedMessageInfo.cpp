@@ -193,8 +193,9 @@ bool RepliedMessageInfo::need_reget() const {
 }
 
 bool RepliedMessageInfo::need_reply_changed_warning(
-    const RepliedMessageInfo &old_info, const RepliedMessageInfo &new_info, MessageId old_top_thread_message_id,
-    bool is_yet_unsent, std::function<bool(const RepliedMessageInfo &info)> is_reply_to_deleted_message) {
+    const Td *td, const RepliedMessageInfo &old_info, const RepliedMessageInfo &new_info,
+    MessageId old_top_thread_message_id, bool is_yet_unsent,
+    std::function<bool(const RepliedMessageInfo &info)> is_reply_to_deleted_message) {
   if (old_info.origin_date_ != new_info.origin_date_ && old_info.origin_date_ != 0 && new_info.origin_date_ != 0) {
     // date of the original message can't change
     return true;
@@ -203,6 +204,17 @@ bool RepliedMessageInfo::need_reply_changed_warning(
       !new_info.origin_.has_sender_signature() && !old_info.origin_.is_empty() && !new_info.origin_.is_empty()) {
     // only signature can change in the message origin
     return true;
+  }
+  if (old_info.is_quote_manual_ != new_info.is_quote_manual_) {
+    // quote manual property can't change
+    return true;
+  }
+  if (old_info.quote_ != new_info.quote_) {
+    auto max_size = static_cast<size_t>(td->option_manager_->get_option_integer("message_reply_quote_length_max"));
+    if (old_info.quote_.text.size() < max_size && new_info.quote_.text.size() < max_size) {
+      // quote can't change, unless truncated differently
+      return true;
+    }
   }
   if (old_info.dialog_id_ != new_info.dialog_id_ && old_info.dialog_id_ != DialogId() &&
       new_info.dialog_id_ != DialogId()) {
