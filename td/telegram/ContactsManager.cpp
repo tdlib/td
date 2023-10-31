@@ -17791,10 +17791,6 @@ DialogParticipantStatus ContactsManager::get_channel_permissions(ChannelId chann
 
 DialogParticipantStatus ContactsManager::get_channel_permissions(const Channel *c) const {
   c->status.update_restrictions();
-  if (!c->is_megagroup) {
-    // there is no restrictions in broadcast channels
-    return c->status;
-  }
   return c->status.apply_restrictions(c->default_permissions, td_->auth_manager_->is_bot());
 }
 
