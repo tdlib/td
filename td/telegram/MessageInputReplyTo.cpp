@@ -149,7 +149,7 @@ td_api::object_ptr<td_api::InputMessageReplyTo> MessageInputReplyTo::get_input_m
     quote = get_formatted_text_object(quote_, true, -1);
   }
   return td_api::make_object<td_api::inputMessageReplyToMessage>(
-      message_id_.get(), td->messages_manager_->get_chat_id_object(dialog_id_, "inputMessageReplyToMessage"),
+      td->messages_manager_->get_chat_id_object(dialog_id_, "inputMessageReplyToMessage"), message_id_.get(),
       std::move(quote));
 }
 
