@@ -6,6 +6,7 @@
 //
 #include "td/telegram/RepliedMessageInfo.h"
 
+#include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageContentType.h"
@@ -188,6 +189,21 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, const MessageInputReplyTo &input_
   }
 }
 
+RepliedMessageInfo RepliedMessageInfo::clone(Td *td) const {
+  RepliedMessageInfo result;
+  result.message_id_ = message_id_;
+  result.dialog_id_ = dialog_id_;
+  result.origin_date_ = origin_date_;
+  result.origin_ = origin_;
+  if (content_ != nullptr) {
+    result.content_ = dup_message_content(td, DialogId(td->contacts_manager_->get_my_id()), content_.get(),
+                                          MessageContentDupType::Forward, MessageCopyOptions());
+  }
+  result.quote_ = quote_;
+  result.is_quote_manual_ = is_quote_manual_;
+  return result;
+}
+
 bool RepliedMessageInfo::need_reget() const {
   return content_ != nullptr && need_reget_message_content(content_.get());
 }
@@ -337,6 +353,7 @@ td_api::object_ptr<td_api::messageReplyToMessage> RepliedMessageInfo::get_messag
 }
 
 MessageInputReplyTo RepliedMessageInfo::get_input_reply_to() const {
+  CHECK(!is_external());
   if (message_id_.is_valid()) {
     return MessageInputReplyTo{message_id_, dialog_id_, FormattedText{quote_}};
   }

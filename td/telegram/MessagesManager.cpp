@@ -24584,8 +24584,8 @@ MessagesManager::ForwardedMessageInfo MessagesManager::get_forwarded_message_inf
   auto dialog_id = message_full_id.get_dialog_id();
   result.origin_date_ = m->forward_info != nullptr ? m->forward_info->date : m->date;
   result.origin_ = get_forwarded_message_origin(dialog_id, m);
-  result.content_ =
-      dup_message_content(td_, dialog_id, m->content.get(), MessageContentDupType::Forward, MessageCopyOptions());
+  result.content_ = dup_message_content(td_, get_my_dialog_id(), m->content.get(), MessageContentDupType::Forward,
+                                        MessageCopyOptions());
   return result;
 }
 
@@ -28173,6 +28173,9 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
     m->real_forward_from_dialog_id = from_dialog_id;
     m->real_forward_from_message_id = message_id;
     forwarded_message_id_to_new_message_id.emplace(message_id, m->message_id);
+    if (forwarded_message->replied_message_info.is_external()) {
+      m->replied_message_info = forwarded_message->replied_message_info.clone(td_);
+    }
 
     if (!message_send_options.only_preview) {
       if (!td_->auth_manager_->is_bot()) {
