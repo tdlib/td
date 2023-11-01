@@ -27779,25 +27779,25 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::forward_message(
 
 MessageOrigin MessagesManager::get_forwarded_message_origin(DialogId dialog_id, const Message *m) const {
   CHECK(m != nullptr);
+  MessageOrigin origin;
   if (m->forward_info != nullptr) {
-    return m->forward_info->origin;
-  }
-
-  if (m->is_channel_post) {
+    origin = m->forward_info->origin;
+  } else if (m->is_channel_post) {
     if (is_broadcast_channel(dialog_id)) {
       auto author_signature = m->sender_user_id.is_valid() ? td_->contacts_manager_->get_user_title(m->sender_user_id)
                                                            : m->author_signature;
-      return MessageOrigin{UserId(), dialog_id, m->message_id, std::move(author_signature), string()};
+      origin = MessageOrigin{UserId(), dialog_id, m->message_id, std::move(author_signature), string()};
     } else {
       LOG(ERROR) << "Don't know how to forward a channel post not from a channel";
     }
   } else if (m->sender_user_id.is_valid() || m->sender_dialog_id.is_valid()) {
     auto author_signature = m->author_signature;
-    return MessageOrigin{m->sender_user_id, m->sender_dialog_id, MessageId(), string(), std::move(author_signature)};
+    origin = MessageOrigin{m->sender_user_id, m->sender_dialog_id, MessageId(), string(), std::move(author_signature)};
   } else {
     LOG(ERROR) << "Don't know how to forward a non-channel post message without forward info and sender";
   }
-  return {};
+  origin.hide_sender_if_needed(td_);
+  return origin;
 }
 
 unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::create_message_forward_info(DialogId from_dialog_id,
@@ -27822,6 +27822,9 @@ unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::create_message_
     auto forward_info = make_unique<MessageForwardInfo>(*m->forward_info);
     forward_info->from_dialog_id = saved_from_dialog_id;
     forward_info->from_message_id = saved_from_message_id;
+    if (!forward_info->is_imported) {
+      forward_info->origin.hide_sender_if_needed(td_);
+    }
     return forward_info;
   }
 
@@ -28136,9 +28139,6 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
     auto content = std::move(forwarded_message_contents[j].content);
     auto forward_info =
         drop_author ? nullptr : create_message_forward_info(from_dialog_id, to_dialog_id, forwarded_message);
-    if (forward_info != nullptr && !forward_info->is_imported) {
-      forward_info->origin.hide_sender_if_needed(td_);
-    }
     MessageInputReplyTo input_reply_to;
     auto original_reply_to_message_id = forwarded_message->replied_message_info.get_same_chat_reply_to_message_id();
     if (original_reply_to_message_id.is_valid()) {
