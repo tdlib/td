@@ -5908,8 +5908,11 @@ MessagesManager::~MessagesManager() {
       previous_repaired_read_inbox_max_message_id_, failed_to_load_dialogs_);
 }
 
-MessagesManager::AddDialogData::AddDialogData(int32 dependent_dialog_count, unique_ptr<Message> &&last_message)
-    : dependent_dialog_count_(dependent_dialog_count), last_message_(std::move(last_message)) {
+MessagesManager::AddDialogData::AddDialogData(int32 dependent_dialog_count, unique_ptr<Message> &&last_message,
+                                              unique_ptr<DraftMessage> &&draft_message)
+    : dependent_dialog_count_(dependent_dialog_count)
+    , last_message_(std::move(last_message))
+    , draft_message_(std::move(draft_message)) {
 }
 
 void MessagesManager::on_channel_get_difference_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int) {
@@ -31398,6 +31401,10 @@ void MessagesManager::on_update_dialog_draft_message(DialogId dialog_id, Message
     LOG(ERROR) << "Receive update chat draft in invalid " << dialog_id;
     return;
   }
+  if (td_->auth_manager_->is_bot()) {
+    LOG(ERROR) << "Receive update chat draft in " << dialog_id;
+    return;
+  }
   auto draft = get_draft_message(td_, std::move(draft_message));
   auto d = get_dialog_force(dialog_id, "on_update_dialog_draft_message");
   if (d == nullptr) {
@@ -36605,6 +36612,8 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
     d->is_channel_difference_finished = true;
   }
 
+  auto draft_message = std::move(d->draft_message);
+  d->draft_message = nullptr;
   unique_ptr<Message> last_database_message;
   if (!d->messages.empty()) {
     d->messages.foreach([&](const MessageId &message_id, unique_ptr<Message> &message) {
@@ -36613,9 +36622,10 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
     });
     d->messages = {};
   }
-  MessageId last_database_message_id = d->last_database_message_id;
+  auto last_database_message_id = d->last_database_message_id;
   d->last_database_message_id = MessageId();
   if (td_->auth_manager_->is_bot()) {
+    draft_message = nullptr;
     last_database_message = nullptr;
     d->first_database_message_id = MessageId();
     last_database_message_id = MessageId();
@@ -36676,6 +36686,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
 
   if (!is_loaded_from_database) {
     CHECK(order == DEFAULT_ORDER);
+    CHECK(draft_message == nullptr);
     CHECK(last_database_message == nullptr);
   }
 
@@ -36696,15 +36707,17 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
 
   CHECK(d->messages.empty());
 
-  fix_new_dialog(d, std::move(last_database_message), last_database_message_id, order, last_clear_history_date,
-                 last_clear_history_message_id, default_join_group_call_as_dialog_id, default_send_message_as_dialog_id,
-                 need_drop_default_send_message_as_dialog_id, is_loaded_from_database, source);
+  fix_new_dialog(d, std::move(draft_message), std::move(last_database_message), last_database_message_id, order,
+                 last_clear_history_date, last_clear_history_message_id, default_join_group_call_as_dialog_id,
+                 default_send_message_as_dialog_id, need_drop_default_send_message_as_dialog_id,
+                 is_loaded_from_database, source);
 
   return d;
 }
 
-void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_database_message,
-                                     MessageId last_database_message_id, int64 order, int32 last_clear_history_date,
+void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<DraftMessage> &&draft_message,
+                                     unique_ptr<Message> &&last_database_message, MessageId last_database_message_id,
+                                     int64 order, int32 last_clear_history_date,
                                      MessageId last_clear_history_message_id,
                                      DialogId default_join_group_call_as_dialog_id,
                                      DialogId default_send_message_as_dialog_id,
@@ -36826,8 +36839,8 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
         add_dialog_data.dependent_dialog_count_--;
         if (add_dialog_data.dependent_dialog_count_ == 0) {
           LOG(INFO) << "Add postponed last database message in " << pending_dialog_id;
-          auto *pending_d = get_dialog(pending_dialog_id);
-          add_dialog_last_database_message(pending_d, std::move(add_dialog_data.last_message_));
+          add_pending_dialog_data(get_dialog(pending_dialog_id), std::move(add_dialog_data.last_message_),
+                                  std::move(add_dialog_data.draft_message_));
           pending_add_dialog_data_.erase(pending_dialog_id);
         }
       }
@@ -36920,30 +36933,48 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   d->debug_last_database_message_id = d->last_database_message_id;
   d->debug_last_new_message_id = d->last_new_message_id;
 
-  if (last_database_message != nullptr) {
+  if (last_database_message != nullptr || draft_message != nullptr) {
     Dependencies dependencies;
-    add_message_dependencies(dependencies, last_database_message.get());
+    if (last_database_message != nullptr) {
+      add_message_dependencies(dependencies, last_database_message.get());
+    }
+    if (draft_message != nullptr) {
+      draft_message->add_dependencies(dependencies);
+    }
 
     int32 dependent_dialog_count = 0;
     for (const auto &other_dialog_id : dependencies.get_dialog_ids()) {
       if (other_dialog_id.is_valid() && !have_dialog(other_dialog_id)) {
-        LOG(INFO) << "Postpone adding of last message in " << dialog_id << " because of cyclic dependency with "
+        LOG(INFO) << "Postpone adding of data in " << dialog_id << " because of cyclic dependency with "
                   << other_dialog_id;
         pending_add_dialog_dependent_dialogs_[other_dialog_id].push_back(dialog_id);
         dependent_dialog_count++;
       }
     };
 
-    auto pending_order = get_dialog_order(last_message_id, last_database_message->date);
+    auto pending_order = DEFAULT_ORDER;
+    if (last_database_message != nullptr) {
+      auto last_message_order = get_dialog_order(last_message_id, last_database_message->date);
+      if (last_message_order > pending_order) {
+        pending_order = last_message_order;
+      }
+    }
+    if (draft_message != nullptr && !need_hide_dialog_draft_message(dialog_id)) {
+      int64 draft_order = get_dialog_order(MessageId(), draft_message->get_date());
+      if (draft_order > pending_order) {
+        pending_order = draft_order;
+      }
+    }
     if (dependent_dialog_count == 0) {
-      if (!add_dialog_last_database_message(d, std::move(last_database_message))) {
+      if (!add_pending_dialog_data(d, std::move(last_database_message), std::move(draft_message))) {
         // failed to add last message; keep the current position and get history from the database
         d->pending_order = pending_order;
       }
     } else {
-      // can't add message immediately, because need to notify first about adding of dependent dialogs
+      // can't add data immediately, because need to notify first about adding of dependent dialogs
       d->pending_order = pending_order;
-      pending_add_dialog_data_[dialog_id] = {dependent_dialog_count, std::move(last_database_message)};
+      pending_add_dialog_data_[dialog_id] = {dependent_dialog_count, std::move(last_database_message),
+                                             std::move(draft_message)};
     }
   } else if (last_database_message_id.is_valid()) {
     auto date = DialogDate(order, dialog_id).get_date();
@@ -37094,47 +37125,57 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   }
 }
 
-bool MessagesManager::add_dialog_last_database_message(Dialog *d, unique_ptr<Message> &&last_database_message) {
+bool MessagesManager::add_pending_dialog_data(Dialog *d, unique_ptr<Message> &&last_database_message,
+                                              unique_ptr<DraftMessage> &&draft_message) {
   CHECK(d != nullptr);
-  CHECK(last_database_message != nullptr);
+  CHECK(last_database_message != nullptr || draft_message != nullptr);
   CHECK(!td_->auth_manager_->is_bot());
 
-  auto dialog_id = d->dialog_id;
-  auto message_id = last_database_message->message_id;
-  CHECK(message_id.is_valid());
-  LOG_CHECK(d->last_database_message_id == message_id)
-      << message_id << " " << d->last_database_message_id << " " << d->debug_set_dialog_last_database_message_id;
-
   bool need_update_dialog_pos = false;
-  const Message *m = nullptr;
-  if (have_input_peer(dialog_id, AccessRights::Read)) {
-    bool need_update = false;
-    m = add_message_to_dialog(d, std::move(last_database_message), true, false, &need_update, &need_update_dialog_pos,
-                              "add_dialog_last_database_message 1");
-    if (need_update_dialog_pos) {
-      LOG(ERROR) << "Need to update pos in " << dialog_id;
+  bool was_added_last_message = false;
+  if (last_database_message != nullptr) {
+    auto dialog_id = d->dialog_id;
+    auto message_id = last_database_message->message_id;
+    CHECK(message_id.is_valid());
+    LOG_CHECK(d->last_database_message_id == message_id)
+        << message_id << " " << d->last_database_message_id << " " << d->debug_set_dialog_last_database_message_id;
+
+    const Message *m = nullptr;
+    if (have_input_peer(dialog_id, AccessRights::Read)) {
+      bool need_update = false;
+      m = add_message_to_dialog(d, std::move(last_database_message), true, false, &need_update, &need_update_dialog_pos,
+                                "add_pending_dialog_data 1");
+      if (need_update_dialog_pos) {
+        LOG(ERROR) << "Need to update pos in " << dialog_id;
+      }
+    }
+    if (m != nullptr) {
+      set_dialog_last_message_id(d, m->message_id, "add_pending_dialog_data 2", m);
+      send_update_chat_last_message(d, "add_pending_dialog_data 3");
+      was_added_last_message = true;
+    } else {
+      on_dialog_updated(dialog_id, "add_pending_dialog_data 4");  // resave without last database message
+
+      if (!td_->auth_manager_->is_bot() && dialog_id != being_added_dialog_id_ &&
+          dialog_id != being_added_by_new_message_dialog_id_ && (d->order != DEFAULT_ORDER || is_dialog_sponsored(d))) {
+        load_last_dialog_message(d, "add_pending_dialog_data 5");
+      }
     }
   }
-  if (m != nullptr) {
-    set_dialog_last_message_id(d, m->message_id, "add_dialog_last_database_message 2", m);
-    send_update_chat_last_message(d, "add_dialog_last_database_message 3");
-  } else {
-    if (d->pending_order != DEFAULT_ORDER) {
-      d->pending_order = DEFAULT_ORDER;
-      need_update_dialog_pos = true;
-    }
-    on_dialog_updated(dialog_id, "add_dialog_last_database_message 4");  // resave without last database message
-
-    if (!td_->auth_manager_->is_bot() && dialog_id != being_added_dialog_id_ &&
-        dialog_id != being_added_by_new_message_dialog_id_ && (d->order != DEFAULT_ORDER || is_dialog_sponsored(d))) {
-      load_last_dialog_message(d, "add_dialog_last_database_message 5");
-    }
+  if (draft_message != nullptr) {
+    d->draft_message = std::move(draft_message);
+    need_update_dialog_pos = true;
+    send_update_chat_draft_message(d);
+  }
+  if (d->pending_order != DEFAULT_ORDER) {
+    d->pending_order = DEFAULT_ORDER;
+    need_update_dialog_pos = true;
   }
 
   if (need_update_dialog_pos) {
-    update_dialog_pos(d, "add_dialog_last_database_message 6");
+    update_dialog_pos(d, "add_pending_dialog_data 6");
   }
-  return m != nullptr;
+  return was_added_last_message;
 }
 
 void MessagesManager::update_dialogs_hints(const Dialog *d) {
