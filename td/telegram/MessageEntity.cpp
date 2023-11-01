@@ -1825,7 +1825,8 @@ Slice get_first_url(const FormattedText &text) {
         break;
       case MessageEntity::Type::TextUrl: {
         Slice url = entity.argument;
-        if (begins_with(url, "ton:") || begins_with(url, "tg:") || begins_with(url, "ftp:")) {
+        string scheme = to_lower(url.substr(0, 4));
+        if (scheme == "ton:" || begins_with(scheme, "tg:") || scheme == "ftp:") {
           continue;
         }
         return url;
