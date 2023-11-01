@@ -133,9 +133,11 @@ class MessageText final : public MessageContent {
       , force_large_media(force_large_media)
       , skip_web_page_confirmation(skip_web_page_confirmation)
       , web_page_url(std::move(web_page_url)) {
-    if (web_page_url.empty()) {
-      force_small_media = false;
-      force_large_media = false;
+    if (this->web_page_url.empty()) {
+      this->force_small_media = false;
+      this->force_large_media = false;
+    } else if (this->force_large_media) {
+      this->force_small_media = false;
     }
   }
 
