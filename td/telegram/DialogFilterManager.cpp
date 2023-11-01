@@ -1013,6 +1013,10 @@ void DialogFilterManager::on_load_dialog_filter_dialogs(DialogFilterId dialog_fi
   promise.set_value(Unit());
 }
 
+void DialogFilterManager::load_input_dialog(const InputDialogId &input_dialog_id, Promise<Unit> &&promise) {
+  td_->create_handler<GetDialogsQuery>(std::move(promise))->send({input_dialog_id});
+}
+
 void DialogFilterManager::delete_dialogs_from_filter(const DialogFilter *dialog_filter, vector<DialogId> &&dialog_ids,
                                                      const char *source) {
   if (dialog_ids.empty()) {

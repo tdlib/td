@@ -31401,20 +31401,25 @@ void MessagesManager::fail_edit_message_media(MessageFullId message_full_id, Sta
 }
 
 void MessagesManager::on_update_dialog_draft_message(DialogId dialog_id, MessageId top_thread_message_id,
-                                                     tl_object_ptr<telegram_api::DraftMessage> &&draft_message) {
+                                                     tl_object_ptr<telegram_api::DraftMessage> &&draft_message,
+                                                     bool force) {
+  if (G()->close_flag()) {
+    return;
+  }
   if (!dialog_id.is_valid()) {
-    LOG(ERROR) << "Receive update chat draft in invalid " << dialog_id;
+    LOG(ERROR) << "Receive update of draft message in invalid " << dialog_id;
     return;
   }
   if (td_->auth_manager_->is_bot()) {
-    LOG(ERROR) << "Receive update chat draft in " << dialog_id;
+    if (draft_message != nullptr) {
+      LOG(ERROR) << "Receive update of draft message in " << dialog_id;
+    }
     return;
   }
-  auto draft = get_draft_message(td_, std::move(draft_message));
   auto d = get_dialog_force(dialog_id, "on_update_dialog_draft_message");
   if (d == nullptr) {
     LOG(INFO) << "Ignore update chat draft in unknown " << dialog_id;
-    if (draft != nullptr) {
+    if (draft_message != nullptr && draft_message->get_id() != telegram_api::draftMessageEmpty::ID) {
       if (!have_input_peer(dialog_id, AccessRights::Read)) {
         LOG(ERROR) << "Have no read access to " << dialog_id << " to repair chat draft message";
       } else {
@@ -31427,7 +31432,40 @@ void MessagesManager::on_update_dialog_draft_message(DialogId dialog_id, Message
     // TODO update thread message draft
     return;
   }
-  update_dialog_draft_message(d, std::move(draft), true, true);
+
+  if (!force && draft_message != nullptr && draft_message->get_id() == telegram_api::draftMessage::ID) {
+    auto *input_reply_to = static_cast<const telegram_api::draftMessage *>(draft_message.get())->reply_to_.get();
+    if (input_reply_to != nullptr) {
+      InputDialogId input_dialog_id;
+      switch (input_reply_to->get_id()) {
+        case telegram_api::inputReplyToStory::ID: {
+          auto reply_to = static_cast<const telegram_api::inputReplyToStory *>(input_reply_to);
+          input_dialog_id = InputDialogId(reply_to->user_id_);
+          break;
+        }
+        case telegram_api::inputReplyToMessage::ID: {
+          auto reply_to = static_cast<const telegram_api::inputReplyToMessage *>(input_reply_to);
+          if (reply_to->reply_to_peer_id_ != nullptr) {
+            input_dialog_id = InputDialogId(reply_to->reply_to_peer_id_);
+          }
+          break;
+        }
+        default:
+          UNREACHABLE();
+      }
+      auto reply_in_dialog_id = input_dialog_id.get_dialog_id();
+      if (reply_in_dialog_id.is_valid() && !have_dialog_force(reply_in_dialog_id, "on_update_dialog_draft_message")) {
+        td_->dialog_filter_manager_->load_input_dialog(
+            input_dialog_id, [actor_id = actor_id(this), dialog_id, top_thread_message_id,
+                              draft_message = std::move(draft_message)](Unit) mutable {
+              send_closure(actor_id, &MessagesManager::on_update_dialog_draft_message, dialog_id, top_thread_message_id,
+                           std::move(draft_message), true);
+            });
+        return;
+      }
+    }
+  }
+  update_dialog_draft_message(d, get_draft_message(td_, std::move(draft_message)), true, true);
 }
 
 bool MessagesManager::update_dialog_draft_message(Dialog *d, unique_ptr<DraftMessage> &&draft_message, bool from_update,
