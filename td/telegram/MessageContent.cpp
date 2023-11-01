@@ -6327,6 +6327,9 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       if (web_page != nullptr && !web_page->skip_confirmation_ && is_visible_url(m->text, web_page->url_)) {
         web_page->skip_confirmation_ = true;
       }
+      if (web_page == nullptr && get_first_url(m->text).empty()) {
+        disable_web_page_preview = false;
+      }
       td_api::object_ptr<td_api::linkPreviewOptions> link_preview_options;
       if (disable_web_page_preview || !m->web_page_url.empty() || m->force_small_media || m->force_large_media ||
           invert_media) {

@@ -1854,6 +1854,10 @@ Slice get_first_url(const FormattedText &text) {
 }
 
 bool is_visible_url(const FormattedText &text, const string &url) {
+  if (url.empty()) {
+    return false;
+  }
+
   auto url_size = static_cast<int32>(utf8_utf16_length(url));
   auto cur_offset = 0;
   Slice left_text = text.text;
