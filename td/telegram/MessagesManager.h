@@ -1344,13 +1344,12 @@ class MessagesManager final : public Actor {
     MessageId
         max_unavailable_message_id;  // maximum unavailable message identifier for dialogs with cleared/unavailable history
 
-    int32 last_clear_history_date = 0;
-    MessageId last_clear_history_message_id;
     int64 order = DEFAULT_ORDER;
+    int64 pending_order = DEFAULT_ORDER;
     MessageId deleted_last_message_id;
     int32 delete_last_message_date = 0;
-    int32 pending_last_message_date = 0;
-    MessageId pending_last_message_id;
+    int32 last_clear_history_date = 0;
+    MessageId last_clear_history_message_id;
     MessageId last_edited_message_id;
     uint32 scheduled_messages_sync_generation = 0;
     uint32 last_repair_scheduled_messages_generation = 0;
