@@ -6048,9 +6048,9 @@ updateChatBackgroundCustomEmoji chat_id:int53 background_custom_emoji_id:int64 =
 //@description Chat permissions was changed @chat_id Chat identifier @permissions The new chat permissions
 updateChatPermissions chat_id:int53 permissions:chatPermissions = Update;
 
-//@description The last message of a chat was changed. If last_message is null, then the last message in the chat became unknown. Some new unknown messages might be added to the chat in this case
+//@description The last message of a chat was changed
 //@chat_id Chat identifier
-//@last_message The new last message in the chat; may be null
+//@last_message The new last message in the chat; may be null if the last message became unknown. While the last message is unknown, new messages can be added to the chat without corresponding updateNewMessage update
 //@positions The new chat positions in the chat lists
 updateChatLastMessage chat_id:int53 last_message:message positions:vector<chatPosition> = Update;
 
