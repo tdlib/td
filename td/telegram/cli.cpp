@@ -4127,8 +4127,10 @@ class CliClient final : public Actor {
       auto reply_to = get_input_message_reply_to();
       if (reply_to != nullptr || !message.empty()) {
         vector<td_api::object_ptr<td_api::textEntity>> entities;
-        entities.push_back(
-            td_api::make_object<td_api::textEntity>(0, 1, td_api::make_object<td_api::textEntityTypePre>()));
+        if (!message.empty()) {
+          entities.push_back(
+              td_api::make_object<td_api::textEntity>(0, 1, td_api::make_object<td_api::textEntityTypePre>()));
+        }
         draft_message = td_api::make_object<td_api::draftMessage>(
             std::move(reply_to), 0,
             td_api::make_object<td_api::inputMessageText>(as_formatted_text(message, std::move(entities)), nullptr,
