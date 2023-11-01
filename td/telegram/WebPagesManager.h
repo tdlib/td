@@ -46,6 +46,12 @@ class WebPagesManager final : public Actor {
   WebPagesManager &operator=(WebPagesManager &&) = delete;
   ~WebPagesManager() final;
 
+  struct GetWebPagePreviewOptions {
+    string first_url_;
+    bool skip_confirmation_ = false;
+    td_api::object_ptr<td_api::linkPreviewOptions> link_preview_options_;
+  };
+
   static string get_web_page_url(const tl_object_ptr<telegram_api::WebPage> &web_page_ptr);
 
   WebPageId on_get_web_page(tl_object_ptr<telegram_api::WebPage> &&web_page_ptr, DialogId owner_dialog_id);
@@ -69,6 +75,7 @@ class WebPagesManager final : public Actor {
   tl_object_ptr<td_api::webPageInstantView> get_web_page_instant_view_object(WebPageId web_page_id) const;
 
   void get_web_page_preview(td_api::object_ptr<td_api::formattedText> &&text,
+                            td_api::object_ptr<td_api::linkPreviewOptions> &&link_preview_options,
                             Promise<td_api::object_ptr<td_api::webPage>> &&promise);
 
   void get_web_page_instant_view(const string &url, bool force_full, Promise<WebPageId> &&promise);
@@ -81,7 +88,8 @@ class WebPagesManager final : public Actor {
 
   void reload_web_page_by_url(const string &url, Promise<WebPageId> &&promise);
 
-  void on_get_web_page_preview(const string &first_url, tl_object_ptr<telegram_api::MessageMedia> &&message_media_ptr,
+  void on_get_web_page_preview(unique_ptr<GetWebPagePreviewOptions> &&options,
+                               tl_object_ptr<telegram_api::MessageMedia> &&message_media_ptr,
                                Promise<td_api::object_ptr<td_api::webPage>> &&promise);
 
   void on_binlog_web_page_event(BinlogEvent &&event);
@@ -130,7 +138,7 @@ class WebPagesManager final : public Actor {
 
   void on_pending_web_page_timeout(WebPageId web_page_id);
 
-  void on_get_web_page_preview_success(const string &first_url, WebPageId web_page_id,
+  void on_get_web_page_preview_success(unique_ptr<GetWebPagePreviewOptions> &&options, WebPageId web_page_id,
                                        Promise<td_api::object_ptr<td_api::webPage>> &&promise);
 
   void on_get_web_page_instant_view(WebPage *web_page, tl_object_ptr<telegram_api::page> &&page, int32 hash,
@@ -191,7 +199,9 @@ class WebPagesManager final : public Actor {
 
   FlatHashMap<WebPageId, FlatHashSet<MessageFullId, MessageFullIdHash>, WebPageIdHash> web_page_messages_;
 
-  FlatHashMap<WebPageId, vector<std::pair<string, Promise<td_api::object_ptr<td_api::webPage>>>>, WebPageIdHash>
+  FlatHashMap<WebPageId,
+              vector<std::pair<unique_ptr<GetWebPagePreviewOptions>, Promise<td_api::object_ptr<td_api::webPage>>>>,
+              WebPageIdHash>
       pending_get_web_pages_;
 
   FlatHashMap<StoryFullId, FlatHashSet<WebPageId, WebPageIdHash>, StoryFullIdHash> story_web_pages_;

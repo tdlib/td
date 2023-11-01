@@ -8568,8 +8568,10 @@ searchHashtags prefix:string limit:int32 = Hashtags;
 removeRecentHashtag hashtag:string = Ok;
 
 
-//@description Returns a web page preview by the text of the message. Do not call this function too often. Returns a 404 error if the web page has no preview @text Message text with formatting
-getWebPagePreview text:formattedText = WebPage;
+//@description Returns a link preview by the text of a message. Do not call this function too often. Returns a 404 error if the text has no link preview
+//@text Message text with formatting
+//@link_preview_options Options to be used for generation of the link preview; pass null to use default link preview options
+getWebPagePreview text:formattedText link_preview_options:linkPreviewOptions = WebPage;
 
 //@description Returns an instant view version of a web page if available. Returns a 404 error if the web page has no instant view page @url The web page URL @force_full Pass true to get full instant view for the web page
 getWebPageInstantView url:string force_full:Bool = WebPageInstantView;

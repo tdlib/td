@@ -61,15 +61,16 @@ namespace td {
 
 class GetWebPagePreviewQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::webPage>> promise_;
-  string first_url_;
+  unique_ptr<WebPagesManager::GetWebPagePreviewOptions> options_;
 
  public:
   explicit GetWebPagePreviewQuery(Promise<td_api::object_ptr<td_api::webPage>> &&promise)
       : promise_(std::move(promise)) {
   }
 
-  void send(const string &text, vector<tl_object_ptr<telegram_api::MessageEntity>> &&entities, string first_url) {
-    first_url_ = std::move(first_url);
+  void send(const string &text, vector<tl_object_ptr<telegram_api::MessageEntity>> &&entities,
+            unique_ptr<WebPagesManager::GetWebPagePreviewOptions> &&options) {
+    options_ = std::move(options);
 
     int32 flags = 0;
     if (!entities.empty()) {
@@ -88,7 +89,7 @@ class GetWebPagePreviewQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetWebPagePreviewQuery: " << to_string(ptr);
-    td_->web_pages_manager_->on_get_web_page_preview(first_url_, std::move(ptr), std::move(promise_));
+    td_->web_pages_manager_->on_get_web_page_preview(std::move(options_), std::move(ptr), std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -836,14 +837,14 @@ void WebPagesManager::unregister_web_page(WebPageId web_page_id, MessageFullId m
   }
 }
 
-void WebPagesManager::on_get_web_page_preview(const string &first_url,
+void WebPagesManager::on_get_web_page_preview(unique_ptr<GetWebPagePreviewOptions> &&options,
                                               tl_object_ptr<telegram_api::MessageMedia> &&message_media_ptr,
                                               Promise<td_api::object_ptr<td_api::webPage>> &&promise) {
   CHECK(message_media_ptr != nullptr);
   int32 constructor_id = message_media_ptr->get_id();
   if (constructor_id != telegram_api::messageMediaWebPage::ID) {
     if (constructor_id == telegram_api::messageMediaEmpty::ID) {
-      on_get_web_page_preview_success(first_url, WebPageId(), std::move(promise));
+      on_get_web_page_preview_success(std::move(options), WebPageId(), std::move(promise));
       return;
     }
 
@@ -856,45 +857,67 @@ void WebPagesManager::on_get_web_page_preview(const string &first_url,
 
   auto web_page_id = on_get_web_page(std::move(message_media_web_page->webpage_), DialogId());
   if (web_page_id.is_valid() && !have_web_page(web_page_id)) {
-    pending_get_web_pages_[web_page_id].emplace_back(first_url, std::move(promise));
+    pending_get_web_pages_[web_page_id].emplace_back(std::move(options), std::move(promise));
     return;
   }
 
-  on_get_web_page_preview_success(first_url, web_page_id, std::move(promise));
+  on_get_web_page_preview_success(std::move(options), web_page_id, std::move(promise));
 }
 
-void WebPagesManager::on_get_web_page_preview_success(const string &first_url, WebPageId web_page_id,
+void WebPagesManager::on_get_web_page_preview_success(unique_ptr<GetWebPagePreviewOptions> &&options,
+                                                      WebPageId web_page_id,
                                                       Promise<td_api::object_ptr<td_api::webPage>> &&promise) {
   CHECK(web_page_id == WebPageId() || have_web_page(web_page_id));
+  CHECK(options != nullptr);
+  CHECK(options->link_preview_options_ != nullptr);
 
-  if (web_page_id.is_valid() && !first_url.empty()) {
-    on_get_web_page_by_url(first_url, web_page_id, true);
+  if (web_page_id.is_valid() && !options->first_url_.empty()) {
+    on_get_web_page_by_url(options->first_url_, web_page_id, true);
   }
 
-  promise.set_value(get_web_page_object(web_page_id, false, false, false, false));
+  promise.set_value(get_web_page_object(web_page_id, options->link_preview_options_->force_small_media_,
+                                        options->link_preview_options_->force_large_media_, options->skip_confirmation_,
+                                        options->link_preview_options_->show_above_text_));
 }
 
 void WebPagesManager::get_web_page_preview(td_api::object_ptr<td_api::formattedText> &&text,
+                                           td_api::object_ptr<td_api::linkPreviewOptions> &&link_preview_options,
                                            Promise<td_api::object_ptr<td_api::webPage>> &&promise) {
   TRY_RESULT_PROMISE(
       promise, formatted_text,
       get_formatted_text(td_, DialogId(), std::move(text), td_->auth_manager_->is_bot(), true, true, true));
 
-  auto first_url = get_first_url(formatted_text).str();
-  if (first_url.empty()) {
+  if (link_preview_options == nullptr) {
+    link_preview_options = td_api::make_object<td_api::linkPreviewOptions>();
+  }
+  if (link_preview_options->is_disabled_) {
+    return promise.set_value(nullptr);
+  }
+  auto url = link_preview_options->url_.empty() ? get_first_url(formatted_text).str() : link_preview_options->url_;
+  if (url.empty()) {
     return promise.set_value(nullptr);
   }
 
-  LOG(INFO) << "Trying to get web page preview for message \"" << formatted_text.text << '"';
+  LOG(INFO) << "Trying to get web page preview for \"" << url << '"';
 
-  auto web_page_id = get_web_page_by_url(first_url);
+  auto web_page_id = get_web_page_by_url(url);
+  bool skip_confirmation = is_visible_url(formatted_text, url);
   if (web_page_id.is_valid()) {
-    return promise.set_value(get_web_page_object(web_page_id, false, false, false, false));
+    return promise.set_value(get_web_page_object(web_page_id, link_preview_options->force_small_media_,
+                                                 link_preview_options->force_large_media_, skip_confirmation,
+                                                 link_preview_options->show_above_text_));
   }
+  if (!link_preview_options->url_.empty()) {
+    formatted_text.text = link_preview_options->url_, formatted_text.entities.clear();
+  }
+  auto options = make_unique<GetWebPagePreviewOptions>();
+  options->first_url_ = std::move(url);
+  options->skip_confirmation_ = skip_confirmation;
+  options->link_preview_options_ = std::move(link_preview_options);
   td_->create_handler<GetWebPagePreviewQuery>(std::move(promise))
       ->send(formatted_text.text,
              get_input_message_entities(td_->contacts_manager_.get(), formatted_text.entities, "get_web_page_preview"),
-             std::move(first_url));
+             std::move(options));
 }
 
 void WebPagesManager::get_web_page_instant_view(const string &url, bool force_full, Promise<WebPageId> &&promise) {
@@ -1336,8 +1359,8 @@ tl_object_ptr<td_api::webPage> WebPagesManager::get_web_page_object(WebPageId we
       get_formatted_text_object(description, true, duration == 0 ? std::numeric_limits<int32>::max() : duration),
       get_photo_object(td_->file_manager_.get(), web_page->photo_), web_page->embed_url_, web_page->embed_type_,
       web_page->embed_dimensions_.width, web_page->embed_dimensions_.height, web_page->duration_, web_page->author_,
-      web_page->has_large_media_, force_small_media, web_page->has_large_media_ && force_large_media, skip_confirmation,
-      invert_media,
+      web_page->has_large_media_, force_small_media && !force_large_media,
+      web_page->has_large_media_ && force_large_media, skip_confirmation, invert_media,
       web_page->document_.type == Document::Type::Animation
           ? td_->animations_manager_->get_animation_object(web_page->document_.file_id)
           : nullptr,
@@ -1421,7 +1444,7 @@ void WebPagesManager::on_web_page_changed(WebPageId web_page_id, bool have_web_p
     auto requests = std::move(get_it->second);
     pending_get_web_pages_.erase(get_it);
     for (auto &request : requests) {
-      on_get_web_page_preview_success(request.first, have_web_page ? web_page_id : WebPageId(),
+      on_get_web_page_preview_success(std::move(request.first), have_web_page ? web_page_id : WebPageId(),
                                       std::move(request.second));
     }
   }

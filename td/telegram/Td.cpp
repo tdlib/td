@@ -5924,7 +5924,8 @@ void Td::on_request(uint64 id, const td_api::resendMessages &request) {
 void Td::on_request(uint64 id, td_api::getWebPagePreview &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  web_pages_manager_->get_web_page_preview(std::move(request.text_), std::move(promise));
+  web_pages_manager_->get_web_page_preview(std::move(request.text_), std::move(request.link_preview_options_),
+                                           std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getWebPageInstantView &request) {
