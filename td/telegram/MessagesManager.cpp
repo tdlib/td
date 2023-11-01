@@ -24595,7 +24595,7 @@ MessagesManager::ForwardedMessageInfo MessagesManager::get_forwarded_message_inf
 
 const MessageInputReplyTo *MessagesManager::get_message_input_reply_to(const Message *m) {
   CHECK(m != nullptr);
-  CHECK(!m->message_id.is_server());
+  CHECK(!m->message_id.is_any_server());
   return &m->input_reply_to;
 }
 
@@ -39286,7 +39286,7 @@ void MessagesManager::set_message_reply(const Dialog *d, Message *m, MessageInpu
       m->reply_to_random_id = replied_m->random_id;
     }
   }
-  if (!m->message_id.is_server()) {
+  if (!m->message_id.is_any_server()) {
     m->input_reply_to = std::move(input_reply_to);
   }
   if (is_message_in_dialog) {
@@ -39303,7 +39303,7 @@ void MessagesManager::update_message_reply_to_message_id(const Dialog *d, Messag
     unregister_message_reply(d->dialog_id, m);
   }
   m->replied_message_info.set_message_id(reply_to_message_id);
-  if (!m->message_id.is_server()) {
+  if (!m->message_id.is_any_server()) {
     m->input_reply_to.set_message_id(reply_to_message_id);
   }
   if (is_message_in_dialog) {
