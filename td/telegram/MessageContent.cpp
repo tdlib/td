@@ -3971,7 +3971,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       const auto *new_ = static_cast<const MessageText *>(new_content);
       auto get_content_object = [td, dialog_id](const MessageContent *content) {
         return to_string(get_message_content_object(content, td, dialog_id, -1, false, false,
-                                                    std::numeric_limits<int32>::max(), false));
+                                                    std::numeric_limits<int32>::max(), false, false));
       };
       if (old_->text.text != new_->text.text) {
         if (need_message_changed_warning && need_message_text_changed_warning(old_, new_)) {
@@ -6245,7 +6245,8 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
 tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageContent *content, Td *td,
                                                                  DialogId dialog_id, int32 message_date,
                                                                  bool is_content_secret, bool skip_bot_commands,
-                                                                 int32 max_media_timestamp, bool invert_media) {
+                                                                 int32 max_media_timestamp, bool invert_media,
+                                                                 bool disable_web_page_preview) {
   CHECK(content != nullptr);
   switch (content->get_type()) {
     case MessageContentType::Animation: {
@@ -6326,9 +6327,15 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       if (web_page != nullptr && !web_page->skip_confirmation_ && is_visible_url(m->text, web_page->url_)) {
         web_page->skip_confirmation_ = true;
       }
+      td_api::object_ptr<td_api::linkPreviewOptions> link_preview_options;
+      if (disable_web_page_preview || !m->web_page_url.empty() || m->force_small_media || m->force_large_media ||
+          invert_media) {
+        link_preview_options = td_api::make_object<td_api::linkPreviewOptions>(
+            disable_web_page_preview, m->web_page_url, m->force_small_media, m->force_large_media, invert_media);
+      }
       return make_tl_object<td_api::messageText>(
           get_formatted_text_object(m->text, skip_bot_commands, max_media_timestamp), std::move(web_page),
-          m->web_page_url);
+          std::move(link_preview_options));
     }
     case MessageContentType::Unsupported:
       return make_tl_object<td_api::messageUnsupported>();

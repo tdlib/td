@@ -291,7 +291,7 @@ td_api::object_ptr<td_api::sponsoredMessage> SponsoredMessageManager::get_sponso
   }
   return td_api::make_object<td_api::sponsoredMessage>(
       sponsored_message.local_id, sponsored_message.is_recommended,
-      get_message_content_object(sponsored_message.content.get(), td_, dialog_id, 0, false, true, -1, false),
+      get_message_content_object(sponsored_message.content.get(), td_, dialog_id, 0, false, true, -1, false, false),
       std::move(sponsor), sponsored_message.additional_info);
 }
 

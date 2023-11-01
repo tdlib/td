@@ -1839,6 +1839,15 @@ forumTopic info:forumTopicInfo last_message:message is_pinned:Bool unread_count:
 forumTopics total_count:int32 topics:vector<forumTopic> next_offset_date:int32 next_offset_message_id:int53 next_offset_message_thread_id:int53 = ForumTopics;
 
 
+//@description Options to be used for generation of a link preview
+//@is_disabled True, if link preview must be disabled
+//@url URL to use for link preview. If empty, then the first URL found in the message text will be used
+//@force_small_media True, if shown media preview must be small; ignored in secret chats or if the URL isn't explicitly specified
+//@force_large_media True, if shown media preview must be large; ignored in secret chats or if the URL isn't explicitly specified
+//@show_above_text True, if link preview must be shown above message text; otherwise, the link preview will be shown below the message text; ignored in secret chats
+linkPreviewOptions is_disabled:Bool url:string force_small_media:Bool force_large_media:Bool show_above_text:Bool = LinkPreviewOptions;
+
+
 //@class RichText @description Describes a text object inside an instant-view web page
 
 //@description A plain text @text Text
@@ -2617,9 +2626,9 @@ inputPassportElementError type:PassportElementType message:string source:InputPa
 
 //@description A text message
 //@text Text of the message
-//@web_page A preview of the web page that's mentioned in the text; may be null
-//@web_page_url URL manually chosen for link preview in the message
-messageText text:formattedText web_page:webPage web_page_url:string = MessageContent;
+//@web_page A link preview attached to the message; may be null
+//@link_preview_options Options which was used for generation of the link preview; may be null if default options were used
+messageText text:formattedText web_page:webPage link_preview_options:linkPreviewOptions = MessageContent;
 
 //@description An animation message (GIF-style).
 //@animation The animation description
@@ -2988,14 +2997,6 @@ messageSendOptions disable_notification:Bool from_background:Bool protect_conten
 //@replace_caption True, if media caption of the message copy needs to be replaced. Ignored if send_copy is false
 //@new_caption New message caption; pass null to copy message without caption. Ignored if replace_caption is false
 messageCopyOptions send_copy:Bool replace_caption:Bool new_caption:formattedText = MessageCopyOptions;
-
-//@description Options to be used for generation of a link preview
-//@is_disabled True, if link preview must be disabled
-//@url URL to use for link preview. If empty, then the first URL found in the message text will be used
-//@force_small_media True, if shown media preview must be small; ignored in secret chats or if the URL isn't explicitly specified
-//@force_large_media True, if shown media preview must be large; ignored in secret chats or if the URL isn't explicitly specified
-//@show_above_text True, if link preview must be shown above message text; otherwise, the link preview will be shown below the message text; ignored in secret chats
-linkPreviewOptions is_disabled:Bool url:string force_small_media:Bool force_large_media:Bool show_above_text:Bool = LinkPreviewOptions;
 
 
 //@class InputMessageContent @description The content of a message to send
