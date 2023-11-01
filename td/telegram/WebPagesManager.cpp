@@ -880,7 +880,7 @@ void WebPagesManager::get_web_page_preview(td_api::object_ptr<td_api::formattedT
       promise, formatted_text,
       get_formatted_text(td_, DialogId(), std::move(text), td_->auth_manager_->is_bot(), true, true, true));
 
-  auto first_url = get_first_url(formatted_text);
+  auto first_url = get_first_url(formatted_text).str();
   if (first_url.empty()) {
     return promise.set_value(nullptr);
   }

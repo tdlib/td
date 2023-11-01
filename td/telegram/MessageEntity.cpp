@@ -1785,7 +1785,7 @@ static bool is_plain_domain(Slice url) {
   return url.find('/') >= url.size() && url.find('?') >= url.size() && url.find('#') >= url.size();
 }
 
-string get_first_url(const FormattedText &text) {
+Slice get_first_url(const FormattedText &text) {
   for (auto &entity : text.entities) {
     switch (entity.type) {
       case MessageEntity::Type::Mention:
@@ -1803,7 +1803,7 @@ string get_first_url(const FormattedText &text) {
         if (scheme == "ton:" || begins_with(scheme, "tg:") || scheme == "ftp:" || is_plain_domain(url)) {
           continue;
         }
-        return url.str();
+        return url;
       }
       case MessageEntity::Type::EmailAddress:
         break;
@@ -1828,7 +1828,7 @@ string get_first_url(const FormattedText &text) {
         if (begins_with(url, "ton:") || begins_with(url, "tg:") || begins_with(url, "ftp:")) {
           continue;
         }
-        return url.str();
+        return url;
       }
       case MessageEntity::Type::MentionName:
         break;
@@ -1849,7 +1849,7 @@ string get_first_url(const FormattedText &text) {
     }
   }
 
-  return string();
+  return Slice();
 }
 
 bool is_visible_url(const FormattedText &text, const string &url) {
