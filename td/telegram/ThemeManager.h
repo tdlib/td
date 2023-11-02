@@ -95,6 +95,12 @@ class ThemeManager final : public Actor {
     vector<AccentColorId> accent_color_ids_;
 
     td_api::object_ptr<td_api::updateAccentColors> get_update_accent_colors_object() const;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
   };
 
   void start_up() final;
@@ -115,7 +121,11 @@ class ThemeManager final : public Actor {
 
   static string get_chat_themes_database_key();
 
+  string get_accent_colors_database_key();
+
   void save_chat_themes();
+
+  void save_accent_colors();
 
   void send_update_chat_themes() const;
 

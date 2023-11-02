@@ -138,6 +138,49 @@ void ThemeManager::ChatThemes::parse(ParserT &parser) {
   td::parse(themes, parser);
 }
 
+template <class StorerT>
+void ThemeManager::AccentColors::store(StorerT &storer) const {
+  BEGIN_STORE_FLAGS();
+  END_STORE_FLAGS();
+  td::store(static_cast<int32>(light_colors_.size()), storer);
+  for (auto &it : light_colors_) {
+    td::store(it.first, storer);
+    td::store(it.second, storer);
+  }
+  td::store(static_cast<int32>(dark_colors_.size()), storer);
+  for (auto &it : dark_colors_) {
+    td::store(it.first, storer);
+    td::store(it.second, storer);
+  }
+  td::store(accent_color_ids_, storer);
+}
+
+template <class ParserT>
+void ThemeManager::AccentColors::parse(ParserT &parser) {
+  BEGIN_PARSE_FLAGS();
+  END_PARSE_FLAGS();
+  int32 size;
+  td::parse(size, parser);
+  for (int32 i = 0; i < size; i++) {
+    AccentColorId accent_color_id;
+    vector<int32> colors;
+    td::parse(accent_color_id, parser);
+    td::parse(colors, parser);
+    CHECK(accent_color_id.is_valid());
+    light_colors_.emplace(accent_color_id, std::move(colors));
+  }
+  td::parse(size, parser);
+  for (int32 i = 0; i < size; i++) {
+    AccentColorId accent_color_id;
+    vector<int32> colors;
+    td::parse(accent_color_id, parser);
+    td::parse(colors, parser);
+    CHECK(accent_color_id.is_valid());
+    dark_colors_.emplace(accent_color_id, std::move(colors));
+  }
+  td::parse(accent_color_ids_, parser);
+}
+
 ThemeManager::ThemeManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 
@@ -161,6 +204,18 @@ void ThemeManager::init() {
     }
   }
   chat_themes_.next_reload_time = Time::now();
+
+  log_event_string = G()->td_db()->get_binlog_pmc()->get(get_accent_colors_database_key());
+  if (!log_event_string.empty()) {
+    auto status = log_event_parse(accent_colors_, log_event_string);
+    if (status.is_ok()) {
+      send_update_accent_colors();
+    } else {
+      LOG(ERROR) << "Failed to parse accent colors from binlog: " << status;
+      accent_colors_ = AccentColors();
+    }
+  }
+
   loop();
 }
 
@@ -264,6 +319,7 @@ void ThemeManager::on_update_accent_colors(FlatHashMap<AccentColorId, vector<int
   }
   accent_colors_.accent_color_ids_ = std::move(accent_color_ids);
 
+  save_accent_colors();
   send_update_accent_colors();
 }
 
@@ -371,8 +427,17 @@ string ThemeManager::get_chat_themes_database_key() {
   return "chat_themes";
 }
 
+string ThemeManager::get_accent_colors_database_key() {
+  return "accent_colors";
+}
+
 void ThemeManager::save_chat_themes() {
   G()->td_db()->get_binlog_pmc()->set(get_chat_themes_database_key(), log_event_store(chat_themes_).as_slice().str());
+}
+
+void ThemeManager::save_accent_colors() {
+  G()->td_db()->get_binlog_pmc()->set(get_accent_colors_database_key(),
+                                      log_event_store(accent_colors_).as_slice().str());
 }
 
 void ThemeManager::send_update_chat_themes() const {
