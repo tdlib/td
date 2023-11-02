@@ -239,6 +239,31 @@ void ThemeManager::on_update_theme(telegram_api::object_ptr<telegram_api::theme>
   promise.set_value(Unit());
 }
 
+void ThemeManager::on_update_accent_colors(FlatHashMap<AccentColorId, vector<int32>, AccentColorIdHash> light_colors,
+                                           FlatHashMap<AccentColorId, vector<int32>, AccentColorIdHash> dark_colors,
+                                           vector<AccentColorId> accent_color_ids) {
+  auto are_equal = [](const FlatHashMap<AccentColorId, vector<int32>, AccentColorIdHash> &lhs,
+                      const FlatHashMap<AccentColorId, vector<int32>, AccentColorIdHash> &rhs) {
+    if (lhs.size() != rhs.size()) {
+      return false;
+    }
+    for (auto &lhs_it : lhs) {
+      auto rhs_it = rhs.find(lhs_it.first);
+      if (rhs_it == rhs.end() || rhs_it->second != lhs_it.second) {
+        return false;
+      }
+    }
+    return true;
+  };
+  if (accent_color_ids == accent_colors_.accent_color_ids_ && are_equal(light_colors, accent_colors_.light_colors_) &&
+      are_equal(dark_colors, accent_colors_.dark_colors_)) {
+    return;
+  }
+  accent_colors_.light_colors_ = std::move(light_colors);
+  accent_colors_.dark_colors_ = std::move(dark_colors);
+  accent_colors_.accent_color_ids_ = std::move(accent_color_ids);
+}
+
 namespace {
 template <bool for_web_view>
 static auto get_color_json(int32 color);

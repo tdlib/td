@@ -43,6 +43,10 @@ class AccentColorId {
     return id >= 0;
   }
 
+  bool is_built_in() const {
+    return 0 <= id && id < 7;
+  }
+
   int32 get() const {
     return id;
   }
