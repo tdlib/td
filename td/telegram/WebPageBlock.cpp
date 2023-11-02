@@ -26,6 +26,7 @@
 #include "td/telegram/PhotoFormat.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/ThemeManager.h"
 #include "td/telegram/Version.h"
 #include "td/telegram/VideosManager.h"
 #include "td/telegram/VideosManager.hpp"
@@ -1440,7 +1441,7 @@ class WebPageBlockChatLink final : public WebPageBlock {
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     return make_tl_object<td_api::pageBlockChatLink>(
         title, get_chat_photo_info_object(context->td_->file_manager_.get(), &photo),
-        accent_color_id.get_accent_color_id_object(), username);
+        context->td_->theme_manager_->get_accent_color_id_object(accent_color_id), username);
   }
 
   template <class StorerT>

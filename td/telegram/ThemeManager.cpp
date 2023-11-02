@@ -377,6 +377,14 @@ string ThemeManager::get_theme_parameters_json_string(const td_api::object_ptr<t
   }
 }
 
+int32 ThemeManager::get_accent_color_id_object(AccentColorId accent_color_id) const {
+  CHECK(accent_color_id.is_valid());
+  if (accent_color_id.is_built_in() || accent_colors_.light_colors_.count(accent_color_id) != 0) {
+    return accent_color_id.get();
+  }
+  return 5;
+}
+
 td_api::object_ptr<td_api::themeSettings> ThemeManager::get_theme_settings_object(const ThemeSettings &settings) const {
   auto fill = [colors = settings.message_colors]() mutable -> td_api::object_ptr<td_api::BackgroundFill> {
     if (colors.size() >= 3) {

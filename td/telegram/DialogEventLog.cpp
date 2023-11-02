@@ -25,6 +25,7 @@
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/ThemeManager.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
@@ -432,8 +433,9 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeColor>(action_ptr);
       auto old_accent_color_id = AccentColorId(action->prev_value_);
       auto new_accent_color_id = AccentColorId(action->new_value_);
-      return td_api::make_object<td_api::chatEventAccentColorChanged>(old_accent_color_id.get_accent_color_id_object(),
-                                                                      new_accent_color_id.get_accent_color_id_object());
+      return td_api::make_object<td_api::chatEventAccentColorChanged>(
+          td->theme_manager_->get_accent_color_id_object(old_accent_color_id),
+          td->theme_manager_->get_accent_color_id_object(new_accent_color_id));
     }
     case telegram_api::channelAdminLogEventActionChangeBackgroundEmoji::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeBackgroundEmoji>(action_ptr);

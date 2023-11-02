@@ -74,6 +74,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/ThemeManager.h"
 #include "td/telegram/TopDialogCategory.h"
 #include "td/telegram/TopDialogManager.h"
 #include "td/telegram/TranslationManager.h"
@@ -20747,7 +20748,7 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
   return make_tl_object<td_api::chat>(
       d->dialog_id.get(), get_chat_type_object(d->dialog_id), get_dialog_title(d->dialog_id),
       get_chat_photo_info_object(td_->file_manager_.get(), get_dialog_photo(d->dialog_id)),
-      get_dialog_accent_color_id(d->dialog_id).get_accent_color_id_object(),
+      td_->theme_manager_->get_accent_color_id_object(get_dialog_accent_color_id(d->dialog_id)),
       get_dialog_background_custom_emoji_id(d->dialog_id).get(),
       get_dialog_default_permissions(d->dialog_id).get_chat_permissions_object(),
       get_message_object(d->dialog_id, get_message(d, d->last_message_id), "get_chat_object"),
@@ -32437,7 +32438,7 @@ void MessagesManager::on_dialog_accent_color_id_updated(DialogId dialog_id) {
     send_closure(G()->td(), &Td::send_update,
                  td_api::make_object<td_api::updateChatAccentColor>(
                      get_chat_id_object(dialog_id, "updateChatAccentColor"),
-                     get_dialog_accent_color_id(dialog_id).get_accent_color_id_object()));
+                     td_->theme_manager_->get_accent_color_id_object(get_dialog_accent_color_id(dialog_id))));
   }
 }
 

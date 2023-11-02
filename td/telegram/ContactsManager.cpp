@@ -51,6 +51,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/ThemeManager.h"
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/Version.h"
 
@@ -19462,8 +19463,9 @@ td_api::object_ptr<td_api::updateUser> ContactsManager::get_update_unknown_user_
   auto have_access = user_id == get_my_id() || user_messages_.count(user_id) != 0;
   return td_api::make_object<td_api::updateUser>(td_api::make_object<td_api::user>(
       user_id.get(), "", "", nullptr, "", td_api::make_object<td_api::userStatusEmpty>(), nullptr,
-      AccentColorId(user_id).get_accent_color_id_object(), 0, nullptr, false, false, false, false, false, false, "",
-      false, false, false, false, have_access, td_api::make_object<td_api::userTypeUnknown>(), "", false));
+      td_->theme_manager_->get_accent_color_id_object(AccentColorId(user_id)), 0, nullptr, false, false, false, false,
+      false, false, "", false, false, false, false, have_access, td_api::make_object<td_api::userTypeUnknown>(), "",
+      false));
 }
 
 int64 ContactsManager::get_user_id_object(UserId user_id, const char *source) const {
@@ -19501,10 +19503,10 @@ tl_object_ptr<td_api::user> ContactsManager::get_user_object(UserId user_id, con
   return td_api::make_object<td_api::user>(
       user_id.get(), u->first_name, u->last_name, u->usernames.get_usernames_object(), u->phone_number,
       get_user_status_object(user_id, u, G()->unix_time()),
-      get_profile_photo_object(td_->file_manager_.get(), u->photo), accent_color_id.get_accent_color_id_object(),
-      u->background_custom_emoji_id.get(), std::move(emoji_status), u->is_contact, u->is_mutual_contact,
-      u->is_close_friend, u->is_verified, u->is_premium, u->is_support,
-      get_restriction_reason_description(u->restriction_reasons), u->is_scam, u->is_fake,
+      get_profile_photo_object(td_->file_manager_.get(), u->photo),
+      td_->theme_manager_->get_accent_color_id_object(accent_color_id), u->background_custom_emoji_id.get(),
+      std::move(emoji_status), u->is_contact, u->is_mutual_contact, u->is_close_friend, u->is_verified, u->is_premium,
+      u->is_support, get_restriction_reason_description(u->restriction_reasons), u->is_scam, u->is_fake,
       u->max_active_story_id.is_valid(), get_user_has_unread_stories(u), have_access, std::move(type), u->language_code,
       u->attach_menu_enabled);
 }
@@ -19907,9 +19909,9 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
 
   return td_api::make_object<td_api::chatInviteLinkInfo>(
       td_->messages_manager_->get_chat_id_object(dialog_id, "chatInviteLinkInfo"), accessible_for, std::move(chat_type),
-      title, get_chat_photo_info_object(td_->file_manager_.get(), photo), accent_color_id.get_accent_color_id_object(),
-      description, participant_count, std::move(member_user_ids), creates_join_request, is_public, is_verified, is_scam,
-      is_fake);
+      title, get_chat_photo_info_object(td_->file_manager_.get(), photo),
+      td_->theme_manager_->get_accent_color_id_object(accent_color_id), description, participant_count,
+      std::move(member_user_ids), creates_join_request, is_public, is_verified, is_scam, is_fake);
 }
 
 void ContactsManager::get_support_user(Promise<td_api::object_ptr<td_api::user>> &&promise) {

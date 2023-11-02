@@ -59,11 +59,6 @@ class AccentColorId {
     return id != other.id;
   }
 
-  int32 get_accent_color_id_object() const {
-    CHECK(is_valid());
-    return id;
-  }
-
   template <class StorerT>
   void store(StorerT &storer) const {
     storer.store_int(id);
