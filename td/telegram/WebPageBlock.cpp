@@ -1420,14 +1420,17 @@ class WebPageBlockChatLink final : public WebPageBlock {
   DialogPhoto photo;
   string username;
   AccentColorId accent_color_id;
+  ChannelId channel_id;
 
  public:
   WebPageBlockChatLink() = default;
-  WebPageBlockChatLink(string &&title, DialogPhoto photo, string &&username, AccentColorId accent_color_id)
+  WebPageBlockChatLink(string &&title, DialogPhoto photo, string &&username, AccentColorId accent_color_id,
+                       ChannelId channel_id)
       : title(std::move(title))
       , photo(std::move(photo))
       , username(std::move(username))
-      , accent_color_id(accent_color_id) {
+      , accent_color_id(accent_color_id)
+      , channel_id(channel_id) {
   }
 
   Type get_type() const final {
@@ -1441,7 +1444,7 @@ class WebPageBlockChatLink final : public WebPageBlock {
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     return make_tl_object<td_api::pageBlockChatLink>(
         title, get_chat_photo_info_object(context->td_->file_manager_.get(), &photo),
-        context->td_->theme_manager_->get_accent_color_id_object(accent_color_id), username);
+        context->td_->theme_manager_->get_accent_color_id_object(accent_color_id, AccentColorId(channel_id)), username);
   }
 
   template <class StorerT>
@@ -1451,11 +1454,13 @@ class WebPageBlockChatLink final : public WebPageBlock {
     bool has_photo = photo.small_file_id.is_valid();
     bool has_username = !username.empty();
     bool has_accent_color_id = true;
+    bool has_channel_id = channel_id.is_valid();
     BEGIN_STORE_FLAGS();
     STORE_FLAG(has_title);
     STORE_FLAG(has_photo);
     STORE_FLAG(has_username);
     STORE_FLAG(has_accent_color_id);
+    STORE_FLAG(has_channel_id);
     END_STORE_FLAGS();
     if (has_title) {
       store(title, storer);
@@ -1467,6 +1472,9 @@ class WebPageBlockChatLink final : public WebPageBlock {
       store(username, storer);
     }
     store(accent_color_id, storer);
+    if (has_channel_id) {
+      store(channel_id, storer);
+    }
   }
 
   template <class ParserT>
@@ -1476,12 +1484,14 @@ class WebPageBlockChatLink final : public WebPageBlock {
     bool has_photo;
     bool has_username;
     bool has_accent_color_id = false;
+    bool has_channel_id = false;
     if (parser.version() >= static_cast<int32>(Version::AddPageBlockChatLinkFlags)) {
       BEGIN_PARSE_FLAGS();
       PARSE_FLAG(has_title);
       PARSE_FLAG(has_photo);
       PARSE_FLAG(has_username);
       PARSE_FLAG(has_accent_color_id);
+      PARSE_FLAG(has_channel_id);
       END_PARSE_FLAGS();
     } else {
       has_title = true;
@@ -1501,6 +1511,11 @@ class WebPageBlockChatLink final : public WebPageBlock {
       parse(accent_color_id, parser);
     } else {
       accent_color_id = AccentColorId(5);  // blue
+    }
+    if (has_channel_id) {
+      parse(channel_id, parser);
+    } else {
+      channel_id = ChannelId(static_cast<int64>(5));  // blue
     }
   }
 };
@@ -2194,7 +2209,8 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
           return td::make_unique<WebPageBlockChatLink>(td->contacts_manager_->get_channel_title(channel_id),
                                                        *td->contacts_manager_->get_channel_dialog_photo(channel_id),
                                                        td->contacts_manager_->get_channel_first_username(channel_id),
-                                                       td->contacts_manager_->get_channel_accent_color_id(channel_id));
+                                                       td->contacts_manager_->get_channel_accent_color_id(channel_id),
+                                                       channel_id);
         } else {
           bool has_access_hash = (channel->flags_ & telegram_api::channel::ACCESS_HASH_MASK) != 0;
           bool has_color = (channel->flags2_ & telegram_api::channel::COLOR_MASK) != 0;
@@ -2202,7 +2218,8 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
               std::move(channel->title_),
               get_dialog_photo(td->file_manager_.get(), DialogId(channel_id),
                                has_access_hash ? channel->access_hash_ : 0, std::move(channel->photo_)),
-              std::move(channel->username_), has_color ? AccentColorId(channel->color_) : AccentColorId(channel_id));
+              std::move(channel->username_), has_color ? AccentColorId(channel->color_) : AccentColorId(channel_id),
+              channel_id);
         }
       } else {
         LOG(ERROR) << "Receive wrong channel " << to_string(page_block->channel_);

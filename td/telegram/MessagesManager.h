@@ -2962,7 +2962,7 @@ class MessagesManager final : public Actor {
 
   const DialogPhoto *get_dialog_photo(DialogId dialog_id) const;
 
-  AccentColorId get_dialog_accent_color_id(DialogId dialog_id) const;
+  int32 get_dialog_accent_color_id_object(DialogId dialog_id) const;
 
   CustomEmojiId get_dialog_background_custom_emoji_id(DialogId dialog_id) const;
 

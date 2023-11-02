@@ -5774,17 +5774,17 @@ const DialogPhoto *ContactsManager::get_secret_chat_dialog_photo(SecretChatId se
   return get_user_dialog_photo(c->user_id);
 }
 
-AccentColorId ContactsManager::get_user_accent_color_id(UserId user_id) const {
+int32 ContactsManager::get_user_accent_color_id_object(UserId user_id) const {
   auto u = get_user(user_id);
   if (u == nullptr || !u->accent_color_id.is_valid()) {
-    return AccentColorId(user_id);
+    return td_->theme_manager_->get_accent_color_id_object(AccentColorId(user_id));
   }
 
-  return u->accent_color_id;
+  return td_->theme_manager_->get_accent_color_id_object(u->accent_color_id, AccentColorId(user_id));
 }
 
-AccentColorId ContactsManager::get_chat_accent_color_id(ChatId chat_id) const {
-  return AccentColorId(chat_id);
+int32 ContactsManager::get_chat_accent_color_id_object(ChatId chat_id) const {
+  return td_->theme_manager_->get_accent_color_id_object(AccentColorId(chat_id));
 }
 
 AccentColorId ContactsManager::get_channel_accent_color_id(ChannelId channel_id) const {
@@ -5803,12 +5803,17 @@ AccentColorId ContactsManager::get_channel_accent_color_id(ChannelId channel_id)
   return c->accent_color_id;
 }
 
-AccentColorId ContactsManager::get_secret_chat_accent_color_id(SecretChatId secret_chat_id) const {
+int32 ContactsManager::get_channel_accent_color_id_object(ChannelId channel_id) const {
+  return td_->theme_manager_->get_accent_color_id_object(get_channel_accent_color_id(channel_id),
+                                                         AccentColorId(channel_id));
+}
+
+int32 ContactsManager::get_secret_chat_accent_color_id_object(SecretChatId secret_chat_id) const {
   auto c = get_secret_chat(secret_chat_id);
   if (c == nullptr) {
-    return AccentColorId(0);
+    return 5;
   }
-  return get_user_accent_color_id(c->user_id);
+  return get_user_accent_color_id_object(c->user_id);
 }
 
 CustomEmojiId ContactsManager::get_user_background_custom_emoji_id(UserId user_id) const {
@@ -19504,9 +19509,10 @@ tl_object_ptr<td_api::user> ContactsManager::get_user_object(UserId user_id, con
       user_id.get(), u->first_name, u->last_name, u->usernames.get_usernames_object(), u->phone_number,
       get_user_status_object(user_id, u, G()->unix_time()),
       get_profile_photo_object(td_->file_manager_.get(), u->photo),
-      td_->theme_manager_->get_accent_color_id_object(accent_color_id), u->background_custom_emoji_id.get(),
-      std::move(emoji_status), u->is_contact, u->is_mutual_contact, u->is_close_friend, u->is_verified, u->is_premium,
-      u->is_support, get_restriction_reason_description(u->restriction_reasons), u->is_scam, u->is_fake,
+      td_->theme_manager_->get_accent_color_id_object(accent_color_id, AccentColorId(user_id)),
+      u->background_custom_emoji_id.get(), std::move(emoji_status), u->is_contact, u->is_mutual_contact,
+      u->is_close_friend, u->is_verified, u->is_premium, u->is_support,
+      get_restriction_reason_description(u->restriction_reasons), u->is_scam, u->is_fake,
       u->max_active_story_id.is_valid(), get_user_has_unread_stories(u), have_access, std::move(type), u->language_code,
       u->attach_menu_enabled);
 }
@@ -19817,7 +19823,7 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
   string title;
   const DialogPhoto *photo = nullptr;
   DialogPhoto invite_link_photo;
-  AccentColorId accent_color_id;
+  int32 accent_color_id_object;
   string description;
   int32 participant_count = 0;
   vector<int64> member_user_ids;
@@ -19843,7 +19849,7 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
         } else {
           LOG(ERROR) << "Have no information about " << chat_id;
         }
-        accent_color_id = get_chat_accent_color_id(chat_id);
+        accent_color_id_object = get_chat_accent_color_id_object(chat_id);
         break;
       }
       case DialogType::Channel: {
@@ -19863,7 +19869,7 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
         } else {
           LOG(ERROR) << "Have no information about " << channel_id;
         }
-        accent_color_id = get_channel_accent_color_id(channel_id);
+        accent_color_id_object = get_channel_accent_color_id_object(channel_id);
         break;
       }
       default:
@@ -19876,7 +19882,7 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
     title = invite_link_info->title;
     invite_link_photo = as_fake_dialog_photo(invite_link_info->photo, dialog_id, false);
     photo = &invite_link_photo;
-    accent_color_id = invite_link_info->accent_color_id;
+    accent_color_id_object = td_->theme_manager_->get_accent_color_id_object(invite_link_info->accent_color_id);
     description = invite_link_info->description;
     participant_count = invite_link_info->participant_count;
     member_user_ids = get_user_ids_object(invite_link_info->participant_user_ids, "get_chat_invite_link_info_object");
@@ -19909,9 +19915,8 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
 
   return td_api::make_object<td_api::chatInviteLinkInfo>(
       td_->messages_manager_->get_chat_id_object(dialog_id, "chatInviteLinkInfo"), accessible_for, std::move(chat_type),
-      title, get_chat_photo_info_object(td_->file_manager_.get(), photo),
-      td_->theme_manager_->get_accent_color_id_object(accent_color_id), description, participant_count,
-      std::move(member_user_ids), creates_join_request, is_public, is_verified, is_scam, is_fake);
+      title, get_chat_photo_info_object(td_->file_manager_.get(), photo), accent_color_id_object, description,
+      participant_count, std::move(member_user_ids), creates_join_request, is_public, is_verified, is_scam, is_fake);
 }
 
 void ContactsManager::get_support_user(Promise<td_api::object_ptr<td_api::user>> &&promise) {

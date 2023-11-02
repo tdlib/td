@@ -118,10 +118,12 @@ class ContactsManager final : public Actor {
   const DialogPhoto *get_channel_dialog_photo(ChannelId channel_id) const;
   const DialogPhoto *get_secret_chat_dialog_photo(SecretChatId secret_chat_id);
 
-  AccentColorId get_user_accent_color_id(UserId user_id) const;
-  AccentColorId get_chat_accent_color_id(ChatId chat_id) const;
   AccentColorId get_channel_accent_color_id(ChannelId channel_id) const;
-  AccentColorId get_secret_chat_accent_color_id(SecretChatId secret_chat_id) const;
+
+  int32 get_user_accent_color_id_object(UserId user_id) const;
+  int32 get_chat_accent_color_id_object(ChatId chat_id) const;
+  int32 get_channel_accent_color_id_object(ChannelId channel_id) const;
+  int32 get_secret_chat_accent_color_id_object(SecretChatId secret_chat_id) const;
 
   CustomEmojiId get_user_background_custom_emoji_id(UserId user_id) const;
   CustomEmojiId get_chat_background_custom_emoji_id(ChatId chat_id) const;
