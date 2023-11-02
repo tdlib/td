@@ -745,9 +745,10 @@ premiumGiveawayInfoCompleted creation_date:int32 actual_winners_selection_date:i
 
 //@description Contains information about supported accent color for user/chat name, background of empty chat photo, replies to messages and link previews
 //@id Accent color identifier
+//@built_in_accent_color_id Identifier of a built-in color to use in places, where only one color is needed; 0-6
 //@light_theme_colors The list of 1-3 colors in RGB format, describing the accent color, as expected to be shown in light themes
 //@dark_theme_colors The list of 1-3 colors in RGB format, describing the accent color, as expected to be shown in dark themes
-accentColor id:int32 light_theme_colors:vector<int32> dark_theme_colors:vector<int32> = AccentColor;
+accentColor id:int32 built_in_accent_color_id:int32 light_theme_colors:vector<int32> dark_theme_colors:vector<int32> = AccentColor;
 
 //@description Describes a custom emoji to be shown instead of the Telegram Premium badge
 //@custom_emoji_id Identifier of the custom emoji in stickerFormatTgs format

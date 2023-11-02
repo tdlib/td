@@ -1984,7 +1984,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
                 colors.push_back(static_cast<int32>(r_color.ok()));
               }
             }
-            if (colors.size() != colors_json.size()) {
+            if (colors.empty() || colors.size() != colors_json.size()) {
               LOG(ERROR) << "Receive invalid colors for " << accent_color_id;
               color_map.erase(accent_color_id);
             }

@@ -424,12 +424,31 @@ td_api::object_ptr<td_api::updateAccentColors> ThemeManager::get_update_accent_c
 
 td_api::object_ptr<td_api::updateAccentColors> ThemeManager::AccentColors::get_update_accent_colors_object() const {
   vector<td_api::object_ptr<td_api::accentColor>> colors;
+  int32 base_colors[] = {0xDF2020, 0xDFA520, 0xA040A0, 0x208020, 0x20DFDF, 0x2044DF, 0xDF1493};
+  auto get_distance = [](int32 lhs_color, int32 rhs_color) {
+    auto get_color_distance = [](int32 lhs, int32 rhs) {
+      auto diff = max(lhs & 255, 0) - max(rhs & 255, 0);
+      return diff * diff;
+    };
+    return get_color_distance(lhs_color, rhs_color) + get_color_distance(lhs_color >> 8, rhs_color >> 8) +
+           get_color_distance(lhs_color >> 16, rhs_color >> 16);
+  };
   for (auto &it : light_colors_) {
     auto light_colors = it.second;
     auto dark_it = dark_colors_.find(it.first);
     auto dark_colors = dark_it != dark_colors_.end() ? dark_it->second : light_colors;
-    colors.push_back(
-        td_api::make_object<td_api::accentColor>(it.first.get(), std::move(light_colors), std::move(dark_colors)));
+    auto first_color = light_colors[0];
+    int best_index = 0;
+    int32 best_distance = get_distance(base_colors[0], first_color);
+    for (int i = 1; i < 7; i++) {
+      auto cur_distance = get_distance(base_colors[i], first_color);
+      if (cur_distance < best_distance) {
+        best_distance = cur_distance;
+        best_index = i;
+      }
+    }
+    colors.push_back(td_api::make_object<td_api::accentColor>(it.first.get(), best_index, std::move(light_colors),
+                                                              std::move(dark_colors)));
   }
   auto available_accent_color_ids =
       transform(accent_color_ids_, [](AccentColorId accent_color_id) { return accent_color_id.get(); });
