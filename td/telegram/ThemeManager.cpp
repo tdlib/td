@@ -244,9 +244,6 @@ void ThemeManager::on_update_accent_colors(FlatHashMap<AccentColorId, vector<int
                                            vector<AccentColorId> accent_color_ids) {
   auto are_equal = [](const FlatHashMap<AccentColorId, vector<int32>, AccentColorIdHash> &lhs,
                       const FlatHashMap<AccentColorId, vector<int32>, AccentColorIdHash> &rhs) {
-    if (lhs.size() != rhs.size()) {
-      return false;
-    }
     for (auto &lhs_it : lhs) {
       auto rhs_it = rhs.find(lhs_it.first);
       if (rhs_it == rhs.end() || rhs_it->second != lhs_it.second) {
@@ -259,8 +256,12 @@ void ThemeManager::on_update_accent_colors(FlatHashMap<AccentColorId, vector<int
       are_equal(dark_colors, accent_colors_.dark_colors_)) {
     return;
   }
-  accent_colors_.light_colors_ = std::move(light_colors);
-  accent_colors_.dark_colors_ = std::move(dark_colors);
+  for (auto &it : light_colors) {
+    accent_colors_.light_colors_[it.first] = std::move(it.second);
+  }
+  for (auto &it : dark_colors) {
+    accent_colors_.dark_colors_[it.first] = std::move(it.second);
+  }
   accent_colors_.accent_color_ids_ = std::move(accent_color_ids);
 }
 
