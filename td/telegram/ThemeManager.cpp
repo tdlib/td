@@ -263,6 +263,8 @@ void ThemeManager::on_update_accent_colors(FlatHashMap<AccentColorId, vector<int
     accent_colors_.dark_colors_[it.first] = std::move(it.second);
   }
   accent_colors_.accent_color_ids_ = std::move(accent_color_ids);
+
+  send_update_accent_colors();
 }
 
 namespace {
@@ -347,6 +349,24 @@ td_api::object_ptr<td_api::updateChatThemes> ThemeManager::get_update_chat_theme
       transform(chat_themes_.themes, [this](const ChatTheme &theme) { return get_chat_theme_object(theme); }));
 }
 
+td_api::object_ptr<td_api::updateAccentColors> ThemeManager::get_update_accent_colors_object() const {
+  return accent_colors_.get_update_accent_colors_object();
+}
+
+td_api::object_ptr<td_api::updateAccentColors> ThemeManager::AccentColors::get_update_accent_colors_object() const {
+  vector<td_api::object_ptr<td_api::accentColor>> colors;
+  for (auto &it : light_colors_) {
+    auto light_colors = it.second;
+    auto dark_it = dark_colors_.find(it.first);
+    auto dark_colors = dark_it != dark_colors_.end() ? dark_it->second : light_colors;
+    colors.push_back(
+        td_api::make_object<td_api::accentColor>(it.first.get(), std::move(light_colors), std::move(dark_colors)));
+  }
+  auto available_accent_color_ids =
+      transform(accent_color_ids_, [](AccentColorId accent_color_id) { return accent_color_id.get(); });
+  return td_api::make_object<td_api::updateAccentColors>(std::move(colors), std::move(available_accent_color_ids));
+}
+
 string ThemeManager::get_chat_themes_database_key() {
   return "chat_themes";
 }
@@ -357,6 +377,10 @@ void ThemeManager::save_chat_themes() {
 
 void ThemeManager::send_update_chat_themes() const {
   send_closure(G()->td(), &Td::send_update, get_update_chat_themes_object());
+}
+
+void ThemeManager::send_update_accent_colors() const {
+  send_closure(G()->td(), &Td::send_update, get_update_accent_colors_object());
 }
 
 void ThemeManager::on_get_chat_themes(Result<telegram_api::object_ptr<telegram_api::account_Themes>> result) {
@@ -455,11 +479,16 @@ ThemeManager::ThemeSettings ThemeManager::get_chat_theme_settings(
 }
 
 void ThemeManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
-  if (!td_->auth_manager_->is_authorized() || td_->auth_manager_->is_bot() || chat_themes_.themes.empty()) {
+  if (!td_->auth_manager_->is_authorized() || td_->auth_manager_->is_bot()) {
     return;
   }
 
-  updates.push_back(get_update_chat_themes_object());
+  if (!chat_themes_.themes.empty()) {
+    updates.push_back(get_update_chat_themes_object());
+  }
+  if (!accent_colors_.accent_color_ids_.empty()) {
+    updates.push_back(get_update_accent_colors_object());
+  }
 }
 
 }  // namespace td

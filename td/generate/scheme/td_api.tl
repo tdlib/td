@@ -743,8 +743,13 @@ premiumGiveawayInfoOngoing creation_date:int32 status:PremiumGiveawayParticipant
 premiumGiveawayInfoCompleted creation_date:int32 actual_winners_selection_date:int32 was_refunded:Bool winner_count:int32 activation_count:int32 gift_code:string = PremiumGiveawayInfo;
 
 
-//@description Contains accent color identifier for user/chat name, and backgrounds of chat photo, replies and link previews
-//@id Accent color identifier; 0 - red, 1 - orange, 2 - purple/violet, 3 - green, 4 - cyan, 5 - blue, 6 - pink
+//@description Contains information about supported accent color for user/chat name, background of empty chat photo, replies to messages and link previews
+//@id Accent color identifier
+//@light_theme_colors The list of 1-3 colors in RGB format, describing the accent color, as expected to be shown in light themes
+//@dark_theme_colors The list of 1-3 colors in RGB format, describing the accent color, as expected to be shown in dark themes
+accentColor id:int32 light_theme_colors:vector<int32> dark_theme_colors:vector<int32> = AccentColor;
+
+//@description Contains accent color identifier for user/chat name, and backgrounds of chat photo, replies and link previews @id Accent color identifier
 accentColorId id:int32 = AccentColorId;
 
 //@description Describes a custom emoji to be shown instead of the Telegram Premium badge
@@ -6328,6 +6333,12 @@ updateSelectedBackground for_dark_theme:Bool background:background = Update;
 
 //@description The list of available chat themes has changed @chat_themes The new list of chat themes
 updateChatThemes chat_themes:vector<chatTheme> = Update;
+
+//@description The list of supported accent colors has changed
+//@colors Information about supported colors; colors with identifiers 0 (red), 1 (orange), 2 (purple/violet), 3 (green), 4 (cyan), 5 (blue), 6 (pink) must be always supported
+//-and aren't included in the list. The exact colors for the accent colors with identifiers 0-6 must be taken from the app theme
+//@available_accent_color_ids The list of accent color identifiers, which can be set through setAccentColor and setChatAccentColor. The colors must be shown in the specififed order
+updateAccentColors colors:vector<accentColor> available_accent_color_ids:vector<int32> = Update;
 
 //@description Some language pack strings have been updated @localization_target Localization target to which the language pack belongs @language_pack_id Identifier of the updated language pack @strings List of changed language pack strings; empty if all strings have changed
 updateLanguagePackStrings localization_target:string language_pack_id:string strings:vector<languagePackString> = Update;

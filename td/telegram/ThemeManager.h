@@ -93,6 +93,8 @@ class ThemeManager final : public Actor {
     FlatHashMap<AccentColorId, vector<int32>, AccentColorIdHash> light_colors_;
     FlatHashMap<AccentColorId, vector<int32>, AccentColorIdHash> dark_colors_;
     vector<AccentColorId> accent_color_ids_;
+
+    td_api::object_ptr<td_api::updateAccentColors> get_update_accent_colors_object() const;
   };
 
   void start_up() final;
@@ -120,6 +122,10 @@ class ThemeManager final : public Actor {
   static BaseTheme get_base_theme(const telegram_api::object_ptr<telegram_api::BaseTheme> &base_theme);
 
   ThemeSettings get_chat_theme_settings(telegram_api::object_ptr<telegram_api::themeSettings> settings);
+
+  td_api::object_ptr<td_api::updateAccentColors> get_update_accent_colors_object() const;
+
+  void send_update_accent_colors() const;
 
   ChatThemes chat_themes_;
 
