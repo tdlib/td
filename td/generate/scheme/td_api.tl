@@ -749,9 +749,6 @@ premiumGiveawayInfoCompleted creation_date:int32 actual_winners_selection_date:i
 //@dark_theme_colors The list of 1-3 colors in RGB format, describing the accent color, as expected to be shown in dark themes
 accentColor id:int32 light_theme_colors:vector<int32> dark_theme_colors:vector<int32> = AccentColor;
 
-//@description Contains accent color identifier for user/chat name, and backgrounds of chat photo, replies and link previews @id Accent color identifier
-accentColorId id:int32 = AccentColorId;
-
 //@description Describes a custom emoji to be shown instead of the Telegram Premium badge
 //@custom_emoji_id Identifier of the custom emoji in stickerFormatTgs format
 //@expiration_date Point in time (Unix timestamp) when the status will expire; 0 if never
@@ -794,7 +791,7 @@ usernames active_usernames:vector<string> disabled_usernames:vector<string> edit
 //@type Type of the user
 //@language_code IETF language tag of the user's language; only available to bots
 //@added_to_attachment_menu True, if the user added the current bot to attachment menu; only available to bots
-user id:int53 first_name:string last_name:string usernames:usernames phone_number:string status:UserStatus profile_photo:profilePhoto accent_color_id:accentColorId background_custom_emoji_id:int64 emoji_status:emojiStatus is_contact:Bool is_mutual_contact:Bool is_close_friend:Bool is_verified:Bool is_premium:Bool is_support:Bool restriction_reason:string is_scam:Bool is_fake:Bool has_active_stories:Bool has_unread_active_stories:Bool have_access:Bool type:UserType language_code:string added_to_attachment_menu:Bool = User;
+user id:int53 first_name:string last_name:string usernames:usernames phone_number:string status:UserStatus profile_photo:profilePhoto accent_color_id:int32 background_custom_emoji_id:int64 emoji_status:emojiStatus is_contact:Bool is_mutual_contact:Bool is_close_friend:Bool is_verified:Bool is_premium:Bool is_support:Bool restriction_reason:string is_scam:Bool is_fake:Bool has_active_stories:Bool has_unread_active_stories:Bool have_access:Bool type:UserType language_code:string added_to_attachment_menu:Bool = User;
 
 
 //@description Contains information about a bot
@@ -1003,7 +1000,7 @@ inviteLinkChatTypeChannel = InviteLinkChatType;
 //@is_verified True, if the chat is verified
 //@is_scam True, if many users reported this chat as a scam
 //@is_fake True, if many users reported this chat as a fake account
-chatInviteLinkInfo chat_id:int53 accessible_for:int32 type:InviteLinkChatType title:string photo:chatPhotoInfo accent_color_id:accentColorId description:string member_count:int32 member_user_ids:vector<int53> creates_join_request:Bool is_public:Bool is_verified:Bool is_scam:Bool is_fake:Bool = ChatInviteLinkInfo;
+chatInviteLinkInfo chat_id:int53 accessible_for:int32 type:InviteLinkChatType title:string photo:chatPhotoInfo accent_color_id:int32 description:string member_count:int32 member_user_ids:vector<int53> creates_join_request:Bool is_public:Bool is_verified:Bool is_scam:Bool is_fake:Bool = ChatInviteLinkInfo;
 
 
 //@description Describes a user that sent a join request and waits for administrator approval @user_id User identifier @date Point in time (Unix timestamp) when the user sent the join request @bio A short bio of the user
@@ -1619,7 +1616,7 @@ videoChat group_call_id:int32 has_participants:Bool default_participant_id:Messa
 //@reply_markup_message_id Identifier of the message from which reply markup needs to be used; 0 if there is no default custom reply markup in the chat
 //@draft_message A draft of a message in the chat; may be null if none
 //@client_data Application-specific data associated with the chat. (For example, the chat scroll position or local chat notification settings can be stored here.) Persistent if the message database is used
-chat id:int53 type:ChatType title:string photo:chatPhotoInfo accent_color_id:accentColorId background_custom_emoji_id:int64 permissions:chatPermissions last_message:message positions:vector<chatPosition> message_sender_id:MessageSender block_list:BlockList has_protected_content:Bool is_translatable:Bool is_marked_as_unread:Bool has_scheduled_messages:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 unread_reaction_count:int32 notification_settings:chatNotificationSettings available_reactions:ChatAvailableReactions message_auto_delete_time:int32 background:chatBackground theme_name:string action_bar:ChatActionBar video_chat:videoChat pending_join_requests:chatJoinRequestsInfo reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
+chat id:int53 type:ChatType title:string photo:chatPhotoInfo accent_color_id:int32 background_custom_emoji_id:int64 permissions:chatPermissions last_message:message positions:vector<chatPosition> message_sender_id:MessageSender block_list:BlockList has_protected_content:Bool is_translatable:Bool is_marked_as_unread:Bool has_scheduled_messages:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 unread_reaction_count:int32 notification_settings:chatNotificationSettings available_reactions:ChatAvailableReactions message_auto_delete_time:int32 background:chatBackground theme_name:string action_bar:ChatActionBar video_chat:videoChat pending_join_requests:chatJoinRequestsInfo reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
 
 //@description Represents a list of chats @total_count Approximate total number of chats found @chat_ids List of chat identifiers
 chats total_count:int32 chat_ids:vector<int53> = Chats;
@@ -2073,7 +2070,7 @@ pageBlockSlideshow page_blocks:vector<PageBlock> caption:pageBlockCaption = Page
 //@photo Chat photo; may be null
 //@accent_color_id Identifier of the accent color for chat title and background of chat photo
 //@username Chat username by which all other information about the chat can be resolved
-pageBlockChatLink title:string photo:chatPhotoInfo accent_color_id:accentColorId username:string = PageBlock;
+pageBlockChatLink title:string photo:chatPhotoInfo accent_color_id:int32 username:string = PageBlock;
 
 //@description A table
 //@caption Table caption
@@ -4260,7 +4257,7 @@ chatEventUsernameChanged old_username:string new_username:string = ChatEventActi
 chatEventActiveUsernamesChanged old_usernames:vector<string> new_usernames:vector<string> = ChatEventAction;
 
 //@description The chat accent color was changed @old_accent_color_id Previous identifier of chat accent color @new_accent_color_id New identifier of chat accent color
-chatEventAccentColorChanged old_accent_color_id:accentColorId new_accent_color_id:accentColorId = ChatEventAction;
+chatEventAccentColorChanged old_accent_color_id:int32 new_accent_color_id:int32 = ChatEventAction;
 
 //@description The chat's custom emoji for reply background was changed @old_background_custom_emoji_id Previous identifier of the custom emoji; 0 if none @new_background_custom_emoji_id New identifier of the custom emoji; 0 if none
 chatEventBackgroundCustomEmojiChanged old_background_custom_emoji_id:int64 new_background_custom_emoji_id:int64 = ChatEventAction;
@@ -6046,7 +6043,7 @@ updateChatTitle chat_id:int53 title:string = Update;
 updateChatPhoto chat_id:int53 photo:chatPhotoInfo = Update;
 
 //@description A chat accent color has changed @chat_id Chat identifier @accent_color_id The new chat accent color identifier
-updateChatAccentColor chat_id:int53 accent_color_id:accentColorId = Update;
+updateChatAccentColor chat_id:int53 accent_color_id:int32 = Update;
 
 //@description A chat's custom emoji for reply background has changed @chat_id Chat identifier @background_custom_emoji_id The new tdentifier of a custom emoji to be shown on the reply header background
 updateChatBackgroundCustomEmoji chat_id:int53 background_custom_emoji_id:int64 = Update;

@@ -59,9 +59,9 @@ class AccentColorId {
     return id != other.id;
   }
 
-  td_api::object_ptr<td_api::accentColorId> get_accent_color_id_object() const {
+  int32 get_accent_color_id_object() const {
     CHECK(is_valid());
-    return td_api::make_object<td_api::accentColorId>(id);
+    return id;
   }
 
   template <class StorerT>
