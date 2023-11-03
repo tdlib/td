@@ -1652,8 +1652,16 @@ class CliClient final : public Actor {
   static td_api::object_ptr<td_api::formattedText> as_formatted_text(
       const string &text, vector<td_api::object_ptr<td_api::textEntity>> entities = {}) {
     if (entities.empty() && !text.empty()) {
-      auto parsed_text = execute(
-          td_api::make_object<td_api::parseTextEntities>(text, td_api::make_object<td_api::textParseModeMarkdown>(2)));
+      Slice unused_reserved_characters("#+-={}.!");
+      string new_text;
+      for (auto c : text) {
+        if (unused_reserved_characters.find(c) != Slice::npos) {
+          new_text += '\\';
+        }
+        new_text += c;
+      }
+      auto parsed_text = execute(td_api::make_object<td_api::parseTextEntities>(
+          new_text, td_api::make_object<td_api::textParseModeMarkdown>(2)));
       if (parsed_text->get_id() == td_api::formattedText::ID) {
         return td_api::move_object_as<td_api::formattedText>(parsed_text);
       }
