@@ -182,13 +182,10 @@ void ThemeManager::AccentColors::parse(ParserT &parser) {
 }
 
 ThemeManager::ThemeManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
+  do_init();
 }
 
-void ThemeManager::start_up() {
-  init();
-}
-
-void ThemeManager::init() {
+void ThemeManager::do_init() {
   if (!td_->auth_manager_->is_authorized() || td_->auth_manager_->is_bot()) {
     return;
   }
@@ -215,7 +212,10 @@ void ThemeManager::init() {
       accent_colors_ = AccentColors();
     }
   }
+}
 
+void ThemeManager::init() {
+  do_init();
   loop();
 }
 

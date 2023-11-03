@@ -106,11 +106,11 @@ class ThemeManager final : public Actor {
     void parse(ParserT &parser);
   };
 
-  void start_up() final;
-
   void loop() final;
 
   void tear_down() final;
+
+  void do_init();
 
   static bool is_dark_base_theme(BaseTheme base_theme);
 
