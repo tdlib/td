@@ -1660,7 +1660,7 @@ class CliClient final : public Actor {
         }
         new_text += c;
       }
-      auto parsed_text = execute(td_api::make_object<td_api::parseTextEntities>(
+      auto parsed_text = ClientActor::execute(td_api::make_object<td_api::parseTextEntities>(
           new_text, td_api::make_object<td_api::textParseModeMarkdown>(2)));
       if (parsed_text->get_id() == td_api::formattedText::ID) {
         return td_api::move_object_as<td_api::formattedText>(parsed_text);
