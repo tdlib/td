@@ -7271,7 +7271,7 @@ setDefaultReactionType reaction_type:ReactionType = Ok;
 //@text Text in which to search for the quote
 //@quote Quote to search for
 //@quote_position Approximate quote position in UTF-16 code units
-searchQuote text:formattedText quote:formattedText quote_position:int32 = FoundPositions;
+searchQuote text:formattedText quote:formattedText quote_position:int32 = FoundPosition;
 
 //@description Returns all entities (mentions, hashtags, cashtags, bot commands, bank card numbers, URLs, and email addresses) found in the text. Can be called synchronously @text The text in which to look for entities
 getTextEntities text:string = TextEntities;
