@@ -4043,6 +4043,13 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::checkChatInviteLink>(args));
     } else if (op == "jcbil") {
       send_request(td_api::make_object<td_api::joinChatByInviteLink>(args));
+    } else if (op == "sq") {
+      string text;
+      string quote;
+      int32 quote_position;
+      get_args(args, text, quote, quote_position);
+      execute(
+          td_api::make_object<td_api::searchQuote>(as_formatted_text(text), as_formatted_text(quote), quote_position));
     } else if (op == "gte") {
       send_request(td_api::make_object<td_api::getTextEntities>(args));
     } else if (op == "gtee") {

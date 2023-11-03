@@ -185,6 +185,8 @@ void remove_empty_entities(vector<MessageEntity> &entities);
 
 void remove_unallowed_quote_entities(FormattedText &text);
 
+int32 search_quote(FormattedText &&text, FormattedText &&quote, int32 quote_position);
+
 Slice get_first_url(const FormattedText &text);
 
 bool is_visible_url(const FormattedText &text, const string &url);

@@ -2851,6 +2851,7 @@ bool Td::is_authentication_request(int32 id) {
 
 bool Td::is_synchronous_request(const td_api::Function *function) {
   switch (function->get_id()) {
+    case td_api::searchQuote::ID:
     case td_api::getTextEntities::ID:
     case td_api::parseTextEntities::ID:
     case td_api::parseMarkdown::ID:
@@ -9038,6 +9039,10 @@ void Td::on_request(uint64 id, const td_api::getSupportName &request) {
   get_support_name(this, std::move(query_promise));
 }
 
+void Td::on_request(uint64 id, const td_api::searchQuote &request) {
+  UNREACHABLE();
+}
+
 void Td::on_request(uint64 id, const td_api::getTextEntities &request) {
   UNREACHABLE();
 }
@@ -9128,6 +9133,30 @@ void Td::on_request(uint64 id, const td_api::getLogTagVerbosityLevel &request) {
 
 void Td::on_request(uint64 id, const td_api::addLogMessage &request) {
   UNREACHABLE();
+}
+
+td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::searchQuote &request) {
+  if (request.text_ == nullptr || request.quote_ == nullptr) {
+    return make_error(400, "Text and quote must be non-empty");
+  }
+  if (!check_utf8(request.text_->text_) || !check_utf8(request.quote_->text_)) {
+    return make_error(400, "Strings must be encoded in UTF-8");
+  }
+  auto r_text_entities = get_message_entities(nullptr, std::move(request.text_->entities_), false);
+  if (r_text_entities.is_error()) {
+    return make_error(400, r_text_entities.error().message());
+  }
+  auto r_quote_entities = get_message_entities(nullptr, std::move(request.quote_->entities_), false);
+  if (r_quote_entities.is_error()) {
+    return make_error(400, r_quote_entities.error().message());
+  }
+  auto position =
+      search_quote({std::move(request.text_->text_), r_text_entities.move_as_ok()},
+                   {std::move(request.quote_->text_), r_quote_entities.move_as_ok()}, request.quote_position_);
+  if (position == -1) {
+    return make_error(404, "Not Found");
+  }
+  return td_api::make_object<td_api::foundPosition>(position);
 }
 
 td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getTextEntities &request) {

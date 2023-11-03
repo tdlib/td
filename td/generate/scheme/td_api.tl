@@ -5734,6 +5734,9 @@ topChatCategoryCalls = TopChatCategory;
 topChatCategoryForwardChats = TopChatCategory;
 
 
+//@description Contains 0-based match position @position The position of the match
+foundPosition position:int32 = FoundPosition;
+
 //@description Contains 0-based positions of matched objects @total_count Total number of matched objects @positions The positions of the matched objects
 foundPositions total_count:int32 positions:vector<int32> = FoundPositions;
 
@@ -7263,6 +7266,12 @@ getMessageAddedReactions chat_id:int53 message_id:int53 reaction_type:ReactionTy
 //@description Changes type of default reaction for the current user @reaction_type New type of the default reaction
 setDefaultReactionType reaction_type:ReactionType = Ok;
 
+
+//@description Searches for a given quote in a text. Returns found quote start position in UTF-16 code units. Returns a 404 error if the quote is not found. Can be called synchronously
+//@text Text in which to search for the quote
+//@quote Quote to search for
+//@quote_position Approximate quote position in UTF-16 code units
+searchQuote text:formattedText quote:formattedText quote_position:int32 = FoundPositions;
 
 //@description Returns all entities (mentions, hashtags, cashtags, bot commands, bank card numbers, URLs, and email addresses) found in the text. Can be called synchronously @text The text in which to look for entities
 getTextEntities text:string = TextEntities;
