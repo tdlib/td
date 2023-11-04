@@ -1354,13 +1354,42 @@ tl_object_ptr<td_api::webPage> WebPagesManager::get_web_page_object(WebPageId we
     story_sender_dialog_id = web_page->story_full_ids_[0].get_dialog_id();
     story_id = web_page->story_full_ids_[0].get_story_id();
   }
+  auto show_large_media = [&] {
+    if (!web_page->has_large_media_) {
+      return false;
+    }
+    if (force_large_media) {
+      return true;
+    }
+    if (force_small_media) {
+      return false;
+    }
+    if (instant_view_version != 0 || web_page->document_.file_id.is_valid() || web_page->photo_.is_empty()) {
+      return true;
+    }
+    Slice type = web_page->type_;
+    if (type != "app" && type != "article" && type != "profile" && type != "telegram_bot" &&
+        type != "telegram_channel" && type != "telegram_chat" && type != "telegram_channel_boost" &&
+        type != "telegram_livestream" && type != "telegram_megagroup" && type != "telegram_user" &&
+        type != "telegram_voicechat") {
+      return true;
+    }
+    if (web_page->site_name_.empty() && web_page->title_.empty() && web_page->description_.empty() &&
+        web_page->author_.empty()) {
+      return true;
+    }
+    if (web_page->site_name_ == "Twitter" || web_page->site_name_ == "Facebook" ||
+        web_page->site_name_ == "Instagram") {
+      return true;
+    }
+    return false;
+  }();
   return make_tl_object<td_api::webPage>(
       web_page->url_, web_page->display_url_, web_page->type_, web_page->site_name_, web_page->title_,
       get_formatted_text_object(description, true, duration == 0 ? std::numeric_limits<int32>::max() : duration),
       get_photo_object(td_->file_manager_.get(), web_page->photo_), web_page->embed_url_, web_page->embed_type_,
       web_page->embed_dimensions_.width, web_page->embed_dimensions_.height, web_page->duration_, web_page->author_,
-      web_page->has_large_media_, force_small_media && !force_large_media,
-      web_page->has_large_media_ && force_large_media, skip_confirmation, invert_media,
+      web_page->has_large_media_, show_large_media, skip_confirmation, invert_media,
       web_page->document_.type == Document::Type::Animation
           ? td_->animations_manager_->get_animation_object(web_page->document_.file_id)
           : nullptr,
