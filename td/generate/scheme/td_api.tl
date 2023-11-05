@@ -1151,7 +1151,7 @@ messageOriginHiddenUser sender_name:string = MessageOrigin;
 
 //@description The message was originally sent on behalf of a chat
 //@sender_chat_id Identifier of the chat that originally sent the message
-//@author_signature For messages originally sent by an anonymous chat administrator or a channel administrator, original message author signature
+//@author_signature For messages originally sent by an anonymous chat administrator, original message author signature
 messageOriginChat sender_chat_id:int53 author_signature:string = MessageOrigin;
 
 //@description The message was originally a post in a channel
