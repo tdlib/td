@@ -1813,9 +1813,10 @@ TEST(MessageEntities, parse_markdown_v3) {
   check_parse_markdown_v3(
       "__italic__ ~~strikethrough~~ **bold** `code` ```pre``` __[italic__ text_url](telegram.org) __italic**bold "
       "italic__bold**__italic__ ~~strikethrough~~ **bold** `code` ```pre``` __[italic__ text_url](telegram.org) "
-      "__italic**bold italic__bold** ||spoiler||",
+      "__italic**bold italic__bold** ||spoiler|| ```pre\nprecode``` init",
+      {{td::MessageEntity::Type::Italic, 271, 4}},
       "italic strikethrough bold code pre italic text_url italicbold italicbolditalic strikethrough bold code pre "
-      "italic text_url italicbold italicbold spoiler",
+      "italic text_url italicbold italicbold spoiler precode init",
       {{td::MessageEntity::Type::Italic, 0, 6},
        {td::MessageEntity::Type::Strikethrough, 7, 13},
        {td::MessageEntity::Type::Bold, 21, 4},
@@ -1834,7 +1835,9 @@ TEST(MessageEntities, parse_markdown_v3) {
        {td::MessageEntity::Type::Italic, 107, 6},
        {td::MessageEntity::Type::Italic, 123, 17},
        {td::MessageEntity::Type::Bold, 129, 15},
-       {td::MessageEntity::Type::Spoiler, 145, 7}});
+       {td::MessageEntity::Type::Spoiler, 145, 7},
+       {td::MessageEntity::Type::PreCode, 153, 7, "pre"},
+       {td::MessageEntity::Type::Italic, 161, 4}});
   check_parse_markdown_v3("```\nsome code\n```", "some code\n", {{td::MessageEntity::Type::Pre, 0, 10}});
   check_parse_markdown_v3("asd\n```\nsome code\n```cabab", "asd\nsome code\ncabab",
                           {{td::MessageEntity::Type::Pre, 4, 10}});

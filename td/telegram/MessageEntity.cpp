@@ -2798,7 +2798,7 @@ static FormattedText parse_pre_entities_v3(Slice text, vector<MessageEntity> ent
         result_text_utf16_length += part_end - max_end;
       } else {
         FormattedText parsed_text = parse_pre_entities_v3(parsed_part_text);
-        int32 new_skipped_length = parsed_part_text.size() - parsed_text.text.size();
+        int32 new_skipped_length = static_cast<int32>(parsed_part_text.size() - parsed_text.text.size());
         CHECK(new_skipped_length < part_end - max_end);
         result.text += parsed_text.text;
         for (auto &entity : parsed_text.entities) {
