@@ -2737,9 +2737,6 @@ static FormattedText parse_pre_entities_v3(Slice text) {
             result.append(text.begin() + entity_begin, end_tag_begin - entity_begin);
             utf16_offset += entity_length;
             i = end_tag_end - 1;
-            if (end_tag_end < size && text[end_tag_end] == '\n') {
-              i++;
-            }
             is_found = true;
             break;
           } else {
