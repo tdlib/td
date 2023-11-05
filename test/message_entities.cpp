@@ -1835,6 +1835,19 @@ TEST(MessageEntities, parse_markdown_v3) {
        {td::MessageEntity::Type::Italic, 123, 17},
        {td::MessageEntity::Type::Bold, 129, 15},
        {td::MessageEntity::Type::Spoiler, 145, 7}});
+  check_parse_markdown_v3("```\nsome code\n```", "some code\n", {{td::MessageEntity::Type::Pre, 0, 10}});
+  check_parse_markdown_v3("asd\n```\nsome code\n```cabab", "asd\nsome code\ncabab",
+                          {{td::MessageEntity::Type::Pre, 4, 10}});
+  check_parse_markdown_v3("asd\naba```\nsome code\n```cabab", "asd\naba\nsome code\ncabab",
+                          {{td::MessageEntity::Type::Pre, 7, 11}});
+  check_parse_markdown_v3("asd\naba```\nsome code\n```\ncabab", "asd\naba\nsome code\ncabab",
+                          {{td::MessageEntity::Type::Pre, 7, 11}});
+  check_parse_markdown_v3("asd\naba```a b\nsome code\n```\ncabab", "asd\nabaa b\nsome code\ncabab",
+                          {{td::MessageEntity::Type::Pre, 7, 14}});
+  check_parse_markdown_v3("asd\naba```a!@#$%^&*(b\nsome code\n```\ncabab", "asd\nabasome code\ncabab",
+                          {{td::MessageEntity::Type::PreCode, 7, 10, "a!@#$%^&*(b"}});
+  check_parse_markdown_v3("```aba\n```", "aba\n", {{td::MessageEntity::Type::Pre, 0, 4}});
+  check_parse_markdown_v3("```\n```", "\n", {{td::MessageEntity::Type::Pre, 0, 1}});
 
   td::vector<td::string> parts{"a", " #test__a", "__", "**", "~~", "||", "[", "](t.me)", "`"};
   td::vector<td::MessageEntity::Type> types{

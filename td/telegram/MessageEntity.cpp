@@ -2711,11 +2711,35 @@ static FormattedText parse_pre_entities_v3(Slice text) {
           if (end_tag_end - end_tag_begin == j - i) {
             // end tag found
             CHECK(entity_length > 0);
-            entities.emplace_back(j - i == 3 ? MessageEntity::Type::Pre : MessageEntity::Type::Code, utf16_offset,
-                                  entity_length);
-            result.append(text.begin() + j, end_tag_begin - j);
+            auto entity_begin = j;
+            string language_code;
+            if (j - i == 3) {
+              size_t language_code_end = j;
+              while (language_code_end < end_tag_begin - 1 && 33 <= text[language_code_end] &&
+                     text[language_code_end] <= 126) {
+                language_code_end++;
+              }
+              if (language_code_end < end_tag_begin - 1 && text[language_code_end] == '\n' &&
+                  (language_code_end != entity_begin || i == 0 || text[i - 1] == '\n')) {
+                language_code = text.substr(entity_begin, language_code_end - entity_begin).str();
+                entity_begin = language_code_end + 1;
+                entity_length -= entity_begin - j;
+                CHECK(entity_length > 0);
+              }
+            }
+            if (!language_code.empty()) {
+              entities.emplace_back(MessageEntity::Type::PreCode, utf16_offset, entity_length,
+                                    std::move(language_code));
+            } else {
+              entities.emplace_back(j - i == 3 ? MessageEntity::Type::Pre : MessageEntity::Type::Code, utf16_offset,
+                                    entity_length);
+            }
+            result.append(text.begin() + entity_begin, end_tag_begin - entity_begin);
             utf16_offset += entity_length;
             i = end_tag_end - 1;
+            if (end_tag_end < size && text[end_tag_end] == '\n') {
+              i++;
+            }
             is_found = true;
             break;
           } else {
@@ -2774,10 +2798,7 @@ static FormattedText parse_pre_entities_v3(Slice text, vector<MessageEntity> ent
         result_text_utf16_length += part_end - max_end;
       } else {
         FormattedText parsed_text = parse_pre_entities_v3(parsed_part_text);
-        int32 new_skipped_length = 0;
-        for (auto &entity : parsed_text.entities) {
-          new_skipped_length += (entity.type == MessageEntity::Type::Pre ? 6 : 2);
-        }
+        int32 new_skipped_length = parsed_part_text.size() - parsed_text.text.size();
         CHECK(new_skipped_length < part_end - max_end);
         result.text += parsed_text.text;
         for (auto &entity : parsed_text.entities) {
