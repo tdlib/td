@@ -2924,6 +2924,14 @@ FormattedText get_markdown_v3(FormattedText text) {
   int32 utf16_offset = 0;
   int32 utf16_added = 0;
 
+  auto is_valid_language_code = [](Slice code) {
+    for (auto c : code) {
+      if (c < 33 || c > 126) {
+        return false;
+      }
+    }
+    return true;
+  };
   for (size_t pos = 0; pos <= text.text.size(); pos++) {
     auto c = static_cast<unsigned char>(text.text[pos]);
     if (is_utf8_character_first_code_unit(c)) {
@@ -2936,6 +2944,7 @@ FormattedText get_markdown_v3(FormattedText text) {
 
         CHECK(utf16_offset == entity_end);
 
+        bool need_entity = false;
         switch (entity->type) {
           case MessageEntity::Type::Italic:
             result.text += "__";
@@ -2967,11 +2976,22 @@ FormattedText get_markdown_v3(FormattedText text) {
             result.text += "```";
             utf16_added += 3;
             break;
-          default:
-            result.entities.push_back(*entity);
-            result.entities.back().offset += nested_entities_stack.back().utf16_added_before;
-            result.entities.back().length += utf16_added - nested_entities_stack.back().utf16_added_before;
+          case MessageEntity::Type::PreCode:
+            if (is_valid_language_code(entity->argument)) {
+              result.text += "```";
+              utf16_added += 3;
+            } else {
+              need_entity = true;
+            }
             break;
+          default:
+            need_entity = true;
+            break;
+        }
+        if (need_entity) {
+          result.entities.push_back(*entity);
+          result.entities.back().offset += nested_entities_stack.back().utf16_added_before;
+          result.entities.back().length += utf16_added - nested_entities_stack.back().utf16_added_before;
         }
         nested_entities_stack.pop_back();
       }
@@ -3006,6 +3026,24 @@ FormattedText get_markdown_v3(FormattedText text) {
           case MessageEntity::Type::Pre:
             result.text += "```";
             utf16_added += 3;
+            if (c != '\n') {
+              result.text += "\n";
+              utf16_added++;
+            }
+            break;
+          case MessageEntity::Type::PreCode:
+            if (is_valid_language_code(text.entities[current_entity].argument)) {
+              result.text += "```";
+              utf16_added += 3;
+              if (!text.entities[current_entity].argument.empty()) {
+                result.text += text.entities[current_entity].argument;
+                utf16_added += text.entities[current_entity].argument.size();
+              }
+              if (c != '\n') {
+                result.text += "\n";
+                utf16_added++;
+              }
+            }
             break;
           default:
             // keep as is

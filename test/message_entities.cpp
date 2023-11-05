@@ -1901,7 +1901,7 @@ static void check_get_markdown_v3(const td::string &result_text, const td::vecto
 }
 
 TEST(MessageEntities, get_markdown_v3) {
-  check_get_markdown_v3("``` ```", {}, " ", {{td::MessageEntity::Type::Pre, 0, 1}});
+  check_get_markdown_v3("```\n ```", {}, " ", {{td::MessageEntity::Type::Pre, 0, 1}});
   check_get_markdown_v3("` `", {}, " ", {{td::MessageEntity::Type::Code, 0, 1}});
   check_get_markdown_v3("`\n`", {}, "\n", {{td::MessageEntity::Type::Code, 0, 1}});
   check_get_markdown_v3("ab", {{td::MessageEntity::Type::Code, 0, 1}, {td::MessageEntity::Type::Pre, 1, 1}}, "ab",
@@ -1916,16 +1916,18 @@ TEST(MessageEntities, get_markdown_v3) {
   check_get_markdown_v3("** **", {}, " ", {{td::MessageEntity::Type::Bold, 0, 1}});
   check_get_markdown_v3("~~ ~~", {}, " ", {{td::MessageEntity::Type::Strikethrough, 0, 1}});
   check_get_markdown_v3("|| ||", {}, " ", {{td::MessageEntity::Type::Spoiler, 0, 1}});
-  check_get_markdown_v3("__a__ **b** ~~c~~ ||d|| e", {{td::MessageEntity::Type::PreCode, 24, 1, "C++"}}, "a b c d e",
+  check_get_markdown_v3("__a__ **b** ~~c~~ ||d|| e", {{td::MessageEntity::Type::PreCode, 24, 1, " C++"}}, "a b c d e",
                         {{td::MessageEntity::Type::Italic, 0, 1},
                          {td::MessageEntity::Type::Bold, 2, 1},
                          {td::MessageEntity::Type::Strikethrough, 4, 1},
                          {td::MessageEntity::Type::Spoiler, 6, 1},
-                         {td::MessageEntity::Type::PreCode, 8, 1, "C++"}});
-  check_get_markdown_v3("`ab` ```cd``` ef", {{td::MessageEntity::Type::PreCode, 14, 2, "C++"}}, "ab cd ef",
-                        {{td::MessageEntity::Type::Code, 0, 2},
-                         {td::MessageEntity::Type::Pre, 3, 2},
-                         {td::MessageEntity::Type::PreCode, 6, 2, "C++"}});
+                         {td::MessageEntity::Type::PreCode, 8, 1, " C++"}});
+  check_get_markdown_v3("```cpp\ngh```\n`ab`\n```\ncd```\nef", {{td::MessageEntity::Type::PreCode, 28, 2, " C++"}},
+                        "gh\nab\ncd\nef",
+                        {{td::MessageEntity::Type::PreCode, 0, 2, "cpp"},
+                         {td::MessageEntity::Type::Code, 3, 2},
+                         {td::MessageEntity::Type::Pre, 6, 2},
+                         {td::MessageEntity::Type::PreCode, 9, 2, " C++"}});
   check_get_markdown_v3("__asd__[__ab__cd](http://t.me/)", {}, "asdabcd",
                         {{td::MessageEntity::Type::Italic, 0, 3},
                          {td::MessageEntity::Type::TextUrl, 3, 4, "http://t.me/"},
@@ -1944,4 +1946,19 @@ TEST(MessageEntities, get_markdown_v3) {
                         {{td::MessageEntity::Type::TextUrl, 0, 16, "http://example.com/"},
                          {td::MessageEntity::Type::Bold, 0, 16},
                          {td::MessageEntity::Type::Italic, 0, 16}});
+  check_get_markdown_v3("```\nsome code\n```", {}, "some code\n", {{td::MessageEntity::Type::Pre, 0, 10}});
+  check_get_markdown_v3("asd\n```\nsome code\n```cabab", {}, "asd\nsome code\ncabab",
+                        {{td::MessageEntity::Type::Pre, 4, 10}});
+  check_get_markdown_v3("asd\naba```\nsome code\n```cabab", {}, "asd\nabasome code\ncabab",
+                        {{td::MessageEntity::Type::Pre, 7, 10}});
+  check_get_markdown_v3("asd\naba```\nsome code\n```\ncabab", {}, "asd\nabasome code\n\ncabab",
+                        {{td::MessageEntity::Type::Pre, 7, 10}});
+  check_get_markdown_v3("asd\naba```\na b\nsome code\n```\ncabab", {}, "asd\nabaa b\nsome code\n\ncabab",
+                        {{td::MessageEntity::Type::Pre, 7, 14}});
+  check_get_markdown_v3("asd\n```\na b\nsome code\n```\ncabab", {}, "asd\na b\nsome code\n\ncabab",
+                        {{td::MessageEntity::Type::Pre, 4, 14}});
+  check_get_markdown_v3("asd\naba```a!@#$%^&*(b\nsome code\n```\ncabab", {}, "asd\nabasome code\n\ncabab",
+                        {{td::MessageEntity::Type::PreCode, 7, 10, "a!@#$%^&*(b"}});
+  check_get_markdown_v3("```\naba\n```", {}, "aba\n", {{td::MessageEntity::Type::Pre, 0, 4}});
+  check_get_markdown_v3("```\n```", {}, "\n", {{td::MessageEntity::Type::Pre, 0, 1}});
 }
