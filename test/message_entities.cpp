@@ -1841,10 +1841,10 @@ TEST(MessageEntities, parse_markdown_v3) {
   check_parse_markdown_v3("```\nsome code\n```", "some code\n", {{td::MessageEntity::Type::Pre, 0, 10}});
   check_parse_markdown_v3("asd\n```\nsome code\n```cabab", "asd\nsome code\ncabab",
                           {{td::MessageEntity::Type::Pre, 4, 10}});
-  check_parse_markdown_v3("asd\naba```\nsome code\n```cabab", "asd\naba\nsome code\ncabab",
-                          {{td::MessageEntity::Type::Pre, 7, 11}});
-  check_parse_markdown_v3("asd\naba```\nsome code\n```\ncabab", "asd\naba\nsome code\n\ncabab",
-                          {{td::MessageEntity::Type::Pre, 7, 11}});
+  check_parse_markdown_v3("asd\naba```\nsome code\n```cabab", "asd\nabasome code\ncabab",
+                          {{td::MessageEntity::Type::Pre, 7, 10}});
+  check_parse_markdown_v3("asd\naba```\nsome code\n```\ncabab", "asd\nabasome code\n\ncabab",
+                          {{td::MessageEntity::Type::Pre, 7, 10}});
   check_parse_markdown_v3("asd\naba```a b\nsome code\n```\ncabab", "asd\nabaa b\nsome code\n\ncabab",
                           {{td::MessageEntity::Type::Pre, 7, 14}});
   check_parse_markdown_v3("asd\naba```a!@#$%^&*(b\nsome code\n```\ncabab", "asd\nabasome code\n\ncabab",

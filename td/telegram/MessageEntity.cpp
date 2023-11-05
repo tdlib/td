@@ -2719,8 +2719,7 @@ static FormattedText parse_pre_entities_v3(Slice text) {
                      text[language_code_end] <= 126) {
                 language_code_end++;
               }
-              if (language_code_end < end_tag_begin - 1 && text[language_code_end] == '\n' &&
-                  (language_code_end != entity_begin || i == 0 || text[i - 1] == '\n')) {
+              if (language_code_end < end_tag_begin - 1 && text[language_code_end] == '\n') {
                 language_code = text.substr(entity_begin, language_code_end - entity_begin).str();
                 entity_begin = language_code_end + 1;
                 entity_length -= entity_begin - j;
