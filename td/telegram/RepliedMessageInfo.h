@@ -66,8 +66,7 @@ class RepliedMessageInfo {
   RepliedMessageInfo clone(Td *td) const;
 
   bool is_empty() const {
-    return message_id_ == MessageId() && dialog_id_ == DialogId() && origin_date_ == 0 && origin_.is_empty() &&
-           quote_.text.empty() && content_ == nullptr;
+    return message_id_ == MessageId() && origin_.is_empty();
   }
 
   bool is_external() const {

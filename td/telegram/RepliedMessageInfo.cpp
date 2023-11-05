@@ -91,14 +91,19 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, tl_object_ptr<telegram_api::messa
     }
     if (reply_header->reply_from_ != nullptr) {
       origin_date_ = reply_header->reply_from_->date_;
-      auto r_reply_origin = MessageOrigin::get_message_origin(td, std::move(reply_header->reply_from_));
-      if (r_reply_origin.is_error()) {
+      if (origin_date_ <= 0) {
+        LOG(ERROR) << "Receive " << to_string(reply_header) << " in " << MessageFullId{dialog_id, message_id};
         origin_date_ = 0;
       } else {
-        origin_ = r_reply_origin.move_as_ok();
+        auto r_reply_origin = MessageOrigin::get_message_origin(td, std::move(reply_header->reply_from_));
+        if (r_reply_origin.is_error()) {
+          origin_date_ = 0;
+        } else {
+          origin_ = r_reply_origin.move_as_ok();
+        }
       }
     }
-    if (reply_header->reply_media_ != nullptr &&
+    if (!origin_.is_empty() && reply_header->reply_media_ != nullptr &&
         reply_header->reply_media_->get_id() != telegram_api::messageMediaEmpty::ID) {
       content_ = get_message_content(td, FormattedText(), std::move(reply_header->reply_media_), dialog_id, true,
                                      UserId(), nullptr, nullptr, "messageReplyHeader");
@@ -133,7 +138,7 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, tl_object_ptr<telegram_api::messa
       }
     }
   }
-  if (!reply_header->quote_text_.empty()) {
+  if ((!origin_.is_empty() || message_id_ != MessageId()) && !reply_header->quote_text_.empty()) {
     is_quote_manual_ = reply_header->quote_;
     auto entities = get_message_entities(td->contacts_manager_.get(), std::move(reply_header->quote_entities_),
                                          "RepliedMessageInfo");
@@ -362,7 +367,7 @@ MessageInputReplyTo RepliedMessageInfo::get_input_reply_to() const {
 }
 
 MessageId RepliedMessageInfo::get_same_chat_reply_to_message_id() const {
-  return dialog_id_ == DialogId() && origin_date_ == 0 ? message_id_ : MessageId();
+  return dialog_id_ == DialogId() && origin_.is_empty() ? message_id_ : MessageId();
 }
 
 MessageFullId RepliedMessageInfo::get_reply_message_full_id(DialogId owner_dialog_id) const {
