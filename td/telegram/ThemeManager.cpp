@@ -182,10 +182,14 @@ void ThemeManager::AccentColors::parse(ParserT &parser) {
 }
 
 ThemeManager::ThemeManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
-  do_init();
+  load_accent_colors();
 }
 
-void ThemeManager::do_init() {
+void ThemeManager::start_up() {
+  init();
+}
+
+void ThemeManager::load_chat_themes() {  // must not be called in constructor, because uses other managers
   if (!td_->auth_manager_->is_authorized() || td_->auth_manager_->is_bot()) {
     return;
   }
@@ -201,8 +205,14 @@ void ThemeManager::do_init() {
     }
   }
   chat_themes_.next_reload_time = Time::now();
+}
 
-  log_event_string = G()->td_db()->get_binlog_pmc()->get(get_accent_colors_database_key());
+void ThemeManager::load_accent_colors() {
+  if (!td_->auth_manager_->is_authorized() || td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  auto log_event_string = G()->td_db()->get_binlog_pmc()->get(get_accent_colors_database_key());
   if (!log_event_string.empty()) {
     auto status = log_event_parse(accent_colors_, log_event_string);
     if (status.is_ok()) {
@@ -215,7 +225,7 @@ void ThemeManager::do_init() {
 }
 
 void ThemeManager::init() {
-  do_init();
+  load_chat_themes();
   loop();
 }
 
