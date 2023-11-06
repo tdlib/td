@@ -377,6 +377,18 @@ MessageFullId RepliedMessageInfo::get_reply_message_full_id(DialogId owner_dialo
   return {dialog_id_.is_valid() ? dialog_id_ : owner_dialog_id, message_id_};
 }
 
+void RepliedMessageInfo::register_content(Td *td) const {
+  if (content_ != nullptr) {
+    register_reply_message_content(td, content_.get());
+  }
+}
+
+void RepliedMessageInfo::unregister_content(Td *td) const {
+  if (content_ != nullptr) {
+    unregister_reply_message_content(td, content_.get());
+  }
+}
+
 bool operator==(const RepliedMessageInfo &lhs, const RepliedMessageInfo &rhs) {
   if (!(lhs.message_id_ == rhs.message_id_ && lhs.dialog_id_ == rhs.dialog_id_ &&
         lhs.origin_date_ == rhs.origin_date_ && lhs.origin_ == rhs.origin_ && lhs.quote_ == rhs.quote_ &&

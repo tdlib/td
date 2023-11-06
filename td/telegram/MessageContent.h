@@ -205,6 +205,10 @@ void reregister_message_content(Td *td, const MessageContent *old_content, const
 void unregister_message_content(Td *td, const MessageContent *content, MessageFullId message_full_id,
                                 const char *source);
 
+void register_reply_message_content(Td *td, const MessageContent *content);
+
+void unregister_reply_message_content(Td *td, const MessageContent *content);
+
 unique_ptr<MessageContent> get_secret_message_content(
     Td *td, string message_text, unique_ptr<EncryptedFile> file,
     tl_object_ptr<secret_api::DecryptedMessageMedia> &&media_ptr,

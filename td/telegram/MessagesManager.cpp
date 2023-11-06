@@ -27356,6 +27356,8 @@ bool MessagesManager::can_register_message_reply(const Message *m) const {
 }
 
 void MessagesManager::register_message_reply(DialogId dialog_id, const Message *m) {
+  m->replied_message_info.register_content(td_);
+
   if (!can_register_message_reply(m)) {
     return;
   }
@@ -27378,6 +27380,7 @@ void MessagesManager::register_message_reply(DialogId dialog_id, const Message *
 }
 
 void MessagesManager::reregister_message_reply(DialogId dialog_id, const Message *m) {
+  // reply itself wan't changed, so there is nothing to reregister
   if (!can_register_message_reply(m)) {
     return;
   }
@@ -27406,6 +27409,8 @@ void MessagesManager::reregister_message_reply(DialogId dialog_id, const Message
 }
 
 void MessagesManager::unregister_message_reply(DialogId dialog_id, const Message *m) {
+  m->replied_message_info.unregister_content(td_);
+
   if (!can_register_message_reply(m)) {
     return;
   }

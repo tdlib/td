@@ -57,6 +57,10 @@ class PollManager final : public Actor {
 
   void unregister_poll(PollId poll_id, MessageFullId message_full_id, const char *source);
 
+  void register_reply_poll(PollId poll_id);
+
+  void unregister_reply_poll(PollId poll_id);
+
   bool get_poll_is_closed(PollId poll_id) const;
 
   bool get_poll_is_anonymous(PollId poll_id) const;
@@ -234,6 +238,8 @@ class PollManager final : public Actor {
 
   WaitFreeHashMap<PollId, WaitFreeHashSet<MessageFullId, MessageFullIdHash>, PollIdHash> server_poll_messages_;
   WaitFreeHashMap<PollId, WaitFreeHashSet<MessageFullId, MessageFullIdHash>, PollIdHash> other_poll_messages_;
+
+  WaitFreeHashMap<PollId, int32, PollIdHash> reply_poll_counts_;
 
   struct PendingPollAnswer {
     vector<string> options_;

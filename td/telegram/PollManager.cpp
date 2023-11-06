@@ -274,7 +274,8 @@ void PollManager::tear_down() {
 
 PollManager::~PollManager() {
   Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), polls_, server_poll_messages_,
-                                              other_poll_messages_, poll_voters_, loaded_from_database_polls_);
+                                              other_poll_messages_, reply_poll_counts_, poll_voters_,
+                                              loaded_from_database_polls_);
 }
 
 void PollManager::on_update_poll_timeout_callback(void *poll_manager_ptr, int64 poll_id_int) {
@@ -725,13 +726,36 @@ void PollManager::unregister_poll(PollId poll_id, MessageFullId message_full_id,
   }
 }
 
+void PollManager::register_reply_poll(PollId poll_id) {
+  CHECK(have_poll(poll_id));
+  CHECK(!is_local_poll_id(poll_id));
+  LOG(INFO) << "Register replied " << poll_id;
+  reply_poll_counts_[poll_id]++;
+  if (!G()->close_flag()) {
+    unload_poll_timeout_.cancel_timeout(poll_id.get());
+  }
+}
+
+void PollManager::unregister_reply_poll(PollId poll_id) {
+  CHECK(have_poll(poll_id));
+  CHECK(!is_local_poll_id(poll_id));
+  LOG(INFO) << "Unregister replied " << poll_id;
+  auto &count = reply_poll_counts_[poll_id];
+  CHECK(count > 0);
+  count--;
+  if (count == 0) {
+    reply_poll_counts_.erase(poll_id);
+    schedule_poll_unload(poll_id);
+  }
+}
+
 bool PollManager::can_unload_poll(PollId poll_id) {
   if (G()->close_flag()) {
     return false;
   }
   if (is_local_poll_id(poll_id) || server_poll_messages_.count(poll_id) != 0 ||
-      other_poll_messages_.count(poll_id) != 0 || pending_answers_.count(poll_id) != 0 ||
-      being_closed_polls_.count(poll_id) != 0) {
+      other_poll_messages_.count(poll_id) != 0 || reply_poll_counts_.count(poll_id) != 0 ||
+      pending_answers_.count(poll_id) != 0 || being_closed_polls_.count(poll_id) != 0) {
     return false;
   }
 

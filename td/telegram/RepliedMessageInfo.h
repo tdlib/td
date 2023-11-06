@@ -102,6 +102,10 @@ class RepliedMessageInfo {
 
   MessageFullId get_reply_message_full_id(DialogId owner_dialog_id) const;
 
+  void register_content(Td *td) const;
+
+  void unregister_content(Td *td) const;
+
   template <class StorerT>
   void store(StorerT &storer) const;
 

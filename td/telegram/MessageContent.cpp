@@ -4961,6 +4961,24 @@ void unregister_message_content(Td *td, const MessageContent *content, MessageFu
   }
 }
 
+void register_reply_message_content(Td *td, const MessageContent *content) {
+  switch (content->get_type()) {
+    case MessageContentType::Poll:
+      return td->poll_manager_->register_reply_poll(static_cast<const MessagePoll *>(content)->poll_id);
+    default:
+      return;
+  }
+}
+
+void unregister_reply_message_content(Td *td, const MessageContent *content) {
+  switch (content->get_type()) {
+    case MessageContentType::Poll:
+      return td->poll_manager_->unregister_reply_poll(static_cast<const MessagePoll *>(content)->poll_id);
+    default:
+      return;
+  }
+}
+
 template <class ToT, class FromT>
 static tl_object_ptr<ToT> secret_to_telegram(FromT &from);
 
