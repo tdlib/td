@@ -6330,6 +6330,9 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       }
       if (web_page == nullptr && get_first_url(m->text).empty()) {
         disable_web_page_preview = false;
+      } else if (disable_web_page_preview && web_page != nullptr) {
+        LOG(ERROR) << "Have " << m->web_page_id << " in a message with link preview disabled";
+        web_page = nullptr;
       }
       td_api::object_ptr<td_api::linkPreviewOptions> link_preview_options;
       if (disable_web_page_preview || !m->web_page_url.empty() || m->force_small_media || m->force_large_media ||

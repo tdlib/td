@@ -60,7 +60,7 @@ struct WebPageIdHash {
 };
 
 inline StringBuilder &operator<<(StringBuilder &string_builder, WebPageId web_page_id) {
-  return string_builder << "web page " << web_page_id.get();
+  return string_builder << "link preview " << web_page_id.get();
 }
 
 }  // namespace td
