@@ -777,6 +777,9 @@ void WebPagesManager::on_get_web_page_instant_view_view_count(WebPageId web_page
 }
 
 void WebPagesManager::on_get_web_page_by_url(const string &url, WebPageId web_page_id, bool from_database) {
+  if (url.empty()) {
+    return;
+  }
   auto emplace_result = url_to_web_page_id_.emplace(url, std::make_pair(web_page_id, from_database));
   auto &it = emplace_result.first;
   bool is_inserted = emplace_result.second;
