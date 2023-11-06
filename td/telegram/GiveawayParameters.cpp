@@ -63,7 +63,7 @@ Result<GiveawayParameters> GiveawayParameters::get_giveaway_parameters(
       td->option_manager_->get_option_integer("giveaway_country_count_max")) {
     return Status::Error(400, "Too many countries specified");
   }
-  return GiveawayParameters(boosted_channel_id, std::move(additional_channel_ids), parameters->only_new_subscribers_,
+  return GiveawayParameters(boosted_channel_id, std::move(additional_channel_ids), parameters->only_new_members_,
                             parameters->winners_selection_date_, vector<string>(parameters->country_codes_));
 }
 
@@ -142,7 +142,7 @@ bool operator!=(const GiveawayParameters &lhs, const GiveawayParameters &rhs) {
 StringBuilder &operator<<(StringBuilder &string_builder, const GiveawayParameters &giveaway_parameters) {
   return string_builder << "Giveaway[" << giveaway_parameters.boosted_channel_id_ << " + "
                         << giveaway_parameters.additional_channel_ids_
-                        << (giveaway_parameters.only_new_subscribers_ ? " only for new subscribes" : "")
+                        << (giveaway_parameters.only_new_subscribers_ ? " only for new members" : "")
                         << " for countries " << giveaway_parameters.country_codes_ << " at "
                         << giveaway_parameters.date_ << ']';
 }

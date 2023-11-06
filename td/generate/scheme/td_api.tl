@@ -2340,9 +2340,9 @@ messageExtendedMediaUnsupported caption:formattedText = MessageExtendedMedia;
 //@boosted_chat_id Identifier of the channel chat, which will be automatically boosted by the winners of the giveaway for duration of the Premium subscription
 //@additional_chat_ids Identifiers of other channel chats that must be subscribed by the users to be eligible for the giveaway. There can be up to getOption("giveaway_additional_chat_count_max") additional chats
 //@winners_selection_date Point in time (Unix timestamp) when the giveaway is expected to be performed; must be 60-getOption("giveaway_duration_max") seconds in the future in scheduled giveaways
-//@only_new_subscribers True, if only new subscribers of the chats will be eligible for the giveaway
+//@only_new_members True, if only new subscribers of the chats will be eligible for the giveaway
 //@country_codes The list of two-letter ISO 3166-1 alpha-2 codes of countries, only users from which will be eligible for the giveaway. If empty, then all users can participate in the giveaway. There can be up to getOption("giveaway_country_count_max") chosen countries
-premiumGiveawayParameters boosted_chat_id:int53 additional_chat_ids:vector<int53> winners_selection_date:int32 only_new_subscribers:Bool country_codes:vector<string> = PremiumGiveawayParameters;
+premiumGiveawayParameters boosted_chat_id:int53 additional_chat_ids:vector<int53> winners_selection_date:int32 only_new_members:Bool country_codes:vector<string> = PremiumGiveawayParameters;
 
 
 //@description File with the date it was uploaded @file The file @date Point in time (Unix timestamp) when the file was uploaded
