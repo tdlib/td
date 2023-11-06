@@ -31209,6 +31209,18 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
       } else if (error.message() == "PHOTO_EXT_INVALID") {
         error_message = "Photo has unsupported extension. Use one of .jpg, .jpeg, .gif, .png, .tif or .bmp";
       }
+      if (error.message() == "QUOTE_TEXT_INVALID") {
+        auto *input_reply_to = get_message_input_reply_to(m);
+        if (input_reply_to != nullptr && !input_reply_to->is_empty()) {
+          auto reply_message_full_id = input_reply_to->get_reply_message_full_id(dialog_id);
+          if (reply_message_full_id.get_message_id().is_valid()) {
+            get_message_from_server(reply_message_full_id, Auto(), "QUOTE_TEXT_INVALID");
+          }
+        } else {
+          error_code = 500;
+          error_message = "Unexpected QUOTE_TEXT_INVALID error";
+        }
+      }
       break;
     case 403:
       if (error.message() == "MESSAGE_DELETE_FORBIDDEN") {
