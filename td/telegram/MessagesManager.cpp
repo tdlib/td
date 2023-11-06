@@ -28182,7 +28182,13 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
     m->real_forward_from_message_id = message_id;
     forwarded_message_id_to_new_message_id.emplace(message_id, m->message_id);
     if (forwarded_message->replied_message_info.is_external()) {
+      if (!message_send_options.only_preview) {
+        unregister_message_reply(to_dialog_id, m);
+      }
       m->replied_message_info = forwarded_message->replied_message_info.clone(td_);
+      if (!message_send_options.only_preview) {
+        register_message_reply(to_dialog_id, m);
+      }
     }
 
     if (!message_send_options.only_preview) {
