@@ -2722,7 +2722,7 @@ static FormattedText parse_pre_entities_v3(Slice text) {
               if (language_code_end < end_tag_begin - 1 && text[language_code_end] == '\n') {
                 language_code = text.substr(entity_begin, language_code_end - entity_begin).str();
                 entity_begin = language_code_end + 1;
-                entity_length -= entity_begin - j;
+                entity_length -= static_cast<int32>(entity_begin - j);
                 CHECK(entity_length > 0);
               }
             }
@@ -2794,7 +2794,7 @@ static FormattedText parse_pre_entities_v3(Slice text, vector<MessageEntity> ent
         result_text_utf16_length += part_end - max_end;
       } else {
         FormattedText parsed_text = parse_pre_entities_v3(parsed_part_text);
-        int32 new_skipped_length = static_cast<int32>(parsed_part_text.size() - parsed_text.text.size());
+        auto new_skipped_length = static_cast<int32>(parsed_part_text.size() - parsed_text.text.size());
         CHECK(new_skipped_length < part_end - max_end);
         result.text += parsed_text.text;
         for (auto &entity : parsed_text.entities) {
@@ -3037,7 +3037,7 @@ FormattedText get_markdown_v3(FormattedText text) {
               utf16_added += 3;
               if (!text.entities[current_entity].argument.empty()) {
                 result.text += text.entities[current_entity].argument;
-                utf16_added += text.entities[current_entity].argument.size();
+                utf16_added += static_cast<int32>(text.entities[current_entity].argument.size());
               }
               if (c != '\n') {
                 result.text += "\n";
