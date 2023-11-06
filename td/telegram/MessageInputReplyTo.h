@@ -62,6 +62,14 @@ class MessageInputReplyTo {
     return !is_empty();
   }
 
+  bool has_quote() const {
+    return !quote_.text.empty();
+  }
+
+  void set_quote(FormattedText &&quote) {
+    quote_ = std::move(quote);
+  }
+
   StoryFullId get_story_full_id() const {
     return story_full_id_;
   }

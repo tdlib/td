@@ -3715,8 +3715,10 @@ class CliClient final : public Actor {
     } else if (op == "resend") {
       ChatId chat_id;
       string message_ids;
-      get_args(args, chat_id, message_ids);
-      send_request(td_api::make_object<td_api::resendMessages>(chat_id, as_message_ids(message_ids)));
+      string quote;
+      get_args(args, chat_id, message_ids, quote);
+      send_request(
+          td_api::make_object<td_api::resendMessages>(chat_id, as_message_ids(message_ids), as_formatted_text(quote)));
     } else if (op == "csc" || op == "CreateSecretChat") {
       send_request(td_api::make_object<td_api::createSecretChat>(as_secret_chat_id(args)));
     } else if (op == "cnsc" || op == "CreateNewSecretChat") {

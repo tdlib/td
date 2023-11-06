@@ -28272,7 +28272,8 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
   return get_messages_object(-1, std::move(result), false);
 }
 
-Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, vector<MessageId> message_ids) {
+Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, vector<MessageId> message_ids,
+                                                           td_api::object_ptr<td_api::formattedText> &&quote) {
   if (message_ids.empty()) {
     return Status::Error(400, "There are no messages to resend");
   }
@@ -28361,6 +28362,17 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
 
     auto need_another_sender =
         message->send_error_code == 400 && message->send_error_message == CSlice("SEND_AS_PEER_INVALID");
+    auto need_another_reply_quote =
+        message->send_error_code == 400 && message->send_error_message == CSlice("QUOTE_TEXT_INVALID");
+    if (need_another_reply_quote && message_ids.size() == 1 && quote != nullptr) {
+      CHECK(message->input_reply_to.is_valid());
+      CHECK(message->input_reply_to.has_quote());  // checked in on_send_message_fail
+      auto r_quote =
+          get_formatted_text(td_, get_my_dialog_id(), std::move(quote), td_->auth_manager_->is_bot(), true, true, true);
+      if (r_quote.is_ok()) {
+        message->input_reply_to.set_quote(r_quote.move_as_ok());
+      }
+    }
     MessageSendOptions options(message->disable_notification, message->from_background,
                                message->update_stickersets_order, message->noforwards, false,
                                get_message_schedule_date(message.get()), message->sending_id);
@@ -31211,7 +31223,7 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
       }
       if (error.message() == "QUOTE_TEXT_INVALID") {
         auto *input_reply_to = get_message_input_reply_to(m);
-        if (input_reply_to != nullptr && !input_reply_to->is_empty()) {
+        if (input_reply_to != nullptr && !input_reply_to->is_empty() && input_reply_to->has_quote()) {
           auto reply_message_full_id = input_reply_to->get_reply_message_full_id(dialog_id);
           if (reply_message_full_id.get_message_id().is_valid()) {
             get_message_from_server(reply_message_full_id, Auto(), "QUOTE_TEXT_INVALID");
