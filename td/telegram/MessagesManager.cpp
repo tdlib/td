@@ -23999,9 +23999,11 @@ tl_object_ptr<td_api::MessageSendingState> MessagesManager::get_message_sending_
         can_retry && error_code == 400 && m->send_error_message == CSlice("SEND_AS_PEER_INVALID");
     auto need_another_reply_quote =
         can_retry && error_code == 400 && m->send_error_message == CSlice("QUOTE_TEXT_INVALID");
+    auto need_drop_reply =
+        can_retry && error_code == 400 && m->send_error_message == CSlice("REPLY_MESSAGE_ID_INVALID");
     return td_api::make_object<td_api::messageSendingStateFailed>(
         td_api::make_object<td_api::error>(error_code, m->send_error_message), can_retry, need_another_sender,
-        need_another_reply_quote, max(m->try_resend_at - Time::now(), 0.0));
+        need_another_reply_quote, need_drop_reply, max(m->try_resend_at - Time::now(), 0.0));
   }
   return nullptr;
 }
@@ -26453,7 +26455,7 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
 bool MessagesManager::can_resend_message(const Message *m) const {
   if (m->send_error_code != 429 && m->send_error_message != "Message is too old to be re-sent automatically" &&
       m->send_error_message != "SCHEDULE_TOO_MUCH" && m->send_error_message != "SEND_AS_PEER_INVALID" &&
-      m->send_error_message != "QUOTE_TEXT_INVALID") {
+      m->send_error_message != "QUOTE_TEXT_INVALID" && m->send_error_message != "REPLY_MESSAGE_ID_INVALID") {
     return false;
   }
   if (m->is_bot_start_message) {
@@ -28364,6 +28366,8 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
         message->send_error_code == 400 && message->send_error_message == CSlice("SEND_AS_PEER_INVALID");
     auto need_another_reply_quote =
         message->send_error_code == 400 && message->send_error_message == CSlice("QUOTE_TEXT_INVALID");
+    auto need_drop_reply =
+        message->send_error_code == 400 && message->send_error_message == CSlice("REPLY_MESSAGE_ID_INVALID");
     if (need_another_reply_quote && message_ids.size() == 1 && quote != nullptr) {
       CHECK(message->input_reply_to.is_valid());
       CHECK(message->input_reply_to.has_quote());  // checked in on_send_message_fail
@@ -28372,6 +28376,8 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
       if (r_quote.is_ok()) {
         message->input_reply_to.set_quote(r_quote.move_as_ok());
       }
+    } else if (need_drop_reply) {
+      message->input_reply_to = {};
     }
     MessageSendOptions options(message->disable_notification, message->from_background,
                                message->update_stickersets_order, message->noforwards, false,
@@ -28855,7 +28861,7 @@ bool MessagesManager::on_get_dialog_error(DialogId dialog_id, const Status &stat
     reload_dialog_info_full(dialog_id, "SEND_AS_PEER_INVALID");
     return true;
   }
-  if (status.message() == CSlice("QUOTE_TEXT_INVALID")) {
+  if (status.message() == CSlice("QUOTE_TEXT_INVALID") || status.message() == CSlice("REPLY_MESSAGE_ID_INVALID")) {
     return true;
   }
 
@@ -31220,8 +31226,7 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
         }
       } else if (error.message() == "PHOTO_EXT_INVALID") {
         error_message = "Photo has unsupported extension. Use one of .jpg, .jpeg, .gif, .png, .tif or .bmp";
-      }
-      if (error.message() == "QUOTE_TEXT_INVALID") {
+      } else if (error.message() == "QUOTE_TEXT_INVALID") {
         auto *input_reply_to = get_message_input_reply_to(m);
         if (input_reply_to != nullptr && !input_reply_to->is_empty() && input_reply_to->has_quote()) {
           auto reply_message_full_id = input_reply_to->get_reply_message_full_id(dialog_id);
@@ -31231,6 +31236,17 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
         } else {
           error_code = 500;
           error_message = "Unexpected QUOTE_TEXT_INVALID error";
+        }
+      } else if (error.message() == "REPLY_MESSAGE_ID_INVALID") {
+        auto *input_reply_to = get_message_input_reply_to(m);
+        if (input_reply_to != nullptr && !input_reply_to->is_empty()) {
+          auto reply_message_full_id = input_reply_to->get_reply_message_full_id(dialog_id);
+          if (reply_message_full_id.get_message_id().is_valid()) {
+            get_message_from_server(reply_message_full_id, Auto(), "REPLY_MESSAGE_ID_INVALID");
+          }
+        } else {
+          error_code = 500;
+          error_message = "Unexpected REPLY_MESSAGE_ID_INVALID error";
         }
       }
       break;
