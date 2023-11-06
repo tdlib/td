@@ -2859,10 +2859,10 @@ messagePremiumGiveawayCreated = MessageContent;
 
 //@description A Telegram Premium giveaway
 //@parameters Giveaway parameters
-//@user_count Number of users which will receive Telegram Premium subscription gift codes
+//@winner_count Number of users which will receive Telegram Premium subscription gift codes
 //@month_count Number of month the Telegram Premium subscription will be active after code activation
 //@sticker A sticker to be shown in the message; may be null if unknown
-messagePremiumGiveaway parameters:premiumGiveawayParameters user_count:int32 month_count:int32 sticker:sticker = MessageContent;
+messagePremiumGiveaway parameters:premiumGiveawayParameters winner_count:int32 month_count:int32 sticker:sticker = MessageContent;
 
 //@description A contact has registered with Telegram
 messageContactRegistered = MessageContent;
@@ -3526,10 +3526,10 @@ chatBoostSourcePremium user_id:int53 = ChatBoostSource;
 
 //@description Describes a prepaid Telegram Premium giveaway
 //@id Unique identifier of the prepaid giveaway
-//@user_count Number of users which will receive Telegram Premium subscription gift codes
+//@winner_count Number of users which will receive Telegram Premium subscription gift codes
 //@month_count Number of month the Telegram Premium subscription will be active after code activation
 //@payment_date Point in time (Unix timestamp) when the giveaway was paid
-prepaidPremiumGiveaway id:int64 user_count:int32 month_count:int32 payment_date:int32 = PrepaidPremiumGiveaway;
+prepaidPremiumGiveaway id:int64 winner_count:int32 month_count:int32 payment_date:int32 = PrepaidPremiumGiveaway;
 
 //@description Describes current boost status of a chat
 //@boost_url An HTTP URL, which can be used to boost the chat
@@ -4601,9 +4601,9 @@ telegramPaymentPurposePremiumGiftCodes boosted_chat_id:int53 currency:string amo
 //@parameters Giveaway parameters
 //@currency ISO 4217 currency code of the payment currency
 //@amount Paid amount, in the smallest units of the currency
-//@user_count Number of users which will be able to activate the gift codes
+//@winner_count Number of users which will be able to activate the gift codes
 //@month_count Number of month the Telegram Premium subscription will be active for the users
-telegramPaymentPurposePremiumGiveaway parameters:premiumGiveawayParameters currency:string amount:int53 user_count:int32 month_count:int32 = TelegramPaymentPurpose;
+telegramPaymentPurposePremiumGiveaway parameters:premiumGiveawayParameters currency:string amount:int53 winner_count:int32 month_count:int32 = TelegramPaymentPurpose;
 
 
 //@class DeviceToken @description Represents a data needed to subscribe for push notifications through registerDevice method.
@@ -4861,10 +4861,10 @@ pushMessageContentPoll question:string is_regular:Bool is_pinned:Bool = PushMess
 pushMessageContentPremiumGiftCode month_count:int32 = PushMessageContent;
 
 //@description A message with a Telegram Premium giveaway
-//@user_count Number of users which will receive Telegram Premium subscription gift codes; 0 for pinned message
+//@winner_count Number of users which will receive Telegram Premium subscription gift codes; 0 for pinned message
 //@month_count Number of month the Telegram Premium subscription will be active after code activation; 0 for pinned message
 //@is_pinned True, if the message is a pinned message with the specified content
-pushMessageContentPremiumGiveaway user_count:int32 month_count:int32 is_pinned:Bool = PushMessageContent;
+pushMessageContentPremiumGiveaway winner_count:int32 month_count:int32 is_pinned:Bool = PushMessageContent;
 
 //@description A screenshot of a message in the chat has been taken
 pushMessageContentScreenshotTaken = PushMessageContent;

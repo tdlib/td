@@ -109,7 +109,7 @@ Result<InputInvoiceInfo> get_input_invoice_info(Td *td, td_api::object_ptr<td_ap
           }
           TRY_RESULT(parameters, GiveawayParameters::get_giveaway_parameters(td, p->parameters_.get()));
           auto option = telegram_api::make_object<telegram_api::premiumGiftCodeOption>(
-              0, p->user_count_, p->month_count_, string(), 0, p->currency_, p->amount_);
+              0, p->winner_count_, p->month_count_, string(), 0, p->currency_, p->amount_);
           result.input_invoice_ = telegram_api::make_object<telegram_api::inputInvoicePremiumGiftCode>(
               parameters.get_input_store_payment_premium_giveaway(td, p->currency_, p->amount_), std::move(option));
           break;
