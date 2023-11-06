@@ -496,7 +496,7 @@ class MessageChatSetTtl final : public MessageContent {
 
 class MessageUnsupported final : public MessageContent {
  public:
-  static constexpr int32 CURRENT_VERSION = 23;
+  static constexpr int32 CURRENT_VERSION = 24;
   int32 version = CURRENT_VERSION;
 
   MessageUnsupported() = default;
@@ -6219,7 +6219,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       return make_unique<MessageSetBackground>(reply_to_message_id, std::move(background_info));
     }
     case telegram_api::messageActionGiveawayLaunch::ID:
-      return make_unique<MessageUnsupported>();
+      return make_unique<MessageGiveawayLaunch>();
     case telegram_api::messageActionGiftCode::ID: {
       auto action = move_tl_object_as<telegram_api::messageActionGiftCode>(action_ptr);
       DialogId dialog_id;
