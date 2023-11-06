@@ -5174,7 +5174,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   if (has_replied_message_info) {
     parse(replied_message_info, parser);
   } else {
-    replied_message_info = RepliedMessageInfo(legacy_reply_to_message_id, legacy_reply_in_dialog_id);
+    replied_message_info = RepliedMessageInfo::legacy(legacy_reply_to_message_id, legacy_reply_in_dialog_id);
   }
 
   CHECK(content != nullptr);
@@ -14072,7 +14072,7 @@ void MessagesManager::on_get_secret_message(SecretChatId secret_chat_id, UserId 
         }
       }
     }
-    message_info.reply_header.replied_message_info_ = RepliedMessageInfo(reply_to_message_id);
+    message_info.reply_header.replied_message_info_ = RepliedMessageInfo::legacy(reply_to_message_id);
   }
 
   if (!clean_input_string(message->via_bot_name_)) {

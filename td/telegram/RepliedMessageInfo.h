@@ -51,11 +51,11 @@ class RepliedMessageInfo {
   RepliedMessageInfo &operator=(RepliedMessageInfo &&) = default;
   ~RepliedMessageInfo();
 
-  explicit RepliedMessageInfo(MessageId reply_to_message_id) : message_id_(reply_to_message_id) {
-  }
-
-  RepliedMessageInfo(MessageId reply_to_message_id, DialogId reply_in_dialog_id)
-      : message_id_(reply_to_message_id), dialog_id_(reply_in_dialog_id) {
+  static RepliedMessageInfo legacy(MessageId reply_to_message_id, DialogId reply_in_dialog_id = DialogId()) {
+    RepliedMessageInfo result;
+    result.message_id_ = reply_to_message_id;
+    result.dialog_id_ = reply_in_dialog_id;
+    return result;
   }
 
   RepliedMessageInfo(Td *td, tl_object_ptr<telegram_api::messageReplyHeader> &&reply_header, DialogId dialog_id,
