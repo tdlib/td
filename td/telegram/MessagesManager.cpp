@@ -23997,9 +23997,11 @@ tl_object_ptr<td_api::MessageSendingState> MessagesManager::get_message_sending_
     auto error_code = m->send_error_code > 0 ? m->send_error_code : 400;
     auto need_another_sender =
         can_retry && error_code == 400 && m->send_error_message == CSlice("SEND_AS_PEER_INVALID");
+    auto need_another_reply_quote =
+        can_retry && error_code == 400 && m->send_error_message == CSlice("QUOTE_TEXT_INVALID");
     return td_api::make_object<td_api::messageSendingStateFailed>(
         td_api::make_object<td_api::error>(error_code, m->send_error_message), can_retry, need_another_sender,
-        max(m->try_resend_at - Time::now(), 0.0));
+        need_another_reply_quote, max(m->try_resend_at - Time::now(), 0.0));
   }
   return nullptr;
 }
@@ -26450,7 +26452,8 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
 
 bool MessagesManager::can_resend_message(const Message *m) const {
   if (m->send_error_code != 429 && m->send_error_message != "Message is too old to be re-sent automatically" &&
-      m->send_error_message != "SCHEDULE_TOO_MUCH" && m->send_error_message != "SEND_AS_PEER_INVALID") {
+      m->send_error_message != "SCHEDULE_TOO_MUCH" && m->send_error_message != "SEND_AS_PEER_INVALID" &&
+      m->send_error_message != "QUOTE_TEXT_INVALID") {
     return false;
   }
   if (m->is_bot_start_message) {
@@ -28838,6 +28841,9 @@ bool MessagesManager::on_get_dialog_error(DialogId dialog_id, const Status &stat
   }
   if (status.message() == CSlice("SEND_AS_PEER_INVALID")) {
     reload_dialog_info_full(dialog_id, "SEND_AS_PEER_INVALID");
+    return true;
+  }
+  if (status.message() == CSlice("QUOTE_TEXT_INVALID")) {
     return true;
   }
 

@@ -1223,8 +1223,9 @@ messageSendingStatePending sending_id:int32 = MessageSendingState;
 //@error The cause of the message sending failure
 //@can_retry True, if the message can be re-sent
 //@need_another_sender True, if the message can be re-sent only on behalf of a different sender
+//@need_another_reply_quote True, if the message can be re-sent only if another quote is chosen in the message that is replied by the given message
 //@retry_after Time left before the message can be re-sent, in seconds. No update is sent when this field changes
-messageSendingStateFailed error:error can_retry:Bool need_another_sender:Bool retry_after:double = MessageSendingState;
+messageSendingStateFailed error:error can_retry:Bool need_another_sender:Bool need_another_reply_quote:Bool retry_after:double = MessageSendingState;
 
 
 //@class MessageReplyTo @description Contains information about the message or the story a message is replying to
