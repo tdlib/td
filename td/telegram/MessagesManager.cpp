@@ -14786,7 +14786,7 @@ MessageFullId MessagesManager::on_get_message(MessageInfo &&message_info, const 
     update_message(d, old_message.get(), std::move(new_message), false);
     new_message = std::move(old_message);
 
-    auto reply_message_full_id = new_message->replied_message_info.get_reply_message_full_id(dialog_id);
+    auto reply_message_full_id = new_message->replied_message_info.get_reply_message_full_id(dialog_id, false);
     auto reply_message_id = reply_message_full_id.get_message_id();
     if (reply_message_id.is_valid() && reply_message_id.is_yet_unsent()) {
       set_message_reply(d, new_message.get(), MessageInputReplyTo(), false);
@@ -17725,11 +17725,11 @@ MessageFullId MessagesManager::get_replied_message_id(DialogId dialog_id, const 
     CHECK(m->replied_message_info.is_empty());
     return message_full_id;
   }
-  auto reply_message_full_id = m->replied_message_info.get_reply_message_full_id(dialog_id);
+  auto reply_message_full_id = m->replied_message_info.get_reply_message_full_id(dialog_id, true);
   if (reply_message_full_id.get_message_id() != MessageId()) {
     return reply_message_full_id;
   }
-  if (m->top_thread_message_id.is_valid() && is_service_message_content(m->content->get_type())) {
+  if (m->top_thread_message_id.is_valid()) {
     return {dialog_id, m->top_thread_message_id};
   }
   return {};
@@ -27233,7 +27233,7 @@ void MessagesManager::update_message_max_reply_media_timestamp(const Dialog *d, 
   }
 
   auto new_max_reply_media_timestamp = -1;
-  auto reply_message_full_id = m->replied_message_info.get_reply_message_full_id(d->dialog_id);
+  auto reply_message_full_id = m->replied_message_info.get_reply_message_full_id(d->dialog_id, false);
   auto reply_message_id = reply_message_full_id.get_message_id();
   if (reply_message_id.is_valid() && !reply_message_id.is_yet_unsent()) {
     const auto *reply_d =
@@ -27323,7 +27323,7 @@ void MessagesManager::update_message_max_reply_media_timestamp_in_replied_messag
     Dialog *d = get_dialog(replied_dialog_id);
     auto m = get_message(d, replied_message_full_id.get_message_id());
     CHECK(m != nullptr);
-    CHECK(m->replied_message_info.get_reply_message_full_id(replied_dialog_id) == message_full_id);
+    CHECK(m->replied_message_info.get_reply_message_full_id(replied_dialog_id, false) == message_full_id);
     update_message_max_reply_media_timestamp(d, m, true);
   }
 }
@@ -27350,7 +27350,7 @@ bool MessagesManager::can_register_message_reply(const Message *m) const {
   if (td_->auth_manager_->is_bot()) {
     return false;
   }
-  auto reply_message_full_id = m->replied_message_info.get_reply_message_full_id(DialogId());
+  auto reply_message_full_id = m->replied_message_info.get_reply_message_full_id(DialogId(), false);
   auto reply_message_id = reply_message_full_id.get_message_id();
   if (reply_message_id.is_valid() && !reply_message_id.is_yet_unsent()) {
     return true;
@@ -27376,7 +27376,7 @@ void MessagesManager::register_message_reply(DialogId dialog_id, const Message *
                              .second;
       CHECK(is_inserted);
     } else {
-      auto message_full_id = m->replied_message_info.get_reply_message_full_id(dialog_id);
+      auto message_full_id = m->replied_message_info.get_reply_message_full_id(dialog_id, false);
       LOG(INFO) << "Register " << m->message_id << " in " << dialog_id << " as reply to " << message_full_id;
       bool is_inserted =
           message_to_replied_media_timestamp_messages_[message_full_id].insert({dialog_id, m->message_id}).second;
@@ -27397,7 +27397,7 @@ void MessagesManager::reregister_message_reply(DialogId dialog_id, const Message
     was_registered =
         it != story_to_replied_media_timestamp_messages_.end() && it->second.count({dialog_id, m->message_id}) > 0;
   } else {
-    auto message_full_id = m->replied_message_info.get_reply_message_full_id(dialog_id);
+    auto message_full_id = m->replied_message_info.get_reply_message_full_id(dialog_id, false);
     auto it = message_to_replied_media_timestamp_messages_.find(message_full_id);
     was_registered =
         it != message_to_replied_media_timestamp_messages_.end() && it->second.count({dialog_id, m->message_id}) > 0;
@@ -27436,7 +27436,7 @@ void MessagesManager::unregister_message_reply(DialogId dialog_id, const Message
       }
     }
   } else {
-    auto message_full_id = m->replied_message_info.get_reply_message_full_id(dialog_id);
+    auto message_full_id = m->replied_message_info.get_reply_message_full_id(dialog_id, false);
     auto it = message_to_replied_media_timestamp_messages_.find(message_full_id);
     if (it == message_to_replied_media_timestamp_messages_.end()) {
       return;
@@ -36032,7 +36032,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
         LOG(INFO) << "Update replied message of " << MessageFullId{dialog_id, message_id} << " from "
                   << old_message->replied_message_info << " to " << new_message->replied_message_info;
         auto is_reply_to_deleted_message = [&](const RepliedMessageInfo &replied_message_info) {
-          auto reply_message_full_id = replied_message_info.get_reply_message_full_id(dialog_id);
+          auto reply_message_full_id = replied_message_info.get_reply_message_full_id(dialog_id, false);
           auto *d = get_dialog(reply_message_full_id.get_dialog_id());
           if (d == nullptr) {
             return false;

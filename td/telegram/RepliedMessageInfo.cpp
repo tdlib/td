@@ -370,8 +370,11 @@ MessageId RepliedMessageInfo::get_same_chat_reply_to_message_id() const {
   return dialog_id_ == DialogId() && origin_.is_empty() ? message_id_ : MessageId();
 }
 
-MessageFullId RepliedMessageInfo::get_reply_message_full_id(DialogId owner_dialog_id) const {
-  if (!message_id_.is_valid() && !message_id_.is_valid_scheduled()) {
+MessageFullId RepliedMessageInfo::get_reply_message_full_id(DialogId owner_dialog_id, bool ignore_external) const {
+  if (message_id_ == MessageId()) {
+    return {};
+  }
+  if (ignore_external && !origin_.is_empty()) {
     return {};
   }
   return {dialog_id_.is_valid() ? dialog_id_ : owner_dialog_id, message_id_};

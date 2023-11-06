@@ -100,7 +100,7 @@ class RepliedMessageInfo {
 
   MessageId get_same_chat_reply_to_message_id() const;
 
-  MessageFullId get_reply_message_full_id(DialogId owner_dialog_id) const;
+  MessageFullId get_reply_message_full_id(DialogId owner_dialog_id, bool ignore_external) const;
 
   void register_content(Td *td) const;
 
