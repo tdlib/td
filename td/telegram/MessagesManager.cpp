@@ -9670,6 +9670,9 @@ void MessagesManager::on_get_empty_messages(DialogId dialog_id, const vector<Mes
 
 void MessagesManager::get_channel_difference_if_needed(DialogId dialog_id, MessagesInfo &&messages_info,
                                                        Promise<MessagesInfo> &&promise) {
+  if (td_->auth_manager_->is_bot()) {
+    return promise.set_value(std::move(messages_info));
+  }
   if (!dialog_id.is_valid()) {
     return get_channel_differences_if_needed(std::move(messages_info), std::move(promise));
   }
@@ -9686,6 +9689,9 @@ void MessagesManager::get_channel_difference_if_needed(DialogId dialog_id, Messa
 }
 
 void MessagesManager::get_channel_differences_if_needed(MessagesInfo &&messages_info, Promise<MessagesInfo> &&promise) {
+  if (td_->auth_manager_->is_bot()) {
+    return promise.set_value(std::move(messages_info));
+  }
   MultiPromiseActorSafe mpas{"GetChannelDifferencesIfNeededMultiPromiseActor"};
   mpas.add_promise(Promise<Unit>());
   mpas.set_ignore_errors(true);
@@ -34897,7 +34903,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       CHECK(m->message_id == message_id);
       CHECK(message->message_id == message_id);
       LOG(INFO) << "Adding already existing " << message_id << " in " << dialog_id << " from " << source;
-      if (*need_update) {
+      if (*need_update && !td_->auth_manager_->is_bot()) {
         *need_update = false;
         if (!G()->use_message_database()) {
           // can happen if the message is received first through getMessage in an unknown chat without
@@ -38226,7 +38232,7 @@ void MessagesManager::set_channel_pts(Dialog *d, int32 new_pts, const char *sour
 bool MessagesManager::need_channel_difference_to_add_message(DialogId dialog_id,
                                                              const tl_object_ptr<telegram_api::Message> &message_ptr) {
   if (dialog_id.get_type() != DialogType::Channel || !have_input_peer(dialog_id, AccessRights::Read) ||
-      dialog_id == debug_channel_difference_dialog_) {
+      dialog_id == debug_channel_difference_dialog_ || td_->auth_manager_->is_bot()) {
     return false;
   }
   if (message_ptr == nullptr) {
