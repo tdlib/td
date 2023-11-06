@@ -1249,9 +1249,9 @@ messageReplyToStory story_sender_chat_id:int53 story_id:int32 = MessageReplyTo;
 //@class InputMessageReplyTo @description Contains information about the message or the story to be replied
 
 //@description Describes a message to be replied
-//@chat_id The identifier of the chat to which the message to be replied belongs; pass 0 if the replied message is in the same chat. Must always be 0 for replies in secret chats. A message can be replied in another chat only if message.can_be_replied_in_another_chat
+//@chat_id The identifier of the chat to which the message to be replied belongs; pass 0 if the message to be replied is in the same chat. Must always be 0 for replies in secret chats. A message can be replied in another chat only if message.can_be_replied_in_another_chat
 //@message_id The identifier of the message to be replied in the same or the specified chat
-//@quote Manually chosen quote from the replied message; pass null if none; 0-getOption("message_reply_quote_length_max") characters. Must always be null for replies in secret chats.
+//@quote Manually chosen quote from the message to be replied; pass null if none; 0-getOption("message_reply_quote_length_max") characters. Must always be null for replies in secret chats.
 //-Only Bold, Italic, Underline, Strikethrough, Spoiler, and CustomEmoji entities are allowed to be kept and must be kept in the quote
 inputMessageReplyToMessage chat_id:int53 message_id:int53 quote:formattedText = InputMessageReplyTo;
 
@@ -1456,7 +1456,7 @@ scopeNotificationSettings mute_for:int32 sound_id:int64 show_preview:Bool use_de
 
 
 //@description Contains information about a message draft
-//@reply_to Information about the replied message; must be of the type inputMessageReplyToMessage; may be null if none
+//@reply_to Information about the message to be replied; must be of the type inputMessageReplyToMessage; may be null if none
 //@date Point in time (Unix timestamp) when the draft was created
 //@input_message_text Content of the message draft; must be of the type inputMessageText
 draftMessage reply_to:InputMessageReplyTo date:int32 input_message_text:InputMessageContent = DraftMessage;
@@ -4956,7 +4956,7 @@ notificationTypeNewSecretChat = NotificationType;
 notificationTypeNewCall call_id:int32 = NotificationType;
 
 //@description New message was received through a push notification
-//@message_id The message identifier. The message will not be available in the chat history, but the identifier can be used in viewMessages, or as a message to reply in the same chat
+//@message_id The message identifier. The message will not be available in the chat history, but the identifier can be used in viewMessages, or as a message to be replied in the same chat
 //@sender_id Identifier of the sender of the message. Corresponding user or chat may be inaccessible
 //@sender_name Name of the sender
 //@is_outgoing True, if the message is outgoing
@@ -7019,7 +7019,7 @@ setChatMessageSender chat_id:int53 message_sender_id:MessageSender = Ok;
 //@description Sends a message. Returns the sent message
 //@chat_id Target chat
 //@message_thread_id If not 0, a message thread identifier in which the message will be sent
-//@reply_to Identifier of the replied message or story; pass null if none
+//@reply_to Information about the message or story to be replied; pass null if none
 //@options Options to be used to send the message; pass null to use default options
 //@reply_markup Markup for replying to the message; pass null if none; for bots only
 //@input_message_content The content of the message to be sent
@@ -7028,7 +7028,7 @@ sendMessage chat_id:int53 message_thread_id:int53 reply_to:InputMessageReplyTo o
 //@description Sends 2-10 messages grouped together into an album. Currently, only audio, document, photo and video messages can be grouped into an album. Documents and audio files can be only grouped in an album with messages of the same type. Returns sent messages
 //@chat_id Target chat
 //@message_thread_id If not 0, a message thread identifier in which the messages will be sent
-//@reply_to Identifier of the replied message or story; pass null if none
+//@reply_to Information about the message or story to be replied; pass null if none
 //@options Options to be used to send the messages; pass null to use default options
 //@input_message_contents Contents of messages to be sent. At most 10 messages can be added to an album
 sendMessageAlbum chat_id:int53 message_thread_id:int53 reply_to:InputMessageReplyTo options:messageSendOptions input_message_contents:vector<InputMessageContent> = Messages;
@@ -7042,7 +7042,7 @@ sendBotStartMessage bot_user_id:int53 chat_id:int53 parameter:string = Message;
 //@description Sends the result of an inline query as a message. Returns the sent message. Always clears a chat draft message
 //@chat_id Target chat
 //@message_thread_id If not 0, a message thread identifier in which the message will be sent
-//@reply_to Identifier of the replied message or story; pass null if none
+//@reply_to Information about the message or story to be replied; pass null if none
 //@options Options to be used to send the message; pass null to use default options
 //@query_id Identifier of the inline query
 //@result_id Identifier of the inline query result
@@ -7063,13 +7063,13 @@ forwardMessages chat_id:int53 message_thread_id:int53 from_chat_id:int53 message
 //-If a message is re-sent, the corresponding failed to send message is deleted. Returns the sent messages in the same order as the message identifiers passed in message_ids. If a message can't be re-sent, null will be returned instead of the message
 //@chat_id Identifier of the chat to send messages
 //@message_ids Identifiers of the messages to resend. Message identifiers must be in a strictly increasing order
-//@quote New manually chosen quote from the message to reply; pass null if none. Ignored if more than one message is re-sent, or if messageSendingStateFailed.need_another_reply_quote == false
+//@quote New manually chosen quote from the message to be replied; pass null if none. Ignored if more than one message is re-sent, or if messageSendingStateFailed.need_another_reply_quote == false
 resendMessages chat_id:int53 message_ids:vector<int53> quote:formattedText = Messages;
 
 //@description Adds a local message to a chat. The message is persistent across application restarts only if the message database is used. Returns the added message
 //@chat_id Target chat
 //@sender_id Identifier of the sender of the message
-//@reply_to Identifier of the replied message or story; pass null if none
+//@reply_to Information about the message or story to be replied; pass null if none
 //@disable_notification Pass true to disable notification for the message
 //@input_message_content The content of the message to be added
 addLocalMessage chat_id:int53 sender_id:MessageSender reply_to:InputMessageReplyTo disable_notification:Bool input_message_content:InputMessageContent = Message;
@@ -7426,7 +7426,7 @@ sendWebAppData bot_user_id:int53 button_text:string data:string = Ok;
 //@theme Preferred Web App theme; pass null to use the default theme
 //@application_name Short name of the application; 0-64 English letters, digits, and underscores
 //@message_thread_id If not 0, a message thread identifier in which the message will be sent
-//@reply_to Identifier of the replied message or story for the message sent by the Web App; pass null if none
+//@reply_to Information about the message or story to be replied in the message sent by the Web App; pass null if none
 openWebApp chat_id:int53 bot_user_id:int53 url:string theme:themeParameters application_name:string message_thread_id:int53 reply_to:InputMessageReplyTo = WebAppInfo;
 
 //@description Informs TDLib that a previously opened Web App was closed @web_app_launch_id Identifier of Web App launch, received from openWebApp

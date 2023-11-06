@@ -25177,14 +25177,14 @@ Status MessagesManager::can_use_top_thread_message_id(Dialog *d, MessageId top_t
     const Message *reply_m = get_message_force(d, same_chat_reply_to_message_id, "can_use_top_thread_message_id 1");
     if (reply_m != nullptr && top_thread_message_id != reply_m->top_thread_message_id) {
       if (reply_m->top_thread_message_id.is_valid() || reply_m->media_album_id == 0) {
-        return Status::Error(400, "The message to reply is not in the specified message thread");
+        return Status::Error(400, "The message to be replied is not in the specified message thread");
       }
 
       // if the message is in an album and not in the thread, it can be in the album of top_thread_message_id
       const Message *top_m = get_message_force(d, top_thread_message_id, "can_use_top_thread_message_id 2");
       if (top_m != nullptr &&
           (top_m->media_album_id != reply_m->media_album_id || top_m->top_thread_message_id != top_m->message_id)) {
-        return Status::Error(400, "The message to reply is not in the specified message thread root album");
+        return Status::Error(400, "The message to be replied is not in the specified message thread root album");
       }
     }
   }
