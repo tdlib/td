@@ -1358,6 +1358,10 @@ tl_object_ptr<td_api::webPage> WebPagesManager::get_web_page_object(WebPageId we
     story_id = web_page->story_full_ids_[0].get_story_id();
   }
   auto show_large_media = [&] {
+    if (web_page->document_.type == Document::Type::Audio || web_page->document_.type == Document::Type::VoiceNote ||
+        web_page->document_.type == Document::Type::General) {
+      return true;
+    }
     if (!web_page->has_large_media_) {
       return false;
     }
