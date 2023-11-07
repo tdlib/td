@@ -1851,13 +1851,15 @@ TEST(MessageEntities, parse_markdown_v3) {
                           {{td::MessageEntity::Type::PreCode, 7, 10, "a!@#$%^&*(b"}});
   check_parse_markdown_v3("```aba\n```", "aba\n", {{td::MessageEntity::Type::Pre, 0, 4}});
   check_parse_markdown_v3("```\n```", "\n", {{td::MessageEntity::Type::Pre, 0, 1}});
+  check_parse_markdown_v3("```\n```", {{td::MessageEntity::Type::BlockQuote, 0, 7}}, "\n",
+                          {{td::MessageEntity::Type::BlockQuote, 0, 1}, {td::MessageEntity::Type::Pre, 0, 1}});
 
   td::vector<td::string> parts{"a", " #test__a", "__", "**", "~~", "||", "[", "](t.me)", "`"};
   td::vector<td::MessageEntity::Type> types{
       td::MessageEntity::Type::Bold,          td::MessageEntity::Type::Italic,  td::MessageEntity::Type::Underline,
       td::MessageEntity::Type::Strikethrough, td::MessageEntity::Type::Spoiler, td::MessageEntity::Type::Code,
       td::MessageEntity::Type::Pre,           td::MessageEntity::Type::PreCode, td::MessageEntity::Type::TextUrl,
-      td::MessageEntity::Type::MentionName,   td::MessageEntity::Type::Cashtag};
+      td::MessageEntity::Type::MentionName,   td::MessageEntity::Type::Cashtag, td::MessageEntity::Type::BlockQuote};
   for (size_t test_n = 0; test_n < 1000; test_n++) {
     td::string str;
     int part_n = td::Random::fast(1, 200);

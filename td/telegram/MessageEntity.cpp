@@ -2824,9 +2824,8 @@ static FormattedText parse_pre_entities_v3(Slice text, vector<MessageEntity> ent
   return result;
 }
 
-// text entities must be valid
-// returned entities must be resplit and fixed
-FormattedText parse_markdown_v3(FormattedText text) {
+// entities must be valid and can contain only splittable, continuous and pre entities
+static FormattedText parse_markdown_v3_without_blockquote(FormattedText text) {
   if (text.text.find('`') != string::npos) {
     text = parse_pre_entities_v3(text.text, std::move(text.entities));
     check_is_sorted(text.entities);
@@ -2885,6 +2884,86 @@ FormattedText parse_markdown_v3(FormattedText text) {
       result_text_utf16_length += entity.length;
       part_begin = entity.offset + entity.length;
     } else {
+      CHECK(entity.offset >= part_begin);
+      part_entities.push_back(entity);
+      part_entities.back().offset -= part_begin;
+    }
+
+    max_end = td::max(max_end, entity.offset + entity.length);
+  }
+  add_part(part_begin + text_length(left_text));
+
+  return result;
+}
+
+// text entities must be valid
+// returned entities must be resplit and fixed
+FormattedText parse_markdown_v3(FormattedText text) {
+  bool have_blockquote = false;
+  for (auto &entity : text.entities) {
+    if (is_blockquote_entity(entity.type)) {
+      have_blockquote = true;
+      break;
+    }
+  }
+  if (!have_blockquote) {
+    // fast path
+    return parse_markdown_v3_without_blockquote(std::move(text));
+  }
+
+  FormattedText result;
+  int32 result_text_utf16_length = 0;
+  vector<MessageEntity> part_entities;
+  int32 part_begin = 0;
+  int32 max_end = 0;
+  Slice left_text = text.text;
+
+  auto add_part = [&](int32 part_end) {
+    auto part_text = utf8_utf16_substr(left_text, 0, part_end - part_begin);
+    left_text = left_text.substr(part_text.size());
+
+    FormattedText part = parse_markdown_v3_without_blockquote({part_text.str(), std::move(part_entities)});
+    part_entities.clear();
+
+    result.text += part.text;
+    for (auto &entity : part.entities) {
+      entity.offset += result_text_utf16_length;
+    }
+    append(result.entities, std::move(part.entities));
+    result_text_utf16_length += text_length(part.text);
+    part_begin = part_end;
+  };
+
+  for (size_t i = 0; i < text.entities.size(); i++) {
+    auto &entity = text.entities[i];
+    CHECK(is_splittable_entity(entity.type) || is_pre_entity(entity.type) || is_continuous_entity(entity.type) ||
+          is_blockquote_entity(entity.type));
+    if (is_blockquote_entity(entity.type)) {
+      CHECK(entity.offset >= max_end);
+
+      add_part(entity.offset);
+
+      auto offset = result_text_utf16_length;
+      result.entities.push_back(entity);
+      result.entities.back().offset = offset;
+      auto index = result.entities.size() - 1;
+
+      while (i + 1 < text.entities.size() &&
+             text.entities[i + 1].offset + text.entities[i + 1].length <= entity.offset + entity.length) {
+        i++;
+        auto &next_entity = text.entities[i];
+        CHECK(is_splittable_entity(next_entity.type) || is_pre_entity(next_entity.type) ||
+              is_continuous_entity(next_entity.type));
+        CHECK(next_entity.offset >= part_begin);
+        part_entities.push_back(next_entity);
+        part_entities.back().offset -= part_begin;
+      }
+      CHECK(i + 1 == text.entities.size() || text.entities[i + 1].offset >= entity.offset + entity.length);
+      add_part(entity.offset + entity.length);
+
+      result.entities[index].length = result_text_utf16_length - offset;
+    } else {
+      CHECK(entity.offset >= part_begin);
       part_entities.push_back(entity);
       part_entities.back().offset -= part_begin;
     }
