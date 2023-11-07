@@ -5978,7 +5978,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       return td::make_unique<MessageChannelMigrateFrom>(std::move(action->title_), chat_id);
     }
     case telegram_api::messageActionPinMessage::ID: {
-      auto reply_to_message_id = replied_message_info.get_same_chat_reply_to_message_id();
+      auto reply_to_message_id = replied_message_info.get_same_chat_reply_to_message_id(true);
       if (!reply_to_message_id.is_valid()) {
         // possible in basic groups
         LOG(INFO) << "Receive pinned message with " << reply_to_message_id << " in " << owner_dialog_id;
@@ -5987,7 +5987,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       return make_unique<MessagePinMessage>(reply_to_message_id);
     }
     case telegram_api::messageActionGameScore::ID: {
-      auto reply_to_message_id = replied_message_info.get_same_chat_reply_to_message_id();
+      auto reply_to_message_id = replied_message_info.get_same_chat_reply_to_message_id(true);
       if (!reply_to_message_id.is_valid()) {
         // possible in basic groups
         LOG(INFO) << "Receive game score with " << reply_to_message_id << " in " << owner_dialog_id;
@@ -6230,7 +6230,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       if (!background_info.is_valid()) {
         break;
       }
-      auto reply_to_message_id = replied_message_info.get_same_chat_reply_to_message_id();
+      auto reply_to_message_id = replied_message_info.get_same_chat_reply_to_message_id(true);
       if (!reply_to_message_id.is_valid()) {
         reply_to_message_id = MessageId();
       }

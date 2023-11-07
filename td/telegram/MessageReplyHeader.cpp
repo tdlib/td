@@ -48,7 +48,7 @@ MessageReplyHeader::MessageReplyHeader(Td *td, tl_object_ptr<telegram_api::Messa
 
   if (!message_id.is_scheduled() && can_have_thread) {
     if (!top_thread_message_id_.is_valid()) {
-      auto same_chat_reply_to_message_id = replied_message_info_.get_same_chat_reply_to_message_id();
+      auto same_chat_reply_to_message_id = replied_message_info_.get_same_chat_reply_to_message_id(false);
       if (same_chat_reply_to_message_id.is_valid()) {
         CHECK(same_chat_reply_to_message_id.is_server());
         top_thread_message_id_ = same_chat_reply_to_message_id;

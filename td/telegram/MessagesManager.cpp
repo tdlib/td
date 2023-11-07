@@ -24135,7 +24135,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto reply_to = [&]() -> td_api::object_ptr<td_api::MessageReplyTo> {
     if (!m->replied_message_info.is_empty()) {
       if (m->is_topic_message &&
-          m->replied_message_info.get_same_chat_reply_to_message_id() == m->top_thread_message_id &&
+          m->replied_message_info.get_same_chat_reply_to_message_id(false) == m->top_thread_message_id &&
           !td_->auth_manager_->is_bot()) {
         return nullptr;
       }
@@ -28078,7 +28078,8 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
     }
 
     if (is_local_copy) {
-      auto original_reply_to_message_id = forwarded_message->replied_message_info.get_same_chat_reply_to_message_id();
+      auto original_reply_to_message_id =
+          forwarded_message->replied_message_info.get_same_chat_reply_to_message_id(true);
       copied_messages.push_back(
           {std::move(content), std::move(input_reply_to), forwarded_message->message_id, original_reply_to_message_id,
            std::move(reply_markup), forwarded_message->media_album_id,
@@ -28159,7 +28160,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
     auto forward_info =
         drop_author ? nullptr : create_message_forward_info(from_dialog_id, to_dialog_id, forwarded_message);
     MessageInputReplyTo input_reply_to;
-    auto original_reply_to_message_id = forwarded_message->replied_message_info.get_same_chat_reply_to_message_id();
+    auto original_reply_to_message_id = forwarded_message->replied_message_info.get_same_chat_reply_to_message_id(true);
     if (original_reply_to_message_id.is_valid()) {
       auto it = forwarded_message_id_to_new_message_id.find(original_reply_to_message_id);
       if (it != forwarded_message_id_to_new_message_id.end()) {
@@ -28616,7 +28617,7 @@ Result<MessageId> MessagesManager::add_local_message(
   m->replied_message_info = RepliedMessageInfo(td_, input_reply_to);
   m->reply_to_story_full_id = input_reply_to.get_story_full_id();
   if (!message_id.is_scheduled()) {
-    auto reply_to_message_id = m->replied_message_info.get_same_chat_reply_to_message_id();
+    auto reply_to_message_id = input_reply_to.get_same_chat_reply_to_message_id();
     const Message *reply_m = get_message(d, reply_to_message_id);
     if (reply_m != nullptr) {
       m->top_thread_message_id = reply_m->top_thread_message_id;
@@ -36093,7 +36094,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     old_message->top_thread_message_id = new_message->top_thread_message_id;
     old_message->reply_to_random_id = 0;
 
-    auto same_chat_reply_to_message_id = old_message->replied_message_info.get_same_chat_reply_to_message_id();
+    auto same_chat_reply_to_message_id = old_message->replied_message_info.get_same_chat_reply_to_message_id(false);
     if (same_chat_reply_to_message_id != MessageId() && message_id.is_yet_unsent() &&
         (dialog_id.get_type() == DialogType::SecretChat || same_chat_reply_to_message_id.is_yet_unsent())) {
       auto *replied_m = get_message(d, same_chat_reply_to_message_id);
