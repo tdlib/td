@@ -2126,7 +2126,7 @@ webPageInstantView page_blocks:vector<PageBlock> view_count:int32 version:int32 
 //@embed_height Height of the embedded preview
 //@duration Duration of the content, in seconds
 //@author Author of the content
-//@has_large_media True, if the preview has large media and its appearance can be changed
+//@has_large_media True, if size of media in the preview can be changed
 //@show_large_media True, if large media preview must be shown
 //@skip_confirmation True, if there is no need to show an ordinary open URL confirmation, when opening the URL from the preview, because the URL is shown in the message text in clear
 //@show_above_text True, if the link preview must be shown above message text; otherwise, the link preview must be shown below the message text
