@@ -42,7 +42,7 @@ td_api::object_ptr<td_api::MessageSender> get_message_sender_object_const(Td *td
 td_api::object_ptr<td_api::MessageSender> get_message_sender_object(Td *td, UserId user_id, DialogId dialog_id,
                                                                     const char *source) {
   if (dialog_id.is_valid() && !td->messages_manager_->have_dialog(dialog_id)) {
-    LOG(ERROR) << "Failed to find " << dialog_id;
+    LOG(ERROR) << "Failed to find " << dialog_id << " from " << source;
     td->messages_manager_->force_create_dialog(dialog_id, source);
   }
   if (!user_id.is_valid() && td->auth_manager_->is_bot()) {
