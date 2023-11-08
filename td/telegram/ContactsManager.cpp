@@ -16826,19 +16826,20 @@ void ContactsManager::on_update_bot_stopped(UserId user_id, int32 date, bool is_
     LOG(ERROR) << "Receive invalid updateBotStopped by " << user_id << " at " << date;
     return;
   }
-  if (!have_user_force(get_my_id(), "on_update_bot_stopped 2")) {
+  auto my_user_id = get_my_id();
+  if (!have_user_force(my_user_id, "on_update_bot_stopped 2")) {
     if (!force) {
-      send_get_me_query(td_, PromiseCreator::lambda([actor_id = actor_id(this), user_id, date, is_stopped](Unit) {
-                          send_closure(actor_id, &ContactsManager::on_update_bot_stopped, user_id, date, is_stopped,
-                                       true);
-                        }));
+      get_user_queries_.add_query(
+          my_user_id.get(), PromiseCreator::lambda([actor_id = actor_id(this), user_id, date, is_stopped](Unit) {
+            send_closure(actor_id, &ContactsManager::on_update_bot_stopped, user_id, date, is_stopped, true);
+          }));
       return;
     }
     LOG(ERROR) << "Have no self-user to process updateBotStopped";
   }
 
-  DialogParticipant old_dialog_participant(DialogId(get_my_id()), user_id, date, DialogParticipantStatus::Banned(0));
-  DialogParticipant new_dialog_participant(DialogId(get_my_id()), user_id, date, DialogParticipantStatus::Member());
+  DialogParticipant old_dialog_participant(DialogId(my_user_id), user_id, date, DialogParticipantStatus::Banned(0));
+  DialogParticipant new_dialog_participant(DialogId(my_user_id), user_id, date, DialogParticipantStatus::Member());
   if (is_stopped) {
     std::swap(old_dialog_participant.status_, new_dialog_participant.status_);
   }
@@ -17142,7 +17143,7 @@ void ContactsManager::send_get_me_query(Td *td, Promise<Unit> &&promise) {
 UserId ContactsManager::get_me(Promise<Unit> &&promise) {
   auto my_id = get_my_id();
   if (!have_user_force(my_id, "get_me")) {
-    send_get_me_query(td_, std::move(promise));
+    get_user_queries_.add_query(my_id.get(), std::move(promise));
     return UserId();
   }
 
