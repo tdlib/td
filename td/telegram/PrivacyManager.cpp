@@ -223,7 +223,8 @@ void PrivacyManager::do_update_privacy(UserPrivacySetting user_privacy_setting, 
                                 new_restricted.end(), std::back_inserter(unrestricted),
                                 [](UserId lhs, UserId rhs) { return lhs.get() < rhs.get(); });
             for (auto &user_id : unrestricted) {
-              send_closure_later(G()->contacts_manager(), &ContactsManager::reload_user, user_id, Promise<Unit>());
+              send_closure_later(G()->contacts_manager(), &ContactsManager::reload_user, user_id, Promise<Unit>(),
+                                 "do_update_privacy");
             }
           }
           break;

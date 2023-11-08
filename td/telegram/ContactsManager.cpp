@@ -3162,7 +3162,7 @@ class LeaveChannelQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     if (status.message() == "USER_NOT_PARTICIPANT") {
-      return td_->contacts_manager_->reload_channel(channel_id_, std::move(promise_));
+      return td_->contacts_manager_->reload_channel(channel_id_, std::move(promise_), "LeaveChannelQuery");
     }
     td_->contacts_manager_->on_get_channel_error(channel_id_, status, "LeaveChannelQuery");
     promise_.set_error(std::move(status));
@@ -7828,7 +7828,7 @@ void ContactsManager::on_update_username_is_active(UserId user_id, string &&user
   User *u = get_user(user_id);
   CHECK(u != nullptr);
   if (!u->usernames.can_toggle(username)) {
-    return reload_user(user_id, std::move(promise));
+    return reload_user(user_id, std::move(promise), "on_update_username_is_active");
   }
   on_update_user_usernames(u, user_id, u->usernames.toggle(username, is_active));
   update_user(u, user_id);
@@ -7840,7 +7840,7 @@ void ContactsManager::on_update_active_usernames_order(UserId user_id, vector<st
   User *u = get_user(user_id);
   CHECK(u != nullptr);
   if (!u->usernames.can_reorder_to(usernames)) {
-    return reload_user(user_id, std::move(promise));
+    return reload_user(user_id, std::move(promise), "on_update_active_usernames_order");
   }
   on_update_user_usernames(u, user_id, u->usernames.reorder_to(std::move(usernames)));
   update_user(u, user_id);
@@ -7981,7 +7981,7 @@ void ContactsManager::on_update_channel_username_is_active(ChannelId channel_id,
   auto *c = get_channel(channel_id);
   CHECK(c != nullptr);
   if (!c->usernames.can_toggle(username)) {
-    return reload_channel(channel_id, std::move(promise));
+    return reload_channel(channel_id, std::move(promise), "on_update_channel_username_is_active");
   }
   on_update_channel_usernames(c, channel_id, c->usernames.toggle(username, is_active));
   update_channel(c, channel_id);
@@ -8001,7 +8001,7 @@ void ContactsManager::on_update_channel_active_usernames_order(ChannelId channel
   auto *c = get_channel(channel_id);
   CHECK(c != nullptr);
   if (!c->usernames.can_reorder_to(usernames)) {
-    return reload_channel(channel_id, std::move(promise));
+    return reload_channel(channel_id, std::move(promise), "on_update_channel_active_usernames_order");
   }
   on_update_channel_usernames(c, channel_id, c->usernames.reorder_to(std::move(usernames)));
   update_channel(c, channel_id);
@@ -10775,7 +10775,7 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id, const cha
     u = get_user(user_id);
     CHECK(u != nullptr && u->is_received);
 
-    reload_user(user_id, Promise<Unit>());
+    reload_user(user_id, Promise<Unit>(), "get_user_force");
   }
   return u;
 }
@@ -12106,7 +12106,7 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
     u->is_repaired = true;
 
     LOG(INFO) << "Repairing cache of " << user_id;
-    reload_user(user_id, Promise<Unit>());
+    reload_user(user_id, Promise<Unit>(), "update_user");
   }
 
   if (u->is_full_info_changed) {
@@ -12168,10 +12168,10 @@ void ContactsManager::update_chat(Chat *c, ChatId chat_id, bool from_binlog, boo
       send_closure_later(G()->messages_manager(), &MessagesManager::try_update_dialog_pos, DialogId(chat_id));
 
       // reload the chat to repair its status if it is changed back after receiving of outdated data
-      create_actor<SleepActor>("ReloadChatSleepActor", 1.0,
-                               PromiseCreator::lambda([actor_id = actor_id(this), chat_id](Unit) {
-                                 send_closure(actor_id, &ContactsManager::reload_chat, chat_id, Promise<Unit>());
-                               }))
+      create_actor<SleepActor>(
+          "ReloadChatSleepActor", 1.0, PromiseCreator::lambda([actor_id = actor_id(this), chat_id](Unit) {
+            send_closure(actor_id, &ContactsManager::reload_chat, chat_id, Promise<Unit>(), "ReloadChatSleepActor");
+          }))
           .release();
     }
     c->is_status_changed = false;
@@ -12211,7 +12211,7 @@ void ContactsManager::update_chat(Chat *c, ChatId chat_id, bool from_binlog, boo
     c->is_repaired = true;
 
     LOG(INFO) << "Repairing cache of " << chat_id;
-    reload_chat(chat_id, Promise<Unit>());
+    reload_chat(chat_id, Promise<Unit>(), "update_chat");
   }
 }
 
@@ -12286,7 +12286,8 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
       // reload the channel to repair its status if it is changed back after receiving of outdated data
       create_actor<SleepActor>("ReloadChannelSleepActor", 1.0,
                                PromiseCreator::lambda([actor_id = actor_id(this), channel_id](Unit) {
-                                 send_closure(actor_id, &ContactsManager::reload_channel, channel_id, Promise<Unit>());
+                                 send_closure(actor_id, &ContactsManager::reload_channel, channel_id, Promise<Unit>(),
+                                              "ReloadChannelSleepActor");
                                }))
           .release();
     }
@@ -12387,7 +12388,7 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
     c->is_repaired = true;
 
     LOG(INFO) << "Repairing cache of " << channel_id;
-    reload_channel(channel_id, Promise<Unit>());
+    reload_channel(channel_id, Promise<Unit>(), "update_channel");
   }
 }
 
@@ -14118,14 +14119,14 @@ void ContactsManager::on_set_profile_photo(UserId user_id, tl_object_ptr<telegra
   if (have_user) {
     promise.set_value(Unit());
   } else {
-    reload_user(user_id, std::move(promise));
+    reload_user(user_id, std::move(promise), "on_set_profile_photo");
   }
 }
 
 void ContactsManager::on_delete_profile_photo(int64 profile_photo_id, Promise<Unit> promise) {
   bool need_reget_user = delete_my_profile_photo_from_cache(profile_photo_id);
   if (need_reget_user && !G()->close_flag()) {
-    return reload_user(get_my_id(), std::move(promise));
+    return reload_user(get_my_id(), std::move(promise), "on_delete_profile_photo");
   }
 
   promise.set_value(Unit());
@@ -15345,7 +15346,7 @@ void ContactsManager::on_update_channel_full_linked_channel_id(ChannelFull *chan
         linked_channel->has_linked_channel = false;
         linked_channel->is_changed = true;
         update_channel(linked_channel, channel_full->linked_channel_id);
-        reload_channel(channel_full->linked_channel_id, Auto());
+        reload_channel(channel_full->linked_channel_id, Auto(), "on_update_channel_full_linked_channel_id 21");
       }
       auto linked_channel_full =
           get_channel_full_force(channel_full->linked_channel_id, true, "on_update_channel_full_linked_channel_id 1");
@@ -15368,7 +15369,7 @@ void ContactsManager::on_update_channel_full_linked_channel_id(ChannelFull *chan
         linked_channel->has_linked_channel = true;
         linked_channel->is_changed = true;
         update_channel(linked_channel, channel_full->linked_channel_id);
-        reload_channel(channel_full->linked_channel_id, Auto());
+        reload_channel(channel_full->linked_channel_id, Auto(), "on_update_channel_full_linked_channel_id 22");
       }
       auto linked_channel_full =
           get_channel_full_force(channel_full->linked_channel_id, true, "on_update_channel_full_linked_channel_id 2");
@@ -17125,13 +17126,13 @@ bool ContactsManager::is_dialog_info_received_from_server(DialogId dialog_id) co
 void ContactsManager::reload_dialog_info(DialogId dialog_id, Promise<Unit> &&promise) {
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      return reload_user(dialog_id.get_user_id(), std::move(promise));
+      return reload_user(dialog_id.get_user_id(), std::move(promise), "reload_dialog_info");
     case DialogType::Chat:
-      return reload_chat(dialog_id.get_chat_id(), std::move(promise));
+      return reload_chat(dialog_id.get_chat_id(), std::move(promise), "reload_dialog_info");
     case DialogType::Channel:
-      return reload_channel(dialog_id.get_channel_id(), std::move(promise));
+      return reload_channel(dialog_id.get_channel_id(), std::move(promise), "reload_dialog_info");
     default:
-      return promise.set_error(Status::Error("Invalid dialog ID to reload"));
+      return promise.set_error(Status::Error("Invalid chat identifier to reload"));
   }
 }
 
@@ -17214,16 +17215,16 @@ ContactsManager::UserFull *ContactsManager::add_user_full(UserId user_id) {
   return user_full_ptr.get();
 }
 
-void ContactsManager::reload_user(UserId user_id, Promise<Unit> &&promise) {
+void ContactsManager::reload_user(UserId user_id, Promise<Unit> &&promise, const char *source) {
   if (!user_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Invalid user identifier"));
   }
 
-  have_user_force(user_id, "reload_user");
+  have_user_force(user_id, source);
 
   TRY_STATUS_PROMISE(promise, get_input_user(user_id));
 
-  get_user_queries_.add_query(user_id.get(), std::move(promise), "reload_user");
+  get_user_queries_.add_query(user_id.get(), std::move(promise), source);
 }
 
 void ContactsManager::load_user_full(UserId user_id, bool force, Promise<Unit> &&promise, const char *source) {
@@ -17560,14 +17561,14 @@ bool ContactsManager::get_chat(ChatId chat_id, int left_tries, Promise<Unit> &&p
   return true;
 }
 
-void ContactsManager::reload_chat(ChatId chat_id, Promise<Unit> &&promise) {
+void ContactsManager::reload_chat(ChatId chat_id, Promise<Unit> &&promise, const char *source) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   if (!chat_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Invalid basic group identifier"));
   }
 
-  get_chat_queries_.add_query(chat_id.get(), std::move(promise), "reload_chat");
+  get_chat_queries_.add_query(chat_id.get(), std::move(promise), source);
 }
 
 const ContactsManager::ChatFull *ContactsManager::get_chat_full(ChatId chat_id) const {
@@ -17984,14 +17985,14 @@ bool ContactsManager::get_channel(ChannelId channel_id, int left_tries, Promise<
   return true;
 }
 
-void ContactsManager::reload_channel(ChannelId channel_id, Promise<Unit> &&promise) {
+void ContactsManager::reload_channel(ChannelId channel_id, Promise<Unit> &&promise, const char *source) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   if (!channel_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Invalid supergroup identifier"));
   }
 
-  have_channel_force(channel_id, "reload_channel");
+  have_channel_force(channel_id, source);
   auto input_channel = get_input_channel(channel_id);
   if (input_channel == nullptr) {
     // requests with 0 access_hash must not be merged
@@ -18000,7 +18001,7 @@ void ContactsManager::reload_channel(ChannelId channel_id, Promise<Unit> &&promi
     return;
   }
 
-  get_channel_queries_.add_query(channel_id.get(), std::move(promise), "reload_channel");
+  get_channel_queries_.add_query(channel_id.get(), std::move(promise), source);
 }
 
 const ContactsManager::ChannelFull *ContactsManager::get_channel_full_const(ChannelId channel_id) const {

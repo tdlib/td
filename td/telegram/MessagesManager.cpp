@@ -31275,7 +31275,8 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
       } else if (error.message() == "CHAT_GUEST_SEND_FORBIDDEN") {
         error_code = 400;
         if (dialog_id.get_type() == DialogType::Channel) {
-          td_->contacts_manager_->reload_channel(dialog_id.get_channel_id(), Promise<Unit>());
+          td_->contacts_manager_->reload_channel(dialog_id.get_channel_id(), Promise<Unit>(),
+                                                 "CHAT_GUEST_SEND_FORBIDDEN");
         }
       } else if (error.message() != "CHANNEL_PUBLIC_GROUP_NA" && error.message() != "USER_IS_BLOCKED" &&
                  error.message() != "USER_BOT_INVALID" && error.message() != "USER_DELETED") {
@@ -32653,7 +32654,7 @@ void MessagesManager::resolve_dialog(const string &username, ChannelId channel_i
           send_closure(actor_id, &MessagesManager::on_resolve_dialog, username, channel_id, std::move(promise));
         });
     if (username.empty()) {
-      td_->contacts_manager_->reload_channel(channel_id, std::move(query_promise));
+      td_->contacts_manager_->reload_channel(channel_id, std::move(query_promise), "resolve_dialog");
     } else {
       send_resolve_dialog_username_query(username, std::move(query_promise));
     }

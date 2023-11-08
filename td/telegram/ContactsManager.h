@@ -610,7 +610,7 @@ class ContactsManager final : public Actor {
   static void send_get_me_query(Td *td, Promise<Unit> &&promise);
   UserId get_me(Promise<Unit> &&promise);
   bool get_user(UserId user_id, int left_tries, Promise<Unit> &&promise);
-  void reload_user(UserId user_id, Promise<Unit> &&promise);
+  void reload_user(UserId user_id, Promise<Unit> &&promise, const char *source);
   void load_user_full(UserId user_id, bool force, Promise<Unit> &&promise, const char *source);
   FileSourceId get_user_full_file_source_id(UserId user_id);
   void reload_user_full(UserId user_id, Promise<Unit> &&promise, const char *source);
@@ -623,7 +623,7 @@ class ContactsManager final : public Actor {
   bool have_chat(ChatId chat_id) const;
   bool have_chat_force(ChatId chat_id, const char *source);
   bool get_chat(ChatId chat_id, int left_tries, Promise<Unit> &&promise);
-  void reload_chat(ChatId chat_id, Promise<Unit> &&promise);
+  void reload_chat(ChatId chat_id, Promise<Unit> &&promise, const char *source);
   void load_chat_full(ChatId chat_id, bool force, Promise<Unit> &&promise, const char *source);
   FileSourceId get_chat_full_file_source_id(ChatId chat_id);
   void reload_chat_full(ChatId chat_id, Promise<Unit> &&promise, const char *source);
@@ -643,7 +643,7 @@ class ContactsManager final : public Actor {
   bool have_channel(ChannelId channel_id) const;
   bool have_channel_force(ChannelId channel_id, const char *source);
   bool get_channel(ChannelId channel_id, int left_tries, Promise<Unit> &&promise);
-  void reload_channel(ChannelId channel_id, Promise<Unit> &&promise);
+  void reload_channel(ChannelId channel_id, Promise<Unit> &&promise, const char *source);
   void load_channel_full(ChannelId channel_id, bool force, Promise<Unit> &&promise, const char *source);
   FileSourceId get_channel_full_file_source_id(ChannelId channel_id);
   void reload_channel_full(ChannelId channel_id, Promise<Unit> &&promise, const char *source);

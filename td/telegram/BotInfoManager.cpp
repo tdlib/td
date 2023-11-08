@@ -232,7 +232,7 @@ class SetBotInfoQuery final : public Td::ResultHandler {
       }
     }
     if (set_name_) {
-      return td_->contacts_manager_->reload_user(bot_user_id_, std::move(promise_));
+      return td_->contacts_manager_->reload_user(bot_user_id_, std::move(promise_), "SetBotInfoQuery");
     }
     // invalidation is enough for bots if name wasn't changed
     promise_.set_value(Unit());

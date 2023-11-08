@@ -320,11 +320,12 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
                            source.photo_id, std::move(promise));
       },
       [&](const FileSourceChatPhoto &source) {
-        send_closure_later(G()->contacts_manager(), &ContactsManager::reload_chat, source.chat_id, std::move(promise));
+        send_closure_later(G()->contacts_manager(), &ContactsManager::reload_chat, source.chat_id, std::move(promise),
+                           "FileSourceChatPhoto");
       },
       [&](const FileSourceChannelPhoto &source) {
         send_closure_later(G()->contacts_manager(), &ContactsManager::reload_channel, source.channel_id,
-                           std::move(promise));
+                           std::move(promise), "FileSourceChannelPhoto");
       },
       [&](const FileSourceWallpapers &source) { promise.set_error(Status::Error("Can't repair old wallpapers")); },
       [&](const FileSourceWebPage &source) {
