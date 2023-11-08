@@ -3175,10 +3175,9 @@ void StickersManager::merge_stickers(FileId new_id, FileId old_id) {
   if (new_ == nullptr) {
     dup_sticker(new_id, old_id);
   } else {
-    if (old_->set_id_ == new_->set_id_ &&
-        (old_->alt_ != new_->alt_ || old_->set_id_ != new_->set_id_ ||
-         (!is_sticker_format_vector(old_->format_) && !is_sticker_format_vector(new_->format_) &&
-          old_->dimensions_.width != 0 && old_->dimensions_.height != 0 && old_->dimensions_ != new_->dimensions_))) {
+    if (old_->set_id_ == new_->set_id_ && old_->dimensions_ != new_->dimensions_ && old_->dimensions_.width != 0 &&
+        old_->dimensions_.height != 0 && !is_sticker_format_vector(old_->format_) &&
+        !is_sticker_format_vector(new_->format_)) {
       LOG(ERROR) << "Sticker has changed: alt = (" << old_->alt_ << ", " << new_->alt_ << "), set_id = ("
                  << old_->set_id_ << ", " << new_->set_id_ << "), dimensions = (" << old_->dimensions_ << ", "
                  << new_->dimensions_ << ")";
