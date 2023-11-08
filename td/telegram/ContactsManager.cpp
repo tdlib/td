@@ -19094,8 +19094,6 @@ void ContactsManager::on_get_channel(telegram_api::channel &channel, const char 
       if (!c->status.is_banned()) {
         on_update_channel_photo(c, channel_id, std::move(channel.photo_));
       }
-      on_update_channel_default_permissions(c, channel_id,
-                                            RestrictedRights(channel.default_banned_rights_, ChannelType::Megagroup));
       on_update_channel_has_location(c, channel_id, channel.has_geo_);
       on_update_channel_noforwards(c, channel_id, channel.noforwards_);
 
@@ -19129,6 +19127,10 @@ void ContactsManager::on_get_channel(telegram_api::channel &channel, const char 
       if (old_join_to_send != get_channel_join_to_send(c) || old_join_request != get_channel_join_request(c)) {
         c->is_changed = true;
       }
+
+      // must be after setting of c->is_megagroup
+      on_update_channel_default_permissions(c, channel_id,
+                                            RestrictedRights(channel.default_banned_rights_, ChannelType::Megagroup));
 
       update_channel(c, channel_id);
     } else {
@@ -19180,8 +19182,6 @@ void ContactsManager::on_get_channel(telegram_api::channel &channel, const char 
       c, channel_id,
       Usernames(std::move(channel.username_),
                 std::move(channel.usernames_)));  // uses status, must be called after on_update_channel_status
-  on_update_channel_default_permissions(c, channel_id,
-                                        RestrictedRights(channel.default_banned_rights_, ChannelType::Megagroup));
   on_update_channel_has_location(c, channel_id, channel.has_geo_);
   on_update_channel_noforwards(c, channel_id, channel.noforwards_);
   if (!td_->auth_manager_->is_bot() && !channel.stories_hidden_min_) {
@@ -19231,6 +19231,10 @@ void ContactsManager::on_get_channel(telegram_api::channel &channel, const char 
     // update at the end, because it calls need_poll_channel_active_stories
     on_update_channel_story_ids_impl(c, channel_id, StoryId(channel.stories_max_id_), StoryId());
   }
+
+  // must be after setting of c->is_megagroup
+  on_update_channel_default_permissions(c, channel_id,
+                                        RestrictedRights(channel.default_banned_rights_, ChannelType::Megagroup));
 
   if (c->cache_version != Channel::CACHE_VERSION) {
     c->cache_version = Channel::CACHE_VERSION;
@@ -19290,8 +19294,6 @@ void ContactsManager::on_get_channel_forbidden(telegram_api::channelForbidden &c
   }
   on_update_channel_status(c, channel_id, DialogParticipantStatus::Banned(channel.until_date_));
   // on_update_channel_usernames(c, channel_id, Usernames());  // don't know if channel usernames are empty, so don't update it
-  tl_object_ptr<telegram_api::chatBannedRights> banned_rights;  // == nullptr
-  on_update_channel_default_permissions(c, channel_id, RestrictedRights(banned_rights, ChannelType::Megagroup));
   // on_update_channel_has_location(c, channel_id, false);
   on_update_channel_noforwards(c, channel_id, false);
   td_->messages_manager_->on_update_dialog_group_call(DialogId(channel_id), false, false, "on_get_channel_forbidden");
@@ -19347,6 +19349,10 @@ void ContactsManager::on_get_channel_forbidden(telegram_api::channelForbidden &c
   if (old_join_to_send != get_channel_join_to_send(c) || old_join_request != get_channel_join_request(c)) {
     c->is_changed = true;
   }
+
+  // must be after setting of c->is_megagroup
+  tl_object_ptr<telegram_api::chatBannedRights> banned_rights;  // == nullptr
+  on_update_channel_default_permissions(c, channel_id, RestrictedRights(banned_rights, ChannelType::Megagroup));
 
   bool need_drop_participant_count = c->participant_count != 0;
   if (need_drop_participant_count) {
