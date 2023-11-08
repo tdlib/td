@@ -29,7 +29,7 @@ class QueryMerger final : public Actor {
     merge_function_ = std::move(merge_function);
   }
 
-  void add_query(int64 query_id, Promise<Unit> &&promise);
+  void add_query(int64 query_id, Promise<Unit> &&promise, const char *source);
 
  private:
   struct QueryInfo {

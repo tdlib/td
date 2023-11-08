@@ -70,7 +70,8 @@ class TestQueryMerger final : public td::Actor {
                                 } else {
                                   yield();
                                 }
-                              }));
+                              }),
+                              "TestQueryMerger::loop");
     }
   }
 

@@ -9810,7 +9810,7 @@ void ContactsManager::register_message_channels(MessageFullId message_full_id, v
       channel_messages_[channel_id].insert(message_full_id);
 
       // get info about the channel
-      get_channel_queries_.add_query(channel_id.get(), Promise<Unit>());
+      get_channel_queries_.add_query(channel_id.get(), Promise<Unit>(), "register_message_channels");
     }
   }
 }
@@ -16832,7 +16832,8 @@ void ContactsManager::on_update_bot_stopped(UserId user_id, int32 date, bool is_
       get_user_queries_.add_query(
           my_user_id.get(), PromiseCreator::lambda([actor_id = actor_id(this), user_id, date, is_stopped](Unit) {
             send_closure(actor_id, &ContactsManager::on_update_bot_stopped, user_id, date, is_stopped, true);
-          }));
+          }),
+          "on_update_bot_stopped");
       return;
     }
     LOG(ERROR) << "Have no self-user to process updateBotStopped";
@@ -17143,7 +17144,7 @@ void ContactsManager::send_get_me_query(Td *td, Promise<Unit> &&promise) {
 UserId ContactsManager::get_me(Promise<Unit> &&promise) {
   auto my_id = get_my_id();
   if (!have_user_force(my_id, "get_me")) {
-    get_user_queries_.add_query(my_id.get(), std::move(promise));
+    get_user_queries_.add_query(my_id.get(), std::move(promise), "get_me");
     return UserId();
   }
 
@@ -17179,7 +17180,7 @@ bool ContactsManager::get_user(UserId user_id, int left_tries, Promise<Unit> &&p
       return false;
     }
 
-    get_user_queries_.add_query(user_id.get(), std::move(promise));
+    get_user_queries_.add_query(user_id.get(), std::move(promise), "get_user");
     return false;
   }
 
@@ -17222,7 +17223,7 @@ void ContactsManager::reload_user(UserId user_id, Promise<Unit> &&promise) {
 
   TRY_STATUS_PROMISE(promise, get_input_user(user_id));
 
-  get_user_queries_.add_query(user_id.get(), std::move(promise));
+  get_user_queries_.add_query(user_id.get(), std::move(promise), "reload_user");
 }
 
 void ContactsManager::load_user_full(UserId user_id, bool force, Promise<Unit> &&promise, const char *source) {
@@ -17547,7 +17548,7 @@ bool ContactsManager::get_chat(ChatId chat_id, int left_tries, Promise<Unit> &&p
     }
 
     if (left_tries > 1) {
-      get_chat_queries_.add_query(chat_id.get(), std::move(promise));
+      get_chat_queries_.add_query(chat_id.get(), std::move(promise), "get_chat");
       return false;
     }
 
@@ -17566,7 +17567,7 @@ void ContactsManager::reload_chat(ChatId chat_id, Promise<Unit> &&promise) {
     return promise.set_error(Status::Error(400, "Invalid basic group identifier"));
   }
 
-  get_chat_queries_.add_query(chat_id.get(), std::move(promise));
+  get_chat_queries_.add_query(chat_id.get(), std::move(promise), "reload_chat");
 }
 
 const ContactsManager::ChatFull *ContactsManager::get_chat_full(ChatId chat_id) const {
@@ -17971,7 +17972,7 @@ bool ContactsManager::get_channel(ChannelId channel_id, int left_tries, Promise<
     }
 
     if (left_tries > 1 && td_->auth_manager_->is_bot()) {
-      get_channel_queries_.add_query(channel_id.get(), std::move(promise));
+      get_channel_queries_.add_query(channel_id.get(), std::move(promise), "get_channel");
       return false;
     }
 
@@ -17999,7 +18000,7 @@ void ContactsManager::reload_channel(ChannelId channel_id, Promise<Unit> &&promi
     return;
   }
 
-  get_channel_queries_.add_query(channel_id.get(), std::move(promise));
+  get_channel_queries_.add_query(channel_id.get(), std::move(promise), "reload_channel");
 }
 
 const ContactsManager::ChannelFull *ContactsManager::get_channel_full_const(ChannelId channel_id) const {
@@ -18915,7 +18916,7 @@ void ContactsManager::on_get_chat(telegram_api::chat &chat, const char *source) 
             update_channel(c, migrated_to_channel_id);
 
             // get info about the channel
-            get_channel_queries_.add_query(migrated_to_channel_id.get(), Promise<Unit>());
+            get_channel_queries_.add_query(migrated_to_channel_id.get(), Promise<Unit>(), "on_get_chat");
           }
         }
         break;
