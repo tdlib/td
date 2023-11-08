@@ -12167,12 +12167,14 @@ void ContactsManager::update_chat(Chat *c, ChatId chat_id, bool from_binlog, boo
       // if the chat is empty, this can add it to a chat list or remove it from a chat list
       send_closure_later(G()->messages_manager(), &MessagesManager::try_update_dialog_pos, DialogId(chat_id));
 
-      // reload the chat to repair its status if it is changed back after receiving of outdated data
-      create_actor<SleepActor>(
-          "ReloadChatSleepActor", 1.0, PromiseCreator::lambda([actor_id = actor_id(this), chat_id](Unit) {
-            send_closure(actor_id, &ContactsManager::reload_chat, chat_id, Promise<Unit>(), "ReloadChatSleepActor");
-          }))
-          .release();
+      if (c->is_update_basic_group_sent) {
+        // reload the chat to repair its status if it is changed back after receiving of outdated data
+        create_actor<SleepActor>(
+            "ReloadChatSleepActor", 1.0, PromiseCreator::lambda([actor_id = actor_id(this), chat_id](Unit) {
+              send_closure(actor_id, &ContactsManager::reload_chat, chat_id, Promise<Unit>(), "ReloadChatSleepActor");
+            }))
+            .release();
+      }
     }
     c->is_status_changed = false;
   }
@@ -12282,7 +12284,7 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
     if (!c->status.can_manage_invite_links()) {
       td_->messages_manager_->drop_dialog_pending_join_requests(DialogId(channel_id));
     }
-    if (!from_database) {
+    if (!from_database && c->is_update_supergroup_sent) {
       // reload the channel to repair its status if it is changed back after receiving of outdated data
       create_actor<SleepActor>("ReloadChannelSleepActor", 1.0,
                                PromiseCreator::lambda([actor_id = actor_id(this), channel_id](Unit) {
