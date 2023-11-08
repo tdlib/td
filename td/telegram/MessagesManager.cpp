@@ -31477,7 +31477,7 @@ void MessagesManager::on_update_dialog_draft_message(DialogId dialog_id, Message
     return;
   }
   if (td_->auth_manager_->is_bot()) {
-    if (draft_message != nullptr) {
+    if (draft_message != nullptr && draft_message->get_id() != telegram_api::draftMessageEmpty::ID) {
       LOG(ERROR) << "Receive update of draft message in " << dialog_id;
     }
     return;
