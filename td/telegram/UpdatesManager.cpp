@@ -2083,7 +2083,7 @@ void UpdatesManager::on_get_pts_update(int32 pts,
       }
 
       if (!difference->new_encrypted_messages_.empty() || update_count != 1) {
-        LOG(ERROR) << "Receive unexpected updates with PTS " << pts << ": " << to_string(difference_ptr);
+        LOG(ERROR) << "Receive unexpected updates with PTS " << pts << ": " << to_string(difference);
         break;
       }
 
