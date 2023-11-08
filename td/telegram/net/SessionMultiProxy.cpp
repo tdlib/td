@@ -78,18 +78,13 @@ void SessionMultiProxy::update_options(int32 session_count, bool use_pfs, bool n
     return;
   }
 
-  bool changed = false;
+  bool is_changed = false;
 
+  session_count = clamp(session_count, 1, 100);
   if (session_count != session_count_) {
     session_count_ = session_count;
-    if (session_count_ <= 0) {
-      session_count_ = 1;
-    }
-    if (session_count_ > 100) {
-      session_count_ = 100;
-    }
     LOG(INFO) << "Update session_count to " << session_count_;
-    changed = true;
+    is_changed = true;
   }
 
   if (use_pfs != use_pfs_) {
@@ -97,16 +92,17 @@ void SessionMultiProxy::update_options(int32 session_count, bool use_pfs, bool n
     use_pfs_ = use_pfs;
     if (old_pfs_flag != get_pfs_flag()) {
       LOG(INFO) << "Update use_pfs to " << use_pfs_;
-      changed = true;
+      is_changed = true;
     }
   }
 
   if (need_destroy_auth_key) {
     need_destroy_auth_key_ = need_destroy_auth_key;
+    is_changed = true;
     LOG(WARNING) << "Destroy auth key";
   }
 
-  if (changed) {
+  if (is_changed) {
     init();
   }
 }
