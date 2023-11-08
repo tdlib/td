@@ -36093,6 +36093,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     old_message->replied_message_info = std::move(new_message->replied_message_info);
     old_message->reply_to_story_full_id = new_message->reply_to_story_full_id;
     old_message->top_thread_message_id = new_message->top_thread_message_id;
+    old_message->is_topic_message = new_message->is_topic_message;
     old_message->reply_to_random_id = 0;
 
     auto same_chat_reply_to_message_id = old_message->replied_message_info.get_same_chat_reply_to_message_id(false);
