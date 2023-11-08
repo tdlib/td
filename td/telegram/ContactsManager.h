@@ -251,7 +251,7 @@ class ContactsManager final : public Actor {
   void on_update_channel_default_permissions(ChannelId channel_id, RestrictedRights default_permissions);
   void on_update_channel_administrator_count(ChannelId channel_id, int32 administrator_count);
 
-  void on_update_bot_stopped(UserId user_id, int32 date, bool is_stopped);
+  void on_update_bot_stopped(UserId user_id, int32 date, bool is_stopped, bool force = false);
   void on_update_chat_participant(ChatId chat_id, UserId user_id, int32 date, DialogInviteLink invite_link,
                                   tl_object_ptr<telegram_api::ChatParticipant> old_participant,
                                   tl_object_ptr<telegram_api::ChatParticipant> new_participant);

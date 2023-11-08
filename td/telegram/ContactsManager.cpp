@@ -16817,7 +16817,7 @@ void ContactsManager::send_update_chat_member(DialogId dialog_id, UserId agent_u
                    get_chat_member_object(new_dialog_participant, "send_update_chat_member new")));
 }
 
-void ContactsManager::on_update_bot_stopped(UserId user_id, int32 date, bool is_stopped) {
+void ContactsManager::on_update_bot_stopped(UserId user_id, int32 date, bool is_stopped, bool force) {
   if (!td_->auth_manager_->is_bot()) {
     LOG(ERROR) << "Receive updateBotStopped by non-bot";
     return;
@@ -16825,6 +16825,16 @@ void ContactsManager::on_update_bot_stopped(UserId user_id, int32 date, bool is_
   if (date <= 0 || !have_user_force(user_id, "on_update_bot_stopped")) {
     LOG(ERROR) << "Receive invalid updateBotStopped by " << user_id << " at " << date;
     return;
+  }
+  if (!have_user_force(get_my_id(), "on_update_bot_stopped 2")) {
+    if (!force) {
+      send_get_me_query(td_, PromiseCreator::lambda([actor_id = actor_id(this), user_id, date, is_stopped](Unit) {
+                          send_closure(actor_id, &ContactsManager::on_update_bot_stopped, user_id, date, is_stopped,
+                                       true);
+                        }));
+      return;
+    }
+    LOG(ERROR) << "Have no self-user to process updateBotStopped";
   }
 
   DialogParticipant old_dialog_participant(DialogId(get_my_id()), user_id, date, DialogParticipantStatus::Banned(0));
