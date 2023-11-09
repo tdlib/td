@@ -74,7 +74,8 @@ enum class MessageContentType : int32 {
   WriteAccessAllowedByRequest,
   GiftCode,
   Giveaway,
-  GiveawayLaunch
+  GiveawayLaunch,
+  GiveawayResults
 };
 // increase MessageUnsupported::CURRENT_VERSION each time a new message content type is added
 
