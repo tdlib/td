@@ -17729,7 +17729,7 @@ MessageFullId MessagesManager::get_replied_message_id(DialogId dialog_id, const 
   if (reply_message_full_id.get_message_id() != MessageId()) {
     return reply_message_full_id;
   }
-  if (m->top_thread_message_id.is_valid()) {
+  if (m->top_thread_message_id.is_valid() && m->top_thread_message_id != m->message_id) {
     return {dialog_id, m->top_thread_message_id};
   }
   return {};
