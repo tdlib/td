@@ -789,8 +789,11 @@ class UpdateColorQuery final : public Td::ResultHandler {
     if (background_custom_emoji_id.is_valid()) {
       flags |= telegram_api::account_updateColor::BACKGROUND_EMOJI_ID_MASK;
     }
+    flags |= telegram_api::account_updateColor::COLOR_MASK;
     send_query(G()->net_query_creator().create(
-        telegram_api::account_updateColor(flags, accent_color_id.get(), background_custom_emoji_id.get()), {{"me"}}));
+        telegram_api::account_updateColor(flags, false /*ignored*/, accent_color_id.get(),
+                                          background_custom_emoji_id.get()),
+        {{"me"}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -10450,8 +10453,12 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   }
   on_update_user_emoji_status(u, user_id, EmojiStatus(std::move(user->emoji_status_)));
   on_update_user_accent_color_id(
-      u, user_id, ((flags2 & telegram_api::user::COLOR_MASK) != 0 ? AccentColorId(user->color_) : AccentColorId()));
-  on_update_user_background_custom_emoji_id(u, user_id, CustomEmojiId(user->background_emoji_id_));
+      u, user_id,
+      (user->color_ != nullptr && (user->color_->flags_ & telegram_api::peerColor::COLOR_MASK) != 0
+           ? AccentColorId(user->color_->color_)
+           : AccentColorId()));
+  on_update_user_background_custom_emoji_id(
+      u, user_id, (user->color_ != nullptr ? CustomEmojiId(user->color_->background_emoji_id_) : CustomEmojiId()));
   if (is_me_regular_user && is_received) {
     on_update_user_stories_hidden(u, user_id, stories_hidden);
   }
@@ -10769,7 +10776,7 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id, const cha
         false /*ignored*/, false /*ignored*/, false /*ignored*/, 0, false /*ignored*/, false /*ignored*/,
         false /*ignored*/, false /*ignored*/, user_id.get(), 1, first_name, string(), username, phone_number,
         std::move(profile_photo), nullptr, bot_info_version, Auto(), string(), string(), nullptr,
-        vector<telegram_api::object_ptr<telegram_api::username>>(), 0, 0, 0);
+        vector<telegram_api::object_ptr<telegram_api::username>>(), 0, nullptr, nullptr);
     on_get_user(std::move(user), "get_user_force");
     u = get_user(user_id);
     CHECK(u != nullptr && u->is_received);
@@ -19145,8 +19152,8 @@ void ContactsManager::on_get_channel(telegram_api::channel &channel, const char 
       if (td_->auth_manager_->is_bot()) {
         min_channel->photo_.minithumbnail.clear();
       }
-      if ((channel.flags2_ & telegram_api::channel::COLOR_MASK) != 0) {
-        min_channel->accent_color_id_ = AccentColorId(channel.color_);
+      if (channel.color_ != nullptr && (channel.color_->flags_ & telegram_api::peerColor::COLOR_MASK) != 0) {
+        min_channel->accent_color_id_ = AccentColorId(channel.color_->color_);
       }
       min_channel->title_ = std::move(channel.title_);
       min_channel->is_megagroup_ = is_megagroup;
@@ -19219,8 +19226,11 @@ void ContactsManager::on_get_channel(telegram_api::channel &channel, const char 
   on_update_channel_photo(c, channel_id, std::move(channel.photo_));
   on_update_channel_accent_color_id(
       c, channel_id,
-      ((channel.flags2_ & telegram_api::channel::COLOR_MASK) != 0 ? AccentColorId(channel.color_) : AccentColorId()));
-  on_update_channel_background_custom_emoji_id(c, channel_id, CustomEmojiId(channel.background_emoji_id_));
+      (channel.color_ != nullptr && (channel.color_->flags_ & telegram_api::peerColor::COLOR_MASK) != 0
+           ? AccentColorId(channel.color_->color_)
+           : AccentColorId()));
+  on_update_channel_background_custom_emoji_id(
+      c, channel_id, channel.color_ != nullptr ? CustomEmojiId(channel.color_->background_emoji_id_) : CustomEmojiId());
   on_update_channel_status(c, channel_id, std::move(status));
   on_update_channel_usernames(
       c, channel_id,

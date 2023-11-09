@@ -968,8 +968,8 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
         case telegram_api::messageActionTopicEdit::ID:
         case telegram_api::messageActionSuggestProfilePhoto::ID:
         case telegram_api::messageActionSetChatWallPaper::ID:
-        case telegram_api::messageActionSetSameChatWallPaper::ID:
         case telegram_api::messageActionGiveawayLaunch::ID:
+        case telegram_api::messageActionGiveawayResults::ID:
           break;
         case telegram_api::messageActionChatCreate::ID: {
           auto chat_create = static_cast<const telegram_api::messageActionChatCreate *>(action);
@@ -4380,5 +4380,14 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewAuthorizatio
 }
 
 // unsupported updates
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelViewForumAsMessages> update,
+                               Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePeerWallpaper> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
 
 }  // namespace td

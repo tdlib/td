@@ -6222,14 +6222,6 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       if (!background_info.is_valid()) {
         break;
       }
-      return make_unique<MessageSetBackground>(MessageId(), std::move(background_info));
-    }
-    case telegram_api::messageActionSetSameChatWallPaper::ID: {
-      auto action = move_tl_object_as<telegram_api::messageActionSetSameChatWallPaper>(action_ptr);
-      BackgroundInfo background_info(td, std::move(action->wallpaper_));
-      if (!background_info.is_valid()) {
-        break;
-      }
       auto reply_to_message_id = replied_message_info.get_same_chat_reply_to_message_id(true);
       if (!reply_to_message_id.is_valid()) {
         reply_to_message_id = MessageId();
@@ -6254,6 +6246,8 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       return td::make_unique<MessageGiftCode>(dialog_id, action->months_, action->via_giveaway_, action->unclaimed_,
                                               std::move(action->slug_));
     }
+    case telegram_api::messageActionGiveawayResults::ID:
+      return make_unique<MessageUnsupported>();
     default:
       UNREACHABLE();
   }

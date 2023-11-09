@@ -880,10 +880,10 @@ class StoryManager::SendStoryQuery final : public Td::ResultHandler {
     }
 
     send_query(G()->net_query_creator().create(
-        telegram_api::stories_sendStory(flags, false /*ignored*/, false /*ignored*/, std::move(input_peer),
-                                        std::move(input_media), std::move(media_areas), caption.text,
-                                        std::move(entities), std::move(privacy_rules), pending_story_->random_id_,
-                                        period),
+        telegram_api::stories_sendStory(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+                                        std::move(input_peer), std::move(input_media), std::move(media_areas),
+                                        caption.text, std::move(entities), std::move(privacy_rules),
+                                        pending_story_->random_id_, period, nullptr, 0),
         {{pending_story_->dialog_id_}}));
   }
 

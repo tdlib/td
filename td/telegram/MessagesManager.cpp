@@ -3940,7 +3940,7 @@ class SendScreenshotNotificationQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(
         telegram_api::messages_sendScreenshotNotification(
             std::move(input_peer),
-            telegram_api::make_object<telegram_api::inputReplyToMessage>(0, 0, 0, nullptr, string(), Auto()),
+            telegram_api::make_object<telegram_api::inputReplyToMessage>(0, 0, 0, nullptr, string(), Auto(), 0),
             random_id),
         {{dialog_id, MessageContentType::Text}}));
   }

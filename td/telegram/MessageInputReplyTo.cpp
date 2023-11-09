@@ -131,7 +131,7 @@ telegram_api::object_ptr<telegram_api::InputReplyTo> MessageInputReplyTo::get_in
   }
   return telegram_api::make_object<telegram_api::inputReplyToMessage>(
       flags, reply_to_message_id.get_server_message_id().get(), top_thread_message_id.get_server_message_id().get(),
-      std::move(input_peer), quote_.text, std::move(quote_entities));
+      std::move(input_peer), quote_.text, std::move(quote_entities), 0);
 }
 
 // only for draft messages

@@ -132,9 +132,9 @@ class SetChatWallPaperQuery final : public Td::ResultHandler {
     if (old_message_id.is_valid()) {
       flags |= telegram_api::messages_setChatWallPaper::ID_MASK;
     }
-    send_query(G()->net_query_creator().create(
-        telegram_api::messages_setChatWallPaper(flags, std::move(input_peer), std::move(input_wallpaper),
-                                                std::move(settings), old_message_id.get_server_message_id().get())));
+    send_query(G()->net_query_creator().create(telegram_api::messages_setChatWallPaper(
+        flags, false /*ignored*/, false /*ignored*/, std::move(input_peer), std::move(input_wallpaper),
+        std::move(settings), old_message_id.get_server_message_id().get())));
   }
 
   void on_result(BufferSlice packet) final {

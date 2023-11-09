@@ -130,12 +130,12 @@ static td_api::object_ptr<td_api::chatStatisticsSupergroup> convert_megagroup_st
 static td_api::object_ptr<td_api::chatStatisticsChannel> convert_broadcast_stats(
     telegram_api::object_ptr<telegram_api::stats_broadcastStats> obj) {
   CHECK(obj != nullptr);
-
+  /*
   auto recent_message_interactions = transform(std::move(obj->recent_message_interactions_), [](auto &&interaction) {
     return td_api::make_object<td_api::chatStatisticsMessageInteractionInfo>(
         MessageId(ServerMessageId(interaction->msg_id_)).get(), interaction->views_, interaction->forwards_);
   });
-
+  */
   return td_api::make_object<td_api::chatStatisticsChannel>(
       convert_date_range(obj->period_), convert_stats_absolute_value(obj->followers_),
       convert_stats_absolute_value(obj->views_per_post_), convert_stats_absolute_value(obj->shares_per_post_),
@@ -145,7 +145,7 @@ static td_api::object_ptr<td_api::chatStatisticsChannel> convert_broadcast_stats
       convert_stats_graph(std::move(obj->views_by_source_graph_)),
       convert_stats_graph(std::move(obj->new_followers_by_source_graph_)),
       convert_stats_graph(std::move(obj->languages_graph_)), convert_stats_graph(std::move(obj->interactions_graph_)),
-      convert_stats_graph(std::move(obj->iv_interactions_graph_)), std::move(recent_message_interactions));
+      convert_stats_graph(std::move(obj->iv_interactions_graph_)), Auto());
 }
 
 class GetMegagroupStatsQuery final : public Td::ResultHandler {
