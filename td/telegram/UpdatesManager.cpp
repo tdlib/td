@@ -4305,6 +4305,11 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTheme> update, 
   td_->theme_manager_->on_update_theme(std::move(update->theme_), std::move(promise));
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePeerWallpaper> update, Promise<Unit> &&promise) {
+  td_->messages_manager_->on_update_dialog_background(DialogId(update->peer_), std::move(update->wallpaper_));
+  promise.set_value(Unit());
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePendingJoinRequests> update, Promise<Unit> &&promise) {
   td_->messages_manager_->on_update_dialog_pending_join_requests(DialogId(update->peer_), update->requests_pending_,
                                                                  std::move(update->recent_requesters_));
@@ -4383,10 +4388,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewAuthorizatio
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelViewForumAsMessages> update,
                                Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePeerWallpaper> update, Promise<Unit> &&promise) {
   promise.set_value(Unit());
 }
 
