@@ -35181,7 +35181,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         set_dialog_last_pinned_message_id(d, pinned_message_id);
       }
     }
-    if (message_content_type == MessageContentType::SetBackground) {
+    if (message_content_type == MessageContentType::SetBackground && m->is_outgoing) {
       set_dialog_background(d, get_message_content_background_info(m->content.get()));
     }
     if (message_content_type == MessageContentType::ChatSetTheme) {
