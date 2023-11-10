@@ -8506,8 +8506,10 @@ searchStickerSet name:string = StickerSet;
 //@description Searches for installed sticker sets by looking for specified query in their title and name @sticker_type Type of the sticker sets to search for @query Query to search for @limit The maximum number of sticker sets to return
 searchInstalledStickerSets sticker_type:StickerType query:string limit:int32 = StickerSets;
 
-//@description Searches for ordinary sticker sets by looking for specified query in their title and name. Excludes installed sticker sets from the results @query Query to search for
-searchStickerSets query:string = StickerSets;
+//@description Searches for sticker sets by looking for specified query in their title and name. Excludes installed sticker sets from the results
+//@sticker_type Type of the sticker sets to return
+//@query Query to search for
+searchStickerSets sticker_type:StickerType query:string = StickerSets;
 
 //@description Installs/uninstalls or activates/archives a sticker set @set_id Identifier of the sticker set @is_installed The new value of is_installed @is_archived The new value of is_archived. A sticker set can't be installed and archived simultaneously
 changeStickerSet set_id:int64 is_installed:Bool is_archived:Bool = Ok;

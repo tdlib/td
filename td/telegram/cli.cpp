@@ -3368,8 +3368,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::searchStickerSet>(args));
     } else if (op == "siss") {
       send_request(td_api::make_object<td_api::searchInstalledStickerSets>(nullptr, args, 2));
-    } else if (op == "ssss") {
-      send_request(td_api::make_object<td_api::searchStickerSets>(args));
+    } else if (op == "ssss" || op == "ssssm" || op == "sssse") {
+      send_request(td_api::make_object<td_api::searchStickerSets>(as_sticker_type(op), args));
     } else if (op == "css") {
       int64 set_id;
       bool is_installed;

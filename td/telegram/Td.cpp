@@ -2216,12 +2216,13 @@ class SearchInstalledStickerSetsRequest final : public RequestActor<> {
 };
 
 class SearchStickerSetsRequest final : public RequestActor<> {
+  StickerType sticker_type_;
   string query_;
 
   vector<StickerSetId> sticker_set_ids_;
 
   void do_run(Promise<Unit> &&promise) final {
-    sticker_set_ids_ = td_->stickers_manager_->search_sticker_sets(query_, std::move(promise));
+    sticker_set_ids_ = td_->stickers_manager_->search_sticker_sets(sticker_type_, query_, std::move(promise));
   }
 
   void do_send_result() final {
@@ -2229,8 +2230,8 @@ class SearchStickerSetsRequest final : public RequestActor<> {
   }
 
  public:
-  SearchStickerSetsRequest(ActorShared<Td> td, uint64 request_id, string &&query)
-      : RequestActor(std::move(td), request_id), query_(std::move(query)) {
+  SearchStickerSetsRequest(ActorShared<Td> td, uint64 request_id, StickerType sticker_type, string &&query)
+      : RequestActor(std::move(td), request_id), sticker_type_(sticker_type), query_(std::move(query)) {
   }
 };
 
@@ -7790,7 +7791,7 @@ void Td::on_request(uint64 id, td_api::searchInstalledStickerSets &request) {
 
 void Td::on_request(uint64 id, td_api::searchStickerSets &request) {
   CLEAN_INPUT_STRING(request.query_);
-  CREATE_REQUEST(SearchStickerSetsRequest, std::move(request.query_));
+  CREATE_REQUEST(SearchStickerSetsRequest, get_sticker_type(request.sticker_type_), std::move(request.query_));
 }
 
 void Td::on_request(uint64 id, const td_api::changeStickerSet &request) {

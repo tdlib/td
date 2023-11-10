@@ -803,31 +803,46 @@ class ReloadSpecialStickerSetQuery final : public Td::ResultHandler {
 };
 
 class SearchStickerSetsQuery final : public Td::ResultHandler {
+  StickerType sticker_type_;
   string query_;
 
  public:
-  void send(string query) {
+  void send(StickerType sticker_type, string query) {
+    sticker_type_ = sticker_type;
     query_ = std::move(query);
-    send_query(
-        G()->net_query_creator().create(telegram_api::messages_searchStickerSets(0, false /*ignored*/, query_, 0)));
+    switch (sticker_type) {
+      case StickerType::Regular:
+        send_query(
+            G()->net_query_creator().create(telegram_api::messages_searchStickerSets(0, false /*ignored*/, query_, 0)));
+        break;
+      case StickerType::CustomEmoji:
+        send_query(G()->net_query_creator().create(
+            telegram_api::messages_searchEmojiStickerSets(0, false /*ignored*/, query_, 0)));
+        break;
+      default:
+        UNREACHABLE();
+    }
   }
 
   void on_result(BufferSlice packet) final {
+    static_assert(std::is_same<telegram_api::messages_searchStickerSets::ReturnType,
+                               telegram_api::messages_searchEmojiStickerSets::ReturnType>::value,
+                  "");
     auto result_ptr = fetch_result<telegram_api::messages_searchStickerSets>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for search sticker sets: " << to_string(ptr);
-    td_->stickers_manager_->on_find_sticker_sets_success(query_, std::move(ptr));
+    LOG(INFO) << "Receive result for search " << sticker_type_ << " sticker sets: " << to_string(ptr);
+    td_->stickers_manager_->on_find_sticker_sets_success(sticker_type_, query_, std::move(ptr));
   }
 
   void on_error(Status status) final {
     if (!G()->is_expected_error(status)) {
-      LOG(ERROR) << "Receive error for search sticker sets: " << status;
+      LOG(ERROR) << "Receive error for search " << sticker_type_ << " sticker sets: " << status;
     }
-    td_->stickers_manager_->on_find_sticker_sets_fail(query_, std::move(status));
+    td_->stickers_manager_->on_find_sticker_sets_fail(sticker_type_, query_, std::move(status));
   }
 };
 
@@ -1635,9 +1650,10 @@ StickersManager::StickersManager(Td *td, ActorShared<> parent) : td_(td), parent
 StickersManager::~StickersManager() {
   Scheduler::instance()->destroy_on_scheduler(
       G()->get_gc_scheduler_id(), stickers_, sticker_sets_, short_name_to_sticker_set_id_, attached_sticker_sets_,
-      found_stickers_[0], found_stickers_[1], found_stickers_[2], found_sticker_sets_, emoji_language_codes_,
-      emoji_language_code_versions_, emoji_language_code_last_difference_times_, reloaded_emoji_keywords_,
-      premium_gift_messages_, dice_messages_, emoji_messages_, custom_emoji_messages_, custom_emoji_to_sticker_id_);
+      found_stickers_[0], found_stickers_[1], found_stickers_[2], found_sticker_sets_[0], found_sticker_sets_[1],
+      found_sticker_sets_[2], emoji_language_codes_, emoji_language_code_versions_,
+      emoji_language_code_last_difference_times_, reloaded_emoji_keywords_, premium_gift_messages_, dice_messages_,
+      emoji_messages_, custom_emoji_messages_, custom_emoji_to_sticker_id_);
 }
 
 void StickersManager::start_up() {
@@ -4887,32 +4903,42 @@ std::pair<int32, vector<StickerSetId>> StickersManager::search_installed_sticker
   return {narrow_cast<int32>(result.first), convert_sticker_set_ids(result.second)};
 }
 
-vector<StickerSetId> StickersManager::search_sticker_sets(const string &query, Promise<Unit> &&promise) {
+vector<StickerSetId> StickersManager::search_sticker_sets(StickerType sticker_type, const string &query,
+                                                          Promise<Unit> &&promise) {
+  if (sticker_type == StickerType::Mask) {
+    promise.set_value(Unit());
+    return {};
+  }
+  auto type = static_cast<int32>(sticker_type);
+
   auto q = clean_name(query, 1000);
-  auto it = found_sticker_sets_.find(q);
-  if (it != found_sticker_sets_.end()) {
+  auto it = found_sticker_sets_[type].find(q);
+  if (it != found_sticker_sets_[type].end()) {
     promise.set_value(Unit());
     return it->second;
   }
 
-  auto &promises = search_sticker_sets_queries_[q];
+  auto &promises = search_sticker_sets_queries_[type][q];
   promises.push_back(std::move(promise));
   if (promises.size() == 1u) {
-    td_->create_handler<SearchStickerSetsQuery>()->send(std::move(q));
+    td_->create_handler<SearchStickerSetsQuery>()->send(sticker_type, std::move(q));
   }
 
   return {};
 }
 
 void StickersManager::on_find_sticker_sets_success(
-    const string &query, tl_object_ptr<telegram_api::messages_FoundStickerSets> &&sticker_sets) {
+    StickerType sticker_type, const string &query,
+    tl_object_ptr<telegram_api::messages_FoundStickerSets> &&sticker_sets) {
+  auto type = static_cast<int32>(sticker_type);
   CHECK(sticker_sets != nullptr);
   switch (sticker_sets->get_id()) {
     case telegram_api::messages_foundStickerSetsNotModified::ID:
-      return on_find_sticker_sets_fail(query, Status::Error(500, "Receive messages.foundStickerSetsNotModified"));
+      return on_find_sticker_sets_fail(sticker_type, query,
+                                       Status::Error(500, "Receive messages.foundStickerSetsNotModified"));
     case telegram_api::messages_foundStickerSets::ID: {
       auto found_stickers_sets = move_tl_object_as<telegram_api::messages_foundStickerSets>(sticker_sets);
-      vector<StickerSetId> &sticker_set_ids = found_sticker_sets_[query];
+      vector<StickerSetId> &sticker_set_ids = found_sticker_sets_[type][query];
       CHECK(sticker_set_ids.empty());
 
       for (auto &sticker_set : found_stickers_sets->sets_) {
@@ -4920,8 +4946,14 @@ void StickersManager::on_find_sticker_sets_success(
         if (!set_id.is_valid()) {
           continue;
         }
+        auto *s = get_sticker_set(set_id);
+        if (s->sticker_type_ != sticker_type) {
+          LOG(ERROR) << "Receive " << set_id << " of type " << s->sticker_type_ << " while searching for "
+                     << sticker_type << " sticker sets with query " << query;
+          continue;
+        }
 
-        update_sticker_set(get_sticker_set(set_id), "on_find_sticker_sets_success");
+        update_sticker_set(s, "on_find_sticker_sets_success");
         sticker_set_ids.push_back(set_id);
       }
 
@@ -4932,23 +4964,24 @@ void StickersManager::on_find_sticker_sets_success(
       UNREACHABLE();
   }
 
-  auto it = search_sticker_sets_queries_.find(query);
-  CHECK(it != search_sticker_sets_queries_.end());
+  auto it = search_sticker_sets_queries_[type].find(query);
+  CHECK(it != search_sticker_sets_queries_[type].end());
   CHECK(!it->second.empty());
   auto promises = std::move(it->second);
-  search_sticker_sets_queries_.erase(it);
+  search_sticker_sets_queries_[type].erase(it);
 
   set_promises(promises);
 }
 
-void StickersManager::on_find_sticker_sets_fail(const string &query, Status &&error) {
-  CHECK(found_sticker_sets_.count(query) == 0);
+void StickersManager::on_find_sticker_sets_fail(StickerType sticker_type, const string &query, Status &&error) {
+  auto type = static_cast<int32>(sticker_type);
+  CHECK(found_sticker_sets_[type].count(query) == 0);
 
-  auto it = search_sticker_sets_queries_.find(query);
-  CHECK(it != search_sticker_sets_queries_.end());
+  auto it = search_sticker_sets_queries_[type].find(query);
+  CHECK(it != search_sticker_sets_queries_[type].end());
   CHECK(!it->second.empty());
   auto promises = std::move(it->second);
-  search_sticker_sets_queries_.erase(it);
+  search_sticker_sets_queries_[type].erase(it);
 
   fail_promises(promises, std::move(error));
 }

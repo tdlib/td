@@ -189,7 +189,7 @@ class StickersManager final : public Actor {
   std::pair<int32, vector<StickerSetId>> search_installed_sticker_sets(StickerType sticker_type, const string &query,
                                                                        int32 limit, Promise<Unit> &&promise);
 
-  vector<StickerSetId> search_sticker_sets(const string &query, Promise<Unit> &&promise);
+  vector<StickerSetId> search_sticker_sets(StickerType sticker_type, const string &query, Promise<Unit> &&promise);
 
   void change_sticker_set(StickerSetId set_id, bool is_installed, bool is_archived, Promise<Unit> &&promise);
 
@@ -413,10 +413,10 @@ class StickersManager final : public Actor {
 
   void on_find_custom_emojis_fail(const string &emoji, Status &&error);
 
-  void on_find_sticker_sets_success(const string &query,
+  void on_find_sticker_sets_success(StickerType sticker_type, const string &query,
                                     tl_object_ptr<telegram_api::messages_FoundStickerSets> &&sticker_sets);
 
-  void on_find_sticker_sets_fail(const string &query, Status &&error);
+  void on_find_sticker_sets_fail(StickerType sticker_type, const string &query, Status &&error);
 
   void send_get_attached_stickers_query(FileId file_id, Promise<Unit> &&promise);
 
@@ -1028,8 +1028,8 @@ class StickersManager final : public Actor {
   FlatHashMap<string, vector<std::pair<int32, Promise<td_api::object_ptr<td_api::stickers>>>>>
       search_stickers_queries_[MAX_STICKER_TYPE];
 
-  std::unordered_map<string, vector<StickerSetId>, Hash<string>> found_sticker_sets_;
-  std::unordered_map<string, vector<Promise<Unit>>, Hash<string>> search_sticker_sets_queries_;
+  std::unordered_map<string, vector<StickerSetId>, Hash<string>> found_sticker_sets_[MAX_STICKER_TYPE];
+  std::unordered_map<string, vector<Promise<Unit>>, Hash<string>> search_sticker_sets_queries_[MAX_STICKER_TYPE];
 
   FlatHashSet<StickerSetId, StickerSetIdHash> pending_viewed_featured_sticker_set_ids_;
   Timeout pending_featured_sticker_set_views_timeout_;
