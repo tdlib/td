@@ -3109,6 +3109,10 @@ class CliClient final : public Actor {
       get_args(args, chat_id, input_background, background_type, dark_theme_dimming);
       send_request(td_api::make_object<td_api::setChatBackground>(chat_id, input_background, background_type,
                                                                   dark_theme_dimming, op == "scbgs"));
+    } else if (op == "rcb") {
+      ChatId chat_id;
+      get_args(args, chat_id);
+      send_request(td_api::make_object<td_api::revertChatBackground>(chat_id));
     } else if (op == "gcos") {
       send_request(td_api::make_object<td_api::getCountries>());
     } else if (op == "gcoc") {

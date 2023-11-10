@@ -111,10 +111,10 @@ class SetChatWallPaperQuery final : public Td::ResultHandler {
   }
 
   void send(DialogId dialog_id, telegram_api::object_ptr<telegram_api::InputWallPaper> input_wallpaper,
-            telegram_api::object_ptr<telegram_api::wallPaperSettings> settings, MessageId old_message_id,
-            bool for_both) {
+            telegram_api::object_ptr<telegram_api::wallPaperSettings> settings, MessageId old_message_id, bool for_both,
+            bool revert) {
     dialog_id_ = dialog_id;
-    is_remove_ = input_wallpaper == nullptr && settings == nullptr;
+    is_remove_ = input_wallpaper == nullptr && settings == nullptr && !revert;
     if (is_remove_) {
       td_->messages_manager_->on_update_dialog_background(dialog_id_, nullptr);
     }
@@ -135,6 +135,9 @@ class SetChatWallPaperQuery final : public Td::ResultHandler {
     }
     if (for_both) {
       flags |= telegram_api::messages_setChatWallPaper::FOR_BOTH_MASK;
+    }
+    if (revert) {
+      flags |= telegram_api::messages_setChatWallPaper::REVERT_MASK;
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_setChatWallPaper(
         flags, false /*ignored*/, false /*ignored*/, std::move(input_peer), std::move(input_wallpaper),
@@ -817,6 +820,37 @@ void BackgroundManager::set_dialog_background(DialogId dialog_id, const td_api::
   }
 }
 
+void BackgroundManager::revert_dialog_background(DialogId dialog_id, Promise<Unit> &&promise) {
+  if (!td_->messages_manager_->have_dialog_force(dialog_id, "set_dialog_background")) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+  if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Write)) {
+    return promise.set_error(Status::Error(400, "Can't access the chat"));
+  }
+
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      break;
+    case DialogType::Chat:
+    case DialogType::Channel:
+      return promise.set_error(Status::Error(400, "Can't change background in the chat"));
+    case DialogType::SecretChat: {
+      auto user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
+      if (!user_id.is_valid()) {
+        return promise.set_error(Status::Error(400, "Can't access the user"));
+      }
+      dialog_id = DialogId(user_id);
+      break;
+    }
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+  }
+
+  td_->create_handler<SetChatWallPaperQuery>(std::move(promise))
+      ->send(dialog_id, nullptr, nullptr, MessageId(), false, true);
+}
+
 void BackgroundManager::do_set_dialog_background(DialogId dialog_id, BackgroundId background_id, BackgroundType type,
                                                  bool for_both, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
@@ -840,7 +874,7 @@ void BackgroundManager::send_set_dialog_background_query(
     telegram_api::object_ptr<telegram_api::wallPaperSettings> settings, MessageId old_message_id, bool for_both,
     Promise<Unit> &&promise) {
   td_->create_handler<SetChatWallPaperQuery>(std::move(promise))
-      ->send(dialog_id, std::move(input_wallpaper), std::move(settings), old_message_id, for_both);
+      ->send(dialog_id, std::move(input_wallpaper), std::move(settings), old_message_id, for_both, false);
 }
 
 void BackgroundManager::set_background(BackgroundId background_id, BackgroundType type, bool for_dark_theme,
