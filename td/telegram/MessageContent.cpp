@@ -6305,7 +6305,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
         break;
       }
       auto reply_to_message_id = replied_message_info.get_same_chat_reply_to_message_id(true);
-      if (!reply_to_message_id.is_valid()) {
+      if (!reply_to_message_id.is_valid() || !action->same_) {
         reply_to_message_id = MessageId();
       }
       return make_unique<MessageSetBackground>(reply_to_message_id, std::move(background_info));
