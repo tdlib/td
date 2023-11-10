@@ -2784,8 +2784,11 @@ messagePinMessage message_id:int53 = MessageContent;
 //@description A screenshot of a message in the chat has been taken
 messageScreenshotTaken = MessageContent;
 
-//@description A new background was set in the chat @old_background_message_id Identifier of the message with a previously set same background; 0 if none. Can be an identifier of a deleted message @background The new background
-messageChatSetBackground old_background_message_id:int53 background:chatBackground = MessageContent;
+//@description A new background was set in the chat
+//@old_background_message_id Identifier of the message with a previously set same background; 0 if none. Can be an identifier of a deleted message
+//@background The new background
+//@only_for_self True, if the background was set only for self
+messageChatSetBackground old_background_message_id:int53 background:chatBackground only_for_self:Bool = MessageContent;
 
 //@description A theme in the chat has been changed @theme_name If non-empty, name of a new theme, set for the chat. Otherwise, chat theme was reset to the default one
 messageChatSetTheme theme_name:string = MessageContent;

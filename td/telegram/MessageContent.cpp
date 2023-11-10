@@ -925,10 +925,11 @@ class MessageSetBackground final : public MessageContent {
  public:
   MessageId old_message_id;
   BackgroundInfo background_info;
+  bool for_both = false;
 
   MessageSetBackground() = default;
-  MessageSetBackground(MessageId old_message_id, BackgroundInfo background_info)
-      : old_message_id(old_message_id), background_info(std::move(background_info)) {
+  MessageSetBackground(MessageId old_message_id, BackgroundInfo background_info, bool for_both)
+      : old_message_id(old_message_id), background_info(std::move(background_info)), for_both(for_both) {
   }
 
   MessageContentType get_type() const final {
@@ -1419,6 +1420,7 @@ static void store(const MessageContent *content, StorerT &storer) {
       bool has_message_id = m->old_message_id.is_valid();
       BEGIN_STORE_FLAGS();
       STORE_FLAG(has_message_id);
+      STORE_FLAG(m->for_both);
       END_STORE_FLAGS();
       if (has_message_id) {
         store(m->old_message_id, storer);
@@ -2022,6 +2024,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       bool has_message_id;
       BEGIN_PARSE_FLAGS();
       PARSE_FLAG(has_message_id);
+      PARSE_FLAG(m->for_both);
       END_PARSE_FLAGS();
       if (has_message_id) {
         parse(m->old_message_id, parser);
@@ -4810,7 +4813,8 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
     case MessageContentType::SetBackground: {
       const auto *lhs = static_cast<const MessageSetBackground *>(old_content);
       const auto *rhs = static_cast<const MessageSetBackground *>(new_content);
-      if (lhs->old_message_id != rhs->old_message_id || lhs->background_info != rhs->background_info) {
+      if (lhs->old_message_id != rhs->old_message_id || lhs->background_info != rhs->background_info ||
+          lhs->for_both != rhs->for_both) {
         need_update = true;
       }
       break;
@@ -6308,7 +6312,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       if (!reply_to_message_id.is_valid() || !action->same_) {
         reply_to_message_id = MessageId();
       }
-      return make_unique<MessageSetBackground>(reply_to_message_id, std::move(background_info));
+      return make_unique<MessageSetBackground>(reply_to_message_id, std::move(background_info), action->for_both_);
     }
     case telegram_api::messageActionGiveawayLaunch::ID:
       return make_unique<MessageGiveawayLaunch>();
@@ -6695,8 +6699,8 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     }
     case MessageContentType::SetBackground: {
       const auto *m = static_cast<const MessageSetBackground *>(content);
-      return td_api::make_object<td_api::messageChatSetBackground>(m->old_message_id.get(),
-                                                                   m->background_info.get_chat_background_object(td));
+      return td_api::make_object<td_api::messageChatSetBackground>(
+          m->old_message_id.get(), m->background_info.get_chat_background_object(td), !m->for_both);
     }
     case MessageContentType::Story: {
       const auto *m = static_cast<const MessageStory *>(content);
