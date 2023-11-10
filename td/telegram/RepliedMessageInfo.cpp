@@ -150,6 +150,7 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, tl_object_ptr<telegram_api::messa
       entities.clear();
     }
     quote_ = FormattedText{std::move(reply_header->quote_text_), std::move(entities)};
+    quote_position_ = max(0, reply_header->quote_offset_);
     remove_unallowed_quote_entities(quote_);
   }
 }
@@ -161,6 +162,7 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, const MessageInputReplyTo &input_
   message_id_ = input_reply_to.message_id_;
   if (!input_reply_to.quote_.text.empty()) {
     quote_ = input_reply_to.quote_;
+    quote_position_ = input_reply_to.quote_position_;
     is_quote_manual_ = true;
   }
   if (input_reply_to.dialog_id_ != DialogId()) {
@@ -206,6 +208,7 @@ RepliedMessageInfo RepliedMessageInfo::clone(Td *td) const {
                                           MessageContentDupType::Forward, MessageCopyOptions());
   }
   result.quote_ = quote_;
+  result.quote_position_ = quote_position_;
   result.is_quote_manual_ = is_quote_manual_;
   return result;
 }
@@ -225,6 +228,12 @@ bool RepliedMessageInfo::need_reply_changed_warning(
   if (old_info.origin_ != new_info.origin_ && !old_info.origin_.has_sender_signature() &&
       !new_info.origin_.has_sender_signature() && !old_info.origin_.is_empty() && !new_info.origin_.is_empty()) {
     // only signature can change in the message origin
+    return true;
+  }
+  if (old_info.quote_position_ != new_info.quote_position_ &&
+      max(old_info.quote_position_, new_info.quote_position_) <
+          static_cast<int32>(min(old_info.quote_.text.size(), new_info.quote_.text.size()))) {
+    // quote position can't change
     return true;
   }
   if (old_info.is_quote_manual_ != new_info.is_quote_manual_) {
@@ -336,8 +345,12 @@ td_api::object_ptr<td_api::messageReplyToMessage> RepliedMessageInfo::get_messag
   }
 
   td_api::object_ptr<td_api::formattedText> quote;
+  int32 quote_position = 0;
+  bool is_quote_manual = false;
   if (!quote_.text.empty()) {
     quote = get_formatted_text_object(quote_, true, -1);
+    quote_position = quote_position_;
+    is_quote_manual = is_quote_manual_;
   }
 
   td_api::object_ptr<td_api::MessageOrigin> origin;
@@ -357,14 +370,14 @@ td_api::object_ptr<td_api::messageReplyToMessage> RepliedMessageInfo::get_messag
   }
 
   return td_api::make_object<td_api::messageReplyToMessage>(chat_id, message_id_.get(), std::move(quote),
-                                                            is_quote_manual_, std::move(origin), origin_date_,
-                                                            std::move(content));
+                                                            quote_position, is_quote_manual, std::move(origin),
+                                                            origin_date_, std::move(content));
 }
 
 MessageInputReplyTo RepliedMessageInfo::get_input_reply_to() const {
   CHECK(!is_external());
   if (message_id_.is_valid()) {
-    return MessageInputReplyTo{message_id_, dialog_id_, FormattedText{quote_}};
+    return MessageInputReplyTo{message_id_, dialog_id_, FormattedText{quote_}, quote_position_};
   }
   return {};
 }
@@ -404,7 +417,7 @@ void RepliedMessageInfo::unregister_content(Td *td) const {
 bool operator==(const RepliedMessageInfo &lhs, const RepliedMessageInfo &rhs) {
   if (!(lhs.message_id_ == rhs.message_id_ && lhs.dialog_id_ == rhs.dialog_id_ &&
         lhs.origin_date_ == rhs.origin_date_ && lhs.origin_ == rhs.origin_ && lhs.quote_ == rhs.quote_ &&
-        lhs.is_quote_manual_ == rhs.is_quote_manual_)) {
+        lhs.quote_position_ == rhs.quote_position_ && lhs.is_quote_manual_ == rhs.is_quote_manual_)) {
     return false;
   }
   bool need_update = false;
@@ -431,6 +444,9 @@ StringBuilder &operator<<(StringBuilder &string_builder, const RepliedMessageInf
   if (!info.quote_.text.empty()) {
     string_builder << " with " << info.quote_.text.size() << (info.is_quote_manual_ ? " manually" : "")
                    << " quoted bytes";
+    if (info.quote_position_ != 0) {
+      string_builder << " at position " << info.quote_position_;
+    }
   }
   if (info.content_ != nullptr) {
     string_builder << " and content of the type " << info.content_->get_type();

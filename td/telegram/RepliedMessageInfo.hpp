@@ -24,6 +24,7 @@ void RepliedMessageInfo::store(StorerT &storer) const {
   bool has_origin = !origin_.is_empty();
   bool has_quote = !quote_.text.empty();
   bool has_content = content_ != nullptr;
+  bool has_quote_position = quote_position_ != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_message_id);
   STORE_FLAG(has_dialog_id);
@@ -32,6 +33,7 @@ void RepliedMessageInfo::store(StorerT &storer) const {
   STORE_FLAG(has_quote);
   STORE_FLAG(is_quote_manual_);
   STORE_FLAG(has_content);
+  STORE_FLAG(has_quote_position);
   END_STORE_FLAGS();
   if (has_message_id) {
     td::store(message_id_, storer);
@@ -51,6 +53,9 @@ void RepliedMessageInfo::store(StorerT &storer) const {
   if (has_content) {
     store_message_content(content_.get(), storer);
   }
+  if (has_quote_position) {
+    td::store(quote_position_, storer);
+  }
 }
 
 template <class ParserT>
@@ -61,6 +66,7 @@ void RepliedMessageInfo::parse(ParserT &parser) {
   bool has_origin;
   bool has_quote;
   bool has_content;
+  bool has_quote_position;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_message_id);
   PARSE_FLAG(has_dialog_id);
@@ -69,6 +75,7 @@ void RepliedMessageInfo::parse(ParserT &parser) {
   PARSE_FLAG(has_quote);
   PARSE_FLAG(is_quote_manual_);
   PARSE_FLAG(has_content);
+  PARSE_FLAG(has_quote_position);
   END_PARSE_FLAGS();
   if (has_message_id) {
     td::parse(message_id_, parser);
@@ -88,6 +95,9 @@ void RepliedMessageInfo::parse(ParserT &parser) {
   }
   if (has_content) {
     parse_message_content(content_, parser);
+  }
+  if (has_quote_position) {
+    td::parse(quote_position_, parser);
   }
 }
 

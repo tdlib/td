@@ -27,6 +27,7 @@ class MessageInputReplyTo {
   MessageId message_id_;
   DialogId dialog_id_;
   FormattedText quote_;
+  int32 quote_position_ = 0;
   // or
   StoryFullId story_full_id_;
 
@@ -44,8 +45,11 @@ class MessageInputReplyTo {
   MessageInputReplyTo &operator=(MessageInputReplyTo &&) = default;
   ~MessageInputReplyTo();
 
-  MessageInputReplyTo(MessageId message_id, DialogId dialog_id, FormattedText &&quote)
-      : message_id_(message_id), dialog_id_(dialog_id), quote_(std::move(quote)) {
+  MessageInputReplyTo(MessageId message_id, DialogId dialog_id, FormattedText &&quote, int32 quote_position)
+      : message_id_(message_id)
+      , dialog_id_(dialog_id)
+      , quote_(std::move(quote))
+      , quote_position_(max(0, quote_position)) {
     remove_unallowed_quote_entities(quote_);
   }
 
@@ -66,8 +70,9 @@ class MessageInputReplyTo {
     return !quote_.text.empty();
   }
 
-  void set_quote(FormattedText &&quote) {
+  void set_quote(FormattedText &&quote, int32 quote_position) {
     quote_ = std::move(quote);
+    quote_position_ = max(0, quote_position);
   }
 
   StoryFullId get_story_full_id() const {

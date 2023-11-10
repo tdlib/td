@@ -5915,7 +5915,7 @@ void Td::on_request(uint64 id, td_api::forwardMessages &request) {
 void Td::on_request(uint64 id, td_api::resendMessages &request) {
   DialogId dialog_id(request.chat_id_);
   auto r_message_ids = messages_manager_->resend_messages(dialog_id, MessageId::get_message_ids(request.message_ids_),
-                                                          std::move(request.quote_));
+                                                          std::move(request.quote_), request.quote_position_);
   if (r_message_ids.is_error()) {
     return send_closure(actor_id(this), &Td::send_error, id, r_message_ids.move_as_error());
   }

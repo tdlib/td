@@ -5180,7 +5180,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     if (reply_to_story_full_id.is_valid()) {
       input_reply_to = MessageInputReplyTo(reply_to_story_full_id);
     } else if (legacy_reply_to_message_id.is_valid()) {
-      input_reply_to = MessageInputReplyTo{legacy_reply_to_message_id, DialogId(), FormattedText()};
+      input_reply_to = MessageInputReplyTo{legacy_reply_to_message_id, DialogId(), FormattedText(), 0};
     }
   }
   if (has_replied_message_info) {
@@ -24518,7 +24518,7 @@ MessageInputReplyTo MessagesManager::get_message_input_reply_to(
   }
   if (reply_to == nullptr) {
     if (!for_draft && top_thread_message_id.is_valid() && top_thread_message_id.is_server()) {
-      return MessageInputReplyTo{top_thread_message_id, DialogId(), FormattedText()};
+      return MessageInputReplyTo{top_thread_message_id, DialogId(), FormattedText(), 0};
     }
     return {};
   }
@@ -24546,7 +24546,7 @@ MessageInputReplyTo MessagesManager::get_message_input_reply_to(
       if (!message_id.is_valid()) {
         if (!for_draft && message_id == MessageId() && top_thread_message_id.is_valid() &&
             top_thread_message_id.is_server()) {
-          return MessageInputReplyTo{top_thread_message_id, DialogId(), FormattedText()};
+          return MessageInputReplyTo{top_thread_message_id, DialogId(), FormattedText(), 0};
         }
         return {};
       }
@@ -24566,10 +24566,12 @@ MessageInputReplyTo MessagesManager::get_message_input_reply_to(
         return {};
       }
       FormattedText quote;
+      int32 quote_position = 0;
       auto r_quote = get_formatted_text(td_, get_my_dialog_id(), std::move(reply_to_message->quote_),
                                         td_->auth_manager_->is_bot(), true, true, true);
       if (r_quote.is_ok() && d->dialog_id.get_type() != DialogType::SecretChat) {
         quote = r_quote.move_as_ok();
+        quote_position = reply_to_message->quote_position_;
       }
       const Message *m = get_message_force(reply_d, message_id, "get_message_input_reply_to 2");
       if (m == nullptr || m->message_id.is_yet_unsent() ||
@@ -24579,10 +24581,10 @@ MessageInputReplyTo MessagesManager::get_message_input_reply_to(
             (reply_d->notification_info != nullptr &&
              message_id <= reply_d->notification_info->max_push_notification_message_id_)) {
           // allow to reply yet unreceived server message in the same chat
-          return MessageInputReplyTo{message_id, reply_dialog_id, std::move(quote)};
+          return MessageInputReplyTo{message_id, reply_dialog_id, std::move(quote), quote_position};
         }
         if (!for_draft && top_thread_message_id.is_valid() && top_thread_message_id.is_server()) {
-          return MessageInputReplyTo{top_thread_message_id, DialogId(), FormattedText()};
+          return MessageInputReplyTo{top_thread_message_id, DialogId(), FormattedText(), 0};
         }
         LOG(INFO) << "Can't find " << message_id << " in " << reply_d->dialog_id;
 
@@ -24594,7 +24596,7 @@ MessageInputReplyTo MessagesManager::get_message_input_reply_to(
         LOG(INFO) << "Can't reply in another chat " << m->message_id << " in " << reply_d->dialog_id;
         return {};
       }
-      return MessageInputReplyTo{m->message_id, reply_dialog_id, std::move(quote)};
+      return MessageInputReplyTo{m->message_id, reply_dialog_id, std::move(quote), quote_position};
     }
     default:
       UNREACHABLE();
@@ -24711,7 +24713,7 @@ void MessagesManager::cancel_send_message_query(DialogId dialog_id, Message *m) 
         CHECK(input_reply_to != nullptr);
         CHECK(input_reply_to->get_reply_message_full_id(reply_d->dialog_id) == MessageFullId(dialog_id, m->message_id));
         set_message_reply(reply_d, replied_m,
-                          MessageInputReplyTo{replied_m->top_thread_message_id, DialogId(), FormattedText()}, true);
+                          MessageInputReplyTo{replied_m->top_thread_message_id, DialogId(), FormattedText(), 0}, true);
       }
       replied_yet_unsent_messages_.erase(it);
     }
@@ -28252,7 +28254,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
     if (!input_reply_to.is_valid() && copied_message.original_reply_to_message_id.is_valid() && is_secret) {
       auto it = forwarded_message_id_to_new_message_id.find(copied_message.original_reply_to_message_id);
       if (it != forwarded_message_id_to_new_message_id.end()) {
-        input_reply_to = MessageInputReplyTo{it->second, DialogId(), FormattedText()};
+        input_reply_to = MessageInputReplyTo{it->second, DialogId(), FormattedText(), 0};
       }
     }
 
@@ -28308,7 +28310,8 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
 }
 
 Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, vector<MessageId> message_ids,
-                                                           td_api::object_ptr<td_api::formattedText> &&quote) {
+                                                           td_api::object_ptr<td_api::formattedText> &&quote,
+                                                           int32 quote_position) {
   if (message_ids.empty()) {
     return Status::Error(400, "There are no messages to resend");
   }
@@ -28407,7 +28410,7 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
       auto r_quote =
           get_formatted_text(td_, get_my_dialog_id(), std::move(quote), td_->auth_manager_->is_bot(), true, true, true);
       if (r_quote.is_ok()) {
-        message->input_reply_to.set_quote(r_quote.move_as_ok());
+        message->input_reply_to.set_quote(r_quote.move_as_ok(), quote_position);
       }
     } else if (need_drop_reply) {
       message->input_reply_to = {};
@@ -39424,7 +39427,7 @@ void MessagesManager::restore_message_reply_to_message_id(Dialog *d, Message *m)
   if (message_id.is_valid() || message_id.is_valid_scheduled()) {
     update_message_reply_to_message_id(d, m, message_id, false);
   } else {
-    set_message_reply(d, m, MessageInputReplyTo{m->top_thread_message_id, DialogId(), FormattedText()}, false);
+    set_message_reply(d, m, MessageInputReplyTo{m->top_thread_message_id, DialogId(), FormattedText(), 0}, false);
   }
 }
 

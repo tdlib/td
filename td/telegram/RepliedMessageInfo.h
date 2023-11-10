@@ -37,6 +37,7 @@ class RepliedMessageInfo {
   MessageOrigin origin_;                // for replies in other chats
   unique_ptr<MessageContent> content_;  // for replies in other chats
   FormattedText quote_;
+  int32 quote_position_ = 0;
   bool is_quote_manual_ = false;
 
   friend bool operator==(const RepliedMessageInfo &lhs, const RepliedMessageInfo &rhs);

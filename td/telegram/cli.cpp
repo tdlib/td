@@ -925,8 +925,8 @@ class CliClient final : public Actor {
 
   td_api::object_ptr<td_api::InputMessageReplyTo> get_input_message_reply_to() const {
     if (reply_message_id_ != 0) {
-      return td_api::make_object<td_api::inputMessageReplyToMessage>(reply_chat_id_, reply_message_id_,
-                                                                     as_formatted_text(reply_quote_));
+      return td_api::make_object<td_api::inputMessageReplyToMessage>(
+          reply_chat_id_, reply_message_id_, as_formatted_text(reply_quote_), reply_quote_position_);
     }
     if (reply_user_id_ != 0 || reply_story_id_ != 0) {
       return td_api::make_object<td_api::inputMessageReplyToStory>(reply_user_id_, reply_story_id_);
@@ -3722,9 +3722,10 @@ class CliClient final : public Actor {
       ChatId chat_id;
       string message_ids;
       string quote;
-      get_args(args, chat_id, message_ids, quote);
-      send_request(
-          td_api::make_object<td_api::resendMessages>(chat_id, as_message_ids(message_ids), as_formatted_text(quote)));
+      int32 quote_position;
+      get_args(args, chat_id, message_ids, quote, quote_position);
+      send_request(td_api::make_object<td_api::resendMessages>(chat_id, as_message_ids(message_ids),
+                                                               as_formatted_text(quote), quote_position));
     } else if (op == "csc" || op == "CreateSecretChat") {
       send_request(td_api::make_object<td_api::createSecretChat>(as_secret_chat_id(args)));
     } else if (op == "cnsc" || op == "CreateNewSecretChat") {
@@ -4506,6 +4507,8 @@ class CliClient final : public Actor {
       get_args(args, reply_message_id_, reply_chat_id_);
     } else if (op == "smrq") {
       reply_quote_ = args;
+    } else if (op == "smrqp") {
+      reply_quote_position_ = to_integer<int32>(args);
     } else if (op == "smrs") {
       get_args(args, reply_user_id_, reply_story_id_);
     } else if (op == "slpo") {
@@ -6297,6 +6300,7 @@ class CliClient final : public Actor {
   ChatId reply_chat_id_;
   MessageId reply_message_id_;
   string reply_quote_;
+  int32 reply_quote_position_ = 0;
   UserId reply_user_id_;
   StoryId reply_story_id_;
   string link_preview_url_;

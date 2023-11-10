@@ -466,7 +466,8 @@ class MessagesManager final : public Actor {
       vector<MessageCopyOptions> &&copy_options) TD_WARN_UNUSED_RESULT;
 
   Result<vector<MessageId>> resend_messages(DialogId dialog_id, vector<MessageId> message_ids,
-                                            td_api::object_ptr<td_api::formattedText> &&quote) TD_WARN_UNUSED_RESULT;
+                                            td_api::object_ptr<td_api::formattedText> &&quote,
+                                            int32 quote_position) TD_WARN_UNUSED_RESULT;
 
   void set_dialog_message_ttl(DialogId dialog_id, int32 ttl, Promise<Unit> &&promise);
 

@@ -73,6 +73,7 @@ MessageInputReplyTo::MessageInputReplyTo(Td *td,
         }
         quote_ = FormattedText{std::move(reply_to->quote_text_), std::move(entities)};
         remove_unallowed_quote_entities(quote_);
+        quote_position_ = max(0, reply_to->quote_offset_);
       }
       break;
     }
@@ -129,9 +130,12 @@ telegram_api::object_ptr<telegram_api::InputReplyTo> MessageInputReplyTo::get_in
   if (!quote_entities.empty()) {
     flags |= telegram_api::inputReplyToMessage::QUOTE_ENTITIES_MASK;
   }
+  if (quote_position_ != 0) {
+    flags |= telegram_api::inputReplyToMessage::QUOTE_OFFSET_MASK;
+  }
   return telegram_api::make_object<telegram_api::inputReplyToMessage>(
       flags, reply_to_message_id.get_server_message_id().get(), top_thread_message_id.get_server_message_id().get(),
-      std::move(input_peer), quote_.text, std::move(quote_entities), 0);
+      std::move(input_peer), quote_.text, std::move(quote_entities), quote_position_);
 }
 
 // only for draft messages
@@ -150,7 +154,7 @@ td_api::object_ptr<td_api::InputMessageReplyTo> MessageInputReplyTo::get_input_m
   }
   return td_api::make_object<td_api::inputMessageReplyToMessage>(
       td->messages_manager_->get_chat_id_object(dialog_id_, "inputMessageReplyToMessage"), message_id_.get(),
-      std::move(quote));
+      std::move(quote), quote_position_);
 }
 
 MessageId MessageInputReplyTo::get_same_chat_reply_to_message_id() const {
@@ -167,7 +171,8 @@ MessageFullId MessageInputReplyTo::get_reply_message_full_id(DialogId owner_dial
 
 bool operator==(const MessageInputReplyTo &lhs, const MessageInputReplyTo &rhs) {
   return lhs.message_id_ == rhs.message_id_ && lhs.dialog_id_ == rhs.dialog_id_ &&
-         lhs.story_full_id_ == rhs.story_full_id_ && lhs.quote_ == rhs.quote_;
+         lhs.story_full_id_ == rhs.story_full_id_ && lhs.quote_ == rhs.quote_ &&
+         lhs.quote_position_ == rhs.quote_position_;
 }
 
 bool operator!=(const MessageInputReplyTo &lhs, const MessageInputReplyTo &rhs) {
@@ -182,6 +187,9 @@ StringBuilder &operator<<(StringBuilder &string_builder, const MessageInputReply
     }
     if (!input_reply_to.quote_.text.empty()) {
       string_builder << " with " << input_reply_to.quote_.text.size() << " quoted bytes";
+      if (input_reply_to.quote_position_ != 0) {
+        string_builder << " at position " << input_reply_to.quote_position_;
+      }
     }
     return string_builder;
   }
