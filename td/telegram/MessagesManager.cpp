@@ -14793,7 +14793,7 @@ MessageFullId MessagesManager::on_get_message(MessageInfo &&message_info, const 
     }
 
     new_message->message_id = message_id;
-    send_update_message_send_succeeded(d, old_message_id, new_message.get());
+    send_update_message_send_succeeded(d, old_message_id, new_message.get(), &need_update_dialog_pos);
 
     if (!message_id.is_scheduled()) {
       is_sent_message = true;
@@ -30177,11 +30177,19 @@ void MessagesManager::remove_message_dialog_notifications(Dialog *d, MessageId m
                      Promise<Unit>());
 }
 
-void MessagesManager::send_update_message_send_succeeded(const Dialog *d, MessageId old_message_id, const Message *m) {
+void MessagesManager::send_update_message_send_succeeded(Dialog *d, MessageId old_message_id, const Message *m,
+                                                         bool *need_update_dialog_pos) {
   CHECK(m != nullptr);
+  CHECK(d != nullptr);
   CHECK(d->is_update_new_chat_sent);
   if (!td_->auth_manager_->is_bot()) {
     yet_unsent_message_full_id_to_persistent_message_id_.emplace({d->dialog_id, old_message_id}, m->message_id);
+
+    auto message =
+        delete_message(d, m->message_id, false, need_update_dialog_pos, "send_update_message_send_succeeded");
+    if (message != nullptr) {
+      send_update_delete_messages(d->dialog_id, {message->message_id.get()}, false);
+    }
   }
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateMessageSendSucceeded>(
@@ -30944,7 +30952,7 @@ MessageFullId MessagesManager::on_send_message_success(int64 random_id, MessageI
 
   sent_message->message_id = new_message_id;
 
-  send_update_message_send_succeeded(d, old_message_id, sent_message.get());
+  send_update_message_send_succeeded(d, old_message_id, sent_message.get(), &need_update_dialog_pos);
 
   bool need_update = true;
   Message *m =

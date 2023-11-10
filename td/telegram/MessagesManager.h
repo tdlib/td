@@ -2424,7 +2424,8 @@ class MessagesManager final : public Actor {
 
   bool need_skip_bot_commands(DialogId dialog_id, const Message *m) const;
 
-  void send_update_message_send_succeeded(const Dialog *d, MessageId old_message_id, const Message *m);
+  void send_update_message_send_succeeded(Dialog *d, MessageId old_message_id, const Message *m,
+                                          bool *need_update_dialog_pos);
 
   void send_update_message_content(const Dialog *d, Message *m, bool is_message_in_dialog, const char *source);
 
