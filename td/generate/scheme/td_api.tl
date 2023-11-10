@@ -7706,7 +7706,8 @@ setChatPermissions chat_id:int53 permissions:chatPermissions = Ok;
 //@background The input background to use; pass null to create a new filled background or to remove the current background
 //@type Background type; pass null to remove the current background
 //@dark_theme_dimming Dimming of the background in dark themes, as a percentage; 0-100
-setChatBackground chat_id:int53 background:InputBackground type:BackgroundType dark_theme_dimming:int32 = Ok;
+//@only_for_self Pass true to set background only for self; pass false to set background for both chat users. Background can be set for both users only by Telegram Premium users
+setChatBackground chat_id:int53 background:InputBackground type:BackgroundType dark_theme_dimming:int32 only_for_self:Bool = Ok;
 
 //@description Changes the chat theme. Supported only in private and secret chats @chat_id Chat identifier @theme_name Name of the new chat theme; pass an empty string to return the default theme
 setChatTheme chat_id:int53 theme_name:string = Ok;
