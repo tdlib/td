@@ -143,3 +143,4 @@ See [example/python/tdjson_example.py](https://github.com/tdlib/td/blob/master/e
 <a name="license"></a>
 ## License
 `TDLib` is licensed under the terms of the Boost Software License. See [LICENSE_1_0.txt](http://www.boost.org/LICENSE_1_0.txt) for more information.
+# README
