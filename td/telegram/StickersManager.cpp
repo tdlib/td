@@ -1635,9 +1635,9 @@ StickersManager::StickersManager(Td *td, ActorShared<> parent) : td_(td), parent
 StickersManager::~StickersManager() {
   Scheduler::instance()->destroy_on_scheduler(
       G()->get_gc_scheduler_id(), stickers_, sticker_sets_, short_name_to_sticker_set_id_, attached_sticker_sets_,
-      found_stickers_, found_sticker_sets_, emoji_language_codes_, emoji_language_code_versions_,
-      emoji_language_code_last_difference_times_, reloaded_emoji_keywords_, premium_gift_messages_, dice_messages_,
-      emoji_messages_, custom_emoji_messages_, custom_emoji_to_sticker_id_);
+      found_stickers_[0], found_stickers_[1], found_stickers_[2], found_sticker_sets_, emoji_language_codes_,
+      emoji_language_code_versions_, emoji_language_code_last_difference_times_, reloaded_emoji_keywords_,
+      premium_gift_messages_, dice_messages_, emoji_messages_, custom_emoji_messages_, custom_emoji_to_sticker_id_);
 }
 
 void StickersManager::start_up() {
