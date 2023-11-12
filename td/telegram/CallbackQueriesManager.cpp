@@ -83,16 +83,13 @@ class GetBotCallbackAnswerQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    if (status.message() == "DATA_INVALID" || status.message() == "MESSAGE_ID_INVALID") {
-      td_->messages_manager_->get_message_from_server({dialog_id_, message_id_}, Auto(), "GetBotCallbackAnswerQuery");
-    } else if (status.message() == "BOT_RESPONSE_TIMEOUT") {
+    td_->messages_manager_->on_get_message_error(dialog_id_, message_id_, status, "GetBotCallbackAnswerQuery");
+    if (status.message() == "BOT_RESPONSE_TIMEOUT") {
       status = Status::Error(502, "The bot is not responding");
     }
     if (status.code() == 502 && td_->messages_manager_->is_message_edited_recently({dialog_id_, message_id_}, 31)) {
       return promise_.set_value(td_api::make_object<td_api::callbackQueryAnswer>());
     }
-
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetBotCallbackAnswerQuery");
     promise_.set_error(std::move(status));
   }
 };

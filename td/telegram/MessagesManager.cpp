@@ -277,13 +277,7 @@ class GetDiscussionMessageQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    if (expected_dialog_id_ == dialog_id_) {
-      td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetDiscussionMessageQuery");
-    }
-    if (status.message() == "MSG_ID_INVALID") {
-      td_->messages_manager_->get_message_from_server({dialog_id_, message_id_}, Promise<Unit>(),
-                                                      "GetDiscussionMessageQuery");
-    }
+    td_->messages_manager_->on_get_message_error(dialog_id_, message_id_, status, "GetDiscussionMessageQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -428,6 +422,7 @@ class GetScheduledMessagesQuery final : public Td::ResultHandler {
 class UpdateDialogPinnedMessageQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
+  MessageId message_id_;
 
  public:
   explicit UpdateDialogPinnedMessageQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
@@ -435,6 +430,7 @@ class UpdateDialogPinnedMessageQuery final : public Td::ResultHandler {
 
   void send(DialogId dialog_id, MessageId message_id, bool is_unpin, bool disable_notification, bool only_for_self) {
     dialog_id_ = dialog_id;
+    message_id_ = message_id;
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       LOG(INFO) << "Can't update pinned message in " << dialog_id;
@@ -468,7 +464,7 @@ class UpdateDialogPinnedMessageQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "UpdateDialogPinnedMessageQuery");
+    td_->messages_manager_->on_get_message_error(dialog_id_, message_id_, status, "UpdateDialogPinnedMessageQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -476,6 +472,7 @@ class UpdateDialogPinnedMessageQuery final : public Td::ResultHandler {
 class UnpinAllMessagesQuery final : public Td::ResultHandler {
   Promise<AffectedHistory> promise_;
   DialogId dialog_id_;
+  MessageId top_thread_message_id_;
 
  public:
   explicit UnpinAllMessagesQuery(Promise<AffectedHistory> &&promise) : promise_(std::move(promise)) {
@@ -483,6 +480,7 @@ class UnpinAllMessagesQuery final : public Td::ResultHandler {
 
   void send(DialogId dialog_id, MessageId top_thread_message_id) {
     dialog_id_ = dialog_id;
+    top_thread_message_id_ = top_thread_message_id;
 
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Write);
     if (input_peer == nullptr) {
@@ -508,7 +506,7 @@ class UnpinAllMessagesQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "UnpinAllMessagesQuery");
+    td_->messages_manager_->on_get_message_error(dialog_id_, top_thread_message_id_, status, "UnpinAllMessagesQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -516,6 +514,7 @@ class UnpinAllMessagesQuery final : public Td::ResultHandler {
 class GetMessageReadParticipantsQuery final : public Td::ResultHandler {
   Promise<MessageViewers> promise_;
   DialogId dialog_id_;
+  MessageId message_id_;
 
  public:
   explicit GetMessageReadParticipantsQuery(Promise<MessageViewers> &&promise) : promise_(std::move(promise)) {
@@ -523,6 +522,7 @@ class GetMessageReadParticipantsQuery final : public Td::ResultHandler {
 
   void send(DialogId dialog_id, MessageId message_id) {
     dialog_id_ = dialog_id;
+    message_id_ = message_id;
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
     send_query(G()->net_query_creator().create(telegram_api::messages_getMessageReadParticipants(
@@ -539,7 +539,7 @@ class GetMessageReadParticipantsQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetMessageReadParticipantsQuery");
+    td_->messages_manager_->on_get_message_error(dialog_id_, message_id_, status, "GetMessageReadParticipantsQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -591,7 +591,8 @@ class ExportChannelMessageLinkQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     if (!ignore_result_) {
-      td_->contacts_manager_->on_get_channel_error(channel_id_, status, "ExportChannelMessageLinkQuery");
+      td_->messages_manager_->on_get_message_error(DialogId(channel_id_), message_id_, status,
+                                                   "ExportChannelMessageLinkQuery");
     }
     promise_.set_error(std::move(status));
   }
@@ -2739,6 +2740,7 @@ class DeleteHistoryQuery final : public Td::ResultHandler {
 class DeleteTopicHistoryQuery final : public Td::ResultHandler {
   Promise<AffectedHistory> promise_;
   ChannelId channel_id_;
+  MessageId top_thread_message_id_;
 
  public:
   explicit DeleteTopicHistoryQuery(Promise<AffectedHistory> &&promise) : promise_(std::move(promise)) {
@@ -2747,6 +2749,7 @@ class DeleteTopicHistoryQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id, MessageId top_thread_message_id) {
     CHECK(dialog_id.get_type() == DialogType::Channel);
     channel_id_ = dialog_id.get_channel_id();
+    top_thread_message_id_ = top_thread_message_id;
 
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id_);
     if (input_channel == nullptr) {
@@ -2767,7 +2770,8 @@ class DeleteTopicHistoryQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->contacts_manager_->on_get_channel_error(channel_id_, status, "DeleteTopicHistoryQuery");
+    td_->messages_manager_->on_get_message_error(DialogId(channel_id_), top_thread_message_id_, status,
+                                                 "DeleteTopicHistoryQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -3727,7 +3731,7 @@ class EditMessageQuery final : public Td::ResultHandler {
     if (!td_->auth_manager_->is_bot() && status.message() == "MESSAGE_NOT_MODIFIED") {
       return promise_.set_value(0);
     }
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "EditMessageQuery");
+    td_->messages_manager_->on_get_message_error(dialog_id_, message_id_, status, "EditMessageQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -3795,6 +3799,7 @@ class ForwardMessagesQuery final : public Td::ResultHandler {
   vector<int64> random_ids_;
   DialogId from_dialog_id_;
   DialogId to_dialog_id_;
+  MessageId message_id_;
 
  public:
   explicit ForwardMessagesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
@@ -3806,6 +3811,9 @@ class ForwardMessagesQuery final : public Td::ResultHandler {
     random_ids_ = random_ids;
     from_dialog_id_ = from_dialog_id;
     to_dialog_id_ = to_dialog_id;
+    if (message_ids.size() == 1) {
+      message_id_ = message_ids[0];
+    }
 
     auto to_input_peer = td_->messages_manager_->get_input_peer(to_dialog_id, AccessRights::Write);
     if (to_input_peer == nullptr) {
@@ -3901,6 +3909,10 @@ class ForwardMessagesQuery final : public Td::ResultHandler {
     }
     if (status.code() == 400 && status.message() == CSlice("SEND_AS_PEER_INVALID")) {
       td_->messages_manager_->reload_dialog_info_full(to_dialog_id_, "SEND_AS_PEER_INVALID");
+    }
+    if (message_id_.is_valid() && status.message() == CSlice("MESSAGE_ID_INVALID")) {
+      td_->messages_manager_->get_message_from_server({from_dialog_id_, message_id_}, Promise<Unit>(),
+                                                      "ForwardMessagesQuery");
     }
     for (auto &random_id : random_ids_) {
       td_->messages_manager_->on_send_message_fail(random_id, status.clone());
@@ -4008,17 +4020,17 @@ class SetTypingQuery final : public Td::ResultHandler {
   explicit SetTypingQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  NetQueryRef send(DialogId dialog_id, tl_object_ptr<telegram_api::InputPeer> &&input_peer, MessageId message_id,
-                   tl_object_ptr<telegram_api::SendMessageAction> &&action) {
+  NetQueryRef send(DialogId dialog_id, tl_object_ptr<telegram_api::InputPeer> &&input_peer,
+                   MessageId top_thread_message_id, tl_object_ptr<telegram_api::SendMessageAction> &&action) {
     dialog_id_ = dialog_id;
     CHECK(input_peer != nullptr);
 
     int32 flags = 0;
-    if (message_id.is_valid()) {
+    if (top_thread_message_id.is_valid()) {
       flags |= telegram_api::messages_setTyping::TOP_MSG_ID_MASK;
     }
     auto query = G()->net_query_creator().create(telegram_api::messages_setTyping(
-        flags, std::move(input_peer), message_id.get_server_message_id().get(), std::move(action)));
+        flags, std::move(input_peer), top_thread_message_id.get_server_message_id().get(), std::move(action)));
     query->total_timeout_limit_ = 2;
     auto result = query.get_weak();
     generation_ = result.generation();
@@ -28898,6 +28910,16 @@ bool MessagesManager::on_get_dialog_error(DialogId dialog_id, const Status &stat
       UNREACHABLE();
   }
   return false;
+}
+
+bool MessagesManager::on_get_message_error(DialogId dialog_id, MessageId message_id, const Status &status,
+                                           const char *source) {
+  if (status.message() == "MSG_ID_INVALID" || status.message() == "MESSAGE_ID_INVALID" ||
+      status.message() == "DATA_INVALID") {
+    td_->messages_manager_->get_message_from_server({dialog_id, message_id}, Promise<Unit>(), source);
+    return true;
+  }
+  return on_get_dialog_error(dialog_id, status, source);
 }
 
 void MessagesManager::on_dialog_updated(DialogId dialog_id, const char *source) {

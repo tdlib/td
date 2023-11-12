@@ -935,6 +935,8 @@ class MessagesManager final : public Actor {
 
   bool on_get_dialog_error(DialogId dialog_id, const Status &status, const char *source);
 
+  bool on_get_message_error(DialogId dialog_id, MessageId message_id, const Status &status, const char *source);
+
   void on_send_message_get_quick_ack(int64 random_id);
 
   void check_send_message_result(int64 random_id, DialogId dialog_id, const telegram_api::Updates *updates_ptr,
