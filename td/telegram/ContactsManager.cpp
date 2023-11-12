@@ -12264,10 +12264,13 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
   if (c->is_status_changed) {
     c->status.update_restrictions();
     auto until_date = c->status.get_until_date();
-    int32 left_time = 0;
+    double left_time = 0;
     if (until_date > 0) {
-      left_time = until_date - G()->unix_time() + 1;
-      CHECK(left_time > 0);
+      left_time = until_date - G()->server_time() + 2;
+      if (left_time <= 0) {
+        c->status.update_restrictions();
+        CHECK(c->status.get_until_date() == 0);
+      }
     }
     if (left_time > 0 && left_time < 366 * 86400) {
       channel_unban_timeout_.set_timeout_in(channel_id.get(), left_time);
