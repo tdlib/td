@@ -13500,6 +13500,11 @@ void ContactsManager::on_update_user_photo(User *u, UserId user_id,
                                            tl_object_ptr<telegram_api::UserProfilePhoto> &&photo, const char *source) {
   if (td_->auth_manager_->is_bot() && !G()->use_chat_info_database()) {
     if (!u->is_photo_inited) {
+      auto new_photo_id = get_profile_photo_id(photo);
+      auto &old_photo = pending_user_photos_[user_id];
+      if (new_photo_id == get_profile_photo_id(old_photo)) {
+        return;
+      }
       if (photo != nullptr && photo->get_id() == telegram_api::userProfilePhoto::ID) {
         auto *profile_photo = static_cast<telegram_api::userProfilePhoto *>(photo.get());
         if ((profile_photo->flags_ & telegram_api::userProfilePhoto::STRIPPED_THUMB_MASK) != 0) {
@@ -13507,12 +13512,7 @@ void ContactsManager::on_update_user_photo(User *u, UserId user_id,
           profile_photo->stripped_thumb_ = BufferSlice();
         }
       }
-      auto &old_photo = pending_user_photos_[user_id];
-      if (!LOG_IS_STRIPPED(ERROR) && to_string(old_photo) == to_string(photo)) {
-        return;
-      }
 
-      auto new_photo_id = get_profile_photo_id(photo);
       old_photo = std::move(photo);
 
       drop_user_photos(user_id, new_photo_id == 0, "on_update_user_photo");
