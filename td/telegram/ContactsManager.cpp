@@ -10296,29 +10296,6 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
       u->need_save_to_database = true;
     }
   }
-  bool is_me_regular_user = !td_->auth_manager_->is_bot();
-  if (is_me_regular_user && (is_received || !user->phone_.empty())) {
-    on_update_user_phone_number(u, user_id, std::move(user->phone_));
-  }
-  if (is_received || u->need_apply_min_photo || !u->is_received) {
-    on_update_user_photo(u, user_id, std::move(user->photo_), source);
-  }
-  if (is_me_regular_user && is_received) {
-    on_update_user_online(u, user_id, std::move(user->status_));
-
-    auto is_mutual_contact = (flags & USER_FLAG_IS_MUTUAL_CONTACT) != 0;
-    auto is_close_friend = (flags2 & USER_FLAG_IS_CLOSE_FRIEND) != 0;
-    on_update_user_is_contact(u, user_id, is_contact, is_mutual_contact, is_close_friend);
-  }
-
-  if (is_received || !u->is_received) {
-    on_update_user_name(u, user_id, std::move(user->first_name_), std::move(user->last_name_));
-    on_update_user_usernames(u, user_id, Usernames{std::move(user->username_), std::move(user->usernames_)});
-  }
-  on_update_user_emoji_status(u, user_id, EmojiStatus(std::move(user->emoji_status_)));
-  on_update_user_accent_color_id(
-      u, user_id, ((flags2 & telegram_api::user::COLOR_MASK) != 0 ? AccentColorId(user->color_) : AccentColorId()));
-  on_update_user_background_custom_emoji_id(u, user_id, CustomEmojiId(user->background_emoji_id_));
 
   bool is_verified = (flags & USER_FLAG_IS_VERIFIED) != 0;
   bool is_premium = (flags & USER_FLAG_IS_PREMIUM) != 0;
@@ -10405,9 +10382,6 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     u->attach_menu_enabled = attach_menu_enabled;
     u->is_changed = true;
   }
-  if (is_me_regular_user && is_received) {
-    on_update_user_stories_hidden(u, user_id, stories_hidden);
-  }
   if (is_premium != u->is_premium) {
     u->is_premium = is_premium;
     u->is_is_premium_changed = true;
@@ -10456,6 +10430,31 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     u->is_changed = true;
   }
 
+  bool is_me_regular_user = !td_->auth_manager_->is_bot();
+  if (is_me_regular_user && (is_received || !user->phone_.empty())) {
+    on_update_user_phone_number(u, user_id, std::move(user->phone_));
+  }
+  if (is_received || u->need_apply_min_photo || !u->is_received) {
+    on_update_user_photo(u, user_id, std::move(user->photo_), source);
+  }
+  if (is_me_regular_user && is_received) {
+    on_update_user_online(u, user_id, std::move(user->status_));
+
+    auto is_mutual_contact = (flags & USER_FLAG_IS_MUTUAL_CONTACT) != 0;
+    auto is_close_friend = (flags2 & USER_FLAG_IS_CLOSE_FRIEND) != 0;
+    on_update_user_is_contact(u, user_id, is_contact, is_mutual_contact, is_close_friend);
+  }
+  if (is_received || !u->is_received) {
+    on_update_user_name(u, user_id, std::move(user->first_name_), std::move(user->last_name_));
+    on_update_user_usernames(u, user_id, Usernames{std::move(user->username_), std::move(user->usernames_)});
+  }
+  on_update_user_emoji_status(u, user_id, EmojiStatus(std::move(user->emoji_status_)));
+  on_update_user_accent_color_id(
+      u, user_id, ((flags2 & telegram_api::user::COLOR_MASK) != 0 ? AccentColorId(user->color_) : AccentColorId()));
+  on_update_user_background_custom_emoji_id(u, user_id, CustomEmojiId(user->background_emoji_id_));
+  if (is_me_regular_user && is_received) {
+    on_update_user_stories_hidden(u, user_id, stories_hidden);
+  }
   if (is_me_regular_user && (stories_available || stories_unavailable)) {
     // update at the end, because it calls need_poll_user_active_stories
     on_update_user_story_ids_impl(u, user_id, StoryId(user->stories_max_id_), StoryId());
@@ -19174,25 +19173,9 @@ void ContactsManager::on_get_channel(telegram_api::channel &channel, const char 
     c->access_hash = access_hash;
     c->need_save_to_database = true;
   }
-  on_update_channel_title(c, channel_id, std::move(channel.title_));
   if (c->date != channel.date_) {
     c->date = channel.date_;
     c->is_changed = true;
-  }
-  on_update_channel_photo(c, channel_id, std::move(channel.photo_));
-  on_update_channel_accent_color_id(
-      c, channel_id,
-      ((channel.flags2_ & telegram_api::channel::COLOR_MASK) != 0 ? AccentColorId(channel.color_) : AccentColorId()));
-  on_update_channel_background_custom_emoji_id(c, channel_id, CustomEmojiId(channel.background_emoji_id_));
-  on_update_channel_status(c, channel_id, std::move(status));
-  on_update_channel_usernames(
-      c, channel_id,
-      Usernames(std::move(channel.username_),
-                std::move(channel.usernames_)));  // uses status, must be called after on_update_channel_status
-  on_update_channel_has_location(c, channel_id, channel.has_geo_);
-  on_update_channel_noforwards(c, channel_id, channel.noforwards_);
-  if (!td_->auth_manager_->is_bot() && !channel.stories_hidden_min_) {
-    on_update_channel_stories_hidden(c, channel_id, channel.stories_hidden_);
   }
 
   bool need_update_participant_count = have_participant_count && participant_count != c->participant_count;
@@ -19234,14 +19217,30 @@ void ContactsManager::on_get_channel(telegram_api::channel &channel, const char 
   if (old_join_to_send != get_channel_join_to_send(c) || old_join_request != get_channel_join_request(c)) {
     c->is_changed = true;
   }
+
+  on_update_channel_title(c, channel_id, std::move(channel.title_));
+  on_update_channel_photo(c, channel_id, std::move(channel.photo_));
+  on_update_channel_accent_color_id(
+      c, channel_id,
+      ((channel.flags2_ & telegram_api::channel::COLOR_MASK) != 0 ? AccentColorId(channel.color_) : AccentColorId()));
+  on_update_channel_background_custom_emoji_id(c, channel_id, CustomEmojiId(channel.background_emoji_id_));
+  on_update_channel_status(c, channel_id, std::move(status));
+  on_update_channel_usernames(
+      c, channel_id,
+      Usernames(std::move(channel.username_),
+                std::move(channel.usernames_)));  // uses status, must be called after on_update_channel_status
+  on_update_channel_has_location(c, channel_id, channel.has_geo_);
+  on_update_channel_noforwards(c, channel_id, channel.noforwards_);
+  if (!td_->auth_manager_->is_bot() && !channel.stories_hidden_min_) {
+    on_update_channel_stories_hidden(c, channel_id, channel.stories_hidden_);
+  }
+  // must be after setting of c->is_megagroup
+  on_update_channel_default_permissions(c, channel_id,
+                                        RestrictedRights(channel.default_banned_rights_, ChannelType::Megagroup));
   if (!td_->auth_manager_->is_bot() && (stories_available || stories_unavailable)) {
     // update at the end, because it calls need_poll_channel_active_stories
     on_update_channel_story_ids_impl(c, channel_id, StoryId(channel.stories_max_id_), StoryId());
   }
-
-  // must be after setting of c->is_megagroup
-  on_update_channel_default_permissions(c, channel_id,
-                                        RestrictedRights(channel.default_banned_rights_, ChannelType::Megagroup));
 
   if (c->cache_version != Channel::CACHE_VERSION) {
     c->cache_version = Channel::CACHE_VERSION;
@@ -19293,17 +19292,10 @@ void ContactsManager::on_get_channel_forbidden(telegram_api::channelForbidden &c
     c->access_hash = channel.access_hash_;
     c->need_save_to_database = true;
   }
-  on_update_channel_title(c, channel_id, std::move(channel.title_));
-  on_update_channel_photo(c, channel_id, nullptr);
   if (c->date != 0) {
     c->date = 0;
     c->is_changed = true;
   }
-  on_update_channel_status(c, channel_id, DialogParticipantStatus::Banned(channel.until_date_));
-  // on_update_channel_usernames(c, channel_id, Usernames());  // don't know if channel usernames are empty, so don't update it
-  // on_update_channel_has_location(c, channel_id, false);
-  on_update_channel_noforwards(c, channel_id, false);
-  td_->messages_manager_->on_update_dialog_group_call(DialogId(channel_id), false, false, "on_get_channel_forbidden");
 
   bool sign_messages = false;
   bool join_to_send = false;
@@ -19357,6 +19349,13 @@ void ContactsManager::on_get_channel_forbidden(telegram_api::channelForbidden &c
     c->is_changed = true;
   }
 
+  on_update_channel_title(c, channel_id, std::move(channel.title_));
+  on_update_channel_photo(c, channel_id, nullptr);
+  on_update_channel_status(c, channel_id, DialogParticipantStatus::Banned(channel.until_date_));
+  // on_update_channel_usernames(c, channel_id, Usernames());  // don't know if channel usernames are empty, so don't update it
+  // on_update_channel_has_location(c, channel_id, false);
+  on_update_channel_noforwards(c, channel_id, false);
+  td_->messages_manager_->on_update_dialog_group_call(DialogId(channel_id), false, false, "on_get_channel_forbidden");
   // must be after setting of c->is_megagroup
   tl_object_ptr<telegram_api::chatBannedRights> banned_rights;  // == nullptr
   on_update_channel_default_permissions(c, channel_id, RestrictedRights(banned_rights, ChannelType::Megagroup));
