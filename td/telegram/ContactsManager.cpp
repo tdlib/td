@@ -13454,7 +13454,7 @@ void ContactsManager::on_update_user_usernames(User *u, UserId user_id, Username
     u->is_username_changed = true;
     LOG(DEBUG) << "Usernames have changed for " << user_id;
     u->is_changed = true;
-  } else {
+  } else if (u->is_bot || !td_->auth_manager_->is_bot()) {
     td_->messages_manager_->on_dialog_usernames_received(DialogId(user_id), usernames, false);
   }
 }
