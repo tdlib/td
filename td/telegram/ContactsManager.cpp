@@ -12039,24 +12039,23 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
 
   auto effective_emoji_status = u->emoji_status.get_effective_emoji_status(u->is_premium, unix_time);
   if (effective_emoji_status != u->last_sent_emoji_status) {
+    if (!u->last_sent_emoji_status.is_empty()) {
+      user_emoji_status_timeout_.cancel_timeout(user_id.get());
+    }
     u->last_sent_emoji_status = effective_emoji_status;
+    if (!u->last_sent_emoji_status.is_empty()) {
+      auto until_date = u->last_sent_emoji_status.get_until_date();
+      auto left_time = until_date - unix_time;
+      if (left_time >= 0 && left_time < 30 * 86400) {
+        user_emoji_status_timeout_.set_timeout_in(user_id.get(), left_time);
+      }
+    }
     u->is_changed = true;
   } else if (u->is_emoji_status_changed) {
     LOG(DEBUG) << "Emoji status for " << user_id << " has changed";
     u->need_save_to_database = true;
   }
   u->is_emoji_status_changed = false;
-  if (!u->last_sent_emoji_status.is_empty()) {
-    auto until_date = u->last_sent_emoji_status.get_until_date();
-    auto left_time = until_date - unix_time;
-    if (left_time >= 0 && left_time < 30 * 86400) {
-      user_emoji_status_timeout_.set_timeout_in(user_id.get(), left_time);
-    } else {
-      user_emoji_status_timeout_.cancel_timeout(user_id.get());
-    }
-  } else {
-    user_emoji_status_timeout_.cancel_timeout(user_id.get());
-  }
 
   if (u->is_deleted) {
     td_->inline_queries_manager_->remove_recent_inline_bot(user_id, Promise<>());
