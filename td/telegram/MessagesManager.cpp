@@ -32908,9 +32908,11 @@ void MessagesManager::on_dialog_usernames_updated(DialogId dialog_id, const User
 }
 
 void MessagesManager::on_dialog_usernames_received(DialogId dialog_id, const Usernames &usernames, bool from_database) {
-  const auto *d = get_dialog(dialog_id);
-  if (d != nullptr) {
-    update_dialogs_hints(d);
+  if (!td_->auth_manager_->is_bot()) {
+    const auto *d = get_dialog(dialog_id);
+    if (d != nullptr) {
+      update_dialogs_hints(d);
+    }
   }
 
   if (!usernames.is_empty()) {
