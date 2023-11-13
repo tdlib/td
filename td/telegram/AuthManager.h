@@ -28,7 +28,9 @@ class AuthManager final : public NetActor {
  public:
   AuthManager(int32 api_id, const string &api_hash, ActorShared<> parent);
 
-  bool is_bot() const;
+  bool is_bot() const {
+    return is_bot_ || net_query_type_ == NetQueryType::BotAuthentication;
+  }
 
   bool is_authorized() const;
   bool was_authorized() const;

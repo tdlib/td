@@ -327,13 +327,6 @@ void AuthManager::tear_down() {
   parent_.reset();
 }
 
-bool AuthManager::is_bot() const {
-  if (net_query_id_ != 0 && net_query_type_ == NetQueryType::BotAuthentication) {
-    return true;
-  }
-  return is_bot_ && was_authorized();
-}
-
 bool AuthManager::was_authorized() const {
   return state_ == State::Ok || state_ == State::LoggingOut || state_ == State::DestroyingKeys ||
          state_ == State::Closing;
