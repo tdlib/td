@@ -32896,12 +32896,10 @@ void MessagesManager::on_dialog_usernames_updated(DialogId dialog_id, const User
   message_embedding_codes_[0].erase(dialog_id);
   message_embedding_codes_[1].erase(dialog_id);
 
-  if (!old_usernames.is_empty()) {
-    for (auto &username : old_usernames.get_active_usernames()) {
-      auto cleaned_username = clean_username(username);
-      resolved_usernames_.erase(cleaned_username);
-      inaccessible_resolved_usernames_.erase(cleaned_username);
-    }
+  for (auto &username : old_usernames.get_active_usernames()) {
+    auto cleaned_username = clean_username(username);
+    resolved_usernames_.erase(cleaned_username);
+    inaccessible_resolved_usernames_.erase(cleaned_username);
   }
 
   on_dialog_usernames_received(dialog_id, new_usernames, false);
@@ -32915,13 +32913,11 @@ void MessagesManager::on_dialog_usernames_received(DialogId dialog_id, const Use
     }
   }
 
-  if (!usernames.is_empty()) {
-    for (auto &username : usernames.get_active_usernames()) {
-      auto cleaned_username = clean_username(username);
-      if (!cleaned_username.empty()) {
-        resolved_usernames_[cleaned_username] =
-            ResolvedUsername{dialog_id, Time::now() + (from_database ? 0 : USERNAME_CACHE_EXPIRE_TIME)};
-      }
+  for (auto &username : usernames.get_active_usernames()) {
+    auto cleaned_username = clean_username(username);
+    if (!cleaned_username.empty()) {
+      resolved_usernames_[cleaned_username] =
+          ResolvedUsername{dialog_id, Time::now() + (from_database ? 0 : USERNAME_CACHE_EXPIRE_TIME)};
     }
   }
 }
