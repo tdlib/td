@@ -14330,12 +14330,15 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       message_info.has_unread_content = message->media_unread_;
       message_info.invert_media = message->invert_media_;
 
-      bool is_content_read = !message_info.has_unread_content;
-      if (is_message_auto_read(message_info.dialog_id, message_info.is_outgoing)) {
-        is_content_read = true;
-      }
-      if (is_scheduled) {
-        is_content_read = false;
+      bool is_content_read = true;
+      if (!td_->auth_manager_->is_bot()) {
+        if (is_scheduled) {
+          is_content_read = false;
+        } else if (is_message_auto_read(message_info.dialog_id, message_info.is_outgoing)) {
+          is_content_read = true;
+        } else {
+          is_content_read = !message_info.has_unread_content;
+        }
       }
       auto new_source = PSTRING() << MessageFullId(message_info.dialog_id, message_info.message_id) << " sent by "
                                   << message_info.sender_dialog_id << " from " << source;
