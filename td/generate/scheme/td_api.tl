@@ -6051,7 +6051,7 @@ updateChatPhoto chat_id:int53 photo:chatPhotoInfo = Update;
 //@description A chat accent color has changed @chat_id Chat identifier @accent_color_id The new chat accent color identifier
 updateChatAccentColor chat_id:int53 accent_color_id:int32 = Update;
 
-//@description A chat's custom emoji for reply background has changed @chat_id Chat identifier @background_custom_emoji_id The new tdentifier of a custom emoji to be shown on the reply header background
+//@description A chat's custom emoji for reply background has changed @chat_id Chat identifier @background_custom_emoji_id The new identifier of a custom emoji to be shown on the reply header background; 0 if none
 updateChatBackgroundCustomEmoji chat_id:int53 background_custom_emoji_id:int64 = Update;
 
 //@description Chat permissions was changed @chat_id Chat identifier @permissions The new chat permissions
