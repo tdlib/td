@@ -699,7 +699,7 @@ premiumGiftCodePaymentOptions options:vector<premiumGiftCodePaymentOption> = Pre
 //@creator_id Identifier of a chat or a user that created the gift code
 //@creation_date Point in time (Unix timestamp) when the code was created
 //@is_from_giveaway True, if the gift code was created for a giveaway
-//@giveaway_message_id Identifier of the corresponding giveaway message; can be 0 or an identifier of a deleted message
+//@giveaway_message_id Identifier of the corresponding giveaway message in the creator_id chat; can be 0 or an identifier of a deleted message
 //@month_count Number of month the Telegram Premium subscription will be active after code activation
 //@user_id Identifier of a user for which the code was created; 0 if none
 //@use_date Point in time (Unix timestamp) when the code was activated; 0 if none

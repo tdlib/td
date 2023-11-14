@@ -341,6 +341,10 @@ class CheckGiftCodeQuery final : public Td::ResultHandler {
       LOG(ERROR) << "Receive " << to_string(result);
       message_id = MessageId();
     }
+    if (message_id != MessageId() && creator_dialog_id.get_type() != DialogType::Channel) {
+      LOG(ERROR) << "Receive " << to_string(result);
+      message_id = MessageId();
+    }
     promise_.set_value(td_api::make_object<td_api::premiumGiftCodeInfo>(
         get_message_sender_object(td_, creator_dialog_id, "premiumGiftCodeInfo"), result->date_, result->via_giveaway_,
         message_id.get(), result->months_, td_->contacts_manager_->get_user_id_object(user_id, "premiumGiftCodeInfo"),
