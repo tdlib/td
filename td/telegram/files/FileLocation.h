@@ -524,25 +524,17 @@ class FullRemoteFileLocation {
   }
 
   bool operator<(const FullRemoteFileLocation &other) const {
-    auto lhs_key_type = key_type();
-    auto rhs_key_type = other.key_type();
-    if (lhs_key_type != rhs_key_type) {
-      return lhs_key_type < rhs_key_type;
+    if (!(variant_ == other.variant_)) {
+      return variant_ < other.variant_;
     }
-    if (dc_id_ != other.dc_id_) {
-      return dc_id_ < other.dc_id_;
+    if (file_type_ != other.file_type_) {
+      return file_type_ < other.file_type_;
     }
-    return variant_ < other.variant_;
+    return dc_id_ < other.dc_id_;
   }
 
   bool operator==(const FullRemoteFileLocation &other) const {
-    if (key_type() != other.key_type()) {
-      return false;
-    }
-    if (dc_id_ != other.dc_id_) {
-      return false;
-    }
-    return variant_ == other.variant_;
+    return variant_ == other.variant_ && file_type_ == other.file_type_ && dc_id_ == other.dc_id_;
   }
 
   static const int32 KEY_MAGIC = 0x64374632;

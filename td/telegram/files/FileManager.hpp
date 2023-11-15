@@ -268,9 +268,9 @@ FileId FileManager::parse_file(ParserT &parser) {
   }();
 
   if (has_encryption_key || has_secure_key) {
-    auto key_type = has_encryption_key ? FileEncryptionKey::Type::Secret : FileEncryptionKey::Type::Secure;
+    auto encryption_key_type = has_encryption_key ? FileEncryptionKey::Type::Secret : FileEncryptionKey::Type::Secure;
     FileEncryptionKey encryption_key;
-    encryption_key.parse(key_type, parser);
+    encryption_key.parse(encryption_key_type, parser);
     set_encryption_key(file_id, std::move(encryption_key));
   }
 
