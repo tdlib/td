@@ -542,7 +542,7 @@ class FullRemoteFileLocation {
 
 inline StringBuilder &operator<<(StringBuilder &string_builder,
                                  const FullRemoteFileLocation &full_remote_file_location) {
-  string_builder << "[" << full_remote_file_location.file_type_;
+  string_builder << '[' << full_remote_file_location.file_type_;
   if (!full_remote_file_location.is_web()) {
     string_builder << ", " << full_remote_file_location.get_dc_id();
   }
@@ -559,7 +559,7 @@ inline StringBuilder &operator<<(StringBuilder &string_builder,
     string_builder << full_remote_file_location.common();
   }
 
-  return string_builder << "]";
+  return string_builder << ']';
 }
 
 class RemoteFileLocation {
@@ -709,11 +709,11 @@ struct FullLocalFileLocation {
 };
 
 inline bool operator<(const FullLocalFileLocation &lhs, const FullLocalFileLocation &rhs) {
-  return std::tie(lhs.file_type_, lhs.mtime_nsec_, lhs.path_) < std::tie(rhs.file_type_, rhs.mtime_nsec_, rhs.path_);
+  return std::tie(lhs.mtime_nsec_, lhs.file_type_, lhs.path_) < std::tie(rhs.mtime_nsec_, rhs.file_type_, rhs.path_);
 }
 
 inline bool operator==(const FullLocalFileLocation &lhs, const FullLocalFileLocation &rhs) {
-  return std::tie(lhs.file_type_, lhs.mtime_nsec_, lhs.path_) == std::tie(rhs.file_type_, rhs.mtime_nsec_, rhs.path_);
+  return std::tie(lhs.mtime_nsec_, lhs.file_type_, lhs.path_) == std::tie(rhs.mtime_nsec_, rhs.file_type_, rhs.path_);
 }
 
 inline bool operator!=(const FullLocalFileLocation &lhs, const FullLocalFileLocation &rhs) {
