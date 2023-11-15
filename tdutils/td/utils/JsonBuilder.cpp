@@ -614,16 +614,25 @@ Result<bool> JsonObject::get_required_bool_field(Slice name) const {
   return Status::Error(400, PSLICE() << "Can't find field \"" << name << '"');
 }
 
+template <class T>
+static Result<T> get_integer_field(Slice name, Slice value) {
+  auto r_int = to_integer_safe<T>(value);
+  if (r_int.is_ok()) {
+    return r_int.ok();
+  }
+  return Status::Error(400, PSLICE() << "Field \"" << name << "\" must be a valid Number");
+}
+
 Result<int32> JsonObject::get_optional_int_field(Slice name, int32 default_value) const {
   auto value = get_field(name);
   if (value != nullptr) {
     if (value->type() == JsonValue::Type::String) {
-      return to_integer_safe<int32>(value->get_string());
+      return get_integer_field<int32>(name, value->get_string());
     }
     if (value->type() == JsonValue::Type::Number) {
-      return to_integer_safe<int32>(value->get_number());
+      return get_integer_field<int32>(name, value->get_number());
     }
-    return Status::Error(400, PSLICE() << "Field \"" << name << "\" must be of type Number");
+    return Status::Error(400, PSLICE() << "Field \"" << name << "\" must be a Number");
   }
   return default_value;
 }
@@ -632,12 +641,12 @@ Result<int32> JsonObject::get_required_int_field(Slice name) const {
   auto value = get_field(name);
   if (value != nullptr) {
     if (value->type() == JsonValue::Type::String) {
-      return to_integer_safe<int32>(value->get_string());
+      return get_integer_field<int32>(name, value->get_string());
     }
     if (value->type() == JsonValue::Type::Number) {
-      return to_integer_safe<int32>(value->get_number());
+      return get_integer_field<int32>(name, value->get_number());
     }
-    return Status::Error(400, PSLICE() << "Field \"" << name << "\" must be of type Number");
+    return Status::Error(400, PSLICE() << "Field \"" << name << "\" must be a Number");
   }
   return Status::Error(400, PSLICE() << "Can't find field \"" << name << '"');
 }
@@ -646,10 +655,10 @@ Result<int64> JsonObject::get_optional_long_field(Slice name, int64 default_valu
   auto value = get_field(name);
   if (value != nullptr) {
     if (value->type() == JsonValue::Type::String) {
-      return to_integer_safe<int64>(value->get_string());
+      return get_integer_field<int64>(name, value->get_string());
     }
     if (value->type() == JsonValue::Type::Number) {
-      return to_integer_safe<int64>(value->get_number());
+      return get_integer_field<int64>(name, value->get_number());
     }
     return Status::Error(400, PSLICE() << "Field \"" << name << "\" must be a Number");
   }
@@ -660,10 +669,10 @@ Result<int64> JsonObject::get_required_long_field(Slice name) const {
   auto value = get_field(name);
   if (value != nullptr) {
     if (value->type() == JsonValue::Type::String) {
-      return to_integer_safe<int64>(value->get_string());
+      return get_integer_field<int64>(name, value->get_string());
     }
     if (value->type() == JsonValue::Type::Number) {
-      return to_integer_safe<int64>(value->get_number());
+      return get_integer_field<int64>(name, value->get_number());
     }
     return Status::Error(400, PSLICE() << "Field \"" << name << "\" must be a Number");
   }
