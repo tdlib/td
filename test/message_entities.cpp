@@ -1527,6 +1527,8 @@ TEST(MessageEntities, parse_markdown) {
                        {{td::MessageEntity::Type::BlockQuote, 0, 18}, {td::MessageEntity::Type::Code, 0, 13}});
   check_parse_markdown("`>b\n>ld \n>bo\nld`\n>asd\ndef", ">b\n>ld \n>bo\nld\nasd\ndef",
                        {{td::MessageEntity::Type::Code, 0, 14}, {td::MessageEntity::Type::BlockQuote, 15, 4}});
+  check_parse_markdown(">1", "1", {{td::MessageEntity::Type::BlockQuote, 0, 1}});
+  check_parse_markdown(">\n1", "\n1", {{td::MessageEntity::Type::BlockQuote, 0, 1}});
 }
 
 static void check_parse_markdown_v3(td::string text, td::vector<td::MessageEntity> entities,

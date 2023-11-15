@@ -2264,6 +2264,7 @@ Result<vector<MessageEntity>> parse_markdown_v2(string &text) {
           have_blockquote = false;
           text[result_size++] = text[i];
           utf16_offset += 1;
+          skip_entity = false;
           break;
         default:
           UNREACHABLE();
