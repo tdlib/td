@@ -2974,7 +2974,7 @@ inputThumbnail thumbnail:InputFile width:int32 height:int32 = InputThumbnail;
 //@description The message will be sent at the specified date @send_date Point in time (Unix timestamp) when the message will be sent. The date must be within 367 days in the future
 messageSchedulingStateSendAtDate send_date:int32 = MessageSchedulingState;
 
-//@description The message will be sent when the peer will be online. Applicable to private chats only and when the exact online status of the peer is known
+//@description The message will be sent when the other user is online. Applicable to private chats only and when the exact online status of the other user is known
 messageSchedulingStateSendWhenOnline = MessageSchedulingState;
 
 
@@ -3035,7 +3035,7 @@ inputMessageAudio audio:InputFile album_cover_thumbnail:inputThumbnail duration:
 //@description A document message (general file)
 //@document Document to be sent
 //@thumbnail Document thumbnail; pass null to skip thumbnail uploading
-//@disable_content_type_detection If true, automatic file type detection will be disabled and the document will always be sent as file. Always true for files sent to secret chats
+//@disable_content_type_detection True, if automatic file type detection is disabled and the document must be sent as a file. Always true for files sent to secret chats
 //@caption Document caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
 inputMessageDocument document:InputFile thumbnail:inputThumbnail disable_content_type_detection:Bool caption:formattedText = InputMessageContent;
 
@@ -3687,7 +3687,7 @@ groupCallRecentSpeaker participant_id:MessageSender is_speaking:Bool = GroupCall
 //@id Group call identifier
 //@title Group call title
 //@scheduled_start_date Point in time (Unix timestamp) when the group call is supposed to be started by an administrator; 0 if it is already active or was ended
-//@enabled_start_notification True, if the group call is scheduled and the current user will receive a notification when the group call will start
+//@enabled_start_notification True, if the group call is scheduled and the current user will receive a notification when the group call starts
 //@is_active True, if the call is active
 //@is_rtmp_stream True, if the chat is an RTMP stream instead of an ordinary video chat
 //@is_joined True, if the call is joined
@@ -5990,8 +5990,8 @@ updateAuthorizationState authorization_state:AuthorizationState = Update;
 //@description A new message was received; can also be an outgoing message @message The new message
 updateNewMessage message:message = Update;
 
-//@description A request to send a message has reached the Telegram server. This doesn't mean that the message will be sent successfully or even that the send message request will be processed.
-//-This update will be sent only if the option "use_quick_ack" is set to true. This update may be sent multiple times for the same message
+//@description A request to send a message has reached the Telegram server. This doesn't mean that the message will be sent successfully.
+//-This update is sent only if the option "use_quick_ack" is set to true. This update may be sent multiple times for the same message
 //@chat_id The chat identifier of the sent message
 //@message_id A temporary message identifier
 updateMessageSendAcknowledged chat_id:int53 message_id:int53 = Update;
@@ -6140,7 +6140,7 @@ updateChatHasScheduledMessages chat_id:int53 has_scheduled_messages:Bool = Updat
 updateChatFolders chat_folders:vector<chatFolderInfo> main_chat_list_position:int32 = Update;
 
 //@description The number of online group members has changed. This update with non-zero number of online group members is sent only for currently opened chats.
-//-There is no guarantee that it will be sent just after the number of online users has changed
+//-There is no guarantee that it is sent just after the number of online users has changed
 //@chat_id Identifier of the chat
 //@online_member_count New number of online members in the chat, or 0 if unknown
 updateChatOnlineMemberCount chat_id:int53 online_member_count:int32 = Update;
@@ -8046,7 +8046,7 @@ cancelDownloadFile file_id:int32 only_if_pending:Bool = Ok;
 getSuggestedFileName file_id:int32 directory:string = Text;
 
 //@description Preliminary uploads a file to the cloud before sending it in a message, which can be useful for uploading of being recorded voice and video notes. Updates updateFile will be used
-//-to notify about upload progress and successful completion of the upload. The file will not have a persistent remote identifier until it will be sent in a message
+//-to notify about upload progress and successful completion of the upload. The file will not have a persistent remote identifier until it is sent in a message
 //@file File to upload
 //@file_type File type; pass null if unknown
 //@priority Priority of the upload (1-32). The higher the priority, the earlier the file will be uploaded. If the priorities of two files are equal, then the first one for which preliminaryUploadFile was called will be uploaded first
@@ -8267,7 +8267,7 @@ getGroupCall group_call_id:int32 = GroupCall;
 //@description Starts a scheduled group call @group_call_id Group call identifier
 startScheduledGroupCall group_call_id:int32 = Ok;
 
-//@description Toggles whether the current user will receive a notification when the group call will start; scheduled group calls only
+//@description Toggles whether the current user will receive a notification when the group call starts; scheduled group calls only
 //@group_call_id Group call identifier
 //@enabled_start_notification New value of the enabled_start_notification setting
 toggleGroupCallEnabledStartNotification group_call_id:int32 enabled_start_notification:Bool = Ok;

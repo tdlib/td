@@ -115,7 +115,7 @@ class SecretChatActor final : public NetQueryCallback {
   void add_inbound_message(unique_ptr<log_event::InboundSecretMessage> message);
 
   // Outbound messages
-  // Promise will be set just after corresponding log event will be SENT to binlog.
+  // Promise will be set just after corresponding log event is SENT to binlog.
   void send_message(tl_object_ptr<secret_api::DecryptedMessage> message,
                     tl_object_ptr<telegram_api::InputEncryptedFile> file, Promise<> promise);
   void send_message_action(tl_object_ptr<secret_api::SendMessageAction> action);

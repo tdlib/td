@@ -1128,7 +1128,6 @@ void AuthManager::on_log_out_result(NetQueryPtr &&net_query) {
   } else if (r_log_out.error().code() != 401) {
     LOG(ERROR) << "Receive error for auth.logOut: " << r_log_out.error();
   }
-  // state_ will stay LoggingOut, so no queries will work.
   destroy_auth_keys();
   on_current_query_ok();
 }
