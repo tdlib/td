@@ -1474,7 +1474,7 @@ chatTypeBasicGroup basic_group_id:int53 = ChatType;
 //@description A supergroup or channel (with unlimited members) @supergroup_id Supergroup or channel identifier @is_channel True, if the supergroup is a channel
 chatTypeSupergroup supergroup_id:int53 is_channel:Bool = ChatType;
 
-//@description A secret chat with a user @secret_chat_id Secret chat identifier @user_id User identifier of the secret chat peer
+//@description A secret chat with a user @secret_chat_id Secret chat identifier @user_id User identifier of the other user in the secret chat
 chatTypeSecret secret_chat_id:int32 user_id:int53 = ChatType;
 
 
@@ -1656,7 +1656,7 @@ chatActionBarInviteMembers = ChatActionBar;
 //@description The chat is a private or secret chat, which can be reported using the method reportChat, or the other user can be blocked using the method setMessageSenderBlockList,
 //-or the other user can be added to the contact list using the method addContact. If the chat is a private chat with a user with an emoji status, then a notice about emoji status usage must be shown
 //@can_unarchive If true, the chat was automatically archived and can be moved back to the main chat list using addChatToList simultaneously with setting chat notification settings to default using setChatNotificationSettings
-//@distance If non-negative, the current user was found by the peer through searchChatsNearby and this is the distance between the users
+//@distance If non-negative, the current user was found by the other user through searchChatsNearby and this is the distance between the users
 chatActionBarReportAddBlock can_unarchive:Bool distance:int32 = ChatActionBar;
 
 //@description The chat is a private or secret chat and the other user can be added to the contact list using the method addContact
@@ -3633,7 +3633,7 @@ callStatePending is_created:Bool is_received:Bool = CallState;
 callStateExchangingKeys = CallState;
 
 //@description The call is ready to use
-//@protocol Call protocols supported by the peer
+//@protocol Call protocols supported by the other call participant
 //@servers List of available call servers
 //@config A JSON-encoded call config
 //@encryption_key Call encryption key
@@ -3770,7 +3770,7 @@ callProblemPixelatedVideo = CallProblem;
 
 //@description Describes a call
 //@id Call identifier, not persistent
-//@user_id Peer user identifier
+//@user_id User identifier of the other call participant
 //@is_outgoing True, if the call is outgoing
 //@is_video True, if the call is a video call
 //@state Call state
