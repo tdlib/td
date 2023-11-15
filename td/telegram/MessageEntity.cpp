@@ -1516,7 +1516,7 @@ static int32 is_user_entity(MessageEntity::Type type) {
 static int32 is_hidden_data_entity(MessageEntity::Type type) {
   return (get_entity_type_mask(type) &
           (get_entity_type_mask(MessageEntity::Type::TextUrl) | get_entity_type_mask(MessageEntity::Type::MentionName) |
-           get_pre_entities_mask())) != 0;
+           get_pre_entities_mask() | get_blockquote_entities_mask())) != 0;
 }
 
 static constexpr size_t SPLITTABLE_ENTITY_TYPE_COUNT = 5;
