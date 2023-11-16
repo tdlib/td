@@ -13147,6 +13147,8 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
 
     td_->messages_manager_->on_update_dialog_message_ttl(DialogId(channel_id), MessageTtl(channel->ttl_period_));
 
+    td_->messages_manager_->on_update_dialog_view_as_messages(DialogId(channel_id), channel->view_forum_as_messages_);
+
     td_->messages_manager_->on_update_dialog_is_translatable(DialogId(channel_id), !channel->translations_disabled_);
 
     send_closure_later(td_->story_manager_actor_, &StoryManager::on_get_dialog_stories, DialogId(channel_id),

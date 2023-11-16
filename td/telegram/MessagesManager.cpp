@@ -5338,6 +5338,8 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     STORE_FLAG(has_background);
     STORE_FLAG(is_blocked_for_stories);
     STORE_FLAG(is_is_blocked_for_stories_inited);
+    STORE_FLAG(view_as_messages);
+    STORE_FLAG(is_view_as_messages_inited);
     END_STORE_FLAGS();
   }
 
@@ -5611,6 +5613,8 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     PARSE_FLAG(has_background);
     PARSE_FLAG(is_blocked_for_stories);
     PARSE_FLAG(is_is_blocked_for_stories_inited);
+    PARSE_FLAG(view_as_messages);
+    PARSE_FLAG(is_view_as_messages_inited);
     END_PARSE_FLAGS();
   } else {
     need_repair_action_bar = false;
@@ -5618,6 +5622,8 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     is_background_inited = false;
     is_blocked_for_stories = false;
     is_is_blocked_for_stories_inited = false;
+    view_as_messages = false;
+    is_view_as_messages_inited = false;
   }
 
   parse(last_new_message_id, parser);
@@ -15660,6 +15666,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     auto positions = get_dialog_positions(d);
 
     set_dialog_folder_id(d, FolderId(dialog->folder_id_));
+    set_dialog_view_as_messages(d, dialog->view_forum_as_messages_);
 
     on_update_dialog_notify_settings(dialog_id, std::move(dialog->notify_settings_), source);
     if (!d->notification_settings.is_synchronized && !td_->auth_manager_->is_bot()) {
@@ -20772,8 +20779,8 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       get_message_object(d->dialog_id, get_message(d, d->last_message_id), "get_chat_object"),
       get_chat_positions_object(d), get_default_message_sender_object(d), block_list_id.get_block_list_object(),
       get_dialog_has_protected_content(d->dialog_id), is_translatable, d->is_marked_as_unread,
-      get_dialog_has_scheduled_messages(d), can_delete.for_self_, can_delete.for_all_users_,
-      can_report_dialog(d->dialog_id), d->notification_settings.silent_send_message,
+      get_dialog_view_as_topics(d), get_dialog_has_scheduled_messages(d), can_delete.for_self_,
+      can_delete.for_all_users_, can_report_dialog(d->dialog_id), d->notification_settings.silent_send_message,
       d->server_unread_count + d->local_unread_count, d->last_read_inbox_message_id.get(),
       d->last_read_outbox_message_id.get(), d->unread_mention_count, d->unread_reaction_count,
       get_chat_notification_settings_object(&d->notification_settings), std::move(available_reactions),
@@ -31638,6 +31645,55 @@ void MessagesManager::on_update_pinned_dialogs(FolderId folder_id) {
   reload_pinned_dialogs(DialogListId(folder_id), Auto());
 }
 
+void MessagesManager::on_update_dialog_view_as_messages(DialogId dialog_id, bool view_as_messages) {
+  if (td_->auth_manager_->is_bot()) {
+    // just in case
+    return;
+  }
+
+  if (!dialog_id.is_valid()) {
+    LOG(ERROR) << "Receive view_as_messages for invalid " << dialog_id;
+    return;
+  }
+
+  auto d = get_dialog_force(dialog_id, "on_update_dialog_view_as_messages");
+  if (d == nullptr) {
+    // nothing to do
+    return;
+  }
+  set_dialog_view_as_messages(d, view_as_messages);
+}
+
+void MessagesManager::set_dialog_view_as_messages(Dialog *d, bool view_as_messages) {
+  if (td_->auth_manager_->is_bot()) {
+    // just in case
+    return;
+  }
+
+  CHECK(d != nullptr);
+  if (d->view_as_messages == view_as_messages) {
+    if (!d->is_view_as_messages_inited) {
+      d->is_view_as_messages_inited = true;
+      on_dialog_updated(d->dialog_id, "set_dialog_view_as_messages");
+    }
+    return;
+  }
+  auto old_view_as_topics = get_dialog_view_as_topics(d);
+  d->view_as_messages = view_as_messages;
+  d->is_view_as_messages_inited = true;
+  on_dialog_updated(d->dialog_id, "set_dialog_view_as_messages");
+
+  LOG(INFO) << "Set " << d->dialog_id << " view_as_messages to " << view_as_messages;
+  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in set_dialog_view_as_messages";
+  auto new_view_as_topics = get_dialog_view_as_topics(d);
+  if (old_view_as_topics != new_view_as_topics) {
+    send_closure(G()->td(), &Td::send_update,
+                 td_api::make_object<td_api::updateChatViewAsTopics>(
+                     get_chat_id_object(d->dialog_id, "updateChatViewAsTopics"), new_view_as_topics));
+  }
+  // TODO update unread counters in chat lists
+}
+
 void MessagesManager::on_update_dialog_is_marked_as_unread(DialogId dialog_id, bool is_marked_as_unread) {
   if (td_->auth_manager_->is_bot()) {
     // just in case
@@ -33071,6 +33127,10 @@ bool MessagesManager::get_dialog_has_protected_content(DialogId dialog_id) const
       UNREACHABLE();
       return true;
   }
+}
+
+bool MessagesManager::get_dialog_view_as_topics(const Dialog *d) const {
+  return !d->view_as_messages && is_forum_channel(d->dialog_id);
 }
 
 bool MessagesManager::get_dialog_has_scheduled_messages(const Dialog *d) const {
@@ -36687,11 +36747,13 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
                     td_->contacts_manager_->is_user_bot(dialog_id.get_user_id());
       d->is_has_bots_inited = true;
       d->is_available_reactions_inited = true;
+      d->is_view_as_messages_inited = true;
       break;
     case DialogType::Chat:
       d->is_is_blocked_inited = true;
       d->is_is_blocked_for_stories_inited = true;
       d->is_background_inited = true;
+      d->is_view_as_messages_inited = true;
       break;
     case DialogType::Channel: {
       if (td_->contacts_manager_->is_broadcast_channel(dialog_id.get_channel_id())) {
@@ -36729,6 +36791,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
       d->is_theme_name_inited = true;
       d->is_is_blocked_inited = true;
       d->is_is_blocked_for_stories_inited = true;
+      d->is_view_as_messages_inited = true;
       if (!d->is_folder_id_inited && !td_->auth_manager_->is_bot()) {
         do_set_dialog_folder_id(
             d, td_->contacts_manager_->get_secret_chat_initial_folder_id(dialog_id.get_secret_chat_id()));
@@ -36923,6 +36986,10 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<DraftMessage> &&draft
              !td_->auth_manager_->is_bot()) {
     // asynchronously get dialog available reactions from the server
     reload_dialog_info_full(dialog_id, "fix_new_dialog init available_reactions");
+  } else if (being_added_dialog_id_ != dialog_id && !d->is_view_as_messages_inited && is_forum_channel(dialog_id) &&
+             !td_->auth_manager_->is_bot()) {
+    // asynchronously get view_as_messages from the server
+    reload_dialog_info_full(dialog_id, "fix_new_dialog init view_as_messages");
   }
   if ((!d->know_action_bar || d->need_repair_action_bar) && !td_->auth_manager_->is_bot() &&
       dialog_type != DialogType::SecretChat && dialog_id != get_my_dialog_id() &&
@@ -38977,6 +39044,7 @@ void MessagesManager::on_get_channel_difference(DialogId dialog_id, int32 reques
       }
 
       set_dialog_folder_id(d, FolderId(dialog->folder_id_));
+      set_dialog_view_as_messages(d, dialog->view_forum_as_messages_);
 
       on_update_dialog_notify_settings(dialog_id, std::move(dialog->notify_settings_),
                                        "updates.channelDifferenceTooLong");

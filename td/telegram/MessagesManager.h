@@ -274,6 +274,8 @@ class MessagesManager final : public Actor {
 
   void on_update_pinned_dialogs(FolderId folder_id);
 
+  void on_update_dialog_view_as_messages(DialogId dialog_id, bool view_as_messages);
+
   void on_update_dialog_is_marked_as_unread(DialogId dialog_id, bool is_marked_as_unread);
 
   void on_update_dialog_is_translatable(DialogId dialog_id, bool is_translatable);
@@ -1387,6 +1389,7 @@ class MessagesManager final : public Actor {
     bool is_folder_id_inited = false;
     bool need_repair_server_unread_count = false;
     bool need_repair_channel_server_unread_count = false;
+    bool view_as_messages = false;
     bool is_marked_as_unread = false;
     bool is_blocked = false;
     bool is_is_blocked_inited = false;
@@ -1404,6 +1407,7 @@ class MessagesManager final : public Actor {
     bool is_message_ttl_inited = false;
     bool has_expected_active_group_call_id = false;
     bool has_bots = false;
+    bool is_view_as_messages_inited = false;
     bool is_has_bots_inited = false;
     bool is_background_inited = false;
     bool is_theme_name_inited = false;
@@ -2579,6 +2583,8 @@ class MessagesManager final : public Actor {
 
   void save_pinned_folder_dialog_ids(const DialogList &list) const;
 
+  void set_dialog_view_as_messages(Dialog *d, bool view_as_messages);
+
   void set_dialog_is_marked_as_unread(Dialog *d, bool is_marked_as_unread);
 
   void set_dialog_is_translatable(Dialog *d, bool is_translatable);
@@ -2974,6 +2980,8 @@ class MessagesManager final : public Actor {
   RestrictedRights get_dialog_default_permissions(DialogId dialog_id) const;
 
   bool get_dialog_has_protected_content(DialogId dialog_id) const;
+
+  bool get_dialog_view_as_topics(const Dialog *d) const;
 
   bool get_dialog_has_scheduled_messages(const Dialog *d) const;
 
