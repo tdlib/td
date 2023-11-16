@@ -1195,7 +1195,7 @@ messageReplyInfo reply_count:int32 recent_replier_ids:vector<MessageSender> last
 //@type Type of the reaction
 //@total_count Number of times the reaction was added
 //@is_chosen True, if the reaction is chosen by the current user
-//@used_sender_id Identifier of the message sender used by the current user to add the reaction; null if unknown or the reaction isn't chosen
+//@used_sender_id Identifier of the message sender used by the current user to add the reaction; may be null if unknown or the reaction isn't chosen
 //@recent_sender_ids Identifiers of at most 3 recent message senders, added the reaction; available in private, basic group and supergroup chats
 messageReaction type:ReactionType total_count:int32 is_chosen:Bool used_sender_id:MessageSender recent_sender_ids:vector<MessageSender> = MessageReaction;
 
