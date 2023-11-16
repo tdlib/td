@@ -274,6 +274,8 @@ class MessagesManager final : public Actor {
 
   void on_update_pinned_dialogs(FolderId folder_id);
 
+  void on_update_dialog_is_forum(DialogId dialog_id, bool is_forum);
+
   void on_update_dialog_view_as_messages(DialogId dialog_id, bool view_as_messages);
 
   void on_update_dialog_is_marked_as_unread(DialogId dialog_id, bool is_marked_as_unread);
@@ -1389,6 +1391,7 @@ class MessagesManager final : public Actor {
     bool is_folder_id_inited = false;
     bool need_repair_server_unread_count = false;
     bool need_repair_channel_server_unread_count = false;
+    bool is_forum = false;
     bool view_as_messages = false;
     bool is_marked_as_unread = false;
     bool is_blocked = false;
@@ -2450,7 +2453,7 @@ class MessagesManager final : public Actor {
 
   void send_update_new_chat(Dialog *d);
 
-  bool need_hide_dialog_draft_message(DialogId dialog_id) const;
+  bool need_hide_dialog_draft_message(const Dialog *d) const;
 
   void send_update_chat_draft_message(const Dialog *d);
 
@@ -2582,6 +2585,10 @@ class MessagesManager final : public Actor {
                             bool need_update_dialog_lists = true);
 
   void save_pinned_folder_dialog_ids(const DialogList &list) const;
+
+  void on_update_dialog_view_as_topics(const Dialog *d, bool old_view_as_topics);
+
+  void set_dialog_is_forum(Dialog *d, bool is_forum);
 
   void set_dialog_view_as_messages(Dialog *d, bool view_as_messages);
 

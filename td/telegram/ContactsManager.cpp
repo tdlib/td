@@ -19121,7 +19121,11 @@ void ContactsManager::on_get_channel(telegram_api::channel &channel, const char 
         c->is_scam = is_scam;
         c->is_fake = is_fake;
         c->is_gigagroup = is_gigagroup;
-        c->is_forum = is_forum;
+        if (c->is_forum != is_forum) {
+          c->is_forum = is_forum;
+          send_closure_later(G()->messages_manager(), &MessagesManager::on_update_dialog_is_forum, DialogId(channel_id),
+                             is_forum);
+        }
 
         c->is_changed = true;
         invalidate_channel_full(channel_id, !c->is_slow_mode_enabled, "on_get_min_channel");
@@ -19203,7 +19207,11 @@ void ContactsManager::on_get_channel(telegram_api::channel &channel, const char 
     c->is_scam = is_scam;
     c->is_fake = is_fake;
     c->is_gigagroup = is_gigagroup;
-    c->is_forum = is_forum;
+    if (c->is_forum != is_forum) {
+      c->is_forum = is_forum;
+      send_closure_later(G()->messages_manager(), &MessagesManager::on_update_dialog_is_forum, DialogId(channel_id),
+                         is_forum);
+    }
 
     c->is_changed = true;
     need_invalidate_channel_full = true;

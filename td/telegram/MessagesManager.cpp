@@ -5340,6 +5340,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     STORE_FLAG(is_is_blocked_for_stories_inited);
     STORE_FLAG(view_as_messages);
     STORE_FLAG(is_view_as_messages_inited);
+    STORE_FLAG(is_forum);
     END_STORE_FLAGS();
   }
 
@@ -5615,6 +5616,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     PARSE_FLAG(is_is_blocked_for_stories_inited);
     PARSE_FLAG(view_as_messages);
     PARSE_FLAG(is_view_as_messages_inited);
+    PARSE_FLAG(is_forum);
     END_PARSE_FLAGS();
   } else {
     need_repair_action_bar = false;
@@ -5624,6 +5626,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     is_is_blocked_for_stories_inited = false;
     view_as_messages = false;
     is_view_as_messages_inited = false;
+    is_forum = false;
   }
 
   parse(last_new_message_id, parser);
@@ -20766,8 +20769,7 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
   auto chat_source = is_dialog_sponsored(d) ? sponsored_dialog_source_.get_chat_source_object() : nullptr;
   auto can_delete = can_delete_dialog(d);
   // TODO hide/show draft message when need_hide_dialog_draft_message changes
-  auto draft_message =
-      !need_hide_dialog_draft_message(d->dialog_id) ? get_draft_message_object(td_, d->draft_message) : nullptr;
+  auto draft_message = !need_hide_dialog_draft_message(d) ? get_draft_message_object(td_, d->draft_message) : nullptr;
   auto available_reactions = get_dialog_active_reactions(d).get_chat_available_reactions_object();
   auto is_translatable = d->is_translatable && is_premium;
   auto block_list_id = BlockListId(d->is_blocked, d->is_blocked_for_stories);
@@ -30347,8 +30349,8 @@ void MessagesManager::send_update_new_chat(Dialog *d) {
   }
 }
 
-bool MessagesManager::need_hide_dialog_draft_message(DialogId dialog_id) const {
-  return is_forum_channel(dialog_id) || can_send_message(dialog_id).is_error();
+bool MessagesManager::need_hide_dialog_draft_message(const Dialog *d) const {
+  return get_dialog_view_as_topics(d) || can_send_message(d->dialog_id).is_error();
 }
 
 void MessagesManager::send_update_chat_draft_message(const Dialog *d) {
@@ -30359,7 +30361,7 @@ void MessagesManager::send_update_chat_draft_message(const Dialog *d) {
 
   CHECK(d != nullptr);
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_draft_message";
-  if (d->draft_message == nullptr || !need_hide_dialog_draft_message(d->dialog_id)) {
+  if (d->draft_message == nullptr || !need_hide_dialog_draft_message(d)) {
     send_closure(G()->td(), &Td::send_update,
                  td_api::make_object<td_api::updateChatDraftMessage>(
                      get_chat_id_object(d->dialog_id, "updateChatDraftMessage"),
@@ -31645,6 +31647,46 @@ void MessagesManager::on_update_pinned_dialogs(FolderId folder_id) {
   reload_pinned_dialogs(DialogListId(folder_id), Auto());
 }
 
+void MessagesManager::on_update_dialog_view_as_topics(const Dialog *d, bool old_view_as_topics) {
+  auto new_view_as_topics = get_dialog_view_as_topics(d);
+  if (old_view_as_topics == new_view_as_topics) {
+    return;
+  }
+
+  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in on_update_dialog_view_as_topics";
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateChatViewAsTopics>(
+                   get_chat_id_object(d->dialog_id, "updateChatViewAsTopics"), new_view_as_topics));
+  // TODO update unread counters in chat lists
+}
+
+void MessagesManager::on_update_dialog_is_forum(DialogId dialog_id, bool is_forum) {
+  if (!dialog_id.is_valid()) {
+    LOG(ERROR) << "Receive is_forum for invalid " << dialog_id;
+    return;
+  }
+
+  auto d = get_dialog_force(dialog_id, "on_update_dialog_is_forum");
+  if (d == nullptr) {
+    // nothing to do
+    return;
+  }
+  set_dialog_is_forum(d, is_forum);
+}
+
+void MessagesManager::set_dialog_is_forum(Dialog *d, bool is_forum) {
+  CHECK(d != nullptr);
+  if (d->is_forum == is_forum) {
+    return;
+  }
+  auto old_view_as_topics = get_dialog_view_as_topics(d);
+  d->is_forum = is_forum;
+  on_dialog_updated(d->dialog_id, "set_dialog_is_forum");
+
+  LOG(INFO) << "Set " << d->dialog_id << " is_forum to " << is_forum;
+  on_update_dialog_view_as_topics(d, old_view_as_topics);
+}
+
 void MessagesManager::on_update_dialog_view_as_messages(DialogId dialog_id, bool view_as_messages) {
   if (td_->auth_manager_->is_bot()) {
     // just in case
@@ -31684,14 +31726,7 @@ void MessagesManager::set_dialog_view_as_messages(Dialog *d, bool view_as_messag
   on_dialog_updated(d->dialog_id, "set_dialog_view_as_messages");
 
   LOG(INFO) << "Set " << d->dialog_id << " view_as_messages to " << view_as_messages;
-  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in set_dialog_view_as_messages";
-  auto new_view_as_topics = get_dialog_view_as_topics(d);
-  if (old_view_as_topics != new_view_as_topics) {
-    send_closure(G()->td(), &Td::send_update,
-                 td_api::make_object<td_api::updateChatViewAsTopics>(
-                     get_chat_id_object(d->dialog_id, "updateChatViewAsTopics"), new_view_as_topics));
-  }
-  // TODO update unread counters in chat lists
+  on_update_dialog_view_as_topics(d, old_view_as_topics);
 }
 
 void MessagesManager::on_update_dialog_is_marked_as_unread(DialogId dialog_id, bool is_marked_as_unread) {
@@ -33130,7 +33165,7 @@ bool MessagesManager::get_dialog_has_protected_content(DialogId dialog_id) const
 }
 
 bool MessagesManager::get_dialog_view_as_topics(const Dialog *d) const {
-  return !d->view_as_messages && is_forum_channel(d->dialog_id);
+  return !d->view_as_messages && d->is_forum;
 }
 
 bool MessagesManager::get_dialog_has_scheduled_messages(const Dialog *d) const {
@@ -37000,6 +37035,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<DraftMessage> &&draft
   if (d->has_active_group_call && !d->active_group_call_id.is_valid() && !td_->auth_manager_->is_bot()) {
     repair_dialog_active_group_call_id(dialog_id);
   }
+  set_dialog_is_forum(d, is_forum_channel(dialog_id));
 
   if (d->notification_settings.is_synchronized && !d->notification_settings.is_use_default_fixed &&
       have_input_peer(dialog_id, AccessRights::Read) && !td_->auth_manager_->is_bot()) {
@@ -37170,7 +37206,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<DraftMessage> &&draft
         pending_order = last_message_order;
       }
     }
-    if (draft_message != nullptr && !need_hide_dialog_draft_message(dialog_id)) {
+    if (draft_message != nullptr && !need_hide_dialog_draft_message(d)) {
       int64 draft_order = get_dialog_order(MessageId(), draft_message->get_date());
       if (draft_order > pending_order) {
         pending_order = draft_order;
@@ -37553,7 +37589,7 @@ void MessagesManager::update_dialog_pos(Dialog *d, const char *source, bool need
         new_order = d->pending_order;
       }
     }
-    if (d->draft_message != nullptr && !need_hide_dialog_draft_message(d->dialog_id)) {
+    if (d->draft_message != nullptr && !need_hide_dialog_draft_message(d)) {
       auto draft_message_date = d->draft_message->get_date();
       LOG(INFO) << "Draft message at " << draft_message_date << " found";
       int64 draft_order = get_dialog_order(MessageId(), draft_message_date);
