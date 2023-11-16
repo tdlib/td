@@ -3509,6 +3509,12 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelAvailabl
   promise.set_value(Unit());
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelViewForumAsMessages> update,
+                               Promise<Unit> &&promise) {
+  td_->messages_manager_->on_update_dialog_view_as_messages(DialogId(ChannelId(update->channel_id_)), update->enabled_);
+  promise.set_value(Unit());
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadChannelDiscussionInbox> update,
                                Promise<Unit> &&promise) {
   auto last_read_inbox_message_id = MessageId(ServerMessageId(update->read_max_id_));
@@ -4385,10 +4391,5 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewAuthorizatio
 }
 
 // unsupported updates
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelViewForumAsMessages> update,
-                               Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
 
 }  // namespace td

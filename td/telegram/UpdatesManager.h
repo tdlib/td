@@ -534,6 +534,7 @@ class UpdatesManager final : public Actor {
   void on_update(tl_object_ptr<telegram_api::updateChannelMessageViews> update, Promise<Unit> &&promise);
   void on_update(tl_object_ptr<telegram_api::updateChannelMessageForwards> update, Promise<Unit> &&promise);
   void on_update(tl_object_ptr<telegram_api::updateChannelAvailableMessages> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateChannelViewForumAsMessages> update, Promise<Unit> &&promise);
 
   void on_update(tl_object_ptr<telegram_api::updateReadChannelDiscussionInbox> update, Promise<Unit> &&promise);
   void on_update(tl_object_ptr<telegram_api::updateReadChannelDiscussionOutbox> update, Promise<Unit> &&promise);
@@ -644,8 +645,6 @@ class UpdatesManager final : public Actor {
   void on_update(tl_object_ptr<telegram_api::updateNewAuthorization> update, Promise<Unit> &&promise);
 
   // unsupported updates
-
-  void on_update(tl_object_ptr<telegram_api::updateChannelViewForumAsMessages> update, Promise<Unit> &&promise);
 };
 
 }  // namespace td
