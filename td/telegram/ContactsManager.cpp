@@ -19195,8 +19195,6 @@ void ContactsManager::on_get_channel(telegram_api::channel &channel, const char 
     c->is_fake = is_fake;
     c->is_gigagroup = is_gigagroup;
     c->is_forum = is_forum;
-    c->join_to_send = join_to_send;
-    c->join_request = join_request;
 
     c->is_changed = true;
     need_invalidate_channel_full = true;
