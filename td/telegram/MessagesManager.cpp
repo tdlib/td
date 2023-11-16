@@ -40069,6 +40069,25 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         reorder_pinned_dialogs_on_server(log_event.folder_id_, dialog_ids, event.id_);
         break;
       }
+      case LogEvent::HandlerType::ToggleDialogIsTranslatableOnServer: {
+        if (!have_old_message_database) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        ToggleDialogIsTranslatableOnServerLogEvent log_event;
+        log_event_parse(log_event, event.get_data()).ensure();
+
+        auto dialog_id = log_event.dialog_id_;
+        if (!have_dialog_force(dialog_id, "ToggleDialogIsTranslatableOnServerLogEvent") ||
+            !have_input_peer(dialog_id, AccessRights::Read)) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        toggle_dialog_is_translatable_on_server(dialog_id, log_event.is_translatable_, event.id_);
+        break;
+      }
       case LogEvent::HandlerType::ToggleDialogIsMarkedAsUnreadOnServer: {
         if (!have_old_message_database) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
