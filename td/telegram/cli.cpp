@@ -1654,7 +1654,13 @@ class CliClient final : public Actor {
     if (entities.empty() && !text.empty()) {
       Slice unused_reserved_characters("#+-={}.!");
       string new_text;
-      for (auto c : text) {
+      for (size_t i = 0; i < text.size(); i++) {
+        auto c = text[i];
+        if (c == '\\' && text[i + 1] == 'n') {
+          new_text += '\n';
+          i++;
+          continue;
+        }
         if (unused_reserved_characters.find(c) != Slice::npos) {
           new_text += '\\';
         }
