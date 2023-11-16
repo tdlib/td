@@ -1127,7 +1127,7 @@ messageSenderChat chat_id:int53 = MessageSender;
 messageSenders total_count:int32 senders:vector<MessageSender> = MessageSenders;
 
 
-//@description Represents a message sender, which can be used to send messages in a chat @sender Available message senders @needs_premium True, if Telegram Premium is needed to use the message sender
+//@description Represents a message sender, which can be used to send messages in a chat @sender The message sender @needs_premium True, if Telegram Premium is needed to use the message sender
 chatMessageSender sender:MessageSender needs_premium:Bool = ChatMessageSender;
 
 //@description Represents a list of message senders, which can be used to send messages in a chat @senders List of available message senders
