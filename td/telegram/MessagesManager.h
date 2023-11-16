@@ -704,6 +704,8 @@ class MessagesManager final : public Actor {
 
   Status toggle_dialog_is_pinned(DialogListId dialog_list_id, DialogId dialog_id, bool is_pinned) TD_WARN_UNUSED_RESULT;
 
+  Status toggle_dialog_view_as_messages(DialogId dialog_id, bool view_as_messages) TD_WARN_UNUSED_RESULT;
+
   Status toggle_dialog_is_marked_as_unread(DialogId dialog_id, bool is_marked_as_unread) TD_WARN_UNUSED_RESULT;
 
   Status toggle_dialog_is_translatable(DialogId dialog_id, bool is_translatable) TD_WARN_UNUSED_RESULT;
@@ -1678,6 +1680,7 @@ class MessagesManager final : public Actor {
   class SendScreenshotTakenNotificationMessageLogEvent;
   class SetDialogFolderIdOnServerLogEvent;
   class ToggleDialogIsBlockedOnServerLogEvent;
+  class ToggleDialogViewAsMessagesOnServerLogEvent;
   class ToggleDialogIsMarkedAsUnreadOnServerLogEvent;
   class ToggleDialogIsTranslatableOnServerLogEvent;
   class ToggleDialogIsPinnedOnServerLogEvent;
@@ -2628,6 +2631,8 @@ class MessagesManager final : public Actor {
 
   void toggle_dialog_is_pinned_on_server(DialogId dialog_id, bool is_pinned, uint64 log_event_id);
 
+  void toggle_dialog_view_as_messages_on_server(DialogId dialog_id, bool view_as_messages, uint64 log_event_id);
+
   void toggle_dialog_is_marked_as_unread_on_server(DialogId dialog_id, bool is_marked_as_unread, uint64 log_event_id);
 
   void toggle_dialog_is_translatable_on_server(DialogId dialog_id, bool is_translatable, uint64 log_event_id);
@@ -3244,6 +3249,8 @@ class MessagesManager final : public Actor {
   static uint64 save_toggle_dialog_is_pinned_on_server_log_event(DialogId dialog_id, bool is_pinned);
 
   static uint64 save_reorder_pinned_dialogs_on_server_log_event(FolderId folder_id, const vector<DialogId> &dialog_ids);
+
+  static uint64 save_toggle_dialog_view_as_messages_on_server_log_event(DialogId dialog_id, bool view_as_messages);
 
   static uint64 save_toggle_dialog_is_marked_as_unread_on_server_log_event(DialogId dialog_id,
                                                                            bool is_marked_as_unread);

@@ -1523,6 +1523,48 @@ class ReorderPinnedDialogsQuery final : public Td::ResultHandler {
   }
 };
 
+class ToggleViewForumAsMessagesQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+  bool view_as_messages_;
+
+ public:
+  explicit ToggleViewForumAsMessagesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, bool view_as_messages) {
+    dialog_id_ = dialog_id;
+    view_as_messages_ = view_as_messages;
+
+    CHECK(dialog_id.get_type() == DialogType::Channel);
+    auto input_channel = td_->contacts_manager_->get_input_channel(dialog_id.get_channel_id());
+    CHECK(input_channel != nullptr);
+    send_query(G()->net_query_creator().create(
+        telegram_api::channels_toggleViewForumAsMessages(std::move(input_channel), view_as_messages), {{dialog_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::channels_toggleViewForumAsMessages>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for ToggleViewForumAsMessagesQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    if (!td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "ToggleViewForumAsMessagesQuery")) {
+      LOG(ERROR) << "Receive error for ToggleViewForumAsMessagesQuery: " << status;
+    }
+    if (!G()->close_flag()) {
+      td_->messages_manager_->on_update_dialog_view_as_messages(dialog_id_, !view_as_messages_);
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 class ToggleDialogUnreadMarkQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
@@ -19351,6 +19393,69 @@ void MessagesManager::reorder_pinned_dialogs_on_server(FolderId folder_id, const
 
   td_->create_handler<ReorderPinnedDialogsQuery>(get_erase_log_event_promise(log_event_id))
       ->send(folder_id, dialog_ids);
+}
+
+Status MessagesManager::toggle_dialog_view_as_messages(DialogId dialog_id, bool view_as_messages) {
+  Dialog *d = get_dialog_force(dialog_id, "toggle_dialog_view_as_messages");
+  if (d == nullptr) {
+    return Status::Error(400, "Chat not found");
+  }
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    return Status::Error(400, "Can't access the chat");
+  }
+  if (!is_forum_channel(dialog_id)) {
+    return Status::Error(400, "The method is available only in forum channels");
+  }
+
+  if (view_as_messages == d->view_as_messages) {
+    return Status::OK();
+  }
+
+  set_dialog_view_as_messages(d, view_as_messages);
+
+  toggle_dialog_view_as_messages_on_server(dialog_id, view_as_messages, 0);
+  return Status::OK();
+}
+
+class MessagesManager::ToggleDialogViewAsMessagesOnServerLogEvent {
+ public:
+  DialogId dialog_id_;
+  bool view_as_messages_;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(view_as_messages_);
+    END_STORE_FLAGS();
+
+    td::store(dialog_id_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(view_as_messages_);
+    END_PARSE_FLAGS();
+
+    td::parse(dialog_id_, parser);
+  }
+};
+
+uint64 MessagesManager::save_toggle_dialog_view_as_messages_on_server_log_event(DialogId dialog_id,
+                                                                                bool view_as_messages) {
+  ToggleDialogViewAsMessagesOnServerLogEvent log_event{dialog_id, view_as_messages};
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ToggleDialogViewAsMessagesOnServer,
+                    get_log_event_storer(log_event));
+}
+
+void MessagesManager::toggle_dialog_view_as_messages_on_server(DialogId dialog_id, bool view_as_messages,
+                                                               uint64 log_event_id) {
+  if (log_event_id == 0 && G()->use_message_database()) {
+    log_event_id = save_toggle_dialog_view_as_messages_on_server_log_event(dialog_id, view_as_messages);
+  }
+
+  td_->create_handler<ToggleViewForumAsMessagesQuery>(get_erase_log_event_promise(log_event_id))
+      ->send(dialog_id, view_as_messages);
 }
 
 Status MessagesManager::toggle_dialog_is_marked_as_unread(DialogId dialog_id, bool is_marked_as_unread) {
@@ -40180,6 +40285,25 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         }
 
         reorder_pinned_dialogs_on_server(log_event.folder_id_, dialog_ids, event.id_);
+        break;
+      }
+      case LogEvent::HandlerType::ToggleDialogViewAsMessagesOnServer: {
+        if (!have_old_message_database) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        ToggleDialogViewAsMessagesOnServerLogEvent log_event;
+        log_event_parse(log_event, event.get_data()).ensure();
+
+        auto dialog_id = log_event.dialog_id_;
+        if (!have_dialog_force(dialog_id, "ToggleDialogViewAsMessagesOnServerLogEvent") ||
+            !have_input_peer(dialog_id, AccessRights::Read)) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        toggle_dialog_view_as_messages_on_server(dialog_id, log_event.view_as_messages_, event.id_);
         break;
       }
       case LogEvent::HandlerType::ToggleDialogIsTranslatableOnServer: {

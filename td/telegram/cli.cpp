@@ -4193,6 +4193,11 @@ class CliClient final : public Actor {
       bool is_marked_as_unread;
       get_args(args, chat_id, is_marked_as_unread);
       send_request(td_api::make_object<td_api::toggleChatIsMarkedAsUnread>(chat_id, is_marked_as_unread));
+    } else if (op == "tcvat") {
+      ChatId chat_id;
+      bool view_as_topics;
+      get_args(args, chat_id, view_as_topics);
+      send_request(td_api::make_object<td_api::toggleChatViewAsTopics>(chat_id, view_as_topics));
     } else if (op == "tcit") {
       ChatId chat_id;
       bool is_translatable;

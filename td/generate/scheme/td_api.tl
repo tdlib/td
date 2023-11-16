@@ -7734,6 +7734,9 @@ setChatNotificationSettings chat_id:int53 notification_settings:chatNotification
 //@has_protected_content New value of has_protected_content
 toggleChatHasProtectedContent chat_id:int53 has_protected_content:Bool = Ok;
 
+//@description Changes the view_as_topics setting of a forum chat @chat_id Chat identifier @view_as_topics New value of view_as_topics
+toggleChatViewAsTopics chat_id:int53 view_as_topics:Bool = Ok;
+
 //@description Changes the translatable state of a chat @chat_id Chat identifier @is_translatable New value of is_translatable
 toggleChatIsTranslatable chat_id:int53 is_translatable:Bool = Ok;
 

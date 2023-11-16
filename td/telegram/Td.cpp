@@ -6532,6 +6532,12 @@ void Td::on_request(uint64 id, const td_api::toggleChatIsPinned &request) {
                                                                  DialogId(request.chat_id_), request.is_pinned_));
 }
 
+void Td::on_request(uint64 id, const td_api::toggleChatViewAsTopics &request) {
+  CHECK_IS_USER();
+  answer_ok_query(
+      id, messages_manager_->toggle_dialog_view_as_messages(DialogId(request.chat_id_), !request.view_as_topics_));
+}
+
 void Td::on_request(uint64 id, const td_api::toggleChatIsTranslatable &request) {
   CHECK_IS_USER();
   answer_ok_query(
