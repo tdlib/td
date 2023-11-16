@@ -31657,6 +31657,12 @@ void MessagesManager::on_update_dialog_view_as_topics(const Dialog *d, bool old_
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateChatViewAsTopics>(
                    get_chat_id_object(d->dialog_id, "updateChatViewAsTopics"), new_view_as_topics));
+
+  if (d->draft_message != nullptr && can_send_message(d->dialog_id).is_ok()) {
+    // need_hide_dialog_draft_message has changed and there is draft message
+    send_update_chat_draft_message(d);
+  }
+
   // TODO update unread counters in chat lists
 }
 
