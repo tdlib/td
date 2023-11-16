@@ -2127,7 +2127,7 @@ webPageInstantView page_blocks:vector<PageBlock> view_count:int32 version:int32 
 //@duration Duration of the content, in seconds
 //@author Author of the content
 //@has_large_media True, if size of media in the preview can be changed
-//@show_large_media True, if large media preview must be shown
+//@show_large_media True, if large media preview must be shown; otherwise, the media preview must be shown small and only the first frame must be shown for videos
 //@skip_confirmation True, if there is no need to show an ordinary open URL confirmation, when opening the URL from the preview, because the URL is shown in the message text in clear
 //@show_above_text True, if the link preview must be shown above message text; otherwise, the link preview must be shown below the message text
 //@animation Preview of the content as an animation, if available; may be null
