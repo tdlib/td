@@ -5990,6 +5990,12 @@ class CliClient final : public Actor {
       bool is_dark;
       get_args(args, chat_id, message_id, is_dark);
       send_request(td_api::make_object<td_api::getMessageStatistics>(chat_id, message_id, is_dark));
+    } else if (op == "gsst") {
+      ChatId chat_id;
+      StoryId story_id;
+      bool is_dark;
+      get_args(args, chat_id, story_id, is_dark);
+      send_request(td_api::make_object<td_api::getStoryStatistics>(chat_id, story_id, is_dark));
     } else if (op == "gstg") {
       ChatId chat_id;
       string token;

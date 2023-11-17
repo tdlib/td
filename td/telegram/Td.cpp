@@ -8138,6 +8138,13 @@ void Td::on_request(uint64 id, const td_api::getMessageStatistics &request) {
                                                       request.is_dark_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getStoryStatistics &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  statistics_manager_->get_channel_story_statistics({DialogId(request.chat_id_), StoryId(request.story_id_)},
+                                                    request.is_dark_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::getStatisticalGraph &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.token_);

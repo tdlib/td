@@ -1711,6 +1711,22 @@ StoryManager::Story *StoryManager::on_get_story_from_database(StoryFullId story_
   return result;
 }
 
+bool StoryManager::can_get_story_statistics(StoryFullId story_full_id) {
+  return can_get_story_statistics(story_full_id.get_dialog_id(),
+                                  get_story_force(story_full_id, "can_get_story_statistics"));
+}
+
+bool StoryManager::can_get_story_statistics(DialogId owner_dialog_id, const Story *story) const {
+  if (td_->auth_manager_->is_bot()) {
+    return false;
+  }
+  if (owner_dialog_id.get_type() != DialogType::Channel ||
+      !td_->contacts_manager_->is_broadcast_channel(owner_dialog_id.get_channel_id())) {
+    return false;
+  }
+  return true;
+}
+
 const StoryManager::ActiveStories *StoryManager::get_active_stories(DialogId owner_dialog_id) const {
   return active_stories_.get_pointer(owner_dialog_id);
 }

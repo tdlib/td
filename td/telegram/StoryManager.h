@@ -302,6 +302,8 @@ class StoryManager final : public Actor {
 
   bool have_story_force(StoryFullId story_full_id);
 
+  bool can_get_story_statistics(StoryFullId story_full_id);
+
   bool is_inaccessible_story(StoryFullId story_full_id) const;
 
   int32 get_story_duration(StoryFullId story_full_id) const;
@@ -367,6 +369,8 @@ class StoryManager final : public Actor {
   bool is_my_story(DialogId owner_dialog_id) const;
 
   bool can_access_expired_story(DialogId owner_dialog_id, const Story *story) const;
+
+  bool can_get_story_statistics(DialogId owner_dialog_id, const Story *story) const;
 
   bool can_get_story_view_count(DialogId owner_dialog_id);
 

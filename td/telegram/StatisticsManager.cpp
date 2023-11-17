@@ -12,6 +12,7 @@
 #include "td/telegram/MessagesInfo.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/ServerMessageId.h"
+#include "td/telegram/StoryManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
@@ -282,6 +283,52 @@ class GetMessageStatsQuery final : public Td::ResultHandler {
   }
 };
 
+static td_api::object_ptr<td_api::storyStatistics> convert_story_stats(
+    telegram_api::object_ptr<telegram_api::stats_storyStats> obj) {
+  return td_api::make_object<td_api::storyStatistics>(convert_stats_graph(std::move(obj->views_graph_)),
+                                                      convert_stats_graph(std::move(obj->reactions_by_emotion_graph_)));
+}
+
+class GetStoryStatsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::storyStatistics>> promise_;
+  ChannelId channel_id_;
+
+ public:
+  explicit GetStoryStatsQuery(Promise<td_api::object_ptr<td_api::storyStatistics>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(ChannelId channel_id, StoryId story_id, bool is_dark, DcId dc_id) {
+    channel_id_ = channel_id;
+
+    auto input_peer = td_->messages_manager_->get_input_peer(DialogId(channel_id), AccessRights::Read);
+    if (input_peer == nullptr) {
+      return promise_.set_error(Status::Error(400, "Chat not found"));
+    }
+
+    int32 flags = 0;
+    if (is_dark) {
+      flags |= telegram_api::stats_getStoryStats::DARK_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::stats_getStoryStats(flags, false /*ignored*/, std::move(input_peer), story_id.get()), {}, dc_id));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stats_getStoryStats>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(convert_story_stats(result_ptr.move_as_ok()));
+  }
+
+  void on_error(Status status) final {
+    td_->contacts_manager_->on_get_channel_error(channel_id_, status, "GetStoryStatsQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class LoadAsyncGraphQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::StatisticalGraph>> promise_;
 
@@ -425,6 +472,36 @@ void StatisticsManager::send_get_channel_message_stats_query(
   CHECK(dialog_id.get_type() == DialogType::Channel);
   td_->create_handler<GetMessageStatsQuery>(std::move(promise))
       ->send(dialog_id.get_channel_id(), message_full_id.get_message_id(), is_dark, dc_id);
+}
+
+void StatisticsManager::get_channel_story_statistics(StoryFullId story_full_id, bool is_dark,
+                                                     Promise<td_api::object_ptr<td_api::storyStatistics>> &&promise) {
+  auto dc_id_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), story_full_id, is_dark, promise = std::move(promise)](Result<DcId> r_dc_id) mutable {
+        if (r_dc_id.is_error()) {
+          return promise.set_error(r_dc_id.move_as_error());
+        }
+        send_closure(actor_id, &StatisticsManager::send_get_channel_story_stats_query, r_dc_id.move_as_ok(),
+                     story_full_id, is_dark, std::move(promise));
+      });
+  td_->contacts_manager_->get_channel_statistics_dc_id(story_full_id.get_dialog_id(), false, std::move(dc_id_promise));
+}
+
+void StatisticsManager::send_get_channel_story_stats_query(
+    DcId dc_id, StoryFullId story_full_id, bool is_dark,
+    Promise<td_api::object_ptr<td_api::storyStatistics>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  auto dialog_id = story_full_id.get_dialog_id();
+  if (!td_->story_manager_->have_story_force(story_full_id)) {
+    return promise.set_error(Status::Error(400, "Story not found"));
+  }
+  if (!td_->story_manager_->can_get_story_statistics(story_full_id)) {
+    return promise.set_error(Status::Error(400, "Story statistics is inaccessible"));
+  }
+  CHECK(dialog_id.get_type() == DialogType::Channel);
+  td_->create_handler<GetStoryStatsQuery>(std::move(promise))
+      ->send(dialog_id.get_channel_id(), story_full_id.get_story_id(), is_dark, dc_id);
 }
 
 void StatisticsManager::load_statistics_graph(DialogId dialog_id, string token, int64 x,

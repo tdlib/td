@@ -5962,6 +5962,11 @@ chatStatisticsChannel period:dateRange member_count:statisticalValue mean_view_c
 //@message_reaction_graph A graph containing number of message reactions
 messageStatistics message_interaction_graph:StatisticalGraph message_reaction_graph:StatisticalGraph = MessageStatistics;
 
+//@description A detailed statistics about a story
+//@story_interaction_graph A graph containing number of story views and shares
+//@story_reaction_graph A graph containing number of story reactions
+storyStatistics story_interaction_graph:StatisticalGraph story_reaction_graph:StatisticalGraph = StoryStatistics;
+
 
 //@description A point on a Cartesian plane @x The point's first coordinate @y The point's second coordinate
 point x:double y:double = Point;
@@ -9078,6 +9083,9 @@ getMessageStatistics chat_id:int53 message_id:int53 is_dark:Bool = MessageStatis
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of messages to be returned; must be positive and can't be greater than 100. For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
 getMessagePublicForwards chat_id:int53 message_id:int53 offset:string limit:int32 = FoundMessages;
+
+//@description Returns detailed statistics about a story. Can be used only if story.can_get_statistics == true @chat_id Chat identifier @story_id Story identifier @is_dark Pass true if a dark theme is used by the application
+getStoryStatistics chat_id:int53 story_id:int32 is_dark:Bool = StoryStatistics;
 
 //@description Loads an asynchronous or a zoomed in statistical graph @chat_id Chat identifier @token The token for graph loading @x X-value for zoomed in graph or 0 otherwise
 getStatisticalGraph chat_id:int53 token:string x:int53 = StatisticalGraph;
