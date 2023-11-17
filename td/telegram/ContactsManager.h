@@ -503,6 +503,8 @@ class ContactsManager final : public Actor {
 
   bool can_get_channel_message_statistics(DialogId dialog_id) const;
 
+  bool can_get_channel_story_statistics(DialogId dialog_id) const;
+
   struct CanTransferOwnershipResult {
     enum class Type : uint8 { Ok, PasswordNeeded, PasswordTooFresh, SessionTooFresh };
     Type type = Type::Ok;

@@ -370,7 +370,7 @@ class StoryManager final : public Actor {
 
   bool can_access_expired_story(DialogId owner_dialog_id, const Story *story) const;
 
-  bool can_get_story_statistics(DialogId owner_dialog_id, const Story *story) const;
+  bool can_get_story_statistics(StoryFullId story_full_id, const Story *story) const;
 
   bool can_get_story_view_count(DialogId owner_dialog_id);
 

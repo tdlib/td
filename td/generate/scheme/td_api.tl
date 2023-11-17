@@ -3491,6 +3491,7 @@ storyInteractionInfo view_count:int32 forward_count:int32 reaction_count:int32 r
 //@can_be_forwarded True, if the story can be forwarded as a message. Otherwise, screenshots and saving of the story content must be also forbidden
 //@can_be_replied True, if the story can be replied in the chat with the story sender
 //@can_toggle_is_pinned True, if the story's is_pinned value can be changed
+//@can_get_statistics True, if the story statistics are available through getStoryStatistics
 //@can_get_viewers True, if users viewed the story can be received through getStoryViewers
 //@has_expired_viewers True, if users viewed the story can't be received, because the story has expired more than getOption("story_viewers_expiration_delay") seconds ago
 //@interaction_info Information about interactions with the story; may be null if the story isn't owned or there were no interactions
@@ -3499,7 +3500,7 @@ storyInteractionInfo view_count:int32 forward_count:int32 reaction_count:int32 r
 //@content Content of the story
 //@areas Clickable areas to be shown on the story content
 //@caption Caption of the story
-story id:int32 sender_chat_id:int53 date:int32 is_being_sent:Bool is_being_edited:Bool is_edited:Bool is_pinned:Bool is_visible_only_for_self:Bool can_be_deleted:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_replied:Bool can_toggle_is_pinned:Bool can_get_viewers:Bool has_expired_viewers:Bool interaction_info:storyInteractionInfo chosen_reaction_type:ReactionType privacy_settings:StoryPrivacySettings content:StoryContent areas:vector<storyArea> caption:formattedText = Story;
+story id:int32 sender_chat_id:int53 date:int32 is_being_sent:Bool is_being_edited:Bool is_edited:Bool is_pinned:Bool is_visible_only_for_self:Bool can_be_deleted:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_replied:Bool can_toggle_is_pinned:Bool can_get_statistics:Bool can_get_viewers:Bool has_expired_viewers:Bool interaction_info:storyInteractionInfo chosen_reaction_type:ReactionType privacy_settings:StoryPrivacySettings content:StoryContent areas:vector<storyArea> caption:formattedText = Story;
 
 //@description Represents a list of stories @total_count Approximate total number of stories found @stories The list of stories
 stories total_count:int32 stories:vector<story> = Stories;

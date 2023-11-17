@@ -8461,6 +8461,7 @@ void ContactsManager::get_channel_statistics_dc_id_impl(ChannelId channel_id, bo
 }
 
 bool ContactsManager::can_get_channel_message_statistics(DialogId dialog_id) const {
+  CHECK(!td_->auth_manager_->is_bot());
   if (dialog_id.get_type() != DialogType::Channel) {
     return false;
   }
@@ -8471,7 +8472,23 @@ bool ContactsManager::can_get_channel_message_statistics(DialogId dialog_id) con
     return false;
   }
 
-  if (td_->auth_manager_->is_bot()) {
+  auto channel_full = get_channel_full(channel_id);
+  if (channel_full != nullptr) {
+    return channel_full->stats_dc_id.is_exact();
+  }
+
+  return c->status.can_post_messages();
+}
+
+bool ContactsManager::can_get_channel_story_statistics(DialogId dialog_id) const {
+  CHECK(!td_->auth_manager_->is_bot());
+  if (dialog_id.get_type() != DialogType::Channel) {
+    return false;
+  }
+
+  auto channel_id = dialog_id.get_channel_id();
+  const Channel *c = get_channel(channel_id);
+  if (c == nullptr || c->is_megagroup) {
     return false;
   }
 
