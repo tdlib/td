@@ -132,6 +132,7 @@ struct SponsoredMessageManager::SponsoredMessage {
   string start_param;
   string invite_hash;
   unique_ptr<MessageContent> content;
+  string button_text;
   string sponsor_info;
   string additional_info;
   string site_url;
@@ -140,8 +141,8 @@ struct SponsoredMessageManager::SponsoredMessage {
 
   SponsoredMessage(int64 local_id, bool is_recommended, bool show_dialog_photo, DialogId sponsor_dialog_id,
                    ServerMessageId server_message_id, string start_param, string invite_hash,
-                   unique_ptr<MessageContent> content, string sponsor_info, string additional_info, string site_url,
-                   string site_name, DialogPhoto site_photo)
+                   unique_ptr<MessageContent> content, string button_text, string sponsor_info, string additional_info,
+                   string site_url, string site_name, DialogPhoto site_photo)
       : local_id(local_id)
       , is_recommended(is_recommended)
       , show_dialog_photo(show_dialog_photo)
@@ -150,6 +151,7 @@ struct SponsoredMessageManager::SponsoredMessage {
       , start_param(std::move(start_param))
       , invite_hash(std::move(invite_hash))
       , content(std::move(content))
+      , button_text(std::move(button_text))
       , sponsor_info(std::move(sponsor_info))
       , additional_info(std::move(additional_info))
       , site_url(std::move(site_url))
@@ -292,7 +294,7 @@ td_api::object_ptr<td_api::sponsoredMessage> SponsoredMessageManager::get_sponso
   return td_api::make_object<td_api::sponsoredMessage>(
       sponsored_message.local_id, sponsored_message.is_recommended,
       get_message_content_object(sponsored_message.content.get(), td_, dialog_id, 0, false, true, -1, false, false),
-      std::move(sponsor), sponsored_message.additional_info);
+      std::move(sponsor), sponsored_message.button_text, sponsored_message.additional_info);
 }
 
 td_api::object_ptr<td_api::sponsoredMessages> SponsoredMessageManager::get_sponsored_messages_object(
@@ -443,8 +445,9 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
         messages->messages.emplace_back(
             local_id, sponsored_message->recommended_, sponsored_message->show_peer_photo_, sponsor_dialog_id,
             server_message_id, std::move(sponsored_message->start_param_), std::move(invite_hash), std::move(content),
-            std::move(sponsored_message->sponsor_info_), std::move(sponsored_message->additional_info_),
-            std::move(site_url), std::move(site_name), std::move(site_photo));
+            std::move(sponsored_message->button_text_), std::move(sponsored_message->sponsor_info_),
+            std::move(sponsored_message->additional_info_), std::move(site_url), std::move(site_name),
+            std::move(site_photo));
       }
       messages->messages_between = sponsored_messages->posts_between_;
       break;
