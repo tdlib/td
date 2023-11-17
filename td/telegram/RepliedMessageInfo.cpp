@@ -232,9 +232,12 @@ bool RepliedMessageInfo::need_reply_changed_warning(
     return true;
   }
   if (old_info.quote_ != new_info.quote_) {
+    if (old_info.is_quote_manual_) {
+      return true;
+    }
     auto max_size = td->option_manager_->get_option_integer("message_reply_quote_length_max") - 70;
     if (static_cast<int64>(max(old_info.quote_.text.size(), new_info.quote_.text.size())) < max_size) {
-      // quote can't change, unless truncated differently
+      // automatic quote can't change, unless truncated differently
       return true;
     }
   }
