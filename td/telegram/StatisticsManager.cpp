@@ -235,7 +235,9 @@ class GetBroadcastStatsQuery final : public Td::ResultHandler {
 
 static td_api::object_ptr<td_api::messageStatistics> convert_message_stats(
     telegram_api::object_ptr<telegram_api::stats_messageStats> obj) {
-  return td_api::make_object<td_api::messageStatistics>(convert_stats_graph(std::move(obj->views_graph_)));
+  return td_api::make_object<td_api::messageStatistics>(
+      convert_stats_graph(std::move(obj->views_graph_)),
+      convert_stats_graph(std::move(obj->reactions_by_emotion_graph_)));
 }
 
 class GetMessageStatsQuery final : public Td::ResultHandler {

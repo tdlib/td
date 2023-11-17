@@ -5957,8 +5957,10 @@ chatStatisticsSupergroup period:dateRange member_count:statisticalValue message_
 chatStatisticsChannel period:dateRange member_count:statisticalValue mean_view_count:statisticalValue mean_share_count:statisticalValue enabled_notifications_percentage:double member_count_graph:StatisticalGraph join_graph:StatisticalGraph mute_graph:StatisticalGraph view_count_by_hour_graph:StatisticalGraph view_count_by_source_graph:StatisticalGraph join_by_source_graph:StatisticalGraph language_graph:StatisticalGraph message_interaction_graph:StatisticalGraph message_reaction_graph:StatisticalGraph story_interaction_graph:StatisticalGraph story_reaction_graph:StatisticalGraph instant_view_interaction_graph:StatisticalGraph recent_message_interactions:vector<chatStatisticsMessageInteractionInfo> = ChatStatistics;
 
 
-//@description A detailed statistics about a message @message_interaction_graph A graph containing number of message views and shares
-messageStatistics message_interaction_graph:StatisticalGraph = MessageStatistics;
+//@description A detailed statistics about a message
+//@message_interaction_graph A graph containing number of message views and shares
+//@message_reaction_graph A graph containing number of message reactions
+messageStatistics message_interaction_graph:StatisticalGraph message_reaction_graph:StatisticalGraph = MessageStatistics;
 
 
 //@description A point on a Cartesian plane @x The point's first coordinate @y The point's second coordinate
