@@ -9694,7 +9694,8 @@ void MessagesManager::get_channel_difference_if_needed(DialogId dialog_id, Messa
       return run_after_channel_difference(
           dialog_id, max_message_id,
           PromiseCreator::lambda([messages_info = std::move(messages_info), promise = std::move(promise)](
-                                     Unit ignored) mutable { promise.set_value(std::move(messages_info)); }));
+                                     Unit ignored) mutable { promise.set_value(std::move(messages_info)); }),
+          "get_channel_difference_if_needed");
     }
   }
   promise.set_value(std::move(messages_info));
@@ -9715,8 +9716,8 @@ void MessagesManager::get_channel_differences_if_needed(MessagesInfo &&messages_
 
     auto dialog_id = DialogId::get_message_dialog_id(message);
     if (need_channel_difference_to_add_message(dialog_id, message)) {
-      run_after_channel_difference(dialog_id, MessageId::get_max_message_id(messages_info.messages),
-                                   mpas.get_promise());
+      run_after_channel_difference(dialog_id, MessageId::get_max_message_id(messages_info.messages), mpas.get_promise(),
+                                   "get_channel_differences_if_needed");
     }
   }
   // must be added after messages_info is checked
@@ -17936,7 +17937,8 @@ void MessagesManager::process_discussion_message(
                                   promise = std::move(promise)](Unit ignored) mutable {
             send_closure(actor_id, &MessagesManager::process_discussion_message_impl, std::move(result), dialog_id,
                          message_id, expected_dialog_id, expected_message_id, std::move(promise));
-          }));
+          }),
+          "process_discussion_message");
     }
   }
 
@@ -38288,7 +38290,7 @@ bool MessagesManager::need_channel_difference_to_add_message(DialogId dialog_id,
 }
 
 void MessagesManager::run_after_channel_difference(DialogId dialog_id, MessageId expected_max_message_id,
-                                                   Promise<Unit> &&promise) {
+                                                   Promise<Unit> &&promise, const char *source) {
   CHECK(dialog_id.get_type() == DialogType::Channel);
   CHECK(have_input_peer(dialog_id, AccessRights::Read));
 
@@ -38296,7 +38298,7 @@ void MessagesManager::run_after_channel_difference(DialogId dialog_id, MessageId
 
   const Dialog *d = get_dialog(dialog_id);
   get_channel_difference(dialog_id, d == nullptr ? load_channel_pts(dialog_id) : d->pts, 0, expected_max_message_id,
-                         true, "run_after_channel_difference");
+                         true, source);
 }
 
 bool MessagesManager::running_get_channel_difference(DialogId dialog_id) const {
