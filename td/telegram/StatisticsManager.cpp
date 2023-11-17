@@ -145,6 +145,9 @@ static td_api::object_ptr<td_api::chatStatisticsChannel> convert_broadcast_stats
       convert_stats_graph(std::move(obj->views_by_source_graph_)),
       convert_stats_graph(std::move(obj->new_followers_by_source_graph_)),
       convert_stats_graph(std::move(obj->languages_graph_)), convert_stats_graph(std::move(obj->interactions_graph_)),
+      convert_stats_graph(std::move(obj->reactions_by_emotion_graph_)),
+      convert_stats_graph(std::move(obj->story_interactions_graph_)),
+      convert_stats_graph(std::move(obj->story_reactions_by_emotion_graph_)),
       convert_stats_graph(std::move(obj->iv_interactions_graph_)), Auto());
 }
 
