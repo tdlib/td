@@ -232,8 +232,8 @@ bool RepliedMessageInfo::need_reply_changed_warning(
     return true;
   }
   if (old_info.quote_ != new_info.quote_) {
-    auto max_size = static_cast<size_t>(td->option_manager_->get_option_integer("message_reply_quote_length_max"));
-    if (old_info.quote_.text.size() < max_size && new_info.quote_.text.size() < max_size) {
+    auto max_size = td->option_manager_->get_option_integer("message_reply_quote_length_max") - 70;
+    if (static_cast<int64>(max(old_info.quote_.text.size(), new_info.quote_.text.size())) < max_size) {
       // quote can't change, unless truncated differently
       return true;
     }
