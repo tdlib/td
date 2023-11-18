@@ -18,8 +18,8 @@ template <class StorerT>
 void ChatReactions::store(StorerT &storer) const {
   bool has_reactions = !reaction_types_.empty();
   BEGIN_STORE_FLAGS();
-  STORE_FLAG(allow_all_);
-  STORE_FLAG(allow_custom_);
+  STORE_FLAG(allow_all_regular_);
+  STORE_FLAG(allow_all_custom_);
   STORE_FLAG(has_reactions);
   END_STORE_FLAGS();
   if (has_reactions) {
@@ -31,8 +31,8 @@ template <class ParserT>
 void ChatReactions::parse(ParserT &parser) {
   bool has_reactions;
   BEGIN_PARSE_FLAGS();
-  PARSE_FLAG(allow_all_);
-  PARSE_FLAG(allow_custom_);
+  PARSE_FLAG(allow_all_regular_);
+  PARSE_FLAG(allow_all_custom_);
   PARSE_FLAG(has_reactions);
   END_PARSE_FLAGS();
   if (has_reactions) {

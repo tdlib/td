@@ -238,7 +238,7 @@ td_api::object_ptr<td_api::availableReactions> ReactionManager::get_sorted_avail
   auto top_reactions = top_reactions_.reaction_types_;
   LOG(INFO) << "Have available reactions " << available_reactions << " to be sorted by top reactions " << top_reactions
             << " and recent reactions " << recent_reactions;
-  if (active_reactions.allow_custom_ && active_reactions.allow_all_) {
+  if (active_reactions.allow_all_custom_ && active_reactions.allow_all_regular_) {
     for (auto &reaction_type : recent_reactions) {
       if (reaction_type.is_custom_reaction()) {
         show_premium = true;
@@ -273,7 +273,7 @@ td_api::object_ptr<td_api::availableReactions> ReactionManager::get_sorted_avail
         }
         reaction_objects.push_back(
             td_api::make_object<td_api::availableReaction>(reaction_type.get_reaction_type_object(), false));
-      } else if (reaction_type.is_custom_reaction() && available_reactions.allow_custom_ &&
+      } else if (reaction_type.is_custom_reaction() && available_reactions.allow_all_custom_ &&
                  added_custom_reaction_types.insert(reaction_type).second) {
         // add implicitly available custom reaction
         reaction_objects.push_back(
@@ -320,13 +320,13 @@ td_api::object_ptr<td_api::availableReactions> ReactionManager::get_sorted_avail
 
   return td_api::make_object<td_api::availableReactions>(
       std::move(top_reaction_objects), std::move(recent_reaction_objects), std::move(popular_reaction_objects),
-      available_reactions.allow_custom_);
+      available_reactions.allow_all_custom_);
 }
 
 td_api::object_ptr<td_api::availableReactions> ReactionManager::get_available_reactions(int32 row_size) {
   ChatReactions available_reactions;
   available_reactions.reaction_types_ = active_reaction_types_;
-  available_reactions.allow_custom_ = true;
+  available_reactions.allow_all_custom_ = true;
   return get_sorted_available_reactions(std::move(available_reactions), ChatReactions(true, true), row_size);
 }
 

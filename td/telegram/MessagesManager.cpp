@@ -23816,9 +23816,9 @@ ChatReactions MessagesManager::get_message_available_reactions(const Dialog *d, 
     active_reactions = ChatReactions();
   }
 
-  if (active_reactions.allow_all_) {
+  if (active_reactions.allow_all_regular_) {
     active_reactions.reaction_types_ = active_reaction_types_;
-    active_reactions.allow_all_ = false;
+    active_reactions.allow_all_regular_ = false;
   }
   if (can_use_reactions && m->reactions != nullptr) {
     for (const auto &reaction : m->reactions->reactions_) {
@@ -23831,7 +23831,7 @@ ChatReactions MessagesManager::get_message_available_reactions(const Dialog *d, 
     }
   }
   if (disallow_custom_for_non_premium && !td_->option_manager_->get_option_boolean("is_premium")) {
-    active_reactions.allow_custom_ = false;
+    active_reactions.allow_all_custom_ = false;
   }
   return active_reactions;
 }

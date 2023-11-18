@@ -18,8 +18,8 @@ namespace td {
 
 struct ChatReactions {
   vector<ReactionType> reaction_types_;
-  bool allow_all_ = false;     // implies empty reaction_types_
-  bool allow_custom_ = false;  // implies allow_all_
+  bool allow_all_regular_ = false;  // implies empty reaction_types_
+  bool allow_all_custom_ = false;   // implies allow_all_regular_
 
   ChatReactions() = default;
 
@@ -28,9 +28,10 @@ struct ChatReactions {
 
   explicit ChatReactions(telegram_api::object_ptr<telegram_api::ChatReactions> &&chat_reactions_ptr);
 
-  ChatReactions(td_api::object_ptr<td_api::ChatAvailableReactions> &&chat_reactions_ptr, bool allow_custom);
+  ChatReactions(td_api::object_ptr<td_api::ChatAvailableReactions> &&chat_reactions_ptr, bool allow_all_custom);
 
-  ChatReactions(bool allow_all, bool allow_custom) : allow_all_(allow_all), allow_custom_(allow_custom) {
+  ChatReactions(bool allow_all_regular, bool allow_all_custom)
+      : allow_all_regular_(allow_all_regular), allow_all_custom_(allow_all_custom) {
   }
 
   ChatReactions get_active_reactions(
@@ -43,7 +44,7 @@ struct ChatReactions {
   td_api::object_ptr<td_api::ChatAvailableReactions> get_chat_available_reactions_object() const;
 
   bool empty() const {
-    return reaction_types_.empty() && !allow_all_;
+    return reaction_types_.empty() && !allow_all_regular_;
   }
 
   template <class StorerT>
