@@ -25553,6 +25553,8 @@ void MessagesManager::send_secret_message(DialogId dialog_id, const Message *m, 
     entities = get_input_secret_message_entities(text->entities, layer);
   }
 
+  CHECK(text != nullptr);
+
   int32 flags = 0;
   if (m->reply_to_random_id != 0) {
     flags |= secret_api::decryptedMessage::REPLY_TO_RANDOM_ID_MASK;
