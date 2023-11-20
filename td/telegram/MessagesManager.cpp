@@ -7845,7 +7845,6 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
     }
 
     if (old_pts == 0) {
-      old_pts = new_pts - pts_count;
       LOG(INFO) << "Receive first update in " << dialog_id << " with PTS = " << new_pts << " from " << source;
     } else if (old_pts != new_pts - pts_count) {
       LOG(INFO) << "Found a gap in the " << dialog_id << " with PTS = " << old_pts << ". new_pts = " << new_pts
@@ -18690,7 +18689,6 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(MessageFullId 
   }
   if (media_timestamp > 0) {
     sb << separator << "t=" << media_timestamp;
-    separator = '&';
   }
 
   return std::make_pair(sb.as_cslice().str(), is_public);
