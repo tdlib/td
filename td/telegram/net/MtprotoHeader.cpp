@@ -28,12 +28,11 @@ class HeaderStorer {
   template <class StorerT>
   void store(StorerT &storer) const {
     using td::store;
-    // invokeWithLayer#da9b0d0d {X:Type} layer:int query:!X = X;
+    // invokeWithLayer
     store(static_cast<int32>(0xda9b0d0d), storer);
     store(MTPROTO_LAYER, storer);
-    // initConnection#785188b8 {X:Type} flags:# api_id:int device_model:string system_version:string app_version:string
-    // system_lang_code:string lang_pack:string lang_code:string proxy:flags.0?InputClientProxy query:!X = X;
-    store(static_cast<int32>(0x785188b8), storer);
+    // initConnection
+    store(static_cast<int32>(0xc1cd5ea9), storer);
     int32 flags = 0;
     bool have_proxy = !is_anonymous && options.proxy.type() == Proxy::Type::Mtproto;
     if (have_proxy) {
@@ -69,7 +68,7 @@ class HeaderStorer {
       }
     }
     if (have_proxy) {
-      // inputClientProxy#75588b3f address:string port:int = InputClientProxy;
+      // inputClientProxy
       store(static_cast<int32>(0x75588b3f), storer);
       store(Slice(options.proxy.server()), storer);
       store(options.proxy.port(), storer);
