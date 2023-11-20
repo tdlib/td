@@ -45,6 +45,9 @@ class WebApp {
 
   td_api::object_ptr<td_api::webApp> get_web_app_object(Td *td) const;
 
+  td_api::object_ptr<td_api::messageSponsorTypeWebApp> get_message_sponsor_type_web_app(
+      const string &bot_username, const string &start_parameter) const;
+
   template <class StorerT>
   void store(StorerT &storer) const;
 

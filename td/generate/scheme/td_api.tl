@@ -1366,6 +1366,9 @@ messageSourceOther = MessageSource;
 //@description The sponsor is a bot @bot_user_id User identifier of the bot @link An internal link to be opened when the sponsored message is clicked
 messageSponsorTypeBot bot_user_id:int53 link:InternalLinkType = MessageSponsorType;
 
+//@description The sponsor is a web app @web_app_title Web App title @link An internal link to be opened when the sponsored message is clicked
+messageSponsorTypeWebApp web_app_title:string link:InternalLinkType = MessageSponsorType;
+
 //@description The sponsor is a public channel chat @chat_id Sponsor chat identifier @link An internal link to be opened when the sponsored message is clicked; may be null if the sponsor chat needs to be opened instead
 messageSponsorTypePublicChannel chat_id:int53 link:InternalLinkType = MessageSponsorType;
 

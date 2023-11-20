@@ -61,6 +61,12 @@ td_api::object_ptr<td_api::webApp> WebApp::get_web_app_object(Td *td) const {
                                              td->animations_manager_->get_animation_object(animation_file_id_));
 }
 
+td_api::object_ptr<td_api::messageSponsorTypeWebApp> WebApp::get_message_sponsor_type_web_app(
+    const string &bot_username, const string &start_parameter) const {
+  return td_api::make_object<td_api::messageSponsorTypeWebApp>(
+      title_, td_api::make_object<td_api::internalLinkTypeWebApp>(bot_username, short_name_, start_parameter));
+}
+
 bool operator==(const WebApp &lhs, const WebApp &rhs) {
   return lhs.id_ == rhs.id_ && lhs.access_hash_ == rhs.access_hash_ && lhs.short_name_ == rhs.short_name_ &&
          lhs.title_ == rhs.title_ && lhs.description_ == rhs.description_ && lhs.photo_ == rhs.photo_ &&

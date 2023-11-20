@@ -20,6 +20,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
+#include "td/telegram/WebApp.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
@@ -131,6 +132,7 @@ struct SponsoredMessageManager::SponsoredMessage {
   ServerMessageId server_message_id;
   string start_param;
   string invite_hash;
+  WebApp web_app;
   unique_ptr<MessageContent> content;
   string button_text;
   string sponsor_info;
@@ -140,7 +142,7 @@ struct SponsoredMessageManager::SponsoredMessage {
   DialogPhoto site_photo;
 
   SponsoredMessage(int64 local_id, bool is_recommended, bool show_dialog_photo, DialogId sponsor_dialog_id,
-                   ServerMessageId server_message_id, string start_param, string invite_hash,
+                   ServerMessageId server_message_id, string start_param, string invite_hash, WebApp web_app,
                    unique_ptr<MessageContent> content, string button_text, string sponsor_info, string additional_info,
                    string site_url, string site_name, DialogPhoto site_photo)
       : local_id(local_id)
@@ -150,6 +152,7 @@ struct SponsoredMessageManager::SponsoredMessage {
       , server_message_id(server_message_id)
       , start_param(std::move(start_param))
       , invite_hash(std::move(invite_hash))
+      , web_app(std::move(web_app))
       , content(std::move(content))
       , button_text(std::move(button_text))
       , sponsor_info(std::move(sponsor_info))
@@ -223,9 +226,13 @@ td_api::object_ptr<td_api::messageSponsor> SponsoredMessageManager::get_message_
         LOG(ERROR) << "Sponsor " << user_id << " has no username";
         return nullptr;
       }
-      type = td_api::make_object<td_api::messageSponsorTypeBot>(
-          td_->contacts_manager_->get_user_id_object(user_id, "messageSponsorTypeBot"),
-          td_api::make_object<td_api::internalLinkTypeBotStart>(bot_username, sponsored_message.start_param, false));
+      if (!sponsored_message.web_app.is_empty()) {
+        type = sponsored_message.web_app.get_message_sponsor_type_web_app(bot_username, sponsored_message.start_param);
+      } else {
+        type = td_api::make_object<td_api::messageSponsorTypeBot>(
+            td_->contacts_manager_->get_user_id_object(user_id, "messageSponsorTypeBot"),
+            td_api::make_object<td_api::internalLinkTypeBotStart>(bot_username, sponsored_message.start_param, false));
+      }
       if (sponsored_message.show_dialog_photo) {
         photo = get_chat_photo_info_object(td_->file_manager_.get(),
                                            td_->contacts_manager_->get_user_dialog_photo(user_id));
@@ -255,7 +262,9 @@ td_api::object_ptr<td_api::messageSponsor> SponsoredMessageManager::get_message_
     }
     case DialogType::None: {
       if (sponsored_message.invite_hash.empty()) {
-        CHECK(!sponsored_message.site_url.empty());
+        if (sponsored_message.site_url.empty()) {
+          return nullptr;
+        }
         type = td_api::make_object<td_api::messageSponsorTypeWebsite>(sponsored_message.site_url,
                                                                       sponsored_message.site_name);
         if (sponsored_message.show_dialog_photo) {
@@ -442,10 +451,14 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
         message_info.random_id_ = sponsored_message->random_id_.as_slice().str();
         auto is_inserted = messages->message_infos.emplace(local_id, std::move(message_info)).second;
         CHECK(is_inserted);
+        WebApp web_app;
+        if (sponsored_message->app_ != nullptr && sponsored_message->app_->get_id() == telegram_api::botApp::ID) {
+          web_app = WebApp(td_, telegram_api::move_object_as<telegram_api::botApp>(sponsored_message->app_), dialog_id);
+        }
         messages->messages.emplace_back(
             local_id, sponsored_message->recommended_, sponsored_message->show_peer_photo_, sponsor_dialog_id,
-            server_message_id, std::move(sponsored_message->start_param_), std::move(invite_hash), std::move(content),
-            std::move(sponsored_message->button_text_), std::move(sponsored_message->sponsor_info_),
+            server_message_id, std::move(sponsored_message->start_param_), std::move(invite_hash), std::move(web_app),
+            std::move(content), std::move(sponsored_message->button_text_), std::move(sponsored_message->sponsor_info_),
             std::move(sponsored_message->additional_info_), std::move(site_url), std::move(site_name),
             std::move(site_photo));
       }
