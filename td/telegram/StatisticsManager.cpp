@@ -131,12 +131,31 @@ static td_api::object_ptr<td_api::chatStatisticsSupergroup> convert_megagroup_st
 static td_api::object_ptr<td_api::chatStatisticsChannel> convert_broadcast_stats(
     telegram_api::object_ptr<telegram_api::stats_broadcastStats> obj) {
   CHECK(obj != nullptr);
-  /*
-  auto recent_message_interactions = transform(std::move(obj->recent_message_interactions_), [](auto &&interaction) {
-    return td_api::make_object<td_api::chatStatisticsMessageInteractionInfo>(
-        MessageId(ServerMessageId(interaction->msg_id_)).get(), interaction->views_, interaction->forwards_);
-  });
-  */
+  auto recent_interactions = transform(
+      std::move(obj->recent_posts_interactions_),
+      [](telegram_api::object_ptr<telegram_api::PostInteractionCounters> &&interaction_ptr)
+          -> td_api::object_ptr<td_api::chatStatisticsInteractionInfo> {
+        switch (interaction_ptr->get_id()) {
+          case telegram_api::postInteractionCountersMessage::ID: {
+            auto interaction =
+                telegram_api::move_object_as<telegram_api::postInteractionCountersMessage>(interaction_ptr);
+            return td_api::make_object<td_api::chatStatisticsInteractionInfo>(
+                td_api::make_object<td_api::chatStatisticsObjectTypeMessage>(
+                    MessageId(ServerMessageId(interaction->msg_id_)).get()),
+                interaction->views_, interaction->forwards_, interaction->reactions_);
+          }
+          case telegram_api::postInteractionCountersStory::ID: {
+            auto interaction =
+                telegram_api::move_object_as<telegram_api::postInteractionCountersStory>(interaction_ptr);
+            return td_api::make_object<td_api::chatStatisticsInteractionInfo>(
+                td_api::make_object<td_api::chatStatisticsObjectTypeStory>(StoryId(interaction->story_id_).get()),
+                interaction->views_, interaction->forwards_, interaction->reactions_);
+          }
+          default:
+            UNREACHABLE();
+            return nullptr;
+        }
+      });
   return td_api::make_object<td_api::chatStatisticsChannel>(
       convert_date_range(obj->period_), convert_stats_absolute_value(obj->followers_),
       convert_stats_absolute_value(obj->views_per_post_), convert_stats_absolute_value(obj->shares_per_post_),
@@ -151,7 +170,7 @@ static td_api::object_ptr<td_api::chatStatisticsChannel> convert_broadcast_stats
       convert_stats_graph(std::move(obj->reactions_by_emotion_graph_)),
       convert_stats_graph(std::move(obj->story_interactions_graph_)),
       convert_stats_graph(std::move(obj->story_reactions_by_emotion_graph_)),
-      convert_stats_graph(std::move(obj->iv_interactions_graph_)), Auto());
+      convert_stats_graph(std::move(obj->iv_interactions_graph_)), std::move(recent_interactions));
 }
 
 class GetMegagroupStatsQuery final : public Td::ResultHandler {
@@ -222,10 +241,20 @@ class GetBroadcastStatsQuery final : public Td::ResultHandler {
     }
 
     auto result = convert_broadcast_stats(result_ptr.move_as_ok());
-    for (auto &info : result->recent_message_interactions_) {
-      td_->messages_manager_->on_update_message_interaction_info({DialogId(channel_id_), MessageId(info->message_id_)},
-                                                                 info->view_count_, info->forward_count_, false,
-                                                                 nullptr);
+    for (auto &info : result->recent_interactions_) {
+      switch (info->object_type_->get_id()) {
+        case td_api::chatStatisticsObjectTypeMessage::ID: {
+          MessageId message_id(
+              static_cast<const td_api::chatStatisticsObjectTypeMessage *>(info->object_type_.get())->message_id_);
+          td_->messages_manager_->on_update_message_interaction_info(
+              {DialogId(channel_id_), message_id}, info->view_count_, info->forward_count_, false, nullptr);
+          break;
+        }
+        case td_api::chatStatisticsObjectTypeStory::ID:
+          break;
+        default:
+          UNREACHABLE();
+      }
     }
     promise_.set_value(std::move(result));
   }
