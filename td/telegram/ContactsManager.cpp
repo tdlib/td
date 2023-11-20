@@ -9614,21 +9614,26 @@ void ContactsManager::get_channel_recommendations(DialogId dialog_id,
   if (!is_broadcast_channel(channel_id) || get_input_channel(channel_id) == nullptr) {
     return promise.set_value(td_api::make_object<td_api::chats>());
   }
-  auto it = channel_recommended_dialog_ids_.find(channel_id);
-  if (it != channel_recommended_dialog_ids_.end()) {
+  auto it = channel_recommended_dialogs_.find(channel_id);
+  if (it != channel_recommended_dialogs_.end()) {
     bool is_valid = true;
-    for (auto recommended_dialog_id : it->second) {
+    for (auto recommended_dialog_id : it->second.dialog_ids_) {
       if (!is_suitable_recommended_channel(recommended_dialog_id)) {
         is_valid = false;
         break;
       }
     }
     if (is_valid) {
-      return promise.set_value(td_->messages_manager_->get_chats_object(-1, it->second, "get_channel_recommendations"));
+      promise.set_value(
+          td_->messages_manager_->get_chats_object(-1, it->second.dialog_ids_, "get_channel_recommendations"));
+      if (it->second.next_reload_time_ > Time::now()) {
+        return;
+      }
+      promise = {};
+    } else {
+      LOG(INFO) << "Drop cache for similar chats of " << dialog_id;
+      channel_recommended_dialogs_.erase(it);
     }
-
-    LOG(INFO) << "Drop cache for similar chats of " << dialog_id;
-    channel_recommended_dialog_ids_.erase(it);
   }
   reload_channel_recommendations(channel_id, std::move(promise));
 }
@@ -9663,17 +9668,22 @@ void ContactsManager::on_get_channel_recommendations(ChannelId channel_id,
   auto channel_ids = get_channel_ids(r_chats.move_as_ok(), "on_get_channel_recommendations");
   vector<DialogId> dialog_ids;
   for (auto recommended_channel_id : channel_ids) {
-    td_->messages_manager_->force_create_dialog(DialogId(recommended_channel_id), "on_get_channel_recommendations");
+    auto recommended_dialog_id = DialogId(recommended_channel_id);
+    td_->messages_manager_->force_create_dialog(recommended_dialog_id, "on_get_channel_recommendations");
     if (is_suitable_recommended_channel(recommended_channel_id)) {
-      dialog_ids.push_back(DialogId(recommended_channel_id));
+      dialog_ids.push_back(recommended_dialog_id);
     }
   }
-  channel_recommended_dialog_ids_[channel_id] = dialog_ids;
+  auto &recommended_dialogs = channel_recommended_dialogs_[channel_id];
+  recommended_dialogs.dialog_ids_ = dialog_ids;
+  recommended_dialogs.next_reload_time_ = Time::now() + CHANNEL_RECOMMENDATIONS_CACHE_TIME;
 
   // save_channel_recommendations(channel_id);
 
   for (auto &promise : promises) {
-    promise.set_value(td_->messages_manager_->get_chats_object(-1, dialog_ids, "on_get_channel_recommendations"));
+    if (promise) {
+      promise.set_value(td_->messages_manager_->get_chats_object(-1, dialog_ids, "on_get_channel_recommendations"));
+    }
   }
 }
 
