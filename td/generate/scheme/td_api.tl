@@ -6832,6 +6832,9 @@ searchChatsOnServer query:string limit:int32 = Chats;
 //@location Current user location
 searchChatsNearby location:location = ChatsNearby;
 
+//@description Returns a list of chats similar to the given chat @chat_id Identifier of the target chat; must be an identifier of a channel chat
+getSimilarChats chat_id:int53 = Chats;
+
 //@description Returns a list of frequently used chats @category Category of chats to be returned @limit The maximum number of chats to be returned; up to 30
 getTopChats category:TopChatCategory limit:int32 = Chats;
 

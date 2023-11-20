@@ -3277,6 +3277,54 @@ class MigrateChatQuery final : public Td::ResultHandler {
   }
 };
 
+class GetChannelRecommendationsQuery final : public Td::ResultHandler {
+  Promise<vector<tl_object_ptr<telegram_api::Chat>>> promise_;
+  ChannelId channel_id_;
+
+ public:
+  explicit GetChannelRecommendationsQuery(Promise<vector<tl_object_ptr<telegram_api::Chat>>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(ChannelId channel_id) {
+    channel_id_ = channel_id;
+
+    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+    CHECK(input_channel != nullptr);
+    send_query(
+        G()->net_query_creator().create(telegram_api::channels_getChannelRecommendations(std::move(input_channel))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::channels_getChannelRecommendations>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto chats_ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetChannelRecommendationsQuery: " << to_string(chats_ptr);
+    switch (chats_ptr->get_id()) {
+      case telegram_api::messages_chats::ID: {
+        auto chats = move_tl_object_as<telegram_api::messages_chats>(chats_ptr);
+        return promise_.set_value(std::move(chats->chats_));
+      }
+      case telegram_api::messages_chatsSlice::ID: {
+        auto chats = move_tl_object_as<telegram_api::messages_chatsSlice>(chats_ptr);
+        LOG(ERROR) << "Receive chatsSlice in result of GetChannelRecommendationsQuery";
+        return promise_.set_value(std::move(chats->chats_));
+      }
+      default:
+        UNREACHABLE();
+        return promise_.set_error(Status::Error("Unreachable"));
+    }
+  }
+
+  void on_error(Status status) final {
+    td_->contacts_manager_->on_get_channel_error(channel_id_, status, "GetChannelRecommendationsQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetCreatedPublicChannelsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   PublicDialogType type_;
@@ -9537,6 +9585,96 @@ vector<DialogId> ContactsManager::get_dialog_ids(vector<tl_object_ptr<telegram_a
     on_get_chat(std::move(chat), source);
   }
   return dialog_ids;
+}
+
+bool ContactsManager::is_suitable_recommended_channel(DialogId dialog_id) const {
+  if (dialog_id.get_type() != DialogType::Channel) {
+    return false;
+  }
+  return is_suitable_recommended_channel(dialog_id.get_channel_id());
+}
+
+bool ContactsManager::is_suitable_recommended_channel(ChannelId channel_id) const {
+  const Channel *c = get_channel(channel_id);
+  if (c == nullptr) {
+    return false;
+  }
+  return have_input_peer_channel(c, channel_id, AccessRights::Read) && !get_channel_status(c).is_member();
+}
+
+void ContactsManager::get_channel_recommendations(DialogId dialog_id,
+                                                  Promise<td_api::object_ptr<td_api::chats>> &&promise) {
+  if (!td_->messages_manager_->have_dialog_force(dialog_id, "get_channel_recommendations")) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+  if (dialog_id.get_type() != DialogType::Channel) {
+    return promise.set_value(td_api::make_object<td_api::chats>());
+  }
+  auto channel_id = dialog_id.get_channel_id();
+  if (!is_broadcast_channel(channel_id) || get_input_channel(channel_id) == nullptr) {
+    return promise.set_value(td_api::make_object<td_api::chats>());
+  }
+  auto it = channel_recommended_dialog_ids_.find(channel_id);
+  if (it != channel_recommended_dialog_ids_.end()) {
+    bool is_valid = true;
+    for (auto recommended_dialog_id : it->second) {
+      if (!is_suitable_recommended_channel(recommended_dialog_id)) {
+        is_valid = false;
+        break;
+      }
+    }
+    if (is_valid) {
+      return promise.set_value(td_->messages_manager_->get_chats_object(-1, it->second, "get_channel_recommendations"));
+    }
+
+    LOG(INFO) << "Drop cache for similar chats of " << dialog_id;
+    channel_recommended_dialog_ids_.erase(it);
+  }
+  reload_channel_recommendations(channel_id, std::move(promise));
+}
+
+void ContactsManager::reload_channel_recommendations(ChannelId channel_id,
+                                                     Promise<td_api::object_ptr<td_api::chats>> &&promise) {
+  auto &queries = get_channel_recommendations_queries_[channel_id];
+  queries.push_back(std::move(promise));
+  if (queries.size() == 1) {
+    auto query_promise = PromiseCreator::lambda(
+        [actor_id = actor_id(this), channel_id](Result<vector<tl_object_ptr<telegram_api::Chat>>> &&result) {
+          send_closure(actor_id, &ContactsManager::on_get_channel_recommendations, channel_id, std::move(result));
+        });
+    td_->create_handler<GetChannelRecommendationsQuery>(std::move(query_promise))->send(channel_id);
+  }
+}
+
+void ContactsManager::on_get_channel_recommendations(ChannelId channel_id,
+                                                     Result<vector<tl_object_ptr<telegram_api::Chat>>> &&r_chats) {
+  G()->ignore_result_if_closing(r_chats);
+
+  auto it = get_channel_recommendations_queries_.find(channel_id);
+  CHECK(it != get_channel_recommendations_queries_.end());
+  CHECK(!it->second.empty());
+  auto promises = std::move(it->second);
+  get_channel_recommendations_queries_.erase(it);
+
+  if (r_chats.is_error()) {
+    return fail_promises(promises, r_chats.move_as_error());
+  }
+
+  auto channel_ids = get_channel_ids(r_chats.move_as_ok(), "on_get_channel_recommendations");
+  vector<DialogId> dialog_ids;
+  for (auto recommended_channel_id : channel_ids) {
+    td_->messages_manager_->force_create_dialog(DialogId(recommended_channel_id), "on_get_channel_recommendations");
+    if (is_suitable_recommended_channel(recommended_channel_id)) {
+      dialog_ids.push_back(DialogId(recommended_channel_id));
+    }
+  }
+  channel_recommended_dialog_ids_[channel_id] = dialog_ids;
+
+  // save_channel_recommendations(channel_id);
+
+  for (auto &promise : promises) {
+    promise.set_value(td_->messages_manager_->get_chats_object(-1, dialog_ids, "on_get_channel_recommendations"));
+  }
 }
 
 void ContactsManager::return_created_public_dialogs(Promise<td_api::object_ptr<td_api::chats>> &&promise,

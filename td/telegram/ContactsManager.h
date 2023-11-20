@@ -561,6 +561,8 @@ class ContactsManager final : public Actor {
 
   ChannelId migrate_chat_to_megagroup(ChatId chat_id, Promise<Unit> &promise);
 
+  void get_channel_recommendations(DialogId dialog_id, Promise<td_api::object_ptr<td_api::chats>> &&promise);
+
   void get_created_public_dialogs(PublicDialogType type, Promise<td_api::object_ptr<td_api::chats>> &&promise,
                                   bool from_binlog);
 
@@ -1708,6 +1710,15 @@ class ContactsManager final : public Actor {
 
   void update_is_location_visible();
 
+  bool is_suitable_recommended_channel(DialogId dialog_id) const;
+
+  bool is_suitable_recommended_channel(ChannelId channel_id) const;
+
+  void reload_channel_recommendations(ChannelId channel_id, Promise<td_api::object_ptr<td_api::chats>> &&promise);
+
+  void on_get_channel_recommendations(ChannelId channel_id,
+                                      Result<vector<tl_object_ptr<telegram_api::Chat>>> &&r_chats);
+
   static bool is_channel_public(const Channel *c);
 
   static bool is_suitable_created_public_channel(PublicDialogType type, const Channel *c);
@@ -1987,6 +1998,10 @@ class ContactsManager final : public Actor {
   };
   FlatHashMap<string, unique_ptr<InviteLinkInfo>> invite_link_infos_;
   FlatHashMap<DialogId, DialogAccessByInviteLink, DialogIdHash> dialog_access_by_invite_link_;
+
+  FlatHashMap<ChannelId, vector<DialogId>, ChannelIdHash> channel_recommended_dialog_ids_;
+  FlatHashMap<ChannelId, vector<Promise<td_api::object_ptr<td_api::chats>>>, ChannelIdHash>
+      get_channel_recommendations_queries_;
 
   bool created_public_channels_inited_[2] = {false, false};
   vector<ChannelId> created_public_channels_[2];
