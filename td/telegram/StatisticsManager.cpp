@@ -140,6 +140,8 @@ static td_api::object_ptr<td_api::chatStatisticsChannel> convert_broadcast_stats
   return td_api::make_object<td_api::chatStatisticsChannel>(
       convert_date_range(obj->period_), convert_stats_absolute_value(obj->followers_),
       convert_stats_absolute_value(obj->views_per_post_), convert_stats_absolute_value(obj->shares_per_post_),
+      convert_stats_absolute_value(obj->reactions_per_post_), convert_stats_absolute_value(obj->views_per_story_),
+      convert_stats_absolute_value(obj->shares_per_story_), convert_stats_absolute_value(obj->reactions_per_story_),
       get_percentage_value(obj->enabled_notifications_->part_, obj->enabled_notifications_->total_, true),
       convert_stats_graph(std::move(obj->growth_graph_)), convert_stats_graph(std::move(obj->followers_graph_)),
       convert_stats_graph(std::move(obj->mute_graph_)), convert_stats_graph(std::move(obj->top_hours_graph_)),

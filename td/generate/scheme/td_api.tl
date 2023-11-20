@@ -5943,8 +5943,12 @@ chatStatisticsSupergroup period:dateRange member_count:statisticalValue message_
 //@description A detailed statistics about a channel chat
 //@period A period to which the statistics applies
 //@member_count Number of members in the chat
-//@mean_view_count Mean number of times the recently sent messages was viewed
-//@mean_share_count Mean number of times the recently sent messages was shared
+//@mean_message_view_count Mean number of times the recently sent messages were viewed
+//@mean_message_share_count Mean number of times the recently sent messages were shared
+//@mean_message_reaction_count Mean number of times reactions were added to the recently sent messages
+//@mean_story_view_count Mean number of times the recently sent stories were viewed
+//@mean_story_share_count Mean number of times the recently sent stories were shared
+//@mean_story_reaction_count Mean number of times reactions were added to the recently sent stories
 //@enabled_notifications_percentage A percentage of users with enabled notifications for the chat; 0-100
 //@member_count_graph A graph containing number of members in the chat
 //@join_graph A graph containing number of members joined and left the chat
@@ -5959,7 +5963,7 @@ chatStatisticsSupergroup period:dateRange member_count:statisticalValue message_
 //@story_reaction_graph A graph containing number of reactions on stories
 //@instant_view_interaction_graph A graph containing number of views of associated with the chat instant views
 //@recent_message_interactions Detailed statistics about number of views and shares of recently sent messages
-chatStatisticsChannel period:dateRange member_count:statisticalValue mean_view_count:statisticalValue mean_share_count:statisticalValue enabled_notifications_percentage:double member_count_graph:StatisticalGraph join_graph:StatisticalGraph mute_graph:StatisticalGraph view_count_by_hour_graph:StatisticalGraph view_count_by_source_graph:StatisticalGraph join_by_source_graph:StatisticalGraph language_graph:StatisticalGraph message_interaction_graph:StatisticalGraph message_reaction_graph:StatisticalGraph story_interaction_graph:StatisticalGraph story_reaction_graph:StatisticalGraph instant_view_interaction_graph:StatisticalGraph recent_message_interactions:vector<chatStatisticsMessageInteractionInfo> = ChatStatistics;
+chatStatisticsChannel period:dateRange member_count:statisticalValue mean_message_view_count:statisticalValue mean_message_share_count:statisticalValue mean_message_reaction_count:statisticalValue mean_story_view_count:statisticalValue mean_story_share_count:statisticalValue mean_story_reaction_count:statisticalValue enabled_notifications_percentage:double member_count_graph:StatisticalGraph join_graph:StatisticalGraph mute_graph:StatisticalGraph view_count_by_hour_graph:StatisticalGraph view_count_by_source_graph:StatisticalGraph join_by_source_graph:StatisticalGraph language_graph:StatisticalGraph message_interaction_graph:StatisticalGraph message_reaction_graph:StatisticalGraph story_interaction_graph:StatisticalGraph story_reaction_graph:StatisticalGraph instant_view_interaction_graph:StatisticalGraph recent_message_interactions:vector<chatStatisticsMessageInteractionInfo> = ChatStatistics;
 
 
 //@description A detailed statistics about a message
