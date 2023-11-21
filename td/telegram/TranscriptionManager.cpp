@@ -20,6 +20,9 @@ void TranscriptionManager::tear_down() {
 }
 
 void TranscriptionManager::on_update_trial_parameters(int32 weekly_number, int32 duration_max, int32 cooldown_until) {
+  if (!td_->auth_manager_->is_authorized()) {
+    return;
+  }
   CHECK(!td_->auth_manager_->is_bot());
   weekly_number = max(0, weekly_number);
   duration_max = max(0, duration_max);
@@ -44,14 +47,23 @@ void TranscriptionManager::on_update_trial_parameters(int32 weekly_number, int32
 }
 
 void TranscriptionManager::send_update_speech_recognition_trial() const {
-  CHECK(!td_->auth_manager_->is_bot());
   send_closure(G()->td(), &Td::send_update, get_update_speech_recognition_trial_object());
 }
 
 td_api::object_ptr<td_api::updateSpeechRecognitionTrial>
 TranscriptionManager::get_update_speech_recognition_trial_object() const {
+  CHECK(td_->auth_manager_->is_authorized());
+  CHECK(!td_->auth_manager_->is_bot());
   return td_api::make_object<td_api::updateSpeechRecognitionTrial>(trial_duration_max_, trial_weekly_number_,
                                                                    trial_left_tries_, trial_cooldown_until_);
+}
+
+void TranscriptionManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
+  if (!td_->auth_manager_->is_authorized() || td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  updates.push_back(get_update_speech_recognition_trial_object());
 }
 
 }  // namespace td

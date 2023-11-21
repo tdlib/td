@@ -22,6 +22,8 @@ class TranscriptionManager final : public Actor {
 
   void on_update_trial_parameters(int32 weekly_number, int32 duration_max, int32 cooldown_until);
 
+  void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
+
  private:
   void tear_down() final;
 
