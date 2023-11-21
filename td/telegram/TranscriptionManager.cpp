@@ -19,30 +19,32 @@ void TranscriptionManager::tear_down() {
   parent_.reset();
 }
 
+bool operator==(const TranscriptionManager::TrialParameters &lhs, const TranscriptionManager::TrialParameters &rhs) {
+  return lhs.weekly_number_ == rhs.weekly_number_ && lhs.duration_max_ == rhs.duration_max_ &&
+         lhs.left_tries_ == rhs.left_tries_ && lhs.cooldown_until_ == rhs.cooldown_until_;
+}
+
 void TranscriptionManager::on_update_trial_parameters(int32 weekly_number, int32 duration_max, int32 cooldown_until) {
   if (!td_->auth_manager_->is_authorized()) {
     return;
   }
   CHECK(!td_->auth_manager_->is_bot());
-  weekly_number = max(0, weekly_number);
-  duration_max = max(0, duration_max);
-  cooldown_until = max(0, cooldown_until);
-  int32 left_tries = trial_left_tries_;
-  if (cooldown_until <= G()->unix_time()) {
-    cooldown_until = 0;
-    left_tries = weekly_number;
-  } else if (left_tries > weekly_number) {
-    left_tries = weekly_number;
+  TrialParameters new_trial_parameters;
+  new_trial_parameters.weekly_number_ = max(0, weekly_number);
+  new_trial_parameters.duration_max_ = max(0, duration_max);
+  new_trial_parameters.cooldown_until_ = max(0, cooldown_until);
+  new_trial_parameters.left_tries_ = trial_parameters_.left_tries_;
+  if (new_trial_parameters.cooldown_until_ <= G()->unix_time()) {
+    new_trial_parameters.cooldown_until_ = 0;
+    new_trial_parameters.left_tries_ = new_trial_parameters.weekly_number_;
+  } else if (new_trial_parameters.left_tries_ > new_trial_parameters.weekly_number_) {
+    new_trial_parameters.left_tries_ = new_trial_parameters.weekly_number_;
   }
-  if (weekly_number == trial_weekly_number_ && duration_max == trial_duration_max_ && left_tries == trial_left_tries_ &&
-      cooldown_until == trial_cooldown_until_) {
+  if (new_trial_parameters == trial_parameters_) {
     return;
   }
 
-  trial_weekly_number_ = weekly_number;
-  trial_duration_max_ = duration_max;
-  trial_left_tries_ = left_tries;
-  trial_cooldown_until_ = cooldown_until;
+  trial_parameters_ = std::move(new_trial_parameters);
   send_update_speech_recognition_trial();
 }
 
@@ -54,8 +56,13 @@ td_api::object_ptr<td_api::updateSpeechRecognitionTrial>
 TranscriptionManager::get_update_speech_recognition_trial_object() const {
   CHECK(td_->auth_manager_->is_authorized());
   CHECK(!td_->auth_manager_->is_bot());
-  return td_api::make_object<td_api::updateSpeechRecognitionTrial>(trial_duration_max_, trial_weekly_number_,
-                                                                   trial_left_tries_, trial_cooldown_until_);
+  return trial_parameters_.get_update_speech_recognition_trial_object();
+}
+
+td_api::object_ptr<td_api::updateSpeechRecognitionTrial>
+TranscriptionManager::TrialParameters::get_update_speech_recognition_trial_object() const {
+  return td_api::make_object<td_api::updateSpeechRecognitionTrial>(duration_max_, weekly_number_, left_tries_,
+                                                                   cooldown_until_);
 }
 
 void TranscriptionManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {

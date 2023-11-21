@@ -31,13 +31,21 @@ class TranscriptionManager final : public Actor {
 
   td_api::object_ptr<td_api::updateSpeechRecognitionTrial> get_update_speech_recognition_trial_object() const;
 
+  struct TrialParameters {
+    int32 weekly_number_ = 0;
+    int32 duration_max_ = 0;
+    int32 left_tries_ = 0;
+    int32 cooldown_until_ = 0;
+
+    td_api::object_ptr<td_api::updateSpeechRecognitionTrial> get_update_speech_recognition_trial_object() const;
+  };
+
+  friend bool operator==(const TrialParameters &lhs, const TrialParameters &rhs);
+
   Td *td_;
   ActorShared<> parent_;
 
-  int32 trial_weekly_number_ = 0;
-  int32 trial_duration_max_ = 0;
-  int32 trial_left_tries_ = 0;
-  int32 trial_cooldown_until_ = 0;
+  TrialParameters trial_parameters_;
 };
 
 }  // namespace td
