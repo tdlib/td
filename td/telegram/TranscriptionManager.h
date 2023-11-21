@@ -27,6 +27,12 @@ class TranscriptionManager final : public Actor {
  private:
   void tear_down() final;
 
+  static string get_trial_parameters_database_key();
+
+  void load_trial_parameters();
+
+  void save_trial_parameters();
+
   void send_update_speech_recognition_trial() const;
 
   td_api::object_ptr<td_api::updateSpeechRecognitionTrial> get_update_speech_recognition_trial_object() const;
@@ -37,7 +43,15 @@ class TranscriptionManager final : public Actor {
     int32 left_tries_ = 0;
     int32 cooldown_until_ = 0;
 
+    void update_left_tries();
+
     td_api::object_ptr<td_api::updateSpeechRecognitionTrial> get_update_speech_recognition_trial_object() const;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
   };
 
   friend bool operator==(const TrialParameters &lhs, const TrialParameters &rhs);
