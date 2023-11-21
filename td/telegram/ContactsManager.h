@@ -1205,6 +1205,11 @@ class ContactsManager final : public Actor {
     }
   };
 
+  struct RecommendedDialogs {
+    vector<DialogId> dialog_ids_;
+    double next_reload_time_ = 0.0;
+  };
+
   class UserLogEvent;
   class ChatLogEvent;
   class ChannelLogEvent;
@@ -1715,6 +1720,8 @@ class ContactsManager final : public Actor {
 
   bool is_suitable_recommended_channel(ChannelId channel_id) const;
 
+  bool are_suitable_recommended_dialogs(const RecommendedDialogs &recommended_dialogs) const;
+
   void reload_channel_recommendations(ChannelId channel_id, Promise<td_api::object_ptr<td_api::chats>> &&promise);
 
   void on_get_channel_recommendations(ChannelId channel_id,
@@ -2000,10 +2007,6 @@ class ContactsManager final : public Actor {
   FlatHashMap<string, unique_ptr<InviteLinkInfo>> invite_link_infos_;
   FlatHashMap<DialogId, DialogAccessByInviteLink, DialogIdHash> dialog_access_by_invite_link_;
 
-  struct RecommendedDialogs {
-    vector<DialogId> dialog_ids_;
-    double next_reload_time_ = 0.0;
-  };
   FlatHashMap<ChannelId, RecommendedDialogs, ChannelIdHash> channel_recommended_dialogs_;
   FlatHashMap<ChannelId, vector<Promise<td_api::object_ptr<td_api::chats>>>, ChannelIdHash>
       get_channel_recommendations_queries_;

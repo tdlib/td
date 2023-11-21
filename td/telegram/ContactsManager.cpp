@@ -9602,6 +9602,15 @@ bool ContactsManager::is_suitable_recommended_channel(ChannelId channel_id) cons
   return have_input_peer_channel(c, channel_id, AccessRights::Read) && !get_channel_status(c).is_member();
 }
 
+bool ContactsManager::are_suitable_recommended_dialogs(const RecommendedDialogs &recommended_dialogs) const {
+  for (auto recommended_dialog_id : recommended_dialogs.dialog_ids_) {
+    if (!is_suitable_recommended_channel(recommended_dialog_id)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 void ContactsManager::get_channel_recommendations(DialogId dialog_id,
                                                   Promise<td_api::object_ptr<td_api::chats>> &&promise) {
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "get_channel_recommendations")) {
@@ -9616,17 +9625,11 @@ void ContactsManager::get_channel_recommendations(DialogId dialog_id,
   }
   auto it = channel_recommended_dialogs_.find(channel_id);
   if (it != channel_recommended_dialogs_.end()) {
-    bool is_valid = true;
-    for (auto recommended_dialog_id : it->second.dialog_ids_) {
-      if (!is_suitable_recommended_channel(recommended_dialog_id)) {
-        is_valid = false;
-        break;
-      }
-    }
-    if (is_valid) {
+    if (are_suitable_recommended_dialogs(it->second)) {
+      auto next_reload_time = it->second.next_reload_time_;
       promise.set_value(
           td_->messages_manager_->get_chats_object(-1, it->second.dialog_ids_, "get_channel_recommendations"));
-      if (it->second.next_reload_time_ > Time::now()) {
+      if (next_reload_time > Time::now()) {
         return;
       }
       promise = {};
