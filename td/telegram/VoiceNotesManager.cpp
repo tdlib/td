@@ -197,9 +197,9 @@ void VoiceNotesManager::on_transcribed_audio_update(
   CHECK(voice_note->transcription_info != nullptr);
 
   if (r_update.is_error()) {
-    auto promises = voice_note->transcription_info->on_failed_transcription(r_update.error().clone());
+    auto promises = voice_note->transcription_info->on_failed_transcription(r_update.move_as_error());
     on_voice_note_transcription_updated(file_id);
-    fail_promises(promises, r_update.move_as_error());
+    set_promises(promises);
     return;
   }
   auto update = r_update.move_as_ok();

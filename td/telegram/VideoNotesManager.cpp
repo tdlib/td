@@ -233,9 +233,9 @@ void VideoNotesManager::on_transcribed_audio_update(
   CHECK(video_note->transcription_info != nullptr);
 
   if (r_update.is_error()) {
-    auto promises = video_note->transcription_info->on_failed_transcription(r_update.error().clone());
+    auto promises = video_note->transcription_info->on_failed_transcription(r_update.move_as_error());
     on_video_note_transcription_updated(file_id);
-    fail_promises(promises, r_update.move_as_error());
+    set_promises(promises);
     return;
   }
   auto update = r_update.move_as_ok();

@@ -3862,7 +3862,7 @@ speechRecognitionResultPending partial_text:string = SpeechRecognitionResult;
 //@description The speech recognition successfully finished @text Recognized text
 speechRecognitionResultText text:string = SpeechRecognitionResult;
 
-//@description The speech recognition failed @error Recognition error
+//@description The speech recognition failed @error Recognition error. An error with a message "MSG_VOICE_TOO_LONG" is returned when media duration is too big to be recognized
 speechRecognitionResultError error:error = SpeechRecognitionResult;
 
 
@@ -7004,7 +7004,7 @@ translateText text:formattedText to_language_code:string = FormattedText;
 //-"st", "sn", "sd", "si", "sk", "sl", "so", "es", "su", "sw", "sv", "tl", "tg", "ta", "tt", "te", "th", "tr", "tk", "uk", "ur", "ug", "uz", "vi", "cy", "xh", "yi", "ji", "yo", "zu"
 translateMessageText chat_id:int53 message_id:int53 to_language_code:string = FormattedText;
 
-//@description Recognizes speech in a video note or a voice note message. The message must be successfully sent and must not be scheduled. May return an error with a message "MSG_VOICE_TOO_LONG" if media duration is too big to be recognized
+//@description Recognizes speech in a video note or a voice note message. The message must be successfully sent and must not be scheduled
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
 recognizeSpeech chat_id:int53 message_id:int53 = Ok;
