@@ -1208,6 +1208,12 @@ class ContactsManager final : public Actor {
   struct RecommendedDialogs {
     vector<DialogId> dialog_ids_;
     double next_reload_time_ = 0.0;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
   };
 
   class UserLogEvent;
@@ -1722,7 +1728,14 @@ class ContactsManager final : public Actor {
 
   bool are_suitable_recommended_dialogs(const RecommendedDialogs &recommended_dialogs) const;
 
-  void reload_channel_recommendations(ChannelId channel_id, Promise<td_api::object_ptr<td_api::chats>> &&promise);
+  static string get_channel_recommendations_database_key(ChannelId channel_id);
+
+  void load_channel_recommendations(ChannelId channel_id, bool use_database,
+                                    Promise<td_api::object_ptr<td_api::chats>> &&promise);
+
+  void on_load_channel_recommendations_from_database(ChannelId channel_id, string value);
+
+  void reload_channel_recommendations(ChannelId channel_id);
 
   void on_get_channel_recommendations(ChannelId channel_id,
                                       Result<vector<tl_object_ptr<telegram_api::Chat>>> &&r_chats);
