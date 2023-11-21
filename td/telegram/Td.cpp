@@ -4045,6 +4045,7 @@ void Td::init_managers() {
   G()->set_top_dialog_manager(top_dialog_manager_actor_.get());
   transcription_manager_ = make_unique<TranscriptionManager>(this, create_reference());
   transcription_manager_actor_ = register_actor("TranscriptionManager", transcription_manager_.get());
+  G()->set_transcription_manager(transcription_manager_actor_.get());
   translation_manager_ = make_unique<TranslationManager>(this, create_reference());
   translation_manager_actor_ = register_actor("TranslationManager", translation_manager_.get());
   updates_manager_ = make_unique<UpdatesManager>(this, create_reference());

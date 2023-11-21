@@ -31,6 +31,7 @@
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/ThemeManager.h"
+#include "td/telegram/TranscriptionManager.h"
 
 #include "td/mtproto/AuthData.h"
 #include "td/mtproto/AuthKey.h"
@@ -1488,6 +1489,9 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   FlatHashMap<AccentColorId, vector<int32>, AccentColorIdHash> light_colors;
   FlatHashMap<AccentColorId, vector<int32>, AccentColorIdHash> dark_colors;
   vector<AccentColorId> accent_color_ids;
+  int32 transcribe_audio_trial_weekly_number = 0;
+  int32 transcribe_audio_trial_duration_max = 0;
+  int32 transcribe_audio_trial_cooldown_until = 0;
   if (config->get_id() == telegram_api::jsonObject::ID) {
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
       Slice key = key_value->key_;
@@ -2010,6 +2014,18 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         }
         continue;
       }
+      if (key == "transcribe_audio_trial_weekly_number") {
+        transcribe_audio_trial_weekly_number = get_json_value_int(std::move(key_value->value_), key);
+        continue;
+      }
+      if (key == "transcribe_audio_trial_duration_max") {
+        transcribe_audio_trial_duration_max = get_json_value_int(std::move(key_value->value_), key);
+        continue;
+      }
+      if (key == "transcribe_audio_trial_cooldown_until") {
+        transcribe_audio_trial_cooldown_until = get_json_value_int(std::move(key_value->value_), key);
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
@@ -2030,6 +2046,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   });
   send_closure(G()->theme_manager(), &ThemeManager::on_update_accent_colors, std::move(light_colors),
                std::move(dark_colors), std::move(accent_color_ids));
+
+  send_closure(G()->transcription_manager(), &TranscriptionManager::on_update_trial_parameters,
+               transcribe_audio_trial_weekly_number, transcribe_audio_trial_duration_max,
+               transcribe_audio_trial_cooldown_until);
 
   Global &options = *G();
 

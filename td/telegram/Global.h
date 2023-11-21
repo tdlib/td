@@ -68,6 +68,7 @@ class TdDb;
 class TempAuthKeyWatchdog;
 class ThemeManager;
 class TopDialogManager;
+class TranscriptionManager;
 class UpdatesManager;
 class WebPagesManager;
 
@@ -394,6 +395,13 @@ class Global final : public ActorContext {
     top_dialog_manager_ = top_dialog_manager;
   }
 
+  ActorId<TranscriptionManager> transcription_manager() const {
+    return transcription_manager_;
+  }
+  void set_transcription_manager(ActorId<TranscriptionManager> transcription_manager) {
+    transcription_manager_ = transcription_manager;
+  }
+
   ActorId<UpdatesManager> updates_manager() const {
     return updates_manager_;
   }
@@ -554,6 +562,7 @@ class Global final : public ActorContext {
   ActorId<StoryManager> story_manager_;
   ActorId<ThemeManager> theme_manager_;
   ActorId<TopDialogManager> top_dialog_manager_;
+  ActorId<TranscriptionManager> transcription_manager_;
   ActorId<UpdatesManager> updates_manager_;
   ActorId<WebPagesManager> web_pages_manager_;
   ActorOwn<ConnectionCreator> connection_creator_;
