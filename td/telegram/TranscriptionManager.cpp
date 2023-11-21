@@ -14,14 +14,6 @@
 
 namespace td {
 
-TranscriptionManager::TranscriptionManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
-  load_trial_parameters();
-}
-
-void TranscriptionManager::tear_down() {
-  parent_.reset();
-}
-
 void TranscriptionManager::TrialParameters::update_left_tries() {
   if (cooldown_until_ <= G()->unix_time()) {
     cooldown_until_ = 0;
@@ -88,6 +80,32 @@ bool operator==(const TranscriptionManager::TrialParameters &lhs, const Transcri
          lhs.left_tries_ == rhs.left_tries_ && lhs.cooldown_until_ == rhs.cooldown_until_;
 }
 
+TranscriptionManager::TranscriptionManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
+  load_trial_parameters();
+
+  pending_audio_transcription_timeout_.set_callback(on_pending_audio_transcription_timeout_callback);
+  pending_audio_transcription_timeout_.set_callback_data(static_cast<void *>(td_));
+}
+
+void TranscriptionManager::tear_down() {
+  parent_.reset();
+}
+
+void TranscriptionManager::on_pending_audio_transcription_timeout_callback(void *td, int64 transcription_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+  CHECK(td != nullptr);
+  if (!static_cast<Td *>(td)->auth_manager_->is_authorized()) {
+    return;
+  }
+
+  auto transcription_manager = static_cast<Td *>(td)->transcription_manager_.get();
+  send_closure_later(transcription_manager->actor_id(transcription_manager),
+                     &TranscriptionManager::on_pending_audio_transcription_failed, transcription_id,
+                     Status::Error(500, "Timeout expired"));
+}
+
 string TranscriptionManager::get_trial_parameters_database_key() {
   return "speech_recognition_trial";
 }
@@ -151,6 +169,50 @@ td_api::object_ptr<td_api::updateSpeechRecognitionTrial>
 TranscriptionManager::TrialParameters::get_update_speech_recognition_trial_object() const {
   return td_api::make_object<td_api::updateSpeechRecognitionTrial>(duration_max_, weekly_number_, left_tries_,
                                                                    cooldown_until_);
+}
+
+void TranscriptionManager::subscribe_to_transcribed_audio_updates(int64 transcription_id,
+                                                                  TranscribedAudioHandler on_update) {
+  CHECK(transcription_id != 0);
+  if (pending_audio_transcriptions_.count(transcription_id) != 0) {
+    on_pending_audio_transcription_failed(transcription_id,
+                                          Status::Error(500, "Receive duplicate speech recognition identifier"));
+  }
+  bool is_inserted = pending_audio_transcriptions_.emplace(transcription_id, std::move(on_update)).second;
+  CHECK(is_inserted);
+  pending_audio_transcription_timeout_.set_timeout_in(transcription_id, AUDIO_TRANSCRIPTION_TIMEOUT);
+}
+
+void TranscriptionManager::on_update_transcribed_audio(
+    telegram_api::object_ptr<telegram_api::updateTranscribedAudio> &&update) {
+  auto it = pending_audio_transcriptions_.find(update->transcription_id_);
+  if (it == pending_audio_transcriptions_.end()) {
+    return;
+  }
+  // flags_, dialog_id_ and message_id_ must not be used
+  if (!update->pending_) {
+    auto on_update = std::move(it->second);
+    pending_audio_transcriptions_.erase(it);
+    pending_audio_transcription_timeout_.cancel_timeout(update->transcription_id_);
+    on_update(std::move(update));
+  } else {
+    it->second(std::move(update));
+  }
+}
+
+void TranscriptionManager::on_pending_audio_transcription_failed(int64 transcription_id, Status &&error) {
+  if (G()->close_flag()) {
+    return;
+  }
+  auto it = pending_audio_transcriptions_.find(transcription_id);
+  if (it == pending_audio_transcriptions_.end()) {
+    return;
+  }
+  auto on_update = std::move(it->second);
+  pending_audio_transcriptions_.erase(it);
+  pending_audio_transcription_timeout_.cancel_timeout(transcription_id);
+
+  on_update(std::move(error));
 }
 
 void TranscriptionManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {

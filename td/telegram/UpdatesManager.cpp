@@ -68,6 +68,7 @@
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/telegram_api.hpp"
 #include "td/telegram/ThemeManager.h"
+#include "td/telegram/TranscriptionManager.h"
 #include "td/telegram/Usernames.h"
 #include "td/telegram/WebPagesManager.h"
 
@@ -256,9 +257,6 @@ class GetPtsUpdateQuery final : public Td::ResultHandler {
 
 UpdatesManager::UpdatesManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   last_pts_save_time_ = last_qts_save_time_ = Time::now() - 2 * MAX_PTS_SAVE_DELAY;
-
-  pending_audio_transcription_timeout_.set_callback(on_pending_audio_transcription_timeout_callback);
-  pending_audio_transcription_timeout_.set_callback_data(static_cast<void *>(td_));
 
   if (!td_->auth_manager_->is_authorized() || !td_->auth_manager_->is_bot()) {
     skipped_postponed_updates_after_start_ = 0;
@@ -450,20 +448,6 @@ void UpdatesManager::fill_gap(void *td, const char *source) {
   }
 
   updates_manager->get_difference("fill_gap");
-}
-
-void UpdatesManager::on_pending_audio_transcription_timeout_callback(void *td, int64 transcription_id) {
-  if (G()->close_flag()) {
-    return;
-  }
-  CHECK(td != nullptr);
-  if (!static_cast<Td *>(td)->auth_manager_->is_authorized()) {
-    return;
-  }
-
-  auto updates_manager = static_cast<Td *>(td)->updates_manager_.get();
-  send_closure_later(updates_manager->actor_id(updates_manager), &UpdatesManager::on_pending_audio_transcription_failed,
-                     transcription_id, Status::Error(500, "Timeout expired"));
 }
 
 void UpdatesManager::get_difference(const char *source) {
@@ -2289,32 +2273,6 @@ void UpdatesManager::on_data_reloaded() {
   next_data_reload_time_ = Time::now() + Random::fast(3000, 4200);
   data_reload_timeout_.cancel_timeout();
   schedule_data_reload();
-}
-
-void UpdatesManager::subscribe_to_transcribed_audio_updates(int64 transcription_id, TranscribedAudioHandler on_update) {
-  CHECK(transcription_id != 0);
-  if (pending_audio_transcriptions_.count(transcription_id) != 0) {
-    on_pending_audio_transcription_failed(transcription_id,
-                                          Status::Error(500, "Receive duplicate speech recognition identifier"));
-  }
-  bool is_inserted = pending_audio_transcriptions_.emplace(transcription_id, std::move(on_update)).second;
-  CHECK(is_inserted);
-  pending_audio_transcription_timeout_.set_timeout_in(transcription_id, AUDIO_TRANSCRIPTION_TIMEOUT);
-}
-
-void UpdatesManager::on_pending_audio_transcription_failed(int64 transcription_id, Status &&error) {
-  if (G()->close_flag()) {
-    return;
-  }
-  auto it = pending_audio_transcriptions_.find(transcription_id);
-  if (it == pending_audio_transcriptions_.end()) {
-    return;
-  }
-  auto on_update = std::move(it->second);
-  pending_audio_transcriptions_.erase(it);
-  pending_audio_transcription_timeout_.cancel_timeout(transcription_id);
-
-  on_update(std::move(error));
 }
 
 void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Update>> &&updates, int32 seq_begin,
@@ -4327,19 +4285,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateSavedRingtones>
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTranscribedAudio> update, Promise<Unit> &&promise) {
-  auto it = pending_audio_transcriptions_.find(update->transcription_id_);
-  if (it == pending_audio_transcriptions_.end()) {
-    return promise.set_value(Unit());
-  }
-  // flags_, dialog_id_ and message_id_ must not be used
-  if (!update->pending_) {
-    auto on_update = std::move(it->second);
-    pending_audio_transcriptions_.erase(it);
-    pending_audio_transcription_timeout_.cancel_timeout(update->transcription_id_);
-    on_update(std::move(update));
-  } else {
-    it->second(std::move(update));
-  }
+  td_->transcription_manager_->on_update_transcribed_audio(std::move(update));
   promise.set_value(Unit());
 }
 

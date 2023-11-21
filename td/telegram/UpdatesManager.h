@@ -127,10 +127,6 @@ class UpdatesManager final : public Actor {
 
   static int32 get_update_edit_message_pts(const telegram_api::Updates *updates_ptr, MessageFullId message_full_id);
 
-  using TranscribedAudioHandler =
-      std::function<void(Result<telegram_api::object_ptr<telegram_api::updateTranscribedAudio>>)>;
-  void subscribe_to_transcribed_audio_updates(int64 transcription_id, TranscribedAudioHandler on_update);
-
   void get_difference(const char *source);
 
   void schedule_get_difference(const char *source);
@@ -156,7 +152,6 @@ class UpdatesManager final : public Actor {
   static constexpr double UPDATE_APPLY_WARNING_TIME = 0.25;
   static constexpr bool DROP_PTS_UPDATES = false;
   static constexpr const char *AFTER_GET_DIFFERENCE_SOURCE = "after get difference";
-  static constexpr int32 AUDIO_TRANSCRIPTION_TIMEOUT = 60;
 
   friend class OnUpdate;
 
@@ -271,9 +266,6 @@ class UpdatesManager final : public Actor {
   double get_difference_start_time_ = 0;  // time from which we started to get difference without success
   int32 get_difference_retry_count_ = 0;
 
-  FlatHashMap<int64, TranscribedAudioHandler> pending_audio_transcriptions_;
-  MultiTimeout pending_audio_transcription_timeout_{"PendingAudioTranscriptionTimeout"};
-
   struct SessionInfo {
     uint64 update_count = 0;
     double first_update_time = 0.0;
@@ -383,8 +375,6 @@ class UpdatesManager final : public Actor {
 
   static void fill_gap(void *td, const char *source);
 
-  static void on_pending_audio_transcription_timeout_callback(void *td, int64 transcription_id);
-
   void repair_pts_gap();
 
   void on_get_pts_update(int32 pts, telegram_api::object_ptr<telegram_api::updates_Difference> difference_ptr);
@@ -440,8 +430,6 @@ class UpdatesManager final : public Actor {
   static const vector<tl_object_ptr<telegram_api::Update>> *get_updates(const telegram_api::Updates *updates_ptr);
 
   static vector<tl_object_ptr<telegram_api::Update>> *get_updates(telegram_api::Updates *updates_ptr);
-
-  void on_pending_audio_transcription_failed(int64 transcription_id, Status &&error);
 
   bool is_acceptable_user(UserId user_id) const;
 

@@ -15,7 +15,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
-#include "td/telegram/UpdatesManager.h"
+#include "td/telegram/TranscriptionManager.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
@@ -216,7 +216,7 @@ void VoiceNotesManager::on_transcribed_audio_update(
     }
 
     if (is_initial) {
-      td_->updates_manager_->subscribe_to_transcribed_audio_updates(
+      td_->transcription_manager_->subscribe_to_transcribed_audio_updates(
           transcription_id, [actor_id = actor_id(this),
                              file_id](Result<telegram_api::object_ptr<telegram_api::updateTranscribedAudio>> r_update) {
             send_closure(actor_id, &VoiceNotesManager::on_transcribed_audio_update, file_id, false,
