@@ -322,6 +322,7 @@ function split_file($file, $chunks, $undo) {
                 'TopDialogCategory|get_top_dialog_category' => 'TopDialogCategory',
                 'top_dialog_manager[_(-][^.]|TopDialogManager' => 'TopDialogManager',
                 'translation_manager[_(-][^.]|TranslationManager' => "TranslationManager",
+                'transcription_manager[_(-][^.]|TranscriptionManager' => "TranscriptionManager",
                 'updates_manager[_(-][^.]|UpdatesManager|get_difference[)]|updateSentMessage|dummyUpdate' => 'UpdatesManager',
                 'WebPageId(Hash)?' => 'WebPageId',
                 'web_pages_manager[_(-][^.]|WebPagesManager' => 'WebPagesManager');

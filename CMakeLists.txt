@@ -498,6 +498,7 @@ set(TDLIB_SOURCE
   td/telegram/TopDialogCategory.cpp
   td/telegram/TopDialogManager.cpp
   td/telegram/TranscriptionInfo.cpp
+  td/telegram/TranscriptionManager.cpp
   td/telegram/TranslationManager.cpp
   td/telegram/UpdatesManager.cpp
   td/telegram/Usernames.cpp
@@ -819,6 +820,7 @@ set(TDLIB_SOURCE
   td/telegram/TopDialogCategory.h
   td/telegram/TopDialogManager.h
   td/telegram/TranscriptionInfo.h
+  td/telegram/TranscriptionManager.h
   td/telegram/TranslationManager.h
   td/telegram/UniqueId.h
   td/telegram/UpdatesManager.h

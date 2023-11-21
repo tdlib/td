@@ -141,6 +141,7 @@
 #include "td/telegram/ThemeManager.h"
 #include "td/telegram/TopDialogCategory.h"
 #include "td/telegram/TopDialogManager.h"
+#include "td/telegram/TranscriptionManager.h"
 #include "td/telegram/TranslationManager.h"
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/UserId.h"
@@ -3330,6 +3331,8 @@ void Td::dec_actor_refcnt() {
       LOG(DEBUG) << "ThemeManager was cleared" << timer;
       top_dialog_manager_.reset();
       LOG(DEBUG) << "TopDialogManager was cleared" << timer;
+      transcription_manager_.reset();
+      LOG(DEBUG) << "TranscriptionManager was cleared" << timer;
       translation_manager_.reset();
       LOG(DEBUG) << "TranslationManager was cleared" << timer;
       updates_manager_.reset();
@@ -3537,6 +3540,8 @@ void Td::clear() {
   LOG(DEBUG) << "ThemeManager actor was cleared" << timer;
   top_dialog_manager_actor_.reset();
   LOG(DEBUG) << "TopDialogManager actor was cleared" << timer;
+  transcription_manager_actor_.reset();
+  LOG(DEBUG) << "TranscriptionManager actor was cleared" << timer;
   translation_manager_actor_.reset();
   LOG(DEBUG) << "TranslationManager actor was cleared" << timer;
   updates_manager_actor_.reset();
@@ -4038,6 +4043,8 @@ void Td::init_managers() {
   top_dialog_manager_ = make_unique<TopDialogManager>(this, create_reference());
   top_dialog_manager_actor_ = register_actor("TopDialogManager", top_dialog_manager_.get());
   G()->set_top_dialog_manager(top_dialog_manager_actor_.get());
+  transcription_manager_ = make_unique<TranscriptionManager>(this, create_reference());
+  transcription_manager_actor_ = register_actor("TranscriptionManager", transcription_manager_.get());
   translation_manager_ = make_unique<TranslationManager>(this, create_reference());
   translation_manager_actor_ = register_actor("TranslationManager", translation_manager_.get());
   updates_manager_ = make_unique<UpdatesManager>(this, create_reference());
