@@ -3286,7 +3286,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
       }
       break;
     case MessageContentType::Sticker:
-      if (!permissions.can_send_messages()) {
+      if (!permissions.can_send_stickers()) {
         return Status::Error(400, "Not enough rights to send stickers to the chat");
       }
       if (get_message_content_sticker_type(td, content) == StickerType::CustomEmoji) {
