@@ -168,6 +168,10 @@ void ConnectionCreator::add_proxy(int32 old_proxy_id, string server, int32 port,
     G()->td_db()->get_binlog_pmc()->erase(get_proxy_used_database_key(old_proxy_id));
     proxy_last_used_date_.erase(old_proxy_id);
     proxy_last_used_saved_date_.erase(old_proxy_id);
+  } else {
+#if TD_EMSCRIPTEN || TD_DARWIN_WATCH_OS
+    return promise.set_error(Status::Error(400, "The method is unsupported for the platform"));
+#endif
   }
 
   auto proxy_id = [&] {
