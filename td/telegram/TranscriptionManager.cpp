@@ -9,8 +9,11 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
+#include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
+#include "td/telegram/VideoNotesManager.h"
+#include "td/telegram/VoiceNotesManager.h"
 
 namespace td {
 
@@ -85,6 +88,10 @@ TranscriptionManager::TranscriptionManager(Td *td, ActorShared<> parent) : td_(t
 
   pending_audio_transcription_timeout_.set_callback(on_pending_audio_transcription_timeout_callback);
   pending_audio_transcription_timeout_.set_callback_data(static_cast<void *>(td_));
+}
+
+TranscriptionManager::~TranscriptionManager() {
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), voice_messages_, message_file_ids_);
 }
 
 void TranscriptionManager::tear_down() {
@@ -169,6 +176,146 @@ td_api::object_ptr<td_api::updateSpeechRecognitionTrial>
 TranscriptionManager::TrialParameters::get_update_speech_recognition_trial_object() const {
   return td_api::make_object<td_api::updateSpeechRecognitionTrial>(duration_max_, weekly_number_, left_tries_,
                                                                    cooldown_until_);
+}
+
+void TranscriptionManager::register_voice(FileId file_id, MessageContentType content_type,
+                                          MessageFullId message_full_id, const char *source) {
+  if (td_->auth_manager_->is_bot() || message_full_id.get_message_id().is_scheduled() ||
+      !message_full_id.get_message_id().is_server() ||
+      message_full_id.get_dialog_id().get_type() == DialogType::SecretChat) {
+    return;
+  }
+  LOG(INFO) << "Register voice " << file_id << " from " << message_full_id << " from " << source;
+  CHECK(file_id.is_valid());
+  bool is_inserted = voice_messages_[file_id].emplace(message_full_id).second;
+  LOG_CHECK(is_inserted) << source << ' ' << file_id << ' ' << message_full_id;
+  is_inserted = message_file_ids_.emplace(message_full_id, FileInfo(content_type, file_id)).second;
+  CHECK(is_inserted);
+}
+
+void TranscriptionManager::unregister_voice(FileId file_id, MessageContentType content_type,
+                                            MessageFullId message_full_id, const char *source) {
+  if (td_->auth_manager_->is_bot() || message_full_id.get_message_id().is_scheduled() ||
+      !message_full_id.get_message_id().is_server() ||
+      message_full_id.get_dialog_id().get_type() == DialogType::SecretChat) {
+    return;
+  }
+  LOG(INFO) << "Unregister voice " << file_id << " from " << message_full_id << " from " << source;
+  CHECK(file_id.is_valid());
+  auto &message_full_ids = voice_messages_[file_id];
+  auto is_deleted = message_full_ids.erase(message_full_id) > 0;
+  LOG_CHECK(is_deleted) << source << ' ' << file_id << ' ' << message_full_id;
+  if (message_full_ids.empty()) {
+    voice_messages_.erase(file_id);
+  }
+  is_deleted = message_file_ids_.erase(message_full_id) > 0;
+  CHECK(is_deleted);
+}
+
+TranscriptionInfo *TranscriptionManager::get_transcription_info(const FileInfo &file_info, bool allow_creation) {
+  switch (file_info.first) {
+    case MessageContentType::VideoNote:
+      return td_->video_notes_manager_->get_video_note_transcription_info(file_info.second, allow_creation);
+    case MessageContentType::VoiceNote:
+      return td_->voice_notes_manager_->get_voice_note_transcription_info(file_info.second, allow_creation);
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
+}
+
+void TranscriptionManager::recognize_speech(MessageFullId message_full_id, Promise<Unit> &&promise) {
+  if (!td_->messages_manager_->have_message_force(message_full_id, "recognize_speech")) {
+    return promise.set_error(Status::Error(400, "Message not found"));
+  }
+
+  auto it = message_file_ids_.find(message_full_id);
+  if (it == message_file_ids_.end()) {
+    return promise.set_error(Status::Error(400, "Message can't be transcribed"));
+  }
+
+  auto *transcription_info = get_transcription_info(it->second, true);
+  auto handler = [actor_id = actor_id(this), file_info = it->second](
+                     Result<telegram_api::object_ptr<telegram_api::updateTranscribedAudio>> r_update) {
+    send_closure(actor_id, &TranscriptionManager::on_transcribed_audio_update, file_info, true, std::move(r_update));
+  };
+  if (transcription_info->recognize_speech(td_, message_full_id, std::move(promise), std::move(handler))) {
+    on_transcription_updated(it->second.second);
+  }
+}
+
+void TranscriptionManager::on_transcribed_audio_update(
+    FileInfo file_info, bool is_initial,
+    Result<telegram_api::object_ptr<telegram_api::updateTranscribedAudio>> r_update) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto *transcription_info = get_transcription_info(file_info, false);
+  CHECK(transcription_info != nullptr);
+  if (r_update.is_error()) {
+    auto promises = transcription_info->on_failed_transcription(r_update.move_as_error());
+    on_transcription_updated(file_info.second);
+    set_promises(promises);
+    return;
+  }
+  auto update = r_update.move_as_ok();
+  auto transcription_id = update->transcription_id_;
+  if (!update->pending_) {
+    auto promises = transcription_info->on_final_transcription(std::move(update->text_), transcription_id);
+    on_transcription_completed(file_info.second);
+    set_promises(promises);
+  } else {
+    auto is_changed = transcription_info->on_partial_transcription(std::move(update->text_), transcription_id);
+    if (is_changed) {
+      on_transcription_updated(file_info.second);
+    }
+
+    if (is_initial) {
+      subscribe_to_transcribed_audio_updates(
+          transcription_id, [actor_id = actor_id(this), file_info](
+                                Result<telegram_api::object_ptr<telegram_api::updateTranscribedAudio>> r_update) {
+            send_closure(actor_id, &TranscriptionManager::on_transcribed_audio_update, file_info, false,
+                         std::move(r_update));
+          });
+    }
+  }
+}
+
+void TranscriptionManager::on_transcription_updated(FileId file_id) {
+  auto it = voice_messages_.find(file_id);
+  if (it != voice_messages_.end()) {
+    for (const auto &message_full_id : it->second) {
+      td_->messages_manager_->on_external_update_message_content(message_full_id);
+    }
+  }
+}
+
+void TranscriptionManager::on_transcription_completed(FileId file_id) {
+  auto it = voice_messages_.find(file_id);
+  if (it != voice_messages_.end()) {
+    for (const auto &message_full_id : it->second) {
+      td_->messages_manager_->on_update_message_content(message_full_id);
+    }
+  }
+}
+
+void TranscriptionManager::rate_speech_recognition(MessageFullId message_full_id, bool is_good,
+                                                   Promise<Unit> &&promise) {
+  if (!td_->messages_manager_->have_message_force(message_full_id, "recognize_speech")) {
+    return promise.set_error(Status::Error(400, "Message not found"));
+  }
+
+  auto it = message_file_ids_.find(message_full_id);
+  if (it == message_file_ids_.end()) {
+    return promise.set_error(Status::Error(400, "Message can't be transcribed"));
+  }
+
+  const auto *transcription_info = get_transcription_info(it->second, false);
+  if (transcription_info == nullptr) {
+    return promise.set_value(Unit());
+  }
+  transcription_info->rate_speech_recognition(td_, message_full_id, is_good, std::move(promise));
 }
 
 void TranscriptionManager::subscribe_to_transcribed_audio_updates(int64 transcription_id,

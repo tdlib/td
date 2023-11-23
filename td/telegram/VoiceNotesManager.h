@@ -37,17 +37,11 @@ class VoiceNotesManager final : public Actor {
 
   int32 get_voice_note_duration(FileId file_id) const;
 
+  TranscriptionInfo *get_voice_note_transcription_info(FileId file_id, bool allow_creation);
+
   tl_object_ptr<td_api::voiceNote> get_voice_note_object(FileId file_id) const;
 
   void create_voice_note(FileId file_id, string mime_type, int32 duration, string waveform, bool replace);
-
-  void register_voice_note(FileId voice_note_file_id, MessageFullId message_full_id, const char *source);
-
-  void unregister_voice_note(FileId voice_note_file_id, MessageFullId message_full_id, const char *source);
-
-  void recognize_speech(MessageFullId message_full_id, Promise<Unit> &&promise);
-
-  void rate_speech_recognition(MessageFullId message_full_id, bool is_good, Promise<Unit> &&promise);
 
   tl_object_ptr<telegram_api::InputMedia> get_input_media(FileId file_id,
                                                           tl_object_ptr<telegram_api::InputFile> input_file) const;
@@ -83,22 +77,12 @@ class VoiceNotesManager final : public Actor {
 
   FileId on_get_voice_note(unique_ptr<VoiceNote> new_voice_note, bool replace);
 
-  void on_voice_note_transcription_updated(FileId file_id);
-
-  void on_voice_note_transcription_completed(FileId file_id);
-
-  void on_transcribed_audio_update(FileId file_id, bool is_initial,
-                                   Result<telegram_api::object_ptr<telegram_api::updateTranscribedAudio>> r_update);
-
   void tear_down() final;
 
   Td *td_;
   ActorShared<> parent_;
 
   WaitFreeHashMap<FileId, unique_ptr<VoiceNote>, FileIdHash> voice_notes_;
-
-  FlatHashMap<FileId, FlatHashSet<MessageFullId, MessageFullIdHash>, FileIdHash> voice_note_messages_;
-  FlatHashMap<MessageFullId, FileId, MessageFullIdHash> message_voice_notes_;
 };
 
 }  // namespace td

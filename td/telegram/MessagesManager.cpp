@@ -18281,7 +18281,7 @@ void MessagesManager::on_get_message_viewers(DialogId dialog_id, MessageViewers 
 
 void MessagesManager::translate_message_text(MessageFullId message_full_id, const string &to_language_code,
                                              Promise<td_api::object_ptr<td_api::formattedText>> &&promise) {
-  auto m = get_message_force(message_full_id, "recognize_speech");
+  auto m = get_message_force(message_full_id, "translate_message_text");
   if (m == nullptr) {
     return promise.set_error(Status::Error(400, "Message not found"));
   }
@@ -18295,29 +18295,6 @@ void MessagesManager::translate_message_text(MessageFullId message_full_id, cons
   auto max_media_timestamp = get_message_max_media_timestamp(m);
   td_->translation_manager_->translate_text(*text, skip_bot_commands, max_media_timestamp, to_language_code,
                                             std::move(promise));
-}
-
-void MessagesManager::recognize_speech(MessageFullId message_full_id, Promise<Unit> &&promise) {
-  auto m = get_message_force(message_full_id, "recognize_speech");
-  if (m == nullptr) {
-    return promise.set_error(Status::Error(400, "Message not found"));
-  }
-
-  auto message_id = message_full_id.get_message_id();
-  if (message_id.is_scheduled() || !message_id.is_server()) {
-    return promise.set_error(Status::Error(400, "Message must be sent already"));
-  }
-
-  recognize_message_content_speech(td_, m->content.get(), message_full_id, std::move(promise));
-}
-
-void MessagesManager::rate_speech_recognition(MessageFullId message_full_id, bool is_good, Promise<Unit> &&promise) {
-  auto m = get_message_force(message_full_id, "rate_speech_recognition");
-  if (m == nullptr) {
-    return promise.set_error(Status::Error(400, "Message not found"));
-  }
-
-  rate_message_content_speech_recognition(td_, m->content.get(), message_full_id, is_good, std::move(promise));
 }
 
 void MessagesManager::get_dialog_info_full(DialogId dialog_id, Promise<Unit> &&promise, const char *source) {

@@ -79,6 +79,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/TopDialogManager.h"
+#include "td/telegram/TranscriptionManager.h"
 #include "td/telegram/UserId.h"
 #include "td/telegram/Venue.h"
 #include "td/telegram/Version.h"
@@ -4885,7 +4886,8 @@ static CustomEmojiId get_custom_emoji_id(const FormattedText &text) {
 
 void register_message_content(Td *td, const MessageContent *content, MessageFullId message_full_id,
                               const char *source) {
-  switch (content->get_type()) {
+  auto content_type = content->get_type();
+  switch (content_type) {
     case MessageContentType::Text: {
       auto text = static_cast<const MessageText *>(content);
       if (text->web_page_id.is_valid()) {
@@ -4897,11 +4899,11 @@ void register_message_content(Td *td, const MessageContent *content, MessageFull
       return;
     }
     case MessageContentType::VideoNote:
-      return td->video_notes_manager_->register_video_note(static_cast<const MessageVideoNote *>(content)->file_id,
-                                                           message_full_id, source);
+      return td->transcription_manager_->register_voice(static_cast<const MessageVideoNote *>(content)->file_id,
+                                                        content_type, message_full_id, source);
     case MessageContentType::VoiceNote:
-      return td->voice_notes_manager_->register_voice_note(static_cast<const MessageVoiceNote *>(content)->file_id,
-                                                           message_full_id, source);
+      return td->transcription_manager_->register_voice(static_cast<const MessageVoiceNote *>(content)->file_id,
+                                                        content_type, message_full_id, source);
     case MessageContentType::Poll:
       return td->poll_manager_->register_poll(static_cast<const MessagePoll *>(content)->poll_id, message_full_id,
                                               source);
@@ -5005,7 +5007,8 @@ void reregister_message_content(Td *td, const MessageContent *old_content, const
 
 void unregister_message_content(Td *td, const MessageContent *content, MessageFullId message_full_id,
                                 const char *source) {
-  switch (content->get_type()) {
+  auto content_type = content->get_type();
+  switch (content_type) {
     case MessageContentType::Text: {
       auto text = static_cast<const MessageText *>(content);
       if (text->web_page_id.is_valid()) {
@@ -5017,11 +5020,11 @@ void unregister_message_content(Td *td, const MessageContent *content, MessageFu
       return;
     }
     case MessageContentType::VideoNote:
-      return td->video_notes_manager_->unregister_video_note(static_cast<const MessageVideoNote *>(content)->file_id,
-                                                             message_full_id, source);
+      return td->transcription_manager_->unregister_voice(static_cast<const MessageVideoNote *>(content)->file_id,
+                                                          content_type, message_full_id, source);
     case MessageContentType::VoiceNote:
-      return td->voice_notes_manager_->unregister_voice_note(static_cast<const MessageVoiceNote *>(content)->file_id,
-                                                             message_full_id, source);
+      return td->transcription_manager_->unregister_voice(static_cast<const MessageVoiceNote *>(content)->file_id,
+                                                          content_type, message_full_id, source);
     case MessageContentType::Poll:
       return td->poll_manager_->unregister_poll(static_cast<const MessagePoll *>(content)->poll_id, message_full_id,
                                                 source);
@@ -7585,30 +7588,6 @@ void update_used_hashtags(Td *td, const MessageContent *content) {
     auto to = ptr;
 
     send_closure(td->hashtag_hints_, &HashtagHints::hashtag_used, Slice(from + 1, to).str());
-  }
-}
-
-void recognize_message_content_speech(Td *td, const MessageContent *content, MessageFullId message_full_id,
-                                      Promise<Unit> &&promise) {
-  switch (content->get_type()) {
-    case MessageContentType::VideoNote:
-      return td->video_notes_manager_->recognize_speech(message_full_id, std::move(promise));
-    case MessageContentType::VoiceNote:
-      return td->voice_notes_manager_->recognize_speech(message_full_id, std::move(promise));
-    default:
-      return promise.set_error(Status::Error(400, "Invalid message specified"));
-  }
-}
-
-void rate_message_content_speech_recognition(Td *td, const MessageContent *content, MessageFullId message_full_id,
-                                             bool is_good, Promise<Unit> &&promise) {
-  switch (content->get_type()) {
-    case MessageContentType::VideoNote:
-      return td->video_notes_manager_->rate_speech_recognition(message_full_id, is_good, std::move(promise));
-    case MessageContentType::VoiceNote:
-      return td->voice_notes_manager_->rate_speech_recognition(message_full_id, is_good, std::move(promise));
-    default:
-      return promise.set_error(Status::Error(400, "Invalid message specified"));
   }
 }
 

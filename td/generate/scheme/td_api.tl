@@ -7059,7 +7059,7 @@ translateText text:formattedText to_language_code:string = FormattedText;
 //-"st", "sn", "sd", "si", "sk", "sl", "so", "es", "su", "sw", "sv", "tl", "tg", "ta", "tt", "te", "th", "tr", "tk", "uk", "ur", "ug", "uz", "vi", "cy", "xh", "yi", "ji", "yo", "zu"
 translateMessageText chat_id:int53 message_id:int53 to_language_code:string = FormattedText;
 
-//@description Recognizes speech in a video note or a voice note message. The message must be successfully sent and must not be scheduled
+//@description Recognizes speech in a video note or a voice note message. The message must be successfully sent, must not be scheduled, and must be from a non-secret chat
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
 recognizeSpeech chat_id:int53 message_id:int53 = Ok;

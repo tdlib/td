@@ -6,17 +6,24 @@
 //
 #pragma once
 
+#include "td/telegram/files/FileId.h"
+#include "td/telegram/MessageContentType.h"
+#include "td/telegram/MessageFullId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/TranscriptionInfo.h"
 
 #include "td/actor/actor.h"
 #include "td/actor/MultiTimeout.h"
 
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
+#include "td/utils/FlatHashSet.h"
+#include "td/utils/Promise.h"
 #include "td/utils/Status.h"
 
 #include <functional>
+#include <utility>
 
 namespace td {
 
@@ -25,12 +32,25 @@ class Td;
 class TranscriptionManager final : public Actor {
  public:
   TranscriptionManager(Td *td, ActorShared<> parent);
+  TranscriptionManager(const TranscriptionManager &) = delete;
+  TranscriptionManager &operator=(const TranscriptionManager &) = delete;
+  TranscriptionManager(TranscriptionManager &&) = delete;
+  TranscriptionManager &operator=(TranscriptionManager &&) = delete;
+  ~TranscriptionManager() final;
 
   void on_update_trial_parameters(int32 weekly_number, int32 duration_max, int32 cooldown_until);
 
-  using TranscribedAudioHandler =
-      std::function<void(Result<telegram_api::object_ptr<telegram_api::updateTranscribedAudio>>)>;
-  void subscribe_to_transcribed_audio_updates(int64 transcription_id, TranscribedAudioHandler on_update);
+  void register_voice(FileId file_id, MessageContentType content_type, MessageFullId message_full_id,
+                      const char *source);
+
+  void unregister_voice(FileId file_id, MessageContentType content_type, MessageFullId message_full_id,
+                        const char *source);
+
+  void recognize_speech(MessageFullId message_full_id, Promise<Unit> &&promise);
+
+  void on_transcription_completed(FileId file_id);
+
+  void rate_speech_recognition(MessageFullId message_full_id, bool is_good, Promise<Unit> &&promise);
 
   void on_update_transcribed_audio(telegram_api::object_ptr<telegram_api::updateTranscribedAudio> &&update);
 
@@ -52,6 +72,19 @@ class TranscriptionManager final : public Actor {
   void send_update_speech_recognition_trial() const;
 
   td_api::object_ptr<td_api::updateSpeechRecognitionTrial> get_update_speech_recognition_trial_object() const;
+
+  using FileInfo = std::pair<MessageContentType, FileId>;
+
+  TranscriptionInfo *get_transcription_info(const FileInfo &file_info, bool allow_creation);
+
+  using TranscribedAudioHandler =
+      std::function<void(Result<telegram_api::object_ptr<telegram_api::updateTranscribedAudio>>)>;
+  void subscribe_to_transcribed_audio_updates(int64 transcription_id, TranscribedAudioHandler on_update);
+
+  void on_transcribed_audio_update(FileInfo file_info, bool is_initial,
+                                   Result<telegram_api::object_ptr<telegram_api::updateTranscribedAudio>> r_update);
+
+  void on_transcription_updated(FileId file_id);
 
   void on_pending_audio_transcription_failed(int64 transcription_id, Status &&error);
 
@@ -81,6 +114,9 @@ class TranscriptionManager final : public Actor {
 
   FlatHashMap<int64, TranscribedAudioHandler> pending_audio_transcriptions_;
   MultiTimeout pending_audio_transcription_timeout_{"PendingAudioTranscriptionTimeout"};
+
+  FlatHashMap<FileId, FlatHashSet<MessageFullId, MessageFullIdHash>, FileIdHash> voice_messages_;
+  FlatHashMap<MessageFullId, FileInfo, MessageFullIdHash> message_file_ids_;
 };
 
 }  // namespace td

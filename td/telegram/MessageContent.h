@@ -308,10 +308,4 @@ void on_dialog_used(TopDialogCategory category, DialogId dialog_id, int32 date);
 
 void update_used_hashtags(Td *td, const MessageContent *content);
 
-void recognize_message_content_speech(Td *td, const MessageContent *content, MessageFullId message_full_id,
-                                      Promise<Unit> &&promise);
-
-void rate_message_content_speech_recognition(Td *td, const MessageContent *content, MessageFullId message_full_id,
-                                             bool is_good, Promise<Unit> &&promise);
-
 }  // namespace td

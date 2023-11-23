@@ -18,8 +18,6 @@
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/TranscriptionManager.h"
 
-#include "td/actor/actor.h"
-
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -42,6 +40,15 @@ int32 VideoNotesManager::get_video_note_duration(FileId file_id) const {
   auto video_note = get_video_note(file_id);
   CHECK(video_note != nullptr);
   return video_note->duration;
+}
+
+TranscriptionInfo *VideoNotesManager::get_video_note_transcription_info(FileId file_id, bool allow_creation) {
+  auto video_note = get_video_note(file_id);
+  CHECK(video_note != nullptr);
+  if (video_note->transcription_info == nullptr && allow_creation) {
+    video_note->transcription_info = make_unique<TranscriptionInfo>();
+  }
+  return video_note->transcription_info.get();
 }
 
 tl_object_ptr<td_api::videoNote> VideoNotesManager::get_video_note_object(FileId file_id) const {
@@ -89,7 +96,7 @@ FileId VideoNotesManager::on_get_video_note(unique_ptr<VideoNote> new_video_note
       v->thumbnail = std::move(new_video_note->thumbnail);
     }
     if (TranscriptionInfo::update_from(v->transcription_info, std::move(new_video_note->transcription_info))) {
-      on_video_note_transcription_completed(file_id);
+      td_->transcription_manager_->on_transcription_completed(file_id);
     }
   }
   return file_id;
@@ -168,129 +175,6 @@ void VideoNotesManager::create_video_note(FileId file_id, string minithumbnail, 
   }
   v->thumbnail = std::move(thumbnail);
   on_get_video_note(std::move(v), replace);
-}
-
-void VideoNotesManager::register_video_note(FileId video_note_file_id, MessageFullId message_full_id,
-                                            const char *source) {
-  if (message_full_id.get_message_id().is_scheduled() || !message_full_id.get_message_id().is_server() ||
-      td_->auth_manager_->is_bot()) {
-    return;
-  }
-  LOG(INFO) << "Register video note " << video_note_file_id << " from " << message_full_id << " from " << source;
-  CHECK(video_note_file_id.is_valid());
-  bool is_inserted = video_note_messages_[video_note_file_id].insert(message_full_id).second;
-  LOG_CHECK(is_inserted) << source << ' ' << video_note_file_id << ' ' << message_full_id;
-  is_inserted = message_video_notes_.emplace(message_full_id, video_note_file_id).second;
-  CHECK(is_inserted);
-}
-
-void VideoNotesManager::unregister_video_note(FileId video_note_file_id, MessageFullId message_full_id,
-                                              const char *source) {
-  if (message_full_id.get_message_id().is_scheduled() || !message_full_id.get_message_id().is_server() ||
-      td_->auth_manager_->is_bot()) {
-    return;
-  }
-  LOG(INFO) << "Unregister video note " << video_note_file_id << " from " << message_full_id << " from " << source;
-  CHECK(video_note_file_id.is_valid());
-  auto &message_ids = video_note_messages_[video_note_file_id];
-  auto is_deleted = message_ids.erase(message_full_id) > 0;
-  LOG_CHECK(is_deleted) << source << ' ' << video_note_file_id << ' ' << message_full_id;
-  if (message_ids.empty()) {
-    video_note_messages_.erase(video_note_file_id);
-  }
-  is_deleted = message_video_notes_.erase(message_full_id) > 0;
-  CHECK(is_deleted);
-}
-
-void VideoNotesManager::recognize_speech(MessageFullId message_full_id, Promise<Unit> &&promise) {
-  auto it = message_video_notes_.find(message_full_id);
-  CHECK(it != message_video_notes_.end());
-
-  auto file_id = it->second;
-  auto video_note = get_video_note(file_id);
-  CHECK(video_note != nullptr);
-  if (video_note->transcription_info == nullptr) {
-    video_note->transcription_info = make_unique<TranscriptionInfo>();
-  }
-
-  auto handler = [actor_id = actor_id(this),
-                  file_id](Result<telegram_api::object_ptr<telegram_api::updateTranscribedAudio>> r_update) {
-    send_closure(actor_id, &VideoNotesManager::on_transcribed_audio_update, file_id, true, std::move(r_update));
-  };
-  if (video_note->transcription_info->recognize_speech(td_, message_full_id, std::move(promise), std::move(handler))) {
-    on_video_note_transcription_updated(file_id);
-  }
-}
-
-void VideoNotesManager::on_transcribed_audio_update(
-    FileId file_id, bool is_initial, Result<telegram_api::object_ptr<telegram_api::updateTranscribedAudio>> r_update) {
-  if (G()->close_flag()) {
-    return;
-  }
-
-  auto video_note = get_video_note(file_id);
-  CHECK(video_note != nullptr);
-  CHECK(video_note->transcription_info != nullptr);
-
-  if (r_update.is_error()) {
-    auto promises = video_note->transcription_info->on_failed_transcription(r_update.move_as_error());
-    on_video_note_transcription_updated(file_id);
-    set_promises(promises);
-    return;
-  }
-  auto update = r_update.move_as_ok();
-  auto transcription_id = update->transcription_id_;
-  if (!update->pending_) {
-    auto promises = video_note->transcription_info->on_final_transcription(std::move(update->text_), transcription_id);
-    on_video_note_transcription_completed(file_id);
-    set_promises(promises);
-  } else {
-    auto is_changed =
-        video_note->transcription_info->on_partial_transcription(std::move(update->text_), transcription_id);
-    if (is_changed) {
-      on_video_note_transcription_updated(file_id);
-    }
-
-    if (is_initial) {
-      td_->transcription_manager_->subscribe_to_transcribed_audio_updates(
-          transcription_id, [actor_id = actor_id(this),
-                             file_id](Result<telegram_api::object_ptr<telegram_api::updateTranscribedAudio>> r_update) {
-            send_closure(actor_id, &VideoNotesManager::on_transcribed_audio_update, file_id, false,
-                         std::move(r_update));
-          });
-    }
-  }
-}
-
-void VideoNotesManager::on_video_note_transcription_updated(FileId file_id) {
-  auto it = video_note_messages_.find(file_id);
-  if (it != video_note_messages_.end()) {
-    for (const auto &message_full_id : it->second) {
-      td_->messages_manager_->on_external_update_message_content(message_full_id);
-    }
-  }
-}
-
-void VideoNotesManager::on_video_note_transcription_completed(FileId file_id) {
-  auto it = video_note_messages_.find(file_id);
-  if (it != video_note_messages_.end()) {
-    for (const auto &message_full_id : it->second) {
-      td_->messages_manager_->on_update_message_content(message_full_id);
-    }
-  }
-}
-
-void VideoNotesManager::rate_speech_recognition(MessageFullId message_full_id, bool is_good, Promise<Unit> &&promise) {
-  auto it = message_video_notes_.find(message_full_id);
-  CHECK(it != message_video_notes_.end());
-
-  auto file_id = it->second;
-  auto video_note = get_video_note(file_id);
-  CHECK(video_note != nullptr);
-  if (video_note->transcription_info == nullptr) {
-    return promise.set_value(Unit());
-  }
-  video_note->transcription_info->rate_speech_recognition(td_, message_full_id, is_good, std::move(promise));
 }
 
 SecretInputMedia VideoNotesManager::get_secret_input_media(FileId video_note_file_id,
