@@ -2632,7 +2632,7 @@ inputPassportElementError type:PassportElementType message:string source:InputPa
 //@description A text message
 //@text Text of the message
 //@web_page A link preview attached to the message; may be null
-//@link_preview_options Options which was used for generation of the link preview; may be null if default options were used
+//@link_preview_options Options which were used for generation of the link preview; may be null if default options were used
 messageText text:formattedText web_page:webPage link_preview_options:linkPreviewOptions = MessageContent;
 
 //@description An animation message (GIF-style).
@@ -6165,7 +6165,7 @@ updateNotification notification_group_id:int32 notification:notification = Updat
 //@removed_notification_ids Identifiers of removed group notifications, sorted by notification identifier
 updateNotificationGroup notification_group_id:int32 type:NotificationGroupType chat_id:int53 notification_settings_chat_id:int53 notification_sound_id:int64 total_count:int32 added_notifications:vector<notification> removed_notification_ids:vector<int32> = Update;
 
-//@description Contains active notifications that was shown on previous application launches. This update is sent only if the message database is used. In that case it comes once before any updateNotification and updateNotificationGroup update @groups Lists of active notification groups
+//@description Contains active notifications that were shown on previous application launches. This update is sent only if the message database is used. In that case it comes once before any updateNotification and updateNotificationGroup update @groups Lists of active notification groups
 updateActiveNotifications groups:vector<notificationGroup> = Update;
 
 //@description Describes whether there are some pending notification updates. Can be used to prevent application from killing, while there are some pending notifications

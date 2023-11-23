@@ -28921,7 +28921,7 @@ bool MessagesManager::on_get_message_error(DialogId dialog_id, MessageId message
                                            const char *source) {
   if (status.message() == "MSG_ID_INVALID" || status.message() == "MESSAGE_ID_INVALID" ||
       status.message() == "DATA_INVALID") {
-    td_->messages_manager_->get_message_from_server({dialog_id, message_id}, Promise<Unit>(), source);
+    get_message_from_server({dialog_id, message_id}, Promise<Unit>(), source);
     return true;
   }
   return on_get_dialog_error(dialog_id, status, source);
