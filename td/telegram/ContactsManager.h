@@ -213,6 +213,7 @@ class ContactsManager final : public Actor {
   void on_update_user_has_pinned_stories(UserId user_id, bool has_pinned_stories);
   void on_update_user_common_chat_count(UserId user_id, int32 common_chat_count);
   void on_update_user_need_phone_number_privacy_exception(UserId user_id, bool need_phone_number_privacy_exception);
+  void on_update_user_wallpaper_overridden(UserId user_id, bool wallpaper_overridden);
 
   void on_set_profile_photo(UserId user_id, tl_object_ptr<telegram_api::photos_photo> &&photo, bool is_fallback,
                             int64 old_photo_id, Promise<Unit> &&promise);
@@ -877,6 +878,7 @@ class ContactsManager final : public Actor {
     bool has_private_calls = false;
     bool can_pin_messages = true;
     bool need_phone_number_privacy_exception = false;
+    bool wallpaper_overridden = false;
     bool voice_messages_forbidden = false;
     bool has_pinned_stories = false;
 
@@ -1493,6 +1495,7 @@ class ContactsManager final : public Actor {
                                               tl_object_ptr<telegram_api::BotMenuButton> &&bot_menu_button);
   void on_update_user_full_need_phone_number_privacy_exception(UserFull *user_full, UserId user_id,
                                                                bool need_phone_number_privacy_exception) const;
+  void on_update_user_full_wallpaper_overridden(UserFull *user_full, UserId user_id, bool wallpaper_overridden) const;
 
   UserPhotos *add_user_photos(UserId user_id);
   void send_get_user_photos_query(UserId user_id, const UserPhotos *user_photos);

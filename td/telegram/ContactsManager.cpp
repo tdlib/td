@@ -4625,6 +4625,7 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   STORE_FLAG(has_fallback_photo);
   STORE_FLAG(has_pinned_stories);
   STORE_FLAG(is_blocked_for_stories);
+  STORE_FLAG(wallpaper_overridden);
   END_STORE_FLAGS();
   if (has_about) {
     store(about, storer);
@@ -4709,6 +4710,7 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   PARSE_FLAG(has_fallback_photo);
   PARSE_FLAG(has_pinned_stories);
   PARSE_FLAG(is_blocked_for_stories);
+  PARSE_FLAG(wallpaper_overridden);
   END_PARSE_FLAGS();
   if (has_about) {
     parse(about, parser);
@@ -12967,6 +12969,7 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   on_update_user_full_common_chat_count(user_full, user_id, user->common_chats_count_);
   on_update_user_full_need_phone_number_privacy_exception(user_full, user_id,
                                                           user->settings_->need_contacts_exception_);
+  on_update_user_full_wallpaper_overridden(user_full, user_id, user->wallpaper_overridden_);
 
   bool can_pin_messages = user->can_pin_message_;
   bool can_be_called = user->phone_calls_available_ && !user->phone_calls_private_;
@@ -14357,6 +14360,30 @@ void ContactsManager::on_update_user_full_need_phone_number_privacy_exception(
   }
 }
 
+void ContactsManager::on_update_user_wallpaper_overridden(UserId user_id, bool wallpaper_overridden) {
+  LOG(INFO) << "Receive " << wallpaper_overridden << " set chat background for " << user_id;
+  if (!user_id.is_valid()) {
+    LOG(ERROR) << "Receive invalid " << user_id;
+    return;
+  }
+
+  UserFull *user_full = get_user_full_force(user_id);
+  if (user_full == nullptr) {
+    return;
+  }
+  on_update_user_full_wallpaper_overridden(user_full, user_id, wallpaper_overridden);
+  update_user_full(user_full, user_id, "on_update_user_wallpaper_overridden");
+}
+
+void ContactsManager::on_update_user_full_wallpaper_overridden(UserFull *user_full, UserId user_id,
+                                                               bool wallpaper_overridden) const {
+  CHECK(user_full != nullptr);
+  if (user_full->wallpaper_overridden != wallpaper_overridden) {
+    user_full->wallpaper_overridden = wallpaper_overridden;
+    user_full->is_changed = true;
+  }
+}
+
 void ContactsManager::on_ignored_restriction_reasons_changed() {
   restricted_user_ids_.foreach([&](const UserId &user_id) {
     send_closure(G()->td(), &Td::send_update, get_update_user_object(user_id, get_user(user_id)));
@@ -14651,6 +14678,7 @@ void ContactsManager::drop_user_full(UserId user_id) {
   user_full->supports_video_calls = false;
   user_full->has_private_calls = false;
   user_full->need_phone_number_privacy_exception = false;
+  user_full->wallpaper_overridden = false;
   user_full->about = string();
   user_full->description = string();
   user_full->description_photo = Photo();
@@ -19891,7 +19919,7 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
       get_chat_photo_object(td_->file_manager_.get(), user_full->fallback_photo), block_list_id.get_block_list_object(),
       user_full->can_be_called, user_full->supports_video_calls, user_full->has_private_calls,
       !user_full->private_forward_name.empty(), voice_messages_forbidden, user_full->has_pinned_stories,
-      user_full->need_phone_number_privacy_exception, std::move(bio_object),
+      user_full->need_phone_number_privacy_exception, user_full->wallpaper_overridden, std::move(bio_object),
       get_premium_payment_options_object(user_full->premium_gift_options), user_full->common_chat_count,
       std::move(bot_info));
 }

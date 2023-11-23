@@ -825,11 +825,12 @@ botInfo short_description:string description:string photo:photo animation:animat
 //@has_restricted_voice_and_video_note_messages True, if voice and video notes can't be sent or forwarded to the user
 //@has_pinned_stories True, if the user has pinned stories
 //@need_phone_number_privacy_exception True, if the current user needs to explicitly allow to share their phone number with the user when the method addContact is used
+//@set_chat_background True, if the user set chat background for both chat users and it wasn't reverted yet
 //@bio A short user bio; may be null for bots
 //@premium_gift_options The list of available options for gifting Telegram Premium to the user
 //@group_in_common_count Number of group chats where both the other user and the current user are a member; 0 for the current user
 //@bot_info For bots, information about the bot; may be null if the user isn't a bot
-userFullInfo personal_photo:chatPhoto photo:chatPhoto public_photo:chatPhoto block_list:BlockList can_be_called:Bool supports_video_calls:Bool has_private_calls:Bool has_private_forwards:Bool has_restricted_voice_and_video_note_messages:Bool has_pinned_stories:Bool need_phone_number_privacy_exception:Bool bio:formattedText premium_gift_options:vector<premiumPaymentOption> group_in_common_count:int32 bot_info:botInfo = UserFullInfo;
+userFullInfo personal_photo:chatPhoto photo:chatPhoto public_photo:chatPhoto block_list:BlockList can_be_called:Bool supports_video_calls:Bool has_private_calls:Bool has_private_forwards:Bool has_restricted_voice_and_video_note_messages:Bool has_pinned_stories:Bool need_phone_number_privacy_exception:Bool set_chat_background:Bool bio:formattedText premium_gift_options:vector<premiumPaymentOption> group_in_common_count:int32 bot_info:botInfo = UserFullInfo;
 
 //@description Represents a list of users @total_count Approximate total number of users found @user_ids A list of user identifiers
 users total_count:int32 user_ids:vector<int53> = Users;
@@ -7752,8 +7753,8 @@ setChatPermissions chat_id:int53 permissions:chatPermissions = Ok;
 //@only_for_self Pass true to set background only for self; pass false to set background for both chat users. Background can be set for both users only by Telegram Premium users
 setChatBackground chat_id:int53 background:InputBackground type:BackgroundType dark_theme_dimming:int32 only_for_self:Bool = Ok;
 
-//@description Restores background in a specific chat after it was changed by the other user. Can be called only from messageChatSetBackground messages with the currently set background that was set for both sides by the other user
-//-Supported only in private and secret chats with non-deleted users
+//@description Restores background in a specific chat after it was changed by the other user. Supported only in private and secret chats with non-deleted users.
+//-Can be called only from messageChatSetBackground messages with the currently set background that was set for both sides by the other user if userFullInfo.set_chat_background
 //@chat_id Chat identifier
 revertChatBackground chat_id:int53 = Ok;
 
