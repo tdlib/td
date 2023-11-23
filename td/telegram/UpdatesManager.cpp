@@ -4270,7 +4270,11 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTheme> update, 
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePeerWallpaper> update, Promise<Unit> &&promise) {
-  td_->messages_manager_->on_update_dialog_background(DialogId(update->peer_), std::move(update->wallpaper_));
+  auto dialog_id = DialogId(update->peer_);
+  if (dialog_id.get_type() == DialogType::User) {
+    td_->contacts_manager_->on_update_user_wallpaper_overridden(dialog_id.get_user_id(), update->wallpaper_overridden_);
+  }
+  td_->messages_manager_->on_update_dialog_background(dialog_id, std::move(update->wallpaper_));
   promise.set_value(Unit());
 }
 
