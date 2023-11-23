@@ -15,6 +15,7 @@
 
 #include "td/actor/actor.h"
 #include "td/actor/MultiTimeout.h"
+#include "td/actor/Timeout.h"
 
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
@@ -88,6 +89,12 @@ class TranscriptionManager final : public Actor {
 
   void set_trial_parameters(TrialParameters new_trial_parameters);
 
+  void set_speech_recognition_trial_timeout();
+
+  static void trial_parameters_timeout_static(void *td);
+
+  void on_trial_parameters_timeout();
+
   void save_trial_parameters();
 
   void send_update_speech_recognition_trial() const;
@@ -116,6 +123,7 @@ class TranscriptionManager final : public Actor {
   ActorShared<> parent_;
 
   TrialParameters trial_parameters_;
+  Timeout trial_parameters_timeout_;
 
   FlatHashMap<int64, TranscribedAudioHandler> pending_audio_transcriptions_;
   MultiTimeout pending_audio_transcription_timeout_{"PendingAudioTranscriptionTimeout"};

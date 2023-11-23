@@ -134,6 +134,7 @@ void TranscriptionManager::load_trial_parameters() {
     }
   }
   send_update_speech_recognition_trial();
+  set_speech_recognition_trial_timeout();
 }
 
 void TranscriptionManager::save_trial_parameters() {
@@ -162,7 +163,35 @@ void TranscriptionManager::set_trial_parameters(TrialParameters new_trial_parame
 
   trial_parameters_ = std::move(new_trial_parameters);
   send_update_speech_recognition_trial();
+  set_speech_recognition_trial_timeout();
   save_trial_parameters();
+}
+
+void TranscriptionManager::set_speech_recognition_trial_timeout() {
+  if (trial_parameters_.next_reset_date_ == 0) {
+    trial_parameters_timeout_.cancel_timeout();
+  } else {
+    trial_parameters_timeout_.set_callback(std::move(trial_parameters_timeout_static));
+    trial_parameters_timeout_.set_callback_data(static_cast<void *>(td_));
+    trial_parameters_timeout_.set_timeout_in(trial_parameters_.next_reset_date_ - G()->unix_time() + 1);
+  }
+}
+
+void TranscriptionManager::trial_parameters_timeout_static(void *td) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  CHECK(td != nullptr);
+  static_cast<Td *>(td)->transcription_manager_->on_trial_parameters_timeout();
+}
+
+void TranscriptionManager::on_trial_parameters_timeout() {
+  if (!td_->auth_manager_->is_authorized()) {
+    return;
+  }
+  CHECK(!td_->auth_manager_->is_bot());
+  set_trial_parameters(trial_parameters_);
 }
 
 void TranscriptionManager::send_update_speech_recognition_trial() const {
