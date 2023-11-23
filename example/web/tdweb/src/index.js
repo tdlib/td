@@ -21,7 +21,7 @@ const sleep = ms => new Promise(res => setTimeout(res, ms));
  * 2. Added the method <code>setJsLogVerbosityLevel new_verbosity_level:string = Ok;</code>, which allows to change the verbosity level of tdweb logging.<br>
  * 3. Added the possibility to use blobs as input files via the constructor <code>inputFileBlob data:<JavaScript blob> = InputFile;</code>.<br>
  * 4. The class <code>filePart</code> contains data as a JavaScript blob instead of a base64-encoded string.<br>
- * 5. The methods <code>getStorageStatistics</code>, <code>getStorageStatisticsFast</code>, <code>optimizeStorage</code>, <code>addProxy</code> and <code>getFileDownloadedPrefixSize</code> are not supported.<br>
+ * 5. The methods <code>getStorageStatistics</code>, <code>getStorageStatisticsFast</code>, <code>optimizeStorage</code>, and <code>addProxy</code> are not supported.<br>
  * <br>
  */
 class TdClient {
