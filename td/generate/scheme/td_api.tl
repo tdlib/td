@@ -6419,8 +6419,8 @@ updateDefaultReactionType reaction_type:ReactionType = Update;
 //@max_media_duration The maximum allowed duration of media for speech recognition without Telegram Premium subscription
 //@weekly_count The total number of allowed speech recognitions per week; 0 if none
 //@left_count Number of left speech recognition attempts this week
-//@next_recognition_date Point in time (Unix timestamp) when the user can use speech recognition without Telegram Premium subscription again; 0 if now or never
-updateSpeechRecognitionTrial max_media_duration:int32 weekly_count:int32 left_count:int32 next_recognition_date:int32 = Update;
+//@next_reset_date Point in time (Unix timestamp) when the weekly number of tries will reset; 0 if unknown
+updateSpeechRecognitionTrial max_media_duration:int32 weekly_count:int32 left_count:int32 next_reset_date:int32 = Update;
 
 //@description The list of supported dice emojis has changed @emojis The new list of supported dice emojis
 updateDiceEmojis emojis:vector<string> = Update;

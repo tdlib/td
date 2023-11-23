@@ -63,7 +63,7 @@ class TranscriptionManager final : public Actor {
     int32 weekly_number_ = 0;
     int32 duration_max_ = 0;
     int32 left_tries_ = 0;
-    int32 cooldown_until_ = 0;
+    int32 next_reset_date_ = 0;
 
     void update_left_tries();
 

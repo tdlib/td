@@ -18,8 +18,8 @@
 namespace td {
 
 void TranscriptionManager::TrialParameters::update_left_tries() {
-  if (cooldown_until_ <= G()->unix_time()) {
-    cooldown_until_ = 0;
+  if (next_reset_date_ <= G()->unix_time()) {
+    next_reset_date_ = 0;
     left_tries_ = weekly_number_;
   } else if (left_tries_ > weekly_number_) {
     left_tries_ = weekly_number_;
@@ -31,12 +31,12 @@ void TranscriptionManager::TrialParameters::store(StorerT &storer) const {
   bool has_weekly_number = weekly_number_ != 0;
   bool has_duration_max = duration_max_ != 0;
   bool has_left_tries = left_tries_ != 0;
-  bool has_cooldown_until = cooldown_until_ != 0;
+  bool has_next_reset_date = next_reset_date_ != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_weekly_number);
   STORE_FLAG(has_duration_max);
   STORE_FLAG(has_left_tries);
-  STORE_FLAG(has_cooldown_until);
+  STORE_FLAG(has_next_reset_date);
   END_STORE_FLAGS();
   if (has_weekly_number) {
     td::store(weekly_number_, storer);
@@ -47,8 +47,8 @@ void TranscriptionManager::TrialParameters::store(StorerT &storer) const {
   if (has_left_tries) {
     td::store(left_tries_, storer);
   }
-  if (has_cooldown_until) {
-    td::store(cooldown_until_, storer);
+  if (has_next_reset_date) {
+    td::store(next_reset_date_, storer);
   }
 }
 
@@ -57,12 +57,12 @@ void TranscriptionManager::TrialParameters::parse(ParserT &parser) {
   bool has_weekly_number;
   bool has_duration_max;
   bool has_left_tries;
-  bool has_cooldown_until;
+  bool has_next_reset_date;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_weekly_number);
   PARSE_FLAG(has_duration_max);
   PARSE_FLAG(has_left_tries);
-  PARSE_FLAG(has_cooldown_until);
+  PARSE_FLAG(has_next_reset_date);
   END_PARSE_FLAGS();
   if (has_weekly_number) {
     td::parse(weekly_number_, parser);
@@ -73,14 +73,14 @@ void TranscriptionManager::TrialParameters::parse(ParserT &parser) {
   if (has_left_tries) {
     td::parse(left_tries_, parser);
   }
-  if (has_cooldown_until) {
-    td::parse(cooldown_until_, parser);
+  if (has_next_reset_date) {
+    td::parse(next_reset_date_, parser);
   }
 }
 
 bool operator==(const TranscriptionManager::TrialParameters &lhs, const TranscriptionManager::TrialParameters &rhs) {
   return lhs.weekly_number_ == rhs.weekly_number_ && lhs.duration_max_ == rhs.duration_max_ &&
-         lhs.left_tries_ == rhs.left_tries_ && lhs.cooldown_until_ == rhs.cooldown_until_;
+         lhs.left_tries_ == rhs.left_tries_ && lhs.next_reset_date_ == rhs.next_reset_date_;
 }
 
 TranscriptionManager::TranscriptionManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
@@ -149,7 +149,7 @@ void TranscriptionManager::on_update_trial_parameters(int32 weekly_number, int32
   TrialParameters new_trial_parameters;
   new_trial_parameters.weekly_number_ = max(0, weekly_number);
   new_trial_parameters.duration_max_ = max(0, duration_max);
-  new_trial_parameters.cooldown_until_ = max(0, cooldown_until);
+  new_trial_parameters.next_reset_date_ = cooldown_until > 0 ? cooldown_until : trial_parameters_.next_reset_date_;
   new_trial_parameters.left_tries_ = trial_parameters_.left_tries_;
   set_trial_parameters(new_trial_parameters);
 }
@@ -179,7 +179,7 @@ TranscriptionManager::get_update_speech_recognition_trial_object() const {
 td_api::object_ptr<td_api::updateSpeechRecognitionTrial>
 TranscriptionManager::TrialParameters::get_update_speech_recognition_trial_object() const {
   return td_api::make_object<td_api::updateSpeechRecognitionTrial>(duration_max_, weekly_number_, left_tries_,
-                                                                   cooldown_until_);
+                                                                   next_reset_date_);
 }
 
 void TranscriptionManager::register_voice(FileId file_id, MessageContentType content_type,
@@ -258,7 +258,7 @@ void TranscriptionManager::on_transcribed_audio(
     on_transcribed_audio_update(file_info, true, r_audio.move_as_error());
     if (retry_after > 0) {
       TrialParameters new_trial_parameters = trial_parameters_;
-      new_trial_parameters.cooldown_until_ = G()->unix_time() + retry_after;
+      new_trial_parameters.next_reset_date_ = G()->unix_time() + retry_after;
       new_trial_parameters.left_tries_ = 0;
       set_trial_parameters(new_trial_parameters);
     }
@@ -276,7 +276,7 @@ void TranscriptionManager::on_transcribed_audio(
 
   if ((audio->flags_ & telegram_api::messages_transcribedAudio::TRIAL_REMAINS_NUM_MASK) != 0) {
     TrialParameters new_trial_parameters = trial_parameters_;
-    new_trial_parameters.cooldown_until_ = audio->trial_remains_num_ > 0 ? 0 : audio->trial_remains_until_date_;
+    new_trial_parameters.next_reset_date_ = max(0, audio->trial_remains_until_date_);
     new_trial_parameters.left_tries_ = audio->trial_remains_num_;
     set_trial_parameters(new_trial_parameters);
   }
