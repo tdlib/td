@@ -151,6 +151,10 @@ void TranscriptionManager::on_update_trial_parameters(int32 weekly_number, int32
   new_trial_parameters.duration_max_ = max(0, duration_max);
   new_trial_parameters.cooldown_until_ = max(0, cooldown_until);
   new_trial_parameters.left_tries_ = trial_parameters_.left_tries_;
+  set_trial_parameters(new_trial_parameters);
+}
+
+void TranscriptionManager::set_trial_parameters(TrialParameters new_trial_parameters) {
   new_trial_parameters.update_left_tries();
   if (new_trial_parameters == trial_parameters_) {
     return;
@@ -246,11 +250,19 @@ void TranscriptionManager::recognize_speech(MessageFullId message_full_id, Promi
 
 void TranscriptionManager::on_transcribed_audio(
     FileInfo file_info, Result<telegram_api::object_ptr<telegram_api::messages_transcribedAudio>> r_audio) {
-  if (G()->close_flag()) {
+  if (G()->close_flag() || !td_->auth_manager_->is_authorized()) {
     return;
   }
   if (r_audio.is_error()) {
-    return on_transcribed_audio_update(file_info, true, r_audio.move_as_error());
+    auto retry_after = Global::get_retry_after(r_audio.error());
+    on_transcribed_audio_update(file_info, true, r_audio.move_as_error());
+    if (retry_after > 0) {
+      TrialParameters new_trial_parameters = trial_parameters_;
+      new_trial_parameters.cooldown_until_ = G()->unix_time() + retry_after;
+      new_trial_parameters.left_tries_ = 0;
+      set_trial_parameters(new_trial_parameters);
+    }
+    return;
   }
   auto audio = r_audio.move_as_ok();
   if (audio->transcription_id_ == 0) {
@@ -261,12 +273,19 @@ void TranscriptionManager::on_transcribed_audio(
   update->transcription_id_ = audio->transcription_id_;
   update->pending_ = audio->pending_;
   on_transcribed_audio_update(file_info, true, std::move(update));
+
+  if ((audio->flags_ & telegram_api::messages_transcribedAudio::TRIAL_REMAINS_NUM_MASK) != 0) {
+    TrialParameters new_trial_parameters = trial_parameters_;
+    new_trial_parameters.cooldown_until_ = audio->trial_remains_num_ > 0 ? 0 : audio->trial_remains_until_date_;
+    new_trial_parameters.left_tries_ = audio->trial_remains_num_;
+    set_trial_parameters(new_trial_parameters);
+  }
 }
 
 void TranscriptionManager::on_transcribed_audio_update(
     FileInfo file_info, bool is_initial,
     Result<telegram_api::object_ptr<telegram_api::updateTranscribedAudio>> r_update) {
-  if (G()->close_flag()) {
+  if (G()->close_flag() || !td_->auth_manager_->is_authorized()) {
     return;
   }
 

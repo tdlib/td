@@ -446,7 +446,7 @@ void DeviceTokenManager::on_result(NetQueryPtr net_query) {
       if (!G()->is_expected_error(error)) {
         LOG(ERROR) << "Failed to " << info.state << " device: " << error;
       } else {
-        retry_after = Global::get_retry_after(error.code(), error.message());
+        retry_after = Global::get_retry_after(error);
       }
       info.promise.set_error(r_flag.move_as_error());
     } else {

@@ -59,6 +59,25 @@ class TranscriptionManager final : public Actor {
  private:
   static constexpr int32 AUDIO_TRANSCRIPTION_TIMEOUT = 60;
 
+  struct TrialParameters {
+    int32 weekly_number_ = 0;
+    int32 duration_max_ = 0;
+    int32 left_tries_ = 0;
+    int32 cooldown_until_ = 0;
+
+    void update_left_tries();
+
+    td_api::object_ptr<td_api::updateSpeechRecognitionTrial> get_update_speech_recognition_trial_object() const;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
+  };
+
+  friend bool operator==(const TrialParameters &lhs, const TrialParameters &rhs);
+
   void tear_down() final;
 
   static void on_pending_audio_transcription_timeout_callback(void *td, int64 transcription_id);
@@ -66,6 +85,8 @@ class TranscriptionManager final : public Actor {
   static string get_trial_parameters_database_key();
 
   void load_trial_parameters();
+
+  void set_trial_parameters(TrialParameters new_trial_parameters);
 
   void save_trial_parameters();
 
@@ -90,25 +111,6 @@ class TranscriptionManager final : public Actor {
   void on_transcription_updated(FileId file_id);
 
   void on_pending_audio_transcription_failed(int64 transcription_id, Status &&error);
-
-  struct TrialParameters {
-    int32 weekly_number_ = 0;
-    int32 duration_max_ = 0;
-    int32 left_tries_ = 0;
-    int32 cooldown_until_ = 0;
-
-    void update_left_tries();
-
-    td_api::object_ptr<td_api::updateSpeechRecognitionTrial> get_update_speech_recognition_trial_object() const;
-
-    template <class StorerT>
-    void store(StorerT &storer) const;
-
-    template <class ParserT>
-    void parse(ParserT &parser);
-  };
-
-  friend bool operator==(const TrialParameters &lhs, const TrialParameters &rhs);
 
   Td *td_;
   ActorShared<> parent_;
