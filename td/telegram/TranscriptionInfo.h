@@ -36,7 +36,7 @@ class TranscriptionInfo {
 
   bool recognize_speech(
       Td *td, MessageFullId message_full_id, Promise<Unit> &&promise,
-      std::function<void(Result<telegram_api::object_ptr<telegram_api::updateTranscribedAudio>>)> &&handler);
+      std::function<void(Result<telegram_api::object_ptr<telegram_api::messages_transcribedAudio>>)> &&handler);
 
   vector<Promise<Unit>> on_final_transcription(string &&text, int64 transcription_id);
 

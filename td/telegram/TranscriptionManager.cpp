@@ -236,12 +236,31 @@ void TranscriptionManager::recognize_speech(MessageFullId message_full_id, Promi
 
   auto *transcription_info = get_transcription_info(it->second, true);
   auto handler = [actor_id = actor_id(this), file_info = it->second](
-                     Result<telegram_api::object_ptr<telegram_api::updateTranscribedAudio>> r_update) {
-    send_closure(actor_id, &TranscriptionManager::on_transcribed_audio_update, file_info, true, std::move(r_update));
+                     Result<telegram_api::object_ptr<telegram_api::messages_transcribedAudio>> r_audio) {
+    send_closure(actor_id, &TranscriptionManager::on_transcribed_audio, file_info, std::move(r_audio));
   };
   if (transcription_info->recognize_speech(td_, message_full_id, std::move(promise), std::move(handler))) {
     on_transcription_updated(it->second.second);
   }
+}
+
+void TranscriptionManager::on_transcribed_audio(
+    FileInfo file_info, Result<telegram_api::object_ptr<telegram_api::messages_transcribedAudio>> r_audio) {
+  if (G()->close_flag()) {
+    return;
+  }
+  if (r_audio.is_error()) {
+    return on_transcribed_audio_update(file_info, true, r_audio.move_as_error());
+  }
+  auto audio = r_audio.move_as_ok();
+  if (audio->transcription_id_ == 0) {
+    return on_transcribed_audio_update(file_info, true, Status::Error(500, "Receive no transcription identifier"));
+  }
+  auto update = telegram_api::make_object<telegram_api::updateTranscribedAudio>();
+  update->text_ = std::move(audio->text_);
+  update->transcription_id_ = audio->transcription_id_;
+  update->pending_ = audio->pending_;
+  on_transcribed_audio_update(file_info, true, std::move(update));
 }
 
 void TranscriptionManager::on_transcribed_audio_update(

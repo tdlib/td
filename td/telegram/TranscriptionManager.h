@@ -77,6 +77,9 @@ class TranscriptionManager final : public Actor {
 
   TranscriptionInfo *get_transcription_info(const FileInfo &file_info, bool allow_creation);
 
+  void on_transcribed_audio(FileInfo file_info,
+                            Result<telegram_api::object_ptr<telegram_api::messages_transcribedAudio>> r_audio);
+
   using TranscribedAudioHandler =
       std::function<void(Result<telegram_api::object_ptr<telegram_api::updateTranscribedAudio>>)>;
   void subscribe_to_transcribed_audio_updates(int64 transcription_id, TranscribedAudioHandler on_update);
