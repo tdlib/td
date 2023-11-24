@@ -285,7 +285,7 @@ void TranscriptionManager::on_transcribed_audio(
   if (r_audio.is_error()) {
     auto retry_after = Global::get_retry_after(r_audio.error());
     on_transcribed_audio_update(file_info, true, r_audio.move_as_error());
-    if (retry_after > 0) {
+    if (retry_after > 0 && trial_parameters_.left_tries_ > 0) {
       TrialParameters new_trial_parameters = trial_parameters_;
       new_trial_parameters.next_reset_date_ = G()->unix_time() + retry_after;
       new_trial_parameters.left_tries_ = 0;
