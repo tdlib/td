@@ -1208,6 +1208,7 @@ class ContactsManager final : public Actor {
   };
 
   struct RecommendedDialogs {
+    int32 total_count_ = 0;
     vector<DialogId> dialog_ids_;
     double next_reload_time_ = 0.0;
 
@@ -1741,7 +1742,7 @@ class ContactsManager final : public Actor {
   void reload_channel_recommendations(ChannelId channel_id);
 
   void on_get_channel_recommendations(ChannelId channel_id,
-                                      Result<vector<tl_object_ptr<telegram_api::Chat>>> &&r_chats);
+                                      Result<std::pair<int32, vector<tl_object_ptr<telegram_api::Chat>>>> &&r_chats);
 
   static bool is_channel_public(const Channel *c);
 

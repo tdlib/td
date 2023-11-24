@@ -3278,11 +3278,12 @@ class MigrateChatQuery final : public Td::ResultHandler {
 };
 
 class GetChannelRecommendationsQuery final : public Td::ResultHandler {
-  Promise<vector<tl_object_ptr<telegram_api::Chat>>> promise_;
+  Promise<std::pair<int32, vector<tl_object_ptr<telegram_api::Chat>>>> promise_;
   ChannelId channel_id_;
 
  public:
-  explicit GetChannelRecommendationsQuery(Promise<vector<tl_object_ptr<telegram_api::Chat>>> &&promise)
+  explicit GetChannelRecommendationsQuery(
+      Promise<std::pair<int32, vector<tl_object_ptr<telegram_api::Chat>>>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -3306,12 +3307,12 @@ class GetChannelRecommendationsQuery final : public Td::ResultHandler {
     switch (chats_ptr->get_id()) {
       case telegram_api::messages_chats::ID: {
         auto chats = move_tl_object_as<telegram_api::messages_chats>(chats_ptr);
-        return promise_.set_value(std::move(chats->chats_));
+        auto total_count = static_cast<int32>(chats->chats_.size());
+        return promise_.set_value({total_count, std::move(chats->chats_)});
       }
       case telegram_api::messages_chatsSlice::ID: {
         auto chats = move_tl_object_as<telegram_api::messages_chatsSlice>(chats_ptr);
-        LOG(ERROR) << "Receive chatsSlice in result of GetChannelRecommendationsQuery";
-        return promise_.set_value(std::move(chats->chats_));
+        return promise_.set_value({chats->count_, std::move(chats->chats_)});
       }
       default:
         UNREACHABLE();
@@ -5505,25 +5506,35 @@ void ContactsManager::SecretChat::parse(ParserT &parser) {
 template <class StorerT>
 void ContactsManager::RecommendedDialogs::store(StorerT &storer) const {
   bool has_dialog_ids = !dialog_ids_.empty();
+  bool has_total_count = static_cast<size_t>(total_count_) != dialog_ids_.size();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_dialog_ids);
+  STORE_FLAG(has_total_count);
   END_STORE_FLAGS();
   if (has_dialog_ids) {
     td::store(dialog_ids_, storer);
   }
   store_time(next_reload_time_, storer);
+  if (has_total_count) {
+    td::store(total_count_, storer);
+  }
 }
 
 template <class ParserT>
 void ContactsManager::RecommendedDialogs::parse(ParserT &parser) {
   bool has_dialog_ids;
+  bool has_total_count;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_dialog_ids);
+  PARSE_FLAG(has_total_count);
   END_PARSE_FLAGS();
   if (has_dialog_ids) {
     td::parse(dialog_ids_, parser);
   }
   parse_time(next_reload_time_, parser);
+  if (has_total_count) {
+    td::parse(total_count_, parser);
+  }
 }
 
 Result<tl_object_ptr<telegram_api::InputUser>> ContactsManager::get_input_user(UserId user_id) const {
@@ -9637,6 +9648,11 @@ bool ContactsManager::are_suitable_recommended_dialogs(const RecommendedDialogs 
       return false;
     }
   }
+  auto is_premium = td_->option_manager_->get_option_boolean("is_premium");
+  auto have_all = recommended_dialogs.dialog_ids_.size() == static_cast<size_t>(recommended_dialogs.total_count_);
+  if (!have_all && is_premium) {
+    return false;
+  }
   return true;
 }
 
@@ -9657,8 +9673,8 @@ void ContactsManager::get_channel_recommendations(DialogId dialog_id,
   if (it != channel_recommended_dialogs_.end()) {
     if (are_suitable_recommended_dialogs(it->second)) {
       auto next_reload_time = it->second.next_reload_time_;
-      promise.set_value(
-          td_->messages_manager_->get_chats_object(-1, it->second.dialog_ids_, "get_channel_recommendations"));
+      promise.set_value(td_->messages_manager_->get_chats_object(it->second.total_count_, it->second.dialog_ids_,
+                                                                 "get_channel_recommendations"));
       if (next_reload_time > Time::now()) {
         return;
       }
@@ -9721,12 +9737,13 @@ void ContactsManager::on_load_channel_recommendations_from_database(ChannelId ch
   auto promises = std::move(it->second);
   CHECK(!promises.empty());
   get_channel_recommendations_queries_.erase(it);
+  auto total_count = recommended_dialogs.total_count_;
   auto dialog_ids = recommended_dialogs.dialog_ids_;
   auto next_reload_time = recommended_dialogs.next_reload_time_;
   for (auto &promise : promises) {
     if (promise) {
-      promise.set_value(
-          td_->messages_manager_->get_chats_object(-1, dialog_ids, "on_load_channel_recommendations_from_database"));
+      promise.set_value(td_->messages_manager_->get_chats_object(total_count, dialog_ids,
+                                                                 "on_load_channel_recommendations_from_database"));
     }
   }
   if (next_reload_time <= Time::now()) {
@@ -9735,15 +9752,16 @@ void ContactsManager::on_load_channel_recommendations_from_database(ChannelId ch
 }
 
 void ContactsManager::reload_channel_recommendations(ChannelId channel_id) {
-  auto query_promise = PromiseCreator::lambda(
-      [actor_id = actor_id(this), channel_id](Result<vector<tl_object_ptr<telegram_api::Chat>>> &&result) {
+  auto query_promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), channel_id](
+                                 Result<std::pair<int32, vector<tl_object_ptr<telegram_api::Chat>>>> &&result) {
         send_closure(actor_id, &ContactsManager::on_get_channel_recommendations, channel_id, std::move(result));
       });
   td_->create_handler<GetChannelRecommendationsQuery>(std::move(query_promise))->send(channel_id);
 }
 
-void ContactsManager::on_get_channel_recommendations(ChannelId channel_id,
-                                                     Result<vector<tl_object_ptr<telegram_api::Chat>>> &&r_chats) {
+void ContactsManager::on_get_channel_recommendations(
+    ChannelId channel_id, Result<std::pair<int32, vector<tl_object_ptr<telegram_api::Chat>>>> &&r_chats) {
   G()->ignore_result_if_closing(r_chats);
 
   auto it = get_channel_recommendations_queries_.find(channel_id);
@@ -9756,16 +9774,26 @@ void ContactsManager::on_get_channel_recommendations(ChannelId channel_id,
     return fail_promises(promises, r_chats.move_as_error());
   }
 
-  auto channel_ids = get_channel_ids(r_chats.move_as_ok(), "on_get_channel_recommendations");
+  auto chats = r_chats.move_as_ok();
+  auto total_count = chats.first;
+  auto channel_ids = get_channel_ids(std::move(chats.second), "on_get_channel_recommendations");
   vector<DialogId> dialog_ids;
+  if (total_count < static_cast<int32>(channel_ids.size())) {
+    LOG(ERROR) << "Receive total_count = " << total_count << " and " << channel_ids.size() << " similar chats for "
+               << channel_id;
+    total_count = static_cast<int32>(channel_ids.size());
+  }
   for (auto recommended_channel_id : channel_ids) {
     auto recommended_dialog_id = DialogId(recommended_channel_id);
     td_->messages_manager_->force_create_dialog(recommended_dialog_id, "on_get_channel_recommendations");
     if (is_suitable_recommended_channel(recommended_channel_id)) {
       dialog_ids.push_back(recommended_dialog_id);
+    } else {
+      total_count--;
     }
   }
   auto &recommended_dialogs = channel_recommended_dialogs_[channel_id];
+  recommended_dialogs.total_count_ = total_count;
   recommended_dialogs.dialog_ids_ = dialog_ids;
   recommended_dialogs.next_reload_time_ = Time::now() + CHANNEL_RECOMMENDATIONS_CACHE_TIME;
 
@@ -9776,7 +9804,8 @@ void ContactsManager::on_get_channel_recommendations(ChannelId channel_id,
 
   for (auto &promise : promises) {
     if (promise) {
-      promise.set_value(td_->messages_manager_->get_chats_object(-1, dialog_ids, "on_get_channel_recommendations"));
+      promise.set_value(
+          td_->messages_manager_->get_chats_object(total_count, dialog_ids, "on_get_channel_recommendations"));
     }
   }
 }
