@@ -71,13 +71,13 @@ static td::string gen_http_content() {
   return td::rand_string(std::numeric_limits<char>::min(), std::numeric_limits<char>::max(), len);
 }
 
-static td::string make_http_query(td::string content, bool is_json, bool is_chunked, bool is_gzip, double gzip_k = 5,
-                                  td::string zip_override = td::string()) {
+static td::string make_http_query(td::string content, td::string content_type, bool is_chunked, bool is_gzip,
+                                  double gzip_k = 5, td::string zip_override = td::string()) {
   td::HttpHeaderCreator hc;
   hc.init_post("/");
   hc.add_header("jfkdlsahhjk", td::rand_string('a', 'z', td::Random::fast(1, 2000)));
-  if (is_json) {
-    hc.add_header("content-type", "application/json");
+  if (!content_type.empty()) {
+    hc.add_header("content-type", content_type);
   }
   if (is_gzip) {
     td::BufferSlice zip;
@@ -105,7 +105,7 @@ static td::string make_http_query(td::string content, bool is_json, bool is_chun
 static td::string rand_http_query(td::string content) {
   bool is_chunked = td::Random::fast_bool();
   bool is_gzip = td::Random::fast_bool();
-  return make_http_query(std::move(content), false, is_chunked, is_gzip);
+  return make_http_query(std::move(content), td::string(), is_chunked, is_gzip);
 }
 
 static td::string join(const td::vector<td::string> &v) {
@@ -220,7 +220,7 @@ TEST(Http, gzip_bomb) {
           .as_slice()
           .str();
 
-  auto query = make_http_query("", false, false, true, 0.01, gzip_bomb_str);
+  auto query = make_http_query(td::string(), td::string(), false, true, 0.01, gzip_bomb_str);
   auto parts = td::rand_split(query);
   td::ChainBufferWriter input_writer;
   auto input = input_writer.extract_reader();
@@ -248,7 +248,7 @@ TEST(Http, gzip) {
   td::HttpReader reader;
   reader.init(&input, 0, 0);
 
-  auto query = make_http_query("", true, false, true, 0.01, gzip_str);
+  auto query = make_http_query(td::string(), "application/json", false, true, 0.01, gzip_str);
   input_writer.append(query);
   input.sync_with_writer();
 
@@ -442,7 +442,7 @@ TEST(Http, gzip_bomb_with_limit) {
     gzip_bomb_str = sink.result()->move_as_buffer_slice().as_slice().str();
   }
 
-  auto query = make_http_query("", false, false, true, 0.01, gzip_bomb_str);
+  auto query = make_http_query(td::string(), td::string(), false, true, 0.01, gzip_bomb_str);
   auto parts = td::rand_split(query);
   td::ChainBufferWriter input_writer;
   auto input = input_writer.extract_reader();
