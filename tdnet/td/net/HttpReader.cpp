@@ -30,7 +30,7 @@ void HttpReader::init(ChainBufferReader *input, size_t max_post_size, size_t max
   input_ = input;
   state_ = State::ReadHeaders;
   headers_read_length_ = 0;
-  content_length_ = 0;
+  content_length_ = -1;
   query_ = nullptr;
   max_post_size_ = max_post_size;
   max_files_ = max_files;
@@ -75,14 +75,14 @@ Result<size_t> HttpReader::do_read_next(bool can_be_slow) {
         if (result.is_error() || result.ok() != 0) {
           return result;
         }
-        if (transfer_encoding_.empty() && content_length_ == 0) {
+        if (transfer_encoding_.empty() && content_length_ <= 0) {
           break;
         }
 
         flow_source_ = ByteFlowSource(input_);
         ByteFlowInterface *source = &flow_source_;
         if (transfer_encoding_.empty()) {
-          content_length_flow_ = HttpContentLengthByteFlow(content_length_);
+          content_length_flow_ = HttpContentLengthByteFlow(narrow_cast<size_t>(content_length_));
           *source >> content_length_flow_;
           source = &content_length_flow_;
         } else if (transfer_encoding_ == "chunked") {
@@ -113,7 +113,7 @@ Result<size_t> HttpReader::do_read_next(bool can_be_slow) {
         *source >> flow_sink_;
         content_ = flow_sink_.get_output();
 
-        if (content_length_ >= MAX_CONTENT_SIZE) {
+        if (content_length_ >= static_cast<int64>(MAX_CONTENT_SIZE)) {
           return Status::Error(413, PSLICE() << "Request Entity Too Large: content length is " << content_length_);
         }
 
@@ -573,7 +573,7 @@ void HttpReader::process_header(MutableSlice header_name, MutableSlice header_va
     if (content_length > MAX_CONTENT_SIZE) {
       content_length = MAX_CONTENT_SIZE;
     }
-    content_length_ = static_cast<size_t>(content_length);
+    content_length_ = static_cast<int64>(content_length);
   } else if (header_name == "connection") {
     to_lower_inplace(header_value);
     if (header_value == "close") {
@@ -758,7 +758,7 @@ Status HttpReader::parse_head(MutableSlice head) {
   parser.skip('\r');
   parser.skip('\n');
 
-  content_length_ = 0;
+  content_length_ = -1;
   content_type_ = Slice("application/octet-stream");
   content_type_lowercased_ = content_type_.str();
   transfer_encoding_ = Slice();

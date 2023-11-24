@@ -27,6 +27,7 @@ class HttpReader {
  public:
   void init(ChainBufferReader *input, size_t max_post_size = std::numeric_limits<size_t>::max(),
             size_t max_files = 100);
+
   Result<size_t> read_next(HttpQuery *query, bool can_be_slow = true) TD_WARN_UNUSED_RESULT;  // TODO move query to init
 
   HttpReader() = default;
@@ -49,7 +50,7 @@ class HttpReader {
   enum class State { ReadHeaders, ReadContent, ReadContentToFile, ReadArgs, ReadMultipartFormData };
   State state_ = State::ReadHeaders;
   size_t headers_read_length_ = 0;
-  size_t content_length_ = 0;
+  int64 content_length_ = -1;
   ChainBufferReader *input_ = nullptr;
   ByteFlowSource flow_source_;
   HttpChunkedByteFlow chunked_flow_;
