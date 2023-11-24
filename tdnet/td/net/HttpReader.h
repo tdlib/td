@@ -87,6 +87,8 @@ class HttpReader {
   string temp_file_name_;
   int64 file_size_ = 0;
 
+  Result<size_t> do_read_next(bool can_be_slow);
+
   Result<size_t> split_header() TD_WARN_UNUSED_RESULT;
   void process_header(MutableSlice header_name, MutableSlice header_value);
   Result<bool> parse_multipart_form_data(bool can_be_slow) TD_WARN_UNUSED_RESULT;

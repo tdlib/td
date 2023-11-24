@@ -43,6 +43,16 @@ Result<size_t> HttpReader::read_next(HttpQuery *query, bool can_be_slow) {
     CHECK(query_ == nullptr);
     query_ = query;
   }
+
+  auto r_size = do_read_next(can_be_slow);
+  if (state_ != State::ReadHeaders && flow_sink_.is_ready() && r_size.is_ok() && r_size.ok() > 0) {
+    CHECK(flow_sink_.status().is_ok());
+    return Status::Error(400, "Bad Request: unexpected end of request content");
+  }
+  return r_size;
+}
+
+Result<size_t> HttpReader::do_read_next(bool can_be_slow) {
   size_t need_size = input_->size() + 1;
   while (true) {
     if (state_ != State::ReadHeaders) {

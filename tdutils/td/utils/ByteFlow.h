@@ -25,6 +25,7 @@ class ByteFlowInterface {
   virtual size_t get_write_size() = 0;
   virtual void reset_need_size() {
   }
+
   ByteFlowInterface() = default;
   ByteFlowInterface(const ByteFlowInterface &) = delete;
   ByteFlowInterface &operator=(const ByteFlowInterface &) = delete;
@@ -139,6 +140,7 @@ class ByteFlowBaseCommon : public ByteFlowInterface {
   bool can_read{true};
   bool can_write{true};
   Options options_;
+
   void finish(Status status) {
     stop_flag_ = true;
     need_size_ = 0;
