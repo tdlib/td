@@ -1425,21 +1425,21 @@ notificationSettingsScopeChannelChats = NotificationSettingsScope;
 
 
 //@description Contains information about notification settings for a chat or a forum topic
-//@use_default_mute_for If true, mute_for is ignored and the value for the relevant type of chat or the forum chat is used instead
+//@use_default_mute_for If true, the value for the relevant type of chat or the forum chat is used instead of mute_for
 //@mute_for Time left before notifications will be unmuted, in seconds
 //@use_default_sound If true, the value for the relevant type of chat or the forum chat is used instead of sound_id
 //@sound_id Identifier of the notification sound to be played for messages; 0 if sound is disabled
-//@use_default_show_preview If true, show_preview is ignored and the value for the relevant type of chat or the forum chat is used instead
+//@use_default_show_preview If true, the value for the relevant type of chat or the forum chat is used instead of show_preview
 //@show_preview True, if message content must be displayed in notifications
-//@use_default_mute_stories If true, mute_stories is ignored and the value for the relevant type of chat is used instead
+//@use_default_mute_stories If true, the value for the relevant type of chat is used instead of mute_stories
 //@mute_stories True, if story notifications are disabled for the chat
 //@use_default_story_sound If true, the value for the relevant type of chat is used instead of story_sound_id
 //@story_sound_id Identifier of the notification sound to be played for stories; 0 if sound is disabled
-//@use_default_show_story_sender If true, show_story_sender is ignored and the value for the relevant type of chat is used instead
+//@use_default_show_story_sender If true, the value for the relevant type of chat is used instead of show_story_sender
 //@show_story_sender True, if the sender of stories must be displayed in notifications
-//@use_default_disable_pinned_message_notifications If true, disable_pinned_message_notifications is ignored and the value for the relevant type of chat or the forum chat is used instead
+//@use_default_disable_pinned_message_notifications If true, the value for the relevant type of chat or the forum chat is used instead of disable_pinned_message_notifications
 //@disable_pinned_message_notifications If true, notifications for incoming pinned messages will be created as for an ordinary unread message
-//@use_default_disable_mention_notifications If true, disable_mention_notifications is ignored and the value for the relevant type of chat or the forum chat is used instead
+//@use_default_disable_mention_notifications If true, the value for the relevant type of chat or the forum chat is used instead of disable_mention_notifications
 //@disable_mention_notifications If true, notifications for messages with mentions will be created as for an ordinary unread message
 chatNotificationSettings use_default_mute_for:Bool mute_for:int32 use_default_sound:Bool sound_id:int64 use_default_show_preview:Bool show_preview:Bool use_default_mute_stories:Bool mute_stories:Bool use_default_story_sound:Bool story_sound_id:int64 use_default_show_story_sender:Bool show_story_sender:Bool use_default_disable_pinned_message_notifications:Bool disable_pinned_message_notifications:Bool use_default_disable_mention_notifications:Bool disable_mention_notifications:Bool = ChatNotificationSettings;
 
@@ -1447,8 +1447,8 @@ chatNotificationSettings use_default_mute_for:Bool mute_for:int32 use_default_so
 //@mute_for Time left before notifications will be unmuted, in seconds
 //@sound_id Identifier of the notification sound to be played; 0 if sound is disabled
 //@show_preview True, if message content must be displayed in notifications
-//@use_default_mute_stories If true, mute_stories is ignored and story notifications are received only for the first 5 chats from topChatCategoryUsers
-//@mute_stories True, if story notifications are disabled for the chat
+//@use_default_mute_stories If true, story notifications are received only for the first 5 chats from topChatCategoryUsers regardless of the value of mute_stories
+//@mute_stories True, if story notifications are disabled
 //@story_sound_id Identifier of the notification sound to be played for stories; 0 if sound is disabled
 //@show_story_sender True, if the sender of stories must be displayed in notifications
 //@disable_pinned_message_notifications True, if notifications for incoming pinned messages will be created as for an ordinary unread message
