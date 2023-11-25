@@ -19416,9 +19416,6 @@ Status MessagesManager::toggle_dialog_is_translatable(DialogId dialog_id, bool i
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
     return Status::Error(400, "Can't access the chat");
   }
-  if (!td_->option_manager_->get_option_boolean("is_premium")) {
-    return Status::Error(400, "The method is available to Telegram Premium users only");
-  }
 
   if (is_translatable == d->is_translatable) {
     return Status::OK();

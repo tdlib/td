@@ -7711,7 +7711,7 @@ setChatNotificationSettings chat_id:int53 notification_settings:chatNotification
 //@has_protected_content New value of has_protected_content
 toggleChatHasProtectedContent chat_id:int53 has_protected_content:Bool = Ok;
 
-//@description Changes the translatable state of a chat; for Telegram Premium users only @chat_id Chat identifier @is_translatable New value of is_translatable
+//@description Changes the translatable state of a chat @chat_id Chat identifier @is_translatable New value of is_translatable
 toggleChatIsTranslatable chat_id:int53 is_translatable:Bool = Ok;
 
 //@description Changes the marked as unread state of a chat @chat_id Chat identifier @is_marked_as_unread New value of is_marked_as_unread
