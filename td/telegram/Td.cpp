@@ -4964,10 +4964,10 @@ void Td::on_request(uint64 id, td_api::optimizeStorage &request) {
 
 void Td::on_request(uint64 id, td_api::getNetworkStatistics &request) {
   if (net_stats_manager_.empty()) {
-    return send_error_raw(id, 400, "Network statistics is disabled");
+    return send_error_raw(id, 400, "Network statistics are disabled");
   }
   if (!request.only_current_ && G()->get_option_boolean("disable_persistent_network_statistics")) {
-    return send_error_raw(id, 400, "Persistent network statistics is disabled");
+    return send_error_raw(id, 400, "Persistent network statistics are disabled");
   }
   CREATE_REQUEST_PROMISE();
   auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<NetworkStats> result) mutable {
@@ -4983,7 +4983,7 @@ void Td::on_request(uint64 id, td_api::getNetworkStatistics &request) {
 
 void Td::on_request(uint64 id, td_api::resetNetworkStatistics &request) {
   if (net_stats_manager_.empty()) {
-    return send_error_raw(id, 400, "Network statistics is disabled");
+    return send_error_raw(id, 400, "Network statistics are disabled");
   }
   CREATE_OK_REQUEST_PROMISE();
   send_closure(net_stats_manager_, &NetStatsManager::reset_network_stats);
@@ -4995,7 +4995,7 @@ void Td::on_request(uint64 id, td_api::addNetworkStatistics &request) {
     return send_error_raw(id, 400, "Network statistics entry must be non-empty");
   }
   if (net_stats_manager_.empty()) {
-    return send_error_raw(id, 400, "Network statistics is disabled");
+    return send_error_raw(id, 400, "Network statistics are disabled");
   }
 
   NetworkStatsEntry entry;

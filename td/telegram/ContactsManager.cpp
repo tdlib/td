@@ -8451,7 +8451,7 @@ void ContactsManager::get_channel_statistics_dc_id_impl(ChannelId channel_id, bo
   }
 
   if (!channel_full->stats_dc_id.is_exact() || (for_full_statistics && !channel_full->can_view_statistics)) {
-    return promise.set_error(Status::Error(400, "Chat statistics is not available"));
+    return promise.set_error(Status::Error(400, "Chat statistics are not available"));
   }
 
   promise.set_value(DcId(channel_full->stats_dc_id));

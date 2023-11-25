@@ -41,7 +41,7 @@ static std::atomic<std::size_t> total_memory_used;
 void register_xalloc(malloc_info *info, std::int32_t diff) {
   my_assert(info->size >= 0);
   // TODO: this is very slow in case of several threads.
-  // Currently this statistics is intended only for memory benchmarks.
+  // Currently, the statistics are intended only for memory benchmarks.
   total_memory_used.fetch_add(diff * info->size, std::memory_order_relaxed);
 }
 

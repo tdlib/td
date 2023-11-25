@@ -417,7 +417,7 @@ void StatisticsManager::send_get_channel_message_stats_query(
     return promise.set_error(Status::Error(400, "Message not found"));
   }
   if (!td_->messages_manager_->can_get_message_statistics(message_full_id)) {
-    return promise.set_error(Status::Error(400, "Message statistics is inaccessible"));
+    return promise.set_error(Status::Error(400, "Message statistics are inaccessible"));
   }
   CHECK(dialog_id.get_type() == DialogType::Channel);
   td_->create_handler<GetMessageStatsQuery>(std::move(promise))
