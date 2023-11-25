@@ -5696,16 +5696,16 @@ autosaveSettings private_chat_settings:scopeAutosaveSettings group_settings:scop
 
 //@class ConnectionState @description Describes the current state of the connection to Telegram servers
 
-//@description Currently waiting for the network to become available. Use setNetworkType to change the available network type
+//@description Waiting for the network to become available. Use setNetworkType to change the available network type
 connectionStateWaitingForNetwork = ConnectionState;
 
-//@description Currently establishing a connection with a proxy server
+//@description Establishing a connection with a proxy server
 connectionStateConnectingToProxy = ConnectionState;
 
-//@description Currently establishing a connection to the Telegram servers
+//@description Establishing a connection to the Telegram servers
 connectionStateConnecting = ConnectionState;
 
-//@description Downloading data received while the application was offline
+//@description Downloading data supposed to be received while the application was offline
 connectionStateUpdating = ConnectionState;
 
 //@description There is a working connection to the Telegram servers

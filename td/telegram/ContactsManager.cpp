@@ -15022,7 +15022,7 @@ void ContactsManager::speculative_delete_channel_participant(ChannelId channel_i
 void ContactsManager::speculative_add_channel_participant_count(ChannelId channel_id, int32 delta_participant_count,
                                                                 bool by_me) {
   if (by_me) {
-    // Currently ignore all changes made by the current user, because they may be already counted
+    // Currently, ignore all changes made by the current user, because they may have been already counted
     invalidate_channel_full(channel_id, false, "speculative_add_channel_participant_count");  // just in case
     return;
   }
