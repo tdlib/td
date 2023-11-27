@@ -30,6 +30,8 @@ class ThemeManager final : public Actor {
 
   void on_update_theme(telegram_api::object_ptr<telegram_api::theme> &&theme, Promise<Unit> &&promise);
 
+  void reload_chat_themes();
+
   void on_update_accent_colors(FlatHashMap<AccentColorId, vector<int32>, AccentColorIdHash> light_colors,
                                FlatHashMap<AccentColorId, vector<int32>, AccentColorIdHash> dark_colors,
                                vector<AccentColorId> accent_color_ids);
@@ -45,8 +47,6 @@ class ThemeManager final : public Actor {
  private:
   // apeend-only
   enum class BaseTheme : int32 { Classic, Day, Night, Tinted, Arctic };
-
-  static constexpr int32 THEME_CACHE_TIME = 3600;
 
   struct ThemeSettings {
     int32 accent_color = 0;
@@ -82,7 +82,6 @@ class ThemeManager final : public Actor {
 
   struct ChatThemes {
     int64 hash = 0;
-    double next_reload_time = 0;
     vector<ChatTheme> themes;
 
     template <class StorerT>
@@ -107,8 +106,6 @@ class ThemeManager final : public Actor {
   };
 
   void start_up() final;
-
-  void loop() final;
 
   void tear_down() final;
 

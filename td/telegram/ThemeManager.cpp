@@ -204,7 +204,6 @@ void ThemeManager::load_chat_themes() {  // must not be called in constructor, b
       chat_themes_ = ChatThemes();
     }
   }
-  chat_themes_.next_reload_time = Time::now();
 }
 
 void ThemeManager::load_accent_colors() {
@@ -231,23 +230,6 @@ void ThemeManager::init() {
 
 void ThemeManager::tear_down() {
   parent_.reset();
-}
-
-void ThemeManager::loop() {
-  if (!td_->auth_manager_->is_authorized() || td_->auth_manager_->is_bot()) {
-    return;
-  }
-
-  if (Time::now() < chat_themes_.next_reload_time) {
-    return set_timeout_at(chat_themes_.next_reload_time);
-  }
-
-  auto request_promise = PromiseCreator::lambda(
-      [actor_id = actor_id(this)](Result<telegram_api::object_ptr<telegram_api::account_Themes>> result) {
-        send_closure(actor_id, &ThemeManager::on_get_chat_themes, std::move(result));
-      });
-
-  td_->create_handler<GetChatThemesQuery>(std::move(request_promise))->send(chat_themes_.hash);
 }
 
 bool ThemeManager::is_dark_base_theme(BaseTheme base_theme) {
@@ -491,14 +473,19 @@ void ThemeManager::send_update_accent_colors() const {
   send_closure(G()->td(), &Td::send_update, get_update_accent_colors_object());
 }
 
+void ThemeManager::reload_chat_themes() {
+  auto request_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this)](Result<telegram_api::object_ptr<telegram_api::account_Themes>> result) {
+        send_closure(actor_id, &ThemeManager::on_get_chat_themes, std::move(result));
+      });
+
+  td_->create_handler<GetChatThemesQuery>(std::move(request_promise))->send(chat_themes_.hash);
+}
+
 void ThemeManager::on_get_chat_themes(Result<telegram_api::object_ptr<telegram_api::account_Themes>> result) {
   if (result.is_error()) {
-    set_timeout_in(Random::fast(40, 60));
     return;
   }
-
-  chat_themes_.next_reload_time = Time::now() + THEME_CACHE_TIME;
-  set_timeout_at(chat_themes_.next_reload_time);
 
   auto chat_themes_ptr = result.move_as_ok();
   LOG(DEBUG) << "Receive " << to_string(chat_themes_ptr);
