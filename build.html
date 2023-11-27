@@ -740,7 +740,7 @@ function onOptionsChanged() {
     pre_text.push('Note that for Node.js &ge; 17 you must build TDLib with OpenSSL 3.0.*, for Node.js &ge; 10 with OpenSSL 1.1.*, and for Node.js &lt; 10 with OpenSSL 1.0.*, so you may need to modify the following commands to install a proper OpenSSL version.');
   }
   if (os_freebsd) {
-    pre_text.push('Note that the following instruction is for FreeBSD 11.');
+    pre_text.push('Note that the following instruction is for FreeBSD 13.');
     pre_text.push('Note that the following calls to <code>pkg</code> needs to be run as <code>root</code>.');
   }
   if (os_openbsd) {
@@ -896,9 +896,9 @@ function onOptionsChanged() {
     }
   } else if (os_freebsd) {
     commands.push(sudo + 'pkg upgrade');
-    var packages = 'git gperf php72 cmake';
+    var packages = 'git gperf php83 cmake';
     if (target === 'JNI') {
-      packages += ' openjdk';
+      packages += ' openjdk21';
     }
     commands.push(sudo + 'pkg install ' + packages);
   } else if (os_openbsd) {
