@@ -26,6 +26,18 @@
 
 namespace td {
 
+static bool are_colors_valid(const vector<int32> &colors, size_t min_size, size_t max_size) {
+  if (min_size > colors.size() || colors.size() > max_size) {
+    return false;
+  }
+  for (auto &color : colors) {
+    if (color < 0 || color > 0xFFFFFF) {
+      return false;
+    }
+  }
+  return true;
+}
+
 class GetChatThemesQuery final : public Td::ResultHandler {
   Promise<telegram_api::object_ptr<telegram_api::account_Themes>> promise_;
 
@@ -637,6 +649,8 @@ td_api::object_ptr<td_api::updateAccentColors> ThemeManager::AccentColors::get_u
     auto light_colors = it.second;
     auto dark_it = dark_colors_.find(it.first);
     auto dark_colors = dark_it != dark_colors_.end() ? dark_it->second : light_colors;
+    CHECK(!light_colors.empty());
+    CHECK(!dark_colors.empty());
     auto first_color = light_colors[0];
     int best_index = 0;
     int32 best_distance = get_distance(base_colors[0], first_color);
@@ -657,6 +671,11 @@ td_api::object_ptr<td_api::updateAccentColors> ThemeManager::AccentColors::get_u
 
 td_api::object_ptr<td_api::updateProfileAccentColors> ThemeManager::get_update_profile_accent_colors_object() const {
   return profile_accent_colors_.get_update_profile_accent_colors_object();
+}
+
+bool ThemeManager::ProfileAccentColor::is_valid() const {
+  return are_colors_valid(palette_colors_, 1, 2) && are_colors_valid(background_colors_, 1, 2) &&
+         are_colors_valid(story_colors_, 2, 2);
 }
 
 td_api::object_ptr<td_api::profileAccentColors> ThemeManager::ProfileAccentColor::get_profile_accent_colors_object()
@@ -822,16 +841,35 @@ void ThemeManager::on_get_accent_colors(Result<telegram_api::object_ptr<telegram
       LOG(ERROR) << "Receive " << to_string(option);
       continue;
     }
-    if (!option->hidden_) {
-      accent_color_ids.push_back(accent_color_id);
-    }
+    bool is_valid = true;
+    vector<int32> current_light_colors;
+    vector<int32> current_dark_colors;
     if (option->colors_ != nullptr) {
       auto colors = telegram_api::move_object_as<telegram_api::help_peerColorSet>(option->colors_);
-      light_colors[accent_color_id] = std::move(colors->colors_);
+      current_light_colors = std::move(colors->colors_);
+      if (!are_colors_valid(current_light_colors, 1, 3)) {
+        is_valid = false;
+      }
     }
     if (option->dark_colors_ != nullptr) {
       auto colors = telegram_api::move_object_as<telegram_api::help_peerColorSet>(option->dark_colors_);
-      dark_colors[accent_color_id] = std::move(colors->colors_);
+      current_dark_colors = std::move(colors->colors_);
+      if (!are_colors_valid(current_dark_colors, 1, 3)) {
+        is_valid = false;
+      }
+    }
+    if (!is_valid) {
+      LOG(ERROR) << "Receive invalid colors for " << accent_color_id;
+      continue;
+    }
+    if (!option->hidden_) {
+      accent_color_ids.push_back(accent_color_id);
+    }
+    if (!current_light_colors.empty()) {
+      light_colors[accent_color_id] = std::move(current_light_colors);
+    }
+    if (!current_dark_colors.empty()) {
+      dark_colors[accent_color_id] = std::move(current_dark_colors);
     }
   }
 
@@ -892,11 +930,17 @@ void ThemeManager::on_get_profile_accent_colors(
       LOG(ERROR) << "Receive " << to_string(option);
       continue;
     }
+    auto current_light_color = get_profile_accent_color(std::move(option->colors_));
+    auto current_dark_color = get_profile_accent_color(std::move(option->dark_colors_));
+    if (!current_light_color.is_valid() || !current_dark_color.is_valid()) {
+      LOG(ERROR) << "Receive invalid colors for " << accent_color_id;
+      continue;
+    }
     if (!option->hidden_) {
       accent_color_ids.push_back(accent_color_id);
     }
-    light_colors[accent_color_id] = get_profile_accent_color(std::move(option->colors_));
-    dark_colors[accent_color_id] = get_profile_accent_color(std::move(option->dark_colors_));
+    light_colors[accent_color_id] = std::move(current_light_color);
+    dark_colors[accent_color_id] = std::move(current_dark_color);
   }
 
   bool is_changed = false;

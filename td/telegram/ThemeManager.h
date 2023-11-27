@@ -113,6 +113,8 @@ class ThemeManager final : public Actor {
     vector<int32> background_colors_;
     vector<int32> story_colors_;
 
+    bool is_valid() const;
+
     td_api::object_ptr<td_api::profileAccentColors> get_profile_accent_colors_object() const;
 
     template <class StorerT>
