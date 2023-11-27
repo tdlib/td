@@ -52,6 +52,32 @@ class GetChatThemesQuery final : public Td::ResultHandler {
   }
 };
 
+class GetPeerColorsQuery final : public Td::ResultHandler {
+  Promise<telegram_api::object_ptr<telegram_api::help_PeerColors>> promise_;
+
+ public:
+  explicit GetPeerColorsQuery(Promise<telegram_api::object_ptr<telegram_api::help_PeerColors>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(int32 hash) {
+    send_query(G()->net_query_creator().create(telegram_api::help_getPeerColors(hash)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::help_getPeerColors>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(result_ptr.move_as_ok());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 bool operator==(const ThemeManager::ThemeSettings &lhs, const ThemeManager::ThemeSettings &rhs) {
   return lhs.accent_color == rhs.accent_color && lhs.message_accent_color == rhs.message_accent_color &&
          lhs.background_info == rhs.background_info && lhs.base_theme == rhs.base_theme &&
@@ -140,7 +166,9 @@ void ThemeManager::ChatThemes::parse(ParserT &parser) {
 
 template <class StorerT>
 void ThemeManager::AccentColors::store(StorerT &storer) const {
+  bool has_hash = hash_ != 0;
   BEGIN_STORE_FLAGS();
+  STORE_FLAG(has_hash);
   END_STORE_FLAGS();
   td::store(static_cast<int32>(light_colors_.size()), storer);
   for (auto &it : light_colors_) {
@@ -153,11 +181,16 @@ void ThemeManager::AccentColors::store(StorerT &storer) const {
     td::store(it.second, storer);
   }
   td::store(accent_color_ids_, storer);
+  if (has_hash) {
+    td::store(hash_, storer);
+  }
 }
 
 template <class ParserT>
 void ThemeManager::AccentColors::parse(ParserT &parser) {
+  bool has_hash;
   BEGIN_PARSE_FLAGS();
+  PARSE_FLAG(has_hash);
   END_PARSE_FLAGS();
   int32 size;
   td::parse(size, parser);
@@ -179,6 +212,9 @@ void ThemeManager::AccentColors::parse(ParserT &parser) {
     dark_colors_.emplace(accent_color_id, std::move(colors));
   }
   td::parse(accent_color_ids_, parser);
+  if (has_hash) {
+    td::parse(hash_, parser);
+  }
 }
 
 ThemeManager::ThemeManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
@@ -225,7 +261,14 @@ void ThemeManager::load_accent_colors() {
 
 void ThemeManager::init() {
   load_chat_themes();
-  loop();
+  if (td_->auth_manager_->is_authorized() && !td_->auth_manager_->is_bot()) {
+    if (chat_themes_.hash == 0) {
+      reload_chat_themes();
+    }
+    if (accent_colors_.hash_ == 0) {
+      reload_accent_colors();
+    }
+  }
 }
 
 void ThemeManager::tear_down() {
@@ -286,7 +329,7 @@ void ThemeManager::on_update_theme(telegram_api::object_ptr<telegram_api::theme>
   promise.set_value(Unit());
 }
 
-void ThemeManager::on_update_accent_colors(FlatHashMap<AccentColorId, vector<int32>, AccentColorIdHash> light_colors,
+bool ThemeManager::on_update_accent_colors(FlatHashMap<AccentColorId, vector<int32>, AccentColorIdHash> light_colors,
                                            FlatHashMap<AccentColorId, vector<int32>, AccentColorIdHash> dark_colors,
                                            vector<AccentColorId> accent_color_ids) {
   auto are_equal = [](const FlatHashMap<AccentColorId, vector<int32>, AccentColorIdHash> &lhs,
@@ -301,7 +344,7 @@ void ThemeManager::on_update_accent_colors(FlatHashMap<AccentColorId, vector<int
   };
   if (accent_color_ids == accent_colors_.accent_color_ids_ && are_equal(light_colors, accent_colors_.light_colors_) &&
       are_equal(dark_colors, accent_colors_.dark_colors_)) {
-    return;
+    return false;
   }
   for (auto &it : light_colors) {
     accent_colors_.light_colors_[it.first] = std::move(it.second);
@@ -313,6 +356,7 @@ void ThemeManager::on_update_accent_colors(FlatHashMap<AccentColorId, vector<int
 
   save_accent_colors();
   send_update_accent_colors();
+  return true;
 }
 
 namespace {
@@ -536,6 +580,67 @@ void ThemeManager::on_get_chat_themes(Result<telegram_api::object_ptr<telegram_a
 
   save_chat_themes();
   send_update_chat_themes();
+}
+
+void ThemeManager::reload_accent_colors() {
+  auto request_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this)](Result<telegram_api::object_ptr<telegram_api::help_PeerColors>> result) {
+        send_closure(actor_id, &ThemeManager::on_get_accent_colors, std::move(result));
+      });
+
+  td_->create_handler<GetPeerColorsQuery>(std::move(request_promise))->send(accent_colors_.hash_);
+}
+
+void ThemeManager::on_get_accent_colors(Result<telegram_api::object_ptr<telegram_api::help_PeerColors>> result) {
+  if (result.is_error()) {
+    return;
+  }
+
+  auto peer_colors_ptr = result.move_as_ok();
+  LOG(DEBUG) << "Receive " << to_string(peer_colors_ptr);
+  if (peer_colors_ptr->get_id() == telegram_api::help_peerColorsNotModified::ID) {
+    return;
+  }
+  CHECK(peer_colors_ptr->get_id() == telegram_api::help_peerColors::ID);
+  auto peer_colors = telegram_api::move_object_as<telegram_api::help_peerColors>(peer_colors_ptr);
+  FlatHashMap<AccentColorId, vector<int32>, AccentColorIdHash> light_colors;
+  FlatHashMap<AccentColorId, vector<int32>, AccentColorIdHash> dark_colors;
+  vector<AccentColorId> accent_color_ids;
+  for (auto &option : peer_colors->colors_) {
+    if ((option->colors_ != nullptr && option->colors_->get_id() != telegram_api::help_peerColorSet::ID) ||
+        (option->dark_colors_ != nullptr && option->dark_colors_->get_id() != telegram_api::help_peerColorSet::ID)) {
+      LOG(ERROR) << "Receive " << to_string(option);
+      continue;
+    }
+    AccentColorId accent_color_id(option->color_id_);
+    if (!accent_color_id.is_valid() || td::contains(accent_color_ids, accent_color_id) ||
+        (accent_color_id.is_built_in() && (option->colors_ != nullptr || option->dark_colors_ != nullptr)) ||
+        (!accent_color_id.is_built_in() && option->colors_ == nullptr)) {
+      LOG(ERROR) << "Receive " << to_string(option);
+      continue;
+    }
+    if (!option->hidden_) {
+      accent_color_ids.push_back(accent_color_id);
+    }
+    if (option->colors_ != nullptr) {
+      auto colors = telegram_api::move_object_as<telegram_api::help_peerColorSet>(option->colors_);
+      light_colors[accent_color_id] = std::move(colors->colors_);
+    }
+    if (option->dark_colors_ != nullptr) {
+      auto colors = telegram_api::move_object_as<telegram_api::help_peerColorSet>(option->dark_colors_);
+      dark_colors[accent_color_id] = std::move(colors->colors_);
+    }
+  }
+
+  bool is_changed = false;
+  if (accent_colors_.hash_ != peer_colors->hash_) {
+    accent_colors_.hash_ = peer_colors->hash_;
+    is_changed = true;
+  }
+  if (!on_update_accent_colors(std::move(light_colors), std::move(dark_colors), std::move(accent_color_ids)) &&
+      is_changed) {
+    save_accent_colors();
+  }
 }
 
 ThemeManager::BaseTheme ThemeManager::get_base_theme(

@@ -1486,9 +1486,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   // bool archive_all_stories = false;
   int32 story_viewers_expire_period = 86400;
   int64 stories_changelog_user_id = ContactsManager::get_service_notifications_user_id().get();
-  FlatHashMap<AccentColorId, vector<int32>, AccentColorIdHash> light_colors;
-  FlatHashMap<AccentColorId, vector<int32>, AccentColorIdHash> dark_colors;
-  vector<AccentColorId> accent_color_ids;
   int32 transcribe_audio_trial_weekly_number = 0;
   int32 transcribe_audio_trial_duration_max = 0;
   int32 transcribe_audio_trial_cooldown_until = 0;
@@ -1958,62 +1955,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
                                 get_json_value_int(std::move(key_value->value_), key));
         continue;
       }
-      if (key == "peer_colors" || key == "dark_peer_colors") {
-        auto &color_map = key == "peer_colors" ? light_colors : dark_colors;
-        if (value->get_id() == telegram_api::jsonObject::ID) {
-          auto peer_color_ids = std::move(static_cast<telegram_api::jsonObject *>(value)->value_);
-          for (auto &peer_color_id : peer_color_ids) {
-            CHECK(peer_color_id != nullptr);
-            auto r_accent_color_id = to_integer_safe<int32>(peer_color_id->key_);
-            if (r_accent_color_id.is_error()) {
-              LOG(ERROR) << "Receive " << to_string(peer_color_id);
-              continue;
-            }
-            auto accent_color_id = AccentColorId(r_accent_color_id.ok());
-            if (!accent_color_id.is_valid() || accent_color_id.is_built_in() ||
-                peer_color_id->value_->get_id() != telegram_api::jsonArray::ID) {
-              LOG(ERROR) << "Receive " << to_string(peer_color_id);
-              continue;
-            }
-            auto &colors = color_map[accent_color_id];
-            if (!colors.empty()) {
-              LOG(ERROR) << "Receive duplicate " << accent_color_id;
-              continue;
-            }
-            auto colors_json = std::move(static_cast<telegram_api::jsonArray *>(peer_color_id->value_.get())->value_);
-            for (auto &color_json : colors_json) {
-              auto color_str = get_json_value_string(std::move(color_json), key);
-              auto r_color = hex_to_integer_safe<uint32>(color_str);
-              if (r_color.is_ok() && r_color.ok() <= 0xFFFFFF) {
-                colors.push_back(static_cast<int32>(r_color.ok()));
-              }
-            }
-            if (colors.empty() || colors.size() != colors_json.size()) {
-              LOG(ERROR) << "Receive invalid colors for " << accent_color_id;
-              color_map.erase(accent_color_id);
-            }
-          }
-        } else {
-          LOG(ERROR) << "Receive unexpected " << key << ' ' << to_string(*value);
-        }
-        continue;
-      }
-      if (key == "peer_colors_available") {
-        if (value->get_id() == telegram_api::jsonArray::ID) {
-          auto colors = std::move(static_cast<telegram_api::jsonArray *>(value)->value_);
-          for (auto &color : colors) {
-            auto accent_color_id = AccentColorId(get_json_value_int(std::move(color), key));
-            if (accent_color_id.is_valid() && !td::contains(accent_color_ids, accent_color_id)) {
-              accent_color_ids.push_back(accent_color_id);
-            } else {
-              LOG(ERROR) << "Receive an invalid accent color identifier";
-            }
-          }
-        } else {
-          LOG(ERROR) << "Receive unexpected peer_colors_available " << to_string(*value);
-        }
-        continue;
-      }
       if (key == "transcribe_audio_trial_weekly_number") {
         transcribe_audio_trial_weekly_number = get_json_value_int(std::move(key_value->value_), key);
         continue;
@@ -2036,16 +1977,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
 
   send_closure(G()->link_manager(), &LinkManager::update_autologin_domains, std::move(autologin_domains),
                std::move(url_auth_domains), std::move(whitelisted_domains));
-
-  td::remove_if(accent_color_ids, [&light_colors](AccentColorId accent_color_id) {
-    if (!accent_color_id.is_built_in() && light_colors.count(accent_color_id) == 0) {
-      LOG(ERROR) << "Receive unknown " << accent_color_id;
-      return true;
-    }
-    return false;
-  });
-  send_closure(G()->theme_manager(), &ThemeManager::on_update_accent_colors, std::move(light_colors),
-               std::move(dark_colors), std::move(accent_color_ids));
 
   send_closure(G()->transcription_manager(), &TranscriptionManager::on_update_trial_parameters,
                transcribe_audio_trial_weekly_number, transcribe_audio_trial_duration_max,
