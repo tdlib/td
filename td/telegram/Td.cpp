@@ -4085,9 +4085,11 @@ void Td::send_update(tl_object_ptr<td_api::Update> &&object) {
   }
 
   switch (object_id) {
+    case td_api::updateAccentColors::ID:
     case td_api::updateChatThemes::ID:
     case td_api::updateFavoriteStickers::ID:
     case td_api::updateInstalledStickerSets::ID:
+    case td_api::updateProfileAccentColors::ID:
     case td_api::updateRecentStickers::ID:
     case td_api::updateSavedAnimations::ID:
     case td_api::updateSavedNotificationSounds::ID:
