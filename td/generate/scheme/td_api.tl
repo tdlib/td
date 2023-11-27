@@ -750,6 +750,18 @@ premiumGiveawayInfoCompleted creation_date:int32 actual_winners_selection_date:i
 //@dark_theme_colors The list of 1-3 colors in RGB format, describing the accent color, as expected to be shown in dark themes
 accentColor id:int32 built_in_accent_color_id:int32 light_theme_colors:vector<int32> dark_theme_colors:vector<int32> = AccentColor;
 
+//@description Contains information about supported accent colors for user profile photo background in RGB format
+//@palette_colors The list of 1-2 colors in RGB format, describing the colors, as expected to be shown in the color palette settings
+//@background_colors The list of 1-2 colors in RGB format, describing the colors, as expected to be used for the profile photo background
+//@story_colors The list of 2 colors in RGB format, describing the colors of the gradient to be used for the unread active story indicator around profile photo
+profileAccentColors palette_colors:vector<int32> background_colors:vector<int32> story_colors:vector<int32> = ProfileAccentColors;
+
+//@description Contains information about supported accent color for user profile photo background
+//@id Profile accent color identifier
+//@light_theme_colors The list of 1-3 colors in RGB format, describing the accent color, as expected to be shown in light themes
+//@dark_theme_colors The list of 1-3 colors in RGB format, describing the accent color, as expected to be shown in dark themes
+profileAccentColor id:int32 light_theme_colors:profileAccentColors dark_theme_colors:profileAccentColors = ProfileAccentColor;
+
 //@description Describes a custom emoji to be shown instead of the Telegram Premium badge
 //@custom_emoji_id Identifier of the custom emoji in stickerFormatTgs format
 //@expiration_date Point in time (Unix timestamp) when the status will expire; 0 if never
@@ -4522,7 +4534,7 @@ premiumFeatureUpgradedStories = PremiumFeature;
 //@description The ability to boost chats
 premiumFeatureChatBoost = PremiumFeature;
 
-//@description The ability to choose accent color
+//@description The ability to choose accent color for replies and user profile
 premiumFeatureAccentColor = PremiumFeature;
 
 
@@ -6388,6 +6400,11 @@ updateChatThemes chat_themes:vector<chatTheme> = Update;
 //-and aren't included in the list. The exact colors for the accent colors with identifiers 0-6 must be taken from the app theme
 //@available_accent_color_ids The list of accent color identifiers, which can be set through setAccentColor and setChatAccentColor. The colors must be shown in the specififed order
 updateAccentColors colors:vector<accentColor> available_accent_color_ids:vector<int32> = Update;
+
+//@description The list of supported accent colors for user profiles has changed
+//@colors Information about supported colors
+//@available_accent_color_ids The list of accent color identifiers, which can be set through setProfileAccentColor. The colors must be shown in the specififed order
+updateProfileAccentColors colors:vector<profileAccentColor> available_accent_color_ids:vector<int32> = Update;
 
 //@description Some language pack strings have been updated @localization_target Localization target to which the language pack belongs @language_pack_id Identifier of the updated language pack @strings List of changed language pack strings; empty if all strings have changed
 updateLanguagePackStrings localization_target:string language_pack_id:string strings:vector<languagePackString> = Update;

@@ -2263,6 +2263,7 @@ void UpdatesManager::try_reload_data() {
   td_->story_manager_->reload_all_read_stories();
   td_->theme_manager_->reload_accent_colors();
   td_->theme_manager_->reload_chat_themes();
+  td_->theme_manager_->reload_profile_accent_colors();
 
   schedule_data_reload();
 }
