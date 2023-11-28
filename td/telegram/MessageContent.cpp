@@ -4018,6 +4018,17 @@ static bool need_message_entities_changed_warning(const vector<MessageEntity> &o
       new_pos++;
       continue;
     }
+    if (old_pos < old_entities.size() && new_pos < new_entities.size() &&
+        (old_entities[old_pos].type == MessageEntity::Type::Pre ||
+         old_entities[old_pos].type == MessageEntity::Type::PreCode) &&
+        new_entities[new_pos].type == MessageEntity::Type::PreCode && old_entities[old_pos].argument.empty() &&
+        old_entities[old_pos].offset == new_entities[new_pos].offset &&
+        old_entities[old_pos].length == new_entities[new_pos].length) {
+      // server can add recognized language code
+      old_pos++;
+      new_pos++;
+      continue;
+    }
 
     if (old_pos < old_entities.size() && (old_entities[old_pos].type == MessageEntity::Type::MentionName ||
                                           old_entities[old_pos].type == MessageEntity::Type::CustomEmoji)) {
