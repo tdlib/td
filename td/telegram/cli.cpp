@@ -5871,6 +5871,12 @@ class CliClient final : public Actor {
       CustomEmojiId background_custom_emoji_id;
       get_args(args, accent_color_id, background_custom_emoji_id);
       send_request(td_api::make_object<td_api::setAccentColor>(accent_color_id, background_custom_emoji_id));
+    } else if (op == "spac") {
+      int32 profile_accent_color_id;
+      CustomEmojiId profile_background_custom_emoji_id;
+      get_args(args, profile_accent_color_id, profile_background_custom_emoji_id);
+      send_request(td_api::make_object<td_api::setProfileAccentColor>(profile_accent_color_id,
+                                                                      profile_background_custom_emoji_id));
     } else if (op == "gns") {
       int64 notification_sound_id;
       get_args(args, notification_sound_id);

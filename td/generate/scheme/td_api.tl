@@ -8707,6 +8707,11 @@ deleteProfilePhoto profile_photo_id:int64 = Ok;
 //@background_custom_emoji_id Identifier of a custom emoji to be shown on the reply header background; 0 if none
 setAccentColor accent_color_id:int32 background_custom_emoji_id:int64 = Ok;
 
+//@description Changes accent color and background custom emoji for profile of the current user; for Telegram Premium users only
+//@profile_accent_color_id Identifier of the accent color to use for profile; pass -1 if none
+//@profile_background_custom_emoji_id Identifier of a custom emoji to be shown in the on the user's profile photo background; 0 if none
+setProfileAccentColor profile_accent_color_id:int32 profile_background_custom_emoji_id:int64 = Ok;
+
 //@description Changes the first and last name of the current user @first_name The new value of the first name for the current user; 1-64 characters @last_name The new value of the optional last name for the current user; 0-64 characters
 setName first_name:string last_name:string = Ok;
 

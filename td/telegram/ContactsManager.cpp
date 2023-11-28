@@ -812,6 +812,47 @@ class UpdateColorQuery final : public Td::ResultHandler {
   }
 };
 
+class UpdateProfileColorQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  AccentColorId accent_color_id_;
+  CustomEmojiId background_custom_emoji_id_;
+
+ public:
+  explicit UpdateProfileColorQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(AccentColorId accent_color_id, CustomEmojiId background_custom_emoji_id) {
+    accent_color_id_ = accent_color_id;
+    background_custom_emoji_id_ = background_custom_emoji_id;
+    int32 flags = telegram_api::account_updateColor::FOR_PROFILE_MASK;
+    if (accent_color_id.is_valid()) {
+      flags |= telegram_api::account_updateColor::COLOR_MASK;
+    }
+    if (background_custom_emoji_id.is_valid()) {
+      flags |= telegram_api::account_updateColor::BACKGROUND_EMOJI_ID_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::account_updateColor(flags, false /*ignored*/, accent_color_id.get(),
+                                          background_custom_emoji_id.get()),
+        {{"me"}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_updateColor>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    LOG(DEBUG) << "Receive result for UpdateColorQuery: " << result_ptr.ok();
+    td_->contacts_manager_->on_update_profile_accent_color_success(accent_color_id_, background_custom_emoji_id_);
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class UpdateProfileQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   int32 flags_;
@@ -7796,6 +7837,11 @@ void ContactsManager::set_accent_color(AccentColorId accent_color_id, CustomEmoj
   td_->create_handler<UpdateColorQuery>(std::move(promise))->send(accent_color_id, background_custom_emoji_id);
 }
 
+void ContactsManager::set_profile_accent_color(AccentColorId accent_color_id, CustomEmojiId background_custom_emoji_id,
+                                               Promise<Unit> &&promise) {
+  td_->create_handler<UpdateProfileColorQuery>(std::move(promise))->send(accent_color_id, background_custom_emoji_id);
+}
+
 void ContactsManager::set_name(const string &first_name, const string &last_name, Promise<Unit> &&promise) {
   auto new_first_name = clean_name(first_name, MAX_NAME_LENGTH);
   auto new_last_name = clean_name(last_name, MAX_NAME_LENGTH);
@@ -7852,6 +7898,18 @@ void ContactsManager::on_update_accent_color_success(AccentColorId accent_color_
   }
   on_update_user_accent_color_id(u, user_id, accent_color_id);
   on_update_user_background_custom_emoji_id(u, user_id, background_custom_emoji_id);
+  update_user(u, user_id);
+}
+
+void ContactsManager::on_update_profile_accent_color_success(AccentColorId accent_color_id,
+                                                             CustomEmojiId background_custom_emoji_id) {
+  auto user_id = get_my_id();
+  User *u = get_user_force(user_id, "on_update_profile_accent_color_success");
+  if (u == nullptr) {
+    return;
+  }
+  on_update_user_profile_accent_color_id(u, user_id, accent_color_id);
+  on_update_user_profile_background_custom_emoji_id(u, user_id, background_custom_emoji_id);
   update_user(u, user_id);
 }
 
