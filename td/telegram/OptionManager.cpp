@@ -149,6 +149,9 @@ OptionManager::OptionManager(Td *td)
   if (!have_option("premium_gift_boost_count")) {
     set_option_integer("premium_gift_boost_count", 3);
   }
+  if (!have_option("chat_boost_level_max")) {
+    set_option_integer("chat_boost_level_max", G()->is_test_dc() ? 10 : 100);
+  }
 
   set_option_empty("archive_and_mute_new_chats_from_unknown_users");
   set_option_empty("chat_filter_count_max");
