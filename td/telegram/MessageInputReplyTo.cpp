@@ -148,13 +148,13 @@ td_api::object_ptr<td_api::InputMessageReplyTo> MessageInputReplyTo::get_input_m
   if (!message_id_.is_valid() && !message_id_.is_valid_scheduled()) {
     return nullptr;
   }
-  td_api::object_ptr<td_api::formattedText> quote;
+  td_api::object_ptr<td_api::inputTextQuote> quote;
   if (!quote_.text.empty()) {
-    quote = get_formatted_text_object(quote_, true, -1);
+    quote = td_api::make_object<td_api::inputTextQuote>(get_formatted_text_object(quote_, true, -1), quote_position_);
   }
   return td_api::make_object<td_api::inputMessageReplyToMessage>(
       td->messages_manager_->get_chat_id_object(dialog_id_, "inputMessageReplyToMessage"), message_id_.get(),
-      std::move(quote), quote_position_);
+      std::move(quote));
 }
 
 MessageId MessageInputReplyTo::get_same_chat_reply_to_message_id() const {

@@ -925,8 +925,12 @@ class CliClient final : public Actor {
 
   td_api::object_ptr<td_api::InputMessageReplyTo> get_input_message_reply_to() const {
     if (reply_message_id_ != 0) {
-      return td_api::make_object<td_api::inputMessageReplyToMessage>(
-          reply_chat_id_, reply_message_id_, as_formatted_text(reply_quote_), reply_quote_position_);
+      td_api::object_ptr<td_api::inputTextQuote> quote;
+      if (!reply_quote_.empty()) {
+        quote = td_api::make_object<td_api::inputTextQuote>(as_formatted_text(reply_quote_), reply_quote_position_);
+      }
+      return td_api::make_object<td_api::inputMessageReplyToMessage>(reply_chat_id_, reply_message_id_,
+                                                                     std::move(quote));
     }
     if (reply_user_id_ != 0 || reply_story_id_ != 0) {
       return td_api::make_object<td_api::inputMessageReplyToStory>(reply_user_id_, reply_story_id_);
@@ -3728,8 +3732,9 @@ class CliClient final : public Actor {
       string quote;
       int32 quote_position;
       get_args(args, chat_id, message_ids, quote, quote_position);
-      send_request(td_api::make_object<td_api::resendMessages>(chat_id, as_message_ids(message_ids),
-                                                               as_formatted_text(quote), quote_position));
+      send_request(td_api::make_object<td_api::resendMessages>(
+          chat_id, as_message_ids(message_ids),
+          td_api::make_object<td_api::inputTextQuote>(as_formatted_text(quote), quote_position)));
     } else if (op == "csc" || op == "CreateSecretChat") {
       send_request(td_api::make_object<td_api::createSecretChat>(as_secret_chat_id(args)));
     } else if (op == "cnsc" || op == "CreateNewSecretChat") {

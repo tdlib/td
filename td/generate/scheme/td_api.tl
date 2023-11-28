@@ -1245,6 +1245,12 @@ messageSendingStatePending sending_id:int32 = MessageSendingState;
 messageSendingStateFailed error:error can_retry:Bool need_another_sender:Bool need_another_reply_quote:Bool need_drop_reply:Bool retry_after:double = MessageSendingState;
 
 
+//@description Describes manually chosen quote from another message
+//@text Text of the quote; 0-getOption("message_reply_quote_length_max") characters. Only Bold, Italic, Underline, Strikethrough, Spoiler, and CustomEmoji entities are allowed to be kept and must be kept in the quote
+//@position Quote position in the original message in UTF-16 code units
+inputTextQuote text:formattedText position:int32 = InputTextQuote;
+
+
 //@class MessageReplyTo @description Contains information about the message or the story a message is replying to
 
 //@description Describes a message replied by a given message
@@ -1269,10 +1275,8 @@ messageReplyToStory story_sender_chat_id:int53 story_id:int32 = MessageReplyTo;
 //@description Describes a message to be replied
 //@chat_id The identifier of the chat to which the message to be replied belongs; pass 0 if the message to be replied is in the same chat. Must always be 0 for replies in secret chats. A message can be replied in another chat or topic only if message.can_be_replied_in_another_chat
 //@message_id The identifier of the message to be replied in the same or the specified chat
-//@quote Manually chosen quote from the message to be replied; pass null if none; 0-getOption("message_reply_quote_length_max") characters. Must always be null for replies in secret chats.
-//-Only Bold, Italic, Underline, Strikethrough, Spoiler, and CustomEmoji entities are allowed to be kept and must be kept in the quote
-//@quote_position Quote position in UTF-16 code units
-inputMessageReplyToMessage chat_id:int53 message_id:int53 quote:formattedText quote_position:int32 = InputMessageReplyTo;
+//@quote Quote from the message to be replied; pass null if none. Must always be null for replies in secret chats
+inputMessageReplyToMessage chat_id:int53 message_id:int53 quote:inputTextQuote = InputMessageReplyTo;
 
 //@description Describes a story to be replied @story_sender_chat_id The identifier of the sender of the story. Currently, stories can be replied only in the sender's chat @story_id The identifier of the story
 inputMessageReplyToStory story_sender_chat_id:int53 story_id:int32 = InputMessageReplyTo;
@@ -7148,8 +7152,7 @@ forwardMessages chat_id:int53 message_thread_id:int53 from_chat_id:int53 message
 //@chat_id Identifier of the chat to send messages
 //@message_ids Identifiers of the messages to resend. Message identifiers must be in a strictly increasing order
 //@quote New manually chosen quote from the message to be replied; pass null if none. Ignored if more than one message is re-sent, or if messageSendingStateFailed.need_another_reply_quote == false
-//@quote_position New quote position in UTF-16 code units
-resendMessages chat_id:int53 message_ids:vector<int53> quote:formattedText quote_position:int32 = Messages;
+resendMessages chat_id:int53 message_ids:vector<int53> quote:inputTextQuote = Messages;
 
 //@description Adds a local message to a chat. The message is persistent across application restarts only if the message database is used. Returns the added message
 //@chat_id Target chat

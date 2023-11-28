@@ -24658,11 +24658,13 @@ MessageInputReplyTo MessagesManager::get_message_input_reply_to(
       }
       FormattedText quote;
       int32 quote_position = 0;
-      auto r_quote = get_formatted_text(td_, get_my_dialog_id(), std::move(reply_to_message->quote_),
-                                        td_->auth_manager_->is_bot(), true, true, true);
-      if (r_quote.is_ok() && d->dialog_id.get_type() != DialogType::SecretChat) {
-        quote = r_quote.move_as_ok();
-        quote_position = reply_to_message->quote_position_;
+      if (reply_to_message->quote_ != nullptr) {
+        auto r_quote = get_formatted_text(td_, get_my_dialog_id(), std::move(reply_to_message->quote_->text_),
+                                          td_->auth_manager_->is_bot(), true, true, true);
+        if (r_quote.is_ok() && d->dialog_id.get_type() != DialogType::SecretChat) {
+          quote = r_quote.move_as_ok();
+          quote_position = reply_to_message->quote_->position_;
+        }
       }
       const Message *m = get_message_force(reply_d, message_id, "get_message_input_reply_to 2");
       if (m == nullptr || m->message_id.is_yet_unsent() ||
@@ -28401,8 +28403,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
 }
 
 Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, vector<MessageId> message_ids,
-                                                           td_api::object_ptr<td_api::formattedText> &&quote,
-                                                           int32 quote_position) {
+                                                           td_api::object_ptr<td_api::inputTextQuote> &&quote) {
   if (message_ids.empty()) {
     return Status::Error(400, "There are no messages to resend");
   }
@@ -28498,10 +28499,10 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
     if (need_another_reply_quote && message_ids.size() == 1 && quote != nullptr) {
       CHECK(message->input_reply_to.is_valid());
       CHECK(message->input_reply_to.has_quote());  // checked in on_send_message_fail
-      auto r_quote =
-          get_formatted_text(td_, get_my_dialog_id(), std::move(quote), td_->auth_manager_->is_bot(), true, true, true);
+      auto r_quote = get_formatted_text(td_, get_my_dialog_id(), std::move(quote->text_), td_->auth_manager_->is_bot(),
+                                        true, true, true);
       if (r_quote.is_ok()) {
-        message->input_reply_to.set_quote(r_quote.move_as_ok(), quote_position);
+        message->input_reply_to.set_quote(r_quote.move_as_ok(), quote->position_);
       }
     } else if (need_drop_reply) {
       message->input_reply_to = {};
