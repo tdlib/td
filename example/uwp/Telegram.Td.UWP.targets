@@ -9,12 +9,12 @@
   </PropertyGroup>
 
   <ItemGroup Condition="'$(TargetPlatformIdentifier)' == 'UAP'">
-	  <Reference Include="$(MSBuildThisFileDirectory)..\..\lib\uap10.0\Telegram.Td.winmd">
+      <Reference Include="$(MSBuildThisFileDirectory)..\..\lib\uap10.0\Telegram.Td.winmd">
         <Implementation>Telegram.Td.dll</Implementation>
       </Reference>
       <ReferenceCopyLocalPaths Include="$(MSBuildThisFileDirectory)..\..\runtimes\win10-$(TelegramTdPlatform)\native\Telegram.Td.dll" />
-      <ReferenceCopyLocalPaths Include="$(MSBuildThisFileDirectory)..\..\runtimes\win10-$(TelegramTdPlatform)\native\libcrypto-1_1$(OpenSSLPlatform).dll" />
-      <ReferenceCopyLocalPaths Include="$(MSBuildThisFileDirectory)..\..\runtimes\win10-$(TelegramTdPlatform)\native\libssl-1_1$(OpenSSLPlatform).dll" />
+      <ReferenceCopyLocalPaths Include="$(MSBuildThisFileDirectory)..\..\runtimes\win10-$(TelegramTdPlatform)\native\libcrypto-3$(OpenSSLPlatform).dll" />
+      <ReferenceCopyLocalPaths Include="$(MSBuildThisFileDirectory)..\..\runtimes\win10-$(TelegramTdPlatform)\native\libssl-3$(OpenSSLPlatform).dll" />
       <ReferenceCopyLocalPaths Include="$(MSBuildThisFileDirectory)..\..\runtimes\win10-$(TelegramTdPlatform)\native\zlib1.dll" />
   </ItemGroup>
 
