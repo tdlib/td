@@ -786,10 +786,12 @@ class UpdateColorQuery final : public Td::ResultHandler {
     accent_color_id_ = accent_color_id;
     background_custom_emoji_id_ = background_custom_emoji_id;
     int32 flags = 0;
+    if (accent_color_id.is_valid()) {
+      flags |= telegram_api::account_updateColor::COLOR_MASK;
+    }
     if (background_custom_emoji_id.is_valid()) {
       flags |= telegram_api::account_updateColor::BACKGROUND_EMOJI_ID_MASK;
     }
-    flags |= telegram_api::account_updateColor::COLOR_MASK;
     send_query(G()->net_query_creator().create(
         telegram_api::account_updateColor(flags, false /*ignored*/, accent_color_id.get(),
                                           background_custom_emoji_id.get()),
@@ -7832,6 +7834,9 @@ void ContactsManager::set_accent_color(AccentColorId accent_color_id, CustomEmoj
                                        Promise<Unit> &&promise) {
   if (!accent_color_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Invalid accent color identifier specified"));
+  }
+  if (accent_color_id == AccentColorId(get_my_id())) {
+    accent_color_id = AccentColorId();
   }
 
   td_->create_handler<UpdateColorQuery>(std::move(promise))->send(accent_color_id, background_custom_emoji_id);
