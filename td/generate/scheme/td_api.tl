@@ -4537,6 +4537,9 @@ premiumFeatureChatBoost = PremiumFeature;
 //@description The ability to choose accent color for replies and user profile
 premiumFeatureAccentColor = PremiumFeature;
 
+//@description The ability to set private chat background for both users
+premiumFeatureBackgroundForBoth = PremiumFeature;
+
 
 //@class PremiumStoryFeature @description Describes a story feature available to Premium users
 
