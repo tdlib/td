@@ -595,11 +595,13 @@ int32 ThemeManager::get_accent_color_id_object(AccentColorId accent_color_id,
 }
 
 int32 ThemeManager::get_profile_accent_color_id_object(AccentColorId accent_color_id) const {
-  CHECK(accent_color_id.is_valid());
+  if (!accent_color_id.is_valid()) {
+    return -1;
+  }
   if (td_->auth_manager_->is_bot() || profile_accent_colors_.light_colors_.count(accent_color_id) != 0) {
     return accent_color_id.get();
   }
-  return 5;  // blue
+  return -1;
 }
 
 td_api::object_ptr<td_api::themeSettings> ThemeManager::get_theme_settings_object(const ThemeSettings &settings) const {

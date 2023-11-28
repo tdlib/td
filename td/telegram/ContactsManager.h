@@ -768,6 +768,8 @@ class ContactsManager final : public Actor {
 
     AccentColorId accent_color_id;
     CustomEmojiId background_custom_emoji_id;
+    AccentColorId profile_accent_color_id;
+    CustomEmojiId profile_background_custom_emoji_id;
 
     int32 was_online = 0;
     int32 local_was_online = 0;
@@ -818,6 +820,8 @@ class ContactsManager final : public Actor {
     bool is_photo_changed = true;
     bool is_accent_color_id_changed = true;
     bool is_background_custom_emoji_id_changed = true;
+    bool is_profile_accent_color_id_changed = true;
+    bool is_profile_background_custom_emoji_id_changed = true;
     bool is_phone_number_changed = true;
     bool is_emoji_status_changed = true;
     bool is_is_contact_changed = true;
@@ -1460,6 +1464,9 @@ class ContactsManager final : public Actor {
                             const char *source);
   void on_update_user_accent_color_id(User *u, UserId user_id, AccentColorId accent_color_id);
   void on_update_user_background_custom_emoji_id(User *u, UserId user_id, CustomEmojiId background_custom_emoji_id);
+  void on_update_user_profile_accent_color_id(User *u, UserId user_id, AccentColorId accent_color_id);
+  void on_update_user_profile_background_custom_emoji_id(User *u, UserId user_id,
+                                                         CustomEmojiId background_custom_emoji_id);
   void on_update_user_emoji_status(User *u, UserId user_id, EmojiStatus emoji_status);
   void on_update_user_story_ids_impl(User *u, UserId user_id, StoryId max_active_story_id, StoryId max_read_story_id);
   void on_update_user_max_read_story_id(User *u, UserId user_id, StoryId max_read_story_id);

@@ -786,8 +786,10 @@ usernames active_usernames:vector<string> disabled_usernames:vector<string> edit
 //@phone_number Phone number of the user
 //@status Current online status of the user
 //@profile_photo Profile photo of the user; may be null
-//@accent_color_id Identifier of the accent color for name, and backgrounds of profile photo, reply header, and link preview
+//@accent_color_id Identifier of the accent color for name, and backgrounds of profile photo, reply header, and link preview. For Telegram Premium users only
 //@background_custom_emoji_id Identifier of a custom emoji to be shown on the reply header background; 0 if none. For Telegram Premium users only
+//@profile_accent_color_id Identifier of the accent color for the user's profile; -1 if none. For Telegram Premium users only
+//@profile_background_custom_emoji_id Identifier of a custom emoji to be shown on the background of the user's profile; 0 if none. For Telegram Premium users only
 //@emoji_status Emoji status to be shown instead of the default Telegram Premium badge; may be null. For Telegram Premium users only
 //@is_contact The user is a contact of the current user
 //@is_mutual_contact The user is a contact of the current user and the current user is a contact of the user
@@ -804,7 +806,7 @@ usernames active_usernames:vector<string> disabled_usernames:vector<string> edit
 //@type Type of the user
 //@language_code IETF language tag of the user's language; only available to bots
 //@added_to_attachment_menu True, if the user added the current bot to attachment menu; only available to bots
-user id:int53 first_name:string last_name:string usernames:usernames phone_number:string status:UserStatus profile_photo:profilePhoto accent_color_id:int32 background_custom_emoji_id:int64 emoji_status:emojiStatus is_contact:Bool is_mutual_contact:Bool is_close_friend:Bool is_verified:Bool is_premium:Bool is_support:Bool restriction_reason:string is_scam:Bool is_fake:Bool has_active_stories:Bool has_unread_active_stories:Bool have_access:Bool type:UserType language_code:string added_to_attachment_menu:Bool = User;
+user id:int53 first_name:string last_name:string usernames:usernames phone_number:string status:UserStatus profile_photo:profilePhoto accent_color_id:int32 background_custom_emoji_id:int64 profile_accent_color_id:int32 profile_background_custom_emoji_id:int64 emoji_status:emojiStatus is_contact:Bool is_mutual_contact:Bool is_close_friend:Bool is_verified:Bool is_premium:Bool is_support:Bool restriction_reason:string is_scam:Bool is_fake:Bool has_active_stories:Bool has_unread_active_stories:Bool have_access:Bool type:UserType language_code:string added_to_attachment_menu:Bool = User;
 
 
 //@description Contains information about a bot

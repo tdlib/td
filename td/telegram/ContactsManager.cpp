@@ -4324,6 +4324,8 @@ void ContactsManager::User::store(StorerT &storer) const {
   bool has_max_active_story_id_next_reload_time = max_active_story_id_next_reload_time > Time::now();
   bool has_accent_color_id = accent_color_id.is_valid();
   bool has_background_custom_emoji_id = background_custom_emoji_id.is_valid();
+  bool has_profile_accent_color_id = profile_accent_color_id.is_valid();
+  bool has_profile_background_custom_emoji_id = profile_background_custom_emoji_id.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_received);
   STORE_FLAG(is_verified);
@@ -4366,6 +4368,8 @@ void ContactsManager::User::store(StorerT &storer) const {
     STORE_FLAG(has_max_active_story_id_next_reload_time);
     STORE_FLAG(has_accent_color_id);
     STORE_FLAG(has_background_custom_emoji_id);
+    STORE_FLAG(has_profile_accent_color_id);
+    STORE_FLAG(has_profile_background_custom_emoji_id);
     END_STORE_FLAGS();
   }
   store(first_name, storer);
@@ -4416,6 +4420,12 @@ void ContactsManager::User::store(StorerT &storer) const {
   if (has_background_custom_emoji_id) {
     store(background_custom_emoji_id, storer);
   }
+  if (has_profile_accent_color_id) {
+    store(profile_accent_color_id, storer);
+  }
+  if (has_profile_background_custom_emoji_id) {
+    store(profile_background_custom_emoji_id, storer);
+  }
 }
 
 template <class ParserT>
@@ -4439,6 +4449,8 @@ void ContactsManager::User::parse(ParserT &parser) {
   bool has_max_active_story_id_next_reload_time = false;
   bool has_accent_color_id = false;
   bool has_background_custom_emoji_id = false;
+  bool has_profile_accent_color_id = false;
+  bool has_profile_background_custom_emoji_id = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_received);
   PARSE_FLAG(is_verified);
@@ -4481,6 +4493,8 @@ void ContactsManager::User::parse(ParserT &parser) {
     PARSE_FLAG(has_max_active_story_id_next_reload_time);
     PARSE_FLAG(has_accent_color_id);
     PARSE_FLAG(has_background_custom_emoji_id);
+    PARSE_FLAG(has_profile_accent_color_id);
+    PARSE_FLAG(has_profile_background_custom_emoji_id);
     END_PARSE_FLAGS();
   }
   parse(first_name, parser);
@@ -4558,6 +4572,12 @@ void ContactsManager::User::parse(ParserT &parser) {
   }
   if (has_background_custom_emoji_id) {
     parse(background_custom_emoji_id, parser);
+  }
+  if (has_profile_accent_color_id) {
+    parse(profile_accent_color_id, parser);
+  }
+  if (has_profile_background_custom_emoji_id) {
+    parse(profile_background_custom_emoji_id, parser);
   }
 
   if (!check_utf8(first_name)) {
@@ -10747,6 +10767,14 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
            : AccentColorId()));
   on_update_user_background_custom_emoji_id(
       u, user_id, (user->color_ != nullptr ? CustomEmojiId(user->color_->background_emoji_id_) : CustomEmojiId()));
+  on_update_user_profile_accent_color_id(
+      u, user_id,
+      (user->profile_color_ != nullptr && (user->profile_color_->flags_ & telegram_api::peerColor::COLOR_MASK) != 0
+           ? AccentColorId(user->profile_color_->color_)
+           : AccentColorId()));
+  on_update_user_profile_background_custom_emoji_id(
+      u, user_id,
+      (user->profile_color_ != nullptr ? CustomEmojiId(user->profile_color_->background_emoji_id_) : CustomEmojiId()));
   if (is_me_regular_user && is_received) {
     on_update_user_stories_hidden(u, user_id, stories_hidden);
   }
@@ -12300,6 +12328,12 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
       messages_manager->on_dialog_background_custom_emoji_id_updated(DialogId(secret_chat_id));
     });
     u->is_background_custom_emoji_id_changed = false;
+  }
+  if (u->is_profile_accent_color_id_changed) {
+    u->is_profile_accent_color_id_changed = false;
+  }
+  if (u->is_profile_background_custom_emoji_id_changed) {
+    u->is_profile_background_custom_emoji_id_changed = false;
   }
   if (u->is_phone_number_changed) {
     if (!u->phone_number.empty() && !td_->auth_manager_->is_bot()) {
@@ -13933,6 +13967,26 @@ void ContactsManager::on_update_user_background_custom_emoji_id(User *u, UserId 
   if (u->background_custom_emoji_id != background_custom_emoji_id) {
     u->background_custom_emoji_id = background_custom_emoji_id;
     u->is_background_custom_emoji_id_changed = true;
+    u->is_changed = true;
+  }
+}
+
+void ContactsManager::on_update_user_profile_accent_color_id(User *u, UserId user_id, AccentColorId accent_color_id) {
+  if (!accent_color_id.is_valid()) {
+    accent_color_id = AccentColorId();
+  }
+  if (u->profile_accent_color_id != accent_color_id) {
+    u->profile_accent_color_id = accent_color_id;
+    u->is_profile_accent_color_id_changed = true;
+    u->is_changed = true;
+  }
+}
+
+void ContactsManager::on_update_user_profile_background_custom_emoji_id(User *u, UserId user_id,
+                                                                        CustomEmojiId background_custom_emoji_id) {
+  if (u->profile_background_custom_emoji_id != background_custom_emoji_id) {
+    u->profile_background_custom_emoji_id = background_custom_emoji_id;
+    u->is_profile_background_custom_emoji_id_changed = true;
     u->is_changed = true;
   }
 }
@@ -19823,9 +19877,9 @@ td_api::object_ptr<td_api::updateUser> ContactsManager::get_update_unknown_user_
   auto have_access = user_id == get_my_id() || user_messages_.count(user_id) != 0;
   return td_api::make_object<td_api::updateUser>(td_api::make_object<td_api::user>(
       user_id.get(), "", "", nullptr, "", td_api::make_object<td_api::userStatusEmpty>(), nullptr,
-      td_->theme_manager_->get_accent_color_id_object(AccentColorId(user_id)), 0, nullptr, false, false, false, false,
-      false, false, "", false, false, false, false, have_access, td_api::make_object<td_api::userTypeUnknown>(), "",
-      false));
+      td_->theme_manager_->get_accent_color_id_object(AccentColorId(user_id)), 0, -1, 0, nullptr, false, false, false,
+      false, false, false, "", false, false, false, false, have_access, td_api::make_object<td_api::userTypeUnknown>(),
+      "", false));
 }
 
 int64 ContactsManager::get_user_id_object(UserId user_id, const char *source) const {
@@ -19865,7 +19919,9 @@ tl_object_ptr<td_api::user> ContactsManager::get_user_object(UserId user_id, con
       get_user_status_object(user_id, u, G()->unix_time()),
       get_profile_photo_object(td_->file_manager_.get(), u->photo),
       td_->theme_manager_->get_accent_color_id_object(accent_color_id, AccentColorId(user_id)),
-      u->background_custom_emoji_id.get(), std::move(emoji_status), u->is_contact, u->is_mutual_contact,
+      u->background_custom_emoji_id.get(),
+      td_->theme_manager_->get_profile_accent_color_id_object(u->profile_accent_color_id),
+      u->profile_background_custom_emoji_id.get(), std::move(emoji_status), u->is_contact, u->is_mutual_contact,
       u->is_close_friend, u->is_verified, u->is_premium, u->is_support,
       get_restriction_reason_description(u->restriction_reasons), u->is_scam, u->is_fake,
       u->max_active_story_id.is_valid(), get_user_has_unread_stories(u), have_access, std::move(type), u->language_code,
