@@ -21737,7 +21737,7 @@ td_api::object_ptr<td_api::messageCalendar> MessagesManager::get_dialog_message_
       break;
     default:
       UNREACHABLE();
-      promise.set_error(Status::Error(500, "Search messages is not supported"));
+      promise.set_error(Status::Error(500, "Message search is not supported"));
   }
   return {};
 }
@@ -21961,13 +21961,13 @@ MessagesManager::FoundDialogMessages MessagesManager::search_dialog_messages(
           filter == MessageSearchFilter::UnreadReaction) {
         promise.set_value(Unit());
       } else {
-        promise.set_error(Status::Error(500, "Search messages in secret chats is not supported"));
+        promise.set_error(Status::Error(500, "Message search is not supported in secret chats"));
       }
       break;
     case DialogType::None:
     default:
       UNREACHABLE();
-      promise.set_error(Status::Error(500, "Search messages is not supported"));
+      promise.set_error(Status::Error(500, "Message search is not supported"));
   }
   return result;
 }
@@ -22086,7 +22086,7 @@ void MessagesManager::search_dialog_recent_location_messages(DialogId dialog_id,
       return promise.set_value(get_messages_object(0, vector<td_api::object_ptr<td_api::message>>(), false));
     default:
       UNREACHABLE();
-      promise.set_error(Status::Error(500, "Search messages is not supported"));
+      promise.set_error(Status::Error(500, "Message search is not supported"));
   }
 }
 
