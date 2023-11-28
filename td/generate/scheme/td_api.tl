@@ -1245,6 +1245,12 @@ messageSendingStatePending sending_id:int32 = MessageSendingState;
 messageSendingStateFailed error:error can_retry:Bool need_another_sender:Bool need_another_reply_quote:Bool need_drop_reply:Bool retry_after:double = MessageSendingState;
 
 
+//@description Describes manually or automatically chosen quote from another message
+//@text Text of the quote. Only Bold, Italic, Underline, Strikethrough, Spoiler, and CustomEmoji entities can be present in the text
+//@position Approximate quote position in the original message in UTF-16 code units
+//@is_manual True, if the quote was manually chosen by the message sender
+textQuote text:formattedText position:int32 is_manual:Bool = TextQuote;
+
 //@description Describes manually chosen quote from another message
 //@text Text of the quote; 0-getOption("message_reply_quote_length_max") characters. Only Bold, Italic, Underline, Strikethrough, Spoiler, and CustomEmoji entities are allowed to be kept and must be kept in the quote
 //@position Quote position in the original message in UTF-16 code units
@@ -1256,15 +1262,13 @@ inputTextQuote text:formattedText position:int32 = InputTextQuote;
 //@description Describes a message replied by a given message
 //@chat_id The identifier of the chat to which the message belongs; may be 0 if the replied message is in unknown chat
 //@message_id The identifier of the message; may be 0 if the replied message is in unknown chat
-//@quote Manually or automatically chosen quote from the replied message; may be null if none. Only Bold, Italic, Underline, Strikethrough, Spoiler, and CustomEmoji entities can be present in the quote
-//@quote_position Approximate quote position in UTF-16 code units
-//@is_quote_manual True, if the quote was manually chosen by the message sender
+//@quote Chosen quote from the replied message; may be null if none
 //@origin Information about origin of the message if the message was from another chat or topic; may be null for messages from the same chat
 //@origin_send_date Point in time (Unix timestamp) when the message was sent if the message was from another chat or topic; 0 for messages from the same chat
 //@content Media content of the message if the message was from another chat or topic; may be null for messages from the same chat and messages without media.
 //-Can be only one of the following types: messageAnimation, messageAudio, messageContact, messageDice, messageDocument, messageGame, messageInvoice, messageLocation,
 //-messagePhoto, messagePoll, messagePremiumGiveaway, messageSticker, messageStory, messageText (for link preview), messageVenue, messageVideo, messageVideoNote, or messageVoiceNote
-messageReplyToMessage chat_id:int53 message_id:int53 quote:formattedText quote_position:int32 is_quote_manual:Bool origin:MessageOrigin origin_send_date:int32 content:MessageContent = MessageReplyTo;
+messageReplyToMessage chat_id:int53 message_id:int53 quote:textQuote origin:MessageOrigin origin_send_date:int32 content:MessageContent = MessageReplyTo;
 
 //@description Describes a story replied by a given message @story_sender_chat_id The identifier of the sender of the story @story_id The identifier of the story
 messageReplyToStory story_sender_chat_id:int53 story_id:int32 = MessageReplyTo;

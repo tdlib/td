@@ -344,13 +344,10 @@ td_api::object_ptr<td_api::messageReplyToMessage> RepliedMessageInfo::get_messag
     chat_id = 0;
   }
 
-  td_api::object_ptr<td_api::formattedText> quote;
-  int32 quote_position = 0;
-  bool is_quote_manual = false;
+  td_api::object_ptr<td_api::textQuote> quote;
   if (!quote_.text.empty()) {
-    quote = get_formatted_text_object(quote_, true, -1);
-    quote_position = quote_position_;
-    is_quote_manual = is_quote_manual_;
+    quote = td_api::make_object<td_api::textQuote>(get_formatted_text_object(quote_, true, -1), quote_position_,
+                                                   is_quote_manual_);
   }
 
   td_api::object_ptr<td_api::MessageOrigin> origin;
@@ -370,8 +367,7 @@ td_api::object_ptr<td_api::messageReplyToMessage> RepliedMessageInfo::get_messag
   }
 
   return td_api::make_object<td_api::messageReplyToMessage>(chat_id, message_id_.get(), std::move(quote),
-                                                            quote_position, is_quote_manual, std::move(origin),
-                                                            origin_date_, std::move(content));
+                                                            std::move(origin), origin_date_, std::move(content));
 }
 
 MessageInputReplyTo RepliedMessageInfo::get_input_reply_to() const {
