@@ -4480,6 +4480,9 @@ premiumLimitTypeStoryCaptionLength = PremiumLimitType;
 //@description The maximum number of suggested reaction areas on a story
 premiumLimitTypeStorySuggestedReactionAreaCount = PremiumLimitType;
 
+//@description The maximum number of received similar chats
+premiumLimitTypeSimilarChatCount = PremiumLimitType;
+
 
 //@class PremiumFeature @description Describes a feature available to Premium users
 

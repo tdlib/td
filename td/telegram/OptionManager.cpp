@@ -327,6 +327,7 @@ bool OptionManager::is_internal_option(Slice name) {
     case 'r':
       return name == "rating_e_decay" || name == "reactions_uniq_max" || name == "reactions_user_max_default" ||
              name == "reactions_user_max_premium" || name == "recent_stickers_limit" ||
+             name == "recommended_channels_limit_default" || name == "recommended_channels_limit_premium" ||
              name == "restriction_add_platforms" || name == "revoke_pm_inbox" || name == "revoke_time_limit" ||
              name == "revoke_pm_time_limit";
     case 's':
