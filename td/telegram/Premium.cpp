@@ -91,10 +91,10 @@ static td_api::object_ptr<td_api::PremiumFeature> get_premium_feature_object(Sli
   if (premium_feature == "channel_boost") {
     return td_api::make_object<td_api::premiumFeatureChatBoost>();
   }
-  if (premium_feature == "peer_color") {
+  if (premium_feature == "peer_colors") {
     return td_api::make_object<td_api::premiumFeatureAccentColor>();
   }
-  if (premium_feature == "wallpaper") {
+  if (premium_feature == "wallpapers") {
     return td_api::make_object<td_api::premiumFeatureBackgroundForBoth>();
   }
   return nullptr;
@@ -733,9 +733,9 @@ static string get_premium_source(const td_api::PremiumFeature *feature) {
     case td_api::premiumFeatureChatBoost::ID:
       return "channel_boost";
     case td_api::premiumFeatureAccentColor::ID:
-      return "peer_color";
+      return "peer_colors";
     case td_api::premiumFeatureBackgroundForBoth::ID:
-      return "wallpaper";
+      return "wallpapers";
     default:
       UNREACHABLE();
   }
