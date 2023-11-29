@@ -566,7 +566,9 @@ class ContactsManager final : public Actor {
 
   ChannelId migrate_chat_to_megagroup(ChatId chat_id, Promise<Unit> &promise);
 
-  void get_channel_recommendations(DialogId dialog_id, Promise<td_api::object_ptr<td_api::chats>> &&promise);
+  void get_channel_recommendations(DialogId dialog_id, bool return_local,
+                                   Promise<td_api::object_ptr<td_api::chats>> &&chats_promise,
+                                   Promise<td_api::object_ptr<td_api::count>> &&count_promise);
 
   void get_created_public_dialogs(PublicDialogType type, Promise<td_api::object_ptr<td_api::chats>> &&promise,
                                   bool from_binlog);
@@ -1745,8 +1747,9 @@ class ContactsManager final : public Actor {
 
   static string get_channel_recommendations_database_key(ChannelId channel_id);
 
-  void load_channel_recommendations(ChannelId channel_id, bool use_database,
-                                    Promise<td_api::object_ptr<td_api::chats>> &&promise);
+  void load_channel_recommendations(ChannelId channel_id, bool use_database, bool return_local,
+                                    Promise<td_api::object_ptr<td_api::chats>> &&chats_promise,
+                                    Promise<td_api::object_ptr<td_api::count>> &&count_promise);
 
   void fail_load_channel_recommendations_queries(ChannelId channel_id, Status &&error);
 
@@ -2043,6 +2046,8 @@ class ContactsManager final : public Actor {
   FlatHashMap<ChannelId, RecommendedDialogs, ChannelIdHash> channel_recommended_dialogs_;
   FlatHashMap<ChannelId, vector<Promise<td_api::object_ptr<td_api::chats>>>, ChannelIdHash>
       get_channel_recommendations_queries_;
+  FlatHashMap<ChannelId, vector<Promise<td_api::object_ptr<td_api::count>>>, ChannelIdHash>
+      get_channel_recommendation_count_queries_[2];
 
   bool created_public_channels_inited_[2] = {false, false};
   vector<ChannelId> created_public_channels_[2];

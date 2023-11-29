@@ -6876,6 +6876,11 @@ searchChatsNearby location:location = ChatsNearby;
 //@description Returns a list of chats similar to the given chat @chat_id Identifier of the target chat; must be an identifier of a channel chat
 getSimilarChats chat_id:int53 = Chats;
 
+//@description Returns approximate number of chats similar to the given chat
+//@chat_id Identifier of the target chat; must be an identifier of a channel chat
+//@return_local Pass true to get the number of chats without sending network requests, or -1 if the number of chats is unknown locally
+getSimilarChatCount chat_id:int53 return_local:Bool = Count;
+
 //@description Returns a list of frequently used chats @category Category of chats to be returned @limit The maximum number of chats to be returned; up to 30
 getTopChats category:TopChatCategory limit:int32 = Chats;
 

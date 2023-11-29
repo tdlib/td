@@ -5101,7 +5101,14 @@ void Td::on_request(uint64 id, const td_api::clearAutosaveSettingsExceptions &re
 void Td::on_request(uint64 id, const td_api::getSimilarChats &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  contacts_manager_->get_channel_recommendations(DialogId(request.chat_id_), std::move(promise));
+  contacts_manager_->get_channel_recommendations(DialogId(request.chat_id_), false, std::move(promise), Auto());
+}
+
+void Td::on_request(uint64 id, const td_api::getSimilarChatCount &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  contacts_manager_->get_channel_recommendations(DialogId(request.chat_id_), request.return_local_, Auto(),
+                                                 std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getTopChats &request) {

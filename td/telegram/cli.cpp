@@ -5159,6 +5159,11 @@ class CliClient final : public Actor {
       ChatId chat_id;
       get_args(args, chat_id);
       send_request(td_api::make_object<td_api::getSimilarChats>(chat_id));
+    } else if (op == "gscc") {
+      ChatId chat_id;
+      bool return_local;
+      get_args(args, chat_id, return_local);
+      send_request(td_api::make_object<td_api::getSimilarChatCount>(chat_id, return_local));
     } else if (op == "gcpc") {
       send_request(td_api::make_object<td_api::getCreatedPublicChats>());
     } else if (op == "gcpcl") {
