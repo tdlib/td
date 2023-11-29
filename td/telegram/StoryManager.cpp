@@ -849,6 +849,16 @@ class StoryManager::SendStoryQuery final : public Td::ResultHandler {
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
+    telegram_api::object_ptr<telegram_api::InputPeer> fwd_input_peer;
+    int32 fwd_story_id = 0;
+    if (story->forward_info_ != nullptr) {
+      fwd_input_peer = td_->messages_manager_->get_input_peer(
+          pending_story_->forward_from_story_full_id_.get_dialog_id(), AccessRights::Read);
+      if (fwd_input_peer == nullptr) {
+        return on_error(Status::Error(400, "Can't access the story to repost"));
+      }
+      fwd_story_id = pending_story_->forward_from_story_full_id_.get_story_id().get();
+    }
 
     const FormattedText &caption = story->caption_;
     auto entities = get_input_message_entities(td_->contacts_manager_.get(), &caption, "SendStoryQuery");
@@ -870,6 +880,11 @@ class StoryManager::SendStoryQuery final : public Td::ResultHandler {
     if (period != 86400) {
       flags |= telegram_api::stories_sendStory::PERIOD_MASK;
     }
+    if (story->forward_info_ != nullptr) {
+      flags |= telegram_api::stories_sendStory::FWD_MODIFIED_MASK;
+      flags |= telegram_api::stories_sendStory::FWD_FROM_ID_MASK;
+      flags |= telegram_api::stories_sendStory::FWD_FROM_STORY_MASK;
+    }
     if (story->noforwards_) {
       flags |= telegram_api::stories_sendStory::NOFORWARDS_MASK;
     }
@@ -885,7 +900,7 @@ class StoryManager::SendStoryQuery final : public Td::ResultHandler {
         telegram_api::stories_sendStory(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
                                         std::move(input_peer), std::move(input_media), std::move(media_areas),
                                         caption.text, std::move(entities), std::move(privacy_rules),
-                                        pending_story_->random_id_, period, nullptr, 0),
+                                        pending_story_->random_id_, period, std::move(fwd_input_peer), fwd_story_id),
         {{pending_story_->dialog_id_}}));
   }
 
@@ -1035,10 +1050,11 @@ class StoryManager::UploadMediaCallback final : public FileManager::UploadCallba
   }
 };
 
-StoryManager::PendingStory::PendingStory(DialogId dialog_id, StoryId story_id, uint32 send_story_num, int64 random_id,
-                                         unique_ptr<Story> &&story)
+StoryManager::PendingStory::PendingStory(DialogId dialog_id, StoryId story_id, StoryFullId forward_from_story_full_id,
+                                         uint32 send_story_num, int64 random_id, unique_ptr<Story> &&story)
     : dialog_id_(dialog_id)
     , story_id_(story_id)
+    , forward_from_story_full_id_(forward_from_story_full_id)
     , send_story_num_(send_story_num)
     , random_id_(random_id)
     , story_(std::move(story)) {
@@ -1189,8 +1205,10 @@ template <class StorerT>
 void StoryManager::PendingStory::store(StorerT &storer) const {
   using td::store;
   bool is_edit = story_id_.is_server();
+  bool has_forward_from_story_full_id = forward_from_story_full_id_.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_edit);
+  STORE_FLAG(has_forward_from_story_full_id);
   END_STORE_FLAGS();
   store(dialog_id_, storer);
   if (is_edit) {
@@ -1199,14 +1217,19 @@ void StoryManager::PendingStory::store(StorerT &storer) const {
     store(random_id_, storer);
   }
   store(story_, storer);
+  if (has_forward_from_story_full_id) {
+    store(forward_from_story_full_id_, storer);
+  }
 }
 
 template <class ParserT>
 void StoryManager::PendingStory::parse(ParserT &parser) {
   using td::parse;
   bool is_edit;
+  bool has_forward_from_story_full_id;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_edit);
+  PARSE_FLAG(has_forward_from_story_full_id);
   END_PARSE_FLAGS();
   parse(dialog_id_, parser);
   if (is_edit) {
@@ -1215,6 +1238,9 @@ void StoryManager::PendingStory::parse(ParserT &parser) {
     parse(random_id_, parser);
   }
   parse(story_, parser);
+  if (has_forward_from_story_full_id) {
+    parse(forward_from_story_full_id_, parser);
+  }
 }
 
 template <class StorerT>
@@ -4494,8 +4520,8 @@ void StoryManager::send_story(DialogId dialog_id, td_api::object_ptr<td_api::Inp
                               td_api::object_ptr<td_api::inputStoryAreas> &&input_areas,
                               td_api::object_ptr<td_api::formattedText> &&input_caption,
                               td_api::object_ptr<td_api::StoryPrivacySettings> &&settings, int32 active_period,
-                              bool is_pinned, bool protect_content,
-                              Promise<td_api::object_ptr<td_api::story>> &&promise) {
+                              td_api::object_ptr<td_api::storyFullId> &&from_story_full_id, bool is_pinned,
+                              bool protect_content, Promise<td_api::object_ptr<td_api::story>> &&promise) {
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "send_story")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
@@ -4509,6 +4535,25 @@ void StoryManager::send_story(DialogId dialog_id, td_api::object_ptr<td_api::Inp
                      get_formatted_text(td_, DialogId(), std::move(input_caption), is_bot, true, false, false));
   TRY_RESULT_PROMISE(promise, privacy_rules,
                      UserPrivacySettingRules::get_user_privacy_setting_rules(td_, std::move(settings)));
+  unique_ptr<StoryForwardInfo> forward_info;
+  StoryFullId forward_from_story_full_id;
+  if (from_story_full_id != nullptr) {
+    forward_from_story_full_id =
+        StoryFullId(DialogId(from_story_full_id->sender_chat_id_), StoryId(from_story_full_id->story_id_));
+    const Story *story = get_story(forward_from_story_full_id);
+    if (story == nullptr) {
+      return promise.set_error(Status::Error(400, "Story to repost not found"));
+    }
+    if (story->noforwards_) {
+      return promise.set_error(Status::Error(400, "Story can't be reposted"));
+    }
+    if (story->forward_info_ != nullptr) {
+      forward_info = make_unique<StoryForwardInfo>(*story->forward_info_);
+    } else {
+      forward_info = make_unique<StoryForwardInfo>(forward_from_story_full_id, true);
+    }
+    forward_info->hide_sender_if_needed(td_);
+  }
   if (active_period != 86400 && !(G()->is_test_dc() && (active_period == 60 || active_period == 300))) {
     bool is_premium = td_->option_manager_->get_option_boolean("is_premium");
     if (!is_premium || !td::contains(vector<int32>{6 * 3600, 12 * 3600, 2 * 86400}, active_period)) {
@@ -4539,6 +4584,7 @@ void StoryManager::send_story(DialogId dialog_id, td_api::object_ptr<td_api::Inp
   story->noforwards_ = protect_content;
   story->privacy_rules_ = std::move(privacy_rules);
   story->content_ = std::move(content);
+  story->forward_info_ = std::move(forward_info);
   story->areas_ = std::move(areas);
   story->caption_ = std::move(caption);
 
@@ -4549,8 +4595,8 @@ void StoryManager::send_story(DialogId dialog_id, td_api::object_ptr<td_api::Inp
 
   auto story_ptr = story.get();
 
-  auto pending_story =
-      td::make_unique<PendingStory>(dialog_id, story_id, ++send_story_count_, random_id, std::move(story));
+  auto pending_story = td::make_unique<PendingStory>(dialog_id, story_id, forward_from_story_full_id,
+                                                     ++send_story_count_, random_id, std::move(story));
   pending_story->log_event_id_ = save_send_story_log_event(pending_story.get());
 
   do_send_story(std::move(pending_story), {});
@@ -4911,7 +4957,7 @@ void StoryManager::edit_story(DialogId owner_dialog_id, StoryId story_id,
   auto new_story = make_unique<Story>();
   new_story->content_ = copy_story_content(edited_story->content_.get());
 
-  auto pending_story = td::make_unique<PendingStory>(owner_dialog_id, story_id,
+  auto pending_story = td::make_unique<PendingStory>(owner_dialog_id, story_id, StoryFullId(),
                                                      std::numeric_limits<uint32>::max() - (++send_story_count_),
                                                      edit_generation, std::move(new_story));
   if (G()->use_message_database()) {

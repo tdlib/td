@@ -938,6 +938,13 @@ class CliClient final : public Actor {
     return nullptr;
   }
 
+  td_api::object_ptr<td_api::storyFullId> get_reposted_story_full_id() const {
+    if (reposted_story_chat_id_ || reposted_story_id_) {
+      return td_api::make_object<td_api::storyFullId>(reposted_story_chat_id_, reposted_story_id_);
+    }
+    return nullptr;
+  }
+
   td_api::object_ptr<td_api::linkPreviewOptions> get_link_preview_options() const {
     if (!link_preview_is_disabled_ && link_preview_url_.empty() && !link_preview_force_small_media_ &&
         !link_preview_force_large_media_ && !link_preview_show_above_text_) {
@@ -4243,6 +4250,8 @@ class CliClient final : public Actor {
       ChatId chat_id;
       get_args(args, chat_id);
       send_request(td_api::make_object<td_api::canSendStory>(chat_id));
+    } else if (op == "srsfi") {
+      get_args(args, reposted_story_chat_id_, reposted_story_id_);
     } else if (op == "ssp" || op == "sspp") {
       ChatId chat_id;
       string photo;
@@ -4257,7 +4266,8 @@ class CliClient final : public Actor {
           chat_id,
           td_api::make_object<td_api::inputStoryContentPhoto>(as_input_file(photo),
                                                               to_integers<int32>(sticker_file_ids)),
-          areas, as_caption(caption), rules, active_period ? active_period : 86400, op == "sspp", protect_content));
+          areas, as_caption(caption), rules, active_period ? active_period : 86400, get_reposted_story_full_id(),
+          op == "sspp", protect_content));
     } else if (op == "ssv" || op == "ssvp") {
       ChatId chat_id;
       string video;
@@ -4273,7 +4283,8 @@ class CliClient final : public Actor {
           chat_id,
           td_api::make_object<td_api::inputStoryContentVideo>(as_input_file(video),
                                                               to_integers<int32>(sticker_file_ids), duration, true),
-          areas, as_caption(caption), rules, active_period ? active_period : 86400, op == "ssvp", protect_content));
+          areas, as_caption(caption), rules, active_period ? active_period : 86400, get_reposted_story_full_id(),
+          op == "ssvp", protect_content));
     } else if (op == "esc") {
       ChatId story_sender_chat_id;
       StoryId story_id;
@@ -6338,6 +6349,8 @@ class CliClient final : public Actor {
   int32 reply_quote_position_ = 0;
   UserId reply_user_id_;
   StoryId reply_story_id_;
+  ChatId reposted_story_chat_id_;
+  StoryId reposted_story_id_;
   string link_preview_url_;
   bool link_preview_is_disabled_ = false;
   bool link_preview_force_small_media_ = false;

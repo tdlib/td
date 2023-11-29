@@ -109,6 +109,7 @@ class StoryManager final : public Actor {
   struct PendingStory {
     DialogId dialog_id_;
     StoryId story_id_;
+    StoryFullId forward_from_story_full_id_;
     uint64 log_event_id_ = 0;
     uint32 send_story_num_ = 0;
     int64 random_id_ = 0;
@@ -117,8 +118,8 @@ class StoryManager final : public Actor {
 
     PendingStory() = default;
 
-    PendingStory(DialogId dialog_id, StoryId story_id, uint32 send_story_num, int64 random_id,
-                 unique_ptr<Story> &&story);
+    PendingStory(DialogId dialog_id, StoryId story_id, StoryFullId forward_from_story_full_id, uint32 send_story_num,
+                 int64 random_id, unique_ptr<Story> &&story);
 
     template <class StorerT>
     void store(StorerT &storer) const;
@@ -214,8 +215,9 @@ class StoryManager final : public Actor {
   void send_story(DialogId dialog_id, td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,
                   td_api::object_ptr<td_api::inputStoryAreas> &&input_areas,
                   td_api::object_ptr<td_api::formattedText> &&input_caption,
-                  td_api::object_ptr<td_api::StoryPrivacySettings> &&settings, int32 active_period, bool is_pinned,
-                  bool protect_content, Promise<td_api::object_ptr<td_api::story>> &&promise);
+                  td_api::object_ptr<td_api::StoryPrivacySettings> &&settings, int32 active_period,
+                  td_api::object_ptr<td_api::storyFullId> &&from_story_full_id, bool is_pinned, bool protect_content,
+                  Promise<td_api::object_ptr<td_api::story>> &&promise);
 
   void on_send_story_file_parts_missing(unique_ptr<PendingStory> &&pending_story, vector<int> &&bad_parts);
 

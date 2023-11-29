@@ -3547,6 +3547,11 @@ story id:int32 sender_chat_id:int53 date:int32 is_being_sent:Bool is_being_edite
 //@description Represents a list of stories @total_count Approximate total number of stories found @stories The list of stories
 stories total_count:int32 stories:vector<story> = Stories;
 
+//@description Contains identifier of a story along with identifier of its sender
+//@sender_chat_id Identifier of the chat that posted the story
+//@story_id Unique story identifier among stories of the given sender
+storyFullId sender_chat_id:int53 story_id:int32 = StoryFullId;
+
 //@description Contains basic information about a story
 //@story_id Unique story identifier among stories of the given sender
 //@date Point in time (Unix timestamp) when the story was published
@@ -7997,9 +8002,10 @@ canSendStory chat_id:int53 = CanSendStoryResult;
 //@caption Story caption; pass null to use an empty caption; 0-getOption("story_caption_length_max") characters
 //@privacy_settings The privacy settings for the story
 //@active_period Period after which the story is moved to archive, in seconds; must be one of 6 * 3600, 12 * 3600, 86400, or 2 * 86400 for Telegram Premium users, and 86400 otherwise
+//@from_story_full_id Full identifier of the original story, which content was used to create the story
 //@is_pinned Pass true to keep the story accessible after expiration
 //@protect_content Pass true if the content of the story must be protected from forwarding and screenshotting
-sendStory chat_id:int53 content:InputStoryContent areas:inputStoryAreas caption:formattedText privacy_settings:StoryPrivacySettings active_period:int32 is_pinned:Bool protect_content:Bool = Story;
+sendStory chat_id:int53 content:InputStoryContent areas:inputStoryAreas caption:formattedText privacy_settings:StoryPrivacySettings active_period:int32 from_story_full_id:storyFullId is_pinned:Bool protect_content:Bool = Story;
 
 //@description Changes content and caption of a story. Can be called only if story.can_be_edited == true
 //@story_sender_chat_id Identifier of the chat that posted the story
