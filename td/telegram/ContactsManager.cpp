@@ -9794,14 +9794,18 @@ void ContactsManager::load_channel_recommendations(ChannelId channel_id, bool us
   }
 }
 
+void ContactsManager::fail_load_channel_recommendations_queries(ChannelId channel_id, Status &&error) {
+  auto it = get_channel_recommendations_queries_.find(channel_id);
+  CHECK(it != get_channel_recommendations_queries_.end());
+  auto promises = std::move(it->second);
+  CHECK(!promises.empty());
+  get_channel_recommendations_queries_.erase(it);
+  fail_promises(promises, std::move(error));
+}
+
 void ContactsManager::on_load_channel_recommendations_from_database(ChannelId channel_id, string value) {
   if (G()->close_flag()) {
-    auto it = get_channel_recommendations_queries_.find(channel_id);
-    CHECK(it != get_channel_recommendations_queries_.end());
-    auto promises = std::move(it->second);
-    CHECK(!promises.empty());
-    get_channel_recommendations_queries_.erase(it);
-    return fail_promises(promises, G()->close_status());
+    return fail_load_channel_recommendations_queries(channel_id, G()->close_status());
   }
 
   if (value.empty()) {
@@ -9847,14 +9851,8 @@ void ContactsManager::on_get_channel_recommendations(
     ChannelId channel_id, Result<std::pair<int32, vector<tl_object_ptr<telegram_api::Chat>>>> &&r_chats) {
   G()->ignore_result_if_closing(r_chats);
 
-  auto it = get_channel_recommendations_queries_.find(channel_id);
-  CHECK(it != get_channel_recommendations_queries_.end());
-  auto promises = std::move(it->second);
-  CHECK(!promises.empty());
-  get_channel_recommendations_queries_.erase(it);
-
   if (r_chats.is_error()) {
-    return fail_promises(promises, r_chats.move_as_error());
+    return fail_load_channel_recommendations_queries(channel_id, r_chats.move_as_error());
   }
 
   auto chats = r_chats.move_as_ok();
@@ -9885,6 +9883,11 @@ void ContactsManager::on_get_channel_recommendations(
                                         log_event_store(recommended_dialogs).as_slice().str(), Promise<Unit>());
   }
 
+  auto it = get_channel_recommendations_queries_.find(channel_id);
+  CHECK(it != get_channel_recommendations_queries_.end());
+  auto promises = std::move(it->second);
+  CHECK(!promises.empty());
+  get_channel_recommendations_queries_.erase(it);
   for (auto &promise : promises) {
     if (promise) {
       promise.set_value(

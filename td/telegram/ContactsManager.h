@@ -1748,6 +1748,8 @@ class ContactsManager final : public Actor {
   void load_channel_recommendations(ChannelId channel_id, bool use_database,
                                     Promise<td_api::object_ptr<td_api::chats>> &&promise);
 
+  void fail_load_channel_recommendations_queries(ChannelId channel_id, Status &&error);
+
   void on_load_channel_recommendations_from_database(ChannelId channel_id, string value);
 
   void reload_channel_recommendations(ChannelId channel_id);
