@@ -27,6 +27,8 @@
 #include "td/telegram/ReportReason.h"
 #include "td/telegram/StoryContent.h"
 #include "td/telegram/StoryContentType.h"
+#include "td/telegram/StoryForwardInfo.h"
+#include "td/telegram/StoryForwardInfo.hpp"
 #include "td/telegram/StoryInteractionInfo.hpp"
 #include "td/telegram/StoryStealthMode.hpp"
 #include "td/telegram/StoryViewer.h"
@@ -1057,6 +1059,7 @@ void StoryManager::Story::store(StorerT &storer) const {
   bool has_caption = !caption_.text.empty();
   bool has_areas = !areas_.empty();
   bool has_chosen_reaction_type = !chosen_reaction_type_.is_empty();
+  bool has_forward_info = forward_info_ != nullptr;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_edited_);
   STORE_FLAG(is_pinned_);
@@ -1073,6 +1076,7 @@ void StoryManager::Story::store(StorerT &storer) const {
   STORE_FLAG(has_areas);
   STORE_FLAG(has_chosen_reaction_type);
   STORE_FLAG(is_outgoing_);
+  STORE_FLAG(has_forward_info);
   END_STORE_FLAGS();
   store(date_, storer);
   store(expire_date_, storer);
@@ -1097,6 +1101,9 @@ void StoryManager::Story::store(StorerT &storer) const {
   if (has_chosen_reaction_type) {
     store(chosen_reaction_type_, storer);
   }
+  if (has_forward_info) {
+    store(forward_info_, storer);
+  }
 }
 
 template <class ParserT>
@@ -1109,6 +1116,7 @@ void StoryManager::Story::parse(ParserT &parser) {
   bool has_caption;
   bool has_areas;
   bool has_chosen_reaction_type;
+  bool has_forward_info;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_edited_);
   PARSE_FLAG(is_pinned_);
@@ -1125,6 +1133,7 @@ void StoryManager::Story::parse(ParserT &parser) {
   PARSE_FLAG(has_areas);
   PARSE_FLAG(has_chosen_reaction_type);
   PARSE_FLAG(is_outgoing_);
+  PARSE_FLAG(has_forward_info);
   END_PARSE_FLAGS();
   parse(date_, parser);
   parse(expire_date_, parser);
@@ -1148,6 +1157,9 @@ void StoryManager::Story::parse(ParserT &parser) {
   }
   if (has_chosen_reaction_type) {
     parse(chosen_reaction_type_, parser);
+  }
+  if (has_forward_info) {
+    parse(forward_info_, parser);
   }
 }
 
@@ -1804,6 +1816,9 @@ StoryManager::ActiveStories *StoryManager::on_get_active_stories_from_database(S
 }
 
 void StoryManager::add_story_dependencies(Dependencies &dependencies, const Story *story) {
+  if (story->forward_info_ != nullptr) {
+    story->forward_info_->add_dependencies(dependencies);
+  }
   story->interaction_info_.add_dependencies(dependencies);
   story->privacy_rules_.add_dependencies(dependencies);
   if (story->content_ != nullptr) {
@@ -3001,6 +3016,8 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
   auto unix_time = G()->unix_time();
   auto can_get_statistics = can_get_story_statistics(story_full_id, story);
   auto can_get_viewers = can_get_story_viewers(story_full_id, story, unix_time).is_ok();
+  auto repost_info =
+      story->forward_info_ != nullptr ? story->forward_info_->get_story_repost_info_object(td_) : nullptr;
   auto interaction_info = story->interaction_info_.get_story_interaction_info_object(td_);
   auto has_expired_viewers = is_my_story(owner_dialog_id) && story_id.is_server() &&
                              unix_time >= get_story_viewers_expire_date(story) && interaction_info != nullptr &&
@@ -3016,8 +3033,9 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
       story_id.get(), td_->messages_manager_->get_chat_id_object(owner_dialog_id, "get_story_object"), story->date_,
       is_being_sent, is_being_edited, is_edited, story->is_pinned_, is_visible_only_for_self, can_be_deleted,
       can_be_edited, can_be_forwarded, can_be_replied, can_toggle_is_pinned, can_get_statistics, can_get_viewers,
-      has_expired_viewers, std::move(interaction_info), story->chosen_reaction_type_.get_reaction_type_object(),
-      std::move(privacy_settings), get_story_content_object(td_, content), std::move(story_areas),
+      has_expired_viewers, std::move(repost_info), std::move(interaction_info),
+      story->chosen_reaction_type_.get_reaction_type_object(), std::move(privacy_settings),
+      get_story_content_object(td_, content), std::move(story_areas),
       get_formatted_text_object(*caption, true, get_story_content_duration(td_, content)));
 }
 
@@ -3240,6 +3258,12 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
   }
   if (owner_dialog_id.get_type() == DialogType::User && !is_my_story(owner_dialog_id)) {
     story_item->min_ = false;
+  }
+  unique_ptr<StoryForwardInfo> forward_info =
+      story_item->fwd_from_ != nullptr ? make_unique<StoryForwardInfo>(td_, std::move(story_item->fwd_from_)) : nullptr;
+  if (story->forward_info_ != forward_info) {
+    story->forward_info_ = std::move(forward_info);
+    is_changed = true;
   }
   if (!story_item->min_) {
     auto privacy_rules = UserPrivacySettingRules::get_user_privacy_setting_rules(td_, std::move(story_item->privacy_));

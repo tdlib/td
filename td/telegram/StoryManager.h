@@ -49,6 +49,7 @@ struct BinlogEvent;
 class Dependencies;
 class ReportReason;
 class StoryContent;
+class StoryForwardInfo;
 struct StoryDbStory;
 class Td;
 
@@ -66,6 +67,7 @@ class StoryManager final : public Actor {
     bool is_outgoing_ = false;
     bool noforwards_ = false;
     mutable bool is_update_sent_ = false;  // whether the story is known to the app
+    unique_ptr<StoryForwardInfo> forward_info_;
     StoryInteractionInfo interaction_info_;
     ReactionType chosen_reaction_type_;
     UserPrivacySettingRules privacy_rules_;
