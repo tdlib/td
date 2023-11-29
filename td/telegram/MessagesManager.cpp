@@ -25146,7 +25146,7 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_message(
 }
 
 Result<InputMessageContent> MessagesManager::process_input_message_content(
-    DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content) {
+    DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content, bool check_permissions) {
   if (input_message_content != nullptr && input_message_content->get_id() == td_api::inputMessageForwarded::ID) {
     // for sendMessageAlbum/editMessageMedia/addLocalMessage
     auto input_message = td_api::move_object_as<td_api::inputMessageForwarded>(input_message_content);
@@ -25193,7 +25193,7 @@ Result<InputMessageContent> MessagesManager::process_input_message_content(
   TRY_RESULT(content, get_input_message_content(dialog_id, std::move(input_message_content), td_, is_premium));
 
   if (dialog_id != DialogId()) {
-    TRY_STATUS(can_send_message_content(dialog_id, content.content.get(), false, td_));
+    TRY_STATUS(can_send_message_content(dialog_id, content.content.get(), false, check_permissions, td_));
   }
 
   return std::move(content);
@@ -26258,7 +26258,7 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_inline_query_r
 
   auto input_reply_to = get_message_input_reply_to(d, top_thread_message_id, std::move(reply_to), false);
   TRY_STATUS(can_use_message_send_options(message_send_options, content->message_content, 0));
-  TRY_STATUS(can_send_message_content(dialog_id, content->message_content.get(), false, td_));
+  TRY_STATUS(can_send_message_content(dialog_id, content->message_content.get(), false, true, td_));
   TRY_STATUS(can_use_top_thread_message_id(d, top_thread_message_id, input_reply_to));
 
   auto message_content = dup_message_content(td_, dialog_id, content->message_content.get(),
@@ -28156,7 +28156,7 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
       continue;
     }
 
-    auto can_send_status = can_send_message_content(to_dialog_id, content.get(), !is_local_copy, td_);
+    auto can_send_status = can_send_message_content(to_dialog_id, content.get(), !is_local_copy, true, td_);
     if (can_send_status.is_error()) {
       LOG(INFO) << "Can't forward " << message_id << ": " << can_send_status.message();
       continue;
@@ -28456,7 +28456,7 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
       continue;
     }
 
-    auto can_send_status = can_send_message_content(dialog_id, content.get(), false, td_);
+    auto can_send_status = can_send_message_content(dialog_id, content.get(), false, true, td_);
     if (can_send_status.is_error()) {
       LOG(INFO) << "Can't resend " << m->message_id << ": " << can_send_status.message();
       continue;
@@ -28657,7 +28657,7 @@ Result<MessageId> MessagesManager::add_local_message(
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
     return Status::Error(400, "Can't access the chat");
   }
-  TRY_RESULT(message_content, process_input_message_content(dialog_id, std::move(input_message_content)));
+  TRY_RESULT(message_content, process_input_message_content(dialog_id, std::move(input_message_content), false));
   if (message_content.content->get_type() == MessageContentType::Poll) {
     return Status::Error(400, "Can't add local poll message");
   }
@@ -28686,7 +28686,7 @@ Result<MessageId> MessagesManager::add_local_message(
     return Status::Error(400, "The message must have a sender");
   }
   if (is_channel_post && sender_user_id.is_valid()) {
-    return Status::Error(400, "Channel post can't have a sender user");
+    return Status::Error(400, "Channel post can't have user as a sender");
   }
   if (is_channel_post && sender_dialog_id != dialog_id) {
     return Status::Error(400, "Channel post must have the channel as a sender");

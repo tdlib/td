@@ -3245,9 +3245,14 @@ void delete_message_content_thumbnail(MessageContent *content, Td *td) {
   }
 }
 
-Status can_send_message_content(DialogId dialog_id, const MessageContent *content, bool is_forward, const Td *td) {
+Status can_send_message_content(DialogId dialog_id, const MessageContent *content, bool is_forward,
+                                bool check_premissions, const Td *td) {
   auto dialog_type = dialog_id.get_type();
   RestrictedRights permissions = [&] {
+    if (!check_premissions) {
+      return RestrictedRights(true, true, true, true, true, true, true, true, true, true, true, true, true, true, true,
+                              true, true, ChannelType::Unknown);
+    }
     switch (dialog_type) {
       case DialogType::User:
         return td->contacts_manager_->get_user_default_permissions(dialog_id.get_user_id());

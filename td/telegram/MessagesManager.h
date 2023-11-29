@@ -1791,7 +1791,8 @@ class MessagesManager final : public Actor {
                                const char *source);
 
   Result<InputMessageContent> process_input_message_content(
-      DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content);
+      DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content,
+      bool check_permissions = true);
 
   Result<MessageCopyOptions> process_message_copy_options(DialogId dialog_id,
                                                           tl_object_ptr<td_api::messageCopyOptions> &&options) const;
