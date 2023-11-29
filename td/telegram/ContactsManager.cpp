@@ -9877,7 +9877,16 @@ void ContactsManager::on_load_channel_recommendations_from_database(ChannelId ch
     return reload_channel_recommendations(channel_id);
   }
   auto &recommended_dialogs = channel_recommended_dialogs_[channel_id];
-  if (log_event_parse(recommended_dialogs, value).is_error() ||
+  if (log_event_parse(recommended_dialogs, value).is_error()) {
+    channel_recommended_dialogs_.erase(channel_id);
+    G()->td_db()->get_sqlite_pmc()->erase(get_channel_recommendations_database_key(channel_id), Auto());
+    return reload_channel_recommendations(channel_id);
+  }
+  Dependencies dependencies;
+  for (auto dialog_id : recommended_dialogs.dialog_ids_) {
+    dependencies.add_dialog_and_dependencies(dialog_id);
+  }
+  if (!dependencies.resolve_force(td_, "on_load_channel_recommendations_from_database") ||
       !are_suitable_recommended_dialogs(recommended_dialogs)) {
     channel_recommended_dialogs_.erase(channel_id);
     G()->td_db()->get_sqlite_pmc()->erase(get_channel_recommendations_database_key(channel_id), Auto());
