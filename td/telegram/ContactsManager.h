@@ -1750,6 +1750,9 @@ class ContactsManager final : public Actor {
 
   void fail_load_channel_recommendations_queries(ChannelId channel_id, Status &&error);
 
+  void finish_load_channel_recommendations_queries(ChannelId channel_id, int32 total_count,
+                                                   vector<DialogId> dialog_ids);
+
   void on_load_channel_recommendations_from_database(ChannelId channel_id, string value);
 
   void reload_channel_recommendations(ChannelId channel_id);

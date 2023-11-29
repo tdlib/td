@@ -9803,6 +9803,21 @@ void ContactsManager::fail_load_channel_recommendations_queries(ChannelId channe
   fail_promises(promises, std::move(error));
 }
 
+void ContactsManager::finish_load_channel_recommendations_queries(ChannelId channel_id, int32 total_count,
+                                                                  vector<DialogId> dialog_ids) {
+  auto it = get_channel_recommendations_queries_.find(channel_id);
+  CHECK(it != get_channel_recommendations_queries_.end());
+  auto promises = std::move(it->second);
+  CHECK(!promises.empty());
+  get_channel_recommendations_queries_.erase(it);
+  for (auto &promise : promises) {
+    if (promise) {
+      promise.set_value(td_->messages_manager_->get_chats_object(total_count, dialog_ids,
+                                                                 "finish_load_channel_recommendations_queries"));
+    }
+  }
+}
+
 void ContactsManager::on_load_channel_recommendations_from_database(ChannelId channel_id, string value) {
   if (G()->close_flag()) {
     return fail_load_channel_recommendations_queries(channel_id, G()->close_status());
@@ -9819,20 +9834,10 @@ void ContactsManager::on_load_channel_recommendations_from_database(ChannelId ch
     return reload_channel_recommendations(channel_id);
   }
 
-  auto it = get_channel_recommendations_queries_.find(channel_id);
-  CHECK(it != get_channel_recommendations_queries_.end());
-  auto promises = std::move(it->second);
-  CHECK(!promises.empty());
-  get_channel_recommendations_queries_.erase(it);
-  auto total_count = recommended_dialogs.total_count_;
-  auto dialog_ids = recommended_dialogs.dialog_ids_;
   auto next_reload_time = recommended_dialogs.next_reload_time_;
-  for (auto &promise : promises) {
-    if (promise) {
-      promise.set_value(td_->messages_manager_->get_chats_object(total_count, dialog_ids,
-                                                                 "on_load_channel_recommendations_from_database"));
-    }
-  }
+  finish_load_channel_recommendations_queries(channel_id, recommended_dialogs.total_count_,
+                                              recommended_dialogs.dialog_ids_);
+
   if (next_reload_time <= Time::now()) {
     load_channel_recommendations(channel_id, false, Auto());
   }
@@ -9883,17 +9888,7 @@ void ContactsManager::on_get_channel_recommendations(
                                         log_event_store(recommended_dialogs).as_slice().str(), Promise<Unit>());
   }
 
-  auto it = get_channel_recommendations_queries_.find(channel_id);
-  CHECK(it != get_channel_recommendations_queries_.end());
-  auto promises = std::move(it->second);
-  CHECK(!promises.empty());
-  get_channel_recommendations_queries_.erase(it);
-  for (auto &promise : promises) {
-    if (promise) {
-      promise.set_value(
-          td_->messages_manager_->get_chats_object(total_count, dialog_ids, "on_get_channel_recommendations"));
-    }
-  }
+  finish_load_channel_recommendations_queries(channel_id, total_count, std::move(dialog_ids));
 }
 
 void ContactsManager::return_created_public_dialogs(Promise<td_api::object_ptr<td_api::chats>> &&promise,
