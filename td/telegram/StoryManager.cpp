@@ -2221,6 +2221,9 @@ void StoryManager::get_story_archive(DialogId owner_dialog_id, StoryId from_stor
   if (from_story_id != StoryId() && !from_story_id.is_server()) {
     return promise.set_error(Status::Error(400, "Invalid value of parameter from_story_id specified"));
   }
+  if (!td_->messages_manager_->have_dialog_force(owner_dialog_id, "get_story_archive")) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
   if (!can_edit_stories(owner_dialog_id)) {
     return promise.set_error(Status::Error(400, "Can't get story archive in the chat"));
   }
@@ -4439,6 +4442,9 @@ void StoryManager::save_channels_to_send_stories() {
 
 void StoryManager::can_send_story(DialogId dialog_id,
                                   Promise<td_api::object_ptr<td_api::CanSendStoryResult>> &&promise) {
+  if (!td_->messages_manager_->have_dialog_force(dialog_id, "can_send_story")) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
   if (!can_post_stories(dialog_id)) {
     return promise.set_error(Status::Error(400, "Not enough rights to post stories in the chat"));
   }
@@ -4451,6 +4457,9 @@ void StoryManager::send_story(DialogId dialog_id, td_api::object_ptr<td_api::Inp
                               td_api::object_ptr<td_api::StoryPrivacySettings> &&settings, int32 active_period,
                               bool is_pinned, bool protect_content,
                               Promise<td_api::object_ptr<td_api::story>> &&promise) {
+  if (!td_->messages_manager_->have_dialog_force(dialog_id, "send_story")) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
   if (!can_post_stories(dialog_id)) {
     return promise.set_error(Status::Error(400, "Not enough rights to post stories in the chat"));
   }
