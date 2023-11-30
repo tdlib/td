@@ -4210,16 +4210,15 @@ StoryListId StoryManager::get_dialog_story_list_id(DialogId owner_dialog_id) con
 }
 
 void StoryManager::on_dialog_active_stories_order_updated(DialogId owner_dialog_id, const char *source) {
-  LOG(INFO) << "Update order of active stories in " << owner_dialog_id << " from " << source;
   // called from update_user/on_channel_status_changed, must not create the dialog and hence must not load active stories
   auto active_stories = get_active_stories_editable(owner_dialog_id);
   bool need_save_to_database = false;
   if (active_stories != nullptr &&
       update_active_stories_order(owner_dialog_id, active_stories, &need_save_to_database)) {
-    send_update_chat_active_stories(owner_dialog_id, active_stories, "on_dialog_active_stories_order_updated");
+    send_update_chat_active_stories(owner_dialog_id, active_stories, source);
   }
   if (need_save_to_database) {
-    save_active_stories(owner_dialog_id, active_stories, Promise<Unit>(), "on_dialog_active_stories_order_updated");
+    save_active_stories(owner_dialog_id, active_stories, Promise<Unit>(), source);
   }
 }
 
