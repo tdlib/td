@@ -6,11 +6,9 @@
 //
 #include "td/telegram/VoiceNotesManager.h"
 
-#include "td/telegram/AuthManager.h"
 #include "td/telegram/Dimensions.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
-#include "td/telegram/MessagesManager.h"
 #include "td/telegram/secret_api.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/td_api.h"
@@ -19,6 +17,7 @@
 
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
+#include "td/utils/Status.h"
 
 namespace td {
 

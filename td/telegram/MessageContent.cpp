@@ -15,6 +15,7 @@
 #include "td/telegram/BackgroundInfo.hpp"
 #include "td/telegram/CallDiscardReason.h"
 #include "td/telegram/ChannelId.h"
+#include "td/telegram/ChannelType.h"
 #include "td/telegram/ChatId.h"
 #include "td/telegram/Contact.h"
 #include "td/telegram/ContactsManager.h"

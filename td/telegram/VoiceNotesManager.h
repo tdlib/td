@@ -7,7 +7,6 @@
 #pragma once
 
 #include "td/telegram/files/FileId.h"
-#include "td/telegram/MessageFullId.h"
 #include "td/telegram/SecretInputMedia.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -16,10 +15,6 @@
 #include "td/actor/actor.h"
 
 #include "td/utils/common.h"
-#include "td/utils/FlatHashMap.h"
-#include "td/utils/FlatHashSet.h"
-#include "td/utils/Promise.h"
-#include "td/utils/Status.h"
 #include "td/utils/WaitFreeHashMap.h"
 
 namespace td {

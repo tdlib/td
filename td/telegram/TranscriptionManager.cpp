@@ -7,6 +7,7 @@
 #include "td/telegram/TranscriptionManager.h"
 
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/DialogId.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessagesManager.h"
@@ -14,6 +15,9 @@
 #include "td/telegram/TdDb.h"
 #include "td/telegram/VideoNotesManager.h"
 #include "td/telegram/VoiceNotesManager.h"
+
+#include "td/utils/logging.h"
+#include "td/utils/tl_helpers.h"
 
 namespace td {
 
@@ -403,7 +407,7 @@ void TranscriptionManager::on_update_transcribed_audio(
   if (it == pending_audio_transcriptions_.end()) {
     return;
   }
-  // flags_, dialog_id_ and message_id_ must not be used
+  // flags_, peer_ and msg_id_ must not be used
   if (!update->pending_) {
     auto on_update = std::move(it->second);
     pending_audio_transcriptions_.erase(it);

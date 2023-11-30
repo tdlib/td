@@ -9,7 +9,6 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
-#include "td/telegram/MessagesManager.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/PhotoFormat.h"
 #include "td/telegram/secret_api.h"

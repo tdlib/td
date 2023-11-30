@@ -6,7 +6,6 @@
 //
 #include "td/telegram/ConfigManager.h"
 
-#include "td/telegram/AccentColorId.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ConnectionState.h"
 #include "td/telegram/ContactsManager.h"
@@ -30,7 +29,6 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
-#include "td/telegram/ThemeManager.h"
 #include "td/telegram/TranscriptionManager.h"
 
 #include "td/mtproto/AuthData.h"

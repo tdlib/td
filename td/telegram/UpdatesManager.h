@@ -17,7 +17,6 @@
 #include "td/telegram/UserId.h"
 
 #include "td/actor/actor.h"
-#include "td/actor/MultiTimeout.h"
 #include "td/actor/Timeout.h"
 
 #include "td/utils/common.h"
@@ -29,7 +28,6 @@
 #include "td/utils/tl_storers.h"
 #include "td/utils/TlStorerToString.h"
 
-#include <functional>
 #include <map>
 #include <utility>
 
