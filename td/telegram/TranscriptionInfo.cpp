@@ -31,8 +31,10 @@ class TranscribeAudioQuery final : public Td::ResultHandler {
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
-    send_query(G()->net_query_creator().create(telegram_api::messages_transcribeAudio(
-        std::move(input_peer), message_full_id.get_message_id().get_server_message_id().get())));
+    auto query = G()->net_query_creator().create(telegram_api::messages_transcribeAudio(
+        std::move(input_peer), message_full_id.get_message_id().get_server_message_id().get()));
+    query->total_timeout_limit_ = 8;
+    send_query(std::move(query));
   }
 
   void on_result(BufferSlice packet) final {
