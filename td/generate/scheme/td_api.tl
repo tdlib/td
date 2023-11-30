@@ -7827,13 +7827,11 @@ setChatPermissions chat_id:int53 permissions:chatPermissions = Ok;
 //@only_for_self Pass true to set background only for self; pass false to set background for both chat users. Background can be set for both users only by Telegram Premium users and if set background isn't of the type inputBackgroundPrevious
 setChatBackground chat_id:int53 background:InputBackground type:BackgroundType dark_theme_dimming:int32 only_for_self:Bool = Ok;
 
-//@description Deletes background in a specific chat @chat_id Chat identifier
-deleteChatBackground chat_id:int53 = Ok;
-
-//@description Restores background in a specific chat after it was changed by the other user. Supported only in private and secret chats with non-deleted users.
-//-Can be called only from messageChatSetBackground messages with the currently set background that was set for both sides by the other user if userFullInfo.set_chat_background == true
+//@description Deletes background in a specific chat
 //@chat_id Chat identifier
-revertChatBackground chat_id:int53 = Ok;
+//@restore_previous Pass true to restore previously set background. Can be used only in private and secret chats with non-deleted users if userFullInfo.set_chat_background == true.
+//-Supposed to be used from messageChatSetBackground messages with the currently set background that was set for both sides by the other user
+deleteChatBackground chat_id:int53 restore_previous:Bool = Ok;
 
 //@description Changes the chat theme. Supported only in private and secret chats @chat_id Chat identifier @theme_name Name of the new chat theme; pass an empty string to return the default theme
 setChatTheme chat_id:int53 theme_name:string = Ok;

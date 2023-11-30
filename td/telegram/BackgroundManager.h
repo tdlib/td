@@ -52,9 +52,7 @@ class BackgroundManager final : public Actor {
                              const td_api::BackgroundType *background_type, int32 dark_theme_dimming, bool for_both,
                              Promise<Unit> &&promise);
 
-  void delete_dialog_background(DialogId dialog_id, Promise<Unit> &&promise);
-
-  void revert_dialog_background(DialogId dialog_id, Promise<Unit> &&promise);
+  void delete_dialog_background(DialogId dialog_id, bool restore_previous, Promise<Unit> &&promise);
 
   td_api::object_ptr<td_api::background> get_background_object(BackgroundId background_id, bool for_dark_theme,
                                                                const BackgroundType *type) const;

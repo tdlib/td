@@ -820,16 +820,10 @@ void BackgroundManager::set_dialog_background(DialogId dialog_id, const td_api::
   }
 }
 
-void BackgroundManager::delete_dialog_background(DialogId dialog_id, Promise<Unit> &&promise) {
+void BackgroundManager::delete_dialog_background(DialogId dialog_id, bool restore_previous, Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE_ASSIGN(promise, dialog_id, get_background_dialog(dialog_id));
-  send_set_dialog_background_query(dialog_id, nullptr, nullptr, MessageId(), false, std::move(promise));
-}
-
-void BackgroundManager::revert_dialog_background(DialogId dialog_id, Promise<Unit> &&promise) {
-  TRY_RESULT_PROMISE_ASSIGN(promise, dialog_id, get_background_dialog(dialog_id));
-
   td_->create_handler<SetChatWallPaperQuery>(std::move(promise))
-      ->send(dialog_id, nullptr, nullptr, MessageId(), false, true);
+      ->send(dialog_id, nullptr, nullptr, MessageId(), false, restore_previous);
 }
 
 void BackgroundManager::do_set_dialog_background(DialogId dialog_id, BackgroundId background_id, BackgroundType type,
