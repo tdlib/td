@@ -3623,13 +3623,19 @@ MessageId get_message_content_pinned_message_id(const MessageContent *content) {
   }
 }
 
-BackgroundInfo get_message_content_background_info(const MessageContent *content) {
+BackgroundInfo get_message_content_my_background_info(const MessageContent *content, bool is_outgoing) {
   switch (content->get_type()) {
-    case MessageContentType::SetBackground:
-      return static_cast<const MessageSetBackground *>(content)->background_info;
+    case MessageContentType::SetBackground: {
+      const auto *set_background = static_cast<const MessageSetBackground *>(content);
+      if (is_outgoing || set_background->for_both) {
+        return set_background->background_info;
+      }
+      break;
+    }
     default:
-      return BackgroundInfo();
+      break;
   }
+  return BackgroundInfo();
 }
 
 string get_message_content_theme_name(const MessageContent *content) {

@@ -149,7 +149,7 @@ StickerType get_message_content_sticker_type(const Td *td, const MessageContent 
 
 MessageId get_message_content_pinned_message_id(const MessageContent *content);
 
-BackgroundInfo get_message_content_background_info(const MessageContent *content);
+BackgroundInfo get_message_content_my_background_info(const MessageContent *content, bool is_outgoing);
 
 string get_message_content_theme_name(const MessageContent *content);
 

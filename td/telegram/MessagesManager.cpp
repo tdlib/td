@@ -35421,8 +35421,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         set_dialog_last_pinned_message_id(d, pinned_message_id);
       }
     }
-    if (message_content_type == MessageContentType::SetBackground && m->is_outgoing) {
-      set_dialog_background(d, get_message_content_background_info(m->content.get()));
+    if (message_content_type == MessageContentType::SetBackground) {
+      set_dialog_background(d, get_message_content_my_background_info(m->content.get(), m->is_outgoing));
     }
     if (message_content_type == MessageContentType::ChatSetTheme) {
       set_dialog_theme_name(d, get_message_content_theme_name(m->content.get()));
