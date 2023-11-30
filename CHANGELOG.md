@@ -1226,7 +1226,7 @@ Changes in 1.4.0 (1 May 2019):
 * Removed the `on_closed` callback virtual method from low-level C++ ClientActor interface.
   Callback destructor can be used instead.
 * Updated dependencies in the prebuilt TDLib for Android:
-  - Updated SDK to SDK 28 in which helper classes was moved from `android.support.` to `androidx.` package.
+  - Updated SDK to SDK 28 in which helper classes were moved from `android.support.` to `androidx.` package.
   - Updated NDK to r19c, which dropped support for Android versions up to 4.0.4, so the minimum supported version is
     Android 4.1.
   - Updated OpenSSL to version 1.1.1.

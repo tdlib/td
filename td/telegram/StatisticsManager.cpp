@@ -579,7 +579,7 @@ void StatisticsManager::send_get_channel_story_stats_query(
     return promise.set_error(Status::Error(400, "Story not found"));
   }
   if (!td_->story_manager_->can_get_story_statistics(story_full_id)) {
-    return promise.set_error(Status::Error(400, "Story statistics is inaccessible"));
+    return promise.set_error(Status::Error(400, "Story statistics are inaccessible"));
   }
   CHECK(dialog_id.get_type() == DialogType::Channel);
   td_->create_handler<GetStoryStatsQuery>(std::move(promise))

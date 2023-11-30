@@ -4315,7 +4315,7 @@ chatEventLocationChanged old_location:chatLocation new_location:chatLocation = C
 //@description The message auto-delete timer was changed @old_message_auto_delete_time Previous value of message_auto_delete_time @new_message_auto_delete_time New value of message_auto_delete_time
 chatEventMessageAutoDeleteTimeChanged old_message_auto_delete_time:int32 new_message_auto_delete_time:int32 = ChatEventAction;
 
-//@description The chat permissions was changed @old_permissions Previous chat permissions @new_permissions New chat permissions
+//@description The chat permissions were changed @old_permissions Previous chat permissions @new_permissions New chat permissions
 chatEventPermissionsChanged old_permissions:chatPermissions new_permissions:chatPermissions = ChatEventAction;
 
 //@description The chat photo was changed @old_photo Previous chat photo value; may be null @new_photo New chat photo value; may be null
@@ -4886,13 +4886,13 @@ resetPasswordResultDeclined retry_date:int32 = ResetPasswordResult;
 
 //@class MessageFileType @description Contains information about a file with messages exported from another app
 
-//@description The messages was exported from a private chat @name Name of the other party; may be empty if unrecognized
+//@description The messages were exported from a private chat @name Name of the other party; may be empty if unrecognized
 messageFileTypePrivate name:string = MessageFileType;
 
-//@description The messages was exported from a group chat @title Title of the group chat; may be empty if unrecognized
+//@description The messages were exported from a group chat @title Title of the group chat; may be empty if unrecognized
 messageFileTypeGroup title:string = MessageFileType;
 
-//@description The messages was exported from a chat of unknown type
+//@description The messages were exported from a chat of unknown type
 messageFileTypeUnknown = MessageFileType;
 
 
@@ -5959,7 +5959,7 @@ statisticalGraphAsync token:string = StatisticalGraph;
 statisticalGraphError error_message:string = StatisticalGraph;
 
 
-//@class ChatStatisticsObjectType @description Describes type of an object, for which statistics is provided
+//@class ChatStatisticsObjectType @description Describes type of an object, for which statistics are provided
 
 //@description Describes a message sent in the chat @message_id Message identifier
 chatStatisticsObjectTypeMessage message_id:int53 = ChatStatisticsObjectType;
@@ -6161,7 +6161,7 @@ updateChatAccentColor chat_id:int53 accent_color_id:int32 = Update;
 //@description A chat's custom emoji for reply background has changed @chat_id Chat identifier @background_custom_emoji_id The new identifier of a custom emoji to be shown on the reply header background; 0 if none
 updateChatBackgroundCustomEmoji chat_id:int53 background_custom_emoji_id:int64 = Update;
 
-//@description Chat permissions was changed @chat_id Chat identifier @permissions The new chat permissions
+//@description Chat permissions were changed @chat_id Chat identifier @permissions The new chat permissions
 updateChatPermissions chat_id:int53 permissions:chatPermissions = Update;
 
 //@description The last message of a chat was changed
@@ -6582,7 +6582,7 @@ updatePollAnswer poll_id:int64 voter_id:MessageSender option_ids:vector<int32> =
 //@description User rights changed in a chat; for bots only
 //@chat_id Chat identifier
 //@actor_user_id Identifier of the user, changing the rights
-//@date Point in time (Unix timestamp) when the user rights was changed
+//@date Point in time (Unix timestamp) when the user rights were changed
 //@invite_link If user has joined the chat using an invite link, the invite link; may be null
 //@via_chat_folder_invite_link True, if the user has joined the chat using an invite link for a chat folder
 //@old_chat_member Previous chat member
