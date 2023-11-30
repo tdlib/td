@@ -5597,6 +5597,8 @@ void ContactsManager::RecommendedDialogs::parse(ParserT &parser) {
   parse_time(next_reload_time_, parser);
   if (has_total_count) {
     td::parse(total_count_, parser);
+  } else {
+    total_count_ = static_cast<int32>(dialog_ids_.size());
   }
 }
 
