@@ -5514,6 +5514,14 @@ void Td::on_request(uint64 id, td_api::getMessagePublicForwards &request) {
                                                    std::move(request.offset_), request.limit_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::getStoryPublicForwards &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.offset_);
+  CREATE_REQUEST_PROMISE();
+  statistics_manager_->get_story_public_forwards({DialogId(request.story_sender_chat_id_), StoryId(request.story_id_)},
+                                                 std::move(request.offset_), request.limit_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::removeNotification &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

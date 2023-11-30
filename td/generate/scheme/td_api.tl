@@ -1332,7 +1332,7 @@ message id:int53 sender_id:MessageSender chat_id:int53 sending_state:MessageSend
 //@description Contains a list of messages @total_count Approximate total number of messages found @messages List of messages; messages may be null
 messages total_count:int32 messages:vector<message> = Messages;
 
-//@description Contains a list of messages found by a search @total_count Approximate total number of messages found; -1 if unknown @messages List of messages @next_offset The offset for the next request. If empty, there are no more results
+//@description Contains a list of messages found by a search @total_count Approximate total number of messages found; -1 if unknown @messages List of messages @next_offset The offset for the next request. If empty, then there are no more results
 foundMessages total_count:int32 messages:vector<message> next_offset:string = FoundMessages;
 
 //@description Contains a list of messages found by a search in a given chat @total_count Approximate total number of messages found; -1 if unknown @messages List of messages @next_from_message_id The offset for the next request. If 0, there are no more results
@@ -1438,7 +1438,7 @@ downloadedFileCounts active_count:int32 paused_count:int32 completed_count:int32
 //@description Contains a list of downloaded files, found by a search
 //@total_counts Total number of suitable files, ignoring offset
 //@files The list of files
-//@next_offset The offset for the next request. If empty, there are no more results
+//@next_offset The offset for the next request. If empty, then there are no more results
 foundFileDownloads total_counts:downloadedFileCounts files:vector<fileDownload> next_offset:string = FoundFileDownloads;
 
 
@@ -3386,7 +3386,7 @@ storyViewer user_id:int53 view_date:int32 block_list:BlockList chosen_reaction_t
 //@total_count Approximate total number of story viewers found
 //@total_reaction_count Approximate total number of reactions set by found story viewers
 //@viewers List of story viewers
-//@next_offset The offset for the next request. If empty, there are no more results
+//@next_offset The offset for the next request. If empty, then there are no more results
 storyViewers total_count:int32 total_reaction_count:int32 viewers:vector<storyViewer> next_offset:string = StoryViewers;
 
 
@@ -3567,6 +3567,22 @@ storyInfo story_id:int32 date:int32 is_for_close_friends:Bool = StoryInfo;
 chatActiveStories chat_id:int53 list:StoryList order:int53 max_read_story_id:int32 stories:vector<storyInfo> = ChatActiveStories;
 
 
+//@class StoryPublicForward @description Describes a public forward or repost of a story
+
+//@description Contains a public forward of a story as a message @message Information about the message with the story
+storyPublicForwardMessage message:message = StoryPublicForward;
+
+//@description Contains a public repost of a story as a story @story Information about the reposted story
+storyPublicForwardStory story:story = StoryPublicForward;
+
+
+//@description Represents a list of public forwards and reposts of a story
+//@total_count Approximate total number of messages and stories found
+//@forwards List of found public forwards and reposts
+//@next_offset The offset for the next request. If empty, then there are no more results
+storyPublicForwards total_count:int32 forwards:vector<StoryPublicForward> next_offset:string = StoryPublicForwards;
+
+
 //@class ChatBoostSource @description Describes source of a chat boost
 
 //@description The chat created a Telegram Premium gift code for a user
@@ -3614,7 +3630,7 @@ chatBoostStatus boost_url:string applied_slot_ids:vector<int32> level:int32 gift
 //@expiration_date Point in time (Unix timestamp) when the boost will expire
 chatBoost id:string count:int32 source:ChatBoostSource start_date:int32 expiration_date:int32 = ChatBoost;
 
-//@description Contains a list of boosts applied to a chat @total_count Total number of boosts applied to the chat @boosts List of boosts @next_offset The offset for the next request. If empty, there are no more results
+//@description Contains a list of boosts applied to a chat @total_count Total number of boosts applied to the chat @boosts List of boosts @next_offset The offset for the next request. If empty, then there are no more results
 foundChatBoosts total_count:int32 boosts:vector<chatBoost> next_offset:string = FoundChatBoosts;
 
 //@description Describes a slot for chat boost
@@ -3864,7 +3880,7 @@ phoneNumberAuthenticationSettings allow_flash_call:Bool allow_missed_call:Bool i
 //@date Point in time (Unix timestamp) when the reaction was added
 addedReaction type:ReactionType sender_id:MessageSender is_outgoing:Bool date:int32 = AddedReaction;
 
-//@description Represents a list of reactions added to a message @total_count The total number of found reactions @reactions The list of added reactions @next_offset The offset for the next request. If empty, there are no more results
+//@description Represents a list of reactions added to a message @total_count The total number of found reactions @reactions The list of added reactions @next_offset The offset for the next request. If empty, then there are no more results
 addedReactions total_count:int32 reactions:vector<addedReaction> next_offset:string = AddedReactions;
 
 //@description Represents an available reaction @type Type of the reaction @needs_premium True, if Telegram Premium is needed to send the reaction
@@ -4215,7 +4231,7 @@ inlineQueryResultsButton text:string type:InlineQueryResultsButtonType = InlineQ
 //@inline_query_id Unique identifier of the inline query
 //@button Button to be shown above inline query results; may be null
 //@results Results of the query
-//@next_offset The offset for the next request. If empty, there are no more results
+//@next_offset The offset for the next request. If empty, then there are no more results
 inlineQueryResults inline_query_id:int64 button:inlineQueryResultsButton results:vector<InlineQueryResult> next_offset:string = InlineQueryResults;
 
 
@@ -7811,7 +7827,7 @@ setChatPermissions chat_id:int53 permissions:chatPermissions = Ok;
 setChatBackground chat_id:int53 background:InputBackground type:BackgroundType dark_theme_dimming:int32 only_for_self:Bool = Ok;
 
 //@description Restores background in a specific chat after it was changed by the other user. Supported only in private and secret chats with non-deleted users.
-//-Can be called only from messageChatSetBackground messages with the currently set background that was set for both sides by the other user if userFullInfo.set_chat_background
+//-Can be called only from messageChatSetBackground messages with the currently set background that was set for both sides by the other user if userFullInfo.set_chat_background == true
 //@chat_id Chat identifier
 revertChatBackground chat_id:int53 = Ok;
 
@@ -8101,6 +8117,14 @@ reportStory story_sender_chat_id:int53 story_id:int32 reason:ReportReason text:s
 //@description Activates stealth mode for stories, which hides all views of stories from the current user in the last "story_stealth_mode_past_period" seconds
 //-and for the next "story_stealth_mode_future_period" seconds; for Telegram Premium users only
 activateStoryStealthMode = Ok;
+
+//@description Returns forwards of a story as a message to public chats and reposts by public channels. Can be used only if story.can_get_statistics == true, or the story is posted on behalf of the current user.
+//-For optimal performance, the number of returned messages and stories is chosen by TDLib
+//@story_sender_chat_id The identifier of the sender of the story
+//@story_id The identifier of the story
+//@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
+//@limit The maximum number of messages and stories to be returned; must be positive and can't be greater than 100. For optimal performance, the number of returned objects is chosen by TDLib and can be smaller than the specified limit
+getStoryPublicForwards story_sender_chat_id:int53 story_id:int32 offset:string limit:int32 = StoryPublicForwards;
 
 
 //@description Returns the list of available chat boost slots for the current user

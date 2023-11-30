@@ -9767,13 +9767,42 @@ void MessagesManager::get_channel_differences_if_needed(MessagesInfo &&messages_
 
     auto dialog_id = DialogId::get_message_dialog_id(message);
     if (need_channel_difference_to_add_message(dialog_id, message)) {
-      run_after_channel_difference(dialog_id, MessageId::get_max_message_id(messages_info.messages), mpas.get_promise(),
+      run_after_channel_difference(dialog_id, MessageId::get_message_id(message, false), mpas.get_promise(),
                                    "get_channel_differences_if_needed");
     }
   }
   // must be added after messages_info is checked
   mpas.add_promise(PromiseCreator::lambda([messages_info = std::move(messages_info), promise = std::move(promise)](
                                               Unit ignored) mutable { promise.set_value(std::move(messages_info)); }));
+  lock.set_value(Unit());
+}
+
+void MessagesManager::get_channel_differences_if_needed(
+    telegram_api::object_ptr<telegram_api::stats_publicForwards> &&public_forwards,
+    Promise<telegram_api::object_ptr<telegram_api::stats_publicForwards>> &&promise) {
+  if (td_->auth_manager_->is_bot()) {
+    return promise.set_value(std::move(public_forwards));
+  }
+  MultiPromiseActorSafe mpas{"GetChannelDifferencesIfNeededMultiPromiseActor"};
+  mpas.add_promise(Promise<Unit>());
+  mpas.set_ignore_errors(true);
+  auto lock = mpas.get_promise();
+  for (const auto &forward : public_forwards->forwards_) {
+    CHECK(forward != nullptr);
+    if (forward->get_id() != telegram_api::publicForwardMessage::ID) {
+      continue;
+    }
+    const auto &message = static_cast<const telegram_api::publicForwardMessage *>(forward.get())->message_;
+    auto dialog_id = DialogId::get_message_dialog_id(message);
+    if (need_channel_difference_to_add_message(dialog_id, message)) {
+      run_after_channel_difference(dialog_id, MessageId::get_message_id(message, false), mpas.get_promise(),
+                                   "get_channel_differences_if_needed");
+    }
+  }
+  // must be added after forwarded messages are checked
+  mpas.add_promise(
+      PromiseCreator::lambda([public_forwards = std::move(public_forwards), promise = std::move(promise)](
+                                 Unit ignored) mutable { promise.set_value(std::move(public_forwards)); }));
   lock.set_value(Unit());
 }
 

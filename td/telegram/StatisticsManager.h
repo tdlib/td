@@ -46,6 +46,12 @@ class StatisticsManager final : public Actor {
                                       vector<telegram_api::object_ptr<telegram_api::Message>> &&messages,
                                       int32 next_rate, Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
 
+  void get_story_public_forwards(StoryFullId story_full_id, string offset, int32 limit,
+                                 Promise<td_api::object_ptr<td_api::storyPublicForwards>> &&promise);
+
+  void on_get_story_public_forwards(telegram_api::object_ptr<telegram_api::stats_publicForwards> &&public_forwards,
+                                    Promise<td_api::object_ptr<td_api::storyPublicForwards>> &&promise);
+
  private:
   void tear_down() final;
 
@@ -63,6 +69,9 @@ class StatisticsManager final : public Actor {
 
   void send_get_message_public_forwards_query(DcId dc_id, MessageFullId message_full_id, string offset, int32 limit,
                                               Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
+
+  void send_get_story_public_forwards_query(DcId dc_id, StoryFullId story_full_id, string offset, int32 limit,
+                                            Promise<td_api::object_ptr<td_api::storyPublicForwards>> &&promise);
 
   Td *td_;
   ActorShared<> parent_;

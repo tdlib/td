@@ -2793,6 +2793,13 @@ class CliClient final : public Actor {
       string limit;
       get_args(args, chat_id, message_id, offset, limit);
       send_request(td_api::make_object<td_api::getMessagePublicForwards>(chat_id, message_id, offset, as_limit(limit)));
+    } else if (op == "gspf") {
+      ChatId chat_id;
+      StoryId story_id;
+      string offset;
+      string limit;
+      get_args(args, chat_id, story_id, offset, limit);
+      send_request(td_api::make_object<td_api::getStoryPublicForwards>(chat_id, story_id, offset, as_limit(limit)));
     } else if (op == "ghf") {
       get_history_chat_id_ = as_chat_id(args);
       send_request(td_api::make_object<td_api::getChatHistory>(get_history_chat_id_, std::numeric_limits<int64>::max(),
