@@ -2900,7 +2900,7 @@ messagePremiumGiveawayCreated = MessageContent;
 messagePremiumGiveaway parameters:premiumGiveawayParameters winner_count:int32 month_count:int32 sticker:sticker = MessageContent;
 
 //@description A Telegram Premium giveaway has been completed for the chat
-//@giveaway_message_id Identifier of the message with the giveaway, can be an identifier of a deleted message 
+//@giveaway_message_id Identifier of the message with the giveaway, can be an identifier of a deleted message
 //@winner_count Number of winners in the giveaway
 //@unclaimed_prize_count Number of undistributed prizes
 messagePremiumGiveawayCompleted giveaway_message_id:int53 winner_count:int32 unclaimed_prize_count:int32 = MessageContent;
@@ -8118,7 +8118,7 @@ reportStory story_sender_chat_id:int53 story_id:int32 reason:ReportReason text:s
 //-and for the next "story_stealth_mode_future_period" seconds; for Telegram Premium users only
 activateStoryStealthMode = Ok;
 
-//@description Returns forwards of a story as a message to public chats and reposts by public channels. Can be used only if story.can_get_statistics == true, or the story is posted on behalf of the current user.
+//@description Returns forwards of a story as a message to public chats and reposts by public channels. Can be used only if the story is posted on behalf of the current user or story.can_get_statistics == true.
 //-For optimal performance, the number of returned messages and stories is chosen by TDLib
 //@story_sender_chat_id The identifier of the sender of the story
 //@story_id The identifier of the story

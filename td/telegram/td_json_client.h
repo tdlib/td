@@ -170,7 +170,7 @@ TDJSON_EXPORT const char *td_json_client_receive(void *client, double timeout);
  * Only a few requests can be executed synchronously.
  * Returned pointer will be deallocated by TDLib during next call to td_json_client_receive or td_json_client_execute
  * in the same thread, so it can't be used after that.
- * \param[in] client The client. Currently ignored for all requests, so NULL can be passed.
+ * \param[in] client The client. Currently, ignored for all requests, so NULL can be passed.
  * \param[in] request JSON-serialized null-terminated request to TDLib.
  * \return JSON-serialized null-terminated request response.
  */

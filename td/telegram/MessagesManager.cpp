@@ -9783,7 +9783,7 @@ void MessagesManager::get_channel_differences_if_needed(
   if (td_->auth_manager_->is_bot()) {
     return promise.set_value(std::move(public_forwards));
   }
-  MultiPromiseActorSafe mpas{"GetChannelDifferencesIfNeededMultiPromiseActor"};
+  MultiPromiseActorSafe mpas{"GetChannelDifferencesIfNeededForPublicForwardsMultiPromiseActor"};
   mpas.add_promise(Promise<Unit>());
   mpas.set_ignore_errors(true);
   auto lock = mpas.get_promise();

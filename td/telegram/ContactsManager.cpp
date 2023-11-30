@@ -845,7 +845,7 @@ class UpdateProfileColorQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    LOG(DEBUG) << "Receive result for UpdateColorQuery: " << result_ptr.ok();
+    LOG(DEBUG) << "Receive result for UpdateProfileColorQuery: " << result_ptr.ok();
     td_->contacts_manager_->on_update_profile_accent_color_success(accent_color_id_, background_custom_emoji_id_);
     promise_.set_value(Unit());
   }
