@@ -763,16 +763,12 @@ void BackgroundManager::set_dialog_background(DialogId dialog_id, const td_api::
   TRY_RESULT_PROMISE(promise, type, BackgroundType::get_background_type(background_type, dark_theme_dimming));
 
   if (input_background == nullptr) {
-    if (type.has_file()) {
+    if (type.has_file() || background_type == nullptr) {
       return promise.set_error(Status::Error(400, "Input background must be non-empty for the background type"));
     }
-    if (background_type == nullptr) {
-      return send_set_dialog_background_query(dialog_id, nullptr, nullptr, MessageId(), for_both, std::move(promise));
-    } else {
-      return send_set_dialog_background_query(
-          dialog_id, telegram_api::make_object<telegram_api::inputWallPaperNoFile>(0),
-          type.get_input_wallpaper_settings(), MessageId(), for_both, std::move(promise));
-    }
+    return send_set_dialog_background_query(dialog_id, telegram_api::make_object<telegram_api::inputWallPaperNoFile>(0),
+                                            type.get_input_wallpaper_settings(), MessageId(), for_both,
+                                            std::move(promise));
   }
 
   switch (input_background->get_id()) {
@@ -822,6 +818,11 @@ void BackgroundManager::set_dialog_background(DialogId dialog_id, const td_api::
     default:
       UNREACHABLE();
   }
+}
+
+void BackgroundManager::delete_dialog_background(DialogId dialog_id, Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE_ASSIGN(promise, dialog_id, get_background_dialog(dialog_id));
+  send_set_dialog_background_query(dialog_id, nullptr, nullptr, MessageId(), false, std::move(promise));
 }
 
 void BackgroundManager::revert_dialog_background(DialogId dialog_id, Promise<Unit> &&promise) {

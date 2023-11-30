@@ -6534,6 +6534,12 @@ void Td::on_request(uint64 id, td_api::setChatBackground &request) {
                                              request.dark_theme_dimming_, !request.only_for_self_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::deleteChatBackground &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  background_manager_->delete_dialog_background(DialogId(request.chat_id_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::revertChatBackground &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
