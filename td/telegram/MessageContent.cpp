@@ -5495,8 +5495,9 @@ unique_ptr<MessageContent> get_secret_message_content(
 
 unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
                                                tl_object_ptr<telegram_api::MessageMedia> &&media_ptr,
-                                               DialogId owner_dialog_id, bool is_content_read, UserId via_bot_user_id,
-                                               int32 *ttl, bool *disable_web_page_preview, const char *source) {
+                                               DialogId owner_dialog_id, int32 message_date, bool is_content_read,
+                                               UserId via_bot_user_id, int32 *ttl, bool *disable_web_page_preview,
+                                               const char *source) {
   if (!td->auth_manager_->was_authorized() && !G()->close_flag() && media_ptr != nullptr &&
       media_ptr->get_id() != telegram_api::messageMediaEmpty::ID) {
     LOG(ERROR) << "Receive without authorization from " << source << ": " << to_string(media_ptr);
@@ -5687,7 +5688,9 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
         }
       }
       if (channel_ids.empty() || media->quantity_ <= 0 || media->months_ <= 0 || media->until_date_ < 0) {
-        LOG(ERROR) << "Receive " << to_string(media);
+        if (message_date >= 1700000000) {  // approximate release date
+          LOG(ERROR) << "Receive " << to_string(media);
+        }
         break;
       }
       auto boosted_channel_id = channel_ids[0];
@@ -5988,7 +5991,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
 }
 
 unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<telegram_api::MessageAction> &&action_ptr,
-                                                      DialogId owner_dialog_id,
+                                                      DialogId owner_dialog_id, int32 message_date,
                                                       const RepliedMessageInfo &replied_message_info) {
   CHECK(action_ptr != nullptr);
 
@@ -6356,7 +6359,9 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       auto action = move_tl_object_as<telegram_api::messageActionGiveawayResults>(action_ptr);
       auto reply_to_message_id = replied_message_info.get_same_chat_reply_to_message_id(true);
       if (!reply_to_message_id.is_valid()) {
-        LOG(ERROR) << "Receive giveaway results message with " << reply_to_message_id << " in " << owner_dialog_id;
+        if (message_date >= 1700000000) {  // approximate release date
+          LOG(ERROR) << "Receive giveaway results message with " << reply_to_message_id << " in " << owner_dialog_id;
+        }
         reply_to_message_id = MessageId();
       }
       return td::make_unique<MessageGiveawayResults>(reply_to_message_id, action->winners_count_,

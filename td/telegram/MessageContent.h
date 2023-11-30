@@ -218,8 +218,9 @@ unique_ptr<MessageContent> get_secret_message_content(
 
 unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message_text,
                                                tl_object_ptr<telegram_api::MessageMedia> &&media_ptr,
-                                               DialogId owner_dialog_id, bool is_content_read, UserId via_bot_user_id,
-                                               int32 *ttl, bool *disable_web_page_preview, const char *source);
+                                               DialogId owner_dialog_id, int32 message_date, bool is_content_read,
+                                               UserId via_bot_user_id, int32 *ttl, bool *disable_web_page_preview,
+                                               const char *source);
 
 enum class MessageContentDupType : int32 {
   Send,        // normal message sending
@@ -233,7 +234,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
                                                MessageContentDupType type, MessageCopyOptions &&copy_options);
 
 unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<telegram_api::MessageAction> &&action_ptr,
-                                                      DialogId owner_dialog_id,
+                                                      DialogId owner_dialog_id, int32 message_date,
                                                       const RepliedMessageInfo &replied_message_info);
 
 tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageContent *content, Td *td,

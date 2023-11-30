@@ -105,8 +105,8 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, tl_object_ptr<telegram_api::messa
     }
     if (!origin_.is_empty() && reply_header->reply_media_ != nullptr &&
         reply_header->reply_media_->get_id() != telegram_api::messageMediaEmpty::ID) {
-      content_ = get_message_content(td, FormattedText(), std::move(reply_header->reply_media_), dialog_id, true,
-                                     UserId(), nullptr, nullptr, "messageReplyHeader");
+      content_ = get_message_content(td, FormattedText(), std::move(reply_header->reply_media_), dialog_id,
+                                     origin_date_, true, UserId(), nullptr, nullptr, "messageReplyHeader");
       CHECK(content_ != nullptr);
       switch (content_->get_type()) {
         case MessageContentType::Animation:

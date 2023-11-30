@@ -6655,8 +6655,8 @@ void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api:
   DialogId owner_dialog_id = is_user ? get_service_notifications_dialog()->dialog_id : DialogId();
   int32 ttl = 0;
   bool disable_web_page_preview = false;
-  auto content = get_message_content(td_, std::move(message_text), std::move(update->media_), owner_dialog_id, false,
-                                     UserId(), &ttl, &disable_web_page_preview, "updateServiceNotification");
+  auto content = get_message_content(td_, std::move(message_text), std::move(update->media_), owner_dialog_id, date,
+                                     false, UserId(), &ttl, &disable_web_page_preview, "updateServiceNotification");
   bool is_content_secret = is_secret_message_content(ttl, content->get_type());
 
   if (update->popup_) {
@@ -14429,8 +14429,8 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
                            true, td_->auth_manager_->is_bot(),
                            message_info.forward_header ? message_info.forward_header->date_ : message_info.date,
                            message_info.media_album_id != 0, new_source.c_str()),
-          std::move(message->media_), message_info.dialog_id, is_content_read, message_info.via_bot_user_id,
-          &message_info.ttl, &message_info.disable_web_page_preview, new_source.c_str());
+          std::move(message->media_), message_info.dialog_id, message_info.date, is_content_read,
+          message_info.via_bot_user_id, &message_info.ttl, &message_info.disable_web_page_preview, new_source.c_str());
       message_info.reply_markup = std::move(message->reply_markup_);
       message_info.restriction_reasons = get_restriction_reasons(std::move(message->restriction_reason_));
       message_info.author_signature = std::move(message->post_author_);
@@ -14457,8 +14457,9 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
           message_info.dialog_id.get_type() == DialogType::Channel && !is_broadcast_channel(message_info.dialog_id);
       message_info.reply_header = MessageReplyHeader(td_, std::move(message->reply_to_), message_info.dialog_id,
                                                      message_info.message_id, message_info.date, can_have_thread);
-      message_info.content = get_action_message_content(td_, std::move(message->action_), message_info.dialog_id,
-                                                        message_info.reply_header.replied_message_info_);
+      message_info.content =
+          get_action_message_content(td_, std::move(message->action_), message_info.dialog_id, message_info.date,
+                                     message_info.reply_header.replied_message_info_);
       message_info.reply_header.replied_message_info_ = RepliedMessageInfo();
       message_info.reply_header.story_full_id_ = StoryFullId();
       break;
@@ -15523,7 +15524,7 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
   FormattedText new_message_text = get_message_text(
       td_->contacts_manager_.get(), old_message_text->text, std::move(entities), true, td_->auth_manager_->is_bot(),
       m->forward_info ? m->forward_info->date : m->date, m->media_album_id != 0, "on_update_sent_text_message");
-  auto new_content = get_message_content(td_, std::move(new_message_text), std::move(message_media), dialog_id,
+  auto new_content = get_message_content(td_, std::move(new_message_text), std::move(message_media), dialog_id, m->date,
                                          true /*likely ignored*/, UserId() /*likely ignored*/, nullptr /*ignored*/,
                                          nullptr, "on_update_sent_text_message");
   if (new_content->get_type() != MessageContentType::Text) {
@@ -25729,7 +25730,7 @@ void MessagesManager::on_upload_message_media_success(DialogId dialog_id, Messag
   auto caption = get_message_content_caption(m->content.get());
   auto has_spoiler = get_message_content_has_spoiler(m->content.get());
   auto content = get_message_content(td_, caption == nullptr ? FormattedText() : *caption, std::move(media), dialog_id,
-                                     false, UserId(), nullptr, nullptr, "on_upload_message_media_success");
+                                     m->date, false, UserId(), nullptr, nullptr, "on_upload_message_media_success");
   set_message_content_has_spoiler(content.get(), has_spoiler);
 
   bool is_content_changed = false;
