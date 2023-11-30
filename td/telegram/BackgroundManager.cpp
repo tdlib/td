@@ -727,34 +727,38 @@ void BackgroundManager::set_background(const td_api::InputBackground *input_back
   }
 }
 
-void BackgroundManager::set_dialog_background(DialogId dialog_id, const td_api::InputBackground *input_background,
-                                              const td_api::BackgroundType *background_type, int32 dark_theme_dimming,
-                                              bool for_both, Promise<Unit> &&promise) {
+Result<DialogId> BackgroundManager::get_background_dialog(DialogId dialog_id) {
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "set_dialog_background")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
+    return Status::Error(400, "Chat not found");
   }
   if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Write)) {
-    return promise.set_error(Status::Error(400, "Can't access the chat"));
+    return Status::Error(400, "Can't access the chat");
   }
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      break;
+      return dialog_id;
     case DialogType::Chat:
     case DialogType::Channel:
-      return promise.set_error(Status::Error(400, "Can't change background in the chat"));
+      return Status::Error(400, "Can't change background in the chat");
     case DialogType::SecretChat: {
       auto user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
       if (!user_id.is_valid()) {
-        return promise.set_error(Status::Error(400, "Can't access the user"));
+        return Status::Error(400, "Can't access the user");
       }
-      dialog_id = DialogId(user_id);
-      break;
+      return DialogId(user_id);
     }
     case DialogType::None:
     default:
       UNREACHABLE();
+      return DialogId();
   }
+}
+
+void BackgroundManager::set_dialog_background(DialogId dialog_id, const td_api::InputBackground *input_background,
+                                              const td_api::BackgroundType *background_type, int32 dark_theme_dimming,
+                                              bool for_both, Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE_ASSIGN(promise, dialog_id, get_background_dialog(dialog_id));
 
   TRY_RESULT_PROMISE(promise, type, BackgroundType::get_background_type(background_type, dark_theme_dimming));
 
@@ -821,31 +825,7 @@ void BackgroundManager::set_dialog_background(DialogId dialog_id, const td_api::
 }
 
 void BackgroundManager::revert_dialog_background(DialogId dialog_id, Promise<Unit> &&promise) {
-  if (!td_->messages_manager_->have_dialog_force(dialog_id, "set_dialog_background")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
-  if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Write)) {
-    return promise.set_error(Status::Error(400, "Can't access the chat"));
-  }
-
-  switch (dialog_id.get_type()) {
-    case DialogType::User:
-      break;
-    case DialogType::Chat:
-    case DialogType::Channel:
-      return promise.set_error(Status::Error(400, "Can't change background in the chat"));
-    case DialogType::SecretChat: {
-      auto user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
-      if (!user_id.is_valid()) {
-        return promise.set_error(Status::Error(400, "Can't access the user"));
-      }
-      dialog_id = DialogId(user_id);
-      break;
-    }
-    case DialogType::None:
-    default:
-      UNREACHABLE();
-  }
+  TRY_RESULT_PROMISE_ASSIGN(promise, dialog_id, get_background_dialog(dialog_id));
 
   td_->create_handler<SetChatWallPaperQuery>(std::move(promise))
       ->send(dialog_id, nullptr, nullptr, MessageId(), false, true);

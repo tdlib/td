@@ -142,6 +142,8 @@ class BackgroundManager final : public Actor {
 
   Result<FileId> prepare_input_file(const tl_object_ptr<td_api::InputFile> &input_file);
 
+  Result<DialogId> get_background_dialog(DialogId dialog_id);
+
   void do_set_dialog_background(DialogId dialog_id, BackgroundId background_id, BackgroundType type, bool for_both,
                                 Promise<Unit> &&promise);
 
