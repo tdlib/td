@@ -5098,13 +5098,13 @@ void Td::on_request(uint64 id, const td_api::clearAutosaveSettingsExceptions &re
   autosave_manager_->clear_autosave_settings_exceptions(std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::getSimilarChats &request) {
+void Td::on_request(uint64 id, const td_api::getChatSimilarChats &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   contacts_manager_->get_channel_recommendations(DialogId(request.chat_id_), false, std::move(promise), Auto());
 }
 
-void Td::on_request(uint64 id, const td_api::getSimilarChatCount &request) {
+void Td::on_request(uint64 id, const td_api::getChatSimilarChatCount &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   contacts_manager_->get_channel_recommendations(DialogId(request.chat_id_), request.return_local_, Auto(),
