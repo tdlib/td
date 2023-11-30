@@ -311,7 +311,6 @@ class LoadAsyncGraphQuery final : public Td::ResultHandler {
 class GetMessagePublicForwardsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::foundMessages>> promise_;
   DialogId dialog_id_;
-  int32 limit_;
 
  public:
   explicit GetMessagePublicForwardsQuery(Promise<td_api::object_ptr<td_api::foundMessages>> &&promise)
@@ -321,7 +320,6 @@ class GetMessagePublicForwardsQuery final : public Td::ResultHandler {
   void send(DcId dc_id, MessageFullId message_full_id, int32 offset_date, DialogId offset_dialog_id,
             ServerMessageId offset_message_id, int32 limit) {
     dialog_id_ = message_full_id.get_dialog_id();
-    limit_ = limit;
 
     auto input_peer = MessagesManager::get_input_peer_force(offset_dialog_id);
     CHECK(input_peer != nullptr);
