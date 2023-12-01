@@ -457,7 +457,7 @@ class GetStoryPublicForwardsQuery final : public Td::ResultHandler {
   void send(DcId dc_id, StoryFullId story_full_id, const string &offset, int32 limit) {
     dialog_id_ = story_full_id.get_dialog_id();
 
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Write);
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't get story statistics"));
     }
