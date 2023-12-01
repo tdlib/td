@@ -39,14 +39,7 @@ StoryForwardInfo::StoryForwardInfo(Td *td, telegram_api::object_ptr<telegram_api
 }
 
 void StoryForwardInfo::hide_sender_if_needed(Td *td) {
-  if (dialog_id_.get_type() == DialogType::User) {
-    auto private_forward_name = td->contacts_manager_->get_user_private_forward_name(dialog_id_.get_user_id());
-    if (!private_forward_name.empty()) {
-      dialog_id_ = {};
-      story_id_ = {};
-      sender_name_ = std::move(private_forward_name);
-    }
-  }
+  // currently, there is no need to hide sender client-side
 }
 
 void StoryForwardInfo::add_dependencies(Dependencies &dependencies) const {

@@ -3503,7 +3503,7 @@ storyListArchive = StoryList;
 //@description The original story was a public story with known sender @chat_id Identifier of the chat that posted original story @story_id Story identifier of the original story
 storyOriginPublicStory chat_id:int53 story_id:int32 = StoryOrigin;
 
-//@description The original story was sent by a user, which is hidden by their privacy settings @sender_name Name of the story sender
+//@description The original story was sent by an unknown user @sender_name Name of the story sender
 storyOriginHiddenUser sender_name:string = StoryOrigin;
 
 
