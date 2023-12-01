@@ -105,6 +105,7 @@ class SetChatWallPaperQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
   bool is_remove_ = false;
+  bool is_revert_ = false;
 
  public:
   explicit SetChatWallPaperQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
@@ -114,6 +115,7 @@ class SetChatWallPaperQuery final : public Td::ResultHandler {
             telegram_api::object_ptr<telegram_api::wallPaperSettings> settings, MessageId old_message_id, bool for_both,
             bool revert) {
     dialog_id_ = dialog_id;
+    is_revert_ = revert;
     is_remove_ = input_wallpaper == nullptr && settings == nullptr && !revert;
     if (is_remove_) {
       td_->messages_manager_->on_update_dialog_background(dialog_id_, nullptr);
@@ -161,7 +163,10 @@ class SetChatWallPaperQuery final : public Td::ResultHandler {
   void on_error(Status status) final {
     if (is_remove_) {
       td_->messages_manager_->reload_dialog_info_full(dialog_id_, "SetChatWallPaperQuery");
+    } else if (is_revert_ && status.message() == "WALLPAPER_NOT_FOUND") {
+      return td_->background_manager_->delete_dialog_background(dialog_id_, false, std::move(promise_));
     }
+    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "SetChatWallPaperQuery");
     promise_.set_error(std::move(status));
   }
 };
