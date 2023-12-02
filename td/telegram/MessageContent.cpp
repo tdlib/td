@@ -3247,10 +3247,10 @@ void delete_message_content_thumbnail(MessageContent *content, Td *td) {
 }
 
 Status can_send_message_content(DialogId dialog_id, const MessageContent *content, bool is_forward,
-                                bool check_premissions, const Td *td) {
+                                bool check_permissions, const Td *td) {
   auto dialog_type = dialog_id.get_type();
   RestrictedRights permissions = [&] {
-    if (!check_premissions) {
+    if (!check_permissions) {
       return RestrictedRights(true, true, true, true, true, true, true, true, true, true, true, true, true, true, true,
                               true, true, ChannelType::Unknown);
     }

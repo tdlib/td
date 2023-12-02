@@ -137,7 +137,7 @@ tl_object_ptr<telegram_api::InputMedia> get_message_content_input_media_web_page
 void delete_message_content_thumbnail(MessageContent *content, Td *td);
 
 Status can_send_message_content(DialogId dialog_id, const MessageContent *content, bool is_forward,
-                                bool check_premissions, const Td *td);
+                                bool check_permissions, const Td *td);
 
 bool can_forward_message_content(const MessageContent *content);
 
