@@ -9792,7 +9792,9 @@ void ContactsManager::get_channel_recommendations(DialogId dialog_id, bool retur
     } else {
       LOG(INFO) << "Drop cache for similar chats of " << dialog_id;
       channel_recommended_dialogs_.erase(it);
-      G()->td_db()->get_sqlite_pmc()->erase(get_channel_recommendations_database_key(channel_id), Auto());
+      if (G()->use_message_database()) {
+        G()->td_db()->get_sqlite_pmc()->erase(get_channel_recommendations_database_key(channel_id), Auto());
+      }
     }
     use_database = false;
   }
@@ -12838,7 +12840,9 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
   if (c->had_read_access && !have_read_access) {
     send_closure_later(G()->messages_manager(), &MessagesManager::on_dialog_deleted, DialogId(channel_id),
                        Promise<Unit>());
-    G()->td_db()->get_sqlite_pmc()->erase(get_channel_recommendations_database_key(channel_id), Promise<Unit>());
+    if (G()->use_message_database()) {
+      G()->td_db()->get_sqlite_pmc()->erase(get_channel_recommendations_database_key(channel_id), Promise<Unit>());
+    }
   } else if (!from_database && c->was_member != is_member) {
     DialogId dialog_id(channel_id);
     send_closure_later(G()->messages_manager(), &MessagesManager::force_create_dialog, dialog_id, "update channel",
