@@ -7911,6 +7911,7 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
       }
       return;
     }
+    CHECK(old_pts + pts_count == new_pts);  // the update can be applied
   }
 
   if (d == nullptr || pts_count > 0) {
@@ -18751,6 +18752,7 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(MessageFullId 
     sb << separator << "t=" << media_timestamp;
     separator = '&';
   }
+  CHECK(separator == '?' || separator == '&');
 
   return std::make_pair(sb.as_cslice().str(), is_public);
 }
