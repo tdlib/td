@@ -24691,11 +24691,17 @@ MessageInputReplyTo MessagesManager::get_message_input_reply_to(
       FormattedText quote;
       int32 quote_position = 0;
       if (reply_to_message->quote_ != nullptr) {
+        int32 ltrim_count = 0;
         auto r_quote = get_formatted_text(td_, get_my_dialog_id(), std::move(reply_to_message->quote_->text_),
-                                          td_->auth_manager_->is_bot(), true, true, true);
-        if (r_quote.is_ok() && d->dialog_id.get_type() != DialogType::SecretChat) {
+                                          td_->auth_manager_->is_bot(), true, true, false, &ltrim_count);
+        if (r_quote.is_ok() && d->dialog_id.get_type() != DialogType::SecretChat && !r_quote.ok().text.empty()) {
           quote = r_quote.move_as_ok();
           quote_position = reply_to_message->quote_->position_;
+          if (0 <= quote_position && quote_position <= 1000000) {  // some unreasonably big bound
+            quote_position += ltrim_count;
+          } else {
+            quote_position = 0;
+          }
         }
       }
       const Message *m = get_message_force(reply_d, message_id, "get_message_input_reply_to 2");

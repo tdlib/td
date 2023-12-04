@@ -4371,7 +4371,7 @@ static void merge_new_entities(vector<MessageEntity> &entities, vector<MessageEn
 }
 
 Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool allow_empty, bool skip_new_entities,
-                          bool skip_bot_commands, bool skip_media_timestamps, bool skip_trim) {
+                          bool skip_bot_commands, bool skip_media_timestamps, bool skip_trim, int32 *ltrim_count) {
   string result;
   if (entities.empty()) {
     // fast path
@@ -4419,6 +4419,9 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
   // some splittable entities may be needed to be concatenated
   fix_entities(entities);
 
+  if (ltrim_count != nullptr) {
+    *ltrim_count = 0;
+  }
   if (skip_trim) {
     text = std::move(result);
   } else {
@@ -4450,6 +4453,9 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
     }
     if (first_non_whitespaces_pos > 0) {
       auto offset = narrow_cast<int32>(first_non_whitespaces_pos);
+      if (ltrim_count != nullptr) {
+        *ltrim_count = offset;
+      }
       text = result.substr(first_non_whitespaces_pos);
       for (auto &entity : entities) {
         entity.offset -= offset;
@@ -4566,7 +4572,8 @@ td_api::object_ptr<td_api::formattedText> extract_input_caption(
 
 Result<FormattedText> get_formatted_text(const Td *td, DialogId dialog_id,
                                          td_api::object_ptr<td_api::formattedText> &&text, bool is_bot,
-                                         bool allow_empty, bool skip_media_timestamps, bool skip_trim) {
+                                         bool allow_empty, bool skip_media_timestamps, bool skip_trim,
+                                         int32 *ltrim_count) {
   if (text == nullptr) {
     if (allow_empty) {
       return FormattedText();
@@ -4581,13 +4588,13 @@ Result<FormattedText> get_formatted_text(const Td *td, DialogId dialog_id,
   bool skip_new_entities = is_bot && td->option_manager_->get_option_integer("session_count") > 1;
   TRY_STATUS(fix_formatted_text(text->text_, entities, allow_empty, skip_new_entities || parse_markdown,
                                 skip_new_entities || need_skip_bot_commands,
-                                is_bot || skip_media_timestamps || parse_markdown, skip_trim));
+                                is_bot || skip_media_timestamps || parse_markdown, skip_trim, ltrim_count));
 
   FormattedText result{std::move(text->text_), std::move(entities)};
   if (parse_markdown) {
     result = parse_markdown_v3(std::move(result));
     fix_formatted_text(result.text, result.entities, allow_empty, false, need_skip_bot_commands,
-                       is_bot || skip_media_timestamps, skip_trim)
+                       is_bot || skip_media_timestamps, skip_trim, nullptr)
         .ensure();
   }
   remove_unallowed_entities(td, result, dialog_id);

@@ -1248,7 +1248,7 @@ messageSendingStateFailed error:error can_retry:Bool need_another_sender:Bool ne
 
 //@description Describes manually or automatically chosen quote from another message
 //@text Text of the quote. Only Bold, Italic, Underline, Strikethrough, Spoiler, and CustomEmoji entities can be present in the text
-//@position Approximate quote position in the original message in UTF-16 code units
+//@position Approximate quote position in the original message in UTF-16 code units as specified by the message sender
 //@is_manual True, if the quote was manually chosen by the message sender
 textQuote text:formattedText position:int32 is_manual:Bool = TextQuote;
 
