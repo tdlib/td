@@ -3076,7 +3076,7 @@ inputMessageAudio audio:InputFile album_cover_thumbnail:inputThumbnail duration:
 //@description A document message (general file)
 //@document Document to be sent
 //@thumbnail Document thumbnail; pass null to skip thumbnail uploading
-//@disable_content_type_detection True, if automatic file type detection is disabled and the document must be sent as a file. Always true for files sent to secret chats
+//@disable_content_type_detection Pass true to disable automatic file type detection and send the document as a file. Always true for files sent to secret chats
 //@caption Document caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
 inputMessageDocument document:InputFile thumbnail:inputThumbnail disable_content_type_detection:Bool caption:formattedText = InputMessageContent;
 
