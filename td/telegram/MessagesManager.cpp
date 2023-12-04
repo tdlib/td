@@ -16688,7 +16688,7 @@ void MessagesManager::load_dialogs(vector<DialogId> dialog_ids, Promise<vector<D
 
   Dependencies dependencies;
   for (auto dialog_id : dialog_ids) {
-    if (dialog_id.is_valid() && !have_dialog(dialog_id)) {
+    if (!have_dialog(dialog_id)) {
       dependencies.add_dialog_dependencies(dialog_id);
     }
   }

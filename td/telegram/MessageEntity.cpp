@@ -4552,9 +4552,7 @@ void add_formatted_text_dependencies(Dependencies &dependencies, const Formatted
     return;
   }
   for (auto &entity : text->entities) {
-    if (entity.user_id.is_valid()) {
-      dependencies.add(entity.user_id);
-    }
+    dependencies.add(entity.user_id);
   }
 }
 
