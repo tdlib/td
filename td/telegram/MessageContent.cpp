@@ -3670,6 +3670,14 @@ MessageFullId get_message_content_replied_message_id(DialogId dialog_id, const M
 
       return {dialog_id, m->old_message_id};
     }
+    case MessageContentType::GiveawayResults: {
+      auto *m = static_cast<const MessageGiveawayResults *>(content);
+      if (!m->giveaway_message_id.is_valid()) {
+        return MessageFullId();
+      }
+
+      return {dialog_id, m->giveaway_message_id};
+    }
     default:
       return MessageFullId();
   }

@@ -6847,8 +6847,8 @@ getMessage chat_id:int53 message_id:int53 = Message;
 getMessageLocally chat_id:int53 message_id:int53 = Message;
 
 //@description Returns information about a non-bundled message that is replied by a given message. Also, returns the pinned message, the game message, the invoice message,
-//-the message with a previously set same background, and the topic creation message for messages of the types
-//-messagePinMessage, messageGameScore, messagePaymentSuccessful, messageChatSetBackground and topic messages without non-bundled replied message respectively
+//-the message with a previously set same background, the giveaway message, and the topic creation message for messages of the types
+//-messagePinMessage, messageGameScore, messagePaymentSuccessful, messageChatSetBackground, messagePremiumGiveawayCompleted and topic messages without non-bundled replied message respectively
 //@chat_id Identifier of the chat the message belongs to
 //@message_id Identifier of the reply message
 getRepliedMessage chat_id:int53 message_id:int53 = Message;
