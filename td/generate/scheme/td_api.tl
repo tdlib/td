@@ -758,8 +758,8 @@ profileAccentColors palette_colors:vector<int32> background_colors:vector<int32>
 
 //@description Contains information about supported accent color for user profile photo background
 //@id Profile accent color identifier
-//@light_theme_colors The list of 1-3 colors in RGB format, describing the accent color, as expected to be shown in light themes
-//@dark_theme_colors The list of 1-3 colors in RGB format, describing the accent color, as expected to be shown in dark themes
+//@light_theme_colors Description of accent colors expected to be used in light themes
+//@dark_theme_colors Description of accent colors expected to be used in dark themes
 profileAccentColor id:int32 light_theme_colors:profileAccentColors dark_theme_colors:profileAccentColors = ProfileAccentColor;
 
 //@description Describes a custom emoji to be shown instead of the Telegram Premium badge
