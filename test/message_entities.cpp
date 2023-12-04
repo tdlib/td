@@ -787,17 +787,13 @@ TEST(MessageEntities, fix_formatted_text) {
     entities.emplace_back(td::MessageEntity::Type::Bold, 0, i);
 
     td::vector<td::MessageEntity> fixed_entities;
-    if (i != 33) {
-      fixed_entities.emplace_back(td::MessageEntity::Type::Bold, 32, i - 33);
-    }
+    fixed_entities.emplace_back(td::MessageEntity::Type::Bold, 0, i - 1 /* deleted \r */);
     check_fix_formatted_text(str, entities, fixed_str, fixed_entities, true, false, false, true);
 
-    td::string expected_str;
+    td::string expected_str = fixed_str.substr(0, 33);
     if (i != 33) {
-      fixed_entities.back().offset = 0;
-      fixed_entities.back().length = 1;
+      fixed_entities.back().length = 33;
     }
-    expected_str = "a";
     check_fix_formatted_text(str, entities, expected_str, fixed_entities, false, false, false, false);
   }
 
@@ -809,8 +805,13 @@ TEST(MessageEntities, fix_formatted_text) {
       check_fix_formatted_text(str, entities, true, true, true, true);
       check_fix_formatted_text(str, entities, false, false, false, false);
     } else {
-      check_fix_formatted_text(str, entities, str, {}, true, true, true, true);
-      check_fix_formatted_text(str, entities, str.substr(0, str.size() - 2), {}, false, false, false, false);
+      check_fix_formatted_text(str, entities, str, {{td::MessageEntity::Type::Bold, i, 1}}, true, true, true, true);
+      if (i == 2) {
+        check_fix_formatted_text(str, entities, str.substr(0, str.size() - 2), {{td::MessageEntity::Type::Bold, i, 1}},
+                                 false, false, false, false);
+      } else {
+        check_fix_formatted_text(str, entities, str.substr(0, str.size() - 2), {}, false, false, false, false);
+      }
     }
   }
 
@@ -850,17 +851,8 @@ TEST(MessageEntities, fix_formatted_text) {
           fixed_str = skip_trim ? "aba \n caba " : "aba \n caba";
           auto fixed_length = offset <= 4 && offset + length >= 5 ? length - 1 : length;
           auto fixed_offset = offset >= 5 ? offset - 1 : offset;
-          if (static_cast<size_t>(fixed_offset) >= fixed_str.size()) {
-            fixed_length = 0;
-          }
           while (static_cast<size_t>(fixed_offset + fixed_length) > fixed_str.size()) {
             fixed_length--;
-          }
-          if (type == td::MessageEntity::Type::Bold || type == td::MessageEntity::Type::Url) {
-            while (fixed_length > 0 && (fixed_str[fixed_offset] == ' ' || fixed_str[fixed_offset] == '\n')) {
-              fixed_offset++;
-              fixed_length--;
-            }
           }
 
           td::vector<td::MessageEntity> entities;
@@ -872,17 +864,11 @@ TEST(MessageEntities, fix_formatted_text) {
           }
           td::vector<td::MessageEntity> fixed_entities;
           if (fixed_length > 0) {
-            for (auto i = 0; i < length; i++) {
-              if (!td::is_space(str[offset + i]) || type == td::MessageEntity::Type::TextUrl ||
-                  type == td::MessageEntity::Type::MentionName) {
-                fixed_entities.emplace_back(type, fixed_offset, fixed_length);
-                if (type == td::MessageEntity::Type::TextUrl) {
-                  fixed_entities.back().argument = "t.me";
-                } else if (type == td::MessageEntity::Type::MentionName) {
-                  fixed_entities.back().user_id = user_id;
-                }
-                break;
-              }
+            fixed_entities.emplace_back(type, fixed_offset, fixed_length);
+            if (type == td::MessageEntity::Type::TextUrl) {
+              fixed_entities.back().argument = "t.me";
+            } else if (type == td::MessageEntity::Type::MentionName) {
+              fixed_entities.back().user_id = user_id;
             }
           }
           check_fix_formatted_text(str, entities, fixed_str, fixed_entities, true, false, false, skip_trim);
@@ -904,13 +890,7 @@ TEST(MessageEntities, fix_formatted_text) {
 
       td::vector<td::MessageEntity> fixed_entities;
       if (length > 0) {
-        if (offset == 3) {
-          if (length >= 2) {
-            fixed_entities.emplace_back(td::MessageEntity::Type::Bold, offset + 1, length - 1);
-          }
-        } else {
-          fixed_entities.emplace_back(td::MessageEntity::Type::Bold, offset, length);
-        }
+        fixed_entities.emplace_back(td::MessageEntity::Type::Bold, offset, length);
       }
 
       check_fix_formatted_text(str, entities, str, fixed_entities, true, false, false, false);
@@ -958,6 +938,9 @@ TEST(MessageEntities, fix_formatted_text) {
       if (i < 4) {
         fixed_entities.emplace_back(td::MessageEntity::Type::Bold, i * 3, 2);
       }
+      if (i < 3) {
+        fixed_entities.emplace_back(td::MessageEntity::Type::Italic, i * 3 + 2, 1);
+      }
     }
 
     check_fix_formatted_text(str, entities, td::utf8_utf16_substr(str, 3, 11).str(), fixed_entities, false, false,
@@ -974,10 +957,10 @@ TEST(MessageEntities, fix_formatted_text) {
   check_fix_formatted_text("a \r", {{td::MessageEntity::Type::Bold, 0, 3}, {td::MessageEntity::Type::Underline, 2, 1}},
                            "a ", {{td::MessageEntity::Type::Bold, 0, 2}}, true, false, false, true);
   check_fix_formatted_text("a \r ", {{td::MessageEntity::Type::Bold, 0, 4}, {td::MessageEntity::Type::Underline, 2, 1}},
-                           "a  ", {{td::MessageEntity::Type::Bold, 0, 2}}, true, false, false, true);
-  check_fix_formatted_text(
-      "a \r b", {{td::MessageEntity::Type::Bold, 0, 5}, {td::MessageEntity::Type::Underline, 2, 1}}, "a  b",
-      {{td::MessageEntity::Type::Bold, 0, 2}, {td::MessageEntity::Type::Bold, 3, 1}}, true, false, false, true);
+                           "a  ", {{td::MessageEntity::Type::Bold, 0, 3}}, true, false, false, true);
+  check_fix_formatted_text("a \r b",
+                           {{td::MessageEntity::Type::Bold, 0, 5}, {td::MessageEntity::Type::Underline, 2, 1}}, "a  b",
+                           {{td::MessageEntity::Type::Bold, 0, 4}}, true, false, false, true);
 
   check_fix_formatted_text("a\rbc\r",
                            {{td::MessageEntity::Type::Italic, 0, 1},
@@ -1014,6 +997,7 @@ TEST(MessageEntities, fix_formatted_text) {
   check_fix_formatted_text("@tests @tests", {{td::MessageEntity::Type::Italic, 0, 13}}, "@tests @tests",
                            {{td::MessageEntity::Type::Mention, 0, 6},
                             {td::MessageEntity::Type::Italic, 0, 6},
+                            {td::MessageEntity::Type::Italic, 6, 1},
                             {td::MessageEntity::Type::Mention, 7, 6},
                             {td::MessageEntity::Type::Italic, 7, 6}});
 
@@ -1113,7 +1097,7 @@ TEST(MessageEntities, fix_formatted_text) {
   check_fix_formatted_text("example.com a", {{td::MessageEntity::Type::Italic, 0, 13}}, "example.com a",
                            {{td::MessageEntity::Type::Url, 0, 11},
                             {td::MessageEntity::Type::Italic, 0, 11},
-                            {td::MessageEntity::Type::Italic, 12, 1}});
+                            {td::MessageEntity::Type::Italic, 11, 2}});
   check_fix_formatted_text("a example.com", {{td::MessageEntity::Type::Italic, 0, 13}}, "a example.com",
                            {{td::MessageEntity::Type::Italic, 0, 2},
                             {td::MessageEntity::Type::Url, 2, 11},
@@ -1679,8 +1663,8 @@ TEST(MessageEntities, parse_markdown_v3) {
 
   check_parse_markdown_v3("__ __", " ", {{td::MessageEntity::Type::Italic, 0, 1}});
   check_parse_markdown_v3("__\n__", "\n", {{td::MessageEntity::Type::Italic, 0, 1}});
-  check_parse_markdown_v3("__ __a", " a", {}, true);
-  check_parse_markdown_v3("__\n__a", "\na", {}, true);
+  check_parse_markdown_v3("__ __a", " a", {{td::MessageEntity::Type::Italic, 0, 1}}, true);
+  check_parse_markdown_v3("__\n__a", "\na", {{td::MessageEntity::Type::Italic, 0, 1}}, true);
   check_parse_markdown_v3("**** __a__ **b** ~~c~~ ||d||", "**** a b c d",
                           {{td::MessageEntity::Type::Italic, 5, 1},
                            {td::MessageEntity::Type::Bold, 7, 1},

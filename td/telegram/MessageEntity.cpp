@@ -4107,11 +4107,10 @@ static Result<string> clean_input_string_with_entities(const string &text, vecto
   }
 
   replace_offending_characters(result);
-
   return result;
 }
 
-// removes entities containing whitespaces only
+// removes empty entities
 // entities must be sorted by offset and length, but not necessary by type
 // returns {last_non_whitespace_pos, last_non_whitespace_utf16_offset}
 static std::pair<size_t, int32> remove_invalid_entities(const string &text, vector<MessageEntity> &entities) {
@@ -4129,8 +4128,6 @@ static std::pair<size_t, int32> remove_invalid_entities(const string &text, vect
   }
 
   // check_is_sorted(entities);
-  vector<MessageEntity *> nested_entities_stack;
-  size_t current_entity = 0;
 
   size_t last_non_whitespace_pos = text.size();
 
@@ -4139,49 +4136,7 @@ static std::pair<size_t, int32> remove_invalid_entities(const string &text, vect
 
   remove_empty_entities(entities);
 
-  for (size_t pos = 0; pos <= text.size(); pos++) {
-    while (!nested_entities_stack.empty()) {
-      auto *entity = nested_entities_stack.back();
-      auto entity_end = entity->offset + entity->length;
-      if (utf16_offset < entity_end) {
-        break;
-      }
-
-      if (last_non_whitespace_utf16_offset >= entity->offset || is_hidden_data_entity(entity->type)) {
-        // keep entity
-        // TODO check entity for validness, for example, that mentions, hashtags, cashtags and URLs are valid
-      } else {
-        entity->length = 0;
-      }
-
-      nested_entities_stack.pop_back();
-    }
-    while (current_entity < entities.size() && utf16_offset >= entities[current_entity].offset) {
-      nested_entities_stack.push_back(&entities[current_entity++]);
-    }
-
-    if (pos == text.size()) {
-      break;
-    }
-
-    if (!nested_entities_stack.empty() && nested_entities_stack.back()->offset == utf16_offset &&
-        (text[pos] == '\n' || text[pos] == ' ')) {
-      // entities was fixed, so there can't be more than one splittable entity of each type, one blockquote and
-      // one continuous entity for the given offset
-      for (size_t i = nested_entities_stack.size(); i > 0; i--) {
-        auto *entity = nested_entities_stack[i - 1];
-        if (entity->offset != utf16_offset || is_hidden_data_entity(entity->type)) {
-          break;
-        }
-        entity->offset++;
-        entity->length--;
-        if (entity->length == 0) {
-          CHECK(i == nested_entities_stack.size());
-          nested_entities_stack.pop_back();
-        }
-      }
-    }
-
+  for (size_t pos = 0; pos < text.size(); pos++) {
     auto c = static_cast<unsigned char>(text[pos]);
     switch (c) {
       case '\n':
@@ -4199,11 +4154,6 @@ static std::pair<size_t, int32> remove_invalid_entities(const string &text, vect
 
     utf16_offset++;
   }
-  CHECK(nested_entities_stack.empty());
-  CHECK(current_entity == entities.size());
-
-  remove_empty_entities(entities);
-
   return {last_non_whitespace_pos, last_non_whitespace_utf16_offset};
 }
 
@@ -4429,7 +4379,6 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
     CHECK(last_non_whitespace_pos < result.size());
     result.resize(last_non_whitespace_pos + 1);
     while (!entities.empty() && entities.back().offset > last_non_whitespace_utf16_offset) {
-      CHECK(is_hidden_data_entity(entities.back().type));
       entities.pop_back();
     }
     bool need_sort = false;
@@ -4489,9 +4438,6 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
   } else if (!skip_media_timestamps) {
     merge_new_entities(entities, find_media_timestamp_entities(text));
   }
-
-  // new whitespace-only entities could be added after splitting of entities
-  remove_invalid_entities(text, entities);
 
   return Status::OK();
 }
@@ -4807,7 +4753,7 @@ int32 search_quote(FormattedText &&text, FormattedText &&quote, int32 quote_posi
     });
     remove_empty_entities(text.entities);
     fix_entities(text.entities);
-    remove_invalid_entities(text.text, text.entities);
+    remove_empty_entities(text.entities);
   };
   int32 length = text_length(text.text);
   int32 quote_length = text_length(quote.text);
