@@ -3689,15 +3689,28 @@ std::pair<InputGroupCallId, bool> get_message_content_group_call_info(const Mess
   return {m->input_group_call_id, m->duration >= 0};
 }
 
+static vector<UserId> get_formatted_text_user_ids(const FormattedText *formatted_text) {
+  vector<UserId> user_ids;
+  if (formatted_text != nullptr) {
+    for (auto &entity : formatted_text->entities) {
+      if (entity.user_id.is_valid()) {
+        user_ids.push_back(entity.user_id);
+      }
+    }
+  }
+  return user_ids;
+}
+
 vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageContent *message_content) {
   CHECK(message_content != nullptr);
   switch (message_content->get_type()) {
     case MessageContentType::Text: {
       const auto *content = static_cast<const MessageText *>(message_content);
+      auto user_ids = get_formatted_text_user_ids(&content->text);
       if (content->web_page_id.is_valid()) {
-        return td->web_pages_manager_->get_web_page_user_ids(content->web_page_id);
+        combine(user_ids, td->web_pages_manager_->get_web_page_user_ids(content->web_page_id));
       }
-      break;
+      return user_ids;
     }
     case MessageContentType::Animation:
       break;
@@ -3714,9 +3727,11 @@ vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageConte
     case MessageContentType::Document:
       break;
     case MessageContentType::Game: {
-      // not supported server-side
-      // const auto *content = static_cast<const MessageGame *>(message_content);
-      // return {content->game.get_bot_user_id())};
+      const auto *content = static_cast<const MessageGame *>(message_content);
+      auto user_id = content->game.get_bot_user_id();
+      if (user_id.is_valid()) {
+        return {user_id};
+      }
       break;
     }
     case MessageContentType::Invoice:
@@ -3798,9 +3813,17 @@ vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageConte
       break;
     case MessageContentType::Dice:
       break;
-    case MessageContentType::ProximityAlertTriggered:
-      // not supported server-side
-      break;
+    case MessageContentType::ProximityAlertTriggered: {
+      const auto *content = static_cast<const MessageProximityAlertTriggered *>(message_content);
+      vector<UserId> user_ids;
+      if (content->traveler_dialog_id.get_type() == DialogType::User) {
+        user_ids.push_back(content->traveler_dialog_id.get_user_id());
+      }
+      if (content->watcher_dialog_id.get_type() == DialogType::User) {
+        user_ids.push_back(content->watcher_dialog_id.get_user_id());
+      }
+      return user_ids;
+    }
     case MessageContentType::GroupCall:
       break;
     case MessageContentType::InviteToGroupCall: {
@@ -3851,9 +3874,7 @@ vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageConte
       UNREACHABLE();
       break;
   }
-  // not supported server-side
-  // return get_user_ids(get_message_content_text(message_content));
-  return {};
+  return get_formatted_text_user_ids(get_message_content_text(message_content));
 }
 
 vector<ChannelId> get_message_content_min_channel_ids(const Td *td, const MessageContent *message_content) {
@@ -3866,9 +3887,17 @@ vector<ChannelId> get_message_content_min_channel_ids(const Td *td, const Messag
       }
       break;
     }
-    case MessageContentType::ProximityAlertTriggered:
-      // not supported server-side
-      break;
+    case MessageContentType::ProximityAlertTriggered: {
+      const auto *content = static_cast<const MessageProximityAlertTriggered *>(message_content);
+      vector<ChannelId> channel_ids;
+      if (content->traveler_dialog_id.get_type() == DialogType::Channel) {
+        channel_ids.push_back(content->traveler_dialog_id.get_channel_id());
+      }
+      if (content->watcher_dialog_id.get_type() == DialogType::Channel) {
+        channel_ids.push_back(content->watcher_dialog_id.get_channel_id());
+      }
+      return channel_ids;
+    }
     case MessageContentType::Story: {
       const auto *content = static_cast<const MessageStory *>(message_content);
       auto dialog_id = content->story_full_id.get_dialog_id();
