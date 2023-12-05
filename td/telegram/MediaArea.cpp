@@ -52,7 +52,12 @@ MediaArea::MediaArea(Td *td, telegram_api::object_ptr<telegram_api::MediaArea> &
       }
       break;
     }
+    case telegram_api::mediaAreaChannelPost::ID:
+      break;
     case telegram_api::inputMediaAreaVenue::ID:
+      LOG(ERROR) << "Receive " << to_string(media_area_ptr);
+      break;
+    case telegram_api::inputMediaAreaChannelPost::ID:
       LOG(ERROR) << "Receive " << to_string(media_area_ptr);
       break;
     default:

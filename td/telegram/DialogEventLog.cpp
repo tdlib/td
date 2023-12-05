@@ -429,19 +429,14 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionToggleAntiSpam>(action_ptr);
       return td_api::make_object<td_api::chatEventHasAggressiveAntiSpamEnabledToggled>(action->new_value_);
     }
-    case telegram_api::channelAdminLogEventActionChangeColor::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeColor>(action_ptr);
-      auto old_accent_color_id = AccentColorId(action->prev_value_);
-      auto new_accent_color_id = AccentColorId(action->new_value_);
-      return td_api::make_object<td_api::chatEventAccentColorChanged>(
-          td->theme_manager_->get_accent_color_id_object(old_accent_color_id, AccentColorId(channel_id)),
-          td->theme_manager_->get_accent_color_id_object(new_accent_color_id, AccentColorId(channel_id)));
-    }
-    case telegram_api::channelAdminLogEventActionChangeBackgroundEmoji::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeBackgroundEmoji>(action_ptr);
-      return td_api::make_object<td_api::chatEventBackgroundCustomEmojiChanged>(action->prev_value_,
-                                                                                action->new_value_);
-    }
+    case telegram_api::channelAdminLogEventActionChangePeerColor::ID:
+      return nullptr;
+    case telegram_api::channelAdminLogEventActionChangeProfilePeerColor::ID:
+      return nullptr;
+    case telegram_api::channelAdminLogEventActionChangeWallpaper::ID:
+      return nullptr;
+    case telegram_api::channelAdminLogEventActionChangeEmojiStatus::ID:
+      return nullptr;
     default:
       UNREACHABLE();
       return nullptr;

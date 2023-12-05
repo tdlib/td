@@ -366,8 +366,9 @@ class GetStoryViewsListQuery final : public Td::ResultHandler {
     if (prefer_with_reaction) {
       flags |= telegram_api::stories_getStoryViewsList::REACTIONS_FIRST_MASK;
     }
-    send_query(G()->net_query_creator().create(telegram_api::stories_getStoryViewsList(
-        flags, false /*ignored*/, false /*ignored*/, std::move(input_peer), query, story_id.get(), offset, limit)));
+    send_query(G()->net_query_creator().create(
+        telegram_api::stories_getStoryViewsList(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+                                                std::move(input_peer), query, story_id.get(), offset, limit)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -2850,7 +2851,11 @@ void StoryManager::on_get_story_viewers(
                << " story viewers";
     total_reaction_count = total_count;
   }
-  for (auto &view : view_list->views_) {
+  for (auto &view_ptr : view_list->views_) {
+    if (view_ptr->get_id() != telegram_api::storyView::ID) {
+      continue;
+    }
+    auto view = telegram_api::move_object_as<telegram_api::storyView>(view_ptr);
     td_->contacts_manager_->on_update_user_is_blocked(UserId(view->user_id_), view->blocked_,
                                                       view->blocked_my_stories_from_);
   }

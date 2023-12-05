@@ -26,10 +26,14 @@ StringBuilder &operator<<(StringBuilder &string_builder, const StoryViewer &view
 }
 
 StoryViewers::StoryViewers(int32 total_count, int32 total_reaction_count,
-                           vector<telegram_api::object_ptr<telegram_api::storyView>> &&story_views,
+                           vector<telegram_api::object_ptr<telegram_api::StoryView>> &&story_views,
                            string &&next_offset)
     : total_count_(total_count), total_reaction_count_(total_reaction_count), next_offset_(std::move(next_offset)) {
-  for (auto &story_view : story_views) {
+  for (auto &story_view_ptr : story_views) {
+    if (story_view_ptr->get_id() != telegram_api::storyView::ID) {
+      continue;
+    }
+    auto story_view = telegram_api::move_object_as<telegram_api::storyView>(story_view_ptr);
     story_viewers_.emplace_back(std::move(story_view));
     auto user_id = story_viewers_.back().get_user_id();
     if (!user_id.is_valid()) {

@@ -1374,11 +1374,14 @@ class UpdateChannelColorQuery final : public Td::ResultHandler {
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
     int32 flags = 0;
+    if (accent_color_id.is_valid()) {
+      flags |= telegram_api::channels_updateColor::COLOR_MASK;
+    }
     if (background_custom_emoji_id.is_valid()) {
       flags |= telegram_api::channels_updateColor::BACKGROUND_EMOJI_ID_MASK;
     }
     send_query(G()->net_query_creator().create(
-        telegram_api::channels_updateColor(flags, std::move(input_channel), accent_color_id.get(),
+        telegram_api::channels_updateColor(flags, false /*ignored*/, std::move(input_channel), accent_color_id.get(),
                                            background_custom_emoji_id.get()),
         {{channel_id}}));
   }

@@ -324,15 +324,22 @@ class CheckGiftCodeQuery final : public Td::ResultHandler {
     td_->contacts_manager_->on_get_users(std::move(result->users_), "CheckGiftCodeQuery");
     td_->contacts_manager_->on_get_chats(std::move(result->chats_), "CheckGiftCodeQuery");
 
-    DialogId creator_dialog_id(result->from_id_);
-    if (!creator_dialog_id.is_valid() ||
-        !td_->messages_manager_->have_dialog_info_force(creator_dialog_id, "CheckGiftCodeQuery") ||
-        result->date_ <= 0 || result->months_ <= 0 || result->used_date_ < 0) {
+    if (result->date_ <= 0 || result->months_ <= 0 || result->used_date_ < 0) {
       LOG(ERROR) << "Receive " << to_string(result);
       return on_error(Status::Error(500, "Receive invalid response"));
     }
-    if (creator_dialog_id.get_type() != DialogType::User) {
-      td_->messages_manager_->force_create_dialog(creator_dialog_id, "CheckGiftCodeQuery", true);
+
+    DialogId creator_dialog_id;
+    if (result->from_id_ != nullptr) {
+      creator_dialog_id = DialogId(result->from_id_);
+      if (!creator_dialog_id.is_valid() ||
+          !td_->messages_manager_->have_dialog_info_force(creator_dialog_id, "CheckGiftCodeQuery")) {
+        LOG(ERROR) << "Receive " << to_string(result);
+        return on_error(Status::Error(500, "Receive invalid response"));
+      }
+      if (creator_dialog_id.get_type() != DialogType::User) {
+        td_->messages_manager_->force_create_dialog(creator_dialog_id, "CheckGiftCodeQuery", true);
+      }
     }
     UserId user_id(result->to_id_);
     if (!user_id.is_valid() && user_id != UserId()) {
@@ -349,9 +356,10 @@ class CheckGiftCodeQuery final : public Td::ResultHandler {
       message_id = MessageId();
     }
     promise_.set_value(td_api::make_object<td_api::premiumGiftCodeInfo>(
-        get_message_sender_object(td_, creator_dialog_id, "premiumGiftCodeInfo"), result->date_, result->via_giveaway_,
-        message_id.get(), result->months_, td_->contacts_manager_->get_user_id_object(user_id, "premiumGiftCodeInfo"),
-        result->used_date_));
+        creator_dialog_id == DialogId() ? nullptr
+                                        : get_message_sender_object(td_, creator_dialog_id, "premiumGiftCodeInfo"),
+        result->date_, result->via_giveaway_, message_id.get(), result->months_,
+        td_->contacts_manager_->get_user_id_object(user_id, "premiumGiftCodeInfo"), result->used_date_));
   }
 
   void on_error(Status status) final {

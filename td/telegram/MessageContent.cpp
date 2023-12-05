@@ -5744,6 +5744,8 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
                              media->until_date_, std::move(media->countries_iso2_)},
           media->quantity_, media->months_);
     }
+    case telegram_api::messageMediaGiveawayResults::ID:
+      return make_unique<MessageUnsupported>();
     case telegram_api::messageMediaUnsupported::ID:
       return make_unique<MessageUnsupported>();
     default:
@@ -6361,7 +6363,11 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     }
     case telegram_api::messageActionRequestedPeer::ID: {
       auto action = move_tl_object_as<telegram_api::messageActionRequestedPeer>(action_ptr);
-      DialogId dialog_id(action->peer_);
+      if (action->peers_.empty()) {
+        LOG(ERROR) << "Receive invalid " << oneline(to_string(action));
+        break;
+      }
+      DialogId dialog_id(action->peers_[0]);
       if (!dialog_id.is_valid()) {
         LOG(ERROR) << "Receive invalid " << oneline(to_string(action));
         break;

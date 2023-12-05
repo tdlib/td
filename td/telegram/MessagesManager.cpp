@@ -4038,11 +4038,13 @@ class SendBotRequestedPeerQuery final : public Td::ResultHandler {
     if (requested_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chosen chat"));
     }
+    vector<telegram_api::object_ptr<telegram_api::InputPeer>> requested_peers;
+    requested_peers.push_back(std::move(requested_peer));
 
     send_query(G()->net_query_creator().create(
         telegram_api::messages_sendBotRequestedPeer(std::move(input_peer),
                                                     message_full_id.get_message_id().get_server_message_id().get(),
-                                                    button_id, std::move(requested_peer)),
+                                                    button_id, std::move(requested_peers)),
         {{dialog_id, MessageContentType::Text}}));
   }
 

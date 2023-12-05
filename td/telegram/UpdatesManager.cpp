@@ -817,6 +817,18 @@ bool UpdatesManager::is_acceptable_message_media(
       }
       return true;
     }
+    case telegram_api::messageMediaGiveawayResults::ID: {
+      auto message_media = static_cast<const telegram_api::messageMediaGiveawayResults *>(media_ptr.get());
+      if (!is_acceptable_channel(ChannelId(message_media->channel_id_))) {
+        return false;
+      }
+      for (auto user_id : message_media->winners_) {
+        if (!is_acceptable_user(UserId(user_id))) {
+          return false;
+        }
+      }
+      return true;
+    }
     case telegram_api::messageMediaPoll::ID:
       /*
       // the users and chats are always min, so no need to check
@@ -1026,8 +1038,12 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
         }
         case telegram_api::messageActionRequestedPeer::ID: {
           auto requested_peer = static_cast<const telegram_api::messageActionRequestedPeer *>(action);
-          if (!td_->auth_manager_->is_bot() && !is_acceptable_peer(requested_peer->peer_)) {
-            return false;
+          if (!td_->auth_manager_->is_bot()) {
+            for (auto &peer : requested_peer->peers_) {
+              if (!is_acceptable_peer(peer)) {
+                return false;
+              }
+            }
           }
           break;
         }
@@ -4343,5 +4359,13 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewAuthorizatio
 }
 
 // unsupported updates
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotMessageReaction> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotMessageReactions> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
 
 }  // namespace td

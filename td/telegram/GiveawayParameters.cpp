@@ -108,8 +108,8 @@ GiveawayParameters::get_input_store_payment_premium_giveaway(Td *td, const strin
     flags |= telegram_api::inputStorePaymentPremiumGiveaway::COUNTRIES_ISO2_MASK;
   }
   return telegram_api::make_object<telegram_api::inputStorePaymentPremiumGiveaway>(
-      flags, false /*ignored*/, std::move(boost_input_peer), std::move(additional_input_peers),
-      vector<string>(country_codes_), random_id, date_, currency, amount);
+      flags, false /*ignored*/, false /*ignored*/, std::move(boost_input_peer), std::move(additional_input_peers),
+      vector<string>(country_codes_), string(), random_id, date_, currency, amount);
 }
 
 td_api::object_ptr<td_api::premiumGiveawayParameters> GiveawayParameters::get_premium_giveaway_parameters_object(

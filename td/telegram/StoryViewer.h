@@ -55,7 +55,7 @@ class StoryViewers {
 
  public:
   StoryViewers(int32 total_count, int32 total_reaction_count,
-               vector<telegram_api::object_ptr<telegram_api::storyView>> &&story_views, string &&next_offset);
+               vector<telegram_api::object_ptr<telegram_api::StoryView>> &&story_views, string &&next_offset);
 
   vector<UserId> get_user_ids() const;
 

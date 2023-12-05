@@ -78,7 +78,7 @@ class SaveAppLogQuery final : public Td::ResultHandler {
     promise_.set_error(std::move(status));
   }
 };
-
+/*
 class GetAppChangelogQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -107,7 +107,7 @@ class GetAppChangelogQuery final : public Td::ResultHandler {
     promise_.set_error(std::move(status));
   }
 };
-
+*/
 void get_invite_text(Td *td, Promise<string> &&promise) {
   td->create_handler<GetInviteTextQuery>(std::move(promise))->send();
 }
@@ -172,7 +172,7 @@ void on_save_app_log_binlog_event(Td *td, BinlogEvent &&event) {
 }
 
 void add_app_changelog(Td *td, const string &previous_application_version, Promise<Unit> &&promise) {
-  td->create_handler<GetAppChangelogQuery>(std::move(promise))->send(previous_application_version);
+  // td->create_handler<GetAppChangelogQuery>(std::move(promise))->send(previous_application_version);
 }
 
 }  // namespace td
