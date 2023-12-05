@@ -1004,7 +1004,8 @@ class CliClient final : public Actor {
         return nullptr;
       }
       return td_api::make_object<td_api::premiumGiveawayParameters>(chat_id, vector<int64>(additional_chat_ids), date,
-                                                                    rand_bool(), vector<string>(country_codes));
+                                                                    rand_bool(), rand_bool(),
+                                                                    vector<string>(country_codes), "prize");
     }
   };
 

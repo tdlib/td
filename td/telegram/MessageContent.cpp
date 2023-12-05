@@ -5741,7 +5741,8 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       channel_ids.erase(channel_ids.begin());
       return td::make_unique<MessageGiveaway>(
           GiveawayParameters{boosted_channel_id, std::move(channel_ids), media->only_new_subscribers_,
-                             media->until_date_, std::move(media->countries_iso2_)},
+                             media->winners_are_visible_, media->until_date_, std::move(media->countries_iso2_),
+                             std::move(media->prize_description_)},
           media->quantity_, media->months_);
     }
     case telegram_api::messageMediaGiveawayResults::ID:

@@ -12,6 +12,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/misc.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/Td.h"
 
@@ -63,8 +64,13 @@ Result<GiveawayParameters> GiveawayParameters::get_giveaway_parameters(
       td->option_manager_->get_option_integer("giveaway_country_count_max")) {
     return Status::Error(400, "Too many countries specified");
   }
+  auto prize_description = parameters->prize_description_;
+  if (!clean_input_string(prize_description)) {
+    return Status::Error(400, "Strings must be encoded in UTF-8");
+  }
   return GiveawayParameters(boosted_channel_id, std::move(additional_channel_ids), parameters->only_new_members_,
-                            parameters->winners_selection_date_, vector<string>(parameters->country_codes_));
+                            parameters->has_public_winners_, parameters->winners_selection_date_,
+                            vector<string>(parameters->country_codes_), std::move(prize_description));
 }
 
 vector<ChannelId> GiveawayParameters::get_channel_ids() const {
@@ -101,15 +107,21 @@ GiveawayParameters::get_input_store_payment_premium_giveaway(Td *td, const strin
   if (only_new_subscribers_) {
     flags |= telegram_api::inputStorePaymentPremiumGiveaway::ONLY_NEW_SUBSCRIBERS_MASK;
   }
+  if (winners_are_visible_) {
+    flags |= telegram_api::inputStorePaymentPremiumGiveaway::WINNERS_ARE_VISIBLE_MASK;
+  }
   if (!additional_input_peers.empty()) {
     flags |= telegram_api::inputStorePaymentPremiumGiveaway::ADDITIONAL_PEERS_MASK;
   }
   if (!country_codes_.empty()) {
     flags |= telegram_api::inputStorePaymentPremiumGiveaway::COUNTRIES_ISO2_MASK;
   }
+  if (!prize_description_.empty()) {
+    flags |= telegram_api::inputStorePaymentPremiumGiveaway::PRIZE_DESCRIPTION_MASK;
+  }
   return telegram_api::make_object<telegram_api::inputStorePaymentPremiumGiveaway>(
       flags, false /*ignored*/, false /*ignored*/, std::move(boost_input_peer), std::move(additional_input_peers),
-      vector<string>(country_codes_), string(), random_id, date_, currency, amount);
+      vector<string>(country_codes_), prize_description_, random_id, date_, currency, amount);
 }
 
 td_api::object_ptr<td_api::premiumGiveawayParameters> GiveawayParameters::get_premium_giveaway_parameters_object(
@@ -125,14 +137,15 @@ td_api::object_ptr<td_api::premiumGiveawayParameters> GiveawayParameters::get_pr
   td->messages_manager_->force_create_dialog(dialog_id, "premiumGiveawayParameters", true);
   return td_api::make_object<td_api::premiumGiveawayParameters>(
       td->messages_manager_->get_chat_id_object(dialog_id, "premiumGiveawayParameters"), std::move(chat_ids), date_,
-      only_new_subscribers_, vector<string>(country_codes_));
+      only_new_subscribers_, winners_are_visible_, vector<string>(country_codes_), prize_description_);
 }
 
 bool operator==(const GiveawayParameters &lhs, const GiveawayParameters &rhs) {
   return lhs.boosted_channel_id_ == rhs.boosted_channel_id_ &&
          lhs.additional_channel_ids_ == rhs.additional_channel_ids_ &&
-         lhs.only_new_subscribers_ == rhs.only_new_subscribers_ && lhs.date_ == rhs.date_ &&
-         lhs.country_codes_ == rhs.country_codes_;
+         lhs.only_new_subscribers_ == rhs.only_new_subscribers_ &&
+         lhs.winners_are_visible_ == rhs.winners_are_visible_ && lhs.date_ == rhs.date_ &&
+         lhs.country_codes_ == rhs.country_codes_ && lhs.prize_description_ == rhs.prize_description_;
 }
 
 bool operator!=(const GiveawayParameters &lhs, const GiveawayParameters &rhs) {
@@ -143,6 +156,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const GiveawayParameter
   return string_builder << "Giveaway[" << giveaway_parameters.boosted_channel_id_ << " + "
                         << giveaway_parameters.additional_channel_ids_
                         << (giveaway_parameters.only_new_subscribers_ ? " only for new members" : "")
+                        << (giveaway_parameters.winners_are_visible_ ? " with public list of winners" : "")
                         << " for countries " << giveaway_parameters.country_codes_ << " at "
                         << giveaway_parameters.date_ << ']';
 }
