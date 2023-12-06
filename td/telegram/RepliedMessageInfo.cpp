@@ -359,10 +359,20 @@ td_api::object_ptr<td_api::messageReplyToMessage> RepliedMessageInfo::get_messag
   td_api::object_ptr<td_api::MessageContent> content;
   if (content_ != nullptr) {
     content = get_message_content_object(content_.get(), td, dialog_id, 0, false, true, -1, false, false);
-    if (content->get_id() == td_api::messageUnsupported::ID ||
-        (content->get_id() == td_api::messageText::ID &&
-         static_cast<const td_api::messageText *>(content.get())->web_page_ == nullptr)) {
-      content = nullptr;
+    switch (content->get_id()) {
+      case td_api::messageUnsupported::ID:
+        content = nullptr;
+        break;
+      case td_api::messageText::ID: {
+        const auto *message_text = static_cast<const td_api::messageText *>(content.get());
+        if (message_text->web_page_ == nullptr && message_text->link_preview_options_ == nullptr) {
+          content = nullptr;
+        }
+        break;
+      }
+      default:
+        // nothing to do
+        break;
     }
   }
 
