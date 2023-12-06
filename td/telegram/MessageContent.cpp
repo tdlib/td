@@ -5683,10 +5683,10 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
         *disable_web_page_preview = (media->webpage_ == nullptr);
       }
       string web_page_url;
-      if (media->manual_) {
+      if (media->manual_ || media->force_small_media_ || media->force_large_media_ || message.text.empty()) {
         web_page_url = WebPagesManager::get_web_page_url(media->webpage_);
         if (web_page_url.empty()) {
-          LOG(ERROR) << "Have no URL in manual link preview";
+          LOG(ERROR) << "Have no URL in " << to_string(media);
         }
       }
       auto web_page_id = td->web_pages_manager_->on_get_web_page(std::move(media->webpage_), owner_dialog_id);
