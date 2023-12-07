@@ -5683,11 +5683,13 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
         *disable_web_page_preview = (media->webpage_ == nullptr);
       }
       string web_page_url;
-      if (media->manual_ || media->force_small_media_ || media->force_large_media_ || message.text.empty()) {
+      if (media->manual_ || media->force_small_media_ || media->force_large_media_) {
         web_page_url = WebPagesManager::get_web_page_url(media->webpage_);
         if (web_page_url.empty()) {
           LOG(ERROR) << "Have no URL in " << to_string(media);
         }
+      } else if (td->auth_manager_->is_bot()) {
+        web_page_url = WebPagesManager::get_web_page_url(media->webpage_);
       }
       auto web_page_id = td->web_pages_manager_->on_get_web_page(std::move(media->webpage_), owner_dialog_id);
       return td::make_unique<MessageText>(std::move(message), web_page_id, media->force_small_media_,
