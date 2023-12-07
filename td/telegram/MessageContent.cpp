@@ -4441,10 +4441,10 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
       const auto *lhs = static_cast<const MessageText *>(old_content);
       const auto *rhs = static_cast<const MessageText *>(new_content);
       if (lhs->text.text != rhs->text.text || lhs->text.entities != rhs->text.entities ||
-          lhs->web_page_url != rhs->web_page_url) {
+          lhs->web_page_url != rhs->web_page_url || lhs->force_small_media != rhs->force_small_media ||
+          lhs->force_large_media != rhs->force_large_media) {
         need_update = true;
-      } else if (lhs->web_page_id != rhs->web_page_id || lhs->force_small_media != rhs->force_small_media ||
-                 lhs->force_large_media != rhs->force_large_media ||
+      } else if (lhs->web_page_id != rhs->web_page_id ||
                  lhs->skip_web_page_confirmation != rhs->skip_web_page_confirmation) {
         is_content_changed = true;
         if (td == nullptr || td->web_pages_manager_->have_web_page(lhs->web_page_id) ||
