@@ -5713,7 +5713,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
         LOG(ERROR) << "Receive " << to_string(media);
         break;
       }
-      if (media->story_ != nullptr) {
+      if (media->story_ != nullptr && !td->auth_manager_->is_bot()) {
         auto actual_story_id = td->story_manager_->on_get_story(dialog_id, std::move(media->story_));
         if (story_id != actual_story_id) {
           LOG(ERROR) << "Receive " << actual_story_id << " instead of " << story_id;
