@@ -18779,6 +18779,9 @@ void ContactsManager::add_dialog_participants(DialogId dialog_id, const vector<U
     case DialogType::User:
       return promise.set_error(Status::Error(400, "Can't add members to a private chat"));
     case DialogType::Chat:
+      if (user_ids.size() == 1) {
+        return add_chat_participant(dialog_id.get_chat_id(), user_ids[0], 0, std::move(promise));
+      }
       return promise.set_error(Status::Error(400, "Can't add many members at once to a basic group chat"));
     case DialogType::Channel:
       return add_channel_participants(dialog_id.get_channel_id(), user_ids, std::move(promise));
