@@ -331,6 +331,7 @@ class Global final : public ActorContext {
   void set_option_manager(OptionManager *option_manager) {
     option_manager_ = option_manager;
   }
+  OptionManager *get_option_manager();
 
   ActorId<PasswordManager> password_manager() const {
     return password_manager_;
@@ -609,8 +610,6 @@ class Global final : public ActorContext {
   int32 to_unix_time(double server_time) const;
 
   const OptionManager *get_option_manager() const;
-
-  OptionManager *get_option_manager();
 
   void do_save_server_time_difference();
 

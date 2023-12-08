@@ -21,6 +21,7 @@
 #include "td/telegram/net/MtprotoHeader.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/NotificationManager.h"
+#include "td/telegram/Premium.h"
 #include "td/telegram/ReactionType.h"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/StickersManager.h"
@@ -153,6 +154,8 @@ OptionManager::OptionManager(Td *td)
     set_option_integer("chat_boost_level_max", G()->is_test_dc() ? 10 : 100);
   }
 
+  update_premium_options();
+
   set_option_empty("archive_and_mute_new_chats_from_unknown_users");
   set_option_empty("chat_filter_count_max");
   set_option_empty("chat_filter_chosen_chat_count_max");
@@ -162,6 +165,49 @@ OptionManager::OptionManager(Td *td)
 }
 
 OptionManager::~OptionManager() = default;
+
+void OptionManager::update_premium_options() {
+  bool is_premium = get_option_boolean("is_premium");
+  if (is_premium) {
+    set_option_integer("saved_animations_limit", get_option_integer("saved_gifs_limit_premium", 400));
+    set_option_integer("favorite_stickers_limit", get_option_integer("stickers_faved_limit_premium", 10));
+    set_option_integer("chat_folder_count_max", get_option_integer("dialog_filters_limit_premium", 20));
+    set_option_integer("chat_folder_chosen_chat_count_max",
+                       get_option_integer("dialog_filters_chats_limit_premium", 200));
+    set_option_integer("pinned_chat_count_max", get_option_integer("dialogs_pinned_limit_premium", 200));
+    set_option_integer("pinned_archived_chat_count_max",
+                       get_option_integer("dialogs_folder_pinned_limit_premium", 200));
+    set_option_integer("bio_length_max", get_option_integer("about_length_limit_premium", 140));
+    set_option_integer("chat_folder_invite_link_count_max", get_option_integer("chatlist_invites_limit_premium", 20));
+    set_option_integer("added_shareable_chat_folder_count_max",
+                       get_option_integer("chatlists_joined_limit_premium", 20));
+    set_option_integer("active_story_count_max", get_option_integer("story_expiring_limit_premium", 100));
+    set_option_integer("story_caption_length_max", get_option_integer("story_caption_length_limit_premium", 2048));
+    set_option_integer("weekly_sent_story_count_max", get_option_integer("stories_sent_weekly_limit_premium", 700));
+    set_option_integer("monthly_sent_story_count_max", get_option_integer("stories_sent_monthly_limit_premium", 3000));
+    set_option_integer("story_suggested_reaction_area_count_max",
+                       get_option_integer("stories_suggested_reactions_limit_premium", 5));
+  } else {
+    set_option_integer("saved_animations_limit", get_option_integer("saved_gifs_limit_default", 200));
+    set_option_integer("favorite_stickers_limit", get_option_integer("stickers_faved_limit_default", 5));
+    set_option_integer("chat_folder_count_max", get_option_integer("dialog_filters_limit_default", 10));
+    set_option_integer("chat_folder_chosen_chat_count_max",
+                       get_option_integer("dialog_filters_chats_limit_default", 100));
+    set_option_integer("pinned_chat_count_max", get_option_integer("dialogs_pinned_limit_default", 100));
+    set_option_integer("pinned_archived_chat_count_max",
+                       get_option_integer("dialogs_folder_pinned_limit_default", 100));
+    set_option_integer("bio_length_max", get_option_integer("about_length_limit_default", 70));
+    set_option_integer("chat_folder_invite_link_count_max", get_option_integer("chatlist_invites_limit_default", 3));
+    set_option_integer("added_shareable_chat_folder_count_max",
+                       get_option_integer("chatlists_joined_limit_default", 2));
+    set_option_integer("active_story_count_max", get_option_integer("story_expiring_limit_default", 3));
+    set_option_integer("story_caption_length_max", get_option_integer("story_caption_length_limit_default", 200));
+    set_option_integer("weekly_sent_story_count_max", get_option_integer("stories_sent_weekly_limit_default", 7));
+    set_option_integer("monthly_sent_story_count_max", get_option_integer("stories_sent_monthly_limit_default", 30));
+    set_option_integer("story_suggested_reaction_area_count_max",
+                       get_option_integer("stories_suggested_reactions_limit_default", 1));
+  }
+}
 
 void OptionManager::on_td_inited() {
   is_td_inited_ = true;

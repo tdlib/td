@@ -31,6 +31,8 @@ class OptionManager {
   OptionManager &operator=(OptionManager &&) = delete;
   ~OptionManager();
 
+  void update_premium_options();
+
   void on_td_inited();
 
   void set_option_boolean(Slice name, bool value);

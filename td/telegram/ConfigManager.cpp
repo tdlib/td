@@ -23,6 +23,7 @@
 #include "td/telegram/net/NetType.h"
 #include "td/telegram/net/PublicRsaKeyShared.h"
 #include "td/telegram/net/Session.h"
+#include "td/telegram/OptionManager.h"
 #include "td/telegram/Premium.h"
 #include "td/telegram/ReactionType.h"
 #include "td/telegram/StateManager.h"
@@ -1231,6 +1232,7 @@ void ConfigManager::on_result(NetQueryPtr net_query) {
       CHECK(app_config_.config_ != nullptr);
       G()->td_db()->get_binlog_pmc()->set("app_config", log_event_store(app_config_).as_slice().str());
     }
+    G()->get_option_manager()->update_premium_options();
     for (auto &promise : promises) {
       promise.set_value(convert_json_value_object(app_config_.config_));
     }
@@ -1305,7 +1307,7 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
   set_timeout_at(expire_time_.at());
   LOG_IF(ERROR, config->test_mode_ != G()->is_test_dc()) << "Wrong parameter is_test";
 
-  Global &options = *G();
+  OptionManager &options = *G()->get_option_manager();
 
   // Do not save dc_options in config, because it will be interpreted and saved by ConnectionCreator.
   DcOptions dc_options(config->dc_options_);
@@ -2066,60 +2068,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   }
   if (dialog_filter_update_period > 0) {
     options.set_option_integer("chat_folder_new_chats_update_period", dialog_filter_update_period);
-  }
-
-  bool is_premium = options.get_option_boolean("is_premium");
-  if (is_premium) {
-    options.set_option_integer("chat_folder_count_max", options.get_option_integer("dialog_filters_limit_premium", 20));
-    options.set_option_integer("chat_folder_chosen_chat_count_max",
-                               options.get_option_integer("dialog_filters_chats_limit_premium", 200));
-    options.set_option_integer("active_story_count_max",
-                               options.get_option_integer("story_expiring_limit_premium", 100));
-    options.set_option_integer("weekly_sent_story_count_max",
-                               options.get_option_integer("stories_sent_weekly_limit_premium", 700));
-    options.set_option_integer("monthly_sent_story_count_max",
-                               options.get_option_integer("stories_sent_monthly_limit_premium", 3000));
-    options.set_option_integer("story_caption_length_max",
-                               options.get_option_integer("story_caption_length_limit_premium", 2048));
-    options.set_option_integer("story_suggested_reaction_area_count_max",
-                               options.get_option_integer("stories_suggested_reactions_limit_premium", 5));
-    options.set_option_integer("bio_length_max", options.get_option_integer("about_length_limit_premium", 140));
-    options.set_option_integer("saved_animations_limit", options.get_option_integer("saved_gifs_limit_premium", 400));
-    options.set_option_integer("favorite_stickers_limit",
-                               options.get_option_integer("stickers_faved_limit_premium", 10));
-    options.set_option_integer("pinned_chat_count_max",
-                               options.get_option_integer("dialogs_pinned_limit_premium", 200));
-    options.set_option_integer("pinned_archived_chat_count_max",
-                               options.get_option_integer("dialogs_folder_pinned_limit_premium", 200));
-    options.set_option_integer("chat_folder_invite_link_count_max",
-                               options.get_option_integer("chatlist_invites_limit_premium", 20));
-    options.set_option_integer("added_shareable_chat_folder_count_max",
-                               options.get_option_integer("chatlists_joined_limit_premium", 20));
-  } else {
-    options.set_option_integer("chat_folder_count_max", options.get_option_integer("dialog_filters_limit_default", 10));
-    options.set_option_integer("chat_folder_chosen_chat_count_max",
-                               options.get_option_integer("dialog_filters_chats_limit_default", 100));
-    options.set_option_integer("active_story_count_max", options.get_option_integer("story_expiring_limit_default", 3));
-    options.set_option_integer("weekly_sent_story_count_max",
-                               options.get_option_integer("stories_sent_weekly_limit_default", 7));
-    options.set_option_integer("monthly_sent_story_count_max",
-                               options.get_option_integer("stories_sent_monthly_limit_default", 30));
-    options.set_option_integer("story_caption_length_max",
-                               options.get_option_integer("story_caption_length_limit_default", 200));
-    options.set_option_integer("story_suggested_reaction_area_count_max",
-                               options.get_option_integer("stories_suggested_reactions_limit_default", 1));
-    options.set_option_integer("bio_length_max", options.get_option_integer("about_length_limit_default", 70));
-    options.set_option_integer("saved_animations_limit", options.get_option_integer("saved_gifs_limit_default", 200));
-    options.set_option_integer("favorite_stickers_limit",
-                               options.get_option_integer("stickers_faved_limit_default", 5));
-    options.set_option_integer("pinned_chat_count_max",
-                               options.get_option_integer("dialogs_pinned_limit_default", 100));
-    options.set_option_integer("pinned_archived_chat_count_max",
-                               options.get_option_integer("dialogs_folder_pinned_limit_default", 100));
-    options.set_option_integer("chat_folder_invite_link_count_max",
-                               options.get_option_integer("chatlist_invites_limit_default", 3));
-    options.set_option_integer("added_shareable_chat_folder_count_max",
-                               options.get_option_integer("chatlists_joined_limit_default", 2));
   }
 
   if (!is_premium_available) {
