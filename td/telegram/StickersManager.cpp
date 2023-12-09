@@ -4915,7 +4915,13 @@ vector<StickerSetId> StickersManager::search_sticker_sets(StickerType sticker_ty
   auto it = found_sticker_sets_[type].find(q);
   if (it != found_sticker_sets_[type].end()) {
     promise.set_value(Unit());
-    return it->second;
+    auto result = it->second;
+    td::remove_if(result, [&](StickerSetId sticker_set_id) {
+      const auto *sticker_set = get_sticker_set(sticker_set_id);
+      CHECK(sticker_set != nullptr);
+      return sticker_set->is_inited_ && sticker_set->is_installed_;
+    });
+    return result;
   }
 
   auto &promises = search_sticker_sets_queries_[type][q];
@@ -4947,6 +4953,7 @@ void StickersManager::on_find_sticker_sets_success(
           continue;
         }
         auto *s = get_sticker_set(set_id);
+        CHECK(s != nullptr);
         if (s->sticker_type_ != sticker_type) {
           LOG(ERROR) << "Receive " << set_id << " of type " << s->sticker_type_ << " while searching for "
                      << sticker_type << " sticker sets with query " << query;
