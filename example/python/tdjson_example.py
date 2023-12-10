@@ -8,10 +8,11 @@
 from ctypes.util import find_library
 from ctypes import *
 import json
+import os
 import sys
 
 # load shared library
-tdjson_path = find_library('tdjson') or 'tdjson.dll'
+tdjson_path = find_library('tdjson') or os.path.join(os.path.dirname(__file__), 'tdjson.dll')
 if tdjson_path is None:
     sys.exit("Can't find 'tdjson' library")
 tdjson = CDLL(tdjson_path)
