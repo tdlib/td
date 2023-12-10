@@ -12,9 +12,12 @@ import os
 import sys
 
 # load shared library
-tdjson_path = find_library('tdjson') or os.path.join(os.path.dirname(__file__), 'tdjson.dll')
+tdjson_path = find_library('tdjson')
 if tdjson_path is None:
-    sys.exit("Can't find 'tdjson' library")
+    if os.name == 'nt':
+        tdjson_path = os.path.join(os.path.dirname(__file__), 'tdjson.dll')
+    else:
+        sys.exit("Can't find 'tdjson' library")
 tdjson = CDLL(tdjson_path)
 
 # load TDLib functions from shared library
