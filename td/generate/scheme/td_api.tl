@@ -2901,7 +2901,7 @@ messagePremiumGiveawayCreated = MessageContent;
 messagePremiumGiveaway parameters:premiumGiveawayParameters winner_count:int32 month_count:int32 sticker:sticker = MessageContent;
 
 //@description A Telegram Premium giveaway has been completed for the chat
-//@giveaway_message_id Identifier of the message with the giveaway, can be an identifier of a deleted message
+//@giveaway_message_id Identifier of the message with the giveaway; can be 0 if the message was deleted
 //@winner_count Number of winners in the giveaway
 //@unclaimed_prize_count Number of undistributed prizes
 messagePremiumGiveawayCompleted giveaway_message_id:int53 winner_count:int32 unclaimed_prize_count:int32 = MessageContent;
