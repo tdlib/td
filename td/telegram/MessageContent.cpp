@@ -5550,8 +5550,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
     *disable_web_page_preview = false;
   }
 
-  int32 constructor_id = media_ptr == nullptr ? telegram_api::messageMediaEmpty::ID : media_ptr->get_id();
-  switch (constructor_id) {
+  switch (media_ptr == nullptr ? telegram_api::messageMediaEmpty::ID : media_ptr->get_id()) {
     case telegram_api::messageMediaEmpty::ID:
       if (message.text.empty()) {
         LOG(ERROR) << "Receive empty message text and media from " << source;

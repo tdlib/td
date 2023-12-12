@@ -3398,8 +3398,7 @@ class GetCreatedPublicChannelsQuery final : public Td::ResultHandler {
 
     auto chats_ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetCreatedPublicChannelsQuery: " << to_string(chats_ptr);
-    int32 constructor_id = chats_ptr->get_id();
-    switch (constructor_id) {
+    switch (chats_ptr->get_id()) {
       case telegram_api::messages_chats::ID: {
         auto chats = move_tl_object_as<telegram_api::messages_chats>(chats_ptr);
         td_->contacts_manager_->on_get_created_public_channels(type_, std::move(chats->chats_));
@@ -3442,8 +3441,7 @@ class GetGroupsForDiscussionQuery final : public Td::ResultHandler {
 
     auto chats_ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetGroupsForDiscussionQuery: " << to_string(chats_ptr);
-    int32 constructor_id = chats_ptr->get_id();
-    switch (constructor_id) {
+    switch (chats_ptr->get_id()) {
       case telegram_api::messages_chats::ID: {
         auto chats = move_tl_object_as<telegram_api::messages_chats>(chats_ptr);
         td_->contacts_manager_->on_get_dialogs_for_discussion(std::move(chats->chats_));
@@ -3622,8 +3620,7 @@ class GetChatsQuery final : public Td::ResultHandler {
     }
 
     auto chats_ptr = result_ptr.move_as_ok();
-    int32 constructor_id = chats_ptr->get_id();
-    switch (constructor_id) {
+    switch (chats_ptr->get_id()) {
       case telegram_api::messages_chats::ID: {
         auto chats = move_tl_object_as<telegram_api::messages_chats>(chats_ptr);
         td_->contacts_manager_->on_get_chats(std::move(chats->chats_), "GetChatsQuery");
@@ -3707,8 +3704,7 @@ class GetChannelsQuery final : public Td::ResultHandler {
 
     //    LOG(INFO) << "Receive result for GetChannelsQuery: " << to_string(result_ptr.ok());
     auto chats_ptr = result_ptr.move_as_ok();
-    int32 constructor_id = chats_ptr->get_id();
-    switch (constructor_id) {
+    switch (chats_ptr->get_id()) {
       case telegram_api::messages_chats::ID: {
         auto chats = move_tl_object_as<telegram_api::messages_chats>(chats_ptr);
         td_->contacts_manager_->on_get_chats(std::move(chats->chats_), "GetChannelsQuery");

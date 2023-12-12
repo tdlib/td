@@ -764,8 +764,7 @@ class GetChatsToSendStoriesQuery final : public Td::ResultHandler {
 
     auto chats_ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetChatsToSendStoriesQuery: " << to_string(chats_ptr);
-    int32 constructor_id = chats_ptr->get_id();
-    switch (constructor_id) {
+    switch (chats_ptr->get_id()) {
       case telegram_api::messages_chats::ID: {
         auto chats = move_tl_object_as<telegram_api::messages_chats>(chats_ptr);
         td_->story_manager_->on_get_dialogs_to_send_stories(std::move(chats->chats_));

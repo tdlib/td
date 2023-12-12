@@ -264,8 +264,7 @@ unique_ptr<DraftMessage> get_draft_message(Td *td,
   if (draft_message_ptr == nullptr) {
     return nullptr;
   }
-  auto constructor_id = draft_message_ptr->get_id();
-  switch (constructor_id) {
+  switch (draft_message_ptr->get_id()) {
     case telegram_api::draftMessageEmpty::ID:
       return nullptr;
     case telegram_api::draftMessage::ID:
