@@ -174,13 +174,14 @@ class MessagesManager final : public Actor {
   void on_get_empty_messages(DialogId dialog_id, const vector<MessageId> &empty_message_ids);
 
   void get_channel_difference_if_needed(DialogId dialog_id, MessagesInfo &&messages_info,
-                                        Promise<MessagesInfo> &&promise);
+                                        Promise<MessagesInfo> &&promise, const char *source);
 
-  void get_channel_differences_if_needed(MessagesInfo &&messages_info, Promise<MessagesInfo> &&promise);
+  void get_channel_differences_if_needed(MessagesInfo &&messages_info, Promise<MessagesInfo> &&promise,
+                                         const char *source);
 
   void get_channel_differences_if_needed(
       telegram_api::object_ptr<telegram_api::stats_publicForwards> &&public_forwards,
-      Promise<telegram_api::object_ptr<telegram_api::stats_publicForwards>> &&promise);
+      Promise<telegram_api::object_ptr<telegram_api::stats_publicForwards>> &&promise, const char *source);
 
   void on_get_messages(vector<tl_object_ptr<telegram_api::Message>> &&messages, bool is_channel_message,
                        bool is_scheduled, Promise<Unit> &&promise, const char *source);

@@ -427,8 +427,9 @@ class GetMessagePublicForwardsQuery final : public Td::ResultHandler {
 
     auto info = get_messages_info(td_, DialogId(), result_ptr.move_as_ok(), "GetMessagePublicForwardsQuery");
     td_->messages_manager_->get_channel_differences_if_needed(
-        std::move(info), PromiseCreator::lambda([actor_id = td_->statistics_manager_actor_.get(),
-                                                 promise = std::move(promise_)](Result<MessagesInfo> &&result) mutable {
+        std::move(info),
+        PromiseCreator::lambda([actor_id = td_->statistics_manager_actor_.get(),
+                                promise = std::move(promise_)](Result<MessagesInfo> &&result) mutable {
           if (result.is_error()) {
             promise.set_error(result.move_as_error());
           } else {
@@ -436,7 +437,8 @@ class GetMessagePublicForwardsQuery final : public Td::ResultHandler {
             send_closure(actor_id, &StatisticsManager::on_get_message_public_forwards, info.total_count,
                          std::move(info.messages), info.next_rate, std::move(promise));
           }
-        }));
+        }),
+        "GetMessagePublicForwardsQuery");
   }
 
   void on_error(Status status) final {
@@ -485,7 +487,8 @@ class GetStoryPublicForwardsQuery final : public Td::ResultHandler {
                 send_closure(actor_id, &StatisticsManager::on_get_story_public_forwards, result.move_as_ok(),
                              std::move(promise));
               }
-            }));
+            }),
+        "GetStoryPublicForwardsQuery");
   }
 
   void on_error(Status status) final {

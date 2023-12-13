@@ -368,7 +368,8 @@ class GetChannelMessagesQuery final : public Td::ResultHandler {
             send_closure(actor_id, &MessagesManager::on_get_messages, std::move(info.messages),
                          info.is_channel_messages, false, std::move(promise), source);
           }
-        }));
+        }),
+        source);
   }
 
   void on_error(Status status) final {
@@ -1934,7 +1935,8 @@ class GetDialogMessageByDateQuery final : public Td::ResultHandler {
             send_closure(actor_id, &MessagesManager::on_get_dialog_message_by_date_success, dialog_id, date, random_id,
                          std::move(info.messages), std::move(promise));
           }
-        }));
+        }),
+        "GetDialogMessageByDateQuery");
   }
 
   void on_error(Status status) final {
@@ -2014,7 +2016,8 @@ class GetHistoryQuery final : public Td::ResultHandler {
                          old_last_new_message_id, offset, limit, from_the_end, std::move(info.messages),
                          std::move(promise));
           }
-        }));
+        }),
+        "GetHistoryQuery");
   }
 
   void on_error(Status status) final {
@@ -2195,7 +2198,8 @@ class GetSearchResultCalendarQuery final : public Td::ResultHandler {
                          filter, random_id, info.total_count, std::move(info.messages), std::move(periods),
                          std::move(promise));
           }
-        }));
+        }),
+        "GetSearchResultCalendarQuery");
   }
 
   void on_error(Status status) final {
@@ -2402,7 +2406,8 @@ class SearchMessagesQuery final : public Td::ResultHandler {
                          sender_dialog_id, from_message_id, offset, limit, filter, top_thread_message_id, random_id,
                          info.total_count, std::move(info.messages), std::move(promise));
           }
-        }));
+        }),
+        "SearchMessagesQuery");
   }
 
   void on_error(Status status) final {
@@ -2568,7 +2573,8 @@ class SearchMessagesGlobalQuery final : public Td::ResultHandler {
                          offset_dialog_id, offset_message_id, limit, filter, min_date, max_date, random_id,
                          info.total_count, std::move(info.messages), info.next_rate, std::move(promise));
           }
-        }));
+        }),
+        "SearchMessagesGlobalQuery");
   }
 
   void on_error(Status status) final {
@@ -2641,8 +2647,9 @@ class SearchSentMediaQuery final : public Td::ResultHandler {
 
     auto info = get_messages_info(td_, DialogId(), result_ptr.move_as_ok(), "SearchSentMediaQuery");
     td_->messages_manager_->get_channel_differences_if_needed(
-        std::move(info), PromiseCreator::lambda([actor_id = td_->messages_manager_actor_.get(),
-                                                 promise = std::move(promise_)](Result<MessagesInfo> &&result) mutable {
+        std::move(info),
+        PromiseCreator::lambda([actor_id = td_->messages_manager_actor_.get(),
+                                promise = std::move(promise_)](Result<MessagesInfo> &&result) mutable {
           if (result.is_error()) {
             promise.set_error(result.move_as_error());
           } else {
@@ -2650,7 +2657,8 @@ class SearchSentMediaQuery final : public Td::ResultHandler {
             send_closure(actor_id, &MessagesManager::on_get_outgoing_document_messages, std::move(info.messages),
                          std::move(promise));
           }
-        }));
+        }),
+        "SearchSentMediaQuery");
   }
 
   void on_error(Status status) final {
@@ -2699,7 +2707,8 @@ class GetRecentLocationsQuery final : public Td::ResultHandler {
             send_closure(actor_id, &MessagesManager::on_get_recent_locations, dialog_id, limit, info.total_count,
                          std::move(info.messages), std::move(promise));
           }
-        }));
+        }),
+        "GetRecentLocationsQuery");
   }
 
   void on_error(Status status) final {
@@ -9733,12 +9742,12 @@ void MessagesManager::on_get_empty_messages(DialogId dialog_id, const vector<Mes
 }
 
 void MessagesManager::get_channel_difference_if_needed(DialogId dialog_id, MessagesInfo &&messages_info,
-                                                       Promise<MessagesInfo> &&promise) {
+                                                       Promise<MessagesInfo> &&promise, const char *source) {
   if (td_->auth_manager_->is_bot()) {
     return promise.set_value(std::move(messages_info));
   }
   if (!dialog_id.is_valid()) {
-    return get_channel_differences_if_needed(std::move(messages_info), std::move(promise));
+    return get_channel_differences_if_needed(std::move(messages_info), std::move(promise), source);
   }
   for (auto &message : messages_info.messages) {
     if (need_channel_difference_to_add_message(dialog_id, message)) {
@@ -9747,13 +9756,14 @@ void MessagesManager::get_channel_difference_if_needed(DialogId dialog_id, Messa
           dialog_id, max_message_id,
           PromiseCreator::lambda([messages_info = std::move(messages_info), promise = std::move(promise)](
                                      Unit ignored) mutable { promise.set_value(std::move(messages_info)); }),
-          "get_channel_difference_if_needed");
+          source);
     }
   }
   promise.set_value(std::move(messages_info));
 }
 
-void MessagesManager::get_channel_differences_if_needed(MessagesInfo &&messages_info, Promise<MessagesInfo> &&promise) {
+void MessagesManager::get_channel_differences_if_needed(MessagesInfo &&messages_info, Promise<MessagesInfo> &&promise,
+                                                        const char *source) {
   if (td_->auth_manager_->is_bot()) {
     return promise.set_value(std::move(messages_info));
   }
@@ -9768,8 +9778,7 @@ void MessagesManager::get_channel_differences_if_needed(MessagesInfo &&messages_
 
     auto dialog_id = DialogId::get_message_dialog_id(message);
     if (need_channel_difference_to_add_message(dialog_id, message)) {
-      run_after_channel_difference(dialog_id, MessageId::get_message_id(message, false), mpas.get_promise(),
-                                   "get_channel_differences_if_needed");
+      run_after_channel_difference(dialog_id, MessageId::get_message_id(message, false), mpas.get_promise(), source);
     }
   }
   // must be added after messages_info is checked
@@ -9780,7 +9789,7 @@ void MessagesManager::get_channel_differences_if_needed(MessagesInfo &&messages_
 
 void MessagesManager::get_channel_differences_if_needed(
     telegram_api::object_ptr<telegram_api::stats_publicForwards> &&public_forwards,
-    Promise<telegram_api::object_ptr<telegram_api::stats_publicForwards>> &&promise) {
+    Promise<telegram_api::object_ptr<telegram_api::stats_publicForwards>> &&promise, const char *source) {
   if (td_->auth_manager_->is_bot()) {
     return promise.set_value(std::move(public_forwards));
   }
@@ -9796,8 +9805,7 @@ void MessagesManager::get_channel_differences_if_needed(
     const auto &message = static_cast<const telegram_api::publicForwardMessage *>(forward.get())->message_;
     auto dialog_id = DialogId::get_message_dialog_id(message);
     if (need_channel_difference_to_add_message(dialog_id, message)) {
-      run_after_channel_difference(dialog_id, MessageId::get_message_id(message, false), mpas.get_promise(),
-                                   "get_channel_differences_if_needed");
+      run_after_channel_difference(dialog_id, MessageId::get_message_id(message, false), mpas.get_promise(), source);
     }
   }
   // must be added after forwarded messages are checked

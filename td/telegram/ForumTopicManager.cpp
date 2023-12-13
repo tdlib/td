@@ -339,7 +339,8 @@ class GetForumTopicQuery final : public Td::ResultHandler {
             send_closure(actor_id, &ForumTopicManager::on_get_forum_topic, channel_id, top_thread_message_id,
                          std::move(info), std::move(topic), std::move(promise));
           }
-        }));
+        }),
+        "GetForumTopicQuery");
   }
 
   void on_error(Status status) final {
@@ -405,7 +406,8 @@ class GetForumTopicsQuery final : public Td::ResultHandler {
             send_closure(actor_id, &ForumTopicManager::on_get_forum_topics, channel_id, order_by_creation_date,
                          std::move(info), std::move(topics), std::move(promise));
           }
-        }));
+        }),
+        "GetForumTopicsQuery");
   }
 
   void on_error(Status status) final {
