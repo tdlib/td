@@ -1257,8 +1257,8 @@ void AuthManager::on_get_authorization(tl_object_ptr<telegram_api::auth_Authoriz
   td_->theme_manager_->init();
   td_->top_dialog_manager_->init();
   td_->updates_manager_->get_difference("on_get_authorization");
-  td_->on_online_updated(false, true);
   if (!is_bot()) {
+    td_->on_online_updated(false, true);
     td_->schedule_get_terms_of_service(0);
     td_->reload_promo_data();
     G()->td_db()->get_binlog_pmc()->set("fetched_marks_as_unread", "1");

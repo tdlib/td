@@ -2627,8 +2627,6 @@ void Td::on_alarm_timeout(int64 alarm_id) {
   if (alarm_id == PING_SERVER_ALARM_ID) {
     if (!close_flag_ && updates_manager_ != nullptr && auth_manager_->is_authorized()) {
       updates_manager_->ping_server();
-      alarm_timeout_.set_timeout_in(PING_SERVER_ALARM_ID,
-                                    PING_SERVER_TIMEOUT + Random::fast(0, PING_SERVER_TIMEOUT / 5));
       set_is_bot_online(false);
     }
     return;
@@ -2807,6 +2805,8 @@ void Td::set_is_online(bool is_online) {
 }
 
 void Td::set_is_bot_online(bool is_bot_online) {
+  alarm_timeout_.set_timeout_in(PING_SERVER_ALARM_ID, PING_SERVER_TIMEOUT + Random::fast(0, PING_SERVER_TIMEOUT / 5));
+
   if (G()->get_option_integer("session_count") > 1) {
     is_bot_online = false;
   }
@@ -3152,8 +3152,6 @@ void Td::on_update(telegram_api::object_ptr<telegram_api::Updates> updates, uint
     updates_manager_->on_update_from_auth_key_id(auth_key_id);
     updates_manager_->on_get_updates(std::move(updates), Promise<Unit>());
     if (auth_manager_->is_bot() && auth_manager_->is_authorized()) {
-      alarm_timeout_.set_timeout_in(PING_SERVER_ALARM_ID,
-                                    PING_SERVER_TIMEOUT + Random::fast(0, PING_SERVER_TIMEOUT / 5));
       set_is_bot_online(true);
     }
   }
