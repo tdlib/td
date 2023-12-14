@@ -3033,6 +3033,33 @@ void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&up
                          ReactionType::get_reaction_types_object(new_reaction_types)));
         break;
       }
+      case telegram_api::updateBotMessageReactions::ID: {
+        auto update = move_tl_object_as<telegram_api::updateBotMessageReactions>(update_ptr);
+        auto dialog_id = DialogId(update->peer_);
+        auto message_id = MessageId(ServerMessageId(update->msg_id_));
+        auto date = update->date_;
+        if (!dialog_id.is_valid() || !message_id.is_valid() || date <= 0) {
+          LOG(ERROR) << "Receive invalid " << to_string(update->reactions_);
+          return;
+        }
+        vector<td_api::object_ptr<td_api::messageReaction>> message_reactions;
+        for (const auto &reaction_count : update->reactions_) {
+          auto reaction_type = ReactionType(reaction_count->reaction_);
+          if (reaction_type.is_empty() || reaction_count->count_ <= 0) {
+            LOG(ERROR) << "Receive invalid reaction in updateBotMessageReactions for "
+                       << MessageFullId{dialog_id, message_id} << " at " << date << ": " << to_string(reaction_count);
+            continue;
+          }
+          message_reactions.push_back(td_api::make_object<td_api::messageReaction>(
+              reaction_type.get_reaction_type_object(), reaction_count->count_, false, nullptr, Auto()));
+        }
+        td_->messages_manager_->force_create_dialog(dialog_id, "on_update_bot_message_reactions", true);
+        send_closure(G()->td(), &Td::send_update,
+                     td_api::make_object<td_api::updateMessageReactions>(
+                         td_->messages_manager_->get_chat_id_object(dialog_id, "updateMessageReactions"),
+                         message_id.get(), date, std::move(message_reactions)));
+        break;
+      }
       default:
         UNREACHABLE();
         break;
@@ -3810,6 +3837,7 @@ bool UpdatesManager::is_qts_update(const telegram_api::Update *update) {
     case telegram_api::updateBotChatInviteRequester::ID:
     case telegram_api::updateBotChatBoost::ID:
     case telegram_api::updateBotMessageReaction::ID:
+    case telegram_api::updateBotMessageReactions::ID:
       return true;
     default:
       return false;
@@ -3834,6 +3862,8 @@ int32 UpdatesManager::get_update_qts(const telegram_api::Update *update) {
       return static_cast<const telegram_api::updateBotChatBoost *>(update)->qts_;
     case telegram_api::updateBotMessageReaction::ID:
       return static_cast<const telegram_api::updateBotMessageReaction *>(update)->qts_;
+    case telegram_api::updateBotMessageReactions::ID:
+      return static_cast<const telegram_api::updateBotMessageReactions *>(update)->qts_;
     default:
       return 0;
   }
@@ -4317,6 +4347,11 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotMessageReact
   add_pending_qts_update(std::move(update), qts, std::move(promise));
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotMessageReactions> update, Promise<Unit> &&promise) {
+  auto qts = update->qts_;
+  add_pending_qts_update(std::move(update), qts, std::move(promise));
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTheme> update, Promise<Unit> &&promise) {
   td_->theme_manager_->on_update_theme(std::move(update->theme_), std::move(promise));
 }
@@ -4393,9 +4428,5 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewAuthorizatio
 }
 
 // unsupported updates
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotMessageReactions> update, Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
 
 }  // namespace td
