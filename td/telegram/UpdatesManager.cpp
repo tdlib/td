@@ -34,6 +34,7 @@
 #include "td/telegram/LanguagePackManager.h"
 #include "td/telegram/Location.h"
 #include "td/telegram/MessageId.h"
+#include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/MessageTtl.h"
 #include "td/telegram/misc.h"
@@ -3007,6 +3008,31 @@ void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&up
         td_->boost_manager_->on_update_dialog_boost(DialogId(update->peer_), std::move(update->boost_));
         break;
       }
+      case telegram_api::updateBotMessageReaction::ID: {
+        auto update = move_tl_object_as<telegram_api::updateBotMessageReaction>(update_ptr);
+        auto dialog_id = DialogId(update->peer_);
+        auto message_id = MessageId(ServerMessageId(update->msg_id_));
+        auto date = update->date_;
+        auto actor_dialog_id = DialogId(update->actor_);
+        auto old_reaction_types = ReactionType::get_reaction_types(update->old_reactions_);
+        auto new_reaction_types = ReactionType::get_reaction_types(update->new_reactions_);
+        if (!dialog_id.is_valid() || !message_id.is_valid() || !actor_dialog_id.is_valid() || date <= 0 ||
+            old_reaction_types == new_reaction_types) {
+          LOG(ERROR) << "Receive invalid updateBotMessageReaction for " << MessageFullId{dialog_id, message_id}
+                     << " by " << actor_dialog_id << " at " << date << ": " << old_reaction_types << " -> "
+                     << new_reaction_types;
+          break;
+        }
+
+        td_->messages_manager_->force_create_dialog(dialog_id, "on_update_bot_message_reaction", true);
+        send_closure(G()->td(), &Td::send_update,
+                     td_api::make_object<td_api::updateMessageReaction>(
+                         td_->messages_manager_->get_chat_id_object(dialog_id, "updateMessageReaction"),
+                         message_id.get(), get_message_sender_object(td_, actor_dialog_id, "updateMessageReaction"),
+                         date, ReactionType::get_reaction_types_object(old_reaction_types),
+                         ReactionType::get_reaction_types_object(new_reaction_types)));
+        break;
+      }
       default:
         UNREACHABLE();
         break;
@@ -3783,6 +3809,7 @@ bool UpdatesManager::is_qts_update(const telegram_api::Update *update) {
     case telegram_api::updateChannelParticipant::ID:
     case telegram_api::updateBotChatInviteRequester::ID:
     case telegram_api::updateBotChatBoost::ID:
+    case telegram_api::updateBotMessageReaction::ID:
       return true;
     default:
       return false;
@@ -3805,6 +3832,8 @@ int32 UpdatesManager::get_update_qts(const telegram_api::Update *update) {
       return static_cast<const telegram_api::updateBotChatInviteRequester *>(update)->qts_;
     case telegram_api::updateBotChatBoost::ID:
       return static_cast<const telegram_api::updateBotChatBoost *>(update)->qts_;
+    case telegram_api::updateBotMessageReaction::ID:
+      return static_cast<const telegram_api::updateBotMessageReaction *>(update)->qts_;
     default:
       return 0;
   }
@@ -4283,6 +4312,11 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotChatBoost> u
   add_pending_qts_update(std::move(update), qts, std::move(promise));
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotMessageReaction> update, Promise<Unit> &&promise) {
+  auto qts = update->qts_;
+  add_pending_qts_update(std::move(update), qts, std::move(promise));
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTheme> update, Promise<Unit> &&promise) {
   td_->theme_manager_->on_update_theme(std::move(update->theme_), std::move(promise));
 }
@@ -4359,10 +4393,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewAuthorizatio
 }
 
 // unsupported updates
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotMessageReaction> update, Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotMessageReactions> update, Promise<Unit> &&promise) {
   promise.set_value(Unit());

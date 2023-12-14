@@ -6604,6 +6604,15 @@ updateNewChatJoinRequest chat_id:int53 request:chatJoinRequest user_chat_id:int5
 //@boost New information about the boost
 updateChatBoost chat_id:int53 boost:chatBoost = Update;
 
+//@description User changed its reactions on a message; for bots only
+//@chat_id Chat identifier
+//@message_id Message identifier
+//@actor_id Identifier of the user or chat that changed reactions
+//@date Point in time (Unix timestamp) when the reactions were changed
+//@old_reaction_types Old list of chosen reactions
+//@new_reaction_types New list of chosen reactions
+updateMessageReaction chat_id:int53 message_id:int53 actor_id:MessageSender date:int32 old_reaction_types:vector<ReactionType> new_reaction_types:vector<ReactionType> = Update;
+
 
 //@description Contains a list of updates @updates List of updates
 updates updates:vector<Update> = Updates;
