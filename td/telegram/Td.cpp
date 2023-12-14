@@ -5474,7 +5474,7 @@ void Td::on_request(uint64 id, const td_api::clearRecentReactions &request) {
   reaction_manager_->clear_recent_reactions(std::move(promise));
 }
 
-void Td::on_request(uint64 id, td_api::addMessageReaction &request) {
+void Td::on_request(uint64 id, const td_api::addMessageReaction &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   messages_manager_->add_message_reaction({DialogId(request.chat_id_), MessageId(request.message_id_)},
@@ -5482,7 +5482,7 @@ void Td::on_request(uint64 id, td_api::addMessageReaction &request) {
                                           request.update_recent_reactions_, std::move(promise));
 }
 
-void Td::on_request(uint64 id, td_api::removeMessageReaction &request) {
+void Td::on_request(uint64 id, const td_api::removeMessageReaction &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   messages_manager_->remove_message_reaction({DialogId(request.chat_id_), MessageId(request.message_id_)},
@@ -5498,7 +5498,7 @@ void Td::on_request(uint64 id, td_api::getMessageAddedReactions &request) {
                               std::move(promise));
 }
 
-void Td::on_request(uint64 id, td_api::setDefaultReactionType &request) {
+void Td::on_request(uint64 id, const td_api::setDefaultReactionType &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   reaction_manager_->set_default_reaction(ReactionType(request.reaction_type_), std::move(promise));
