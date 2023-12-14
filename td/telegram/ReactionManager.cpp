@@ -627,9 +627,7 @@ void ReactionManager::on_get_recent_reactions(tl_object_ptr<telegram_api::messag
 
   CHECK(constructor_id == telegram_api::messages_reactions::ID);
   auto reactions = move_tl_object_as<telegram_api::messages_reactions>(reactions_ptr);
-  auto new_reaction_types = transform(
-      reactions->reactions_,
-      [](const telegram_api::object_ptr<telegram_api::Reaction> &reaction) { return ReactionType(reaction); });
+  auto new_reaction_types = ReactionType::get_reaction_types(reactions->reactions_);
   if (new_reaction_types == recent_reactions_.reaction_types_ && recent_reactions_.hash_ == reactions->hash_) {
     LOG(INFO) << "Top reactions are not modified";
     return;
@@ -663,9 +661,7 @@ void ReactionManager::on_get_top_reactions(tl_object_ptr<telegram_api::messages_
 
   CHECK(constructor_id == telegram_api::messages_reactions::ID);
   auto reactions = move_tl_object_as<telegram_api::messages_reactions>(reactions_ptr);
-  auto new_reaction_types = transform(
-      reactions->reactions_,
-      [](const telegram_api::object_ptr<telegram_api::Reaction> &reaction) { return ReactionType(reaction); });
+  auto new_reaction_types = ReactionType::get_reaction_types(reactions->reactions_);
   if (new_reaction_types == top_reactions_.reaction_types_ && top_reactions_.hash_ == reactions->hash_) {
     LOG(INFO) << "Top reactions are not modified";
     return;

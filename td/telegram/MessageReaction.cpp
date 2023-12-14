@@ -123,11 +123,9 @@ class SendReactionQuery final : public Td::ResultHandler {
     }
 
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_sendReaction(
-            flags, false /*ignored*/, false /*ignored*/, std::move(input_peer),
-            message_full_id.get_message_id().get_server_message_id().get(),
-            transform(reaction_types,
-                      [](const ReactionType &reaction_type) { return reaction_type.get_input_reaction(); })),
+        telegram_api::messages_sendReaction(flags, false /*ignored*/, false /*ignored*/, std::move(input_peer),
+                                            message_full_id.get_message_id().get_server_message_id().get(),
+                                            ReactionType::get_input_reactions(reaction_types)),
         {{dialog_id_}, {message_full_id}}));
   }
 

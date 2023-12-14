@@ -25,9 +25,7 @@ ChatReactions::ChatReactions(telegram_api::object_ptr<telegram_api::ChatReaction
     }
     case telegram_api::chatReactionsSome::ID: {
       auto chat_reactions = move_tl_object_as<telegram_api::chatReactionsSome>(chat_reactions_ptr);
-      reaction_types_ = transform(
-          chat_reactions->reactions_,
-          [](const telegram_api::object_ptr<telegram_api::Reaction> &reaction) { return ReactionType(reaction); });
+      reaction_types_ = ReactionType::get_reaction_types(chat_reactions->reactions_);
       break;
     }
     default:
@@ -47,9 +45,7 @@ ChatReactions::ChatReactions(td_api::object_ptr<td_api::ChatAvailableReactions> 
       break;
     case td_api::chatAvailableReactionsSome::ID: {
       auto chat_reactions = move_tl_object_as<td_api::chatAvailableReactionsSome>(chat_reactions_ptr);
-      reaction_types_ =
-          transform(chat_reactions->reactions_,
-                    [](const td_api::object_ptr<td_api::ReactionType> &reaction) { return ReactionType(reaction); });
+      reaction_types_ = ReactionType::get_reaction_types(chat_reactions->reactions_);
       break;
     }
     default:
@@ -82,8 +78,8 @@ td_api::object_ptr<td_api::ChatAvailableReactions> ChatReactions::get_chat_avail
   if (allow_all_regular_) {
     return td_api::make_object<td_api::chatAvailableReactionsAll>();
   }
-  return td_api::make_object<td_api::chatAvailableReactionsSome>(transform(
-      reaction_types_, [](const ReactionType &reaction_type) { return reaction_type.get_reaction_type_object(); }));
+  return td_api::make_object<td_api::chatAvailableReactionsSome>(
+      ReactionType::get_reaction_types_object(reaction_types_));
 }
 
 telegram_api::object_ptr<telegram_api::ChatReactions> ChatReactions::get_input_chat_reactions() const {
@@ -95,8 +91,8 @@ telegram_api::object_ptr<telegram_api::ChatReactions> ChatReactions::get_input_c
     return telegram_api::make_object<telegram_api::chatReactionsAll>(flags, allow_all_custom_);
   }
   if (!reaction_types_.empty()) {
-    return telegram_api::make_object<telegram_api::chatReactionsSome>(transform(
-        reaction_types_, [](const ReactionType &reaction_type) { return reaction_type.get_input_reaction(); }));
+    return telegram_api::make_object<telegram_api::chatReactionsSome>(
+        ReactionType::get_input_reactions(reaction_types_));
   }
   return telegram_api::make_object<telegram_api::chatReactionsNone>();
 }

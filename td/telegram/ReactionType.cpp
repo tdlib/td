@@ -8,6 +8,7 @@
 
 #include "td/telegram/misc.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/as.h"
 #include "td/utils/base64.h"
 #include "td/utils/crypto.h"
@@ -82,6 +83,28 @@ ReactionType::ReactionType(const td_api::object_ptr<td_api::ReactionType> &type)
       UNREACHABLE();
       break;
   }
+}
+
+vector<ReactionType> ReactionType::get_reaction_types(
+    const vector<telegram_api::object_ptr<telegram_api::Reaction>> &reactions) {
+  return transform(reactions, [](const auto &reaction) { return ReactionType(reaction); });
+}
+
+vector<ReactionType> ReactionType::get_reaction_types(
+    const vector<td_api::object_ptr<td_api::ReactionType>> &reactions) {
+  return transform(reactions, [](const auto &reaction) { return ReactionType(reaction); });
+}
+
+vector<telegram_api::object_ptr<telegram_api::Reaction>> ReactionType::get_input_reactions(
+    const vector<ReactionType> &reaction_types) {
+  return transform(reaction_types,
+                   [](const ReactionType &reaction_type) { return reaction_type.get_input_reaction(); });
+}
+
+vector<td_api::object_ptr<td_api::ReactionType>> ReactionType::get_reaction_types_object(
+    const vector<ReactionType> &reaction_types) {
+  return transform(reaction_types,
+                   [](const ReactionType &reaction_type) { return reaction_type.get_reaction_type_object(); });
 }
 
 telegram_api::object_ptr<telegram_api::Reaction> ReactionType::get_input_reaction() const {

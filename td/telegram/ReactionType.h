@@ -38,6 +38,17 @@ class ReactionType {
 
   explicit ReactionType(const td_api::object_ptr<td_api::ReactionType> &type);
 
+  static vector<ReactionType> get_reaction_types(
+      const vector<telegram_api::object_ptr<telegram_api::Reaction>> &reactions);
+
+  static vector<ReactionType> get_reaction_types(const vector<td_api::object_ptr<td_api::ReactionType>> &reactions);
+
+  static vector<telegram_api::object_ptr<telegram_api::Reaction>> get_input_reactions(
+      const vector<ReactionType> &reaction_types);
+
+  static vector<td_api::object_ptr<td_api::ReactionType>> get_reaction_types_object(
+      const vector<ReactionType> &reaction_types);
+
   telegram_api::object_ptr<telegram_api::Reaction> get_input_reaction() const;
 
   td_api::object_ptr<td_api::ReactionType> get_reaction_type_object() const;
