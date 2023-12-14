@@ -17331,10 +17331,7 @@ void ContactsManager::send_update_chat_member(DialogId dialog_id, UserId agent_u
 }
 
 void ContactsManager::on_update_bot_stopped(UserId user_id, int32 date, bool is_stopped, bool force) {
-  if (!td_->auth_manager_->is_bot()) {
-    LOG(ERROR) << "Receive updateBotStopped by non-bot";
-    return;
-  }
+  CHECK(td_->auth_manager_->is_bot());
   if (date <= 0 || !have_user_force(user_id, "on_update_bot_stopped")) {
     LOG(ERROR) << "Receive invalid updateBotStopped by " << user_id << " at " << date;
     return;
@@ -17366,10 +17363,7 @@ void ContactsManager::on_update_chat_participant(ChatId chat_id, UserId user_id,
                                                  DialogInviteLink invite_link,
                                                  tl_object_ptr<telegram_api::ChatParticipant> old_participant,
                                                  tl_object_ptr<telegram_api::ChatParticipant> new_participant) {
-  if (!td_->auth_manager_->is_bot()) {
-    LOG(ERROR) << "Receive updateChatParticipant by non-bot";
-    return;
-  }
+  CHECK(td_->auth_manager_->is_bot());
   if (!chat_id.is_valid() || !user_id.is_valid() || date <= 0 ||
       (old_participant == nullptr && new_participant == nullptr)) {
     LOG(ERROR) << "Receive invalid updateChatParticipant in " << chat_id << " by " << user_id << " at " << date << ": "
@@ -17416,10 +17410,7 @@ void ContactsManager::on_update_channel_participant(ChannelId channel_id, UserId
                                                     DialogInviteLink invite_link, bool via_dialog_filter_invite_link,
                                                     tl_object_ptr<telegram_api::ChannelParticipant> old_participant,
                                                     tl_object_ptr<telegram_api::ChannelParticipant> new_participant) {
-  if (!td_->auth_manager_->is_bot()) {
-    LOG(ERROR) << "Receive updateChannelParticipant by non-bot";
-    return;
-  }
+  CHECK(td_->auth_manager_->is_bot());
   if (!channel_id.is_valid() || !user_id.is_valid() || date <= 0 ||
       (old_participant == nullptr && new_participant == nullptr)) {
     LOG(ERROR) << "Receive invalid updateChannelParticipant in " << channel_id << " by " << user_id << " at " << date
@@ -17473,7 +17464,8 @@ void ContactsManager::on_update_channel_participant(ChannelId channel_id, UserId
 
 void ContactsManager::on_update_chat_invite_requester(DialogId dialog_id, UserId user_id, string about, int32 date,
                                                       DialogInviteLink invite_link) {
-  if (!td_->auth_manager_->is_bot() || date <= 0 || !have_user_force(user_id, "on_update_chat_invite_requester") ||
+  CHECK(td_->auth_manager_->is_bot());
+  if (date <= 0 || !have_user_force(user_id, "on_update_chat_invite_requester") ||
       !td_->messages_manager_->have_dialog_info_force(dialog_id, "on_update_chat_invite_requester")) {
     LOG(ERROR) << "Receive invalid updateBotChatInviteRequester by " << user_id << " in " << dialog_id << " at "
                << date;

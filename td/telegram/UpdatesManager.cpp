@@ -2945,61 +2945,60 @@ void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&up
     qts_gap_ = 0;
     qts_diff_ = 0;
   }
-  switch (update_ptr->get_id()) {
-    case telegram_api::updateNewEncryptedMessage::ID: {
-      auto update = move_tl_object_as<telegram_api::updateNewEncryptedMessage>(update_ptr);
-      send_closure(td_->secret_chats_manager_, &SecretChatsManager::on_new_message, std::move(update->message_),
-                   add_qts(qts));
-      break;
+  auto constructor_id = update_ptr->get_id();
+  if (constructor_id == telegram_api::updateNewEncryptedMessage::ID) {
+    auto update = move_tl_object_as<telegram_api::updateNewEncryptedMessage>(update_ptr);
+    send_closure(td_->secret_chats_manager_, &SecretChatsManager::on_new_message, std::move(update->message_),
+                 add_qts(qts));
+  } else if (td_->auth_manager_->is_bot()) {
+    switch (constructor_id) {
+      case telegram_api::updateMessagePollVote::ID: {
+        auto update = move_tl_object_as<telegram_api::updateMessagePollVote>(update_ptr);
+        td_->poll_manager_->on_get_poll_vote(PollId(update->poll_id_), DialogId(update->peer_),
+                                             std::move(update->options_));
+        break;
+      }
+      case telegram_api::updateBotStopped::ID: {
+        auto update = move_tl_object_as<telegram_api::updateBotStopped>(update_ptr);
+        td_->contacts_manager_->on_update_bot_stopped(UserId(update->user_id_), update->date_, update->stopped_);
+        break;
+      }
+      case telegram_api::updateChatParticipant::ID: {
+        auto update = move_tl_object_as<telegram_api::updateChatParticipant>(update_ptr);
+        td_->contacts_manager_->on_update_chat_participant(
+            ChatId(update->chat_id_), UserId(update->actor_id_), update->date_,
+            DialogInviteLink(std::move(update->invite_), true, "updateChatParticipant"),
+            std::move(update->prev_participant_), std::move(update->new_participant_));
+        break;
+      }
+      case telegram_api::updateChannelParticipant::ID: {
+        auto update = move_tl_object_as<telegram_api::updateChannelParticipant>(update_ptr);
+        td_->contacts_manager_->on_update_channel_participant(
+            ChannelId(update->channel_id_), UserId(update->actor_id_), update->date_,
+            DialogInviteLink(std::move(update->invite_), true, "updateChannelParticipant"), update->via_chatlist_,
+            std::move(update->prev_participant_), std::move(update->new_participant_));
+        break;
+      }
+      case telegram_api::updateBotChatInviteRequester::ID: {
+        auto update = move_tl_object_as<telegram_api::updateBotChatInviteRequester>(update_ptr);
+        td_->contacts_manager_->on_update_chat_invite_requester(
+            DialogId(update->peer_), UserId(update->user_id_), std::move(update->about_), update->date_,
+            DialogInviteLink(std::move(update->invite_), true, "updateBotChatInviteRequester"));
+        break;
+      }
+      case telegram_api::updateBotChatBoost::ID: {
+        auto update = move_tl_object_as<telegram_api::updateBotChatBoost>(update_ptr);
+        td_->boost_manager_->on_update_dialog_boost(DialogId(update->peer_), std::move(update->boost_));
+        break;
+      }
+      default:
+        UNREACHABLE();
+        break;
     }
-    case telegram_api::updateMessagePollVote::ID: {
-      auto update = move_tl_object_as<telegram_api::updateMessagePollVote>(update_ptr);
-      DialogId dialog_id(update->peer_);
-      td_->poll_manager_->on_get_poll_vote(PollId(update->poll_id_), dialog_id, std::move(update->options_));
-      add_qts(qts).set_value(Unit());
-      break;
-    }
-    case telegram_api::updateBotStopped::ID: {
-      auto update = move_tl_object_as<telegram_api::updateBotStopped>(update_ptr);
-      td_->contacts_manager_->on_update_bot_stopped(UserId(update->user_id_), update->date_, update->stopped_);
-      add_qts(qts).set_value(Unit());
-      break;
-    }
-    case telegram_api::updateChatParticipant::ID: {
-      auto update = move_tl_object_as<telegram_api::updateChatParticipant>(update_ptr);
-      td_->contacts_manager_->on_update_chat_participant(
-          ChatId(update->chat_id_), UserId(update->actor_id_), update->date_,
-          DialogInviteLink(std::move(update->invite_), true, "updateChatParticipant"),
-          std::move(update->prev_participant_), std::move(update->new_participant_));
-      add_qts(qts).set_value(Unit());
-      break;
-    }
-    case telegram_api::updateChannelParticipant::ID: {
-      auto update = move_tl_object_as<telegram_api::updateChannelParticipant>(update_ptr);
-      td_->contacts_manager_->on_update_channel_participant(
-          ChannelId(update->channel_id_), UserId(update->actor_id_), update->date_,
-          DialogInviteLink(std::move(update->invite_), true, "updateChannelParticipant"), update->via_chatlist_,
-          std::move(update->prev_participant_), std::move(update->new_participant_));
-      add_qts(qts).set_value(Unit());
-      break;
-    }
-    case telegram_api::updateBotChatInviteRequester::ID: {
-      auto update = move_tl_object_as<telegram_api::updateBotChatInviteRequester>(update_ptr);
-      td_->contacts_manager_->on_update_chat_invite_requester(
-          DialogId(update->peer_), UserId(update->user_id_), std::move(update->about_), update->date_,
-          DialogInviteLink(std::move(update->invite_), true, "updateBotChatInviteRequester"));
-      add_qts(qts).set_value(Unit());
-      break;
-    }
-    case telegram_api::updateBotChatBoost::ID: {
-      auto update = move_tl_object_as<telegram_api::updateBotChatBoost>(update_ptr);
-      td_->boost_manager_->on_update_dialog_boost(DialogId(update->peer_), std::move(update->boost_));
-      add_qts(qts).set_value(Unit());
-      break;
-    }
-    default:
-      UNREACHABLE();
-      break;
+    add_qts(qts).set_value(Unit());
+  } else {
+    add_qts(qts).set_value(Unit());
+    LOG(ERROR) << "Receive " << to_string(update_ptr);
   }
   promise.set_value(Unit());
 }

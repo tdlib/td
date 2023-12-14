@@ -1893,9 +1893,7 @@ void PollManager::on_get_poll_vote(PollId poll_id, DialogId dialog_id, vector<Bu
     LOG(ERROR) << "Receive updateMessagePollVote from invalid " << dialog_id;
     return;
   }
-  if (!td_->auth_manager_->is_bot()) {
-    return;
-  }
+  CHECK(td_->auth_manager_->is_bot());
 
   vector<int32> option_ids;
   for (auto &option : options) {

@@ -452,10 +452,7 @@ void BoostManager::get_user_dialog_boosts(DialogId dialog_id, UserId user_id,
 }
 
 void BoostManager::on_update_dialog_boost(DialogId dialog_id, telegram_api::object_ptr<telegram_api::boost> &&boost) {
-  if (!td_->auth_manager_->is_bot()) {
-    LOG(ERROR) << "Receive updateBotChatBoost by a non-bot";
-    return;
-  }
+  CHECK(td_->auth_manager_->is_bot());
   if (!dialog_id.is_valid() || !td_->messages_manager_->have_dialog_info_force(dialog_id, "on_update_dialog_boost")) {
     LOG(ERROR) << "Receive updateBotChatBoost in " << dialog_id;
     return;
