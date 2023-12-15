@@ -876,6 +876,19 @@ void send_message_reaction(Td *td, MessageFullId message_full_id, vector<Reactio
       ->send(message_full_id, std::move(reaction_types), is_big, add_to_recent);
 }
 
+void set_message_reactions(Td *td, MessageFullId message_full_id, vector<ReactionType> reaction_types, bool is_big,
+                           Promise<Unit> &&promise) {
+  if (!td->messages_manager_->have_message_force(message_full_id, "set_message_reactions")) {
+    return promise.set_error(Status::Error(400, "Message not found"));
+  }
+  for (const auto &reaction_type : reaction_types) {
+    if (reaction_type.is_empty()) {
+      return promise.set_error(Status::Error(400, "Invalid reaction type specified"));
+    }
+  }
+  send_message_reaction(td, message_full_id, std::move(reaction_types), is_big, false, std::move(promise));
+}
+
 void get_message_added_reactions(Td *td, MessageFullId message_full_id, ReactionType reaction_type, string offset,
                                  int32 limit, Promise<td_api::object_ptr<td_api::addedReactions>> &&promise) {
   if (!td->messages_manager_->have_message_force(message_full_id, "get_message_added_reactions")) {

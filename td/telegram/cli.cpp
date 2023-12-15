@@ -2778,6 +2778,14 @@ class CliClient final : public Actor {
       string reaction;
       get_args(args, chat_id, message_id, reaction);
       send_request(td_api::make_object<td_api::removeMessageReaction>(chat_id, message_id, as_reaction_type(reaction)));
+    } else if (op == "reactbot" || op == "reactbotbig") {
+      ChatId chat_id;
+      MessageId message_id;
+      string reactions;
+      get_args(args, chat_id, message_id, reactions);
+      auto reaction_types = transform(autosplit_str(reactions), as_reaction_type);
+      send_request(td_api::make_object<td_api::setMessageReactions>(chat_id, message_id, std::move(reaction_types),
+                                                                    op == "reactbotbig"));
     } else if (op == "gmars") {
       ChatId chat_id;
       MessageId message_id;

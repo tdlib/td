@@ -5489,6 +5489,13 @@ void Td::on_request(uint64 id, const td_api::removeMessageReaction &request) {
                                              ReactionType(request.reaction_type_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::setMessageReactions &request) {
+  CHECK_IS_BOT();
+  CREATE_OK_REQUEST_PROMISE();
+  set_message_reactions(this, {DialogId(request.chat_id_), MessageId(request.message_id_)},
+                        ReactionType::get_reaction_types(request.reaction_types_), request.is_big_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::getMessageAddedReactions &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.offset_);
