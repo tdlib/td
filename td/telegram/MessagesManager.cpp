@@ -32714,23 +32714,14 @@ void MessagesManager::on_dialog_photo_updated(DialogId dialog_id) {
   }
 }
 
-void MessagesManager::on_dialog_accent_color_id_updated(DialogId dialog_id) {
+void MessagesManager::on_dialog_accent_colors_updated(DialogId dialog_id) {
   auto d = get_dialog(dialog_id);  // called from update_user, must not create the dialog
   if (d != nullptr && d->is_update_new_chat_sent) {
     send_closure(
         G()->td(), &Td::send_update,
-        td_api::make_object<td_api::updateChatAccentColor>(get_chat_id_object(dialog_id, "updateChatAccentColor"),
-                                                           get_dialog_accent_color_id_object(dialog_id)));
-  }
-}
-
-void MessagesManager::on_dialog_background_custom_emoji_id_updated(DialogId dialog_id) {
-  auto d = get_dialog(dialog_id);  // called from update_user, must not create the dialog
-  if (d != nullptr && d->is_update_new_chat_sent) {
-    send_closure(G()->td(), &Td::send_update,
-                 td_api::make_object<td_api::updateChatBackgroundCustomEmoji>(
-                     get_chat_id_object(dialog_id, "updateChatBackgroundCustomEmoji"),
-                     get_dialog_background_custom_emoji_id(dialog_id).get()));
+        td_api::make_object<td_api::updateChatAccentColors>(get_chat_id_object(dialog_id, "updateChatAccentColors"),
+                                                            get_dialog_accent_color_id_object(dialog_id),
+                                                            get_dialog_background_custom_emoji_id(dialog_id).get()));
   }
 }
 

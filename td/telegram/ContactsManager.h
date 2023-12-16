@@ -824,10 +824,7 @@ class ContactsManager final : public Actor {
     bool is_name_changed = true;
     bool is_username_changed = true;
     bool is_photo_changed = true;
-    bool is_accent_color_id_changed = true;
-    bool is_background_custom_emoji_id_changed = true;
-    bool is_profile_accent_color_id_changed = true;
-    bool is_profile_background_custom_emoji_id_changed = true;
+    bool is_accent_color_changed = true;
     bool is_phone_number_changed = true;
     bool is_emoji_status_changed = true;
     bool is_is_contact_changed = true;
@@ -1033,8 +1030,7 @@ class ContactsManager final : public Actor {
     bool is_title_changed = true;
     bool is_username_changed = true;
     bool is_photo_changed = true;
-    bool is_accent_color_id_changed = true;
-    bool is_background_custom_emoji_id_changed = true;
+    bool is_accent_color_changed = true;
     bool is_default_permissions_changed = true;
     bool is_status_changed = true;
     bool is_stories_hidden_changed = true;

@@ -12445,27 +12445,13 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
     });
     u->is_photo_changed = false;
   }
-  if (u->is_accent_color_id_changed) {
+  if (u->is_accent_color_changed) {
     auto messages_manager = td_->messages_manager_.get();
-    messages_manager->on_dialog_accent_color_id_updated(DialogId(user_id));
+    messages_manager->on_dialog_accent_colors_updated(DialogId(user_id));
     for_each_secret_chat_with_user(user_id, [messages_manager](SecretChatId secret_chat_id) {
-      messages_manager->on_dialog_accent_color_id_updated(DialogId(secret_chat_id));
+      messages_manager->on_dialog_accent_colors_updated(DialogId(secret_chat_id));
     });
-    u->is_accent_color_id_changed = false;
-  }
-  if (u->is_background_custom_emoji_id_changed) {
-    auto messages_manager = td_->messages_manager_.get();
-    messages_manager->on_dialog_background_custom_emoji_id_updated(DialogId(user_id));
-    for_each_secret_chat_with_user(user_id, [messages_manager](SecretChatId secret_chat_id) {
-      messages_manager->on_dialog_background_custom_emoji_id_updated(DialogId(secret_chat_id));
-    });
-    u->is_background_custom_emoji_id_changed = false;
-  }
-  if (u->is_profile_accent_color_id_changed) {
-    u->is_profile_accent_color_id_changed = false;
-  }
-  if (u->is_profile_background_custom_emoji_id_changed) {
-    u->is_profile_background_custom_emoji_id_changed = false;
+    u->is_accent_color_changed = false;
   }
   if (u->is_phone_number_changed) {
     if (!u->phone_number.empty() && !td_->auth_manager_->is_bot()) {
@@ -12708,13 +12694,9 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
       }
     }
   }
-  if (c->is_accent_color_id_changed) {
-    td_->messages_manager_->on_dialog_accent_color_id_updated(DialogId(channel_id));
-    c->is_accent_color_id_changed = false;
-  }
-  if (c->is_background_custom_emoji_id_changed) {
-    td_->messages_manager_->on_dialog_background_custom_emoji_id_updated(DialogId(channel_id));
-    c->is_background_custom_emoji_id_changed = false;
+  if (c->is_accent_color_changed) {
+    td_->messages_manager_->on_dialog_accent_colors_updated(DialogId(channel_id));
+    c->is_accent_color_changed = false;
   }
   if (c->is_title_changed) {
     td_->messages_manager_->on_dialog_title_updated(DialogId(channel_id));
@@ -14091,7 +14073,7 @@ void ContactsManager::on_update_user_accent_color_id(User *u, UserId user_id, Ac
   }
   if (u->accent_color_id != accent_color_id) {
     u->accent_color_id = accent_color_id;
-    u->is_accent_color_id_changed = true;
+    u->is_accent_color_changed = true;
     u->is_changed = true;
   }
 }
@@ -14100,7 +14082,7 @@ void ContactsManager::on_update_user_background_custom_emoji_id(User *u, UserId 
                                                                 CustomEmojiId background_custom_emoji_id) {
   if (u->background_custom_emoji_id != background_custom_emoji_id) {
     u->background_custom_emoji_id = background_custom_emoji_id;
-    u->is_background_custom_emoji_id_changed = true;
+    u->is_accent_color_changed = true;
     u->is_changed = true;
   }
 }
@@ -14111,7 +14093,7 @@ void ContactsManager::on_update_user_profile_accent_color_id(User *u, UserId use
   }
   if (u->profile_accent_color_id != accent_color_id) {
     u->profile_accent_color_id = accent_color_id;
-    u->is_profile_accent_color_id_changed = true;
+    u->is_accent_color_changed = true;
     u->is_changed = true;
   }
 }
@@ -14120,7 +14102,7 @@ void ContactsManager::on_update_user_profile_background_custom_emoji_id(User *u,
                                                                         CustomEmojiId background_custom_emoji_id) {
   if (u->profile_background_custom_emoji_id != background_custom_emoji_id) {
     u->profile_background_custom_emoji_id = background_custom_emoji_id;
-    u->is_profile_background_custom_emoji_id_changed = true;
+    u->is_accent_color_changed = true;
     u->is_changed = true;
   }
 }
@@ -16824,7 +16806,7 @@ void ContactsManager::on_update_channel_accent_color_id(Channel *c, ChannelId ch
   }
   if (c->accent_color_id != accent_color_id) {
     c->accent_color_id = accent_color_id;
-    c->is_accent_color_id_changed = true;
+    c->is_accent_color_changed = true;
     c->need_save_to_database = true;
   }
 }
@@ -16833,7 +16815,7 @@ void ContactsManager::on_update_channel_background_custom_emoji_id(Channel *c, C
                                                                    CustomEmojiId background_custom_emoji_id) {
   if (c->background_custom_emoji_id != background_custom_emoji_id) {
     c->background_custom_emoji_id = background_custom_emoji_id;
-    c->is_background_custom_emoji_id_changed = true;
+    c->is_accent_color_changed = true;
     c->need_save_to_database = true;
   }
 }
