@@ -2031,6 +2031,11 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
       }
       return get_dialog_filter_invite_link(slug, is_internal);
     }
+    case td_api::internalLinkTypeChatFolderSettings::ID:
+      if (!is_internal) {
+        return Status::Error("HTTP link is unavailable for the link type");
+      }
+      return "tg://settings/folders";
     case td_api::internalLinkTypeChatInvite::ID: {
       auto link = static_cast<const td_api::internalLinkTypeChatInvite *>(type_ptr);
       auto invite_hash = get_dialog_invite_link_hash(link->invite_link_);
@@ -2044,38 +2049,11 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         return Status::Error("HTTP link is unavailable for the link type");
       }
       return "tg://settings/auto_delete";
-    case td_api::internalLinkTypeSideMenuBot::ID: {
-      auto link = static_cast<const td_api::internalLinkTypeSideMenuBot *>(type_ptr);
-      if (!is_valid_username(link->bot_username_)) {
-        return Status::Error(400, "Invalid bot username specified");
-      }
-      string start_parameter;
-      if (!link->url_.empty()) {
-        if (!begins_with(link->url_, "start://")) {
-          return Status::Error(400, "Unsupported link URL specified");
-        }
-        auto start_parameter_slice = Slice(link->url_).substr(8);
-        if (start_parameter_slice.empty() || !is_valid_start_parameter(start_parameter_slice)) {
-          return Status::Error(400, "Invalid start parameter specified");
-        }
-        start_parameter = PSTRING() << '=' << start_parameter_slice;
-      }
-      if (is_internal) {
-        return PSTRING() << "tg://resolve?domain=" << link->bot_username_ << "&startapp" << start_parameter;
-      } else {
-        return PSTRING() << get_t_me_url() << link->bot_username_ << "?startapp" << start_parameter;
-      }
-    }
     case td_api::internalLinkTypeEditProfileSettings::ID:
       if (!is_internal) {
         return Status::Error("HTTP link is unavailable for the link type");
       }
       return "tg://settings/edit_profile";
-    case td_api::internalLinkTypeChatFolderSettings::ID:
-      if (!is_internal) {
-        return Status::Error("HTTP link is unavailable for the link type");
-      }
-      return "tg://settings/folders";
     case td_api::internalLinkTypeGame::ID: {
       auto link = static_cast<const td_api::internalLinkTypeGame *>(type_ptr);
       if (!is_valid_username(link->bot_username_)) {
@@ -2239,6 +2217,28 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         return Status::Error("HTTP link is unavailable for the link type");
       }
       return "tg://settings";
+    case td_api::internalLinkTypeSideMenuBot::ID: {
+      auto link = static_cast<const td_api::internalLinkTypeSideMenuBot *>(type_ptr);
+      if (!is_valid_username(link->bot_username_)) {
+        return Status::Error(400, "Invalid bot username specified");
+      }
+      string start_parameter;
+      if (!link->url_.empty()) {
+        if (!begins_with(link->url_, "start://")) {
+          return Status::Error(400, "Unsupported link URL specified");
+        }
+        auto start_parameter_slice = Slice(link->url_).substr(8);
+        if (start_parameter_slice.empty() || !is_valid_start_parameter(start_parameter_slice)) {
+          return Status::Error(400, "Invalid start parameter specified");
+        }
+        start_parameter = PSTRING() << '=' << start_parameter_slice;
+      }
+      if (is_internal) {
+        return PSTRING() << "tg://resolve?domain=" << link->bot_username_ << "&startapp" << start_parameter;
+      } else {
+        return PSTRING() << get_t_me_url() << link->bot_username_ << "?startapp" << start_parameter;
+      }
+    }
     case td_api::internalLinkTypeStickerSet::ID: {
       auto link = static_cast<const td_api::internalLinkTypeStickerSet *>(type_ptr);
       if (link->sticker_set_name_.empty()) {
