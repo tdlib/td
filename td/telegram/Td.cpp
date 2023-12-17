@@ -6520,6 +6520,14 @@ void Td::on_request(uint64 id, const td_api::setChatAccentColor &request) {
                                              CustomEmojiId(request.background_custom_emoji_id_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::setChatProfileAccentColor &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->set_dialog_profile_accent_color(
+      DialogId(request.chat_id_), AccentColorId(request.profile_accent_color_id_),
+      CustomEmojiId(request.profile_background_custom_emoji_id_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::setChatMessageAutoDeleteTime &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

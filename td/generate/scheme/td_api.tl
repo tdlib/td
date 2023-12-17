@@ -6462,7 +6462,7 @@ updateAccentColors colors:vector<accentColor> available_accent_color_ids:vector<
 
 //@description The list of supported accent colors for user profiles has changed
 //@colors Information about supported colors
-//@available_accent_color_ids The list of accent color identifiers, which can be set through setProfileAccentColor. The colors must be shown in the specififed order
+//@available_accent_color_ids The list of accent color identifiers, which can be set through setProfileAccentColor and setChatProfileAccentColor. The colors must be shown in the specififed order
 updateProfileAccentColors colors:vector<profileAccentColor> available_accent_color_ids:vector<int32> = Update;
 
 //@description Some language pack strings have been updated @localization_target Localization target to which the language pack belongs @language_pack_id Identifier of the updated language pack @strings List of changed language pack strings; empty if all strings have changed
@@ -7837,6 +7837,12 @@ setChatPhoto chat_id:int53 photo:InputChatPhoto = Ok;
 //@background_custom_emoji_id Identifier of a custom emoji to be shown on the reply header background; 0 if none
 setChatAccentColor chat_id:int53 accent_color_id:int32 background_custom_emoji_id:int64 = Ok;
 
+//@description Changes accent color and background custom emoji for profile of a chat. Supported only for channels with getOption("channel_custom_profile_accent_color_boost_level_min") boost level. Requires can_change_info administrator right
+//@chat_id Chat identifier
+//@profile_accent_color_id Identifier of the accent color to use for profile; pass -1 if none
+//@profile_background_custom_emoji_id Identifier of a custom emoji to be shown on the chat's profile photo background; 0 if none
+setChatProfileAccentColor chat_id:int53 profile_accent_color_id:int32 profile_background_custom_emoji_id:int64 = Ok;
+
 //@description Changes the message auto-delete or self-destruct (for secret chats) time in a chat. Requires change_info administrator right in basic groups, supergroups and channels
 //-Message auto-delete time can't be changed in a chat with the current user (Saved Messages) and the chat 777000 (Telegram).
 //@chat_id Chat identifier
@@ -8797,7 +8803,7 @@ setAccentColor accent_color_id:int32 background_custom_emoji_id:int64 = Ok;
 
 //@description Changes accent color and background custom emoji for profile of the current user; for Telegram Premium users only
 //@profile_accent_color_id Identifier of the accent color to use for profile; pass -1 if none
-//@profile_background_custom_emoji_id Identifier of a custom emoji to be shown in the on the user's profile photo background; 0 if none
+//@profile_background_custom_emoji_id Identifier of a custom emoji to be shown on the user's profile photo background; 0 if none
 setProfileAccentColor profile_accent_color_id:int32 profile_background_custom_emoji_id:int64 = Ok;
 
 //@description Changes the first and last name of the current user @first_name The new value of the first name for the current user; 1-64 characters @last_name The new value of the optional last name for the current user; 0-64 characters

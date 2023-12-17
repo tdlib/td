@@ -5337,6 +5337,13 @@ class CliClient final : public Actor {
       get_args(args, chat_id, accent_color_id, background_custom_emoji_id);
       send_request(
           td_api::make_object<td_api::setChatAccentColor>(chat_id, accent_color_id, background_custom_emoji_id));
+    } else if (op == "scpac") {
+      ChatId chat_id;
+      int32 profile_accent_color_id;
+      CustomEmojiId profile_background_custom_emoji_id;
+      get_args(args, chat_id, profile_accent_color_id, profile_background_custom_emoji_id);
+      send_request(td_api::make_object<td_api::setChatProfileAccentColor>(chat_id, profile_accent_color_id,
+                                                                          profile_background_custom_emoji_id));
     } else if (op == "scmt") {
       ChatId chat_id;
       int32 auto_delete_time;

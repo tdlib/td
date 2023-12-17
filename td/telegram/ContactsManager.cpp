@@ -1333,11 +1333,15 @@ class UpdateChannelColorQuery final : public Td::ResultHandler {
   explicit UpdateChannelColorQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(ChannelId channel_id, AccentColorId accent_color_id, CustomEmojiId background_custom_emoji_id) {
+  void send(ChannelId channel_id, bool for_profile, AccentColorId accent_color_id,
+            CustomEmojiId background_custom_emoji_id) {
     channel_id_ = channel_id;
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
     int32 flags = 0;
+    if (for_profile) {
+      flags |= telegram_api::channels_updateColor::FOR_PROFILE_MASK;
+    }
     if (accent_color_id.is_valid()) {
       flags |= telegram_api::channels_updateColor::COLOR_MASK;
     }
@@ -8237,7 +8241,25 @@ void ContactsManager::set_channel_accent_color(ChannelId channel_id, AccentColor
   }
 
   td_->create_handler<UpdateChannelColorQuery>(std::move(promise))
-      ->send(channel_id, accent_color_id, background_custom_emoji_id);
+      ->send(channel_id, false, accent_color_id, background_custom_emoji_id);
+}
+
+void ContactsManager::set_channel_profile_accent_color(ChannelId channel_id, AccentColorId profile_accent_color_id,
+                                                       CustomEmojiId profile_background_custom_emoji_id,
+                                                       Promise<Unit> &&promise) {
+  const auto *c = get_channel(channel_id);
+  if (c == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+  if (c->is_megagroup) {
+    return promise.set_error(Status::Error(400, "Accent color can be changed only in channel chats"));
+  }
+  if (!get_channel_status(c).can_change_info_and_settings()) {
+    return promise.set_error(Status::Error(400, "Not enough rights in the channel"));
+  }
+
+  td_->create_handler<UpdateChannelColorQuery>(std::move(promise))
+      ->send(channel_id, true, profile_accent_color_id, profile_background_custom_emoji_id);
 }
 
 void ContactsManager::set_channel_sticker_set(ChannelId channel_id, StickerSetId sticker_set_id,

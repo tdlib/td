@@ -564,6 +564,9 @@ class MessagesManager final : public Actor {
   void set_dialog_accent_color(DialogId dialog_id, AccentColorId accent_color_id,
                                CustomEmojiId background_custom_emoji_id, Promise<Unit> &&promise);
 
+  void set_dialog_profile_accent_color(DialogId dialog_id, AccentColorId profile_accent_color_id,
+                                       CustomEmojiId profile_background_custom_emoji_id, Promise<Unit> &&promise);
+
   void set_dialog_description(DialogId dialog_id, const string &description, Promise<Unit> &&promise);
 
   void set_active_reactions(vector<ReactionType> active_reaction_types);

@@ -1011,6 +1011,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::setChatAccentColor &request);
 
+  void on_request(uint64 id, const td_api::setChatProfileAccentColor &request);
+
   void on_request(uint64 id, const td_api::setChatMessageAutoDeleteTime &request);
 
   void on_request(uint64 id, const td_api::setChatPermissions &request);
