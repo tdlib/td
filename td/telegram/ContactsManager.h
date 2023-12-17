@@ -209,8 +209,8 @@ class ContactsManager final : public Actor {
   void on_get_channel_full_failed(ChannelId channel_id);
 
   void on_update_profile_success(int32 flags, const string &first_name, const string &last_name, const string &about);
-  void on_update_accent_color_success(AccentColorId accent_color_id, CustomEmojiId background_custom_emoji_id);
-  void on_update_profile_accent_color_success(AccentColorId accent_color_id, CustomEmojiId background_custom_emoji_id);
+  void on_update_accent_color_success(bool for_profile, AccentColorId accent_color_id,
+                                      CustomEmojiId background_custom_emoji_id);
 
   void on_update_user_name(UserId user_id, string &&first_name, string &&last_name, Usernames &&usernames);
   void on_update_user_phone_number(UserId user_id, string &&phone_number);
