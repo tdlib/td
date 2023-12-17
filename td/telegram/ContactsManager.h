@@ -130,6 +130,16 @@ class ContactsManager final : public Actor {
   CustomEmojiId get_channel_background_custom_emoji_id(ChannelId channel_id) const;
   CustomEmojiId get_secret_chat_background_custom_emoji_id(SecretChatId secret_chat_id) const;
 
+  int32 get_user_profile_accent_color_id_object(UserId user_id) const;
+  int32 get_chat_profile_accent_color_id_object(ChatId chat_id) const;
+  int32 get_channel_profile_accent_color_id_object(ChannelId channel_id) const;
+  int32 get_secret_chat_profile_accent_color_id_object(SecretChatId secret_chat_id) const;
+
+  CustomEmojiId get_user_profile_background_custom_emoji_id(UserId user_id) const;
+  CustomEmojiId get_chat_profile_background_custom_emoji_id(ChatId chat_id) const;
+  CustomEmojiId get_channel_profile_background_custom_emoji_id(ChannelId channel_id) const;
+  CustomEmojiId get_secret_chat_profile_background_custom_emoji_id(SecretChatId secret_chat_id) const;
+
   string get_user_title(UserId user_id) const;
   string get_chat_title(ChatId chat_id) const;
   string get_channel_title(ChannelId channel_id) const;
@@ -993,6 +1003,8 @@ class ContactsManager final : public Actor {
     DialogPhoto photo;
     AccentColorId accent_color_id;
     CustomEmojiId background_custom_emoji_id;
+    AccentColorId profile_accent_color_id;
+    CustomEmojiId profile_background_custom_emoji_id;
     Usernames usernames;
     vector<RestrictionReason> restriction_reasons;
     DialogParticipantStatus status = DialogParticipantStatus::Banned(0);
@@ -1542,6 +1554,10 @@ class ContactsManager final : public Actor {
   void on_update_channel_accent_color_id(Channel *c, ChannelId channel_id, AccentColorId accent_color_id);
   void on_update_channel_background_custom_emoji_id(Channel *c, ChannelId channel_id,
                                                     CustomEmojiId background_custom_emoji_id);
+  void on_update_channel_profile_accent_color_id(Channel *c, ChannelId channel_id,
+                                                 AccentColorId profile_accent_color_id);
+  void on_update_channel_profile_background_custom_emoji_id(Channel *c, ChannelId channel_id,
+                                                            CustomEmojiId profile_background_custom_emoji_id);
   static void on_update_channel_title(Channel *c, ChannelId channel_id, string &&title);
   void on_update_channel_usernames(Channel *c, ChannelId channel_id, Usernames &&usernames);
   void on_update_channel_status(Channel *c, ChannelId channel_id, DialogParticipantStatus &&status);

@@ -20903,6 +20903,8 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       d->dialog_id.get(), get_chat_type_object(d->dialog_id), get_dialog_title(d->dialog_id),
       get_chat_photo_info_object(td_->file_manager_.get(), get_dialog_photo(d->dialog_id)),
       get_dialog_accent_color_id_object(d->dialog_id), get_dialog_background_custom_emoji_id(d->dialog_id).get(),
+      get_dialog_profile_accent_color_id_object(d->dialog_id),
+      get_dialog_profile_background_custom_emoji_id(d->dialog_id).get(),
       get_dialog_default_permissions(d->dialog_id).get_chat_permissions_object(),
       get_message_object(d->dialog_id, get_message(d, d->last_message_id), "get_chat_object"),
       get_chat_positions_object(d), get_default_message_sender_object(d), block_list_id.get_block_list_object(),
@@ -32719,9 +32721,11 @@ void MessagesManager::on_dialog_accent_colors_updated(DialogId dialog_id) {
   if (d != nullptr && d->is_update_new_chat_sent) {
     send_closure(
         G()->td(), &Td::send_update,
-        td_api::make_object<td_api::updateChatAccentColors>(get_chat_id_object(dialog_id, "updateChatAccentColors"),
-                                                            get_dialog_accent_color_id_object(dialog_id),
-                                                            get_dialog_background_custom_emoji_id(dialog_id).get()));
+        td_api::make_object<td_api::updateChatAccentColors>(
+            get_chat_id_object(dialog_id, "updateChatAccentColors"), get_dialog_accent_color_id_object(dialog_id),
+            get_dialog_background_custom_emoji_id(dialog_id).get(),
+            get_dialog_profile_accent_color_id_object(dialog_id),
+            get_dialog_profile_background_custom_emoji_id(dialog_id).get()));
   }
 }
 
@@ -33188,6 +33192,40 @@ CustomEmojiId MessagesManager::get_dialog_background_custom_emoji_id(DialogId di
       return td_->contacts_manager_->get_channel_background_custom_emoji_id(dialog_id.get_channel_id());
     case DialogType::SecretChat:
       return td_->contacts_manager_->get_secret_chat_background_custom_emoji_id(dialog_id.get_secret_chat_id());
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+      return CustomEmojiId();
+  }
+}
+
+int32 MessagesManager::get_dialog_profile_accent_color_id_object(DialogId dialog_id) const {
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      return td_->contacts_manager_->get_user_profile_accent_color_id_object(dialog_id.get_user_id());
+    case DialogType::Chat:
+      return td_->contacts_manager_->get_chat_profile_accent_color_id_object(dialog_id.get_chat_id());
+    case DialogType::Channel:
+      return td_->contacts_manager_->get_channel_profile_accent_color_id_object(dialog_id.get_channel_id());
+    case DialogType::SecretChat:
+      return td_->contacts_manager_->get_secret_chat_profile_accent_color_id_object(dialog_id.get_secret_chat_id());
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+      return 0;
+  }
+}
+
+CustomEmojiId MessagesManager::get_dialog_profile_background_custom_emoji_id(DialogId dialog_id) const {
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      return td_->contacts_manager_->get_user_profile_background_custom_emoji_id(dialog_id.get_user_id());
+    case DialogType::Chat:
+      return td_->contacts_manager_->get_chat_profile_background_custom_emoji_id(dialog_id.get_chat_id());
+    case DialogType::Channel:
+      return td_->contacts_manager_->get_channel_profile_background_custom_emoji_id(dialog_id.get_channel_id());
+    case DialogType::SecretChat:
+      return td_->contacts_manager_->get_secret_chat_profile_background_custom_emoji_id(dialog_id.get_secret_chat_id());
     case DialogType::None:
     default:
       UNREACHABLE();

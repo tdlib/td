@@ -2993,6 +2993,10 @@ class MessagesManager final : public Actor {
 
   CustomEmojiId get_dialog_background_custom_emoji_id(DialogId dialog_id) const;
 
+  int32 get_dialog_profile_accent_color_id_object(DialogId dialog_id) const;
+
+  CustomEmojiId get_dialog_profile_background_custom_emoji_id(DialogId dialog_id) const;
+
   RestrictedRights get_dialog_default_permissions(DialogId dialog_id) const;
 
   bool get_dialog_has_protected_content(DialogId dialog_id) const;

@@ -5034,6 +5034,8 @@ void ContactsManager::Channel::store(StorerT &storer) const {
   bool has_max_active_story_id_next_reload_time = max_active_story_id_next_reload_time > Time::now();
   bool has_accent_color_id = accent_color_id.is_valid();
   bool has_background_custom_emoji_id = background_custom_emoji_id.is_valid();
+  bool has_profile_accent_color_id = profile_accent_color_id.is_valid();
+  bool has_profile_background_custom_emoji_id = profile_background_custom_emoji_id.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(false);
   STORE_FLAG(false);
@@ -5075,6 +5077,8 @@ void ContactsManager::Channel::store(StorerT &storer) const {
     STORE_FLAG(stories_hidden);
     STORE_FLAG(has_accent_color_id);
     STORE_FLAG(has_background_custom_emoji_id);
+    STORE_FLAG(has_profile_accent_color_id);
+    STORE_FLAG(has_profile_background_custom_emoji_id);
     END_STORE_FLAGS();
   }
 
@@ -5115,6 +5119,12 @@ void ContactsManager::Channel::store(StorerT &storer) const {
   if (has_background_custom_emoji_id) {
     store(background_custom_emoji_id, storer);
   }
+  if (has_profile_accent_color_id) {
+    store(profile_accent_color_id, storer);
+  }
+  if (has_profile_background_custom_emoji_id) {
+    store(profile_background_custom_emoji_id, storer);
+  }
 }
 
 template <class ParserT>
@@ -5142,6 +5152,8 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   bool has_max_active_story_id_next_reload_time = false;
   bool has_accent_color_id = false;
   bool has_background_custom_emoji_id = false;
+  bool has_profile_accent_color_id = false;
+  bool has_profile_background_custom_emoji_id = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(left);
   PARSE_FLAG(kicked);
@@ -5183,6 +5195,8 @@ void ContactsManager::Channel::parse(ParserT &parser) {
     PARSE_FLAG(stories_hidden);
     PARSE_FLAG(has_accent_color_id);
     PARSE_FLAG(has_background_custom_emoji_id);
+    PARSE_FLAG(has_profile_accent_color_id);
+    PARSE_FLAG(has_profile_background_custom_emoji_id);
     END_PARSE_FLAGS();
   }
 
@@ -5252,6 +5266,12 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   }
   if (has_background_custom_emoji_id) {
     parse(background_custom_emoji_id, parser);
+  }
+  if (has_profile_accent_color_id) {
+    parse(profile_accent_color_id, parser);
+  }
+  if (has_profile_background_custom_emoji_id) {
+    parse(profile_background_custom_emoji_id, parser);
   }
 
   if (!check_utf8(title)) {
@@ -5999,6 +6019,65 @@ CustomEmojiId ContactsManager::get_secret_chat_background_custom_emoji_id(Secret
     return CustomEmojiId();
   }
   return get_user_background_custom_emoji_id(c->user_id);
+}
+
+int32 ContactsManager::get_user_profile_accent_color_id_object(UserId user_id) const {
+  auto u = get_user(user_id);
+  if (u == nullptr) {
+    return -1;
+  }
+
+  return td_->theme_manager_->get_profile_accent_color_id_object(u->profile_accent_color_id);
+}
+
+int32 ContactsManager::get_chat_profile_accent_color_id_object(ChatId chat_id) const {
+  return -1;
+}
+
+int32 ContactsManager::get_channel_profile_accent_color_id_object(ChannelId channel_id) const {
+  auto c = get_channel(channel_id);
+  if (c == nullptr) {
+    return -1;
+  }
+  return td_->theme_manager_->get_profile_accent_color_id_object(c->profile_accent_color_id);
+}
+
+int32 ContactsManager::get_secret_chat_profile_accent_color_id_object(SecretChatId secret_chat_id) const {
+  auto c = get_secret_chat(secret_chat_id);
+  if (c == nullptr) {
+    return -1;
+  }
+  return get_user_profile_accent_color_id_object(c->user_id);
+}
+
+CustomEmojiId ContactsManager::get_user_profile_background_custom_emoji_id(UserId user_id) const {
+  auto u = get_user(user_id);
+  if (u == nullptr) {
+    return CustomEmojiId();
+  }
+
+  return u->profile_background_custom_emoji_id;
+}
+
+CustomEmojiId ContactsManager::get_chat_profile_background_custom_emoji_id(ChatId chat_id) const {
+  return CustomEmojiId();
+}
+
+CustomEmojiId ContactsManager::get_channel_profile_background_custom_emoji_id(ChannelId channel_id) const {
+  auto c = get_channel(channel_id);
+  if (c == nullptr) {
+    return CustomEmojiId();
+  }
+
+  return c->profile_background_custom_emoji_id;
+}
+
+CustomEmojiId ContactsManager::get_secret_chat_profile_background_custom_emoji_id(SecretChatId secret_chat_id) const {
+  auto c = get_secret_chat(secret_chat_id);
+  if (c == nullptr) {
+    return CustomEmojiId();
+  }
+  return get_user_profile_background_custom_emoji_id(c->user_id);
 }
 
 string ContactsManager::get_user_title(UserId user_id) const {
@@ -16815,6 +16894,27 @@ void ContactsManager::on_update_channel_background_custom_emoji_id(Channel *c, C
                                                                    CustomEmojiId background_custom_emoji_id) {
   if (c->background_custom_emoji_id != background_custom_emoji_id) {
     c->background_custom_emoji_id = background_custom_emoji_id;
+    c->is_accent_color_changed = true;
+    c->need_save_to_database = true;
+  }
+}
+
+void ContactsManager::on_update_channel_profile_accent_color_id(Channel *c, ChannelId channel_id,
+                                                                AccentColorId profile_accent_color_id) {
+  if (!profile_accent_color_id.is_valid()) {
+    profile_accent_color_id = AccentColorId();
+  }
+  if (c->profile_accent_color_id != profile_accent_color_id) {
+    c->profile_accent_color_id = profile_accent_color_id;
+    c->is_accent_color_changed = true;
+    c->need_save_to_database = true;
+  }
+}
+
+void ContactsManager::on_update_channel_profile_background_custom_emoji_id(
+    Channel *c, ChannelId channel_id, CustomEmojiId profile_background_custom_emoji_id) {
+  if (c->profile_background_custom_emoji_id != profile_background_custom_emoji_id) {
+    c->profile_background_custom_emoji_id = profile_background_custom_emoji_id;
     c->is_accent_color_changed = true;
     c->need_save_to_database = true;
   }
