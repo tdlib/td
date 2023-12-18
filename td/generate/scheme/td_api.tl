@@ -4360,6 +4360,13 @@ chatEventActiveUsernamesChanged old_usernames:vector<string> new_usernames:vecto
 //@new_background_custom_emoji_id New identifier of the custom emoji; 0 if none
 chatEventAccentColorChanged old_accent_color_id:int32 old_background_custom_emoji_id:int64 new_accent_color_id:int32 new_background_custom_emoji_id:int64 = ChatEventAction;
 
+//@description The chat's profile accent color or profile background custom emoji were changed
+//@old_profile_accent_color_id Previous identifier of chat's profile accent color; -1 if none
+//@old_profile_background_custom_emoji_id Previous identifier of the custom emoji; 0 if none
+//@new_profile_accent_color_id New identifier of chat's profile accent color; -1 if none
+//@new_profile_background_custom_emoji_id New identifier of the custom emoji; 0 if none
+chatEventProfileAccentColorChanged old_profile_accent_color_id:int32 old_profile_background_custom_emoji_id:int64 new_profile_accent_color_id:int32 new_profile_background_custom_emoji_id:int64 = ChatEventAction;
+
 //@description The has_protected_content setting of a channel was toggled @has_protected_content New value of has_protected_content
 chatEventHasProtectedContentToggled has_protected_content:Bool = ChatEventAction;
 

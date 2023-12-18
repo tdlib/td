@@ -440,8 +440,16 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
           td->theme_manager_->get_accent_color_id_object(new_peer_color.accent_color_id_, AccentColorId(channel_id)),
           new_peer_color.background_custom_emoji_id_.get());
     }
-    case telegram_api::channelAdminLogEventActionChangeProfilePeerColor::ID:
-      return nullptr;
+    case telegram_api::channelAdminLogEventActionChangeProfilePeerColor::ID: {
+      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeProfilePeerColor>(action_ptr);
+      auto old_peer_color = PeerColor(action->prev_value_);
+      auto new_peer_color = PeerColor(action->new_value_);
+      return td_api::make_object<td_api::chatEventProfileAccentColorChanged>(
+          td->theme_manager_->get_profile_accent_color_id_object(old_peer_color.accent_color_id_),
+          old_peer_color.background_custom_emoji_id_.get(),
+          td->theme_manager_->get_profile_accent_color_id_object(new_peer_color.accent_color_id_),
+          new_peer_color.background_custom_emoji_id_.get());
+    }
     case telegram_api::channelAdminLogEventActionChangeWallpaper::ID:
       return nullptr;
     case telegram_api::channelAdminLogEventActionChangeEmojiStatus::ID:
