@@ -4353,11 +4353,12 @@ chatEventUsernameChanged old_username:string new_username:string = ChatEventActi
 //@description The chat active usernames were changed @old_usernames Previous list of active usernames @new_usernames New list of active usernames
 chatEventActiveUsernamesChanged old_usernames:vector<string> new_usernames:vector<string> = ChatEventAction;
 
-//@description The chat accent color was changed @old_accent_color_id Previous identifier of chat accent color @new_accent_color_id New identifier of chat accent color
-chatEventAccentColorChanged old_accent_color_id:int32 new_accent_color_id:int32 = ChatEventAction;
-
-//@description The chat's custom emoji for reply background was changed @old_background_custom_emoji_id Previous identifier of the custom emoji; 0 if none @new_background_custom_emoji_id New identifier of the custom emoji; 0 if none
-chatEventBackgroundCustomEmojiChanged old_background_custom_emoji_id:int64 new_background_custom_emoji_id:int64 = ChatEventAction;
+//@description The chat accent color or background custom emoji were changed
+//@old_accent_color_id Previous identifier of chat accent color
+//@old_background_custom_emoji_id Previous identifier of the custom emoji; 0 if none
+//@new_accent_color_id New identifier of chat accent color
+//@new_background_custom_emoji_id New identifier of the custom emoji; 0 if none
+chatEventAccentColorChanged old_accent_color_id:int32 old_background_custom_emoji_id:int64 new_accent_color_id:int32 new_background_custom_emoji_id:int64 = ChatEventAction;
 
 //@description The has_protected_content setting of a channel was toggled @has_protected_content New value of has_protected_content
 chatEventHasProtectedContentToggled has_protected_content:Bool = ChatEventAction;

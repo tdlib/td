@@ -21,6 +21,7 @@
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/MessageTtl.h"
+#include "td/telegram/PeerColor.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
@@ -429,8 +430,16 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionToggleAntiSpam>(action_ptr);
       return td_api::make_object<td_api::chatEventHasAggressiveAntiSpamEnabledToggled>(action->new_value_);
     }
-    case telegram_api::channelAdminLogEventActionChangePeerColor::ID:
-      return nullptr;
+    case telegram_api::channelAdminLogEventActionChangePeerColor::ID: {
+      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangePeerColor>(action_ptr);
+      auto old_peer_color = PeerColor(action->prev_value_);
+      auto new_peer_color = PeerColor(action->new_value_);
+      return td_api::make_object<td_api::chatEventAccentColorChanged>(
+          td->theme_manager_->get_accent_color_id_object(old_peer_color.accent_color_id_, AccentColorId(channel_id)),
+          old_peer_color.background_custom_emoji_id_.get(),
+          td->theme_manager_->get_accent_color_id_object(new_peer_color.accent_color_id_, AccentColorId(channel_id)),
+          new_peer_color.background_custom_emoji_id_.get());
+    }
     case telegram_api::channelAdminLogEventActionChangeProfilePeerColor::ID:
       return nullptr;
     case telegram_api::channelAdminLogEventActionChangeWallpaper::ID:
