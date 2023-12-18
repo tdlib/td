@@ -2880,7 +2880,7 @@ messagePaymentSuccessfulBot currency:string total_amount:int53 is_recurring:Bool
 //@currency Currency for the paid amount
 //@amount The paid amount, in the smallest units of the currency
 //@cryptocurrency Cryptocurrency used to pay for the gift; may be empty if none
-//@cryptocurrency_amount The paid amount, in the smallest units of the cryptocurrency
+//@cryptocurrency_amount The paid amount, in the smallest units of the cryptocurrency; 0 if none
 //@month_count Number of month the Telegram Premium subscription will be active
 //@sticker A sticker to be shown in the message; may be null if unknown
 messageGiftedPremium gifter_user_id:int53 currency:string amount:int53 cryptocurrency:string cryptocurrency_amount:int64 month_count:int32 sticker:sticker = MessageContent;
@@ -2889,10 +2889,14 @@ messageGiftedPremium gifter_user_id:int53 currency:string amount:int53 cryptocur
 //@creator_id Identifier of a chat or a user that created the gift code; may be null if unknown
 //@is_from_giveaway True, if the gift code was created for a giveaway
 //@is_unclaimed True, if the winner for the corresponding Telegram Premium subscription wasn't chosen
+//@currency Currency for the paid amount; empty if unknown
+//@amount The paid amount, in the smallest units of the currency; 0 if unknown
+//@cryptocurrency Cryptocurrency used to pay for the gift; may be empty if none or unknown
+//@cryptocurrency_amount The paid amount, in the smallest units of the cryptocurrency; 0 if unknown
 //@month_count Number of month the Telegram Premium subscription will be active after code activation
 //@sticker A sticker to be shown in the message; may be null if unknown
 //@code The gift code
-messagePremiumGiftCode creator_id:MessageSender is_from_giveaway:Bool is_unclaimed:Bool month_count:int32 sticker:sticker code:string = MessageContent;
+messagePremiumGiftCode creator_id:MessageSender is_from_giveaway:Bool is_unclaimed:Bool currency:string amount:int53 cryptocurrency:string cryptocurrency_amount:int64 month_count:int32 sticker:sticker code:string = MessageContent;
 
 //@description A Telegram Premium giveaway was created for the chat
 messagePremiumGiveawayCreated = MessageContent;
