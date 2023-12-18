@@ -8,6 +8,7 @@
 
 #include "td/telegram/Location.h"
 #include "td/telegram/MediaAreaCoordinates.h"
+#include "td/telegram/MessageFullId.h"
 #include "td/telegram/ReactionType.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -20,26 +21,29 @@
 
 namespace td {
 
+class Dependencies;
 class Td;
 
 class MediaArea {
-  enum class Type : int32 { None, Location, Venue, Reaction };
+  enum class Type : int32 { None, Location, Venue, Reaction, Message };
   Type type_ = Type::None;
   MediaAreaCoordinates coordinates_;
   Location location_;
   Venue venue_;
+  MessageFullId message_full_id_;
   int64 input_query_id_ = 0;
   string input_result_id_;
   ReactionType reaction_type_;
   bool is_dark_ = false;
   bool is_flipped_ = false;
+  bool is_old_message_ = false;
 
   friend bool operator==(const MediaArea &lhs, const MediaArea &rhs);
   friend bool operator!=(const MediaArea &lhs, const MediaArea &rhs);
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const MediaArea &media_area);
 
-  telegram_api::object_ptr<telegram_api::MediaArea> get_input_media_area() const;
+  telegram_api::object_ptr<telegram_api::MediaArea> get_input_media_area(const Td *td) const;
 
  public:
   MediaArea() = default;
@@ -52,14 +56,16 @@ class MediaArea {
   bool has_reaction_type(const ReactionType &reaction_type) const;
 
   td_api::object_ptr<td_api::storyArea> get_story_area_object(
-      const vector<std::pair<ReactionType, int32>> &reaction_counts) const;
+      Td *td, const vector<std::pair<ReactionType, int32>> &reaction_counts) const;
 
   static vector<telegram_api::object_ptr<telegram_api::MediaArea>> get_input_media_areas(
-      const vector<MediaArea> &media_areas);
+      const Td *td, const vector<MediaArea> &media_areas);
 
   bool is_valid() const {
     return type_ != Type::None;
   }
+
+  void add_dependencies(Dependencies &dependencies) const;
 
   template <class StorerT>
   void store(StorerT &storer) const;

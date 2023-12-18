@@ -1297,6 +1297,12 @@ class CliClient final : public Actor {
         } else if (area[0] == 'r') {
           type = td_api::make_object<td_api::inputStoryAreaTypeSuggestedReaction>(as_reaction_type(area.substr(1)),
                                                                                   rand_bool(), rand_bool());
+        } else if (area[0] == 'm') {
+          string chat_id;
+          string message_id;
+          std::tie(chat_id, message_id) = split(area.substr(1), ':');
+          type = td_api::make_object<td_api::inputStoryAreaTypeMessage>(to_integer<int64>(chat_id),
+                                                                        as_message_id(message_id));
         }
         result->areas_.push_back(td_api::make_object<td_api::inputStoryArea>(std::move(position), std::move(type)));
       }

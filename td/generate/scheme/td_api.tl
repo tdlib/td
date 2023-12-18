@@ -3423,6 +3423,9 @@ storyAreaTypeVenue venue:venue = StoryAreaType;
 //@is_flipped True, if reaction corner is flipped
 storyAreaTypeSuggestedReaction reaction_type:ReactionType total_count:int32 is_dark:Bool is_flipped:Bool = StoryAreaType;
 
+//@description An area pointing to a message @chat_id Identifier of the chat with the message @message_id Identifier of the message
+storyAreaTypeMessage chat_id:int53 message_id:int53 = StoryAreaType;
+
 
 //@description Describes a clickable rectangle area on a story media @position Position of the area @type Type of the area
 storyArea position:storyAreaPosition type:StoryAreaType = StoryArea;
@@ -3448,6 +3451,11 @@ inputStoryAreaTypePreviousVenue venue_provider:string venue_id:string = InputSto
 //@is_dark True, if reaction has a dark background
 //@is_flipped True, if reaction corner is flipped
 inputStoryAreaTypeSuggestedReaction reaction_type:ReactionType is_dark:Bool is_flipped:Bool = InputStoryAreaType;
+
+//@description An area pointing to a message
+//@chat_id Identifier of the chat with the message. Currently, the chat must be a supergroup or a channel chat
+//@message_id Identifier of the message. Only successfully sent non-scheduled messages can be specified
+inputStoryAreaTypeMessage chat_id:int53 message_id:int53 = InputStoryAreaType;
 
 
 //@description Describes a clickable rectangle area on a story media to be added @position Position of the area @type Type of the area

@@ -888,7 +888,7 @@ class StoryManager::SendStoryQuery final : public Td::ResultHandler {
     if (story->noforwards_) {
       flags |= telegram_api::stories_sendStory::NOFORWARDS_MASK;
     }
-    auto input_media_areas = MediaArea::get_input_media_areas(story->areas_);
+    auto input_media_areas = MediaArea::get_input_media_areas(td_, story->areas_);
     if (!input_media_areas.empty()) {
       flags |= telegram_api::stories_sendStory::MEDIA_AREAS_MASK;
     }
@@ -965,9 +965,9 @@ class StoryManager::EditStoryQuery final : public Td::ResultHandler {
     }
     vector<telegram_api::object_ptr<telegram_api::MediaArea>> input_media_areas;
     if (edited_story->edit_media_areas_) {
-      input_media_areas = MediaArea::get_input_media_areas(edited_story->areas_);
+      input_media_areas = MediaArea::get_input_media_areas(td_, edited_story->areas_);
     } else if (content != nullptr) {
-      input_media_areas = MediaArea::get_input_media_areas(story->areas_);
+      input_media_areas = MediaArea::get_input_media_areas(td_, story->areas_);
     }
     if (!input_media_areas.empty()) {
       flags |= telegram_api::stories_editStory::MEDIA_AREAS_MASK;
@@ -1844,6 +1844,9 @@ void StoryManager::add_story_dependencies(Dependencies &dependencies, const Stor
     add_story_content_dependencies(dependencies, story->content_.get());
   }
   add_formatted_text_dependencies(dependencies, &story->caption_);
+  for (const auto &media_area : story->areas_) {
+    media_area.add_dependencies(dependencies);
+  }
 }
 
 void StoryManager::add_pending_story_dependencies(Dependencies &dependencies, const PendingStory *pending_story) {
@@ -3046,8 +3049,8 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
                              unix_time >= get_story_viewers_expire_date(story) && interaction_info != nullptr &&
                              interaction_info->view_count_ > interaction_info->reaction_count_;
   const auto &reaction_counts = story->interaction_info_.get_reaction_counts();
-  auto story_areas = transform(*areas, [&reaction_counts](const MediaArea &media_area) {
-    return media_area.get_story_area_object(reaction_counts);
+  auto story_areas = transform(*areas, [td = td_, &reaction_counts](const MediaArea &media_area) {
+    return media_area.get_story_area_object(td, reaction_counts);
   });
 
   story->is_update_sent_ = true;
