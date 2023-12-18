@@ -4320,6 +4320,9 @@ chatEventMemberRestricted member_id:MessageSender old_status:ChatMemberStatus ne
 //@description The chat available reactions were changed @old_available_reactions Previous chat available reactions @new_available_reactions New chat available reactions
 chatEventAvailableReactionsChanged old_available_reactions:ChatAvailableReactions new_available_reactions:ChatAvailableReactions = ChatEventAction;
 
+//@description The chat background was changed @old_background Previous background; may be null if none @new_background New background; may be null if none
+chatEventBackgroundChanged old_background:chatBackground new_background:chatBackground = ChatEventAction;
+
 //@description The chat description was changed @old_description Previous chat description @new_description New chat description
 chatEventDescriptionChanged old_description:string new_description:string = ChatEventAction;
 

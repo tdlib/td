@@ -7,6 +7,7 @@
 #include "td/telegram/DialogEventLog.h"
 
 #include "td/telegram/AccentColorId.h"
+#include "td/telegram/BackgroundInfo.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatReactions.h"
 #include "td/telegram/ContactsManager.h"
@@ -450,8 +451,13 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
           td->theme_manager_->get_profile_accent_color_id_object(new_peer_color.accent_color_id_),
           new_peer_color.background_custom_emoji_id_.get());
     }
-    case telegram_api::channelAdminLogEventActionChangeWallpaper::ID:
-      return nullptr;
+    case telegram_api::channelAdminLogEventActionChangeWallpaper::ID: {
+      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeWallpaper>(action_ptr);
+      auto old_background_info = BackgroundInfo(td, std::move(action->prev_value_));
+      auto new_background_info = BackgroundInfo(td, std::move(action->new_value_));
+      return td_api::make_object<td_api::chatEventBackgroundChanged>(
+          old_background_info.get_chat_background_object(td), new_background_info.get_chat_background_object(td));
+    }
     case telegram_api::channelAdminLogEventActionChangeEmojiStatus::ID:
       return nullptr;
     default:
