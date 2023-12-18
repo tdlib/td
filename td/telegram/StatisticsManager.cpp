@@ -394,11 +394,11 @@ class LoadAsyncGraphQuery final : public Td::ResultHandler {
 };
 
 class GetMessagePublicForwardsQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::storyPublicForwards>> promise_;
+  Promise<td_api::object_ptr<td_api::publicForwards>> promise_;
   DialogId dialog_id_;
 
  public:
-  explicit GetMessagePublicForwardsQuery(Promise<td_api::object_ptr<td_api::storyPublicForwards>> &&promise)
+  explicit GetMessagePublicForwardsQuery(Promise<td_api::object_ptr<td_api::publicForwards>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -442,11 +442,11 @@ class GetMessagePublicForwardsQuery final : public Td::ResultHandler {
 };
 
 class GetStoryPublicForwardsQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::storyPublicForwards>> promise_;
+  Promise<td_api::object_ptr<td_api::publicForwards>> promise_;
   DialogId dialog_id_;
 
  public:
-  explicit GetStoryPublicForwardsQuery(Promise<td_api::object_ptr<td_api::storyPublicForwards>> &&promise)
+  explicit GetStoryPublicForwardsQuery(Promise<td_api::object_ptr<td_api::publicForwards>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -603,9 +603,8 @@ void StatisticsManager::send_load_async_graph_query(DcId dc_id, string token, in
   td_->create_handler<LoadAsyncGraphQuery>(std::move(promise))->send(token, x, dc_id);
 }
 
-void StatisticsManager::get_message_public_forwards(
-    MessageFullId message_full_id, string offset, int32 limit,
-    Promise<td_api::object_ptr<td_api::storyPublicForwards>> &&promise) {
+void StatisticsManager::get_message_public_forwards(MessageFullId message_full_id, string offset, int32 limit,
+                                                    Promise<td_api::object_ptr<td_api::publicForwards>> &&promise) {
   if (limit <= 0) {
     return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
   }
@@ -624,7 +623,7 @@ void StatisticsManager::get_message_public_forwards(
 
 void StatisticsManager::send_get_message_public_forwards_query(
     DcId dc_id, MessageFullId message_full_id, string offset, int32 limit,
-    Promise<td_api::object_ptr<td_api::storyPublicForwards>> &&promise) {
+    Promise<td_api::object_ptr<td_api::publicForwards>> &&promise) {
   if (!td_->messages_manager_->have_message_force(message_full_id, "send_get_message_public_forwards_query")) {
     return promise.set_error(Status::Error(400, "Message not found"));
   }
@@ -641,7 +640,7 @@ void StatisticsManager::send_get_message_public_forwards_query(
 }
 
 void StatisticsManager::get_story_public_forwards(StoryFullId story_full_id, string offset, int32 limit,
-                                                  Promise<td_api::object_ptr<td_api::storyPublicForwards>> &&promise) {
+                                                  Promise<td_api::object_ptr<td_api::publicForwards>> &&promise) {
   if (limit <= 0) {
     return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
   }
@@ -667,7 +666,7 @@ void StatisticsManager::get_story_public_forwards(StoryFullId story_full_id, str
 
 void StatisticsManager::send_get_story_public_forwards_query(
     DcId dc_id, StoryFullId story_full_id, string offset, int32 limit,
-    Promise<td_api::object_ptr<td_api::storyPublicForwards>> &&promise) {
+    Promise<td_api::object_ptr<td_api::publicForwards>> &&promise) {
   if (!td_->story_manager_->have_story_force(story_full_id)) {
     return promise.set_error(Status::Error(400, "Story not found"));
   }
@@ -686,7 +685,7 @@ void StatisticsManager::send_get_story_public_forwards_query(
 
 void StatisticsManager::on_get_public_forwards(
     telegram_api::object_ptr<telegram_api::stats_publicForwards> &&public_forwards,
-    Promise<td_api::object_ptr<td_api::storyPublicForwards>> &&promise) {
+    Promise<td_api::object_ptr<td_api::publicForwards>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   td_->contacts_manager_->on_get_users(std::move(public_forwards->users_), "on_get_public_forwards");
@@ -695,7 +694,7 @@ void StatisticsManager::on_get_public_forwards(
   auto total_count = public_forwards->count_;
   LOG(INFO) << "Receive " << public_forwards->forwards_.size() << " forwarded stories out of "
             << public_forwards->count_;
-  vector<td_api::object_ptr<td_api::StoryPublicForward>> result;
+  vector<td_api::object_ptr<td_api::PublicForward>> result;
   for (auto &forward_ptr : public_forwards->forwards_) {
     switch (forward_ptr->get_id()) {
       case telegram_api::publicForwardMessage::ID: {
@@ -706,7 +705,7 @@ void StatisticsManager::on_get_public_forwards(
                                                                       false, "on_get_public_forwards");
         if (message_full_id != MessageFullId()) {
           CHECK(dialog_id == message_full_id.get_dialog_id());
-          result.push_back(td_api::make_object<td_api::storyPublicForwardMessage>(
+          result.push_back(td_api::make_object<td_api::publicForwardMessage>(
               td_->messages_manager_->get_message_object(message_full_id, "on_get_public_forwards")));
           CHECK(result.back() != nullptr);
         } else {
@@ -719,7 +718,7 @@ void StatisticsManager::on_get_public_forwards(
         auto dialog_id = DialogId(forward->peer_);
         auto story_id = td_->story_manager_->on_get_story(dialog_id, std::move(forward->story_));
         if (story_id.is_valid() && td_->story_manager_->have_story({dialog_id, story_id})) {
-          result.push_back(td_api::make_object<td_api::storyPublicForwardStory>(
+          result.push_back(td_api::make_object<td_api::publicForwardStory>(
               td_->story_manager_->get_story_object({dialog_id, story_id})));
           CHECK(result.back() != nullptr);
         } else {
@@ -736,7 +735,7 @@ void StatisticsManager::on_get_public_forwards(
     total_count = static_cast<int32>(result.size());
   }
   promise.set_value(
-      td_api::make_object<td_api::storyPublicForwards>(total_count, std::move(result), public_forwards->next_offset_));
+      td_api::make_object<td_api::publicForwards>(total_count, std::move(result), public_forwards->next_offset_));
 }
 
 }  // namespace td

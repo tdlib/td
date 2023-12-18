@@ -1058,7 +1058,7 @@ basicGroupFullInfo photo:chatPhoto description:string creator_user_id:int53 memb
 //@status Status of the current user in the supergroup or channel; custom title will always be empty
 //@member_count Number of members in the supergroup or channel; 0 if unknown. Currently, it is guaranteed to be known only if the supergroup or channel was received through
 //-getChatSimilarChats, getChatsToSendStories, getCreatedPublicChats, getGroupsInCommon, getInactiveSupergroupChats, getSuitableDiscussionChats, getUserPrivacySettingRules, getVideoChatAvailableParticipants,
-//-searchChatsNearby, searchPublicChats, or in chatFolderInviteLinkInfo.missing_chat_ids, or for public chats in which where sent messages and posted stories from storyPublicForwards,
+//-searchChatsNearby, searchPublicChats, or in chatFolderInviteLinkInfo.missing_chat_ids, or for public chats in which where sent messages and posted stories from publicForwards,
 //-or for public chats in which where sent messages from getMessagePublicForwards response
 //@has_linked_chat True, if the channel has a discussion group, or the supergroup is the designated discussion group for a channel
 //@has_location True, if the supergroup is connected to a location, i.e. the supergroup is a location-based supergroup
@@ -3584,20 +3584,20 @@ storyInfo story_id:int32 date:int32 is_for_close_friends:Bool = StoryInfo;
 chatActiveStories chat_id:int53 list:StoryList order:int53 max_read_story_id:int32 stories:vector<storyInfo> = ChatActiveStories;
 
 
-//@class StoryPublicForward @description Describes a public forward or repost of a story
+//@class PublicForward @description Describes a public forward or repost of a story
 
-//@description Contains a public forward of a story as a message @message Information about the message with the story
-storyPublicForwardMessage message:message = StoryPublicForward;
+//@description Contains a public forward as a message @message Information about the message
+publicForwardMessage message:message = PublicForward;
 
-//@description Contains a public repost of a story as a story @story Information about the reposted story
-storyPublicForwardStory story:story = StoryPublicForward;
+//@description Contains a public repost to a story @story Information about the story
+publicForwardStory story:story = PublicForward;
 
 
-//@description Represents a list of public forwards and reposts of a story
+//@description Represents a list of public forwards and reposts as a story of a message or a story
 //@total_count Approximate total number of messages and stories found
 //@forwards List of found public forwards and reposts
 //@next_offset The offset for the next request. If empty, then there are no more results
-storyPublicForwards total_count:int32 forwards:vector<StoryPublicForward> next_offset:string = StoryPublicForwards;
+publicForwards total_count:int32 forwards:vector<PublicForward> next_offset:string = PublicForwards;
 
 
 //@class ChatBoostSource @description Describes source of a chat boost
@@ -8173,7 +8173,7 @@ activateStoryStealthMode = Ok;
 //@story_id The identifier of the story
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of messages and stories to be returned; must be positive and can't be greater than 100. For optimal performance, the number of returned objects is chosen by TDLib and can be smaller than the specified limit
-getStoryPublicForwards story_sender_chat_id:int53 story_id:int32 offset:string limit:int32 = StoryPublicForwards;
+getStoryPublicForwards story_sender_chat_id:int53 story_id:int32 offset:string limit:int32 = PublicForwards;
 
 
 //@description Returns the list of available chat boost slots for the current user
@@ -9248,7 +9248,7 @@ getMessageStatistics chat_id:int53 message_id:int53 is_dark:Bool = MessageStatis
 //@message_id Message identifier
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of messages and stories to be returned; must be positive and can't be greater than 100. For optimal performance, the number of returned objects is chosen by TDLib and can be smaller than the specified limit
-getMessagePublicForwards chat_id:int53 message_id:int53 offset:string limit:int32 = StoryPublicForwards;
+getMessagePublicForwards chat_id:int53 message_id:int53 offset:string limit:int32 = PublicForwards;
 
 //@description Returns detailed statistics about a story. Can be used only if story.can_get_statistics == true @chat_id Chat identifier @story_id Story identifier @is_dark Pass true if a dark theme is used by the application
 getStoryStatistics chat_id:int53 story_id:int32 is_dark:Bool = StoryStatistics;
