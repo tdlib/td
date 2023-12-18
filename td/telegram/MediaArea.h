@@ -39,6 +39,8 @@ class MediaArea {
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const MediaArea &media_area);
 
+  telegram_api::object_ptr<telegram_api::MediaArea> get_input_media_area() const;
+
  public:
   MediaArea() = default;
 
@@ -52,7 +54,8 @@ class MediaArea {
   td_api::object_ptr<td_api::storyArea> get_story_area_object(
       const vector<std::pair<ReactionType, int32>> &reaction_counts) const;
 
-  telegram_api::object_ptr<telegram_api::MediaArea> get_input_media_area() const;
+  static vector<telegram_api::object_ptr<telegram_api::MediaArea>> get_input_media_areas(
+      const vector<MediaArea> &media_areas);
 
   bool is_valid() const {
     return type_ != Type::None;

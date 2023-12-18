@@ -186,6 +186,18 @@ telegram_api::object_ptr<telegram_api::MediaArea> MediaArea::get_input_media_are
   }
 }
 
+vector<telegram_api::object_ptr<telegram_api::MediaArea>> MediaArea::get_input_media_areas(
+    const vector<MediaArea> &media_areas) {
+  vector<telegram_api::object_ptr<telegram_api::MediaArea>> input_media_areas;
+  for (const auto &media_area : media_areas) {
+    auto input_media_area = media_area.get_input_media_area();
+    if (input_media_area != nullptr) {
+      input_media_areas.push_back(std::move(input_media_area));
+    }
+  }
+  return input_media_areas;
+}
+
 bool operator==(const MediaArea &lhs, const MediaArea &rhs) {
   return lhs.type_ == rhs.type_ && lhs.coordinates_ == rhs.coordinates_ && lhs.location_ == rhs.location_ &&
          lhs.venue_ == rhs.venue_ && lhs.input_query_id_ == rhs.input_query_id_ &&

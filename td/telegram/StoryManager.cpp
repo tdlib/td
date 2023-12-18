@@ -887,17 +887,14 @@ class StoryManager::SendStoryQuery final : public Td::ResultHandler {
     if (story->noforwards_) {
       flags |= telegram_api::stories_sendStory::NOFORWARDS_MASK;
     }
-    vector<telegram_api::object_ptr<telegram_api::MediaArea>> media_areas;
-    for (const auto &media_area : story->areas_) {
-      media_areas.push_back(media_area.get_input_media_area());
-    }
-    if (!media_areas.empty()) {
+    auto input_media_areas = MediaArea::get_input_media_areas(story->areas_);
+    if (!input_media_areas.empty()) {
       flags |= telegram_api::stories_sendStory::MEDIA_AREAS_MASK;
     }
 
     send_query(G()->net_query_creator().create(
         telegram_api::stories_sendStory(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                        std::move(input_peer), std::move(input_media), std::move(media_areas),
+                                        std::move(input_peer), std::move(input_media), std::move(input_media_areas),
                                         caption.text, std::move(entities), std::move(privacy_rules),
                                         pending_story_->random_id_, period, std::move(fwd_input_peer), fwd_story_id),
         {{pending_story_->dialog_id_}}));
@@ -965,17 +962,13 @@ class StoryManager::EditStoryQuery final : public Td::ResultHandler {
       CHECK(input_media != nullptr);
       flags |= telegram_api::stories_editStory::MEDIA_MASK;
     }
-    vector<telegram_api::object_ptr<telegram_api::MediaArea>> media_areas;
+    vector<telegram_api::object_ptr<telegram_api::MediaArea>> input_media_areas;
     if (edited_story->edit_media_areas_) {
-      for (const auto &media_area : edited_story->areas_) {
-        media_areas.push_back(media_area.get_input_media_area());
-      }
+      input_media_areas = MediaArea::get_input_media_areas(edited_story->areas_);
     } else if (content != nullptr) {
-      for (const auto &media_area : story->areas_) {
-        media_areas.push_back(media_area.get_input_media_area());
-      }
+      input_media_areas = MediaArea::get_input_media_areas(story->areas_);
     }
-    if (!media_areas.empty()) {
+    if (!input_media_areas.empty()) {
       flags |= telegram_api::stories_editStory::MEDIA_AREAS_MASK;
     }
     vector<telegram_api::object_ptr<telegram_api::MessageEntity>> entities;
@@ -989,8 +982,8 @@ class StoryManager::EditStoryQuery final : public Td::ResultHandler {
 
     send_query(G()->net_query_creator().create(
         telegram_api::stories_editStory(flags, std::move(input_peer), pending_story_->story_id_.get(),
-                                        std::move(input_media), std::move(media_areas), edited_story->caption_.text,
-                                        std::move(entities), Auto()),
+                                        std::move(input_media), std::move(input_media_areas),
+                                        edited_story->caption_.text, std::move(entities), Auto()),
         {{StoryFullId{pending_story_->dialog_id_, pending_story_->story_id_}}}));
   }
 
