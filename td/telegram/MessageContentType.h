@@ -75,7 +75,8 @@ enum class MessageContentType : int32 {
   GiftCode,
   Giveaway,
   GiveawayLaunch,
-  GiveawayResults
+  GiveawayResults,
+  GiveawayWinners
 };
 // increase MessageUnsupported::CURRENT_VERSION each time a new message content type is added
 

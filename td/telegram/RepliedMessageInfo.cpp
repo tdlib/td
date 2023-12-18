@@ -118,6 +118,7 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, tl_object_ptr<telegram_api::messa
         // case MessageContentType::ExpiredVideo:
         case MessageContentType::Game:
         case MessageContentType::Giveaway:
+        case MessageContentType::GiveawayWinners:
         case MessageContentType::Invoice:
         // case MessageContentType::LiveLocation:
         case MessageContentType::Location:
