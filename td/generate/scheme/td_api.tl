@@ -4326,6 +4326,9 @@ chatEventBackgroundChanged old_background:chatBackground new_background:chatBack
 //@description The chat description was changed @old_description Previous chat description @new_description New chat description
 chatEventDescriptionChanged old_description:string new_description:string = ChatEventAction;
 
+//@description The chat emoji status was changed @old_emoji_status Previous emoji status; may be null if none @new_emoji_status New emoji status; may be null if none
+chatEventEmojiStatusChanged old_emoji_status:emojiStatus new_emoji_status:emojiStatus = ChatEventAction;
+
 //@description The linked chat of a supergroup was changed @old_linked_chat_id Previous supergroup linked chat identifier @new_linked_chat_id New supergroup linked chat identifier
 chatEventLinkedChatChanged old_linked_chat_id:int53 new_linked_chat_id:int53 = ChatEventAction;
 

@@ -458,8 +458,13 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
       return td_api::make_object<td_api::chatEventBackgroundChanged>(
           old_background_info.get_chat_background_object(td), new_background_info.get_chat_background_object(td));
     }
-    case telegram_api::channelAdminLogEventActionChangeEmojiStatus::ID:
-      return nullptr;
+    case telegram_api::channelAdminLogEventActionChangeEmojiStatus::ID: {
+      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeEmojiStatus>(action_ptr);
+      auto old_emoji_status = EmojiStatus(std::move(action->prev_value_));
+      auto new_emoji_status = EmojiStatus(std::move(action->new_value_));
+      return td_api::make_object<td_api::chatEventEmojiStatusChanged>(old_emoji_status.get_emoji_status_object(),
+                                                                      new_emoji_status.get_emoji_status_object());
+    }
     default:
       UNREACHABLE();
       return nullptr;
