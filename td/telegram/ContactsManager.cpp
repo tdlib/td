@@ -37,6 +37,7 @@
 #include "td/telegram/NotificationManager.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/PasswordManager.h"
+#include "td/telegram/PeerColor.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/Photo.hpp"
 #include "td/telegram/PhotoSize.h"
@@ -10950,21 +10951,12 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     on_update_user_usernames(u, user_id, Usernames{std::move(user->username_), std::move(user->usernames_)});
   }
   on_update_user_emoji_status(u, user_id, EmojiStatus(std::move(user->emoji_status_)));
-  on_update_user_accent_color_id(
-      u, user_id,
-      (user->color_ != nullptr && (user->color_->flags_ & telegram_api::peerColor::COLOR_MASK) != 0
-           ? AccentColorId(user->color_->color_)
-           : AccentColorId()));
-  on_update_user_background_custom_emoji_id(
-      u, user_id, (user->color_ != nullptr ? CustomEmojiId(user->color_->background_emoji_id_) : CustomEmojiId()));
-  on_update_user_profile_accent_color_id(
-      u, user_id,
-      (user->profile_color_ != nullptr && (user->profile_color_->flags_ & telegram_api::peerColor::COLOR_MASK) != 0
-           ? AccentColorId(user->profile_color_->color_)
-           : AccentColorId()));
-  on_update_user_profile_background_custom_emoji_id(
-      u, user_id,
-      (user->profile_color_ != nullptr ? CustomEmojiId(user->profile_color_->background_emoji_id_) : CustomEmojiId()));
+  PeerColor peer_color(user->color_);
+  on_update_user_accent_color_id(u, user_id, peer_color.accent_color_id_);
+  on_update_user_background_custom_emoji_id(u, user_id, peer_color.background_custom_emoji_id_);
+  PeerColor profile_peer_color(user->profile_color_);
+  on_update_user_profile_accent_color_id(u, user_id, profile_peer_color.accent_color_id_);
+  on_update_user_profile_background_custom_emoji_id(u, user_id, profile_peer_color.background_custom_emoji_id_);
   if (is_me_regular_user && is_received) {
     on_update_user_stories_hidden(u, user_id, stories_hidden);
   }
@@ -19717,9 +19709,8 @@ void ContactsManager::on_get_channel(telegram_api::channel &channel, const char 
       if (td_->auth_manager_->is_bot()) {
         min_channel->photo_.minithumbnail.clear();
       }
-      if (channel.color_ != nullptr && (channel.color_->flags_ & telegram_api::peerColor::COLOR_MASK) != 0) {
-        min_channel->accent_color_id_ = AccentColorId(channel.color_->color_);
-      }
+      PeerColor peer_color(channel.color_);
+      min_channel->accent_color_id_ = peer_color.accent_color_id_;
       min_channel->title_ = std::move(channel.title_);
       min_channel->is_megagroup_ = is_megagroup;
 
@@ -19793,13 +19784,12 @@ void ContactsManager::on_get_channel(telegram_api::channel &channel, const char 
 
   on_update_channel_title(c, channel_id, std::move(channel.title_));
   on_update_channel_photo(c, channel_id, std::move(channel.photo_));
-  on_update_channel_accent_color_id(
-      c, channel_id,
-      (channel.color_ != nullptr && (channel.color_->flags_ & telegram_api::peerColor::COLOR_MASK) != 0
-           ? AccentColorId(channel.color_->color_)
-           : AccentColorId()));
-  on_update_channel_background_custom_emoji_id(
-      c, channel_id, channel.color_ != nullptr ? CustomEmojiId(channel.color_->background_emoji_id_) : CustomEmojiId());
+  PeerColor peer_color(channel.color_);
+  on_update_channel_accent_color_id(c, channel_id, peer_color.accent_color_id_);
+  on_update_channel_background_custom_emoji_id(c, channel_id, peer_color.background_custom_emoji_id_);
+  PeerColor profile_peer_color(channel.profile_color_);
+  on_update_channel_profile_accent_color_id(c, channel_id, profile_peer_color.accent_color_id_);
+  on_update_channel_profile_background_custom_emoji_id(c, channel_id, profile_peer_color.background_custom_emoji_id_);
   on_update_channel_status(c, channel_id, std::move(status));
   on_update_channel_usernames(
       c, channel_id,

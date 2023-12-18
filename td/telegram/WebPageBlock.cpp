@@ -21,6 +21,7 @@
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/LinkManager.h"
 #include "td/telegram/Location.h"
+#include "td/telegram/PeerColor.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/Photo.hpp"
 #include "td/telegram/PhotoFormat.h"
@@ -2213,14 +2214,13 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
                                                        channel_id);
         } else {
           bool has_access_hash = (channel->flags_ & telegram_api::channel::ACCESS_HASH_MASK) != 0;
+          PeerColor peer_color(channel->color_);
           return td::make_unique<WebPageBlockChatLink>(
               std::move(channel->title_),
               get_dialog_photo(td->file_manager_.get(), DialogId(channel_id),
                                has_access_hash ? channel->access_hash_ : 0, std::move(channel->photo_)),
               std::move(channel->username_),
-              channel->color_ != nullptr && (channel->color_->flags_ & telegram_api::peerColor::COLOR_MASK) != 0
-                  ? AccentColorId(channel->color_->color_)
-                  : AccentColorId(channel_id),
+              peer_color.accent_color_id_.is_valid() ? peer_color.accent_color_id_ : AccentColorId(channel_id),
               channel_id);
         }
       } else {

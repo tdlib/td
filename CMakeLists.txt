@@ -441,14 +441,15 @@ set(TDLIB_SOURCE
   td/telegram/OrderInfo.cpp
   td/telegram/Payments.cpp
   td/telegram/PasswordManager.cpp
+  td/telegram/PeerColor.cpp
   td/telegram/PhoneNumberManager.cpp
-  td/telegram/PrivacyManager.cpp
   td/telegram/Photo.cpp
   td/telegram/PhotoSize.cpp
   td/telegram/PhotoSizeSource.cpp
   td/telegram/PollManager.cpp
   td/telegram/Premium.cpp
   td/telegram/PremiumGiftOption.cpp
+  td/telegram/PrivacyManager.cpp
   td/telegram/QueryCombiner.cpp
   td/telegram/QueryMerger.cpp
   td/telegram/ReactionManager.cpp
@@ -749,6 +750,7 @@ set(TDLIB_SOURCE
   td/telegram/OrderInfo.h
   td/telegram/PasswordManager.h
   td/telegram/Payments.h
+  td/telegram/PeerColor.h
   td/telegram/PhoneNumberManager.h
   td/telegram/Photo.h
   td/telegram/PhotoFormat.h
