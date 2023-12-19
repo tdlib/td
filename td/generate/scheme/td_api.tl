@@ -9131,26 +9131,26 @@ createInvoiceLink invoice:InputMessageContent = HttpUrl;
 getSupportUser = User;
 
 
-//@description Returns backgrounds installed by the user @for_dark_theme Pass true to order returned backgrounds for a dark theme
-getBackgrounds for_dark_theme:Bool = Backgrounds;
-
 //@description Constructs a persistent HTTP URL for a background @name Background name @type Background type
 getBackgroundUrl name:string type:BackgroundType = HttpUrl;
 
 //@description Searches for a background by its name @name The name of the background
 searchBackground name:string = Background;
 
-//@description Changes the background selected by the user; adds background to the list of installed backgrounds
-//@background The input background to use; pass null to create a new filled background or to remove the current background
-//@type Background type; pass null to use the default type of the remote background or to remove the current background
-//@for_dark_theme Pass true if the background is changed for a dark theme
-setBackground background:InputBackground type:BackgroundType for_dark_theme:Bool = Background;
+//@description Sets default background for chats; adds the background to the list of installed backgrounds
+//@background The input background to use; pass null to create a new filled background
+//@type Background type; pass null to use the default type of the remote background
+//@for_dark_theme Pass true if the background is set for a dark theme
+setDefaultBackground background:InputBackground type:BackgroundType for_dark_theme:Bool = Background;
+
+//@description Returns backgrounds installed by the user @for_dark_theme Pass true to order returned backgrounds for a dark theme
+getInstalledBackgrounds for_dark_theme:Bool = Backgrounds;
 
 //@description Removes background from the list of installed backgrounds @background_id The background identifier
-removeBackground background_id:int64 = Ok;
+removeInstalledBackground background_id:int64 = Ok;
 
 //@description Resets list of installed backgrounds to its default value
-resetBackgrounds = Ok;
+resetInstalledBackgrounds = Ok;
 
 
 //@description Returns information about the current localization target. This is an offline request if only_local is true. Can be called before authorization @only_local Pass true to get only locally available information without sending network requests

@@ -8760,7 +8760,7 @@ void Td::on_request(uint64 id, const td_api::getSupportUser &request) {
   contacts_manager_->get_support_user(std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::getBackgrounds &request) {
+void Td::on_request(uint64 id, const td_api::getInstalledBackgrounds &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   background_manager_->get_backgrounds(request.for_dark_theme_, std::move(promise));
@@ -8783,20 +8783,20 @@ void Td::on_request(uint64 id, td_api::searchBackground &request) {
   CREATE_REQUEST(SearchBackgroundRequest, std::move(request.name_));
 }
 
-void Td::on_request(uint64 id, td_api::setBackground &request) {
+void Td::on_request(uint64 id, td_api::setDefaultBackground &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   background_manager_->set_background(request.background_.get(), request.type_.get(), request.for_dark_theme_,
                                       std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::removeBackground &request) {
+void Td::on_request(uint64 id, const td_api::removeInstalledBackground &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   background_manager_->remove_background(BackgroundId(request.background_id_), std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::resetBackgrounds &request) {
+void Td::on_request(uint64 id, const td_api::resetInstalledBackgrounds &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   background_manager_->reset_backgrounds(std::move(promise));

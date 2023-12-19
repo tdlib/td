@@ -3084,8 +3084,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::disconnectWebsite>(website_id));
     } else if (op == "daw") {
       send_request(td_api::make_object<td_api::disconnectAllWebsites>());
-    } else if (op == "gbgs") {
-      send_request(td_api::make_object<td_api::getBackgrounds>(as_bool(args)));
+    } else if (op == "gib") {
+      send_request(td_api::make_object<td_api::getInstalledBackgrounds>(as_bool(args)));
     } else if (op == "gbgu") {
       send_get_background_url(as_wallpaper_background(false, false));
       send_get_background_url(as_wallpaper_background(false, true));
@@ -3123,17 +3123,17 @@ class CliClient final : public Actor {
 
     if (op == "SBG") {
       send_request(td_api::make_object<td_api::searchBackground>(args));
-    } else if (op == "sbg" || op == "sbgd") {
+    } else if (op == "sdb" || op == "sdbd") {
       InputBackground input_background;
       BackgroundType background_type;
       get_args(args, input_background, background_type);
-      send_request(td_api::make_object<td_api::setBackground>(input_background, background_type, op == "sbgd"));
-    } else if (op == "rbg") {
+      send_request(td_api::make_object<td_api::setDefaultBackground>(input_background, background_type, op == "sdbd"));
+    } else if (op == "rib") {
       int64 background_id;
       get_args(args, background_id);
-      send_request(td_api::make_object<td_api::removeBackground>(background_id));
-    } else if (op == "rbgs") {
-      send_request(td_api::make_object<td_api::resetBackgrounds>());
+      send_request(td_api::make_object<td_api::removeInstalledBackground>(background_id));
+    } else if (op == "ribs") {
+      send_request(td_api::make_object<td_api::resetInstalledBackgrounds>());
     } else if (op == "scbg" || op == "scbgs") {
       ChatId chat_id;
       InputBackground input_background;
