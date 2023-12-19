@@ -2842,6 +2842,7 @@ void StoryManager::on_get_story_viewers(
   }
 
   td_->contacts_manager_->on_get_users(std::move(view_list->users_), "on_get_story_viewers");
+  td_->contacts_manager_->on_get_chats(std::move(view_list->chats_), "on_get_story_viewers");
 
   auto total_count = view_list->count_;
   if (total_count < 0 || static_cast<size_t>(total_count) < view_list->views_.size()) {
