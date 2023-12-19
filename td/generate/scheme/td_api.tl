@@ -9143,6 +9143,9 @@ searchBackground name:string = Background;
 //@for_dark_theme Pass true if the background is set for a dark theme
 setDefaultBackground background:InputBackground type:BackgroundType for_dark_theme:Bool = Background;
 
+//@description Deletes default background for chats @for_dark_theme Pass true if the background is deleted for a dark theme
+deleteDefaultBackground for_dark_theme:Bool = Ok;
+
 //@description Returns backgrounds installed by the user @for_dark_theme Pass true to order returned backgrounds for a dark theme
 getInstalledBackgrounds for_dark_theme:Bool = Backgrounds;
 

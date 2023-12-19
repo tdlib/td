@@ -44,6 +44,8 @@ class BackgroundManager final : public Actor {
   void set_background(const td_api::InputBackground *input_background, const td_api::BackgroundType *background_type,
                       bool for_dark_theme, Promise<td_api::object_ptr<td_api::background>> &&promise);
 
+  void delete_background(bool for_dark_theme, Promise<Unit> &&promise);
+
   void remove_background(BackgroundId background_id, Promise<Unit> &&promise);
 
   void reset_backgrounds(Promise<Unit> &&promise);

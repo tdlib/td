@@ -8790,6 +8790,12 @@ void Td::on_request(uint64 id, td_api::setDefaultBackground &request) {
                                       std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::deleteDefaultBackground &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  background_manager_->delete_background(request.for_dark_theme_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::removeInstalledBackground &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

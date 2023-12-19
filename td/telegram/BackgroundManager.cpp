@@ -683,11 +683,7 @@ void BackgroundManager::set_background(const td_api::InputBackground *input_back
   TRY_RESULT_PROMISE(promise, type, BackgroundType::get_background_type(background_type, 0));
 
   if (input_background == nullptr) {
-    if (background_type == nullptr) {
-      set_background_id(BackgroundId(), BackgroundType(), for_dark_theme);
-      return promise.set_value(nullptr);
-    }
-    if (type.has_file()) {
+    if (background_type == nullptr || type.has_file()) {
       return promise.set_error(Status::Error(400, "Input background must be non-empty for the background type"));
     }
 
@@ -730,6 +726,11 @@ void BackgroundManager::set_background(const td_api::InputBackground *input_back
     default:
       UNREACHABLE();
   }
+}
+
+void BackgroundManager::delete_background(bool for_dark_theme, Promise<Unit> &&promise) {
+  set_background_id(BackgroundId(), BackgroundType(), for_dark_theme);
+  promise.set_value(Unit());
 }
 
 Result<DialogId> BackgroundManager::get_background_dialog(DialogId dialog_id) {

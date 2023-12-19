@@ -3128,6 +3128,8 @@ class CliClient final : public Actor {
       BackgroundType background_type;
       get_args(args, input_background, background_type);
       send_request(td_api::make_object<td_api::setDefaultBackground>(input_background, background_type, op == "sdbd"));
+    } else if (op == "ddb" || op == "ddbd") {
+      send_request(td_api::make_object<td_api::deleteDefaultBackground>(op == "ddbd"));
     } else if (op == "rib") {
       int64 background_id;
       get_args(args, background_id);
