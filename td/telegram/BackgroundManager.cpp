@@ -480,7 +480,7 @@ void BackgroundManager::start_up() {
       }
     }
 
-    send_update_selected_background(for_dark_theme);
+    send_update_default_background(for_dark_theme);
   }
 }
 
@@ -628,15 +628,15 @@ void BackgroundManager::on_load_background_from_database(string name, string val
   set_promises(promises);
 }
 
-td_api::object_ptr<td_api::updateSelectedBackground> BackgroundManager::get_update_selected_background_object(
+td_api::object_ptr<td_api::updateDefaultBackground> BackgroundManager::get_update_default_background_object(
     bool for_dark_theme) const {
-  return td_api::make_object<td_api::updateSelectedBackground>(
+  return td_api::make_object<td_api::updateDefaultBackground>(
       for_dark_theme,
       get_background_object(set_background_id_[for_dark_theme], for_dark_theme, &set_background_type_[for_dark_theme]));
 }
 
-void BackgroundManager::send_update_selected_background(bool for_dark_theme) const {
-  send_closure(G()->td(), &Td::send_update, get_update_selected_background_object(for_dark_theme));
+void BackgroundManager::send_update_default_background(bool for_dark_theme) const {
+  send_closure(G()->td(), &Td::send_update, get_update_default_background_object(for_dark_theme));
 }
 
 Result<FileId> BackgroundManager::prepare_input_file(const tl_object_ptr<td_api::InputFile> &input_file) {
@@ -941,7 +941,7 @@ void BackgroundManager::set_background_id(BackgroundId background_id, const Back
   set_background_type_[for_dark_theme] = type;
 
   save_background_id(for_dark_theme);
-  send_update_selected_background(for_dark_theme);
+  send_update_default_background(for_dark_theme);
 }
 
 void BackgroundManager::save_local_backgrounds(bool for_dark_theme) {
@@ -1464,8 +1464,8 @@ void BackgroundManager::get_current_state(vector<td_api::object_ptr<td_api::Upda
     return;
   }
 
-  updates.push_back(get_update_selected_background_object(false));
-  updates.push_back(get_update_selected_background_object(true));
+  updates.push_back(get_update_default_background_object(false));
+  updates.push_back(get_update_default_background_object(true));
 }
 
 }  // namespace td

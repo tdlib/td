@@ -116,11 +116,11 @@ class BackgroundManager final : public Actor {
                                      telegram_api::object_ptr<telegram_api::InputWallPaper> &&input_wallpaper,
                                      Promise<Unit> &&promise) const;
 
-  td_api::object_ptr<td_api::updateSelectedBackground> get_update_selected_background_object(bool for_dark_theme) const;
+  td_api::object_ptr<td_api::updateDefaultBackground> get_update_default_background_object(bool for_dark_theme) const;
 
   td_api::object_ptr<td_api::backgrounds> get_backgrounds_object(bool for_dark_theme) const;
 
-  void send_update_selected_background(bool for_dark_theme) const;
+  void send_update_default_background(bool for_dark_theme) const;
 
   void set_max_local_background_id(BackgroundId background_id);
 
