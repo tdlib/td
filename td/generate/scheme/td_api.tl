@@ -696,7 +696,7 @@ premiumGiftCodePaymentOption currency:string amount:int53 user_count:int32 month
 premiumGiftCodePaymentOptions options:vector<premiumGiftCodePaymentOption> = PremiumGiftCodePaymentOptions;
 
 //@description Contains information about a Telegram Premium gift code
-//@creator_id Identifier of a chat or a user that created the gift code; may be null if unknown
+//@creator_id Identifier of a chat or a user that created the gift code; may be null if unknown. If null and the code is from messagePremiumGiftCode message, then creator_id from the message can be used
 //@creation_date Point in time (Unix timestamp) when the code was created
 //@is_from_giveaway True, if the gift code was created for a giveaway
 //@giveaway_message_id Identifier of the corresponding giveaway message in the creator_id chat; can be 0 or an identifier of a deleted message
