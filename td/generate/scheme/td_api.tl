@@ -511,14 +511,14 @@ poll id:int64 question:string options:vector<pollOption> total_voter_count:int32
 //@is_default True, if this is one of default backgrounds
 //@is_dark True, if the background is dark and is recommended to be used with dark theme
 //@name Unique background name
-//@document Document with the background; may be null. Null only for filled backgrounds
+//@document Document with the background; may be null. Null only for filled and chat theme backgrounds
 //@type Type of the background
 background id:int64 is_default:Bool is_dark:Bool name:string document:document type:BackgroundType = Background;
 
 //@description Contains a list of backgrounds @backgrounds A list of backgrounds
 backgrounds backgrounds:vector<background> = Backgrounds;
 
-//@description Describes a background set for a specific chat @background The background @dark_theme_dimming Dimming of the background in dark themes, as a percentage; 0-100
+//@description Describes a background set for a specific chat @background The background @dark_theme_dimming Dimming of the background in dark themes, as a percentage; 0-100. Applied only to Wallpaper and Fill types of background
 chatBackground background:background dark_theme_dimming:int32 = ChatBackground;
 
 
@@ -4814,6 +4814,9 @@ backgroundTypePattern fill:BackgroundFill intensity:int32 is_inverted:Bool is_mo
 //@description A filled background @fill The background fill
 backgroundTypeFill fill:BackgroundFill = BackgroundType;
 
+//@description A background from a chat theme; can be used only as a chat background in channels @theme_name Name of the chat theme
+backgroundTypeChatTheme theme_name:string = BackgroundType;
+
 
 //@class InputBackground @description Contains information about background to set
 
@@ -7896,9 +7899,9 @@ setChatPermissions chat_id:int53 permissions:chatPermissions = Ok;
 
 //@description Sets the background in a specific chat. Supported only in private and secret chats with non-deleted users
 //@chat_id Chat identifier
-//@background The input background to use; pass null to create a new filled background
+//@background The input background to use; pass null to create a new filled or chat theme background
 //@type Background type; pass null to use default background type for the chosen background
-//@dark_theme_dimming Dimming of the background in dark themes, as a percentage; 0-100
+//@dark_theme_dimming Dimming of the background in dark themes, as a percentage; 0-100. Applied only to Wallpaper and Fill types of background
 //@only_for_self Pass true to set background only for self; pass false to set background for both chat users. Background can be set for both users only by Telegram Premium users and if set background isn't of the type inputBackgroundPrevious
 setChatBackground chat_id:int53 background:InputBackground type:BackgroundType dark_theme_dimming:int32 only_for_self:Bool = Ok;
 
@@ -9131,7 +9134,7 @@ createInvoiceLink invoice:InputMessageContent = HttpUrl;
 getSupportUser = User;
 
 
-//@description Constructs a persistent HTTP URL for a background @name Background name @type Background type
+//@description Constructs a persistent HTTP URL for a background @name Background name @type Background type; backgroundTypeChatTheme isn't supported
 getBackgroundUrl name:string type:BackgroundType = HttpUrl;
 
 //@description Searches for a background by its name @name The name of the background
@@ -9139,7 +9142,7 @@ searchBackground name:string = Background;
 
 //@description Sets default background for chats; adds the background to the list of installed backgrounds
 //@background The input background to use; pass null to create a new filled background
-//@type Background type; pass null to use the default type of the remote background
+//@type Background type; pass null to use the default type of the remote background; backgroundTypeChatTheme isn't supported
 //@for_dark_theme Pass true if the background is set for a dark theme
 setDefaultBackground background:InputBackground type:BackgroundType for_dark_theme:Bool = Background;
 

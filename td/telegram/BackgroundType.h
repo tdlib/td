@@ -64,12 +64,13 @@ class BackgroundFill {
 bool operator==(const BackgroundFill &lhs, const BackgroundFill &rhs);
 
 class BackgroundType {
-  enum class Type : int32 { Wallpaper, Pattern, Fill };
+  enum class Type : int32 { Wallpaper, Pattern, Fill, ChatTheme };
   Type type_ = Type::Fill;
   bool is_blurred_ = false;
   bool is_moving_ = false;
   int32 intensity_ = 0;
   BackgroundFill fill_;
+  string theme_name_;
 
   friend bool operator==(const BackgroundType &lhs, const BackgroundType &rhs);
 
@@ -84,11 +85,13 @@ class BackgroundType {
   BackgroundType(BackgroundFill &&fill, int32 dark_theme_dimming)
       : type_(Type::Fill), intensity_(dark_theme_dimming), fill_(std::move(fill)) {
   }
+  explicit BackgroundType(string theme_name) : type_(Type::ChatTheme), theme_name_(std::move(theme_name)) {
+  }
 
  public:
   BackgroundType() = default;
 
-  BackgroundType(bool is_fill, bool is_pattern, telegram_api::object_ptr<telegram_api::wallPaperSettings> settings);
+  BackgroundType(bool has_no_file, bool is_pattern, telegram_api::object_ptr<telegram_api::wallPaperSettings> settings);
 
   static Result<BackgroundType> get_background_type(const td_api::BackgroundType *background_type,
                                                     int32 dark_theme_dimming);

@@ -683,8 +683,11 @@ void BackgroundManager::set_background(const td_api::InputBackground *input_back
   TRY_RESULT_PROMISE(promise, type, BackgroundType::get_background_type(background_type, 0));
 
   if (input_background == nullptr) {
-    if (background_type == nullptr || type.has_file()) {
+    if (type.has_file() || background_type == nullptr) {
       return promise.set_error(Status::Error(400, "Input background must be non-empty for the background type"));
+    }
+    if (background_type->get_id() == td_api::backgroundTypeChatTheme::ID) {
+      return promise.set_error(Status::Error(400, "Background type isn't supported"));
     }
 
     auto background_id = add_local_background(type);
@@ -745,8 +748,9 @@ Result<DialogId> BackgroundManager::get_background_dialog(DialogId dialog_id) {
     case DialogType::User:
       return dialog_id;
     case DialogType::Chat:
-    case DialogType::Channel:
       return Status::Error(400, "Can't change background in the chat");
+    case DialogType::Channel:
+      return dialog_id;
     case DialogType::SecretChat: {
       auto user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
       if (!user_id.is_valid()) {

@@ -1150,9 +1150,10 @@ class CliClient final : public Actor {
   }
 
   struct BackgroundType {
-    enum class Type : int32 { Null, Wallpaper, SolidPattern, GradientPattern, Fill };
+    enum class Type : int32 { Null, Wallpaper, SolidPattern, GradientPattern, Fill, ChatTheme };
     Type type = Type::Null;
     vector<int32> colors;
+    string theme_name;
 
     operator td_api::object_ptr<td_api::BackgroundType>() const {
       switch (type) {
@@ -1172,6 +1173,8 @@ class CliClient final : public Actor {
             return as_gradient_background(colors[0], colors[1]);
           }
           return as_freeform_gradient_background(colors);
+        case Type::ChatTheme:
+          return as_chat_theme_background(theme_name);
         default:
           UNREACHABLE();
           return nullptr;
@@ -1190,6 +1193,9 @@ class CliClient final : public Actor {
       arg.type = BackgroundType::Type::SolidPattern;
     } else if (args == "gp") {
       arg.type = BackgroundType::Type::GradientPattern;
+    } else if (args[0] == 't') {
+      arg.type = BackgroundType::Type::ChatTheme;
+      arg.theme_name = args.substr(1);
     } else {
       arg.type = BackgroundType::Type::Fill;
       arg.colors = to_integers<int32>(args);
@@ -2257,6 +2263,10 @@ class CliClient final : public Actor {
     return td_api::make_object<td_api::backgroundTypeFill>(as_background_fill(std::move(colors)));
   }
 
+  static td_api::object_ptr<td_api::BackgroundType> as_chat_theme_background(const string &theme_name) {
+    return td_api::make_object<td_api::backgroundTypeChatTheme>(theme_name);
+  }
+
   td_api::object_ptr<td_api::phoneNumberAuthenticationSettings> as_phone_number_authentication_settings() const {
     return td_api::make_object<td_api::phoneNumberAuthenticationSettings>(false, true, false, false, nullptr,
                                                                           vector<string>(authentication_tokens_));
@@ -3117,6 +3127,7 @@ class CliClient final : public Actor {
       send_get_background_url(as_freeform_gradient_background({0xFEDCBA, 0x222222}));
       send_get_background_url(as_freeform_gradient_background({0xFEDCBA, 0x111111, 0x222222}));
       send_get_background_url(as_freeform_gradient_background({0xABCDEF, 0xFEDCBA, 0x111111, 0x222222}));
+      send_get_background_url(as_chat_theme_background(args));
     } else {
       op_not_found_count++;
     }

@@ -20,6 +20,7 @@ void BackgroundType::store(StorerT &storer) const {
   auto fill_type = fill_.get_type();
   bool is_gradient = fill_type == BackgroundFill::Type::Gradient;
   bool is_freeform_gradient = fill_type == BackgroundFill::Type::FreeformGradient;
+  bool has_theme_name = !theme_name_.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_blurred_);
   STORE_FLAG(is_moving_);
@@ -27,6 +28,7 @@ void BackgroundType::store(StorerT &storer) const {
   STORE_FLAG(has_intensity);
   STORE_FLAG(is_gradient);
   STORE_FLAG(is_freeform_gradient);
+  STORE_FLAG(has_theme_name);
   END_STORE_FLAGS();
   store(type_, storer);
   if (is_freeform_gradient) {
@@ -44,6 +46,9 @@ void BackgroundType::store(StorerT &storer) const {
   if (has_intensity) {
     store(intensity_, storer);
   }
+  if (has_theme_name) {
+    store(theme_name_, storer);
+  }
 }
 
 template <class ParserT>
@@ -53,6 +58,7 @@ void BackgroundType::parse(ParserT &parser) {
   bool has_intensity;
   bool is_gradient;
   bool is_freeform_gradient;
+  bool has_theme_name;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_blurred_);
   PARSE_FLAG(is_moving_);
@@ -60,6 +66,7 @@ void BackgroundType::parse(ParserT &parser) {
   PARSE_FLAG(has_intensity);
   PARSE_FLAG(is_gradient);
   PARSE_FLAG(is_freeform_gradient);
+  PARSE_FLAG(has_theme_name);
   END_PARSE_FLAGS();
   parse(type_, parser);
   if (is_freeform_gradient) {
@@ -78,6 +85,9 @@ void BackgroundType::parse(ParserT &parser) {
   }
   if (has_intensity) {
     parse(intensity_, parser);
+  }
+  if (has_theme_name) {
+    parse(theme_name_, parser);
   }
 }
 
