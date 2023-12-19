@@ -12,10 +12,9 @@
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/Random.h"
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
-
-#include <algorithm>
 
 namespace td {
 
@@ -40,12 +39,24 @@ SessionMultiProxy::SessionMultiProxy(int32 session_count, std::shared_ptr<AuthDa
 void SessionMultiProxy::send(NetQueryPtr query) {
   size_t pos = 0;
   if (query->auth_flag() == NetQuery::AuthFlag::On) {
-    if (query->session_rand()) {
-      pos = query->session_rand() % sessions_.size();
+    size_t session_rand = query->session_rand();
+    if (session_rand) {
+      pos = session_rand % sessions_.size();
     } else {
-      pos = std::min_element(sessions_.begin(), sessions_.end(),
-                             [](const auto &a, const auto &b) { return a.query_count < b.query_count; }) -
-            sessions_.begin();
+      size_t equal_count = 1;
+      int min_query_count = sessions_[pos].query_count;
+      for (size_t i = 1; i < sessions_.size(); i++) {
+        if (sessions_[i].query_count < min_query_count) {
+          pos = i;
+          min_query_count = sessions_[pos].query_count;
+          equal_count = 1;
+        } else if (sessions_[i].query_count == min_query_count) {
+          equal_count++;
+          if (Random::fast_uint32() % equal_count == 0) {
+            pos = i;
+          }
+        }
+      }
     }
   }
   // query->debug(PSTRING() << get_name() << ": send to proxy #" << pos);
