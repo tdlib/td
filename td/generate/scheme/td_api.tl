@@ -787,7 +787,7 @@ usernames active_usernames:vector<string> disabled_usernames:vector<string> edit
 //@status Current online status of the user
 //@profile_photo Profile photo of the user; may be null
 //@accent_color_id Identifier of the accent color for name, and backgrounds of profile photo, reply header, and link preview. For Telegram Premium users only
-//@background_custom_emoji_id Identifier of a custom emoji to be shown on the reply header background; 0 if none. For Telegram Premium users only
+//@background_custom_emoji_id Identifier of a custom emoji to be shown on the reply header and link preview background; 0 if none. For Telegram Premium users only
 //@profile_accent_color_id Identifier of the accent color for the user's profile; -1 if none. For Telegram Premium users only
 //@profile_background_custom_emoji_id Identifier of a custom emoji to be shown on the background of the user's profile; 0 if none. For Telegram Premium users only
 //@emoji_status Emoji status to be shown instead of the default Telegram Premium badge; may be null. For Telegram Premium users only
@@ -1620,7 +1620,7 @@ videoChat group_call_id:int32 has_participants:Bool default_participant_id:Messa
 //@title Chat title
 //@photo Chat photo; may be null
 //@accent_color_id Identifier of the accent color for message sender name, and backgrounds of chat photo, reply header, and link preview
-//@background_custom_emoji_id Identifier of a custom emoji to be shown on the reply header background in replies to messages sent by the chat; 0 if none
+//@background_custom_emoji_id Identifier of a custom emoji to be shown on the reply header and link preview background for messages sent by the chat; 0 if none
 //@profile_accent_color_id Identifier of the profile accent color for the chat's profile; -1 if none
 //@profile_background_custom_emoji_id Identifier of a custom emoji to be shown on the background of the chat's profile; 0 if none
 //@permissions Actions that non-administrator chat members are allowed to take in the chat
@@ -6207,7 +6207,7 @@ updateChatPhoto chat_id:int53 photo:chatPhotoInfo = Update;
 //@description Chat accent colors has changed
 //@chat_id Chat identifier
 //@accent_color_id The new chat accent color identifier
-//@background_custom_emoji_id The new identifier of a custom emoji to be shown on the reply header background; 0 if none
+//@background_custom_emoji_id The new identifier of a custom emoji to be shown on the reply header and link preview background; 0 if none
 //@profile_accent_color_id The new chat profile accent color identifier; -1 if none
 //@profile_background_custom_emoji_id The new identifier of a custom emoji to be shown on the profile background; 0 if none
 updateChatAccentColors chat_id:int53 accent_color_id:int32 background_custom_emoji_id:int64 profile_accent_color_id:int32 profile_background_custom_emoji_id:int64 = Update;
@@ -7878,7 +7878,7 @@ setChatPhoto chat_id:int53 photo:InputChatPhoto = Ok;
 //@description Changes accent color and background custom emoji of a chat. Supported only for channels with getOption("channel_custom_accent_color_boost_level_min") boost level. Requires can_change_info administrator right
 //@chat_id Chat identifier
 //@accent_color_id Identifier of the accent color to use
-//@background_custom_emoji_id Identifier of a custom emoji to be shown on the reply header background; 0 if none
+//@background_custom_emoji_id Identifier of a custom emoji to be shown on the reply header and link preview background; 0 if none
 setChatAccentColor chat_id:int53 accent_color_id:int32 background_custom_emoji_id:int64 = Ok;
 
 //@description Changes accent color and background custom emoji for profile of a chat. Supported only for channels with getOption("channel_custom_profile_accent_color_boost_level_min") boost level. Requires can_change_info administrator right
@@ -8842,7 +8842,7 @@ deleteProfilePhoto profile_photo_id:int64 = Ok;
 
 //@description Changes accent color and background custom emoji for the current user; for Telegram Premium users only
 //@accent_color_id Identifier of the accent color to use
-//@background_custom_emoji_id Identifier of a custom emoji to be shown on the reply header background; 0 if none
+//@background_custom_emoji_id Identifier of a custom emoji to be shown on the reply header and link preview background; 0 if none
 setAccentColor accent_color_id:int32 background_custom_emoji_id:int64 = Ok;
 
 //@description Changes accent color and background custom emoji for profile of the current user; for Telegram Premium users only
