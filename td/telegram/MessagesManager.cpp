@@ -35481,7 +35481,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       }
     }
     if (message_content_type == MessageContentType::SetBackground) {
-      set_dialog_background(d, get_message_content_my_background_info(m->content.get(), m->is_outgoing));
+      set_dialog_background(d, get_message_content_my_background_info(
+                                   m->content.get(), m->is_outgoing || dialog_id.get_type() != DialogType::User));
     }
     if (message_content_type == MessageContentType::ChatSetTheme) {
       set_dialog_theme_name(d, get_message_content_theme_name(m->content.get()));
