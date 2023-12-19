@@ -3475,7 +3475,8 @@ inputStoryAreaTypeMessage chat_id:int53 message_id:int53 = InputStoryAreaType;
 //@description Describes a clickable rectangle area on a story media to be added @position Position of the area @type Type of the area
 inputStoryArea position:storyAreaPosition type:InputStoryAreaType = InputStoryArea;
 
-//@description Contains a list of story areas to be added @areas List of 0-10 input story areas
+//@description Contains a list of story areas to be added @areas List of input story areas. Currently, a story can have up to 10 Location and Venue areas,
+//-up to getOption("story_suggested_reaction_area_count_max") SuggestedReaction areas, and up to 1 Message area
 inputStoryAreas areas:vector<inputStoryArea> = InputStoryAreas;
 
 
