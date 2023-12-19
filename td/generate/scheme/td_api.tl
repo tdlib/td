@@ -9538,7 +9538,7 @@ launchPrepaidPremiumGiveaway giveaway_id:int64 parameters:premiumGiveawayParamet
 
 //@description Returns information about a Telegram Premium giveaway
 //@chat_id Identifier of the channel chat which started the giveaway
-//@message_id Identifier of the giveaway message in the chat
+//@message_id Identifier of the giveaway or a giveaway winners message in the chat
 getPremiumGiveawayInfo chat_id:int53 message_id:int53 = PremiumGiveawayInfo;
 
 //@description Checks whether Telegram Premium purchase is possible. Must be called before in-store Premium purchase @purpose Transaction purpose

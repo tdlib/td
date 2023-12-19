@@ -40812,8 +40812,13 @@ Result<ServerMessageId> MessagesManager::get_giveaway_message_id(MessageFullId m
   if (m == nullptr) {
     return Status::Error(400, "Message not found");
   }
-  if (m->content->get_type() != MessageContentType::Giveaway) {
-    return Status::Error(400, "Message has wrong type");
+  switch (m->content->get_type()) {
+    case MessageContentType::Giveaway:
+    case MessageContentType::GiveawayWinners:
+      // ok
+      break;
+    default:
+      return Status::Error(400, "Message has wrong type");
   }
   if (m->message_id.is_scheduled()) {
     return Status::Error(400, "Wrong scheduled message identifier");
