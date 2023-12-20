@@ -2356,6 +2356,8 @@ class MessagesManager final : public Actor {
 
   void do_delete_message_log_event(const DeleteMessageLogEvent &log_event) const;
 
+  int64 get_message_reply_to_random_id(const Dialog *d, const Message *m) const;
+
   bool update_message(Dialog *d, Message *old_message, unique_ptr<Message> new_message, bool is_message_in_dialog);
 
   static bool need_message_changed_warning(const Message *old_message);

@@ -36074,6 +36074,18 @@ void MessagesManager::do_delete_message_log_event(const DeleteMessageLogEvent &l
   G()->td_db()->get_message_db_async()->delete_message(log_event.message_full_id_, std::move(db_promise));
 }
 
+int64 MessagesManager::get_message_reply_to_random_id(const Dialog *d, const Message *m) const {
+  auto same_chat_reply_to_message_id = m->replied_message_info.get_same_chat_reply_to_message_id(false);
+  if (same_chat_reply_to_message_id != MessageId() && m->message_id.is_yet_unsent() &&
+      (d->dialog_id.get_type() == DialogType::SecretChat || same_chat_reply_to_message_id.is_yet_unsent())) {
+    auto *replied_m = get_message(d, same_chat_reply_to_message_id);
+    if (replied_m != nullptr) {
+      return replied_m->random_id;
+    }
+  }
+  return 0;
+}
+
 bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr<Message> new_message,
                                      bool is_message_in_dialog) {
   CHECK(d != nullptr);
@@ -36336,16 +36348,8 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     old_message->reply_to_story_full_id = new_message->reply_to_story_full_id;
     old_message->top_thread_message_id = new_message->top_thread_message_id;
     old_message->is_topic_message = new_message->is_topic_message;
-    old_message->reply_to_random_id = 0;
+    old_message->reply_to_random_id = get_message_reply_to_random_id(d, old_message);
 
-    auto same_chat_reply_to_message_id = old_message->replied_message_info.get_same_chat_reply_to_message_id(false);
-    if (same_chat_reply_to_message_id != MessageId() && message_id.is_yet_unsent() &&
-        (dialog_id.get_type() == DialogType::SecretChat || same_chat_reply_to_message_id.is_yet_unsent())) {
-      auto *replied_m = get_message(d, same_chat_reply_to_message_id);
-      if (replied_m != nullptr) {
-        old_message->reply_to_random_id = replied_m->random_id;
-      }
-    }
     if (is_message_in_dialog) {
       register_message_reply(d->dialog_id, old_message);
     }
@@ -39592,15 +39596,7 @@ void MessagesManager::set_message_reply(const Dialog *d, Message *m, MessageInpu
   }
   m->replied_message_info = RepliedMessageInfo(td_, input_reply_to);
   m->reply_to_story_full_id = StoryFullId();
-  m->reply_to_random_id = 0;
-  auto same_chat_reply_to_message_id = input_reply_to.get_same_chat_reply_to_message_id();
-  if (same_chat_reply_to_message_id != MessageId() && m->message_id.is_yet_unsent() &&
-      (d->dialog_id.get_type() == DialogType::SecretChat || same_chat_reply_to_message_id.is_yet_unsent())) {
-    auto *replied_m = get_message(d, same_chat_reply_to_message_id);
-    if (replied_m != nullptr) {
-      m->reply_to_random_id = replied_m->random_id;
-    }
-  }
+  m->reply_to_random_id = get_message_reply_to_random_id(d, m);
   if (!m->message_id.is_any_server()) {
     m->input_reply_to = std::move(input_reply_to);
   }
