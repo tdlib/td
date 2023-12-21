@@ -5927,6 +5927,9 @@ suggestedActionRestorePremium = SuggestedAction;
 //@description Suggests the user to subscribe to the Premium subscription with annual payments
 suggestedActionSubscribeToAnnualPremium = SuggestedAction;
 
+//@description Suggests the user to gift Telegram Premium to friends for Christmas
+suggestedActionGiftPremiumForChristmas = SuggestedAction;
+
 
 //@description Contains a counter @count Count
 count count:int32 = Count;

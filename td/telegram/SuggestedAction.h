@@ -26,7 +26,8 @@ struct SuggestedAction {
     SetPassword,
     UpgradePremium,
     SubscribeToAnnualPremium,
-    RestorePremium
+    RestorePremium,
+    GiftPremiumForChristmas
   };
   Type type_ = Type::Empty;
   DialogId dialog_id_;
