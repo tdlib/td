@@ -97,6 +97,7 @@ class ThemeManager final : public Actor {
     FlatHashMap<AccentColorId, vector<int32>, AccentColorIdHash> light_colors_;
     FlatHashMap<AccentColorId, vector<int32>, AccentColorIdHash> dark_colors_;
     vector<AccentColorId> accent_color_ids_;
+    vector<int32> min_boost_levels_;
     int32 hash_ = 0;
 
     td_api::object_ptr<td_api::updateAccentColors> get_update_accent_colors_object() const;
@@ -132,6 +133,7 @@ class ThemeManager final : public Actor {
     FlatHashMap<AccentColorId, ProfileAccentColor, AccentColorIdHash> light_colors_;
     FlatHashMap<AccentColorId, ProfileAccentColor, AccentColorIdHash> dark_colors_;
     vector<AccentColorId> accent_color_ids_;
+    vector<int32> min_boost_levels_;
     int32 hash_ = 0;
 
     td_api::object_ptr<td_api::updateProfileAccentColors> get_update_profile_accent_colors_object() const;
@@ -159,13 +161,13 @@ class ThemeManager final : public Actor {
 
   bool on_update_accent_colors(FlatHashMap<AccentColorId, vector<int32>, AccentColorIdHash> light_colors,
                                FlatHashMap<AccentColorId, vector<int32>, AccentColorIdHash> dark_colors,
-                               vector<AccentColorId> accent_color_ids);
+                               vector<AccentColorId> accent_color_ids, vector<int32> min_boost_levels);
 
   void on_get_accent_colors(Result<telegram_api::object_ptr<telegram_api::help_PeerColors>> result);
 
   bool on_update_profile_accent_colors(FlatHashMap<AccentColorId, ProfileAccentColor, AccentColorIdHash> light_colors,
                                        FlatHashMap<AccentColorId, ProfileAccentColor, AccentColorIdHash> dark_colors,
-                                       vector<AccentColorId> accent_color_ids);
+                                       vector<AccentColorId> accent_color_ids, vector<int32> min_boost_levels);
 
   ProfileAccentColor get_profile_accent_color(
       telegram_api::object_ptr<telegram_api::help_PeerColorSet> &&color_set) const;
