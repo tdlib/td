@@ -4043,6 +4043,9 @@ ContactsManager::ContactsManager(Td *td, ActorShared<> parent) : td_(td), parent
   user_emoji_status_timeout_.set_callback(on_user_emoji_status_timeout_callback);
   user_emoji_status_timeout_.set_callback_data(static_cast<void *>(this));
 
+  channel_emoji_status_timeout_.set_callback(on_channel_emoji_status_timeout_callback);
+  channel_emoji_status_timeout_.set_callback_data(static_cast<void *>(this));
+
   channel_unban_timeout_.set_callback(on_channel_unban_timeout_callback);
   channel_unban_timeout_.set_callback_data(static_cast<void *>(this));
 
@@ -4174,6 +4177,28 @@ void ContactsManager::on_user_emoji_status_timeout(UserId user_id) {
   CHECK(u->is_update_user_sent);
 
   update_user(u, user_id);
+}
+
+void ContactsManager::on_channel_emoji_status_timeout_callback(void *contacts_manager_ptr, int64 channel_id_long) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto contacts_manager = static_cast<ContactsManager *>(contacts_manager_ptr);
+  send_closure_later(contacts_manager->actor_id(contacts_manager), &ContactsManager::on_channel_emoji_status_timeout,
+                     ChannelId(channel_id_long));
+}
+
+void ContactsManager::on_channel_emoji_status_timeout(ChannelId channel_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto c = get_channel(channel_id);
+  CHECK(c != nullptr);
+  CHECK(c->is_update_supergroup_sent);
+
+  update_channel(c, channel_id);
 }
 
 void ContactsManager::on_channel_unban_timeout_callback(void *contacts_manager_ptr, int64 channel_id_long) {
@@ -5006,6 +5031,7 @@ void ContactsManager::Channel::store(StorerT &storer) const {
   bool has_profile_accent_color_id = profile_accent_color_id.is_valid();
   bool has_profile_background_custom_emoji_id = profile_background_custom_emoji_id.is_valid();
   bool has_boost_level = boost_level != 0;
+  bool has_emoji_status = !emoji_status.is_empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(false);
   STORE_FLAG(false);
@@ -5050,6 +5076,7 @@ void ContactsManager::Channel::store(StorerT &storer) const {
     STORE_FLAG(has_profile_accent_color_id);
     STORE_FLAG(has_profile_background_custom_emoji_id);
     STORE_FLAG(has_boost_level);
+    STORE_FLAG(has_emoji_status);
     END_STORE_FLAGS();
   }
 
@@ -5099,6 +5126,9 @@ void ContactsManager::Channel::store(StorerT &storer) const {
   if (has_boost_level) {
     store(boost_level, storer);
   }
+  if (has_emoji_status) {
+    store(emoji_status, storer);
+  }
 }
 
 template <class ParserT>
@@ -5129,6 +5159,7 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   bool has_profile_accent_color_id = false;
   bool has_profile_background_custom_emoji_id = false;
   bool has_boost_level = false;
+  bool has_emoji_status = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(left);
   PARSE_FLAG(kicked);
@@ -5173,6 +5204,7 @@ void ContactsManager::Channel::parse(ParserT &parser) {
     PARSE_FLAG(has_profile_accent_color_id);
     PARSE_FLAG(has_profile_background_custom_emoji_id);
     PARSE_FLAG(has_boost_level);
+    PARSE_FLAG(has_emoji_status);
     END_PARSE_FLAGS();
   }
 
@@ -5251,6 +5283,9 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   }
   if (has_boost_level) {
     parse(boost_level, parser);
+  }
+  if (has_emoji_status) {
+    parse(emoji_status, parser);
   }
 
   if (!check_utf8(title)) {
@@ -6152,7 +6187,11 @@ td_api::object_ptr<td_api::emojiStatus> ContactsManager::get_chat_emoji_status_o
 }
 
 td_api::object_ptr<td_api::emojiStatus> ContactsManager::get_channel_emoji_status_object(ChannelId channel_id) const {
-  return nullptr;
+  auto c = get_channel(channel_id);
+  if (c == nullptr) {
+    return nullptr;
+  }
+  return c->last_sent_emoji_status.get_emoji_status_object();
 }
 
 td_api::object_ptr<td_api::emojiStatus> ContactsManager::get_secret_chat_emoji_status_object(
@@ -12865,6 +12904,24 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
                        DialogId(channel_id), "stories_hidden");
     c->is_stories_hidden_changed = false;
   }
+  auto unix_time = G()->unix_time();
+  auto effective_emoji_status = c->emoji_status.get_effective_emoji_status(true, unix_time);
+  if (effective_emoji_status != c->last_sent_emoji_status) {
+    if (!c->last_sent_emoji_status.is_empty()) {
+      channel_emoji_status_timeout_.cancel_timeout(channel_id.get());
+    }
+    c->last_sent_emoji_status = effective_emoji_status;
+    if (!c->last_sent_emoji_status.is_empty()) {
+      auto until_date = c->last_sent_emoji_status.get_until_date();
+      auto left_time = until_date - unix_time;
+      if (left_time >= 0 && left_time < 30 * 86400) {
+        channel_emoji_status_timeout_.set_timeout_in(channel_id.get(), left_time);
+      }
+    }
+
+    td_->messages_manager_->on_dialog_emoji_status_updated(DialogId(channel_id));
+  }
+  c->is_emoji_status_changed = false;
 
   if (!td_->auth_manager_->is_bot()) {
     if (c->restriction_reasons.empty()) {
@@ -14220,7 +14277,7 @@ void ContactsManager::on_update_user_emoji_status(UserId user_id,
 void ContactsManager::on_update_user_emoji_status(User *u, UserId user_id, EmojiStatus emoji_status) {
   if (u->emoji_status != emoji_status) {
     LOG(DEBUG) << "Change emoji status of " << user_id << " from " << u->emoji_status << " to " << emoji_status;
-    u->emoji_status = emoji_status;
+    u->emoji_status = std::move(emoji_status);
     u->is_emoji_status_changed = true;
     // effective emoji status might not be changed; checked in update_user
     // u->is_changed = true;
@@ -16889,6 +16946,15 @@ void ContactsManager::on_update_channel_photo(Channel *c, ChannelId channel_id, 
   } else if (need_update_dialog_photo_minithumbnail(c->photo.minithumbnail, photo.minithumbnail)) {
     c->photo.minithumbnail = std::move(photo.minithumbnail);
     c->is_photo_changed = true;
+    c->need_save_to_database = true;
+  }
+}
+
+void ContactsManager::on_update_channel_emoji_status(Channel *c, ChannelId channel_id, EmojiStatus emoji_status) {
+  if (c->emoji_status != emoji_status) {
+    LOG(DEBUG) << "Change emoji status of " << channel_id << " from " << c->emoji_status << " to " << emoji_status;
+    c->emoji_status = std::move(emoji_status);
+    c->is_emoji_status_changed = true;
     c->need_save_to_database = true;
   }
 }

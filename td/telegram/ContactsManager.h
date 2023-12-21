@@ -1009,6 +1009,8 @@ class ContactsManager final : public Actor {
     int64 access_hash = 0;
     string title;
     DialogPhoto photo;
+    EmojiStatus emoji_status;
+    EmojiStatus last_sent_emoji_status;
     AccentColorId accent_color_id;
     CustomEmojiId background_custom_emoji_id;
     AccentColorId profile_accent_color_id;
@@ -1051,6 +1053,7 @@ class ContactsManager final : public Actor {
     bool is_title_changed = true;
     bool is_username_changed = true;
     bool is_photo_changed = true;
+    bool is_emoji_status_changed = true;
     bool is_accent_color_changed = true;
     bool is_default_permissions_changed = true;
     bool is_status_changed = true;
@@ -1560,6 +1563,7 @@ class ContactsManager final : public Actor {
   void on_update_channel_photo(Channel *c, ChannelId channel_id,
                                tl_object_ptr<telegram_api::ChatPhoto> &&chat_photo_ptr);
   void on_update_channel_photo(Channel *c, ChannelId channel_id, DialogPhoto &&photo, bool invalidate_photo_cache);
+  void on_update_channel_emoji_status(Channel *c, ChannelId channel_id, EmojiStatus emoji_status);
   void on_update_channel_accent_color_id(Channel *c, ChannelId channel_id, AccentColorId accent_color_id);
   void on_update_channel_background_custom_emoji_id(Channel *c, ChannelId channel_id,
                                                     CustomEmojiId background_custom_emoji_id);
@@ -1992,6 +1996,8 @@ class ContactsManager final : public Actor {
 
   static void on_user_emoji_status_timeout_callback(void *contacts_manager_ptr, int64 user_id_long);
 
+  static void on_channel_emoji_status_timeout_callback(void *contacts_manager_ptr, int64 channel_id_long);
+
   static void on_channel_unban_timeout_callback(void *contacts_manager_ptr, int64 channel_id_long);
 
   static void on_user_nearby_timeout_callback(void *contacts_manager_ptr, int64 user_id_long);
@@ -2005,6 +2011,8 @@ class ContactsManager final : public Actor {
   void on_user_online_timeout(UserId user_id);
 
   void on_user_emoji_status_timeout(UserId user_id);
+
+  void on_channel_emoji_status_timeout(ChannelId channel_id);
 
   void on_channel_unban_timeout(ChannelId channel_id);
 
@@ -2200,6 +2208,7 @@ class ContactsManager final : public Actor {
 
   MultiTimeout user_online_timeout_{"UserOnlineTimeout"};
   MultiTimeout user_emoji_status_timeout_{"UserEmojiStatusTimeout"};
+  MultiTimeout channel_emoji_status_timeout_{"ChannelEmojiStatusTimeout"};
   MultiTimeout channel_unban_timeout_{"ChannelUnbanTimeout"};
   MultiTimeout user_nearby_timeout_{"UserNearbyTimeout"};
   MultiTimeout slow_mode_delay_timeout_{"SlowModeDelayTimeout"};
