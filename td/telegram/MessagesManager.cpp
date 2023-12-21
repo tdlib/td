@@ -36962,7 +36962,6 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
         d->last_read_outbox_message_id = MessageId::max();
         d->is_last_read_outbox_message_id_inited = true;
       }
-      d->is_background_inited = true;
 
       auto pts = load_channel_pts(dialog_id);
       if (pts > 0) {
