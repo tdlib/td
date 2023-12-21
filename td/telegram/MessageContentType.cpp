@@ -303,6 +303,8 @@ bool is_service_message_content(MessageContentType content_type) {
     case MessageContentType::Contact:
     case MessageContentType::Dice:
     case MessageContentType::Document:
+    case MessageContentType::ExpiredPhoto:
+    case MessageContentType::ExpiredVideo:
     case MessageContentType::Game:
     case MessageContentType::Giveaway:
     case MessageContentType::GiveawayWinners:
@@ -319,8 +321,6 @@ bool is_service_message_content(MessageContentType content_type) {
     case MessageContentType::Video:
     case MessageContentType::VideoNote:
     case MessageContentType::VoiceNote:
-    case MessageContentType::ExpiredPhoto:
-    case MessageContentType::ExpiredVideo:
       return false;
     case MessageContentType::ChatCreate:
     case MessageContentType::ChatChangeTitle:
@@ -363,6 +363,40 @@ bool is_service_message_content(MessageContentType content_type) {
     case MessageContentType::GiveawayLaunch:
     case MessageContentType::GiveawayResults:
       return true;
+    default:
+      UNREACHABLE();
+      return false;
+  }
+}
+
+bool is_supported_reply_message_content(MessageContentType content_type) {
+  // update documentation when the list changes
+  switch (content_type) {
+    case MessageContentType::Animation:
+    case MessageContentType::Audio:
+    case MessageContentType::Contact:
+    case MessageContentType::Dice:
+    case MessageContentType::Document:
+    case MessageContentType::Game:
+    case MessageContentType::Giveaway:
+    case MessageContentType::GiveawayWinners:
+    case MessageContentType::Invoice:
+    case MessageContentType::Location:
+    case MessageContentType::Photo:
+    case MessageContentType::Poll:
+    case MessageContentType::Sticker:
+    case MessageContentType::Story:
+    case MessageContentType::Text:
+    case MessageContentType::Unsupported:
+    case MessageContentType::Venue:
+    case MessageContentType::Video:
+    case MessageContentType::VideoNote:
+    case MessageContentType::VoiceNote:
+      return true;
+    case MessageContentType::ExpiredPhoto:
+    case MessageContentType::ExpiredVideo:
+    case MessageContentType::LiveLocation:
+      return false;
     default:
       UNREACHABLE();
       return false;

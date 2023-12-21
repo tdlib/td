@@ -90,6 +90,8 @@ bool is_secret_message_content(int32 ttl, MessageContentType content_type);
 
 bool is_service_message_content(MessageContentType content_type);
 
+bool is_supported_reply_message_content(MessageContentType content_type);
+
 bool can_have_message_content_caption(MessageContentType content_type);
 
 uint64 get_message_content_chain_id(MessageContentType content_type);
