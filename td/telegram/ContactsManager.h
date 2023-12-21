@@ -150,6 +150,11 @@ class ContactsManager final : public Actor {
   RestrictedRights get_channel_default_permissions(ChannelId channel_id) const;
   RestrictedRights get_secret_chat_default_permissions(SecretChatId secret_chat_id) const;
 
+  td_api::object_ptr<td_api::emojiStatus> get_user_emoji_status_object(UserId user_id) const;
+  td_api::object_ptr<td_api::emojiStatus> get_chat_emoji_status_object(ChatId chat_id) const;
+  td_api::object_ptr<td_api::emojiStatus> get_channel_emoji_status_object(ChannelId channel_id) const;
+  td_api::object_ptr<td_api::emojiStatus> get_secret_chat_emoji_status_object(SecretChatId secret_chat_id) const;
+
   bool get_chat_has_protected_content(ChatId chat_id) const;
   bool get_channel_has_protected_content(ChannelId channel_id) const;
 

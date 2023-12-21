@@ -20914,9 +20914,10 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       d->server_unread_count + d->local_unread_count, d->last_read_inbox_message_id.get(),
       d->last_read_outbox_message_id.get(), d->unread_mention_count, d->unread_reaction_count,
       get_chat_notification_settings_object(&d->notification_settings), std::move(available_reactions),
-      d->message_ttl.get_message_auto_delete_time_object(), get_chat_background_object(d), get_dialog_theme_name(d),
-      get_chat_action_bar_object(d), get_video_chat_object(d), get_chat_join_requests_info_object(d),
-      d->reply_markup_message_id.get(), std::move(draft_message), d->client_data);
+      d->message_ttl.get_message_auto_delete_time_object(), get_dialog_emoji_status_object(d->dialog_id),
+      get_chat_background_object(d), get_dialog_theme_name(d), get_chat_action_bar_object(d), get_video_chat_object(d),
+      get_chat_join_requests_info_object(d), d->reply_markup_message_id.get(), std::move(draft_message),
+      d->client_data);
 }
 
 td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(DialogId dialog_id) {
@@ -32741,6 +32742,16 @@ void MessagesManager::on_dialog_title_updated(DialogId dialog_id) {
   }
 }
 
+void MessagesManager::on_dialog_emoji_status_updated(DialogId dialog_id) {
+  auto d = get_dialog(dialog_id);  // called from update_user, must not create the dialog
+  if (d != nullptr && d->is_update_new_chat_sent) {
+    send_closure(
+        G()->td(), &Td::send_update,
+        td_api::make_object<td_api::updateChatEmojiStatus>(get_chat_id_object(dialog_id, "updateChatEmojiStatus"),
+                                                           get_dialog_emoji_status_object(dialog_id)));
+  }
+}
+
 void MessagesManager::on_dialog_default_permissions_updated(DialogId dialog_id) {
   auto d = get_dialog(dialog_id);  // called from update_user, must not create the dialog
   if (d != nullptr && d->is_update_new_chat_sent) {
@@ -33266,6 +33277,23 @@ RestrictedRights MessagesManager::get_dialog_default_permissions(DialogId dialog
       UNREACHABLE();
       return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false, false, false,
                               false, false, false, false, ChannelType::Unknown);
+  }
+}
+
+td_api::object_ptr<td_api::emojiStatus> MessagesManager::get_dialog_emoji_status_object(DialogId dialog_id) const {
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      return td_->contacts_manager_->get_user_emoji_status_object(dialog_id.get_user_id());
+    case DialogType::Chat:
+      return td_->contacts_manager_->get_chat_emoji_status_object(dialog_id.get_chat_id());
+    case DialogType::Channel:
+      return td_->contacts_manager_->get_channel_emoji_status_object(dialog_id.get_channel_id());
+    case DialogType::SecretChat:
+      return td_->contacts_manager_->get_secret_chat_emoji_status_object(dialog_id.get_secret_chat_id());
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+      return 0;
   }
 }
 

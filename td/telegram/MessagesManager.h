@@ -897,6 +897,7 @@ class MessagesManager final : public Actor {
   void on_dialog_photo_updated(DialogId dialog_id);
   void on_dialog_accent_colors_updated(DialogId dialog_id);
   void on_dialog_title_updated(DialogId dialog_id);
+  void on_dialog_emoji_status_updated(DialogId dialog_id);
   void on_dialog_usernames_updated(DialogId dialog_id, const Usernames &old_usernames, const Usernames &new_usernames);
   void on_dialog_usernames_received(DialogId dialog_id, const Usernames &usernames, bool from_database);
   void on_dialog_default_permissions_updated(DialogId dialog_id);
@@ -3001,6 +3002,8 @@ class MessagesManager final : public Actor {
   CustomEmojiId get_dialog_profile_background_custom_emoji_id(DialogId dialog_id) const;
 
   RestrictedRights get_dialog_default_permissions(DialogId dialog_id) const;
+
+  td_api::object_ptr<td_api::emojiStatus> get_dialog_emoji_status_object(DialogId dialog_id) const;
 
   bool get_dialog_has_protected_content(DialogId dialog_id) const;
 

@@ -6129,6 +6129,31 @@ RestrictedRights ContactsManager::get_secret_chat_default_permissions(SecretChat
                           false, false, ChannelType::Unknown);
 }
 
+td_api::object_ptr<td_api::emojiStatus> ContactsManager::get_user_emoji_status_object(UserId user_id) const {
+  auto u = get_user(user_id);
+  if (u == nullptr) {
+    return nullptr;
+  }
+  return u->last_sent_emoji_status.get_emoji_status_object();
+}
+
+td_api::object_ptr<td_api::emojiStatus> ContactsManager::get_chat_emoji_status_object(ChatId chat_id) const {
+  return nullptr;
+}
+
+td_api::object_ptr<td_api::emojiStatus> ContactsManager::get_channel_emoji_status_object(ChannelId channel_id) const {
+  return nullptr;
+}
+
+td_api::object_ptr<td_api::emojiStatus> ContactsManager::get_secret_chat_emoji_status_object(
+    SecretChatId secret_chat_id) const {
+  auto c = get_secret_chat(secret_chat_id);
+  if (c == nullptr) {
+    return nullptr;
+  }
+  return get_user_emoji_status_object(c->user_id);
+}
+
 bool ContactsManager::get_chat_has_protected_content(ChatId chat_id) const {
   auto c = get_chat(chat_id);
   if (c == nullptr) {
@@ -12548,11 +12573,18 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
       }
     }
     u->is_changed = true;
+
+    auto messages_manager = td_->messages_manager_.get();
+    messages_manager->on_dialog_emoji_status_updated(DialogId(user_id));
+    for_each_secret_chat_with_user(user_id, [messages_manager](SecretChatId secret_chat_id) {
+      messages_manager->on_dialog_emoji_status_updated(DialogId(secret_chat_id));
+    });
+    u->is_emoji_status_changed = false;
   } else if (u->is_emoji_status_changed) {
     LOG(DEBUG) << "Emoji status for " << user_id << " has changed";
     u->need_save_to_database = true;
+    u->is_emoji_status_changed = false;
   }
-  u->is_emoji_status_changed = false;
 
   if (u->is_deleted) {
     td_->inline_queries_manager_->remove_recent_inline_bot(user_id, Promise<>());
@@ -20092,8 +20124,7 @@ tl_object_ptr<td_api::user> ContactsManager::get_user_object(UserId user_id, con
     type = make_tl_object<td_api::userTypeRegular>();
   }
 
-  auto emoji_status =
-      !u->last_sent_emoji_status.is_empty() ? u->last_sent_emoji_status.get_emoji_status_object() : nullptr;
+  auto emoji_status = u->last_sent_emoji_status.get_emoji_status_object();
   auto have_access = user_id == get_my_id() || have_input_peer_user(u, user_id, AccessRights::Know);
   auto accent_color_id = u->accent_color_id.is_valid() ? u->accent_color_id : AccentColorId(user_id);
   return td_api::make_object<td_api::user>(
