@@ -632,7 +632,7 @@ inputChatPhotoSticker sticker:chatPhotoSticker = InputChatPhoto;
 
 
 //@description Describes actions that a user is allowed to take in a chat
-//@can_send_basic_messages True, if the user can send text messages, contacts, giveaways, invoices, locations, and venues
+//@can_send_basic_messages True, if the user can send text messages, contacts, giveaways, giveaway winners, invoices, locations, and venues
 //@can_send_audios True, if the user can send music files
 //@can_send_documents True, if the user can send documents
 //@can_send_photos True, if the user can send photos
@@ -1268,7 +1268,8 @@ inputTextQuote text:formattedText position:int32 = InputTextQuote;
 //@origin_send_date Point in time (Unix timestamp) when the message was sent if the message was from another chat or topic; 0 for messages from the same chat
 //@content Media content of the message if the message was from another chat or topic; may be null for messages from the same chat and messages without media.
 //-Can be only one of the following types: messageAnimation, messageAudio, messageContact, messageDice, messageDocument, messageGame, messageInvoice, messageLocation,
-//-messagePhoto, messagePoll, messagePremiumGiveaway, messageSticker, messageStory, messageText (for link preview), messageVenue, messageVideo, messageVideoNote, or messageVoiceNote
+//-messagePhoto, messagePoll, messagePremiumGiveaway, messagePremiumGiveawayWinners, messageSticker, messageStory, messageText (for link preview), messageVenue,
+//-messageVideo, messageVideoNote, or messageVoiceNote
 messageReplyToMessage chat_id:int53 message_id:int53 quote:textQuote origin:MessageOrigin origin_send_date:int32 content:MessageContent = MessageReplyTo;
 
 //@description Describes a story replied by a given message @story_sender_chat_id The identifier of the sender of the story @story_id The identifier of the story
@@ -3060,7 +3061,7 @@ messageSelfDestructTypeImmediately = MessageSelfDestructType;
 //@only_preview Pass true to get a fake message instead of actually sending them
 messageSendOptions disable_notification:Bool from_background:Bool protect_content:Bool update_order_of_installed_sticker_sets:Bool scheduling_state:MessageSchedulingState sending_id:int32 only_preview:Bool = MessageSendOptions;
 
-//@description Options to be used when a message content is copied without reference to the original sender. Service messages, and messages with messageInvoice or messagePremiumGiveaway content can't be copied
+//@description Options to be used when a message content is copied without reference to the original sender. Service messages, messages with messageInvoice, messagePremiumGiveaway, or messagePremiumGiveawayWinners content can't be copied
 //@send_copy True, if content of the message needs to be copied without reference to the original sender. Always true if the message is forwarded to a secret chat or is local
 //@replace_caption True, if media caption of the message copy needs to be replaced. Ignored if send_copy is false
 //@new_caption New message caption; pass null to copy message without caption. Ignored if replace_caption is false
