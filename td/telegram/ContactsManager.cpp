@@ -5005,6 +5005,7 @@ void ContactsManager::Channel::store(StorerT &storer) const {
   bool has_background_custom_emoji_id = background_custom_emoji_id.is_valid();
   bool has_profile_accent_color_id = profile_accent_color_id.is_valid();
   bool has_profile_background_custom_emoji_id = profile_background_custom_emoji_id.is_valid();
+  bool has_boost_level = boost_level != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(false);
   STORE_FLAG(false);
@@ -5048,6 +5049,7 @@ void ContactsManager::Channel::store(StorerT &storer) const {
     STORE_FLAG(has_background_custom_emoji_id);
     STORE_FLAG(has_profile_accent_color_id);
     STORE_FLAG(has_profile_background_custom_emoji_id);
+    STORE_FLAG(has_boost_level);
     END_STORE_FLAGS();
   }
 
@@ -5094,6 +5096,9 @@ void ContactsManager::Channel::store(StorerT &storer) const {
   if (has_profile_background_custom_emoji_id) {
     store(profile_background_custom_emoji_id, storer);
   }
+  if (has_boost_level) {
+    store(boost_level, storer);
+  }
 }
 
 template <class ParserT>
@@ -5123,6 +5128,7 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   bool has_background_custom_emoji_id = false;
   bool has_profile_accent_color_id = false;
   bool has_profile_background_custom_emoji_id = false;
+  bool has_boost_level = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(left);
   PARSE_FLAG(kicked);
@@ -5166,6 +5172,7 @@ void ContactsManager::Channel::parse(ParserT &parser) {
     PARSE_FLAG(has_background_custom_emoji_id);
     PARSE_FLAG(has_profile_accent_color_id);
     PARSE_FLAG(has_profile_background_custom_emoji_id);
+    PARSE_FLAG(has_boost_level);
     END_PARSE_FLAGS();
   }
 
@@ -5241,6 +5248,9 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   }
   if (has_profile_background_custom_emoji_id) {
     parse(profile_background_custom_emoji_id, parser);
+  }
+  if (has_boost_level) {
+    parse(boost_level, parser);
   }
 
   if (!check_utf8(title)) {
@@ -19629,6 +19639,7 @@ void ContactsManager::on_get_channel(telegram_api::channel &channel, const char 
   int32 participant_count = have_participant_count ? channel.participants_count_ : 0;
   bool stories_available = channel.stories_max_id_ > 0;
   bool stories_unavailable = channel.stories_unavailable_;
+  auto boost_level = channel.level_;
 
   if (have_participant_count) {
     auto channel_full = get_channel_full_const(channel_id);
@@ -19698,7 +19709,8 @@ void ContactsManager::on_get_channel(telegram_api::channel &channel, const char 
 
       if (c->has_linked_channel != has_linked_channel || c->is_slow_mode_enabled != is_slow_mode_enabled ||
           c->is_megagroup != is_megagroup || c->restriction_reasons != restriction_reasons || c->is_scam != is_scam ||
-          c->is_fake != is_fake || c->is_gigagroup != is_gigagroup || c->is_forum != is_forum) {
+          c->is_fake != is_fake || c->is_gigagroup != is_gigagroup || c->is_forum != is_forum ||
+          c->boost_level != boost_level) {
         c->has_linked_channel = has_linked_channel;
         c->is_slow_mode_enabled = is_slow_mode_enabled;
         c->is_megagroup = is_megagroup;
@@ -19711,6 +19723,7 @@ void ContactsManager::on_get_channel(telegram_api::channel &channel, const char 
           send_closure_later(G()->messages_manager(), &MessagesManager::on_update_dialog_is_forum, DialogId(channel_id),
                              is_forum);
         }
+        c->boost_level = boost_level;
 
         c->is_changed = true;
         invalidate_channel_full(channel_id, !c->is_slow_mode_enabled, "on_get_min_channel");
@@ -19783,7 +19796,8 @@ void ContactsManager::on_get_channel(telegram_api::channel &channel, const char 
   bool need_invalidate_channel_full = false;
   if (c->has_linked_channel != has_linked_channel || c->is_slow_mode_enabled != is_slow_mode_enabled ||
       c->is_megagroup != is_megagroup || c->restriction_reasons != restriction_reasons || c->is_scam != is_scam ||
-      c->is_fake != is_fake || c->is_gigagroup != is_gigagroup || c->is_forum != is_forum) {
+      c->is_fake != is_fake || c->is_gigagroup != is_gigagroup || c->is_forum != is_forum ||
+      c->boost_level != boost_level) {
     c->has_linked_channel = has_linked_channel;
     c->is_slow_mode_enabled = is_slow_mode_enabled;
     c->is_megagroup = is_megagroup;
@@ -19796,6 +19810,7 @@ void ContactsManager::on_get_channel(telegram_api::channel &channel, const char 
       send_closure_later(G()->messages_manager(), &MessagesManager::on_update_dialog_is_forum, DialogId(channel_id),
                          is_forum);
     }
+    c->boost_level = boost_level;
 
     c->is_changed = true;
     need_invalidate_channel_full = true;
@@ -20298,8 +20313,9 @@ td_api::object_ptr<td_api::updateSupergroup> ContactsManager::get_update_unknown
   auto min_channel = get_min_channel(channel_id);
   bool is_megagroup = min_channel == nullptr ? false : min_channel->is_megagroup_;
   return td_api::make_object<td_api::updateSupergroup>(td_api::make_object<td_api::supergroup>(
-      channel_id.get(), nullptr, 0, DialogParticipantStatus::Banned(0).get_chat_member_status_object(), 0, false, false,
-      false, !is_megagroup, false, false, !is_megagroup, false, false, false, string(), false, false, false, false));
+      channel_id.get(), nullptr, 0, DialogParticipantStatus::Banned(0).get_chat_member_status_object(), 0, 0, false,
+      false, false, !is_megagroup, false, false, !is_megagroup, false, false, false, string(), false, false, false,
+      false));
 }
 
 int64 ContactsManager::get_supergroup_id_object(ChannelId channel_id, const char *source) const {
@@ -20335,10 +20351,10 @@ tl_object_ptr<td_api::supergroup> ContactsManager::get_supergroup_object(Channel
   }
   return td_api::make_object<td_api::supergroup>(
       channel_id.get(), c->usernames.get_usernames_object(), c->date,
-      get_channel_status(c).get_chat_member_status_object(), c->participant_count, c->has_linked_channel,
-      c->has_location, c->sign_messages, get_channel_join_to_send(c), get_channel_join_request(c),
-      c->is_slow_mode_enabled, !c->is_megagroup, c->is_gigagroup, c->is_forum, c->is_verified,
-      get_restriction_reason_description(c->restriction_reasons), c->is_scam, c->is_fake,
+      get_channel_status(c).get_chat_member_status_object(), c->participant_count, c->boost_level,
+      c->has_linked_channel, c->has_location, c->sign_messages, get_channel_join_to_send(c),
+      get_channel_join_request(c), c->is_slow_mode_enabled, !c->is_megagroup, c->is_gigagroup, c->is_forum,
+      c->is_verified, get_restriction_reason_description(c->restriction_reasons), c->is_scam, c->is_fake,
       c->max_active_story_id.is_valid(), get_channel_has_unread_stories(c));
 }
 

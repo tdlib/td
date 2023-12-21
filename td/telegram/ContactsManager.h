@@ -1020,6 +1020,7 @@ class ContactsManager final : public Actor {
                                          false, false, false, false, false, false, false, false, ChannelType::Unknown};
     int32 date = 0;
     int32 participant_count = 0;
+    int32 boost_level = 0;
 
     double max_active_story_id_next_reload_time = 0.0;
     StoryId max_active_story_id;
