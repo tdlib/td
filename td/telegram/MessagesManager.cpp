@@ -24814,32 +24814,7 @@ void MessagesManager::cancel_send_message_query(DialogId dialog_id, Message *m) 
     m->send_message_log_event_id = 0;
   }
 
-  {
-    const auto *input_reply_to = get_message_input_reply_to(m);
-    if (input_reply_to != nullptr && !input_reply_to->is_empty()) {
-      auto replied_message_full_id = input_reply_to->get_reply_message_full_id(dialog_id);
-      auto replied_message_id = replied_message_full_id.get_message_id();
-      if (replied_message_id.is_valid() || replied_message_id.is_valid_scheduled()) {
-        if (!replied_message_id.is_yet_unsent()) {
-          auto it = replied_by_yet_unsent_messages_.find(replied_message_full_id);
-          CHECK(it != replied_by_yet_unsent_messages_.end());
-          it->second--;
-          CHECK(it->second >= 0);
-          if (it->second == 0) {
-            replied_by_yet_unsent_messages_.erase(it);
-          }
-        } else {
-          auto it = replied_yet_unsent_messages_.find(replied_message_full_id);
-          CHECK(it != replied_yet_unsent_messages_.end());
-          size_t erased_count = it->second.erase({dialog_id, m->message_id});
-          CHECK(erased_count > 0);
-          if (it->second.empty()) {
-            replied_yet_unsent_messages_.erase(it);
-          }
-        }
-      }
-    }
-  }
+  update_replied_by_message_count(dialog_id, m, false);
   {
     auto it = replied_yet_unsent_messages_.find({dialog_id, m->message_id});
     if (it != replied_yet_unsent_messages_.end()) {
@@ -34856,6 +34831,50 @@ void MessagesManager::remove_message_remove_keyboard_reply_markup(Message *m) co
   m->reply_markup = nullptr;
 }
 
+void MessagesManager::update_replied_by_message_count(DialogId dialog_id, const Message *m, bool is_add) {
+  CHECK(m != nullptr);
+  if (!m->message_id.is_yet_unsent()) {
+    return;
+  }
+  const auto *input_reply_to = get_message_input_reply_to(m);
+  if (input_reply_to == nullptr || input_reply_to->is_empty()) {
+    return;
+  }
+  auto replied_message_full_id = input_reply_to->get_reply_message_full_id(dialog_id);
+  auto replied_message_id = replied_message_full_id.get_message_id();
+  if (!replied_message_id.is_valid() && !replied_message_id.is_valid_scheduled()) {
+    return;
+  }
+  if (!replied_message_id.is_yet_unsent()) {
+    if (!replied_message_id.is_scheduled()) {
+      if (is_add) {
+        replied_by_yet_unsent_messages_[replied_message_full_id]++;
+      } else {
+        auto it = replied_by_yet_unsent_messages_.find(replied_message_full_id);
+        CHECK(it != replied_by_yet_unsent_messages_.end());
+        it->second--;
+        if (it->second == 0) {
+          replied_by_yet_unsent_messages_.erase(it);
+        } else {
+          CHECK(it->second > 0);
+        }
+      }
+    }
+  } else {
+    if (is_add) {
+      replied_yet_unsent_messages_[replied_message_full_id].insert({dialog_id, m->message_id});
+    } else {
+      auto it = replied_yet_unsent_messages_.find(replied_message_full_id);
+      CHECK(it != replied_yet_unsent_messages_.end());
+      size_t erased_count = it->second.erase({dialog_id, m->message_id});
+      CHECK(erased_count > 0);
+      if (it->second.empty()) {
+        replied_yet_unsent_messages_.erase(it);
+      }
+    }
+  }
+}
+
 void MessagesManager::add_message_to_dialog_message_list(const Message *m, Dialog *d, const bool from_database,
                                                          const bool from_update, const bool need_update,
                                                          bool *need_update_dialog_pos, const char *source) {
@@ -35344,23 +35363,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     add_message_to_dialog_message_list(m, d, from_database, from_update, *need_update, need_update_dialog_pos, source);
   }
 
-  if (m->message_id.is_yet_unsent()) {
-    const auto *input_reply_to = get_message_input_reply_to(m);
-    CHECK(input_reply_to != nullptr);
-    if (!input_reply_to->is_empty()) {
-      auto replied_message_full_id = input_reply_to->get_reply_message_full_id(dialog_id);
-      auto replied_message_id = replied_message_full_id.get_message_id();
-      if (replied_message_id.is_valid() || replied_message_id.is_valid_scheduled()) {
-        if (!replied_message_id.is_yet_unsent()) {
-          if (!replied_message_id.is_scheduled()) {
-            replied_by_yet_unsent_messages_[replied_message_full_id]++;
-          }
-        } else {
-          replied_yet_unsent_messages_[replied_message_full_id].insert({dialog_id, m->message_id});
-        }
-      }
-    }
-  }
+  update_replied_by_message_count(dialog_id, m, true);
 
   if (!from_database && !m->message_id.is_yet_unsent()) {
     add_message_to_database(d, m, "add_message_to_dialog");
@@ -35605,23 +35608,8 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
   LOG(INFO) << "Adding not found " << message_id << " to " << dialog_id << " from " << source;
 
   const Message *m = message.get();
-  if (m->message_id.is_yet_unsent()) {
-    const auto *input_reply_to = get_message_input_reply_to(m);
-    CHECK(input_reply_to != nullptr);
-    if (!input_reply_to->is_empty()) {
-      auto replied_message_full_id = input_reply_to->get_reply_message_full_id(dialog_id);
-      auto replied_message_id = replied_message_full_id.get_message_id();
-      if (replied_message_id.is_valid() || replied_message_id.is_valid_scheduled()) {
-        if (!replied_message_id.is_yet_unsent()) {
-          if (!replied_message_id.is_scheduled()) {
-            replied_by_yet_unsent_messages_[replied_message_full_id]++;
-          }
-        } else {
-          replied_yet_unsent_messages_[replied_message_full_id].insert({dialog_id, m->message_id});
-        }
-      }
-    }
-  }
+
+  update_replied_by_message_count(dialog_id, m, true);
 
   if (!from_database && !m->message_id.is_yet_unsent()) {
     add_message_to_database(d, m, "add_scheduled_message_to_dialog");
