@@ -7456,6 +7456,12 @@ void Td::on_request(uint64 id, const td_api::getThemedEmojiStatuses &request) {
   stickers_manager_->get_default_emoji_statuses(false, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getThemedChatEmojiStatuses &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  stickers_manager_->get_default_channel_emoji_statuses(false, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getDefaultEmojiStatuses &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

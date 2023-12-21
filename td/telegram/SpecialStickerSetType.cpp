@@ -37,6 +37,10 @@ SpecialStickerSetType SpecialStickerSetType::default_statuses() {
   return SpecialStickerSetType("default_statuses_sticker_set");
 }
 
+SpecialStickerSetType SpecialStickerSetType::default_channel_statuses() {
+  return SpecialStickerSetType("default_channel_statuses_sticker_set");
+}
+
 SpecialStickerSetType SpecialStickerSetType::default_topic_icons() {
   return SpecialStickerSetType("default_topic_icons_sticker_set");
 }
@@ -63,11 +67,11 @@ SpecialStickerSetType::SpecialStickerSetType(
     case telegram_api::inputStickerSetEmojiDefaultStatuses::ID:
       *this = default_statuses();
       break;
+    case telegram_api::inputStickerSetEmojiChannelDefaultStatuses::ID:
+      *this = default_channel_statuses();
+      break;
     case telegram_api::inputStickerSetEmojiDefaultTopicIcons::ID:
       *this = default_topic_icons();
-      break;
-    case telegram_api::inputStickerSetEmojiChannelDefaultStatuses::ID:
-      *this = default_statuses();
       break;
     default:
       UNREACHABLE();
@@ -98,6 +102,9 @@ telegram_api::object_ptr<telegram_api::InputStickerSet> SpecialStickerSetType::g
   }
   if (*this == default_statuses()) {
     return telegram_api::make_object<telegram_api::inputStickerSetEmojiDefaultStatuses>();
+  }
+  if (*this == default_channel_statuses()) {
+    return telegram_api::make_object<telegram_api::inputStickerSetEmojiChannelDefaultStatuses>();
   }
   if (*this == default_topic_icons()) {
     return telegram_api::make_object<telegram_api::inputStickerSetEmojiDefaultTopicIcons>();

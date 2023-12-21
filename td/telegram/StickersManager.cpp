@@ -1696,6 +1696,10 @@ void StickersManager::init() {
     load_special_sticker_set_info_from_binlog(sticker_set);
   }
   {
+    auto &sticker_set = add_special_sticker_set(SpecialStickerSetType::default_channel_statuses());
+    load_special_sticker_set_info_from_binlog(sticker_set);
+  }
+  {
     auto &sticker_set = add_special_sticker_set(SpecialStickerSetType::default_topic_icons());
     load_special_sticker_set_info_from_binlog(sticker_set);
   }
@@ -1915,6 +1919,10 @@ void StickersManager::on_load_special_sticker_set(const SpecialStickerSetType &t
   }
   if (type == SpecialStickerSetType::default_statuses()) {
     set_promises(pending_get_default_statuses_queries_);
+    return;
+  }
+  if (type == SpecialStickerSetType::default_channel_statuses()) {
+    set_promises(pending_get_default_channel_statuses_queries_);
     return;
   }
   if (type == SpecialStickerSetType::default_topic_icons()) {
@@ -3066,8 +3074,8 @@ StickerSetId StickersManager::get_sticker_set_id(const tl_object_ptr<telegram_ap
     case telegram_api::inputStickerSetPremiumGifts::ID:
     case telegram_api::inputStickerSetEmojiGenericAnimations::ID:
     case telegram_api::inputStickerSetEmojiDefaultStatuses::ID:
-    case telegram_api::inputStickerSetEmojiDefaultTopicIcons::ID:
     case telegram_api::inputStickerSetEmojiChannelDefaultStatuses::ID:
+    case telegram_api::inputStickerSetEmojiDefaultTopicIcons::ID:
       LOG(ERROR) << "Receive special sticker set " << to_string(set_ptr);
       return add_special_sticker_set(SpecialStickerSetType(set_ptr)).id_;
     case telegram_api::inputStickerSetDice::ID:
@@ -3100,8 +3108,8 @@ StickerSetId StickersManager::add_sticker_set(tl_object_ptr<telegram_api::InputS
     case telegram_api::inputStickerSetPremiumGifts::ID:
     case telegram_api::inputStickerSetEmojiGenericAnimations::ID:
     case telegram_api::inputStickerSetEmojiDefaultStatuses::ID:
-    case telegram_api::inputStickerSetEmojiDefaultTopicIcons::ID:
     case telegram_api::inputStickerSetEmojiChannelDefaultStatuses::ID:
+    case telegram_api::inputStickerSetEmojiDefaultTopicIcons::ID:
       LOG(ERROR) << "Receive special sticker set " << to_string(set_ptr);
       return add_special_sticker_set(SpecialStickerSetType(set_ptr)).id_;
     case telegram_api::inputStickerSetDice::ID:
@@ -3298,8 +3306,8 @@ StickerSetId StickersManager::on_get_input_sticker_set(FileId sticker_file_id,
     case telegram_api::inputStickerSetPremiumGifts::ID:
     case telegram_api::inputStickerSetEmojiGenericAnimations::ID:
     case telegram_api::inputStickerSetEmojiDefaultStatuses::ID:
-    case telegram_api::inputStickerSetEmojiDefaultTopicIcons::ID:
     case telegram_api::inputStickerSetEmojiChannelDefaultStatuses::ID:
+    case telegram_api::inputStickerSetEmojiDefaultTopicIcons::ID:
       return add_special_sticker_set(SpecialStickerSetType(set_ptr)).id_;
     case telegram_api::inputStickerSetDice::ID:
       return StickerSetId();
@@ -6018,6 +6026,44 @@ bool StickersManager::is_default_emoji_status(CustomEmojiId custom_emoji_id) {
     }
   }
   return false;
+}
+
+void StickersManager::get_default_channel_emoji_statuses(bool is_recursive,
+                                                         Promise<td_api::object_ptr<td_api::emojiStatuses>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  auto &special_sticker_set = add_special_sticker_set(SpecialStickerSetType::default_channel_statuses());
+  auto sticker_set = get_sticker_set(special_sticker_set.id_);
+  if (sticker_set == nullptr || !sticker_set->was_loaded_) {
+    if (is_recursive) {
+      return promise.set_value(td_api::make_object<td_api::emojiStatuses>());
+    }
+
+    pending_get_default_channel_statuses_queries_.push_back(PromiseCreator::lambda(
+        [actor_id = actor_id(this), promise = std::move(promise)](Result<Unit> &&result) mutable {
+          if (result.is_error()) {
+            promise.set_error(result.move_as_error());
+          } else {
+            send_closure(actor_id, &StickersManager::get_default_channel_emoji_statuses, true, std::move(promise));
+          }
+        }));
+    load_special_sticker_set(special_sticker_set);
+    return;
+  }
+
+  vector<int64> custom_emoji_ids;
+  for (auto sticker_id : sticker_set->sticker_ids_) {
+    auto custom_emoji_id = get_custom_emoji_id(sticker_id);
+    if (!custom_emoji_id.is_valid()) {
+      LOG(ERROR) << "Ignore wrong sticker " << sticker_id;
+      continue;
+    }
+    custom_emoji_ids.push_back(custom_emoji_id.get());
+    if (custom_emoji_ids.size() >= 8) {
+      break;
+    }
+  }
+  promise.set_value(td_api::make_object<td_api::emojiStatuses>(std::move(custom_emoji_ids)));
 }
 
 void StickersManager::get_default_topic_icons(bool is_recursive,

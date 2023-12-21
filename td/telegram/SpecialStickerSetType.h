@@ -34,6 +34,8 @@ class SpecialStickerSetType {
 
   static SpecialStickerSetType default_statuses();
 
+  static SpecialStickerSetType default_channel_statuses();
+
   static SpecialStickerSetType default_topic_icons();
 
   string get_dice_emoji() const;
