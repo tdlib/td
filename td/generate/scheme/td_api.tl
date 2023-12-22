@@ -2937,8 +2937,8 @@ messagePremiumGiveawayWinners boosted_chat_id:int53 giveaway_message_id:int53 ad
 //@description A contact has registered with Telegram
 messageContactRegistered = MessageContent;
 
-//@description The current user shared a user, which was requested by the bot @user_id Identifier of the shared user @button_id Identifier of the keyboard button with the request
-messageUserShared user_id:int53 button_id:int32 = MessageContent;
+//@description The current user shared users, which were requested by the bot @user_ids Identifier of the shared users @button_id Identifier of the keyboard button with the request
+messageUsersShared user_ids:vector<int53> button_id:int32 = MessageContent;
 
 //@description The current user shared a chat, which was requested by the bot @chat_id Identifier of the shared chat @button_id Identifier of the keyboard button with the request
 messageChatShared chat_id:int53 button_id:int32 = MessageContent;

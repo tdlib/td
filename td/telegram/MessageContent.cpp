@@ -498,7 +498,7 @@ class MessageChatSetTtl final : public MessageContent {
 
 class MessageUnsupported final : public MessageContent {
  public:
-  static constexpr int32 CURRENT_VERSION = 26;
+  static constexpr int32 CURRENT_VERSION = 27;
   int32 version = CURRENT_VERSION;
 
   MessageUnsupported() = default;
@@ -898,11 +898,12 @@ class MessageWriteAccessAllowed final : public MessageContent {
 
 class MessageRequestedDialog final : public MessageContent {
  public:
-  DialogId dialog_id;
+  vector<DialogId> shared_dialog_ids;
   int32 button_id = 0;
 
   MessageRequestedDialog() = default;
-  MessageRequestedDialog(DialogId dialog_id, int32 button_id) : dialog_id(dialog_id), button_id(button_id) {
+  MessageRequestedDialog(vector<DialogId> &&shared_dialog_ids, int32 button_id)
+      : shared_dialog_ids(std::move(shared_dialog_ids)), button_id(button_id) {
   }
 
   MessageContentType get_type() const final {
@@ -1454,7 +1455,15 @@ static void store(const MessageContent *content, StorerT &storer) {
       break;
     case MessageContentType::RequestedDialog: {
       const auto *m = static_cast<const MessageRequestedDialog *>(content);
-      store(m->dialog_id, storer);
+      bool has_one_shared_dialog = m->shared_dialog_ids.size() == 1;
+      BEGIN_STORE_FLAGS();
+      STORE_FLAG(has_one_shared_dialog);
+      END_STORE_FLAGS();
+      if (has_one_shared_dialog) {
+        store(m->shared_dialog_ids[0], storer);
+      } else {
+        store(m->shared_dialog_ids, storer);
+      }
       store(m->button_id, storer);
       break;
     }
@@ -2129,7 +2138,29 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       break;
     case MessageContentType::RequestedDialog: {
       auto m = make_unique<MessageRequestedDialog>();
-      parse(m->dialog_id, parser);
+      bool has_one_shared_dialog = true;
+      if (parser.version() >= static_cast<int32>(Version::SupportMultipleSharedUsers)) {
+        BEGIN_PARSE_FLAGS();
+        PARSE_FLAG(has_one_shared_dialog);
+        END_PARSE_FLAGS();
+      }
+      if (has_one_shared_dialog) {
+        DialogId dialog_id;
+        parse(dialog_id, parser);
+        m->shared_dialog_ids = {dialog_id};
+      } else {
+        parse(m->shared_dialog_ids, parser);
+        if (m->shared_dialog_ids.size() > 1) {
+          for (auto dialog_id : m->shared_dialog_ids) {
+            if (dialog_id.get_type() != DialogType::User) {
+              is_bad = true;
+            }
+          }
+        }
+      }
+      if (m->shared_dialog_ids.empty() || !m->shared_dialog_ids[0].is_valid()) {
+        is_bad = true;
+      }
       parse(m->button_id, parser);
       content = std::move(m);
       break;
@@ -5077,7 +5108,7 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
     case MessageContentType::RequestedDialog: {
       const auto *lhs = static_cast<const MessageRequestedDialog *>(old_content);
       const auto *rhs = static_cast<const MessageRequestedDialog *>(new_content);
-      if (lhs->dialog_id != rhs->dialog_id || lhs->button_id != rhs->button_id) {
+      if (lhs->shared_dialog_ids != rhs->shared_dialog_ids || lhs->button_id != rhs->button_id) {
         need_update = true;
       }
       break;
@@ -6627,17 +6658,27 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     }
     case telegram_api::messageActionRequestedPeer::ID: {
       auto action = move_tl_object_as<telegram_api::messageActionRequestedPeer>(action_ptr);
-      if (action->peers_.empty()) {
-        LOG(ERROR) << "Receive invalid " << oneline(to_string(action));
-        break;
+      vector<DialogId> shared_dialog_ids;
+      for (const auto &peer : action->peers_) {
+        DialogId dialog_id(peer);
+        if (dialog_id.is_valid()) {
+          shared_dialog_ids.push_back(dialog_id);
+        }
       }
-      DialogId dialog_id(action->peers_[0]);
-      if (!dialog_id.is_valid()) {
+      if (shared_dialog_ids.size() > 1) {
+        for (auto dialog_id : shared_dialog_ids) {
+          if (dialog_id.get_type() != DialogType::User) {
+            shared_dialog_ids.clear();
+            break;
+          }
+        }
+      }
+      if (shared_dialog_ids.empty() || shared_dialog_ids.size() != action->peers_.size()) {
         LOG(ERROR) << "Receive invalid " << oneline(to_string(action));
         break;
       }
 
-      return make_unique<MessageRequestedDialog>(dialog_id, action->button_id_);
+      return td::make_unique<MessageRequestedDialog>(std::move(shared_dialog_ids), action->button_id_);
     }
     case telegram_api::messageActionSetChatWallPaper::ID: {
       auto action = move_tl_object_as<telegram_api::messageActionSetChatWallPaper>(action_ptr);
@@ -7013,20 +7054,25 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
           td_api::make_object<td_api::botWriteAccessAllowReasonAddedToAttachmentMenu>());
     case MessageContentType::RequestedDialog: {
       const auto *m = static_cast<const MessageRequestedDialog *>(content);
-      if (m->dialog_id.get_type() == DialogType::User) {
-        int64 user_id;
-        if (td->auth_manager_->is_bot()) {
-          user_id = m->dialog_id.get_user_id().get();
-        } else {
-          user_id = td->contacts_manager_->get_user_id_object(m->dialog_id.get_user_id(), "MessageRequestedDialog");
+      CHECK(!m->shared_dialog_ids.empty());
+      if (m->shared_dialog_ids[0].get_type() == DialogType::User) {
+        vector<int64> user_ids;
+        for (auto shared_dialog_id : m->shared_dialog_ids) {
+          if (td->auth_manager_->is_bot()) {
+            user_ids.push_back(shared_dialog_id.get_user_id().get());
+          } else {
+            user_ids.push_back(
+                td->contacts_manager_->get_user_id_object(shared_dialog_id.get_user_id(), "MessageRequestedDialog"));
+          }
         }
-        return make_tl_object<td_api::messageUserShared>(user_id, m->button_id);
+        return make_tl_object<td_api::messageUsersShared>(std::move(user_ids), m->button_id);
       }
+      CHECK(m->shared_dialog_ids.size() == 1);
       int64 chat_id;
       if (td->auth_manager_->is_bot()) {
-        chat_id = m->dialog_id.get();
+        chat_id = m->shared_dialog_ids[0].get();
       } else {
-        chat_id = td->messages_manager_->get_chat_id_object(m->dialog_id, "messageChatShared");
+        chat_id = td->messages_manager_->get_chat_id_object(m->shared_dialog_ids[0], "messageChatShared");
       }
       return make_tl_object<td_api::messageChatShared>(chat_id, m->button_id);
     }
@@ -7801,10 +7847,12 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
     case MessageContentType::RequestedDialog: {
       const auto *content = static_cast<const MessageRequestedDialog *>(message_content);
       if (!is_bot) {
-        if (content->dialog_id.get_type() == DialogType::User) {
-          dependencies.add(content->dialog_id.get_user_id());
-        } else {
-          dependencies.add_dialog_and_dependencies(content->dialog_id);
+        for (auto dialog_id : content->shared_dialog_ids) {
+          if (dialog_id.get_type() == DialogType::User) {
+            dependencies.add(dialog_id.get_user_id());
+          } else {
+            dependencies.add_dialog_and_dependencies(dialog_id);
+          }
         }
       }
       break;

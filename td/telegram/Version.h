@@ -65,6 +65,7 @@ enum class Version : int32 {
   AddMessageTextFlags,
   AddPageBlockChatLinkFlags,  // 50
   SupportRepliesInOtherChats,
+  SupportMultipleSharedUsers,
   Next
 };
 
