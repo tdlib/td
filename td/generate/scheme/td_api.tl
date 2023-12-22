@@ -6380,7 +6380,8 @@ updateUserPrivacySettingRules setting:UserPrivacySetting rules:userPrivacySettin
 //@chat_list The chat list with changed number of unread messages
 //@unread_count Total number of unread messages
 //@unread_unmuted_count Total number of unread messages in unmuted chats
-updateUnreadMessageCount chat_list:ChatList unread_count:int32 unread_unmuted_count:int32 = Update;
+//@unread_mention_count Total number of unread mentions
+updateUnreadMessageCount chat_list:ChatList unread_count:int32 unread_unmuted_count:int32 unread_mention_count:int32 = Update;
 
 //@description Number of unread chats, i.e. with unread messages or marked as unread, has changed. This update is sent only if the message database is used
 //@chat_list The chat list with changed number of unread messages

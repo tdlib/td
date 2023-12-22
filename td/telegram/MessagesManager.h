@@ -1476,6 +1476,7 @@ class MessagesManager final : public Actor {
     bool need_unread_count_recalc_ = true;
     int32 unread_message_total_count_ = 0;
     int32 unread_message_muted_count_ = 0;
+    int32 unread_mention_total_count_ = 0;
     int32 unread_dialog_total_count_ = 0;
     int32 unread_dialog_muted_count_ = 0;
     int32 unread_dialog_marked_count_ = 0;
