@@ -1725,13 +1725,14 @@ keyboardButtonTypeRequestLocation = KeyboardButtonType;
 //@description A button that allows the user to create and send a poll when pressed; available only in private chats @force_regular If true, only regular polls must be allowed to create @force_quiz If true, only polls in quiz mode must be allowed to create
 keyboardButtonTypeRequestPoll force_regular:Bool force_quiz:Bool = KeyboardButtonType;
 
-//@description A button that requests a user to be shared by the current user; available only in private chats. Use the method shareUserWithBot to complete the request
+//@description A button that requests users to be shared by the current user; available only in private chats. Use the method shareUsersWithBot to complete the request
 //@id Unique button identifier
-//@restrict_user_is_bot True, if the shared user must or must not be a bot
-//@user_is_bot True, if the shared user must be a bot; otherwise, the shared user must no be a bot. Ignored if restrict_user_is_bot is false
-//@restrict_user_is_premium True, if the shared user must or must not be a Telegram Premium user
-//@user_is_premium True, if the shared user must be a Telegram Premium user; otherwise, the shared user must no be a Telegram Premium user. Ignored if restrict_user_is_premium is false
-keyboardButtonTypeRequestUser id:int32 restrict_user_is_bot:Bool user_is_bot:Bool restrict_user_is_premium:Bool user_is_premium:Bool = KeyboardButtonType;
+//@restrict_user_is_bot True, if the shared users must or must not be bots
+//@user_is_bot True, if the shared users must be bots; otherwise, the shared users must not be bots. Ignored if restrict_user_is_bot is false
+//@restrict_user_is_premium True, if the shared users must or must not be Telegram Premium users
+//@user_is_premium True, if the shared users must be Telegram Premium users; otherwise, the shared users must not be Telegram Premium users. Ignored if restrict_user_is_premium is false
+//@max_quantity The maximum number of users to share
+keyboardButtonTypeRequestUsers id:int32 restrict_user_is_bot:Bool user_is_bot:Bool restrict_user_is_premium:Bool user_is_premium:Bool max_quantity:int32 = KeyboardButtonType;
 
 //@description A button that requests a chat to be shared by the current user; available only in private chats. Use the method shareChatWithBot to complete the request
 //@id Unique button identifier
@@ -7573,7 +7574,7 @@ getLoginUrlInfo chat_id:int53 message_id:int53 button_id:int53 = LoginUrlInfo;
 getLoginUrl chat_id:int53 message_id:int53 button_id:int53 allow_write_access:Bool = HttpUrl;
 
 
-//@description Shares a user after pressing a keyboardButtonTypeRequestUser button with the bot
+//@description Shares a user after pressing a keyboardButtonTypeRequestUsers button with the bot
 //@chat_id Identifier of the chat with the bot
 //@message_id Identifier of the message with the button
 //@button_id Identifier of the button

@@ -244,8 +244,8 @@ static KeyboardButton get_keyboard_button(tl_object_ptr<telegram_api::KeyboardBu
       auto keyboard_button = move_tl_object_as<telegram_api::keyboardButtonRequestPeer>(keyboard_button_ptr);
       button.type = KeyboardButton::Type::RequestDialog;
       button.text = std::move(keyboard_button->text_);
-      button.requested_dialog_type =
-          td::make_unique<RequestedDialogType>(std::move(keyboard_button->peer_type_), keyboard_button->button_id_);
+      button.requested_dialog_type = td::make_unique<RequestedDialogType>(
+          std::move(keyboard_button->peer_type_), keyboard_button->button_id_, keyboard_button->max_quantity_);
       break;
     }
     default:
@@ -525,11 +525,11 @@ static Result<KeyboardButton> get_keyboard_button(tl_object_ptr<td_api::keyboard
       current_button.url = std::move(button_type->url_);
       break;
     }
-    case td_api::keyboardButtonTypeRequestUser::ID: {
+    case td_api::keyboardButtonTypeRequestUsers::ID: {
       if (!request_buttons_allowed) {
         return Status::Error(400, "Users can be requested in private chats only");
       }
-      auto button_type = move_tl_object_as<td_api::keyboardButtonTypeRequestUser>(button->type_);
+      auto button_type = move_tl_object_as<td_api::keyboardButtonTypeRequestUsers>(button->type_);
       current_button.type = KeyboardButton::Type::RequestDialog;
       current_button.requested_dialog_type = td::make_unique<RequestedDialogType>(std::move(button_type));
       break;
@@ -865,9 +865,11 @@ static tl_object_ptr<telegram_api::KeyboardButton> get_input_keyboard_button(con
     case KeyboardButton::Type::WebView:
       return make_tl_object<telegram_api::keyboardButtonSimpleWebView>(keyboard_button.text, keyboard_button.url);
     case KeyboardButton::Type::RequestDialog:
+      CHECK(keyboard_button.requested_dialog_type != nullptr);
       return make_tl_object<telegram_api::keyboardButtonRequestPeer>(
           keyboard_button.text, keyboard_button.requested_dialog_type->get_button_id(),
-          keyboard_button.requested_dialog_type->get_input_request_peer_type_object(), 1);
+          keyboard_button.requested_dialog_type->get_input_request_peer_type_object(),
+          keyboard_button.requested_dialog_type->get_max_quantity());
     default:
       UNREACHABLE();
       return nullptr;

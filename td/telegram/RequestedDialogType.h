@@ -22,6 +22,7 @@ class RequestedDialogType {
   enum class Type : int32 { User, Group, Channel };
   Type type_ = Type::User;
   int32 button_id_ = 0;
+  int32 max_quantity_ = 1;            // User only
   bool restrict_is_bot_ = false;      // User only
   bool is_bot_ = false;               // User only
   bool restrict_is_premium_ = false;  // User only
@@ -41,17 +42,20 @@ class RequestedDialogType {
  public:
   RequestedDialogType() = default;
 
-  explicit RequestedDialogType(td_api::object_ptr<td_api::keyboardButtonTypeRequestUser> &&request_user);
+  explicit RequestedDialogType(td_api::object_ptr<td_api::keyboardButtonTypeRequestUsers> &&request_users);
 
   explicit RequestedDialogType(td_api::object_ptr<td_api::keyboardButtonTypeRequestChat> &&request_dialog);
 
-  explicit RequestedDialogType(telegram_api::object_ptr<telegram_api::RequestPeerType> &&peer_type, int32 button_id);
+  explicit RequestedDialogType(telegram_api::object_ptr<telegram_api::RequestPeerType> &&peer_type, int32 button_id,
+                               int32 max_quantity);
 
   td_api::object_ptr<td_api::KeyboardButtonType> get_keyboard_button_type_object() const;
 
   telegram_api::object_ptr<telegram_api::RequestPeerType> get_input_request_peer_type_object() const;
 
   int32 get_button_id() const;
+
+  int32 get_max_quantity() const;
 
   Status check_shared_dialog(Td *td, DialogId dialog_id) const;
 

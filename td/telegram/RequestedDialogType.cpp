@@ -12,14 +12,15 @@
 
 namespace td {
 
-RequestedDialogType::RequestedDialogType(td_api::object_ptr<td_api::keyboardButtonTypeRequestUser> &&request_user) {
-  CHECK(request_user != nullptr);
+RequestedDialogType::RequestedDialogType(td_api::object_ptr<td_api::keyboardButtonTypeRequestUsers> &&request_users) {
+  CHECK(request_users != nullptr);
   type_ = Type::User;
-  button_id_ = request_user->id_;
-  restrict_is_bot_ = request_user->restrict_user_is_bot_;
-  is_bot_ = request_user->user_is_bot_;
-  restrict_is_premium_ = request_user->restrict_user_is_premium_;
-  is_premium_ = request_user->user_is_premium_;
+  button_id_ = request_users->id_;
+  max_quantity_ = request_users->max_quantity_;
+  restrict_is_bot_ = request_users->restrict_user_is_bot_;
+  is_bot_ = request_users->user_is_bot_;
+  restrict_is_premium_ = request_users->restrict_user_is_premium_;
+  is_premium_ = request_users->user_is_premium_;
 }
 
 RequestedDialogType::RequestedDialogType(td_api::object_ptr<td_api::keyboardButtonTypeRequestChat> &&request_dialog) {
@@ -40,9 +41,10 @@ RequestedDialogType::RequestedDialogType(td_api::object_ptr<td_api::keyboardButt
 }
 
 RequestedDialogType::RequestedDialogType(telegram_api::object_ptr<telegram_api::RequestPeerType> &&peer_type,
-                                         int32 button_id) {
+                                         int32 button_id, int32 max_quantity) {
   CHECK(peer_type != nullptr);
   button_id_ = button_id;
+  max_quantity_ = max_quantity;
   switch (peer_type->get_id()) {
     case telegram_api::requestPeerTypeUser::ID: {
       auto type = telegram_api::move_object_as<telegram_api::requestPeerTypeUser>(peer_type);
@@ -87,8 +89,8 @@ RequestedDialogType::RequestedDialogType(telegram_api::object_ptr<telegram_api::
 
 td_api::object_ptr<td_api::KeyboardButtonType> RequestedDialogType::get_keyboard_button_type_object() const {
   if (type_ == Type::User) {
-    return td_api::make_object<td_api::keyboardButtonTypeRequestUser>(button_id_, restrict_is_bot_, is_bot_,
-                                                                      restrict_is_premium_, is_premium_);
+    return td_api::make_object<td_api::keyboardButtonTypeRequestUsers>(
+        button_id_, restrict_is_bot_, is_bot_, restrict_is_premium_, is_premium_, max_quantity_);
   } else {
     auto user_administrator_rights = restrict_user_administrator_rights_
                                          ? user_administrator_rights_.get_chat_administrator_rights_object()
@@ -171,6 +173,10 @@ telegram_api::object_ptr<telegram_api::RequestPeerType> RequestedDialogType::get
 
 int32 RequestedDialogType::get_button_id() const {
   return button_id_;
+}
+
+int32 RequestedDialogType::get_max_quantity() const {
+  return max_quantity_;
 }
 
 Status RequestedDialogType::check_shared_dialog(Td *td, DialogId dialog_id) const {
