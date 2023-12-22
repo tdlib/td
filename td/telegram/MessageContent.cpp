@@ -6392,9 +6392,9 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
           LOG(ERROR) << "Receive invalid " << oneline(to_string(action));
           break;
         }
-      }
-      if (dialog_id.get_type() != DialogType::User) {
-        td->messages_manager_->force_create_dialog(dialog_id, "messageActionGiftCode", true);
+        if (dialog_id.get_type() != DialogType::User) {
+          td->messages_manager_->force_create_dialog(dialog_id, "messageActionGiftCode", true);
+        }
       }
       return td::make_unique<MessageGiftCode>(dialog_id, action->months_, action->via_giveaway_, action->unclaimed_,
                                               std::move(action->slug_));
@@ -6781,8 +6781,11 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     case MessageContentType::GiftCode: {
       const auto *m = static_cast<const MessageGiftCode *>(content);
       return td_api::make_object<td_api::messagePremiumGiftCode>(
-          get_message_sender_object(td, m->creator_dialog_id, "messagePremiumGiftCode"), m->via_giveaway,
-          m->is_unclaimed, m->months, td->stickers_manager_->get_premium_gift_sticker_object(m->months), m->code);
+          m->creator_dialog_id.is_valid()
+              ? get_message_sender_object(td, m->creator_dialog_id, "messagePremiumGiftCode")
+              : nullptr,
+          m->via_giveaway, m->is_unclaimed, m->months,
+          td->stickers_manager_->get_premium_gift_sticker_object(m->months), m->code);
     }
     case MessageContentType::Giveaway: {
       const auto *m = static_cast<const MessageGiveaway *>(content);
