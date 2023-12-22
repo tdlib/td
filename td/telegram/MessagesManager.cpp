@@ -4144,6 +4144,7 @@ class DeleteMessagesQuery final : public Td::ResultHandler {
     }
 
     auto affected_messages = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for DeleteMessagesQuery: " << to_string(affected_messages);
     if (affected_messages->pts_count_ > 0) {
       td_->updates_manager_->add_pending_pts_update(make_tl_object<dummyUpdate>(), affected_messages->pts_,
                                                     affected_messages->pts_count_, Time::now(), std::move(promise_),
@@ -4195,6 +4196,7 @@ class DeleteChannelMessagesQuery final : public Td::ResultHandler {
     }
 
     auto affected_messages = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for DeleteChannelMessagesQuery: " << to_string(affected_messages);
     if (affected_messages->pts_count_ > 0) {
       td_->messages_manager_->add_pending_channel_update(DialogId(channel_id_), make_tl_object<dummyUpdate>(),
                                                          affected_messages->pts_, affected_messages->pts_count_,
