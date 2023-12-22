@@ -16,7 +16,7 @@ RequestedDialogType::RequestedDialogType(td_api::object_ptr<td_api::keyboardButt
   CHECK(request_users != nullptr);
   type_ = Type::User;
   button_id_ = request_users->id_;
-  max_quantity_ = request_users->max_quantity_;
+  max_quantity_ = max(request_users->max_quantity_, 1);
   restrict_is_bot_ = request_users->restrict_user_is_bot_;
   is_bot_ = request_users->user_is_bot_;
   restrict_is_premium_ = request_users->restrict_user_is_premium_;
@@ -44,7 +44,7 @@ RequestedDialogType::RequestedDialogType(telegram_api::object_ptr<telegram_api::
                                          int32 button_id, int32 max_quantity) {
   CHECK(peer_type != nullptr);
   button_id_ = button_id;
-  max_quantity_ = max_quantity;
+  max_quantity_ = max(max_quantity, 1);
   switch (peer_type->get_id()) {
     case telegram_api::requestPeerTypeUser::ID: {
       auto type = telegram_api::move_object_as<telegram_api::requestPeerTypeUser>(peer_type);
@@ -269,6 +269,16 @@ Status RequestedDialogType::check_shared_dialog(Td *td, DialogId dialog_id) cons
       return Status::Error(400, "Can't share secret chats");
     case DialogType::None:
       UNREACHABLE();
+  }
+  return Status::OK();
+}
+
+Status RequestedDialogType::check_shared_dialog_count(size_t count) const {
+  if (count == 0) {
+    return Status::Error(400, "Too few chats are chosen");
+  }
+  if (count > static_cast<size_t>(max_quantity_)) {
+    return Status::Error(400, "Too many chats are chosen");
   }
   return Status::OK();
 }

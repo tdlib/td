@@ -7574,13 +7574,13 @@ getLoginUrlInfo chat_id:int53 message_id:int53 button_id:int53 = LoginUrlInfo;
 getLoginUrl chat_id:int53 message_id:int53 button_id:int53 allow_write_access:Bool = HttpUrl;
 
 
-//@description Shares a user after pressing a keyboardButtonTypeRequestUsers button with the bot
+//@description Shares users after pressing a keyboardButtonTypeRequestUsers button with the bot
 //@chat_id Identifier of the chat with the bot
 //@message_id Identifier of the message with the button
 //@button_id Identifier of the button
-//@shared_user_id Identifier of the shared user
-//@only_check Pass true to check that the user can be shared by the button instead of actually sharing them
-shareUserWithBot chat_id:int53 message_id:int53 button_id:int32 shared_user_id:int53 only_check:Bool = Ok;
+//@shared_user_ids Identifiers of the shared users
+//@only_check Pass true to check that the users can be shared by the button instead of actually sharing them
+shareUsersWithBot chat_id:int53 message_id:int53 button_id:int32 shared_user_ids:vector<int53> only_check:Bool = Ok;
 
 //@description Shares a chat after pressing a keyboardButtonTypeRequestChat button with the bot
 //@chat_id Identifier of the chat with the bot

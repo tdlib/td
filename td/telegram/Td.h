@@ -1509,7 +1509,7 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::getLoginUrl &request);
 
-  void on_request(uint64 id, const td_api::shareUserWithBot &request);
+  void on_request(uint64 id, const td_api::shareUsersWithBot &request);
 
   void on_request(uint64 id, const td_api::shareChatWithBot &request);
 

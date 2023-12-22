@@ -4028,18 +4028,20 @@ class SendBotRequestedPeerQuery final : public Td::ResultHandler {
   explicit SendBotRequestedPeerQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(MessageFullId message_full_id, int32 button_id, DialogId requested_dialog_id) {
+  void send(MessageFullId message_full_id, int32 button_id, vector<DialogId> &&requested_dialog_ids) {
     auto dialog_id = message_full_id.get_dialog_id();
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
-    auto requested_peer = td_->messages_manager_->get_input_peer(requested_dialog_id, AccessRights::Read);
-    if (requested_peer == nullptr) {
-      return on_error(Status::Error(400, "Can't access the chosen chat"));
-    }
     vector<telegram_api::object_ptr<telegram_api::InputPeer>> requested_peers;
-    requested_peers.push_back(std::move(requested_peer));
+    for (auto requested_dialog_id : requested_dialog_ids) {
+      auto requested_peer = td_->messages_manager_->get_input_peer(requested_dialog_id, AccessRights::Read);
+      if (requested_peer == nullptr) {
+        return on_error(Status::Error(400, "Can't access the chosen chat"));
+      }
+      requested_peers.push_back(std::move(requested_peer));
+    }
 
     send_query(G()->net_query_creator().create(
         telegram_api::messages_sendBotRequestedPeer(std::move(input_peer),
@@ -28616,8 +28618,9 @@ void MessagesManager::do_send_screenshot_taken_notification_message(DialogId dia
       ->send(dialog_id, random_id);
 }
 
-void MessagesManager::share_dialog_with_bot(MessageFullId message_full_id, int32 button_id, DialogId shared_dialog_id,
-                                            bool expect_user, bool only_check, Promise<Unit> &&promise) {
+void MessagesManager::share_dialogs_with_bot(MessageFullId message_full_id, int32 button_id,
+                                             vector<DialogId> shared_dialog_ids, bool expect_user, bool only_check,
+                                             Promise<Unit> &&promise) {
   const Message *m = get_message_force(message_full_id, "share_dialog_with_bot");
   if (m == nullptr) {
     return promise.set_error(Status::Error(400, "Message not found"));
@@ -28626,26 +28629,29 @@ void MessagesManager::share_dialog_with_bot(MessageFullId message_full_id, int32
     return promise.set_error(Status::Error(400, "Message has no buttons"));
   }
   CHECK(m->message_id.is_valid() && m->message_id.is_server());
-  if (shared_dialog_id.get_type() != DialogType::User) {
-    if (!have_dialog_force(shared_dialog_id, "share_dialog_with_bot")) {
-      return promise.set_error(Status::Error(400, "Shared chat not found"));
+  TRY_STATUS_PROMISE(promise, m->reply_markup->check_shared_dialog_count(button_id, shared_dialog_ids.size()));
+  for (auto shared_dialog_id : shared_dialog_ids) {
+    if (shared_dialog_id.get_type() != DialogType::User) {
+      if (!have_dialog_force(shared_dialog_id, "share_dialogs_with_bot")) {
+        return promise.set_error(Status::Error(400, "Shared chat not found"));
+      }
+    } else {
+      if (!expect_user) {
+        return promise.set_error(Status::Error(400, "Wrong chat type"));
+      }
+      if (!td_->contacts_manager_->have_user(shared_dialog_id.get_user_id())) {
+        return promise.set_error(Status::Error(400, "Shared user not found"));
+      }
     }
-  } else {
-    if (!expect_user) {
-      return promise.set_error(Status::Error(400, "Wrong chat type"));
-    }
-    if (!td_->contacts_manager_->have_user(shared_dialog_id.get_user_id())) {
-      return promise.set_error(Status::Error(400, "Shared user not found"));
-    }
+    TRY_STATUS_PROMISE(promise, m->reply_markup->check_shared_dialog(td_, button_id, shared_dialog_id));
   }
-  TRY_STATUS_PROMISE(promise, m->reply_markup->check_shared_dialog(td_, button_id, shared_dialog_id));
 
   if (only_check) {
     return promise.set_value(Unit());
   }
 
   td_->create_handler<SendBotRequestedPeerQuery>(std::move(promise))
-      ->send(message_full_id, button_id, shared_dialog_id);
+      ->send(message_full_id, button_id, std::move(shared_dialog_ids));
 }
 
 Result<MessageId> MessagesManager::add_local_message(

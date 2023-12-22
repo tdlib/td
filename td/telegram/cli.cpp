@@ -6095,10 +6095,10 @@ class CliClient final : public Actor {
       ChatId chat_id;
       MessageId message_id;
       int32 button_id;
-      UserId shared_user_id;
-      get_args(args, chat_id, message_id, button_id, shared_user_id);
-      send_request(
-          td_api::make_object<td_api::shareUserWithBot>(chat_id, message_id, button_id, shared_user_id, op == "suwbc"));
+      string shared_user_ids;
+      get_args(args, chat_id, message_id, button_id, shared_user_ids);
+      send_request(td_api::make_object<td_api::shareUsersWithBot>(chat_id, message_id, button_id,
+                                                                  as_user_ids(shared_user_ids), op == "suwbc"));
     } else if (op == "scwb" || op == "scwbc") {
       ChatId chat_id;
       MessageId message_id;

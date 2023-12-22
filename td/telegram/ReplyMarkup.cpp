@@ -1149,6 +1149,17 @@ Status ReplyMarkup::check_shared_dialog(Td *td, int32 button_id, DialogId dialog
   return Status::Error(400, "Button not found");
 }
 
+Status ReplyMarkup::check_shared_dialog_count(int32 button_id, size_t count) const {
+  for (auto &row : keyboard) {
+    for (auto &button : row) {
+      if (button.requested_dialog_type != nullptr && button.requested_dialog_type->get_button_id() == button_id) {
+        return button.requested_dialog_type->check_shared_dialog_count(count);
+      }
+    }
+  }
+  return Status::Error(400, "Button not found");
+}
+
 tl_object_ptr<telegram_api::ReplyMarkup> get_input_reply_markup(ContactsManager *contacts_manager,
                                                                 const unique_ptr<ReplyMarkup> &reply_markup) {
   if (reply_markup == nullptr) {
