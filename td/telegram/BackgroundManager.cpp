@@ -503,8 +503,8 @@ void BackgroundManager::store_background(BackgroundId background_id, LogEventSto
 void BackgroundManager::parse_background(BackgroundId &background_id, LogEventParser &parser) {
   Background background;
   parse(background, parser);
-  CHECK(background.has_new_local_id);
-  if (background.file_id.is_valid() != background.type.has_file() || !background.id.is_valid()) {
+  if (!background.has_new_local_id || background.file_id.is_valid() != background.type.has_file() ||
+      !background.id.is_valid()) {
     parser.set_error(PSTRING() << "Failed to load " << background.id);
     background_id = BackgroundId();
     return;
