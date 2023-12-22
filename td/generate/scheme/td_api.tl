@@ -7911,12 +7911,12 @@ setChatMessageAutoDeleteTime chat_id:int53 message_auto_delete_time:int32 = Ok;
 //@permissions New non-administrator members permissions in the chat
 setChatPermissions chat_id:int53 permissions:chatPermissions = Ok;
 
-//@description Sets the background in a specific chat. Supported only in private and secret chats with non-deleted users
+//@description Sets the background in a specific chat. Supported only in private and secret chats with non-deleted users, and in chats with sufficient boost level
 //@chat_id Chat identifier
 //@background The input background to use; pass null to create a new filled or chat theme background
-//@type Background type; pass null to use default background type for the chosen background
+//@type Background type; pass null to use default background type for the chosen background; backgroundTypeChatTheme isn't supported for private and secret chats
 //@dark_theme_dimming Dimming of the background in dark themes, as a percentage; 0-100. Applied only to Wallpaper and Fill types of background
-//@only_for_self Pass true to set background only for self; pass false to set background for both chat users. Background can be set for both users only by Telegram Premium users and if set background isn't of the type inputBackgroundPrevious
+//@only_for_self Pass true to set background only for self; pass false to set background for both chat users. Always false for backgrounds set in boosted chats. Background can be set for both users only by Telegram Premium users and if set background isn't of the type inputBackgroundPrevious
 setChatBackground chat_id:int53 background:InputBackground type:BackgroundType dark_theme_dimming:int32 only_for_self:Bool = Ok;
 
 //@description Deletes background in a specific chat
