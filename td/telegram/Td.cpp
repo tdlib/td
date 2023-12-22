@@ -7468,6 +7468,12 @@ void Td::on_request(uint64 id, const td_api::getDefaultEmojiStatuses &request) {
   get_default_emoji_statuses(this, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getDefaultChatEmojiStatuses &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  get_default_channel_emoji_statuses(this, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getRecentEmojiStatuses &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

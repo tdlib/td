@@ -101,6 +101,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, const EmojiStatus &emoj
 
 void get_default_emoji_statuses(Td *td, Promise<td_api::object_ptr<td_api::emojiStatuses>> &&promise);
 
+void get_default_channel_emoji_statuses(Td *td, Promise<td_api::object_ptr<td_api::emojiStatuses>> &&promise);
+
 void get_recent_emoji_statuses(Td *td, Promise<td_api::object_ptr<td_api::emojiStatuses>> &&promise);
 
 void add_recent_emoji_status(Td *td, EmojiStatus emoji_status);

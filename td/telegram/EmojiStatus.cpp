@@ -70,6 +70,11 @@ static const string &get_default_emoji_statuses_database_key() {
   return key;
 }
 
+static const string &get_default_channel_emoji_statuses_database_key() {
+  static string key = "def_ch_emoji_statuses";
+  return key;
+}
+
 static const string &get_recent_emoji_statuses_database_key() {
   static string key = "rec_emoji_statuses";
   return key;
@@ -121,6 +126,48 @@ class GetDefaultEmojiStatusesQuery final : public Td::ResultHandler {
     CHECK(emoji_statuses_ptr->get_id() == telegram_api::account_emojiStatuses::ID);
     EmojiStatuses emoji_statuses(move_tl_object_as<telegram_api::account_emojiStatuses>(emoji_statuses_ptr));
     save_emoji_statuses(get_default_emoji_statuses_database_key(), emoji_statuses);
+
+    if (promise_) {
+      promise_.set_value(emoji_statuses.get_emoji_statuses_object());
+    }
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class GetChannelDefaultEmojiStatusesQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::emojiStatuses>> promise_;
+
+ public:
+  explicit GetChannelDefaultEmojiStatusesQuery(Promise<td_api::object_ptr<td_api::emojiStatuses>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(int64 hash) {
+    send_query(G()->net_query_creator().create(telegram_api::account_getChannelDefaultEmojiStatuses(hash), {{"me"}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_getChannelDefaultEmojiStatuses>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto emoji_statuses_ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetChannelDefaultEmojiStatusesQuery: " << to_string(emoji_statuses_ptr);
+
+    if (emoji_statuses_ptr->get_id() == telegram_api::account_emojiStatusesNotModified::ID) {
+      if (promise_) {
+        promise_.set_error(Status::Error(500, "Receive wrong server response"));
+      }
+      return;
+    }
+
+    CHECK(emoji_statuses_ptr->get_id() == telegram_api::account_emojiStatuses::ID);
+    EmojiStatuses emoji_statuses(move_tl_object_as<telegram_api::account_emojiStatuses>(emoji_statuses_ptr));
+    save_emoji_statuses(get_default_channel_emoji_statuses_database_key(), emoji_statuses);
 
     if (promise_) {
       promise_.set_value(emoji_statuses.get_emoji_statuses_object());
@@ -284,6 +331,15 @@ void get_default_emoji_statuses(Td *td, Promise<td_api::object_ptr<td_api::emoji
     promise = Promise<td_api::object_ptr<td_api::emojiStatuses>>();
   }
   td->create_handler<GetDefaultEmojiStatusesQuery>(std::move(promise))->send(statuses.hash_);
+}
+
+void get_default_channel_emoji_statuses(Td *td, Promise<td_api::object_ptr<td_api::emojiStatuses>> &&promise) {
+  auto statuses = load_emoji_statuses(get_default_channel_emoji_statuses_database_key());
+  if (statuses.hash_ != -1 && promise) {
+    promise.set_value(statuses.get_emoji_statuses_object());
+    promise = Promise<td_api::object_ptr<td_api::emojiStatuses>>();
+  }
+  td->create_handler<GetChannelDefaultEmojiStatusesQuery>(std::move(promise))->send(statuses.hash_);
 }
 
 void get_recent_emoji_statuses(Td *td, Promise<td_api::object_ptr<td_api::emojiStatuses>> &&promise) {

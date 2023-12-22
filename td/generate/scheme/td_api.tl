@@ -8259,21 +8259,24 @@ getAttachmentMenuBot bot_user_id:int53 = AttachmentMenuBot;
 toggleBotIsAddedToAttachmentMenu bot_user_id:int53 is_added:Bool allow_write_access:Bool = Ok;
 
 
-//@description Returns up to 8 emoji statuses, which must be shown right after the default Premium Badge in the emoji status list for users
+//@description Returns up to 8 emoji statuses, which must be shown right after the default Premium Badge in the emoji status list for self status
 getThemedEmojiStatuses = EmojiStatuses;
 
-//@description Returns recent emoji statuses
+//@description Returns recent emoji statuses for self status
 getRecentEmojiStatuses = EmojiStatuses;
 
-//@description Returns default emoji statuses
+//@description Returns default emoji statuses for self status
 getDefaultEmojiStatuses = EmojiStatuses;
 
-//@description Clears the list of recently used emoji statuses
+//@description Clears the list of recently used emoji statuses for self status
 clearRecentEmojiStatuses = Ok;
 
 
 //@description Returns up to 8 emoji statuses, which must be shown in the emoji status list for chats
 getThemedChatEmojiStatuses = EmojiStatuses;
+
+//@description Returns default emoji statuses for chats
+getDefaultChatEmojiStatuses = EmojiStatuses;
 
 
 //@description Downloads a file from the cloud. Download progress and completion of the download will be notified through updateFile updates

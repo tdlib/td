@@ -1251,6 +1251,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::getDefaultEmojiStatuses &request);
 
+  void on_request(uint64 id, const td_api::getDefaultChatEmojiStatuses &request);
+
   void on_request(uint64 id, const td_api::getRecentEmojiStatuses &request);
 
   void on_request(uint64 id, const td_api::clearRecentEmojiStatuses &request);
