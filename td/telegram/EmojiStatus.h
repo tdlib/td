@@ -99,6 +99,8 @@ inline bool operator!=(const EmojiStatus &lhs, const EmojiStatus &rhs) {
 
 StringBuilder &operator<<(StringBuilder &string_builder, const EmojiStatus &emoji_status);
 
+td_api::object_ptr<td_api::emojiStatuses> get_emoji_statuses_object(const vector<CustomEmojiId> &custom_emoji_ids);
+
 void get_default_emoji_statuses(Td *td, Promise<td_api::object_ptr<td_api::emojiStatuses>> &&promise);
 
 void get_default_channel_emoji_statuses(Td *td, Promise<td_api::object_ptr<td_api::emojiStatuses>> &&promise);

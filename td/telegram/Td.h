@@ -1431,6 +1431,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::getDefaultBackgroundCustomEmojiStickers &request);
 
+  void on_request(uint64 id, const td_api::getDisallowedChatEmojiStatuses &request);
+
   void on_request(uint64 id, const td_api::getFavoriteStickers &request);
 
   void on_request(uint64 id, td_api::addFavoriteSticker &request);

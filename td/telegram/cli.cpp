@@ -5591,6 +5591,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getThemedChatEmojiStatuses>());
     } else if (op == "gdces") {
       send_request(td_api::make_object<td_api::getDefaultChatEmojiStatuses>());
+    } else if (op == "gdices") {
+      send_request(td_api::make_object<td_api::getDisallowedChatEmojiStatuses>());
     } else if (op == "ccun") {
       ChatId chat_id;
       string username;

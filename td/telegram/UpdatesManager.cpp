@@ -2278,6 +2278,8 @@ void UpdatesManager::try_reload_data() {
   td_->stickers_manager_->reload_special_sticker_set_by_type(SpecialStickerSetType::default_topic_icons());
   td_->stickers_manager_->get_default_custom_emoji_stickers(StickerListType::DialogPhoto, true, Auto());
   td_->stickers_manager_->get_default_custom_emoji_stickers(StickerListType::UserProfilePhoto, true, Auto());
+  td_->stickers_manager_->get_default_custom_emoji_stickers(StickerListType::Background, true, Auto());
+  td_->stickers_manager_->get_sticker_list_emoji_statuses(StickerListType::DisallowedChannelEmojiStatus, true, Auto());
   td_->story_manager_->reload_active_stories();
   td_->story_manager_->reload_all_read_stories();
   td_->theme_manager_->reload_accent_colors();

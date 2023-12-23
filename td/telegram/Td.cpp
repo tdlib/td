@@ -8103,6 +8103,13 @@ void Td::on_request(uint64 id, const td_api::getDefaultBackgroundCustomEmojiStic
   stickers_manager_->get_default_custom_emoji_stickers(StickerListType::Background, false, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getDisallowedChatEmojiStatuses &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  stickers_manager_->get_sticker_list_emoji_statuses(StickerListType::DisallowedChannelEmojiStatus, false,
+                                                     std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getSavedAnimations &request) {
   CHECK_IS_USER();
   CREATE_NO_ARGS_REQUEST(GetSavedAnimationsRequest);

@@ -141,6 +141,9 @@ class StickersManager final : public Actor {
   void get_default_custom_emoji_stickers(StickerListType sticker_list_type, bool force_reload,
                                          Promise<td_api::object_ptr<td_api::stickers>> &&promise);
 
+  void get_sticker_list_emoji_statuses(StickerListType sticker_list_type, bool force_reload,
+                                       Promise<td_api::object_ptr<td_api::emojiStatuses>> &&promise);
+
   void get_premium_gift_option_sticker(int32 month_count, bool is_recursive,
                                        Promise<td_api::object_ptr<td_api::sticker>> &&promise);
 
@@ -623,6 +626,8 @@ class StickersManager final : public Actor {
   void load_custom_emoji_sticker_from_database(CustomEmojiId custom_emoji_id, Promise<Unit> &&promise);
 
   void on_load_custom_emoji_from_database(CustomEmojiId custom_emoji_id, string value);
+
+  void load_default_custom_emoji_ids(StickerListType sticker_list_type, bool force_reload);
 
   void on_load_default_custom_emoji_ids_from_database(StickerListType sticker_list_type, bool force_reload,
                                                       string value);
@@ -1130,10 +1135,12 @@ class StickersManager final : public Actor {
   vector<Promise<td_api::object_ptr<td_api::emojiCategories>>> emoji_group_load_queries_[MAX_EMOJI_GROUP_TYPE];
 
   vector<CustomEmojiId> default_custom_emoji_ids_[MAX_STICKER_LIST_TYPE];
-  int64 default_custom_emoji_ids_hash_[MAX_STICKER_LIST_TYPE] = {0, 0, 0};
+  int64 default_custom_emoji_ids_hash_[MAX_STICKER_LIST_TYPE] = {0, 0, 0, 0};
   vector<Promise<td_api::object_ptr<td_api::stickers>>> default_custom_emoji_ids_load_queries_[MAX_STICKER_LIST_TYPE];
-  bool are_default_custom_emoji_ids_loaded_[MAX_STICKER_LIST_TYPE] = {false, false, false};
-  bool are_default_custom_emoji_ids_being_loaded_[MAX_STICKER_LIST_TYPE] = {false, false, false};
+  vector<Promise<td_api::object_ptr<td_api::emojiStatuses>>>
+      default_emoji_statuses_load_queries_[MAX_STICKER_LIST_TYPE];
+  bool are_default_custom_emoji_ids_loaded_[MAX_STICKER_LIST_TYPE] = {false, false, false, false};
+  bool are_default_custom_emoji_ids_being_loaded_[MAX_STICKER_LIST_TYPE] = {false, false, false, false};
 
   WaitFreeHashMap<CustomEmojiId, FileId, CustomEmojiIdHash> custom_emoji_to_sticker_id_;
 

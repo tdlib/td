@@ -769,7 +769,7 @@ profileAccentColor id:int32 light_theme_colors:profileAccentColors dark_theme_co
 //@expiration_date Point in time (Unix timestamp) when the status will expire; 0 if never
 emojiStatus custom_emoji_id:int64 expiration_date:int32 = EmojiStatus;
 
-//@description Contains a list of custom emoji identifiers, which can be set as emoji statuses @custom_emoji_ids The list of custom emoji identifiers
+//@description Contains a list of custom emoji identifiers for emoji statuses @custom_emoji_ids The list of custom emoji identifiers
 emojiStatuses custom_emoji_ids:vector<int64> = EmojiStatuses;
 
 
@@ -8280,6 +8280,9 @@ getThemedChatEmojiStatuses = EmojiStatuses;
 
 //@description Returns default emoji statuses for chats
 getDefaultChatEmojiStatuses = EmojiStatuses;
+
+//@description Returns the list of emoji statuses, which can't be used as chat emoji status, even they are from a sticker set with is_allowed_as_chat_emoji_status == true
+getDisallowedChatEmojiStatuses = EmojiStatuses;
 
 
 //@description Downloads a file from the cloud. Download progress and completion of the download will be notified through updateFile updates

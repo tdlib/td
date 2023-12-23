@@ -14,6 +14,7 @@
 #include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/EmojiGroup.hpp"
+#include "td/telegram/EmojiStatus.h"
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/FileManager.h"
@@ -1472,6 +1473,9 @@ class GetDefaultDialogPhotoEmojisQuery final : public Td::ResultHandler {
       case StickerListType::Background:
         send_query(G()->net_query_creator().create(telegram_api::account_getDefaultBackgroundEmojis(hash)));
         break;
+      case StickerListType::DisallowedChannelEmojiStatus:
+        send_query(G()->net_query_creator().create(telegram_api::account_getChannelRestrictedStatusEmojis(hash)));
+        break;
       default:
         UNREACHABLE();
         break;
@@ -1483,6 +1487,9 @@ class GetDefaultDialogPhotoEmojisQuery final : public Td::ResultHandler {
                                telegram_api::account_getDefaultGroupPhotoEmojis::ReturnType>::value,
                   "");
     static_assert(std::is_same<telegram_api::account_getDefaultBackgroundEmojis::ReturnType,
+                               telegram_api::account_getDefaultGroupPhotoEmojis::ReturnType>::value,
+                  "");
+    static_assert(std::is_same<telegram_api::account_getChannelRestrictedStatusEmojis::ReturnType,
                                telegram_api::account_getDefaultGroupPhotoEmojis::ReturnType>::value,
                   "");
     auto result_ptr = fetch_result<telegram_api::account_getDefaultGroupPhotoEmojis>(packet);
@@ -6349,7 +6356,24 @@ void StickersManager::get_default_custom_emoji_stickers(StickerListType sticker_
 
   auto &queries = default_custom_emoji_ids_load_queries_[index];
   queries.push_back(std::move(promise));
-  if (queries.size() != 1) {
+  load_default_custom_emoji_ids(sticker_list_type, force_reload);
+}
+
+void StickersManager::get_sticker_list_emoji_statuses(StickerListType sticker_list_type, bool force_reload,
+                                                      Promise<td_api::object_ptr<td_api::emojiStatuses>> &&promise) {
+  auto index = static_cast<int32>(sticker_list_type);
+  if (are_default_custom_emoji_ids_loaded_[index] && !force_reload) {
+    return promise.set_value(get_emoji_statuses_object(default_custom_emoji_ids_[index]));
+  }
+
+  auto &queries = default_emoji_statuses_load_queries_[index];
+  queries.push_back(std::move(promise));
+  load_default_custom_emoji_ids(sticker_list_type, force_reload);
+}
+
+void StickersManager::load_default_custom_emoji_ids(StickerListType sticker_list_type, bool force_reload) {
+  auto index = static_cast<int32>(sticker_list_type);
+  if (default_custom_emoji_ids_load_queries_[index].size() + default_emoji_statuses_load_queries_[index].size() != 1) {
     // query has already been sent, just wait for the result
     return;
   }
@@ -6396,6 +6420,7 @@ void StickersManager::on_load_default_custom_emoji_ids_from_database(StickerList
   if (G()->close_flag()) {
     auto index = static_cast<int32>(sticker_list_type);
     fail_promises(default_custom_emoji_ids_load_queries_[index], Global::request_aborted_error());
+    fail_promises(default_emoji_statuses_load_queries_[index], Global::request_aborted_error());
     return;
   }
 
@@ -6421,6 +6446,7 @@ void StickersManager::reload_default_custom_emoji_ids(StickerListType sticker_li
   if (G()->close_flag()) {
     auto index = static_cast<int32>(sticker_list_type);
     fail_promises(default_custom_emoji_ids_load_queries_[index], Global::request_aborted_error());
+    fail_promises(default_emoji_statuses_load_queries_[index], Global::request_aborted_error());
     return;
   }
   CHECK(!td_->auth_manager_->is_bot());
@@ -6450,6 +6476,7 @@ void StickersManager::on_get_default_custom_emoji_ids(
 
   if (r_emoji_list.is_error()) {
     fail_promises(default_custom_emoji_ids_load_queries_[index], r_emoji_list.move_as_error());
+    fail_promises(default_emoji_statuses_load_queries_[index], r_emoji_list.move_as_error());
     return;
   }
 
@@ -6460,9 +6487,14 @@ void StickersManager::on_get_default_custom_emoji_ids(
     if (!are_default_custom_emoji_ids_loaded_[index]) {
       on_get_default_custom_emoji_ids_success(sticker_list_type, {}, 0);
     }
-    auto promises = std::move(default_custom_emoji_ids_load_queries_[index]);
+    auto sticker_promises = std::move(default_custom_emoji_ids_load_queries_[index]);
+    auto status_promises = std::move(default_emoji_statuses_load_queries_[index]);
     reset_to_empty(default_custom_emoji_ids_load_queries_[index]);
-    for (auto &promise : promises) {
+    reset_to_empty(default_emoji_statuses_load_queries_[index]);
+    for (auto &promise : sticker_promises) {
+      CHECK(!promise);
+    }
+    for (auto &promise : status_promises) {
       CHECK(!promise);
     }
     return;
@@ -6489,10 +6521,15 @@ void StickersManager::on_get_default_custom_emoji_ids_success(StickerListType st
   default_custom_emoji_ids_hash_[index] = hash;
   are_default_custom_emoji_ids_loaded_[index] = true;
 
-  auto promises = std::move(default_custom_emoji_ids_load_queries_[index]);
+  auto sticker_promises = std::move(default_custom_emoji_ids_load_queries_[index]);
+  auto status_promises = std::move(default_emoji_statuses_load_queries_[index]);
   reset_to_empty(default_custom_emoji_ids_load_queries_[index]);
-  for (auto &promise : promises) {
+  reset_to_empty(default_emoji_statuses_load_queries_[index]);
+  for (auto &promise : sticker_promises) {
     get_custom_emoji_stickers_unlimited(default_custom_emoji_ids_[index], std::move(promise));
+  }
+  for (auto &promise : status_promises) {
+    promise.set_value(get_emoji_statuses_object(default_custom_emoji_ids_[index]));
   }
 }
 
