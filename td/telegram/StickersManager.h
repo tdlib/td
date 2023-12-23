@@ -898,6 +898,8 @@ class StickersManager final : public Actor {
 
   void reload_special_sticker_set(SpecialStickerSet &sticker_set, int32 hash);
 
+  int is_custom_emoji_from_sticker_set(CustomEmojiId custom_emoji_id, StickerSetId sticker_set_id) const;
+
   static void add_sticker_thumbnail(Sticker *s, PhotoSize thumbnail);
 
   td_api::object_ptr<td_api::stickers> get_custom_emoji_stickers_object(const vector<CustomEmojiId> &custom_emoji_ids);

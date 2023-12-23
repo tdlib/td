@@ -6031,18 +6031,25 @@ void StickersManager::get_default_emoji_statuses(bool is_recursive,
   promise.set_value(td_api::make_object<td_api::emojiStatuses>(std::move(custom_emoji_ids)));
 }
 
-bool StickersManager::is_default_emoji_status(CustomEmojiId custom_emoji_id) {
-  auto &special_sticker_set = add_special_sticker_set(SpecialStickerSetType::default_statuses());
-  auto sticker_set = get_sticker_set(special_sticker_set.id_);
+int StickersManager::is_custom_emoji_from_sticker_set(CustomEmojiId custom_emoji_id,
+                                                      StickerSetId sticker_set_id) const {
+  const auto *sticker_set = get_sticker_set(sticker_set_id);
   if (sticker_set == nullptr || !sticker_set->was_loaded_) {
-    return false;
+    return -1;
   }
   for (auto sticker_id : sticker_set->sticker_ids_) {
     if (get_custom_emoji_id(sticker_id) == custom_emoji_id) {
-      return true;
+      return 1;
     }
   }
-  return false;
+  return 0;
+}
+
+bool StickersManager::is_default_emoji_status(CustomEmojiId custom_emoji_id) {
+  return is_custom_emoji_from_sticker_set(
+             custom_emoji_id, add_special_sticker_set(SpecialStickerSetType::default_statuses()).id_) == 1 ||
+         is_custom_emoji_from_sticker_set(
+             custom_emoji_id, add_special_sticker_set(SpecialStickerSetType::default_channel_statuses()).id_) == 1;
 }
 
 void StickersManager::get_default_channel_emoji_statuses(bool is_recursive,
