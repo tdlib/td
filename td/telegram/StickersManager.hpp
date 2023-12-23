@@ -202,6 +202,8 @@ void StickersManager::store_sticker_set(const StickerSet *sticker_set, bool with
   STORE_FLAG(sticker_set->are_keywords_loaded_);
   STORE_FLAG(sticker_set->is_sticker_has_text_color_loaded_);
   STORE_FLAG(sticker_set->has_text_color_);
+  STORE_FLAG(sticker_set->is_sticker_channel_emoji_status_loaded_);
+  STORE_FLAG(sticker_set->channel_emoji_status_);
   END_STORE_FLAGS();
   store(sticker_set->id_.get(), storer);
   store(sticker_set->access_hash_, storer);
@@ -266,6 +268,7 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
   bool is_emojis;
   bool has_thumbnail_document_id;
   bool has_text_color;
+  bool channel_emoji_status;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(sticker_set->is_inited_);
   PARSE_FLAG(sticker_set->was_loaded_);
@@ -287,6 +290,8 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
   PARSE_FLAG(sticker_set->are_keywords_loaded_);
   PARSE_FLAG(sticker_set->is_sticker_has_text_color_loaded_);
   PARSE_FLAG(has_text_color);
+  PARSE_FLAG(sticker_set->is_sticker_channel_emoji_status_loaded_);
+  PARSE_FLAG(channel_emoji_status);
   END_PARSE_FLAGS();
   int64 sticker_set_id;
   int64 access_hash;
@@ -308,6 +313,7 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
   auto sticker_type = ::td::get_sticker_type(is_masks, is_emojis);
   if (!is_emojis) {
     sticker_set->is_sticker_has_text_color_loaded_ = true;
+    sticker_set->is_sticker_channel_emoji_status_loaded_ = true;
   }
 
   if (sticker_set->is_inited_) {
@@ -349,6 +355,7 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
       sticker_set->sticker_type_ = sticker_type;
       sticker_set->sticker_format_ = sticker_format;
       sticker_set->has_text_color_ = has_text_color;
+      sticker_set->channel_emoji_status_ = channel_emoji_status;
 
       auto cleaned_username = clean_username(sticker_set->short_name_);
       if (!cleaned_username.empty()) {
@@ -358,7 +365,8 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
     } else {
       if (sticker_set->title_ != title || sticker_set->minithumbnail_ != minithumbnail ||
           sticker_set->thumbnail_ != thumbnail || sticker_set->thumbnail_document_id_ != thumbnail_document_id ||
-          sticker_set->is_official_ != is_official || sticker_set->has_text_color_ != has_text_color) {
+          sticker_set->is_official_ != is_official || sticker_set->has_text_color_ != has_text_color ||
+          sticker_set->channel_emoji_status_ != channel_emoji_status) {
         sticker_set->is_changed_ = true;
       }
       if (sticker_set->short_name_ != short_name) {
