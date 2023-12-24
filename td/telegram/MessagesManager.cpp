@@ -8379,10 +8379,6 @@ void MessagesManager::on_update_dialog_notify_settings(
 
 void MessagesManager::on_update_dialog_available_reactions(
     DialogId dialog_id, telegram_api::object_ptr<telegram_api::ChatReactions> &&available_reactions) {
-  if (td_->auth_manager_->is_bot()) {
-    return;
-  }
-
   Dialog *d = get_dialog_force(dialog_id, "on_update_dialog_available_reactions");
   if (d == nullptr) {
     return;
@@ -8392,7 +8388,6 @@ void MessagesManager::on_update_dialog_available_reactions(
 }
 
 void MessagesManager::set_dialog_available_reactions(Dialog *d, ChatReactions &&available_reactions) {
-  CHECK(!td_->auth_manager_->is_bot());
   CHECK(d != nullptr);
   switch (d->dialog_id.get_type()) {
     case DialogType::Chat:
@@ -8413,12 +8408,13 @@ void MessagesManager::set_dialog_available_reactions(Dialog *d, ChatReactions &&
     return;
   }
 
-  VLOG(notifications) << "Update available reactions in " << d->dialog_id << " to " << available_reactions;
+  LOG(INFO) << "Update available reactions in " << d->dialog_id << " to " << available_reactions;
 
   auto old_active_reactions = get_active_reactions(d->available_reactions);
   auto new_active_reactions = get_active_reactions(available_reactions);
   bool need_update = old_active_reactions != new_active_reactions;
-  bool need_update_message_reactions_visibility = old_active_reactions.empty() != new_active_reactions.empty();
+  bool need_update_message_reactions_visibility =
+      old_active_reactions.empty() != new_active_reactions.empty() && !td_->auth_manager_->is_bot();
 
   d->available_reactions = std::move(available_reactions);
   d->is_available_reactions_inited = true;
@@ -8538,6 +8534,9 @@ void MessagesManager::set_active_reactions(vector<ReactionType> active_reaction_
 }
 
 ChatReactions MessagesManager::get_active_reactions(const ChatReactions &available_reactions) const {
+  if (td_->auth_manager_->is_bot()) {
+    return available_reactions;
+  }
   return available_reactions.get_active_reactions(active_reaction_pos_);
 }
 
@@ -30735,10 +30734,6 @@ void MessagesManager::send_update_chat_action_bar(Dialog *d) {
 }
 
 void MessagesManager::send_update_chat_available_reactions(const Dialog *d) {
-  if (td_->auth_manager_->is_bot()) {
-    return;
-  }
-
   CHECK(d != nullptr);
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_available_reactions";
   auto available_reactions = get_dialog_active_reactions(d).get_chat_available_reactions_object();
