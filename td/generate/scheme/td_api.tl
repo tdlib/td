@@ -3414,11 +3414,12 @@ emojiCategoryTypeChatPhoto = EmojiCategoryType;
 storyViewer user_id:int53 view_date:int32 block_list:BlockList chosen_reaction_type:ReactionType = StoryViewer;
 
 //@description Represents a list of story viewers
-//@total_count Approximate total number of story viewers found
-//@total_reaction_count Approximate total number of reactions set by found story viewers
+//@total_count Approximate total number of users found
+//@total_forward_count Approximate total number of forwards by found users
+//@total_reaction_count Approximate total number of reactions set by found users
 //@viewers List of story viewers
 //@next_offset The offset for the next request. If empty, then there are no more results
-storyViewers total_count:int32 total_reaction_count:int32 viewers:vector<storyViewer> next_offset:string = StoryViewers;
+storyViewers total_count:int32 total_forward_count:int32 total_reaction_count:int32 viewers:vector<storyViewer> next_offset:string = StoryViewers;
 
 
 //@description Describes position of a clickable rectangle area on a story media

@@ -25,10 +25,13 @@ StringBuilder &operator<<(StringBuilder &string_builder, const StoryViewer &view
   return string_builder << '[' << viewer.user_id_ << " with " << viewer.reaction_type_ << " at " << viewer.date_ << ']';
 }
 
-StoryViewers::StoryViewers(int32 total_count, int32 total_reaction_count,
+StoryViewers::StoryViewers(int32 total_count, int32 total_forward_count, int32 total_reaction_count,
                            vector<telegram_api::object_ptr<telegram_api::StoryView>> &&story_views,
                            string &&next_offset)
-    : total_count_(total_count), total_reaction_count_(total_reaction_count), next_offset_(std::move(next_offset)) {
+    : total_count_(total_count)
+    , total_forward_count_(total_forward_count)
+    , total_reaction_count_(total_reaction_count)
+    , next_offset_(std::move(next_offset)) {
   for (auto &story_view_ptr : story_views) {
     if (story_view_ptr->get_id() != telegram_api::storyView::ID) {
       continue;
@@ -50,7 +53,7 @@ vector<UserId> StoryViewers::get_user_ids() const {
 td_api::object_ptr<td_api::storyViewers> StoryViewers::get_story_viewers_object(
     ContactsManager *contacts_manager) const {
   return td_api::make_object<td_api::storyViewers>(
-      total_count_, total_reaction_count_,
+      total_count_, total_forward_count_, total_reaction_count_,
       transform(story_viewers_,
                 [contacts_manager](const StoryViewer &story_viewer) {
                   return story_viewer.get_story_viewer_object(contacts_manager);

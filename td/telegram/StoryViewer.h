@@ -47,6 +47,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const StoryViewer &view
 
 class StoryViewers {
   int32 total_count_ = 0;
+  int32 total_forward_count_ = 0;
   int32 total_reaction_count_ = 0;
   vector<StoryViewer> story_viewers_;
   string next_offset_;
@@ -54,7 +55,7 @@ class StoryViewers {
   friend StringBuilder &operator<<(StringBuilder &string_builder, const StoryViewers &viewers);
 
  public:
-  StoryViewers(int32 total_count, int32 total_reaction_count,
+  StoryViewers(int32 total_count, int32 total_forward_count, int32 total_reaction_count,
                vector<telegram_api::object_ptr<telegram_api::StoryView>> &&story_views, string &&next_offset);
 
   vector<UserId> get_user_ids() const;

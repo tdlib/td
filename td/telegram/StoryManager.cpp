@@ -2855,6 +2855,7 @@ void StoryManager::on_get_story_viewers(
                << " story viewers";
     total_reaction_count = total_count;
   }
+  auto total_forward_count = max(view_list->forwards_count_, 0);
   for (auto &view_ptr : view_list->views_) {
     if (view_ptr->get_id() != telegram_api::storyView::ID) {
       continue;
@@ -2864,7 +2865,7 @@ void StoryManager::on_get_story_viewers(
                                                       view->blocked_my_stories_from_);
   }
 
-  StoryViewers story_viewers(total_count, total_reaction_count, std::move(view_list->views_),
+  StoryViewers story_viewers(total_count, total_forward_count, total_reaction_count, std::move(view_list->views_),
                              std::move(view_list->next_offset_));
   if (story->content_ != nullptr) {
     bool is_changed = false;
