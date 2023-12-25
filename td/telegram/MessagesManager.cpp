@@ -34309,6 +34309,32 @@ void MessagesManager::set_dialog_message_ttl(DialogId dialog_id, int32 ttl, Prom
   }
 }
 
+void MessagesManager::set_dialog_emoji_status(DialogId dialog_id, const EmojiStatus &emoji_status,
+                                              Promise<Unit> &&promise) {
+  if (!have_dialog_force(dialog_id, "set_dialog_emoji_status")) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      if (dialog_id == get_my_dialog_id()) {
+        return td_->contacts_manager_->set_emoji_status(emoji_status, std::move(promise));
+      }
+      break;
+    case DialogType::Chat:
+      break;
+    case DialogType::Channel:
+      return td_->contacts_manager_->set_channel_emoji_status(dialog_id.get_channel_id(), emoji_status,
+                                                              std::move(promise));
+    case DialogType::SecretChat:
+      break;
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+  }
+  promise.set_error(Status::Error(400, "Can't change emoji status in the chat"));
+}
+
 void MessagesManager::set_dialog_permissions(DialogId dialog_id,
                                              const td_api::object_ptr<td_api::chatPermissions> &permissions,
                                              Promise<Unit> &&promise) {

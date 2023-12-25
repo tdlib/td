@@ -466,7 +466,7 @@ class ContactsManager final : public Actor {
 
   void reorder_bot_usernames(UserId bot_user_id, vector<string> &&usernames, Promise<Unit> &&promise);
 
-  void set_emoji_status(EmojiStatus emoji_status, Promise<Unit> &&promise);
+  void set_emoji_status(const EmojiStatus &emoji_status, Promise<Unit> &&promise);
 
   void set_chat_description(ChatId chat_id, const string &description, Promise<Unit> &&promise);
 
@@ -484,6 +484,8 @@ class ContactsManager final : public Actor {
 
   void set_channel_profile_accent_color(ChannelId channel_id, AccentColorId profile_accent_color_id,
                                         CustomEmojiId profile_background_custom_emoji_id, Promise<Unit> &&promise);
+
+  void set_channel_emoji_status(ChannelId channel_id, const EmojiStatus &emoji_status, Promise<Unit> &&promise);
 
   void set_channel_sticker_set(ChannelId channel_id, StickerSetId sticker_set_id, Promise<Unit> &&promise);
 

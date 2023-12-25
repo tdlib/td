@@ -5368,6 +5368,17 @@ class CliClient final : public Actor {
       int32 auto_delete_time;
       get_args(args, chat_id, auto_delete_time);
       send_request(td_api::make_object<td_api::setChatMessageAutoDeleteTime>(chat_id, auto_delete_time));
+    } else if (op == "sces") {
+      ChatId chat_id;
+      CustomEmojiId custom_emoji_id;
+      int32 expiration_date;
+      get_args(args, chat_id, custom_emoji_id, expiration_date);
+      send_request(td_api::make_object<td_api::setChatEmojiStatus>(
+          chat_id, td_api::make_object<td_api::emojiStatus>(custom_emoji_id, expiration_date)));
+    } else if (op == "scese") {
+      ChatId chat_id;
+      get_args(args, chat_id);
+      send_request(td_api::make_object<td_api::setChatEmojiStatus>(chat_id, nullptr));
     } else if (op == "scperm") {
       ChatId chat_id;
       string permissions;

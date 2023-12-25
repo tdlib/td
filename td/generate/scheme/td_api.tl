@@ -7909,6 +7909,11 @@ setChatProfileAccentColor chat_id:int53 profile_accent_color_id:int32 profile_ba
 //@message_auto_delete_time New time value, in seconds; unless the chat is secret, it must be from 0 up to 365 * 86400 and be divisible by 86400. If 0, then messages aren't deleted automatically
 setChatMessageAutoDeleteTime chat_id:int53 message_auto_delete_time:int32 = Ok;
 
+//@description Changes the emoji status of a chat. Supported only for channels with enough boost level. Requires can_change_info administrator right
+//@chat_id Chat identifier
+//@emoji_status New emoji status; pass null to remove emoji status
+setChatEmojiStatus chat_id:int53 emoji_status:emojiStatus = Ok;
+
 //@description Changes the chat members permissions. Supported only for basic groups and supergroups. Requires can_restrict_members administrator right
 //@chat_id Chat identifier
 //@permissions New non-administrator members permissions in the chat

@@ -1086,7 +1086,7 @@ class UpdateEmojiStatusQuery final : public Td::ResultHandler {
   explicit UpdateEmojiStatusQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(EmojiStatus emoji_status) {
+  void send(const EmojiStatus &emoji_status) {
     send_query(G()->net_query_creator().create(
         telegram_api::account_updateEmojiStatus(emoji_status.get_input_emoji_status()), {{"me"}}));
   }
@@ -1374,6 +1374,48 @@ class UpdateChannelColorQuery final : public Td::ResultHandler {
       }
     } else {
       td_->contacts_manager_->on_get_channel_error(channel_id_, status, "UpdateChannelColorQuery");
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
+class UpdateChannelEmojiStatusQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  ChannelId channel_id_;
+
+ public:
+  explicit UpdateChannelEmojiStatusQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(ChannelId channel_id, const EmojiStatus &emoji_status) {
+    channel_id_ = channel_id;
+    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+    CHECK(input_channel != nullptr);
+    send_query(G()->net_query_creator().create(
+        telegram_api::channels_updateEmojiStatus(std::move(input_channel), emoji_status.get_input_emoji_status()),
+        {{channel_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::channels_updateEmojiStatus>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for UpdateChannelEmojiStatusQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    if (status.message() == "CHAT_NOT_MODIFIED") {
+      if (!td_->auth_manager_->is_bot()) {
+        promise_.set_value(Unit());
+        return;
+      }
+    } else {
+      td_->contacts_manager_->on_get_channel_error(channel_id_, status, "UpdateChannelEmojiStatusQuery");
+      get_recent_emoji_statuses(td_, Auto());
     }
     promise_.set_error(std::move(status));
   }
@@ -8167,7 +8209,7 @@ void ContactsManager::reorder_bot_usernames(UserId bot_user_id, vector<string> &
   td_->create_handler<ReorderBotUsernamesQuery>(std::move(promise))->send(bot_user_id, std::move(usernames));
 }
 
-void ContactsManager::set_emoji_status(EmojiStatus emoji_status, Promise<Unit> &&promise) {
+void ContactsManager::set_emoji_status(const EmojiStatus &emoji_status, Promise<Unit> &&promise) {
   if (!td_->option_manager_->get_option_boolean("is_premium")) {
     return promise.set_error(Status::Error(400, "The method is available only to Telegram Premium users"));
   }
@@ -8335,6 +8377,24 @@ void ContactsManager::set_channel_profile_accent_color(ChannelId channel_id, Acc
 
   td_->create_handler<UpdateChannelColorQuery>(std::move(promise))
       ->send(channel_id, true, profile_accent_color_id, profile_background_custom_emoji_id);
+}
+
+void ContactsManager::set_channel_emoji_status(ChannelId channel_id, const EmojiStatus &emoji_status,
+                                               Promise<Unit> &&promise) {
+  const auto *c = get_channel(channel_id);
+  if (c == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+  if (c->is_megagroup) {
+    return promise.set_error(Status::Error(400, "Emoji status can be changed only in channel chats"));
+  }
+  if (!get_channel_status(c).can_change_info_and_settings()) {
+    return promise.set_error(Status::Error(400, "Not enough rights in the channel"));
+  }
+
+  add_recent_emoji_status(td_, emoji_status);
+
+  td_->create_handler<UpdateChannelEmojiStatusQuery>(std::move(promise))->send(channel_id, emoji_status);
 }
 
 void ContactsManager::set_channel_sticker_set(ChannelId channel_id, StickerSetId sticker_set_id,

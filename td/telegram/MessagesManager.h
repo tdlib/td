@@ -113,6 +113,7 @@ class Dependencies;
 class DialogActionBar;
 class DialogFilter;
 class DraftMessage;
+class EmojiStatus;
 struct InputMessageContent;
 class MessageContent;
 struct MessageReactions;
@@ -574,6 +575,8 @@ class MessagesManager final : public Actor {
   void set_dialog_available_reactions(DialogId dialog_id,
                                       td_api::object_ptr<td_api::ChatAvailableReactions> &&available_reactions_ptr,
                                       Promise<Unit> &&promise);
+
+  void set_dialog_emoji_status(DialogId dialog_id, const EmojiStatus &emoji_status, Promise<Unit> &&promise);
 
   void set_dialog_permissions(DialogId dialog_id, const td_api::object_ptr<td_api::chatPermissions> &permissions,
                               Promise<Unit> &&promise);

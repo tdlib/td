@@ -1015,6 +1015,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::setChatMessageAutoDeleteTime &request);
 
+  void on_request(uint64 id, const td_api::setChatEmojiStatus &request);
+
   void on_request(uint64 id, const td_api::setChatPermissions &request);
 
   void on_request(uint64 id, td_api::setChatBackground &request);
