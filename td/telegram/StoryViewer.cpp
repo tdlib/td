@@ -23,6 +23,10 @@ td_api::object_ptr<td_api::storyInteraction> StoryViewer::get_story_interaction_
       block_list_id.get_block_list_object(), reaction_type_.get_reaction_type_object());
 }
 
+bool StoryViewer::is_valid() const {
+  return user_id_.is_valid() && date_ > 0;
+}
+
 StringBuilder &operator<<(StringBuilder &string_builder, const StoryViewer &viewer) {
   return string_builder << '[' << viewer.user_id_ << " with " << viewer.reaction_type_ << " at " << viewer.date_ << ']';
 }
@@ -42,9 +46,8 @@ StoryViewers::StoryViewers(Td *td, int32 total_count, int32 total_forward_count,
     td->contacts_manager_->on_update_user_is_blocked(UserId(story_view->user_id_), story_view->blocked_,
                                                      story_view->blocked_my_stories_from_);
     story_viewers_.emplace_back(std::move(story_view));
-    auto actor_dialog_id = story_viewers_.back().get_actor_dialog_id();
-    if (!actor_dialog_id.is_valid()) {
-      LOG(ERROR) << "Receive invalid " << actor_dialog_id << " in story interaction";
+    if (!story_viewers_.back().is_valid()) {
+      LOG(ERROR) << "Receive invalid " << story_viewers_.back() << " in story interaction";
       story_viewers_.pop_back();
     }
   }

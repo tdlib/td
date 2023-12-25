@@ -46,6 +46,8 @@ class StoryViewer {
     return DialogId(user_id_);
   }
 
+  bool is_valid() const;
+
   td_api::object_ptr<td_api::storyInteraction> get_story_interaction_object(ContactsManager *contacts_manager) const;
 };
 
