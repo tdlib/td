@@ -40,7 +40,7 @@ class StoryViewer {
     return user_id_;
   }
 
-  td_api::object_ptr<td_api::storyViewer> get_story_viewer_object(ContactsManager *contacts_manager) const;
+  td_api::object_ptr<td_api::storyInteraction> get_story_interaction_object(ContactsManager *contacts_manager) const;
 };
 
 StringBuilder &operator<<(StringBuilder &string_builder, const StoryViewer &viewer);
@@ -60,7 +60,7 @@ class StoryViewers {
 
   vector<UserId> get_user_ids() const;
 
-  td_api::object_ptr<td_api::storyViewers> get_story_viewers_object(ContactsManager *contacts_manager) const;
+  td_api::object_ptr<td_api::storyInteractions> get_story_interactions_object(ContactsManager *contacts_manager) const;
 };
 
 StringBuilder &operator<<(StringBuilder &string_builder, const StoryViewers &viewers);

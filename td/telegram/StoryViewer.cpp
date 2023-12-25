@@ -14,10 +14,11 @@
 
 namespace td {
 
-td_api::object_ptr<td_api::storyViewer> StoryViewer::get_story_viewer_object(ContactsManager *contacts_manager) const {
+td_api::object_ptr<td_api::storyInteraction> StoryViewer::get_story_interaction_object(
+    ContactsManager *contacts_manager) const {
   auto block_list_id = BlockListId(is_blocked_, is_blocked_for_stories_);
-  return td_api::make_object<td_api::storyViewer>(
-      contacts_manager->get_user_id_object(user_id_, "get_story_viewer_object"), date_,
+  return td_api::make_object<td_api::storyInteraction>(
+      contacts_manager->get_user_id_object(user_id_, "get_story_interaction_object"), date_,
       block_list_id.get_block_list_object(), reaction_type_.get_reaction_type_object());
 }
 
@@ -50,13 +51,13 @@ vector<UserId> StoryViewers::get_user_ids() const {
   return transform(story_viewers_, [](auto &viewer) { return viewer.get_user_id(); });
 }
 
-td_api::object_ptr<td_api::storyViewers> StoryViewers::get_story_viewers_object(
+td_api::object_ptr<td_api::storyInteractions> StoryViewers::get_story_interactions_object(
     ContactsManager *contacts_manager) const {
-  return td_api::make_object<td_api::storyViewers>(
+  return td_api::make_object<td_api::storyInteractions>(
       total_count_, total_forward_count_, total_reaction_count_,
       transform(story_viewers_,
                 [contacts_manager](const StoryViewer &story_viewer) {
-                  return story_viewer.get_story_viewer_object(contacts_manager);
+                  return story_viewer.get_story_interaction_object(contacts_manager);
                 }),
       next_offset_);
 }

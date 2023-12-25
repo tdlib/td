@@ -3406,20 +3406,20 @@ emojiCategoryTypeEmojiStatus = EmojiCategoryType;
 emojiCategoryTypeChatPhoto = EmojiCategoryType;
 
 
-//@description Represents a viewer of a story
+//@description Represents a view of a story
 //@user_id User identifier of the viewer
 //@view_date Approximate point in time (Unix timestamp) when the story was viewed
 //@block_list Block list to which the user is added; may be null if none
 //@chosen_reaction_type Type of the reaction that was chosen by the user; may be null if none
-storyViewer user_id:int53 view_date:int32 block_list:BlockList chosen_reaction_type:ReactionType = StoryViewer;
+storyInteraction user_id:int53 view_date:int32 block_list:BlockList chosen_reaction_type:ReactionType = StoryInteraction;
 
-//@description Represents a list of story viewers
-//@total_count Approximate total number of users found
-//@total_forward_count Approximate total number of forwards by found users
-//@total_reaction_count Approximate total number of reactions set by found users
-//@viewers List of story viewers
+//@description Represents a list of interactions with a story
+//@total_count Approximate total number of interactions found
+//@total_forward_count Approximate total number of found forwards and reposts
+//@total_reaction_count Approximate total number of found reactions
+//@interactions List of story interactions
 //@next_offset The offset for the next request. If empty, then there are no more results
-storyViewers total_count:int32 total_forward_count:int32 total_reaction_count:int32 viewers:vector<storyViewer> next_offset:string = StoryViewers;
+storyInteractions total_count:int32 total_forward_count:int32 total_reaction_count:int32 interactions:vector<storyInteraction> next_offset:string = StoryInteractions;
 
 
 //@description Describes position of a clickable rectangle area on a story media
@@ -3574,7 +3574,7 @@ storyInteractionInfo view_count:int32 forward_count:int32 reaction_count:int32 r
 //@can_be_replied True, if the story can be replied in the chat with the story sender
 //@can_toggle_is_pinned True, if the story's is_pinned value can be changed
 //@can_get_statistics True, if the story statistics are available through getStoryStatistics
-//@can_get_viewers True, if users viewed the story can be received through getStoryViewers
+//@can_get_interactions True, if interactions with the story can be received through getStoryInteractions
 //@has_expired_viewers True, if users viewed the story can't be received, because the story has expired more than getOption("story_viewers_expiration_delay") seconds ago
 //@repost_info Information about the original story; may be null if the story wasn't reposted
 //@interaction_info Information about interactions with the story; may be null if the story isn't owned or there were no interactions
@@ -3583,7 +3583,7 @@ storyInteractionInfo view_count:int32 forward_count:int32 reaction_count:int32 r
 //@content Content of the story
 //@areas Clickable areas to be shown on the story content
 //@caption Caption of the story
-story id:int32 sender_chat_id:int53 date:int32 is_being_sent:Bool is_being_edited:Bool is_edited:Bool is_pinned:Bool is_visible_only_for_self:Bool can_be_deleted:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_replied:Bool can_toggle_is_pinned:Bool can_get_statistics:Bool can_get_viewers:Bool has_expired_viewers:Bool repost_info:storyRepostInfo interaction_info:storyInteractionInfo chosen_reaction_type:ReactionType privacy_settings:StoryPrivacySettings content:StoryContent areas:vector<storyArea> caption:formattedText = Story;
+story id:int32 sender_chat_id:int53 date:int32 is_being_sent:Bool is_being_edited:Bool is_edited:Bool is_pinned:Bool is_visible_only_for_self:Bool can_be_deleted:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_replied:Bool can_toggle_is_pinned:Bool can_get_statistics:Bool can_get_interactions:Bool has_expired_viewers:Bool repost_info:storyRepostInfo interaction_info:storyInteractionInfo chosen_reaction_type:ReactionType privacy_settings:StoryPrivacySettings content:StoryContent areas:vector<storyArea> caption:formattedText = Story;
 
 //@description Represents a list of stories @total_count Approximate total number of stories found @stories The list of stories
 stories total_count:int32 stories:vector<story> = Stories;
@@ -8201,14 +8201,14 @@ getStoryAvailableReactions row_size:int32 = AvailableReactions;
 //@update_recent_reactions Pass true if the reaction needs to be added to recent reactions
 setStoryReaction story_sender_chat_id:int53 story_id:int32 reaction_type:ReactionType update_recent_reactions:Bool = Ok;
 
-//@description Returns viewers of a story. The method can be called only for stories posted on behalf of the current user
+//@description Returns interactions with a story. The method can be called only for stories posted on behalf of the current user
 //@story_id Story identifier
-//@query Query to search for in names and usernames of the viewers; may be empty to get all relevant viewers
-//@only_contacts Pass true to get only contacts; pass false to get all relevant viewers
-//@prefer_with_reaction Pass true to get viewers with reaction first; pass false to get viewers sorted just by view_date
+//@query Query to search for in names, usernames and titles; may be empty to get all relevant interactions
+//@only_contacts Pass true to get only interactions by contacts; pass false to get all relevant interactions
+//@prefer_with_reaction Pass true to get interactions with reaction first; pass false to get interactions sorted just by interaction date
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
-//@limit The maximum number of story viewers to return
-getStoryViewers story_id:int32 query:string only_contacts:Bool prefer_with_reaction:Bool offset:string limit:int32 = StoryViewers;
+//@limit The maximum number of story interactions to return
+getStoryInteractions story_id:int32 query:string only_contacts:Bool prefer_with_reaction:Bool offset:string limit:int32 = StoryInteractions;
 
 //@description Reports a story to the Telegram moderators
 //@story_sender_chat_id The identifier of the sender of the story to report

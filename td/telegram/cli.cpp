@@ -4418,7 +4418,7 @@ class CliClient final : public Actor {
       get_args(args, story_sender_chat_id, story_id, reaction, update_recent_reactions);
       send_request(td_api::make_object<td_api::setStoryReaction>(story_sender_chat_id, story_id,
                                                                  as_reaction_type(reaction), update_recent_reactions));
-    } else if (op == "gsv") {
+    } else if (op == "gsi") {
       StoryId story_id;
       string limit;
       string offset;
@@ -4426,8 +4426,8 @@ class CliClient final : public Actor {
       bool only_contacts;
       bool prefer_with_reaction;
       get_args(args, story_id, limit, offset, query, only_contacts, prefer_with_reaction);
-      send_request(td_api::make_object<td_api::getStoryViewers>(story_id, query, only_contacts, prefer_with_reaction,
-                                                                offset, as_limit(limit)));
+      send_request(td_api::make_object<td_api::getStoryInteractions>(story_id, query, only_contacts,
+                                                                     prefer_with_reaction, offset, as_limit(limit)));
     } else if (op == "rst") {
       ChatId story_sender_chat_id;
       StoryId story_id;

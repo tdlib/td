@@ -2793,9 +2793,9 @@ bool StoryManager::has_unexpired_viewers(StoryFullId story_full_id, const Story 
          G()->unix_time() < get_story_viewers_expire_date(story);
 }
 
-void StoryManager::get_story_viewers(StoryId story_id, const string &query, bool only_contacts,
-                                     bool prefer_with_reaction, const string &offset, int32 limit,
-                                     Promise<td_api::object_ptr<td_api::storyViewers>> &&promise) {
+void StoryManager::get_story_interactions(StoryId story_id, const string &query, bool only_contacts,
+                                          bool prefer_with_reaction, const string &offset, int32 limit,
+                                          Promise<td_api::object_ptr<td_api::storyInteractions>> &&promise) {
   DialogId owner_dialog_id(td_->contacts_manager_->get_my_id());
   StoryFullId story_full_id{owner_dialog_id, story_id};
   const Story *story = get_story(story_full_id);
@@ -2805,17 +2805,13 @@ void StoryManager::get_story_viewers(StoryId story_id, const string &query, bool
   if (limit <= 0) {
     return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
   }
-  if (can_get_story_viewers(story_full_id, story, G()->unix_time()).is_error() ||
-      story->interaction_info_.get_view_count() == 0) {
-    return promise.set_value(td_api::make_object<td_api::storyViewers>());
-  }
 
   bool is_full = query.empty() && !only_contacts;
   bool is_first = is_full && offset.empty();
   auto query_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), story_id, is_full, is_first, promise = std::move(promise)](
           Result<telegram_api::object_ptr<telegram_api::stories_storyViewsList>> result) mutable {
-        send_closure(actor_id, &StoryManager::on_get_story_viewers, story_id, is_full, is_first, std::move(result),
+        send_closure(actor_id, &StoryManager::on_get_story_interactions, story_id, is_full, is_first, std::move(result),
                      std::move(promise));
       });
 
@@ -2823,10 +2819,10 @@ void StoryManager::get_story_viewers(StoryId story_id, const string &query, bool
       ->send(owner_dialog_id, story_id, query, only_contacts, prefer_with_reaction, offset, limit);
 }
 
-void StoryManager::on_get_story_viewers(
+void StoryManager::on_get_story_interactions(
     StoryId story_id, bool is_full, bool is_first,
     Result<telegram_api::object_ptr<telegram_api::stories_storyViewsList>> r_view_list,
-    Promise<td_api::object_ptr<td_api::storyViewers>> &&promise) {
+    Promise<td_api::object_ptr<td_api::storyInteractions>> &&promise) {
   G()->ignore_result_if_closing(r_view_list);
   if (r_view_list.is_error()) {
     return promise.set_error(r_view_list.move_as_error());
@@ -2838,11 +2834,11 @@ void StoryManager::on_get_story_viewers(
   StoryFullId story_full_id{owner_dialog_id, story_id};
   Story *story = get_story_editable(story_full_id);
   if (story == nullptr) {
-    return promise.set_value(td_api::make_object<td_api::storyViewers>());
+    return promise.set_value(td_api::make_object<td_api::storyInteractions>());
   }
 
-  td_->contacts_manager_->on_get_users(std::move(view_list->users_), "on_get_story_viewers");
-  td_->contacts_manager_->on_get_chats(std::move(view_list->chats_), "on_get_story_viewers");
+  td_->contacts_manager_->on_get_users(std::move(view_list->users_), "on_get_story_interactions");
+  td_->contacts_manager_->on_get_chats(std::move(view_list->chats_), "on_get_story_interactions");
 
   auto total_count = view_list->count_;
   if (total_count < 0 || static_cast<size_t>(total_count) < view_list->views_.size()) {
@@ -2882,7 +2878,7 @@ void StoryManager::on_get_story_viewers(
 
   td_->contacts_manager_->on_view_dialog_active_stories(
       transform(story_viewers.get_user_ids(), [](UserId user_id) { return DialogId(user_id); }));
-  promise.set_value(story_viewers.get_story_viewers_object(td_->contacts_manager_.get()));
+  promise.set_value(story_viewers.get_story_interactions_object(td_->contacts_manager_.get()));
 }
 
 void StoryManager::report_story(StoryFullId story_full_id, ReportReason &&reason, Promise<Unit> &&promise) {
@@ -3043,7 +3039,7 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
   auto can_toggle_is_pinned = can_toggle_story_is_pinned(story_full_id, story);
   auto unix_time = G()->unix_time();
   auto can_get_statistics = can_get_story_statistics(story_full_id, story);
-  auto can_get_viewers = can_get_story_viewers(story_full_id, story, unix_time).is_ok();
+  auto can_get_interactions = can_get_story_viewers(story_full_id, story, unix_time).is_ok();
   auto repost_info =
       story->forward_info_ != nullptr ? story->forward_info_->get_story_repost_info_object(td_) : nullptr;
   auto interaction_info = story->interaction_info_.get_story_interaction_info_object(td_);
@@ -3060,7 +3056,7 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
   return td_api::make_object<td_api::story>(
       story_id.get(), td_->messages_manager_->get_chat_id_object(owner_dialog_id, "get_story_object"), story->date_,
       is_being_sent, is_being_edited, is_edited, story->is_pinned_, is_visible_only_for_self, can_be_deleted,
-      can_be_edited, can_be_forwarded, can_be_replied, can_toggle_is_pinned, can_get_statistics, can_get_viewers,
+      can_be_edited, can_be_forwarded, can_be_replied, can_toggle_is_pinned, can_get_statistics, can_get_interactions,
       has_expired_viewers, std::move(repost_info), std::move(interaction_info),
       story->chosen_reaction_type_.get_reaction_type_object(), std::move(privacy_settings),
       get_story_content_object(td_, content), std::move(story_areas),
