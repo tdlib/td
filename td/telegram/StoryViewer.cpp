@@ -8,6 +8,7 @@
 
 #include "td/telegram/BlockListId.h"
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/Td.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/logging.h"
@@ -26,7 +27,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const StoryViewer &view
   return string_builder << '[' << viewer.user_id_ << " with " << viewer.reaction_type_ << " at " << viewer.date_ << ']';
 }
 
-StoryViewers::StoryViewers(int32 total_count, int32 total_forward_count, int32 total_reaction_count,
+StoryViewers::StoryViewers(Td *td, int32 total_count, int32 total_forward_count, int32 total_reaction_count,
                            vector<telegram_api::object_ptr<telegram_api::StoryView>> &&story_views,
                            string &&next_offset)
     : total_count_(total_count)
@@ -38,6 +39,8 @@ StoryViewers::StoryViewers(int32 total_count, int32 total_forward_count, int32 t
       continue;
     }
     auto story_view = telegram_api::move_object_as<telegram_api::storyView>(story_view_ptr);
+    td->contacts_manager_->on_update_user_is_blocked(UserId(story_view->user_id_), story_view->blocked_,
+                                                     story_view->blocked_my_stories_from_);
     story_viewers_.emplace_back(std::move(story_view));
     auto user_id = story_viewers_.back().get_user_id();
     if (!user_id.is_valid()) {
