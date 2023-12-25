@@ -113,6 +113,9 @@ bool StoryInteractionInfo::set_recent_viewer_user_ids(vector<UserId> &&user_ids)
   if (user_ids.size() > MAX_RECENT_VIEWERS) {
     user_ids.resize(MAX_RECENT_VIEWERS);
   }
+  if (recent_viewer_user_ids_.size() < user_ids.size() && user_ids.size() <= static_cast<size_t>(view_count_)) {
+    return false;
+  }
   if (recent_viewer_user_ids_ != user_ids) {
     recent_viewer_user_ids_ = std::move(user_ids);
     return true;

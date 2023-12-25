@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/DialogId.h"
 #include "td/telegram/ReactionType.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -37,8 +38,12 @@ class StoryViewer {
       , reaction_type_(story_view->reaction_) {
   }
 
-  UserId get_user_id() const {
+  UserId get_viewer_user_id() const {
     return user_id_;
+  }
+
+  DialogId get_actor_dialog_id() const {
+    return DialogId(user_id_);
   }
 
   td_api::object_ptr<td_api::storyInteraction> get_story_interaction_object(ContactsManager *contacts_manager) const;
@@ -59,7 +64,9 @@ class StoryViewers {
   StoryViewers(Td *td, int32 total_count, int32 total_forward_count, int32 total_reaction_count,
                vector<telegram_api::object_ptr<telegram_api::StoryView>> &&story_views, string &&next_offset);
 
-  vector<UserId> get_user_ids() const;
+  vector<UserId> get_viewer_user_ids() const;
+
+  vector<DialogId> get_actor_dialog_ids() const;
 
   td_api::object_ptr<td_api::storyInteractions> get_story_interactions_object(ContactsManager *contacts_manager) const;
 };

@@ -2860,7 +2860,7 @@ void StoryManager::on_get_story_interactions(
     if (is_full && story->interaction_info_.set_counts(total_count, total_reaction_count)) {
       is_changed = true;
     }
-    if (is_first && story->interaction_info_.set_recent_viewer_user_ids(story_viewers.get_user_ids())) {
+    if (is_first && story->interaction_info_.set_recent_viewer_user_ids(story_viewers.get_viewer_user_ids())) {
       is_changed = true;
     }
     if (is_changed) {
@@ -2868,8 +2868,7 @@ void StoryManager::on_get_story_interactions(
     }
   }
 
-  td_->contacts_manager_->on_view_dialog_active_stories(
-      transform(story_viewers.get_user_ids(), [](UserId user_id) { return DialogId(user_id); }));
+  td_->contacts_manager_->on_view_dialog_active_stories(story_viewers.get_actor_dialog_ids());
   promise.set_value(story_viewers.get_story_interactions_object(td_->contacts_manager_.get()));
 }
 

@@ -42,16 +42,27 @@ StoryViewers::StoryViewers(Td *td, int32 total_count, int32 total_forward_count,
     td->contacts_manager_->on_update_user_is_blocked(UserId(story_view->user_id_), story_view->blocked_,
                                                      story_view->blocked_my_stories_from_);
     story_viewers_.emplace_back(std::move(story_view));
-    auto user_id = story_viewers_.back().get_user_id();
-    if (!user_id.is_valid()) {
-      LOG(ERROR) << "Receive invalid " << user_id << " as a viewer of a story";
+    auto actor_dialog_id = story_viewers_.back().get_actor_dialog_id();
+    if (!actor_dialog_id.is_valid()) {
+      LOG(ERROR) << "Receive invalid " << actor_dialog_id << " in story interaction";
       story_viewers_.pop_back();
     }
   }
 }
 
-vector<UserId> StoryViewers::get_user_ids() const {
-  return transform(story_viewers_, [](auto &viewer) { return viewer.get_user_id(); });
+vector<UserId> StoryViewers::get_viewer_user_ids() const {
+  vector<UserId> result;
+  for (const auto &story_viewer : story_viewers_) {
+    auto user_id = story_viewer.get_viewer_user_id();
+    if (user_id.is_valid()) {
+      result.push_back(user_id);
+    }
+  }
+  return result;
+}
+
+vector<DialogId> StoryViewers::get_actor_dialog_ids() const {
+  return transform(story_viewers_, [](auto &viewer) { return viewer.get_actor_dialog_id(); });
 }
 
 td_api::object_ptr<td_api::storyInteractions> StoryViewers::get_story_interactions_object(
