@@ -24199,8 +24199,8 @@ td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_messag
                                  get_message_own_max_media_timestamp(m), m->invert_media, m->disable_web_page_preview);
   return td_api::make_object<td_api::message>(
       m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_dialog_event_log_message_object"),
-      nullptr, nullptr, m->is_outgoing, false, false, false, false, can_be_saved, false, false, false, false, false,
-      false, false, false, true, m->is_channel_post, m->is_topic_message, false, m->date, edit_date,
+      nullptr, nullptr, m->is_outgoing, m->is_pinned, false, false, false, can_be_saved, false, false, false, false,
+      false, false, false, false, true, m->is_channel_post, m->is_topic_message, false, m->date, edit_date,
       std::move(forward_info), std::move(import_info), std::move(interaction_info), Auto(), nullptr, 0, nullptr, 0.0,
       0.0, via_bot_user_id, m->author_signature, 0, get_restriction_reason_description(m->restriction_reasons),
       std::move(content), std::move(reply_markup));
