@@ -8,12 +8,32 @@
 
 #include "td/telegram/BlockListId.h"
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/logging.h"
 
 namespace td {
+
+StoryViewer::StoryViewer(Td *td, telegram_api::object_ptr<telegram_api::StoryView> &&story_view_ptr) {
+  CHECK(story_view_ptr != nullptr);
+  if (story_view_ptr->get_id() != telegram_api::storyView::ID) {
+    return;
+  }
+  auto story_view = telegram_api::move_object_as<telegram_api::storyView>(story_view_ptr);
+  UserId user_id(story_view->user_id_);
+  if (!user_id.is_valid()) {
+    return;
+  }
+  user_id_ = user_id;
+  date_ = td::max(story_view->date_, static_cast<int32>(0));
+  is_blocked_ = story_view->blocked_;
+  is_blocked_for_stories_ = story_view->blocked_my_stories_from_;
+  reaction_type_ = ReactionType(story_view->reaction_);
+
+  td->messages_manager_->on_update_dialog_is_blocked(DialogId(user_id), is_blocked_, is_blocked_for_stories_);
+}
 
 td_api::object_ptr<td_api::storyInteraction> StoryViewer::get_story_interaction_object(
     ContactsManager *contacts_manager) const {
@@ -38,18 +58,13 @@ StoryViewers::StoryViewers(Td *td, int32 total_count, int32 total_forward_count,
     , total_forward_count_(total_forward_count)
     , total_reaction_count_(total_reaction_count)
     , next_offset_(std::move(next_offset)) {
-  for (auto &story_view_ptr : story_views) {
-    if (story_view_ptr->get_id() != telegram_api::storyView::ID) {
+  for (auto &story_view : story_views) {
+    StoryViewer story_viewer(td, std::move(story_view));
+    if (!story_viewer.is_valid()) {
+      LOG(ERROR) << "Receive invalid " << story_viewer << " in story interaction";
       continue;
     }
-    auto story_view = telegram_api::move_object_as<telegram_api::storyView>(story_view_ptr);
-    td->contacts_manager_->on_update_user_is_blocked(UserId(story_view->user_id_), story_view->blocked_,
-                                                     story_view->blocked_my_stories_from_);
-    story_viewers_.emplace_back(std::move(story_view));
-    if (!story_viewers_.back().is_valid()) {
-      LOG(ERROR) << "Receive invalid " << story_viewers_.back() << " in story interaction";
-      story_viewers_.pop_back();
-    }
+    story_viewers_.push_back(std::move(story_viewer));
   }
 }
 

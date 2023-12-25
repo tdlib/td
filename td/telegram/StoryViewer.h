@@ -30,13 +30,7 @@ class StoryViewer {
   friend StringBuilder &operator<<(StringBuilder &string_builder, const StoryViewer &viewer);
 
  public:
-  StoryViewer(telegram_api::object_ptr<telegram_api::storyView> &&story_view)
-      : user_id_(story_view->user_id_)
-      , date_(td::max(story_view->date_, static_cast<int32>(0)))
-      , is_blocked_(story_view->blocked_)
-      , is_blocked_for_stories_(story_view->blocked_my_stories_from_)
-      , reaction_type_(story_view->reaction_) {
-  }
+  StoryViewer(Td *td, telegram_api::object_ptr<telegram_api::StoryView> &&story_view_ptr);
 
   UserId get_viewer_user_id() const {
     return user_id_;
