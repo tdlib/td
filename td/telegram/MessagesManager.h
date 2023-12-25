@@ -230,7 +230,6 @@ class MessagesManager final : public Actor {
                                vector<tl_object_ptr<telegram_api::Message>> &&messages,
                                Promise<td_api::object_ptr<td_api::messages>> &&promise);
 
-  // if message is from_update, flags have_previous and have_next are ignored and must be both true
   MessageFullId on_get_message(tl_object_ptr<telegram_api::Message> message_ptr, bool from_update,
                                bool is_channel_message, bool is_scheduled, const char *source);
 

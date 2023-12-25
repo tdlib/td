@@ -3406,22 +3406,6 @@ emojiCategoryTypeEmojiStatus = EmojiCategoryType;
 emojiCategoryTypeChatPhoto = EmojiCategoryType;
 
 
-//@description Represents a view of a story
-//@user_id User identifier of the viewer
-//@view_date Approximate point in time (Unix timestamp) when the story was viewed
-//@block_list Block list to which the user is added; may be null if none
-//@chosen_reaction_type Type of the reaction that was chosen by the user; may be null if none
-storyInteraction user_id:int53 view_date:int32 block_list:BlockList chosen_reaction_type:ReactionType = StoryInteraction;
-
-//@description Represents a list of interactions with a story
-//@total_count Approximate total number of interactions found
-//@total_forward_count Approximate total number of found forwards and reposts
-//@total_reaction_count Approximate total number of found reactions
-//@interactions List of story interactions
-//@next_offset The offset for the next request. If empty, then there are no more results
-storyInteractions total_count:int32 total_forward_count:int32 total_reaction_count:int32 interactions:vector<storyInteraction> next_offset:string = StoryInteractions;
-
-
 //@description Describes position of a clickable rectangle area on a story media
 //@x_percentage The abscissa of the rectangle's center, as a percentage of the media width
 //@y_percentage The ordinate of the rectangle's center, as a percentage of the media height
@@ -3606,6 +3590,34 @@ storyInfo story_id:int32 date:int32 is_for_close_friends:Bool = StoryInfo;
 //@max_read_story_id Identifier of the last read active story
 //@stories Basic information about the stories; use getStory to get full information about the stories. The stories are in a chronological order (i.e., in order of increasing story identifiers)
 chatActiveStories chat_id:int53 list:StoryList order:int53 max_read_story_id:int32 stories:vector<storyInfo> = ChatActiveStories;
+
+
+//@class StoryInteractionType @description Describes type of interaction with a story
+
+//@description A view of the story @chosen_reaction_type Type of the reaction that was chosen by the viewer; may be null if none
+storyInteractionTypeView chosen_reaction_type:ReactionType = StoryInteractionType;
+
+//@description A forward of the story as a message @message The message with story forward
+storyInteractionTypeForward message:message = StoryInteractionType;
+
+//@description A repost of the story as a story @story The reposted story
+storyInteractionTypeRepost story:story = StoryInteractionType;
+
+
+//@description Represents interaction with a story
+//@actor_id Identifier of the user or chat that made the interaction
+//@interaction_date Approximate point in time (Unix timestamp) when the interaction happenned
+//@block_list Block list to which the actor is added; may be null if none
+//@type Type of the interaction
+storyInteraction actor_id:MessageSender interaction_date:int32 block_list:BlockList type:StoryInteractionType = StoryInteraction;
+
+//@description Represents a list of interactions with a story
+//@total_count Approximate total number of interactions found
+//@total_forward_count Approximate total number of found forwards and reposts
+//@total_reaction_count Approximate total number of found reactions
+//@interactions List of story interactions
+//@next_offset The offset for the next request. If empty, then there are no more results
+storyInteractions total_count:int32 total_forward_count:int32 total_reaction_count:int32 interactions:vector<storyInteraction> next_offset:string = StoryInteractions;
 
 
 //@class PublicForward @description Describes a public forward or repost of a story

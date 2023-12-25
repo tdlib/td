@@ -2869,7 +2869,7 @@ void StoryManager::on_get_story_interactions(
   }
 
   td_->contacts_manager_->on_view_dialog_active_stories(story_viewers.get_actor_dialog_ids());
-  promise.set_value(story_viewers.get_story_interactions_object(td_->contacts_manager_.get()));
+  promise.set_value(story_viewers.get_story_interactions_object(td_));
 }
 
 void StoryManager::report_story(StoryFullId story_full_id, ReportReason &&reason, Promise<Unit> &&promise) {
@@ -2893,6 +2893,11 @@ bool StoryManager::have_story(StoryFullId story_full_id) const {
 
 bool StoryManager::have_story_force(StoryFullId story_full_id) {
   return get_story_force(story_full_id, "have_story_force") != nullptr;
+}
+
+int32 StoryManager::get_story_date(StoryFullId story_full_id) {
+  const auto *story = get_story_force(story_full_id, "get_story_date");
+  return story != nullptr ? story->date_ : 0;
 }
 
 bool StoryManager::is_inaccessible_story(StoryFullId story_full_id) const {

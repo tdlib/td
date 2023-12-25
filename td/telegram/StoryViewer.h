@@ -7,7 +7,9 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/MessageFullId.h"
 #include "td/telegram/ReactionType.h"
+#include "td/telegram/StoryId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
@@ -17,15 +19,20 @@
 
 namespace td {
 
-class ContactsManager;
 class Td;
 
 class StoryViewer {
-  UserId user_id_;
+  enum class Type : int32 { None, View, Forward, Repost };
+  Type type_ = Type::None;
+
+  DialogId actor_dialog_id_;
   int32 date_ = 0;
   bool is_blocked_ = false;
   bool is_blocked_for_stories_ = false;
-  ReactionType reaction_type_;
+
+  ReactionType reaction_type_;     // for View
+  MessageFullId message_full_id_;  // for Forward
+  StoryId story_id_;               // for Repost
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const StoryViewer &viewer);
 
@@ -33,16 +40,16 @@ class StoryViewer {
   StoryViewer(Td *td, telegram_api::object_ptr<telegram_api::StoryView> &&story_view_ptr);
 
   UserId get_viewer_user_id() const {
-    return user_id_;
+    return type_ == Type::View ? actor_dialog_id_.get_user_id() : UserId();
   }
 
   DialogId get_actor_dialog_id() const {
-    return DialogId(user_id_);
+    return actor_dialog_id_;
   }
 
   bool is_valid() const;
 
-  td_api::object_ptr<td_api::storyInteraction> get_story_interaction_object(ContactsManager *contacts_manager) const;
+  td_api::object_ptr<td_api::storyInteraction> get_story_interaction_object(Td *td) const;
 };
 
 StringBuilder &operator<<(StringBuilder &string_builder, const StoryViewer &viewer);
@@ -64,7 +71,7 @@ class StoryViewers {
 
   vector<DialogId> get_actor_dialog_ids() const;
 
-  td_api::object_ptr<td_api::storyInteractions> get_story_interactions_object(ContactsManager *contacts_manager) const;
+  td_api::object_ptr<td_api::storyInteractions> get_story_interactions_object(Td *td) const;
 };
 
 StringBuilder &operator<<(StringBuilder &string_builder, const StoryViewers &viewers);

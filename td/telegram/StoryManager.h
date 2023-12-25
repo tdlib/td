@@ -306,6 +306,8 @@ class StoryManager final : public Actor {
 
   bool have_story_force(StoryFullId story_full_id);
 
+  int32 get_story_date(StoryFullId story_full_id);
+
   bool can_get_story_statistics(StoryFullId story_full_id);
 
   bool is_inaccessible_story(StoryFullId story_full_id) const;
