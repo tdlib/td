@@ -19772,6 +19772,7 @@ void ContactsManager::on_get_channel(telegram_api::channel &channel, const char 
       }
       on_update_channel_has_location(c, channel_id, channel.has_geo_);
       on_update_channel_noforwards(c, channel_id, channel.noforwards_);
+      on_update_channel_emoji_status(c, channel_id, EmojiStatus(std::move(channel.emoji_status_)));
 
       if (c->has_linked_channel != has_linked_channel || c->is_slow_mode_enabled != is_slow_mode_enabled ||
           c->is_megagroup != is_megagroup || c->restriction_reasons != restriction_reasons || c->is_scam != is_scam ||
@@ -19912,6 +19913,7 @@ void ContactsManager::on_get_channel(telegram_api::channel &channel, const char 
                 std::move(channel.usernames_)));  // uses status, must be called after on_update_channel_status
   on_update_channel_has_location(c, channel_id, channel.has_geo_);
   on_update_channel_noforwards(c, channel_id, channel.noforwards_);
+  on_update_channel_emoji_status(c, channel_id, EmojiStatus(std::move(channel.emoji_status_)));
   if (!td_->auth_manager_->is_bot() && !channel.stories_hidden_min_) {
     on_update_channel_stories_hidden(c, channel_id, channel.stories_hidden_);
   }
@@ -20036,6 +20038,7 @@ void ContactsManager::on_get_channel_forbidden(telegram_api::channelForbidden &c
   // on_update_channel_usernames(c, channel_id, Usernames());  // don't know if channel usernames are empty, so don't update it
   // on_update_channel_has_location(c, channel_id, false);
   on_update_channel_noforwards(c, channel_id, false);
+  on_update_channel_emoji_status(c, channel_id, EmojiStatus());
   td_->messages_manager_->on_update_dialog_group_call(DialogId(channel_id), false, false, "on_get_channel_forbidden");
   // must be after setting of c->is_megagroup
   tl_object_ptr<telegram_api::chatBannedRights> banned_rights;  // == nullptr
