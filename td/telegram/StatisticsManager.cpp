@@ -666,9 +666,6 @@ void StatisticsManager::on_get_public_forwards(
     Promise<td_api::object_ptr<td_api::publicForwards>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
-  td_->contacts_manager_->on_get_users(std::move(public_forwards->users_), "on_get_public_forwards");
-  td_->contacts_manager_->on_get_chats(std::move(public_forwards->chats_), "on_get_public_forwards");
-
   auto total_count = public_forwards->count_;
   LOG(INFO) << "Receive " << public_forwards->forwards_.size() << " forwarded stories out of "
             << public_forwards->count_;
@@ -719,6 +716,9 @@ void StatisticsManager::on_get_public_forwards(
 void StatisticsManager::get_channel_differences_if_needed(
     telegram_api::object_ptr<telegram_api::stats_publicForwards> &&public_forwards,
     Promise<td_api::object_ptr<td_api::publicForwards>> promise, const char *source) {
+  td_->contacts_manager_->on_get_users(std::move(public_forwards->users_), "stats_publicForwards");
+  td_->contacts_manager_->on_get_chats(std::move(public_forwards->chats_), "stats_publicForwards");
+
   vector<const telegram_api::object_ptr<telegram_api::Message> *> messages;
   for (const auto &forward : public_forwards->forwards_) {
     CHECK(forward != nullptr);

@@ -2851,6 +2851,9 @@ bool StoryManager::has_unexpired_viewers(StoryFullId story_full_id, const Story 
 void StoryManager::get_channel_differences_if_needed(
     telegram_api::object_ptr<telegram_api::stories_storyViewsList> &&story_views,
     Promise<telegram_api::object_ptr<telegram_api::stories_storyViewsList>> promise) {
+  td_->contacts_manager_->on_get_users(std::move(story_views->users_), "stories_storyViewsList");
+  td_->contacts_manager_->on_get_chats(std::move(story_views->chats_), "stories_storyViewsList");
+
   vector<const telegram_api::object_ptr<telegram_api::Message> *> messages;
   for (const auto &view : story_views->views_) {
     CHECK(view != nullptr);
@@ -2917,9 +2920,6 @@ void StoryManager::on_get_story_interactions(
     return promise.set_value(td_api::make_object<td_api::storyInteractions>());
   }
 
-  td_->contacts_manager_->on_get_users(std::move(view_list->users_), "on_get_story_interactions");
-  td_->contacts_manager_->on_get_chats(std::move(view_list->chats_), "on_get_story_interactions");
-
   auto total_count = view_list->count_;
   if (total_count < 0 || static_cast<size_t>(total_count) < view_list->views_.size()) {
     LOG(ERROR) << "Receive total_count = " << total_count << " and " << view_list->views_.size() << " story viewers";
@@ -2955,6 +2955,9 @@ void StoryManager::on_get_story_interactions(
 void StoryManager::get_channel_differences_if_needed(
     telegram_api::object_ptr<telegram_api::stories_storyReactionsList> &&story_reactions,
     Promise<telegram_api::object_ptr<telegram_api::stories_storyReactionsList>> promise) {
+  td_->contacts_manager_->on_get_users(std::move(story_reactions->users_), "stories_storyReactionsList");
+  td_->contacts_manager_->on_get_chats(std::move(story_reactions->chats_), "stories_storyReactionsList");
+
   vector<const telegram_api::object_ptr<telegram_api::Message> *> messages;
   for (const auto &reaction : story_reactions->reactions_) {
     CHECK(reaction != nullptr);
@@ -3012,9 +3015,6 @@ void StoryManager::on_get_dialog_story_interactions(
   if (story == nullptr) {
     return promise.set_value(td_api::make_object<td_api::storyInteractions>());
   }
-
-  td_->contacts_manager_->on_get_users(std::move(reaction_list->users_), "on_get_dialog_story_interactions");
-  td_->contacts_manager_->on_get_chats(std::move(reaction_list->chats_), "on_get_dialog_story_interactions");
 
   auto total_count = reaction_list->count_;
   if (total_count < 0 || static_cast<size_t>(total_count) < reaction_list->reactions_.size()) {
