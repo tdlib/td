@@ -44,6 +44,14 @@ class ThemeManager final : public Actor {
 
   int32 get_profile_accent_color_id_object(AccentColorId accent_color_id) const;
 
+  struct DialogBoostAvailableCounts {
+    int32 title_color_count_ = 0;
+    int32 accent_color_count_ = 0;
+    int32 profile_accent_color_count_ = 0;
+    int32 chat_theme_count_ = 0;
+  };
+  DialogBoostAvailableCounts get_dialog_boost_available_count(int32 level);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:

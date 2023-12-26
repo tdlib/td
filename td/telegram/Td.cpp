@@ -6715,6 +6715,12 @@ void Td::on_request(uint64 id, const td_api::activateStoryStealthMode &request) 
   story_manager_->activate_stealth_mode(std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getChatBoostLevelFeatures &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  promise.set_value(boost_manager_->get_chat_boost_level_features_object(request.level_));
+}
+
 void Td::on_request(uint64 id, const td_api::getAvailableChatBoostSlots &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

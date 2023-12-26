@@ -4446,6 +4446,10 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::reportStory>(story_sender_chat_id, story_id, reason, text));
     } else if (op == "assm") {
       send_request(td_api::make_object<td_api::activateStoryStealthMode>());
+    } else if (op == "gcblf") {
+      int32 level;
+      get_args(args, level);
+      send_request(td_api::make_object<td_api::getChatBoostLevelFeatures>(level));
     } else if (op == "gacbs") {
       send_request(td_api::make_object<td_api::getAvailableChatBoostSlots>());
     } else if (op == "gcbs") {

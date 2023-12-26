@@ -13,8 +13,10 @@
 #include "td/telegram/LinkManager.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/OptionManager.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/ThemeManager.h"
 #include "td/telegram/UserId.h"
 
 #include "td/utils/algorithm.h"
@@ -338,6 +340,25 @@ BoostManager::BoostManager(Td *td, ActorShared<> parent) : td_(td), parent_(std:
 
 void BoostManager::tear_down() {
   parent_.reset();
+}
+
+td_api::object_ptr<td_api::chatBoostLevelFeatures> BoostManager::get_chat_boost_level_features_object(
+    int32 level) const {
+  int32 actual_level =
+      clamp(level, 0, static_cast<int32>(td_->option_manager_->get_option_integer("chat_boost_level_max")));
+  auto theme_counts = td_->theme_manager_->get_dialog_boost_available_count(actual_level);
+  auto can_set_profile_background_custom_emoji =
+      actual_level >= td_->option_manager_->get_option_integer("channel_profile_bg_icon_level_min");
+  auto can_set_background_custom_emoji =
+      actual_level >= td_->option_manager_->get_option_integer("channel_bg_icon_level_min");
+  auto can_set_emoji_status =
+      actual_level >= td_->option_manager_->get_option_integer("channel_emoji_status_level_min");
+  auto can_set_custom_background =
+      actual_level >= td_->option_manager_->get_option_integer("channel_custom_wallpaper_level_min");
+  return td_api::make_object<td_api::chatBoostLevelFeatures>(
+      level, actual_level, actual_level, theme_counts.title_color_count_, theme_counts.profile_accent_color_count_,
+      can_set_profile_background_custom_emoji, theme_counts.accent_color_count_, can_set_background_custom_emoji,
+      can_set_emoji_status, theme_counts.chat_theme_count_, can_set_custom_background);
 }
 
 void BoostManager::get_boost_slots(Promise<td_api::object_ptr<td_api::chatBoostSlots>> &&promise) {

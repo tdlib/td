@@ -11,6 +11,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/net/NetQueryCreator.h"
+#include "td/telegram/OptionManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
@@ -430,6 +431,35 @@ void ThemeManager::init() {
 
 void ThemeManager::tear_down() {
   parent_.reset();
+}
+
+ThemeManager::DialogBoostAvailableCounts ThemeManager::get_dialog_boost_available_count(int32 level) {
+  DialogBoostAvailableCounts result;
+  if (level >= td_->option_manager_->get_option_integer("channel_wallpaper_level_min")) {
+    result.chat_theme_count_ = static_cast<int32>(chat_themes_.themes.size());
+  }
+  for (size_t i = 0; i < accent_colors_.min_boost_levels_.size(); i++) {
+    if (level >= accent_colors_.min_boost_levels_[i]) {
+      result.accent_color_count_++;
+
+      if (accent_colors_.accent_color_ids_[i].is_built_in()) {
+        result.title_color_count_++;
+        continue;
+      }
+
+      auto it = accent_colors_.light_colors_.find(accent_colors_.accent_color_ids_[i]);
+      CHECK(it != accent_colors_.light_colors_.end());
+      if (it->second.size() == 1) {
+        result.title_color_count_++;
+      }
+    }
+  }
+  for (size_t i = 0; i < profile_accent_colors_.min_boost_levels_.size(); i++) {
+    if (level >= profile_accent_colors_.min_boost_levels_[i]) {
+      result.profile_accent_color_count_++;
+    }
+  }
+  return result;
 }
 
 bool ThemeManager::is_dark_base_theme(BaseTheme base_theme) {

@@ -3636,6 +3636,21 @@ publicForwardStory story:story = PublicForward;
 publicForwards total_count:int32 forwards:vector<PublicForward> next_offset:string = PublicForwards;
 
 
+//@description Contains list of features available on a specific chat boost level
+//@level Target chat boost level
+//@story_per_day_count Number of stories that the chat can publish daily
+//@custom_emoji_reaction_count Number of custom emoji reactions that can be added to the list of available reactions
+//@title_color_count Number of custom colors for chat title
+//@profile_accent_color_count Number of custom colors for profile photo background
+//@can_set_profile_background_custom_emoji True, if custom emoji for profile background can be set
+//@accent_color_count Number of custom colors for background of empty chat photo, replies to messages and link previews
+//@can_set_background_custom_emoji True, if custom emoji for reply header and link preview background can be set
+//@can_set_emoji_status True, if emoji status can be set
+//@chat_theme_background_count Number of chat theme backgrounds that can be set as chat background
+//@can_set_custom_background True, if custom background can be set in the chat for all users
+chatBoostLevelFeatures level:int32 story_per_day_count:int32 custom_emoji_reaction_count:int32 title_color_count:int32 profile_accent_color_count:int32 can_set_profile_background_custom_emoji:Bool accent_color_count:int32 can_set_background_custom_emoji:Bool can_set_emoji_status:Bool chat_theme_background_count:int32 can_set_custom_background:Bool = ChatBoostLevelFeatures;
+
+
 //@class ChatBoostSource @description Describes source of a chat boost
 
 //@description The chat created a Telegram Premium gift code for a user
@@ -8251,6 +8266,9 @@ activateStoryStealthMode = Ok;
 //@limit The maximum number of messages and stories to be returned; must be positive and can't be greater than 100. For optimal performance, the number of returned objects is chosen by TDLib and can be smaller than the specified limit
 getStoryPublicForwards story_sender_chat_id:int53 story_id:int32 offset:string limit:int32 = PublicForwards;
 
+
+//@description Returns list of features available on the specific chat boost level; this is an offline request @level Chat boost level
+getChatBoostLevelFeatures level:int32 = ChatBoostLevelFeatures;
 
 //@description Returns the list of available chat boost slots for the current user
 getAvailableChatBoostSlots = ChatBoostSlots;
