@@ -39,6 +39,8 @@ class StoryViewer {
  public:
   StoryViewer(Td *td, telegram_api::object_ptr<telegram_api::StoryView> &&story_view_ptr);
 
+  StoryViewer(Td *td, telegram_api::object_ptr<telegram_api::StoryReaction> &&story_reaction_ptr);
+
   UserId get_viewer_user_id() const {
     return type_ == Type::View ? actor_dialog_id_.get_user_id() : UserId();
   }
@@ -66,6 +68,9 @@ class StoryViewers {
  public:
   StoryViewers(Td *td, int32 total_count, int32 total_forward_count, int32 total_reaction_count,
                vector<telegram_api::object_ptr<telegram_api::StoryView>> &&story_views, string &&next_offset);
+
+  StoryViewers(Td *td, int32 total_count,
+               vector<telegram_api::object_ptr<telegram_api::StoryReaction>> &&story_reactions, string &&next_offset);
 
   vector<UserId> get_viewer_user_ids() const;
 

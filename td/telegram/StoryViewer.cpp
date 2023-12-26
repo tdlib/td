@@ -24,12 +24,12 @@ StoryViewer::StoryViewer(Td *td, telegram_api::object_ptr<telegram_api::StoryVie
     case telegram_api::storyView::ID: {
       auto story_view = telegram_api::move_object_as<telegram_api::storyView>(story_view_ptr);
       UserId user_id(story_view->user_id_);
-      if (!user_id.is_valid()) {
+      if (!user_id.is_valid() || story_view->date_ <= 0) {
         break;
       }
       type_ = Type::View;
       actor_dialog_id_ = DialogId(user_id);
-      date_ = td::max(story_view->date_, static_cast<int32>(0));
+      date_ = story_view->date_;
       is_blocked_ = story_view->blocked_;
       is_blocked_for_stories_ = story_view->blocked_my_stories_from_;
       reaction_type_ = ReactionType(story_view->reaction_);
@@ -80,6 +80,62 @@ StoryViewer::StoryViewer(Td *td, telegram_api::object_ptr<telegram_api::StoryVie
   }
 }
 
+StoryViewer::StoryViewer(Td *td, telegram_api::object_ptr<telegram_api::StoryReaction> &&story_reaction_ptr) {
+  CHECK(story_reaction_ptr != nullptr);
+  switch (story_reaction_ptr->get_id()) {
+    case telegram_api::storyReaction::ID: {
+      auto story_reaction = telegram_api::move_object_as<telegram_api::storyReaction>(story_reaction_ptr);
+      DialogId actor_dialog_id(story_reaction->peer_id_);
+      if (!actor_dialog_id.is_valid() || story_reaction->date_ <= 0) {
+        break;
+      }
+      if (actor_dialog_id.get_type() != DialogType::User) {
+        td->messages_manager_->force_create_dialog(actor_dialog_id, "StoryViewer", true);
+      }
+
+      type_ = Type::View;
+      actor_dialog_id_ = actor_dialog_id;
+      date_ = story_reaction->date_;
+      reaction_type_ = ReactionType(story_reaction->reaction_);
+      break;
+    }
+    case telegram_api::storyReactionPublicForward::ID: {
+      auto story_reaction = telegram_api::move_object_as<telegram_api::storyReactionPublicForward>(story_reaction_ptr);
+      auto date = MessagesManager::get_message_date(story_reaction->message_);
+      auto message_full_id = td->messages_manager_->on_get_message(std::move(story_reaction->message_), false, true,
+                                                                   false, "storyReactionPublicForward");
+      if (!message_full_id.get_message_id().is_valid() || date <= 0) {
+        break;
+      }
+      type_ = Type::Forward;
+      actor_dialog_id_ = td->messages_manager_->get_dialog_message_sender(message_full_id);
+      date_ = date;
+      message_full_id_ = message_full_id;
+      break;
+    }
+    case telegram_api::storyReactionPublicRepost::ID: {
+      auto story_reaction = telegram_api::move_object_as<telegram_api::storyReactionPublicRepost>(story_reaction_ptr);
+      auto owner_dialog_id = DialogId(story_reaction->peer_id_);
+      if (!owner_dialog_id.is_valid()) {
+        break;
+      }
+      auto story_id = td->story_manager_->on_get_story(owner_dialog_id, std::move(story_reaction->story_));
+      auto date = td->story_manager_->get_story_date({owner_dialog_id, story_id});
+      if (date <= 0) {
+        break;
+      }
+      type_ = Type::Repost;
+      actor_dialog_id_ = owner_dialog_id;
+      date_ = date;
+      story_id_ = story_id;
+      break;
+    }
+    default:
+      UNREACHABLE();
+      break;
+  }
+}
+
 td_api::object_ptr<td_api::storyInteraction> StoryViewer::get_story_interaction_object(Td *td) const {
   CHECK(is_valid());
   auto type = [&]() -> td_api::object_ptr<td_api::StoryInteractionType> {
@@ -127,7 +183,21 @@ StoryViewers::StoryViewers(Td *td, int32 total_count, int32 total_forward_count,
   for (auto &story_view : story_views) {
     StoryViewer story_viewer(td, std::move(story_view));
     if (!story_viewer.is_valid()) {
-      LOG(ERROR) << "Receive invalid " << story_viewer << " in story interaction";
+      LOG(ERROR) << "Receive invalid story interaction";
+      continue;
+    }
+    story_viewers_.push_back(std::move(story_viewer));
+  }
+}
+
+StoryViewers::StoryViewers(Td *td, int32 total_count,
+                           vector<telegram_api::object_ptr<telegram_api::StoryReaction>> &&story_reactions,
+                           string &&next_offset)
+    : total_count_(total_count), next_offset_(std::move(next_offset)) {
+  for (auto &story_reaction : story_reactions) {
+    StoryViewer story_viewer(td, std::move(story_reaction));
+    if (!story_viewer.is_valid()) {
+      LOG(ERROR) << "Receive invalid story interaction";
       continue;
     }
     story_viewers_.push_back(std::move(story_viewer));
