@@ -7904,15 +7904,15 @@ setChatTitle chat_id:int53 title:string = Ok;
 //@photo New chat photo; pass null to delete the chat photo
 setChatPhoto chat_id:int53 photo:InputChatPhoto = Ok;
 
-//@description Changes accent color and background custom emoji of a chat. Supported only for channels with getOption("channel_custom_accent_color_boost_level_min") boost level. Requires can_change_info administrator right
+//@description Changes accent color and background custom emoji of a chat. Requires can_change_info administrator right
 //@chat_id Chat identifier
-//@accent_color_id Identifier of the accent color to use
+//@accent_color_id Identifier of the accent color to use. The chat must have at least accentColor.min_chat_boost_level boost level
 //@background_custom_emoji_id Identifier of a custom emoji to be shown on the reply header and link preview background; 0 if none
 setChatAccentColor chat_id:int53 accent_color_id:int32 background_custom_emoji_id:int64 = Ok;
 
-//@description Changes accent color and background custom emoji for profile of a chat. Supported only for channels with getOption("channel_custom_profile_accent_color_boost_level_min") boost level. Requires can_change_info administrator right
+//@description Changes accent color and background custom emoji for profile of a chat. Requires can_change_info administrator right
 //@chat_id Chat identifier
-//@profile_accent_color_id Identifier of the accent color to use for profile; pass -1 if none
+//@profile_accent_color_id Identifier of the accent color to use for profile; pass -1 if none. The chat must have at least profileAccentColor.min_chat_boost_level boost level
 //@profile_background_custom_emoji_id Identifier of a custom emoji to be shown on the chat's profile photo background; 0 if none
 setChatProfileAccentColor chat_id:int53 profile_accent_color_id:int32 profile_background_custom_emoji_id:int64 = Ok;
 
