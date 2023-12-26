@@ -12,8 +12,6 @@
 
 namespace td {
 
-class Td;
-
 struct PeerColor {
   AccentColorId accent_color_id_;
   CustomEmojiId background_custom_emoji_id_;
