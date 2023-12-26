@@ -153,6 +153,9 @@ OptionManager::OptionManager(Td *td)
   if (!have_option("chat_boost_level_max")) {
     set_option_integer("chat_boost_level_max", G()->is_test_dc() ? 10 : 100);
   }
+  if (!have_option("chat_available_reaction_count_max")) {
+    set_option_integer("chat_available_reaction_count_max", 100);
+  }
 
   update_premium_options();
 
