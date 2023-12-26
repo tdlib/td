@@ -10,7 +10,6 @@
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageId.h"
-#include "td/telegram/MessagesInfo.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StoryId.h"
@@ -23,10 +22,7 @@
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
-#include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
-
-#include <limits>
 
 namespace td {
 

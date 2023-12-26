@@ -21,7 +21,6 @@
 #include "td/telegram/net/MtprotoHeader.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/NotificationManager.h"
-#include "td/telegram/Premium.h"
 #include "td/telegram/ReactionType.h"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/StickersManager.h"

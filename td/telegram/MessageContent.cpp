@@ -70,6 +70,7 @@
 #include "td/telegram/secret_api.hpp"
 #include "td/telegram/SecureValue.h"
 #include "td/telegram/SecureValue.hpp"
+#include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StickerFormat.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/StickersManager.hpp"

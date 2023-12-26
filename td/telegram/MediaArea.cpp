@@ -6,10 +6,14 @@
 //
 #include "td/telegram/MediaArea.h"
 
+#include "td/telegram/ChannelId.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
+#include "td/telegram/DialogId.h"
 #include "td/telegram/InlineQueriesManager.h"
+#include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
 
 #include "td/utils/logging.h"

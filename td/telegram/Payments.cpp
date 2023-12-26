@@ -31,6 +31,7 @@
 #include "td/utils/common.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 #include "td/utils/Status.h"
 
 namespace td {

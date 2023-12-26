@@ -6,7 +6,6 @@
 //
 #include "td/telegram/StoryForwardInfo.h"
 
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"

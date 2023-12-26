@@ -14,6 +14,7 @@
 #include "td/telegram/DialogInviteLink.h"
 #include "td/telegram/DialogLocation.h"
 #include "td/telegram/DialogParticipant.h"
+#include "td/telegram/EmojiStatus.h"
 #include "td/telegram/ForumTopicInfo.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/GroupCallManager.h"
