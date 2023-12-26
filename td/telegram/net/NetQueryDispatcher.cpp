@@ -71,7 +71,8 @@ void NetQueryDispatcher::dispatch(NetQueryPtr net_query) {
     } else if (code == NetQuery::Resend) {
       net_query->resend();
     } else if (code < 0 || code == 500 ||
-               (code == 420 && !begins_with(net_query->error().message(), "STORY_SEND_FLOOD_"))) {
+               (code == 420 && !begins_with(net_query->error().message(), "STORY_SEND_FLOOD_") &&
+                !begins_with(net_query->error().message(), "PREMIUM_SUB_ACTIVE_UNTIL_"))) {
       net_query->debug("sent to NetQueryDelayer");
       return send_closure_later(delayer_, &NetQueryDelayer::delay, std::move(net_query));
     }
