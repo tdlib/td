@@ -6686,8 +6686,8 @@ void Td::on_request(uint64 id, td_api::getStoryInteractions &request) {
   CLEAN_INPUT_STRING(request.offset_);
   CREATE_REQUEST_PROMISE();
   story_manager_->get_story_interactions(StoryId(request.story_id_), request.query_, request.only_contacts_,
-                                         request.prefer_with_reaction_, request.offset_, request.limit_,
-                                         std::move(promise));
+                                         request.prefer_forwards_, request.prefer_with_reaction_, request.offset_,
+                                         request.limit_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::reportStory &request) {

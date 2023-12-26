@@ -263,8 +263,8 @@ class StoryManager final : public Actor {
   void set_story_reaction(StoryFullId story_full_id, ReactionType reaction_type, bool add_to_recent,
                           Promise<Unit> &&promise);
 
-  void get_story_interactions(StoryId story_id, const string &query, bool only_contacts, bool prefer_with_reaction,
-                              const string &offset, int32 limit,
+  void get_story_interactions(StoryId story_id, const string &query, bool only_contacts, bool prefer_forwards,
+                              bool prefer_with_reaction, const string &offset, int32 limit,
                               Promise<td_api::object_ptr<td_api::storyInteractions>> &&promise);
 
   void get_channel_differences_if_needed(

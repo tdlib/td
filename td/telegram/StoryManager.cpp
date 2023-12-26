@@ -348,8 +348,8 @@ class GetStoryViewsListQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, StoryId story_id, const string &query, bool only_contacts, bool prefer_with_reaction,
-            const string &offset, int32 limit) {
+  void send(DialogId dialog_id, StoryId story_id, const string &query, bool only_contacts, bool prefer_forwards,
+            bool prefer_with_reaction, const string &offset, int32 limit) {
     dialog_id_ = dialog_id;
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Write);
     if (input_peer == nullptr) {
@@ -362,6 +362,9 @@ class GetStoryViewsListQuery final : public Td::ResultHandler {
     }
     if (only_contacts) {
       flags |= telegram_api::stories_getStoryViewsList::JUST_CONTACTS_MASK;
+    }
+    if (prefer_forwards) {
+      flags |= telegram_api::stories_getStoryViewsList::FORWARDS_FIRST_MASK;
     }
     if (prefer_with_reaction) {
       flags |= telegram_api::stories_getStoryViewsList::REACTIONS_FIRST_MASK;
@@ -2820,7 +2823,8 @@ void StoryManager::get_channel_differences_if_needed(
 }
 
 void StoryManager::get_story_interactions(StoryId story_id, const string &query, bool only_contacts,
-                                          bool prefer_with_reaction, const string &offset, int32 limit,
+                                          bool prefer_forwards, bool prefer_with_reaction, const string &offset,
+                                          int32 limit,
                                           Promise<td_api::object_ptr<td_api::storyInteractions>> &&promise) {
   DialogId owner_dialog_id(td_->contacts_manager_->get_my_id());
   StoryFullId story_full_id{owner_dialog_id, story_id};
@@ -2842,7 +2846,7 @@ void StoryManager::get_story_interactions(StoryId story_id, const string &query,
       });
 
   td_->create_handler<GetStoryViewsListQuery>(std::move(query_promise))
-      ->send(owner_dialog_id, story_id, query, only_contacts, prefer_with_reaction, offset, limit);
+      ->send(owner_dialog_id, story_id, query, only_contacts, prefer_forwards, prefer_with_reaction, offset, limit);
 }
 
 void StoryManager::on_get_story_interactions(

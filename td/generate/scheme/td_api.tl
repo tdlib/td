@@ -3607,14 +3607,14 @@ storyInteractionTypeRepost story:story = StoryInteractionType;
 //@description Represents interaction with a story
 //@actor_id Identifier of the user or chat that made the interaction
 //@interaction_date Approximate point in time (Unix timestamp) when the interaction happenned
-//@block_list Block list to which the actor is added; may be null if none
+//@block_list Block list to which the actor is added; may be null if none or for chat stories
 //@type Type of the interaction
 storyInteraction actor_id:MessageSender interaction_date:int32 block_list:BlockList type:StoryInteractionType = StoryInteraction;
 
 //@description Represents a list of interactions with a story
 //@total_count Approximate total number of interactions found
-//@total_forward_count Approximate total number of found forwards and reposts
-//@total_reaction_count Approximate total number of found reactions
+//@total_forward_count Approximate total number of found forwards and reposts; always 0 for chat stories
+//@total_reaction_count Approximate total number of found reactions; always 0 for chat stories
 //@interactions List of story interactions
 //@next_offset The offset for the next request. If empty, then there are no more results
 storyInteractions total_count:int32 total_forward_count:int32 total_reaction_count:int32 interactions:vector<storyInteraction> next_offset:string = StoryInteractions;
@@ -8217,10 +8217,11 @@ setStoryReaction story_sender_chat_id:int53 story_id:int32 reaction_type:Reactio
 //@story_id Story identifier
 //@query Query to search for in names, usernames and titles; may be empty to get all relevant interactions
 //@only_contacts Pass true to get only interactions by contacts; pass false to get all relevant interactions
-//@prefer_with_reaction Pass true to get interactions with reaction first; pass false to get interactions sorted just by interaction date
+//@prefer_forwards Pass true to get forwards and reposts first, then reactions, then other views; pass false to get interactions sorted just by interaction date
+//@prefer_with_reaction Pass true to get interactions with reaction first; pass false to get interactions sorted just by interaction date. Ignored if prefer_forwards == true
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of story interactions to return
-getStoryInteractions story_id:int32 query:string only_contacts:Bool prefer_with_reaction:Bool offset:string limit:int32 = StoryInteractions;
+getStoryInteractions story_id:int32 query:string only_contacts:Bool prefer_forwards:Bool prefer_with_reaction:Bool offset:string limit:int32 = StoryInteractions;
 
 //@description Reports a story to the Telegram moderators
 //@story_sender_chat_id The identifier of the sender of the story to report
