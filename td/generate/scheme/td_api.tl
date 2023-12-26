@@ -2290,8 +2290,8 @@ inputCredentialsGooglePay data:string = InputCredentials;
 
 //@class PaymentProvider @description Contains information about a payment provider
 
-//@description Smart Glocal payment provider @public_token Public payment token
-paymentProviderSmartGlocal public_token:string = PaymentProvider;
+//@description Smart Glocal payment provider @public_token Public payment token @tokenize_url URL for sending card tokenization requests
+paymentProviderSmartGlocal public_token:string tokenize_url:string = PaymentProvider;
 
 //@description Stripe payment provider
 //@publishable_key Stripe API publishable key

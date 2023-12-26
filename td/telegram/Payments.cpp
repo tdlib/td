@@ -259,7 +259,7 @@ static tl_object_ptr<td_api::invoice> convert_invoice(tl_object_ptr<telegram_api
 }
 
 static tl_object_ptr<td_api::PaymentProvider> convert_payment_provider(
-    const string &native_provider_name, tl_object_ptr<telegram_api::dataJSON> native_parameters) {
+    const string &native_provider_name, tl_object_ptr<telegram_api::dataJSON> native_parameters, bool is_test) {
   if (native_parameters == nullptr) {
     return nullptr;
   }
@@ -284,11 +284,17 @@ static tl_object_ptr<td_api::PaymentProvider> convert_payment_provider(
       LOG(ERROR) << "Unsupported JSON data \"" << native_parameters->data_ << '"';
       return nullptr;
     }
-    if (object.field_count() != 1) {
+    string tokenize_url = is_test ? "https://tgb-playground.smart-glocal.com/cds/v1/tokenize/card"
+                                  : "https://tgb.smart-glocal.com/cds/v1/tokenize/card";
+    auto r_tokenize_url = object.get_optional_string_field("tokenize_url");
+    if (r_tokenize_url.is_ok() && begins_with(r_tokenize_url.ok(), "https://") &&
+        ends_with(r_tokenize_url.ok(), ".smart-glocal.com/cds/v1/tokenize/card")) {
+      tokenize_url = r_tokenize_url.move_as_ok();
+    }
+    if (object.field_count() > 2) {
       LOG(ERROR) << "Unsupported JSON data \"" << native_parameters->data_ << '"';
     }
-
-    return make_tl_object<td_api::paymentProviderSmartGlocal>(r_public_token.move_as_ok());
+    return make_tl_object<td_api::paymentProviderSmartGlocal>(r_public_token.move_as_ok(), tokenize_url);
   }
   if (native_provider_name == "stripe") {
     string data = native_parameters->data_;
@@ -440,8 +446,8 @@ class GetPaymentFormQuery final : public Td::ResultHandler {
     bool can_save_credentials = payment_form->can_save_credentials_;
     bool need_password = payment_form->password_missing_;
     auto photo = get_web_document_photo(td_->file_manager_.get(), std::move(payment_form->photo_), dialog_id_);
-    auto payment_provider =
-        convert_payment_provider(payment_form->native_provider_, std::move(payment_form->native_params_));
+    auto payment_provider = convert_payment_provider(
+        payment_form->native_provider_, std::move(payment_form->native_params_), payment_form->invoice_->test_);
     if (payment_provider == nullptr) {
       payment_provider = td_api::make_object<td_api::paymentProviderOther>(std::move(payment_form->url_));
     }
