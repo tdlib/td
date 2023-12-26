@@ -1071,6 +1071,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::getChatBoostLevelFeatures &request);
 
+  void on_request(uint64 id, const td_api::getChatBoostFeatures &request);
+
   void on_request(uint64 id, const td_api::getAvailableChatBoostSlots &request);
 
   void on_request(uint64 id, const td_api::getChatBoostStatus &request);

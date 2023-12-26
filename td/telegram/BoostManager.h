@@ -31,6 +31,8 @@ class BoostManager final : public Actor {
 
   td_api::object_ptr<td_api::chatBoostLevelFeatures> get_chat_boost_level_features_object(int32 level) const;
 
+  td_api::object_ptr<td_api::chatBoostFeatures> get_chat_boost_features_object() const;
+
   void get_boost_slots(Promise<td_api::object_ptr<td_api::chatBoostSlots>> &&promise);
 
   void get_dialog_boost_status(DialogId dialog_id, Promise<td_api::object_ptr<td_api::chatBoostStatus>> &&promise);

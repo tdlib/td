@@ -6721,6 +6721,12 @@ void Td::on_request(uint64 id, const td_api::getChatBoostLevelFeatures &request)
   promise.set_value(boost_manager_->get_chat_boost_level_features_object(request.level_));
 }
 
+void Td::on_request(uint64 id, const td_api::getChatBoostFeatures &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  promise.set_value(boost_manager_->get_chat_boost_features_object());
+}
+
 void Td::on_request(uint64 id, const td_api::getAvailableChatBoostSlots &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

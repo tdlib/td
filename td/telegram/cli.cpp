@@ -4450,6 +4450,8 @@ class CliClient final : public Actor {
       int32 level;
       get_args(args, level);
       send_request(td_api::make_object<td_api::getChatBoostLevelFeatures>(level));
+    } else if (op == "gcbf") {
+      send_request(td_api::make_object<td_api::getChatBoostFeatures>());
     } else if (op == "gacbs") {
       send_request(td_api::make_object<td_api::getAvailableChatBoostSlots>());
     } else if (op == "gcbs") {

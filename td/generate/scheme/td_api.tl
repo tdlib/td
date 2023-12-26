@@ -3650,6 +3650,9 @@ publicForwards total_count:int32 forwards:vector<PublicForward> next_offset:stri
 //@can_set_custom_background True, if custom background can be set in the chat for all users
 chatBoostLevelFeatures level:int32 story_per_day_count:int32 custom_emoji_reaction_count:int32 title_color_count:int32 profile_accent_color_count:int32 can_set_profile_background_custom_emoji:Bool accent_color_count:int32 can_set_background_custom_emoji:Bool can_set_emoji_status:Bool chat_theme_background_count:int32 can_set_custom_background:Bool = ChatBoostLevelFeatures;
 
+//@description Contains list of features available on the first chat boost levels @features The list of features
+chatBoostFeatures features:vector<chatBoostLevelFeatures> = ChatBoostFeatures;
+
 
 //@class ChatBoostSource @description Describes source of a chat boost
 
@@ -8269,6 +8272,9 @@ getStoryPublicForwards story_sender_chat_id:int53 story_id:int32 offset:string l
 
 //@description Returns list of features available on the specific chat boost level; this is an offline request @level Chat boost level
 getChatBoostLevelFeatures level:int32 = ChatBoostLevelFeatures;
+
+//@description Returns list of features available on the first 10 chat boost levels; this is an offline request
+getChatBoostFeatures = ChatBoostFeatures;
 
 //@description Returns the list of available chat boost slots for the current user
 getAvailableChatBoostSlots = ChatBoostSlots;

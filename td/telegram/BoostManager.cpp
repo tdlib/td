@@ -361,6 +361,14 @@ td_api::object_ptr<td_api::chatBoostLevelFeatures> BoostManager::get_chat_boost_
       can_set_emoji_status, theme_counts.chat_theme_count_, can_set_custom_background);
 }
 
+td_api::object_ptr<td_api::chatBoostFeatures> BoostManager::get_chat_boost_features_object() const {
+  vector<td_api::object_ptr<td_api::chatBoostLevelFeatures>> features;
+  for (int32 level = 1; level <= 10; level++) {
+    features.push_back(get_chat_boost_level_features_object(level));
+  }
+  return td_api::make_object<td_api::chatBoostFeatures>(std::move(features));
+}
+
 void BoostManager::get_boost_slots(Promise<td_api::object_ptr<td_api::chatBoostSlots>> &&promise) {
   td_->create_handler<GetMyBoostsQuery>(std::move(promise))->send();
 }
