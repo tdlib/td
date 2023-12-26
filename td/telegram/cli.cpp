@@ -4429,6 +4429,16 @@ class CliClient final : public Actor {
       get_args(args, story_id, limit, offset, query, only_contacts, prefer_forwards, prefer_with_reaction);
       send_request(td_api::make_object<td_api::getStoryInteractions>(story_id, query, only_contacts, prefer_forwards,
                                                                      prefer_with_reaction, offset, as_limit(limit)));
+    } else if (op == "gcsi") {
+      ChatId chat_id;
+      StoryId story_id;
+      string limit;
+      string offset;
+      string reaction_type;
+      bool prefer_forwards;
+      get_args(args, chat_id, story_id, limit, offset, reaction_type, prefer_forwards);
+      send_request(td_api::make_object<td_api::getChatStoryInteractions>(
+          chat_id, story_id, as_reaction_type(reaction_type), prefer_forwards, offset, as_limit(limit)));
     } else if (op == "rst") {
       ChatId story_sender_chat_id;
       StoryId story_id;

@@ -1063,6 +1063,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::getStoryInteractions &request);
 
+  void on_request(uint64 id, td_api::getChatStoryInteractions &request);
+
   void on_request(uint64 id, td_api::reportStory &request);
 
   void on_request(uint64 id, const td_api::activateStoryStealthMode &request);

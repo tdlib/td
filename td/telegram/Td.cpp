@@ -6690,6 +6690,15 @@ void Td::on_request(uint64 id, td_api::getStoryInteractions &request) {
                                          request.limit_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::getChatStoryInteractions &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.offset_);
+  CREATE_REQUEST_PROMISE();
+  story_manager_->get_dialog_story_interactions({DialogId(request.story_sender_chat_id_), StoryId(request.story_id_)},
+                                                ReactionType(request.reaction_type_), request.prefer_forwards_,
+                                                request.offset_, request.limit_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::reportStory &request) {
   CHECK_IS_USER();
   auto r_report_reason = ReportReason::get_report_reason(std::move(request.reason_), std::move(request.text_));

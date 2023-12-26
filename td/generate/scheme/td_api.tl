@@ -8223,6 +8223,15 @@ setStoryReaction story_sender_chat_id:int53 story_id:int32 reaction_type:Reactio
 //@limit The maximum number of story interactions to return
 getStoryInteractions story_id:int32 query:string only_contacts:Bool prefer_forwards:Bool prefer_with_reaction:Bool offset:string limit:int32 = StoryInteractions;
 
+//@description Returns interactions with a story posted in a chat. Can be used only if story is posted on behalf of a chat and the user is an administrator in the chat
+//@story_sender_chat_id The identifier of the sender of the story
+//@story_id Story identifier
+//@reaction_type Pass a reaction type to receive only interactions with the specified reaction type; pass null to receive all interactions
+//@prefer_forwards Pass true to get forwards and reposts first, then reactions, then other views; pass false to get interactions sorted just by interaction date
+//@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
+//@limit The maximum number of story interactions to return
+getChatStoryInteractions story_sender_chat_id:int53 story_id:int32 reaction_type:ReactionType prefer_forwards:Bool offset:string limit:int32 = StoryInteractions;
+
 //@description Reports a story to the Telegram moderators
 //@story_sender_chat_id The identifier of the sender of the story to report
 //@story_id The identifier of the story to report
