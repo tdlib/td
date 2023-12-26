@@ -153,9 +153,6 @@ OptionManager::OptionManager(Td *td)
   if (!have_option("chat_available_reaction_count_max")) {
     set_option_integer("chat_available_reaction_count_max", 100);
   }
-  if (!have_option("channel_custom_accent_color_boost_level_min")) {
-    set_option_integer("channel_custom_accent_color_boost_level_min", G()->is_test_dc() ? 1 : 5);
-  }
   if (!have_option("channel_bg_icon_level_min")) {
     set_option_integer("channel_bg_icon_level_min", G()->is_test_dc() ? 1 : 4);
   }
@@ -175,6 +172,7 @@ OptionManager::OptionManager(Td *td)
   update_premium_options();
 
   set_option_empty("archive_and_mute_new_chats_from_unknown_users");
+  set_option_empty("channel_custom_accent_color_boost_level_min");
   set_option_empty("chat_filter_count_max");
   set_option_empty("chat_filter_chosen_chat_count_max");
   set_option_empty("forum_member_count_min");
