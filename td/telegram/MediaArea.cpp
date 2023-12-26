@@ -61,7 +61,7 @@ MediaArea::MediaArea(Td *td, telegram_api::object_ptr<telegram_api::MediaArea> &
       auto channel_id = ChannelId(area->channel_id_);
       auto server_message_id = ServerMessageId(area->msg_id_);
       if (coordinates_.is_valid() && channel_id.is_valid() && server_message_id.is_valid()) {
-        type_ = Type::Venue;
+        type_ = Type::Message;
         message_full_id_ = MessageFullId(DialogId(channel_id), MessageId(server_message_id));
       } else {
         LOG(ERROR) << "Receive " << to_string(area);
