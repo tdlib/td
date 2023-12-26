@@ -759,8 +759,8 @@ profileAccentColors palette_colors:vector<int32> background_colors:vector<int32>
 
 //@description Contains information about supported accent color for user profile photo background
 //@id Profile accent color identifier
-//@light_theme_colors Description of accent colors expected to be used in light themes
-//@dark_theme_colors Description of accent colors expected to be used in dark themes
+//@light_theme_colors Accent colors expected to be used in light themes
+//@dark_theme_colors Accent colors expected to be used in dark themes
 //@min_chat_boost_level The minimum chat boost level required to use the color
 profileAccentColor id:int32 light_theme_colors:profileAccentColors dark_theme_colors:profileAccentColors min_chat_boost_level:int32 = ProfileAccentColor;
 
@@ -3468,8 +3468,9 @@ inputStoryAreaTypeMessage chat_id:int53 message_id:int53 = InputStoryAreaType;
 //@description Describes a clickable rectangle area on a story media to be added @position Position of the area @type Type of the area
 inputStoryArea position:storyAreaPosition type:InputStoryAreaType = InputStoryArea;
 
-//@description Contains a list of story areas to be added @areas List of input story areas. Currently, a story can have up to 10 Location and Venue areas,
-//-up to getOption("story_suggested_reaction_area_count_max") SuggestedReaction areas, and up to 1 Message area
+//@description Contains a list of story areas to be added @areas List of input story areas. Currently, a story can have
+//-up to 10 inputStoryAreaTypeLocation, inputStoryAreaTypeFoundVenue, and inputStoryAreaTypePreviousVenue areas,
+//-up to getOption("story_suggested_reaction_area_count_max") inputStoryAreaTypeSuggestedReaction areas, and up to 1 inputStoryAreaTypeMessage area
 inputStoryAreas areas:vector<inputStoryArea> = InputStoryAreas;
 
 
@@ -3636,7 +3637,7 @@ publicForwardStory story:story = PublicForward;
 publicForwards total_count:int32 forwards:vector<PublicForward> next_offset:string = PublicForwards;
 
 
-//@description Contains list of features available on a specific chat boost level
+//@description Contains a list of features available on a specific chat boost level
 //@level Target chat boost level
 //@story_per_day_count Number of stories that the chat can publish daily
 //@custom_emoji_reaction_count Number of custom emoji reactions that can be added to the list of available reactions
@@ -3650,7 +3651,7 @@ publicForwards total_count:int32 forwards:vector<PublicForward> next_offset:stri
 //@can_set_custom_background True, if custom background can be set in the chat for all users
 chatBoostLevelFeatures level:int32 story_per_day_count:int32 custom_emoji_reaction_count:int32 title_color_count:int32 profile_accent_color_count:int32 can_set_profile_background_custom_emoji:Bool accent_color_count:int32 can_set_background_custom_emoji:Bool can_set_emoji_status:Bool chat_theme_background_count:int32 can_set_custom_background:Bool = ChatBoostLevelFeatures;
 
-//@description Contains list of features available on the first chat boost levels @features The list of features
+//@description Contains a list of features available on the first chat boost levels @features The list of features
 chatBoostFeatures features:vector<chatBoostLevelFeatures> = ChatBoostFeatures;
 
 
@@ -6249,7 +6250,7 @@ updateChatTitle chat_id:int53 title:string = Update;
 //@description A chat photo was changed @chat_id Chat identifier @photo The new chat photo; may be null
 updateChatPhoto chat_id:int53 photo:chatPhotoInfo = Update;
 
-//@description Chat accent colors has changed
+//@description Chat accent colors have changed
 //@chat_id Chat identifier
 //@accent_color_id The new chat accent color identifier
 //@background_custom_emoji_id The new identifier of a custom emoji to be shown on the reply header and link preview background; 0 if none
@@ -6289,7 +6290,7 @@ updateChatAvailableReactions chat_id:int53 available_reactions:ChatAvailableReac
 //@positions The new chat positions in the chat lists
 updateChatDraftMessage chat_id:int53 draft_message:draftMessage positions:vector<chatPosition> = Update;
 
-//@description Chat accent colors has changed
+//@description Chat emoji status has changed
 //@chat_id Chat identifier
 //@emoji_status The new chat emoji status; may be null
 updateChatEmojiStatus chat_id:int53 emoji_status:emojiStatus = Update;
