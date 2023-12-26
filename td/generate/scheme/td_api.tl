@@ -7933,14 +7933,14 @@ setChatPhoto chat_id:int53 photo:InputChatPhoto = Ok;
 
 //@description Changes accent color and background custom emoji of a chat. Requires can_change_info administrator right
 //@chat_id Chat identifier
-//@accent_color_id Identifier of the accent color to use. The chat must have at least accentColor.min_chat_boost_level boost level
-//@background_custom_emoji_id Identifier of a custom emoji to be shown on the reply header and link preview background; 0 if none
+//@accent_color_id Identifier of the accent color to use. The chat must have at least accentColor.min_chat_boost_level boost level to pass the corresponding color
+//@background_custom_emoji_id Identifier of a custom emoji to be shown on the reply header and link preview background; 0 if none. Use chatBoostLevelFeatures.can_set_background_custom_emoji to check whether a custom emoji can be set
 setChatAccentColor chat_id:int53 accent_color_id:int32 background_custom_emoji_id:int64 = Ok;
 
 //@description Changes accent color and background custom emoji for profile of a chat. Requires can_change_info administrator right
 //@chat_id Chat identifier
-//@profile_accent_color_id Identifier of the accent color to use for profile; pass -1 if none. The chat must have at least profileAccentColor.min_chat_boost_level boost level
-//@profile_background_custom_emoji_id Identifier of a custom emoji to be shown on the chat's profile photo background; 0 if none
+//@profile_accent_color_id Identifier of the accent color to use for profile; pass -1 if none. The chat must have at least profileAccentColor.min_chat_boost_level boost level to pass the corresponding color
+//@profile_background_custom_emoji_id Identifier of a custom emoji to be shown on the chat's profile photo background; 0 if none. Use chatBoostLevelFeatures.can_set_profile_background_custom_emoji to check whether a custom emoji can be set
 setChatProfileAccentColor chat_id:int53 profile_accent_color_id:int32 profile_background_custom_emoji_id:int64 = Ok;
 
 //@description Changes the message auto-delete or self-destruct (for secret chats) time in a chat. Requires change_info administrator right in basic groups, supergroups and channels
@@ -7949,7 +7949,7 @@ setChatProfileAccentColor chat_id:int53 profile_accent_color_id:int32 profile_ba
 //@message_auto_delete_time New time value, in seconds; unless the chat is secret, it must be from 0 up to 365 * 86400 and be divisible by 86400. If 0, then messages aren't deleted automatically
 setChatMessageAutoDeleteTime chat_id:int53 message_auto_delete_time:int32 = Ok;
 
-//@description Changes the emoji status of a chat. Supported only for channels with enough boost level. Requires can_change_info administrator right
+//@description Changes the emoji status of a chat. Use chatBoostLevelFeatures.can_set_emoji_status to check whether an emoji status can be set. Requires can_change_info administrator right
 //@chat_id Chat identifier
 //@emoji_status New emoji status; pass null to remove emoji status
 setChatEmojiStatus chat_id:int53 emoji_status:emojiStatus = Ok;
@@ -7962,7 +7962,8 @@ setChatPermissions chat_id:int53 permissions:chatPermissions = Ok;
 //@description Sets the background in a specific chat. Supported only in private and secret chats with non-deleted users, and in chats with sufficient boost level and can_change_info administrator right
 //@chat_id Chat identifier
 //@background The input background to use; pass null to create a new filled or chat theme background
-//@type Background type; pass null to use default background type for the chosen background; backgroundTypeChatTheme isn't supported for private and secret chats
+//@type Background type; pass null to use default background type for the chosen background; backgroundTypeChatTheme isn't supported for private and secret chats.
+//-Use chatBoostLevelFeatures.chat_theme_background_count and chatBoostLevelFeatures.can_set_custom_background to check whether the background type can be set in the boosted chat
 //@dark_theme_dimming Dimming of the background in dark themes, as a percentage; 0-100. Applied only to Wallpaper and Fill types of background
 //@only_for_self Pass true to set background only for self; pass false to set background for all chat users. Always false for backgrounds set in boosted chats. Background can be set for both users only by Telegram Premium users and if set background isn't of the type inputBackgroundPrevious
 setChatBackground chat_id:int53 background:InputBackground type:BackgroundType dark_theme_dimming:int32 only_for_self:Bool = Ok;
