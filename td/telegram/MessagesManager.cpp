@@ -9793,30 +9793,24 @@ void MessagesManager::get_channel_differences_if_needed(MessagesInfo &&messages_
 }
 
 void MessagesManager::get_channel_differences_if_needed(
-    telegram_api::object_ptr<telegram_api::stats_publicForwards> &&public_forwards,
-    Promise<telegram_api::object_ptr<telegram_api::stats_publicForwards>> &&promise, const char *source) {
+    const vector<const telegram_api::object_ptr<telegram_api::Message> *> &messages, Promise<Unit> &&promise,
+    const char *source) {
   if (td_->auth_manager_->is_bot()) {
-    return promise.set_value(std::move(public_forwards));
+    return promise.set_value(Unit());
   }
-  MultiPromiseActorSafe mpas{"GetChannelDifferencesIfNeededForPublicForwardsMultiPromiseActor"};
-  mpas.add_promise(Promise<Unit>());
+  MultiPromiseActorSafe mpas{"GetChannelDifferencesIfNeededGenericMultiPromiseActor"};
+  mpas.add_promise(std::move(promise));
   mpas.set_ignore_errors(true);
   auto lock = mpas.get_promise();
-  for (const auto &forward : public_forwards->forwards_) {
-    CHECK(forward != nullptr);
-    if (forward->get_id() != telegram_api::publicForwardMessage::ID) {
+  for (const auto &message : messages) {
+    if (message == nullptr) {
       continue;
     }
-    const auto &message = static_cast<const telegram_api::publicForwardMessage *>(forward.get())->message_;
-    auto dialog_id = DialogId::get_message_dialog_id(message);
-    if (need_channel_difference_to_add_message(dialog_id, message)) {
-      run_after_channel_difference(dialog_id, MessageId::get_message_id(message, false), mpas.get_promise(), source);
+    auto dialog_id = DialogId::get_message_dialog_id(*message);
+    if (need_channel_difference_to_add_message(dialog_id, *message)) {
+      run_after_channel_difference(dialog_id, MessageId::get_message_id(*message, false), mpas.get_promise(), source);
     }
   }
-  // must be added after forwarded messages are checked
-  mpas.add_promise(
-      PromiseCreator::lambda([public_forwards = std::move(public_forwards), promise = std::move(promise)](
-                                 Unit ignored) mutable { promise.set_value(std::move(public_forwards)); }));
   lock.set_value(Unit());
 }
 

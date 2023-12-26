@@ -420,19 +420,8 @@ class GetMessagePublicForwardsQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->messages_manager_->get_channel_differences_if_needed(
-        result_ptr.move_as_ok(),
-        PromiseCreator::lambda(
-            [actor_id = td_->statistics_manager_actor_.get(), promise = std::move(promise_)](
-                Result<telegram_api::object_ptr<telegram_api::stats_publicForwards>> &&result) mutable {
-              if (result.is_error()) {
-                promise.set_error(result.move_as_error());
-              } else {
-                send_closure(actor_id, &StatisticsManager::on_get_public_forwards, result.move_as_ok(),
-                             std::move(promise));
-              }
-            }),
-        "GetMessagePublicForwardsQuery");
+    td_->statistics_manager_->get_channel_differences_if_needed(result_ptr.move_as_ok(), std::move(promise_),
+                                                                "GetMessagePublicForwardsQuery");
   }
 
   void on_error(Status status) final {
@@ -470,19 +459,8 @@ class GetStoryPublicForwardsQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->messages_manager_->get_channel_differences_if_needed(
-        result_ptr.move_as_ok(),
-        PromiseCreator::lambda(
-            [actor_id = td_->statistics_manager_actor_.get(), promise = std::move(promise_)](
-                Result<telegram_api::object_ptr<telegram_api::stats_publicForwards>> &&result) mutable {
-              if (result.is_error()) {
-                promise.set_error(result.move_as_error());
-              } else {
-                send_closure(actor_id, &StatisticsManager::on_get_public_forwards, result.move_as_ok(),
-                             std::move(promise));
-              }
-            }),
-        "GetStoryPublicForwardsQuery");
+    td_->statistics_manager_->get_channel_differences_if_needed(result_ptr.move_as_ok(), std::move(promise_),
+                                                                "GetStoryPublicForwardsQuery");
   }
 
   void on_error(Status status) final {
@@ -736,6 +714,31 @@ void StatisticsManager::on_get_public_forwards(
   }
   promise.set_value(
       td_api::make_object<td_api::publicForwards>(total_count, std::move(result), public_forwards->next_offset_));
+}
+
+void StatisticsManager::get_channel_differences_if_needed(
+    telegram_api::object_ptr<telegram_api::stats_publicForwards> &&public_forwards,
+    Promise<td_api::object_ptr<td_api::publicForwards>> promise, const char *source) {
+  vector<const telegram_api::object_ptr<telegram_api::Message> *> messages;
+  for (const auto &forward : public_forwards->forwards_) {
+    CHECK(forward != nullptr);
+    if (forward->get_id() != telegram_api::publicForwardMessage::ID) {
+      continue;
+    }
+    messages.push_back(&static_cast<const telegram_api::publicForwardMessage *>(forward.get())->message_);
+  }
+  td_->messages_manager_->get_channel_differences_if_needed(
+      messages,
+      PromiseCreator::lambda([actor_id = actor_id(this), public_forwards = std::move(public_forwards),
+                              promise = std::move(promise)](Result<Unit> &&result) mutable {
+        if (result.is_error()) {
+          promise.set_error(result.move_as_error());
+        } else {
+          send_closure(actor_id, &StatisticsManager::on_get_public_forwards, std::move(public_forwards),
+                       std::move(promise));
+        }
+      }),
+      source);
 }
 
 }  // namespace td
