@@ -38599,13 +38599,17 @@ bool MessagesManager::need_channel_difference_to_add_message(DialogId dialog_id,
 
   Dialog *d = get_dialog_force(dialog_id, "need_channel_difference_to_add_message");
   if (d == nullptr) {
+    LOG(DEBUG) << "Can't find " << dialog_id;
     return load_channel_pts(dialog_id) > 0 && !is_channel_difference_finished_.count(dialog_id);
   }
   if (d->last_new_message_id == MessageId()) {
+    LOG(DEBUG) << "Can't find last message in " << dialog_id;
     return d->pts > 0 && !d->is_channel_difference_finished;
   }
 
-  return MessageId::get_message_id(message_ptr, false) > d->last_new_message_id;
+  auto message_id = MessageId::get_message_id(message_ptr, false);
+  LOG(DEBUG) << "Check ability to add " << message_id << " to " << dialog_id;
+  return message_id > d->last_new_message_id;
 }
 
 void MessagesManager::run_after_channel_difference(DialogId dialog_id, MessageId expected_max_message_id,
