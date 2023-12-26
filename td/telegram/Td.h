@@ -1671,8 +1671,6 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::getApplicationConfig &request);
 
-  void on_request(uint64 id, td_api::addApplicationChangelog &request);
-
   void on_request(uint64 id, td_api::saveApplicationLogEvent &request);
 
   void on_request(uint64 id, td_api::addProxy &request);
