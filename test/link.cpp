@@ -291,6 +291,10 @@ static auto premium_features(const td::string &referrer) {
   return td::td_api::make_object<td::td_api::internalLinkTypePremiumFeatures>(referrer);
 }
 
+static auto premium_gift(const td::string &referrer) {
+  return td::td_api::make_object<td::td_api::internalLinkTypePremiumGift>(referrer);
+}
+
 static auto premium_gift_code(const td::string &code) {
   return td::td_api::make_object<td::td_api::internalLinkTypePremiumGiftCode>(code);
 }
@@ -1236,6 +1240,10 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg:premium_offer?ref=abcdef", premium_features("abcdef"));
   parse_internal_link("tg:premium_offer?ref=abc%30ef", premium_features("abc0ef"));
   parse_internal_link("tg://premium_offer?ref=", premium_features(""));
+
+  parse_internal_link("tg:premium_multigift?ref=abcdef", premium_gift("abcdef"));
+  parse_internal_link("tg:premium_multigift?ref=abc%30ef", premium_gift("abc0ef"));
+  parse_internal_link("tg://premium_multigift?ref=", premium_gift(""));
 
   parse_internal_link("tg://settings", settings());
   parse_internal_link("tg://setting", unknown_deep_link("tg://setting"));

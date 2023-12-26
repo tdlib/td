@@ -561,6 +561,18 @@ class LinkManager::InternalLinkPremiumFeatures final : public InternalLink {
   }
 };
 
+class LinkManager::InternalLinkPremiumGift final : public InternalLink {
+  string referrer_;
+
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypePremiumGift>(referrer_);
+  }
+
+ public:
+  explicit InternalLinkPremiumGift(string referrer) : referrer_(std::move(referrer)) {
+  }
+};
+
 class LinkManager::InternalLinkPremiumGiftCode final : public InternalLink {
   string code_;
 
@@ -1344,6 +1356,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
   } else if (path.size() == 1 && path[0] == "premium_offer") {
     // premium_offer?ref=<referrer>
     return td::make_unique<InternalLinkPremiumFeatures>(get_arg("ref"));
+  } else if (path.size() == 1 && path[0] == "premium_multigift") {
+    // premium_multigift?ref=<referrer>
+    return td::make_unique<InternalLinkPremiumGift>(get_arg("ref"));
   } else if (!path.empty() && path[0] == "settings") {
     if (path.size() == 2 && path[1] == "auto_delete") {
       // settings/auto_delete
@@ -2179,6 +2194,13 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         return Status::Error("HTTP link is unavailable for the link type");
       }
       return PSTRING() << "tg://premium_offer?ref=" << url_encode(link->referrer_);
+    }
+    case td_api::internalLinkTypePremiumGift::ID: {
+      auto link = static_cast<const td_api::internalLinkTypePremiumGift *>(type_ptr);
+      if (!is_internal) {
+        return Status::Error("HTTP link is unavailable for the link type");
+      }
+      return PSTRING() << "tg://premium_multigift?ref=" << url_encode(link->referrer_);
     }
     case td_api::internalLinkTypePremiumGiftCode::ID: {
       auto link = static_cast<const td_api::internalLinkTypePremiumGiftCode *>(type_ptr);
