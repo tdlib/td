@@ -2385,7 +2385,7 @@ messageExtendedMediaUnsupported caption:formattedText = MessageExtendedMedia;
 //@has_public_winners True, if the list of winners of the giveaway will be available to everyone
 //@country_codes The list of two-letter ISO 3166-1 alpha-2 codes of countries, users from which will be eligible for the giveaway. If empty, then all users can participate in the giveaway.
 //-There can be up to getOption("giveaway_country_count_max") chosen countries. Users with phone number that was bought on Fragment can participate in any giveaway and the country code "FT" must not be specified in the list
-//@prize_description Additional description of the giveaway prize
+//@prize_description Additional description of the giveaway prize; 0-128 characters
 premiumGiveawayParameters boosted_chat_id:int53 additional_chat_ids:vector<int53> winners_selection_date:int32 only_new_members:Bool has_public_winners:Bool country_codes:vector<string> prize_description:string = PremiumGiveawayParameters;
 
 
@@ -7932,12 +7932,12 @@ setChatEmojiStatus chat_id:int53 emoji_status:emojiStatus = Ok;
 //@permissions New non-administrator members permissions in the chat
 setChatPermissions chat_id:int53 permissions:chatPermissions = Ok;
 
-//@description Sets the background in a specific chat. Supported only in private and secret chats with non-deleted users, and in chats with sufficient boost level
+//@description Sets the background in a specific chat. Supported only in private and secret chats with non-deleted users, and in chats with sufficient boost level and can_change_info administrator right
 //@chat_id Chat identifier
 //@background The input background to use; pass null to create a new filled or chat theme background
 //@type Background type; pass null to use default background type for the chosen background; backgroundTypeChatTheme isn't supported for private and secret chats
 //@dark_theme_dimming Dimming of the background in dark themes, as a percentage; 0-100. Applied only to Wallpaper and Fill types of background
-//@only_for_self Pass true to set background only for self; pass false to set background for both chat users. Always false for backgrounds set in boosted chats. Background can be set for both users only by Telegram Premium users and if set background isn't of the type inputBackgroundPrevious
+//@only_for_self Pass true to set background only for self; pass false to set background for all chat users. Always false for backgrounds set in boosted chats. Background can be set for both users only by Telegram Premium users and if set background isn't of the type inputBackgroundPrevious
 setChatBackground chat_id:int53 background:InputBackground type:BackgroundType dark_theme_dimming:int32 only_for_self:Bool = Ok;
 
 //@description Deletes background in a specific chat
@@ -8226,7 +8226,7 @@ getStoryInteractions story_id:int32 query:string only_contacts:Bool prefer_forwa
 //@description Returns interactions with a story posted in a chat. Can be used only if story is posted on behalf of a chat and the user is an administrator in the chat
 //@story_sender_chat_id The identifier of the sender of the story
 //@story_id Story identifier
-//@reaction_type Pass a reaction type to receive only interactions with the specified reaction type; pass null to receive all interactions
+//@reaction_type Pass the default heart reaction or a suggested reaction type to receive only interactions with the specified reaction type; pass null to receive all interactions
 //@prefer_forwards Pass true to get forwards and reposts first, then reactions, then other views; pass false to get interactions sorted just by interaction date
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of story interactions to return
