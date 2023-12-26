@@ -377,7 +377,9 @@ class GetStoryViewsListQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    promise_.set_value(result_ptr.move_as_ok());
+    auto result = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for GetStoryViewsListQuery: " << to_string(result);
+    td_->story_manager_->get_channel_differences_if_needed(std::move(result), std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -2791,6 +2793,30 @@ bool StoryManager::has_unexpired_viewers(StoryFullId story_full_id, const Story 
   CHECK(story != nullptr);
   return is_my_story(story_full_id.get_dialog_id()) && story_full_id.get_story_id().is_server() &&
          G()->unix_time() < get_story_viewers_expire_date(story);
+}
+
+void StoryManager::get_channel_differences_if_needed(
+    telegram_api::object_ptr<telegram_api::stories_storyViewsList> &&story_views,
+    Promise<telegram_api::object_ptr<telegram_api::stories_storyViewsList>> promise) {
+  vector<const telegram_api::object_ptr<telegram_api::Message> *> messages;
+  for (const auto &view : story_views->views_) {
+    CHECK(view != nullptr);
+    if (view->get_id() != telegram_api::storyViewPublicForward::ID) {
+      continue;
+    }
+    messages.push_back(&static_cast<const telegram_api::storyViewPublicForward *>(view.get())->message_);
+  }
+  td_->messages_manager_->get_channel_differences_if_needed(
+      messages,
+      PromiseCreator::lambda([actor_id = actor_id(this), story_views = std::move(story_views),
+                              promise = std::move(promise)](Result<Unit> &&result) mutable {
+        if (result.is_error()) {
+          promise.set_error(result.move_as_error());
+        } else {
+          promise.set_value(std::move(story_views));
+        }
+      }),
+      "stories_storyViewsList");
 }
 
 void StoryManager::get_story_interactions(StoryId story_id, const string &query, bool only_contacts,

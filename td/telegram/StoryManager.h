@@ -267,6 +267,10 @@ class StoryManager final : public Actor {
                               const string &offset, int32 limit,
                               Promise<td_api::object_ptr<td_api::storyInteractions>> &&promise);
 
+  void get_channel_differences_if_needed(
+      telegram_api::object_ptr<telegram_api::stories_storyViewsList> &&story_views,
+      Promise<telegram_api::object_ptr<telegram_api::stories_storyViewsList>> promise);
+
   void report_story(StoryFullId story_full_id, ReportReason &&reason, Promise<Unit> &&promise);
 
   void activate_stealth_mode(Promise<Unit> &&promise);
