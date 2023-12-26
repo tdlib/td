@@ -7034,6 +7034,11 @@ getChatSimilarChats chat_id:int53 = Chats;
 //@return_local Pass true to get the number of chats without sending network requests, or -1 if the number of chats is unknown locally
 getChatSimilarChatCount chat_id:int53 return_local:Bool = Count;
 
+//@description Informs TDLib that a chat was opened from the list of similar chats. The method is independent from openChat and closeChat methods
+//@chat_id Identifier of the original chat, which similar chats were requested
+//@opened_chat_id Identifier of the opened chat
+openChatSimilarChat chat_id:int53 opened_chat_id:int53 = Ok;
+
 //@description Returns a list of frequently used chats @category Category of chats to be returned @limit The maximum number of chats to be returned; up to 30
 getTopChats category:TopChatCategory limit:int32 = Chats;
 

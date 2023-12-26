@@ -594,6 +594,8 @@ class ContactsManager final : public Actor {
   void get_created_public_dialogs(PublicDialogType type, Promise<td_api::object_ptr<td_api::chats>> &&promise,
                                   bool from_binlog);
 
+  void open_channel_recommended_channel(DialogId dialog_id, DialogId opened_dialog_id, Promise<Unit> &&promise);
+
   void check_created_public_dialogs_limit(PublicDialogType type, Promise<Unit> &&promise);
 
   void reload_created_public_dialogs(PublicDialogType type, Promise<td_api::object_ptr<td_api::chats>> &&promise);

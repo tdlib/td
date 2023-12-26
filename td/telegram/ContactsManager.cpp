@@ -7,6 +7,7 @@
 #include "td/telegram/ContactsManager.h"
 
 #include "td/telegram/AnimationsManager.h"
+#include "td/telegram/Application.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/BlockListId.h"
 #include "td/telegram/BotMenuButton.h"
@@ -10153,6 +10154,24 @@ void ContactsManager::on_get_channel_recommendations(
   }
 
   finish_load_channel_recommendations_queries(channel_id, total_count, std::move(dialog_ids));
+}
+
+void ContactsManager::open_channel_recommended_channel(DialogId dialog_id, DialogId opened_dialog_id,
+                                                       Promise<Unit> &&promise) {
+  if (!td_->messages_manager_->have_dialog_force(dialog_id, "open_channel_recommended_channel") ||
+      !td_->messages_manager_->have_dialog_force(opened_dialog_id, "open_channel_recommended_channel")) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+  if (dialog_id.get_type() != DialogType::Channel || opened_dialog_id.get_type() != DialogType::Channel) {
+    return promise.set_error(Status::Error(400, "Invalid chat specified"));
+  }
+  vector<telegram_api::object_ptr<telegram_api::jsonObjectValue>> data;
+  data.push_back(telegram_api::make_object<telegram_api::jsonObjectValue>(
+      "ref_channel_id", make_tl_object<telegram_api::jsonString>(to_string(dialog_id.get_channel_id().get()))));
+  data.push_back(telegram_api::make_object<telegram_api::jsonObjectValue>(
+      "open_channel_id", make_tl_object<telegram_api::jsonString>(to_string(opened_dialog_id.get_channel_id().get()))));
+  save_app_log(td_, "channels.open_recommended_channel", DialogId(),
+               telegram_api::make_object<telegram_api::jsonObject>(std::move(data)), std::move(promise));
 }
 
 void ContactsManager::return_created_public_dialogs(Promise<td_api::object_ptr<td_api::chats>> &&promise,

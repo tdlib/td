@@ -5109,6 +5109,13 @@ void Td::on_request(uint64 id, const td_api::getChatSimilarChatCount &request) {
                                                  std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::openChatSimilarChat &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->open_channel_recommended_channel(DialogId(request.chat_id_), DialogId(request.opened_chat_id_),
+                                                      std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getTopChats &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
