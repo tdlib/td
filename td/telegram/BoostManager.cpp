@@ -31,7 +31,7 @@ static td_api::object_ptr<td_api::chatBoost> get_chat_boost_object(
   auto source = [&]() -> td_api::object_ptr<td_api::ChatBoostSource> {
     if (boost->giveaway_) {
       UserId user_id(boost->user_id_);
-      if (!user_id.is_valid()) {
+      if (!user_id.is_valid() || boost->unclaimed_) {
         user_id = UserId();
       }
       auto giveaway_message_id = MessageId(ServerMessageId(boost->giveaway_msg_id_));
