@@ -3607,7 +3607,7 @@ storyInteractionTypeRepost story:story = StoryInteractionType;
 
 //@description Represents interaction with a story
 //@actor_id Identifier of the user or chat that made the interaction
-//@interaction_date Approximate point in time (Unix timestamp) when the interaction happenned
+//@interaction_date Approximate point in time (Unix timestamp) when the interaction happened
 //@block_list Block list to which the actor is added; may be null if none or for chat stories
 //@type Type of the interaction
 storyInteraction actor_id:MessageSender interaction_date:int32 block_list:BlockList type:StoryInteractionType = StoryInteraction;
