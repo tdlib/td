@@ -14,14 +14,14 @@ set(TDDB_SOURCE
   td/db/binlog/detail/BinlogEventsBuffer.cpp
   td/db/binlog/detail/BinlogEventsProcessor.cpp
 
+  td/db/detail/RawSqliteDb.cpp
+
   td/db/SqliteConnectionSafe.cpp
   td/db/SqliteDb.cpp
   td/db/SqliteKeyValue.cpp
   td/db/SqliteKeyValueAsync.cpp
   td/db/SqliteStatement.cpp
   td/db/TQueue.cpp
-
-  td/db/detail/RawSqliteDb.cpp
 
   td/db/binlog/Binlog.h
   td/db/binlog/BinlogEvent.h

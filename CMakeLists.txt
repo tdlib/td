@@ -302,9 +302,9 @@ set(TDLIB_SOURCE
   td/telegram/BotInfoManager.cpp
   td/telegram/BotMenuButton.cpp
   td/telegram/CallActor.cpp
+  td/telegram/CallbackQueriesManager.cpp
   td/telegram/CallDiscardReason.cpp
   td/telegram/CallManager.cpp
-  td/telegram/CallbackQueriesManager.cpp
   td/telegram/ChannelParticipantFilter.cpp
   td/telegram/ChatReactions.cpp
   td/telegram/ClientActor.cpp
@@ -426,21 +426,21 @@ set(TDLIB_SOURCE
   td/telegram/net/PublicRsaKeyShared.cpp
   td/telegram/net/PublicRsaKeyWatchdog.cpp
   td/telegram/net/Session.cpp
-  td/telegram/net/SessionProxy.cpp
   td/telegram/net/SessionMultiProxy.cpp
+  td/telegram/net/SessionProxy.cpp
   td/telegram/NewPasswordState.cpp
   td/telegram/NotificationGroupInfo.cpp
   td/telegram/NotificationGroupType.cpp
   td/telegram/NotificationManager.cpp
-  td/telegram/NotificationSettingsScope.cpp
   td/telegram/NotificationSettingsManager.cpp
+  td/telegram/NotificationSettingsScope.cpp
   td/telegram/NotificationSound.cpp
   td/telegram/NotificationType.cpp
   td/telegram/OptionManager.cpp
   td/telegram/OrderedMessage.cpp
   td/telegram/OrderInfo.cpp
-  td/telegram/Payments.cpp
   td/telegram/PasswordManager.cpp
+  td/telegram/Payments.cpp
   td/telegram/PeerColor.cpp
   td/telegram/PhoneNumberManager.cpp
   td/telegram/Photo.cpp

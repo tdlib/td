@@ -123,7 +123,6 @@ set(TDUTILS_SOURCE
   td/utils/tests.cpp
   td/utils/Time.cpp
   td/utils/Timer.cpp
-  td/utils/TsFileLog.cpp
   td/utils/tl_parsers.cpp
   td/utils/translit.cpp
   td/utils/TsCerr.cpp
