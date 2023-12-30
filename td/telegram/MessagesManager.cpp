@@ -27945,8 +27945,7 @@ unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::create_message_
                                                                                              DialogId to_dialog_id,
                                                                                              const Message *m) const {
   auto content_type = m->content->get_type();
-  if (content_type == MessageContentType::Game || content_type == MessageContentType::Audio ||
-      content_type == MessageContentType::Story) {
+  if (content_type == MessageContentType::Game) {
     return nullptr;
   }
 
@@ -27957,6 +27956,8 @@ unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::create_message_
   if (to_dialog_id == my_dialog_id) {
     saved_from_dialog_id = from_dialog_id;
     saved_from_message_id = m->message_id;
+  } else if (content_type == MessageContentType::Audio || content_type == MessageContentType::Story) {
+    return nullptr;
   }
 
   if (m->forward_info != nullptr) {
