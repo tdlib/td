@@ -24,6 +24,7 @@
 #include "td/utils/buffer.h"
 #include "td/utils/FlatHashSet.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
@@ -293,12 +294,14 @@ MessageReaction::MessageReaction(ReactionType reaction_type, int32 choose_count,
   if (my_recent_chooser_dialog_id_.is_valid()) {
     CHECK(td::contains(recent_chooser_dialog_ids_, my_recent_chooser_dialog_id_));
   }
+  fix_choose_count();
 }
 
 void MessageReaction::add_my_recent_chooser_dialog_id(DialogId dialog_id) {
   CHECK(!my_recent_chooser_dialog_id_.is_valid());
   my_recent_chooser_dialog_id_ = dialog_id;
   add_to_top(recent_chooser_dialog_ids_, MAX_RECENT_CHOOSERS + 1, dialog_id);
+  fix_choose_count();
 }
 
 bool MessageReaction::remove_my_recent_chooser_dialog_id() {
@@ -336,6 +339,7 @@ void MessageReaction::update_recent_chooser_dialog_ids(const MessageReaction &ol
   my_recent_chooser_dialog_id_ = old_reaction.my_recent_chooser_dialog_id_;
   recent_chooser_dialog_ids_ = old_reaction.recent_chooser_dialog_ids_;
   recent_chooser_min_channels_ = old_reaction.recent_chooser_min_channels_;
+  fix_choose_count();
 }
 
 void MessageReaction::set_as_chosen(DialogId my_dialog_id, bool have_recent_choosers) {
@@ -355,6 +359,11 @@ void MessageReaction::unset_as_chosen() {
   is_chosen_ = false;
   choose_count_--;
   remove_my_recent_chooser_dialog_id();
+  fix_choose_count();
+}
+
+void MessageReaction::fix_choose_count() {
+  choose_count_ = max(choose_count_, narrow_cast<int32>(recent_chooser_dialog_ids_.size()));
 }
 
 void MessageReaction::set_my_recent_chooser_dialog_id(DialogId my_dialog_id) {

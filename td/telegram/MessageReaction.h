@@ -75,6 +75,8 @@ class MessageReaction {
     return choose_count_;
   }
 
+  void fix_choose_count();
+
   void set_my_recent_chooser_dialog_id(DialogId my_dialog_id);
 
   DialogId get_my_recent_chooser_dialog_id() const {

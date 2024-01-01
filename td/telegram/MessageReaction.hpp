@@ -65,6 +65,7 @@ void MessageReaction::parse(ParserT &parser) {
     CHECK(my_recent_chooser_dialog_id_.is_valid());
     CHECK(td::contains(recent_chooser_dialog_ids_, my_recent_chooser_dialog_id_));
   }
+  fix_choose_count();
   CHECK(!is_empty());
   CHECK(!reaction_type_.is_empty());
 }
