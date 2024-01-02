@@ -211,17 +211,25 @@ SecretInputMedia VideoNotesManager::get_secret_input_media(FileId video_note_fil
 
 tl_object_ptr<telegram_api::InputMedia> VideoNotesManager::get_input_media(
     FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file,
-    tl_object_ptr<telegram_api::InputFile> input_thumbnail) const {
+    tl_object_ptr<telegram_api::InputFile> input_thumbnail, int32 ttl) const {
   auto file_view = td_->file_manager_->get_file_view(file_id);
   if (file_view.is_encrypted()) {
     return nullptr;
   }
   if (file_view.has_remote_location() && !file_view.main_remote_location().is_web() && input_file == nullptr) {
+    int32 flags = 0;
+    if (ttl != 0) {
+      flags |= telegram_api::inputMediaDocument::TTL_SECONDS_MASK;
+    }
     return make_tl_object<telegram_api::inputMediaDocument>(
-        0, false /*ignored*/, file_view.main_remote_location().as_input_document(), 0, string());
+        flags, false /*ignored*/, file_view.main_remote_location().as_input_document(), ttl, string());
   }
   if (file_view.has_url()) {
-    return make_tl_object<telegram_api::inputMediaDocumentExternal>(0, false /*ignored*/, file_view.url(), 0);
+    int32 flags = 0;
+    if (ttl != 0) {
+      flags |= telegram_api::inputMediaDocumentExternal::TTL_SECONDS_MASK;
+    }
+    return make_tl_object<telegram_api::inputMediaDocumentExternal>(flags, false /*ignored*/, file_view.url(), ttl);
   }
 
   if (input_file != nullptr) {
@@ -237,13 +245,16 @@ tl_object_ptr<telegram_api::InputMedia> VideoNotesManager::get_input_media(
         video_note->dimensions.width ? video_note->dimensions.width : suggested_video_note_length,
         video_note->dimensions.height ? video_note->dimensions.height : suggested_video_note_length, 0));
     int32 flags = telegram_api::inputMediaUploadedDocument::NOSOUND_VIDEO_MASK;
+    if (ttl != 0) {
+      flags |= telegram_api::inputMediaUploadedDocument::TTL_SECONDS_MASK;
+    }
     if (input_thumbnail != nullptr) {
       flags |= telegram_api::inputMediaUploadedDocument::THUMB_MASK;
     }
     return make_tl_object<telegram_api::inputMediaUploadedDocument>(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_file),
         std::move(input_thumbnail), "video/mp4", std::move(attributes),
-        vector<tl_object_ptr<telegram_api::InputDocument>>(), 0);
+        vector<tl_object_ptr<telegram_api::InputDocument>>(), ttl);
   } else {
     CHECK(!file_view.has_remote_location());
   }

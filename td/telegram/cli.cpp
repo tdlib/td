@@ -4904,7 +4904,8 @@ class CliClient final : public Actor {
       string voice_path;
       get_args(args, chat_id, voice_path);
       send_message(chat_id, td_api::make_object<td_api::inputMessageVoiceNote>(as_input_file(voice_path), 0, "abacaba",
-                                                                               as_caption("voice caption")));
+                                                                               as_caption("voice caption"),
+                                                                               get_message_self_destruct_type()));
     } else if (op == "SendContact" || op == "scontact") {
       ChatId chat_id;
       string phone_number;
@@ -5134,8 +5135,8 @@ class CliClient final : public Actor {
       ChatId chat_id;
       string video_path;
       get_args(args, chat_id, video_path);
-      send_message(chat_id,
-                   td_api::make_object<td_api::inputMessageVideoNote>(as_input_file(video_path), nullptr, 10, 5));
+      send_message(chat_id, td_api::make_object<td_api::inputMessageVideoNote>(as_input_file(video_path), nullptr, 10,
+                                                                               5, get_message_self_destruct_type()));
     } else if (op == "svenue") {
       ChatId chat_id;
       string latitude;

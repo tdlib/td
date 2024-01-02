@@ -2678,6 +2678,7 @@ static Result<InputMessageContent> create_input_message_content(
     }
     case td_api::inputMessageVideoNote::ID: {
       auto input_video_note = static_cast<td_api::inputMessageVideoNote *>(input_message_content.get());
+      self_destruct_type = std::move(input_video_note->self_destruct_type_);
 
       auto length = input_video_note->length_;
       if (length < 0 || length >= 640) {
@@ -2692,6 +2693,7 @@ static Result<InputMessageContent> create_input_message_content(
     }
     case td_api::inputMessageVoiceNote::ID: {
       auto input_voice_note = static_cast<td_api::inputMessageVoiceNote *>(input_message_content.get());
+      self_destruct_type = std::move(input_voice_note->self_destruct_type_);
 
       td->voice_notes_manager_->create_voice_note(file_id, std::move(mime_type), input_voice_note->duration_,
                                                   std::move(input_voice_note->waveform_), false);
@@ -2833,7 +2835,7 @@ static Result<InputMessageContent> create_input_message_content(
   }
 
   if (self_destruct_type != nullptr && dialog_id.get_type() != DialogType::User) {
-    return Status::Error(400, "Messages can self-destruct only in  can be specified only in private chats");
+    return Status::Error(400, "Messages can self-destruct only in private chats");
   }
   int32 ttl = 0;
   if (self_destruct_type != nullptr) {
@@ -3249,11 +3251,12 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
     }
     case MessageContentType::VideoNote: {
       const auto *m = static_cast<const MessageVideoNote *>(content);
-      return td->video_notes_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail));
+      return td->video_notes_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail),
+                                                       ttl);
     }
     case MessageContentType::VoiceNote: {
       const auto *m = static_cast<const MessageVoiceNote *>(content);
-      return td->voice_notes_manager_->get_input_media(m->file_id, std::move(input_file));
+      return td->voice_notes_manager_->get_input_media(m->file_id, std::move(input_file), ttl);
     }
     case MessageContentType::Text:
     case MessageContentType::Unsupported:

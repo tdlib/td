@@ -167,17 +167,25 @@ SecretInputMedia VoiceNotesManager::get_secret_input_media(FileId voice_note_fil
 }
 
 tl_object_ptr<telegram_api::InputMedia> VoiceNotesManager::get_input_media(
-    FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) const {
+    FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file, int32 ttl) const {
   auto file_view = td_->file_manager_->get_file_view(file_id);
   if (file_view.is_encrypted()) {
     return nullptr;
   }
   if (file_view.has_remote_location() && !file_view.main_remote_location().is_web() && input_file == nullptr) {
+    int32 flags = 0;
+    if (ttl != 0) {
+      flags |= telegram_api::inputMediaDocument::TTL_SECONDS_MASK;
+    }
     return make_tl_object<telegram_api::inputMediaDocument>(
-        0, false /*ignored*/, file_view.main_remote_location().as_input_document(), 0, string());
+        flags, false /*ignored*/, file_view.main_remote_location().as_input_document(), ttl, string());
   }
   if (file_view.has_url()) {
-    return make_tl_object<telegram_api::inputMediaDocumentExternal>(0, false /*ignored*/, file_view.url(), 0);
+    int32 flags = 0;
+    if (ttl != 0) {
+      flags |= telegram_api::inputMediaDocumentExternal::TTL_SECONDS_MASK;
+    }
+    return make_tl_object<telegram_api::inputMediaDocumentExternal>(flags, false /*ignored*/, file_view.url(), ttl);
   }
 
   if (input_file != nullptr) {
@@ -185,19 +193,25 @@ tl_object_ptr<telegram_api::InputMedia> VoiceNotesManager::get_input_media(
     CHECK(voice_note != nullptr);
 
     vector<tl_object_ptr<telegram_api::DocumentAttribute>> attributes;
-    int32 flags = telegram_api::documentAttributeAudio::VOICE_MASK;
-    if (!voice_note->waveform.empty()) {
-      flags |= telegram_api::documentAttributeAudio::WAVEFORM_MASK;
+    {
+      int32 flags = telegram_api::documentAttributeAudio::VOICE_MASK;
+      if (!voice_note->waveform.empty()) {
+        flags |= telegram_api::documentAttributeAudio::WAVEFORM_MASK;
+      }
+      attributes.push_back(make_tl_object<telegram_api::documentAttributeAudio>(
+          flags, false /*ignored*/, voice_note->duration, "", "", BufferSlice(voice_note->waveform)));
     }
-    attributes.push_back(make_tl_object<telegram_api::documentAttributeAudio>(
-        flags, false /*ignored*/, voice_note->duration, "", "", BufferSlice(voice_note->waveform)));
     string mime_type = voice_note->mime_type;
     if (mime_type != "audio/ogg" && mime_type != "audio/mpeg" && mime_type != "audio/mp4") {
       mime_type = "audio/ogg";
     }
+    int32 flags = 0;
+    if (ttl != 0) {
+      flags |= telegram_api::inputMediaUploadedDocument::TTL_SECONDS_MASK;
+    }
     return make_tl_object<telegram_api::inputMediaUploadedDocument>(
-        0, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_file), nullptr, mime_type,
-        std::move(attributes), vector<tl_object_ptr<telegram_api::InputDocument>>(), 0);
+        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_file), nullptr, mime_type,
+        std::move(attributes), vector<tl_object_ptr<telegram_api::InputDocument>>(), ttl);
   } else {
     CHECK(!file_view.has_remote_location());
   }

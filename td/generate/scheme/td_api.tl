@@ -3125,7 +3125,6 @@ inputMessageDocument document:InputFile thumbnail:inputThumbnail disable_content
 //@has_spoiler True, if the photo preview must be covered by a spoiler animation; not supported in secret chats
 inputMessagePhoto photo:InputFile thumbnail:inputThumbnail added_sticker_file_ids:vector<int32> width:int32 height:int32 caption:formattedText self_destruct_type:MessageSelfDestructType has_spoiler:Bool = InputMessageContent;
 
-
 //@description A sticker message
 //@sticker Sticker to be sent
 //@thumbnail Sticker thumbnail; pass null to skip thumbnail uploading
@@ -3152,14 +3151,16 @@ inputMessageVideo video:InputFile thumbnail:inputThumbnail added_sticker_file_id
 //@thumbnail Video thumbnail; pass null to skip thumbnail uploading
 //@duration Duration of the video, in seconds
 //@length Video width and height; must be positive and not greater than 640
-inputMessageVideoNote video_note:InputFile thumbnail:inputThumbnail duration:int32 length:int32 = InputMessageContent;
+//@self_destruct_type Video note self-destruct type; pass null if none; private chats only
+inputMessageVideoNote video_note:InputFile thumbnail:inputThumbnail duration:int32 length:int32 self_destruct_type:MessageSelfDestructType = InputMessageContent;
 
 //@description A voice note message
 //@voice_note Voice note to be sent
 //@duration Duration of the voice note, in seconds
 //@waveform Waveform representation of the voice note in 5-bit format
 //@caption Voice note caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
-inputMessageVoiceNote voice_note:InputFile duration:int32 waveform:bytes caption:formattedText = InputMessageContent;
+//@self_destruct_type Voice note self-destruct type; pass null if none; private chats only
+inputMessageVoiceNote voice_note:InputFile duration:int32 waveform:bytes caption:formattedText self_destruct_type:MessageSelfDestructType = InputMessageContent;
 
 //@description A message with a location
 //@location Location to be sent

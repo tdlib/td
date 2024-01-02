@@ -44,7 +44,8 @@ class VideoNotesManager final : public Actor {
 
   tl_object_ptr<telegram_api::InputMedia> get_input_media(FileId file_id,
                                                           tl_object_ptr<telegram_api::InputFile> input_file,
-                                                          tl_object_ptr<telegram_api::InputFile> input_thumbnail) const;
+                                                          tl_object_ptr<telegram_api::InputFile> input_thumbnail,
+                                                          int32 ttl) const;
 
   SecretInputMedia get_secret_input_media(FileId video_note_file_id,
                                           tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
