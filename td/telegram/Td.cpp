@@ -3994,9 +3994,9 @@ void Td::init_managers() {
   country_info_manager_actor_ = register_actor("CountryInfoManager", country_info_manager_.get());
   dialog_filter_manager_ = make_unique<DialogFilterManager>(this, create_reference());
   dialog_filter_manager_actor_ = register_actor("DialogFilterManager", dialog_filter_manager_.get());
+  G()->set_dialog_filter_manager(dialog_filter_manager_actor_.get());
   dialog_manager_ = make_unique<DialogManager>(this, create_reference());
   dialog_manager_actor_ = register_actor("DialogManager", dialog_manager_.get());
-  G()->set_download_manager(download_manager_actor_.get());
   download_manager_ = DownloadManager::create(td::make_unique<DownloadManagerCallback>(this, create_reference()));
   download_manager_actor_ = register_actor("DownloadManager", download_manager_.get());
   G()->set_download_manager(download_manager_actor_.get());
