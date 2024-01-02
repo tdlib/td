@@ -62,12 +62,16 @@ void MessageReaction::parse(ParserT &parser) {
   }
   if (has_my_recent_chooser_dialog_id) {
     td::parse(my_recent_chooser_dialog_id_, parser);
-    CHECK(my_recent_chooser_dialog_id_.is_valid());
-    CHECK(td::contains(recent_chooser_dialog_ids_, my_recent_chooser_dialog_id_));
+    if (!my_recent_chooser_dialog_id_.is_valid() ||
+        !td::contains(recent_chooser_dialog_ids_, my_recent_chooser_dialog_id_)) {
+      return parser.set_error("Invalid recent reaction chooser");
+    }
   }
   fix_choose_count();
-  CHECK(!is_empty());
-  CHECK(!reaction_type_.is_empty());
+
+  if (is_empty() || reaction_type_.is_empty()) {
+    parser.set_error("Invalid message reaction");
+  }
 }
 
 template <class StorerT>
@@ -86,7 +90,9 @@ void UnreadMessageReaction::parse(ParserT &parser) {
   END_PARSE_FLAGS();
   td::parse(reaction_type_, parser);
   td::parse(sender_dialog_id_, parser);
-  CHECK(!reaction_type_.is_empty());
+  if (reaction_type_.is_empty()) {
+    parser.set_error("Invalid unread message reaction");
+  }
 }
 
 template <class StorerT>
