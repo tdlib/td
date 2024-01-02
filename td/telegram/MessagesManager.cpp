@@ -33230,6 +33230,14 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
       need_send_update = true;
     }
   }
+  if (old_message->ttl != new_message->ttl && old_message->ttl_expires_at == 0) {
+    if (message_id.is_yet_unsent() || replace_legacy) {
+      LOG(INFO) << "Change message self-destruct time from " << old_message->ttl << " to " << new_message->ttl;
+      old_message->ttl = new_message->ttl;
+    } else {
+      LOG(INFO) << "Ignore message self-destruct time change from " << old_message->ttl << " to " << new_message->ttl;
+    }
+  }
 
   const bool is_replied_message_info_changed = old_message->replied_message_info != new_message->replied_message_info;
   const bool is_top_thread_message_id_changed =
