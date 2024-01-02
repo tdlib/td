@@ -42,6 +42,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogListId.h"
 #include "td/telegram/DialogLocation.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/DialogParticipantFilter.h"
 #include "td/telegram/DialogSource.h"
@@ -3287,6 +3288,8 @@ void Td::dec_actor_refcnt() {
       LOG(DEBUG) << "CountryInfoManager was cleared" << timer;
       dialog_filter_manager_.reset();
       LOG(DEBUG) << "DialogFilterManager was cleared" << timer;
+      dialog_manager_.reset();
+      LOG(DEBUG) << "DialogManager was cleared" << timer;
       documents_manager_.reset();
       LOG(DEBUG) << "DocumentsManager was cleared" << timer;
       download_manager_.reset();
@@ -3498,6 +3501,8 @@ void Td::clear() {
   LOG(DEBUG) << "CountryInfoManager actor was cleared" << timer;
   dialog_filter_manager_actor_.reset();
   LOG(DEBUG) << "DialogFilterManager actor was cleared" << timer;
+  dialog_manager_actor_.reset();
+  LOG(DEBUG) << "DialogManager actor was cleared" << timer;
   download_manager_actor_.reset();
   LOG(DEBUG) << "DownloadManager actor was cleared" << timer;
   file_manager_actor_.reset();
@@ -3989,6 +3994,8 @@ void Td::init_managers() {
   country_info_manager_actor_ = register_actor("CountryInfoManager", country_info_manager_.get());
   dialog_filter_manager_ = make_unique<DialogFilterManager>(this, create_reference());
   dialog_filter_manager_actor_ = register_actor("DialogFilterManager", dialog_filter_manager_.get());
+  dialog_manager_ = make_unique<DialogManager>(this, create_reference());
+  dialog_manager_actor_ = register_actor("DialogManager", dialog_manager_.get());
   G()->set_download_manager(download_manager_actor_.get());
   download_manager_ = DownloadManager::create(td::make_unique<DownloadManagerCallback>(this, create_reference()));
   download_manager_actor_ = register_actor("DownloadManager", download_manager_.get());

@@ -288,6 +288,7 @@ function split_file($file, $chunks, $undo) {
                 'contacts_manager[_(-][^.]|ContactsManager([^ ;.]| [^*])' => 'ContactsManager',
                 'country_info_manager[_(-][^.]|CountryInfoManager' => 'CountryInfoManager',
                 'dialog_filter_manager[_(-][^.]|DialogFilterManager' => "DialogFilterManager",
+                'dialog_manager[_(-][^.]|DialogManager' => "DialogManager",
                 'documents_manager[_(-][^.]|DocumentsManager' => "DocumentsManager",
                 'download_manager[_(-][^.]|DownloadManager' => "DownloadManager",
                 'file_reference_manager[_(-][^.]|FileReferenceManager|file_references[)]' => 'FileReferenceManager',
