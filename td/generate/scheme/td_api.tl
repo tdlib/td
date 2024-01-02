@@ -2697,9 +2697,6 @@ messageDocument document:document caption:formattedText = MessageContent;
 //@is_secret True, if the photo must be blurred and must be shown only while tapped
 messagePhoto photo:photo caption:formattedText has_spoiler:Bool is_secret:Bool = MessageContent;
 
-//@description A self-destructed photo message
-messageExpiredPhoto = MessageContent;
-
 //@description A sticker message @sticker The sticker description @is_premium True, if premium animation of the sticker must be played
 messageSticker sticker:sticker is_premium:Bool = MessageContent;
 
@@ -2710,14 +2707,23 @@ messageSticker sticker:sticker is_premium:Bool = MessageContent;
 //@is_secret True, if the video thumbnail must be blurred and the video must be shown only while tapped
 messageVideo video:video caption:formattedText has_spoiler:Bool is_secret:Bool = MessageContent;
 
-//@description A self-destructed video message
-messageExpiredVideo = MessageContent;
-
 //@description A video note message @video_note The video note description @is_viewed True, if at least one of the recipients has viewed the video note @is_secret True, if the video note thumbnail must be blurred and the video note must be shown only while tapped
 messageVideoNote video_note:videoNote is_viewed:Bool is_secret:Bool = MessageContent;
 
 //@description A voice note message @voice_note The voice note description @caption Voice note caption @is_listened True, if at least one of the recipients has listened to the voice note
 messageVoiceNote voice_note:voiceNote caption:formattedText is_listened:Bool = MessageContent;
+
+//@description A self-destructed photo message
+messageExpiredPhoto = MessageContent;
+
+//@description A self-destructed video message
+messageExpiredVideo = MessageContent;
+
+//@description A self-destructed video note message
+messageExpiredVideoNote = MessageContent;
+
+//@description A self-destructed voice note message
+messageExpiredVoiceNote = MessageContent;
 
 //@description A message with a location
 //@location The location description

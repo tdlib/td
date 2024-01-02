@@ -357,8 +357,10 @@ bool DialogAction::is_canceled_by_message_of_type(MessageContentType message_con
     case MessageContentType::ExpiredVideo:
     case MessageContentType::Video:
       return type_ == Type::RecordingVideo || type_ == Type::UploadingVideo;
+    case MessageContentType::ExpiredVideoNote:
     case MessageContentType::VideoNote:
       return type_ == Type::RecordingVideoNote || type_ == Type::UploadingVideoNote;
+    case MessageContentType::ExpiredVoiceNote:
     case MessageContentType::VoiceNote:
       return type_ == Type::RecordingVoiceNote || type_ == Type::UploadingVoiceNote;
     case MessageContentType::Contact:

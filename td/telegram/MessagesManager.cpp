@@ -13050,8 +13050,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   }
 
   bool noforwards = message_info.noforwards;
-  bool is_expired =
-      content_type == MessageContentType::ExpiredPhoto || content_type == MessageContentType::ExpiredVideo;
+  bool is_expired = is_expired_message_content(content_type);
   if (is_expired) {
     CHECK(ttl == 0);  // self-destruct time is ignored/set to 0 if the message has already been expired
     message_info.reply_header.replied_message_info_ = {};
@@ -24541,6 +24540,8 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
     case MessageContentType::GiftCode:
     case MessageContentType::GiveawayLaunch:
     case MessageContentType::GiveawayResults:
+    case MessageContentType::ExpiredVideoNote:
+    case MessageContentType::ExpiredVoiceNote:
       return false;
     default:
       UNREACHABLE();
@@ -27714,6 +27715,8 @@ bool MessagesManager::is_message_notification_disabled(const Dialog *d, const Me
     case MessageContentType::Unsupported:
     case MessageContentType::ExpiredPhoto:
     case MessageContentType::ExpiredVideo:
+    case MessageContentType::ExpiredVideoNote:
+    case MessageContentType::ExpiredVoiceNote:
     case MessageContentType::PassportDataSent:
     case MessageContentType::PassportDataReceived:
     case MessageContentType::WebViewDataSent:
@@ -32535,8 +32538,7 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
 
   auto message_content_type = message->content->get_type();
   if (is_service_message_content(message_content_type) || message_content_type == MessageContentType::LiveLocation ||
-      message_content_type == MessageContentType::ExpiredPhoto ||
-      message_content_type == MessageContentType::ExpiredVideo) {
+      is_expired_message_content(message_content_type)) {
     LOG(ERROR) << "Tried to add " << message_id << " of type " << message_content_type << " to " << dialog_id
                << " from " << source;
     debug_add_message_to_dialog_fail_reason_ = "skip adding message of unexpected type";
@@ -33352,8 +33354,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
       << new_content_type;
   if (old_message->contains_mention != new_message->contains_mention) {
     if (old_message->edit_date == 0 && is_new_available && new_content_type != MessageContentType::PinMessage &&
-        new_content_type != MessageContentType::ExpiredPhoto && new_content_type != MessageContentType::ExpiredVideo &&
-        !replace_legacy) {
+        !is_expired_message_content(new_content_type) && !replace_legacy) {
       LOG(ERROR) << message_id << " in " << dialog_id << " has changed contains_mention from "
                  << old_message->contains_mention << " to " << new_message->contains_mention
                  << ", is_outgoing = " << old_message->is_outgoing << ", message content type is " << old_content_type
@@ -33561,7 +33562,11 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
   if (old_content_type != new_content_type) {
     if (old_message->ttl > 0 && old_message->ttl_expires_at > 0 &&
         ((new_content_type == MessageContentType::ExpiredPhoto && old_content_type == MessageContentType::Photo) ||
-         (new_content_type == MessageContentType::ExpiredVideo && old_content_type == MessageContentType::Video))) {
+         (new_content_type == MessageContentType::ExpiredVideo && old_content_type == MessageContentType::Video) ||
+         (new_content_type == MessageContentType::ExpiredVideoNote &&
+          old_content_type == MessageContentType::VideoNote) ||
+         (new_content_type == MessageContentType::ExpiredVoiceNote &&
+          old_content_type == MessageContentType::VoiceNote))) {
       LOG(INFO) << "Do not apply expired message content early";
     } else {
       need_update = true;
