@@ -3658,8 +3658,14 @@ publicForwards total_count:int32 forwards:vector<PublicForward> next_offset:stri
 //@can_set_custom_background True, if custom background can be set in the chat for all users
 chatBoostLevelFeatures level:int32 story_per_day_count:int32 custom_emoji_reaction_count:int32 title_color_count:int32 profile_accent_color_count:int32 can_set_profile_background_custom_emoji:Bool accent_color_count:int32 can_set_background_custom_emoji:Bool can_set_emoji_status:Bool chat_theme_background_count:int32 can_set_custom_background:Bool = ChatBoostLevelFeatures;
 
-//@description Contains a list of features available on the first chat boost levels @features The list of features
-chatBoostFeatures features:vector<chatBoostLevelFeatures> = ChatBoostFeatures;
+//@description Contains a list of features available on the first chat boost levels
+//@features The list of features
+//@min_profile_background_custom_emoji_boost_level The minimum boost level required to set custom emoji for profile background
+//@min_background_custom_emoji_boost_level The minimum boost level required to set custom emoji for reply header and link preview background
+//@min_emoji_status_boost_level The minimum boost level required to set emoji status
+//@min_chat_theme_background_boost_level The minimum boost level required to set a chat theme background as chat background
+//@min_custom_background_boost_level The minimum boost level required to set custom chat background
+chatBoostFeatures features:vector<chatBoostLevelFeatures> min_profile_background_custom_emoji_boost_level:int32 min_background_custom_emoji_boost_level:int32 min_emoji_status_boost_level:int32 min_chat_theme_background_boost_level:int32 min_custom_background_boost_level:int32 = ChatBoostFeatures;
 
 
 //@class ChatBoostSource @description Describes source of a chat boost

@@ -367,7 +367,12 @@ td_api::object_ptr<td_api::chatBoostFeatures> BoostManager::get_chat_boost_featu
   for (int32 level = 1; level <= 10; level++) {
     features.push_back(get_chat_boost_level_features_object(level));
   }
-  return td_api::make_object<td_api::chatBoostFeatures>(std::move(features));
+  auto get_min_boost_level = [&](Slice name) {
+    return narrow_cast<int32>(td_->option_manager_->get_option_integer(PSLICE() << "channel_" << name << "_level_min"));
+  };
+  return td_api::make_object<td_api::chatBoostFeatures>(
+      std::move(features), get_min_boost_level("profile_bg_icon"), get_min_boost_level("profile_bg_icon"),
+      get_min_boost_level("emoji_status"), get_min_boost_level("wallpaper"), get_min_boost_level("custom_wallpaper"));
 }
 
 void BoostManager::get_boost_slots(Promise<td_api::object_ptr<td_api::chatBoostSlots>> &&promise) {
