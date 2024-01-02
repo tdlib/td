@@ -1577,8 +1577,10 @@ class GetSearchResultCalendarQuery final : public Td::ResultHandler {
     filter_ = filter;
     random_id_ = random_id;
 
+    int32 flags = 0;
     send_query(G()->net_query_creator().create(telegram_api::messages_getSearchResultsCalendar(
-        std::move(input_peer), get_input_messages_filter(filter), from_message_id.get_server_message_id().get(), 0)));
+        flags, std::move(input_peer), nullptr, get_input_messages_filter(filter),
+        from_message_id.get_server_message_id().get(), 0)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1653,9 +1655,10 @@ class GetMessagePositionQuery final : public Td::ResultHandler {
         flags |= telegram_api::messages_search::TOP_MSG_ID_MASK;
       }
       send_query(G()->net_query_creator().create(telegram_api::messages_search(
-          flags, std::move(input_peer), string(), nullptr, top_thread_message_id.get_server_message_id().get(),
-          get_input_messages_filter(filter), 0, std::numeric_limits<int32>::max(),
-          message_id.get_server_message_id().get(), -1, 1, std::numeric_limits<int32>::max(), 0, 0)));
+          flags, std::move(input_peer), string(), nullptr, nullptr, Auto(),
+          top_thread_message_id.get_server_message_id().get(), get_input_messages_filter(filter), 0,
+          std::numeric_limits<int32>::max(), message_id.get_server_message_id().get(), -1, 1,
+          std::numeric_limits<int32>::max(), 0, 0)));
     }
   }
 
@@ -1783,10 +1786,10 @@ class SearchMessagesQuery final : public Td::ResultHandler {
         flags |= telegram_api::messages_search::TOP_MSG_ID_MASK;
       }
 
-      send_query(G()->net_query_creator().create(
-          telegram_api::messages_search(flags, std::move(input_peer), query, std::move(sender_input_peer), top_msg_id,
-                                        get_input_messages_filter(filter), 0, std::numeric_limits<int32>::max(),
-                                        offset_id, offset, limit, std::numeric_limits<int32>::max(), 0, 0)));
+      send_query(G()->net_query_creator().create(telegram_api::messages_search(
+          flags, std::move(input_peer), query, std::move(sender_input_peer), nullptr, Auto(), top_msg_id,
+          get_input_messages_filter(filter), 0, std::numeric_limits<int32>::max(), offset_id, offset, limit,
+          std::numeric_limits<int32>::max(), 0, 0)));
     }
   }
 
@@ -1852,9 +1855,10 @@ class GetSearchResultPositionsQuery final : public Td::ResultHandler {
     dialog_id_ = dialog_id;
     filter_ = filter;
 
-    send_query(G()->net_query_creator().create(
-        telegram_api::messages_getSearchResultsPositions(std::move(input_peer), get_input_messages_filter(filter),
-                                                         from_message_id.get_server_message_id().get(), limit)));
+    int32 flags = 0;
+    send_query(G()->net_query_creator().create(telegram_api::messages_getSearchResultsPositions(
+        flags, std::move(input_peer), nullptr, get_input_messages_filter(filter),
+        from_message_id.get_server_message_id().get(), limit)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1900,7 +1904,7 @@ class GetSearchCountersQuery final : public Td::ResultHandler {
 
     int32 flags = 0;
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_getSearchCounters(flags, std::move(input_peer), 0, std::move(filters))));
+        telegram_api::messages_getSearchCounters(flags, std::move(input_peer), nullptr, 0, std::move(filters))));
   }
 
   void on_result(BufferSlice packet) final {

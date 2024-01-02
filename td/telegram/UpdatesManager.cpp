@@ -1105,8 +1105,9 @@ int32 UpdatesManager::fix_short_message_flags(int32 flags) {
   static constexpr int32 MESSAGE_FLAG_HAS_MEDIA = 1 << 9;
   static constexpr int32 MESSAGE_FLAG_HAS_REACTIONS = 1 << 20;
   static constexpr int32 MESSAGE_FLAG_HAS_REPLY_INFO = 1 << 23;
-  auto disallowed_flags =
-      MESSAGE_FLAG_HAS_REPLY_MARKUP | MESSAGE_FLAG_HAS_MEDIA | MESSAGE_FLAG_HAS_REACTIONS | MESSAGE_FLAG_HAS_REPLY_INFO;
+  static constexpr int32 MESSAGE_FLAG_HAS_SAVED_PEER_ID = 1 << 28;
+  auto disallowed_flags = MESSAGE_FLAG_HAS_REPLY_MARKUP | MESSAGE_FLAG_HAS_MEDIA | MESSAGE_FLAG_HAS_REACTIONS |
+                          MESSAGE_FLAG_HAS_REPLY_INFO | MESSAGE_FLAG_HAS_SAVED_PEER_ID;
   if ((flags & disallowed_flags) != 0) {
     LOG(ERROR) << "Receive short message with flags " << flags;
     flags = flags & ~disallowed_flags;
@@ -1170,7 +1171,7 @@ void UpdatesManager::on_get_updates_impl(tl_object_ptr<telegram_api::Updates> up
           fix_short_message_flags(update->flags_), update->out_, update->mentioned_, update->media_unread_,
           update->silent_, false, false, false, false, false, false, false, update->id_,
           make_tl_object<telegram_api::peerUser>(from_id), make_tl_object<telegram_api::peerUser>(update->user_id_),
-          std::move(update->fwd_from_), update->via_bot_id_, std::move(update->reply_to_), update->date_,
+          nullptr, std::move(update->fwd_from_), update->via_bot_id_, std::move(update->reply_to_), update->date_,
           update->message_, nullptr, nullptr, std::move(update->entities_), 0, 0, nullptr, 0, string(), 0, nullptr,
           Auto(), update->ttl_period_);
       on_pending_update(
@@ -1184,9 +1185,9 @@ void UpdatesManager::on_get_updates_impl(tl_object_ptr<telegram_api::Updates> up
           fix_short_message_flags(update->flags_), update->out_, update->mentioned_, update->media_unread_,
           update->silent_, false, false, false, false, false, false, false, update->id_,
           make_tl_object<telegram_api::peerUser>(update->from_id_),
-          make_tl_object<telegram_api::peerChat>(update->chat_id_), std::move(update->fwd_from_), update->via_bot_id_,
-          std::move(update->reply_to_), update->date_, update->message_, nullptr, nullptr, std::move(update->entities_),
-          0, 0, nullptr, 0, string(), 0, nullptr, Auto(), update->ttl_period_);
+          make_tl_object<telegram_api::peerChat>(update->chat_id_), nullptr, std::move(update->fwd_from_),
+          update->via_bot_id_, std::move(update->reply_to_), update->date_, update->message_, nullptr, nullptr,
+          std::move(update->entities_), 0, 0, nullptr, 0, string(), 0, nullptr, Auto(), update->ttl_period_);
       on_pending_update(
           make_tl_object<telegram_api::updateNewMessage>(std::move(message), update->pts_, update->pts_count_), 0,
           std::move(promise), "telegram_api::updateShortChatMessage");
@@ -4439,5 +4440,17 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewAuthorizatio
 }
 
 // unsupported updates
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateSavedDialogPinned> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePinnedSavedDialogs> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateSavedReactionTags> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
 
 }  // namespace td
