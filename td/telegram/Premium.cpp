@@ -12,6 +12,7 @@
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/GiveawayParameters.h"
@@ -115,7 +116,7 @@ Result<telegram_api::object_ptr<telegram_api::InputPeer>> get_boost_input_peer(T
   if (!td->contacts_manager_->get_channel_status(dialog_id.get_channel_id()).is_administrator()) {
     return Status::Error(400, "Not enough rights in the chat");
   }
-  auto boost_input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+  auto boost_input_peer = td->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
   CHECK(boost_input_peer != nullptr);
   return std::move(boost_input_peer);
 }
@@ -296,7 +297,7 @@ class GetPremiumGiftCodeOptionsQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(boosted_dialog_id_, status, "GetPremiumGiftCodeOptionsQuery");
+    td_->dialog_manager_->on_get_dialog_error(boosted_dialog_id_, status, "GetPremiumGiftCodeOptionsQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -333,7 +334,7 @@ class CheckGiftCodeQuery final : public Td::ResultHandler {
     if (result->from_id_ != nullptr) {
       creator_dialog_id = DialogId(result->from_id_);
       if (!creator_dialog_id.is_valid() ||
-          !td_->messages_manager_->have_dialog_info_force(creator_dialog_id, "CheckGiftCodeQuery")) {
+          !td_->dialog_manager_->have_dialog_info_force(creator_dialog_id, "CheckGiftCodeQuery")) {
         LOG(ERROR) << "Receive " << to_string(result);
         return on_error(Status::Error(500, "Receive invalid response"));
       }
@@ -403,7 +404,7 @@ class LaunchPrepaidGiveawayQuery final : public Td::ResultHandler {
 
   void send(int64 giveaway_id, const GiveawayParameters &parameters) {
     auto dialog_id = parameters.get_boosted_dialog_id();
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
     CHECK(input_peer != nullptr);
     send_query(G()->net_query_creator().create(telegram_api::payments_launchPrepaidGiveaway(
         std::move(input_peer), giveaway_id, parameters.get_input_store_payment_premium_giveaway(td_, string(), 0))));
@@ -436,7 +437,7 @@ class GetGiveawayInfoQuery final : public Td::ResultHandler {
 
   void send(DialogId dialog_id, ServerMessageId server_message_id) {
     dialog_id_ = dialog_id;
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -513,7 +514,7 @@ class GetGiveawayInfoQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetGiveawayInfoQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetGiveawayInfoQuery");
     promise_.set_error(std::move(status));
   }
 };

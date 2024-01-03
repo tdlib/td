@@ -9,6 +9,7 @@
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogListId.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/FolderId.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
@@ -141,8 +142,8 @@ void RecentDialogList::on_load_dialogs(vector<string> &&found_dialogs) {
       dialog_id = DialogId(to_integer<int64>(*it));
     }
     if (dialog_id.is_valid() && removed_dialog_ids_.count(dialog_id) == 0 &&
-        td_->messages_manager_->have_dialog_info(dialog_id) &&
-        td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+        td_->dialog_manager_->have_dialog_info(dialog_id) &&
+        td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
       td_->messages_manager_->force_create_dialog(dialog_id, "recent dialog");
       do_add_dialog(dialog_id);
     }

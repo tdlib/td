@@ -10,6 +10,7 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogAction.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/DialogParticipantFilter.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageId.h"
@@ -123,7 +124,7 @@ class GetGroupCallJoinAsQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id) {
     dialog_id_ = dialog_id;
 
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
 
     send_query(G()->net_query_creator().create(telegram_api::phone_getGroupCallJoinAs(std::move(input_peer))));
@@ -145,7 +146,7 @@ class GetGroupCallJoinAsQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetGroupCallJoinAsQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetGroupCallJoinAsQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -158,10 +159,10 @@ class SaveDefaultGroupCallJoinAsQuery final : public Td::ResultHandler {
   }
 
   void send(DialogId dialog_id, DialogId as_dialog_id) {
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
 
-    auto as_input_peer = td_->messages_manager_->get_input_peer(as_dialog_id, AccessRights::Read);
+    auto as_input_peer = td_->dialog_manager_->get_input_peer(as_dialog_id, AccessRights::Read);
     CHECK(as_input_peer != nullptr);
 
     send_query(G()->net_query_creator().create(
@@ -181,7 +182,7 @@ class SaveDefaultGroupCallJoinAsQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    // td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetGroupCallJoinAsQuery");
+    // td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetGroupCallJoinAsQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -197,7 +198,7 @@ class CreateGroupCallQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id, const string &title, int32 start_date, bool is_rtmp_stream) {
     dialog_id_ = dialog_id;
 
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
 
     int32 flags = 0;
@@ -243,7 +244,7 @@ class CreateGroupCallQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "CreateGroupCallQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "CreateGroupCallQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -260,7 +261,7 @@ class GetGroupCallRtmpStreamUrlGroupCallQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id, bool revoke) {
     dialog_id_ = dialog_id;
 
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
 
     send_query(
@@ -278,7 +279,7 @@ class GetGroupCallRtmpStreamUrlGroupCallQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetGroupCallRtmpStreamUrlGroupCallQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetGroupCallRtmpStreamUrlGroupCallQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -430,7 +431,7 @@ class JoinGroupCallQuery final : public Td::ResultHandler {
 
     tl_object_ptr<telegram_api::InputPeer> join_as_input_peer;
     if (as_dialog_id.is_valid()) {
-      join_as_input_peer = td_->messages_manager_->get_input_peer(as_dialog_id, AccessRights::Read);
+      join_as_input_peer = td_->dialog_manager_->get_input_peer(as_dialog_id, AccessRights::Read);
     } else {
       join_as_input_peer = make_tl_object<telegram_api::inputPeerSelf>();
     }
@@ -748,7 +749,7 @@ class EditGroupCallParticipantQuery final : public Td::ResultHandler {
             int32 volume_level, bool set_raise_hand, bool raise_hand, bool set_video_is_stopped, bool video_is_stopped,
             bool set_video_is_paused, bool video_is_paused, bool set_presentation_is_paused,
             bool presentation_is_paused) {
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Know);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Know);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -1225,7 +1226,7 @@ Status GroupCallManager::can_join_group_calls(DialogId dialog_id) const {
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "get_group_call_join_as")) {
     return Status::Error(400, "Chat not found");
   }
-  if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
     return Status::Error(400, "Can't access chat");
   }
   switch (dialog_id.get_type()) {
@@ -1319,7 +1320,7 @@ void GroupCallManager::set_group_call_default_join_as(DialogId dialog_id, Dialog
     default:
       return promise.set_error(Status::Error(400, "Invalid default participant identifier specified"));
   }
-  if (!td_->messages_manager_->have_input_peer(as_dialog_id, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(as_dialog_id, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access specified default participant chat"));
   }
 
@@ -1335,7 +1336,7 @@ void GroupCallManager::create_voice_chat(DialogId dialog_id, string title, int32
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "create_voice_chat")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
-  if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access chat"));
   }
 
@@ -1364,7 +1365,7 @@ void GroupCallManager::get_voice_chat_rtmp_stream_url(DialogId dialog_id, bool r
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "get_voice_chat_rtmp_stream_url")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
-  if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access chat"));
   }
 
@@ -1808,7 +1809,7 @@ void GroupCallManager::on_update_group_call_participants(
     }
     if (!missing_participants.empty()) {
       LOG(INFO) << "Can't apply min updates about " << missing_participants << " in " << input_group_call_id;
-      auto input_peers = transform(missing_participants, &MessagesManager::get_input_peer_force);
+      auto input_peers = transform(missing_participants, &DialogManager::get_input_peer_force);
       auto query_promise =
           PromiseCreator::lambda([actor_id = actor_id(this), input_group_call_id,
                                   participants = std::move(participants), version](Result<Unit> &&result) mutable {
@@ -2647,7 +2648,7 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
         return promise.set_error(Status::Error(400, "Join as chat not found"));
       }
     }
-    if (!td_->messages_manager_->have_input_peer(as_dialog_id, AccessRights::Read)) {
+    if (!td_->dialog_manager_->have_input_peer(as_dialog_id, AccessRights::Read)) {
       return promise.set_error(Status::Error(400, "Can't access the join as participant"));
     }
     if (dialog_type == DialogType::SecretChat) {
@@ -2954,7 +2955,7 @@ void GroupCallManager::finish_join_group_call(InputGroupCallId input_group_call_
 
   if (group_call != nullptr && group_call->dialog_id.is_valid()) {
     update_group_call_dialog(group_call, "finish_join_group_call", false);
-    td_->messages_manager_->reload_dialog_info_full(group_call->dialog_id, "finish_join_group_call");
+    td_->dialog_manager_->reload_dialog_info_full(group_call->dialog_id, "finish_join_group_call");
   }
 }
 
@@ -4122,7 +4123,7 @@ void GroupCallManager::on_group_call_left_impl(GroupCall *group_call, bool need_
   group_call->need_rejoin = need_rejoin && !group_call->is_being_left;
   if (group_call->need_rejoin && group_call->dialog_id.is_valid()) {
     auto dialog_id = group_call->dialog_id;
-    if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read) ||
+    if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read) ||
         (dialog_id.get_type() == DialogType::Chat &&
          !td_->contacts_manager_->get_chat_status(dialog_id.get_chat_id()).is_member())) {
       group_call->need_rejoin = false;
@@ -4546,7 +4547,7 @@ void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id,
     return;
   }
 
-  if (!td_->messages_manager_->have_dialog_info_force(dialog_id, "on_user_speaking_in_group_call") ||
+  if (!td_->dialog_manager_->have_dialog_info_force(dialog_id, "on_user_speaking_in_group_call") ||
       (!is_recursive && need_group_call_participants(input_group_call_id, group_call) &&
        get_group_call_participant(input_group_call_id, dialog_id) == nullptr)) {
     if (is_recursive) {
@@ -4560,7 +4561,7 @@ void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id,
             }
           });
       vector<tl_object_ptr<telegram_api::InputPeer>> input_peers;
-      input_peers.push_back(MessagesManager::get_input_peer_force(dialog_id));
+      input_peers.push_back(DialogManager::get_input_peer_force(dialog_id));
       td_->create_handler<GetGroupCallParticipantQuery>(std::move(query_promise))
           ->send(input_group_call_id, std::move(input_peers), {});
     }

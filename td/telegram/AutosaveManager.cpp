@@ -9,6 +9,7 @@
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessagesManager.h"
@@ -75,7 +76,7 @@ class SaveAutoSaveSettingsQuery final : public Td::ResultHandler {
       flags |= telegram_api::account_saveAutoSaveSettings::BROADCASTS_MASK;
     } else {
       flags |= telegram_api::account_saveAutoSaveSettings::PEER_MASK;
-      input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+      input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
       if (input_peer == nullptr) {
         if (dialog_id.get_type() == DialogType::SecretChat) {
           return on_error(Status::Error(400, "Can't set autosave settings for secret chats"));

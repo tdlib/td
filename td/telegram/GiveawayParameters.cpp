@@ -10,6 +10,7 @@
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
@@ -93,12 +94,12 @@ GiveawayParameters::get_input_store_payment_premium_giveaway(Td *td, const strin
     random_id = Random::secure_int64();
   } while (random_id == 0);
 
-  auto boost_input_peer = td->messages_manager_->get_input_peer(DialogId(boosted_channel_id_), AccessRights::Write);
+  auto boost_input_peer = td->dialog_manager_->get_input_peer(DialogId(boosted_channel_id_), AccessRights::Write);
   CHECK(boost_input_peer != nullptr);
 
   vector<telegram_api::object_ptr<telegram_api::InputPeer>> additional_input_peers;
   for (auto additional_channel_id : additional_channel_ids_) {
-    auto input_peer = td->messages_manager_->get_input_peer(DialogId(additional_channel_id), AccessRights::Write);
+    auto input_peer = td->dialog_manager_->get_input_peer(DialogId(additional_channel_id), AccessRights::Write);
     CHECK(input_peer != nullptr);
     additional_input_peers.push_back(std::move(input_peer));
   }

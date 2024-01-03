@@ -11,6 +11,7 @@
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/EmojiGroup.hpp"
@@ -1532,7 +1533,7 @@ class SendAnimatedEmojiClicksQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    if (!td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "SendAnimatedEmojiClicksQuery")) {
+    if (!td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "SendAnimatedEmojiClicksQuery")) {
       LOG(INFO) << "Receive error for send animated emoji clicks: " << status;
     }
 
@@ -6733,7 +6734,7 @@ void StickersManager::flush_pending_animated_emoji_clicks() {
     return;
   }
   auto dialog_id = message_full_id.get_dialog_id();
-  auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+  auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
   if (input_peer == nullptr) {
     return;
   }
@@ -6878,7 +6879,7 @@ void StickersManager::schedule_update_animated_emoji_clicked(const StickerSet *s
     return;
   }
   auto dialog_id = message_full_id.get_dialog_id();
-  if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Write)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Write)) {
     return;
   }
 
@@ -6927,7 +6928,7 @@ void StickersManager::send_update_animated_emoji_clicked(MessageFullId message_f
     return;
   }
   auto dialog_id = message_full_id.get_dialog_id();
-  if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Write)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Write)) {
     return;
   }
 
@@ -8047,7 +8048,7 @@ void StickersManager::do_upload_sticker_file(UserId user_id, FileId file_id,
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   DialogId dialog_id(user_id);
-  auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+  auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
   if (input_peer == nullptr) {
     if (input_file != nullptr) {
       td_->file_manager_->cancel_upload(file_id);

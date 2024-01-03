@@ -11,6 +11,7 @@
 #include "td/telegram/AudiosManager.hpp"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/FileReferenceManager.h"
@@ -215,7 +216,7 @@ class GetDialogNotifySettingsQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetDialogNotifySettingsQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetDialogNotifySettingsQuery");
     td_->notification_settings_manager_->on_get_dialog_notification_settings_query_finished(
         dialog_id_, top_thread_message_id_, std::move(status));
   }
@@ -411,7 +412,7 @@ class UpdateDialogNotifySettingsQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    if (!td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "UpdateDialogNotifySettingsQuery")) {
+    if (!td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "UpdateDialogNotifySettingsQuery")) {
       LOG(INFO) << "Receive error for set chat notification settings: " << status;
     }
 
@@ -665,7 +666,7 @@ tl_object_ptr<telegram_api::InputNotifyPeer> NotificationSettingsManager::get_in
   if (!td_->messages_manager_->have_dialog(dialog_id)) {
     return nullptr;
   }
-  auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+  auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
   if (input_peer == nullptr) {
     return nullptr;
   }
@@ -1407,7 +1408,7 @@ void NotificationSettingsManager::send_get_dialog_notification_settings_query(Di
     LOG(WARNING) << "Can't get notification settings for " << dialog_id;
     return promise.set_error(Status::Error(500, "Wrong getDialogNotificationSettings query"));
   }
-  if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
     LOG(WARNING) << "Have no access to " << dialog_id << " to get notification settings";
     return promise.set_error(Status::Error(400, "Can't access the chat"));
   }

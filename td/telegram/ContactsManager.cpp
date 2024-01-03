@@ -16,6 +16,7 @@
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogInviteLink.h"
 #include "td/telegram/DialogLocation.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/FileReferenceManager.h"
@@ -98,7 +99,7 @@ class DismissSuggestionQuery final : public Td::ResultHandler {
 
   void send(SuggestedAction action) {
     dialog_id_ = action.dialog_id_;
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     CHECK(input_peer != nullptr);
 
     send_query(G()->net_query_creator().create(
@@ -115,7 +116,7 @@ class DismissSuggestionQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "DismissSuggestionQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "DismissSuggestionQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -1853,7 +1854,7 @@ class EditChatAboutQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id, const string &about) {
     dialog_id_ = dialog_id;
     about_ = about;
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -1885,7 +1886,7 @@ class EditChatAboutQuery final : public Td::ResultHandler {
         return;
       }
     } else {
-      td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "EditChatAboutQuery");
+      td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "EditChatAboutQuery");
     }
     promise_.set_error(std::move(status));
   }
@@ -2040,7 +2041,7 @@ class ReportChannelSpamQuery final : public Td::ResultHandler {
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
 
-    auto input_peer = td_->messages_manager_->get_input_peer(sender_dialog_id, AccessRights::Know);
+    auto input_peer = td_->dialog_manager_->get_input_peer(sender_dialog_id, AccessRights::Know);
     CHECK(input_peer != nullptr);
 
     send_query(G()->net_query_creator().create(telegram_api::channels_reportSpam(
@@ -2256,7 +2257,7 @@ class ExportChatInviteQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id, const string &title, int32 expire_date, int32 usage_limit, bool creates_join_request,
             bool is_permanent) {
     dialog_id_ = dialog_id;
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -2305,7 +2306,7 @@ class ExportChatInviteQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "ExportChatInviteQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "ExportChatInviteQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -2322,7 +2323,7 @@ class EditChatInviteLinkQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id, const string &invite_link, const string &title, int32 expire_date, int32 usage_limit,
             bool creates_join_request) {
     dialog_id_ = dialog_id;
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -2361,7 +2362,7 @@ class EditChatInviteLinkQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "EditChatInviteLinkQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "EditChatInviteLinkQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -2377,7 +2378,7 @@ class GetExportedChatInviteQuery final : public Td::ResultHandler {
 
   void send(DialogId dialog_id, const string &invite_link) {
     dialog_id_ = dialog_id;
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -2411,7 +2412,7 @@ class GetExportedChatInviteQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetExportedChatInviteQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetExportedChatInviteQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -2428,7 +2429,7 @@ class GetExportedChatInvitesQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id, tl_object_ptr<telegram_api::InputUser> &&input_user, bool is_revoked, int32 offset_date,
             const string &offset_invite_link, int32 limit) {
     dialog_id_ = dialog_id;
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -2476,7 +2477,7 @@ class GetExportedChatInvitesQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetExportedChatInvitesQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetExportedChatInvitesQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -2492,7 +2493,7 @@ class GetChatAdminWithInvitesQuery final : public Td::ResultHandler {
 
   void send(DialogId dialog_id) {
     dialog_id_ = dialog_id;
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -2526,7 +2527,7 @@ class GetChatAdminWithInvitesQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetChatAdminWithInvitesQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetChatAdminWithInvitesQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -2542,7 +2543,7 @@ class GetChatInviteImportersQuery final : public Td::ResultHandler {
 
   void send(DialogId dialog_id, const string &invite_link, int32 offset_date, UserId offset_user_id, int32 limit) {
     dialog_id_ = dialog_id;
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -2593,7 +2594,7 @@ class GetChatInviteImportersQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetChatInviteImportersQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetChatInviteImportersQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -2614,7 +2615,7 @@ class GetChatJoinRequestsQuery final : public Td::ResultHandler {
     is_full_list_ =
         invite_link.empty() && query.empty() && offset_date == 0 && !offset_user_id.is_valid() && limit >= 3;
 
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -2676,7 +2677,7 @@ class GetChatJoinRequestsQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetChatJoinRequestsQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetChatJoinRequestsQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -2691,7 +2692,7 @@ class HideChatJoinRequestQuery final : public Td::ResultHandler {
 
   void send(DialogId dialog_id, UserId user_id, bool approve) {
     dialog_id_ = dialog_id;
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -2718,7 +2719,7 @@ class HideChatJoinRequestQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "HideChatJoinRequestQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "HideChatJoinRequestQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -2733,7 +2734,7 @@ class HideAllChatJoinRequestsQuery final : public Td::ResultHandler {
 
   void send(DialogId dialog_id, const string &invite_link, bool approve) {
     dialog_id_ = dialog_id;
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -2761,7 +2762,7 @@ class HideAllChatJoinRequestsQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "HideAllChatJoinRequestsQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "HideAllChatJoinRequestsQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -2777,7 +2778,7 @@ class RevokeChatInviteLinkQuery final : public Td::ResultHandler {
 
   void send(DialogId dialog_id, const string &invite_link) {
     dialog_id_ = dialog_id;
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -2837,7 +2838,7 @@ class RevokeChatInviteLinkQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "RevokeChatInviteLinkQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "RevokeChatInviteLinkQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -2852,7 +2853,7 @@ class DeleteExportedChatInviteQuery final : public Td::ResultHandler {
 
   void send(DialogId dialog_id, const string &invite_link) {
     dialog_id_ = dialog_id;
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -2871,7 +2872,7 @@ class DeleteExportedChatInviteQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "DeleteExportedChatInviteQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "DeleteExportedChatInviteQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -2886,7 +2887,7 @@ class DeleteRevokedExportedChatInvitesQuery final : public Td::ResultHandler {
 
   void send(DialogId dialog_id, tl_object_ptr<telegram_api::InputUser> &&input_user) {
     dialog_id_ = dialog_id;
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -2905,7 +2906,7 @@ class DeleteRevokedExportedChatInvitesQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "DeleteRevokedExportedChatInvitesQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "DeleteRevokedExportedChatInvitesQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -8896,7 +8897,7 @@ void ContactsManager::report_channel_spam(ChannelId channel_id, const vector<Mes
     auto sender_dialog_id = td_->messages_manager_->get_dialog_message_sender({DialogId(channel_id), message_id});
     CHECK(sender_dialog_id.get_type() != DialogType::SecretChat);
     if (sender_dialog_id.is_valid() && sender_dialog_id != DialogId(get_my_id()) &&
-        td_->messages_manager_->have_input_peer(sender_dialog_id, AccessRights::Know)) {
+        td_->dialog_manager_->have_input_peer(sender_dialog_id, AccessRights::Know)) {
       server_message_ids[sender_dialog_id].push_back(message_id);
     }
   }
@@ -9734,7 +9735,7 @@ void ContactsManager::restrict_channel_participant(ChannelId channel_id, DialogI
       return promise.set_error(Status::Error(400, "Not in the chat"));
     }
   }
-  auto input_peer = td_->messages_manager_->get_input_peer(participant_dialog_id, AccessRights::Know);
+  auto input_peer = td_->dialog_manager_->get_input_peer(participant_dialog_id, AccessRights::Know);
   if (input_peer == nullptr) {
     return promise.set_error(Status::Error(400, "Member not found"));
   }
@@ -10523,7 +10524,7 @@ void ContactsManager::dismiss_dialog_suggested_action(SuggestedAction action, Pr
   if (!td_->messages_manager_->have_dialog(dialog_id)) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
-  if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access the chat"));
   }
 
@@ -15267,7 +15268,7 @@ void ContactsManager::on_get_chat_participants(tl_object_ptr<telegram_api::ChatP
           continue;
         }
 
-        LOG_IF(ERROR, !td_->messages_manager_->have_dialog_info(dialog_participant.dialog_id_))
+        LOG_IF(ERROR, !td_->dialog_manager_->have_dialog_info(dialog_participant.dialog_id_))
             << "Have no information about " << dialog_participant.dialog_id_ << " as a member of " << chat_id;
         LOG_IF(ERROR, !have_user(dialog_participant.inviter_user_id_))
             << "Have no information about " << dialog_participant.inviter_user_id_ << " as a member of " << chat_id;
@@ -16363,7 +16364,7 @@ void ContactsManager::on_view_dialog_active_stories(vector<DialogId> dialog_ids)
     if (td::contains(input_dialog_ids, dialog_id)) {
       continue;
     }
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
       continue;
     }
@@ -17711,7 +17712,7 @@ void ContactsManager::on_update_chat_invite_requester(DialogId dialog_id, UserId
                                                       DialogInviteLink invite_link) {
   CHECK(td_->auth_manager_->is_bot());
   if (date <= 0 || !have_user_force(user_id, "on_update_chat_invite_requester") ||
-      !td_->messages_manager_->have_dialog_info_force(dialog_id, "on_update_chat_invite_requester")) {
+      !td_->dialog_manager_->have_dialog_info_force(dialog_id, "on_update_chat_invite_requester")) {
     LOG(ERROR) << "Receive invalid updateBotChatInviteRequester by " << user_id << " in " << dialog_id << " at "
                << date;
     return;
@@ -18964,7 +18965,7 @@ std::pair<int32, vector<DialogId>> ContactsManager::search_among_dialogs(const v
       }
       rating = -get_user_was_online(u, user_id, unix_time);
     } else {
-      if (!td_->messages_manager_->have_dialog_info(dialog_id)) {
+      if (!td_->dialog_manager_->have_dialog_info(dialog_id)) {
         continue;
       }
       if (query.empty()) {
@@ -19328,7 +19329,7 @@ void ContactsManager::get_channel_participant(ChannelId channel_id, DialogId par
                                               Promise<DialogParticipant> &&promise) {
   LOG(INFO) << "Trying to get " << participant_dialog_id << " as member of " << channel_id;
 
-  auto input_peer = td_->messages_manager_->get_input_peer(participant_dialog_id, AccessRights::Know);
+  auto input_peer = td_->dialog_manager_->get_input_peer(participant_dialog_id, AccessRights::Know);
   if (input_peer == nullptr) {
     return promise.set_error(Status::Error(400, "Member not found"));
   }

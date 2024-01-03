@@ -8,6 +8,7 @@
 
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
 
@@ -70,7 +71,7 @@ td_api::object_ptr<td_api::MessageSender> get_min_message_sender_object(Td *td, 
     }
   } else {
     if (!td->messages_manager_->have_dialog(dialog_id) &&
-        (td->messages_manager_->have_dialog_info(dialog_id) ||
+        (td->dialog_manager_->have_dialog_info(dialog_id) ||
          (dialog_type == DialogType::Channel && td->contacts_manager_->have_min_channel(dialog_id.get_channel_id())))) {
       LOG(INFO) << "Force creation of " << dialog_id;
       td->messages_manager_->force_create_dialog(dialog_id, source, true);
@@ -100,7 +101,7 @@ vector<DialogId> get_message_sender_dialog_ids(Td *td,
         continue;
       }
     } else {
-      if (!td->messages_manager_->have_dialog_info(dialog_id)) {
+      if (!td->dialog_manager_->have_dialog_info(dialog_id)) {
         continue;
       }
       td->messages_manager_->force_create_dialog(dialog_id, "get_message_sender_dialog_ids");

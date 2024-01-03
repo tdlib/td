@@ -12,6 +12,7 @@
 #include "td/telegram/DialogFilter.h"
 #include "td/telegram/DialogFilter.hpp"
 #include "td/telegram/DialogFilterInviteLink.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/LinkManager.h"
 #include "td/telegram/logevent/LogEvent.h"
@@ -356,7 +357,7 @@ class JoinChatlistInviteQuery final : public Td::ResultHandler {
   void send(const string &invite_link, vector<DialogId> dialog_ids) {
     send_query(G()->net_query_creator().create(telegram_api::chatlists_joinChatlistInvite(
         LinkManager::get_dialog_filter_invite_link_slug(invite_link),
-        td_->messages_manager_->get_input_peers(dialog_ids, AccessRights::Know))));
+        td_->dialog_manager_->get_input_peers(dialog_ids, AccessRights::Know))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -416,8 +417,7 @@ class JoinChatlistUpdatesQuery final : public Td::ResultHandler {
 
   void send(DialogFilterId dialog_filter_id, vector<DialogId> dialog_ids) {
     send_query(G()->net_query_creator().create(telegram_api::chatlists_joinChatlistUpdates(
-        dialog_filter_id.get_input_chatlist(),
-        td_->messages_manager_->get_input_peers(dialog_ids, AccessRights::Know))));
+        dialog_filter_id.get_input_chatlist(), td_->dialog_manager_->get_input_peers(dialog_ids, AccessRights::Know))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -944,7 +944,7 @@ void DialogFilterManager::load_dialog_filter(const DialogFilter *dialog_filter, 
     // TODO load dialogs asynchronously
     if (!td_->messages_manager_->have_dialog_force(dialog_id, "load_dialog_filter")) {
       if (dialog_id.get_type() == DialogType::SecretChat) {
-        if (td_->messages_manager_->have_dialog_info_force(dialog_id, "load_dialog_filter")) {
+        if (td_->dialog_manager_->have_dialog_info_force(dialog_id, "load_dialog_filter")) {
           td_->messages_manager_->force_create_dialog(dialog_id, "load_dialog_filter");
         }
       } else {
@@ -1901,7 +1901,7 @@ void DialogFilterManager::create_dialog_filter_invite_link(
     if (!td_->messages_manager_->have_dialog_force(dialog_id, "create_dialog_filter_invite_link")) {
       return promise.set_error(Status::Error(400, "Chat not found"));
     }
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       return promise.set_error(Status::Error(400, "Have no access to the chat"));
     }
@@ -1939,7 +1939,7 @@ void DialogFilterManager::edit_dialog_filter_invite_link(
     if (!td_->messages_manager_->have_dialog_force(dialog_id, "edit_dialog_filter_invite_link")) {
       return promise.set_error(Status::Error(400, "Chat not found"));
     }
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       return promise.set_error(Status::Error(400, "Have no access to the chat"));
     }
@@ -2038,7 +2038,7 @@ void DialogFilterManager::add_dialog_filter_by_invite_link(const string &invite_
     if (!td_->messages_manager_->have_dialog_force(dialog_id, "add_dialog_filter_by_invite_link")) {
       return promise.set_error(Status::Error(400, "Chat not found"));
     }
-    if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Know)) {
+    if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Know)) {
       return promise.set_error(Status::Error(400, "Can't access the chat"));
     }
   }
@@ -2072,7 +2072,7 @@ void DialogFilterManager::add_dialog_filter_new_chats(DialogFilterId dialog_filt
     if (!td_->messages_manager_->have_dialog_force(dialog_id, "add_dialog_filter_new_chats")) {
       return promise.set_error(Status::Error(400, "Chat not found"));
     }
-    if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Know)) {
+    if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Know)) {
       return promise.set_error(Status::Error(400, "Can't access the chat"));
     }
   }

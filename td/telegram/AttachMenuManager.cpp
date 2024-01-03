@@ -10,6 +10,7 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/FileReferenceManager.h"
@@ -90,7 +91,7 @@ class RequestAppWebViewQuery final : public Td::ResultHandler {
     if (!start_parameter.empty()) {
       flags |= telegram_api::messages_requestAppWebView::START_PARAM_MASK;
     }
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
     auto input_bot_app =
         telegram_api::make_object<telegram_api::inputBotAppShortName>(std::move(input_user), web_app_short_name);
@@ -140,7 +141,7 @@ class RequestWebViewQuery final : public Td::ResultHandler {
 
     int32 flags = 0;
 
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
     CHECK(input_peer != nullptr);
 
     string start_parameter;
@@ -179,7 +180,7 @@ class RequestWebViewQuery final : public Td::ResultHandler {
 
     tl_object_ptr<telegram_api::InputPeer> as_input_peer;
     if (as_dialog_id.is_valid()) {
-      as_input_peer = td_->messages_manager_->get_input_peer(as_dialog_id, AccessRights::Write);
+      as_input_peer = td_->dialog_manager_->get_input_peer(as_dialog_id, AccessRights::Write);
       if (as_input_peer != nullptr) {
         flags |= telegram_api::messages_requestWebView::SEND_AS_MASK;
       }
@@ -203,7 +204,7 @@ class RequestWebViewQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    if (!td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "RequestWebViewQuery")) {
+    if (!td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "RequestWebViewQuery")) {
       if (from_attach_menu_) {
         td_->attach_menu_manager_->reload_attach_menu_bots(Promise<Unit>());
       }
@@ -220,7 +221,7 @@ class ProlongWebViewQuery final : public Td::ResultHandler {
             const MessageInputReplyTo &input_reply_to, bool silent, DialogId as_dialog_id) {
     dialog_id_ = dialog_id;
 
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
     auto r_input_user = td_->contacts_manager_->get_input_user(bot_user_id);
     if (input_peer == nullptr || r_input_user.is_error()) {
       return;
@@ -237,7 +238,7 @@ class ProlongWebViewQuery final : public Td::ResultHandler {
 
     tl_object_ptr<telegram_api::InputPeer> as_input_peer;
     if (as_dialog_id.is_valid()) {
-      as_input_peer = td_->messages_manager_->get_input_peer(as_dialog_id, AccessRights::Write);
+      as_input_peer = td_->dialog_manager_->get_input_peer(as_dialog_id, AccessRights::Write);
       if (as_input_peer != nullptr) {
         flags |= telegram_api::messages_prolongWebView::SEND_AS_MASK;
       }
@@ -261,7 +262,7 @@ class ProlongWebViewQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "ProlongWebViewQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "ProlongWebViewQuery");
   }
 };
 
@@ -822,7 +823,7 @@ void AttachMenuManager::request_app_web_view(DialogId dialog_id, UserId bot_user
                                              string &&start_parameter,
                                              const td_api::object_ptr<td_api::themeParameters> &theme,
                                              string &&platform, bool allow_write_access, Promise<string> &&promise) {
-  if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read) ||
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read) ||
       dialog_id.get_type() == DialogType::SecretChat) {
     dialog_id = DialogId(bot_user_id);
   }
@@ -859,7 +860,7 @@ void AttachMenuManager::request_web_view(DialogId dialog_id, UserId bot_user_id,
       UNREACHABLE();
   }
 
-  if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Write)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Write)) {
     return promise.set_error(Status::Error(400, "Have no write access to the chat"));
   }
 

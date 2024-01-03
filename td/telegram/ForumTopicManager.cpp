@@ -11,6 +11,7 @@
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/CustomEmojiId.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/ForumTopic.h"
 #include "td/telegram/ForumTopic.hpp"
 #include "td/telegram/ForumTopicIcon.h"
@@ -63,7 +64,7 @@ class CreateForumTopicQuery final : public Td::ResultHandler {
     }
     tl_object_ptr<telegram_api::InputPeer> as_input_peer;
     if (as_dialog_id.is_valid()) {
-      as_input_peer = td_->messages_manager_->get_input_peer(as_dialog_id, AccessRights::Write);
+      as_input_peer = td_->dialog_manager_->get_input_peer(as_dialog_id, AccessRights::Write);
       if (as_input_peer != nullptr) {
         flags |= telegram_api::channels_createForumTopic::SEND_AS_MASK;
         creator_dialog_id_ = as_dialog_id;
@@ -422,7 +423,7 @@ class ReadForumTopicQuery final : public Td::ResultHandler {
  public:
   void send(DialogId dialog_id, MessageId top_thread_message_id, MessageId max_message_id) {
     dialog_id_ = dialog_id;
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -441,7 +442,7 @@ class ReadForumTopicQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "ReadForumTopicQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "ReadForumTopicQuery");
   }
 };
 

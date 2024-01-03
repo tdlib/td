@@ -11,6 +11,7 @@
 #include "td/telegram/ChainId.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/InlineQueriesManager.h"
 #include "td/telegram/MessageId.h"
@@ -47,7 +48,7 @@ class SetGameScoreQuery final : public Td::ResultHandler {
 
     dialog_id_ = dialog_id;
 
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Edit);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Edit);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -72,7 +73,7 @@ class SetGameScoreQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     LOG(INFO) << "Receive error for SetGameScoreQuery: " << status;
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "SetGameScoreQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "SetGameScoreQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -133,7 +134,7 @@ class GetGameHighScoresQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id, MessageId message_id, tl_object_ptr<telegram_api::InputUser> input_user) {
     dialog_id_ = dialog_id;
 
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
 
     CHECK(input_user != nullptr);
@@ -151,7 +152,7 @@ class GetGameHighScoresQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetGameHighScoresQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetGameHighScoresQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -207,7 +208,7 @@ void GameManager::set_game_score(MessageFullId message_full_id, bool edit_messag
   }
 
   auto dialog_id = message_full_id.get_dialog_id();
-  if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Edit)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Edit)) {
     return promise.set_error(Status::Error(400, "Can't access the chat"));
   }
 
@@ -257,7 +258,7 @@ void GameManager::get_game_high_scores(MessageFullId message_full_id, UserId use
   }
 
   auto dialog_id = message_full_id.get_dialog_id();
-  if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access the chat"));
   }
   auto message_id = message_full_id.get_message_id();

@@ -8,6 +8,7 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
@@ -27,7 +28,7 @@ class TranscribeAudioQuery final : public Td::ResultHandler {
             std::function<void(Result<telegram_api::object_ptr<telegram_api::messages_transcribedAudio>>)> &&handler) {
     dialog_id_ = message_full_id.get_dialog_id();
     handler_ = std::move(handler);
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -49,7 +50,7 @@ class TranscribeAudioQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "TranscribeAudioQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "TranscribeAudioQuery");
     handler_(std::move(status));
   }
 };
@@ -64,7 +65,7 @@ class RateTranscribedAudioQuery final : public Td::ResultHandler {
 
   void send(MessageFullId message_full_id, int64 transcription_id, bool is_good) {
     dialog_id_ = message_full_id.get_dialog_id();
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -85,7 +86,7 @@ class RateTranscribedAudioQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "RateTranscribedAudioQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "RateTranscribedAudioQuery");
     promise_.set_error(std::move(status));
   }
 };

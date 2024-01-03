@@ -10,6 +10,7 @@
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/InputDialogId.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
@@ -53,7 +54,7 @@ MessageInputReplyTo::MessageInputReplyTo(Td *td,
       DialogId dialog_id;
       if (reply_to->reply_to_peer_id_ != nullptr) {
         dialog_id = InputDialogId(reply_to->reply_to_peer_id_).get_dialog_id();
-        if (!dialog_id.is_valid() || !td->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+        if (!dialog_id.is_valid() || !td->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
           return;
         }
         td->messages_manager_->force_create_dialog(dialog_id, "inputReplyToMessage");
@@ -116,7 +117,7 @@ telegram_api::object_ptr<telegram_api::InputReplyTo> MessageInputReplyTo::get_in
   }
   telegram_api::object_ptr<telegram_api::InputPeer> input_peer;
   if (dialog_id_ != DialogId()) {
-    input_peer = td->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    input_peer = td->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     if (input_peer == nullptr) {
       LOG(INFO) << "Failed to get input peer for " << dialog_id_;
       return nullptr;

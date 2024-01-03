@@ -3997,6 +3997,7 @@ void Td::init_managers() {
   G()->set_dialog_filter_manager(dialog_filter_manager_actor_.get());
   dialog_manager_ = make_unique<DialogManager>(this, create_reference());
   dialog_manager_actor_ = register_actor("DialogManager", dialog_manager_.get());
+  G()->set_dialog_manager(dialog_manager_actor_.get());
   download_manager_ = DownloadManager::create(td::make_unique<DownloadManagerCallback>(this, create_reference()));
   download_manager_actor_ = register_actor("DownloadManager", download_manager_.get());
   G()->set_download_manager(download_manager_actor_.get());
@@ -6530,14 +6531,14 @@ void Td::on_request(uint64 id, const td_api::setChatPhoto &request) {
 void Td::on_request(uint64 id, const td_api::setChatAccentColor &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->set_dialog_accent_color(DialogId(request.chat_id_), AccentColorId(request.accent_color_id_),
-                                             CustomEmojiId(request.background_custom_emoji_id_), std::move(promise));
+  dialog_manager_->set_dialog_accent_color(DialogId(request.chat_id_), AccentColorId(request.accent_color_id_),
+                                           CustomEmojiId(request.background_custom_emoji_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::setChatProfileAccentColor &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->set_dialog_profile_accent_color(
+  dialog_manager_->set_dialog_profile_accent_color(
       DialogId(request.chat_id_), AccentColorId(request.profile_accent_color_id_),
       CustomEmojiId(request.profile_background_custom_emoji_id_), std::move(promise));
 }
@@ -6552,8 +6553,8 @@ void Td::on_request(uint64 id, const td_api::setChatMessageAutoDeleteTime &reque
 void Td::on_request(uint64 id, const td_api::setChatEmojiStatus &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->set_dialog_emoji_status(DialogId(request.chat_id_), EmojiStatus(request.emoji_status_),
-                                             std::move(promise));
+  dialog_manager_->set_dialog_emoji_status(DialogId(request.chat_id_), EmojiStatus(request.emoji_status_),
+                                           std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::setChatPermissions &request) {
@@ -6815,7 +6816,7 @@ void Td::on_request(uint64 id, td_api::setChatClientData &request) {
 void Td::on_request(uint64 id, td_api::setChatDescription &request) {
   CLEAN_INPUT_STRING(request.description_);
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->set_dialog_description(DialogId(request.chat_id_), request.description_, std::move(promise));
+  dialog_manager_->set_dialog_description(DialogId(request.chat_id_), request.description_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::setChatDiscussionGroup &request) {

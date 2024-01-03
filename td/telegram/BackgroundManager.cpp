@@ -11,6 +11,7 @@
 #include "td/telegram/BackgroundType.hpp"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/DocumentsManager.hpp"
@@ -122,7 +123,7 @@ class SetChatWallPaperQuery final : public Td::ResultHandler {
     }
 
     int32 flags = 0;
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -162,11 +163,11 @@ class SetChatWallPaperQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     if (is_remove_) {
-      td_->messages_manager_->reload_dialog_info_full(dialog_id_, "SetChatWallPaperQuery");
+      td_->dialog_manager_->reload_dialog_info_full(dialog_id_, "SetChatWallPaperQuery");
     } else if (is_revert_ && status.message() == "WALLPAPER_NOT_FOUND") {
       return td_->background_manager_->delete_dialog_background(dialog_id_, false, std::move(promise_));
     }
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "SetChatWallPaperQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "SetChatWallPaperQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -740,7 +741,7 @@ Result<DialogId> BackgroundManager::get_background_dialog(DialogId dialog_id) {
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "set_dialog_background")) {
     return Status::Error(400, "Chat not found");
   }
-  if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Write)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Write)) {
     return Status::Error(400, "Can't access the chat");
   }
 

@@ -151,24 +151,6 @@ class MessagesManager final : public Actor {
 
   static int32 get_message_date(const tl_object_ptr<telegram_api::Message> &message_ptr);
 
-  tl_object_ptr<telegram_api::InputPeer> get_input_peer(DialogId dialog_id, AccessRights access_rights) const;
-
-  static tl_object_ptr<telegram_api::InputPeer> get_input_peer_force(DialogId dialog_id);
-
-  vector<tl_object_ptr<telegram_api::InputPeer>> get_input_peers(const vector<DialogId> &dialog_ids,
-                                                                 AccessRights access_rights) const;
-
-  tl_object_ptr<telegram_api::InputDialogPeer> get_input_dialog_peer(DialogId dialog_id,
-                                                                     AccessRights access_rights) const;
-
-  vector<tl_object_ptr<telegram_api::InputDialogPeer>> get_input_dialog_peers(const vector<DialogId> &dialog_ids,
-                                                                              AccessRights access_rights) const;
-
-  tl_object_ptr<telegram_api::inputEncryptedChat> get_input_encrypted_chat(DialogId dialog_id,
-                                                                           AccessRights access_rights) const;
-
-  bool have_input_peer(DialogId dialog_id, AccessRights access_rights) const;
-
   vector<DialogId> get_peers_dialog_ids(vector<tl_object_ptr<telegram_api::Peer>> &&peers,
                                         bool expect_no_access = false);
 
@@ -561,21 +543,11 @@ class MessagesManager final : public Actor {
 
   void set_dialog_title(DialogId dialog_id, const string &title, Promise<Unit> &&promise);
 
-  void set_dialog_accent_color(DialogId dialog_id, AccentColorId accent_color_id,
-                               CustomEmojiId background_custom_emoji_id, Promise<Unit> &&promise);
-
-  void set_dialog_profile_accent_color(DialogId dialog_id, AccentColorId profile_accent_color_id,
-                                       CustomEmojiId profile_background_custom_emoji_id, Promise<Unit> &&promise);
-
-  void set_dialog_description(DialogId dialog_id, const string &description, Promise<Unit> &&promise);
-
   void set_active_reactions(vector<ReactionType> active_reaction_types);
 
   void set_dialog_available_reactions(DialogId dialog_id,
                                       td_api::object_ptr<td_api::ChatAvailableReactions> &&available_reactions_ptr,
                                       Promise<Unit> &&promise);
-
-  void set_dialog_emoji_status(DialogId dialog_id, const EmojiStatus &emoji_status, Promise<Unit> &&promise);
 
   void set_dialog_permissions(DialogId dialog_id, const td_api::object_ptr<td_api::chatPermissions> &permissions,
                               Promise<Unit> &&promise);
@@ -589,17 +561,8 @@ class MessagesManager final : public Actor {
 
   void unpin_all_dialog_messages(DialogId dialog_id, MessageId top_thread_message_id, Promise<Unit> &&promise);
 
-  void get_dialog_info_full(DialogId dialog_id, Promise<Unit> &&promise, const char *source);
-
-  string get_dialog_title(DialogId dialog_id) const;
-
   bool have_dialog(DialogId dialog_id) const;
   bool have_dialog_force(DialogId dialog_id, const char *source);
-
-  bool have_dialog_info(DialogId dialog_id) const;
-  bool have_dialog_info_force(DialogId dialog_id, const char *source) const;
-
-  void reload_dialog_info_full(DialogId dialog_id, const char *source);
 
   void reload_dialog_notification_settings(DialogId dialog_id, Promise<Unit> &&promise, const char *source);
 
@@ -944,8 +907,6 @@ class MessagesManager final : public Actor {
   void before_get_difference();
 
   void after_get_difference();
-
-  bool on_get_dialog_error(DialogId dialog_id, const Status &status, const char *source);
 
   bool on_get_message_error(DialogId dialog_id, MessageId message_id, const Status &status, const char *source);
 
@@ -1770,8 +1731,6 @@ class MessagesManager final : public Actor {
 
   void close_dialog(Dialog *d);
 
-  DialogId get_my_dialog_id() const;
-
   void on_resolve_secret_chat_message_via_bot_username(const string &via_bot_username, MessageInfo *message_info_ptr,
                                                        Promise<Unit> &&promise);
 
@@ -1819,8 +1778,6 @@ class MessagesManager final : public Actor {
   Status can_use_top_thread_message_id(Dialog *d, MessageId top_thread_message_id,
                                        const MessageInputReplyTo &input_reply_to);
 
-  bool is_anonymous_administrator(DialogId dialog_id, string *author_signature) const;
-
   int64 generate_new_random_id(const Dialog *d);
 
   unique_ptr<Message> create_message_to_send(Dialog *d, MessageId top_thread_message_id,
@@ -1844,8 +1801,6 @@ class MessagesManager final : public Actor {
   bool can_edit_message(DialogId dialog_id, const Message *m, bool is_editing, bool only_reply_markup = false) const;
 
   bool can_report_dialog(DialogId dialog_id) const;
-
-  Status can_pin_messages(DialogId dialog_id) const;
 
   static Status can_get_media_timestamp_link(DialogId dialog_id, const Message *m);
 
@@ -2714,8 +2669,6 @@ class MessagesManager final : public Actor {
 
   void queue_message_reactions_reload(DialogId dialog_id, const vector<MessageId> &message_ids);
 
-  bool is_dialog_action_unneeded(DialogId dialog_id) const;
-
   void on_send_dialog_action_timeout(DialogId dialog_id);
 
   void on_active_dialog_action_timeout(DialogId dialog_id);
@@ -2745,8 +2698,6 @@ class MessagesManager final : public Actor {
                                unique_ptr<DraftMessage> &&draft_message);
 
   void fix_dialog_action_bar(const Dialog *d, DialogActionBar *action_bar);
-
-  td_api::object_ptr<td_api::ChatType> get_chat_type_object(DialogId dialog_id) const;
 
   td_api::object_ptr<td_api::ChatActionBar> get_chat_action_bar_object(const Dialog *d) const;
 
@@ -2852,8 +2803,6 @@ class MessagesManager final : public Actor {
   std::pair<bool, int32> get_dialog_mute_until(DialogId dialog_id, const Dialog *d) const;
 
   int64 get_dialog_notification_ringtone_id(DialogId dialog_id, const Dialog *d) const;
-
-  NotificationSettingsScope get_dialog_notification_setting_scope(DialogId dialog_id) const;
 
   DialogNotificationSettings *get_dialog_notification_settings(DialogId dialog_id, bool force);
 
@@ -2992,22 +2941,6 @@ class MessagesManager final : public Actor {
 
   Result<unique_ptr<ReplyMarkup>> get_dialog_reply_markup(
       DialogId dialog_id, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup_ptr) const TD_WARN_UNUSED_RESULT;
-
-  const DialogPhoto *get_dialog_photo(DialogId dialog_id) const;
-
-  int32 get_dialog_accent_color_id_object(DialogId dialog_id) const;
-
-  CustomEmojiId get_dialog_background_custom_emoji_id(DialogId dialog_id) const;
-
-  int32 get_dialog_profile_accent_color_id_object(DialogId dialog_id) const;
-
-  CustomEmojiId get_dialog_profile_background_custom_emoji_id(DialogId dialog_id) const;
-
-  RestrictedRights get_dialog_default_permissions(DialogId dialog_id) const;
-
-  td_api::object_ptr<td_api::emojiStatus> get_dialog_emoji_status_object(DialogId dialog_id) const;
-
-  bool get_dialog_has_protected_content(DialogId dialog_id) const;
 
   bool get_dialog_view_as_topics(const Dialog *d) const;
 
@@ -3295,12 +3228,6 @@ class MessagesManager final : public Actor {
   void suffix_load_add_query(Dialog *d, std::pair<Promise<Unit>, std::function<bool(const Message *)>> query);
   void suffix_load_till_date(Dialog *d, int32 date, Promise<Unit> promise);
   void suffix_load_till_message_id(Dialog *d, MessageId message_id, Promise<Unit> promise);
-
-  bool is_group_dialog(DialogId dialog_id) const;
-
-  bool is_forum_channel(DialogId dialog_id) const;
-
-  bool is_broadcast_channel(DialogId dialog_id) const;
 
   bool is_deleted_secret_chat(const Dialog *d) const;
 

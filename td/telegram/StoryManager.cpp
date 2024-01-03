@@ -11,6 +11,7 @@
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
@@ -147,7 +148,7 @@ class ToggleStoriesHiddenQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id, bool are_hidden) {
     dialog_id_ = dialog_id;
     are_hidden_ = are_hidden;
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -170,7 +171,7 @@ class ToggleStoriesHiddenQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "ToggleStoriesHiddenQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "ToggleStoriesHiddenQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -235,7 +236,7 @@ class IncrementStoryViewsQuery final : public Td::ResultHandler {
 
   void send(DialogId dialog_id, const vector<StoryId> &story_ids) {
     dialog_id_ = dialog_id;
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -254,7 +255,7 @@ class IncrementStoryViewsQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "IncrementStoryViewsQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "IncrementStoryViewsQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -269,7 +270,7 @@ class ReadStoriesQuery final : public Td::ResultHandler {
 
   void send(DialogId dialog_id, StoryId max_read_story_id) {
     dialog_id_ = dialog_id;
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -287,7 +288,7 @@ class ReadStoriesQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "ReadStoriesQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "ReadStoriesQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -303,7 +304,7 @@ class SendStoryReactionQuery final : public Td::ResultHandler {
   void send(StoryFullId story_full_id, const ReactionType &reaction_type, bool add_to_recent) {
     dialog_id_ = story_full_id.get_dialog_id();
 
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -334,7 +335,7 @@ class SendStoryReactionQuery final : public Td::ResultHandler {
     if (status.message() == "STORY_NOT_MODIFIED") {
       return promise_.set_value(Unit());
     }
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "SendStoryReactionQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "SendStoryReactionQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -351,7 +352,7 @@ class GetStoryViewsListQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id, StoryId story_id, const string &query, bool only_contacts, bool prefer_forwards,
             bool prefer_with_reaction, const string &offset, int32 limit) {
     dialog_id_ = dialog_id;
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Write);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -386,7 +387,7 @@ class GetStoryViewsListQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetStoryViewsListQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetStoryViewsListQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -404,7 +405,7 @@ class GetStoryReactionsListQuery final : public Td::ResultHandler {
   void send(StoryFullId story_full_id, const ReactionType &reaction_type, bool prefer_forwards, const string &offset,
             int32 limit) {
     dialog_id_ = story_full_id.get_dialog_id();
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Write);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -436,7 +437,7 @@ class GetStoryReactionsListQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetStoryReactionsListQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetStoryReactionsListQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -453,7 +454,7 @@ class GetStoriesByIDQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id, vector<StoryId> story_ids) {
     dialog_id_ = dialog_id;
     story_ids_ = std::move(story_ids);
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -474,7 +475,7 @@ class GetStoriesByIDQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetStoriesByIDQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetStoriesByIDQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -490,7 +491,7 @@ class GetPinnedStoriesQuery final : public Td::ResultHandler {
 
   void send(DialogId dialog_id, StoryId offset_story_id, int32 limit) {
     dialog_id_ = dialog_id;
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -510,7 +511,7 @@ class GetPinnedStoriesQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetPinnedStoriesQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetPinnedStoriesQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -526,7 +527,7 @@ class GetStoriesArchiveQuery final : public Td::ResultHandler {
 
   void send(DialogId dialog_id, StoryId offset_story_id, int32 limit) {
     dialog_id_ = dialog_id;
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Write);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -546,7 +547,7 @@ class GetStoriesArchiveQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetStoriesArchiveQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetStoriesArchiveQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -562,7 +563,7 @@ class GetPeerStoriesQuery final : public Td::ResultHandler {
 
   void send(DialogId dialog_id) {
     dialog_id_ = dialog_id;
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -582,7 +583,7 @@ class GetPeerStoriesQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetPeerStoriesQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetPeerStoriesQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -597,7 +598,7 @@ class EditStoryPrivacyQuery final : public Td::ResultHandler {
 
   void send(DialogId dialog_id, StoryId story_id, UserPrivacySettingRules &&privacy_rules) {
     dialog_id_ = dialog_id;
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Write);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -626,7 +627,7 @@ class EditStoryPrivacyQuery final : public Td::ResultHandler {
     if (!td_->auth_manager_->is_bot() && status.message() == "STORY_NOT_MODIFIED") {
       return promise_.set_value(Unit());
     }
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "EditStoryPrivacyQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "EditStoryPrivacyQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -641,7 +642,7 @@ class ToggleStoryPinnedQuery final : public Td::ResultHandler {
 
   void send(DialogId dialog_id, StoryId story_id, bool is_pinned) {
     dialog_id_ = dialog_id;
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Write);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -662,7 +663,7 @@ class ToggleStoryPinnedQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "ToggleStoryPinnedQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "ToggleStoryPinnedQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -677,7 +678,7 @@ class DeleteStoriesQuery final : public Td::ResultHandler {
 
   void send(DialogId dialog_id, const vector<StoryId> &story_ids) {
     dialog_id_ = dialog_id;
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Write);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -697,7 +698,7 @@ class DeleteStoriesQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "DeleteStoriesQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "DeleteStoriesQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -710,7 +711,7 @@ class GetStoriesViewsQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id, vector<StoryId> story_ids) {
     dialog_id_ = dialog_id;
     story_ids_ = std::move(story_ids);
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -731,7 +732,7 @@ class GetStoriesViewsQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     LOG(INFO) << "Receive error for GetStoriesViewsQuery for " << story_ids_ << ": " << status;
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetStoriesViewsQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetStoriesViewsQuery");
   }
 };
 
@@ -745,7 +746,7 @@ class ReportStoryQuery final : public Td::ResultHandler {
 
   void send(StoryFullId story_full_id, ReportReason &&report_reason) {
     dialog_id_ = story_full_id.get_dialog_id();
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -765,7 +766,7 @@ class ReportStoryQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "ReportStoryQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "ReportStoryQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -855,7 +856,7 @@ class CanSendStoryQuery final : public Td::ResultHandler {
 
   void send(DialogId dialog_id) {
     dialog_id_ = dialog_id;
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Write);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -876,7 +877,7 @@ class CanSendStoryQuery final : public Td::ResultHandler {
     if (result != nullptr) {
       return promise_.set_value(std::move(result));
     }
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "CanSendStoryQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "CanSendStoryQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -900,15 +901,15 @@ class StoryManager::SendStoryQuery final : public Td::ResultHandler {
     auto input_media = get_story_content_input_media(td_, content, std::move(input_file));
     CHECK(input_media != nullptr);
 
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Write);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
     telegram_api::object_ptr<telegram_api::InputPeer> fwd_input_peer;
     int32 fwd_story_id = 0;
     if (story->forward_info_ != nullptr) {
-      fwd_input_peer = td_->messages_manager_->get_input_peer(
-          pending_story_->forward_from_story_full_id_.get_dialog_id(), AccessRights::Read);
+      fwd_input_peer = td_->dialog_manager_->get_input_peer(pending_story_->forward_from_story_full_id_.get_dialog_id(),
+                                                            AccessRights::Read);
       if (fwd_input_peer == nullptr) {
         return on_error(Status::Error(400, "Can't access the story to repost"));
       }
@@ -985,7 +986,7 @@ class StoryManager::SendStoryQuery final : public Td::ResultHandler {
       return;
     }
 
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "SendStoryQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "SendStoryQuery");
     td_->story_manager_->delete_pending_story(file_id_, std::move(pending_story_), std::move(status));
   }
 };
@@ -1003,7 +1004,7 @@ class StoryManager::EditStoryQuery final : public Td::ResultHandler {
     CHECK(pending_story_ != nullptr);
     dialog_id_ = pending_story_->dialog_id_;
 
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Write);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -1076,7 +1077,7 @@ class StoryManager::EditStoryQuery final : public Td::ResultHandler {
       return;
     }
 
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "EditStoryQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "EditStoryQuery");
     td_->story_manager_->delete_pending_story(file_id_, std::move(pending_story_), std::move(status));
   }
 };
@@ -2265,7 +2266,7 @@ void StoryManager::toggle_dialog_stories_hidden(DialogId dialog_id, StoryListId 
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "toggle_dialog_stories_hidden")) {
     return promise.set_error(Status::Error(400, "Story sender not found"));
   }
-  if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access the story sender"));
   }
   if (story_list_id == get_dialog_story_list_id(dialog_id)) {
@@ -2288,7 +2289,7 @@ void StoryManager::get_dialog_pinned_stories(DialogId owner_dialog_id, StoryId f
   if (!td_->messages_manager_->have_dialog_force(owner_dialog_id, "get_dialog_pinned_stories")) {
     return promise.set_error(Status::Error(400, "Story sender not found"));
   }
-  if (!td_->messages_manager_->have_input_peer(owner_dialog_id, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(owner_dialog_id, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access the story sender"));
   }
 
@@ -2362,7 +2363,7 @@ void StoryManager::get_dialog_expiring_stories(DialogId owner_dialog_id,
   if (!td_->messages_manager_->have_dialog_force(owner_dialog_id, "get_dialog_expiring_stories")) {
     return promise.set_error(Status::Error(400, "Story sender not found"));
   }
-  if (!td_->messages_manager_->have_input_peer(owner_dialog_id, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(owner_dialog_id, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access the story sender"));
   }
 
@@ -2392,7 +2393,7 @@ void StoryManager::get_dialog_expiring_stories(DialogId owner_dialog_id,
 }
 
 void StoryManager::reload_dialog_expiring_stories(DialogId dialog_id) {
-  if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
     return;
   }
   td_->messages_manager_->force_create_dialog(dialog_id, "reload_dialog_expiring_stories");
@@ -2482,7 +2483,7 @@ void StoryManager::open_story(DialogId owner_dialog_id, StoryId story_id, Promis
   if (!td_->messages_manager_->have_dialog_force(owner_dialog_id, "open_story")) {
     return promise.set_error(Status::Error(400, "Story sender not found"));
   }
-  if (!td_->messages_manager_->have_input_peer(owner_dialog_id, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(owner_dialog_id, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access the story sender"));
   }
   if (!story_id.is_valid()) {
@@ -2545,7 +2546,7 @@ void StoryManager::close_story(DialogId owner_dialog_id, StoryId story_id, Promi
   if (!td_->messages_manager_->have_dialog_force(owner_dialog_id, "close_story")) {
     return promise.set_error(Status::Error(400, "Story sender not found"));
   }
-  if (!td_->messages_manager_->have_input_peer(owner_dialog_id, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(owner_dialog_id, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access the story sender"));
   }
   if (!story_id.is_valid()) {
@@ -2657,7 +2658,7 @@ void StoryManager::set_story_reaction(StoryFullId story_full_id, ReactionType re
   if (!td_->messages_manager_->have_dialog_force(owner_dialog_id, "set_story_reaction")) {
     return promise.set_error(Status::Error(400, "Story sender not found"));
   }
-  if (!td_->messages_manager_->have_input_peer(owner_dialog_id, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(owner_dialog_id, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access the story sender"));
   }
   if (!story_full_id.get_story_id().is_valid()) {
@@ -4193,7 +4194,7 @@ void StoryManager::on_update_story_id(int64 random_id, StoryId new_story_id, con
 }
 
 bool StoryManager::on_update_read_stories(DialogId owner_dialog_id, StoryId max_read_story_id) {
-  if (!td_->messages_manager_->have_dialog_info_force(owner_dialog_id, "on_update_read_stories")) {
+  if (!td_->dialog_manager_->have_dialog_info_force(owner_dialog_id, "on_update_read_stories")) {
     LOG(INFO) << "Can't read stories in unknown " << owner_dialog_id;
     return false;
   }
@@ -4245,7 +4246,7 @@ void StoryManager::on_update_story_chosen_reaction_type(DialogId owner_dialog_id
     LOG(ERROR) << "Receive chosen reaction in " << story_id << " in " << owner_dialog_id;
     return;
   }
-  if (!td_->messages_manager_->have_dialog_info_force(owner_dialog_id, "on_update_story_chosen_reaction_type")) {
+  if (!td_->dialog_manager_->have_dialog_info_force(owner_dialog_id, "on_update_story_chosen_reaction_type")) {
     return;
   }
   StoryFullId story_full_id{owner_dialog_id, story_id};
@@ -4476,7 +4477,7 @@ void StoryManager::get_story(DialogId owner_dialog_id, StoryId story_id, bool on
   if (!td_->messages_manager_->have_dialog_force(owner_dialog_id, "get_story")) {
     return promise.set_error(Status::Error(400, "Story sender not found"));
   }
-  if (!td_->messages_manager_->have_input_peer(owner_dialog_id, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(owner_dialog_id, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access the story sender"));
   }
   if (!story_id.is_valid()) {
@@ -5353,7 +5354,7 @@ void StoryManager::delete_story_on_server(StoryFullId story_full_id, uint64 log_
 
 telegram_api::object_ptr<telegram_api::InputMedia> StoryManager::get_input_media(StoryFullId story_full_id) const {
   auto dialog_id = story_full_id.get_dialog_id();
-  auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+  auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
   if (input_peer == nullptr) {
     return nullptr;
   }

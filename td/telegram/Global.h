@@ -42,6 +42,7 @@ class ConfigManager;
 class ConnectionCreator;
 class ContactsManager;
 class DialogFilterManager;
+class DialogManager;
 class DownloadManager;
 class FileManager;
 class FileReferenceManager;
@@ -249,6 +250,13 @@ class Global final : public ActorContext {
   }
   void set_dialog_filter_manager(ActorId<DialogFilterManager> dialog_filter_manager) {
     dialog_filter_manager_ = std::move(dialog_filter_manager);
+  }
+
+  ActorId<DialogManager> dialog_manager() const {
+    return dialog_manager_;
+  }
+  void set_dialog_manager(ActorId<DialogManager> dialog_manager) {
+    dialog_manager_ = std::move(dialog_manager);
   }
 
   ActorId<DownloadManager> download_manager() const {
@@ -547,6 +555,7 @@ class Global final : public ActorContext {
   ActorId<ConfigManager> config_manager_;
   ActorId<ContactsManager> contacts_manager_;
   ActorId<DialogFilterManager> dialog_filter_manager_;
+  ActorId<DialogManager> dialog_manager_;
   ActorId<DownloadManager> download_manager_;
   ActorId<FileManager> file_manager_;
   ActorId<FileReferenceManager> file_reference_manager_;
