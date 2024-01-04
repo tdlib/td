@@ -621,7 +621,7 @@ void StatisticsManager::get_story_public_forwards(StoryFullId story_full_id, str
   }
   auto dialog_id = story_full_id.get_dialog_id();
   if (dialog_id.get_type() == DialogType::User) {
-    if (dialog_id != DialogId(td_->contacts_manager_->get_my_id())) {
+    if (dialog_id != td_->dialog_manager_->get_my_dialog_id()) {
       return promise.set_error(Status::Error(400, "Have no access to story statistics"));
     }
     return send_get_story_public_forwards_query(DcId::main(), story_full_id, std::move(offset), limit,
@@ -646,7 +646,7 @@ void StatisticsManager::send_get_story_public_forwards_query(
     return promise.set_error(Status::Error(400, "Story not found"));
   }
   if (!td_->story_manager_->can_get_story_statistics(story_full_id) &&
-      story_full_id.get_dialog_id() != DialogId(td_->contacts_manager_->get_my_id())) {
+      story_full_id.get_dialog_id() != td_->dialog_manager_->get_my_dialog_id()) {
     return promise.set_error(Status::Error(400, "Story forwards are inaccessible"));
   }
 

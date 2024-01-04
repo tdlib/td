@@ -8,6 +8,7 @@
 
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/Td.h"
@@ -129,9 +130,9 @@ void get_user_info(Td *td, UserId user_id, Promise<td_api::object_ptr<td_api::us
 
 void set_user_info(Td *td, UserId user_id, td_api::object_ptr<td_api::formattedText> &&message,
                    Promise<td_api::object_ptr<td_api::userSupportInfo>> &&promise) {
-  TRY_RESULT_PROMISE(promise, formatted_text,
-                     get_formatted_text(td, DialogId(td->contacts_manager_->get_my_id()), std::move(message), false,
-                                        true, true, false));
+  TRY_RESULT_PROMISE(
+      promise, formatted_text,
+      get_formatted_text(td, td->dialog_manager_->get_my_dialog_id(), std::move(message), false, true, true, false));
   td->create_handler<EditUserInfoQuery>(std::move(promise))->send(user_id, std::move(formatted_text));
 }
 

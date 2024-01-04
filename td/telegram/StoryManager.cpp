@@ -1581,7 +1581,7 @@ void StoryManager::on_load_expired_database_stories(vector<StoryDbStory> stories
 }
 
 bool StoryManager::is_my_story(DialogId owner_dialog_id) const {
-  return owner_dialog_id == DialogId(td_->contacts_manager_->get_my_id());
+  return owner_dialog_id == td_->dialog_manager_->get_my_dialog_id();
 }
 
 bool StoryManager::can_access_expired_story(DialogId owner_dialog_id, const Story *story) const {
@@ -2880,7 +2880,7 @@ void StoryManager::get_story_interactions(StoryId story_id, const string &query,
                                           bool prefer_forwards, bool prefer_with_reaction, const string &offset,
                                           int32 limit,
                                           Promise<td_api::object_ptr<td_api::storyInteractions>> &&promise) {
-  DialogId owner_dialog_id(td_->contacts_manager_->get_my_id());
+  auto owner_dialog_id = td_->dialog_manager_->get_my_dialog_id();
   StoryFullId story_full_id{owner_dialog_id, story_id};
   const Story *story = get_story(story_full_id);
   if (story == nullptr) {
@@ -2913,7 +2913,7 @@ void StoryManager::on_get_story_interactions(
   }
   auto view_list = r_view_list.move_as_ok();
 
-  DialogId owner_dialog_id(td_->contacts_manager_->get_my_id());
+  auto owner_dialog_id = td_->dialog_manager_->get_my_dialog_id();
   CHECK(story_id.is_server());
   StoryFullId story_full_id{owner_dialog_id, story_id};
   Story *story = get_story_editable(story_full_id);
@@ -4033,7 +4033,7 @@ bool StoryManager::update_active_stories_order(DialogId owner_dialog_id, ActiveS
   if (active_stories->max_read_story_id_.get() < last_story_id.get()) {
     new_private_order += static_cast<int64>(1) << 35;
   }
-  if (owner_dialog_id == DialogId(td_->contacts_manager_->get_my_id())) {
+  if (owner_dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
     new_private_order += static_cast<int64>(1) << 36;
   }
   CHECK(new_private_order != 0);

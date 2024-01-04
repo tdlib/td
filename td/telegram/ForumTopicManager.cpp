@@ -53,7 +53,7 @@ class CreateForumTopicQuery final : public Td::ResultHandler {
   void send(ChannelId channel_id, const string &title, int32 icon_color, CustomEmojiId icon_custom_emoji_id,
             DialogId as_dialog_id) {
     channel_id_ = channel_id;
-    creator_dialog_id_ = DialogId(td_->contacts_manager_->get_my_id());
+    creator_dialog_id_ = td_->dialog_manager_->get_my_dialog_id();
 
     int32 flags = 0;
     if (icon_color != -1) {

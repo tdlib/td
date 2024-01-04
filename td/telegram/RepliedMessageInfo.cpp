@@ -6,8 +6,8 @@
 //
 #include "td/telegram/RepliedMessageInfo.h"
 
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageCopyOptions.h"
@@ -180,7 +180,7 @@ RepliedMessageInfo RepliedMessageInfo::clone(Td *td) const {
   result.origin_date_ = origin_date_;
   result.origin_ = origin_;
   if (content_ != nullptr) {
-    result.content_ = dup_message_content(td, DialogId(td->contacts_manager_->get_my_id()), content_.get(),
+    result.content_ = dup_message_content(td, td->dialog_manager_->get_my_dialog_id(), content_.get(),
                                           MessageContentDupType::Forward, MessageCopyOptions());
   }
   result.quote_ = quote_;

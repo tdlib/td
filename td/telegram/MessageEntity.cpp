@@ -8,6 +8,7 @@
 
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/LinkManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/OptionManager.h"
@@ -4725,8 +4726,7 @@ void remove_unallowed_entities(const Td *td, FormattedText &text, DialogId dialo
       remove_intersecting_entities(text.entities);
     }
   }
-  if (dialog_id != DialogId(td->contacts_manager_->get_my_id()) &&
-      !td->contacts_manager_->can_use_premium_custom_emoji()) {
+  if (dialog_id != td->dialog_manager_->get_my_dialog_id() && !td->contacts_manager_->can_use_premium_custom_emoji()) {
     remove_premium_custom_emoji_entities(td, text.entities, false);
   }
 }

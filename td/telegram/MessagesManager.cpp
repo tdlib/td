@@ -24732,7 +24732,7 @@ void MessagesManager::set_dialog_default_send_message_as_dialog_id(DialogId dial
   bool is_anonymous = td_->dialog_manager_->is_anonymous_administrator(dialog_id, nullptr);
   switch (message_sender_dialog_id.get_type()) {
     case DialogType::User:
-      if (message_sender_dialog_id != DialogId(td_->contacts_manager_->get_my_id())) {
+      if (message_sender_dialog_id != td_->dialog_manager_->get_my_dialog_id()) {
         return promise.set_error(Status::Error(400, "Can't send messages as another user"));
       }
       if (is_anonymous) {

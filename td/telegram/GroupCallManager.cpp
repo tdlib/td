@@ -1305,7 +1305,7 @@ void GroupCallManager::set_group_call_default_join_as(DialogId dialog_id, Dialog
 
   switch (as_dialog_id.get_type()) {
     case DialogType::User:
-      if (as_dialog_id != DialogId(td_->contacts_manager_->get_my_id())) {
+      if (as_dialog_id != td_->dialog_manager_->get_my_dialog_id()) {
         return promise.set_error(Status::Error(400, "Can't join voice chat as another user"));
       }
       break;
@@ -1723,7 +1723,7 @@ GroupCallParticipant *GroupCallManager::get_group_call_participant(GroupCallPart
   if (!dialog_id.is_valid()) {
     return nullptr;
   }
-  if (dialog_id == DialogId(td_->contacts_manager_->get_my_id())) {
+  if (dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
     for (auto &group_call_participant : group_call_participants->participants) {
       if (group_call_participant.is_self) {
         return &group_call_participant;
@@ -2242,7 +2242,7 @@ void GroupCallManager::process_my_group_call_participant(InputGroupCallId input_
     return;
   }
   auto my_participant = get_group_call_participant(add_group_call_participants(input_group_call_id),
-                                                   DialogId(td_->contacts_manager_->get_my_id()));
+                                                   td_->dialog_manager_->get_my_dialog_id());
   if (my_participant == nullptr || my_participant->is_fake || my_participant->joined_date < participant.joined_date ||
       (my_participant->joined_date <= participant.joined_date &&
        my_participant->audio_source != participant.audio_source)) {
@@ -2631,7 +2631,7 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
 
   bool have_as_dialog_id = true;
   {
-    auto my_dialog_id = DialogId(td_->contacts_manager_->get_my_id());
+    auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
     if (!as_dialog_id.is_valid()) {
       as_dialog_id = my_dialog_id;
     }
@@ -2844,7 +2844,7 @@ void GroupCallManager::finish_load_group_call_administrators(InputGroupCallId in
   auto participants = result.move_as_ok();
   for (auto &administrator : participants.participants_) {
     if (administrator.status_.can_manage_calls() &&
-        administrator.dialog_id_ != DialogId(td_->contacts_manager_->get_my_id())) {
+        administrator.dialog_id_ != td_->dialog_manager_->get_my_dialog_id()) {
       administrator_dialog_ids.push_back(administrator.dialog_id_);
     }
   }

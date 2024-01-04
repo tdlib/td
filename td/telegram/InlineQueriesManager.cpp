@@ -377,7 +377,7 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
 
   auto constructor_id = input_message_content->get_id();
   if (constructor_id == td_api::inputMessageText::ID) {
-    TRY_RESULT(input_message_text, process_input_message_text(td_, DialogId(td_->contacts_manager_->get_my_id()),
+    TRY_RESULT(input_message_text, process_input_message_text(td_, td_->dialog_manager_->get_my_dialog_id(),
                                                               std::move(input_message_content), true));
     auto entities = get_input_message_entities(td_->contacts_manager_.get(), input_message_text.text.entities,
                                                "get_inline_message");
@@ -453,7 +453,7 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
     return venue.get_input_bot_inline_message_media_venue(std::move(input_reply_markup));
   }
   if (constructor_id == allowed_media_content_id) {
-    TRY_RESULT(caption, get_formatted_text(td_, DialogId(td_->contacts_manager_->get_my_id()),
+    TRY_RESULT(caption, get_formatted_text(td_, td_->dialog_manager_->get_my_dialog_id(),
                                            extract_input_caption(input_message_content), true, true, true, false));
     int32 flags = 0;
     if (input_reply_markup != nullptr) {
