@@ -37054,24 +37054,6 @@ int64 MessagesManager::get_next_pinned_dialog_order() {
   return current_pinned_dialog_order_;
 }
 
-bool MessagesManager::is_removed_from_dialog_list(const Dialog *d) const {
-  switch (d->dialog_id.get_type()) {
-    case DialogType::User:
-      break;
-    case DialogType::Chat:
-      return !td_->contacts_manager_->get_chat_is_active(d->dialog_id.get_chat_id());
-    case DialogType::Channel:
-      return !td_->contacts_manager_->get_channel_status(d->dialog_id.get_channel_id()).is_member();
-    case DialogType::SecretChat:
-      break;
-    case DialogType::None:
-    default:
-      UNREACHABLE();
-      break;
-  }
-  return false;
-}
-
 void MessagesManager::update_dialog_pos(Dialog *d, const char *source, bool need_send_update,
                                         bool is_loaded_from_database) {
   if (td_->auth_manager_->is_bot()) {
@@ -37082,7 +37064,7 @@ void MessagesManager::update_dialog_pos(Dialog *d, const char *source, bool need
   LOG(INFO) << "Trying to update " << d->dialog_id << " order from " << source;
 
   int64 new_order = DEFAULT_ORDER;
-  if (!is_removed_from_dialog_list(d)) {
+  if (!td_->dialog_manager_->is_dialog_removed_from_dialog_list(d->dialog_id)) {
     if (d->last_message_id != MessageId()) {
       auto m = get_message(d, d->last_message_id);
       CHECK(m != nullptr);

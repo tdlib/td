@@ -765,4 +765,22 @@ Status DialogManager::can_pin_messages(DialogId dialog_id) const {
   return Status::OK();
 }
 
+bool DialogManager::is_dialog_removed_from_dialog_list(DialogId dialog_id) const {
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      break;
+    case DialogType::Chat:
+      return !td_->contacts_manager_->get_chat_is_active(dialog_id.get_chat_id());
+    case DialogType::Channel:
+      return !td_->contacts_manager_->get_channel_status(dialog_id.get_channel_id()).is_member();
+    case DialogType::SecretChat:
+      break;
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+      break;
+  }
+  return false;
+}
+
 }  // namespace td

@@ -2973,8 +2973,6 @@ class MessagesManager final : public Actor {
 
   int64 get_next_pinned_dialog_order();
 
-  bool is_removed_from_dialog_list(const Dialog *d) const;
-
   void update_dialog_pos(Dialog *d, const char *source, bool need_send_update = true,
                          bool is_loaded_from_database = false);
 

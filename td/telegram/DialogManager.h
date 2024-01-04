@@ -126,6 +126,8 @@ class DialogManager final : public Actor {
 
   Status can_pin_messages(DialogId dialog_id) const;
 
+  bool is_dialog_removed_from_dialog_list(DialogId dialog_id) const;
+
  private:
   void tear_down() final;
 
