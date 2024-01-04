@@ -72,6 +72,8 @@ class DialogId {
 
   static vector<DialogId> get_dialog_ids(const vector<int64> &chat_ids);
 
+  static vector<DialogId> remove_secret_chat_dialog_ids(vector<DialogId> dialog_ids);
+
   template <class StorerT>
   void store(StorerT &storer) const {
     storer.store_long(id);

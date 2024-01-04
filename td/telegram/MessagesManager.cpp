@@ -15613,7 +15613,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     CHECK(!td_->auth_manager_->is_bot());
     auto *folder_list = get_dialog_list(DialogListId(folder_id));
     CHECK(folder_list != nullptr);
-    auto pinned_dialog_ids = remove_secret_chat_dialog_ids(get_pinned_dialog_ids(DialogListId(folder_id)));
+    auto pinned_dialog_ids = DialogId::remove_secret_chat_dialog_ids(get_pinned_dialog_ids(DialogListId(folder_id)));
     bool are_pinned_dialogs_saved = folder_list->are_pinned_dialogs_inited_;
     folder_list->are_pinned_dialogs_inited_ = true;
     if (pinned_dialog_ids != added_dialog_ids) {
@@ -18569,11 +18569,6 @@ int32 MessagesManager::get_pinned_dialogs_limit(DialogListId dialog_list_id) con
   return limit;
 }
 
-vector<DialogId> MessagesManager::remove_secret_chat_dialog_ids(vector<DialogId> dialog_ids) {
-  td::remove_if(dialog_ids, [](DialogId dialog_id) { return dialog_id.get_type() == DialogType::SecretChat; });
-  return dialog_ids;
-}
-
 Status MessagesManager::toggle_dialog_is_pinned(DialogListId dialog_list_id, DialogId dialog_id, bool is_pinned) {
   if (td_->auth_manager_->is_bot()) {
     return Status::Error(400, "Bots can't change chat pin state");
@@ -18732,8 +18727,8 @@ Status MessagesManager::set_pinned_dialogs(DialogListId dialog_list_id, vector<D
   }
   LOG(INFO) << "Reorder pinned chats in " << dialog_list_id << " from " << pinned_dialog_ids << " to " << dialog_ids;
 
-  auto server_old_dialog_ids = remove_secret_chat_dialog_ids(pinned_dialog_ids);
-  auto server_new_dialog_ids = remove_secret_chat_dialog_ids(dialog_ids);
+  auto server_old_dialog_ids = DialogId::remove_secret_chat_dialog_ids(pinned_dialog_ids);
+  auto server_new_dialog_ids = DialogId::remove_secret_chat_dialog_ids(dialog_ids);
 
   if (dialog_list_id.is_filter()) {
     return td_->dialog_filter_manager_->set_pinned_dialog_ids(

@@ -2503,8 +2503,6 @@ class MessagesManager final : public Actor {
 
   int32 get_pinned_dialogs_limit(DialogListId dialog_list_id) const;
 
-  static vector<DialogId> remove_secret_chat_dialog_ids(vector<DialogId> dialog_ids);
-
   bool set_dialog_is_pinned(DialogId dialog_id, bool is_pinned);
 
   bool set_dialog_is_pinned(DialogListId dialog_list_id, Dialog *d, bool is_pinned,
