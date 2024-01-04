@@ -106,7 +106,7 @@ Result<telegram_api::object_ptr<telegram_api::InputPeer>> get_boost_input_peer(T
     return nullptr;
   }
 
-  if (!td->messages_manager_->have_dialog_force(dialog_id, "get_boost_input_peer")) {
+  if (!td->dialog_manager_->have_dialog_force(dialog_id, "get_boost_input_peer")) {
     return Status::Error(400, "Chat to boost not found");
   }
   if (dialog_id.get_type() != DialogType::Channel ||

@@ -13,6 +13,7 @@
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogInviteLink.h"
 #include "td/telegram/DialogLocation.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/EmojiStatus.h"
 #include "td/telegram/ForumTopicInfo.h"
@@ -618,7 +619,7 @@ static telegram_api::object_ptr<telegram_api::channelAdminLogEventsFilter> get_i
 void get_dialog_event_log(Td *td, DialogId dialog_id, const string &query, int64 from_event_id, int32 limit,
                           const td_api::object_ptr<td_api::chatEventLogFilters> &filters,
                           const vector<UserId> &user_ids, Promise<td_api::object_ptr<td_api::chatEvents>> &&promise) {
-  if (!td->messages_manager_->have_dialog_force(dialog_id, "get_dialog_event_log")) {
+  if (!td->dialog_manager_->have_dialog_force(dialog_id, "get_dialog_event_log")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
 

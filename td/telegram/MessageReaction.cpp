@@ -926,7 +926,7 @@ void get_message_added_reactions(Td *td, MessageFullId message_full_id, Reaction
 void report_message_reactions(Td *td, MessageFullId message_full_id, DialogId chooser_dialog_id,
                               Promise<Unit> &&promise) {
   auto dialog_id = message_full_id.get_dialog_id();
-  if (!td->messages_manager_->have_dialog_force(dialog_id, "send_callback_query")) {
+  if (!td->dialog_manager_->have_dialog_force(dialog_id, "send_callback_query")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
   if (!td->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {

@@ -483,7 +483,7 @@ void AutosaveManager::set_autosave_settings(td_api::object_ptr<td_api::AutosaveS
       break;
     case td_api::autosaveSettingsScopeChat::ID:
       dialog_id = DialogId(static_cast<const td_api::autosaveSettingsScopeChat *>(scope.get())->chat_id_);
-      if (!td_->messages_manager_->have_dialog_force(dialog_id, "set_autosave_settings")) {
+      if (!td_->dialog_manager_->have_dialog_force(dialog_id, "set_autosave_settings")) {
         return promise.set_error(Status::Error(400, "Chat not found"));
       }
       old_settings = &settings_.exceptions_[dialog_id];

@@ -8652,7 +8652,7 @@ void ContactsManager::set_channel_discussion_group(DialogId dialog_id, DialogId 
   ChannelId broadcast_channel_id;
   telegram_api::object_ptr<telegram_api::InputChannel> broadcast_input_channel;
   if (dialog_id.is_valid()) {
-    if (!td_->messages_manager_->have_dialog_force(dialog_id, "set_channel_discussion_group 1")) {
+    if (!td_->dialog_manager_->have_dialog_force(dialog_id, "set_channel_discussion_group 1")) {
       return promise.set_error(Status::Error(400, "Chat not found"));
     }
 
@@ -8682,7 +8682,7 @@ void ContactsManager::set_channel_discussion_group(DialogId dialog_id, DialogId 
   ChannelId group_channel_id;
   telegram_api::object_ptr<telegram_api::InputChannel> group_input_channel;
   if (discussion_dialog_id.is_valid()) {
-    if (!td_->messages_manager_->have_dialog_force(discussion_dialog_id, "set_channel_discussion_group 2")) {
+    if (!td_->dialog_manager_->have_dialog_force(discussion_dialog_id, "set_channel_discussion_group 2")) {
       return promise.set_error(Status::Error(400, "Discussion chat not found"));
     }
     if (discussion_dialog_id.get_type() != DialogType::Channel) {
@@ -8722,7 +8722,7 @@ void ContactsManager::set_channel_location(DialogId dialog_id, const DialogLocat
   if (!dialog_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Invalid chat identifier specified"));
   }
-  if (!td_->messages_manager_->have_dialog_force(dialog_id, "set_channel_location")) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "set_channel_location")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
 
@@ -8754,7 +8754,7 @@ void ContactsManager::set_channel_slow_mode_delay(DialogId dialog_id, int32 slow
   if (!dialog_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Invalid chat identifier specified"));
   }
-  if (!td_->messages_manager_->have_dialog_force(dialog_id, "set_channel_slow_mode_delay")) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "set_channel_slow_mode_delay")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
 
@@ -8782,7 +8782,7 @@ void ContactsManager::get_channel_statistics_dc_id(DialogId dialog_id, bool for_
   if (!dialog_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Invalid chat identifier specified"));
   }
-  if (!td_->messages_manager_->have_dialog_force(dialog_id, "get_channel_statistics_dc_id")) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "get_channel_statistics_dc_id")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
 
@@ -8965,7 +8965,7 @@ void ContactsManager::delete_channel(ChannelId channel_id, Promise<Unit> &&promi
 }
 
 void ContactsManager::delete_dialog(DialogId dialog_id, Promise<Unit> &&promise) {
-  if (!td_->messages_manager_->have_dialog_force(dialog_id, "delete_dialog")) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "delete_dialog")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
 
@@ -9376,7 +9376,7 @@ td_api::object_ptr<td_api::CanTransferOwnershipResult> ContactsManager::get_can_
 
 void ContactsManager::transfer_dialog_ownership(DialogId dialog_id, UserId user_id, const string &password,
                                                 Promise<Unit> &&promise) {
-  if (!td_->messages_manager_->have_dialog_force(dialog_id, "transfer_dialog_ownership")) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "transfer_dialog_ownership")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
   if (!have_user_force(user_id, "transfer_dialog_ownership")) {
@@ -9426,7 +9426,7 @@ void ContactsManager::transfer_channel_ownership(
 }
 
 Status ContactsManager::can_manage_dialog_invite_links(DialogId dialog_id, bool creator_only) {
-  if (!td_->messages_manager_->have_dialog_force(dialog_id, "can_manage_dialog_invite_links")) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "can_manage_dialog_invite_links")) {
     return Status::Error(400, "Chat not found");
   }
 
@@ -9938,7 +9938,7 @@ bool ContactsManager::are_suitable_recommended_dialogs(const RecommendedDialogs 
 void ContactsManager::get_channel_recommendations(DialogId dialog_id, bool return_local,
                                                   Promise<td_api::object_ptr<td_api::chats>> &&chats_promise,
                                                   Promise<td_api::object_ptr<td_api::count>> &&count_promise) {
-  if (!td_->messages_manager_->have_dialog_force(dialog_id, "get_channel_recommendations")) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "get_channel_recommendations")) {
     if (chats_promise) {
       chats_promise.set_error(Status::Error(400, "Chat not found"));
     }
@@ -10159,8 +10159,8 @@ void ContactsManager::on_get_channel_recommendations(
 
 void ContactsManager::open_channel_recommended_channel(DialogId dialog_id, DialogId opened_dialog_id,
                                                        Promise<Unit> &&promise) {
-  if (!td_->messages_manager_->have_dialog_force(dialog_id, "open_channel_recommended_channel") ||
-      !td_->messages_manager_->have_dialog_force(opened_dialog_id, "open_channel_recommended_channel")) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "open_channel_recommended_channel") ||
+      !td_->dialog_manager_->have_dialog_force(opened_dialog_id, "open_channel_recommended_channel")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
   if (dialog_id.get_type() != DialogType::Channel || opened_dialog_id.get_type() != DialogType::Channel) {
@@ -18983,7 +18983,7 @@ std::pair<int32, vector<DialogId>> ContactsManager::search_among_dialogs(const v
 
 void ContactsManager::add_dialog_participant(DialogId dialog_id, UserId user_id, int32 forward_limit,
                                              Promise<Unit> &&promise) {
-  if (!td_->messages_manager_->have_dialog_force(dialog_id, "add_dialog_participant")) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "add_dialog_participant")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
 
@@ -19005,7 +19005,7 @@ void ContactsManager::add_dialog_participant(DialogId dialog_id, UserId user_id,
 
 void ContactsManager::add_dialog_participants(DialogId dialog_id, const vector<UserId> &user_ids,
                                               Promise<Unit> &&promise) {
-  if (!td_->messages_manager_->have_dialog_force(dialog_id, "add_dialog_participants")) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "add_dialog_participants")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
 
@@ -19030,7 +19030,7 @@ void ContactsManager::add_dialog_participants(DialogId dialog_id, const vector<U
 void ContactsManager::set_dialog_participant_status(DialogId dialog_id, DialogId participant_dialog_id,
                                                     td_api::object_ptr<td_api::ChatMemberStatus> &&chat_member_status,
                                                     Promise<Unit> &&promise) {
-  if (!td_->messages_manager_->have_dialog_force(dialog_id, "set_dialog_participant_status")) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "set_dialog_participant_status")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
 
@@ -19061,7 +19061,7 @@ void ContactsManager::set_dialog_participant_status(DialogId dialog_id, DialogId
 }
 
 void ContactsManager::leave_dialog(DialogId dialog_id, Promise<Unit> &&promise) {
-  if (!td_->messages_manager_->have_dialog_force(dialog_id, "leave_dialog")) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "leave_dialog")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
 
@@ -19088,7 +19088,7 @@ void ContactsManager::leave_dialog(DialogId dialog_id, Promise<Unit> &&promise) 
 
 void ContactsManager::ban_dialog_participant(DialogId dialog_id, DialogId participant_dialog_id,
                                              int32 banned_until_date, bool revoke_messages, Promise<Unit> &&promise) {
-  if (!td_->messages_manager_->have_dialog_force(dialog_id, "ban_dialog_participant")) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "ban_dialog_participant")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
 
@@ -19142,7 +19142,7 @@ void ContactsManager::finish_get_dialog_participant(DialogParticipant &&dialog_p
 void ContactsManager::do_get_dialog_participant(DialogId dialog_id, DialogId participant_dialog_id,
                                                 Promise<DialogParticipant> &&promise) {
   LOG(INFO) << "Receive GetChatMember request to get " << participant_dialog_id << " in " << dialog_id;
-  if (!td_->messages_manager_->have_dialog_force(dialog_id, "do_get_dialog_participant")) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "do_get_dialog_participant")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
 
@@ -19209,7 +19209,7 @@ void ContactsManager::search_dialog_participants(DialogId dialog_id, const strin
                                                  Promise<DialogParticipants> &&promise) {
   LOG(INFO) << "Receive searchChatMembers request to search for \"" << query << "\" in " << dialog_id << " with filter "
             << filter;
-  if (!td_->messages_manager_->have_dialog_force(dialog_id, "search_dialog_participants")) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "search_dialog_participants")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
   if (limit < 0) {
@@ -19416,7 +19416,7 @@ td_api::object_ptr<td_api::chatAdministrators> ContactsManager::get_chat_adminis
 
 void ContactsManager::get_dialog_administrators(DialogId dialog_id,
                                                 Promise<td_api::object_ptr<td_api::chatAdministrators>> &&promise) {
-  if (!td_->messages_manager_->have_dialog_force(dialog_id, "get_dialog_administrators")) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "get_dialog_administrators")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
 

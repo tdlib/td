@@ -10,7 +10,6 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogManager.h"
-#include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
 
 namespace td {
@@ -63,7 +62,7 @@ Result<BotCommandScope> BotCommandScope::get_bot_command_scope(Td *td,
       return BotCommandScope(Type::Default);
   }
 
-  if (!td->messages_manager_->have_dialog_force(dialog_id, "get_bot_command_scope")) {
+  if (!td->dialog_manager_->have_dialog_force(dialog_id, "get_bot_command_scope")) {
     return Status::Error(400, "Chat not found");
   }
   if (!td->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {

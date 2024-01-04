@@ -238,7 +238,7 @@ void CallbackQueriesManager::send_callback_query(MessageFullId message_full_id,
   }
 
   auto dialog_id = message_full_id.get_dialog_id();
-  td_->messages_manager_->have_dialog_force(dialog_id, "send_callback_query");
+  td_->dialog_manager_->have_dialog_force(dialog_id, "send_callback_query");
   if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access the chat"));
   }

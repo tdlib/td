@@ -7,6 +7,7 @@
 #include "td/telegram/Dependencies.h"
 
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/StoryManager.h"
 #include "td/telegram/Td.h"
@@ -128,7 +129,7 @@ bool Dependencies::resolve_force(Td *td, const char *source, bool ignore_errors)
     }
   }
   for (auto dialog_id : dialog_ids) {
-    if (!td->messages_manager_->have_dialog_force(dialog_id, source)) {
+    if (!td->dialog_manager_->have_dialog_force(dialog_id, source)) {
       if (!ignore_errors) {
         LOG(ERROR) << "Can't find " << dialog_id << " from " << source;
       }

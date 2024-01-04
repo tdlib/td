@@ -318,7 +318,7 @@ td_api::object_ptr<td_api::sponsoredMessages> SponsoredMessageManager::get_spons
 
 void SponsoredMessageManager::get_dialog_sponsored_messages(
     DialogId dialog_id, Promise<td_api::object_ptr<td_api::sponsoredMessages>> &&promise) {
-  if (!td_->messages_manager_->have_dialog_force(dialog_id, "get_dialog_sponsored_message")) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "get_dialog_sponsored_message")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
   if (dialog_id.get_type() != DialogType::Channel) {

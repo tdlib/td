@@ -10,6 +10,7 @@
 #include "td/telegram/ChatId.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
 
@@ -24,7 +25,7 @@ void UserPrivacySettingRule::set_dialog_ids(Td *td, const vector<int64> &chat_id
   dialog_ids_.clear();
   for (auto chat_id : chat_ids) {
     DialogId dialog_id(chat_id);
-    if (!td->messages_manager_->have_dialog_force(dialog_id, "UserPrivacySettingRule::set_dialog_ids")) {
+    if (!td->dialog_manager_->have_dialog_force(dialog_id, "UserPrivacySettingRule::set_dialog_ids")) {
       LOG(INFO) << "Ignore not found " << dialog_id;
       continue;
     }

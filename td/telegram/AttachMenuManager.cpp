@@ -843,7 +843,7 @@ void AttachMenuManager::request_web_view(DialogId dialog_id, UserId bot_user_id,
   TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(bot_user_id));
   TRY_RESULT_PROMISE(promise, bot_data, td_->contacts_manager_->get_bot_data(bot_user_id));
 
-  if (!td_->messages_manager_->have_dialog_force(dialog_id, "request_web_view")) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "request_web_view")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
 

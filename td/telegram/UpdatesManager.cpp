@@ -23,6 +23,7 @@
 #include "td/telegram/DialogFilterManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogInviteLink.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/DownloadManager.h"
 #include "td/telegram/EmojiStatus.h"
@@ -4242,9 +4243,9 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateGroupCallConnec
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateGroupCall> update, Promise<Unit> &&promise) {
   DialogId dialog_id(ChatId(update->chat_id_));
-  if (!td_->messages_manager_->have_dialog_force(dialog_id, "updateGroupCall")) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "updateGroupCall")) {
     dialog_id = DialogId(ChannelId(update->chat_id_));
-    if (!td_->messages_manager_->have_dialog_force(dialog_id, "updateGroupCall")) {
+    if (!td_->dialog_manager_->have_dialog_force(dialog_id, "updateGroupCall")) {
       dialog_id = DialogId();
     }
   }

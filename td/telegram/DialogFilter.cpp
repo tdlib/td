@@ -8,6 +8,7 @@
 
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
@@ -704,7 +705,7 @@ vector<DialogId> DialogFilter::get_dialogs_for_invite_link(Td *td) {
   vector<DialogId> result;
   for_each_dialog([&](const InputDialogId &input_dialog_id) {
     auto dialog_id = input_dialog_id.get_dialog_id();
-    if (!td->messages_manager_->have_dialog_force(dialog_id, "get_dialogs_for_invite_link")) {
+    if (!td->dialog_manager_->have_dialog_force(dialog_id, "get_dialogs_for_invite_link")) {
       return;
     }
     bool is_good = false;

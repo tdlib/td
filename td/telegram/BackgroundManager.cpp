@@ -738,7 +738,7 @@ void BackgroundManager::delete_background(bool for_dark_theme, Promise<Unit> &&p
 }
 
 Result<DialogId> BackgroundManager::get_background_dialog(DialogId dialog_id) {
-  if (!td_->messages_manager_->have_dialog_force(dialog_id, "set_dialog_background")) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "set_dialog_background")) {
     return Status::Error(400, "Chat not found");
   }
   if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Write)) {

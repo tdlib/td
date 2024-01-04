@@ -652,7 +652,7 @@ void ForumTopicManager::on_update_forum_topic_notify_settings(
 
 void ForumTopicManager::on_update_forum_topic_is_pinned(DialogId dialog_id, MessageId top_thread_message_id,
                                                         bool is_pinned) {
-  if (!td_->messages_manager_->have_dialog_force(dialog_id, "on_update_forum_topic_is_pinned")) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "on_update_forum_topic_is_pinned")) {
     return;
   }
   if (!can_be_forum(dialog_id)) {
@@ -675,7 +675,7 @@ void ForumTopicManager::on_update_forum_topic_is_pinned(DialogId dialog_id, Mess
 }
 
 void ForumTopicManager::on_update_pinned_forum_topics(DialogId dialog_id, vector<MessageId> top_thread_message_ids) {
-  if (!td_->messages_manager_->have_dialog_force(dialog_id, "on_update_pinned_forum_topics")) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "on_update_pinned_forum_topics")) {
     return;
   }
   if (!can_be_forum(dialog_id)) {
@@ -1066,7 +1066,7 @@ td_api::object_ptr<td_api::forumTopic> ForumTopicManager::get_forum_topic_object
 }
 
 Status ForumTopicManager::is_forum(DialogId dialog_id) {
-  if (!td_->messages_manager_->have_dialog_force(dialog_id, "ForumTopicManager::is_forum")) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "ForumTopicManager::is_forum")) {
     return Status::Error(400, "Chat not found");
   }
   if (dialog_id.get_type() != DialogType::Channel ||

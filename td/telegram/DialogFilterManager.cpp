@@ -942,7 +942,7 @@ void DialogFilterManager::load_dialog_filter(const DialogFilter *dialog_filter, 
   for (const auto &input_dialog_id : needed_dialog_ids) {
     auto dialog_id = input_dialog_id.get_dialog_id();
     // TODO load dialogs asynchronously
-    if (!td_->messages_manager_->have_dialog_force(dialog_id, "load_dialog_filter")) {
+    if (!td_->dialog_manager_->have_dialog_force(dialog_id, "load_dialog_filter")) {
       if (dialog_id.get_type() == DialogType::SecretChat) {
         if (td_->dialog_manager_->have_dialog_info_force(dialog_id, "load_dialog_filter")) {
           td_->messages_manager_->force_create_dialog(dialog_id, "load_dialog_filter");
@@ -992,8 +992,8 @@ void DialogFilterManager::on_load_dialog_filter_dialogs(DialogFilterId dialog_fi
                                                         Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
-  td::remove_if(dialog_ids, [messages_manager = td_->messages_manager_.get()](DialogId dialog_id) {
-    return messages_manager->have_dialog_force(dialog_id, "on_load_dialog_filter_dialogs");
+  td::remove_if(dialog_ids, [dialog_manager = td_->dialog_manager_.get()](DialogId dialog_id) {
+    return dialog_manager->have_dialog_force(dialog_id, "on_load_dialog_filter_dialogs");
   });
   if (dialog_ids.empty()) {
     LOG(INFO) << "All chats from " << dialog_filter_id << " were loaded";
@@ -1898,7 +1898,7 @@ void DialogFilterManager::create_dialog_filter_invite_link(
   vector<tl_object_ptr<telegram_api::InputPeer>> input_peers;
   input_peers.reserve(dialog_ids.size());
   for (auto &dialog_id : dialog_ids) {
-    if (!td_->messages_manager_->have_dialog_force(dialog_id, "create_dialog_filter_invite_link")) {
+    if (!td_->dialog_manager_->have_dialog_force(dialog_id, "create_dialog_filter_invite_link")) {
       return promise.set_error(Status::Error(400, "Chat not found"));
     }
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
@@ -1936,7 +1936,7 @@ void DialogFilterManager::edit_dialog_filter_invite_link(
   vector<tl_object_ptr<telegram_api::InputPeer>> input_peers;
   input_peers.reserve(dialog_ids.size());
   for (auto &dialog_id : dialog_ids) {
-    if (!td_->messages_manager_->have_dialog_force(dialog_id, "edit_dialog_filter_invite_link")) {
+    if (!td_->dialog_manager_->have_dialog_force(dialog_id, "edit_dialog_filter_invite_link")) {
       return promise.set_error(Status::Error(400, "Chat not found"));
     }
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
@@ -2035,7 +2035,7 @@ void DialogFilterManager::add_dialog_filter_by_invite_link(const string &invite_
     return promise.set_error(Status::Error(400, "Wrong invite link"));
   }
   for (auto dialog_id : dialog_ids) {
-    if (!td_->messages_manager_->have_dialog_force(dialog_id, "add_dialog_filter_by_invite_link")) {
+    if (!td_->dialog_manager_->have_dialog_force(dialog_id, "add_dialog_filter_by_invite_link")) {
       return promise.set_error(Status::Error(400, "Chat not found"));
     }
     if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Know)) {
@@ -2069,7 +2069,7 @@ void DialogFilterManager::add_dialog_filter_new_chats(DialogFilterId dialog_filt
     return promise.set_error(Status::Error(400, "Chat folder must be shareable"));
   }
   for (auto dialog_id : dialog_ids) {
-    if (!td_->messages_manager_->have_dialog_force(dialog_id, "add_dialog_filter_new_chats")) {
+    if (!td_->dialog_manager_->have_dialog_force(dialog_id, "add_dialog_filter_new_chats")) {
       return promise.set_error(Status::Error(400, "Chat not found"));
     }
     if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Know)) {

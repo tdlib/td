@@ -1223,7 +1223,7 @@ Status GroupCallManager::can_join_group_calls(DialogId dialog_id) const {
   if (!dialog_id.is_valid()) {
     return Status::Error(400, "Invalid chat identifier specified");
   }
-  if (!td_->messages_manager_->have_dialog_force(dialog_id, "get_group_call_join_as")) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "get_group_call_join_as")) {
     return Status::Error(400, "Chat not found");
   }
   if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
@@ -1311,7 +1311,7 @@ void GroupCallManager::set_group_call_default_join_as(DialogId dialog_id, Dialog
       break;
     case DialogType::Chat:
     case DialogType::Channel:
-      if (!td_->messages_manager_->have_dialog_force(as_dialog_id, "set_group_call_default_join_as 2")) {
+      if (!td_->dialog_manager_->have_dialog_force(as_dialog_id, "set_group_call_default_join_as 2")) {
         return promise.set_error(Status::Error(400, "Participant chat not found"));
       }
       break;
@@ -1333,7 +1333,7 @@ void GroupCallManager::create_voice_chat(DialogId dialog_id, string title, int32
   if (!dialog_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Invalid chat identifier specified"));
   }
-  if (!td_->messages_manager_->have_dialog_force(dialog_id, "create_voice_chat")) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "create_voice_chat")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
   if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
@@ -1362,7 +1362,7 @@ void GroupCallManager::get_voice_chat_rtmp_stream_url(DialogId dialog_id, bool r
   if (!dialog_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Invalid chat identifier specified"));
   }
-  if (!td_->messages_manager_->have_dialog_force(dialog_id, "get_voice_chat_rtmp_stream_url")) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "get_voice_chat_rtmp_stream_url")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
   if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
@@ -2644,7 +2644,7 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
         have_as_dialog_id = false;
       }
     } else {
-      if (!td_->messages_manager_->have_dialog_force(as_dialog_id, "join_group_call")) {
+      if (!td_->dialog_manager_->have_dialog_force(as_dialog_id, "join_group_call")) {
         return promise.set_error(Status::Error(400, "Join as chat not found"));
       }
     }

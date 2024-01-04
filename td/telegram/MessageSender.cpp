@@ -158,7 +158,7 @@ Result<DialogId> get_message_sender_dialog_id(Td *td,
       bool know_dialog =
           dialog_id.get_type() == DialogType::User
               ? td->contacts_manager_->have_user_force(dialog_id.get_user_id(), "get_message_sender_dialog_id 2")
-              : td->messages_manager_->have_dialog_force(dialog_id, "get_message_sender_dialog_id");
+              : td->dialog_manager_->have_dialog_force(dialog_id, "get_message_sender_dialog_id");
       if (check_access && !know_dialog) {
         return Status::Error(400, "Unknown chat identifier specified");
       }

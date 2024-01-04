@@ -239,7 +239,7 @@ void TopDialogManager::remove_dialog(TopDialogCategory category, DialogId dialog
   if (category == TopDialogCategory::Size) {
     return promise.set_error(Status::Error(400, "Top chat category must be non-empty"));
   }
-  if (!td_->messages_manager_->have_dialog_force(dialog_id, "remove_dialog")) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "remove_dialog")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
   CHECK(!td_->auth_manager_->is_bot());

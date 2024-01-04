@@ -22,7 +22,7 @@
 namespace td {
 
 Result<ChannelId> GiveawayParameters::get_boosted_channel_id(Td *td, DialogId dialog_id) {
-  if (!td->messages_manager_->have_dialog_force(dialog_id, "get_boosted_channel_id")) {
+  if (!td->dialog_manager_->have_dialog_force(dialog_id, "get_boosted_channel_id")) {
     return Status::Error(400, "Chat to boost not found");
   }
   if (dialog_id.get_type() != DialogType::Channel) {

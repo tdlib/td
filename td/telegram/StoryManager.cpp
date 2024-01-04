@@ -2263,7 +2263,7 @@ void StoryManager::on_synchronized_archive_all_stories(bool set_archive_all_stor
 
 void StoryManager::toggle_dialog_stories_hidden(DialogId dialog_id, StoryListId story_list_id,
                                                 Promise<Unit> &&promise) {
-  if (!td_->messages_manager_->have_dialog_force(dialog_id, "toggle_dialog_stories_hidden")) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "toggle_dialog_stories_hidden")) {
     return promise.set_error(Status::Error(400, "Story sender not found"));
   }
   if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
@@ -2286,7 +2286,7 @@ void StoryManager::get_dialog_pinned_stories(DialogId owner_dialog_id, StoryId f
     return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
   }
 
-  if (!td_->messages_manager_->have_dialog_force(owner_dialog_id, "get_dialog_pinned_stories")) {
+  if (!td_->dialog_manager_->have_dialog_force(owner_dialog_id, "get_dialog_pinned_stories")) {
     return promise.set_error(Status::Error(400, "Story sender not found"));
   }
   if (!td_->dialog_manager_->have_input_peer(owner_dialog_id, AccessRights::Read)) {
@@ -2328,7 +2328,7 @@ void StoryManager::get_story_archive(DialogId owner_dialog_id, StoryId from_stor
   if (from_story_id != StoryId() && !from_story_id.is_server()) {
     return promise.set_error(Status::Error(400, "Invalid value of parameter from_story_id specified"));
   }
-  if (!td_->messages_manager_->have_dialog_force(owner_dialog_id, "get_story_archive")) {
+  if (!td_->dialog_manager_->have_dialog_force(owner_dialog_id, "get_story_archive")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
   if (!can_edit_stories(owner_dialog_id)) {
@@ -2360,7 +2360,7 @@ void StoryManager::on_get_story_archive(DialogId owner_dialog_id,
 void StoryManager::get_dialog_expiring_stories(DialogId owner_dialog_id,
                                                Promise<td_api::object_ptr<td_api::chatActiveStories>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
-  if (!td_->messages_manager_->have_dialog_force(owner_dialog_id, "get_dialog_expiring_stories")) {
+  if (!td_->dialog_manager_->have_dialog_force(owner_dialog_id, "get_dialog_expiring_stories")) {
     return promise.set_error(Status::Error(400, "Story sender not found"));
   }
   if (!td_->dialog_manager_->have_input_peer(owner_dialog_id, AccessRights::Read)) {
@@ -2480,7 +2480,7 @@ void StoryManager::on_get_dialog_expiring_stories(DialogId owner_dialog_id,
 }
 
 void StoryManager::open_story(DialogId owner_dialog_id, StoryId story_id, Promise<Unit> &&promise) {
-  if (!td_->messages_manager_->have_dialog_force(owner_dialog_id, "open_story")) {
+  if (!td_->dialog_manager_->have_dialog_force(owner_dialog_id, "open_story")) {
     return promise.set_error(Status::Error(400, "Story sender not found"));
   }
   if (!td_->dialog_manager_->have_input_peer(owner_dialog_id, AccessRights::Read)) {
@@ -2543,7 +2543,7 @@ void StoryManager::open_story(DialogId owner_dialog_id, StoryId story_id, Promis
 }
 
 void StoryManager::close_story(DialogId owner_dialog_id, StoryId story_id, Promise<Unit> &&promise) {
-  if (!td_->messages_manager_->have_dialog_force(owner_dialog_id, "close_story")) {
+  if (!td_->dialog_manager_->have_dialog_force(owner_dialog_id, "close_story")) {
     return promise.set_error(Status::Error(400, "Story sender not found"));
   }
   if (!td_->dialog_manager_->have_input_peer(owner_dialog_id, AccessRights::Read)) {
@@ -2655,7 +2655,7 @@ void StoryManager::on_story_chosen_reaction_changed(StoryFullId story_full_id, S
 void StoryManager::set_story_reaction(StoryFullId story_full_id, ReactionType reaction_type, bool add_to_recent,
                                       Promise<Unit> &&promise) {
   auto owner_dialog_id = story_full_id.get_dialog_id();
-  if (!td_->messages_manager_->have_dialog_force(owner_dialog_id, "set_story_reaction")) {
+  if (!td_->dialog_manager_->have_dialog_force(owner_dialog_id, "set_story_reaction")) {
     return promise.set_error(Status::Error(400, "Story sender not found"));
   }
   if (!td_->dialog_manager_->have_input_peer(owner_dialog_id, AccessRights::Read)) {
@@ -4474,7 +4474,7 @@ void StoryManager::on_reload_story(StoryFullId story_full_id, Result<Unit> &&res
 
 void StoryManager::get_story(DialogId owner_dialog_id, StoryId story_id, bool only_local,
                              Promise<td_api::object_ptr<td_api::story>> &&promise) {
-  if (!td_->messages_manager_->have_dialog_force(owner_dialog_id, "get_story")) {
+  if (!td_->dialog_manager_->have_dialog_force(owner_dialog_id, "get_story")) {
     return promise.set_error(Status::Error(400, "Story sender not found"));
   }
   if (!td_->dialog_manager_->have_input_peer(owner_dialog_id, AccessRights::Read)) {
@@ -4658,7 +4658,7 @@ void StoryManager::save_channels_to_send_stories() {
 
 void StoryManager::can_send_story(DialogId dialog_id,
                                   Promise<td_api::object_ptr<td_api::CanSendStoryResult>> &&promise) {
-  if (!td_->messages_manager_->have_dialog_force(dialog_id, "can_send_story")) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "can_send_story")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
   if (!can_post_stories(dialog_id)) {
@@ -4673,7 +4673,7 @@ void StoryManager::send_story(DialogId dialog_id, td_api::object_ptr<td_api::Inp
                               td_api::object_ptr<td_api::StoryPrivacySettings> &&settings, int32 active_period,
                               td_api::object_ptr<td_api::storyFullId> &&from_story_full_id, bool is_pinned,
                               bool protect_content, Promise<td_api::object_ptr<td_api::story>> &&promise) {
-  if (!td_->messages_manager_->have_dialog_force(dialog_id, "send_story")) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "send_story")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
   if (!can_post_stories(dialog_id)) {
@@ -5412,7 +5412,7 @@ void StoryManager::on_binlog_events(vector<BinlogEvent> &&events) {
         log_event_parse(log_event, event.get_data()).ensure();
 
         auto owner_dialog_id = log_event.story_full_id_.get_dialog_id();
-        td_->messages_manager_->have_dialog_force(owner_dialog_id, "DeleteStoryOnServerLogEvent");
+        td_->dialog_manager_->have_dialog_force(owner_dialog_id, "DeleteStoryOnServerLogEvent");
         delete_story_on_server(log_event.story_full_id_, event.id_, Auto());
         break;
       }
@@ -5421,7 +5421,7 @@ void StoryManager::on_binlog_events(vector<BinlogEvent> &&events) {
         log_event_parse(log_event, event.get_data()).ensure();
 
         auto owner_dialog_id = log_event.dialog_id_;
-        if (!td_->messages_manager_->have_dialog_force(owner_dialog_id, "ReadStoriesOnServerLogEvent")) {
+        if (!td_->dialog_manager_->have_dialog_force(owner_dialog_id, "ReadStoriesOnServerLogEvent")) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
@@ -5443,7 +5443,7 @@ void StoryManager::on_binlog_events(vector<BinlogEvent> &&events) {
         log_event_parse(log_event, event.get_data()).ensure();
 
         auto owner_dialog_id = log_event.dialog_id_;
-        if (!td_->messages_manager_->have_dialog_force(owner_dialog_id, "LoadDialogExpiringStoriesLogEvent")) {
+        if (!td_->dialog_manager_->have_dialog_force(owner_dialog_id, "LoadDialogExpiringStoriesLogEvent")) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
