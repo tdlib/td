@@ -5986,7 +5986,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
           LOG(ERROR) << "Receive " << actual_story_id << " instead of " << story_id;
         }
       }
-      td->messages_manager_->force_create_dialog(dialog_id, "messageMediaStory", true);
+      td->dialog_manager_->force_create_dialog(dialog_id, "messageMediaStory", true);
       return make_unique<MessageStory>(story_full_id, media->via_mention_);
     }
     case telegram_api::messageMediaGiveaway::ID: {
@@ -5996,7 +5996,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
         ChannelId channel_id(channel);
         if (channel_id.is_valid()) {
           channel_ids.push_back(channel_id);
-          td->messages_manager_->force_create_dialog(DialogId(channel_id), "messageMediaGiveaway", true);
+          td->dialog_manager_->force_create_dialog(DialogId(channel_id), "messageMediaGiveaway", true);
         }
       }
       if (channel_ids.empty() || media->quantity_ <= 0 || media->months_ <= 0 || media->until_date_ < 0) {
@@ -6022,7 +6022,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
         LOG(ERROR) << "Receive " << to_string(media);
         break;
       }
-      td->messages_manager_->force_create_dialog(DialogId(boosted_channel_id), "messageMediaGiveawayResults", true);
+      td->dialog_manager_->force_create_dialog(DialogId(boosted_channel_id), "messageMediaGiveawayResults", true);
       vector<UserId> winner_user_ids;
       for (auto winner : media->winners_) {
         UserId winner_user_id(winner);
@@ -6706,7 +6706,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
           break;
         }
         if (dialog_id.get_type() != DialogType::User) {
-          td->messages_manager_->force_create_dialog(dialog_id, "messageActionGiftCode", true);
+          td->dialog_manager_->force_create_dialog(dialog_id, "messageActionGiftCode", true);
         }
       }
       return td::make_unique<MessageGiftCode>(dialog_id, action->months_, std::move(action->currency_), action->amount_,

@@ -7,6 +7,7 @@
 #include "td/telegram/StoryForwardInfo.h"
 
 #include "td/telegram/Dependencies.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
 
@@ -25,7 +26,7 @@ StoryForwardInfo::StoryForwardInfo(Td *td, telegram_api::object_ptr<telegram_api
       dialog_id_ = {};
       story_id_ = {};
     } else {
-      td->messages_manager_->force_create_dialog(dialog_id_, "StoryForwardInfo", true);
+      td->dialog_manager_->force_create_dialog(dialog_id_, "StoryForwardInfo", true);
     }
   } else if ((fwd_header->flags_ & telegram_api::storyFwdHeader::FROM_NAME_MASK) != 0) {
     if (fwd_header->story_id_ != 0) {

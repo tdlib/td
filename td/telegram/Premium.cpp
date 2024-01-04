@@ -339,7 +339,7 @@ class CheckGiftCodeQuery final : public Td::ResultHandler {
         return on_error(Status::Error(500, "Receive invalid response"));
       }
       if (creator_dialog_id.get_type() != DialogType::User) {
-        td_->messages_manager_->force_create_dialog(creator_dialog_id, "CheckGiftCodeQuery", true);
+        td_->dialog_manager_->force_create_dialog(creator_dialog_id, "CheckGiftCodeQuery", true);
       }
     }
     UserId user_id(result->to_id_);
@@ -468,7 +468,7 @@ class GetGiveawayInfoQuery final : public Td::ResultHandler {
               LOG(ERROR) << "Receive " << to_string(info);
             } else {
               DialogId dialog_id(channel_id);
-              td_->messages_manager_->force_create_dialog(dialog_id, "GetGiveawayInfoQuery");
+              td_->dialog_manager_->force_create_dialog(dialog_id, "GetGiveawayInfoQuery");
               return td_api::make_object<td_api::premiumGiveawayParticipantStatusAdministrator>(
                   td_->messages_manager_->get_chat_id_object(dialog_id,
                                                              "premiumGiveawayParticipantStatusAdministrator"));

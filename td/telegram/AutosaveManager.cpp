@@ -417,7 +417,7 @@ void AutosaveManager::on_get_autosave_settings(
     if (!dialog_id.is_valid()) {
       continue;
     }
-    td_->messages_manager_->force_create_dialog(dialog_id, "on_get_autosave_settings");
+    td_->dialog_manager_->force_create_dialog(dialog_id, "on_get_autosave_settings");
     DialogAutosaveSettings new_settings(exception->settings_.get());
     auto &current_settings = settings_.exceptions_[dialog_id];
     if (current_settings != new_settings) {

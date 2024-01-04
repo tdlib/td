@@ -53,6 +53,9 @@ class DialogManager final : public Actor {
 
   bool have_dialog_force(DialogId dialog_id, const char *source) const;
 
+  void force_create_dialog(DialogId dialog_id, const char *source, bool expect_no_access = false,
+                           bool force_update_dialog_pos = false);
+
   bool have_dialog_info(DialogId dialog_id) const;
 
   bool have_dialog_info_force(DialogId dialog_id, const char *source) const;

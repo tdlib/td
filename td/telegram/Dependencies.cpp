@@ -8,7 +8,6 @@
 
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogManager.h"
-#include "td/telegram/MessagesManager.h"
 #include "td/telegram/StoryManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/WebPagesManager.h"
@@ -133,7 +132,7 @@ bool Dependencies::resolve_force(Td *td, const char *source, bool ignore_errors)
       if (!ignore_errors) {
         LOG(ERROR) << "Can't find " << dialog_id << " from " << source;
       }
-      td->messages_manager_->force_create_dialog(dialog_id, source, true);
+      td->dialog_manager_->force_create_dialog(dialog_id, source, true);
       success = false;
     }
   }

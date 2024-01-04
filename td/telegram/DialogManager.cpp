@@ -163,6 +163,11 @@ bool DialogManager::have_dialog_force(DialogId dialog_id, const char *source) co
   return td_->messages_manager_->have_dialog_force(dialog_id, source);
 }
 
+void DialogManager::force_create_dialog(DialogId dialog_id, const char *source, bool expect_no_access,
+                                        bool force_update_dialog_pos) {
+  return td_->messages_manager_->force_create_dialog(dialog_id, source, expect_no_access, force_update_dialog_pos);
+}
+
 bool DialogManager::have_dialog_info(DialogId dialog_id) const {
   switch (dialog_id.get_type()) {
     case DialogType::User: {

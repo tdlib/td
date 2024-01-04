@@ -9,6 +9,7 @@
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/ServerMessageId.h"
@@ -70,7 +71,7 @@ Result<MessageOrigin> MessageOrigin::get_message_origin(
       LOG(ERROR) << "Receive forward from " << (td->contacts_manager_->have_min_channel(channel_id) ? "min" : "unknown")
                  << ' ' << channel_id;
     }
-    td->messages_manager_->force_create_dialog(sender_dialog_id, "get_message_origin", true);
+    td->dialog_manager_->force_create_dialog(sender_dialog_id, "get_message_origin", true);
     CHECK(!sender_user_id.is_valid());
   }
 

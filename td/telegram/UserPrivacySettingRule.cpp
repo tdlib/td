@@ -147,7 +147,7 @@ void UserPrivacySettingRule::set_dialog_ids_from_server(Td *td, const vector<int
         continue;
       }
     }
-    td->messages_manager_->force_create_dialog(dialog_id, "set_dialog_ids_from_server");
+    td->dialog_manager_->force_create_dialog(dialog_id, "set_dialog_ids_from_server");
     dialog_ids_.push_back(dialog_id);
   }
 }

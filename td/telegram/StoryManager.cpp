@@ -2396,7 +2396,7 @@ void StoryManager::reload_dialog_expiring_stories(DialogId dialog_id) {
   if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
     return;
   }
-  td_->messages_manager_->force_create_dialog(dialog_id, "reload_dialog_expiring_stories");
+  td_->dialog_manager_->force_create_dialog(dialog_id, "reload_dialog_expiring_stories");
   load_dialog_expiring_stories(dialog_id, 0, "reload_dialog_expiring_stories");
 }
 
@@ -3336,7 +3336,7 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
     return StoryId();
   }
 
-  td_->messages_manager_->force_create_dialog(owner_dialog_id, "on_get_new_story");
+  td_->dialog_manager_->force_create_dialog(owner_dialog_id, "on_get_new_story");
 
   StoryId old_story_id;
   auto updates_story_ids_it = update_story_ids_.find(story_full_id);
@@ -3499,7 +3499,7 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
   Dependencies dependencies;
   add_story_dependencies(dependencies, story);
   for (auto dependent_dialog_id : dependencies.get_dialog_ids()) {
-    td_->messages_manager_->force_create_dialog(dependent_dialog_id, "on_get_new_story", true);
+    td_->dialog_manager_->force_create_dialog(dependent_dialog_id, "on_get_new_story", true);
   }
 
   on_story_changed(story_full_id, story, is_changed, need_save_to_database);
@@ -3567,7 +3567,7 @@ StoryId StoryManager::on_get_story_info(DialogId owner_dialog_id, StoryInfo &&st
     return StoryId();
   }
 
-  td_->messages_manager_->force_create_dialog(owner_dialog_id, "on_get_skipped_story");
+  td_->dialog_manager_->force_create_dialog(owner_dialog_id, "on_get_skipped_story");
 
   StoryFullId story_full_id{owner_dialog_id, story_id};
   Story *story = get_story_editable(story_full_id);
@@ -4636,7 +4636,7 @@ void StoryManager::on_get_dialogs_to_send_stories(vector<tl_object_ptr<telegram_
   }
   channels_to_send_stories_.clear();
   for (auto channel_id : channel_ids) {
-    td_->messages_manager_->force_create_dialog(DialogId(channel_id), "on_get_dialogs_to_send_stories");
+    td_->dialog_manager_->force_create_dialog(DialogId(channel_id), "on_get_dialogs_to_send_stories");
     if (td_->contacts_manager_->get_channel_status(channel_id).can_post_stories()) {
       channels_to_send_stories_.push_back(channel_id);
     }
@@ -4725,7 +4725,7 @@ void StoryManager::send_story(DialogId dialog_id, td_api::object_ptr<td_api::Inp
     caption.entities.clear();
   }
 
-  td_->messages_manager_->force_create_dialog(dialog_id, "send_story");
+  td_->dialog_manager_->force_create_dialog(dialog_id, "send_story");
 
   auto story = make_unique<Story>();
   story->date_ = G()->unix_time();

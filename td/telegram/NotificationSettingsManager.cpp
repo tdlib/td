@@ -274,7 +274,7 @@ class GetNotifySettingsExceptionsQuery final : public Td::ResultHandler {
     td_->contacts_manager_->on_get_users(std::move(users), "GetNotifySettingsExceptionsQuery");
     td_->contacts_manager_->on_get_chats(std::move(chats), "GetNotifySettingsExceptionsQuery");
     for (auto &dialog_id : dialog_ids) {
-      td_->messages_manager_->force_create_dialog(dialog_id, "GetNotifySettingsExceptionsQuery");
+      td_->dialog_manager_->force_create_dialog(dialog_id, "GetNotifySettingsExceptionsQuery");
     }
     td_->updates_manager_->on_get_updates(std::move(updates_ptr), std::move(promise_));
   }
@@ -329,7 +329,7 @@ class GetStoryNotifySettingsExceptionsQuery final : public Td::ResultHandler {
     td_->contacts_manager_->on_get_users(std::move(users), "GetStoryNotifySettingsExceptionsQuery");
     td_->contacts_manager_->on_get_chats(std::move(chats), "GetStoryNotifySettingsExceptionsQuery");
     for (auto &dialog_id : dialog_ids) {
-      td_->messages_manager_->force_create_dialog(dialog_id, "GetStoryNotifySettingsExceptionsQuery");
+      td_->dialog_manager_->force_create_dialog(dialog_id, "GetStoryNotifySettingsExceptionsQuery");
     }
     auto chat_ids = td_->messages_manager_->get_chats_object(-1, dialog_ids, "GetStoryNotifySettingsExceptionsQuery");
     auto promise = PromiseCreator::lambda([promise = std::move(promise_), chat_ids = std::move(chat_ids)](

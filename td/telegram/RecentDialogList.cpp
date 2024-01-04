@@ -144,7 +144,7 @@ void RecentDialogList::on_load_dialogs(vector<string> &&found_dialogs) {
     if (dialog_id.is_valid() && removed_dialog_ids_.count(dialog_id) == 0 &&
         td_->dialog_manager_->have_dialog_info(dialog_id) &&
         td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
-      td_->messages_manager_->force_create_dialog(dialog_id, "recent dialog");
+      td_->dialog_manager_->force_create_dialog(dialog_id, "recent dialog");
       do_add_dialog(dialog_id);
     }
   }

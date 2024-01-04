@@ -89,7 +89,7 @@ static td_api::object_ptr<td_api::chatBoostSlots> get_chat_boost_slots_object(
       }
     }
     if (dialog_id.is_valid()) {
-      td->messages_manager_->force_create_dialog(dialog_id, "GetMyBoostsQuery", true);
+      td->dialog_manager_->force_create_dialog(dialog_id, "GetMyBoostsQuery", true);
     } else {
       start_date = 0;
       cooldown_until_date = 0;
@@ -492,7 +492,7 @@ void BoostManager::on_update_dialog_boost(DialogId dialog_id, telegram_api::obje
     LOG(ERROR) << "Receive wrong updateBotChatBoost in " << dialog_id << ": " << to_string(boost);
     return;
   }
-  td_->messages_manager_->force_create_dialog(dialog_id, "on_update_dialog_boost", true);
+  td_->dialog_manager_->force_create_dialog(dialog_id, "on_update_dialog_boost", true);
   send_closure(
       G()->td(), &Td::send_update,
       td_api::make_object<td_api::updateChatBoost>(

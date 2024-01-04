@@ -3029,7 +3029,7 @@ void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&up
           break;
         }
 
-        td_->messages_manager_->force_create_dialog(dialog_id, "on_update_bot_message_reaction", true);
+        td_->dialog_manager_->force_create_dialog(dialog_id, "on_update_bot_message_reaction", true);
         send_closure(G()->td(), &Td::send_update,
                      td_api::make_object<td_api::updateMessageReaction>(
                          td_->messages_manager_->get_chat_id_object(dialog_id, "updateMessageReaction"),
@@ -3058,7 +3058,7 @@ void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&up
           message_reactions.push_back(td_api::make_object<td_api::messageReaction>(
               reaction_type.get_reaction_type_object(), reaction_count->count_, false, nullptr, Auto()));
         }
-        td_->messages_manager_->force_create_dialog(dialog_id, "on_update_bot_message_reactions", true);
+        td_->dialog_manager_->force_create_dialog(dialog_id, "on_update_bot_message_reactions", true);
         send_closure(G()->td(), &Td::send_update,
                      td_api::make_object<td_api::updateMessageReactions>(
                          td_->messages_manager_->get_chat_id_object(dialog_id, "updateMessageReactions"),

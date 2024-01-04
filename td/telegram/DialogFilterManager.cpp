@@ -945,7 +945,7 @@ void DialogFilterManager::load_dialog_filter(const DialogFilter *dialog_filter, 
     if (!td_->dialog_manager_->have_dialog_force(dialog_id, "load_dialog_filter")) {
       if (dialog_id.get_type() == DialogType::SecretChat) {
         if (td_->dialog_manager_->have_dialog_info_force(dialog_id, "load_dialog_filter")) {
-          td_->messages_manager_->force_create_dialog(dialog_id, "load_dialog_filter");
+          td_->dialog_manager_->force_create_dialog(dialog_id, "load_dialog_filter");
         }
       } else {
         input_dialog_ids.push_back(input_dialog_id);

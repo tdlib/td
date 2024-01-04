@@ -233,14 +233,14 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
     case telegram_api::channelAdminLogEventActionChangeLinkedChat::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeLinkedChat>(action_ptr);
 
-      auto get_dialog_from_channel_id = [messages_manager = td->messages_manager_.get()](int64 channel_id_int) {
+      auto get_dialog_from_channel_id = [dialog_manager = td->dialog_manager_.get()](int64 channel_id_int) {
         ChannelId channel_id(channel_id_int);
         if (!channel_id.is_valid()) {
           return DialogId();
         }
 
         DialogId dialog_id(channel_id);
-        messages_manager->force_create_dialog(dialog_id, "get_dialog_from_channel_id");
+        dialog_manager->force_create_dialog(dialog_id, "get_dialog_from_channel_id");
         return dialog_id;
       };
 

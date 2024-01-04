@@ -6,6 +6,7 @@
 //
 #include "td/telegram/DialogFilterInviteLink.h"
 
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/LinkManager.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
@@ -23,7 +24,7 @@ DialogFilterInviteLink::DialogFilterInviteLink(
   for (const auto &peer : exported_invite->peers_) {
     DialogId dialog_id(peer);
     if (dialog_id.is_valid()) {
-      td->messages_manager_->force_create_dialog(dialog_id, "DialogFilterInviteLink");
+      td->dialog_manager_->force_create_dialog(dialog_id, "DialogFilterInviteLink");
       dialog_ids_.push_back(dialog_id);
     }
   }

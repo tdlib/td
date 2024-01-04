@@ -397,7 +397,7 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
             LOG(ERROR) << "Receive invalid channel post in " << to_string(sponsored_message);
             server_message_id = ServerMessageId();
           }
-          td_->messages_manager_->force_create_dialog(sponsor_dialog_id, "on_get_dialog_sponsored_messages");
+          td_->dialog_manager_->force_create_dialog(sponsor_dialog_id, "on_get_dialog_sponsored_messages");
         } else if (sponsored_message->chat_invite_ != nullptr && !sponsored_message->chat_invite_hash_.empty()) {
           auto invite_link = LinkManager::get_dialog_invite_link(sponsored_message->chat_invite_hash_, false);
           if (invite_link.empty()) {

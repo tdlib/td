@@ -44,7 +44,7 @@ td_api::object_ptr<td_api::MessageSender> get_message_sender_object(Td *td, User
                                                                     const char *source) {
   if (dialog_id.is_valid() && !td->messages_manager_->have_dialog(dialog_id)) {
     LOG(ERROR) << "Failed to find " << dialog_id << " from " << source;
-    td->messages_manager_->force_create_dialog(dialog_id, source);
+    td->dialog_manager_->force_create_dialog(dialog_id, source);
   }
   if (!user_id.is_valid() && td->auth_manager_->is_bot()) {
     td->contacts_manager_->add_anonymous_bot_user();
@@ -74,7 +74,7 @@ td_api::object_ptr<td_api::MessageSender> get_min_message_sender_object(Td *td, 
         (td->dialog_manager_->have_dialog_info(dialog_id) ||
          (dialog_type == DialogType::Channel && td->contacts_manager_->have_min_channel(dialog_id.get_channel_id())))) {
       LOG(INFO) << "Force creation of " << dialog_id;
-      td->messages_manager_->force_create_dialog(dialog_id, source, true);
+      td->dialog_manager_->force_create_dialog(dialog_id, source, true);
     }
     if (td->messages_manager_->have_dialog(dialog_id)) {
       return td_api::make_object<td_api::messageSenderChat>(
@@ -104,7 +104,7 @@ vector<DialogId> get_message_sender_dialog_ids(Td *td,
       if (!td->dialog_manager_->have_dialog_info(dialog_id)) {
         continue;
       }
-      td->messages_manager_->force_create_dialog(dialog_id, "get_message_sender_dialog_ids");
+      td->dialog_manager_->force_create_dialog(dialog_id, "get_message_sender_dialog_ids");
       if (!td->messages_manager_->have_dialog(dialog_id)) {
         continue;
       }

@@ -7,6 +7,7 @@
 #include "td/telegram/StoryViewer.h"
 
 #include "td/telegram/BlockListId.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/StoryManager.h"
@@ -89,7 +90,7 @@ StoryViewer::StoryViewer(Td *td, telegram_api::object_ptr<telegram_api::StoryRea
         break;
       }
       if (actor_dialog_id.get_type() != DialogType::User) {
-        td->messages_manager_->force_create_dialog(actor_dialog_id, "StoryViewer", true);
+        td->dialog_manager_->force_create_dialog(actor_dialog_id, "StoryViewer", true);
       }
 
       type_ = Type::View;

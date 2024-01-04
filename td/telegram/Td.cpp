@@ -1700,7 +1700,7 @@ class CreateNewSecretChatRequest final : public RequestActor<SecretChatId> {
         secret_chat_id_, 0 /* no access_hash */, user_id_, SecretChatState::Unknown, true /* it is outbound chat */,
         -1 /* unknown TTL */, 0 /* unknown creation date */, "" /* no key_hash */, 0, FolderId());
     DialogId dialog_id(secret_chat_id_);
-    td_->messages_manager_->force_create_dialog(dialog_id, "create new secret chat", true);
+    td_->dialog_manager_->force_create_dialog(dialog_id, "create new secret chat", true);
     send_result(td_->messages_manager_->get_chat_object(dialog_id));
   }
 
@@ -1808,7 +1808,7 @@ class JoinChatByInviteLinkRequest final : public RequestActor<DialogId> {
 
   void do_send_result() final {
     CHECK(dialog_id_.is_valid());
-    td_->messages_manager_->force_create_dialog(dialog_id_, "join chat via an invite link");
+    td_->dialog_manager_->force_create_dialog(dialog_id_, "join chat via an invite link");
     send_result(td_->messages_manager_->get_chat_object(dialog_id_));
   }
 

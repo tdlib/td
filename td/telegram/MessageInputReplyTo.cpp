@@ -40,7 +40,7 @@ MessageInputReplyTo::MessageInputReplyTo(Td *td,
       auto story_id = StoryId(reply_to->story_id_);
       if (user_id.is_valid() && story_id.is_valid()) {
         DialogId dialog_id(user_id);
-        td->messages_manager_->force_create_dialog(dialog_id, "MessageInputReplyTo", true);
+        td->dialog_manager_->force_create_dialog(dialog_id, "MessageInputReplyTo", true);
         story_full_id_ = {dialog_id, story_id};
       }
       break;
@@ -57,7 +57,7 @@ MessageInputReplyTo::MessageInputReplyTo(Td *td,
         if (!dialog_id.is_valid() || !td->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
           return;
         }
-        td->messages_manager_->force_create_dialog(dialog_id, "inputReplyToMessage");
+        td->dialog_manager_->force_create_dialog(dialog_id, "inputReplyToMessage");
       }
       message_id_ = message_id;
       dialog_id_ = dialog_id;

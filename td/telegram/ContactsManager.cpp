@@ -7659,7 +7659,7 @@ int32 ContactsManager::on_update_peer_located(vector<tl_object_ptr<telegram_api:
       continue;
     }
 
-    td_->messages_manager_->force_create_dialog(dialog_id, "on_update_peer_located");
+    td_->dialog_manager_->force_create_dialog(dialog_id, "on_update_peer_located");
 
     if (from_update) {
       CHECK(dialog_type == DialogType::User);
@@ -8987,7 +8987,7 @@ void ContactsManager::delete_dialog(DialogId dialog_id, Promise<Unit> &&promise)
 
 void ContactsManager::send_update_add_chat_members_privacy_forbidden(DialogId dialog_id, vector<UserId> user_ids,
                                                                      const char *source) {
-  td_->messages_manager_->force_create_dialog(dialog_id, "send_update_add_chat_members_privacy_forbidden");
+  td_->dialog_manager_->force_create_dialog(dialog_id, "send_update_add_chat_members_privacy_forbidden");
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateAddChatMembersPrivacyForbidden>(
                    td_->messages_manager_->get_chat_id_object(dialog_id, "updateAddChatMembersPrivacyForbidden"),
@@ -10137,7 +10137,7 @@ void ContactsManager::on_get_channel_recommendations(
   }
   for (auto recommended_channel_id : channel_ids) {
     auto recommended_dialog_id = DialogId(recommended_channel_id);
-    td_->messages_manager_->force_create_dialog(recommended_dialog_id, "on_get_channel_recommendations");
+    td_->dialog_manager_->force_create_dialog(recommended_dialog_id, "on_get_channel_recommendations");
     if (is_suitable_recommended_channel(recommended_channel_id)) {
       dialog_ids.push_back(recommended_dialog_id);
     } else {
@@ -10323,7 +10323,7 @@ void ContactsManager::on_get_created_public_channels(PublicDialogType type,
   }
   created_public_channels_[index].clear();
   for (auto channel_id : channel_ids) {
-    td_->messages_manager_->force_create_dialog(DialogId(channel_id), "on_get_created_public_channels");
+    td_->dialog_manager_->force_create_dialog(DialogId(channel_id), "on_get_created_public_channels");
     if (is_suitable_created_public_channel(type, get_channel(channel_id))) {
       created_public_channels_[index].push_back(channel_id);
     }
@@ -10370,7 +10370,7 @@ vector<DialogId> ContactsManager::get_dialogs_for_discussion(Promise<Unit> &&pro
   if (dialogs_for_discussion_inited_) {
     promise.set_value(Unit());
     return transform(dialogs_for_discussion_, [&](DialogId dialog_id) {
-      td_->messages_manager_->force_create_dialog(dialog_id, "get_dialogs_for_discussion");
+      td_->dialog_manager_->force_create_dialog(dialog_id, "get_dialogs_for_discussion");
       return dialog_id;
     });
   }
@@ -13303,8 +13303,7 @@ void ContactsManager::update_channel_full(ChannelFull *channel_full, ChannelId c
   }
   if (channel_full->need_send_update) {
     if (channel_full->linked_channel_id.is_valid()) {
-      td_->messages_manager_->force_create_dialog(DialogId(channel_full->linked_channel_id), "update_channel_full",
-                                                  true);
+      td_->dialog_manager_->force_create_dialog(DialogId(channel_full->linked_channel_id), "update_channel_full", true);
     }
 
     {
@@ -15329,7 +15328,7 @@ tl_object_ptr<td_api::chatMember> ContactsManager::get_chat_member_object(const 
   if (dialog_id.get_type() == DialogType::User) {
     participant_user_id = dialog_id.get_user_id();
   } else {
-    td_->messages_manager_->force_create_dialog(dialog_id, source, true);
+    td_->dialog_manager_->force_create_dialog(dialog_id, source, true);
   }
   return td_api::make_object<td_api::chatMember>(
       get_message_sender_object_const(td_, dialog_id, source),
@@ -17566,7 +17565,7 @@ void ContactsManager::send_update_chat_member(DialogId dialog_id, UserId agent_u
                                               const DialogParticipant &old_dialog_participant,
                                               const DialogParticipant &new_dialog_participant) {
   CHECK(td_->auth_manager_->is_bot());
-  td_->messages_manager_->force_create_dialog(dialog_id, "send_update_chat_member", true);
+  td_->dialog_manager_->force_create_dialog(dialog_id, "send_update_chat_member", true);
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateChatMember>(
                    td_->messages_manager_->get_chat_id_object(dialog_id, "updateChatMember"),
@@ -17718,8 +17717,8 @@ void ContactsManager::on_update_chat_invite_requester(DialogId dialog_id, UserId
     return;
   }
   DialogId user_dialog_id(user_id);
-  td_->messages_manager_->force_create_dialog(dialog_id, "on_update_chat_invite_requester", true);
-  td_->messages_manager_->force_create_dialog(user_dialog_id, "on_update_chat_invite_requester");
+  td_->dialog_manager_->force_create_dialog(dialog_id, "on_update_chat_invite_requester", true);
+  td_->dialog_manager_->force_create_dialog(user_dialog_id, "on_update_chat_invite_requester");
 
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateNewChatJoinRequest>(
@@ -20692,7 +20691,7 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
   }
 
   if (dialog_id.is_valid()) {
-    td_->messages_manager_->force_create_dialog(dialog_id, "get_chat_invite_link_info_object");
+    td_->dialog_manager_->force_create_dialog(dialog_id, "get_chat_invite_link_info_object");
   }
   int32 accessible_for = 0;
   if (dialog_id.is_valid() && !is_member) {

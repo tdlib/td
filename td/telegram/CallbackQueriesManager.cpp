@@ -190,7 +190,7 @@ void CallbackQueriesManager::on_new_query(int32 flags, int64 callback_query_id, 
     return;
   }
 
-  td_->messages_manager_->force_create_dialog(dialog_id, "on_new_callback_query", true);
+  td_->dialog_manager_->force_create_dialog(dialog_id, "on_new_callback_query", true);
   send_closure(
       G()->td(), &Td::send_update,
       td_api::make_object<td_api::updateNewCallbackQuery>(
