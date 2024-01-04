@@ -531,9 +531,6 @@ class MessagesManager final : public Actor {
                                       td_api::object_ptr<td_api::ChatAvailableReactions> &&available_reactions_ptr,
                                       Promise<Unit> &&promise);
 
-  void set_dialog_permissions(DialogId dialog_id, const td_api::object_ptr<td_api::chatPermissions> &permissions,
-                              Promise<Unit> &&promise);
-
   void toggle_dialog_has_protected_content(DialogId dialog_id, bool has_protected_content, Promise<Unit> &&promise);
 
   void set_dialog_theme(DialogId dialog_id, const string &theme_name, Promise<Unit> &&promise);

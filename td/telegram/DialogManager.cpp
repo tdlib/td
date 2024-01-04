@@ -81,6 +81,46 @@ class EditDialogTitleQuery final : public Td::ResultHandler {
   }
 };
 
+class EditChatDefaultBannedRightsQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit EditChatDefaultBannedRightsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, RestrictedRights permissions) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    CHECK(input_peer != nullptr);
+    send_query(G()->net_query_creator().create(telegram_api::messages_editChatDefaultBannedRights(
+        std::move(input_peer), permissions.get_chat_banned_rights())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_editChatDefaultBannedRights>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for EditChatDefaultBannedRightsQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    if (status.message() == "CHAT_NOT_MODIFIED") {
+      if (!td_->auth_manager_->is_bot()) {
+        promise_.set_value(Unit());
+        return;
+      }
+    } else {
+      td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "EditChatDefaultBannedRightsQuery");
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 DialogManager::DialogManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 
@@ -794,6 +834,61 @@ void DialogManager::set_dialog_profile_accent_color(DialogId dialog_id, AccentCo
       UNREACHABLE();
   }
   promise.set_error(Status::Error(400, "Can't change profile accent color in the chat"));
+}
+
+void DialogManager::set_dialog_permissions(DialogId dialog_id,
+                                           const td_api::object_ptr<td_api::chatPermissions> &permissions,
+                                           Promise<Unit> &&promise) {
+  if (!have_dialog_force(dialog_id, "set_dialog_permissions")) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+  if (!have_input_peer(dialog_id, AccessRights::Write)) {
+    return promise.set_error(Status::Error(400, "Can't access the chat"));
+  }
+
+  if (permissions == nullptr) {
+    return promise.set_error(Status::Error(400, "New permissions must be non-empty"));
+  }
+
+  ChannelType channel_type = ChannelType::Unknown;
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      return promise.set_error(Status::Error(400, "Can't change private chat permissions"));
+    case DialogType::Chat: {
+      auto chat_id = dialog_id.get_chat_id();
+      auto status = td_->contacts_manager_->get_chat_permissions(chat_id);
+      if (!status.can_restrict_members()) {
+        return promise.set_error(Status::Error(400, "Not enough rights to change chat permissions"));
+      }
+      break;
+    }
+    case DialogType::Channel: {
+      if (is_broadcast_channel(dialog_id)) {
+        return promise.set_error(Status::Error(400, "Can't change channel chat permissions"));
+      }
+      auto status = td_->contacts_manager_->get_channel_permissions(dialog_id.get_channel_id());
+      if (!status.can_restrict_members()) {
+        return promise.set_error(Status::Error(400, "Not enough rights to change chat permissions"));
+      }
+      channel_type = ChannelType::Megagroup;
+      break;
+    }
+    case DialogType::SecretChat:
+      return promise.set_error(Status::Error(400, "Can't change secret chat permissions"));
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+  }
+
+  RestrictedRights new_permissions(permissions, channel_type);
+
+  // TODO this can be wrong if there were previous change permissions requests
+  if (get_dialog_default_permissions(dialog_id) == new_permissions) {
+    return promise.set_value(Unit());
+  }
+
+  // TODO invoke after
+  td_->create_handler<EditChatDefaultBannedRightsQuery>(std::move(promise))->send(dialog_id, new_permissions);
 }
 
 void DialogManager::set_dialog_emoji_status(DialogId dialog_id, const EmojiStatus &emoji_status,

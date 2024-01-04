@@ -126,6 +126,9 @@ class DialogManager final : public Actor {
   void set_dialog_profile_accent_color(DialogId dialog_id, AccentColorId profile_accent_color_id,
                                        CustomEmojiId profile_background_custom_emoji_id, Promise<Unit> &&promise);
 
+  void set_dialog_permissions(DialogId dialog_id, const td_api::object_ptr<td_api::chatPermissions> &permissions,
+                              Promise<Unit> &&promise);
+
   void set_dialog_emoji_status(DialogId dialog_id, const EmojiStatus &emoji_status, Promise<Unit> &&promise);
 
   void set_dialog_description(DialogId dialog_id, const string &description, Promise<Unit> &&promise);
