@@ -1419,7 +1419,7 @@ tl_object_ptr<td_api::webPage> WebPagesManager::get_web_page_object(WebPageId we
       web_page->document_.type == Document::Type::VoiceNote
           ? td_->voice_notes_manager_->get_voice_note_object(web_page->document_.file_id)
           : nullptr,
-      td_->messages_manager_->get_chat_id_object(story_sender_dialog_id, "webPage"), story_id.get(),
+      td_->dialog_manager_->get_chat_id_object(story_sender_dialog_id, "webPage"), story_id.get(),
       instant_view_version);
 }
 

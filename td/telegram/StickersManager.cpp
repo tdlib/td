@@ -6934,7 +6934,7 @@ void StickersManager::send_update_animated_emoji_clicked(MessageFullId message_f
 
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateAnimatedEmojiMessageClicked>(
-                   td_->messages_manager_->get_chat_id_object(dialog_id, "updateAnimatedEmojiMessageClicked"),
+                   td_->dialog_manager_->get_chat_id_object(dialog_id, "updateAnimatedEmojiMessageClicked"),
                    message_full_id.get_message_id().get(), get_sticker_object(sticker_id, false, true)));
 }
 

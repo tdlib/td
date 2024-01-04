@@ -251,8 +251,8 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
         return nullptr;
       }
       return td_api::make_object<td_api::chatEventLinkedChatChanged>(
-          td->messages_manager_->get_chat_id_object(old_linked_dialog_id, "chatEventLinkedChatChanged"),
-          td->messages_manager_->get_chat_id_object(new_linked_dialog_id, "chatEventLinkedChatChanged 2"));
+          td->dialog_manager_->get_chat_id_object(old_linked_dialog_id, "chatEventLinkedChatChanged"),
+          td->dialog_manager_->get_chat_id_object(new_linked_dialog_id, "chatEventLinkedChatChanged 2"));
     }
     case telegram_api::channelAdminLogEventActionChangeLocation::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeLocation>(action_ptr);

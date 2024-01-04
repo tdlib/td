@@ -22,7 +22,7 @@ td_api::object_ptr<td_api::MessageSender> get_message_sender_object_const(Td *td
                                                                           const char *source) {
   if (dialog_id.is_valid() && td->messages_manager_->have_dialog(dialog_id)) {
     return td_api::make_object<td_api::messageSenderChat>(
-        td->messages_manager_->get_chat_id_object(dialog_id, "get_message_sender_object_const"));
+        td->dialog_manager_->get_chat_id_object(dialog_id, "get_message_sender_object_const"));
   }
   if (!user_id.is_valid()) {
     // can happen only if the server sends a message with wrong sender
@@ -78,7 +78,7 @@ td_api::object_ptr<td_api::MessageSender> get_min_message_sender_object(Td *td, 
     }
     if (td->messages_manager_->have_dialog(dialog_id)) {
       return td_api::make_object<td_api::messageSenderChat>(
-          td->messages_manager_->get_chat_id_object(dialog_id, "get_min_message_sender_object"));
+          td->dialog_manager_->get_chat_id_object(dialog_id, "get_min_message_sender_object"));
     }
   }
   LOG(ERROR) << "Can't return unknown " << dialog_id << " from " << source;

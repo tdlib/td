@@ -12,7 +12,6 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
-#include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/Td.h"
@@ -132,12 +131,12 @@ td_api::object_ptr<td_api::premiumGiveawayParameters> GiveawayParameters::get_pr
   for (auto channel_id : additional_channel_ids_) {
     DialogId dialog_id(channel_id);
     td->dialog_manager_->force_create_dialog(dialog_id, "premiumGiveawayParameters", true);
-    chat_ids.push_back(td->messages_manager_->get_chat_id_object(dialog_id, "premiumGiveawayParameters"));
+    chat_ids.push_back(td->dialog_manager_->get_chat_id_object(dialog_id, "premiumGiveawayParameters"));
   }
   DialogId dialog_id(boosted_channel_id_);
   td->dialog_manager_->force_create_dialog(dialog_id, "premiumGiveawayParameters", true);
   return td_api::make_object<td_api::premiumGiveawayParameters>(
-      td->messages_manager_->get_chat_id_object(dialog_id, "premiumGiveawayParameters"), std::move(chat_ids), date_,
+      td->dialog_manager_->get_chat_id_object(dialog_id, "premiumGiveawayParameters"), std::move(chat_ids), date_,
       only_new_subscribers_, winners_are_visible_, vector<string>(country_codes_), prize_description_);
 }
 

@@ -13,7 +13,6 @@
 #include "td/telegram/LinkManager.h"
 #include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageEntity.h"
-#include "td/telegram/MessagesManager.h"
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/Photo.h"
@@ -253,7 +252,7 @@ td_api::object_ptr<td_api::messageSponsor> SponsoredMessageManager::get_message_
                       << sponsored_message.server_message_id.get());
       }
       type = td_api::make_object<td_api::messageSponsorTypePublicChannel>(
-          td_->messages_manager_->get_chat_id_object(sponsored_message.sponsor_dialog_id, "sponsoredMessage"),
+          td_->dialog_manager_->get_chat_id_object(sponsored_message.sponsor_dialog_id, "sponsoredMessage"),
           std::move(link));
       if (sponsored_message.show_dialog_photo) {
         photo = get_chat_photo_info_object(td_->file_manager_.get(),

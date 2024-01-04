@@ -3032,9 +3032,9 @@ void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&up
         td_->dialog_manager_->force_create_dialog(dialog_id, "on_update_bot_message_reaction", true);
         send_closure(G()->td(), &Td::send_update,
                      td_api::make_object<td_api::updateMessageReaction>(
-                         td_->messages_manager_->get_chat_id_object(dialog_id, "updateMessageReaction"),
-                         message_id.get(), get_message_sender_object(td_, actor_dialog_id, "updateMessageReaction"),
-                         date, ReactionType::get_reaction_types_object(old_reaction_types),
+                         td_->dialog_manager_->get_chat_id_object(dialog_id, "updateMessageReaction"), message_id.get(),
+                         get_message_sender_object(td_, actor_dialog_id, "updateMessageReaction"), date,
+                         ReactionType::get_reaction_types_object(old_reaction_types),
                          ReactionType::get_reaction_types_object(new_reaction_types)));
         break;
       }
@@ -3061,7 +3061,7 @@ void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&up
         td_->dialog_manager_->force_create_dialog(dialog_id, "on_update_bot_message_reactions", true);
         send_closure(G()->td(), &Td::send_update,
                      td_api::make_object<td_api::updateMessageReactions>(
-                         td_->messages_manager_->get_chat_id_object(dialog_id, "updateMessageReactions"),
+                         td_->dialog_manager_->get_chat_id_object(dialog_id, "updateMessageReactions"),
                          message_id.get(), date, std::move(message_reactions)));
         break;
       }

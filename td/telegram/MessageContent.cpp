@@ -55,7 +55,6 @@
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageSearchFilter.h"
 #include "td/telegram/MessageSender.h"
-#include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/OrderInfo.h"
@@ -6939,7 +6938,7 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       } else {
         auto invoice_dialog_id = m->invoice_dialog_id.is_valid() ? m->invoice_dialog_id : dialog_id;
         return make_tl_object<td_api::messagePaymentSuccessful>(
-            td->messages_manager_->get_chat_id_object(invoice_dialog_id, "messagePaymentSuccessful"),
+            td->dialog_manager_->get_chat_id_object(invoice_dialog_id, "messagePaymentSuccessful"),
             m->invoice_message_id.get(), m->currency, m->total_amount, m->is_recurring, m->is_first_recurring,
             m->invoice_payload);
       }
@@ -7074,7 +7073,7 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       if (td->auth_manager_->is_bot()) {
         chat_id = m->shared_dialog_ids[0].get();
       } else {
-        chat_id = td->messages_manager_->get_chat_id_object(m->shared_dialog_ids[0], "messageChatShared");
+        chat_id = td->dialog_manager_->get_chat_id_object(m->shared_dialog_ids[0], "messageChatShared");
       }
       return make_tl_object<td_api::messageChatShared>(chat_id, m->button_id);
     }
@@ -7091,7 +7090,7 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     case MessageContentType::Story: {
       const auto *m = static_cast<const MessageStory *>(content);
       return td_api::make_object<td_api::messageStory>(
-          td->messages_manager_->get_chat_id_object(m->story_full_id.get_dialog_id(), "messageStory"),
+          td->dialog_manager_->get_chat_id_object(m->story_full_id.get_dialog_id(), "messageStory"),
           m->story_full_id.get_story_id().get(), m->via_mention);
     }
     case MessageContentType::WriteAccessAllowedByRequest:
@@ -7122,7 +7121,7 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     case MessageContentType::GiveawayWinners: {
       const auto *m = static_cast<const MessageGiveawayWinners *>(content);
       return td_api::make_object<td_api::messagePremiumGiveawayWinners>(
-          td->messages_manager_->get_chat_id_object(DialogId(m->boosted_channel_id), "messagePremiumGiveawayWinners"),
+          td->dialog_manager_->get_chat_id_object(DialogId(m->boosted_channel_id), "messagePremiumGiveawayWinners"),
           m->giveaway_message_id.get(), m->additional_dialog_count, m->winners_selection_date, m->only_new_subscribers,
           m->was_refunded, m->month_count, m->prize_description, m->winner_count,
           td->contacts_manager_->get_user_ids_object(m->winner_user_ids, "messagePremiumGiveawayWinners"),

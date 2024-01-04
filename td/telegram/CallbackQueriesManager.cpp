@@ -195,7 +195,7 @@ void CallbackQueriesManager::on_new_query(int32 flags, int64 callback_query_id, 
       G()->td(), &Td::send_update,
       td_api::make_object<td_api::updateNewCallbackQuery>(
           callback_query_id, td_->contacts_manager_->get_user_id_object(sender_user_id, "updateNewCallbackQuery"),
-          td_->messages_manager_->get_chat_id_object(dialog_id, "updateNewCallbackQuery"), message_id.get(),
+          td_->dialog_manager_->get_chat_id_object(dialog_id, "updateNewCallbackQuery"), message_id.get(),
           chat_instance, std::move(payload)));
 }
 

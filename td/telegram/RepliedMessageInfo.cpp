@@ -315,7 +315,7 @@ td_api::object_ptr<td_api::messageReplyToMessage> RepliedMessageInfo::get_messag
   } else {
     CHECK(dialog_id.is_valid());
   }
-  auto chat_id = td->messages_manager_->get_chat_id_object(dialog_id, "messageReplyToMessage");
+  auto chat_id = td->dialog_manager_->get_chat_id_object(dialog_id, "messageReplyToMessage");
   if (message_id_ == MessageId()) {
     chat_id = 0;
   }

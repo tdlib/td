@@ -331,7 +331,7 @@ class GetStoryNotifySettingsExceptionsQuery final : public Td::ResultHandler {
     for (auto &dialog_id : dialog_ids) {
       td_->dialog_manager_->force_create_dialog(dialog_id, "GetStoryNotifySettingsExceptionsQuery");
     }
-    auto chat_ids = td_->messages_manager_->get_chats_object(-1, dialog_ids, "GetStoryNotifySettingsExceptionsQuery");
+    auto chat_ids = td_->dialog_manager_->get_chats_object(-1, dialog_ids, "GetStoryNotifySettingsExceptionsQuery");
     auto promise = PromiseCreator::lambda([promise = std::move(promise_), chat_ids = std::move(chat_ids)](
                                               Result<Unit>) mutable { promise.set_value(std::move(chat_ids)); });
     td_->updates_manager_->on_get_updates(std::move(updates_ptr), std::move(promise));

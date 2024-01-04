@@ -8,7 +8,6 @@
 
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/LinkManager.h"
-#include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
 
 #include "td/utils/logging.h"
@@ -33,7 +32,7 @@ DialogFilterInviteLink::DialogFilterInviteLink(
 td_api::object_ptr<td_api::chatFolderInviteLink> DialogFilterInviteLink::get_chat_folder_invite_link_object(
     const Td *td) const {
   return td_api::make_object<td_api::chatFolderInviteLink>(
-      invite_link_, title_, td->messages_manager_->get_chat_ids_object(dialog_ids_, "chatFolderInviteLink"));
+      invite_link_, title_, td->dialog_manager_->get_chat_ids_object(dialog_ids_, "chatFolderInviteLink"));
 }
 
 bool DialogFilterInviteLink::is_valid_invite_link(Slice invite_link) {

@@ -8,7 +8,6 @@
 
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
-#include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
 
 #include "td/utils/logging.h"
@@ -51,7 +50,7 @@ td_api::object_ptr<td_api::storyRepostInfo> StoryForwardInfo::get_story_repost_i
   auto origin = [&]() -> td_api::object_ptr<td_api::StoryOrigin> {
     if (dialog_id_.is_valid() && story_id_.is_valid()) {
       return td_api::make_object<td_api::storyOriginPublicStory>(
-          td->messages_manager_->get_chat_id_object(dialog_id_, "storyOriginPublicStory"), story_id_.get());
+          td->dialog_manager_->get_chat_id_object(dialog_id_, "storyOriginPublicStory"), story_id_.get());
     }
     return td_api::make_object<td_api::storyOriginHiddenUser>(sender_name_);
   }();

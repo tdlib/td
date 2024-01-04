@@ -12,7 +12,6 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/InputDialogId.h"
-#include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StoryId.h"
@@ -143,7 +142,7 @@ telegram_api::object_ptr<telegram_api::InputReplyTo> MessageInputReplyTo::get_in
 td_api::object_ptr<td_api::InputMessageReplyTo> MessageInputReplyTo::get_input_message_reply_to_object(Td *td) const {
   if (story_full_id_.is_valid()) {
     return td_api::make_object<td_api::inputMessageReplyToStory>(
-        td->messages_manager_->get_chat_id_object(story_full_id_.get_dialog_id(), "inputMessageReplyToStory"),
+        td->dialog_manager_->get_chat_id_object(story_full_id_.get_dialog_id(), "inputMessageReplyToStory"),
         story_full_id_.get_story_id().get());
   }
   if (!message_id_.is_valid() && !message_id_.is_valid_scheduled()) {
@@ -154,7 +153,7 @@ td_api::object_ptr<td_api::InputMessageReplyTo> MessageInputReplyTo::get_input_m
     quote = td_api::make_object<td_api::inputTextQuote>(get_formatted_text_object(quote_, true, -1), quote_position_);
   }
   return td_api::make_object<td_api::inputMessageReplyToMessage>(
-      td->messages_manager_->get_chat_id_object(dialog_id_, "inputMessageReplyToMessage"), message_id_.get(),
+      td->dialog_manager_->get_chat_id_object(dialog_id_, "inputMessageReplyToMessage"), message_id_.get(),
       std::move(quote));
 }
 

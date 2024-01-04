@@ -437,7 +437,7 @@ void TopDialogManager::on_load_dialogs(GetTopDialogsQuery &&query, vector<Dialog
   }
 
   query.promise.set_value(
-      td_->messages_manager_->get_chats_object(-1, std::move(result), "TopDialogManager::on_load_dialogs"));
+      td_->dialog_manager_->get_chats_object(-1, std::move(result), "TopDialogManager::on_load_dialogs"));
 }
 
 void TopDialogManager::do_get_top_peers() {

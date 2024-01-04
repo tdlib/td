@@ -3208,7 +3208,7 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
   story->is_update_sent_ = true;
 
   return td_api::make_object<td_api::story>(
-      story_id.get(), td_->messages_manager_->get_chat_id_object(owner_dialog_id, "get_story_object"), story->date_,
+      story_id.get(), td_->dialog_manager_->get_chat_id_object(owner_dialog_id, "get_story_object"), story->date_,
       is_being_sent, is_being_edited, is_edited, story->is_pinned_, is_visible_only_for_self, can_be_deleted,
       can_be_edited, can_be_forwarded, can_be_replied, can_toggle_is_pinned, can_get_statistics, can_get_interactions,
       has_expired_viewers, std::move(repost_info), std::move(interaction_info),
@@ -3261,7 +3261,7 @@ td_api::object_ptr<td_api::chatActiveStories> StoryManager::get_chat_active_stor
     }
   }
   return td_api::make_object<td_api::chatActiveStories>(
-      td_->messages_manager_->get_chat_id_object(owner_dialog_id, "updateChatActiveStories"),
+      td_->dialog_manager_->get_chat_id_object(owner_dialog_id, "updateChatActiveStories"),
       story_list_id.get_story_list_object(), order, max_read_story_id.get(), std::move(stories));
 }
 
@@ -3630,7 +3630,7 @@ void StoryManager::on_delete_story(StoryFullId story_full_id) {
       send_closure(
           G()->td(), &Td::send_update,
           td_api::make_object<td_api::updateStoryDeleted>(
-              td_->messages_manager_->get_chat_id_object(owner_dialog_id, "updateStoryDeleted"), story_id.get()));
+              td_->dialog_manager_->get_chat_id_object(owner_dialog_id, "updateStoryDeleted"), story_id.get()));
     }
     delete_story_files(story);
     unregister_story_global_id(story);

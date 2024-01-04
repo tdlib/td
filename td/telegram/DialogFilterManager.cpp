@@ -400,7 +400,7 @@ class GetChatlistUpdatesQuery final : public Td::ResultHandler {
     td_->contacts_manager_->on_get_users(std::move(ptr->users_), "GetChatlistUpdatesQuery");
     td_->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetChatlistUpdatesQuery");
     auto missing_dialog_ids = td_->messages_manager_->get_peers_dialog_ids(std::move(ptr->missing_peers_), true);
-    promise_.set_value(td_->messages_manager_->get_chats_object(-1, missing_dialog_ids, "GetChatlistUpdatesQuery"));
+    promise_.set_value(td_->dialog_manager_->get_chats_object(-1, missing_dialog_ids, "GetChatlistUpdatesQuery"));
   }
 
   void on_error(Status status) final {
@@ -1711,7 +1711,7 @@ void DialogFilterManager::on_get_leave_dialog_filter_suggestions(
 
   auto dialog_ids = td_->messages_manager_->get_peers_dialog_ids(std::move(peers));
   td::remove_if(dialog_ids, [&](DialogId dialog_id) { return !dialog_filter->is_dialog_included(dialog_id); });
-  promise.set_value(td_->messages_manager_->get_chats_object(-1, dialog_ids, "on_get_leave_dialog_filter_suggestions"));
+  promise.set_value(td_->dialog_manager_->get_chats_object(-1, dialog_ids, "on_get_leave_dialog_filter_suggestions"));
 }
 
 void DialogFilterManager::reorder_dialog_filters(vector<DialogFilterId> dialog_filter_ids,
@@ -1884,8 +1884,8 @@ void DialogFilterManager::do_get_dialogs_for_dialog_filter_invite_link(
     return promise.set_error(Status::Error(400, "Chat folder not found"));
   }
 
-  promise.set_value(td_->messages_manager_->get_chats_object(-1, dialog_filter->get_dialogs_for_invite_link(td_),
-                                                             "do_get_dialogs_for_dialog_filter_invite_link"));
+  promise.set_value(td_->dialog_manager_->get_chats_object(-1, dialog_filter->get_dialogs_for_invite_link(td_),
+                                                           "do_get_dialogs_for_dialog_filter_invite_link"));
 }
 
 void DialogFilterManager::create_dialog_filter_invite_link(
@@ -2025,8 +2025,8 @@ void DialogFilterManager::on_get_chatlist_invite(
   auto missing_dialog_ids = td_->messages_manager_->get_peers_dialog_ids(std::move(missing_peers), true);
   auto already_dialog_ids = td_->messages_manager_->get_peers_dialog_ids(std::move(already_peers));
   promise.set_value(td_api::make_object<td_api::chatFolderInviteLinkInfo>(
-      std::move(info), td_->messages_manager_->get_chat_ids_object(missing_dialog_ids, "chatFolderInviteLinkInfo 1"),
-      td_->messages_manager_->get_chat_ids_object(already_dialog_ids, "chatFolderInviteLinkInfo 1")));
+      std::move(info), td_->dialog_manager_->get_chat_ids_object(missing_dialog_ids, "chatFolderInviteLinkInfo 1"),
+      td_->dialog_manager_->get_chat_ids_object(already_dialog_ids, "chatFolderInviteLinkInfo 1")));
 }
 
 void DialogFilterManager::add_dialog_filter_by_invite_link(const string &invite_link, vector<DialogId> dialog_ids,

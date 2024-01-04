@@ -95,7 +95,7 @@ static td_api::object_ptr<td_api::chatBoostSlots> get_chat_boost_slots_object(
       cooldown_until_date = 0;
     }
     slots.push_back(td_api::make_object<td_api::chatBoostSlot>(
-        my_boost->slot_, td->messages_manager_->get_chat_id_object(dialog_id, "GetMyBoostsQuery"), start_date,
+        my_boost->slot_, td->dialog_manager_->get_chat_id_object(dialog_id, "GetMyBoostsQuery"), start_date,
         expiration_date, cooldown_until_date));
   }
   return td_api::make_object<td_api::chatBoostSlots>(std::move(slots));
@@ -448,7 +448,7 @@ td_api::object_ptr<td_api::chatBoostLinkInfo> BoostManager::get_chat_boost_link_
   DialogId dialog_id =
       is_public ? td_->messages_manager_->resolve_dialog_username(info.username) : DialogId(info.channel_id);
   return td_api::make_object<td_api::chatBoostLinkInfo>(
-      is_public, td_->messages_manager_->get_chat_id_object(dialog_id, "chatBoostLinkInfo"));
+      is_public, td_->dialog_manager_->get_chat_id_object(dialog_id, "chatBoostLinkInfo"));
 }
 
 void BoostManager::get_dialog_boosts(DialogId dialog_id, bool only_gift_codes, const string &offset, int32 limit,
@@ -496,7 +496,7 @@ void BoostManager::on_update_dialog_boost(DialogId dialog_id, telegram_api::obje
   send_closure(
       G()->td(), &Td::send_update,
       td_api::make_object<td_api::updateChatBoost>(
-          td_->messages_manager_->get_chat_id_object(dialog_id, "updateChatBoost"), std::move(chat_boost_object)));
+          td_->dialog_manager_->get_chat_id_object(dialog_id, "updateChatBoost"), std::move(chat_boost_object)));
 }
 
 }  // namespace td

@@ -733,15 +733,7 @@ class MessagesManager final : public Actor {
 
   int64 get_chat_id_object(DialogId dialog_id, const char *source) const;
 
-  vector<int64> get_chat_ids_object(const vector<DialogId> &dialog_ids, const char *source) const;
-
   td_api::object_ptr<td_api::chat> get_chat_object(DialogId dialog_id);
-
-  tl_object_ptr<td_api::chats> get_chats_object(int32 total_count, const vector<DialogId> &dialog_ids,
-                                                const char *source) const;
-
-  tl_object_ptr<td_api::chats> get_chats_object(const std::pair<int32, vector<DialogId>> &dialog_ids,
-                                                const char *source) const;
 
   tl_object_ptr<td_api::messages> get_dialog_history(DialogId dialog_id, MessageId from_message_id, int32 offset,
                                                      int32 limit, int left_tries, bool only_local,

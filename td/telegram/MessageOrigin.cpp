@@ -11,7 +11,6 @@
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
-#include "td/telegram/MessagesManager.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
 
@@ -86,12 +85,12 @@ td_api::object_ptr<td_api::MessageOrigin> MessageOrigin::get_message_origin_obje
   }
   if (message_id_.is_valid()) {
     return td_api::make_object<td_api::messageOriginChannel>(
-        td->messages_manager_->get_chat_id_object(sender_dialog_id_, "messageOriginChannel"), message_id_.get(),
+        td->dialog_manager_->get_chat_id_object(sender_dialog_id_, "messageOriginChannel"), message_id_.get(),
         author_signature_);
   }
   if (sender_dialog_id_.is_valid()) {
     return td_api::make_object<td_api::messageOriginChat>(
-        td->messages_manager_->get_chat_id_object(sender_dialog_id_, "messageOriginChat"),
+        td->dialog_manager_->get_chat_id_object(sender_dialog_id_, "messageOriginChat"),
         sender_name_.empty() ? author_signature_ : sender_name_);
   }
   return td_api::make_object<td_api::messageOriginUser>(

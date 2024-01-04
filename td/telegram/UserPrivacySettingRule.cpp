@@ -11,7 +11,6 @@
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
-#include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
 
 #include "td/utils/algorithm.h"
@@ -167,7 +166,7 @@ td_api::object_ptr<td_api::UserPrivacySettingRule> UserPrivacySettingRule::get_u
           td->contacts_manager_->get_user_ids_object(user_ids_, "userPrivacySettingRuleAllowUsers"));
     case Type::AllowChatParticipants:
       return make_tl_object<td_api::userPrivacySettingRuleAllowChatMembers>(
-          td->messages_manager_->get_chat_ids_object(dialog_ids_, "UserPrivacySettingRule"));
+          td->dialog_manager_->get_chat_ids_object(dialog_ids_, "UserPrivacySettingRule"));
     case Type::RestrictContacts:
       return make_tl_object<td_api::userPrivacySettingRuleRestrictContacts>();
     case Type::RestrictAll:
@@ -177,7 +176,7 @@ td_api::object_ptr<td_api::UserPrivacySettingRule> UserPrivacySettingRule::get_u
           td->contacts_manager_->get_user_ids_object(user_ids_, "userPrivacySettingRuleRestrictUsers"));
     case Type::RestrictChatParticipants:
       return make_tl_object<td_api::userPrivacySettingRuleRestrictChatMembers>(
-          td->messages_manager_->get_chat_ids_object(dialog_ids_, "UserPrivacySettingRule"));
+          td->dialog_manager_->get_chat_ids_object(dialog_ids_, "UserPrivacySettingRule"));
     default:
       UNREACHABLE();
       return nullptr;

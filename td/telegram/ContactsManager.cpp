@@ -7411,7 +7411,7 @@ vector<td_api::object_ptr<td_api::chatNearby>> ContactsManager::get_chats_nearby
     const vector<DialogNearby> &dialogs_nearby) const {
   return transform(dialogs_nearby, [td = td_](const DialogNearby &dialog_nearby) {
     return td_api::make_object<td_api::chatNearby>(
-        td->messages_manager_->get_chat_id_object(dialog_nearby.dialog_id, "chatNearby"), dialog_nearby.distance);
+        td->dialog_manager_->get_chat_id_object(dialog_nearby.dialog_id, "chatNearby"), dialog_nearby.distance);
   });
 }
 
@@ -8990,7 +8990,7 @@ void ContactsManager::send_update_add_chat_members_privacy_forbidden(DialogId di
   td_->dialog_manager_->force_create_dialog(dialog_id, "send_update_add_chat_members_privacy_forbidden");
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateAddChatMembersPrivacyForbidden>(
-                   td_->messages_manager_->get_chat_id_object(dialog_id, "updateAddChatMembersPrivacyForbidden"),
+                   td_->dialog_manager_->get_chat_id_object(dialog_id, "updateAddChatMembersPrivacyForbidden"),
                    get_user_ids_object(user_ids, source)));
 }
 
@@ -9972,8 +9972,8 @@ void ContactsManager::get_channel_recommendations(DialogId dialog_id, bool retur
     if (are_suitable_recommended_dialogs(it->second)) {
       auto next_reload_time = it->second.next_reload_time_;
       if (chats_promise) {
-        chats_promise.set_value(td_->messages_manager_->get_chats_object(
-            it->second.total_count_, it->second.dialog_ids_, "get_channel_recommendations"));
+        chats_promise.set_value(td_->dialog_manager_->get_chats_object(it->second.total_count_, it->second.dialog_ids_,
+                                                                       "get_channel_recommendations"));
       }
       if (count_promise) {
         count_promise.set_value(td_api::make_object<td_api::count>(it->second.total_count_));
@@ -10060,8 +10060,8 @@ void ContactsManager::finish_load_channel_recommendations_queries(ChannelId chan
   get_channel_recommendations_queries_.erase(it);
   for (auto &promise : promises) {
     if (promise) {
-      promise.set_value(td_->messages_manager_->get_chats_object(total_count, dialog_ids,
-                                                                 "finish_load_channel_recommendations_queries"));
+      promise.set_value(td_->dialog_manager_->get_chats_object(total_count, dialog_ids,
+                                                               "finish_load_channel_recommendations_queries"));
     }
   }
 }
@@ -17568,7 +17568,7 @@ void ContactsManager::send_update_chat_member(DialogId dialog_id, UserId agent_u
   td_->dialog_manager_->force_create_dialog(dialog_id, "send_update_chat_member", true);
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateChatMember>(
-                   td_->messages_manager_->get_chat_id_object(dialog_id, "updateChatMember"),
+                   td_->dialog_manager_->get_chat_id_object(dialog_id, "updateChatMember"),
                    get_user_id_object(agent_user_id, "send_update_chat_member"), date,
                    invite_link.get_chat_invite_link_object(this), via_dialog_filter_invite_link,
                    get_chat_member_object(old_dialog_participant, "send_update_chat_member old"),
@@ -17722,10 +17722,10 @@ void ContactsManager::on_update_chat_invite_requester(DialogId dialog_id, UserId
 
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateNewChatJoinRequest>(
-                   td_->messages_manager_->get_chat_id_object(dialog_id, "updateNewChatJoinRequest"),
+                   td_->dialog_manager_->get_chat_id_object(dialog_id, "updateNewChatJoinRequest"),
                    td_api::make_object<td_api::chatJoinRequest>(
                        get_user_id_object(user_id, "on_update_chat_invite_requester"), date, about),
-                   td_->messages_manager_->get_chat_id_object(user_dialog_id, "updateNewChatJoinRequest 2"),
+                   td_->dialog_manager_->get_chat_id_object(user_dialog_id, "updateNewChatJoinRequest 2"),
                    invite_link.get_chat_invite_link_object(this)));
 }
 
@@ -20702,7 +20702,7 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
   }
 
   return td_api::make_object<td_api::chatInviteLinkInfo>(
-      td_->messages_manager_->get_chat_id_object(dialog_id, "chatInviteLinkInfo"), accessible_for, std::move(chat_type),
+      td_->dialog_manager_->get_chat_id_object(dialog_id, "chatInviteLinkInfo"), accessible_for, std::move(chat_type),
       title, get_chat_photo_info_object(td_->file_manager_.get(), photo), accent_color_id_object, description,
       participant_count, std::move(member_user_ids), creates_join_request, is_public, is_verified, is_scam, is_fake);
 }

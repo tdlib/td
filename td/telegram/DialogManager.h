@@ -64,6 +64,16 @@ class DialogManager final : public Actor {
 
   void reload_dialog_info_full(DialogId dialog_id, const char *source);
 
+  int64 get_chat_id_object(DialogId dialog_id, const char *source) const;
+
+  vector<int64> get_chat_ids_object(const vector<DialogId> &dialog_ids, const char *source) const;
+
+  td_api::object_ptr<td_api::chats> get_chats_object(int32 total_count, const vector<DialogId> &dialog_ids,
+                                                     const char *source) const;
+
+  td_api::object_ptr<td_api::chats> get_chats_object(const std::pair<int32, vector<DialogId>> &dialog_ids,
+                                                     const char *source) const;
+
   td_api::object_ptr<td_api::ChatType> get_chat_type_object(DialogId dialog_id) const;
 
   NotificationSettingsScope get_dialog_notification_setting_scope(DialogId dialog_id) const;

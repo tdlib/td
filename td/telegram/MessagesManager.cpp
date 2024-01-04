@@ -17066,7 +17066,8 @@ void MessagesManager::get_dialogs_from_list_impl(int64 task_id) {
     if (!task_promise) {
       dialog_ids.clear();
     }
-    return task_promise.set_value(get_chats_object(total_count, dialog_ids, "get_dialogs_from_list_impl"));
+    return task_promise.set_value(
+        td_->dialog_manager_->get_chats_object(total_count, dialog_ids, "get_dialogs_from_list_impl"));
   }
   // nor the limit, nor the end of the list were reached; wait for the promise
 }
@@ -20553,10 +20554,6 @@ int64 MessagesManager::get_chat_id_object(DialogId dialog_id, const char *source
   return dialog_id.get();
 }
 
-vector<int64> MessagesManager::get_chat_ids_object(const vector<DialogId> &dialog_ids, const char *source) const {
-  return transform(dialog_ids, [this, source](DialogId dialog_id) { return get_chat_id_object(dialog_id, source); });
-}
-
 td_api::object_ptr<td_api::ChatActionBar> MessagesManager::get_chat_action_bar_object(const Dialog *d) const {
   CHECK(d != nullptr);
   auto dialog_type = d->dialog_id.get_type();
@@ -20677,19 +20674,6 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(DialogId dialo
     send_update_chat_read_inbox(d, true, "get_chat_object");
   }
   return get_chat_object(d);
-}
-
-tl_object_ptr<td_api::chats> MessagesManager::get_chats_object(int32 total_count, const vector<DialogId> &dialog_ids,
-                                                               const char *source) const {
-  if (total_count == -1) {
-    total_count = narrow_cast<int32>(dialog_ids.size());
-  }
-  return td_api::make_object<td_api::chats>(total_count, get_chat_ids_object(dialog_ids, source));
-}
-
-tl_object_ptr<td_api::chats> MessagesManager::get_chats_object(const std::pair<int32, vector<DialogId>> &dialog_ids,
-                                                               const char *source) const {
-  return get_chats_object(dialog_ids.first, dialog_ids.second, source);
 }
 
 std::pair<bool, int32> MessagesManager::get_dialog_mute_until(DialogId dialog_id, const Dialog *d) const {

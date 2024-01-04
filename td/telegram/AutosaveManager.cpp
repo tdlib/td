@@ -12,7 +12,6 @@
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
-#include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
@@ -184,7 +183,7 @@ td_api::object_ptr<td_api::autosaveSettingsException>
 AutosaveManager::DialogAutosaveSettings::get_autosave_settings_exception_object(const Td *td,
                                                                                 DialogId dialog_id) const {
   return td_api::make_object<td_api::autosaveSettingsException>(
-      td->messages_manager_->get_chat_id_object(dialog_id, "autosaveSettingsException"),
+      td->dialog_manager_->get_chat_id_object(dialog_id, "autosaveSettingsException"),
       get_scope_autosave_settings_object());
 }
 
@@ -424,7 +423,7 @@ void AutosaveManager::on_get_autosave_settings(
       current_settings = std::move(new_settings);
       send_update_autosave_settings(
           td_api::make_object<td_api::autosaveSettingsScopeChat>(
-              td_->messages_manager_->get_chat_id_object(dialog_id, "autosaveSettingsScopeChat")),
+              td_->dialog_manager_->get_chat_id_object(dialog_id, "autosaveSettingsScopeChat")),
           current_settings);
     }
     exception_dialog_ids.erase(dialog_id);
@@ -433,7 +432,7 @@ void AutosaveManager::on_get_autosave_settings(
     settings_.exceptions_.erase(dialog_id);
     send_update_autosave_settings(
         td_api::make_object<td_api::autosaveSettingsScopeChat>(
-            td_->messages_manager_->get_chat_id_object(dialog_id, "autosaveSettingsScopeChat 2")),
+            td_->dialog_manager_->get_chat_id_object(dialog_id, "autosaveSettingsScopeChat 2")),
         DialogAutosaveSettings());
   }
 

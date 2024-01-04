@@ -10,6 +10,7 @@
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/InlineQueriesManager.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesManager.h"
@@ -199,7 +200,7 @@ td_api::object_ptr<td_api::storyArea> MediaArea::get_story_area_object(
     }
     case Type::Message:
       type = td_api::make_object<td_api::storyAreaTypeMessage>(
-          td->messages_manager_->get_chat_id_object(message_full_id_.get_dialog_id(), "storyAreaTypeMessage"),
+          td->dialog_manager_->get_chat_id_object(message_full_id_.get_dialog_id(), "storyAreaTypeMessage"),
           message_full_id_.get_message_id().get());
       break;
     default:

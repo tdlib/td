@@ -811,7 +811,7 @@ class SearchPublicChatsRequest final : public RequestActor<> {
   }
 
   void do_send_result() final {
-    send_result(td_->messages_manager_->get_chats_object(-1, dialog_ids_, "SearchPublicChatsRequest"));
+    send_result(td_->dialog_manager_->get_chats_object(-1, dialog_ids_, "SearchPublicChatsRequest"));
   }
 
  public:
@@ -831,7 +831,7 @@ class SearchChatsRequest final : public RequestActor<> {
   }
 
   void do_send_result() final {
-    send_result(td_->messages_manager_->get_chats_object(dialog_ids_, "SearchChatsRequest"));
+    send_result(td_->dialog_manager_->get_chats_object(dialog_ids_, "SearchChatsRequest"));
   }
 
  public:
@@ -851,7 +851,7 @@ class SearchChatsOnServerRequest final : public RequestActor<> {
   }
 
   void do_send_result() final {
-    send_result(td_->messages_manager_->get_chats_object(-1, dialog_ids_, "SearchChatsOnServerRequest"));
+    send_result(td_->dialog_manager_->get_chats_object(-1, dialog_ids_, "SearchChatsOnServerRequest"));
   }
 
  public:
@@ -873,7 +873,7 @@ class GetGroupsInCommonRequest final : public RequestActor<> {
   }
 
   void do_send_result() final {
-    send_result(td_->messages_manager_->get_chats_object(dialog_ids_, "GetGroupsInCommonRequest"));
+    send_result(td_->dialog_manager_->get_chats_object(dialog_ids_, "GetGroupsInCommonRequest"));
   }
 
  public:
@@ -890,7 +890,7 @@ class GetSuitableDiscussionChatsRequest final : public RequestActor<> {
   }
 
   void do_send_result() final {
-    send_result(td_->messages_manager_->get_chats_object(-1, dialog_ids_, "GetSuitableDiscussionChatsRequest"));
+    send_result(td_->dialog_manager_->get_chats_object(-1, dialog_ids_, "GetSuitableDiscussionChatsRequest"));
   }
 
  public:
@@ -906,7 +906,7 @@ class GetInactiveSupergroupChatsRequest final : public RequestActor<> {
   }
 
   void do_send_result() final {
-    send_result(td_->messages_manager_->get_chats_object(-1, dialog_ids_, "GetInactiveSupergroupChatsRequest"));
+    send_result(td_->dialog_manager_->get_chats_object(-1, dialog_ids_, "GetInactiveSupergroupChatsRequest"));
   }
 
  public:
@@ -925,7 +925,7 @@ class SearchRecentlyFoundChatsRequest final : public RequestActor<> {
   }
 
   void do_send_result() final {
-    send_result(td_->messages_manager_->get_chats_object(dialog_ids_, "SearchRecentlyFoundChatsRequest"));
+    send_result(td_->dialog_manager_->get_chats_object(dialog_ids_, "SearchRecentlyFoundChatsRequest"));
   }
 
  public:
@@ -944,7 +944,7 @@ class GetRecentlyOpenedChatsRequest final : public RequestActor<> {
   }
 
   void do_send_result() final {
-    send_result(td_->messages_manager_->get_chats_object(dialog_ids_, "GetRecentlyOpenedChatsRequest"));
+    send_result(td_->dialog_manager_->get_chats_object(dialog_ids_, "GetRecentlyOpenedChatsRequest"));
   }
 
  public:
@@ -1974,7 +1974,7 @@ class GetChatNotificationSettingsExceptionsRequest final : public RequestActor<>
 
   void do_send_result() final {
     send_result(
-        td_->messages_manager_->get_chats_object(-1, dialog_ids_, "GetChatNotificationSettingsExceptionsRequest"));
+        td_->dialog_manager_->get_chats_object(-1, dialog_ids_, "GetChatNotificationSettingsExceptionsRequest"));
   }
 
  public:

@@ -15,6 +15,9 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/UserId.h"
 
+#include "td/utils/algorithm.h"
+#include "td/utils/misc.h"
+
 namespace td {
 
 DialogManager::DialogManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
@@ -165,7 +168,7 @@ bool DialogManager::have_dialog_force(DialogId dialog_id, const char *source) co
 
 void DialogManager::force_create_dialog(DialogId dialog_id, const char *source, bool expect_no_access,
                                         bool force_update_dialog_pos) {
-  return td_->messages_manager_->force_create_dialog(dialog_id, source, expect_no_access, force_update_dialog_pos);
+  td_->messages_manager_->force_create_dialog(dialog_id, source, expect_no_access, force_update_dialog_pos);
 }
 
 bool DialogManager::have_dialog_info(DialogId dialog_id) const {
@@ -265,6 +268,27 @@ void DialogManager::reload_dialog_info_full(DialogId dialog_id, const char *sour
       UNREACHABLE();
       return;
   }
+}
+
+int64 DialogManager::get_chat_id_object(DialogId dialog_id, const char *source) const {
+  return td_->messages_manager_->get_chat_id_object(dialog_id, source);
+}
+
+vector<int64> DialogManager::get_chat_ids_object(const vector<DialogId> &dialog_ids, const char *source) const {
+  return transform(dialog_ids, [this, source](DialogId dialog_id) { return get_chat_id_object(dialog_id, source); });
+}
+
+td_api::object_ptr<td_api::chats> DialogManager::get_chats_object(int32 total_count, const vector<DialogId> &dialog_ids,
+                                                                  const char *source) const {
+  if (total_count == -1) {
+    total_count = narrow_cast<int32>(dialog_ids.size());
+  }
+  return td_api::make_object<td_api::chats>(total_count, get_chat_ids_object(dialog_ids, source));
+}
+
+td_api::object_ptr<td_api::chats> DialogManager::get_chats_object(const std::pair<int32, vector<DialogId>> &dialog_ids,
+                                                                  const char *source) const {
+  return get_chats_object(dialog_ids.first, dialog_ids.second, source);
 }
 
 td_api::object_ptr<td_api::ChatType> DialogManager::get_chat_type_object(DialogId dialog_id) const {

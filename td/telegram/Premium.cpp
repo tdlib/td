@@ -470,8 +470,7 @@ class GetGiveawayInfoQuery final : public Td::ResultHandler {
               DialogId dialog_id(channel_id);
               td_->dialog_manager_->force_create_dialog(dialog_id, "GetGiveawayInfoQuery");
               return td_api::make_object<td_api::premiumGiveawayParticipantStatusAdministrator>(
-                  td_->messages_manager_->get_chat_id_object(dialog_id,
-                                                             "premiumGiveawayParticipantStatusAdministrator"));
+                  td_->dialog_manager_->get_chat_id_object(dialog_id, "premiumGiveawayParticipantStatusAdministrator"));
             }
           }
           if (!info->disallowed_country_.empty()) {
