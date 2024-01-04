@@ -238,9 +238,6 @@ class MessagesManager final : public Actor {
                       int32 total_count, vector<tl_object_ptr<telegram_api::Message>> &&messages,
                       Promise<Unit> &&promise);
 
-  void on_get_common_dialogs(UserId user_id, int64 offset_chat_id, vector<tl_object_ptr<telegram_api::Chat>> &&chats,
-                             int32 total_count);
-
   bool on_update_message_id(int64 random_id, MessageId new_message_id, const char *source);
 
   void on_update_dialog_draft_message(DialogId dialog_id, MessageId top_thread_message_id,
@@ -574,11 +571,6 @@ class MessagesManager final : public Actor {
   std::pair<int32, vector<DialogId>> search_dialogs(const string &query, int32 limit, Promise<Unit> &&promise);
 
   vector<DialogId> search_dialogs_on_server(const string &query, int32 limit, Promise<Unit> &&promise);
-
-  void drop_common_dialogs_cache(UserId user_id);
-
-  std::pair<int32, vector<DialogId>> get_common_dialogs(UserId user_id, DialogId offset_dialog_id, int32 limit,
-                                                        bool force, Promise<Unit> &&promise);
 
   void block_message_sender_from_replies(MessageId message_id, bool need_delete_message, bool need_delete_all_messages,
                                          bool report_spam, Promise<Unit> &&promise);
@@ -3366,14 +3358,6 @@ class MessagesManager final : public Actor {
   FlatHashMap<string, vector<Promise<Unit>>> search_public_dialogs_queries_;
   FlatHashMap<string, vector<DialogId>> found_public_dialogs_;     // TODO time bound cache
   FlatHashMap<string, vector<DialogId>> found_on_server_dialogs_;  // TODO time bound cache
-
-  struct CommonDialogs {
-    vector<DialogId> dialog_ids;
-    double receive_time = 0;
-    int32 total_count = 0;
-    bool is_outdated = false;
-  };
-  FlatHashMap<UserId, CommonDialogs, UserIdHash> found_common_dialogs_;
 
   FlatHashMap<int64, MessageFullId> get_dialog_message_by_date_results_;
 

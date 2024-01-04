@@ -870,8 +870,8 @@ class GetGroupsInCommonRequest final : public RequestActor<> {
   std::pair<int32, vector<DialogId>> dialog_ids_;
 
   void do_run(Promise<Unit> &&promise) final {
-    dialog_ids_ = td_->messages_manager_->get_common_dialogs(user_id_, offset_dialog_id_, limit_, get_tries() < 2,
-                                                             std::move(promise));
+    dialog_ids_ = td_->common_dialog_manager_->get_common_dialogs(user_id_, offset_dialog_id_, limit_, get_tries() < 2,
+                                                                  std::move(promise));
   }
 
   void do_send_result() final {

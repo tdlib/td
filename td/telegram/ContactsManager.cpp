@@ -12,6 +12,7 @@
 #include "td/telegram/BlockListId.h"
 #include "td/telegram/BotMenuButton.h"
 #include "td/telegram/ChannelParticipantFilter.h"
+#include "td/telegram/CommonDialogManager.h"
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogInviteLink.h"
@@ -13129,7 +13130,7 @@ void ContactsManager::update_user_full(UserFull *user_full, UserId user_id, cons
 
   unavailable_user_fulls_.erase(user_id);  // don't needed anymore
   if (user_full->is_common_chat_count_changed) {
-    td_->messages_manager_->drop_common_dialogs_cache(user_id);
+    td_->common_dialog_manager_->drop_common_dialogs_cache(user_id);
     user_full->is_common_chat_count_changed = false;
   }
   if (true) {
