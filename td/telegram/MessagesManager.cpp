@@ -11795,8 +11795,10 @@ void MessagesManager::on_dialog_deleted(DialogId dialog_id, Promise<Unit> &&prom
     d->need_restore_reply_markup = true;
     on_dialog_updated(dialog_id, "on_dialog_deleted");
   }
-  recently_found_dialogs_.remove_dialog(dialog_id);
-  recently_opened_dialogs_.remove_dialog(dialog_id);
+  if (!td_->auth_manager_->is_bot()) {
+    recently_found_dialogs_.remove_dialog(dialog_id);
+    recently_opened_dialogs_.remove_dialog(dialog_id);
+  }
   if (dialog_id.get_type() == DialogType::Channel) {
     G()->td_db()->get_binlog_pmc()->erase(get_channel_pts_key(dialog_id));
   }
