@@ -15399,28 +15399,27 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
       LOG(ERROR) << "Receive " << dialog->ttl_period_ << " as message auto-delete time in " << dialog_id;
       dialog->ttl_period_ = 0;
     }
-    if (!d->is_is_blocked_for_stories_inited && !td_->auth_manager_->is_bot()) {
-      // asynchronously get is_blocked_for_stories from the server
-      // TODO add is_blocked/is_blocked_for_stories to telegram_api::dialog
-      td_->dialog_manager_->reload_dialog_info_full(dialog_id, "on_get_dialogs init is_blocked");
-    } else if (!d->is_has_bots_inited && !td_->auth_manager_->is_bot()) {
-      // asynchronously get has_bots from the server
-      // TODO add has_bots to telegram_api::dialog
-      td_->dialog_manager_->reload_dialog_info_full(dialog_id, "on_get_dialogs init has_bots");
-    } else if (!d->is_background_inited && !td_->auth_manager_->is_bot()) {
-      // asynchronously get background from the server
-      // TODO add background to telegram_api::dialog
-      td_->dialog_manager_->reload_dialog_info_full(dialog_id, "on_get_dialogs init background");
-    } else if (!d->is_theme_name_inited && !td_->auth_manager_->is_bot()) {
-      // asynchronously get theme_name from the server
-      // TODO add theme_name to telegram_api::dialog
-      td_->dialog_manager_->reload_dialog_info_full(dialog_id, "on_get_dialogs init theme_name");
-    } else if (!d->is_last_pinned_message_id_inited && !td_->auth_manager_->is_bot()) {
-      // asynchronously get dialog pinned message from the server
-      get_dialog_pinned_message(dialog_id, Auto());
-    } else if (!d->is_available_reactions_inited && !td_->auth_manager_->is_bot()) {
-      // asynchronously get dialog available reactions from the server
-      td_->dialog_manager_->reload_dialog_info_full(dialog_id, "on_get_dialogs init available_reactions");
+    if (!td_->auth_manager_->is_bot()) {
+      const char *reload_source = nullptr;
+      if (!d->is_is_blocked_for_stories_inited) {
+        reload_source = "on_get_dialogs init is_blocked_for_stories";
+      } else if (!d->is_has_bots_inited) {
+        reload_source = "on_get_dialogs init has_bots";
+      } else if (!d->is_background_inited) {
+        reload_source = "on_get_dialogs init background";
+      } else if (!d->is_theme_name_inited) {
+        reload_source = "on_get_dialogs init theme_name";
+      } else if (!d->is_available_reactions_inited) {
+        reload_source = "on_get_dialogs init available_reactions";
+      } else if (!d->is_last_pinned_message_id_inited) {
+        get_dialog_pinned_message(dialog_id, Auto());
+      }
+      if (reload_source != nullptr) {
+        // asynchronously get dialog info from the server
+        // TODO add is_blocked/is_blocked_for_stories/has_bots/background/theme_name/available_reactions
+        // to telegram_api::dialog
+        td_->dialog_manager_->reload_dialog_info_full(dialog_id, reload_source);
+      }
     }
 
     need_update_dialog_pos |=
@@ -36150,38 +36149,31 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<DraftMessage> &&draft
     send_get_dialog_query(dialog_id, Auto(), 0, "fix_new_dialog 20");
   }
 
-  if (being_added_dialog_id_ != dialog_id && !d->is_is_blocked_for_stories_inited && !td_->auth_manager_->is_bot()) {
-    // asynchronously get is_blocked_for_stories from the server
-    td_->dialog_manager_->reload_dialog_info_full(dialog_id, "fix_new_dialog init is_blocked_for_stories");
-  } else if (being_added_dialog_id_ != dialog_id && !d->is_has_bots_inited && !td_->auth_manager_->is_bot()) {
-    // asynchronously get has_bots from the server
-    td_->dialog_manager_->reload_dialog_info_full(dialog_id, "fix_new_dialog init has_bots");
-  } else if (being_added_dialog_id_ != dialog_id && !d->is_background_inited && !td_->auth_manager_->is_bot()) {
-    // asynchronously get dialog background from the server
-    td_->dialog_manager_->reload_dialog_info_full(dialog_id, "fix_new_dialog init background");
-  } else if (being_added_dialog_id_ != dialog_id && !d->is_theme_name_inited && !td_->auth_manager_->is_bot()) {
-    // asynchronously get dialog theme identifier from the server
-    td_->dialog_manager_->reload_dialog_info_full(dialog_id, "fix_new_dialog init theme_name");
-  } else if (being_added_dialog_id_ != dialog_id && !d->is_last_pinned_message_id_inited &&
-             !td_->auth_manager_->is_bot()) {
-    // asynchronously get dialog pinned message from the server
-    get_dialog_pinned_message(dialog_id, Auto());
-  } else if (being_added_dialog_id_ != dialog_id && !d->is_folder_id_inited && !td_->auth_manager_->is_bot() &&
-             order != DEFAULT_ORDER) {
-    // asynchronously get dialog folder identifier from the server
-    td_->dialog_manager_->reload_dialog_info_full(dialog_id, "fix_new_dialog init folder_id");
-  } else if (!d->is_message_ttl_inited && !td_->auth_manager_->is_bot() &&
-             td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Write)) {
-    // asynchronously get dialog message auto-delete timer from the server
-    td_->dialog_manager_->reload_dialog_info_full(dialog_id, "fix_new_dialog init message_auto_delete_time");
-  } else if (being_added_dialog_id_ != dialog_id && !d->is_available_reactions_inited &&
-             !td_->auth_manager_->is_bot()) {
-    // asynchronously get dialog available reactions from the server
-    td_->dialog_manager_->reload_dialog_info_full(dialog_id, "fix_new_dialog init available_reactions");
-  } else if (being_added_dialog_id_ != dialog_id && !d->is_view_as_messages_inited &&
-             td_->dialog_manager_->is_forum_channel(dialog_id) && !td_->auth_manager_->is_bot()) {
-    // asynchronously get view_as_messages from the server
-    td_->dialog_manager_->reload_dialog_info_full(dialog_id, "fix_new_dialog init view_as_messages");
+  if (being_added_dialog_id_ != dialog_id && !td_->auth_manager_->is_bot()) {
+    const char *reload_source = nullptr;
+    if (!d->is_is_blocked_for_stories_inited) {
+      reload_source = "fix_new_dialog init is_blocked_for_stories";
+    } else if (!d->is_has_bots_inited) {
+      reload_source = "fix_new_dialog init has_bots";
+    } else if (!d->is_background_inited) {
+      reload_source = "fix_new_dialog init background";
+    } else if (!d->is_theme_name_inited) {
+      reload_source = "fix_new_dialog init theme_name";
+    } else if (!d->is_available_reactions_inited) {
+      reload_source = "fix_new_dialog init available_reactions";
+    } else if (!d->is_folder_id_inited && order != DEFAULT_ORDER) {
+      reload_source = "fix_new_dialog init folder_id";
+    } else if (!d->is_message_ttl_inited && td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Write)) {
+      reload_source = "fix_new_dialog init message_auto_delete_time";
+    } else if (!d->is_view_as_messages_inited && td_->dialog_manager_->is_forum_channel(dialog_id)) {
+      reload_source = "fix_new_dialog init view_as_messages";
+    } else if (!d->is_last_pinned_message_id_inited) {
+      get_dialog_pinned_message(dialog_id, Auto());
+    }
+    if (reload_source != nullptr) {
+      // asynchronously get dialog info from the server
+      td_->dialog_manager_->reload_dialog_info_full(dialog_id, reload_source);
+    }
   }
   if ((!d->know_action_bar || d->need_repair_action_bar) && !td_->auth_manager_->is_bot() &&
       dialog_type != DialogType::SecretChat && dialog_id != td_->dialog_manager_->get_my_dialog_id() &&
