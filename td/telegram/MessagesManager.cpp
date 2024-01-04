@@ -23,6 +23,7 @@
 #include "td/telegram/DialogLocation.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/DialogNotificationSettings.hpp"
+#include "td/telegram/DialogOnlineMemberManager.h"
 #include "td/telegram/DownloadManager.h"
 #include "td/telegram/DraftMessage.h"
 #include "td/telegram/DraftMessage.hpp"
@@ -111,37 +112,6 @@
 #include <utility>
 
 namespace td {
-
-class GetOnlinesQuery final : public Td::ResultHandler {
-  DialogId dialog_id_;
-
- public:
-  void send(DialogId dialog_id) {
-    dialog_id_ = dialog_id;
-    CHECK(dialog_id.get_type() == DialogType::Channel);
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
-    if (input_peer == nullptr) {
-      return on_error(Status::Error(400, "Can't access the chat"));
-    }
-
-    send_query(G()->net_query_creator().create(telegram_api::messages_getOnlines(std::move(input_peer))));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::messages_getOnlines>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto result = result_ptr.move_as_ok();
-    td_->messages_manager_->on_update_dialog_online_member_count(dialog_id_, result->onlines_, true);
-  }
-
-  void on_error(Status status) final {
-    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetOnlinesQuery");
-    td_->messages_manager_->on_update_dialog_online_member_count(dialog_id_, 0, true);
-  }
-};
 
 class GetDialogQuery final : public Td::ResultHandler {
   DialogId dialog_id_;
@@ -5962,9 +5932,6 @@ MessagesManager::MessagesManager(Td *td, ActorShared<> parent)
   active_dialog_action_timeout_.set_callback(on_active_dialog_action_timeout_callback);
   active_dialog_action_timeout_.set_callback_data(static_cast<void *>(this));
 
-  update_dialog_online_member_count_timeout_.set_callback(on_update_dialog_online_member_count_timeout_callback);
-  update_dialog_online_member_count_timeout_.set_callback_data(static_cast<void *>(this));
-
   preload_folder_dialog_list_timeout_.set_callback(on_preload_folder_dialog_list_timeout_callback);
   preload_folder_dialog_list_timeout_.set_callback_data(static_cast<void *>(this));
 
@@ -5985,8 +5952,8 @@ MessagesManager::~MessagesManager() {
       active_get_channel_differences_, get_channel_difference_to_log_event_id_, channel_get_difference_retry_timeouts_,
       is_channel_difference_finished_, expected_channel_pts_, expected_channel_max_message_id_, resolved_usernames_,
       inaccessible_resolved_usernames_, dialog_bot_command_message_ids_, message_full_id_to_file_source_id_,
-      last_outgoing_forwarded_message_date_, dialog_viewed_messages_, dialog_online_member_counts_,
-      previous_repaired_read_inbox_max_message_id_, failed_to_load_dialogs_);
+      last_outgoing_forwarded_message_date_, dialog_viewed_messages_, previous_repaired_read_inbox_max_message_id_,
+      failed_to_load_dialogs_);
 }
 
 MessagesManager::AddDialogData::AddDialogData(int32 dependent_dialog_count, unique_ptr<Message> &&last_message,
@@ -6095,17 +6062,6 @@ void MessagesManager::on_active_dialog_action_timeout_callback(void *messages_ma
   auto messages_manager = static_cast<MessagesManager *>(messages_manager_ptr);
   send_closure_later(messages_manager->actor_id(messages_manager), &MessagesManager::on_active_dialog_action_timeout,
                      DialogId(dialog_id_int));
-}
-
-void MessagesManager::on_update_dialog_online_member_count_timeout_callback(void *messages_manager_ptr,
-                                                                            int64 dialog_id_int) {
-  if (G()->close_flag()) {
-    return;
-  }
-
-  auto messages_manager = static_cast<MessagesManager *>(messages_manager_ptr);
-  send_closure_later(messages_manager->actor_id(messages_manager),
-                     &MessagesManager::on_update_dialog_online_member_count_timeout, DialogId(dialog_id_int));
 }
 
 void MessagesManager::on_preload_folder_dialog_list_timeout_callback(void *messages_manager_ptr, int64 folder_id_int) {
@@ -7373,32 +7329,6 @@ void MessagesManager::on_update_channel_max_unavailable_message_id(ChannelId cha
     max_unavailable_message_id = MessageId();
   }
   set_dialog_max_unavailable_message_id(dialog_id, max_unavailable_message_id, true, source);
-}
-
-void MessagesManager::on_update_dialog_online_member_count(DialogId dialog_id, int32 online_member_count,
-                                                           bool is_from_server) {
-  if (td_->auth_manager_->is_bot()) {
-    return;
-  }
-
-  if (!dialog_id.is_valid()) {
-    LOG(ERROR) << "Receive number of online members in invalid " << dialog_id;
-    return;
-  }
-
-  if (td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
-    LOG_IF(ERROR, online_member_count != 0)
-        << "Receive " << online_member_count << " as a number of online members in a channel " << dialog_id;
-    return;
-  }
-
-  if (online_member_count < 0) {
-    LOG(ERROR) << "Receive " << online_member_count << " as a number of online members in a " << dialog_id;
-    return;
-  }
-
-  set_dialog_online_member_count(dialog_id, online_member_count, is_from_server,
-                                 "on_update_channel_online_member_count");
 }
 
 void MessagesManager::on_update_delete_scheduled_messages(DialogId dialog_id,
@@ -12885,94 +12815,6 @@ void MessagesManager::set_dialog_max_unavailable_message_id(DialogId dialog_id, 
     }
   } else {
     LOG(INFO) << "Receive max unavailable message in unknown " << dialog_id << " from " << source;
-  }
-}
-
-void MessagesManager::set_dialog_online_member_count(DialogId dialog_id, int32 online_member_count, bool is_from_server,
-                                                     const char *source) {
-  if (td_->auth_manager_->is_bot()) {
-    return;
-  }
-
-  Dialog *d = get_dialog(dialog_id);
-  if (d == nullptr) {
-    return;
-  }
-
-  if (online_member_count < 0) {
-    LOG(ERROR) << "Receive online_member_count = " << online_member_count << " in " << dialog_id;
-    online_member_count = 0;
-  }
-
-  switch (dialog_id.get_type()) {
-    case DialogType::Chat: {
-      auto participant_count = td_->contacts_manager_->get_chat_participant_count(dialog_id.get_chat_id());
-      if (online_member_count > participant_count) {
-        online_member_count = participant_count;
-      }
-      break;
-    }
-    case DialogType::Channel: {
-      auto participant_count = td_->contacts_manager_->get_channel_participant_count(dialog_id.get_channel_id());
-      if (participant_count != 0 && online_member_count > participant_count) {
-        online_member_count = participant_count;
-      }
-      break;
-    }
-    default:
-      break;
-  }
-
-  auto &info = dialog_online_member_counts_[dialog_id];
-  LOG(INFO) << "Change number of online members from " << info.online_member_count << " to " << online_member_count
-            << " in " << dialog_id << " from " << source;
-  bool need_update = d->open_count > 0 && (!info.is_update_sent || info.online_member_count != online_member_count);
-  info.online_member_count = online_member_count;
-  info.update_time = Time::now();
-
-  if (need_update) {
-    info.is_update_sent = true;
-    send_update_chat_online_member_count(dialog_id, online_member_count);
-  }
-  if (d->open_count > 0) {
-    if (is_from_server) {
-      update_dialog_online_member_count_timeout_.set_timeout_in(dialog_id.get(), ONLINE_MEMBER_COUNT_UPDATE_TIME);
-    } else {
-      update_dialog_online_member_count_timeout_.add_timeout_in(dialog_id.get(), ONLINE_MEMBER_COUNT_UPDATE_TIME);
-    }
-  }
-}
-
-void MessagesManager::on_update_dialog_online_member_count_timeout(DialogId dialog_id) {
-  if (G()->close_flag()) {
-    return;
-  }
-
-  LOG(INFO) << "Expired timeout for number of online members in " << dialog_id;
-  Dialog *d = get_dialog(dialog_id);
-  CHECK(d != nullptr);
-  if (d->open_count == 0) {
-    send_update_chat_online_member_count(dialog_id, 0);
-    return;
-  }
-
-  if (dialog_id.get_type() == DialogType::Channel && !td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
-    auto participant_count = td_->contacts_manager_->get_channel_participant_count(dialog_id.get_channel_id());
-    auto has_hidden_participants = td_->contacts_manager_->get_channel_effective_has_hidden_participants(
-        dialog_id.get_channel_id(), "on_update_dialog_online_member_count_timeout");
-    if (participant_count == 0 || participant_count >= 195 || has_hidden_participants) {
-      td_->create_handler<GetOnlinesQuery>()->send(dialog_id);
-    } else {
-      td_->contacts_manager_->get_channel_participants(dialog_id.get_channel_id(),
-                                                       td_api::make_object<td_api::supergroupMembersFilterRecent>(),
-                                                       string(), 0, 200, 200, Auto());
-    }
-    return;
-  }
-  if (dialog_id.get_type() == DialogType::Chat) {
-    // we need actual online status state, so we need to reget chat participants
-    td_->contacts_manager_->repair_chat_participants(dialog_id.get_chat_id());
-    return;
   }
 }
 
@@ -20411,15 +20253,7 @@ void MessagesManager::open_dialog(Dialog *d) {
   }
 
   if (!td_->auth_manager_->is_bot()) {
-    auto online_count_it = dialog_online_member_counts_.find(dialog_id);
-    if (online_count_it != dialog_online_member_counts_.end()) {
-      auto &info = online_count_it->second;
-      CHECK(!info.is_update_sent);
-      if (Time::now() - info.update_time < ONLINE_MEMBER_COUNT_CACHE_EXPIRE_TIME) {
-        info.is_update_sent = true;
-        send_update_chat_online_member_count(dialog_id, info.online_member_count);
-      }
-    }
+    td_->dialog_online_member_manager_->on_dialog_opened(dialog_id);
 
     if (d->has_scheduled_database_messages && !d->is_has_scheduled_database_messages_checked) {
       CHECK(G()->use_message_database());
@@ -20512,12 +20346,7 @@ void MessagesManager::close_dialog(Dialog *d) {
       send_update_chat_read_inbox(d, false, "close_dialog");
     }
 
-    auto online_count_it = dialog_online_member_counts_.find(dialog_id);
-    if (online_count_it != dialog_online_member_counts_.end()) {
-      auto &info = online_count_it->second;
-      info.is_update_sent = false;
-    }
-    update_dialog_online_member_count_timeout_.set_timeout_in(dialog_id.get(), ONLINE_MEMBER_COUNT_CACHE_EXPIRE_TIME);
+    td_->dialog_online_member_manager_->on_dialog_closed(dialog_id);
   }
 }
 
@@ -30302,16 +30131,6 @@ void MessagesManager::send_update_chat_position(DialogListId dialog_list_id, con
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateChatPosition>(get_chat_id_object(d->dialog_id, "updateChatPosition"),
                                                                std::move(position)));
-}
-
-void MessagesManager::send_update_chat_online_member_count(DialogId dialog_id, int32 online_member_count) const {
-  if (td_->auth_manager_->is_bot()) {
-    return;
-  }
-
-  send_closure(G()->td(), &Td::send_update,
-               td_api::make_object<td_api::updateChatOnlineMemberCount>(
-                   get_chat_id_object(dialog_id, "updateChatOnlineMemberCount"), online_member_count));
 }
 
 void MessagesManager::send_update_secret_chats_with_user_action_bar(const Dialog *d) const {
@@ -40341,14 +40160,6 @@ void MessagesManager::get_current_state(vector<td_api::object_ptr<td_api::Update
           get_chat_positions_object(d)));
     }
     updates.push_back(std::move(update));
-
-    if (d->open_count > 0) {
-      auto info_it = dialog_online_member_counts_.find(dialog_id);
-      if (info_it != dialog_online_member_counts_.end() && info_it->second.is_update_sent) {
-        updates.push_back(td_api::make_object<td_api::updateChatOnlineMemberCount>(
-            get_chat_id_object(dialog_id, "updateChatOnlineMemberCount"), info_it->second.online_member_count));
-      }
-    }
   });
   append(updates, std::move(last_message_updates));
 }

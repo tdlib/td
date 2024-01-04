@@ -4429,6 +4429,8 @@ void Td::on_request(uint64 id, const td_api::getCurrentState &request) {
 
     messages_manager_->get_current_state(updates);
 
+    dialog_online_member_manager_->get_current_state(updates);
+
     notification_manager_->get_current_state(updates);
 
     story_manager_->get_current_state(updates);

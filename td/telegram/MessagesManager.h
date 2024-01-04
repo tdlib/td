@@ -132,8 +132,6 @@ class MessagesManager final : public Actor {
   static constexpr int32 SEND_MESSAGE_FLAG_UPDATE_STICKER_SETS_ORDER = 1 << 15;
   static constexpr int32 SEND_MESSAGE_FLAG_INVERT_MEDIA = 1 << 16;
 
-  static constexpr int32 ONLINE_MEMBER_COUNT_CACHE_EXPIRE_TIME = 30 * 60;
-
   MessagesManager(Td *td, ActorShared<> parent);
   MessagesManager(const MessagesManager &) = delete;
   MessagesManager &operator=(const MessagesManager &) = delete;
@@ -343,8 +341,6 @@ class MessagesManager final : public Actor {
 
   void on_update_channel_max_unavailable_message_id(ChannelId channel_id, MessageId max_unavailable_message_id,
                                                     const char *source);
-
-  void on_update_dialog_online_member_count(DialogId dialog_id, int32 online_member_count, bool is_from_server);
 
   void on_update_delete_scheduled_messages(DialogId dialog_id, vector<ScheduledServerMessageId> &&server_message_ids);
 
@@ -1676,8 +1672,6 @@ class MessagesManager final : public Actor {
   static constexpr int32 AUTH_NOTIFICATION_ID_CACHE_TIME = 7 * 86400;
   static constexpr size_t MAX_SAVED_AUTH_NOTIFICATION_IDS = 100;
 
-  static constexpr int32 ONLINE_MEMBER_COUNT_UPDATE_TIME = 5 * 60;
-
   static constexpr int32 MAX_RESEND_DELAY = 86400;  // seconds, some resonable limit
 
   static constexpr int32 SCHEDULE_WHEN_ONLINE_DATE = 2147483646;
@@ -2141,11 +2135,6 @@ class MessagesManager final : public Actor {
   void set_dialog_max_unavailable_message_id(DialogId dialog_id, MessageId max_unavailable_message_id, bool from_update,
                                              const char *source);
 
-  void set_dialog_online_member_count(DialogId dialog_id, int32 online_member_count, bool is_from_server,
-                                      const char *source);
-
-  void on_update_dialog_online_member_count_timeout(DialogId dialog_id);
-
   void on_update_viewed_messages_timeout(DialogId dialog_id);
 
   void on_send_update_chat_read_inbox_timeout(DialogId dialog_id);
@@ -2425,8 +2414,6 @@ class MessagesManager final : public Actor {
   void send_update_chat_unread_reaction_count(const Dialog *d, const char *source);
 
   void send_update_chat_position(DialogListId dialog_list_id, const Dialog *d, const char *source) const;
-
-  void send_update_chat_online_member_count(DialogId dialog_id, int32 online_member_count) const;
 
   void send_update_secret_chats_with_user_action_bar(const Dialog *d) const;
 
@@ -3052,8 +3039,6 @@ class MessagesManager final : public Actor {
 
   static void on_active_dialog_action_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int);
 
-  static void on_update_dialog_online_member_count_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int);
-
   static void on_preload_folder_dialog_list_timeout_callback(void *messages_manager_ptr, int64 folder_id_int);
 
   static void on_update_viewed_messages_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int);
@@ -3490,7 +3475,6 @@ class MessagesManager final : public Actor {
   MultiTimeout dialog_unmute_timeout_{"DialogUnmuteTimeout"};
   MultiTimeout pending_send_dialog_action_timeout_{"PendingSendDialogActionTimeout"};
   MultiTimeout active_dialog_action_timeout_{"ActiveDialogActionTimeout"};
-  MultiTimeout update_dialog_online_member_count_timeout_{"UpdateDialogOnlineMemberCountTimeout"};
   MultiTimeout preload_folder_dialog_list_timeout_{"PreloadFolderDialogListTimeout"};
   MultiTimeout update_viewed_messages_timeout_{"UpdateViewedMessagesTimeout"};
   MultiTimeout send_update_chat_read_inbox_timeout_{"SendUpdateChatReadInboxTimeout"};
@@ -3604,13 +3588,6 @@ class MessagesManager final : public Actor {
     uint64 current_view_id = 0;
   };
   FlatHashMap<DialogId, unique_ptr<ViewedMessagesInfo>, DialogIdHash> dialog_viewed_messages_;
-
-  struct OnlineMemberCountInfo {
-    int32 online_member_count = 0;
-    double update_time = 0;
-    bool is_update_sent = false;
-  };
-  FlatHashMap<DialogId, OnlineMemberCountInfo, DialogIdHash> dialog_online_member_counts_;
 
   struct ReactionsToReload {
     FlatHashSet<MessageId, MessageIdHash> message_ids;
