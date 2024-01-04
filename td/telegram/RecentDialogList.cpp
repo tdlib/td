@@ -141,7 +141,7 @@ void RecentDialogList::on_load_dialogs(vector<string> &&found_dialogs) {
     } else {
       dialog_id = DialogId(to_integer<int64>(*it));
     }
-    if (dialog_id.is_valid() && removed_dialog_ids_.count(dialog_id) == 0 &&
+    if (dialog_id.is_valid() && td::contains(removed_dialog_ids_, dialog_id) == 0 &&
         td_->dialog_manager_->have_dialog_info(dialog_id) &&
         td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
       td_->dialog_manager_->force_create_dialog(dialog_id, "recent dialog");
@@ -176,7 +176,7 @@ bool RecentDialogList::do_add_dialog(DialogId dialog_id) {
 
   add_to_top(dialog_ids_, max_size_, dialog_id);
 
-  removed_dialog_ids_.erase(dialog_id);
+  td::remove(removed_dialog_ids_, dialog_id);
   return true;
 }
 
@@ -189,8 +189,8 @@ void RecentDialogList::remove_dialog(DialogId dialog_id) {
   }
   if (td::remove(dialog_ids_, dialog_id)) {
     save_dialogs();
-  } else if (!is_loaded_) {
-    removed_dialog_ids_.insert(dialog_id);
+  } else if (!is_loaded_ && !td::contains(removed_dialog_ids_, dialog_id)) {
+    removed_dialog_ids_.push_back(dialog_id);
   }
 }
 
