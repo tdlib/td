@@ -151,9 +151,6 @@ class MessagesManager final : public Actor {
 
   static int32 get_message_date(const tl_object_ptr<telegram_api::Message> &message_ptr);
 
-  vector<DialogId> get_peers_dialog_ids(vector<tl_object_ptr<telegram_api::Peer>> &&peers,
-                                        bool expect_no_access = false);
-
   void on_get_empty_messages(DialogId dialog_id, const vector<MessageId> &empty_message_ids);
 
   void get_channel_difference_if_needed(DialogId dialog_id, MessagesInfo &&messages_info,

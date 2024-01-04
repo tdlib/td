@@ -59,6 +59,9 @@ class DialogManager final : public Actor {
   void force_create_dialog(DialogId dialog_id, const char *source, bool expect_no_access = false,
                            bool force_update_dialog_pos = false);
 
+  vector<DialogId> get_peers_dialog_ids(vector<telegram_api::object_ptr<telegram_api::Peer>> &&peers,
+                                        bool expect_no_access = false);
+
   bool have_dialog_info(DialogId dialog_id) const;
 
   bool have_dialog_info_force(DialogId dialog_id, const char *source) const;

@@ -399,7 +399,7 @@ class GetChatlistUpdatesQuery final : public Td::ResultHandler {
     LOG(INFO) << "Receive result for GetChatlistUpdatesQuery: " << to_string(ptr);
     td_->contacts_manager_->on_get_users(std::move(ptr->users_), "GetChatlistUpdatesQuery");
     td_->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetChatlistUpdatesQuery");
-    auto missing_dialog_ids = td_->messages_manager_->get_peers_dialog_ids(std::move(ptr->missing_peers_), true);
+    auto missing_dialog_ids = td_->dialog_manager_->get_peers_dialog_ids(std::move(ptr->missing_peers_), true);
     promise_.set_value(td_->dialog_manager_->get_chats_object(-1, missing_dialog_ids, "GetChatlistUpdatesQuery"));
   }
 
@@ -1709,7 +1709,7 @@ void DialogFilterManager::on_get_leave_dialog_filter_suggestions(
     return promise.set_value(td_api::make_object<td_api::chats>());
   }
 
-  auto dialog_ids = td_->messages_manager_->get_peers_dialog_ids(std::move(peers));
+  auto dialog_ids = td_->dialog_manager_->get_peers_dialog_ids(std::move(peers));
   td::remove_if(dialog_ids, [&](DialogId dialog_id) { return !dialog_filter->is_dialog_included(dialog_id); });
   promise.set_value(td_->dialog_manager_->get_chats_object(-1, dialog_ids, "on_get_leave_dialog_filter_suggestions"));
 }
@@ -2022,8 +2022,8 @@ void DialogFilterManager::on_get_chatlist_invite(
   td_->contacts_manager_->on_get_users(std::move(users), "on_get_chatlist_invite");
   td_->contacts_manager_->on_get_chats(std::move(chats), "on_get_chatlist_invite");
 
-  auto missing_dialog_ids = td_->messages_manager_->get_peers_dialog_ids(std::move(missing_peers), true);
-  auto already_dialog_ids = td_->messages_manager_->get_peers_dialog_ids(std::move(already_peers));
+  auto missing_dialog_ids = td_->dialog_manager_->get_peers_dialog_ids(std::move(missing_peers), true);
+  auto already_dialog_ids = td_->dialog_manager_->get_peers_dialog_ids(std::move(already_peers));
   promise.set_value(td_api::make_object<td_api::chatFolderInviteLinkInfo>(
       std::move(info), td_->dialog_manager_->get_chat_ids_object(missing_dialog_ids, "chatFolderInviteLinkInfo 1"),
       td_->dialog_manager_->get_chat_ids_object(already_dialog_ids, "chatFolderInviteLinkInfo 1")));

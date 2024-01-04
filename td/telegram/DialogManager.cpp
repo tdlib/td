@@ -181,6 +181,20 @@ void DialogManager::force_create_dialog(DialogId dialog_id, const char *source, 
   td_->messages_manager_->force_create_dialog(dialog_id, source, expect_no_access, force_update_dialog_pos);
 }
 
+vector<DialogId> DialogManager::get_peers_dialog_ids(vector<telegram_api::object_ptr<telegram_api::Peer>> &&peers,
+                                                     bool expect_no_access) {
+  vector<DialogId> result;
+  result.reserve(peers.size());
+  for (auto &peer : peers) {
+    DialogId dialog_id(peer);
+    if (dialog_id.is_valid()) {
+      force_create_dialog(dialog_id, "get_peers_dialog_ids", expect_no_access);
+      result.push_back(dialog_id);
+    }
+  }
+  return result;
+}
+
 bool DialogManager::have_dialog_info(DialogId dialog_id) const {
   switch (dialog_id.get_type()) {
     case DialogType::User: {
