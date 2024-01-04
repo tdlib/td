@@ -54,6 +54,7 @@ class CountryInfoManager;
 class DeviceTokenManager;
 class DialogFilterManager;
 class DialogManager;
+class DialogOnlineMemberManager;
 class DocumentsManager;
 class DownloadManager;
 class FileManager;
@@ -177,6 +178,8 @@ class Td final : public Actor {
   ActorOwn<DialogFilterManager> dialog_filter_manager_actor_;
   unique_ptr<DialogManager> dialog_manager_;
   ActorOwn<DialogManager> dialog_manager_actor_;
+  unique_ptr<DialogOnlineMemberManager> dialog_online_member_manager_;
+  ActorOwn<DialogOnlineMemberManager> dialog_online_member_manager_actor_;
   unique_ptr<DownloadManager> download_manager_;
   ActorOwn<DownloadManager> download_manager_actor_;
   unique_ptr<FileManager> file_manager_;
