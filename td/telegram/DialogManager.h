@@ -12,6 +12,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/EmojiStatus.h"
+#include "td/telegram/InputDialogId.h"
 #include "td/telegram/NotificationSettingsScope.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/td_api.h"
@@ -32,6 +33,8 @@ class DialogManager final : public Actor {
   DialogManager(Td *td, ActorShared<> parent);
 
   DialogId get_my_dialog_id() const;
+
+  InputDialogId get_input_dialog_id(DialogId dialog_id) const;
 
   tl_object_ptr<telegram_api::InputPeer> get_input_peer(DialogId dialog_id, AccessRights access_rights) const;
 

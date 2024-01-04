@@ -657,8 +657,6 @@ class MessagesManager final : public Actor {
 
   td_api::object_ptr<td_api::messageLinkInfo> get_message_link_info_object(const MessageLinkInfo &info) const;
 
-  InputDialogId get_input_dialog_id(DialogId dialog_id) const;
-
   bool is_dialog_in_dialog_list(DialogId dialog_id) const;
 
   Status can_add_dialog_to_filter(DialogId dialog_id);

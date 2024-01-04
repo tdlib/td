@@ -31,6 +31,16 @@ DialogId DialogManager::get_my_dialog_id() const {
   return DialogId(td_->contacts_manager_->get_my_id());
 }
 
+InputDialogId DialogManager::get_input_dialog_id(DialogId dialog_id) const {
+  auto input_peer = get_input_peer(dialog_id, AccessRights::Read);
+  if (input_peer == nullptr || input_peer->get_id() == telegram_api::inputPeerSelf::ID ||
+      input_peer->get_id() == telegram_api::inputPeerEmpty::ID) {
+    return InputDialogId(dialog_id);
+  } else {
+    return InputDialogId(input_peer);
+  }
+}
+
 tl_object_ptr<telegram_api::InputPeer> DialogManager::get_input_peer(DialogId dialog_id,
                                                                      AccessRights access_rights) const {
   switch (dialog_id.get_type()) {

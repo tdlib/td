@@ -18749,16 +18749,6 @@ td_api::object_ptr<td_api::messageLinkInfo> MessagesManager::get_message_link_in
                                                       for_album);
 }
 
-InputDialogId MessagesManager::get_input_dialog_id(DialogId dialog_id) const {
-  auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
-  if (input_peer == nullptr || input_peer->get_id() == telegram_api::inputPeerSelf::ID ||
-      input_peer->get_id() == telegram_api::inputPeerEmpty::ID) {
-    return InputDialogId(dialog_id);
-  } else {
-    return InputDialogId(input_peer);
-  }
-}
-
 Status MessagesManager::can_add_dialog_to_filter(DialogId dialog_id) {
   if (!dialog_id.is_valid()) {
     return Status::Error(400, "Invalid chat identifier specified");
@@ -18977,8 +18967,8 @@ Status MessagesManager::toggle_dialog_is_pinned(DialogListId dialog_list_id, Dia
   }
 
   if (dialog_list_id.is_filter()) {
-    return td_->dialog_filter_manager_->set_dialog_is_pinned(dialog_list_id.get_filter_id(),
-                                                             get_input_dialog_id(dialog_id), is_pinned);
+    return td_->dialog_filter_manager_->set_dialog_is_pinned(
+        dialog_list_id.get_filter_id(), td_->dialog_manager_->get_input_dialog_id(dialog_id), is_pinned);
   }
 
   CHECK(dialog_list_id.is_folder());
@@ -19111,7 +19101,8 @@ Status MessagesManager::set_pinned_dialogs(DialogListId dialog_list_id, vector<D
   if (dialog_list_id.is_filter()) {
     return td_->dialog_filter_manager_->set_pinned_dialog_ids(
         dialog_list_id.get_filter_id(),
-        transform(dialog_ids, [this](DialogId dialog_id) { return get_input_dialog_id(dialog_id); }),
+        transform(dialog_ids,
+                  [this](DialogId dialog_id) { return td_->dialog_manager_->get_input_dialog_id(dialog_id); }),
         server_old_dialog_ids != server_new_dialog_ids);
   }
 
@@ -33352,8 +33343,8 @@ void MessagesManager::add_dialog_to_list(DialogId dialog_id, DialogListId dialog
   }
 
   if (dialog_list_id.is_filter()) {
-    return promise.set_result(
-        td_->dialog_filter_manager_->add_dialog(dialog_list_id.get_filter_id(), get_input_dialog_id(dialog_id)));
+    return promise.set_result(td_->dialog_filter_manager_->add_dialog(
+        dialog_list_id.get_filter_id(), td_->dialog_manager_->get_input_dialog_id(dialog_id)));
   }
 
   CHECK(dialog_list_id.is_folder());

@@ -116,7 +116,7 @@ Result<unique_ptr<DialogFilter>> DialogFilter::create_dialog_filter(Td *td, Dial
         continue;
       }
 
-      input_dialog_ids.push_back(td->messages_manager_->get_input_dialog_id(DialogId(chat_id)));
+      input_dialog_ids.push_back(td->dialog_manager_->get_input_dialog_id(DialogId(chat_id)));
     }
   };
   add_chats(dialog_filter->pinned_dialog_ids_, filter->pinned_chat_ids_);
