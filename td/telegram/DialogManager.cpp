@@ -298,6 +298,12 @@ void DialogManager::reload_dialog_info_full(DialogId dialog_id, const char *sour
   }
 }
 
+void DialogManager::on_dialog_info_full_invalidated(DialogId dialog_id) {
+  if (td_->messages_manager_->is_dialog_opened(dialog_id)) {
+    reload_dialog_info_full(dialog_id, "on_dialog_info_full_invalidated");
+  }
+}
+
 int64 DialogManager::get_chat_id_object(DialogId dialog_id, const char *source) const {
   return td_->messages_manager_->get_chat_id_object(dialog_id, source);
 }

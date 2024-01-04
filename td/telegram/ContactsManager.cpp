@@ -10816,7 +10816,7 @@ void ContactsManager::on_update_phone_number_privacy() {
 void ContactsManager::invalidate_user_full(UserId user_id) {
   auto user_full = get_user_full_force(user_id);
   if (user_full != nullptr) {
-    td_->messages_manager_->on_dialog_info_full_invalidated(DialogId(user_id));
+    td_->dialog_manager_->on_dialog_info_full_invalidated(DialogId(user_id));
 
     if (!user_full->is_expired()) {
       user_full->expires_at = 0.0;
@@ -15912,7 +15912,7 @@ void ContactsManager::invalidate_channel_full(ChannelId channel_id, bool need_dr
 void ContactsManager::do_invalidate_channel_full(ChannelFull *channel_full, ChannelId channel_id,
                                                  bool need_drop_slow_mode_delay) {
   CHECK(channel_full != nullptr);
-  td_->messages_manager_->on_dialog_info_full_invalidated(DialogId(channel_id));
+  td_->dialog_manager_->on_dialog_info_full_invalidated(DialogId(channel_id));
   if (channel_full->expires_at >= Time::now()) {
     channel_full->expires_at = 0.0;
     channel_full->need_save_to_database = true;

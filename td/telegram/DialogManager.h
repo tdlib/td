@@ -72,6 +72,8 @@ class DialogManager final : public Actor {
 
   void reload_dialog_info_full(DialogId dialog_id, const char *source);
 
+  void on_dialog_info_full_invalidated(DialogId dialog_id);
+
   int64 get_chat_id_object(DialogId dialog_id, const char *source) const;
 
   vector<int64> get_chat_ids_object(const vector<DialogId> &dialog_ids, const char *source) const;

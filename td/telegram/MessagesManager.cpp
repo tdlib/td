@@ -17824,13 +17824,6 @@ void MessagesManager::reload_dialog_notification_settings(DialogId dialog_id, Pr
   }
 }
 
-void MessagesManager::on_dialog_info_full_invalidated(DialogId dialog_id) {
-  Dialog *d = get_dialog(dialog_id);
-  if (d != nullptr && d->open_count > 0) {
-    td_->dialog_manager_->reload_dialog_info_full(dialog_id, "on_dialog_info_full_invalidated");
-  }
-}
-
 MessageId MessagesManager::get_dialog_pinned_message(DialogId dialog_id, Promise<Unit> &&promise) {
   Dialog *d = get_dialog_force(dialog_id, "get_dialog_pinned_message");
   if (d == nullptr) {
