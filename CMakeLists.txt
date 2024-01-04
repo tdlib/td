@@ -308,6 +308,7 @@ set(TDLIB_SOURCE
   td/telegram/ChannelParticipantFilter.cpp
   td/telegram/ChatReactions.cpp
   td/telegram/ClientActor.cpp
+  td/telegram/CommonDialogManager.cpp
   td/telegram/ConfigManager.cpp
   td/telegram/ConnectionState.cpp
   td/telegram/Contact.cpp
@@ -579,6 +580,7 @@ set(TDLIB_SOURCE
   td/telegram/ChatId.h
   td/telegram/ChatReactions.h
   td/telegram/ClientActor.h
+  td/telegram/CommonDialogManager.h
   td/telegram/ConfigManager.h
   td/telegram/ConnectionState.h
   td/telegram/Contact.h

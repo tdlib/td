@@ -28,6 +28,7 @@
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChannelType.h"
 #include "td/telegram/ChatId.h"
+#include "td/telegram/CommonDialogManager.h"
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/CountryInfoManager.h"
@@ -3283,6 +3284,8 @@ void Td::dec_actor_refcnt() {
       LOG(DEBUG) << "BotInfoManager was cleared" << timer;
       callback_queries_manager_.reset();
       LOG(DEBUG) << "CallbackQueriesManager was cleared" << timer;
+      common_dialog_manager_.reset();
+      LOG(DEBUG) << "CommonDialogManager was cleared" << timer;
       contacts_manager_.reset();
       LOG(DEBUG) << "ContactsManager was cleared" << timer;
       country_info_manager_.reset();
@@ -3498,6 +3501,8 @@ void Td::clear() {
   LOG(DEBUG) << "BoostManager actor was cleared" << timer;
   bot_info_manager_actor_.reset();
   LOG(DEBUG) << "BotInfoManager actor was cleared" << timer;
+  common_dialog_manager_actor_.reset();
+  LOG(DEBUG) << "CommonDialogManager actor was cleared" << timer;
   contacts_manager_actor_.reset();
   LOG(DEBUG) << "ContactsManager actor was cleared" << timer;
   country_info_manager_actor_.reset();
@@ -3992,6 +3997,8 @@ void Td::init_managers() {
   G()->set_boost_manager(boost_manager_actor_.get());
   bot_info_manager_ = make_unique<BotInfoManager>(this, create_reference());
   bot_info_manager_actor_ = register_actor("BotInfoManager", bot_info_manager_.get());
+  common_dialog_manager_ = make_unique<CommonDialogManager>(this, create_reference());
+  common_dialog_manager_actor_ = register_actor("CommonDialogManager", common_dialog_manager_.get());
   contacts_manager_ = make_unique<ContactsManager>(this, create_reference());
   contacts_manager_actor_ = register_actor("ContactsManager", contacts_manager_.get());
   G()->set_contacts_manager(contacts_manager_actor_.get());

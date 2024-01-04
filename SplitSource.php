@@ -285,6 +285,7 @@ function split_file($file, $chunks, $undo) {
                 'background_manager[_(-][^.]|BackgroundManager' => "BackgroundManager",
                 'boost_manager[_(-][^.]|BoostManager' => "BoostManager",
                 'bot_info_manager[_(-][^.]|BotInfoManager' => "BotInfoManager",
+                'common_dialog_manager[_(-][^.]|CommonDialogManager' => "CommonDialogManager",
                 'contacts_manager[_(-][^.]|ContactsManager([^ ;.]| [^*])' => 'ContactsManager',
                 'country_info_manager[_(-][^.]|CountryInfoManager' => 'CountryInfoManager',
                 'dialog_filter_manager[_(-][^.]|DialogFilterManager' => "DialogFilterManager",
