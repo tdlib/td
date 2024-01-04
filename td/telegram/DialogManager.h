@@ -12,6 +12,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/EmojiStatus.h"
+#include "td/telegram/files/FileId.h"
 #include "td/telegram/InputDialogId.h"
 #include "td/telegram/NotificationSettingsScope.h"
 #include "td/telegram/Photo.h"
@@ -21,6 +22,7 @@
 #include "td/actor/actor.h"
 
 #include "td/utils/common.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/Promise.h"
 #include "td/utils/Status.h"
 
@@ -120,6 +122,9 @@ class DialogManager final : public Actor {
 
   void set_dialog_title(DialogId dialog_id, const string &title, Promise<Unit> &&promise);
 
+  void set_dialog_photo(DialogId dialog_id, const td_api::object_ptr<td_api::InputChatPhoto> &input_photo,
+                        Promise<Unit> &&promise);
+
   void set_dialog_accent_color(DialogId dialog_id, AccentColorId accent_color_id,
                                CustomEmojiId background_custom_emoji_id, Promise<Unit> &&promise);
 
@@ -139,10 +144,42 @@ class DialogManager final : public Actor {
 
   bool is_dialog_removed_from_dialog_list(DialogId dialog_id) const;
 
+  void upload_dialog_photo(DialogId dialog_id, FileId file_id, bool is_animation, double main_frame_timestamp,
+                           bool is_reupload, Promise<Unit> &&promise, vector<int> bad_parts = {});
+
  private:
   static constexpr size_t MAX_TITLE_LENGTH = 128;  // server side limit for chat title
 
   void tear_down() final;
+
+  void on_upload_dialog_photo(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);
+
+  void on_upload_dialog_photo_error(FileId file_id, Status status);
+
+  void send_edit_dialog_photo_query(DialogId dialog_id, FileId file_id,
+                                    telegram_api::object_ptr<telegram_api::InputChatPhoto> &&input_chat_photo,
+                                    Promise<Unit> &&promise);
+
+  class UploadDialogPhotoCallback;
+  std::shared_ptr<UploadDialogPhotoCallback> upload_dialog_photo_callback_;
+
+  struct UploadedDialogPhotoInfo {
+    DialogId dialog_id;
+    double main_frame_timestamp;
+    bool is_animation;
+    bool is_reupload;
+    Promise<Unit> promise;
+
+    UploadedDialogPhotoInfo(DialogId dialog_id, double main_frame_timestamp, bool is_animation, bool is_reupload,
+                            Promise<Unit> promise)
+        : dialog_id(dialog_id)
+        , main_frame_timestamp(main_frame_timestamp)
+        , is_animation(is_animation)
+        , is_reupload(is_reupload)
+        , promise(std::move(promise)) {
+    }
+  };
+  FlatHashMap<FileId, UploadedDialogPhotoInfo, FileIdHash> being_uploaded_dialog_photos_;
 
   Td *td_;
   ActorShared<> parent_;

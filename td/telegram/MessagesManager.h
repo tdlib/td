@@ -522,9 +522,6 @@ class MessagesManager final : public Actor {
 
   void add_dialog_to_list(DialogId dialog_id, DialogListId dialog_list_id, Promise<Unit> &&promise);
 
-  void set_dialog_photo(DialogId dialog_id, const tl_object_ptr<td_api::InputChatPhoto> &input_photo,
-                        Promise<Unit> &&promise);
-
   void set_active_reactions(vector<ReactionType> active_reaction_types);
 
   void set_dialog_available_reactions(DialogId dialog_id,
@@ -947,9 +944,6 @@ class MessagesManager final : public Actor {
   void remove_scope_pinned_message_notifications(NotificationSettingsScope scope);
 
   void on_update_scope_mention_notifications(NotificationSettingsScope scope, bool disable_mention_notifications);
-
-  void upload_dialog_photo(DialogId dialog_id, FileId file_id, bool is_animation, double main_frame_timestamp,
-                           bool is_reupload, Promise<Unit> &&promise, vector<int> bad_parts = {});
 
   void on_binlog_events(vector<BinlogEvent> &&events);
 
@@ -3035,13 +3029,6 @@ class MessagesManager final : public Actor {
   void on_load_secret_thumbnail(FileId thumbnail_file_id, BufferSlice thumbnail);
   void on_upload_thumbnail(FileId thumbnail_file_id, tl_object_ptr<telegram_api::InputFile> thumbnail_input_file);
 
-  void on_upload_dialog_photo(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file);
-  void on_upload_dialog_photo_error(FileId file_id, Status status);
-
-  void send_edit_dialog_photo_query(DialogId dialog_id, FileId file_id,
-                                    tl_object_ptr<telegram_api::InputChatPhoto> &&input_chat_photo,
-                                    Promise<Unit> &&promise);
-
   void upload_imported_messages(DialogId dialog_id, FileId file_id, vector<FileId> attached_file_ids, bool is_reupload,
                                 Promise<Unit> &&promise, vector<int> bad_parts = {});
 
@@ -3187,13 +3174,11 @@ class MessagesManager final : public Actor {
 
   class UploadMediaCallback;
   class UploadThumbnailCallback;
-  class UploadDialogPhotoCallback;
   class UploadImportedMessagesCallback;
   class UploadImportedMessageAttachmentCallback;
 
   std::shared_ptr<UploadMediaCallback> upload_media_callback_;
   std::shared_ptr<UploadThumbnailCallback> upload_thumbnail_callback_;
-  std::shared_ptr<UploadDialogPhotoCallback> upload_dialog_photo_callback_;
   std::shared_ptr<UploadImportedMessagesCallback> upload_imported_messages_callback_;
   std::shared_ptr<UploadImportedMessageAttachmentCallback> upload_imported_message_attachment_callback_;
 
@@ -3259,24 +3244,6 @@ class MessagesManager final : public Actor {
       update_scheduled_message_ids_;  // new_message_id -> temporary_id
 
   const char *debug_add_message_to_dialog_fail_reason_ = "";
-
-  struct UploadedDialogPhotoInfo {
-    DialogId dialog_id;
-    double main_frame_timestamp;
-    bool is_animation;
-    bool is_reupload;
-    Promise<Unit> promise;
-
-    UploadedDialogPhotoInfo(DialogId dialog_id, double main_frame_timestamp, bool is_animation, bool is_reupload,
-                            Promise<Unit> promise)
-        : dialog_id(dialog_id)
-        , main_frame_timestamp(main_frame_timestamp)
-        , is_animation(is_animation)
-        , is_reupload(is_reupload)
-        , promise(std::move(promise)) {
-    }
-  };
-  FlatHashMap<FileId, UploadedDialogPhotoInfo, FileIdHash> being_uploaded_dialog_photos_;
 
   struct UploadedImportedMessagesInfo {
     DialogId dialog_id;
