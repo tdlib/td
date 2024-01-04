@@ -6,13 +6,10 @@
 //
 #pragma once
 
-#include "td/telegram/AccentColorId.h"
-#include "td/telegram/AccessRights.h"
 #include "td/telegram/AffectedHistory.h"
 #include "td/telegram/BackgroundInfo.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatReactions.h"
-#include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/DialogAction.h"
 #include "td/telegram/DialogDate.h"
 #include "td/telegram/DialogDb.h"
@@ -28,7 +25,6 @@
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/FolderId.h"
-#include "td/telegram/InputDialogId.h"
 #include "td/telegram/InputGroupCallId.h"
 #include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/MessageContentType.h"
@@ -57,7 +53,6 @@
 #include "td/telegram/NotificationId.h"
 #include "td/telegram/NotificationSettingsScope.h"
 #include "td/telegram/OrderedMessage.h"
-#include "td/telegram/Photo.h"
 #include "td/telegram/ReactionType.h"
 #include "td/telegram/RecentDialogList.h"
 #include "td/telegram/RepliedMessageInfo.h"
@@ -113,7 +108,6 @@ class Dependencies;
 class DialogActionBar;
 class DialogFilter;
 class DraftMessage;
-class EmojiStatus;
 struct InputMessageContent;
 class MessageContent;
 struct MessageReactions;

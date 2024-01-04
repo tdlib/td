@@ -8,15 +8,19 @@
 
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ChannelId.h"
+#include "td/telegram/ChannelType.h"
 #include "td/telegram/ChatId.h"
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UserId.h"
 
 #include "td/utils/algorithm.h"
+#include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/Slice.h"
 
 namespace td {
 

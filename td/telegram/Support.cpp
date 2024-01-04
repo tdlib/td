@@ -7,7 +7,6 @@
 #include "td/telegram/Support.h"
 
 #include "td/telegram/ContactsManager.h"
-#include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageEntity.h"
