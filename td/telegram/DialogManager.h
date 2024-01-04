@@ -14,6 +14,7 @@
 #include "td/telegram/EmojiStatus.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/InputDialogId.h"
+#include "td/telegram/MessageId.h"
 #include "td/telegram/NotificationSettingsScope.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/td_api.h"
@@ -30,6 +31,7 @@
 
 namespace td {
 
+class ReportReason;
 class Td;
 
 class DialogManager final : public Actor {
@@ -139,6 +141,13 @@ class DialogManager final : public Actor {
   void toggle_dialog_has_protected_content(DialogId dialog_id, bool has_protected_content, Promise<Unit> &&promise);
 
   void set_dialog_description(DialogId dialog_id, const string &description, Promise<Unit> &&promise);
+
+  bool can_report_dialog(DialogId dialog_id) const;
+
+  void report_dialog(DialogId dialog_id, const vector<MessageId> &message_ids, ReportReason &&reason,
+                     Promise<Unit> &&promise);
+
+  void report_dialog_photo(DialogId dialog_id, FileId file_id, ReportReason &&reason, Promise<Unit> &&promise);
 
   Status can_pin_messages(DialogId dialog_id) const;
 

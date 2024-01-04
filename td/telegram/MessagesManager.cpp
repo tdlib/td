@@ -68,7 +68,6 @@
 #include "td/telegram/RepliedMessageInfo.hpp"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/ReplyMarkup.hpp"
-#include "td/telegram/ReportReason.h"
 #include "td/telegram/SecretChatsManager.h"
 #include "td/telegram/SponsoredMessageManager.h"
 #include "td/telegram/StickerType.h"
@@ -4079,118 +4078,6 @@ class ReportEncryptedSpamQuery final : public Td::ResultHandler {
     td_->messages_manager_->reget_dialog_action_bar(
         DialogId(td_->contacts_manager_->get_secret_chat_user_id(dialog_id_.get_secret_chat_id())),
         "ReportEncryptedSpamQuery");
-    promise_.set_error(std::move(status));
-  }
-};
-
-class ReportPeerQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
-  DialogId dialog_id_;
-
- public:
-  explicit ReportPeerQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(DialogId dialog_id, const vector<MessageId> &message_ids, ReportReason &&report_reason) {
-    dialog_id_ = dialog_id;
-
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
-    CHECK(input_peer != nullptr);
-
-    if (message_ids.empty()) {
-      send_query(G()->net_query_creator().create(telegram_api::account_reportPeer(
-          std::move(input_peer), report_reason.get_input_report_reason(), report_reason.get_message())));
-    } else {
-      send_query(G()->net_query_creator().create(
-          telegram_api::messages_report(std::move(input_peer), MessageId::get_server_message_ids(message_ids),
-                                        report_reason.get_input_report_reason(), report_reason.get_message())));
-    }
-  }
-
-  void on_result(BufferSlice packet) final {
-    static_assert(
-        std::is_same<telegram_api::account_reportPeer::ReturnType, telegram_api::messages_report::ReturnType>::value,
-        "");
-    auto result_ptr = fetch_result<telegram_api::account_reportPeer>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    bool result = result_ptr.ok();
-    if (!result) {
-      return on_error(Status::Error(400, "Receive false as result"));
-    }
-
-    promise_.set_value(Unit());
-  }
-
-  void on_error(Status status) final {
-    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "ReportPeerQuery");
-    td_->messages_manager_->reget_dialog_action_bar(dialog_id_, "ReportPeerQuery");
-    promise_.set_error(std::move(status));
-  }
-};
-
-class ReportProfilePhotoQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
-  DialogId dialog_id_;
-  FileId file_id_;
-  string file_reference_;
-  ReportReason report_reason_;
-
- public:
-  explicit ReportProfilePhotoQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(DialogId dialog_id, FileId file_id, tl_object_ptr<telegram_api::InputPhoto> &&input_photo,
-            ReportReason &&report_reason) {
-    dialog_id_ = dialog_id;
-    file_id_ = file_id;
-    file_reference_ = FileManager::extract_file_reference(input_photo);
-    report_reason_ = std::move(report_reason);
-
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
-    CHECK(input_peer != nullptr);
-
-    send_query(G()->net_query_creator().create(telegram_api::account_reportProfilePhoto(
-        std::move(input_peer), std::move(input_photo), report_reason_.get_input_report_reason(),
-        report_reason_.get_message())));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::account_reportProfilePhoto>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    bool result = result_ptr.ok();
-    if (!result) {
-      return on_error(Status::Error(400, "Receive false as result"));
-    }
-
-    promise_.set_value(Unit());
-  }
-
-  void on_error(Status status) final {
-    LOG(INFO) << "Receive error for report chat photo: " << status;
-    if (!td_->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
-      VLOG(file_references) << "Receive " << status << " for " << file_id_;
-      td_->file_manager_->delete_file_reference(file_id_, file_reference_);
-      td_->file_reference_manager_->repair_file_reference(
-          file_id_,
-          PromiseCreator::lambda([dialog_id = dialog_id_, file_id = file_id_, report_reason = std::move(report_reason_),
-                                  promise = std::move(promise_)](Result<Unit> result) mutable {
-            if (result.is_error()) {
-              LOG(INFO) << "Reported photo " << file_id << " is likely to be deleted";
-              return promise.set_value(Unit());
-            }
-            send_closure(G()->messages_manager(), &MessagesManager::report_dialog_photo, dialog_id, file_id,
-                         std::move(report_reason), std::move(promise));
-          }));
-      return;
-    }
-
-    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "ReportProfilePhotoQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -8364,109 +8251,6 @@ void MessagesManager::toggle_dialog_report_spam_state_on_server(DialogId dialog_
       UNREACHABLE();
       return;
   }
-}
-
-bool MessagesManager::can_report_dialog(DialogId dialog_id) const {
-  // doesn't include possibility of report from action bar
-  switch (dialog_id.get_type()) {
-    case DialogType::User:
-      return td_->contacts_manager_->can_report_user(dialog_id.get_user_id());
-    case DialogType::Chat:
-      return false;
-    case DialogType::Channel:
-      return !td_->contacts_manager_->get_channel_status(dialog_id.get_channel_id()).is_creator();
-    case DialogType::SecretChat:
-      return false;
-    case DialogType::None:
-    default:
-      UNREACHABLE();
-      return false;
-  }
-}
-
-void MessagesManager::report_dialog(DialogId dialog_id, const vector<MessageId> &message_ids, ReportReason &&reason,
-                                    Promise<Unit> &&promise) {
-  Dialog *d = get_dialog_force(dialog_id, "report_dialog");
-  if (d == nullptr) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
-
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
-    return promise.set_error(Status::Error(400, "Can't access the chat"));
-  }
-
-  Dialog *user_d = d;
-  bool is_dialog_spam_report = false;
-  bool can_report_spam = false;
-  if (reason.is_spam() && message_ids.empty()) {
-    // report from action bar
-    if (dialog_id.get_type() == DialogType::SecretChat) {
-      auto user_dialog_id = DialogId(td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id()));
-      user_d = get_dialog_force(user_dialog_id, "report_dialog 2");
-      if (user_d == nullptr) {
-        return promise.set_error(Status::Error(400, "Chat with the user not found"));
-      }
-    }
-    is_dialog_spam_report = user_d->know_action_bar;
-    can_report_spam = user_d->action_bar != nullptr && user_d->action_bar->can_report_spam();
-  }
-
-  if (is_dialog_spam_report && can_report_spam) {
-    hide_dialog_action_bar(user_d);
-    return toggle_dialog_report_spam_state_on_server(dialog_id, true, 0, std::move(promise));
-  }
-
-  if (!can_report_dialog(dialog_id)) {
-    if (is_dialog_spam_report) {
-      return promise.set_value(Unit());
-    }
-
-    return promise.set_error(Status::Error(400, "Chat can't be reported"));
-  }
-
-  vector<MessageId> server_message_ids;
-  for (auto message_id : message_ids) {
-    if (message_id.is_scheduled()) {
-      return promise.set_error(Status::Error(400, "Can't report scheduled messages"));
-    }
-    if (message_id.is_valid() && message_id.is_server()) {
-      server_message_ids.push_back(message_id);
-    }
-  }
-
-  if (dialog_id.get_type() == DialogType::Channel && reason.is_unrelated_location()) {
-    hide_dialog_action_bar(d);
-  }
-
-  td_->create_handler<ReportPeerQuery>(std::move(promise))->send(dialog_id, server_message_ids, std::move(reason));
-}
-
-void MessagesManager::report_dialog_photo(DialogId dialog_id, FileId file_id, ReportReason &&reason,
-                                          Promise<Unit> &&promise) {
-  Dialog *d = get_dialog_force(dialog_id, "report_dialog_photo");
-  if (d == nullptr) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
-
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
-    return promise.set_error(Status::Error(400, "Can't access the chat"));
-  }
-
-  if (!can_report_dialog(dialog_id)) {
-    return promise.set_error(Status::Error(400, "Chat photo can't be reported"));
-  }
-
-  auto file_view = td_->file_manager_->get_file_view(file_id);
-  if (file_view.empty()) {
-    return promise.set_error(Status::Error(400, "Unknown file ID"));
-  }
-  if (get_main_file_type(file_view.get_type()) != FileType::Photo || !file_view.has_remote_location() ||
-      !file_view.remote_location().is_photo()) {
-    return promise.set_error(Status::Error(400, "Only full chat photos can be reported"));
-  }
-
-  td_->create_handler<ReportProfilePhotoQuery>(std::move(promise))
-      ->send(dialog_id, file_id, file_view.remote_location().as_input_photo(), std::move(reason));
 }
 
 void MessagesManager::on_get_peer_settings(DialogId dialog_id,
@@ -17691,6 +17475,32 @@ bool MessagesManager::is_message_edited_recently(MessageFullId message_full_id, 
   return m->edit_date >= G()->unix_time() - seconds;
 }
 
+MessagesManager::ReportDialogFromActionBar MessagesManager::report_dialog_from_action_bar(DialogId dialog_id,
+                                                                                          Promise<Unit> &promise) {
+  ReportDialogFromActionBar result;
+  Dialog *d = nullptr;
+  if (dialog_id.get_type() == DialogType::SecretChat) {
+    auto user_dialog_id = DialogId(td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id()));
+    d = get_dialog_force(user_dialog_id, "report_dialog_from_action_bar");
+    if (d == nullptr) {
+      promise.set_error(Status::Error(400, "Chat with the user not found"));
+      result.is_reported_ = true;
+      return result;
+    }
+  } else {
+    d = get_dialog(dialog_id);
+    CHECK(d != nullptr);
+  }
+  result.know_action_bar_ = d->know_action_bar;
+
+  if (d->know_action_bar && d->action_bar != nullptr && d->action_bar->can_report_spam()) {
+    result.is_reported_ = true;
+    hide_dialog_action_bar(d);
+    toggle_dialog_report_spam_state_on_server(dialog_id, true, 0, std::move(promise));
+  }
+  return result;
+}
+
 Status MessagesManager::can_get_media_timestamp_link(DialogId dialog_id, const Message *m) {
   if (m == nullptr) {
     return Status::Error(400, "Message not found");
@@ -19947,11 +19757,11 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       get_chat_positions_object(d), get_default_message_sender_object(d), block_list_id.get_block_list_object(),
       td_->dialog_manager_->get_dialog_has_protected_content(d->dialog_id), is_translatable, d->is_marked_as_unread,
       get_dialog_view_as_topics(d), get_dialog_has_scheduled_messages(d), can_delete.for_self_,
-      can_delete.for_all_users_, can_report_dialog(d->dialog_id), d->notification_settings.silent_send_message,
-      d->server_unread_count + d->local_unread_count, d->last_read_inbox_message_id.get(),
-      d->last_read_outbox_message_id.get(), d->unread_mention_count, d->unread_reaction_count,
-      get_chat_notification_settings_object(&d->notification_settings), std::move(available_reactions),
-      d->message_ttl.get_message_auto_delete_time_object(),
+      can_delete.for_all_users_, td_->dialog_manager_->can_report_dialog(d->dialog_id),
+      d->notification_settings.silent_send_message, d->server_unread_count + d->local_unread_count,
+      d->last_read_inbox_message_id.get(), d->last_read_outbox_message_id.get(), d->unread_mention_count,
+      d->unread_reaction_count, get_chat_notification_settings_object(&d->notification_settings),
+      std::move(available_reactions), d->message_ttl.get_message_auto_delete_time_object(),
       td_->dialog_manager_->get_dialog_emoji_status_object(d->dialog_id), get_chat_background_object(d),
       get_dialog_theme_name(d), get_chat_action_bar_object(d), get_video_chat_object(d),
       get_chat_join_requests_info_object(d), d->reply_markup_message_id.get(), std::move(draft_message),

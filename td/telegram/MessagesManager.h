@@ -111,7 +111,6 @@ class DraftMessage;
 struct InputMessageContent;
 class MessageContent;
 struct MessageReactions;
-class ReportReason;
 class Td;
 
 class MessagesManager final : public Actor {
@@ -611,6 +610,12 @@ class MessagesManager final : public Actor {
 
   bool is_message_edited_recently(MessageFullId message_full_id, int32 seconds);
 
+  struct ReportDialogFromActionBar {
+    bool know_action_bar_ = false;
+    bool is_reported_ = false;
+  };
+  ReportDialogFromActionBar report_dialog_from_action_bar(DialogId dialog_id, Promise<Unit> &promise);
+
   bool is_deleted_secret_chat(DialogId dialog_id) const;
 
   Result<std::pair<string, bool>> get_message_link(MessageFullId message_full_id, int32 media_timestamp, bool for_group,
@@ -850,11 +855,6 @@ class MessagesManager final : public Actor {
   void remove_dialog_action_bar(DialogId dialog_id, Promise<Unit> &&promise);
 
   void reget_dialog_action_bar(DialogId dialog_id, const char *source, bool is_repair = true);
-
-  void report_dialog(DialogId dialog_id, const vector<MessageId> &message_ids, ReportReason &&reason,
-                     Promise<Unit> &&promise);
-
-  void report_dialog_photo(DialogId dialog_id, FileId file_id, ReportReason &&reason, Promise<Unit> &&promise);
 
   void on_get_peer_settings(DialogId dialog_id, tl_object_ptr<telegram_api::peerSettings> &&peer_settings,
                             bool ignore_privacy_exception = false);
@@ -1751,8 +1751,6 @@ class MessagesManager final : public Actor {
   bool can_resend_message(const Message *m) const;
 
   bool can_edit_message(DialogId dialog_id, const Message *m, bool is_editing, bool only_reply_markup = false) const;
-
-  bool can_report_dialog(DialogId dialog_id) const;
 
   static Status can_get_media_timestamp_link(DialogId dialog_id, const Message *m);
 

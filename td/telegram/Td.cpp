@@ -8239,8 +8239,8 @@ void Td::on_request(uint64 id, td_api::reportChat &request) {
     return send_error_raw(id, r_report_reason.error().code(), r_report_reason.error().message());
   }
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->report_dialog(DialogId(request.chat_id_), MessageId::get_message_ids(request.message_ids_),
-                                   r_report_reason.move_as_ok(), std::move(promise));
+  dialog_manager_->report_dialog(DialogId(request.chat_id_), MessageId::get_message_ids(request.message_ids_),
+                                 r_report_reason.move_as_ok(), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::reportChatPhoto &request) {
@@ -8250,8 +8250,8 @@ void Td::on_request(uint64 id, td_api::reportChatPhoto &request) {
     return send_error_raw(id, r_report_reason.error().code(), r_report_reason.error().message());
   }
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->report_dialog_photo(DialogId(request.chat_id_), FileId(request.file_id_, 0),
-                                         r_report_reason.move_as_ok(), std::move(promise));
+  dialog_manager_->report_dialog_photo(DialogId(request.chat_id_), FileId(request.file_id_, 0),
+                                       r_report_reason.move_as_ok(), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::reportMessageReactions &request) {
