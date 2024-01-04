@@ -525,8 +525,6 @@ class MessagesManager final : public Actor {
   void set_dialog_photo(DialogId dialog_id, const tl_object_ptr<td_api::InputChatPhoto> &input_photo,
                         Promise<Unit> &&promise);
 
-  void set_dialog_title(DialogId dialog_id, const string &title, Promise<Unit> &&promise);
-
   void set_active_reactions(vector<ReactionType> active_reaction_types);
 
   void set_dialog_available_reactions(DialogId dialog_id,

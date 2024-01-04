@@ -6537,7 +6537,7 @@ void Td::on_request(uint64 id, td_api::setArchiveChatListSettings &request) {
 void Td::on_request(uint64 id, td_api::setChatTitle &request) {
   CLEAN_INPUT_STRING(request.title_);
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->set_dialog_title(DialogId(request.chat_id_), request.title_, std::move(promise));
+  dialog_manager_->set_dialog_title(DialogId(request.chat_id_), request.title_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::setChatPhoto &request) {

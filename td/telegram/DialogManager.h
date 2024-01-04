@@ -118,6 +118,8 @@ class DialogManager final : public Actor {
 
   bool is_dialog_action_unneeded(DialogId dialog_id) const;
 
+  void set_dialog_title(DialogId dialog_id, const string &title, Promise<Unit> &&promise);
+
   void set_dialog_accent_color(DialogId dialog_id, AccentColorId accent_color_id,
                                CustomEmojiId background_custom_emoji_id, Promise<Unit> &&promise);
 
@@ -133,6 +135,8 @@ class DialogManager final : public Actor {
   bool is_dialog_removed_from_dialog_list(DialogId dialog_id) const;
 
  private:
+  static constexpr size_t MAX_TITLE_LENGTH = 128;  // server side limit for chat title
+
   void tear_down() final;
 
   Td *td_;

@@ -13,16 +13,73 @@
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/misc.h"
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/UpdatesManager.h"
 #include "td/telegram/UserId.h"
 
 #include "td/utils/algorithm.h"
+#include "td/utils/buffer.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Slice.h"
 
 namespace td {
+
+class EditDialogTitleQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit EditDialogTitleQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, const string &title) {
+    dialog_id_ = dialog_id;
+    switch (dialog_id.get_type()) {
+      case DialogType::Chat:
+        send_query(G()->net_query_creator().create(
+            telegram_api::messages_editChatTitle(dialog_id.get_chat_id().get(), title)));
+        break;
+      case DialogType::Channel: {
+        auto channel_id = dialog_id.get_channel_id();
+        auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+        CHECK(input_channel != nullptr);
+        send_query(G()->net_query_creator().create(telegram_api::channels_editTitle(std::move(input_channel), title)));
+        break;
+      }
+      default:
+        UNREACHABLE();
+    }
+  }
+
+  void on_result(BufferSlice packet) final {
+    static_assert(std::is_same<telegram_api::messages_editChatTitle::ReturnType,
+                               telegram_api::channels_editTitle::ReturnType>::value,
+                  "");
+    auto result_ptr = fetch_result<telegram_api::messages_editChatTitle>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for EditDialogTitleQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    if (status.message() == "CHAT_NOT_MODIFIED") {
+      if (!td_->auth_manager_->is_bot()) {
+        promise_.set_value(Unit());
+        return;
+      }
+    } else {
+      td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "EditDialogTitleQuery");
+    }
+    promise_.set_error(std::move(status));
+  }
+};
 
 DialogManager::DialogManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
@@ -637,6 +694,51 @@ bool DialogManager::is_dialog_action_unneeded(DialogId dialog_id) const {
     }
   }
   return false;
+}
+
+void DialogManager::set_dialog_title(DialogId dialog_id, const string &title, Promise<Unit> &&promise) {
+  if (!have_dialog_force(dialog_id, "set_dialog_title")) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+
+  auto new_title = clean_name(title, MAX_TITLE_LENGTH);
+  if (new_title.empty()) {
+    return promise.set_error(Status::Error(400, "Title must be non-empty"));
+  }
+
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      return promise.set_error(Status::Error(400, "Can't change private chat title"));
+    case DialogType::Chat: {
+      auto chat_id = dialog_id.get_chat_id();
+      auto status = td_->contacts_manager_->get_chat_permissions(chat_id);
+      if (!status.can_change_info_and_settings() ||
+          (td_->auth_manager_->is_bot() && !td_->contacts_manager_->is_appointed_chat_administrator(chat_id))) {
+        return promise.set_error(Status::Error(400, "Not enough rights to change chat title"));
+      }
+      break;
+    }
+    case DialogType::Channel: {
+      auto status = td_->contacts_manager_->get_channel_permissions(dialog_id.get_channel_id());
+      if (!status.can_change_info_and_settings()) {
+        return promise.set_error(Status::Error(400, "Not enough rights to change chat title"));
+      }
+      break;
+    }
+    case DialogType::SecretChat:
+      return promise.set_error(Status::Error(400, "Can't change secret chat title"));
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+  }
+
+  // TODO this can be wrong if there were previous change title requests
+  if (get_dialog_title(dialog_id) == new_title) {
+    return promise.set_value(Unit());
+  }
+
+  // TODO invoke after
+  td_->create_handler<EditDialogTitleQuery>(std::move(promise))->send(dialog_id, new_title);
 }
 
 void DialogManager::set_dialog_accent_color(DialogId dialog_id, AccentColorId accent_color_id,
