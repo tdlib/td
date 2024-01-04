@@ -121,6 +121,44 @@ class EditChatDefaultBannedRightsQuery final : public Td::ResultHandler {
   }
 };
 
+class ToggleNoForwardsQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit ToggleNoForwardsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, bool has_protected_content) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_toggleNoForwards(std::move(input_peer), has_protected_content)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_toggleNoForwards>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for ToggleNoForwardsQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    if (status.message() == "CHAT_NOT_MODIFIED") {
+      promise_.set_value(Unit());
+      return;
+    } else {
+      td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "ToggleNoForwardsQuery");
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 DialogManager::DialogManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 
@@ -915,6 +953,48 @@ void DialogManager::set_dialog_emoji_status(DialogId dialog_id, const EmojiStatu
       UNREACHABLE();
   }
   promise.set_error(Status::Error(400, "Can't change emoji status in the chat"));
+}
+
+void DialogManager::toggle_dialog_has_protected_content(DialogId dialog_id, bool has_protected_content,
+                                                        Promise<Unit> &&promise) {
+  if (!have_dialog_force(dialog_id, "toggle_dialog_has_protected_content")) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    return promise.set_error(Status::Error(400, "Can't access the chat"));
+  }
+
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+    case DialogType::SecretChat:
+      return promise.set_error(Status::Error(400, "Can't restrict saving content in the chat"));
+    case DialogType::Chat: {
+      auto chat_id = dialog_id.get_chat_id();
+      auto status = td_->contacts_manager_->get_chat_status(chat_id);
+      if (!status.is_creator()) {
+        return promise.set_error(Status::Error(400, "Only owner can restrict saving content"));
+      }
+      break;
+    }
+    case DialogType::Channel: {
+      auto status = td_->contacts_manager_->get_channel_status(dialog_id.get_channel_id());
+      if (!status.is_creator()) {
+        return promise.set_error(Status::Error(400, "Only owner can restrict saving content"));
+      }
+      break;
+    }
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+  }
+
+  // TODO this can be wrong if there were previous toggle_dialog_has_protected_content requests
+  if (get_dialog_has_protected_content(dialog_id) == has_protected_content) {
+    return promise.set_value(Unit());
+  }
+
+  // TODO invoke after
+  td_->create_handler<ToggleNoForwardsQuery>(std::move(promise))->send(dialog_id, has_protected_content);
 }
 
 void DialogManager::set_dialog_description(DialogId dialog_id, const string &description, Promise<Unit> &&promise) {

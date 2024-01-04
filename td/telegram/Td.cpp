@@ -6610,8 +6610,8 @@ void Td::on_request(uint64 id, td_api::setChatDraftMessage &request) {
 void Td::on_request(uint64 id, const td_api::toggleChatHasProtectedContent &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->toggle_dialog_has_protected_content(DialogId(request.chat_id_), request.has_protected_content_,
-                                                         std::move(promise));
+  dialog_manager_->toggle_dialog_has_protected_content(DialogId(request.chat_id_), request.has_protected_content_,
+                                                       std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::toggleChatIsPinned &request) {
