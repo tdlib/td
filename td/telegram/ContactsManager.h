@@ -627,7 +627,7 @@ class ContactsManager final : public Actor {
   };
   Result<BotData> get_bot_data(UserId user_id) const TD_WARN_UNUSED_RESULT;
 
-  bool is_user_online(UserId user_id, int32 tolerance = 0) const;
+  bool is_user_online(UserId user_id, int32 tolerance = 0, int32 unix_time = 07) const;
 
   bool is_user_status_exact(UserId user_id) const;
 
@@ -810,8 +810,6 @@ class ContactsManager final : public Actor {
     string language_code;
 
     FlatHashSet<int64> photo_ids;
-
-    FlatHashMap<DialogId, int32, DialogIdHash> online_member_dialogs;  // dialog_id -> time
 
     static constexpr uint32 CACHE_VERSION = 4;
     uint32 cache_version = 0;
@@ -1626,7 +1624,7 @@ class ContactsManager final : public Actor {
 
   void do_invalidate_channel_full(ChannelFull *channel_full, ChannelId channel_id, bool need_drop_slow_mode_delay);
 
-  void update_user_online_member_count(User *u);
+  void update_user_online_member_count(UserId user_id);
   void update_chat_online_member_count(const ChatFull *chat_full, ChatId chat_id, bool is_from_server);
   void update_channel_online_member_count(ChannelId channel_id, bool is_from_server);
   void update_dialog_online_member_count(const vector<DialogParticipant> &participants, DialogId dialog_id,
@@ -2154,6 +2152,11 @@ class ContactsManager final : public Actor {
   FlatHashMap<int64, unique_ptr<ImportContactsTask>> import_contact_tasks_;
 
   FlatHashMap<int64, std::pair<vector<UserId>, vector<int32>>> imported_contacts_;
+
+  struct UserOnlineMemberDialogs {
+    FlatHashMap<DialogId, int32, DialogIdHash> online_member_dialogs_;  // dialog_id -> time
+  };
+  FlatHashMap<UserId, unique_ptr<UserOnlineMemberDialogs>, UserIdHash> user_online_member_dialogs_;
 
   FlatHashMap<ChannelId, vector<DialogParticipant>, ChannelIdHash> cached_channel_participants_;
 
