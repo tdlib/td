@@ -79,11 +79,17 @@ class SqliteKeyValue {
     if (!prefix.empty()) {
       next = next_prefix(prefix);
     }
-    get_by_range(prefix, next, callback);
+    get_by_range_impl(prefix, next, true, callback);
   }
 
   template <class CallbackT>
   void get_by_range(Slice from, Slice till, CallbackT &&callback) {
+    get_by_range_impl(from, till, false, std::move(callback));
+  }
+
+ private:
+  template <class CallbackT>
+  void get_by_range_impl(Slice from, Slice till, bool strip_key_prefix, CallbackT &&callback) {
     SqliteStatement *stmt = nullptr;
     if (from.empty()) {
       stmt = &get_all_stmt_;
@@ -100,14 +106,17 @@ class SqliteKeyValue {
     auto guard = stmt->guard();
     stmt->step().ensure();
     while (stmt->has_row()) {
-      if (!callback(stmt->view_blob(0), stmt->view_blob(1))) {
+      auto key = stmt->view_blob(0);
+      if (strip_key_prefix) {
+        key.remove_prefix(from.size());
+      }
+      if (!callback(key, stmt->view_blob(1))) {
         return;
       }
       stmt->step().ensure();
     }
   }
 
- private:
   string table_name_;
   SqliteDb db_;
   SqliteStatement get_stmt_;
