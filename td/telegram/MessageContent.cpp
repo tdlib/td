@@ -5211,9 +5211,16 @@ static CustomEmojiId get_custom_emoji_id(const FormattedText &text) {
   return text.entities.empty() ? CustomEmojiId() : text.entities[0].custom_emoji_id;
 }
 
+static bool need_register_message_content_for_bots(MessageContentType content_type) {
+  return content_type == MessageContentType::Poll;
+}
+
 void register_message_content(Td *td, const MessageContent *content, MessageFullId message_full_id,
                               const char *source) {
   auto content_type = content->get_type();
+  if (td->auth_manager_->is_bot() && !need_register_message_content_for_bots(content_type)) {
+    return;
+  }
   switch (content_type) {
     case MessageContentType::Text: {
       auto text = static_cast<const MessageText *>(content);
@@ -5263,6 +5270,9 @@ void reregister_message_content(Td *td, const MessageContent *old_content, const
   auto old_content_type = old_content->get_type();
   auto new_content_type = new_content->get_type();
   if (old_content_type == new_content_type) {
+    if (td->auth_manager_->is_bot() && !need_register_message_content_for_bots(new_content_type)) {
+      return;
+    }
     switch (old_content_type) {
       case MessageContentType::Text: {
         auto old_text = static_cast<const MessageText *>(old_content);
@@ -5335,6 +5345,9 @@ void reregister_message_content(Td *td, const MessageContent *old_content, const
 void unregister_message_content(Td *td, const MessageContent *content, MessageFullId message_full_id,
                                 const char *source) {
   auto content_type = content->get_type();
+  if (td->auth_manager_->is_bot() && !need_register_message_content_for_bots(content_type)) {
+    return;
+  }
   switch (content_type) {
     case MessageContentType::Text: {
       auto text = static_cast<const MessageText *>(content);
