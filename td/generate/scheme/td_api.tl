@@ -8903,9 +8903,13 @@ getStickerEmojis sticker:InputFile = Emojis;
 
 //@description Searches for emojis by keywords. Supported only if the file database is enabled
 //@text Text to search for
-//@exact_match Pass true if only emojis, which exactly match the text, needs to be returned
 //@input_language_codes List of possible IETF language tags of the user's input language; may be empty if unknown
-searchEmojis text:string exact_match:Bool input_language_codes:vector<string> = Emojis;
+searchEmojis text:string input_language_codes:vector<string> = Emojis;
+
+//@description Return emojis matching the keyword. Supported only if the file database is enabled
+//@text Text to search for
+//@input_language_codes List of possible IETF language tags of the user's input language; may be empty if unknown
+getKeywordEmojis text:string input_language_codes:vector<string> = Emojis;
 
 //@description Returns available emojis categories @type Type of emoji categories to return; pass null to get default emoji categories
 getEmojiCategories type:EmojiCategoryType = EmojiCategories;
