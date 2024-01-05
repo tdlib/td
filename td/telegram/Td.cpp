@@ -2294,14 +2294,18 @@ class SearchEmojisRequest final : public RequestActor<> {
   string text_;
   vector<string> input_language_codes_;
 
-  vector<string> emojis_;
+  vector<std::pair<string, string>> emoji_keywords_;
 
   void do_run(Promise<Unit> &&promise) final {
-    emojis_ = td_->stickers_manager_->search_emojis(text_, input_language_codes_, get_tries() < 2, std::move(promise));
+    emoji_keywords_ =
+        td_->stickers_manager_->search_emojis(text_, input_language_codes_, get_tries() < 2, std::move(promise));
   }
 
   void do_send_result() final {
-    send_result(td_api::make_object<td_api::emojis>(std::move(emojis_)));
+    send_result(td_api::make_object<td_api::emojiKeywords>(
+        transform(emoji_keywords_, [](const std::pair<string, string> &emoji_keyword) {
+          return td_api::make_object<td_api::emojiKeyword>(emoji_keyword.first, emoji_keyword.second);
+        })));
   }
 
  public:

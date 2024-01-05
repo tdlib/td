@@ -373,8 +373,8 @@ class StickersManager final : public Actor {
 
   vector<string> get_sticker_emojis(const tl_object_ptr<td_api::InputFile> &input_file, Promise<Unit> &&promise);
 
-  vector<string> search_emojis(const string &text, const vector<string> &input_language_codes, bool force,
-                               Promise<Unit> &&promise);
+  vector<std::pair<string, string>> search_emojis(const string &text, const vector<string> &input_language_codes,
+                                                  bool force, Promise<Unit> &&promise);
 
   vector<string> get_keyword_emojis(const string &text, const vector<string> &input_language_codes, bool force,
                                     Promise<Unit> &&promise);
@@ -950,7 +950,7 @@ class StickersManager final : public Actor {
 
   void on_get_language_codes(const string &key, Result<vector<string>> &&result);
 
-  static vector<string> search_language_emojis(const string &language_code, const string &text);
+  static vector<std::pair<string, string>> search_language_emojis(const string &language_code, const string &text);
 
   static vector<string> get_keyword_language_emojis(const string &language_code, const string &text);
 

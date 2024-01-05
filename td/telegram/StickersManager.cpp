@@ -9478,13 +9478,14 @@ string StickersManager::get_language_emojis_database_key(const string &language_
   return PSTRING() << "emoji$" << language_code << '$' << text;
 }
 
-vector<string> StickersManager::search_language_emojis(const string &language_code, const string &text) {
+vector<std::pair<string, string>> StickersManager::search_language_emojis(const string &language_code,
+                                                                          const string &text) {
   LOG(INFO) << "Search emoji for \"" << text << "\" in language " << language_code;
   auto key = get_language_emojis_database_key(language_code, text);
-  vector<string> result;
-  G()->td_db()->get_sqlite_sync_pmc()->get_by_prefix(key, [&result](Slice key, Slice value) {
-    for (auto &emoji : full_split(value, '$')) {
-      result.push_back(emoji.str());
+  vector<std::pair<string, string>> result;
+  G()->td_db()->get_sqlite_sync_pmc()->get_by_prefix(key, [&text, &result](Slice key, Slice value) {
+    for (const auto &emoji : full_split(value, '$')) {
+      result.emplace_back(emoji.str(), PSTRING() << text << key);
     }
     return true;
   });
@@ -9889,14 +9890,15 @@ bool StickersManager::prepare_search_emoji_query(const string &text, const vecto
   return true;
 }
 
-vector<string> StickersManager::search_emojis(const string &text, const vector<string> &input_language_codes,
-                                              bool force, Promise<Unit> &&promise) {
+vector<std::pair<string, string>> StickersManager::search_emojis(const string &text,
+                                                                 const vector<string> &input_language_codes, bool force,
+                                                                 Promise<Unit> &&promise) {
   SearchEmojiQuery query;
   if (!prepare_search_emoji_query(text, input_language_codes, force, promise, query)) {
     return {};
   }
 
-  vector<string> result;
+  vector<std::pair<string, string>> result;
   for (auto &language_code : query.language_codes_) {
     combine(result, search_language_emojis(language_code, query.text_));
   }

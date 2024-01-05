@@ -3342,6 +3342,12 @@ userStatusLastWeek = UserStatus;
 userStatusLastMonth = UserStatus;
 
 
+//@description Represents an emoji with its keyword @emoji The emoji @keyword The keyword
+emojiKeyword emoji:string keyword:string = EmojiKeyword;
+
+//@description Represents a list of emoji with their keywords @emoji_keywords List of emoji with their keywords
+emojiKeywords emoji_keywords:vector<emojiKeyword> = EmojiKeywords;
+
 //@description Represents a list of stickers @stickers List of stickers
 stickers stickers:vector<sticker> = Stickers;
 
@@ -8901,12 +8907,12 @@ removeFavoriteSticker sticker:InputFile = Ok;
 //@description Returns emoji corresponding to a sticker. The list is only for informational purposes, because a sticker is always sent with a fixed emoji from the corresponding Sticker object @sticker Sticker file identifier
 getStickerEmojis sticker:InputFile = Emojis;
 
-//@description Searches for emojis by keywords. Supported only if the file database is enabled
+//@description Searches for emojis by keywords. Supported only if the file database is enabled. Order of results is unspecified
 //@text Text to search for
 //@input_language_codes List of possible IETF language tags of the user's input language; may be empty if unknown
-searchEmojis text:string input_language_codes:vector<string> = Emojis;
+searchEmojis text:string input_language_codes:vector<string> = EmojiKeywords;
 
-//@description Return emojis matching the keyword. Supported only if the file database is enabled
+//@description Return emojis matching the keyword. Supported only if the file database is enabled. Order of results is unspecified
 //@text Text to search for
 //@input_language_codes List of possible IETF language tags of the user's input language; may be empty if unknown
 getKeywordEmojis text:string input_language_codes:vector<string> = Emojis;
