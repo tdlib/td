@@ -9843,18 +9843,17 @@ void StickersManager::finish_get_emoji_keywords_difference(string language_code,
   emoji_language_code_last_difference_times_[language_code] = static_cast<int32>(Time::now_cached());
 }
 
-vector<string> StickersManager::search_emojis(const string &text, bool exact_match,
-                                              const vector<string> &input_language_codes, bool force,
-                                              Promise<Unit> &&promise) {
+bool StickersManager::prepare_search_emoji_query(const string &text, const vector<string> &input_language_codes,
+                                                 bool force, Promise<Unit> &promise, SearchEmojiQuery &query) {
   if (text.empty() || !G()->use_sqlite_pmc()) {
     promise.set_value(Unit());
-    return {};
+    return false;
   }
 
   auto language_codes = get_emoji_language_codes(input_language_codes, text, promise);
   if (language_codes.empty()) {
     // promise was consumed
-    return {};
+    return false;
   }
 
   vector<string> languages_to_load;
@@ -9878,18 +9877,29 @@ vector<string> StickersManager::search_emojis(const string &text, bool exact_mat
         load_emoji_keywords(language_code, mpas.get_promise());
       }
       lock.set_value(Unit());
-      return {};
+      return false;
     } else {
       LOG(ERROR) << "Have no " << languages_to_load << " emoji keywords";
     }
   }
 
-  auto text_lowered = utf8_to_lower(text);
-  vector<string> result;
-  for (auto &language_code : language_codes) {
-    combine(result, search_language_emojis(language_code, text_lowered, exact_match));
+  query.text_ = utf8_to_lower(text);
+  query.language_codes_ = std::move(language_codes);
+  return true;
+}
+
+vector<string> StickersManager::search_emojis(const string &text, bool exact_match,
+                                              const vector<string> &input_language_codes, bool force,
+                                              Promise<Unit> &&promise) {
+  SearchEmojiQuery query;
+  if (!prepare_search_emoji_query(text, input_language_codes, force, promise, query)) {
+    return {};
   }
 
+  vector<string> result;
+  for (auto &language_code : query.language_codes_) {
+    combine(result, search_language_emojis(language_code, query.text_, exact_match));
+  }
   td::unique(result);
 
   promise.set_value(Unit());

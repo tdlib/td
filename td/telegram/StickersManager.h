@@ -933,6 +933,13 @@ class StickersManager final : public Actor {
 
   string get_used_language_codes_string() const;
 
+  struct SearchEmojiQuery {
+    string text_;
+    vector<string> language_codes_;
+  };
+  bool prepare_search_emoji_query(const string &text, const vector<string> &input_language_codes, bool force,
+                                  Promise<Unit> &promise, SearchEmojiQuery &query);
+
   vector<string> get_emoji_language_codes(const vector<string> &input_language_codes, Slice text,
                                           Promise<Unit> &promise);
 
