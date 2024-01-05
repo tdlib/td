@@ -10963,11 +10963,10 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   bool can_read_all_group_messages = (flags & USER_FLAG_IS_BOT_WITH_PRIVACY_DISABLED) != 0;
   bool can_be_added_to_attach_menu = (flags & USER_FLAG_IS_ATTACH_MENU_BOT) != 0;
   bool attach_menu_enabled = (flags & USER_FLAG_ATTACH_MENU_ENABLED) != 0;
-  auto restriction_reasons = get_restriction_reasons(std::move(user->restriction_reason_));
   bool is_scam = (flags & USER_FLAG_IS_SCAM) != 0;
   bool can_be_edited_bot = (flags2 & USER_FLAG_CAN_BE_EDITED_BOT) != 0;
   bool is_inline_bot = (flags & USER_FLAG_IS_INLINE_BOT) != 0;
-  string inline_query_placeholder = user->bot_inline_placeholder_;
+  string inline_query_placeholder = std::move(user->bot_inline_placeholder_);
   bool need_location_bot = (flags & USER_FLAG_NEED_LOCATION_BOT) != 0;
   bool has_bot_info_version = (flags & USER_FLAG_HAS_BOT_INFO_VERSION) != 0;
   bool need_apply_min_photo = (flags & USER_FLAG_NEED_APPLY_MIN_PHOTO) != 0;
@@ -11011,9 +11010,9 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   int32 bot_info_version = has_bot_info_version ? user->bot_info_version_ : -1;
   if (is_verified != u->is_verified || is_support != u->is_support || is_bot != u->is_bot ||
       can_join_groups != u->can_join_groups || can_read_all_group_messages != u->can_read_all_group_messages ||
-      restriction_reasons != u->restriction_reasons || is_scam != u->is_scam || is_fake != u->is_fake ||
-      is_inline_bot != u->is_inline_bot || inline_query_placeholder != u->inline_query_placeholder ||
-      need_location_bot != u->need_location_bot || can_be_added_to_attach_menu != u->can_be_added_to_attach_menu) {
+      is_scam != u->is_scam || is_fake != u->is_fake || is_inline_bot != u->is_inline_bot ||
+      inline_query_placeholder != u->inline_query_placeholder || need_location_bot != u->need_location_bot ||
+      can_be_added_to_attach_menu != u->can_be_added_to_attach_menu) {
     if (is_bot != u->is_bot) {
       LOG_IF(ERROR, !is_deleted && !u->is_deleted && u->is_received)
           << "User.is_bot has changed for " << user_id << "/" << u->usernames << " from " << source << " from "
@@ -11025,7 +11024,6 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     u->is_bot = is_bot;
     u->can_join_groups = can_join_groups;
     u->can_read_all_group_messages = can_read_all_group_messages;
-    u->restriction_reasons = std::move(restriction_reasons);
     u->is_scam = is_scam;
     u->is_fake = is_fake;
     u->is_inline_bot = is_inline_bot;
@@ -11119,6 +11117,13 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   if (is_me_regular_user && (stories_available || stories_unavailable)) {
     // update at the end, because it calls need_poll_user_active_stories
     on_update_user_story_ids_impl(u, user_id, StoryId(user->stories_max_id_), StoryId());
+  }
+  if (is_me_regular_user) {
+    auto restriction_reasons = get_restriction_reasons(std::move(user->restriction_reason_));
+    if (restriction_reasons != u->restriction_reasons) {
+      u->restriction_reasons = std::move(restriction_reasons);
+      u->is_changed = true;
+    }
   }
 
   if (u->cache_version != User::CACHE_VERSION && u->is_received) {
@@ -19793,7 +19798,6 @@ void ContactsManager::on_get_channel(telegram_api::channel &channel, const char 
   bool is_slow_mode_enabled = (channel.flags_ & CHANNEL_FLAG_IS_SLOW_MODE_ENABLED) != 0;
   bool is_megagroup = (channel.flags_ & CHANNEL_FLAG_IS_MEGAGROUP) != 0;
   bool is_verified = (channel.flags_ & CHANNEL_FLAG_IS_VERIFIED) != 0;
-  auto restriction_reasons = get_restriction_reasons(std::move(channel.restriction_reason_));
   bool is_scam = (channel.flags_ & CHANNEL_FLAG_IS_SCAM) != 0;
   bool is_fake = (channel.flags_ & CHANNEL_FLAG_IS_FAKE) != 0;
   bool is_gigagroup = (channel.flags_ & CHANNEL_FLAG_IS_GIGAGROUP) != 0;
@@ -19872,13 +19876,11 @@ void ContactsManager::on_get_channel(telegram_api::channel &channel, const char 
       on_update_channel_emoji_status(c, channel_id, EmojiStatus(std::move(channel.emoji_status_)));
 
       if (c->has_linked_channel != has_linked_channel || c->is_slow_mode_enabled != is_slow_mode_enabled ||
-          c->is_megagroup != is_megagroup || c->restriction_reasons != restriction_reasons || c->is_scam != is_scam ||
-          c->is_fake != is_fake || c->is_gigagroup != is_gigagroup || c->is_forum != is_forum ||
-          c->boost_level != boost_level) {
+          c->is_megagroup != is_megagroup || c->is_scam != is_scam || c->is_fake != is_fake ||
+          c->is_gigagroup != is_gigagroup || c->is_forum != is_forum || c->boost_level != boost_level) {
         c->has_linked_channel = has_linked_channel;
         c->is_slow_mode_enabled = is_slow_mode_enabled;
         c->is_megagroup = is_megagroup;
-        c->restriction_reasons = std::move(restriction_reasons);
         c->is_scam = is_scam;
         c->is_fake = is_fake;
         c->is_gigagroup = is_gigagroup;
@@ -19891,6 +19893,13 @@ void ContactsManager::on_get_channel(telegram_api::channel &channel, const char 
 
         c->is_changed = true;
         invalidate_channel_full(channel_id, !c->is_slow_mode_enabled, "on_get_min_channel");
+      }
+      if (!td_->auth_manager_->is_bot()) {
+        auto restriction_reasons = get_restriction_reasons(std::move(channel.restriction_reason_));
+        if (restriction_reasons != c->restriction_reasons) {
+          c->restriction_reasons = std::move(restriction_reasons);
+          c->is_changed = true;
+        }
       }
       if (c->join_to_send != join_to_send || c->join_request != join_request) {
         c->join_to_send = join_to_send;
@@ -19959,13 +19968,11 @@ void ContactsManager::on_get_channel(telegram_api::channel &channel, const char 
 
   bool need_invalidate_channel_full = false;
   if (c->has_linked_channel != has_linked_channel || c->is_slow_mode_enabled != is_slow_mode_enabled ||
-      c->is_megagroup != is_megagroup || c->restriction_reasons != restriction_reasons || c->is_scam != is_scam ||
-      c->is_fake != is_fake || c->is_gigagroup != is_gigagroup || c->is_forum != is_forum ||
-      c->boost_level != boost_level) {
+      c->is_megagroup != is_megagroup || c->is_scam != is_scam || c->is_fake != is_fake ||
+      c->is_gigagroup != is_gigagroup || c->is_forum != is_forum || c->boost_level != boost_level) {
     c->has_linked_channel = has_linked_channel;
     c->is_slow_mode_enabled = is_slow_mode_enabled;
     c->is_megagroup = is_megagroup;
-    c->restriction_reasons = std::move(restriction_reasons);
     c->is_scam = is_scam;
     c->is_fake = is_fake;
     c->is_gigagroup = is_gigagroup;
@@ -19978,6 +19985,13 @@ void ContactsManager::on_get_channel(telegram_api::channel &channel, const char 
 
     c->is_changed = true;
     need_invalidate_channel_full = true;
+  }
+  if (!td_->auth_manager_->is_bot()) {
+    auto restriction_reasons = get_restriction_reasons(std::move(channel.restriction_reason_));
+    if (restriction_reasons != c->restriction_reasons) {
+      c->restriction_reasons = std::move(restriction_reasons);
+      c->is_changed = true;
+    }
   }
   if (c->join_to_send != join_to_send || c->join_request != join_request) {
     c->join_to_send = join_to_send;
