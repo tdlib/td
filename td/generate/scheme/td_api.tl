@@ -3978,7 +3978,7 @@ availableReaction type:ReactionType needs_premium:Bool = AvailableReaction;
 //@allow_custom_emoji True, if any custom emoji reaction can be added by Telegram Premium subscribers
 availableReactions top_reactions:vector<availableReaction> recent_reactions:vector<availableReaction> popular_reactions:vector<availableReaction> allow_custom_emoji:Bool = AvailableReactions;
 
-//@description Contains information about a emoji reaction
+//@description Contains information about an emoji reaction
 //@emoji Text representation of the reaction
 //@title Reaction title
 //@is_active True, if the reaction can be added to new messages and enabled in chats
@@ -7520,7 +7520,7 @@ setPinnedForumTopics chat_id:int53 message_thread_ids:vector<int53> = Ok;
 deleteForumTopic chat_id:int53 message_thread_id:int53 = Ok;
 
 
-//@description Returns information about a emoji reaction. Returns a 404 error if the reaction is not found @emoji Text representation of the reaction
+//@description Returns information about an emoji reaction. Returns a 404 error if the reaction is not found @emoji Text representation of the reaction
 getEmojiReaction emoji:string = EmojiReaction;
 
 //@description Returns TGS stickers with generic animations for custom emoji reactions
@@ -7586,6 +7586,9 @@ parseMarkdown text:formattedText = FormattedText;
 
 //@description Replaces text entities with Markdown formatting in a human-friendly format. Entities that can't be represented in Markdown unambiguously are kept as is. Can be called synchronously @text The text
 getMarkdownText text:formattedText = FormattedText;
+
+//@description Returns an emoji for the given country. Returns an empty string on failure. Can be called synchronously @country_code A two-letter ISO 3166-1 alpha-2 country code as received from getCountries
+getCountryFlagEmoji country_code:string = Text;
 
 //@description Returns the MIME type of a file, guessed by its extension. Returns an empty string on failure. Can be called synchronously @file_name The name of the file or path to the file
 getFileMimeType file_name:string = Text;

@@ -37,6 +37,8 @@ class CountryInfoManager final : public Actor {
   static td_api::object_ptr<td_api::phoneNumberInfo> get_phone_number_info_sync(const string &language_code,
                                                                                 string phone_number_prefix);
 
+  static string get_country_flag_emoji(const string &country_code);
+
   void on_update_fragment_prefixes();
 
   CountryInfoManager(const CountryInfoManager &) = delete;

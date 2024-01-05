@@ -4133,6 +4133,8 @@ class CliClient final : public Actor {
       get_args(args, strings, query, limit, return_none_for_empty_query);
       execute(td_api::make_object<td_api::searchStringsByPrefix>(autosplit_str(strings), query, as_limit(limit),
                                                                  return_none_for_empty_query));
+    } else if (op == "gcfe") {
+      execute(td_api::make_object<td_api::getCountryFlagEmoji>(trim(args)));
     } else if (op == "gfmt") {
       execute(td_api::make_object<td_api::getFileMimeType>(trim(args)));
     } else if (op == "gfe") {
