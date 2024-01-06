@@ -10,7 +10,6 @@
 #include "td/telegram/BackgroundInfo.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatReactions.h"
-#include "td/telegram/DialogAction.h"
 #include "td/telegram/DialogDate.h"
 #include "td/telegram/DialogDb.h"
 #include "td/telegram/DialogFilterDialogInfo.h"
@@ -342,9 +341,9 @@ class MessagesManager final : public Actor {
 
   void on_update_created_public_broadcasts(vector<ChannelId> channel_ids);
 
-  void on_dialog_action(DialogId dialog_id, MessageId top_thread_message_id, DialogId typing_dialog_id,
-                        DialogAction action, int32 date,
-                        MessageContentType message_content_type = MessageContentType::None);
+  void on_dialog_speaking_action(DialogId dialog_id, DialogId speaking_dialog_id, int32 date);
+
+  void on_message_animated_emoji_clicked(MessageFullId message_full_id, string &&emoji, string &&data);
 
   void read_history_inbox(DialogId dialog_id, MessageId max_message_id, int32 unread_count, const char *source);
 
@@ -490,11 +489,6 @@ class MessagesManager final : public Actor {
   void edit_message_scheduling_state(MessageFullId message_full_id,
                                      td_api::object_ptr<td_api::MessageSchedulingState> &&scheduling_state,
                                      Promise<Unit> &&promise);
-
-  void send_dialog_action(DialogId dialog_id, MessageId top_thread_message_id, DialogAction action,
-                          Promise<Unit> &&promise);
-
-  void after_set_typing_query(DialogId dialog_id, int32 generation);
 
   void get_dialog_filter_dialog_count(td_api::object_ptr<td_api::chatFolder> filter, Promise<int32> &&promise);
 
@@ -1642,8 +1636,6 @@ class MessagesManager final : public Actor {
 
   static constexpr int32 SCHEDULE_WHEN_ONLINE_DATE = 2147483646;
 
-  static constexpr double DIALOG_ACTION_TIMEOUT = 5.5;
-
   static constexpr const char *DELETE_MESSAGE_USER_REQUEST_SOURCE = "user request";
 
   static constexpr bool DROP_SEND_MESSAGE_UPDATES = false;
@@ -2403,9 +2395,6 @@ class MessagesManager final : public Actor {
 
   void send_update_chat_has_scheduled_messages(Dialog *d, bool from_deletion);
 
-  void send_update_chat_action(DialogId dialog_id, MessageId top_thread_message_id, DialogId typing_dialog_id,
-                               const DialogAction &action);
-
   void repair_dialog_action_bar(Dialog *d, const char *source);
 
   void hide_dialog_action_bar(Dialog *d);
@@ -2600,10 +2589,6 @@ class MessagesManager final : public Actor {
   void queue_message_reactions_reload(DialogId dialog_id, const vector<MessageId> &message_ids);
 
   void on_send_dialog_action_timeout(DialogId dialog_id);
-
-  void on_active_dialog_action_timeout(DialogId dialog_id);
-
-  void clear_active_dialog_actions(DialogId dialog_id);
 
   void cancel_dialog_action(DialogId dialog_id, const Message *m);
 
@@ -2999,8 +2984,6 @@ class MessagesManager final : public Actor {
 
   static void on_pending_send_dialog_action_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int);
 
-  static void on_active_dialog_action_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int);
-
   static void on_preload_folder_dialog_list_timeout_callback(void *messages_manager_ptr, int64 folder_id_int);
 
   static void on_update_viewed_messages_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int);
@@ -3274,23 +3257,6 @@ class MessagesManager final : public Actor {
   FlatHashMap<StoryFullId, FlatHashSet<MessageFullId, MessageFullIdHash>, StoryFullIdHash>
       story_to_replied_media_timestamp_messages_;
 
-  struct ActiveDialogAction {
-    MessageId top_thread_message_id;
-    DialogId typing_dialog_id;
-    DialogAction action;
-    double start_time;
-
-    ActiveDialogAction(MessageId top_thread_message_id, DialogId typing_dialog_id, DialogAction action,
-                       double start_time)
-        : top_thread_message_id(top_thread_message_id)
-        , typing_dialog_id(typing_dialog_id)
-        , action(std::move(action))
-        , start_time(start_time) {
-    }
-  };
-
-  FlatHashMap<DialogId, std::vector<ActiveDialogAction>, DialogIdHash> active_dialog_actions_;
-
   FlatHashMap<NotificationGroupId, DialogId, NotificationGroupIdHash> notification_group_id_to_dialog_id_;
 
   uint64 current_message_edit_generation_ = 0;
@@ -3343,7 +3309,6 @@ class MessagesManager final : public Actor {
   MultiTimeout pending_unload_dialog_timeout_{"PendingUnloadDialogTimeout"};
   MultiTimeout dialog_unmute_timeout_{"DialogUnmuteTimeout"};
   MultiTimeout pending_send_dialog_action_timeout_{"PendingSendDialogActionTimeout"};
-  MultiTimeout active_dialog_action_timeout_{"ActiveDialogActionTimeout"};
   MultiTimeout preload_folder_dialog_list_timeout_{"PreloadFolderDialogListTimeout"};
   MultiTimeout update_viewed_messages_timeout_{"UpdateViewedMessagesTimeout"};
   MultiTimeout send_update_chat_read_inbox_timeout_{"SendUpdateChatReadInboxTimeout"};
@@ -3444,8 +3409,6 @@ class MessagesManager final : public Actor {
     std::map<MessageId, Promise<Message *>> queue_;
   };
   FlatHashMap<uint64, UnsentMediaQueue> yet_unsent_media_queues_;
-
-  FlatHashMap<DialogId, NetQueryRef, DialogIdHash> set_typing_query_;
 
   WaitFreeHashMap<MessageFullId, FileSourceId, MessageFullIdHash> message_full_id_to_file_source_id_;
 

@@ -10,6 +10,7 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogAction.h"
+#include "td/telegram/DialogActionManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/DialogParticipantFilter.h"
 #include "td/telegram/Global.h"
@@ -1099,8 +1100,8 @@ void GroupCallManager::on_send_speaking_action_timeout(GroupCallId group_call_id
 
   pending_send_speaking_action_timeout_.add_timeout_in(group_call_id.get(), 4.0);
 
-  td_->messages_manager_->send_dialog_action(group_call->dialog_id, MessageId(), DialogAction::get_speaking_action(),
-                                             Promise<Unit>());
+  td_->dialog_action_manager_->send_dialog_action(group_call->dialog_id, MessageId(),
+                                                  DialogAction::get_speaking_action(), Promise<Unit>());
 }
 
 void GroupCallManager::on_recent_speaker_update_timeout_callback(void *group_call_manager_ptr,

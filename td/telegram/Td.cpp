@@ -4016,6 +4016,7 @@ void Td::init_managers() {
   country_info_manager_actor_ = register_actor("CountryInfoManager", country_info_manager_.get());
   dialog_action_manager_ = make_unique<DialogActionManager>(this, create_reference());
   dialog_action_manager_actor_ = register_actor("DialogActionManager", dialog_action_manager_.get());
+  G()->set_dialog_action_manager(dialog_action_manager_actor_.get());
   dialog_filter_manager_ = make_unique<DialogFilterManager>(this, create_reference());
   dialog_filter_manager_actor_ = register_actor("DialogFilterManager", dialog_filter_manager_.get());
   G()->set_dialog_filter_manager(dialog_filter_manager_actor_.get());
@@ -5980,8 +5981,8 @@ void Td::on_request(uint64 id, const td_api::deleteChatReplyMarkup &request) {
 
 void Td::on_request(uint64 id, td_api::sendChatAction &request) {
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->send_dialog_action(DialogId(request.chat_id_), MessageId(request.message_thread_id_),
-                                        DialogAction(std::move(request.action_)), std::move(promise));
+  dialog_action_manager_->send_dialog_action(DialogId(request.chat_id_), MessageId(request.message_thread_id_),
+                                             DialogAction(std::move(request.action_)), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::forwardMessages &request) {
