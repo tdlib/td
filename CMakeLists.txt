@@ -399,6 +399,7 @@ set(TDLIB_SOURCE
   td/telegram/MessageEntity.cpp
   td/telegram/MessageExtendedMedia.cpp
   td/telegram/MessageId.cpp
+  td/telegram/MessageImportManager.cpp
   td/telegram/MessageInputReplyTo.cpp
   td/telegram/MessageOrigin.cpp
   td/telegram/MessageReaction.cpp
@@ -694,6 +695,7 @@ set(TDLIB_SOURCE
   td/telegram/MessageExtendedMedia.h
   td/telegram/MessageFullId.h
   td/telegram/MessageId.h
+  td/telegram/MessageImportManager.h
   td/telegram/MessageInputReplyTo.h
   td/telegram/MessageLinkInfo.h
   td/telegram/MessageOrigin.h

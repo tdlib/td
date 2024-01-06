@@ -51,6 +51,7 @@ class GameManager;
 class GroupCallManager;
 class LanguagePackManager;
 class LinkManager;
+class MessageImportManager;
 class MessagesManager;
 class NetQueryDispatcher;
 class NotificationManager;
@@ -315,6 +316,13 @@ class Global final : public ActorContext {
     link_manager_ = link_manager;
   }
 
+  ActorId<MessageImportManager> message_import_manager() const {
+    return message_import_manager_;
+  }
+  void set_message_import_manager(ActorId<MessageImportManager> message_import_manager) {
+    message_import_manager_ = message_import_manager;
+  }
+
   ActorId<MessagesManager> messages_manager() const {
     return messages_manager_;
   }
@@ -564,6 +572,7 @@ class Global final : public ActorContext {
   ActorId<GroupCallManager> group_call_manager_;
   ActorId<LanguagePackManager> language_pack_manager_;
   ActorId<LinkManager> link_manager_;
+  ActorId<MessageImportManager> message_import_manager_;
   ActorId<MessagesManager> messages_manager_;
   ActorId<NotificationManager> notification_manager_;
   ActorId<NotificationSettingsManager> notification_settings_manager_;

@@ -67,6 +67,7 @@ class InlineQueriesManager;
 class HashtagHints;
 class LanguagePackManager;
 class LinkManager;
+class MessageImportManager;
 class MessagesManager;
 class NetStatsManager;
 class NotificationManager;
@@ -199,6 +200,8 @@ class Td final : public Actor {
   ActorOwn<InlineQueriesManager> inline_queries_manager_actor_;
   unique_ptr<LinkManager> link_manager_;
   ActorOwn<LinkManager> link_manager_actor_;
+  unique_ptr<MessageImportManager> message_import_manager_;
+  ActorOwn<MessageImportManager> message_import_manager_actor_;
   unique_ptr<MessagesManager> messages_manager_;
   ActorOwn<MessagesManager> messages_manager_actor_;
   unique_ptr<NotificationManager> notification_manager_;

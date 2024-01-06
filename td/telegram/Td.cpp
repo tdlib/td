@@ -79,6 +79,7 @@
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageId.h"
+#include "td/telegram/MessageImportManager.h"
 #include "td/telegram/MessageLinkInfo.h"
 #include "td/telegram/MessageReaction.h"
 #include "td/telegram/MessageSearchFilter.h"
@@ -3314,6 +3315,8 @@ void Td::dec_actor_refcnt() {
       LOG(DEBUG) << "InlineQueriesManager was cleared" << timer;
       link_manager_.reset();
       LOG(DEBUG) << "LinkManager was cleared" << timer;
+      message_import_manager_.reset();
+      LOG(DEBUG) << "MessageImportManager was cleared" << timer;
       messages_manager_.reset();
       LOG(DEBUG) << "MessagesManager was cleared" << timer;
       notification_manager_.reset();
@@ -3529,7 +3532,9 @@ void Td::clear() {
   LOG(DEBUG) << "InlineQueriesManager actor was cleared" << timer;
   link_manager_actor_.reset();
   LOG(DEBUG) << "LinkManager actor was cleared" << timer;
-  messages_manager_actor_.reset();  // TODO: Stop silent
+  message_import_manager_actor_.reset();
+  LOG(DEBUG) << "MessageImportManager actor was cleared" << timer;
+  messages_manager_actor_.reset();
   LOG(DEBUG) << "MessagesManager actor was cleared" << timer;
   notification_manager_actor_.reset();
   LOG(DEBUG) << "NotificationManager actor was cleared" << timer;
@@ -4030,6 +4035,9 @@ void Td::init_managers() {
   link_manager_ = make_unique<LinkManager>(this, create_reference());
   link_manager_actor_ = register_actor("LinkManager", link_manager_.get());
   G()->set_link_manager(link_manager_actor_.get());
+  message_import_manager_ = make_unique<MessageImportManager>(this, create_reference());
+  message_import_manager_actor_ = register_actor("MessageImportManager", message_import_manager_.get());
+  G()->set_message_import_manager(message_import_manager_actor_.get());
   messages_manager_ = make_unique<MessagesManager>(this, create_reference());
   messages_manager_actor_ = register_actor("MessagesManager", messages_manager_.get());
   G()->set_messages_manager(messages_manager_actor_.get());

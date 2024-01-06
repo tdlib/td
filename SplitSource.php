@@ -305,6 +305,7 @@ function split_file($file, $chunks, $undo) {
                 'link_manager[_(-][^.]|LinkManager' => 'LinkManager',
                 'LogeventIdWithGeneration|add_log_event|delete_log_event|get_erase_log_event_promise|parse_time|store_time' => 'logevent/LogEventHelper',
                 'MessageCopyOptions' => 'MessageCopyOptions',
+                'message_import_manager[_(-][^.]|MessageImportManager' => 'MessageImportManager',
                 'messages_manager[_(-][^.]|MessagesManager' => 'MessagesManager',
                 'notification_manager[_(-][^.]|NotificationManager|notifications[)]' => 'NotificationManager',
                 'notification_settings_manager[_(-][^.]|NotificationSettingsManager' => 'NotificationSettingsManager',
