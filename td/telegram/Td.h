@@ -53,6 +53,7 @@ class ConfigManager;
 class ContactsManager;
 class CountryInfoManager;
 class DeviceTokenManager;
+class DialogActionManager;
 class DialogFilterManager;
 class DialogManager;
 class DialogOnlineMemberManager;
@@ -178,6 +179,8 @@ class Td final : public Actor {
   ActorOwn<ContactsManager> contacts_manager_actor_;
   unique_ptr<CountryInfoManager> country_info_manager_;
   ActorOwn<CountryInfoManager> country_info_manager_actor_;
+  unique_ptr<DialogActionManager> dialog_action_manager_;
+  ActorOwn<DialogActionManager> dialog_action_manager_actor_;
   unique_ptr<DialogFilterManager> dialog_filter_manager_;
   ActorOwn<DialogFilterManager> dialog_filter_manager_actor_;
   unique_ptr<DialogManager> dialog_manager_;

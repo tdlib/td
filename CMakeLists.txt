@@ -320,6 +320,7 @@ set(TDLIB_SOURCE
   td/telegram/DhCache.cpp
   td/telegram/DialogAction.cpp
   td/telegram/DialogActionBar.cpp
+  td/telegram/DialogActionManager.cpp
   td/telegram/DialogAdministrator.cpp
   td/telegram/DialogDb.cpp
   td/telegram/DialogEventLog.cpp
@@ -595,6 +596,7 @@ set(TDLIB_SOURCE
   td/telegram/DhConfig.h
   td/telegram/DialogAction.h
   td/telegram/DialogActionBar.h
+  td/telegram/DialogActionManager.h
   td/telegram/DialogAdministrator.h
   td/telegram/DialogBoostLinkInfo.h
   td/telegram/DialogDate.h

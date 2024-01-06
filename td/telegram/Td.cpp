@@ -35,6 +35,7 @@
 #include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/DeviceTokenManager.h"
 #include "td/telegram/DialogAction.h"
+#include "td/telegram/DialogActionManager.h"
 #include "td/telegram/DialogBoostLinkInfo.h"
 #include "td/telegram/DialogEventLog.h"
 #include "td/telegram/DialogFilter.h"
@@ -3291,6 +3292,8 @@ void Td::dec_actor_refcnt() {
       LOG(DEBUG) << "ContactsManager was cleared" << timer;
       country_info_manager_.reset();
       LOG(DEBUG) << "CountryInfoManager was cleared" << timer;
+      dialog_action_manager_.reset();
+      LOG(DEBUG) << "DialogActionManager was cleared" << timer;
       dialog_filter_manager_.reset();
       LOG(DEBUG) << "DialogFilterManager was cleared" << timer;
       dialog_manager_.reset();
@@ -3510,6 +3513,8 @@ void Td::clear() {
   LOG(DEBUG) << "ContactsManager actor was cleared" << timer;
   country_info_manager_actor_.reset();
   LOG(DEBUG) << "CountryInfoManager actor was cleared" << timer;
+  dialog_action_manager_actor_.reset();
+  LOG(DEBUG) << "DialogActionManager actor was cleared" << timer;
   dialog_filter_manager_actor_.reset();
   LOG(DEBUG) << "DialogFilterManager actor was cleared" << timer;
   dialog_manager_actor_.reset();
@@ -4009,6 +4014,8 @@ void Td::init_managers() {
   G()->set_contacts_manager(contacts_manager_actor_.get());
   country_info_manager_ = make_unique<CountryInfoManager>(this, create_reference());
   country_info_manager_actor_ = register_actor("CountryInfoManager", country_info_manager_.get());
+  dialog_action_manager_ = make_unique<DialogActionManager>(this, create_reference());
+  dialog_action_manager_actor_ = register_actor("DialogActionManager", dialog_action_manager_.get());
   dialog_filter_manager_ = make_unique<DialogFilterManager>(this, create_reference());
   dialog_filter_manager_actor_ = register_actor("DialogFilterManager", dialog_filter_manager_.get());
   G()->set_dialog_filter_manager(dialog_filter_manager_actor_.get());
