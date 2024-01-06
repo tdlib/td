@@ -40,7 +40,6 @@
 namespace td {
 
 class Dependencies;
-class DialogAction;
 class Game;
 class MultiPromiseActor;
 struct Photo;
@@ -301,8 +300,6 @@ void update_forum_topic_info_by_service_message_content(Td *td, const MessageCon
 void on_sent_message_content(Td *td, const MessageContent *content);
 
 void move_message_content_sticker_set_to_top(Td *td, const MessageContent *content);
-
-bool is_unsent_animated_emoji_click(Td *td, DialogId dialog_id, const DialogAction &action);
 
 void init_stickers_manager(Td *td);
 

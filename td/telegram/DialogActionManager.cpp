@@ -10,15 +10,16 @@
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
-#include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/SecretChatsManager.h"
+#include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/buffer.h"
+#include "td/utils/emoji.h"
 #include "td/utils/logging.h"
 #include "td/utils/Time.h"
 
@@ -151,9 +152,13 @@ void DialogActionManager::on_dialog_action(DialogId dialog_id, MessageId top_thr
     }
   }
 
-  if (is_unsent_animated_emoji_click(td_, dialog_id, action)) {
-    LOG(DEBUG) << "Ignore unsent " << action;
-    return;
+  {
+    auto emoji = action.get_watching_animations_emoji();
+    if (!emoji.empty() &&
+        !td_->stickers_manager_->is_sent_animated_emoji_click(dialog_id, remove_emoji_modifiers(emoji))) {
+      LOG(DEBUG) << "Ignore unsent " << action;
+      return;
+    }
   }
 
   if (!td_->messages_manager_->have_dialog(dialog_id)) {

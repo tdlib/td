@@ -21,7 +21,6 @@
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/Dependencies.h"
-#include "td/telegram/DialogAction.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/Dimensions.h"
@@ -7958,15 +7957,6 @@ void move_message_content_sticker_set_to_top(Td *td, const MessageContent *conte
   if (!custom_emoji_ids.empty()) {
     td->stickers_manager_->move_sticker_set_to_top_by_custom_emoji_ids(custom_emoji_ids);
   }
-}
-
-bool is_unsent_animated_emoji_click(Td *td, DialogId dialog_id, const DialogAction &action) {
-  auto emoji = action.get_watching_animations_emoji();
-  if (emoji.empty()) {
-    // not a WatchingAnimations action
-    return false;
-  }
-  return !td->stickers_manager_->is_sent_animated_emoji_click(dialog_id, remove_emoji_modifiers(emoji));
 }
 
 void init_stickers_manager(Td *td) {
