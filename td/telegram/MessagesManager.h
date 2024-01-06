@@ -452,17 +452,6 @@ class MessagesManager final : public Actor {
       td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to, bool disable_notification,
       tl_object_ptr<td_api::InputMessageContent> &&input_message_content) TD_WARN_UNUSED_RESULT;
 
-  void get_message_file_type(const string &message_file_head,
-                             Promise<td_api::object_ptr<td_api::MessageFileType>> &&promise);
-
-  void get_message_import_confirmation_text(DialogId dialog_id, Promise<string> &&promise);
-
-  void import_messages(DialogId dialog_id, const td_api::object_ptr<td_api::InputFile> &message_file,
-                       const vector<td_api::object_ptr<td_api::InputFile>> &attached_files, Promise<Unit> &&promise);
-
-  void start_import_messages(DialogId dialog_id, int64 import_id, vector<FileId> &&attached_file_ids,
-                             Promise<Unit> &&promise);
-
   void edit_message_text(MessageFullId message_full_id, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
                          tl_object_ptr<td_api::InputMessageContent> &&input_message_content, Promise<Unit> &&promise);
 
@@ -3027,22 +3016,6 @@ class MessagesManager final : public Actor {
   void on_load_secret_thumbnail(FileId thumbnail_file_id, BufferSlice thumbnail);
   void on_upload_thumbnail(FileId thumbnail_file_id, tl_object_ptr<telegram_api::InputFile> thumbnail_input_file);
 
-  void upload_imported_messages(DialogId dialog_id, FileId file_id, vector<FileId> attached_file_ids, bool is_reupload,
-                                Promise<Unit> &&promise, vector<int> bad_parts = {});
-
-  void on_upload_imported_messages(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file);
-  void on_upload_imported_messages_error(FileId file_id, Status status);
-
-  void upload_imported_message_attachment(DialogId dialog_id, int64 import_id, FileId file_id, bool is_reupload,
-                                          Promise<Unit> &&promise, vector<int> bad_parts = {});
-
-  void on_upload_imported_message_attachment(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file);
-  void on_upload_imported_message_attachment_error(FileId file_id, Status status);
-
-  void on_imported_message_attachments_uploaded(int64 random_id, Result<Unit> &&result);
-
-  Status can_import_messages(DialogId dialog_id);
-
   void add_sponsored_dialog(const Dialog *d, DialogSource source);
 
   void save_sponsored_dialog();
@@ -3172,13 +3145,9 @@ class MessagesManager final : public Actor {
 
   class UploadMediaCallback;
   class UploadThumbnailCallback;
-  class UploadImportedMessagesCallback;
-  class UploadImportedMessageAttachmentCallback;
 
   std::shared_ptr<UploadMediaCallback> upload_media_callback_;
   std::shared_ptr<UploadThumbnailCallback> upload_thumbnail_callback_;
-  std::shared_ptr<UploadImportedMessagesCallback> upload_imported_messages_callback_;
-  std::shared_ptr<UploadImportedMessageAttachmentCallback> upload_imported_message_attachment_callback_;
 
   double last_channel_pts_jump_warning_time_ = 0;
 
@@ -3242,44 +3211,6 @@ class MessagesManager final : public Actor {
       update_scheduled_message_ids_;  // new_message_id -> temporary_id
 
   const char *debug_add_message_to_dialog_fail_reason_ = "";
-
-  struct UploadedImportedMessagesInfo {
-    DialogId dialog_id;
-    vector<FileId> attached_file_ids;
-    bool is_reupload;
-    Promise<Unit> promise;
-
-    UploadedImportedMessagesInfo(DialogId dialog_id, vector<FileId> &&attached_file_ids, bool is_reupload,
-                                 Promise<Unit> &&promise)
-        : dialog_id(dialog_id)
-        , attached_file_ids(std::move(attached_file_ids))
-        , is_reupload(is_reupload)
-        , promise(std::move(promise)) {
-    }
-  };
-  FlatHashMap<FileId, unique_ptr<UploadedImportedMessagesInfo>, FileIdHash> being_uploaded_imported_messages_;
-
-  struct UploadedImportedMessageAttachmentInfo {
-    DialogId dialog_id;
-    int64 import_id;
-    bool is_reupload;
-    Promise<Unit> promise;
-
-    UploadedImportedMessageAttachmentInfo(DialogId dialog_id, int64 import_id, bool is_reupload,
-                                          Promise<Unit> &&promise)
-        : dialog_id(dialog_id), import_id(import_id), is_reupload(is_reupload), promise(std::move(promise)) {
-    }
-  };
-  FlatHashMap<FileId, unique_ptr<UploadedImportedMessageAttachmentInfo>, FileIdHash>
-      being_uploaded_imported_message_attachments_;
-
-  struct PendingMessageImport {
-    MultiPromiseActor upload_files_multipromise{"UploadAttachedFilesMultiPromiseActor"};
-    DialogId dialog_id;
-    int64 import_id = 0;
-    Promise<Unit> promise;
-  };
-  FlatHashMap<int64, unique_ptr<PendingMessageImport>> pending_message_imports_;
 
   struct PendingMessageGroupSend {
     DialogId dialog_id;

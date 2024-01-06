@@ -7333,7 +7333,7 @@ void Td::on_request(uint64 id, td_api::getMessageFileType &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.message_file_head_);
   CREATE_REQUEST_PROMISE();
-  messages_manager_->get_message_file_type(request.message_file_head_, std::move(promise));
+  message_import_manager_->get_message_file_type(request.message_file_head_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getMessageImportConfirmationText &request) {
@@ -7346,14 +7346,14 @@ void Td::on_request(uint64 id, const td_api::getMessageImportConfirmationText &r
       promise.set_value(make_tl_object<td_api::text>(result.move_as_ok()));
     }
   });
-  messages_manager_->get_message_import_confirmation_text(DialogId(request.chat_id_), std::move(query_promise));
+  message_import_manager_->get_message_import_confirmation_text(DialogId(request.chat_id_), std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, const td_api::importMessages &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->import_messages(DialogId(request.chat_id_), request.message_file_, request.attached_files_,
-                                     std::move(promise));
+  message_import_manager_->import_messages(DialogId(request.chat_id_), request.message_file_, request.attached_files_,
+                                           std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::blockMessageSenderFromReplies &request) {
