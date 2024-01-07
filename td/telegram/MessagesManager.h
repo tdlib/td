@@ -67,7 +67,6 @@
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
-#include "td/telegram/Usernames.h"
 
 #include "td/actor/actor.h"
 #include "td/actor/MultiPromise.h"
@@ -111,6 +110,7 @@ struct InputMessageContent;
 class MessageContent;
 struct MessageReactions;
 class Td;
+class Usernames;
 
 class MessagesManager final : public Actor {
  public:
@@ -382,14 +382,6 @@ class MessagesManager final : public Actor {
                                                                    Promise<Unit> &&promise);
 
   std::pair<int32, vector<DialogId>> get_recently_opened_dialogs(int32 limit, Promise<Unit> &&promise);
-
-  void resolve_dialog(const string &username, ChannelId channel_id, Promise<DialogId> promise);
-
-  DialogId resolve_dialog_username(const string &username) const;
-
-  DialogId search_public_dialog(const string &username_to_search, bool force, Promise<Unit> &&promise);
-
-  void reload_voice_chat_on_search(const string &username);
 
   void get_dialog_send_message_as_dialog_ids(DialogId dialog_id,
                                              Promise<td_api::object_ptr<td_api::chatMessageSenders>> &&promise,
@@ -809,7 +801,6 @@ class MessagesManager final : public Actor {
   void on_dialog_title_updated(DialogId dialog_id);
   void on_dialog_emoji_status_updated(DialogId dialog_id);
   void on_dialog_usernames_updated(DialogId dialog_id, const Usernames &old_usernames, const Usernames &new_usernames);
-  void on_dialog_usernames_received(DialogId dialog_id, const Usernames &usernames, bool from_database);
   void on_dialog_default_permissions_updated(DialogId dialog_id);
   void on_dialog_has_protected_content_updated(DialogId dialog_id);
 
@@ -820,9 +811,6 @@ class MessagesManager final : public Actor {
                                         ChannelId new_linked_channel_id) const;
 
   void drop_dialog_pending_join_requests(DialogId dialog_id);
-
-  void on_resolved_username(const string &username, DialogId dialog_id);
-  void drop_username(const string &username);
 
   void on_update_notification_scope_is_muted(NotificationSettingsScope scope, bool is_muted);
 
@@ -1628,7 +1616,6 @@ class MessagesManager final : public Actor {
   static constexpr int32 LIVE_LOCATION_VIEW_PERIOD = 60;      // seconds, server-side limit
   static constexpr int32 UPDATE_VIEWED_MESSAGES_PERIOD = 15;  // seconds
 
-  static constexpr int32 USERNAME_CACHE_EXPIRE_TIME = 86400;
   static constexpr int32 AUTH_NOTIFICATION_ID_CACHE_TIME = 7 * 86400;
   static constexpr size_t MAX_SAVED_AUTH_NOTIFICATION_IDS = 100;
 
@@ -1894,10 +1881,6 @@ class MessagesManager final : public Actor {
                                  uint64 log_event_id);
 
   bool is_message_unload_enabled() const;
-
-  void send_resolve_dialog_username_query(const string &username, Promise<Unit> &&promise);
-
-  void on_resolve_dialog(const string &username, ChannelId channel_id, Promise<DialogId> &&promise);
 
   int64 generate_new_media_album_id();
 
@@ -3320,19 +3303,6 @@ class MessagesManager final : public Actor {
   vector<Promise<Unit>> load_active_live_location_messages_queries_;
 
   FlatHashMap<DialogId, vector<Promise<Unit>>, DialogIdHash> load_scheduled_messages_from_database_queries_;
-
-  struct ResolvedUsername {
-    DialogId dialog_id;
-    double expires_at = 0.0;
-
-    ResolvedUsername() = default;
-    ResolvedUsername(DialogId dialog_id, double expires_at) : dialog_id(dialog_id), expires_at(expires_at) {
-    }
-  };
-
-  WaitFreeHashMap<string, ResolvedUsername> resolved_usernames_;
-  WaitFreeHashMap<string, DialogId> inaccessible_resolved_usernames_;
-  FlatHashSet<string> reload_voice_chat_on_search_usernames_;
 
   struct GetDialogsTask {
     DialogListId dialog_list_id;

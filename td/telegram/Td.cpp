@@ -791,7 +791,7 @@ class SearchPublicChatRequest final : public RequestActor<> {
   DialogId dialog_id_;
 
   void do_run(Promise<Unit> &&promise) final {
-    dialog_id_ = td_->messages_manager_->search_public_dialog(username_, get_tries() < 3, std::move(promise));
+    dialog_id_ = td_->dialog_manager_->search_public_dialog(username_, get_tries() < 3, std::move(promise));
   }
 
   void do_send_result() final {

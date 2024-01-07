@@ -8,6 +8,7 @@
 
 #include "td/telegram/AccentColorId.h"
 #include "td/telegram/AccessRights.h"
+#include "td/telegram/ChannelId.h"
 #include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogParticipant.h"
@@ -26,6 +27,7 @@
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/Promise.h"
 #include "td/utils/Status.h"
+#include "td/utils/WaitFreeHashMap.h"
 
 #include <memory>
 #include <utility>
@@ -34,10 +36,16 @@ namespace td {
 
 class ReportReason;
 class Td;
+class Usernames;
 
 class DialogManager final : public Actor {
  public:
   DialogManager(Td *td, ActorShared<> parent);
+  DialogManager(const DialogManager &) = delete;
+  DialogManager &operator=(const DialogManager &) = delete;
+  DialogManager(DialogManager &&) = delete;
+  DialogManager &operator=(DialogManager &&) = delete;
+  ~DialogManager() final;
 
   DialogId get_my_dialog_id() const;
 
@@ -157,8 +165,28 @@ class DialogManager final : public Actor {
   void upload_dialog_photo(DialogId dialog_id, FileId file_id, bool is_animation, double main_frame_timestamp,
                            bool is_reupload, Promise<Unit> &&promise, vector<int> bad_parts = {});
 
+  void on_dialog_usernames_updated(DialogId dialog_id, const Usernames &old_usernames, const Usernames &new_usernames);
+
+  void on_dialog_usernames_received(DialogId dialog_id, const Usernames &usernames, bool from_database);
+
+  void resolve_dialog(const string &username, ChannelId channel_id, Promise<DialogId> promise);
+
+  DialogId get_resolved_dialog_by_username(const string &username) const;
+
+  DialogId resolve_dialog_username(const string &username, Promise<Unit> &promise);
+
+  DialogId search_public_dialog(const string &username_to_search, bool force, Promise<Unit> &&promise);
+
+  void reload_voice_chat_on_search(const string &username);
+
+  void on_resolved_username(const string &username, DialogId dialog_id);
+
+  void drop_username(const string &username);
+
  private:
   static constexpr size_t MAX_TITLE_LENGTH = 128;  // server side limit for chat title
+
+  static constexpr int32 USERNAME_CACHE_EXPIRE_TIME = 86400;
 
   void tear_down() final;
 
@@ -169,6 +197,10 @@ class DialogManager final : public Actor {
   void send_edit_dialog_photo_query(DialogId dialog_id, FileId file_id,
                                     telegram_api::object_ptr<telegram_api::InputChatPhoto> &&input_chat_photo,
                                     Promise<Unit> &&promise);
+
+  void send_resolve_dialog_username_query(const string &username, Promise<Unit> &&promise);
+
+  void on_resolve_dialog(const string &username, ChannelId channel_id, Promise<DialogId> &&promise);
 
   class UploadDialogPhotoCallback;
   std::shared_ptr<UploadDialogPhotoCallback> upload_dialog_photo_callback_;
@@ -190,6 +222,18 @@ class DialogManager final : public Actor {
     }
   };
   FlatHashMap<FileId, UploadedDialogPhotoInfo, FileIdHash> being_uploaded_dialog_photos_;
+
+  struct ResolvedUsername {
+    DialogId dialog_id;
+    double expires_at = 0.0;
+
+    ResolvedUsername() = default;
+    ResolvedUsername(DialogId dialog_id, double expires_at) : dialog_id(dialog_id), expires_at(expires_at) {
+    }
+  };
+  WaitFreeHashMap<string, ResolvedUsername> resolved_usernames_;
+  WaitFreeHashMap<string, DialogId> inaccessible_resolved_usernames_;
+  FlatHashSet<string> reload_voice_chat_on_search_usernames_;
 
   Td *td_;
   ActorShared<> parent_;

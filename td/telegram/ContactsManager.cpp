@@ -12726,7 +12726,7 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
     td_->inline_queries_manager_->remove_recent_inline_bot(user_id, Promise<>());
   }
   if (from_binlog || from_database) {
-    td_->messages_manager_->on_dialog_usernames_received(DialogId(user_id), u->usernames, true);
+    td_->dialog_manager_->on_dialog_usernames_received(DialogId(user_id), u->usernames, true);
   }
 
   LOG(DEBUG) << "Update " << user_id << ": need_save_to_database = " << u->need_save_to_database
@@ -13019,7 +13019,7 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
   }
 
   if (from_binlog || from_database) {
-    td_->messages_manager_->on_dialog_usernames_received(DialogId(channel_id), c->usernames, true);
+    td_->dialog_manager_->on_dialog_usernames_received(DialogId(channel_id), c->usernames, true);
   }
 
   if (!is_channel_public(c) && !c->has_linked_channel) {
@@ -14132,6 +14132,7 @@ void ContactsManager::on_update_user_name(User *u, UserId user_id, string &&firs
 
 void ContactsManager::on_update_user_usernames(User *u, UserId user_id, Usernames &&usernames) {
   if (u->usernames != usernames) {
+    td_->dialog_manager_->on_dialog_usernames_updated(DialogId(user_id), u->usernames, usernames);
     td_->messages_manager_->on_dialog_usernames_updated(DialogId(user_id), u->usernames, usernames);
     if (u->can_be_edited_bot && u->usernames.get_editable_username() != usernames.get_editable_username()) {
       u->is_full_info_changed = true;
@@ -14141,7 +14142,7 @@ void ContactsManager::on_update_user_usernames(User *u, UserId user_id, Username
     LOG(DEBUG) << "Usernames have changed for " << user_id;
     u->is_changed = true;
   } else if (u->is_bot || !td_->auth_manager_->is_bot()) {
-    td_->messages_manager_->on_dialog_usernames_received(DialogId(user_id), usernames, false);
+    td_->dialog_manager_->on_dialog_usernames_received(DialogId(user_id), usernames, false);
   }
 }
 
@@ -17381,6 +17382,7 @@ void ContactsManager::on_update_channel_usernames(ChannelId channel_id, Username
 
 void ContactsManager::on_update_channel_usernames(Channel *c, ChannelId channel_id, Usernames &&usernames) {
   if (c->usernames != usernames) {
+    td_->dialog_manager_->on_dialog_usernames_updated(DialogId(channel_id), c->usernames, usernames);
     td_->messages_manager_->on_dialog_usernames_updated(DialogId(channel_id), c->usernames, usernames);
     if (c->is_update_supergroup_sent) {
       on_channel_usernames_changed(c, channel_id, c->usernames, usernames);
@@ -17390,7 +17392,7 @@ void ContactsManager::on_update_channel_usernames(Channel *c, ChannelId channel_
     c->is_username_changed = true;
     c->is_changed = true;
   } else {
-    td_->messages_manager_->on_dialog_usernames_received(DialogId(channel_id), usernames, false);
+    td_->dialog_manager_->on_dialog_usernames_received(DialogId(channel_id), usernames, false);
   }
 }
 

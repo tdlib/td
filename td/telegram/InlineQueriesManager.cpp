@@ -26,7 +26,6 @@
 #include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageEntity.h"
-#include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/Photo.h"
@@ -2116,8 +2115,8 @@ bool InlineQueriesManager::load_recently_used_bots(Promise<Unit> &promise) {
     auto lock = resolve_recent_inline_bots_multipromise_.get_promise();
     if (!G()->use_chat_info_database()) {
       for (auto &bot_username : bot_usernames) {
-        td_->messages_manager_->search_public_dialog(bot_username, false,
-                                                     resolve_recent_inline_bots_multipromise_.get_promise());
+        td_->dialog_manager_->search_public_dialog(bot_username, false,
+                                                   resolve_recent_inline_bots_multipromise_.get_promise());
       }
     } else {
       for (auto &bot_id : bot_ids) {

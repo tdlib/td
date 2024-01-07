@@ -13,7 +13,6 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/LinkManager.h"
 #include "td/telegram/MessageId.h"
-#include "td/telegram/MessagesManager.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
@@ -437,7 +436,7 @@ void BoostManager::get_dialog_boost_link_info(Slice url, Promise<DialogBoostLink
   auto info = r_dialog_boost_link_info.move_as_ok();
   auto query_promise = PromiseCreator::lambda(
       [info, promise = std::move(promise)](Result<DialogId> &&result) mutable { promise.set_value(std::move(info)); });
-  td_->messages_manager_->resolve_dialog(info.username, info.channel_id, std::move(query_promise));
+  td_->dialog_manager_->resolve_dialog(info.username, info.channel_id, std::move(query_promise));
 }
 
 td_api::object_ptr<td_api::chatBoostLinkInfo> BoostManager::get_chat_boost_link_info_object(
@@ -446,7 +445,7 @@ td_api::object_ptr<td_api::chatBoostLinkInfo> BoostManager::get_chat_boost_link_
 
   bool is_public = !info.username.empty();
   DialogId dialog_id =
-      is_public ? td_->messages_manager_->resolve_dialog_username(info.username) : DialogId(info.channel_id);
+      is_public ? td_->dialog_manager_->get_resolved_dialog_by_username(info.username) : DialogId(info.channel_id);
   return td_api::make_object<td_api::chatBoostLinkInfo>(
       is_public, td_->dialog_manager_->get_chat_id_object(dialog_id, "chatBoostLinkInfo"));
 }

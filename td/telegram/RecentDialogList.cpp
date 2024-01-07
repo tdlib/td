@@ -99,7 +99,7 @@ void RecentDialogList::load_dialogs(Promise<Unit> &&promise) {
   vector<DialogId> dialog_ids;
   for (auto &found_dialog : found_dialogs) {
     if (found_dialog[0] == '@') {
-      td_->messages_manager_->search_public_dialog(found_dialog, false, mpas.get_promise());
+      td_->dialog_manager_->search_public_dialog(found_dialog, false, mpas.get_promise());
     } else {
       dialog_ids.push_back(DialogId(to_integer<int64>(found_dialog)));
     }
@@ -137,7 +137,7 @@ void RecentDialogList::on_load_dialogs(vector<string> &&found_dialogs) {
   for (auto it = found_dialogs.rbegin(); it != found_dialogs.rend(); ++it) {
     DialogId dialog_id;
     if ((*it)[0] == '@') {
-      dialog_id = td_->messages_manager_->resolve_dialog_username(it->substr(1));
+      dialog_id = td_->dialog_manager_->get_resolved_dialog_by_username(it->substr(1));
     } else {
       dialog_id = DialogId(to_integer<int64>(*it));
     }
