@@ -1737,38 +1737,29 @@ DialogId DialogManager::search_public_dialog(const string &username_to_search, b
     return DialogId();
   }
 
-  DialogId dialog_id;
-  auto resolved_username = resolved_usernames_.get(username);
-  if (resolved_username.dialog_id.is_valid()) {
-    if (resolved_username.expires_at < Time::now()) {
-      send_resolve_dialog_username_query(username, Promise<Unit>());
-    }
-    dialog_id = resolved_username.dialog_id;
-  } else {
-    dialog_id = inaccessible_resolved_usernames_.get(username);
+  auto dialog_id = resolve_dialog_username(username, promise);
+  if (!dialog_id.is_valid()) {
+    return DialogId();
   }
 
-  if (dialog_id.is_valid()) {
-    if (have_input_peer(dialog_id, AccessRights::Read)) {
-      if (!force && reload_voice_chat_on_search_usernames_.count(username)) {
-        reload_voice_chat_on_search_usernames_.erase(username);
-        if (dialog_id.get_type() == DialogType::Channel) {
-          td_->contacts_manager_->reload_channel_full(dialog_id.get_channel_id(), std::move(promise),
-                                                      "search_public_dialog");
-          return DialogId();
-        }
-      }
-
-      td_->messages_manager_->create_dialog(dialog_id, false, std::move(promise));
-      return dialog_id;
-    } else {
-      // bot username may be known despite there is no access_hash
-      if (force || dialog_id.get_type() != DialogType::User) {
-        force_create_dialog(dialog_id, "search_public_dialog", true);
-        promise.set_value(Unit());
-        return dialog_id;
+  if (have_input_peer(dialog_id, AccessRights::Read)) {
+    if (!force && reload_voice_chat_on_search_usernames_.count(username)) {
+      reload_voice_chat_on_search_usernames_.erase(username);
+      if (dialog_id.get_type() == DialogType::Channel) {
+        td_->contacts_manager_->reload_channel_full(dialog_id.get_channel_id(), std::move(promise),
+                                                    "search_public_dialog");
+        return DialogId();
       }
     }
+
+    td_->messages_manager_->create_dialog(dialog_id, force, std::move(promise));
+    return dialog_id;
+  }
+
+  if (force || dialog_id.get_type() != DialogType::User) {  // bot username may be known despite there is no access_hash
+    force_create_dialog(dialog_id, "search_public_dialog", true);
+    promise.set_value(Unit());
+    return dialog_id;
   }
 
   send_resolve_dialog_username_query(username, std::move(promise));
