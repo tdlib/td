@@ -7730,10 +7730,6 @@ void ContactsManager::on_update_bot_commands(DialogId dialog_id, UserId bot_user
     return;
   }
 
-  auto is_from_bot = [bot_user_id](const BotCommands &commands) {
-    return commands.get_bot_user_id() == bot_user_id;
-  };
-
   switch (dialog_id.get_type()) {
     case DialogType::User: {
       UserId user_id(dialog_id.get_user_id());
@@ -7747,24 +7743,9 @@ void ContactsManager::on_update_bot_commands(DialogId dialog_id, UserId bot_user
     case DialogType::Chat: {
       ChatId chat_id(dialog_id.get_chat_id());
       auto chat_full = get_chat_full(chat_id);
-      if (chat_full != nullptr) {
-        if (bot_commands.empty()) {
-          if (td::remove_if(chat_full->bot_commands, is_from_bot)) {
-            chat_full->is_changed = true;
-          }
-        } else {
-          BotCommands commands(bot_user_id, std::move(bot_commands));
-          auto it = std::find_if(chat_full->bot_commands.begin(), chat_full->bot_commands.end(), is_from_bot);
-          if (it != chat_full->bot_commands.end()) {
-            if (*it != commands) {
-              *it = std::move(commands);
-              chat_full->is_changed = true;
-            }
-          } else {
-            chat_full->bot_commands.push_back(std::move(commands));
-            chat_full->is_changed = true;
-          }
-        }
+      if (chat_full != nullptr && BotCommands::update_all_bot_commands(
+                                      chat_full->bot_commands, BotCommands(bot_user_id, std::move(bot_commands)))) {
+        chat_full->is_changed = true;
         update_chat_full(chat_full, chat_id, "on_update_bot_commands");
       }
       break;
@@ -7772,24 +7753,10 @@ void ContactsManager::on_update_bot_commands(DialogId dialog_id, UserId bot_user
     case DialogType::Channel: {
       ChannelId channel_id(dialog_id.get_channel_id());
       auto channel_full = get_channel_full(channel_id, true, "on_update_bot_commands");
-      if (channel_full != nullptr) {
-        if (bot_commands.empty()) {
-          if (td::remove_if(channel_full->bot_commands, is_from_bot)) {
-            channel_full->is_changed = true;
-          }
-        } else {
-          BotCommands commands(bot_user_id, std::move(bot_commands));
-          auto it = std::find_if(channel_full->bot_commands.begin(), channel_full->bot_commands.end(), is_from_bot);
-          if (it != channel_full->bot_commands.end()) {
-            if (*it != commands) {
-              *it = std::move(commands);
-              channel_full->is_changed = true;
-            }
-          } else {
-            channel_full->bot_commands.push_back(std::move(commands));
-            channel_full->is_changed = true;
-          }
-        }
+      if (channel_full != nullptr &&
+          BotCommands::update_all_bot_commands(channel_full->bot_commands,
+                                               BotCommands(bot_user_id, std::move(bot_commands)))) {
+        channel_full->is_changed = true;
         update_channel_full(channel_full, channel_id, "on_update_bot_commands");
       }
       break;

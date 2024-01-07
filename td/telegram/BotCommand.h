@@ -61,9 +61,12 @@ class BotCommands {
 
  public:
   BotCommands() = default;
+
   BotCommands(UserId bot_user_id, vector<telegram_api::object_ptr<telegram_api::botCommand>> &&bot_commands);
 
   td_api::object_ptr<td_api::botCommands> get_bot_commands_object(Td *td) const;
+
+  static bool update_all_bot_commands(vector<BotCommands> &all_bot_commands, BotCommands &&bot_commands);
 
   UserId get_bot_user_id() const {
     return bot_user_id_;
