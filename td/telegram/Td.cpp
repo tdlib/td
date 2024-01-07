@@ -5374,7 +5374,7 @@ void Td::on_request(uint64 id, const td_api::deleteChat &request) {
       send_closure(actor_id, &MessagesManager::on_dialog_deleted, dialog_id, std::move(promise));
     }
   };
-  contacts_manager_->delete_dialog(dialog_id, std::move(query_promise));
+  dialog_manager_->delete_dialog(dialog_id, std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getMessageThreadHistory &request) {
@@ -6037,7 +6037,7 @@ void Td::on_request(uint64 id, const td_api::createSupergroupChat &request) {
   CREATE_REQUEST(CreateChatRequest, DialogId(ChannelId(request.supergroup_id_)), request.force_);
 }
 
-void Td::on_request(uint64 id, td_api::createSecretChat &request) {
+void Td::on_request(uint64 id, const td_api::createSecretChat &request) {
   CREATE_REQUEST(CreateChatRequest, DialogId(SecretChatId(request.secret_chat_id_)), true);
 }
 
@@ -6057,7 +6057,7 @@ void Td::on_request(uint64 id, td_api::createNewSupergroupChat &request) {
                  request.message_auto_delete_time_);
 }
 
-void Td::on_request(uint64 id, td_api::createNewSecretChat &request) {
+void Td::on_request(uint64 id, const td_api::createNewSecretChat &request) {
   CREATE_REQUEST(CreateNewSecretChatRequest, request.user_id_);
 }
 

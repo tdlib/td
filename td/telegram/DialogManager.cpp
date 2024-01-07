@@ -19,6 +19,7 @@
 #include "td/telegram/misc.h"
 #include "td/telegram/ReportReason.h"
 #include "td/telegram/SecretChatId.h"
+#include "td/telegram/SecretChatsManager.h"
 #include "td/telegram/StickerPhotoSize.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UpdatesManager.h"
@@ -847,6 +848,27 @@ bool DialogManager::on_get_dialog_error(DialogId dialog_id, const Status &status
       UNREACHABLE();
   }
   return false;
+}
+
+void DialogManager::delete_dialog(DialogId dialog_id, Promise<Unit> &&promise) {
+  if (!have_dialog_force(dialog_id, "delete_dialog")) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      return td_->messages_manager_->delete_dialog_history(dialog_id, true, true, std::move(promise));
+    case DialogType::Chat:
+      return td_->contacts_manager_->delete_chat(dialog_id.get_chat_id(), std::move(promise));
+    case DialogType::Channel:
+      return td_->contacts_manager_->delete_channel(dialog_id.get_channel_id(), std::move(promise));
+    case DialogType::SecretChat:
+      send_closure(td_->secret_chats_manager_, &SecretChatsManager::cancel_chat, dialog_id.get_secret_chat_id(), true,
+                   std::move(promise));
+      return;
+    default:
+      UNREACHABLE();
+  }
 }
 
 string DialogManager::get_dialog_title(DialogId dialog_id) const {

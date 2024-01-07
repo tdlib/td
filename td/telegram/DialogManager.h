@@ -111,6 +111,8 @@ class DialogManager final : public Actor {
 
   bool on_get_dialog_error(DialogId dialog_id, const Status &status, const char *source);
 
+  void delete_dialog(DialogId dialog_id, Promise<Unit> &&promise);
+
   string get_dialog_title(DialogId dialog_id) const;
 
   const DialogPhoto *get_dialog_photo(DialogId dialog_id) const;

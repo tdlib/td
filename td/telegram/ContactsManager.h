@@ -521,7 +521,9 @@ class ContactsManager final : public Actor {
 
   void report_channel_anti_spam_false_positive(ChannelId channel_id, MessageId message_id, Promise<Unit> &&promise);
 
-  void delete_dialog(DialogId dialog_id, Promise<Unit> &&promise);
+  void delete_chat(ChatId chat_id, Promise<Unit> &&promise);
+
+  void delete_channel(ChannelId channel_id, Promise<Unit> &&promise);
 
   void send_update_add_chat_members_privacy_forbidden(DialogId dialog_id, vector<UserId> user_ids, const char *source);
 
@@ -1986,10 +1988,6 @@ class ContactsManager final : public Actor {
   void transfer_channel_ownership(ChannelId channel_id, UserId user_id,
                                   tl_object_ptr<telegram_api::InputCheckPasswordSRP> input_check_password,
                                   Promise<Unit> &&promise);
-
-  void delete_chat(ChatId chat_id, Promise<Unit> &&promise);
-
-  void delete_channel(ChannelId channel_id, Promise<Unit> &&promise);
 
   void get_channel_statistics_dc_id_impl(ChannelId channel_id, bool for_full_statistics, Promise<DcId> &&promise);
 

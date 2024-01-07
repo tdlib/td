@@ -18131,9 +18131,6 @@ DialogId MessagesManager::create_new_group_chat(const vector<UserId> &user_ids, 
 
     created_dialogs_.erase(it);
 
-    // set default notification settings to newly created chat
-    on_update_dialog_notify_settings(dialog_id, nullptr, "create_new_group_chat");
-
     promise.set_value(Unit());
     return dialog_id;
   }
@@ -18180,9 +18177,6 @@ DialogId MessagesManager::create_new_channel_chat(const string &title, bool is_f
     CHECK(have_dialog(dialog_id));
 
     created_dialogs_.erase(it);
-
-    // set default notification settings to newly created chat
-    on_update_dialog_notify_settings(dialog_id, nullptr, "create_new_channel_chat");
 
     promise.set_value(Unit());
     return dialog_id;

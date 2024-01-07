@@ -896,13 +896,13 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::createSupergroupChat &request);
 
-  void on_request(uint64 id, td_api::createSecretChat &request);
+  void on_request(uint64 id, const td_api::createSecretChat &request);
 
   void on_request(uint64 id, td_api::createNewBasicGroupChat &request);
 
   void on_request(uint64 id, td_api::createNewSupergroupChat &request);
 
-  void on_request(uint64 id, td_api::createNewSecretChat &request);
+  void on_request(uint64 id, const td_api::createNewSecretChat &request);
 
   void on_request(uint64 id, const td_api::createCall &request);
 
