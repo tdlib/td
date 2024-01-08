@@ -301,12 +301,6 @@ class ContactsManager final : public Actor {
 
   void on_get_permanent_dialog_invite_link(DialogId dialog_id, const DialogInviteLink &invite_link);
 
-  void on_get_dialog_invite_link_info(const string &invite_link,
-                                      tl_object_ptr<telegram_api::ChatInvite> &&chat_invite_ptr,
-                                      Promise<Unit> &&promise);
-
-  void invalidate_invite_link_info(const string &invite_link);
-
   void on_get_created_public_channels(PublicDialogType type, vector<tl_object_ptr<telegram_api::Chat>> &&chats);
 
   void on_get_dialogs_for_discussion(vector<tl_object_ptr<telegram_api::Chat>> &&chats);
@@ -314,6 +308,10 @@ class ContactsManager final : public Actor {
   void on_get_inactive_channels(vector<tl_object_ptr<telegram_api::Chat>> &&chats, Promise<Unit> &&promise);
 
   void remove_inactive_channel(ChannelId channel_id);
+
+  void add_dialog_access_by_invite_link(DialogId dialog_id, const string &invite_link, int32 accessible_before_date);
+
+  int32 get_dialog_accessible_by_invite_link_before_date(DialogId dialog_id) const;
 
   void register_message_users(MessageFullId message_full_id, vector<UserId> user_ids);
 
@@ -583,10 +581,6 @@ class ContactsManager final : public Actor {
 
   void delete_all_revoked_dialog_invite_links(DialogId dialog_id, UserId creator_user_id, Promise<Unit> &&promise);
 
-  void check_dialog_invite_link(const string &invite_link, bool force, Promise<Unit> &&promise);
-
-  void import_dialog_invite_link(const string &invite_link, Promise<DialogId> &&promise);
-
   ChannelId migrate_chat_to_megagroup(ChatId chat_id, Promise<Unit> &promise);
 
   void get_channel_recommendations(DialogId dialog_id, bool return_local,
@@ -699,6 +693,8 @@ class ContactsManager final : public Actor {
   DialogParticipantStatus get_channel_status(ChannelId channel_id) const;
   DialogParticipantStatus get_channel_permissions(ChannelId channel_id) const;
   bool get_channel_is_verified(ChannelId channel_id) const;
+  bool get_channel_is_scam(ChannelId channel_id) const;
+  bool get_channel_is_fake(ChannelId channel_id) const;
   int32 get_channel_participant_count(ChannelId channel_id) const;
   bool get_channel_sign_messages(ChannelId channel_id) const;
   bool get_channel_has_linked_channel(ChannelId channel_id) const;
@@ -768,8 +764,6 @@ class ContactsManager final : public Actor {
 
   tl_object_ptr<td_api::chatMember> get_chat_member_object(const DialogParticipant &dialog_participant,
                                                            const char *source) const;
-
-  tl_object_ptr<td_api::chatInviteLinkInfo> get_chat_invite_link_info_object(const string &invite_link);
 
   void get_support_user(Promise<td_api::object_ptr<td_api::user>> &&promise);
 
@@ -1184,27 +1178,6 @@ class ContactsManager final : public Actor {
 
     template <class ParserT>
     void parse(ParserT &parser);
-  };
-
-  struct InviteLinkInfo {
-    // known dialog
-    DialogId dialog_id;
-
-    // unknown dialog
-    string title;
-    Photo photo;
-    AccentColorId accent_color_id;
-    int32 participant_count = 0;
-    vector<UserId> participant_user_ids;
-    string description;
-    bool creates_join_request = false;
-    bool is_chat = false;
-    bool is_channel = false;
-    bool is_public = false;
-    bool is_megagroup = false;
-    bool is_verified = false;
-    bool is_scam = false;
-    bool is_fake = false;
   };
 
   struct PendingGetPhotoRequest {
@@ -2068,9 +2041,8 @@ class ContactsManager final : public Actor {
 
   struct DialogAccessByInviteLink {
     FlatHashSet<string> invite_links;
-    int32 accessible_before = 0;
+    int32 accessible_before_date = 0;
   };
-  FlatHashMap<string, unique_ptr<InviteLinkInfo>> invite_link_infos_;
   FlatHashMap<DialogId, DialogAccessByInviteLink, DialogIdHash> dialog_access_by_invite_link_;
 
   FlatHashMap<ChannelId, RecommendedDialogs, ChannelIdHash> channel_recommended_dialogs_;

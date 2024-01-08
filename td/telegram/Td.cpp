@@ -292,9 +292,9 @@ class GetRecentMeUrlsQuery final : public Td::ResultHandler {
         case telegram_api::recentMeUrlChatInvite::ID: {
           auto url = move_tl_object_as<telegram_api::recentMeUrlChatInvite>(url_ptr);
           result->url_ = std::move(url->url_);
-          td_->contacts_manager_->on_get_dialog_invite_link_info(result->url_, std::move(url->chat_invite_),
-                                                                 Promise<Unit>());
-          auto info_object = td_->contacts_manager_->get_chat_invite_link_info_object(result->url_);
+          td_->dialog_invite_link_manager_->on_get_dialog_invite_link_info(result->url_, std::move(url->chat_invite_),
+                                                                           Promise<Unit>());
+          auto info_object = td_->dialog_invite_link_manager_->get_chat_invite_link_info_object(result->url_);
           if (info_object == nullptr) {
             result = nullptr;
             break;
@@ -1779,11 +1779,11 @@ class CheckChatInviteLinkRequest final : public RequestActor<> {
   string invite_link_;
 
   void do_run(Promise<Unit> &&promise) final {
-    td_->contacts_manager_->check_dialog_invite_link(invite_link_, get_tries() < 2, std::move(promise));
+    td_->dialog_invite_link_manager_->check_dialog_invite_link(invite_link_, get_tries() < 2, std::move(promise));
   }
 
   void do_send_result() final {
-    auto result = td_->contacts_manager_->get_chat_invite_link_info_object(invite_link_);
+    auto result = td_->dialog_invite_link_manager_->get_chat_invite_link_info_object(invite_link_);
     CHECK(result != nullptr);
     send_result(std::move(result));
   }
@@ -1804,7 +1804,7 @@ class JoinChatByInviteLinkRequest final : public RequestActor<DialogId> {
       promise.set_value(std::move(dialog_id_));
       return;
     }
-    td_->contacts_manager_->import_dialog_invite_link(invite_link_, std::move(promise));
+    td_->dialog_invite_link_manager_->import_dialog_invite_link(invite_link_, std::move(promise));
   }
 
   void do_set_result(DialogId &&result) final {

@@ -8,6 +8,7 @@
 
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/DialogInviteLinkManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/LinkManager.h"
@@ -273,7 +274,7 @@ td_api::object_ptr<td_api::messageSponsor> SponsoredMessageManager::get_message_
         break;
       }
       auto invite_link = LinkManager::get_dialog_invite_link(sponsored_message.invite_hash, false);
-      auto chat_invite_link_info = td_->contacts_manager_->get_chat_invite_link_info_object(invite_link);
+      auto chat_invite_link_info = td_->dialog_invite_link_manager_->get_chat_invite_link_info_object(invite_link);
       if (chat_invite_link_info == nullptr) {
         LOG(ERROR) << "Failed to get invite link info for " << invite_link;
         return nullptr;
@@ -404,9 +405,9 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
             continue;
           }
           auto chat_invite = to_string(sponsored_message->chat_invite_);
-          td_->contacts_manager_->on_get_dialog_invite_link_info(
+          td_->dialog_invite_link_manager_->on_get_dialog_invite_link_info(
               invite_link, std::move(sponsored_message->chat_invite_), Promise<Unit>());
-          auto chat_invite_link_info = td_->contacts_manager_->get_chat_invite_link_info_object(invite_link);
+          auto chat_invite_link_info = td_->dialog_invite_link_manager_->get_chat_invite_link_info_object(invite_link);
           if (chat_invite_link_info == nullptr) {
             LOG(ERROR) << "Failed to get invite link info from " << chat_invite << " for "
                        << to_string(sponsored_message);

@@ -16,6 +16,7 @@
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogInviteLink.h"
+#include "td/telegram/DialogInviteLinkManager.h"
 #include "td/telegram/DialogLocation.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/DialogOnlineMemberManager.h"
@@ -2912,81 +2913,6 @@ class DeleteRevokedExportedChatInvitesQuery final : public Td::ResultHandler {
   }
 };
 
-class CheckChatInviteQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
-  string invite_link_;
-
- public:
-  explicit CheckChatInviteQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(const string &invite_link) {
-    invite_link_ = invite_link;
-    send_query(G()->net_query_creator().create(
-        telegram_api::messages_checkChatInvite(LinkManager::get_dialog_invite_link_hash(invite_link_))));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::messages_checkChatInvite>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for CheckChatInviteQuery: " << to_string(ptr);
-
-    td_->contacts_manager_->on_get_dialog_invite_link_info(invite_link_, std::move(ptr), std::move(promise_));
-  }
-
-  void on_error(Status status) final {
-    promise_.set_error(std::move(status));
-  }
-};
-
-class ImportChatInviteQuery final : public Td::ResultHandler {
-  Promise<DialogId> promise_;
-
-  string invite_link_;
-
- public:
-  explicit ImportChatInviteQuery(Promise<DialogId> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(const string &invite_link) {
-    invite_link_ = invite_link;
-    send_query(G()->net_query_creator().create(
-        telegram_api::messages_importChatInvite(LinkManager::get_dialog_invite_link_hash(invite_link_))));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::messages_importChatInvite>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for ImportChatInviteQuery: " << to_string(ptr);
-
-    auto dialog_ids = UpdatesManager::get_chat_dialog_ids(ptr.get());
-    if (dialog_ids.size() != 1u) {
-      LOG(ERROR) << "Receive wrong result for ImportChatInviteQuery: " << to_string(ptr);
-      return on_error(Status::Error(500, "Internal Server Error: failed to join chat via invite link"));
-    }
-    auto dialog_id = dialog_ids[0];
-
-    td_->contacts_manager_->invalidate_invite_link_info(invite_link_);
-    td_->updates_manager_->on_get_updates(
-        std::move(ptr), PromiseCreator::lambda([promise = std::move(promise_), dialog_id](Unit) mutable {
-          promise.set_value(std::move(dialog_id));
-        }));
-  }
-
-  void on_error(Status status) final {
-    td_->contacts_manager_->invalidate_invite_link_info(invite_link_);
-    promise_.set_error(std::move(status));
-  }
-};
-
 class DeleteChatUserQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -4134,11 +4060,11 @@ ContactsManager::~ContactsManager() {
       invalidated_channels_full_, channel_full_file_source_ids_, secret_chats_, unknown_secret_chats_,
       secret_chats_with_user_);
   Scheduler::instance()->destroy_on_scheduler(
-      G()->get_gc_scheduler_id(), invite_link_infos_, dialog_access_by_invite_link_, loaded_from_database_users_,
-      unavailable_user_fulls_, loaded_from_database_chats_, unavailable_chat_fulls_, loaded_from_database_channels_,
-      unavailable_channel_fulls_, loaded_from_database_secret_chats_, dialog_administrators_,
-      user_online_member_dialogs_, cached_channel_participants_, resolved_phone_numbers_, channel_participants_,
-      all_imported_contacts_, linked_channel_ids_, restricted_user_ids_, restricted_channel_ids_);
+      G()->get_gc_scheduler_id(), dialog_access_by_invite_link_, loaded_from_database_users_, unavailable_user_fulls_,
+      loaded_from_database_chats_, unavailable_chat_fulls_, loaded_from_database_channels_, unavailable_channel_fulls_,
+      loaded_from_database_secret_chats_, dialog_administrators_, user_online_member_dialogs_,
+      cached_channel_participants_, resolved_phone_numbers_, channel_participants_, all_imported_contacts_,
+      linked_channel_ids_, restricted_user_ids_, restricted_channel_ids_);
 }
 
 void ContactsManager::start_up() {
@@ -4345,7 +4271,7 @@ void ContactsManager::on_invite_link_info_expire_timeout(DialogId dialog_id) {
   if (access_it == dialog_access_by_invite_link_.end()) {
     return;
   }
-  auto expires_in = access_it->second.accessible_before - G()->unix_time() - 1;
+  auto expires_in = access_it->second.accessible_before_date - G()->unix_time() - 1;
   if (expires_in >= 3) {
     invite_link_info_expire_timeout_.set_timeout_in(dialog_id.get(), expires_in);
     return;
@@ -9579,33 +9505,6 @@ void ContactsManager::delete_all_revoked_dialog_invite_links(DialogId dialog_id,
 
   td_->create_handler<DeleteRevokedExportedChatInvitesQuery>(std::move(promise))
       ->send(dialog_id, std::move(input_user));
-}
-
-void ContactsManager::check_dialog_invite_link(const string &invite_link, bool force, Promise<Unit> &&promise) {
-  auto it = invite_link_infos_.find(invite_link);
-  if (it != invite_link_infos_.end()) {
-    auto dialog_id = it->second->dialog_id;
-    if (!force && dialog_id.get_type() == DialogType::Chat && !get_chat_is_active(dialog_id.get_chat_id())) {
-      invite_link_infos_.erase(it);
-    } else {
-      return promise.set_value(Unit());
-    }
-  }
-
-  if (!DialogInviteLink::is_valid_invite_link(invite_link)) {
-    return promise.set_error(Status::Error(400, "Wrong invite link"));
-  }
-
-  CHECK(!invite_link.empty());
-  td_->create_handler<CheckChatInviteQuery>(std::move(promise))->send(invite_link);
-}
-
-void ContactsManager::import_dialog_invite_link(const string &invite_link, Promise<DialogId> &&promise) {
-  if (!DialogInviteLink::is_valid_invite_link(invite_link)) {
-    return promise.set_error(Status::Error(400, "Wrong invite link"));
-  }
-
-  td_->create_handler<ImportChatInviteQuery>(std::move(promise))->send(invite_link);
 }
 
 void ContactsManager::delete_chat_participant(ChatId chat_id, UserId user_id, bool revoke_messages,
@@ -16165,119 +16064,24 @@ void ContactsManager::on_update_channel_full_slow_mode_next_send_date(ChannelFul
   }
 }
 
-void ContactsManager::on_get_dialog_invite_link_info(const string &invite_link,
-                                                     tl_object_ptr<telegram_api::ChatInvite> &&chat_invite_ptr,
-                                                     Promise<Unit> &&promise) {
-  CHECK(chat_invite_ptr != nullptr);
-  switch (chat_invite_ptr->get_id()) {
-    case telegram_api::chatInviteAlready::ID:
-    case telegram_api::chatInvitePeek::ID: {
-      telegram_api::object_ptr<telegram_api::Chat> chat = nullptr;
-      int32 accessible_before = 0;
-      if (chat_invite_ptr->get_id() == telegram_api::chatInviteAlready::ID) {
-        auto chat_invite_already = move_tl_object_as<telegram_api::chatInviteAlready>(chat_invite_ptr);
-        chat = std::move(chat_invite_already->chat_);
-      } else {
-        auto chat_invite_peek = move_tl_object_as<telegram_api::chatInvitePeek>(chat_invite_ptr);
-        chat = std::move(chat_invite_peek->chat_);
-        accessible_before = chat_invite_peek->expires_;
-      }
-      auto chat_id = get_chat_id(chat);
-      if (chat_id != ChatId() && !chat_id.is_valid()) {
-        LOG(ERROR) << "Receive invalid " << chat_id;
-        chat_id = ChatId();
-      }
-      auto channel_id = get_channel_id(chat);
-      if (channel_id != ChannelId() && !channel_id.is_valid()) {
-        LOG(ERROR) << "Receive invalid " << channel_id;
-        channel_id = ChannelId();
-      }
-      if (accessible_before != 0 && (!channel_id.is_valid() || accessible_before < 0)) {
-        LOG(ERROR) << "Receive expires = " << accessible_before << " for invite link " << invite_link << " to "
-                   << to_string(chat);
-        accessible_before = 0;
-      }
-      on_get_chat(std::move(chat), "chatInviteAlready");
+void ContactsManager::add_dialog_access_by_invite_link(DialogId dialog_id, const string &invite_link,
+                                                       int32 accessible_before_date) {
+  auto &access = dialog_access_by_invite_link_[dialog_id];
+  access.invite_links.insert(invite_link);
+  if (access.accessible_before_date < accessible_before_date) {
+    access.accessible_before_date = accessible_before_date;
 
-      CHECK(chat_id == ChatId() || channel_id == ChannelId());
-
-      // the access is already expired, reget the info
-      if (accessible_before != 0 && accessible_before <= G()->unix_time() + 1) {
-        td_->create_handler<CheckChatInviteQuery>(std::move(promise))->send(invite_link);
-        return;
-      }
-
-      DialogId dialog_id = chat_id.is_valid() ? DialogId(chat_id) : DialogId(channel_id);
-      auto &invite_link_info = invite_link_infos_[invite_link];
-      if (invite_link_info == nullptr) {
-        invite_link_info = make_unique<InviteLinkInfo>();
-      }
-      invite_link_info->dialog_id = dialog_id;
-      if (accessible_before != 0 && dialog_id.is_valid()) {
-        auto &access = dialog_access_by_invite_link_[dialog_id];
-        access.invite_links.insert(invite_link);
-        if (access.accessible_before < accessible_before) {
-          access.accessible_before = accessible_before;
-
-          auto expires_in = accessible_before - G()->unix_time() - 1;
-          invite_link_info_expire_timeout_.set_timeout_in(dialog_id.get(), expires_in);
-        }
-      }
-      break;
-    }
-    case telegram_api::chatInvite::ID: {
-      auto chat_invite = move_tl_object_as<telegram_api::chatInvite>(chat_invite_ptr);
-      vector<UserId> participant_user_ids;
-      for (auto &user : chat_invite->participants_) {
-        auto user_id = get_user_id(user);
-        if (!user_id.is_valid()) {
-          LOG(ERROR) << "Receive invalid " << user_id;
-          continue;
-        }
-
-        on_get_user(std::move(user), "chatInvite");
-        participant_user_ids.push_back(user_id);
-      }
-
-      auto &invite_link_info = invite_link_infos_[invite_link];
-      if (invite_link_info == nullptr) {
-        invite_link_info = make_unique<InviteLinkInfo>();
-      }
-      invite_link_info->dialog_id = DialogId();
-      invite_link_info->title = chat_invite->title_;
-      invite_link_info->photo = get_photo(td_, std::move(chat_invite->photo_), DialogId());
-      invite_link_info->accent_color_id = AccentColorId(chat_invite->color_);
-      invite_link_info->description = std::move(chat_invite->about_);
-      invite_link_info->participant_count = chat_invite->participants_count_;
-      invite_link_info->participant_user_ids = std::move(participant_user_ids);
-      invite_link_info->creates_join_request = std::move(chat_invite->request_needed_);
-      invite_link_info->is_chat = !chat_invite->channel_;
-      invite_link_info->is_channel = chat_invite->channel_;
-
-      bool is_broadcast = chat_invite->broadcast_;
-      bool is_public = chat_invite->public_;
-      bool is_megagroup = chat_invite->megagroup_;
-
-      if (!invite_link_info->is_channel) {
-        if (is_broadcast || is_public || is_megagroup) {
-          LOG(ERROR) << "Receive wrong chat invite: " << to_string(chat_invite);
-          is_public = is_megagroup = false;
-        }
-      } else {
-        LOG_IF(ERROR, is_broadcast == is_megagroup) << "Receive wrong chat invite: " << to_string(chat_invite);
-      }
-
-      invite_link_info->is_public = is_public;
-      invite_link_info->is_megagroup = is_megagroup;
-      invite_link_info->is_verified = chat_invite->verified_;
-      invite_link_info->is_scam = chat_invite->scam_;
-      invite_link_info->is_fake = chat_invite->fake_;
-      break;
-    }
-    default:
-      UNREACHABLE();
+    auto expires_in = accessible_before_date - G()->unix_time() - 1;
+    invite_link_info_expire_timeout_.set_timeout_in(dialog_id.get(), expires_in);
   }
-  promise.set_value(Unit());
+}
+
+int32 ContactsManager::get_dialog_accessible_by_invite_link_before_date(DialogId dialog_id) const {
+  auto it = dialog_access_by_invite_link_.find(dialog_id);
+  if (it != dialog_access_by_invite_link_.end()) {
+    return td::max(1, it->second.accessible_before_date - G()->unix_time() - 1);
+  }
+  return 0;
 }
 
 void ContactsManager::remove_dialog_access_by_invite_link(DialogId dialog_id) {
@@ -16287,7 +16091,7 @@ void ContactsManager::remove_dialog_access_by_invite_link(DialogId dialog_id) {
   }
 
   for (auto &invite_link : access_it->second.invite_links) {
-    invalidate_invite_link_info(invite_link);
+    td_->dialog_invite_link_manager_->invalidate_invite_link_info(invite_link);
   }
   dialog_access_by_invite_link_.erase(access_it);
 
@@ -16298,18 +16102,13 @@ bool ContactsManager::update_permanent_invite_link(DialogInviteLink &invite_link
   if (new_invite_link != invite_link) {
     if (invite_link.is_valid() && invite_link.get_invite_link() != new_invite_link.get_invite_link()) {
       // old link was invalidated
-      invite_link_infos_.erase(invite_link.get_invite_link());
+      td_->dialog_invite_link_manager_->invalidate_invite_link_info(invite_link.get_invite_link());
     }
 
     invite_link = std::move(new_invite_link);
     return true;
   }
   return false;
-}
-
-void ContactsManager::invalidate_invite_link_info(const string &invite_link) {
-  LOG(INFO) << "Invalidate info about invite link " << invite_link;
-  invite_link_infos_.erase(invite_link);
 }
 
 bool ContactsManager::need_poll_user_active_stories(const User *u, UserId user_id) const {
@@ -18548,6 +18347,22 @@ bool ContactsManager::get_channel_is_verified(ChannelId channel_id) const {
   return c->is_verified;
 }
 
+bool ContactsManager::get_channel_is_scam(ChannelId channel_id) const {
+  auto c = get_channel(channel_id);
+  if (c == nullptr) {
+    return false;
+  }
+  return c->is_scam;
+}
+
+bool ContactsManager::get_channel_is_fake(ChannelId channel_id) const {
+  auto c = get_channel(channel_id);
+  if (c == nullptr) {
+    return false;
+  }
+  return c->is_fake;
+}
+
 bool ContactsManager::get_channel_sign_messages(ChannelId channel_id) const {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
@@ -20573,117 +20388,6 @@ tl_object_ptr<td_api::secretChat> ContactsManager::get_secret_chat_object_const(
                                                  get_user_id_object(secret_chat->user_id, "secretChat"),
                                                  get_secret_chat_state_object(secret_chat->state),
                                                  secret_chat->is_outbound, secret_chat->key_hash, secret_chat->layer);
-}
-
-tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_info_object(const string &invite_link) {
-  auto it = invite_link_infos_.find(invite_link);
-  if (it == invite_link_infos_.end()) {
-    return nullptr;
-  }
-
-  auto invite_link_info = it->second.get();
-  CHECK(invite_link_info != nullptr);
-
-  DialogId dialog_id = invite_link_info->dialog_id;
-  bool is_chat = false;
-  bool is_megagroup = false;
-  string title;
-  const DialogPhoto *photo = nullptr;
-  DialogPhoto invite_link_photo;
-  int32 accent_color_id_object;
-  string description;
-  int32 participant_count = 0;
-  vector<int64> member_user_ids;
-  bool creates_join_request = false;
-  bool is_public = false;
-  bool is_member = false;
-  bool is_verified = false;
-  bool is_scam = false;
-  bool is_fake = false;
-
-  if (dialog_id.is_valid()) {
-    switch (dialog_id.get_type()) {
-      case DialogType::Chat: {
-        auto chat_id = dialog_id.get_chat_id();
-        const Chat *c = get_chat_force(chat_id, "get_chat_invite_link_info_object");
-        is_chat = true;
-
-        if (c != nullptr) {
-          title = c->title;
-          photo = &c->photo;
-          participant_count = c->participant_count;
-          is_member = c->status.is_member();
-        } else {
-          LOG(ERROR) << "Have no information about " << chat_id;
-        }
-        accent_color_id_object = get_chat_accent_color_id_object(chat_id);
-        break;
-      }
-      case DialogType::Channel: {
-        auto channel_id = dialog_id.get_channel_id();
-        const Channel *c = get_channel_force(channel_id, "get_chat_invite_link_info_object");
-
-        if (c != nullptr) {
-          title = c->title;
-          photo = &c->photo;
-          is_public = is_channel_public(c);
-          is_megagroup = c->is_megagroup;
-          participant_count = c->participant_count;
-          is_member = c->status.is_member();
-          is_verified = c->is_verified;
-          is_scam = c->is_scam;
-          is_fake = c->is_fake;
-        } else {
-          LOG(ERROR) << "Have no information about " << channel_id;
-        }
-        accent_color_id_object = get_channel_accent_color_id_object(channel_id);
-        break;
-      }
-      default:
-        UNREACHABLE();
-    }
-    description = get_dialog_about(dialog_id);
-  } else {
-    is_chat = invite_link_info->is_chat;
-    is_megagroup = invite_link_info->is_megagroup;
-    title = invite_link_info->title;
-    invite_link_photo = as_fake_dialog_photo(invite_link_info->photo, dialog_id, false);
-    photo = &invite_link_photo;
-    accent_color_id_object = td_->theme_manager_->get_accent_color_id_object(invite_link_info->accent_color_id);
-    description = invite_link_info->description;
-    participant_count = invite_link_info->participant_count;
-    member_user_ids = get_user_ids_object(invite_link_info->participant_user_ids, "get_chat_invite_link_info_object");
-    creates_join_request = invite_link_info->creates_join_request;
-    is_public = invite_link_info->is_public;
-    is_verified = invite_link_info->is_verified;
-    is_scam = invite_link_info->is_scam;
-    is_fake = invite_link_info->is_fake;
-  }
-
-  td_api::object_ptr<td_api::InviteLinkChatType> chat_type;
-  if (is_chat) {
-    chat_type = td_api::make_object<td_api::inviteLinkChatTypeBasicGroup>();
-  } else if (is_megagroup) {
-    chat_type = td_api::make_object<td_api::inviteLinkChatTypeSupergroup>();
-  } else {
-    chat_type = td_api::make_object<td_api::inviteLinkChatTypeChannel>();
-  }
-
-  if (dialog_id.is_valid()) {
-    td_->dialog_manager_->force_create_dialog(dialog_id, "get_chat_invite_link_info_object");
-  }
-  int32 accessible_for = 0;
-  if (dialog_id.is_valid() && !is_member) {
-    auto access_it = dialog_access_by_invite_link_.find(dialog_id);
-    if (access_it != dialog_access_by_invite_link_.end()) {
-      accessible_for = td::max(1, access_it->second.accessible_before - G()->unix_time() - 1);
-    }
-  }
-
-  return td_api::make_object<td_api::chatInviteLinkInfo>(
-      td_->dialog_manager_->get_chat_id_object(dialog_id, "chatInviteLinkInfo"), accessible_for, std::move(chat_type),
-      title, get_chat_photo_info_object(td_->file_manager_.get(), photo), accent_color_id_object, description,
-      participant_count, std::move(member_user_ids), creates_join_request, is_public, is_verified, is_scam, is_fake);
 }
 
 void ContactsManager::get_support_user(Promise<td_api::object_ptr<td_api::user>> &&promise) {
