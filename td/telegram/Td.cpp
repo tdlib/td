@@ -7009,7 +7009,7 @@ void Td::on_request(uint64 id, td_api::searchChatMembers &request) {
 
 void Td::on_request(uint64 id, const td_api::getChatAdministrators &request) {
   CREATE_REQUEST_PROMISE();
-  contacts_manager_->get_dialog_administrators(DialogId(request.chat_id_), std::move(promise));
+  dialog_participant_manager_->get_dialog_administrators(DialogId(request.chat_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::replacePrimaryChatInviteLink &request) {

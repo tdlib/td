@@ -287,9 +287,6 @@ class ContactsManager final : public Actor {
 
   void on_update_bot_menu_button(UserId bot_user_id, tl_object_ptr<telegram_api::BotMenuButton> &&bot_menu_button);
 
-  void on_update_dialog_administrators(DialogId dialog_id, vector<DialogAdministrator> &&administrators,
-                                       bool have_access, bool from_database);
-
   void speculative_add_channel_participants(ChannelId channel_id, const vector<UserId> &added_user_ids,
                                             UserId inviter_user_id, int32 date, bool by_me);
 
@@ -683,8 +680,6 @@ class ContactsManager final : public Actor {
 
   void search_dialog_participants(DialogId dialog_id, const string &query, int32 limit, DialogParticipantFilter filter,
                                   Promise<DialogParticipants> &&promise);
-
-  void get_dialog_administrators(DialogId dialog_id, Promise<td_api::object_ptr<td_api::chatAdministrators>> &&promise);
 
   void get_channel_participants(ChannelId channel_id, tl_object_ptr<td_api::SupergroupMembersFilter> &&filter,
                                 string additional_query, int32 offset, int32 limit, int32 additional_limit,
@@ -1776,24 +1771,6 @@ class ContactsManager final : public Actor {
   void finish_get_channel_participant(ChannelId channel_id, DialogParticipant &&dialog_participant,
                                       Promise<DialogParticipant> &&promise);
 
-  td_api::object_ptr<td_api::chatAdministrators> get_chat_administrators_object(
-      const vector<DialogAdministrator> &dialog_administrators);
-
-  static string get_dialog_administrators_database_key(DialogId dialog_id);
-
-  void on_load_dialog_administrators_from_database(DialogId dialog_id, string value,
-                                                   Promise<td_api::object_ptr<td_api::chatAdministrators>> &&promise);
-
-  void on_load_administrator_users_finished(DialogId dialog_id, vector<DialogAdministrator> administrators,
-                                            Result<> result,
-                                            Promise<td_api::object_ptr<td_api::chatAdministrators>> &&promise);
-
-  void reload_dialog_administrators(DialogId dialog_id, const vector<DialogAdministrator> &dialog_administrators,
-                                    Promise<td_api::object_ptr<td_api::chatAdministrators>> &&promise);
-
-  void on_reload_dialog_administrators(DialogId dialog_id,
-                                       Promise<td_api::object_ptr<td_api::chatAdministrators>> &&promise);
-
   void remove_dialog_suggested_action(SuggestedAction action);
 
   void on_dismiss_suggested_action(SuggestedAction action, Result<Unit> &&result);
@@ -2021,8 +1998,6 @@ class ContactsManager final : public Actor {
 
   QueryCombiner get_user_full_queries_{"GetUserFullCombiner", 2.0};
   QueryCombiner get_chat_full_queries_{"GetChatFullCombiner", 2.0};
-
-  FlatHashMap<DialogId, vector<DialogAdministrator>, DialogIdHash> dialog_administrators_;
 
   FlatHashMap<DialogId, vector<SuggestedAction>, DialogIdHash> dialog_suggested_actions_;
   FlatHashMap<DialogId, vector<Promise<Unit>>, DialogIdHash> dismiss_suggested_action_queries_;
