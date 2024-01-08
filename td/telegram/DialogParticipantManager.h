@@ -6,8 +6,11 @@
 //
 #pragma once
 
+#include "td/telegram/ChannelId.h"
+#include "td/telegram/ChatId.h"
 #include "td/telegram/DialogAdministrator.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/DialogInviteLink.h"
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/UserId.h"
@@ -62,6 +65,20 @@ class DialogParticipantManager final : public Actor {
   void reload_dialog_administrators(DialogId dialog_id, const vector<DialogAdministrator> &dialog_administrators,
                                     Promise<td_api::object_ptr<td_api::chatAdministrators>> &&promise);
 
+  void on_update_bot_stopped(UserId user_id, int32 date, bool is_stopped, bool force = false);
+
+  void on_update_chat_participant(ChatId chat_id, UserId user_id, int32 date, DialogInviteLink invite_link,
+                                  telegram_api::object_ptr<telegram_api::ChatParticipant> old_participant,
+                                  telegram_api::object_ptr<telegram_api::ChatParticipant> new_participant);
+
+  void on_update_channel_participant(ChannelId channel_id, UserId user_id, int32 date, DialogInviteLink invite_link,
+                                     bool via_dialog_filter_invite_link,
+                                     telegram_api::object_ptr<telegram_api::ChannelParticipant> old_participant,
+                                     telegram_api::object_ptr<telegram_api::ChannelParticipant> new_participant);
+
+  void on_update_chat_invite_requester(DialogId dialog_id, UserId user_id, string about, int32 date,
+                                       DialogInviteLink invite_link);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
@@ -95,6 +112,11 @@ class DialogParticipantManager final : public Actor {
 
   void on_reload_dialog_administrators(DialogId dialog_id,
                                        Promise<td_api::object_ptr<td_api::chatAdministrators>> &&promise);
+
+  void send_update_chat_member(DialogId dialog_id, UserId agent_user_id, int32 date,
+                               const DialogInviteLink &invite_link, bool via_dialog_filter_invite_link,
+                               const DialogParticipant &old_dialog_participant,
+                               const DialogParticipant &new_dialog_participant);
 
   struct OnlineMemberCountInfo {
     int32 online_member_count = 0;

@@ -779,4 +779,180 @@ void DialogParticipantManager::on_reload_dialog_administrators(
   promise.set_error(Status::Error(500, "Failed to find chat administrators"));
 }
 
+void DialogParticipantManager::send_update_chat_member(DialogId dialog_id, UserId agent_user_id, int32 date,
+                                                       const DialogInviteLink &invite_link,
+                                                       bool via_dialog_filter_invite_link,
+                                                       const DialogParticipant &old_dialog_participant,
+                                                       const DialogParticipant &new_dialog_participant) {
+  CHECK(td_->auth_manager_->is_bot());
+  td_->dialog_manager_->force_create_dialog(dialog_id, "send_update_chat_member", true);
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateChatMember>(
+                   td_->dialog_manager_->get_chat_id_object(dialog_id, "updateChatMember"),
+                   td_->contacts_manager_->get_user_id_object(agent_user_id, "updateChatMember"), date,
+                   invite_link.get_chat_invite_link_object(td_->contacts_manager_.get()), via_dialog_filter_invite_link,
+                   td_->contacts_manager_->get_chat_member_object(old_dialog_participant, "updateChatMember old"),
+                   td_->contacts_manager_->get_chat_member_object(new_dialog_participant, "updateChatMember new")));
+}
+
+void DialogParticipantManager::on_update_bot_stopped(UserId user_id, int32 date, bool is_stopped, bool force) {
+  CHECK(td_->auth_manager_->is_bot());
+  if (date <= 0 || !td_->contacts_manager_->have_user_force(user_id, "on_update_bot_stopped")) {
+    LOG(ERROR) << "Receive invalid updateBotStopped by " << user_id << " at " << date;
+    return;
+  }
+  auto my_user_id = td_->contacts_manager_->get_my_id();
+  if (!td_->contacts_manager_->have_user_force(my_user_id, "on_update_bot_stopped 2")) {
+    if (!force) {
+      td_->contacts_manager_->get_me(
+          PromiseCreator::lambda([actor_id = actor_id(this), user_id, date, is_stopped](Unit) {
+            send_closure(actor_id, &DialogParticipantManager::on_update_bot_stopped, user_id, date, is_stopped, true);
+          }));
+      return;
+    }
+    LOG(ERROR) << "Have no self-user to process updateBotStopped";
+  }
+
+  DialogParticipant old_dialog_participant(DialogId(my_user_id), user_id, date, DialogParticipantStatus::Banned(0));
+  DialogParticipant new_dialog_participant(DialogId(my_user_id), user_id, date, DialogParticipantStatus::Member());
+  if (is_stopped) {
+    std::swap(old_dialog_participant.status_, new_dialog_participant.status_);
+  }
+
+  send_update_chat_member(DialogId(user_id), user_id, date, DialogInviteLink(), false, old_dialog_participant,
+                          new_dialog_participant);
+}
+
+void DialogParticipantManager::on_update_chat_participant(
+    ChatId chat_id, UserId user_id, int32 date, DialogInviteLink invite_link,
+    telegram_api::object_ptr<telegram_api::ChatParticipant> old_participant,
+    telegram_api::object_ptr<telegram_api::ChatParticipant> new_participant) {
+  CHECK(td_->auth_manager_->is_bot());
+  if (!chat_id.is_valid() || !user_id.is_valid() || date <= 0 ||
+      (old_participant == nullptr && new_participant == nullptr)) {
+    LOG(ERROR) << "Receive invalid updateChatParticipant in " << chat_id << " by " << user_id << " at " << date << ": "
+               << to_string(old_participant) << " -> " << to_string(new_participant);
+    return;
+  }
+
+  if (!td_->contacts_manager_->have_chat(chat_id)) {
+    LOG(ERROR) << "Receive updateChatParticipant in unknown " << chat_id;
+    return;
+  }
+  auto chat_date = td_->contacts_manager_->get_chat_date(chat_id);
+  auto chat_status = td_->contacts_manager_->get_chat_status(chat_id);
+  auto is_creator = chat_status.is_creator();
+
+  DialogParticipant old_dialog_participant;
+  DialogParticipant new_dialog_participant;
+  if (old_participant != nullptr) {
+    old_dialog_participant = DialogParticipant(std::move(old_participant), chat_date, is_creator);
+    if (new_participant == nullptr) {
+      new_dialog_participant = DialogParticipant::left(old_dialog_participant.dialog_id_);
+    } else {
+      new_dialog_participant = DialogParticipant(std::move(new_participant), chat_date, is_creator);
+    }
+  } else {
+    new_dialog_participant = DialogParticipant(std::move(new_participant), chat_date, is_creator);
+    old_dialog_participant = DialogParticipant::left(new_dialog_participant.dialog_id_);
+  }
+  if (old_dialog_participant.dialog_id_ != new_dialog_participant.dialog_id_ || !old_dialog_participant.is_valid() ||
+      !new_dialog_participant.is_valid()) {
+    LOG(ERROR) << "Receive wrong updateChatParticipant: " << old_dialog_participant << " -> " << new_dialog_participant;
+    return;
+  }
+  if (new_dialog_participant.dialog_id_ == DialogId(td_->contacts_manager_->get_my_id()) &&
+      new_dialog_participant.status_ != chat_status && false) {
+    LOG(ERROR) << "Have status " << chat_status << " after receiving updateChatParticipant in " << chat_id << " by "
+               << user_id << " at " << date << " from " << old_dialog_participant << " to " << new_dialog_participant;
+  }
+
+  send_update_chat_member(DialogId(chat_id), user_id, date, invite_link, false, old_dialog_participant,
+                          new_dialog_participant);
+}
+
+void DialogParticipantManager::on_update_channel_participant(
+    ChannelId channel_id, UserId user_id, int32 date, DialogInviteLink invite_link, bool via_dialog_filter_invite_link,
+    telegram_api::object_ptr<telegram_api::ChannelParticipant> old_participant,
+    telegram_api::object_ptr<telegram_api::ChannelParticipant> new_participant) {
+  CHECK(td_->auth_manager_->is_bot());
+  if (!channel_id.is_valid() || !user_id.is_valid() || date <= 0 ||
+      (old_participant == nullptr && new_participant == nullptr)) {
+    LOG(ERROR) << "Receive invalid updateChannelParticipant in " << channel_id << " by " << user_id << " at " << date
+               << ": " << to_string(old_participant) << " -> " << to_string(new_participant);
+    return;
+  }
+  if (!td_->contacts_manager_->have_channel(channel_id)) {
+    LOG(ERROR) << "Receive updateChannelParticipant in unknown " << channel_id;
+    return;
+  }
+
+  DialogParticipant old_dialog_participant;
+  DialogParticipant new_dialog_participant;
+  auto channel_type = td_->contacts_manager_->get_channel_type(channel_id);
+  if (old_participant != nullptr) {
+    old_dialog_participant = DialogParticipant(std::move(old_participant), channel_type);
+    if (new_participant == nullptr) {
+      new_dialog_participant = DialogParticipant::left(old_dialog_participant.dialog_id_);
+    } else {
+      new_dialog_participant = DialogParticipant(std::move(new_participant), channel_type);
+    }
+  } else {
+    new_dialog_participant = DialogParticipant(std::move(new_participant), channel_type);
+    old_dialog_participant = DialogParticipant::left(new_dialog_participant.dialog_id_);
+  }
+  if (old_dialog_participant.dialog_id_ != new_dialog_participant.dialog_id_ || !old_dialog_participant.is_valid() ||
+      !new_dialog_participant.is_valid()) {
+    LOG(ERROR) << "Receive wrong updateChannelParticipant: " << old_dialog_participant << " -> "
+               << new_dialog_participant;
+    return;
+  }
+  if (new_dialog_participant.status_.is_administrator() && user_id == td_->contacts_manager_->get_my_id() &&
+      !new_dialog_participant.status_.can_be_edited()) {
+    LOG(ERROR) << "Fix wrong can_be_edited in " << new_dialog_participant << " from " << channel_id << " changed from "
+               << old_dialog_participant;
+    new_dialog_participant.status_.toggle_can_be_edited();
+  }
+
+  if (old_dialog_participant.dialog_id_ == td_->dialog_manager_->get_my_dialog_id() &&
+      old_dialog_participant.status_.is_administrator() && !new_dialog_participant.status_.is_administrator()) {
+    td_->contacts_manager_->drop_channel_participant_cache(channel_id);
+  } else if (td_->contacts_manager_->have_channel_participant_cache(channel_id)) {
+    td_->contacts_manager_->add_channel_participant_to_cache(channel_id, new_dialog_participant, true);
+  }
+
+  auto channel_status = td_->contacts_manager_->get_channel_status(channel_id);
+  if (new_dialog_participant.dialog_id_ == td_->dialog_manager_->get_my_dialog_id() &&
+      new_dialog_participant.status_ != channel_status && false) {
+    LOG(ERROR) << "Have status " << channel_status << " after receiving updateChannelParticipant in " << channel_id
+               << " by " << user_id << " at " << date << " from " << old_dialog_participant << " to "
+               << new_dialog_participant;
+  }
+
+  send_update_chat_member(DialogId(channel_id), user_id, date, invite_link, via_dialog_filter_invite_link,
+                          old_dialog_participant, new_dialog_participant);
+}
+
+void DialogParticipantManager::on_update_chat_invite_requester(DialogId dialog_id, UserId user_id, string about,
+                                                               int32 date, DialogInviteLink invite_link) {
+  CHECK(td_->auth_manager_->is_bot());
+  if (date <= 0 || !td_->contacts_manager_->have_user_force(user_id, "on_update_chat_invite_requester") ||
+      !td_->dialog_manager_->have_dialog_info_force(dialog_id, "on_update_chat_invite_requester")) {
+    LOG(ERROR) << "Receive invalid updateBotChatInviteRequester by " << user_id << " in " << dialog_id << " at "
+               << date;
+    return;
+  }
+  DialogId user_dialog_id(user_id);
+  td_->dialog_manager_->force_create_dialog(dialog_id, "on_update_chat_invite_requester", true);
+  td_->dialog_manager_->force_create_dialog(user_dialog_id, "on_update_chat_invite_requester");
+
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateNewChatJoinRequest>(
+                   td_->dialog_manager_->get_chat_id_object(dialog_id, "updateNewChatJoinRequest"),
+                   td_api::make_object<td_api::chatJoinRequest>(
+                       td_->contacts_manager_->get_user_id_object(user_id, "updateNewChatJoinRequest"), date, about),
+                   td_->dialog_manager_->get_chat_id_object(user_dialog_id, "updateNewChatJoinRequest 2"),
+                   invite_link.get_chat_invite_link_object(td_->contacts_manager_.get())));
+}
+
 }  // namespace td

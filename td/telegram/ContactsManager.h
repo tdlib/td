@@ -268,16 +268,12 @@ class ContactsManager final : public Actor {
   void on_update_channel_default_permissions(ChannelId channel_id, RestrictedRights default_permissions);
   void on_update_channel_administrator_count(ChannelId channel_id, int32 administrator_count);
 
-  void on_update_bot_stopped(UserId user_id, int32 date, bool is_stopped, bool force = false);
-  void on_update_chat_participant(ChatId chat_id, UserId user_id, int32 date, DialogInviteLink invite_link,
-                                  tl_object_ptr<telegram_api::ChatParticipant> old_participant,
-                                  tl_object_ptr<telegram_api::ChatParticipant> new_participant);
-  void on_update_channel_participant(ChannelId channel_id, UserId user_id, int32 date, DialogInviteLink invite_link,
-                                     bool via_dialog_filter_invite_link,
-                                     tl_object_ptr<telegram_api::ChannelParticipant> old_participant,
-                                     tl_object_ptr<telegram_api::ChannelParticipant> new_participant);
-  void on_update_chat_invite_requester(DialogId dialog_id, UserId user_id, string about, int32 date,
-                                       DialogInviteLink invite_link);
+  bool have_channel_participant_cache(ChannelId channel_id) const;
+
+  void add_channel_participant_to_cache(ChannelId channel_id, const DialogParticipant &dialog_participant,
+                                        bool allow_replace);
+
+  void drop_channel_participant_cache(ChannelId channel_id);
 
   int32 on_update_peer_located(vector<tl_object_ptr<telegram_api::PeerLocated>> &&peers, bool from_update);
 
@@ -1670,11 +1666,6 @@ class ContactsManager final : public Actor {
   void on_clear_imported_contacts(vector<Contact> &&contacts, vector<size_t> contacts_unique_id,
                                   std::pair<vector<size_t>, vector<Contact>> &&to_add, Promise<Unit> &&promise);
 
-  void send_update_chat_member(DialogId dialog_id, UserId agent_user_id, int32 date,
-                               const DialogInviteLink &invite_link, bool via_dialog_filter_invite_link,
-                               const DialogParticipant &old_dialog_participant,
-                               const DialogParticipant &new_dialog_participant);
-
   vector<td_api::object_ptr<td_api::chatNearby>> get_chats_nearby_object(
       const vector<DialogNearby> &dialogs_nearby) const;
 
@@ -1854,11 +1845,6 @@ class ContactsManager final : public Actor {
                                    string additional_query, int32 additional_limit,
                                    tl_object_ptr<telegram_api::channels_channelParticipants> &&channel_participants,
                                    Promise<DialogParticipants> &&promise);
-
-  bool have_channel_participant_cache(ChannelId channel_id) const;
-
-  void add_channel_participant_to_cache(ChannelId channel_id, const DialogParticipant &dialog_participant,
-                                        bool allow_replace);
 
   void update_channel_participant_status_cache(ChannelId channel_id, DialogId participant_dialog_id,
                                                DialogParticipantStatus &&dialog_participant_status);
