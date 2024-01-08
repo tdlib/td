@@ -647,18 +647,23 @@ class ContactsManager final : public Actor {
   int32 get_channel_slow_mode_delay(ChannelId channel_id, const char *source);
   bool get_channel_effective_has_hidden_participants(ChannelId channel_id, const char *source);
 
-  void add_dialog_participant(DialogId dialog_id, UserId user_id, int32 forward_limit, Promise<Unit> &&promise);
+  void add_chat_participant(ChatId chat_id, UserId user_id, int32 forward_limit, Promise<Unit> &&promise);
 
-  void add_dialog_participants(DialogId dialog_id, const vector<UserId> &user_ids, Promise<Unit> &&promise);
+  void add_channel_participant(ChannelId channel_id, UserId user_id, const DialogParticipantStatus &old_status,
+                               Promise<Unit> &&promise);
 
-  void set_dialog_participant_status(DialogId dialog_id, DialogId participant_dialog_id,
-                                     td_api::object_ptr<td_api::ChatMemberStatus> &&chat_member_status,
-                                     Promise<Unit> &&promise);
+  void add_channel_participants(ChannelId channel_id, const vector<UserId> &user_ids, Promise<Unit> &&promise);
+
+  void set_chat_participant_status(ChatId chat_id, UserId user_id, DialogParticipantStatus status,
+                                   Promise<Unit> &&promise);
+
+  void set_channel_participant_status(ChannelId channel_id, DialogId participant_dialog_id,
+                                      td_api::object_ptr<td_api::ChatMemberStatus> &&chat_member_status,
+                                      Promise<Unit> &&promise);
+
+  void delete_chat_participant(ChatId chat_id, UserId user_id, bool revoke_messages, Promise<Unit> &&promise);
 
   void leave_dialog(DialogId dialog_id, Promise<Unit> &&promise);
-
-  void ban_dialog_participant(DialogId dialog_id, DialogId participant_dialog_id, int32 banned_until_date,
-                              bool revoke_messages, Promise<Unit> &&promise);
 
   void get_chat_participant(ChatId chat_id, UserId user_id, Promise<DialogParticipant> &&promise);
 
@@ -1713,13 +1718,6 @@ class ContactsManager final : public Actor {
 
   bool update_permanent_invite_link(DialogInviteLink &invite_link, DialogInviteLink new_invite_link);
 
-  void add_chat_participant(ChatId chat_id, UserId user_id, int32 forward_limit, Promise<Unit> &&promise);
-
-  void add_channel_participant(ChannelId channel_id, UserId user_id, const DialogParticipantStatus &old_status,
-                               Promise<Unit> &&promise);
-
-  void add_channel_participants(ChannelId channel_id, const vector<UserId> &user_ids, Promise<Unit> &&promise);
-
   vector<BotCommands> get_bot_commands(vector<tl_object_ptr<telegram_api::botInfo>> &&bot_infos,
                                        const vector<DialogParticipant> *participants);
 
@@ -1807,8 +1805,6 @@ class ContactsManager final : public Actor {
 
   void send_edit_chat_admin_query(ChatId chat_id, UserId user_id, bool is_administrator, Promise<Unit> &&promise);
 
-  void delete_chat_participant(ChatId chat_id, UserId user_id, bool revoke_messages, Promise<Unit> &&promise);
-
   void search_chat_participants(ChatId chat_id, const string &query, int32 limit, DialogParticipantFilter filter,
                                 Promise<DialogParticipants> &&promise);
 
@@ -1819,13 +1815,6 @@ class ContactsManager final : public Actor {
                                    string additional_query, int32 additional_limit,
                                    tl_object_ptr<telegram_api::channels_channelParticipants> &&channel_participants,
                                    Promise<DialogParticipants> &&promise);
-
-  void set_chat_participant_status(ChatId chat_id, UserId user_id, DialogParticipantStatus status,
-                                   Promise<Unit> &&promise);
-
-  void set_channel_participant_status(ChannelId channel_id, DialogId participant_dialog_id,
-                                      td_api::object_ptr<td_api::ChatMemberStatus> &&chat_member_status,
-                                      Promise<Unit> &&promise);
 
   void set_channel_participant_status_impl(ChannelId channel_id, DialogId participant_dialog_id,
                                            DialogParticipantStatus new_status, DialogParticipantStatus old_status,

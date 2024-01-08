@@ -1131,6 +1131,116 @@ void DialogParticipantManager::finish_get_channel_participant(ChannelId channel_
   promise.set_value(std::move(dialog_participant));
 }
 
+void DialogParticipantManager::add_dialog_participant(DialogId dialog_id, UserId user_id, int32 forward_limit,
+                                                      Promise<Unit> &&promise) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "add_dialog_participant")) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      return promise.set_error(Status::Error(400, "Can't add members to a private chat"));
+    case DialogType::Chat:
+      return td_->contacts_manager_->add_chat_participant(dialog_id.get_chat_id(), user_id, forward_limit,
+                                                          std::move(promise));
+    case DialogType::Channel:
+      return td_->contacts_manager_->add_channel_participant(dialog_id.get_channel_id(), user_id,
+                                                             DialogParticipantStatus::Left(), std::move(promise));
+    case DialogType::SecretChat:
+      return promise.set_error(Status::Error(400, "Can't add members to a secret chat"));
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+  }
+}
+
+void DialogParticipantManager::add_dialog_participants(DialogId dialog_id, const vector<UserId> &user_ids,
+                                                       Promise<Unit> &&promise) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "add_dialog_participants")) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      return promise.set_error(Status::Error(400, "Can't add members to a private chat"));
+    case DialogType::Chat:
+      if (user_ids.size() == 1) {
+        return td_->contacts_manager_->add_chat_participant(dialog_id.get_chat_id(), user_ids[0], 0,
+                                                            std::move(promise));
+      }
+      return promise.set_error(Status::Error(400, "Can't add many members at once to a basic group chat"));
+    case DialogType::Channel:
+      return td_->contacts_manager_->add_channel_participants(dialog_id.get_channel_id(), user_ids, std::move(promise));
+    case DialogType::SecretChat:
+      return promise.set_error(Status::Error(400, "Can't add members to a secret chat"));
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+  }
+}
+
+void DialogParticipantManager::set_dialog_participant_status(
+    DialogId dialog_id, DialogId participant_dialog_id,
+    td_api::object_ptr<td_api::ChatMemberStatus> &&chat_member_status, Promise<Unit> &&promise) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "set_dialog_participant_status")) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      return promise.set_error(Status::Error(400, "Chat member status can't be changed in private chats"));
+    case DialogType::Chat: {
+      auto status = get_dialog_participant_status(chat_member_status, ChannelType::Unknown);
+      if (participant_dialog_id.get_type() != DialogType::User) {
+        if (status == DialogParticipantStatus::Left()) {
+          return promise.set_value(Unit());
+        } else {
+          return promise.set_error(Status::Error(400, "Chats can't be members of basic groups"));
+        }
+      }
+      return td_->contacts_manager_->set_chat_participant_status(
+          dialog_id.get_chat_id(), participant_dialog_id.get_user_id(), status, std::move(promise));
+    }
+    case DialogType::Channel:
+      return td_->contacts_manager_->set_channel_participant_status(dialog_id.get_channel_id(), participant_dialog_id,
+                                                                    std::move(chat_member_status), std::move(promise));
+    case DialogType::SecretChat:
+      return promise.set_error(Status::Error(400, "Chat member status can't be changed in secret chats"));
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+  }
+}
+
+void DialogParticipantManager::ban_dialog_participant(DialogId dialog_id, DialogId participant_dialog_id,
+                                                      int32 banned_until_date, bool revoke_messages,
+                                                      Promise<Unit> &&promise) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "ban_dialog_participant")) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      return promise.set_error(Status::Error(400, "Can't ban members in private chats"));
+    case DialogType::Chat:
+      if (participant_dialog_id.get_type() != DialogType::User) {
+        return promise.set_error(Status::Error(400, "Can't ban chats in basic groups"));
+      }
+      return td_->contacts_manager_->delete_chat_participant(
+          dialog_id.get_chat_id(), participant_dialog_id.get_user_id(), revoke_messages, std::move(promise));
+    case DialogType::Channel:
+      // must use td_api::chatMemberStatusBanned to properly fix banned_until_date
+      return td_->contacts_manager_->set_channel_participant_status(
+          dialog_id.get_channel_id(), participant_dialog_id,
+          td_api::make_object<td_api::chatMemberStatusBanned>(banned_until_date), std::move(promise));
+    case DialogType::SecretChat:
+      return promise.set_error(Status::Error(400, "Can't ban members in secret chats"));
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+  }
+}
+
 void DialogParticipantManager::on_set_channel_participant_status(ChannelId channel_id, DialogId participant_dialog_id,
                                                                  DialogParticipantStatus status) {
   if (G()->close_flag() || participant_dialog_id == td_->dialog_manager_->get_my_dialog_id()) {

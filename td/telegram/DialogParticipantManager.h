@@ -85,6 +85,17 @@ class DialogParticipantManager final : public Actor {
   void get_channel_participant(ChannelId channel_id, DialogId participant_dialog_id,
                                Promise<DialogParticipant> &&promise);
 
+  void add_dialog_participant(DialogId dialog_id, UserId user_id, int32 forward_limit, Promise<Unit> &&promise);
+
+  void add_dialog_participants(DialogId dialog_id, const vector<UserId> &user_ids, Promise<Unit> &&promise);
+
+  void set_dialog_participant_status(DialogId dialog_id, DialogId participant_dialog_id,
+                                     td_api::object_ptr<td_api::ChatMemberStatus> &&chat_member_status,
+                                     Promise<Unit> &&promise);
+
+  void ban_dialog_participant(DialogId dialog_id, DialogId participant_dialog_id, int32 banned_until_date,
+                              bool revoke_messages, Promise<Unit> &&promise);
+
   void on_set_channel_participant_status(ChannelId channel_id, DialogId participant_dialog_id,
                                          DialogParticipantStatus status);
 
