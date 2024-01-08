@@ -14,6 +14,8 @@
 
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
+#include "td/utils/Promise.h"
+#include "td/utils/Status.h"
 
 namespace td {
 
@@ -31,6 +33,15 @@ class DialogParticipantManager final : public Actor {
 
   void on_dialog_closed(DialogId dialog_id);
 
+  void get_dialog_join_requests(DialogId dialog_id, const string &invite_link, const string &query,
+                                td_api::object_ptr<td_api::chatJoinRequest> offset_request, int32 limit,
+                                Promise<td_api::object_ptr<td_api::chatJoinRequests>> &&promise);
+
+  void process_dialog_join_request(DialogId dialog_id, UserId user_id, bool approve, Promise<Unit> &&promise);
+
+  void process_dialog_join_requests(DialogId dialog_id, const string &invite_link, bool approve,
+                                    Promise<Unit> &&promise);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
@@ -47,6 +58,8 @@ class DialogParticipantManager final : public Actor {
   void on_update_dialog_online_member_count_timeout(DialogId dialog_id);
 
   void send_update_chat_online_member_count(DialogId dialog_id, int32 online_member_count) const;
+
+  Status can_manage_dialog_join_requests(DialogId dialog_id);
 
   struct OnlineMemberCountInfo {
     int32 online_member_count = 0;

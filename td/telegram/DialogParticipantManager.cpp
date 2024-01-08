@@ -12,6 +12,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/UpdatesManager.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
@@ -48,6 +49,174 @@ class GetOnlinesQuery final : public Td::ResultHandler {
   void on_error(Status status) final {
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetOnlinesQuery");
     td_->dialog_participant_manager_->on_update_dialog_online_member_count(dialog_id_, 0, true);
+  }
+};
+
+class GetChatJoinRequestsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::chatJoinRequests>> promise_;
+  DialogId dialog_id_;
+  bool is_full_list_ = false;
+
+ public:
+  explicit GetChatJoinRequestsQuery(Promise<td_api::object_ptr<td_api::chatJoinRequests>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, const string &invite_link, const string &query, int32 offset_date,
+            UserId offset_user_id, int32 limit) {
+    dialog_id_ = dialog_id;
+    is_full_list_ =
+        invite_link.empty() && query.empty() && offset_date == 0 && !offset_user_id.is_valid() && limit >= 3;
+
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
+
+    auto r_input_user = td_->contacts_manager_->get_input_user(offset_user_id);
+    if (r_input_user.is_error()) {
+      r_input_user = make_tl_object<telegram_api::inputUserEmpty>();
+    }
+
+    int32 flags = telegram_api::messages_getChatInviteImporters::REQUESTED_MASK;
+    if (!invite_link.empty()) {
+      flags |= telegram_api::messages_getChatInviteImporters::LINK_MASK;
+    }
+    if (!query.empty()) {
+      flags |= telegram_api::messages_getChatInviteImporters::Q_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_getChatInviteImporters(flags, false /*ignored*/, std::move(input_peer), invite_link,
+                                                      query, offset_date, r_input_user.move_as_ok(), limit)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getChatInviteImporters>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetChatJoinRequestsQuery: " << to_string(result);
+
+    td_->contacts_manager_->on_get_users(std::move(result->users_), "GetChatJoinRequestsQuery");
+
+    int32 total_count = result->count_;
+    if (total_count < static_cast<int32>(result->importers_.size())) {
+      LOG(ERROR) << "Receive wrong total count of join requests " << total_count << " in " << dialog_id_;
+      total_count = static_cast<int32>(result->importers_.size());
+    }
+    vector<td_api::object_ptr<td_api::chatJoinRequest>> join_requests;
+    vector<int64> recent_requesters;
+    for (auto &request : result->importers_) {
+      UserId user_id(request->user_id_);
+      UserId approver_user_id(request->approved_by_);
+      if (!user_id.is_valid() || approver_user_id.is_valid() || !request->requested_) {
+        LOG(ERROR) << "Receive invalid join request: " << to_string(request);
+        total_count--;
+        continue;
+      }
+      if (recent_requesters.size() < 3) {
+        recent_requesters.push_back(user_id.get());
+      }
+      join_requests.push_back(td_api::make_object<td_api::chatJoinRequest>(
+          td_->contacts_manager_->get_user_id_object(user_id, "chatJoinRequest"), request->date_, request->about_));
+    }
+    if (is_full_list_) {
+      td_->messages_manager_->on_update_dialog_pending_join_requests(dialog_id_, total_count,
+                                                                     std::move(recent_requesters));
+    }
+    promise_.set_value(td_api::make_object<td_api::chatJoinRequests>(total_count, std::move(join_requests)));
+  }
+
+  void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetChatJoinRequestsQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
+class HideChatJoinRequestQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit HideChatJoinRequestQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, UserId user_id, bool approve) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
+
+    TRY_RESULT_PROMISE(promise_, input_user, td_->contacts_manager_->get_input_user(user_id));
+
+    int32 flags = 0;
+    if (approve) {
+      flags |= telegram_api::messages_hideChatJoinRequest::APPROVED_MASK;
+    }
+    send_query(G()->net_query_creator().create(telegram_api::messages_hideChatJoinRequest(
+        flags, false /*ignored*/, std::move(input_peer), std::move(input_user))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_hideChatJoinRequest>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for HideChatJoinRequestQuery: " << to_string(result);
+    td_->updates_manager_->on_get_updates(std::move(result), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "HideChatJoinRequestQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
+class HideAllChatJoinRequestsQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit HideAllChatJoinRequestsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, const string &invite_link, bool approve) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
+
+    int32 flags = 0;
+    if (approve) {
+      flags |= telegram_api::messages_hideAllChatJoinRequests::APPROVED_MASK;
+    }
+    if (!invite_link.empty()) {
+      flags |= telegram_api::messages_hideAllChatJoinRequests::LINK_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_hideAllChatJoinRequests(flags, false /*ignored*/, std::move(input_peer), invite_link)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_hideAllChatJoinRequests>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for HideAllChatJoinRequestsQuery: " << to_string(result);
+    td_->updates_manager_->on_get_updates(std::move(result), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "HideAllChatJoinRequestsQuery");
+    promise_.set_error(std::move(status));
   }
 };
 
@@ -223,6 +392,70 @@ void DialogParticipantManager::get_current_state(vector<td_api::object_ptr<td_ap
           it.second.online_member_count));
     }
   }
+}
+
+Status DialogParticipantManager::can_manage_dialog_join_requests(DialogId dialog_id) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "can_manage_dialog_join_requests")) {
+    return Status::Error(400, "Chat not found");
+  }
+
+  switch (dialog_id.get_type()) {
+    case DialogType::SecretChat:
+    case DialogType::User:
+      return Status::Error(400, "The chat can't have join requests");
+    case DialogType::Chat: {
+      auto chat_id = dialog_id.get_chat_id();
+      if (!td_->contacts_manager_->get_chat_is_active(chat_id)) {
+        return Status::Error(400, "Chat is deactivated");
+      }
+      if (!td_->contacts_manager_->get_chat_status(chat_id).can_manage_invite_links()) {
+        return Status::Error(400, "Not enough rights to manage chat join requests");
+      }
+      break;
+    }
+    case DialogType::Channel:
+      if (!td_->contacts_manager_->get_channel_status(dialog_id.get_channel_id()).can_manage_invite_links()) {
+        return Status::Error(400, "Not enough rights to manage chat join requests");
+      }
+      break;
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+  }
+  return Status::OK();
+}
+
+void DialogParticipantManager::get_dialog_join_requests(
+    DialogId dialog_id, const string &invite_link, const string &query,
+    td_api::object_ptr<td_api::chatJoinRequest> offset_request, int32 limit,
+    Promise<td_api::object_ptr<td_api::chatJoinRequests>> &&promise) {
+  TRY_STATUS_PROMISE(promise, can_manage_dialog_join_requests(dialog_id));
+
+  if (limit <= 0) {
+    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+  }
+
+  UserId offset_user_id;
+  int32 offset_date = 0;
+  if (offset_request != nullptr) {
+    offset_user_id = UserId(offset_request->user_id_);
+    offset_date = offset_request->date_;
+  }
+
+  td_->create_handler<GetChatJoinRequestsQuery>(std::move(promise))
+      ->send(dialog_id, invite_link, query, offset_date, offset_user_id, limit);
+}
+
+void DialogParticipantManager::process_dialog_join_request(DialogId dialog_id, UserId user_id, bool approve,
+                                                           Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, can_manage_dialog_join_requests(dialog_id));
+  td_->create_handler<HideChatJoinRequestQuery>(std::move(promise))->send(dialog_id, user_id, approve);
+}
+
+void DialogParticipantManager::process_dialog_join_requests(DialogId dialog_id, const string &invite_link, bool approve,
+                                                            Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, can_manage_dialog_join_requests(dialog_id));
+  td_->create_handler<HideAllChatJoinRequestsQuery>(std::move(promise))->send(dialog_id, invite_link, approve);
 }
 
 }  // namespace td

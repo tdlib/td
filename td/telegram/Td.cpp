@@ -7072,22 +7072,23 @@ void Td::on_request(uint64 id, td_api::getChatJoinRequests &request) {
   CLEAN_INPUT_STRING(request.invite_link_);
   CLEAN_INPUT_STRING(request.query_);
   CREATE_REQUEST_PROMISE();
-  contacts_manager_->get_dialog_join_requests(DialogId(request.chat_id_), request.invite_link_, request.query_,
-                                              std::move(request.offset_request_), request.limit_, std::move(promise));
+  dialog_participant_manager_->get_dialog_join_requests(DialogId(request.chat_id_), request.invite_link_,
+                                                        request.query_, std::move(request.offset_request_),
+                                                        request.limit_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::processChatJoinRequest &request) {
   CREATE_OK_REQUEST_PROMISE();
-  contacts_manager_->process_dialog_join_request(DialogId(request.chat_id_), UserId(request.user_id_), request.approve_,
-                                                 std::move(promise));
+  dialog_participant_manager_->process_dialog_join_request(DialogId(request.chat_id_), UserId(request.user_id_),
+                                                           request.approve_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::processChatJoinRequests &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.invite_link_);
   CREATE_OK_REQUEST_PROMISE();
-  contacts_manager_->process_dialog_join_requests(DialogId(request.chat_id_), request.invite_link_, request.approve_,
-                                                  std::move(promise));
+  dialog_participant_manager_->process_dialog_join_requests(DialogId(request.chat_id_), request.invite_link_,
+                                                            request.approve_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::revokeChatInviteLink &request) {

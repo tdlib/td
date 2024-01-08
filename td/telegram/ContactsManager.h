@@ -539,15 +539,6 @@ class ContactsManager final : public Actor {
 
   void transfer_dialog_ownership(DialogId dialog_id, UserId user_id, const string &password, Promise<Unit> &&promise);
 
-  void get_dialog_join_requests(DialogId dialog_id, const string &invite_link, const string &query,
-                                td_api::object_ptr<td_api::chatJoinRequest> offset_request, int32 limit,
-                                Promise<td_api::object_ptr<td_api::chatJoinRequests>> &&promise);
-
-  void process_dialog_join_request(DialogId dialog_id, UserId user_id, bool approve, Promise<Unit> &&promise);
-
-  void process_dialog_join_requests(DialogId dialog_id, const string &invite_link, bool approve,
-                                    Promise<Unit> &&promise);
-
   ChannelId migrate_chat_to_megagroup(ChatId chat_id, Promise<Unit> &promise);
 
   void get_channel_recommendations(DialogId dialog_id, bool return_local,
@@ -1746,8 +1737,6 @@ class ContactsManager final : public Actor {
   void save_created_public_channels(PublicDialogType type);
 
   void update_created_public_broadcasts();
-
-  Status can_manage_chat_join_requests(DialogId dialog_id);
 
   bool update_permanent_invite_link(DialogInviteLink &invite_link, DialogInviteLink new_invite_link);
 
