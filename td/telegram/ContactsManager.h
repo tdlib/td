@@ -649,23 +649,15 @@ class ContactsManager final : public Actor {
 
   void add_chat_participant(ChatId chat_id, UserId user_id, int32 forward_limit, Promise<Unit> &&promise);
 
-  void add_channel_participant(ChannelId channel_id, UserId user_id, const DialogParticipantStatus &old_status,
-                               Promise<Unit> &&promise);
-
-  void add_channel_participants(ChannelId channel_id, const vector<UserId> &user_ids, Promise<Unit> &&promise);
-
   void set_chat_participant_status(ChatId chat_id, UserId user_id, DialogParticipantStatus status,
                                    Promise<Unit> &&promise);
 
-  void set_channel_participant_status(ChannelId channel_id, DialogId participant_dialog_id,
-                                      td_api::object_ptr<td_api::ChatMemberStatus> &&chat_member_status,
-                                      Promise<Unit> &&promise);
-
   void delete_chat_participant(ChatId chat_id, UserId user_id, bool revoke_messages, Promise<Unit> &&promise);
 
-  void leave_dialog(DialogId dialog_id, Promise<Unit> &&promise);
-
   void get_chat_participant(ChatId chat_id, UserId user_id, Promise<DialogParticipant> &&promise);
+
+  void speculative_add_channel_user(ChannelId channel_id, UserId user_id, const DialogParticipantStatus &new_status,
+                                    const DialogParticipantStatus &old_status);
 
   void search_dialog_participants(DialogId dialog_id, const string &query, int32 limit, DialogParticipantFilter filter,
                                   Promise<DialogParticipants> &&promise);
@@ -1532,9 +1524,6 @@ class ContactsManager final : public Actor {
 
   void speculative_add_channel_participant_count(ChannelId channel_id, int32 delta_participant_count, bool by_me);
 
-  void speculative_add_channel_user(ChannelId channel_id, UserId user_id, const DialogParticipantStatus &new_status,
-                                    const DialogParticipantStatus &old_status);
-
   void drop_chat_full(ChatId chat_id);
 
   void do_invalidate_channel_full(ChannelFull *channel_full, ChannelId channel_id, bool need_drop_slow_mode_delay);
@@ -1815,17 +1804,6 @@ class ContactsManager final : public Actor {
                                    string additional_query, int32 additional_limit,
                                    tl_object_ptr<telegram_api::channels_channelParticipants> &&channel_participants,
                                    Promise<DialogParticipants> &&promise);
-
-  void set_channel_participant_status_impl(ChannelId channel_id, DialogId participant_dialog_id,
-                                           DialogParticipantStatus new_status, DialogParticipantStatus old_status,
-                                           Promise<Unit> &&promise);
-
-  void promote_channel_participant(ChannelId channel_id, UserId user_id, const DialogParticipantStatus &new_status,
-                                   const DialogParticipantStatus &old_status, Promise<Unit> &&promise);
-
-  void restrict_channel_participant(ChannelId channel_id, DialogId participant_dialog_id,
-                                    DialogParticipantStatus &&new_status, DialogParticipantStatus &&old_status,
-                                    Promise<Unit> &&promise);
 
   void transfer_channel_ownership(ChannelId channel_id, UserId user_id,
                                   tl_object_ptr<telegram_api::InputCheckPasswordSRP> input_check_password,

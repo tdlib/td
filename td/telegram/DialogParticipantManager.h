@@ -96,6 +96,8 @@ class DialogParticipantManager final : public Actor {
   void ban_dialog_participant(DialogId dialog_id, DialogId participant_dialog_id, int32 banned_until_date,
                               bool revoke_messages, Promise<Unit> &&promise);
 
+  void leave_dialog(DialogId dialog_id, Promise<Unit> &&promise);
+
   void on_set_channel_participant_status(ChannelId channel_id, DialogId participant_dialog_id,
                                          DialogParticipantStatus status);
 
@@ -155,6 +157,26 @@ class DialogParticipantManager final : public Actor {
 
   void finish_get_channel_participant(ChannelId channel_id, DialogParticipant &&dialog_participant,
                                       Promise<DialogParticipant> &&promise);
+
+  void add_channel_participant(ChannelId channel_id, UserId user_id, const DialogParticipantStatus &old_status,
+                               Promise<Unit> &&promise);
+
+  void add_channel_participants(ChannelId channel_id, const vector<UserId> &user_ids, Promise<Unit> &&promise);
+
+  void set_channel_participant_status(ChannelId channel_id, DialogId participant_dialog_id,
+                                      td_api::object_ptr<td_api::ChatMemberStatus> &&chat_member_status,
+                                      Promise<Unit> &&promise);
+
+  void set_channel_participant_status_impl(ChannelId channel_id, DialogId participant_dialog_id,
+                                           DialogParticipantStatus new_status, DialogParticipantStatus old_status,
+                                           Promise<Unit> &&promise);
+
+  void promote_channel_participant(ChannelId channel_id, UserId user_id, const DialogParticipantStatus &new_status,
+                                   const DialogParticipantStatus &old_status, Promise<Unit> &&promise);
+
+  void restrict_channel_participant(ChannelId channel_id, DialogId participant_dialog_id,
+                                    DialogParticipantStatus &&new_status, DialogParticipantStatus &&old_status,
+                                    Promise<Unit> &&promise);
 
   void update_channel_participant_status_cache(ChannelId channel_id, DialogId participant_dialog_id,
                                                DialogParticipantStatus &&dialog_participant_status);

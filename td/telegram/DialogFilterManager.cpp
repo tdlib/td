@@ -13,6 +13,7 @@
 #include "td/telegram/DialogFilter.hpp"
 #include "td/telegram/DialogFilterInviteLink.h"
 #include "td/telegram/DialogManager.h"
+#include "td/telegram/DialogParticipantManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/LinkManager.h"
 #include "td/telegram/logevent/LogEvent.h"
@@ -1625,7 +1626,7 @@ void DialogFilterManager::delete_dialog_filter(DialogFilterId dialog_filter_id, 
     auto lock = mpas.get_promise();
 
     for (auto &leave_dialog_id : leave_dialog_ids) {
-      td_->contacts_manager_->leave_dialog(leave_dialog_id, mpas.get_promise());
+      td_->dialog_participant_manager_->leave_dialog(leave_dialog_id, mpas.get_promise());
     }
 
     lock.set_value(Unit());
