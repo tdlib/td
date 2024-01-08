@@ -329,6 +329,7 @@ set(TDLIB_SOURCE
   td/telegram/DialogFilterManager.cpp
   td/telegram/DialogId.cpp
   td/telegram/DialogInviteLink.cpp
+  td/telegram/DialogInviteLinkManager.cpp
   td/telegram/DialogLocation.cpp
   td/telegram/DialogManager.cpp
   td/telegram/DialogNotificationSettings.cpp
@@ -607,6 +608,7 @@ set(TDLIB_SOURCE
   td/telegram/DialogFilterId.h
   td/telegram/DialogFilterInviteLink.h
   td/telegram/DialogFilterManager.h
+  td/telegram/DialogInviteLinkManager.h
   td/telegram/DialogId.h
   td/telegram/DialogInviteLink.h
   td/telegram/DialogListId.h

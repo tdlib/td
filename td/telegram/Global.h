@@ -43,6 +43,7 @@ class ConnectionCreator;
 class ContactsManager;
 class DialogActionManager;
 class DialogFilterManager;
+class DialogInviteLinkManager;
 class DialogManager;
 class DownloadManager;
 class FileManager;
@@ -259,6 +260,13 @@ class Global final : public ActorContext {
   }
   void set_dialog_filter_manager(ActorId<DialogFilterManager> dialog_filter_manager) {
     dialog_filter_manager_ = std::move(dialog_filter_manager);
+  }
+
+  ActorId<DialogInviteLinkManager> dialog_invite_link_manager() const {
+    return dialog_invite_link_manager_;
+  }
+  void set_dialog_invite_link_manager(ActorId<DialogInviteLinkManager> dialog_invite_link_manager) {
+    dialog_invite_link_manager_ = std::move(dialog_invite_link_manager);
   }
 
   ActorId<DialogManager> dialog_manager() const {
@@ -572,6 +580,7 @@ class Global final : public ActorContext {
   ActorId<ContactsManager> contacts_manager_;
   ActorId<DialogActionManager> dialog_action_manager_;
   ActorId<DialogFilterManager> dialog_filter_manager_;
+  ActorId<DialogInviteLinkManager> dialog_invite_link_manager_;
   ActorId<DialogManager> dialog_manager_;
   ActorId<DownloadManager> download_manager_;
   ActorId<FileManager> file_manager_;

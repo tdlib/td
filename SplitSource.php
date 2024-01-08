@@ -290,6 +290,7 @@ function split_file($file, $chunks, $undo) {
                 'country_info_manager[_(-][^.]|CountryInfoManager' => 'CountryInfoManager',
                 'dialog_action_manager[_(-][^.]|DialogActionManager' => "DialogActionManager",
                 'dialog_filter_manager[_(-][^.]|DialogFilterManager' => "DialogFilterManager",
+                'dialog_invite_link_manager[_(-][^.]|DialogInviteLinkManager' => "DialogInviteLinkManager",
                 'dialog_manager[_(-][^.]|DialogManager' => "DialogManager",
                 'dialog_online_member_manager[_(-][^.]|DialogOnlineMemberManager' => "DialogOnlineMemberManager",
                 'documents_manager[_(-][^.]|DocumentsManager' => "DocumentsManager",

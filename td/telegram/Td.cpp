@@ -42,6 +42,7 @@
 #include "td/telegram/DialogFilterId.h"
 #include "td/telegram/DialogFilterManager.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/DialogInviteLinkManager.h"
 #include "td/telegram/DialogListId.h"
 #include "td/telegram/DialogLocation.h"
 #include "td/telegram/DialogManager.h"
@@ -3296,6 +3297,8 @@ void Td::dec_actor_refcnt() {
       LOG(DEBUG) << "DialogActionManager was cleared" << timer;
       dialog_filter_manager_.reset();
       LOG(DEBUG) << "DialogFilterManager was cleared" << timer;
+      dialog_invite_link_manager_.reset();
+      LOG(DEBUG) << "DialogInviteLinkManager was cleared" << timer;
       dialog_manager_.reset();
       LOG(DEBUG) << "DialogManager was cleared" << timer;
       dialog_online_member_manager_.reset();
@@ -3517,6 +3520,8 @@ void Td::clear() {
   LOG(DEBUG) << "DialogActionManager actor was cleared" << timer;
   dialog_filter_manager_actor_.reset();
   LOG(DEBUG) << "DialogFilterManager actor was cleared" << timer;
+  dialog_invite_link_manager_actor_.reset();
+  LOG(DEBUG) << "DialogInviteLinkManager actor was cleared" << timer;
   dialog_manager_actor_.reset();
   LOG(DEBUG) << "DialogManager actor was cleared" << timer;
   dialog_online_member_manager_actor_.reset();
@@ -4020,6 +4025,9 @@ void Td::init_managers() {
   dialog_filter_manager_ = make_unique<DialogFilterManager>(this, create_reference());
   dialog_filter_manager_actor_ = register_actor("DialogFilterManager", dialog_filter_manager_.get());
   G()->set_dialog_filter_manager(dialog_filter_manager_actor_.get());
+  dialog_invite_link_manager_ = make_unique<DialogInviteLinkManager>(this, create_reference());
+  dialog_invite_link_manager_actor_ = register_actor("DialogInviteLinkManager", dialog_invite_link_manager_.get());
+  G()->set_dialog_invite_link_manager(dialog_invite_link_manager_actor_.get());
   dialog_manager_ = make_unique<DialogManager>(this, create_reference());
   dialog_manager_actor_ = register_actor("DialogManager", dialog_manager_.get());
   G()->set_dialog_manager(dialog_manager_actor_.get());
