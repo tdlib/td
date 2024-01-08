@@ -19,9 +19,9 @@ namespace td {
 
 class Td;
 
-class DialogOnlineMemberManager final : public Actor {
+class DialogParticipantManager final : public Actor {
  public:
-  DialogOnlineMemberManager(Td *td, ActorShared<> parent);
+  DialogParticipantManager(Td *td, ActorShared<> parent);
 
   static constexpr int32 ONLINE_MEMBER_COUNT_CACHE_EXPIRE_TIME = 30 * 60;
 
@@ -38,7 +38,7 @@ class DialogOnlineMemberManager final : public Actor {
 
   static constexpr int32 ONLINE_MEMBER_COUNT_UPDATE_TIME = 5 * 60;
 
-  static void on_update_dialog_online_member_count_timeout_callback(void *dialog_online_member_manager_ptr,
+  static void on_update_dialog_online_member_count_timeout_callback(void *dialog_participant_manager_ptr,
                                                                     int64 dialog_id_int);
 
   void set_dialog_online_member_count(DialogId dialog_id, int32 online_member_count, bool is_from_server,

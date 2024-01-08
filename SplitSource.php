@@ -292,7 +292,7 @@ function split_file($file, $chunks, $undo) {
                 'dialog_filter_manager[_(-][^.]|DialogFilterManager' => "DialogFilterManager",
                 'dialog_invite_link_manager[_(-][^.]|DialogInviteLinkManager' => "DialogInviteLinkManager",
                 'dialog_manager[_(-][^.]|DialogManager' => "DialogManager",
-                'dialog_online_member_manager[_(-][^.]|DialogOnlineMemberManager' => "DialogOnlineMemberManager",
+                'dialog_participant_manager[_(-][^.]|DialogParticipantManager' => "DialogParticipantManager",
                 'documents_manager[_(-][^.]|DocumentsManager' => "DocumentsManager",
                 'download_manager[_(-][^.]|DownloadManager' => "DownloadManager",
                 'file_reference_manager[_(-][^.]|FileReferenceManager|file_references[)]' => 'FileReferenceManager',

@@ -19,7 +19,7 @@
 #include "td/telegram/DialogInviteLinkManager.h"
 #include "td/telegram/DialogLocation.h"
 #include "td/telegram/DialogManager.h"
-#include "td/telegram/DialogOnlineMemberManager.h"
+#include "td/telegram/DialogParticipantManager.h"
 #include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/FileReferenceManager.h"
@@ -13145,8 +13145,8 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     }
 
     if (participant_count >= 190 || !can_get_participants || has_hidden_participants) {
-      td_->dialog_online_member_manager_->on_update_dialog_online_member_count(DialogId(channel_id),
-                                                                               channel->online_count_, true);
+      td_->dialog_participant_manager_->on_update_dialog_online_member_count(DialogId(channel_id),
+                                                                             channel->online_count_, true);
     }
 
     vector<UserId> bot_user_ids;
@@ -14322,7 +14322,7 @@ void ContactsManager::update_user_online_member_count(UserId user_id) {
   for (const auto &it : online_member_dialogs) {
     auto dialog_id = it.first;
     auto time = it.second;
-    if (time < now - DialogOnlineMemberManager::ONLINE_MEMBER_COUNT_CACHE_EXPIRE_TIME) {
+    if (time < now - DialogParticipantManager::ONLINE_MEMBER_COUNT_CACHE_EXPIRE_TIME) {
       expired_dialog_ids.push_back(dialog_id);
       continue;
     }
@@ -14402,8 +14402,8 @@ void ContactsManager::update_dialog_online_member_count(const vector<DialogParti
       }
     }
   }
-  td_->dialog_online_member_manager_->on_update_dialog_online_member_count(dialog_id, online_member_count,
-                                                                           is_from_server);
+  td_->dialog_participant_manager_->on_update_dialog_online_member_count(dialog_id, online_member_count,
+                                                                         is_from_server);
 }
 
 void ContactsManager::on_get_chat_participants(tl_object_ptr<telegram_api::ChatParticipants> &&participants_ptr,

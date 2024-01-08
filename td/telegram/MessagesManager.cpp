@@ -25,7 +25,7 @@
 #include "td/telegram/DialogLocation.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/DialogNotificationSettings.hpp"
-#include "td/telegram/DialogOnlineMemberManager.h"
+#include "td/telegram/DialogParticipantManager.h"
 #include "td/telegram/DownloadManager.h"
 #include "td/telegram/DraftMessage.h"
 #include "td/telegram/DraftMessage.hpp"
@@ -18901,7 +18901,7 @@ void MessagesManager::open_dialog(Dialog *d) {
   }
 
   if (!td_->auth_manager_->is_bot()) {
-    td_->dialog_online_member_manager_->on_dialog_opened(dialog_id);
+    td_->dialog_participant_manager_->on_dialog_opened(dialog_id);
 
     if (d->has_scheduled_database_messages && !d->is_has_scheduled_database_messages_checked) {
       CHECK(G()->use_message_database());
@@ -18994,7 +18994,7 @@ void MessagesManager::close_dialog(Dialog *d) {
       send_update_chat_read_inbox(d, false, "close_dialog");
     }
 
-    td_->dialog_online_member_manager_->on_dialog_closed(dialog_id);
+    td_->dialog_participant_manager_->on_dialog_closed(dialog_id);
   }
 }
 

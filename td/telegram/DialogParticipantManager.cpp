@@ -4,7 +4,7 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
-#include "td/telegram/DialogOnlineMemberManager.h"
+#include "td/telegram/DialogParticipantManager.h"
 
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ContactsManager.h"
@@ -42,37 +42,36 @@ class GetOnlinesQuery final : public Td::ResultHandler {
     }
 
     auto result = result_ptr.move_as_ok();
-    td_->dialog_online_member_manager_->on_update_dialog_online_member_count(dialog_id_, result->onlines_, true);
+    td_->dialog_participant_manager_->on_update_dialog_online_member_count(dialog_id_, result->onlines_, true);
   }
 
   void on_error(Status status) final {
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetOnlinesQuery");
-    td_->dialog_online_member_manager_->on_update_dialog_online_member_count(dialog_id_, 0, true);
+    td_->dialog_participant_manager_->on_update_dialog_online_member_count(dialog_id_, 0, true);
   }
 };
 
-DialogOnlineMemberManager::DialogOnlineMemberManager(Td *td, ActorShared<> parent)
-    : td_(td), parent_(std::move(parent)) {
+DialogParticipantManager::DialogParticipantManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   update_dialog_online_member_count_timeout_.set_callback(on_update_dialog_online_member_count_timeout_callback);
   update_dialog_online_member_count_timeout_.set_callback_data(static_cast<void *>(this));
 }
 
-void DialogOnlineMemberManager::tear_down() {
+void DialogParticipantManager::tear_down() {
   parent_.reset();
 }
 
-void DialogOnlineMemberManager::on_update_dialog_online_member_count_timeout_callback(
-    void *dialog_online_member_manager_ptr, int64 dialog_id_int) {
+void DialogParticipantManager::on_update_dialog_online_member_count_timeout_callback(
+    void *dialog_participant_manager_ptr, int64 dialog_id_int) {
   if (G()->close_flag()) {
     return;
   }
 
-  auto dialog_online_member_manager = static_cast<DialogOnlineMemberManager *>(dialog_online_member_manager_ptr);
-  send_closure_later(dialog_online_member_manager->actor_id(dialog_online_member_manager),
-                     &DialogOnlineMemberManager::on_update_dialog_online_member_count_timeout, DialogId(dialog_id_int));
+  auto dialog_participant_manager = static_cast<DialogParticipantManager *>(dialog_participant_manager_ptr);
+  send_closure_later(dialog_participant_manager->actor_id(dialog_participant_manager),
+                     &DialogParticipantManager::on_update_dialog_online_member_count_timeout, DialogId(dialog_id_int));
 }
 
-void DialogOnlineMemberManager::on_update_dialog_online_member_count_timeout(DialogId dialog_id) {
+void DialogParticipantManager::on_update_dialog_online_member_count_timeout(DialogId dialog_id) {
   if (G()->close_flag()) {
     return;
   }
@@ -104,8 +103,8 @@ void DialogOnlineMemberManager::on_update_dialog_online_member_count_timeout(Dia
   }
 }
 
-void DialogOnlineMemberManager::on_update_dialog_online_member_count(DialogId dialog_id, int32 online_member_count,
-                                                                     bool is_from_server) {
+void DialogParticipantManager::on_update_dialog_online_member_count(DialogId dialog_id, int32 online_member_count,
+                                                                    bool is_from_server) {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
@@ -130,7 +129,7 @@ void DialogOnlineMemberManager::on_update_dialog_online_member_count(DialogId di
                                  "on_update_channel_online_member_count");
 }
 
-void DialogOnlineMemberManager::on_dialog_opened(DialogId dialog_id) {
+void DialogParticipantManager::on_dialog_opened(DialogId dialog_id) {
   auto online_count_it = dialog_online_member_counts_.find(dialog_id);
   if (online_count_it == dialog_online_member_counts_.end()) {
     return;
@@ -143,7 +142,7 @@ void DialogOnlineMemberManager::on_dialog_opened(DialogId dialog_id) {
   }
 }
 
-void DialogOnlineMemberManager::on_dialog_closed(DialogId dialog_id) {
+void DialogParticipantManager::on_dialog_closed(DialogId dialog_id) {
   auto online_count_it = dialog_online_member_counts_.find(dialog_id);
   if (online_count_it != dialog_online_member_counts_.end()) {
     auto &info = online_count_it->second;
@@ -152,8 +151,8 @@ void DialogOnlineMemberManager::on_dialog_closed(DialogId dialog_id) {
   update_dialog_online_member_count_timeout_.set_timeout_in(dialog_id.get(), ONLINE_MEMBER_COUNT_CACHE_EXPIRE_TIME);
 }
 
-void DialogOnlineMemberManager::set_dialog_online_member_count(DialogId dialog_id, int32 online_member_count,
-                                                               bool is_from_server, const char *source) {
+void DialogParticipantManager::set_dialog_online_member_count(DialogId dialog_id, int32 online_member_count,
+                                                              bool is_from_server, const char *source) {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
@@ -203,8 +202,8 @@ void DialogOnlineMemberManager::set_dialog_online_member_count(DialogId dialog_i
   }
 }
 
-void DialogOnlineMemberManager::send_update_chat_online_member_count(DialogId dialog_id,
-                                                                     int32 online_member_count) const {
+void DialogParticipantManager::send_update_chat_online_member_count(DialogId dialog_id,
+                                                                    int32 online_member_count) const {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
@@ -215,7 +214,7 @@ void DialogOnlineMemberManager::send_update_chat_online_member_count(DialogId di
           td_->dialog_manager_->get_chat_id_object(dialog_id, "updateChatOnlineMemberCount"), online_member_count));
 }
 
-void DialogOnlineMemberManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
+void DialogParticipantManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
   for (const auto &it : dialog_online_member_counts_) {
     auto dialog_id = it.first;
     if (it.second.is_update_sent && td_->messages_manager_->is_dialog_opened(dialog_id)) {
