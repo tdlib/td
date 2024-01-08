@@ -4026,9 +4026,6 @@ ContactsManager::ContactsManager(Td *td, ActorShared<> parent) : td_(td), parent
   slow_mode_delay_timeout_.set_callback(on_slow_mode_delay_timeout_callback);
   slow_mode_delay_timeout_.set_callback_data(static_cast<void *>(this));
 
-  invite_link_info_expire_timeout_.set_callback(on_invite_link_info_expire_timeout_callback);
-  invite_link_info_expire_timeout_.set_callback_data(static_cast<void *>(this));
-
   channel_participant_cache_timeout_.set_callback(on_channel_participant_cache_timeout_callback);
   channel_participant_cache_timeout_.set_callback_data(static_cast<void *>(this));
 
@@ -4060,8 +4057,8 @@ ContactsManager::~ContactsManager() {
       invalidated_channels_full_, channel_full_file_source_ids_, secret_chats_, unknown_secret_chats_,
       secret_chats_with_user_);
   Scheduler::instance()->destroy_on_scheduler(
-      G()->get_gc_scheduler_id(), dialog_access_by_invite_link_, loaded_from_database_users_, unavailable_user_fulls_,
-      loaded_from_database_chats_, unavailable_chat_fulls_, loaded_from_database_channels_, unavailable_channel_fulls_,
+      G()->get_gc_scheduler_id(), loaded_from_database_users_, unavailable_user_fulls_, loaded_from_database_chats_,
+      unavailable_chat_fulls_, loaded_from_database_channels_, unavailable_channel_fulls_,
       loaded_from_database_secret_chats_, dialog_administrators_, user_online_member_dialogs_,
       cached_channel_participants_, resolved_phone_numbers_, channel_participants_, all_imported_contacts_,
       linked_channel_ids_, restricted_user_ids_, restricted_channel_ids_);
@@ -4250,34 +4247,6 @@ void ContactsManager::on_slow_mode_delay_timeout(ChannelId channel_id) {
   }
 
   on_update_channel_slow_mode_next_send_date(channel_id, 0);
-}
-
-void ContactsManager::on_invite_link_info_expire_timeout_callback(void *contacts_manager_ptr, int64 dialog_id_long) {
-  if (G()->close_flag()) {
-    return;
-  }
-
-  auto contacts_manager = static_cast<ContactsManager *>(contacts_manager_ptr);
-  send_closure_later(contacts_manager->actor_id(contacts_manager), &ContactsManager::on_invite_link_info_expire_timeout,
-                     DialogId(dialog_id_long));
-}
-
-void ContactsManager::on_invite_link_info_expire_timeout(DialogId dialog_id) {
-  if (G()->close_flag()) {
-    return;
-  }
-
-  auto access_it = dialog_access_by_invite_link_.find(dialog_id);
-  if (access_it == dialog_access_by_invite_link_.end()) {
-    return;
-  }
-  auto expires_in = access_it->second.accessible_before_date - G()->unix_time() - 1;
-  if (expires_in >= 3) {
-    invite_link_info_expire_timeout_.set_timeout_in(dialog_id.get(), expires_in);
-    return;
-  }
-
-  remove_dialog_access_by_invite_link(dialog_id);
 }
 
 void ContactsManager::on_channel_participant_cache_timeout_callback(void *contacts_manager_ptr, int64 channel_id_long) {
@@ -5838,7 +5807,7 @@ bool ContactsManager::have_input_peer_channel(const Channel *c, ChannelId channe
         return true;
       }
     }
-    if (!from_linked && dialog_access_by_invite_link_.count(DialogId(channel_id))) {
+    if (!from_linked && td_->dialog_invite_link_manager_->have_dialog_access_by_invite_link(DialogId(channel_id))) {
       return true;
     }
   } else {
@@ -15253,7 +15222,7 @@ bool ContactsManager::on_get_channel_error(ChannelId channel_id, const Status &s
 
       update_channel(c, channel_id);
 
-      remove_dialog_access_by_invite_link(DialogId(channel_id));
+      td_->dialog_invite_link_manager_->remove_dialog_access_by_invite_link(DialogId(channel_id));
     }
     invalidate_channel_full(channel_id, !c->is_slow_mode_enabled, source);
     LOG_IF(ERROR, have_input_peer_channel(c, channel_id, AccessRights::Read))
@@ -16064,40 +16033,6 @@ void ContactsManager::on_update_channel_full_slow_mode_next_send_date(ChannelFul
   }
 }
 
-void ContactsManager::add_dialog_access_by_invite_link(DialogId dialog_id, const string &invite_link,
-                                                       int32 accessible_before_date) {
-  auto &access = dialog_access_by_invite_link_[dialog_id];
-  access.invite_links.insert(invite_link);
-  if (access.accessible_before_date < accessible_before_date) {
-    access.accessible_before_date = accessible_before_date;
-
-    auto expires_in = accessible_before_date - G()->unix_time() - 1;
-    invite_link_info_expire_timeout_.set_timeout_in(dialog_id.get(), expires_in);
-  }
-}
-
-int32 ContactsManager::get_dialog_accessible_by_invite_link_before_date(DialogId dialog_id) const {
-  auto it = dialog_access_by_invite_link_.find(dialog_id);
-  if (it != dialog_access_by_invite_link_.end()) {
-    return td::max(1, it->second.accessible_before_date - G()->unix_time() - 1);
-  }
-  return 0;
-}
-
-void ContactsManager::remove_dialog_access_by_invite_link(DialogId dialog_id) {
-  auto access_it = dialog_access_by_invite_link_.find(dialog_id);
-  if (access_it == dialog_access_by_invite_link_.end()) {
-    return;
-  }
-
-  for (auto &invite_link : access_it->second.invite_links) {
-    td_->dialog_invite_link_manager_->invalidate_invite_link_info(invite_link);
-  }
-  dialog_access_by_invite_link_.erase(access_it);
-
-  invite_link_info_expire_timeout_.cancel_timeout(dialog_id.get());
-}
-
 bool ContactsManager::update_permanent_invite_link(DialogInviteLink &invite_link, DialogInviteLink new_invite_link) {
   if (new_invite_link != invite_link) {
     if (invite_link.is_valid() && invite_link.get_invite_link() != new_invite_link.get_invite_link()) {
@@ -16897,7 +16832,7 @@ void ContactsManager::on_channel_status_changed(Channel *c, ChannelId channel_id
   }
 
   if (old_status.is_member() != new_status.is_member() || new_status.is_banned()) {
-    remove_dialog_access_by_invite_link(DialogId(channel_id));
+    td_->dialog_invite_link_manager_->remove_dialog_access_by_invite_link(DialogId(channel_id));
 
     if (new_status.is_member() || new_status.is_creator()) {
       reload_channel_full(channel_id,

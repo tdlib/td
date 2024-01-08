@@ -309,10 +309,6 @@ class ContactsManager final : public Actor {
 
   void remove_inactive_channel(ChannelId channel_id);
 
-  void add_dialog_access_by_invite_link(DialogId dialog_id, const string &invite_link, int32 accessible_before_date);
-
-  int32 get_dialog_accessible_by_invite_link_before_date(DialogId dialog_id) const;
-
   void register_message_users(MessageFullId message_full_id, vector<UserId> user_ids);
 
   void register_message_channels(MessageFullId message_full_id, vector<ChannelId> channel_ids);
@@ -1785,8 +1781,6 @@ class ContactsManager final : public Actor {
                                       bool creates_join_request, bool is_permanent,
                                       Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise);
 
-  void remove_dialog_access_by_invite_link(DialogId dialog_id);
-
   Status can_manage_dialog_invite_links(DialogId dialog_id, bool creator_only = false);
 
   bool update_permanent_invite_link(DialogInviteLink &invite_link, DialogInviteLink new_invite_link);
@@ -1978,8 +1972,6 @@ class ContactsManager final : public Actor {
 
   static void on_slow_mode_delay_timeout_callback(void *contacts_manager_ptr, int64 channel_id_long);
 
-  static void on_invite_link_info_expire_timeout_callback(void *contacts_manager_ptr, int64 dialog_id_long);
-
   static void on_channel_participant_cache_timeout_callback(void *contacts_manager_ptr, int64 channel_id_long);
 
   void on_user_online_timeout(UserId user_id);
@@ -1993,8 +1985,6 @@ class ContactsManager final : public Actor {
   void on_user_nearby_timeout(UserId user_id);
 
   void on_slow_mode_delay_timeout(ChannelId channel_id);
-
-  void on_invite_link_info_expire_timeout(DialogId dialog_id);
 
   void on_channel_participant_cache_timeout(ChannelId channel_id);
 
@@ -2038,12 +2028,6 @@ class ContactsManager final : public Actor {
   mutable FlatHashSet<SecretChatId, SecretChatIdHash> unknown_secret_chats_;
 
   FlatHashMap<UserId, vector<SecretChatId>, UserIdHash> secret_chats_with_user_;
-
-  struct DialogAccessByInviteLink {
-    FlatHashSet<string> invite_links;
-    int32 accessible_before_date = 0;
-  };
-  FlatHashMap<DialogId, DialogAccessByInviteLink, DialogIdHash> dialog_access_by_invite_link_;
 
   FlatHashMap<ChannelId, RecommendedDialogs, ChannelIdHash> channel_recommended_dialogs_;
   FlatHashMap<ChannelId, vector<Promise<td_api::object_ptr<td_api::chats>>>, ChannelIdHash>
@@ -2190,7 +2174,6 @@ class ContactsManager final : public Actor {
   MultiTimeout channel_unban_timeout_{"ChannelUnbanTimeout"};
   MultiTimeout user_nearby_timeout_{"UserNearbyTimeout"};
   MultiTimeout slow_mode_delay_timeout_{"SlowModeDelayTimeout"};
-  MultiTimeout invite_link_info_expire_timeout_{"InviteLinkInfoExpireTimeout"};
   MultiTimeout channel_participant_cache_timeout_{"ChannelParticipantCacheTimeout"};
 };
 

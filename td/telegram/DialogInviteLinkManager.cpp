@@ -97,6 +97,8 @@ class ImportChatInviteQuery final : public Td::ResultHandler {
 };
 
 DialogInviteLinkManager::DialogInviteLinkManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
+  invite_link_info_expire_timeout_.set_callback(on_invite_link_info_expire_timeout_callback);
+  invite_link_info_expire_timeout_.set_callback_data(static_cast<void *>(this));
 }
 
 void DialogInviteLinkManager::tear_down() {
@@ -104,7 +106,37 @@ void DialogInviteLinkManager::tear_down() {
 }
 
 DialogInviteLinkManager::~DialogInviteLinkManager() {
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), invite_link_infos_);
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), invite_link_infos_,
+                                              dialog_access_by_invite_link_);
+}
+
+void DialogInviteLinkManager::on_invite_link_info_expire_timeout_callback(void *dialog_invite_link_manager_ptr,
+                                                                          int64 dialog_id_long) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto dialog_invite_link_manager = static_cast<DialogInviteLinkManager *>(dialog_invite_link_manager_ptr);
+  send_closure_later(dialog_invite_link_manager->actor_id(dialog_invite_link_manager),
+                     &DialogInviteLinkManager::on_invite_link_info_expire_timeout, DialogId(dialog_id_long));
+}
+
+void DialogInviteLinkManager::on_invite_link_info_expire_timeout(DialogId dialog_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto access_it = dialog_access_by_invite_link_.find(dialog_id);
+  if (access_it == dialog_access_by_invite_link_.end()) {
+    return;
+  }
+  auto expires_in = access_it->second.accessible_before_date - G()->unix_time() - 1;
+  if (expires_in >= 3) {
+    invite_link_info_expire_timeout_.set_timeout_in(dialog_id.get(), expires_in);
+    return;
+  }
+
+  remove_dialog_access_by_invite_link(dialog_id);
 }
 
 void DialogInviteLinkManager::check_dialog_invite_link(const string &invite_link, bool force, Promise<Unit> &&promise) {
@@ -184,7 +216,7 @@ void DialogInviteLinkManager::on_get_dialog_invite_link_info(
       }
       invite_link_info->dialog_id = dialog_id;
       if (accessible_before_date != 0 && dialog_id.is_valid()) {
-        td_->contacts_manager_->add_dialog_access_by_invite_link(dialog_id, invite_link, accessible_before_date);
+        add_dialog_access_by_invite_link(dialog_id, invite_link, accessible_before_date);
       }
       break;
     }
@@ -338,13 +370,51 @@ td_api::object_ptr<td_api::chatInviteLinkInfo> DialogInviteLinkManager::get_chat
   }
   int32 accessible_for = 0;
   if (dialog_id.is_valid() && !is_member) {
-    accessible_for = td_->contacts_manager_->get_dialog_accessible_by_invite_link_before_date(dialog_id);
+    accessible_for = get_dialog_accessible_by_invite_link_before_date(dialog_id);
   }
 
   return td_api::make_object<td_api::chatInviteLinkInfo>(
       td_->dialog_manager_->get_chat_id_object(dialog_id, "chatInviteLinkInfo"), accessible_for, std::move(chat_type),
       title, get_chat_photo_info_object(td_->file_manager_.get(), photo), accent_color_id_object, description,
       participant_count, std::move(member_user_ids), creates_join_request, is_public, is_verified, is_scam, is_fake);
+}
+
+void DialogInviteLinkManager::add_dialog_access_by_invite_link(DialogId dialog_id, const string &invite_link,
+                                                               int32 accessible_before_date) {
+  auto &access = dialog_access_by_invite_link_[dialog_id];
+  access.invite_links.insert(invite_link);
+  if (access.accessible_before_date < accessible_before_date) {
+    access.accessible_before_date = accessible_before_date;
+
+    auto expires_in = accessible_before_date - G()->unix_time() - 1;
+    invite_link_info_expire_timeout_.set_timeout_in(dialog_id.get(), expires_in);
+  }
+}
+
+bool DialogInviteLinkManager::have_dialog_access_by_invite_link(DialogId dialog_id) const {
+  return dialog_access_by_invite_link_.count(dialog_id) != 0;
+}
+
+int32 DialogInviteLinkManager::get_dialog_accessible_by_invite_link_before_date(DialogId dialog_id) const {
+  auto it = dialog_access_by_invite_link_.find(dialog_id);
+  if (it != dialog_access_by_invite_link_.end()) {
+    return td::max(1, it->second.accessible_before_date - G()->unix_time() - 1);
+  }
+  return 0;
+}
+
+void DialogInviteLinkManager::remove_dialog_access_by_invite_link(DialogId dialog_id) {
+  auto access_it = dialog_access_by_invite_link_.find(dialog_id);
+  if (access_it == dialog_access_by_invite_link_.end()) {
+    return;
+  }
+
+  for (auto &invite_link : access_it->second.invite_links) {
+    invalidate_invite_link_info(invite_link);
+  }
+  dialog_access_by_invite_link_.erase(access_it);
+
+  invite_link_info_expire_timeout_.cancel_timeout(dialog_id.get());
 }
 
 }  // namespace td

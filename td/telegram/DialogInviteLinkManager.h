@@ -15,9 +15,11 @@
 #include "td/telegram/UserId.h"
 
 #include "td/actor/actor.h"
+#include "td/actor/MultiTimeout.h"
 
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
+#include "td/utils/FlatHashSet.h"
 #include "td/utils/Promise.h"
 
 namespace td {
@@ -45,8 +47,20 @@ class DialogInviteLinkManager final : public Actor {
 
   td_api::object_ptr<td_api::chatInviteLinkInfo> get_chat_invite_link_info_object(const string &invite_link);
 
+  bool have_dialog_access_by_invite_link(DialogId dialog_id) const;
+
+  void remove_dialog_access_by_invite_link(DialogId dialog_id);
+
  private:
   void tear_down() final;
+
+  static void on_invite_link_info_expire_timeout_callback(void *dialog_invite_link_manager_ptr, int64 dialog_id_long);
+
+  void on_invite_link_info_expire_timeout(DialogId dialog_id);
+
+  void add_dialog_access_by_invite_link(DialogId dialog_id, const string &invite_link, int32 accessible_before_date);
+
+  int32 get_dialog_accessible_by_invite_link_before_date(DialogId dialog_id) const;
 
   struct InviteLinkInfo {
     // known dialog
@@ -69,6 +83,14 @@ class DialogInviteLinkManager final : public Actor {
     bool is_fake = false;
   };
   FlatHashMap<string, unique_ptr<InviteLinkInfo>> invite_link_infos_;
+
+  struct DialogAccessByInviteLink {
+    FlatHashSet<string> invite_links;
+    int32 accessible_before_date = 0;
+  };
+  FlatHashMap<DialogId, DialogAccessByInviteLink, DialogIdHash> dialog_access_by_invite_link_;
+
+  MultiTimeout invite_link_info_expire_timeout_{"InviteLinkInfoExpireTimeout"};
 
   Td *td_;
   ActorShared<> parent_;
