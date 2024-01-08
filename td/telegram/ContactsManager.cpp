@@ -2196,8 +2196,8 @@ class AddChatUserQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     if (!td_->auth_manager_->is_bot() && status.message() == "USER_PRIVACY_RESTRICTED") {
-      td_->contacts_manager_->send_update_add_chat_members_privacy_forbidden(DialogId(chat_id_), {user_id_},
-                                                                             "AddChatUserQuery");
+      td_->dialog_participant_manager_->send_update_add_chat_members_privacy_forbidden(DialogId(chat_id_), {user_id_},
+                                                                                       "AddChatUserQuery");
       return promise_.set_error(Status::Error(406, "USER_PRIVACY_RESTRICTED"));
     }
     promise_.set_error(std::move(status));
@@ -2240,8 +2240,8 @@ class EditChatAdminQuery final : public Td::ResultHandler {
   void on_error(Status status) final {
     if (!td_->auth_manager_->is_bot() && status.message() == "USER_PRIVACY_RESTRICTED") {
       // impossible now, because the user must be in the chat already
-      td_->contacts_manager_->send_update_add_chat_members_privacy_forbidden(DialogId(chat_id_), {user_id_},
-                                                                             "EditChatAdminQuery");
+      td_->dialog_participant_manager_->send_update_add_chat_members_privacy_forbidden(DialogId(chat_id_), {user_id_},
+                                                                                       "EditChatAdminQuery");
       return promise_.set_error(Status::Error(406, "USER_PRIVACY_RESTRICTED"));
     }
     promise_.set_error(std::move(status));
@@ -2349,8 +2349,8 @@ class EditChannelCreatorQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     if (!td_->auth_manager_->is_bot() && status.message() == "USER_PRIVACY_RESTRICTED") {
-      td_->contacts_manager_->send_update_add_chat_members_privacy_forbidden(DialogId(channel_id_), {user_id_},
-                                                                             "EditChannelCreatorQuery");
+      td_->dialog_participant_manager_->send_update_add_chat_members_privacy_forbidden(
+          DialogId(channel_id_), {user_id_}, "EditChannelCreatorQuery");
       return promise_.set_error(Status::Error(406, "USER_PRIVACY_RESTRICTED"));
     }
     td_->contacts_manager_->on_get_channel_error(channel_id_, status, "EditChannelCreatorQuery");
@@ -7784,15 +7784,6 @@ void ContactsManager::delete_channel(ChannelId channel_id, Promise<Unit> &&promi
   }
 
   td_->create_handler<DeleteChannelQuery>(std::move(promise))->send(channel_id);
-}
-
-void ContactsManager::send_update_add_chat_members_privacy_forbidden(DialogId dialog_id, vector<UserId> user_ids,
-                                                                     const char *source) {
-  td_->dialog_manager_->force_create_dialog(dialog_id, "send_update_add_chat_members_privacy_forbidden");
-  send_closure(G()->td(), &Td::send_update,
-               td_api::make_object<td_api::updateAddChatMembersPrivacyForbidden>(
-                   td_->dialog_manager_->get_chat_id_object(dialog_id, "updateAddChatMembersPrivacyForbidden"),
-                   get_user_ids_object(user_ids, source)));
 }
 
 void ContactsManager::add_chat_participant(ChatId chat_id, UserId user_id, int32 forward_limit,

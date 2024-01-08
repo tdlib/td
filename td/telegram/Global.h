@@ -45,6 +45,7 @@ class DialogActionManager;
 class DialogFilterManager;
 class DialogInviteLinkManager;
 class DialogManager;
+class DialogParticipantManager;
 class DownloadManager;
 class FileManager;
 class FileReferenceManager;
@@ -274,6 +275,13 @@ class Global final : public ActorContext {
   }
   void set_dialog_manager(ActorId<DialogManager> dialog_manager) {
     dialog_manager_ = std::move(dialog_manager);
+  }
+
+  ActorId<DialogParticipantManager> dialog_participant_manager() const {
+    return dialog_participant_manager_;
+  }
+  void set_dialog_participant_manager(ActorId<DialogParticipantManager> dialog_participant_manager) {
+    dialog_participant_manager_ = std::move(dialog_participant_manager);
   }
 
   ActorId<DownloadManager> download_manager() const {
@@ -582,6 +590,7 @@ class Global final : public ActorContext {
   ActorId<DialogFilterManager> dialog_filter_manager_;
   ActorId<DialogInviteLinkManager> dialog_invite_link_manager_;
   ActorId<DialogManager> dialog_manager_;
+  ActorId<DialogParticipantManager> dialog_participant_manager_;
   ActorId<DownloadManager> download_manager_;
   ActorId<FileManager> file_manager_;
   ActorId<FileReferenceManager> file_reference_manager_;

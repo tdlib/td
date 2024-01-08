@@ -4033,6 +4033,7 @@ void Td::init_managers() {
   G()->set_dialog_manager(dialog_manager_actor_.get());
   dialog_participant_manager_ = make_unique<DialogParticipantManager>(this, create_reference());
   dialog_participant_manager_actor_ = register_actor("DialogParticipantManager", dialog_participant_manager_.get());
+  G()->set_dialog_participant_manager(dialog_participant_manager_actor_.get());
   download_manager_ = DownloadManager::create(td::make_unique<DownloadManagerCallback>(this, create_reference()));
   download_manager_actor_ = register_actor("DownloadManager", download_manager_.get());
   G()->set_download_manager(download_manager_actor_.get());

@@ -30536,8 +30536,9 @@ void MessagesManager::on_create_new_dialog_success(int64 random_id, tl_object_pt
           }
           promise.set_value(Unit());
           if (!user_ids.empty()) {
-            send_closure(G()->contacts_manager(), &ContactsManager::send_update_add_chat_members_privacy_forbidden,
-                         dialog_id, std::move(user_ids), "on_create_new_dialog_success");
+            send_closure(G()->dialog_participant_manager(),
+                         &DialogParticipantManager::send_update_add_chat_members_privacy_forbidden, dialog_id,
+                         std::move(user_ids), "on_create_new_dialog_success");
           }
         });
     pending_created_dialogs_.emplace(dialog_id, std::move(new_promise));
