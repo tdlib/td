@@ -8,7 +8,6 @@
 
 #include "td/telegram/AccentColorId.h"
 #include "td/telegram/DialogId.h"
-#include "td/telegram/DialogInviteLink.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -51,7 +50,38 @@ class DialogInviteLinkManager final : public Actor {
 
   void remove_dialog_access_by_invite_link(DialogId dialog_id);
 
+  void export_dialog_invite_link(DialogId dialog_id, string title, int32 expire_date, int32 usage_limit,
+                                 bool creates_join_request, bool is_permanent,
+                                 Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise);
+
+  void edit_dialog_invite_link(DialogId dialog_id, const string &link, string title, int32 expire_date,
+                               int32 usage_limit, bool creates_join_request,
+                               Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise);
+
+  void get_dialog_invite_link(DialogId dialog_id, const string &invite_link,
+                              Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise);
+
+  void get_dialog_invite_link_counts(DialogId dialog_id,
+                                     Promise<td_api::object_ptr<td_api::chatInviteLinkCounts>> &&promise);
+
+  void get_dialog_invite_links(DialogId dialog_id, UserId creator_user_id, bool is_revoked, int32 offset_date,
+                               const string &offset_invite_link, int32 limit,
+                               Promise<td_api::object_ptr<td_api::chatInviteLinks>> &&promise);
+
+  void get_dialog_invite_link_users(DialogId dialog_id, const string &invite_link,
+                                    td_api::object_ptr<td_api::chatInviteLinkMember> offset_member, int32 limit,
+                                    Promise<td_api::object_ptr<td_api::chatInviteLinkMembers>> &&promise);
+
+  void revoke_dialog_invite_link(DialogId dialog_id, const string &link,
+                                 Promise<td_api::object_ptr<td_api::chatInviteLinks>> &&promise);
+
+  void delete_revoked_dialog_invite_link(DialogId dialog_id, const string &invite_link, Promise<Unit> &&promise);
+
+  void delete_all_revoked_dialog_invite_links(DialogId dialog_id, UserId creator_user_id, Promise<Unit> &&promise);
+
  private:
+  static constexpr size_t MAX_INVITE_LINK_TITLE_LENGTH = 32;  // server side limit
+
   void tear_down() final;
 
   static void on_invite_link_info_expire_timeout_callback(void *dialog_invite_link_manager_ptr, int64 dialog_id_long);
@@ -61,6 +91,12 @@ class DialogInviteLinkManager final : public Actor {
   void add_dialog_access_by_invite_link(DialogId dialog_id, const string &invite_link, int32 accessible_before_date);
 
   int32 get_dialog_accessible_by_invite_link_before_date(DialogId dialog_id) const;
+
+  void export_dialog_invite_link_impl(DialogId dialog_id, string title, int32 expire_date, int32 usage_limit,
+                                      bool creates_join_request, bool is_permanent,
+                                      Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise);
+
+  Status can_manage_dialog_invite_links(DialogId dialog_id, bool creator_only = false);
 
   struct InviteLinkInfo {
     // known dialog

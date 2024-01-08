@@ -539,28 +539,6 @@ class ContactsManager final : public Actor {
 
   void transfer_dialog_ownership(DialogId dialog_id, UserId user_id, const string &password, Promise<Unit> &&promise);
 
-  void export_dialog_invite_link(DialogId dialog_id, string title, int32 expire_date, int32 usage_limit,
-                                 bool creates_join_request, bool is_permanent,
-                                 Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise);
-
-  void edit_dialog_invite_link(DialogId dialog_id, const string &link, string title, int32 expire_date,
-                               int32 usage_limit, bool creates_join_request,
-                               Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise);
-
-  void get_dialog_invite_link(DialogId dialog_id, const string &invite_link,
-                              Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise);
-
-  void get_dialog_invite_link_counts(DialogId dialog_id,
-                                     Promise<td_api::object_ptr<td_api::chatInviteLinkCounts>> &&promise);
-
-  void get_dialog_invite_links(DialogId dialog_id, UserId creator_user_id, bool is_revoked, int32 offset_date,
-                               const string &offset_invite_link, int32 limit,
-                               Promise<td_api::object_ptr<td_api::chatInviteLinks>> &&promise);
-
-  void get_dialog_invite_link_users(DialogId dialog_id, const string &invite_link,
-                                    td_api::object_ptr<td_api::chatInviteLinkMember> offset_member, int32 limit,
-                                    Promise<td_api::object_ptr<td_api::chatInviteLinkMembers>> &&promise);
-
   void get_dialog_join_requests(DialogId dialog_id, const string &invite_link, const string &query,
                                 td_api::object_ptr<td_api::chatJoinRequest> offset_request, int32 limit,
                                 Promise<td_api::object_ptr<td_api::chatJoinRequests>> &&promise);
@@ -569,13 +547,6 @@ class ContactsManager final : public Actor {
 
   void process_dialog_join_requests(DialogId dialog_id, const string &invite_link, bool approve,
                                     Promise<Unit> &&promise);
-
-  void revoke_dialog_invite_link(DialogId dialog_id, const string &link,
-                                 Promise<td_api::object_ptr<td_api::chatInviteLinks>> &&promise);
-
-  void delete_revoked_dialog_invite_link(DialogId dialog_id, const string &invite_link, Promise<Unit> &&promise);
-
-  void delete_all_revoked_dialog_invite_links(DialogId dialog_id, UserId creator_user_id, Promise<Unit> &&promise);
 
   ChannelId migrate_chat_to_megagroup(ChatId chat_id, Promise<Unit> &promise);
 
@@ -1231,7 +1202,6 @@ class ContactsManager final : public Actor {
   static constexpr int32 MAX_GET_PROFILE_PHOTOS = 100;        // server side limit
   static constexpr size_t MAX_NAME_LENGTH = 64;               // server side limit for first/last name
   static constexpr size_t MAX_DESCRIPTION_LENGTH = 255;       // server side limit for chat/channel description
-  static constexpr size_t MAX_INVITE_LINK_TITLE_LENGTH = 32;  // server side limit
   static constexpr int32 MAX_GET_CHANNEL_PARTICIPANTS = 200;  // server side limit
 
   static constexpr int32 CHANNEL_PARTICIPANT_CACHE_TIME = 1800;       // some reasonable limit
@@ -1777,11 +1747,7 @@ class ContactsManager final : public Actor {
 
   void update_created_public_broadcasts();
 
-  void export_dialog_invite_link_impl(DialogId dialog_id, string title, int32 expire_date, int32 usage_limit,
-                                      bool creates_join_request, bool is_permanent,
-                                      Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise);
-
-  Status can_manage_dialog_invite_links(DialogId dialog_id, bool creator_only = false);
+  Status can_manage_chat_join_requests(DialogId dialog_id);
 
   bool update_permanent_invite_link(DialogInviteLink &invite_link, DialogInviteLink new_invite_link);
 
