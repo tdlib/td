@@ -955,4 +955,78 @@ void DialogParticipantManager::on_update_chat_invite_requester(DialogId dialog_i
                    invite_link.get_chat_invite_link_object(td_->contacts_manager_.get())));
 }
 
+void DialogParticipantManager::get_dialog_participant(DialogId dialog_id, DialogId participant_dialog_id,
+                                                      Promise<td_api::object_ptr<td_api::chatMember>> &&promise) {
+  auto new_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), promise = std::move(promise)](Result<DialogParticipant> &&result) mutable {
+        TRY_RESULT_PROMISE(promise, dialog_participant, std::move(result));
+        send_closure(actor_id, &DialogParticipantManager::finish_get_dialog_participant, std::move(dialog_participant),
+                     std::move(promise));
+      });
+  do_get_dialog_participant(dialog_id, participant_dialog_id, std::move(new_promise));
+}
+
+void DialogParticipantManager::finish_get_dialog_participant(
+    DialogParticipant &&dialog_participant, Promise<td_api::object_ptr<td_api::chatMember>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  auto participant_dialog_id = dialog_participant.dialog_id_;
+  bool is_user = participant_dialog_id.get_type() == DialogType::User;
+  if ((is_user && !td_->contacts_manager_->have_user(participant_dialog_id.get_user_id())) ||
+      (!is_user && !td_->messages_manager_->have_dialog(participant_dialog_id))) {
+    return promise.set_error(Status::Error(400, "Member not found"));
+  }
+
+  promise.set_value(
+      td_->contacts_manager_->get_chat_member_object(dialog_participant, "finish_get_dialog_participant"));
+}
+
+void DialogParticipantManager::do_get_dialog_participant(DialogId dialog_id, DialogId participant_dialog_id,
+                                                         Promise<DialogParticipant> &&promise) {
+  LOG(INFO) << "Receive getChatMember request to get " << participant_dialog_id << " in " << dialog_id;
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "do_get_dialog_participant")) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+
+  switch (dialog_id.get_type()) {
+    case DialogType::User: {
+      auto my_user_id = td_->contacts_manager_->get_my_id();
+      auto peer_user_id = dialog_id.get_user_id();
+      if (participant_dialog_id == DialogId(my_user_id)) {
+        return promise.set_value(DialogParticipant::private_member(my_user_id, peer_user_id));
+      }
+      if (participant_dialog_id == dialog_id) {
+        return promise.set_value(DialogParticipant::private_member(peer_user_id, my_user_id));
+      }
+
+      return promise.set_error(Status::Error(400, "Member not found"));
+    }
+    case DialogType::Chat:
+      if (participant_dialog_id.get_type() != DialogType::User) {
+        return promise.set_value(DialogParticipant::left(participant_dialog_id));
+      }
+      return td_->contacts_manager_->get_chat_participant(dialog_id.get_chat_id(), participant_dialog_id.get_user_id(),
+                                                          std::move(promise));
+    case DialogType::Channel:
+      return td_->contacts_manager_->get_channel_participant(dialog_id.get_channel_id(), participant_dialog_id,
+                                                             std::move(promise));
+    case DialogType::SecretChat: {
+      auto my_user_id = td_->contacts_manager_->get_my_id();
+      auto peer_user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
+      if (participant_dialog_id == DialogId(my_user_id)) {
+        return promise.set_value(DialogParticipant::private_member(my_user_id, peer_user_id));
+      }
+      if (peer_user_id.is_valid() && participant_dialog_id == DialogId(peer_user_id)) {
+        return promise.set_value(DialogParticipant::private_member(peer_user_id, my_user_id));
+      }
+
+      return promise.set_error(Status::Error(400, "Member not found"));
+    }
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+      return;
+  }
+}
+
 }  // namespace td

@@ -79,6 +79,9 @@ class DialogParticipantManager final : public Actor {
   void on_update_chat_invite_requester(DialogId dialog_id, UserId user_id, string about, int32 date,
                                        DialogInviteLink invite_link);
 
+  void get_dialog_participant(DialogId dialog_id, DialogId participant_dialog_id,
+                              Promise<td_api::object_ptr<td_api::chatMember>> &&promise);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
@@ -117,6 +120,12 @@ class DialogParticipantManager final : public Actor {
                                const DialogInviteLink &invite_link, bool via_dialog_filter_invite_link,
                                const DialogParticipant &old_dialog_participant,
                                const DialogParticipant &new_dialog_participant);
+
+  void do_get_dialog_participant(DialogId dialog_id, DialogId participant_dialog_id,
+                                 Promise<DialogParticipant> &&promise);
+
+  void finish_get_dialog_participant(DialogParticipant &&dialog_participant,
+                                     Promise<td_api::object_ptr<td_api::chatMember>> &&promise);
 
   struct OnlineMemberCountInfo {
     int32 online_member_count = 0;

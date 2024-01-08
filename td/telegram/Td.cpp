@@ -6989,7 +6989,8 @@ void Td::on_request(uint64 id, const td_api::getChatMember &request) {
   CREATE_REQUEST_PROMISE();
   TRY_RESULT_PROMISE(promise, participant_dialog_id,
                      get_message_sender_dialog_id(this, request.member_id_, false, false));
-  contacts_manager_->get_dialog_participant(DialogId(request.chat_id_), participant_dialog_id, std::move(promise));
+  dialog_participant_manager_->get_dialog_participant(DialogId(request.chat_id_), participant_dialog_id,
+                                                      std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::searchChatMembers &request) {

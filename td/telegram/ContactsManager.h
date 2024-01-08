@@ -670,8 +670,10 @@ class ContactsManager final : public Actor {
   void on_set_channel_participant_status(ChannelId channel_id, DialogId participant_dialog_id,
                                          DialogParticipantStatus status);
 
-  void get_dialog_participant(DialogId dialog_id, DialogId participant_dialog_id,
-                              Promise<td_api::object_ptr<td_api::chatMember>> &&promise);
+  void get_chat_participant(ChatId chat_id, UserId user_id, Promise<DialogParticipant> &&promise);
+
+  void get_channel_participant(ChannelId channel_id, DialogId participant_dialog_id,
+                               Promise<DialogParticipant> &&promise);
 
   void search_dialog_participants(DialogId dialog_id, const string &query, int32 limit, DialogParticipantFilter filter,
                                   Promise<DialogParticipants> &&promise);
@@ -1745,18 +1747,7 @@ class ContactsManager final : public Actor {
   DialogParticipants search_private_chat_participants(UserId my_user_id, UserId peer_user_id, const string &query,
                                                       int32 limit, DialogParticipantFilter filter) const;
 
-  void do_get_dialog_participant(DialogId dialog_id, DialogId participant_dialog_id,
-                                 Promise<DialogParticipant> &&promise);
-
-  void finish_get_dialog_participant(DialogParticipant &&dialog_participant,
-                                     Promise<td_api::object_ptr<td_api::chatMember>> &&promise);
-
-  void get_chat_participant(ChatId chat_id, UserId user_id, Promise<DialogParticipant> &&promise);
-
   void finish_get_chat_participant(ChatId chat_id, UserId user_id, Promise<DialogParticipant> &&promise);
-
-  void get_channel_participant(ChannelId channel_id, DialogId participant_dialog_id,
-                               Promise<DialogParticipant> &&promise);
 
   void finish_get_channel_participant(ChannelId channel_id, DialogParticipant &&dialog_participant,
                                       Promise<DialogParticipant> &&promise);
