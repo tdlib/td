@@ -9,6 +9,7 @@
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ChannelId.h"
+#include "td/telegram/ChannelType.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
@@ -36,6 +37,7 @@
 
 #include <algorithm>
 #include <limits>
+#include <utility>
 
 namespace td {
 
@@ -1593,8 +1595,7 @@ void DialogParticipantManager::set_channel_participant_status(
                      std::move(promise));
       });
 
-  td_->dialog_participant_manager_->get_channel_participant(channel_id, participant_dialog_id,
-                                                            std::move(on_result_promise));
+  get_channel_participant(channel_id, participant_dialog_id, std::move(on_result_promise));
 }
 
 void DialogParticipantManager::set_channel_participant_status_impl(ChannelId channel_id, DialogId participant_dialog_id,
