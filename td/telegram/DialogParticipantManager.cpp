@@ -368,10 +368,14 @@ class GetChannelParticipantQuery final : public Td::ResultHandler {
 DialogParticipantManager::DialogParticipantManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   update_dialog_online_member_count_timeout_.set_callback(on_update_dialog_online_member_count_timeout_callback);
   update_dialog_online_member_count_timeout_.set_callback_data(static_cast<void *>(this));
+
+  channel_participant_cache_timeout_.set_callback(on_channel_participant_cache_timeout_callback);
+  channel_participant_cache_timeout_.set_callback_data(static_cast<void *>(this));
 }
 
 DialogParticipantManager::~DialogParticipantManager() {
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), dialog_administrators_);
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), dialog_administrators_,
+                                              channel_participants_);
 }
 
 void DialogParticipantManager::tear_down() {
@@ -972,9 +976,9 @@ void DialogParticipantManager::on_update_channel_participant(
 
   if (old_dialog_participant.dialog_id_ == td_->dialog_manager_->get_my_dialog_id() &&
       old_dialog_participant.status_.is_administrator() && !new_dialog_participant.status_.is_administrator()) {
-    td_->contacts_manager_->drop_channel_participant_cache(channel_id);
-  } else if (td_->contacts_manager_->have_channel_participant_cache(channel_id)) {
-    td_->contacts_manager_->add_channel_participant_to_cache(channel_id, new_dialog_participant, true);
+    drop_channel_participant_cache(channel_id);
+  } else if (have_channel_participant_cache(channel_id)) {
+    add_channel_participant_to_cache(channel_id, new_dialog_participant, true);
   }
 
   auto channel_status = td_->contacts_manager_->get_channel_status(channel_id);
@@ -1093,8 +1097,8 @@ void DialogParticipantManager::get_channel_participant(ChannelId channel_id, Dia
     return promise.set_error(Status::Error(400, "Member not found"));
   }
 
-  if (td_->contacts_manager_->have_channel_participant_cache(channel_id)) {
-    auto *participant = td_->contacts_manager_->get_channel_participant_from_cache(channel_id, participant_dialog_id);
+  if (have_channel_participant_cache(channel_id)) {
+    auto *participant = get_channel_participant_from_cache(channel_id, participant_dialog_id);
     if (participant != nullptr) {
       return promise.set_value(DialogParticipant{*participant});
     }
@@ -1121,10 +1125,121 @@ void DialogParticipantManager::finish_get_channel_participant(ChannelId channel_
   LOG(INFO) << "Receive " << dialog_participant.dialog_id_ << " as a member of a channel " << channel_id;
 
   dialog_participant.status_.update_restrictions();
-  if (td_->contacts_manager_->have_channel_participant_cache(channel_id)) {
-    td_->contacts_manager_->add_channel_participant_to_cache(channel_id, dialog_participant, false);
+  if (have_channel_participant_cache(channel_id)) {
+    add_channel_participant_to_cache(channel_id, dialog_participant, false);
   }
   promise.set_value(std::move(dialog_participant));
+}
+
+void DialogParticipantManager::on_set_channel_participant_status(ChannelId channel_id, DialogId participant_dialog_id,
+                                                                 DialogParticipantStatus status) {
+  if (G()->close_flag() || participant_dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
+    return;
+  }
+
+  status.update_restrictions();
+  if (have_channel_participant_cache(channel_id)) {
+    update_channel_participant_status_cache(channel_id, participant_dialog_id, std::move(status));
+  }
+}
+
+void DialogParticipantManager::on_channel_participant_cache_timeout_callback(void *dialog_participant_manager_ptr,
+                                                                             int64 channel_id_long) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto dialog_participant_manager = static_cast<DialogParticipantManager *>(dialog_participant_manager_ptr);
+  send_closure_later(dialog_participant_manager->actor_id(dialog_participant_manager),
+                     &DialogParticipantManager::on_channel_participant_cache_timeout, ChannelId(channel_id_long));
+}
+
+void DialogParticipantManager::on_channel_participant_cache_timeout(ChannelId channel_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto channel_participants_it = channel_participants_.find(channel_id);
+  if (channel_participants_it == channel_participants_.end()) {
+    return;
+  }
+
+  auto &participants = channel_participants_it->second.participants_;
+  auto min_access_date = G()->unix_time() - CHANNEL_PARTICIPANT_CACHE_TIME;
+  table_remove_if(participants,
+                  [min_access_date](const auto &it) { return it.second.last_access_date_ < min_access_date; });
+
+  if (participants.empty()) {
+    channel_participants_.erase(channel_participants_it);
+  } else {
+    channel_participant_cache_timeout_.set_timeout_in(channel_id.get(), CHANNEL_PARTICIPANT_CACHE_TIME);
+  }
+}
+
+bool DialogParticipantManager::have_channel_participant_cache(ChannelId channel_id) const {
+  if (!td_->auth_manager_->is_bot()) {
+    return false;
+  }
+  return td_->contacts_manager_->get_channel_status(channel_id).is_administrator();
+}
+
+void DialogParticipantManager::add_channel_participant_to_cache(ChannelId channel_id,
+                                                                const DialogParticipant &dialog_participant,
+                                                                bool allow_replace) {
+  CHECK(channel_id.is_valid());
+  CHECK(dialog_participant.is_valid());
+  auto &participants = channel_participants_[channel_id];
+  if (participants.participants_.empty()) {
+    channel_participant_cache_timeout_.set_timeout_in(channel_id.get(), CHANNEL_PARTICIPANT_CACHE_TIME);
+  }
+  auto &participant_info = participants.participants_[dialog_participant.dialog_id_];
+  if (participant_info.last_access_date_ > 0 && !allow_replace) {
+    return;
+  }
+  participant_info.participant_ = dialog_participant;
+  participant_info.last_access_date_ = G()->unix_time();
+}
+
+void DialogParticipantManager::update_channel_participant_status_cache(
+    ChannelId channel_id, DialogId participant_dialog_id, DialogParticipantStatus &&dialog_participant_status) {
+  CHECK(channel_id.is_valid());
+  CHECK(participant_dialog_id.is_valid());
+  auto channel_participants_it = channel_participants_.find(channel_id);
+  if (channel_participants_it == channel_participants_.end()) {
+    return;
+  }
+  auto &participants = channel_participants_it->second;
+  auto it = participants.participants_.find(participant_dialog_id);
+  if (it == participants.participants_.end()) {
+    return;
+  }
+  auto &participant_info = it->second;
+  LOG(INFO) << "Update cached status of " << participant_dialog_id << " in " << channel_id << " from "
+            << participant_info.participant_.status_ << " to " << dialog_participant_status;
+  participant_info.participant_.status_ = std::move(dialog_participant_status);
+  participant_info.last_access_date_ = G()->unix_time();
+}
+
+void DialogParticipantManager::drop_channel_participant_cache(ChannelId channel_id) {
+  channel_participants_.erase(channel_id);
+}
+
+const DialogParticipant *DialogParticipantManager::get_channel_participant_from_cache(ChannelId channel_id,
+                                                                                      DialogId participant_dialog_id) {
+  auto channel_participants_it = channel_participants_.find(channel_id);
+  if (channel_participants_it == channel_participants_.end()) {
+    return nullptr;
+  }
+
+  auto &participants = channel_participants_it->second.participants_;
+  CHECK(!participants.empty());
+  auto it = participants.find(participant_dialog_id);
+  if (it != participants.end()) {
+    it->second.participant_.status_.update_restrictions();
+    it->second.last_access_date_ = G()->unix_time();
+    return &it->second.participant_;
+  }
+  return nullptr;
 }
 
 }  // namespace td

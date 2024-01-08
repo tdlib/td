@@ -85,12 +85,24 @@ class DialogParticipantManager final : public Actor {
   void get_channel_participant(ChannelId channel_id, DialogId participant_dialog_id,
                                Promise<DialogParticipant> &&promise);
 
+  void on_set_channel_participant_status(ChannelId channel_id, DialogId participant_dialog_id,
+                                         DialogParticipantStatus status);
+
+  bool have_channel_participant_cache(ChannelId channel_id) const;
+
+  void add_channel_participant_to_cache(ChannelId channel_id, const DialogParticipant &dialog_participant,
+                                        bool allow_replace);
+
+  void drop_channel_participant_cache(ChannelId channel_id);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
   void tear_down() final;
 
   static constexpr int32 ONLINE_MEMBER_COUNT_UPDATE_TIME = 5 * 60;
+
+  static constexpr int32 CHANNEL_PARTICIPANT_CACHE_TIME = 1800;  // some reasonable limit
 
   static void on_update_dialog_online_member_count_timeout_callback(void *dialog_participant_manager_ptr,
                                                                     int64 dialog_id_int);
@@ -133,6 +145,16 @@ class DialogParticipantManager final : public Actor {
   void finish_get_channel_participant(ChannelId channel_id, DialogParticipant &&dialog_participant,
                                       Promise<DialogParticipant> &&promise);
 
+  void update_channel_participant_status_cache(ChannelId channel_id, DialogId participant_dialog_id,
+                                               DialogParticipantStatus &&dialog_participant_status);
+
+  const DialogParticipant *get_channel_participant_from_cache(ChannelId channel_id, DialogId participant_dialog_id);
+
+  static void on_channel_participant_cache_timeout_callback(void *dialog_participant_manager_ptr,
+                                                            int64 channel_id_long);
+
+  void on_channel_participant_cache_timeout(ChannelId channel_id);
+
   struct OnlineMemberCountInfo {
     int32 online_member_count = 0;
     double update_time = 0;
@@ -140,9 +162,21 @@ class DialogParticipantManager final : public Actor {
   };
   FlatHashMap<DialogId, OnlineMemberCountInfo, DialogIdHash> dialog_online_member_counts_;
 
-  MultiTimeout update_dialog_online_member_count_timeout_{"UpdateDialogOnlineMemberCountTimeout"};
-
   FlatHashMap<DialogId, vector<DialogAdministrator>, DialogIdHash> dialog_administrators_;
+
+  // bot-administrators only
+  struct ChannelParticipantInfo {
+    DialogParticipant participant_;
+
+    int32 last_access_date_ = 0;
+  };
+  struct ChannelParticipants {
+    FlatHashMap<DialogId, ChannelParticipantInfo, DialogIdHash> participants_;
+  };
+  FlatHashMap<ChannelId, ChannelParticipants, ChannelIdHash> channel_participants_;
+
+  MultiTimeout update_dialog_online_member_count_timeout_{"UpdateDialogOnlineMemberCountTimeout"};
+  MultiTimeout channel_participant_cache_timeout_{"ChannelParticipantCacheTimeout"};
 
   Td *td_;
   ActorShared<> parent_;

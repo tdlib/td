@@ -268,15 +268,6 @@ class ContactsManager final : public Actor {
   void on_update_channel_default_permissions(ChannelId channel_id, RestrictedRights default_permissions);
   void on_update_channel_administrator_count(ChannelId channel_id, int32 administrator_count);
 
-  bool have_channel_participant_cache(ChannelId channel_id) const;
-
-  void add_channel_participant_to_cache(ChannelId channel_id, const DialogParticipant &dialog_participant,
-                                        bool allow_replace);
-
-  const DialogParticipant *get_channel_participant_from_cache(ChannelId channel_id, DialogId participant_dialog_id);
-
-  void drop_channel_participant_cache(ChannelId channel_id);
-
   int32 on_update_peer_located(vector<tl_object_ptr<telegram_api::PeerLocated>> &&peers, bool from_update);
 
   void on_update_bot_commands(DialogId dialog_id, UserId bot_user_id,
@@ -668,9 +659,6 @@ class ContactsManager final : public Actor {
 
   void ban_dialog_participant(DialogId dialog_id, DialogId participant_dialog_id, int32 banned_until_date,
                               bool revoke_messages, Promise<Unit> &&promise);
-
-  void on_set_channel_participant_status(ChannelId channel_id, DialogId participant_dialog_id,
-                                         DialogParticipantStatus status);
 
   void get_chat_participant(ChatId chat_id, UserId user_id, Promise<DialogParticipant> &&promise);
 
@@ -1186,7 +1174,6 @@ class ContactsManager final : public Actor {
   static constexpr size_t MAX_DESCRIPTION_LENGTH = 255;       // server side limit for chat/channel description
   static constexpr int32 MAX_GET_CHANNEL_PARTICIPANTS = 200;  // server side limit
 
-  static constexpr int32 CHANNEL_PARTICIPANT_CACHE_TIME = 1800;       // some reasonable limit
   static constexpr int32 MAX_ACTIVE_STORY_ID_RELOAD_TIME = 3600;      // some reasonable limit
   static constexpr int32 CHANNEL_RECOMMENDATIONS_CACHE_TIME = 86400;  // some reasonable limit
 
@@ -1833,9 +1820,6 @@ class ContactsManager final : public Actor {
                                    tl_object_ptr<telegram_api::channels_channelParticipants> &&channel_participants,
                                    Promise<DialogParticipants> &&promise);
 
-  void update_channel_participant_status_cache(ChannelId channel_id, DialogId participant_dialog_id,
-                                               DialogParticipantStatus &&dialog_participant_status);
-
   void set_chat_participant_status(ChatId chat_id, UserId user_id, DialogParticipantStatus status,
                                    Promise<Unit> &&promise);
 
@@ -1874,8 +1858,6 @@ class ContactsManager final : public Actor {
 
   static void on_slow_mode_delay_timeout_callback(void *contacts_manager_ptr, int64 channel_id_long);
 
-  static void on_channel_participant_cache_timeout_callback(void *contacts_manager_ptr, int64 channel_id_long);
-
   void on_user_online_timeout(UserId user_id);
 
   void on_user_emoji_status_timeout(UserId user_id);
@@ -1887,8 +1869,6 @@ class ContactsManager final : public Actor {
   void on_user_nearby_timeout(UserId user_id);
 
   void on_slow_mode_delay_timeout(ChannelId channel_id);
-
-  void on_channel_participant_cache_timeout(ChannelId channel_id);
 
   void start_up() final;
 
@@ -2019,17 +1999,6 @@ class ContactsManager final : public Actor {
   FlatHashMap<UserId, FlatHashSet<MessageFullId, MessageFullIdHash>, UserIdHash> user_messages_;
   FlatHashMap<ChannelId, FlatHashSet<MessageFullId, MessageFullIdHash>, ChannelIdHash> channel_messages_;
 
-  // bot-administrators only
-  struct ChannelParticipantInfo {
-    DialogParticipant participant_;
-
-    int32 last_access_date_ = 0;
-  };
-  struct ChannelParticipants {
-    FlatHashMap<DialogId, ChannelParticipantInfo, DialogIdHash> participants_;
-  };
-  FlatHashMap<ChannelId, ChannelParticipants, ChannelIdHash> channel_participants_;
-
   bool are_contacts_loaded_ = false;
   int32 next_contacts_sync_date_ = 0;
   Hints contacts_hints_;  // search contacts by first name, last name and usernames
@@ -2074,7 +2043,6 @@ class ContactsManager final : public Actor {
   MultiTimeout channel_unban_timeout_{"ChannelUnbanTimeout"};
   MultiTimeout user_nearby_timeout_{"UserNearbyTimeout"};
   MultiTimeout slow_mode_delay_timeout_{"SlowModeDelayTimeout"};
-  MultiTimeout channel_participant_cache_timeout_{"ChannelParticipantCacheTimeout"};
 };
 
 }  // namespace td

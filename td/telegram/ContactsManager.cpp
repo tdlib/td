@@ -2399,7 +2399,7 @@ class EditChannelAdminQuery final : public Td::ResultHandler {
     LOG(INFO) << "Receive result for EditChannelAdminQuery: " << to_string(ptr);
     td_->contacts_manager_->invalidate_channel_full(channel_id_, false, "EditChannelAdminQuery");
     td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
-    td_->contacts_manager_->on_set_channel_participant_status(channel_id_, DialogId(user_id_), status_);
+    td_->dialog_participant_manager_->on_set_channel_participant_status(channel_id_, DialogId(user_id_), status_);
   }
 
   void on_error(Status status) final {
@@ -2445,7 +2445,7 @@ class EditChannelBannedQuery final : public Td::ResultHandler {
     LOG(INFO) << "Receive result for EditChannelBannedQuery: " << to_string(ptr);
     td_->contacts_manager_->invalidate_channel_full(channel_id_, false, "EditChannelBannedQuery");
     td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
-    td_->contacts_manager_->on_set_channel_participant_status(channel_id_, participant_dialog_id_, status_);
+    td_->dialog_participant_manager_->on_set_channel_participant_status(channel_id_, participant_dialog_id_, status_);
   }
 
   void on_error(Status status) final {
@@ -3233,9 +3233,6 @@ ContactsManager::ContactsManager(Td *td, ActorShared<> parent) : td_(td), parent
   slow_mode_delay_timeout_.set_callback(on_slow_mode_delay_timeout_callback);
   slow_mode_delay_timeout_.set_callback_data(static_cast<void *>(this));
 
-  channel_participant_cache_timeout_.set_callback(on_channel_participant_cache_timeout_callback);
-  channel_participant_cache_timeout_.set_callback_data(static_cast<void *>(this));
-
   get_user_queries_.set_merge_function([this](vector<int64> query_ids, Promise<Unit> &&promise) {
     TRY_STATUS_PROMISE(promise, G()->close_status());
     auto input_users = transform(query_ids, [this](int64 query_id) { return get_input_user_force(UserId(query_id)); });
@@ -3267,7 +3264,7 @@ ContactsManager::~ContactsManager() {
       G()->get_gc_scheduler_id(), loaded_from_database_users_, unavailable_user_fulls_, loaded_from_database_chats_,
       unavailable_chat_fulls_, loaded_from_database_channels_, unavailable_channel_fulls_,
       loaded_from_database_secret_chats_, user_online_member_dialogs_, cached_channel_participants_,
-      resolved_phone_numbers_, channel_participants_, all_imported_contacts_, linked_channel_ids_, restricted_user_ids_,
+      resolved_phone_numbers_, all_imported_contacts_, linked_channel_ids_, restricted_user_ids_,
       restricted_channel_ids_);
 }
 
@@ -3454,38 +3451,6 @@ void ContactsManager::on_slow_mode_delay_timeout(ChannelId channel_id) {
   }
 
   on_update_channel_slow_mode_next_send_date(channel_id, 0);
-}
-
-void ContactsManager::on_channel_participant_cache_timeout_callback(void *contacts_manager_ptr, int64 channel_id_long) {
-  if (G()->close_flag()) {
-    return;
-  }
-
-  auto contacts_manager = static_cast<ContactsManager *>(contacts_manager_ptr);
-  send_closure_later(contacts_manager->actor_id(contacts_manager),
-                     &ContactsManager::on_channel_participant_cache_timeout, ChannelId(channel_id_long));
-}
-
-void ContactsManager::on_channel_participant_cache_timeout(ChannelId channel_id) {
-  if (G()->close_flag()) {
-    return;
-  }
-
-  auto channel_participants_it = channel_participants_.find(channel_id);
-  if (channel_participants_it == channel_participants_.end()) {
-    return;
-  }
-
-  auto &participants = channel_participants_it->second.participants_;
-  auto min_access_date = G()->unix_time() - CHANNEL_PARTICIPANT_CACHE_TIME;
-  table_remove_if(participants,
-                  [min_access_date](const auto &it) { return it.second.last_access_date_ < min_access_date; });
-
-  if (participants.empty()) {
-    channel_participants_.erase(channel_participants_it);
-  } else {
-    channel_participant_cache_timeout_.set_timeout_in(channel_id.get(), CHANNEL_PARTICIPANT_CACHE_TIME);
-  }
 }
 
 template <class StorerT>
@@ -8649,18 +8614,6 @@ void ContactsManager::restrict_channel_participant(ChannelId channel_id, DialogI
   }
   td_->create_handler<EditChannelBannedQuery>(std::move(promise))
       ->send(channel_id, participant_dialog_id, std::move(input_peer), new_status);
-}
-
-void ContactsManager::on_set_channel_participant_status(ChannelId channel_id, DialogId participant_dialog_id,
-                                                        DialogParticipantStatus status) {
-  if (G()->close_flag() || participant_dialog_id == DialogId(get_my_id())) {
-    return;
-  }
-
-  status.update_restrictions();
-  if (have_channel_participant_cache(channel_id)) {
-    update_channel_participant_status_cache(channel_id, participant_dialog_id, std::move(status));
-  }
 }
 
 ChannelId ContactsManager::migrate_chat_to_megagroup(ChatId chat_id, Promise<Unit> &promise) {
@@ -14349,9 +14302,9 @@ void ContactsManager::on_get_channel_participants(
       on_update_channel_bot_user_ids(channel_id, std::move(bot_user_ids));
     }
   }
-  if (have_channel_participant_cache(channel_id)) {
+  if (td_->dialog_participant_manager_->have_channel_participant_cache(channel_id)) {
     for (const auto &participant : result) {
-      add_channel_participant_to_cache(channel_id, participant, false);
+      td_->dialog_participant_manager_->add_channel_participant_to_cache(channel_id, participant, false);
     }
   }
 
@@ -14415,73 +14368,6 @@ void ContactsManager::on_get_channel_participants(
   on_view_dialog_active_stories(std::move(participant_dialog_ids));
 
   promise.set_value(DialogParticipants{total_count, std::move(result)});
-}
-
-bool ContactsManager::have_channel_participant_cache(ChannelId channel_id) const {
-  if (!td_->auth_manager_->is_bot()) {
-    return false;
-  }
-  auto c = get_channel(channel_id);
-  return c != nullptr && c->status.is_administrator();
-}
-
-void ContactsManager::add_channel_participant_to_cache(ChannelId channel_id,
-                                                       const DialogParticipant &dialog_participant,
-                                                       bool allow_replace) {
-  CHECK(channel_id.is_valid());
-  CHECK(dialog_participant.is_valid());
-  auto &participants = channel_participants_[channel_id];
-  if (participants.participants_.empty()) {
-    channel_participant_cache_timeout_.set_timeout_in(channel_id.get(), CHANNEL_PARTICIPANT_CACHE_TIME);
-  }
-  auto &participant_info = participants.participants_[dialog_participant.dialog_id_];
-  if (participant_info.last_access_date_ > 0 && !allow_replace) {
-    return;
-  }
-  participant_info.participant_ = dialog_participant;
-  participant_info.last_access_date_ = G()->unix_time();
-}
-
-void ContactsManager::update_channel_participant_status_cache(ChannelId channel_id, DialogId participant_dialog_id,
-                                                              DialogParticipantStatus &&dialog_participant_status) {
-  CHECK(channel_id.is_valid());
-  CHECK(participant_dialog_id.is_valid());
-  auto channel_participants_it = channel_participants_.find(channel_id);
-  if (channel_participants_it == channel_participants_.end()) {
-    return;
-  }
-  auto &participants = channel_participants_it->second;
-  auto it = participants.participants_.find(participant_dialog_id);
-  if (it == participants.participants_.end()) {
-    return;
-  }
-  auto &participant_info = it->second;
-  LOG(INFO) << "Update cached status of " << participant_dialog_id << " in " << channel_id << " from "
-            << participant_info.participant_.status_ << " to " << dialog_participant_status;
-  participant_info.participant_.status_ = std::move(dialog_participant_status);
-  participant_info.last_access_date_ = G()->unix_time();
-}
-
-void ContactsManager::drop_channel_participant_cache(ChannelId channel_id) {
-  channel_participants_.erase(channel_id);
-}
-
-const DialogParticipant *ContactsManager::get_channel_participant_from_cache(ChannelId channel_id,
-                                                                             DialogId participant_dialog_id) {
-  auto channel_participants_it = channel_participants_.find(channel_id);
-  if (channel_participants_it == channel_participants_.end()) {
-    return nullptr;
-  }
-
-  auto &participants = channel_participants_it->second.participants_;
-  CHECK(!participants.empty());
-  auto it = participants.find(participant_dialog_id);
-  if (it != participants.end()) {
-    it->second.participant_.status_.update_restrictions();
-    it->second.last_access_date_ = G()->unix_time();
-    return &it->second.participant_;
-  }
-  return nullptr;
 }
 
 bool ContactsManager::speculative_add_count(int32 &count, int32 delta_count, int32 min_count) {
@@ -15817,7 +15703,7 @@ void ContactsManager::on_channel_status_changed(Channel *c, ChannelId channel_id
   }
   bool is_bot = td_->auth_manager_->is_bot();
   if (is_bot && old_status.is_administrator() && !new_status.is_administrator()) {
-    channel_participants_.erase(channel_id);
+    td_->dialog_participant_manager_->drop_channel_participant_cache(channel_id);
   }
   if (is_bot && old_status.is_member() && !new_status.is_member() && !G()->use_message_database()) {
     send_closure_later(G()->messages_manager(), &MessagesManager::on_dialog_deleted, DialogId(channel_id),
