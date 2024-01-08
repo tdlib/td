@@ -273,6 +273,8 @@ class ContactsManager final : public Actor {
   void add_channel_participant_to_cache(ChannelId channel_id, const DialogParticipant &dialog_participant,
                                         bool allow_replace);
 
+  const DialogParticipant *get_channel_participant_from_cache(ChannelId channel_id, DialogId participant_dialog_id);
+
   void drop_channel_participant_cache(ChannelId channel_id);
 
   int32 on_update_peer_located(vector<tl_object_ptr<telegram_api::PeerLocated>> &&peers, bool from_update);
@@ -671,9 +673,6 @@ class ContactsManager final : public Actor {
                                          DialogParticipantStatus status);
 
   void get_chat_participant(ChatId chat_id, UserId user_id, Promise<DialogParticipant> &&promise);
-
-  void get_channel_participant(ChannelId channel_id, DialogId participant_dialog_id,
-                               Promise<DialogParticipant> &&promise);
 
   void search_dialog_participants(DialogId dialog_id, const string &query, int32 limit, DialogParticipantFilter filter,
                                   Promise<DialogParticipants> &&promise);
@@ -1749,9 +1748,6 @@ class ContactsManager final : public Actor {
 
   void finish_get_chat_participant(ChatId chat_id, UserId user_id, Promise<DialogParticipant> &&promise);
 
-  void finish_get_channel_participant(ChannelId channel_id, DialogParticipant &&dialog_participant,
-                                      Promise<DialogParticipant> &&promise);
-
   void remove_dialog_suggested_action(SuggestedAction action);
 
   void on_dismiss_suggested_action(SuggestedAction action, Result<Unit> &&result);
@@ -1839,8 +1835,6 @@ class ContactsManager final : public Actor {
 
   void update_channel_participant_status_cache(ChannelId channel_id, DialogId participant_dialog_id,
                                                DialogParticipantStatus &&dialog_participant_status);
-
-  const DialogParticipant *get_channel_participant_from_cache(ChannelId channel_id, DialogId participant_dialog_id);
 
   void set_chat_participant_status(ChatId chat_id, UserId user_id, DialogParticipantStatus status,
                                    Promise<Unit> &&promise);

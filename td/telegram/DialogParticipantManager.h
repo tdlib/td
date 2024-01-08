@@ -82,6 +82,9 @@ class DialogParticipantManager final : public Actor {
   void get_dialog_participant(DialogId dialog_id, DialogId participant_dialog_id,
                               Promise<td_api::object_ptr<td_api::chatMember>> &&promise);
 
+  void get_channel_participant(ChannelId channel_id, DialogId participant_dialog_id,
+                               Promise<DialogParticipant> &&promise);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
@@ -126,6 +129,9 @@ class DialogParticipantManager final : public Actor {
 
   void finish_get_dialog_participant(DialogParticipant &&dialog_participant,
                                      Promise<td_api::object_ptr<td_api::chatMember>> &&promise);
+
+  void finish_get_channel_participant(ChannelId channel_id, DialogParticipant &&dialog_participant,
+                                      Promise<DialogParticipant> &&promise);
 
   struct OnlineMemberCountInfo {
     int32 online_member_count = 0;

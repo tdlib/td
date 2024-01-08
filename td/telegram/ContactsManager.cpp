@@ -3039,62 +3039,6 @@ class GetFullChannelQuery final : public Td::ResultHandler {
   }
 };
 
-class GetChannelParticipantQuery final : public Td::ResultHandler {
-  Promise<DialogParticipant> promise_;
-  ChannelId channel_id_;
-  DialogId participant_dialog_id_;
-
- public:
-  explicit GetChannelParticipantQuery(Promise<DialogParticipant> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(ChannelId channel_id, DialogId participant_dialog_id, tl_object_ptr<telegram_api::InputPeer> &&input_peer) {
-    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
-    if (input_channel == nullptr) {
-      return promise_.set_error(Status::Error(400, "Supergroup not found"));
-    }
-
-    CHECK(input_peer != nullptr);
-
-    channel_id_ = channel_id;
-    participant_dialog_id_ = participant_dialog_id;
-    send_query(G()->net_query_creator().create(
-        telegram_api::channels_getParticipant(std::move(input_channel), std::move(input_peer))));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::channels_getParticipant>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto participant = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for GetChannelParticipantQuery: " << to_string(participant);
-
-    td_->contacts_manager_->on_get_users(std::move(participant->users_), "GetChannelParticipantQuery");
-    td_->contacts_manager_->on_get_chats(std::move(participant->chats_), "GetChannelParticipantQuery");
-    DialogParticipant result(std::move(participant->participant_),
-                             td_->contacts_manager_->get_channel_type(channel_id_));
-    if (!result.is_valid()) {
-      LOG(ERROR) << "Receive invalid " << result;
-      return promise_.set_error(Status::Error(500, "Receive invalid chat member"));
-    }
-    promise_.set_value(std::move(result));
-  }
-
-  void on_error(Status status) final {
-    if (status.message() == "USER_NOT_PARTICIPANT") {
-      promise_.set_value(DialogParticipant::left(participant_dialog_id_));
-      return;
-    }
-
-    if (participant_dialog_id_.get_type() != DialogType::Channel) {
-      td_->contacts_manager_->on_get_channel_error(channel_id_, status, "GetChannelParticipantQuery");
-    }
-    promise_.set_error(std::move(status));
-  }
-};
-
 class GetChannelParticipantsQuery final : public Td::ResultHandler {
   Promise<tl_object_ptr<telegram_api::channels_channelParticipants>> promise_;
   ChannelId channel_id_;
@@ -8234,7 +8178,8 @@ void ContactsManager::set_channel_participant_status(ChannelId channel_id, Dialo
                      std::move(status), r_dialog_participant.ok().status_, std::move(promise));
       });
 
-  get_channel_participant(channel_id, participant_dialog_id, std::move(on_result_promise));
+  td_->dialog_participant_manager_->get_channel_participant(channel_id, participant_dialog_id,
+                                                            std::move(on_result_promise));
 }
 
 void ContactsManager::set_channel_participant_status_impl(ChannelId channel_id, DialogId participant_dialog_id,
@@ -17828,48 +17773,6 @@ void ContactsManager::do_search_chat_participants(ChatId chat_id, const string &
   promise.set_value(DialogParticipants{total_count, transform(dialog_ids, [chat_full](DialogId dialog_id) {
                                          return *ContactsManager::get_chat_full_participant(chat_full, dialog_id);
                                        })});
-}
-
-void ContactsManager::get_channel_participant(ChannelId channel_id, DialogId participant_dialog_id,
-                                              Promise<DialogParticipant> &&promise) {
-  LOG(INFO) << "Trying to get " << participant_dialog_id << " as member of " << channel_id;
-
-  auto input_peer = td_->dialog_manager_->get_input_peer(participant_dialog_id, AccessRights::Know);
-  if (input_peer == nullptr) {
-    return promise.set_error(Status::Error(400, "Member not found"));
-  }
-
-  if (have_channel_participant_cache(channel_id)) {
-    auto *participant = get_channel_participant_from_cache(channel_id, participant_dialog_id);
-    if (participant != nullptr) {
-      return promise.set_value(DialogParticipant{*participant});
-    }
-  }
-
-  auto on_result_promise = PromiseCreator::lambda([actor_id = actor_id(this), channel_id, promise = std::move(promise)](
-                                                      Result<DialogParticipant> r_dialog_participant) mutable {
-    TRY_RESULT_PROMISE(promise, dialog_participant, std::move(r_dialog_participant));
-    send_closure(actor_id, &ContactsManager::finish_get_channel_participant, channel_id, std::move(dialog_participant),
-                 std::move(promise));
-  });
-
-  td_->create_handler<GetChannelParticipantQuery>(std::move(on_result_promise))
-      ->send(channel_id, participant_dialog_id, std::move(input_peer));
-}
-
-void ContactsManager::finish_get_channel_participant(ChannelId channel_id, DialogParticipant &&dialog_participant,
-                                                     Promise<DialogParticipant> &&promise) {
-  TRY_STATUS_PROMISE(promise, G()->close_status());
-
-  CHECK(dialog_participant.is_valid());  // checked in GetChannelParticipantQuery
-
-  LOG(INFO) << "Receive " << dialog_participant.dialog_id_ << " as a member of a channel " << channel_id;
-
-  dialog_participant.status_.update_restrictions();
-  if (have_channel_participant_cache(channel_id)) {
-    add_channel_participant_to_cache(channel_id, dialog_participant, false);
-  }
-  promise.set_value(std::move(dialog_participant));
 }
 
 void ContactsManager::get_channel_participants(ChannelId channel_id,
