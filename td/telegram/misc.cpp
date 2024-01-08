@@ -268,6 +268,23 @@ bool is_valid_username(Slice username) {
   return true;
 }
 
+bool is_allowed_username(Slice username) {
+  if (!is_valid_username(username)) {
+    return false;
+  }
+  if (username.size() < 5) {
+    return false;
+  }
+  auto username_lowered = to_lower(username);
+  if (username_lowered.find("admin") == 0 || username_lowered.find("telegram") == 0 ||
+      username_lowered.find("support") == 0 || username_lowered.find("security") == 0 ||
+      username_lowered.find("settings") == 0 || username_lowered.find("contacts") == 0 ||
+      username_lowered.find("service") == 0 || username_lowered.find("telegraph") == 0) {
+    return false;
+  }
+  return true;
+}
+
 int64 get_vector_hash(const vector<uint64> &numbers) {
   uint64 acc = 0;
   for (auto number : numbers) {

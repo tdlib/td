@@ -172,6 +172,19 @@ class DialogManager final : public Actor {
 
   void on_dialog_usernames_received(DialogId dialog_id, const Usernames &usernames, bool from_database);
 
+  enum class CheckDialogUsernameResult : uint8 {
+    Ok,
+    Invalid,
+    Occupied,
+    Purchasable,
+    PublicDialogsTooMany,
+    PublicGroupsUnavailable
+  };
+  void check_dialog_username(DialogId dialog_id, const string &username, Promise<CheckDialogUsernameResult> &&promise);
+
+  static td_api::object_ptr<td_api::CheckChatUsernameResult> get_check_chat_username_result_object(
+      CheckDialogUsernameResult result);
+
   void resolve_dialog(const string &username, ChannelId channel_id, Promise<DialogId> promise);
 
   DialogId get_resolved_dialog_by_username(const string &username) const;

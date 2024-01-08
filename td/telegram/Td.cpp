@@ -5240,14 +5240,14 @@ void Td::on_request(uint64 id, td_api::checkChatUsername &request) {
   CLEAN_INPUT_STRING(request.username_);
   CREATE_REQUEST_PROMISE();
   auto query_promise = PromiseCreator::lambda(
-      [promise = std::move(promise)](Result<ContactsManager::CheckDialogUsernameResult> result) mutable {
+      [promise = std::move(promise)](Result<DialogManager::CheckDialogUsernameResult> result) mutable {
         if (result.is_error()) {
           promise.set_error(result.move_as_error());
         } else {
-          promise.set_value(ContactsManager::get_check_chat_username_result_object(result.ok()));
+          promise.set_value(DialogManager::get_check_chat_username_result_object(result.ok()));
         }
       });
-  contacts_manager_->check_dialog_username(DialogId(request.chat_id_), request.username_, std::move(query_promise));
+  dialog_manager_->check_dialog_username(DialogId(request.chat_id_), request.username_, std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getCreatedPublicChats &request) {

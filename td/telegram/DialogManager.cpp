@@ -37,6 +37,70 @@
 
 namespace td {
 
+class CheckUsernameQuery final : public Td::ResultHandler {
+  Promise<bool> promise_;
+
+ public:
+  explicit CheckUsernameQuery(Promise<bool> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(const string &username) {
+    send_query(G()->net_query_creator().create(telegram_api::account_checkUsername(username), {{"me"}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_checkUsername>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(result_ptr.move_as_ok());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class CheckChannelUsernameQuery final : public Td::ResultHandler {
+  Promise<bool> promise_;
+  ChannelId channel_id_;
+  string username_;
+
+ public:
+  explicit CheckChannelUsernameQuery(Promise<bool> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(ChannelId channel_id, const string &username) {
+    channel_id_ = channel_id;
+    telegram_api::object_ptr<telegram_api::InputChannel> input_channel;
+    if (channel_id.is_valid()) {
+      input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+    } else {
+      input_channel = telegram_api::make_object<telegram_api::inputChannelEmpty>();
+    }
+    CHECK(input_channel != nullptr);
+    send_query(
+        G()->net_query_creator().create(telegram_api::channels_checkUsername(std::move(input_channel), username)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::channels_checkUsername>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(result_ptr.move_as_ok());
+  }
+
+  void on_error(Status status) final {
+    if (channel_id_.is_valid()) {
+      td_->contacts_manager_->on_get_channel_error(channel_id_, status, "CheckChannelUsernameQuery");
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 class ResolveUsernameQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   string username_;
@@ -1672,6 +1736,110 @@ void DialogManager::on_dialog_usernames_received(DialogId dialog_id, const Usern
       resolved_usernames_[cleaned_username] =
           ResolvedUsername{dialog_id, Time::now() + (from_database ? 0 : USERNAME_CACHE_EXPIRE_TIME)};
     }
+  }
+}
+
+void DialogManager::check_dialog_username(DialogId dialog_id, const string &username,
+                                          Promise<CheckDialogUsernameResult> &&promise) {
+  if (dialog_id != DialogId() && !have_dialog_force(dialog_id, "check_dialog_username")) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+
+  switch (dialog_id.get_type()) {
+    case DialogType::User: {
+      if (dialog_id != get_my_dialog_id()) {
+        return promise.set_error(Status::Error(400, "Can't check username for private chat with other user"));
+      }
+      break;
+    }
+    case DialogType::Channel: {
+      auto channel_id = dialog_id.get_channel_id();
+      if (!td_->contacts_manager_->get_channel_status(channel_id).is_creator()) {
+        return promise.set_error(Status::Error(400, "Not enough rights to change username"));
+      }
+      if (username == td_->contacts_manager_->get_channel_editable_username(channel_id)) {
+        return promise.set_value(CheckDialogUsernameResult::Ok);
+      }
+      break;
+    }
+    case DialogType::None:
+      break;
+    case DialogType::Chat:
+    case DialogType::SecretChat:
+      if (!username.empty()) {
+        return promise.set_error(Status::Error(400, "The chat can't have a username"));
+      }
+      break;
+    default:
+      UNREACHABLE();
+      return;
+  }
+
+  if (username.empty()) {
+    return promise.set_value(CheckDialogUsernameResult::Ok);
+  }
+
+  if (!is_allowed_username(username) && username.size() != 4) {
+    return promise.set_value(CheckDialogUsernameResult::Invalid);
+  }
+
+  auto request_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<bool> result) mutable {
+    if (result.is_error()) {
+      auto error = result.move_as_error();
+      if (error.message() == "CHANNEL_PUBLIC_GROUP_NA") {
+        return promise.set_value(CheckDialogUsernameResult::PublicGroupsUnavailable);
+      }
+      if (error.message() == "CHANNELS_ADMIN_PUBLIC_TOO_MUCH") {
+        return promise.set_value(CheckDialogUsernameResult::PublicDialogsTooMany);
+      }
+      if (error.message() == "USERNAME_INVALID") {
+        return promise.set_value(CheckDialogUsernameResult::Invalid);
+      }
+      if (error.message() == "USERNAME_PURCHASE_AVAILABLE") {
+        if (begins_with(G()->get_option_string("my_phone_number"), "1")) {
+          return promise.set_value(CheckDialogUsernameResult::Invalid);
+        }
+        return promise.set_value(CheckDialogUsernameResult::Purchasable);
+      }
+      return promise.set_error(std::move(error));
+    }
+
+    promise.set_value(result.ok() ? CheckDialogUsernameResult::Ok : CheckDialogUsernameResult::Occupied);
+  });
+
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      return td_->create_handler<CheckUsernameQuery>(std::move(request_promise))->send(username);
+    case DialogType::Channel:
+      return td_->create_handler<CheckChannelUsernameQuery>(std::move(request_promise))
+          ->send(dialog_id.get_channel_id(), username);
+    case DialogType::None:
+      return td_->create_handler<CheckChannelUsernameQuery>(std::move(request_promise))->send(ChannelId(), username);
+    case DialogType::Chat:
+    case DialogType::SecretChat:
+    default:
+      UNREACHABLE();
+  }
+}
+
+td_api::object_ptr<td_api::CheckChatUsernameResult> DialogManager::get_check_chat_username_result_object(
+    CheckDialogUsernameResult result) {
+  switch (result) {
+    case CheckDialogUsernameResult::Ok:
+      return td_api::make_object<td_api::checkChatUsernameResultOk>();
+    case CheckDialogUsernameResult::Invalid:
+      return td_api::make_object<td_api::checkChatUsernameResultUsernameInvalid>();
+    case CheckDialogUsernameResult::Occupied:
+      return td_api::make_object<td_api::checkChatUsernameResultUsernameOccupied>();
+    case CheckDialogUsernameResult::Purchasable:
+      return td_api::make_object<td_api::checkChatUsernameResultUsernamePurchasable>();
+    case CheckDialogUsernameResult::PublicDialogsTooMany:
+      return td_api::make_object<td_api::checkChatUsernameResultPublicChatsTooMany>();
+    case CheckDialogUsernameResult::PublicGroupsUnavailable:
+      return td_api::make_object<td_api::checkChatUsernameResultPublicGroupsUnavailable>();
+    default:
+      UNREACHABLE();
+      return nullptr;
   }
 }
 

@@ -36,6 +36,9 @@ bool is_empty_string(const string &str) TD_WARN_UNUSED_RESULT;
 // checks whether a string could be a valid username
 bool is_valid_username(Slice username);
 
+// checks whether a string can be set as a username
+bool is_allowed_username(Slice username);
+
 // calculates hash of list of uint64
 int64 get_vector_hash(const vector<uint64> &numbers) TD_WARN_UNUSED_RESULT;
 

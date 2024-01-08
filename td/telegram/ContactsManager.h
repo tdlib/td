@@ -171,6 +171,7 @@ class ContactsManager final : public Actor {
 
   string get_user_first_username(UserId user_id) const;
   string get_channel_first_username(ChannelId channel_id) const;
+  string get_channel_editable_username(ChannelId channel_id) const;
 
   int32 get_secret_chat_date(SecretChatId secret_chat_id) const;
   int32 get_secret_chat_ttl(SecretChatId secret_chat_id) const;
@@ -352,20 +353,6 @@ class ContactsManager final : public Actor {
   void on_update_phone_number_privacy();
 
   void invalidate_user_full(UserId user_id);
-
-  enum class CheckDialogUsernameResult : uint8 {
-    Ok,
-    Invalid,
-    Occupied,
-    Purchasable,
-    PublicDialogsTooMany,
-    PublicGroupsUnavailable
-  };
-
-  void check_dialog_username(DialogId dialog_id, const string &username, Promise<CheckDialogUsernameResult> &&promise);
-
-  static td_api::object_ptr<td_api::CheckChatUsernameResult> get_check_chat_username_result_object(
-      CheckDialogUsernameResult result);
 
   void add_contact(Contact contact, bool share_phone_number, Promise<Unit> &&promise);
 
@@ -1386,8 +1373,6 @@ class ContactsManager final : public Actor {
   static string get_channel_search_text(const Channel *c);
 
   void set_my_id(UserId my_id);
-
-  static bool is_allowed_username(const string &username);
 
   void on_set_emoji_status(EmojiStatus emoji_status, Promise<Unit> &&promise);
 
