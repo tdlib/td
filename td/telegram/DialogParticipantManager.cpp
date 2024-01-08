@@ -1502,8 +1502,7 @@ void DialogParticipantManager::add_channel_participant(ChannelId channel_id, Use
     }
 
     if (!td_->contacts_manager_->get_channel_join_request(channel_id)) {
-      td_->contacts_manager_->speculative_add_channel_user(channel_id, user_id, DialogParticipantStatus::Member(),
-                                                           my_status);
+      speculative_add_channel_user(channel_id, user_id, DialogParticipantStatus::Member(), my_status);
     }
     td_->create_handler<JoinChannelQuery>(std::move(promise))->send(channel_id);
     return;
@@ -1513,8 +1512,7 @@ void DialogParticipantManager::add_channel_participant(ChannelId channel_id, Use
     return promise.set_error(Status::Error(400, "Not enough rights to invite members to the supergroup chat"));
   }
 
-  td_->contacts_manager_->speculative_add_channel_user(channel_id, user_id, DialogParticipantStatus::Member(),
-                                                       old_status);
+  speculative_add_channel_user(channel_id, user_id, DialogParticipantStatus::Member(), old_status);
   vector<tl_object_ptr<telegram_api::InputUser>> input_users;
   input_users.push_back(std::move(input_user));
   td_->create_handler<InviteToChannelQuery>(std::move(promise))->send(channel_id, {user_id}, std::move(input_users));
@@ -1544,8 +1542,8 @@ void DialogParticipantManager::add_channel_participants(ChannelId channel_id, co
     }
     input_users.push_back(std::move(input_user));
 
-    td_->contacts_manager_->speculative_add_channel_user(channel_id, user_id, DialogParticipantStatus::Member(),
-                                                         DialogParticipantStatus::Left());
+    speculative_add_channel_user(channel_id, user_id, DialogParticipantStatus::Member(),
+                                 DialogParticipantStatus::Left());
   }
 
   if (input_users.empty()) {
@@ -1707,7 +1705,7 @@ void DialogParticipantManager::promote_channel_participant(ChannelId channel_id,
 
   TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
 
-  td_->contacts_manager_->speculative_add_channel_user(channel_id, user_id, new_status, old_status);
+  speculative_add_channel_user(channel_id, user_id, new_status, old_status);
   td_->create_handler<EditChannelAdminQuery>(std::move(promise))
       ->send(channel_id, user_id, std::move(input_user), new_status);
 }
@@ -1748,8 +1746,7 @@ void DialogParticipantManager::restrict_channel_participant(ChannelId channel_id
     }
 
     // leave the channel
-    td_->contacts_manager_->speculative_add_channel_user(channel_id, participant_dialog_id.get_user_id(), new_status,
-                                                         my_status);
+    speculative_add_channel_user(channel_id, participant_dialog_id.get_user_id(), new_status, my_status);
     td_->create_handler<LeaveChannelQuery>(std::move(promise))->send(channel_id);
     return;
   }
@@ -1832,8 +1829,7 @@ void DialogParticipantManager::restrict_channel_participant(ChannelId channel_id
   }
 
   if (participant_dialog_id.get_type() == DialogType::User) {
-    td_->contacts_manager_->speculative_add_channel_user(channel_id, participant_dialog_id.get_user_id(), new_status,
-                                                         old_status);
+    speculative_add_channel_user(channel_id, participant_dialog_id.get_user_id(), new_status, old_status);
   }
   td_->create_handler<EditChannelBannedQuery>(std::move(promise))
       ->send(channel_id, participant_dialog_id, std::move(input_peer), new_status);
@@ -1849,6 +1845,14 @@ void DialogParticipantManager::on_set_channel_participant_status(ChannelId chann
   if (have_channel_participant_cache(channel_id)) {
     update_channel_participant_status_cache(channel_id, participant_dialog_id, std::move(status));
   }
+}
+
+void DialogParticipantManager::speculative_add_channel_user(ChannelId channel_id, UserId user_id,
+                                                            const DialogParticipantStatus &new_status,
+                                                            const DialogParticipantStatus &old_status) {
+  speculative_update_dialog_administrators(DialogId(channel_id), user_id, new_status, old_status);
+
+  td_->contacts_manager_->speculative_add_channel_user(channel_id, user_id, new_status, old_status);
 }
 
 void DialogParticipantManager::on_channel_participant_cache_timeout_callback(void *dialog_participant_manager_ptr,

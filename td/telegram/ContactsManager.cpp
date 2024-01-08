@@ -13960,9 +13960,6 @@ void ContactsManager::speculative_add_channel_user(ChannelId channel_id, UserId 
     update_channel(c, channel_id);
   }
 
-  td_->dialog_participant_manager_->speculative_update_dialog_administrators(DialogId(channel_id), user_id, new_status,
-                                                                             old_status);
-
   auto it = cached_channel_participants_.find(channel_id);
   if (it != cached_channel_participants_.end()) {
     auto &participants = it->second;
