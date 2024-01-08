@@ -6,7 +6,9 @@
 //
 #include "td/telegram/DialogParticipantManager.h"
 
+#include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/ChannelId.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
@@ -15,17 +17,24 @@
 #include "td/telegram/misc.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
+#include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
 
 #include "td/db/SqliteKeyValueAsync.h"
 
+#include "td/actor/MultiPromise.h"
+
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
+#include "td/utils/format.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
 #include "td/utils/Time.h"
 
 #include <algorithm>
+#include <limits>
 
 namespace td {
 
@@ -685,7 +694,7 @@ void DialogParticipantManager::on_load_administrator_users_finished(
 void DialogParticipantManager::on_update_dialog_administrators(DialogId dialog_id,
                                                                vector<DialogAdministrator> &&administrators,
                                                                bool have_access, bool from_database) {
-  LOG(INFO) << "Update administrators in " << dialog_id << " to " << format::as_array(administrators);
+  LOG(INFO) << "Update administrators in " << dialog_id << " to " << administrators;
   if (have_access) {
     CHECK(dialog_id.is_valid());
     std::sort(administrators.begin(), administrators.end(),

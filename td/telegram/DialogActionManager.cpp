@@ -6,6 +6,7 @@
 //
 #include "td/telegram/DialogActionManager.h"
 
+#include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogManager.h"
@@ -14,13 +15,16 @@
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/SecretChatsManager.h"
+#include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/emoji.h"
 #include "td/utils/logging.h"
+#include "td/utils/Status.h"
 #include "td/utils/Time.h"
 
 #include <algorithm>

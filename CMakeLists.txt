@@ -333,9 +333,9 @@ set(TDLIB_SOURCE
   td/telegram/DialogLocation.cpp
   td/telegram/DialogManager.cpp
   td/telegram/DialogNotificationSettings.cpp
-  td/telegram/DialogParticipantManager.cpp
   td/telegram/DialogParticipant.cpp
   td/telegram/DialogParticipantFilter.cpp
+  td/telegram/DialogParticipantManager.cpp
   td/telegram/DialogSource.cpp
   td/telegram/Dimensions.cpp
   td/telegram/Document.cpp
@@ -615,9 +615,9 @@ set(TDLIB_SOURCE
   td/telegram/DialogLocation.h
   td/telegram/DialogManager.h
   td/telegram/DialogNotificationSettings.h
-  td/telegram/DialogParticipantManager.h
   td/telegram/DialogParticipant.h
   td/telegram/DialogParticipantFilter.h
+  td/telegram/DialogParticipantManager.h
   td/telegram/DialogSource.h
   td/telegram/Dimensions.h
   td/telegram/Document.h

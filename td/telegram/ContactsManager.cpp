@@ -15,6 +15,7 @@
 #include "td/telegram/CommonDialogManager.h"
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/Dependencies.h"
+#include "td/telegram/DialogAdministrator.h"
 #include "td/telegram/DialogInviteLink.h"
 #include "td/telegram/DialogInviteLinkManager.h"
 #include "td/telegram/DialogLocation.h"

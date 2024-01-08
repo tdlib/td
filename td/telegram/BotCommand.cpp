@@ -21,6 +21,8 @@
 #include "td/utils/Status.h"
 #include "td/utils/utf8.h"
 
+#include <algorithm>
+
 namespace td {
 
 class SetBotCommandsQuery final : public Td::ResultHandler {

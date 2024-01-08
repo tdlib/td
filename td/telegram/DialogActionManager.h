@@ -11,13 +11,13 @@
 #include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/net/NetQuery.h"
-#include "td/telegram/td_api.h"
 
 #include "td/actor/actor.h"
 #include "td/actor/MultiTimeout.h"
 
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
+#include "td/utils/Promise.h"
 
 namespace td {
 
