@@ -563,8 +563,6 @@ class ContactsManager final : public Actor {
 
   bool is_dialog_info_received_from_server(DialogId dialog_id) const;
 
-  void reload_dialog_info(DialogId dialog_id, Promise<Unit> &&promise);
-
   static void send_get_me_query(Td *td, Promise<Unit> &&promise);
   UserId get_me(Promise<Unit> &&promise);
   bool get_user(UserId user_id, int left_tries, Promise<Unit> &&promise);

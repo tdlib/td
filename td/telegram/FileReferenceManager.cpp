@@ -11,6 +11,7 @@
 #include "td/telegram/BackgroundManager.h"
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
@@ -449,7 +450,7 @@ void FileReferenceManager::reload_photo(PhotoSizeSource source, Promise<Unit> pr
     case PhotoSizeSource::Type::DialogPhotoSmall:
     case PhotoSizeSource::Type::DialogPhotoBigLegacy:
     case PhotoSizeSource::Type::DialogPhotoSmallLegacy:
-      send_closure(G()->contacts_manager(), &ContactsManager::reload_dialog_info, source.dialog_photo().dialog_id,
+      send_closure(G()->dialog_manager(), &DialogManager::reload_dialog_info, source.dialog_photo().dialog_id,
                    std::move(promise));
       break;
     case PhotoSizeSource::Type::StickerSetThumbnail:

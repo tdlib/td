@@ -3453,7 +3453,7 @@ class ForwardMessagesQuery final : public Td::ResultHandler {
     }
     // no on_get_dialog_error call, because two dialogs are involved
     if (status.code() == 400 && status.message() == CSlice("CHAT_FORWARDS_RESTRICTED")) {
-      td_->contacts_manager_->reload_dialog_info(from_dialog_id_, Promise<Unit>());
+      td_->dialog_manager_->reload_dialog_info(from_dialog_id_, Promise<Unit>());
     }
     if (status.code() == 400 && status.message() == CSlice("SEND_AS_PEER_INVALID")) {
       td_->dialog_manager_->reload_dialog_info_full(to_dialog_id_, "SEND_AS_PEER_INVALID");

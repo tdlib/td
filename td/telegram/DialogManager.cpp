@@ -712,6 +712,20 @@ bool DialogManager::have_dialog_info_force(DialogId dialog_id, const char *sourc
   }
 }
 
+void DialogManager::reload_dialog_info(DialogId dialog_id, Promise<Unit> &&promise) {
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      return td_->contacts_manager_->reload_user(dialog_id.get_user_id(), std::move(promise), "reload_dialog_info");
+    case DialogType::Chat:
+      return td_->contacts_manager_->reload_chat(dialog_id.get_chat_id(), std::move(promise), "reload_dialog_info");
+    case DialogType::Channel:
+      return td_->contacts_manager_->reload_channel(dialog_id.get_channel_id(), std::move(promise),
+                                                    "reload_dialog_info");
+    default:
+      return promise.set_error(Status::Error("Invalid chat identifier to reload"));
+  }
+}
+
 void DialogManager::get_dialog_info_full(DialogId dialog_id, Promise<Unit> &&promise, const char *source) {
   switch (dialog_id.get_type()) {
     case DialogType::User:
