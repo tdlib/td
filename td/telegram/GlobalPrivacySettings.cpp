@@ -77,7 +77,8 @@ GlobalPrivacySettings::GlobalPrivacySettings(telegram_api::object_ptr<telegram_a
     , keep_archived_folders_(settings->keep_archived_folders_) {
 }
 
-GlobalPrivacySettings::GlobalPrivacySettings(td_api::object_ptr<td_api::archiveChatListSettings> &&settings) {
+GlobalPrivacySettings::GlobalPrivacySettings(td_api::object_ptr<td_api::archiveChatListSettings> &&settings)
+    : set_type_(SetType::Archive) {
   if (settings != nullptr) {
     archive_and_mute_new_noncontact_peers_ = settings->archive_and_mute_new_chats_from_unknown_users_;
     keep_archived_unmuted_ = settings->keep_unmuted_chats_archived_;
@@ -85,8 +86,23 @@ GlobalPrivacySettings::GlobalPrivacySettings(td_api::object_ptr<td_api::archiveC
   }
 }
 
+void GlobalPrivacySettings::apply_changes(const GlobalPrivacySettings &set_settings) {
+  CHECK(set_type_ == SetType::None);
+  switch (set_settings.set_type_) {
+    case SetType::Archive:
+      archive_and_mute_new_noncontact_peers_ = set_settings.archive_and_mute_new_noncontact_peers_;
+      keep_archived_unmuted_ = set_settings.keep_archived_unmuted_;
+      keep_archived_folders_ = set_settings.keep_archived_folders_;
+      break;
+    default:
+      UNREACHABLE();
+      break;
+  }
+}
+
 telegram_api::object_ptr<telegram_api::globalPrivacySettings> GlobalPrivacySettings::get_input_global_privacy_settings()
     const {
+  CHECK(set_type_ == SetType::None);
   int32 flags = 0;
   if (archive_and_mute_new_noncontact_peers_) {
     flags |= telegram_api::globalPrivacySettings::ARCHIVE_AND_MUTE_NEW_NONCONTACT_PEERS_MASK;
@@ -103,6 +119,7 @@ telegram_api::object_ptr<telegram_api::globalPrivacySettings> GlobalPrivacySetti
 
 td_api::object_ptr<td_api::archiveChatListSettings> GlobalPrivacySettings::get_archive_chat_list_settings_object()
     const {
+  CHECK(set_type_ == SetType::None);
   return td_api::make_object<td_api::archiveChatListSettings>(archive_and_mute_new_noncontact_peers_,
                                                               keep_archived_unmuted_, keep_archived_folders_);
 }
@@ -113,12 +130,23 @@ void GlobalPrivacySettings::get_global_privacy_settings(Td *td, Promise<GlobalPr
 
 void GlobalPrivacySettings::set_global_privacy_settings(Td *td, GlobalPrivacySettings settings,
                                                         Promise<Unit> &&promise) {
+  CHECK(settings.set_type_ != SetType::None);
   if (settings.archive_and_mute_new_noncontact_peers_) {
     send_closure(td->config_manager_, &ConfigManager::hide_suggested_action,
                  SuggestedAction{SuggestedAction::Type::EnableArchiveAndMuteNewChats});
   }
 
-  td->create_handler<SetGlobalPrivacySettingsQuery>(std::move(promise))->send(std::move(settings));
+  get_global_privacy_settings(
+      td, PromiseCreator::lambda([td, set_settings = std::move(settings),
+                                  promise = std::move(promise)](Result<GlobalPrivacySettings> result) mutable {
+        G()->ignore_result_if_closing(result);
+        if (result.is_error()) {
+          return promise.set_error(result.move_as_error());
+        }
+        auto settings = result.move_as_ok();
+        settings.apply_changes(set_settings);
+        td->create_handler<SetGlobalPrivacySettingsQuery>(std::move(promise))->send(std::move(settings));
+      }));
 }
 
 }  // namespace td

@@ -17,9 +17,13 @@ namespace td {
 class Td;
 
 class GlobalPrivacySettings {
+  enum class SetType : int32 { None, Archive };
+  SetType set_type_ = SetType::None;
   bool archive_and_mute_new_noncontact_peers_ = false;
   bool keep_archived_unmuted_ = false;
   bool keep_archived_folders_ = false;
+
+  void apply_changes(const GlobalPrivacySettings &set_settings);
 
  public:
   explicit GlobalPrivacySettings(telegram_api::object_ptr<telegram_api::globalPrivacySettings> &&settings);
