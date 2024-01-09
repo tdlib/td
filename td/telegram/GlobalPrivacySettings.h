@@ -17,7 +17,7 @@ namespace td {
 class Td;
 
 class GlobalPrivacySettings {
-  enum class SetType : int32 { None, Archive };
+  enum class SetType : int32 { None, Archive, ReadDate };
   SetType set_type_ = SetType::None;
   bool archive_and_mute_new_noncontact_peers_ = false;
   bool keep_archived_unmuted_ = false;
@@ -31,6 +31,8 @@ class GlobalPrivacySettings {
   explicit GlobalPrivacySettings(telegram_api::object_ptr<telegram_api::globalPrivacySettings> &&settings);
 
   explicit GlobalPrivacySettings(td_api::object_ptr<td_api::archiveChatListSettings> &&settings);
+
+  explicit GlobalPrivacySettings(td_api::object_ptr<td_api::readDatePrivacySettings> &&settings);
 
   telegram_api::object_ptr<telegram_api::globalPrivacySettings> get_input_global_privacy_settings() const;
 

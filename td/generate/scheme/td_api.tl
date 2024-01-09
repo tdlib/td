@@ -9507,6 +9507,9 @@ setUserPrivacySettingRules setting:UserPrivacySetting rules:userPrivacySettingRu
 //@description Returns the current privacy settings @setting The privacy setting
 getUserPrivacySettingRules setting:UserPrivacySetting = UserPrivacySettingRules;
 
+//@description Changes privacy settings for message read date @settings New settings
+setReadDatePrivacySettings settings:readDatePrivacySettings = Ok;
+
 //@description Returns privacy settings for message read date
 getReadDatePrivacySettings = ReadDatePrivacySettings;
 

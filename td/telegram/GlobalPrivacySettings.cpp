@@ -88,6 +88,13 @@ GlobalPrivacySettings::GlobalPrivacySettings(td_api::object_ptr<td_api::archiveC
   }
 }
 
+GlobalPrivacySettings::GlobalPrivacySettings(td_api::object_ptr<td_api::readDatePrivacySettings> &&settings)
+    : set_type_(SetType::ReadDate) {
+  if (settings != nullptr) {
+    hide_read_marks_ = !settings->show_read_date_;
+  }
+}
+
 void GlobalPrivacySettings::apply_changes(const GlobalPrivacySettings &set_settings) {
   CHECK(set_type_ == SetType::None);
   switch (set_settings.set_type_) {
@@ -95,6 +102,9 @@ void GlobalPrivacySettings::apply_changes(const GlobalPrivacySettings &set_setti
       archive_and_mute_new_noncontact_peers_ = set_settings.archive_and_mute_new_noncontact_peers_;
       keep_archived_unmuted_ = set_settings.keep_archived_unmuted_;
       keep_archived_folders_ = set_settings.keep_archived_folders_;
+      break;
+    case SetType::ReadDate:
+      hide_read_marks_ = set_settings.hide_read_marks_;
       break;
     default:
       UNREACHABLE();

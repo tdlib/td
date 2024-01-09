@@ -1053,6 +1053,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::getReadDatePrivacySettings &request);
 
+  void on_request(uint64 id, td_api::setReadDatePrivacySettings &request);
+
   void on_request(uint64 id, td_api::setChatTitle &request);
 
   void on_request(uint64 id, const td_api::setChatPhoto &request);
