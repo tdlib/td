@@ -17165,6 +17165,9 @@ Status MessagesManager::can_get_message_read_date(DialogId dialog_id, const Mess
   if (!m->is_outgoing) {
     return Status::Error(400, "Can't get read date of incoming messages");
   }
+  if (G()->unix_time() - m->date > td_->option_manager_->get_option_integer("pm_read_date_expire_period")) {
+    return Status::Error(400, "Message is too old");
+  }
 
   if (dialog_id.get_type() != DialogType::User) {
     return Status::Error(400, "Read date can be received only in private chats");
@@ -23060,7 +23063,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_messag
   return td_api::make_object<td_api::message>(
       m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_dialog_event_log_message_object"),
       nullptr, nullptr, m->is_outgoing, m->is_pinned, false, false, false, can_be_saved, false, false, false, false,
-      false, false, false, false, true, m->is_channel_post, m->is_topic_message, false, m->date, edit_date,
+      false, false, false, false, false, true, m->is_channel_post, m->is_topic_message, false, m->date, edit_date,
       std::move(forward_info), std::move(import_info), std::move(interaction_info), Auto(), nullptr, 0, nullptr,
       nullptr, 0.0, 0.0, via_bot_user_id, m->author_signature, 0,
       get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
@@ -23136,6 +23139,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto can_get_added_reactions = m->reactions != nullptr && m->reactions->can_get_added_reactions_;
   auto can_get_statistics = can_get_message_statistics(dialog_id, m);
   auto can_get_message_thread = get_top_thread_message_full_id(dialog_id, m, false).is_ok();
+  auto can_get_read_date = can_get_message_read_date(dialog_id, m).is_ok();
   auto can_get_viewers = can_get_message_viewers(dialog_id, m).is_ok();
   auto can_get_media_timestamp_links = can_get_media_timestamp_link(dialog_id, m).is_ok();
   auto can_report_reactions = can_report_message_reactions(dialog_id, m);
@@ -23175,7 +23179,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
       m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_message_object"),
       std::move(sending_state), std::move(scheduling_state), is_outgoing, m->is_pinned, can_be_edited, can_be_forwarded,
       can_be_replied_in_another_chat, can_be_saved, can_delete_for_self, can_delete_for_all_users,
-      can_get_added_reactions, can_get_statistics, can_get_message_thread, can_get_viewers,
+      can_get_added_reactions, can_get_statistics, can_get_message_thread, can_get_read_date, can_get_viewers,
       can_get_media_timestamp_links, can_report_reactions, has_timestamped_media, m->is_channel_post,
       m->is_topic_message, m->contains_unread_mention, date, edit_date, std::move(forward_info), std::move(import_info),
       std::move(interaction_info), std::move(unread_reactions), std::move(reply_to), top_thread_message_id,
