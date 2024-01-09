@@ -9205,19 +9205,23 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   }
 
   bool is_me_regular_user = !td_->auth_manager_->is_bot();
-  if (is_me_regular_user && (is_received || !user->phone_.empty())) {
-    on_update_user_phone_number(u, user_id, std::move(user->phone_));
-  }
   if (is_received || u->need_apply_min_photo || !u->is_received) {
     on_update_user_photo(u, user_id, std::move(user->photo_), source);
   }
-  if (is_me_regular_user && is_received) {
-    on_update_user_online(u, user_id, std::move(user->status_));
-
-    auto is_mutual_contact = (flags & USER_FLAG_IS_MUTUAL_CONTACT) != 0;
-    auto is_close_friend = (flags2 & USER_FLAG_IS_CLOSE_FRIEND) != 0;
-    on_update_user_is_contact(u, user_id, is_contact, is_mutual_contact, is_close_friend);
+  if (is_me_regular_user) {
+    if (is_received || !u->is_received) {
+      on_update_user_phone_number(u, user_id, std::move(user->phone_));
+    }
+    if (is_received || !u->is_received || u->was_online == 0) {
+      on_update_user_online(u, user_id, std::move(user->status_));
+    }
+    if (is_received) {
+      auto is_mutual_contact = (flags & USER_FLAG_IS_MUTUAL_CONTACT) != 0;
+      auto is_close_friend = (flags2 & USER_FLAG_IS_CLOSE_FRIEND) != 0;
+      on_update_user_is_contact(u, user_id, is_contact, is_mutual_contact, is_close_friend);
+    }
   }
+
   if (is_received || !u->is_received) {
     on_update_user_name(u, user_id, std::move(user->first_name_), std::move(user->last_name_));
     on_update_user_usernames(u, user_id, Usernames{std::move(user->username_), std::move(user->usernames_)});
@@ -9229,14 +9233,14 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   PeerColor profile_peer_color(user->profile_color_);
   on_update_user_profile_accent_color_id(u, user_id, profile_peer_color.accent_color_id_);
   on_update_user_profile_background_custom_emoji_id(u, user_id, profile_peer_color.background_custom_emoji_id_);
-  if (is_me_regular_user && is_received) {
-    on_update_user_stories_hidden(u, user_id, stories_hidden);
-  }
-  if (is_me_regular_user && (stories_available || stories_unavailable)) {
-    // update at the end, because it calls need_poll_user_active_stories
-    on_update_user_story_ids_impl(u, user_id, StoryId(user->stories_max_id_), StoryId());
-  }
   if (is_me_regular_user) {
+    if (is_received) {
+      on_update_user_stories_hidden(u, user_id, stories_hidden);
+    }
+    if (stories_available || stories_unavailable) {
+      // update at the end, because it calls need_poll_user_active_stories
+      on_update_user_story_ids_impl(u, user_id, StoryId(user->stories_max_id_), StoryId());
+    }
     auto restriction_reasons = get_restriction_reasons(std::move(user->restriction_reason_));
     if (restriction_reasons != u->restriction_reasons) {
       u->restriction_reasons = std::move(restriction_reasons);
@@ -12703,11 +12707,14 @@ void ContactsManager::on_update_user_online(User *u, UserId user_id, tl_object_p
     }
     is_offline = true;
   } else if (id == telegram_api::userStatusRecently::ID) {
-    new_online = -1;
+    auto st = telegram_api::move_object_as<telegram_api::userStatusRecently>(status);
+    new_online = st->by_me_ ? -4 : -1;
   } else if (id == telegram_api::userStatusLastWeek::ID) {
-    new_online = -2;
+    auto st = telegram_api::move_object_as<telegram_api::userStatusLastWeek>(status);
+    new_online = st->by_me_ ? -5 : -2;
   } else if (id == telegram_api::userStatusLastMonth::ID) {
-    new_online = -3;
+    auto st = telegram_api::move_object_as<telegram_api::userStatusLastMonth>(status);
+    new_online = st->by_me_ ? -6 : -3;
   } else {
     CHECK(id == telegram_api::userStatusEmpty::ID);
     new_online = 0;
@@ -17602,13 +17609,15 @@ td_api::object_ptr<td_api::UserStatus> ContactsManager::get_user_status_object(U
 
   int32 was_online = get_user_was_online(u, user_id, unix_time);
   switch (was_online) {
-    case -4:
+    case -6:
     case -3:
-      return make_tl_object<td_api::userStatusLastMonth>();
+      return make_tl_object<td_api::userStatusLastMonth>(was_online == -6);
+    case -5:
     case -2:
-      return make_tl_object<td_api::userStatusLastWeek>();
+      return make_tl_object<td_api::userStatusLastWeek>(was_online == -5);
+    case -4:
     case -1:
-      return make_tl_object<td_api::userStatusRecently>();
+      return make_tl_object<td_api::userStatusRecently>(was_online == -4);
     case 0:
       return make_tl_object<td_api::userStatusEmpty>();
     default: {

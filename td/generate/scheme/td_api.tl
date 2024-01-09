@@ -3365,7 +3365,7 @@ chatActionCancel = ChatAction;
 
 //@class UserStatus @description Describes the last time the user was online
 
-//@description The user status was never changed
+//@description The user's status has never been changed
 userStatusEmpty = UserStatus;
 
 //@description The user is online @expires Point in time (Unix timestamp) when the user's online status will expire
@@ -3374,14 +3374,14 @@ userStatusOnline expires:int32 = UserStatus;
 //@description The user is offline @was_online Point in time (Unix timestamp) when the user was last online
 userStatusOffline was_online:int32 = UserStatus;
 
-//@description The user was online recently
-userStatusRecently = UserStatus;
+//@description The user was online recently @by_my_privacy_settings Exact user's status is hidden because the current user enabled userPrivacySettingShowStatus privacy setting for the user and has no Telegram Premium
+userStatusRecently by_my_privacy_settings:Bool = UserStatus;
 
-//@description The user is offline, but was online last week
-userStatusLastWeek = UserStatus;
+//@description The user is offline, but was online last week @by_my_privacy_settings Exact user's status is hidden because the current user enabled userPrivacySettingShowStatus privacy setting for the user and has no Telegram Premium
+userStatusLastWeek by_my_privacy_settings:Bool = UserStatus;
 
-//@description The user is offline, but was online last month
-userStatusLastMonth = UserStatus;
+//@description The user is offline, but was online last month @by_my_privacy_settings Exact user's status is hidden because the current user enabled userPrivacySettingShowStatus privacy setting for the user and has no Telegram Premium
+userStatusLastMonth by_my_privacy_settings:Bool = UserStatus;
 
 
 //@description Represents an emoji with its keyword @emoji The emoji @keyword The keyword
