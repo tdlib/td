@@ -718,12 +718,12 @@ class UnpinAllMessagesQuery final : public Td::ResultHandler {
 };
 
 class GetOutboxReadDateQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::messageReadDate>> promise_;
+  Promise<td_api::object_ptr<td_api::MessageReadDate>> promise_;
   DialogId dialog_id_;
   MessageId message_id_;
 
  public:
-  explicit GetOutboxReadDateQuery(Promise<td_api::object_ptr<td_api::messageReadDate>> &&promise)
+  explicit GetOutboxReadDateQuery(Promise<td_api::object_ptr<td_api::MessageReadDate>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -743,10 +743,20 @@ class GetOutboxReadDateQuery final : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    promise_.set_value(td_api::make_object<td_api::messageReadDate>(ptr->date_));
+    promise_.set_value(td_api::make_object<td_api::messageReadDateRead>(ptr->date_));
   }
 
   void on_error(Status status) final {
+    if (status.message() == "USER_PRIVACY_RESTRICTED") {
+      return promise_.set_value(td_api::make_object<td_api::messageReadDateUserPrivacyRestricted>());
+    }
+    if (status.message() == "YOUR_PRIVACY_RESTRICTED") {
+      return promise_.set_value(td_api::make_object<td_api::messageReadDateMyPrivacyRestricted>());
+    }
+    if (status.message() == "MESSAGE_TOO_OLD") {
+      return promise_.set_value(td_api::make_object<td_api::messageReadDateTooOld>());
+    }
+
     td_->messages_manager_->on_get_message_error(dialog_id_, message_id_, status, "GetOutboxReadDateQuery");
     promise_.set_error(std::move(status));
   }
@@ -17142,21 +17152,6 @@ td_api::object_ptr<td_api::messageThreadInfo> MessagesManager::get_message_threa
       info.unread_message_count, std::move(messages), std::move(draft_message));
 }
 
-Status MessagesManager::can_get_message_read_date(MessageFullId message_full_id) {
-  auto dialog_id = message_full_id.get_dialog_id();
-  Dialog *d = get_dialog_force(dialog_id, "can_get_message_read_date");
-  if (d == nullptr) {
-    return Status::Error(400, "Chat not found");
-  }
-
-  auto m = get_message_force(d, message_full_id.get_message_id(), "can_get_message_read_date");
-  if (m == nullptr) {
-    return Status::Error(400, "Message not found");
-  }
-
-  return can_get_message_read_date(dialog_id, m);
-}
-
 Status MessagesManager::can_get_message_read_date(DialogId dialog_id, const Message *m) const {
   if (td_->auth_manager_->is_bot()) {
     return Status::Error(400, "User is bot");
@@ -17198,8 +17193,23 @@ Status MessagesManager::can_get_message_read_date(DialogId dialog_id, const Mess
 }
 
 void MessagesManager::get_message_read_date(MessageFullId message_full_id,
-                                            Promise<td_api::object_ptr<td_api::messageReadDate>> &&promise) {
-  TRY_STATUS_PROMISE(promise, can_get_message_read_date(message_full_id));
+                                            Promise<td_api::object_ptr<td_api::MessageReadDate>> &&promise) {
+  auto dialog_id = message_full_id.get_dialog_id();
+  Dialog *d = get_dialog_force(dialog_id, "get_message_read_date");
+  if (d == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+
+  auto m = get_message_force(d, message_full_id.get_message_id(), "get_message_read_date");
+  if (m == nullptr) {
+    return promise.set_error(Status::Error(400, "Message not found"));
+  }
+
+  TRY_STATUS_PROMISE(promise, can_get_message_read_date(dialog_id, m));
+
+  if (d->last_read_outbox_message_id < m->message_id) {
+    return promise.set_value(td_api::make_object<td_api::messageReadDateUnread>());
+  }
 
   td_->create_handler<GetOutboxReadDateQuery>(std::move(promise))
       ->send(message_full_id.get_dialog_id(), message_full_id.get_message_id());
