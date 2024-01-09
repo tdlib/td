@@ -6138,6 +6138,9 @@ bool MessagesManager::is_visible_message_reactions(DialogId dialog_id, const Mes
 }
 
 bool MessagesManager::has_unread_message_reactions(DialogId dialog_id, const Message *m) const {
+  if (td_->auth_manager_->is_bot()) {
+    return false;
+  }
   CHECK(m != nullptr);
   return m->reactions != nullptr && !m->reactions->unread_reactions_.empty() &&
          is_visible_message_reactions(dialog_id, m);
@@ -22401,8 +22404,9 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   }
   LOG_CHECK(have_dialog(dialog_id)) << source;
 
+  auto is_bot = td_->auth_manager_->is_bot();
   auto sending_state = get_message_sending_state_object(m);
-  if (sending_state == nullptr || !td_->auth_manager_->is_bot()) {
+  if (sending_state == nullptr || !is_bot) {
     m->is_update_sent = true;
   }
   bool can_delete = can_delete_message(dialog_id, m);
@@ -22448,10 +22452,10 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto scheduling_state = is_scheduled ? get_message_scheduling_state_object(m->date) : nullptr;
   auto forward_info = get_message_forward_info_object(m->forward_info);
   auto import_info = get_message_import_info_object(m->forward_info);
-  auto interaction_info = get_message_interaction_info_object(dialog_id, m);
+  auto interaction_info = is_bot ? nullptr : get_message_interaction_info_object(dialog_id, m);
   auto unread_reactions = get_unread_reactions_object(dialog_id, m);
   auto can_be_saved = can_save_message(dialog_id, m);
-  auto can_be_edited = can_edit_message(dialog_id, m, false, td_->auth_manager_->is_bot());
+  auto can_be_edited = can_edit_message(dialog_id, m, false, is_bot);
   auto can_be_forwarded = can_be_saved && can_forward_message(dialog_id, m);
   auto can_be_replied_in_another_chat = can_be_forwarded && m->message_id.is_server();
   auto can_get_added_reactions = m->reactions != nullptr && m->reactions->can_get_added_reactions_;
@@ -22463,9 +22467,8 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto via_bot_user_id = td_->contacts_manager_->get_user_id_object(m->via_bot_user_id, "via_bot_user_id");
   auto reply_to = [&]() -> td_api::object_ptr<td_api::MessageReplyTo> {
     if (!m->replied_message_info.is_empty()) {
-      if (m->is_topic_message &&
-          m->replied_message_info.get_same_chat_reply_to_message_id(false) == m->top_thread_message_id &&
-          !td_->auth_manager_->is_bot()) {
+      if (!is_bot && m->is_topic_message &&
+          m->replied_message_info.get_same_chat_reply_to_message_id(false) == m->top_thread_message_id) {
         return nullptr;
       }
       return m->replied_message_info.get_message_reply_to_message_object(td_, dialog_id);
