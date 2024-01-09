@@ -30,8 +30,7 @@ class GlobalPrivacySettings {
 
   td_api::object_ptr<td_api::archiveChatListSettings> get_archive_chat_list_settings_object() const;
 
-  static void get_global_privacy_settings(Td *td,
-                                          Promise<td_api::object_ptr<td_api::archiveChatListSettings>> &&promise);
+  static void get_global_privacy_settings(Td *td, Promise<GlobalPrivacySettings> &&promise);
 
   static void set_global_privacy_settings(Td *td, GlobalPrivacySettings settings, Promise<Unit> &&promise);
 };

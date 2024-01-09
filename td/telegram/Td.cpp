@@ -6468,7 +6468,15 @@ void Td::on_request(uint64 id, const td_api::processChatFolderNewChats &request)
 void Td::on_request(uint64 id, const td_api::getArchiveChatListSettings &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  GlobalPrivacySettings::get_global_privacy_settings(this, std::move(promise));
+  auto query_promise =
+      PromiseCreator::lambda([promise = std::move(promise)](Result<GlobalPrivacySettings> result) mutable {
+        if (result.is_error()) {
+          promise.set_error(result.move_as_error());
+        } else {
+          promise.set_value(result.ok().get_archive_chat_list_settings_object());
+        }
+      });
+  GlobalPrivacySettings::get_global_privacy_settings(this, std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, td_api::setArchiveChatListSettings &request) {

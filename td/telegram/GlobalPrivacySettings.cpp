@@ -21,11 +21,10 @@
 namespace td {
 
 class GetGlobalPrivacySettingsQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::archiveChatListSettings>> promise_;
+  Promise<GlobalPrivacySettings> promise_;
 
  public:
-  explicit GetGlobalPrivacySettingsQuery(Promise<td_api::object_ptr<td_api::archiveChatListSettings>> &&promise)
-      : promise_(std::move(promise)) {
+  explicit GetGlobalPrivacySettingsQuery(Promise<GlobalPrivacySettings> &&promise) : promise_(std::move(promise)) {
   }
 
   void send() {
@@ -38,8 +37,7 @@ class GetGlobalPrivacySettingsQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    auto settings = GlobalPrivacySettings(result_ptr.move_as_ok());
-    promise_.set_value(settings.get_archive_chat_list_settings_object());
+    promise_.set_value(GlobalPrivacySettings(result_ptr.move_as_ok()));
   }
 
   void on_error(Status status) final {
@@ -109,8 +107,7 @@ td_api::object_ptr<td_api::archiveChatListSettings> GlobalPrivacySettings::get_a
                                                               keep_archived_unmuted_, keep_archived_folders_);
 }
 
-void GlobalPrivacySettings::get_global_privacy_settings(
-    Td *td, Promise<td_api::object_ptr<td_api::archiveChatListSettings>> &&promise) {
+void GlobalPrivacySettings::get_global_privacy_settings(Td *td, Promise<GlobalPrivacySettings> &&promise) {
   td->create_handler<GetGlobalPrivacySettingsQuery>(std::move(promise))->send();
 }
 
