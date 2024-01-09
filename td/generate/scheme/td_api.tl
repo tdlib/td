@@ -1154,6 +1154,9 @@ chatMessageSender sender:MessageSender needs_premium:Bool = ChatMessageSender;
 chatMessageSenders senders:vector<chatMessageSender> = ChatMessageSenders;
 
 
+//@description Contains read date of a recent outgoing message in a private chat @read_date Point in time (Unix timestamp) when the message was read by the other user
+messageReadDate read_date:int32 = MessageReadDate;
+
 //@description Represents a viewer of a message @user_id User identifier of the viewer @view_date Approximate point in time (Unix timestamp) when the message was viewed
 messageViewer user_id:int53 view_date:int32 = MessageViewer;
 
@@ -7087,6 +7090,11 @@ getMessages chat_id:int53 message_ids:vector<int53> = Messages;
 
 //@description Returns information about a message thread. Can be used only if message.can_get_message_thread == true @chat_id Chat identifier @message_id Identifier of the message
 getMessageThread chat_id:int53 message_id:int53 = MessageThreadInfo;
+
+//@description Returns read date of a recent outgoing message in a private chat. The method can be called if message.can_get_read_date == true
+//@chat_id Chat identifier
+//@message_id Identifier of the message
+getMessageReadDate chat_id:int53 message_id:int53 = MessageReadDate;
 
 //@description Returns viewers of a recent outgoing message in a basic group or a supergroup chat. For video notes and voice notes only users, opened content of the message, are returned. The method can be called if message.can_get_viewers == true
 //@chat_id Chat identifier

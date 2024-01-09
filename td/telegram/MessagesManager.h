@@ -606,6 +606,9 @@ class MessagesManager final : public Actor {
                                   DialogId dialog_id, MessageId message_id, DialogId expected_dialog_id,
                                   MessageId expected_message_id, Promise<MessageThreadInfo> promise);
 
+  void get_message_read_date(MessageFullId message_full_id,
+                             Promise<td_api::object_ptr<td_api::messageReadDate>> &&promise);
+
   void get_message_viewers(MessageFullId message_full_id,
                            Promise<td_api::object_ptr<td_api::messageViewers>> &&promise);
 
@@ -1704,6 +1707,10 @@ class MessagesManager final : public Actor {
   static Status can_get_media_timestamp_link(DialogId dialog_id, const Message *m);
 
   bool can_report_message_reactions(DialogId dialog_id, const Message *m) const;
+
+  Status can_get_message_read_date(MessageFullId message_full_id) TD_WARN_UNUSED_RESULT;
+
+  Status can_get_message_read_date(DialogId dialog_id, const Message *m) const TD_WARN_UNUSED_RESULT;
 
   Status can_get_message_viewers(MessageFullId message_full_id) TD_WARN_UNUSED_RESULT;
 

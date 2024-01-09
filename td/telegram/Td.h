@@ -605,6 +605,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::getMessageThread &request);
 
+  void on_request(uint64 id, const td_api::getMessageReadDate &request);
+
   void on_request(uint64 id, const td_api::getMessageViewers &request);
 
   void on_request(uint64 id, const td_api::getMessages &request);

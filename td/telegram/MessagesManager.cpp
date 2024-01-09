@@ -717,6 +717,41 @@ class UnpinAllMessagesQuery final : public Td::ResultHandler {
   }
 };
 
+class GetOutboxReadDateQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::messageReadDate>> promise_;
+  DialogId dialog_id_;
+  MessageId message_id_;
+
+ public:
+  explicit GetOutboxReadDateQuery(Promise<td_api::object_ptr<td_api::messageReadDate>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, MessageId message_id) {
+    dialog_id_ = dialog_id;
+    message_id_ = message_id;
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_getOutboxReadDate(std::move(input_peer), message_id.get_server_message_id().get())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getOutboxReadDate>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    promise_.set_value(td_api::make_object<td_api::messageReadDate>(ptr->date_));
+  }
+
+  void on_error(Status status) final {
+    td_->messages_manager_->on_get_message_error(dialog_id_, message_id_, status, "GetOutboxReadDateQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetMessageReadParticipantsQuery final : public Td::ResultHandler {
   Promise<MessageViewers> promise_;
   DialogId dialog_id_;
@@ -17107,14 +17142,74 @@ td_api::object_ptr<td_api::messageThreadInfo> MessagesManager::get_message_threa
       info.unread_message_count, std::move(messages), std::move(draft_message));
 }
 
-Status MessagesManager::can_get_message_viewers(MessageFullId message_full_id) {
+Status MessagesManager::can_get_message_read_date(MessageFullId message_full_id) {
   auto dialog_id = message_full_id.get_dialog_id();
-  Dialog *d = get_dialog_force(dialog_id, "get_message_viewers");
+  Dialog *d = get_dialog_force(dialog_id, "can_get_message_read_date");
   if (d == nullptr) {
     return Status::Error(400, "Chat not found");
   }
 
-  auto m = get_message_force(d, message_full_id.get_message_id(), "get_message_viewers");
+  auto m = get_message_force(d, message_full_id.get_message_id(), "can_get_message_read_date");
+  if (m == nullptr) {
+    return Status::Error(400, "Message not found");
+  }
+
+  return can_get_message_read_date(dialog_id, m);
+}
+
+Status MessagesManager::can_get_message_read_date(DialogId dialog_id, const Message *m) const {
+  if (td_->auth_manager_->is_bot()) {
+    return Status::Error(400, "User is bot");
+  }
+  CHECK(m != nullptr);
+  if (!m->is_outgoing) {
+    return Status::Error(400, "Can't get read date of incoming messages");
+  }
+
+  if (dialog_id.get_type() != DialogType::User) {
+    return Status::Error(400, "Read date can be received only in private chats");
+  }
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+    return Status::Error(400, "Can't access the chat");
+  }
+  auto user_id = dialog_id.get_user_id();
+  if (td_->contacts_manager_->is_user_bot(user_id)) {
+    return Status::Error(400, "The user is a bot");
+  }
+  if (td_->contacts_manager_->is_user_support(user_id)) {
+    return Status::Error(400, "The user is a Telegram support account");
+  }
+
+  if (m->message_id.is_scheduled()) {
+    return Status::Error(400, "Scheduled messages can't be read");
+  }
+  if (m->message_id.is_yet_unsent()) {
+    return Status::Error(400, "Yet unsent messages can't be read");
+  }
+  if (m->message_id.is_local()) {
+    return Status::Error(400, "Local messages can't be read");
+  }
+  CHECK(m->message_id.is_server());
+
+  return Status::OK();
+}
+
+void MessagesManager::get_message_read_date(MessageFullId message_full_id,
+                                            Promise<td_api::object_ptr<td_api::messageReadDate>> &&promise) {
+  TRY_STATUS_PROMISE(promise, can_get_message_read_date(message_full_id));
+
+  td_->create_handler<GetOutboxReadDateQuery>(std::move(promise))
+      ->send(message_full_id.get_dialog_id(), message_full_id.get_message_id());
+}
+
+Status MessagesManager::can_get_message_viewers(MessageFullId message_full_id) {
+  auto dialog_id = message_full_id.get_dialog_id();
+  Dialog *d = get_dialog_force(dialog_id, "can_get_message_viewers");
+  if (d == nullptr) {
+    return Status::Error(400, "Chat not found");
+  }
+
+  auto m = get_message_force(d, message_full_id.get_message_id(), "can_get_message_viewers");
   if (m == nullptr) {
     return Status::Error(400, "Message not found");
   }

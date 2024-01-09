@@ -3652,6 +3652,11 @@ class CliClient final : public Actor {
       MessageId message_id;
       get_args(args, chat_id, message_id);
       send_request(td_api::make_object<td_api::getMessageThread>(chat_id, message_id));
+    } else if (op == "gmrd") {
+      ChatId chat_id;
+      MessageId message_id;
+      get_args(args, chat_id, message_id);
+      send_request(td_api::make_object<td_api::getMessageReadDate>(chat_id, message_id));
     } else if (op == "gmv") {
       ChatId chat_id;
       MessageId message_id;

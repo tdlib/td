@@ -4704,6 +4704,13 @@ void Td::on_request(uint64 id, const td_api::getMessageThread &request) {
   CREATE_REQUEST(GetMessageThreadRequest, request.chat_id_, request.message_id_);
 }
 
+void Td::on_request(uint64 id, const td_api::getMessageReadDate &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  messages_manager_->get_message_read_date({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                           std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getMessageViewers &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
