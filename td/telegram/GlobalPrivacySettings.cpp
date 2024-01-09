@@ -74,7 +74,9 @@ class SetGlobalPrivacySettingsQuery final : public Td::ResultHandler {
 GlobalPrivacySettings::GlobalPrivacySettings(telegram_api::object_ptr<telegram_api::globalPrivacySettings> &&settings)
     : archive_and_mute_new_noncontact_peers_(settings->archive_and_mute_new_noncontact_peers_)
     , keep_archived_unmuted_(settings->keep_archived_unmuted_)
-    , keep_archived_folders_(settings->keep_archived_folders_) {
+    , keep_archived_folders_(settings->keep_archived_folders_)
+    , hide_read_marks_(settings->hide_read_marks_)
+    , new_noncontact_peers_require_premium_(settings->new_noncontact_peers_require_premium_) {
 }
 
 GlobalPrivacySettings::GlobalPrivacySettings(td_api::object_ptr<td_api::archiveChatListSettings> &&settings)
@@ -112,6 +114,12 @@ telegram_api::object_ptr<telegram_api::globalPrivacySettings> GlobalPrivacySetti
   }
   if (keep_archived_folders_) {
     flags |= telegram_api::globalPrivacySettings::KEEP_ARCHIVED_FOLDERS_MASK;
+  }
+  if (hide_read_marks_) {
+    flags |= telegram_api::globalPrivacySettings::HIDE_READ_MARKS_MASK;
+  }
+  if (new_noncontact_peers_require_premium_) {
+    flags |= telegram_api::globalPrivacySettings::NEW_NONCONTACT_PEERS_REQUIRE_PREMIUM_MASK;
   }
   return telegram_api::make_object<telegram_api::globalPrivacySettings>(
       flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/);

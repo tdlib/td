@@ -22,6 +22,8 @@ class GlobalPrivacySettings {
   bool archive_and_mute_new_noncontact_peers_ = false;
   bool keep_archived_unmuted_ = false;
   bool keep_archived_folders_ = false;
+  bool hide_read_marks_ = false;
+  bool new_noncontact_peers_require_premium_ = false;
 
   void apply_changes(const GlobalPrivacySettings &set_settings);
 
