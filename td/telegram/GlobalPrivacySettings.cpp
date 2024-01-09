@@ -132,6 +132,12 @@ td_api::object_ptr<td_api::archiveChatListSettings> GlobalPrivacySettings::get_a
                                                               keep_archived_unmuted_, keep_archived_folders_);
 }
 
+td_api::object_ptr<td_api::readDatePrivacySettings> GlobalPrivacySettings::get_read_date_privacy_settings_object()
+    const {
+  CHECK(set_type_ == SetType::None);
+  return td_api::make_object<td_api::readDatePrivacySettings>(!hide_read_marks_);
+}
+
 void GlobalPrivacySettings::get_global_privacy_settings(Td *td, Promise<GlobalPrivacySettings> &&promise) {
   td->create_handler<GetGlobalPrivacySettingsQuery>(std::move(promise))->send();
 }

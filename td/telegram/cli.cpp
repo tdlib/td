@@ -5435,6 +5435,8 @@ class CliClient final : public Actor {
       auto settings = td_api::make_object<td_api::archiveChatListSettings>(
           archive_and_mute_new_chats_from_unknown_users, keep_unmuted_chats_archived, keep_chats_from_folders_archived);
       send_request(td_api::make_object<td_api::setArchiveChatListSettings>(std::move(settings)));
+    } else if (op == "grdps") {
+      send_request(td_api::make_object<td_api::getReadDatePrivacySettings>());
     } else if (op == "sct") {
       ChatId chat_id;
       string title;

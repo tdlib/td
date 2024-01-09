@@ -6486,6 +6486,20 @@ void Td::on_request(uint64 id, td_api::setArchiveChatListSettings &request) {
                                                      std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getReadDatePrivacySettings &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  auto query_promise =
+      PromiseCreator::lambda([promise = std::move(promise)](Result<GlobalPrivacySettings> result) mutable {
+        if (result.is_error()) {
+          promise.set_error(result.move_as_error());
+        } else {
+          promise.set_value(result.ok().get_read_date_privacy_settings_object());
+        }
+      });
+  GlobalPrivacySettings::get_global_privacy_settings(this, std::move(query_promise));
+}
+
 void Td::on_request(uint64 id, td_api::setChatTitle &request) {
   CLEAN_INPUT_STRING(request.title_);
   CREATE_OK_REQUEST_PROMISE();
