@@ -131,6 +131,7 @@ OptionManager::OptionManager(Td *td)
   set_default_integer_option("channel_emoji_status_level_min", is_test_dc ? 2 : 8);
   set_default_integer_option("channel_profile_bg_icon_level_min", is_test_dc ? 1 : 7);
   set_default_integer_option("channel_wallpaper_level_min", is_test_dc ? 3 : 9);
+  set_default_integer_option("pm_read_date_expire_period", 604800);
 
   if (options.isset("my_phone_number") || !options.isset("my_id")) {
     update_premium_options();
@@ -359,7 +360,8 @@ bool OptionManager::is_internal_option(Slice name) {
     case 'o':
       return name == "online_cloud_timeout_ms" || name == "online_update_period_ms" || name == "otherwise_relogin_days";
     case 'p':
-      return name == "premium_bot_username" || name == "premium_features" || name == "premium_invoice_slug";
+      return name == "pm_read_date_expire_period" || name == "premium_bot_username" || name == "premium_features" ||
+             name == "premium_invoice_slug";
     case 'r':
       return name == "rating_e_decay" || name == "reactions_uniq_max" || name == "reactions_user_max_default" ||
              name == "reactions_user_max_premium" || name == "recent_stickers_limit" ||
