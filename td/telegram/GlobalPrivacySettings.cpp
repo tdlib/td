@@ -99,8 +99,8 @@ telegram_api::object_ptr<telegram_api::globalPrivacySettings> GlobalPrivacySetti
   if (keep_archived_folders_) {
     flags |= telegram_api::globalPrivacySettings::KEEP_ARCHIVED_FOLDERS_MASK;
   }
-  return telegram_api::make_object<telegram_api::globalPrivacySettings>(flags, false /*ignored*/, false /*ignored*/,
-                                                                        false /*ignored*/);
+  return telegram_api::make_object<telegram_api::globalPrivacySettings>(
+      flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/);
 }
 
 td_api::object_ptr<td_api::archiveChatListSettings> GlobalPrivacySettings::get_archive_chat_list_settings_object()

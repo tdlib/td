@@ -9551,8 +9551,8 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id, const cha
         false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
         false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
         false /*ignored*/, false /*ignored*/, false /*ignored*/, 0, false /*ignored*/, false /*ignored*/,
-        false /*ignored*/, false /*ignored*/, user_id.get(), 1, first_name, string(), username, phone_number,
-        std::move(profile_photo), nullptr, bot_info_version, Auto(), string(), string(), nullptr,
+        false /*ignored*/, false /*ignored*/, false /*ignored*/, user_id.get(), 1, first_name, string(), username,
+        phone_number, std::move(profile_photo), nullptr, bot_info_version, Auto(), string(), string(), nullptr,
         vector<telegram_api::object_ptr<telegram_api::username>>(), 0, nullptr, nullptr);
     on_get_user(std::move(user), "get_user_force");
     u = get_user(user_id);
@@ -12706,16 +12706,14 @@ void ContactsManager::on_update_user_online(User *u, UserId user_id, tl_object_p
     new_online = -1;
   } else if (id == telegram_api::userStatusLastWeek::ID) {
     new_online = -2;
-    is_offline = true;
   } else if (id == telegram_api::userStatusLastMonth::ID) {
     new_online = -3;
-    is_offline = true;
   } else {
     CHECK(id == telegram_api::userStatusEmpty::ID);
     new_online = 0;
   }
 
-  if (new_online != u->was_online) {
+  if (new_online != u->was_online && !(new_online < 0 && user_id == get_my_id())) {
     LOG(DEBUG) << "Update " << user_id << " online from " << u->was_online << " to " << new_online;
     auto unix_time = G()->unix_time();
     bool old_is_online = u->was_online > unix_time;
@@ -17604,6 +17602,7 @@ td_api::object_ptr<td_api::UserStatus> ContactsManager::get_user_status_object(U
 
   int32 was_online = get_user_was_online(u, user_id, unix_time);
   switch (was_online) {
+    case -4:
     case -3:
       return make_tl_object<td_api::userStatusLastMonth>();
     case -2:
