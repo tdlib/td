@@ -17210,6 +17210,9 @@ void MessagesManager::get_message_read_date(MessageFullId message_full_id,
   if (d->last_read_outbox_message_id < m->message_id) {
     return promise.set_value(td_api::make_object<td_api::messageReadDateUnread>());
   }
+  if (td_->contacts_manager_->get_user_read_dates_private(dialog_id.get_user_id())) {
+    return promise.set_value(td_api::make_object<td_api::messageReadDateUserPrivacyRestricted>());
+  }
 
   td_->create_handler<GetOutboxReadDateQuery>(std::move(promise))
       ->send(message_full_id.get_dialog_id(), message_full_id.get_message_id());

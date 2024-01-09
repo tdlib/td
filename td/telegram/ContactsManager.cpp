@@ -3583,6 +3583,7 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   STORE_FLAG(has_pinned_stories);
   STORE_FLAG(is_blocked_for_stories);
   STORE_FLAG(wallpaper_overridden);
+  STORE_FLAG(read_dates_private);
   END_STORE_FLAGS();
   if (has_about) {
     store(about, storer);
@@ -3668,6 +3669,7 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   PARSE_FLAG(has_pinned_stories);
   PARSE_FLAG(is_blocked_for_stories);
   PARSE_FLAG(wallpaper_overridden);
+  PARSE_FLAG(read_dates_private);
   END_PARSE_FLAGS();
   if (has_about) {
     parse(about, parser);
@@ -5150,6 +5152,14 @@ bool ContactsManager::get_user_voice_messages_forbidden(UserId user_id) const {
   auto user_full = get_user_full(user_id);
   if (user_full != nullptr) {
     return user_full->voice_messages_forbidden;
+  }
+  return false;
+}
+
+bool ContactsManager::get_user_read_dates_private(UserId user_id) {
+  auto user_full = get_user_full_force(user_id, "get_user_read_dates_private");
+  if (user_full != nullptr) {
+    return user_full->read_dates_private;
   }
   return false;
 }
@@ -11543,6 +11553,10 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
     user_full->private_forward_name = std::move(user->private_forward_name_);
     user_full->need_save_to_database = true;
   }
+  if (user_full->read_dates_private != user->read_dates_private_) {
+    user_full->read_dates_private = std::move(user->read_dates_private_);
+    user_full->need_save_to_database = true;
+  }
   if (user_full->about != user->about_) {
     user_full->about = std::move(user->about_);
     user_full->is_changed = true;
@@ -13254,6 +13268,7 @@ void ContactsManager::drop_user_full(UserId user_id) {
   user_full->premium_gift_options.clear();
   user_full->voice_messages_forbidden = false;
   user_full->has_pinned_stories = false;
+  user_full->read_dates_private = false;
   user_full->is_changed = true;
 
   update_user_full(user_full, user_id, "drop_user_full");

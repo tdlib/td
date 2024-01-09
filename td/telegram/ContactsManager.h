@@ -162,7 +162,10 @@ class ContactsManager final : public Actor {
   bool get_channel_stories_hidden(ChannelId channel_id) const;
 
   string get_user_private_forward_name(UserId user_id);
+
   bool get_user_voice_messages_forbidden(UserId user_id) const;
+
+  bool get_user_read_dates_private(UserId user_id);
 
   string get_dialog_about(DialogId dialog_id);
 
@@ -832,6 +835,7 @@ class ContactsManager final : public Actor {
     bool wallpaper_overridden = false;
     bool voice_messages_forbidden = false;
     bool has_pinned_stories = false;
+    bool read_dates_private = false;
 
     bool is_common_chat_count_changed = true;
     bool is_being_updated = false;
