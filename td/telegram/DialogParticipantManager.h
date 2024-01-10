@@ -164,6 +164,8 @@ class DialogParticipantManager final : public Actor {
   void add_channel_participant(ChannelId channel_id, UserId user_id, const DialogParticipantStatus &old_status,
                                Promise<Unit> &&promise);
 
+  void on_join_channel(ChannelId channel_id, Result<Unit> &&result);
+
   void add_channel_participants(ChannelId channel_id, const vector<UserId> &user_ids, Promise<Unit> &&promise);
 
   void set_channel_participant_status(ChannelId channel_id, DialogId participant_dialog_id,
@@ -213,6 +215,8 @@ class DialogParticipantManager final : public Actor {
     FlatHashMap<DialogId, ChannelParticipantInfo, DialogIdHash> participants_;
   };
   FlatHashMap<ChannelId, ChannelParticipants, ChannelIdHash> channel_participants_;
+
+  FlatHashMap<ChannelId, vector<Promise<Unit>>, ChannelIdHash> join_channel_queries_;
 
   MultiTimeout update_dialog_online_member_count_timeout_{"UpdateDialogOnlineMemberCountTimeout"};
   MultiTimeout channel_participant_cache_timeout_{"ChannelParticipantCacheTimeout"};

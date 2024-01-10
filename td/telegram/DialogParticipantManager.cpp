@@ -1504,10 +1504,17 @@ void DialogParticipantManager::add_channel_participant(ChannelId channel_id, Use
       return promise.set_error(Status::Error(400, "Can't return to kicked from chat"));
     }
 
-    if (!td_->contacts_manager_->get_channel_join_request(channel_id)) {
-      speculative_add_channel_user(channel_id, user_id, DialogParticipantStatus::Member(), my_status);
+    auto &queries = join_channel_queries_[channel_id];
+    queries.push_back(std::move(promise));
+    if (queries.size() == 1u) {
+      if (!td_->contacts_manager_->get_channel_join_request(channel_id)) {
+        speculative_add_channel_user(channel_id, user_id, DialogParticipantStatus::Member(), my_status);
+      }
+      auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), channel_id](Result<Unit> result) {
+        send_closure(actor_id, &DialogParticipantManager::on_join_channel, channel_id, std::move(result));
+      });
+      td_->create_handler<JoinChannelQuery>(std::move(query_promise))->send(channel_id);
     }
-    td_->create_handler<JoinChannelQuery>(std::move(promise))->send(channel_id);
     return;
   }
 
@@ -1519,6 +1526,22 @@ void DialogParticipantManager::add_channel_participant(ChannelId channel_id, Use
   vector<tl_object_ptr<telegram_api::InputUser>> input_users;
   input_users.push_back(std::move(input_user));
   td_->create_handler<InviteToChannelQuery>(std::move(promise))->send(channel_id, {user_id}, std::move(input_users));
+}
+
+void DialogParticipantManager::on_join_channel(ChannelId channel_id, Result<Unit> &&result) {
+  G()->ignore_result_if_closing(result);
+
+  auto it = join_channel_queries_.find(channel_id);
+  CHECK(it != join_channel_queries_.end());
+  auto promises = std::move(it->second);
+  CHECK(!promises.empty());
+  join_channel_queries_.erase(it);
+
+  if (result.is_ok()) {
+    set_promises(promises);
+  } else {
+    fail_promises(promises, result.move_as_error());
+  }
 }
 
 void DialogParticipantManager::add_channel_participants(ChannelId channel_id, const vector<UserId> &user_ids,
