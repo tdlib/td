@@ -16344,6 +16344,12 @@ void MessagesManager::on_get_discussion_message(DialogId dialog_id, MessageId me
       m->linked_top_thread_message_id != message_thread_info.message_ids.back()) {
     auto linked_d = get_dialog_force(expected_dialog_id, "on_get_discussion_message 2");
     CHECK(linked_d != nullptr);
+    td::remove_if(message_thread_info.message_ids, [&](MessageId linked_message_id) {
+      return !have_message_force(linked_d, linked_message_id, "on_get_discussion_message 4");
+    });
+    if (message_thread_info.message_ids.empty()) {
+      return promise.set_error(Status::Error(400, "Message has no thread"));
+    }
     auto linked_message_id = message_thread_info.message_ids.back();
     Message *linked_m = get_message_force(linked_d, linked_message_id, "on_get_discussion_message 3");
     CHECK(linked_m != nullptr && linked_m->message_id.is_server());
