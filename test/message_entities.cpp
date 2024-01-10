@@ -1424,6 +1424,7 @@ TEST(MessageEntities, parse_markdown) {
   check_parse_markdown("🏟 🏟![👍](tg://emoji?test=1#&id=25)", "Custom emoji URL must have an emoji identifier");
   check_parse_markdown("🏟 🏟![👍](tg://emoji?test=1231&id=025)", "Invalid custom emoji identifier specified");
   check_parse_markdown(">*b\n>ld \n>bo\nld*\nasd\ndef", "Can't find end of Bold entity at byte offset 1");
+  check_parse_markdown(">\n*a*>2", "Character '>' is reserved and must be escaped with the preceding '\\'");
 
   check_parse_markdown("", "", {});
   check_parse_markdown("\\\\", "\\", {});
@@ -1493,6 +1494,8 @@ TEST(MessageEntities, parse_markdown) {
   check_parse_markdown("abc\n> \n> \n>\ndef", "abc\n \n \n\ndef", {{td::MessageEntity::Type::BlockQuote, 4, 5}});
   check_parse_markdown(">", "", {});
   check_parse_markdown(">a", "a", {{td::MessageEntity::Type::BlockQuote, 0, 1}});
+  check_parse_markdown("\r>a", "\ra", {{td::MessageEntity::Type::BlockQuote, 1, 1}});
+  check_parse_markdown("\r\r>\r\ra\r\n\r", "\r\r\r\ra\r\n\r", {{td::MessageEntity::Type::BlockQuote, 2, 5}});
   check_parse_markdown(
       ">*bold _italic bold ~italic bold strikethrough ||italic bold strikethrough spoiler||~ __underline italic "
       "bold___ bold*",
@@ -1513,6 +1516,22 @@ TEST(MessageEntities, parse_markdown) {
                        {{td::MessageEntity::Type::Code, 0, 14}, {td::MessageEntity::Type::BlockQuote, 15, 4}});
   check_parse_markdown(">1", "1", {{td::MessageEntity::Type::BlockQuote, 0, 1}});
   check_parse_markdown(">\n1", "\n1", {{td::MessageEntity::Type::BlockQuote, 0, 1}});
+  check_parse_markdown(">\n\r>2", "\n\r2",
+                       {{td::MessageEntity::Type::BlockQuote, 0, 1}, {td::MessageEntity::Type::BlockQuote, 2, 1}});
+  check_parse_markdown(">\n**>2", "\n2",
+                       {{td::MessageEntity::Type::BlockQuote, 0, 1}, {td::MessageEntity::Type::BlockQuote, 1, 1}});
+  // check_parse_markdown("*>abcd*", "abcd",
+  //                      {{td::MessageEntity::Type::BlockQuote, 0, 4}, {td::MessageEntity::Type::Bold, 0, 4}});
+  check_parse_markdown(">*abcd*", "abcd",
+                       {{td::MessageEntity::Type::BlockQuote, 0, 4}, {td::MessageEntity::Type::Bold, 0, 4}});
+  // check_parse_markdown(">*abcd\n*", "abcd\n",
+  //                      {{td::MessageEntity::Type::BlockQuote, 0, 5}, {td::MessageEntity::Type::Bold, 0, 5}});
+  check_parse_markdown(">*abcd*\n", "abcd\n",
+                       {{td::MessageEntity::Type::BlockQuote, 0, 5}, {td::MessageEntity::Type::Bold, 0, 4}});
+  check_parse_markdown("*>abcd\n*", "abcd\n",
+                       {{td::MessageEntity::Type::BlockQuote, 0, 5}, {td::MessageEntity::Type::Bold, 0, 5}});
+  check_parse_markdown("abc\n>def\n>def\n\r>ghi2\njkl", "abc\ndef\ndef\n\rghi2\njkl",
+                       {{td::MessageEntity::Type::BlockQuote, 4, 8}, {td::MessageEntity::Type::BlockQuote, 13, 5}});
 }
 
 static void check_parse_markdown_v3(td::string text, td::vector<td::MessageEntity> entities,

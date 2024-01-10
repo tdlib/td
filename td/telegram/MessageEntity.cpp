@@ -2013,12 +2013,16 @@ Result<vector<MessageEntity>> parse_markdown_v2(string &text) {
   vector<EntityInfo> nested_entities;
 
   bool have_blockquote = false;
+  bool can_start_blockquote = true;
   for (size_t i = 0; i < text.size(); i++) {
     auto c = static_cast<unsigned char>(text[i]);
     if (c == '\\' && text[i + 1] > 0 && text[i + 1] <= 126) {
       i++;
       utf16_offset += 1;
       text[result_size++] = text[i];
+      if (text[i] != '\r') {
+        can_start_blockquote = (text[i] == '\n');
+      }
       continue;
     }
 
@@ -2038,46 +2042,48 @@ Result<vector<MessageEntity>> parse_markdown_v2(string &text) {
     if (reserved_characters.find(text[i]) == Slice::npos) {
       if (is_utf8_character_first_code_unit(c)) {
         utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogate pair
+        if (c != '\r') {
+          can_start_blockquote = false;
+        }
       }
       text[result_size++] = text[i];
       continue;
     }
 
-    bool is_end_of_an_entity = false;
-    if (!nested_entities.empty()) {
-      is_end_of_an_entity = [&] {
-        if (have_blockquote && c == '\n' && (i + 1 == text.size() || text[i + 1] != '>')) {
-          return true;
-        }
-        switch (nested_entities.back().type) {
-          case MessageEntity::Type::Bold:
-            return c == '*';
-          case MessageEntity::Type::Italic:
-            return c == '_' && text[i + 1] != '_';
-          case MessageEntity::Type::Code:
-            return c == '`';
-          case MessageEntity::Type::Pre:
-          case MessageEntity::Type::PreCode:
-            return c == '`' && text[i + 1] == '`' && text[i + 2] == '`';
-          case MessageEntity::Type::TextUrl:
-            return c == ']';
-          case MessageEntity::Type::Underline:
-            return c == '_' && text[i + 1] == '_';
-          case MessageEntity::Type::Strikethrough:
-            return c == '~';
-          case MessageEntity::Type::Spoiler:
-            return c == '|' && text[i + 1] == '|';
-          case MessageEntity::Type::CustomEmoji:
-            return c == ']';
-          case MessageEntity::Type::BlockQuote:
-            return false;
-          default:
-            UNREACHABLE();
-            return false;
-        }
-      }();
-    }
-
+    bool is_end_of_an_entity = [&] {
+      if (nested_entities.empty()) {
+        return false;
+      }
+      if (have_blockquote && c == '\n' && (i + 1 == text.size() || text[i + 1] != '>')) {
+        return true;
+      }
+      switch (nested_entities.back().type) {
+        case MessageEntity::Type::Bold:
+          return c == '*';
+        case MessageEntity::Type::Italic:
+          return c == '_' && text[i + 1] != '_';
+        case MessageEntity::Type::Code:
+          return c == '`';
+        case MessageEntity::Type::Pre:
+        case MessageEntity::Type::PreCode:
+          return c == '`' && text[i + 1] == '`' && text[i + 2] == '`';
+        case MessageEntity::Type::TextUrl:
+          return c == ']';
+        case MessageEntity::Type::Underline:
+          return c == '_' && text[i + 1] == '_';
+        case MessageEntity::Type::Strikethrough:
+          return c == '~';
+        case MessageEntity::Type::Spoiler:
+          return c == '|' && text[i + 1] == '|';
+        case MessageEntity::Type::CustomEmoji:
+          return c == ']';
+        case MessageEntity::Type::BlockQuote:
+          return false;
+        default:
+          UNREACHABLE();
+          return false;
+      }
+    }();
     if (!is_end_of_an_entity) {
       // begin of an entity
       MessageEntity::Type type;
@@ -2149,19 +2155,17 @@ Result<vector<MessageEntity>> parse_markdown_v2(string &text) {
         case '\n':
           utf16_offset += 1;
           text[result_size++] = '\n';
+          can_start_blockquote = true;
           type = MessageEntity::Type::Size;
-          if (i + 1 < text.size() && text[i + 1] == '>') {
-            i++;
-            if (!have_blockquote) {
+          break;
+        case '>':
+          if (can_start_blockquote) {
+            if (have_blockquote) {
+              type = MessageEntity::Type::Size;
+            } else {
               type = MessageEntity::Type::BlockQuote;
               have_blockquote = true;
             }
-          }
-          break;
-        case '>':
-          if (i == 0) {
-            type = MessageEntity::Type::BlockQuote;
-            have_blockquote = true;
           } else {
             return Status::Error(400, PSLICE() << "Character '" << text[i]
                                                << "' is reserved and must be escaped with the preceding '\\'");
@@ -2258,6 +2262,7 @@ Result<vector<MessageEntity>> parse_markdown_v2(string &text) {
           CHECK(have_blockquote);
           have_blockquote = false;
           text[result_size++] = text[i];
+          can_start_blockquote = true;
           utf16_offset += 1;
           skip_entity = false;
           break;
