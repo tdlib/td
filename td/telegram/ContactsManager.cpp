@@ -8561,7 +8561,11 @@ void ContactsManager::remove_inactive_channel(ChannelId channel_id) {
 }
 
 void ContactsManager::register_message_users(MessageFullId message_full_id, vector<UserId> user_ids) {
-  CHECK(message_full_id.get_dialog_id().is_valid());
+  auto dialog_id = message_full_id.get_dialog_id();
+  CHECK(dialog_id.get_type() == DialogType::Channel);
+  if (!have_channel(dialog_id.get_channel_id())) {
+    return;
+  }
   for (auto user_id : user_ids) {
     CHECK(user_id.is_valid());
     const User *u = get_user(user_id);
@@ -8577,10 +8581,14 @@ void ContactsManager::register_message_users(MessageFullId message_full_id, vect
 }
 
 void ContactsManager::register_message_channels(MessageFullId message_full_id, vector<ChannelId> channel_ids) {
+  auto dialog_id = message_full_id.get_dialog_id();
+  CHECK(dialog_id.get_type() == DialogType::Channel);
+  if (!have_channel(dialog_id.get_channel_id())) {
+    return;
+  }
   for (auto channel_id : channel_ids) {
     CHECK(channel_id.is_valid());
-    const Channel *c = get_channel(channel_id);
-    if (c == nullptr) {
+    if (!have_channel(channel_id)) {
       channel_messages_[channel_id].insert(message_full_id);
 
       // get info about the channel
