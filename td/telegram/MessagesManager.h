@@ -16,7 +16,6 @@
 #include "td/telegram/DialogFilterId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogListId.h"
-#include "td/telegram/DialogLocation.h"
 #include "td/telegram/DialogNotificationSettings.h"
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/DialogSource.h"
@@ -634,13 +633,6 @@ class MessagesManager final : public Actor {
 
   void create_dialog(DialogId dialog_id, bool force, Promise<Unit> &&promise);
 
-  DialogId create_new_group_chat(const vector<UserId> &user_ids, const string &title, MessageTtl message_ttl,
-                                 int64 &random_id, Promise<Unit> &&promise);
-
-  DialogId create_new_channel_chat(const string &title, bool is_forum, bool is_megagroup, const string &description,
-                                   const DialogLocation &location, bool for_import, MessageTtl message_ttl,
-                                   int64 &random_id, Promise<Unit> &&promise);
-
   bool is_dialog_opened(DialogId dialog_id) const;
 
   Status open_dialog(DialogId dialog_id) TD_WARN_UNUSED_RESULT;
@@ -857,10 +849,8 @@ class MessagesManager final : public Actor {
 
   void on_upload_message_media_fail(DialogId dialog_id, MessageId message_id, Status error);
 
-  void on_create_new_dialog_success(int64 random_id, tl_object_ptr<telegram_api::Updates> &&updates,
-                                    DialogType expected_type, Promise<Unit> &&promise);
-
-  void on_create_new_dialog_fail(int64 random_id, Status error, Promise<Unit> &&promise);
+  void on_create_new_dialog(telegram_api::object_ptr<telegram_api::Updates> &&updates, DialogType expected_type,
+                            Promise<td_api::object_ptr<td_api::chat>> &&promise);
 
   void on_get_channel_difference(DialogId dialog_id, int32 request_pts, int32 request_limit,
                                  tl_object_ptr<telegram_api::updates_ChannelDifference> &&difference_ptr,
@@ -1584,8 +1574,6 @@ class MessagesManager final : public Actor {
   static constexpr int32 MAX_CHANNEL_DIFFERENCE = 100;
   static constexpr int32 MAX_BOT_CHANNEL_DIFFERENCE = 100000;  // server side limit
   static constexpr int32 MAX_RECENT_DIALOGS = 50;              // some reasonable value
-  static constexpr size_t MAX_TITLE_LENGTH = 128;              // server side limit for chat title
-  static constexpr size_t MAX_DESCRIPTION_LENGTH = 255;        // server side limit for chat description
   static constexpr size_t MIN_DELETED_ASYNCHRONOUSLY_MESSAGES = 2;
   static constexpr size_t MAX_UNLOADED_MESSAGES = 5000;
 
@@ -3189,8 +3177,11 @@ class MessagesManager final : public Actor {
   bool created_public_broadcasts_inited_ = false;
   vector<ChannelId> created_public_broadcasts_;
 
-  FlatHashMap<int64, DialogId> created_dialogs_;                                // random_id -> dialog_id
-  FlatHashMap<DialogId, Promise<Unit>, DialogIdHash> pending_created_dialogs_;  // dialog_id -> promise
+  struct PendingCreatedDialog {
+    Promise<td_api::object_ptr<td_api::chat>> promise_;
+    vector<UserId> group_invite_privacy_forbidden_user_ids_;
+  };
+  FlatHashMap<DialogId, PendingCreatedDialog, DialogIdHash> pending_created_dialogs_;
 
   bool running_get_difference_ = false;  // true after before_get_difference and false after after_get_difference
 

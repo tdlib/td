@@ -27,6 +27,7 @@
 #include "td/telegram/Location.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageId.h"
+#include "td/telegram/MessageTtl.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/PremiumGiftOption.h"
@@ -576,6 +577,9 @@ class ContactsManager final : public Actor {
   void reload_user_profile_photo(UserId user_id, int64 photo_id, Promise<Unit> &&promise);
   FileSourceId get_user_profile_photo_file_source_id(UserId user_id, int64 photo_id);
 
+  void create_new_chat(const vector<UserId> &user_ids, const string &title, MessageTtl message_ttl,
+                       Promise<td_api::object_ptr<td_api::chat>> &&promise);
+
   bool have_chat(ChatId chat_id) const;
   bool have_chat_force(ChatId chat_id, const char *source);
   bool get_chat(ChatId chat_id, int left_tries, Promise<Unit> &&promise);
@@ -591,6 +595,10 @@ class ContactsManager final : public Actor {
   DialogParticipantStatus get_chat_status(ChatId chat_id) const;
   DialogParticipantStatus get_chat_permissions(ChatId chat_id) const;
   bool is_appointed_chat_administrator(ChatId chat_id) const;
+
+  void create_new_channel(const string &title, bool is_forum, bool is_megagroup, const string &description,
+                          const DialogLocation &location, bool for_import, MessageTtl message_ttl,
+                          Promise<td_api::object_ptr<td_api::chat>> &&promise);
 
   bool have_min_channel(ChannelId channel_id) const;
   const MinChannel *get_min_channel(ChannelId channel_id) const;
@@ -1153,6 +1161,7 @@ class ContactsManager final : public Actor {
 
   static constexpr int32 MAX_GET_PROFILE_PHOTOS = 100;        // server side limit
   static constexpr size_t MAX_NAME_LENGTH = 64;               // server side limit for first/last name
+  static constexpr size_t MAX_TITLE_LENGTH = 128;             // server side limit for chat title
   static constexpr size_t MAX_DESCRIPTION_LENGTH = 255;       // server side limit for chat/channel description
   static constexpr int32 MAX_GET_CHANNEL_PARTICIPANTS = 200;  // server side limit
 

@@ -22,7 +22,6 @@
 #include "td/telegram/DialogDb.h"
 #include "td/telegram/DialogFilter.h"
 #include "td/telegram/DialogFilterManager.h"
-#include "td/telegram/DialogLocation.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/DialogNotificationSettings.hpp"
 #include "td/telegram/DialogParticipantManager.h"
@@ -726,87 +725,6 @@ class GetBlockedDialogsQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     promise_.set_error(std::move(status));
-  }
-};
-
-class CreateChatQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
-  int64 random_id_;
-
- public:
-  explicit CreateChatQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(vector<tl_object_ptr<telegram_api::InputUser>> &&input_users, const string &title, MessageTtl message_ttl,
-            int64 random_id) {
-    random_id_ = random_id;
-    int32 flags = telegram_api::messages_createChat::TTL_PERIOD_MASK;
-    send_query(G()->net_query_creator().create(
-        telegram_api::messages_createChat(flags, std::move(input_users), title, message_ttl.get_input_ttl_period())));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::messages_createChat>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for CreateChatQuery: " << to_string(ptr);
-    td_->messages_manager_->on_create_new_dialog_success(random_id_, std::move(ptr), DialogType::Chat,
-                                                         std::move(promise_));
-  }
-
-  void on_error(Status status) final {
-    td_->messages_manager_->on_create_new_dialog_fail(random_id_, std::move(status), std::move(promise_));
-  }
-};
-
-class CreateChannelQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
-  int64 random_id_;
-
- public:
-  explicit CreateChannelQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(const string &title, bool is_forum, bool is_megagroup, const string &about, const DialogLocation &location,
-            bool for_import, MessageTtl message_ttl, int64 random_id) {
-    int32 flags = telegram_api::channels_createChannel::TTL_PERIOD_MASK;
-    if (is_forum) {
-      flags |= telegram_api::channels_createChannel::FORUM_MASK;
-    } else if (is_megagroup) {
-      flags |= telegram_api::channels_createChannel::MEGAGROUP_MASK;
-    } else {
-      flags |= telegram_api::channels_createChannel::BROADCAST_MASK;
-    }
-    if (!location.empty()) {
-      flags |= telegram_api::channels_createChannel::GEO_POINT_MASK;
-    }
-    if (for_import) {
-      flags |= telegram_api::channels_createChannel::FOR_IMPORT_MASK;
-    }
-
-    random_id_ = random_id;
-    send_query(G()->net_query_creator().create(telegram_api::channels_createChannel(
-        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, title, about,
-        location.get_input_geo_point(), location.get_address(), message_ttl.get_input_ttl_period())));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::channels_createChannel>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for CreateChannelQuery: " << to_string(ptr);
-    td_->messages_manager_->on_create_new_dialog_success(random_id_, std::move(ptr), DialogType::Channel,
-                                                         std::move(promise_));
-  }
-
-  void on_error(Status status) final {
-    td_->messages_manager_->on_create_new_dialog_fail(random_id_, std::move(status), std::move(promise_));
   }
 };
 
@@ -13377,13 +13295,6 @@ MessageFullId MessagesManager::on_get_message(MessageInfo &&message_info, const 
     return MessageFullId();
   }
 
-  auto pcc_it = pending_created_dialogs_.find(dialog_id);
-  if (from_update && pcc_it != pending_created_dialogs_.end()) {
-    pcc_it->second.set_value(Unit());
-
-    pending_created_dialogs_.erase(pcc_it);
-  }
-
   if (need_update) {
     send_update_new_message(d, m);
   }
@@ -13422,6 +13333,21 @@ MessageFullId MessagesManager::on_get_message(MessageInfo &&message_info, const 
       m->reply_markup->type != ReplyMarkup::Type::InlineKeyboard && m->reply_markup->is_personal &&
       !td_->auth_manager_->is_bot()) {
     set_dialog_reply_markup(d, message_id);
+  }
+
+  if (from_update) {
+    auto it = pending_created_dialogs_.find(dialog_id);
+    if (it != pending_created_dialogs_.end()) {
+      auto pending_created_dialog = std::move(it->second);
+      pending_created_dialogs_.erase(it);
+
+      pending_created_dialog.promise_.set_value(get_chat_object(d));
+      if (!pending_created_dialog.group_invite_privacy_forbidden_user_ids_.empty()) {
+        send_closure(G()->dialog_participant_manager(),
+                     &DialogParticipantManager::send_update_add_chat_members_privacy_forbidden, dialog_id,
+                     std::move(pending_created_dialog.group_invite_privacy_forbidden_user_ids_), "on_get_message");
+      }
+    }
   }
 
   return MessageFullId(dialog_id, message_id);
@@ -18118,88 +18044,6 @@ void MessagesManager::create_dialog(DialogId dialog_id, bool force, Promise<Unit
   }
 
   promise.set_value(Unit());
-}
-
-DialogId MessagesManager::create_new_group_chat(const vector<UserId> &user_ids, const string &title,
-                                                MessageTtl message_ttl, int64 &random_id, Promise<Unit> &&promise) {
-  LOG(INFO) << "Trying to create group chat \"" << title << "\" with members " << format::as_array(user_ids);
-
-  if (random_id != 0) {
-    // request has already been sent before
-    auto it = created_dialogs_.find(random_id);
-    CHECK(it != created_dialogs_.end());
-    auto dialog_id = it->second;
-    CHECK(dialog_id.get_type() == DialogType::Chat);
-    CHECK(have_dialog(dialog_id));
-
-    created_dialogs_.erase(it);
-
-    promise.set_value(Unit());
-    return dialog_id;
-  }
-
-  auto new_title = clean_name(title, MAX_TITLE_LENGTH);
-  if (new_title.empty()) {
-    promise.set_error(Status::Error(400, "Title must be non-empty"));
-    return DialogId();
-  }
-
-  vector<tl_object_ptr<telegram_api::InputUser>> input_users;
-  for (auto user_id : user_ids) {
-    auto r_input_user = td_->contacts_manager_->get_input_user(user_id);
-    if (r_input_user.is_error()) {
-      promise.set_error(r_input_user.move_as_error());
-      return DialogId();
-    }
-    input_users.push_back(r_input_user.move_as_ok());
-  }
-
-  do {
-    random_id = Random::secure_int64();
-  } while (random_id == 0 || created_dialogs_.count(random_id) > 0);
-  created_dialogs_[random_id];  // reserve place for result
-
-  td_->create_handler<CreateChatQuery>(std::move(promise))
-      ->send(std::move(input_users), new_title, message_ttl, random_id);
-  return DialogId();
-}
-
-DialogId MessagesManager::create_new_channel_chat(const string &title, bool is_forum, bool is_megagroup,
-                                                  const string &description, const DialogLocation &location,
-                                                  bool for_import, MessageTtl message_ttl, int64 &random_id,
-                                                  Promise<Unit> &&promise) {
-  LOG(INFO) << "Trying to create " << (is_megagroup ? "supergroup" : "broadcast") << " with title \"" << title
-            << "\", description \"" << description << "\" and " << location;
-
-  if (random_id != 0) {
-    // request has already been sent before
-    auto it = created_dialogs_.find(random_id);
-    CHECK(it != created_dialogs_.end());
-    auto dialog_id = it->second;
-    CHECK(dialog_id.get_type() == DialogType::Channel);
-    CHECK(have_dialog(dialog_id));
-
-    created_dialogs_.erase(it);
-
-    promise.set_value(Unit());
-    return dialog_id;
-  }
-
-  auto new_title = clean_name(title, MAX_TITLE_LENGTH);
-  if (new_title.empty()) {
-    promise.set_error(Status::Error(400, "Title must be non-empty"));
-    return DialogId();
-  }
-
-  do {
-    random_id = Random::secure_int64();
-  } while (random_id == 0 || created_dialogs_.count(random_id) > 0);
-  created_dialogs_[random_id];  // reserve place for result
-
-  td_->create_handler<CreateChannelQuery>(std::move(promise))
-      ->send(new_title, is_forum, is_megagroup, strip_empty_characters(description, MAX_DESCRIPTION_LENGTH), location,
-             for_import, message_ttl, random_id);
-  return DialogId();
 }
 
 bool MessagesManager::is_dialog_opened(DialogId dialog_id) const {
@@ -30440,13 +30284,16 @@ void MessagesManager::set_dialog_message_ttl(Dialog *d, MessageTtl message_ttl) 
   }
 }
 
-void MessagesManager::on_create_new_dialog_success(int64 random_id, tl_object_ptr<telegram_api::Updates> &&updates,
-                                                   DialogType expected_type, Promise<Unit> &&promise) {
+void MessagesManager::on_create_new_dialog(telegram_api::object_ptr<telegram_api::Updates> &&updates,
+                                           DialogType expected_type,
+                                           Promise<td_api::object_ptr<td_api::chat>> &&promise) {
+  LOG(INFO) << "Receive result for creation of a chat: " << to_string(updates);
+
   auto sent_messages = UpdatesManager::get_new_messages(updates.get());
   auto sent_messages_random_ids = UpdatesManager::get_sent_messages_random_ids(updates.get());
   if (sent_messages.size() != 1u || sent_messages_random_ids.size() != 1u) {
     LOG(ERROR) << "Receive wrong result for create group or channel chat " << oneline(to_string(updates));
-    return on_create_new_dialog_fail(random_id, Status::Error(500, "Unsupported server response"), std::move(promise));
+    return promise.set_error(Status::Error(500, "Unsupported server response"));
   }
 
   auto *message = sent_messages.begin()->first;
@@ -30454,70 +30301,42 @@ void MessagesManager::on_create_new_dialog_success(int64 random_id, tl_object_pt
   // TODO check that message_random_id equals random_id after messages_createChat will be updated
 
   if (sent_messages.begin()->second) {
-    return on_create_new_dialog_fail(random_id, Status::Error(500, "Scheduled message received"), std::move(promise));
+    return promise.set_error(Status::Error(500, "Scheduled message received"));
   }
 
   auto dialog_id = DialogId::get_message_dialog_id(message);
   if (dialog_id.get_type() != expected_type) {
-    return on_create_new_dialog_fail(random_id, Status::Error(500, "Chat of wrong type has been created"),
-                                     std::move(promise));
+    return promise.set_error(Status::Error(500, "Chat of wrong type has been created"));
   }
   if (message->get_id() != telegram_api::messageService::ID) {
-    return on_create_new_dialog_fail(random_id, Status::Error(500, "Invalid message received"), std::move(promise));
+    return promise.set_error(Status::Error(500, "Invalid message received"));
   }
   auto action_id = static_cast<const telegram_api::messageService *>(message)->action_->get_id();
   if (action_id != telegram_api::messageActionChatCreate::ID &&
       action_id != telegram_api::messageActionChannelCreate::ID) {
-    return on_create_new_dialog_fail(random_id, Status::Error(500, "Invalid service message received"),
-                                     std::move(promise));
+    return promise.set_error(Status::Error(500, "Invalid service message received"));
   }
-
-  auto it = created_dialogs_.find(random_id);
-  CHECK(it != created_dialogs_.end());
-  CHECK(it->second == DialogId());
-
-  it->second = dialog_id;
 
   const Dialog *d = get_dialog(dialog_id);
   if (d != nullptr && d->last_new_message_id.is_valid()) {
     // dialog have been already created and at least one non-temporary message was added,
     // i.e. we are not interested in the creation of dialog by searchMessages
     // then messages have already been added, so just set promise
-    return promise.set_value(Unit());
+    return promise.set_value(get_chat_object(d));
   }
 
   if (pending_created_dialogs_.count(dialog_id) == 0) {
-    auto user_ids = td_->updates_manager_->extract_group_invite_privacy_forbidden_updates(updates);
-    auto new_promise = PromiseCreator::lambda(
-        [dialog_id, user_ids = std::move(user_ids), promise = std::move(promise)](Result<Unit> &&result) mutable {
-          if (result.is_error()) {
-            return promise.set_error(result.move_as_error());
-          }
-          promise.set_value(Unit());
-          if (!user_ids.empty()) {
-            send_closure(G()->dialog_participant_manager(),
-                         &DialogParticipantManager::send_update_add_chat_members_privacy_forbidden, dialog_id,
-                         std::move(user_ids), "on_create_new_dialog_success");
-          }
-        });
-    pending_created_dialogs_.emplace(dialog_id, std::move(new_promise));
+    PendingCreatedDialog pending_created_dialog;
+    pending_created_dialog.promise_ = std::move(promise);
+    pending_created_dialog.group_invite_privacy_forbidden_user_ids_ =
+        td_->updates_manager_->extract_group_invite_privacy_forbidden_updates(updates);
+    pending_created_dialogs_.emplace(dialog_id, std::move(pending_created_dialog));
   } else {
     LOG(ERROR) << "Receive twice " << dialog_id << " as result of chat creation";
-    return on_create_new_dialog_fail(random_id, Status::Error(500, "Chat was created earlier"), std::move(promise));
+    return promise.set_error(Status::Error(500, "Chat was created earlier"));
   }
 
   td_->updates_manager_->on_get_updates(std::move(updates), Promise<Unit>());
-}
-
-void MessagesManager::on_create_new_dialog_fail(int64 random_id, Status error, Promise<Unit> &&promise) {
-  LOG(INFO) << "Clean up creation of group or channel chat";
-  auto it = created_dialogs_.find(random_id);
-  CHECK(it != created_dialogs_.end());
-  CHECK(it->second == DialogId());
-  created_dialogs_.erase(it);
-
-  CHECK(error.is_error());
-  promise.set_error(std::move(error));
 }
 
 void MessagesManager::on_dialog_bots_updated(DialogId dialog_id, vector<UserId> bot_user_ids, bool from_database) {

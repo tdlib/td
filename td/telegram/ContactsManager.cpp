@@ -1092,6 +1092,76 @@ class UpdateEmojiStatusQuery final : public Td::ResultHandler {
   }
 };
 
+class CreateChatQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::chat>> promise_;
+
+ public:
+  explicit CreateChatQuery(Promise<td_api::object_ptr<td_api::chat>> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(vector<tl_object_ptr<telegram_api::InputUser>> &&input_users, const string &title, MessageTtl message_ttl) {
+    int32 flags = telegram_api::messages_createChat::TTL_PERIOD_MASK;
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_createChat(flags, std::move(input_users), title, message_ttl.get_input_ttl_period())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_createChat>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    td_->messages_manager_->on_create_new_dialog(result_ptr.move_as_ok(), DialogType::Chat, std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class CreateChannelQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::chat>> promise_;
+
+ public:
+  explicit CreateChannelQuery(Promise<td_api::object_ptr<td_api::chat>> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(const string &title, bool is_forum, bool is_megagroup, const string &about, const DialogLocation &location,
+            bool for_import, MessageTtl message_ttl) {
+    int32 flags = telegram_api::channels_createChannel::TTL_PERIOD_MASK;
+    if (is_forum) {
+      flags |= telegram_api::channels_createChannel::FORUM_MASK;
+    } else if (is_megagroup) {
+      flags |= telegram_api::channels_createChannel::MEGAGROUP_MASK;
+    } else {
+      flags |= telegram_api::channels_createChannel::BROADCAST_MASK;
+    }
+    if (!location.empty()) {
+      flags |= telegram_api::channels_createChannel::GEO_POINT_MASK;
+    }
+    if (for_import) {
+      flags |= telegram_api::channels_createChannel::FOR_IMPORT_MASK;
+    }
+
+    send_query(G()->net_query_creator().create(telegram_api::channels_createChannel(
+        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, title, about,
+        location.get_input_geo_point(), location.get_address(), message_ttl.get_input_ttl_period())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::channels_createChannel>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    td_->messages_manager_->on_create_new_dialog(result_ptr.move_as_ok(), DialogType::Channel, std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class UpdateChannelUsernameQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
@@ -15918,6 +15988,38 @@ FileSourceId ContactsManager::get_channel_full_file_source_id(ChannelId channel_
   }
   VLOG(file_references) << "Return " << source_id << " for full " << channel_id;
   return source_id;
+}
+
+void ContactsManager::create_new_chat(const vector<UserId> &user_ids, const string &title, MessageTtl message_ttl,
+                                      Promise<td_api::object_ptr<td_api::chat>> &&promise) {
+  auto new_title = clean_name(title, MAX_TITLE_LENGTH);
+  if (new_title.empty()) {
+    return promise.set_error(Status::Error(400, "Title must be non-empty"));
+  }
+
+  vector<telegram_api::object_ptr<telegram_api::InputUser>> input_users;
+  for (auto user_id : user_ids) {
+    auto r_input_user = td_->contacts_manager_->get_input_user(user_id);
+    if (r_input_user.is_error()) {
+      return promise.set_error(r_input_user.move_as_error());
+    }
+    input_users.push_back(r_input_user.move_as_ok());
+  }
+
+  td_->create_handler<CreateChatQuery>(std::move(promise))->send(std::move(input_users), new_title, message_ttl);
+}
+
+void ContactsManager::create_new_channel(const string &title, bool is_forum, bool is_megagroup,
+                                         const string &description, const DialogLocation &location, bool for_import,
+                                         MessageTtl message_ttl, Promise<td_api::object_ptr<td_api::chat>> &&promise) {
+  auto new_title = clean_name(title, MAX_TITLE_LENGTH);
+  if (new_title.empty()) {
+    return promise.set_error(Status::Error(400, "Title must be non-empty"));
+  }
+
+  td_->create_handler<CreateChannelQuery>(std::move(promise))
+      ->send(new_title, is_forum, is_megagroup, strip_empty_characters(description, MAX_DESCRIPTION_LENGTH), location,
+             for_import, message_ttl);
 }
 
 bool ContactsManager::have_chat(ChatId chat_id) const {

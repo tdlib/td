@@ -1651,74 +1651,6 @@ class CreateChatRequest final : public RequestActor<> {
   }
 };
 
-class CreateNewGroupChatRequest final : public RequestActor<> {
-  vector<UserId> user_ids_;
-  string title_;
-  MessageTtl message_ttl_;
-  int64 random_id_;
-
-  DialogId dialog_id_;
-
-  void do_run(Promise<Unit> &&promise) final {
-    dialog_id_ =
-        td_->messages_manager_->create_new_group_chat(user_ids_, title_, message_ttl_, random_id_, std::move(promise));
-  }
-
-  void do_send_result() final {
-    CHECK(dialog_id_.is_valid());
-    send_result(td_->messages_manager_->get_chat_object(dialog_id_));
-  }
-
- public:
-  CreateNewGroupChatRequest(ActorShared<Td> td, uint64 request_id, vector<UserId> user_ids, string title,
-                            int32 message_ttl)
-      : RequestActor(std::move(td), request_id)
-      , user_ids_(std::move(user_ids))
-      , title_(std::move(title))
-      , message_ttl_(message_ttl)
-      , random_id_(0) {
-  }
-};
-
-class CreateNewSupergroupChatRequest final : public RequestActor<> {
-  string title_;
-  bool is_forum_;
-  bool is_megagroup_;
-  string description_;
-  DialogLocation location_;
-  bool for_import_;
-  MessageTtl message_ttl_;
-  int64 random_id_;
-
-  DialogId dialog_id_;
-
-  void do_run(Promise<Unit> &&promise) final {
-    dialog_id_ =
-        td_->messages_manager_->create_new_channel_chat(title_, is_forum_, is_megagroup_, description_, location_,
-                                                        for_import_, message_ttl_, random_id_, std::move(promise));
-  }
-
-  void do_send_result() final {
-    CHECK(dialog_id_.is_valid());
-    send_result(td_->messages_manager_->get_chat_object(dialog_id_));
-  }
-
- public:
-  CreateNewSupergroupChatRequest(ActorShared<Td> td, uint64 request_id, string title, bool is_forum, bool is_megagroup,
-                                 string description, td_api::object_ptr<td_api::chatLocation> &&location,
-                                 bool for_import, int32 message_ttl)
-      : RequestActor(std::move(td), request_id)
-      , title_(std::move(title))
-      , is_forum_(is_forum)
-      , is_megagroup_(is_megagroup)
-      , description_(std::move(description))
-      , location_(std::move(location))
-      , for_import_(for_import)
-      , message_ttl_(message_ttl)
-      , random_id_(0) {
-  }
-};
-
 class CheckChatInviteLinkRequest final : public RequestActor<> {
   string invite_link_;
 
@@ -5996,17 +5928,20 @@ void Td::on_request(uint64 id, const td_api::createSecretChat &request) {
 void Td::on_request(uint64 id, td_api::createNewBasicGroupChat &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.title_);
-  CREATE_REQUEST(CreateNewGroupChatRequest, UserId::get_user_ids(request.user_ids_), std::move(request.title_),
-                 request.message_auto_delete_time_);
+  CREATE_REQUEST_PROMISE();
+  contacts_manager_->create_new_chat(UserId::get_user_ids(request.user_ids_), std::move(request.title_),
+                                     MessageTtl(request.message_auto_delete_time_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::createNewSupergroupChat &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.title_);
   CLEAN_INPUT_STRING(request.description_);
-  CREATE_REQUEST(CreateNewSupergroupChatRequest, std::move(request.title_), request.is_forum_, !request.is_channel_,
-                 std::move(request.description_), std::move(request.location_), request.for_import_,
-                 request.message_auto_delete_time_);
+  CREATE_REQUEST_PROMISE();
+  contacts_manager_->create_new_channel(std::move(request.title_), request.is_forum_, !request.is_channel_,
+                                        std::move(request.description_), DialogLocation(std::move(request.location_)),
+                                        request.for_import_, MessageTtl(request.message_auto_delete_time_),
+                                        std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::createNewSecretChat &request) {
