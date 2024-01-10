@@ -32340,18 +32340,30 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   register_message_reply(dialog_id, m);
 
   if (*need_update && m->message_id.is_server()) {
-    if (message_content_type == MessageContentType::PinMessage) {
-      auto pinned_message_id = get_message_content_pinned_message_id(m->content.get());
-      if (d->is_last_pinned_message_id_inited && pinned_message_id > d->last_pinned_message_id) {
-        set_dialog_last_pinned_message_id(d, pinned_message_id);
+    switch (message_content_type) {
+      case MessageContentType::PinMessage: {
+        auto pinned_message_id = get_message_content_pinned_message_id(m->content.get());
+        if (d->is_last_pinned_message_id_inited && pinned_message_id > d->last_pinned_message_id) {
+          set_dialog_last_pinned_message_id(d, pinned_message_id);
+        }
+        break;
       }
-    }
-    if (message_content_type == MessageContentType::SetBackground) {
-      set_dialog_background(d, get_message_content_my_background_info(
-                                   m->content.get(), m->is_outgoing || dialog_id.get_type() != DialogType::User));
-    }
-    if (message_content_type == MessageContentType::ChatSetTheme) {
-      set_dialog_theme_name(d, get_message_content_theme_name(m->content.get()));
+      case MessageContentType::SetBackground:
+        set_dialog_background(d, get_message_content_my_background_info(
+                                     m->content.get(), m->is_outgoing || dialog_id.get_type() != DialogType::User));
+        break;
+      case MessageContentType::ChatSetTheme:
+        set_dialog_theme_name(d, get_message_content_theme_name(m->content.get()));
+        break;
+      case MessageContentType::ChatCreate:
+      case MessageContentType::ChannelCreate:
+        if (m->ttl_period > 0) {
+          set_dialog_message_ttl(d, MessageTtl(m->ttl_period));
+        }
+        break;
+      default:
+        // nothing to do
+        break;
     }
   }
 
