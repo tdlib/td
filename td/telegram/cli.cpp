@@ -2831,11 +2831,10 @@ class CliClient final : public Actor {
                                                                0, 100, false));
     } else if (op == "replies") {
       ChatId chat_id;
-      MessageThreadId message_thread_id;
       string filter;
-      get_args(args, chat_id, message_thread_id, filter);
+      get_args(args, chat_id, filter);
       send_request(td_api::make_object<td_api::searchChatMessages>(
-          chat_id, "", nullptr, 0, 0, 100, as_search_messages_filter(filter), message_thread_id));
+          chat_id, "", nullptr, 0, 0, 100, as_search_messages_filter(filter), message_thread_id_));
     } else if (op == "spvf") {
       search_chat_id_ = as_chat_id(args);
       send_request(td_api::make_object<td_api::searchChatMessages>(search_chat_id_, "", nullptr, 0, 0, 100,
@@ -2940,10 +2939,9 @@ class CliClient final : public Actor {
       ChatId chat_id;
       MessageId message_id;
       string filter;
-      MessageThreadId message_thread_id;
-      get_args(args, chat_id, message_id, filter, message_thread_id);
+      get_args(args, chat_id, message_id, filter);
       send_request(td_api::make_object<td_api::getChatMessagePosition>(
-          chat_id, message_id, as_search_messages_filter(filter), message_thread_id));
+          chat_id, message_id, as_search_messages_filter(filter), message_thread_id_));
     } else if (op == "gup" || op == "gupp") {
       UserId user_id;
       int32 offset;
@@ -3763,10 +3761,9 @@ class CliClient final : public Actor {
       ChatId chat_id;
       ChatId from_chat_id;
       string message_ids;
-      MessageThreadId message_thread_id;
-      get_args(args, chat_id, from_chat_id, message_ids, message_thread_id);
+      get_args(args, chat_id, from_chat_id, message_ids);
       send_request(td_api::make_object<td_api::forwardMessages>(
-          chat_id, message_thread_id, from_chat_id, as_message_ids(message_ids), default_message_send_options(),
+          chat_id, message_thread_id_, from_chat_id, as_message_ids(message_ids), default_message_send_options(),
           op[0] == 'c', rand_bool()));
     } else if (op == "resend") {
       ChatId chat_id;
@@ -4198,13 +4195,9 @@ class CliClient final : public Actor {
       op_not_found_count++;
     }
 
-    if (op == "scdm" || op == "scdmt") {
+    if (op == "scdm") {
       ChatId chat_id;
-      MessageThreadId message_thread_id;
       string message;
-      if (op == "scdmt") {
-        get_args(args, message_thread_id, args);
-      }
       get_args(args, chat_id, message);
       td_api::object_ptr<td_api::draftMessage> draft_message;
       auto reply_to = get_input_message_reply_to();
@@ -4220,7 +4213,7 @@ class CliClient final : public Actor {
                                                           get_link_preview_options(), false));
       }
       send_request(
-          td_api::make_object<td_api::setChatDraftMessage>(chat_id, message_thread_id, std::move(draft_message)));
+          td_api::make_object<td_api::setChatDraftMessage>(chat_id, message_thread_id_, std::move(draft_message)));
     } else if (op == "cadm") {
       send_request(td_api::make_object<td_api::clearAllDraftMessages>());
     } else if (op == "tchpc") {
@@ -4520,20 +4513,18 @@ class CliClient final : public Actor {
       ChatId chat_id;
       UserId bot_user_id;
       string url;
-      MessageThreadId message_thread_id;
-      get_args(args, chat_id, bot_user_id, url, message_thread_id);
+      get_args(args, chat_id, bot_user_id, url);
       send_request(td_api::make_object<td_api::openWebApp>(chat_id, bot_user_id, url, as_theme_parameters(), "android",
-                                                           message_thread_id, get_input_message_reply_to()));
+                                                           message_thread_id_, get_input_message_reply_to()));
     } else if (op == "cwa") {
       int64 launch_id;
       get_args(args, launch_id);
       send_request(td_api::make_object<td_api::closeWebApp>(launch_id));
     } else if (op == "sca") {
       ChatId chat_id;
-      MessageThreadId message_thread_id;
       string action;
-      get_args(args, chat_id, message_thread_id, action);
-      send_request(td_api::make_object<td_api::sendChatAction>(chat_id, message_thread_id, as_chat_action(action)));
+      get_args(args, chat_id, action);
+      send_request(td_api::make_object<td_api::sendChatAction>(chat_id, message_thread_id_, as_chat_action(action)));
     } else if (op == "smt" || op == "smtp" || op == "smtf" || op == "smtpf") {
       ChatId chat_id;
       get_args(args, chat_id);
