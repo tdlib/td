@@ -903,11 +903,12 @@ void PollManager::do_set_poll_answer(PollId poll_id, MessageFullId message_full_
       CHECK(pending_answer.log_event_id_ == 0);
       log_event_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::SetPollAnswer, storer);
       LOG(INFO) << "Add set poll answer log event " << log_event_id;
+      CHECK(log_event_id != 0);
     } else {
       CHECK(pending_answer.log_event_id_ != 0);
       log_event_id = pending_answer.log_event_id_;
-      auto new_log_event_id = binlog_rewrite(G()->td_db()->get_binlog(), pending_answer.log_event_id_,
-                                             LogEvent::HandlerType::SetPollAnswer, storer);
+      auto new_log_event_id =
+          binlog_rewrite(G()->td_db()->get_binlog(), log_event_id, LogEvent::HandlerType::SetPollAnswer, storer);
       LOG(INFO) << "Rewrite set poll answer log event " << log_event_id << " with " << new_log_event_id;
     }
   }
