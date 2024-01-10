@@ -16007,7 +16007,7 @@ void ContactsManager::create_new_chat(const vector<UserId> &user_ids, const stri
 
   vector<telegram_api::object_ptr<telegram_api::InputUser>> input_users;
   for (auto user_id : user_ids) {
-    auto r_input_user = td_->contacts_manager_->get_input_user(user_id);
+    auto r_input_user = get_input_user(user_id);
     if (r_input_user.is_error()) {
       return promise.set_error(r_input_user.move_as_error());
     }

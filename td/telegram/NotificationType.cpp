@@ -18,6 +18,7 @@
 #include "td/telegram/VideosManager.h"
 #include "td/telegram/VoiceNotesManager.h"
 
+#include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Slice.h"
 
