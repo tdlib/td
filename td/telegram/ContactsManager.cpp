@@ -50,6 +50,7 @@
 #include "td/telegram/PremiumGiftOption.hpp"
 #include "td/telegram/ReactionManager.h"
 #include "td/telegram/SecretChatLayer.h"
+#include "td/telegram/SecretChatsManager.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StickerPhotoSize.h"
 #include "td/telegram/StickersManager.h"
@@ -16486,6 +16487,33 @@ void ContactsManager::send_get_channel_full_query(ChannelFull *channel_full, Cha
         }
       });
   get_chat_full_queries_.add_query(DialogId(channel_id).get(), std::move(send_query), std::move(promise));
+}
+
+void ContactsManager::create_new_secret_chat(UserId user_id, Promise<td_api::object_ptr<td_api::chat>> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_user, get_input_user(user_id));
+  if (input_user->get_id() != telegram_api::inputUser::ID) {
+    return promise.set_error(Status::Error(400, "Can't create secret chat with the user"));
+  }
+  auto user = static_cast<const telegram_api::inputUser *>(input_user.get());
+
+  send_closure(
+      G()->secret_chats_manager(), &SecretChatsManager::create_chat, UserId(user->user_id_), user->access_hash_,
+      PromiseCreator::lambda([actor_id = actor_id(this),
+                              promise = std::move(promise)](Result<SecretChatId> r_secret_chat_id) mutable {
+        if (r_secret_chat_id.is_error()) {
+          return promise.set_error(r_secret_chat_id.move_as_error());
+        }
+        send_closure(actor_id, &ContactsManager::on_create_new_secret_chat, r_secret_chat_id.ok(), std::move(promise));
+      }));
+}
+
+void ContactsManager::on_create_new_secret_chat(SecretChatId secret_chat_id,
+                                                Promise<td_api::object_ptr<td_api::chat>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  CHECK(secret_chat_id.is_valid());
+  DialogId dialog_id(secret_chat_id);
+  td_->dialog_manager_->force_create_dialog(dialog_id, "on_create_new_secret_chat");
+  promise.set_value(td_->messages_manager_->get_chat_object(dialog_id));
 }
 
 bool ContactsManager::have_secret_chat(SecretChatId secret_chat_id) const {

@@ -606,6 +606,8 @@ class ContactsManager final : public Actor {
 
   bool is_channel_public(ChannelId channel_id) const;
 
+  void create_new_secret_chat(UserId user_id, Promise<td_api::object_ptr<td_api::chat>> &&promise);
+
   bool have_secret_chat(SecretChatId secret_chat_id) const;
   bool have_secret_chat_force(SecretChatId secret_chat_id, const char *source);
   bool get_secret_chat(SecretChatId secret_chat_id, bool force, Promise<Unit> &&promise);
@@ -1345,6 +1347,8 @@ class ContactsManager final : public Actor {
 
   void send_get_channel_full_query(ChannelFull *channel_full, ChannelId channel_id, Promise<Unit> &&promise,
                                    const char *source);
+
+  void on_create_new_secret_chat(SecretChatId secret_chat_id, Promise<td_api::object_ptr<td_api::chat>> &&promise);
 
   const SecretChat *get_secret_chat(SecretChatId secret_chat_id) const;
   SecretChat *get_secret_chat(SecretChatId secret_chat_id);

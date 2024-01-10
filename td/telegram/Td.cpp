@@ -1680,41 +1680,6 @@ class CreateNewGroupChatRequest final : public RequestActor<> {
   }
 };
 
-class CreateNewSecretChatRequest final : public RequestActor<SecretChatId> {
-  UserId user_id_;
-  SecretChatId secret_chat_id_;
-
-  void do_run(Promise<SecretChatId> &&promise) final {
-    if (get_tries() < 2) {
-      promise.set_value(std::move(secret_chat_id_));
-      return;
-    }
-    td_->messages_manager_->create_new_secret_chat(user_id_, std::move(promise));
-  }
-
-  void do_set_result(SecretChatId &&result) final {
-    secret_chat_id_ = result;
-    LOG(INFO) << "New " << secret_chat_id_ << " created";
-  }
-
-  void do_send_result() final {
-    CHECK(secret_chat_id_.is_valid());
-    // SecretChatActor will send this update by itself
-    // But since the update may still be on its way, we will update essential fields here.
-    td_->contacts_manager_->on_update_secret_chat(
-        secret_chat_id_, 0 /* no access_hash */, user_id_, SecretChatState::Unknown, true /* it is outbound chat */,
-        -1 /* unknown TTL */, 0 /* unknown creation date */, "" /* no key_hash */, 0, FolderId());
-    DialogId dialog_id(secret_chat_id_);
-    td_->dialog_manager_->force_create_dialog(dialog_id, "create new secret chat", true);
-    send_result(td_->messages_manager_->get_chat_object(dialog_id));
-  }
-
- public:
-  CreateNewSecretChatRequest(ActorShared<Td> td, uint64 request_id, int64 user_id)
-      : RequestActor(std::move(td), request_id), user_id_(user_id) {
-  }
-};
-
 class CreateNewSupergroupChatRequest final : public RequestActor<> {
   string title_;
   bool is_forum_;
@@ -6066,7 +6031,9 @@ void Td::on_request(uint64 id, td_api::createNewSupergroupChat &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::createNewSecretChat &request) {
-  CREATE_REQUEST(CreateNewSecretChatRequest, request.user_id_);
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  contacts_manager_->create_new_secret_chat(UserId(request.user_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::createCall &request) {

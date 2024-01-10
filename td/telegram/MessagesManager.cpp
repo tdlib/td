@@ -18202,17 +18202,6 @@ DialogId MessagesManager::create_new_channel_chat(const string &title, bool is_f
   return DialogId();
 }
 
-void MessagesManager::create_new_secret_chat(UserId user_id, Promise<SecretChatId> &&promise) {
-  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
-  if (input_user->get_id() != telegram_api::inputUser::ID) {
-    return promise.set_error(Status::Error(400, "Can't create secret chat with the user"));
-  }
-  auto user = static_cast<const telegram_api::inputUser *>(input_user.get());
-
-  send_closure(G()->secret_chats_manager(), &SecretChatsManager::create_chat, UserId(user->user_id_),
-               user->access_hash_, std::move(promise));
-}
-
 DialogId MessagesManager::migrate_dialog_to_megagroup(DialogId dialog_id, Promise<Unit> &&promise) {
   LOG(INFO) << "Trying to convert " << dialog_id << " to supergroup";
 

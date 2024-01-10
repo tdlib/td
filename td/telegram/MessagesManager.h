@@ -641,8 +641,6 @@ class MessagesManager final : public Actor {
                                    const DialogLocation &location, bool for_import, MessageTtl message_ttl,
                                    int64 &random_id, Promise<Unit> &&promise);
 
-  void create_new_secret_chat(UserId user_id, Promise<SecretChatId> &&promise);
-
   DialogId migrate_dialog_to_megagroup(DialogId dialog_id, Promise<Unit> &&promise);
 
   bool is_dialog_opened(DialogId dialog_id) const;
