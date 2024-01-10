@@ -28703,7 +28703,11 @@ void MessagesManager::update_reply_to_message_id(DialogId dialog_id, MessageId o
     const auto *input_reply_to = get_message_input_reply_to(replied_m);
     CHECK(input_reply_to != nullptr);
     CHECK(input_reply_to->get_reply_message_full_id(reply_d->dialog_id) == MessageFullId(dialog_id, old_message_id));
-    update_message_reply_to_message_id(reply_d, replied_m, new_message_id, true);
+    if (new_message_id != MessageId()) {
+      update_message_reply_to_message_id(reply_d, replied_m, new_message_id, true);
+    } else {
+      set_message_reply(reply_d, replied_m, MessageInputReplyTo(), true);
+    }
   }
   if (have_new_message) {
     CHECK(!new_message_id.is_yet_unsent());
@@ -29225,6 +29229,7 @@ void MessagesManager::fail_send_message(MessageFullId message_full_id, int32 err
   CHECK(old_message_id.is_valid() || old_message_id.is_valid_scheduled());
   CHECK(old_message_id.is_yet_unsent());
 
+  // must be called before delete_message
   update_reply_to_message_id(dialog_id, old_message_id, MessageId(), false, "fail_send_message");
 
   bool need_update_dialog_pos = false;
