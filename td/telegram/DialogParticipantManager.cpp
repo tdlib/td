@@ -1503,12 +1503,17 @@ void DialogParticipantManager::add_channel_participant(ChannelId channel_id, Use
     if (my_status.is_banned()) {
       return promise.set_error(Status::Error(400, "Can't return to kicked from chat"));
     }
+    if (my_status.is_member()) {
+      return promise.set_value(Unit());
+    }
 
     auto &queries = join_channel_queries_[channel_id];
     queries.push_back(std::move(promise));
     if (queries.size() == 1u) {
       if (!td_->contacts_manager_->get_channel_join_request(channel_id)) {
-        speculative_add_channel_user(channel_id, user_id, DialogParticipantStatus::Member(), my_status);
+        auto new_status = my_status;
+        new_status.set_is_member(true);
+        speculative_add_channel_user(channel_id, user_id, new_status, my_status);
       }
       auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), channel_id](Result<Unit> result) {
         send_closure(actor_id, &DialogParticipantManager::on_join_channel, channel_id, std::move(result));
