@@ -28040,7 +28040,8 @@ void MessagesManager::remove_message_dialog_notifications(Dialog *d, MessageId m
     set_dialog_last_notification(d->dialog_id, group_info, 0, NotificationId(),
                                  "remove_message_dialog_notifications 2");
   } else {
-    LOG(FATAL) << "TODO support notification deletion up to " << max_message_id << " if it would be ever needed";
+    LOG(FATAL) << "TODO support notification deletion up to " << max_message_id << " if it would be ever needed from "
+               << source;
   }
 
   send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification_group,
@@ -35855,7 +35856,6 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
       !td_->auth_manager_->is_bot()) {  // if last message is really a new message
     if (!d->last_new_message_id.is_valid() && last_message_id <= d->max_added_message_id) {
       auto prev_message_id = MessageId(ServerMessageId(last_message_id.get_server_message_id().get() - 1));
-      delete_all_dialog_notifications(d, prev_message_id, "on_get_channel_dialog 14");
       remove_dialog_newer_messages(d, prev_message_id, "on_get_channel_dialog 15");
     }
     d->last_new_message_id = MessageId();
