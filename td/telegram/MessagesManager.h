@@ -641,8 +641,6 @@ class MessagesManager final : public Actor {
                                    const DialogLocation &location, bool for_import, MessageTtl message_ttl,
                                    int64 &random_id, Promise<Unit> &&promise);
 
-  DialogId migrate_dialog_to_megagroup(DialogId dialog_id, Promise<Unit> &&promise);
-
   bool is_dialog_opened(DialogId dialog_id) const;
 
   Status open_dialog(DialogId dialog_id) TD_WARN_UNUSED_RESULT;

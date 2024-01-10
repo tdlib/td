@@ -18202,39 +18202,6 @@ DialogId MessagesManager::create_new_channel_chat(const string &title, bool is_f
   return DialogId();
 }
 
-DialogId MessagesManager::migrate_dialog_to_megagroup(DialogId dialog_id, Promise<Unit> &&promise) {
-  LOG(INFO) << "Trying to convert " << dialog_id << " to supergroup";
-
-  if (dialog_id.get_type() != DialogType::Chat) {
-    promise.set_error(Status::Error(400, "Only basic group chats can be converted to supergroup"));
-    return DialogId();
-  }
-
-  auto channel_id = td_->contacts_manager_->migrate_chat_to_megagroup(dialog_id.get_chat_id(), promise);
-  if (!channel_id.is_valid()) {
-    return DialogId();
-  }
-
-  if (!td_->contacts_manager_->have_channel(channel_id)) {
-    LOG(ERROR) << "Can't find info about supergroup to which the group has migrated";
-    promise.set_error(Status::Error(400, "Supergroup is not found"));
-    return DialogId();
-  }
-
-  auto new_dialog_id = DialogId(channel_id);
-  Dialog *d = get_dialog_force(new_dialog_id, "migrate_dialog_to_megagroup");
-  if (d == nullptr) {
-    d = add_dialog(new_dialog_id, "migrate_dialog_to_megagroup");
-    if (d->pts == 0) {
-      d->pts = 1;
-    }
-    update_dialog_pos(d, "migrate_dialog_to_megagroup");
-  }
-
-  promise.set_value(Unit());
-  return new_dialog_id;
-}
-
 bool MessagesManager::is_dialog_opened(DialogId dialog_id) const {
   const Dialog *d = get_dialog(dialog_id);
   return d != nullptr && d->open_count > 0;

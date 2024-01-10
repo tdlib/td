@@ -1719,27 +1719,6 @@ class CreateNewSupergroupChatRequest final : public RequestActor<> {
   }
 };
 
-class UpgradeGroupChatToSupergroupChatRequest final : public RequestActor<> {
-  string title_;
-  DialogId dialog_id_;
-
-  DialogId result_dialog_id_;
-
-  void do_run(Promise<Unit> &&promise) final {
-    result_dialog_id_ = td_->messages_manager_->migrate_dialog_to_megagroup(dialog_id_, std::move(promise));
-  }
-
-  void do_send_result() final {
-    CHECK(result_dialog_id_.is_valid());
-    send_result(td_->messages_manager_->get_chat_object(result_dialog_id_));
-  }
-
- public:
-  UpgradeGroupChatToSupergroupChatRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id)
-      : RequestActor(std::move(td), request_id), dialog_id_(dialog_id) {
-  }
-};
-
 class CheckChatInviteLinkRequest final : public RequestActor<> {
   string invite_link_;
 
@@ -6366,7 +6345,8 @@ void Td::on_request(uint64 id, td_api::getGroupCallStreamSegment &request) {
 
 void Td::on_request(uint64 id, const td_api::upgradeBasicGroupChatToSupergroupChat &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(UpgradeGroupChatToSupergroupChatRequest, request.chat_id_);
+  CREATE_REQUEST_PROMISE();
+  contacts_manager_->migrate_dialog_to_megagroup(DialogId(request.chat_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getChatListsToAddChat &request) {
