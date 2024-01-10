@@ -13862,8 +13862,8 @@ void ContactsManager::speculative_add_channel_user(ChannelId channel_id, UserId 
   LOG(INFO) << "Speculatively change status of " << user_id << " in " << channel_id << " from " << old_status << " to "
             << new_status;
   if (channel_full != nullptr) {
-    channel_full->is_changed |= speculative_add_count(channel_full->administrator_count,
-                                                      new_status.is_administrator() - old_status.is_administrator());
+    channel_full->is_changed |= speculative_add_count(
+        channel_full->administrator_count, new_status.is_administrator_member() - old_status.is_administrator_member());
     min_count = channel_full->administrator_count;
   }
 

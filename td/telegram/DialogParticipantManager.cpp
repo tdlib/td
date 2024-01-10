@@ -281,7 +281,7 @@ class GetChannelAdministratorsQuery final : public Td::ResultHandler {
         administrators.reserve(participants->participants_.size());
         for (auto &participant : participants->participants_) {
           DialogParticipant dialog_participant(std::move(participant), channel_type);
-          if (!dialog_participant.is_valid() || !dialog_participant.status_.is_administrator() ||
+          if (!dialog_participant.is_valid() || !dialog_participant.status_.is_administrator_member() ||
               dialog_participant.dialog_id_.get_type() != DialogType::User) {
             LOG(ERROR) << "Receive " << dialog_participant << " as an administrator of " << channel_id_;
             continue;
@@ -831,7 +831,7 @@ void DialogParticipantManager::process_dialog_join_requests(DialogId dialog_id, 
 void DialogParticipantManager::speculative_update_dialog_administrators(DialogId dialog_id, UserId user_id,
                                                                         const DialogParticipantStatus &new_status,
                                                                         const DialogParticipantStatus &old_status) {
-  if (new_status.is_administrator() == old_status.is_administrator() &&
+  if (new_status.is_administrator_member() == old_status.is_administrator_member() &&
       new_status.get_rank() == old_status.get_rank()) {
     return;
   }
@@ -840,7 +840,7 @@ void DialogParticipantManager::speculative_update_dialog_administrators(DialogId
     return;
   }
   auto administrators = it->second;
-  if (new_status.is_administrator()) {
+  if (new_status.is_administrator_member()) {
     bool is_found = false;
     for (auto &administrator : administrators) {
       if (administrator.get_user_id() == user_id) {

@@ -541,6 +541,10 @@ class DialogParticipantStatus {
     return type_ == Type::Administrator || type_ == Type::Creator;
   }
 
+  bool is_administrator_member() const {
+    return type_ == Type::Administrator || (type_ == Type::Creator && is_member());
+  }
+
   bool is_restricted() const {
     return type_ == Type::Restricted;
   }
