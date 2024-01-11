@@ -4284,19 +4284,20 @@ void MessagesManager::Message::parse(ParserT &parser) {
       forward_origin = MessageOrigin(forward_sender_user_id, forward_sender_dialog_id, forward_message_id,
                                      std::move(forward_author_signature), std::move(forward_sender_name));
     }
-    DialogId forward_from_dialog_id;
-    MessageId forward_from_message_id;
+    LastForwardedMessageInfo last_message_info;
     if (legacy_has_forward_from) {
+      DialogId forward_from_dialog_id;
+      MessageId forward_from_message_id;
       parse(forward_from_dialog_id, parser);
       parse(forward_from_message_id, parser);
+      last_message_info = LastForwardedMessageInfo(forward_from_dialog_id, forward_from_message_id);
     }
     string psa_type;
     if (legacy_has_forward_psa_type) {
       parse(psa_type, parser);
     }
-    forward_info =
-        td::make_unique<MessageForwardInfo>(std::move(forward_origin), forward_date, forward_from_dialog_id,
-                                            forward_from_message_id, std::move(psa_type), legacy_is_imported);
+    forward_info = td::make_unique<MessageForwardInfo>(
+        std::move(forward_origin), forward_date, std::move(last_message_info), std::move(psa_type), legacy_is_imported);
   }
   if (has_real_forward_from) {
     parse(real_forward_from_dialog_id, parser);
@@ -25813,25 +25814,21 @@ unique_ptr<MessageForwardInfo> MessagesManager::create_message_forward_info(Dial
 
   auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
 
-  DialogId saved_from_dialog_id;
-  MessageId saved_from_message_id;
+  LastForwardedMessageInfo last_message_info;
   if (to_dialog_id == my_dialog_id) {
-    saved_from_dialog_id = from_dialog_id;
-    saved_from_message_id = m->message_id;
+    last_message_info = LastForwardedMessageInfo(from_dialog_id, m->message_id);
   } else if (content_type == MessageContentType::Audio || content_type == MessageContentType::Story) {
     return nullptr;
   }
 
   if (m->forward_info != nullptr) {
-    return MessageForwardInfo::copy_message_forward_info(td_, *m->forward_info, saved_from_dialog_id,
-                                                         saved_from_message_id);
+    return MessageForwardInfo::copy_message_forward_info(td_, *m->forward_info, std::move(last_message_info));
   }
 
   if (from_dialog_id != my_dialog_id || content_type == MessageContentType::Dice) {
     auto origin = get_forwarded_message_origin(from_dialog_id, m);
     if (!origin.is_empty()) {
-      return td::make_unique<MessageForwardInfo>(std::move(origin), m->date, saved_from_dialog_id,
-                                                 saved_from_message_id, "", false);
+      return td::make_unique<MessageForwardInfo>(std::move(origin), m->date, std::move(last_message_info), "", false);
     }
   }
   return nullptr;

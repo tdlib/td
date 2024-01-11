@@ -15,6 +15,52 @@
 
 namespace td {
 
+bool LastForwardedMessageInfo::is_empty() const {
+  return dialog_id_ == DialogId() && message_id_ == MessageId();
+}
+
+bool LastForwardedMessageInfo::validate() {
+  if (is_empty()) {
+    return true;
+  }
+  if (!dialog_id_.is_valid() || !message_id_.is_valid()) {
+    *this = {};
+    return false;
+  }
+  return true;
+}
+
+void LastForwardedMessageInfo::add_dependencies(Dependencies &dependencies) const {
+  dependencies.add_dialog_and_dependencies(dialog_id_);
+}
+
+void LastForwardedMessageInfo::add_min_user_ids(vector<UserId> &user_ids) const {
+  if (dialog_id_.get_type() == DialogType::User) {
+    user_ids.push_back(dialog_id_.get_user_id());
+  }
+}
+
+void LastForwardedMessageInfo::add_min_channel_ids(vector<ChannelId> &channel_ids) const {
+  if (dialog_id_.get_type() == DialogType::Channel) {
+    channel_ids.push_back(dialog_id_.get_channel_id());
+  }
+}
+
+bool operator==(const LastForwardedMessageInfo &lhs, const LastForwardedMessageInfo &rhs) {
+  return lhs.dialog_id_ == rhs.dialog_id_ && lhs.message_id_ == rhs.message_id_;
+}
+
+bool operator!=(const LastForwardedMessageInfo &lhs, const LastForwardedMessageInfo &rhs) {
+  return !(lhs == rhs);
+}
+
+StringBuilder &operator<<(StringBuilder &string_builder, const LastForwardedMessageInfo &last_message_info) {
+  if (last_message_info.is_empty()) {
+    return string_builder;
+  }
+  return string_builder << MessageFullId(last_message_info.dialog_id_, last_message_info.message_id_);
+}
+
 unique_ptr<MessageForwardInfo> MessageForwardInfo::get_message_forward_info(
     Td *td, telegram_api::object_ptr<telegram_api::messageFwdHeader> &&forward_header) {
   if (forward_header == nullptr) {
@@ -26,18 +72,18 @@ unique_ptr<MessageForwardInfo> MessageForwardInfo::get_message_forward_info(
     return nullptr;
   }
 
-  DialogId from_dialog_id;
-  MessageId from_message_id;
+  LastForwardedMessageInfo last_message_info;
   if (forward_header->saved_from_peer_ != nullptr) {
-    from_dialog_id = DialogId(forward_header->saved_from_peer_);
-    from_message_id = MessageId(ServerMessageId(forward_header->saved_from_msg_id_));
-    if (!from_dialog_id.is_valid() || !from_message_id.is_valid()) {
-      LOG(ERROR) << "Receive " << from_message_id << " in " << from_dialog_id
-                 << " in message forward header: " << oneline(to_string(forward_header));
-      from_dialog_id = DialogId();
-      from_message_id = MessageId();
+    last_message_info = LastForwardedMessageInfo(DialogId(forward_header->saved_from_peer_),
+                                                 MessageId(ServerMessageId(forward_header->saved_from_msg_id_)));
+    if (last_message_info.is_empty() || !last_message_info.validate()) {
+      LOG(ERROR) << "Receive wrong last message in message forward header: " << oneline(to_string(forward_header));
     } else {
-      td->dialog_manager_->force_create_dialog(from_dialog_id, "get_message_forward_info", true);
+      Dependencies dependencies;
+      last_message_info.add_dependencies(dependencies);
+      for (auto dialog_id : dependencies.get_dialog_ids()) {
+        td->dialog_manager_->force_create_dialog(dialog_id, "get_message_forward_info", true);
+      }
     }
   }
   bool is_imported = forward_header->imported_;
@@ -47,22 +93,16 @@ unique_ptr<MessageForwardInfo> MessageForwardInfo::get_message_forward_info(
     return nullptr;
   }
 
-  return td::make_unique<MessageForwardInfo>(r_origin.move_as_ok(), date, from_dialog_id, from_message_id,
+  return td::make_unique<MessageForwardInfo>(r_origin.move_as_ok(), date, std::move(last_message_info),
                                              std::move(psa_type), is_imported);
 }
 
-unique_ptr<MessageForwardInfo> MessageForwardInfo::copy_message_forward_info(Td *td,
-                                                                             const MessageForwardInfo &forward_info,
-                                                                             DialogId from_dialog_id,
-                                                                             MessageId from_message_id) {
-  if (from_dialog_id.is_valid() != from_message_id.is_valid()) {
-    from_dialog_id = DialogId();
-    from_message_id = MessageId();
-  }
+unique_ptr<MessageForwardInfo> MessageForwardInfo::copy_message_forward_info(
+    Td *td, const MessageForwardInfo &forward_info, LastForwardedMessageInfo &&last_message_info) {
+  last_message_info.validate();
 
   auto result = make_unique<MessageForwardInfo>(forward_info);
-  result->from_dialog_id_ = from_dialog_id;
-  result->from_message_id_ = from_message_id;
+  result->last_message_info_ = std::move(last_message_info);
   result->origin_.hide_sender_if_needed(td);
   return result;
 }
@@ -71,9 +111,11 @@ td_api::object_ptr<td_api::messageForwardInfo> MessageForwardInfo::get_message_f
   if (is_imported_) {
     return nullptr;
   }
+  auto last_message_full_id = get_last_message_full_id();
   return td_api::make_object<td_api::messageForwardInfo>(
       origin_.get_message_origin_object(td), date_, psa_type_,
-      td->messages_manager_->get_chat_id_object(from_dialog_id_, "messageForwardInfo"), from_message_id_.get());
+      td->messages_manager_->get_chat_id_object(last_message_full_id.get_dialog_id(), "messageForwardInfo"),
+      last_message_full_id.get_message_id().get());
 }
 
 td_api::object_ptr<td_api::messageImportInfo> MessageForwardInfo::get_message_import_info_object() const {
@@ -85,19 +127,17 @@ td_api::object_ptr<td_api::messageImportInfo> MessageForwardInfo::get_message_im
 
 void MessageForwardInfo::add_dependencies(Dependencies &dependencies) const {
   origin_.add_dependencies(dependencies);
-  dependencies.add_dialog_and_dependencies(from_dialog_id_);
+  last_message_info_.add_dependencies(dependencies);
 }
 
 void MessageForwardInfo::add_min_user_ids(vector<UserId> &user_ids) const {
   origin_.add_user_ids(user_ids);
-  // from_dialog_id_ can be a user only in Saved Messages
+  last_message_info_.add_min_user_ids(user_ids);
 }
 
 void MessageForwardInfo::add_min_channel_ids(vector<ChannelId> &channel_ids) const {
   origin_.add_channel_ids(channel_ids);
-  if (from_dialog_id_.get_type() == DialogType::Channel) {
-    channel_ids.push_back(from_dialog_id_.get_channel_id());
-  }
+  last_message_info_.add_min_channel_ids(channel_ids);
 }
 
 bool MessageForwardInfo::need_change_warning(const MessageForwardInfo *lhs, const MessageForwardInfo *rhs,
@@ -114,9 +154,8 @@ bool MessageForwardInfo::need_change_warning(const MessageForwardInfo *lhs, cons
 }
 
 bool operator==(const MessageForwardInfo &lhs, const MessageForwardInfo &rhs) {
-  return lhs.origin_ == rhs.origin_ && lhs.date_ == rhs.date_ && lhs.from_dialog_id_ == rhs.from_dialog_id_ &&
-         lhs.from_message_id_ == rhs.from_message_id_ && lhs.psa_type_ == rhs.psa_type_ &&
-         lhs.is_imported_ == rhs.is_imported_;
+  return lhs.origin_ == rhs.origin_ && lhs.date_ == rhs.date_ && lhs.last_message_info_ == rhs.last_message_info_ &&
+         lhs.psa_type_ == rhs.psa_type_ && lhs.is_imported_ == rhs.is_imported_;
 }
 
 bool operator!=(const MessageForwardInfo &lhs, const MessageForwardInfo &rhs) {
@@ -137,10 +176,10 @@ bool operator!=(const unique_ptr<MessageForwardInfo> &lhs, const unique_ptr<Mess
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageForwardInfo &forward_info) {
   string_builder << "MessageForwardInfo[" << (forward_info.is_imported_ ? "imported " : "") << forward_info.origin_;
   if (!forward_info.psa_type_.empty()) {
-    string_builder << ", psa_type_ " << forward_info.psa_type_;
+    string_builder << ", psa_type " << forward_info.psa_type_;
   }
-  if (forward_info.from_dialog_id_.is_valid() || forward_info.from_message_id_.is_valid()) {
-    string_builder << ", from " << MessageFullId(forward_info.from_dialog_id_, forward_info.from_message_id_);
+  if (!forward_info.last_message_info_.is_empty()) {
+    string_builder << ", from " << forward_info.last_message_info_;
   }
   return string_builder << " at " << forward_info.date_ << ']';
 }

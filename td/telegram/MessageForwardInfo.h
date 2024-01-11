@@ -23,11 +23,49 @@ namespace td {
 class Dependencies;
 class Td;
 
+class LastForwardedMessageInfo {
+  DialogId dialog_id_;
+  MessageId message_id_;
+
+  friend bool operator==(const LastForwardedMessageInfo &lhs, const LastForwardedMessageInfo &rhs);
+
+  friend StringBuilder &operator<<(StringBuilder &string_builder, const LastForwardedMessageInfo &last_message_info);
+
+ public:
+  LastForwardedMessageInfo() = default;
+
+  LastForwardedMessageInfo(DialogId dialog_id, MessageId message_id) : dialog_id_(dialog_id), message_id_(message_id) {
+  }
+
+  bool is_empty() const;
+
+  bool validate();
+
+  void add_dependencies(Dependencies &dependencies) const;
+
+  void add_min_user_ids(vector<UserId> &user_ids) const;
+
+  void add_min_channel_ids(vector<ChannelId> &channel_ids) const;
+
+  DialogId get_dialog_id() const {
+    return dialog_id_;
+  }
+
+  MessageFullId get_message_full_id() const {
+    return {dialog_id_, message_id_};
+  }
+
+  template <class StorerT>
+  void store(StorerT &storer) const;
+
+  template <class ParserT>
+  void parse(ParserT &parser);
+};
+
 class MessageForwardInfo {
   MessageOrigin origin_;
   int32 date_ = 0;
-  DialogId from_dialog_id_;
-  MessageId from_message_id_;
+  LastForwardedMessageInfo last_message_info_;
   string psa_type_;
   bool is_imported_ = false;
 
@@ -38,25 +76,21 @@ class MessageForwardInfo {
  public:
   MessageForwardInfo() = default;
 
-  MessageForwardInfo(MessageOrigin &&origin, int32 date, DialogId from_dialog_id, MessageId from_message_id,
+  MessageForwardInfo(MessageOrigin &&origin, int32 date, LastForwardedMessageInfo &&last_message_info,
                      string &&psa_type, bool is_imported)
       : origin_(std::move(origin))
       , date_(date)
-      , from_dialog_id_(from_dialog_id)
-      , from_message_id_(from_message_id)
+      , last_message_info_(std::move(last_message_info))
       , psa_type_(std::move(psa_type))
       , is_imported_(is_imported) {
-    if (from_dialog_id_.is_valid() != from_message_id_.is_valid()) {
-      from_dialog_id_ = DialogId();
-      from_message_id_ = MessageId();
-    }
+    last_message_info_.validate();
   }
 
   static unique_ptr<MessageForwardInfo> get_message_forward_info(
       Td *td, telegram_api::object_ptr<telegram_api::messageFwdHeader> &&forward_header);
 
   static unique_ptr<MessageForwardInfo> copy_message_forward_info(Td *td, const MessageForwardInfo &forward_info,
-                                                                  DialogId from_dialog_id, MessageId from_message_id);
+                                                                  LastForwardedMessageInfo &&last_message_info);
 
   td_api::object_ptr<td_api::messageForwardInfo> get_message_forward_info_object(Td *td) const;
 
@@ -87,11 +121,11 @@ class MessageForwardInfo {
   }
 
   DialogId get_last_dialog_id() const {
-    return from_dialog_id_;
+    return last_message_info_.get_dialog_id();
   }
 
   MessageFullId get_last_message_full_id() const {
-    return {from_dialog_id_, from_message_id_};
+    return last_message_info_.get_message_full_id();
   }
 
   template <class StorerT>
@@ -100,6 +134,10 @@ class MessageForwardInfo {
   template <class ParserT>
   void parse(ParserT &parser);
 };
+
+bool operator==(const LastForwardedMessageInfo &lhs, const LastForwardedMessageInfo &rhs);
+
+bool operator!=(const LastForwardedMessageInfo &lhs, const LastForwardedMessageInfo &rhs);
 
 bool operator==(const MessageForwardInfo &lhs, const MessageForwardInfo &rhs);
 

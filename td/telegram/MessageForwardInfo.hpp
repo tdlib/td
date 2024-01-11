@@ -17,19 +17,35 @@
 namespace td {
 
 template <class StorerT>
+void LastForwardedMessageInfo::store(StorerT &storer) const {
+  BEGIN_STORE_FLAGS();
+  END_STORE_FLAGS();
+  td::store(dialog_id_, storer);
+  td::store(message_id_, storer);
+}
+
+template <class ParserT>
+void LastForwardedMessageInfo::parse(ParserT &parser) {
+  BEGIN_PARSE_FLAGS();
+  END_PARSE_FLAGS();
+  td::parse(dialog_id_, parser);
+  td::parse(message_id_, parser);
+  validate();
+}
+
+template <class StorerT>
 void MessageForwardInfo::store(StorerT &storer) const {
-  bool has_from = from_dialog_id_.is_valid() && from_message_id_.is_valid();
+  bool has_last_message_info = !last_message_info_.is_empty();
   bool has_psa_type = !psa_type_.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_imported_);
-  STORE_FLAG(has_from);
+  STORE_FLAG(has_last_message_info);
   STORE_FLAG(has_psa_type);
   END_STORE_FLAGS();
   td::store(origin_, storer);
   td::store(date_, storer);
-  if (has_from) {
-    td::store(from_dialog_id_, storer);
-    td::store(from_message_id_, storer);
+  if (has_last_message_info) {
+    td::store(last_message_info_, storer);
   }
   if (has_psa_type) {
     td::store(psa_type_, storer);
@@ -38,22 +54,17 @@ void MessageForwardInfo::store(StorerT &storer) const {
 
 template <class ParserT>
 void MessageForwardInfo::parse(ParserT &parser) {
-  bool has_from;
+  bool has_last_message_info;
   bool has_psa_type;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_imported_);
-  PARSE_FLAG(has_from);
+  PARSE_FLAG(has_last_message_info);
   PARSE_FLAG(has_psa_type);
   END_PARSE_FLAGS();
   td::parse(origin_, parser);
   td::parse(date_, parser);
-  if (has_from) {
-    td::parse(from_dialog_id_, parser);
-    td::parse(from_message_id_, parser);
-    if (!from_dialog_id_.is_valid() || !from_message_id_.is_valid()) {
-      from_dialog_id_ = DialogId();
-      from_message_id_ = MessageId();
-    }
+  if (has_last_message_info) {
+    td::parse(last_message_info_, parser);
   }
   if (has_psa_type) {
     td::parse(psa_type_, parser);
