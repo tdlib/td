@@ -4260,10 +4260,11 @@ void MessagesManager::Message::parse(ParserT &parser) {
   if (has_forward_info) {
     parse(forward_info, parser);
   } else if (legacy_is_forwarded) {
-    forward_info = make_unique<MessageForwardInfo>();
+    MessageOrigin forward_origin;
+    int32 forward_date;
     if (legacy_has_forward_origin) {
-      parse(forward_info->origin_, parser);
-      parse(forward_info->date_, parser);
+      parse(forward_origin, parser);
+      parse(forward_date, parser);
     } else {
       UserId forward_sender_user_id;
       DialogId forward_sender_dialog_id;
@@ -4271,7 +4272,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
       string forward_author_signature;
       string forward_sender_name;
       parse(forward_sender_user_id, parser);
-      parse(forward_info->date_, parser);
+      parse(forward_date, parser);
       parse(forward_sender_dialog_id, parser);
       parse(forward_message_id, parser);
       if (legacy_has_forward_author_signature) {
@@ -4280,17 +4281,22 @@ void MessagesManager::Message::parse(ParserT &parser) {
       if (legacy_has_forward_sender_name) {
         parse(forward_sender_name, parser);
       }
-      forward_info->origin_ = MessageOrigin(forward_sender_user_id, forward_sender_dialog_id, forward_message_id,
-                                            std::move(forward_author_signature), std::move(forward_sender_name));
+      forward_origin = MessageOrigin(forward_sender_user_id, forward_sender_dialog_id, forward_message_id,
+                                     std::move(forward_author_signature), std::move(forward_sender_name));
     }
+    DialogId forward_from_dialog_id;
+    MessageId forward_from_message_id;
     if (legacy_has_forward_from) {
-      parse(forward_info->from_dialog_id_, parser);
-      parse(forward_info->from_message_id_, parser);
+      parse(forward_from_dialog_id, parser);
+      parse(forward_from_message_id, parser);
     }
+    string psa_type;
     if (legacy_has_forward_psa_type) {
-      parse(forward_info->psa_type_, parser);
+      parse(psa_type, parser);
     }
-    forward_info->is_imported_ = legacy_is_imported;
+    forward_info =
+        td::make_unique<MessageForwardInfo>(std::move(forward_origin), forward_date, forward_from_dialog_id,
+                                            forward_from_message_id, std::move(psa_type), legacy_is_imported);
   }
   if (has_real_forward_from) {
     parse(real_forward_from_dialog_id, parser);
