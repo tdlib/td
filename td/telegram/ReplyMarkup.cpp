@@ -710,8 +710,8 @@ static Result<InlineKeyboardButton> get_inline_keyboard_button(tl_object_ptr<td_
   return std::move(current_button);
 }
 
-Result<unique_ptr<ReplyMarkup>> get_reply_markup(tl_object_ptr<td_api::ReplyMarkup> &&reply_markup_ptr, bool is_bot,
-                                                 bool only_inline_keyboard, bool request_buttons_allowed,
+Result<unique_ptr<ReplyMarkup>> get_reply_markup(td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup_ptr,
+                                                 bool is_bot, bool only_inline_keyboard, bool request_buttons_allowed,
                                                  bool switch_inline_buttons_allowed) {
   CHECK(!only_inline_keyboard || !request_buttons_allowed);
   if (reply_markup_ptr == nullptr || !is_bot) {
@@ -821,6 +821,36 @@ Result<unique_ptr<ReplyMarkup>> get_reply_markup(tl_object_ptr<td_api::ReplyMark
       UNREACHABLE();
   }
 
+  return std::move(reply_markup);
+}
+
+Result<unique_ptr<ReplyMarkup>> get_reply_markup(td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup_ptr,
+                                                 DialogId dialog_id, bool is_bot, bool is_anonymous) {
+  auto dialog_type = dialog_id.get_type();
+  bool only_inline_keyboard = is_anonymous;
+  bool request_buttons_allowed = dialog_type == DialogType::User;
+  bool switch_inline_buttons_allowed = !is_anonymous;
+
+  TRY_RESULT(reply_markup, get_reply_markup(std::move(reply_markup_ptr), is_bot, only_inline_keyboard,
+                                            request_buttons_allowed, switch_inline_buttons_allowed));
+  if (reply_markup == nullptr) {
+    return nullptr;
+  }
+  switch (dialog_type) {
+    case DialogType::User:
+      if (reply_markup->type != ReplyMarkup::Type::InlineKeyboard) {
+        reply_markup->is_personal = false;
+      }
+      break;
+    case DialogType::Channel:
+    case DialogType::Chat:
+    case DialogType::SecretChat:
+    case DialogType::None:
+      // nothing special
+      break;
+    default:
+      UNREACHABLE();
+  }
   return std::move(reply_markup);
 }
 

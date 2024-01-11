@@ -25646,42 +25646,9 @@ bool MessagesManager::can_set_game_score(DialogId dialog_id, const Message *m) c
 }
 
 Result<unique_ptr<ReplyMarkup>> MessagesManager::get_dialog_reply_markup(
-    DialogId dialog_id, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup_ptr) const {
-  if (reply_markup_ptr == nullptr) {
-    return nullptr;
-  }
-
-  auto dialog_type = dialog_id.get_type();
-  bool is_anonymous = td_->dialog_manager_->is_anonymous_administrator(dialog_id, nullptr);
-
-  bool only_inline_keyboard = is_anonymous;
-  bool request_buttons_allowed = dialog_type == DialogType::User;
-  bool switch_inline_buttons_allowed = !is_anonymous;
-
-  TRY_RESULT(reply_markup,
-             get_reply_markup(std::move(reply_markup_ptr), td_->auth_manager_->is_bot(), only_inline_keyboard,
-                              request_buttons_allowed, switch_inline_buttons_allowed));
-  if (reply_markup == nullptr) {
-    return nullptr;
-  }
-
-  switch (dialog_type) {
-    case DialogType::User:
-      if (reply_markup->type != ReplyMarkup::Type::InlineKeyboard) {
-        reply_markup->is_personal = false;
-      }
-      break;
-    case DialogType::Channel:
-    case DialogType::Chat:
-    case DialogType::SecretChat:
-    case DialogType::None:
-      // nothing special
-      break;
-    default:
-      UNREACHABLE();
-  }
-
-  return std::move(reply_markup);
+    DialogId dialog_id, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup) const {
+  return get_reply_markup(std::move(reply_markup), dialog_id, td_->auth_manager_->is_bot(),
+                          td_->dialog_manager_->is_anonymous_administrator(dialog_id, nullptr));
 }
 
 class MessagesManager::ForwardMessagesLogEvent {
