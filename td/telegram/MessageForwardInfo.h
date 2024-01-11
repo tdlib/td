@@ -47,6 +47,8 @@ class LastForwardedMessageInfo {
 
   void add_min_channel_ids(vector<ChannelId> &channel_ids) const;
 
+  td_api::object_ptr<td_api::forwardSource> get_forward_source_object(Td *td) const;
+
   DialogId get_dialog_id() const {
     return dialog_id_;
   }

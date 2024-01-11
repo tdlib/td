@@ -46,6 +46,14 @@ void LastForwardedMessageInfo::add_min_channel_ids(vector<ChannelId> &channel_id
   }
 }
 
+td_api::object_ptr<td_api::forwardSource> LastForwardedMessageInfo::get_forward_source_object(Td *td) const {
+  if (is_empty()) {
+    return nullptr;
+  }
+  return td_api::make_object<td_api::forwardSource>(
+      td->messages_manager_->get_chat_id_object(dialog_id_, "forwardSource"), message_id_.get());
+}
+
 bool operator==(const LastForwardedMessageInfo &lhs, const LastForwardedMessageInfo &rhs) {
   return lhs.dialog_id_ == rhs.dialog_id_ && lhs.message_id_ == rhs.message_id_;
 }
@@ -111,11 +119,8 @@ td_api::object_ptr<td_api::messageForwardInfo> MessageForwardInfo::get_message_f
   if (is_imported_) {
     return nullptr;
   }
-  auto last_message_full_id = get_last_message_full_id();
-  return td_api::make_object<td_api::messageForwardInfo>(
-      origin_.get_message_origin_object(td), date_, psa_type_,
-      td->messages_manager_->get_chat_id_object(last_message_full_id.get_dialog_id(), "messageForwardInfo"),
-      last_message_full_id.get_message_id().get());
+  return td_api::make_object<td_api::messageForwardInfo>(origin_.get_message_origin_object(td), date_,
+                                                         last_message_info_.get_forward_source_object(td), psa_type_);
 }
 
 td_api::object_ptr<td_api::messageImportInfo> MessageForwardInfo::get_message_import_info_object() const {

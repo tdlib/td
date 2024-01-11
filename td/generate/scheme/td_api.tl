@@ -1181,6 +1181,12 @@ messageOriginChat sender_chat_id:int53 author_signature:string = MessageOrigin;
 messageOriginChannel chat_id:int53 message_id:int53 author_signature:string = MessageOrigin;
 
 
+//@description Contains information about the last message from which the new message was forwarded last time
+//@chat_id Identifier of the chat from which the message was forwarded last time
+//@message_id Identifier of the source message from which the message was forwarded last time
+forwardSource chat_id:int53 message_id:int53 = ForwardSource;
+
+
 //@class ReactionType @description Describes type of message reaction
 
 //@description A reaction with an emoji @emoji Text representation of the reaction
@@ -1193,10 +1199,9 @@ reactionTypeCustomEmoji custom_emoji_id:int64 = ReactionType;
 //@description Contains information about a forwarded message
 //@origin Origin of the forwarded message
 //@date Point in time (Unix timestamp) when the message was originally sent
+//@source For messages forwarded to the chat with the current user (Saved Messages), to the Replies bot chat, or to the channel's discussion group, information about the source message, from which the message was forwarded last time; may be null for other forwards or if unknown
 //@public_service_announcement_type The type of a public service announcement for the forwarded message
-//@from_chat_id For messages forwarded to the chat with the current user (Saved Messages), to the Replies bot chat, or to the channel's discussion group, the identifier of the chat from which the message was forwarded last time; 0 if unknown
-//@from_message_id For messages forwarded to the chat with the current user (Saved Messages), to the Replies bot chat, or to the channel's discussion group, the identifier of the original message from which the new message was forwarded last time; 0 if unknown
-messageForwardInfo origin:MessageOrigin date:int32 public_service_announcement_type:string from_chat_id:int53 from_message_id:int53 = MessageForwardInfo;
+messageForwardInfo origin:MessageOrigin date:int32 source:forwardSource public_service_announcement_type:string = MessageForwardInfo;
 
 //@description Contains information about a message created with importMessages
 //@sender_name Name of the original sender
