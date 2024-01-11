@@ -462,6 +462,18 @@ void PasswordManager::resend_recovery_email_address_code(Promise<State> promise)
                     }));
 }
 
+void PasswordManager::cancel_recovery_email_address_verification(Promise<State> promise) {
+  auto query = G()->net_query_creator().create(telegram_api::account_cancelPasswordEmail());
+  send_with_promise(std::move(query), PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](
+                                                                 Result<NetQueryPtr> r_query) mutable {
+                      auto r_result = fetch_result<telegram_api::account_cancelPasswordEmail>(std::move(r_query));
+                      if (r_result.is_error() && r_result.error().message() != "EMAIL_HASH_EXPIRED") {
+                        return promise.set_error(r_result.move_as_error());
+                      }
+                      send_closure(actor_id, &PasswordManager::get_state, std::move(promise));
+                    }));
+}
+
 void PasswordManager::send_email_address_verification_code(string email, Promise<SentEmailCode> promise) {
   last_verified_email_address_ = email;
   auto query = G()->net_query_creator().create(telegram_api::account_sendVerifyEmailCode(

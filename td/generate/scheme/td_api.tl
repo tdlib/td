@@ -6946,6 +6946,9 @@ checkRecoveryEmailAddressCode code:string = PasswordState;
 //@description Resends the 2-step verification recovery email address verification code
 resendRecoveryEmailAddressCode = PasswordState;
 
+//@description Cancels verification of the 2-step verification recovery email address
+cancelRecoveryEmailAddressVerification = PasswordState;
+
 //@description Requests to send a 2-step verification password recovery code to an email address that was previously set up
 requestPasswordRecovery = EmailAddressAuthenticationCodeInfo;
 

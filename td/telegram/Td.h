@@ -511,6 +511,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::resendRecoveryEmailAddressCode &request);
 
+  void on_request(uint64 id, const td_api::cancelRecoveryEmailAddressVerification &request);
+
   void on_request(uint64 id, td_api::requestPasswordRecovery &request);
 
   void on_request(uint64 id, td_api::checkPasswordRecoveryCode &request);

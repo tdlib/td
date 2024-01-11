@@ -2529,6 +2529,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::checkRecoveryEmailAddressCode>(args));
     } else if (op == "rreac") {
       send_request(td_api::make_object<td_api::resendRecoveryEmailAddressCode>());
+    } else if (op == "creav") {
+      send_request(td_api::make_object<td_api::cancelRecoveryEmailAddressVerification>());
     } else if (op == "spncc") {
       string hash;
       string phone_number;
