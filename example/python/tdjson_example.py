@@ -106,8 +106,7 @@ while True:
                          'api_hash': 'a3406de8d171bb422bb6ddf3bbd800e2',
                          'system_language_code': 'en',
                          'device_model': 'Desktop',
-                         'application_version': '1.0',
-                         'enable_storage_optimizer': True})
+                         'application_version': '1.0'})
 
             # enter phone number to log in
             if auth_state['@type'] == 'authorizationStateWaitPhoneNumber':

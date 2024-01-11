@@ -3500,9 +3500,6 @@ void Td::init(Parameters parameters, Result<TdDb::OpenedDatabase> r_opened_datab
 
   init_options_and_network();
 
-  option_manager_->set_option_boolean("use_storage_optimizer", parameters.enable_storage_optimizer_);
-  option_manager_->set_option_boolean("ignore_file_names", parameters.ignore_file_names_);
-
   // we need to process td_api::getOption along with td_api::setOption for consistency
   // we need to process td_api::setOption before managers and MTProto header are created,
   // because their initialiation may be affected by the options
@@ -4087,8 +4084,6 @@ Result<std::pair<Td::Parameters, TdDb::Parameters>> Td::get_parameters(
   result.first.api_id_ = parameters->api_id_;
   result.first.api_hash_ = std::move(parameters->api_hash_);
   result.first.use_secret_chats_ = parameters->use_secret_chats_;
-  result.first.enable_storage_optimizer_ = parameters->enable_storage_optimizer_;
-  result.first.ignore_file_names_ = parameters->ignore_file_names_;
 
   result.second.encryption_key_ = as_db_key(std::move(parameters->database_encryption_key_));
   result.second.database_directory_ = std::move(parameters->database_directory_);

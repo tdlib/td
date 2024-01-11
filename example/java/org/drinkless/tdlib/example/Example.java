@@ -102,7 +102,6 @@ public final class Example {
                 request.systemLanguageCode = "en";
                 request.deviceModel = "Desktop";
                 request.applicationVersion = "1.0";
-                request.enableStorageOptimizer = true;
 
                 client.send(request, new AuthorizationRequestHandler());
                 break;

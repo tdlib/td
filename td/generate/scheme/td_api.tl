@@ -6829,9 +6829,7 @@ getAuthorizationState = AuthorizationState;
 //@device_model Model of the device the application is being run on; must be non-empty
 //@system_version Version of the operating system the application is being run on. If empty, the version is automatically detected by TDLib
 //@application_version Application version; must be non-empty
-//@enable_storage_optimizer Pass true to automatically delete old files in background
-//@ignore_file_names Pass true to ignore original file names for downloaded files. Otherwise, downloaded files are saved under names as close as possible to the original name
-setTdlibParameters use_test_dc:Bool database_directory:string files_directory:string database_encryption_key:bytes use_file_database:Bool use_chat_info_database:Bool use_message_database:Bool use_secret_chats:Bool api_id:int32 api_hash:string system_language_code:string device_model:string system_version:string application_version:string enable_storage_optimizer:Bool ignore_file_names:Bool = Ok;
+setTdlibParameters use_test_dc:Bool database_directory:string files_directory:string database_encryption_key:bytes use_file_database:Bool use_chat_info_database:Bool use_message_database:Bool use_secret_chats:Bool api_id:int32 api_hash:string system_language_code:string device_model:string system_version:string application_version:string = Ok;
 
 //@description Sets the phone number of the user and sends an authentication code to the user. Works only when the current authorization state is authorizationStateWaitPhoneNumber,
 //-or if there is no pending authentication query and the current authorization state is authorizationStateWaitEmailAddress, authorizationStateWaitEmailCode, authorizationStateWaitCode, authorizationStateWaitRegistration, or authorizationStateWaitPassword

@@ -314,7 +314,6 @@ class TdExample {
                                 request->system_language_code_ = "en";
                                 request->device_model_ = "Desktop";
                                 request->application_version_ = "1.0";
-                                request->enable_storage_optimizer_ = true;
                                 send_query(std::move(request), create_authentication_query_handler());
                               }));
   }

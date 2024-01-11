@@ -244,7 +244,6 @@ class InitTask : public Task {
         request->system_language_code_ = "en";
         request->device_model_ = "Desktop";
         request->application_version_ = "tdclient-test";
-        request->enable_storage_optimizer_ = true;
         send(std::move(request));
         break;
       }

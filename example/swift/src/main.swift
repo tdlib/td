@@ -114,8 +114,7 @@ func updateAuthorizationState(authorizationState: Dictionary<String, Any>) {
                 "api_hash":"a3406de8d171bb422bb6ddf3bbd800e2",
                 "system_language_code":"en",
                 "device_model":"Desktop",
-                "application_version":"1.0",
-                "enable_storage_optimizer":true
+                "application_version":"1.0"
             ]);
 
         case "authorizationStateWaitPhoneNumber":

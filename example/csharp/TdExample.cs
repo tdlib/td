@@ -76,7 +76,6 @@ namespace TdExample
                 request.SystemLanguageCode = "en";
                 request.DeviceModel = "Desktop";
                 request.ApplicationVersion = "1.0";
-                request.EnableStorageOptimizer = true;
 
                 _client.Send(request, new AuthorizationRequestHandler());
             }

@@ -1824,10 +1824,6 @@ class Td final : public Actor {
     int32 api_id_ = 0;
     string api_hash_;
     bool use_secret_chats_ = false;
-
-    // TODO move to options and remove
-    bool enable_storage_optimizer_ = false;
-    bool ignore_file_names_ = false;
   };
 
   void finish_set_parameters();
