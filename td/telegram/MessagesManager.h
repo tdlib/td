@@ -107,6 +107,7 @@ class DialogFilter;
 class DraftMessage;
 struct InputMessageContent;
 class MessageContent;
+struct MessageForwardInfo;
 struct MessageReactions;
 class Td;
 class Usernames;
@@ -977,47 +978,6 @@ class MessagesManager final : public Actor {
 
     unique_ptr<MessageContent> content;
     tl_object_ptr<telegram_api::ReplyMarkup> reply_markup;
-  };
-
-  struct MessageForwardInfo {
-    MessageOrigin origin;
-    int32 date = 0;
-    DialogId from_dialog_id;
-    MessageId from_message_id;
-    string psa_type;
-    bool is_imported = false;
-
-    MessageForwardInfo() = default;
-
-    MessageForwardInfo(MessageOrigin &&origin, int32 date, DialogId from_dialog_id, MessageId from_message_id,
-                       string &&psa_type, bool is_imported)
-        : origin(std::move(origin))
-        , date(date)
-        , from_dialog_id(from_dialog_id)
-        , from_message_id(from_message_id)
-        , psa_type(std::move(psa_type))
-        , is_imported(is_imported) {
-    }
-
-    bool operator==(const MessageForwardInfo &rhs) const {
-      return origin == rhs.origin && date == rhs.date && from_dialog_id == rhs.from_dialog_id &&
-             from_message_id == rhs.from_message_id && psa_type == rhs.psa_type && is_imported == rhs.is_imported;
-    }
-
-    bool operator!=(const MessageForwardInfo &rhs) const {
-      return !(*this == rhs);
-    }
-
-    friend StringBuilder &operator<<(StringBuilder &string_builder, const MessageForwardInfo &forward_info) {
-      string_builder << "MessageForwardInfo[" << (forward_info.is_imported ? "imported " : "") << forward_info.origin;
-      if (!forward_info.psa_type.empty()) {
-        string_builder << ", psa_type " << forward_info.psa_type;
-      }
-      if (forward_info.from_dialog_id.is_valid() || forward_info.from_message_id.is_valid()) {
-        string_builder << ", from " << MessageFullId(forward_info.from_dialog_id, forward_info.from_message_id);
-      }
-      return string_builder << " at " << forward_info.date << ']';
-    }
   };
 
   // Do not forget to update MessagesManager::update_message and all make_unique<Message> when this class is changed

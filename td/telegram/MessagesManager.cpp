@@ -46,6 +46,8 @@
 #include "td/telegram/MessageDb.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageEntity.hpp"
+#include "td/telegram/MessageForwardInfo.h"
+#include "td/telegram/MessageForwardInfo.hpp"
 #include "td/telegram/MessageOrigin.hpp"
 #include "td/telegram/MessageReaction.h"
 #include "td/telegram/MessageReaction.hpp"
@@ -3867,7 +3869,6 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_sender = sender_user_id.is_valid();
   bool has_edit_date = edit_date > 0;
   bool has_random_id = random_id != 0;
-  bool is_forwarded = forward_info != nullptr;
   bool is_reply_to_random_id = reply_to_random_id != 0;
   bool is_via_bot = via_bot_user_id.is_valid();
   bool has_view_count = view_count > 0;
@@ -3875,8 +3876,6 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_ttl = ttl != 0;
   bool has_author_signature = !author_signature.empty();
   bool has_media_album_id = media_album_id != 0;
-  bool has_forward_from =
-      is_forwarded && (forward_info->from_dialog_id.is_valid() || forward_info->from_message_id.is_valid());
   bool has_send_date = message_id.is_yet_unsent() && send_date != 0;
   bool has_flags2 = true;
   bool has_notification_id = notification_id.is_valid();
@@ -3884,7 +3883,6 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_real_forward_from = real_forward_from_dialog_id.is_valid() && real_forward_from_message_id.is_valid();
   bool has_legacy_layer = legacy_layer != 0;
   bool has_restriction_reasons = !restriction_reasons.empty();
-  bool has_forward_psa_type = is_forwarded && !forward_info->psa_type.empty();
   bool has_forward_count = forward_count > 0;
   bool has_reply_info = !reply_info.is_empty();
   bool has_sender_dialog_id = sender_dialog_id.is_valid();
@@ -3894,7 +3892,6 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_linked_top_thread_message_id = linked_top_thread_message_id.is_valid();
   bool has_interaction_info_update_date = interaction_info_update_date != 0;
   bool has_send_emoji = !send_emoji.empty();
-  bool is_imported = is_forwarded && forward_info->is_imported;
   bool has_ttl_period = ttl_period != 0;
   bool has_max_reply_media_timestamp = max_reply_media_timestamp >= 0;
   bool are_message_media_timestamp_entities_found = true;
@@ -3903,9 +3900,9 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_available_reactions_generation = available_reactions_generation != 0;
   bool has_history_generation = history_generation != 0;
   bool is_reply_to_story = reply_to_story_full_id != StoryFullId();
-  bool has_forward_origin = is_forwarded;
   bool has_input_reply_to = !message_id.is_any_server() && input_reply_to.is_valid();
   bool has_replied_message_info = !replied_message_info.is_empty();
+  bool has_forward_info = forward_info != nullptr;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
   STORE_FLAG(is_outgoing);
@@ -3920,7 +3917,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   STORE_FLAG(has_sender);
   STORE_FLAG(has_edit_date);
   STORE_FLAG(has_random_id);
-  STORE_FLAG(is_forwarded);
+  STORE_FLAG(false);
   STORE_FLAG(false);
   STORE_FLAG(is_reply_to_random_id);
   STORE_FLAG(is_via_bot);
@@ -3932,7 +3929,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   STORE_FLAG(had_reply_markup);
   STORE_FLAG(contains_unread_mention);
   STORE_FLAG(has_media_album_id);
-  STORE_FLAG(has_forward_from);
+  STORE_FLAG(false);
   STORE_FLAG(in_game_share);
   STORE_FLAG(is_content_secret);
   STORE_FLAG(has_send_date);
@@ -3953,7 +3950,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(has_restriction_reasons);
     STORE_FLAG(is_from_scheduled);
     STORE_FLAG(is_copy);
-    STORE_FLAG(has_forward_psa_type);
+    STORE_FLAG(false);
     STORE_FLAG(has_forward_count);
     STORE_FLAG(has_reply_info);
     STORE_FLAG(has_sender_dialog_id);
@@ -3965,7 +3962,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(is_pinned);
     STORE_FLAG(has_interaction_info_update_date);
     STORE_FLAG(has_send_emoji);
-    STORE_FLAG(is_imported);
+    STORE_FLAG(false);
     STORE_FLAG(has_ttl_period);
     STORE_FLAG(has_max_reply_media_timestamp);
     STORE_FLAG(are_message_media_timestamp_entities_found);
@@ -3982,10 +3979,11 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(is_topic_message);
     STORE_FLAG(has_history_generation);
     STORE_FLAG(is_reply_to_story);
-    STORE_FLAG(has_forward_origin);
+    STORE_FLAG(false);
     STORE_FLAG(invert_media);
     STORE_FLAG(has_input_reply_to);
     STORE_FLAG(has_replied_message_info);
+    STORE_FLAG(has_forward_info);
     END_STORE_FLAGS();
   }
 
@@ -4003,16 +4001,8 @@ void MessagesManager::Message::store(StorerT &storer) const {
   if (has_random_id) {
     store(random_id, storer);
   }
-  if (is_forwarded) {
-    store(forward_info->origin, storer);
-    store(forward_info->date, storer);
-    if (has_forward_from) {
-      store(forward_info->from_dialog_id, storer);
-      store(forward_info->from_message_id, storer);
-    }
-    if (has_forward_psa_type) {
-      store(forward_info->psa_type, storer);
-    }
+  if (has_forward_info) {
+    store(forward_info, storer);
   }
   if (has_real_forward_from) {
     store(real_forward_from_dialog_id, storer);
@@ -4119,7 +4109,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool has_sender;
   bool has_edit_date;
   bool has_random_id;
-  bool is_forwarded;
+  bool legacy_is_forwarded;
   bool legacy_is_reply;
   bool is_reply_to_random_id;
   bool is_via_bot;
@@ -4129,7 +4119,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool has_author_signature;
   bool legacy_has_forward_author_signature;
   bool has_media_album_id;
-  bool has_forward_from;
+  bool legacy_has_forward_from;
   bool has_send_date;
   bool has_flags2;
   bool has_notification_id = false;
@@ -4138,7 +4128,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool has_real_forward_from = false;
   bool has_legacy_layer = false;
   bool has_restriction_reasons = false;
-  bool has_forward_psa_type = false;
+  bool legacy_has_forward_psa_type = false;
   bool has_forward_count = false;
   bool has_reply_info = false;
   bool has_sender_dialog_id = false;
@@ -4149,7 +4139,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool has_linked_top_thread_message_id = false;
   bool has_interaction_info_update_date = false;
   bool has_send_emoji = false;
-  bool is_imported = false;
+  bool legacy_is_imported = false;
   bool has_ttl_period = false;
   bool has_max_reply_media_timestamp = false;
   bool has_flags3 = false;
@@ -4157,9 +4147,10 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool has_available_reactions_generation = false;
   bool has_history_generation = false;
   bool is_reply_to_story = false;
-  bool has_forward_origin = false;
+  bool legacy_has_forward_origin = false;
   bool has_input_reply_to = false;
   bool has_replied_message_info = false;
+  bool has_forward_info = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_channel_post);
   PARSE_FLAG(is_outgoing);
@@ -4174,7 +4165,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   PARSE_FLAG(has_sender);
   PARSE_FLAG(has_edit_date);
   PARSE_FLAG(has_random_id);
-  PARSE_FLAG(is_forwarded);
+  PARSE_FLAG(legacy_is_forwarded);
   PARSE_FLAG(legacy_is_reply);
   PARSE_FLAG(is_reply_to_random_id);
   PARSE_FLAG(is_via_bot);
@@ -4186,7 +4177,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   PARSE_FLAG(had_reply_markup);
   PARSE_FLAG(contains_unread_mention);
   PARSE_FLAG(has_media_album_id);
-  PARSE_FLAG(has_forward_from);
+  PARSE_FLAG(legacy_has_forward_from);
   PARSE_FLAG(in_game_share);
   PARSE_FLAG(is_content_secret);
   PARSE_FLAG(has_send_date);
@@ -4207,7 +4198,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(has_restriction_reasons);
     PARSE_FLAG(is_from_scheduled);
     PARSE_FLAG(is_copy);
-    PARSE_FLAG(has_forward_psa_type);
+    PARSE_FLAG(legacy_has_forward_psa_type);
     PARSE_FLAG(has_forward_count);
     PARSE_FLAG(has_reply_info);
     PARSE_FLAG(has_sender_dialog_id);
@@ -4219,7 +4210,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(is_pinned);
     PARSE_FLAG(has_interaction_info_update_date);
     PARSE_FLAG(has_send_emoji);
-    PARSE_FLAG(is_imported);
+    PARSE_FLAG(legacy_is_imported);
     PARSE_FLAG(has_ttl_period);
     PARSE_FLAG(has_max_reply_media_timestamp);
     PARSE_FLAG(are_media_timestamp_entities_found);
@@ -4236,10 +4227,11 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(is_topic_message);
     PARSE_FLAG(has_history_generation);
     PARSE_FLAG(is_reply_to_story);
-    PARSE_FLAG(has_forward_origin);
+    PARSE_FLAG(legacy_has_forward_origin);
     PARSE_FLAG(invert_media);
     PARSE_FLAG(has_input_reply_to);
     PARSE_FLAG(has_replied_message_info);
+    PARSE_FLAG(has_forward_info);
     END_PARSE_FLAGS();
   }
 
@@ -4265,9 +4257,11 @@ void MessagesManager::Message::parse(ParserT &parser) {
   if (has_random_id) {
     parse(random_id, parser);
   }
-  if (is_forwarded) {
+  if (has_forward_info) {
+    parse(forward_info, parser);
+  } else if (legacy_is_forwarded) {
     forward_info = make_unique<MessageForwardInfo>();
-    if (has_forward_origin) {
+    if (legacy_has_forward_origin) {
       parse(forward_info->origin, parser);
       parse(forward_info->date, parser);
     } else {
@@ -4289,14 +4283,14 @@ void MessagesManager::Message::parse(ParserT &parser) {
       forward_info->origin = MessageOrigin(forward_sender_user_id, forward_sender_dialog_id, forward_message_id,
                                            std::move(forward_author_signature), std::move(forward_sender_name));
     }
-    if (has_forward_from) {
+    if (legacy_has_forward_from) {
       parse(forward_info->from_dialog_id, parser);
       parse(forward_info->from_message_id, parser);
     }
-    if (has_forward_psa_type) {
+    if (legacy_has_forward_psa_type) {
       parse(forward_info->psa_type, parser);
     }
-    forward_info->is_imported = is_imported;
+    forward_info->is_imported = legacy_is_imported;
   }
   if (has_real_forward_from) {
     parse(real_forward_from_dialog_id, parser);
@@ -25641,7 +25635,7 @@ bool MessagesManager::can_set_game_score(DialogId dialog_id, const Message *m) c
   return true;
 }
 
-unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::get_message_forward_info(
+unique_ptr<MessageForwardInfo> MessagesManager::get_message_forward_info(
     tl_object_ptr<telegram_api::messageFwdHeader> &&forward_header) {
   if (forward_header == nullptr) {
     return nullptr;
@@ -25887,9 +25881,9 @@ MessageOrigin MessagesManager::get_forwarded_message_origin(DialogId dialog_id, 
   return origin;
 }
 
-unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::create_message_forward_info(DialogId from_dialog_id,
-                                                                                             DialogId to_dialog_id,
-                                                                                             const Message *m) const {
+unique_ptr<MessageForwardInfo> MessagesManager::create_message_forward_info(DialogId from_dialog_id,
+                                                                            DialogId to_dialog_id,
+                                                                            const Message *m) const {
   auto content_type = m->content->get_type();
   if (content_type == MessageContentType::Game) {
     return nullptr;

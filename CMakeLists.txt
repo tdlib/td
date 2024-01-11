@@ -400,6 +400,7 @@ set(TDLIB_SOURCE
   td/telegram/MessageDb.cpp
   td/telegram/MessageEntity.cpp
   td/telegram/MessageExtendedMedia.cpp
+  td/telegram/MessageForwardInfo.cpp
   td/telegram/MessageId.cpp
   td/telegram/MessageImportManager.cpp
   td/telegram/MessageInputReplyTo.cpp
@@ -698,6 +699,7 @@ set(TDLIB_SOURCE
   td/telegram/MessageDb.h
   td/telegram/MessageEntity.h
   td/telegram/MessageExtendedMedia.h
+  td/telegram/MessageForwardInfo.h
   td/telegram/MessageFullId.h
   td/telegram/MessageId.h
   td/telegram/MessageImportManager.h
@@ -887,6 +889,7 @@ set(TDLIB_SOURCE
   td/telegram/MediaAreaCoordinates.hpp
   td/telegram/MessageEntity.hpp
   td/telegram/MessageExtendedMedia.hpp
+  td/telegram/MessageForwardInfo.hpp
   td/telegram/MessageInputReplyTo.hpp
   td/telegram/MessageOrigin.hpp
   td/telegram/MessageReaction.hpp
