@@ -23,7 +23,7 @@ namespace td {
 class Dependencies;
 class Td;
 
-struct MessageForwardInfo {
+class MessageForwardInfo {
   MessageOrigin origin_;
   int32 date_ = 0;
   DialogId from_dialog_id_;
@@ -31,6 +31,11 @@ struct MessageForwardInfo {
   string psa_type_;
   bool is_imported_ = false;
 
+  friend bool operator==(const MessageForwardInfo &lhs, const MessageForwardInfo &rhs);
+
+  friend StringBuilder &operator<<(StringBuilder &string_builder, const MessageForwardInfo &forward_info);
+
+ public:
   MessageForwardInfo() = default;
 
   MessageForwardInfo(MessageOrigin &&origin, int32 date, DialogId from_dialog_id, MessageId from_message_id,
@@ -71,6 +76,10 @@ struct MessageForwardInfo {
 
   bool is_imported() const {
     return is_imported_;
+  }
+
+  const MessageOrigin &get_origin() const {
+    return origin_;
   }
 
   MessageFullId get_origin_message_full_id() const {

@@ -55,6 +55,11 @@ unique_ptr<MessageForwardInfo> MessageForwardInfo::copy_message_forward_info(Td 
                                                                              const MessageForwardInfo &forward_info,
                                                                              DialogId from_dialog_id,
                                                                              MessageId from_message_id) {
+  if (from_dialog_id.is_valid() != from_message_id.is_valid()) {
+    from_dialog_id = DialogId();
+    from_message_id = MessageId();
+  }
+
   auto result = make_unique<MessageForwardInfo>(forward_info);
   result->from_dialog_id_ = from_dialog_id;
   result->from_message_id_ = from_message_id;

@@ -9325,7 +9325,7 @@ bool MessagesManager::can_get_message_statistics(DialogId dialog_id, const Messa
     return false;
   }
   if (m == nullptr || m->message_id.is_scheduled() || !m->message_id.is_server() || m->view_count == 0 ||
-      m->had_forward_info || (m->forward_info != nullptr && m->forward_info->origin_.is_channel_post())) {
+      m->had_forward_info || (m->forward_info != nullptr && m->forward_info->get_origin().is_channel_post())) {
     return false;
   }
   return td_->contacts_manager_->can_get_channel_message_statistics(dialog_id);
@@ -15903,12 +15903,13 @@ void MessagesManager::block_message_sender_from_replies(MessageId message_id, bo
 
   DialogId sender_dialog_id;
   if (m->forward_info != nullptr) {
-    sender_dialog_id = m->forward_info->origin_.get_sender();
+    sender_dialog_id = m->forward_info->get_origin().get_sender();
   }
   vector<MessageId> message_ids;
   if (need_delete_all_messages && sender_dialog_id.is_valid()) {
     message_ids = find_dialog_messages(d, [sender_dialog_id](const Message *m) {
-      return !m->is_outgoing && m->forward_info != nullptr && m->forward_info->origin_.get_sender() == sender_dialog_id;
+      return !m->is_outgoing && m->forward_info != nullptr &&
+             m->forward_info->get_origin().get_sender() == sender_dialog_id;
     });
     CHECK(td::contains(message_ids, message_id));
   } else if (need_delete_message) {
@@ -22255,8 +22256,9 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
     // in Saved Messages all non-forwarded messages must be outgoing
     // a forwarded message is outgoing, only if it doesn't have from_dialog_id and its sender isn't hidden
     // i.e. a message is incoming only if it's a forwarded message with known from_dialog_id or with a hidden sender
-    is_outgoing = is_scheduled || m->forward_info == nullptr ||
-                  (!m->forward_info->get_last_dialog_id().is_valid() && !m->forward_info->origin_.is_sender_hidden());
+    is_outgoing =
+        is_scheduled || m->forward_info == nullptr ||
+        (!m->forward_info->get_last_dialog_id().is_valid() && !m->forward_info->get_origin().is_sender_hidden());
   }
 
   double ttl_expires_in = m->ttl_expires_at != 0 ? clamp(m->ttl_expires_at - Time::now(), 1e-3, m->ttl - 1e-3) : 0.0;
@@ -24627,7 +24629,7 @@ DialogId MessagesManager::get_message_original_sender(const Message *m) {
     if (m->forward_info->is_imported()) {
       return DialogId();
     }
-    return m->forward_info->origin_.get_sender();
+    return m->forward_info->get_origin().get_sender();
   }
   return get_message_sender(m);
 }
@@ -25815,7 +25817,7 @@ MessageOrigin MessagesManager::get_forwarded_message_origin(DialogId dialog_id, 
   CHECK(m != nullptr);
   MessageOrigin origin;
   if (m->forward_info != nullptr) {
-    origin = m->forward_info->origin_;
+    origin = m->forward_info->get_origin();
   } else if (m->is_channel_post) {
     if (td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
       auto author_signature = m->sender_user_id.is_valid() ? td_->contacts_manager_->get_user_title(m->sender_user_id)

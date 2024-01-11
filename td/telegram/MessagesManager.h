@@ -107,7 +107,7 @@ class DialogFilter;
 class DraftMessage;
 struct InputMessageContent;
 class MessageContent;
-struct MessageForwardInfo;
+class MessageForwardInfo;
 struct MessageReactions;
 class Td;
 class Usernames;
