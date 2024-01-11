@@ -33087,57 +33087,21 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     old_message->sender_dialog_id = new_message->sender_dialog_id;
     need_send_update = true;
   }
-  if (old_message->forward_info == nullptr) {
-    if (new_message->forward_info != nullptr) {
-      if (!replace_legacy) {
-        LOG(ERROR) << message_id << " in " << dialog_id << " has received forward info " << *new_message->forward_info
-                   << ", really forwarded from " << old_message->real_forward_from_message_id << " in "
-                   << old_message->real_forward_from_dialog_id << ", message content type is " << old_content_type
-                   << '/' << new_content_type;
-      } else {
-        LOG(DEBUG) << "Message forward has changed to " << *new_message->forward_info;
-      }
-      old_message->forward_info = std::move(new_message->forward_info);
-      need_send_update = true;
-    }
-  } else {
-    if (new_message->forward_info != nullptr) {
-      if (*old_message->forward_info != *new_message->forward_info) {
-        bool need_warning = [&] {
-          if (replace_legacy) {
-            return false;
-          }
-          if (old_message->forward_info->is_imported() || new_message->forward_info->is_imported()) {
-            return true;
-          }
-          if (!is_scheduled && !message_id.is_yet_unsent()) {
-            return true;
-          }
-          // yet unsent or scheduled messages can change sender name or author signature when being sent
-          return !old_message->forward_info->origin_.has_sender_signature() &&
-                 !new_message->forward_info->origin_.has_sender_signature();
-        }();
-        if (need_warning) {
-          LOG(ERROR) << message_id << " in " << dialog_id << " has changed forward info from "
-                     << *old_message->forward_info << " to " << *new_message->forward_info << ", really forwarded from "
-                     << old_message->real_forward_from_message_id << " in " << old_message->real_forward_from_dialog_id
-                     << ", message content type is " << old_content_type << '/' << new_content_type;
-        } else {
-          LOG(DEBUG) << "Message forward info has changed from " << *old_message->forward_info << " to "
-                     << *new_message->forward_info;
-        }
-        old_message->forward_info = std::move(new_message->forward_info);
-        need_send_update = true;
-      }
-    } else if (is_new_available) {
+  if (old_message->forward_info != new_message->forward_info) {
+    if (!replace_legacy && is_new_available &&
+        MessageForwardInfo::need_change_warning(old_message->forward_info.get(), new_message->forward_info.get(),
+                                                message_id)) {
       LOG(ERROR) << message_id << " in " << dialog_id << " sent by " << old_message->sender_user_id << "/"
-                 << old_message->sender_dialog_id << " has lost forward info " << *old_message->forward_info
-                 << ", really forwarded from " << old_message->real_forward_from_message_id << " in "
-                 << old_message->real_forward_from_dialog_id << ", message content type is " << old_content_type << '/'
-                 << new_content_type;
-      old_message->forward_info = nullptr;
-      need_send_update = true;
+                 << old_message->sender_dialog_id << " has changed forward info from " << old_message->forward_info
+                 << " to " << new_message->forward_info << ", really forwarded from "
+                 << old_message->real_forward_from_message_id << " in " << old_message->real_forward_from_dialog_id
+                 << ", message content type is " << old_content_type << '/' << new_content_type;
+    } else {
+      LOG(DEBUG) << "Message forward info has changed from " << old_message->forward_info << " to "
+                 << new_message->forward_info;
     }
+    old_message->forward_info = std::move(new_message->forward_info);
+    need_send_update = true;
   }
   if (old_message->had_forward_info != new_message->had_forward_info) {
     LOG(DEBUG) << "Message had_forward_info has changed from " << old_message->had_forward_info << " to "

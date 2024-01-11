@@ -84,6 +84,19 @@ void MessageForwardInfo::add_min_channel_ids(vector<ChannelId> &channel_ids) con
   }
 }
 
+bool MessageForwardInfo::need_change_warning(const MessageForwardInfo *lhs, const MessageForwardInfo *rhs,
+                                             MessageId message_id) {
+  // it should be already checked that *lhs != *rhs
+  if (lhs == nullptr || rhs == nullptr || lhs->is_imported_ || rhs->is_imported_) {
+    return true;
+  }
+  if (!message_id.is_scheduled() && !message_id.is_yet_unsent()) {
+    return true;
+  }
+  // yet unsent or scheduled messages can change sender name or author signature when being sent
+  return !lhs->origin_.has_sender_signature() && !rhs->origin_.has_sender_signature();
+}
+
 bool operator==(const MessageForwardInfo &lhs, const MessageForwardInfo &rhs) {
   return lhs.origin_ == rhs.origin_ && lhs.date_ == rhs.date_ && lhs.from_dialog_id_ == rhs.from_dialog_id_ &&
          lhs.from_message_id_ == rhs.from_message_id_ && lhs.psa_type_ == rhs.psa_type_ &&
@@ -91,6 +104,17 @@ bool operator==(const MessageForwardInfo &lhs, const MessageForwardInfo &rhs) {
 }
 
 bool operator!=(const MessageForwardInfo &lhs, const MessageForwardInfo &rhs) {
+  return !(lhs == rhs);
+}
+
+bool operator==(const unique_ptr<MessageForwardInfo> &lhs, const unique_ptr<MessageForwardInfo> &rhs) {
+  if (lhs == nullptr) {
+    return rhs == nullptr;
+  }
+  return rhs != nullptr && *lhs == *rhs;
+}
+
+bool operator!=(const unique_ptr<MessageForwardInfo> &lhs, const unique_ptr<MessageForwardInfo> &rhs) {
   return !(lhs == rhs);
 }
 
@@ -103,6 +127,13 @@ StringBuilder &operator<<(StringBuilder &string_builder, const MessageForwardInf
     string_builder << ", from " << MessageFullId(forward_info.from_dialog_id_, forward_info.from_message_id_);
   }
   return string_builder << " at " << forward_info.date_ << ']';
+}
+
+StringBuilder &operator<<(StringBuilder &string_builder, const unique_ptr<MessageForwardInfo> &forward_info) {
+  if (forward_info == nullptr) {
+    return string_builder << "[null]";
+  }
+  return string_builder << *forward_info;
 }
 
 }  // namespace td

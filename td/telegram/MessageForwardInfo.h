@@ -60,6 +60,8 @@ struct MessageForwardInfo {
 
   void add_min_channel_ids(vector<ChannelId> &channel_ids) const;
 
+  static bool need_change_warning(const MessageForwardInfo *lhs, const MessageForwardInfo *rhs, MessageId message_id);
+
   int32 get_origin_date() const {
     return date_;
   }
@@ -91,6 +93,12 @@ bool operator==(const MessageForwardInfo &lhs, const MessageForwardInfo &rhs);
 
 bool operator!=(const MessageForwardInfo &lhs, const MessageForwardInfo &rhs);
 
+bool operator==(const unique_ptr<MessageForwardInfo> &lhs, const unique_ptr<MessageForwardInfo> &rhs);
+
+bool operator!=(const unique_ptr<MessageForwardInfo> &lhs, const unique_ptr<MessageForwardInfo> &rhs);
+
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageForwardInfo &forward_info);
+
+StringBuilder &operator<<(StringBuilder &string_builder, const unique_ptr<MessageForwardInfo> &forward_info);
 
 }  // namespace td
