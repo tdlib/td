@@ -51,6 +51,17 @@ unique_ptr<MessageForwardInfo> MessageForwardInfo::get_message_forward_info(
                                              std::move(psa_type), is_imported);
 }
 
+unique_ptr<MessageForwardInfo> MessageForwardInfo::copy_message_forward_info(Td *td,
+                                                                             const MessageForwardInfo &forward_info,
+                                                                             DialogId from_dialog_id,
+                                                                             MessageId from_message_id) {
+  auto result = make_unique<MessageForwardInfo>(forward_info);
+  result->from_dialog_id_ = from_dialog_id;
+  result->from_message_id_ = from_message_id;
+  result->origin_.hide_sender_if_needed(td);
+  return result;
+}
+
 td_api::object_ptr<td_api::messageForwardInfo> MessageForwardInfo::get_message_forward_info_object(Td *td) const {
   if (is_imported_) {
     return nullptr;

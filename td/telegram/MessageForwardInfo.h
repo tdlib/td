@@ -50,6 +50,9 @@ struct MessageForwardInfo {
   static unique_ptr<MessageForwardInfo> get_message_forward_info(
       Td *td, telegram_api::object_ptr<telegram_api::messageFwdHeader> &&forward_header);
 
+  static unique_ptr<MessageForwardInfo> copy_message_forward_info(Td *td, const MessageForwardInfo &forward_info,
+                                                                  DialogId from_dialog_id, MessageId from_message_id);
+
   td_api::object_ptr<td_api::messageForwardInfo> get_message_forward_info_object(Td *td) const;
 
   td_api::object_ptr<td_api::messageImportInfo> get_message_import_info_object() const;

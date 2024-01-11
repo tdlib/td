@@ -25854,13 +25854,8 @@ unique_ptr<MessageForwardInfo> MessagesManager::create_message_forward_info(Dial
   }
 
   if (m->forward_info != nullptr) {
-    auto forward_info = make_unique<MessageForwardInfo>(*m->forward_info);
-    forward_info->from_dialog_id_ = saved_from_dialog_id;
-    forward_info->from_message_id_ = saved_from_message_id;
-    if (!forward_info->is_imported()) {
-      forward_info->origin_.hide_sender_if_needed(td_);
-    }
-    return forward_info;
+    return MessageForwardInfo::copy_message_forward_info(td_, *m->forward_info, saved_from_dialog_id,
+                                                         saved_from_message_id);
   }
 
   if (from_dialog_id != my_dialog_id || content_type == MessageContentType::Dice) {
