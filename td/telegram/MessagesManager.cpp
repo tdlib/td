@@ -16811,7 +16811,7 @@ Status MessagesManager::can_get_media_timestamp_link(DialogId dialog_id, const M
 
   if (dialog_id.get_type() != DialogType::Channel) {
     if (!can_message_content_have_media_timestamp(m->content.get()) || m->forward_info == nullptr ||
-        m->forward_info->is_imported_) {
+        m->forward_info->is_imported()) {
       return Status::Error(400, "Message links are available only for messages in supergroups and channel chats");
     }
     auto origin_message_full_id = m->forward_info->get_origin_message_full_id();
@@ -24624,7 +24624,7 @@ int32 MessagesManager::get_message_original_date(const Message *m) {
 DialogId MessagesManager::get_message_original_sender(const Message *m) {
   CHECK(m != nullptr);
   if (m->forward_info != nullptr) {
-    if (m->forward_info->is_imported_) {
+    if (m->forward_info->is_imported()) {
       return DialogId();
     }
     return m->forward_info->origin_.get_sender();
@@ -25857,7 +25857,7 @@ unique_ptr<MessageForwardInfo> MessagesManager::create_message_forward_info(Dial
     auto forward_info = make_unique<MessageForwardInfo>(*m->forward_info);
     forward_info->from_dialog_id_ = saved_from_dialog_id;
     forward_info->from_message_id_ = saved_from_message_id;
-    if (!forward_info->is_imported_) {
+    if (!forward_info->is_imported()) {
       forward_info->origin_.hide_sender_if_needed(td_);
     }
     return forward_info;
@@ -27652,7 +27652,7 @@ bool MessagesManager::is_message_notification_disabled(const Dialog *d, const Me
       td_->option_manager_->get_option_boolean("disable_sent_scheduled_message_notifications")) {
     return true;
   }
-  if (m->forward_info != nullptr && m->forward_info->is_imported_) {
+  if (m->forward_info != nullptr && m->forward_info->is_imported()) {
     return true;
   }
 
@@ -33107,7 +33107,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
           if (replace_legacy) {
             return false;
           }
-          if (old_message->forward_info->is_imported_ || new_message->forward_info->is_imported_) {
+          if (old_message->forward_info->is_imported() || new_message->forward_info->is_imported()) {
             return true;
           }
           if (!is_scheduled && !message_id.is_yet_unsent()) {

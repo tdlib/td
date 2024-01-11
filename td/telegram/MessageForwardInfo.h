@@ -64,6 +64,10 @@ struct MessageForwardInfo {
     return date_;
   }
 
+  bool is_imported() const {
+    return is_imported_;
+  }
+
   MessageFullId get_origin_message_full_id() const {
     return origin_.get_message_full_id();
   }
