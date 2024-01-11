@@ -3038,6 +3038,8 @@ class MessagesManager final : public Actor {
 
   static int32 get_message_schedule_date(const Message *m);
 
+  static int32 get_message_original_date(const Message *m);
+
   static DialogId get_message_original_sender(const Message *m);
 
   static DialogId get_message_sender(const Message *m);

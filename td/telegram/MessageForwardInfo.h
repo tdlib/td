@@ -60,6 +60,10 @@ struct MessageForwardInfo {
 
   void add_min_channel_ids(vector<ChannelId> &channel_ids) const;
 
+  int32 get_origin_date() const {
+    return date_;
+  }
+
   MessageFullId get_origin_message_full_id() const {
     return origin_.get_message_full_id();
   }

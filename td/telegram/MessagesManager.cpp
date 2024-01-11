@@ -13911,7 +13911,7 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
   CHECK(old_message_text != nullptr);
   FormattedText new_message_text = get_message_text(
       td_->contacts_manager_.get(), old_message_text->text, std::move(entities), true, td_->auth_manager_->is_bot(),
-      m->forward_info ? m->forward_info->date_ : m->date, m->media_album_id != 0, "on_update_sent_text_message");
+      get_message_original_date(m), m->media_album_id != 0, "on_update_sent_text_message");
   auto new_content = get_message_content(td_, std::move(new_message_text), std::move(message_media), dialog_id, m->date,
                                          true /*likely ignored*/, UserId() /*likely ignored*/, nullptr /*ignored*/,
                                          nullptr, "on_update_sent_text_message");
@@ -22726,7 +22726,7 @@ MessagesManager::ForwardedMessageInfo MessagesManager::get_forwarded_message_inf
     return result;
   }
   auto dialog_id = message_full_id.get_dialog_id();
-  result.origin_date_ = m->forward_info != nullptr ? m->forward_info->date_ : m->date;
+  result.origin_date_ = get_message_original_date(m);
   result.origin_ = get_forwarded_message_origin(dialog_id, m);
   result.content_ = dup_message_content(td_, td_->dialog_manager_->get_my_dialog_id(), m->content.get(),
                                         MessageContentDupType::Forward, MessageCopyOptions());
@@ -24609,6 +24609,14 @@ int32 MessagesManager::get_message_schedule_date(const Message *m) {
   }
   if (m->edited_schedule_date != 0) {
     return m->edited_schedule_date;
+  }
+  return m->date;
+}
+
+int32 MessagesManager::get_message_original_date(const Message *m) {
+  CHECK(m != nullptr);
+  if (m->forward_info != nullptr) {
+    return m->forward_info->get_origin_date();
   }
   return m->date;
 }
