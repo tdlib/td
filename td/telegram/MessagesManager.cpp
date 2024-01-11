@@ -4262,8 +4262,8 @@ void MessagesManager::Message::parse(ParserT &parser) {
   } else if (legacy_is_forwarded) {
     forward_info = make_unique<MessageForwardInfo>();
     if (legacy_has_forward_origin) {
-      parse(forward_info->origin, parser);
-      parse(forward_info->date, parser);
+      parse(forward_info->origin_, parser);
+      parse(forward_info->date_, parser);
     } else {
       UserId forward_sender_user_id;
       DialogId forward_sender_dialog_id;
@@ -4271,7 +4271,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
       string forward_author_signature;
       string forward_sender_name;
       parse(forward_sender_user_id, parser);
-      parse(forward_info->date, parser);
+      parse(forward_info->date_, parser);
       parse(forward_sender_dialog_id, parser);
       parse(forward_message_id, parser);
       if (legacy_has_forward_author_signature) {
@@ -4280,17 +4280,17 @@ void MessagesManager::Message::parse(ParserT &parser) {
       if (legacy_has_forward_sender_name) {
         parse(forward_sender_name, parser);
       }
-      forward_info->origin = MessageOrigin(forward_sender_user_id, forward_sender_dialog_id, forward_message_id,
-                                           std::move(forward_author_signature), std::move(forward_sender_name));
+      forward_info->origin_ = MessageOrigin(forward_sender_user_id, forward_sender_dialog_id, forward_message_id,
+                                            std::move(forward_author_signature), std::move(forward_sender_name));
     }
     if (legacy_has_forward_from) {
-      parse(forward_info->from_dialog_id, parser);
-      parse(forward_info->from_message_id, parser);
+      parse(forward_info->from_dialog_id_, parser);
+      parse(forward_info->from_message_id_, parser);
     }
     if (legacy_has_forward_psa_type) {
-      parse(forward_info->psa_type, parser);
+      parse(forward_info->psa_type_, parser);
     }
-    forward_info->is_imported = legacy_is_imported;
+    forward_info->is_imported_ = legacy_is_imported;
   }
   if (has_real_forward_from) {
     parse(real_forward_from_dialog_id, parser);
@@ -9319,7 +9319,7 @@ bool MessagesManager::can_get_message_statistics(DialogId dialog_id, const Messa
     return false;
   }
   if (m == nullptr || m->message_id.is_scheduled() || !m->message_id.is_server() || m->view_count == 0 ||
-      m->had_forward_info || (m->forward_info != nullptr && m->forward_info->origin.is_channel_post())) {
+      m->had_forward_info || (m->forward_info != nullptr && m->forward_info->origin_.is_channel_post())) {
     return false;
   }
   return td_->contacts_manager_->can_get_channel_message_statistics(dialog_id);
@@ -13905,7 +13905,7 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
   CHECK(old_message_text != nullptr);
   FormattedText new_message_text = get_message_text(
       td_->contacts_manager_.get(), old_message_text->text, std::move(entities), true, td_->auth_manager_->is_bot(),
-      m->forward_info ? m->forward_info->date : m->date, m->media_album_id != 0, "on_update_sent_text_message");
+      m->forward_info ? m->forward_info->date_ : m->date, m->media_album_id != 0, "on_update_sent_text_message");
   auto new_content = get_message_content(td_, std::move(new_message_text), std::move(message_media), dialog_id, m->date,
                                          true /*likely ignored*/, UserId() /*likely ignored*/, nullptr /*ignored*/,
                                          nullptr, "on_update_sent_text_message");
@@ -15897,12 +15897,12 @@ void MessagesManager::block_message_sender_from_replies(MessageId message_id, bo
 
   DialogId sender_dialog_id;
   if (m->forward_info != nullptr) {
-    sender_dialog_id = m->forward_info->origin.get_sender();
+    sender_dialog_id = m->forward_info->origin_.get_sender();
   }
   vector<MessageId> message_ids;
   if (need_delete_all_messages && sender_dialog_id.is_valid()) {
     message_ids = find_dialog_messages(d, [sender_dialog_id](const Message *m) {
-      return !m->is_outgoing && m->forward_info != nullptr && m->forward_info->origin.get_sender() == sender_dialog_id;
+      return !m->is_outgoing && m->forward_info != nullptr && m->forward_info->origin_.get_sender() == sender_dialog_id;
     });
     CHECK(td::contains(message_ids, message_id));
   } else if (need_delete_message) {
@@ -16804,12 +16804,11 @@ Status MessagesManager::can_get_media_timestamp_link(DialogId dialog_id, const M
   }
 
   if (dialog_id.get_type() != DialogType::Channel) {
-    auto forward_info = m->forward_info.get();
-    if (!can_message_content_have_media_timestamp(m->content.get()) || forward_info == nullptr ||
-        forward_info->is_imported) {
+    if (!can_message_content_have_media_timestamp(m->content.get()) || m->forward_info == nullptr ||
+        m->forward_info->is_imported_) {
       return Status::Error(400, "Message links are available only for messages in supergroups and channel chats");
     }
-    auto origin_message_full_id = forward_info->get_origin_message_full_id();
+    auto origin_message_full_id = m->forward_info->get_origin_message_full_id();
     auto origin_message_id = origin_message_full_id.get_message_id();
     if (!origin_message_id.is_valid() || !origin_message_id.is_server()) {
       return Status::Error(400, "Message links are available only for messages in supergroups and channel chats");
@@ -22250,9 +22249,8 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
     // in Saved Messages all non-forwarded messages must be outgoing
     // a forwarded message is outgoing, only if it doesn't have from_dialog_id and its sender isn't hidden
     // i.e. a message is incoming only if it's a forwarded message with known from_dialog_id or with a hidden sender
-    auto forward_info = m->forward_info.get();
-    is_outgoing = is_scheduled || forward_info == nullptr ||
-                  (!forward_info->get_last_dialog_id().is_valid() && !forward_info->origin.is_sender_hidden());
+    is_outgoing = is_scheduled || m->forward_info == nullptr ||
+                  (!m->forward_info->get_last_dialog_id().is_valid() && !m->forward_info->origin_.is_sender_hidden());
   }
 
   double ttl_expires_in = m->ttl_expires_at != 0 ? clamp(m->ttl_expires_at - Time::now(), 1e-3, m->ttl - 1e-3) : 0.0;
@@ -22722,7 +22720,7 @@ MessagesManager::ForwardedMessageInfo MessagesManager::get_forwarded_message_inf
     return result;
   }
   auto dialog_id = message_full_id.get_dialog_id();
-  result.origin_date_ = m->forward_info != nullptr ? m->forward_info->date : m->date;
+  result.origin_date_ = m->forward_info != nullptr ? m->forward_info->date_ : m->date;
   result.origin_ = get_forwarded_message_origin(dialog_id, m);
   result.content_ = dup_message_content(td_, td_->dialog_manager_->get_my_dialog_id(), m->content.get(),
                                         MessageContentDupType::Forward, MessageCopyOptions());
@@ -24612,11 +24610,10 @@ int32 MessagesManager::get_message_schedule_date(const Message *m) {
 DialogId MessagesManager::get_message_original_sender(const Message *m) {
   CHECK(m != nullptr);
   if (m->forward_info != nullptr) {
-    auto forward_info = m->forward_info.get();
-    if (forward_info->is_imported) {
+    if (m->forward_info->is_imported_) {
       return DialogId();
     }
-    return forward_info->origin.get_sender();
+    return m->forward_info->origin_.get_sender();
   }
   return get_message_sender(m);
 }
@@ -25804,7 +25801,7 @@ MessageOrigin MessagesManager::get_forwarded_message_origin(DialogId dialog_id, 
   CHECK(m != nullptr);
   MessageOrigin origin;
   if (m->forward_info != nullptr) {
-    origin = m->forward_info->origin;
+    origin = m->forward_info->origin_;
   } else if (m->is_channel_post) {
     if (td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
       auto author_signature = m->sender_user_id.is_valid() ? td_->contacts_manager_->get_user_title(m->sender_user_id)
@@ -25844,10 +25841,10 @@ unique_ptr<MessageForwardInfo> MessagesManager::create_message_forward_info(Dial
 
   if (m->forward_info != nullptr) {
     auto forward_info = make_unique<MessageForwardInfo>(*m->forward_info);
-    forward_info->from_dialog_id = saved_from_dialog_id;
-    forward_info->from_message_id = saved_from_message_id;
-    if (!forward_info->is_imported) {
-      forward_info->origin.hide_sender_if_needed(td_);
+    forward_info->from_dialog_id_ = saved_from_dialog_id;
+    forward_info->from_message_id_ = saved_from_message_id;
+    if (!forward_info->is_imported_) {
+      forward_info->origin_.hide_sender_if_needed(td_);
     }
     return forward_info;
   }
@@ -27641,7 +27638,7 @@ bool MessagesManager::is_message_notification_disabled(const Dialog *d, const Me
       td_->option_manager_->get_option_boolean("disable_sent_scheduled_message_notifications")) {
     return true;
   }
-  if (m->forward_info != nullptr && m->forward_info->is_imported) {
+  if (m->forward_info != nullptr && m->forward_info->is_imported_) {
     return true;
   }
 
@@ -33096,15 +33093,15 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
           if (replace_legacy) {
             return false;
           }
-          if (old_message->forward_info->is_imported || new_message->forward_info->is_imported) {
+          if (old_message->forward_info->is_imported_ || new_message->forward_info->is_imported_) {
             return true;
           }
           if (!is_scheduled && !message_id.is_yet_unsent()) {
             return true;
           }
           // yet unsent or scheduled messages can change sender name or author signature when being sent
-          return !old_message->forward_info->origin.has_sender_signature() &&
-                 !new_message->forward_info->origin.has_sender_signature();
+          return !old_message->forward_info->origin_.has_sender_signature() &&
+                 !new_message->forward_info->origin_.has_sender_signature();
         }();
         if (need_warning) {
           LOG(ERROR) << message_id << " in " << dialog_id << " has changed forward info from "

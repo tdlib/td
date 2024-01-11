@@ -24,23 +24,27 @@ class Dependencies;
 class Td;
 
 struct MessageForwardInfo {
-  MessageOrigin origin;
-  int32 date = 0;
-  DialogId from_dialog_id;
-  MessageId from_message_id;
-  string psa_type;
-  bool is_imported = false;
+  MessageOrigin origin_;
+  int32 date_ = 0;
+  DialogId from_dialog_id_;
+  MessageId from_message_id_;
+  string psa_type_;
+  bool is_imported_ = false;
 
   MessageForwardInfo() = default;
 
   MessageForwardInfo(MessageOrigin &&origin, int32 date, DialogId from_dialog_id, MessageId from_message_id,
                      string &&psa_type, bool is_imported)
-      : origin(std::move(origin))
-      , date(date)
-      , from_dialog_id(from_dialog_id)
-      , from_message_id(from_message_id)
-      , psa_type(std::move(psa_type))
-      , is_imported(is_imported) {
+      : origin_(std::move(origin))
+      , date_(date)
+      , from_dialog_id_(from_dialog_id)
+      , from_message_id_(from_message_id)
+      , psa_type_(std::move(psa_type))
+      , is_imported_(is_imported) {
+    if (from_dialog_id_.is_valid() != from_message_id_.is_valid()) {
+      from_dialog_id_ = DialogId();
+      from_message_id_ = MessageId();
+    }
   }
 
   static unique_ptr<MessageForwardInfo> get_message_forward_info(
@@ -57,15 +61,15 @@ struct MessageForwardInfo {
   void add_min_channel_ids(vector<ChannelId> &channel_ids) const;
 
   MessageFullId get_origin_message_full_id() const {
-    return origin.get_message_full_id();
+    return origin_.get_message_full_id();
   }
 
   DialogId get_last_dialog_id() const {
-    return from_dialog_id;
+    return from_dialog_id_;
   }
 
   MessageFullId get_last_message_full_id() const {
-    return {from_dialog_id, from_message_id};
+    return {from_dialog_id_, from_message_id_};
   }
 
   template <class StorerT>

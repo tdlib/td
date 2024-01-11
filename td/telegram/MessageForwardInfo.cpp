@@ -52,42 +52,42 @@ unique_ptr<MessageForwardInfo> MessageForwardInfo::get_message_forward_info(
 }
 
 td_api::object_ptr<td_api::messageForwardInfo> MessageForwardInfo::get_message_forward_info_object(Td *td) const {
-  if (is_imported) {
+  if (is_imported_) {
     return nullptr;
   }
   return td_api::make_object<td_api::messageForwardInfo>(
-      origin.get_message_origin_object(td), date, psa_type,
-      td->messages_manager_->get_chat_id_object(from_dialog_id, "messageForwardInfo"), from_message_id.get());
+      origin_.get_message_origin_object(td), date_, psa_type_,
+      td->messages_manager_->get_chat_id_object(from_dialog_id_, "messageForwardInfo"), from_message_id_.get());
 }
 
 td_api::object_ptr<td_api::messageImportInfo> MessageForwardInfo::get_message_import_info_object() const {
-  if (!is_imported) {
+  if (!is_imported_) {
     return nullptr;
   }
-  return td_api::make_object<td_api::messageImportInfo>(origin.get_sender_name(), date);
+  return td_api::make_object<td_api::messageImportInfo>(origin_.get_sender_name(), date_);
 }
 
 void MessageForwardInfo::add_dependencies(Dependencies &dependencies) const {
-  origin.add_dependencies(dependencies);
-  dependencies.add_dialog_and_dependencies(from_dialog_id);
+  origin_.add_dependencies(dependencies);
+  dependencies.add_dialog_and_dependencies(from_dialog_id_);
 }
 
 void MessageForwardInfo::add_min_user_ids(vector<UserId> &user_ids) const {
-  origin.add_user_ids(user_ids);
-  // from_dialog_id can be a user only in Saved Messages
+  origin_.add_user_ids(user_ids);
+  // from_dialog_id_ can be a user only in Saved Messages
 }
 
 void MessageForwardInfo::add_min_channel_ids(vector<ChannelId> &channel_ids) const {
-  origin.add_channel_ids(channel_ids);
-  if (from_dialog_id.get_type() == DialogType::Channel) {
-    channel_ids.push_back(from_dialog_id.get_channel_id());
+  origin_.add_channel_ids(channel_ids);
+  if (from_dialog_id_.get_type() == DialogType::Channel) {
+    channel_ids.push_back(from_dialog_id_.get_channel_id());
   }
 }
 
 bool operator==(const MessageForwardInfo &lhs, const MessageForwardInfo &rhs) {
-  return lhs.origin == rhs.origin && lhs.date == rhs.date && lhs.from_dialog_id == rhs.from_dialog_id &&
-         lhs.from_message_id == rhs.from_message_id && lhs.psa_type == rhs.psa_type &&
-         lhs.is_imported == rhs.is_imported;
+  return lhs.origin_ == rhs.origin_ && lhs.date_ == rhs.date_ && lhs.from_dialog_id_ == rhs.from_dialog_id_ &&
+         lhs.from_message_id_ == rhs.from_message_id_ && lhs.psa_type_ == rhs.psa_type_ &&
+         lhs.is_imported_ == rhs.is_imported_;
 }
 
 bool operator!=(const MessageForwardInfo &lhs, const MessageForwardInfo &rhs) {
@@ -95,14 +95,14 @@ bool operator!=(const MessageForwardInfo &lhs, const MessageForwardInfo &rhs) {
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageForwardInfo &forward_info) {
-  string_builder << "MessageForwardInfo[" << (forward_info.is_imported ? "imported " : "") << forward_info.origin;
-  if (!forward_info.psa_type.empty()) {
-    string_builder << ", psa_type " << forward_info.psa_type;
+  string_builder << "MessageForwardInfo[" << (forward_info.is_imported_ ? "imported " : "") << forward_info.origin_;
+  if (!forward_info.psa_type_.empty()) {
+    string_builder << ", psa_type_ " << forward_info.psa_type_;
   }
-  if (forward_info.from_dialog_id.is_valid() || forward_info.from_message_id.is_valid()) {
-    string_builder << ", from " << MessageFullId(forward_info.from_dialog_id, forward_info.from_message_id);
+  if (forward_info.from_dialog_id_.is_valid() || forward_info.from_message_id_.is_valid()) {
+    string_builder << ", from " << MessageFullId(forward_info.from_dialog_id_, forward_info.from_message_id_);
   }
-  return string_builder << " at " << forward_info.date << ']';
+  return string_builder << " at " << forward_info.date_ << ']';
 }
 
 }  // namespace td

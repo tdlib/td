@@ -18,21 +18,21 @@ namespace td {
 
 template <class StorerT>
 void MessageForwardInfo::store(StorerT &storer) const {
-  bool has_from = from_dialog_id.is_valid() && from_message_id.is_valid();
-  bool has_psa_type = !psa_type.empty();
+  bool has_from = from_dialog_id_.is_valid() && from_message_id_.is_valid();
+  bool has_psa_type = !psa_type_.empty();
   BEGIN_STORE_FLAGS();
-  STORE_FLAG(is_imported);
+  STORE_FLAG(is_imported_);
   STORE_FLAG(has_from);
   STORE_FLAG(has_psa_type);
   END_STORE_FLAGS();
-  td::store(origin, storer);
-  td::store(date, storer);
+  td::store(origin_, storer);
+  td::store(date_, storer);
   if (has_from) {
-    td::store(from_dialog_id, storer);
-    td::store(from_message_id, storer);
+    td::store(from_dialog_id_, storer);
+    td::store(from_message_id_, storer);
   }
   if (has_psa_type) {
-    td::store(psa_type, storer);
+    td::store(psa_type_, storer);
   }
 }
 
@@ -41,22 +41,22 @@ void MessageForwardInfo::parse(ParserT &parser) {
   bool has_from;
   bool has_psa_type;
   BEGIN_PARSE_FLAGS();
-  PARSE_FLAG(is_imported);
+  PARSE_FLAG(is_imported_);
   PARSE_FLAG(has_from);
   PARSE_FLAG(has_psa_type);
   END_PARSE_FLAGS();
-  td::parse(origin, parser);
-  td::parse(date, parser);
+  td::parse(origin_, parser);
+  td::parse(date_, parser);
   if (has_from) {
-    td::parse(from_dialog_id, parser);
-    td::parse(from_message_id, parser);
-    if (!from_dialog_id.is_valid() || !from_message_id.is_valid()) {
-      from_dialog_id = DialogId();
-      from_message_id = MessageId();
+    td::parse(from_dialog_id_, parser);
+    td::parse(from_message_id_, parser);
+    if (!from_dialog_id_.is_valid() || !from_message_id_.is_valid()) {
+      from_dialog_id_ = DialogId();
+      from_message_id_ = MessageId();
     }
   }
   if (has_psa_type) {
-    td::parse(psa_type, parser);
+    td::parse(psa_type_, parser);
   }
 }
 
