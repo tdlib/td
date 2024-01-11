@@ -8,6 +8,7 @@
 
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageOrigin.h"
 #include "td/telegram/td_api.h"
@@ -54,6 +55,18 @@ struct MessageForwardInfo {
   void add_min_user_ids(vector<UserId> &user_ids) const;
 
   void add_min_channel_ids(vector<ChannelId> &channel_ids) const;
+
+  MessageFullId get_origin_message_full_id() const {
+    return origin.get_message_full_id();
+  }
+
+  DialogId get_last_dialog_id() const {
+    return from_dialog_id;
+  }
+
+  MessageFullId get_last_message_full_id() const {
+    return {from_dialog_id, from_message_id};
+  }
 
   template <class StorerT>
   void store(StorerT &storer) const;

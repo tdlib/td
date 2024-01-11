@@ -6,7 +6,9 @@
 //
 #pragma once
 
+#include "td/telegram/DialogId.h"
 #include "td/telegram/MessageForwardInfo.h"
+#include "td/telegram/MessageId.h"
 #include "td/telegram/MessageOrigin.hpp"
 
 #include "td/utils/common.h"
@@ -48,6 +50,10 @@ void MessageForwardInfo::parse(ParserT &parser) {
   if (has_from) {
     td::parse(from_dialog_id, parser);
     td::parse(from_message_id, parser);
+    if (!from_dialog_id.is_valid() || !from_message_id.is_valid()) {
+      from_dialog_id = DialogId();
+      from_message_id = MessageId();
+    }
   }
   if (has_psa_type) {
     td::parse(psa_type, parser);
