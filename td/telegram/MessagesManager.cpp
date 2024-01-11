@@ -11615,7 +11615,7 @@ vector<UserId> MessagesManager::get_message_user_ids(const Message *m) const {
     user_ids.push_back(m->via_bot_user_id);
   }
   if (m->forward_info != nullptr) {
-    m->forward_info->origin.add_user_ids(user_ids);
+    m->forward_info->add_min_user_ids(user_ids);
   }
   append(user_ids, get_message_content_min_user_ids(td_, m->content.get()));
   if (!m->replied_message_info.is_empty()) {
@@ -11630,11 +11630,7 @@ vector<ChannelId> MessagesManager::get_message_channel_ids(const Message *m) con
     channel_ids.push_back(m->sender_dialog_id.get_channel_id());
   }
   if (m->forward_info != nullptr) {
-    m->forward_info->origin.add_channel_ids(channel_ids);
-  }
-  if (m->forward_info != nullptr && m->forward_info->from_dialog_id.is_valid() &&
-      m->forward_info->from_dialog_id.get_type() == DialogType::Channel) {
-    channel_ids.push_back(m->forward_info->from_dialog_id.get_channel_id());
+    m->forward_info->add_min_channel_ids(channel_ids);
   }
   append(channel_ids, get_message_content_min_channel_ids(td_, m->content.get()));
   if (!m->replied_message_info.is_empty()) {
@@ -13076,7 +13072,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->disable_web_page_preview = message_info.disable_web_page_preview;
   message->edit_date = edit_date;
   message->random_id = message_info.random_id;
-  message->forward_info = get_message_forward_info(std::move(message_info.forward_header));
+  message->forward_info = MessageForwardInfo::get_message_forward_info(td_, std::move(message_info.forward_header));
   message->replied_message_info = std::move(message_info.reply_header.replied_message_info_);
   message->top_thread_message_id = top_thread_message_id;
   message->is_topic_message = is_topic_message;
@@ -22184,8 +22180,8 @@ td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_messag
 
   auto sender = get_message_sender_object_const(td_, m->sender_user_id, m->sender_dialog_id,
                                                 "get_dialog_event_log_message_object");
-  auto forward_info = get_message_forward_info_object(m->forward_info);
-  auto import_info = get_message_import_info_object(m->forward_info);
+  auto forward_info = m->forward_info == nullptr ? nullptr : m->forward_info->get_message_forward_info_object(td_);
+  auto import_info = m->forward_info == nullptr ? nullptr : m->forward_info->get_message_import_info_object();
   auto interaction_info = get_message_interaction_info_object(dialog_id, m);
   auto can_be_saved = can_save_message(dialog_id, m);
   auto via_bot_user_id = td_->contacts_manager_->get_user_id_object(m->via_bot_user_id, "via_bot_user_id");
@@ -22260,8 +22256,8 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
       m->ttl_period == 0 ? 0.0 : clamp(m->date + m->ttl_period - G()->server_time(), 1e-3, m->ttl_period - 1e-3);
   auto sender = get_message_sender_object_const(td_, m->sender_user_id, m->sender_dialog_id, source);
   auto scheduling_state = is_scheduled ? get_message_scheduling_state_object(m->date) : nullptr;
-  auto forward_info = get_message_forward_info_object(m->forward_info);
-  auto import_info = get_message_import_info_object(m->forward_info);
+  auto forward_info = m->forward_info == nullptr ? nullptr : m->forward_info->get_message_forward_info_object(td_);
+  auto import_info = m->forward_info == nullptr ? nullptr : m->forward_info->get_message_import_info_object();
   auto interaction_info = is_bot ? nullptr : get_message_interaction_info_object(dialog_id, m);
   auto unread_reactions = get_unread_reactions_object(dialog_id, m);
   auto can_be_saved = can_save_message(dialog_id, m);
@@ -22876,8 +22872,7 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, const
   dependencies.add_dialog_and_dependencies(m->real_forward_from_dialog_id);
   dependencies.add(m->via_bot_user_id);
   if (m->forward_info != nullptr) {
-    m->forward_info->origin.add_dependencies(dependencies);
-    dependencies.add_dialog_and_dependencies(m->forward_info->from_dialog_id);
+    m->forward_info->add_dependencies(dependencies);
   }
   for (const auto &replier_min_channel : m->reply_info.replier_min_channels_) {
     LOG(INFO) << "Add min replied " << replier_min_channel.first;
@@ -25633,61 +25628,6 @@ bool MessagesManager::can_set_game_score(DialogId dialog_id, const Message *m) c
   }
 
   return true;
-}
-
-unique_ptr<MessageForwardInfo> MessagesManager::get_message_forward_info(
-    tl_object_ptr<telegram_api::messageFwdHeader> &&forward_header) {
-  if (forward_header == nullptr) {
-    return nullptr;
-  }
-  auto date = forward_header->date_;
-  if (date <= 0) {
-    LOG(ERROR) << "Wrong date in message forward header: " << oneline(to_string(forward_header));
-    return nullptr;
-  }
-
-  DialogId from_dialog_id;
-  MessageId from_message_id;
-  if (forward_header->saved_from_peer_ != nullptr) {
-    from_dialog_id = DialogId(forward_header->saved_from_peer_);
-    from_message_id = MessageId(ServerMessageId(forward_header->saved_from_msg_id_));
-    if (!from_dialog_id.is_valid() || !from_message_id.is_valid()) {
-      LOG(ERROR) << "Receive " << from_message_id << " in " << from_dialog_id
-                 << " in message forward header: " << oneline(to_string(forward_header));
-      from_dialog_id = DialogId();
-      from_message_id = MessageId();
-    } else {
-      force_create_dialog(from_dialog_id, "get_message_forward_info", true);
-    }
-  }
-  bool is_imported = forward_header->imported_;
-  auto psa_type = std::move(forward_header->psa_type_);
-  auto r_origin = MessageOrigin::get_message_origin(td_, std::move(forward_header));
-  if (r_origin.is_error()) {
-    return nullptr;
-  }
-
-  return td::make_unique<MessageForwardInfo>(r_origin.move_as_ok(), date, from_dialog_id, from_message_id,
-                                             std::move(psa_type), is_imported);
-}
-
-td_api::object_ptr<td_api::messageForwardInfo> MessagesManager::get_message_forward_info_object(
-    const unique_ptr<MessageForwardInfo> &forward_info) const {
-  if (forward_info == nullptr || forward_info->is_imported) {
-    return nullptr;
-  }
-
-  return td_api::make_object<td_api::messageForwardInfo>(
-      forward_info->origin.get_message_origin_object(td_), forward_info->date, forward_info->psa_type,
-      get_chat_id_object(forward_info->from_dialog_id, "messageForwardInfo"), forward_info->from_message_id.get());
-}
-
-td_api::object_ptr<td_api::messageImportInfo> MessagesManager::get_message_import_info_object(
-    const unique_ptr<MessageForwardInfo> &forward_info) const {
-  if (forward_info == nullptr || !forward_info->is_imported) {
-    return nullptr;
-  }
-  return td_api::make_object<td_api::messageImportInfo>(forward_info->origin.get_sender_name(), forward_info->date);
 }
 
 Result<unique_ptr<ReplyMarkup>> MessagesManager::get_dialog_reply_markup(

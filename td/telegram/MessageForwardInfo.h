@@ -6,15 +6,20 @@
 //
 #pragma once
 
+#include "td/telegram/ChannelId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageOrigin.h"
+#include "td/telegram/td_api.h"
+#include "td/telegram/telegram_api.h"
+#include "td/telegram/UserId.h"
 
 #include "td/utils/common.h"
 #include "td/utils/StringBuilder.h"
 
 namespace td {
 
+class Dependencies;
 class Td;
 
 struct MessageForwardInfo {
@@ -36,6 +41,19 @@ struct MessageForwardInfo {
       , psa_type(std::move(psa_type))
       , is_imported(is_imported) {
   }
+
+  static unique_ptr<MessageForwardInfo> get_message_forward_info(
+      Td *td, telegram_api::object_ptr<telegram_api::messageFwdHeader> &&forward_header);
+
+  td_api::object_ptr<td_api::messageForwardInfo> get_message_forward_info_object(Td *td) const;
+
+  td_api::object_ptr<td_api::messageImportInfo> get_message_import_info_object() const;
+
+  void add_dependencies(Dependencies &dependencies) const;
+
+  void add_min_user_ids(vector<UserId> &user_ids) const;
+
+  void add_min_channel_ids(vector<ChannelId> &channel_ids) const;
 
   template <class StorerT>
   void store(StorerT &storer) const;
