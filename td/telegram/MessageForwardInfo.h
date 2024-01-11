@@ -26,6 +26,10 @@ class Td;
 class LastForwardedMessageInfo {
   DialogId dialog_id_;
   MessageId message_id_;
+  DialogId sender_dialog_id_;
+  string sender_name_;
+  int32 date_ = 0;
+  bool is_outgoing_ = false;
 
   friend bool operator==(const LastForwardedMessageInfo &lhs, const LastForwardedMessageInfo &rhs);
 
@@ -34,12 +38,21 @@ class LastForwardedMessageInfo {
  public:
   LastForwardedMessageInfo() = default;
 
-  LastForwardedMessageInfo(DialogId dialog_id, MessageId message_id) : dialog_id_(dialog_id), message_id_(message_id) {
+  LastForwardedMessageInfo(DialogId dialog_id, MessageId message_id, DialogId sender_dialog_id, string sender_name,
+                           int32 date, bool is_outgoing)
+      : dialog_id_(dialog_id)
+      , message_id_(message_id)
+      , sender_dialog_id_(sender_dialog_id)
+      , sender_name_(std::move(sender_name))
+      , date_(date)
+      , is_outgoing_(is_outgoing) {
   }
 
   bool is_empty() const;
 
   bool validate();
+
+  void hide_sender_if_needed(Td *td);
 
   void add_dependencies(Dependencies &dependencies) const;
 
@@ -55,6 +68,10 @@ class LastForwardedMessageInfo {
 
   MessageFullId get_message_full_id() const {
     return {dialog_id_, message_id_};
+  }
+
+  bool has_sender_name() const {
+    return !sender_name_.empty();
   }
 
   template <class StorerT>

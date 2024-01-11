@@ -4290,7 +4290,8 @@ void MessagesManager::Message::parse(ParserT &parser) {
       MessageId forward_from_message_id;
       parse(forward_from_dialog_id, parser);
       parse(forward_from_message_id, parser);
-      last_message_info = LastForwardedMessageInfo(forward_from_dialog_id, forward_from_message_id);
+      last_message_info =
+          LastForwardedMessageInfo(forward_from_dialog_id, forward_from_message_id, DialogId(), string(), 0, false);
     }
     string psa_type;
     if (legacy_has_forward_psa_type) {
@@ -25816,7 +25817,8 @@ unique_ptr<MessageForwardInfo> MessagesManager::create_message_forward_info(Dial
 
   LastForwardedMessageInfo last_message_info;
   if (to_dialog_id == my_dialog_id) {
-    last_message_info = LastForwardedMessageInfo(from_dialog_id, m->message_id);
+    last_message_info = LastForwardedMessageInfo(from_dialog_id, m->message_id, get_message_sender(m), string(),
+                                                 m->date, m->is_outgoing);
   } else if (content_type == MessageContentType::Audio || content_type == MessageContentType::Story) {
     return nullptr;
   }

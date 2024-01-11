@@ -1181,10 +1181,14 @@ messageOriginChat sender_chat_id:int53 author_signature:string = MessageOrigin;
 messageOriginChannel chat_id:int53 message_id:int53 author_signature:string = MessageOrigin;
 
 
-//@description Contains information about the last message from which the new message was forwarded last time
-//@chat_id Identifier of the chat from which the message was forwarded last time
-//@message_id Identifier of the source message from which the message was forwarded last time
-forwardSource chat_id:int53 message_id:int53 = ForwardSource;
+//@description Contains information about the last message from which a new message was forwarded last time
+//@chat_id Identifier of the chat to which the message that was forwarded belonged
+//@message_id Identifier of the message
+//@sender_id Identifier of the sender of the message; may be null if unknown or the new message was forwarded not to Saved Messages
+//@sender_name Name of the sender of the message if the sender is hidden by their privacy settings
+//@date Point in time (Unix timestamp) when the message is sent; 0 if unknown
+//@is_outgoing True, if the message that was forwarded is outgoing; always false if sender is unknown
+forwardSource chat_id:int53 message_id:int53 sender_id:MessageSender sender_name:string date:int32 is_outgoing:Bool = ForwardSource;
 
 
 //@class ReactionType @description Describes type of message reaction

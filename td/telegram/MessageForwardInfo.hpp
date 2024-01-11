@@ -18,18 +18,51 @@ namespace td {
 
 template <class StorerT>
 void LastForwardedMessageInfo::store(StorerT &storer) const {
+  bool has_sender_dialog_id = sender_dialog_id_.is_valid();
+  bool has_sender_name = !sender_name_.empty();
+  bool has_date = date_ > 0;
   BEGIN_STORE_FLAGS();
+  STORE_FLAG(has_sender_dialog_id);
+  STORE_FLAG(has_sender_name);
+  STORE_FLAG(has_date);
+  STORE_FLAG(is_outgoing_);
   END_STORE_FLAGS();
   td::store(dialog_id_, storer);
   td::store(message_id_, storer);
+  if (has_sender_dialog_id) {
+    td::store(sender_dialog_id_, storer);
+  }
+  if (has_sender_name) {
+    td::store(sender_name_, storer);
+  }
+  if (has_date) {
+    td::store(date_, storer);
+  }
 }
 
 template <class ParserT>
 void LastForwardedMessageInfo::parse(ParserT &parser) {
+  bool has_sender_dialog_id;
+  bool has_sender_name;
+  bool has_date;
   BEGIN_PARSE_FLAGS();
+  PARSE_FLAG(has_sender_dialog_id);
+  PARSE_FLAG(has_sender_name);
+  PARSE_FLAG(has_date);
+  PARSE_FLAG(is_outgoing_);
   END_PARSE_FLAGS();
   td::parse(dialog_id_, parser);
   td::parse(message_id_, parser);
+  if (has_sender_dialog_id) {
+    td::parse(sender_dialog_id_, parser);
+  }
+  if (has_sender_name) {
+    td::parse(sender_name_, parser);
+  }
+  if (has_date) {
+    td::parse(date_, parser);
+  }
+
   validate();
 }
 

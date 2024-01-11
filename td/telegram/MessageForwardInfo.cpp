@@ -6,8 +6,10 @@
 //
 #include "td/telegram/MessageForwardInfo.h"
 
+#include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
+#include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
 
@@ -16,27 +18,43 @@
 namespace td {
 
 bool LastForwardedMessageInfo::is_empty() const {
-  return dialog_id_ == DialogId() && message_id_ == MessageId();
+  return *this == LastForwardedMessageInfo();
 }
 
 bool LastForwardedMessageInfo::validate() {
   if (is_empty()) {
     return true;
   }
-  if (!dialog_id_.is_valid() || !message_id_.is_valid()) {
+  if (!dialog_id_.is_valid() || !message_id_.is_valid() ||
+      (sender_dialog_id_ != DialogId() && !sender_dialog_id_.is_valid()) ||
+      ((sender_dialog_id_ != DialogId() || !sender_name_.empty()) && date_ <= 0)) {
     *this = {};
     return false;
   }
   return true;
 }
 
+void LastForwardedMessageInfo::hide_sender_if_needed(Td *td) {
+  if (sender_name_.empty() && sender_dialog_id_.get_type() == DialogType::User) {
+    auto private_forward_name = td->contacts_manager_->get_user_private_forward_name(sender_dialog_id_.get_user_id());
+    if (!private_forward_name.empty()) {
+      sender_dialog_id_ = DialogId();
+      sender_name_ = std::move(private_forward_name);
+    }
+  }
+}
+
 void LastForwardedMessageInfo::add_dependencies(Dependencies &dependencies) const {
   dependencies.add_dialog_and_dependencies(dialog_id_);
+  dependencies.add_message_sender_dependencies(sender_dialog_id_);
 }
 
 void LastForwardedMessageInfo::add_min_user_ids(vector<UserId> &user_ids) const {
   if (dialog_id_.get_type() == DialogType::User) {
     user_ids.push_back(dialog_id_.get_user_id());
+  }
+  if (sender_dialog_id_.get_type() == DialogType::User) {
+    user_ids.push_back(sender_dialog_id_.get_user_id());
   }
 }
 
@@ -44,18 +62,28 @@ void LastForwardedMessageInfo::add_min_channel_ids(vector<ChannelId> &channel_id
   if (dialog_id_.get_type() == DialogType::Channel) {
     channel_ids.push_back(dialog_id_.get_channel_id());
   }
+  if (sender_dialog_id_.get_type() == DialogType::Channel) {
+    channel_ids.push_back(sender_dialog_id_.get_channel_id());
+  }
 }
 
 td_api::object_ptr<td_api::forwardSource> LastForwardedMessageInfo::get_forward_source_object(Td *td) const {
   if (is_empty()) {
     return nullptr;
   }
+  td_api::object_ptr<td_api::MessageSender> sender_id;
+  if (sender_dialog_id_ != DialogId()) {
+    sender_id = get_message_sender_object_const(td, sender_dialog_id_, "forwardSource.sender_id");
+  }
   return td_api::make_object<td_api::forwardSource>(
-      td->messages_manager_->get_chat_id_object(dialog_id_, "forwardSource"), message_id_.get());
+      td->messages_manager_->get_chat_id_object(dialog_id_, "forwardSource.chat_id"), message_id_.get(),
+      std::move(sender_id), sender_name_, date_, is_outgoing_);
 }
 
 bool operator==(const LastForwardedMessageInfo &lhs, const LastForwardedMessageInfo &rhs) {
-  return lhs.dialog_id_ == rhs.dialog_id_ && lhs.message_id_ == rhs.message_id_;
+  return lhs.dialog_id_ == rhs.dialog_id_ && lhs.message_id_ == rhs.message_id_ &&
+         lhs.sender_dialog_id_ == rhs.sender_dialog_id_ && lhs.sender_name_ == rhs.sender_name_ &&
+         lhs.date_ == rhs.date_ && lhs.is_outgoing_ == rhs.is_outgoing_;
 }
 
 bool operator!=(const LastForwardedMessageInfo &lhs, const LastForwardedMessageInfo &rhs) {
@@ -63,10 +91,19 @@ bool operator!=(const LastForwardedMessageInfo &lhs, const LastForwardedMessageI
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const LastForwardedMessageInfo &last_message_info) {
-  if (last_message_info.is_empty()) {
-    return string_builder;
+  if (!last_message_info.is_empty()) {
+    string_builder << MessageFullId(last_message_info.dialog_id_, last_message_info.message_id_);
+    if (last_message_info.sender_dialog_id_ != DialogId() || !last_message_info.sender_name_.empty()) {
+      string_builder << " sent by " << last_message_info.sender_dialog_id_ << '/' << last_message_info.sender_name_;
+      if (last_message_info.is_outgoing_) {
+        string_builder << " (me)";
+      }
+    }
+    if (last_message_info.date_ != 0) {
+      string_builder << " at " << last_message_info.date_;
+    }
   }
-  return string_builder << MessageFullId(last_message_info.dialog_id_, last_message_info.message_id_);
+  return string_builder;
 }
 
 unique_ptr<MessageForwardInfo> MessageForwardInfo::get_message_forward_info(
@@ -82,8 +119,14 @@ unique_ptr<MessageForwardInfo> MessageForwardInfo::get_message_forward_info(
 
   LastForwardedMessageInfo last_message_info;
   if (forward_header->saved_from_peer_ != nullptr) {
-    last_message_info = LastForwardedMessageInfo(DialogId(forward_header->saved_from_peer_),
-                                                 MessageId(ServerMessageId(forward_header->saved_from_msg_id_)));
+    DialogId sender_dialog_id;
+    if (forward_header->saved_from_id_ != nullptr) {
+      sender_dialog_id = DialogId(forward_header->saved_from_id_);
+    }
+    last_message_info = LastForwardedMessageInfo(
+        DialogId(forward_header->saved_from_peer_), MessageId(ServerMessageId(forward_header->saved_from_msg_id_)),
+        sender_dialog_id, std::move(forward_header->saved_from_name_), forward_header->saved_date_,
+        forward_header->saved_out_ || sender_dialog_id == td->dialog_manager_->get_my_dialog_id());
     if (last_message_info.is_empty() || !last_message_info.validate()) {
       LOG(ERROR) << "Receive wrong last message in message forward header: " << oneline(to_string(forward_header));
     } else {
@@ -108,6 +151,7 @@ unique_ptr<MessageForwardInfo> MessageForwardInfo::get_message_forward_info(
 unique_ptr<MessageForwardInfo> MessageForwardInfo::copy_message_forward_info(
     Td *td, const MessageForwardInfo &forward_info, LastForwardedMessageInfo &&last_message_info) {
   last_message_info.validate();
+  last_message_info.hide_sender_if_needed(td);
 
   auto result = make_unique<MessageForwardInfo>(forward_info);
   result->last_message_info_ = std::move(last_message_info);
@@ -155,7 +199,8 @@ bool MessageForwardInfo::need_change_warning(const MessageForwardInfo *lhs, cons
     return true;
   }
   // yet unsent or scheduled messages can change sender name or author signature when being sent
-  return !lhs->origin_.has_sender_signature() && !rhs->origin_.has_sender_signature();
+  return !lhs->origin_.has_sender_signature() && !rhs->origin_.has_sender_signature() &&
+         !lhs->last_message_info_.has_sender_name() && !rhs->last_message_info_.has_sender_name();
 }
 
 bool operator==(const MessageForwardInfo &lhs, const MessageForwardInfo &rhs) {
