@@ -8043,10 +8043,6 @@ void move_message_content_sticker_set_to_top(Td *td, const MessageContent *conte
   }
 }
 
-void init_stickers_manager(Td *td) {
-  td->stickers_manager_->init();
-}
-
 void on_dialog_used(TopDialogCategory category, DialogId dialog_id, int32 date) {
   send_closure(G()->top_dialog_manager(), &TopDialogManager::on_dialog_used, category, dialog_id, date);
 }

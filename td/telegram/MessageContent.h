@@ -301,8 +301,6 @@ void on_sent_message_content(Td *td, const MessageContent *content);
 
 void move_message_content_sticker_set_to_top(Td *td, const MessageContent *content);
 
-void init_stickers_manager(Td *td);
-
 void on_dialog_used(TopDialogCategory category, DialogId dialog_id, int32 date);
 
 void update_used_hashtags(Td *td, const MessageContent *content);
