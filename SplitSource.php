@@ -347,7 +347,7 @@ function split_file($file, $chunks, $undo) {
                 'GlobalPrivacySettings' => 'GlobalPrivacySettings',
                 'GroupCallId' => 'GroupCallId',
                 'group_call_manager[_(-](?![.]get[(][)])|GroupCallManager' => 'GroupCallManager',
-                'HashtagHints' => 'HashtagHints',
+                'hashtag_hints[_(-](?![.]get[(][)])|HashtagHints' => 'HashtagHints',
                 'inline_queries_manager[_(-](?![.]get[(][)])|InlineQueriesManager' => 'InlineQueriesManager',
                 'language_pack_manager[_(-]|LanguagePackManager' => 'LanguagePackManager',
                 'link_manager[_(-](?![.]get[(][)])|LinkManager' => 'LinkManager',
