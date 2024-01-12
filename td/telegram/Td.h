@@ -1833,7 +1833,11 @@ class Td final : public Actor {
 
   void init_file_manager();
 
+  void init_non_actor_managers();
+
   void init_managers();
+
+  void init_pure_actor_managers();
 
   void process_binlog_events(TdDb::OpenedDatabase &&events);
 

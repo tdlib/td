@@ -3641,7 +3641,11 @@ void Td::init(Parameters parameters, Result<TdDb::OpenedDatabase> r_opened_datab
 
   init_file_manager();
 
+  init_non_actor_managers();
+
   init_managers();
+
+  init_pure_actor_managers();
 
   secret_chats_manager_ =
       create_actor<SecretChatsManager>("SecretChatsManager", create_reference(), parameters.use_secret_chats_);
@@ -3865,13 +3869,15 @@ void Td::init_file_manager() {
   G()->set_file_reference_manager(file_reference_manager_actor_.get());
 }
 
-void Td::init_managers() {
+void Td::init_non_actor_managers() {
   VLOG(td_init) << "Create Managers";
   audios_manager_ = make_unique<AudiosManager>(this);
   callback_queries_manager_ = make_unique<CallbackQueriesManager>(this);
   documents_manager_ = make_unique<DocumentsManager>(this);
   videos_manager_ = make_unique<VideosManager>(this);
+}
 
+void Td::init_managers() {
   account_manager_ = make_unique<AccountManager>(this, create_reference());
   account_manager_actor_ = register_actor("AccountManager", account_manager_.get());
   G()->set_account_manager(account_manager_actor_.get());
@@ -3983,7 +3989,9 @@ void Td::init_managers() {
   web_pages_manager_ = make_unique<WebPagesManager>(this, create_reference());
   web_pages_manager_actor_ = register_actor("WebPagesManager", web_pages_manager_.get());
   G()->set_web_pages_manager(web_pages_manager_actor_.get());
+}
 
+void Td::init_pure_actor_managers() {
   call_manager_ = create_actor<CallManager>("CallManager", create_reference());
   G()->set_call_manager(call_manager_.get());
   change_phone_number_manager_ = create_actor<PhoneNumberManager>(
