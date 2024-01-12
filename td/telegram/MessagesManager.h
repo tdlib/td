@@ -948,6 +948,7 @@ class MessagesManager final : public Actor {
     MessageId message_id;
     UserId sender_user_id;
     DialogId sender_dialog_id;
+    DialogId saved_messages_dialog_id;
     int32 date = 0;
     int32 ttl_period = 0;
     int32 ttl = 0;
@@ -985,6 +986,7 @@ class MessagesManager final : public Actor {
     MessageId message_id;
     UserId sender_user_id;
     DialogId sender_dialog_id;
+    DialogId saved_messages_dialog_id;
     int32 date = 0;
     int32 edit_date = 0;
     int32 send_date = 0;
@@ -1608,6 +1610,8 @@ class MessagesManager final : public Actor {
 
   void finish_delete_secret_chat_history(DialogId dialog_id, bool remove_from_dialog_list, MessageId last_message_id,
                                          Promise<Unit> promise);
+
+  static DialogId get_saved_messages_dialog_id(DialogId my_dialog_id, const Message *m);
 
   MessageInfo parse_telegram_api_message(tl_object_ptr<telegram_api::Message> message_ptr, bool is_scheduled,
                                          const char *source) const;
