@@ -29781,11 +29781,12 @@ void MessagesManager::drop_dialog_last_pinned_message_id(Dialog *d) {
 
   LOG(INFO) << "Drop " << d->dialog_id << " pinned message";
 
-  create_actor<SleepActor>("ReloadDialogFullInfoActor", 1.0,
-                           PromiseCreator::lambda([dialog_id = d->dialog_id](Result<Unit> result) {
-                             send_closure(G()->dialog_manager(), &DialogManager::reload_dialog_info_full, dialog_id,
-                                          "drop_dialog_last_pinned_message_id");
-                           }))
+  create_actor<SleepActor>(
+      "ReloadDialogFullInfoActor", 1.0,
+      PromiseCreator::lambda([actor_id = G()->dialog_manager(), dialog_id = d->dialog_id](Result<Unit> result) {
+        send_closure(actor_id, &DialogManager::reload_dialog_info_full, dialog_id,
+                     "drop_dialog_last_pinned_message_id");
+      }))
       .release();
 }
 
