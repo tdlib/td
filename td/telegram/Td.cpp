@@ -3652,6 +3652,35 @@ void Td::init(Parameters parameters, Result<TdDb::OpenedDatabase> r_opened_datab
 
   option_manager_->on_td_inited();
 
+  if (is_online_) {
+    on_online_updated(true, true);
+  }
+  if (auth_manager_->is_bot()) {
+    set_is_bot_online(true);
+  }
+
+  process_binlog_events(std::move(events));
+
+  VLOG(td_init) << "Ping datacenter";
+  if (!auth_manager_->is_authorized()) {
+    country_info_manager_->get_current_country_code(Promise<string>());
+  } else {
+    updates_manager_->get_difference("init");
+    schedule_get_terms_of_service(0);
+    reload_promo_data();
+  }
+
+  complete_pending_preauthentication_requests([](int32 id) { return true; });
+
+  VLOG(td_init) << "Finish initialization";
+
+  state_ = State::Run;
+
+  send_closure(actor_id(this), &Td::send_result, set_parameters_request_id_, td_api::make_object<td_api::ok>());
+  return finish_set_parameters();
+}
+
+void Td::process_binlog_events(TdDb::OpenedDatabase &&events) {
   VLOG(td_init) << "Send binlog events";
   for (auto &event : events.user_events) {
     contacts_manager_->on_binlog_user_event(std::move(event));
@@ -3676,13 +3705,6 @@ void Td::init(Parameters parameters, Result<TdDb::OpenedDatabase> r_opened_datab
 
   for (auto &event : events.save_app_log_events) {
     on_save_app_log_binlog_event(this, std::move(event));
-  }
-
-  if (is_online_) {
-    on_online_updated(true, true);
-  }
-  if (auth_manager_->is_bot()) {
-    set_is_bot_online(true);
   }
 
   // Send binlog events to managers
@@ -3722,24 +3744,6 @@ void Td::init(Parameters parameters, Result<TdDb::OpenedDatabase> r_opened_datab
                      std::move(events.to_notification_settings_manager));
 
   send_closure(secret_chats_manager_, &SecretChatsManager::binlog_replay_finish);
-
-  VLOG(td_init) << "Ping datacenter";
-  if (!auth_manager_->is_authorized()) {
-    country_info_manager_->get_current_country_code(Promise<string>());
-  } else {
-    updates_manager_->get_difference("init");
-    schedule_get_terms_of_service(0);
-    reload_promo_data();
-  }
-
-  complete_pending_preauthentication_requests([](int32 id) { return true; });
-
-  VLOG(td_init) << "Finish initialization";
-
-  state_ = State::Run;
-
-  send_closure(actor_id(this), &Td::send_result, set_parameters_request_id_, td_api::make_object<td_api::ok>());
-  return finish_set_parameters();
 }
 
 void Td::init_options_and_network() {

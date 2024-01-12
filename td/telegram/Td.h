@@ -1835,6 +1835,8 @@ class Td final : public Actor {
 
   void init_managers();
 
+  void process_binlog_events(TdDb::OpenedDatabase &&events);
+
   void clear();
 
   void close_impl(bool destroy_flag);
