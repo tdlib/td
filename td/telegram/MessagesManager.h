@@ -56,6 +56,7 @@
 #include "td/telegram/RepliedMessageInfo.h"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/RestrictionReason.h"
+#include "td/telegram/SavedMessagesTopicId.h"
 #include "td/telegram/ScheduledServerMessageId.h"
 #include "td/telegram/secret_api.h"
 #include "td/telegram/SecretChatId.h"
@@ -948,7 +949,7 @@ class MessagesManager final : public Actor {
     MessageId message_id;
     UserId sender_user_id;
     DialogId sender_dialog_id;
-    DialogId saved_messages_dialog_id;
+    SavedMessagesTopicId saved_messages_topic_id;
     int32 date = 0;
     int32 ttl_period = 0;
     int32 ttl = 0;
@@ -986,7 +987,7 @@ class MessagesManager final : public Actor {
     MessageId message_id;
     UserId sender_user_id;
     DialogId sender_dialog_id;
-    DialogId saved_messages_dialog_id;
+    SavedMessagesTopicId saved_messages_topic_id;
     int32 date = 0;
     int32 edit_date = 0;
     int32 send_date = 0;
@@ -1610,8 +1611,6 @@ class MessagesManager final : public Actor {
 
   void finish_delete_secret_chat_history(DialogId dialog_id, bool remove_from_dialog_list, MessageId last_message_id,
                                          Promise<Unit> promise);
-
-  static DialogId get_saved_messages_dialog_id(DialogId my_dialog_id, const Message *m);
 
   MessageInfo parse_telegram_api_message(tl_object_ptr<telegram_api::Message> message_ptr, bool is_scheduled,
                                          const char *source) const;
@@ -2340,9 +2339,6 @@ class MessagesManager final : public Actor {
   tl_object_ptr<td_api::MessageSendingState> get_message_sending_state_object(const Message *m) const;
 
   static tl_object_ptr<td_api::MessageSchedulingState> get_message_scheduling_state_object(int32 send_date);
-
-  td_api::object_ptr<td_api::SavedMessagesTopic> get_saved_messages_topic_object(
-      DialogId saved_messages_dialog_id) const;
 
   td_api::object_ptr<td_api::MessageContent> get_message_message_content_object(DialogId dialog_id,
                                                                                 const Message *m) const;
