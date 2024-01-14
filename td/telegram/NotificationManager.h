@@ -42,7 +42,7 @@ namespace td {
 extern int VERBOSITY_NAME(notifications);
 
 struct BinlogEvent;
-
+class JsonObject;
 class Td;
 
 class NotificationManager final : public Actor {
@@ -313,6 +313,9 @@ class NotificationManager final : public Actor {
 
   void add_push_notification_user(UserId sender_user_id, int64 sender_access_hash, const string &sender_name,
                                   telegram_api::object_ptr<telegram_api::UserProfilePhoto> &&sender_photo);
+
+  Status parse_push_notification_attach(DialogId dialog_id, string &loc_key, JsonObject &custom, Photo &attached_photo,
+                                        Document &attached_document);
 
   Status process_push_notification_payload(string payload, bool was_encrypted, Promise<Unit> &promise);
 

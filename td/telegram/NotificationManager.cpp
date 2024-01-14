@@ -3086,6 +3086,105 @@ void NotificationManager::add_push_notification_user(
   td_->contacts_manager_->on_get_user(std::move(user), "add_push_notification_user");
 }
 
+Status NotificationManager::parse_push_notification_attach(DialogId dialog_id, string &loc_key, JsonObject &custom,
+                                                           Photo &attached_photo, Document &attached_document) {
+  if (!custom.has_field("attachb64")) {
+    return Status::OK();
+  }
+  TRY_RESULT(attachb64, custom.get_required_string_field("attachb64"));
+  TRY_RESULT(attach, base64url_decode(attachb64));
+
+  TlParser gzip_parser(attach);
+  int32 id = gzip_parser.fetch_int();
+  if (gzip_parser.get_error()) {
+    return Status::Error(PSLICE() << "Failed to parse attach: " << gzip_parser.get_error());
+  }
+  BufferSlice buffer;
+  if (id == mtproto_api::gzip_packed::ID) {
+    mtproto_api::gzip_packed gzip(gzip_parser);
+    gzip_parser.fetch_end();
+    if (gzip_parser.get_error()) {
+      return Status::Error(PSLICE() << "Failed to parse mtproto_api::gzip_packed in attach: "
+                                    << gzip_parser.get_error());
+    }
+    buffer = gzdecode(gzip.packed_data_);
+    if (buffer.empty()) {
+      return Status::Error("Failed to uncompress attach");
+    }
+  } else {
+    buffer = BufferSlice(attach);
+  }
+
+  TlBufferParser parser(&buffer);
+  auto result = telegram_api::Object::fetch(parser);
+  parser.fetch_end();
+  const char *error = parser.get_error();
+  if (error != nullptr) {
+    LOG(ERROR) << "Can't parse attach: " << Slice(error) << " at " << parser.get_error_pos() << ": "
+               << format::as_hex_dump<4>(Slice(attach));
+    return Status::OK();
+  }
+  switch (result->get_id()) {
+    case telegram_api::photo::ID:
+      if (ends_with(loc_key, "MESSAGE_PHOTO") || ends_with(loc_key, "MESSAGE_TEXT")) {
+        VLOG(notifications) << "Have attached photo";
+        loc_key.resize(loc_key.rfind('_') + 1);
+        loc_key += "PHOTO";
+        attached_photo = get_photo(td_, telegram_api::move_object_as<telegram_api::photo>(result), dialog_id);
+      } else {
+        LOG(ERROR) << "Receive attached photo for " << loc_key;
+      }
+      break;
+    case telegram_api::document::ID: {
+      if (ends_with(loc_key, "MESSAGE_ANIMATION") || ends_with(loc_key, "MESSAGE_AUDIO") ||
+          ends_with(loc_key, "MESSAGE_DOCUMENT") || ends_with(loc_key, "MESSAGE_STICKER") ||
+          ends_with(loc_key, "MESSAGE_VIDEO") || ends_with(loc_key, "MESSAGE_VIDEO_NOTE") ||
+          ends_with(loc_key, "MESSAGE_VOICE_NOTE") || ends_with(loc_key, "MESSAGE_TEXT")) {
+        VLOG(notifications) << "Have attached document";
+        attached_document = td_->documents_manager_->on_get_document(
+            telegram_api::move_object_as<telegram_api::document>(result), dialog_id);
+        if (!attached_document.empty()) {
+          if (ends_with(loc_key, "_NOTE")) {
+            loc_key.resize(loc_key.rfind('_'));
+          }
+          loc_key.resize(loc_key.rfind('_') + 1);
+
+          auto type = [attached_document] {
+            switch (attached_document.type) {
+              case Document::Type::Animation:
+                return "ANIMATION";
+              case Document::Type::Audio:
+                return "AUDIO";
+              case Document::Type::General:
+                return "DOCUMENT";
+              case Document::Type::Sticker:
+                return "STICKER";
+              case Document::Type::Video:
+                return "VIDEO";
+              case Document::Type::VideoNote:
+                return "VIDEO_NOTE";
+              case Document::Type::VoiceNote:
+                return "VOICE_NOTE";
+              case Document::Type::Unknown:
+              default:
+                UNREACHABLE();
+                return "UNREACHABLE";
+            }
+          }();
+
+          loc_key += type;
+        }
+      } else {
+        LOG(ERROR) << "Receive attached document for " << loc_key;
+      }
+      break;
+    }
+    default:
+      LOG(ERROR) << "Receive unexpected attached " << to_string(result);
+  }
+  return Status::OK();
+}
+
 Status NotificationManager::process_push_notification_payload(string payload, bool was_encrypted,
                                                               Promise<Unit> &promise) {
   VLOG(notifications) << "Process push notification payload " << payload;
@@ -3495,99 +3594,8 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
 
   Photo attached_photo;
   Document attached_document;
-  if (custom.has_field("attachb64")) {
-    TRY_RESULT(attachb64, custom.get_required_string_field("attachb64"));
-    TRY_RESULT(attach, base64url_decode(attachb64));
+  TRY_STATUS(parse_push_notification_attach(dialog_id, loc_key, custom, attached_photo, attached_document));
 
-    TlParser gzip_parser(attach);
-    int32 id = gzip_parser.fetch_int();
-    if (gzip_parser.get_error()) {
-      return Status::Error(PSLICE() << "Failed to parse attach: " << gzip_parser.get_error());
-    }
-    BufferSlice buffer;
-    if (id == mtproto_api::gzip_packed::ID) {
-      mtproto_api::gzip_packed gzip(gzip_parser);
-      gzip_parser.fetch_end();
-      if (gzip_parser.get_error()) {
-        return Status::Error(PSLICE() << "Failed to parse mtproto_api::gzip_packed in attach: "
-                                      << gzip_parser.get_error());
-      }
-      buffer = gzdecode(gzip.packed_data_);
-      if (buffer.empty()) {
-        return Status::Error("Failed to uncompress attach");
-      }
-    } else {
-      buffer = BufferSlice(attach);
-    }
-
-    TlBufferParser parser(&buffer);
-    auto result = telegram_api::Object::fetch(parser);
-    parser.fetch_end();
-    const char *error = parser.get_error();
-    if (error != nullptr) {
-      LOG(ERROR) << "Can't parse attach: " << Slice(error) << " at " << parser.get_error_pos() << ": "
-                 << format::as_hex_dump<4>(Slice(attach));
-    } else {
-      switch (result->get_id()) {
-        case telegram_api::photo::ID:
-          if (ends_with(loc_key, "MESSAGE_PHOTO") || ends_with(loc_key, "MESSAGE_TEXT")) {
-            VLOG(notifications) << "Have attached photo";
-            loc_key.resize(loc_key.rfind('_') + 1);
-            loc_key += "PHOTO";
-            attached_photo = get_photo(td_, telegram_api::move_object_as<telegram_api::photo>(result), dialog_id);
-          } else {
-            LOG(ERROR) << "Receive attached photo for " << loc_key;
-          }
-          break;
-        case telegram_api::document::ID: {
-          if (ends_with(loc_key, "MESSAGE_ANIMATION") || ends_with(loc_key, "MESSAGE_AUDIO") ||
-              ends_with(loc_key, "MESSAGE_DOCUMENT") || ends_with(loc_key, "MESSAGE_STICKER") ||
-              ends_with(loc_key, "MESSAGE_VIDEO") || ends_with(loc_key, "MESSAGE_VIDEO_NOTE") ||
-              ends_with(loc_key, "MESSAGE_VOICE_NOTE") || ends_with(loc_key, "MESSAGE_TEXT")) {
-            VLOG(notifications) << "Have attached document";
-            attached_document = td_->documents_manager_->on_get_document(
-                telegram_api::move_object_as<telegram_api::document>(result), dialog_id);
-            if (!attached_document.empty()) {
-              if (ends_with(loc_key, "_NOTE")) {
-                loc_key.resize(loc_key.rfind('_'));
-              }
-              loc_key.resize(loc_key.rfind('_') + 1);
-
-              auto type = [attached_document] {
-                switch (attached_document.type) {
-                  case Document::Type::Animation:
-                    return "ANIMATION";
-                  case Document::Type::Audio:
-                    return "AUDIO";
-                  case Document::Type::General:
-                    return "DOCUMENT";
-                  case Document::Type::Sticker:
-                    return "STICKER";
-                  case Document::Type::Video:
-                    return "VIDEO";
-                  case Document::Type::VideoNote:
-                    return "VIDEO_NOTE";
-                  case Document::Type::VoiceNote:
-                    return "VOICE_NOTE";
-                  case Document::Type::Unknown:
-                  default:
-                    UNREACHABLE();
-                    return "UNREACHABLE";
-                }
-              }();
-
-              loc_key += type;
-            }
-          } else {
-            LOG(ERROR) << "Receive attached document for " << loc_key;
-          }
-          break;
-        }
-        default:
-          LOG(ERROR) << "Receive unexpected attached " << to_string(result);
-      }
-    }
-  }
   if (!arg.empty()) {
     uint32 emoji = [&] {
       if (ends_with(loc_key, "PHOTO")) {
