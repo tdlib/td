@@ -318,7 +318,6 @@ void DialogActionManager::send_dialog_action(DialogId dialog_id, MessageId top_t
     }
 
     input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
-    CHECK(input_peer != nullptr);
   }
 
   if (dialog_id.get_type() == DialogType::SecretChat) {
@@ -327,6 +326,8 @@ void DialogActionManager::send_dialog_action(DialogId dialog_id, MessageId top_t
     promise.set_value(Unit());
     return;
   }
+
+  CHECK(input_peer != nullptr);
 
   auto new_query_ref =
       td_->create_handler<SetTypingQuery>(std::move(promise))
