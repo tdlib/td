@@ -289,14 +289,6 @@ void DialogActionManager::send_dialog_action(DialogId dialog_id, MessageId top_t
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "send_dialog_action")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
-
-  if (dialog_id.get_type() == DialogType::SecretChat) {
-    send_closure(G()->secret_chats_manager(), &SecretChatsManager::send_message_action, dialog_id.get_secret_chat_id(),
-                 action.get_secret_input_send_message_action());
-    promise.set_value(Unit());
-    return;
-  }
-
   if (top_thread_message_id != MessageId() &&
       (!top_thread_message_id.is_valid() || !top_thread_message_id.is_server())) {
     return promise.set_error(Status::Error(400, "Invalid message thread specified"));
@@ -326,8 +318,16 @@ void DialogActionManager::send_dialog_action(DialogId dialog_id, MessageId top_t
     }
 
     input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
-    CHECK(input_peer != nullptr);
   }
+
+  if (dialog_id.get_type() == DialogType::SecretChat) {
+    send_closure(G()->secret_chats_manager(), &SecretChatsManager::send_message_action, dialog_id.get_secret_chat_id(),
+                 action.get_secret_input_send_message_action());
+    promise.set_value(Unit());
+    return;
+  }
+
+  CHECK(input_peer != nullptr);
 
   auto new_query_ref =
       td_->create_handler<SetTypingQuery>(std::move(promise))
