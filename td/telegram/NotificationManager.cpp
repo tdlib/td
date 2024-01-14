@@ -3064,6 +3064,28 @@ string NotificationManager::convert_loc_key(const string &loc_key) {
   return string();
 }
 
+void NotificationManager::add_push_notification_user(
+    UserId sender_user_id, int64 sender_access_hash, const string &sender_name,
+    telegram_api::object_ptr<telegram_api::UserProfilePhoto> &&sender_photo) {
+  int32 flags = USER_FLAG_IS_INACCESSIBLE;
+  if (sender_access_hash != -1) {
+    // set phone number flag to show that this is a full access hash
+    flags |= USER_FLAG_HAS_ACCESS_HASH | USER_FLAG_HAS_PHONE_NUMBER;
+  } else {
+    sender_access_hash = 0;
+  }
+  auto user_name = sender_user_id.get() == 136817688 ? "Channel" : sender_name;
+  auto user = telegram_api::make_object<telegram_api::user>(
+      flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+      false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+      false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+      false /*ignored*/, 0, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+      sender_user_id.get(), sender_access_hash, user_name, string(), string(), string(), std::move(sender_photo),
+      nullptr, 0, Auto(), string(), string(), nullptr, vector<telegram_api::object_ptr<telegram_api::username>>(), 0,
+      nullptr, nullptr);
+  td_->contacts_manager_->on_get_user(std::move(user), "add_push_notification_user");
+}
+
 Status NotificationManager::process_push_notification_payload(string payload, bool was_encrypted,
                                                               Promise<Unit> &promise) {
   VLOG(notifications) << "Process push notification payload " << payload;
@@ -3468,21 +3490,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
       }
     }
 
-    int32 flags = USER_FLAG_IS_INACCESSIBLE;
-    if (sender_access_hash != -1) {
-      // set phone number flag to show that this is a full access hash
-      flags |= USER_FLAG_HAS_ACCESS_HASH | USER_FLAG_HAS_PHONE_NUMBER;
-    }
-    auto user_name = sender_user_id.get() == 136817688 ? "Channel" : sender_name;
-    auto user = telegram_api::make_object<telegram_api::user>(
-        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-        false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-        false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-        false /*ignored*/, false /*ignored*/, false /*ignored*/, 0, false /*ignored*/, false /*ignored*/,
-        false /*ignored*/, false /*ignored*/, sender_user_id.get(), sender_access_hash, user_name, string(), string(),
-        string(), std::move(sender_photo), nullptr, 0, Auto(), string(), string(), nullptr,
-        vector<telegram_api::object_ptr<telegram_api::username>>(), 0, nullptr, nullptr);
-    td_->contacts_manager_->on_get_user(std::move(user), "process_push_notification_payload");
+    add_push_notification_user(sender_user_id, sender_access_hash, sender_name, std::move(sender_photo));
   }
 
   Photo attached_photo;
@@ -3832,17 +3840,7 @@ void NotificationManager::add_message_push_notification(DialogId dialog_id, Mess
 
   if (sender_user_id.is_valid() &&
       !td_->contacts_manager_->have_user_force(sender_user_id, "add_message_push_notification")) {
-    int32 flags = USER_FLAG_IS_INACCESSIBLE;
-    auto user_name = sender_user_id.get() == 136817688 ? "Channel" : sender_name;
-    auto user = telegram_api::make_object<telegram_api::user>(
-        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-        false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-        false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-        false /*ignored*/, false /*ignored*/, false /*ignored*/, 0, false /*ignored*/, false /*ignored*/,
-        false /*ignored*/, false /*ignored*/, sender_user_id.get(), 0, user_name, string(), string(), string(), nullptr,
-        nullptr, 0, Auto(), string(), string(), nullptr, vector<telegram_api::object_ptr<telegram_api::username>>(), 0,
-        nullptr, nullptr);
-    td_->contacts_manager_->on_get_user(std::move(user), "add_message_push_notification");
+    add_push_notification_user(sender_user_id, -1, sender_name, nullptr);
   }
 
   if (log_event_id == 0 && G()->use_message_database()) {

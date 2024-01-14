@@ -311,6 +311,9 @@ class NotificationManager final : public Actor {
 
   static string convert_loc_key(const string &loc_key);
 
+  void add_push_notification_user(UserId sender_user_id, int64 sender_access_hash, const string &sender_name,
+                                  telegram_api::object_ptr<telegram_api::UserProfilePhoto> &&sender_photo);
+
   Status process_push_notification_payload(string payload, bool was_encrypted, Promise<Unit> &promise);
 
   void add_message_push_notification(DialogId dialog_id, MessageId message_id, int64 random_id, UserId sender_user_id,
