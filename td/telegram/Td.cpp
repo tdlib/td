@@ -5307,9 +5307,10 @@ void Td::on_request(uint64 id, const td_api::getChatMessagePosition &request) {
       promise.set_value(make_tl_object<td_api::count>(result.move_as_ok()));
     }
   });
-  messages_manager_->get_dialog_message_position({DialogId(request.chat_id_), MessageId(request.message_id_)},
-                                                 get_message_search_filter(request.filter_),
-                                                 MessageId(request.message_thread_id_), std::move(query_promise));
+  messages_manager_->get_dialog_message_position(
+      {DialogId(request.chat_id_), MessageId(request.message_id_)}, get_message_search_filter(request.filter_),
+      MessageId(request.message_thread_id_), SavedMessagesTopicId(this, request.saved_messages_topic_),
+      std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getChatScheduledMessages &request) {

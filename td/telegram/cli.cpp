@@ -947,7 +947,16 @@ class CliClient final : public Actor {
   }
 
   td_api::object_ptr<td_api::SavedMessagesTopic> get_saved_messages_topic() const {
-    return nullptr;
+    if (saved_messages_topic_ == 0) {
+      return nullptr;
+    }
+    if (saved_messages_topic_ == my_id_) {
+      return td_api::make_object<td_api::savedMessagesTopicMyNotes>();
+    }
+    if (saved_messages_topic_ == -1) {
+      return td_api::make_object<td_api::savedMessagesTopicAuthorHidden>();
+    }
+    return td_api::make_object<td_api::savedMessagesTopicSavedFromChat>(saved_messages_topic_);
   }
 
   td_api::object_ptr<td_api::linkPreviewOptions> get_link_preview_options() const {
@@ -2953,7 +2962,7 @@ class CliClient final : public Actor {
       string filter;
       get_args(args, chat_id, message_id, filter);
       send_request(td_api::make_object<td_api::getChatMessagePosition>(
-          chat_id, message_id, as_search_messages_filter(filter), message_thread_id_));
+          chat_id, message_id, as_search_messages_filter(filter), message_thread_id_, get_saved_messages_topic()));
     } else if (op == "gup" || op == "gupp") {
       UserId user_id;
       int32 offset;
@@ -4596,6 +4605,8 @@ class CliClient final : public Actor {
     } else if (op == "slpo") {
       get_args(args, link_preview_is_disabled_, link_preview_url_, link_preview_force_small_media_,
                link_preview_force_large_media_, link_preview_show_above_text_);
+    } else if (op == "ssmt") {
+      saved_messages_topic_ = as_chat_id(args);
     } else if (op == "sm" || op == "sms" || op == "smf") {
       ChatId chat_id;
       string message;
@@ -6443,6 +6454,7 @@ class CliClient final : public Actor {
   bool link_preview_force_small_media_ = false;
   bool link_preview_force_large_media_ = false;
   bool link_preview_show_above_text_ = false;
+  int64 saved_messages_topic_ = 0;
 
   ConcurrentScheduler *scheduler_{nullptr};
 

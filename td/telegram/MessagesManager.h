@@ -747,7 +747,8 @@ class MessagesManager final : public Actor {
                                 Promise<int32> &&promise);
 
   void get_dialog_message_position(MessageFullId message_full_id, MessageSearchFilter filter,
-                                   MessageId top_thread_message_id, Promise<int32> &&promise);
+                                   MessageId top_thread_message_id, SavedMessagesTopicId saved_messages_topic_id,
+                                   Promise<int32> &&promise);
 
   vector<MessageId> get_dialog_scheduled_messages(DialogId dialog_id, bool force, bool ignore_result,
                                                   Promise<Unit> &&promise);

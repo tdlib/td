@@ -44,7 +44,7 @@ class SavedMessagesTopicId {
 
   td_api::object_ptr<td_api::SavedMessagesTopic> get_saved_messages_topic_object(Td *td) const;
 
-  bool have_input_peer(const Td *td) const;
+  bool have_input_peer(Td *td) const;
 
   telegram_api::object_ptr<telegram_api::InputPeer> get_input_peer(const Td *td) const;
 

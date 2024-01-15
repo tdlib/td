@@ -72,9 +72,12 @@ td_api::object_ptr<td_api::SavedMessagesTopic> SavedMessagesTopicId::get_saved_m
       td->messages_manager_->get_chat_id_object(dialog_id_, "savedMessagesTopicSavedFromChat"));
 }
 
-bool SavedMessagesTopicId::have_input_peer(const Td *td) const {
-  return dialog_id_.get_type() != DialogType::SecretChat &&
-         td->dialog_manager_->have_input_peer(dialog_id_, AccessRights::Know);
+bool SavedMessagesTopicId::have_input_peer(Td *td) const {
+  if (dialog_id_.get_type() == DialogType::SecretChat ||
+      !td->dialog_manager_->have_dialog_info_force(dialog_id_, "SavedMessagesTopicId::have_input_peer")) {
+    return false;
+  }
+  return td->dialog_manager_->have_input_peer(dialog_id_, AccessRights::Know);
 }
 
 telegram_api::object_ptr<telegram_api::InputPeer> SavedMessagesTopicId::get_input_peer(const Td *td) const {
