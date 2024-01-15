@@ -67,11 +67,22 @@ void LastForwardedMessageInfo::add_min_channel_ids(vector<ChannelId> &channel_id
   }
 }
 
-td_api::object_ptr<td_api::forwardSource> LastForwardedMessageInfo::get_forward_source_object(Td *td) const {
+td_api::object_ptr<td_api::forwardSource> LastForwardedMessageInfo::get_forward_source_object(
+    Td *td, bool for_saved_messages, const MessageOrigin &origin, int32 origin_date) const {
   if (is_empty()) {
     return nullptr;
   }
   td_api::object_ptr<td_api::MessageSender> sender_id;
+  if (date_ == 0 && for_saved_messages) {
+    auto sender_dialog_id = origin.get_sender();
+    if (sender_dialog_id.is_valid()) {
+      sender_id = get_message_sender_object_const(td, sender_dialog_id, "origin.forwardSource.sender_id");
+    }
+    return td_api::make_object<td_api::forwardSource>(
+        td->messages_manager_->get_chat_id_object(dialog_id_, "forwardSource.chat_id"), message_id_.get(),
+        std::move(sender_id), origin.get_sender_name(), origin_date, is_outgoing_);
+  }
+
   if (sender_dialog_id_ != DialogId()) {
     sender_id = get_message_sender_object_const(td, sender_dialog_id_, "forwardSource.sender_id");
   }
@@ -159,12 +170,14 @@ unique_ptr<MessageForwardInfo> MessageForwardInfo::copy_message_forward_info(
   return result;
 }
 
-td_api::object_ptr<td_api::messageForwardInfo> MessageForwardInfo::get_message_forward_info_object(Td *td) const {
+td_api::object_ptr<td_api::messageForwardInfo> MessageForwardInfo::get_message_forward_info_object(
+    Td *td, bool for_saved_messages) const {
   if (is_imported_) {
     return nullptr;
   }
-  return td_api::make_object<td_api::messageForwardInfo>(origin_.get_message_origin_object(td), date_,
-                                                         last_message_info_.get_forward_source_object(td), psa_type_);
+  return td_api::make_object<td_api::messageForwardInfo>(
+      origin_.get_message_origin_object(td), date_,
+      last_message_info_.get_forward_source_object(td, for_saved_messages, origin_, date_), psa_type_);
 }
 
 td_api::object_ptr<td_api::messageImportInfo> MessageForwardInfo::get_message_import_info_object() const {

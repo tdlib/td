@@ -22225,7 +22225,8 @@ td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_messag
 
   auto sender = get_message_sender_object_const(td_, m->sender_user_id, m->sender_dialog_id,
                                                 "get_dialog_event_log_message_object");
-  auto forward_info = m->forward_info == nullptr ? nullptr : m->forward_info->get_message_forward_info_object(td_);
+  auto forward_info =
+      m->forward_info == nullptr ? nullptr : m->forward_info->get_message_forward_info_object(td_, false);
   auto import_info = m->forward_info == nullptr ? nullptr : m->forward_info->get_message_import_info_object();
   auto interaction_info = get_message_interaction_info_object(dialog_id, m);
   auto can_be_saved = can_save_message(dialog_id, m);
@@ -22301,7 +22302,9 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
       m->ttl_period == 0 ? 0.0 : clamp(m->date + m->ttl_period - G()->server_time(), 1e-3, m->ttl_period - 1e-3);
   auto sender = get_message_sender_object_const(td_, m->sender_user_id, m->sender_dialog_id, source);
   auto scheduling_state = is_scheduled ? get_message_scheduling_state_object(m->date) : nullptr;
-  auto forward_info = m->forward_info == nullptr ? nullptr : m->forward_info->get_message_forward_info_object(td_);
+  auto forward_info = m->forward_info == nullptr
+                          ? nullptr
+                          : m->forward_info->get_message_forward_info_object(td_, dialog_id == my_dialog_id);
   auto import_info = m->forward_info == nullptr ? nullptr : m->forward_info->get_message_import_info_object();
   auto interaction_info = is_bot ? nullptr : get_message_interaction_info_object(dialog_id, m);
   auto unread_reactions = get_unread_reactions_object(dialog_id, m);

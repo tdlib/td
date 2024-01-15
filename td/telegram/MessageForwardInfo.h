@@ -60,7 +60,9 @@ class LastForwardedMessageInfo {
 
   void add_min_channel_ids(vector<ChannelId> &channel_ids) const;
 
-  td_api::object_ptr<td_api::forwardSource> get_forward_source_object(Td *td) const;
+  td_api::object_ptr<td_api::forwardSource> get_forward_source_object(Td *td, bool for_saved_messages,
+                                                                      const MessageOrigin &origin,
+                                                                      int32 origin_date) const;
 
   DialogId get_dialog_id() const {
     return dialog_id_;
@@ -111,7 +113,7 @@ class MessageForwardInfo {
   static unique_ptr<MessageForwardInfo> copy_message_forward_info(Td *td, const MessageForwardInfo &forward_info,
                                                                   LastForwardedMessageInfo &&last_message_info);
 
-  td_api::object_ptr<td_api::messageForwardInfo> get_message_forward_info_object(Td *td) const;
+  td_api::object_ptr<td_api::messageForwardInfo> get_message_forward_info_object(Td *td, bool for_saved_messages) const;
 
   td_api::object_ptr<td_api::messageImportInfo> get_message_import_info_object() const;
 
