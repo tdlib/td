@@ -7258,8 +7258,9 @@ getChatMessageCalendar chat_id:int53 filter:SearchMessagesFilter from_message_id
 //@description Returns approximate number of messages of the specified type in the chat
 //@chat_id Identifier of the chat in which to count messages
 //@filter Filter for message content; searchMessagesFilterEmpty is unsupported in this function
+//@saved_messages_topic If not null, only messages in the specified Saved Messages topic will be counted; pass null to count all messages or for chats other than Saved Messages
 //@return_local Pass true to get the number of messages without sending network requests, or -1 if the number of messages is unknown locally
-getChatMessageCount chat_id:int53 filter:SearchMessagesFilter return_local:Bool = Count;
+getChatMessageCount chat_id:int53 filter:SearchMessagesFilter saved_messages_topic:SavedMessagesTopic return_local:Bool = Count;
 
 //@description Returns approximate 1-based position of a message among messages, which can be found by the specified filter in the chat. Cannot be used in secret chats
 //@chat_id Identifier of the chat in which to find message position

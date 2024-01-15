@@ -2954,8 +2954,8 @@ class CliClient final : public Actor {
       string filter;
       bool return_local;
       get_args(args, chat_id, filter, return_local);
-      send_request(
-          td_api::make_object<td_api::getChatMessageCount>(chat_id, as_search_messages_filter(filter), return_local));
+      send_request(td_api::make_object<td_api::getChatMessageCount>(chat_id, as_search_messages_filter(filter),
+                                                                    get_saved_messages_topic(), return_local));
     } else if (op == "gcmp") {
       ChatId chat_id;
       MessageId message_id;

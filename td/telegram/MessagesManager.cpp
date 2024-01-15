@@ -1910,19 +1910,21 @@ class GetSearchResultPositionsQuery final : public Td::ResultHandler {
 class GetSearchCountersQuery final : public Td::ResultHandler {
   Promise<int32> promise_;
   DialogId dialog_id_;
+  SavedMessagesTopicId saved_messages_topic_id_;
   MessageSearchFilter filter_;
 
  public:
   explicit GetSearchCountersQuery(Promise<int32> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, MessageSearchFilter filter) {
+  void send(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id, MessageSearchFilter filter) {
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
       return promise_.set_error(Status::Error(400, "Can't access the chat"));
     }
 
     dialog_id_ = dialog_id;
+    saved_messages_topic_id_ = saved_messages_topic_id;
     filter_ = filter;
 
     CHECK(filter != MessageSearchFilter::Empty);
@@ -1933,8 +1935,14 @@ class GetSearchCountersQuery final : public Td::ResultHandler {
     filters.push_back(get_input_messages_filter(filter));
 
     int32 flags = 0;
-    send_query(G()->net_query_creator().create(
-        telegram_api::messages_getSearchCounters(flags, std::move(input_peer), nullptr, 0, std::move(filters))));
+    telegram_api::object_ptr<telegram_api::InputPeer> saved_input_peer;
+    if (saved_messages_topic_id.is_valid()) {
+      flags |= telegram_api::messages_getSearchCounters::SAVED_PEER_ID_MASK;
+      saved_input_peer = saved_messages_topic_id.get_input_peer(td_);
+      CHECK(saved_input_peer != nullptr);
+    }
+    send_query(G()->net_query_creator().create(telegram_api::messages_getSearchCounters(
+        flags, std::move(input_peer), std::move(saved_input_peer), 0, std::move(filters))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1950,7 +1958,8 @@ class GetSearchCountersQuery final : public Td::ResultHandler {
       return on_error(Status::Error(500, "Receive wrong response"));
     }
 
-    td_->messages_manager_->on_get_dialog_message_count(dialog_id_, filter_, result[0]->count_, std::move(promise_));
+    td_->messages_manager_->on_get_dialog_message_count(dialog_id_, saved_messages_topic_id_, filter_,
+                                                        result[0]->count_, std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -8954,12 +8963,18 @@ void MessagesManager::on_failed_dialog_messages_search(DialogId dialog_id, int64
   found_dialog_messages_.erase(it);
 }
 
-void MessagesManager::on_get_dialog_message_count(DialogId dialog_id, MessageSearchFilter filter, int32 total_count,
+void MessagesManager::on_get_dialog_message_count(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
+                                                  MessageSearchFilter filter, int32 total_count,
                                                   Promise<int32> &&promise) {
   LOG(INFO) << "Receive " << total_count << " message count in " << dialog_id << " with filter " << filter;
   if (total_count < 0) {
-    LOG(ERROR) << "Receive total message count = " << total_count << " in " << dialog_id << " with filter " << filter;
+    LOG(ERROR) << "Receive total message count = " << total_count << " in " << dialog_id << " with "
+               << saved_messages_topic_id << " and filter " << filter;
     total_count = 0;
+  }
+
+  if (saved_messages_topic_id.is_valid()) {
+    return promise.set_value(std::move(total_count));
   }
 
   Dialog *d = get_dialog(dialog_id);
@@ -21196,7 +21211,8 @@ void MessagesManager::on_get_dialog_sparse_message_positions(
   promise.set_value(td_api::make_object<td_api::messagePositions>(positions->count_, std::move(message_positions)));
 }
 
-void MessagesManager::get_dialog_message_count(DialogId dialog_id, MessageSearchFilter filter, bool return_local,
+void MessagesManager::get_dialog_message_count(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
+                                               MessageSearchFilter filter, bool return_local,
                                                Promise<int32> &&promise) {
   LOG(INFO) << "Get " << (return_local ? "local " : "") << "number of messages in " << dialog_id << " filtered by "
             << filter;
@@ -21210,31 +21226,44 @@ void MessagesManager::get_dialog_message_count(DialogId dialog_id, MessageSearch
     return promise.set_error(Status::Error(400, "Can't use searchMessagesFilterEmpty"));
   }
 
-  auto dialog_type = dialog_id.get_type();
-  int32 message_count = d->message_count_by_index[message_search_filter_index(filter)];
-  if (message_count == -1 && filter == MessageSearchFilter::UnreadMention) {
-    message_count = d->unread_mention_count;
-  }
-  if (message_count == -1 && filter == MessageSearchFilter::UnreadReaction) {
-    message_count = d->unread_reaction_count;
-  }
-  if (message_count != -1 || return_local || dialog_type == DialogType::SecretChat ||
-      filter == MessageSearchFilter::FailedToSend) {
-    return promise.set_value(std::move(message_count));
+  TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_in(td_, dialog_id));
+  if (saved_messages_topic_id.is_valid()) {
+    if (filter == MessageSearchFilter::UnreadMention || filter == MessageSearchFilter::UnreadReaction ||
+        filter == MessageSearchFilter::FailedToSend) {
+      return promise.set_value(static_cast<int32>(0));
+    }
+    if (return_local) {
+      return promise.set_value(static_cast<int32>(-1));
+    }
+  } else {
+    auto dialog_type = dialog_id.get_type();
+    int32 message_count = d->message_count_by_index[message_search_filter_index(filter)];
+    if (message_count == -1 && filter == MessageSearchFilter::UnreadMention) {
+      message_count = d->unread_mention_count;
+    }
+    if (message_count == -1 && filter == MessageSearchFilter::UnreadReaction) {
+      message_count = d->unread_reaction_count;
+    }
+    if (message_count != -1 || return_local || dialog_type == DialogType::SecretChat ||
+        filter == MessageSearchFilter::FailedToSend) {
+      return promise.set_value(std::move(message_count));
+    }
   }
 
-  get_dialog_message_count_from_server(dialog_id, filter, std::move(promise));
+  get_dialog_message_count_from_server(dialog_id, saved_messages_topic_id, filter, std::move(promise));
 }
 
-void MessagesManager::get_dialog_message_count_from_server(DialogId dialog_id, MessageSearchFilter filter,
-                                                           Promise<int32> &&promise) {
-  LOG(INFO) << "Get number of messages in " << dialog_id << " filtered by " << filter << " from the server";
+void MessagesManager::get_dialog_message_count_from_server(DialogId dialog_id,
+                                                           SavedMessagesTopicId saved_messages_topic_id,
+                                                           MessageSearchFilter filter, Promise<int32> &&promise) {
+  LOG(INFO) << "Get number of messages in " << dialog_id << " with " << saved_messages_topic_id << " filtered by "
+            << filter << " from the server";
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
     case DialogType::Chat:
     case DialogType::Channel:
-      td_->create_handler<GetSearchCountersQuery>(std::move(promise))->send(dialog_id, filter);
+      td_->create_handler<GetSearchCountersQuery>(std::move(promise))->send(dialog_id, saved_messages_topic_id, filter);
       break;
     case DialogType::None:
     case DialogType::SecretChat:

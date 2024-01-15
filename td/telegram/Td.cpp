@@ -5293,8 +5293,9 @@ void Td::on_request(uint64 id, const td_api::getChatMessageCount &request) {
       promise.set_value(make_tl_object<td_api::count>(result.move_as_ok()));
     }
   });
-  messages_manager_->get_dialog_message_count(DialogId(request.chat_id_), get_message_search_filter(request.filter_),
-                                              request.return_local_, std::move(query_promise));
+  messages_manager_->get_dialog_message_count(
+      DialogId(request.chat_id_), SavedMessagesTopicId(this, request.saved_messages_topic_),
+      get_message_search_filter(request.filter_), request.return_local_, std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getChatMessagePosition &request) {
