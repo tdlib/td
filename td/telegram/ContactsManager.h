@@ -1320,7 +1320,7 @@ class ContactsManager final : public Actor {
 
   const UserFull *get_user_full(UserId user_id) const;
   UserFull *get_user_full(UserId user_id);
-  UserFull *get_user_full_force(UserId user_id);
+  UserFull *get_user_full_force(UserId user_id, const char *source);
 
   UserFull *add_user_full(UserId user_id);
 

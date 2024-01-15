@@ -5142,7 +5142,7 @@ bool ContactsManager::get_channel_stories_hidden(ChannelId channel_id) const {
 }
 
 string ContactsManager::get_user_private_forward_name(UserId user_id) {
-  auto user_full = get_user_full_force(user_id);
+  auto user_full = get_user_full_force(user_id, "get_user_private_forward_name");
   if (user_full != nullptr) {
     return user_full->private_forward_name;
   }
@@ -5163,7 +5163,7 @@ bool ContactsManager::get_user_voice_messages_forbidden(UserId user_id) const {
 string ContactsManager::get_dialog_about(DialogId dialog_id) {
   switch (dialog_id.get_type()) {
     case DialogType::User: {
-      auto user_full = get_user_full_force(dialog_id.get_user_id());
+      auto user_full = get_user_full_force(dialog_id.get_user_id(), "get_dialog_about");
       if (user_full != nullptr) {
         return user_full->about;
       }
@@ -5184,7 +5184,7 @@ string ContactsManager::get_dialog_about(DialogId dialog_id) {
       break;
     }
     case DialogType::SecretChat: {
-      auto user_full = get_user_full_force(get_secret_chat_user_id(dialog_id.get_secret_chat_id()));
+      auto user_full = get_user_full_force(get_secret_chat_user_id(dialog_id.get_secret_chat_id()), "get_dialog_about");
       if (user_full != nullptr) {
         return user_full->about;
       }
@@ -6525,7 +6525,7 @@ void ContactsManager::on_update_bot_menu_button(UserId bot_user_id,
     return;
   }
 
-  auto user_full = get_user_full_force(bot_user_id);
+  auto user_full = get_user_full_force(bot_user_id, "on_update_bot_menu_button");
   if (user_full != nullptr) {
     on_update_user_full_menu_button(user_full, bot_user_id, std::move(bot_menu_button));
     update_user_full(user_full, bot_user_id, "on_update_bot_menu_button");
@@ -6683,7 +6683,7 @@ void ContactsManager::upload_profile_photo(UserId user_id, FileId file_id, bool 
 
 void ContactsManager::delete_profile_photo(int64 profile_photo_id, bool is_recursive, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
-  const UserFull *user_full = get_user_full_force(get_my_id());
+  const UserFull *user_full = get_user_full_force(get_my_id(), "delete_profile_photo");
   if (user_full == nullptr) {
     // must load UserFull first, because fallback photo can't be deleted via DeleteProfilePhotoQuery
     if (is_recursive) {
@@ -6806,7 +6806,7 @@ void ContactsManager::on_update_profile_success(int32 flags, const string &first
       << "Wrong last name \"" << u->last_name << "\", expected \"" << last_name << '"';
 
   if ((flags & ACCOUNT_UPDATE_ABOUT) != 0) {
-    UserFull *user_full = get_user_full_force(my_user_id);
+    UserFull *user_full = get_user_full_force(my_user_id, "on_update_profile_success");
     if (user_full != nullptr) {
       user_full->about = about;
       user_full->is_changed = true;
@@ -8938,7 +8938,7 @@ void ContactsManager::on_update_phone_number_privacy() {
 }
 
 void ContactsManager::invalidate_user_full(UserId user_id) {
-  auto user_full = get_user_full_force(user_id);
+  auto user_full = get_user_full_force(user_id, "invalidate_user_full");
   if (user_full != nullptr) {
     td_->dialog_manager_->on_dialog_info_full_invalidated(DialogId(user_id));
 
@@ -10423,8 +10423,8 @@ void ContactsManager::on_load_user_full_from_database(UserId user_id, string val
   }
 }
 
-ContactsManager::UserFull *ContactsManager::get_user_full_force(UserId user_id) {
-  if (!have_user_force(user_id, "get_user_full_force")) {
+ContactsManager::UserFull *ContactsManager::get_user_full_force(UserId user_id, const char *source) {
+  if (!have_user_force(user_id, source)) {
     return nullptr;
   }
 
@@ -10439,7 +10439,7 @@ ContactsManager::UserFull *ContactsManager::get_user_full_force(UserId user_id) 
     return nullptr;
   }
 
-  LOG(INFO) << "Trying to load full " << user_id << " from database";
+  LOG(INFO) << "Trying to load full " << user_id << " from database from " << source;
   on_load_user_full_from_database(user_id,
                                   G()->td_db()->get_sqlite_sync_pmc()->get(get_user_full_database_key(user_id)));
   return get_user_full(user_id);
@@ -12795,7 +12795,7 @@ void ContactsManager::on_update_user_is_blocked(UserId user_id, bool is_blocked,
     return;
   }
 
-  UserFull *user_full = get_user_full_force(user_id);
+  UserFull *user_full = get_user_full_force(user_id, "on_update_user_is_blocked");
   if (user_full == nullptr) {
     return;
   }
@@ -12825,7 +12825,7 @@ void ContactsManager::on_update_user_has_pinned_stories(UserId user_id, bool has
     return;
   }
 
-  UserFull *user_full = get_user_full_force(user_id);
+  UserFull *user_full = get_user_full_force(user_id, "on_update_user_has_pinned_stories");
   if (user_full == nullptr || user_full->has_pinned_stories == has_pinned_stories) {
     return;
   }
@@ -12841,7 +12841,7 @@ void ContactsManager::on_update_user_common_chat_count(UserId user_id, int32 com
     return;
   }
 
-  UserFull *user_full = get_user_full_force(user_id);
+  UserFull *user_full = get_user_full_force(user_id, "on_update_user_common_chat_count");
   if (user_full == nullptr) {
     return;
   }
@@ -12900,7 +12900,7 @@ void ContactsManager::on_update_user_need_phone_number_privacy_exception(UserId 
     return;
   }
 
-  UserFull *user_full = get_user_full_force(user_id);
+  UserFull *user_full = get_user_full_force(user_id, "on_update_user_need_phone_number_privacy_exception");
   if (user_full == nullptr) {
     return;
   }
@@ -12930,7 +12930,7 @@ void ContactsManager::on_update_user_wallpaper_overridden(UserId user_id, bool w
     return;
   }
 
-  UserFull *user_full = get_user_full_force(user_id);
+  UserFull *user_full = get_user_full_force(user_id, "on_update_user_wallpaper_overridden");
   if (user_full == nullptr) {
     return;
   }
@@ -13037,7 +13037,7 @@ void ContactsManager::add_set_profile_photo_to_cache(UserId user_id, Photo &&pho
   }
 
   // update Photo in UserFull
-  auto user_full = get_user_full_force(user_id);
+  auto user_full = get_user_full_force(user_id, "add_set_profile_photo_to_cache");
   if (user_full != nullptr) {
     Photo *current_photo = nullptr;
     // don't update the changed photo if other photos aren't known to avoid having only some photos known
@@ -13121,7 +13121,7 @@ bool ContactsManager::delete_my_profile_photo_from_cache(int64 profile_photo_id)
   bool have_new_photo =
       user_photos != nullptr && user_photos->count != -1 && user_photos->offset == 0 && !user_photos->photos.empty();
 
-  auto user_full = get_user_full_force(user_id);
+  auto user_full = get_user_full_force(user_id, "delete_my_profile_photo_from_cache");
 
   // update ProfilePhoto in User
   bool need_reget_user = false;
@@ -13222,7 +13222,7 @@ void ContactsManager::drop_user_photos(UserId user_id, bool is_empty, const char
 }
 
 void ContactsManager::drop_user_full(UserId user_id) {
-  auto user_full = get_user_full_force(user_id);
+  auto user_full = get_user_full_force(user_id, "drop_user_full");
 
   drop_user_photos(user_id, false, "drop_user_full");
 
@@ -15717,7 +15717,7 @@ void ContactsManager::load_user_full(UserId user_id, bool force, Promise<Unit> &
     return promise.set_error(Status::Error(400, "User not found"));
   }
 
-  auto user_full = get_user_full_force(user_id);
+  auto user_full = get_user_full_force(user_id, source);
   if (user_full == nullptr) {
     TRY_RESULT_PROMISE(promise, input_user, get_input_user(user_id));
     return send_get_user_full_query(user_id, std::move(input_user), std::move(promise), source);
