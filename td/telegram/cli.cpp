@@ -340,8 +340,9 @@ class CliClient final : public Actor {
       if (!messages.messages_.empty()) {
         auto last_message_id = messages.messages_.back()->id_;
         LOG(ERROR) << (last_message_id >> 20);
-        send_request(td_api::make_object<td_api::searchChatMessages>(search_chat_id_, "", nullptr, last_message_id, 0,
-                                                                     100, as_search_messages_filter("pvi"), 0));
+        send_request(td_api::make_object<td_api::searchChatMessages>(
+            search_chat_id_, string(), nullptr, last_message_id, 0, 100, as_search_messages_filter("pvi"), 0,
+            get_saved_messages_topic()));
       } else {
         search_chat_id_ = 0;
       }
@@ -942,6 +943,10 @@ class CliClient final : public Actor {
     if (reposted_story_chat_id_ || reposted_story_id_) {
       return td_api::make_object<td_api::storyFullId>(reposted_story_chat_id_, reposted_story_id_);
     }
+    return nullptr;
+  }
+
+  td_api::object_ptr<td_api::SavedMessagesTopic> get_saved_messages_topic() const {
     return nullptr;
   }
 
@@ -2835,12 +2840,13 @@ class CliClient final : public Actor {
       ChatId chat_id;
       string filter;
       get_args(args, chat_id, filter);
-      send_request(td_api::make_object<td_api::searchChatMessages>(
-          chat_id, "", nullptr, 0, 0, 100, as_search_messages_filter(filter), message_thread_id_));
+      send_request(td_api::make_object<td_api::searchChatMessages>(chat_id, "", nullptr, 0, 0, 100,
+                                                                   as_search_messages_filter(filter),
+                                                                   message_thread_id_, get_saved_messages_topic()));
     } else if (op == "spvf") {
       search_chat_id_ = as_chat_id(args);
-      send_request(td_api::make_object<td_api::searchChatMessages>(search_chat_id_, "", nullptr, 0, 0, 100,
-                                                                   as_search_messages_filter("pvi"), 0));
+      send_request(td_api::make_object<td_api::searchChatMessages>(
+          search_chat_id_, "", nullptr, 0, 0, 100, as_search_messages_filter("pvi"), 0, get_saved_messages_topic()));
     } else if (op == "Search" || op == "SearchA" || op == "SearchM") {
       string query;
       string limit;
@@ -2861,13 +2867,14 @@ class CliClient final : public Actor {
       SearchQuery query;
       get_args(args, chat_id, query);
       send_request(td_api::make_object<td_api::searchChatMessages>(chat_id, query.query, nullptr, 0, 0, query.limit,
-                                                                   nullptr, 0));
+                                                                   nullptr, 0, get_saved_messages_topic()));
     } else if (op == "SMME") {
       ChatId chat_id;
       string limit;
       get_args(args, chat_id, limit);
       send_request(td_api::make_object<td_api::searchChatMessages>(
-          chat_id, "", td_api::make_object<td_api::messageSenderUser>(my_id_), 0, 0, as_limit(limit), nullptr, 0));
+          chat_id, "", td_api::make_object<td_api::messageSenderUser>(my_id_), 0, 0, as_limit(limit), nullptr, 0,
+          get_saved_messages_topic()));
     } else if (op == "SMU" || op == "SMC") {
       ChatId chat_id;
       string sender_id;
@@ -2875,7 +2882,8 @@ class CliClient final : public Actor {
       string limit;
       get_args(args, chat_id, sender_id, from_message_id, limit);
       send_request(td_api::make_object<td_api::searchChatMessages>(chat_id, "", as_message_sender(sender_id),
-                                                                   from_message_id, 0, as_limit(limit), nullptr, 0));
+                                                                   from_message_id, 0, as_limit(limit), nullptr, 0,
+                                                                   get_saved_messages_topic()));
     } else if (op == "SM") {
       ChatId chat_id;
       string filter;
@@ -2883,8 +2891,9 @@ class CliClient final : public Actor {
       MessageId offset_message_id;
       int32 offset;
       get_args(args, chat_id, filter, limit, offset_message_id, offset);
-      send_request(td_api::make_object<td_api::searchChatMessages>(
-          chat_id, "", nullptr, offset_message_id, offset, as_limit(limit), as_search_messages_filter(filter), 0));
+      send_request(td_api::make_object<td_api::searchChatMessages>(chat_id, "", nullptr, offset_message_id, offset,
+                                                                   as_limit(limit), as_search_messages_filter(filter),
+                                                                   0, get_saved_messages_topic()));
     } else if (op == "SC") {
       string limit;
       string offset;
@@ -2916,7 +2925,8 @@ class CliClient final : public Actor {
       SearchQuery query;
       get_args(args, chat_id, offset_message_id, query);
       send_request(td_api::make_object<td_api::searchChatMessages>(chat_id, query.query, nullptr, offset_message_id, 0,
-                                                                   query.limit, as_search_messages_filter(op), 0));
+                                                                   query.limit, as_search_messages_filter(op), 0,
+                                                                   get_saved_messages_topic()));
     } else if (op == "gcmbd") {
       ChatId chat_id;
       int32 date;

@@ -7196,7 +7196,8 @@ deleteChat chat_id:int53 = Ok;
 //-For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
 //@filter Additional filter for messages to search; pass null to search for all messages
 //@message_thread_id If not 0, only messages in the specified thread will be returned; supergroups only
-searchChatMessages chat_id:int53 query:string sender_id:MessageSender from_message_id:int53 offset:int32 limit:int32 filter:SearchMessagesFilter message_thread_id:int53 = FoundChatMessages;
+//@saved_messages_topic If not null, only messages in the specified Saved Messages topic will be returned; pass null to return all messages or for chats other than Saved Messages
+searchChatMessages chat_id:int53 query:string sender_id:MessageSender from_message_id:int53 offset:int32 limit:int32 filter:SearchMessagesFilter message_thread_id:int53 saved_messages_topic:SavedMessagesTopic = FoundChatMessages;
 
 //@description Searches for messages in all chats except secret chats. Returns the results in reverse chronological order (i.e., in order of decreasing (date, chat_id, message_id)).
 //-For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit

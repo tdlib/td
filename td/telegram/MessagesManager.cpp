@@ -1724,6 +1724,7 @@ class GetMessagePositionQuery final : public Td::ResultHandler {
 class SearchMessagesQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
+  SavedMessagesTopicId saved_messages_topic_id_;
   string query_;
   DialogId sender_dialog_id_;
   MessageId from_message_id_;
@@ -1738,13 +1739,15 @@ class SearchMessagesQuery final : public Td::ResultHandler {
   explicit SearchMessagesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, const string &query, DialogId sender_dialog_id, MessageId from_message_id, int32 offset,
-            int32 limit, MessageSearchFilter filter, MessageId top_thread_message_id, int64 random_id) {
+  void send(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id, const string &query,
+            DialogId sender_dialog_id, MessageId from_message_id, int32 offset, int32 limit, MessageSearchFilter filter,
+            MessageId top_thread_message_id, int64 random_id) {
     auto input_peer = dialog_id.is_valid() ? td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read)
                                            : make_tl_object<telegram_api::inputPeerEmpty>();
     CHECK(input_peer != nullptr);
 
     dialog_id_ = dialog_id;
+    saved_messages_topic_id_ = saved_messages_topic_id;
     query_ = query;
     sender_dialog_id_ = sender_dialog_id;
     from_message_id_ = from_message_id;
@@ -1757,6 +1760,7 @@ class SearchMessagesQuery final : public Td::ResultHandler {
     auto top_msg_id = top_thread_message_id.get_server_message_id().get();
     auto offset_id = from_message_id.get_server_message_id().get();
     if (filter == MessageSearchFilter::UnreadMention) {
+      CHECK(!saved_messages_topic_id.is_valid());
       int32 flags = 0;
       if (top_thread_message_id.is_valid()) {
         flags |= telegram_api::messages_getUnreadMentions::TOP_MSG_ID_MASK;
@@ -1764,6 +1768,7 @@ class SearchMessagesQuery final : public Td::ResultHandler {
       send_query(G()->net_query_creator().create(telegram_api::messages_getUnreadMentions(
           flags, std::move(input_peer), top_msg_id, offset_id, offset, limit, std::numeric_limits<int32>::max(), 0)));
     } else if (filter == MessageSearchFilter::UnreadReaction) {
+      CHECK(!saved_messages_topic_id.is_valid());
       int32 flags = 0;
       if (top_thread_message_id.is_valid()) {
         flags |= telegram_api::messages_getUnreadReactions::TOP_MSG_ID_MASK;
@@ -1772,6 +1777,7 @@ class SearchMessagesQuery final : public Td::ResultHandler {
           flags, std::move(input_peer), top_msg_id, offset_id, offset, limit, std::numeric_limits<int32>::max(), 0)));
     } else if (top_thread_message_id.is_valid() && query.empty() && !sender_dialog_id.is_valid() &&
                filter == MessageSearchFilter::Empty) {
+      CHECK(!saved_messages_topic_id.is_valid());
       handle_errors_ = dialog_id.get_type() != DialogType::Channel ||
                        !td_->contacts_manager_->is_broadcast_channel(dialog_id.get_channel_id());
       send_query(G()->net_query_creator().create(telegram_api::messages_getReplies(
@@ -1784,13 +1790,19 @@ class SearchMessagesQuery final : public Td::ResultHandler {
         sender_input_peer = td_->dialog_manager_->get_input_peer(sender_dialog_id, AccessRights::Know);
         CHECK(sender_input_peer != nullptr);
       }
+      tl_object_ptr<telegram_api::InputPeer> saved_input_peer;
+      if (saved_messages_topic_id.is_valid()) {
+        flags |= telegram_api::messages_search::SAVED_PEER_ID_MASK;
+        saved_input_peer = saved_messages_topic_id.get_input_peer(td_);
+        CHECK(saved_input_peer != nullptr);
+      }
       if (top_thread_message_id.is_valid()) {
         flags |= telegram_api::messages_search::TOP_MSG_ID_MASK;
       }
 
       send_query(G()->net_query_creator().create(telegram_api::messages_search(
-          flags, std::move(input_peer), query, std::move(sender_input_peer), nullptr, Auto(), top_msg_id,
-          get_input_messages_filter(filter), 0, std::numeric_limits<int32>::max(), offset_id, offset, limit,
+          flags, std::move(input_peer), query, std::move(sender_input_peer), std::move(saved_input_peer), Auto(),
+          top_msg_id, get_input_messages_filter(filter), 0, std::numeric_limits<int32>::max(), offset_id, offset, limit,
           std::numeric_limits<int32>::max(), 0, 0)));
     }
   }
@@ -1814,17 +1826,19 @@ class SearchMessagesQuery final : public Td::ResultHandler {
     td_->messages_manager_->get_channel_difference_if_needed(
         dialog_id_, std::move(info),
         PromiseCreator::lambda([actor_id = td_->messages_manager_actor_.get(), dialog_id = dialog_id_,
-                                query = std::move(query_), sender_dialog_id = sender_dialog_id_,
-                                from_message_id = from_message_id_, offset = offset_, limit = limit_, filter = filter_,
+                                saved_messages_topic_id = saved_messages_topic_id_, query = std::move(query_),
+                                sender_dialog_id = sender_dialog_id_, from_message_id = from_message_id_,
+                                offset = offset_, limit = limit_, filter = filter_,
                                 top_thread_message_id = top_thread_message_id_, random_id = random_id_,
                                 promise = std::move(promise_)](Result<MessagesInfo> &&result) mutable {
           if (result.is_error()) {
             promise.set_error(result.move_as_error());
           } else {
             auto info = result.move_as_ok();
-            send_closure(actor_id, &MessagesManager::on_get_dialog_messages_search_result, dialog_id, query,
-                         sender_dialog_id, from_message_id, offset, limit, filter, top_thread_message_id, random_id,
-                         info.total_count, std::move(info.messages), std::move(promise));
+            send_closure(actor_id, &MessagesManager::on_get_dialog_messages_search_result, dialog_id,
+                         saved_messages_topic_id, query, sender_dialog_id, from_message_id, offset, limit, filter,
+                         top_thread_message_id, random_id, info.total_count, std::move(info.messages),
+                         std::move(promise));
           }
         }),
         "SearchMessagesQuery");
@@ -8710,9 +8724,10 @@ void MessagesManager::on_failed_get_message_search_result_calendar(DialogId dial
 }
 
 void MessagesManager::on_get_dialog_messages_search_result(
-    DialogId dialog_id, const string &query, DialogId sender_dialog_id, MessageId from_message_id, int32 offset,
-    int32 limit, MessageSearchFilter filter, MessageId top_thread_message_id, int64 random_id, int32 total_count,
-    vector<tl_object_ptr<telegram_api::Message>> &&messages, Promise<Unit> &&promise) {
+    DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id, const string &query, DialogId sender_dialog_id,
+    MessageId from_message_id, int32 offset, int32 limit, MessageSearchFilter filter, MessageId top_thread_message_id,
+    int64 random_id, int32 total_count, vector<tl_object_ptr<telegram_api::Message>> &&messages,
+    Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   LOG(INFO) << "Receive " << messages.size() << " found messages in " << dialog_id;
@@ -8720,6 +8735,7 @@ void MessagesManager::on_get_dialog_messages_search_result(
     CHECK(query.empty());
     CHECK(!sender_dialog_id.is_valid());
     CHECK(!top_thread_message_id.is_valid());
+    CHECK(!saved_messages_topic_id.is_valid());
     auto it = found_call_messages_.find(random_id);
     CHECK(it != found_call_messages_.end());
 
@@ -8868,7 +8884,7 @@ void MessagesManager::on_get_dialog_messages_search_result(
     total_count = static_cast<int32>(result.size());
   }
   if (query.empty() && !sender_dialog_id.is_valid() && filter != MessageSearchFilter::Empty &&
-      !top_thread_message_id.is_valid()) {
+      !top_thread_message_id.is_valid() && !saved_messages_topic_id.is_valid()) {
     bool from_the_end = !from_message_id.is_valid() ||
                         (d->last_message_id != MessageId() && from_message_id > d->last_message_id) ||
                         from_message_id >= MessageId::max();
@@ -19706,8 +19722,8 @@ std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_histo
   found_dialog_messages_[random_id];  // reserve place for result
 
   td_->create_handler<SearchMessagesQuery>(std::move(promise))
-      ->send(dialog_id, string(), DialogId(), from_message_id.get_next_server_message_id(), offset, limit,
-             MessageSearchFilter::Empty, message_id, random_id);
+      ->send(dialog_id, SavedMessagesTopicId(), string(), DialogId(), from_message_id.get_next_server_message_id(),
+             offset, limit, MessageSearchFilter::Empty, message_id, random_id);
   return {};
 }
 
@@ -19871,7 +19887,7 @@ void MessagesManager::on_get_message_calendar_from_database(int64 random_id, Dia
 MessagesManager::FoundDialogMessages MessagesManager::search_dialog_messages(
     DialogId dialog_id, const string &query, const td_api::object_ptr<td_api::MessageSender> &sender,
     MessageId from_message_id, int32 offset, int32 limit, MessageSearchFilter filter, MessageId top_thread_message_id,
-    int64 &random_id, bool use_db, Promise<Unit> &&promise) {
+    SavedMessagesTopicId saved_messages_topic_id, int64 &random_id, bool use_db, Promise<Unit> &&promise) {
   if (random_id != 0) {
     // request has already been sent before
     auto it = found_dialog_messages_.find(random_id);
@@ -19885,8 +19901,9 @@ MessagesManager::FoundDialogMessages MessagesManager::search_dialog_messages(
     random_id = 0;
   }
   LOG(INFO) << "Search messages with query \"" << query << "\" in " << dialog_id << " sent by "
-            << oneline(to_string(sender)) << " in thread of " << top_thread_message_id << " filtered by " << filter
-            << " from " << from_message_id << " with offset " << offset << " and limit " << limit;
+            << oneline(to_string(sender)) << " in thread of " << top_thread_message_id << " and in "
+            << saved_messages_topic_id << " filtered by " << filter << " from " << from_message_id << " with offset "
+            << offset << " and limit " << limit;
 
   FoundDialogMessages result;
   if (limit <= 0) {
@@ -19949,11 +19966,21 @@ MessagesManager::FoundDialogMessages MessagesManager::search_dialog_messages(
 
   if (top_thread_message_id != MessageId()) {
     if (!top_thread_message_id.is_valid() || !top_thread_message_id.is_server()) {
-      promise.set_error(Status::Error(400, "Invalid message thread ID specified"));
+      promise.set_error(Status::Error(400, "Invalid message thread specified"));
       return result;
     }
     if (dialog_id.get_type() != DialogType::Channel || td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
-      promise.set_error(Status::Error(400, "Can't filter by message thread ID in the chat"));
+      promise.set_error(Status::Error(400, "Can't filter by message thread in the chat"));
+      return result;
+    }
+  }
+  if (saved_messages_topic_id != SavedMessagesTopicId()) {
+    if (dialog_id != td_->dialog_manager_->get_my_dialog_id()) {
+      promise.set_error(Status::Error(400, "Can't filter by Saved Messages topic in the chat"));
+      return result;
+    }
+    if (!saved_messages_topic_id.have_input_peer(td_)) {
+      promise.set_error(Status::Error(400, "Invalid Saved Messages topic specified"));
       return result;
     }
   }
@@ -19962,11 +19989,6 @@ MessagesManager::FoundDialogMessages MessagesManager::search_dialog_messages(
     promise.set_value(Unit());
     return result;
   }
-
-  do {
-    random_id = Random::secure_int64();
-  } while (random_id == 0 || found_dialog_messages_.count(random_id) > 0);
-  found_dialog_messages_[random_id];  // reserve place for result
 
   if (filter == MessageSearchFilter::UnreadMention || filter == MessageSearchFilter::UnreadReaction) {
     if (!query.empty()) {
@@ -19977,11 +19999,21 @@ MessagesManager::FoundDialogMessages MessagesManager::search_dialog_messages(
       promise.set_error(Status::Error(400, "Filtering by sender is unsupported with the specified filter"));
       return result;
     }
+    if (saved_messages_topic_id.is_valid()) {
+      promise.set_value(Unit());
+      return result;
+    }
   }
+
+  do {
+    random_id = Random::secure_int64();
+  } while (random_id == 0 || found_dialog_messages_.count(random_id) > 0);
+  found_dialog_messages_[random_id];  // reserve place for result
 
   // Trying to use database
   if (use_db && query.empty() && G()->use_message_database() && filter != MessageSearchFilter::Empty &&
-      !sender_dialog_id.is_valid() && top_thread_message_id == MessageId()) {
+      !sender_dialog_id.is_valid() && top_thread_message_id == MessageId() &&
+      saved_messages_topic_id == SavedMessagesTopicId()) {
     MessageId first_db_message_id = get_first_database_message_id_by_index(d, filter);
     int32 message_count = d->message_count_by_index[message_search_filter_index(filter)];
     auto fixed_from_message_id = from_message_id;
@@ -20025,8 +20057,8 @@ MessagesManager::FoundDialogMessages MessagesManager::search_dialog_messages(
     case DialogType::Chat:
     case DialogType::Channel:
       td_->create_handler<SearchMessagesQuery>(std::move(promise))
-          ->send(dialog_id, query, sender_dialog_id, from_message_id, offset, limit, filter, top_thread_message_id,
-                 random_id);
+          ->send(dialog_id, saved_messages_topic_id, query, sender_dialog_id, from_message_id, offset, limit, filter,
+                 top_thread_message_id, random_id);
       break;
     case DialogType::SecretChat:
       if (filter == MessageSearchFilter::UnreadMention || filter == MessageSearchFilter::Pinned ||
@@ -20117,7 +20149,8 @@ MessagesManager::FoundMessages MessagesManager::search_call_messages(const strin
   }
 
   td_->create_handler<SearchMessagesQuery>(std::move(promise))
-      ->send(DialogId(), "", DialogId(), offset_message_id, 0, limit, filter, MessageId(), random_id);
+      ->send(DialogId(), SavedMessagesTopicId(), string(), DialogId(), offset_message_id, 0, limit, filter, MessageId(),
+             random_id);
   return result;
 }
 

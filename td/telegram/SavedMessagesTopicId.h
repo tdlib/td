@@ -24,6 +24,8 @@ class SavedMessagesTopicId {
 
   friend struct SavedMessagesTopicIdHash;
 
+  friend bool operator==(const SavedMessagesTopicId &lhs, const SavedMessagesTopicId &rhs);
+
   friend StringBuilder &operator<<(StringBuilder &string_builder, SavedMessagesTopicId saved_messages_topic_id);
 
  public:
@@ -34,21 +36,19 @@ class SavedMessagesTopicId {
 
   SavedMessagesTopicId(DialogId my_dialog_id, const MessageForwardInfo *message_forward_info);
 
+  SavedMessagesTopicId(const Td *td, const td_api::object_ptr<td_api::SavedMessagesTopic> &saved_messages_topic);
+
   bool is_valid() const {
     return dialog_id_.is_valid();
   }
 
   td_api::object_ptr<td_api::SavedMessagesTopic> get_saved_messages_topic_object(Td *td) const;
 
+  bool have_input_peer(const Td *td) const;
+
+  telegram_api::object_ptr<telegram_api::InputPeer> get_input_peer(const Td *td) const;
+
   void add_dependencies(Dependencies &dependencies) const;
-
-  bool operator==(const SavedMessagesTopicId &other) const {
-    return dialog_id_ == other.dialog_id_;
-  }
-
-  bool operator!=(const SavedMessagesTopicId &other) const {
-    return dialog_id_ != other.dialog_id_;
-  }
 
   template <class StorerT>
   void store(StorerT &storer) const {
@@ -66,6 +66,14 @@ struct SavedMessagesTopicIdHash {
     return Hash<DialogId>()(saved_messages_topic_id.dialog_id_);
   }
 };
+
+inline bool operator==(const SavedMessagesTopicId &lhs, const SavedMessagesTopicId &rhs) {
+  return lhs.dialog_id_ == rhs.dialog_id_;
+}
+
+inline bool operator!=(const SavedMessagesTopicId &lhs, const SavedMessagesTopicId &rhs) {
+  return !(lhs == rhs);
+}
 
 StringBuilder &operator<<(StringBuilder &string_builder, SavedMessagesTopicId saved_messages_topic_id);
 

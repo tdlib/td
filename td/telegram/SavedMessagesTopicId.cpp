@@ -6,6 +6,7 @@
 //
 #include "td/telegram/SavedMessagesTopicId.h"
 
+#include "td/telegram/AccessRights.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/MessageForwardInfo.h"
@@ -35,6 +36,28 @@ SavedMessagesTopicId::SavedMessagesTopicId(DialogId my_dialog_id, const MessageF
   dialog_id_ = my_dialog_id;
 }
 
+SavedMessagesTopicId::SavedMessagesTopicId(const Td *td,
+                                           const td_api::object_ptr<td_api::SavedMessagesTopic> &saved_messages_topic) {
+  if (saved_messages_topic == nullptr) {
+    return;
+  }
+  switch (saved_messages_topic->get_id()) {
+    case td_api::savedMessagesTopicMyNotes::ID:
+      dialog_id_ = td->dialog_manager_->get_my_dialog_id();
+      break;
+    case td_api::savedMessagesTopicAuthorHidden::ID:
+      dialog_id_ = HIDDEN_AUTHOR_DIALOG_ID;
+      break;
+    case td_api::savedMessagesTopicSavedFromChat::ID:
+      dialog_id_ =
+          DialogId(static_cast<const td_api::savedMessagesTopicSavedFromChat *>(saved_messages_topic.get())->chat_id_);
+      break;
+    default:
+      UNREACHABLE();
+      break;
+  }
+}
+
 td_api::object_ptr<td_api::SavedMessagesTopic> SavedMessagesTopicId::get_saved_messages_topic_object(Td *td) const {
   if (dialog_id_ == DialogId()) {
     return nullptr;
@@ -47,6 +70,15 @@ td_api::object_ptr<td_api::SavedMessagesTopic> SavedMessagesTopicId::get_saved_m
   }
   return td_api::make_object<td_api::savedMessagesTopicSavedFromChat>(
       td->messages_manager_->get_chat_id_object(dialog_id_, "savedMessagesTopicSavedFromChat"));
+}
+
+bool SavedMessagesTopicId::have_input_peer(const Td *td) const {
+  return dialog_id_.get_type() != DialogType::SecretChat &&
+         td->dialog_manager_->have_input_peer(dialog_id_, AccessRights::Know);
+}
+
+telegram_api::object_ptr<telegram_api::InputPeer> SavedMessagesTopicId::get_input_peer(const Td *td) const {
+  return td->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Know);
 }
 
 void SavedMessagesTopicId::add_dependencies(Dependencies &dependencies) const {
@@ -64,7 +96,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, SavedMessagesTopicId sa
   if (saved_messages_topic_id.dialog_id_ == HIDDEN_AUTHOR_DIALOG_ID) {
     return string_builder << "[Author Hidden topic]";
   }
-  return string_builder << "[topic of" << saved_messages_topic_id.dialog_id_ << ']';
+  return string_builder << "[topic of " << saved_messages_topic_id.dialog_id_ << ']';
 }
 
 }  // namespace td

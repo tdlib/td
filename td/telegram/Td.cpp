@@ -120,6 +120,7 @@
 #include "td/telegram/ReactionType.h"
 #include "td/telegram/ReportReason.h"
 #include "td/telegram/RequestActor.h"
+#include "td/telegram/SavedMessagesTopicId.h"
 #include "td/telegram/ScopeNotificationSettings.h"
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/SecretChatsManager.h"
@@ -1396,14 +1397,15 @@ class SearchChatMessagesRequest final : public RequestActor<> {
   int32 limit_;
   MessageSearchFilter filter_;
   MessageId top_thread_message_id_;
+  SavedMessagesTopicId saved_messages_topic_id_;
   int64 random_id_;
 
   MessagesManager::FoundDialogMessages messages_;
 
   void do_run(Promise<Unit> &&promise) final {
-    messages_ = td_->messages_manager_->search_dialog_messages(dialog_id_, query_, sender_id_, from_message_id_,
-                                                               offset_, limit_, filter_, top_thread_message_id_,
-                                                               random_id_, get_tries() == 3, std::move(promise));
+    messages_ = td_->messages_manager_->search_dialog_messages(
+        dialog_id_, query_, sender_id_, from_message_id_, offset_, limit_, filter_, top_thread_message_id_,
+        saved_messages_topic_id_, random_id_, get_tries() == 3, std::move(promise));
   }
 
   void do_send_result() final {
@@ -1422,7 +1424,8 @@ class SearchChatMessagesRequest final : public RequestActor<> {
  public:
   SearchChatMessagesRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, string query,
                             td_api::object_ptr<td_api::MessageSender> sender_id, int64 from_message_id, int32 offset,
-                            int32 limit, tl_object_ptr<td_api::SearchMessagesFilter> filter, int64 message_thread_id)
+                            int32 limit, tl_object_ptr<td_api::SearchMessagesFilter> filter, int64 message_thread_id,
+                            SavedMessagesTopicId saved_messages_topic_id)
       : RequestActor(std::move(td), request_id)
       , dialog_id_(dialog_id)
       , query_(std::move(query))
@@ -1432,6 +1435,7 @@ class SearchChatMessagesRequest final : public RequestActor<> {
       , limit_(limit)
       , filter_(get_message_search_filter(filter))
       , top_thread_message_id_(message_thread_id)
+      , saved_messages_topic_id_(saved_messages_topic_id)
       , random_id_(0) {
     set_tries(3);
   }
@@ -5213,7 +5217,7 @@ void Td::on_request(uint64 id, td_api::searchChatMessages &request) {
   CLEAN_INPUT_STRING(request.query_);
   CREATE_REQUEST(SearchChatMessagesRequest, request.chat_id_, std::move(request.query_), std::move(request.sender_id_),
                  request.from_message_id_, request.offset_, request.limit_, std::move(request.filter_),
-                 request.message_thread_id_);
+                 request.message_thread_id_, SavedMessagesTopicId(this, request.saved_messages_topic_));
 }
 
 void Td::on_request(uint64 id, td_api::searchSecretMessages &request) {
