@@ -19988,13 +19988,10 @@ MessagesManager::FoundDialogMessages MessagesManager::search_dialog_messages(
       return result;
     }
   }
-  if (saved_messages_topic_id != SavedMessagesTopicId()) {
-    if (dialog_id != td_->dialog_manager_->get_my_dialog_id()) {
-      promise.set_error(Status::Error(400, "Can't filter by Saved Messages topic in the chat"));
-      return result;
-    }
-    if (!saved_messages_topic_id.have_input_peer(td_)) {
-      promise.set_error(Status::Error(400, "Invalid Saved Messages topic specified"));
+  {
+    auto status = saved_messages_topic_id.is_valid_in(td_, dialog_id);
+    if (status.is_error()) {
+      promise.set_error(std::move(status));
       return result;
     }
   }
@@ -21282,14 +21279,8 @@ void MessagesManager::get_dialog_message_position(MessageFullId message_full_id,
       return promise.set_error(Status::Error(400, "Message doesn't belong to the message thread"));
     }
   }
-  if (saved_messages_topic_id != SavedMessagesTopicId()) {
-    if (dialog_id != td_->dialog_manager_->get_my_dialog_id()) {
-      return promise.set_error(Status::Error(400, "Can't filter by Saved Messages topic in the chat"));
-    }
-    if (!saved_messages_topic_id.have_input_peer(td_)) {
-      return promise.set_error(Status::Error(400, "Invalid Saved Messages topic specified"));
-    }
-  }
+  TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_in(td_, dialog_id));
+
   if (dialog_id.get_type() == DialogType::SecretChat) {
     return promise.set_error(Status::Error(400, "The method can't be used in secret chats"));
   }

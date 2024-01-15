@@ -11,6 +11,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/HashTableUtils.h"
+#include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 
 namespace td {
@@ -28,6 +29,8 @@ class SavedMessagesTopicId {
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, SavedMessagesTopicId saved_messages_topic_id);
 
+  bool have_input_peer(Td *td) const;
+
  public:
   SavedMessagesTopicId() = default;
 
@@ -42,9 +45,9 @@ class SavedMessagesTopicId {
     return dialog_id_.is_valid();
   }
 
-  td_api::object_ptr<td_api::SavedMessagesTopic> get_saved_messages_topic_object(Td *td) const;
+  Status is_valid_in(Td *td, DialogId dialog_id) const;
 
-  bool have_input_peer(Td *td) const;
+  td_api::object_ptr<td_api::SavedMessagesTopic> get_saved_messages_topic_object(Td *td) const;
 
   telegram_api::object_ptr<telegram_api::InputPeer> get_input_peer(const Td *td) const;
 

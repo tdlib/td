@@ -80,6 +80,18 @@ bool SavedMessagesTopicId::have_input_peer(Td *td) const {
   return td->dialog_manager_->have_input_peer(dialog_id_, AccessRights::Know);
 }
 
+Status SavedMessagesTopicId::is_valid_in(Td *td, DialogId dialog_id) const {
+  if (dialog_id_ != DialogId()) {
+    if (dialog_id != td->dialog_manager_->get_my_dialog_id()) {
+      return Status::Error(400, "Can't use Saved Messages topic in the chat");
+    }
+    if (!have_input_peer(td)) {
+      return Status::Error(400, "Invalid Saved Messages topic specified");
+    }
+  }
+  return Status::OK();
+}
+
 telegram_api::object_ptr<telegram_api::InputPeer> SavedMessagesTopicId::get_input_peer(const Td *td) const {
   return td->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Know);
 }
