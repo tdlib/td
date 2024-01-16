@@ -2757,13 +2757,20 @@ class CliClient final : public Actor {
       string offset;
       get_args(args, limit, offset);
       send_request(td_api::make_object<td_api::getSavedMessagesTopics>(offset, as_limit(limit)));
+    } else if (op == "gsmth") {
+      MessageId from_message_id;
+      int32 offset;
+      string limit;
+      get_args(args, from_message_id, offset, limit);
+      send_request(td_api::make_object<td_api::getSavedMessagesTopicHistory>(get_saved_messages_topic(),
+                                                                             from_message_id, offset, as_limit(limit)));
     } else if (op == "gcc" || op == "GetCommonChats") {
       UserId user_id;
       ChatId offset_chat_id;
       string limit;
       get_args(args, user_id, offset_chat_id, limit);
       send_request(td_api::make_object<td_api::getGroupsInCommon>(user_id, offset_chat_id, as_limit(limit, 100)));
-    } else if (op == "gh" || op == "GetHistory" || op == "ghl" || op == "gmth") {
+    } else if (op == "gh" || op == "ghl" || op == "gmth") {
       ChatId chat_id;
       MessageId thread_message_id;
       MessageId from_message_id;

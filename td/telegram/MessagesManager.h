@@ -537,6 +537,10 @@ class MessagesManager final : public Actor {
   void on_get_saved_messages_topics(telegram_api::object_ptr<telegram_api::messages_SavedDialogs> &&saved_dialogs_ptr,
                                     Promise<td_api::object_ptr<td_api::foundSavedMessagesTopics>> &&promise);
 
+  void get_saved_messages_topic_history(SavedMessagesTopicId saved_messages_topic_id, MessageId from_message_id,
+                                        int32 offset, int32 limit,
+                                        Promise<td_api::object_ptr<td_api::messages>> &&promise);
+
   vector<DialogId> search_public_dialogs(const string &query, Promise<Unit> &&promise);
 
   std::pair<int32, vector<DialogId>> search_dialogs(const string &query, int32 limit, Promise<Unit> &&promise);

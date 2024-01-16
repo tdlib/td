@@ -250,6 +250,57 @@ class GetSavedDialogsQuery final : public Td::ResultHandler {
   }
 };
 
+class GetSavedHistoryQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::messages>> promise_;
+  SavedMessagesTopicId saved_messages_topic_id_;
+
+ public:
+  explicit GetSavedHistoryQuery(Promise<td_api::object_ptr<td_api::messages>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(SavedMessagesTopicId saved_messages_topic_id, MessageId from_message_id, int32 offset, int32 limit) {
+    saved_messages_topic_id_ = saved_messages_topic_id;
+    telegram_api::object_ptr<telegram_api::InputPeer> saved_input_peer = saved_messages_topic_id.get_input_peer(td_);
+    CHECK(saved_input_peer != nullptr);
+    send_query(G()->net_query_creator().create(telegram_api::messages_getSavedHistory(
+        std::move(saved_input_peer), from_message_id.get_server_message_id().get(), 0, offset, limit, 0, 0, 0)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getSavedHistory>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive Saved Messages topic history: " << to_string(result);
+    auto info =
+        get_messages_info(td_, td_->dialog_manager_->get_my_dialog_id(), std::move(result), "GetSavedHistoryQuery");
+    LOG_IF(ERROR, info.is_channel_messages) << "Receive channel messages in GetSavedHistoryQuery";
+
+    auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
+    vector<td_api::object_ptr<td_api::message>> messages;
+    for (auto &message : info.messages) {
+      auto full_message_id =
+          td_->messages_manager_->on_get_message(std::move(message), false, false, false, "GetSavedHistoryQuery");
+      auto dialog_id = full_message_id.get_dialog_id();
+      if (dialog_id != my_dialog_id) {
+        if (dialog_id != DialogId()) {
+          LOG(ERROR) << "Receive " << full_message_id << " in history of " << saved_messages_topic_id_;
+        }
+        continue;
+      }
+      messages.push_back(td_->messages_manager_->get_message_object(full_message_id, "GetSavedHistoryQuery"));
+    }
+    promise_.set_value(td_api::make_object<td_api::messages>(info.total_count, std::move(messages)));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetDialogUnreadMarksQuery final : public Td::ResultHandler {
  public:
   void send() {
@@ -16045,6 +16096,42 @@ void MessagesManager::on_get_saved_messages_topics(
   }
   promise.set_value(td_api::make_object<td_api::foundSavedMessagesTopics>(
       total_count, std::move(found_saved_messages_topics), next_offset));
+}
+
+void MessagesManager::get_saved_messages_topic_history(SavedMessagesTopicId saved_messages_topic_id,
+                                                       MessageId from_message_id, int32 offset, int32 limit,
+                                                       Promise<td_api::object_ptr<td_api::messages>> &&promise) {
+  if (limit <= 0) {
+    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+  }
+  if (limit > MAX_GET_HISTORY) {
+    limit = MAX_GET_HISTORY;
+  }
+  if (offset > 0) {
+    return promise.set_error(Status::Error(400, "Parameter offset must be non-positive"));
+  }
+  if (offset <= -MAX_GET_HISTORY) {
+    return promise.set_error(Status::Error(400, "Parameter offset must be greater than -100"));
+  }
+  if (offset < -limit) {
+    return promise.set_error(Status::Error(400, "Parameter offset must be greater than or equal to -limit"));
+  }
+
+  auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
+  if (!saved_messages_topic_id.is_valid()) {
+    return promise.set_error(Status::Error(400, "Invalid Saved Messages topic specified"));
+  }
+  TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_in(td_, my_dialog_id));
+
+  if (from_message_id == MessageId() || from_message_id.get() > MessageId::max().get()) {
+    from_message_id = MessageId::max();
+  }
+  if (!from_message_id.is_valid() || !from_message_id.is_server()) {
+    return promise.set_error(Status::Error(400, "Invalid value of parameter from_message_id specified"));
+  }
+
+  td_->create_handler<GetSavedHistoryQuery>(std::move(promise))
+      ->send(saved_messages_topic_id, from_message_id, offset, limit);
 }
 
 vector<DialogId> MessagesManager::search_public_dialogs(const string &query, Promise<Unit> &&promise) {

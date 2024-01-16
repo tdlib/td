@@ -1869,7 +1869,7 @@ savedMessagesTopicAuthorHidden = SavedMessagesTopic;
 savedMessagesTopicSavedFromChat chat_id:int53 = SavedMessagesTopic;
 
 
-//@description Contains information about a found saved messages topic @topic The topic @last_message Last message in the topic; may be null if none or unknown
+//@description Contains information about a found Saved Messages topic @topic The topic @last_message Last message in the topic; may be null if none or unknown
 foundSavedMessagesTopic topic:SavedMessagesTopic last_message:message = FoundSavedMessagesTopic;
 
 //@description Contains a list of Saved Messages topics
@@ -7155,13 +7155,22 @@ getSuitableDiscussionChats = Chats;
 //@description Returns a list of recently inactive supergroups and channels. Can be used when user reaches limit on the number of joined supergroups and channels and receives CHANNELS_TOO_MUCH error. Also, the limit can be increased with Telegram Premium
 getInactiveSupergroupChats = Chats;
 
-//@description Returns list of all pinned saved messages topics
+
+//@description Returns list of all pinned Saved Messages topics
 getPinnedSavedMessagesTopics = FoundSavedMessagesTopics;
 
-//@description Returns list of non-pinned saved messages topics from the specified offset
+//@description Returns list of non-pinned Saved Messages topics from the specified offset
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
-//@limit The maximum number of saved messages topics to be returned; up to 100
+//@limit The maximum number of Saved Messages topics to be returned; up to 100
 getSavedMessagesTopics offset:string limit:int32 = FoundSavedMessagesTopics;
+
+//@description Returns messages in a Saved Messages topic. The messages are returned in a reverse chronological order (i.e., in order of decreasing message_id)
+//@saved_messages_topic Saved Messages topic which messages will be fetched
+//@from_message_id Identifier of the message starting from which messages must be fetched; use 0 to get results from the last message
+//@offset Specify 0 to get results from exactly the from_message_id or a negative offset up to 99 to get additionally some newer messages
+//@limit The maximum number of messages to be returned; must be positive and can't be greater than 100. If the offset is negative, the limit must be greater than or equal to -offset.
+//-For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
+getSavedMessagesTopicHistory saved_messages_topic:SavedMessagesTopic from_message_id:int53 offset:int32 limit:int32 = Messages;
 
 
 //@description Returns a list of common group chats with a given user. Chats are sorted by their type and creation date
