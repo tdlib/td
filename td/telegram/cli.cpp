@@ -2948,7 +2948,7 @@ class CliClient final : public Actor {
       string limit;
       get_args(args, chat_id, filter, from_message_id, limit);
       send_request(td_api::make_object<td_api::getChatSparseMessagePositions>(
-          chat_id, as_search_messages_filter(filter), from_message_id, as_limit(limit)));
+          chat_id, as_search_messages_filter(filter), from_message_id, as_limit(limit), get_saved_messages_topic()));
     } else if (op == "gcmc") {
       ChatId chat_id;
       string filter;

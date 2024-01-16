@@ -5285,8 +5285,9 @@ void Td::on_request(uint64 id, const td_api::getChatSparseMessagePositions &requ
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   messages_manager_->get_dialog_sparse_message_positions(
-      DialogId(request.chat_id_), get_message_search_filter(request.filter_), MessageId(request.from_message_id_),
-      request.limit_, std::move(promise));
+      DialogId(request.chat_id_), SavedMessagesTopicId(this, request.saved_messages_topic_),
+      get_message_search_filter(request.filter_), MessageId(request.from_message_id_), request.limit_,
+      std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getChatMessageCount &request) {

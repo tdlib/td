@@ -1879,6 +1879,7 @@ class SearchMessagesQuery final : public Td::ResultHandler {
 class GetSearchResultPositionsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::messagePositions>> promise_;
   DialogId dialog_id_;
+  SavedMessagesTopicId saved_messages_topic_id_;
   MessageSearchFilter filter_;
 
  public:
@@ -1886,17 +1887,25 @@ class GetSearchResultPositionsQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, MessageSearchFilter filter, MessageId from_message_id, int32 limit) {
+  void send(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id, MessageSearchFilter filter,
+            MessageId from_message_id, int32 limit) {
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
       return promise_.set_error(Status::Error(400, "Can't access the chat"));
     }
     dialog_id_ = dialog_id;
+    saved_messages_topic_id_ = saved_messages_topic_id;
     filter_ = filter;
 
     int32 flags = 0;
+    telegram_api::object_ptr<telegram_api::InputPeer> saved_input_peer;
+    if (saved_messages_topic_id.is_valid()) {
+      flags |= telegram_api::messages_getSearchResultsPositions::SAVED_PEER_ID_MASK;
+      saved_input_peer = saved_messages_topic_id.get_input_peer(td_);
+      CHECK(saved_input_peer != nullptr);
+    }
     send_query(G()->net_query_creator().create(telegram_api::messages_getSearchResultsPositions(
-        flags, std::move(input_peer), nullptr, get_input_messages_filter(filter),
+        flags, std::move(input_peer), std::move(saved_input_peer), get_input_messages_filter(filter),
         from_message_id.get_server_message_id().get(), limit)));
   }
 
@@ -1906,8 +1915,8 @@ class GetSearchResultPositionsQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->messages_manager_->on_get_dialog_sparse_message_positions(dialog_id_, filter_, result_ptr.move_as_ok(),
-                                                                   std::move(promise_));
+    td_->messages_manager_->on_get_dialog_sparse_message_positions(dialog_id_, saved_messages_topic_id_, filter_,
+                                                                   result_ptr.move_as_ok(), std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -21147,8 +21156,8 @@ tl_object_ptr<td_api::message> MessagesManager::get_dialog_message_by_date_objec
 }
 
 void MessagesManager::get_dialog_sparse_message_positions(
-    DialogId dialog_id, MessageSearchFilter filter, MessageId from_message_id, int32 limit,
-    Promise<td_api::object_ptr<td_api::messagePositions>> &&promise) {
+    DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id, MessageSearchFilter filter,
+    MessageId from_message_id, int32 limit, Promise<td_api::object_ptr<td_api::messagePositions>> &&promise) {
   const Dialog *d = get_dialog_force(dialog_id, "get_dialog_sparse_message_positions");
   if (d == nullptr) {
     return promise.set_error(Status::Error(400, "Chat not found"));
@@ -21176,8 +21185,12 @@ void MessagesManager::get_dialog_sparse_message_positions(
   } else {
     from_message_id = from_message_id.get_next_server_message_id();
   }
+  TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_in(td_, dialog_id));
 
   if (filter == MessageSearchFilter::FailedToSend || dialog_id.get_type() == DialogType::SecretChat) {
+    if (saved_messages_topic_id.is_valid()) {
+      return promise.set_value(td_api::make_object<td_api::messagePositions>());
+    }
     if (!G()->use_message_database()) {
       return promise.set_error(Status::Error(400, "Unsupported without message database"));
     }
@@ -21211,7 +21224,7 @@ void MessagesManager::get_dialog_sparse_message_positions(
     case DialogType::Chat:
     case DialogType::Channel:
       td_->create_handler<GetSearchResultPositionsQuery>(std::move(promise))
-          ->send(dialog_id, filter, from_message_id, limit);
+          ->send(dialog_id, saved_messages_topic_id, filter, from_message_id, limit);
       break;
     case DialogType::SecretChat:
     case DialogType::None:
@@ -21221,7 +21234,7 @@ void MessagesManager::get_dialog_sparse_message_positions(
 }
 
 void MessagesManager::on_get_dialog_sparse_message_positions(
-    DialogId dialog_id, MessageSearchFilter filter,
+    DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id, MessageSearchFilter filter,
     telegram_api::object_ptr<telegram_api::messages_searchResultsPositions> positions,
     Promise<td_api::object_ptr<td_api::messagePositions>> &&promise) {
   auto message_positions = transform(
