@@ -165,12 +165,12 @@ class MessagesManager final : public Actor {
                                            vector<tl_object_ptr<telegram_api::Peer>> &&peers);
   void on_failed_public_dialogs_search(const string &query, Status &&error);
 
-  void on_get_message_search_result_calendar(DialogId dialog_id, MessageId from_message_id, MessageSearchFilter filter,
-                                             int64 random_id, int32 total_count,
-                                             vector<tl_object_ptr<telegram_api::Message>> &&messages,
+  void on_get_message_search_result_calendar(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
+                                             MessageId from_message_id, MessageSearchFilter filter, int64 random_id,
+                                             int32 total_count, vector<tl_object_ptr<telegram_api::Message>> &&messages,
                                              vector<tl_object_ptr<telegram_api::searchResultsCalendarPeriod>> &&periods,
                                              Promise<Unit> &&promise);
-  void on_failed_get_message_search_result_calendar(DialogId dialog_id, int64 random_id);
+  void on_failed_get_message_search_result_calendar(int64 random_id);
 
   void on_get_dialog_messages_search_result(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
                                             const string &query, DialogId sender_dialog_id, MessageId from_message_id,
@@ -679,7 +679,9 @@ class MessagesManager final : public Actor {
                                                                     int32 limit, int64 &random_id,
                                                                     Promise<Unit> &&promise);
 
-  td_api::object_ptr<td_api::messageCalendar> get_dialog_message_calendar(DialogId dialog_id, MessageId from_message_id,
+  td_api::object_ptr<td_api::messageCalendar> get_dialog_message_calendar(DialogId dialog_id,
+                                                                          SavedMessagesTopicId saved_messages_topic_id,
+                                                                          MessageId from_message_id,
                                                                           MessageSearchFilter filter, int64 &random_id,
                                                                           bool use_db, Promise<Unit> &&promise);
 

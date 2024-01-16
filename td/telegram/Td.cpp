@@ -1361,6 +1361,7 @@ class GetMessageThreadHistoryRequest final : public RequestActor<> {
 
 class GetChatMessageCalendarRequest final : public RequestActor<> {
   DialogId dialog_id_;
+  SavedMessagesTopicId saved_messages_topic_id_;
   MessageId from_message_id_;
   MessageSearchFilter filter_;
   int64 random_id_;
@@ -1368,8 +1369,9 @@ class GetChatMessageCalendarRequest final : public RequestActor<> {
   td_api::object_ptr<td_api::messageCalendar> calendar_;
 
   void do_run(Promise<Unit> &&promise) final {
-    calendar_ = td_->messages_manager_->get_dialog_message_calendar(dialog_id_, from_message_id_, filter_, random_id_,
-                                                                    get_tries() == 3, std::move(promise));
+    calendar_ =
+        td_->messages_manager_->get_dialog_message_calendar(dialog_id_, saved_messages_topic_id_, from_message_id_,
+                                                            filter_, random_id_, get_tries() == 3, std::move(promise));
   }
 
   void do_send_result() final {
@@ -1377,10 +1379,12 @@ class GetChatMessageCalendarRequest final : public RequestActor<> {
   }
 
  public:
-  GetChatMessageCalendarRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int64 from_message_id,
+  GetChatMessageCalendarRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id,
+                                SavedMessagesTopicId saved_messages_topic_id, int64 from_message_id,
                                 tl_object_ptr<td_api::SearchMessagesFilter> filter)
       : RequestActor(std::move(td), request_id)
       , dialog_id_(dialog_id)
+      , saved_messages_topic_id_(saved_messages_topic_id)
       , from_message_id_(from_message_id)
       , filter_(get_message_search_filter(filter))
       , random_id_(0) {
@@ -5209,7 +5213,9 @@ void Td::on_request(uint64 id, const td_api::getMessageThreadHistory &request) {
 
 void Td::on_request(uint64 id, td_api::getChatMessageCalendar &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(GetChatMessageCalendarRequest, request.chat_id_, request.from_message_id_, std::move(request.filter_));
+  CREATE_REQUEST(GetChatMessageCalendarRequest, request.chat_id_,
+                 SavedMessagesTopicId(this, request.saved_messages_topic_), request.from_message_id_,
+                 std::move(request.filter_));
 }
 
 void Td::on_request(uint64 id, td_api::searchChatMessages &request) {
