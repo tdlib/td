@@ -14194,8 +14194,8 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
         if (it == message_full_id_to_message.end()) {
           LOG(ERROR) << "Last " << message_full_id << " not found";
         } else if (!has_pts || d->pts == 0 || dialog->pts_ <= d->pts || d->is_channel_difference_finished) {
-          auto last_message = std::move(it->second);
-          auto added_message_full_id = on_get_message(std::move(last_message), false, has_pts, false, source);
+          auto added_message_full_id = on_get_message(std::move(it->second), false, has_pts, false, source);
+          message_full_id_to_message.erase(it);
           CHECK(d->last_new_message_id == MessageId());
           set_dialog_last_new_message_id(d, last_message_id, source);
           if (d->last_new_message_id > d->last_message_id && added_message_full_id.get_message_id().is_valid()) {
@@ -35803,14 +35803,12 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
   }
 
   MessageFullId last_message_full_id(dialog_id, last_message_id);
-  if (last_message_id.is_valid()) {
-    if (message_full_id_to_message.count(last_message_full_id) == 0) {
-      LOG(ERROR) << "Last " << last_message_id << " in " << dialog_id << " not found. Have:";
-      for (auto &message : message_full_id_to_message) {
-        LOG(ERROR) << to_string(message.second);
-      }
-      return;
+  if (last_message_id.is_valid() && message_full_id_to_message.count(last_message_full_id) == 0) {
+    LOG(ERROR) << "Last " << last_message_id << " in " << dialog_id << " not found. Have:";
+    for (auto &message : message_full_id_to_message) {
+      LOG(ERROR) << to_string(message.second);
     }
+    return;
   }
   CHECK(!last_message_id.is_scheduled());
 
@@ -35867,7 +35865,7 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
     set_dialog_last_message_id(d, MessageId(), "on_get_channel_dialog 20");
     send_update_chat_last_message(d, "on_get_channel_dialog 30");
     MessageFullId added_message_full_id;
-    if (last_message_full_id.get_message_id().is_valid()) {
+    if (last_message_id.is_valid()) {
       last_message_full_id = on_get_message(std::move(message_full_id_to_message[last_message_full_id]), true, true,
                                             false, "channel difference too long");
     }
