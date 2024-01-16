@@ -7155,7 +7155,10 @@ getSuitableDiscussionChats = Chats;
 //@description Returns a list of recently inactive supergroups and channels. Can be used when user reaches limit on the number of joined supergroups and channels and receives CHANNELS_TOO_MUCH error. Also, the limit can be increased with Telegram Premium
 getInactiveSupergroupChats = Chats;
 
-//@description Returns list of non-pinned saved messages topic from the specified offset
+//@description Returns list of all pinned saved messages topics
+getPinnedSavedMessagesTopics = FoundSavedMessagesTopics;
+
+//@description Returns list of non-pinned saved messages topics from the specified offset
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of saved messages topics to be returned; up to 100
 getSavedMessagesTopics offset:string limit:int32 = FoundSavedMessagesTopics;

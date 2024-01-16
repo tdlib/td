@@ -529,6 +529,8 @@ class MessagesManager final : public Actor {
 
   void read_all_dialogs_from_list(DialogListId dialog_list_id, Promise<Unit> &&promise, bool is_recursive = false);
 
+  void get_pinned_saved_messages_topics(Promise<td_api::object_ptr<td_api::foundSavedMessagesTopics>> &&promise);
+
   void get_saved_messages_topics(const string &offset, int32 limit,
                                  Promise<td_api::object_ptr<td_api::foundSavedMessagesTopics>> &&promise);
 

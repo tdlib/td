@@ -2750,6 +2750,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getChats>(nullptr, 1));
       send_request(td_api::make_object<td_api::getChats>(nullptr, 10));
       send_request(td_api::make_object<td_api::getChats>(nullptr, 5));
+    } else if (op == "gpsmt") {
+      send_request(td_api::make_object<td_api::getPinnedSavedMessagesTopics>());
     } else if (op == "gsmt") {
       string limit;
       string offset;
