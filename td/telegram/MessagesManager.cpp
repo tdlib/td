@@ -35866,8 +35866,8 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
     send_update_chat_last_message(d, "on_get_channel_dialog 30");
     MessageFullId added_message_full_id;
     if (last_message_id.is_valid()) {
-      last_message_full_id = on_get_message(std::move(message_full_id_to_message[last_message_full_id]), true, true,
-                                            false, "channel difference too long");
+      added_message_full_id = on_get_message(std::move(message_full_id_to_message[last_message_full_id]), true, true,
+                                             false, "channel difference too long");
     }
     if (added_message_full_id.get_message_id().is_valid()) {
       if (added_message_full_id.get_message_id() == d->last_new_message_id) {
