@@ -261,7 +261,7 @@ class GetSavedHistoryQuery final : public Td::ResultHandler {
 
   void send(SavedMessagesTopicId saved_messages_topic_id, MessageId from_message_id, int32 offset, int32 limit) {
     saved_messages_topic_id_ = saved_messages_topic_id;
-    telegram_api::object_ptr<telegram_api::InputPeer> saved_input_peer = saved_messages_topic_id.get_input_peer(td_);
+    auto saved_input_peer = saved_messages_topic_id.get_input_peer(td_);
     CHECK(saved_input_peer != nullptr);
     send_query(G()->net_query_creator().create(telegram_api::messages_getSavedHistory(
         std::move(saved_input_peer), from_message_id.get_server_message_id().get(), 0, offset, limit, 0, 0, 0)));
@@ -2459,6 +2459,36 @@ class DeleteChannelHistoryQuery final : public Td::ResultHandler {
     if (!td_->contacts_manager_->on_get_channel_error(channel_id_, status, "DeleteChannelHistoryQuery")) {
       LOG(ERROR) << "Receive error for DeleteChannelHistoryQuery: " << status;
     }
+    promise_.set_error(std::move(status));
+  }
+};
+
+class DeleteSavedHistoryQuery final : public Td::ResultHandler {
+  Promise<AffectedHistory> promise_;
+
+ public:
+  explicit DeleteSavedHistoryQuery(Promise<AffectedHistory> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(SavedMessagesTopicId saved_messages_topic_id) {
+    auto saved_input_peer = saved_messages_topic_id.get_input_peer(td_);
+    CHECK(saved_input_peer != nullptr);
+
+    int32 flags = 0;
+    send_query(G()->net_query_creator().create(telegram_api::messages_deleteSavedHistory(
+        flags, std::move(saved_input_peer), std::numeric_limits<int32>::max(), 0, 0)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_deleteSavedHistory>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(AffectedHistory(result_ptr.move_as_ok()));
+  }
+
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -16117,10 +16147,10 @@ void MessagesManager::get_saved_messages_topic_history(SavedMessagesTopicId save
     return promise.set_error(Status::Error(400, "Parameter offset must be greater than or equal to -limit"));
   }
 
-  auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
   if (!saved_messages_topic_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Invalid Saved Messages topic specified"));
   }
+  auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
   TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_in(td_, my_dialog_id));
 
   if (from_message_id == MessageId() || from_message_id.get() > MessageId::max().get()) {
@@ -16132,6 +16162,21 @@ void MessagesManager::get_saved_messages_topic_history(SavedMessagesTopicId save
 
   td_->create_handler<GetSavedHistoryQuery>(std::move(promise))
       ->send(saved_messages_topic_id, from_message_id, offset, limit);
+}
+
+void MessagesManager::delete_saved_messages_topic_history(SavedMessagesTopicId saved_messages_topic_id,
+                                                          Promise<Unit> &&promise) {
+  if (!saved_messages_topic_id.is_valid()) {
+    return promise.set_error(Status::Error(400, "Invalid Saved Messages topic specified"));
+  }
+  auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
+  TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_in(td_, my_dialog_id));
+
+  AffectedHistoryQuery query = [td = td_, saved_messages_topic_id](DialogId dialog_id,
+                                                                   Promise<AffectedHistory> &&query_promise) {
+    td->create_handler<DeleteSavedHistoryQuery>(std::move(query_promise))->send(saved_messages_topic_id);
+  };
+  run_affected_history_query_until_complete(my_dialog_id, std::move(query), true, std::move(promise));
 }
 
 vector<DialogId> MessagesManager::search_public_dialogs(const string &query, Promise<Unit> &&promise) {

@@ -5042,6 +5042,13 @@ void Td::on_request(uint64 id, const td_api::getSavedMessagesTopicHistory &reque
                                                       request.limit_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::deleteSavedMessagesTopicHistory &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->delete_saved_messages_topic_history(SavedMessagesTopicId(this, request.saved_messages_topic_),
+                                                         std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::searchPublicChat &request) {
   CLEAN_INPUT_STRING(request.username_);
   CREATE_REQUEST(SearchPublicChatRequest, request.username_);

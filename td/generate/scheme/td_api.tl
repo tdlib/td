@@ -7172,6 +7172,9 @@ getSavedMessagesTopics offset:string limit:int32 = FoundSavedMessagesTopics;
 //-For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
 getSavedMessagesTopicHistory saved_messages_topic:SavedMessagesTopic from_message_id:int53 offset:int32 limit:int32 = Messages;
 
+//@description Deletes all messages in a Saved Messages topic @saved_messages_topic Saved Messages topic which messages will be deleted
+deleteSavedMessagesTopicHistory saved_messages_topic:SavedMessagesTopic = Ok;
+
 
 //@description Returns a list of common group chats with a given user. Chats are sorted by their type and creation date
 //@user_id User identifier

@@ -541,6 +541,8 @@ class MessagesManager final : public Actor {
                                         int32 offset, int32 limit,
                                         Promise<td_api::object_ptr<td_api::messages>> &&promise);
 
+  void delete_saved_messages_topic_history(SavedMessagesTopicId saved_messages_topic_id, Promise<Unit> &&promise);
+
   vector<DialogId> search_public_dialogs(const string &query, Promise<Unit> &&promise);
 
   std::pair<int32, vector<DialogId>> search_dialogs(const string &query, int32 limit, Promise<Unit> &&promise);
