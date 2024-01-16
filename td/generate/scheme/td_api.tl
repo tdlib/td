@@ -1869,6 +1869,16 @@ savedMessagesTopicAuthorHidden = SavedMessagesTopic;
 savedMessagesTopicSavedFromChat chat_id:int53 = SavedMessagesTopic;
 
 
+//@description Contains information about a found saved messages topic @topic The topic @last_message Last message in the topic; may be null if none or unknown
+foundSavedMessagesTopic topic:SavedMessagesTopic last_message:message = FoundSavedMessagesTopic;
+
+//@description Contains a list of Saved Messages topics
+//@total_count Total number of Saved Messages topics found
+//@topics List of Saved Messages topics
+//@next_offset The offset for the next request. If empty, then there are no more results
+foundSavedMessagesTopics total_count:int32 topics:vector<foundSavedMessagesTopic> next_offset:string = FoundSavedMessagesTopics;
+
+
 //@description Describes a forum topic icon @color Color of the topic icon in RGB format @custom_emoji_id Unique identifier of the custom emoji shown on the topic icon; 0 if none
 forumTopicIcon color:int32 custom_emoji_id:int64 = ForumTopicIcon;
 
@@ -7144,6 +7154,11 @@ getSuitableDiscussionChats = Chats;
 
 //@description Returns a list of recently inactive supergroups and channels. Can be used when user reaches limit on the number of joined supergroups and channels and receives CHANNELS_TOO_MUCH error. Also, the limit can be increased with Telegram Premium
 getInactiveSupergroupChats = Chats;
+
+//@description Returns list of non-pinned saved messages topic from the specified offset
+//@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
+//@limit The maximum number of saved messages topics to be returned; up to 100
+getSavedMessagesTopics offset:string limit:int32 = FoundSavedMessagesTopics;
 
 
 //@description Returns a list of common group chats with a given user. Chats are sorted by their type and creation date

@@ -5021,6 +5021,13 @@ void Td::on_request(uint64 id, const td_api::getChats &request) {
   messages_manager_->get_dialogs_from_list(DialogListId(request.chat_list_), request.limit_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getSavedMessagesTopics &request) {
+  CHECK_IS_USER();
+  // don't need to check offset UTF-8 correctness
+  CREATE_REQUEST_PROMISE();
+  messages_manager_->get_saved_messages_topics(request.offset_, request.limit_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::searchPublicChat &request) {
   CLEAN_INPUT_STRING(request.username_);
   CREATE_REQUEST(SearchPublicChatRequest, request.username_);

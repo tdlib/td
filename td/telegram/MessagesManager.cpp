@@ -188,6 +188,40 @@ class GetPinnedDialogsQuery final : public Td::ResultHandler {
   }
 };
 
+class GetSavedDialogsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::foundSavedMessagesTopics>> promise_;
+
+ public:
+  explicit GetSavedDialogsQuery(Promise<td_api::object_ptr<td_api::foundSavedMessagesTopics>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(int32 offset_date, MessageId offset_message_id, DialogId offset_dialog_id, int32 limit) {
+    auto input_peer = DialogManager::get_input_peer_force(offset_dialog_id);
+    CHECK(input_peer != nullptr);
+
+    int32 flags = telegram_api::messages_getSavedDialogs::EXCLUDE_PINNED_MASK;
+    send_query(G()->net_query_creator().create(telegram_api::messages_getSavedDialogs(
+        flags, false /*ignored*/, offset_date, offset_message_id.get_server_message_id().get(), std::move(input_peer),
+        limit, 0)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getSavedDialogs>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive Saved Messages topics: " << to_string(result);
+    td_->messages_manager_->on_get_saved_messages_topics(std::move(result), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetDialogUnreadMarksQuery final : public Td::ResultHandler {
  public:
   void send() {
@@ -15820,6 +15854,157 @@ void MessagesManager::reload_pinned_dialogs(DialogListId dialog_list_id, Promise
   } else if (dialog_list_id.is_filter()) {
     td_->dialog_filter_manager_->schedule_reload_dialog_filters(std::move(promise));
   }
+}
+
+void MessagesManager::get_saved_messages_topics(
+    const string &offset, int32 limit, Promise<td_api::object_ptr<td_api::foundSavedMessagesTopics>> &&promise) {
+  int32 offset_date = std::numeric_limits<int32>::max();
+  DialogId offset_dialog_id;
+  MessageId offset_message_id;
+  bool is_offset_valid = [&] {
+    if (offset.empty()) {
+      return true;
+    }
+
+    auto parts = full_split(offset, ',');
+    if (parts.size() != 3) {
+      return false;
+    }
+    auto r_offset_date = to_integer_safe<int32>(parts[0]);
+    auto r_offset_dialog_id = to_integer_safe<int64>(parts[1]);
+    auto r_offset_message_id = to_integer_safe<int32>(parts[2]);
+    if (r_offset_date.is_error() || r_offset_date.ok() <= 0 || r_offset_message_id.is_error() ||
+        r_offset_dialog_id.is_error()) {
+      return false;
+    }
+    offset_date = r_offset_date.ok();
+    offset_message_id = MessageId(ServerMessageId(r_offset_message_id.ok()));
+    offset_dialog_id = DialogId(r_offset_dialog_id.ok());
+    if (!offset_message_id.is_valid() || !offset_dialog_id.is_valid() ||
+        DialogManager::get_input_peer_force(offset_dialog_id)->get_id() == telegram_api::inputPeerEmpty::ID) {
+      return false;
+    }
+    return true;
+  }();
+  if (!is_offset_valid) {
+    return promise.set_error(Status::Error(400, "Invalid offset specified"));
+  }
+
+  if (limit < 0) {
+    return promise.set_error(Status::Error(400, "Limit must be non-negative"));
+  }
+
+  td_->create_handler<GetSavedDialogsQuery>(std::move(promise))
+      ->send(offset_date, offset_message_id, offset_dialog_id, limit);
+}
+
+void MessagesManager::on_get_saved_messages_topics(
+    telegram_api::object_ptr<telegram_api::messages_SavedDialogs> &&saved_dialogs_ptr,
+    Promise<td_api::object_ptr<td_api::foundSavedMessagesTopics>> &&promise) {
+  CHECK(saved_dialogs_ptr != nullptr);
+  int32 total_count = -1;
+  vector<telegram_api::object_ptr<telegram_api::savedDialog>> dialogs;
+  vector<telegram_api::object_ptr<telegram_api::Message>> messages;
+  vector<telegram_api::object_ptr<telegram_api::Chat>> chats;
+  vector<telegram_api::object_ptr<telegram_api::User>> users;
+  switch (saved_dialogs_ptr->get_id()) {
+    case telegram_api::messages_savedDialogsNotModified::ID:
+      LOG(ERROR) << "Receive messages.savedDialogsNotModified";
+      return promise.set_error(Status::Error(500, "Receive messages.savedDialogsNotModified"));
+    case telegram_api::messages_savedDialogs::ID: {
+      auto saved_dialogs = telegram_api::move_object_as<telegram_api::messages_savedDialogs>(saved_dialogs_ptr);
+      total_count = static_cast<int32>(saved_dialogs->dialogs_.size());
+      dialogs = std::move(saved_dialogs->dialogs_);
+      messages = std::move(saved_dialogs->messages_);
+      chats = std::move(saved_dialogs->chats_);
+      users = std::move(saved_dialogs->users_);
+      break;
+    }
+    case telegram_api::messages_savedDialogsSlice::ID: {
+      auto saved_dialogs = telegram_api::move_object_as<telegram_api::messages_savedDialogsSlice>(saved_dialogs_ptr);
+      total_count = saved_dialogs->count_;
+      if (total_count < static_cast<int32>(saved_dialogs->dialogs_.size())) {
+        LOG(ERROR) << "Receive total_count = " << total_count << ", but " << saved_dialogs->dialogs_.size()
+                   << " Saved Messages topics";
+        total_count = static_cast<int32>(saved_dialogs->dialogs_.size());
+      }
+      dialogs = std::move(saved_dialogs->dialogs_);
+      messages = std::move(saved_dialogs->messages_);
+      chats = std::move(saved_dialogs->chats_);
+      users = std::move(saved_dialogs->users_);
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
+  td_->contacts_manager_->on_get_users(std::move(users), "on_get_saved_messages_topics");
+  td_->contacts_manager_->on_get_chats(std::move(chats), "on_get_saved_messages_topics");
+
+  FlatHashMap<MessageId, tl_object_ptr<telegram_api::Message>, MessageIdHash> message_id_to_message;
+  for (auto &message : messages) {
+    auto message_id = MessageId::get_message_id(message, false);
+    if (!message_id.is_valid()) {
+      continue;
+    }
+    message_id_to_message[message_id] = std::move(message);
+  }
+
+  int32 last_message_date = 0;
+  MessageId last_message_id;
+  DialogId last_dialog_id;
+  vector<SavedMessagesTopicId> added_saved_messages_topic_ids;
+  vector<td_api::object_ptr<td_api::foundSavedMessagesTopic>> found_saved_messages_topics;
+  for (auto &dialog : dialogs) {
+    SavedMessagesTopicId saved_messages_topic_id(DialogId(dialog->peer_));
+    if (td::contains(added_saved_messages_topic_ids, saved_messages_topic_id)) {
+      LOG(ERROR) << "Receive " << saved_messages_topic_id
+                 << " twice in result of getSavedMessagesTopics with total_count = " << total_count;
+      total_count--;
+      continue;
+    }
+    added_saved_messages_topic_ids.push_back(saved_messages_topic_id);
+
+    MessageId last_topic_message_id(ServerMessageId(dialog->top_message_));
+    if (!last_topic_message_id.is_valid()) {
+      // skip topics without messages
+      LOG(ERROR) << "Receive " << saved_messages_topic_id << " without last message";
+      total_count--;
+      continue;
+    }
+
+    auto it = message_id_to_message.find(last_topic_message_id);
+    if (it == message_id_to_message.end()) {
+      LOG(ERROR) << "Can't find last " << last_topic_message_id << " in " << saved_messages_topic_id;
+      total_count--;
+      continue;
+    }
+    auto message_date = get_message_date(it->second);
+    auto dialog_id = DialogId::get_message_dialog_id(it->second);
+    if (message_date > 0 && dialog_id.is_valid()) {
+      last_message_date = message_date;
+      last_message_id = last_topic_message_id;
+      last_dialog_id = dialog_id;
+    }
+    auto full_message_id = on_get_message(std::move(it->second), false, false, false, "on_get_saved_messages_topics");
+    message_id_to_message.erase(it);
+
+    if (full_message_id.get_dialog_id() != DialogId() &&
+        full_message_id.get_dialog_id() != td_->dialog_manager_->get_my_dialog_id()) {
+      LOG(ERROR) << "Can't add last " << last_message_id << " to " << saved_messages_topic_id;
+      total_count--;
+      continue;
+    }
+    found_saved_messages_topics.push_back(td_api::make_object<td_api::foundSavedMessagesTopic>(
+        saved_messages_topic_id.get_saved_messages_topic_object(td_),
+        get_message_object(full_message_id, "on_get_saved_messages_topics")));
+  }
+  string next_offset;
+  if (last_message_date > 0) {
+    next_offset = PSTRING() << last_message_date << ',' << last_dialog_id.get() << ','
+                            << last_message_id.get_server_message_id().get();
+  }
+  promise.set_value(td_api::make_object<td_api::foundSavedMessagesTopics>(
+      total_count, std::move(found_saved_messages_topics), next_offset));
 }
 
 vector<DialogId> MessagesManager::search_public_dialogs(const string &query, Promise<Unit> &&promise) {
