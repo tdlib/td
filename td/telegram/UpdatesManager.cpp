@@ -2179,6 +2179,7 @@ void UpdatesManager::after_get_difference() {
 
     auto begin_time = Time::now();
     auto update_count = postponed_updates.size();
+    auto old_pts = get_pts();
     VLOG(get_difference) << "Begin to apply " << postponed_updates.size()
                          << " postponed PTS updates with PTS = " << get_pts();
     for (auto &postponed_update : postponed_updates) {
@@ -2192,8 +2193,9 @@ void UpdatesManager::after_get_difference() {
                          << postponed_pts_updates_.size() << " pending PTS updates";
     auto passed_time = Time::now() - begin_time;
     if (passed_time >= UPDATE_APPLY_WARNING_TIME) {
-      LOG(WARNING) << "Applied " << update_count << " PTS updates in " << passed_time
-                   << " seconds after postponing them for " << (Time::now() - get_difference_start_time_) << " seconds";
+      LOG(WARNING) << "Updated PTS from " << old_pts << " to " << get_pts() << " and applied " << update_count
+                   << " PTS updates in " << passed_time << " seconds after postponing them for "
+                   << (Time::now() - get_difference_start_time_) << " seconds";
     }
   }
 
@@ -3133,7 +3135,7 @@ void UpdatesManager::process_postponed_pts_updates() {
       continue;
     }
 
-    if (Time::now() - begin_time >= td::min(UPDATE_APPLY_WARNING_TIME / 2, 0.1)) {
+    if (Time::now() - begin_time >= 0.1) {
       // the updates will be applied or skipped later; reget the remaining updates through getDifference
       break;
     }

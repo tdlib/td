@@ -147,7 +147,7 @@ class UpdatesManager final : public Actor {
   static constexpr double MIN_UNFILLED_GAP_TIME = 0.05;
   static constexpr double MAX_UNFILLED_GAP_TIME = 0.7;
   static constexpr double MAX_PTS_SAVE_DELAY = 0.05;
-  static constexpr double UPDATE_APPLY_WARNING_TIME = 0.25;
+  static constexpr double UPDATE_APPLY_WARNING_TIME = 0.1;
   static constexpr bool DROP_PTS_UPDATES = false;
   static constexpr const char *AFTER_GET_DIFFERENCE_SOURCE = "after get difference";
 
