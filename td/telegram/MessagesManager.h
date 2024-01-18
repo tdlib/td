@@ -2671,6 +2671,8 @@ class MessagesManager final : public Actor {
   void on_get_dialog_message_by_date_from_database(DialogId dialog_id, int32 date, int64 random_id,
                                                    Result<MessageDbDialogMessage> result, Promise<Unit> promise);
 
+  static Status fix_delete_message_min_max_dates(int32 &min_date, int32 &max_date);
+
   std::pair<bool, int32> get_dialog_mute_until(DialogId dialog_id, const Dialog *d) const;
 
   int64 get_dialog_notification_ringtone_id(DialogId dialog_id, const Dialog *d) const;

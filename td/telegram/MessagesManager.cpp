@@ -10490,10 +10490,37 @@ void MessagesManager::delete_all_channel_messages_by_sender_on_server(ChannelId 
                                             get_erase_log_event_promise(log_event_id, std::move(promise)));
 }
 
+Status MessagesManager::fix_delete_message_min_max_dates(int32 &min_date, int32 &max_date) {
+  if (min_date > max_date) {
+    return Status::Error(400, "Wrong date interval specified");
+  }
+
+  const int32 telegram_launch_date = 1376438400;
+  if (max_date < telegram_launch_date) {
+    max_date = 0;
+    min_date = 0;
+    return Status::OK();
+  }
+  if (min_date < telegram_launch_date) {
+    min_date = telegram_launch_date;
+  }
+
+  auto current_date = max(G()->unix_time(), 1635000000);
+  if (min_date >= current_date - 30) {
+    max_date = 0;
+    min_date = 0;
+    return Status::OK();
+  }
+  if (max_date >= current_date - 30) {
+    max_date = current_date - 31;
+  }
+  CHECK(min_date <= max_date);
+  return Status::OK();
+}
+
 void MessagesManager::delete_dialog_messages_by_date(DialogId dialog_id, int32 min_date, int32 max_date, bool revoke,
                                                      Promise<Unit> &&promise) {
-  bool is_bot = td_->auth_manager_->is_bot();
-  CHECK(!is_bot);
+  CHECK(!td_->auth_manager_->is_bot());
 
   Dialog *d = get_dialog_force(dialog_id, "delete_dialog_messages_by_date");
   if (d == nullptr) {
@@ -10504,26 +10531,10 @@ void MessagesManager::delete_dialog_messages_by_date(DialogId dialog_id, int32 m
     return promise.set_error(Status::Error(400, "Can't access the chat"));
   }
 
-  if (min_date > max_date) {
-    return promise.set_error(Status::Error(400, "Wrong date interval specified"));
-  }
-
-  const int32 telegram_launch_date = 1376438400;
-  if (max_date < telegram_launch_date) {
+  TRY_STATUS_PROMISE(promise, fix_delete_message_min_max_dates(min_date, max_date));
+  if (max_date == 0) {
     return promise.set_value(Unit());
   }
-  if (min_date < telegram_launch_date) {
-    min_date = telegram_launch_date;
-  }
-
-  auto current_date = max(G()->unix_time(), 1635000000);
-  if (min_date >= current_date - 30) {
-    return promise.set_value(Unit());
-  }
-  if (max_date >= current_date - 30) {
-    max_date = current_date - 31;
-  }
-  CHECK(min_date <= max_date);
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
@@ -16267,26 +16278,10 @@ void MessagesManager::delete_saved_messages_topic_messages_by_date(SavedMessages
                                                                    Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_status(td_));
 
-  if (min_date > max_date) {
-    return promise.set_error(Status::Error(400, "Wrong date interval specified"));
-  }
-
-  const int32 telegram_launch_date = 1376438400;
-  if (max_date < telegram_launch_date) {
+  TRY_STATUS_PROMISE(promise, fix_delete_message_min_max_dates(min_date, max_date));
+  if (max_date == 0) {
     return promise.set_value(Unit());
   }
-  if (min_date < telegram_launch_date) {
-    min_date = telegram_launch_date;
-  }
-
-  auto current_date = max(G()->unix_time(), 1635000000);
-  if (min_date >= current_date - 30) {
-    return promise.set_value(Unit());
-  }
-  if (max_date >= current_date - 30) {
-    max_date = current_date - 31;
-  }
-  CHECK(min_date <= max_date);
 
   AffectedHistoryQuery query = [td = td_, saved_messages_topic_id, min_date, max_date](
                                    DialogId, Promise<AffectedHistory> &&query_promise) {
