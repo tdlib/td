@@ -108,4 +108,6 @@ bool operator!=(const MessageInputReplyTo &lhs, const MessageInputReplyTo &rhs);
 
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageInputReplyTo &input_reply_to);
 
+StringBuilder &operator<<(StringBuilder &string_builder, const MessageInputReplyTo *input_reply_to_ptr);
+
 }  // namespace td

@@ -199,4 +199,11 @@ StringBuilder &operator<<(StringBuilder &string_builder, const MessageInputReply
   return string_builder << "nothing";
 }
 
+StringBuilder &operator<<(StringBuilder &string_builder, const MessageInputReplyTo *input_reply_to_ptr) {
+  if (input_reply_to_ptr == nullptr) {
+    return string_builder << "nothing";
+  }
+  return string_builder << *input_reply_to_ptr;
+}
+
 }  // namespace td

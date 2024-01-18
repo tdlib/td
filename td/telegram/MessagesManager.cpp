@@ -33242,8 +33242,9 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
                 old_message->top_thread_message_id, message_id.is_yet_unsent() && !is_message_in_dialog,
                 is_reply_to_deleted_message)) {
           LOG(ERROR) << message_id << " in " << dialog_id << " has changed replied message from "
-                     << old_message->replied_message_info << " to " << new_message->replied_message_info
-                     << ", message content type is " << old_content_type << '/' << new_content_type;
+                     << old_message->replied_message_info << '/' << get_message_input_reply_to(old_message) << " to "
+                     << new_message->replied_message_info << ", message content type is " << old_content_type << '/'
+                     << new_content_type;
         }
       }
       if (is_top_thread_message_id_changed) {
