@@ -460,6 +460,7 @@ set(TDLIB_SOURCE
   td/telegram/PrivacyManager.cpp
   td/telegram/QueryCombiner.cpp
   td/telegram/QueryMerger.cpp
+  td/telegram/ReactionListType.cpp
   td/telegram/ReactionManager.cpp
   td/telegram/ReactionType.cpp
   td/telegram/RecentDialogList.cpp
@@ -782,6 +783,7 @@ set(TDLIB_SOURCE
   td/telegram/PublicDialogType.h
   td/telegram/QueryCombiner.h
   td/telegram/QueryMerger.h
+  td/telegram/ReactionListType.h
   td/telegram/ReactionManager.h
   td/telegram/ReactionType.h
   td/telegram/RecentDialogList.h

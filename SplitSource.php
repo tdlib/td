@@ -372,6 +372,7 @@ function split_file($file, $chunks, $undo) {
                 'poll_manager[_(-](?![.]get[(][)])|PollManager' => 'PollManager',
                 'privacy_manager[_(-](?![.]get[(][)])|PrivacyManager' => 'PrivacyManager',
                 'PublicDialogType|get_public_dialog_type' => 'PublicDialogType',
+                'ReactionListType|[a-z_]*_reaction_list_type' => 'ReactionListType',
                 'reaction_manager[_(-](?![.]get[(][)])|ReactionManager' => 'ReactionManager',
                 'ReactionType|[a-z_]*_reaction_type' => 'ReactionType',
                 'RequestActor|RequestOnceActor' => 'RequestActor',

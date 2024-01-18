@@ -52,6 +52,7 @@
 #include "td/telegram/PollManager.h"
 #include "td/telegram/PrivacyManager.h"
 #include "td/telegram/PublicDialogType.h"
+#include "td/telegram/ReactionListType.h"
 #include "td/telegram/ReactionManager.h"
 #include "td/telegram/ReactionType.h"
 #include "td/telegram/ScheduledServerMessageId.h"
@@ -2265,9 +2266,12 @@ void UpdatesManager::try_reload_data() {
   td_->notification_settings_manager_->send_get_scope_notification_settings_query(NotificationSettingsScope::Channel,
                                                                                   Auto());
   td_->reaction_manager_->reload_reactions();
-  td_->reaction_manager_->reload_recent_reactions();
-  td_->reaction_manager_->reload_top_reactions();
-  td_->reaction_manager_->reload_default_tag_reactions();
+
+  for (int32 type = 0; type < MAX_REACTION_LIST_TYPE; type++) {
+    auto reaction_list_type = static_cast<ReactionListType>(type);
+    td_->reaction_manager_->reload_reaction_list(reaction_list_type);
+  }
+
   for (int32 type = 0; type < MAX_STICKER_TYPE; type++) {
     auto sticker_type = static_cast<StickerType>(type);
     td_->stickers_manager_->get_installed_sticker_sets(sticker_type, Auto());
@@ -3704,7 +3708,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMessageReaction
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateRecentReactions> update, Promise<Unit> &&promise) {
-  td_->reaction_manager_->reload_recent_reactions();
+  td_->reaction_manager_->reload_reaction_list(ReactionListType::Recent);
   promise.set_value(Unit());
 }
 

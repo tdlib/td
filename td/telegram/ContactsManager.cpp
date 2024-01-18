@@ -48,6 +48,7 @@
 #include "td/telegram/Photo.hpp"
 #include "td/telegram/PhotoSize.h"
 #include "td/telegram/PremiumGiftOption.hpp"
+#include "td/telegram/ReactionListType.h"
 #include "td/telegram/ReactionManager.h"
 #include "td/telegram/SecretChatLayer.h"
 #include "td/telegram/SecretChatsManager.h"
@@ -10714,7 +10715,7 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
     if (td_->option_manager_->get_option_boolean("is_premium") != u->is_premium) {
       td_->option_manager_->set_option_boolean("is_premium", u->is_premium);
       send_closure(td_->config_manager_, &ConfigManager::request_config, true);
-      td_->reaction_manager_->reload_top_reactions();
+      td_->reaction_manager_->reload_reaction_list(ReactionListType::Top);
       td_->messages_manager_->update_is_translatable(u->is_premium);
     }
   }

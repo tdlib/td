@@ -51,72 +51,49 @@ class GetAvailableReactionsQuery final : public Td::ResultHandler {
   }
 };
 
-class GetRecentReactionsQuery final : public Td::ResultHandler {
+class GetReactionListQuery final : public Td::ResultHandler {
+  ReactionListType reaction_list_type_;
+
  public:
-  void send(int32 limit, int64 hash) {
-    send_query(G()->net_query_creator().create(telegram_api::messages_getRecentReactions(limit, hash)));
+  void send(ReactionListType reaction_list_type, int64 hash) {
+    reaction_list_type_ = reaction_list_type;
+    switch (reaction_list_type) {
+      case ReactionListType::Recent:
+        send_query(G()->net_query_creator().create(
+            telegram_api::messages_getRecentReactions(ReactionManager::MAX_RECENT_REACTIONS, hash)));
+        break;
+      case ReactionListType::Top:
+        send_query(G()->net_query_creator().create(telegram_api::messages_getTopReactions(200, hash)));
+        break;
+      case ReactionListType::DefaultTag:
+        send_query(G()->net_query_creator().create(telegram_api::messages_getDefaultTagReactions(hash)));
+        break;
+      default:
+        UNREACHABLE();
+        break;
+    }
   }
 
   void on_result(BufferSlice packet) final {
+    static_assert(std::is_same<telegram_api::messages_getRecentReactions::ReturnType,
+                               telegram_api::messages_getTopReactions::ReturnType>::value,
+                  "");
+    static_assert(std::is_same<telegram_api::messages_getRecentReactions::ReturnType,
+                               telegram_api::messages_getDefaultTagReactions::ReturnType>::value,
+                  "");
     auto result_ptr = fetch_result<telegram_api::messages_getRecentReactions>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for GetRecentReactionsQuery: " << to_string(ptr);
-    td_->reaction_manager_->on_get_recent_reactions(std::move(ptr));
+    LOG(INFO) << "Receive result for GetReactionListQuery: " << to_string(ptr);
+    td_->reaction_manager_->on_get_reaction_list(reaction_list_type_, std::move(ptr));
   }
 
   void on_error(Status status) final {
-    LOG(INFO) << "Receive error for GetRecentReactionsQuery: " << status;
-    td_->reaction_manager_->on_get_recent_reactions(nullptr);
-  }
-};
-
-class GetTopReactionsQuery final : public Td::ResultHandler {
- public:
-  void send(int64 hash) {
-    send_query(G()->net_query_creator().create(telegram_api::messages_getTopReactions(200, hash)));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::messages_getTopReactions>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for GetTopReactionsQuery: " << to_string(ptr);
-    td_->reaction_manager_->on_get_top_reactions(std::move(ptr));
-  }
-
-  void on_error(Status status) final {
-    LOG(INFO) << "Receive error for GetTopReactionsQuery: " << status;
-    td_->reaction_manager_->on_get_top_reactions(nullptr);
-  }
-};
-
-class GetDefaultTagReactionsQuery final : public Td::ResultHandler {
- public:
-  void send(int64 hash) {
-    send_query(G()->net_query_creator().create(telegram_api::messages_getDefaultTagReactions(hash)));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::messages_getDefaultTagReactions>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for GetDefaultTagReactionsQuery: " << to_string(ptr);
-    td_->reaction_manager_->on_get_default_tag_reactions(std::move(ptr));
-  }
-
-  void on_error(Status status) final {
-    LOG(INFO) << "Receive error for GetDefaultTagReactionsQuery: " << status;
-    td_->reaction_manager_->on_get_default_tag_reactions(nullptr);
+    LOG(INFO) << "Receive error for GetReactionListQuery: " << status;
+    td_->reaction_manager_->on_get_reaction_list(reaction_list_type_, nullptr);
   }
 };
 
@@ -137,7 +114,7 @@ class ClearRecentReactionsQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->reaction_manager_->reload_recent_reactions();
+    td_->reaction_manager_->reload_reaction_list(ReactionListType::Recent);
     promise_.set_value(Unit());
   }
 
@@ -145,7 +122,7 @@ class ClearRecentReactionsQuery final : public Td::ResultHandler {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for clear recent reactions: " << status;
     }
-    td_->reaction_manager_->reload_recent_reactions();
+    td_->reaction_manager_->reload_reaction_list(ReactionListType::Recent);
     promise_.set_error(std::move(status));
   }
 };
@@ -249,8 +226,8 @@ void ReactionManager::get_emoji_reaction(const string &emoji,
 
 td_api::object_ptr<td_api::availableReactions> ReactionManager::get_sorted_available_reactions(
     ChatReactions available_reactions, ChatReactions active_reactions, int32 row_size) {
-  load_recent_reactions();
-  load_top_reactions();
+  load_reaction_list(ReactionListType::Recent);
+  load_reaction_list(ReactionListType::Top);
 
   if (row_size < 5 || row_size > 25) {
     row_size = 8;
@@ -258,8 +235,8 @@ td_api::object_ptr<td_api::availableReactions> ReactionManager::get_sorted_avail
 
   bool is_premium = td_->option_manager_->get_option_boolean("is_premium");
   bool show_premium = is_premium;
-  const auto &recent_reactions = recent_reactions_.reaction_types_;
-  auto top_reactions = top_reactions_.reaction_types_;
+  const auto &recent_reactions = get_reaction_list(ReactionListType::Recent).reaction_types_;
+  auto top_reactions = get_reaction_list(ReactionListType::Top).reaction_types_;
   LOG(INFO) << "Have available reactions " << available_reactions << " to be sorted by top reactions " << top_reactions
             << " and recent reactions " << recent_reactions;
   if (active_reactions.allow_all_custom_ && active_reactions.allow_all_regular_) {
@@ -355,27 +332,29 @@ td_api::object_ptr<td_api::availableReactions> ReactionManager::get_available_re
 }
 
 void ReactionManager::add_recent_reaction(const ReactionType &reaction_type) {
-  load_recent_reactions();
+  load_reaction_list(ReactionListType::Recent);
 
-  auto &reactions = recent_reactions_.reaction_types_;
+  auto &recent_reactions = get_reaction_list(ReactionListType::Recent);
+  auto &reactions = recent_reactions.reaction_types_;
   if (!reactions.empty() && reactions[0] == reaction_type) {
     return;
   }
 
   add_to_top(reactions, MAX_RECENT_REACTIONS, reaction_type);
 
-  recent_reactions_.hash_ = get_reaction_types_hash(reactions);
+  recent_reactions.hash_ = get_reaction_types_hash(reactions);
 }
 
 void ReactionManager::clear_recent_reactions(Promise<Unit> &&promise) {
-  load_recent_reactions();
+  load_reaction_list(ReactionListType::Recent);
 
-  if (recent_reactions_.reaction_types_.empty()) {
+  auto &recent_reactions = get_reaction_list(ReactionListType::Recent);
+  if (recent_reactions.reaction_types_.empty()) {
     return promise.set_value(Unit());
   }
 
-  recent_reactions_.hash_ = 0;
-  recent_reactions_.reaction_types_.clear();
+  recent_reactions.hash_ = 0;
+  recent_reactions.reaction_types_.clear();
 
   td_->create_handler<ClearRecentReactionsQuery>(std::move(promise))->send();
 }
@@ -390,40 +369,25 @@ void ReactionManager::reload_reactions() {
   td_->create_handler<GetAvailableReactionsQuery>()->send(reactions_.hash_);
 }
 
-void ReactionManager::reload_recent_reactions() {
-  if (G()->close_flag() || recent_reactions_.is_being_reloaded_) {
+void ReactionManager::reload_reaction_list(ReactionListType reaction_list_type) {
+  auto &reaction_list = get_reaction_list(reaction_list_type);
+  if (G()->close_flag() || reaction_list.is_being_reloaded_) {
     return;
   }
   CHECK(!td_->auth_manager_->is_bot());
-  recent_reactions_.is_being_reloaded_ = true;
-  load_recent_reactions();  // must be after is_being_reloaded_ is set to true to avoid recursion
-  td_->create_handler<GetRecentReactionsQuery>()->send(MAX_RECENT_REACTIONS, recent_reactions_.hash_);
-}
-
-void ReactionManager::reload_top_reactions() {
-  if (G()->close_flag() || top_reactions_.is_being_reloaded_) {
-    return;
-  }
-  CHECK(!td_->auth_manager_->is_bot());
-  top_reactions_.is_being_reloaded_ = true;
-  load_top_reactions();  // must be after is_being_reloaded_ is set to true to avoid recursion
-  td_->create_handler<GetTopReactionsQuery>()->send(top_reactions_.hash_);
-}
-
-void ReactionManager::reload_default_tag_reactions() {
-  if (G()->close_flag() || default_tag_reactions_.is_being_reloaded_) {
-    return;
-  }
-  CHECK(!td_->auth_manager_->is_bot());
-  default_tag_reactions_.is_being_reloaded_ = true;
-  load_default_tag_reactions();  // must be after is_being_reloaded_ is set to true to avoid recursion
-  td_->create_handler<GetDefaultTagReactionsQuery>()->send(default_tag_reactions_.hash_);
+  reaction_list.is_being_reloaded_ = true;
+  load_reaction_list(reaction_list_type);  // must be after is_being_reloaded_ is set to true to avoid recursion
+  td_->create_handler<GetReactionListQuery>()->send(reaction_list_type, reaction_list.hash_);
 }
 
 td_api::object_ptr<td_api::updateActiveEmojiReactions> ReactionManager::get_update_active_emoji_reactions_object()
     const {
   return td_api::make_object<td_api::updateActiveEmojiReactions>(
       transform(active_reaction_types_, [](const ReactionType &reaction_type) { return reaction_type.get_string(); }));
+}
+
+ReactionManager::ReactionList &ReactionManager::get_reaction_list(ReactionListType reaction_list_type) {
+  return reaction_lists_[static_cast<int32>(reaction_list_type)];
 }
 
 void ReactionManager::save_active_reactions() {
@@ -437,23 +401,12 @@ void ReactionManager::save_reactions() {
   G()->td_db()->get_binlog_pmc()->set("reactions", log_event_store(reactions_).as_slice().str());
 }
 
-void ReactionManager::save_recent_reactions() {
-  LOG(INFO) << "Save " << recent_reactions_.reaction_types_.size() << " recent reactions";
-  recent_reactions_.is_loaded_from_database_ = true;
-  G()->td_db()->get_binlog_pmc()->set("recent_reactions", log_event_store(recent_reactions_).as_slice().str());
-}
-
-void ReactionManager::save_top_reactions() {
-  LOG(INFO) << "Save " << top_reactions_.reaction_types_.size() << " top reactions";
-  top_reactions_.is_loaded_from_database_ = true;
-  G()->td_db()->get_binlog_pmc()->set("top_reactions", log_event_store(top_reactions_).as_slice().str());
-}
-
-void ReactionManager::save_default_tag_reactions() {
-  LOG(INFO) << "Save " << default_tag_reactions_.reaction_types_.size() << " default tag reactions";
-  default_tag_reactions_.is_loaded_from_database_ = true;
-  G()->td_db()->get_binlog_pmc()->set("default_tag_reactions",
-                                      log_event_store(default_tag_reactions_).as_slice().str());
+void ReactionManager::save_reaction_list(ReactionListType reaction_list_type) {
+  auto &reaction_list = get_reaction_list(reaction_list_type);
+  LOG(INFO) << "Save " << reaction_list.reaction_types_.size() << ' ' << reaction_list_type;
+  reaction_list.is_loaded_from_database_ = true;
+  G()->td_db()->get_binlog_pmc()->set(get_reaction_list_type_database_key(reaction_list_type),
+                                      log_event_store(reaction_list).as_slice().str());
 }
 
 void ReactionManager::load_active_reactions() {
@@ -508,70 +461,27 @@ void ReactionManager::load_reactions() {
   update_active_reactions();
 }
 
-void ReactionManager::load_recent_reactions() {
-  if (recent_reactions_.is_loaded_from_database_) {
+void ReactionManager::load_reaction_list(ReactionListType reaction_list_type) {
+  auto &reaction_list = get_reaction_list(reaction_list_type);
+  if (reaction_list.is_loaded_from_database_) {
     return;
   }
-  recent_reactions_.is_loaded_from_database_ = true;
+  reaction_list.is_loaded_from_database_ = true;
 
-  LOG(INFO) << "Loading recent reactions";
-  string recent_reactions = G()->td_db()->get_binlog_pmc()->get("recent_reactions");
-  if (recent_reactions.empty()) {
-    return reload_recent_reactions();
+  LOG(INFO) << "Loading " << reaction_list_type;
+  string reactions_str = G()->td_db()->get_binlog_pmc()->get(get_reaction_list_type_database_key(reaction_list_type));
+  if (reactions_str.empty()) {
+    return reload_reaction_list(reaction_list_type);
   }
 
-  auto status = log_event_parse(recent_reactions_, recent_reactions);
+  auto status = log_event_parse(reaction_list, reactions_str);
   if (status.is_error()) {
-    LOG(ERROR) << "Can't load recent reactions: " << status;
-    recent_reactions_ = {};
-    return reload_recent_reactions();
+    LOG(ERROR) << "Can't load " << reaction_list_type << ": " << status;
+    reaction_list = {};
+    return reload_reaction_list(reaction_list_type);
   }
 
-  LOG(INFO) << "Successfully loaded " << recent_reactions_.reaction_types_.size() << " recent reactions";
-}
-
-void ReactionManager::load_top_reactions() {
-  if (top_reactions_.is_loaded_from_database_) {
-    return;
-  }
-  top_reactions_.is_loaded_from_database_ = true;
-
-  LOG(INFO) << "Loading top reactions";
-  string top_reactions = G()->td_db()->get_binlog_pmc()->get("top_reactions");
-  if (top_reactions.empty()) {
-    return reload_top_reactions();
-  }
-
-  auto status = log_event_parse(top_reactions_, top_reactions);
-  if (status.is_error()) {
-    LOG(ERROR) << "Can't load top reactions: " << status;
-    top_reactions_ = {};
-    return reload_top_reactions();
-  }
-
-  LOG(INFO) << "Successfully loaded " << top_reactions_.reaction_types_.size() << " top reactions";
-}
-
-void ReactionManager::load_default_tag_reactions() {
-  if (default_tag_reactions_.is_loaded_from_database_) {
-    return;
-  }
-  default_tag_reactions_.is_loaded_from_database_ = true;
-
-  LOG(INFO) << "Loading default tag reactions";
-  string default_tag_reactions = G()->td_db()->get_binlog_pmc()->get("default_tag_reactions");
-  if (default_tag_reactions.empty()) {
-    return reload_default_tag_reactions();
-  }
-
-  auto status = log_event_parse(default_tag_reactions_, default_tag_reactions);
-  if (status.is_error()) {
-    LOG(ERROR) << "Can't load default tag reactions: " << status;
-    default_tag_reactions_ = {};
-    return reload_default_tag_reactions();
-  }
-
-  LOG(INFO) << "Successfully loaded " << default_tag_reactions_.reaction_types_.size() << " default tag reactions";
+  LOG(INFO) << "Successfully loaded " << reaction_list.reaction_types_.size() << ' ' << reaction_list_type;
 }
 
 void ReactionManager::update_active_reactions() {
@@ -673,95 +583,40 @@ void ReactionManager::on_get_available_reactions(
   update_active_reactions();
 }
 
-void ReactionManager::on_get_recent_reactions(tl_object_ptr<telegram_api::messages_Reactions> &&reactions_ptr) {
-  CHECK(recent_reactions_.is_being_reloaded_);
-  recent_reactions_.is_being_reloaded_ = false;
+void ReactionManager::on_get_reaction_list(ReactionListType reaction_list_type,
+                                           tl_object_ptr<telegram_api::messages_Reactions> &&reactions_ptr) {
+  auto &reaction_list = get_reaction_list(reaction_list_type);
+  CHECK(reaction_list.is_being_reloaded_);
+  reaction_list.is_being_reloaded_ = false;
 
   if (reactions_ptr == nullptr) {
-    // failed to get recent reactions
+    // failed to get reactions
     return;
   }
 
   int32 constructor_id = reactions_ptr->get_id();
   if (constructor_id == telegram_api::messages_reactionsNotModified::ID) {
-    LOG(INFO) << "Top reactions are not modified";
+    LOG(INFO) << "List of " << reaction_list_type << " is not modified";
     return;
   }
 
   CHECK(constructor_id == telegram_api::messages_reactions::ID);
   auto reactions = move_tl_object_as<telegram_api::messages_reactions>(reactions_ptr);
   auto new_reaction_types = ReactionType::get_reaction_types(reactions->reactions_);
-  if (new_reaction_types == recent_reactions_.reaction_types_ && recent_reactions_.hash_ == reactions->hash_) {
-    LOG(INFO) << "Top reactions are not modified";
+  if (new_reaction_types == reaction_list.reaction_types_ && reaction_list.hash_ == reactions->hash_) {
+    LOG(INFO) << "List of " << reaction_list_type << " is not modified";
     return;
   }
-  recent_reactions_.reaction_types_ = std::move(new_reaction_types);
-  recent_reactions_.hash_ = reactions->hash_;
+  reaction_list.reaction_types_ = std::move(new_reaction_types);
+  reaction_list.hash_ = reactions->hash_;
 
-  auto expected_hash = get_reaction_types_hash(recent_reactions_.reaction_types_);
-  if (recent_reactions_.hash_ != expected_hash) {
-    LOG(ERROR) << "Receive hash " << recent_reactions_.hash_ << " instead of " << expected_hash << " for reactions "
-               << recent_reactions_.reaction_types_;
+  auto expected_hash = get_reaction_types_hash(reaction_list.reaction_types_);
+  if (reaction_list.hash_ != expected_hash) {
+    LOG(ERROR) << "Receive hash " << reaction_list.hash_ << " instead of " << expected_hash << " for "
+               << reaction_list_type << reaction_list.reaction_types_;
   }
 
-  save_recent_reactions();
-}
-
-void ReactionManager::on_get_top_reactions(tl_object_ptr<telegram_api::messages_Reactions> &&reactions_ptr) {
-  CHECK(top_reactions_.is_being_reloaded_);
-  top_reactions_.is_being_reloaded_ = false;
-
-  if (reactions_ptr == nullptr) {
-    // failed to get top reactions
-    return;
-  }
-
-  int32 constructor_id = reactions_ptr->get_id();
-  if (constructor_id == telegram_api::messages_reactionsNotModified::ID) {
-    LOG(INFO) << "Top reactions are not modified";
-    return;
-  }
-
-  CHECK(constructor_id == telegram_api::messages_reactions::ID);
-  auto reactions = move_tl_object_as<telegram_api::messages_reactions>(reactions_ptr);
-  auto new_reaction_types = ReactionType::get_reaction_types(reactions->reactions_);
-  if (new_reaction_types == top_reactions_.reaction_types_ && top_reactions_.hash_ == reactions->hash_) {
-    LOG(INFO) << "Top reactions are not modified";
-    return;
-  }
-  top_reactions_.reaction_types_ = std::move(new_reaction_types);
-  top_reactions_.hash_ = reactions->hash_;
-
-  save_top_reactions();
-}
-
-void ReactionManager::on_get_default_tag_reactions(tl_object_ptr<telegram_api::messages_Reactions> &&reactions_ptr) {
-  CHECK(default_tag_reactions_.is_being_reloaded_);
-  default_tag_reactions_.is_being_reloaded_ = false;
-
-  if (reactions_ptr == nullptr) {
-    // failed to get default tag reactions
-    return;
-  }
-
-  int32 constructor_id = reactions_ptr->get_id();
-  if (constructor_id == telegram_api::messages_reactionsNotModified::ID) {
-    LOG(INFO) << "Top reactions are not modified";
-    return;
-  }
-
-  CHECK(constructor_id == telegram_api::messages_reactions::ID);
-  auto reactions = move_tl_object_as<telegram_api::messages_reactions>(reactions_ptr);
-  auto new_reaction_types = ReactionType::get_reaction_types(reactions->reactions_);
-  if (new_reaction_types == default_tag_reactions_.reaction_types_ &&
-      default_tag_reactions_.hash_ == reactions->hash_) {
-    LOG(INFO) << "Top reactions are not modified";
-    return;
-  }
-  default_tag_reactions_.reaction_types_ = std::move(new_reaction_types);
-  default_tag_reactions_.hash_ = reactions->hash_;
-
-  save_default_tag_reactions();
+  save_reaction_list(reaction_list_type);
 }
 
 bool ReactionManager::is_active_reaction(const ReactionType &reaction_type) const {

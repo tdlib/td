@@ -8,6 +8,7 @@
 
 #include "td/telegram/ChatReactions.h"
 #include "td/telegram/files/FileId.h"
+#include "td/telegram/ReactionListType.h"
 #include "td/telegram/ReactionType.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -32,6 +33,8 @@ class ReactionManager final : public Actor {
   ReactionManager &operator=(ReactionManager &&) = delete;
   ~ReactionManager() final;
 
+  static constexpr size_t MAX_RECENT_REACTIONS = 100;  // some reasonable value
+
   void init();
 
   bool is_active_reaction(const ReactionType &reaction_type) const;
@@ -50,19 +53,12 @@ class ReactionManager final : public Actor {
 
   void reload_reactions();
 
-  void reload_recent_reactions();
+  void reload_reaction_list(ReactionListType reaction_list_type);
 
-  void reload_top_reactions();
-
-  void reload_default_tag_reactions();
+  void on_get_reaction_list(ReactionListType reaction_list_type,
+                            tl_object_ptr<telegram_api::messages_Reactions> &&reactions_ptr);
 
   void on_get_available_reactions(tl_object_ptr<telegram_api::messages_AvailableReactions> &&available_reactions_ptr);
-
-  void on_get_recent_reactions(tl_object_ptr<telegram_api::messages_Reactions> &&reactions_ptr);
-
-  void on_get_top_reactions(tl_object_ptr<telegram_api::messages_Reactions> &&reactions_ptr);
-
-  void on_get_default_tag_reactions(tl_object_ptr<telegram_api::messages_Reactions> &&reactions_ptr);
 
   void set_default_reaction(ReactionType reaction_type, Promise<Unit> &&promise);
 
@@ -71,8 +67,6 @@ class ReactionManager final : public Actor {
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
-  static constexpr size_t MAX_RECENT_REACTIONS = 100;  // some reasonable value
-
   struct Reaction {
     ReactionType reaction_type_;
     string title_;
@@ -125,6 +119,8 @@ class ReactionManager final : public Actor {
 
   td_api::object_ptr<td_api::emojiReaction> get_emoji_reaction_object(const string &emoji) const;
 
+  ReactionList &get_reaction_list(ReactionListType reaction_list_type);
+
   void start_up() final;
 
   void tear_down() final;
@@ -133,21 +129,13 @@ class ReactionManager final : public Actor {
 
   void save_reactions();
 
-  void save_recent_reactions();
-
-  void save_top_reactions();
-
-  void save_default_tag_reactions();
+  void save_reaction_list(ReactionListType reaction_list_type);
 
   void load_active_reactions();
 
   void load_reactions();
 
-  void load_recent_reactions();
-
-  void load_top_reactions();
-
-  void load_default_tag_reactions();
+  void load_reaction_list(ReactionListType reaction_list_type);
 
   void update_active_reactions();
 
@@ -163,9 +151,7 @@ class ReactionManager final : public Actor {
   Reactions reactions_;
   vector<ReactionType> active_reaction_types_;
 
-  ReactionList recent_reactions_;
-  ReactionList top_reactions_;
-  ReactionList default_tag_reactions_;
+  ReactionList reaction_lists_[MAX_REACTION_LIST_TYPE];
 
   bool are_reactions_loaded_from_database_ = false;
 };
