@@ -6435,6 +6435,9 @@ updateChatFolders chat_folders:vector<chatFolderInfo> main_chat_list_position:in
 //@online_member_count New number of online members in the chat, or 0 if unknown
 updateChatOnlineMemberCount chat_id:int53 online_member_count:int32 = Update;
 
+//@description The list of pinned Saved Messages topics has changed. The app can call getPinnedSavedMessagesTopics to get the new list
+updatePinnedSavedMessagesTopics = Update;
+
 //@description Basic information about a topic in a forum chat was changed @chat_id Chat identifier @info New information about the topic
 updateForumTopicInfo chat_id:int53 info:forumTopicInfo = Update;
 

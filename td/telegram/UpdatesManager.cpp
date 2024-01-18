@@ -4036,6 +4036,16 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePinnedDialogs> 
   promise.set_value(Unit());
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateSavedDialogPinned> update, Promise<Unit> &&promise) {
+  td_->messages_manager_->on_update_pinned_saved_messages_topics();
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePinnedSavedDialogs> update, Promise<Unit> &&promise) {
+  td_->messages_manager_->on_update_pinned_saved_messages_topics();
+  promise.set_value(Unit());
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDialogUnreadMark> update, Promise<Unit> &&promise) {
   td_->messages_manager_->on_update_dialog_is_marked_as_unread(DialogId(update->peer_), update->unread_);
   promise.set_value(Unit());
@@ -4440,14 +4450,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewAuthorizatio
 }
 
 // unsupported updates
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateSavedDialogPinned> update, Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePinnedSavedDialogs> update, Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateSavedReactionTags> update, Promise<Unit> &&promise) {
   promise.set_value(Unit());

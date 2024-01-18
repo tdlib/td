@@ -16292,6 +16292,15 @@ void MessagesManager::delete_saved_messages_topic_messages_by_date(SavedMessages
   run_affected_history_query_until_complete(my_dialog_id, std::move(query), true, std::move(promise));
 }
 
+void MessagesManager::on_update_pinned_saved_messages_topics() {
+  if (td_->auth_manager_->is_bot()) {
+    // just in case
+    return;
+  }
+
+  send_closure(G()->td(), &Td::send_update, td_api::make_object<td_api::updatePinnedSavedMessagesTopics>());
+}
+
 vector<DialogId> MessagesManager::search_public_dialogs(const string &query, Promise<Unit> &&promise) {
   LOG(INFO) << "Search public chats with query = \"" << query << '"';
 
