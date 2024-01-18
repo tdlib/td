@@ -679,6 +679,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::deleteSavedMessagesTopicHistory &request);
 
+  void on_request(uint64 id, const td_api::getSavedMessagesTopicMessageByDate &request);
+
   void on_request(uint64 id, td_api::searchPublicChat &request);
 
   void on_request(uint64 id, td_api::searchPublicChats &request);

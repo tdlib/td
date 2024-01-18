@@ -273,13 +273,10 @@ class GetSavedHistoryQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    auto result = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive Saved Messages topic history: " << to_string(result);
-    auto info =
-        get_messages_info(td_, td_->dialog_manager_->get_my_dialog_id(), std::move(result), "GetSavedHistoryQuery");
+    auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
+    auto info = get_messages_info(td_, my_dialog_id, result_ptr.move_as_ok(), "GetSavedHistoryQuery");
     LOG_IF(ERROR, info.is_channel_messages) << "Receive channel messages in GetSavedHistoryQuery";
 
-    auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
     vector<td_api::object_ptr<td_api::message>> messages;
     for (auto &message : info.messages) {
       auto full_message_id =
@@ -294,6 +291,57 @@ class GetSavedHistoryQuery final : public Td::ResultHandler {
       messages.push_back(td_->messages_manager_->get_message_object(full_message_id, "GetSavedHistoryQuery"));
     }
     promise_.set_value(td_api::make_object<td_api::messages>(info.total_count, std::move(messages)));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class GetSavedMessageByDateQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::message>> promise_;
+  int32 date_ = 0;
+
+ public:
+  explicit GetSavedMessageByDateQuery(Promise<td_api::object_ptr<td_api::message>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(SavedMessagesTopicId saved_messages_topic_id, int32 date) {
+    date_ = date;
+    auto saved_input_peer = saved_messages_topic_id.get_input_peer(td_);
+    CHECK(saved_input_peer != nullptr);
+
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_getSavedHistory(std::move(saved_input_peer), 0, date, -3, 5, 0, 0, 0)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getSavedHistory>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
+    auto info = get_messages_info(td_, my_dialog_id, result_ptr.move_as_ok(), "GetSavedMessageByDateQuery");
+    LOG_IF(ERROR, info.is_channel_messages) << "Receive channel messages in GetSavedMessageByDateQuery";
+    for (auto &message : info.messages) {
+      auto message_date = MessagesManager::get_message_date(message);
+      auto message_dialog_id = DialogId::get_message_dialog_id(message);
+      if (message_dialog_id != my_dialog_id) {
+        LOG(ERROR) << "Receive message in wrong " << message_dialog_id << " instead of " << my_dialog_id;
+        continue;
+      }
+      if (message_date != 0 && message_date <= date_) {
+        auto message_full_id = td_->messages_manager_->on_get_message(std::move(message), false, false, false,
+                                                                      "GetSavedMessageByDateQuery");
+        if (message_full_id != MessageFullId()) {
+          return promise_.set_value(
+              td_->messages_manager_->get_message_object(message_full_id, "GetSavedMessageByDateQuery"));
+        }
+      }
+    }
+    promise_.set_value(nullptr);
   }
 
   void on_error(Status status) final {
@@ -16177,6 +16225,21 @@ void MessagesManager::delete_saved_messages_topic_history(SavedMessagesTopicId s
     td->create_handler<DeleteSavedHistoryQuery>(std::move(query_promise))->send(saved_messages_topic_id);
   };
   run_affected_history_query_until_complete(my_dialog_id, std::move(query), true, std::move(promise));
+}
+
+void MessagesManager::get_saved_messages_topic_message_by_date(SavedMessagesTopicId saved_messages_topic_id, int32 date,
+                                                               Promise<td_api::object_ptr<td_api::message>> &&promise) {
+  if (!saved_messages_topic_id.is_valid()) {
+    return promise.set_error(Status::Error(400, "Invalid Saved Messages topic specified"));
+  }
+  auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
+  TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_in(td_, my_dialog_id));
+
+  if (date <= 0) {
+    date = 1;
+  }
+
+  td_->create_handler<GetSavedMessageByDateQuery>(std::move(promise))->send(saved_messages_topic_id, date);
 }
 
 vector<DialogId> MessagesManager::search_public_dialogs(const string &query, Promise<Unit> &&promise) {

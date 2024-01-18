@@ -2766,6 +2766,9 @@ class CliClient final : public Actor {
                                                                              from_message_id, offset, as_limit(limit)));
     } else if (op == "dsmth" && args.empty()) {
       send_request(td_api::make_object<td_api::deleteSavedMessagesTopicHistory>(get_saved_messages_topic()));
+    } else if (op == "gsmtmbd") {
+      send_request(td_api::make_object<td_api::getSavedMessagesTopicMessageByDate>(get_saved_messages_topic(),
+                                                                                   to_integer<int32>(args)));
     } else if (op == "gcc" || op == "GetCommonChats") {
       UserId user_id;
       ChatId offset_chat_id;

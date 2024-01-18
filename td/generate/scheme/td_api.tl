@@ -7175,6 +7175,11 @@ getSavedMessagesTopicHistory saved_messages_topic:SavedMessagesTopic from_messag
 //@description Deletes all messages in a Saved Messages topic @saved_messages_topic Saved Messages topic which messages will be deleted
 deleteSavedMessagesTopicHistory saved_messages_topic:SavedMessagesTopic = Ok;
 
+//@description Returns the last message sent in a Saved Messages topic no later than the specified date
+//@saved_messages_topic Saved Messages topic which message will be returned
+//@date Point in time (Unix timestamp) relative to which to search for messages
+getSavedMessagesTopicMessageByDate saved_messages_topic:SavedMessagesTopic date:int32 = Message;
+
 
 //@description Returns a list of common group chats with a given user. Chats are sorted by their type and creation date
 //@user_id User identifier
