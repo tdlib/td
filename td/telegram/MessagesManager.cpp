@@ -13458,12 +13458,12 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
 
   if (dialog_id == my_dialog_id) {
     if (!message->saved_messages_topic_id.is_valid()) {
-      LOG(ERROR) << "Receive no saved messages topic for " << message_id << " in " << dialog_id;
+      LOG(ERROR) << "Receive no Saved Messages topic for " << message_id << " in " << dialog_id;
       message->saved_messages_topic_id = SavedMessagesTopicId(my_dialog_id, message->forward_info.get());
     }
   } else {
     if (message->saved_messages_topic_id.is_valid()) {
-      LOG(ERROR) << "Receive saved messages topic " << message_info.saved_messages_topic_id << " for " << message_id
+      LOG(ERROR) << "Receive Saved Messages topic " << message_info.saved_messages_topic_id << " for " << message_id
                  << " in " << dialog_id;
       message->saved_messages_topic_id = SavedMessagesTopicId();
     }
@@ -33696,7 +33696,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     old_message->had_forward_info = new_message->had_forward_info;
   }
   if (old_message->saved_messages_topic_id != new_message->saved_messages_topic_id) {
-    LOG(ERROR) << "Saved messages topic for " << message_id << " in " << dialog_id << " changed from "
+    LOG(ERROR) << "Saved Messages topic for " << message_id << " in " << dialog_id << " changed from "
                << old_message->saved_messages_topic_id << " to " << new_message->saved_messages_topic_id;
     old_message->saved_messages_topic_id = new_message->saved_messages_topic_id;
     need_send_update = true;

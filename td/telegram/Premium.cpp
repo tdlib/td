@@ -643,7 +643,8 @@ const vector<Slice> &get_premium_limit_keys() {
                                         "stories_sent_weekly",
                                         "stories_sent_monthly",
                                         "stories_suggested_reactions",
-                                        "recommended_channels"};
+                                        "recommended_channels",
+                                        "saved_dialogs_pinned"};
   return limit_keys;
 }
 
@@ -664,6 +665,8 @@ static Slice get_limit_type_key(const td_api::PremiumLimitType *limit_type) {
       return Slice("dialogs_pinned");
     case td_api::premiumLimitTypePinnedArchivedChatCount::ID:
       return Slice("dialogs_folder_pinned");
+    case td_api::premiumLimitTypePinnedSavedMessagesTopicCount::ID:
+      return Slice("saved_dialogs_pinned");
     case td_api::premiumLimitTypeCreatedPublicChatCount::ID:
       return Slice("channels_public");
     case td_api::premiumLimitTypeCaptionLength::ID:
@@ -833,6 +836,9 @@ static td_api::object_ptr<td_api::premiumLimit> get_premium_limit_object(Slice k
     }
     if (key == "dialogs_folder_pinned") {
       return td_api::make_object<td_api::premiumLimitTypePinnedArchivedChatCount>();
+    }
+    if (key == "saved_dialogs_pinned") {
+      return td_api::make_object<td_api::premiumLimitTypePinnedSavedMessagesTopicCount>();
     }
     if (key == "channels_public") {
       return td_api::make_object<td_api::premiumLimitTypeCreatedPublicChatCount>();

@@ -155,9 +155,11 @@ void OptionManager::update_premium_options() {
     set_option_integer("chat_folder_count_max", get_option_integer("dialog_filters_limit_premium", 20));
     set_option_integer("chat_folder_chosen_chat_count_max",
                        get_option_integer("dialog_filters_chats_limit_premium", 200));
-    set_option_integer("pinned_chat_count_max", get_option_integer("dialogs_pinned_limit_premium", 200));
+    set_option_integer("pinned_chat_count_max", get_option_integer("dialogs_pinned_limit_premium", 100));
     set_option_integer("pinned_archived_chat_count_max",
                        get_option_integer("dialogs_folder_pinned_limit_premium", 200));
+    set_option_integer("pinned_saved_messages_topic_count_max",
+                       get_option_integer("saved_dialogs_pinned_limit_premium", 100));
     set_option_integer("bio_length_max", get_option_integer("about_length_limit_premium", 140));
     set_option_integer("chat_folder_invite_link_count_max", get_option_integer("chatlist_invites_limit_premium", 20));
     set_option_integer("added_shareable_chat_folder_count_max",
@@ -174,9 +176,11 @@ void OptionManager::update_premium_options() {
     set_option_integer("chat_folder_count_max", get_option_integer("dialog_filters_limit_default", 10));
     set_option_integer("chat_folder_chosen_chat_count_max",
                        get_option_integer("dialog_filters_chats_limit_default", 100));
-    set_option_integer("pinned_chat_count_max", get_option_integer("dialogs_pinned_limit_default", 100));
+    set_option_integer("pinned_chat_count_max", get_option_integer("dialogs_pinned_limit_default", 5));
     set_option_integer("pinned_archived_chat_count_max",
                        get_option_integer("dialogs_folder_pinned_limit_default", 100));
+    set_option_integer("pinned_saved_messages_topic_count_max",
+                       get_option_integer("saved_dialogs_pinned_limit_default", 5));
     set_option_integer("bio_length_max", get_option_integer("about_length_limit_default", 70));
     set_option_integer("chat_folder_invite_link_count_max", get_option_integer("chatlist_invites_limit_default", 3));
     set_option_integer("added_shareable_chat_folder_count_max",
@@ -363,7 +367,8 @@ bool OptionManager::is_internal_option(Slice name) {
              name == "restriction_add_platforms" || name == "revoke_pm_inbox" || name == "revoke_time_limit" ||
              name == "revoke_pm_time_limit";
     case 's':
-      return name == "saved_animations_limit" || name == "saved_gifs_limit_default" ||
+      return name == "saved_animations_limit" || name == "saved_dialogs_pinned_limit_default" ||
+             name == "saved_dialogs_pinned_limit_premium" || name == "saved_gifs_limit_default" ||
              name == "saved_gifs_limit_premium" || name == "session_count" || name == "since_last_open" ||
              name == "stickers_faved_limit_default" || name == "stickers_faved_limit_premium" ||
              name == "stickers_normal_by_emoji_per_premium_num" || name == "stickers_premium_by_emoji_num" ||
