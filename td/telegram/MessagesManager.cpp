@@ -383,6 +383,43 @@ class ToggleSavedDialogPinQuery final : public Td::ResultHandler {
   }
 };
 
+class ReorderPinnedSavedDialogsQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit ReorderPinnedSavedDialogsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(const vector<SavedMessagesTopicId> &saved_messages_topic_ids) {
+    auto order = transform(saved_messages_topic_ids, [td = td_](SavedMessagesTopicId saved_messages_topic_id) {
+      auto saved_input_peer = saved_messages_topic_id.get_input_dialog_peer(td);
+      CHECK(saved_input_peer != nullptr);
+      return saved_input_peer;
+    });
+    int32 flags = telegram_api::messages_reorderPinnedSavedDialogs::FORCE_MASK;
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_reorderPinnedSavedDialogs(flags, true /*ignored*/, std::move(order))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_reorderPinnedSavedDialogs>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    bool result = result_ptr.move_as_ok();
+    if (!result) {
+      return on_error(Status::Error(400, "Result is false"));
+    }
+    td_->messages_manager_->on_update_pinned_saved_messages_topics();
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetDialogUnreadMarksQuery final : public Td::ResultHandler {
  public:
   void send() {
@@ -16330,6 +16367,14 @@ void MessagesManager::toggle_saved_messages_topic_is_pinned(SavedMessagesTopicId
                                                             bool is_pinned, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_status(td_));
   td_->create_handler<ToggleSavedDialogPinQuery>(std::move(promise))->send(saved_messages_topic_id, is_pinned);
+}
+
+void MessagesManager::set_pinned_saved_messages_topics(vector<SavedMessagesTopicId> saved_messages_topic_ids,
+                                                       Promise<Unit> &&promise) {
+  for (const auto &saved_messages_topic_id : saved_messages_topic_ids) {
+    TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_status(td_));
+  }
+  td_->create_handler<ReorderPinnedSavedDialogsQuery>(std::move(promise))->send(std::move(saved_messages_topic_ids));
 }
 
 void MessagesManager::on_update_pinned_saved_messages_topics() {

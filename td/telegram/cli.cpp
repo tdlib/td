@@ -946,17 +946,21 @@ class CliClient final : public Actor {
     return nullptr;
   }
 
-  td_api::object_ptr<td_api::SavedMessagesTopic> get_saved_messages_topic() const {
-    if (saved_messages_topic_ == 0) {
+  td_api::object_ptr<td_api::SavedMessagesTopic> as_saved_messages_topic(int64 saved_messages_topic) const {
+    if (saved_messages_topic == 0) {
       return nullptr;
     }
-    if (saved_messages_topic_ == my_id_) {
+    if (saved_messages_topic == my_id_) {
       return td_api::make_object<td_api::savedMessagesTopicMyNotes>();
     }
-    if (saved_messages_topic_ == -1) {
+    if (saved_messages_topic == -1) {
       return td_api::make_object<td_api::savedMessagesTopicAuthorHidden>();
     }
-    return td_api::make_object<td_api::savedMessagesTopicSavedFromChat>(saved_messages_topic_);
+    return td_api::make_object<td_api::savedMessagesTopicSavedFromChat>(saved_messages_topic);
+  }
+
+  td_api::object_ptr<td_api::SavedMessagesTopic> get_saved_messages_topic() const {
+    return as_saved_messages_topic(saved_messages_topic_);
   }
 
   td_api::object_ptr<td_api::linkPreviewOptions> get_link_preview_options() const {
@@ -2780,6 +2784,9 @@ class CliClient final : public Actor {
       get_args(args, is_pinned);
       send_request(
           td_api::make_object<td_api::toggleSavedMessagesTopicIsPinned>(get_saved_messages_topic(), is_pinned));
+    } else if (op == "spsmt") {
+      send_request(td_api::make_object<td_api::setPinnedSavedMessagesTopics>(
+          transform(autosplit(args), [this](Slice str) { return as_saved_messages_topic(as_chat_id(str)); })));
     } else if (op == "gcc" || op == "GetCommonChats") {
       UserId user_id;
       ChatId offset_chat_id;

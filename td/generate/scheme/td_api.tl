@@ -7197,6 +7197,9 @@ deleteSavedMessagesTopicMessagesByDate saved_messages_topic:SavedMessagesTopic m
 //@is_pinned Pass true to pin the topic; pass false to unpin it
 toggleSavedMessagesTopicIsPinned saved_messages_topic:SavedMessagesTopic is_pinned:Bool = Ok;
 
+//@description Changes the order of pinned Saved Messages topics @saved_messages_topics The new list of pinned Saved Messages topics
+setPinnedSavedMessagesTopics saved_messages_topics:vector<SavedMessagesTopic> = Ok;
+
 
 //@description Returns a list of common group chats with a given user. Chats are sorted by their type and creation date
 //@user_id User identifier

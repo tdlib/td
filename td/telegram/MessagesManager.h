@@ -552,6 +552,8 @@ class MessagesManager final : public Actor {
   void toggle_saved_messages_topic_is_pinned(SavedMessagesTopicId saved_messages_topic_id, bool is_pinned,
                                              Promise<Unit> &&promise);
 
+  void set_pinned_saved_messages_topics(vector<SavedMessagesTopicId> saved_messages_topic_ids, Promise<Unit> &&promise);
+
   void on_update_pinned_saved_messages_topics();
 
   vector<DialogId> search_public_dialogs(const string &query, Promise<Unit> &&promise);
