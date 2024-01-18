@@ -2764,11 +2764,17 @@ class CliClient final : public Actor {
       get_args(args, from_message_id, offset, limit);
       send_request(td_api::make_object<td_api::getSavedMessagesTopicHistory>(get_saved_messages_topic(),
                                                                              from_message_id, offset, as_limit(limit)));
-    } else if (op == "dsmth" && args.empty()) {
-      send_request(td_api::make_object<td_api::deleteSavedMessagesTopicHistory>(get_saved_messages_topic()));
     } else if (op == "gsmtmbd") {
       send_request(td_api::make_object<td_api::getSavedMessagesTopicMessageByDate>(get_saved_messages_topic(),
                                                                                    to_integer<int32>(args)));
+    } else if (op == "dsmth" && args.empty()) {
+      send_request(td_api::make_object<td_api::deleteSavedMessagesTopicHistory>(get_saved_messages_topic()));
+    } else if (op == "dsmtmbd") {
+      int32 min_date;
+      int32 max_date;
+      get_args(args, min_date, max_date);
+      send_request(td_api::make_object<td_api::deleteSavedMessagesTopicMessagesByDate>(get_saved_messages_topic(),
+                                                                                       min_date, max_date));
     } else if (op == "gcc" || op == "GetCommonChats") {
       UserId user_id;
       ChatId offset_chat_id;

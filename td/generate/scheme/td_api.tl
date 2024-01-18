@@ -7172,13 +7172,19 @@ getSavedMessagesTopics offset:string limit:int32 = FoundSavedMessagesTopics;
 //-For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
 getSavedMessagesTopicHistory saved_messages_topic:SavedMessagesTopic from_message_id:int53 offset:int32 limit:int32 = Messages;
 
-//@description Deletes all messages in a Saved Messages topic @saved_messages_topic Saved Messages topic which messages will be deleted
-deleteSavedMessagesTopicHistory saved_messages_topic:SavedMessagesTopic = Ok;
-
 //@description Returns the last message sent in a Saved Messages topic no later than the specified date
 //@saved_messages_topic Saved Messages topic which message will be returned
 //@date Point in time (Unix timestamp) relative to which to search for messages
 getSavedMessagesTopicMessageByDate saved_messages_topic:SavedMessagesTopic date:int32 = Message;
+
+//@description Deletes all messages in a Saved Messages topic @saved_messages_topic Saved Messages topic which messages will be deleted
+deleteSavedMessagesTopicHistory saved_messages_topic:SavedMessagesTopic = Ok;
+
+//@description Deletes all messages between the specified dates in a Saved Messages topic. Messages sent in the last 30 seconds will not be deleted
+//@saved_messages_topic Saved Messages topic which messages will be deleted
+//@min_date The minimum date of the messages to delete
+//@max_date The maximum date of the messages to delete
+deleteSavedMessagesTopicMessagesByDate saved_messages_topic:SavedMessagesTopic min_date:int32 max_date:int32 = Ok;
 
 
 //@description Returns a list of common group chats with a given user. Chats are sorted by their type and creation date

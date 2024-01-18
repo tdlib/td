@@ -2583,6 +2583,38 @@ class DeleteMessagesByDateQuery final : public Td::ResultHandler {
   }
 };
 
+class DeleteSavedMessagesByDateQuery final : public Td::ResultHandler {
+  Promise<AffectedHistory> promise_;
+
+ public:
+  explicit DeleteSavedMessagesByDateQuery(Promise<AffectedHistory> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(SavedMessagesTopicId saved_messages_topic_id, int32 min_date, int32 max_date) {
+    auto saved_input_peer = saved_messages_topic_id.get_input_peer(td_);
+    CHECK(saved_input_peer != nullptr);
+
+    int32 flags =
+        telegram_api::messages_deleteHistory::MIN_DATE_MASK | telegram_api::messages_deleteHistory::MAX_DATE_MASK;
+
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_deleteSavedHistory(flags, std::move(saved_input_peer), 0, min_date, max_date)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_deleteSavedHistory>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(AffectedHistory(result_ptr.move_as_ok()));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class DeletePhoneCallHistoryQuery final : public Td::ResultHandler {
   Promise<AffectedHistory> promise_;
 
@@ -16220,8 +16252,7 @@ void MessagesManager::delete_saved_messages_topic_history(SavedMessagesTopicId s
   auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
   TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_in(td_, my_dialog_id));
 
-  AffectedHistoryQuery query = [td = td_, saved_messages_topic_id](DialogId dialog_id,
-                                                                   Promise<AffectedHistory> &&query_promise) {
+  AffectedHistoryQuery query = [td = td_, saved_messages_topic_id](DialogId, Promise<AffectedHistory> &&query_promise) {
     td->create_handler<DeleteSavedHistoryQuery>(std::move(query_promise))->send(saved_messages_topic_id);
   };
   run_affected_history_query_until_complete(my_dialog_id, std::move(query), true, std::move(promise));
@@ -16240,6 +16271,44 @@ void MessagesManager::get_saved_messages_topic_message_by_date(SavedMessagesTopi
   }
 
   td_->create_handler<GetSavedMessageByDateQuery>(std::move(promise))->send(saved_messages_topic_id, date);
+}
+
+void MessagesManager::delete_saved_messages_topic_messages_by_date(SavedMessagesTopicId saved_messages_topic_id,
+                                                                   int32 min_date, int32 max_date,
+                                                                   Promise<Unit> &&promise) {
+  if (!saved_messages_topic_id.is_valid()) {
+    return promise.set_error(Status::Error(400, "Invalid Saved Messages topic specified"));
+  }
+  auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
+  TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_in(td_, my_dialog_id));
+
+  if (min_date > max_date) {
+    return promise.set_error(Status::Error(400, "Wrong date interval specified"));
+  }
+
+  const int32 telegram_launch_date = 1376438400;
+  if (max_date < telegram_launch_date) {
+    return promise.set_value(Unit());
+  }
+  if (min_date < telegram_launch_date) {
+    min_date = telegram_launch_date;
+  }
+
+  auto current_date = max(G()->unix_time(), 1635000000);
+  if (min_date >= current_date - 30) {
+    return promise.set_value(Unit());
+  }
+  if (max_date >= current_date - 30) {
+    max_date = current_date - 31;
+  }
+  CHECK(min_date <= max_date);
+
+  AffectedHistoryQuery query = [td = td_, saved_messages_topic_id, min_date, max_date](
+                                   DialogId, Promise<AffectedHistory> &&query_promise) {
+    td->create_handler<DeleteSavedMessagesByDateQuery>(std::move(query_promise))
+        ->send(saved_messages_topic_id, min_date, max_date);
+  };
+  run_affected_history_query_until_complete(my_dialog_id, std::move(query), true, std::move(promise));
 }
 
 vector<DialogId> MessagesManager::search_public_dialogs(const string &query, Promise<Unit> &&promise) {

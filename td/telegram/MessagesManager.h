@@ -546,6 +546,9 @@ class MessagesManager final : public Actor {
   void get_saved_messages_topic_message_by_date(SavedMessagesTopicId saved_messages_topic_id, int32 date,
                                                 Promise<td_api::object_ptr<td_api::message>> &&promise);
 
+  void delete_saved_messages_topic_messages_by_date(SavedMessagesTopicId saved_messages_topic_id, int32 min_date,
+                                                    int32 max_date, Promise<Unit> &&promise);
+
   vector<DialogId> search_public_dialogs(const string &query, Promise<Unit> &&promise);
 
   std::pair<int32, vector<DialogId>> search_dialogs(const string &query, int32 limit, Promise<Unit> &&promise);
