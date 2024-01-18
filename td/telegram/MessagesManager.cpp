@@ -16227,11 +16227,7 @@ void MessagesManager::get_saved_messages_topic_history(SavedMessagesTopicId save
     return promise.set_error(Status::Error(400, "Parameter offset must be greater than or equal to -limit"));
   }
 
-  if (!saved_messages_topic_id.is_valid()) {
-    return promise.set_error(Status::Error(400, "Invalid Saved Messages topic specified"));
-  }
-  auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
-  TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_in(td_, my_dialog_id));
+  TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_status(td_));
 
   if (from_message_id == MessageId() || from_message_id.get() > MessageId::max().get()) {
     from_message_id = MessageId::max();
@@ -16246,25 +16242,18 @@ void MessagesManager::get_saved_messages_topic_history(SavedMessagesTopicId save
 
 void MessagesManager::delete_saved_messages_topic_history(SavedMessagesTopicId saved_messages_topic_id,
                                                           Promise<Unit> &&promise) {
-  if (!saved_messages_topic_id.is_valid()) {
-    return promise.set_error(Status::Error(400, "Invalid Saved Messages topic specified"));
-  }
-  auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
-  TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_in(td_, my_dialog_id));
+  TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_status(td_));
 
   AffectedHistoryQuery query = [td = td_, saved_messages_topic_id](DialogId, Promise<AffectedHistory> &&query_promise) {
     td->create_handler<DeleteSavedHistoryQuery>(std::move(query_promise))->send(saved_messages_topic_id);
   };
+  auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
   run_affected_history_query_until_complete(my_dialog_id, std::move(query), true, std::move(promise));
 }
 
 void MessagesManager::get_saved_messages_topic_message_by_date(SavedMessagesTopicId saved_messages_topic_id, int32 date,
                                                                Promise<td_api::object_ptr<td_api::message>> &&promise) {
-  if (!saved_messages_topic_id.is_valid()) {
-    return promise.set_error(Status::Error(400, "Invalid Saved Messages topic specified"));
-  }
-  auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
-  TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_in(td_, my_dialog_id));
+  TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_status(td_));
 
   if (date <= 0) {
     date = 1;
@@ -16276,11 +16265,7 @@ void MessagesManager::get_saved_messages_topic_message_by_date(SavedMessagesTopi
 void MessagesManager::delete_saved_messages_topic_messages_by_date(SavedMessagesTopicId saved_messages_topic_id,
                                                                    int32 min_date, int32 max_date,
                                                                    Promise<Unit> &&promise) {
-  if (!saved_messages_topic_id.is_valid()) {
-    return promise.set_error(Status::Error(400, "Invalid Saved Messages topic specified"));
-  }
-  auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
-  TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_in(td_, my_dialog_id));
+  TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_status(td_));
 
   if (min_date > max_date) {
     return promise.set_error(Status::Error(400, "Wrong date interval specified"));
@@ -16308,6 +16293,7 @@ void MessagesManager::delete_saved_messages_topic_messages_by_date(SavedMessages
     td->create_handler<DeleteSavedMessagesByDateQuery>(std::move(query_promise))
         ->send(saved_messages_topic_id, min_date, max_date);
   };
+  auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
   run_affected_history_query_until_complete(my_dialog_id, std::move(query), true, std::move(promise));
 }
 

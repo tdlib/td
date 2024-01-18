@@ -80,6 +80,16 @@ bool SavedMessagesTopicId::have_input_peer(Td *td) const {
   return td->dialog_manager_->have_input_peer(dialog_id_, AccessRights::Know);
 }
 
+Status SavedMessagesTopicId::is_valid_status(Td *td) const {
+  if (!dialog_id_.is_valid()) {
+    return Status::Error(400, "Invalid Saved Messages topic specified");
+  }
+  if (!have_input_peer(td)) {
+    return Status::Error(400, "Invalid Saved Messages topic specified");
+  }
+  return Status::OK();
+}
+
 Status SavedMessagesTopicId::is_valid_in(Td *td, DialogId dialog_id) const {
   if (dialog_id_ != DialogId()) {
     if (dialog_id != td->dialog_manager_->get_my_dialog_id()) {

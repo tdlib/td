@@ -45,6 +45,8 @@ class SavedMessagesTopicId {
     return dialog_id_.is_valid();
   }
 
+  Status is_valid_status(Td *td) const;
+
   Status is_valid_in(Td *td, DialogId dialog_id) const;
 
   td_api::object_ptr<td_api::SavedMessagesTopic> get_saved_messages_topic_object(Td *td) const;
