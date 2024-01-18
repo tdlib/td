@@ -54,11 +54,15 @@ class ReactionManager final : public Actor {
 
   void reload_top_reactions();
 
+  void reload_default_tag_reactions();
+
   void on_get_available_reactions(tl_object_ptr<telegram_api::messages_AvailableReactions> &&available_reactions_ptr);
 
   void on_get_recent_reactions(tl_object_ptr<telegram_api::messages_Reactions> &&reactions_ptr);
 
   void on_get_top_reactions(tl_object_ptr<telegram_api::messages_Reactions> &&reactions_ptr);
+
+  void on_get_default_tag_reactions(tl_object_ptr<telegram_api::messages_Reactions> &&reactions_ptr);
 
   void set_default_reaction(ReactionType reaction_type, Promise<Unit> &&promise);
 
@@ -132,6 +136,8 @@ class ReactionManager final : public Actor {
 
   void save_top_reactions();
 
+  void save_default_tag_reactions();
+
   void load_active_reactions();
 
   void load_reactions();
@@ -139,6 +145,8 @@ class ReactionManager final : public Actor {
   void load_recent_reactions();
 
   void load_top_reactions();
+
+  void load_default_tag_reactions();
 
   void update_active_reactions();
 
@@ -156,10 +164,12 @@ class ReactionManager final : public Actor {
 
   ReactionList recent_reactions_;
   ReactionList top_reactions_;
+  ReactionList default_tag_reactions_;
 
   bool are_reactions_loaded_from_database_ = false;
   bool are_recent_reactions_loaded_from_database_ = false;
   bool are_top_reactions_loaded_from_database_ = false;
+  bool are_default_tag_reactions_loaded_from_database_ = false;
 };
 
 }  // namespace td

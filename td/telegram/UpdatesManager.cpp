@@ -2267,6 +2267,7 @@ void UpdatesManager::try_reload_data() {
   td_->reaction_manager_->reload_reactions();
   td_->reaction_manager_->reload_recent_reactions();
   td_->reaction_manager_->reload_top_reactions();
+  td_->reaction_manager_->reload_default_tag_reactions();
   for (int32 type = 0; type < MAX_STICKER_TYPE; type++) {
     auto sticker_type = static_cast<StickerType>(type);
     td_->stickers_manager_->get_installed_sticker_sets(sticker_type, Auto());
