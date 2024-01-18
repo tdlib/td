@@ -12846,7 +12846,8 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
 }
 
 std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::create_message(MessageInfo &&message_info,
-                                                                                          bool is_channel_message) {
+                                                                                          bool is_channel_message,
+                                                                                          const char *source) {
   DialogId dialog_id = message_info.dialog_id;
   MessageId message_id = message_info.message_id;
   if ((!message_id.is_valid() && !message_id.is_valid_scheduled()) || !dialog_id.is_valid()) {
@@ -12924,7 +12925,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
       // it is safer to completely ignore the message and re-get it through getChannelDifference
       Dialog *d = get_dialog(dialog_id);
       if (d != nullptr) {
-        schedule_get_channel_difference(dialog_id, 0, message_id, 0.001, "create_message");
+        schedule_get_channel_difference(dialog_id, 0, message_id, 0.001, source);
         return {DialogId(), nullptr};
       }
     }
@@ -13037,8 +13038,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
 
   bool has_forward_info = message_info.forward_header != nullptr;
 
-  if (sender_dialog_id.is_valid() && sender_dialog_id != dialog_id &&
-      td_->dialog_manager_->have_dialog_info_force(sender_dialog_id, "create_message")) {
+  if (sender_dialog_id.is_valid() && sender_dialog_id != dialog_id) {
     CHECK(sender_dialog_id.get_type() != DialogType::User);
     force_create_dialog(sender_dialog_id, "create_message", true);
   }
@@ -13130,6 +13130,12 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     message->had_forward_info = true;
   }
 
+  Dependencies dependencies;
+  add_message_dependencies(dependencies, message.get());
+  for (auto dependent_dialog_id : dependencies.get_dialog_ids()) {
+    force_create_dialog(dependent_dialog_id, source, true);
+  }
+
   return {dialog_id, std::move(message)};
 }
 
@@ -13180,7 +13186,7 @@ MessageFullId MessagesManager::on_get_message(MessageInfo &&message_info, const 
                                               const bool is_channel_message, const char *source) {
   DialogId dialog_id;
   unique_ptr<Message> new_message;
-  std::tie(dialog_id, new_message) = create_message(std::move(message_info), is_channel_message);
+  std::tie(dialog_id, new_message) = create_message(std::move(message_info), is_channel_message, source);
   if (new_message == nullptr) {
     return MessageFullId();
   }
@@ -13269,11 +13275,6 @@ MessageFullId MessagesManager::on_get_message(MessageInfo &&message_info, const 
   }
   if (d == nullptr) {
     d = add_dialog_for_new_message(dialog_id, from_update, &need_update_dialog_pos, source);
-  }
-  Dependencies dependencies;
-  add_message_dependencies(dependencies, new_message.get());
-  for (auto dependent_dialog_id : dependencies.get_dialog_ids()) {
-    force_create_dialog(dependent_dialog_id, source, true);
   }
 
   const Message *m = add_message_to_dialog(d, std::move(new_message), false, from_update, &need_update,
@@ -22168,8 +22169,9 @@ td_api::object_ptr<td_api::MessageContent> MessagesManager::get_message_message_
 
 td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_message_object(
     DialogId dialog_id, tl_object_ptr<telegram_api::Message> &&message, DialogId &sender_dialog_id) {
-  auto dialog_message = create_message(parse_telegram_api_message(std::move(message), false, "dialog_event_log"),
-                                       dialog_id.get_type() == DialogType::Channel);
+  auto dialog_message =
+      create_message(parse_telegram_api_message(std::move(message), false, "get_dialog_event_log_message_object"),
+                     dialog_id.get_type() == DialogType::Channel, "get_dialog_event_log_message_object");
   const Message *m = dialog_message.second.get();
   if (m == nullptr || dialog_message.first != dialog_id) {
     LOG(ERROR) << "Failed to create event log message in " << dialog_id;

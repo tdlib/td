@@ -1652,7 +1652,8 @@ class MessagesManager final : public Actor {
   MessageInfo parse_telegram_api_message(tl_object_ptr<telegram_api::Message> message_ptr, bool is_scheduled,
                                          const char *source) const;
 
-  std::pair<DialogId, unique_ptr<Message>> create_message(MessageInfo &&message_info, bool is_channel_message);
+  std::pair<DialogId, unique_ptr<Message>> create_message(MessageInfo &&message_info, bool is_channel_message,
+                                                          const char *source);
 
   MessageId find_old_message_id(DialogId dialog_id, MessageId message_id) const;
 
