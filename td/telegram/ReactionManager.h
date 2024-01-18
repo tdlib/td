@@ -112,6 +112,7 @@ class ReactionManager final : public Actor {
 
   struct ReactionList {
     int64 hash_ = 0;
+    bool is_loaded_from_database_ = false;
     bool is_being_reloaded_ = false;
     vector<ReactionType> reaction_types_;
 
@@ -167,9 +168,6 @@ class ReactionManager final : public Actor {
   ReactionList default_tag_reactions_;
 
   bool are_reactions_loaded_from_database_ = false;
-  bool are_recent_reactions_loaded_from_database_ = false;
-  bool are_top_reactions_loaded_from_database_ = false;
-  bool are_default_tag_reactions_loaded_from_database_ = false;
 };
 
 }  // namespace td

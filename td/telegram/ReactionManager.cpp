@@ -439,19 +439,19 @@ void ReactionManager::save_reactions() {
 
 void ReactionManager::save_recent_reactions() {
   LOG(INFO) << "Save " << recent_reactions_.reaction_types_.size() << " recent reactions";
-  are_recent_reactions_loaded_from_database_ = true;
+  recent_reactions_.is_loaded_from_database_ = true;
   G()->td_db()->get_binlog_pmc()->set("recent_reactions", log_event_store(recent_reactions_).as_slice().str());
 }
 
 void ReactionManager::save_top_reactions() {
   LOG(INFO) << "Save " << top_reactions_.reaction_types_.size() << " top reactions";
-  are_top_reactions_loaded_from_database_ = true;
+  top_reactions_.is_loaded_from_database_ = true;
   G()->td_db()->get_binlog_pmc()->set("top_reactions", log_event_store(top_reactions_).as_slice().str());
 }
 
 void ReactionManager::save_default_tag_reactions() {
   LOG(INFO) << "Save " << default_tag_reactions_.reaction_types_.size() << " default tag reactions";
-  are_default_tag_reactions_loaded_from_database_ = true;
+  default_tag_reactions_.is_loaded_from_database_ = true;
   G()->td_db()->get_binlog_pmc()->set("default_tag_reactions",
                                       log_event_store(default_tag_reactions_).as_slice().str());
 }
@@ -509,10 +509,10 @@ void ReactionManager::load_reactions() {
 }
 
 void ReactionManager::load_recent_reactions() {
-  if (are_recent_reactions_loaded_from_database_) {
+  if (recent_reactions_.is_loaded_from_database_) {
     return;
   }
-  are_recent_reactions_loaded_from_database_ = true;
+  recent_reactions_.is_loaded_from_database_ = true;
 
   LOG(INFO) << "Loading recent reactions";
   string recent_reactions = G()->td_db()->get_binlog_pmc()->get("recent_reactions");
@@ -531,10 +531,10 @@ void ReactionManager::load_recent_reactions() {
 }
 
 void ReactionManager::load_top_reactions() {
-  if (are_top_reactions_loaded_from_database_) {
+  if (top_reactions_.is_loaded_from_database_) {
     return;
   }
-  are_top_reactions_loaded_from_database_ = true;
+  top_reactions_.is_loaded_from_database_ = true;
 
   LOG(INFO) << "Loading top reactions";
   string top_reactions = G()->td_db()->get_binlog_pmc()->get("top_reactions");
@@ -553,10 +553,10 @@ void ReactionManager::load_top_reactions() {
 }
 
 void ReactionManager::load_default_tag_reactions() {
-  if (are_default_tag_reactions_loaded_from_database_) {
+  if (default_tag_reactions_.is_loaded_from_database_) {
     return;
   }
-  are_default_tag_reactions_loaded_from_database_ = true;
+  default_tag_reactions_.is_loaded_from_database_ = true;
 
   LOG(INFO) << "Loading default tag reactions";
   string default_tag_reactions = G()->td_db()->get_binlog_pmc()->get("default_tag_reactions");
