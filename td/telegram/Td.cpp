@@ -5064,6 +5064,13 @@ void Td::on_request(uint64 id, const td_api::deleteSavedMessagesTopicMessagesByD
       std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::toggleSavedMessagesTopicIsPinned &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->toggle_saved_messages_topic_is_pinned(SavedMessagesTopicId(this, request.saved_messages_topic_),
+                                                           request.is_pinned_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::searchPublicChat &request) {
   CLEAN_INPUT_STRING(request.username_);
   CREATE_REQUEST(SearchPublicChatRequest, request.username_);

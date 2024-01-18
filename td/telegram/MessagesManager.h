@@ -549,6 +549,9 @@ class MessagesManager final : public Actor {
   void delete_saved_messages_topic_messages_by_date(SavedMessagesTopicId saved_messages_topic_id, int32 min_date,
                                                     int32 max_date, Promise<Unit> &&promise);
 
+  void toggle_saved_messages_topic_is_pinned(SavedMessagesTopicId saved_messages_topic_id, bool is_pinned,
+                                             Promise<Unit> &&promise);
+
   void on_update_pinned_saved_messages_topics();
 
   vector<DialogId> search_public_dialogs(const string &query, Promise<Unit> &&promise);

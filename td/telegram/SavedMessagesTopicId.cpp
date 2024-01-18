@@ -106,6 +106,11 @@ telegram_api::object_ptr<telegram_api::InputPeer> SavedMessagesTopicId::get_inpu
   return td->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Know);
 }
 
+telegram_api::object_ptr<telegram_api::InputDialogPeer> SavedMessagesTopicId::get_input_dialog_peer(
+    const Td *td) const {
+  return telegram_api::make_object<telegram_api::inputDialogPeer>(get_input_peer(td));
+}
+
 void SavedMessagesTopicId::add_dependencies(Dependencies &dependencies) const {
   if (dialog_id_ == HIDDEN_AUTHOR_DIALOG_ID) {
     dependencies.add_dialog_dependencies(dialog_id_);

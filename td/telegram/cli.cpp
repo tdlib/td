@@ -2775,6 +2775,11 @@ class CliClient final : public Actor {
       get_args(args, min_date, max_date);
       send_request(td_api::make_object<td_api::deleteSavedMessagesTopicMessagesByDate>(get_saved_messages_topic(),
                                                                                        min_date, max_date));
+    } else if (op == "tsmtip") {
+      bool is_pinned;
+      get_args(args, is_pinned);
+      send_request(
+          td_api::make_object<td_api::toggleSavedMessagesTopicIsPinned>(get_saved_messages_topic(), is_pinned));
     } else if (op == "gcc" || op == "GetCommonChats") {
       UserId user_id;
       ChatId offset_chat_id;

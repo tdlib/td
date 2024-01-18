@@ -53,6 +53,8 @@ class SavedMessagesTopicId {
 
   telegram_api::object_ptr<telegram_api::InputPeer> get_input_peer(const Td *td) const;
 
+  telegram_api::object_ptr<telegram_api::InputDialogPeer> get_input_dialog_peer(const Td *td) const;
+
   void add_dependencies(Dependencies &dependencies) const;
 
   template <class StorerT>

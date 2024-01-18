@@ -349,6 +349,40 @@ class GetSavedMessageByDateQuery final : public Td::ResultHandler {
   }
 };
 
+class ToggleSavedDialogPinQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit ToggleSavedDialogPinQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(SavedMessagesTopicId saved_messages_topic_id, bool is_pinned) {
+    auto saved_input_peer = saved_messages_topic_id.get_input_dialog_peer(td_);
+    CHECK(saved_input_peer != nullptr);
+
+    int32 flags = 0;
+    if (is_pinned) {
+      flags |= telegram_api::messages_toggleSavedDialogPin::PINNED_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_toggleSavedDialogPin(flags, false /*ignored*/, std::move(saved_input_peer))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_toggleSavedDialogPin>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    td_->messages_manager_->on_update_pinned_saved_messages_topics();
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetDialogUnreadMarksQuery final : public Td::ResultHandler {
  public:
   void send() {
@@ -16290,6 +16324,12 @@ void MessagesManager::delete_saved_messages_topic_messages_by_date(SavedMessages
   };
   auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
   run_affected_history_query_until_complete(my_dialog_id, std::move(query), true, std::move(promise));
+}
+
+void MessagesManager::toggle_saved_messages_topic_is_pinned(SavedMessagesTopicId saved_messages_topic_id,
+                                                            bool is_pinned, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_status(td_));
+  td_->create_handler<ToggleSavedDialogPinQuery>(std::move(promise))->send(saved_messages_topic_id, is_pinned);
 }
 
 void MessagesManager::on_update_pinned_saved_messages_topics() {

@@ -7192,6 +7192,11 @@ deleteSavedMessagesTopicHistory saved_messages_topic:SavedMessagesTopic = Ok;
 //@max_date The maximum date of the messages to delete
 deleteSavedMessagesTopicMessagesByDate saved_messages_topic:SavedMessagesTopic min_date:int32 max_date:int32 = Ok;
 
+//@description Changes the pinned state of a Saved Messages topic. There can be up to getOption("pinned_saved_messages_topic_count_max") pinned topics. The limit can be increased with Telegram Premium
+//@saved_messages_topic Saved Messages topic to pin or unpin
+//@is_pinned Pass true to pin the topic; pass false to unpin it
+toggleSavedMessagesTopicIsPinned saved_messages_topic:SavedMessagesTopic is_pinned:Bool = Ok;
+
 
 //@description Returns a list of common group chats with a given user. Chats are sorted by their type and creation date
 //@user_id User identifier
