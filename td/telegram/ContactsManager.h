@@ -761,6 +761,7 @@ class ContactsManager final : public Actor {
     bool can_be_added_to_attach_menu = false;
     bool attach_menu_enabled = false;
     bool stories_hidden = false;
+    bool contact_require_premium = false;
 
     bool is_photo_inited = false;
 
