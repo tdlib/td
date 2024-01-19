@@ -2912,6 +2912,35 @@ class GetSupportUserQuery final : public Td::ResultHandler {
   }
 };
 
+class GetIsPremiumRequiredToContactQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  vector<UserId> user_ids_;
+
+ public:
+  explicit GetIsPremiumRequiredToContactQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(vector<UserId> &&user_ids, vector<tl_object_ptr<telegram_api::InputUser>> &&input_users) {
+    user_ids_ = std::move(user_ids);
+    send_query(
+        G()->net_query_creator().create(telegram_api::users_getIsPremiumRequiredToContact(std::move(input_users))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::users_getIsPremiumRequiredToContact>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    td_->contacts_manager_->on_get_is_premium_required_to_contact_users(std::move(user_ids_), result_ptr.move_as_ok(),
+                                                                        std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetStoriesMaxIdsQuery final : public Td::ResultHandler {
   vector<DialogId> dialog_ids_;
 
@@ -3039,6 +3068,14 @@ ContactsManager::ContactsManager(Td *td, ActorShared<> parent) : td_(td), parent
     }
     td_->create_handler<GetChannelsQuery>(std::move(promise))->send(std::move(input_channel));
   });
+  get_is_premium_required_to_contact_queries_.set_merge_function(
+      [this](vector<int64> query_ids, Promise<Unit> &&promise) {
+        TRY_STATUS_PROMISE(promise, G()->close_status());
+        auto user_ids = transform(query_ids, [this](int64 query_id) { return UserId(query_id); });
+        auto input_users = transform(user_ids, [this](UserId user_id) { return get_input_user_force(user_id); });
+        td_->create_handler<GetIsPremiumRequiredToContactQuery>(std::move(promise))
+            ->send(std::move(user_ids), std::move(input_users));
+      });
 }
 
 ContactsManager::~ContactsManager() {
@@ -5491,7 +5528,8 @@ int32 ContactsManager::get_user_was_online(const User *u, UserId user_id, int32 
   return was_online;
 }
 
-void ContactsManager::can_send_message_to_user(UserId user_id, Promise<Unit> &&promise) {
+void ContactsManager::can_send_message_to_user(UserId user_id, bool force, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
   if (user_id == get_my_id()) {
     return promise.set_value(Unit());
   }
@@ -5502,6 +5540,7 @@ void ContactsManager::can_send_message_to_user(UserId user_id, Promise<Unit> &&p
   if (!u->contact_require_premium || td_->option_manager_->get_option_boolean("is_premium") || u->is_mutual_contact) {
     return promise.set_value(Unit());
   }
+
   auto user_full = get_user_full_force(user_id, "can_send_message_to_user");
   if (user_full != nullptr) {
     if (!user_full->contact_require_premium) {
@@ -5509,7 +5548,46 @@ void ContactsManager::can_send_message_to_user(UserId user_id, Promise<Unit> &&p
     }
     return promise.set_error(Status::Error(400, "Can't write to the user first"));
   }
-  return promise.set_value(Unit());
+
+  auto it = user_full_contact_require_premium_.find(user_id);
+  if (it != user_full_contact_require_premium_.end()) {
+    if (!it->second) {
+      return promise.set_value(Unit());
+    }
+    return promise.set_error(Status::Error(400, "Can't write to the user first"));
+  }
+
+  if (force) {
+    LOG(ERROR) << "Can't check " << user_id << " message privacy settings";
+    return promise.set_value(Unit());
+  }
+
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), user_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
+        if (result.is_error()) {
+          return promise.set_error(result.move_as_error());
+        }
+        send_closure(actor_id, &ContactsManager::can_send_message_to_user, user_id, true, std::move(promise));
+      });
+  get_is_premium_required_to_contact_queries_.add_query(user_id.get(), std::move(query_promise),
+                                                        "can_send_message_to_user");
+}
+
+void ContactsManager::on_get_is_premium_required_to_contact_users(vector<UserId> &&user_ids,
+                                                                  vector<bool> &&is_premium_required,
+                                                                  Promise<Unit> &&promise) {
+  if (user_ids.size() != is_premium_required.size()) {
+    LOG(ERROR) << "Receive " << is_premium_required.size() << " flags instead of " << user_ids.size();
+    return promise.set_error(Status::Error(500, "Receive invalid response"));
+  }
+  for (size_t i = 0; i < user_ids.size(); i++) {
+    auto user_id = user_ids[i];
+    CHECK(user_id.is_valid());
+    if (get_user_full(user_id) == nullptr) {
+      user_full_contact_require_premium_[user_id] = is_premium_required[i];
+    }
+  }
+  promise.set_value(Unit());
 }
 
 void ContactsManager::load_contacts(Promise<Unit> &&promise) {
@@ -15740,6 +15818,7 @@ ContactsManager::UserFull *ContactsManager::add_user_full(UserId user_id) {
   auto &user_full_ptr = users_full_[user_id];
   if (user_full_ptr == nullptr) {
     user_full_ptr = make_unique<UserFull>();
+    user_full_contact_require_premium_.erase(user_id);
   }
   return user_full_ptr.get();
 }

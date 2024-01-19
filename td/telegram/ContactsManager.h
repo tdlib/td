@@ -185,7 +185,7 @@ class ContactsManager final : public Actor {
   int32 get_secret_chat_layer(SecretChatId secret_chat_id) const;
   FolderId get_secret_chat_initial_folder_id(SecretChatId secret_chat_id) const;
 
-  void can_send_message_to_user(UserId user_id, Promise<Unit> &&promise);
+  void can_send_message_to_user(UserId user_id, bool force, Promise<Unit> &&promise);
 
   void on_imported_contacts(int64 random_id, Result<tl_object_ptr<telegram_api::contacts_importedContacts>> result);
 
@@ -201,6 +201,9 @@ class ContactsManager final : public Actor {
 
   void on_get_user(tl_object_ptr<telegram_api::User> &&user, const char *source);
   void on_get_users(vector<tl_object_ptr<telegram_api::User>> &&users, const char *source);
+
+  void on_get_is_premium_required_to_contact_users(vector<UserId> &&user_ids, vector<bool> &&is_premium_required,
+                                                   Promise<Unit> &&promise);
 
   void on_binlog_user_event(BinlogEvent &&event);
   void on_binlog_chat_event(BinlogEvent &&event);
@@ -1917,6 +1920,8 @@ class ContactsManager final : public Actor {
   QueryMerger get_chat_queries_{"GetChatMerger", 3, 50};
   QueryMerger get_channel_queries_{"GetChannelMerger", 100, 1};  // can't merge getChannel queries without access hash
 
+  QueryMerger get_is_premium_required_to_contact_queries_{"GetIsPremiumRequiredToContactMerger", 3, 100};
+
   QueryCombiner get_user_full_queries_{"GetUserFullCombiner", 2.0};
   QueryCombiner get_chat_full_queries_{"GetChatFullCombiner", 2.0};
 
@@ -1995,6 +2000,8 @@ class ContactsManager final : public Actor {
   int32 pending_location_visibility_expire_date_ = -1;
   bool is_set_location_visibility_request_sent_ = false;
   Location last_user_location_;
+
+  FlatHashMap<UserId, bool, UserIdHash> user_full_contact_require_premium_;
 
   WaitFreeHashMap<ChannelId, ChannelId, ChannelIdHash> linked_channel_ids_;
 
