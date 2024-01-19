@@ -884,6 +884,9 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
         send_closure(td_->state_manager_, &StateManager::on_network_updated);
         return;
       }
+      if (set_boolean_option("process_pinned_messages_as_mentions")) {
+        return;
+      }
       break;
     case 'r':
       // temporary option

@@ -13061,6 +13061,10 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     is_pinned = false;
   }
 
+  bool has_mention =
+      message_info.has_mention || (content_type == MessageContentType::PinMessage &&
+                                   td_->option_manager_->get_option_boolean("process_pinned_messages_as_mentions"));
+
   LOG(INFO) << "Receive " << message_id << " in " << dialog_id << " from " << sender_user_id << "/" << sender_dialog_id;
 
   auto message = make_unique<Message>();
@@ -13083,8 +13087,8 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->author_signature = std::move(message_info.author_signature);
   message->is_outgoing = is_outgoing;
   message->is_channel_post = is_channel_post;
-  message->contains_mention = !is_outgoing && dialog_type != DialogType::User && !is_expired &&
-                              message_info.has_mention && !td_->auth_manager_->is_bot();
+  message->contains_mention =
+      !is_outgoing && dialog_type != DialogType::User && !is_expired && has_mention && !td_->auth_manager_->is_bot();
   message->contains_unread_mention =
       !message_id.is_scheduled() && message_id.is_server() && message->contains_mention &&
       message_info.has_unread_content &&
