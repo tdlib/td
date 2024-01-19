@@ -5528,38 +5528,39 @@ int32 ContactsManager::get_user_was_online(const User *u, UserId user_id, int32 
   return was_online;
 }
 
-void ContactsManager::can_send_message_to_user(UserId user_id, bool force, Promise<Unit> &&promise) {
+void ContactsManager::can_send_message_to_user(
+    UserId user_id, bool force, Promise<td_api::object_ptr<td_api::CanSendMessageToUserResult>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   if (user_id == get_my_id()) {
-    return promise.set_value(Unit());
+    return promise.set_value(td_api::make_object<td_api::canSendMessageToUserResultOk>());
   }
   const auto *u = get_user(user_id);
   if (!have_input_peer_user(u, user_id, AccessRights::Write)) {
-    return promise.set_error(Status::Error(400, "Have no write access to the chat"));
+    return promise.set_value(td_api::make_object<td_api::canSendMessageToUserResultUserIsDeleted>());
   }
   if (!u->contact_require_premium || td_->option_manager_->get_option_boolean("is_premium") || u->is_mutual_contact) {
-    return promise.set_value(Unit());
+    return promise.set_value(td_api::make_object<td_api::canSendMessageToUserResultOk>());
   }
 
   auto user_full = get_user_full_force(user_id, "can_send_message_to_user");
   if (user_full != nullptr) {
     if (!user_full->contact_require_premium) {
-      return promise.set_value(Unit());
+      return promise.set_value(td_api::make_object<td_api::canSendMessageToUserResultOk>());
     }
-    return promise.set_error(Status::Error(400, "Can't write to the user first"));
+    return promise.set_value(td_api::make_object<td_api::canSendMessageToUserResultUserRestrictsNewChats>());
   }
 
   auto it = user_full_contact_require_premium_.find(user_id);
   if (it != user_full_contact_require_premium_.end()) {
     if (!it->second) {
-      return promise.set_value(Unit());
+      return promise.set_value(td_api::make_object<td_api::canSendMessageToUserResultOk>());
     }
-    return promise.set_error(Status::Error(400, "Can't write to the user first"));
+    return promise.set_value(td_api::make_object<td_api::canSendMessageToUserResultUserRestrictsNewChats>());
   }
 
   if (force) {
     LOG(ERROR) << "Can't check " << user_id << " message privacy settings";
-    return promise.set_value(Unit());
+    return promise.set_value(td_api::make_object<td_api::canSendMessageToUserResultOk>());
   }
 
   auto query_promise = PromiseCreator::lambda(

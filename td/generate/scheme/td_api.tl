@@ -5403,6 +5403,18 @@ readDatePrivacySettings show_read_date:Bool = ReadDatePrivacySettings;
 newChatPrivacySettings allow_new_chats_from_unknown_users:Bool = NewChatPrivacySettings;
 
 
+//@class CanSendMessageToUserResult @description Describes result of canSendMessageToUser
+
+//@description The user can be messaged
+canSendMessageToUserResultOk = CanSendMessageToUserResult;
+
+//@description The user can't be messaged, because they are deleted or unknown
+canSendMessageToUserResultUserIsDeleted = CanSendMessageToUserResult;
+
+//@description The user can't be messaged, because they restrict new chats with non-contacts
+canSendMessageToUserResultUserRestrictsNewChats = CanSendMessageToUserResult;
+
+
 //@description Contains information about the period of inactivity after which the current user's account will automatically be deleted @days Number of days of inactivity before the account will be flagged for deletion; 30-366 days
 accountTtl days:int32 = AccountTtl;
 
@@ -9526,7 +9538,7 @@ getNewChatPrivacySettings = NewChatPrivacySettings;
 
 
 //@description Check whether the current user can message another user or try to create a chat with them @user_id Identifier of the other user
-canSendMessageToUser user_id:int53 = Ok;
+canSendMessageToUser user_id:int53 = CanSendMessageToUserResult;
 
 
 //@description Returns the value of an option by its name. (Check the list of available options on https://core.telegram.org/tdlib/options.) Can be called before authorization. Can be called synchronously for options "version" and "commit_hash"
