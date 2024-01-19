@@ -3567,25 +3567,26 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   STORE_FLAG(can_be_called);
   STORE_FLAG(has_private_calls);
   STORE_FLAG(can_pin_messages);
-  STORE_FLAG(need_phone_number_privacy_exception);
+  STORE_FLAG(need_phone_number_privacy_exception);  // 5
   STORE_FLAG(has_photo);
   STORE_FLAG(supports_video_calls);
   STORE_FLAG(has_description);
   STORE_FLAG(has_commands);
-  STORE_FLAG(has_private_forward_name);
+  STORE_FLAG(has_private_forward_name);  // 10
   STORE_FLAG(has_group_administrator_rights);
   STORE_FLAG(has_broadcast_administrator_rights);
   STORE_FLAG(has_menu_button);
   STORE_FLAG(has_description_photo);
-  STORE_FLAG(has_description_animation);
+  STORE_FLAG(has_description_animation);  // 15
   STORE_FLAG(has_premium_gift_options);
   STORE_FLAG(voice_messages_forbidden);
   STORE_FLAG(has_personal_photo);
   STORE_FLAG(has_fallback_photo);
-  STORE_FLAG(has_pinned_stories);
+  STORE_FLAG(has_pinned_stories);  // 20
   STORE_FLAG(is_blocked_for_stories);
   STORE_FLAG(wallpaper_overridden);
   STORE_FLAG(read_dates_private);
+  STORE_FLAG(contact_require_premium);
   END_STORE_FLAGS();
   if (has_about) {
     store(about, storer);
@@ -3672,6 +3673,7 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   PARSE_FLAG(is_blocked_for_stories);
   PARSE_FLAG(wallpaper_overridden);
   PARSE_FLAG(read_dates_private);
+  PARSE_FLAG(contact_require_premium);
   END_PARSE_FLAGS();
   if (has_about) {
     parse(about, parser);
@@ -11558,8 +11560,10 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
     user_full->private_forward_name = std::move(user->private_forward_name_);
     user_full->need_save_to_database = true;
   }
-  if (user_full->read_dates_private != user->read_dates_private_) {
-    user_full->read_dates_private = std::move(user->read_dates_private_);
+  if (user_full->read_dates_private != user->read_dates_private_ ||
+      user_full->contact_require_premium != user->contact_require_premium_) {
+    user_full->read_dates_private = user->read_dates_private_;
+    user_full->contact_require_premium = user->contact_require_premium_;
     user_full->need_save_to_database = true;
   }
   if (user_full->about != user->about_) {
@@ -13274,6 +13278,7 @@ void ContactsManager::drop_user_full(UserId user_id) {
   user_full->voice_messages_forbidden = false;
   user_full->has_pinned_stories = false;
   user_full->read_dates_private = false;
+  user_full->contact_require_premium = false;
   user_full->is_changed = true;
 
   update_user_full(user_full, user_id, "drop_user_full");
