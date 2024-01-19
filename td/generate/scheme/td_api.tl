@@ -9518,7 +9518,7 @@ setReadDatePrivacySettings settings:readDatePrivacySettings = Ok;
 //@description Returns privacy settings for message read date
 getReadDatePrivacySettings = ReadDatePrivacySettings;
 
-//@description Changes privacy settings for new chat creation @settings New settings
+//@description Changes privacy settings for new chat creation; for Telegram Premium users only @settings New settings
 setNewChatPrivacySettings settings:newChatPrivacySettings = Ok;
 
 //@description Returns privacy settings for new chat creation
