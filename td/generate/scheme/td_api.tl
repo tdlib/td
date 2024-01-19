@@ -9525,6 +9525,10 @@ setNewChatPrivacySettings settings:newChatPrivacySettings = Ok;
 getNewChatPrivacySettings = NewChatPrivacySettings;
 
 
+//@description Check whether the current user can message another user or try to create a chat with them @user_id Identifier of the other user
+canSendMessageToUser user_id:int53 = Ok;
+
+
 //@description Returns the value of an option by its name. (Check the list of available options on https://core.telegram.org/tdlib/options.) Can be called before authorization. Can be called synchronously for options "version" and "commit_hash"
 //@name The name of the option
 getOption name:string = OptionValue;

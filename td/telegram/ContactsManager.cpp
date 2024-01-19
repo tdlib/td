@@ -5491,6 +5491,27 @@ int32 ContactsManager::get_user_was_online(const User *u, UserId user_id, int32 
   return was_online;
 }
 
+void ContactsManager::can_send_message_to_user(UserId user_id, Promise<Unit> &&promise) {
+  if (user_id == get_my_id()) {
+    return promise.set_value(Unit());
+  }
+  const auto *u = get_user(user_id);
+  if (!have_input_peer_user(u, user_id, AccessRights::Write)) {
+    return promise.set_error(Status::Error(400, "Have no write access to the chat"));
+  }
+  if (!u->contact_require_premium || td_->option_manager_->get_option_boolean("is_premium") || u->is_mutual_contact) {
+    return promise.set_value(Unit());
+  }
+  auto user_full = get_user_full_force(user_id, "can_send_message_to_user");
+  if (user_full != nullptr) {
+    if (!user_full->contact_require_premium) {
+      return promise.set_value(Unit());
+    }
+    return promise.set_error(Status::Error(400, "Can't write to the user first"));
+  }
+  return promise.set_value(Unit());
+}
+
 void ContactsManager::load_contacts(Promise<Unit> &&promise) {
   if (td_->auth_manager_->is_bot()) {
     are_contacts_loaded_ = true;

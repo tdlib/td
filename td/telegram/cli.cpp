@@ -5449,6 +5449,10 @@ class CliClient final : public Actor {
       get_args(args, allow_new_chats_from_unknown_users);
       auto settings = td_api::make_object<td_api::newChatPrivacySettings>(allow_new_chats_from_unknown_users);
       send_request(td_api::make_object<td_api::setNewChatPrivacySettings>(std::move(settings)));
+    } else if (op == "csmtu") {
+      UserId user_id;
+      get_args(args, user_id);
+      send_request(td_api::make_object<td_api::canSendMessageToUser>(user_id));
     } else if (op == "sct") {
       ChatId chat_id;
       string title;

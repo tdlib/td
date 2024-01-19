@@ -6528,6 +6528,12 @@ void Td::on_request(uint64 id, td_api::setNewChatPrivacySettings &request) {
                                                      std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::canSendMessageToUser &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->can_send_message_to_user(UserId(request.user_id_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::setChatTitle &request) {
   CLEAN_INPUT_STRING(request.title_);
   CREATE_OK_REQUEST_PROMISE();

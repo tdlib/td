@@ -185,6 +185,8 @@ class ContactsManager final : public Actor {
   int32 get_secret_chat_layer(SecretChatId secret_chat_id) const;
   FolderId get_secret_chat_initial_folder_id(SecretChatId secret_chat_id) const;
 
+  void can_send_message_to_user(UserId user_id, Promise<Unit> &&promise);
+
   void on_imported_contacts(int64 random_id, Result<tl_object_ptr<telegram_api::contacts_importedContacts>> result);
 
   void on_deleted_contacts(const vector<UserId> &deleted_contact_user_ids);
