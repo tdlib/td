@@ -5442,6 +5442,13 @@ class CliClient final : public Actor {
       get_args(args, show_read_date);
       auto settings = td_api::make_object<td_api::readDatePrivacySettings>(show_read_date);
       send_request(td_api::make_object<td_api::setReadDatePrivacySettings>(std::move(settings)));
+    } else if (op == "gncps") {
+      send_request(td_api::make_object<td_api::getNewChatPrivacySettings>());
+    } else if (op == "sncps") {
+      bool allow_new_chats_from_unknown_users;
+      get_args(args, allow_new_chats_from_unknown_users);
+      auto settings = td_api::make_object<td_api::newChatPrivacySettings>(allow_new_chats_from_unknown_users);
+      send_request(td_api::make_object<td_api::setNewChatPrivacySettings>(std::move(settings)));
     } else if (op == "sct") {
       ChatId chat_id;
       string title;

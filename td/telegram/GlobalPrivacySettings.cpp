@@ -95,6 +95,13 @@ GlobalPrivacySettings::GlobalPrivacySettings(td_api::object_ptr<td_api::readDate
   }
 }
 
+GlobalPrivacySettings::GlobalPrivacySettings(td_api::object_ptr<td_api::newChatPrivacySettings> &&settings)
+    : set_type_(SetType::NewChat) {
+  if (settings != nullptr) {
+    new_noncontact_peers_require_premium_ = !settings->allow_new_chats_from_unknown_users_;
+  }
+}
+
 void GlobalPrivacySettings::apply_changes(const GlobalPrivacySettings &set_settings) {
   CHECK(set_type_ == SetType::None);
   switch (set_settings.set_type_) {
@@ -105,6 +112,9 @@ void GlobalPrivacySettings::apply_changes(const GlobalPrivacySettings &set_setti
       break;
     case SetType::ReadDate:
       hide_read_marks_ = set_settings.hide_read_marks_;
+      break;
+    case SetType::NewChat:
+      new_noncontact_peers_require_premium_ = set_settings.new_noncontact_peers_require_premium_;
       break;
     default:
       UNREACHABLE();
@@ -146,6 +156,11 @@ td_api::object_ptr<td_api::readDatePrivacySettings> GlobalPrivacySettings::get_r
     const {
   CHECK(set_type_ == SetType::None);
   return td_api::make_object<td_api::readDatePrivacySettings>(!hide_read_marks_);
+}
+
+td_api::object_ptr<td_api::newChatPrivacySettings> GlobalPrivacySettings::get_new_chat_privacy_settings_object() const {
+  CHECK(set_type_ == SetType::None);
+  return td_api::make_object<td_api::newChatPrivacySettings>(!new_noncontact_peers_require_premium_);
 }
 
 void GlobalPrivacySettings::get_global_privacy_settings(Td *td, Promise<GlobalPrivacySettings> &&promise) {

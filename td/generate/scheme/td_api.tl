@@ -5393,9 +5393,13 @@ userPrivacySettingAllowFindingByPhoneNumber = UserPrivacySetting;
 userPrivacySettingAllowPrivateVoiceAndVideoNoteMessages = UserPrivacySetting;
 
 
-//@description Contains privacy settings for message read date
+//@description Contains privacy settings for message read date in private chats
 //@show_read_date True, if message read date is shown to other users in private chats. If disabled and the current user isn't a Telegram Premium user, then they will not be able to see other's message read date
 readDatePrivacySettings show_read_date:Bool = ReadDatePrivacySettings;
+
+//@description Contains privacy settings for new chats with non-contacts
+//@allow_new_chats_from_unknown_users True, if non-contacts users are able to write first to the current user. Telegram Premium subscribers are able to write first regardless of this setting
+newChatPrivacySettings allow_new_chats_from_unknown_users:Bool = NewChatPrivacySettings;
 
 
 //@description Contains information about the period of inactivity after which the current user's account will automatically be deleted @days Number of days of inactivity before the account will be flagged for deletion; 30-366 days
@@ -9512,6 +9516,12 @@ setReadDatePrivacySettings settings:readDatePrivacySettings = Ok;
 
 //@description Returns privacy settings for message read date
 getReadDatePrivacySettings = ReadDatePrivacySettings;
+
+//@description Changes privacy settings for new chat creation @settings New settings
+setNewChatPrivacySettings settings:newChatPrivacySettings = Ok;
+
+//@description Returns privacy settings for new chat creation
+getNewChatPrivacySettings = NewChatPrivacySettings;
 
 
 //@description Returns the value of an option by its name. (Check the list of available options on https://core.telegram.org/tdlib/options.) Can be called before authorization. Can be called synchronously for options "version" and "commit_hash"
