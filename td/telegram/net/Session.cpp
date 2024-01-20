@@ -1047,6 +1047,8 @@ void Session::on_message_info(mtproto::MessageId message_id, int32 state, mtprot
       return;
     }
   }
+  LOG(INFO) << "Receive info about " << message_id << " with state = " << state << " and answer " << answer_message_id
+            << " from " << source;
   if (message_id != mtproto::MessageId()) {
     if (it == sent_queries_.end()) {
       return;
