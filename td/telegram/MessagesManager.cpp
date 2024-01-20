@@ -26937,9 +26937,8 @@ Result<MessagesManager::MessagePushNotificationInfo> MessagesManager::get_messag
   if (message_id.is_valid()) {
     auto notification_info = add_dialog_notification_info(d);
     if (message_id > notification_info->max_push_notification_message_id_) {
-      if (is_new_pinned) {
-        set_dialog_pinned_message_notification(d, contains_mention ? message_id : MessageId(),
-                                               "get_message_push_notification_info");
+      if (is_new_pinned && contains_mention) {
+        set_dialog_pinned_message_notification(d, message_id, "get_message_push_notification_info");
       }
       notification_info->max_push_notification_message_id_ = message_id;
       on_dialog_updated(dialog_id, "set_max_push_notification_message_id");
@@ -27814,7 +27813,7 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   }
   if (!is_active) {
     VLOG(notifications) << "Disable inactive notification for " << m->message_id << " in " << d->dialog_id;
-    if (is_pinned) {
+    if (is_pinned && from_mentions) {
       remove_dialog_pinned_message_notification(d, "add_new_message_notification");
     }
     return false;
@@ -27840,7 +27839,7 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   std::tie(have_settings, mute_until) = get_dialog_mute_until(settings_dialog_id, settings_dialog);
   if (mute_until > m->date && (have_settings || force)) {
     VLOG(notifications) << "Disable notification, because " << settings_dialog_id << " is muted";
-    if (is_pinned) {
+    if (is_pinned && from_mentions) {
       remove_dialog_pinned_message_notification(d, "add_new_message_notification");
     }
     return false;
@@ -27914,9 +27913,8 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   }
   set_dialog_last_notification_checked(d->dialog_id, group_info, m->date, m->notification_id,
                                        "add_new_message_notification 3");
-  if (is_pinned) {
-    set_dialog_pinned_message_notification(d, from_mentions ? m->message_id : MessageId(),
-                                           "add_new_message_notification");
+  if (is_pinned && from_mentions) {
+    set_dialog_pinned_message_notification(d, m->message_id, "add_new_message_notification");
   }
   if (!m->notification_id.is_valid()) {
     // protection from accidental notification_id removal in set_dialog_pinned_message_notification
