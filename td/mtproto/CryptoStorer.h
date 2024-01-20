@@ -34,13 +34,13 @@ namespace mtproto {
 template <class Object, class ObjectStorer>
 class ObjectImpl {
  public:
-  ObjectImpl(bool not_empty, Object &&object, AuthData *auth_data, bool need_ack = false)
+  ObjectImpl(bool not_empty, Object &&object, AuthData *auth_data)
       : not_empty_(not_empty), object_(std::move(object)), object_storer_(object_) {
     if (empty()) {
       return;
     }
     message_id_ = auth_data->next_message_id(Time::now_cached());
-    seq_no_ = auth_data->next_seq_no(need_ack);
+    seq_no_ = auth_data->next_seq_no(false);
   }
   template <class StorerT>
   void do_store(StorerT &storer) const {
@@ -81,10 +81,10 @@ using DestroyAuthKeyImpl = ObjectImpl<mtproto_api::destroy_auth_key, TLStorer<mt
 
 class CancelVectorImpl {
  public:
-  CancelVectorImpl(bool not_empty, const vector<int64> &to_cancel, AuthData *auth_data, bool need_ack) {
+  CancelVectorImpl(bool not_empty, const vector<int64> &to_cancel, AuthData *auth_data) {
     storers_.reserve(to_cancel.size());
     for (auto &request_id : to_cancel) {
-      storers_.emplace_back(true, mtproto_api::rpc_drop_answer(request_id), auth_data, true);
+      storers_.emplace_back(true, mtproto_api::rpc_drop_answer(request_id), auth_data);
     }
   }
 
@@ -215,13 +215,13 @@ class CryptoImpl {
       , http_wait_storer_(max_delay >= 0, mtproto_api::http_wait(max_delay, max_after, max_wait), auth_data)
       , get_future_salts_storer_(future_salt_n > 0, mtproto_api::get_future_salts(future_salt_n), auth_data)
       , get_info_not_empty_(!get_info.empty())
-      , get_info_storer_(get_info_not_empty_, mtproto_api::msgs_state_req(std::move(get_info)), auth_data, true)
+      , get_info_storer_(get_info_not_empty_, mtproto_api::msgs_state_req(std::move(get_info)), auth_data)
       , resend_not_empty_(!resend.empty())
-      , resend_storer_(resend_not_empty_, mtproto_api::msg_resend_req(std::move(resend)), auth_data, true)
+      , resend_storer_(resend_not_empty_, mtproto_api::msg_resend_req(std::move(resend)), auth_data)
       , cancel_not_empty_(!cancel.empty())
       , cancel_cnt_(static_cast<int32>(cancel.size()))
-      , cancel_storer_(cancel_not_empty_, cancel, auth_data, true)
-      , destroy_key_storer_(destroy_key, mtproto_api::destroy_auth_key(), auth_data, true)
+      , cancel_storer_(cancel_not_empty_, cancel, auth_data)
+      , destroy_key_storer_(destroy_key, mtproto_api::destroy_auth_key(), auth_data)
       , ping_storer_(ping_id != 0, mtproto_api::ping_delay_disconnect(ping_id, ping_timeout), auth_data)
       , tmp_storer_(query_storer_, ack_storer_)
       , tmp2_storer_(tmp_storer_, http_wait_storer_)
