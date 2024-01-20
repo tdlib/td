@@ -65,8 +65,8 @@ class EventCreator {
   }
 
   template <class LambdaT>
-  static EventFull lambda(ActorRef actor_ref, LambdaT &&lambda) {
-    return EventFull(actor_ref, Event::lambda(std::forward<LambdaT>(lambda)));
+  static EventFull from_lambda(ActorRef actor_ref, LambdaT &&func) {
+    return EventFull(actor_ref, Event::from_lambda(std::forward<LambdaT>(func)));
   }
 
   static EventFull yield(ActorRef actor_ref) {

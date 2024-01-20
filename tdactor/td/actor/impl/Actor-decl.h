@@ -95,7 +95,7 @@ class Actor : public ObserverBase {
   auto self_closure(SelfT *self, FuncT &&func, ArgsT &&...args);
 
   template <class LambdaT>
-  auto self_lambda(LambdaT &&lambda);
+  auto self_lambda(LambdaT &&func);
 
   // proxy to info_
   ActorId<> actor_id();

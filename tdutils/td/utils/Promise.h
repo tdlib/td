@@ -94,7 +94,7 @@ class LambdaPromise : public PromiseInterface<ValueT> {
 
  public:
   void set_value(ValueT &&value) override {
-    CHECK(state_.get() == State::Ready);
+    CHECK_IMPL(state_.get() == State::Ready, file_, line_);
     do_ok(std::move(value));
     state_ = State::Complete;
   }
@@ -116,12 +116,15 @@ class LambdaPromise : public PromiseInterface<ValueT> {
   }
 
   template <class FromT>
-  explicit LambdaPromise(FromT &&func) : func_(std::forward<FromT>(func)), state_(State::Ready) {
+  explicit LambdaPromise(const char *file, int line, FromT &&func)
+      : func_(std::forward<FromT>(func)), state_(State::Ready), file_(file), line_(line) {
   }
 
  private:
   FunctionT func_;
   MovableValue<State> state_{State::Empty};
+  const char *file_ = "";
+  int line_ = 0;
 
   template <class F = FunctionT>
   std::enable_if_t<is_callable<F, Result<ValueT>>::value, void> do_error(Status &&status) {
@@ -158,11 +161,12 @@ struct is_promise_interface_ptr<unique_ptr<U>> : std::true_type {};
 
 template <class T = void, class F = void, std::enable_if_t<std::is_same<T, void>::value, bool> has_t = false>
 auto lambda_promise(F &&f) {
-  return LambdaPromise<drop_result_t<get_arg_t<std::decay_t<F>>>, std::decay_t<F>>(std::forward<F>(f));
+  return LambdaPromise<drop_result_t<get_arg_t<std::decay_t<F>>>, std::decay_t<F>>(__FILE__, __LINE__,
+                                                                                   std::forward<F>(f));
 }
 template <class T = void, class F = void, std::enable_if_t<!std::is_same<T, void>::value, bool> has_t = true>
 auto lambda_promise(F &&f) {
-  return LambdaPromise<T, std::decay_t<F>>(std::forward<F>(f));
+  return LambdaPromise<T, std::decay_t<F>>(__FILE__, __LINE__, std::forward<F>(f));
 }
 
 template <class T, class F,
@@ -325,15 +329,18 @@ class JoinPromise final : public PromiseInterface<Unit> {
 class PromiseCreator {
  public:
   template <class OkT, class ArgT = detail::drop_result_t<detail::get_arg_t<OkT>>>
-  static Promise<ArgT> lambda(OkT &&ok) {
-    return Promise<ArgT>(td::make_unique<detail::LambdaPromise<ArgT, std::decay_t<OkT>>>(std::forward<OkT>(ok)));
+  static Promise<ArgT> lambda_impl(const char *file, int line, OkT &&ok) {
+    return Promise<ArgT>(
+        td::make_unique<detail::LambdaPromise<ArgT, std::decay_t<OkT>>>(file, line, std::forward<OkT>(ok)));
   }
+#define lambda(...) lambda_impl(__FILE__, __LINE__, __VA_ARGS__)
 
   template <class OkT, class ArgT = detail::drop_result_t<detail::get_arg_t<OkT>>>
-  static auto cancellable_lambda(CancellationToken cancellation_token, OkT &&ok) {
+  static auto cancellable_lambda_impl(const char *file, int line, CancellationToken cancellation_token, OkT &&ok) {
     return Promise<ArgT>(td::make_unique<detail::CancellablePromise<detail::LambdaPromise<ArgT, std::decay_t<OkT>>>>(
-        std::move(cancellation_token), std::forward<OkT>(ok)));
+        std::move(cancellation_token), file, line, std::forward<OkT>(ok)));
   }
+#define cancellable_lambda(...) cancellable_lambda_impl(__FILE__, __LINE__, __VA_ARGS__)
 
   template <class... ArgsT>
   static Promise<> join(ArgsT &&...args) {

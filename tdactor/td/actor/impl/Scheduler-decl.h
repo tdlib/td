@@ -107,7 +107,7 @@ class Scheduler {
   void destroy_on_scheduler(int32 sched_id, ArgsT &...values);
 
   template <ActorSendType send_type, class EventT>
-  void send_lambda(ActorRef actor_ref, EventT &&lambda);
+  void send_lambda(ActorRef actor_ref, EventT &&func);
 
   template <ActorSendType send_type, class EventT>
   void send_closure(ActorRef actor_ref, EventT &&closure);

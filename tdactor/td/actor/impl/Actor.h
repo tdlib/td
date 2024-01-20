@@ -156,8 +156,8 @@ auto Actor::self_closure(SelfT *self, FuncT &&func, ArgsT &&...args) {
 }
 
 template <class LambdaT>
-auto Actor::self_lambda(LambdaT &&lambda) {
-  return EventCreator::lambda(actor_id(), std::forward<LambdaT>(lambda));
+auto Actor::self_lambda(LambdaT &&func) {
+  return EventCreator::from_lambda(actor_id(), std::forward<LambdaT>(func));
 }
 
 inline Slice Actor::get_name() const {
