@@ -305,22 +305,6 @@ auto concat(const ArgsT &...args) {
   return Concat<decltype(std::tie(args...))>{std::tie(args...)};
 }
 
-template <class F>
-struct Lambda {
-  const F &f;
-};
-
-template <class F>
-StringBuilder &operator<<(StringBuilder &sb, const Lambda<F> &f) {
-  f.f(sb);
-  return sb;
-}
-
-template <class LambdaT>
-Lambda<LambdaT> lambda(const LambdaT &lambda) {
-  return Lambda<LambdaT>{lambda};
-}
-
 }  // namespace format
 
 using format::tag;
