@@ -447,7 +447,7 @@ static ActorOwn<> get_full_config(DcOption option, Promise<tl_object_ptr<telegra
     DcId dc_id() const final {
       return dc_id_;
     }
-    const std::shared_ptr<PublicRsaKeyShared> &public_rsa_key() final {
+    const std::shared_ptr<mtproto::PublicRsaKeyInterface> &public_rsa_key() final {
       return public_rsa_key_;
     }
     mtproto::AuthKey get_auth_key() final {
@@ -492,7 +492,7 @@ static ActorOwn<> get_full_config(DcOption option, Promise<tl_object_ptr<telegra
 
    private:
     DcId dc_id_;
-    std::shared_ptr<PublicRsaKeyShared> public_rsa_key_ =
+    std::shared_ptr<mtproto::PublicRsaKeyInterface> public_rsa_key_ =
         std::make_shared<PublicRsaKeyShared>(DcId::empty(), G()->is_test_dc());
 
     std::vector<unique_ptr<Listener>> auth_key_listeners_;

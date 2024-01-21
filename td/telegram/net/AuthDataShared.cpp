@@ -21,7 +21,8 @@ namespace td {
 
 class AuthDataSharedImpl final : public AuthDataShared {
  public:
-  AuthDataSharedImpl(DcId dc_id, std::shared_ptr<PublicRsaKeyShared> public_rsa_key, std::shared_ptr<Guard> guard)
+  AuthDataSharedImpl(DcId dc_id, std::shared_ptr<mtproto::PublicRsaKeyInterface> public_rsa_key,
+                     std::shared_ptr<Guard> guard)
       : dc_id_(dc_id), public_rsa_key_(std::move(public_rsa_key)), guard_(std::move(guard)) {
     log_auth_key(get_auth_key());
   }
@@ -30,7 +31,7 @@ class AuthDataSharedImpl final : public AuthDataShared {
     return dc_id_;
   }
 
-  const std::shared_ptr<PublicRsaKeyShared> &public_rsa_key() final {
+  const std::shared_ptr<mtproto::PublicRsaKeyInterface> &public_rsa_key() final {
     return public_rsa_key_;
   }
 
@@ -88,7 +89,7 @@ class AuthDataSharedImpl final : public AuthDataShared {
  private:
   DcId dc_id_;
   std::vector<unique_ptr<Listener>> auth_key_listeners_;
-  std::shared_ptr<PublicRsaKeyShared> public_rsa_key_;
+  std::shared_ptr<mtproto::PublicRsaKeyInterface> public_rsa_key_;
   std::shared_ptr<Guard> guard_;
   RwMutex rw_mutex_;
 
@@ -123,7 +124,8 @@ mtproto::AuthKey AuthDataShared::get_auth_key_for_dc(DcId dc_id) {
   return AuthDataSharedImpl::get_auth_key_for_dc(dc_id);
 }
 
-std::shared_ptr<AuthDataShared> AuthDataShared::create(DcId dc_id, std::shared_ptr<PublicRsaKeyShared> public_rsa_key,
+std::shared_ptr<AuthDataShared> AuthDataShared::create(DcId dc_id,
+                                                       std::shared_ptr<mtproto::PublicRsaKeyInterface> public_rsa_key,
                                                        std::shared_ptr<Guard> guard) {
   return std::make_shared<AuthDataSharedImpl>(dc_id, std::move(public_rsa_key), std::move(guard));
 }

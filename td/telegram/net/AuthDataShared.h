@@ -7,10 +7,10 @@
 #pragma once
 
 #include "td/telegram/net/DcId.h"
-#include "td/telegram/net/PublicRsaKeyShared.h"
 
 #include "td/mtproto/AuthData.h"
 #include "td/mtproto/AuthKey.h"
+#include "td/mtproto/RSA.h"
 
 #include "td/utils/common.h"
 #include "td/utils/ScopeGuard.h"
@@ -33,7 +33,7 @@ class AuthDataShared {
   };
 
   virtual DcId dc_id() const = 0;
-  virtual const std::shared_ptr<PublicRsaKeyShared> &public_rsa_key() = 0;
+  virtual const std::shared_ptr<mtproto::PublicRsaKeyInterface> &public_rsa_key() = 0;
   virtual mtproto::AuthKey get_auth_key() = 0;
   virtual void set_auth_key(const mtproto::AuthKey &auth_key) = 0;
   virtual void update_server_time_difference(double diff, bool force) = 0;
@@ -45,7 +45,8 @@ class AuthDataShared {
 
   static mtproto::AuthKey get_auth_key_for_dc(DcId dc_id);
 
-  static std::shared_ptr<AuthDataShared> create(DcId dc_id, std::shared_ptr<PublicRsaKeyShared> public_rsa_key,
+  static std::shared_ptr<AuthDataShared> create(DcId dc_id,
+                                                std::shared_ptr<mtproto::PublicRsaKeyInterface> public_rsa_key,
                                                 std::shared_ptr<Guard> guard);
 };
 
