@@ -529,11 +529,11 @@ class TestProxyRequest final : public RequestOnceActor {
         return nullptr;
       }
       mtproto::PublicRsaKeyInterface *get_public_rsa_key_interface() final {
-        return &public_rsa_key_;
+        return public_rsa_key_.get();
       }
 
      private:
-      PublicRsaKeySharedMain public_rsa_key_{false};
+      std::shared_ptr<mtproto::PublicRsaKeyInterface> public_rsa_key_ = PublicRsaKeySharedMain::create(false);
     };
     auto handshake = make_unique<mtproto::AuthKeyHandshake>(dc_id_, 3600);
     auto data = r_data.move_as_ok();

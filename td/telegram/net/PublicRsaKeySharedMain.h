@@ -15,7 +15,10 @@ namespace td {
 
 class PublicRsaKeySharedMain final : public mtproto::PublicRsaKeyInterface {
  public:
-  explicit PublicRsaKeySharedMain(bool is_test);
+  explicit PublicRsaKeySharedMain(vector<RsaKey> &&keys) : keys_(std::move(keys)) {
+  }
+
+  static std::shared_ptr<PublicRsaKeySharedMain> create(bool is_test);
 
   Result<RsaKey> get_rsa_key(const vector<int64> &fingerprints) final;
 
@@ -23,8 +26,6 @@ class PublicRsaKeySharedMain final : public mtproto::PublicRsaKeyInterface {
 
  private:
   vector<RsaKey> keys_;
-
-  const RsaKey *get_rsa_key_unsafe(int64 fingerprint) const;
 };
 
 }  // namespace td

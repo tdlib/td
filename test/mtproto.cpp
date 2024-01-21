@@ -46,6 +46,8 @@
 #include "td/utils/tests.h"
 #include "td/utils/Time.h"
 
+#include <memory>
+
 TEST(Mtproto, GetHostByNameActor) {
   int threads_n = 1;
   td::ConcurrentScheduler sched(threads_n, 0);
@@ -300,11 +302,11 @@ class HandshakeContext final : public td::mtproto::AuthKeyHandshakeContext {
     return nullptr;
   }
   td::mtproto::PublicRsaKeyInterface *get_public_rsa_key_interface() final {
-    return &public_rsa_key;
+    return public_rsa_key_.get();
   }
 
  private:
-  td::PublicRsaKeySharedMain public_rsa_key{true};
+  std::shared_ptr<td::mtproto::PublicRsaKeyInterface> public_rsa_key_ = td::PublicRsaKeySharedMain::create(true);
 };
 
 class HandshakeTestActor final : public td::Actor {

@@ -442,7 +442,8 @@ static ActorOwn<> get_full_config(DcOption option, Promise<tl_object_ptr<telegra
 
   class SimpleAuthData final : public AuthDataShared {
    public:
-    explicit SimpleAuthData(DcId dc_id) : dc_id_(dc_id) {
+    explicit SimpleAuthData(DcId dc_id)
+        : dc_id_(dc_id), public_rsa_key_(PublicRsaKeySharedMain::create(G()->is_test_dc())) {
     }
     DcId dc_id() const final {
       return dc_id_;
@@ -492,10 +493,9 @@ static ActorOwn<> get_full_config(DcOption option, Promise<tl_object_ptr<telegra
 
    private:
     DcId dc_id_;
-    std::shared_ptr<mtproto::PublicRsaKeyInterface> public_rsa_key_ =
-        std::make_shared<PublicRsaKeySharedMain>(G()->is_test_dc());
+    std::shared_ptr<mtproto::PublicRsaKeyInterface> public_rsa_key_;
+    vector<unique_ptr<Listener>> auth_key_listeners_;
 
-    std::vector<unique_ptr<Listener>> auth_key_listeners_;
     void notify() {
       td::remove_if(auth_key_listeners_, [&](auto &listener) {
         CHECK(listener != nullptr);
@@ -506,6 +506,7 @@ static ActorOwn<> get_full_config(DcOption option, Promise<tl_object_ptr<telegra
     string auth_key_key() const {
       return PSTRING() << "config_recovery_auth" << dc_id().get_raw_id();
     }
+
     string future_salts_key() const {
       return PSTRING() << "config_recovery_salt" << dc_id().get_raw_id();
     }

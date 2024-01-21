@@ -27,7 +27,6 @@ namespace td {
 class DcAuthManager;
 class MultiSequenceDispatcher;
 class NetQueryDelayer;
-class PublicRsaKeySharedMain;
 class PublicRsaKeyWatchdog;
 class SessionMultiProxy;
 
@@ -79,7 +78,6 @@ class NetQueryDispatcher {
 #else
   std::atomic<int32> main_dc_id_{1};
 #endif
-  std::shared_ptr<PublicRsaKeySharedMain> common_public_rsa_key_;
   ActorOwn<PublicRsaKeyWatchdog> public_rsa_key_watchdog_;
   std::mutex main_dc_id_mutex_;
   std::shared_ptr<Guard> td_guard_;
