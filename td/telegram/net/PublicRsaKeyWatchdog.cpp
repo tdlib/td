@@ -22,8 +22,8 @@ namespace td {
 PublicRsaKeyWatchdog::PublicRsaKeyWatchdog(ActorShared<> parent) : parent_(std::move(parent)) {
 }
 
-void PublicRsaKeyWatchdog::add_public_rsa_key(std::shared_ptr<PublicRsaKeyShared> key) {
-  class Listener final : public PublicRsaKeyShared::Listener {
+void PublicRsaKeyWatchdog::add_public_rsa_key(std::shared_ptr<PublicRsaKeySharedCdn> key) {
+  class Listener final : public PublicRsaKeySharedCdn::Listener {
    public:
     explicit Listener(ActorId<PublicRsaKeyWatchdog> parent) : parent_(std::move(parent)) {
     }
@@ -119,7 +119,7 @@ void PublicRsaKeyWatchdog::sync(BufferSlice cdn_config_serialized) {
   }
 }
 
-void PublicRsaKeyWatchdog::sync_key(std::shared_ptr<PublicRsaKeyShared> &key) {
+void PublicRsaKeyWatchdog::sync_key(std::shared_ptr<PublicRsaKeySharedCdn> &key) {
   if (!cdn_config_) {
     return;
   }

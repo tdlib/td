@@ -21,7 +21,7 @@
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/net/NetType.h"
-#include "td/telegram/net/PublicRsaKeyShared.h"
+#include "td/telegram/net/PublicRsaKeySharedMain.h"
 #include "td/telegram/net/Session.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/Premium.h"
@@ -493,7 +493,7 @@ static ActorOwn<> get_full_config(DcOption option, Promise<tl_object_ptr<telegra
    private:
     DcId dc_id_;
     std::shared_ptr<mtproto::PublicRsaKeyInterface> public_rsa_key_ =
-        std::make_shared<PublicRsaKeyShared>(DcId::empty(), G()->is_test_dc());
+        std::make_shared<PublicRsaKeySharedMain>(G()->is_test_dc());
 
     std::vector<unique_ptr<Listener>> auth_key_listeners_;
     void notify() {
@@ -1497,7 +1497,8 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
           key == "getfile_experimental_params" || key == "message_animated_emoji_max" ||
           key == "stickers_emoji_cache_time" || key == "stories_export_nopublic_link" || key == "test" ||
           key == "upload_max_fileparts_default" || key == "upload_max_fileparts_premium" ||
-          key == "wallet_blockchain_name" || key == "wallet_config" || key == "wallet_enabled" || key == "channel_color_level_min") {
+          key == "wallet_blockchain_name" || key == "wallet_config" || key == "wallet_enabled" ||
+          key == "channel_color_level_min") {
         continue;
       }
       if (key == "ignore_restriction_reasons") {

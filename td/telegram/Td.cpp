@@ -100,7 +100,7 @@
 #include "td/telegram/net/NetStatsManager.h"
 #include "td/telegram/net/NetType.h"
 #include "td/telegram/net/Proxy.h"
-#include "td/telegram/net/PublicRsaKeyShared.h"
+#include "td/telegram/net/PublicRsaKeySharedMain.h"
 #include "td/telegram/net/TempAuthKeyWatchdog.h"
 #include "td/telegram/NotificationGroupId.h"
 #include "td/telegram/NotificationId.h"
@@ -529,11 +529,11 @@ class TestProxyRequest final : public RequestOnceActor {
         return nullptr;
       }
       mtproto::PublicRsaKeyInterface *get_public_rsa_key_interface() final {
-        return &public_rsa_key;
+        return &public_rsa_key_;
       }
 
      private:
-      PublicRsaKeyShared public_rsa_key{DcId::empty(), false};
+      PublicRsaKeySharedMain public_rsa_key_{false};
     };
     auto handshake = make_unique<mtproto::AuthKeyHandshake>(dc_id_, 3600);
     auto data = r_data.move_as_ok();

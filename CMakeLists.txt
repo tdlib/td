@@ -429,7 +429,8 @@ set(TDLIB_SOURCE
   td/telegram/net/NetQueryStats.cpp
   td/telegram/net/NetStatsManager.cpp
   td/telegram/net/Proxy.cpp
-  td/telegram/net/PublicRsaKeyShared.cpp
+  td/telegram/net/PublicRsaKeySharedCdn.cpp
+  td/telegram/net/PublicRsaKeySharedMain.cpp
   td/telegram/net/PublicRsaKeyWatchdog.cpp
   td/telegram/net/Session.cpp
   td/telegram/net/SessionMultiProxy.cpp
@@ -735,7 +736,8 @@ set(TDLIB_SOURCE
   td/telegram/net/NetStatsManager.h
   td/telegram/net/NetType.h
   td/telegram/net/Proxy.h
-  td/telegram/net/PublicRsaKeyShared.h
+  td/telegram/net/PublicRsaKeySharedCdn.h
+  td/telegram/net/PublicRsaKeySharedMain.h
   td/telegram/net/PublicRsaKeyWatchdog.h
   td/telegram/net/Session.h
   td/telegram/net/SessionProxy.h

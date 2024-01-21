@@ -16,9 +16,9 @@
 
 namespace td {
 
-class PublicRsaKeyShared final : public mtproto::PublicRsaKeyInterface {
+class PublicRsaKeySharedCdn final : public mtproto::PublicRsaKeyInterface {
  public:
-  PublicRsaKeyShared(DcId dc_id, bool is_test);
+  explicit PublicRsaKeySharedCdn(DcId dc_id);
 
   class Listener {
    public:
@@ -32,8 +32,11 @@ class PublicRsaKeyShared final : public mtproto::PublicRsaKeyInterface {
   };
 
   void add_rsa(mtproto::RSA rsa);
+
   Result<RsaKey> get_rsa_key(const vector<int64> &fingerprints) final;
+
   void drop_keys() final;
+
   bool has_keys();
 
   void add_listener(unique_ptr<Listener> listener);
@@ -44,8 +47,8 @@ class PublicRsaKeyShared final : public mtproto::PublicRsaKeyInterface {
 
  private:
   DcId dc_id_;
-  std::vector<RsaKey> keys_;
-  std::vector<unique_ptr<Listener>> listeners_;
+  vector<RsaKey> keys_;
+  vector<unique_ptr<Listener>> listeners_;
   RwMutex rw_mutex_;
 
   RsaKey *get_rsa_key_unsafe(int64 fingerprint);

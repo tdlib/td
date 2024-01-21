@@ -11,7 +11,8 @@
 #include "td/telegram/net/DcAuthManager.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/net/NetQueryDelayer.h"
-#include "td/telegram/net/PublicRsaKeyShared.h"
+#include "td/telegram/net/PublicRsaKeySharedCdn.h"
+#include "td/telegram/net/PublicRsaKeySharedMain.h"
 #include "td/telegram/net/PublicRsaKeyWatchdog.h"
 #include "td/telegram/net/SessionMultiProxy.h"
 #include "td/telegram/SequenceDispatcher.h"
@@ -150,13 +151,14 @@ Status NetQueryDispatcher::wait_dc_init(DcId dc_id, bool force) {
     }
     // init dc
     dc.id_ = dc_id;
-    decltype(common_public_rsa_key_) public_rsa_key;
+    std::shared_ptr<mtproto::PublicRsaKeyInterface> public_rsa_key;
     bool is_cdn = false;
     if (dc_id.is_internal()) {
       public_rsa_key = common_public_rsa_key_;
     } else {
-      public_rsa_key = std::make_shared<PublicRsaKeyShared>(dc_id, G()->is_test_dc());
-      send_closure_later(public_rsa_key_watchdog_, &PublicRsaKeyWatchdog::add_public_rsa_key, public_rsa_key);
+      auto public_rsa_key_cdn = std::make_shared<PublicRsaKeySharedCdn>(dc_id);
+      send_closure_later(public_rsa_key_watchdog_, &PublicRsaKeyWatchdog::add_public_rsa_key, public_rsa_key_cdn);
+      public_rsa_key = public_rsa_key_cdn;
       is_cdn = true;
     }
     auto auth_data = AuthDataShared::create(dc_id, std::move(public_rsa_key), td_guard_);
@@ -299,7 +301,7 @@ NetQueryDispatcher::NetQueryDispatcher(const std::function<ActorShared<>()> &cre
   LOG(INFO) << tag("main_dc_id", main_dc_id_.load(std::memory_order_relaxed));
   delayer_ = create_actor<NetQueryDelayer>("NetQueryDelayer", create_reference());
   dc_auth_manager_ = create_actor<DcAuthManager>("DcAuthManager", create_reference());
-  common_public_rsa_key_ = std::make_shared<PublicRsaKeyShared>(DcId::empty(), G()->is_test_dc());
+  common_public_rsa_key_ = std::make_shared<PublicRsaKeySharedMain>(G()->is_test_dc());
   public_rsa_key_watchdog_ = create_actor<PublicRsaKeyWatchdog>("PublicRsaKeyWatchdog", create_reference());
   sequence_dispatcher_ = MultiSequenceDispatcher::create("MultiSequenceDispatcher");
 

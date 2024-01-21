@@ -6,7 +6,7 @@
 //
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/net/DcId.h"
-#include "td/telegram/net/PublicRsaKeyShared.h"
+#include "td/telegram/net/PublicRsaKeySharedMain.h"
 #include "td/telegram/net/Session.h"
 #include "td/telegram/NotificationManager.h"
 
@@ -304,7 +304,7 @@ class HandshakeContext final : public td::mtproto::AuthKeyHandshakeContext {
   }
 
  private:
-  td::PublicRsaKeyShared public_rsa_key{td::DcId::empty(), true};
+  td::PublicRsaKeySharedMain public_rsa_key{true};
 };
 
 class HandshakeTestActor final : public td::Actor {
