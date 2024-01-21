@@ -35,7 +35,6 @@ class SessionMultiProxy;
 class NetQueryDispatcher {
  public:
   explicit NetQueryDispatcher(const std::function<ActorShared<>()> &create_reference);
-  NetQueryDispatcher();
   NetQueryDispatcher(const NetQueryDispatcher &) = delete;
   NetQueryDispatcher &operator=(const NetQueryDispatcher &) = delete;
   NetQueryDispatcher(NetQueryDispatcher &&) = delete;

@@ -306,7 +306,6 @@ NetQueryDispatcher::NetQueryDispatcher(const std::function<ActorShared<>()> &cre
   td_guard_ = create_shared_lambda_guard([actor = create_reference()] {});
 }
 
-NetQueryDispatcher::NetQueryDispatcher() = default;
 NetQueryDispatcher::~NetQueryDispatcher() = default;
 
 void NetQueryDispatcher::try_fix_migrate(NetQueryPtr &net_query) {
