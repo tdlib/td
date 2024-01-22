@@ -264,8 +264,16 @@ std::string TD_TL_writer_h::gen_forward_class_declaration(const std::string &cla
 
 std::string TD_TL_writer_h::gen_class_begin(const std::string &class_name, const std::string &base_class_name,
                                             bool is_proxy, const tl::tl_tree *result) const {
-  return "class " + class_name + (!is_proxy ? " final " : "") + ": public " + base_class_name +
+  if (is_proxy) {
+    return "class " + class_name + ": public " + base_class_name +
+           " {\n"
+           " public:\n";
+  }
+  return "class " + class_name + " final : public " + base_class_name +
          " {\n"
+         "  std::int32_t get_id() const final {\n"
+         "    return ID;\n"
+         "  }\n\n"
          " public:\n";
 }
 
@@ -289,11 +297,7 @@ std::string TD_TL_writer_h::gen_get_id(const std::string &class_name, std::int32
 
   return "\n"
          "  static const std::int32_t ID = " +
-         int_to_string(id) +
-         ";\n"
-         "  std::int32_t get_id() const final {\n"
-         "    return ID;\n"
-         "  }\n";
+         int_to_string(id) + ";\n";
 }
 
 std::string TD_TL_writer_h::gen_function_result_type(const tl::tl_tree *result) const {
