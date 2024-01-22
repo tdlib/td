@@ -1228,13 +1228,16 @@ messageReplyInfo reply_count:int32 recent_replier_ids:vector<MessageSender> last
 //@recent_sender_ids Identifiers of at most 3 recent message senders, added the reaction; available in private, basic group and supergroup chats
 messageReaction type:ReactionType total_count:int32 is_chosen:Bool used_sender_id:MessageSender recent_sender_ids:vector<MessageSender> = MessageReaction;
 
+//@description Contains a list of reactions added to a message @reactions List of added reactions @are_tags True, if the reactions are tags and the message can be found by them
+messageReactions reactions:vector<messageReaction> are_tags:Bool = MessageReactions;
+
 
 //@description Contains information about interactions with a message
 //@view_count Number of times the message was viewed
 //@forward_count Number of times the message was forwarded
 //@reply_info Information about direct or indirect replies to the message; may be null. Currently, available only in channels with a discussion supergroup and discussion supergroups for messages, which are not replies itself
-//@reactions The list of reactions added to the message
-messageInteractionInfo view_count:int32 forward_count:int32 reply_info:messageReplyInfo reactions:vector<messageReaction> = MessageInteractionInfo;
+//@reactions The list of reactions or tags added to the message; may be null
+messageInteractionInfo view_count:int32 forward_count:int32 reply_info:messageReplyInfo reactions:messageReactions = MessageInteractionInfo;
 
 //@description Contains information about an unread reaction to a message
 //@type Type of the reaction

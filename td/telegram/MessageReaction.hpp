@@ -107,6 +107,7 @@ void MessageReactions::store(StorerT &storer) const {
   STORE_FLAG(has_unread_reactions);
   STORE_FLAG(has_reactions);
   STORE_FLAG(has_chosen_reaction_order);
+  STORE_FLAG(are_tags_);
   END_STORE_FLAGS();
   if (has_reactions) {
     td::store(reactions_, storer);
@@ -131,6 +132,7 @@ void MessageReactions::parse(ParserT &parser) {
   PARSE_FLAG(has_unread_reactions);
   PARSE_FLAG(has_reactions);
   PARSE_FLAG(has_chosen_reaction_order);
+  PARSE_FLAG(are_tags_);
   END_PARSE_FLAGS();
   if (has_reactions) {
     td::parse(reactions_, parser);

@@ -156,6 +156,7 @@ struct MessageReactions {
   bool is_min_ = false;
   bool need_polling_ = true;
   bool can_get_added_reactions_ = false;
+  bool are_tags_ = false;
 
   MessageReactions() = default;
 
@@ -186,8 +187,8 @@ struct MessageReactions {
                                 FlatHashMap<ReactionType, vector<DialogId>, ReactionTypeHash> reaction_types,
                                 int32 total_count) const;
 
-  vector<td_api::object_ptr<td_api::messageReaction>> get_message_reactions_object(Td *td, UserId my_user_id,
-                                                                                   UserId peer_user_id) const;
+  td_api::object_ptr<td_api::messageReactions> get_message_reactions_object(Td *td, UserId my_user_id,
+                                                                            UserId peer_user_id) const;
 
   void add_min_channels(Td *td) const;
 

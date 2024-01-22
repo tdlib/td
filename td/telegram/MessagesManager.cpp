@@ -6466,7 +6466,7 @@ td_api::object_ptr<td_api::messageInteractionInfo> MessagesManager::get_message_
     CHECK(reply_info != nullptr);
   }
 
-  vector<td_api::object_ptr<td_api::messageReaction>> reactions;
+  td_api::object_ptr<td_api::messageReactions> reactions;
   if (has_reactions) {
     UserId my_user_id;
     UserId peer_user_id;
