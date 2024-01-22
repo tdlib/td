@@ -22,6 +22,7 @@
 #include "td/telegram/SecretChatsManager.h"
 #include "td/telegram/StickerPhotoSize.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/UserId.h"
 #include "td/telegram/Usernames.h"

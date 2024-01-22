@@ -20,6 +20,8 @@
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
 
+#include "td/mtproto/RSA.h"
+
 #include "td/utils/common.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"

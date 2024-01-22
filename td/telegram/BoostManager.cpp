@@ -16,6 +16,7 @@
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/telegram_api.h"
 #include "td/telegram/ThemeManager.h"
 #include "td/telegram/UserId.h"
 

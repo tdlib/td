@@ -11,6 +11,8 @@
 #include "td/utils/common.h"
 #include "td/utils/Status.h"
 
+#include <memory>
+
 namespace td {
 
 class PublicRsaKeySharedMain final : public mtproto::PublicRsaKeyInterface {

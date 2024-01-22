@@ -9,6 +9,7 @@
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/FlatHashSet.h"

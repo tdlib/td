@@ -5,10 +5,10 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/telegram/ConfigManager.h"
-#include "td/telegram/net/DcId.h"
 #include "td/telegram/net/PublicRsaKeySharedMain.h"
 #include "td/telegram/net/Session.h"
 #include "td/telegram/NotificationManager.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/mtproto/AuthData.h"
 #include "td/mtproto/DhCallback.h"
@@ -196,7 +196,7 @@ TEST(Mtproto, encrypted_config) {
       "FnWWdEV+BPJeOTk+ARHcNkuJBt0CqnfcVCoDOpKqGyq0U31s2MOpQvHgAG+Tlpg02syuH0E4dCGRw5CbJPARiynteb9y5fT5x/"
       "kmdp6BMR5tWQSQF0liH16zLh8BDSIdiMsikdcwnAvBwdNhRqQBqGx9MTh62MDmlebjtczE9Gz0z5cscUO2yhzGdphgIy6SP+"
       "bwaqLWYF0XdPGjKLMUEJW+rou6fbL1t/EUXPtU0XmQAnO0Fh86h+AqDMOe30N4qKrPQ==   ";
-  auto config = td::decode_config(data).move_as_ok();
+  td::telegram_api::object_ptr<td::telegram_api::help_configSimple> config = td::decode_config(data).move_as_ok();
 }
 
 class TestPingActor final : public td::Actor {
