@@ -6407,7 +6407,7 @@ bool MessagesManager::is_visible_message_reply_info(DialogId dialog_id, const Me
 }
 
 bool MessagesManager::is_visible_message_reactions(DialogId dialog_id, const Message *m) const {
-  if (m == nullptr || !m->message_id.is_valid()) {
+  if (m == nullptr) {
     return false;
   }
 
@@ -7704,7 +7704,8 @@ ChatReactions MessagesManager::get_dialog_active_reactions(const Dialog *d) cons
 ChatReactions MessagesManager::get_message_active_reactions(const Dialog *d, const Message *m) const {
   CHECK(d != nullptr);
   CHECK(m != nullptr);
-  if (is_service_message_content(m->content->get_type()) || m->ttl > 0) {
+  if (is_service_message_content(m->content->get_type()) || m->ttl > 0 || !m->message_id.is_valid() ||
+      !m->message_id.is_server()) {
     return ChatReactions();
   }
   auto dialog_id = d->dialog_id;
@@ -22632,7 +22633,7 @@ ChatReactions MessagesManager::get_message_available_reactions(const Dialog *d, 
   CHECK(d != nullptr);
   CHECK(m != nullptr);
   auto active_reactions = get_message_active_reactions(d, m);
-  if (!m->message_id.is_valid() || !m->message_id.is_server() || active_reactions.empty()) {
+  if (active_reactions.empty()) {
     return {};
   }
 
