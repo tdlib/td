@@ -5460,7 +5460,7 @@ targetChatInternalLink link:InternalLinkType = TargetChat;
 
 //@class InternalLinkType @description Describes an internal https://t.me or tg: link, which must be processed by the application in a special way
 
-//@description The link is a link to the active sessions section of the application. Use getActiveSessions to handle the link
+//@description The link is a link to the Devices section of the application. Use getActiveSessions to get the list of active sessions and show them to the user
 internalLinkTypeActiveSessions = InternalLinkType;
 
 //@description The link is a link to an attachment menu bot to be opened in the specified or a chosen chat. Process given target_chat to open the chat.
@@ -5476,7 +5476,9 @@ internalLinkTypeAttachmentMenuBot target_chat:TargetChat bot_username:string url
 //@description The link contains an authentication code. Call checkAuthenticationCode with the code if the current authorization state is authorizationStateWaitCode @code The authentication code
 internalLinkTypeAuthenticationCode code:string = InternalLinkType;
 
-//@description The link is a link to a background. Call searchBackground with the given background name to process the link @background_name Name of the background
+//@description The link is a link to a background. Call searchBackground with the given background name to process the link
+//-If background is found and the user wants to apply it, then call setDefaultBackground
+//@background_name Name of the background
 internalLinkTypeBackground background_name:string = InternalLinkType;
 
 //@description The link is a link to a Telegram bot, which is supposed to be added to a channel chat as an administrator. Call searchPublicChat with the given bot username and check that the user is a bot,
@@ -5513,13 +5515,17 @@ internalLinkTypeChangePhoneNumber = InternalLinkType;
 //@url URL to be passed to getChatBoostLinkInfo
 internalLinkTypeChatBoost url:string = InternalLinkType;
 
-//@description The link is an invite link to a chat folder. Call checkChatFolderInviteLink with the given invite link to process the link @invite_link Internal representation of the invite link
+//@description The link is an invite link to a chat folder. Call checkChatFolderInviteLink with the given invite link to process the link.
+//-If the link is valid and the user wants to join the chat folder, then call addChatFolderByInviteLink
+//@invite_link Internal representation of the invite link
 internalLinkTypeChatFolderInvite invite_link:string = InternalLinkType;
 
 //@description The link is a link to the folder section of the app settings
 internalLinkTypeChatFolderSettings = InternalLinkType;
 
-//@description The link is a chat invite link. Call checkChatInviteLink with the given invite link to process the link @invite_link Internal representation of the invite link
+//@description The link is a chat invite link. Call checkChatInviteLink with the given invite link to process the link.
+//-If the link is valid and the user wants to join the chat, then call joinChatByInviteLink
+//@invite_link Internal representation of the invite link
 internalLinkTypeChatInvite invite_link:string = InternalLinkType;
 
 //@description The link is a link to the default message auto-delete timer settings section of the app settings
@@ -5528,24 +5534,32 @@ internalLinkTypeDefaultMessageAutoDeleteTimerSettings = InternalLinkType;
 //@description The link is a link to the edit profile section of the app settings
 internalLinkTypeEditProfileSettings = InternalLinkType;
 
-//@description The link is a link to a game. Call searchPublicChat with the given bot username, check that the user is a bot, ask the current user to select a chat to send the game, and then call sendMessage with inputMessageGame
+//@description The link is a link to a game. Call searchPublicChat with the given bot username, check that the user is a bot,
+//-ask the current user to select a chat to send the game, and then call sendMessage with inputMessageGame
 //@bot_username Username of the bot that owns the game
 //@game_short_name Short name of the game
 internalLinkTypeGame bot_username:string game_short_name:string = InternalLinkType;
 
-//@description The link must be opened in an Instant View. Call getWebPageInstantView with the given URL to process the link @url URL to be passed to getWebPageInstantView @fallback_url An URL to open if getWebPageInstantView fails
+//@description The link must be opened in an Instant View. Call getWebPageInstantView with the given URL to process the link.
+//-If Instant View is found, then show it, otherwise, open the fallback URL in an external browser
+//@url URL to be passed to getWebPageInstantView
+//@fallback_url An URL to open if getWebPageInstantView fails
 internalLinkTypeInstantView url:string fallback_url:string = InternalLinkType;
 
 //@description The link is a link to an invoice. Call getPaymentForm with the given invoice name to process the link @invoice_name Name of the invoice
 internalLinkTypeInvoice invoice_name:string = InternalLinkType;
 
-//@description The link is a link to a language pack. Call getLanguagePackInfo with the given language pack identifier to process the link @language_pack_id Language pack identifier
+//@description The link is a link to a language pack. Call getLanguagePackInfo with the given language pack identifier to process the link.
+//-If the language pack is found and the user wants to apply it, then call setOption for the option "language_pack_id"
+//@language_pack_id Language pack identifier
 internalLinkTypeLanguagePack language_pack_id:string = InternalLinkType;
 
 //@description The link is a link to the language section of the app settings
 internalLinkTypeLanguageSettings = InternalLinkType;
 
-//@description The link is a link to a Telegram message or a forum topic. Call getMessageLinkInfo with the given URL to process the link @url URL to be passed to getMessageLinkInfo
+//@description The link is a link to a Telegram message or a forum topic. Call getMessageLinkInfo with the given URL to process the link,
+//-and then open received forum topic or chat and show the message there
+//@url URL to be passed to getMessageLinkInfo
 internalLinkTypeMessage url:string = InternalLinkType;
 
 //@description The link contains a message draft text. A share screen needs to be shown to the user, then the chosen chat must be opened and the text is added to the input field
@@ -5562,18 +5576,21 @@ internalLinkTypeMessageDraft text:formattedText contains_link:Bool = InternalLin
 //-If empty, then onActivityResult method must be used to return response on Android, or the link tgbot{bot_user_id}://passport/success or tgbot{bot_user_id}://passport/cancel must be opened otherwise
 internalLinkTypePassportDataRequest bot_user_id:int53 scope:string public_key:string nonce:string callback_url:string = InternalLinkType;
 
-//@description The link can be used to confirm ownership of a phone number to prevent account deletion. Call sendPhoneNumberConfirmationCode with the given hash and phone number to process the link
+//@description The link can be used to confirm ownership of a phone number to prevent account deletion. Call sendPhoneNumberConfirmationCode with the given hash and phone number to process the link.
+//-If succeeded, call checkPhoneNumberConfirmationCode to check entered by the user code, or resendPhoneNumberConfirmationCode to resend it
 //@hash Hash value from the link
 //@phone_number Phone number value from the link
 internalLinkTypePhoneNumberConfirmation hash:string phone_number:string = InternalLinkType;
 
-//@description The link is a link to the Premium features screen of the application from which the user can subscribe to Telegram Premium. Call getPremiumFeatures with the given referrer to process the link @referrer Referrer specified in the link
+//@description The link is a link to the Premium features screen of the application from which the user can subscribe to Telegram Premium. Call getPremiumFeatures with the given referrer to process the link
+//@referrer Referrer specified in the link
 internalLinkTypePremiumFeatures referrer:string = InternalLinkType;
 
-//@description The link is a link to the screen for gifting Telegram Premium subscriptions to friends @referrer Referrer specified in the link
+//@description The link is a link to the screen for gifting Telegram Premium subscriptions to friends via inputInvoiceTelegram payments or in-store purchases @referrer Referrer specified in the link
 internalLinkTypePremiumGift referrer:string = InternalLinkType;
 
-//@description The link is a link with a Telegram Premium gift code. Call checkPremiumGiftCode with the given code to process the link. If the code is valid and the user wants to apply it, then call applyPremiumGiftCode
+//@description The link is a link with a Telegram Premium gift code. Call checkPremiumGiftCode with the given code to process the link.
+//-If the code is valid and the user wants to apply it, then call applyPremiumGiftCode
 //@code The Telegram Premium gift code
 internalLinkTypePremiumGiftCode code:string = InternalLinkType;
 
@@ -5586,7 +5603,9 @@ internalLinkTypePrivacyAndSecuritySettings = InternalLinkType;
 //@type Type of the proxy
 internalLinkTypeProxy server:string port:int32 type:ProxyType = InternalLinkType;
 
-//@description The link is a link to a chat by its username. Call searchPublicChat with the given chat username to process the link @chat_username Username of the chat
+//@description The link is a link to a chat by its username. Call searchPublicChat with the given chat username to process the link
+//-If the chat is found, open its profile information screen or the chat itself
+//@chat_username Username of the chat
 internalLinkTypePublicChat chat_username:string = InternalLinkType;
 
 //@description The link can be used to login the current user on another device, but it must be scanned from QR-code using in-app camera. An alert similar to
@@ -5602,17 +5621,18 @@ internalLinkTypeSettings = InternalLinkType;
 //@description The link is a link to a bot, which can be installed to the side menu. Call searchPublicChat with the given bot username, check that the user is a bot and can be added to attachment menu.
 //-Then, use getAttachmentMenuBot to receive information about the bot. If the bot isn't added to side menu, then show a disclaimer about Mini Apps being a third-party apps,
 //-ask the user to accept their Terms of service and confirm adding the bot to side and attachment menu. If the user accept the terms and confirms adding, then use toggleBotIsAddedToAttachmentMenu to add the bot.
-//-If the bot is added to side menu, then use getWebAppUrl with the given URL
+//-If the bot is added to side menu, then use getWebAppUrl with the given URL and open the returned URL as a Web App
 //@bot_username Username of the bot
 //@url URL to be passed to getWebAppUrl
 internalLinkTypeSideMenuBot bot_username:string url:string = InternalLinkType;
 
-//@description The link is a link to a sticker set. Call searchStickerSet with the given sticker set name to process the link and show the sticker set
+//@description The link is a link to a sticker set. Call searchStickerSet with the given sticker set name to process the link and show the sticker set.
+//-If the sticker set is found and the user wants to add it, then call changeStickerSet
 //@sticker_set_name Name of the sticker set
 //@expect_custom_emoji True, if the sticker set is expected to contain custom emoji
 internalLinkTypeStickerSet sticker_set_name:string expect_custom_emoji:Bool = InternalLinkType;
 
-//@description The link is a link to a story. Call searchPublicChat with the given sender username, then call getStory with the received chat identifier and the given story identifier
+//@description The link is a link to a story. Call searchPublicChat with the given sender username, then call getStory with the received chat identifier and the given story identifier, then show the story if received
 //@story_sender_username Username of the sender of the story
 //@story_id Story identifier
 internalLinkTypeStory story_sender_username:string story_id:int32 = InternalLinkType;
@@ -5629,10 +5649,14 @@ internalLinkTypeUnknownDeepLink link:string = InternalLinkType;
 //@description The link is a link to an unsupported proxy. An alert can be shown to the user
 internalLinkTypeUnsupportedProxy = InternalLinkType;
 
-//@description The link is a link to a user by its phone number. Call searchUserByPhoneNumber with the given phone number to process the link @phone_number Phone number of the user
+//@description The link is a link to a user by its phone number. Call searchUserByPhoneNumber with the given phone number to process the link.
+//-If the user is found, then call createPrivateChat and open the chat
+//@phone_number Phone number of the user
 internalLinkTypeUserPhoneNumber phone_number:string = InternalLinkType;
 
-//@description The link is a link to a user by a temporary token. Call searchUserByToken with the given token to process the link @token The token
+//@description The link is a link to a user by a temporary token. Call searchUserByToken with the given token to process the link.
+//-If the user is found, then call createPrivateChat and open the chat
+//@token The token
 internalLinkTypeUserToken token:string = InternalLinkType;
 
 //@description The link is a link to a video chat. Call searchPublicChat with the given chat username, and then joinGroupCall with the given invite hash to process the link
