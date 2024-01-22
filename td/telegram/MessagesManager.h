@@ -2520,6 +2520,8 @@ class MessagesManager final : public Actor {
 
   void set_dialog_message_ttl(Dialog *d, MessageTtl message_ttl);
 
+  bool can_add_message_tag(DialogId dialog_id, const MessageReactions *reactions) const;
+
   ChatReactions get_message_available_reactions(const Dialog *d, const Message *m,
                                                 bool disallow_custom_for_non_premium);
 

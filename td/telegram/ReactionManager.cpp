@@ -359,6 +359,12 @@ void ReactionManager::clear_recent_reactions(Promise<Unit> &&promise) {
   td_->create_handler<ClearRecentReactionsQuery>(std::move(promise))->send();
 }
 
+vector<ReactionType> ReactionManager::get_default_tag_reactions() {
+  load_reaction_list(ReactionListType::DefaultTag);
+
+  return get_reaction_list(ReactionListType::DefaultTag).reaction_types_;
+}
+
 void ReactionManager::reload_reactions() {
   if (G()->close_flag() || reactions_.are_being_reloaded_) {
     return;

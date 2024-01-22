@@ -51,6 +51,8 @@ class ReactionManager final : public Actor {
 
   void clear_recent_reactions(Promise<Unit> &&promise);
 
+  vector<ReactionType> get_default_tag_reactions();
+
   void reload_reactions();
 
   void reload_reaction_list(ReactionListType reaction_list_type);

@@ -22622,6 +22622,11 @@ Result<td_api::object_ptr<td_api::availableReactions>> MessagesManager::get_mess
                                                                 get_message_active_reactions(d, m), row_size);
 }
 
+bool MessagesManager::can_add_message_tag(DialogId dialog_id, const MessageReactions *reactions) const {
+  return dialog_id == td_->dialog_manager_->get_my_dialog_id() &&
+         (reactions == nullptr || reactions->reactions_.empty() || reactions->are_tags_);
+}
+
 ChatReactions MessagesManager::get_message_available_reactions(const Dialog *d, const Message *m,
                                                                bool disallow_custom_for_non_premium) {
   CHECK(d != nullptr);
@@ -22656,7 +22661,12 @@ ChatReactions MessagesManager::get_message_available_reactions(const Dialog *d, 
   }
 
   if (active_reactions.allow_all_regular_) {
-    active_reactions.reaction_types_ = active_reaction_types_;
+    if (can_add_message_tag(d->dialog_id, m->reactions.get())) {
+      active_reactions.reaction_types_ = td_->reaction_manager_->get_default_tag_reactions();
+      disallow_custom_for_non_premium = true;
+    } else {
+      active_reactions.reaction_types_ = active_reaction_types_;
+    }
     active_reactions.allow_all_regular_ = false;
   }
   if (can_use_reactions && m->reactions != nullptr) {
