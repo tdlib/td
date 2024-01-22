@@ -2973,6 +2973,14 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::searchChatMessages>(chat_id, query.query, nullptr, offset_message_id, 0,
                                                                    query.limit, as_search_messages_filter(op), 0,
                                                                    get_saved_messages_topic()));
+    } else if (op == "ssms") {
+      string tag;
+      MessageId from_message_id;
+      int32 offset;
+      SearchQuery query;
+      get_args(args, tag, from_message_id, offset, query);
+      send_request(td_api::make_object<td_api::searchSavedMessages>(as_reaction_type(tag), query.query, from_message_id,
+                                                                    offset, query.limit));
     } else if (op == "gcmbd") {
       ChatId chat_id;
       int32 date;

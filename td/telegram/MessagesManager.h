@@ -175,8 +175,8 @@ class MessagesManager final : public Actor {
   void on_get_dialog_messages_search_result(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
                                             const string &query, DialogId sender_dialog_id, MessageId from_message_id,
                                             int32 offset, int32 limit, MessageSearchFilter filter,
-                                            MessageId top_thread_message_id, int64 random_id, int32 total_count,
-                                            vector<tl_object_ptr<telegram_api::Message>> &&messages,
+                                            MessageId top_thread_message_id, const ReactionType &tag, int64 random_id,
+                                            int32 total_count, vector<tl_object_ptr<telegram_api::Message>> &&messages,
                                             Promise<Unit> &&promise);
   void on_failed_dialog_messages_search(DialogId dialog_id, int64 random_id);
 
@@ -725,8 +725,8 @@ class MessagesManager final : public Actor {
                                              const td_api::object_ptr<td_api::MessageSender> &sender,
                                              MessageId from_message_id, int32 offset, int32 limit,
                                              MessageSearchFilter filter, MessageId top_thread_message_id,
-                                             SavedMessagesTopicId saved_messages_topic_id, int64 &random_id,
-                                             bool use_db, Promise<Unit> &&promise);
+                                             SavedMessagesTopicId saved_messages_topic_id, const ReactionType &tag,
+                                             int64 &random_id, bool use_db, Promise<Unit> &&promise);
 
   struct FoundMessages {
     vector<MessageFullId> message_full_ids;

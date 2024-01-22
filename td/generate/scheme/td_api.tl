@@ -7176,7 +7176,7 @@ getSavedMessagesTopics offset:string limit:int32 = FoundSavedMessagesTopics;
 //@description Returns messages in a Saved Messages topic. The messages are returned in a reverse chronological order (i.e., in order of decreasing message_id)
 //@saved_messages_topic Saved Messages topic which messages will be fetched
 //@from_message_id Identifier of the message starting from which messages must be fetched; use 0 to get results from the last message
-//@offset Specify 0 to get results from exactly the from_message_id or a negative offset up to 99 to get additionally some newer messages
+//@offset Specify 0 to get results from exactly the message from_message_id or a negative offset up to 99 to get additionally some newer messages
 //@limit The maximum number of messages to be returned; must be positive and can't be greater than 100. If the offset is negative, the limit must be greater than or equal to -offset.
 //-For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
 getSavedMessagesTopicHistory saved_messages_topic:SavedMessagesTopic from_message_id:int53 offset:int32 limit:int32 = Messages;
@@ -7215,7 +7215,7 @@ getGroupsInCommon user_id:int53 offset_chat_id:int53 limit:int32 = Chats;
 //-For optimal performance, the number of returned messages is chosen by TDLib. This is an offline request if only_local is true
 //@chat_id Chat identifier
 //@from_message_id Identifier of the message starting from which history must be fetched; use 0 to get results from the last message
-//@offset Specify 0 to get results from exactly the from_message_id or a negative offset up to 99 to get additionally some newer messages
+//@offset Specify 0 to get results from exactly the message from_message_id or a negative offset up to 99 to get additionally some newer messages
 //@limit The maximum number of messages to be returned; must be positive and can't be greater than 100. If the offset is negative, the limit must be greater than or equal to -offset.
 //-For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
 //@only_local Pass true to get only messages that are available without sending network requests
@@ -7226,7 +7226,7 @@ getChatHistory chat_id:int53 from_message_id:int53 offset:int32 limit:int32 only
 //@chat_id Chat identifier
 //@message_id Message identifier, which thread history needs to be returned
 //@from_message_id Identifier of the message starting from which history must be fetched; use 0 to get results from the last message
-//@offset Specify 0 to get results from exactly the from_message_id or a negative offset up to 99 to get additionally some newer messages
+//@offset Specify 0 to get results from exactly the message from_message_id or a negative offset up to 99 to get additionally some newer messages
 //@limit The maximum number of messages to be returned; must be positive and can't be greater than 100. If the offset is negative, the limit must be greater than or equal to -offset.
 //-For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
 getMessageThreadHistory chat_id:int53 message_id:int53 from_message_id:int53 offset:int32 limit:int32 = Messages;
@@ -7249,7 +7249,7 @@ deleteChat chat_id:int53 = Ok;
 //@query Query to search for
 //@sender_id Identifier of the sender of messages to search for; pass null to search for messages from any sender. Not supported in secret chats
 //@from_message_id Identifier of the message starting from which history must be fetched; use 0 to get results from the last message
-//@offset Specify 0 to get results from exactly the from_message_id or a negative offset to get the specified message and some newer messages
+//@offset Specify 0 to get results from exactly the message from_message_id or a negative offset to get the specified message and some newer messages
 //@limit The maximum number of messages to be returned; must be positive and can't be greater than 100. If the offset is negative, the limit must be greater than -offset.
 //-For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
 //@filter Additional filter for messages to search; pass null to search for all messages
@@ -7275,6 +7275,16 @@ searchMessages chat_list:ChatList query:string offset:string limit:int32 filter:
 //@limit The maximum number of messages to be returned; up to 100. For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
 //@filter Additional filter for messages to search; pass null to search for all messages
 searchSecretMessages chat_id:int53 query:string offset:string limit:int32 filter:SearchMessagesFilter = FoundMessages;
+
+//@description Searches for messages tagged by the given reaction and with the given words in the Saved Messages chat. Returns the results in reverse chronological order, i.e. in order of decreasing message_id
+//-For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
+//@tag Tag to search for; pass null to return all suitable messages
+//@query Query to search for
+//@from_message_id Identifier of the message starting from which messages must be fetched; use 0 to get results from the last message
+//@offset Specify 0 to get results from exactly the message from_message_id or a negative offset to get the specified message and some newer messages
+//@limit The maximum number of messages to be returned; must be positive and can't be greater than 100. If the offset is negative, the limit must be greater than -offset.
+//-For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
+searchSavedMessages tag:ReactionType query:string from_message_id:int53 offset:int32 limit:int32 = FoundChatMessages;
 
 //@description Searches for call messages. Returns the results in reverse chronological order (i.e., in order of decreasing message_id). For optimal performance, the number of returned messages is chosen by TDLib
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
