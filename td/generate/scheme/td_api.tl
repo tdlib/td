@@ -7627,12 +7627,12 @@ getMessageAvailableReactions chat_id:int53 message_id:int53 row_size:int32 = Ava
 //@description Clears the list of recently used reactions
 clearRecentReactions = Ok;
 
-//@description Adds a reaction to a message. Use getMessageAvailableReactions to receive the list of available reactions for the message
+//@description Adds a reaction or a tag to a message. Use getMessageAvailableReactions to receive the list of available reactions for the message
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
 //@reaction_type Type of the reaction to add
 //@is_big Pass true if the reaction is added with a big animation
-//@update_recent_reactions Pass true if the reaction needs to be added to recent reactions
+//@update_recent_reactions Pass true if the reaction needs to be added to recent reactions; tags are never added to the list of recent reactions
 addMessageReaction chat_id:int53 message_id:int53 reaction_type:ReactionType is_big:Bool update_recent_reactions:Bool = Ok;
 
 //@description Removes a reaction from a message. A chosen reaction can always be removed

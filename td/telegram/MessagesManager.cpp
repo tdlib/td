@@ -22724,11 +22724,13 @@ void MessagesManager::add_message_reaction(MessageFullId message_full_id, Reacti
   }
 
   LOG(INFO) << "Have message with " << *m->reactions;
-  if (!m->reactions->add_my_reaction(reaction_type, is_big, get_my_reaction_dialog_id(d), have_recent_choosers)) {
+  bool is_tag = can_add_message_tag(dialog_id, m->reactions.get());
+  if (!m->reactions->add_my_reaction(reaction_type, is_big, get_my_reaction_dialog_id(d), have_recent_choosers,
+                                     is_tag)) {
     return promise.set_value(Unit());
   }
 
-  if (add_to_recent) {
+  if (!is_tag && add_to_recent) {
     td_->reaction_manager_->add_recent_reaction(reaction_type);
   }
 

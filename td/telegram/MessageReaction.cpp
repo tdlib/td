@@ -613,7 +613,7 @@ void MessageReactions::update_from(const MessageReactions &old_reactions) {
 }
 
 bool MessageReactions::add_my_reaction(const ReactionType &reaction_type, bool is_big, DialogId my_dialog_id,
-                                       bool have_recent_choosers) {
+                                       bool have_recent_choosers, bool is_tag) {
   vector<ReactionType> new_chosen_reaction_order = get_chosen_reaction_types();
 
   auto added_reaction = get_reaction(reaction_type);
@@ -632,6 +632,11 @@ bool MessageReactions::add_my_reaction(const ReactionType &reaction_type, bool i
     new_chosen_reaction_order.emplace_back(reaction_type);
   } else if (!is_big) {
     return false;
+  }
+  if (!is_tag) {
+    CHECK(!are_tags_);
+  } else {
+    are_tags_ = true;
   }
 
   auto max_reaction_count = get_max_reaction_count();
