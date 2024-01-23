@@ -57,22 +57,27 @@ OptionManager::OptionManager(Td *td)
     , option_pmc_(G()->td_db()->get_config_pmc_shared()) {
   send_unix_time_update();
 
-  auto all_options = option_pmc_->get_all();
-  all_options["utc_time_offset"] = PSTRING() << 'I' << Clocks::tz_offset();
-  for (const auto &name_value : all_options) {
-    const string &name = name_value.first;
+  option_pmc_->for_each([&](Slice name, Slice value) {
+    if (name == "utc_time_offset") {
+      return;
+    }
     CHECK(!name.empty());
-    options_->set(name, name_value.second);
+    options_->set(name, value);
     if (!is_internal_option(name)) {
       send_closure(G()->td(), &Td::send_update,
-                   td_api::make_object<td_api::updateOption>(name, get_option_value_object(name_value.second)));
+                   td_api::make_object<td_api::updateOption>(name.str(), get_option_value_object(value)));
     } else {
       auto update = get_internal_option_update(name);
       if (update != nullptr) {
         send_closure(G()->td(), &Td::send_update, std::move(update));
       }
     }
-  }
+  });
+
+  auto utc_time_offset = PSTRING() << 'I' << Clocks::tz_offset();
+  options_->set("utc_time_offset", utc_time_offset);
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateOption>("utc_time_offset", get_option_value_object(utc_time_offset)));
 
   if (!have_option("message_text_length_max")) {
     set_option_integer("message_text_length_max", 4096);
