@@ -125,7 +125,9 @@ OptionManager::OptionManager(Td *td)
   set_default_integer_option("channel_profile_bg_icon_level_min", G()->is_test_dc() ? 1 : 7);
   set_default_integer_option("channel_wallpaper_level_min", G()->is_test_dc() ? 3 : 9);
 
-  update_premium_options();
+  if (options.isset("my_phone_number") || !options.isset("my_id")) {
+    update_premium_options();
+  }
 
   set_option_empty("archive_and_mute_new_chats_from_unknown_users");
   set_option_empty("channel_custom_accent_color_boost_level_min");
