@@ -250,6 +250,11 @@ bool operator<(const ReactionManager::SavedReactionTag &lhs, const ReactionManag
   return std::tie(lhs.count_, lhs.title_, lhs.reaction_type_) < std::tie(rhs.count_, rhs.title_, rhs.reaction_type_);
 }
 
+StringBuilder &operator<<(StringBuilder &string_builder, const ReactionManager::SavedReactionTag &saved_reaction_tag) {
+  return string_builder << "SavedMessagesTag{" << saved_reaction_tag.reaction_type_ << '(' << saved_reaction_tag.title_
+                        << ") X " << saved_reaction_tag.count_ << '}';
+}
+
 td_api::object_ptr<td_api::savedMessagesTags> ReactionManager::SavedReactionTags::get_saved_messages_tags_object()
     const {
   return td_api::make_object<td_api::savedMessagesTags>(
@@ -265,6 +270,7 @@ void ReactionManager::SavedReactionTags::update_saved_messages_tags(const vector
   is_changed = false;
   for (const auto &old_tag : old_tags) {
     if (!td::contains(new_tags, old_tag)) {
+      CHECK(!old_tag.is_empty());
       for (auto it = tags_.begin(); it != tags_.end(); ++it) {
         auto &tag = *it;
         if (tag.reaction_type_ == old_tag) {
@@ -280,6 +286,7 @@ void ReactionManager::SavedReactionTags::update_saved_messages_tags(const vector
   }
   for (const auto &new_tag : new_tags) {
     if (!td::contains(old_tags, new_tag)) {
+      CHECK(!new_tag.is_empty());
       is_changed = true;
       bool is_found = false;
       for (auto &tag : tags_) {
@@ -841,6 +848,10 @@ void ReactionManager::on_get_saved_messages_tags(
       vector<SavedReactionTag> saved_reaction_tags;
       for (auto &tag : tags->tags_) {
         saved_reaction_tags.emplace_back(std::move(tag));
+        if (!saved_reaction_tags.back().is_valid()) {
+          LOG(ERROR) << "Receive " << saved_reaction_tags.back();
+          saved_reaction_tags.pop_back();
+        }
       }
       std::sort(saved_reaction_tags.begin(), saved_reaction_tags.end());
       tags_.hash_ = tags->hash_;

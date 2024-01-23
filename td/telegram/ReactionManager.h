@@ -17,6 +17,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/Promise.h"
+#include "td/utils/StringBuilder.h"
 
 #include <utility>
 
@@ -136,6 +137,10 @@ class ReactionManager final : public Actor {
 
     SavedReactionTag() = default;
 
+    bool is_valid() const {
+      return !reaction_type_.is_empty() && count_ > 0;
+    }
+
     explicit SavedReactionTag(telegram_api::object_ptr<telegram_api::savedReactionTag> &&tag);
 
     td_api::object_ptr<td_api::savedMessagesTag> get_saved_messages_tag_object() const;
@@ -146,6 +151,8 @@ class ReactionManager final : public Actor {
   friend bool operator!=(const SavedReactionTag &lhs, const SavedReactionTag &rhs);
 
   friend bool operator<(const SavedReactionTag &lhs, const SavedReactionTag &rhs);
+
+  friend StringBuilder &operator<<(StringBuilder &string_builder, const SavedReactionTag &saved_reaction_tag);
 
   struct SavedReactionTags {
     vector<SavedReactionTag> tags_;
