@@ -2866,6 +2866,11 @@ class CliClient final : public Actor {
           chat_id, message_id, as_reaction_type(reaction), offset, as_limit(limit)));
     } else if (op == "gsmts") {
       send_request(td_api::make_object<td_api::getSavedMessagesTags>());
+    } else if (op == "ssmtl") {
+      string reaction;
+      string label;
+      get_args(args, reaction, label);
+      send_request(td_api::make_object<td_api::setSavedMessagesTagLabel>(as_reaction_type(reaction), label));
     } else if (op == "gmpf") {
       ChatId chat_id;
       MessageId message_id;

@@ -5466,6 +5466,14 @@ void Td::on_request(uint64 id, const td_api::getSavedMessagesTags &request) {
   reaction_manager_->get_saved_messages_tags(std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::setSavedMessagesTagLabel &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.label_);
+  CREATE_OK_REQUEST_PROMISE();
+  reaction_manager_->set_saved_messages_tag_title(ReactionType(request.tag_), std::move(request.label_),
+                                                  std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::getMessagePublicForwards &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.offset_);

@@ -68,7 +68,9 @@ class ReactionManager final : public Actor {
 
   void get_saved_messages_tags(Promise<td_api::object_ptr<td_api::savedMessagesTags>> &&promise);
 
-  void on_update_saved_reaction_tags();
+  void on_update_saved_reaction_tags(Promise<Unit> &&promise);
+
+  void set_saved_messages_tag_title(ReactionType reaction_type, string title, Promise<Unit> &&promise);
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
@@ -122,6 +124,8 @@ class ReactionManager final : public Actor {
     template <class ParserT>
     void parse(ParserT &parser);
   };
+
+  static constexpr int32 MAX_TAG_TITLE_LENGTH = 12;
 
   struct SavedReactionTag {
     ReactionType reaction_type_;

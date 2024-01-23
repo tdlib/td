@@ -3713,7 +3713,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateRecentReactions
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateSavedReactionTags> update, Promise<Unit> &&promise) {
-  td_->reaction_manager_->on_update_saved_reaction_tags();
+  td_->reaction_manager_->on_update_saved_reaction_tags(Promise<Unit>());
   promise.set_value(Unit());
 }
 

@@ -7682,6 +7682,9 @@ setDefaultReactionType reaction_type:ReactionType = Ok;
 //@description Returns tags used in Saved Messages
 getSavedMessagesTags = SavedMessagesTags;
 
+//@description Changes label of a Saved Messages tag; for Telegram Premium users only @tag The tag @label New label for the tag; 0-12 characters
+setSavedMessagesTagLabel tag:ReactionType label:string = Ok;
+
 
 //@description Searches for a given quote in a text. Returns found quote start position in UTF-16 code units. Returns a 404 error if the quote is not found. Can be called synchronously
 //@text Text in which to search for the quote

@@ -200,6 +200,36 @@ class GetSavedReactionTagsQuery final : public Td::ResultHandler {
   }
 };
 
+class UpdateSavedReactionTagQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit UpdateSavedReactionTagQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(const ReactionType &reaction_type, const string &title) {
+    int32 flags = 0;
+    if (!title.empty()) {
+      flags |= telegram_api::messages_updateSavedReactionTag::TITLE_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_updateSavedReactionTag(flags, reaction_type.get_input_reaction(), title)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_updateSavedReactionTag>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 ReactionManager::SavedReactionTag::SavedReactionTag(telegram_api::object_ptr<telegram_api::savedReactionTag> &&tag)
     : reaction_type_(tag->reaction_), title_(std::move(tag->title_)), count_(tag->count_) {
 }
@@ -794,8 +824,28 @@ void ReactionManager::send_update_saved_messages_tags() {
   send_closure(G()->td(), &Td::send_update, get_update_saved_messages_tags_object());
 }
 
-void ReactionManager::on_update_saved_reaction_tags() {
-  get_saved_messages_tags(Auto());
+void ReactionManager::on_update_saved_reaction_tags(Promise<Unit> &&promise) {
+  get_saved_messages_tags(PromiseCreator::lambda(
+      [promise = std::move(promise)](Result<td_api::object_ptr<td_api::savedMessagesTags>> result) mutable {
+        promise.set_value(Unit());
+      }));
+}
+
+void ReactionManager::set_saved_messages_tag_title(ReactionType reaction_type, string title, Promise<Unit> &&promise) {
+  if (reaction_type.is_empty()) {
+    return promise.set_error(Status::Error(400, "Reaction type must be non-empty"));
+  }
+  title = clean_name(title, MAX_TAG_TITLE_LENGTH);
+
+  auto query_promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](Result<Unit> result) mutable {
+        if (result.is_ok()) {
+          send_closure(actor_id, &ReactionManager::on_update_saved_reaction_tags, std::move(promise));
+        } else {
+          promise.set_error(result.move_as_error());
+        }
+      });
+  td_->create_handler<UpdateSavedReactionTagQuery>(std::move(query_promise))->send(reaction_type, title);
 }
 
 void ReactionManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
