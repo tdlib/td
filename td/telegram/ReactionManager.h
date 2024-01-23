@@ -66,6 +66,8 @@ class ReactionManager final : public Actor {
 
   void send_set_default_reaction_query();
 
+  void get_saved_messages_tags(Promise<td_api::object_ptr<td_api::savedMessagesTags>> &&promise);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
@@ -119,6 +121,24 @@ class ReactionManager final : public Actor {
     void parse(ParserT &parser);
   };
 
+  struct SavedReactionTag {
+    ReactionType reaction_type_;
+    string title_;
+    int32 count_ = 0;
+
+    explicit SavedReactionTag(telegram_api::object_ptr<telegram_api::savedReactionTag> &&tag);
+
+    td_api::object_ptr<td_api::savedMessagesTag> get_saved_messages_tag_object() const;
+  };
+
+  struct SavedReactionTags {
+    vector<SavedReactionTag> tags_;
+    int64 hash_ = 0;
+    bool is_inited_ = false;
+
+    td_api::object_ptr<td_api::savedMessagesTags> get_saved_messages_tags_object() const;
+  };
+
   td_api::object_ptr<td_api::emojiReaction> get_emoji_reaction_object(const string &emoji) const;
 
   ReactionList &get_reaction_list(ReactionListType reaction_list_type);
@@ -143,6 +163,8 @@ class ReactionManager final : public Actor {
 
   td_api::object_ptr<td_api::updateActiveEmojiReactions> get_update_active_emoji_reactions_object() const;
 
+  void on_get_saved_messages_tags(Result<telegram_api::object_ptr<telegram_api::messages_SavedReactionTags>> &&r_tags);
+
   Td *td_;
   ActorShared<> parent_;
 
@@ -154,6 +176,9 @@ class ReactionManager final : public Actor {
   vector<ReactionType> active_reaction_types_;
 
   ReactionList reaction_lists_[MAX_REACTION_LIST_TYPE];
+
+  SavedReactionTags tags_;
+  vector<Promise<td_api::object_ptr<td_api::savedMessagesTags>>> pending_get_saved_reaction_tags_queries_;
 
   bool are_reactions_loaded_from_database_ = false;
 };

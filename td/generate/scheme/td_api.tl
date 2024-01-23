@@ -1624,6 +1624,13 @@ chatAvailableReactionsAll = ChatAvailableReactions;
 chatAvailableReactionsSome reactions:vector<ReactionType> = ChatAvailableReactions;
 
 
+//@description Represents a tag used in Saved Messages @tag The tag @label Label of the tag; 0-12 characters @count Number of times the tag was used
+savedMessagesTag tag:ReactionType label:string count:int32 = SavedMessagesTag;
+
+//@description Contains a list of tags used in Saved Messages @tags List of tags
+savedMessagesTags tags:vector<savedMessagesTag> = SavedMessagesTags;
+
+
 //@description Describes a video chat
 //@group_call_id Group call identifier of an active video chat; 0 if none. Full information about the video chat can be received through the method getGroupCall
 //@has_participants True, if the video chat has participants
@@ -7668,6 +7675,9 @@ getMessageAddedReactions chat_id:int53 message_id:int53 reaction_type:ReactionTy
 
 //@description Changes type of default reaction for the current user @reaction_type New type of the default reaction
 setDefaultReactionType reaction_type:ReactionType = Ok;
+
+//@description Returns tags used in Saved Messages
+getSavedMessagesTags = SavedMessagesTags;
 
 
 //@description Searches for a given quote in a text. Returns found quote start position in UTF-16 code units. Returns a 404 error if the quote is not found. Can be called synchronously

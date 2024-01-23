@@ -793,6 +793,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::setDefaultReactionType &request);
 
+  void on_request(uint64 id, const td_api::getSavedMessagesTags &request);
+
   void on_request(uint64 id, td_api::getMessagePublicForwards &request);
 
   void on_request(uint64 id, td_api::getStoryPublicForwards &request);

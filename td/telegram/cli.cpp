@@ -2864,6 +2864,8 @@ class CliClient final : public Actor {
       get_args(args, chat_id, message_id, reaction, offset, limit);
       send_request(td_api::make_object<td_api::getMessageAddedReactions>(
           chat_id, message_id, as_reaction_type(reaction), offset, as_limit(limit)));
+    } else if (op == "gsmts") {
+      send_request(td_api::make_object<td_api::getSavedMessagesTags>());
     } else if (op == "gmpf") {
       ChatId chat_id;
       MessageId message_id;

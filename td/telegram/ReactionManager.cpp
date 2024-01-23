@@ -166,6 +166,49 @@ class SetDefaultReactionQuery final : public Td::ResultHandler {
   }
 };
 
+class GetSavedReactionTagsQuery final : public Td::ResultHandler {
+  Promise<telegram_api::object_ptr<telegram_api::messages_SavedReactionTags>> promise_;
+
+ public:
+  explicit GetSavedReactionTagsQuery(
+      Promise<telegram_api::object_ptr<telegram_api::messages_SavedReactionTags>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(int64 hash) {
+    send_query(G()->net_query_creator().create(telegram_api::messages_getSavedReactionTags(hash)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getSavedReactionTags>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetSavedReactionTagsQuery: " << to_string(ptr);
+    promise_.set_value(std::move(ptr));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+ReactionManager::SavedReactionTag::SavedReactionTag(telegram_api::object_ptr<telegram_api::savedReactionTag> &&tag)
+    : reaction_type_(tag->reaction_), title_(std::move(tag->title_)), count_(tag->count_) {
+}
+
+td_api::object_ptr<td_api::savedMessagesTag> ReactionManager::SavedReactionTag::get_saved_messages_tag_object() const {
+  return td_api::make_object<td_api::savedMessagesTag>(reaction_type_.get_reaction_type_object(), title_, count_);
+}
+
+td_api::object_ptr<td_api::savedMessagesTags> ReactionManager::SavedReactionTags::get_saved_messages_tags_object()
+    const {
+  return td_api::make_object<td_api::savedMessagesTags>(
+      transform(tags_, [](const SavedReactionTag &tag) { return tag.get_saved_messages_tag_object(); }));
+}
+
 ReactionManager::ReactionManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 
@@ -650,6 +693,58 @@ void ReactionManager::set_default_reaction(ReactionType reaction_type, Promise<U
 void ReactionManager::send_set_default_reaction_query() {
   td_->create_handler<SetDefaultReactionQuery>()->send(
       ReactionType(td_->option_manager_->get_option_string("default_reaction")));
+}
+
+void ReactionManager::get_saved_messages_tags(Promise<td_api::object_ptr<td_api::savedMessagesTags>> &&promise) {
+  if (tags_.is_inited_) {
+    // return promise.set_value(tags_.get_saved_messages_tags_object());
+  }
+
+  auto &promises = pending_get_saved_reaction_tags_queries_;
+  promises.push_back(std::move(promise));
+  if (promises.size() != 1) {
+    return;
+  }
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this)](Result<telegram_api::object_ptr<telegram_api::messages_SavedReactionTags>> r_tags) {
+        send_closure(actor_id, &ReactionManager::on_get_saved_messages_tags, std::move(r_tags));
+      });
+  td_->create_handler<GetSavedReactionTagsQuery>(std::move(query_promise))->send(tags_.hash_);
+}
+
+void ReactionManager::on_get_saved_messages_tags(
+    Result<telegram_api::object_ptr<telegram_api::messages_SavedReactionTags>> &&r_tags) {
+  G()->ignore_result_if_closing(r_tags);
+  auto promises = std::move(pending_get_saved_reaction_tags_queries_);
+  reset_to_empty(pending_get_saved_reaction_tags_queries_);
+  CHECK(!promises.empty());
+
+  if (r_tags.is_error()) {
+    return fail_promises(promises, r_tags.move_as_error());
+  }
+
+  auto tags_ptr = r_tags.move_as_ok();
+  switch (tags_ptr->get_id()) {
+    case telegram_api::messages_savedReactionTagsNotModified::ID:
+      // nothing to do
+      break;
+    case telegram_api::messages_savedReactionTags::ID: {
+      auto tags = telegram_api::move_object_as<telegram_api::messages_savedReactionTags>(tags_ptr);
+      vector<SavedReactionTag> saved_reaction_tags;
+      for (auto &tag : tags->tags_) {
+        saved_reaction_tags.emplace_back(std::move(tag));
+      }
+      tags_.tags_ = std::move(saved_reaction_tags);
+      tags_.hash_ = tags->hash_;
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
+
+  for (auto &promise : promises) {
+    promise.set_value(tags_.get_saved_messages_tags_object());
+  }
 }
 
 void ReactionManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {

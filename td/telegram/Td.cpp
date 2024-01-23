@@ -5460,6 +5460,12 @@ void Td::on_request(uint64 id, const td_api::setDefaultReactionType &request) {
   reaction_manager_->set_default_reaction(ReactionType(request.reaction_type_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getSavedMessagesTags &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  reaction_manager_->get_saved_messages_tags(std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::getMessagePublicForwards &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.offset_);
