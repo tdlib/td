@@ -3712,6 +3712,11 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateRecentReactions
   promise.set_value(Unit());
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateSavedReactionTags> update, Promise<Unit> &&promise) {
+  td_->reaction_manager_->on_update_saved_reaction_tags();
+  promise.set_value(Unit());
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateAttachMenuBots> update, Promise<Unit> &&promise) {
   td_->attach_menu_manager_->reload_attach_menu_bots(std::move(promise));
 }
@@ -4455,9 +4460,5 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewAuthorizatio
 }
 
 // unsupported updates
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateSavedReactionTags> update, Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
 
 }  // namespace td

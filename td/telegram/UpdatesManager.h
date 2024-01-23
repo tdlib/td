@@ -475,6 +475,8 @@ class UpdatesManager final : public Actor {
 
   void on_update(tl_object_ptr<telegram_api::updateRecentReactions> update, Promise<Unit> &&promise);
 
+  void on_update(tl_object_ptr<telegram_api::updateSavedReactionTags> update, Promise<Unit> &&promise);
+
   void on_update(tl_object_ptr<telegram_api::updateAttachMenuBots> update, Promise<Unit> &&promise);
   void on_update(tl_object_ptr<telegram_api::updateWebViewResultSent> update, Promise<Unit> &&promise);
 
@@ -536,6 +538,10 @@ class UpdatesManager final : public Actor {
   void on_update(tl_object_ptr<telegram_api::updateDialogPinned> update, Promise<Unit> &&promise);
   void on_update(tl_object_ptr<telegram_api::updatePinnedDialogs> update, Promise<Unit> &&promise);
   void on_update(tl_object_ptr<telegram_api::updateDialogUnreadMark> update, Promise<Unit> &&promise);
+
+  void on_update(tl_object_ptr<telegram_api::updateSavedDialogPinned> update, Promise<Unit> &&promise);
+
+  void on_update(tl_object_ptr<telegram_api::updatePinnedSavedDialogs> update, Promise<Unit> &&promise);
 
   void on_update(tl_object_ptr<telegram_api::updateDialogFilter> update, Promise<Unit> &&promise);
   void on_update(tl_object_ptr<telegram_api::updateDialogFilters> update, Promise<Unit> &&promise);
@@ -633,12 +639,6 @@ class UpdatesManager final : public Actor {
   void on_update(tl_object_ptr<telegram_api::updateNewAuthorization> update, Promise<Unit> &&promise);
 
   // unsupported updates
-
-  void on_update(tl_object_ptr<telegram_api::updateSavedDialogPinned> update, Promise<Unit> &&promise);
-
-  void on_update(tl_object_ptr<telegram_api::updatePinnedSavedDialogs> update, Promise<Unit> &&promise);
-
-  void on_update(tl_object_ptr<telegram_api::updateSavedReactionTags> update, Promise<Unit> &&promise);
 };
 
 }  // namespace td

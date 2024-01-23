@@ -68,6 +68,8 @@ class ReactionManager final : public Actor {
 
   void get_saved_messages_tags(Promise<td_api::object_ptr<td_api::savedMessagesTags>> &&promise);
 
+  void on_update_saved_reaction_tags();
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
