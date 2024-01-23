@@ -8,6 +8,7 @@
 
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ConfigManager.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessagesManager.h"
@@ -179,7 +180,8 @@ class GetSavedReactionTagsQuery final : public Td::ResultHandler {
   }
 
   void send(int64 hash) {
-    send_query(G()->net_query_creator().create(telegram_api::messages_getSavedReactionTags(hash)));
+    send_query(G()->net_query_creator().create(telegram_api::messages_getSavedReactionTags(hash),
+                                               {td_->dialog_manager_->get_my_dialog_id()}));
   }
 
   void on_result(BufferSlice packet) final {
