@@ -79,99 +79,41 @@ OptionManager::OptionManager(Td *td)
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateOption>("utc_time_offset", get_option_value_object(utc_time_offset)));
 
-  if (!have_option("message_text_length_max")) {
-    set_option_integer("message_text_length_max", 4096);
-  }
-  if (!have_option("message_caption_length_max")) {
-    set_option_integer("message_caption_length_max", 1024);
-  }
-  if (!have_option("message_reply_quote_length_max")) {
-    set_option_integer("message_reply_quote_length_max", 1024);
-  }
-  if (!have_option("story_caption_length_max")) {
-    set_option_integer("story_caption_length_max", 200);
-  }
-  if (!have_option("bio_length_max")) {
-    set_option_integer("bio_length_max", 70);
-  }
-  if (!have_option("suggested_video_note_length")) {
-    set_option_integer("suggested_video_note_length", 384);
-  }
-  if (!have_option("suggested_video_note_video_bitrate")) {
-    set_option_integer("suggested_video_note_video_bitrate", 1000);
-  }
-  if (!have_option("suggested_video_note_audio_bitrate")) {
-    set_option_integer("suggested_video_note_audio_bitrate", 64);
-  }
-  if (!have_option("notification_sound_duration_max")) {
-    set_option_integer("notification_sound_duration_max", 5);
-  }
-  if (!have_option("notification_sound_size_max")) {
-    set_option_integer("notification_sound_size_max", 307200);
-  }
-  if (!have_option("notification_sound_count_max")) {
-    set_option_integer("notification_sound_count_max", G()->is_test_dc() ? 5 : 100);
-  }
-  if (!have_option("chat_folder_count_max")) {
-    set_option_integer("chat_folder_count_max", G()->is_test_dc() ? 3 : 10);
-  }
-  if (!have_option("chat_folder_chosen_chat_count_max")) {
-    set_option_integer("chat_folder_chosen_chat_count_max", G()->is_test_dc() ? 5 : 100);
-  }
-  if (!have_option("aggressive_anti_spam_supergroup_member_count_min")) {
-    set_option_integer("aggressive_anti_spam_supergroup_member_count_min", G()->is_test_dc() ? 1 : 100);
-  }
-  if (!have_option("pinned_forum_topic_count_max")) {
-    set_option_integer("pinned_forum_topic_count_max", G()->is_test_dc() ? 3 : 5);
-  }
-  if (!have_option("archive_all_stories")) {
-    // set_option_boolean("archive_all_stories", false);
-  }
-  if (!have_option("story_stealth_mode_past_period")) {
-    set_option_integer("story_stealth_mode_past_period", 300);
-  }
-  if (!have_option("story_stealth_mode_future_period")) {
-    set_option_integer("story_stealth_mode_future_period", 1500);
-  }
-  if (!have_option("story_stealth_mode_cooldown_period")) {
-    set_option_integer("story_stealth_mode_cooldown_period", 3600);
-  }
-  if (!have_option("giveaway_additional_chat_count_max")) {
-    set_option_integer("giveaway_additional_chat_count_max", G()->is_test_dc() ? 3 : 10);
-  }
-  if (!have_option("giveaway_country_count_max")) {
-    set_option_integer("giveaway_country_count_max", G()->is_test_dc() ? 3 : 10);
-  }
-  if (!have_option("giveaway_boost_count_per_premium")) {
-    set_option_integer("giveaway_boost_count_per_premium", 4);
-  }
-  if (!have_option("giveaway_duration_max")) {
-    set_option_integer("giveaway_duration_max", 7 * 86400);
-  }
-  if (!have_option("premium_gift_boost_count")) {
-    set_option_integer("premium_gift_boost_count", 3);
-  }
-  if (!have_option("chat_boost_level_max")) {
-    set_option_integer("chat_boost_level_max", G()->is_test_dc() ? 10 : 100);
-  }
-  if (!have_option("chat_available_reaction_count_max")) {
-    set_option_integer("chat_available_reaction_count_max", 100);
-  }
-  if (!have_option("channel_bg_icon_level_min")) {
-    set_option_integer("channel_bg_icon_level_min", G()->is_test_dc() ? 1 : 4);
-  }
-  if (!have_option("channel_custom_wallpaper_level_min")) {
-    set_option_integer("channel_custom_wallpaper_level_min", G()->is_test_dc() ? 4 : 10);
-  }
-  if (!have_option("channel_emoji_status_level_min")) {
-    set_option_integer("channel_emoji_status_level_min", G()->is_test_dc() ? 2 : 8);
-  }
-  if (!have_option("channel_profile_bg_icon_level_min")) {
-    set_option_integer("channel_profile_bg_icon_level_min", G()->is_test_dc() ? 1 : 7);
-  }
-  if (!have_option("channel_wallpaper_level_min")) {
-    set_option_integer("channel_wallpaper_level_min", G()->is_test_dc() ? 3 : 9);
-  }
+  auto set_default_integer_option = [&](Slice name, int32 value) {
+    if (!have_option(name)) {
+      set_option_integer(name, value);
+    }
+  };
+
+  set_default_integer_option("message_caption_length_max", 1024);
+  set_default_integer_option("message_reply_quote_length_max", 1024);
+  set_default_integer_option("story_caption_length_max", 200);
+  set_default_integer_option("bio_length_max", 70);
+  set_default_integer_option("suggested_video_note_length", 384);
+  set_default_integer_option("suggested_video_note_video_bitrate", 1000);
+  set_default_integer_option("suggested_video_note_audio_bitrate", 64);
+  set_default_integer_option("notification_sound_duration_max", 5);
+  set_default_integer_option("notification_sound_size_max", 307200);
+  set_default_integer_option("notification_sound_count_max", G()->is_test_dc() ? 5 : 100);
+  set_default_integer_option("chat_folder_count_max", G()->is_test_dc() ? 3 : 10);
+  set_default_integer_option("chat_folder_chosen_chat_count_max", G()->is_test_dc() ? 5 : 100);
+  set_default_integer_option("aggressive_anti_spam_supergroup_member_count_min", G()->is_test_dc() ? 1 : 100);
+  set_default_integer_option("pinned_forum_topic_count_max", G()->is_test_dc() ? 3 : 5);
+  set_default_integer_option("story_stealth_mode_past_period", 300);
+  set_default_integer_option("story_stealth_mode_future_period", 1500);
+  set_default_integer_option("story_stealth_mode_cooldown_period", 3600);
+  set_default_integer_option("giveaway_additional_chat_count_max", G()->is_test_dc() ? 3 : 10);
+  set_default_integer_option("giveaway_country_count_max", G()->is_test_dc() ? 3 : 10);
+  set_default_integer_option("giveaway_boost_count_per_premium", 4);
+  set_default_integer_option("giveaway_duration_max", 7 * 86400);
+  set_default_integer_option("premium_gift_boost_count", 3);
+  set_default_integer_option("chat_boost_level_max", G()->is_test_dc() ? 10 : 100);
+  set_default_integer_option("chat_available_reaction_count_max", 100);
+  set_default_integer_option("channel_bg_icon_level_min", G()->is_test_dc() ? 1 : 4);
+  set_default_integer_option("channel_custom_wallpaper_level_min", G()->is_test_dc() ? 4 : 10);
+  set_default_integer_option("channel_emoji_status_level_min", G()->is_test_dc() ? 2 : 8);
+  set_default_integer_option("channel_profile_bg_icon_level_min", G()->is_test_dc() ? 1 : 7);
+  set_default_integer_option("channel_wallpaper_level_min", G()->is_test_dc() ? 3 : 9);
 
   update_premium_options();
 
