@@ -424,7 +424,7 @@ td_api::object_ptr<td_api::availableReactions> ReactionManager::get_sorted_avail
 
   return td_api::make_object<td_api::availableReactions>(
       std::move(top_reaction_objects), std::move(recent_reaction_objects), std::move(popular_reaction_objects),
-      available_reactions.allow_all_custom_);
+      available_reactions.allow_all_custom_, is_tag);
 }
 
 td_api::object_ptr<td_api::availableReactions> ReactionManager::get_available_reactions(int32 row_size) {
