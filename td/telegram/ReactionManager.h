@@ -70,6 +70,8 @@ class ReactionManager final : public Actor {
 
   void on_update_saved_reaction_tags(Promise<Unit> &&promise);
 
+  void update_saved_messages_tags(const vector<ReactionType> &old_tags, const vector<ReactionType> &new_tags);
+
   void set_saved_messages_tag_title(ReactionType reaction_type, string title, Promise<Unit> &&promise);
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
@@ -132,6 +134,8 @@ class ReactionManager final : public Actor {
     string title_;
     int32 count_ = 0;
 
+    SavedReactionTag() = default;
+
     explicit SavedReactionTag(telegram_api::object_ptr<telegram_api::savedReactionTag> &&tag);
 
     td_api::object_ptr<td_api::savedMessagesTag> get_saved_messages_tag_object() const;
@@ -149,6 +153,9 @@ class ReactionManager final : public Actor {
     bool is_inited_ = false;
 
     td_api::object_ptr<td_api::savedMessagesTags> get_saved_messages_tags_object() const;
+
+    void update_saved_messages_tags(const vector<ReactionType> &old_tags, const vector<ReactionType> &new_tags,
+                                    bool &is_changed, bool &need_reload_title);
   };
 
   td_api::object_ptr<td_api::emojiReaction> get_emoji_reaction_object(const string &emoji) const;

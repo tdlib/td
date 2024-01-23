@@ -256,6 +256,53 @@ td_api::object_ptr<td_api::savedMessagesTags> ReactionManager::SavedReactionTags
       transform(tags_, [](const SavedReactionTag &tag) { return tag.get_saved_messages_tag_object(); }));
 }
 
+void ReactionManager::SavedReactionTags::update_saved_messages_tags(const vector<ReactionType> &old_tags,
+                                                                    const vector<ReactionType> &new_tags,
+                                                                    bool &is_changed, bool &need_reload_title) {
+  if (!is_inited_) {
+    return;
+  }
+  is_changed = false;
+  for (const auto &old_tag : old_tags) {
+    if (!td::contains(new_tags, old_tag)) {
+      for (auto it = tags_.begin(); it != tags_.end(); ++it) {
+        auto &tag = *it;
+        if (tag.reaction_type_ == old_tag) {
+          tag.count_--;
+          if (tag.count_ <= 0) {
+            tags_.erase(it);
+          }
+          is_changed = true;
+          break;
+        }
+      }
+    }
+  }
+  for (const auto &new_tag : new_tags) {
+    if (!td::contains(old_tags, new_tag)) {
+      is_changed = true;
+      bool is_found = false;
+      for (auto &tag : tags_) {
+        if (tag.reaction_type_ == new_tag) {
+          tag.count_++;
+          is_found = true;
+          break;
+        }
+      }
+      if (!is_found) {
+        SavedReactionTag saved_reaction_tag;
+        saved_reaction_tag.reaction_type_ = new_tag;
+        saved_reaction_tag.count_ = 1;
+        tags_.push_back(std::move(saved_reaction_tag));
+        need_reload_title = true;
+      }
+    }
+  }
+  if (is_changed) {
+    std::sort(tags_.begin(), tags_.end());
+  }
+}
+
 ReactionManager::ReactionManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 
@@ -757,7 +804,7 @@ void ReactionManager::send_set_default_reaction_query() {
 
 void ReactionManager::get_saved_messages_tags(Promise<td_api::object_ptr<td_api::savedMessagesTags>> &&promise) {
   if (tags_.is_inited_) {
-    // return promise.set_value(tags_.get_saved_messages_tags_object());
+    return promise.set_value(tags_.get_saved_messages_tags_object());
   }
 
   auto &promises = pending_get_saved_reaction_tags_queries_;
@@ -829,6 +876,22 @@ void ReactionManager::on_update_saved_reaction_tags(Promise<Unit> &&promise) {
       [promise = std::move(promise)](Result<td_api::object_ptr<td_api::savedMessagesTags>> result) mutable {
         promise.set_value(Unit());
       }));
+}
+
+void ReactionManager::update_saved_messages_tags(const vector<ReactionType> &old_tags,
+                                                 const vector<ReactionType> &new_tags) {
+  if (old_tags == new_tags) {
+    return;
+  }
+  bool is_changed = false;
+  bool need_reload_title = false;
+  tags_.update_saved_messages_tags(old_tags, new_tags, is_changed, need_reload_title);
+  if (is_changed) {
+    send_update_saved_messages_tags();
+  }
+  if (need_reload_title && td_->option_manager_->get_option_boolean("is_premium")) {
+    on_update_saved_reaction_tags(Auto());
+  }
 }
 
 void ReactionManager::set_saved_messages_tag_title(ReactionType reaction_type, string title, Promise<Unit> &&promise) {
