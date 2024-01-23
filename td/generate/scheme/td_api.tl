@@ -1624,7 +1624,7 @@ chatAvailableReactionsAll = ChatAvailableReactions;
 chatAvailableReactionsSome reactions:vector<ReactionType> = ChatAvailableReactions;
 
 
-//@description Represents a tag used in Saved Messages @tag The tag @label Label of the tag; 0-12 characters @count Number of times the tag was used
+//@description Represents a tag used in Saved Messages @tag The tag @label Label of the tag; 0-12 characters @count Number of times the tag was used; may be 0 if the tag has non-empty label
 savedMessagesTag tag:ReactionType label:string count:int32 = SavedMessagesTag;
 
 //@description Contains a list of tags used in Saved Messages @tags List of tags

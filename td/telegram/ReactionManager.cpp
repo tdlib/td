@@ -275,7 +275,7 @@ void ReactionManager::SavedReactionTags::update_saved_messages_tags(const vector
         auto &tag = *it;
         if (tag.reaction_type_ == old_tag) {
           tag.count_--;
-          if (tag.count_ <= 0) {
+          if (!tag.is_valid()) {
             tags_.erase(it);
           }
           is_changed = true;
