@@ -5461,8 +5461,8 @@ UserId ContactsManager::add_channel_bot_user() {
   return user_id;
 }
 
-ChatId ContactsManager::get_unsupported_chat_id() {
-  return ChatId(static_cast<int64>(G()->is_test_dc() ? 10304875 : 1535424647));
+ChannelId ContactsManager::get_unsupported_channel_id() {
+  return ChannelId(static_cast<int64>(G()->is_test_dc() ? 10304875 : 1535424647));
 }
 
 int32 ContactsManager::get_user_was_online(const User *u, UserId user_id, int32 unix_time) const {

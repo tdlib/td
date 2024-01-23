@@ -335,7 +335,7 @@ class ContactsManager final : public Actor {
 
   UserId add_channel_bot_user();
 
-  static ChatId get_unsupported_chat_id();
+  static ChannelId get_unsupported_channel_id();
 
   void on_update_username_is_active(UserId user_id, string &&username, bool is_active, Promise<Unit> &&promise);
 

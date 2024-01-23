@@ -1627,7 +1627,7 @@ vector<DialogId> UpdatesManager::get_chat_dialog_ids(const telegram_api::Updates
     }
   }
   if (dialog_ids.size() > 1) {
-    td::remove(dialog_ids, DialogId(ContactsManager::get_unsupported_chat_id()));
+    td::remove(dialog_ids, DialogId(ContactsManager::get_unsupported_channel_id()));
   }
   return dialog_ids;
 }
