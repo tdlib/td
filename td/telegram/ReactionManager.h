@@ -131,6 +131,12 @@ class ReactionManager final : public Actor {
     td_api::object_ptr<td_api::savedMessagesTag> get_saved_messages_tag_object() const;
   };
 
+  friend bool operator==(const SavedReactionTag &lhs, const SavedReactionTag &rhs);
+
+  friend bool operator!=(const SavedReactionTag &lhs, const SavedReactionTag &rhs);
+
+  friend bool operator<(const SavedReactionTag &lhs, const SavedReactionTag &rhs);
+
   struct SavedReactionTags {
     vector<SavedReactionTag> tags_;
     int64 hash_ = 0;
@@ -164,6 +170,10 @@ class ReactionManager final : public Actor {
   td_api::object_ptr<td_api::updateActiveEmojiReactions> get_update_active_emoji_reactions_object() const;
 
   void on_get_saved_messages_tags(Result<telegram_api::object_ptr<telegram_api::messages_SavedReactionTags>> &&r_tags);
+
+  td_api::object_ptr<td_api::updateSavedMessagesTags> get_update_saved_messages_tags_object() const;
+
+  void send_update_saved_messages_tags();
 
   Td *td_;
   ActorShared<> parent_;

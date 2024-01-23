@@ -26,6 +26,9 @@
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/Status.h"
 
+#include <algorithm>
+#include <tuple>
+
 namespace td {
 
 class GetAvailableReactionsQuery final : public Td::ResultHandler {
@@ -201,6 +204,18 @@ ReactionManager::SavedReactionTag::SavedReactionTag(telegram_api::object_ptr<tel
 
 td_api::object_ptr<td_api::savedMessagesTag> ReactionManager::SavedReactionTag::get_saved_messages_tag_object() const {
   return td_api::make_object<td_api::savedMessagesTag>(reaction_type_.get_reaction_type_object(), title_, count_);
+}
+
+bool operator==(const ReactionManager::SavedReactionTag &lhs, const ReactionManager::SavedReactionTag &rhs) {
+  return lhs.reaction_type_ == rhs.reaction_type_ && lhs.title_ == rhs.title_ && lhs.count_ == rhs.count_;
+}
+
+bool operator!=(const ReactionManager::SavedReactionTag &lhs, const ReactionManager::SavedReactionTag &rhs) {
+  return !(lhs == rhs);
+}
+
+bool operator<(const ReactionManager::SavedReactionTag &lhs, const ReactionManager::SavedReactionTag &rhs) {
+  return std::tie(lhs.count_, lhs.title_, lhs.reaction_type_) < std::tie(rhs.count_, rhs.title_, rhs.reaction_type_);
 }
 
 td_api::object_ptr<td_api::savedMessagesTags> ReactionManager::SavedReactionTags::get_saved_messages_tags_object()
@@ -724,6 +739,7 @@ void ReactionManager::on_get_saved_messages_tags(
   }
 
   auto tags_ptr = r_tags.move_as_ok();
+  bool need_send_update = false;
   switch (tags_ptr->get_id()) {
     case telegram_api::messages_savedReactionTagsNotModified::ID:
       // nothing to do
@@ -734,17 +750,33 @@ void ReactionManager::on_get_saved_messages_tags(
       for (auto &tag : tags->tags_) {
         saved_reaction_tags.emplace_back(std::move(tag));
       }
-      tags_.tags_ = std::move(saved_reaction_tags);
+      std::sort(saved_reaction_tags.begin(), saved_reaction_tags.end());
       tags_.hash_ = tags->hash_;
+      if (saved_reaction_tags != tags_.tags_) {
+        tags_.tags_ = std::move(saved_reaction_tags);
+        need_send_update = true;
+      }
+      tags_.is_inited_ = true;
       break;
     }
     default:
       UNREACHABLE();
   }
 
+  if (need_send_update) {
+    send_update_saved_messages_tags();
+  }
   for (auto &promise : promises) {
     promise.set_value(tags_.get_saved_messages_tags_object());
   }
+}
+
+td_api::object_ptr<td_api::updateSavedMessagesTags> ReactionManager::get_update_saved_messages_tags_object() const {
+  return td_api::make_object<td_api::updateSavedMessagesTags>(tags_.get_saved_messages_tags_object());
+}
+
+void ReactionManager::send_update_saved_messages_tags() {
+  send_closure(G()->td(), &Td::send_update, get_update_saved_messages_tags_object());
 }
 
 void ReactionManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
@@ -754,6 +786,9 @@ void ReactionManager::get_current_state(vector<td_api::object_ptr<td_api::Update
 
   if (!active_reaction_types_.empty()) {
     updates.push_back(get_update_active_emoji_reactions_object());
+  }
+  if (tags_.is_inited_) {
+    updates.push_back(get_update_saved_messages_tags_object());
   }
 }
 

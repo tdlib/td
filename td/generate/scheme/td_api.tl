@@ -6678,6 +6678,9 @@ updateActiveEmojiReactions emojis:vector<string> = Update;
 //@description The type of default reaction has changed @reaction_type The new type of the default reaction
 updateDefaultReactionType reaction_type:ReactionType = Update;
 
+//@description Used Saved Messages tags has changed @tags The new used tags
+updateSavedMessagesTags tags:savedMessagesTags = Update;
+
 //@description The parameters of speech recognition without Telegram Premium subscription has changed
 //@max_media_duration The maximum allowed duration of media for speech recognition without Telegram Premium subscription
 //@weekly_count The total number of allowed speech recognitions per week; 0 if none
