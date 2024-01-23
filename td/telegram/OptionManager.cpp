@@ -79,12 +79,20 @@ OptionManager::OptionManager(Td *td)
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateOption>("utc_time_offset", get_option_value_object(utc_time_offset)));
 
-  auto set_default_integer_option = [&](Slice name, int32 value) {
-    if (!have_option(name)) {
-      set_option_integer(name, value);
+  auto set_default_integer_option = [&](string name, int32 value) {
+    if (options_->isset(name)) {
+      return;
+    }
+    auto str_value = PSTRING() << 'I' << value;
+    options_->set(name, str_value);
+    option_pmc_->set(name, str_value);
+
+    if (!is_internal_option(name)) {
+      send_closure(
+          G()->td(), &Td::send_update,
+          td_api::make_object<td_api::updateOption>(name, td_api::make_object<td_api::optionValueInteger>(value)));
     }
   };
-
   set_default_integer_option("message_caption_length_max", 1024);
   set_default_integer_option("message_reply_quote_length_max", 1024);
   set_default_integer_option("story_caption_length_max", 200);
