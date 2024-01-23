@@ -8,6 +8,7 @@
 
 #include "td/utils/algorithm.h"
 #include "td/utils/common.h"
+#include "td/utils/crypto.h"
 #include "td/utils/Hints.h"
 #include "td/utils/misc.h"
 #include "td/utils/Slice.h"
@@ -283,6 +284,16 @@ bool is_allowed_username(Slice username) {
     return false;
   }
   return true;
+}
+
+uint64 get_md5_string_hash(const string &str) {
+  unsigned char hash[16];
+  md5(str, {hash, sizeof(hash)});
+  uint64 result = 0;
+  for (int i = 0; i <= 7; i++) {
+    result += static_cast<uint64>(hash[i]) << (56 - 8 * i);
+  }
+  return result;
 }
 
 int64 get_vector_hash(const vector<uint64> &numbers) {

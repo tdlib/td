@@ -163,6 +163,8 @@ class ReactionManager final : public Actor {
 
     void update_saved_messages_tags(const vector<ReactionType> &old_tags, const vector<ReactionType> &new_tags,
                                     bool &is_changed, bool &need_reload_title);
+
+    int64 calc_hash() const;
   };
 
   td_api::object_ptr<td_api::emojiReaction> get_emoji_reaction_object(const string &emoji) const;

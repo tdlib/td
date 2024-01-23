@@ -55,6 +55,8 @@ class ReactionType {
 
   td_api::object_ptr<td_api::updateDefaultReactionType> get_update_default_reaction_type() const;
 
+  uint64 get_hash() const;
+
   bool is_custom_reaction() const;
 
   bool is_active_reaction(const FlatHashMap<ReactionType, size_t, ReactionTypeHash> &active_reaction_pos) const;

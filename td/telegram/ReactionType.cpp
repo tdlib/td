@@ -134,6 +134,14 @@ td_api::object_ptr<td_api::updateDefaultReactionType> ReactionType::get_update_d
   return td_api::make_object<td_api::updateDefaultReactionType>(get_reaction_type_object());
 }
 
+uint64 ReactionType::get_hash() const {
+  if (is_custom_reaction()) {
+    return static_cast<uint64>(get_custom_emoji_id(reaction_));
+  } else {
+    return get_md5_string_hash(remove_emoji_selectors(reaction_));
+  }
+}
+
 bool ReactionType::is_custom_reaction() const {
   return reaction_[0] == '#';
 }

@@ -39,6 +39,9 @@ bool is_valid_username(Slice username);
 // checks whether a string can be set as a username
 bool is_allowed_username(Slice username);
 
+// calculates truncated MD5 hash of a string
+uint64 get_md5_string_hash(const string &str) TD_WARN_UNUSED_RESULT;
+
 // calculates hash of list of uint64
 int64 get_vector_hash(const vector<uint64> &numbers) TD_WARN_UNUSED_RESULT;
 

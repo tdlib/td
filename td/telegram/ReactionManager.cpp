@@ -12,6 +12,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/misc.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/ReactionManager.hpp"
 #include "td/telegram/StickerFormat.h"
@@ -307,7 +308,20 @@ void ReactionManager::SavedReactionTags::update_saved_messages_tags(const vector
   }
   if (is_changed) {
     std::sort(tags_.begin(), tags_.end());
+    hash_ = calc_hash();
   }
+}
+
+int64 ReactionManager::SavedReactionTags::calc_hash() const {
+  vector<uint64> numbers;
+  for (const auto &tag : tags_) {
+    numbers.push_back(tag.reaction_type_.get_hash());
+    if (!tag.title_.empty()) {
+      numbers.push_back(get_md5_string_hash(tag.title_));
+    }
+    numbers.push_back(tag.count_);
+  }
+  return get_vector_hash(numbers);
 }
 
 ReactionManager::ReactionManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
@@ -858,6 +872,9 @@ void ReactionManager::on_get_saved_messages_tags(
       if (saved_reaction_tags != tags_.tags_) {
         tags_.tags_ = std::move(saved_reaction_tags);
         need_send_update = true;
+      }
+      if (tags_.hash_ != tags_.calc_hash()) {
+        LOG(ERROR) << "Receive unexpected Saved Messages tag hash";
       }
       tags_.is_inited_ = true;
       break;
