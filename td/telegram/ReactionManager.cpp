@@ -283,8 +283,12 @@ void ReactionManager::get_emoji_reaction(const string &emoji,
 }
 
 td_api::object_ptr<td_api::availableReactions> ReactionManager::get_sorted_available_reactions(
-    ChatReactions available_reactions, ChatReactions active_reactions, int32 row_size) {
-  load_reaction_list(ReactionListType::Recent);
+    ChatReactions available_reactions, ChatReactions active_reactions, int32 row_size, bool is_tag) {
+  if (is_tag) {
+    load_reaction_list(ReactionListType::DefaultTag);
+  } else {
+    load_reaction_list(ReactionListType::Recent);
+  }
   load_reaction_list(ReactionListType::Top);
 
   if (row_size < 5 || row_size > 25) {
@@ -293,8 +297,17 @@ td_api::object_ptr<td_api::availableReactions> ReactionManager::get_sorted_avail
 
   bool is_premium = td_->option_manager_->get_option_boolean("is_premium");
   bool show_premium = is_premium;
-  const auto &recent_reactions = get_reaction_list(ReactionListType::Recent).reaction_types_;
-  auto top_reactions = get_reaction_list(ReactionListType::Top).reaction_types_;
+  vector<ReactionType> recent_reactions;
+  vector<ReactionType> top_reactions;
+  if (is_tag) {
+    top_reactions = get_reaction_list(ReactionListType::DefaultTag).reaction_types_;
+    if (is_premium) {
+      append(top_reactions, get_reaction_list(ReactionListType::Top).reaction_types_);
+    }
+  } else {
+    recent_reactions = get_reaction_list(ReactionListType::Recent).reaction_types_;
+    top_reactions = get_reaction_list(ReactionListType::Top).reaction_types_;
+  }
   LOG(INFO) << "Have available reactions " << available_reactions << " to be sorted by top reactions " << top_reactions
             << " and recent reactions " << recent_reactions;
   if (active_reactions.allow_all_custom_ && active_reactions.allow_all_regular_) {
@@ -386,7 +399,7 @@ td_api::object_ptr<td_api::availableReactions> ReactionManager::get_available_re
   ChatReactions available_reactions;
   available_reactions.reaction_types_ = active_reaction_types_;
   available_reactions.allow_all_custom_ = true;
-  return get_sorted_available_reactions(std::move(available_reactions), ChatReactions(true, true), row_size);
+  return get_sorted_available_reactions(std::move(available_reactions), ChatReactions(true, true), row_size, false);
 }
 
 void ReactionManager::add_recent_reaction(const ReactionType &reaction_type) {

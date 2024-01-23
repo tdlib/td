@@ -43,7 +43,7 @@ class ReactionManager final : public Actor {
 
   td_api::object_ptr<td_api::availableReactions> get_sorted_available_reactions(ChatReactions available_reactions,
                                                                                 ChatReactions active_reactions,
-                                                                                int32 row_size);
+                                                                                int32 row_size, bool is_tag);
 
   td_api::object_ptr<td_api::availableReactions> get_available_reactions(int32 row_size);
 

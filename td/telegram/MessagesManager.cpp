@@ -22618,6 +22618,11 @@ void MessagesManager::on_get_scheduled_messages_from_database(DialogId dialog_id
   set_promises(promises);
 }
 
+bool MessagesManager::can_add_message_tag(DialogId dialog_id, const MessageReactions *reactions) const {
+  return dialog_id == td_->dialog_manager_->get_my_dialog_id() &&
+         (reactions == nullptr || reactions->reactions_.empty() || reactions->are_tags_);
+}
+
 Result<td_api::object_ptr<td_api::availableReactions>> MessagesManager::get_message_available_reactions(
     MessageFullId message_full_id, int32 row_size) {
   auto dialog_id = message_full_id.get_dialog_id();
@@ -22631,13 +22636,9 @@ Result<td_api::object_ptr<td_api::availableReactions>> MessagesManager::get_mess
     return Status::Error(400, "Message not found");
   }
 
+  bool is_tag = can_add_message_tag(dialog_id, m->reactions.get());
   return td_->reaction_manager_->get_sorted_available_reactions(get_message_available_reactions(d, m, false),
-                                                                get_message_active_reactions(d, m), row_size);
-}
-
-bool MessagesManager::can_add_message_tag(DialogId dialog_id, const MessageReactions *reactions) const {
-  return dialog_id == td_->dialog_manager_->get_my_dialog_id() &&
-         (reactions == nullptr || reactions->reactions_.empty() || reactions->are_tags_);
+                                                                get_message_active_reactions(d, m), row_size, is_tag);
 }
 
 ChatReactions MessagesManager::get_message_available_reactions(const Dialog *d, const Message *m,
