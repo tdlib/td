@@ -220,6 +220,13 @@ class BinlogKeyValue final : public KeyValueSyncInterface {
     binlog_->lazy_sync(std::move(promise));
   }
 
+  void for_each(std::function<void(Slice, Slice)> func) final {
+    auto lock = rw_mutex_.lock_write().move_as_ok();
+    for (const auto &kv : map_) {
+      func(kv.first, kv.second.first);
+    }
+  }
+
   std::unordered_map<string, string, Hash<string>> prefix_get(Slice prefix) final {
     auto lock = rw_mutex_.lock_write().move_as_ok();
     std::unordered_map<string, string, Hash<string>> res;

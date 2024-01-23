@@ -12,6 +12,7 @@
 #include "td/utils/Promise.h"
 #include "td/utils/Slice.h"
 
+#include <functional>
 #include <unordered_map>
 
 namespace td {
@@ -34,6 +35,8 @@ class KeyValueSyncInterface {
   virtual bool isset(const string &key) = 0;
 
   virtual string get(const string &key) = 0;
+
+  virtual void for_each(std::function<void(Slice, Slice)> func) = 0;
 
   virtual std::unordered_map<string, string, Hash<string>> prefix_get(Slice prefix) = 0;
 
