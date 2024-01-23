@@ -57,12 +57,14 @@ OptionManager::OptionManager(Td *td)
     , option_pmc_(G()->td_db()->get_config_pmc_shared()) {
   send_unix_time_update();
 
+  auto &options = options_->inner();
+
   option_pmc_->for_each([&](Slice name, Slice value) {
     if (name == "utc_time_offset") {
       return;
     }
     CHECK(!name.empty());
-    options_->set(name, value);
+    options.set(name, value);
     if (!is_internal_option(name)) {
       send_closure(G()->td(), &Td::send_update,
                    td_api::make_object<td_api::updateOption>(name.str(), get_option_value_object(value)));
@@ -75,16 +77,16 @@ OptionManager::OptionManager(Td *td)
   });
 
   auto utc_time_offset = PSTRING() << 'I' << Clocks::tz_offset();
-  options_->set("utc_time_offset", utc_time_offset);
+  options.set("utc_time_offset", utc_time_offset);
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateOption>("utc_time_offset", get_option_value_object(utc_time_offset)));
 
   auto set_default_integer_option = [&](string name, int32 value) {
-    if (options_->isset(name)) {
+    if (options.isset(name)) {
       return;
     }
     auto str_value = PSTRING() << 'I' << value;
-    options_->set(name, str_value);
+    options.set(name, str_value);
     option_pmc_->set(name, str_value);
 
     if (!is_internal_option(name)) {
