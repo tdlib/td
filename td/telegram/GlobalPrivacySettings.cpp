@@ -37,6 +37,7 @@ class GetGlobalPrivacySettingsQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
+    LOG(INFO) << "Receive result for GetGlobalPrivacySettingsQuery: " << to_string(result_ptr.ok());
     promise_.set_value(GlobalPrivacySettings(result_ptr.move_as_ok()));
   }
 
@@ -90,16 +91,12 @@ GlobalPrivacySettings::GlobalPrivacySettings(td_api::object_ptr<td_api::archiveC
 
 GlobalPrivacySettings::GlobalPrivacySettings(td_api::object_ptr<td_api::readDatePrivacySettings> &&settings)
     : set_type_(SetType::ReadDate) {
-  if (settings != nullptr) {
-    hide_read_marks_ = !settings->show_read_date_;
-  }
+  hide_read_marks_ = settings == nullptr || !settings->show_read_date_;
 }
 
 GlobalPrivacySettings::GlobalPrivacySettings(td_api::object_ptr<td_api::newChatPrivacySettings> &&settings)
     : set_type_(SetType::NewChat) {
-  if (settings != nullptr) {
-    new_noncontact_peers_require_premium_ = !settings->allow_new_chats_from_unknown_users_;
-  }
+  new_noncontact_peers_require_premium_ = settings == nullptr || !settings->allow_new_chats_from_unknown_users_;
 }
 
 void GlobalPrivacySettings::apply_changes(const GlobalPrivacySettings &set_settings) {
