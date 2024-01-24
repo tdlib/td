@@ -944,7 +944,8 @@ void ConfigManager::start_up() {
   send_closure(config_recoverer_, &ConfigRecoverer::on_dc_options_update, load_dc_options_update());
 
   auto expire_time = load_config_expire_time();
-  bool reload_config_on_restart = true;
+  auto auth_manager = G()->td().get_actor_unsafe()->auth_manager_.get();
+  bool reload_config_on_restart = auth_manager == nullptr || !auth_manager->is_bot();
   if (expire_time.is_in_past() || reload_config_on_restart) {
     request_config(false);
   } else {
