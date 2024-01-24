@@ -105,10 +105,17 @@ StringBuilder &operator<<(StringBuilder &string_builder, const LastForwardedMess
   if (!last_message_info.is_empty()) {
     string_builder << MessageFullId(last_message_info.dialog_id_, last_message_info.message_id_);
     if (last_message_info.sender_dialog_id_ != DialogId() || !last_message_info.sender_name_.empty()) {
-      string_builder << " sent by " << last_message_info.sender_dialog_id_ << '/' << last_message_info.sender_name_;
-      if (last_message_info.is_outgoing_) {
-        string_builder << " (me)";
+      string_builder << " sent by ";
+      if (last_message_info.sender_dialog_id_.is_valid()) {
+        string_builder << last_message_info.sender_dialog_id_;
       }
+      if (!last_message_info.sender_name_.empty()) {
+        if (last_message_info.sender_dialog_id_.is_valid()) {
+          string_builder << '/';
+        }
+        string_builder << '"' << last_message_info.sender_name_ << '"';
+      }
+      string_builder << (last_message_info.is_outgoing_ ? " (me)" : " (not me)");
     }
     if (last_message_info.date_ != 0) {
       string_builder << " at " << last_message_info.date_;
