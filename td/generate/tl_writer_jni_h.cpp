@@ -105,10 +105,7 @@ std::string TD_TL_writer_jni_h::gen_class_begin(const std::string &class_name, c
            "  virtual void store(TlStorerToString &s, const char *field_name) const = 0;\n\n"
            "  static jclass Class;\n";
   }
-  return "class " + class_name + (!is_proxy ? " final " : "") + ": public " + base_class_name +
-         " {\n"
-         " public:\n"
-         "  static jclass Class;\n";
+  return TD_TL_writer_h::gen_class_begin(class_name, base_class_name, is_proxy, result) + "  static jclass Class;\n";
 }
 
 std::string TD_TL_writer_jni_h::gen_field_definition(const std::string &class_name, const std::string &type_name,
