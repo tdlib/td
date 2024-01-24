@@ -228,4 +228,6 @@ void get_message_added_reactions(Td *td, MessageFullId message_full_id, Reaction
 void report_message_reactions(Td *td, MessageFullId message_full_id, DialogId chooser_dialog_id,
                               Promise<Unit> &&promise);
 
+vector<ReactionType> get_chosen_tags(const unique_ptr<MessageReactions> &message_reactions);
+
 }  // namespace td

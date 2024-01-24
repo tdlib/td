@@ -22738,10 +22738,7 @@ void MessagesManager::add_message_reaction(MessageFullId message_full_id, Reacti
 
   LOG(INFO) << "Have message with " << *m->reactions;
   bool is_tag = can_add_message_tag(dialog_id, m->reactions.get());
-  vector<ReactionType> old_chosen_tags;
-  if (is_tag) {
-    old_chosen_tags = m->reactions->get_chosen_reaction_types();
-  }
+  auto old_chosen_tags = get_chosen_tags(m->reactions);
   if (!m->reactions->add_my_reaction(reaction_type, is_big, get_my_reaction_dialog_id(d), have_recent_choosers,
                                      is_tag)) {
     return promise.set_value(Unit());
@@ -22750,7 +22747,7 @@ void MessagesManager::add_message_reaction(MessageFullId message_full_id, Reacti
   set_message_reactions(d, m, is_big, add_to_recent, std::move(promise));
 
   if (is_tag) {
-    td_->reaction_manager_->update_saved_messages_tags(old_chosen_tags, m->reactions->get_chosen_reaction_types());
+    td_->reaction_manager_->update_saved_messages_tags(old_chosen_tags, get_chosen_tags(m->reactions));
   } else if (add_to_recent) {
     td_->reaction_manager_->add_recent_reaction(reaction_type);
   }
@@ -22778,19 +22775,15 @@ void MessagesManager::remove_message_reaction(MessageFullId message_full_id, Rea
   }
 
   LOG(INFO) << "Have message with " << *m->reactions;
-  bool is_tag = can_add_message_tag(dialog_id, m->reactions.get());
-  vector<ReactionType> old_chosen_tags;
-  if (is_tag) {
-    old_chosen_tags = m->reactions->get_chosen_reaction_types();
-  }
+  auto old_chosen_tags = get_chosen_tags(m->reactions);
   if (!m->reactions->remove_my_reaction(reaction_type, get_my_reaction_dialog_id(d))) {
     return promise.set_value(Unit());
   }
 
   set_message_reactions(d, m, false, false, std::move(promise));
 
-  if (is_tag) {
-    td_->reaction_manager_->update_saved_messages_tags(old_chosen_tags, m->reactions->get_chosen_reaction_types());
+  if (!old_chosen_tags.empty()) {
+    td_->reaction_manager_->update_saved_messages_tags(old_chosen_tags, get_chosen_tags(m->reactions));
   }
 }
 

@@ -965,4 +965,11 @@ void report_message_reactions(Td *td, MessageFullId message_full_id, DialogId ch
   td->create_handler<ReportReactionQuery>(std::move(promise))->send(dialog_id, message_id, chooser_dialog_id);
 }
 
+vector<ReactionType> get_chosen_tags(const unique_ptr<MessageReactions> &message_reactions) {
+  if (message_reactions == nullptr || !message_reactions->are_tags_) {
+    return {};
+  }
+  return message_reactions->get_chosen_reaction_types();
+}
+
 }  // namespace td
