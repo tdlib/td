@@ -80,7 +80,8 @@ td_api::object_ptr<td_api::forwardSource> LastForwardedMessageInfo::get_forward_
     }
     return td_api::make_object<td_api::forwardSource>(
         td->messages_manager_->get_chat_id_object(dialog_id_, "forwardSource.chat_id"), message_id_.get(),
-        std::move(sender_id), origin.get_sender_name(), origin_date, is_outgoing_);
+        std::move(sender_id), origin.get_sender_name(), origin_date,
+        is_outgoing_ || sender_dialog_id == td->dialog_manager_->get_my_dialog_id());
   }
 
   if (sender_dialog_id_ != DialogId()) {
@@ -88,7 +89,8 @@ td_api::object_ptr<td_api::forwardSource> LastForwardedMessageInfo::get_forward_
   }
   return td_api::make_object<td_api::forwardSource>(
       td->messages_manager_->get_chat_id_object(dialog_id_, "forwardSource.chat_id"), message_id_.get(),
-      std::move(sender_id), sender_name_, date_, is_outgoing_);
+      std::move(sender_id), sender_name_, date_,
+      is_outgoing_ || sender_dialog_id_ == td->dialog_manager_->get_my_dialog_id());
 }
 
 bool operator==(const LastForwardedMessageInfo &lhs, const LastForwardedMessageInfo &rhs) {
