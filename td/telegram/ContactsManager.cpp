@@ -2957,15 +2957,6 @@ ContactsManager::ContactsManager(Td *td, ActorShared<> parent) : td_(td), parent
 
   my_id_ = load_my_id();
 
-  td_->option_manager_->set_option_integer("telegram_service_notifications_chat_id",
-                                           DialogId(get_service_notifications_user_id()).get());
-  td_->option_manager_->set_option_integer("replies_bot_chat_id", DialogId(get_replies_bot_user_id()).get());
-  td_->option_manager_->set_option_integer("group_anonymous_bot_user_id", get_anonymous_bot_user_id().get());
-  td_->option_manager_->set_option_integer("channel_bot_user_id", get_channel_bot_user_id().get());
-  if (!td_->option_manager_->have_option("anti_spam_bot_user_id")) {
-    td_->option_manager_->set_option_integer("anti_spam_bot_user_id", get_anti_spam_bot_user_id().get());
-  }
-
   if (G()->use_chat_info_database()) {
     auto next_contacts_sync_date_string = G()->td_db()->get_binlog_pmc()->get("next_contacts_sync_date");
     if (!next_contacts_sync_date_string.empty()) {

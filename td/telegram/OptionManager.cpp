@@ -81,7 +81,7 @@ OptionManager::OptionManager(Td *td)
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateOption>("utc_time_offset", get_option_value_object(utc_time_offset)));
 
-  auto set_default_integer_option = [&](string name, int32 value) {
+  auto set_default_integer_option = [&](string name, int64 value) {
     if (options.isset(name)) {
       return;
     }
@@ -95,6 +95,12 @@ OptionManager::OptionManager(Td *td)
           td_api::make_object<td_api::updateOption>(name, td_api::make_object<td_api::optionValueInteger>(value)));
     }
   };
+  set_default_integer_option("telegram_service_notifications_chat_id",
+                             DialogId(ContactsManager::get_service_notifications_user_id()).get());
+  set_default_integer_option("replies_bot_chat_id", DialogId(ContactsManager::get_replies_bot_user_id()).get());
+  set_default_integer_option("group_anonymous_bot_user_id", ContactsManager::get_anonymous_bot_user_id().get());
+  set_default_integer_option("channel_bot_user_id", ContactsManager::get_channel_bot_user_id().get());
+  set_default_integer_option("anti_spam_bot_user_id", ContactsManager::get_anti_spam_bot_user_id().get());
   set_default_integer_option("message_caption_length_max", 1024);
   set_default_integer_option("message_reply_quote_length_max", 1024);
   set_default_integer_option("story_caption_length_max", 200);
