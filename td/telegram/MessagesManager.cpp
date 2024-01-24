@@ -22645,12 +22645,15 @@ Result<td_api::object_ptr<td_api::availableReactions>> MessagesManager::get_mess
   }
 
   bool is_tag = can_add_message_tag(dialog_id, m->reactions.get());
-  return td_->reaction_manager_->get_sorted_available_reactions(get_message_available_reactions(d, m, false),
-                                                                get_message_active_reactions(d, m), row_size, is_tag);
+  ReactionUnavailabilityReason unavailability_reason = ReactionUnavailabilityReason::None;
+  auto available_reactions = get_message_available_reactions(d, m, false, &unavailability_reason);
+  return td_->reaction_manager_->get_sorted_available_reactions(
+      std::move(available_reactions), get_message_active_reactions(d, m), row_size, is_tag, unavailability_reason);
 }
 
 ChatReactions MessagesManager::get_message_available_reactions(const Dialog *d, const Message *m,
-                                                               bool disallow_custom_for_non_premium) {
+                                                               bool disallow_custom_for_non_premium,
+                                                               ReactionUnavailabilityReason *unavailability_reason) {
   CHECK(d != nullptr);
   CHECK(m != nullptr);
   auto active_reactions = get_message_active_reactions(d, m);
@@ -22665,11 +22668,17 @@ ChatReactions MessagesManager::get_message_available_reactions(const Dialog *d, 
         !td_->contacts_manager_->get_channel_status(channel_id).is_member() &&
         can_send_message(d->dialog_id).is_error()) {
       // can't use reactions if can't send messages to the group without joining
+      if (unavailability_reason != nullptr) {
+        *unavailability_reason = ReactionUnavailabilityReason::Guest;
+      }
       can_use_reactions = false;
     } else if (td_->dialog_manager_->is_anonymous_administrator(d->dialog_id, nullptr) &&
                !td_->dialog_manager_->is_broadcast_channel(d->dialog_id) &&
                !td_->contacts_manager_->get_channel_status(channel_id).is_creator()) {
       // only creator can react as the chat
+      if (unavailability_reason != nullptr) {
+        *unavailability_reason = ReactionUnavailabilityReason::AnonymousAdministrator;
+      }
       can_use_reactions = false;
     }
   }
@@ -22732,7 +22741,7 @@ void MessagesManager::add_message_reaction(MessageFullId message_full_id, Reacti
     return promise.set_error(Status::Error(400, "Message not found"));
   }
 
-  if (!get_message_available_reactions(d, m, true).is_allowed_reaction_type(reaction_type)) {
+  if (!get_message_available_reactions(d, m, true, nullptr).is_allowed_reaction_type(reaction_type)) {
     return promise.set_error(Status::Error(400, "The reaction isn't available for the message"));
   }
 

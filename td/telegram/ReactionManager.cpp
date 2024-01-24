@@ -383,7 +383,8 @@ void ReactionManager::get_emoji_reaction(const string &emoji,
 }
 
 td_api::object_ptr<td_api::availableReactions> ReactionManager::get_sorted_available_reactions(
-    ChatReactions available_reactions, ChatReactions active_reactions, int32 row_size, bool is_tag) {
+    ChatReactions available_reactions, ChatReactions active_reactions, int32 row_size, bool is_tag,
+    ReactionUnavailabilityReason unavailability_reason) {
   if (is_tag) {
     load_reaction_list(ReactionListType::DefaultTag);
   } else {
@@ -490,16 +491,31 @@ td_api::object_ptr<td_api::availableReactions> ReactionManager::get_sorted_avail
 
   CHECK(all_available_reaction_types.empty());
 
+  td_api::object_ptr<td_api::ReactionUnavailabilityReason> reason;
+  switch (unavailability_reason) {
+    case ReactionUnavailabilityReason::None:
+      break;
+    case ReactionUnavailabilityReason::AnonymousAdministrator:
+      reason = td_api::make_object<td_api::reactionUnavailabilityReasonAnonymousAdministrator>();
+      break;
+    case ReactionUnavailabilityReason::Guest:
+      reason = td_api::make_object<td_api::reactionUnavailabilityReasonGuest>();
+      break;
+    default:
+      UNREACHABLE();
+  }
+
   return td_api::make_object<td_api::availableReactions>(
       std::move(top_reaction_objects), std::move(recent_reaction_objects), std::move(popular_reaction_objects),
-      available_reactions.allow_all_custom_, is_tag);
+      available_reactions.allow_all_custom_, is_tag, std::move(reason));
 }
 
 td_api::object_ptr<td_api::availableReactions> ReactionManager::get_available_reactions(int32 row_size) {
   ChatReactions available_reactions;
   available_reactions.reaction_types_ = active_reaction_types_;
   available_reactions.allow_all_custom_ = true;
-  return get_sorted_available_reactions(std::move(available_reactions), ChatReactions(true, true), row_size, false);
+  return get_sorted_available_reactions(std::move(available_reactions), ChatReactions(true, true), row_size, false,
+                                        ReactionUnavailabilityReason::None);
 }
 
 void ReactionManager::add_recent_reaction(const ReactionType &reaction_type) {

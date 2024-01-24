@@ -4025,7 +4025,8 @@ availableReaction type:ReactionType needs_premium:Bool = AvailableReaction;
 //@popular_reactions List of popular reactions
 //@allow_custom_emoji True, if any custom emoji reaction can be added by Telegram Premium subscribers
 //@are_tags True, if the reactions will be tags and the message can be found by them
-availableReactions top_reactions:vector<availableReaction> recent_reactions:vector<availableReaction> popular_reactions:vector<availableReaction> allow_custom_emoji:Bool are_tags:Bool = AvailableReactions;
+//@unavailability_reason The reason why the current user can't add reactions to the message, despite some other users can; null if none
+availableReactions top_reactions:vector<availableReaction> recent_reactions:vector<availableReaction> popular_reactions:vector<availableReaction> allow_custom_emoji:Bool are_tags:Bool unavailability_reason:ReactionUnavailabilityReason = AvailableReactions;
 
 //@description Contains information about an emoji reaction
 //@emoji Text representation of the reaction
@@ -4039,6 +4040,15 @@ availableReactions top_reactions:vector<availableReaction> recent_reactions:vect
 //@around_animation Around animation for the reaction; may be null
 //@center_animation Center animation for the reaction; may be null
 emojiReaction emoji:string title:string is_active:Bool static_icon:sticker appear_animation:sticker select_animation:sticker activate_animation:sticker effect_animation:sticker around_animation:sticker center_animation:sticker = EmojiReaction;
+
+
+//@class ReactionUnavailabilityReason @description Describes why the current user can't add reactions to the message, despite some other users can
+
+//@description The user is an anonymous administrator in the supergroup, but isn't a creator of it, so they can't vote on behalf of the supergroup
+reactionUnavailabilityReasonAnonymousAdministrator = ReactionUnavailabilityReason;
+
+//@description The user isn't a member of the supergroup and can't send messages and reactions there without joining
+reactionUnavailabilityReasonGuest = ReactionUnavailabilityReason;
 
 
 //@description Represents a list of animations @animations List of animations

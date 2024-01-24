@@ -10,6 +10,7 @@
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/ReactionListType.h"
 #include "td/telegram/ReactionType.h"
+#include "td/telegram/ReactionUnavailabilityReason.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -42,9 +43,9 @@ class ReactionManager final : public Actor {
 
   void get_emoji_reaction(const string &emoji, Promise<td_api::object_ptr<td_api::emojiReaction>> &&promise);
 
-  td_api::object_ptr<td_api::availableReactions> get_sorted_available_reactions(ChatReactions available_reactions,
-                                                                                ChatReactions active_reactions,
-                                                                                int32 row_size, bool is_tag);
+  td_api::object_ptr<td_api::availableReactions> get_sorted_available_reactions(
+      ChatReactions available_reactions, ChatReactions active_reactions, int32 row_size, bool is_tag,
+      ReactionUnavailabilityReason unavailability_reason);
 
   td_api::object_ptr<td_api::availableReactions> get_available_reactions(int32 row_size);
 

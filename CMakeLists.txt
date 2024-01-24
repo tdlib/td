@@ -786,6 +786,7 @@ set(TDLIB_SOURCE
   td/telegram/ReactionListType.h
   td/telegram/ReactionManager.h
   td/telegram/ReactionType.h
+  td/telegram/ReactionUnavailabilityReason.h
   td/telegram/RecentDialogList.h
   td/telegram/RepliedMessageInfo.h
   td/telegram/ReplyMarkup.h

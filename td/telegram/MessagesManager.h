@@ -52,6 +52,7 @@
 #include "td/telegram/NotificationSettingsScope.h"
 #include "td/telegram/OrderedMessage.h"
 #include "td/telegram/ReactionType.h"
+#include "td/telegram/ReactionUnavailabilityReason.h"
 #include "td/telegram/RecentDialogList.h"
 #include "td/telegram/RepliedMessageInfo.h"
 #include "td/telegram/ReplyMarkup.h"
@@ -2522,8 +2523,8 @@ class MessagesManager final : public Actor {
 
   bool can_add_message_tag(DialogId dialog_id, const MessageReactions *reactions) const;
 
-  ChatReactions get_message_available_reactions(const Dialog *d, const Message *m,
-                                                bool disallow_custom_for_non_premium);
+  ChatReactions get_message_available_reactions(const Dialog *d, const Message *m, bool disallow_custom_for_non_premium,
+                                                ReactionUnavailabilityReason *unavailability_reason);
 
   DialogId get_my_reaction_dialog_id(const Dialog *d) const;
 
