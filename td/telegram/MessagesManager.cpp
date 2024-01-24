@@ -6597,11 +6597,15 @@ bool MessagesManager::update_message_interaction_info(Dialog *d, Message *m, int
     if (need_update_reactions || need_update_unread_reactions) {
       CHECK(m->message_id.is_valid());
 
+      auto old_chosen_tags = get_chosen_tags(m->reactions);
       int32 unread_reaction_diff = 0;
       unread_reaction_diff -= (has_unread_message_reactions(dialog_id, m) ? 1 : 0);
       m->reactions = std::move(reactions);
       m->available_reactions_generation = d->available_reactions_generation;
       unread_reaction_diff += (has_unread_message_reactions(dialog_id, m) ? 1 : 0);
+      auto new_chosen_tags = get_chosen_tags(m->reactions);
+
+      td_->reaction_manager_->update_saved_messages_tags(old_chosen_tags, new_chosen_tags);
 
       if (is_visible_message_reactions(dialog_id, m)) {
         need_update |= need_update_reactions;
@@ -7615,6 +7619,8 @@ void MessagesManager::set_dialog_next_available_reactions_generation(Dialog *d, 
 
 void MessagesManager::hide_dialog_message_reactions(Dialog *d) {
   CHECK(!td_->auth_manager_->is_bot());
+  auto dialog_type = d->dialog_id.get_type();
+  CHECK(dialog_type == DialogType::Chat || dialog_type == DialogType::Channel);
   auto message_ids = find_dialog_messages(
       d, [](const Message *m) { return m->reactions != nullptr && !m->reactions->reactions_.empty(); });
   for (auto message_id : message_ids) {
@@ -15335,6 +15341,8 @@ void MessagesManager::on_message_deleted_from_database(Dialog *d, const Message 
 
   update_message_count_by_index(d, -1, m);
   update_reply_count_by_message(d, -1, m);
+
+  td_->reaction_manager_->update_saved_messages_tags(get_chosen_tags(m->reactions), {});
 }
 
 void MessagesManager::on_message_deleted(Dialog *d, Message *m, bool is_permanently_deleted, const char *source) {
