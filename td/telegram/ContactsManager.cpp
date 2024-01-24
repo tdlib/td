@@ -3071,7 +3071,7 @@ ContactsManager::ContactsManager(Td *td, ActorShared<> parent) : td_(td), parent
   get_is_premium_required_to_contact_queries_.set_merge_function(
       [this](vector<int64> query_ids, Promise<Unit> &&promise) {
         TRY_STATUS_PROMISE(promise, G()->close_status());
-        auto user_ids = transform(query_ids, [this](int64 query_id) { return UserId(query_id); });
+        auto user_ids = UserId::get_user_ids(query_ids);
         auto input_users = transform(user_ids, [this](UserId user_id) { return get_input_user_force(user_id); });
         td_->create_handler<GetIsPremiumRequiredToContactQuery>(std::move(promise))
             ->send(std::move(user_ids), std::move(input_users));
