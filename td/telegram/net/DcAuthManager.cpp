@@ -96,8 +96,9 @@ DcAuthManager::DcInfo *DcAuthManager::find_dc(int32 dc_id) {
 void DcAuthManager::update_auth_key_state() {
   auto dc_id = narrow_cast<int32>(get_link_token());
   auto &dc = get_dc(dc_id);
+  auto old_auth_key_state = dc.auth_key_state;
   dc.auth_key_state = get_auth_key_state(dc.shared_auth_data->get_auth_key());
-  VLOG(dc) << "Update " << dc_id << " auth key state from " << dc.auth_key_state << " to " << dc.auth_key_state;
+  VLOG(dc) << "Update DcId{" << dc_id << "} auth key state from " << old_auth_key_state << " to " << dc.auth_key_state;
 
   loop();
 }

@@ -308,7 +308,6 @@ class ConcurrentHashMap {
         continue;
       }
       auto node_key = node.key.load(std::memory_order_relaxed);
-      //LOG(ERROR) << node_key << " " << node_key;
       auto ok = migrate_to_hash_map_->with_value(
           node_key, true, [&](auto &node_value) { node_value.store(old_value, std::memory_order_relaxed); });
       LOG_CHECK(ok) << "Migration overflow";
