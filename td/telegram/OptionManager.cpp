@@ -81,6 +81,7 @@ OptionManager::OptionManager(Td *td)
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateOption>("utc_time_offset", get_option_value_object(utc_time_offset)));
 
+  bool is_test_dc = G()->is_test_dc();
   auto set_default_integer_option = [&](string name, int64 value) {
     if (options.isset(name)) {
       return;
@@ -110,26 +111,26 @@ OptionManager::OptionManager(Td *td)
   set_default_integer_option("suggested_video_note_audio_bitrate", 64);
   set_default_integer_option("notification_sound_duration_max", 5);
   set_default_integer_option("notification_sound_size_max", 307200);
-  set_default_integer_option("notification_sound_count_max", G()->is_test_dc() ? 5 : 100);
-  set_default_integer_option("chat_folder_count_max", G()->is_test_dc() ? 3 : 10);
-  set_default_integer_option("chat_folder_chosen_chat_count_max", G()->is_test_dc() ? 5 : 100);
-  set_default_integer_option("aggressive_anti_spam_supergroup_member_count_min", G()->is_test_dc() ? 1 : 100);
-  set_default_integer_option("pinned_forum_topic_count_max", G()->is_test_dc() ? 3 : 5);
+  set_default_integer_option("notification_sound_count_max", is_test_dc ? 5 : 100);
+  set_default_integer_option("chat_folder_count_max", is_test_dc ? 3 : 10);
+  set_default_integer_option("chat_folder_chosen_chat_count_max", is_test_dc ? 5 : 100);
+  set_default_integer_option("aggressive_anti_spam_supergroup_member_count_min", is_test_dc ? 1 : 100);
+  set_default_integer_option("pinned_forum_topic_count_max", is_test_dc ? 3 : 5);
   set_default_integer_option("story_stealth_mode_past_period", 300);
   set_default_integer_option("story_stealth_mode_future_period", 1500);
   set_default_integer_option("story_stealth_mode_cooldown_period", 3600);
-  set_default_integer_option("giveaway_additional_chat_count_max", G()->is_test_dc() ? 3 : 10);
-  set_default_integer_option("giveaway_country_count_max", G()->is_test_dc() ? 3 : 10);
+  set_default_integer_option("giveaway_additional_chat_count_max", is_test_dc ? 3 : 10);
+  set_default_integer_option("giveaway_country_count_max", is_test_dc ? 3 : 10);
   set_default_integer_option("giveaway_boost_count_per_premium", 4);
   set_default_integer_option("giveaway_duration_max", 7 * 86400);
   set_default_integer_option("premium_gift_boost_count", 3);
-  set_default_integer_option("chat_boost_level_max", G()->is_test_dc() ? 10 : 100);
+  set_default_integer_option("chat_boost_level_max", is_test_dc ? 10 : 100);
   set_default_integer_option("chat_available_reaction_count_max", 100);
-  set_default_integer_option("channel_bg_icon_level_min", G()->is_test_dc() ? 1 : 4);
-  set_default_integer_option("channel_custom_wallpaper_level_min", G()->is_test_dc() ? 4 : 10);
-  set_default_integer_option("channel_emoji_status_level_min", G()->is_test_dc() ? 2 : 8);
-  set_default_integer_option("channel_profile_bg_icon_level_min", G()->is_test_dc() ? 1 : 7);
-  set_default_integer_option("channel_wallpaper_level_min", G()->is_test_dc() ? 3 : 9);
+  set_default_integer_option("channel_bg_icon_level_min", is_test_dc ? 1 : 4);
+  set_default_integer_option("channel_custom_wallpaper_level_min", is_test_dc ? 4 : 10);
+  set_default_integer_option("channel_emoji_status_level_min", is_test_dc ? 2 : 8);
+  set_default_integer_option("channel_profile_bg_icon_level_min", is_test_dc ? 1 : 7);
+  set_default_integer_option("channel_wallpaper_level_min", is_test_dc ? 3 : 9);
 
   if (options.isset("my_phone_number") || !options.isset("my_id")) {
     update_premium_options();
