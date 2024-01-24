@@ -1647,9 +1647,11 @@ class StickersManager::UploadStickerFileCallback final : public FileManager::Upl
 StickersManager::StickersManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   upload_sticker_file_callback_ = std::make_shared<UploadStickerFileCallback>();
 
-  on_update_animated_emoji_zoom();
-  on_update_recent_stickers_limit();
-  on_update_favorite_stickers_limit();
+  if (!td_->auth_manager_->is_bot()) {
+    on_update_animated_emoji_zoom();
+    on_update_recent_stickers_limit();
+    on_update_favorite_stickers_limit();
+  }
 
   next_click_animated_emoji_message_time_ = Time::now();
   next_update_animated_emoji_clicked_time_ = Time::now();

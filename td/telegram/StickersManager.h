@@ -1146,7 +1146,7 @@ class StickersManager final : public Actor {
 
   WaitFreeHashMap<CustomEmojiId, FileId, CustomEmojiIdHash> custom_emoji_to_sticker_id_;
 
-  double animated_emoji_zoom_ = 0.0;
+  double animated_emoji_zoom_ = 0.625;
 
   bool disable_animated_emojis_ = false;
 };

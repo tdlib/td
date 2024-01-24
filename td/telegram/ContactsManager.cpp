@@ -2967,7 +2967,7 @@ ContactsManager::ContactsManager(Td *td, ActorShared<> parent) : td_(td), parent
     if (!saved_contact_count_string.empty()) {
       saved_contact_count_ = to_integer<int32>(saved_contact_count_string);
     }
-  } else {
+  } else if (!td_->auth_manager_->is_bot()) {
     G()->td_db()->get_binlog_pmc()->erase("next_contacts_sync_date");
     G()->td_db()->get_binlog_pmc()->erase("saved_contact_count");
   }
@@ -2978,27 +2978,29 @@ ContactsManager::ContactsManager(Td *td, ActorShared<> parent) : td_(td), parent
     }
   }
 
-  was_online_local_ = to_integer<int32>(G()->td_db()->get_binlog_pmc()->get("my_was_online_local"));
-  was_online_remote_ = to_integer<int32>(G()->td_db()->get_binlog_pmc()->get("my_was_online_remote"));
-  auto unix_time = G()->unix_time();
-  if (was_online_local_ >= unix_time && !td_->is_online()) {
-    was_online_local_ = unix_time - 1;
-  }
+  if (!td_->auth_manager_->is_bot()) {
+    was_online_local_ = to_integer<int32>(G()->td_db()->get_binlog_pmc()->get("my_was_online_local"));
+    was_online_remote_ = to_integer<int32>(G()->td_db()->get_binlog_pmc()->get("my_was_online_remote"));
+    auto unix_time = G()->unix_time();
+    if (was_online_local_ >= unix_time && !td_->is_online()) {
+      was_online_local_ = unix_time - 1;
+    }
 
-  location_visibility_expire_date_ =
-      to_integer<int32>(G()->td_db()->get_binlog_pmc()->get("location_visibility_expire_date"));
-  if (location_visibility_expire_date_ != 0 && location_visibility_expire_date_ <= G()->unix_time()) {
-    location_visibility_expire_date_ = 0;
-    G()->td_db()->get_binlog_pmc()->erase("location_visibility_expire_date");
+    location_visibility_expire_date_ =
+        to_integer<int32>(G()->td_db()->get_binlog_pmc()->get("location_visibility_expire_date"));
+    if (location_visibility_expire_date_ != 0 && location_visibility_expire_date_ <= G()->unix_time()) {
+      location_visibility_expire_date_ = 0;
+      G()->td_db()->get_binlog_pmc()->erase("location_visibility_expire_date");
+    }
+    auto pending_location_visibility_expire_date_string =
+        G()->td_db()->get_binlog_pmc()->get("pending_location_visibility_expire_date");
+    if (!pending_location_visibility_expire_date_string.empty()) {
+      pending_location_visibility_expire_date_ = to_integer<int32>(pending_location_visibility_expire_date_string);
+    }
+    update_is_location_visible();
+    LOG(INFO) << "Loaded location_visibility_expire_date = " << location_visibility_expire_date_
+              << " and pending_location_visibility_expire_date = " << pending_location_visibility_expire_date_;
   }
-  auto pending_location_visibility_expire_date_string =
-      G()->td_db()->get_binlog_pmc()->get("pending_location_visibility_expire_date");
-  if (!pending_location_visibility_expire_date_string.empty()) {
-    pending_location_visibility_expire_date_ = to_integer<int32>(pending_location_visibility_expire_date_string);
-  }
-  update_is_location_visible();
-  LOG(INFO) << "Loaded location_visibility_expire_date = " << location_visibility_expire_date_
-            << " and pending_location_visibility_expire_date = " << pending_location_visibility_expire_date_;
 
   user_online_timeout_.set_callback(on_user_online_timeout_callback);
   user_online_timeout_.set_callback_data(static_cast<void *>(this));
