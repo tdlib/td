@@ -412,6 +412,10 @@ class BackgroundManager::BackgroundsLogEvent {
 };
 
 void BackgroundManager::start_up() {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   max_local_background_id_ = BackgroundId(to_integer<int64>(G()->td_db()->get_binlog_pmc()->get("max_bg_id")));
 
   // first parse all log events and fix max_local_background_id_ value
