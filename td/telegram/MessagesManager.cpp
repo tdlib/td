@@ -29834,48 +29834,11 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
       } else if (error.message() == "INPUT_USER_DEACTIVATED") {
         error_code = 403;
         error_message = "User is deactivated";
-      } else if (error.message() == "USER_IS_BLOCKED") {
-        error_code = 403;
-        if (td_->auth_manager_->is_bot()) {
-          switch (dialog_id.get_type()) {
-            case DialogType::User:
-            case DialogType::SecretChat:
-              error_message = "Bot was blocked by the user";
-              break;
-            case DialogType::Chat:
-            case DialogType::Channel:
-              error_message = "Bot was kicked from the chat";
-              break;
-            case DialogType::None:
-            default:
-              UNREACHABLE();
-          }
-        } else {
-          switch (dialog_id.get_type()) {
-            case DialogType::User:
-            case DialogType::SecretChat:
-              error_message = "User was blocked by the other user";
-              break;
-            case DialogType::Chat:
-            case DialogType::Channel:
-              error_message = "User is not in the chat";
-              break;
-            case DialogType::None:
-            default:
-              UNREACHABLE();
-          }
-        }
-        // TODO add check to send_message
       } else if (error.message() == "USER_IS_BOT") {
         if (td_->auth_manager_->is_bot() &&
             (dialog_id.get_type() == DialogType::User || dialog_id.get_type() == DialogType::SecretChat)) {
           error_code = 403;
-          if (td_->contacts_manager_->is_user_bot(dialog_id.get_user_id())) {
-            error_message = "Bot can't send messages to bots";
-          } else {
-            error_message = "Bot can't send messages to the user";
-          }
-          // TODO move check to send_message
+          error_message = "Bots can't send messages to bots";
         }
       } else if (error.message() == "PEER_ID_INVALID") {
         error_code = 403;
@@ -29883,12 +29846,6 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
             (dialog_id.get_type() == DialogType::User || dialog_id.get_type() == DialogType::SecretChat)) {
           error_message = "Bot can't initiate conversation with a user";
         }
-      } else if (error.message() == "WC_CONVERT_URL_INVALID" || error.message() == "EXTERNAL_URL_INVALID") {
-        error_message = "Wrong HTTP URL specified";
-      } else if (error.message() == "WEBPAGE_CURL_FAILED") {
-        error_message = "Failed to get HTTP URL content";
-      } else if (error.message() == "WEBPAGE_MEDIA_EMPTY") {
-        error_message = "Wrong type of the web page content";
       } else if (error.message() == "CHAT_FORWARDS_RESTRICTED") {
         error_message = "Message has protected content and can't be forwarded";
       } else if (error.message() == "MEDIA_EMPTY") {
@@ -29933,10 +29890,7 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
       }
       break;
     case 403:
-      if (error.message() == "MESSAGE_DELETE_FORBIDDEN") {
-        error_code = 400;
-        error_message = "Message can't be deleted";
-      } else if (error.message() == "CHAT_GUEST_SEND_FORBIDDEN") {
+      if (error.message() == "CHAT_GUEST_SEND_FORBIDDEN") {
         error_code = 400;
         if (dialog_id.get_type() == DialogType::Channel) {
           td_->contacts_manager_->reload_channel(dialog_id.get_channel_id(), Promise<Unit>(),
