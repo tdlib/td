@@ -2943,7 +2943,7 @@ void UpdatesManager::add_pending_pts_update(tl_object_ptr<telegram_api::Update> 
 
 void UpdatesManager::postpone_pts_update(tl_object_ptr<telegram_api::Update> &&update, int32 pts, int32 pts_count,
                                          double receive_time, Promise<Unit> &&promise) {
-  if (!can_postpone_updates()) {
+  if (!can_postpone_updates() || (pts_count > 1 && td_->option_manager_->get_option_integer("session_count") <= 1)) {
     return promise.set_value(Unit());
   }
   postponed_pts_updates_.emplace(pts,
