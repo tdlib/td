@@ -571,7 +571,6 @@ void OptionManager::on_option_updated(Slice name) {
       }
       if (name == "session_count") {
         G()->net_query_dispatcher().update_session_count();
-        td_->updates_manager_->init_sessions(false);
       }
       break;
     case 'u':
