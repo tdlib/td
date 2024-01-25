@@ -850,7 +850,10 @@ void ReactionManager::get_saved_messages_tags(Promise<td_api::object_ptr<td_api:
   if (tags_.is_inited_) {
     return promise.set_value(tags_.get_saved_messages_tags_object());
   }
+  reget_saved_messages_tags(std::move(promise));
+}
 
+void ReactionManager::reget_saved_messages_tags(Promise<td_api::object_ptr<td_api::savedMessagesTags>> &&promise) {
   auto &promises = pending_get_saved_reaction_tags_queries_;
   promises.push_back(std::move(promise));
   if (promises.size() != 1) {
@@ -923,7 +926,7 @@ void ReactionManager::send_update_saved_messages_tags() {
 }
 
 void ReactionManager::on_update_saved_reaction_tags(Promise<Unit> &&promise) {
-  get_saved_messages_tags(PromiseCreator::lambda(
+  reget_saved_messages_tags(PromiseCreator::lambda(
       [promise = std::move(promise)](Result<td_api::object_ptr<td_api::savedMessagesTags>> result) mutable {
         promise.set_value(Unit());
       }));
