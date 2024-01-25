@@ -319,6 +319,35 @@ void ReactionManager::SavedReactionTags::update_saved_messages_tags(const vector
   }
 }
 
+bool ReactionManager::SavedReactionTags::set_tag_title(const ReactionType &reaction_type, const string &title) {
+  if (!is_inited_) {
+    return false;
+  }
+  for (auto it = tags_.begin(); it != tags_.end(); ++it) {
+    auto &tag = *it;
+    if (tag.reaction_type_ == reaction_type) {
+      if (tag.title_ == title) {
+        return false;
+      }
+      tag.title_ = title;
+      if (!tag.is_valid()) {
+        tags_.erase(it);
+      }
+      hash_ = calc_hash();
+      return true;
+    }
+  }
+  SavedReactionTag saved_reaction_tag;
+  saved_reaction_tag.reaction_type_ = reaction_type;
+  saved_reaction_tag.hash_ = reaction_type.get_hash();
+  saved_reaction_tag.title_ = title;
+  saved_reaction_tag.count_ = 0;
+  tags_.push_back(std::move(saved_reaction_tag));
+  std::sort(tags_.begin(), tags_.end());
+  hash_ = calc_hash();
+  return false;
+}
+
 int64 ReactionManager::SavedReactionTags::calc_hash() const {
   vector<uint64> numbers;
   for (const auto &tag : tags_) {
@@ -953,6 +982,10 @@ void ReactionManager::set_saved_messages_tag_title(ReactionType reaction_type, s
     return promise.set_error(Status::Error(400, "Reaction type must be non-empty"));
   }
   title = clean_name(title, MAX_TAG_TITLE_LENGTH);
+
+  if (tags_.set_tag_title(reaction_type, title)) {
+    send_update_saved_messages_tags();
+  }
 
   auto query_promise =
       PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](Result<Unit> result) mutable {

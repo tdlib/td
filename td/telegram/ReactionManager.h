@@ -166,6 +166,8 @@ class ReactionManager final : public Actor {
     void update_saved_messages_tags(const vector<ReactionType> &old_tags, const vector<ReactionType> &new_tags,
                                     bool &is_changed, bool &need_reload_title);
 
+    bool set_tag_title(const ReactionType &reaction_type, const string &title);
+
     int64 calc_hash() const;
   };
 
