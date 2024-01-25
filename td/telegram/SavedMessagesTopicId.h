@@ -37,7 +37,8 @@ class SavedMessagesTopicId {
   explicit SavedMessagesTopicId(DialogId dialog_id) : dialog_id_(dialog_id) {
   }
 
-  SavedMessagesTopicId(DialogId my_dialog_id, const MessageForwardInfo *message_forward_info);
+  SavedMessagesTopicId(DialogId my_dialog_id, const MessageForwardInfo *message_forward_info,
+                       DialogId real_forward_from_dialog_id);
 
   SavedMessagesTopicId(const Td *td, const td_api::object_ptr<td_api::SavedMessagesTopic> &saved_messages_topic);
 

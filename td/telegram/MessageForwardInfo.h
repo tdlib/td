@@ -149,6 +149,10 @@ class MessageForwardInfo {
     return last_message_info_.get_message_full_id();
   }
 
+  bool has_last_sender_name() const {
+    return last_message_info_.has_sender_name();
+  }
+
   template <class StorerT>
   void store(StorerT &storer) const;
 

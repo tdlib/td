@@ -13593,7 +13593,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   if (dialog_id == my_dialog_id) {
     if (!message->saved_messages_topic_id.is_valid()) {
       LOG(ERROR) << "Receive no Saved Messages topic for " << message_id << " in " << dialog_id;
-      message->saved_messages_topic_id = SavedMessagesTopicId(my_dialog_id, message->forward_info.get());
+      message->saved_messages_topic_id = SavedMessagesTopicId(my_dialog_id, message->forward_info.get(), DialogId());
     }
   } else {
     if (message->saved_messages_topic_id.is_valid()) {
@@ -22190,7 +22190,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::parse_message(Dialog *d, M
     m->is_pinned = false;
   }
   if (dialog_id == td_->dialog_manager_->get_my_dialog_id() && !m->saved_messages_topic_id.is_valid()) {
-    m->saved_messages_topic_id = SavedMessagesTopicId(dialog_id, m->forward_info.get());
+    m->saved_messages_topic_id = SavedMessagesTopicId(dialog_id, m->forward_info.get(), m->real_forward_from_dialog_id);
   }
 
   LOG(INFO) << "Loaded " << m->message_id << " in " << dialog_id << " of size " << value.size() << " from database";
@@ -23273,7 +23273,8 @@ int64 MessagesManager::generate_new_random_id(const Dialog *d) {
 unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
     Dialog *d, MessageId top_thread_message_id, MessageInputReplyTo &&input_reply_to, const MessageSendOptions &options,
     unique_ptr<MessageContent> &&content, bool invert_media, bool suppress_reply_info,
-    unique_ptr<MessageForwardInfo> forward_info, bool is_copy, DialogId send_as_dialog_id) const {
+    unique_ptr<MessageForwardInfo> forward_info, DialogId real_forward_from_dialog_id, bool is_copy,
+    DialogId send_as_dialog_id) const {
   CHECK(d != nullptr);
   CHECK(content != nullptr);
 
@@ -23392,6 +23393,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
   m->content = std::move(content);
   m->invert_media = invert_media;
   m->forward_info = std::move(forward_info);
+  m->real_forward_from_dialog_id = real_forward_from_dialog_id;
   m->is_copy = is_copy || m->forward_info != nullptr;
   m->sending_id = options.sending_id;
 
@@ -23411,7 +23413,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
     m->is_content_secret = is_secret_message_content(m->ttl, m->content->get_type());
   }
   if (dialog_id == DialogId(my_id)) {
-    m->saved_messages_topic_id = SavedMessagesTopicId(dialog_id, m->forward_info.get());
+    m->saved_messages_topic_id = SavedMessagesTopicId(dialog_id, m->forward_info.get(), m->real_forward_from_dialog_id);
   }
 
   return message;
@@ -23420,12 +23422,13 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
 MessagesManager::Message *MessagesManager::get_message_to_send(
     Dialog *d, MessageId top_thread_message_id, MessageInputReplyTo &&input_reply_to, const MessageSendOptions &options,
     unique_ptr<MessageContent> &&content, bool invert_media, bool *need_update_dialog_pos, bool suppress_reply_info,
-    unique_ptr<MessageForwardInfo> forward_info, bool is_copy, DialogId send_as_dialog_id) {
+    unique_ptr<MessageForwardInfo> forward_info, DialogId real_forward_from_dialog_id, bool is_copy,
+    DialogId send_as_dialog_id) {
   d->was_opened = true;
 
-  auto message =
-      create_message_to_send(d, top_thread_message_id, std::move(input_reply_to), options, std::move(content),
-                             invert_media, suppress_reply_info, std::move(forward_info), is_copy, send_as_dialog_id);
+  auto message = create_message_to_send(d, top_thread_message_id, std::move(input_reply_to), options,
+                                        std::move(content), invert_media, suppress_reply_info, std::move(forward_info),
+                                        real_forward_from_dialog_id, is_copy, send_as_dialog_id);
 
   auto message_id = message->message_id;
   message->random_id = generate_new_random_id(d);
@@ -23969,13 +23972,13 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_message(
   Message *m;
   if (message_send_options.only_preview) {
     message = create_message_to_send(d, top_thread_message_id, std::move(input_reply_to), message_send_options,
-                                     std::move(content), message_content.invert_media, false, nullptr,
+                                     std::move(content), message_content.invert_media, false, nullptr, DialogId(),
                                      message_content.via_bot_user_id.is_valid(), DialogId());
     m = message.get();
   } else {
     m = get_message_to_send(d, top_thread_message_id, std::move(input_reply_to), message_send_options,
                             std::move(content), message_content.invert_media, &need_update_dialog_pos, false, nullptr,
-                            message_content.via_bot_user_id.is_valid());
+                            DialogId(), message_content.via_bot_user_id.is_valid());
   }
   m->reply_markup = std::move(message_reply_markup);
   m->via_bot_user_id = message_content.via_bot_user_id;
@@ -24243,7 +24246,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_message_group
     if (message_send_options.only_preview) {
       message = create_message_to_send(d, top_thread_message_id, std::move(input_reply_to), message_send_options,
                                        std::move(message_content.content), message_content.invert_media, i != 0,
-                                       nullptr, false, DialogId());
+                                       nullptr, DialogId(), false, DialogId());
       m = message.get();
     } else {
       m = get_message_to_send(d, top_thread_message_id, std::move(input_reply_to), message_send_options,
@@ -25130,14 +25133,14 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_inline_query_r
   unique_ptr<Message> message;
   Message *m;
   if (message_send_options.only_preview) {
-    message =
-        create_message_to_send(d, top_thread_message_id, std::move(input_reply_to), message_send_options,
-                               std::move(message_content), content->invert_media, false, nullptr, true, DialogId());
+    message = create_message_to_send(d, top_thread_message_id, std::move(input_reply_to), message_send_options,
+                                     std::move(message_content), content->invert_media, false, nullptr, DialogId(),
+                                     true, DialogId());
     m = message.get();
   } else {
     m = get_message_to_send(d, top_thread_message_id, std::move(input_reply_to), message_send_options,
                             std::move(message_content), content->invert_media, &need_update_dialog_pos, false, nullptr,
-                            true);
+                            DialogId(), true);
   }
 
   m->hide_via_bot = hide_via_bot;
@@ -27038,17 +27041,16 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
       message = create_message_to_send(
           to_dialog, top_thread_message_id, std::move(input_reply_to), message_send_options, std::move(content),
           forwarded_message_contents[j].invert_media, j + 1 != forwarded_message_contents.size(),
-          std::move(forward_info), false, DialogId());
+          std::move(forward_info), from_dialog_id, false, DialogId());
       m = message.get();
     } else {
       m = get_message_to_send(to_dialog, top_thread_message_id, std::move(input_reply_to), message_send_options,
                               std::move(content), forwarded_message_contents[j].invert_media, &need_update_dialog_pos,
-                              j + 1 != forwarded_message_contents.size(), std::move(forward_info));
+                              j + 1 != forwarded_message_contents.size(), std::move(forward_info), from_dialog_id);
     }
     fix_forwarded_message(m, to_dialog_id, forwarded_message, forwarded_message_contents[j].media_album_id,
                           drop_author);
     m->in_game_share = in_game_share;
-    m->real_forward_from_dialog_id = from_dialog_id;
     m->real_forward_from_message_id = message_id;
     forwarded_message_id_to_new_message_id.emplace(message_id, m->message_id);
     if (forwarded_message->replied_message_info.is_external()) {
@@ -27104,7 +27106,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
     if (message_send_options.only_preview) {
       message = create_message_to_send(to_dialog, top_thread_message_id, std::move(input_reply_to),
                                        message_send_options, std::move(copied_message.content),
-                                       copied_message.invert_media, false, nullptr, is_copy, DialogId());
+                                       copied_message.invert_media, false, nullptr, DialogId(), is_copy, DialogId());
       m = message.get();
     } else {
       if (need_invalidate_authentication_code) {
@@ -27115,7 +27117,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
 
       m = get_message_to_send(to_dialog, top_thread_message_id, std::move(input_reply_to), message_send_options,
                               std::move(copied_message.content), copied_message.invert_media, &need_update_dialog_pos,
-                              false, nullptr, is_copy);
+                              false, nullptr, DialogId(), is_copy);
     }
     m->disable_web_page_preview = copied_message.disable_web_page_preview;
     m->media_album_id = copied_message.media_album_id;
@@ -27253,10 +27255,10 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
     MessageSendOptions options(message->disable_notification, message->from_background,
                                message->update_stickersets_order, message->noforwards, false,
                                get_message_schedule_date(message.get()), message->sending_id);
-    Message *m =
-        get_message_to_send(d, message->top_thread_message_id, std::move(message->input_reply_to), options,
-                            std::move(new_contents[i]), message->invert_media, &need_update_dialog_pos, false, nullptr,
-                            message->is_copy, need_another_sender ? DialogId() : get_message_sender(message.get()));
+    Message *m = get_message_to_send(d, message->top_thread_message_id, std::move(message->input_reply_to), options,
+                                     std::move(new_contents[i]), message->invert_media, &need_update_dialog_pos, false,
+                                     nullptr, DialogId(), message->is_copy,
+                                     need_another_sender ? DialogId() : get_message_sender(message.get()));
     m->reply_markup = std::move(message->reply_markup);
     // m->via_bot_user_id = message->via_bot_user_id;
     m->disable_web_page_preview = message->disable_web_page_preview;
@@ -27505,7 +27507,7 @@ Result<MessageId> MessagesManager::add_local_message(
   m->is_content_secret = is_secret_message_content(m->ttl, m->content->get_type());
   m->send_emoji = std::move(message_content.emoji);
   if (dialog_id == DialogId(my_id)) {
-    m->saved_messages_topic_id = SavedMessagesTopicId(dialog_id, m->forward_info.get());
+    m->saved_messages_topic_id = SavedMessagesTopicId(dialog_id, m->forward_info.get(), DialogId());
   }
 
   bool need_update = true;

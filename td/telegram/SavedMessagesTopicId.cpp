@@ -17,11 +17,20 @@ namespace td {
 
 static constexpr DialogId HIDDEN_AUTHOR_DIALOG_ID = DialogId(static_cast<int64>(2666000));
 
-SavedMessagesTopicId::SavedMessagesTopicId(DialogId my_dialog_id, const MessageForwardInfo *message_forward_info) {
+SavedMessagesTopicId::SavedMessagesTopicId(DialogId my_dialog_id, const MessageForwardInfo *message_forward_info,
+                                           DialogId real_forward_from_dialog_id) {
   if (message_forward_info != nullptr) {
     auto last_dialog_id = message_forward_info->get_last_dialog_id();
     if (last_dialog_id.is_valid()) {
       dialog_id_ = last_dialog_id;
+      return;
+    }
+    if (real_forward_from_dialog_id != DialogId() && message_forward_info->has_last_sender_name()) {
+      if (real_forward_from_dialog_id.get_type() == DialogType::User) {
+        dialog_id_ = HIDDEN_AUTHOR_DIALOG_ID;
+      } else {
+        dialog_id_ = real_forward_from_dialog_id;
+      }
       return;
     }
     auto from_dialog_id = message_forward_info->get_origin().get_sender();
@@ -31,6 +40,7 @@ SavedMessagesTopicId::SavedMessagesTopicId(DialogId my_dialog_id, const MessageF
     }
     if (message_forward_info->get_origin().is_sender_hidden()) {
       dialog_id_ = HIDDEN_AUTHOR_DIALOG_ID;
+      return;
     }
   }
   dialog_id_ = my_dialog_id;
