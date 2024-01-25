@@ -50,7 +50,7 @@ class LastForwardedMessageInfo {
 
   bool is_empty() const;
 
-  bool validate();
+  void validate();
 
   void hide_sender_if_needed(Td *td);
 

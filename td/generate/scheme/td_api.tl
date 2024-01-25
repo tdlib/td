@@ -1201,8 +1201,8 @@ messageOriginChannel chat_id:int53 message_id:int53 author_signature:string = Me
 
 
 //@description Contains information about the last message from which a new message was forwarded last time
-//@chat_id Identifier of the chat to which the message that was forwarded belonged
-//@message_id Identifier of the message
+//@chat_id Identifier of the chat to which the message that was forwarded belonged; may be 0 if unknown
+//@message_id Identifier of the message; may be 0 if unknown
 //@sender_id Identifier of the sender of the message; may be null if unknown or the new message was forwarded not to Saved Messages
 //@sender_name Name of the sender of the message if the sender is hidden by their privacy settings
 //@date Point in time (Unix timestamp) when the message is sent; 0 if unknown

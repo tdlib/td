@@ -26709,7 +26709,8 @@ unique_ptr<MessageForwardInfo> MessagesManager::create_message_forward_info(Dial
   if (from_dialog_id != my_dialog_id || content_type == MessageContentType::Dice) {
     auto origin = get_forwarded_message_origin(from_dialog_id, m);
     if (!origin.is_empty()) {
-      if (!last_message_info.is_empty()) {
+      last_message_info.hide_sender_if_needed(td_);
+      if (last_message_info.get_dialog_id() != DialogId()) {
         last_message_info =
             LastForwardedMessageInfo(from_dialog_id, m->message_id, DialogId(), string(), 0, m->is_outgoing);
       }
