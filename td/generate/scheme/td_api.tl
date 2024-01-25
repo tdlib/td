@@ -1222,7 +1222,7 @@ reactionTypeCustomEmoji custom_emoji_id:int64 = ReactionType;
 //@description Contains information about a forwarded message
 //@origin Origin of the forwarded message
 //@date Point in time (Unix timestamp) when the message was originally sent
-//@source For messages forwarded to the chat with the current user (Saved Messages), to the Replies bot chat, or to the channel's discussion group, information about the source message, from which the message was forwarded last time; may be null for other forwards or if unknown
+//@source For messages forwarded to the chat with the current user (Saved Messages), to the Replies bot chat, or to the channel's discussion group, information about the source message from which the message was forwarded last time; may be null for other forwards or if unknown
 //@public_service_announcement_type The type of a public service announcement for the forwarded message
 messageForwardInfo origin:MessageOrigin date:int32 source:forwardSource public_service_announcement_type:string = MessageForwardInfo;
 
@@ -1247,7 +1247,7 @@ messageReplyInfo reply_count:int32 recent_replier_ids:vector<MessageSender> last
 //@recent_sender_ids Identifiers of at most 3 recent message senders, added the reaction; available in private, basic group and supergroup chats
 messageReaction type:ReactionType total_count:int32 is_chosen:Bool used_sender_id:MessageSender recent_sender_ids:vector<MessageSender> = MessageReaction;
 
-//@description Contains a list of reactions added to a message @reactions List of added reactions @are_tags True, if the reactions are tags and Telegram Premium users can filter messages by them; currently, always false 
+//@description Contains a list of reactions added to a message @reactions List of added reactions @are_tags True, if the reactions are tags and Telegram Premium users can filter messages by them; currently, always false
 messageReactions reactions:vector<messageReaction> are_tags:Bool = MessageReactions;
 
 
@@ -4045,7 +4045,7 @@ availableReaction type:ReactionType needs_premium:Bool = AvailableReaction;
 //@popular_reactions List of popular reactions
 //@allow_custom_emoji True, if any custom emoji reaction can be added by Telegram Premium subscribers
 //@are_tags True, if the reactions will be tags and the message can be found by them; currently, always false
-//@unavailability_reason The reason why the current user can't add reactions to the message, despite some other users can; null if none
+//@unavailability_reason The reason why the current user can't add reactions to the message, despite some other users can; may be null if none
 availableReactions top_reactions:vector<availableReaction> recent_reactions:vector<availableReaction> popular_reactions:vector<availableReaction> allow_custom_emoji:Bool are_tags:Bool unavailability_reason:ReactionUnavailabilityReason = AvailableReactions;
 
 //@description Contains information about an emoji reaction
@@ -6730,7 +6730,7 @@ updateActiveEmojiReactions emojis:vector<string> = Update;
 //@description The type of default reaction has changed @reaction_type The new type of the default reaction
 updateDefaultReactionType reaction_type:ReactionType = Update;
 
-//@description Used Saved Messages tags has changed @tags The new used tags
+//@description Used Saved Messages tags have changed @tags The new used tags
 updateSavedMessagesTags tags:savedMessagesTags = Update;
 
 //@description The parameters of speech recognition without Telegram Premium subscription has changed

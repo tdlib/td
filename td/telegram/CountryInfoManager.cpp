@@ -23,6 +23,7 @@
 #include "td/utils/Random.h"
 #include "td/utils/Time.h"
 #include "td/utils/tl_parsers.h"
+#include "td/utils/utf8.h"
 
 namespace td {
 

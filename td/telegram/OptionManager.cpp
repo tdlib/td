@@ -38,6 +38,7 @@
 #include "td/actor/actor.h"
 
 #include "td/utils/algorithm.h"
+#include "td/utils/FlatHashSet.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/Clocks.h"

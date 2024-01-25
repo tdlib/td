@@ -5084,7 +5084,7 @@ void Td::on_request(uint64 id, const td_api::setPinnedSavedMessagesTopics &reque
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   auto saved_messages_topic_ids = transform(request.saved_messages_topics_,
-                                            [td = this](const auto &topic) { return SavedMessagesTopicId(td, topic); });
+                                            [this](const auto &topic) { return SavedMessagesTopicId(this, topic); });
   messages_manager_->set_pinned_saved_messages_topics(std::move(saved_messages_topic_ids), std::move(promise));
 }
 

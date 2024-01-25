@@ -29,7 +29,7 @@
 #include "td/utils/Status.h"
 
 #include <algorithm>
-#include <tuple>
+#include <type_traits>
 
 namespace td {
 
@@ -594,8 +594,11 @@ void ReactionManager::reload_reactions() {
 }
 
 void ReactionManager::reload_reaction_list(ReactionListType reaction_list_type) {
+  if (G()->close_flag()) {
+    return;
+  }
   auto &reaction_list = get_reaction_list(reaction_list_type);
-  if (G()->close_flag() || reaction_list.is_being_reloaded_) {
+  if (reaction_list.is_being_reloaded_) {
     return;
   }
   CHECK(!td_->auth_manager_->is_bot());

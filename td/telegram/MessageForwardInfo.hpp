@@ -6,9 +6,7 @@
 //
 #pragma once
 
-#include "td/telegram/DialogId.h"
 #include "td/telegram/MessageForwardInfo.h"
-#include "td/telegram/MessageId.h"
 #include "td/telegram/MessageOrigin.hpp"
 
 #include "td/utils/common.h"

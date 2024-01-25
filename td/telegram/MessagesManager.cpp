@@ -207,7 +207,7 @@ class GetPinnedSavedDialogsQuery final : public Td::ResultHandler {
     }
 
     auto result = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive pinned Saved Messages topics: " << to_string(result);
+    LOG(INFO) << "Receive result for GetPinnedSavedDialogsQuery: " << to_string(result);
     td_->messages_manager_->on_get_saved_messages_topics(std::move(result), std::move(promise_));
   }
 
@@ -241,7 +241,7 @@ class GetSavedDialogsQuery final : public Td::ResultHandler {
     }
 
     auto result = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive Saved Messages topics: " << to_string(result);
+    LOG(INFO) << "Receive result for GetSavedDialogsQuery: " << to_string(result);
     td_->messages_manager_->on_get_saved_messages_topics(std::move(result), std::move(promise_));
   }
 

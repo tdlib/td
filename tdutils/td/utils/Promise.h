@@ -116,7 +116,7 @@ class LambdaPromise : public PromiseInterface<ValueT> {
   }
 
   template <class FromT>
-  explicit LambdaPromise(const char *file, int line, FromT &&func)
+  LambdaPromise(const char *file, int line, FromT &&func)
       : func_(std::forward<FromT>(func)), state_(State::Ready), file_(file), line_(line) {
   }
 

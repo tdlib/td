@@ -12,6 +12,7 @@
 #include "td/telegram/MessageForwardInfo.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/telegram_api.h"
 
 namespace td {
 
