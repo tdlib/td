@@ -9036,6 +9036,7 @@ void MessagesManager::on_get_public_dialogs_search_result(const string &query,
   auto promises = std::move(it->second);
   search_public_dialogs_queries_.erase(it);
 
+  CHECK(!query.empty());
   found_public_dialogs_[query] = td_->dialog_manager_->get_peers_dialog_ids(std::move(peers));
   found_on_server_dialogs_[query] = td_->dialog_manager_->get_peers_dialog_ids(std::move(my_peers));
 

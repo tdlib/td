@@ -673,6 +673,7 @@ void DialogInviteLinkManager::on_get_dialog_invite_link_info(
     const string &invite_link, telegram_api::object_ptr<telegram_api::ChatInvite> &&chat_invite_ptr,
     Promise<Unit> &&promise) {
   CHECK(chat_invite_ptr != nullptr);
+  CHECK(!invite_link.empty());
   switch (chat_invite_ptr->get_id()) {
     case telegram_api::chatInviteAlready::ID:
     case telegram_api::chatInvitePeek::ID: {
@@ -883,6 +884,8 @@ td_api::object_ptr<td_api::chatInviteLinkInfo> DialogInviteLinkManager::get_chat
 
 void DialogInviteLinkManager::add_dialog_access_by_invite_link(DialogId dialog_id, const string &invite_link,
                                                                int32 accessible_before_date) {
+  CHECK(dialog_id.is_valid());
+  CHECK(!invite_link.empty());
   auto &access = dialog_access_by_invite_link_[dialog_id];
   access.invite_links.insert(invite_link);
   if (access.accessible_before_date < accessible_before_date) {
