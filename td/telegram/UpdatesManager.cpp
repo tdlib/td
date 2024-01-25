@@ -2042,12 +2042,12 @@ void UpdatesManager::on_get_pts_update(int32 pts,
   if (G()->close_flag() || !td_->auth_manager_->is_authorized()) {
     return;
   }
+  LOG(DEBUG) << "Receive update with PTS " << pts << ": " << to_string(difference_ptr);
   if (get_pts() != pts - 1 || running_get_difference_ || !postponed_pts_updates_.empty() ||
-      pending_pts_updates_.empty() || pending_pts_updates_.begin()->first != pts + 1) {
+      pending_pts_updates_.empty() || pending_pts_updates_.begin()->first > pts + 1 ||
+      pending_pts_updates_.begin()->first != pts + pending_pts_updates_.begin()->second.pts_count) {
     return;
   }
-
-  LOG(DEBUG) << "Receive update with PTS " << pts << ": " << to_string(difference_ptr);
 
   switch (difference_ptr->get_id()) {
     case telegram_api::updates_difference::ID: {
@@ -2084,6 +2084,13 @@ void UpdatesManager::on_get_pts_update(int32 pts,
               update_message_id->random_id_, MessageId(ServerMessageId(update_message_id->id_)), "on_get_pts_update");
           continue;
         }
+        if (constructor_id == telegram_api::updateDeleteMessages::ID) {
+          auto *update_delete_messages = static_cast<const telegram_api::updateDeleteMessages *>(update.get());
+          if (update_delete_messages->pts_count_ != 0 || update_delete_messages->messages_.size() != 1) {
+            LOG(ERROR) << "Receive in getDifference " << to_string(update);
+          }
+        }
+
         update_ptr = &update;
         update_count++;
       }
