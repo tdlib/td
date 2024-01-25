@@ -188,6 +188,8 @@ class ContactsManager final : public Actor {
   void can_send_message_to_user(UserId user_id, bool force,
                                 Promise<td_api::object_ptr<td_api::CanSendMessageToUserResult>> &&promise);
 
+  void allow_send_message_to_user(UserId user_id);
+
   void on_imported_contacts(int64 random_id, Result<tl_object_ptr<telegram_api::contacts_importedContacts>> result);
 
   void on_deleted_contacts(const vector<UserId> &deleted_contact_user_ids);

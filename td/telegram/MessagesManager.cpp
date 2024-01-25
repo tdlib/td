@@ -33198,6 +33198,10 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     CHECK(is_inserted);
   }
 
+  if (!td_->auth_manager_->is_bot() && dialog_type == DialogType::User && !m->is_outgoing) {
+    td_->contacts_manager_->allow_send_message_to_user(dialog_id.get_user_id());
+  }
+
   switch (dialog_type) {
     case DialogType::User:
     case DialogType::Chat:

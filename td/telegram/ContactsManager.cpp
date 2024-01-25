@@ -5593,6 +5593,13 @@ void ContactsManager::on_get_is_premium_required_to_contact_users(vector<UserId>
   promise.set_value(Unit());
 }
 
+void ContactsManager::allow_send_message_to_user(UserId user_id) {
+  if (get_user_full(user_id) == nullptr) {
+    CHECK(user_id.is_valid());
+    user_full_contact_require_premium_[user_id] = true;
+  }
+}
+
 void ContactsManager::load_contacts(Promise<Unit> &&promise) {
   if (td_->auth_manager_->is_bot()) {
     are_contacts_loaded_ = true;
