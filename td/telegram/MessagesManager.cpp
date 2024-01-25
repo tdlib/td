@@ -11960,13 +11960,15 @@ void MessagesManager::start_up() {
   init();
 }
 
-void MessagesManager::create_folders() {
+void MessagesManager::create_folders(int source) {
   LOG(INFO) << "Create folders";
+  create_folders_source_ = source;
   dialog_folders_[FolderId::main()].folder_id = FolderId::main();
   dialog_folders_[FolderId::archive()].folder_id = FolderId::archive();
 
   add_dialog_list(DialogListId(FolderId::main()));
   add_dialog_list(DialogListId(FolderId::archive()));
+  create_folders_source_ = source + 1;
 }
 
 void MessagesManager::init() {
@@ -11983,7 +11985,7 @@ void MessagesManager::init() {
 
   bool was_authorized_user = td_->auth_manager_->was_authorized() && !td_->auth_manager_->is_bot();
   if (was_authorized_user) {
-    create_folders();  // ensure that Main and Archive dialog lists are created
+    create_folders(10);  // ensure that Main and Archive dialog lists are created
   }
   authorization_date_ = td_->option_manager_->get_option_integer("authorization_date");
 
@@ -12204,7 +12206,7 @@ void MessagesManager::on_authorization_success() {
     return;
   }
 
-  create_folders();
+  create_folders(20);
 }
 
 void MessagesManager::ttl_db_loop() {
@@ -34700,9 +34702,10 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
   }
 
   auto folder_ptr = get_dialog_folder(d->folder_id);
-  LOG_CHECK(folder_ptr != nullptr) << is_inited_ << ' ' << G()->close_flag() << ' ' << dialog_id << ' ' << d->folder_id
-                                   << ' ' << is_loaded_from_database << ' ' << td_->auth_manager_->is_authorized()
-                                   << ' ' << td_->auth_manager_->was_authorized() << ' ' << source;
+  LOG_CHECK(folder_ptr != nullptr) << is_inited_ << ' ' << create_folders_source_ << ' ' << G()->close_flag() << ' '
+                                   << dialog_id << ' ' << d->folder_id << ' ' << is_loaded_from_database << ' '
+                                   << td_->auth_manager_->is_authorized() << ' ' << td_->auth_manager_->was_authorized()
+                                   << ' ' << source;
   auto &folder = *folder_ptr;
   if (old_date == new_date) {
     if (new_order == DEFAULT_ORDER) {

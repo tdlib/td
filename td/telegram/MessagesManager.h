@@ -2747,7 +2747,7 @@ class MessagesManager final : public Actor {
 
   void hangup() final;
 
-  void create_folders();
+  void create_folders(int source);
 
   void init();
 
@@ -3441,6 +3441,7 @@ class MessagesManager final : public Actor {
 
   double start_time_ = 0;
   bool is_inited_ = false;
+  int create_folders_source_ = 0;
 
   Td *td_;
   ActorShared<> parent_;
