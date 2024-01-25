@@ -33915,8 +33915,11 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     old_message->had_forward_info = new_message->had_forward_info;
   }
   if (old_message->saved_messages_topic_id != new_message->saved_messages_topic_id) {
-    LOG(ERROR) << "Saved Messages topic for " << message_id << " in " << dialog_id << " changed from "
-               << old_message->saved_messages_topic_id << " to " << new_message->saved_messages_topic_id;
+    if (!(message_id.is_yet_unsent() && (old_message->saved_messages_topic_id.is_author_hidden() ||
+                                         new_message->saved_messages_topic_id.is_author_hidden()))) {
+      LOG(ERROR) << "Saved Messages topic for " << message_id << " in " << dialog_id << " changed from "
+                 << old_message->saved_messages_topic_id << " to " << new_message->saved_messages_topic_id;
+    }
     old_message->saved_messages_topic_id = new_message->saved_messages_topic_id;
     need_send_update = true;
   }
