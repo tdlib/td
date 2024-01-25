@@ -139,11 +139,13 @@ class ReactionManager final : public Actor {
 
     SavedReactionTag() = default;
 
+    explicit SavedReactionTag(telegram_api::object_ptr<telegram_api::savedReactionTag> &&tag);
+
+    SavedReactionTag(const ReactionType &reaction_type, const string &title, int32 count);
+
     bool is_valid() const {
       return !reaction_type_.is_empty() && count_ >= 0 && (count_ > 0 || !title_.empty());
     }
-
-    explicit SavedReactionTag(telegram_api::object_ptr<telegram_api::savedReactionTag> &&tag);
 
     td_api::object_ptr<td_api::savedMessagesTag> get_saved_messages_tag_object() const;
   };

@@ -238,6 +238,10 @@ ReactionManager::SavedReactionTag::SavedReactionTag(telegram_api::object_ptr<tel
     , count_(tag->count_) {
 }
 
+ReactionManager::SavedReactionTag::SavedReactionTag(const ReactionType &reaction_type, const string &title, int32 count)
+    : reaction_type_(reaction_type), hash_(reaction_type_.get_hash()), title_(title), count_(count) {
+}
+
 td_api::object_ptr<td_api::savedMessagesTag> ReactionManager::SavedReactionTag::get_saved_messages_tag_object() const {
   return td_api::make_object<td_api::savedMessagesTag>(reaction_type_.get_reaction_type_object(), title_, count_);
 }
@@ -304,11 +308,7 @@ void ReactionManager::SavedReactionTags::update_saved_messages_tags(const vector
         }
       }
       if (!is_found) {
-        SavedReactionTag saved_reaction_tag;
-        saved_reaction_tag.reaction_type_ = new_tag;
-        saved_reaction_tag.hash_ = new_tag.get_hash();
-        saved_reaction_tag.count_ = 1;
-        tags_.push_back(std::move(saved_reaction_tag));
+        tags_.emplace_back(new_tag, string(), 1);
         need_reload_title = true;
       }
     }
@@ -337,12 +337,7 @@ bool ReactionManager::SavedReactionTags::set_tag_title(const ReactionType &react
       return true;
     }
   }
-  SavedReactionTag saved_reaction_tag;
-  saved_reaction_tag.reaction_type_ = reaction_type;
-  saved_reaction_tag.hash_ = reaction_type.get_hash();
-  saved_reaction_tag.title_ = title;
-  saved_reaction_tag.count_ = 0;
-  tags_.push_back(std::move(saved_reaction_tag));
+  tags_.emplace_back(reaction_type, title, 0);
   std::sort(tags_.begin(), tags_.end());
   hash_ = calc_hash();
   return false;
