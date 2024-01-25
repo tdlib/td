@@ -133,6 +133,7 @@ class ReactionManager final : public Actor {
 
   struct SavedReactionTag {
     ReactionType reaction_type_;
+    uint64 hash_ = 0;
     string title_;
     int32 count_ = 0;
 

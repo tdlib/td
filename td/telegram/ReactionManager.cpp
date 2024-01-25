@@ -232,7 +232,10 @@ class UpdateSavedReactionTagQuery final : public Td::ResultHandler {
 };
 
 ReactionManager::SavedReactionTag::SavedReactionTag(telegram_api::object_ptr<telegram_api::savedReactionTag> &&tag)
-    : reaction_type_(tag->reaction_), title_(std::move(tag->title_)), count_(tag->count_) {
+    : reaction_type_(tag->reaction_)
+    , hash_(reaction_type_.get_hash())
+    , title_(std::move(tag->title_))
+    , count_(tag->count_) {
 }
 
 td_api::object_ptr<td_api::savedMessagesTag> ReactionManager::SavedReactionTag::get_saved_messages_tag_object() const {
@@ -251,9 +254,7 @@ bool operator<(const ReactionManager::SavedReactionTag &lhs, const ReactionManag
   if (lhs.count_ != rhs.count_) {
     return lhs.count_ > rhs.count_;
   }
-  auto lhs_hash = lhs.reaction_type_.get_hash();
-  auto rhs_hash = rhs.reaction_type_.get_hash();
-  return lhs_hash > rhs_hash;
+  return lhs.hash_ > rhs.hash_;
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const ReactionManager::SavedReactionTag &saved_reaction_tag) {
@@ -305,6 +306,7 @@ void ReactionManager::SavedReactionTags::update_saved_messages_tags(const vector
       if (!is_found) {
         SavedReactionTag saved_reaction_tag;
         saved_reaction_tag.reaction_type_ = new_tag;
+        saved_reaction_tag.hash_ = new_tag.get_hash();
         saved_reaction_tag.count_ = 1;
         tags_.push_back(std::move(saved_reaction_tag));
         need_reload_title = true;
@@ -320,7 +322,7 @@ void ReactionManager::SavedReactionTags::update_saved_messages_tags(const vector
 int64 ReactionManager::SavedReactionTags::calc_hash() const {
   vector<uint64> numbers;
   for (const auto &tag : tags_) {
-    numbers.push_back(tag.reaction_type_.get_hash());
+    numbers.push_back(tag.hash_);
     if (!tag.title_.empty()) {
       numbers.push_back(get_md5_string_hash(tag.title_));
     }
