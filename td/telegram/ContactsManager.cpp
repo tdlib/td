@@ -5538,7 +5538,9 @@ void ContactsManager::can_send_message_to_user(
   if (!have_input_peer_user(u, user_id, AccessRights::Write)) {
     return promise.set_value(td_api::make_object<td_api::canSendMessageToUserResultUserIsDeleted>());
   }
-  if (!u->contact_require_premium || td_->option_manager_->get_option_boolean("is_premium") || u->is_mutual_contact) {
+  CHECK(user_id.is_valid());
+  if ((u != nullptr && (!u->contact_require_premium || u->is_mutual_contact)) ||
+      td_->option_manager_->get_option_boolean("is_premium")) {
     return promise.set_value(td_api::make_object<td_api::canSendMessageToUserResultOk>());
   }
 
