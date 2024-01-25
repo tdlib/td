@@ -248,7 +248,12 @@ bool operator!=(const ReactionManager::SavedReactionTag &lhs, const ReactionMana
 }
 
 bool operator<(const ReactionManager::SavedReactionTag &lhs, const ReactionManager::SavedReactionTag &rhs) {
-  return std::tie(lhs.count_, lhs.title_, lhs.reaction_type_) < std::tie(rhs.count_, rhs.title_, rhs.reaction_type_);
+  if (lhs.count_ != rhs.count_) {
+    return lhs.count_ > rhs.count_;
+  }
+  auto lhs_hash = lhs.reaction_type_.get_hash();
+  auto rhs_hash = rhs.reaction_type_.get_hash();
+  return lhs_hash > rhs_hash;
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const ReactionManager::SavedReactionTag &saved_reaction_tag) {
