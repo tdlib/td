@@ -50,6 +50,8 @@ class SavedMessagesTopicId {
 
   Status is_valid_in(Td *td, DialogId dialog_id) const;
 
+  bool is_author_hidden() const;
+
   td_api::object_ptr<td_api::SavedMessagesTopic> get_saved_messages_topic_object(Td *td) const;
 
   telegram_api::object_ptr<telegram_api::InputPeer> get_input_peer(const Td *td) const;

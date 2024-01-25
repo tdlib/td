@@ -75,7 +75,7 @@ td_api::object_ptr<td_api::SavedMessagesTopic> SavedMessagesTopicId::get_saved_m
   if (dialog_id_ == td->dialog_manager_->get_my_dialog_id()) {
     return td_api::make_object<td_api::savedMessagesTopicMyNotes>();
   }
-  if (dialog_id_ == HIDDEN_AUTHOR_DIALOG_ID) {
+  if (is_author_hidden()) {
     return td_api::make_object<td_api::savedMessagesTopicAuthorHidden>();
   }
   return td_api::make_object<td_api::savedMessagesTopicSavedFromChat>(
@@ -112,6 +112,10 @@ Status SavedMessagesTopicId::is_valid_in(Td *td, DialogId dialog_id) const {
   return Status::OK();
 }
 
+bool SavedMessagesTopicId::is_author_hidden() const {
+  return dialog_id_ == HIDDEN_AUTHOR_DIALOG_ID;
+}
+
 telegram_api::object_ptr<telegram_api::InputPeer> SavedMessagesTopicId::get_input_peer(const Td *td) const {
   return td->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Know);
 }
@@ -122,7 +126,7 @@ telegram_api::object_ptr<telegram_api::InputDialogPeer> SavedMessagesTopicId::ge
 }
 
 void SavedMessagesTopicId::add_dependencies(Dependencies &dependencies) const {
-  if (dialog_id_ == HIDDEN_AUTHOR_DIALOG_ID) {
+  if (is_author_hidden()) {
     dependencies.add_dialog_dependencies(dialog_id_);
   } else {
     dependencies.add_dialog_and_dependencies(dialog_id_);
@@ -133,7 +137,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, SavedMessagesTopicId sa
   if (!saved_messages_topic_id.dialog_id_.is_valid()) {
     return string_builder << "[no Saved Messages topic]";
   }
-  if (saved_messages_topic_id.dialog_id_ == HIDDEN_AUTHOR_DIALOG_ID) {
+  if (saved_messages_topic_id.is_author_hidden()) {
     return string_builder << "[Author Hidden topic]";
   }
   return string_builder << "[topic of " << saved_messages_topic_id.dialog_id_ << ']';
