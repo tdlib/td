@@ -2910,7 +2910,7 @@ void UpdatesManager::add_pending_pts_update(tl_object_ptr<telegram_api::Update> 
       // can't apply all updates, but can apply this and probably some other updates
       process_pending_pts_updates();
     } else {
-      set_pts_gap_timeout(receive_time + MAX_UNFILLED_GAP_TIME - Time::now());
+      set_pts_gap_timeout(max(receive_time + MAX_UNFILLED_GAP_TIME - Time::now(), 0.001));
     }
     return;
   }
@@ -3233,7 +3233,7 @@ void UpdatesManager::process_pending_pts_updates() {
       }
       receive_time = min(receive_time, update_it->second.receive_time);
     }
-    set_pts_gap_timeout(receive_time + MAX_UNFILLED_GAP_TIME - Time::now());
+    set_pts_gap_timeout(max(receive_time + MAX_UNFILLED_GAP_TIME - Time::now(), 0.001));
   }
 
   auto passed_time = Time::now() - begin_time;

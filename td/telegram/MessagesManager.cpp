@@ -21731,9 +21731,9 @@ void MessagesManager::on_get_affected_history(DialogId dialog_id, AffectedHistor
       add_pending_channel_update(dialog_id, make_tl_object<dummyUpdate>(), affected_history.pts_,
                                  affected_history.pts_count_, std::move(update_promise), "on_get_affected_history");
     } else {
-      td_->updates_manager_->add_pending_pts_update(make_tl_object<dummyUpdate>(), affected_history.pts_,
-                                                    affected_history.pts_count_, Time::now(), std::move(update_promise),
-                                                    "on_get_affected_history");
+      td_->updates_manager_->add_pending_pts_update(
+          make_tl_object<dummyUpdate>(), affected_history.pts_, affected_history.pts_count_,
+          Time::now() - (get_affected_messages ? 10.0 : 0.0), std::move(update_promise), "on_get_affected_history");
     }
   } else if (affected_history.is_final_) {
     promise.set_value(Unit());
