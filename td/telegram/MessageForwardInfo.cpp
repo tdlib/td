@@ -107,14 +107,17 @@ StringBuilder &operator<<(StringBuilder &string_builder, const LastForwardedMess
       string_builder << " forwarded from "
                      << MessageFullId(last_message_info.dialog_id_, last_message_info.message_id_);
     }
-    if (last_message_info.sender_dialog_id_ != DialogId() || !last_message_info.sender_name_.empty()) {
-      string_builder << " sent by ";
+    if (last_message_info.sender_dialog_id_ != DialogId() || !last_message_info.sender_name_.empty() ||
+        last_message_info.is_outgoing_) {
+      string_builder << " sent by";
       if (last_message_info.sender_dialog_id_.is_valid()) {
-        string_builder << last_message_info.sender_dialog_id_;
+        string_builder << ' ' << last_message_info.sender_dialog_id_;
       }
       if (!last_message_info.sender_name_.empty()) {
         if (last_message_info.sender_dialog_id_.is_valid()) {
           string_builder << '/';
+        } else {
+          string_builder << ' ';
         }
         string_builder << '"' << last_message_info.sender_name_ << '"';
       }
@@ -258,7 +261,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const MessageForwardInf
     string_builder << ", psa_type " << forward_info.psa_type_;
   }
   if (!forward_info.last_message_info_.is_empty()) {
-    string_builder << ", from " << forward_info.last_message_info_;
+    string_builder << ", " << forward_info.last_message_info_;
   }
   return string_builder << " at " << forward_info.date_ << ']';
 }
