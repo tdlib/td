@@ -1247,7 +1247,7 @@ messageReplyInfo reply_count:int32 recent_replier_ids:vector<MessageSender> last
 //@recent_sender_ids Identifiers of at most 3 recent message senders, added the reaction; available in private, basic group and supergroup chats
 messageReaction type:ReactionType total_count:int32 is_chosen:Bool used_sender_id:MessageSender recent_sender_ids:vector<MessageSender> = MessageReaction;
 
-//@description Contains a list of reactions added to a message @reactions List of added reactions @are_tags True, if the reactions are tags and the message can be found by them
+//@description Contains a list of reactions added to a message @reactions List of added reactions @are_tags True, if the reactions are tags and Telegram Premium users can filter messages by them; currently, always false 
 messageReactions reactions:vector<messageReaction> are_tags:Bool = MessageReactions;
 
 
@@ -4044,7 +4044,7 @@ availableReaction type:ReactionType needs_premium:Bool = AvailableReaction;
 //@recent_reactions List of recently used reactions
 //@popular_reactions List of popular reactions
 //@allow_custom_emoji True, if any custom emoji reaction can be added by Telegram Premium subscribers
-//@are_tags True, if the reactions will be tags and the message can be found by them
+//@are_tags True, if the reactions will be tags and the message can be found by them; currently, always false
 //@unavailability_reason The reason why the current user can't add reactions to the message, despite some other users can; null if none
 availableReactions top_reactions:vector<availableReaction> recent_reactions:vector<availableReaction> popular_reactions:vector<availableReaction> allow_custom_emoji:Bool are_tags:Bool unavailability_reason:ReactionUnavailabilityReason = AvailableReactions;
 
@@ -7343,7 +7343,8 @@ searchMessages chat_list:ChatList query:string offset:string limit:int32 filter:
 //@filter Additional filter for messages to search; pass null to search for all messages
 searchSecretMessages chat_id:int53 query:string offset:string limit:int32 filter:SearchMessagesFilter = FoundMessages;
 
-//@description Searches for messages tagged by the given reaction and with the given words in the Saved Messages chat. Returns the results in reverse chronological order, i.e. in order of decreasing message_id
+//@description Searches for messages tagged by the given reaction and with the given words in the Saved Messages chat; for Telegram Premium users only.
+//-Returns the results in reverse chronological order, i.e. in order of decreasing message_id
 //-For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
 //@tag Tag to search for; pass null to return all suitable messages
 //@query Query to search for
@@ -7736,10 +7737,10 @@ getMessageAddedReactions chat_id:int53 message_id:int53 reaction_type:ReactionTy
 //@description Changes type of default reaction for the current user @reaction_type New type of the default reaction
 setDefaultReactionType reaction_type:ReactionType = Ok;
 
-//@description Returns tags used in Saved Messages
+//@description Returns tags used in Saved Messages; for Telegram Premium users only
 getSavedMessagesTags = SavedMessagesTags;
 
-//@description Changes label of a Saved Messages tag; for Telegram Premium users only @tag The tag @label New label for the tag; 0-12 characters
+//@description Changes label of a Saved Messages tag; for Telegram Premium users only @tag The tag which label will be changed @label New label for the tag; 0-12 characters
 setSavedMessagesTagLabel tag:ReactionType label:string = Ok;
 
 

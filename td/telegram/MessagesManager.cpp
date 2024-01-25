@@ -22738,8 +22738,9 @@ void MessagesManager::on_get_scheduled_messages_from_database(DialogId dialog_id
 }
 
 bool MessagesManager::can_add_message_tag(DialogId dialog_id, const MessageReactions *reactions) const {
-  return dialog_id == td_->dialog_manager_->get_my_dialog_id() &&
-         (reactions == nullptr || reactions->reactions_.empty() || reactions->are_tags_);
+  return false;
+  // return dialog_id == td_->dialog_manager_->get_my_dialog_id() &&
+  //        (reactions == nullptr || reactions->reactions_.empty() || reactions->are_tags_);
 }
 
 Result<td_api::object_ptr<td_api::availableReactions>> MessagesManager::get_message_available_reactions(
