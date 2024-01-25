@@ -316,77 +316,101 @@ void OptionManager::on_update_server_time_difference() {
 }
 
 bool OptionManager::is_internal_option(Slice name) {
-  switch (name[0]) {
-    case 'a':
-      return name == "about_length_limit_default" || name == "about_length_limit_premium" ||
-             name == "aggressive_anti_spam_supergroup_member_count_min" || name == "animated_emoji_zoom" ||
-             name == "animation_search_emojis" || name == "animation_search_provider" ||
-             name == "authorization_autoconfirm_period";
-    case 'b':
-      return name == "base_language_pack_version";
-    case 'c':
-      return name == "call_receive_timeout_ms" || name == "call_ring_timeout_ms" ||
-             name == "caption_length_limit_default" || name == "caption_length_limit_premium" ||
-             name == "channel_bg_icon_level_min" || name == "channel_custom_wallpaper_level_min" ||
-             name == "channel_emoji_status_level_min" || name == "channel_profile_bg_icon_level_min" ||
-             name == "channel_wallpaper_level_min" || name == "channels_limit_default" ||
-             name == "channels_limit_premium" || name == "channels_public_limit_default" ||
-             name == "channels_public_limit_premium" || name == "channels_read_media_period" ||
-             name == "chat_read_mark_expire_period" || name == "chat_read_mark_size_threshold" ||
-             name == "chatlist_invites_limit_default" || name == "chatlist_invites_limit_premium" ||
-             name == "chatlists_joined_limit_default" || name == "chatlists_joined_limit_premium";
-    case 'd':
-      return name == "dc_txt_domain_name" || name == "default_reaction" || name == "default_reaction_needs_sync" ||
-             name == "dialog_filters_chats_limit_default" || name == "dialog_filters_chats_limit_premium" ||
-             name == "dialog_filters_limit_default" || name == "dialog_filters_limit_premium" ||
-             name == "dialogs_folder_pinned_limit_default" || name == "dialogs_folder_pinned_limit_premium" ||
-             name == "dialogs_pinned_limit_default" || name == "dialogs_pinned_limit_premium" ||
-             name == "dice_emojis" || name == "dice_success_values";
-    case 'e':
-      return name == "edit_time_limit" || name == "emoji_sounds";
-    case 'f':
-      return name == "fragment_prefixes";
-    case 'h':
-      return name == "hidden_members_group_size_min";
-    case 'i':
-      return name == "ignored_restriction_reasons";
-    case 'l':
-      return name == "language_pack_version";
-    case 'm':
-      return name == "my_phone_number";
-    case 'n':
-      return name == "need_premium_for_story_caption_entities" || name == "need_synchronize_archive_all_stories" ||
-             name == "notification_cloud_delay_ms" || name == "notification_default_delay_ms";
-    case 'o':
-      return name == "online_cloud_timeout_ms" || name == "online_update_period_ms" || name == "otherwise_relogin_days";
-    case 'p':
-      return name == "pm_read_date_expire_period" || name == "premium_bot_username" || name == "premium_features" ||
-             name == "premium_invoice_slug";
-    case 'r':
-      return name == "rating_e_decay" || name == "reactions_uniq_max" || name == "reactions_user_max_default" ||
-             name == "reactions_user_max_premium" || name == "recent_stickers_limit" ||
-             name == "recommended_channels_limit_default" || name == "recommended_channels_limit_premium" ||
-             name == "restriction_add_platforms" || name == "revoke_pm_inbox" || name == "revoke_time_limit" ||
-             name == "revoke_pm_time_limit";
-    case 's':
-      return name == "saved_animations_limit" || name == "saved_dialogs_pinned_limit_default" ||
-             name == "saved_dialogs_pinned_limit_premium" || name == "saved_gifs_limit_default" ||
-             name == "saved_gifs_limit_premium" || name == "session_count" || name == "since_last_open" ||
-             name == "stickers_faved_limit_default" || name == "stickers_faved_limit_premium" ||
-             name == "stickers_normal_by_emoji_per_premium_num" || name == "stickers_premium_by_emoji_num" ||
-             name == "stories_changelog_user_id" || name == "stories_sent_monthly_limit_default" ||
-             name == "stories_sent_monthly_limit_premium" || name == "stories_sent_weekly_limit_default" ||
-             name == "stories_sent_weekly_limit_premium" || name == "stories_suggested_reactions_limit_default" ||
-             name == "stories_suggested_reactions_limit_premium" || name == "story_caption_length_limit_default" ||
-             name == "story_caption_length_limit_premium" || name == "story_expiring_limit_default" ||
-             name == "story_expiring_limit_premium";
-    case 'v':
-      return name == "video_note_size_max";
-    case 'w':
-      return name == "webfile_dc_id";
-    default:
-      return false;
-  }
+  static const FlatHashSet<Slice, SliceHash> internal_options{"about_length_limit_default",
+                                                              "about_length_limit_premium",
+                                                              "aggressive_anti_spam_supergroup_member_count_min",
+                                                              "animated_emoji_zoom",
+                                                              "animation_search_emojis",
+                                                              "animation_search_provider",
+                                                              "authorization_autoconfirm_period",
+                                                              "base_language_pack_version",
+                                                              "call_receive_timeout_ms",
+                                                              "call_ring_timeout_ms",
+                                                              "caption_length_limit_default",
+                                                              "caption_length_limit_premium",
+                                                              "channel_bg_icon_level_min",
+                                                              "channel_custom_wallpaper_level_min",
+                                                              "channel_emoji_status_level_min",
+                                                              "channel_profile_bg_icon_level_min",
+                                                              "channel_wallpaper_level_min",
+                                                              "channels_limit_default",
+                                                              "channels_limit_premium",
+                                                              "channels_public_limit_default",
+                                                              "channels_public_limit_premium",
+                                                              "channels_read_media_period",
+                                                              "chat_read_mark_expire_period",
+                                                              "chat_read_mark_size_threshold",
+                                                              "chatlist_invites_limit_default",
+                                                              "chatlist_invites_limit_premium",
+                                                              "chatlists_joined_limit_default",
+                                                              "chatlists_joined_limit_premium",
+                                                              "dc_txt_domain_name",
+                                                              "default_reaction",
+                                                              "default_reaction_needs_sync",
+                                                              "dialog_filters_chats_limit_default",
+                                                              "dialog_filters_chats_limit_premium",
+                                                              "dialog_filters_limit_default",
+                                                              "dialog_filters_limit_premium",
+                                                              "dialogs_folder_pinned_limit_default",
+                                                              "dialogs_folder_pinned_limit_premium",
+                                                              "dialogs_pinned_limit_default",
+                                                              "dialogs_pinned_limit_premium",
+                                                              "dice_emojis",
+                                                              "dice_success_values",
+                                                              "edit_time_limit",
+                                                              "emoji_sounds",
+                                                              "fragment_prefixes",
+                                                              "hidden_members_group_size_min",
+                                                              "ignored_restriction_reasons",
+                                                              "language_pack_version",
+                                                              "my_phone_number",
+                                                              "need_premium_for_story_caption_entities",
+                                                              "need_synchronize_archive_all_stories",
+                                                              "notification_cloud_delay_ms",
+                                                              "notification_default_delay_ms",
+                                                              "online_cloud_timeout_ms",
+                                                              "online_update_period_ms",
+                                                              "otherwise_relogin_days",
+                                                              "pm_read_date_expire_period",
+                                                              "premium_bot_username",
+                                                              "premium_features",
+                                                              "premium_invoice_slug",
+                                                              "rating_e_decay",
+                                                              "reactions_uniq_max",
+                                                              "reactions_user_max_default",
+                                                              "reactions_user_max_premium",
+                                                              "recent_stickers_limit",
+                                                              "recommended_channels_limit_default",
+                                                              "recommended_channels_limit_premium",
+                                                              "restriction_add_platforms",
+                                                              "revoke_pm_inbox",
+                                                              "revoke_time_limit",
+                                                              "revoke_pm_time_limit",
+                                                              "saved_animations_limit",
+                                                              "saved_dialogs_pinned_limit_default",
+                                                              "saved_dialogs_pinned_limit_premium",
+                                                              "saved_gifs_limit_default",
+                                                              "saved_gifs_limit_premium",
+                                                              "session_count",
+                                                              "since_last_open",
+                                                              "stickers_faved_limit_default",
+                                                              "stickers_faved_limit_premium",
+                                                              "stickers_normal_by_emoji_per_premium_num",
+                                                              "stickers_premium_by_emoji_num",
+                                                              "stories_changelog_user_id",
+                                                              "stories_sent_monthly_limit_default",
+                                                              "stories_sent_monthly_limit_premium",
+                                                              "stories_sent_weekly_limit_default",
+                                                              "stories_sent_weekly_limit_premium",
+                                                              "stories_suggested_reactions_limit_default",
+                                                              "stories_suggested_reactions_limit_premium",
+                                                              "story_caption_length_limit_default",
+                                                              "story_caption_length_limit_premium",
+                                                              "story_expiring_limit_default",
+                                                              "story_expiring_limit_premium",
+                                                              "video_note_size_max",
+                                                              "webfile_dc_id"};
+  return internal_options.count(name) > 0;
 }
 
 td_api::object_ptr<td_api::Update> OptionManager::get_internal_option_update(Slice name) const {
