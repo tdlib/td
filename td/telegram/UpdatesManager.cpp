@@ -2796,7 +2796,7 @@ void UpdatesManager::add_pending_pts_update(tl_object_ptr<telegram_api::Update> 
   // do not try to run getDifference from this function
   CHECK(update != nullptr);
   CHECK(source != nullptr);
-  LOG(INFO) << "Receive from " << source << " pending " << to_string(update);
+  LOG(INFO) << "Receive from " << source << " with pts_count = " << pts_count << " pending " << to_string(update);
   if (pts_count < 0 || new_pts <= pts_count) {
     LOG(ERROR) << "Receive update with wrong PTS = " << new_pts << " or pts_count = " << pts_count << " from " << source
                << ": " << oneline(to_string(update));
@@ -2897,6 +2897,8 @@ void UpdatesManager::add_pending_pts_update(tl_object_ptr<telegram_api::Update> 
           .set_value(Unit());  // TODO can't set until data are really stored on persistent storage
       accumulated_pts_count_ = 0;
       accumulated_pts_ = -1;
+    } else {
+      LOG(DEBUG) << "There is no need to process the update";
     }
     promise.set_value(Unit());
     return;
@@ -2910,6 +2912,9 @@ void UpdatesManager::add_pending_pts_update(tl_object_ptr<telegram_api::Update> 
       // can't apply all updates, but can apply this and probably some other updates
       process_pending_pts_updates();
     } else {
+      LOG(DEBUG) << "Can't process PTS updates, because current PTS = " << old_pts << ", new PTS = " << new_pts
+                 << ", pts_count = " << pts_count << ", maximum known PTS = " << accumulated_pts_
+                 << ", accumulated_pts_count = " << accumulated_pts_count_;
       set_pts_gap_timeout(max(receive_time + MAX_UNFILLED_GAP_TIME - Time::now(), 0.001));
     }
     return;

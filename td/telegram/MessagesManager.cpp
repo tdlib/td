@@ -5904,6 +5904,7 @@ bool MessagesManager::is_allowed_useless_update(const tl_object_ptr<telegram_api
 
 void MessagesManager::skip_old_pending_pts_update(tl_object_ptr<telegram_api::Update> &&update, int32 new_pts,
                                                   int32 old_pts, int32 pts_count, const char *source) {
+  LOG(DEBUG) << "Skip old update with PTS = " << new_pts << ", current PTS = " << old_pts;
   if (update->get_id() == telegram_api::updateNewMessage::ID) {
     auto update_new_message = static_cast<telegram_api::updateNewMessage *>(update.get());
     auto message_full_id = MessageFullId::get_message_full_id(update_new_message->message_, false);
