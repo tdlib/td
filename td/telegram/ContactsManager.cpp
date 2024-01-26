@@ -5561,7 +5561,6 @@ void ContactsManager::can_send_message_to_user(
   }
 
   if (force) {
-    LOG(ERROR) << "Can't check " << user_id << " message privacy settings";
     return promise.set_value(td_api::make_object<td_api::canSendMessageToUserResultOk>());
   }
 

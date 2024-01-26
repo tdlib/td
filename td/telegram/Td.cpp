@@ -6531,7 +6531,7 @@ void Td::on_request(uint64 id, td_api::setNewChatPrivacySettings &request) {
 void Td::on_request(uint64 id, const td_api::canSendMessageToUser &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  contacts_manager_->can_send_message_to_user(UserId(request.user_id_), false, std::move(promise));
+  contacts_manager_->can_send_message_to_user(UserId(request.user_id_), request.only_local_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setChatTitle &request) {

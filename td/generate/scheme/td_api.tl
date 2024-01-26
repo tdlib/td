@@ -9538,8 +9538,10 @@ setNewChatPrivacySettings settings:newChatPrivacySettings = Ok;
 getNewChatPrivacySettings = NewChatPrivacySettings;
 
 
-//@description Check whether the current user can message another user or try to create a chat with them @user_id Identifier of the other user
-canSendMessageToUser user_id:int53 = CanSendMessageToUserResult;
+//@description Check whether the current user can message another user or try to create a chat with them
+//@user_id Identifier of the other user
+//@only_local Pass true to get only locally available information without sending network requests
+canSendMessageToUser user_id:int53 only_local:Bool = CanSendMessageToUserResult;
 
 
 //@description Returns the value of an option by its name. (Check the list of available options on https://core.telegram.org/tdlib/options.) Can be called before authorization. Can be called synchronously for options "version" and "commit_hash"
