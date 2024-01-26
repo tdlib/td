@@ -30,7 +30,6 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/TopDialogManager.h"
-#include "td/telegram/UpdatesManager.h"
 
 #include "td/db/KeyValueSyncInterface.h"
 #include "td/db/TsSeqKeyValue.h"
