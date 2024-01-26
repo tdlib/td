@@ -337,6 +337,12 @@ void UpdatesManager::repair_pts_gap() {
   if (it->second.pts != pts + it->second.pts_count) {
     return;
   }
+  if (last_fetched_pts_ == pts) {
+    VLOG(get_difference) << "Don't fetch again update with PTS = " << pts;
+    return;
+  }
+  last_fetched_pts_ = pts;
+
   VLOG(get_difference) << "Fetch update with PTS = " << pts;
   pts_short_gap_++;
   auto promise =

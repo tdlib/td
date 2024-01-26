@@ -215,6 +215,7 @@ class UpdatesManager final : public Actor {
   int32 pts_fixed_short_gap_ = 0;
   int32 pts_gap_ = 0;
   int32 pts_diff_ = 0;
+  int32 last_fetched_pts_ = 0;
 
   int32 qts_gap_ = 0;
   int32 qts_diff_ = 0;
