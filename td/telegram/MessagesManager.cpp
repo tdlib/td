@@ -1939,7 +1939,7 @@ class GetMessagePositionQuery final : public Td::ResultHandler {
 
     if (filter == MessageSearchFilter::Empty && !top_thread_message_id.is_valid()) {
       if (saved_messages_topic_id.is_valid()) {
-        send_query(G()->net_query_creator().create(telegram_api::messages_getHistory(
+        send_query(G()->net_query_creator().create(telegram_api::messages_getSavedHistory(
             saved_messages_topic_id.get_input_peer(td_), message_id.get_server_message_id().get(), 0, -1, 1, 0, 0, 0)));
       } else {
         send_query(G()->net_query_creator().create(telegram_api::messages_getHistory(
