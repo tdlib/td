@@ -29,6 +29,7 @@
 #include "td/utils/TlStorerToString.h"
 
 #include <map>
+#include <set>
 #include <utility>
 
 namespace td {
@@ -153,11 +154,11 @@ class UpdatesManager final : public Actor {
 
   class PendingPtsUpdate {
    public:
-    tl_object_ptr<telegram_api::Update> update;
+    mutable tl_object_ptr<telegram_api::Update> update;
     int32 pts;
     int32 pts_count;
     double receive_time;
-    Promise<Unit> promise;
+    mutable Promise<Unit> promise;
 
     PendingPtsUpdate(tl_object_ptr<telegram_api::Update> &&update, int32 pts, int32 pts_count, double receive_time,
                      Promise<Unit> &&promise)
@@ -167,6 +168,13 @@ class UpdatesManager final : public Actor {
         , receive_time(receive_time)
         , promise(std::move(promise)) {
     }
+
+    bool operator<(const PendingPtsUpdate &other) const {
+      if (pts != other.pts) {
+        return pts < other.pts;
+      }
+      return other.pts_count < pts_count;
+    }
   };
 
   class PendingSeqUpdates {
@@ -175,8 +183,8 @@ class UpdatesManager final : public Actor {
     int32 seq_end;
     int32 date;
     double receive_time;
-    vector<tl_object_ptr<telegram_api::Update>> updates;
-    Promise<Unit> promise;
+    mutable vector<tl_object_ptr<telegram_api::Update>> updates;
+    mutable Promise<Unit> promise;
 
     PendingSeqUpdates(int32 seq_begin, int32 seq_end, int32 date, double receive_time,
                       vector<tl_object_ptr<telegram_api::Update>> &&updates, Promise<Unit> &&promise)
@@ -186,6 +194,13 @@ class UpdatesManager final : public Actor {
         , receive_time(receive_time)
         , updates(std::move(updates))
         , promise(std::move(promise)) {
+    }
+
+    bool operator<(const PendingSeqUpdates &other) const {
+      if (seq_begin != other.seq_begin) {
+        return seq_begin < other.seq_begin;
+      }
+      return other.seq_end < seq_end;
     }
   };
 
@@ -229,11 +244,11 @@ class UpdatesManager final : public Actor {
   double last_pts_jump_warning_time_ = 0;
   double last_pts_gap_time_ = 0;
 
-  std::multimap<int32, PendingPtsUpdate> pending_pts_updates_;
-  std::multimap<int32, PendingPtsUpdate> postponed_pts_updates_;
+  std::multiset<PendingPtsUpdate> pending_pts_updates_;
+  std::multiset<PendingPtsUpdate> postponed_pts_updates_;
 
-  std::multimap<int32, PendingSeqUpdates> postponed_updates_;    // updates received during getDifference
-  std::multimap<int32, PendingSeqUpdates> pending_seq_updates_;  // updates with too big seq
+  std::multiset<PendingSeqUpdates> postponed_updates_;    // updates received during getDifference
+  std::multiset<PendingSeqUpdates> pending_seq_updates_;  // updates with too big seq
 
   std::map<int32, PendingQtsUpdate> pending_qts_updates_;  // updates with too big QTS
 
