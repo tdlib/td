@@ -28,8 +28,7 @@ ForumTopicInfo::ForumTopicInfo(Td *td, const tl_object_ptr<telegram_api::ForumTo
   icon_ = ForumTopicIcon(forum_topic->icon_color_, forum_topic->icon_emoji_id_);
   creation_date_ = forum_topic->date_;
   creator_dialog_id_ = DialogId(forum_topic->from_id_);
-  if (creator_dialog_id_.is_valid() && creator_dialog_id_.get_type() != DialogType::User &&
-      td->dialog_manager_->have_dialog_info_force(creator_dialog_id_, "ForumTopicInfo")) {
+  if (creator_dialog_id_.is_valid() && creator_dialog_id_.get_type() != DialogType::User) {
     td->dialog_manager_->force_create_dialog(creator_dialog_id_, "ForumTopicInfo", true);
   }
   is_outgoing_ = forum_topic->my_;

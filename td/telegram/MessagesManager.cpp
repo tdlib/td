@@ -23806,7 +23806,7 @@ void MessagesManager::get_dialog_send_message_as_dialog_ids(
     auto senders = td_api::make_object<td_api::chatMessageSenders>();
     if (!created_public_broadcasts_.empty()) {
       auto add_sender = [&senders, td = td_](DialogId dialog_id, bool needs_premium) {
-        auto sender = get_message_sender_object_const(td, dialog_id, "add_sender");
+        auto sender = get_message_sender_object(td, dialog_id, "add_sender");
         senders->senders_.push_back(td_api::make_object<td_api::chatMessageSender>(std::move(sender), needs_premium));
       };
       if (td_->dialog_manager_->is_anonymous_administrator(dialog_id, nullptr)) {

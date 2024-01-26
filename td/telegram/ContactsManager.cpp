@@ -13604,15 +13604,8 @@ const DialogParticipant *ContactsManager::get_chat_full_participant(const ChatFu
 
 tl_object_ptr<td_api::chatMember> ContactsManager::get_chat_member_object(const DialogParticipant &dialog_participant,
                                                                           const char *source) const {
-  DialogId dialog_id = dialog_participant.dialog_id_;
-  UserId participant_user_id;
-  if (dialog_id.get_type() == DialogType::User) {
-    participant_user_id = dialog_id.get_user_id();
-  } else {
-    td_->dialog_manager_->force_create_dialog(dialog_id, source, true);
-  }
   return td_api::make_object<td_api::chatMember>(
-      get_message_sender_object_const(td_, dialog_id, source),
+      get_message_sender_object(td_, dialog_participant.dialog_id_, source),
       get_user_id_object(dialog_participant.inviter_user_id_, "chatMember.inviter_user_id"),
       dialog_participant.joined_date_, dialog_participant.status_.get_chat_member_status_object());
 }

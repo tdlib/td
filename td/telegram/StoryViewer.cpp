@@ -89,10 +89,6 @@ StoryViewer::StoryViewer(Td *td, telegram_api::object_ptr<telegram_api::StoryRea
       if (!actor_dialog_id.is_valid() || story_reaction->date_ <= 0) {
         break;
       }
-      if (actor_dialog_id.get_type() != DialogType::User) {
-        td->dialog_manager_->force_create_dialog(actor_dialog_id, "StoryViewer", true);
-      }
-
       type_ = Type::View;
       actor_dialog_id_ = actor_dialog_id;
       date_ = story_reaction->date_;
@@ -160,8 +156,8 @@ td_api::object_ptr<td_api::storyInteraction> StoryViewer::get_story_interaction_
   }();
   auto block_list_id = BlockListId(is_blocked_, is_blocked_for_stories_);
   return td_api::make_object<td_api::storyInteraction>(
-      get_message_sender_object_const(td, actor_dialog_id_, "storyInteraction"), date_,
-      block_list_id.get_block_list_object(), std::move(type));
+      get_message_sender_object(td, actor_dialog_id_, "storyInteraction"), date_, block_list_id.get_block_list_object(),
+      std::move(type));
 }
 
 bool StoryViewer::is_valid() const {
