@@ -3223,6 +3223,8 @@ void UpdatesManager::process_pending_pts_updates() {
         CHECK(accumulated_pts_count_ >= update.pts_count);
         accumulated_pts_count_ -= update.pts_count;
       }
+    } else {
+      LOG(INFO) << "Skip because of pts_count == 0 " << to_string(update.update);
     }
     update.promise.set_value(Unit());
     pending_pts_updates_.erase(update_it);
@@ -3365,6 +3367,7 @@ void UpdatesManager::process_pending_qts_updates() {
 
 void UpdatesManager::set_pts_gap_timeout(double timeout) {
   if (!pts_gap_timeout_.has_timeout() || timeout < pts_gap_timeout_.get_timeout()) {
+    LOG(DEBUG) << "Set PTS gap timeout in " << timeout;
     if (timeout > 2 * MIN_UNFILLED_GAP_TIME) {
       min_pts_gap_timeout_.set_callback(std::move(check_pts_gap));
       min_pts_gap_timeout_.set_callback_data(static_cast<void *>(td_));
@@ -3380,6 +3383,7 @@ void UpdatesManager::set_pts_gap_timeout(double timeout) {
 
 void UpdatesManager::set_seq_gap_timeout(double timeout) {
   if (!seq_gap_timeout_.has_timeout() || timeout < seq_gap_timeout_.get_timeout()) {
+    LOG(DEBUG) << "Set seq gap timeout in " << timeout;
     seq_gap_timeout_.set_callback(std::move(fill_seq_gap));
     seq_gap_timeout_.set_callback_data(static_cast<void *>(td_));
     seq_gap_timeout_.set_timeout_in(timeout);
@@ -3388,6 +3392,7 @@ void UpdatesManager::set_seq_gap_timeout(double timeout) {
 
 void UpdatesManager::set_qts_gap_timeout(double timeout) {
   if (!qts_gap_timeout_.has_timeout() || timeout < qts_gap_timeout_.get_timeout()) {
+    LOG(DEBUG) << "Set QTS gap timeout in " << timeout;
     qts_gap_timeout_.set_callback(std::move(fill_qts_gap));
     qts_gap_timeout_.set_callback_data(static_cast<void *>(td_));
     qts_gap_timeout_.set_timeout_in(timeout);
