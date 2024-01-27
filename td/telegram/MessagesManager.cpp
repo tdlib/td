@@ -13726,11 +13726,6 @@ MessageFullId MessagesManager::on_get_message(MessageInfo &&message_info, const 
 
     need_update = false;
 
-    if (old_message_id.is_valid() && message_id.is_valid() && message_id < old_message_id &&
-        !d->had_yet_unsent_message_id_overflow) {
-      LOG(ERROR) << "Sent " << old_message_id << " to " << dialog_id << " as " << message_id;
-    }
-
     new_message->message_id = old_message_id;
     update_message(d, old_message.get(), std::move(new_message), false);
     new_message = std::move(old_message);
@@ -28876,6 +28871,10 @@ void MessagesManager::send_update_message_send_succeeded(Dialog *d, MessageId ol
       send_update_delete_messages(d->dialog_id, {message->message_id.get()}, false);
     }
   }
+  if (old_message_id.is_valid() && m->message_id.is_valid() && m->message_id < old_message_id &&
+      !d->had_yet_unsent_message_id_overflow && m->message_id != MessageId(ServerMessageId(1))) {
+    LOG(ERROR) << "Sent " << old_message_id << " to " << d->dialog_id << " as " << m->message_id;
+  }
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateMessageSendSucceeded>(
                    get_message_object(d->dialog_id, m, "send_update_message_send_succeeded"), old_message_id.get()));
@@ -29600,10 +29599,6 @@ MessageFullId MessagesManager::on_send_message_success(int64 random_id, MessageI
 
   if (merge_message_content_file_id(td_, sent_message->content.get(), new_file_id)) {
     send_update_message_content(d, sent_message.get(), false, source);
-  }
-
-  if (old_message_id.is_valid() && new_message_id < old_message_id && !d->had_yet_unsent_message_id_overflow) {
-    LOG(ERROR) << "Sent " << old_message_id << " to " << dialog_id << " as " << new_message_id;
   }
 
   const auto *input_reply_to = get_message_input_reply_to(sent_message.get());
