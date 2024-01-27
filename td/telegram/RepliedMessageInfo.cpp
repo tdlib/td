@@ -221,11 +221,8 @@ bool RepliedMessageInfo::need_reply_changed_warning(
     if (old_info.is_quote_manual_) {
       return true;
     }
-    auto max_size = td->option_manager_->get_option_integer("message_reply_quote_length_max") - 70;
-    if (static_cast<int64>(max(old_info.quote_.text.size(), new_info.quote_.text.size())) < max_size) {
-      // automatic quote can't change, unless truncated differently
-      return true;
-    }
+    // automatic quote can change if the original message was edited
+    return false;
   }
   if (old_info.dialog_id_ != new_info.dialog_id_ && old_info.dialog_id_ != DialogId() &&
       new_info.dialog_id_ != DialogId()) {
