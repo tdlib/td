@@ -33992,8 +33992,12 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
                 td_, old_message->replied_message_info, new_message->replied_message_info,
                 old_message->top_thread_message_id, message_id.is_yet_unsent() && !is_message_in_dialog,
                 is_reply_to_deleted_message)) {
+          const MessageInputReplyTo *message_input_reply_to = nullptr;
+          if (!message_id.is_any_server()) {
+            message_input_reply_to = get_message_input_reply_to(old_message);
+          }
           LOG(ERROR) << message_id << " in " << dialog_id << " has changed replied message from "
-                     << old_message->replied_message_info << '/' << get_message_input_reply_to(old_message) << " to "
+                     << old_message->replied_message_info << '/' << message_input_reply_to << " to "
                      << new_message->replied_message_info << ", message content type is " << old_content_type << '/'
                      << new_content_type;
         }
