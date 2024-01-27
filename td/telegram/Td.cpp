@@ -3328,7 +3328,9 @@ void Td::clear() {
   alarm_timeout_.cancel_timeout(PROMO_DATA_ALARM_ID);
 
   auto reset_actor = [&timer](ActorOwn<Actor> actor) {
-    LOG(DEBUG) << "Start clearing " << actor.get().get_name() << timer;
+    if (!actor.empty()) {
+      LOG(DEBUG) << "Start clearing " << actor.get().get_name() << timer;
+    }
   };
 
   // close all pure actors
