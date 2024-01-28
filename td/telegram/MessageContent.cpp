@@ -4405,8 +4405,8 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       };
       if (old_->text.text != new_->text.text) {
         if (need_message_changed_warning && need_message_text_changed_warning(old_, new_)) {
-          LOG(ERROR) << "Message text has changed in " << get_content_object(old_content) << ". New content is "
-                     << get_content_object(new_content);
+          LOG(ERROR) << "Message text has changed for a message in " << dialog_id << " from "
+                     << get_content_object(old_content) << " to " << get_content_object(new_content);
         }
       }
       if (old_->text.entities != new_->text.entities) {
@@ -4415,8 +4415,8 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
             old_->text.entities.size() <= MAX_CUSTOM_ENTITIES_COUNT &&
             need_message_entities_changed_warning(old_->text.entities, new_->text.entities) &&
             td->option_manager_->get_option_integer("session_count") <= 1) {
-          LOG(WARNING) << "Entities have changed in " << get_content_object(old_content) << ". New content is "
-                       << get_content_object(new_content);
+          LOG(WARNING) << "Entities have changed for a message in " << dialog_id << " from "
+                       << get_content_object(old_content) << " to " << get_content_object(new_content);
         }
       }
       break;
