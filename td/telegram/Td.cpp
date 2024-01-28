@@ -3064,7 +3064,12 @@ void Td::on_update(telegram_api::object_ptr<telegram_api::Updates> updates, uint
   }
 
   if (updates == nullptr) {
-    updates_manager_->schedule_get_difference("failed to fetch updates");
+    if (auth_manager_->is_bot()) {
+      G()->net_query_dispatcher().update_mtproto_header();
+    } else {
+      // this could be a min-channel update
+      updates_manager_->schedule_get_difference("failed to fetch updates");
+    }
   } else {
     updates_manager_->on_update_from_auth_key_id(auth_key_id);
     updates_manager_->on_get_updates(std::move(updates), Promise<Unit>());
