@@ -2097,7 +2097,9 @@ void UpdatesManager::on_get_pts_update(int32 pts,
     }
     case telegram_api::updates_differenceEmpty::ID:
     case telegram_api::updates_differenceTooLong::ID: {
-      LOG(ERROR) << "Receive " << to_string(difference_ptr);
+      LOG(ERROR) << "Receive " << oneline(to_string(difference_ptr)) << " for request with PTS = " << pts - 1
+                 << ", but have pending " << oneline(to_string(pending_pts_updates_.begin()->update))
+                 << " with PTS = " << pending_pts_updates_.begin()->pts;
       break;
       default:
         UNREACHABLE();
