@@ -72,6 +72,18 @@ StringBuilder &operator<<(StringBuilder &string_builder, FileLocationSource sour
   }
 }
 
+StringBuilder &operator<<(StringBuilder &string_builder, const NewRemoteFileLocation &location) {
+  if (location.is_full_alive) {
+    string_builder << "alive ";
+  }
+  if (location.full) {
+    string_builder << location.full.value();
+  } else {
+    string_builder << "[no location]";
+  }
+  return string_builder << " from " << location.full_source;
+}
+
 StringBuilder &operator<<(StringBuilder &string_builder, FileManager::Query::Type type) {
   switch (type) {
     case FileManager::Query::Type::UploadByHash:
@@ -1692,8 +1704,9 @@ Status FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sync) {
   if (size_i == -1) {
     try_flush_node_info(x_node, "merge 2");
     try_flush_node_info(y_node, "merge 3");
-    return Status::Error(
-        400, PSLICE() << "Can't merge files. Different size: " << x_node->size_ << " and " << y_node->size_);
+    return Status::Error(400, PSLICE() << "Can't merge files " << x_node->local_ << '/' << x_node->remote_ << " and "
+                                       << y_node->local_ << '/' << y_node->remote_
+                                       << ". Different size: " << x_node->size_ << " and " << y_node->size_);
   }
   if (encryption_key_i == -1) {
     if (nodes[remote_i]->remote_.full && nodes[local_i]->local_.type() != LocalFileLocation::Type::Partial) {

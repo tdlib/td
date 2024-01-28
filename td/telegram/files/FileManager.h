@@ -66,6 +66,8 @@ struct NewRemoteFileLocation {
   int64 ready_size = 0;
 };
 
+StringBuilder &operator<<(StringBuilder &string_builder, const NewRemoteFileLocation &location);
+
 class FileNode {
  public:
   FileNode(LocalFileLocation local, NewRemoteFileLocation remote, unique_ptr<FullGenerateFileLocation> generate,
