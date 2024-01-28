@@ -12368,11 +12368,23 @@ void MessagesManager::hangup() {
     while (!being_sent_messages_.empty()) {
       on_send_message_fail(being_sent_messages_.begin()->first, Global::request_aborted_error());
     }
-    if (!update_message_ids_.empty()) {
-      LOG(ERROR) << "Have " << update_message_ids_.size() << " awaited sent messages";
+    while (!update_message_ids_.empty()) {
+      auto it = update_message_ids_.begin();
+      auto message_full_id = MessageFullId(it->first.get_dialog_id(), it->second);
+      update_message_ids_.erase(it);
+
+      // the message was sent successfully, but can't be added yet
+      fail_send_message(message_full_id, Global::request_aborted_error());
     }
-    if (!update_scheduled_message_ids_.empty()) {
-      LOG(ERROR) << "Have " << update_scheduled_message_ids_.size() << " awaited sent scheduled messages";
+    while (!update_scheduled_message_ids_.empty()) {
+      auto it = update_scheduled_message_ids_.begin();
+      auto dialog_id = it->first;
+      auto message_ids = std::move(it->second);
+      update_scheduled_message_ids_.erase(it);
+      for (auto &message_id_it : message_ids) {
+        // the message was sent successfully, but can't be added yet
+        fail_send_message({dialog_id, message_id_it.second}, Global::request_aborted_error());
+      }
     }
   }
 
