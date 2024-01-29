@@ -4202,7 +4202,7 @@ void Td::on_request(uint64 id, td_api::registerUser &request) {
   CLEAN_INPUT_STRING(request.first_name_);
   CLEAN_INPUT_STRING(request.last_name_);
   send_closure(auth_manager_actor_, &AuthManager::register_user, id, std::move(request.first_name_),
-               std::move(request.last_name_));
+               std::move(request.last_name_), request.disable_notification_);
 }
 
 void Td::on_request(uint64 id, td_api::requestQrCodeAuthentication &request) {

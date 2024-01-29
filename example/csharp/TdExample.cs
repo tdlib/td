@@ -107,7 +107,7 @@ namespace TdExample
             {
                 string firstName = ReadLine("Please enter your first name: ");
                 string lastName = ReadLine("Please enter your last name: ");
-                _client.Send(new TdApi.RegisterUser(firstName, lastName), new AuthorizationRequestHandler());
+                _client.Send(new TdApi.RegisterUser(firstName, lastName, false), new AuthorizationRequestHandler());
             }
             else if (_authorizationState is TdApi.AuthorizationStateWaitPassword)
             {

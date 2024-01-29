@@ -291,7 +291,7 @@ class TdExample {
                                 std::cin >> first_name;
                                 std::cout << "Enter your last name: " << std::flush;
                                 std::cin >> last_name;
-                                send_query(td_api::make_object<td_api::registerUser>(first_name, last_name),
+                                send_query(td_api::make_object<td_api::registerUser>(first_name, last_name, false),
                                            create_authentication_query_handler());
                               },
                               [this](td_api::authorizationStateWaitPassword &) {

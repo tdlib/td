@@ -133,7 +133,7 @@ public final class Example {
             case TdApi.AuthorizationStateWaitRegistration.CONSTRUCTOR: {
                 String firstName = promptString("Please enter your first name: ");
                 String lastName = promptString("Please enter your last name: ");
-                client.send(new TdApi.RegisterUser(firstName, lastName), new AuthorizationRequestHandler());
+                client.send(new TdApi.RegisterUser(firstName, lastName, false), new AuthorizationRequestHandler());
                 break;
             }
             case TdApi.AuthorizationStateWaitPassword.CONSTRUCTOR: {

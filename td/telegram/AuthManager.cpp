@@ -636,7 +636,7 @@ void AuthManager::check_code(uint64 query_id, string code) {
   send_auth_sign_in_query();
 }
 
-void AuthManager::register_user(uint64 query_id, string first_name, string last_name) {
+void AuthManager::register_user(uint64 query_id, string first_name, string last_name, bool disable_notification) {
   if (state_ != State::WaitRegistration) {
     return on_query_error(query_id, Status::Error(400, "Call to registerUser unexpected"));
   }
@@ -649,6 +649,9 @@ void AuthManager::register_user(uint64 query_id, string first_name, string last_
 
   last_name = clean_name(last_name, MAX_NAME_LENGTH);
   int32 flags = 0;
+  if (disable_notification) {
+    flags |= telegram_api::auth_signUp::NO_JOINED_NOTIFICATIONS_MASK;
+  }
   start_net_query(NetQueryType::SignUp, G()->net_query_creator().create_unauth(telegram_api::auth_signUp(
                                             flags, false /*ignored*/, send_code_helper_.phone_number().str(),
                                             send_code_helper_.phone_code_hash().str(), first_name, last_name)));

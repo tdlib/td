@@ -2399,11 +2399,11 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::checkAuthenticationEmailCode>(as_email_address_authentication(args)));
     } else if (op == "cac") {
       send_request(td_api::make_object<td_api::checkAuthenticationCode>(args));
-    } else if (op == "ru") {
+    } else if (op == "ru" || op == "rus") {
       string first_name;
       string last_name;
       get_args(args, first_name, last_name);
-      send_request(td_api::make_object<td_api::registerUser>(first_name, last_name));
+      send_request(td_api::make_object<td_api::registerUser>(first_name, last_name, op == "rus"));
     } else if (op == "cap") {
       send_request(td_api::make_object<td_api::checkAuthenticationPassword>(args));
     } else if (op == "cabt") {

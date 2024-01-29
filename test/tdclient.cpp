@@ -224,7 +224,7 @@ class DoAuthentication final : public TestClinetTask {
         function = td::make_tl_object<td::td_api::checkAuthenticationCode>(code_);
         break;
       case td::td_api::authorizationStateWaitRegistration::ID:
-        function = td::make_tl_object<td::td_api::registerUser>(name_, "");
+        function = td::make_tl_object<td::td_api::registerUser>(name_, "", false);
         break;
       case td::td_api::authorizationStateWaitTdlibParameters::ID: {
         auto request = td::td_api::make_object<td::td_api::setTdlibParameters>();
