@@ -166,8 +166,7 @@ class ReactionManager final : public Actor {
 
     td_api::object_ptr<td_api::savedMessagesTags> get_saved_messages_tags_object() const;
 
-    void update_saved_messages_tags(const vector<ReactionType> &old_tags, const vector<ReactionType> &new_tags,
-                                    bool &is_changed, bool &need_reload_title);
+    bool update_saved_messages_tags(const vector<ReactionType> &old_tags, const vector<ReactionType> &new_tags);
 
     bool set_tag_title(const ReactionType &reaction_type, const string &title);
 

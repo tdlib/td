@@ -273,13 +273,12 @@ td_api::object_ptr<td_api::savedMessagesTags> ReactionManager::SavedReactionTags
       transform(tags_, [](const SavedReactionTag &tag) { return tag.get_saved_messages_tag_object(); }));
 }
 
-void ReactionManager::SavedReactionTags::update_saved_messages_tags(const vector<ReactionType> &old_tags,
-                                                                    const vector<ReactionType> &new_tags,
-                                                                    bool &is_changed, bool &need_reload_title) {
+bool ReactionManager::SavedReactionTags::update_saved_messages_tags(const vector<ReactionType> &old_tags,
+                                                                    const vector<ReactionType> &new_tags) {
   if (!is_inited_) {
-    return;
+    return false;
   }
-  is_changed = false;
+  bool is_changed = false;
   for (const auto &old_tag : old_tags) {
     if (!td::contains(new_tags, old_tag)) {
       CHECK(!old_tag.is_empty());
@@ -310,7 +309,6 @@ void ReactionManager::SavedReactionTags::update_saved_messages_tags(const vector
       }
       if (!is_found) {
         tags_.emplace_back(new_tag, string(), 1);
-        need_reload_title = true;
       }
     }
   }
@@ -318,6 +316,7 @@ void ReactionManager::SavedReactionTags::update_saved_messages_tags(const vector
     std::sort(tags_.begin(), tags_.end());
     hash_ = calc_hash();
   }
+  return is_changed;
 }
 
 bool ReactionManager::SavedReactionTags::set_tag_title(const ReactionType &reaction_type, const string &title) {
@@ -965,14 +964,8 @@ void ReactionManager::update_saved_messages_tags(const vector<ReactionType> &old
   if (old_tags == new_tags) {
     return;
   }
-  bool is_changed = false;
-  bool need_reload_title = false;
-  tags_.update_saved_messages_tags(old_tags, new_tags, is_changed, need_reload_title);
-  if (is_changed) {
+  if (tags_.update_saved_messages_tags(old_tags, new_tags)) {
     send_update_saved_messages_tags();
-  }
-  if (need_reload_title && td_->option_manager_->get_option_boolean("is_premium")) {
-    on_update_saved_reaction_tags(Auto());
   }
 }
 
