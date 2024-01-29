@@ -648,8 +648,9 @@ void AuthManager::register_user(uint64 query_id, string first_name, string last_
   }
 
   last_name = clean_name(last_name, MAX_NAME_LENGTH);
+  int32 flags = 0;
   start_net_query(NetQueryType::SignUp, G()->net_query_creator().create_unauth(telegram_api::auth_signUp(
-                                            send_code_helper_.phone_number().str(),
+                                            flags, false /*ignored*/, send_code_helper_.phone_number().str(),
                                             send_code_helper_.phone_code_hash().str(), first_name, last_name)));
 }
 

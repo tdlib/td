@@ -181,7 +181,8 @@ class GetSavedReactionTagsQuery final : public Td::ResultHandler {
   }
 
   void send(int64 hash) {
-    send_query(G()->net_query_creator().create(telegram_api::messages_getSavedReactionTags(hash),
+    int32 flags = 0;
+    send_query(G()->net_query_creator().create(telegram_api::messages_getSavedReactionTags(flags, nullptr, hash),
                                                {td_->dialog_manager_->get_my_dialog_id()}));
   }
 
