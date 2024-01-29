@@ -18,6 +18,9 @@ Result<ProxySecret> ProxySecret::from_link(Slice encoded_secret, bool truncate_i
     r_decoded = base64url_decode(encoded_secret);
   }
   if (r_decoded.is_error()) {
+    r_decoded = base64_decode(encoded_secret);
+  }
+  if (r_decoded.is_error()) {
     return Status::Error(400, "Wrong proxy secret");
   }
   return from_binary(r_decoded.ok(), truncate_if_needed);
