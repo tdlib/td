@@ -2865,7 +2865,7 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getMessageAddedReactions>(
           chat_id, message_id, as_reaction_type(reaction), offset, as_limit(limit)));
     } else if (op == "gsmts") {
-      send_request(td_api::make_object<td_api::getSavedMessagesTags>());
+      send_request(td_api::make_object<td_api::getSavedMessagesTags>(get_saved_messages_topic()));
     } else if (op == "ssmtl") {
       string reaction;
       string label;

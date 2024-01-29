@@ -69,7 +69,8 @@ SavedMessagesTopicId::SavedMessagesTopicId(const Td *td,
   }
 }
 
-td_api::object_ptr<td_api::SavedMessagesTopic> SavedMessagesTopicId::get_saved_messages_topic_object(Td *td) const {
+td_api::object_ptr<td_api::SavedMessagesTopic> SavedMessagesTopicId::get_saved_messages_topic_object(
+    const Td *td) const {
   if (dialog_id_ == DialogId()) {
     return nullptr;
   }

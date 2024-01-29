@@ -6650,7 +6650,7 @@ bool MessagesManager::update_message_interaction_info(Dialog *d, Message *m, int
       unread_reaction_diff += (has_unread_message_reactions(dialog_id, m) ? 1 : 0);
       auto new_chosen_tags = get_chosen_tags(m->reactions);
 
-      td_->reaction_manager_->update_saved_messages_tags(old_chosen_tags, new_chosen_tags);
+      td_->reaction_manager_->update_saved_messages_tags(m->saved_messages_topic_id, old_chosen_tags, new_chosen_tags);
 
       if (is_visible_message_reactions(dialog_id, m)) {
         need_update |= need_update_reactions;
@@ -15394,7 +15394,7 @@ void MessagesManager::on_message_deleted_from_database(Dialog *d, const Message 
   update_message_count_by_index(d, -1, m);
   update_reply_count_by_message(d, -1, m);
 
-  td_->reaction_manager_->update_saved_messages_tags(get_chosen_tags(m->reactions), {});
+  td_->reaction_manager_->update_saved_messages_tags(m->saved_messages_topic_id, get_chosen_tags(m->reactions), {});
 }
 
 void MessagesManager::on_message_deleted(Dialog *d, Message *m, bool is_permanently_deleted, const char *source) {
@@ -22883,7 +22883,8 @@ void MessagesManager::add_message_reaction(MessageFullId message_full_id, Reacti
   set_message_reactions(d, m, is_big, add_to_recent, std::move(promise));
 
   if (is_tag) {
-    td_->reaction_manager_->update_saved_messages_tags(old_chosen_tags, get_chosen_tags(m->reactions));
+    td_->reaction_manager_->update_saved_messages_tags(m->saved_messages_topic_id, old_chosen_tags,
+                                                       get_chosen_tags(m->reactions));
   } else if (add_to_recent) {
     td_->reaction_manager_->add_recent_reaction(reaction_type);
   }
@@ -22919,7 +22920,8 @@ void MessagesManager::remove_message_reaction(MessageFullId message_full_id, Rea
   set_message_reactions(d, m, false, false, std::move(promise));
 
   if (!old_chosen_tags.empty()) {
-    td_->reaction_manager_->update_saved_messages_tags(old_chosen_tags, get_chosen_tags(m->reactions));
+    td_->reaction_manager_->update_saved_messages_tags(m->saved_messages_topic_id, old_chosen_tags,
+                                                       get_chosen_tags(m->reactions));
   }
 }
 

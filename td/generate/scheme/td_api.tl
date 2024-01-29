@@ -1644,7 +1644,10 @@ chatAvailableReactionsAll = ChatAvailableReactions;
 chatAvailableReactionsSome reactions:vector<ReactionType> = ChatAvailableReactions;
 
 
-//@description Represents a tag used in Saved Messages @tag The tag @label Label of the tag; 0-12 characters @count Number of times the tag was used; may be 0 if the tag has non-empty label
+//@description Represents a tag used in Saved Messages or a Saved Messages topic
+//@tag The tag
+//@label Label of the tag; 0-12 characters. Always empty if the tag is returned for a Saved Messages topic
+//@count Number of times the tag was used; may be 0 if the tag has non-empty label
 savedMessagesTag tag:ReactionType label:string count:int32 = SavedMessagesTag;
 
 //@description Contains a list of tags used in Saved Messages @tags List of tags
@@ -6730,8 +6733,10 @@ updateActiveEmojiReactions emojis:vector<string> = Update;
 //@description The type of default reaction has changed @reaction_type The new type of the default reaction
 updateDefaultReactionType reaction_type:ReactionType = Update;
 
-//@description Used Saved Messages tags have changed @tags The new used tags
-updateSavedMessagesTags tags:savedMessagesTags = Update;
+//@description Tags used in Saved Messages or a Saved Messages topic have changed
+//@saved_messages_topic Saved Messages topic which tags were changed; may be null if tags for the whole chat has changed
+//@tags The new tags
+updateSavedMessagesTags saved_messages_topic:SavedMessagesTopic tags:savedMessagesTags = Update;
 
 //@description The parameters of speech recognition without Telegram Premium subscription has changed
 //@max_media_duration The maximum allowed duration of media for speech recognition without Telegram Premium subscription
@@ -7738,8 +7743,9 @@ getMessageAddedReactions chat_id:int53 message_id:int53 reaction_type:ReactionTy
 //@description Changes type of default reaction for the current user @reaction_type New type of the default reaction
 setDefaultReactionType reaction_type:ReactionType = Ok;
 
-//@description Returns tags used in Saved Messages; for Telegram Premium users only
-getSavedMessagesTags = SavedMessagesTags;
+//@description Returns tags used in Saved Messages or a Saved Messages topic; for Telegram Premium users only
+//@saved_messages_topic Saved Messages topic which tags will be returned; pass null to get all Saved Messages tags
+getSavedMessagesTags saved_messages_topic:SavedMessagesTopic = SavedMessagesTags;
 
 //@description Changes label of a Saved Messages tag; for Telegram Premium users only @tag The tag which label will be changed @label New label for the tag; 0-12 characters
 setSavedMessagesTagLabel tag:ReactionType label:string = Ok;

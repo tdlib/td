@@ -5489,7 +5489,8 @@ void Td::on_request(uint64 id, const td_api::setDefaultReactionType &request) {
 void Td::on_request(uint64 id, const td_api::getSavedMessagesTags &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  reaction_manager_->get_saved_messages_tags(std::move(promise));
+  reaction_manager_->get_saved_messages_tags(SavedMessagesTopicId(this, request.saved_messages_topic_),
+                                             std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setSavedMessagesTagLabel &request) {

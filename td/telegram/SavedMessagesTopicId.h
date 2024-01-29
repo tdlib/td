@@ -53,7 +53,7 @@ class SavedMessagesTopicId {
 
   bool is_author_hidden() const;
 
-  td_api::object_ptr<td_api::SavedMessagesTopic> get_saved_messages_topic_object(Td *td) const;
+  td_api::object_ptr<td_api::SavedMessagesTopic> get_saved_messages_topic_object(const Td *td) const;
 
   telegram_api::object_ptr<telegram_api::InputPeer> get_input_peer(const Td *td) const;
 
@@ -74,7 +74,7 @@ class SavedMessagesTopicId {
 
 struct SavedMessagesTopicIdHash {
   uint32 operator()(SavedMessagesTopicId saved_messages_topic_id) const {
-    return Hash<DialogId>()(saved_messages_topic_id.dialog_id_);
+    return DialogIdHash()(saved_messages_topic_id.dialog_id_);
   }
 };
 
