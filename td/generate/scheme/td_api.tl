@@ -4779,7 +4779,7 @@ premiumFeatureSavedMessagesTags = PremiumFeature;
 
 //@class PremiumStoryFeature @description Describes a story feature available to Premium users
 
-//@description User stories are displayed before stories of non-premium contacts and channels
+//@description Stories of the current user are displayed before stories of non-premium contacts and channels
 premiumStoryFeaturePriorityOrder = PremiumStoryFeature;
 
 //@description The ability to hide the fact that the user viewed other's stories
@@ -4796,6 +4796,9 @@ premiumStoryFeatureSaveStories = PremiumStoryFeature;
 
 //@description The ability to use links and formatting in story caption
 premiumStoryFeatureLinksAndFormatting = PremiumStoryFeature;
+
+//@description The ability to choose better quality for viewed stories
+premiumStoryFeatureVideoQuality = PremiumStoryFeature;
 
 
 //@description Contains information about a limit, increased for Premium users @type The type of the limit @default_value Default value of the limit @premium_value Value of the limit for Premium users

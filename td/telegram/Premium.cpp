@@ -776,6 +776,8 @@ static string get_premium_source(const td_api::PremiumStoryFeature *feature) {
       return "stories__save_stories_to_gallery";
     case td_api::premiumStoryFeatureLinksAndFormatting::ID:
       return "stories__links_and_formatting";
+    case td_api::premiumStoryFeatureVideoQuality::ID:
+      return "stories__quality";
     default:
       UNREACHABLE();
       return string();
