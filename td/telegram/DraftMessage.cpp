@@ -362,6 +362,21 @@ DraftMessage::DraftMessage() = default;
 
 DraftMessage::~DraftMessage() = default;
 
+bool DraftMessage::need_clear_local(MessageContentType content_type) const {
+  if (!is_local()) {
+    return false;
+  }
+  switch (local_content_->get_type()) {
+    case DraftMessageContentType::VideoNote:
+      return content_type == MessageContentType::VideoNote;
+    case DraftMessageContentType::VoiceNote:
+      return content_type == MessageContentType::VoiceNote;
+    default:
+      UNREACHABLE();
+      return false;
+  }
+}
+
 bool DraftMessage::need_update_to(const DraftMessage &other, bool from_update) const {
   if (is_local()) {
     return !from_update || other.is_local();

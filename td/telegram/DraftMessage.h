@@ -9,6 +9,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/InputMessageText.h"
 #include "td/telegram/logevent/LogEvent.h"
+#include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageInputReplyTo.h"
 #include "td/telegram/td_api.h"
@@ -64,6 +65,8 @@ class DraftMessage {
   bool is_local() const {
     return local_content_ != nullptr;
   }
+
+  bool need_clear_local(MessageContentType content_type) const;
 
   bool need_update_to(const DraftMessage &other, bool from_update) const;
 

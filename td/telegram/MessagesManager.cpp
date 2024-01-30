@@ -12120,6 +12120,7 @@ void MessagesManager::ttl_read_history(Dialog *d, bool is_outgoing, MessageId fr
 
 void MessagesManager::ttl_read_history_impl(DialogId dialog_id, bool is_outgoing, MessageId from_message_id,
                                             MessageId till_message_id, double view_date) {
+  CHECK(dialog_id.get_type() == DialogType::SecretChat);
   CHECK(!from_message_id.is_scheduled());
   CHECK(!till_message_id.is_scheduled());
 
@@ -30180,8 +30181,22 @@ bool MessagesManager::update_dialog_draft_message(Dialog *d, unique_ptr<DraftMes
 }
 
 void MessagesManager::clear_dialog_draft_by_sent_message(Dialog *d, const Message *m, bool need_update_dialog_pos) {
-  if (!m->clear_draft || td_->auth_manager_->is_bot()) {
+  if (td_->auth_manager_->is_bot()) {
     return;
+  }
+  if (!m->clear_draft) {
+    const DraftMessage *draft_message = nullptr;
+    if (m->initial_top_thread_message_id.is_valid()) {
+      auto top_m = get_message_force(d, m->initial_top_thread_message_id, "clear_dialog_draft_by_sent_message");
+      if (top_m != nullptr) {
+        draft_message = top_m->thread_draft_message.get();
+      }
+    } else {
+      draft_message = d->draft_message.get();
+    }
+    if (draft_message == nullptr || !draft_message->need_clear_local(m->content->get_type())) {
+      return;
+    }
   }
   if (m->initial_top_thread_message_id.is_valid()) {
     set_dialog_draft_message(d->dialog_id, m->initial_top_thread_message_id, nullptr).ignore();
