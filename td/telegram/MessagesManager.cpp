@@ -24011,13 +24011,7 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_message(
     return get_message_object(dialog_id, m, "send_message");
   }
 
-  if (m->clear_draft) {
-    if (top_thread_message_id.is_valid()) {
-      set_dialog_draft_message(dialog_id, top_thread_message_id, nullptr).ignore();
-    } else {
-      update_dialog_draft_message(d, nullptr, false, !need_update_dialog_pos);
-    }
-  }
+  clear_dialog_draft_by_sent_message(d, m, !need_update_dialog_pos);
 
   save_send_message_log_event(dialog_id, m);
   do_send_message(dialog_id, m);
@@ -25177,13 +25171,7 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_inline_query_r
     return get_message_object(dialog_id, m, "send_inline_query_result_message");
   }
 
-  if (m->clear_draft) {
-    if (top_thread_message_id.is_valid()) {
-      set_dialog_draft_message(dialog_id, top_thread_message_id, nullptr).ignore();
-    } else {
-      update_dialog_draft_message(d, nullptr, false, !need_update_dialog_pos);
-    }
-  }
+  clear_dialog_draft_by_sent_message(d, m, !need_update_dialog_pos);
 
   send_update_new_message(d, m);
   if (need_update_dialog_pos) {
@@ -27546,9 +27534,7 @@ Result<MessageId> MessagesManager::add_local_message(
     }
   }
 
-  if (result->clear_draft) {
-    update_dialog_draft_message(d, nullptr, false, !need_update_dialog_pos);
-  }
+  clear_dialog_draft_by_sent_message(d, result, !need_update_dialog_pos);
 
   send_update_new_message(d, result);
   if (need_update_dialog_pos) {
@@ -30191,6 +30177,17 @@ bool MessagesManager::update_dialog_draft_message(Dialog *d, unique_ptr<DraftMes
     return true;
   }
   return false;
+}
+
+void MessagesManager::clear_dialog_draft_by_sent_message(Dialog *d, const Message *m, bool need_update_dialog_pos) {
+  if (!m->clear_draft || td_->auth_manager_->is_bot()) {
+    return;
+  }
+  if (m->initial_top_thread_message_id.is_valid()) {
+    set_dialog_draft_message(d->dialog_id, m->initial_top_thread_message_id, nullptr).ignore();
+  } else {
+    update_dialog_draft_message(d, nullptr, false, need_update_dialog_pos);
+  }
 }
 
 void MessagesManager::on_update_dialog_is_pinned(FolderId folder_id, DialogId dialog_id, bool is_pinned) {

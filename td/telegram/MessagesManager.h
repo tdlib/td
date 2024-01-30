@@ -2849,6 +2849,8 @@ class MessagesManager final : public Actor {
   bool update_dialog_draft_message(Dialog *d, unique_ptr<DraftMessage> &&draft_message, bool from_update,
                                    bool need_update_dialog_pos);
 
+  void clear_dialog_draft_by_sent_message(Dialog *d, const Message *m, bool need_update_dialog_pos);
+
   void save_dialog_draft_message_on_server(DialogId dialog_id);
 
   void on_saved_dialog_draft_message(DialogId dialog_id, uint64 generation);
