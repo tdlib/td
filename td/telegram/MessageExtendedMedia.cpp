@@ -113,7 +113,7 @@ Result<MessageExtendedMedia> MessageExtendedMedia::get_message_extended_media(
   }
   TRY_RESULT(input_message_content,
              get_input_message_content(owner_dialog_id, std::move(extended_media_content), td, is_premium));
-  if (input_message_content.ttl != 0) {
+  if (!input_message_content.ttl.is_empty()) {
     return Status::Error("Can't use self-destructing extended media");
   }
 

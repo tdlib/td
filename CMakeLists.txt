@@ -409,6 +409,7 @@ set(TDLIB_SOURCE
   td/telegram/MessageReplyHeader.cpp
   td/telegram/MessageReplyInfo.cpp
   td/telegram/MessageSearchFilter.cpp
+  td/telegram/MessageSelfDestructType.cpp
   td/telegram/MessageSender.cpp
   td/telegram/MessagesInfo.cpp
   td/telegram/MessagesManager.cpp
@@ -712,6 +713,7 @@ set(TDLIB_SOURCE
   td/telegram/MessageReplyHeader.h
   td/telegram/MessageReplyInfo.h
   td/telegram/MessageSearchFilter.h
+  td/telegram/MessageSelfDestructType.h
   td/telegram/MessageSender.h
   td/telegram/MessagesInfo.h
   td/telegram/MessagesManager.h

@@ -36,6 +36,7 @@
 #include "td/telegram/MessageReplyHeader.h"
 #include "td/telegram/MessageReplyInfo.h"
 #include "td/telegram/MessageSearchFilter.h"
+#include "td/telegram/MessageSelfDestructType.h"
 #include "td/telegram/MessagesInfo.h"
 #include "td/telegram/MessageSource.h"
 #include "td/telegram/MessageThreadInfo.h"
@@ -987,7 +988,7 @@ class MessagesManager final : public Actor {
     SavedMessagesTopicId saved_messages_topic_id;
     int32 date = 0;
     int32 ttl_period = 0;
-    int32 ttl = 0;
+    MessageSelfDestructType ttl;
     bool disable_web_page_preview = false;
     int64 random_id = 0;
     tl_object_ptr<telegram_api::messageFwdHeader> forward_header;
@@ -1106,9 +1107,9 @@ class MessagesManager final : public Actor {
     string send_error_message;
     double try_resend_at = 0;
 
-    int32 ttl_period = 0;       // counted from message send date
-    int32 ttl = 0;              // counted from message content view date
-    double ttl_expires_at = 0;  // only for TTL
+    int32 ttl_period = 0;         // counted from message send date
+    MessageSelfDestructType ttl;  // counted from message content view date
+    double ttl_expires_at = 0;    // only for TTL
 
     int64 media_album_id = 0;
 
@@ -1675,7 +1676,7 @@ class MessagesManager final : public Actor {
                                                           bool allow_update_stickersets_order) const;
 
   static Status can_use_message_send_options(const MessageSendOptions &options,
-                                             const unique_ptr<MessageContent> &content, int32 ttl);
+                                             const unique_ptr<MessageContent> &content, MessageSelfDestructType ttl);
 
   static Status can_use_message_send_options(const MessageSendOptions &options, const InputMessageContent &content);
 

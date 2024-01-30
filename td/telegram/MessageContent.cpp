@@ -2834,27 +2834,9 @@ static Result<InputMessageContent> create_input_message_content(
       UNREACHABLE();
   }
 
-  if (self_destruct_type != nullptr && dialog_id.get_type() != DialogType::User) {
+  TRY_RESULT(ttl, MessageSelfDestructType::get_message_self_destruct_type(std::move(self_destruct_type)));
+  if (!ttl.is_empty() && dialog_id.get_type() != DialogType::User) {
     return Status::Error(400, "Messages can self-destruct only in private chats");
-  }
-  int32 ttl = 0;
-  if (self_destruct_type != nullptr) {
-    switch (self_destruct_type->get_id()) {
-      case td_api::messageSelfDestructTypeTimer::ID: {
-        ttl = static_cast<const td_api::messageSelfDestructTypeTimer *>(self_destruct_type.get())->self_destruct_time_;
-
-        static constexpr int32 MAX_PRIVATE_MESSAGE_TTL = 60;  // server side limit
-        if (ttl <= 0 || ttl > MAX_PRIVATE_MESSAGE_TTL) {
-          return Status::Error(400, "Invalid message content self-destruct time specified");
-        }
-        break;
-      }
-      case td_api::messageSelfDestructTypeImmediately::ID:
-        ttl = 0x7FFFFFFF;
-        break;
-      default:
-        UNREACHABLE();
-    }
   }
 
   return InputMessageContent{std::move(content), disable_web_page_preview, invert_media, clear_draft, ttl,
@@ -3174,7 +3156,7 @@ SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
 
 static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
     const MessageContent *content, Td *td, tl_object_ptr<telegram_api::InputFile> input_file,
-    tl_object_ptr<telegram_api::InputFile> input_thumbnail, int32 ttl, const string &emoji) {
+    tl_object_ptr<telegram_api::InputFile> input_thumbnail, MessageSelfDestructType ttl, const string &emoji) {
   if (!can_have_input_media(td, content, false)) {
     return nullptr;
   }
@@ -3225,7 +3207,8 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
     }
     case MessageContentType::Photo: {
       const auto *m = static_cast<const MessagePhoto *>(content);
-      return photo_get_input_media(td->file_manager_.get(), m->photo, std::move(input_file), ttl, m->has_spoiler);
+      return photo_get_input_media(td->file_manager_.get(), m->photo, std::move(input_file), ttl.get_input_ttl(),
+                                   m->has_spoiler);
     }
     case MessageContentType::Poll: {
       const auto *m = static_cast<const MessagePoll *>(content);
@@ -3246,17 +3229,17 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
     }
     case MessageContentType::Video: {
       const auto *m = static_cast<const MessageVideo *>(content);
-      return td->videos_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail), ttl,
-                                                  m->has_spoiler);
+      return td->videos_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail),
+                                                  ttl.get_input_ttl(), m->has_spoiler);
     }
     case MessageContentType::VideoNote: {
       const auto *m = static_cast<const MessageVideoNote *>(content);
       return td->video_notes_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail),
-                                                       ttl);
+                                                       ttl.get_input_ttl());
     }
     case MessageContentType::VoiceNote: {
       const auto *m = static_cast<const MessageVoiceNote *>(content);
-      return td->voice_notes_manager_->get_input_media(m->file_id, std::move(input_file), ttl);
+      return td->voice_notes_manager_->get_input_media(m->file_id, std::move(input_file), ttl.get_input_ttl());
     }
     case MessageContentType::Text:
     case MessageContentType::Unsupported:
@@ -3316,8 +3299,8 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
 tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *content, Td *td,
                                                         tl_object_ptr<telegram_api::InputFile> input_file,
                                                         tl_object_ptr<telegram_api::InputFile> input_thumbnail,
-                                                        FileId file_id, FileId thumbnail_file_id, int32 ttl,
-                                                        const string &emoji, bool force) {
+                                                        FileId file_id, FileId thumbnail_file_id,
+                                                        MessageSelfDestructType ttl, const string &emoji, bool force) {
   bool had_input_file = input_file != nullptr;
   bool had_input_thumbnail = input_thumbnail != nullptr;
   auto input_media = get_input_media_impl(content, td, std::move(input_file), std::move(input_thumbnail), ttl, emoji);
@@ -3349,8 +3332,8 @@ tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *co
   return input_media;
 }
 
-tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *content, Td *td, int32 ttl,
-                                                        const string &emoji, bool force) {
+tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *content, Td *td,
+                                                        MessageSelfDestructType ttl, const string &emoji, bool force) {
   auto input_media = get_input_media_impl(content, td, nullptr, nullptr, ttl, emoji);
   auto file_reference = FileManager::extract_file_reference(input_media);
   if (file_reference == FileReferenceView::invalid_file_reference()) {
@@ -5873,8 +5856,8 @@ unique_ptr<MessageContent> get_secret_message_content(
 unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
                                                tl_object_ptr<telegram_api::MessageMedia> &&media_ptr,
                                                DialogId owner_dialog_id, int32 message_date, bool is_content_read,
-                                               UserId via_bot_user_id, int32 *ttl, bool *disable_web_page_preview,
-                                               const char *source) {
+                                               UserId via_bot_user_id, MessageSelfDestructType *ttl,
+                                               bool *disable_web_page_preview, const char *source) {
   if (!td->auth_manager_->was_authorized() && !G()->close_flag() && media_ptr != nullptr &&
       media_ptr->get_id() != telegram_api::messageMediaEmpty::ID) {
     LOG(ERROR) << "Receive without authorization from " << source << ": " << to_string(media_ptr);
@@ -5911,7 +5894,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       }
 
       if (ttl != nullptr && (media->flags_ & telegram_api::messageMediaPhoto::TTL_SECONDS_MASK) != 0) {
-        *ttl = media->ttl_seconds_;
+        *ttl = MessageSelfDestructType(media->ttl_seconds_, true);
       }
       return make_unique<MessagePhoto>(std::move(photo), std::move(message), media->spoiler_);
     }
@@ -6002,7 +5985,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       CHECK(document_id == telegram_api::document::ID);
 
       if (ttl != nullptr && (media->flags_ & telegram_api::messageMediaDocument::TTL_SECONDS_MASK) != 0) {
-        *ttl = media->ttl_seconds_;
+        *ttl = MessageSelfDestructType(media->ttl_seconds_, true);
       }
       return get_document_message_content(td, move_tl_object_as<telegram_api::document>(document_ptr), owner_dialog_id,
                                           std::move(message), is_content_read, !media->nopremium_, media->spoiler_,

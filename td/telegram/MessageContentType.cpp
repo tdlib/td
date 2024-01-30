@@ -226,10 +226,7 @@ bool is_homogenous_media_group_content(MessageContentType content_type) {
   return content_type == MessageContentType::Audio || content_type == MessageContentType::Document;
 }
 
-bool is_secret_message_content(int32 ttl, MessageContentType content_type) {
-  if (ttl <= 0 || ttl > 60) {
-    return ttl == 0x7FFFFFFF;
-  }
+bool can_be_secret_message_content(MessageContentType content_type) {
   switch (content_type) {
     case MessageContentType::Animation:
     case MessageContentType::Audio:

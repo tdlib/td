@@ -4277,7 +4277,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool is_via_bot = via_bot_user_id.is_valid();
   bool has_view_count = view_count > 0;
   bool has_reply_markup = reply_markup != nullptr;
-  bool has_ttl = ttl != 0;
+  bool has_ttl = ttl.is_valid();
   bool has_author_signature = !author_signature.empty();
   bool has_media_album_id = media_album_id != 0;
   bool has_send_date = message_id.is_yet_unsent() && send_date != 0;
@@ -4826,8 +4826,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   }
 
   CHECK(content != nullptr);
-  is_content_secret |=
-      is_secret_message_content(ttl, content->get_type());  // repair is_content_secret for old messages
+  is_content_secret |= ttl.is_secret_message_content(content->get_type());  // repair is_content_secret for old messages
   if (hide_edit_date && content->get_type() == MessageContentType::LiveLocation) {
     hide_edit_date = false;
   }
@@ -5827,7 +5826,7 @@ int32 MessagesManager::get_message_index_mask(DialogId dialog_id, const Message 
     index_mask |= message_search_filter_index_mask(MessageSearchFilter::Pinned);
   }
   // retain second condition just in case
-  if (m->is_content_secret || (m->ttl > 0 && !is_secret)) {
+  if (m->is_content_secret || (!m->ttl.is_empty() && !is_secret)) {
     return index_mask;
   }
   index_mask |= get_message_content_index_mask(m->content.get(), td_, m->is_outgoing);
@@ -6040,11 +6039,11 @@ void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api:
   auto message_text = get_message_text(contacts_manager, std::move(update->message_), std::move(update->entities_),
                                        skip_new_entities, !is_user, date, false, "on_update_service_notification");
   DialogId owner_dialog_id = is_user ? get_service_notifications_dialog()->dialog_id : DialogId();
-  int32 ttl = 0;
+  MessageSelfDestructType ttl;
   bool disable_web_page_preview = false;
   auto content = get_message_content(td_, std::move(message_text), std::move(update->media_), owner_dialog_id, date,
                                      false, UserId(), &ttl, &disable_web_page_preview, "updateServiceNotification");
-  bool is_content_secret = is_secret_message_content(ttl, content->get_type());
+  bool is_content_secret = ttl.is_secret_message_content(content->get_type());
 
   if (update->popup_) {
     send_closure(
@@ -7766,7 +7765,7 @@ ChatReactions MessagesManager::get_dialog_active_reactions(const Dialog *d) cons
 ChatReactions MessagesManager::get_message_active_reactions(const Dialog *d, const Message *m) const {
   CHECK(d != nullptr);
   CHECK(m != nullptr);
-  if (is_service_message_content(m->content->get_type()) || m->ttl > 0 || !m->message_id.is_valid() ||
+  if (is_service_message_content(m->content->get_type()) || !m->ttl.is_empty() || !m->message_id.is_valid() ||
       !m->message_id.is_server()) {
     return ChatReactions();
   }
@@ -9722,7 +9721,7 @@ bool MessagesManager::can_forward_message(DialogId from_dialog_id, const Message
   if (m == nullptr) {
     return false;
   }
-  if (m->ttl > 0) {
+  if (!m->ttl.is_empty()) {
     return false;
   }
   if (m->message_id.is_scheduled()) {
@@ -12128,9 +12127,9 @@ void MessagesManager::ttl_read_history_impl(DialogId dialog_id, bool is_outgoing
 }
 
 void MessagesManager::ttl_on_view(const Dialog *d, Message *m, double view_date, double now) {
-  if (m->ttl > 0 && m->ttl_expires_at == 0 && !m->message_id.is_scheduled() && !m->message_id.is_yet_unsent() &&
+  if (!m->ttl.is_empty() && m->ttl_expires_at == 0 && !m->message_id.is_scheduled() && !m->message_id.is_yet_unsent() &&
       !m->is_failed_to_send && !m->is_content_secret) {
-    m->ttl_expires_at = m->ttl + view_date;
+    m->ttl_expires_at = m->ttl.get_input_ttl() + view_date;
     ttl_register_message(d->dialog_id, m, now);
     on_message_changed(d, m, true, "ttl_on_view");
   }
@@ -12138,10 +12137,10 @@ void MessagesManager::ttl_on_view(const Dialog *d, Message *m, double view_date,
 
 bool MessagesManager::ttl_on_open(Dialog *d, Message *m, double now, bool is_local_read, int32 read_date) {
   CHECK(!m->message_id.is_scheduled());
-  if (m->ttl > 0 && m->ttl_expires_at == 0) {
+  if (!m->ttl.is_empty() && m->ttl_expires_at == 0) {
     int32 passed_after_read_time = 0;
     auto can_destroy_immediately = [&] {
-      if (m->ttl == 0x7FFFFFFF) {
+      if (m->ttl.is_immediate()) {
         return true;
       }
       if (is_local_read) {
@@ -12151,7 +12150,7 @@ bool MessagesManager::ttl_on_open(Dialog *d, Message *m, double now, bool is_loc
         return d->dialog_id.get_type() != DialogType::SecretChat;
       }
       passed_after_read_time = max(G()->unix_time() - read_date, 0);
-      if (m->ttl <= passed_after_read_time) {
+      if (m->ttl.get_input_ttl() <= passed_after_read_time) {
         return true;
       }
       return false;
@@ -12159,7 +12158,7 @@ bool MessagesManager::ttl_on_open(Dialog *d, Message *m, double now, bool is_loc
     if (can_destroy_immediately) {
       on_message_ttl_expired(d, m);
     } else {
-      m->ttl_expires_at = m->ttl + now - passed_after_read_time;
+      m->ttl_expires_at = m->ttl.get_input_ttl() + now - passed_after_read_time;
       ttl_register_message(d->dialog_id, m, now);
     }
     return true;
@@ -12202,7 +12201,7 @@ void MessagesManager::ttl_unregister_message(DialogId dialog_id, const Message *
 
   auto it = ttl_nodes_.find(TtlNode(dialog_id, m->message_id, false));
 
-  // expect m->ttl == 0, but m->ttl_expires_at > 0 from binlog
+  // expect m->ttl.is_empty(), but m->ttl_expires_at > 0 from binlog
   CHECK(it != ttl_nodes_.end());
 
   auto *heap_node = it->as_heap_node();
@@ -12269,7 +12268,7 @@ void MessagesManager::ttl_update_timeout(double now) {
 void MessagesManager::on_message_ttl_expired(Dialog *d, Message *m) {
   CHECK(d != nullptr);
   CHECK(m != nullptr);
-  CHECK(m->ttl > 0);
+  CHECK(m->ttl.is_valid());
   CHECK(d->dialog_id.get_type() != DialogType::SecretChat);
   ttl_unregister_message(d->dialog_id, m, "on_message_ttl_expired");
   unregister_message_content(td_, m->content.get(), {d->dialog_id, m->message_id}, "on_message_ttl_expired");
@@ -12285,11 +12284,11 @@ void MessagesManager::on_message_ttl_expired_impl(Dialog *d, Message *m, bool is
   CHECK(m != nullptr);
   CHECK(m->message_id.is_valid());
   CHECK(!m->message_id.is_yet_unsent());
-  CHECK(m->ttl > 0);
+  CHECK(m->ttl.is_valid());
   CHECK(d->dialog_id.get_type() != DialogType::SecretChat);
   delete_message_files(d->dialog_id, m);
   update_expired_message_content(m->content);
-  m->ttl = 0;
+  m->ttl = {};
   m->ttl_expires_at = 0;
   if (m->reply_markup != nullptr) {
     if (m->reply_markup->type != ReplyMarkup::Type::InlineKeyboard) {
@@ -12971,7 +12970,7 @@ void MessagesManager::on_get_secret_message(SecretChatId secret_chat_id, UserId 
   message_info.sender_user_id = user_id;
   message_info.date = date;
   message_info.random_id = message->random_id_;
-  message_info.ttl = min(message->ttl_, 0x7FFFFFFE);
+  message_info.ttl = MessageSelfDestructType(message->ttl_, false);
   message_info.has_unread_content = true;
   message_info.is_silent = message->silent_;
   message_info.media_album_id = message->grouped_id_;
@@ -13453,16 +13452,15 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     ttl_period = 0;
   }
 
-  int32 ttl = message_info.ttl;
-  if (dialog_type == DialogType::SecretChat && ttl == 0x7FFFFFFF) {
-    ttl = 0x7FFFFFFE;
-  }
-  bool is_content_secret = is_secret_message_content(ttl, content_type);  // must be calculated before TTL is adjusted
-  if (ttl < 0 || (message_id.is_scheduled() && ttl != 0)) {
-    LOG(ERROR) << "Wrong self-destruct time " << ttl << " received in " << message_id << " in " << dialog_id;
-    ttl = 0;
-  } else if (ttl > 0) {
-    ttl = max(ttl, get_message_content_duration(message_info.content.get(), td_) + 1);
+  auto ttl = message_info.ttl;
+  bool is_content_secret = ttl.is_secret_message_content(content_type);  // must be calculated before TTL is adjusted
+  if (!ttl.is_empty()) {
+    if (!ttl.is_valid() || message_id.is_scheduled()) {
+      LOG(ERROR) << "Wrong " << ttl << " received in " << message_id << " in " << dialog_id;
+      ttl = {};
+    } else {
+      ttl.ensure_at_least(get_message_content_duration(message_info.content.get(), td_) + 1);
+    }
   }
 
   if (message_id.is_scheduled()) {
@@ -13516,7 +13514,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   bool noforwards = message_info.noforwards;
   bool is_expired = is_expired_message_content(content_type);
   if (is_expired) {
-    CHECK(ttl == 0);  // self-destruct time is ignored/set to 0 if the message has already been expired
+    CHECK(ttl.is_empty());  // self-destruct time is ignored/set to 0 if the message has already been expired
     message_info.reply_header.replied_message_info_ = {};
     reply_to_story_full_id = StoryFullId();
     noforwards = false;
@@ -14405,7 +14403,7 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
     reregister_message_content(td_, m->content.get(), new_content.get(), message_full_id,
                                "on_update_sent_text_message");
     m->content = std::move(new_content);
-    m->is_content_secret = is_secret_message_content(m->ttl, MessageContentType::Text);
+    m->is_content_secret = m->ttl.is_secret_message_content(MessageContentType::Text);
 
     if (need_update) {
       send_update_message_content(d, m, true, "on_update_sent_text_message");
@@ -23144,7 +23142,8 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
         (!m->forward_info->get_last_dialog_id().is_valid() && !m->forward_info->get_origin().is_sender_hidden());
   }
 
-  double ttl_expires_in = m->ttl_expires_at != 0 ? clamp(m->ttl_expires_at - Time::now(), 1e-3, m->ttl - 1e-3) : 0.0;
+  double ttl_expires_in =
+      m->ttl_expires_at != 0 ? clamp(m->ttl_expires_at - Time::now(), 1e-3, m->ttl.get_input_ttl() - 1e-3) : 0.0;
   double auto_delete_in =
       m->ttl_period == 0 ? 0.0 : clamp(m->date + m->ttl_period - G()->server_time(), 1e-3, m->ttl_period - 1e-3);
   auto sender = get_message_sender_object_const(td_, m->sender_user_id, m->sender_dialog_id, source);
@@ -23188,15 +23187,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto has_timestamped_media = reply_to == nullptr || m->max_own_media_timestamp >= 0;
   auto reply_markup = get_reply_markup_object(td_->contacts_manager_.get(), m->reply_markup);
   auto content = get_message_message_content_object(dialog_id, m);
-  auto self_destruct_type = [&]() -> td_api::object_ptr<td_api::MessageSelfDestructType> {
-    if (m->ttl == 0x7FFFFFFF) {
-      return td_api::make_object<td_api::messageSelfDestructTypeImmediately>();
-    }
-    if (m->ttl > 0) {
-      return td_api::make_object<td_api::messageSelfDestructTypeTimer>(m->ttl);
-    }
-    return nullptr;
-  }();
+  auto self_destruct_type = m->ttl.get_message_self_desctruct_type_object();
 
   return td_api::make_object<td_api::message>(
       m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_message_object"),
@@ -23415,11 +23406,13 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
 
   if (dialog_type == DialogType::SecretChat) {
     CHECK(!is_scheduled);
-    m->ttl = min(td_->contacts_manager_->get_secret_chat_ttl(dialog_id.get_secret_chat_id()), 0x7FFFFFFE);
     if (is_service_message_content(m->content->get_type())) {
-      m->ttl = 0;
+      m->ttl = {};
+    } else {
+      m->ttl =
+          MessageSelfDestructType(td_->contacts_manager_->get_secret_chat_ttl(dialog_id.get_secret_chat_id()), false);
     }
-    m->is_content_secret = is_secret_message_content(m->ttl, m->content->get_type());
+    m->is_content_secret = m->ttl.is_secret_message_content(m->content->get_type());
   }
   if (dialog_id == DialogId(my_id)) {
     m->saved_messages_topic_id = SavedMessagesTopicId(dialog_id, m->forward_info.get(), m->real_forward_from_dialog_id);
@@ -23993,9 +23986,9 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_message(
   m->via_bot_user_id = message_content.via_bot_user_id;
   m->disable_web_page_preview = message_content.disable_web_page_preview;
   m->clear_draft = message_content.clear_draft;
-  if (message_content.ttl > 0) {
+  if (message_content.ttl.is_valid()) {
     m->ttl = message_content.ttl;
-    m->is_content_secret = is_secret_message_content(m->ttl, m->content->get_type());
+    m->is_content_secret = m->ttl.is_secret_message_content(m->content->get_type());
   }
   m->send_emoji = std::move(message_content.emoji);
 
@@ -24065,7 +24058,8 @@ Result<InputMessageContent> MessagesManager::process_input_message_content(
     }
 
     return InputMessageContent(std::move(content), get_message_disable_web_page_preview(copied_message),
-                               copied_message->invert_media, false, 0, UserId(), copied_message->send_emoji);
+                               copied_message->invert_media, false, MessageSelfDestructType(), UserId(),
+                               copied_message->send_emoji);
   }
 
   bool is_premium = td_->option_manager_->get_option_boolean("is_premium");
@@ -24135,9 +24129,10 @@ Result<MessagesManager::MessageSendOptions> MessagesManager::process_message_sen
 }
 
 Status MessagesManager::can_use_message_send_options(const MessageSendOptions &options,
-                                                     const unique_ptr<MessageContent> &content, int32 ttl) {
+                                                     const unique_ptr<MessageContent> &content,
+                                                     MessageSelfDestructType ttl) {
   if (options.schedule_date != 0) {
-    if (ttl > 0) {
+    if (ttl.is_valid()) {
       return Status::Error(400, "Can't send scheduled self-destructing messages");
     }
     if (content->get_type() == MessageContentType::LiveLocation) {
@@ -24265,9 +24260,9 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_message_group
     }
 
     auto ttl = message_content.ttl;
-    if (ttl > 0) {
+    if (ttl.is_valid()) {
       m->ttl = ttl;
-      m->is_content_secret = is_secret_message_content(m->ttl, m->content->get_type());
+      m->is_content_secret = m->ttl.is_secret_message_content(m->content->get_type());
     }
     m->media_album_id = media_album_id;
 
@@ -24544,7 +24539,7 @@ void MessagesManager::send_secret_message(DialogId dialog_id, const Message *m, 
   send_closure(
       td_->secret_chats_manager_, &SecretChatsManager::send_message, dialog_id.get_secret_chat_id(),
       make_tl_object<secret_api::decryptedMessage>(
-          flags, false /*ignored*/, random_id, m->ttl,
+          flags, false /*ignored*/, random_id, m->ttl.get_input_ttl(),
           m->content->get_type() == MessageContentType::Text ? text->text : string(), std::move(media.decrypted_media_),
           std::move(entities), td_->contacts_manager_->get_user_first_username(m->via_bot_user_id),
           m->reply_to_random_id, -m->media_album_id),
@@ -25132,7 +25127,7 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_inline_query_r
   }
 
   auto input_reply_to = get_message_input_reply_to(d, top_thread_message_id, std::move(reply_to), false);
-  TRY_STATUS(can_use_message_send_options(message_send_options, content->message_content, 0));
+  TRY_STATUS(can_use_message_send_options(message_send_options, content->message_content, MessageSelfDestructType()));
   TRY_STATUS(can_send_message_content(dialog_id, content->message_content.get(), false, true, td_));
   TRY_STATUS(can_use_top_thread_message_id(d, top_thread_message_id, input_reply_to));
 
@@ -25799,7 +25794,7 @@ void MessagesManager::edit_message_media(MessageFullId message_full_id,
       old_message_content_type != MessageContentType::Photo && old_message_content_type != MessageContentType::Video) {
     return promise.set_error(Status::Error(400, "There is no media in the message to edit"));
   }
-  if (m->ttl > 0) {
+  if (!m->ttl.is_empty()) {
     return promise.set_error(Status::Error(400, "Can't edit media in self-destructing message"));
   }
 
@@ -25808,7 +25803,7 @@ void MessagesManager::edit_message_media(MessageFullId message_full_id,
     return promise.set_error(r_input_message_content.move_as_error());
   }
   InputMessageContent content = r_input_message_content.move_as_ok();
-  if (content.ttl > 0) {
+  if (!content.ttl.is_empty()) {
     return promise.set_error(Status::Error(400, "Can't enable self-destruction for media"));
   }
 
@@ -26029,7 +26024,7 @@ void MessagesManager::edit_inline_message_media(const string &inline_message_id,
     return promise.set_error(r_input_message_content.move_as_error());
   }
   InputMessageContent content = r_input_message_content.move_as_ok();
-  if (content.ttl > 0) {
+  if (!content.ttl.is_empty()) {
     return promise.set_error(Status::Error(400, "Can't enable self-destruction for media"));
   }
 
@@ -26043,7 +26038,7 @@ void MessagesManager::edit_inline_message_media(const string &inline_message_id,
     return promise.set_error(Status::Error(400, "Invalid inline message identifier specified"));
   }
 
-  auto input_media = get_input_media(content.content.get(), td_, 0, string(), true);
+  auto input_media = get_input_media(content.content.get(), td_, MessageSelfDestructType(), string(), true);
   if (input_media == nullptr) {
     return promise.set_error(Status::Error(400, "Invalid message content specified"));
   }
@@ -26927,7 +26922,8 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
       continue;
     }
 
-    auto can_use_options_status = can_use_message_send_options(message_send_options, content, 0);
+    auto can_use_options_status =
+        can_use_message_send_options(message_send_options, content, MessageSelfDestructType());
     if (can_use_options_status.is_error()) {
       LOG(INFO) << "Can't forward " << message_id << ": " << can_send_status.message();
       continue;
@@ -27506,14 +27502,14 @@ Result<MessageId> MessagesManager::add_local_message(
   m->disable_web_page_preview = message_content.disable_web_page_preview;
   m->clear_draft = message_content.clear_draft;
   if (dialog_type == DialogType::SecretChat) {
-    m->ttl = min(td_->contacts_manager_->get_secret_chat_ttl(dialog_id.get_secret_chat_id()), 0x7FFFFFFE);
-    if (is_service_message_content(m->content->get_type())) {
-      m->ttl = 0;
+    if (!is_service_message_content(m->content->get_type())) {
+      m->ttl =
+          MessageSelfDestructType(td_->contacts_manager_->get_secret_chat_ttl(dialog_id.get_secret_chat_id()), false);
     }
-  } else if (message_content.ttl > 0) {
+  } else if (message_content.ttl.is_valid()) {
     m->ttl = message_content.ttl;
   }
-  m->is_content_secret = is_secret_message_content(m->ttl, m->content->get_type());
+  m->is_content_secret = m->ttl.is_secret_message_content(m->content->get_type());
   m->send_emoji = std::move(message_content.emoji);
   if (dialog_id == DialogId(my_id)) {
     m->saved_messages_topic_id = SavedMessagesTopicId(dialog_id, m->forward_info.get(), DialogId());
@@ -32982,7 +32978,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     d->has_unload_timeout = true;
   }
 
-  if (message->ttl > 0 && message->ttl_expires_at != 0) {
+  if (message->ttl.is_valid() && message->ttl_expires_at != 0) {
     auto now = Time::now();
     if (message->ttl_expires_at <= now) {
       if (dialog_type == DialogType::SecretChat) {
@@ -33284,9 +33280,9 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
     debug_add_message_to_dialog_fail_reason_ = "skip adding scheduled message to secret chat";
     return nullptr;
   }
-  if (message->ttl != 0 || message->ttl_expires_at != 0) {
-    LOG(ERROR) << "Tried to add " << message_id << " with self-destruct timer " << message->ttl << '/'
-               << message->ttl_expires_at << " to " << dialog_id << " from " << source;
+  if (message->ttl != MessageSelfDestructType() || message->ttl_expires_at != 0) {
+    LOG(ERROR) << "Tried to add " << message_id << " with " << message->ttl << '/' << message->ttl_expires_at << " to "
+               << dialog_id << " from " << source;
     debug_add_message_to_dialog_fail_reason_ = "skip adding secret scheduled message";
     return nullptr;
   }
@@ -34287,7 +34283,7 @@ bool MessagesManager::need_message_changed_warning(const Message *old_message) {
     // original message may be edited
     return false;
   }
-  if (old_message->ttl > 0) {
+  if (old_message->ttl.is_valid()) {
     // message can expire
     return false;
   }
@@ -34310,7 +34306,7 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
   auto old_file_id = get_message_content_any_file_id(old_content.get());
   bool need_finish_upload = old_file_id.is_valid() && need_merge_files;
   if (old_content_type != new_content_type) {
-    if (old_message->ttl > 0 && old_message->ttl_expires_at > 0 &&
+    if (old_message->ttl.is_valid() && old_message->ttl_expires_at > 0 &&
         ((new_content_type == MessageContentType::ExpiredPhoto && old_content_type == MessageContentType::Photo) ||
          (new_content_type == MessageContentType::ExpiredVideo && old_content_type == MessageContentType::Video) ||
          (new_content_type == MessageContentType::ExpiredVideoNote &&
@@ -34322,7 +34318,7 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
       need_update = true;
       LOG(INFO) << "Message content has changed type from " << old_content_type << " to " << new_content_type;
 
-      old_message->is_content_secret = is_secret_message_content(old_message->ttl, new_content->get_type());
+      old_message->is_content_secret = old_message->ttl.is_secret_message_content(new_content->get_type());
     }
 
     if (need_merge_files && old_file_id.is_valid()) {
