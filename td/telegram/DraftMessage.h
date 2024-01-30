@@ -23,7 +23,7 @@ namespace td {
 class Dependencies;
 class Td;
 
-enum class DraftMessageContentType : int32 { VideoNote };
+enum class DraftMessageContentType : int32 { VideoNote, VoiceNote };
 
 class DraftMessageContent {
  public:

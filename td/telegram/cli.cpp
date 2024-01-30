@@ -4306,6 +4306,17 @@ class CliClient final : public Actor {
               nullptr, 0,
               td_api::make_object<td_api::inputMessageVideoNote>(as_input_file(video_path), nullptr, 10, 5,
                                                                  get_message_self_destruct_type()))));
+    } else if (op == "scdmvoice") {
+      ChatId chat_id;
+      string voice_path;
+      get_args(args, chat_id, voice_path);
+      send_request(td_api::make_object<td_api::setChatDraftMessage>(
+          chat_id, message_thread_id_,
+          td_api::make_object<td_api::draftMessage>(
+              nullptr, 0,
+              td_api::make_object<td_api::inputMessageVoiceNote>(as_input_file(voice_path), 0, "abacaba",
+                                                                 as_caption("voice caption"),
+                                                                 get_message_self_destruct_type()))));
     } else if (op == "cadm") {
       send_request(td_api::make_object<td_api::clearAllDraftMessages>());
     } else if (op == "tchpc") {

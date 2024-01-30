@@ -1527,7 +1527,7 @@ scopeNotificationSettings mute_for:int32 sound_id:int64 show_preview:Bool use_de
 //@description Contains information about a message draft
 //@reply_to Information about the message to be replied; must be of the type inputMessageReplyToMessage; may be null if none
 //@date Point in time (Unix timestamp) when the draft was created
-//@input_message_text Content of the message draft; must be of the type inputMessageText, or inputMessageVideoNote
+//@input_message_text Content of the message draft; must be of the type inputMessageText, inputMessageVideoNote, or inputMessageVoiceNote
 draftMessage reply_to:InputMessageReplyTo date:int32 input_message_text:InputMessageContent = DraftMessage;
 
 
@@ -3148,7 +3148,7 @@ messageCopyOptions send_copy:Bool replace_caption:Bool new_caption:formattedText
 
 //@description A text message
 //@text Formatted text to be sent; 0-getOption("message_text_length_max") characters. Only Bold, Italic, Underline, Strikethrough, Spoiler, CustomEmoji, BlockQuote, Code, Pre, PreCode, TextUrl and MentionName entities are allowed to be specified manually
-//@link_preview_options Options to be used for generation of a link preview; pass null to use default link preview options
+//@link_preview_options Options to be used for generation of a link preview; may be null if none; pass null to use default link preview options
 //@clear_draft True, if a chat message draft must be deleted
 inputMessageText text:formattedText link_preview_options:linkPreviewOptions clear_draft:Bool = InputMessageContent;
 
@@ -3213,18 +3213,18 @@ inputMessageVideo video:InputFile thumbnail:inputThumbnail added_sticker_file_id
 
 //@description A video note message
 //@video_note Video note to be sent
-//@thumbnail Video thumbnail; pass null to skip thumbnail uploading
+//@thumbnail Video thumbnail; may be null if empty; pass null to skip thumbnail uploading
 //@duration Duration of the video, in seconds
 //@length Video width and height; must be positive and not greater than 640
-//@self_destruct_type Video note self-destruct type; pass null if none; private chats only
+//@self_destruct_type Video note self-destruct type; may be null if none; pass null if none; private chats only
 inputMessageVideoNote video_note:InputFile thumbnail:inputThumbnail duration:int32 length:int32 self_destruct_type:MessageSelfDestructType = InputMessageContent;
 
 //@description A voice note message
 //@voice_note Voice note to be sent
 //@duration Duration of the voice note, in seconds
 //@waveform Waveform representation of the voice note in 5-bit format
-//@caption Voice note caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
-//@self_destruct_type Voice note self-destruct type; pass null if none; private chats only
+//@caption Voice note caption; may be null if empty; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
+//@self_destruct_type Voice note self-destruct type; may be null if none; pass null if none; private chats only
 inputMessageVoiceNote voice_note:InputFile duration:int32 waveform:bytes caption:formattedText self_destruct_type:MessageSelfDestructType = InputMessageContent;
 
 //@description A message with a location

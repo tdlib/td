@@ -205,10 +205,10 @@ class DraftMessageContentVideoNote final : public DraftMessageContent {
 
   template <class ParserT>
   void parse(ParserT &parser) {
-    bool has_path = !path_.empty();
-    bool has_duration = duration_ != 0;
-    bool has_length = length_ != 0;
-    bool has_ttl = ttl_.is_valid();
+    bool has_path;
+    bool has_duration;
+    bool has_length;
+    bool has_ttl;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_path);
     PARSE_FLAG(has_duration);
@@ -230,6 +230,82 @@ class DraftMessageContentVideoNote final : public DraftMessageContent {
   }
 };
 
+class DraftMessageContentVoiceNote final : public DraftMessageContent {
+ public:
+  string path_;
+  int32 duration_ = 0;
+  string waveform_;
+  MessageSelfDestructType ttl_;
+
+  DraftMessageContentVoiceNote() = default;
+
+  DraftMessageContentVoiceNote(string &&path, int32 duration, string &&waveform, MessageSelfDestructType ttl)
+      : path_(std::move(path)), duration_(duration), waveform_(std::move(waveform)), ttl_(ttl) {
+  }
+
+  DraftMessageContentType get_type() const final {
+    return DraftMessageContentType::VoiceNote;
+  }
+
+  td_api::object_ptr<td_api::InputMessageContent> get_input_message_content_object() const final {
+    return td_api::make_object<td_api::inputMessageVoiceNote>(td_api::make_object<td_api::inputFileLocal>(path_),
+                                                              duration_, waveform_, nullptr,
+                                                              ttl_.get_message_self_desctruct_type_object());
+  }
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    bool has_path = !path_.empty();
+    bool has_duration = duration_ != 0;
+    bool has_waveform = !waveform_.empty();
+    bool has_ttl = ttl_.is_valid();
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(has_path);
+    STORE_FLAG(has_duration);
+    STORE_FLAG(has_waveform);
+    STORE_FLAG(has_ttl);
+    END_STORE_FLAGS();
+    if (has_path) {
+      td::store(path_, storer);
+    }
+    if (has_duration) {
+      td::store(duration_, storer);
+    }
+    if (has_waveform) {
+      td::store(waveform_, storer);
+    }
+    if (has_ttl) {
+      td::store(ttl_, storer);
+    }
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    bool has_path;
+    bool has_duration;
+    bool has_waveform;
+    bool has_ttl;
+    BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(has_path);
+    PARSE_FLAG(has_duration);
+    PARSE_FLAG(has_waveform);
+    PARSE_FLAG(has_ttl);
+    END_PARSE_FLAGS();
+    if (has_path) {
+      td::parse(path_, parser);
+    }
+    if (has_duration) {
+      td::parse(duration_, parser);
+    }
+    if (has_waveform) {
+      td::parse(waveform_, parser);
+    }
+    if (has_ttl) {
+      td::parse(ttl_, parser);
+    }
+  }
+};
+
 template <class StorerT>
 static void store(const DraftMessageContent *content, StorerT &storer) {
   CHECK(content != nullptr);
@@ -241,6 +317,11 @@ static void store(const DraftMessageContent *content, StorerT &storer) {
     case DraftMessageContentType::VideoNote: {
       const auto *video_note = static_cast<const DraftMessageContentVideoNote *>(content);
       video_note->store(storer);
+      break;
+    }
+    case DraftMessageContentType::VoiceNote: {
+      const auto *voice_note = static_cast<const DraftMessageContentVoiceNote *>(content);
+      voice_note->store(storer);
       break;
     }
     default:
@@ -264,6 +345,12 @@ void parse_draft_message_content(unique_ptr<DraftMessageContent> &content, LogEv
       unique_ptr<DraftMessageContentVideoNote> video_note;
       parse(video_note, parser);
       content = std::move(video_note);
+      break;
+    }
+    case DraftMessageContentType::VoiceNote: {
+      unique_ptr<DraftMessageContentVoiceNote> voice_note;
+      parse(voice_note, parser);
+      content = std::move(voice_note);
       break;
     }
     default:
@@ -367,6 +454,18 @@ Result<unique_ptr<DraftMessage>> DraftMessage::get_draft_message(
         result->local_content_ = td::make_unique<DraftMessageContentVideoNote>(
             std::move(static_cast<td_api::inputFileLocal *>(video_note->video_note_.get())->path_),
             video_note->duration_, video_note->length_, ttl);
+        break;
+      }
+      case td_api::inputMessageVoiceNote::ID: {
+        auto voice_note = td_api::move_object_as<td_api::inputMessageVoiceNote>(input_message_content);
+        if (voice_note->voice_note_ == nullptr || voice_note->voice_note_->get_id() != td_api::inputFileLocal::ID) {
+          return Status::Error(400, "Invalid voice message file specified");
+        }
+        TRY_RESULT(ttl,
+                   MessageSelfDestructType::get_message_self_destruct_type(std::move(voice_note->self_destruct_type_)));
+        result->local_content_ = td::make_unique<DraftMessageContentVoiceNote>(
+            std::move(static_cast<td_api::inputFileLocal *>(voice_note->voice_note_.get())->path_),
+            voice_note->duration_, std::move(voice_note->waveform_), ttl);
         break;
       }
       default:
