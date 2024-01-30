@@ -4308,6 +4308,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_replied_message_info = !replied_message_info.is_empty();
   bool has_forward_info = forward_info != nullptr;
   bool has_saved_messages_topic_id = saved_messages_topic_id.is_valid();
+  bool has_initial_top_thread_message_id = !message_id.is_any_server() && initial_top_thread_message_id.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
   STORE_FLAG(is_outgoing);
@@ -4390,6 +4391,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(has_replied_message_info);
     STORE_FLAG(has_forward_info);
     STORE_FLAG(has_saved_messages_topic_id);
+    STORE_FLAG(has_initial_top_thread_message_id);
     END_STORE_FLAGS();
   }
 
@@ -4507,6 +4509,9 @@ void MessagesManager::Message::store(StorerT &storer) const {
   if (has_saved_messages_topic_id) {
     store(saved_messages_topic_id, storer);
   }
+  if (has_initial_top_thread_message_id) {
+    store(initial_top_thread_message_id, storer);
+  }
 }
 
 // do not forget to resolve message dependencies
@@ -4561,6 +4566,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool has_replied_message_info = false;
   bool has_forward_info = false;
   bool has_saved_messages_topic_id = false;
+  bool has_initial_top_thread_message_id = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_channel_post);
   PARSE_FLAG(is_outgoing);
@@ -4643,6 +4649,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(has_replied_message_info);
     PARSE_FLAG(has_forward_info);
     PARSE_FLAG(has_saved_messages_topic_id);
+    PARSE_FLAG(has_initial_top_thread_message_id);
     END_PARSE_FLAGS();
   }
 
@@ -4823,6 +4830,9 @@ void MessagesManager::Message::parse(ParserT &parser) {
   }
   if (has_saved_messages_topic_id) {
     parse(saved_messages_topic_id, parser);
+  }
+  if (has_initial_top_thread_message_id) {
+    parse(initial_top_thread_message_id, parser);
   }
 
   CHECK(content != nullptr);
@@ -23288,6 +23298,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
 
   int64 reply_to_random_id = 0;
   bool is_topic_message = false;
+  auto initial_top_thread_message_id = top_thread_message_id;
   auto same_chat_reply_to_message_id = input_reply_to.get_same_chat_reply_to_message_id();
   if (same_chat_reply_to_message_id.is_valid() || same_chat_reply_to_message_id.is_valid_scheduled()) {
     // the message was forcely preloaded in get_message_input_reply_to
@@ -23356,6 +23367,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
   m->input_reply_to = std::move(input_reply_to);
   m->reply_to_random_id = reply_to_random_id;
   m->top_thread_message_id = top_thread_message_id;
+  m->initial_top_thread_message_id = initial_top_thread_message_id;
   m->is_topic_message = is_topic_message;
   m->is_channel_post = is_channel_post;
   m->is_outgoing = is_scheduled || dialog_id != DialogId(my_id);
@@ -24425,7 +24437,7 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
           int64 random_id = begin_send_message(dialog_id, m);
           td_->create_handler<SendMediaQuery>()->send(
               file_id, thumbnail_file_id, get_message_flags(m), dialog_id, get_send_message_as_input_peer(m),
-              *get_message_input_reply_to(m), m->top_thread_message_id, get_message_schedule_date(m),
+              *get_message_input_reply_to(m), m->initial_top_thread_message_id, get_message_schedule_date(m),
               get_input_reply_markup(td_->contacts_manager_.get(), m->reply_markup),
               get_input_message_entities(td_->contacts_manager_.get(), caption, "on_message_media_uploaded"),
               caption == nullptr ? "" : caption->text, std::move(input_media), m->content->get_type(), m->is_copy,
@@ -24740,7 +24752,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
     }
 
     input_reply_to = get_message_input_reply_to(m);
-    top_thread_message_id = m->top_thread_message_id;
+    top_thread_message_id = m->initial_top_thread_message_id;
     flags = get_message_flags(m);
     schedule_date = get_message_schedule_date(m);
     is_copy = m->is_copy;
@@ -24839,14 +24851,14 @@ void MessagesManager::on_text_message_ready_to_send(DialogId dialog_id, MessageI
     if (input_media == nullptr) {
       td_->create_handler<SendMessageQuery>()->send(
           get_message_flags(m), dialog_id, get_send_message_as_input_peer(m), *get_message_input_reply_to(m),
-          m->top_thread_message_id, get_message_schedule_date(m),
+          m->initial_top_thread_message_id, get_message_schedule_date(m),
           get_input_reply_markup(td_->contacts_manager_.get(), m->reply_markup),
           get_input_message_entities(td_->contacts_manager_.get(), message_text, "do_send_message"), message_text->text,
           m->is_copy, random_id, &m->send_query_ref);
     } else {
       td_->create_handler<SendMediaQuery>()->send(
           FileId(), FileId(), get_message_flags(m), dialog_id, get_send_message_as_input_peer(m),
-          *get_message_input_reply_to(m), m->top_thread_message_id, get_message_schedule_date(m),
+          *get_message_input_reply_to(m), m->initial_top_thread_message_id, get_message_schedule_date(m),
           get_input_reply_markup(td_->contacts_manager_.get(), m->reply_markup),
           get_input_message_entities(td_->contacts_manager_.get(), message_text, "do_send_message"), message_text->text,
           std::move(input_media), MessageContentType::Text, m->is_copy, random_id, &m->send_query_ref);
@@ -25249,8 +25261,8 @@ void MessagesManager::do_send_inline_query_result_message(DialogId dialog_id, Me
     flags |= telegram_api::messages_sendInlineBotResult::HIDE_VIA_MASK;
   }
   m->send_query_ref = td_->create_handler<SendInlineBotResultQuery>()->send(
-      flags, dialog_id, get_send_message_as_input_peer(m), *get_message_input_reply_to(m), m->top_thread_message_id,
-      get_message_schedule_date(m), random_id, query_id, result_id);
+      flags, dialog_id, get_send_message_as_input_peer(m), *get_message_input_reply_to(m),
+      m->initial_top_thread_message_id, get_message_schedule_date(m), random_id, query_id, result_id);
 }
 
 bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, bool is_editing,
@@ -26640,7 +26652,7 @@ void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_d
   vector<int64> random_ids =
       transform(messages, [this, to_dialog_id](const Message *m) { return begin_send_message(to_dialog_id, m); });
   send_closure_later(actor_id(this), &MessagesManager::send_forward_message_query, flags, to_dialog_id,
-                     messages[0]->top_thread_message_id, from_dialog_id, std::move(as_input_peer), message_ids,
+                     messages[0]->initial_top_thread_message_id, from_dialog_id, std::move(as_input_peer), message_ids,
                      std::move(random_ids), schedule_date, get_erase_log_event_promise(log_event_id));
 }
 

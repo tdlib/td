@@ -1040,9 +1040,10 @@ class MessagesManager final : public Actor {
     MessageId linked_top_thread_message_id;
     vector<MessageId> local_thread_message_ids;
 
-    MessageInputReplyTo input_reply_to;  // for send_message
-    int64 reply_to_random_id = 0;        // for send_message
-    string send_emoji;                   // for send_message
+    MessageId initial_top_thread_message_id;  // for send_message
+    MessageInputReplyTo input_reply_to;       // for send_message
+    int64 reply_to_random_id = 0;             // for send_message
+    string send_emoji;                        // for send_message
 
     UserId via_bot_user_id;
 
