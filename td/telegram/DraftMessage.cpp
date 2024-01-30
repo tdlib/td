@@ -11,6 +11,7 @@
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageEntity.h"
+#include "td/telegram/MessageSelfDestructType.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/Td.h"
@@ -44,6 +45,7 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
     vector<telegram_api::object_ptr<telegram_api::MessageEntity>> input_message_entities;
     telegram_api::object_ptr<telegram_api::InputMedia> media;
     if (draft_message != nullptr) {
+      CHECK(!draft_message->is_local());
       input_reply_to = draft_message->message_input_reply_to_.get_input_reply_to(td_, MessageId() /*TODO*/);
       if (input_reply_to != nullptr) {
         flags |= telegram_api::messages_saveDraft::REPLY_TO_MASK;
@@ -152,7 +154,131 @@ class ClearAllDraftsQuery final : public Td::ResultHandler {
   }
 };
 
+class DraftMessageContentVideoNote final : public DraftMessageContent {
+ public:
+  string path_;
+  int32 duration_ = 0;
+  int32 length_ = 0;
+  MessageSelfDestructType ttl_;
+
+  DraftMessageContentVideoNote() = default;
+
+  DraftMessageContentVideoNote(string &&path, int32 duration, int32 length, MessageSelfDestructType ttl)
+      : path_(std::move(path)), duration_(duration), length_(length), ttl_(ttl) {
+  }
+
+  DraftMessageContentType get_type() const final {
+    return DraftMessageContentType::VideoNote;
+  }
+
+  td_api::object_ptr<td_api::InputMessageContent> get_input_message_content_object() const final {
+    return td_api::make_object<td_api::inputMessageVideoNote>(td_api::make_object<td_api::inputFileLocal>(path_),
+                                                              nullptr, duration_, length_,
+                                                              ttl_.get_message_self_desctruct_type_object());
+  }
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    bool has_path = !path_.empty();
+    bool has_duration = duration_ != 0;
+    bool has_length = length_ != 0;
+    bool has_ttl = ttl_.is_valid();
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(has_path);
+    STORE_FLAG(has_duration);
+    STORE_FLAG(has_length);
+    STORE_FLAG(has_ttl);
+    END_STORE_FLAGS();
+    if (has_path) {
+      td::store(path_, storer);
+    }
+    if (has_duration) {
+      td::store(duration_, storer);
+    }
+    if (has_length) {
+      td::store(length_, storer);
+    }
+    if (has_ttl) {
+      td::store(ttl_, storer);
+    }
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    bool has_path = !path_.empty();
+    bool has_duration = duration_ != 0;
+    bool has_length = length_ != 0;
+    bool has_ttl = ttl_.is_valid();
+    BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(has_path);
+    PARSE_FLAG(has_duration);
+    PARSE_FLAG(has_length);
+    PARSE_FLAG(has_ttl);
+    END_PARSE_FLAGS();
+    if (has_path) {
+      td::parse(path_, parser);
+    }
+    if (has_duration) {
+      td::parse(duration_, parser);
+    }
+    if (has_length) {
+      td::parse(length_, parser);
+    }
+    if (has_ttl) {
+      td::parse(ttl_, parser);
+    }
+  }
+};
+
+template <class StorerT>
+static void store(const DraftMessageContent *content, StorerT &storer) {
+  CHECK(content != nullptr);
+
+  auto content_type = content->get_type();
+  store(content_type, storer);
+
+  switch (content_type) {
+    case DraftMessageContentType::VideoNote: {
+      const auto *video_note = static_cast<const DraftMessageContentVideoNote *>(content);
+      video_note->store(storer);
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
+}
+
+void store_draft_message_content(const DraftMessageContent *content, LogEventStorerCalcLength &storer) {
+  store(content, storer);
+}
+
+void store_draft_message_content(const DraftMessageContent *content, LogEventStorerUnsafe &storer) {
+  store(content, storer);
+}
+
+void parse_draft_message_content(unique_ptr<DraftMessageContent> &content, LogEventParser &parser) {
+  DraftMessageContentType type;
+  parse(type, parser);
+  switch (type) {
+    case DraftMessageContentType::VideoNote: {
+      unique_ptr<DraftMessageContentVideoNote> video_note;
+      parse(video_note, parser);
+      content = std::move(video_note);
+      break;
+    }
+    default:
+      parser.set_error("Wrong draft content type");
+  }
+}
+
+DraftMessage::DraftMessage() = default;
+
+DraftMessage::~DraftMessage() = default;
+
 bool DraftMessage::need_update_to(const DraftMessage &other, bool from_update) const {
+  if (is_local()) {
+    return !from_update || other.is_local();
+  }
   if (message_input_reply_to_ == other.message_input_reply_to_ && input_message_text_ == other.input_message_text_) {
     return date_ < other.date_;
   } else {
@@ -166,8 +292,14 @@ void DraftMessage::add_dependencies(Dependencies &dependencies) const {
 }
 
 td_api::object_ptr<td_api::draftMessage> DraftMessage::get_draft_message_object(Td *td) const {
+  td_api::object_ptr<td_api::InputMessageContent> input_message_content;
+  if (local_content_ != nullptr) {
+    input_message_content = local_content_->get_input_message_content_object();
+  } else {
+    input_message_content = input_message_text_.get_input_message_text_object();
+  }
   return td_api::make_object<td_api::draftMessage>(message_input_reply_to_.get_input_message_reply_to_object(td), date_,
-                                                   input_message_text_.get_input_message_text_object());
+                                                   std::move(input_message_content));
 }
 
 DraftMessage::DraftMessage(Td *td, telegram_api::object_ptr<telegram_api::draftMessage> &&draft_message) {
@@ -218,20 +350,44 @@ Result<unique_ptr<DraftMessage>> DraftMessage::get_draft_message(
 
   auto input_message_content = std::move(draft_message->input_message_text_);
   if (input_message_content != nullptr) {
-    if (input_message_content->get_id() != td_api::inputMessageText::ID) {
-      return Status::Error(400, "Input message content type must be InputMessageText");
+    switch (input_message_content->get_id()) {
+      case td_api::inputMessageText::ID: {
+        TRY_RESULT(input_message_text,
+                   process_input_message_text(td, dialog_id, std::move(input_message_content), false, true));
+        result->input_message_text_ = std::move(input_message_text);
+        break;
+      }
+      case td_api::inputMessageVideoNote::ID: {
+        auto video_note = td_api::move_object_as<td_api::inputMessageVideoNote>(input_message_content);
+        if (video_note->video_note_ == nullptr || video_note->video_note_->get_id() != td_api::inputFileLocal::ID) {
+          return Status::Error(400, "Invalid video message file specified");
+        }
+        TRY_RESULT(ttl,
+                   MessageSelfDestructType::get_message_self_destruct_type(std::move(video_note->self_destruct_type_)));
+        result->local_content_ = td::make_unique<DraftMessageContentVideoNote>(
+            std::move(static_cast<td_api::inputFileLocal *>(video_note->video_note_.get())->path_),
+            video_note->duration_, video_note->length_, ttl);
+        break;
+      }
+      default:
+        return Status::Error(400, "Input message content type must be InputMessageText");
     }
-    TRY_RESULT(input_message_text,
-               process_input_message_text(td, dialog_id, std::move(input_message_content), false, true));
-    result->input_message_text_ = std::move(input_message_text);
   }
 
-  if (!result->message_input_reply_to_.is_valid() && result->input_message_text_.is_empty()) {
+  if (!result->message_input_reply_to_.is_valid() && result->input_message_text_.is_empty() &&
+      result->local_content_ == nullptr) {
     return nullptr;
   }
 
   result->date_ = G()->unix_time();
   return std::move(result);
+}
+
+bool is_local_draft_message(const unique_ptr<DraftMessage> &draft_message) {
+  if (draft_message == nullptr) {
+    return false;
+  }
+  return draft_message->is_local();
 }
 
 bool need_update_draft_message(const unique_ptr<DraftMessage> &old_draft_message,

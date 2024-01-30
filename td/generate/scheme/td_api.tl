@@ -1527,7 +1527,7 @@ scopeNotificationSettings mute_for:int32 sound_id:int64 show_preview:Bool use_de
 //@description Contains information about a message draft
 //@reply_to Information about the message to be replied; must be of the type inputMessageReplyToMessage; may be null if none
 //@date Point in time (Unix timestamp) when the draft was created
-//@input_message_text Content of the message draft; must be of the type inputMessageText
+//@input_message_text Content of the message draft; must be of the type inputMessageText, or inputMessageVideoNote
 draftMessage reply_to:InputMessageReplyTo date:int32 input_message_text:InputMessageContent = DraftMessage;
 
 
@@ -8206,7 +8206,10 @@ deleteChatBackground chat_id:int53 restore_previous:Bool = Ok;
 //@description Changes the chat theme. Supported only in private and secret chats @chat_id Chat identifier @theme_name Name of the new chat theme; pass an empty string to return the default theme
 setChatTheme chat_id:int53 theme_name:string = Ok;
 
-//@description Changes the draft message in a chat @chat_id Chat identifier @message_thread_id If not 0, a message thread identifier in which the draft was changed @draft_message New draft message; pass null to remove the draft
+//@description Changes the draft message in a chat
+//@chat_id Chat identifier
+//@message_thread_id If not 0, a message thread identifier in which the draft was changed
+//@draft_message New draft message; pass null to remove the draft. All files in draft message content must be of the type inputFileLocal. Media thumbnails and captions are ignored
 setChatDraftMessage chat_id:int53 message_thread_id:int53 draft_message:draftMessage = Ok;
 
 //@description Changes the notification settings of a chat. Notification settings of a chat with the current user (Saved Messages) can't be changed

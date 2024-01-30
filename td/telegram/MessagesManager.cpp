@@ -18089,7 +18089,7 @@ Status MessagesManager::set_dialog_draft_message(DialogId dialog_id, MessageId t
   }
 
   if (update_dialog_draft_message(d, std::move(new_draft_message), false, true)) {
-    if (dialog_id.get_type() != DialogType::SecretChat) {
+    if (dialog_id.get_type() != DialogType::SecretChat && !is_local_draft_message(d->draft_message)) {
       if (G()->use_message_database()) {
         SaveDialogDraftMessageOnServerLogEvent log_event;
         log_event.dialog_id_ = dialog_id;
