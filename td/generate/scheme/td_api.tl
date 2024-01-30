@@ -4773,6 +4773,9 @@ premiumFeatureAccentColor = PremiumFeature;
 //@description The ability to set private chat background for both users
 premiumFeatureBackgroundForBoth = PremiumFeature;
 
+//@description The ability to use tags in Saved Messages
+premiumFeatureSavedMessagesTags = PremiumFeature;
+
 
 //@class PremiumStoryFeature @description Describes a story feature available to Premium users
 

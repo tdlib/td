@@ -98,6 +98,9 @@ static td_api::object_ptr<td_api::PremiumFeature> get_premium_feature_object(Sli
   if (premium_feature == "wallpapers") {
     return td_api::make_object<td_api::premiumFeatureBackgroundForBoth>();
   }
+  if (premium_feature == "saved_tags") {
+    return td_api::make_object<td_api::premiumFeatureSavedMessagesTags>();
+  }
   return nullptr;
 }
 
@@ -747,6 +750,8 @@ static string get_premium_source(const td_api::PremiumFeature *feature) {
       return "peer_colors";
     case td_api::premiumFeatureBackgroundForBoth::ID:
       return "wallpapers";
+    case td_api::premiumFeatureSavedMessagesTags::ID:
+      return "saved_tags";
     default:
       UNREACHABLE();
   }
