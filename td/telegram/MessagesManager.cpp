@@ -34244,14 +34244,26 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     need_send_update = true;
   }
 
+  bool is_preview_changed = false;
+  if (old_message->invert_media != new_message->invert_media) {
+    old_message->invert_media = new_message->invert_media;
+    is_preview_changed = true;
+  }
+  if (old_message->disable_web_page_preview != new_message->disable_web_page_preview) {
+    if (old_message->disable_web_page_preview) {
+      is_preview_changed = has_message_content_web_page(new_message->content.get());
+    } else {
+      CHECK(new_message->disable_web_page_preview);
+      is_preview_changed = has_message_content_web_page(old_message->content.get());
+    }
+    old_message->disable_web_page_preview = new_message->disable_web_page_preview;
+  }
+
   bool is_content_changed = false;
   if (update_message_content(dialog_id, old_message, std::move(new_message->content),
                              message_id.is_yet_unsent() && new_message->edit_date == 0, is_message_in_dialog,
                              is_content_changed) ||
-      old_message->invert_media != new_message->invert_media ||
-      old_message->disable_web_page_preview != new_message->disable_web_page_preview) {
-    old_message->disable_web_page_preview = new_message->disable_web_page_preview;
-    old_message->invert_media = new_message->invert_media;
+      is_preview_changed) {
     send_update_message_content(d, old_message, is_message_in_dialog, "update_message");
     need_send_update = true;
   }
