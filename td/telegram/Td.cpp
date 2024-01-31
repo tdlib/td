@@ -3513,6 +3513,18 @@ void Td::init(Parameters parameters, Result<TdDb::OpenedDatabase> r_opened_datab
 
   VLOG(td_init) << "Successfully inited database";
 
+  if (state_ == State::Close) {
+    LOG(INFO) << "Close asynchronously opened database";
+    auto database_ptr = events.database.get();
+    auto promise = PromiseCreator::lambda([database = std::move(events.database)](Unit) {
+      // destroy the database after closing
+    });
+    database_ptr->close(
+        database_ptr->use_file_database() ? G()->get_database_scheduler_id() : G()->get_slow_net_scheduler_id(),
+        destroy_flag_, std::move(promise));
+    return finish_set_parameters();
+  }
+
   G()->init(actor_id(this), std::move(events.database)).ensure();
 
   init_options_and_network();
