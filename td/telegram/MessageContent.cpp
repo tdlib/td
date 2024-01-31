@@ -5872,7 +5872,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       if (message.text.empty()) {
         LOG(ERROR) << "Receive empty message text and media from " << source;
       }
-      if (disable_web_page_preview != nullptr) {
+      if (disable_web_page_preview != nullptr && !get_first_url(message).empty()) {
         *disable_web_page_preview = true;
       }
       return td::make_unique<MessageText>(std::move(message), WebPageId(), false, false, false, string());
@@ -6006,9 +6006,6 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
           move_tl_object_as<telegram_api::messageMediaInvoice>(media_ptr), td, owner_dialog_id, std::move(message)));
     case telegram_api::messageMediaWebPage::ID: {
       auto media = move_tl_object_as<telegram_api::messageMediaWebPage>(media_ptr);
-      if (disable_web_page_preview != nullptr) {
-        *disable_web_page_preview = (media->webpage_ == nullptr);
-      }
       string web_page_url;
       if (media->manual_ || media->force_small_media_ || media->force_large_media_) {
         web_page_url = WebPagesManager::get_web_page_url(media->webpage_);
@@ -6105,7 +6102,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
   }
 
   // explicit empty media message
-  if (disable_web_page_preview != nullptr) {
+  if (disable_web_page_preview != nullptr && !get_first_url(message).empty()) {
     *disable_web_page_preview = true;
   }
   return td::make_unique<MessageText>(std::move(message), WebPageId(), false, false, false, string());
