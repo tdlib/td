@@ -3421,10 +3421,10 @@ void Td::close_impl(bool destroy_flag) {
 
   LOG(WARNING) << (destroy_flag ? "Destroy" : "Close") << " Td in state " << static_cast<int32>(state_);
   if (state_ == State::WaitParameters) {
-    clear_requests();
     state_ = State::Close;
     close_flag_ = 4;
     G()->set_close_flag();
+    clear_requests();
     send_update(td_api::make_object<td_api::updateAuthorizationState>(
         td_api::make_object<td_api::authorizationStateClosing>()));
 
