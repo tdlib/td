@@ -2986,8 +2986,8 @@ class CliClient final : public Actor {
       int32 offset;
       SearchQuery query;
       get_args(args, tag, from_message_id, offset, query);
-      send_request(td_api::make_object<td_api::searchSavedMessages>(as_reaction_type(tag), query.query, from_message_id,
-                                                                    offset, query.limit));
+      send_request(td_api::make_object<td_api::searchSavedMessages>(get_saved_messages_topic(), as_reaction_type(tag),
+                                                                    query.query, from_message_id, offset, query.limit));
     } else if (op == "gcmbd") {
       ChatId chat_id;
       int32 date;

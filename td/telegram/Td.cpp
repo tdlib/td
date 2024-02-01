@@ -5337,8 +5337,8 @@ void Td::on_request(uint64 id, td_api::searchSavedMessages &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.query_);
   CREATE_REQUEST(SearchChatMessagesRequest, dialog_manager_->get_my_dialog_id().get(), std::move(request.query_),
-                 nullptr, request.from_message_id_, request.offset_, request.limit_, nullptr, 0, SavedMessagesTopicId(),
-                 ReactionType(request.tag_));
+                 nullptr, request.from_message_id_, request.offset_, request.limit_, nullptr, 0,
+                 SavedMessagesTopicId(this, request.saved_messages_topic_), ReactionType(request.tag_));
 }
 
 void Td::on_request(uint64 id, const td_api::searchCallMessages &request) {
