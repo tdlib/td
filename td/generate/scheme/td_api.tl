@@ -7750,7 +7750,7 @@ getMessageAddedReactions chat_id:int53 message_id:int53 reaction_type:ReactionTy
 //@description Changes type of default reaction for the current user @reaction_type New type of the default reaction
 setDefaultReactionType reaction_type:ReactionType = Ok;
 
-//@description Returns tags used in Saved Messages or a Saved Messages topic; for Telegram Premium users only
+//@description Returns tags used in Saved Messages or a Saved Messages topic
 //@saved_messages_topic Saved Messages topic which tags will be returned; pass null to get all Saved Messages tags
 getSavedMessagesTags saved_messages_topic:SavedMessagesTopic = SavedMessagesTags;
 
