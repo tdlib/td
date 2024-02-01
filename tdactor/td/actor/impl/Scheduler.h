@@ -54,6 +54,7 @@ class EventGuard {
 inline SchedulerGuard Scheduler::get_guard() {
   return SchedulerGuard(this);
 }
+
 inline SchedulerGuard Scheduler::get_const_guard() {
   return SchedulerGuard(this, false);
 }
@@ -61,6 +62,7 @@ inline SchedulerGuard Scheduler::get_const_guard() {
 inline int32 Scheduler::sched_id() const {
   return sched_id_;
 }
+
 inline int32 Scheduler::sched_count() const {
   return sched_n_;
 }

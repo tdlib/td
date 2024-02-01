@@ -300,8 +300,7 @@ void Scheduler::do_event(ActorInfo *actor_info, Event &&event) {
 }
 
 void Scheduler::register_migrated_actor(ActorInfo *actor_info) {
-  VLOG(actor) << "Register migrated actor: " << tag("name", *actor_info) << tag("ptr", actor_info)
-              << tag("actor_count", actor_count_);
+  VLOG(actor) << "Register migrated actor " << *actor_info << ", " << tag("actor_count", actor_count_);
   actor_count_++;
   LOG_CHECK(actor_info->is_migrating()) << *actor_info << ' ' << actor_count_ << ' ' << sched_id_ << ' '
                                         << actor_info->migrate_dest() << ' ' << actor_info->is_running() << ' '
@@ -389,6 +388,7 @@ void Scheduler::add_to_mailbox(ActorInfo *actor_info, Event &&event) {
 void Scheduler::do_stop_actor(Actor *actor) {
   return do_stop_actor(actor->get_info());
 }
+
 void Scheduler::do_stop_actor(ActorInfo *actor_info) {
   CHECK(!actor_info->is_migrating());
   LOG_CHECK(actor_info->migrate_dest() == sched_id_) << actor_info->migrate_dest() << " " << sched_id_;
@@ -410,6 +410,7 @@ void Scheduler::do_stop_actor(ActorInfo *actor_info) {
 void Scheduler::migrate_actor(Actor *actor, int32 dest_sched_id) {
   migrate_actor(actor->get_info(), dest_sched_id);
 }
+
 void Scheduler::migrate_actor(ActorInfo *actor_info, int32 dest_sched_id) {
   CHECK(event_context_ptr_->actor_info == actor_info);
   if (sched_id_ == dest_sched_id) {
@@ -422,6 +423,7 @@ void Scheduler::migrate_actor(ActorInfo *actor_info, int32 dest_sched_id) {
 void Scheduler::do_migrate_actor(Actor *actor, int32 dest_sched_id) {
   do_migrate_actor(actor->get_info(), dest_sched_id);
 }
+
 void Scheduler::do_migrate_actor(ActorInfo *actor_info, int32 dest_sched_id) {
 #if TD_THREAD_UNSUPPORTED || TD_EVENTFD_UNSUPPORTED
   dest_sched_id = 0;
@@ -438,7 +440,7 @@ void Scheduler::start_migrate_actor(Actor *actor, int32 dest_sched_id) {
 }
 
 void Scheduler::start_migrate_actor(ActorInfo *actor_info, int32 dest_sched_id) {
-  VLOG(actor) << "Start migrate actor: " << tag("name", actor_info) << tag("ptr", actor_info)
+  VLOG(actor) << "Start migrate actor " << *actor_info << " to scheduler " << dest_sched_id << ", "
               << tag("actor_count", actor_count_);
   actor_count_--;
   CHECK(actor_count_ >= 0);
