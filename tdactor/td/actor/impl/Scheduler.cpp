@@ -24,6 +24,7 @@
 #include "td/utils/port/thread_local.h"
 #include "td/utils/Promise.h"
 #include "td/utils/ScopeGuard.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/Time.h"
 
 #include <functional>
@@ -80,6 +81,7 @@ void Scheduler::ServiceActor::start_up() {
 void Scheduler::ServiceActor::loop() {
   auto &queue = inbound_;
   int ready_n = queue->reader_wait_nonblock();
+  VLOG(actor) << "Have " << ready_n << " pending events";
   if (ready_n == 0) {
     return;
   }
@@ -228,7 +230,7 @@ void Scheduler::init(int32 id, std::vector<std::shared_ptr<MpscPollableQueue<Eve
   sched_id_ = id;
   sched_n_ = static_cast<int32>(outbound_queues_.size());
   service_actor_.set_queue(inbound_queue_);
-  register_actor("ServiceActor", &service_actor_).release();
+  register_actor(PSLICE() << "ServiceActor" << id, &service_actor_).release();
 }
 
 void Scheduler::clear() {
