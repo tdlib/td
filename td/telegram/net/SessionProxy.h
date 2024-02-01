@@ -62,7 +62,7 @@ class SessionProxy final : public Actor {
 
   void on_failed();
   void on_closed();
-  void close_session();
+  void close_session(const char *source);
   void open_session(bool force = false);
 
   void update_auth_key_state();

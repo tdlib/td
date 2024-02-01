@@ -168,7 +168,7 @@ void SessionProxy::update_main_flag(bool is_main) {
   }
   LOG(INFO) << "Update is_main to " << is_main;
   is_main_ = is_main;
-  close_session();
+  close_session("update_main_flag");
   open_session();
 }
 
@@ -176,19 +176,20 @@ void SessionProxy::on_failed() {
   if (session_generation_ != get_link_token()) {
     return;
   }
-  close_session();
+  close_session("on_failed");
   open_session();
 }
 
 void SessionProxy::update_mtproto_header() {
-  close_session();
+  close_session("update_mtproto_header");
   open_session();
 }
 
 void SessionProxy::on_closed() {
 }
 
-void SessionProxy::close_session() {
+void SessionProxy::close_session(const char *source) {
+  LOG(INFO) << "Close session from " << source;
   send_closure(std::move(session_), &Session::close);
   session_generation_++;
 }
@@ -244,7 +245,7 @@ void SessionProxy::update_auth_key_state() {
   auto old_auth_key_state = auth_key_state_;
   auth_key_state_ = get_auth_key_state(auth_data_->get_auth_key());
   if (auth_key_state_ != old_auth_key_state && old_auth_key_state == AuthKeyState::OK) {
-    close_session();
+    close_session("update_auth_key_state");
   }
   open_session();
   if (session_.empty() || auth_key_state_ != AuthKeyState::OK) {
