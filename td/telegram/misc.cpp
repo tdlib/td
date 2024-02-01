@@ -169,6 +169,7 @@ string strip_empty_characters(string str, size_t max_length, bool strip_rtlo) {
       CHECK(std::strlen(space_ch) == 3);
       can_be_first[static_cast<unsigned char>(space_ch[0])] = true;
     }
+    can_be_first[0xF3] = true;
     return true;
   }();
   CHECK(can_be_first_inited);
@@ -181,20 +182,29 @@ string strip_empty_characters(string str, size_t max_length, bool strip_rtlo) {
   size_t new_len = i;
   while (i < str.size()) {
     if (can_be_first[static_cast<unsigned char>(str[i])] && i + 3 <= str.size()) {
-      bool found = false;
-      for (auto space_ch : space_characters) {
-        if (space_ch[0] == str[i] && space_ch[1] == str[i + 1] && space_ch[2] == str[i + 2]) {
-          if (static_cast<unsigned char>(str[i + 2]) != 0xAE || static_cast<unsigned char>(str[i + 1]) != 0x80 ||
-              static_cast<unsigned char>(str[i]) != 0xE2 || strip_rtlo) {
-            found = true;
-          }
-          break;
+      if (static_cast<unsigned char>(str[i]) == 0xF3) {
+        if (static_cast<unsigned char>(str[i + 1]) == 0xA0 && (static_cast<unsigned char>(str[i + 2]) & 0xFE) == 0x80 &&
+            i + 4 <= str.size()) {
+          str[new_len++] = ' ';
+          i += 4;
+          continue;
         }
-      }
-      if (found) {
-        str[new_len++] = ' ';
-        i += 3;
-        continue;
+      } else {
+        bool found = false;
+        for (auto space_ch : space_characters) {
+          if (space_ch[0] == str[i] && space_ch[1] == str[i + 1] && space_ch[2] == str[i + 2]) {
+            if (static_cast<unsigned char>(str[i + 2]) != 0xAE || static_cast<unsigned char>(str[i + 1]) != 0x80 ||
+                static_cast<unsigned char>(str[i]) != 0xE2 || strip_rtlo) {
+              found = true;
+            }
+            break;
+          }
+        }
+        if (found) {
+          str[new_len++] = ' ';
+          i += 3;
+          continue;
+        }
       }
     }
     str[new_len++] = str[i++];
