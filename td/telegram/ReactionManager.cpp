@@ -15,11 +15,14 @@
 #include "td/telegram/misc.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/ReactionManager.hpp"
+#include "td/telegram/ReactionType.hpp"
 #include "td/telegram/StickerFormat.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
+
+#include "td/db/SqliteKeyValueAsync.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
@@ -254,6 +257,41 @@ td_api::object_ptr<td_api::savedMessagesTag> ReactionManager::SavedReactionTag::
   return td_api::make_object<td_api::savedMessagesTag>(reaction_type_.get_reaction_type_object(), title_, count_);
 }
 
+template <class StorerT>
+void ReactionManager::SavedReactionTag::store(StorerT &storer) const {
+  bool has_title = !title_.empty();
+  bool has_count = count_ != 0;
+  BEGIN_STORE_FLAGS();
+  STORE_FLAG(has_title);
+  STORE_FLAG(has_count);
+  END_STORE_FLAGS();
+  td::store(reaction_type_, storer);
+  if (has_title) {
+    td::store(title_, storer);
+  }
+  if (has_count) {
+    td::store(count_, storer);
+  }
+}
+
+template <class ParserT>
+void ReactionManager::SavedReactionTag::parse(ParserT &parser) {
+  bool has_title;
+  bool has_count;
+  BEGIN_PARSE_FLAGS();
+  PARSE_FLAG(has_title);
+  PARSE_FLAG(has_count);
+  END_PARSE_FLAGS();
+  td::parse(reaction_type_, parser);
+  hash_ = reaction_type_.get_hash();
+  if (has_title) {
+    td::parse(title_, parser);
+  }
+  if (has_count) {
+    td::parse(count_, parser);
+  }
+}
+
 bool operator==(const ReactionManager::SavedReactionTag &lhs, const ReactionManager::SavedReactionTag &rhs) {
   return lhs.reaction_type_ == rhs.reaction_type_ && lhs.title_ == rhs.title_ && lhs.count_ == rhs.count_;
 }
@@ -360,6 +398,23 @@ int64 ReactionManager::SavedReactionTags::calc_hash() const {
     numbers.push_back(tag.count_);
   }
   return get_vector_hash(numbers);
+}
+
+template <class StorerT>
+void ReactionManager::SavedReactionTags::store(StorerT &storer) const {
+  CHECK(is_inited_);
+  BEGIN_STORE_FLAGS();
+  END_STORE_FLAGS();
+  td::store(tags_, storer);
+}
+
+template <class ParserT>
+void ReactionManager::SavedReactionTags::parse(ParserT &parser) {
+  BEGIN_PARSE_FLAGS();
+  END_PARSE_FLAGS();
+  td::parse(tags_, parser);
+  hash_ = calc_hash();
+  is_inited_ = true;
 }
 
 ReactionManager::ReactionManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
@@ -1002,6 +1057,10 @@ void ReactionManager::on_get_saved_messages_tags(
   }
 }
 
+string ReactionManager::get_saved_messages_tags_database_key(SavedMessagesTopicId saved_messages_topic_id) {
+  return PSTRING() << "saved_messages_tags" << saved_messages_topic_id.get_unique_id();
+}
+
 td_api::object_ptr<td_api::updateSavedMessagesTags> ReactionManager::get_update_saved_messages_tags_object(
     SavedMessagesTopicId saved_messages_topic_id, const SavedReactionTags *tags) const {
   CHECK(tags != nullptr);
@@ -1010,8 +1069,12 @@ td_api::object_ptr<td_api::updateSavedMessagesTags> ReactionManager::get_update_
 }
 
 void ReactionManager::send_update_saved_messages_tags(SavedMessagesTopicId saved_messages_topic_id,
-                                                      const SavedReactionTags *tags) {
+                                                      const SavedReactionTags *tags, bool from_database) {
   send_closure(G()->td(), &Td::send_update, get_update_saved_messages_tags_object(saved_messages_topic_id, tags));
+  if (!from_database && G()->use_message_database()) {
+    G()->td_db()->get_sqlite_pmc()->set(get_saved_messages_tags_database_key(saved_messages_topic_id),
+                                        log_event_store(*tags).as_slice().str(), Promise<Unit>());
+  }
 }
 
 void ReactionManager::on_update_saved_reaction_tags(Promise<Unit> &&promise) {

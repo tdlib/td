@@ -152,6 +152,12 @@ class ReactionManager final : public Actor {
     }
 
     td_api::object_ptr<td_api::savedMessagesTag> get_saved_messages_tag_object() const;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
   };
 
   friend bool operator==(const SavedReactionTag &lhs, const SavedReactionTag &rhs);
@@ -174,6 +180,12 @@ class ReactionManager final : public Actor {
     bool set_tag_title(const ReactionType &reaction_type, const string &title);
 
     int64 calc_hash() const;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
   };
 
   td_api::object_ptr<td_api::emojiReaction> get_emoji_reaction_object(const string &emoji) const;
@@ -210,10 +222,13 @@ class ReactionManager final : public Actor {
   void on_get_saved_messages_tags(SavedMessagesTopicId saved_messages_topic_id,
                                   Result<telegram_api::object_ptr<telegram_api::messages_SavedReactionTags>> &&r_tags);
 
+  string get_saved_messages_tags_database_key(SavedMessagesTopicId saved_messages_topic_id);
+
   td_api::object_ptr<td_api::updateSavedMessagesTags> get_update_saved_messages_tags_object(
       SavedMessagesTopicId saved_messages_topic_id, const SavedReactionTags *tags) const;
 
-  void send_update_saved_messages_tags(SavedMessagesTopicId saved_messages_topic_id, const SavedReactionTags *tags);
+  void send_update_saved_messages_tags(SavedMessagesTopicId saved_messages_topic_id, const SavedReactionTags *tags,
+                                       bool from_database = false);
 
   Td *td_;
   ActorShared<> parent_;
