@@ -1247,7 +1247,7 @@ messageReplyInfo reply_count:int32 recent_replier_ids:vector<MessageSender> last
 //@recent_sender_ids Identifiers of at most 3 recent message senders, added the reaction; available in private, basic group and supergroup chats
 messageReaction type:ReactionType total_count:int32 is_chosen:Bool used_sender_id:MessageSender recent_sender_ids:vector<MessageSender> = MessageReaction;
 
-//@description Contains a list of reactions added to a message @reactions List of added reactions @are_tags True, if the reactions are tags and Telegram Premium users can filter messages by them; currently, always false
+//@description Contains a list of reactions added to a message @reactions List of added reactions @are_tags True, if the reactions are tags and Telegram Premium users can filter messages by them
 messageReactions reactions:vector<messageReaction> are_tags:Bool = MessageReactions;
 
 
@@ -4047,7 +4047,7 @@ availableReaction type:ReactionType needs_premium:Bool = AvailableReaction;
 //@recent_reactions List of recently used reactions
 //@popular_reactions List of popular reactions
 //@allow_custom_emoji True, if any custom emoji reaction can be added by Telegram Premium subscribers
-//@are_tags True, if the reactions will be tags and the message can be found by them; currently, always false
+//@are_tags True, if the reactions will be tags and the message can be found by them
 //@unavailability_reason The reason why the current user can't add reactions to the message, despite some other users can; may be null if none
 availableReactions top_reactions:vector<availableReaction> recent_reactions:vector<availableReaction> popular_reactions:vector<availableReaction> allow_custom_emoji:Bool are_tags:Bool unavailability_reason:ReactionUnavailabilityReason = AvailableReactions;
 

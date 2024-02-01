@@ -435,13 +435,17 @@ td_api::object_ptr<td_api::availableReactions> ReactionManager::get_sorted_avail
   }
 
   bool is_premium = td_->option_manager_->get_option_boolean("is_premium");
-  bool show_premium = is_premium;
+  bool show_premium = is_premium || is_tag;
   vector<ReactionType> recent_reactions;
   vector<ReactionType> top_reactions;
   if (is_tag) {
     top_reactions = get_reaction_list(ReactionListType::DefaultTag).reaction_types_;
     if (is_premium) {
-      append(top_reactions, get_reaction_list(ReactionListType::Top).reaction_types_);
+      for (auto &reaction_type : get_reaction_list(ReactionListType::Top).reaction_types_) {
+        if (!td::contains(top_reactions, reaction_type)) {
+          top_reactions.push_back(reaction_type);
+        }
+      }
     }
   } else {
     recent_reactions = get_reaction_list(ReactionListType::Recent).reaction_types_;
@@ -482,8 +486,8 @@ td_api::object_ptr<td_api::availableReactions> ReactionManager::get_sorted_avail
         if (reaction_type.is_custom_reaction()) {
           added_custom_reaction_types.insert(reaction_type);
         }
-        reaction_objects.push_back(
-            td_api::make_object<td_api::availableReaction>(reaction_type.get_reaction_type_object(), false));
+        reaction_objects.push_back(td_api::make_object<td_api::availableReaction>(
+            reaction_type.get_reaction_type_object(), is_tag && !is_premium));
       } else if (reaction_type.is_custom_reaction() && available_reactions.allow_all_custom_ &&
                  added_custom_reaction_types.insert(reaction_type).second) {
         // add implicitly available custom reaction
@@ -495,14 +499,11 @@ td_api::object_ptr<td_api::availableReactions> ReactionManager::get_sorted_avail
     }
   };
   if (show_premium) {
-    if (top_reactions.size() > 2 * static_cast<size_t>(row_size)) {
+    if (!is_tag && top_reactions.size() > 2 * static_cast<size_t>(row_size)) {
       top_reactions.resize(2 * static_cast<size_t>(row_size));
     }
     add_reactions(top_reaction_objects, top_reactions);
-
-    if (!recent_reactions.empty()) {
-      add_reactions(recent_reaction_objects, recent_reactions);
-    }
+    add_reactions(recent_reaction_objects, recent_reactions);
   } else {
     add_reactions(top_reaction_objects, top_reactions);
   }

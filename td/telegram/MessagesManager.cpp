@@ -22756,9 +22756,8 @@ void MessagesManager::on_get_scheduled_messages_from_database(DialogId dialog_id
 }
 
 bool MessagesManager::can_add_message_tag(DialogId dialog_id, const MessageReactions *reactions) const {
-  return false;
-  // return dialog_id == td_->dialog_manager_->get_my_dialog_id() &&
-  //        (reactions == nullptr || reactions->reactions_.empty() || reactions->are_tags_);
+  return dialog_id == td_->dialog_manager_->get_my_dialog_id() &&
+         (reactions == nullptr || reactions->reactions_.empty() || reactions->are_tags_);
 }
 
 Result<td_api::object_ptr<td_api::availableReactions>> MessagesManager::get_message_available_reactions(
@@ -22823,8 +22822,17 @@ ChatReactions MessagesManager::get_message_available_reactions(const Dialog *d, 
 
   if (active_reactions.allow_all_regular_) {
     if (can_add_message_tag(d->dialog_id, m->reactions.get())) {
-      active_reactions.reaction_types_ = td_->reaction_manager_->get_default_tag_reactions();
-      disallow_custom_for_non_premium = true;
+      auto default_tag_reactions = td_->reaction_manager_->get_default_tag_reactions();
+      active_reactions.reaction_types_ = default_tag_reactions;
+      if (td_->option_manager_->get_option_boolean("is_premium")) {
+        for (auto &reaction_type : active_reaction_types_) {
+          if (!td::contains(default_tag_reactions, reaction_type)) {
+            active_reactions.reaction_types_.push_back(reaction_type);
+          }
+        }
+      } else {
+        disallow_custom_for_non_premium = true;
+      }
     } else {
       active_reactions.reaction_types_ = active_reaction_types_;
     }
