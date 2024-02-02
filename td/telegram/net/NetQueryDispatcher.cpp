@@ -174,10 +174,9 @@ Status NetQueryDispatcher::wait_dc_init(DcId dc_id, bool force) {
     int32 upload_session_count = (raw_dc_id != 2 && raw_dc_id != 4) || is_premium ? 8 : 4;
     int32 download_session_count = is_premium ? 8 : 2;
     int32 download_small_session_count = is_premium ? 8 : 2;
-    int32 main_session_scheduler_id = G()->use_sqlite_pmc() ? -1 : G()->get_database_scheduler_id();
     dc.main_session_ = create_actor_on_scheduler<SessionMultiProxy>(
-        PSLICE() << "SessionMultiProxy:" << raw_dc_id << ":main", main_session_scheduler_id, session_count, auth_data,
-        true, raw_dc_id == main_dc_id_, use_pfs, false, false, is_cdn);
+        PSLICE() << "SessionMultiProxy:" << raw_dc_id << ":main", get_main_session_scheduler_id(), session_count,
+        auth_data, true, raw_dc_id == main_dc_id_, use_pfs, false, false, is_cdn);
     dc.upload_session_ = create_actor_on_scheduler<SessionMultiProxy>(
         PSLICE() << "SessionMultiProxy:" << raw_dc_id << ":upload", slow_net_scheduler_id, upload_session_count,
         auth_data, false, false, use_pfs, false, true, is_cdn);
@@ -295,14 +294,18 @@ bool NetQueryDispatcher::get_use_pfs() {
   return G()->get_option_boolean("use_pfs") || get_session_count() > 1;
 }
 
+int32 NetQueryDispatcher::get_main_session_scheduler_id() {
+  return G()->use_sqlite_pmc() ? -1 : G()->get_database_scheduler_id();
+}
+
 NetQueryDispatcher::NetQueryDispatcher(const std::function<ActorShared<>()> &create_reference) {
   auto s_main_dc_id = G()->td_db()->get_binlog_pmc()->get("main_dc_id");
   if (!s_main_dc_id.empty()) {
     main_dc_id_ = to_integer<int32>(s_main_dc_id);
   }
-  LOG(INFO) << tag("main_dc_id", main_dc_id_.load(std::memory_order_relaxed));
   delayer_ = create_actor<NetQueryDelayer>("NetQueryDelayer", create_reference());
-  dc_auth_manager_ = create_actor<DcAuthManager>("DcAuthManager", create_reference());
+  dc_auth_manager_ =
+      create_actor_on_scheduler<DcAuthManager>("DcAuthManager", get_main_session_scheduler_id(), create_reference());
   public_rsa_key_watchdog_ = create_actor<PublicRsaKeyWatchdog>("PublicRsaKeyWatchdog", create_reference());
   sequence_dispatcher_ = MultiSequenceDispatcher::create("MultiSequenceDispatcher");
 
