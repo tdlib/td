@@ -224,6 +224,8 @@ class ReactionManager final : public Actor {
 
   string get_saved_messages_tags_database_key(SavedMessagesTopicId saved_messages_topic_id);
 
+  void load_all_saved_reaction_tags_from_database();
+
   td_api::object_ptr<td_api::updateSavedMessagesTags> get_update_saved_messages_tags_object(
       SavedMessagesTopicId saved_messages_topic_id, const SavedReactionTags *tags) const;
 
@@ -235,6 +237,7 @@ class ReactionManager final : public Actor {
 
   bool is_inited_ = false;
   bool are_reactions_loaded_from_database_ = false;
+  bool are_all_tags_loaded_from_database_ = false;
 
   vector<std::pair<string, Promise<td_api::object_ptr<td_api::emojiReaction>>>> pending_get_emoji_reaction_queries_;
 

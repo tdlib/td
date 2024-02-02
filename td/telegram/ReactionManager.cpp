@@ -936,9 +936,28 @@ void ReactionManager::send_set_default_reaction_query() {
       ReactionType(td_->option_manager_->get_option_string("default_reaction")));
 }
 
+void ReactionManager::load_all_saved_reaction_tags_from_database() {
+  if (are_all_tags_loaded_from_database_ || all_tags_.is_inited_ || !G()->use_message_database()) {
+    return;
+  }
+  are_all_tags_loaded_from_database_ = true;
+
+  auto value = G()->td_db()->get_sqlite_sync_pmc()->get(get_saved_messages_tags_database_key(SavedMessagesTopicId()));
+  if (!value.empty()) {
+    if (log_event_parse(all_tags_, value).is_ok()) {
+      send_update_saved_messages_tags(SavedMessagesTopicId(), &all_tags_, true);
+    } else {
+      LOG(ERROR) << "Failed to load all tags from database";
+      all_tags_ = {};
+    }
+  }
+  reget_saved_messages_tags(SavedMessagesTopicId(), Auto());
+}
+
 ReactionManager::SavedReactionTags *ReactionManager::get_saved_reaction_tags(
     SavedMessagesTopicId saved_messages_topic_id) {
   if (saved_messages_topic_id == SavedMessagesTopicId()) {
+    load_all_saved_reaction_tags_from_database();
     return &all_tags_;
   }
   auto it = topic_tags_.find(saved_messages_topic_id);
@@ -951,6 +970,7 @@ ReactionManager::SavedReactionTags *ReactionManager::get_saved_reaction_tags(
 ReactionManager::SavedReactionTags *ReactionManager::add_saved_reaction_tags(
     SavedMessagesTopicId saved_messages_topic_id) {
   if (saved_messages_topic_id == SavedMessagesTopicId()) {
+    load_all_saved_reaction_tags_from_database();
     return &all_tags_;
   }
   auto &tags = topic_tags_[saved_messages_topic_id];
@@ -1092,8 +1112,9 @@ void ReactionManager::update_saved_messages_tags(SavedMessagesTopicId saved_mess
   if (old_tags == new_tags) {
     return;
   }
-  if (all_tags_.update_saved_messages_tags(old_tags, new_tags)) {
-    send_update_saved_messages_tags(SavedMessagesTopicId(), &all_tags_);
+  auto *all_tags = get_saved_reaction_tags(SavedMessagesTopicId());
+  if (all_tags->update_saved_messages_tags(old_tags, new_tags)) {
+    send_update_saved_messages_tags(SavedMessagesTopicId(), all_tags);
   }
   if (saved_messages_topic_id != SavedMessagesTopicId()) {
     auto tags = get_saved_reaction_tags(saved_messages_topic_id);
@@ -1109,8 +1130,9 @@ void ReactionManager::set_saved_messages_tag_title(ReactionType reaction_type, s
   }
   title = clean_name(title, MAX_TAG_TITLE_LENGTH);
 
-  if (all_tags_.set_tag_title(reaction_type, title)) {
-    send_update_saved_messages_tags(SavedMessagesTopicId(), &all_tags_);
+  auto *all_tags = get_saved_reaction_tags(SavedMessagesTopicId());
+  if (all_tags->set_tag_title(reaction_type, title)) {
+    send_update_saved_messages_tags(SavedMessagesTopicId(), all_tags);
   }
 
   auto query_promise =

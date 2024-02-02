@@ -441,6 +441,7 @@ Status TdDb::init_sqlite(const Parameters &parameters, const DbKey &key, const D
     binlog_pmc.erase("fetched_marks_as_unread");
     binlog_pmc.erase_by_prefix("public_channels");
     binlog_pmc.erase("channels_to_send_stories");
+    binlog_pmc.erase_by_prefix("saved_messages_tags");
   }
   if (user_version == 0) {
     binlog_pmc.erase("next_contacts_sync_date");
