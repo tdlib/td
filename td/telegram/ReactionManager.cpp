@@ -494,13 +494,24 @@ td_api::object_ptr<td_api::availableReactions> ReactionManager::get_sorted_avail
   vector<ReactionType> recent_reactions;
   vector<ReactionType> top_reactions;
   if (is_tag) {
-    top_reactions = get_reaction_list(ReactionListType::DefaultTag).reaction_types_;
     if (is_premium) {
+      auto all_tags = get_saved_reaction_tags(SavedMessagesTopicId());
+      CHECK(all_tags != nullptr);
+      for (auto &tag : all_tags->tags_) {
+        top_reactions.push_back(tag.reaction_type_);
+      }
+      for (auto &reaction_type : get_reaction_list(ReactionListType::DefaultTag).reaction_types_) {
+        if (!td::contains(top_reactions, reaction_type)) {
+          top_reactions.push_back(reaction_type);
+        }
+      }
       for (auto &reaction_type : get_reaction_list(ReactionListType::Top).reaction_types_) {
         if (!td::contains(top_reactions, reaction_type)) {
           top_reactions.push_back(reaction_type);
         }
       }
+    } else {
+      top_reactions = get_reaction_list(ReactionListType::DefaultTag).reaction_types_;
     }
   } else {
     recent_reactions = get_reaction_list(ReactionListType::Recent).reaction_types_;
