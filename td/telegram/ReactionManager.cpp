@@ -385,7 +385,7 @@ bool ReactionManager::SavedReactionTags::set_tag_title(const ReactionType &react
   tags_.emplace_back(reaction_type, title, 0);
   std::sort(tags_.begin(), tags_.end());
   hash_ = calc_hash();
-  return false;
+  return true;
 }
 
 int64 ReactionManager::SavedReactionTags::calc_hash() const {
