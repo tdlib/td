@@ -677,7 +677,7 @@ void SecretChatActor::cancel_chat(bool delete_history, bool is_already_discarded
     }
   });
 
-  context_->binlog()->force_sync(std::move(on_sync));
+  context_->binlog()->force_sync(std::move(on_sync), "cancel_chat");
   yield();
 }
 
@@ -1072,7 +1072,7 @@ void SecretChatActor::do_outbound_message_impl(unique_ptr<log_event::OutboundSec
   if (log_event_id == 0) {
     log_event_id = binlog_add(context_->binlog(), LogEvent::HandlerType::SecretChats, create_storer(*state->message));
     LOG(INFO) << "Outbound secret message [save_log_event] start " << tag("log_event_id", log_event_id);
-    context_->binlog()->force_sync(std::move(save_log_event_finish));
+    context_->binlog()->force_sync(std::move(save_log_event_finish), "do_outbound_message_impl");
     state->message->set_log_event_id(log_event_id);
   } else {
     LOG(INFO) << "Outbound secret message [save_log_event] skip " << tag("log_event_id", log_event_id);
@@ -1329,7 +1329,7 @@ Status SecretChatActor::do_inbound_message_decrypted(unique_ptr<log_event::Inbou
   auto save_log_event_finish = PromiseCreator::join(std::move(save_changes_start), std::move(qts_promise));
   if (need_sync) {
     // TODO: lazy sync is enough
-    context_->binlog()->force_sync(std::move(save_log_event_finish));
+    context_->binlog()->force_sync(std::move(save_log_event_finish), "do_inbound_message_decrypted");
   } else {
     save_log_event_finish.set_value(Unit());
   }
@@ -1487,7 +1487,7 @@ void SecretChatActor::outbound_resend(uint64 state_id) {
                    "on_outbound_send_message_start");
     }
   });
-  context_->binlog()->force_sync(std::move(send_message_start));
+  context_->binlog()->force_sync(std::move(send_message_start), "outbound_resend");
 }
 
 Status SecretChatActor::outbound_rewrite_with_empty(uint64 state_id) {
@@ -1668,7 +1668,7 @@ void SecretChatActor::on_outbound_send_message_error(uint64 state_id, Status err
         }
       });
   if (need_sync) {
-    context_->binlog()->force_sync(std::move(send_message_start));
+    context_->binlog()->force_sync(std::move(send_message_start), "on_outbound_send_message_error");
   } else {
     send_message_start.set_value(Unit());
   }
@@ -1833,7 +1833,7 @@ Status SecretChatActor::on_update_chat(NetQueryPtr query) {
   TRY_STATUS(on_update_chat(std::move(config)));
   if (auth_state_.state == State::WaitRequestResponse) {
     context_->secret_chat_db()->set_value(auth_state_);
-    context_->binlog()->force_sync(Promise<>());
+    context_->binlog()->force_sync(Promise<>(), "on_update_chat");
   }
   return Status::OK();
 }

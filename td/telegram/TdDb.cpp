@@ -449,7 +449,7 @@ Status TdDb::init_sqlite(const Parameters &parameters, const DbKey &key, const D
     binlog_pmc.erase("invalidate_old_featured_sticker_sets");
     binlog_pmc.erase(AttachMenuManager::get_attach_menu_bots_database_key());
   }
-  binlog_pmc.force_sync({});
+  binlog_pmc.force_sync(Auto(), "init_sqlite");
 
   TRY_STATUS(db.exec("COMMIT TRANSACTION"));
 
@@ -535,7 +535,7 @@ void TdDb::open_impl(Parameters parameters, Promise<OpenedDatabase> &&promise) {
       sqlite_key = string(32, ' ');
       Random::secure_bytes(sqlite_key);
       binlog_pmc->set("sqlite_key", sqlite_key);
-      binlog_pmc->force_sync(Auto());
+      binlog_pmc->force_sync(Auto(), "TdDb::open_impl 1");
     }
     new_sqlite_key = DbKey::raw_key(std::move(sqlite_key));
   } else {
@@ -561,7 +561,7 @@ void TdDb::open_impl(Parameters parameters, Promise<OpenedDatabase> &&promise) {
   }
   if (drop_sqlite_key) {
     binlog_pmc->erase("sqlite_key");
-    binlog_pmc->force_sync(Auto());
+    binlog_pmc->force_sync(Auto(), "TdDb::open_impl 2");
   }
 
   VLOG(td_init) << "Create concurrent_binlog_pmc";

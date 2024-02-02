@@ -213,8 +213,8 @@ class BinlogKeyValue final : public KeyValueSyncInterface {
     return it->second.first;
   }
 
-  void force_sync(Promise<> &&promise) final {
-    binlog_->force_sync(std::move(promise));
+  void force_sync(Promise<> &&promise, const char *source) final {
+    binlog_->force_sync(std::move(promise), source);
   }
 
   void lazy_sync(Promise<> &&promise) {
@@ -288,14 +288,14 @@ inline void BinlogKeyValue<Binlog>::add_event(uint64 seq_no, BufferSlice &&event
 }
 
 template <>
-inline void BinlogKeyValue<Binlog>::force_sync(Promise<> &&promise) {
-  binlog_->sync();
+inline void BinlogKeyValue<Binlog>::force_sync(Promise<> &&promise, const char *source) {
+  binlog_->sync(source);
   promise.set_value(Unit());
 }
 
 template <>
 inline void BinlogKeyValue<Binlog>::lazy_sync(Promise<> &&promise) {
-  force_sync(std::move(promise));
+  force_sync(std::move(promise), "lazy_sync");
 }
 
 }  // namespace td

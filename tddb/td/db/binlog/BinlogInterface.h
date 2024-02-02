@@ -74,7 +74,7 @@ class BinlogInterface {
     return seq_no;
   }
 
-  virtual void force_sync(Promise<> promise) = 0;
+  virtual void force_sync(Promise<> promise, const char *source) = 0;
   virtual void force_flush() = 0;
   virtual void change_key(DbKey db_key, Promise<> promise) = 0;
 

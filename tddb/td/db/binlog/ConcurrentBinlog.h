@@ -41,7 +41,7 @@ class ConcurrentBinlog final : public BinlogInterface {
   ConcurrentBinlog &operator=(ConcurrentBinlog &&) = delete;
   ~ConcurrentBinlog() final;
 
-  void force_sync(Promise<> promise) final;
+  void force_sync(Promise<> promise, const char *source) final;
   void force_flush() final;
   void change_key(DbKey db_key, Promise<> promise) final;
 

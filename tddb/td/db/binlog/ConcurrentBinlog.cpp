@@ -61,7 +61,8 @@ class BinlogActor final : public Actor {
     try_flush();
   }
 
-  void force_sync(Promise<> &&promise) {
+  void force_sync(Promise<> &&promise, const char *source) {
+    LOG(INFO) << "Force binlog sync from " << source;
     auto seq_no = processor_.max_unfinished_seq_no();
     if (processor_.max_finished_seq_no() == seq_no) {
       do_immediate_sync(std::move(promise));
@@ -72,7 +73,7 @@ class BinlogActor final : public Actor {
 
   void force_flush() {
     // TODO: use same logic as in force_sync
-    binlog_->flush();
+    binlog_->flush("force_flush");
     flush_flag_ = false;
   }
 
@@ -115,7 +116,7 @@ class BinlogActor final : public Actor {
     auto need_flush_since = binlog_->need_flush_since();
     auto now = Time::now_cached();
     if (now > need_flush_since + FLUSH_TIMEOUT - 1e-9) {
-      binlog_->flush();
+      binlog_->flush("try_flush");
     } else {
       if (!force_sync_flag_) {
         flush_flag_ = true;
@@ -161,7 +162,7 @@ class BinlogActor final : public Actor {
     flush_flag_ = false;
     wakeup_at_ = 0;
     if (need_sync) {
-      binlog_->sync();
+      binlog_->sync("timeout_expired");
       // LOG(ERROR) << "BINLOG SYNC";
       set_promises(sync_promises_);
     } else if (need_flush) {
@@ -205,12 +206,14 @@ void ConcurrentBinlog::add_raw_event_impl(uint64 event_id, BufferSlice &&raw_eve
   send_closure(binlog_actor_, &detail::BinlogActor::add_raw_event, event_id, std::move(raw_event), std::move(promise),
                info);
 }
-void ConcurrentBinlog::force_sync(Promise<> promise) {
-  send_closure(binlog_actor_, &detail::BinlogActor::force_sync, std::move(promise));
+void ConcurrentBinlog::force_sync(Promise<> promise, const char *source) {
+  send_closure(binlog_actor_, &detail::BinlogActor::force_sync, std::move(promise), source);
 }
+
 void ConcurrentBinlog::force_flush() {
   send_closure(binlog_actor_, &detail::BinlogActor::force_flush);
 }
+
 void ConcurrentBinlog::change_key(DbKey db_key, Promise<> promise) {
   send_closure(binlog_actor_, &detail::BinlogActor::change_key, std::move(db_key), std::move(promise));
 }

@@ -109,8 +109,8 @@ class Binlog {
   }
 
   void add_event(BinlogEvent &&event);
-  void sync();
-  void flush();
+  void sync(const char *source);
+  void flush(const char *source);
   void lazy_flush();
   double need_flush_since() const {
     return need_flush_since_;

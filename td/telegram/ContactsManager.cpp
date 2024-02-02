@@ -5398,7 +5398,7 @@ void ContactsManager::set_my_id(UserId my_id) {
     my_id_ = my_id;
     G()->td_db()->get_binlog_pmc()->set("my_id", to_string(my_id.get()));
     td_->option_manager_->set_option_integer("my_id", my_id_.get());
-    G()->td_db()->get_binlog_pmc()->force_sync(Promise<Unit>());
+    G()->td_db()->get_binlog_pmc()->force_sync(Promise<Unit>(), "set_my_id");
   }
 }
 
@@ -8835,13 +8835,15 @@ void ContactsManager::on_import_contacts_finished(int64 random_id, vector<UserId
     }
 
     if (G()->use_chat_info_database()) {
-      G()->td_db()->get_binlog()->force_sync(PromiseCreator::lambda(
-          [log_event = log_event_store(all_imported_contacts_).as_slice().str()](Result<> result) mutable {
-            if (result.is_ok()) {
-              LOG(INFO) << "Save imported contacts to database";
-              G()->td_db()->get_sqlite_pmc()->set("user_imported_contacts", std::move(log_event), Auto());
-            }
-          }));
+      G()->td_db()->get_binlog()->force_sync(
+          PromiseCreator::lambda(
+              [log_event = log_event_store(all_imported_contacts_).as_slice().str()](Result<> result) mutable {
+                if (result.is_ok()) {
+                  LOG(INFO) << "Save imported contacts to database";
+                  G()->td_db()->get_sqlite_pmc()->set("user_imported_contacts", std::move(log_event), Auto());
+                }
+              }),
+          "on_import_contacts_finished");
     }
 
     for (size_t i = 0; i < result_size; i++) {
@@ -8961,17 +8963,19 @@ void ContactsManager::save_contacts_to_database() {
       transform(contacts_hints_.search_empty(100000).second, [](int64 key) { return UserId(key); });
 
   G()->td_db()->get_binlog_pmc()->set("saved_contact_count", to_string(saved_contact_count_));
-  G()->td_db()->get_binlog()->force_sync(PromiseCreator::lambda([user_ids = std::move(user_ids)](Result<> result) {
-    if (result.is_ok()) {
-      LOG(INFO) << "Saved contacts to database";
-      G()->td_db()->get_sqlite_pmc()->set(
-          "user_contacts", log_event_store(user_ids).as_slice().str(), PromiseCreator::lambda([](Result<> result) {
-            if (result.is_ok()) {
-              send_closure(G()->contacts_manager(), &ContactsManager::save_next_contacts_sync_date);
-            }
-          }));
-    }
-  }));
+  G()->td_db()->get_binlog()->force_sync(
+      PromiseCreator::lambda([user_ids = std::move(user_ids)](Result<> result) {
+        if (result.is_ok()) {
+          LOG(INFO) << "Saved contacts to database";
+          G()->td_db()->get_sqlite_pmc()->set(
+              "user_contacts", log_event_store(user_ids).as_slice().str(), PromiseCreator::lambda([](Result<> result) {
+                if (result.is_ok()) {
+                  send_closure(G()->contacts_manager(), &ContactsManager::save_next_contacts_sync_date);
+                }
+              }));
+        }
+      }),
+      "save_contacts_to_database");
 }
 
 void ContactsManager::on_get_contacts_failed(Status error) {

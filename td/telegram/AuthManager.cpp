@@ -1172,7 +1172,7 @@ void AuthManager::destroy_auth_keys() {
     }
   });
   G()->td_db()->get_binlog_pmc()->set("auth", "destroy");
-  G()->td_db()->get_binlog_pmc()->force_sync(std::move(promise));
+  G()->td_db()->get_binlog_pmc()->force_sync(std::move(promise), "destroy_auth_keys");
 }
 
 void AuthManager::on_delete_account_result(NetQueryPtr &&net_query) {

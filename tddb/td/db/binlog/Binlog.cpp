@@ -286,9 +286,9 @@ Status Binlog::close(bool need_sync) {
     return Status::OK();
   }
   if (need_sync) {
-    sync();
+    sync("close");
   } else {
-    flush();
+    flush("close");
   }
 
   fd_.lock(FileFd::LockFlags::Unlock, path_, 1).ensure();
@@ -373,7 +373,7 @@ void Binlog::do_event(BinlogEvent &&event) {
         LOG(INFO) << "Load: init encryption";
       } else {
         CHECK(state_ == State::Reindex);
-        flush();
+        flush("do_event");
         update_write_encryption();
         //LOG(INFO) << format::cond(state_ == State::Run, "Run", "Reindex") << ": init encryption";
       }
@@ -404,19 +404,21 @@ void Binlog::do_event(BinlogEvent &&event) {
   fd_size_ += event_size;
 }
 
-void Binlog::sync() {
-  flush();
+void Binlog::sync(const char *source) {
+  flush(source);
   if (need_sync_) {
+    LOG(INFO) << "Sync binlog from " << source;
     auto status = fd_.sync();
     LOG_IF(FATAL, status.is_error()) << "Failed to sync binlog: " << status;
     need_sync_ = false;
   }
 }
 
-void Binlog::flush() {
+void Binlog::flush(const char *source) {
   if (state_ == State::Load) {
     return;
   }
+  LOG(DEBUG) << "Flush binlog from " << source;
   flush_events_buffer(true);
   // NB: encryption happens during flush
   if (byte_flow_flag_) {
@@ -448,7 +450,7 @@ void Binlog::lazy_flush() {
   buffer_reader_.sync_with_writer();
   auto size = buffer_reader_.size() + events_buffer_size;
   if (size > (1 << 14)) {
-    flush();
+    flush("lazy_flush");
   } else if (size > 0 && need_flush_since_ == 0) {
     need_flush_since_ = Time::now_cached();
   }
@@ -660,7 +662,7 @@ void Binlog::do_reindex() {
     do_event(std::move(event));  // NB: no move is actually happens
   });
   {
-    flush();
+    flush("do_reindex");
     if (start_size != 0) {  // must sync creation of the file if it is non-empty
       auto status = fd_.sync_barrier();
       LOG_IF(FATAL, status.is_error()) << "Failed to sync binlog: " << status;
