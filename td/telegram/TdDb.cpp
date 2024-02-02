@@ -535,7 +535,9 @@ void TdDb::open_impl(Parameters parameters, Promise<OpenedDatabase> &&promise) {
       sqlite_key = string(32, ' ');
       Random::secure_bytes(sqlite_key);
       binlog_pmc->set("sqlite_key", sqlite_key);
-      binlog_pmc->force_sync(Auto(), "TdDb::open_impl 1");
+      if (parameters.use_file_database_) {
+        binlog_pmc->force_sync(Auto(), "TdDb::open_impl 1");
+      }
     }
     new_sqlite_key = DbKey::raw_key(std::move(sqlite_key));
   } else {
