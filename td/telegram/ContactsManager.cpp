@@ -5398,7 +5398,9 @@ void ContactsManager::set_my_id(UserId my_id) {
     my_id_ = my_id;
     G()->td_db()->get_binlog_pmc()->set("my_id", to_string(my_id.get()));
     td_->option_manager_->set_option_integer("my_id", my_id_.get());
-    G()->td_db()->get_binlog_pmc()->force_sync(Promise<Unit>(), "set_my_id");
+    if (!td_->auth_manager_->is_bot()) {
+      G()->td_db()->get_binlog_pmc()->force_sync(Promise<Unit>(), "set_my_id");
+    }
   }
 }
 
