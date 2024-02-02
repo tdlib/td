@@ -964,6 +964,26 @@ void ReactionManager::load_all_saved_reaction_tags_from_database() {
   reget_saved_messages_tags(SavedMessagesTopicId(), Auto());
 }
 
+void ReactionManager::load_saved_reaction_tags_from_database(SavedMessagesTopicId saved_messages_topic_id,
+                                                             SavedReactionTags *tags) {
+  if (!G()->use_message_database()) {
+    return;
+  }
+
+  auto value = G()->td_db()->get_sqlite_sync_pmc()->get(get_saved_messages_tags_database_key(saved_messages_topic_id));
+  if (value.empty()) {
+    return;
+  }
+  if (log_event_parse(*tags, value).is_error()) {
+    LOG(ERROR) << "Failed to load all tags from database";
+    *tags = {};
+    return;
+  }
+
+  send_update_saved_messages_tags(saved_messages_topic_id, tags, true);
+  reget_saved_messages_tags(saved_messages_topic_id, Auto());
+}
+
 ReactionManager::SavedReactionTags *ReactionManager::get_saved_reaction_tags(
     SavedMessagesTopicId saved_messages_topic_id) {
   if (saved_messages_topic_id == SavedMessagesTopicId()) {
@@ -973,6 +993,7 @@ ReactionManager::SavedReactionTags *ReactionManager::get_saved_reaction_tags(
   auto &tags = topic_tags_[saved_messages_topic_id];
   if (tags == nullptr) {
     tags = make_unique<SavedReactionTags>();
+    load_saved_reaction_tags_from_database(saved_messages_topic_id, tags.get());
   }
   return tags.get();
 }
