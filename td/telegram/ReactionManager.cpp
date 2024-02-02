@@ -496,7 +496,6 @@ td_api::object_ptr<td_api::availableReactions> ReactionManager::get_sorted_avail
   if (is_tag) {
     if (is_premium) {
       auto all_tags = get_saved_reaction_tags(SavedMessagesTopicId());
-      CHECK(all_tags != nullptr);
       for (auto &tag : all_tags->tags_) {
         top_reactions.push_back(tag.reaction_type_);
       }
@@ -971,19 +970,6 @@ ReactionManager::SavedReactionTags *ReactionManager::get_saved_reaction_tags(
     load_all_saved_reaction_tags_from_database();
     return &all_tags_;
   }
-  auto it = topic_tags_.find(saved_messages_topic_id);
-  if (it != topic_tags_.end()) {
-    return it->second.get();
-  }
-  return nullptr;
-}
-
-ReactionManager::SavedReactionTags *ReactionManager::add_saved_reaction_tags(
-    SavedMessagesTopicId saved_messages_topic_id) {
-  if (saved_messages_topic_id == SavedMessagesTopicId()) {
-    load_all_saved_reaction_tags_from_database();
-    return &all_tags_;
-  }
   auto &tags = topic_tags_[saved_messages_topic_id];
   if (tags == nullptr) {
     tags = make_unique<SavedReactionTags>();
@@ -997,7 +983,7 @@ void ReactionManager::get_saved_messages_tags(SavedMessagesTopicId saved_message
     return promise.set_error(Status::Error(400, "Invalid Saved Messages topic specified"));
   }
   const auto *tags = get_saved_reaction_tags(saved_messages_topic_id);
-  if (tags != nullptr && tags->is_inited_) {
+  if (tags->is_inited_) {
     return promise.set_value(tags->get_saved_messages_tags_object());
   }
   reget_saved_messages_tags(saved_messages_topic_id, std::move(promise));
@@ -1019,8 +1005,7 @@ void ReactionManager::reget_saved_messages_tags(SavedMessagesTopicId saved_messa
                      std::move(r_tags));
       });
   const auto *tags = get_saved_reaction_tags(saved_messages_topic_id);
-  td_->create_handler<GetSavedReactionTagsQuery>(std::move(query_promise))
-      ->send(saved_messages_topic_id, tags != nullptr ? tags->hash_ : 0);
+  td_->create_handler<GetSavedReactionTagsQuery>(std::move(query_promise))->send(saved_messages_topic_id, tags->hash_);
 }
 
 void ReactionManager::on_get_saved_messages_tags(
@@ -1045,7 +1030,7 @@ void ReactionManager::on_get_saved_messages_tags(
 
   auto tags_ptr = r_tags.move_as_ok();
   bool need_send_update = false;
-  auto *reaction_tags = add_saved_reaction_tags(saved_messages_topic_id);
+  auto *reaction_tags = get_saved_reaction_tags(saved_messages_topic_id);
   switch (tags_ptr->get_id()) {
     case telegram_api::messages_savedReactionTagsNotModified::ID:
       if (!reaction_tags->is_inited_) {
@@ -1129,7 +1114,7 @@ void ReactionManager::update_saved_messages_tags(SavedMessagesTopicId saved_mess
   }
   if (saved_messages_topic_id != SavedMessagesTopicId()) {
     auto tags = get_saved_reaction_tags(saved_messages_topic_id);
-    if (tags != nullptr && tags->update_saved_messages_tags(old_tags, new_tags)) {
+    if (tags->update_saved_messages_tags(old_tags, new_tags)) {
       send_update_saved_messages_tags(saved_messages_topic_id, tags);
     }
   }
