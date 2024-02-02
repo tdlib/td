@@ -431,15 +431,12 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
                                              std::move(sponsored_message->entities_), true, true, 0, false,
                                              "on_get_dialog_sponsored_messages");
         MessageSelfDestructType ttl;
-        bool disable_web_page_preview = false;
-        auto content =
-            get_message_content(td_, std::move(message_text), nullptr, sponsor_dialog_id, G()->unix_time(), true,
-                                UserId(), &ttl, &disable_web_page_preview, "on_get_dialog_sponsored_messages");
+        auto content = get_message_content(td_, std::move(message_text), nullptr, sponsor_dialog_id, G()->unix_time(),
+                                           true, UserId(), &ttl, nullptr, "on_get_dialog_sponsored_messages");
         if (!ttl.is_empty()) {
           LOG(ERROR) << "Receive sponsored message with " << ttl;
           continue;
         }
-        CHECK(disable_web_page_preview);
 
         current_sponsored_message_id_ = current_sponsored_message_id_.get_next_message_id(MessageType::Local);
         if (!current_sponsored_message_id_.is_valid_sponsored()) {
