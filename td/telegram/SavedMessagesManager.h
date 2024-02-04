@@ -23,6 +23,10 @@ class SavedMessagesManager final : public Actor {
  public:
   SavedMessagesManager(Td *td, ActorShared<> parent);
 
+  void set_topic_last_message_id(SavedMessagesTopicId saved_messages_topic_id, MessageId last_message_id);
+
+  void on_topic_message_deleted(SavedMessagesTopicId saved_messages_topic_id, MessageId message_id);
+
   void get_pinned_saved_messages_topics(Promise<td_api::object_ptr<td_api::foundSavedMessagesTopics>> &&promise);
 
   void get_saved_messages_topics(const string &offset, int32 limit,
@@ -53,10 +57,25 @@ class SavedMessagesManager final : public Actor {
  private:
   static constexpr int32 MAX_GET_HISTORY = 100;  // server side limit
 
+  struct SavedMessagesTopic {
+    MessageId last_message_id_;
+    bool is_changed_ = true;
+  };
+
   void tear_down() final;
+
+  SavedMessagesTopic *get_topic(SavedMessagesTopicId saved_messages_topic_id);
+
+  SavedMessagesTopic *add_topic(SavedMessagesTopicId saved_messages_topic_id);
+
+  void do_set_topic_last_message_id(SavedMessagesTopic *topic, MessageId last_message_id);
+
+  void on_topic_changed(SavedMessagesTopicId saved_messages_topic_id, SavedMessagesTopic *topic);
 
   Td *td_;
   ActorShared<> parent_;
+
+  FlatHashMap<SavedMessagesTopicId, unique_ptr<SavedMessagesTopic>, SavedMessagesTopicIdHash> saved_messages_topics_;
 };
 
 }  // namespace td

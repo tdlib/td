@@ -70,6 +70,7 @@
 #include "td/telegram/RepliedMessageInfo.hpp"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/ReplyMarkup.hpp"
+#include "td/telegram/SavedMessagesManager.h"
 #include "td/telegram/SecretChatsManager.h"
 #include "td/telegram/SponsoredMessageManager.h"
 #include "td/telegram/StickerType.h"
@@ -15177,6 +15178,10 @@ void MessagesManager::on_message_deleted(Dialog *d, Message *m, bool is_permanen
   }
   if (m->is_topic_message) {
     td_->forum_topic_manager_->on_topic_message_count_changed(d->dialog_id, m->top_thread_message_id, -1);
+  }
+  if (is_permanently_deleted && !td_->auth_manager_->is_bot() && m->saved_messages_topic_id.is_valid()) {
+    CHECK(d->dialog_id == td_->dialog_manager_->get_my_dialog_id());
+    td_->saved_messages_manager_->on_topic_message_deleted(m->saved_messages_topic_id, m->message_id);
   }
 
   added_message_count_--;
@@ -32722,6 +32727,11 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   // must be called after the message is added to correctly update replies
   update_message_max_reply_media_timestamp(d, result_message, false);
   update_message_max_own_media_timestamp(d, result_message);
+
+  if (!td_->auth_manager_->is_bot() && from_update && m->saved_messages_topic_id.is_valid()) {
+    CHECK(dialog_id == td_->dialog_manager_->get_my_dialog_id());
+    td_->saved_messages_manager_->set_topic_last_message_id(m->saved_messages_topic_id, m->message_id);
+  }
 
   result_message->debug_source = source;
   d->being_added_message_id = MessageId();

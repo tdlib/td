@@ -326,6 +326,66 @@ void SavedMessagesManager::tear_down() {
   parent_.reset();
 }
 
+SavedMessagesManager::SavedMessagesTopic *SavedMessagesManager::get_topic(
+    SavedMessagesTopicId saved_messages_topic_id) {
+  CHECK(saved_messages_topic_id.is_valid());
+  auto it = saved_messages_topics_.find(saved_messages_topic_id);
+  if (it == saved_messages_topics_.end()) {
+    return nullptr;
+  }
+  return it->second.get();
+}
+
+SavedMessagesManager::SavedMessagesTopic *SavedMessagesManager::add_topic(
+    SavedMessagesTopicId saved_messages_topic_id) {
+  CHECK(saved_messages_topic_id.is_valid());
+  auto &result = saved_messages_topics_[saved_messages_topic_id];
+  if (result == nullptr) {
+    result = make_unique<SavedMessagesTopic>();
+  }
+  return result.get();
+}
+
+void SavedMessagesManager::set_topic_last_message_id(SavedMessagesTopicId saved_messages_topic_id,
+                                                     MessageId last_message_id) {
+  auto *topic = add_topic(saved_messages_topic_id);
+  do_set_topic_last_message_id(topic, last_message_id);
+  on_topic_changed(saved_messages_topic_id, topic);
+}
+
+void SavedMessagesManager::do_set_topic_last_message_id(SavedMessagesTopic *topic, MessageId last_message_id) {
+  CHECK(last_message_id.is_valid());
+  CHECK(last_message_id.is_server());
+
+  if (topic->last_message_id_ == last_message_id) {
+    return;
+  }
+
+  topic->last_message_id_ = last_message_id;
+  topic->is_changed_ = true;
+}
+
+void SavedMessagesManager::on_topic_message_deleted(SavedMessagesTopicId saved_messages_topic_id,
+                                                    MessageId message_id) {
+  auto *topic = get_topic(saved_messages_topic_id);
+  if (topic == nullptr || topic->last_message_id_ != message_id) {
+    return;
+  }
+
+  topic->last_message_id_ = MessageId();
+  topic->is_changed_ = true;
+
+  on_topic_changed(saved_messages_topic_id, topic);
+}
+
+void SavedMessagesManager::on_topic_changed(SavedMessagesTopicId saved_messages_topic_id, SavedMessagesTopic *topic) {
+  if (!topic->is_changed_) {
+    return;
+  }
+
+  // TODO send updateSavedMessagesTopic
+}
+
 void SavedMessagesManager::get_pinned_saved_messages_topics(
     Promise<td_api::object_ptr<td_api::foundSavedMessagesTopics>> &&promise) {
   td_->create_handler<GetPinnedSavedDialogsQuery>(std::move(promise))->send();
@@ -476,7 +536,16 @@ void SavedMessagesManager::on_get_saved_messages_topics(
       LOG(ERROR) << "Can't add last " << last_message_id << " to " << saved_messages_topic_id;
       total_count--;
       continue;
+    } else {
+      CHECK(full_message_id.get_message_id() == last_topic_message_id);
     }
+
+    auto *topic = add_topic(saved_messages_topic_id);
+    if (last_topic_message_id.is_valid() && topic->last_message_id_ == MessageId()) {
+      do_set_topic_last_message_id(topic, last_topic_message_id);
+    }
+    on_topic_changed(saved_messages_topic_id, topic);
+
     found_saved_messages_topics.push_back(td_api::make_object<td_api::foundSavedMessagesTopic>(
         saved_messages_topic_id.get_saved_messages_topic_object(td_),
         td_->messages_manager_->get_message_object(full_message_id, "on_get_saved_messages_topics")));
